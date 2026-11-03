@@ -88,10 +88,11 @@ class Clans(
     /** The online player with a save key, or null. */
     private val playerByKey: (String) -> Player?,
     /**
-     * Shows the client's rank list (clan_rankpopup) over the members page, titled with the given words, the current rank
-     * picked and the ranks from the first to the second number; runs the action with the rank clicked.
+     * Shows the client's rank list (clan_rankpopup) in popupoverlay, opened in the given interface and component, titled
+     * with the given words, the current rank picked and the ranks from the first to the second number (with Nobody when
+     * asked); runs the action with the rank clicked.
      */
-    private val pickRank: (Player, String, Int, Int, Int, (Int) -> Unit) -> Unit = { _, _, _, _, _, _ -> },
+    private val pickRank: (Player, RankList, (Int) -> Unit) -> Unit = { _, _, _ -> },
     private val now: () -> Instant = Instant::now,
 ) {
     /** A clan being formed: its leader, the founders who joined, the invited and the name picked. */
@@ -133,6 +134,9 @@ class Clans(
 
     /** The member each editor has the rank list open for, by save key: theirs. Gone once answered or left. */
     private val pickingRank = HashMap<String, String>()
+
+    /** The permission var each editor has the rank list open for, by save key. Gone once answered or left. */
+    private val pickingPermission = HashMap<String, Int>()
 
     private var updateNum = 0L
 
@@ -211,6 +215,7 @@ class Clans(
         shownApplicants.remove(player.saveKey)
         reviewing.remove(player.saveKey)
         pickingRank.remove(player.saveKey)
+        pickingPermission.remove(player.saveKey)
         tabs.remove(player.saveKey)
         inHub.remove(player.saveKey)
         shownName.remove(player.saveKey)
@@ -317,6 +322,7 @@ class Clans(
      */
     private fun openInfo(player: Player, asGuest: Boolean) {
         pickingRank.remove(player.saveKey)
+        pickingPermission.remove(player.saveKey)
         infoAsGuest[player.saveKey] = asGuest
         setVarbit(player, VARBIT_INFO_AS_GUEST, if (asGuest) 1 else 0)
         if (asGuest) showApplying(player)
@@ -351,6 +357,7 @@ class Clans(
             }
             component == INFO_APPLICATIONS && !asGuest -> openApplicants(player)
             component == INFO_MEMBERS && !asGuest -> openMembers(player)
+            component == INFO_PERMISSIONS && !asGuest -> openPermissions(player)
             component == INFO_QUIT && !asGuest -> {
                 val clan = clanOf(player) ?: return true
                 if (clan.member(player.saveKey)?.rank == RANK_OWNER) {
@@ -376,7 +383,7 @@ class Clans(
         tell(player, ClanLines.APPLIED, clan.name)
         // Recruiters in the channel hear of it (inferred: the Wiki says recruiters are notified, not how).
         for (member in channels[clan.id].orEmpty()) {
-            if ((clan.member(member.saveKey)?.rank ?: RANK_GUEST) >= RECRUIT_RANK) tell(member, ClanLines.NEW_APPLICANT, player.username)
+            if (has(member, clan, VAR_RECRUITMENT)) tell(member, ClanLines.NEW_APPLICANT, player.username)
         }
     }
 
@@ -440,7 +447,13 @@ class Clans(
         return true
     }
 
-    private fun isRecruiter(player: Player, clan: ClanStore.Clan): Boolean = (clan.member(player.saveKey)?.rank ?: RANK_GUEST) >= RECRUIT_RANK
+    private fun isRecruiter(player: Player, clan: ClanStore.Clan): Boolean = has(player, clan, VAR_RECRUITMENT)
+
+    /** [clan]'s permission or setting var [id]: as set, else its default. */
+    fun setting(clan: ClanStore.Clan, id: Int): Int = clan.settings[id] ?: SETTING_DEFAULTS[id] ?: RANK_NOBODY
+
+    /** Whether [player]'s rank in [clan] meets the rank its permission var [id] requires. */
+    private fun has(player: Player, clan: ClanStore.Clan, id: Int): Boolean = (clan.member(player.saveKey)?.rank ?: RANK_GUEST) >= setting(clan, id)
 
     /**
      * The settings page's Applications button as a member: the applicants page, for recruiters (inferred: others get
@@ -493,9 +506,13 @@ class Clans(
     fun clickApplicants(player: Player, component: Int): Boolean {
         if (component !in APPLICANTS_BUTTONS) return false
         if (APPLICANTS !in player.modals.values) return true
+        // Back works even after Recruitment was raised above the player's rank while the page was open.
+        if (component == APPLICANTS_EXIT) {
+            if (clanOf(player) != null) openInfo(player, asGuest = false)
+            return true
+        }
         val clan = clanOf(player)?.takeIf { isRecruiter(player, it) } ?: return true
         when (component) {
-            APPLICANTS_EXIT -> openInfo(player, asGuest = false)
             APPLICANTS_REFRESH -> showApplicants(player, clan)
             APPLICANTS_ACCEPT, APPLICANTS_REJECT -> {
                 val applicant = reviewing[player.saveKey]?.let { clan.applicant(it) }
@@ -902,7 +919,7 @@ class Clans(
             clanType,
             ClanSettingsFull.JoinUpdate(
                 (++updateNum).toInt(), created, clan.name, true, TALK_RANK, KICK_RANK, RANK_OWNER, RANK_OWNER,
-                members, emptyList(), emptyList(), false, true,
+                members, emptyList(), SETTING_DEFAULTS.keys.plus(clan.settings.keys).sorted().map { ClanSettingsFull.IntClanSetting(it, setting(clan, it)) }, false, true,
             ),
         )
     }
@@ -916,11 +933,24 @@ class Clans(
         pickingRank.remove(player.saveKey)
         openModal(player, MEMBERS)
         setEvents(player, MEMBERS, MEMBERS_EXIT, -1, -1, OP1, 0)
-        if (!mayEditRanks(player, clan)) return
-        for (column in MEMBERS_COLUMNS) setEvents(player, MEMBERS, column, 0, MAX_MEMBERS - 1, OP1, 0)
+        memberColumnEvents(player, clan)
     }
 
-    private fun mayEditRanks(player: Player, clan: ClanStore.Clan): Boolean = (clan.member(player.saveKey)?.rank ?: RANK_GUEST) >= EDIT_RANKS_RANK
+    /** The members page columns' op for [player]: on when they may edit ranks in [clan], else off. */
+    private fun memberColumnEvents(player: Player, clan: ClanStore.Clan) {
+        val ops = if (mayEditRanks(player, clan)) OP1 else 0
+        for (column in MEMBERS_COLUMNS) setEvents(player, MEMBERS, column, 0, MAX_MEMBERS - 1, ops, 0)
+    }
+
+    /** After a rank or permission change in [clan]: each online member with its members page open gets their ops again. */
+    private fun refreshMembersPages(clan: ClanStore.Clan) {
+        for (member in clan.members) {
+            val player = playerByKey(member.key) ?: continue
+            if (MEMBERS in player.modals.values) memberColumnEvents(player, clan)
+        }
+    }
+
+    private fun mayEditRanks(player: Player, clan: ClanStore.Clan): Boolean = has(player, clan, VAR_ASSIGN_RANKS)
 
     /**
      * A click on the members page. Returns whether it was one. Back goes to the settings page; Edit rank on a member
@@ -944,7 +974,8 @@ class Clans(
         }
         val key = target.key
         pickingRank[player.saveKey] = key
-        pickRank(player, words(player)[ClanLines.EDIT_RANK_TITLE, "name" to target.name], target.rank, RANK_FOUNDER, own - 1) { rank ->
+        val list = RankList(MEMBERS, MEMBERS_POPUP, words(player)[ClanLines.EDIT_RANK_TITLE, "name" to target.name], target.rank, RANK_FOUNDER, own - 1, false)
+        pickRank(player, list) { rank ->
             // Only the list still open, for this member: not after Back, another page or a newer list.
             if (pickingRank[player.saveKey] == key && MEMBERS in player.modals.values) {
                 pickingRank.remove(player.saveKey)
@@ -966,6 +997,71 @@ class Clans(
         store.setRank(clan, target, rank)
         sendSettings(clan)
         broadcastChannel(clan)
+        refreshMembersPages(clan)
+    }
+
+    /** The settings page's Permissions button as a member: the permissions page, drawn from the clan settings. */
+    private fun openPermissions(player: Player) {
+        if (clanOf(player) == null) return
+        pickingPermission.remove(player.saveKey)
+        openModal(player, PERMISSIONS)
+        setEvents(player, PERMISSIONS, PERMISSIONS_EXIT, -1, -1, OP1, 0)
+        setEvents(player, PERMISSIONS, PERMISSIONS_LIST, 0, PERMISSION_BUTTONS - 1, OP1, 0)
+    }
+
+    /**
+     * A click on the permissions page. Returns whether it was one. Back goes to the settings page. A permission's button
+     * (the list's slot is its place on the page) shows the rank list, for a member who meets both Permission access and
+     * the rank the permission requires now; the rank picked, up to their own or Nobody, is the permission's.
+     */
+    fun clickPermissions(player: Player, component: Int, slot: Int): Boolean {
+        if (component != PERMISSIONS_EXIT && component != PERMISSIONS_LIST) return false
+        if (PERMISSIONS !in player.modals.values) return true
+        val clan = clanOf(player) ?: return true
+        if (component == PERMISSIONS_EXIT) {
+            openInfo(player, asGuest = false)
+            return true
+        }
+        val id = PERMISSION_VARS[slot] ?: return true
+        if (!mayEditPermission(player, clan, id)) {
+            tell(player, ClanLines.PERMISSION_DENIED)
+            return true
+        }
+        val own = clan.member(player.saveKey)!!.rank
+        pickingPermission[player.saveKey] = id
+        // Inferred (no source): the list runs from Guest up to the editor's own rank, with Nobody; the server picks it.
+        val list = RankList(PERMISSIONS, PERMISSIONS_POPUP, words(player)[ClanLines.PERMISSION_TITLE], setting(clan, id), RANK_GUEST, own, true)
+        pickRank(player, list) { rank ->
+            if (pickingPermission[player.saveKey] == id && PERMISSIONS in player.modals.values) {
+                pickingPermission.remove(player.saveKey)
+                setPermission(player, clan.id, id, rank)
+            }
+        }
+        return true
+    }
+
+    /**
+     * Whether [player] may change permission var [id]: as client proc clan_permissions_buttonresynch (rev 241) enables a
+     * permission's button, which needs the Permission access rank and, unless the permission is set to Nobody, the rank
+     * it is set to. The server checks the same, since a client can send any button.
+     */
+    private fun mayEditPermission(player: Player, clan: ClanStore.Clan, id: Int): Boolean {
+        val rank = clan.member(player.saveKey)?.rank ?: return false
+        val set = setting(clan, id)
+        return rank >= setting(clan, VAR_PERMISSION_ACCESS) && (set == RANK_NOBODY || rank >= set)
+    }
+
+    /** A rank picked for permission var [id]: set if [editor] may still edit it and the rank is guest to theirs, or Nobody. */
+    fun setPermission(editor: Player, clanId: Long, id: Int, rank: Int) {
+        val clan = clanOf(editor)?.takeIf { it.id == clanId } ?: return
+        if (id !in PERMISSION_VARS.values || !mayEditPermission(editor, clan, id)) return
+        val own = clan.member(editor.saveKey)!!.rank
+        if (rank != RANK_NOBODY && (rank !in MEMBER_RANKS + RANK_GUEST || rank > own)) return
+        // Inferred (no source): Nobody isn't taken for Permission access, since no one could ever change it back.
+        if (id == VAR_PERMISSION_ACCESS && rank == RANK_NOBODY) return
+        store.setSetting(clan, id, rank)
+        sendSettings(clan)
+        refreshMembersPages(clan)
     }
 
     /** Shows the creation panel's list and name to [player], if they have it open. */
@@ -1078,7 +1174,7 @@ class Clans(
         const val VARBIT_INFO_AS_GUEST = 12165
         const val VARBIT_GUEST_APPLYING = 12166
 
-        /** The lowest rank told of applicants; inferred until ranks and permissions (step 11): the owner (126). */
+        /** `::clanjoin <name> recruiter`'s rank: the owner's, which every permission allows by default. */
         const val RECRUIT_RANK = 126
 
         const val INFO_MEMBERS = 20
@@ -1095,8 +1191,43 @@ class Clans(
         val MEMBER_RANKS = setOf(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 110, 115, 120, 124, 125, 126)
         const val RANK_ADMINISTRATOR = 100
 
-        /** The lowest rank that edits ranks; inferred until permissions: Administrator. */
-        const val EDIT_RANKS_RANK = RANK_ADMINISTRATOR
+        const val RANK_NOBODY = 128
+
+        /**
+         * Permission vars (varclansetting ids, proc clan_permission_get) and the cache's defaults (param_1253 of each
+         * permission's struct): Permission access, public profile, assign ranks, expel, rank titles, recruitment, ban from
+         * chat, icons. Recruitment has no default in the cache; the owner's is inferred.
+         */
+        const val VAR_PERMISSION_ACCESS = 12
+        const val VAR_PUBLIC_PROFILE = 13
+        const val VAR_ASSIGN_RANKS = 14
+        const val VAR_EXPEL = 15
+        const val VAR_RANK_TITLES = 16
+        const val VAR_RECRUITMENT = 17
+        const val VAR_BAN_FROM_CHAT = 18
+        const val VAR_ICONS = 25
+        val SETTING_DEFAULTS = mapOf(
+            VAR_PERMISSION_ACCESS to RANK_ADMINISTRATOR, VAR_PUBLIC_PROFILE to RANK_ADMINISTRATOR, VAR_ASSIGN_RANKS to RANK_ADMINISTRATOR,
+            VAR_EXPEL to RANK_ADMINISTRATOR, VAR_RANK_TITLES to RANK_ADMINISTRATOR, VAR_RECRUITMENT to RANK_OWNER,
+            VAR_BAN_FROM_CHAT to RANK_ADMINISTRATOR, VAR_ICONS to RANK_ADMINISTRATOR,
+        )
+
+        /** clans_permissions: the permissions page, its Back button, its buttons' list and the popup's place. */
+        const val INFO_PERMISSIONS = 23
+        const val PERMISSIONS = 706
+        const val PERMISSIONS_EXIT = 5
+        const val PERMISSIONS_LIST = 12
+        const val PERMISSIONS_POPUP = 14
+        const val PERMISSION_BUTTONS = 54
+
+        /**
+         * The page's buttons the server answers, by slot (clan_permission_init: Permission access first, then enum_3825's
+         * permissions in order), to their vars. The others (chat, events, coffer, hall and later ones) aren't built.
+         */
+        val PERMISSION_VARS = mapOf(
+            0 to VAR_PERMISSION_ACCESS, 1 to VAR_RANK_TITLES, 2 to VAR_ASSIGN_RANKS, 3 to VAR_RECRUITMENT, 4 to VAR_EXPEL,
+            5 to VAR_PUBLIC_PROFILE, 6 to VAR_ICONS, 9 to VAR_BAN_FROM_CHAT,
+        )
 
         /** popupoverlay, opened in clans_members:popup, and clan_rankpopup, which lists ranks in it. */
         const val MEMBERS_POPUP = 27
@@ -1234,5 +1365,10 @@ object ClanLines : Lines("clan", "Clans") {
     val DECLINED = line("declined", "your application to a clan was declined", "name")
     val EDIT_RANK_TITLE = line("edit_rank_title", "the title over the rank list when editing a member's rank", "name")
     val RANK_TOO_HIGH = line("rank_too_high", "Edit rank on a member whose rank isn't below yours", "name")
+    val PERMISSION_TITLE = line("permission_title", "the title over the rank list when changing a clan permission")
+    val PERMISSION_DENIED = line("permission_denied", "changing a clan permission your rank can't change")
     val GUEST_CANT_TALK = line("guest_cant_talk", "guest clan chat in a clan whose talk rank is above guests")
 }
+
+/** What the client's rank list shows: where it opens, its title, the rank picked, the ranks from [min] to [max], and Nobody. */
+data class RankList(val parent: Int, val component: Int, val title: String, val current: Int, val min: Int, val max: Int, val nobody: Boolean)

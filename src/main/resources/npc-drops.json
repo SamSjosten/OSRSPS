@@ -53,9 +53,69 @@
         {"nothing": true, "weight": 1}
       ],
       "source": "OSRS Wiki, Gem drop table, read 2026-11-01, as gems, with the shared talisman row as the nature talisman, the Wiki's pick above ground (Barbarian Village's barbarians and Gunthor list the nature talisman)"
+    },
+    "uncommon_seeds": {
+      "slots": 1046,
+      "lines": [
+        {"item": 5100, "name": "Limpwurt seed", "weight": 137},
+        {"item": 5323, "name": "Strawberry seed", "weight": 131},
+        {"item": 5292, "name": "Marrentill seed", "weight": 125},
+        {"item": 5104, "name": "Jangerberry seed", "weight": 92},
+        {"item": 5293, "name": "Tarromin seed", "weight": 85},
+        {"item": 5311, "name": "Wildblood seed", "weight": 83},
+        {"item": 5321, "name": "Watermelon seed", "weight": 63},
+        {"item": 5294, "name": "Harralander seed", "weight": 56},
+        {"item": 22879, "name": "Snape grass seed", "weight": 40},
+        {"item": 5295, "name": "Ranarr seed", "weight": 39},
+        {"item": 5105, "name": "Whiteberry seed", "weight": 34},
+        {"item": 5282, "name": "Mushroom spore", "weight": 29},
+        {"item": 5296, "name": "Toadflax seed", "weight": 27},
+        {"item": 5281, "name": "Belladonna seed", "weight": 18},
+        {"item": 5297, "name": "Irit seed", "weight": 18},
+        {"item": 5106, "name": "Poison ivy seed", "weight": 13},
+        {"item": 5298, "name": "Avantoe seed", "weight": 12},
+        {"item": 5280, "name": "Cactus seed", "weight": 12},
+        {"item": 5299, "name": "Kwuarm seed", "weight": 9},
+        {"item": 22873, "name": "Potato cactus seed", "weight": 8},
+        {"item": 5300, "name": "Snapdragon seed", "weight": 5},
+        {"item": 5301, "name": "Cadantine seed", "weight": 4},
+        {"item": 5302, "name": "Lantadyme seed", "weight": 3},
+        {"item": 5303, "name": "Dwarf weed seed", "weight": 2},
+        {"item": 5304, "name": "Torstol seed", "weight": 1}
+      ],
+      "source": "OSRS Wiki, Drop table#Uncommon seed drop table, read 2026-11-03: its rates out of 1,048 add up to 1,046, so the table is out of the 1,046 they make. On free-to-play worlds the roll gives coins instead, which this members world leaves out"
     }
   },
   "npcs": [
+    {"npcs": ["mossgiant", "mossgiant2", "mossgiant3", "mossgiant4"], "always": [{"item": 532, "name": "Big bones"}], "table": {"slots": 128, "lines": [
+      {"item": 1179, "name": "Black sq shield", "weight": 5},
+      {"item": 1389, "name": "Magic staff", "weight": 2},
+      {"item": 1141, "name": "Steel med helm", "weight": 2},
+      {"item": 1285, "name": "Mithril sword", "weight": 2},
+      {"item": 1243, "name": "Mithril spear", "weight": 2},
+      {"item": 1193, "name": "Steel kiteshield", "weight": 1},
+      {"item": 563, "name": "Law rune", "count": 3, "weight": 4},
+      {"item": 556, "name": "Air rune", "count": 18, "weight": 3},
+      {"item": 557, "name": "Earth rune", "count": 27, "weight": 3},
+      {"item": 562, "name": "Chaos rune", "count": 7, "weight": 3},
+      {"item": 561, "name": "Nature rune", "count": 6, "weight": 3},
+      {"item": 564, "name": "Cosmic rune", "count": 3, "weight": 2},
+      {"item": 884, "name": "Iron arrow", "count": 15, "weight": 2},
+      {"item": 886, "name": "Steel arrow", "count": 30, "weight": 1},
+      {"item": 560, "name": "Death rune", "count": 3, "weight": 1},
+      {"item": 565, "name": "Blood rune", "count": 1, "weight": 1},
+      {"item": 2353, "name": "Steel bar", "weight": 6},
+      {"item": 453, "name": "Coal", "weight": 1},
+      {"item": 1969, "name": "Spinach roll", "weight": 1},
+      {"item": 995, "name": "Coins", "count": 37, "weight": 19},
+      {"item": 995, "name": "Coins", "count": 2, "weight": 8},
+      {"item": 995, "name": "Coins", "count": 119, "weight": 10},
+      {"item": 995, "name": "Coins", "count": 300, "weight": 2},
+      {"table": "herbs", "weight": 5},
+      {"table": "uncommon_seeds", "weight": 35},
+      {"table": "gems_surface", "weight": 4}
+    ]}, "tertiary": [{"item": 13474, "name": "Ensouled giant head", "chance": "1/24"}, {"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/45"}, {"item": 22374, "name": "Mossy key", "chance": "1/150"}, {"item": 10976, "name": "Long bone", "chance": "1/400"}], "source": "OSRS Wiki, Moss giant (level 42), read 2026-11-03: the members world's lines (the mithril spear and blood rune in; the free-to-play-only 5 and 10 coins out; 2 coins at 8/128), the herb table 5/128, the uncommon seed table 35/128 and the gem table 4/128 (off the Wilderness, so the surface one). Tertiary: the ensouled head, beginner clue, mossy key off a Slayer task, and long bone. Left out: the looting bag (Wilderness), the quest's moss giant bone, the curved bone (1/5,012.5), the champion scroll and the Catacombs and Krystilia drops"},
+    {"npcs": ["deadly_red_spider"], "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/128"}], "source": "OSRS Wiki, Deadly red spider, read 2026-11-03: no bones and no main table, only the beginner clue; the looting bag, Larran's key and slayer's enchantment drop only in the Wilderness or on Krystilia's tasks"},
     {"npcs": ["young_dark_wizard", "qip_ds_young_dark_wizard1", "qip_ds_young_dark_wizard2"], "always": [{"item": 526, "name": "Bones"}], "table": {"slots": 128, "lines": [
       {"item": 1379, "name": "Staff", "weight": 8}, {"item": 1017, "name": "Wizard hat", "weight": 4}, {"item": 581, "name": "Black robe", "weight": 3},
       {"item": 557, "name": "Earth rune", "count": 36, "weight": 4},
@@ -271,7 +331,7 @@
       "source": "OSRS Wiki, Goblin, drop table 1 (most level 2 goblins), read 2026-10-30 (the goblin skull drops only during Rag and Bone Man I, which every account has done). Barbarian Village's level 5 goblins (3073 to 3076) are taken to drop the same: osrsreboxed-db's 2021 lists for them are this table less the energy potions (added since), the Wilderness-only ecumenical key aside; inferred"
     },
     {
-      "npcs": ["giantspider1"],
+      "npcs": ["giantspider1", "giantspider2"],
       "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/128"}],
       "source": "OSRS Wiki, Giant spider, read 2026-10-30: no bones; the looting bag, Larran's key and slayer's enchantment drop only in the Wilderness or on Krystilia's tasks"
     },
@@ -494,7 +554,38 @@
       "always": [{"item": 526, "name": "Bones"}],
       "source": "OSRS Wiki, Monk, read 2026-11-01: bones always; the medium clue key is the Ardougne monks' only"
     },
-    {"npcs": ["zombie_unarmed_sewer1", "zombie_unarmed_sewer2", "zombie_unarmed_sewer3"], "always": [{"item": 526, "name": "Bones"}], "table": {"slots": 128, "lines": [
+    {"npcs": ["bearded_dark_wizard", "qip_ds_young_dark_wizard3", "qip_ds_young_dark_wizard4"], "always": [{"item": 526, "name": "Bones"}], "table": {"slots": 128, "lines": [
+      {"item": 1379, "name": "Staff", "weight": 4},
+      {"item": 1017, "name": "Wizard hat", "weight": 4},
+      {"item": 581, "name": "Black robe", "weight": 3},
+      {"item": 557, "name": "Earth rune", "count": 36, "weight": 4},
+      {"item": 556, "name": "Air rune", "count": 10, "weight": 3},
+      {"item": 555, "name": "Water rune", "count": 10, "weight": 3},
+      {"item": 557, "name": "Earth rune", "count": 10, "weight": 3},
+      {"item": 554, "name": "Fire rune", "count": 10, "weight": 3},
+      {"item": 556, "name": "Air rune", "count": 18, "weight": 2},
+      {"item": 555, "name": "Water rune", "count": 18, "weight": 2},
+      {"item": 557, "name": "Earth rune", "count": 18, "weight": 2},
+      {"item": 554, "name": "Fire rune", "count": 18, "weight": 2},
+      {"item": 561, "name": "Nature rune", "count": 4, "weight": 7},
+      {"item": 562, "name": "Chaos rune", "count": 4, "weight": 6},
+      {"item": 558, "name": "Mind rune", "count": 10, "weight": 3},
+      {"item": 559, "name": "Body rune", "count": 10, "weight": 3},
+      {"item": 558, "name": "Mind rune", "count": 18, "weight": 2},
+      {"item": 559, "name": "Body rune", "count": 18, "weight": 2},
+      {"item": 565, "name": "Blood rune", "count": 2, "weight": 2},
+      {"item": 564, "name": "Cosmic rune", "count": 2, "weight": 1},
+      {"item": 563, "name": "Law rune", "count": 3, "weight": 1},
+      {"item": 995, "name": "Coins", "count": 1, "weight": 17},
+      {"item": 995, "name": "Coins", "count": 4, "weight": 9},
+      {"item": 995, "name": "Coins", "count": 30, "weight": 1},
+      {"nothing": true, "weight": 16},
+      {"item": 1444, "name": "Water talisman", "weight": 2},
+      {"item": 1442, "name": "Fire talisman", "weight": 2},
+      {"item": 3010, "name": "Energy potion(3)", "weight": 16},
+      {"item": 3008, "name": "Energy potion(4)", "weight": 3}
+    ]}, "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/35"}], "source": "OSRS Wiki, Dark wizard (levels 20, 22 and 23 share the table), read 2026-11-03: the members table (wizard hat 4/128, blood runes), after the 19 August 2026 change of the coin lines to energy potions; the Wilderness looting bag left out"},
+    {"npcs": ["zombie_unarmed_sewer1", "zombie_unarmed_sewer2", "zombie_unarmed_sewer3", "zombie_unarmed_sewer4"], "always": [{"item": 526, "name": "Bones"}], "table": {"slots": 128, "lines": [
       {"item": 1139, "name": "Bronze med helm", "weight": 4}, {"item": 1291, "name": "Bronze longsword", "weight": 1}, {"item": 1349, "name": "Iron axe", "weight": 1},
       {"item": 884, "name": "Iron arrow", "count": 5, "weight": 7}, {"item": 559, "name": "Body rune", "count": 6, "weight": 5}, {"item": 558, "name": "Mind rune", "count": 5, "weight": 5},
       {"item": 556, "name": "Air rune", "count": 13, "weight": 4}, {"item": 884, "name": "Iron arrow", "count": 8, "weight": 4}, {"item": 886, "name": "Steel arrow", "count": 5, "weight": 2},
@@ -598,7 +689,7 @@
       "source": "OSRS Wiki, Hill Giant, Drops, read 2026-11-02: the members world's lines, off Giants' Plateau (the iron full helm and steel longsword). The giant key is the page's pre-roll at 1/128 (the Wilderness's 2/128 is left out): it takes the main table's place when it hits, and the table's rows, 127/128 as listed, are the 127 slots left. The beginner clue's 1/50 is osrsreboxed's 2098 (read 2026-11-02). The looting bag and the champion scroll are left out"
     },
     {
-      "npcs": ["house_ghost", "house_ghost2", "house_ghost3", "house_ghost4", "house_ghost5"],
+      "npcs": ["house_ghost", "house_ghost2", "house_ghost3", "house_ghost4", "house_ghost5", "ghost", "ghost5", "ghost8"],
       "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/90"}],
       "source": "OSRS Wiki, Ghost, Drops (Level 19), read 2026-11-01: no bones and no main table, only the beginner clue; the Wilderness-only looting bag is left out. Skeleton (Draynor Manor) lists no drops, so it drops nothing"
     },
@@ -690,6 +781,19 @@
     },
     {"npcs": ["sos_fam_giantrat", "sos_fam_giantrat2", "sos_fam_giantrat3", "sos_fam_rat"], "always": [{"item": 526, "name": "Bones"}],
       "source": "OSRS Wiki, Giant rat (Stronghold of Security version) and Rat (Stronghold of Security rats), Drops, read 2026-11-03: bones always; the quest-only rat's tail and bones are left out"
+    },
+    {
+      "npcs": ["wizard"],
+      "always": [{"item": 526, "name": "Bones"}],
+      "table": {"slots": 128, "lines": [{"item": 1379, "name": "Staff", "weight": 8}, {"item": 577, "name": "Blue wizard robe", "weight": 7}, {"item": 579, "name": "Blue wizard hat", "weight": 3}, {"item": 562, "name": "Chaos rune", "count": 2, "weight": 8}, {"item": 561, "name": "Nature rune", "count": 2, "weight": 8}, {"item": 556, "name": "Air rune", "count": 5, "weight": 3}, {"item": 559, "name": "Body rune", "count": 5, "weight": 3}, {"item": 557, "name": "Earth rune", "count": 5, "weight": 3}, {"item": 554, "name": "Fire rune", "count": 5, "weight": 3}, {"item": 558, "name": "Mind rune", "count": 5, "weight": 3}, {"item": 555, "name": "Water rune", "count": 5, "weight": 3}, {"item": 556, "name": "Air rune", "count": 12, "weight": 2}, {"item": 559, "name": "Body rune", "count": 12, "weight": 2}, {"item": 557, "name": "Earth rune", "count": 12, "weight": 2}, {"item": 554, "name": "Fire rune", "count": 12, "weight": 2}, {"item": 558, "name": "Mind rune", "count": 12, "weight": 2}, {"item": 555, "name": "Water rune", "count": 12, "weight": 2}, {"item": 565, "name": "Blood rune", "count": 2, "weight": 1}, {"item": 563, "name": "Law rune", "count": 2, "weight": 1}, {"item": 1444, "name": "Water talisman", "weight": 3}, {"item": 1448, "name": "Mind talisman", "weight": 3}, {"item": 995, "name": "Coins", "count": 1, "weight": 23}, {"item": 995, "name": "Coins", "count": 2, "weight": 9}, {"item": 995, "name": "Coins", "count": 18, "weight": 7}, {"item": 995, "name": "Coins", "count": 30, "weight": 1}, {"nothing": true, "weight": 16}]},
+      "source": "OSRS Wiki, Wizard (level 9, id 3257), read 2026-11-03: the members table (mind talisman 3/128); the medium clue's key left out until clues are their own piece"
+    },
+    {
+      "npcs": ["lesser_demon"],
+      "always": [{"item": 25769, "name": "Vile ashes", "min": 1, "max": 2}],
+      "table": {"slots": 128, "lines": [{"item": 1157, "name": "Steel full helm", "weight": 4}, {"item": 1353, "name": "Steel axe", "weight": 4}, {"item": 1325, "name": "Steel scimitar", "weight": 3}, {"item": 1181, "name": "Mithril sq shield", "weight": 1}, {"item": 1109, "name": "Mithril chainbody", "weight": 1}, {"item": 1147, "name": "Rune med helm", "weight": 1}, {"item": 554, "name": "Fire rune", "count": 60, "weight": 8}, {"item": 562, "name": "Chaos rune", "count": 12, "weight": 5}, {"item": 560, "name": "Death rune", "count": 3, "weight": 3}, {"item": 554, "name": "Fire rune", "count": 30, "weight": 1}, {"table": "herbs", "weight": 1}, {"item": 995, "name": "Coins", "count": 120, "weight": 40}, {"item": 995, "name": "Coins", "count": 40, "weight": 29}, {"item": 995, "name": "Coins", "count": 200, "weight": 10}, {"item": 995, "name": "Coins", "count": 10, "weight": 7}, {"item": 995, "name": "Coins", "count": 450, "weight": 1}, {"item": 1993, "name": "Jug of wine", "weight": 3}, {"item": 444, "name": "Gold ore", "weight": 2}, {"table": "gems", "weight": 4}]},
+      "tertiary": [{"item": 13501, "name": "Ensouled demon head", "chance": "1/50"}],
+      "source": "OSRS Wiki, Lesser demon (level 82), read 2026-11-03: the members table (the free-to-play-only coins line out); the Wilderness looting bag, the champion scroll (no Champions' Challenge) and the Chasm of Fire contracts left out. The Wizards' Tower's caged one drops inside its cage, out of reach until Telekinetic Grab is built"
     }
   ]
 }

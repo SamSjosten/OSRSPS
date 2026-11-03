@@ -37,7 +37,9 @@ class NpcCombatTest {
     private val seqs = SeqNames(
         mapOf(
             "human_unarmedpunch" to 422, "human_unarmedblock" to 424, "human_death" to 836,
-            "human_caststrike" to 711, "human_castconfuse" to 716,
+            "human_caststrike" to 711, "human_castconfuse" to 716, "human_castweaken" to 717,
+            "giant_update_moss_attack" to 4658, "giant_update_moss_defend" to 4657, "giant_update_moss_death" to 4659,
+            "ghost_update_tendrill_attack" to 5540, "ghost_update_tendrill_defend" to 5541, "ghost_update_tendrill_death" to 5542,
             "mouse_attack" to 2705, "mouse_defend" to 2706, "mouse_death" to 2707,
             "imp_attack" to 169, "imp_block" to 170, "imp_death" to 172,
             "cow_update_attack" to 5849, "cow_update_defend" to 5850, "cow_update_death" to 5851,
@@ -65,6 +67,7 @@ class NpcCombatTest {
             "kalphite_attack_mandibles" to 1184, "kalphite_block" to 1186, "kalphite_death" to 1190,
             "dog_update_wolf_attack" to 6559, "dog_update_wolf_defend" to 6557, "dog_update_wolf_death" to 6558,
             "bear_rework_attack" to 4925, "bear_rework_defend" to 4927, "bear_rework_death" to 4929,
+            "demon_attack" to 64, "demon_block" to 65, "demon_death" to 67,
         ),
     )
 
@@ -198,6 +201,56 @@ class NpcCombatTest {
             listOf(
                 NpcRangedAttack(711, 93, 94, 95),
                 NpcRangedAttack(716, 102, 103, 104, maxHit = 0, drain = StatDrain(Skill.ATTACK, 5)),
+            ),
+            def.attacks,
+        )
+    }
+
+    @Test
+    fun `the Varrock Sewers' moss giants, spiders and ghosts fight as the Wiki has them, each max hit the formula's`() {
+        // The 241 cache's (and the DPS calculator's) Strength levels.
+        val sewer = mapOf(
+            "mossgiant" to 30, "mossgiant2" to 30, "mossgiant3" to 30, "mossgiant4" to 30, "giantspider2" to 24,
+            "deadly_red_spider" to 25, "ghost" to 13, "ghost5" to 13, "ghost8" to 13, "zombie_unarmed_sewer4" to 9,
+        )
+        val sewerTypes = NpcTypes.of(*sewer.entries.mapIndexed { i, (name, str) -> NpcType(2500 + i, name, internalName = name, stats = NpcStats(strength = str)) }.toTypedArray())
+        val combat = NpcCombat.load(sewerTypes, seqs)
+        assertEquals(sewer.size, combat.size)
+        fun def(name: String) = combat[sewerTypes.find(name)!!]!!
+        for (name in sewer.keys) {
+            assertEquals(CombatMath.npcMaxHit(sewer.getValue(name), def(name).strengthBonus), def(name).maxHit, name)
+            assertTrue(def(name).aggression != null, "$name is aggressive")
+        }
+        assertEquals(listOf(6, 3, 3, 2, 2), listOf("mossgiant", "giantspider2", "deadly_red_spider", "ghost", "zombie_unarmed_sewer4").map { def(it).maxHit })
+        assertEquals(6, def("mossgiant").attackSpeed)
+        assertEquals(AttackType.CRUSH, def("mossgiant").attackType)
+        assertEquals(AttackType.STAB, def("deadly_red_spider").attackType)
+        assertEquals(NpcCombatAnims(4658, 4657, 4659), def("mossgiant2").anims)
+        assertEquals(NpcCombatAnims(5540, 5541, 5542), def("ghost8").anims)
+        assertEquals(ElementalWeakness(Element.FIRE, 40), def("deadly_red_spider").weakness)
+        assertEquals(ElementalWeakness(Element.AIR, 50), def("ghost5").weakness)
+        assertEquals(listOf(30, 30, 30, 40), listOf("mossgiant", "giantspider2", "deadly_red_spider", "ghost").map { def(it).respawnTicks })
+        assertEquals(16, def("deadly_red_spider").defence.against(AttackType.SLASH))
+    }
+
+    @Test
+    fun `Varrock's level 20 dark wizards cast Earth Strike and Weaken from 10 tiles`() {
+        val wizards = listOf("bearded_dark_wizard", "qip_ds_young_dark_wizard3", "qip_ds_young_dark_wizard4")
+        val wizardTypes = NpcTypes.of(*wizards.mapIndexed { i, name -> NpcType(2400 + i, "Dark wizard", internalName = name, stats = NpcStats(strength = 17)) }.toTypedArray())
+        val combat = NpcCombat.load(wizardTypes, seqs)
+        assertEquals(wizards.size, combat.size)
+        val def = combat[wizardTypes.find("qip_ds_young_dark_wizard3")!!]!!
+        assertEquals(AttackType.MAGIC, def.attackType)
+        assertEquals(10, def.range)
+        assertEquals(6, def.maxHit)
+        assertEquals(4, def.attackSpeed)
+        assertEquals(50, def.respawnTicks)
+        assertTrue(def.aggression != null)
+        assertEquals(3, def.defence.against(AttackType.MAGIC))
+        assertEquals(
+            listOf(
+                NpcRangedAttack(711, 96, 97, 98),
+                NpcRangedAttack(717, 105, 106, 107, maxHit = 0, drain = StatDrain(Skill.STRENGTH, 5)),
             ),
             def.attacks,
         )
@@ -399,6 +452,30 @@ class NpcCombatTest {
         assertEquals(ElementalWeakness(Element.FIRE, 20), def("brownbear").weakness)
         assertEquals(listOf(25, 25, 25, 50, 50), listOf("mugger", "black_knight", "thief1", "warrior_woman", "brownbear").map { def(it).respawnTicks })
         assertEquals(76, def("black_knight").defence.against(AttackType.SLASH))
+    }
+
+    @Test
+    fun `the Wizards' Tower's wizards cast Fire Strike, and the caged lesser demon fights as the Wiki has it`() {
+        // The 241 cache's Strength levels: the wizard's 8, the lesser demon's 70.
+        val tower = mapOf("wizard" to 8, "lesser_demon" to 70)
+        val towerTypes = NpcTypes.of(*tower.entries.mapIndexed { i, (name, str) -> NpcType(2500 + i, name, internalName = name, stats = NpcStats(strength = str)) }.toTypedArray())
+        val combat = NpcCombat.load(towerTypes, seqs)
+        assertEquals(tower.size, combat.size)
+        fun def(name: String) = combat[towerTypes.find(name)!!]!!
+        val wizard = def("wizard")
+        assertEquals(AttackType.MAGIC, wizard.attackType)
+        assertEquals(listOf(4, 8, 30), listOf(wizard.maxHit, wizard.range, wizard.respawnTicks))
+        assertEquals(null, wizard.aggression)
+        assertEquals(3, wizard.defence.against(AttackType.MAGIC))
+        assertEquals(listOf(NpcRangedAttack(711, 99, 100, 101)), wizard.attacks)
+        val demon = def("lesser_demon")
+        assertEquals(CombatMath.npcMaxHit(70, demon.strengthBonus), demon.maxHit)
+        assertEquals(listOf(8, 4, 30), listOf(demon.maxHit, demon.attackSpeed, demon.respawnTicks))
+        assertEquals(AttackType.SLASH, demon.attackType)
+        assertEquals(-10, demon.defence.against(AttackType.MAGIC))
+        assertEquals(ElementalWeakness(Element.WATER, 40), demon.weakness)
+        assertTrue(demon.aggression != null)
+        assertEquals(NpcCombatAnims(64, 65, 67), demon.anims)
     }
 
     @Test

@@ -40,10 +40,13 @@ class NpcDropsTest {
     private val blackKnight = NpcType(516, "Black Knight", combatLevel = 33, internalName = "black_knight")
     private val gangThief = NpcType(5219, "Thief", combatLevel = 16, internalName = "qip_soa_thief_female01")
     private val grizzly = NpcType(2838, "Grizzly bear", combatLevel = 21, internalName = "brownbear")
+    private val darkWizard20 = NpcType(5088, "Dark wizard", combatLevel = 20, internalName = "qip_ds_young_dark_wizard3")
+    private val mossGiant = NpcType(2090, "Moss giant", combatLevel = 42, internalName = "mossgiant")
+    private val redSpider = NpcType(3021, "Deadly red spider", combatLevel = 34, internalName = "deadly_red_spider")
     private val outlaws = (1..10).map { NpcType(4166 + it, "Outlaw", combatLevel = 32, internalName = "surok_outlaw$it") }
     private val types = NpcTypes.of(
         man, imp, cow, rat, chicken, ram, goblin, spider, giantRat, frog, bigFrog, giantFrog, armedGoblin, unicorn, warrior, kharidMan, scorpion, shantayGuard,
-        varrockGuard, edgevilleGuard, monk, mugger, blackKnight, gangThief, grizzly, *outlaws.toTypedArray(),
+        varrockGuard, edgevilleGuard, monk, mugger, blackKnight, gangThief, grizzly, darkWizard20, mossGiant, redSpider, *outlaws.toTypedArray(),
     )
     private val objTypes = DropTestItems.objTypes()
     private val drops = NpcDrops.load(types, objTypes)
@@ -52,7 +55,7 @@ class NpcDropsTest {
     fun `the file reads, naming every item as the cache does, and the tables add up`() {
         // The test's cache knows one man, cow and so on; every other warning would be a wrong item name.
         assertTrue(drops.warnings.all { it.startsWith("no NPC called") }, drops.warnings.toString())
-        assertEquals(35, drops.size)
+        assertEquals(38, drops.size)
         val def = drops[man]!!
         assertEquals(listOf("Bones"), def.always.map { it.type.name })
         assertEquals(128, def.table!!.slots)
@@ -381,6 +384,123 @@ class NpcDropsTest {
         assertEquals(listOf("Bones", "Bear fur", "Raw bear meat"), drops[grizzly]!!.always.map { it.type.name })
         assertNull(drops[grizzly]!!.table)
         assertEquals(listOf("Ensouled bear head" to 25, "Clue scroll (beginner)" to 90), drops[grizzly]!!.tertiary.map { it.item.type.name to it.denominator })
+    }
+
+    @Test
+    fun `the Varrock Sewers' moss giants drop big bones, the Wiki's lines and the uncommon seeds`() {
+        val def = drops[mossGiant]!!
+        assertEquals(listOf("Big bones"), def.always.map { it.type.name })
+        assertEquals(
+            listOf("Ensouled giant head" to 24, "Clue scroll (beginner)" to 45, "Mossy key" to 150, "Long bone" to 400),
+            def.tertiary.map { it.item.type.name to it.denominator },
+        )
+        val random = GameRandom(53)
+        val counts = HashMap<String, Int>()
+        repeat(KILLS) {
+            for (drop in def.roll(random).drop(1)) {
+                val key = "${drop.type.name} x${drop.count}"
+                counts[key] = (counts[key] ?: 0) + 1
+            }
+        }
+        counts["any seed"] = counts.filterKeys { it.contains("seed") || it.startsWith("Mushroom spore") }.values.sum()
+        fun expect(key: String, weight: Double) {
+            val p = weight / 128
+            val mean = KILLS * p
+            val sigma = sqrt(KILLS * p * (1 - p))
+            val got = counts[key] ?: 0
+            assertTrue(abs(got - mean) <= 5 * sigma + 1, "$key: $got of $KILLS, expected about ${mean.toInt()}")
+        }
+        expect("any seed", 35.0)
+        expect("Coins x37", 19.0)
+        expect("Coins x119", 10.0)
+        expect("Coins x2", 8.0)
+        expect("Steel bar x1", 6.0)
+        expect("Black sq shield x1", 5.0)
+        expect("Law rune x3", 4.0)
+        // Limpwurt seeds are the most common seed: 137 of the table's 1,046.
+        expect("Limpwurt seed x1", 35.0 * 137 / 1046)
+        // The free-to-play-only coin lines are out.
+        assertNull(counts["Coins x5"])
+        assertNull(counts["Coins x10"])
+        // Deadly red spiders drop only a beginner clue now and then.
+        assertNull(drops[redSpider]!!.table)
+        assertEquals(emptyList(), drops[redSpider]!!.always)
+        assertEquals(listOf("Clue scroll (beginner)" to 128), drops[redSpider]!!.tertiary.map { it.item.type.name to it.denominator })
+    }
+
+    @Test
+    fun `Varrock's level 20 dark wizards drop runes, robes and energy potions as the Wiki's table says`() {
+        val def = drops[darkWizard20]!!
+        assertEquals(listOf("Bones"), def.always.map { it.type.name })
+        assertEquals(128, def.table!!.slots)
+        assertEquals(listOf("Clue scroll (beginner)" to 35), def.tertiary.map { it.item.type.name to it.denominator })
+        val random = GameRandom(47)
+        val counts = HashMap<String, Int>()
+        repeat(KILLS) {
+            for (drop in def.roll(random).drop(1)) {
+                val key = "${drop.type.name} x${drop.count}"
+                counts[key] = (counts[key] ?: 0) + 1
+            }
+        }
+        fun expect(key: String, weight: Int) {
+            val p = weight.toDouble() / 128
+            val mean = KILLS * p
+            val sigma = sqrt(KILLS * p * (1 - p))
+            val got = counts[key] ?: 0
+            assertTrue(abs(got - mean) <= 5 * sigma + 1, "$key: $got of $KILLS, expected about ${mean.toInt()}")
+        }
+        expect("Coins x1", 17)
+        expect("Energy potion(3) x1", 16)
+        expect("Coins x4", 9)
+        expect("Nature rune x4", 7)
+        expect("Chaos rune x4", 6)
+        expect("Wizard hat x1", 4)
+        expect("Fire talisman x1", 2)
+        // The coin lines the 19 August 2026 update replaced are gone.
+        assertNull(counts["Coins x2"])
+        assertNull(counts["Coins x29"])
+    }
+
+    @Test
+    fun `the Wizards' Tower's wizards drop robes, runes and coins, and the caged lesser demon its own table`() {
+        val wizard = NpcType(3257, "Wizard", combatLevel = 9, internalName = "wizard")
+        val demon = NpcType(2005, "Lesser demon", combatLevel = 82, internalName = "lesser_demon")
+        val tower = NpcDrops.load(NpcTypes.of(wizard, demon), objTypes)
+        val wizardDef = tower[wizard]!!
+        assertEquals(listOf("Bones"), wizardDef.always.map { it.type.name })
+        assertEquals(128, wizardDef.table!!.slots)
+        val demonDef = tower[demon]!!
+        assertEquals(listOf("Vile ashes"), demonDef.always.map { it.type.name })
+        assertEquals(listOf("Ensouled demon head" to 50), demonDef.tertiary.map { it.item.type.name to it.denominator })
+        val random = GameRandom(53)
+        val counts = HashMap<String, Int>()
+        val ashes = HashMap<Int, Int>()
+        repeat(KILLS) {
+            for (drop in wizardDef.roll(random).drop(1)) counts["wizard ${drop.type.name} x${drop.count}"] = (counts["wizard ${drop.type.name} x${drop.count}"] ?: 0) + 1
+            val rolled = demonDef.roll(random)
+            ashes[rolled.first().count] = (ashes[rolled.first().count] ?: 0) + 1
+            for (drop in rolled.drop(1)) counts["demon ${drop.type.name} x${drop.count}"] = (counts["demon ${drop.type.name} x${drop.count}"] ?: 0) + 1
+        }
+        fun expect(key: String, weight: Int) {
+            val p = weight.toDouble() / 128
+            val mean = KILLS * p
+            val sigma = sqrt(KILLS * p * (1 - p))
+            val got = counts[key] ?: 0
+            assertTrue(abs(got - mean) <= 5 * sigma + 1, "$key: $got of $KILLS, expected about ${mean.toInt()}")
+        }
+        expect("wizard Coins x1", 23)
+        expect("wizard Staff x1", 8)
+        expect("wizard Blue wizard robe x1", 7)
+        expect("wizard Chaos rune x2", 8)
+        expect("wizard Mind talisman x1", 3)
+        expect("demon Coins x120", 40)
+        expect("demon Coins x40", 29)
+        expect("demon Fire rune x60", 8)
+        expect("demon Steel full helm x1", 4)
+        expect("demon Rune med helm x1", 1)
+        // One or two vile ashes, about as often as each other.
+        assertEquals(setOf(1, 2), ashes.keys)
+        assertTrue(ashes.values.all { it > KILLS / 3 }, ashes.toString())
     }
 
     @Test

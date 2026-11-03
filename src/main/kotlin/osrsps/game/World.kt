@@ -138,6 +138,7 @@ import osrsps.game.content.registerDraynorManorGrounds
 import osrsps.game.content.ManorHazards
 import osrsps.game.content.registerWaterAndDummies
 import osrsps.game.content.registerWiseOldMan
+import osrsps.game.content.registerWizardsTower
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerRoguesDen
 import osrsps.game.content.registerRottenPotato
@@ -626,16 +627,18 @@ class World(
             }
         },
         playerByKey = { key -> findPlayer(key) },
-        pickRank = { player, title, current, min, max, picked ->
-            interfaces.openInside(player, Clans.MEMBERS, Clans.MEMBERS_POPUP, Clans.POPUPOVERLAY)
+        pickRank = { player, list, picked ->
+            interfaces.openInside(player, list.parent, list.component, Clans.POPUPOVERLAY)
             interfaces.runClientScript(
-                player, Clans.SCRIPT_RANK_POPUP, listOf(title, current, min, max, 0, Clans.component(Clans.MEMBERS, Clans.MEMBERS_POPUP)),
+                player, Clans.SCRIPT_RANK_POPUP,
+                listOf(list.title, list.current, list.min, list.max, if (list.nobody) 1 else 0, Clans.component(list.parent, list.component)),
             )
             scripts.start(player) {
-                // clan_rankpopup sends the rank clicked plus one.
+                // clan_rankpopup sends the rank clicked plus one (0 for Guest); closing it sends the current one's. The
+                // current rank is taken as no change: else closing a list someone else's change made stale would undo it.
                 val answer = waitForCount()
-                if (Clans.MEMBERS in player.modals.values) interfaces.closeInside(player, Clans.MEMBERS, Clans.MEMBERS_POPUP)
-                if (answer > 0) picked(answer - 1)
+                if (list.parent in player.modals.values) interfaces.closeInside(player, list.parent, list.component)
+                if (answer >= 0 && answer - 1 != list.current) picked(answer - 1)
             }
         },
         now = clansClock,
@@ -777,6 +780,7 @@ class World(
         registerDraynorManor(this)
         registerDraynorManorPeople(this)
         registerWiseOldMan(this)
+        registerWizardsTower(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)
         registerWaterAndDummies(this)
@@ -2246,6 +2250,7 @@ class World(
         if (interfaceId == Clans.INFO && clans.clickInfo(player, componentId)) return@act
         if (interfaceId == Clans.APPLICANTS && clans.clickApplicants(player, componentId)) return@act
         if (interfaceId == Clans.MEMBERS && clans.clickMembers(player, componentId, sub)) return@act
+        if (interfaceId == Clans.PERMISSIONS && clans.clickPermissions(player, componentId, sub)) return@act
         if (interfaceId == Clans.YOUR_CLAN && componentId == Clans.YOUR_CLAN_SETTINGS) {
             clans.openYourInfo(player)
             return@act
