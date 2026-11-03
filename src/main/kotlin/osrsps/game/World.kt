@@ -557,6 +557,7 @@ class World(
         },
         placeOf = ::deathPlace,
         teleport = { player, x, z, level -> teleport(player, x, z, level) },
+        drop = { player, type, count -> dropUnder(player, type, count) },
     )
 
     /**
