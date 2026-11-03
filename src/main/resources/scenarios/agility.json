@@ -1,0 +1,15 @@
+{
+  "about": "At the Draynor Village Rooftop Course's rough wall with Agility 52, so every course and shortcut built so far is open: Draynor (1), the Gnome Stronghold (1, ::tele 2474 3438), Al Kharid (20), Varrock (30) and the six Misthalin shortcuts (13 to 52). Run on and full; the bank holds a graceful set to try the run energy bonus.",
+  "notes": "For the Agility runner scripts (test-runner/examples/agility-*.json) and looking at the courses by hand. Hitpoints are a new account's 10, so a fall's damage shows.",
+  "position": { "x": 3103, "z": 3279, "level": 0 },
+  "skills": { "agility": 52 },
+  "runEnergy": 10000, "run": true,
+  "bank": [
+    { "item": "graceful_hood" },
+    { "item": "graceful_cape" },
+    { "item": "graceful_top" },
+    { "item": "graceful_legs" },
+    { "item": "graceful_gloves" },
+    { "item": "graceful_boots" }
+  ]
+}

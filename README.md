@@ -2113,6 +2113,10 @@ any varps or varbits. Scenarios are JSON files in `src/main/resources/scenarios/
 the first. The way back is kept in the save (`beforeScenario`), so a logout in the middle loses nothing. The server log
 warns at startup about any scenario naming an item the cache lacks.
 
+`agility` stands you at the Draynor Village Rooftop Course's rough wall (3103, 3279) with 52 Agility, the most anything
+built needs, so every course and shortcut is open; run on and full, and a graceful set in the bank to try its run energy
+bonus. Hitpoints stay a new account's 10, so a fall's damage shows.
+
 `lumbridge-cows` stands you in the Lumbridge cow field (3259, 3263, a tile picked from the cow spawns) with 20 Attack,
 Strength, Defence and Hitpoints, iron armour, an iron scimitar, an amulet of strength, five lobsters, a bronze axe, a
 tinderbox and 100 coins, with run on.
