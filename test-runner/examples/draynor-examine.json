@@ -1,5 +1,5 @@
 {
- "name": "Draynor piece step 16: Examine (::keys on) on the Wizards' Tower's people, a rune essence mine portal and the Rune Essence rock",
+ "name": "Draynor piece step 16: Examine (::keys on) on the Wizards' Tower's people, a rune essence mine portal, the Rune Essence rock and Draynor Manor's basement",
  "account": "test",
  "steps": [
   {
@@ -133,6 +133,54 @@
   {
    "step": "assertMessage",
    "contains": "[examine.loc_34773]",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3116 9754 0",
+   "expectMessage": "Teleported to 3116, 9754, 0",
+   "comment": "Draynor Manor's basement, at the foot of the ladder"
+  },
+  {
+   "step": "locOption",
+   "loc": "Ladder",
+   "option": "Examine",
+   "x": 3117,
+   "y": 9754,
+   "timeoutMs": 20000,
+   "comment": "puzzle_ladder"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.loc_132]",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Examine",
+   "x": 3108,
+   "y": 9758,
+   "timeoutMs": 20000,
+   "comment": "a puzzle door (multiloc 144): shut or ajar, one key"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.loc_11449]",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "locOption",
+   "loc": "Lever B",
+   "option": "Examine",
+   "x": 3118,
+   "y": 9752,
+   "timeoutMs": 20000,
+   "comment": "lever B (multiloc 147): up or down, one key"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.loc_11453]",
    "timeoutMs": 20000
   },
   {

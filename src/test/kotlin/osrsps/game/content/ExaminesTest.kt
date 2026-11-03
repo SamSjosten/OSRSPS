@@ -49,6 +49,17 @@ class ExaminesTest {
     }
 
     @Test
+    fun `Draynor Manor's basement has examines, and its doors and levers share their visible types' ones`() {
+        for (id in listOf(DraynorManorBasement.LADDER_UP, DraynorManorBasement.COFFIN)) assertEquals("examine.loc_$id", Examines.loc(id)?.key, "loc $id")
+        // A door's multiloc id and both its states (shut 11449, ajar 11450) show one text.
+        for (door in DraynorManorBasement.Door.entries) assertSame(Examines.loc(11449), Examines.loc(door.id), door.name)
+        assertSame(Examines.loc(11449), Examines.loc(11450))
+        // Lever A's multiloc id (146) and its up and down types (11451, 11452).
+        assertSame(Examines.loc(11451), Examines.loc(DraynorManorBasement.LEVERS.first()))
+        assertSame(Examines.loc(11451), Examines.loc(11452))
+    }
+
+    @Test
     fun `an examine with no words shows its key`() {
         assertEquals("[examine.npc_3105]", DialogueText.NONE[Examines.npc(3105)!!])
         assertEquals("Servant.", DialogueText(mapOf("examine.npc_3105" to "Servant."))[Examines.npc(3105)!!])
