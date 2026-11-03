@@ -112,10 +112,26 @@ data class NpcCombatDef(
      * XP for their damage ([CombatMath.withXpBonus]).
      */
     val xpBonusTenths: Int = 0,
+    /** A melee NPC's spell, cast in its place now and then while it fights in reach (the Catablepon's Weaken). */
+    val spell: NpcMeleeSpell? = null,
 )
 
-/** A stat a hit lowers by [percent] of its base level (Confuse's Attack), when it isn't lowered that far already. */
-data class StatDrain(val skill: Skill, val percent: Int)
+/**
+ * A melee NPC's spell: in reach, one turn in [chance] it casts [attack] (a magic attack, rolled against the player's
+ * Magic defence) instead of swinging, while its drain has taken less than [stopPercent] of the stat's base level plus
+ * [stopFlat]; past that it only swings. The Catablepon's Weaken "will stop casting once 8% + 3 of your total strength
+ * level has been drained", "but casts before this threshold can still bring you lower" (OSRS Wiki, Catablepon).
+ */
+data class NpcMeleeSpell(val attack: NpcRangedAttack, val chance: Int, val stopPercent: Int = 0, val stopFlat: Int = 0) {
+    /** Whether it still casts at a player whose drained stat is at [current] of [base]. */
+    fun casts(base: Int, current: Int): Boolean = base - current < base * stopPercent / 100 + stopFlat
+}
+
+/**
+ * A stat a hit lowers by [percent] of its base level (Confuse's Attack), when it isn't lowered that far already; one
+ * that [stacks] lowers it by that much from where it is each time instead (the Catablepon's Weaken), to 1 at least.
+ */
+data class StatDrain(val skill: Skill, val percent: Int, val stacks: Boolean = false)
 
 /**
  * One of a magic or ranged NPC's attacks: its animation (-1 for the NPC's own attack one), the spotanim on it as it
@@ -174,6 +190,9 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
          * A magic or ranged NPC adds `"range"` and its `"attacks"`, each `{ "anim": "human_caststrike", "cast": 93,
          * "projectile": 94, "impact": 95, "weight": 1, "maxHit": 2, "drain": { "skill": "attack", "percent": 5 } }`, all
          * optional ([NpcRangedAttack]); its `attackBonus` is its bonus for its attack type, magic or ranged.
+         * A melee NPC may add a `"spell"` it casts in reach now and then: one such attack plus `"chance"` (1 in that
+         * many turns) and `"stopsAt": { "percent": 8, "flat": 3 }` ([NpcMeleeSpell]); a drain there may be
+         * `"stacks": true`.
          *
          * `npcs` takes type ids, gameval names or menu names, as spawn files do. Animations are gameval names, which
          * [seqs] turns into ids; a name it doesn't know fails the file, unless it knows no names at all (a cache with
@@ -255,6 +274,16 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                     require(percent > -100.0 && percent <= 1000.0) { "an XP bonus of $percent%" }
                     Math.round(percent * 10).toInt()
                 },
+                spell = entry["spell"]?.jsonObject?.let { spell ->
+                    require(attackType != AttackType.MAGIC && attackType != AttackType.RANGED) { "a spell on a $attackType NPC" }
+                    val stops = spell["stopsAt"]?.jsonObject
+                    NpcMeleeSpell(
+                        attack(spell, seqs),
+                        spell.required("chance").jsonPrimitive.int.also { require(it >= 1) { "a spell chance of 1 in $it" } },
+                        stops?.get("percent")?.jsonPrimitive?.int ?: 0,
+                        stops?.get("flat")?.jsonPrimitive?.int ?: 0,
+                    )
+                },
             )
         }
 
@@ -290,6 +319,7 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                     StatDrain(
                         Skill.entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: throw IllegalArgumentException("no skill $name"),
                         drain.required("percent").jsonPrimitive.int.also { require(it in 1..100) { "drain of $it%" } },
+                        drain["stacks"]?.jsonPrimitive?.boolean ?: false,
                     )
                 },
             )

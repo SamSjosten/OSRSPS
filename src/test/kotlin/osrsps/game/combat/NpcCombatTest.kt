@@ -66,6 +66,8 @@ class NpcCombatTest {
             "mino_attack" to 4266, "mino_parry" to 4267, "mino_death" to 4265,
             "kalphite_attack_mandibles" to 1184, "kalphite_block" to 1186, "kalphite_death" to 1190,
             "dog_update_wolf_attack" to 6559, "dog_update_wolf_defend" to 6557, "dog_update_wolf_death" to 6558,
+            "catpon_attack" to 4271, "catpon_attack_breath" to 4272, "catpon_parry" to 4273, "catpon_death" to 4270,
+            "small_spider_update_attack" to 6249, "small_spider_update_defend" to 6250, "small_spider_update_death" to 6251,
             "bear_rework_attack" to 4925, "bear_rework_defend" to 4927, "bear_rework_death" to 4929,
             "demon_attack" to 64, "demon_block" to 65, "demon_death" to 67,
         ),
@@ -396,6 +398,52 @@ class NpcCombatTest {
         assertEquals(NpcCombatAnims(5571, 5574, 5575), def("sos_fam_zombie_armed3").anims)
         assertEquals(22, def("sos_fam_zombie2_c").defence.against(AttackType.CRUSH))
         assertEquals(ElementalWeakness(Element.FIRE, 20), def("sos_fam_fleshcrawler3").weakness)
+    }
+
+    @Test
+    fun `the Pit of Pestilence's catablepons, spiders and scorpions fight as the Wiki has them, each max hit the formula's`() {
+        // The 241 cache's Strength levels (the DPS calculator's).
+        val pit = mapOf(
+            "sos_pest_catablepon" to 40, "sos_pest_catablepon2" to 50, "sos_pest_catablepon3" to 60, "sos_pest_giantspider1" to 51,
+            "sos_pest_spider" to 21, "sos_pest_scorpion" to 52, "sos_pest_scorpion2" to 32,
+        )
+        val pitTypes = NpcTypes.of(*pit.entries.mapIndexed { i, (name, str) -> NpcType(2500 + i, name, internalName = name, stats = NpcStats(strength = str)) }.toTypedArray())
+        val combat = NpcCombat.load(pitTypes, seqs)
+        assertEquals(pit.size, combat.size)
+        fun def(name: String) = combat[pitTypes.find(name)!!]!!
+        for (name in pit.keys) {
+            val type = pitTypes.find(name)!!
+            assertEquals(CombatMath.npcMaxHit(type.stats.strength, def(name).strengthBonus), def(name).maxHit, name)
+            assertTrue(def(name).aggression != null, "$name is aggressive")
+        }
+        assertEquals(listOf(5, 6, 7, 7, 6, 6, 4), pit.keys.map { def(it).maxHit })
+        assertEquals(listOf(20, 25, 27, 22, 25), listOf("sos_pest_catablepon", "sos_pest_giantspider1", "sos_pest_spider", "sos_pest_scorpion", "sos_pest_scorpion2").map { def(it).respawnTicks })
+        assertEquals(NpcCombatAnims(4271, 4273, 4270), def("sos_pest_catablepon2").anims)
+        assertEquals(NpcCombatAnims(6249, 6250, 6251), def("sos_pest_spider").anims)
+        assertEquals(ElementalWeakness(Element.FIRE, 50), def("sos_pest_giantspider1").weakness)
+        // Weaken: a drain-only glare, one turn in 4, Strength down 5% a cast from where it is, until 8% + 3 is gone.
+        for (name in listOf("sos_pest_catablepon", "sos_pest_catablepon2", "sos_pest_catablepon3")) {
+            val spell = def(name).spell!!
+            assertEquals(4, spell.chance)
+            assertEquals(NpcRangedAttack(anim = 4272, projectile = 106, impact = 107, maxHit = 0, drain = StatDrain(Skill.STRENGTH, 5, stacks = true)), spell.attack)
+            // 99 Strength: 8% is 7, plus 3 is 10, so it casts at 90 and stops at 89.
+            assertTrue(spell.casts(99, 99))
+            assertTrue(spell.casts(99, 90))
+            assertFalse(spell.casts(99, 89))
+        }
+        assertNull(def("sos_pest_giantspider1").spell)
+        // "aggressive towards any level" (OSRS Wiki, Stronghold of Security); the others keep the level rule.
+        assertTrue(def("sos_pest_giantspider1").aggression!!.ignoresLevels)
+        assertFalse(def("sos_pest_scorpion").aggression!!.ignoresLevels)
+    }
+
+    @Test
+    fun `a spell on a magic NPC fails the file`() {
+        val bad = """{ "npcs": [ { "npcs": ["cow"], "attackSpeed": 4, "maxHit": 1, "attackType": "magic", "attackBonus": 0, "strengthBonus": 0,
+            "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+            "anims": { "attack": null, "defend": null, "death": null }, "respawnTicks": 10, "source": "test",
+            "spell": { "chance": 2 } } ] }"""
+        assertFailsWith<IllegalArgumentException> { NpcCombat.parse(bad, types, SeqNames.NONE) }
     }
 
     @Test

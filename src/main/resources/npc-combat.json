@@ -708,6 +708,79 @@
       "weakness": { "element": "water", "percent": 40 },
       "aggressive": true,
       "source": "OSRS Wiki, Lesser demon (level 82, id 2005), read 2026-11-03: speed 4, max hit 8, slash, no attack or melee and ranged defence bonuses, magic defence -10, weak to water 40%, respawn 30, aggressive. The Wizards' Tower's caged one is this type: its cage keeps it from reaching anyone (Wiki, Wizards' Tower). The fight animations are the demon_ ones beside the demon_ready and demon_walk the type stands and walks with"
+    },
+    {
+      "npcs": ["sos_pest_catablepon"],
+      "attackSpeed": 4, "maxHit": 5, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 40, "slash": 30, "crush": 20, "magic": 20, "light": 40, "standard": 40, "heavy": 40 },
+      "anims": { "attack": "catpon_attack", "defend": "catpon_parry", "death": "catpon_death" },
+      "respawnTicks": 20,
+      "aggressive": true,
+      "spell": { "anim": "catpon_attack_breath", "projectile": 106, "impact": 107, "maxHit": 0, "chance": 4,
+        "drain": { "skill": "strength", "percent": 5, "stacks": true }, "stopsAt": { "percent": 8, "flat": 3 } },
+      "source": "OSRS Wiki, Catablepon (Level 49) and the DPS calculator's, read 2026-11-03: speed 4, max hit 5, stab and magic, no attack bonuses, the defences, respawn 20, aggressive. Weaken drains Strength and stops once 8% + 3 is drained (the Wiki), verified; GUESSED: a cast one turn in 4 in melee reach, 5% of the base level a cast from the current level (the Weaken spell's), drain-only, and the Weaken spell's projectile and impact. It stands with 4269 and walks with 4268, beside catpon_attack, _parry and _death; catpon_attack_breath (the glare) is inferred as the cast"
+    },
+    {
+      "npcs": ["sos_pest_catablepon2"],
+      "attackSpeed": 4, "maxHit": 6, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 50, "slash": 40, "crush": 30, "magic": 30, "light": 50, "standard": 50, "heavy": 50 },
+      "anims": { "attack": "catpon_attack", "defend": "catpon_parry", "death": "catpon_death" },
+      "respawnTicks": 20,
+      "aggressive": true,
+      "spell": { "anim": "catpon_attack_breath", "projectile": 106, "impact": 107, "maxHit": 0, "chance": 4,
+        "drain": { "skill": "strength", "percent": 5, "stacks": true }, "stopsAt": { "percent": 8, "flat": 3 } },
+      "source": "OSRS Wiki, Catablepon (Level 64) and the DPS calculator's, read 2026-11-03: speed 4, max hit 6, stab and magic, no attack bonuses, the defences, respawn 20, aggressive. Weaken drains Strength and stops once 8% + 3 is drained (the Wiki), verified; GUESSED: a cast one turn in 4 in melee reach, 5% of the base level a cast from the current level (the Weaken spell's), drain-only, and the Weaken spell's projectile and impact. It stands with 4269 and walks with 4268, beside catpon_attack, _parry and _death; catpon_attack_breath (the glare) is inferred as the cast"
+    },
+    {
+      "npcs": ["sos_pest_catablepon3"],
+      "attackSpeed": 4, "maxHit": 7, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 50, "slash": 40, "crush": 30, "magic": 30, "light": 50, "standard": 50, "heavy": 50 },
+      "anims": { "attack": "catpon_attack", "defend": "catpon_parry", "death": "catpon_death" },
+      "respawnTicks": 20,
+      "aggressive": true,
+      "spell": { "anim": "catpon_attack_breath", "projectile": 106, "impact": 107, "maxHit": 0, "chance": 4,
+        "drain": { "skill": "strength", "percent": 5, "stacks": true }, "stopsAt": { "percent": 8, "flat": 3 } },
+      "source": "OSRS Wiki, Catablepon (Level 68) and the DPS calculator's, read 2026-11-03: speed 4, max hit 7, stab and magic, no attack bonuses, the defences, respawn 20, aggressive. Weaken drains Strength and stops once 8% + 3 is drained (the Wiki), verified; GUESSED: a cast one turn in 4 in melee reach, 5% of the base level a cast from the current level (the Weaken spell's), drain-only, and the Weaken spell's projectile and impact. It stands with 4269 and walks with 4268, beside catpon_attack, _parry and _death; catpon_attack_breath (the glare) is inferred as the cast"
+    },
+    {
+      "npcs": ["sos_pest_giantspider1"],
+      "attackSpeed": 4, "maxHit": 7, "attackType": "stab", "attackBonus": 10, "strengthBonus": 10,
+      "defence": { "stab": 10, "slash": 10, "crush": 10, "magic": 10, "light": 10, "standard": 10, "heavy": 10 },
+      "anims": { "attack": "spider_update_attack", "defend": "spider_update_defend", "death": "spider_update_death" },
+      "respawnTicks": 25,
+      "weakness": { "element": "fire", "percent": 50 },
+      "aggressive": { "ignoresLevels": true },
+      "source": "OSRS Wiki, Giant spider (Level 50, id 2477) and the DPS calculator's, read 2026-11-03: speed 4, max hit 7, stab, attack and strength +10, defences +10, respawn 25, weak to fire 50%. The Stronghold of Security page: \"the giant spiders are useful to train against as they are aggressive towards any level\". It stands and walks with spider_update_ready and _walk, so those fight animations are taken"
+    },
+    {
+      "npcs": ["sos_pest_spider"],
+      "attackSpeed": 4, "maxHit": 6, "attackType": "stab", "attackBonus": 35, "strengthBonus": 58,
+      "defence": { "stab": 53, "slash": 53, "crush": 53, "magic": 53, "light": 53, "standard": 53, "heavy": 53 },
+      "anims": { "attack": "small_spider_update_attack", "defend": "small_spider_update_defend", "death": "small_spider_update_death" },
+      "respawnTicks": 27,
+      "weakness": { "element": "fire", "percent": 50 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Spider (Stronghold of Security, level 24, id 2478) and the DPS calculator's, read 2026-11-03: speed 4, max hit 6, stab, attack +35, strength +58, defences +53, respawn 27, weak to fire 50%. It stands and walks with small_spider_update_ready and _walk, so those fight animations are taken. Aggressive is GUESSED, and its poison is left out: the Wiki's variant cells are unclear"
+    },
+    {
+      "npcs": ["sos_pest_scorpion"],
+      "attackSpeed": 4, "maxHit": 6, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 5, "slash": 15, "crush": 15, "magic": 0, "light": 55, "standard": 55, "heavy": 55 },
+      "anims": { "attack": "scorpion_update_attack_tail", "defend": "scorpion_update_defend", "death": "scorpion_update_death" },
+      "respawnTicks": 22,
+      "weakness": { "element": "fire", "percent": 25 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Scorpion (Level 59, id 2479) and the DPS calculator's, read 2026-11-03: speed 4, max hit 6, stab, no attack bonuses, the defences, respawn 22, aggressive, weak to fire 25%. It stands and walks with scorpion_update_ready and _walk"
+    },
+    {
+      "npcs": ["sos_pest_scorpion2"],
+      "attackSpeed": 4, "maxHit": 4, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 35, "slash": 15, "crush": 15, "magic": 30, "light": 35, "standard": 35, "heavy": 35 },
+      "anims": { "attack": "scorpion_update_attack_tail", "defend": "scorpion_update_defend", "death": "scorpion_update_death" },
+      "respawnTicks": 25,
+      "weakness": { "element": "fire", "percent": 25 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Scorpion (Level 37, id 2480) and the DPS calculator's, read 2026-11-03: speed 4, max hit 4, stab, no attack bonuses, the defences, respawn 25, aggressive, weak to fire 25%. It stands and walks with scorpion_update_ready and _walk"
     }
   ]
 }

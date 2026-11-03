@@ -1303,8 +1303,25 @@ Step 13a is the second floor, the Catacomb of Famine, in the same files: the flo
 | The portal lets through at combat level 51 or with the grain searched; every portal says `stronghold_of_security.portal_enter` | OSRS Wiki, Stronghold of Security |
 | Flesh crawlers (28, 35, 41; the bottom of the sceptre among their drops), zombies (30, 44, 53), giant rats and rats as their Wiki pages; the crawlers aggressive to any level, the zombies aggressive | OSRS Wiki, the DPS calculator; mejrs's live NPC list (148 spawns, the Wiki's counts) |
 
-Left out: the ladder down to the third floor (step 13b). Check: `test-runner/examples/catacomb-of-famine.json`;
-`HeadlessStrongholdOfSecurityTest`, `StrongholdOfSecurityTest`, `NpcCombatTest` and `NpcDropsTest` as for step 12.
+Check: `test-runner/examples/catacomb-of-famine.json`; `HeadlessStrongholdOfSecurityTest`,
+`StrongholdOfSecurityTest`, `NpcCombatTest` and `NpcDropsTest` as for step 12.
+
+Step 13b is the third floor, the Pit of Pestilence, in the same files, and a melee NPC's spell (`NpcMeleeSpell`).
+
+| Behaviour | Source |
+|-----------|--------|
+| The Catacomb's ladder down lands by the Pit's dripping vine up, which climbs back beside it; the goo covered vine in the reward room climbs back to the start of the floor, as the Catacomb's ropes | the 241 cache's locs (`sos_fam_ladd_down`, `sos_pest_ladd_up`, `sos_pest_rope_up`); the landings guessed |
+| The oozing barriers ask as the Gates of War (the door of pestilence's head), and stop once the Box of Health is opened | as step 12 |
+| The Box of Health, once: 5,000 coins, the Idea emote (`sos_emote_idea`), every lowered stat back to its level (a boost stays), its jingle | OSRS Wiki, Box of Health ("all stats including hitpoints, prayer points and strength restored") |
+| The portal lets through at combat level 76 or with the box opened; every floor's portal works at its level "even if the reward hasn't been claimed before" | OSRS Wiki, Stronghold of Security (verified) |
+| Catablepons (49, 64, 68) fight with stab and, one turn in 4 in reach, a Weaken glare: Strength down 5% of its level from where it is, no hitsplat, blocked by Protect from Magic, and no more glares once 8% + 3 is drained; the top of the sceptre among their drops | OSRS Wiki, Catablepon (the threshold verified; the chance, the 5% and the graphics guessed) |
+| Giant spiders (50, aggressive to any level), spiders (24) and scorpions (37, 59) as their Wiki pages, all aggressive; no main drop table, only their beginner clues (and the scorpions' ensouled heads) | OSRS Wiki, the DPS calculator; mejrs's live NPC list (114 spawns) |
+| A door opened from the tile beside it along its wall asks as from its own row (exploit audit R12B-2) | the passage is checked in the row the player crosses in |
+
+Left out: the dripping vine down to the fourth floor (step 14) and the swamp bubbles' Suck. Check:
+`test-runner/examples/pit-of-pestilence.json`; `HeadlessStrongholdOfSecurityTest`, `StrongholdOfSecurityTest`,
+`NpcCombatTest`, `NpcDropsTest`, `NpcMeleeSpellTest` and `HeadlessCatableponTest` (a real catablepon's Weaken through
+the client).
 
 ## Varrock
 
