@@ -2,6 +2,7 @@ package osrsps.game.combat
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -64,6 +65,7 @@ class NpcCombatTest {
             "hobgoblin_attack" to 163, "hobgoblin_attackunarmed" to 164, "hobgoblin_block" to 165, "hobgoblin_death" to 167,
             "ghost_update_normal_attack" to 5532, "ghost_update_normal_defend" to 5533, "ghost_update_normal_death" to 5534,
             "mino_attack" to 4266, "mino_parry" to 4267, "mino_death" to 4265,
+            "kalphite_attack_mandibles" to 1184, "kalphite_block" to 1186, "kalphite_death" to 1190,
             "dog_update_wolf_attack" to 6559, "dog_update_wolf_defend" to 6557, "dog_update_wolf_death" to 6558,
             "bear_rework_attack" to 4925, "bear_rework_defend" to 4927, "bear_rework_death" to 4929,
             "npc_archive_guardian_range_attack01" to 14751, "npc_archive_guardian_melee_attack01" to 14752, "npc_archive_guardian_death01" to 14749,
@@ -363,6 +365,39 @@ class NpcCombatTest {
         assertEquals(ElementalWeakness(Element.FIRE, 25), def("sos_war_wolf2").weakness)
         assertEquals(-21, def("sos_war_minotaur3").defence.against(AttackType.MAGIC))
         assertEquals(18, def("sos_war_goblin_helmet2").defence.against(AttackType.CRUSH))
+    }
+
+    @Test
+    fun `the Catacomb of Famine's flesh crawlers, zombies and giant rats fight as the Wiki has them, each max hit the formula's`() {
+        // The 241 cache's Strength levels (the DPS calculator's).
+        val famine = mapOf(
+            "sos_fam_fleshcrawler" to 2, "sos_fam_fleshcrawler3" to 2, "sos_fam_zombie_unarmed" to 29, "sos_fam_zombie2_c" to 40,
+            "sos_fam_zombie_armed" to 40, "sos_fam_zombie_armed3" to 40, "sos_fam_giantrat2" to 23, "sos_fam_rat" to 1,
+        )
+        val famineTypes = NpcTypes.of(*famine.entries.mapIndexed { i, (name, str) -> NpcType(2400 + i, name, internalName = name, stats = NpcStats(strength = str)) }.toTypedArray())
+        val combat = NpcCombat.load(famineTypes, seqs)
+        assertEquals(famine.size, combat.size)
+        fun def(name: String) = combat[famineTypes.find(name)!!]!!
+        for (name in famine.keys) {
+            val type = famineTypes.find(name)!!
+            assertEquals(CombatMath.npcMaxHit(type.stats.strength, def(name).strengthBonus), def(name).maxHit, name)
+        }
+        for (name in listOf("sos_fam_fleshcrawler", "sos_fam_zombie_unarmed", "sos_fam_zombie2_c", "sos_fam_zombie_armed3")) {
+            assertTrue(def(name).aggression != null, "$name is aggressive")
+        }
+        assertNull(def("sos_fam_giantrat2").aggression)
+        // "Flesh crawlers are aggressive to any level players" (OSRS Wiki, Flesh Crawler); the zombies keep the level rule.
+        assertTrue(def("sos_fam_fleshcrawler3").aggression!!.ignoresLevels)
+        assertTrue(def("sos_fam_fleshcrawler3").aggression!!.tolerant)
+        assertFalse(def("sos_fam_zombie_armed3").aggression!!.ignoresLevels)
+        assertEquals(listOf(1, 4, 5, 5, 3), listOf("sos_fam_fleshcrawler", "sos_fam_zombie_unarmed", "sos_fam_zombie2_c", "sos_fam_zombie_armed", "sos_fam_giantrat2").map { def(it).maxHit })
+        assertEquals(listOf(3, 5, 4), listOf("sos_fam_fleshcrawler3", "sos_fam_zombie_armed", "sos_fam_giantrat2").map { def(it).attackSpeed })
+        assertEquals(listOf(15, 35, 30), listOf("sos_fam_fleshcrawler", "sos_fam_zombie2_c", "sos_fam_giantrat2").map { def(it).respawnTicks })
+        assertEquals(NpcCombatAnims(1184, 1186, 1190), def("sos_fam_fleshcrawler").anims)
+        assertEquals(NpcCombatAnims(5578, 5579, 5580), def("sos_fam_zombie_armed").anims)
+        assertEquals(NpcCombatAnims(5571, 5574, 5575), def("sos_fam_zombie_armed3").anims)
+        assertEquals(22, def("sos_fam_zombie2_c").defence.against(AttackType.CRUSH))
+        assertEquals(ElementalWeakness(Element.FIRE, 20), def("sos_fam_fleshcrawler3").weakness)
     }
 
     @Test
