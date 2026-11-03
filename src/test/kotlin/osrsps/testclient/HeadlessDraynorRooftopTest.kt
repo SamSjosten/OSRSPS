@@ -6,7 +6,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 
+import java.util.concurrent.atomic.AtomicLong
+import osrsps.game.Inventory
+import osrsps.game.ObjType
+import osrsps.game.ObjTypes
 import osrsps.game.World
+import osrsps.game.skill.Agility
+import osrsps.game.skill.AgilityData
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
@@ -33,7 +39,7 @@ class HeadlessDraynorRooftopTest {
         Obstacle(11632, "Crate", "Climb-down", LocShape.CENTREPIECE_STRAIGHT, 0, 3102, 3261, 3, 3103, 3261),
     )
 
-    private fun server(dir: Path) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
+    private fun server(dir: Path, agilityData: AgilityData = AgilityData.load()) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
         World(
             crcs,
             CollisionMap().apply {
@@ -47,7 +53,8 @@ class HeadlessDraynorRooftopTest {
                 },
             ),
             staticLocs = StaticLocs().apply { for (o in course) add(ZoneLoc(o.id, o.shape, o.angle, o.x, o.z, o.level)) },
-            cycleMillis = millis,
+            objTypes = ObjTypes.of(ObjType(Agility.MARK_OF_GRACE, "Mark of grace", stackable = true)),
+            agilityData = agilityData, cycleMillis = millis,
         )
     }
 
@@ -95,6 +102,63 @@ class HeadlessDraynorRooftopTest {
                 assertEquals(115, client.await("the XP") { client.stat(AGILITY)?.takeIf { it.xp >= 115 } }.xp)
                 client.awaitTicks(3)
                 assertTrue(client.messages().none { it.text.startsWith("[agility.draynor_laps") })
+            }
+        }
+    }
+
+    @Test
+    fun `a lap leaves a mark of grace on a roof for the player alone, then none until three minutes have gone`(@TempDir dir: Path) {
+        // Every due lap gives a mark here, so the timer is what's tested; the odds are AgilityDataTest's.
+        val text = AgilityData::class.java.getResource(AgilityData.RESOURCE)!!.readText()
+        val always = AgilityData.parse(text.replace("\"markChance\": [2, 6]", "\"markChance\": [6, 6]"))
+        val spots = always.courses.single().markSpots
+        val minute = AtomicLong(29_000_000)
+        server(dir, always).use { server ->
+            server.world.agility.nowMinutes = { minute.get() }
+            server.login("carol").use { client ->
+                server.login("dave").use { other ->
+                    client.await("the login rebuild") { client.position }
+                    other.await("the other's login rebuild") { other.position }
+                    val carol = server.world.onlinePlayers.single { it.username == "carol" }
+                    val dave = server.world.onlinePlayers.single { it.username == "dave" }
+                    fun marks(player: osrsps.game.Player) =
+                        spots.flatMap { server.world.groundObjs.visibleAt(player, it.x, it.z, it.level) }.filter { it.id == Agility.MARK_OF_GRACE }
+
+                    client.command("tele 3104 3279 0")
+                    client.await("at the course") { client.position?.takeIf { it.x == 3104 } }
+                    client.lap()
+                    client.await("the lap count") { client.messages().firstOrNull { it.text == "[agility.draynor_laps count=1]" } }
+                    val mark = client.await("a mark on a roof") { marks(carol).singleOrNull() }
+                    assertEquals(1, mark.count)
+                    assertTrue(marks(dave).isEmpty(), "the other player can't see it")
+
+                    // Two minutes later: due at the start of the third, so this lap gives none.
+                    minute.addAndGet(2)
+                    client.command("tele 3104 3279 0")
+                    client.await("back at the start") { client.position?.takeIf { it.x == 3104 } }
+                    client.lap()
+                    client.await("the second lap count") { client.messages().firstOrNull { it.text == "[agility.draynor_laps count=2]" } }
+                    client.awaitTicks(2)
+                    assertEquals(1, marks(carol).sumOf { it.count })
+
+                    minute.addAndGet(1)
+                    client.command("tele 3104 3279 0")
+                    client.await("at the start again") { client.position?.takeIf { it.x == 3104 } }
+                    client.lap()
+                    client.await("a second mark") { Unit.takeIf { marks(carol).sumOf { it.count } == 2 } }
+
+                    // On the roof, the client is shown the mark (another level's objs aren't sent) and can take it.
+                    val first = marks(carol).first()
+                    client.command("tele ${first.x} ${first.z} 3")
+                    other.command("tele ${first.x} ${first.z} 3")
+                    client.await("the mark in view") {
+                        client.groundObjs().firstOrNull { it.id == Agility.MARK_OF_GRACE && it.coord == Coord(first.x, first.z, 3) }
+                    }
+                    other.awaitTicks(3)
+                    assertTrue(other.groundObjs().none { it.id == Agility.MARK_OF_GRACE }, "the other player is shown none")
+                    client.objOp(Agility.MARK_OF_GRACE, first.x, first.z, 3)
+                    client.await("the mark taken") { client.inventory(Inventory.INV).firstOrNull { it?.id == Agility.MARK_OF_GRACE } }
+                }
             }
         }
     }

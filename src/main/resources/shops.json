@@ -2499,6 +2499,65 @@
           "restock": 8000
         }
       ]
+    },
+    {
+      "key": "graces_graceful_clothing",
+      "title": "Grace's Graceful Clothing",
+      "inv": 279,
+      "size": 40,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 800,
+      "changePer": 0,
+      "currency": 11849,
+      "npcs": [
+        "rooftops_grace"
+      ],
+      "source": "OSRS Wiki, Grace's Graceful Clothing and Mark of Grace, read 2026-11-02: paid in marks of grace, Sells at 100.0%, Buys at 80.0%, no change with stock, and the stock table (100 of each graceful piece and 1000 amylase packs, one back a tick). The items' values are their prices in marks (Graceful hood 35, and so on). Guessed: the inv, roguesden_shop (279), as the 241 cache names no inv for Grace",
+      "stock": [
+        {
+          "item": 11850,
+          "name": "Graceful hood",
+          "count": 100,
+          "restock": 1
+        },
+        {
+          "item": 11854,
+          "name": "Graceful top",
+          "count": 100,
+          "restock": 1
+        },
+        {
+          "item": 11856,
+          "name": "Graceful legs",
+          "count": 100,
+          "restock": 1
+        },
+        {
+          "item": 11858,
+          "name": "Graceful gloves",
+          "count": 100,
+          "restock": 1
+        },
+        {
+          "item": 11860,
+          "name": "Graceful boots",
+          "count": 100,
+          "restock": 1
+        },
+        {
+          "item": 11852,
+          "name": "Graceful cape",
+          "count": 100,
+          "restock": 1
+        },
+        {
+          "item": 12641,
+          "name": "Amylase pack",
+          "count": 1000,
+          "restock": 1
+        }
+      ]
     }
   ]
 }

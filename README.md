@@ -262,6 +262,7 @@ Movement rules and where they come from:
 | Walk 1 tile a tick, run 2; an odd last tile is walked | OSRS Wiki |
 | Run drain ⌊60 + 67 × weight / 64⌋ × (1 − agility / 300), restore ⌊agility / 10⌋ + 15 a tick | OSRS Wiki, Energy |
 | Agility in those sums is the current level, a boost counting | inferred |
+| Graceful pieces worn restore energy faster: hood 3%, top 4%, legs 4%, gloves 3%, boots 3%, cape 3% (the Agility cape counts as the cape), the whole set 30%; the restore is ⌊R × (100 + bonus) / 100⌋ | OSRS Wiki, Graceful outfit and Energy (read 2026-11-02); every colour by its cache name; the Agility cape's own 3% inferred |
 | Run switches off at 0 energy; one-tile ticks don't drain | guessed |
 | Map rebuild within 16 tiles of the 104x104 build area's edge | inferred, not measured |
 | Routes cut to 25 turns | guessed |
@@ -602,6 +603,13 @@ obstacle crossed in between, the lap counts (saved with the account) and its cou
 Courses built: the Draynor Village Rooftop Course (from the rough wall north of the bank to the crate off Ned's
 house; level 1, 120 XP a lap, nothing fails since the May 2024 rework).
 
+Marks of grace: once three whole minutes of the clock have gone since a player's last mark, each lap they finish has
+the course's chance of one (2/6 on Draynor), a fifth of that when their unboosted Agility is 20 or more over the
+course's level. It lands on one of the course's spots, for them alone, and goes after ten minutes; another on the same
+tile stacks and starts the ten minutes again. The minute of the last mark is saved with the account. Grace sells the
+graceful outfit for them in the Rogues' Den, under the Toad and Chicken in Burthorpe (`game/content/RoguesDen.kt`:
+the trapdoor behind the bar, the den's door, and the passageway back up; the maze is left out), and buys it back at 80%.
+
 | Agility behaviour | Source |
 |-------------------|--------|
 | XP on completing an obstacle, none on a failure; some obstacles fail and hurt | OSRS Wiki, Agility and each course's page |
@@ -613,6 +621,12 @@ house; level 1, 120 XP a lap, nothing fails since the May 2024 rework).
 | Draynor rooftop: the animations (by their cache names), each obstacle's ticks | guessed until recorded |
 | A lap needing every obstacle; the lap progress kept across a logout | inferred, guessed |
 | The level message as a game message; fail chances (the Wiki gives none); the hit after the fall; the real tile moving when a slide's ticks are up | guessed |
+| Marks: the three-minute timer in whole minutes from the last mark, kept across a logout; 2/6 a lap, a fifth at 20 over; private, ten minutes, stacking resets the time | OSRS Wiki, Mark of Grace (read 2026-11-02) |
+| Marks: Draynor's four spots (the start's roof, Diango's Workshop, the Slayer shop, Ned's rope shop) | the Wiki's Mark of grace spawns table |
+| Marks: the spot picked at random; a failed roll leaving the timer alone | inferred |
+| Not built: marks pausing on the ground while the player is logged out (ours keep counting down), the Achievement Diary rerolls | |
+| Grace (`rooftops_grace`) at 3050,4962 in the den; her shop's stock, prices and 80% buy-back | mejrs NPCList_OSRS; OSRS Wiki, Grace's Graceful Clothing |
+| Grace's shop inv, roguesden_shop (279); the tiles the trapdoor, door and passageway take the player to; the passageway being the way out | guessed (the 241 map shows no other exit) |
 
 ## Items and inventory
 
@@ -698,6 +712,7 @@ their prices and stock are in `src/main/resources/shops.json` (the OSRS Wiki's s
 | A general store buys anything tradeable, into the first free slot; a specialist shop only what it stocks. Coins and untradeable items can't be sold; notes sell as their item | 2004Scape |
 | Each stocked item comes back (or goes down when overstocked) by one every its restock time, as the Wiki gives it; an item the shop doesn't stock goes down by one every 100 ticks and its slot goes at 0, the later items moving up. A sold-out stocked item stays at 0 | the Wiki's restock times; the rest guessed (RSMod's 100 ticks) |
 | Messages: keys under `shop.` (`ShopLines`): the value checks (a price of 1 coin has its own line), out of stock, not enough coins or space, the shop full, and the three refusals to buy; words in `data/dialogue.txt` on 214 | 2004Scape (RS2), "coins" for its "gp" as RSMod has it; not checked against live |
+| A shop with a `currency` in shops.json (Grace's: marks of grace) is paid in that item and pays out in it, at the same percentages of the item's value; it buys back the untradeable items it stocks, and won't buy its currency. Its own messages name the currency (`shop.costs_in`, `shop.buys_for_in`, `shop.not_enough_currency`, `shop.cant_sell_currency`) | the Wiki's Grace's Graceful Clothing (Buys at 80%); the messages guessed |
 
 Not built yet: Bob's Repair (he says there is nothing to repair, as there is no degrading equipment yet), ironman
 stock, noted buying (Leagues only) and every other shop.
