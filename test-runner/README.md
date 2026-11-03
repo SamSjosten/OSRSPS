@@ -244,6 +244,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `varrock-champions-guild.json`: Varrock step 10 (with `::keys on`): in through the Champions' Guild's door past the
   Guildmaster's greeting, his talk, upstairs to buy at Scavvo's and Valaine's (selling to Valaine, who buys anything),
   their talk, down the trapdoor to the basement and back up its ladder, and out of the door again.
+- `varrock-fighters.json`: Varrock step 12 (with `::keys on`): a mugger put in beside a level 3 account attacks it
+  unprovoked and is killed for its bones; a thief, the Black Knight and a grizzly bear are put in and killed (the bear
+  always drops its fur); the Blue Moon Inn's barbarian talks over the drink, screaming twice.
 - `varrock-skilling.json`: Varrock step 11 (with `::keys on`): mines copper at the south-east mine, hammers a bronze
   dagger on the west anvils, cooks a shrimp on a house's range, chops a dying tree to its stump, fills buckets at a sink
   and a well, and hits a training dummy north of the East Bank until level 8 has nothing more to teach.

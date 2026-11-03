@@ -1,0 +1,62 @@
+{
+ "name": "Varrock step 12 (with ::keys on): a mugger put in beside a new account's level 3 attacks it and is killed (bones); a thief, the Black Knight and a grizzly bear each put in on a quiet tile and killed with their deaths and drops; the Blue Moon Inn's barbarian's talk over the drink and her screaming test",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats (combat level 3) and an empty backpack; ::reset at the end puts it back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::tele 3318 3228 0", "expectMessage": "Teleported to 3318, 3228, 0", "comment": "a quiet tile in Al Kharid's north-east, as varrock-guards.json uses, so each NPC put in is the nearest"},
+
+  {"step": "command", "text": "::npc mugger", "expectMessage": "Spawned Mugger (513)"},
+  {"step": "assertHitsplat", "self": true, "timeoutMs": 20000, "comment": "the mugger goes for a level 3 player (twice its 6 or less) without being attacked"},
+  {"step": "command", "text": "::kill mugger", "expectMessage": "Killed Mugger #"},
+  {"step": "assertAnimation", "npc": "Mugger", "id": 836, "timeoutMs": 10000, "comment": "human_death"},
+  {"step": "assertGroundItem", "item": "Bones", "timeoutMs": 15000, "comment": "the rest of its table is checked in NpcDropsTest"},
+
+  {"step": "command", "text": "::npc qip_soa_thief_male01", "expectMessage": "Spawned Thief (5217)"},
+  {"step": "command", "text": "::kill thief", "expectMessage": "Killed Thief #"},
+  {"step": "assertAnimation", "npc": "Thief", "id": 836, "timeoutMs": 10000, "comment": "human_death"},
+
+  {"step": "command", "text": "::npc black_knight", "expectMessage": "Spawned Black Knight (516)"},
+  {"step": "command", "text": "::kill black", "expectMessage": "Killed Black Knight #"},
+  {"step": "assertAnimation", "npc": "Black Knight", "id": 836, "timeoutMs": 10000, "comment": "human_death"},
+
+  {"step": "command", "text": "::npc brownbear", "expectMessage": "Spawned Grizzly bear (2838)"},
+  {"step": "command", "text": "::kill grizzly", "expectMessage": "Killed Grizzly bear #"},
+  {"step": "assertAnimation", "npc": "Grizzly bear", "id": 4929, "timeoutMs": 10000, "comment": "bear_rework_death"},
+  {"step": "assertGroundItem", "item": "Bear fur", "timeoutMs": 15000, "comment": "with its bones and meat, always"},
+
+  {"step": "command", "text": "::npc barbarianwoman_varrock", "expectMessage": "Spawned Barbarian (3262)"},
+  {"step": "npcOption", "npcId": 3262, "option": "Talk-to", "timeoutMs": 20000, "comment": "the Blue Moon Inn's barbarian, her own talk"},
+  {"step": "assertDialogue", "contains": "[blue_moon_barbarian.hello"},
+  {"step": "continueDialogue"},
+  {"step": "assertDialogue", "contains": "[blue_moon_barbarian.what_want"},
+  {"step": "continueDialogue"},
+  {"step": "chooseOption", "text": "[blue_moon_barbarian.drink]"},
+  {"step": "assertDialogue", "contains": "[blue_moon_barbarian.drink_1"},
+  {"step": "continueDialogue"},
+  {"step": "assertDialogue", "contains": "[blue_moon_barbarian.drink_2"},
+  {"step": "continueDialogue"},
+  {"step": "assertDialogue", "contains": "[blue_moon_barbarian.drink_3"},
+  {"step": "continueDialogue"},
+  {"step": "assertDialogue", "contains": "[blue_moon_barbarian.drink_4"},
+  {"step": "continueDialogue"},
+  {"step": "assertDialogue", "contains": "[blue_moon_barbarian.drink_5"},
+  {"step": "continueDialogue"},
+  {"step": "assertDialogue", "contains": "[blue_moon_barbarian.yell"},
+  {"step": "continueDialogue"},
+  {"step": "assertDialogue", "contains": "[blue_moon_barbarian.player_yell"},
+  {"step": "continueDialogue"},
+  {"step": "assertDialogue", "contains": "[blue_moon_barbarian.yell"},
+  {"step": "continueDialogue"},
+  {"step": "assertDialogue", "contains": "[blue_moon_barbarian.player_yell"},
+  {"step": "continueDialogue"},
+  {"step": "assertDialogue", "contains": "[blue_moon_barbarian.drink_end"},
+  {"step": "continueDialogue"},
+  {"step": "assertNoDialogue"},
+
+  {"step": "command", "text": "::delnpc mine", "expectMessage": "Removed"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
