@@ -513,7 +513,7 @@ branch, check the merge, and comment \`@codex review\`.`,
 // automerge/batch never reaches the pull request: the ruleset waited on codex-review for ever (#326, #329,
 // 2026-11-01). So the carrier's branch gets a copy of the batch commit (same tree, parents and message, so the
 // same batch), and the batch branch follows it.
-async function promote(github, git, repo, core, batch, carrier, pr, result) {
+async function promote(github, git, repo, core, sleep, batch, carrier, pr, result) {
   const sha = recommit(git, batch.sha);
   try {
     // Only over the head the queue saw: the last member's own head, or (put right) the batch commit it replaces.
@@ -526,8 +526,22 @@ async function promote(github, git, repo, core, batch, carrier, pr, result) {
   }
   core.info(`batch ${batch.sha.slice(0, 7)} is green: it becomes #${carrier.number}'s head as ${sha.slice(0, 7)}`);
   await writeCheck(github, repo, sha, result);
-  // A push with the workflow token starts no workflows, and the new sha has none of the batch's checks.
-  await github.rest.actions.createWorkflowDispatch({ ...repo, workflow_id: 'build.yml', ref: pr.head.ref });
+  // As with a merge of main: GitHub may hold the push's pull_request runs for a maintainer's approval, and while one
+  // waits the pull request stays blocked, green dispatched build or not. Nothing else wakes the queue to approve it
+  // when the queue is quiet: the dispatched build's end starts no workflow_run (it was started with the workflow's
+  // token) and the 15-minute schedule runs hours apart (#459 sat blocked from 04:47Z to 04:59Z on 2026-11-03, until a
+  // label woke the queue). So the held runs are approved here; with none, the push started nothing and a dispatched build
+  // stands in.
+  let held = { waiting: 0, approved: 0 };
+  for (let i = 0; i < 6 && !held.waiting; i++) {
+    await sleep(5000);
+    held = await approveWaiting(github, repo, core, sha);
+  }
+  if (!held.waiting) {
+    await github.rest.actions.createWorkflowDispatch({ ...repo, workflow_id: 'build.yml', ref: pr.head.ref });
+  } else if (held.approved < held.waiting) {
+    await askForApproval(github, repo, core, sleep, carrier.number, sha, held.refused);
+  }
   git(['push', '--force', '--quiet', 'origin', `${sha}:refs/heads/${BATCH}`]);
   return true;
 }
@@ -541,7 +555,7 @@ async function advanceBatch(github, git, repo, core, sleep, now, batch, mainSha,
     if (await filedElsewhere(github, repo, batch.sha, carrierState.pr.head.ref)) {
       // Promoted before the copy above: its codex-review sits under automerge/batch, where the ruleset doesn't see it.
       const result = await evaluate(github, git, repo, { number: carrier.number, head: { sha: batch.sha } });
-      if (result.conclusion === 'success') return promote(github, git, repo, core, batch, carrier, carrierState.pr, result);
+      if (result.conclusion === 'success') return promote(github, git, repo, core, sleep, batch, carrier, carrierState.pr, result);
       return false;
     }
     core.info(`batch ${batch.sha.slice(0, 7)} is #${carrier.number}'s head: waiting for auto-merge`);
@@ -583,7 +597,7 @@ async function advanceBatch(github, git, repo, core, sleep, now, batch, mainSha,
     }
     // Merging itself, the batch, made on main, becomes main: every member's head is in it.
     if (self) return moveMain(github, repo, core, batch.base, batch.sha, `batch ${batch.sha.slice(0, 7)}`);
-    return promote(github, git, repo, core, batch, carrier, carrierState.pr, result);
+    return promote(github, git, repo, core, sleep, batch, carrier, carrierState.pr, result);
   }
   const half = batch.members.slice(0, Math.ceil(batch.members.length / 2));
   core.info(`batch ${batch.sha.slice(0, 7)} failed: ${half.map(m => `#${m.number}`).join(', ')} go again`);
