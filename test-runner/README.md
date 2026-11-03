@@ -332,6 +332,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `essence-mine.json`: Draynor step 15a: Archmage Sedridor's talk (`::keys on`) and his Teleport sending the player to
   the rune essence mine, the north-west portal back to the Wizards' Tower basement, and the Rune Essence rock giving
   rune essence below Mining 30 and pure essence from 30, mining on by itself. Needs 0.7.0 for `assertSpotanim`.
+- `wizards-tower-people.json`: Draynor step 15b: the Wizards' Tower's people (`::keys on`): Professor Onglewip's talk,
+  Wizard Traiborn's wizard branch, Wizard Grayzag's lines, and Wizard Mizgog's Purchase Amulet turning away a player
+  without the beads, then his talk trading one of each bead for an amulet of accuracy.
 - `lumbridge-take-items.json`: takes one item spawn in each area outside the castle (the general store's onion,
   Lozar's iron dagger, an egg and the shears at Fred's farm, the Groats' bucket, Father Urhney's leather gloves, swamp
   tar), teleporting onto each tile.
