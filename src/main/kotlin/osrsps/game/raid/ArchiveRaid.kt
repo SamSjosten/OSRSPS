@@ -358,7 +358,13 @@ class ArchiveRaids(private val world: World) {
      * with nobody left standing (the last standing one logged out) wipes.
      */
     fun process() {
-        runs.values.removeIf { run -> world.instances.all.none { it === run.instance } }
+        runs.values.removeIf { run ->
+            val ended = world.instances.all.none { it === run.instance }
+            // Everyone out at once (the last standing with a member down, both by Home Teleport on one tick): the
+            // instance ended before this look, and whoever was down got out all the same.
+            if (ended && !run.wiped) settleEscapes(run, ended = true)
+            ended
+        }
         for (run in runs.values.toList()) {
             if (run.wiped) continue
             // A fight whose boss has died: its room is done.
@@ -380,13 +386,20 @@ class ArchiveRaids(private val world: World) {
                 }
                 if (room !in run.started && room !in run.cleared && room.stage == run.stage && !built(room)) begin(run, room)
             }
-            // A member down who got out of the run, by a teleport or by leaving the party, dies of it (RAID-2).
-            for (key in run.downed.toList()) {
-                val player = world.onlinePlayers.firstOrNull { it.saveKey == key } ?: continue
-                if (!player.dead && !run.instance.contains(player.x, player.z)) escaped(run, player)
-            }
+            settleEscapes(run, ended = false)
             val present = present(run)
             if (present.isNotEmpty() && present.none { it.dead } && standing(run).isEmpty()) wipe(run, null)
+        }
+    }
+
+    /**
+     * A member down who got out of [run], by a teleport or by leaving the party, dies of it (RAID-2). Once its
+     * instance has [ended], everyone is out of it.
+     */
+    private fun settleEscapes(run: ArchiveRun, ended: Boolean) {
+        for (key in run.downed.toList()) {
+            val player = world.onlinePlayers.firstOrNull { it.saveKey == key } ?: continue
+            if (!player.dead && (ended || !run.instance.contains(player.x, player.z))) escaped(run, player)
         }
     }
 

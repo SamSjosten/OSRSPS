@@ -405,16 +405,59 @@ class HeadlessArchiveRaidTest {
     }
 
     /**
-     * Home Teleport to Lumbridge's lodestone with the world paused by [clock]: the cast, the map, the pick, held for the
-     * next tick. Returns once the pick is in, the world still paused.
+     * Home Teleport to Lumbridge's lodestone for each of [casters] at once, with the world paused by [clock]: the cast,
+     * the map, the pick, held for the next tick. Returns once the picks are in, the world still paused.
      */
-    private fun HeadlessClient.homeTeleportPicked(clock: HeadlessClient) {
-        ifButton(Spells.SPELLBOOK, HomeTeleport.COMPONENT, HomeTeleport.CAST)
-        awaitCycles(2)
+    private fun homeTeleportsPicked(clock: HeadlessClient, vararg casters: HeadlessClient) {
+        for (caster in casters) caster.ifButton(Spells.SPELLBOOK, HomeTeleport.COMPONENT, HomeTeleport.CAST)
+        for (caster in casters) caster.awaitCycles(2)
         clock.stepTicks(1)
-        await("the lodestone map") { if (LodestoneMap.INTERFACE in openInterfaces() && opEnabled(LodestoneMap.INTERFACE, LodestoneMap.CLOSE, -1, LodestoneMap.CLOSE_OP)) Unit else null }
-        ifButton(LodestoneMap.INTERFACE, LodestoneMap.row(Lodestones.LUMBRIDGE), LodestoneMap.TELEPORT)
-        awaitCycles(2)
+        for (caster in casters) {
+            caster.await("the lodestone map") {
+                if (LodestoneMap.INTERFACE in caster.openInterfaces() && caster.opEnabled(LodestoneMap.INTERFACE, LodestoneMap.CLOSE, -1, LodestoneMap.CLOSE_OP)) Unit else null
+            }
+        }
+        for (caster in casters) caster.ifButton(LodestoneMap.INTERFACE, LodestoneMap.row(Lodestones.LUMBRIDGE), LodestoneMap.TELEPORT)
+        for (caster in casters) caster.awaitCycles(2)
+    }
+
+    private fun HeadlessClient.homeTeleportPicked(clock: HeadlessClient) = homeTeleportsPicked(clock, this)
+
+    @Test
+    fun `a member down who Home Teleports out on the tick the last one standing does still dies of it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("frank").use { frank ->
+                server.login("dave").use { dave ->
+                    server.login("carol").use { carol ->
+                        // Frank, out of the party, holds the clock.
+                        for (client in listOf(carol, dave, frank)) client.await("the login rebuild") { client.position }
+                        carol.commandReply("raidparty invite dave") { it.startsWith("Invited") }
+                        dave.commandReply("raidparty accept carol") { it.startsWith("You joined") }
+                        val run = carol.enter(server, "carol")
+                        assertEquals(run, dave.enter(server, "dave"))
+                        val carolPlayer = server.world.playerNamed("carol")!!
+                        carol.commandReply("item bronze axe 5") { it.contains("Bronze axe") }
+                        carol.command("hit 99 me")
+                        carol.await("Carol down") { if (carolPlayer.saveKey in run.downed && !carolPlayer.dead) Unit else null }
+                        carol.awaitTicks(World.LOGOUT_COMBAT_TICKS.toInt() + 1)
+                        // Both teleport out together: the instance is empty, and ends, before the next look for escapes.
+                        frank.commandReply("pause") { it.contains("aused after tick") }
+                        homeTeleportsPicked(frank, carol, dave)
+                        var ticks = 0
+                        while (run.instance.contains(carolPlayer.x, carolPlayer.z)) {
+                            check(++ticks <= 60) { "no landing within 60 ticks of the picks" }
+                            frank.stepTicks(1)
+                        }
+                        frank.stepTicks(2)
+                        frank.commandReply("resume") { it.startsWith("Resumed") }
+                        assertTrue(server.world.instances.all.none { it === run.instance }, "the run's instance ended")
+                        carol.awaitAt(Tile(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z), "Carol dead of it, in the lobby")
+                        carol.await("Carol's three axes") { carol.inventory(INVENTORY).count { it?.id == axe.id }.takeIf { it == 3 } }
+                        server.assertGraveInLobby(carolPlayer.saveKey, "carol", 2)
+                    }
+                }
+            }
+        }
     }
 
     @Test
