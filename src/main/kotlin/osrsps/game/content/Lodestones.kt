@@ -42,9 +42,10 @@ object LodestoneLines : Lines("lodestone", "Lodestone_Network") {
  * sees the one loc ([Site.id]) and the one option on it, and answers by the player's varbit. The cast is Home
  * Teleport's machinery ([HomeTeleport.castTo]) with the stones' own timing and no cooldown.
  *
- * Guessed: the stones' tiles (RS3's spots, by the Wiki's descriptions and the OSRS map, placed where the ground is
- * flat and clear; `::pos` and a change to [SITES] move one), landing on the stone's centre tile, the stages' ticks
- * (Home Teleport's, stretched to 28), and the map's look ([LodestoneMap]).
+ * Guessed: the stones' tiles (RS3's spots, by the Wiki's descriptions, moved to where the 241 map's ground is flat,
+ * outdoors and clear, the tile around included: RS3's Al Kharid spot is inside a house here, Edgeville's in the river,
+ * Draynor's under an oak; `::pos` and a change to [SITES] move one), landing on the stone's centre tile, the stages'
+ * ticks (Home Teleport's, stretched to 28), and the map's look ([LodestoneMap]).
  */
 object Lodestones {
     /** The child types the client draws: the dormant stone and the active one. */
@@ -115,14 +116,17 @@ object Lodestones {
 
     /**
      * The sites, in the menu's order. Lumbridge's stone is outside the castle's east gate on the way to the bridge;
-     * Draynor's by the village's north road; Varrock's south of the city's south gate; Al Kharid's north of the
-     * palace, by the gate; Edgeville's south of the bank, by the river. Tiles guessed (see the class note).
+     * Draynor's on the village's north road, west of the oak at the signpost; Varrock's south of the city's south
+     * gate; Al Kharid's north of the palace's north door, between the well and the cactus; Edgeville's west of the
+     * bank, on the river's east bank below the general store. Tiles guessed (see the class note); each 3 by 3 and
+     * the ring of tiles around it are open ground on the 241 map (Lumbridge's west side stands against the castle
+     * wall), so a player can walk onto every stone.
      */
     val LUMBRIDGE = Site(0, LodestoneLines.LUMBRIDGE, 3232, 3220)
-    val DRAYNOR = Site(1, LodestoneLines.DRAYNOR, 3104, 3297)
+    val DRAYNOR = Site(1, LodestoneLines.DRAYNOR, 3098, 3298)
     val VARROCK = Site(2, LodestoneLines.VARROCK, 3213, 3375)
-    val AL_KHARID = Site(3, LodestoneLines.AL_KHARID, 3296, 3191)
-    val EDGEVILLE = Site(4, LodestoneLines.EDGEVILLE, 3066, 3504)
+    val AL_KHARID = Site(3, LodestoneLines.AL_KHARID, 3295, 3185)
+    val EDGEVILLE = Site(4, LodestoneLines.EDGEVILLE, 3072, 3504)
 
     val SITES = listOf(LUMBRIDGE, DRAYNOR, VARROCK, AL_KHARID, EDGEVILLE)
 
