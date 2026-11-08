@@ -58,9 +58,9 @@
   },
   {
    "step": "command",
-   "text": "::tele 3104 3361 1",
-   "expectMessage": "Teleported to 3104, 3361, 1",
-   "comment": "beside the spiral stairs to the top floor"
+   "text": "::tele 3106 3363 1",
+   "expectMessage": "Teleported to 3106, 3363, 1",
+   "comment": "east of the spiral stairs to the top floor, their open side (the stairs at 3104, 3362 are 2 by 2; found on rl-client 2026-11-08: from 3104, 3361 the way round is the whole floor)"
   },
   {
    "step": "locOption",
