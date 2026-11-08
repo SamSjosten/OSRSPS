@@ -17,7 +17,7 @@ import osrsps.game.npc.Npcs
 import osrsps.map.Tile
 
 /**
- * The Archive Guardian (raid steps 16a and 16b), the first boss of every Archive run: three phases on the cache's two forms.
+ * The Archive Guardian (raid steps 16a to 16c), the first boss of every Archive run: three phases on the cache's two forms.
  *
  * - **Shield**: levitating (`tfa_guardian`, 16659), its hitpoints the shield's (the Wiki's "Flying" row, 550 to 1,950).
  *   It shoots its tank, the first player it took on, every 5 ticks (ranged, max hit 25), and slams whoever stands under
@@ -43,7 +43,8 @@ import osrsps.map.Tile
  * attack 5 ticks into each phase, the laser every [LASER_EVERY] ticks landing [LASER_DELAY] after it is aimed); the
  * slam's and the blast's damage ([SLAM_MAX], [BLAST_MIN] to [BLAST_MAX]); the laser's ([laserDamage]) and its line, from
  * the Guardian's middle through its target to [LASER_LENGTH] tiles; Protect from Magic taking a tenth off it; the
- * grounded form's 40% fire weakness (a guide's); that it never moves, and keeps one tank till they fall.
+ * grounded form's 40% fire weakness (a guide's); that it never moves, and keeps one tank till they fall or are out of
+ * its shot, when it turns on someone in it.
  *
  * Step 16b, from guides (osrstoolkit, runescapeguides, bald.gg; read 2026-11-03) and the cache's mushroom locs and
  * `archive_guardian_tentacle` Vine: mushrooms ([mushrooms]) in the shield phase and between lasers at the end, bursting
@@ -51,7 +52,14 @@ import osrsps.map.Tile
  * tiles off; vines ([vines]) from [VINES_FROM] ticks into the grounded phase and every [VINES_EVERY] after, each on its
  * player's side away from the boss, swiping the 3x3 round it [VINE_SWIPES] times, Protect from Melee holding a swipe to
  * [VINE_PROTECTED_MAX]. Guessed: [MUSHROOMS_EVERY], [MUSHROOM_GROW], [MUSHROOM_FUSE], the splash, [MUSHROOM_POISON],
- * [WEARY_TICKS] and [VINE_MAX]. The inert guardians are step 16c.
+ * [WEARY_TICKS] and [VINE_MAX].
+ *
+ * Step 16c, from guides (runescapeguides, osrstoolkit; read 2026-11-03) and the cache's `tfa_guardian_battery_*`: four
+ * inert guardians round the hall ([BATTERY_SPOTS], guessed), three awake under the shield; one beaten to 0 is charged
+ * ([charge]), taking [BATTERY_SHIELD_PERCENT] of the shield off, and spent. The south-east one never wakes. In the last
+ * phase the laser breaks the first one behind its target ([behind]), cutting the laser by [BATTERY_LASER_CUT_PERCENT]
+ * and taking [BATTERY_BEAM_PERCENT] of the Guardian's hitpoints, never into kill range ([KILL_RANGE_PERCENT]); those
+ * three figures are guessed.
  */
 object ArchiveGuardian {
     /** What `::raid` and the raid flow know the fight by. */
@@ -146,6 +154,31 @@ object ArchiveGuardian {
     const val VINE_MAX = 22
     const val VINE_PROTECTED_MAX = 11
 
+    /** `tfa_guardian_battery_inactive`, `_active` and `_destroyed`: an inert guardian round the hall, asleep, chargeable, spent. */
+    const val BATTERY_INACTIVE = 16661
+    const val BATTERY_ACTIVE = 16662
+    const val BATTERY_SPENT = 16663
+
+    /** A charged inert guardian takes this share of the shield's most hitpoints off it, in percent (a guide's ~40%: 596 of 1,490). */
+    const val BATTERY_SHIELD_PERCENT = 40
+
+    /**
+     * An inert guardian the laser breaks hits the Guardian for this share of its most hitpoints, in percent, unless that
+     * would take it into kill range, [KILL_RANGE_PERCENT] or less, where they stop hurting it; and it takes this share of
+     * the laser off the players on the line. All guessed: the guides say only that it is damaged, and the beam reduced.
+     */
+    const val BATTERY_BEAM_PERCENT = 10
+    const val KILL_RANGE_PERCENT = 10
+    const val BATTERY_LASER_CUT_PERCENT = 50
+
+    /**
+     * The four inert guardians, north-west, north-east, south-west and south-east, by their south-west tiles from the
+     * Guardian's middle; the south-east one never wakes, so only the laser reaches it (a guide's). Where they stand is
+     * guessed: level with it and ten tiles south, clear of the hall's pillars and doors.
+     */
+    val BATTERY_SPOTS: List<Pair<Int, Int>> = listOf(-9 to 1, 8 to 1, -9 to -9, 8 to -9)
+    const val SOUTH_EAST = 3
+
     /** The laser's damage, before it is shared: [LASER_PER_PLAYER] for each player in the fight, [LASER_MIN] at least. */
     const val LASER_MIN = 80
     const val LASER_PER_PLAYER = 40
@@ -161,8 +194,9 @@ object ArchiveGuardian {
     fun def(types: NpcTypes): EncounterDef? {
         val flying = types[FLYING] ?: return null
         val grounded = types[GROUNDED] ?: return null
-        // A cache without the vine (a test world's) has the fight without them.
+        // A cache without the vine or the inert guardians (a test world's) has the fight without them.
         val vine = types[VINE]
+        val batteries = Batteries.of(types)
         return EncounterDef(
             NAME, flying,
             listOf(
@@ -172,11 +206,13 @@ object ArchiveGuardian {
                         CycleStep(1) {
                             if (phaseTick % ATTACK_SPEED == 0L) shoot()
                             if (phaseTick % MUSHROOMS_EVERY == 0L) mushrooms()
+                            if (batteries != null) charge(batteries)
                         },
                     ),
                     onStart = {
                         boss.holdsAtZero = true
                         form(flying)
+                        if (batteries != null) placeBatteries(batteries, awake = true)
                         tank()
                     },
                     endsWhen = { boss.hitpoints <= 0 },
@@ -197,6 +233,8 @@ object ArchiveGuardian {
                         boss.hitpoints = boss.maxHitpoints
                         boss.effects.anim(ANIM_TO_GROUND)
                         boss.effects.spotanim(0, SPOT_TO_GROUND, 0)
+                        // No shield to charge now: those not charged fall asleep again, for the laser. Guessed.
+                        if (batteries != null) placeBatteries(batteries, awake = false)
                         val size = boss.type.size
                         val around = (boss.x - 1..boss.x + size).flatMap { x -> (boss.z - 1..boss.z + size).map { z -> Tile(x, z) } }
                         hazard(around, warning = -1, warnTicks = 0, ticks = 1, minDamage = BLAST_MIN, maxDamage = BLAST_MAX)
@@ -206,7 +244,7 @@ object ArchiveGuardian {
                 PhaseDef(
                     "airborne",
                     // Its laser and its mushrooms by turns (a guide's "alternates mushrooms with his laser").
-                    cycle = listOf(CycleStep(LASER_EVERY) { laser() }, CycleStep(LASER_EVERY) { mushrooms() }),
+                    cycle = listOf(CycleStep(LASER_EVERY) { laser(batteries) }, CycleStep(LASER_EVERY) { mushrooms() }),
                     onStart = {
                         boss.holdsAtZero = false
                         // Jumped straight here with ::raid: the grounded hitpoints, down to where this phase begins.
@@ -214,6 +252,7 @@ object ArchiveGuardian {
                         groundedHitpoints(grounded)
                         if (!fromGround) boss.hitpoints = boss.maxHitpoints * AIRBORNE_AT / 100
                         form(flying)
+                        if (batteries != null) placeBatteries(batteries, awake = false)
                         boss.effects.anim(ANIM_TO_FLYING)
                         boss.effects.spotanim(0, SPOT_TO_FLYING, 0)
                         log("airborne with ${boss.hitpoints} hp")
@@ -265,11 +304,21 @@ object ArchiveGuardian {
             }
             return
         }
-        val tank = tank() ?: return
-        // Out of its range (10) or sight, it holds its fire: it never moves to get them in it. Guessed.
+        var tank = tank() ?: return
+        // Its tank out of its range (10) or sight, it turns on someone in it at once, and holds its fire only when nobody
+        // is: it never moves to get them in it. Guessed; without the turn, a tank hiding in the hall let the rest fight it
+        // for nothing (exploit review round 13, R13A-1).
         if (!world.meleeCombat.inShot(boss, tank)) {
-            log("can't reach ${tank.username}")
-            return
+            val inShot = players.filter { it !== tank && world.meleeCombat.inShot(boss, it) }
+            if (inShot.isEmpty()) {
+                log("can't reach ${tank.username}")
+                return
+            }
+            val pick = inShot[roll(0, inShot.size - 1)]
+            boss.target = null
+            world.meleeCombat.aggress(boss, pick, world.tick)
+            log("turns from ${tank.username} to ${pick.username}")
+            tank = pick
         }
         world.meleeCombat.fireAt(boss, tank, world.tick)
         log("shoots ${tank.username}")
@@ -296,8 +345,74 @@ object ArchiveGuardian {
         return (dx == 0 && dz <= 1) || (dz == 0 && dx <= 1)
     }
 
+    /** The inert guardians' three forms. */
+    class Batteries(val asleep: NpcType, val awake: NpcType, val spent: NpcType) {
+        val ids = setOf(asleep.id, awake.id, spent.id)
+
+        companion object {
+            /** Null when the cache hasn't all three (a test world's). */
+            fun of(types: NpcTypes): Batteries? {
+                return Batteries(types[BATTERY_INACTIVE] ?: return null, types[BATTERY_ACTIVE] ?: return null, types[BATTERY_SPENT] ?: return null)
+            }
+        }
+    }
+
+    /** The fight's inert guardians, in [BATTERY_SPOTS]'s order. */
+    private fun EncounterContext.batteryList(batteries: Batteries): List<Npc> = adds.filter { it.spawn.type.id in batteries.ids }
+
+    /**
+     * The four inert guardians, put round the hall the first time a phase asks; after that, those not spent are woken
+     * ([awake], the shield phase's, all but the south-east one) or put to sleep. They never fight back or move, and hold
+     * at 0 hitpoints, charged, till the fight sees to them.
+     */
+    private fun EncounterContext.placeBatteries(batteries: Batteries, awake: Boolean) {
+        var list = batteryList(batteries)
+        if (list.isEmpty()) {
+            val cx = boss.x + boss.type.size / 2
+            val cz = boss.z + boss.type.size / 2
+            list = BATTERY_SPOTS.mapNotNull { (dx, dz) ->
+                spawnAdd(batteries.asleep, cx + dx, cz + dz)?.also {
+                    it.scriptedAttacks = true
+                    it.holdsAtZero = true
+                }
+            }
+        }
+        for ((i, battery) in list.withIndex()) {
+            if (battery.type.id == batteries.spent.id) continue
+            val type = if (awake && i != SOUTH_EAST) batteries.awake else batteries.asleep
+            if (battery.type.id != type.id) world.npcs.transform(battery, type, Npcs.FOREVER)
+        }
+    }
+
+    /**
+     * An awake inert guardian beaten to 0 is charged: it takes [BATTERY_SHIELD_PERCENT] of the shield's most hitpoints off
+     * the Guardian and is spent.
+     */
+    private fun EncounterContext.charge(batteries: Batteries) {
+        for (battery in batteryList(batteries)) {
+            if (battery.type.id != batteries.awake.id || battery.hitpoints > 0) continue
+            world.npcs.transform(battery, batteries.spent, Npcs.FOREVER)
+            val dealt = world.meleeCombat.hit(boss, null, boss.maxHitpoints * BATTERY_SHIELD_PERCENT / 100, world.tick)
+            log("inert guardian at ${battery.x},${battery.z} charged: shield takes $dealt")
+            if (gone()) return
+        }
+    }
+
+    /**
+     * The first inert guardian not spent behind [target] on the laser's [line] (past them, away from the Guardian), or
+     * null. A 2 by 2 guardian is behind them when the line crosses any of its tiles.
+     */
+    private fun EncounterContext.behind(batteries: Batteries, line: Set<Tile>, target: Tile): Npc? {
+        val after = line.toList().let { tiles -> tiles.drop(tiles.indexOf(target) + 1) }
+        val standing = batteryList(batteries).filter { it.type.id != batteries.spent.id }
+        for (tile in after) {
+            standing.firstOrNull { it.covers(tile.x, tile.z) }?.let { return it }
+        }
+        return null
+    }
+
     /** The last phase's laser: aimed at a random player now, landing [LASER_DELAY] ticks later on its line. */
-    private fun EncounterContext.laser() {
+    private fun EncounterContext.laser(batteries: Batteries?) {
         val target = randomPlayer() ?: return
         boss.effects.anim(ANIM_LASER)
         boss.effects.spotanim(0, SPOT_LASER, 0)
@@ -311,7 +426,20 @@ object ArchiveGuardian {
             }
             val line = line(boss.x, boss.z, boss.type.size, Tile(target.x, target.z))
             val struck = fighting.filter { it === target || Tile(it.x, it.z) in line }
-            val total = laserDamage(fighting.size)
+            var total = laserDamage(fighting.size)
+            // An inert guardian behind them takes the beam: it breaks, cutting the laser and hurting the Guardian
+            // (guides: "line the beam up with an inert guardian to reduce the damage"; the beam "destroying the inert
+            // guardian behind them"; in kill range "they stop dealing damage to the boss").
+            val shield = batteries?.let { behind(it, line, Tile(target.x, target.z)) }
+            if (batteries != null && shield != null) {
+                world.npcs.transform(shield, batteries.spent, Npcs.FOREVER)
+                total = total * (100 - BATTERY_LASER_CUT_PERCENT) / 100
+                val floor = boss.maxHitpoints * KILL_RANGE_PERCENT / 100
+                val damage = minOf(boss.maxHitpoints * BATTERY_BEAM_PERCENT / 100, boss.hitpoints - floor).coerceAtLeast(0)
+                val dealt = if (damage > 0) world.meleeCombat.hit(boss, null, damage, world.tick) else 0
+                log("laser breaks the inert guardian at ${shield.x},${shield.z}: Guardian takes $dealt")
+                if (gone()) return@after
+            }
             val share = (total + struck.size - 1) / struck.size
             for (player in struck) {
                 // A hit can end the fight (Retribution killing the boss); nothing lands after that.
@@ -374,14 +502,12 @@ object ArchiveGuardian {
             val dealt = world.meleeCombat.hitPlayer(player, boss, roll(MUSHROOM_MIN, MUSHROOM_MAX), world.tick)
             log("mushroom bursts on ${player.username} for $dealt")
             if (player.dead || player.hitpoints <= 0) continue
-            // Run goes off either way; poison immunity keeps the poison and the weariness off, so it can go straight
-            // back on (a guide's word on the Serpentine helm; immunity from a potion counted the same, guessed).
-            // Weary whether or not the poison took: a player poisoned as strongly already, or envenomed, is wearied
-            // again all the same.
+            // Weary whether or not the poison takes: an antipoison drunk beforehand "avoids the poison damage only"
+            // (Strategies, its equipment table), and a player poisoned as strongly already, or envenomed, is wearied
+            // again all the same. The Serpentine helm shortening it isn't in: there is no helm yet.
             player.runEnabled = false
-            val immune = world.poison.value(player) < 0
             world.poison.poison(player, MUSHROOM_POISON)
-            if (!immune) player.wearyTicks = WEARY_TICKS
+            player.wearyTicks = WEARY_TICKS
         }
     }
 

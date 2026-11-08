@@ -19,6 +19,7 @@ class Encounter internal constructor(
     override val world: World,
     private val inArea: (Int, Int) -> Boolean,
     startPhase: Int,
+    private val admits: (Player) -> Boolean = { true },
 ) : EncounterContext {
     /** The phase it is in, an index into [EncounterDef.phases]. */
     var phase: Int = startPhase
@@ -63,7 +64,7 @@ class Encounter internal constructor(
     override val phaseTick: Long get() = world.tick - phaseStart
 
     override val players: List<Player>
-        get() = world.onlinePlayers.filter { !it.dead && it.level == boss.level && inArea(it.x, it.z) }.sortedBy { it.index }
+        get() = world.onlinePlayers.filter { !it.dead && it.level == boss.level && inArea(it.x, it.z) && admits(it) }.sortedBy { it.index }
 
     override val adds: List<Npc> get() = addList.filter { !it.dead && world.npcs[it.index] === it }
 
@@ -282,13 +283,14 @@ class Encounters(private val world: World, defs: List<EncounterDef> = emptyList(
     val all: List<Encounter> get() = list
 
     /**
-     * Starts [def] against [boss], with the players [inArea] says are in the fight, from the phase at [startPhase]. The
+     * Starts [def] against [boss], with the players [inArea] says are in the fight and [admits] lets in (everyone, unless
+     * it says otherwise), from the phase at [startPhase]. The
      * fight's first tick runs now: the phase's start, steps with no delay and hazards due at once.
      */
-    fun start(def: EncounterDef, boss: Npc, inArea: (Int, Int) -> Boolean, startPhase: Int = 0): Encounter {
+    fun start(def: EncounterDef, boss: Npc, inArea: (Int, Int) -> Boolean, startPhase: Int = 0, admits: (Player) -> Boolean = { true }): Encounter {
         require(startPhase in def.phases.indices) { "${def.name} has no phase $startPhase" }
         require(list.none { it.boss === boss }) { "$boss is already in a fight" }
-        val encounter = Encounter(nextId++, def, boss, world, inArea, startPhase)
+        val encounter = Encounter(nextId++, def, boss, world, inArea, startPhase, admits)
         boss.scriptedAttacks = def.scriptedAttacks
         list += encounter
         encounter.begin()

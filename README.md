@@ -1806,7 +1806,7 @@ loses goes in a grave there. The party lasts through the wipe.
 | The bosses after the Guardian, the Quartermaster and Supply Credits, the party's orbs, the reward room, deaths' item costs | not in yet: steps 17 to 31 |
 
 `::raid run` shows the run you're in, `::raid tp nexus` or `::raid tp ezekiel` goes to its nexus or a room, and
-`::raid clear` marks the room you're in done. Check: `./gradlew test --tests 'osrsps.game.instance.*'
+`::raid clear` marks the room you're in done, as if its boss died; a room whose fight never began (the Guardian before it is touched) gives its points to whoever of the party stands in it. Check: `./gradlew test --tests 'osrsps.game.instance.*'
 --tests 'osrsps.game.combat.DeathsTest' --tests 'osrsps.testclient.HeadlessArchiveRaidTest'` (a run through the empty
 rooms by the west doors and one by the east; rows opening in order and a row's other door shut; a death that leaves the
 party standing, a player too late to come in, and the wipe to the lobby with graves), and in RuneLite
@@ -1833,7 +1833,7 @@ a fight started on a seed plays the same way each time.
 | Adds and hazards going when the boss dies or leaves | guessed; each boss's step changes it if live keeps them |
 | A phase also ending when its own test says so (a shield broken); steps put off a few ticks (a laser aimed now, landing later) running after the cycle and before the hazards, never once the fight is over | guessed |
 | A boss whose fight picks its attacks (the Guardian) never swinging, shooting, walking after anyone or retreating by itself, and keeping the first player it took on while they last | guessed |
-| A fight outside an instance covering 32 tiles round the boss's spawn | testing only: the raid's rooms are instances |
+| A fight outside an instance covering 32 tiles round the boss's spawn, for the starter and their raid party only (so another test account standing in Lumbridge isn't drawn in) | testing only: the raid's rooms are instances |
 | The Archive Guardian (step 16); the others each come with their own step, from 17 on, with its room and gear sets for `::raid` | not in yet: steps 17 to 27 |
 
 `::raid boss phase=2 party=3 seed=42` starts a fight where you stand, and `::raid digest 100` sums up its first 100
@@ -1853,7 +1853,9 @@ a laser at a random player every 10 ticks, its damage shared by everyone on the 
 While its shield is up, and between lasers at the end, it grows a mushroom two tiles from each player; stepping beside one
 bursts it, poisoning and wearying (no running, attacks a tick slower), and the burst splashes anyone two tiles off.
 Grounded, a vine rises on each player's side away from it every 3 ticks and swipes the tiles round it three times.
-The inert guardians round the hall are step 16c.
+Four inert guardians stand round the hall (step 16c). Under its shield three are awake: beaten to 0 one is charged,
+taking 40% off the shield, and spent. The south-east one never wakes; in the last phase the laser breaks the first one
+standing behind its target, halving the laser and hurting the Guardian, but never into kill range.
 
 | Guardian behaviour | Source |
 |--------------------|--------|
@@ -1864,20 +1866,26 @@ The inert guardians round the hall are step 16c.
 | Ranged shots (Protect from Missiles), a crush swing grounded (Protect from Melee), the slam blocked by Protect from Melee | guessed for the slam; the prayers for the others from the attack styles |
 | The first attack 5 ticks into each phase; the laser every 10 ticks, landing 3 after it is aimed; its line from the boss's middle through its target, 32 tiles on | guessed |
 | The slam up to 25, the blast 10 to 20, the laser 80 for one or two players and 40 for each player from three, Protect from Magic taking a tenth | guessed, to fit the Strategies page's words |
-| It never moves, and keeps to one tank till they fall | guessed |
+| It never moves, and keeps to one tank till they fall or go out of its range or sight, when it turns at once on someone in it (holding its fire only when nobody is); grounded, those who stand off get its vines | guessed |
 | The words for melee refused on a flying monster (`combat.flying`) | guessed |
 | Mushrooms (locs 62578 to 62580, `tfa_archive_guardian_mushroom_spawn`), the Vine (16664, `archive_guardian_tentacle`, its spawn, swipe and despawn animations and `vfx_guardian_tentacle_intro`) | 241.4 cache |
 | Mushrooms in the shield phase and alternating with the laser at the end; their 3 to 10, poison and weariness (slower attacks, no running); a run beside one and on popping it, a walk leaving a weaker splash; vines from 6 ticks into the grounded phase, then every 3, each on the player's side away from the boss and swiping a 3x3 three times on a 3-tick cycle, Protect from Melee capping a swipe at 11 | guides (osrstoolkit, runescapeguides, bald.gg; read 2026-11-03) |
 | A mushroom round each player every 15 ticks, 2 tiles off, growing for 2 and bursting after 20 if no one comes; the splash 1 to 5 at 2 tiles; poison severity 20 (hits of 4); weary 10 ticks, a tick on each attack; a vine swipe up to 22 unprayed | guessed |
-| The inert guardians (`tfa_guardian_battery_*`), the step-under timing, a guide's "firebreath" enrage with braziers, the Serpentine helm stopping the mushrooms' poison and weariness (no poison is the only part in) | not in yet: step 16c (the enrage isn't on the Strategies page) |
+| An antipoison beforehand avoiding "the poison damage only" (so weariness comes all the same) | Wiki, The Fractured Archive/Strategies, its equipment table (read 2026-11-03) |
+| The inert guardians' three forms (`tfa_guardian_battery_inactive`, `_active` with Attack, `_destroyed`; 2 by 2), the awake one's 180 hitpoints, Defence and Magic 50, and its stab, slash, crush and magic defence (0, 20, -20, -20, its params 5 to 8, which give the Wiki's figures on the Guardian) | 241.4 cache |
+| Four round the room, charged by attacking them; charging taking ~40% off the shield (596 of 1,490); the south-east one only hit by the beam, which damages the boss's health; the beam destroying the one behind its target; lining it up reducing the laser; no damage to the boss once it is in kill range | guides (runescapeguides, osrstoolkit; read 2026-11-03) |
+| Where they stand (level with its middle 9 tiles west and 8 east, and 10 south); the awake ones put to sleep as it falls; the laser halved; a broken one taking 10% of its most hitpoints off it, never below kill range at 10%; their ranged defences, 0; a swing on a spent one landing for 0 | guessed |
+| The step-under timing, a guide's "firebreath" enrage with braziers, the Serpentine helm shortening weariness, which guardians melee reaches and which only ranged (a guide's earth weakness, with no figure) | not in yet (the enrage isn't on the Strategies page; there is no Serpentine helm yet) |
 
 `::raid guardian party=3` starts it where you stand, `phase=grounded` or `phase=airborne` from a later phase. Check:
 `./gradlew test --tests 'osrsps.testclient.HeadlessArchiveGuardianTest' --tests 'osrsps.game.combat.NpcCombatTest' --tests 'osrsps.game.MovementTest'`
 (touched awake in its hall, through its three phases to its death doing the room, the instance multi-way; the laser
 shared by two on its line; melee refused while it levitates but for a halberd; the laser's line and damage; a mushroom
 bursting with poison and weariness, then splashing; a vine's swipes held to 11 by Protect from Melee; a weary player
-walking with run on), and in RuneLite `test-runner/examples/archive-guardian.json` (the whole fight solo with the right
-prayers, moved on with `::hit`) and `test-runner/examples/archive-guardian-hazards.json` (a vine and a mushroom).
+walking with run on; the inert guardians charged into the shield, three grounding it, and broken by the laser, which
+they halve, never into kill range), and in RuneLite `test-runner/examples/archive-guardian.json` (the whole fight solo
+with the right prayers, moved on with `::hit`), `test-runner/examples/archive-guardian-hazards.json` (a vine and a
+mushroom) and `test-runner/examples/archive-guardian-batteries.json` (an inert guardian charged).
 
 ## The Fractured Archive lobby
 

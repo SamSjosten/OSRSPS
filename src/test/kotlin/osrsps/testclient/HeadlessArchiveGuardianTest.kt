@@ -7,6 +7,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.NpcStats
@@ -52,6 +53,15 @@ class HeadlessArchiveGuardianTest {
     private val grave = NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null))
     private val types = NpcTypes.of(flying, grounded, dormant, vine, grave)
 
+    // The inert guardians' three forms, as the 241.4 cache has them: only the awake one has Attack and its hitpoints.
+    private val asleep = NpcType(ArchiveGuardian.BATTERY_INACTIVE, "Inert Guardian", size = 2, internalName = "tfa_guardian_battery_inactive")
+    private val awake = NpcType(
+        ArchiveGuardian.BATTERY_ACTIVE, "Inert Guardian", size = 2, ops = listOf(null, "Attack", null, null, null), internalName = "tfa_guardian_battery_active",
+        stats = NpcStats(attack = 1, defence = 50, strength = 1, hitpoints = 180, ranged = 1, magic = 50),
+    )
+    private val spent = NpcType(ArchiveGuardian.BATTERY_SPENT, "Inert Guardian", size = 2, internalName = "tfa_guardian_battery_destroyed")
+    private val withBatteries = NpcTypes.of(flying, grounded, dormant, vine, grave, asleep, awake, spent)
+
     private val halberd = ObjType(
         HALBERD, "Bronze halberd", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, internalName = "bronze_halberd", category = 66,
     )
@@ -79,7 +89,8 @@ class HeadlessArchiveGuardianTest {
     )
     private val staticLocs = StaticLocs().apply { add(ZoneLoc(ArchiveRaids.ARCHIVE_DOOR, LocShape.CENTREPIECE_STRAIGHT, 0, 4123, 5562, 0)) }
 
-    private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
+    private fun server(dir: Path, batteries: Boolean = false) = TestServer(dir) { crcs, millis ->
+        val types = if (batteries) withBatteries else types
         World(
             crcs,
             CollisionMap().apply {
@@ -101,6 +112,12 @@ class HeadlessArchiveGuardianTest {
     private fun HeadlessClient.fight(): String = commandReply("raid") { it.startsWith("guardian #") || it.startsWith("You're not") }
 
     private fun HeadlessClient.awaitFight(what: String, predicate: (String) -> Boolean): String = await(what) { fight().takeIf(predicate) }
+
+    /** Bob joins Alice's party: outside an instance, a `::raid` fight takes in only its starter's party. */
+    private fun party(alice: HeadlessClient, bob: HeadlessClient) {
+        alice.commandReply("raidparty invite bob") { it.startsWith("Invited") }
+        bob.commandReply("raidparty accept alice") { it.startsWith("You joined") }
+    }
 
     /** `::raid log 200`'s lines. */
     private fun HeadlessClient.fightLog(): List<String> {
@@ -168,6 +185,25 @@ class HeadlessArchiveGuardianTest {
     }
 
     @Test
+    fun `raid clear on the Guardian before it is touched gives its room's points to whoever stands in its hall`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                alice.await("the login rebuild") { alice.position }
+                alice.tele(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z)
+                alice.locOp(ArchiveRaids.ARCHIVE_DOOR, 4123, 5562, ArchiveRaids.ENTER)
+                alice.await("into the instance") { alice.position?.takeIf { server.world.instances.inDynamicArea(it.x, it.z) } }
+                alice.commandReply("raid tp guardian") { it.startsWith("To ") }
+                alice.await("the waiting Guardian in view") { alice.npcs().firstOrNull { it.id == ArchiveGuardian.DORMANT } }
+                // As the VM's flow script does (2026-11-03): before, the room was done with nobody's points.
+                assertEquals("Cleared Archive Guardian's room.", alice.commandReply("raid clear") { it.startsWith("Cleared") || it.startsWith("You") })
+                val run = alice.commandReply("raid run") { it.startsWith("Archive run") }
+                assertTrue(run.contains("done Archive Guardian;") && run.contains("points alice ${ArchiveRaids.ROOM_POINTS}"), run)
+                alice.await("the waiting Guardian gone") { alice.npcs().none { it.id == ArchiveGuardian.DORMANT }.takeIf { it } }
+            }
+        }
+    }
+
+    @Test
     fun `the laser is shared by the players on its line`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->
@@ -177,6 +213,7 @@ class HeadlessArchiveGuardianTest {
                         client.commandReply("setlevel hitpoints 99") { it.contains("99") || it.startsWith("Usage") }
                         client.commandReply("heal") { it.startsWith("Healed") }
                     }
+                    party(alice, bob)
                     // Both on the boss's south-west tile, so whichever it aims at, the other is on the line too.
                     bob.tele(3222, 3218)
                     alice.tele(3222, 3218)
@@ -208,6 +245,7 @@ class HeadlessArchiveGuardianTest {
                     alice.await("Retribution on") { if (alice.varp(Prayers.VARP_PRAYERS) == 1 shl 15) Unit else null }
                     bob.commandReply("setlevel hitpoints 99") { it.contains("99") || it.startsWith("Usage") }
                     bob.commandReply("heal") { it.startsWith("Healed") }
+                    party(alice, bob)
                     // Both on the boss's south-west tile, so both are on the line, Alice first.
                     bob.tele(3222, 3218)
                     alice.tele(3222, 3218)
@@ -351,6 +389,139 @@ class HeadlessArchiveGuardianTest {
     }
 
     @Test
+    fun `with its tank out of its shot it turns on someone in it, so a tank hiding in the hall can't keep it off the rest`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    for (client in listOf(alice, bob)) {
+                        client.await("the login rebuild") { client.position }
+                        client.commandReply("setlevel hitpoints 99") { it.contains("99") || it.startsWith("Usage") }
+                        client.commandReply("heal") { it.startsWith("Healed") }
+                    }
+                    party(alice, bob)
+                    // Bob outside the fight's 32 tiles as it starts, so Alice is its tank.
+                    bob.tele(3260, 3218)
+                    alice.tele(3222, 3218)
+                    alice.commandReply("raid guardian") { it.startsWith("Started") }
+                    val fight = server.world.encounters.all.single()
+                    val aliceP = server.world.playerNamed("alice")!!
+                    val bobP = server.world.playerNamed("bob")!!
+                    alice.await("Alice its tank") { fight.boss.target?.takeIf { it === aliceP } }
+                    // Alice 12 tiles east of its east edge: out of its range of 10, still close enough that it keeps her.
+                    // Bob 3 off its east edge, in its range.
+                    alice.tele(3238, 3220)
+                    bob.tele(3229, 3220)
+                    alice.await("the turn") { fight.lines.toList().firstOrNull { it.endsWith("shield: turns from alice to bob") } }
+                    alice.await("a shot at Bob", timeoutMillis = 15_000) { fight.lines.toList().firstOrNull { it.endsWith("shield: shoots bob") } }
+                    assertSame(bobP, fight.boss.target)
+                    // With nobody in its shot, it holds its fire on the one it has.
+                    bob.tele(3238, 3216)
+                    alice.await("holding its fire", timeoutMillis = 15_000) { fight.lines.toList().firstOrNull { it.endsWith("shield: can't reach bob") } }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `four inert guardians stand round it, three awake while its shield is up, each one charged taking 40% off the shield, and three ground it`(@TempDir dir: Path) {
+        server(dir, batteries = true).use { server ->
+            server.login("alice").use { alice ->
+                alice.await("the login rebuild") { alice.position }
+                alice.commandReply("setlevel hitpoints 99") { it.contains("99") || it.startsWith("Usage") }
+                alice.commandReply("heal") { it.startsWith("Healed") }
+                alice.tele(3222, 3218)
+                alice.commandReply("raid guardian") { it.startsWith("Started") }
+                // Out of its range, so it holds its fire.
+                alice.tele(3241, 3220)
+                val fight = server.world.encounters.all.single()
+                val boss = fight.boss
+                val batteries = fight.adds.filter { it.spawn.type.id == ArchiveGuardian.BATTERY_INACTIVE }
+                // Its middle is 3224,3220: NW, NE, SW, SE.
+                assertEquals(listOf(3215 to 3221, 3232 to 3221, 3215 to 3211, 3232 to 3211), batteries.map { it.x to it.z })
+                assertEquals(
+                    listOf(ArchiveGuardian.BATTERY_ACTIVE, ArchiveGuardian.BATTERY_ACTIVE, ArchiveGuardian.BATTERY_ACTIVE, ArchiveGuardian.BATTERY_INACTIVE),
+                    batteries.map { it.type.id },
+                )
+                val shield = boss.maxHitpoints
+                assertEquals(550, shield, "a party of one's shield")
+                val (nw, ne, sw, se) = batteries
+
+                // The south-east one is asleep: beaten to 0, it charges nothing.
+                alice.commandReply("hit 180 ${se.index}") { it.startsWith("Hit ") }
+                val from = fight.processedTicks
+                alice.await("two of the fight's ticks") { if (fight.processedTicks >= from + 2) Unit else null }
+                assertEquals(shield, boss.hitpoints, "the south-east one charged nothing")
+                assertEquals(ArchiveGuardian.BATTERY_INACTIVE, se.type.id)
+
+                alice.commandReply("hit 180 ${nw.index}") { it.startsWith("Hit ") }
+                val share = shield * ArchiveGuardian.BATTERY_SHIELD_PERCENT / 100
+                alice.await("the north-west one charged") {
+                    fight.lines.toList().firstOrNull { it.endsWith("shield: inert guardian at 3215,3221 charged: shield takes $share") }
+                }
+                assertEquals(shield - share, boss.hitpoints)
+                assertEquals(ArchiveGuardian.BATTERY_SPENT, nw.type.id)
+                assertFalse(nw.dead, "spent, not dead")
+
+                alice.commandReply("hit 180 ${ne.index}") { it.startsWith("Hit ") }
+                alice.await("the north-east one charged") { if (ne.type.id == ArchiveGuardian.BATTERY_SPENT) Unit else null }
+                assertEquals(shield - 2 * share, boss.hitpoints)
+                // The third takes the rest of the shield (220 of 110 left): it falls to the ground.
+                alice.commandReply("hit 180 ${sw.index}") { it.startsWith("Hit ") }
+                alice.await("grounded") { fight.lines.toList().firstOrNull { it.contains("grounded: phase starts") } }
+                assertTrue(fight.lines.any { it.endsWith("shield: inert guardian at 3215,3211 charged: shield takes 110") }, fight.lines.takeLast(8).toString())
+                assertEquals(
+                    listOf(ArchiveGuardian.BATTERY_SPENT, ArchiveGuardian.BATTERY_SPENT, ArchiveGuardian.BATTERY_SPENT, ArchiveGuardian.BATTERY_INACTIVE),
+                    batteries.map { it.type.id },
+                )
+                server.world.encounters.stop(fight)
+                alice.await("the inert guardians gone with the fight") { if (batteries.none { server.world.npcs[it.index] === it }) Unit else null }
+            }
+        }
+    }
+
+    @Test
+    fun `airborne, its laser breaks the inert guardian behind its target, halving the laser and hurting it, but never into kill range`(@TempDir dir: Path) {
+        server(dir, batteries = true).use { server ->
+            server.login("alice").use { alice ->
+                alice.await("the login rebuild") { alice.position }
+                alice.commandReply("setlevel hitpoints 99") { it.contains("99") || it.startsWith("Usage") }
+                alice.commandReply("heal") { it.startsWith("Healed") }
+                alice.tele(3222, 3218)
+                alice.commandReply("raid guardian phase=airborne") { it.startsWith("Started") }
+                val fight = server.world.encounters.all.single()
+                val boss = fight.boss
+                val (nw, ne) = fight.adds.filter { it.spawn.type.id == ArchiveGuardian.BATTERY_INACTIVE }
+                assertEquals(ArchiveGuardian.BATTERY_INACTIVE, ne.type.id, "asleep while it flies, but there for the laser")
+                // From its middle, 3224,3220, through her at 3228,3221 the line crosses 3232,3222: the north-east one.
+                alice.tele(3228, 3221)
+                val most = boss.maxHitpoints
+                assertEquals(330, boss.hitpoints, "30% of a party of one's 1,100")
+                val first = alice.await("the laser on the north-east one", timeoutMillis = 30_000) {
+                    fight.lines.toList().firstOrNull { it.contains("laser breaks the inert guardian at 3232,3221") }
+                }
+                assertTrue(first.endsWith("Guardian takes ${most * ArchiveGuardian.BATTERY_BEAM_PERCENT / 100}"), first)
+                val hit = alice.await("the laser on her") { fight.lines.toList().firstNotNullOfOrNull { LASER_HIT.find(it)?.groupValues?.get(1)?.toInt() } }
+                assertEquals(ArchiveGuardian.laserDamage(1) * (100 - ArchiveGuardian.BATTERY_LASER_CUT_PERCENT) / 100, hit, "the laser halved")
+                assertEquals(330 - 110, boss.hitpoints)
+                assertEquals(ArchiveGuardian.BATTERY_SPENT, ne.type.id)
+
+                // Near kill range (10%, 110), the next one takes it only down to there: 120 left, 10 taken.
+                alice.commandReply("hit 100 ${boss.index}") { it.startsWith("Hit ") }
+                assertEquals(120, boss.hitpoints)
+                alice.commandReply("heal") { it.startsWith("Healed") }
+                // Through her at 3220,3221 the line crosses 3216,3222: the north-west one.
+                alice.tele(3220, 3221)
+                val second = alice.await("the laser on the north-west one", timeoutMillis = 40_000) {
+                    fight.lines.toList().firstOrNull { it.contains("laser breaks the inert guardian at 3215,3221") }
+                }
+                assertTrue(second.endsWith("Guardian takes 10"), second)
+                assertEquals(most * ArchiveGuardian.KILL_RANGE_PERCENT / 100, boss.hitpoints)
+                assertEquals(ArchiveGuardian.BATTERY_SPENT, nw.type.id)
+            }
+        }
+    }
+
+    @Test
     fun `grounded, it sends a vine up beside each player away from it, swiping round it three times, for 11 at most under Protect from Melee`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->
@@ -373,6 +544,32 @@ class HeadlessArchiveGuardianTest {
                 // Each vine goes after its third swipe: never more than the three that overlap.
                 val fight = server.world.encounters.all.single()
                 assertTrue(fight.adds.size <= ArchiveGuardian.VINE_SWIPES + 2, "${fight.adds.size} vines up")
+            }
+        }
+    }
+
+    @Test
+    fun `outside an instance its fight takes in only the starter's party, not whoever else stands near`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    for (client in listOf(alice, bob)) {
+                        client.await("the login rebuild") { client.position }
+                        client.commandReply("god on") { it.startsWith("You can't be hurt") }
+                    }
+                    // As on the VMs (2026-11-03): another account in Lumbridge, beside the boss but not in the party.
+                    bob.tele(3221, 3217)
+                    alice.tele(3222, 3218)
+                    alice.commandReply("raid guardian") { it.startsWith("Started") }
+                    val fight = server.world.encounters.all.single()
+                    val bobP = server.world.playerNamed("bob")!!
+                    assertEquals(listOf("alice"), fight.players.map { it.username })
+                    assertTrue(alice.fight().contains("; 1 players"), alice.fight())
+                    // In her party, he is in it.
+                    party(alice, bob)
+                    alice.await("Bob in the fight") { fight.players.takeIf { bobP in it } }
+                    assertTrue(alice.fight().contains("; 2 players"), alice.fight())
+                }
             }
         }
     }
@@ -439,6 +636,7 @@ class HeadlessArchiveGuardianTest {
 
     private companion object {
         val MUSHROOM_AT = Regex("mushroom at (\\d+),(\\d+) by alice")
+        val LASER_HIT = Regex("laser hits alice for (\\d+)")
         val BURST = Regex("mushroom bursts on alice for (\\d+)")
         val SPLASH = Regex("mushroom splashes alice for (\\d+)")
         val VINE_HIT = Regex("vine hits alice for (\\d+)")
