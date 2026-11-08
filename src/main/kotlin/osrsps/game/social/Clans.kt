@@ -379,6 +379,12 @@ class Clans(
      * ban list either way. The other buttons (events, hall, titles) aren't built.
      */
     fun clickInfo(player: Player, component: Int): Boolean {
+        // The frame's close button (clans_info:close, transmitop 1): the client sends the click and leaves the closing to
+        // the server when clan_info_editable hasn't given it closebutton_click (VM 215, 2026-11-08: the page stayed open).
+        if (component == INFO_CLOSE) {
+            if (INFO in player.modals.values) closeModals(player)
+            return true
+        }
         if (component !in INFO_BUTTONS) return false
         // Only while the page is open: a click sent after it closed, or forged, does nothing.
         if (INFO !in player.modals.values) return true
@@ -1554,6 +1560,7 @@ class Clans(
 
         /** clans_info: the clan's settings page, and its buttons. */
         const val INFO = 690
+        const val INFO_CLOSE = 3
         const val INFO_APPLICATIONS = 21
         const val INFO_QUIT = 26
         val INFO_BUTTONS = 19..26

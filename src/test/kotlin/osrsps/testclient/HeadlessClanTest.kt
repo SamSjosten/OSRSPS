@@ -1124,6 +1124,23 @@ class HeadlessClanTest {
 
     private fun HeadlessClient.permissionsPageOpen() = Clans.PERMISSIONS in openInterfaces()
 
+    @Test
+    fun `the settings page's close button closes it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    found(server, alice, bob, "Odins Gate")
+                    alice.yourClanTab()
+                    alice.await("the clan page") { alice.openInterfaces().takeIf { Clans.YOUR_CLAN in it } }
+                    alice.ifButton(Clans.YOUR_CLAN, Clans.YOUR_CLAN_SETTINGS, 1)
+                    alice.await("the settings page") { alice.openInterfaces().takeIf { Clans.INFO in it } }
+                    alice.ifButton(Clans.INFO, Clans.INFO_CLOSE, 1)
+                    alice.await("the page closed") { if (Clans.INFO in alice.openInterfaces()) null else Unit }
+                }
+            }
+        }
+    }
+
     /** Opens the ban list from the Your Clan page's settings. */
     private fun HeadlessClient.openBannedPage() {
         yourClanTab()
