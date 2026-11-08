@@ -105,7 +105,7 @@ test('a review covers the head when it is the head or makes the same tree with m
 // `batch`: the batch branch, { sha, message, checks, committed }; `commits`: commit messages by sha.
 // `builds`: build.yml runs not finished, { id, status, event, head_branch, head_sha, triggering_actor }; `live`: a
 // branch's head as read again (null: deleted), when it differs from the pull requests listed.
-function fakeGitHub(prs, { batch = null, commits = {}, rules = [{ type: 'required_status_checks' }], mainMoved = false, suites = {}, builds = [], live = {} } = {}) {
+function fakeGitHub(prs, { batch = null, commits = {}, rules = [{ type: 'required_status_checks' }], mainMoved = false, suites = {}, builds = [], live = {}, heldOn = {} } = {}) {
   const calls = [];
   let nextId = 1000;
   const prData = n => {
@@ -202,12 +202,15 @@ function fakeGitHub(prs, { batch = null, commits = {}, rules = [{ type: 'require
       createWorkflowDispatch: async args => { calls.push(['dispatch', args.workflow_id, args.ref]); },
       listWorkflowRuns: 'actions.listWorkflowRuns',
       // `held` maps a head to the ids of its runs waiting for approval; `heldAfterUpdate` is what a merge of main gets.
+      // `heldOn` maps a sha no pull request has as its head (a promoted batch's copy) to its held runs' ids.
       listWorkflowRunsForRepo: async ({ head_sha }) => {
         const pr = Object.values(prs).find(p => p.head === head_sha);
-        return { data: { workflow_runs: ((pr && pr.held) || []).map(id => ({ id })) } };
+        return { data: { workflow_runs: ((pr && pr.held) || heldOn[head_sha] || []).map(id => ({ id })) } };
       },
       approveWorkflowRun: async ({ run_id }) => {
         calls.push(['approve', run_id]);
+        const sha = Object.keys(heldOn).find(s => heldOn[s].includes(run_id));
+        if (sha) { heldOn[sha] = heldOn[sha].filter(id => id !== run_id); return; }
         const pr = Object.values(prs).find(p => (p.held || []).includes(run_id));
         if (pr.refuseApproval) throw Object.assign(new Error('not a fork'), { status: 403 });
         pr.held = pr.held.filter(id => id !== run_id);
@@ -603,6 +606,20 @@ test('a batch promoted with its codex-review filed under the batch branch is put
   assert.deepStrictEqual([...pushed], [`${copy}:refs/heads/branch-2`, `${copy}:refs/heads/${BATCH}`]);
   assert.strictEqual(pushed.commits[copy], batchMessage(H('m'), [1, 2]) + '\n', 'same message, so the same batch');
   assert.deepStrictEqual(calls, [['check', copy, 'success'], ['dispatch', 'build.yml', 'branch-2']]);
+});
+
+test('a promoted batch\'s held pull_request runs are approved at once, in place of a dispatched build', async () => {
+  // #459 on 2026-11-03: the copy's pull_request run waited for approval, the pull request stayed blocked with every
+  // check green, and nothing woke the queue for twelve minutes.
+  const copy = '4'.padStart(40, 'c'); // the fourth commit fakeGit makes: recommit's copy
+  const { github, calls } = fakeGitHub({ 1: ready(1), 2: ready(2) }, {
+    batch: { sha: B, message: batchMessage(H('m'), [1, 2]), checks: [...green] },
+    heldOn: { [copy]: [77] },
+  });
+  const pushed = [];
+  await queue(github, fakeGit(batchTrees, pushed, { [B]: { tree: 't2', second: H('2'), message: batchMessage(H('m'), [1, 2]) } }));
+  assert.deepStrictEqual([...pushed], [`${copy}:refs/heads/branch-2`, `${copy}:refs/heads/${BATCH}`]);
+  assert.deepStrictEqual(calls, [['check', copy, 'success'], ['approve', 77]]);
 });
 
 test('a promotion the carrier\'s branch refuses builds nothing again', async () => {
