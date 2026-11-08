@@ -1,5 +1,6 @@
 package osrsps.testrunner
 
+import osrsps.cache.MapElementCodec
 import osrsps.game.EquipmentTab
 import osrsps.game.Experience
 import osrsps.game.Inventory
@@ -11,6 +12,7 @@ import osrsps.game.Skill
 import osrsps.game.VarTypes
 import osrsps.game.World
 import osrsps.game.bank.BankScreen
+import osrsps.game.content.CustomLocs
 import osrsps.game.bank.DepositBox
 import osrsps.game.ge.GrandExchangeScreen
 import osrsps.game.ge.PriceChecker
@@ -53,10 +55,13 @@ internal class HeadlessGame(
         val vars: VarTypes,
         /** The loc the cache's maps place on a tile and layer, before the server changes any. */
         val staticLoc: (x: Int, z: Int, level: Int, layer: Int) -> ZoneLoc?,
+        /** The map elements (minimap icons) our cache overlay adds, by id: the cache's own aren't decoded here. */
+        val mapElements: Map<Int, MapElementCodec.Definition> = emptyMap(),
     ) {
         companion object {
-            /** What [world] loaded from the cache. */
-            fun of(world: World) = Types(world.npcTypes, world.objTypes, world.locs.types, world.varTypes, world.locs::cached)
+            /** What [world] loaded from the cache, and the overlay's map elements. */
+            fun of(world: World) =
+                Types(world.npcTypes, world.objTypes, world.locs.types, world.varTypes, world.locs::cached, CustomLocs(world.customVars).mapElements)
         }
     }
 
@@ -182,6 +187,34 @@ internal class HeadlessGame(
             return "no loc $what" + if (there.isEmpty()) "" else "; there: ${there.joinToString()}"
         }
         return if (option == null) "loc $what is hidden" else "loc $what has no option \"$option\""
+    }
+
+    /**
+     * The headless client decodes no sprites, so the check is of the cache the server serves: the loc's current form
+     * names the element (opcode 82, in the loc types the server decoded, the overlay's included) and, for an element of
+     * ours, the overlay defines it with its sprite. A cache element's sprite is taken as there.
+     */
+    override fun mapIconAt(name: String?, id: Int, icon: Int, at: Tile): String? {
+        val client = c() ?: return "not logged in"
+        val here = client.position ?: return "no local player"
+        if (!inScene(client, at.x, at.y)) return "tile ${at.x}, ${at.y} is not in the loaded scene"
+        val what = (if (name != null) "\"$name\"" else "id $id") + " at ${at.x}, ${at.y}"
+        var wrong: String? = null
+        for (loc in sceneLocs(client, here)) {
+            if (!loc.covers(at.x, at.y) || !locMatches(loc, name, id)) continue
+            val shown = loc.shown
+            if (shown == null) {
+                wrong = "loc $what is hidden"
+                continue
+            }
+            if (shown.mapElement != icon) {
+                wrong = "loc $what " + (if (shown.mapElement < 0) "has no map icon" else "has map icon ${shown.mapElement}") + ", not $icon"
+                continue
+            }
+            if (icon >= CustomLocs.FIRST_ID && icon !in types.mapElements) return "the overlay has no map element $icon"
+            return null
+        }
+        return wrong ?: "no loc $what"
     }
 
     override fun takeItem(name: String?, id: Int, at: Tile?): String? = groundItemOption(name, id, TAKE_OP, TAKE, at)

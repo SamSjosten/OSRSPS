@@ -12,6 +12,13 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.InventoryTab
+import osrsps.game.VarTypes
+import osrsps.game.World
+import osrsps.game.content.CustomLocs
+import osrsps.game.content.CustomVars
+import osrsps.game.content.Lodestones
+import osrsps.game.loc.LocTypes
+import osrsps.map.CollisionMap
 import osrsps.testclient.ClientScript
 import osrsps.testclient.TestServer
 
@@ -69,6 +76,41 @@ class HeadlessScriptsTest {
                 assertTrue(result.failure!!.startsWith("step 3 (assert location 3230, 3218): timed out"), result.failure)
                 assertTrue("3222, 3218" in result.failure!!, result.failure)
                 assertEquals("skipped", result.steps.last().outcome)
+            }
+        }
+    }
+
+    /** The lodestone script's minimap icon check, on a world with the stones: the headless backend reads the element off the server's loc types. */
+    @Test
+    fun `assertMapIcon reads the stone's map element, and says what the loc names instead`(@TempDir dir: Path) {
+        val vars = CustomVars.after(VarTypes.NONE)
+        val server = TestServer(dir) { crcs, millis ->
+            World(
+                crcs, CollisionMap().apply { for (site in Lodestones.SITES) markLoaded(site.x shr 6, site.z shr 6) },
+                customVars = vars, locTypes = LocTypes.NONE.with(CustomLocs(vars).types), cycleMillis = millis,
+            )
+        }
+        server.use {
+            ScriptSession("test", { server.login(it) }, HeadlessGame.Types.of(server.world)).use { session ->
+                val result = session.run(
+                    script(
+                        """
+                        {"account": "test", "steps": [
+                          {"step": "waitForLogin"},
+                          {"step": "command", "text": "::tele 3236 3221 0", "expectMessage": "Teleported to 3236, 3221, 0"},
+                          {"step": "assertMapIcon", "loc": "Lodestone", "x": 3232, "y": 3220, "icon": ${Lodestones.MAP_ELEMENT}},
+                          {"step": "assertMapIcon", "loc": "Lodestone", "x": 3232, "y": 3220, "icon": 1, "timeoutMs": 500}
+                        ]}
+                        """.trimIndent(),
+                    ),
+                    "test",
+                )
+                assertEquals(Result.FAIL, result.result)
+                assertEquals("icon ${Lodestones.MAP_ELEMENT}", result.steps[2].detail)
+                assertEquals(
+                    "step 4 (assert map icon 1 on Lodestone at 3232, 3220): timed out after 500 ms: loc \"Lodestone\" at 3232, 3220 has map icon ${Lodestones.MAP_ELEMENT}, not 1",
+                    result.failure,
+                )
             }
         }
     }

@@ -7,6 +7,8 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import osrsps.cache.LocTypeDecoder
+import osrsps.cache.LocTypeEncoder
+import osrsps.cache.MapElementCodec
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.World
@@ -31,10 +33,11 @@ class LodestonesTest {
             assertEquals(type, custom.type)
             assertTrue(custom.id >= CustomLocs.FIRST_ID)
         }
-        assertEquals(locs.all.map { it.id }, locs.overlayFiles.map { it.file })
+        val locFiles = locs.overlayFiles.filter { it.group == CustomLocs.LOC_TYPE_GROUP }
+        assertEquals(locs.all.map { it.id }, locFiles.map { it.file })
         assertEquals(listOf(65000, 65001, 65002, 65003, 65004, 65005, 65006), locs.all.map { it.id })
-        assertTrue(locs.overlayFiles.all { it.index == 2 && it.group == 6 })
-        assertContentEquals(Lodestones.DORMANT_TYPE.encoded, locs.overlayFiles.first { it.file == Lodestones.DORMANT }.data)
+        assertTrue(locs.overlayFiles.all { it.index == 2 && (it.group == 6 || it.group == MapElementCodec.GROUP) })
+        assertContentEquals(Lodestones.DORMANT_TYPE.encoded, locFiles.first { it.file == Lodestones.DORMANT }.data)
     }
 
     @Test
@@ -79,6 +82,17 @@ class LodestonesTest {
         }
         assertEquals(listOf("lumbridge", "draynor", "varrock", "al_kharid", "edgeville"), Lodestones.SITES.map { it.slug })
         assertEquals(listOf(65002, 65003, 65004, 65005, 65006), Lodestones.SITES.map { it.id })
+    }
+
+    @Test
+    fun `both looks carry the minimap's icon, a map element of ours, and a site's multiloc leaves it to them`() {
+        assertEquals(Lodestones.MAP_ELEMENT, Lodestones.DORMANT_TYPE.definition.mapElement)
+        assertEquals(Lodestones.MAP_ELEMENT, Lodestones.ACTIVE_TYPE.definition.mapElement)
+        for (site in Lodestones.SITES) assertEquals(LocTypeEncoder.NO_MAP_ELEMENT, site.type(0).definition.mapElement, "site ${site.id}")
+        val element = locs.overlayFiles.single { it.group == MapElementCodec.GROUP }
+        assertEquals(CustomLocs.CONFIG_INDEX to Lodestones.MAP_ELEMENT, element.index to element.file)
+        assertEquals(MapElementCodec.Definition(sprite = LodestoneMap.MINIMAP_SPRITE), MapElementCodec.decode(element.data))
+        assertEquals(locs.all.size + 1, locs.overlayFiles.size, "the loc types and the one map element")
     }
 
     @Test

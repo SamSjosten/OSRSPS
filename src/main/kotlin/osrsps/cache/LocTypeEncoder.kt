@@ -6,12 +6,15 @@ import java.nio.charset.Charset
 /**
  * Writes a loc type of our own as config archive 6 holds one, with the opcodes [LocTypeDecoder] reads back: the
  * name (2), the models (7, the 241 cache's list of 4-byte model ids without shape types, which a tree uses), the
- * footprint (14, 15), walking and projectiles (17, 18), the options (30 to 34) and a varbit transform (77: the
- * client draws one of the [Transform]'s children, picked by the player's varbit, so each player sees their own).
- * Everything else is left at the client's defaults. The decoder reads the result, so the server's view of the loc is
- * the client's.
+ * footprint (14, 15), walking and projectiles (17, 18), the options (30 to 34), a varbit transform (77: the
+ * client draws one of the [Transform]'s children, picked by the player's varbit, so each player sees their own) and a
+ * map element (82: the minimap draws the element's sprite where the loc stands, [MapElementCodec]). Everything else
+ * is left at the client's defaults. The decoder reads the result, so the server's view of the loc is the client's.
  */
 object LocTypeEncoder {
+    /** No map element: nothing on the minimap for the loc. */
+    const val NO_MAP_ELEMENT = -1
+
     /** Models are ids in index 7 (the cache's, or the overlay's); [ops] are op1 to op5, null for none. */
     class Definition(
         val name: String,
@@ -25,8 +28,11 @@ object LocTypeEncoder {
         val blocksProjectiles: Boolean = true,
         /** The children this loc stands in for, by the player's varbit; null for a loc that is always itself. */
         val transform: Transform? = null,
+        /** The map element whose sprite the minimap draws here (opcode 82), or [NO_MAP_ELEMENT]. */
+        val mapElement: Int = NO_MAP_ELEMENT,
     ) {
         init {
+            require(mapElement == NO_MAP_ELEMENT || mapElement in 0..0xFFFF) { "Bad map element $mapElement" }
             require(name.isNotEmpty() && name.none { it == '\u0000' }) { "Bad loc name '$name'" }
             require(models.isNotEmpty() && models.size <= 255 && models.all { it >= 0 }) { "Bad model list $models" }
             require(ops.size == 5) { "ops are op1 to op5" }
@@ -77,6 +83,10 @@ object LocTypeEncoder {
             if (op == null) continue
             out.write(30 + i)
             out.string(op)
+        }
+        if (definition.mapElement != NO_MAP_ELEMENT) {
+            out.write(82)
+            out.short(definition.mapElement)
         }
         definition.transform?.let { transform ->
             out.write(77)

@@ -30,6 +30,7 @@ object LocTypeDecoder {
         var multiVarbit = -1
         var multiVarp = -1
         var multiLocs = emptyList<Int>()
+        var mapElement = LocType.NO_MAP_ELEMENT
         while (true) {
             when (val opcode = buf.readUnsignedByte().toInt()) {
                 0 -> break
@@ -51,7 +52,8 @@ object LocTypeDecoder {
                 in 30..34 -> ops[opcode - 30] = buf.readString().takeUnless { it.equals("hidden", ignoreCase = true) }
                 69 -> accessBlock = buf.readUnsignedByte().toInt()
                 40, 41 -> buf.skipBytes(buf.readUnsignedByte() * 4)
-                42, 61, 65, 66, 67, 68, 70, 71, 72, 82 -> buf.skipBytes(2)
+                42, 61, 65, 66, 67, 68, 70, 71, 72 -> buf.skipBytes(2)
+                82 -> mapElement = buf.readUnsignedShort()
                 77, 92 -> {
                     multiVarbit = buf.readUnsignedShort().takeUnless { it == 0xFFFF } ?: -1
                     multiVarp = buf.readUnsignedShort().takeUnless { it == 0xFFFF } ?: -1
@@ -81,6 +83,7 @@ object LocTypeDecoder {
             multiVarbit = multiVarbit,
             multiVarp = multiVarp,
             multiLocs = multiLocs,
+            mapElement = mapElement,
         )
     }
 

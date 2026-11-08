@@ -30,6 +30,8 @@ class FakeGame implements Game
 	String takeError;
 	/** The locs locAt finds, as "name at x y" or "name with option at x y". */
 	final List<String> locs = new ArrayList<>();
+	/** The map icon mapIconAt finds, by loc as "name at x y"; -1 for a loc with none. */
+	final Map<String, Integer> mapIcons = new HashMap<>();
 	/** What inventoryCount answers, by item name; null for no inventory yet. */
 	Map<String, Integer> inventory = new HashMap<>();
 	/** How many walk clicks to refuse first, as when the tile is not on screen yet. */
@@ -184,6 +186,18 @@ class FakeGame implements Game
 	{
 		String what = (name != null ? name : "loc " + id) + (option == null ? "" : " with " + option) + " at " + at.x + " " + at.y;
 		return locs.contains(what) ? null : "no " + what;
+	}
+
+	@Override
+	public String mapIconAt(String name, int id, int icon, Tile at)
+	{
+		String what = (name != null ? name : "loc " + id) + " at " + at.x + " " + at.y;
+		Integer got = mapIcons.get(what);
+		if (got == null)
+		{
+			return "no " + what;
+		}
+		return got == icon ? null : what + (got < 0 ? " has no map icon" : " has map icon " + got) + ", not " + icon;
 	}
 
 	@Override
