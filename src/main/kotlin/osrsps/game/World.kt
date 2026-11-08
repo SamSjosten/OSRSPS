@@ -2881,6 +2881,8 @@ class World(
     /** Saves and removes a player who logged out or whose wait for a reconnect is over. */
     private fun remove(player: Player) {
         try {
+            // Down in a raid, leaving counts as a death (RAID-2), which finishes here with the rest.
+            archiveRaids.leaving(player)
             // Nobody is saved dead: a leaver's death finishes now, grave and all.
             if (player.dead) deaths.respawn(player)
             trades.leave(player)

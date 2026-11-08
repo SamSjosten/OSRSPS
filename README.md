@@ -1808,6 +1808,7 @@ loses goes in a grave there. The party lasts through the wipe.
 | The Guardian's fight beginning on Touch on the waiting "Inert Guardian" (`tfa_guardian_start`, 16657) in the middle of the hall, where its corpse lies later; scaled to everyone standing in the run then | 241.4 cache (the NPC and its Touch); where it waits inferred from the corpse; the party size guessed |
 | The whole of a run's instance multi-way | inferred: a raid of up to eight fights one boss |
 | A member who leaves the party sent to the lobby; a logout saving them there, as any instance's exit | guessed |
+| A member down who gets out (a teleport such as Home Teleport or a lodestone, leaving the party, or a logout once out of combat) dying of it, with a grave in the lobby, as if they had been the last standing; a reconnect within the linger no escape | Sam's decision, 8 November 2026 (exploit review RAID-2); the death's place guessed |
 | Every room done as it begins, until its boss's step | stand-in (all but the Guardian's) |
 | The bosses after the Guardian, the Quartermaster and Supply Credits, the party's orbs, the reward room, deaths' item costs | not in yet: steps 17 to 31 |
 
@@ -1815,7 +1816,8 @@ loses goes in a grave there. The party lasts through the wipe.
 `::raid clear` marks the room you're in done, as if its boss died; a room whose fight never began (the Guardian before it is touched) gives its points to whoever of the party stands in it. Check: `./gradlew test --tests 'osrsps.game.instance.*'
 --tests 'osrsps.game.combat.DeathsTest' --tests 'osrsps.testclient.HeadlessArchiveRaidTest'` (a run through the empty
 rooms by the west doors and one by the east; rows opening in order and a row's other door shut; a death that leaves the
-party standing, a player too late to come in, and the wipe to the lobby with graves), and in RuneLite
+party standing, a player too late to come in, the wipe to the lobby with graves, and a member down who teleports out,
+leaves the party or logs out dying of it), and in RuneLite
 `test-runner/examples/archive-raid-flow.json` (both runs, solo) and `archive-raid-wipe.json` (a death in the raid back to
 the lobby, with a grave).
 

@@ -298,6 +298,104 @@ class HeadlessArchiveRaidTest {
         }
     }
 
+    /** The logout button, and the server's logout. */
+    private fun HeadlessClient.logout() {
+        ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+        await("the logout") { packets().firstOrNull { it.prot.name == "LOGOUT" } }
+    }
+
+    /** [username] has a grave of [lost] axes in the lobby, and it is theirs alone. */
+    private fun TestServer.assertGraveInLobby(saveKey: String, username: String, lost: Int) {
+        val grave = assertNotNull(world.deaths.all.singleOrNull { it.owner == saveKey }, "$username's grave")
+        assertEquals(Triple(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z, 0), Triple(grave.npc.x, grave.npc.z, grave.npc.level), "$username's grave in the lobby")
+        assertEquals(lost, grave.items.contents().sumOf { it.second.count }, "$username's grave")
+    }
+
+    @Test
+    fun `a member down who teleports out or leaves the party dies of it, with a grave in the lobby`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { carol ->
+                server.login("dave").use { dave ->
+                    server.login("erin").use { erin ->
+                        for (client in listOf(carol, dave, erin)) client.await("the login rebuild") { client.position }
+                        carol.commandReply("raidparty invite dave") { it.startsWith("Invited") }
+                        dave.commandReply("raidparty accept carol") { it.startsWith("You joined") }
+                        carol.commandReply("raidparty invite erin") { it.startsWith("Invited") }
+                        erin.commandReply("raidparty accept carol") { it.startsWith("You joined") }
+                        val run = carol.enter(server, "carol")
+                        assertEquals(run, dave.enter(server, "dave"))
+                        assertEquals(run, erin.enter(server, "erin"))
+                        val raids = server.world.archiveRaids
+                        val entrance = raids.tile(run, ArchiveRaids.NEXUS_X, ArchiveRaids.NEXUS_Z)
+                        // Carol and Erin fall with Dave standing: down in the entrance, their five axes kept.
+                        for ((client, name) in listOf(carol to "carol", erin to "erin")) {
+                            client.commandReply("item bronze axe 5") { it.contains("Bronze axe") }
+                            client.command("hit 99 me")
+                            client.awaitAt(entrance, "$name down in the entrance")
+                            val player = server.world.playerNamed(name)!!
+                            client.await("$name down") { if (player.saveKey in run.downed && !player.dead) Unit else null }
+                            client.await("$name's axes kept") { client.inventory(INVENTORY).count { it?.id == axe.id }.takeIf { it == 5 } }
+                        }
+                        val says = dave.runSays()
+                        assertTrue(says.contains("down: carol, erin"), says)
+                        val lobby = Tile(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z)
+                        // Carol teleports out (as Home Teleport or a lodestone would), here to beside the lobby, the only
+                        // map loaded: she dies of it, and comes back in the lobby with three axes and a grave of two there.
+                        carol.command("tele ${ArchiveRaids.LOBBY_X + 3} ${ArchiveRaids.LOBBY_Z - 3} 0")
+                        carol.awaitAt(lobby, "Carol dead of it, in the lobby")
+                        carol.await("Carol's three axes") { carol.inventory(INVENTORY).count { it?.id == axe.id }.takeIf { it == 3 } }
+                        server.assertGraveInLobby(server.world.playerNamed("carol")!!.saveKey, "carol", 2)
+                        // Erin leaves the party: sent out, and dead of it the same way.
+                        erin.commandReply("raidparty leave") { it.contains("left") || it.contains("Left") }
+                        erin.awaitAt(lobby, "Erin dead of it, in the lobby")
+                        erin.await("Erin's three axes") { erin.inventory(INVENTORY).count { it?.id == axe.id }.takeIf { it == 3 } }
+                        server.assertGraveInLobby(server.world.playerNamed("erin")!!.saveKey, "erin", 2)
+                        // Dave still stands: the run goes on, with nobody down, each escape a death.
+                        assertTrue(!run.wiped, "the run goes on")
+                        assertTrue(run.downed.isEmpty(), run.downed.toString())
+                        assertEquals(mapOf("carol" to 2, "erin" to 2), run.deaths.mapKeys { (key, _) -> server.world.onlinePlayers.first { it.saveKey == key }.username })
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a member down who waits out the combat timer and logs out dies of it, and logs in again in the lobby`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { dave ->
+                val carol = server.login("carol")
+                val carolKey: String
+                carol.use {
+                    for (client in listOf(carol, dave)) client.await("the login rebuild") { client.position }
+                    carol.commandReply("raidparty invite dave") { it.startsWith("Invited") }
+                    dave.commandReply("raidparty accept carol") { it.startsWith("You joined") }
+                    val run = carol.enter(server, "carol")
+                    assertEquals(run, dave.enter(server, "dave"))
+                    carolKey = server.world.playerNamed("carol")!!.saveKey
+                    carol.commandReply("item bronze axe 5") { it.contains("Bronze axe") }
+                    carol.command("hit 99 me")
+                    carol.awaitAt(server.world.archiveRaids.tile(run, ArchiveRaids.NEXUS_X, ArchiveRaids.NEXUS_Z), "Carol down in the entrance")
+                    val carolPlayer = server.world.playerNamed("carol")!!
+                    carol.await("Carol down") { if (carolKey in run.downed && !carolPlayer.dead) Unit else null }
+                    carol.await("Carol's axes kept") { carol.inventory(INVENTORY).count { it?.id == axe.id }.takeIf { it == 5 } }
+                    // Out of combat once its timer runs out, she logs out.
+                    carol.awaitTicks(World.LOGOUT_COMBAT_TICKS.toInt() + 1)
+                    carol.logout()
+                    dave.await("Carol gone") { if (server.world.playerNamed("carol") == null) Unit else null }
+                    assertTrue(!run.wiped && run.downed.isEmpty(), run.downed.toString())
+                    assertEquals(2, run.deaths[carolKey])
+                }
+                server.assertGraveInLobby(carolKey, "carol", 2)
+                // Saved where the death left her: the lobby, with the three axes it kept.
+                server.login("carol").use { again ->
+                    again.awaitAt(Tile(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z), "Carol back in the lobby")
+                    again.await("Carol's three axes") { again.inventory(INVENTORY).count { it?.id == axe.id }.takeIf { it == 3 } }
+                }
+            }
+        }
+    }
+
     private companion object {
         const val INVENTORY = 93
     }
