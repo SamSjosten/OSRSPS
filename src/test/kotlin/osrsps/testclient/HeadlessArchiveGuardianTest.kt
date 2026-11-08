@@ -670,19 +670,21 @@ class HeadlessArchiveGuardianTest {
                 assertTrue(server.world.encounters.all.isEmpty())
                 assertTrue(server.world.npcs[boss.index] !== boss, "its boss taken out")
                 alice.await("her back up") { if (!player.dead) Unit else null }
-            }
-            server.login("bob").use { bob ->
+
+                // Bob starts one and his client goes: once the world lets him go, the fight goes with him. Stepped by
+                // game ticks, as his connection is kept for a reconnect that long.
+                val bob = server.login("bob")
                 bob.await("the login rebuild") { bob.position }
                 bob.commandReply("god on") { it.startsWith("You can't be hurt") }
                 bob.tele(3222, 3218)
                 bob.commandReply("raid guardian") { it.startsWith("Started") }
+                val second = server.world.encounters.all.single()
+                alice.commandReply("pause") { it.startsWith("Paused after tick") }
+                bob.close()
+                alice.stepTicks(World.LINGER_TICKS.toInt() + 5)
+                assertTrue(second.ended, "the fight called off as he left")
+                assertTrue(second.lines.any { it.endsWith("ends: bob left") }, second.lines.joinToString("\n"))
             }
-            // His client gone, he is logged out, and the fight with him.
-            val fight = server.world.encounters.all.single()
-            val until = System.currentTimeMillis() + 15_000
-            while (!fight.ended && System.currentTimeMillis() < until) Thread.sleep(50)
-            assertTrue(fight.ended, "the fight called off as he left")
-            assertTrue(fight.lines.any { it.endsWith("ends: bob left") }, fight.lines.joinToString("\n"))
         }
     }
 
