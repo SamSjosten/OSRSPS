@@ -64,9 +64,15 @@ object LocTypeDecoder {
                 79 -> { buf.skipBytes(6); buf.skipBytes(buf.readUnsignedByte() * 2) }
                 93 -> buf.skipBytes(6)
                 // Revision 242's multilocs (RuneLite's ObjectLoader, cache 2026-11-03): as 77 and 92, but every loc id,
-                // the default one included, is 3 bytes, signed.
-                97 -> { buf.skipBytes(4); buf.skipBytes((buf.readUnsignedByte() + 1) * 3); multiloc = true }
-                98 -> { buf.skipBytes(7); buf.skipBytes((buf.readUnsignedByte() + 1) * 3); multiloc = true }
+                // the default one included, is 3 bytes, signed, with -1 for none.
+                97, 98 -> {
+                    multiVarbit = buf.readUnsignedShort().takeUnless { it == 0xFFFF } ?: -1
+                    multiVarp = buf.readUnsignedShort().takeUnless { it == 0xFFFF } ?: -1
+                    val default = if (opcode == 98) buf.readMedium() else -1
+                    val count = buf.readUnsignedByte().toInt()
+                    multiLocs = List(count + 1) { buf.readMedium() } + default
+                    multiloc = true
+                }
                 100 -> { buf.skipBytes(2); buf.skipString() }
                 101 -> { buf.skipBytes(13); buf.skipString() }
                 102 -> { buf.skipBytes(15); buf.skipString() }

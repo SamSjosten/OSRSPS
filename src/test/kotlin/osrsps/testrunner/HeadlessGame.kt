@@ -30,7 +30,7 @@ import kotlin.math.max
 /**
  * The runner's [Game] on a [HeadlessClient] instead of RuneLite, so the runner's JSON scripts play against our server
  * with no client and no VM. What RuneLite reads from its cache (names, options, the map's locs, varbit layouts) comes
- * from [types], the same 241 cache the server loaded; what it is told by the server comes from the headless client.
+ * from [types], the same 242 cache the server loaded; what it is told by the server comes from the headless client.
  *
  * Every click sends the packet the menu entry ClientGame names would make the client send. What the real client works
  * out by running its own client scripts (a dropdown opened by the mouse, a search box's typing, text an interface has
@@ -153,7 +153,7 @@ internal class HeadlessGame(
         val what = (if (name != null) "\"$name\"" else "id $id") + (if (at == null) "" else " at ${at.x}, ${at.y}")
         val loc = best ?: return if (nameSeen) "loc $what has no option \"$option\"" else "no loc $what in the scene"
         // Examine is of what the loc is now; an op sends the base id and the server works out what it is.
-        if (examine) client.examineLoc(loc.shown!!.id) else client.locOp(loc.loc.id, loc.loc.x, loc.loc.z, bestOp + 1)
+        if (examine) client.examineLoc(loc.shown!!.id, longId = loc.shown!!.id > 0xFFFF) else client.locOp(loc.loc.id, loc.loc.x, loc.loc.z, bestOp + 1, longId = loc.loc.id > 0xFFFF)
         return null
     }
 
@@ -216,7 +216,7 @@ internal class HeadlessGame(
             .filter { locMatches(it, locName, locId) && (at == null || it.covers(at.x, at.y)) }
             .minByOrNull { distance(Coord(it.loc.x, it.loc.z, it.loc.level), here) }
             ?: return "no loc " + (if (locName != null) "\"$locName\"" else "id $locId") + (if (at == null) "" else " at ${at.x}, ${at.y}") + " in the scene"
-        client.locTarget(loc.loc.id, loc.loc.x, loc.loc.z, InventoryTab.INTERFACE, InventoryTab.ITEMS, slot, items[slot]!!.id)
+        client.locTarget(loc.loc.id, loc.loc.x, loc.loc.z, InventoryTab.INTERFACE, InventoryTab.ITEMS, slot, items[slot]!!.id, longId = loc.loc.id > 0xFFFF)
         return null
     }
 

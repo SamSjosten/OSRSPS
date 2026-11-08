@@ -120,8 +120,14 @@ class MapCollisionLoaderTest {
         val plain = byteArrayOf(97, 0, 1, 0, 2, 1, 1, 0, 0, 0, 0, 7, 14, 2, 15, 3, 0)
         // 98: as 97 with a 3-byte default id (-1, all ones) before the count.
         val withDefault = byteArrayOf(98, 0, 1, 0, 2, -1, -1, -1, 1, 0, 0, 9, 1, 0, 0, 14, 2, 15, 3, 0)
-        for (def in listOf(plain, withDefault)) {
-            assertTrue(LocTypeDecoder.decode(1, def, null).multiloc)
+        // 98 again, with a default of 70000 and a child of -1 (none), both 3 bytes.
+        val longDefault = byteArrayOf(98, 0, 1, 0, 2, 1, 17, 112, 1, -1, -1, -1, 0, 0, 9, 14, 2, 15, 3, 0)
+        val children = listOf(listOf(65536, 7, -1), listOf(9, 65536, -1), listOf(-1, 9, 70000))
+        for ((def, expected) in listOf(plain, withDefault, longDefault).zip(children)) {
+            val loc = LocTypeDecoder.decode(1, def, null)
+            assertTrue(loc.multiloc)
+            assertEquals(listOf(1, 2), listOf(loc.multiVarbit, loc.multiVarp))
+            assertEquals(expected, loc.multiLocs, "the children, then the default")
             val type = LocTypeDecoder.decode(def)
             assertEquals(2, type.width)
             assertEquals(3, type.length)
