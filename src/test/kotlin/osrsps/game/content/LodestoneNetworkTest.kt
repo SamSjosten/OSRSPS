@@ -174,7 +174,7 @@ class LodestoneNetworkTest {
         run(1)
         assertEquals(listOf(128L to Lodestones.VARROCK.arrival), landed)
         assertEquals(Triple(3214, 3376, 0), Triple(player.x, player.z, player.level), "the stone's centre tile")
-        assertEquals(-1, anims[128L])
+        assertEquals(CustomAnims.LODESTONE_LAND, anims[128L], "the landing's animation, on the arrival tile")
         assertEquals(0, player.vars[HomeTeleport.VARP_LAST_CAST], "no cooldown")
         assertFalse(home.casting(player))
         assertTrue(said.isEmpty())

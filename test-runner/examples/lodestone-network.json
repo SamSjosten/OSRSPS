@@ -55,6 +55,7 @@
   {"step": "assertAnimation", "id": 65000, "timeoutMs": 10000, "comment": "the cast's first stage, our own sequence (step 8): the arms-raised pose, held while the white pulse builds; the client has it from the overlay"},
   {"step": "assertSpotanim", "id": 65000, "timeoutMs": 10000, "comment": "the pulse: Tele Other's graphic drawn white-cyan, our own spotanim, on the player"},
   {"step": "assertAnimation", "id": 65001, "timeoutMs": 25000, "comment": "the rise (Tele Other's recipient's frames), 3 ticks before the landing"},
+  {"step": "assertAnimation", "id": 65003, "timeoutMs": 10000, "comment": "the landing (step 8b): the rise backwards on the arrival tile, 1.4 s, so it is waited for before the tile is checked"},
   {"step": "assertLocation", "x": 3233, "y": 3221, "plane": 0, "timeoutMs": 10000, "comment": "the stone's centre, 28 ticks after the pick"},
   {"step": "command", "text": "::varp 892", "expectMessage": "Varp 892 = 1234567", "comment": "no cooldown: a lodestone cast leaves the home teleport timer as it was"},
   {"step": "command", "text": "::varbit lodestone.previous", "expectMessage": "bits 8-11) = 1", "comment": "Previous destination: Lumbridge's index plus one, in the lodestones' varp"},

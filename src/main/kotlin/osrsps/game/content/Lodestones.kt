@@ -42,7 +42,7 @@ object LodestoneLines : Lines("lodestone", "Lodestone_Network") {
  * follows the loaded cache's, so the site's loc type is built for a world's [CustomVars] ([Site.type]). The server
  * sees the one loc ([Site.id]) and the one option on it, and answers by the player's varbit. The cast is Home
  * Teleport's machinery ([HomeTeleport.castTo]) with the stones' own timing, no cooldown and an animation of our own
- * ([STAGES], [CustomAnims]).
+ * ([STAGES], [LANDING], [CustomAnims]).
  *
  * Guessed: the stones' tiles (RS3's spots, by the Wiki's descriptions, moved to where the 241 map's ground is flat,
  * outdoors and clear, the tile around included: RS3's Al Kharid spot is inside a house here, Edgeville's in the river,
@@ -94,6 +94,9 @@ object Lodestones {
         HomeTeleport.Stage(0, CustomAnims.LODESTONE_CHARGE, CustomAnims.LODESTONE_PULSE),
         HomeTeleport.Stage(CAST_TICKS - RISE_TICKS, CustomAnims.LODESTONE_RISE, CustomAnims.LODESTONE_FLASH),
     )
+
+    /** On the arrival tile: the rise backwards with the swirl closing in, so the player comes down at the stone, as RS3's "flies back down at the lodestone". */
+    val LANDING = HomeTeleport.Stage(CAST_TICKS, CustomAnims.LODESTONE_LAND, CustomAnims.LODESTONE_LAND_FLASH)
 
     /**
      * One site: its stone's south-west tile ([x], [z]; the stone is 3 by 3), its loc and its name. Its varbit, 1 once
@@ -262,7 +265,7 @@ class LodestoneNetwork(
             message(player, LodestoneLines.LOCKED, arrayOf("name" to words(player, site.name, emptyArray())))
             return false
         }
-        val started = with(homeTeleport) { castTo(site.arrival, Lodestones.CAST_TICKS, Lodestones.STAGES, cooldown = false) }
+        val started = with(homeTeleport) { castTo(site.arrival, Lodestones.CAST_TICKS, Lodestones.STAGES, cooldown = false, landing = Lodestones.LANDING) }
         if (started) player.vars.setVarbit(vars.lodestonePreviousVarbit, site.index + 1)
         return started
     }

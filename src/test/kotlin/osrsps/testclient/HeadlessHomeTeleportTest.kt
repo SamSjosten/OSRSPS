@@ -54,8 +54,8 @@ class HeadlessHomeTeleportTest {
                 val landedAfter = client.ticksSeen - ticksAtPick
                 // The pick lands in the next tick's input; the landing shows 28 ticks after that.
                 check(landedAfter in 28..30) { "landed $landedAfter ticks after the pick" }
-                val stages = client.animationTicks().drop(animsBefore).take(Lodestones.STAGES.size)
-                assertEquals(listOf(Lodestones.CAST_TICKS - Lodestones.RISE_TICKS), stages.zipWithNext { a, b -> b - a }, "the lodestones' stages, from $stages")
+                val stages = client.animationTicks().drop(animsBefore).take(Lodestones.STAGES.size + 1)
+                assertEquals(listOf(Lodestones.CAST_TICKS - Lodestones.RISE_TICKS, Lodestones.RISE_TICKS), stages.zipWithNext { a, b -> b - a }, "the lodestones' stages and landing, from $stages")
                 assertEquals("Varp ${HomeTeleport.VARP_LAST_CAST} = 0", client.commandReply("varp ${HomeTeleport.VARP_LAST_CAST}") { it.startsWith("Varp") }, "no cooldown")
 
                 // A second cast right away: the map again, not the cooldown's refusal; its close button casts nothing.
