@@ -33,6 +33,8 @@
   {"step": "assertInterface", "interfaceId": 706, "comment": "the permissions page stayed open"},
   {"step": "clickWidget", "interfaceId": 706, "component": 5, "comment": "Back: the settings page"},
   {"step": "assertInterface", "interfaceId": 690},
+  {"step": "clickWidget", "interfaceId": 690, "component": 3, "comment": "close the settings page, so no window is left open for the next script"},
+  {"step": "assertInterface", "interfaceId": 690, "absent": true},
   {"step": "command", "text": "::clandisband Guest Rules", "expectMessage": "Clan Guest Rules deleted"},
   {"step": "runClientScript", "id": 915, "args": [3], "comment": "back to the inventory tab"}
  ]

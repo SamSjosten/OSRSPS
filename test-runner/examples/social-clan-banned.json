@@ -22,6 +22,8 @@
   {"step": "assertVarbit", "id": 12199, "value": 0, "comment": "clan_editing_lookupinprogress: set by the client on Unban, cleared by the server so the list isn't greyed"},
   {"step": "clickWidget", "interfaceId": 689, "component": 11, "comment": "Back: the settings page"},
   {"step": "assertInterface", "interfaceId": 690},
+  {"step": "clickWidget", "interfaceId": 690, "component": 3, "comment": "close the settings page, so no window is left open for the next script"},
+  {"step": "assertInterface", "interfaceId": 690, "absent": true},
   {"step": "command", "text": "::clandisband Ban Gate", "expectMessage": "Clan Ban Gate deleted"},
   {"step": "runClientScript", "id": 915, "args": [3], "comment": "back to the inventory tab"}
  ]
