@@ -4,7 +4,6 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.io.TempDir
-import osrsps.game.GameFrame
 import osrsps.game.NpcType
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
@@ -14,15 +13,25 @@ import osrsps.game.dialogue.Chatbox
 import osrsps.game.npc.NpcSpawn
 import osrsps.map.CollisionMap
 
-/** Harlan, the melee combat tutor, through the headless client (combat step 7). No dialogue file: lines show their keys. */
+/** Captain Harlan through the headless client (Lumbridge 242 step 1). No dialogue file: lines show their keys. */
 class HeadlessHarlanTest {
-    private val harlan = NpcSpawn(NpcType(Harlan.ID, "Melee combat tutor", ops = listOf("Talk-to", null, null, null, null)), 3221, 3220, source = "test")
-    private val root = listOf("[harlan.melee]", "[harlan.weapon_types]", "[harlan.skillcapes]", "[harlan.training_kit]", "[harlan.goodbye]")
+    private val harlan = NpcSpawn(
+        NpcType(Harlan.ID, "Captain Harlan", ops = listOf("Talk-to", null, "Claim-weapons", null, null)), 3221, 3220, source = "test",
+    )
+    private val root = listOf(
+        "[captain_harlan.guards]", "[captain_harlan.advice]", "[captain_harlan.weapons]", "[captain_harlan.cape]", "[captain_harlan.leave]",
+    )
+    private val kinds = listOf(
+        "[captain_harlan.ask_melee]", "[captain_harlan.ask_ranged]", "[captain_harlan.ask_magic]", "[captain_harlan.something_else]",
+    )
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
-        val types = arrayOfNulls<ObjType>(Harlan.TRAINING_SHIELD + 1)
-        types[Harlan.TRAINING_SWORD] = ObjType(Harlan.TRAINING_SWORD, "Training sword")
-        types[Harlan.TRAINING_SHIELD] = ObjType(Harlan.TRAINING_SHIELD, "Training shield")
+        val ids = listOf(
+            Harlan.BRONZE_SHORTSWORD to "Bronze shortsword", Harlan.WOODEN_SHIELD to "Wooden shield", Harlan.SHORTBOW to "Shortbow",
+        )
+        val types = arrayOfNulls<ObjType>(Harlan.BRONZE_SHORTSWORD + 1)
+        for ((id, name) in ids) types[id] = ObjType(id, name)
+        types[Harlan.BRONZE_ARROW] = ObjType(Harlan.BRONZE_ARROW, "Bronze arrow", stackable = true)
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(types), npcSpawns = listOf(harlan),
             cycleMillis = millis,
@@ -41,33 +50,41 @@ class HeadlessHarlanTest {
         assertEquals(options, (awaitDialogue("the menu") { it is DialogueView.Menu } as DialogueView.Menu).options)
 
     @Test
-    fun `Harlan hands over a training sword and shield once, and the melee talk shows the worn and combat tabs`(@TempDir dir: Path) {
+    fun `Captain Harlan hands over a shortsword and shield, then refuses for 30 minutes, also through Claim-weapons`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("dave").use { client ->
-                val npc = client.await("Harlan in view") { client.npcs().firstOrNull { it.id == Harlan.ID } }
+                val npc = client.await("Captain Harlan in view") { client.npcs().firstOrNull { it.id == Harlan.ID } }
                 client.npcOp(npc.index, Harlan.TALK_TO)
-                client.says("Melee combat tutor" to "[harlan.greeting]")
+                client.says("Captain Harlan" to "[captain_harlan.greeting]")
                 client.menu(root)
-                client.chooseOption(4)
-                client.says("dave" to "[harlan.training_kit]")
+                client.chooseOption(3)
+                client.says("dave" to "[captain_harlan.weapons]", "Captain Harlan" to "[captain_harlan.offer_all]")
+                client.menu(kinds)
+                client.chooseOption(1)
+                client.says("dave" to "[captain_harlan.ask_melee]")
                 assertEquals(DialogueView.Other(Chatbox.OBJECTBOX_DOUBLE), client.awaitDialogue("the items box") { it is DialogueView.Other })
                 assertEquals(
-                    listOf(InvObj(Harlan.TRAINING_SWORD, 1), InvObj(Harlan.TRAINING_SHIELD, 1)),
-                    client.await("the kit in the bag") { client.inventory(BACKPACK).filterNotNull().takeIf { it.size == 2 } },
+                    listOf(InvObj(Harlan.BRONZE_SHORTSWORD, 1), InvObj(Harlan.WOODEN_SHIELD, 1)),
+                    client.await("the weapons in the bag") { client.inventory(BACKPACK).filterNotNull().takeIf { it.size == 2 } },
                 )
                 client.resumePause(Chatbox.OBJECTBOX_DOUBLE, Chatbox.OBJECTBOX_DOUBLE_PAUSEBUTTON)
-                client.says("Melee combat tutor" to "[harlan.there_you_go]", "Melee combat tutor" to "[harlan.kit_anything_else]")
-                client.menu(root)
+                client.says("Captain Harlan" to "[captain_harlan.anything_else]")
+                client.menu(kinds)
                 client.chooseOption(4)
-                client.says("dave" to "[harlan.training_kit]", "Melee combat tutor" to "[harlan.has_both]", "Melee combat tutor" to "[harlan.kit_anything_else]")
-                assertEquals(2, client.inventory(BACKPACK).count { it != null })
-
+                client.says("dave" to "[captain_harlan.something_else]")
                 client.menu(root)
-                client.chooseOption(1)
-                client.says("dave" to "[harlan.melee]", "Melee combat tutor" to "[harlan.melee_1]", "Melee combat tutor" to "[harlan.melee_2]")
-                client.awaitDialogue("melee_3") { it is DialogueView.Chat && it.text == "[harlan.melee_3]" }
-                val switches = client.clientScripts().filter { it.id == GameFrame.SIDEBUTTON_SWITCH_SCRIPT }.map { it.args }
-                assertEquals(listOf(listOf<Any>(GameFrame.SIDE_TAB_WORN), listOf<Any>(GameFrame.SIDE_TAB_COMBAT)), switches)
+                client.chooseOption(5)
+                client.says("dave" to "[captain_harlan.leave]", "Captain Harlan" to "[captain_harlan.leave_reply]")
+
+                client.npcOp(npc.index, Harlan.CLAIM_WEAPONS)
+                client.menu(
+                    listOf(
+                        "[captain_harlan.claim_melee]", "[captain_harlan.claim_ranged]", "[captain_harlan.claim_magic]", "[captain_harlan.cancel]",
+                    ),
+                )
+                client.chooseOption(2)
+                client.says("Captain Harlan" to "[captain_harlan.too_soon_all minutes=30]")
+                assertEquals(2, client.inventory(BACKPACK).count { it != null })
             }
         }
     }
