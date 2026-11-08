@@ -77,7 +77,7 @@ class HeadlessScriptsTest {
     fun `as stand-ins, the examine script's description is a chat line, and the side tab switch needs no client`(@TempDir dir: Path) {
         TestServer(dir).use { server ->
             val game = HeadlessGame({ null }, "test", HeadlessGame.Types.of(server.world))
-            assertEquals("A bank note.", game.scriptMessage(ClientScript(InventoryTab.EXAMINE_SCRIPT, listOf(1, 1, "A bank note.", 0, 0L, 0, 0, 0))))
+            assertEquals("[examine.test_item]", game.scriptMessage(ClientScript(InventoryTab.EXAMINE_SCRIPT, listOf(1, 1, "[examine.test_item]", 0, 0L, 0, 0, 0))))
             assertNull(game.scriptMessage(ClientScript(InventoryTab.EXAMINE_SCRIPT + 1, listOf(1, 1, "x"))))
             assertNull(game.runClientScript(915, arrayOf(7)))
             assertTrue(game.runClientScript(5968, arrayOf("roof"))!!.contains("runs in the client"))
