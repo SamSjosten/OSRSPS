@@ -314,13 +314,19 @@ class Encounters(private val world: World, defs: List<EncounterDef> = emptyList(
 
     fun process() {
         for (encounter in list.toList()) {
-            encounter.calledOff()?.let { why ->
+            // Ended already, as one can on its first tick in [start]: out of the list, with nothing more to run.
+            if (encounter.ended) {
+                list -= encounter
+                continue
+            }
+            val why = encounter.calledOff()
+            if (why != null) {
                 encounter.end(why)
                 list -= encounter
                 val boss = encounter.boss
                 if (!boss.dead && world.npcs[boss.index] === boss) world.removeNpc(boss)
+                continue
             }
-            if (encounter.ended) continue
             encounter.process()
             if (encounter.ended) list -= encounter
         }
