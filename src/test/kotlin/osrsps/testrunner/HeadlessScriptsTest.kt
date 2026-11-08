@@ -11,6 +11,8 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.InventoryTab
+import osrsps.testclient.ClientScript
 import osrsps.testclient.TestServer
 
 /**
@@ -68,6 +70,17 @@ class HeadlessScriptsTest {
                 assertTrue("3222, 3218" in result.failure!!, result.failure)
                 assertEquals("skipped", result.steps.last().outcome)
             }
+        }
+    }
+
+    @Test
+    fun `as stand-ins, the examine script's description is a chat line, and the side tab switch needs no client`(@TempDir dir: Path) {
+        TestServer(dir).use { server ->
+            val game = HeadlessGame({ null }, "test", HeadlessGame.Types.of(server.world))
+            assertEquals("A bank note.", game.scriptMessage(ClientScript(InventoryTab.EXAMINE_SCRIPT, listOf(1, 1, "A bank note.", 0, 0L, 0, 0, 0))))
+            assertNull(game.scriptMessage(ClientScript(InventoryTab.EXAMINE_SCRIPT + 1, listOf(1, 1, "x"))))
+            assertNull(game.runClientScript(915, arrayOf(7)))
+            assertTrue(game.runClientScript(5968, arrayOf("roof"))!!.contains("runs in the client"))
         }
     }
 
