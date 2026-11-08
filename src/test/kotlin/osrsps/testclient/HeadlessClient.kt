@@ -386,12 +386,30 @@ class HeadlessClient private constructor(
     /** Examine on NPC type [id], as OPNPC6. */
     fun examineNpc(id: Int) = send(GameClientProt.OPNPC6) { p2(id) }
 
-    /** Examine on loc type [id], as OPLOC6_V1 (the 2-byte id form). */
-    fun examineLoc(id: Int) = send(GameClientProt.OPLOC6_V1) { p2Alt1(id) }
+    /**
+     * Examine on loc type [id], as OPLOC6_V1 (the 2-byte id form), or with [longId] as OPLOC6_V2, the 3-byte form
+     * revision 242 added.
+     */
+    fun examineLoc(id: Int, longId: Boolean = false) =
+        if (longId) send(GameClientProt.OPLOC6_V2) { p3Alt2(id) } else send(GameClientProt.OPLOC6_V1) { p2Alt1(id) }
 
-    /** Op [op] (1-5) on loc [id] whose south-west tile is [x], [z], as OPLOC1-5. */
-    fun locOp(id: Int, x: Int, z: Int, op: Int, ctrl: Boolean = false, subop: Int = 0) {
+    /**
+     * Op [op] (1-5) on loc [id] whose south-west tile is [x], [z], as OPLOC1-5_V2, or with [longId] as OPLOC1-5_V3, the
+     * 3-byte id forms revision 242 added (RSProt 242's OpLoc1-5V3Decoder).
+     */
+    fun locOp(id: Int, x: Int, z: Int, op: Int, ctrl: Boolean = false, subop: Int = 0, longId: Boolean = false) {
         val key = if (ctrl) 1 else 0
+        if (longId) {
+            when (op) {
+                1 -> send(GameClientProt.OPLOC1_V3) { p1Alt3(subop); p2(z); p2Alt3(x); p3(id); p1(key) }
+                2 -> send(GameClientProt.OPLOC2_V3) { p3Alt2(id); p2(x); p1Alt2(subop); p2Alt3(z); p1Alt2(key) }
+                3 -> send(GameClientProt.OPLOC3_V3) { p3Alt2(id); p2Alt1(z); p2Alt3(x); p1Alt1(key); p1Alt1(subop) }
+                4 -> send(GameClientProt.OPLOC4_V3) { p2(z); p1(key); p2(x); p1Alt3(subop); p3Alt2(id) }
+                5 -> send(GameClientProt.OPLOC5_V3) { p1Alt1(subop); p1Alt1(key); p3(id); p2Alt1(x); p2Alt2(z) }
+                else -> throw IllegalArgumentException("Loc ops are 1-5, not $op")
+            }
+            return
+        }
         when (op) {
             1 -> send(GameClientProt.OPLOC1_V2) { p2Alt3(z); p1Alt3(key); p1Alt2(subop); p2Alt2(id); p2Alt2(x) }
             2 -> send(GameClientProt.OPLOC2_V2) { p2(id); p2(z); p2Alt2(x); p1(subop); p1Alt1(key) }
@@ -406,8 +424,19 @@ class HeadlessClient private constructor(
      * Component [componentId] of [interfaceId] (slot [sub], showing [obj]) used on loc [id] whose south-west tile is
      * [x], [z], as OPLOCT: an inventory item's Use, then a click on the loc. Laid out as RSProt's 242 OpLocTDecoder reads it.
      */
-    fun locTarget(id: Int, x: Int, z: Int, interfaceId: Int, componentId: Int, sub: Int = -1, obj: Int = -1, ctrl: Boolean = false) =
-        send(GameClientProt.OPLOCT_V1) {
+    fun locTarget(id: Int, x: Int, z: Int, interfaceId: Int, componentId: Int, sub: Int = -1, obj: Int = -1, ctrl: Boolean = false, longId: Boolean = false) =
+        if (longId) {
+            // OPLOCT_V2, the 3-byte id form revision 242 added (RSProt 242's OpLocTV2Decoder).
+            send(GameClientProt.OPLOCT_V2) {
+                p2Alt1(x)
+                p4Alt2((interfaceId shl 16) or componentId)
+                p2Alt1(z)
+                p1(if (ctrl) 1 else 0)
+                p2Alt3(obj and 0xFFFF)
+                p3Alt2(id)
+                p2Alt2(sub and 0xFFFF)
+            }
+        } else send(GameClientProt.OPLOCT_V1) {
             p2(x)
             p2Alt2(obj and 0xFFFF)
             p2Alt3(z)
