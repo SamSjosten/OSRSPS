@@ -547,7 +547,13 @@
    "step": "command",
    "text": "::tele 3264 3440 0",
    "expectMessage": "Teleported to 3264, 3440, 0",
-   "comment": "back to the doors' south side, as HeadlessVarrockMuseumTest opens them from: after the guard's talk the Open click got no open door (VM 215, 2026-11-08); the talk may have walked the player off this tile"
+   "comment": "back to the doors' south side, as HeadlessVarrockMuseumTest opens them from"
+  },
+  {
+   "step": "command",
+   "text": "::resetlocs 2",
+   "expectMessage": "Put the locs within 2 of",
+   "comment": "shut the doors first, in case an earlier run stopped with them open (VM 215, 2026-11-08)"
   },
   {
    "step": "locOption",
@@ -561,18 +567,16 @@
   {
    "step": "assertLoc",
    "locId": 24568,
-   "option": "Close",
    "x": 3264,
    "y": 3442,
-   "comment": "the _r leaf open"
+   "comment": "the _r leaf open (the open leaves have no options in the cache: they don't close)"
   },
   {
    "step": "assertLoc",
    "locId": 24566,
-   "option": "Close",
    "x": 3265,
    "y": 3442,
-   "comment": "and the _l leaf with it"
+   "comment": "and the _l leaf with it (the open leaves have no options in the cache: they don't close)"
   },
   {
    "step": "command",
