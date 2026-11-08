@@ -210,6 +210,9 @@ class ScenarioCommandsTest {
         assertNull(world.npcs[mine.index]?.takeIf { it === mine })
         assertTrue(world.npcs[theirs.index] === theirs)
         assertTrue(world.npcs[cache.index] === cache)
+    }
+
+    @Test
     fun `reset shuts the doors the player opened`() {
         val doorTypes = osrsps.game.loc.LocTypes(
             listOf(
