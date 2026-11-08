@@ -19,9 +19,9 @@
   },
   {
    "step": "command",
-   "text": "::tele 3227 3369 0",
-   "expectMessage": "Teleported to 3227, 3369, 0",
-   "comment": "the middle of the stone circle south of Varrock"
+   "text": "::tele 3225 3369 0",
+   "expectMessage": "Teleported to 3225, 3369, 0",
+   "comment": "inside the stone circle south of Varrock, west of its stone table: 3227,3369 is on the table, where the wizards never cast at the player (VM 215, 2026-11-03 and 2026-11-08)"
   },
   {
    "step": "assertSpotanim",

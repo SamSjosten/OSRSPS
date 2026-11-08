@@ -61,6 +61,11 @@
    "step": "waitForLogin"
   },
   {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle after the relog: a command typed straight away can be lost (VM 215, 2026-11-03 and 2026-11-08)"
+  },
+  {
    "step": "command",
    "text": "::keys on",
    "expectMessage": "Dialogue shows keys",
@@ -107,6 +112,11 @@
   },
   {
    "step": "waitForLogin"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle after the relog: a command typed straight away can be lost (VM 215, 2026-11-03 and 2026-11-08)"
   },
   {
    "step": "command",
@@ -166,6 +176,11 @@
   },
   {
    "step": "waitForLogin"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle after the relog: a command typed straight away can be lost (VM 215, 2026-11-03 and 2026-11-08)"
   },
   {
    "step": "command",
