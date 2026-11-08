@@ -3,8 +3,12 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.Scenario
+import osrsps.game.Scenarios
 import osrsps.game.World
+import osrsps.game.loc.Doors
 import osrsps.game.content.ClimbLines
 import osrsps.game.content.Climbing
 import osrsps.game.content.LumbridgeCastle.CELLAR_LADDER
@@ -205,6 +209,38 @@ class HeadlessCastleTest {
                 client.await("both large doors open") { client.locChanges().takeIf { it.containsAll(listOf(leftOpen, rightOpen)) } }
                 client.locOp(LARGE_DOOR_RIGHT_OPEN, 3212, 3222, 1)
                 client.await("both large doors shut") { client.locChanges().takeIf { leftOpen !in it && rightOpen !in it } }
+            }
+        }
+    }
+
+    @Test
+    fun `an opened door shuts again on its respawn clock, and a reset shuts the doors the player left open`(@TempDir dir: Path) {
+        // A fast clock, so the 500 ticks pass in a few seconds; a scenario for ::reset to end.
+        val bare = Scenario.parse("bare", """{ "position": { "x": 3207, "z": 3218 } }""")
+        val fast = TestServer(dir, cycleMillis = 5) { crcs, millis ->
+            World(
+                crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, locTypes = types,
+                staticLocs = StaticLocs().apply { locs.forEach(::add) }, scenarios = Scenarios(listOf(bare)), cycleMillis = millis,
+            )
+        }
+        fast.use { server ->
+            server.login("hal").use { client ->
+                client.await("the login rebuild") { client.position }
+                val kitchenOpen = LocChange(DOOR_OPEN, LocShape.WALL_STRAIGHT, 2, Coord(3207, 3218))
+                client.command("scenario bare")
+                client.awaitAt(3207, 3218, 0)
+                client.locOp(KITCHEN_DOOR, 3207, 3217, 1)
+                client.await("the kitchen door open") { client.locChanges().takeIf { kitchenOpen in it } }
+                client.command("reset")
+                client.await("the kitchen door shut by the reset") { client.locChanges().takeIf { kitchenOpen !in it } }
+
+                client.locOp(KITCHEN_DOOR, 3207, 3217, 1)
+                client.await("the kitchen door open again") { client.locChanges().takeIf { kitchenOpen in it } }
+                val opened = client.ticksSeen
+                val shut = client.await("the kitchen door shut on its own", timeoutMillis = 30_000) {
+                    client.locChanges().takeIf { kitchenOpen !in it }?.let { client.ticksSeen }
+                }
+                assertTrue(shut - opened >= Doors.RESPAWN_TICKS - 2, "shut ${shut - opened} ticks after opening")
             }
         }
     }
