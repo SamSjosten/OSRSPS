@@ -12,6 +12,12 @@
   },
   {
    "step": "command",
+   "text": "::clandisband",
+   "expectMessage": "lan",
+   "comment": "test's own clan from another run, if any: a member can't apply"
+  },
+  {
+   "step": "command",
    "text": "::clandisband Guest Gate",
    "expectMessage": "lan",
    "comment": "the last run's clan, if any: 'Clan Guest Gate deleted' or 'No clan called Guest Gate'"

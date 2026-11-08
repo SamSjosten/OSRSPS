@@ -131,6 +131,17 @@
    "interfaceId": 690
   },
   {
+   "step": "clickWidget",
+   "interfaceId": 690,
+   "component": 3,
+   "comment": "close the settings page, so no window is left open for the next script"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 690,
+   "absent": true
+  },
+  {
    "step": "command",
    "text": "::clandisband Perm Gate",
    "expectMessage": "Clan Perm Gate deleted"
