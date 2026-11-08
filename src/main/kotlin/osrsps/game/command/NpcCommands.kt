@@ -20,18 +20,24 @@ fun CommandRegistry.registerNpcCommands(world: World) {
         reply("Spawned ${type.name} (${type.id}) as #${npc.index} at ${npc.x}, ${npc.z}" + if (spawn.wander > 0) ", wander ${spawn.wander}" else "")
     }
 
-    register("npcs", "::npcs [radius]", admin = false) {
-        val radius = when (args.size) {
+    register("npcs", "::npcs [radius] [mine]", admin = false) {
+        // "mine" lists only the NPCs you put in with ::npc: in a crowded spot the list stops at [MAX_LISTED], and a test's
+        // own NPC, spawned last, has the highest index (VM 217, 2026-11-08: aggro-leash's spider was past 29 ducks and men).
+        val mine = args.lastOrNull() == "mine"
+        val rest = if (mine) args.dropLast(1) else args
+        val radius = when (rest.size) {
             0 -> DEFAULT_LIST_RADIUS
-            1 -> args[0].toIntOrNull()?.takeIf { it in 0..MAX_LIST_RADIUS } ?: fail("The radius must be 0 to $MAX_LIST_RADIUS")
-            else -> fail("Usage: ::npcs [radius]")
+            1 -> rest[0].toIntOrNull()?.takeIf { it in 0..MAX_LIST_RADIUS } ?: fail("The radius must be 0 to $MAX_LIST_RADIUS")
+            else -> fail("Usage: ::npcs [radius] [mine]")
         }
         val near = world.npcs.near(player.x, player.z, player.level, radius)
+            .let { all -> if (mine) all.filter { it.spawn.source == spawnSource(player.username) } else all }
+        val yours = if (mine) " you put in" else ""
         if (near.isEmpty()) {
-            reply("No NPCs within $radius tiles.")
+            reply("No NPCs$yours within $radius tiles.")
             return@register
         }
-        reply("${near.size} NPC${if (near.size == 1) "" else "s"} within $radius tiles:")
+        reply("${near.size} NPC${if (near.size == 1) "" else "s"}$yours within $radius tiles:")
         for (npc in near.take(MAX_LISTED)) {
             val spawn = npc.spawn
             val freeze = when {

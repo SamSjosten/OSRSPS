@@ -3,9 +3,11 @@
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},
+  {"step": "runClientScript", "id": 915, "args": [9], "comment": "shows the Friends side tab (toplevel_sidebutton_switch): the runner reads the lists from its widgets, which count only while it shows"},
   {"step": "command", "text": "::clearfriends", "expectMessage": "Friends list emptied"},
   {"step": "logout", "comment": "so the Friends tab starts empty"},
   {"step": "waitForLogin", "comment": "auto login"},
+  {"step": "runClientScript", "id": 915, "args": [9], "comment": "shows the Friends side tab (toplevel_sidebutton_switch): the runner reads the lists from its widgets, which count only while it shows"},
   {"step": "assertFriend", "name": "test2", "absent": true},
   {"step": "addFriend", "name": "test2"},
   {"step": "assertFriend", "name": "test2", "world": 301, "timeoutMs": 180000, "comment": "waits for test2 to log in on the other VM"},
