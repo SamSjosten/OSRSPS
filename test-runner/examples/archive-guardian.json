@@ -83,7 +83,8 @@
   },
   {
    "step": "waitTicks",
-   "ticks": 3
+   "ticks": 10,
+   "comment": "the walk up to it first: on the VM (2026-11-03) the fight began 5 ticks after the click"
   },
   {
    "step": "command",
