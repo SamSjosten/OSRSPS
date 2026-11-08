@@ -108,8 +108,9 @@ overlay adds them to those groups. The client has no frames of ours, so a sequen
 already has, at our own pace and in our own order (as the cache's own reversed teleport, 715, plays 714's backwards),
 and a spotanim of ours is a cache graphic's model on a sequence with its colours swapped. The lodestone cast is the
 first (step 8): the arms-raised pose while a white pulse builds, then Tele Other's rise drawn white in the last three
-ticks, after RS3's player who "flies into the air as white pulse". `::anim 65000` and `::spotanim 65000` play them,
-and `lodestone-network.json` reads both off the real client after the Teleport click.
+ticks, and the same frames backwards on the arrival tile, after RS3's player who "flies into the air as white pulse
+and flies back down at the lodestone". `::anim 65000` and `::spotanim 65000` play them, and `lodestone-network.json`
+reads the cast and the landing off the real client after the Teleport click.
 
 ## Run the server
 

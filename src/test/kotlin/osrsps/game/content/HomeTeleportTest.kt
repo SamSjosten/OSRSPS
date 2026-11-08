@@ -217,7 +217,7 @@ class HomeTeleportTest {
         assertTrue(home.casting(player))
         assertTrue(said.isEmpty())
         scripts.interrupt(player)
-        home.target = { HomeTeleport.Target(elsewhere, Lodestones.CAST_TICKS, Lodestones.STAGES, cooldown = false) }
+        home.target = { HomeTeleport.Target(elsewhere, Lodestones.CAST_TICKS, Lodestones.STAGES, cooldown = false, landing = Lodestones.LANDING) }
         tick = 100
         click()
         run(27)
@@ -225,6 +225,8 @@ class HomeTeleportTest {
         run(1)
         assertEquals(128L to elsewhere, landed.last(), "the target's own length")
         assertEquals(CustomAnims.LODESTONE_RISE, anims[100L + Lodestones.CAST_TICKS - Lodestones.RISE_TICKS], "the target's own stages")
+        assertEquals(CustomAnims.LODESTONE_LAND, anims[128L], "the target's landing plays on the arrival tile in place of stopping the cast's animation")
+        assertEquals(CustomAnims.LODESTONE_LAND_FLASH, spots[128L])
         home.target = { null }
         click()
         assertFalse(home.casting(player))

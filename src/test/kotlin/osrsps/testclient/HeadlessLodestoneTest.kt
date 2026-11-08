@@ -105,8 +105,8 @@ class HeadlessLodestoneTest {
                 client.stepTicks(1)
                 client.await("the landing") { client.position?.takeIf { it == lumbridgeCentre } }
                 assertEquals(started + Lodestones.CAST_TICKS, client.ticksSeen, "lands ${Lodestones.CAST_TICKS} ticks after the first stage")
-                val allStages = client.animationTicks().drop(animsBefore).take(Lodestones.STAGES.size)
-                assertEquals(listOf(Lodestones.CAST_TICKS - Lodestones.RISE_TICKS), allStages.zipWithNext { a, b -> b - a }, "the gap between the charge and the rise, from $allStages")
+                val allStages = client.animationTicks().drop(animsBefore).take(Lodestones.STAGES.size + 1)
+                assertEquals(listOf(Lodestones.CAST_TICKS - Lodestones.RISE_TICKS, Lodestones.RISE_TICKS), allStages.zipWithNext { a, b -> b - a }, "the gaps between the charge, the rise and the landing, from $allStages")
                 client.commandReply("resume") { it.startsWith("Resumed after tick") }
 
                 // Standing on the stone, Teleport (op1 of the active look) opens the same map, now with Previous destination.
