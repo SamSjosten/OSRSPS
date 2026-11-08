@@ -8,6 +8,9 @@ import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.Player
 import osrsps.game.combat.AttackType
+import osrsps.game.combat.MagicInteraction
+import osrsps.game.combat.MeleeInteraction
+import osrsps.game.combat.RangedInteraction
 import osrsps.game.encounter.CycleStep
 import osrsps.game.encounter.EncounterContext
 import osrsps.game.encounter.EncounterDef
@@ -385,7 +388,28 @@ object ArchiveGuardian {
         for ((i, battery) in list.withIndex()) {
             if (battery.type.id == batteries.spent.id) continue
             val type = if (awake && i != SOUTH_EAST) batteries.awake else batteries.asleep
-            if (battery.type.id != type.id) world.npcs.transform(battery, type, Npcs.FOREVER)
+            if (battery.type.id == type.id) continue
+            world.npcs.transform(battery, type, Npcs.FOREVER)
+            if (type.id == batteries.asleep.id) untarget(battery)
+        }
+    }
+
+    /**
+     * [battery] has lost its Attack (asleep or spent): whoever was attacking it stops, as they would if it had gone,
+     * rather than swinging, shooting or casting on at a target that holds at 0 (Codex on #481). A hit already on its
+     * way still lands.
+     */
+    private fun EncounterContext.untarget(battery: Npc) {
+        for (player in world.onlinePlayers) {
+            val on = when (val fight = player.interaction) {
+                is MeleeInteraction -> fight.npc
+                is RangedInteraction -> fight.npc
+                is MagicInteraction -> fight.npc
+                else -> null
+            }
+            if (on !== battery) continue
+            player.interaction = null
+            world.npcInteractions.stopFacing(player)
         }
     }
 
@@ -397,6 +421,7 @@ object ArchiveGuardian {
         for (battery in batteryList(batteries)) {
             if (battery.type.id != batteries.awake.id || battery.hitpoints > 0) continue
             world.npcs.transform(battery, batteries.spent, Npcs.FOREVER)
+            untarget(battery)
             val dealt = world.meleeCombat.hit(boss, null, boss.maxHitpoints * BATTERY_SHIELD_PERCENT / 100, world.tick)
             log("inert guardian at ${battery.x},${battery.z} charged: shield takes $dealt")
             if (gone()) return
@@ -443,6 +468,7 @@ object ArchiveGuardian {
             val shield = batteries?.let { behind(it, line, Tile(target.x, target.z)) }
             if (batteries != null && shield != null) {
                 world.npcs.transform(shield, batteries.spent, Npcs.FOREVER)
+                untarget(shield)
                 total = total * (100 - BATTERY_LASER_CUT_PERCENT) / 100
                 val floor = boss.maxHitpoints * KILL_RANGE_PERCENT / 100
                 val damage = minOf(boss.maxHitpoints * BATTERY_BEAM_PERCENT / 100, boss.hitpoints - floor).coerceAtLeast(0)

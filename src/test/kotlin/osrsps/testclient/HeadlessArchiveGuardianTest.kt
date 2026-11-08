@@ -546,6 +546,39 @@ class HeadlessArchiveGuardianTest {
     }
 
     @Test
+    fun `a player attacking an inert guardian stops once it is charged, as it can't be attacked any more`(@TempDir dir: Path) {
+        server(dir, batteries = true).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    for (client in listOf(alice, bob)) {
+                        client.await("the login rebuild") { client.position }
+                        client.commandReply("god on") { it.startsWith("You can't be hurt") }
+                    }
+                    alice.tele(3222, 3218)
+                    alice.commandReply("raid guardian") { it.startsWith("Started") }
+                    // Out of its range, so it holds its fire at her.
+                    alice.tele(3241, 3220)
+                    val fight = server.world.encounters.all.single()
+                    val nw = fight.adds.single { it.spawn.type.id == ArchiveGuardian.BATTERY_INACTIVE && it.x == 3215 && it.z == 3221 }
+                    assertEquals(ArchiveGuardian.BATTERY_ACTIVE, nw.type.id)
+                    // Bob, not in her party so not in the fight (nothing shoots at him), punches its last hitpoint away.
+                    bob.commandReply("setlevel attack 99") { it.contains("Attack") }
+                    bob.commandReply("setlevel strength 99") { it.contains("Strength") }
+                    alice.commandReply("npchp 1 ${nw.index}") { it.contains("hitpoints") }
+                    bob.tele(3214, 3221)
+                    bob.await("the inert guardian in view") { bob.npcs().firstOrNull { it.index == nw.index } }
+                    val bobP = server.world.playerNamed("bob")!!
+                    bob.npcOp(nw.index, ATTACK)
+                    bob.await("his first punch") { bobP.attackedNpc?.takeIf { it === nw } }
+                    bob.await("it charged") { if (nw.type.id == ArchiveGuardian.BATTERY_SPENT) Unit else null }
+                    // Before (Codex on #481): it held at 0 and he kept on at it, as a ranger would with their arrows.
+                    bob.await("his attack stopped") { if (bobP.interaction == null) Unit else null }
+                }
+            }
+        }
+    }
+
+    @Test
     fun `a laser at a target past its reach breaks no inert guardian, as none is behind them`(@TempDir dir: Path) {
         server(dir, batteries = true).use { server ->
             server.login("alice").use { alice ->
