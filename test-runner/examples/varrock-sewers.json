@@ -24,9 +24,9 @@
   },
   {
    "step": "command",
-   "text": "::tele 3238 3458 0",
-   "expectMessage": "Teleported to 3238, 3458, 0",
-   "comment": "east of the manhole east of the palace"
+   "text": "::tele 3236 3458 0",
+   "expectMessage": "Teleported to 3236, 3458, 0",
+   "comment": "west of the manhole east of the palace: below, the tile east of the ladder is behind a wall, so the player lands west of it (VM 215, 2026-11-03 and 2026-11-08)"
   },
   {
    "step": "locOption",
@@ -52,10 +52,10 @@
   },
   {
    "step": "assertLocation",
-   "x": 3238,
+   "x": 3236,
    "y": 9858,
    "plane": 0,
-   "comment": "beside the ladder 6400 below"
+   "comment": "beside the ladder 6400 below, on its west"
   },
   {
    "step": "locOption",
@@ -66,7 +66,7 @@
   },
   {
    "step": "assertLocation",
-   "x": 3238,
+   "x": 3236,
    "y": 3458,
    "plane": 0,
    "comment": "back up beside the manhole"
