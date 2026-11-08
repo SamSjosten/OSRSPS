@@ -17,7 +17,7 @@
   {"step": "command", "text": "::tele 3236 3222 0", "expectMessage": "Teleported to 3236, 3222, 0", "comment": "back within its hunt range"},
   {"step": "waitTicks", "ticks": 3},
   {"step": "command", "text": "::npcs 3", "expectMessage": "; fighting test", "comment": "it hunts again"},
-  {"step": "command", "text": "::delnpc mine", "expectMessage": "Removed 1 NPC you put in."},
+  {"step": "command", "text": "::delnpc mine", "expectMessage": "you put in.", "comment": "1 unless an earlier script left one of its own (::reset now takes those away)"},
   {"step": "command", "text": "::god", "expectMessage": "You can be hurt again"},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
  ]
