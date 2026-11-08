@@ -4,9 +4,11 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.combat.DeathPlace
+import osrsps.game.encounter.Encounter
 import osrsps.game.instance.Instance
 import osrsps.game.instance.InstancePart
 import osrsps.game.npc.Npc
+import osrsps.game.npc.NpcSpawn
 import osrsps.map.Tile
 
 private val logger = KotlinLogging.logger {}
@@ -110,6 +112,13 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
     var nexusLevel: Int = ArchiveRaids.NEXUS_START
         internal set
 
+    /** The Guardian in its hall: waiting to be touched, then the boss once its fight begins; null once it is done. */
+    var guardian: Npc? = null
+        internal set
+
+    /** The boss fights going on, by room; a room's goes once its boss dies, and the room is done. */
+    val fights = LinkedHashMap<ArchiveRoom, Encounter>()
+
     /** The tick the last room was done on; a member who fell before it gets up standing. -1 before any. */
     var clearedTick: Long = -1
         internal set
@@ -154,8 +163,11 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
  *   camp of crates and barricades) once the Guardian is done, 3 (the same and the Passageway north) once the fourth
  *   room is done. The Guardian is fought in the nexus's hall, from its first row of doors north; the Archive Door lands
  *   in the entrance south of it, where the party gathers.
- * - A room's fight begins as the first party member stands in it. A room whose boss isn't built yet (all of them, so
- *   far) is done as soon as it begins: that is what lets a run go through empty rooms.
+ * - A room's fight begins as the first party member stands in it. A room whose boss isn't built yet is done as soon
+ *   as it begins: that is what lets a run go through empty rooms. The Guardian's begins instead as a member touches
+ *   it, waiting in the hall as the cache's "Inert Guardian" (`tfa_guardian_start`, Touch) from the run's start; its
+ *   party size is everyone standing in the run then ([ArchiveGuardian], raid step 16).
+ * - The whole of a run's instance is multi-way, as a raid of up to eight against one boss must be. Inferred.
  * - A room's points are [ROOM_POINTS], shared by damage among those who did any, or evenly among who was there when it
  *   began if nobody did. The number is made up: the Wiki has none.
  * - A party member who dies with someone still standing keeps everything and is down until the room is done: in the
@@ -178,6 +190,8 @@ class ArchiveRaids(private val world: World) {
     }
 
     fun register() {
+        world.multiCombat.dynamic = { _, x, z -> at(x, z) != null }
+        world.handlers.onNpc(ArchiveGuardian.DORMANT, ArchiveGuardian.TOUCH) { op -> touch(player, op.npc!!) }
         world.handlers.onLoc(ARCHIVE_DOOR, ENTER) { enter(player) }
         for (door in DOORS) {
             world.handlers.onLoc(door, ENTER) { door(player, door) }
@@ -240,8 +254,48 @@ class ArchiveRaids(private val world: World) {
         }
         val run = ArchiveRun(nextId++, party, instance)
         runs[party] = run
+        if (built(ArchiveRoom.GUARDIAN)) {
+            val at = tile(run, GUARDIAN_X, GUARDIAN_Z)
+            val dormant = world.npcTypes[ArchiveGuardian.DORMANT]!!
+            run.guardian = world.spawnNpc(NpcSpawn(dormant, at.x, at.z, 0, source = "$run", respawns = false))
+        }
         logger.info { "$run opened by ${player.username} in $instance" }
         return run
+    }
+
+    /**
+     * Whether [room]'s boss is built: its fight is in, and for the Guardian the cache's waiting form too. A room whose
+     * boss isn't is done as its fight begins.
+     */
+    fun built(room: ArchiveRoom): Boolean = when (room) {
+        ArchiveRoom.GUARDIAN -> world.encounters.defs[ArchiveGuardian.NAME] != null && world.npcTypes[ArchiveGuardian.DORMANT] != null
+        else -> false
+    }
+
+    /**
+     * Touch on the waiting Guardian: its fight begins, if the toucher is in the run and standing and the fight hasn't
+     * already. It wakes where it waited, as the levitating form, scaled to everyone standing in the run.
+     */
+    fun touch(player: Player, npc: Npc) {
+        val run = at(npc.x, npc.z) ?: return
+        val room = ArchiveRoom.GUARDIAN
+        if (run.guardian !== npc || run.wiped || room in run.started || player.saveKey !in run.entered || player.saveKey in run.downed) return
+        val def = world.encounters.defs[ArchiveGuardian.NAME] ?: return
+        run.started += room
+        val standing = standing(run)
+        run.presentAtStart[room] = standing.filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
+        world.removeNpc(npc)
+        val boss = world.spawnNpc(NpcSpawn(def.boss, npc.x, npc.z, 0, source = "$run", respawns = false))
+        if (boss == null) {
+            logger.warn { "$run: no room for the Archive Guardian" }
+            return
+        }
+        run.guardian = boss
+        world.partyScaling.scale(boss, standing.size.coerceIn(1, PartyScaling.MAX_PARTY))
+        boss.effects.anim(ArchiveGuardian.ANIM_WAKE)
+        boss.effects.spotanim(0, ArchiveGuardian.SPOT_WAKE, 0)
+        run.fights[room] = world.encounters.start(def, boss, { x, z -> inRoom(run, room, x, z) })
+        logger.info { "$run began the Guardian's fight with ${standing.size} standing, woken by ${player.username}" }
     }
 
     /** A nexus door: into its room, if its row is open to the party. */
@@ -303,6 +357,12 @@ class ArchiveRaids(private val world: World) {
         runs.values.removeIf { run -> world.instances.all.none { it === run.instance } }
         for (run in runs.values.toList()) {
             if (run.wiped) continue
+            // A fight whose boss has died: its room is done.
+            for ((room, fight) in run.fights.entries.toList()) {
+                if (!fight.ended) continue
+                run.fights -= room
+                if (fight.boss.dead) clear(run, room)
+            }
             for (player in world.onlinePlayers) {
                 if (!run.instance.contains(player.x, player.z) || player.saveKey !in run.entered || player.dead) continue
                 if (world.parties.of(player) !== run.party) {
@@ -314,18 +374,30 @@ class ArchiveRaids(private val world: World) {
                     out(player, run, room)
                     continue
                 }
-                if (room !in run.started && room !in run.cleared && room.stage == run.stage) begin(run, room)
+                if (room !in run.started && room !in run.cleared && room.stage == run.stage && !built(room)) begin(run, room)
             }
             val present = present(run)
             if (present.isNotEmpty() && present.none { it.dead } && standing(run).isEmpty()) wipe(run, null)
         }
     }
 
-    /** [room]'s fight begins, with whoever of the party stands in it. No boss is built yet, so it is done at once. */
+    /** [room]'s fight begins, with whoever of the party stands in it. Its boss isn't built yet, so it is done at once. */
     private fun begin(run: ArchiveRun, room: ArchiveRoom) {
         run.started += room
         run.presentAtStart[room] = standing(run).filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
         logger.info { "$run began ${room.boss}'s room with ${run.presentAtStart[room]}" }
+        clear(run, room)
+    }
+
+    /**
+     * `::raid clear`: [room] is done as if its boss died now. A room whose fight never began (the Guardian is only woken
+     * by Touch) counts whoever of the party stands in it as there at its start, so its points go to them as a kill's
+     * would, rather than to nobody.
+     */
+    fun clearNow(run: ArchiveRun, room: ArchiveRoom) {
+        if (room !in run.presentAtStart) {
+            run.presentAtStart[room] = standing(run).filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
+        }
         clear(run, room)
     }
 
@@ -335,6 +407,12 @@ class ArchiveRaids(private val world: World) {
      */
     fun clear(run: ArchiveRun, room: ArchiveRoom) {
         if (room in run.cleared) return
+        // Done with its boss still up (::raid clear): the fight stops, and the boss goes.
+        stopFight(run, room)
+        if (room == ArchiveRoom.GUARDIAN) {
+            run.guardian?.let { if (!it.dead && world.npcs[it.index] === it) world.removeNpc(it) }
+            run.guardian = null
+        }
         run.started += room
         run.cleared += room
         run.chosen[room.stage] = room
@@ -406,11 +484,20 @@ class ArchiveRaids(private val world: World) {
      */
     private fun wipe(run: ArchiveRun, dying: Player?) {
         run.wiped = true
+        for (room in run.fights.keys.toList()) stopFight(run, room)
         logger.info { "$run wiped${dying?.let { " as ${it.username} died" }.orEmpty()}" }
         for (member in present(run)) {
             if (member === dying || member.dead) continue
             world.deaths.respawn(member, wipePlace(run))
         }
+    }
+
+    /** Ends [room]'s fight in [run], if one is going on, and takes its boss out unless it lies dying. */
+    private fun stopFight(run: ArchiveRun, room: ArchiveRoom) {
+        val fight = run.fights.remove(room) ?: return
+        if (!fight.ended) world.encounters.stop(fight)
+        val boss = fight.boss
+        if (!boss.dead && world.npcs[boss.index] === boss) world.removeNpc(boss)
     }
 
     /** What `::raid run` shows of [run]. */
@@ -477,6 +564,13 @@ class ArchiveRaids(private val world: World) {
         const val NEXUS_SQUARE_X = 64
         const val NEXUS_SQUARE_Z = 87
         const val HALL_Z = 5583
+
+        /**
+         * Where the Guardian waits and is fought, its south-west tile: where its corpse (`tfa_corpse_guardian01`, 5 by
+         * 5) lies on the nexus's later levels, the middle of the hall. Inferred from the corpse.
+         */
+        const val GUARDIAN_X = 4125
+        const val GUARDIAN_Z = 5597
 
         /** In front of the Archive Door, in the lobby: where a wipe lands and its graves go, and the instance's exit. Guessed. */
         const val LOBBY_X = 4127

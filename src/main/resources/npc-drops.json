@@ -32,6 +32,20 @@
       ],
       "source": "OSRS Wiki, Drop table#General seed drop table: its first subtable, which every roll of a monster below level 49 lands on (the subtable is picked by a roll of the monster's level times 10, and below 485 that is the first); the Guard page's 1/19 potato seed is 18/128 of the guard table times 368/1008 of this. Higher levels' subtables wait for a monster that needs them"
     },
+    "allotment_seeds": {
+      "slots": 128,
+      "lines": [
+        {"item": 5318, "name": "Potato seed", "min": 1, "max": 4, "weight": 64},
+        {"item": 5319, "name": "Onion seed", "min": 1, "max": 3, "weight": 32},
+        {"item": 5324, "name": "Cabbage seed", "min": 1, "max": 3, "weight": 16},
+        {"item": 5322, "name": "Tomato seed", "min": 1, "max": 2, "weight": 8},
+        {"item": 5320, "name": "Sweetcorn seed", "min": 1, "max": 2, "weight": 4},
+        {"item": 5323, "name": "Strawberry seed", "weight": 2},
+        {"item": 5321, "name": "Watermelon seed", "weight": 1},
+        {"item": 22879, "name": "Snape grass seed", "weight": 1}
+      ],
+      "source": "OSRS Wiki, Catablepon, Drops, read 2026-11-03: its allotment seed roll at 1/101, potato 1/202 down to watermelon and snape grass 1/12,928 each, so 64/128 of the roll down to 1/128. Ranged counts are taken as evenly likely (guessed)"
+    },
     "gems": {
       "slots": 128,
       "lines": [
@@ -794,6 +808,74 @@
       "table": {"slots": 128, "lines": [{"item": 1157, "name": "Steel full helm", "weight": 4}, {"item": 1353, "name": "Steel axe", "weight": 4}, {"item": 1325, "name": "Steel scimitar", "weight": 3}, {"item": 1181, "name": "Mithril sq shield", "weight": 1}, {"item": 1109, "name": "Mithril chainbody", "weight": 1}, {"item": 1147, "name": "Rune med helm", "weight": 1}, {"item": 554, "name": "Fire rune", "count": 60, "weight": 8}, {"item": 562, "name": "Chaos rune", "count": 12, "weight": 5}, {"item": 560, "name": "Death rune", "count": 3, "weight": 3}, {"item": 554, "name": "Fire rune", "count": 30, "weight": 1}, {"table": "herbs", "weight": 1}, {"item": 995, "name": "Coins", "count": 120, "weight": 40}, {"item": 995, "name": "Coins", "count": 40, "weight": 29}, {"item": 995, "name": "Coins", "count": 200, "weight": 10}, {"item": 995, "name": "Coins", "count": 10, "weight": 7}, {"item": 995, "name": "Coins", "count": 450, "weight": 1}, {"item": 1993, "name": "Jug of wine", "weight": 3}, {"item": 444, "name": "Gold ore", "weight": 2}, {"table": "gems", "weight": 4}]},
       "tertiary": [{"item": 13501, "name": "Ensouled demon head", "chance": "1/50"}],
       "source": "OSRS Wiki, Lesser demon (level 82), read 2026-11-03: the members table (the free-to-play-only coins line out); the Wilderness looting bag, the champion scroll (no Champions' Challenge) and the Chasm of Fire contracts left out. The Wizards' Tower's caged one drops inside its cage, out of reach until Telekinetic Grab is built"
+    },
+    {"npcs": ["sos_pest_catablepon", "sos_pest_catablepon2", "sos_pest_catablepon3"], "always": [{"item": 526, "name": "Bones"}], "table": {"slots": 101, "lines": [
+      {"item": 1145, "name": "Adamant med helm", "weight": 1},
+      {"item": 554, "name": "Fire rune", "count": 15, "weight": 7}, {"item": 555, "name": "Water rune", "count": 7, "weight": 6},
+      {"item": 562, "name": "Chaos rune", "count": 7, "weight": 1}, {"item": 563, "name": "Law rune", "count": 2, "weight": 4},
+      {"item": 564, "name": "Cosmic rune", "count": 2, "weight": 3}, {"item": 888, "name": "Mithril arrow", "min": 5, "max": 14, "weight": 4},
+      {"table": "herbs", "weight": 3}, {"table": "allotment_seeds", "weight": 1},
+      {"item": 7937, "name": "Pure essence (noted)", "count": 15, "weight": 5},
+      {"item": 221, "name": "Eye of newt", "weight": 7}, {"item": 454, "name": "Coal (noted)", "min": 3, "max": 7, "weight": 2},
+      {"item": 995, "name": "Coins", "count": 15, "weight": 6}, {"item": 995, "name": "Coins", "count": 44, "weight": 12},
+      {"item": 995, "name": "Coins", "min": 5, "max": 104, "weight": 10},
+      {"item": 333, "name": "Trout", "weight": 2}, {"item": 596, "name": "Unlit torch", "weight": 9},
+      {"item": 9010, "name": "Top of sceptre", "weight": 3},
+      {"table": "gems_surface", "weight": 2},
+      {"nothing": true, "weight": 13}
+    ]}, "tertiary": [{"item": 2801, "name": "Clue scroll (medium)", "chance": "1/101"}],
+      "source": "OSRS Wiki, Catablepon, Drops, read 2026-11-03: one table for every level, out of 101, the members world's lines (the free-to-play coins x10 4/101 and rune essence 5/101, marked (f), are out); the herb table at 3/101, the allotment seeds at 1/101, the gem table (nature talisman, so the surface one) at 2/101. The 13/101 of nothing is what the lines leave (the 4/101 the Wiki doesn't list plus the two free-to-play lines), GUESSED"
+    },
+    {"npcs": ["sos_pest_giantspider1"], "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/128"}],
+      "source": "OSRS Wiki, Clue scroll (beginner), drop sources, read 2026-11-03: giant spiders of levels 2, 27 and 50 at 1/128; no main table"
+    },
+    {"npcs": ["sos_pest_spider"], "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/128"}],
+      "source": "OSRS Wiki, Spider, read 2026-11-03: the page's beginner clue at 1/128, taken for the Stronghold version too (inferred: the clue page's sources table has no plain Spider row); no main table"
+    },
+    {"npcs": ["sos_pest_scorpion", "sos_pest_scorpion2"], "tertiary": [
+        {"item": 13459, "name": "Ensouled scorpion head", "chance": "1/25"},
+        {"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/100"}
+      ],
+      "source": "OSRS Wiki, Scorpion and Clue scroll (beginner), read 2026-11-03: the ensouled head at 1/25 and the beginner clue at 1/100 for scorpions of levels 1 to 59; the Wilderness lines left out; no main table"
+    },
+    {"npcs": ["sos_death_ankou", "sos_death_ankou2", "sos_death_ankou3"], "always": [{"item": 526, "name": "Bones"}], "table": {"slots": 100, "lines": [
+      {"item": 869, "name": "Black knife", "weight": 1}, {"item": 581, "name": "Black robe", "weight": 1},
+      {"item": 560, "name": "Death rune", "count": 10, "weight": 10}, {"item": 565, "name": "Blood rune", "count": 11, "weight": 6},
+      {"item": 890, "name": "Adamant arrow", "min": 5, "max": 14, "weight": 4}, {"item": 563, "name": "Law rune", "count": 2, "weight": 4},
+      {"item": 565, "name": "Blood rune", "count": 5, "weight": 3},
+      {"table": "herbs", "weight": 3}, {"table": "uncommon_seeds", "weight": 1},
+      {"item": 7937, "name": "Pure essence (noted)", "count": 15, "weight": 5}, {"item": 448, "name": "Mithril ore (noted)", "min": 3, "max": 7, "weight": 2},
+      {"item": 995, "name": "Coins", "count": 8, "weight": 33}, {"item": 995, "name": "Coins", "min": 5, "max": 204, "weight": 10},
+      {"item": 9008, "name": "Left skull half", "weight": 3},
+      {"item": 365, "name": "Bass", "weight": 2}, {"item": 187, "name": "Weapon poison", "weight": 2}, {"item": 7082, "name": "Fried mushrooms", "weight": 1},
+      {"table": "gems", "weight": 2},
+      {"nothing": true, "weight": 7}
+    ]}, "tertiary": [{"item": 2722, "name": "Clue scroll (hard)", "chance": "1/512"}],
+      "source": "OSRS Wiki, Ankou, Drops, read 2026-11-03: one table out of 100 for the members world, the Stronghold of Security's lines (law runes 4/100 there, the left skull half 3/100; the Forgotten Cemetery's and the free-to-play lines are out), the herb table at 3/100, the uncommon seed table at 1/100, the gem table (with the chaos talisman) at 2/100, nothing 7/100; the hard clue at 1/512. The slayer-task and Catacombs tertiaries wait for those pieces"
+    },
+    {"npcs": ["sos_death_skeleton_unarmed", "sos_death_skeleton_unarmed2", "sos_death_skeleton_unarmed3", "sos_death_skeleton_unarmed4",
+        "sos_death_skeleton_armed", "sos_death_skeleton_armed2", "sos_death_skeleton_armed3"], "always": [{"item": 526, "name": "Bones"}],
+      "source": "OSRS Wiki, Skeleton (Stronghold of Security), read 2026-11-03: bones always and nothing else; its skeleton champion scroll (1/5,000) waits for the Champions' Challenge"
+    },
+    {"npcs": ["macro_shade"], "table": {"slots": 128, "lines": [
+      {"item": 546, "name": "Shade robe top", "weight": 32}, {"item": 548, "name": "Shade robe", "weight": 32}, {"nothing": true, "weight": 64}
+    ]},
+      "source": "OSRS Wiki, Shade (Stronghold of Security), read 2026-11-03: the shade robe top and the shade robe 32/128 each, nothing 64/128"
+    },
+    {"npcs": ["macro_zombie"], "always": [{"item": 532, "name": "Big bones"}], "table": {"slots": 256, "lines": [
+      {"items": [{"item": 526, "name": "Bones", "count": 10}, {"item": 532, "name": "Big bones", "count": 10}, {"item": 536, "name": "Dragon bones", "count": 2}], "weight": 1},
+      {"items": [{"item": 532, "name": "Big bones"}, {"item": 536, "name": "Dragon bones"}], "weight": 5},
+      {"item": 536, "name": "Dragon bones", "count": 3, "weight": 1},
+      {"item": 532, "name": "Big bones", "weight": 51}, {"item": 532, "name": "Big bones", "count": 2, "weight": 20},
+      {"item": 532, "name": "Big bones", "count": 6, "weight": 10},
+      {"items": [{"item": 532, "name": "Big bones", "count": 6}, {"item": 526, "name": "Bones", "count": 3}], "weight": 5},
+      {"item": 556, "name": "Air rune", "count": 40, "weight": 20}, {"item": 564, "name": "Cosmic rune", "count": 5, "weight": 20},
+      {"item": 562, "name": "Chaos rune", "count": 35, "weight": 20}, {"item": 562, "name": "Chaos rune", "count": 50, "weight": 15},
+      {"item": 313, "name": "Fishing bait", "count": 27, "weight": 24}, {"item": 313, "name": "Fishing bait", "count": 50, "weight": 40},
+      {"item": 995, "name": "Coins", "count": 26, "weight": 10},
+      {"table": "gems_surface", "weight": 14}
+    ]}, "tertiary": [{"item": 10976, "name": "Long bone", "chance": "1/400"}, {"item": 10977, "name": "Curved bone", "chance": "1/5013"}],
+      "source": "OSRS Wiki, Zombie (Sepulchre of Death), read 2026-11-03: big bones always; the members world's table out of 256, its three bundles (bones, big bones and dragon bones together) as lines of several items, the big bones x6 15/256 of which 5/256 come with 3 bones; the gem table (nature talisman only, so the surface one) at 14/256; the long bone 1/400 and the curved bone 1/5,012.5, taken as 1/5,013"
     }
   ]
 }

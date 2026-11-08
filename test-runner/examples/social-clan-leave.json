@@ -6,6 +6,7 @@
   {"step": "command", "text": "::keys on", "expectMessage": "keys"},
   {"step": "command", "text": "::clandisband", "expectMessage": "lan", "comment": "test's own clan from another run, if any: 'Clan ... deleted' or 'You aren't in a clan'"},
   {"step": "command", "text": "::clandisband Leave Gate", "expectMessage": "lan", "comment": "the last run's clan, if any"},
+  {"step": "command", "text": "::clandisband Guest Gate", "expectMessage": "lan", "comment": "a guest clan left loaded by social-clan-guest, if any (deleting a clan drops its guests)"},
   {"step": "command", "text": "::clanmake Leave Gate", "expectMessage": "Clan Leave Gate made"},
   {"step": "command", "text": "::clanjoin Leave Gate", "expectMessage": "Joined clan Leave Gate"},
   {"step": "runClientScript", "id": 915, "args": [7], "comment": "shows the Clans side tab (toplevel_sidebutton_switch), so its panels count as open"},

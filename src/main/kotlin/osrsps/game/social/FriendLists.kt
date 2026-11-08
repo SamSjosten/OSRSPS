@@ -1,6 +1,5 @@
 package osrsps.game.social
 
-import net.rsprot.protocol.game.outgoing.social.FriendListLoaded
 import net.rsprot.protocol.game.outgoing.social.UpdateFriendList
 import osrsps.game.Player
 import osrsps.game.SaveStore
@@ -34,10 +33,10 @@ class FriendLists(
 
     /** Sends [player]'s whole list again, every friend as it is now. */
     fun sendAll(player: Player) {
-        if (player.friends.isEmpty()) {
-            player.session.queue(FriendListLoaded)
-            return
-        }
+        // An empty list goes as an empty UPDATE_FRIENDLIST, not FRIENDLIST_LOADED: after that one alone the client's
+        // Friends tab stayed on "Loading friends list" for good (VM 215, 2026-11-08, "Friends - W301 (0/200)" 8 minutes
+        // after login). Inferred: FRIENDLIST_LOADED only says the friend server is connecting; the list's own packet is
+        // what marks it loaded.
         // Not just added: the client skips its checks for friends it already had (RSProt's UpdateFriendList).
         player.session.queue(UpdateFriendList(player.friends.map { entry(player, it, added = false) }))
     }

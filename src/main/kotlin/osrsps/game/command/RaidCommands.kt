@@ -2,6 +2,7 @@ package osrsps.game.command
 
 import kotlin.math.abs
 import kotlin.math.max
+import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.encounter.Encounter
 import osrsps.game.npc.NpcSpawn
@@ -13,8 +14,10 @@ import osrsps.game.raid.PartyScaling
  * `::raid`: starts a boss fight where you stand, at a phase, for a party size and on a seed, so a fight can be played
  * from any point and the same way twice (raid step 12); and shows, logs and stops the fight you are in. The fight's
  * room and gear sets come with each boss's step. In an instance the fight covers the instance; elsewhere, the
- * [FIGHT_RADIUS] tiles round the boss's spawn. In an Archive run (raid step 15), `::raid run` shows it, `::raid tp`
- * goes to a room of it or the nexus and `::raid clear` marks the room you're in done, for testing.
+ * [FIGHT_RADIUS] tiles round the boss's spawn, for its starter and their party only, ending if the starter dies or
+ * logs out. In an Archive run (raid step 15), `::raid run` shows it, `::raid tp` goes to a room of it or the nexus and
+ * `::raid clear` marks the room you're in done, for testing; a room whose fight never began gives its points to whoever
+ * of the party stands in it.
  */
 fun CommandRegistry.registerRaidCommands(world: World) {
     val encounters = world.encounters
@@ -86,7 +89,7 @@ fun CommandRegistry.registerRaidCommands(world: World) {
                 val room = raids.roomAt(run, player.x, player.z) ?: fail("You're in the nexus.")
                 if (room in run.cleared) fail("${room.boss}'s room is done already.")
                 if (room.stage != run.stage) fail("${room.boss}'s room isn't the run's next.")
-                raids.clear(run, room)
+                raids.clearNow(run, room)
                 reply("Cleared ${room.boss}'s room.")
             }
             "stop" -> {
@@ -124,7 +127,30 @@ fun CommandRegistry.registerRaidCommands(world: World) {
                 val hitpoints = world.partyScaling.scale(npc, size)
                 // Before the fight's first step, so every roll in it comes from the seed.
                 seed?.let(world.random::reseed)
-                val fight = encounters.start(def, npc, area, phase)
+                // Outside an instance, only the starter and their party are in it: an open-world test fight in
+                // Lumbridge would otherwise take in whoever else stands there, such as the other test VM's account
+                // (VM 2026-11-03: a mushroom grew by test2 on 217 during 215's script).
+                val starter = player
+                val admits: (Player) -> Boolean = if (instance != null) {
+                    { true }
+                } else {
+                    { it === starter || world.parties.of(starter)?.let { party -> world.parties.of(it) === party } == true }
+                }
+                // Outside an instance it ends with its starter's death or logout, as nothing else would end it: they
+                // would come back to Lumbridge inside its reach and be killed again and again (nightly 2026-11-08,
+                // test2 left mid-fight by a failed script, then stuck dying).
+                val calledOff: () -> String? = if (instance != null) {
+                    { null }
+                } else {
+                    {
+                        when {
+                            starter.dead -> "${starter.username} died"
+                            starter.loggedOut || world.onlinePlayers.none { it === starter } -> "${starter.username} left"
+                            else -> null
+                        }
+                    }
+                }
+                val fight = encounters.start(def, npc, area, phase, admits, calledOff)
                 val scaled = hitpoints?.let { ", $it hp for a party of $size" }.orEmpty()
                 val seeded = seed?.let { ", seed $it" }.orEmpty()
                 reply("Started ${def.name} #${fight.id} on ${npc.type.name} #${npc.index} at ${npc.x}, ${npc.z}, phase ${phase + 1} (${def.phases[phase].name})$scaled$seeded.")

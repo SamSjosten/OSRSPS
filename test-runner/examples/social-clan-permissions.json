@@ -93,6 +93,55 @@
    "interfaceId": 690
   },
   {
+   "step": "assertInterface",
+   "interfaceId": 289,
+   "absent": true,
+   "comment": "the settings page closed the rank list"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 690,
+   "component": 23,
+   "comment": "Permissions again"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 706
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 706,
+   "component": 12,
+   "slot": 7,
+   "op": 1,
+   "comment": "Talk in chat (step 11e): the rank list again, from Guest"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 289
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 706,
+   "component": 5,
+   "comment": "Back: the settings page"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 690
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 690,
+   "component": 3,
+   "comment": "close the settings page, so no window is left open for the next script"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 690,
+   "absent": true
+  },
+  {
    "step": "command",
    "text": "::clandisband Perm Gate",
    "expectMessage": "Clan Perm Gate deleted"

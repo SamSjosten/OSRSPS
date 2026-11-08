@@ -126,6 +126,8 @@ object DialogueLines {
         EdgevilleClosedLines,
         EdgevilleDungeonLines,
         StrongholdLines,
+        SkullSceptreLines,
+        SolztunLines,
         EdgevilleLines,
         EdgevilleMonkLines,
         EdgevilleShopAssistantLines,

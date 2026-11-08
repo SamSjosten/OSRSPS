@@ -238,9 +238,9 @@
   },
   {
    "step": "command",
-   "text": "::tele 3268 3396 0",
-   "expectMessage": "Teleported to 3268, 3396, 0",
-   "comment": "the Dancing Donkey Inn"
+   "text": "::tele 3268 3391 0",
+   "expectMessage": "Teleported to 3268, 3391, 0",
+   "comment": "the Dancing Donkey Inn's bar room, south of the bar (z 3392) with the bartender behind it: 3268,3396 is outside the inn's back wall, and the walk round to its door made the talk start after the next step had given up (VM 217 and 215, 2026-11-08)"
   },
   {
    "step": "npcOption",

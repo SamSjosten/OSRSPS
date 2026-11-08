@@ -4,6 +4,7 @@ import osrsps.game.World
 import osrsps.game.social.ClanFoundingRule
 import osrsps.game.social.Clans
 import osrsps.game.social.FriendLists
+import osrsps.game.social.GuestRequirement
 import osrsps.game.social.Reports
 
 /** The friends and ignore lists as the server holds them, for tests that start from known lists; reports; clans. */
@@ -69,6 +70,14 @@ fun CommandRegistry.registerSocialCommands(world: World) {
         reply("Clan ${clan.name}: " + clan.members.joinToString { "${it.name} (rank ${it.rank})" } + if (world.clans.inChannel(player)) ", in its channel" else ", not in its channel")
     }
 
+    register("clanguests", "::clanguests") {
+        if (args.isNotEmpty()) fail("Usage: ::clanguests")
+        val clans = world.clans
+        val clan = clans.clanOf(player) ?: fail("You aren't in a clan")
+        val listen = if (clans.guestsMayListen(clan)) "permitted" else "blocked"
+        reply("Guests $listen; " + GuestRequirement.entries.joinToString { "${it.name.lowercase()} ${clans.guestRequirement(clan, it)}" })
+    }
+
     register("clandisband", "::clandisband [name]") {
         val clan = if (args.isEmpty()) {
             world.clans.clanOf(player) ?: fail("You aren't in a clan")
@@ -103,6 +112,13 @@ fun CommandRegistry.registerSocialCommands(world: World) {
         val clan = world.clans.clanOf(player) ?: fail("You aren't in a clan")
         if (!world.clans.addTestApplicant(clan)) fail("${clan.name} has the test applicant already")
         reply("${Clans.TEST_APPLICANT_NAME} applied to ${clan.name}")
+    }
+
+    register("clanbanned", "::clanbanned") {
+        if (args.isNotEmpty()) fail("Usage: ::clanbanned")
+        val clan = world.clans.clanOf(player) ?: fail("You aren't in a clan")
+        if (!world.clans.addTestBan(clan)) fail("${clan.name} has the test ban already")
+        reply("${Clans.TEST_BANNED_NAME} banned from ${clan.name}")
     }
 
     register("guestclan", "::guestclan", admin = false) {

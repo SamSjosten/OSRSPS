@@ -27,12 +27,19 @@ data class DropItem(val type: ObjType, val min: Int, val max: Int) {
     fun count(random: GameRandom): Int = if (min == max) min else random.between(min, max)
 }
 
-/** One line of a [DropTable]: [weight] of its slots give [item], or a roll on [table], or nothing when both are null. */
-class DropSlot(val weight: Int, val item: DropItem? = null, val table: DropTable? = null) {
+/**
+ * One line of a [DropTable]: [weight] of its slots give [item] (and [with] beside it, as the Wiki's lines that drop
+ * several items together, the Sepulchre zombie's bones), or a roll on [table], or nothing when both are null.
+ */
+class DropSlot(val weight: Int, val item: DropItem? = null, val table: DropTable? = null, val with: List<DropItem> = emptyList()) {
     init {
         require(weight >= 1) { "A drop table line needs a weight, had $weight" }
         require(item == null || table == null) { "A drop table line gives an item or a table, not both" }
+        require(with.isEmpty() || item != null) { "Only an item line drops others with it" }
     }
+
+    /** What the line gives: its item and those with it. */
+    val items: List<DropItem> get() = if (item == null) emptyList() else listOf(item) + with
 
     val isNothing: Boolean get() = item == null && table == null
 }
@@ -48,12 +55,12 @@ class DropTable(val slots: Int, val lines: List<DropSlot>) {
         require(total == slots) { "The lines' weights add up to $total, not the table's $slots slots" }
     }
 
-    /** One draw: the item of the line it lands on, rolling a line's table in turn; null for nothing. */
-    fun roll(random: GameRandom): DropItem? {
+    /** One draw: the items of the line it lands on, rolling a line's table in turn; none for nothing. */
+    fun roll(random: GameRandom): List<DropItem> {
         var left = random.nextInt(slots)
         for (line in lines) {
             left -= line.weight
-            if (left < 0) return line.table?.roll(random) ?: line.item
+            if (left < 0) return line.table?.roll(random) ?: line.items
         }
         error("A draw of $slots slots landed on no line")
     }
@@ -84,15 +91,15 @@ class NpcDropsDef(
 
     /**
      * The items one kill gives, in the order they are rolled, so a test can replay the draws: each pre-roll's draw
-     * until one hits, then (if none did) the main table's draw, then a ranged count's, then each tertiary's. Items of
-     * no count (a nothing line) are left out.
+     * until one hits, then (if none did) the main table's draw, then each of its items' ranged counts, then each
+     * tertiary's. Items of no count (a nothing line) are left out.
      */
     fun roll(random: GameRandom): List<Drop> {
         val drops = ArrayList<Drop>()
         for (item in always) drops += Drop(item.type, item.count(random))
         val pre = preroll.firstOrNull { random.nextInt(it.denominator) == 0 }
         if (pre != null) drops += Drop(pre.item.type, pre.item.count(random))
-        else table?.roll(random)?.let { drops += Drop(it.type, it.count(random)) }
+        else table?.roll(random)?.forEach { drops += Drop(it.type, it.count(random)) }
         for (extra in tertiary) if (random.nextInt(extra.denominator) == 0) drops += Drop(extra.item.type, extra.item.count(random))
         return drops
     }
@@ -126,7 +133,7 @@ class NpcDrops(private val byType: Map<Int, NpcDropsDef>, /** What the loader wa
         /**
          * Reads the drop file: `tables` names shared tables (the herb table) that a line may refer to by `table`;
          * each `npcs` entry gives `always` items, a `table` of `slots` and `lines` (each an `item` with `count` or
-         * `min`/`max`, a `table` name, or `nothing`), `preroll` drops that take the table's place when they hit, and
+         * `min`/`max`, `items` that drop together, a `table` name, or `nothing`), `preroll` drops that take the table's place when they hit, and
          * `tertiary` drops, each with a `chance` such as "1/128". `npcs`
          * takes type ids, gameval names or menu names, as spawn files do; an NPC the cache doesn't have is skipped
          * with a warning. An item is an id plus its `name`: a name the cache doesn't agree with is warned about, and
@@ -159,6 +166,11 @@ class NpcDrops(private val byType: Map<Int, NpcDropsDef>, /** What the loader wa
                                 val name = line["table"]!!.jsonPrimitive.content
                                 if (name in missingItems) throw MissingItem("table $name has items the cache lacks")
                                 DropSlot(weight, table = shared[name] ?: throw IllegalArgumentException("no table called $name"))
+                            }
+                            line["items"] != null -> {
+                                val items = line["items"]!!.jsonArray.map { item(it.jsonObject) }
+                                require(items.isNotEmpty()) { "an empty \"items\" list" }
+                                DropSlot(weight, item = items.first(), with = items.drop(1))
                             }
                             else -> DropSlot(weight, item = item(line))
                         }

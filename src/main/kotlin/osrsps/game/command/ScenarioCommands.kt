@@ -41,6 +41,16 @@ fun CommandRegistry.registerScenarioCommands(world: World) {
         // A stall owner's grudge from a test theft goes too, so the next script can trade with them.
         world.thieving.forgive(player)
         world.pickpocketing.forgive(player)
+        // The NPCs the player put in with ::npc or ::raid <boss> go too, a test fight ending with its boss as ::raid stop
+        // ends it: a script that failed before its own clean-up left them for the next to meet (nightly 2026-11-08:
+        // aggro-leash's spider beside aggro-sight's, and a Guardian fight on the login tile killing test2 on each respawn).
+        for (npc in world.npcs.all.filter { it.spawn.source == spawnSource(player.username) }.toList()) {
+            world.encounters.all.firstOrNull { it.boss === npc }?.let(world.encounters::stop)
+            world.removeNpc(npc)
+        }
+        // The doors and gates the player moved and nobody has moved since shut or open again as the cache has them, so a
+        // script that stopped part way leaves none for the next (nightly 2026-11-08, Edgeville's).
+        world.locs.restoreOwnedBy(player.saveKey)
         world.teleport(player, before.x, before.z, before.level)
         player.scenario = null
         player.beforeScenario = null

@@ -6,6 +6,7 @@ import osrsps.game.Interaction
 import osrsps.game.Movement
 import osrsps.game.Player
 import osrsps.game.Skill
+import osrsps.game.Weapons
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.npc.Npc
 import osrsps.game.npc.NpcEffects
@@ -158,6 +159,14 @@ class MeleeCombat(
         return true
     }
 
+    /**
+     * Whether [npc] flies out of [player]'s melee reach ([NpcCombatDef.flying]): only a halberd's reaches it (OSRS Wiki,
+     * The Fractured Archive/Strategies: while the Archive Guardian levitates "only ranged, magic, and halberds can hit
+     * it"). Melee styles only; a bow or spell isn't asked.
+     */
+    private fun flyingOutOfReach(player: Player, npc: Npc): Boolean =
+        combat.npcCombat[npc.type]?.flying == true && combat.weaponCategory(player) != Weapons.POLEARM
+
     /** A fight with [npc] in the player's style: melee here, magic or ranged from [ranged]; null when nothing fights with it. */
     fun fight(player: Player, npc: Npc): Interaction? =
         if (combat.meleeType(combat.style(player)) != null) MeleeInteraction(npc, this) else ranged(player, npc)
@@ -165,6 +174,12 @@ class MeleeCombat(
     internal fun tryInteract(player: Player, interaction: MeleeInteraction): Boolean {
         val npc = interaction.npc
         if (npcs[npc.index] !== npc || npc.level != player.level || npc.dead) {
+            stopFacing(player)
+            return true
+        }
+        // It can take off mid-fight, as the Archive Guardian does once it is low.
+        if (flyingOutOfReach(player, npc)) {
+            message(player, words(player)[CombatLines.FLYING])
             stopFacing(player)
             return true
         }
@@ -290,7 +305,8 @@ class MeleeCombat(
     /**
      * The fightable NPCs other than [target] within [radius] tiles of [player] on either axis, by any tile they cover,
      * standing in multi-way combat themselves (by their south-west tile, as a barrage's splash goes), nearest first.
-     * Guessed: nothing in the way stops the hit, and the nearest are hit first when there are too many.
+     * One flying out of reach ([flyingOutOfReach]) is left out, as a swing at it is refused (exploit review round 13,
+     * R13A-2). Guessed: nothing in the way stops the hit, and the nearest are hit first when there are too many.
      */
     private fun around(player: Player, target: Npc, radius: Int): List<Npc> {
         fun distance(npc: Npc): Int {
@@ -301,7 +317,7 @@ class MeleeCombat(
         return npcs.near(player.x, player.z, player.level, radius + MAX_NPC_SIZE)
             .filter {
                 it !== target && !it.dead && npcs[it.index] === it && combat.npcCombat[it.type] != null && distance(it) <= radius &&
-                    multi.at(it.level, it.x, it.z)
+                    multi.at(it.level, it.x, it.z) && !flyingOutOfReach(player, it)
             }
             .sortedBy(::distance)
     }
@@ -414,7 +430,7 @@ class MeleeCombat(
         else npc.effects.hit(from, HitsplatType.BLOCK_ME, HitsplatType.BLOCK_OTHER, 0)
         npc.effects.headBar(from, HEALTH_BAR, healthBarFill(npc.hitpoints, npc.maxHitpoints))
         attacked(npc, source, tick)
-        if (npc.hitpoints > 0) {
+        if (npc.hitpoints > 0 || npc.holdsAtZero) {
             // Its own swing this tick wins over the block (guessed).
             if (def.anims.defend >= 0 && npc.effects.anim == null) npc.effects.anim(def.anims.defend)
             if (source != null) hitBy(npc, def, source, attackedFrom ?: Tile(source.x, source.z), tick)
@@ -448,6 +464,8 @@ class MeleeCombat(
      * aggressive NPC from hunting anyone else.
      */
     private fun hitBy(npc: Npc, def: NpcCombatDef, player: Player, from: Tile, tick: Long) {
+        // A boss whose fight picks its moves never retreats, whatever its range or hitpoints.
+        if (npc.scriptedAttacks) return retaliate(npc, player, tick)
         val inRange = Aggression.inAggressionRange(npc, from.x, from.z, combat.npcCombat[npc.type]?.range ?: Aggression.ATTACK_RANGE)
         if (lowOnHitpoints(npc, def) || (!inRange && npc.retreatingFrom == null)) return retreat(npc, player)
         if (npc.retreatingFrom != null) {
@@ -512,6 +530,14 @@ class MeleeCombat(
     /** [npc] was hit by [player]: it turns on them, striking from the next tick (guessed) if it isn't fighting already. */
     private fun retaliate(npc: Npc, player: Player, tick: Long) {
         if (npc.target === player) return
+        // A boss whose fight picks its attacks keeps to the player it took on first while they last (Npc.scriptedAttacks).
+        if (npc.scriptedAttacks) {
+            val held = npc.target
+            if (held != null && !held.loggedOut && !held.dead && held.level == npc.level) return
+            npc.target = player
+            npc.fightTick = tick
+            return
+        }
         npc.target = player
         npc.fightTick = tick
         npc.nextAttackTick = maxOf(npc.nextAttackTick, tick + 1)
@@ -591,15 +617,34 @@ class MeleeCombat(
         }
         // Poison or another player can take it down to where it gives up the fight.
         if (lowOnHitpoints(npc, def)) return retreat(npc, player)
+        if (npc.scriptedAttacks) {
+            npc.fightTick = tick
+            npc.face(player)
+            return
+        }
         if (def.range > 1) return shoot(npc, def, player, tick)
         // Chase's own far limit may have let go of them; a fighting NPC keeps after them while they are in range.
         if (npc.following !== player) npcs.follow(npc, player)
         val size = npc.type.size
         if (!Reach.reachedEntity(collision, npc.level, npc.x, npc.z, size, player.x, player.z, 1, 1)) return
         if (tick < npc.nextAttackTick) return
+        swingAt(npc, player, tick)
+    }
+
+    /**
+     * [npc] swings its melee attack at [player] now, as its fight back does once it is in reach and its attack is due:
+     * the animation, the roll, a protection prayer or Dinh's bulwark, and its poison. A boss fight calls it for its
+     * boss's own swings ([Npc.scriptedAttacks]); [anim] is the swing's animation, -1 for its combat definition's.
+     */
+    fun swingAt(npc: Npc, player: Player, tick: Long, anim: Int = -1) {
+        val def = combat.npcCombat[npc.type] ?: return
         npc.nextAttackTick = tick + def.attackSpeed
         npc.fightTick = tick
-        if (def.anims.attack >= 0) npc.effects.anim(def.anims.attack)
+        // Only an NPC with a spell rolls for it, so World.random runs as before for every other.
+        val spell = def.spell
+        if (spell != null && spellCasts(spell, player) && random.chance(1, spell.chance)) return cast(npc, player, spell.attack, tick)
+        val shown = if (anim >= 0) anim else def.anims.attack
+        if (shown >= 0) npc.effects.anim(shown)
         npc.face(player)
         val roll = combat.npcAttack(npc, player) ?: return
         val damage = if (CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)) CombatMath.rollDamage(random, roll.maxHit) else 0
@@ -631,16 +676,35 @@ class MeleeCombat(
      * stands still once in range rather than stepping closer, and that a miss shows the splash and no hitsplat.
      */
     private fun shoot(npc: Npc, def: NpcCombatDef, player: Player, tick: Long) {
-        val size = npc.type.size
-        val distance = LineOfSight.distance(npc.x, npc.z, size, player.x, player.z)
-        val inSight = distance in 1..def.range && LineOfSight.clear(collision, npc.level, npc.x, npc.z, size, player.x, player.z)
-        if (!inSight) {
+        if (!inShot(npc, def, player)) {
             if (npc.following !== player) npcs.follow(npc, player)
             return
         }
         if (npc.following === player) npcs.stopFollowing(npc)
         npc.face(player)
         if (tick < npc.nextAttackTick || def.attacks.isEmpty()) return
+        fireAt(npc, player, tick)
+    }
+
+    /** Whether [player] is in [npc]'s range and sight for its magic or ranged attacks, as its fight back asks before a shot. */
+    fun inShot(npc: Npc, player: Player): Boolean = combat.npcCombat[npc.type]?.let { inShot(npc, it, player) } ?: false
+
+    private fun inShot(npc: Npc, def: NpcCombatDef, player: Player): Boolean {
+        val size = npc.type.size
+        val distance = LineOfSight.distance(npc.x, npc.z, size, player.x, player.z)
+        return distance in 1..def.range && LineOfSight.clear(collision, npc.level, npc.x, npc.z, size, player.x, player.z)
+    }
+
+    /**
+     * [npc] fires one of its magic or ranged attacks (by weight) at [player] now, as its fight back does when its attack
+     * is due and they are in range and sight: the roll as it fires and the hit landing after the flight. A boss fight
+     * calls it for its boss's own shots ([Npc.scriptedAttacks]). Does nothing for an NPC with no such attacks.
+     */
+    fun fireAt(npc: Npc, player: Player, tick: Long) {
+        val def = combat.npcCombat[npc.type] ?: return
+        if (def.attacks.isEmpty()) return
+        val distance = maxOf(1, LineOfSight.distance(npc.x, npc.z, npc.type.size, player.x, player.z))
+        npc.face(player)
         npc.nextAttackTick = tick + def.attackSpeed
         // As a melee swing does, so another player can't take it over while it keeps firing.
         npc.fightTick = tick
@@ -656,6 +720,34 @@ class MeleeCombat(
         val damage = if (hit && max > 0) CombatMath.rollDamage(random, max) else 0
         val blocked = protects(player, def.attackType)
         // Dinh's bulwark counts as it fires, as the prayer does and as for a melee swing.
+        val reduced = if (combat.bulwarkBlocking(player, tick)) DinhsBulwark.blocked(damage) else damage
+        shots += Shot(npc, player, attack, hit, blocked, if (blocked) 0 else reduced, tick + delay)
+    }
+
+    private fun spellCasts(spell: NpcMeleeSpell, player: Player): Boolean {
+        val skill = spell.attack.drain?.skill ?: return true
+        return spell.casts(player.skills.baseLevel(skill), player.skills.currentLevel(skill))
+    }
+
+    /**
+     * A melee NPC's spell at [player] in its reach ([NpcMeleeSpell]): its animation, the projectile, and a magic roll
+     * against their Magic defence, landing after [HitDelay.MAGIC] as an NPC's shot does ([shoot]); Protect from
+     * Magic blocks it. Guessed: no casting spotanim, and the spell's heights and arc are a player's.
+     */
+    private fun cast(npc: Npc, player: Player, attack: NpcRangedAttack, tick: Long) {
+        val def = combat.npcCombat[npc.type] ?: return
+        val anim = if (attack.anim >= 0) attack.anim else def.anims.attack
+        if (anim >= 0) npc.effects.anim(anim)
+        npc.face(player)
+        if (attack.cast >= 0) npc.effects.spotanim(0, attack.cast, CAST_HEIGHT)
+        val distance = LineOfSight.distance(npc.x, npc.z, npc.type.size, player.x, player.z).coerceAtLeast(1)
+        val delay = HitDelay.MAGIC.ticks(distance)
+        if (attack.projectile >= 0) projectile(flight(npc, player, attack.projectile, delay))
+        val roll = combat.npcAttack(npc, player, AttackType.MAGIC) ?: return
+        val hit = CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)
+        val max = attack.maxHit ?: roll.maxHit
+        val damage = if (hit && max > 0) CombatMath.rollDamage(random, max) else 0
+        val blocked = protects(player, AttackType.MAGIC)
         val reduced = if (combat.bulwarkBlocking(player, tick)) DinhsBulwark.blocked(damage) else damage
         shots += Shot(npc, player, attack, hit, blocked, if (blocked) 0 else reduced, tick + delay)
     }
@@ -713,6 +805,11 @@ class MeleeCombat(
     private fun drain(player: Player, drain: StatDrain) {
         val base = player.skills.baseLevel(drain.skill)
         val by = maxOf(1, base * drain.percent / 100)
+        if (drain.stacks) {
+            val current = player.skills.currentLevel(drain.skill)
+            if (current > 1) player.skills.setCurrentLevel(drain.skill, maxOf(1, current - by))
+            return
+        }
         val floor = base - by
         if (player.skills.currentLevel(drain.skill) <= floor) return
         player.skills.setCurrentLevel(drain.skill, floor)
@@ -805,7 +902,7 @@ class MeleeCombat(
         npc.hitpoints -= dealt
         npc.effects.hit(-1, hitsplat, hitsplat, dealt)
         npc.effects.headBar(-1, HEALTH_BAR, healthBarFill(npc.hitpoints, npc.maxHitpoints))
-        if (npc.hitpoints <= 0) die(npc, def, npc.attacker ?: npc.lastAttacker, currentTick())
+        if (npc.hitpoints <= 0 && !npc.holdsAtZero) die(npc, def, npc.attacker ?: npc.lastAttacker, currentTick())
         else npc.target?.let { if (lowOnHitpoints(npc, def)) retreat(npc, it) }
         return dealt
     }
@@ -908,6 +1005,9 @@ class MeleeCombat(
     private fun regenerateNpcs() {
         for (npc in npcs.all) {
             if (npc.dead || combat.npcCombat[npc.type] == null) continue
+            // Held at 0 (a boss's shield broken, Npc.holdsAtZero): it stays at 0 till its fight moves it on, or a point
+            // back on this tick would mend the shield before the fight sees it broken.
+            if (npc.holdsAtZero && npc.hitpoints <= 0) continue
             // The tick it appears on starts the countdown without counting, whether it came before this phase (a
             // command, the server starting) or in it (a respawn), so the first hitpoint comes a full minute later.
             if (npc.hitpointsRegenTicks < 0) {

@@ -630,6 +630,47 @@
       "source": "OSRS Wiki, Grizzly bear (Level 21, id 2838) and the DPS calculator's 2838, read 2026-11-02: speed 4, max hit 3, slash, no bonuses, respawn 50, weak to fire 20%, aggressive. It stands with bear_rework_ready, so the bear_rework fight animations are taken; the default hunt range is guessed"
     },
     {
+      "npcs": ["tfa_guardian"],
+      "attackSpeed": 5,
+      "maxHit": 25,
+      "attackType": "ranged",
+      "attackBonus": 350,
+      "strengthBonus": 55,
+      "range": 10,
+      "attacks": [ { "anim": "npc_archive_guardian_range_attack01", "cast": 4199, "projectile": 4201, "impact": 4200 } ],
+      "defence": { "stab": 120, "slash": 110, "crush": 20, "magic": 130, "light": 75, "standard": 120, "heavy": 50 },
+      "anims": { "attack": "npc_archive_guardian_range_attack01", "defend": null, "death": "npc_archive_guardian_death01" },
+      "respawnTicks": 50,
+      "weakness": {"element": "fire", "percent": 80},
+      "immune": ["poison", "venom"],
+      "drainCap": { "defence": 60 },
+      "flying": true,
+      "source": "OSRS Wiki, Archive Guardian (id 16659), read 2026-11-03: speed 5, max hit 25, the defence bonuses, weak to fire 80%, immune to poison and venom, Defence drained to 60% at most (21 October 2026 hotfix). Its aggressive bonuses are four unlabelled +350, +55, +350, +55 on the Wiki, taken as attack and strength for melee and ranged alike (the cache's params agree). Levitating, so only ranged, magic and halberds reach it (The Fractured Archive/Strategies). Its attacks come from its boss fight (ArchiveGuardian), which picks the shot or the slam; the shot is vfx_guardian_ranged_spotanim01, _projanim01 and _hitanim01 (4199, 4201, 4200) with npc_archive_guardian_range_attack01, by name. Guessed: the 10-tile range, no block animation (it has none by name), and the respawn, which never comes (the raid's boss doesn't come back)"
+    },
+    {
+      "npcs": ["tfa_guardian_unshielded"],
+      "attackSpeed": 5,
+      "maxHit": 25,
+      "attackType": "crush",
+      "attackBonus": 350,
+      "strengthBonus": 55,
+      "defence": { "stab": 120, "slash": 90, "crush": 20, "magic": 130, "light": 75, "standard": 120, "heavy": 50 },
+      "anims": { "attack": "npc_archive_guardian_melee_attack01", "defend": null, "death": "npc_archive_guardian_death01" },
+      "respawnTicks": 50,
+      "weakness": {"element": "fire", "percent": 40},
+      "immune": ["poison", "venom"],
+      "drainCap": { "defence": 60 },
+      "source": "OSRS Wiki, Archive Guardian (id 16659; the grounded form is 16660 in the 241.4 cache), read 2026-11-03: speed 5, max hit 25, crush (the infobox's style), the defence bonuses but slash 90, the cache's param for this form against 110 for the levitating one, immune to poison and venom, Defence drained to 60% at most. Grounded it swings with npc_archive_guardian_melee_attack01. Guessed: the 40% fire weakness (a guide's, osrsbestinslot; the Wiki lists 80% and 40% without saying which form has which), no block animation, the respawn, which never comes"
+    },
+    {
+      "npcs": ["tfa_guardian_battery_active", "tfa_guardian_battery_inactive", "tfa_guardian_battery_destroyed"],
+      "attackSpeed": 4, "maxHit": 0, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 20, "crush": -20, "magic": -20, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": null, "defend": null, "death": null },
+      "respawnTicks": 50,
+      "source": "241.4 cache, tfa_guardian_battery_active (16662, \"Inert Guardian\", Attack): 180 hitpoints, Defence and Magic 50, and its params 5 to 8, read as the stab, slash, crush and magic defence the Archive Guardian's own params give (120, 110, 20, 130, the Wiki's). The asleep and spent forms share the entry so a swing already on its way lands; they have no Attack. Its fight (ArchiveGuardian) charges it at 0 and it never fights back. Guessed: the ranged defences (none in the cache), no animations by name, the respawn, which never comes. Not in: a guide's earth weakness, with no figure"
+    },
+    {
       "npcs": ["sos_fam_fleshcrawler", "sos_fam_fleshcrawler2", "sos_fam_fleshcrawler3"],
       "attackSpeed": 3, "maxHit": 1, "attackType": "slash", "attackBonus": 0, "strengthBonus": 0,
       "defence": { "stab": 15, "slash": 15, "crush": 15, "magic": 15, "light": 15, "standard": 15, "heavy": 15 },
@@ -708,6 +749,147 @@
       "weakness": { "element": "water", "percent": 40 },
       "aggressive": true,
       "source": "OSRS Wiki, Lesser demon (level 82, id 2005), read 2026-11-03: speed 4, max hit 8, slash, no attack or melee and ranged defence bonuses, magic defence -10, weak to water 40%, respawn 30, aggressive. The Wizards' Tower's caged one is this type: its cage keeps it from reaching anyone (Wiki, Wizards' Tower). The fight animations are the demon_ ones beside the demon_ready and demon_walk the type stands and walks with"
+    },
+    {
+      "npcs": ["sos_pest_catablepon"],
+      "attackSpeed": 4, "maxHit": 5, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 40, "slash": 30, "crush": 20, "magic": 20, "light": 40, "standard": 40, "heavy": 40 },
+      "anims": { "attack": "catpon_attack", "defend": "catpon_parry", "death": "catpon_death" },
+      "respawnTicks": 20,
+      "aggressive": true,
+      "spell": { "anim": "catpon_attack_breath", "projectile": 106, "impact": 107, "maxHit": 0, "chance": 4,
+        "drain": { "skill": "strength", "percent": 5, "stacks": true }, "stopsAt": { "percent": 8, "flat": 3 } },
+      "source": "OSRS Wiki, Catablepon (Level 49) and the DPS calculator's, read 2026-11-03: speed 4, max hit 5, stab and magic, no attack bonuses, the defences, respawn 20, aggressive. Weaken drains Strength and stops once 8% + 3 is drained (the Wiki), verified; GUESSED: a cast one turn in 4 in melee reach, 5% of the base level a cast from the current level (the Weaken spell's), drain-only, and the Weaken spell's projectile and impact. It stands with 4269 and walks with 4268, beside catpon_attack, _parry and _death; catpon_attack_breath (the glare) is inferred as the cast"
+    },
+    {
+      "npcs": ["sos_pest_catablepon2"],
+      "attackSpeed": 4, "maxHit": 6, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 50, "slash": 40, "crush": 30, "magic": 30, "light": 50, "standard": 50, "heavy": 50 },
+      "anims": { "attack": "catpon_attack", "defend": "catpon_parry", "death": "catpon_death" },
+      "respawnTicks": 20,
+      "aggressive": true,
+      "spell": { "anim": "catpon_attack_breath", "projectile": 106, "impact": 107, "maxHit": 0, "chance": 4,
+        "drain": { "skill": "strength", "percent": 5, "stacks": true }, "stopsAt": { "percent": 8, "flat": 3 } },
+      "source": "OSRS Wiki, Catablepon (Level 64) and the DPS calculator's, read 2026-11-03: speed 4, max hit 6, stab and magic, no attack bonuses, the defences, respawn 20, aggressive. Weaken drains Strength and stops once 8% + 3 is drained (the Wiki), verified; GUESSED: a cast one turn in 4 in melee reach, 5% of the base level a cast from the current level (the Weaken spell's), drain-only, and the Weaken spell's projectile and impact. It stands with 4269 and walks with 4268, beside catpon_attack, _parry and _death; catpon_attack_breath (the glare) is inferred as the cast"
+    },
+    {
+      "npcs": ["sos_pest_catablepon3"],
+      "attackSpeed": 4, "maxHit": 7, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 50, "slash": 40, "crush": 30, "magic": 30, "light": 50, "standard": 50, "heavy": 50 },
+      "anims": { "attack": "catpon_attack", "defend": "catpon_parry", "death": "catpon_death" },
+      "respawnTicks": 20,
+      "aggressive": true,
+      "spell": { "anim": "catpon_attack_breath", "projectile": 106, "impact": 107, "maxHit": 0, "chance": 4,
+        "drain": { "skill": "strength", "percent": 5, "stacks": true }, "stopsAt": { "percent": 8, "flat": 3 } },
+      "source": "OSRS Wiki, Catablepon (Level 68) and the DPS calculator's, read 2026-11-03: speed 4, max hit 7, stab and magic, no attack bonuses, the defences, respawn 20, aggressive. Weaken drains Strength and stops once 8% + 3 is drained (the Wiki), verified; GUESSED: a cast one turn in 4 in melee reach, 5% of the base level a cast from the current level (the Weaken spell's), drain-only, and the Weaken spell's projectile and impact. It stands with 4269 and walks with 4268, beside catpon_attack, _parry and _death; catpon_attack_breath (the glare) is inferred as the cast"
+    },
+    {
+      "npcs": ["sos_pest_giantspider1"],
+      "attackSpeed": 4, "maxHit": 7, "attackType": "stab", "attackBonus": 10, "strengthBonus": 10,
+      "defence": { "stab": 10, "slash": 10, "crush": 10, "magic": 10, "light": 10, "standard": 10, "heavy": 10 },
+      "anims": { "attack": "spider_update_attack", "defend": "spider_update_defend", "death": "spider_update_death" },
+      "respawnTicks": 25,
+      "weakness": { "element": "fire", "percent": 50 },
+      "aggressive": { "ignoresLevels": true },
+      "source": "OSRS Wiki, Giant spider (Level 50, id 2477) and the DPS calculator's, read 2026-11-03: speed 4, max hit 7, stab, attack and strength +10, defences +10, respawn 25, weak to fire 50%. The Stronghold of Security page: \"the giant spiders are useful to train against as they are aggressive towards any level\". It stands and walks with spider_update_ready and _walk, so those fight animations are taken"
+    },
+    {
+      "npcs": ["sos_pest_spider"],
+      "attackSpeed": 4, "maxHit": 6, "attackType": "stab", "attackBonus": 35, "strengthBonus": 58,
+      "defence": { "stab": 53, "slash": 53, "crush": 53, "magic": 53, "light": 53, "standard": 53, "heavy": 53 },
+      "anims": { "attack": "small_spider_update_attack", "defend": "small_spider_update_defend", "death": "small_spider_update_death" },
+      "respawnTicks": 27,
+      "weakness": { "element": "fire", "percent": 50 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Spider (Stronghold of Security, level 24, id 2478) and the DPS calculator's, read 2026-11-03: speed 4, max hit 6, stab, attack +35, strength +58, defences +53, respawn 27, weak to fire 50%. It stands and walks with small_spider_update_ready and _walk, so those fight animations are taken. Aggressive is GUESSED, and its poison is left out: the Wiki's variant cells are unclear"
+    },
+    {
+      "npcs": ["sos_pest_scorpion"],
+      "attackSpeed": 4, "maxHit": 6, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 5, "slash": 15, "crush": 15, "magic": 0, "light": 55, "standard": 55, "heavy": 55 },
+      "anims": { "attack": "scorpion_update_attack_tail", "defend": "scorpion_update_defend", "death": "scorpion_update_death" },
+      "respawnTicks": 22,
+      "weakness": { "element": "fire", "percent": 25 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Scorpion (Level 59, id 2479) and the DPS calculator's, read 2026-11-03: speed 4, max hit 6, stab, no attack bonuses, the defences, respawn 22, aggressive, weak to fire 25%. It stands and walks with scorpion_update_ready and _walk"
+    },
+    {
+      "npcs": ["sos_pest_scorpion2"],
+      "attackSpeed": 4, "maxHit": 4, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 35, "slash": 15, "crush": 15, "magic": 30, "light": 35, "standard": 35, "heavy": 35 },
+      "anims": { "attack": "scorpion_update_attack_tail", "defend": "scorpion_update_defend", "death": "scorpion_update_death" },
+      "respawnTicks": 25,
+      "weakness": { "element": "fire", "percent": 25 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Scorpion (Level 37, id 2480) and the DPS calculator's, read 2026-11-03: speed 4, max hit 4, stab, no attack bonuses, the defences, respawn 25, aggressive, weak to fire 25%. It stands and walks with scorpion_update_ready and _walk"
+    },
+    {
+      "npcs": ["sos_death_ankou", "sos_death_ankou2", "sos_death_ankou3"],
+      "attackSpeed": 4, "maxHit": 8, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 50,
+      "weakness": { "element": "air", "percent": 40 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Ankou (levels 75, 82 and 86, ids 2514 to 2516) and the DPS calculator's, read 2026-11-03: speed 4, max hit 8, crush, no bonuses, respawn 50, aggressive, weak to air 40%. They stand and walk with human_ready and human_walk, so the unarmed human fight animations are taken (GUESSED)"
+    },
+    {
+      "npcs": ["sos_death_ghost", "sos_death_ghost_b", "sos_death_ghost_c", "sos_death_ghost_d"],
+      "attackSpeed": 4, "maxHit": 7, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 55, "slash": 55, "crush": 5, "magic": 55, "light": 55, "standard": 55, "heavy": 55 },
+      "anims": { "attack": "ghost_update_tendrill_attack", "defend": "ghost_update_tendrill_defend", "death": "ghost_update_tendrill_death" },
+      "respawnTicks": 40,
+      "weakness": { "element": "air", "percent": 50 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Ghost (Stronghold of Security, level 77, ids 2527 to 2530) and the DPS calculator's, read 2026-11-03: speed 4, max hit 7, crush, the defences, weak to air 50%. The Ghost page's switch infobox is unclear for these, so respawn 40 is INFERRED and aggressive is GUESSED. They stand with ghost_update_tendrill_ready"
+    },
+    {
+      "npcs": ["sos_death_ghost2", "sos_death_ghost2_b", "sos_death_ghost2_c", "sos_death_ghost2_d"],
+      "attackSpeed": 4, "maxHit": 7, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 45, "slash": 45, "crush": 5, "magic": -5, "light": 45, "standard": 45, "heavy": 45 },
+      "anims": { "attack": "ghost_update_normal_attack", "defend": "ghost_update_normal_defend", "death": "ghost_update_normal_death" },
+      "respawnTicks": 40,
+      "weakness": { "element": "air", "percent": 50 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Ghost (Stronghold of Security, level 76, id 2531; 2532 to 2534 as it) and the DPS calculator's, read 2026-11-03: speed 4, max hit 7, crush, the defences, weak to air 50%. Respawn 40 is INFERRED and aggressive is GUESSED, as for the level 77 ones. They stand with ghost_update_normal_ready"
+    },
+    {
+      "npcs": ["sos_death_skeleton_unarmed", "sos_death_skeleton_unarmed2", "sos_death_skeleton_unarmed3", "sos_death_skeleton_unarmed4"],
+      "attackSpeed": 4, "maxHit": 6, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 35, "slash": 35, "crush": -5, "magic": 0, "light": 35, "standard": 35, "heavy": 35 },
+      "anims": { "attack": "skeleton_update_attack_weapon", "defend": "skeleton_update_defend", "death": "skeleton_update_death" },
+      "respawnTicks": 70,
+      "weakness": { "element": "earth", "percent": 35 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Skeleton (Stronghold of Security) (levels 60 and 68, ids 2520 to 2523) and the DPS calculator's, read 2026-11-03: speed 4, no attack bonuses, the defences, respawn 70, aggressive, weak to earth 35%. The Wiki gives the max hit as \"10?\" and no style: max hit 6 is the formula's from Strength 50 and no bonus (INFERRED), crush GUESSED. They stand with skeleton_update_ready"
+    },
+    {
+      "npcs": ["sos_death_skeleton_armed", "sos_death_skeleton_armed2", "sos_death_skeleton_armed3"],
+      "attackSpeed": 4, "maxHit": 10, "attackType": "slash", "attackBonus": 15, "strengthBonus": 14,
+      "defence": { "stab": 79, "slash": 31, "crush": 20, "magic": 5, "light": 70, "standard": 70, "heavy": 70 },
+      "anims": { "attack": "skeleton_update_attack_sword", "defend": "skeleton_update_defend", "death": "skeleton_update_death" },
+      "respawnTicks": 70,
+      "weakness": { "element": "earth", "percent": 35 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Skeleton (Stronghold of Security) (level 85, ids 2524 to 2526) and the DPS calculator's, read 2026-11-03: speed 4, attack +15, strength +14, the defences, respawn 70, aggressive, weak to earth 35%. Max hit 10 is the Wiki's \"10?\" and the formula's from Strength 74 and +14 (INFERRED), slash GUESSED from their swords. They stand with skeleton_update_ready and walk with skeleton_update_walk_shield"
+    },
+    {
+      "npcs": ["macro_shade"],
+      "attackSpeed": 4, "maxHit": 14, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "shade_attack", "defend": "shade_block", "death": "shade_sink" },
+      "respawnTicks": 50,
+      "xpBonus": -97.5,
+      "source": "OSRS Wiki, Shade (Stronghold of Security, level 159, id 6740) and the DPS calculator's, read 2026-11-03: speed 4, max hit 14, crush, no bonuses, respawn 50, not aggressive, and \"any experience gained while fighting the shades in the Stronghold of Security is drastically reduced\" (taken as the Sepulchre zombie's -97.5%, INFERRED). They stand with ghosthuman_ready, which has no fight animations, so the shades' shade_attack, shade_block and shade_sink are GUESSED"
+    },
+    {
+      "npcs": ["macro_zombie"],
+      "attackSpeed": 4, "maxHit": 14, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "zombie_update_attack_weapon", "defend": "zombie_update_defend_weapon", "death": "zombie_update_death_weapon" },
+      "respawnTicks": 75,
+      "xpBonus": -97.5,
+      "source": "OSRS Wiki, Zombie (Sepulchre of Death, level 159, id 6741) and the DPS calculator's, read 2026-11-03: speed 4, max hit 14, crush, no bonuses, respawn 75, not aggressive, XP -97.5% (\"1 experience for 10 damage dealt\"). It stands with zombie_update_ready_weapon, so the weapon fight animations are taken"
     }
   ]
 }

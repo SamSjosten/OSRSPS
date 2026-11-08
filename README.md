@@ -1303,8 +1303,53 @@ Step 13a is the second floor, the Catacomb of Famine, in the same files: the flo
 | The portal lets through at combat level 51 or with the grain searched; every portal says `stronghold_of_security.portal_enter` | OSRS Wiki, Stronghold of Security |
 | Flesh crawlers (28, 35, 41; the bottom of the sceptre among their drops), zombies (30, 44, 53), giant rats and rats as their Wiki pages; the crawlers aggressive to any level, the zombies aggressive | OSRS Wiki, the DPS calculator; mejrs's live NPC list (148 spawns, the Wiki's counts) |
 
-Left out: the ladder down to the third floor (step 13b). Check: `test-runner/examples/catacomb-of-famine.json`;
-`HeadlessStrongholdOfSecurityTest`, `StrongholdOfSecurityTest`, `NpcCombatTest` and `NpcDropsTest` as for step 12.
+Check: `test-runner/examples/catacomb-of-famine.json`; `HeadlessStrongholdOfSecurityTest`,
+`StrongholdOfSecurityTest`, `NpcCombatTest` and `NpcDropsTest` as for step 12.
+
+Step 13b is the third floor, the Pit of Pestilence, in the same files, and a melee NPC's spell (`NpcMeleeSpell`).
+
+| Behaviour | Source |
+|-----------|--------|
+| The Catacomb's ladder down lands by the Pit's dripping vine up, which climbs back beside it; the goo covered vine in the reward room climbs back to the start of the floor, as the Catacomb's ropes | the 241 cache's locs (`sos_fam_ladd_down`, `sos_pest_ladd_up`, `sos_pest_rope_up`); the landings guessed |
+| The oozing barriers ask as the Gates of War (the door of pestilence's head), and stop once the Box of Health is opened | as step 12 |
+| The Box of Health, once: 5,000 coins, the Idea emote (`sos_emote_idea`), every lowered stat back to its level (a boost stays), its jingle | OSRS Wiki, Box of Health ("all stats including hitpoints, prayer points and strength restored") |
+| The portal lets through at combat level 76 or with the box opened; every floor's portal works at its level "even if the reward hasn't been claimed before" | OSRS Wiki, Stronghold of Security (verified) |
+| Catablepons (49, 64, 68) fight with stab and, one turn in 4 in reach, a Weaken glare: Strength down 5% of its level from where it is, no hitsplat, blocked by Protect from Magic, and no more glares once 8% + 3 is drained; the top of the sceptre among their drops | OSRS Wiki, Catablepon (the threshold verified; the chance, the 5% and the graphics guessed) |
+| Giant spiders (50, aggressive to any level), spiders (24) and scorpions (37, 59) as their Wiki pages, all aggressive; no main drop table, only their beginner clues (and the scorpions' ensouled heads) | OSRS Wiki, the DPS calculator; mejrs's live NPC list (114 spawns) |
+| A door opened from the tile beside it along its wall asks as from its own row (exploit audit R12B-2) | the passage is checked in the row the player crosses in |
+
+Left out: the dripping vine down to the fourth floor (step 14) and the swamp bubbles' Suck. Check:
+`test-runner/examples/pit-of-pestilence.json`; `HeadlessStrongholdOfSecurityTest`, `StrongholdOfSecurityTest`,
+`NpcCombatTest`, `NpcDropsTest`, `NpcMeleeSpellTest` and `HeadlessCatableponTest` (a real catablepon's Weaken through
+the client).
+
+Step 14a is the fourth floor, the Sepulchre of Death, in the same files.
+
+| Behaviour | Source |
+|-----------|--------|
+| The Pit's dripping vine down lands by the Sepulchre's Boney ladder, which climbs back beside the vine; its two bone chains climb back to the start of the floor, as the Catacomb's ropes | the 241 cache's locs (`sos_pest_ladd_down`, `sos_death_ladd_up`, `sos_death_rope_up`); OSRS Wiki, Boney ladder ("leads back up to the third floor"); the landings guessed, the chains inferred |
+| The portals of death ask as the Gates of War (the door of death's head), and stop once the Cradle of Life is searched | as step 12 |
+| The Cradle of Life: the first search gives the Stamp emote (`sos_emote_stamp`), hitpoints and prayer back, its jingle (`sos_life`) and no coins; every search gives a pair of boots, fancy or fighting. The fancier boots need a Jagex Account, which no account here is | OSRS Wiki, Cradle of Life and Stronghold of Security ("can be used again for more boots"); the stronghold's 10,000 coins is the first three rewards' 2,000 + 3,000 + 5,000 (inferred) |
+| The portal lets through only once the Cradle is searched, at any combat level | OSRS Wiki, Portal (Stronghold of Security) and Stronghold of Security (no level for the fourth; inferred) |
+| The notice by the Cradle can be read | the 241 cache (`sos_thankplayers`); the words wait for the Words thread |
+| Ankou (75, 82, 86), ghosts (76, 77) and skeletons (60, 68, 85), aggressive; the ankou's table with the left skull half (3/100), the skeletons' bones, nothing from the ghosts | OSRS Wiki, Ankou, Ghost, Skeleton (Stronghold of Security), the DPS calculator; mejrs's live NPC list (94 spawns). The ghosts' respawn is inferred and their aggression guessed |
+| The anti-macro shades and zombie (159) by the ladder, not aggressive, give 1 XP for 10 damage; the shades drop their robes, the zombie big bones and its bundles of bones together (a drop line may now give several items) | OSRS Wiki, Shade, Zombie (Sepulchre of Death) |
+
+Left out: the skull sceptre and Solztun (step 14b), and the ghosts' and skeletons' tertiaries (the champion scroll).
+Check: `test-runner/examples/sepulchre-of-death.json`; `HeadlessStrongholdOfSecurityTest`, `StrongholdOfSecurityTest`,
+`NpcCombatTest` and `NpcDropsTest`.
+
+Step 14b is the skull sceptre and Solztun, in `game/content/SkullSceptre.kt`.
+
+| Behaviour | Source |
+|-----------|--------|
+| The left skull half on the right makes the strange skull, the top of the sceptre on the bottom the runed sceptre, and those two the skull sceptre, with 10 charges | OSRS Wiki, Skull sceptre (no level, a tick each) |
+| Invoke takes the player to the Stronghold's entrance in Barbarian Village for a charge, up to level 20 Wilderness; the last charge crumbles a sceptre that isn't imbued. Divine shows the charges in a message box | OSRS Wiki, Skull sceptre; the standard teleport's animation, graphic and 3 ticks guessed |
+| The charges are the player's, as the blowpipe's: two sceptres share them | guessed |
+| Solztun, in the reward room, talks as the Wiki's transcript; once shown the Cradle's boots he imbues every skull sceptre carried. Every account counts as having the authenticator, so its refusals are left out | OSRS Wiki, Solztun and Transcript:Solztun |
+| The imbued sceptre stays when empty and takes bone fragments (a charge each) and pieces (3, the left skull half 5), never past 10; a chisel breaks a piece into that many fragments | OSRS Wiki, Skull sceptre (the Varrock Diary's extra charges wait for the diary) |
+
+Check: `test-runner/examples/skull-sceptre.json` and `HeadlessSkullSceptreTest`.
 
 ## Varrock
 
@@ -1728,9 +1773,10 @@ one of its four levels and the lobby's square left out. The party gathers in the
 is fought in the nexus's hall, where the cache lays its corpse on the nexus's later levels. Then come three rows of
 doors, each with a room behind its west and east door: Ezekiel or Bork and the Smorks, then Moia or Dreadnoth the
 Jellied, then the Dagon'hai Elder or Xarth. Last, the nexus's Passageway north opens to Ocellus's arena. Each room's
-Passageway goes back out to the nexus, and so does its Archive transporter once the room is done. No boss is built
-yet, so each room is done as soon as the first party member walks in: that is the run through empty rooms. Each
-boss's step, from 16 on, adds its fight and ends its room when the boss dies.
+Passageway goes back out to the nexus, and so does its Archive transporter once the room is done. A room whose boss
+isn't built yet is done as soon as the first party member walks in: that is the run through empty rooms. Each boss's
+step, from 16 on, adds its fight and ends its room when the boss dies. The Guardian (step 16) waits in its hall from
+the run's start and its fight begins when a member touches it. The whole instance is multi-way.
 
 A room's contribution points are shared by damage among those who did any, or evenly among who was there if nobody
 did. A party member who dies while someone still stands keeps everything and is down until the room is done. The
@@ -1753,12 +1799,14 @@ loses goes in a grave there. The party lasts through the wipe.
 | A row's other door shut once one is gone through; a row opening once the room before is done; Enter and Quick-enter, Use and Quick-use, the same | guessed, until a recording shows a run |
 | Passageway out at any time; the transporter once the room is done; both to the nexus in front of the room's door | guessed |
 | A room's fight beginning as the first party member stands in it, and the Guardian's in the hall north of the entrance | guessed |
+| The Guardian's fight beginning on Touch on the waiting "Inert Guardian" (`tfa_guardian_start`, 16657) in the middle of the hall, where its corpse lies later; scaled to everyone standing in the run then | 241.4 cache (the NPC and its Touch); where it waits inferred from the corpse; the party size guessed |
+| The whole of a run's instance multi-way | inferred: a raid of up to eight fights one boss |
 | A member who leaves the party sent to the lobby; a logout saving them there, as any instance's exit | guessed |
-| Every room done as it begins, until its boss's step | stand-in |
-| The bosses, the Quartermaster and Supply Credits, the party's orbs, the reward room, deaths' item costs | not in yet: steps 16 to 31 |
+| Every room done as it begins, until its boss's step | stand-in (all but the Guardian's) |
+| The bosses after the Guardian, the Quartermaster and Supply Credits, the party's orbs, the reward room, deaths' item costs | not in yet: steps 17 to 31 |
 
 `::raid run` shows the run you're in, `::raid tp nexus` or `::raid tp ezekiel` goes to its nexus or a room, and
-`::raid clear` marks the room you're in done. Check: `./gradlew test --tests 'osrsps.game.instance.*'
+`::raid clear` marks the room you're in done, as if its boss died; a room whose fight never began (the Guardian before it is touched) gives its points to whoever of the party stands in it. Check: `./gradlew test --tests 'osrsps.game.instance.*'
 --tests 'osrsps.game.combat.DeathsTest' --tests 'osrsps.testclient.HeadlessArchiveRaidTest'` (a run through the empty
 rooms by the west doors and one by the east; rows opening in order and a row's other door shut; a death that leaves the
 party standing, a player too late to come in, and the wipe to the lobby with graves), and in RuneLite
@@ -1783,14 +1831,61 @@ a fight started on a seed plays the same way each time.
 | Hazards hurting from no one, so standing in one doesn't start a fight or make the player hit back | guessed |
 | A hazard's hit still counting as combat: it cuts a Home Teleport or lodestone cast short and holds a logout, as the boss's own hit would (exploit review round 11, ENC-1) | guessed |
 | Adds and hazards going when the boss dies or leaves | guessed; each boss's step changes it if live keeps them |
-| A fight outside an instance covering 32 tiles round the boss's spawn | testing only: the raid's rooms are instances |
-| No bosses yet: each one comes with its own step, from 16 on, with its room and gear sets for `::raid` | not in yet |
+| A phase also ending when its own test says so (a shield broken); steps put off a few ticks (a laser aimed now, landing later) running after the cycle and before the hazards, never once the fight is over | guessed |
+| A boss whose fight picks its attacks (the Guardian) never swinging, shooting, walking after anyone or retreating by itself, and keeping the first player it took on while they last | guessed |
+| A fight outside an instance covering 32 tiles round the boss's spawn, for the starter and their raid party only (so another test account standing in Lumbridge isn't drawn in), ending if the starter dies or logs out (else a script stopped mid-fight leaves them dying again and again at Lumbridge's spawn) | testing only: the raid's rooms are instances |
+| The Archive Guardian (step 16); the others each come with their own step, from 17 on, with its room and gear sets for `::raid` | not in yet: steps 17 to 27 |
 
 `::raid boss phase=2 party=3 seed=42` starts a fight where you stand, and `::raid digest 100` sums up its first 100
 ticks. Check: `./gradlew test --tests 'osrsps.game.encounter.*' --tests 'osrsps.game.command.RaidCommandsTest'
 --tests 'osrsps.testclient.HeadlessEncounterTest'` (a test boss plays the same 100 ticks on two runs with the same seed
 and differently on another; its phases change at half hitpoints and on time, with an add and a hazard, and the fight
 ends when the boss leaves).
+
+## The Archive Guardian
+
+The raid's first boss (raid step 16a) is `game/raid/ArchiveGuardian.kt`, an encounter on the cache's two forms. It
+waits in the nexus's hall as the "Inert Guardian" until a member touches it. It wakes levitating, with its shield's
+hitpoints, shooting the player it took on every 5 ticks and slamming anyone who stands under it instead; only ranged,
+magic and halberds reach it. With the shield gone it falls to the ground, blasting whoever is under or beside it, with
+its grounded hitpoints, and swings at a player beside it. At 30% it takes off again for good, with no shield, and fires
+a laser at a random player every 10 ticks, its damage shared by everyone on the laser's line. Its death does the room.
+While its shield is up, and between lasers at the end, it grows a mushroom two tiles from each player; stepping beside one
+bursts it, poisoning and wearying (no running, attacks a tick slower), and the burst splashes anyone two tiles off.
+Grounded, a vine rises on each player's side away from it every 3 ticks and swipes the tiles round it three times.
+Four inert guardians stand round the hall (step 16c). Under its shield three are awake: beaten to 0 one is charged,
+taking 40% off the shield, and spent. The south-east one never wakes; in the last phase the laser breaks the first one
+standing behind its target, halving the laser and hurting the Guardian, but never into kill range.
+
+| Guardian behaviour | Source |
+|--------------------|--------|
+| Stats, bonuses, both forms' hitpoints by party size (shield 550 to 1,950, grounded 1,100 to 3,910), 5-tick attacks, max hits 25 and 99+, 80% fire weakness, poison and venom immunity, Defence drained to 60% at most | Wiki, Archive Guardian (read 2026-11-03) |
+| Two forms: `tfa_guardian` (16659) levitating, `tfa_guardian_unshielded` (16660) grounded with slash defence 90 not 110; the animations and spotanims by name | 241.4 cache |
+| Levitating, only ranged, magic and halberds hitting it; shots at the player it chose; a slam on whoever stands under it; the shield's break grounding it; a blast on those under or next to it; the last phase at 30% with no shield; the laser "fatal if more than two players are alive and it isn't reduced", shared by standing in line, "slightly" cut by Protect from Magic | Wiki, The Fractured Archive/Strategies, as a guide site quotes it (the Wiki's own page is too long to read past its equipment) |
+| The grounded form's 40% fire weakness | a guide (osrsbestinslot); the Wiki lists 80% and 40% without saying which form has which |
+| Ranged shots (Protect from Missiles), a crush swing grounded (Protect from Melee), the slam blocked by Protect from Melee | guessed for the slam; the prayers for the others from the attack styles |
+| The first attack 5 ticks into each phase; the laser every 10 ticks, landing 3 after it is aimed; its line from the boss's middle through its target, 32 tiles on | guessed |
+| The slam up to 25, the blast 10 to 20, the laser 80 for one or two players and 40 for each player from three, Protect from Magic taking a tenth | guessed, to fit the Strategies page's words |
+| It never moves, and keeps to one tank till they fall or go out of its range or sight, when it turns at once on someone in it (holding its fire only when nobody is); grounded, those who stand off get its vines | guessed |
+| The words for melee refused on a flying monster (`combat.flying`) | guessed |
+| Mushrooms (locs 62578 to 62580, `tfa_archive_guardian_mushroom_spawn`), the Vine (16664, `archive_guardian_tentacle`, its spawn, swipe and despawn animations and `vfx_guardian_tentacle_intro`) | 241.4 cache |
+| Mushrooms in the shield phase and alternating with the laser at the end; their 3 to 10, poison and weariness (slower attacks, no running); a run beside one and on popping it, a walk leaving a weaker splash; vines from 6 ticks into the grounded phase, then every 3, each on the player's side away from the boss and swiping a 3x3 three times on a 3-tick cycle, Protect from Melee capping a swipe at 11 | guides (osrstoolkit, runescapeguides, bald.gg; read 2026-11-03) |
+| A mushroom round each player every 15 ticks, 2 tiles off, growing for 2 and bursting after 20 if no one comes; the splash 1 to 5 at 2 tiles; poison severity 20 (hits of 4); weary 10 ticks, a tick on each attack; a vine swipe up to 22 unprayed | guessed |
+| An antipoison beforehand avoiding "the poison damage only" (so weariness comes all the same) | Wiki, The Fractured Archive/Strategies, its equipment table (read 2026-11-03) |
+| The inert guardians' three forms (`tfa_guardian_battery_inactive`, `_active` with Attack, `_destroyed`; 2 by 2), the awake one's 180 hitpoints, Defence and Magic 50, and its stab, slash, crush and magic defence (0, 20, -20, -20, its params 5 to 8, which give the Wiki's figures on the Guardian) | 241.4 cache |
+| Four round the room, charged by attacking them; charging taking ~40% off the shield (596 of 1,490); the south-east one only hit by the beam, which damages the boss's health; the beam destroying the one behind its target; lining it up reducing the laser; no damage to the boss once it is in kill range | guides (runescapeguides, osrstoolkit; read 2026-11-03) |
+| Where they stand (level with its middle 9 tiles west and 8 east, and 10 south); the awake ones put to sleep as it falls; the laser halved; a broken one taking 10% of its most hitpoints off it, never below kill range at 10%; their ranged defences, 0; a swing on a spent one landing for 0 | guessed |
+| The step-under timing, a guide's "firebreath" enrage with braziers, the Serpentine helm shortening weariness, which guardians melee reaches and which only ranged (a guide's earth weakness, with no figure) | not in yet (the enrage isn't on the Strategies page; there is no Serpentine helm yet) |
+
+`::raid guardian party=3` starts it where you stand, `phase=grounded` or `phase=airborne` from a later phase. Check:
+`./gradlew test --tests 'osrsps.testclient.HeadlessArchiveGuardianTest' --tests 'osrsps.game.combat.NpcCombatTest' --tests 'osrsps.game.MovementTest'`
+(touched awake in its hall, through its three phases to its death doing the room, the instance multi-way; the laser
+shared by two on its line; melee refused while it levitates but for a halberd; the laser's line and damage; a mushroom
+bursting with poison and weariness, then splashing; a vine's swipes held to 11 by Protect from Melee; a weary player
+walking with run on; the inert guardians charged into the shield, three grounding it, and broken by the laser, which
+they halve, never into kill range), and in RuneLite `test-runner/examples/archive-guardian.json` (the whole fight solo
+with the right prayers, moved on with `::hit`), `test-runner/examples/archive-guardian-hazards.json` (a vine and a
+mushroom) and `test-runner/examples/archive-guardian-batteries.json` (an inert guardian charged).
 
 ## The Fractured Archive lobby
 

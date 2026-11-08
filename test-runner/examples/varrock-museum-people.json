@@ -91,7 +91,9 @@
    "contains": "[museum_adventurer.talk_"
   },
   {
-   "step": "finishDialogue"
+   "step": "finishDialogue",
+   "timeoutMs": 40000,
+   "comment": "talk 5 alone runs past 17 boxes, more than the default 10 s (VM 215, 2026-11-08)"
   },
   {
    "step": "command",
@@ -334,7 +336,9 @@
    "comment": "waits for the talk to open before finishing it"
   },
   {
-   "step": "finishDialogue"
+   "step": "finishDialogue",
+   "timeoutMs": 40000,
+   "comment": "the first talk, the menu and a whole lecture: about twenty boxes"
   },
   {
    "step": "npcOption",

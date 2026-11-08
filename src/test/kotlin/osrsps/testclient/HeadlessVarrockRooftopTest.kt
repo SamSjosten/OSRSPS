@@ -12,23 +12,28 @@ import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
 import osrsps.game.skill.AgilityData
 import osrsps.game.zone.ZoneLoc
+import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
 import osrsps.map.LocShape
 
 /**
  * Agility step 5 through the headless client: laps of the Varrock Rooftop Course with its real locs (as the 241 map
- * places them) and agility.json, on open ground (no cache collision in tests). The rl-client script
+ * places them) and agility.json, on open ground (no cache collision in tests) but for the missing floor around the wall,
+ * blocked as the map has it. The rl-client script
  * test-runner/examples/agility-varrock.json runs the real course.
  */
 class HeadlessVarrockRooftopTest {
-    private class Obstacle(val id: Int, val name: String, val option: String, val shape: Int, val angle: Int, val x: Int, val z: Int, val level: Int, val endX: Int, val endZ: Int, val endLevel: Int)
+    private class Obstacle(
+        val id: Int, val name: String, val option: String, val shape: Int, val angle: Int, val x: Int, val z: Int, val level: Int,
+        val endX: Int, val endZ: Int, val endLevel: Int, val width: Int = 1, val length: Int = 1,
+    )
 
     private val course = listOf(
         Obstacle(14412, "Rough wall", "Climb", 5, 0, 3221, 3414, 0, 3219, 3414, 3),
         Obstacle(14413, "Clothes line", "Cross", LocShape.CENTREPIECE_STRAIGHT, 0, 3213, 3414, 3, 3208, 3414, 3),
         Obstacle(14414, "Gap", "Leap", LocShape.CENTREPIECE_STRAIGHT, 0, 3200, 3416, 3, 3197, 3416, 1),
-        Obstacle(14832, "Wall", "Balance", LocShape.CENTREPIECE_STRAIGHT, 0, 3191, 3415, 1, 3192, 3406, 3),
+        Obstacle(14832, "Wall", "Balance", LocShape.CENTREPIECE_STRAIGHT, 0, 3191, 3415, 1, 3192, 3406, 3, width = 2, length = 2),
         Obstacle(14833, "Gap", "Leap", LocShape.CENTREPIECE_STRAIGHT, 0, 3193, 3401, 3, 3193, 3398, 3),
         Obstacle(14834, "Gap", "Leap", LocShape.CENTREPIECE_STRAIGHT, 0, 3209, 3397, 3, 3218, 3397, 3),
         Obstacle(14835, "Gap", "Leap", LocShape.CENTREPIECE_STRAIGHT, 0, 3233, 3402, 3, 3236, 3403, 3),
@@ -45,10 +50,13 @@ class HeadlessVarrockRooftopTest {
                 markLoaded(3222 shr 6, 3218 shr 6)
                 markLoaded(3190 shr 6, 3414 shr 6)
                 markLoaded(3221 shr 6, 3414 shr 6)
+                // The roof's missing floor between the gap's landing and the wall, as the 241 map has it: the 2 by 2
+                // wall is out of reach from the landing's roof, so it is used from its start (fromStart).
+                for (x in 3189..3193) for (z in 3413..3418) add(x, z, 1, CollisionFlag.FLOOR)
             },
             locTypes = LocTypes(
                 course.associate {
-                    it.id to LocType(it.id, it.name, listOf(it.option, null, null, null, null), LocCollisionType(width = 1, length = 1, interactType = 0))
+                    it.id to LocType(it.id, it.name, listOf(it.option, null, null, null, null), LocCollisionType(width = it.width, length = it.length, interactType = 0))
                 },
             ),
             staticLocs = StaticLocs().apply { for (o in course) add(ZoneLoc(o.id, o.shape, o.angle, o.x, o.z, o.level)) },

@@ -7,10 +7,10 @@
     {"step": "assertVarbit", "id": 4605, "value": 1},
     {"step": "command", "text": "::tele 3094 3491 0", "expectMessage": "Teleported to 3094, 3491, 0", "comment": "Edgeville bank, single-way"},
     {"step": "assertVarbit", "id": 4605, "value": 0},
-    {"step": "command", "text": "::tele 3093 3460 0", "expectMessage": "Teleported to 3093, 3460, 0", "comment": "the road from Edgeville, four tiles north of the village's box"},
+    {"step": "command", "text": "::tele 3093 3457 0", "expectMessage": "Teleported to 3093, 3457, 0", "comment": "the road from Edgeville, two tiles north of the village's box"},
     {"step": "assertVarbit", "id": 4605, "value": 0},
-    {"step": "walk", "x": 3093, "y": 3451, "comment": "over the box's north edge (z 3455)"},
-    {"step": "assertLocation", "x": 3093, "y": 3451, "plane": 0, "timeoutMs": 15000},
+    {"step": "walk", "x": 3093, "y": 3453, "comment": "over the box's north edge (z 3455); four tiles, so the tile is on screen at any zoom"},
+    {"step": "assertLocation", "x": 3093, "y": 3453, "plane": 0, "timeoutMs": 15000},
     {"step": "assertVarbit", "id": 4605, "value": 1},
     {"step": "command", "text": "::tele 3222 3218 0", "expectMessage": "Teleported to 3222, 3218, 0", "comment": "back to Lumbridge, single-way"},
     {"step": "assertVarbit", "id": 4605, "value": 0}

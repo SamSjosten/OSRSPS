@@ -177,7 +177,7 @@ fun registerEdgevilleDungeon(world: World) {
         for (leaf in listOf(GATE_LEFT, GATE_RIGHT, GATE_LEFT_OPEN, GATE_RIGHT_OPEN)) {
             world.handlers.onLoc(leaf, GATE_OPTION) { op ->
                 val loc = op.loc!!
-                if (!inMiddle(loc) || world.doors.toggle(loc, GATE_OPTION) == null) world.message(player, GameLines.NOTHING_INTERESTING)
+                if (!inMiddle(loc) || world.doors.toggle(loc, GATE_OPTION, player.saveKey) == null) world.message(player, GameLines.NOTHING_INTERESTING)
             }
         }
 

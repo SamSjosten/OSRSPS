@@ -48,6 +48,8 @@ class Movement(private val collision: CollisionMap) {
     fun process(player: Player): MoveResult {
         // A dead player goes nowhere, even partway along an obstacle.
         if (player.dead) player.forcedSteps.clear()
+        // Counted down by the world at the tick's start, so the walk and the attack delay end on the same tick.
+        val weary = player.wearyTicks > 0
         if (player.forcedSteps.isNotEmpty()) {
             // A teleport this tick (a climb onto a roof) lands first; the walk starts on the next tick.
             if (player.teleported) {
@@ -64,7 +66,8 @@ class Movement(private val collision: CollisionMap) {
         }
         val wantsRun = player.runEnabled != (player.invertRun && ctrlInverts(player))
         // Inferred: a delayed player keeps their route but doesn't walk it until the delay ends. Energy still changes.
-        val steps = if (player.scripts.delayed) 0 else if (wantsRun && player.runEnergy > 0) 2 else 1
+        // Weary, they walk whatever the run setting says.
+        val steps = if (player.scripts.delayed) 0 else if (wantsRun && player.runEnergy > 0 && !weary) 2 else 1
         var taken = 0
         while (taken < steps && step(player)) taken++
         val result = when (taken) {

@@ -33,7 +33,8 @@ import osrsps.map.LocShape
  * buying the graceful pieces back at 80%, and the way down to her in the Rogues' Den and back up.
  */
 class HeadlessGraceTest {
-    private val mark = ObjType(Agility.MARK_OF_GRACE, "Mark of grace", stackable = true, cost = 1)
+    /** Named as the 241 cache names it, capital G and all: the server's messages and the shop's currency use that. */
+    private val mark = ObjType(Agility.MARK_OF_GRACE, "Mark of Grace", stackable = true, cost = 1)
     private val pieces = listOf(
         ObjType(HOOD, "Graceful hood", cost = 35), ObjType(TOP, "Graceful top", cost = 55), ObjType(LEGS, "Graceful legs", cost = 60),
         ObjType(GLOVES, "Graceful gloves", cost = 30), ObjType(BOOTS, "Graceful boots", cost = 40), ObjType(CAPE, "Graceful cape", cost = 40),
@@ -100,7 +101,7 @@ class HeadlessGraceTest {
                 val words = DialogueText.NONE
                 client.ifButton(ShopScreen.MAIN, ShopScreen.MAIN_ITEMS, 6, 1, HOOD)
                 client.awaitMessage("the hood's price") {
-                    it == words[ShopLines.COSTS_IN, "item" to "Graceful hood", "price" to "35", "currency" to "Mark of grace"]
+                    it == words[ShopLines.COSTS_IN, "item" to "Graceful hood", "price" to "35", "currency" to "Mark of Grace"]
                 }
                 client.ifButton(ShopScreen.MAIN, ShopScreen.MAIN_ITEMS, 2, 1, HOOD)
                 client.awaitHeld(HOOD, 1)
@@ -109,7 +110,7 @@ class HeadlessGraceTest {
                 // Back at 80% of 35; the hood can't be traded, but she buys what she sells.
                 client.ifButton(ShopScreen.SIDE, ShopScreen.SIDE_ITEMS, 1, client.slotOf(HOOD), HOOD)
                 client.awaitMessage("the hood's buy-back") {
-                    it == words[ShopLines.BUYS_FOR_IN, "item" to "Graceful hood", "price" to "28", "currency" to "Mark of grace"]
+                    it == words[ShopLines.BUYS_FOR_IN, "item" to "Graceful hood", "price" to "28", "currency" to "Mark of Grace"]
                 }
                 client.ifButton(ShopScreen.SIDE, ShopScreen.SIDE_ITEMS, 2, client.slotOf(HOOD), HOOD)
                 client.awaitHeld(HOOD, 0)
@@ -117,9 +118,9 @@ class HeadlessGraceTest {
 
                 // The marks themselves don't sell, and 93 buy one pair of legs at 60 but not two.
                 client.ifButton(ShopScreen.SIDE, ShopScreen.SIDE_ITEMS, 2, client.slotOf(Agility.MARK_OF_GRACE), Agility.MARK_OF_GRACE)
-                client.awaitMessage("no selling marks") { it == words[ShopLines.CANT_SELL_CURRENCY, "currency" to "Mark of grace"] }
+                client.awaitMessage("no selling marks") { it == words[ShopLines.CANT_SELL_CURRENCY, "currency" to "Mark of Grace"] }
                 client.ifButton(ShopScreen.MAIN, ShopScreen.MAIN_ITEMS, 3, 3, LEGS)
-                client.awaitMessage("not enough marks") { it == words[ShopLines.NOT_ENOUGH_CURRENCY, "currency" to "Mark of grace"] }
+                client.awaitMessage("not enough marks") { it == words[ShopLines.NOT_ENOUGH_CURRENCY, "currency" to "Mark of Grace"] }
                 client.awaitHeld(LEGS, 1)
                 client.awaitHeld(Agility.MARK_OF_GRACE, 33)
                 assertEquals(0, client.held(COINS))

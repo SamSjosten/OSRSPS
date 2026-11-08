@@ -6,6 +6,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import osrsps.game.NpcStat
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
@@ -66,8 +67,12 @@ class NpcCombatTest {
             "mino_attack" to 4266, "mino_parry" to 4267, "mino_death" to 4265,
             "kalphite_attack_mandibles" to 1184, "kalphite_block" to 1186, "kalphite_death" to 1190,
             "dog_update_wolf_attack" to 6559, "dog_update_wolf_defend" to 6557, "dog_update_wolf_death" to 6558,
+            "catpon_attack" to 4271, "catpon_attack_breath" to 4272, "catpon_parry" to 4273, "catpon_death" to 4270,
+            "small_spider_update_attack" to 6249, "small_spider_update_defend" to 6250, "small_spider_update_death" to 6251,
             "bear_rework_attack" to 4925, "bear_rework_defend" to 4927, "bear_rework_death" to 4929,
+            "npc_archive_guardian_range_attack01" to 14751, "npc_archive_guardian_melee_attack01" to 14752, "npc_archive_guardian_death01" to 14749,
             "demon_attack" to 64, "demon_block" to 65, "demon_death" to 67,
+            "shade_attack" to 1283, "shade_block" to 1286, "shade_sink" to 1287,
         ),
     )
 
@@ -399,6 +404,85 @@ class NpcCombatTest {
     }
 
     @Test
+    fun `the Pit of Pestilence's catablepons, spiders and scorpions fight as the Wiki has them, each max hit the formula's`() {
+        // The 241 cache's Strength levels (the DPS calculator's).
+        val pit = mapOf(
+            "sos_pest_catablepon" to 40, "sos_pest_catablepon2" to 50, "sos_pest_catablepon3" to 60, "sos_pest_giantspider1" to 51,
+            "sos_pest_spider" to 21, "sos_pest_scorpion" to 52, "sos_pest_scorpion2" to 32,
+        )
+        val pitTypes = NpcTypes.of(*pit.entries.mapIndexed { i, (name, str) -> NpcType(2500 + i, name, internalName = name, stats = NpcStats(strength = str)) }.toTypedArray())
+        val combat = NpcCombat.load(pitTypes, seqs)
+        assertEquals(pit.size, combat.size)
+        fun def(name: String) = combat[pitTypes.find(name)!!]!!
+        for (name in pit.keys) {
+            val type = pitTypes.find(name)!!
+            assertEquals(CombatMath.npcMaxHit(type.stats.strength, def(name).strengthBonus), def(name).maxHit, name)
+            assertTrue(def(name).aggression != null, "$name is aggressive")
+        }
+        assertEquals(listOf(5, 6, 7, 7, 6, 6, 4), pit.keys.map { def(it).maxHit })
+        assertEquals(listOf(20, 25, 27, 22, 25), listOf("sos_pest_catablepon", "sos_pest_giantspider1", "sos_pest_spider", "sos_pest_scorpion", "sos_pest_scorpion2").map { def(it).respawnTicks })
+        assertEquals(NpcCombatAnims(4271, 4273, 4270), def("sos_pest_catablepon2").anims)
+        assertEquals(NpcCombatAnims(6249, 6250, 6251), def("sos_pest_spider").anims)
+        assertEquals(ElementalWeakness(Element.FIRE, 50), def("sos_pest_giantspider1").weakness)
+        // Weaken: a drain-only glare, one turn in 4, Strength down 5% a cast from where it is, until 8% + 3 is gone.
+        for (name in listOf("sos_pest_catablepon", "sos_pest_catablepon2", "sos_pest_catablepon3")) {
+            val spell = def(name).spell!!
+            assertEquals(4, spell.chance)
+            assertEquals(NpcRangedAttack(anim = 4272, projectile = 106, impact = 107, maxHit = 0, drain = StatDrain(Skill.STRENGTH, 5, stacks = true)), spell.attack)
+            // 99 Strength: 8% is 7, plus 3 is 10, so it casts at 90 and stops at 89.
+            assertTrue(spell.casts(99, 99))
+            assertTrue(spell.casts(99, 90))
+            assertFalse(spell.casts(99, 89))
+        }
+        assertNull(def("sos_pest_giantspider1").spell)
+        // "aggressive towards any level" (OSRS Wiki, Stronghold of Security); the others keep the level rule.
+        assertTrue(def("sos_pest_giantspider1").aggression!!.ignoresLevels)
+        assertFalse(def("sos_pest_scorpion").aggression!!.ignoresLevels)
+    }
+
+    @Test
+    fun `the Sepulchre of Death's ankou, ghosts, skeletons, shades and zombie fight as the Wiki has them, each max hit the formula's`() {
+        // The 241 cache's Strength levels (the DPS calculator's).
+        val sepulchre = mapOf(
+            "sos_death_ankou" to 70, "sos_death_ankou2" to 70, "sos_death_ankou3" to 75, "sos_death_ghost" to 63, "sos_death_ghost2" to 63,
+            "sos_death_skeleton_unarmed" to 50, "sos_death_skeleton_unarmed2" to 50, "sos_death_skeleton_armed" to 74, "macro_shade" to 130,
+            "macro_zombie" to 130,
+        )
+        val types = NpcTypes.of(*sepulchre.entries.mapIndexed { i, (name, str) -> NpcType(2500 + i, name, internalName = name, stats = NpcStats(strength = str)) }.toTypedArray())
+        val combat = NpcCombat.load(types, seqs)
+        assertEquals(sepulchre.size, combat.size)
+        fun def(name: String) = combat[types.find(name)!!]!!
+        for (name in sepulchre.keys) {
+            val type = types.find(name)!!
+            assertEquals(CombatMath.npcMaxHit(type.stats.strength, def(name).strengthBonus), def(name).maxHit, name)
+            // The shades and the zombie by the ladder are left alone until attacked; the rest come for the player.
+            assertEquals(!name.startsWith("macro_"), def(name).aggression != null, "$name aggressive")
+            assertEquals(4, def(name).attackSpeed, name)
+        }
+        assertEquals(listOf(8, 8, 8, 7, 7, 6, 6, 10, 14, 14), sepulchre.keys.map { def(it).maxHit })
+        assertEquals(listOf(50, 40, 70, 70, 50, 75), listOf("sos_death_ankou", "sos_death_ghost", "sos_death_skeleton_unarmed", "sos_death_skeleton_armed", "macro_shade", "macro_zombie").map { def(it).respawnTicks })
+        assertEquals(NpcCombatAnims(422, 424, 836), def("sos_death_ankou").anims)
+        assertEquals(NpcCombatAnims(5540, 5541, 5542), def("sos_death_ghost").anims)
+        assertEquals(NpcCombatAnims(5532, 5533, 5534), def("sos_death_ghost2").anims)
+        assertEquals(NpcCombatAnims(5487, 5489, 5491), def("sos_death_skeleton_armed").anims)
+        assertEquals(NpcCombatAnims(1283, 1286, 1287), def("macro_shade").anims)
+        assertEquals(ElementalWeakness(Element.AIR, 40), def("sos_death_ankou").weakness)
+        assertEquals(ElementalWeakness(Element.EARTH, 35), def("sos_death_skeleton_armed").weakness)
+        assertEquals(79, def("sos_death_skeleton_armed").defence.against(AttackType.STAB))
+        // The anti-macro shades and zombie: "1 experience for 10 damage dealt".
+        assertEquals(listOf(-975, -975), listOf("macro_shade", "macro_zombie").map { def(it).xpBonusTenths })
+    }
+
+    @Test
+    fun `a spell on a magic NPC fails the file`() {
+        val bad = """{ "npcs": [ { "npcs": ["cow"], "attackSpeed": 4, "maxHit": 1, "attackType": "magic", "attackBonus": 0, "strengthBonus": 0,
+            "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+            "anims": { "attack": null, "defend": null, "death": null }, "respawnTicks": 10, "source": "test",
+            "spell": { "chance": 2 } } ] }"""
+        assertFailsWith<IllegalArgumentException> { NpcCombat.parse(bad, types, SeqNames.NONE) }
+    }
+
+    @Test
     fun `Draynor Manor's ghosts and closet skeleton fight as the Wiki has them, each max hit the formula's`() {
         // The 241 cache's Strength levels and the Wiki's: the ghosts 13, the skeleton 18.
         val manor = mapOf(
@@ -452,6 +536,31 @@ class NpcCombatTest {
         assertEquals(ElementalWeakness(Element.FIRE, 20), def("brownbear").weakness)
         assertEquals(listOf(25, 25, 25, 50, 50), listOf("mugger", "black_knight", "thief1", "warrior_woman", "brownbear").map { def(it).respawnTicks })
         assertEquals(76, def("black_knight").defence.against(AttackType.SLASH))
+    }
+
+    @Test
+    fun `the Archive Guardian's two forms fight as the Wiki has them, levitating out of melee's reach`() {
+        val flying = NpcType(16659, "Archive Guardian", size = 5, internalName = "tfa_guardian", stats = NpcStats(attack = 250, defence = 260, strength = 240, hitpoints = 550, ranged = 280, magic = 250))
+        val grounded = NpcType(16660, "Archive Guardian", size = 5, internalName = "tfa_guardian_unshielded", stats = NpcStats(attack = 250, defence = 260, strength = 240, hitpoints = 1100, ranged = 280, magic = 250))
+        val combat = NpcCombat.load(NpcTypes.of(flying, grounded), seqs)
+        val up = combat[flying]!!
+        val down = combat[grounded]!!
+        assertEquals(listOf(5, 5), listOf(up.attackSpeed, down.attackSpeed))
+        assertEquals(listOf(25, 25), listOf(up.maxHit, down.maxHit))
+        assertEquals(AttackType.RANGED, up.attackType)
+        assertEquals(AttackType.CRUSH, down.attackType)
+        assertEquals(true, up.flying)
+        assertEquals(false, down.flying)
+        assertEquals(listOf(NpcRangedAttack(anim = 14751, cast = 4199, projectile = 4201, impact = 4200)), up.attacks)
+        assertEquals(NpcCombatAnims(14752, -1, 14749), down.anims)
+        assertEquals(ElementalWeakness(Element.FIRE, 80), up.weakness)
+        assertEquals(ElementalWeakness(Element.FIRE, 40), down.weakness)
+        assertEquals(mapOf(NpcStat.DEFENCE to 60), up.drainCaps)
+        assertEquals(mapOf(NpcStat.DEFENCE to 60), down.drainCaps)
+        assertTrue(up.poisonImmune && up.venomImmune && down.poisonImmune && down.venomImmune)
+        // The cache's slash bonus is 110 levitating and 90 grounded; the Wiki's crush 20 for both.
+        assertEquals(listOf(110, 90), listOf(up.defence.against(AttackType.SLASH), down.defence.against(AttackType.SLASH)))
+        assertEquals(20, down.defence.against(AttackType.CRUSH))
     }
 
     @Test

@@ -1,5 +1,5 @@
 {
- "name": "Raid step 15: two solo runs of The Fractured Archive through its empty rooms, one by the west doors (Ezekiel, Moia, the Dagon'hai Elder) and one by the east (Bork, Dreadnoth, Xarth), each from the Archive Door through the Guardian's hall to Ocellus's room; the transporters and a Passageway back out. No boss is built yet, so each room is done as it begins",
+ "name": "Raid step 15: two solo runs of The Fractured Archive through its empty rooms, one by the west doors (Ezekiel, Moia, the Dagon'hai Elder) and one by the east (Bork, Dreadnoth, Xarth), each from the Archive Door through the Guardian's hall to Ocellus's room; the transporters and a Passageway back out. The Guardian's room is marked done with ::raid clear (its fight is archive-guardian.json); no other boss is built yet, so each other room is done as it begins",
  "account": "test",
  "steps": [
   {
@@ -38,7 +38,13 @@
    "step": "command",
    "text": "::raid tp guardian",
    "expectMessage": "To Archive Guardian's room",
-   "comment": "into the nexus's hall, where the Guardian is fought: with no Guardian built yet, its room is done as the fight begins"
+   "comment": "into the nexus's hall, where the Guardian waits to be touched (raid step 16)"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Archive Guardian's room.",
+   "comment": "the Guardian's fight is its own script (archive-guardian.json): here its room is just marked done"
   },
   {
    "step": "waitTicks",
@@ -59,8 +65,8 @@
   },
   {
    "step": "waitTicks",
-   "ticks": 25,
-   "comment": "the walk to the door and through it"
+   "ticks": 40,
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
   },
   {
    "step": "command",
@@ -82,8 +88,8 @@
   },
   {
    "step": "waitTicks",
-   "ticks": 20,
-   "comment": "the walk to it"
+   "ticks": 30,
+   "comment": "the walk to the transporter and its teleport, with room to spare"
   },
   {
    "step": "command",
@@ -99,8 +105,8 @@
   },
   {
    "step": "waitTicks",
-   "ticks": 25,
-   "comment": "the walk to the door and through it"
+   "ticks": 40,
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
   },
   {
    "step": "command",
@@ -122,8 +128,8 @@
   },
   {
    "step": "waitTicks",
-   "ticks": 20,
-   "comment": "the walk to it"
+   "ticks": 30,
+   "comment": "the walk to the transporter and its teleport, with room to spare"
   },
   {
    "step": "command",
@@ -139,8 +145,8 @@
   },
   {
    "step": "waitTicks",
-   "ticks": 25,
-   "comment": "the walk to the door and through it"
+   "ticks": 40,
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
   },
   {
    "step": "command",
@@ -162,8 +168,8 @@
   },
   {
    "step": "waitTicks",
-   "ticks": 20,
-   "comment": "the walk to it"
+   "ticks": 30,
+   "comment": "the walk to the transporter and its teleport, with room to spare"
   },
   {
    "step": "command",
@@ -179,7 +185,8 @@
   },
   {
    "step": "waitTicks",
-   "ticks": 25
+   "ticks": 40,
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
   },
   {
    "step": "command",
@@ -190,8 +197,14 @@
   {
    "step": "command",
    "text": "::raid run",
-   "expectMessage": "points test 5000",
-   "comment": "solo, every room's 1,000 points (a guess) are this player's"
+   "expectMessage": "points test",
+   "comment": "solo, every room's 1,000 points (a guess) are this player's; the account's name may be test or test2 (the nightly runs on test2), so the line is matched up to the name and checked again for the total in the next step"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": " 5000",
+   "comment": "five rooms' 1,000"
   },
   {
    "step": "command",
@@ -231,7 +244,13 @@
    "step": "command",
    "text": "::raid tp guardian",
    "expectMessage": "To Archive Guardian's room",
-   "comment": "into the nexus's hall, where the Guardian is fought: with no Guardian built yet, its room is done as the fight begins"
+   "comment": "into the nexus's hall, where the Guardian waits to be touched (raid step 16)"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Archive Guardian's room.",
+   "comment": "the Guardian's fight is its own script (archive-guardian.json): here its room is just marked done"
   },
   {
    "step": "waitTicks",
@@ -252,8 +271,8 @@
   },
   {
    "step": "waitTicks",
-   "ticks": 25,
-   "comment": "the walk to the door and through it"
+   "ticks": 40,
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
   },
   {
    "step": "command",
@@ -275,8 +294,8 @@
   },
   {
    "step": "waitTicks",
-   "ticks": 20,
-   "comment": "the walk to it"
+   "ticks": 30,
+   "comment": "the walk to the transporter and its teleport, with room to spare"
   },
   {
    "step": "command",
@@ -292,8 +311,8 @@
   },
   {
    "step": "waitTicks",
-   "ticks": 25,
-   "comment": "the walk to the door and through it"
+   "ticks": 40,
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
   },
   {
    "step": "command",
@@ -315,8 +334,8 @@
   },
   {
    "step": "waitTicks",
-   "ticks": 20,
-   "comment": "the walk to it"
+   "ticks": 40,
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
   },
   {
    "step": "command",
@@ -332,8 +351,8 @@
   },
   {
    "step": "waitTicks",
-   "ticks": 25,
-   "comment": "the walk to the door and through it"
+   "ticks": 40,
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
   },
   {
    "step": "command",
@@ -355,8 +374,8 @@
   },
   {
    "step": "waitTicks",
-   "ticks": 20,
-   "comment": "the walk to it"
+   "ticks": 30,
+   "comment": "the walk to the transporter and its teleport, with room to spare"
   },
   {
    "step": "command",
@@ -372,7 +391,8 @@
   },
   {
    "step": "waitTicks",
-   "ticks": 25
+   "ticks": 40,
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
   },
   {
    "step": "command",
@@ -383,8 +403,14 @@
   {
    "step": "command",
    "text": "::raid run",
-   "expectMessage": "points test 5000",
-   "comment": "solo, every room's 1,000 points (a guess) are this player's"
+   "expectMessage": "points test",
+   "comment": "solo, every room's 1,000 points (a guess) are this player's; the account's name may be test or test2 (the nightly runs on test2), so the line is matched up to the name and checked again for the total in the next step"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": " 5000",
+   "comment": "five rooms' 1,000"
   },
   {
    "step": "command",

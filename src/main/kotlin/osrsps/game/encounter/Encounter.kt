@@ -2,14 +2,17 @@ package osrsps.game.encounter
 
 import osrsps.game.NpcType
 import osrsps.game.Player
+import osrsps.game.World
 import osrsps.game.npc.Npc
+import osrsps.game.zone.ZoneLoc
 import osrsps.map.Tile
 
 /**
  * A boss fight as content writes it: [boss] fought through [phases] in order, from the first. Each boss of the raid is
- * one of these, and [Encounters] runs it a tick at a time. [name] is what `::raid` takes, one word.
+ * one of these, and [Encounters] runs it a tick at a time. [name] is what `::raid` takes, one word. With
+ * [scriptedAttacks] the boss attacks only as its phases' steps say ([Npc.scriptedAttacks]), never by itself.
  */
-class EncounterDef(val name: String, val boss: NpcType, val phases: List<PhaseDef>) {
+class EncounterDef(val name: String, val boss: NpcType, val phases: List<PhaseDef>, val scriptedAttacks: Boolean = false) {
     init {
         require(name.isNotEmpty() && name.none(Char::isWhitespace)) { "Bad encounter name '$name'" }
         require(phases.isNotEmpty()) { "$name has no phases" }
@@ -21,8 +24,8 @@ class EncounterDef(val name: String, val boss: NpcType, val phases: List<PhaseDe
 
 /**
  * One phase of an [EncounterDef]: [onStart] when it begins, then its [cycle] over and over, each step [CycleStep.delay]
- * ticks after the one before, until the boss's hitpoints are at or below [endsAtPercent] of its maximum, or [endsAfter]
- * ticks have passed, when the next phase begins. The last phase lasts until the fight ends.
+ * ticks after the one before, until the boss's hitpoints are at or below [endsAtPercent] of its maximum, [endsAfter]
+ * ticks have passed or [endsWhen] says so, when the next phase begins. The last phase lasts until the fight ends.
  */
 class PhaseDef(
     val name: String,
@@ -32,6 +35,8 @@ class PhaseDef(
     /** The ticks after which the next phase begins; null for none. */
     val endsAfter: Int? = null,
     val onStart: EncounterContext.() -> Unit = {},
+    /** Whether the next phase begins now, asked each tick before the cycle; null for never. A shield broken, say. */
+    val endsWhen: (EncounterContext.() -> Boolean)? = null,
 ) {
     init {
         require(endsAtPercent == null || endsAtPercent in 1..99) { "$name ends at $endsAtPercent%" }
@@ -64,6 +69,9 @@ class Hazard internal constructor(
 
 /** What a running encounter gives its phases' steps: the boss, the players, and the ways to hurt them. */
 interface EncounterContext {
+    /** The world the fight is in, for what the steps below don't cover: the boss's swings and shots, its forms. */
+    val world: World
+
     val boss: Npc
 
     /** Ticks since the current phase began; 0 on the tick it began. */
@@ -90,8 +98,24 @@ interface EncounterContext {
     /** Puts in an add of [type] on [x], [z] on the boss's level, gone when the fight ends; null with no room for it. */
     fun spawnAdd(type: NpcType, x: Int, z: Int): Npc?
 
+    /**
+     * Puts a loc of type [id] (a centrepiece, facing north) on [x], [z] on the boss's level, replacing what is on its
+     * layer there, until [clearLoc] or the fight's end puts the tile back as the cache has it. What grows in the fight:
+     * a mushroom.
+     */
+    fun placeLoc(id: Int, x: Int, z: Int): ZoneLoc
+
+    /** Puts [loc]'s tile back as the cache has it, if [placeLoc] put it there and nothing has changed it since. */
+    fun clearLoc(loc: ZoneLoc)
+
     /** The adds that are still in. */
     val adds: List<Npc>
+
+    /**
+     * Runs [action] [ticks] ticks from now (at least 1), in the fight's part of that tick after the cycle's steps and
+     * before the hazards; never once the fight has ended. What is aimed now and lands later: a laser, a slam.
+     */
+    fun after(ticks: Int, action: EncounterContext.() -> Unit)
 
     /** Writes [text] to the fight's log, which tests and `::encounter` read. */
     fun log(text: String)

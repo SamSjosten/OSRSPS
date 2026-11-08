@@ -119,6 +119,7 @@ import osrsps.game.content.registerVarrock
 import osrsps.game.content.registerDraynorVillage
 import osrsps.game.content.registerEdgeville
 import osrsps.game.content.registerEdgevilleDungeon
+import osrsps.game.content.registerSkullSceptre
 import osrsps.game.content.registerStrongholdOfSecurity
 import osrsps.game.content.registerBarbarianVillage
 import osrsps.game.content.registerCooksGuild
@@ -553,10 +554,12 @@ class World(
         words = ::textFor, cure = {
             poison.clear(it)
             statusEffects.clear(it)
+            it.wearyTicks = 0
             specialAttacks.refill(it)
         },
         placeOf = ::deathPlace,
         teleport = { player, x, z, level -> teleport(player, x, z, level) },
+        drop = { player, type, count -> dropUnder(player, type, count) },
     )
 
     /**
@@ -645,6 +648,12 @@ class World(
                 if (answer >= 0 && answer - 1 != list.current) picked(answer - 1)
             }
         },
+        pickOption = { player, title, options, picked ->
+            scripts.start(player) {
+                dialogues.start(this) { picked(choice(*options.toTypedArray(), title = title) - 1) }
+            }
+        },
+        askAmount = { player, prompt, typed -> scripts.start(player) { typed(countDialog(prompt)) } },
         now = clansClock,
     )
 
@@ -808,6 +817,7 @@ class World(
         registerCooksGuild(this)
         registerEdgevilleDungeon(this)
         registerStrongholdOfSecurity(this)
+        registerSkullSceptre(this)
         registerHaystacks(this)
         registerLodestones(this)
         registerVarrock(this)
@@ -1137,7 +1147,13 @@ class World(
     private fun tick() {
         tick++
         phase = TickPhase.WORLD
-        for (player in players) if (player != null) prayers.startTick(player)
+        for (player in players) {
+            if (player == null) continue
+            prayers.startTick(player)
+            // At the tick's start: before an encounter (NPC phase) wearies anyone, so ten ticks of it are ten movement
+            // phases, and before both of the movement phase's combat checks, so they see the same value.
+            if (player.wearyTicks > 0) player.wearyTicks--
+        }
         endEmptyInstances()
         groundObjs.process()
         phase = TickPhase.INPUT
@@ -2163,6 +2179,12 @@ class World(
     /** Kick user on a friends chat member. */
     fun onFriendsChatKick(player: Player, name: String) = act(player) { friendChats.kick(player, name) }
 
+    /** Kick guest in the clan channel's list; see [Clans.kickFromChannel]. */
+    fun onClanKick(player: Player, clanType: Int, name: String) = act(player) { clans.kickFromChannel(player, clanType, name) }
+
+    /** Ban guest in the clan channel's list; see [Clans.banFromChannel]. */
+    fun onClanBan(player: Player, clanType: Int, name: String) = act(player) { clans.banFromChannel(player, clanType, name) }
+
     /** Join Chat's typed name, or Leave Chat (no name). Works while dead, as the client changes its panel at once. */
     fun onFriendsChatJoinLeave(player: Player, name: String?) = actWhileDead(player) {
         if (name == null) friendChats.leave(player) else friendChats.join(player, name)
@@ -2258,6 +2280,7 @@ class World(
         if (interfaceId == Clans.INFO && clans.clickInfo(player, componentId)) return@act
         if (interfaceId == Clans.APPLICANTS && clans.clickApplicants(player, componentId)) return@act
         if (interfaceId == Clans.MEMBERS && clans.clickMembers(player, componentId, sub)) return@act
+        if (interfaceId == Clans.BANNED && clans.clickBanned(player, componentId)) return@act
         if (interfaceId == Clans.PERMISSIONS && clans.clickPermissions(player, componentId, sub)) return@act
         if (interfaceId == Clans.YOUR_CLAN && componentId == Clans.YOUR_CLAN_SETTINGS) {
             clans.openYourInfo(player)
@@ -2310,6 +2333,9 @@ class World(
             return@act
         }
         if (interfaceId == LOGOUT_TAB && componentId == LOGOUT_BUTTON) {
+            // A delayed player (part way along an agility obstacle, say) can't log out, or they would be saved on a tile
+            // the move only passes through (round 12 exploit review, R12B-1). Inferred from live's p_delay.
+            if (player.scripts.delayed) return@act
             if (inCombat(player)) {
                 player.message(textFor(player)[GameLines.CANT_LOG_OUT])
                 return@act
@@ -2485,7 +2511,8 @@ class World(
 
     fun onResumeString(player: Player, text: String) = act(player) {
         if (player.scripts.delayed) return@act
-        if (!scripts.resumeString(player, text)) logger.debug { "${player.username} typed text nothing waits for" }
+        if (scripts.resumeString(player, text) || clans.typedOnBanned(player, text)) return@act
+        logger.debug { "${player.username} typed text nothing waits for" }
     }
 
     /**
@@ -2805,7 +2832,8 @@ class World(
             player.logoutRequested = false
             player.message(textFor(player)[GameLines.CANT_LOG_OUT])
         }
-        if (player.logoutRequested || player.logoutForced) {
+        // A request made in the tick a delay began waits for the delay to end, so the move finishes first (R12B-1).
+        if (player.logoutForced || (player.logoutRequested && !player.scripts.delayed)) {
             // Sends the client back to the login screen. requestClose flushes and drops our disconnection hook, so
             // the player is removed on the next tick by hand.
             session.queue(Logout)

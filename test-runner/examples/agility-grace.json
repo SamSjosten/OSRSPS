@@ -19,7 +19,7 @@
   {
    "step": "command",
    "text": "::item 11849 100",
-   "expectMessage": "Added 100 x Mark of grace"
+   "expectMessage": "Added 100 x Mark of Grace"
   },
   {
    "step": "command",
@@ -87,7 +87,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "[shop.costs_in item=Graceful hood price=35 currency=Mark of grace]"
+   "contains": "[shop.costs_in item=Graceful hood price=35 currency=Mark of Grace]"
   },
   {
    "step": "clickWidget",
@@ -104,7 +104,7 @@
   },
   {
    "step": "assertInventory",
-   "item": "Mark of grace",
+   "item": "Mark of Grace",
    "count": 65
   },
   {
@@ -122,7 +122,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "[shop.buys_for_in item=Graceful hood price=28 currency=Mark of grace]"
+   "contains": "[shop.buys_for_in item=Graceful hood price=28 currency=Mark of Grace]"
   },
   {
    "step": "clickWidget",
@@ -139,7 +139,7 @@
   },
   {
    "step": "assertInventory",
-   "item": "Mark of grace",
+   "item": "Mark of Grace",
    "count": 93
   },
   {

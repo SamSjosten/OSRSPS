@@ -16,7 +16,7 @@
   {"step": "assertInterface", "interfaceId": 690},
   {"step": "clickWidget", "interfaceId": 690, "component": 21, "comment": "Applications: the applicants page"},
   {"step": "assertInterface", "interfaceId": 699},
-  {"step": "clickWidget", "interfaceId": 699, "component": 12, "name": "Applicant", "op": 1, "comment": "Review on the list's first entry"},
+  {"step": "clickWidget", "interfaceId": 699, "component": 12, "op": 1, "comment": "Review on the list's first entry: the op is on the slot's own component (clans_applicants:00), which clan_applicants_entry_init gives Review"},
   {"step": "waitTicks", "ticks": 2},
   {"step": "clickWidget", "interfaceId": 699, "component": 40, "comment": "Accept: the applicant is a member at rank 0, third in the clan settings"},
   {"step": "assertMessage", "contains": "[clan.applicant_accepted name=Applicant]"},
@@ -24,6 +24,8 @@
   {"step": "assertInterface", "interfaceId": 690},
   {"step": "clickWidget", "interfaceId": 690, "component": 20, "comment": "Members: the members page (clans_members)"},
   {"step": "assertInterface", "interfaceId": 693},
+  {"step": "mouseClick", "interfaceId": 693, "component": 8, "slot": 0, "comment": "the second column's header (clans_members:header2, child 0 has the onclick): clan_members_header_open fills the dropdown, clans_members:options2, whose entries exist only then"},
+  {"step": "waitTicks", "ticks": 1},
   {"step": "clickWidget", "interfaceId": 693, "component": 20, "slot": 7, "op": 1, "comment": "the second column's dropdown entry 7: Expel (enum_3793 entry 6)"},
   {"step": "waitTicks", "ticks": 1},
   {"step": "clickWidget", "interfaceId": 693, "component": 13, "slot": 0, "op": 1, "comment": "Expel on the owner, whose rank isn't below test's"},
@@ -38,6 +40,8 @@
   {"step": "assertMessage", "contains": "[clan.expelled_member name=Applicant]"},
   {"step": "clickWidget", "interfaceId": 693, "component": 25, "comment": "Back: the settings page"},
   {"step": "assertInterface", "interfaceId": 690},
+  {"step": "clickWidget", "interfaceId": 690, "component": 3, "comment": "close the settings page, so no window is left open for the next script"},
+  {"step": "assertInterface", "interfaceId": 690, "absent": true},
   {"step": "command", "text": "::clandisband Expel Gate", "expectMessage": "Clan Expel Gate deleted"},
   {"step": "runClientScript", "id": 915, "args": [3], "comment": "back to the inventory tab"}
  ]
