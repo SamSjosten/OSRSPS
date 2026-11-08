@@ -166,7 +166,7 @@ object DialogueLines {
         HariLines,
         HarlanLines,
         HassanLines,
-        HatiusLines,
+        MikasiLines,
         HaystackLines,
         HeadChefLines,
         HerbloreLines,

@@ -23,7 +23,6 @@ class NpcSpawnFileTest {
         NpcType(2814, "Shop assistant", internalName = "generalassistant1"),
         NpcType(10619, "Bob", internalName = "bob"),
         NpcType(7546, "Bartender", internalName = "ram_bartender"),
-        NpcType(8665, "Arthur the Clue Hunter", internalName = "aide_tutor_clues"),
         NpcType(16808, "Wilfred", internalName = "wilfred"),
         NpcType(16806, "Feoras", internalName = "lumbridge_blacksmith"),
         NpcType(921, "Donie", internalName = "lumbridge_guide2_woman"),
@@ -52,16 +51,16 @@ class NpcSpawnFileTest {
         assertEquals(8, spawns.count { it.type.name == "Cow calf" })
         // The River Lum runs north from Lumbridge at about x 3240; the field is east of it.
         assertTrue(cows.all { it.x > 3240 && it.z in 3250..3300 })
-        // All but the Bartender, at his bar, Arthur, who stands facing north, and the fishing spots wander.
-        val still = setOf(7546, 8665, Fishing.SWAMP_SPOT, Fishing.RIVER_SPOT)
+        // All but the Bartender, at his bar, and the fishing spots wander.
+        val still = setOf(7546, Fishing.SWAMP_SPOT, Fishing.RIVER_SPOT)
         assertTrue(spawns.all { it.source.isNotBlank() && (it.wander > 0 || it.type.id in still) })
     }
 
     @Test
     fun `the town centre's NPCs stand west of the river, Abigaila upstairs in the General Store`() {
         val spawns = NpcSpawnFile.parse(file("lumbridge.json"), types).spawns
-        val town = spawns.filter { it.type.id in setOf(7546, 8665, 16808, 16806, 311, 8368) }
-        assertEquals(6, town.size)
+        val town = spawns.filter { it.type.id in setOf(7546, 16808, 16806, 311, 8368) }
+        assertEquals(5, town.size)
         assertTrue(town.all { it.x < 3240 && it.z in 3190..3260 })
         assertEquals(1, town.single { it.type.id == 8368 }.level)
         assertEquals(2, spawns.count { it.type.id == 921 })
@@ -105,7 +104,7 @@ class NpcSpawnFileTest {
             NpcType(2897, "Banker", internalName = "banker1_new"),
             NpcType(306, "Lumbridge Guide", internalName = "lumbridge_guide"),
             NpcType(119, "null", internalName = "cws_doomsayer"),
-            NpcType(5523, "Hatius Cosaintus", internalName = "hatius_lumbridge_diary"),
+            NpcType(16804, "Mikasi", internalName = "mikasi_lumbridge_diary"),
         )
         val result = NpcSpawnFile.parse(file("lumbridge-castle.json"), castle, "lumbridge-castle.json")
         assertEquals(emptyList(), result.unknown)
@@ -118,9 +117,11 @@ class NpcSpawnFileTest {
         assertEquals(10, hans.patrol.sumOf { it.wait })
         assertEquals(MoveRestrict.OUTDOORS, hans.restrict)
         assertEquals(MoveRestrict.INDOORS, spawns.single { it.type.id == 4626 }.restrict)
-        // Everyone but Hans and Cadmus wanders 5 or stands still on purpose.
-        assertTrue(spawns.filter { it.patrol.isEmpty() && it.type.id != 16807 }.all { it.wander == 0 || it.wander == 5 })
+        // Everyone but Hans, Cadmus and Mikasi wanders 5 or stands still on purpose.
+        assertTrue(spawns.filter { it.patrol.isEmpty() && it.type.id !in setOf(16807, 16804) }.all { it.wander == 0 || it.wander == 5 })
         assertEquals(2, spawns.single { it.type.id == 16807 }.wander, "Cadmus: his Wiki map's radius")
+        val mikasi = spawns.single { it.type.id == 16804 }
+        assertEquals(Triple(3233, 3214, 4), Triple(mikasi.x, mikasi.z, mikasi.wander), "Mikasi: her Wiki map, where Hatius stood")
     }
 
     @Test
@@ -505,12 +506,13 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `Nigel stands north-west of the Grand Exchange on a normal world since 242`() {
+    fun `Nigel and Arthur stand by the Grand Exchange since 242, Nigel north-west and Arthur by the south wall`() {
         val nigel = NpcType(6093, "null", internalName = "deadman_nigel")
-        val spawns = NpcSpawnFile.parse(file("varrock.json"), NpcTypes.of(nigel), "varrock.json").spawns
-        val only = spawns.single()
-        assertEquals(Tile(3152, 3512), Tile(only.x, only.z))
-        assertEquals(2, only.wander)
+        val arthur = NpcType(16811, "Arthur", internalName = "clue_hunter_arthur")
+        val spawns = NpcSpawnFile.parse(file("varrock.json"), NpcTypes.of(nigel, arthur), "varrock.json").spawns.associateBy { it.type.id }
+        assertEquals(setOf(6093, 16811), spawns.keys)
+        assertEquals(Triple(3152, 3512, 2), spawns.getValue(6093).let { Triple(it.x, it.z, it.wander) })
+        assertEquals(Triple(3158, 3469, 0), spawns.getValue(16811).let { Triple(it.x, it.z, it.wander) })
     }
 
     @Test
@@ -608,7 +610,7 @@ class NpcSpawnFileTest {
             513 to "mugger", 5086 to "qip_ds_young_dark_wizard1", 5087 to "qip_ds_young_dark_wizard2", 5088 to "qip_ds_young_dark_wizard3", 5089 to "qip_ds_young_dark_wizard4", 3252 to "thief1", 5217 to "qip_soa_thief_male01", 5219 to "qip_soa_thief_female01",
             5220 to "qip_soa_thief_female02", 2862 to "giantrat1", 2864 to "giantrat1_3", 3262 to "barbarianwoman_varrock",
             3260 to "warrior_woman", 2838 to "brownbear", 516 to "black_knight", 3019 to "spider",
-            6093 to "deadman_nigel",
+            6093 to "deadman_nigel", 16811 to "clue_hunter_arthur",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("varrock.json"), types, "varrock.json")
@@ -696,6 +698,7 @@ class NpcSpawnFileTest {
         // East of the Edgeville piece's strip (x 3150 and west), south of the Wilderness ditch, but the museum's Natural History
         // floor, and the Champions' Guild and the stone circle, south of the city.
         assertTrue((spawns - basement.toSet() - guild.toSet() - wizards.toSet()).all { it.x >= 3150 && it.z in 3375..3520 && it.source.isNotBlank() })
-        assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - museumStill.toSet() - displays.toSet() - elsie - iffie).all { it.wander > 0 })
+        // Arthur stands still at the Grand Exchange (his Wiki pin, as he stood still by the Sheared Ram).
+        assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - museumStill.toSet() - displays.toSet() - elsie - iffie - spawns.filter { it.type.id == 16811 }.toSet()).all { it.wander > 0 })
     }
 }

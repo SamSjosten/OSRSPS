@@ -779,12 +779,12 @@ sees it. The words are in the dialogue file, like every other line.
 |-----|--------------|
 | The General Store's Shop keeper and Shop assistant, Bob | Talk-to; "what do you sell" opens their shop. Bob's Repair and an item used on him answer that nothing needs repairing |
 | The Sheared Ram's Bartender | Sells a beer for 2 coins |
-| Arthur the Clue Hunter | Explains every clue type (three pages of them) and turns clue vessels on and off (varbit 9365) |
+| Arthur the Clue Hunter (16811), by the Grand Exchange's south wall since 242.1 (`varrock.json`) | Explains every clue type (three pages of them) and turns clue vessels on and off (varbit 9365) |
 | Donie and Gee | One of four opening menus at random, the quests, Lumbridge, and Gee's small monsters |
 | Feoras (16806, the smithing tutor since 242.1) in the smithy | Smithing advice with its icon boxes, a hammer for a player with none, and his shop (`lumbridge_blacksmith`, inv 1032, the Wiki's prices) |
 | Wilfred (16808, the woodsman tutor since 242.1) | Woodcutting and Firemaking advice; an axe and tinderbox when you have none and room for them; the Woodcutting cape at 99 (trimmed with another 99) |
 | Abigaila, upstairs in the General Store | Her story; her scrying ball refuses a player carrying or wearing anything (the Theatre of Blood isn't built) |
-| The Ironman tutor | Explains Ironman; this game has no Ironmen, so his armour and the account modes are refused or end the talk |
+| The Ironman tutor | Explains Ironman; this game has no Ironmen, so his armour and the account modes are refused or end the talk. Since 242.1 the cache shows him to Ironmen only (311 is a multi-NPC on varp `ironman` showing 16814), so no account here sees him; both ids have his handlers |
 | Men, women and rats | As in the castle |
 
 | Behaviour | Source |
@@ -1660,7 +1660,7 @@ Hans (`game/content/Hans.kt`) is the example: Talk-to and Age, as the OSRS Wiki'
 
 Lumbridge Castle's Cook (`Cook.kt`), Duke Horacio (`DukeHoracio.kt`), men and women (`Townsfolk.kt`), Perdu
 (`Perdu.kt`), Cadmus, the steward (the Crafting tutor until 242.1, `Cadmus.kt`), the bankers (`Bankers.kt`), and outside the gate the Doomsayer
-(`Doomsayer.kt`), Hatius Cosaintus (`Hatius.kt`) and the Lumbridge Guide (`LumbridgeGuide.kt`) talk as they do once
+(`Doomsayer.kt`), Mikasi, the diary taskmaster since 242.1 moved Hatius Cosaintus to Falador (`Mikasi.kt`), and the Lumbridge Guide (`LumbridgeGuide.kt`) talk as they do once
 every quest is done, since every account here has done them all. The Duke gives an anti-dragon shield to a player
 carrying or wearing none, one talk with a man or woman in 128 hands over a flier, and the Guide gives a security book to
 a player carrying none. The bankers' collect (asked or op4 Collect) opens the Grand Exchange collection box (since
@@ -1673,8 +1673,8 @@ event talks.
 | The Cook's and the Duke's conversations: lines, options, order, when the shield is offered; the Cook's cooking advice since 242.1 (the removed Cooking tutor's role), with its icon boxes, back to his menu | OSRS Wiki, Transcript:Cook (Lumbridge) and Transcript:Duke Horacio |
 | The Cook's answer to "other quests" after Recipe for Disaster on a members' world (the free-to-play answer, with no line from the player) | guessed: the Wiki leaves it out |
 | Men's and women's 23 conversations, the 1 in 128 flier | OSRS Wiki, Transcript:Man, Transcript:Woman, Flier |
-| Perdu's, Cadmus's, the banker's (the Bank tutor is a normal banker since 242.1), the Doomsayer's and Hatius's conversations | OSRS Wiki, their transcripts |
-| Hatius leaving out "another ring" for a player with no diary done | guessed: the Wiki lists it with no condition |
+| Perdu's, Cadmus's, the banker's (the Bank tutor is a normal banker since 242.1), the Doomsayer's and Mikasi's conversations | OSRS Wiki, their transcripts |
+| Mikasi leaving out "another ring" for a player with no diary done | guessed: the Wiki lists it with no condition |
 | The Lumbridge Guide's conversation: lines, menus, where each option leads, the icon boxes | OSRS Wiki, Transcript:Lumbridge Guide; icon items are the 241 cache's `*_icon_dummy` objs |
 | The levels the Guide's answers change at (combat 20, Smithing 20, Fishing 20); the quest box's icon; the money menu's smithing and monsters options skipping straight to those answers; "has a weapon" meaning worn or carried in the weapon slot | guessed: the Wiki has "X" and "same as above" |
 | The Duke's first menu's order; skipping the "which dragon" menu once only one option is left; an item handed over landing at your feet with a full inventory; the other 22 townsfolk talks being equally likely; where the tutors' menus lead after a topic; every expression | guessed |
