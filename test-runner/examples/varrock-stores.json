@@ -74,10 +74,12 @@
    "count": 0
   },
   {
-   "step": "walk",
-   "x": 3216,
-   "y": 3415,
-   "comment": "off the keeper's tile, which closes the shop: with it open the next command's Enter key was dropped (VM 215, 2026-11-03 and 2026-11-08)"
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 1,
+   "slot": 11,
+   "op": 1,
+   "comment": "shopmain:frame's close button (child 11, made by steelborder, as ge_offers' is): with the shop open the next command's Enter key was dropped (VM 215, 2026-11-03 and 2026-11-08); the shop covers the tiles a walk would click"
   },
   {
    "step": "assertInterface",

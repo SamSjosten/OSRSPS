@@ -30,10 +30,12 @@
    "comment": "ge_offers"
   },
   {
-   "step": "walk",
-   "x": 3164,
-   "y": 3485,
-   "comment": "a step south closes the screen first: the logout click did nothing with it open (VM 215, 2026-11-08)"
+   "step": "clickWidget",
+   "interfaceId": 465,
+   "component": 2,
+   "slot": 11,
+   "op": 1,
+   "comment": "ge_offers:frame's close button, as in ge-history-prices.json: the logout click did nothing with the screen open (VM 215, 2026-11-08), and the screen covers the tiles a walk would click"
   },
   {
    "step": "assertInterface",
