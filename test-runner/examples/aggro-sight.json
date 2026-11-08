@@ -21,7 +21,7 @@
   {"step": "command", "text": "::los -3 0", "expectMessage": "line of sight clear", "comment": "through the open doorway (the tile isn't checked: once the spider bites, hitting back can walk us a tile west, as a headless run on the real map did)"},
   {"step": "waitTicks", "ticks": 3},
   {"step": "command", "text": "::npcs 5", "expectMessage": "; fighting test", "comment": "it sees us now and comes for us unprovoked; only it can be fighting us (its line may show it hurt once we hit back)"},
-  {"step": "command", "text": "::delnpc mine", "expectMessage": "Removed 1 NPC you put in."},
+  {"step": "command", "text": "::delnpc mine", "expectMessage": "you put in.", "comment": "1 unless an earlier script left one of its own (::reset now takes those away)"},
   {"step": "command", "text": "::resetlocs 2", "expectMessage": "Put the locs within 2 of", "comment": "the doors shut again"},
   {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again"},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}

@@ -90,6 +90,19 @@ class RaidCommandsTest {
     }
 
     @Test
+    fun `a reset ends the test fight the player started, so a script that stopped part way leaves none behind`() {
+        // Nightly 2026-11-08: archive-guardian-hazards failed with its fight still going on the login tile, and the
+        // Guardian killed the account there again and again through every script after it.
+        val world = world(def)
+        player.beforeScenario = world.snapshot(player)
+        world.run("raid guardian")
+        world.run("reset")
+        world.encounters.process()
+        assertEquals(0, world.npcs.count, "the boss went with the reset")
+        assertEquals(emptyList(), world.encounters.all)
+    }
+
+    @Test
     fun `a fight whose boss leaves in its first step ends there`() {
         lateinit var world: World
         val vanish = EncounterDef("vanish", guardian, listOf(PhaseDef("open", cycle = listOf(CycleStep(0) { world.removeNpc(boss) }, CycleStep(3) {}))))

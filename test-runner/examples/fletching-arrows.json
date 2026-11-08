@@ -5,6 +5,7 @@
   {"step": "waitForLogin"},
   {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
   {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::varbit 10971 0", "expectMessage": "Varbit 10971", "comment": "option_fletch_dart_or_bolt_makex off, the default, so the darts below need no box: a settings script stopped part way can leave it on (nightly 2026-11-08); ::reset puts it back"},
   {"step": "command", "text": "::setlevel fletching 99", "expectMessage": "Fletching set to level 99"},
   {"step": "command", "text": "::item 52 20", "expectMessage": "Added 20 x Arrow shaft"},
   {"step": "command", "text": "::item 314 30", "expectMessage": "Added 30 x Feather"},

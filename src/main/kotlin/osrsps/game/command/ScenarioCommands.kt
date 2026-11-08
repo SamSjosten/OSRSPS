@@ -41,6 +41,9 @@ fun CommandRegistry.registerScenarioCommands(world: World) {
         // A stall owner's grudge from a test theft goes too, so the next script can trade with them.
         world.thieving.forgive(player)
         world.pickpocketing.forgive(player)
+        // The NPCs the player put in with ::npc go too: a script that failed before its ::delnpc mine would leave them
+        // for the next one to meet (a nightly's aggro-leash left its spider beside aggro-sight's, 2026-11-08).
+        for (npc in world.npcs.all.filter { it.spawn.source == spawnSource(player.username) }.toList()) world.removeNpc(npc)
         world.teleport(player, before.x, before.z, before.level)
         player.scenario = null
         player.beforeScenario = null
