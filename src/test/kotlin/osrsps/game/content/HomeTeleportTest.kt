@@ -220,7 +220,7 @@ class HomeTeleportTest {
         assertEquals(1, landed.size)
         run(1)
         assertEquals(128L to elsewhere, landed.last(), "the target's own length")
-        assertEquals(4857, anims[122L], "the target's own stages")
+        assertEquals(CustomAnims.LODESTONE_RISE, anims[100L + Lodestones.CAST_TICKS - Lodestones.RISE_TICKS], "the target's own stages")
         home.target = { null }
         click()
         assertFalse(home.casting(player))

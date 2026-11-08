@@ -20,6 +20,7 @@ import osrsps.cache.SkillUnlockLoader
 import osrsps.cache.VarTypeLoader
 import osrsps.cache.WorldMap
 import osrsps.cache.overlay.CacheOverlay
+import osrsps.game.content.CustomAnims
 import osrsps.game.content.CustomLocs
 import osrsps.game.content.CustomVars
 import osrsps.game.content.LodestoneMap
@@ -159,14 +160,14 @@ class GameServer(
             logger.info { "Custom vars after the cache's (varps to ${varTypes.varpCount - 1}, varbits to ${varTypes.varbitCount - 1}): $customVars" }
             val customLocs = CustomLocs(customVars)
             // The lodestone map's interface and sprites are built in code; a sprite file in data/sprites takes its place.
-            val overlay = CacheOverlay.load(dataDir).withGroups(LodestoneMap.overlayGroups) + customLocs.overlayFiles + customVars.overlayFiles
+            val overlay = CacheOverlay.load(dataDir).withGroups(LodestoneMap.overlayGroups) + customLocs.overlayFiles + customVars.overlayFiles + CustomAnims.overlayFiles
             logger.info { "Cache overlay: ${overlay.size} custom group(s) and file(s): $overlay" }
             js5 = Js5Store.load(library, overlay)
             map = MapCollisionLoader.loadWorld(library, customLocs.types)
             objTypes = ObjTypeLoader.load(library)
             npcTypes = NpcTypeLoader.load(library)
             quests = QuestLoader.load(library)
-            effectIds = EffectIdLoader.load(library)
+            effectIds = EffectIdLoader.load(library).withCustom(CustomAnims.seqs.keys, CustomAnims.spotanims.keys)
             chatFont = FontLoader.loadDialogueFont(library)
             attackStyles = CombatLoader.attackStyles(library)
             seqNames = CombatLoader.seqNames(library)

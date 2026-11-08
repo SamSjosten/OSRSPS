@@ -41,12 +41,13 @@ object LodestoneLines : Lines("lodestone", "Lodestone_Network") {
  * after. The varbit is a bit of the lodestones' varp ([CustomVars.lodestonesVarp]), saved with the player; its id
  * follows the loaded cache's, so the site's loc type is built for a world's [CustomVars] ([Site.type]). The server
  * sees the one loc ([Site.id]) and the one option on it, and answers by the player's varbit. The cast is Home
- * Teleport's machinery ([HomeTeleport.castTo]) with the stones' own timing and no cooldown.
+ * Teleport's machinery ([HomeTeleport.castTo]) with the stones' own timing, no cooldown and an animation of our own
+ * ([STAGES], [CustomAnims]).
  *
  * Guessed: the stones' tiles (RS3's spots, by the Wiki's descriptions, moved to where the 241 map's ground is flat,
  * outdoors and clear, the tile around included: RS3's Al Kharid spot is inside a house here, Edgeville's in the river,
- * Draynor's under an oak; `::pos` and a change to [SITES] move one), landing on the stone's centre tile, the stages'
- * ticks (Home Teleport's, stretched to 28), and the map's look ([LodestoneMap]).
+ * Draynor's under an oak; `::pos` and a change to [SITES] move one), landing on the stone's centre tile, the cast's
+ * pace and colour ([CustomAnims]), and the map's look ([LodestoneMap]).
  */
 object Lodestones {
     /** The child types the client draws: the dormant stone and the active one. */
@@ -80,13 +81,18 @@ object Lodestones {
     const val PREVIOUS_LOW_BIT = 8
     const val PREVIOUS_HIGH_BIT = 11
 
-    /** Home Teleport's five stages stretched over the 28 ticks (its own run 0, 7, 13, 16, 19 of 24). Guessed. */
+    /** The rise starts this many ticks before the landing: Tele Other's 16 frames at 4 cycles are 1.3 s, two ticks and a bit. */
+    const val RISE_TICKS = 3
+
+    /**
+     * The cast's two stages (step 8, after RS3's player who stands briefly and then flies up as a white pulse): from
+     * the click, the arms-raised pose while the white pulse builds and stays; [RISE_TICKS] before the landing, Tele
+     * Other's rise with the whole swirl, so the player flies up and is gone. All ours, served by the overlay
+     * ([CustomAnims]).
+     */
     val STAGES = listOf(
-        HomeTeleport.Stage(0, 4847, 800),
-        HomeTeleport.Stage(8, 4850, 801),
-        HomeTeleport.Stage(15, 4853, 802),
-        HomeTeleport.Stage(19, 4855, 803),
-        HomeTeleport.Stage(22, 4857, 804),
+        HomeTeleport.Stage(0, CustomAnims.LODESTONE_CHARGE, CustomAnims.LODESTONE_PULSE),
+        HomeTeleport.Stage(CAST_TICKS - RISE_TICKS, CustomAnims.LODESTONE_RISE, CustomAnims.LODESTONE_FLASH),
     )
 
     /**
