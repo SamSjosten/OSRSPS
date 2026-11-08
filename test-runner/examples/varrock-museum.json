@@ -219,6 +219,12 @@
   },
   {
    "step": "walk",
+   "x": 3264,
+   "y": 3453,
+   "comment": "half way first: from the stairs' top the displays' tile is off the top of the screen"
+  },
+  {
+   "step": "walk",
    "x": 3262,
    "y": 3450,
    "comment": "among the first floor's displays"
@@ -251,6 +257,12 @@
    "plane": 2,
    "timeoutMs": 20000,
    "comment": "the second floor"
+  },
+  {
+   "step": "walk",
+   "x": 3254,
+   "y": 3448,
+   "comment": "half way first, as on the first floor"
   },
   {
    "step": "walk",

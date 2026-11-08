@@ -25,18 +25,6 @@
   },
   {
    "step": "assertSpotanim",
-   "npc": "Dark wizard",
-   "ids": [
-    93,
-    102,
-    96,
-    105
-   ],
-   "timeoutMs": 30000,
-   "comment": "unprovoked: a level 7's Water Strike or Confuse casting, or a level 20's Earth Strike or Weaken casting"
-  },
-  {
-   "step": "assertSpotanim",
    "ids": [
     95,
     104,
@@ -44,8 +32,8 @@
     107,
     85
    ],
-   "timeoutMs": 20000,
-   "comment": "waterstrike_impact, confuse_impact, earthstrike_impact, weaken_impact or failedspell_impact on the player"
+   "timeoutMs": 30000,
+   "comment": "unprovoked: a spell's impact on the player (waterstrike, confuse, earthstrike, weaken or a splash). Only the level 20s go for combat level 25, so the nearest wizard, a level 7 maybe, needn't cast: the impact on the player is what is checked"
   },
   {
    "step": "command",

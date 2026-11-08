@@ -334,7 +334,9 @@
    "comment": "waits for the talk to open before finishing it"
   },
   {
-   "step": "finishDialogue"
+   "step": "finishDialogue",
+   "timeoutMs": 40000,
+   "comment": "the first talk, the menu and a whole lecture: about twenty boxes"
   },
   {
    "step": "npcOption",
