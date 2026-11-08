@@ -56,6 +56,10 @@
     {"step": "continueDialogue"},
     {"step": "assertDialogue", "contains": "[hunding.kill_reply]"},
     {"step": "continueDialogue"},
+    {"step": "walk", "x": 3097, "y": 3432, "comment": "back out of Hunding's room to the ladder, so the shut door doesn't block the way down"},
+    {"step": "assertLocation", "x": 3097, "y": 3432, "plane": 2, "timeoutMs": 10000},
+    {"step": "locOption", "loc": "Door", "option": "Close", "x": 3096, "y": 3430, "comment": "shuts the top room's door again: doors stay open until closed, so a later run finds it shut"},
+    {"step": "assertLoc", "locId": 1535, "option": "Open", "x": 3096, "y": 3429, "timeoutMs": 10000},
     {"step": "locOption", "locId": 16685, "option": "Climb-down", "x": 3097, "y": 3433},
     {"step": "assertLocation", "x": 3097, "y": 3432, "plane": 1, "timeoutMs": 10000},
     {"step": "command", "text": "::tele 3076 3439 0", "expectMessage": "Teleported to 3076, 3439, 0", "comment": "the longhall, beside Atlas"},
@@ -98,6 +102,10 @@
     {"step": "continueDialogue"},
     {"step": "assertDialogue", "contains": "[sigurd.ha_ha]"},
     {"step": "continueDialogue"},
+    {"step": "chooseOption", "text": "[sigurd.who]", "comment": "Sigurd's menu: who or teach"},
+    {"step": "assertDialogue", "contains": "[sigurd.who]", "timeoutMs": 15000},
+    {"step": "finishDialogue", "timeoutMs": 40000, "comment": "clicks through the canoe story (yes on the last menu, then the teaching) so the chatbox is free for ::keys off and the next script"},
+    {"step": "assertNoDialogue"},
     {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
     {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
   ]

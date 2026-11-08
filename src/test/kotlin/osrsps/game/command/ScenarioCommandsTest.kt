@@ -199,6 +199,20 @@ class ScenarioCommandsTest {
     }
 
     @Test
+    fun `reset takes away the NPCs the player put in, and only theirs`() {
+        val man = NpcType(3106, "Man", internalName = "man")
+        val mine = world.spawnNpc(NpcSpawn(man, 3225, 3218, 0, source = spawnSource(player.username)))!!
+        val theirs = world.spawnNpc(NpcSpawn(man, 3226, 3218, 0, source = spawnSource("other")))!!
+        val cache = world.spawnNpc(NpcSpawn(man, 3227, 3218, 0, source = "test"))!!
+        run("scenario cows")
+        assertTrue(world.npcs[mine.index] === mine, "a scenario's start leaves them")
+        run("reset")
+        assertNull(world.npcs[mine.index]?.takeIf { it === mine })
+        assertTrue(world.npcs[theirs.index] === theirs)
+        assertTrue(world.npcs[cache.index] === cache)
+    }
+
+    @Test
     fun `clicks held while paused don't run into the scenario or the reset`() {
         player.heldActions.addLast { player.runEnabled = false }
         run("scenario cows")
