@@ -33,7 +33,8 @@ object HomeTeleportLines : Lines("home_teleport", "Lumbridge_Home_Teleport") {
  * Wilderness the cast is refused, as every teleport's is (OSRS Wiki, Wilderness level; see [Wilderness]).
  *
  * Any click that interrupts the player (walking, an NPC, a loc, closing an interface) removes the weak queue, which
- * stops the cast; being attacked stops it at the next tick.
+ * stops the cast; being attacked stops it at the next tick. A cast cut short stops the animation and the graphic it
+ * had on the player ([stop]), as a stage of ours can hold its last frame for good (the lodestones' pulse).
  *
  * One seam for another teleport to swap in without touching this file: [target], chosen when the player clicks Cast.
  * The default is OSRS's own cast to Lumbridge with the cooldown; the lodestone network ([LodestoneNetwork.register])
@@ -116,7 +117,7 @@ class HomeTeleport(
         if (!canCast(player, cooldown)) return false
         // Casting stops whatever the player was doing and keeps them where they stand (inferred: the stages are
         // animations on the spot); a queued activity (milking, making) would otherwise carry on beside the cast.
-        player.scripts.weakQueue.clear()
+        player.scripts.dropWeak()
         player.waypoints.clear()
         player.interaction = null
         step(Cast(to, ticks, stages, cooldown), currentTick(), 0)
@@ -127,7 +128,10 @@ class HomeTeleport(
 
     /** Stage [elapsed] ticks into [cast], started on tick [started]; queues the next tick's. */
     private fun ScriptContext.step(cast: Cast, started: Long, elapsed: Int) {
-        if (player.attackedTick >= started) return
+        if (player.attackedTick >= started) {
+            stop(player)
+            return
+        }
         if (elapsed >= cast.ticks) {
             teleport(player, cast.to)
             player.anim(-1)
@@ -138,7 +142,13 @@ class HomeTeleport(
             player.anim(stage.anim)
             player.spotanim(stage.spotanim)
         }
-        queue(QUEUE, QueueType.WEAK, delay = 1) { step(cast, started, elapsed + 1) }
+        queue(QUEUE, QueueType.WEAK, delay = 1, onDrop = { stop(player) }) { step(cast, started, elapsed + 1) }
+    }
+
+    /** The cast cut short: whatever stage was playing stops, and the graphic with it (slot 0, the one the stages use). */
+    private fun stop(player: Player) {
+        player.anim(-1)
+        player.spotanim(-1)
     }
 
     /** One stage of the cast: from [tick] ticks in, animation [anim] with graphic [spotanim] on the player. */

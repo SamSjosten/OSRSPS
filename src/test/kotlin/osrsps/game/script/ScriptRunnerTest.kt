@@ -30,7 +30,7 @@ class ScriptRunnerTest {
     }
 
     private fun queue(name: String, type: QueueType = QueueType.NORMAL, delay: Int = 0) =
-        runner.queue(player, name, type, delay, record(name))
+        runner.queue(player, name, type, delay, script = record(name))
 
     @Test
     fun `a queued script runs once its delay has counted down`() {
@@ -132,6 +132,28 @@ class ScriptRunnerTest {
     }
 
     @Test
+    fun `a weak script dropped before it runs gets its drop hook once, and one that runs never does`() {
+        var dropped = 0
+        runner.queue(player, "cast", QueueType.WEAK, 1, onDrop = { dropped++ }, script = record("cast"))
+        runner.interrupt(player)
+        assertEquals(1, dropped)
+        runner.queue(player, "cast", QueueType.WEAK, 0, onDrop = { dropped++ }, script = record("cast"))
+        ticks()
+        assertEquals(listOf("cast@1"), ran)
+        assertEquals(1, dropped, "a script that ran isn't dropped")
+        runner.queue(player, "cast", QueueType.WEAK, 1, onDrop = { dropped++ }, script = record("cast"))
+        queue("strong", QueueType.STRONG)
+        assertEquals(2, dropped, "a strong script drops the weak ones")
+        runner.queue(player, "cast", QueueType.WEAK, 1, onDrop = { dropped++ }, script = record("cast"))
+        runner.queue(player, "other", QueueType.WEAK, 1, onDrop = { dropped += 10 }, script = record("other"))
+        runner.clearQueue(player, "cast")
+        assertEquals(3, dropped, "clearing by name drops only that name")
+        runner.clearAll(player)
+        assertEquals(13, dropped)
+        assertTrue(player.scripts.queued.isEmpty())
+    }
+
+    @Test
     fun `interrupting removes weak scripts and closes modals but keeps the rest`() {
         openModal()
         queue("weak", QueueType.WEAK)
@@ -225,7 +247,7 @@ class ScriptRunnerTest {
             runs++
             queue("again", script = again)
         }
-        runner.queue(player, "again", QueueType.NORMAL, 0, again)
+        runner.queue(player, "again", QueueType.NORMAL, 0, script = again)
         ticks()
         assertEquals(ScriptRunner.MAX_RUNS_PER_PASS, runs)
         ticks()

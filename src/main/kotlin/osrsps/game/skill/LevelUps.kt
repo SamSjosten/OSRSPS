@@ -78,7 +78,7 @@ class LevelUps(
 
     /** A level-up still waiting (behind an open bank, say) shows the level reached when it runs, so one is enough. */
     private fun queueOnce(player: Player, name: String, script: suspend ScriptContext.() -> Unit) {
-        if (player.scripts.queued.none { it.name == name }) scripts.queue(player, name, QueueType.NORMAL, 0, script)
+        if (player.scripts.queued.none { it.name == name }) scripts.queue(player, name, QueueType.NORMAL, 0, script = script)
     }
 
     private suspend fun ScriptContext.announce(skill: Skill) {

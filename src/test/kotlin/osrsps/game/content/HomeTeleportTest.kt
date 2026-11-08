@@ -115,6 +115,8 @@ class HomeTeleportTest {
         assertTrue(landed.isEmpty())
         assertEquals(0, player.vars[HomeTeleport.VARP_LAST_CAST])
         assertEquals(0, home.minutesLeft(player))
+        assertEquals(-1, anims[11L], "the interruption stops the stage that was playing")
+        assertEquals(-1, spots[11L], "and clears its graphic, which a stage of ours can hold for good")
     }
 
     @Test
@@ -125,6 +127,8 @@ class HomeTeleportTest {
         player.attackedTick = tick
         run(1)
         assertFalse(home.casting(player))
+        assertEquals(-1, anims[56L], "the hit stops the stage that was playing")
+        assertEquals(-1, spots[56L])
         run(30)
         assertTrue(landed.isEmpty())
         assertEquals(0, player.vars[HomeTeleport.VARP_LAST_CAST])

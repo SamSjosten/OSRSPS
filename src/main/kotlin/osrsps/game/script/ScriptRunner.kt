@@ -64,20 +64,22 @@ class ScriptRunner(
      * Queues [script] for [player]. Every script phase counts [delay] down by one, busy or not, and the script runs in
      * the first phase that finds it at 0 or less and the player able to run it. So 0 runs in this tick's script phase
      * when queued before it (from a click, a command or an earlier script in the phase), 1 runs in the next tick's.
-     * Inferred from the 2004Scape world cycle; not measured on live.
+     * Inferred from the 2004Scape world cycle; not measured on live. [onDrop] runs if a weak script is dropped before
+     * it runs (an interruption, a strong script, a clear), so it can undo what it had going; see
+     * [PlayerScripts.dropWeak].
      */
-    fun queue(player: Player, name: String, type: QueueType, delay: Int, script: Script) {
+    fun queue(player: Player, name: String, type: QueueType, delay: Int, onDrop: (() -> Unit)? = null, script: Script) {
         require(delay >= 0) { "Can't queue $name with delay $delay" }
-        val entry = QueuedScript(name, type, delay, script)
+        val entry = QueuedScript(name, type, delay, script, onDrop)
         if (type == QueueType.WEAK) player.scripts.weakQueue += entry else player.scripts.queue += entry
         // Removed now rather than at the next script phase; nothing could run them in between.
-        if (type == QueueType.STRONG) player.scripts.weakQueue.clear()
+        if (type == QueueType.STRONG) player.scripts.dropWeak()
     }
 
-    /** Removes every queued script called [name], weak ones included. */
+    /** Removes every queued script called [name], weak ones included (those run their drop hooks). */
     fun clearQueue(player: Player, name: String) {
         player.scripts.queue.removeAll { it.name == name }
-        player.scripts.weakQueue.removeAll { it.name == name }
+        player.scripts.dropWeak(name)
     }
 
     /**
@@ -98,7 +100,7 @@ class ScriptRunner(
 
     /** Removes [player]'s weak scripts, leaving their modals: for a new action that opens none of its own. */
     fun clearWeak(player: Player) {
-        player.scripts.weakQueue.clear()
+        player.scripts.dropWeak()
     }
 
     /**
@@ -107,7 +109,7 @@ class ScriptRunner(
      */
     fun interrupt(player: Player) {
         closeModals(player)
-        player.scripts.weakQueue.clear()
+        player.scripts.dropWeak()
     }
 
     /**
@@ -122,7 +124,7 @@ class ScriptRunner(
         player.stanceOverride = null
         val state = player.scripts
         state.queue.clear()
-        state.weakQueue.clear()
+        state.dropWeak()
         state.timers.clear()
         state.suspended = null
         state.delayedUntil = 0
