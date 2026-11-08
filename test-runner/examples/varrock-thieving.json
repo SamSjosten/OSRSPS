@@ -111,6 +111,11 @@
    "comment": "the palace's front courtyard, by a guard"
   },
   {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client swap the market's NPCs for the courtyard's: a click straight after the teleport got no answer three times out of four (VM 215, 2026-11-08), likely on a guard still listed from the market, which the server drops as out of view"
+  },
+  {
    "step": "npcOption",
    "npc": "Guard",
    "option": "Pickpocket",
