@@ -34,7 +34,7 @@ import osrsps.map.LocShape
 class HeadlessEssenceMineTest {
     private val sedridor = NpcType(EssenceMine.SEDRIDOR, "Archmage Sedridor", ops = listOf("Talk-to", null, "Teleport", null, null))
 
-    private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
+    private fun server(dir: Path, mapPortal: Boolean = false) = TestServer(dir) { crcs, millis ->
         val objs = arrayOfNulls<ObjType>(Mining.PURE_ESSENCE + 1)
         objs[Mining.RUNE_ESSENCE] = ObjType(Mining.RUNE_ESSENCE, "Rune essence")
         objs[Mining.PURE_ESSENCE] = ObjType(Mining.PURE_ESSENCE, "Pure essence")
@@ -50,9 +50,14 @@ class HeadlessEssenceMineTest {
                 listOf(
                     LocType(Mining.ESSENCE_ROCK, "Rune Essence", listOf("Mine", null, null, null, null), LocCollisionType(width = 5, length = 5)),
                     LocType(EssenceMine.PORTAL, "Portal", listOf("Use", null, null, null, null), LocCollisionType()),
+                    LocType(EssenceMine.MAP_PORTAL, collision = LocCollisionType(), multiloc = true),
                 ).associateBy { it.id },
             ),
-            staticLocs = StaticLocs().apply { add(ZoneLoc(Mining.ESSENCE_ROCK, LocShape.CENTREPIECE_STRAIGHT, 3, 2891, 4847, 0)) },
+            staticLocs = StaticLocs().apply {
+                add(ZoneLoc(Mining.ESSENCE_ROCK, LocShape.CENTREPIECE_STRAIGHT, 3, 2891, 4847, 0))
+                // The 241 map's portal, a multiloc, at 2004Scape's north-west tile.
+                if (mapPortal) add(ZoneLoc(EssenceMine.MAP_PORTAL, LocShape.CENTREPIECE_STRAIGHT, 0, 2885, 4850, 0))
+            },
             npcTypes = NpcTypes.of(sedridor), npcSpawns = listOf(NpcSpawn(sedridor, 3103, 9571, source = "test")),
             cycleMillis = millis,
         )
@@ -89,6 +94,21 @@ class HeadlessEssenceMineTest {
 
                 client.tele(2886, 4850, 0)
                 client.locOp(EssenceMine.PORTAL, 2885, 4850, 1)
+                val back = client.await("back beside Sedridor") { client.position?.takeIf { it.z in 9560..9580 } }
+                assertTrue(maxOf(kotlin.math.abs(back.x - EssenceMine.TO_SEDRIDOR.x), kotlin.math.abs(back.z - EssenceMine.TO_SEDRIDOR.z)) <= 2, "back at $back")
+            }
+        }
+    }
+
+    @Test
+    fun `the map's own portal, a multiloc the client sends by its own id, brings the player back`(@TempDir dir: Path) {
+        server(dir, mapPortal = true).use { server ->
+            // The map's portal stays: a 34774 over it would leave the client sending an id the server doesn't have there.
+            assertEquals(EssenceMine.MAP_PORTAL, server.world.locs[2885, 4850, 0, 2]?.id)
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(2886, 4850, 0)
+                client.locOp(EssenceMine.MAP_PORTAL, 2885, 4850, 1)
                 val back = client.await("back beside Sedridor") { client.position?.takeIf { it.z in 9560..9580 } }
                 assertTrue(maxOf(kotlin.math.abs(back.x - EssenceMine.TO_SEDRIDOR.x), kotlin.math.abs(back.z - EssenceMine.TO_SEDRIDOR.z)) <= 2, "back at $back")
             }

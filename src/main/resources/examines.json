@@ -1494,7 +1494,7 @@
     {"loc": 33480, "name": "Pear tree"},
     {"loc": 34659, "name": "The Sheared Ram"},
     {"loc": 34773, "name": "Rune Essence"},
-    {"loc": 34774, "name": "Portal", "wiki": "Portal (Rune essence mine) page, infobox"},
+    {"loc": 34774, "name": "Portal", "also": [34825], "wiki": "Portal (Rune essence mine) page, infobox"},
     {"loc": 34775, "name": "Portal", "wiki": "Portal (Rune essence mine) page, infobox"},
     {"loc": 34776, "name": "Portal", "wiki": "Portal (Rune essence mine) page, infobox"},
     {"loc": 34777, "name": "Portal", "wiki": "Portal (Rune essence mine) page, infobox"},
