@@ -45,7 +45,7 @@
     {"step": "locOption", "locId": 17026, "option": "Climb-up", "x": 3097, "y": 3433},
     {"step": "assertLocation", "x": 3097, "y": 3432, "plane": 2, "timeoutMs": 10000},
     {"step": "locOption", "locId": 1535, "option": "Open", "x": 3096, "y": 3429, "comment": "the top room's door, between the ladder and Hunding"},
-    {"step": "waitTicks", "ticks": 2},
+    {"step": "waitTicks", "ticks": 5, "comment": "the walk to the door and its opening, so Talk-to finds a way through"},
     {"step": "npcOption", "npc": "Hunding", "option": "Talk-to", "timeoutMs": 20000},
     {"step": "assertDialogue", "contains": "[hunding.hello]", "timeoutMs": 15000},
     {"step": "continueDialogue"},

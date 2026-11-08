@@ -45,7 +45,7 @@
   {"step": "assertLocation", "x": 3144, "y": 3452, "plane": 0, "timeoutMs": 10000, "comment": "in the room with the bank"},
   {"step": "locOption", "locId": 7183, "option": "Cook", "x": 3145, "y": 3453},
   {"step": "assertMessage", "contains": "cooking.", "timeoutMs": 20000, "comment": "the range cooks the beef"},
-  {"step": "command", "text": "::item coins 99000", "expectMessage": "Added 99000 x Coins", "comment": "99 Cooking is already set: the Head chef's cape"},
+  {"step": "command", "text": "::item coins 99000", "expectMessage": "Added 99,000 x Coins", "comment": "99 Cooking is already set: the Head chef's cape"},
   {"step": "command", "text": "::tele 3142 3445 0", "expectMessage": "Teleported to 3142, 3445, 0", "comment": "beside the Head chef"},
   {"step": "npcOption", "npcId": 2658, "option": "Talk-to", "timeoutMs": 20000},
   {"step": "assertDialogue", "contains": "[head_chef.master]", "timeoutMs": 15000},
