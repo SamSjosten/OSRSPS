@@ -42,6 +42,7 @@ import osrsps.game.Quests
 import osrsps.game.Scenarios
 import osrsps.game.VarTypes
 import osrsps.game.World
+import osrsps.game.World.Companion.TICK_MILLIS
 import osrsps.game.XpRate
 import osrsps.game.WearRequirements
 import osrsps.game.SeqNames
@@ -100,8 +101,12 @@ class GameServer(
     private val rsaModulus: BigInteger? = null,
     /** deploy/auto-deploy.sh's state folder, which can name a newer commit for /version; see [ClientConfig]. */
     deployState: Path? = null,
+    /** Real time between game cycles. Only the headless script runs shorten it; the game itself always runs at [TICK_MILLIS]. */
+    private val cycleMillis: Long = TICK_MILLIS,
 ) {
-    private lateinit var world: World
+    /** The game world, once [start] has built it. The headless script runs read the cache's types and map from it. */
+    lateinit var world: World
+        private set
     private val clientConfig = ClientConfig(
         publicHost, httpPort, gamePort = port, version = version, deployState = deployState, proxy = proxy,
         runelitePins = RuneLitePins.load(), reports = ProblemReports(dataDir.resolve(ProblemReports.FOLDER)),
@@ -248,6 +253,7 @@ class GameServer(
             spells = spells, prayerList = prayers, foodList = Foods.load(objTypes), potionData = Potions.load(objTypes), shopTypes = shopTypes, skillUnlocks = skillUnlocks, ipBans = ipBans, xpRate = xpRate,
             wearRequirements = wearRequirements, itemPrices = itemPrices, itemPricesFile = itemPricesFile, settings = settings,
             specialAttackCosts = specialAttackCosts, encounterDefs = listOfNotNull(ArchiveGuardian.def(npcTypes)),
+            cycleMillis = cycleMillis,
         )
         loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world, relays, proxy, js5Connections)

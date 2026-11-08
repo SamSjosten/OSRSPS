@@ -19,6 +19,11 @@ data class LocType(
     val multiloc: Boolean = false,
     /** The loc's name in the cache's gameval index, e.g. `poordoor`; null when the cache has none. */
     val internalName: String? = null,
+    /** A multiloc picks which of [multiLocs] it shows by this varbit (or varp, if the varbit is -1), as the client does. */
+    val multiVarbit: Int = -1,
+    val multiVarp: Int = -1,
+    /** The types a multiloc can show, by the var's value; the last entry is the default, -1 for none (opcodes 77, 92). */
+    val multiLocs: List<Int> = emptyList(),
 ) {
     val width: Int get() = collision.width
     val length: Int get() = collision.length

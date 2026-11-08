@@ -181,6 +181,15 @@ class HeadlessClient private constructor(
 
     fun packets(): List<ServerPacket> = lock.withLock { packets.toList() }
 
+    /** Drops the packets kept so far, so a headless script run that plays for hours doesn't keep every one of them. */
+    fun forgetPackets() = lock.withLock { packets.clear() }
+
+    /** Whether the connection has ended: a logout, a kick, the server going away or a packet this client couldn't read. */
+    val isClosed: Boolean get() = lock.withLock { closed }
+
+    /** Why reading the server's packets stopped, when it wasn't the connection ending; null otherwise. */
+    val readFailure: Throwable? get() = lock.withLock { failure }
+
     /** The Grand Exchange slot [slot] as UPDATE_STOCKMARKET_SLOT last set it; null while empty. */
     fun stockMarketSlot(slot: Int): StockMarketSlot? = lock.withLock { stockMarket[slot] }
 
@@ -244,6 +253,12 @@ class HeadlessClient private constructor(
 
     /** Forgets that the friends list came, as the real client did with the one sent at login (VM 215). */
     fun forgetFriendsLoaded() = lock.withLock { friendListLoaded = false }
+
+    /**
+     * NO_TIMEOUT, which the real client sends when it has sent nothing else for a while: without it RSProt's idle
+     * timeout ends a connection that only listens (a script waiting 20 s for a fight to start).
+     */
+    fun keepAlive() = send(GameClientProt.NO_TIMEOUT) {}
 
     /** The client's map is built (MAP_BUILD_COMPLETE), as after the login's rebuild. */
     fun mapBuildComplete() = send(GameClientProt.MAP_BUILD_COMPLETE) {}
@@ -312,6 +327,11 @@ class HeadlessClient private constructor(
 
     /** The text last set on a component (IF_SETTEXT), or null if none has been. */
     fun text(interfaceId: Int, componentId: Int): String? = lock.withLock { texts[(interfaceId shl 16) or componentId] }
+
+    /** Every component of [interfaceId] that IF_SETTEXT has given a text, by component id. */
+    fun texts(interfaceId: Int): Map<Int, String> = lock.withLock {
+        texts.filterKeys { it ushr 16 == interfaceId }.mapKeys { it.key and 0xFFFF }.toSortedMap()
+    }
 
     /** Whether the server last hid (true) or showed (false) a component (IF_SETHIDE), or null if it never has. */
     fun hidden(interfaceId: Int, componentId: Int): Boolean? = lock.withLock { hidden[(interfaceId shl 16) or componentId] }

@@ -17,6 +17,19 @@ The plugin clicks for you. That is botting on Jagex's worlds, so:
 - A script names its `account`, and only runs while that account is logged in. The account must also be in the
   plugin's **Test accounts** setting (default `test, test2`). Never add a real Jagex account there.
 
+## Headless: no RuneLite, no VM
+
+The same scripts play without RuneLite: `./gradlew headlessScripts` starts our server in-process on the live 241 cache
+(OpenRS2 2746, fetched once into `build/headless/data`) and plays every example through the headless test client
+(`src/test/kotlin/osrsps/testrunner`, `HeadlessGame` standing in for `ClientGame`). As the nightly did: the account is
+put back before each script, a failure is played once more (a pass then is flaky), and the results and `summary.json`
+go to `build/headless/results`. `-Pscripts=hans-demo.json,lumbridge-bank.json` plays some; `-PheadlessTickMs=300` plays
+faster than live's 600 ms ticks. Fresh accounts start in the fixed frame there, as the VMs' clients were.
+
+What only the real client does isn't there yet, and a step that needs it fails saying so: client scripts
+(`runClientScript`, `mouseClick`, `typeText`, text an interface has in the cache), the two-player pairs, other players'
+names, and animations, graphics, hitsplats, health bars and the player's model.
+
 ## Installing
 
 RSProx starts its RuneLite in developer mode with the RuneLite folder `C:\RSPS\.rlcustom`, and developer mode loads every
