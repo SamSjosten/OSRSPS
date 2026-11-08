@@ -33,8 +33,15 @@ data class LocChange(val id: Int, val shape: Int, val angle: Int, val coord: Coo
  * Animations, projectiles, sounds and obj customisations are read past but not kept.
  */
 class ZoneReader {
-    private var originX = 0
-    private var originZ = 0
+    /** The build area's south-west corner, from the last REBUILD; the client's scene is the 104 tiles square from it. */
+    var originX = 0
+        private set
+    var originZ = 0
+        private set
+
+    /** Whether a REBUILD has come yet, so there is a build area at all. */
+    var built = false
+        private set
     private var zoneX = 0
     private var zoneZ = 0
     private var level = 0
@@ -53,6 +60,7 @@ class ZoneReader {
     fun rebuild(centreX: Int, centreZ: Int) {
         originX = (centreX - BUILD_AREA_ZONE_RADIUS) shl 3
         originZ = (centreZ - BUILD_AREA_ZONE_RADIUS) shl 3
+        built = true
         objs.clear()
         locs.clear()
     }

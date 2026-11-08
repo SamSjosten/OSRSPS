@@ -32,11 +32,43 @@ dependencies {
     testImplementation(kotlin("test-junit5"))
     // To see what a test's server logs.
     testImplementation(libs.logback.classic)
+    // The runner's script engine, compiled in below for the headless script runs.
+    testImplementation(libs.gson)
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 application {
     mainClass.set("osrsps.MainKt")
+}
+
+// The RuneLite test runner's script engine (test-runner/), all of it but the plugin's RuneLite classes, so the same JSON
+// scripts can play through the headless client: osrsps.testrunner.HeadlessGame stands in for ClientGame.
+sourceSets.test {
+    java.srcDir("test-runner/src/main/java")
+    java.exclude("osrsps/testrunner/ClientGame.java", "osrsps/testrunner/TestRunnerPlugin.java", "osrsps/testrunner/TestRunnerConfig.java")
+}
+
+// Plays the runner's scripts against the server in-process on the live cache, with no RuneLite and no VM
+// (osrsps.testrunner.HeadlessScripts): ./gradlew headlessScripts runs every example; -Pscripts=a.json,b.json (names in
+// test-runner/examples, or paths) runs some; -PheadlessTickMs=n plays faster than 600 ms ticks. Results and
+// summary.json go to build/headless/results; the cache is fetched once into build/headless/data.
+tasks.register<JavaExec>("headlessScripts") {
+    group = "verification"
+    description = "Plays test-runner/examples against an in-process server on the live cache, headless."
+    classpath = sourceSets.test.get().runtimeClasspath
+    mainClass.set("osrsps.testrunner.HeadlessScriptsKt")
+    maxHeapSize = "1g"
+    val examples = layout.projectDirectory.dir("test-runner/examples").asFile
+    val picked = providers.gradleProperty("scripts").orNull?.split(',')?.map(String::trim)?.filter(String::isNotEmpty)
+    val scripts = picked?.map { if (File(it).isAbsolute || File(it).exists()) it else File(examples, it).path } ?: listOf(examples.path)
+    val runnerVersion = Regex("version = '([^']+)'").find(file("test-runner/build.gradle").readText())?.groupValues?.get(1) ?: "unknown"
+    val commit = providers.exec { commandLine("git", "rev-parse", "HEAD"); isIgnoreExitValue = true }.standardOutput.asText.map(String::trim)
+    val tickMillis = providers.gradleProperty("headlessTickMs")
+    argumentProviders.add(CommandLineArgumentProvider {
+        listOf("--commit", commit.getOrElse("unknown").ifEmpty { "unknown" }, "--runner-version", runnerVersion) +
+            (tickMillis.orNull?.let { listOf("--tick-ms", it) } ?: emptyList()) +
+            scripts
+    })
 }
 
 tasks.test {
@@ -45,6 +77,8 @@ tasks.test {
     maxHeapSize = providers.environmentVariable("OSRSPS_TEST_HEAP").getOrElse("512m")
     // GameRandomTest reads the main sources themselves.
     inputs.dir("src/main/kotlin").withPathSensitivity(PathSensitivity.RELATIVE)
+    // HeadlessScriptsTest reads every runner example script.
+    inputs.dir("test-runner/examples").withPathSensitivity(PathSensitivity.RELATIVE)
     // For CI (build.yml's server-tests jobs). -PtestShard=i/n runs only shard i of n: the classes in
     // src/test/test-times.txt are dealt out longest first to whichever shard has the least so far, so the shards take
     // about as long as each other, and a class the file doesn't list yet goes by a hash of its name.
