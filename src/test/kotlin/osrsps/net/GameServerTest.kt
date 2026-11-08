@@ -24,12 +24,15 @@ import osrsps.cache.model.OsrsModel
 import osrsps.cache.InterfaceCodec
 import osrsps.cache.LocTypeDecoder
 import osrsps.cache.MapElementCodec
+import osrsps.cache.SeqCodec
+import osrsps.cache.SpotanimCodec
 import osrsps.cache.Sprite
 import osrsps.cache.SpriteCodec
 import osrsps.cache.VarTypeLoader
 import osrsps.cache.overlay.Js5Container
 import osrsps.cache.overlay.Js5Group
 import osrsps.cache.overlay.ReferenceTable
+import osrsps.game.content.CustomAnims
 import osrsps.game.content.CustomLocs
 import osrsps.game.content.CustomVars
 import osrsps.game.VarbitType
@@ -53,11 +56,13 @@ class GameServerTest {
         library.put(10, "huffman", ByteArray(256) { 8 })
         library.put(0, 1, byteArrayOf(1, 2, 3))
         library.put(7, 3, byteArrayOf(4, 5, 6))
-        // One loc type, one varbit and one varp, so the server has the config groups to add its own to. The var ids
-        // are the highest in OpenRS2's build 2746 of revision 241 (VM 214's cache), past the ids another 241 build
-        // ends at: ours have to follow whichever cache is loaded.
+        // One loc type, one map element, one sequence, one spotanim, one varbit and one varp, so the server has the
+        // config groups to add its own to. The var ids are the highest in OpenRS2's build 2746 of revision 241
+        // (VM 214's cache), past the ids another 241 build ends at: ours have to follow whichever cache is loaded.
         library.put(2, 6, 0, byteArrayOf(0))
         library.put(2, 35, 0, byteArrayOf(0))
+        library.put(2, 12, 0, byteArrayOf(0))
+        library.put(2, 13, 0, byteArrayOf(0))
         library.put(2, 14, LAST_VARBIT, byteArrayOf(1, 0, 0, 0, 0, 0))
         library.put(2, 16, LAST_VARP, byteArrayOf(0))
         // One interface and one sprite, so the server has the indices to add its own interface and sprites to.
@@ -192,6 +197,15 @@ class GameServerTest {
             assertEquals(listOf(0, Lodestones.MAP_ELEMENT), elements.files.map { it.id })
             val elementFiles = Js5Group.unpack(Js5Container.unpack(Js5Crcs.fetchGroup("127.0.0.1", port, 2, MapElementCodec.GROUP)), elements.files.map { it.id })
             assertEquals(Lodestones.MAP_ELEMENT_TYPE, MapElementCodec.decode(elementFiles.getValue(Lodestones.MAP_ELEMENT)))
+            // The lodestones' cast animation: our sequences and spotanims in the cache's groups of those the same way.
+            val seqs = configs.group(SeqCodec.GROUP)!!
+            assertEquals(listOf(0) + CustomAnims.seqs.keys.sorted(), seqs.files.map { it.id })
+            val seqFiles = Js5Group.unpack(Js5Container.unpack(Js5Crcs.fetchGroup("127.0.0.1", port, SeqCodec.INDEX, SeqCodec.GROUP)), seqs.files.map { it.id })
+            assertEquals(CustomAnims.seqs.getValue(CustomAnims.LODESTONE_RISE), SeqCodec.decode(seqFiles.getValue(CustomAnims.LODESTONE_RISE)))
+            val spotanims = configs.group(SpotanimCodec.GROUP)!!
+            assertEquals(listOf(0) + CustomAnims.spotanims.keys.sorted(), spotanims.files.map { it.id })
+            val spotanimFiles = Js5Group.unpack(Js5Container.unpack(Js5Crcs.fetchGroup("127.0.0.1", port, SpotanimCodec.INDEX, SpotanimCodec.GROUP)), spotanims.files.map { it.id })
+            assertEquals(CustomAnims.spotanims.getValue(CustomAnims.LODESTONE_PULSE), SpotanimCodec.decode(spotanimFiles.getValue(CustomAnims.LODESTONE_PULSE)))
             // And our var types in the varbit and varp groups, right after the cache's own, so the client sizes its
             // varps to hold ours and reads our varbits.
             assertEquals(listOf(LAST_VARP) + customVars.varps, configs.group(16)!!.files.map { it.id })

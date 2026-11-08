@@ -8,6 +8,17 @@ class PlayerScripts {
     internal val queue = ArrayList<QueuedScript>()
     internal val weakQueue = ArrayList<QueuedScript>()
 
+    /**
+     * Drops every weak script, or those called [name], before it runs, and runs each one's drop hook
+     * ([QueuedScript.onDrop]): what the script had going is cut short, and the hook is where it cleans up (a cast
+     * stops the pose and glow it held). A script that ran is never dropped.
+     */
+    internal fun dropWeak(name: String? = null) {
+        val dropped = if (name == null) weakQueue.toList() else weakQueue.filter { it.name == name }
+        weakQueue.removeAll(dropped)
+        for (script in dropped) script.onDrop?.invoke()
+    }
+
     /** By name, in the order they were first set. */
     internal val timers = LinkedHashMap<String, ScriptTimer>()
 
@@ -61,7 +72,7 @@ class PlayerScripts {
     val activeTimers: Collection<ScriptTimer> get() = timers.values
 }
 
-class QueuedScript(val name: String, val type: QueueType, delay: Int, internal val script: Script) {
+class QueuedScript(val name: String, val type: QueueType, delay: Int, internal val script: Script, internal val onDrop: (() -> Unit)? = null) {
     /** Script phases left before it is due; it is due once this is 0 or less. */
     var delay: Int = delay
         internal set
