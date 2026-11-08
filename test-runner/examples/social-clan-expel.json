@@ -24,6 +24,8 @@
   {"step": "assertInterface", "interfaceId": 690},
   {"step": "clickWidget", "interfaceId": 690, "component": 20, "comment": "Members: the members page (clans_members)"},
   {"step": "assertInterface", "interfaceId": 693},
+  {"step": "mouseClick", "interfaceId": 693, "component": 8, "slot": 0, "comment": "the second column's header (clans_members:header2, child 0 has the onclick): clan_members_header_open fills the dropdown, clans_members:options2, whose entries exist only then"},
+  {"step": "waitTicks", "ticks": 1},
   {"step": "clickWidget", "interfaceId": 693, "component": 20, "slot": 7, "op": 1, "comment": "the second column's dropdown entry 7: Expel (enum_3793 entry 6)"},
   {"step": "waitTicks", "ticks": 1},
   {"step": "clickWidget", "interfaceId": 693, "component": 13, "slot": 0, "op": 1, "comment": "Expel on the owner, whose rank isn't below test's"},
