@@ -663,6 +663,14 @@
       "source": "OSRS Wiki, Archive Guardian (id 16659; the grounded form is 16660 in the 241.4 cache), read 2026-11-03: speed 5, max hit 25, crush (the infobox's style), the defence bonuses but slash 90, the cache's param for this form against 110 for the levitating one, immune to poison and venom, Defence drained to 60% at most. Grounded it swings with npc_archive_guardian_melee_attack01. Guessed: the 40% fire weakness (a guide's, osrsbestinslot; the Wiki lists 80% and 40% without saying which form has which), no block animation, the respawn, which never comes"
     },
     {
+      "npcs": ["tfa_guardian_battery_active", "tfa_guardian_battery_inactive", "tfa_guardian_battery_destroyed"],
+      "attackSpeed": 4, "maxHit": 0, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 20, "crush": -20, "magic": -20, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": null, "defend": null, "death": null },
+      "respawnTicks": 50,
+      "source": "241.4 cache, tfa_guardian_battery_active (16662, \"Inert Guardian\", Attack): 180 hitpoints, Defence and Magic 50, and its params 5 to 8, read as the stab, slash, crush and magic defence the Archive Guardian's own params give (120, 110, 20, 130, the Wiki's). The asleep and spent forms share the entry so a swing already on its way lands; they have no Attack. Its fight (ArchiveGuardian) charges it at 0 and it never fights back. Guessed: the ranged defences (none in the cache), no animations by name, the respawn, which never comes. Not in: a guide's earth weakness, with no figure"
+    },
+    {
       "npcs": ["sos_fam_fleshcrawler", "sos_fam_fleshcrawler2", "sos_fam_fleshcrawler3"],
       "attackSpeed": 3, "maxHit": 1, "attackType": "slash", "attackBonus": 0, "strengthBonus": 0,
       "defence": { "stab": 15, "slash": 15, "crush": 15, "magic": 15, "light": 15, "standard": 15, "heavy": 15 },

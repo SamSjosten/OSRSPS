@@ -390,6 +390,18 @@ class ArchiveRaids(private val world: World) {
     }
 
     /**
+     * `::raid clear`: [room] is done as if its boss died now. A room whose fight never began (the Guardian is only woken
+     * by Touch) counts whoever of the party stands in it as there at its start, so its points go to them as a kill's
+     * would, rather than to nobody.
+     */
+    fun clearNow(run: ArchiveRun, room: ArchiveRoom) {
+        if (room !in run.presentAtStart) {
+            run.presentAtStart[room] = standing(run).filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
+        }
+        clear(run, room)
+    }
+
+    /**
      * [room] is done: its points are shared out, whoever was down is up again, and the next row opens. After the third
      * and fourth rooms the nexus changes ([nexusLevel]).
      */
