@@ -300,12 +300,28 @@ class HeadlessSkullSceptreTest {
                 client.itemOp(SkullSceptre.SCEPTRE, SkullSceptre.DIVINE)
                 client.awaitDialogue("one charge") { it is DialogueView.Message && it.text == "[skull_sceptre.divine charges=1]" }
                 client.continueDialogue()
+
+                // Nor with the first two dropped before the join (round 15, R15-1): the charges are the player's, so a
+                // third joined with the others on the floor, then chiselled, would refill them when picked up again.
+                for (left in listOf(1, 0)) {
+                    client.itemOp(SkullSceptre.SCEPTRE, DROP)
+                    client.await("$left sceptres left") { client.carried(SkullSceptre.SCEPTRE).takeIf { it == left } }
+                }
+                client.command("item ${SkullSceptre.STRANGE_SKULL}")
+                client.command("item ${SkullSceptre.RUNED_SCEPTRE}")
+                client.await("the third pair") { client.carried(SkullSceptre.RUNED_SCEPTRE).takeIf { it == 1 } }
+                client.useOn(SkullSceptre.STRANGE_SKULL, SkullSceptre.RUNED_SCEPTRE)
+                client.await("the third sceptre") { client.carried(SkullSceptre.SCEPTRE).takeIf { it == 1 } }
+                client.itemOp(SkullSceptre.SCEPTRE, SkullSceptre.DIVINE)
+                client.awaitDialogue("still one charge") { it is DialogueView.Message && it.text == "[skull_sceptre.divine charges=1]" }
+                client.continueDialogue()
             }
         }
     }
 
     private companion object {
         const val WORN = 94
+        const val DROP = 5
         const val WORNITEMS_WEAPON = 18
         const val BACKPACK = 93
         val IOP_BUTTON_OPS = intArrayOf(2, 3, 4, 6, 7)
