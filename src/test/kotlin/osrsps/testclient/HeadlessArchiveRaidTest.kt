@@ -424,6 +424,44 @@ class HeadlessArchiveRaidTest {
     private fun HeadlessClient.homeTeleportPicked(clock: HeadlessClient) = homeTeleportsPicked(clock, this)
 
     @Test
+    fun `a member down whose Home Teleport lands the tick before the room is done still dies of it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { dave ->
+                server.login("carol").use { carol ->
+                    for (client in listOf(carol, dave)) client.await("the login rebuild") { client.position }
+                    carol.commandReply("raidparty invite dave") { it.startsWith("Invited") }
+                    dave.commandReply("raidparty accept carol") { it.startsWith("You joined") }
+                    val run = carol.enter(server, "carol")
+                    assertEquals(run, dave.enter(server, "dave"))
+                    val carolPlayer = server.world.playerNamed("carol")!!
+                    // Dave stands at the way in, and Carol falls there.
+                    carol.commandReply("item bronze axe 5") { it.contains("Bronze axe") }
+                    carol.command("hit 99 me")
+                    carol.await("Carol down") { if (carolPlayer.saveKey in run.downed && !carolPlayer.dead) Unit else null }
+                    carol.awaitTicks(World.LOGOUT_COMBAT_TICKS.toInt() + 1)
+                    dave.commandReply("pause") { it.contains("aused after tick") }
+                    carol.homeTeleportPicked(dave)
+                    var ticks = 0
+                    while (run.instance.contains(carolPlayer.x, carolPlayer.z)) {
+                        check(++ticks <= 60) { "no landing within 60 ticks of the pick" }
+                        dave.stepTicks(1)
+                    }
+                    // The Guardian's room done in the next tick's input, before that tick's look for escapes. Dave goes
+                    // in and clears it in that one input: a room with no boss built is done as soon as he stands in it.
+                    dave.command("raid tp guardian")
+                    dave.command("raid clear")
+                    dave.awaitCycles(2)
+                    dave.stepTicks(1)
+                    assertTrue(ArchiveRoom.GUARDIAN in run.cleared, "the Guardian's room done")
+                    dave.commandReply("resume") { it.startsWith("Resumed") }
+                    carol.awaitAt(Tile(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z), "Carol dead of it, in the lobby")
+                    server.assertGraveInLobby(carolPlayer.saveKey, "carol", 2)
+                }
+            }
+        }
+    }
+
+    @Test
     fun `a member down who Home Teleports out on the tick the last one standing does still dies of it`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("frank").use { frank ->

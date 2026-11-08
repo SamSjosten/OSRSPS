@@ -464,6 +464,8 @@ class ArchiveRaids(private val world: World) {
         run.started += room
         run.cleared += room
         run.chosen[room.stage] = room
+        // Whoever got out while down (a Home Teleport landing last tick) dies of it before the room's end gets them up.
+        settleEscapes(run, ended = false)
         share(run, room)
         run.downed.clear()
         run.clearedTick = world.tick
