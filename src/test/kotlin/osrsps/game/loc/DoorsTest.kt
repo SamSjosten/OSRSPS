@@ -29,7 +29,8 @@ class DoorsTest {
     )
     private val static = StaticLocs()
     private val zones = Zones()
-    private val locs = Locs(types, static, CollisionMap().apply { markLoaded(50, 50) }, zones) { 0 }
+    private var tick = 0L
+    private val locs = Locs(types, static, CollisionMap().apply { markLoaded(50, 50) }, zones) { tick }
     private val doors = Doors(locs).apply { registerDouble(LEFT, LEFT_OPEN, RIGHT, RIGHT_OPEN) }
 
     // Lumbridge Castle's large doors as the cache has them: the left leaf on the west edge of 3213, 3221, the right one north of it.
@@ -105,6 +106,70 @@ class DoorsTest {
         assertEquals(0, locs.changed)
         locs.process()
         assertEquals(other, locs[3207, 3217, 0, other.layer])
+        assertEquals(0, locs.changed)
+    }
+
+    @Test
+    fun `a door a player opens shuts again on its respawn clock, both leaves together`() {
+        static.add(left)
+        static.add(right)
+        doors.toggle(left, 1, by = "alice")
+        tick = Doors.RESPAWN_TICKS - 1L
+        locs.process()
+        assertEquals(listOf(leftOpened), locs.at(3212, 3221, 0), "still open a tick before")
+        tick = Doors.RESPAWN_TICKS.toLong()
+        locs.process()
+        assertEquals(listOf(left), locs.at(3213, 3221, 0))
+        assertEquals(listOf(right), locs.at(3213, 3222, 0))
+        assertEquals(0, locs.changed, "back as the cache has them")
+    }
+
+    @Test
+    fun `each move starts the clock again, and a door shut by hand has none`() {
+        static.add(right)
+        doors.toggle(right, 1)
+        tick = 100
+        doors.toggle(rightOpened, 1)
+        tick = 400
+        doors.toggle(right, 1)
+        tick = Doors.RESPAWN_TICKS.toLong()
+        locs.process()
+        assertEquals(listOf(rightOpened), locs.at(3212, 3222, 0), "the clock started again at the last opening")
+        tick = 400L + Doors.RESPAWN_TICKS
+        locs.process()
+        assertEquals(listOf(right), locs.at(3213, 3222, 0))
+        assertEquals(0, locs.changed)
+    }
+
+    @Test
+    fun `a door the cache has open opens again after a player shuts it`() {
+        val open = ZoneLoc(DOOR_OPEN, LocShape.WALL_STRAIGHT, 1, 3206, 3217, 0)
+        static.add(open)
+        val shut = doors.toggle(open, 1)!!
+        assertEquals(DOOR, shut.id)
+        tick = Doors.RESPAWN_TICKS.toLong()
+        locs.process()
+        assertEquals(listOf(open), locs.at(3206, 3217, 0))
+        assertEquals(0, locs.changed)
+    }
+
+    @Test
+    fun `restoring a player's doors puts back only the ones they moved and nobody moved since`() {
+        val west = ZoneLoc(DOOR, LocShape.WALL_STRAIGHT, 0, 3207, 3210, 0)
+        val east = ZoneLoc(DOOR, LocShape.WALL_STRAIGHT, 0, 3209, 3210, 0)
+        val south = ZoneLoc(DOOR, LocShape.WALL_STRAIGHT, 0, 3207, 3205, 0)
+        static.add(west)
+        static.add(east)
+        static.add(south)
+        doors.toggle(west, 1, by = "alice")
+        val eastOpened = doors.toggle(east, 1, by = "bob")!!
+        // Alice opens the south door and Bob shuts it, then opens it again: it is Bob's now.
+        doors.toggle(doors.toggle(doors.toggle(south, 1, by = "alice")!!, 1, by = "bob")!!, 1, by = "bob")
+        locs.restoreOwnedBy("alice")
+        assertEquals(listOf(west), locs.at(3207, 3210, 0))
+        assertEquals(listOf(eastOpened), locs.at(eastOpened.x, eastOpened.z, 0))
+        assertTrue(locs.at(3207, 3205, 0).isEmpty(), "Bob's last")
+        locs.restoreOwnedBy("bob")
         assertEquals(0, locs.changed)
     }
 

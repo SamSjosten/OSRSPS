@@ -197,7 +197,7 @@ class LocInteractions(
         val op = Op(OpTarget.LOC, loc.id, interaction.option, loc = loc, repeat = interaction.repeat)
         if ((!inInstance(loc.x, loc.z) || forInstances(loc.id)) && handlers.find(op) != null) {
             scripts.trigger(player, op)
-        } else if (doors.toggle(loc, interaction.option) == null && gates?.toggle(loc, interaction.option) == null) {
+        } else if (doors.toggle(loc, interaction.option, player.saveKey) == null && gates?.toggle(loc, interaction.option, player.saveKey) == null) {
             logger.info { "${player.username} used $op at ${loc.x}, ${loc.z}, ${loc.level} (not handled)" }
             message(player, words(player)[GameLines.NOTHING_INTERESTING])
         }

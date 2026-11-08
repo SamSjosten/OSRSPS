@@ -210,6 +210,24 @@ class ScenarioCommandsTest {
         assertNull(world.npcs[mine.index]?.takeIf { it === mine })
         assertTrue(world.npcs[theirs.index] === theirs)
         assertTrue(world.npcs[cache.index] === cache)
+    fun `reset shuts the doors the player opened`() {
+        val doorTypes = osrsps.game.loc.LocTypes(
+            listOf(
+                osrsps.game.loc.LocType(1543, "Door", ops = listOf("Open", null, null, null, null), internalName = "elfdoor"),
+                osrsps.game.loc.LocType(1544, "Door", ops = listOf("Close", null, null, null, null), internalName = "elfdooropen"),
+            ).associateBy { it.id },
+        )
+        val door = osrsps.game.zone.ZoneLoc(1543, osrsps.map.LocShape.WALL_STRAIGHT, 0, 3225, 3218, 0)
+        val world = World(
+            IntArray(0), CollisionMap().apply { markLoaded(50, 50) }, varTypes, saves = MemorySaveStore(), objTypes = types,
+            scenarios = Scenarios(listOf(cows)), locTypes = doorTypes, staticLocs = osrsps.game.loc.StaticLocs().apply { add(door) },
+        )
+        world.commands.execute(player, "scenario cows", replies::add)
+        world.doors.toggle(door, 1, by = player.saveKey)
+        assertEquals(1, world.locs.at(3224, 3218, 0).size, "open")
+        world.commands.execute(player, "reset", replies::add)
+        assertEquals(listOf(door), world.locs.at(3225, 3218, 0))
+        assertEquals(0, world.locs.changed)
     }
 
     @Test

@@ -17,11 +17,14 @@ private val logger = KotlinLogging.logger {}
  * Opened, the leaves turn three quarters clockwise (a quarter anticlockwise) and move: the left one a tile outward,
  * the right one two tiles outward and a tile back along the wall, so both stand against the left leaf's hinge side.
  * That is RSMod's picket gate rule (rev 233), which its authors took from live; not yet watched on our own recording,
- * so guessed. Gates stay open until closed, like [Doors] (RSMod closes them again after 500 ticks; no source we
- * have says live does).
+ * so guessed. A gate a player moves goes back as the cache has it [Doors.RESPAWN_TICKS] later, as a door does (RSMod
+ * closes gates after 500 ticks too; the OSRS Wiki's Door page gives doors 300 seconds, taken for gates as well).
  */
 class Gates(private val locs: Locs) {
     private class Leaf(val left: Boolean, val open: Boolean, val partner: Int, val otherLeaf: Int?)
+
+    /** The tiles the [toggle] running now has changed, for their respawn clock. */
+    private val moved = ArrayList<ZoneLoc>()
 
     /** By each of a gate's four types: which leaf it is, open or not, and its other state. */
     private val leaves = HashMap<Int, Leaf>()
@@ -62,7 +65,15 @@ class Gates(private val locs: Locs) {
      * Opens or closes the gate [loc] is a leaf of, with its other leaf when that is in place, if [option] is the leaf's
      * Open or Close. Returns the clicked leaf as it is now, or null if [loc] isn't a gate that option works on.
      */
-    fun toggle(loc: ZoneLoc, option: Int): ZoneLoc? {
+    fun toggle(loc: ZoneLoc, option: Int, by: String? = null): ZoneLoc? {
+        moved.clear()
+        val now = swingGate(loc, option)
+        for (tile in moved) locs.restoreAfter(tile.x, tile.z, tile.level, tile.layer, Doors.RESPAWN_TICKS, by)
+        moved.clear()
+        return now
+    }
+
+    private fun swingGate(loc: ZoneLoc, option: Int): ZoneLoc? {
         val leaf = leaves[loc.id] ?: return null
         if (loc.shape != LocShape.WALL_STRAIGHT || !locs.exists(loc)) return null
         val type = locs.types[loc.id] ?: return null
@@ -81,6 +92,13 @@ class Gates(private val locs: Locs) {
     }
 
     private fun swing(loc: ZoneLoc, leaf: Leaf): ZoneLoc {
+        val now = swingLeaf(loc, leaf)
+        moved += loc
+        moved += now
+        return now
+    }
+
+    private fun swingLeaf(loc: ZoneLoc, leaf: Leaf): ZoneLoc {
         return if (!leaf.open) {
             val (dx, dz) = (if (leaf.left) LEFT_OPEN else RIGHT_OPEN)[loc.angle]
             val opened = ZoneLoc(leaf.partner, loc.shape, (loc.angle + OPEN_TURN) and 3, loc.x + dx, loc.z + dz, loc.level)
