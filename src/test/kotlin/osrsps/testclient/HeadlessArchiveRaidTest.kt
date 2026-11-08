@@ -462,6 +462,91 @@ class HeadlessArchiveRaidTest {
     }
 
     @Test
+    fun `a member down who leaves the party just before the room is done still dies of it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { carol ->
+                server.login("dave").use { dave ->
+                    server.login("erin").use { erin ->
+                        for (client in listOf(carol, dave, erin)) client.await("the login rebuild") { client.position }
+                        carol.commandReply("raidparty invite dave") { it.startsWith("Invited") }
+                        dave.commandReply("raidparty accept carol") { it.startsWith("You joined") }
+                        carol.commandReply("raidparty invite erin") { it.startsWith("Invited") }
+                        erin.commandReply("raidparty accept carol") { it.startsWith("You joined") }
+                        val run = carol.enter(server, "carol")
+                        assertEquals(run, dave.enter(server, "dave"))
+                        assertEquals(run, erin.enter(server, "erin"))
+                        val erinPlayer = server.world.playerNamed("erin")!!
+                        erin.commandReply("item bronze axe 5") { it.contains("Bronze axe") }
+                        erin.command("hit 99 me")
+                        erin.await("Erin down") { if (erinPlayer.saveKey in run.downed && !erinPlayer.dead) Unit else null }
+                        // Between two ticks Erin leaves the party, still in the instance, and Dave goes into the
+                        // Guardian's room and has it done: before the next tick could send her out.
+                        dave.commandReply("pause") { it.contains("aused after tick") }
+                        erin.commandReply("raidparty leave") { it.contains("left") || it.contains("Left") }
+                        assertTrue(run.instance.contains(erinPlayer.x, erinPlayer.z), "Erin still in the instance")
+                        dave.commandReply("raid tp guardian") { it.startsWith("To ") }
+                        dave.commandReply("raid clear") { it.startsWith("Cleared") }
+                        dave.stepTicks(1)
+                        dave.commandReply("resume") { it.startsWith("Resumed") }
+                        erin.awaitAt(Tile(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z), "Erin dead of it, in the lobby")
+                        erin.await("Erin's three axes") { erin.inventory(INVENTORY).count { it?.id == axe.id }.takeIf { it == 3 } }
+                        server.assertGraveInLobby(erinPlayer.saveKey, "erin", 2)
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a member down whose Home Teleport lands the tick before the last one standing dies still dies of it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("frank").use { frank ->
+                server.login("dave").use { dave ->
+                    server.login("carol").use { carol ->
+                        // Frank, out of the party, holds the clock, and first times a Home Teleport from the pick to the landing.
+                        for (client in listOf(carol, dave, frank)) client.await("the login rebuild") { client.position }
+                        val frankPlayer = server.world.playerNamed("frank")!!
+                        val stone = Tile(Lodestones.LUMBRIDGE.x + 1, Lodestones.LUMBRIDGE.z + 1)
+                        frank.commandReply("pause") { it.contains("aused after tick") }
+                        frank.homeTeleportPicked(frank)
+                        var cast = 0
+                        while (frankPlayer.x != stone.x || frankPlayer.z != stone.z) {
+                            check(++cast <= 60) { "no landing within 60 ticks of the pick" }
+                            frank.stepTicks(1)
+                        }
+                        frank.commandReply("resume") { it.startsWith("Resumed") }
+                        carol.commandReply("raidparty invite dave") { it.startsWith("Invited") }
+                        dave.commandReply("raidparty accept carol") { it.startsWith("You joined") }
+                        val run = carol.enter(server, "carol")
+                        assertEquals(run, dave.enter(server, "dave"))
+                        val carolPlayer = server.world.playerNamed("carol")!!
+                        val davePlayer = server.world.playerNamed("dave")!!
+                        carol.commandReply("item bronze axe 5") { it.contains("Bronze axe") }
+                        carol.command("hit 99 me")
+                        carol.await("Carol down") { if (carolPlayer.saveKey in run.downed && !carolPlayer.dead) Unit else null }
+                        carol.awaitTicks(World.LOGOUT_COMBAT_TICKS.toInt() + 1)
+                        // Carol picks Home Teleport; Dave, the last standing, falls so that his death ends on the tick
+                        // after her landing, before that tick's look for escapes, and wipes the run.
+                        frank.commandReply("pause") { it.contains("aused after tick") }
+                        carol.homeTeleportPicked(frank)
+                        frank.stepTicks(cast - Deaths.DEATH_TICKS + 1)
+                        dave.commandReply("hit 99 me") { it.endsWith(", dead") }
+                        frank.stepTicks(Deaths.DEATH_TICKS - 1)
+                        assertTrue(!run.instance.contains(carolPlayer.x, carolPlayer.z), "Carol landed out of the run")
+                        assertTrue(davePlayer.dead && !run.wiped, "Dave still lying dead")
+                        assertTrue(carolPlayer.saveKey in run.downed, run.downed.toString())
+                        frank.stepTicks(1)
+                        assertTrue(run.wiped, "Dave's death wiped the run")
+                        frank.commandReply("resume") { it.startsWith("Resumed") }
+                        carol.awaitAt(Tile(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z), "Carol dead of it, in the lobby")
+                        server.assertGraveInLobby(carolPlayer.saveKey, "carol", 2)
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
     fun `a member down who Home Teleports out on the tick the last one standing does still dies of it`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("frank").use { frank ->

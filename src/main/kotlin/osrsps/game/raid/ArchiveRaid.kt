@@ -394,12 +394,14 @@ class ArchiveRaids(private val world: World) {
 
     /**
      * A member down who got out of [run], by a teleport or by leaving the party, dies of it (RAID-2). Once its
-     * instance has [ended], everyone is out of it.
+     * instance has [ended], everyone is out of it. One who left the party counts at once, before [process] sends them out
+     * of the instance: a room done in the same input would otherwise get them up first.
      */
     private fun settleEscapes(run: ArchiveRun, ended: Boolean) {
         for (key in run.downed.toList()) {
             val player = world.onlinePlayers.firstOrNull { it.saveKey == key } ?: continue
-            if (!player.dead && (ended || !run.instance.contains(player.x, player.z))) escaped(run, player)
+            val out = ended || !run.instance.contains(player.x, player.z) || world.parties.of(player) !== run.party
+            if (!player.dead && out) escaped(run, player)
         }
     }
 
@@ -533,6 +535,8 @@ class ArchiveRaids(private val world: World) {
      * [dying] is the one whose death did it, whose own respawn carries on after; the others lying dead go as they get up.
      */
     private fun wipe(run: ArchiveRun, dying: Player?) {
+        // Whoever got out while down (a Home Teleport landing last tick) dies of it first: the wipe only sees who is in.
+        settleEscapes(run, ended = false)
         run.wiped = true
         for (room in run.fights.keys.toList()) stopFight(run, room)
         logger.info { "$run wiped${dying?.let { " as ${it.username} died" }.orEmpty()}" }
