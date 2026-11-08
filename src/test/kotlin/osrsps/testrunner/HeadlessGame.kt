@@ -13,6 +13,7 @@ import osrsps.game.World
 import osrsps.game.bank.BankScreen
 import osrsps.game.bank.DepositBox
 import osrsps.game.ge.GrandExchangeScreen
+import osrsps.game.ge.PriceChecker
 import osrsps.game.shop.ShopScreen
 import osrsps.game.trade.Trades
 import osrsps.game.dialogue.Chatbox
@@ -167,14 +168,18 @@ internal class HeadlessGame(
         if (!inScene(client, at.x, at.y)) return "tile ${at.x}, ${at.y} is not in the loaded scene"
         val what = (if (name != null) "\"$name\"" else "id $id") + " at ${at.x}, ${at.y}"
         var seen = false
-        for (loc in sceneLocs(client, here)) {
+        val locs = sceneLocs(client, here)
+        for (loc in locs) {
             if (!loc.covers(at.x, at.y) || !locMatches(loc, name, id)) continue
             // A hidden loc (no current form) matches by its id but isn't there to see.
             val anyForm = option == null || option.equals(EXAMINE, ignoreCase = true)
             if (if (anyForm) loc.shown != null else loc.shown?.let { opSlot(it.ops, option!!) >= 0 } == true) return null
             seen = true
         }
-        if (!seen) return "no loc $what"
+        if (!seen) {
+            val there = locs.filter { it.covers(at.x, at.y) }.map { "${it.shown?.name ?: "hidden"} (${it.loc.id})" }
+            return "no loc $what" + if (there.isEmpty()) "" else "; there: ${there.joinToString()}"
+        }
         return if (option == null) "loc $what is hidden" else "loc $what has no option \"$option\""
     }
 
@@ -426,6 +431,19 @@ internal class HeadlessGame(
             client.resumePause(interfaceId, component, quantity)
             return null
         }
+        if (sub == FRAME_CLOSE_CHILD && (interfaceId shl 16 or component) in FRAME_CLOSE_BUTTONS) {
+            // Inferred: steelborder's close button closes the screen in the client (if_close), which tells the server
+            // with CLOSE_MODAL; the button's own op isn't the server's to handle.
+            client.closeModal()
+            return null
+        }
+        if (interfaceId == BankScreen.POPUPOVERLAY && component == POPUP_CONFIRM &&
+            client.clientScripts().lastOrNull()?.id == BankScreen.CONFIRM_OVERLAY_SCRIPT
+        ) {
+            // Stand-in for the confirm overlay's own click script: its buttons answer resume_p_countdialog, 1 to confirm.
+            client.resumeCount(1)
+            return null
+        }
         client.ifButton(interfaceId, component, op, sub, objAt(client, interfaceId, component, sub))
         return null
     }
@@ -663,6 +681,13 @@ internal class HeadlessGame(
             GrandExchangeScreen.MESLAYER_MODE14 to ITEM_SEARCH_MODE,
         )
         const val ITEM_SEARCH_MODE = 14
+
+        /** Screens whose frame (steelborder) draws a close button as child [FRAME_CLOSE_CHILD]: shopmain, ge_pricechecker, ge_offers. */
+        val FRAME_CLOSE_BUTTONS = setOf((ShopScreen.MAIN shl 16) or 1, (PriceChecker.MAIN shl 16) or 1, (GrandExchangeScreen.MAIN shl 16) or 2)
+        const val FRAME_CLOSE_CHILD = 11
+
+        /** popupoverlay's confirm button, as the scripts click it. */
+        const val POPUP_CONFIRM = 8
         const val GROUND_LOC_LAYER = 2
         const val PLAYER_OPTION_SLOTS = 8
 
@@ -684,15 +709,18 @@ internal class HeadlessGame(
         const val SHOP_MAIN_INIT = 1074
         const val SHOP_MAIN_ITEMS = (300 shl 16) or 16
 
-        /** Components that always list one inventory: the inventory tab, the bank's items and the screens' inventory sides. */
+        /** Components that always list one inventory: the inventory tab, the bank's and price checker's items and the screens' inventory sides. */
         val STATIC_INVENTORY_COMPONENTS = mapOf(
             (InventoryTab.INTERFACE shl 16) or InventoryTab.ITEMS to InvBinding(Inventory.INV),
             (BankScreen.MAIN shl 16) or BankScreen.MAIN_ITEMS to InvBinding(Inventory.BANK),
             (BankScreen.SIDE shl 16) or BankScreen.SIDE_ITEMS to InvBinding(Inventory.INV),
+            (BankScreen.SIDE shl 16) or BankScreen.SIDE_WORNOPS to InvBinding(Inventory.INV),
             (DepositBox.INTERFACE shl 16) or DepositBox.ITEMS to InvBinding(Inventory.INV),
             (ShopScreen.SIDE shl 16) or ShopScreen.SIDE_ITEMS to InvBinding(Inventory.INV),
             (Trades.SIDE shl 16) or Trades.SIDE_ITEMS to InvBinding(Inventory.INV),
             (GrandExchangeScreen.SIDE shl 16) or GrandExchangeScreen.SIDE_ITEMS to InvBinding(Inventory.INV),
+            (PriceChecker.MAIN shl 16) or PriceChecker.ITEMS to InvBinding(PriceChecker.INV),
+            (PriceChecker.SIDE shl 16) or PriceChecker.SIDE_ITEMS to InvBinding(Inventory.INV),
         )
 
         /** RuneLite's WorldPoint.distanceTo on one plane: the larger of the two axes. */
