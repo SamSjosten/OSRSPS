@@ -1,6 +1,6 @@
 [versions]
 kotlin = "2.4.21"
-rsprot = "1.0.0-ALPHA-20261014"
+rsprot = "1.0.0-ALPHA-20261106"
 # Netty for RSProt, the client files' HTTP server and the PROXY header. The BOM in build.gradle.kts holds every Netty
 # module RSProt brings (io_uring included) at this version: 4.2.2's io_uring threw an AssertionError (with -ea) once
 # several connections flushed in one pass, and 4.2.5 fixed request smuggling in the HTTP codec (CVE-2025-58056).
@@ -12,8 +12,8 @@ displee-cache = "8.1.0"
 kotlinx-serialization = "1.11.0"
 
 [libraries]
-rsprot-api = { module = "net.rsprot:osrs-241-api", version.ref = "rsprot" }
-rsprot-desktop = { module = "net.rsprot:osrs-241-desktop", version.ref = "rsprot" }
+rsprot-api = { module = "net.rsprot:osrs-242-api", version.ref = "rsprot" }
+rsprot-desktop = { module = "net.rsprot:osrs-242-desktop", version.ref = "rsprot" }
 netty-bom = { module = "io.netty:netty-bom", version.ref = "netty" }
 netty-codec-http = { module = "io.netty:netty-codec-http", version.ref = "netty" }
 netty-codec-haproxy = { module = "io.netty:netty-codec-haproxy", version.ref = "netty" }

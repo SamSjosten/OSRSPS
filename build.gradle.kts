@@ -15,7 +15,7 @@ kotlin {
 }
 
 dependencies {
-    // RSProt for revision 241; wired into login in the next step.
+    // RSProt for revision 242.
     implementation(libs.rsprot.api)
     implementation(platform(libs.netty.bom))
     implementation(libs.netty.codec.http)

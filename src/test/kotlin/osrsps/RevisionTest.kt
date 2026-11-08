@@ -5,7 +5,7 @@ import kotlin.test.assertEquals
 
 class RevisionTest {
     @Test
-    fun `targets live revision 241`() {
-        assertEquals(241, Revision.MAJOR)
+    fun `targets live revision 242`() {
+        assertEquals(242, Revision.MAJOR)
     }
 }

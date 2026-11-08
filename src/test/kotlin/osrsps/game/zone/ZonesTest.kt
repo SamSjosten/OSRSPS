@@ -89,8 +89,8 @@ class ZonesTest {
         val b = toBob.single() as UpdateZonePartialEnclosed
         assertEquals(listOf(48, 48, 0), listOf(a.zoneX, a.zoneZ, a.level))
         assertSame(a.payload, b.payload)
-        // The first byte is the zone prot's index, which is 0 for MAP_ANIM.
-        assertEquals(0, a.payload.getByte(a.payload.readerIndex()).toInt())
+        // The first byte is the zone prot's index, which is 1 for MAP_ANIM (RSProt 242's IndexedZoneProtEncoder).
+        assertEquals(1, a.payload.getByte(a.payload.readerIndex()).toInt())
     }
 
     @Test

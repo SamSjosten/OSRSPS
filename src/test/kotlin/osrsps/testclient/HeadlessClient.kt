@@ -361,71 +361,71 @@ class HeadlessClient private constructor(
     fun npcOp(index: Int, op: Int, ctrl: Boolean = false, subop: Int = 0) {
         val key = if (ctrl) 1 else 0
         when (op) {
-            1 -> send(GameClientProt.OPNPC1_V2) { p1Alt1(subop); p2Alt3(index); p1Alt2(key) }
-            2 -> send(GameClientProt.OPNPC2_V2) { p1Alt1(key); p1Alt3(subop); p2Alt3(index) }
-            3 -> send(GameClientProt.OPNPC3_V2) { p2Alt1(index); p1(subop); p1Alt1(key) }
-            4 -> send(GameClientProt.OPNPC4_V2) { p1Alt3(key); p1Alt3(subop); p2Alt1(index) }
-            5 -> send(GameClientProt.OPNPC5_V2) { p2Alt2(index); p1Alt1(key); p1Alt2(subop) }
+            1 -> send(GameClientProt.OPNPC1_V2) { p1Alt3(key); p2(index); p1Alt2(subop) }
+            2 -> send(GameClientProt.OPNPC2_V2) { p1Alt3(key); p2Alt1(index); p1Alt1(subop) }
+            3 -> send(GameClientProt.OPNPC3_V2) { p1Alt1(key); p2(index); p1Alt1(subop) }
+            4 -> send(GameClientProt.OPNPC4_V2) { p1Alt3(key); p1Alt3(subop); p2(index) }
+            5 -> send(GameClientProt.OPNPC5_V2) { p1Alt3(subop); p1(key); p2Alt2(index) }
             else -> throw IllegalArgumentException("NPC ops are 1-5, not $op")
         }
     }
 
     /**
      * Component [componentId] of [interfaceId] (slot [sub], showing [obj]; -1 for none) used on the NPC at [index], as
-     * OPNPCT: a spell picked in the spellbook and clicked on the NPC. Laid out as RSProt's 241 OpNpcTDecoder reads it.
+     * OPNPCT: a spell picked in the spellbook and clicked on the NPC. Laid out as RSProt's 242 OpNpcTDecoder reads it.
      */
     fun npcTarget(index: Int, interfaceId: Int, componentId: Int, sub: Int = -1, obj: Int = -1, ctrl: Boolean = false) =
         send(GameClientProt.OPNPCT) {
-            p4Alt3((interfaceId shl 16) or componentId)
-            p2(index)
-            p2(sub and 0xFFFF)
-            p2Alt2(obj and 0xFFFF)
             p1Alt2(if (ctrl) 1 else 0)
+            p2Alt3(obj and 0xFFFF)
+            p4Alt3((interfaceId shl 16) or componentId)
+            p2(sub and 0xFFFF)
+            p2Alt1(index)
         }
 
     /** Examine on NPC type [id], as OPNPC6. */
     fun examineNpc(id: Int) = send(GameClientProt.OPNPC6) { p2(id) }
 
-    /** Examine on loc type [id], as OPLOC6. */
-    fun examineLoc(id: Int) = send(GameClientProt.OPLOC6) { p2Alt3(id) }
+    /** Examine on loc type [id], as OPLOC6_V1 (the 2-byte id form). */
+    fun examineLoc(id: Int) = send(GameClientProt.OPLOC6_V1) { p2Alt1(id) }
 
     /** Op [op] (1-5) on loc [id] whose south-west tile is [x], [z], as OPLOC1-5. */
     fun locOp(id: Int, x: Int, z: Int, op: Int, ctrl: Boolean = false, subop: Int = 0) {
         val key = if (ctrl) 1 else 0
         when (op) {
-            1 -> send(GameClientProt.OPLOC1_V2) { p2Alt1(z); p2Alt3(id); p1(subop); p2(x); p1Alt3(key) }
-            2 -> send(GameClientProt.OPLOC2_V2) { p1Alt3(key); p2(z); p2Alt2(id); p1Alt2(subop); p2(x) }
-            3 -> send(GameClientProt.OPLOC3_V2) { p2Alt1(z); p2Alt1(x); p1Alt2(subop); p2Alt3(id); p1Alt1(key) }
-            4 -> send(GameClientProt.OPLOC4_V2) { p2Alt2(id); p1Alt1(subop); p1Alt3(key); p2Alt1(x); p2Alt1(z) }
-            5 -> send(GameClientProt.OPLOC5_V2) { p2Alt3(z); p2Alt1(id); p1(subop); p1Alt1(key); p2Alt2(x) }
+            1 -> send(GameClientProt.OPLOC1_V2) { p2Alt3(z); p1Alt3(key); p1Alt2(subop); p2Alt2(id); p2Alt2(x) }
+            2 -> send(GameClientProt.OPLOC2_V2) { p2(id); p2(z); p2Alt2(x); p1(subop); p1Alt1(key) }
+            3 -> send(GameClientProt.OPLOC3_V2) { p2(id); p1(key); p2Alt1(z); p2(x); p1Alt3(subop) }
+            4 -> send(GameClientProt.OPLOC4_V2) { p1Alt1(key); p2Alt1(x); p2Alt1(z); p1Alt3(subop); p2(id) }
+            5 -> send(GameClientProt.OPLOC5_V2) { p2Alt1(id); p1Alt3(key); p2(z); p1(subop); p2(x) }
             else -> throw IllegalArgumentException("Loc ops are 1-5, not $op")
         }
     }
 
     /**
      * Component [componentId] of [interfaceId] (slot [sub], showing [obj]) used on loc [id] whose south-west tile is
-     * [x], [z], as OPLOCT: an inventory item's Use, then a click on the loc. Laid out as RSProt's 241 OpLocTDecoder reads it.
+     * [x], [z], as OPLOCT: an inventory item's Use, then a click on the loc. Laid out as RSProt's 242 OpLocTDecoder reads it.
      */
     fun locTarget(id: Int, x: Int, z: Int, interfaceId: Int, componentId: Int, sub: Int = -1, obj: Int = -1, ctrl: Boolean = false) =
-        send(GameClientProt.OPLOCT) {
-            p2Alt2(sub and 0xFFFF)
+        send(GameClientProt.OPLOCT_V1) {
+            p2(x)
+            p2Alt2(obj and 0xFFFF)
+            p2Alt3(z)
+            p2Alt3(sub and 0xFFFF)
+            p1Alt1(if (ctrl) 1 else 0)
+            p4((interfaceId shl 16) or componentId)
             p2(id)
-            p1(if (ctrl) 1 else 0)
-            p2Alt2(z)
-            p2Alt3(x)
-            p2(obj and 0xFFFF)
-            p4Alt1((interfaceId shl 16) or componentId)
         }
 
     /** Op [op] (1-5; 3 is Take) on ground obj [id] at [x], [z] (OPOBJ1_V2 to OPOBJ5_V2). */
     fun objOp(id: Int, x: Int, z: Int, op: Int, ctrl: Boolean = false, subop: Int = 0) {
         val key = if (ctrl) 1 else 0
         when (op) {
-            1 -> send(GameClientProt.OPOBJ1_V2) { p1(subop); p2(x); p2(id); p1(key); p2Alt3(z) }
-            2 -> send(GameClientProt.OPOBJ2_V2) { p2Alt2(x); p2(id); p1Alt2(subop); p2Alt2(z); p1Alt1(key) }
-            3 -> send(GameClientProt.OPOBJ3_V2) { p1(subop); p2(x); p2(id); p2Alt1(z); p1Alt3(key) }
-            4 -> send(GameClientProt.OPOBJ4_V2) { p2Alt1(z); p2(x); p1Alt2(key); p1Alt1(subop); p2Alt2(id) }
-            5 -> send(GameClientProt.OPOBJ5_V2) { p2Alt3(id); p2Alt1(z); p1Alt3(key); p2Alt2(x); p1Alt3(subop) }
+            1 -> send(GameClientProt.OPOBJ1_V2) { p1Alt3(key); p2(x); p1Alt1(subop); p2Alt1(id); p2(z) }
+            2 -> send(GameClientProt.OPOBJ2_V2) { p2Alt2(z); p2Alt2(id); p1(key); p1(subop); p2Alt2(x) }
+            3 -> send(GameClientProt.OPOBJ3_V2) { p2Alt2(z); p1Alt2(subop); p2Alt1(id); p1Alt1(key); p2Alt3(x) }
+            4 -> send(GameClientProt.OPOBJ4_V2) { p2Alt2(id); p1(subop); p1Alt1(key); p2Alt2(x); p2Alt2(z) }
+            5 -> send(GameClientProt.OPOBJ5_V2) { p2(id); p2(x); p1(subop); p2Alt3(z); p1(key) }
             else -> throw IllegalArgumentException("Obj ops are 1-5, not $op")
         }
     }
@@ -442,36 +442,36 @@ class HeadlessClient private constructor(
     }
 
     /**
-     * One component's item used on another's (IF_BUTTONT): inventory item on inventory item. Laid out as RSProt's 241
+     * One component's item used on another's (IF_BUTTONT): inventory item on inventory item. Laid out as RSProt's 242
      * IfButtonTDecoder reads it.
      */
     fun ifButtonT(fromInterface: Int, fromComponent: Int, fromSub: Int, fromObj: Int, toInterface: Int, toComponent: Int, toSub: Int, toObj: Int) =
         send(GameClientProt.IF_BUTTONT) {
-            p4Alt1((toInterface shl 16) or toComponent)
-            p2Alt3(fromObj and 0xFFFF)
+            p4((toInterface shl 16) or toComponent)
+            p2Alt2(fromObj and 0xFFFF)
             p4Alt2((fromInterface shl 16) or fromComponent)
-            p2Alt3(toObj and 0xFFFF)
-            p2(toSub and 0xFFFF)
-            p2Alt3(fromSub and 0xFFFF)
+            p2Alt2(fromSub and 0xFFFF)
+            p2Alt1(toSub and 0xFFFF)
+            p2(toObj and 0xFFFF)
         }
 
     /**
      * One component's item dragged onto another slot (IF_BUTTOND): a bank or inventory rearrange. Laid out as RSProt's
-     * 241 IfButtonDDecoder reads it.
+     * 242 IfButtonDDecoder reads it.
      */
     fun ifButtonD(fromInterface: Int, fromComponent: Int, fromSub: Int, fromObj: Int, toInterface: Int, toComponent: Int, toSub: Int, toObj: Int = -1) =
         send(GameClientProt.IF_BUTTOND) {
-            p2Alt1(fromObj and 0xFFFF)
-            p4Alt3((fromInterface shl 16) or fromComponent)
-            p2Alt1(fromSub and 0xFFFF)
-            p2(toSub and 0xFFFF)
-            p2Alt2(toObj and 0xFFFF)
-            p4Alt3((toInterface shl 16) or toComponent)
+            p2(toObj and 0xFFFF)
+            p2Alt3(fromSub and 0xFFFF)
+            p2Alt2(fromObj and 0xFFFF)
+            p4((toInterface shl 16) or toComponent)
+            p2Alt2(toSub and 0xFFFF)
+            p4Alt2((fromInterface shl 16) or fromComponent)
         }
 
     /**
      * A client script's call to its server half (IF_SCRIPT_TRIGGER), as a volume slider sends it: script [id] on
-     * component [componentId] of [interfaceId] with int arguments [args]. Laid out as RSProt's 241
+     * component [componentId] of [interfaceId] with int arguments [args]. Laid out as RSProt's 242
      * IfScriptTriggerDecoder reads it; the arguments are signed var-ints, as IfScriptTrigger.decode reads them.
      * As the 241 client, it waits for the server to have enabled the component with [scriptTriggerEnabled] first, and
      * fails if it never does: the real client would send nothing.
@@ -479,10 +479,10 @@ class HeadlessClient private constructor(
     fun ifScriptTrigger(interfaceId: Int, componentId: Int, id: Int, vararg args: Int, sub: Int = -1, obj: Int = -1) {
         await("IF_SCRIPT_TRIGGER events on $interfaceId:$componentId") { Unit.takeIf { scriptTriggerEnabled(interfaceId, componentId, sub) } }
         send(GameClientProt.IF_SCRIPT_TRIGGER) {
-            p4Alt2((interfaceId shl 16) or componentId)
-            p2Alt1(obj and 0xFFFF)
-            p2Alt1(sub and 0xFFFF)
-            p4Alt2(id)
+            p2Alt2(obj and 0xFFFF)
+            p4Alt1(id)
+            p4Alt1((interfaceId shl 16) or componentId)
+            p2Alt2(sub and 0xFFFF)
             for (arg in args) pVarInt2s(arg)
         }
     }
@@ -498,24 +498,24 @@ class HeadlessClient private constructor(
     fun playerOp(index: Int, op: Int, ctrl: Boolean = false) {
         val key = if (ctrl) 1 else 0
         when (op) {
-            1 -> send(GameClientProt.OPPLAYER1) { p2Alt3(index); p1Alt2(key) }
-            3 -> send(GameClientProt.OPPLAYER3) { p1Alt1(key); p2Alt2(index) }
-            4 -> send(GameClientProt.OPPLAYER4) { p2Alt3(index); p1Alt3(key) }
-            8 -> send(GameClientProt.OPPLAYER8) { p1Alt3(key); p2Alt2(index) }
+            1 -> send(GameClientProt.OPPLAYER1) { p1Alt1(key); p2(index) }
+            3 -> send(GameClientProt.OPPLAYER3) { p2Alt2(index); p1(key) }
+            4 -> send(GameClientProt.OPPLAYER4) { p1Alt1(key); p2(index) }
+            8 -> send(GameClientProt.OPPLAYER8) { p2Alt2(index); p1Alt3(key) }
             else -> throw IllegalArgumentException("No player op $op here")
         }
     }
 
     /**
      * Component [componentId] of [interfaceId] (slot [sub], showing [obj]) used on the player at [index], as OPPLAYERT:
-     * an inventory item's Use, then a click on the player. Laid out as RSProt's 241 OpPlayerTDecoder reads it.
+     * an inventory item's Use, then a click on the player. Laid out as RSProt's 242 OpPlayerTDecoder reads it.
      */
     fun playerTarget(index: Int, interfaceId: Int, componentId: Int, sub: Int = -1, obj: Int = -1, ctrl: Boolean = false) =
         send(GameClientProt.OPPLAYERT) {
-            p2Alt1(sub and 0xFFFF)
-            p4((interfaceId shl 16) or componentId)
-            p1Alt1(if (ctrl) 1 else 0)
+            p1Alt2(if (ctrl) 1 else 0)
+            p4Alt3((interfaceId shl 16) or componentId)
             p2Alt2(obj and 0xFFFF)
+            p2Alt2(sub and 0xFFFF)
             p2Alt2(index)
         }
 
@@ -582,8 +582,8 @@ class HeadlessClient private constructor(
 
     /** A rank picked for a friend in the friends chat setup list (FRIENDCHAT_SETRANK): 0 none, 1 Recruit to 6 General. */
     fun setFriendsChatRank(name: String, rank: Int) = send(GameClientProt.FRIENDCHAT_SETRANK) {
-        p1(rank)
         pjstr(name)
+        p1Alt2(rank)
     }
 
     /** Kick user on a friends chat member (FRIENDCHAT_KICK). */
@@ -626,8 +626,8 @@ class HeadlessClient private constructor(
 
     /** A click on a pause button (RESUME_PAUSEBUTTON): a dialogue's continue, or a menu option as [sub]. */
     fun resumePause(interfaceId: Int, componentId: Int, sub: Int = -1) = send(GameClientProt.RESUME_PAUSEBUTTON) {
-        p2Alt1(sub and 0xFFFF)
-        p4Alt1((interfaceId shl 16) or componentId)
+        p2Alt2(sub and 0xFFFF)
+        p4Alt3((interfaceId shl 16) or componentId)
     }
 
     /** Clicks "Click here to continue" on the dialogue showing now. */
@@ -659,9 +659,9 @@ class HeadlessClient private constructor(
 
     /** A click on the game view at [x], [z], as MOVE_GAMECLICK. [keyCombination] 1 is ctrl, 2 ctrl and shift. */
     fun walk(x: Int, z: Int, keyCombination: Int = 0) = send(GameClientProt.MOVE_GAMECLICK) {
-        p1Alt1(keyCombination)
+        p1Alt2(keyCombination)
+        p2(x)
         p2Alt2(z)
-        p2Alt2(x)
     }
 
     /** A `::` command typed in the chatbox, without the colons. */
@@ -808,16 +808,17 @@ class HeadlessClient private constructor(
                     buf.skipRead(playerInfo.init(packet.payload))
                     rebuilt = true
                 }
-                val zoneZ = buf.g2()
-                zones.rebuild(centreX = buf.g2Alt1(), centreZ = zoneZ)
+                val zoneZ = buf.g2Alt2()
+                buf.g2Alt3()
+                zones.rebuild(centreX = buf.g2Alt3(), centreZ = zoneZ)
                 regionZones = null
             }
-            // RSProt's RebuildRegionV2Encoder: the centre zone x, the reload flag, the centre zone z, how many map squares
+            // RSProt's RebuildRegionV2Encoder: the centre zone z, the centre zone x, the reload flag, how many map squares
             // it draws from, then a bit for each of the 4 x 13 x 13 zones and, where set, the 26-bit zone it copies.
             GameServerProt.REBUILD_REGION_V2 -> {
-                val zoneX = buf.g2()
-                buf.g1Alt2()
                 val zoneZ = buf.g2Alt1()
+                val zoneX = buf.g2Alt2()
+                buf.g1Alt2()
                 buf.g2()
                 zones.rebuild(centreX = zoneX, centreZ = zoneZ)
                 val bits = BitReader(packet.payload.copyOfRange(REBUILD_REGION_HEADER, packet.payload.size))
@@ -856,39 +857,39 @@ class HeadlessClient private constructor(
                 for ((npc, type, value) in npcInfo.hits) npcHits += NpcHit(npc, type, value, ticks)
             }
             GameServerProt.SET_PLAYER_OP -> {
-                // RSProt's SetPlayerOpEncoder: the slot, the text ("null" clears it) and the priority flag.
-                val slot = buf.g1Alt3()
+                // RSProt's SetPlayerOpEncoder: the priority flag, the slot and the text ("null" clears it).
+                buf.g1Alt3()
+                val slot = buf.g1Alt2()
                 playerOps[slot] = buf.gjstr().takeIf { it != "null" }
-                buf.g1()
             }
             GameServerProt.IF_OPENTOP -> topLevel = buf.g2Alt2()
             GameServerProt.IF_OPENSUB -> {
-                val destination = buf.g4Alt3()
+                val destination = buf.g4Alt2()
                 dropEvents(subs.put(destination, buf.g2Alt2()))
             }
             GameServerProt.IF_CLOSESUB -> dropEvents(subs.remove(buf.g4()))
             GameServerProt.IF_SETEVENTS_V2 -> {
-                val events1 = buf.g4Alt2()
-                val end = buf.g2Alt3().let { if (it == 0xFFFF) -1 else it }
-                val start = buf.g2Alt1().let { if (it == 0xFFFF) -1 else it }
+                val events1 = buf.g4Alt3()
                 val component = buf.g4()
                 val events2 = buf.g4Alt1()
+                val end = buf.g2Alt1().let { if (it == 0xFFFF) -1 else it }
+                val start = buf.g2Alt1().let { if (it == 0xFFFF) -1 else it }
                 val mask = (events2.toLong() shl 32) or (events1.toLong() and 0xFFFFFFFFL)
                 for (sub in start..end) events[(component.toLong() shl 32) + sub] = mask
             }
             GameServerProt.IF_MOVESUB -> {
-                val from = buf.g4Alt1()
                 val to = buf.g4Alt1()
+                val from = buf.g4Alt3()
                 subs.remove(from)?.let { subs[to] = it }
             }
             GameServerProt.IF_SETTEXT -> {
-                val component = buf.g4()
+                val component = buf.g4Alt3()
                 texts[component] = buf.gjstr()
             }
             GameServerProt.IF_SETHIDE -> {
-                // RSProt's IfSetHideEncoder: the component, then the flag.
-                val component = buf.g4Alt1()
-                hidden[component] = buf.g1() == 1
+                // RSProt's IfSetHideEncoder: the flag, then the component.
+                val flag = buf.g1Alt1() == 1
+                hidden[buf.g4Alt3()] = flag
             }
             GameServerProt.RUNCLIENTSCRIPT -> scripts += readClientScript(buf)
             GameServerProt.UPDATE_INV_FULL -> {
@@ -897,9 +898,9 @@ class HeadlessClient private constructor(
                 val combined = buf.g4()
                 val inventoryId = buf.g2() + if (combined < -70000) OTHER_INV else 0
                 invs[inventoryId] = MutableList(buf.g2()) {
-                    val id = buf.g2Alt1() - 1
-                    var count = buf.g1Alt3()
-                    if (count == 0xFF) count = buf.g4Alt2()
+                    var count = buf.g1Alt1()
+                    if (count == 0xFF) count = buf.g4Alt3()
+                    val id = buf.g2Alt3() - 1
                     if (id < 0) null else InvObj(id, count)
                 }
             }
@@ -933,27 +934,29 @@ class HeadlessClient private constructor(
                 }
             }
             GameServerProt.UPDATE_STAT_V2 -> {
-                val xp = buf.g4Alt1()
-                val invisibleLevel = buf.g1Alt1()
+                val xp = buf.g4Alt2()
+                val invisibleLevel = buf.g1()
                 val skill = buf.g1Alt2()
-                stats[skill] = Stat(buf.g1Alt2(), xp, invisibleLevel)
+                stats[skill] = Stat(buf.g1Alt3(), xp, invisibleLevel)
                 statTicks[skill] = ticks
             }
             GameServerProt.VARP_SMALL -> {
-                val value = buf.g1sAlt3()
-                val id = buf.g2Alt1()
+                val value = buf.g1s()
+                val id = buf.g2Alt3()
                 varps[id] = value
                 varpTicks[id] = ticks
             }
             GameServerProt.VARP_LARGE -> {
-                val id = buf.g2Alt3()
-                varps[id] = buf.g4Alt3()
+                val value = buf.g4Alt2()
+                val id = buf.g2()
+                varps[id] = value
                 varpTicks[id] = ticks
             }
             GameServerProt.VARP_LONG -> {
+                val id = buf.g2Alt3()
                 val high = buf.g4Alt3().toLong()
                 val low = buf.g4Alt3().toLong() and 0xFFFFFFFFL
-                longVarps[buf.g2()] = (high shl 32) or low
+                longVarps[id] = (high shl 32) or low
             }
             GameServerProt.VARP_RESET -> varps.clear()
             GameServerProt.FRIENDLIST_LOADED -> friendListLoaded = true

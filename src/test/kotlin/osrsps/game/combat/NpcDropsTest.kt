@@ -379,7 +379,7 @@ class NpcDropsTest {
         expect(knight, "Coins x35", 21)
         expect(knight, "Coins x1", 14)
         expect(knight, "Steel bar x1", 6)
-        expect(knight, "Iron sword x1", 4)
+        expect(knight, "Iron shortsword x1", 4)
         assertNull(knight["Coins x5"])
         assertEquals(listOf("Bones", "Bear fur", "Raw bear meat"), drops[grizzly]!!.always.map { it.type.name })
         assertNull(drops[grizzly]!!.table)

@@ -54,6 +54,10 @@ object LocTypeDecoder {
                 79 -> { buf.skipBytes(6); buf.skipBytes(buf.readUnsignedByte() * 2) }
                 92 -> { buf.skipBytes(6); buf.skipBytes((buf.readUnsignedByte() + 1) * 2); multiloc = true }
                 93 -> buf.skipBytes(6)
+                // Revision 242's multilocs (RuneLite's ObjectLoader, cache 2026-11-03): as 77 and 92, but every loc id,
+                // the default one included, is 3 bytes, signed.
+                97 -> { buf.skipBytes(4); buf.skipBytes((buf.readUnsignedByte() + 1) * 3); multiloc = true }
+                98 -> { buf.skipBytes(7); buf.skipBytes((buf.readUnsignedByte() + 1) * 3); multiloc = true }
                 100 -> { buf.skipBytes(2); buf.skipString() }
                 101 -> { buf.skipBytes(13); buf.skipString() }
                 102 -> { buf.skipBytes(15); buf.skipString() }

@@ -1242,37 +1242,37 @@
       "stock": [
         {
           "item": 1277,
-          "name": "Bronze sword",
+          "name": "Bronze shortsword",
           "count": 5,
           "restock": 100
         },
         {
           "item": 1279,
-          "name": "Iron sword",
+          "name": "Iron shortsword",
           "count": 4,
           "restock": 200
         },
         {
           "item": 1281,
-          "name": "Steel sword",
+          "name": "Steel shortsword",
           "count": 4,
           "restock": 400
         },
         {
           "item": 1283,
-          "name": "Black sword",
+          "name": "Black shortsword",
           "count": 3,
           "restock": 1000
         },
         {
           "item": 1285,
-          "name": "Mithril sword",
+          "name": "Mithril shortsword",
           "count": 3,
           "restock": 3000
         },
         {
           "item": 1287,
-          "name": "Adamant sword",
+          "name": "Adamant shortsword",
           "count": 2,
           "restock": 12000
         },
@@ -2436,7 +2436,7 @@
         },
         {
           "item": 1289,
-          "name": "Rune sword",
+          "name": "Rune shortsword",
           "count": 1,
           "restock": 10000
         },

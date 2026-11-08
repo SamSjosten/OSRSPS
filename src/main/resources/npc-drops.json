@@ -105,7 +105,7 @@
       {"item": 1179, "name": "Black sq shield", "weight": 5},
       {"item": 1389, "name": "Magic staff", "weight": 2},
       {"item": 1141, "name": "Steel med helm", "weight": 2},
-      {"item": 1285, "name": "Mithril sword", "weight": 2},
+      {"item": 1285, "name": "Mithril shortsword", "weight": 2},
       {"item": 1243, "name": "Mithril spear", "weight": 2},
       {"item": 1193, "name": "Steel kiteshield", "weight": 1},
       {"item": 563, "name": "Law rune", "count": 3, "weight": 4},
@@ -640,7 +640,7 @@
       "source": "OSRS Wiki, Skeleton, Drops (Unarmed), read 2026-11-01. Its rows add up to 149/128; the 10 coins at 21/128 are taken as the free-to-play line the herbs replace on a members world (inferred: the page gives no members rate for it, and without it the rest add up to 128). The Wilderness-only looting bag and the champion scroll are left out"
     },
     {"npcs": ["skeleton_armed", "skeleton_armed2", "skeleton_armed3", "skeleton_armed4", "skeleton_armed5"], "always": [{"item": 526, "name": "Bones"}], "table": {"slots": 128, "lines": [
-      {"item": 1137, "name": "Iron med helm", "weight": 6}, {"item": 1279, "name": "Iron sword", "weight": 4}, {"item": 1349, "name": "Iron axe", "weight": 2}, {"item": 1323, "name": "Iron scimitar", "weight": 1},
+      {"item": 1137, "name": "Iron med helm", "weight": 6}, {"item": 1279, "name": "Iron shortsword", "weight": 4}, {"item": 1349, "name": "Iron axe", "weight": 2}, {"item": 1323, "name": "Iron scimitar", "weight": 1},
       {"item": 556, "name": "Air rune", "min": 12, "max": 15, "weight": 3}, {"item": 555, "name": "Water rune", "count": 9, "weight": 3}, {"item": 562, "name": "Chaos rune", "count": 5, "weight": 3},
       {"item": 884, "name": "Iron arrow", "count": 12, "weight": 2}, {"item": 563, "name": "Law rune", "count": 2, "weight": 2}, {"item": 564, "name": "Cosmic rune", "count": 2, "weight": 1},
       {"table": "herbs", "weight": 20},
@@ -671,7 +671,7 @@
       "source": "osrsreboxed's 74 (the Wiki's Skeleton, Drops, scraped), read 2026-11-02: the unarmed table with 12 air runes. As for the unarmed level 22s, the 10 coins at 21/128 are taken as the free-to-play line the herbs replace (inferred), and the nothing weight fills the table to 128 (inferred). The looting bag and the champion scroll are left out"
     },
     {"npcs": ["hobgoblin_unarmed", "hobgoblin_armed"], "always": [{"item": 526, "name": "Bones"}], "table": {"slots": 128, "lines": [
-      {"item": 1237, "name": "Bronze spear", "weight": 3}, {"item": 1279, "name": "Iron sword", "weight": 3}, {"item": 1207, "name": "Steel dagger", "weight": 3},
+      {"item": 1237, "name": "Bronze spear", "weight": 3}, {"item": 1279, "name": "Iron shortsword", "weight": 3}, {"item": 1207, "name": "Steel dagger", "weight": 3},
       {"item": 1239, "name": "Iron spear", "weight": 2}, {"item": 1241, "name": "Steel spear", "weight": 2}, {"item": 1295, "name": "Steel longsword", "weight": 1},
       {"item": 563, "name": "Law rune", "count": 2, "weight": 3}, {"item": 555, "name": "Water rune", "count": 2, "weight": 2}, {"item": 554, "name": "Fire rune", "count": 7, "weight": 2},
       {"item": 559, "name": "Body rune", "count": 6, "weight": 2}, {"item": 562, "name": "Chaos rune", "count": 3, "weight": 2}, {"item": 561, "name": "Nature rune", "count": 4, "weight": 2},
@@ -759,7 +759,7 @@
     {
       "npcs": ["black_knight"],
       "always": [{"item": 526, "name": "Bones"}],
-      "table": {"slots": 128, "lines": [{"item": 1279, "name": "Iron sword", "weight": 4}, {"item": 1153, "name": "Iron full helm", "weight": 2}, {"item": 1424, "name": "Steel mace", "weight": 1}, {"item": 888, "name": "Mithril arrow", "count": 3, "weight": 4}, {"item": 559, "name": "Body rune", "count": 9, "weight": 3}, {"item": 562, "name": "Chaos rune", "count": 6, "weight": 3}, {"item": 557, "name": "Earth rune", "count": 10, "weight": 3}, {"item": 560, "name": "Death rune", "count": 2, "weight": 2}, {"item": 563, "name": "Law rune", "count": 3, "weight": 2}, {"item": 564, "name": "Cosmic rune", "count": 7, "weight": 1}, {"item": 558, "name": "Mind rune", "count": 2, "weight": 1}, {"table": "herbs", "weight": 3}, {"table": "general_seeds", "weight": 18}, {"item": 2353, "name": "Steel bar", "weight": 6}, {"item": 438, "name": "Tin ore", "weight": 1}, {"item": 1933, "name": "Pot of flour", "weight": 1}, {"item": 995, "name": "Coins", "count": 35, "weight": 21}, {"item": 995, "name": "Coins", "count": 6, "weight": 11}, {"item": 995, "name": "Coins", "count": 58, "weight": 10}, {"item": 995, "name": "Coins", "count": 12, "weight": 9}, {"item": 995, "name": "Coins", "count": 80, "weight": 2}, {"item": 995, "name": "Coins", "count": 1, "weight": 14}, {"nothing": true, "weight": 2}, {"item": 2309, "name": "Bread", "weight": 1}, {"table": "gems_surface", "weight": 3}]},
+      "table": {"slots": 128, "lines": [{"item": 1279, "name": "Iron shortsword", "weight": 4}, {"item": 1153, "name": "Iron full helm", "weight": 2}, {"item": 1424, "name": "Steel mace", "weight": 1}, {"item": 888, "name": "Mithril arrow", "count": 3, "weight": 4}, {"item": 559, "name": "Body rune", "count": 9, "weight": 3}, {"item": 562, "name": "Chaos rune", "count": 6, "weight": 3}, {"item": 557, "name": "Earth rune", "count": 10, "weight": 3}, {"item": 560, "name": "Death rune", "count": 2, "weight": 2}, {"item": 563, "name": "Law rune", "count": 3, "weight": 2}, {"item": 564, "name": "Cosmic rune", "count": 7, "weight": 1}, {"item": 558, "name": "Mind rune", "count": 2, "weight": 1}, {"table": "herbs", "weight": 3}, {"table": "general_seeds", "weight": 18}, {"item": 2353, "name": "Steel bar", "weight": 6}, {"item": 438, "name": "Tin ore", "weight": 1}, {"item": 1933, "name": "Pot of flour", "weight": 1}, {"item": 995, "name": "Coins", "count": 35, "weight": 21}, {"item": 995, "name": "Coins", "count": 6, "weight": 11}, {"item": 995, "name": "Coins", "count": 58, "weight": 10}, {"item": 995, "name": "Coins", "count": 12, "weight": 9}, {"item": 995, "name": "Coins", "count": 80, "weight": 2}, {"item": 995, "name": "Coins", "count": 1, "weight": 14}, {"nothing": true, "weight": 2}, {"item": 2309, "name": "Bread", "weight": 1}, {"table": "gems_surface", "weight": 3}]},
       "source": "OSRS Wiki, Black Knight, drops, read 2026-11-02: the free-to-play-only coin lines (x5 18/128, x10 3/128) are left out; the Coins x1 line drops always only during Wanted!, which isn't built, so it stays at 14/128; the gem table's talisman row is the nature talisman, as above ground; the looting bag and Wilderness slayer drops only in the Wilderness"
     },
     {
