@@ -87,7 +87,7 @@ object SolztunLines : Lines("solztun", "Transcript:Solztun") {
  *
  * - The pieces join: the left skull half (9008, the ankou's) on the right (9007, the minotaurs') makes the strange
  *   skull (9009); the top of the sceptre (9010, the catablepons') on the bottom (9011, the flesh crawlers') the runed
- *   sceptre (9012); those two together the skull sceptre (9013), with [MAX_CHARGES] charges. Each join takes a tick
+ *   sceptre (9012); those two together the skull sceptre (9013), the player's first with [MAX_CHARGES] charges. Each join takes a tick
  *   and nothing else (the Wiki); once Solztun has imbued one, the whole sceptre is made imbued.
  * - Invoke takes the player to the Stronghold's entrance in Barbarian Village ([Church.STRONGHOLD]) for a charge, up
  *   to level 20 Wilderness. A sceptre that isn't imbued crumbles with its last charge (the Wiki: it "will
@@ -159,6 +159,10 @@ object SkullSceptre {
     fun hasBoots(player: Player) = BOOTS.any { player.inventory.count(it) > 0 || player.equipment.count(it) > 0 }
 
     fun carriesSceptre(player: Player) = player.inventory.count(SCEPTRE) > 0
+
+    /** How many skull sceptres, plain or imbued, [player] carries, wields or has banked. */
+    fun sceptresAnywhere(player: Player): Long =
+        listOf(SCEPTRE, IMBUED).sumOf { player.inventory.count(it) + player.equipment.count(it) + player.bank.count(it) }
 
     /** Solztun has imbued a sceptre for [player]: every one they make after starts imbued (the Wiki's Skull sceptre (i)). */
     fun imbueUnlocked(player: Player) = player.vars.types.varbit(VARBIT_IMBUED) != null && player.vars.getVarbit(VARBIT_IMBUED) == 1
@@ -239,13 +243,17 @@ private suspend fun ScriptContext.join(world: World, op: Op, a: Int, b: Int, mad
     delay(1)
     if (!holds()) return
     val result = if (made == SkullSceptre.SCEPTRE && SkullSceptre.imbueUnlocked(player)) SkullSceptre.IMBUED else made
+    // The shared charges start full only for the player's first sceptre: otherwise a second one joined and chiselled
+    // straight back into fragments would refill the first for nothing (exploit review round 13, SCEP-1). A spare
+    // still gets them when the other crumbles (invoke).
+    val first = SkullSceptre.sceptresAnywhere(player) == 0L
     player.inventory.remove(op.objSlot, 1)
     player.inventory[op.sub] = InvObj(result, 1)
     when (made) {
         SkullSceptre.STRANGE_SKULL -> world.message(player, SkullSceptreLines.JOIN_SKULL)
         SkullSceptre.RUNED_SCEPTRE -> world.message(player, SkullSceptreLines.JOIN_SCEPTRE)
         else -> {
-            player.charges[SkullSceptre.CHARGES] = SkullSceptre.MAX_CHARGES
+            if (first) player.charges[SkullSceptre.CHARGES] = SkullSceptre.MAX_CHARGES
             world.message(player, SkullSceptreLines.JOIN_WHOLE)
         }
     }

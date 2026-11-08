@@ -216,10 +216,10 @@ class HeadlessSkullSceptreTest {
                 client.await("the login rebuild") { client.position }
                 client.command("item ${SkullSceptre.STRANGE_SKULL}")
                 client.command("item ${SkullSceptre.RUNED_SCEPTRE}")
-                client.command("item ${SkullSceptre.SCEPTRE}")
-                client.await("the joined halves and a spare sceptre") { client.carried(SkullSceptre.SCEPTRE).takeIf { it == 1 } }
+                client.await("the joined halves") { client.carried(SkullSceptre.RUNED_SCEPTRE).takeIf { it == 1 } }
                 client.useOn(SkullSceptre.STRANGE_SKULL, SkullSceptre.RUNED_SCEPTRE)
                 client.awaitMessage("the skull sceptre") { it == "[skull_sceptre.join_whole]" }
+                client.command("item ${SkullSceptre.SCEPTRE}")
                 client.await("two sceptres") { client.carried(SkullSceptre.SCEPTRE).takeIf { it == 2 } }
 
                 // Wield one; its worn Invoke with the bank open closes the bank.
@@ -271,6 +271,35 @@ class HeadlessSkullSceptreTest {
                 client.continueDialogue()
                 client.await("both imbued") { client.carried(SkullSceptre.IMBUED).takeIf { it == 2 } }
                 assertEquals(0, client.carried(SkullSceptre.SCEPTRE))
+            }
+        }
+    }
+
+    @Test
+    fun `a second sceptre joined doesn't refill the first's charges`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item ${SkullSceptre.STRANGE_SKULL}")
+                client.command("item ${SkullSceptre.RUNED_SCEPTRE}")
+                client.await("the joined halves") { client.carried(SkullSceptre.RUNED_SCEPTRE).takeIf { it == 1 } }
+                client.useOn(SkullSceptre.STRANGE_SKULL, SkullSceptre.RUNED_SCEPTRE)
+                client.await("the first sceptre") { client.carried(SkullSceptre.SCEPTRE).takeIf { it == 1 } }
+                repeat(SkullSceptre.MAX_CHARGES - 1) { used ->
+                    client.tele(3222, 3218 + used % 2)
+                    client.itemOp(SkullSceptre.SCEPTRE, SkullSceptre.INVOKE)
+                    val landed = client.await("at the Stronghold after ${used + 1}") { client.position?.takeIf { it == Coord(Church.STRONGHOLD.x, Church.STRONGHOLD.z, 0) } }
+                    assertEquals(Coord(Church.STRONGHOLD.x, Church.STRONGHOLD.z, 0), landed)
+                }
+                // A second one joined (exploit review round 13, SCEP-1): the one charge left stays one.
+                client.command("item ${SkullSceptre.STRANGE_SKULL}")
+                client.command("item ${SkullSceptre.RUNED_SCEPTRE}")
+                client.await("the second pair") { client.carried(SkullSceptre.RUNED_SCEPTRE).takeIf { it == 1 } }
+                client.useOn(SkullSceptre.STRANGE_SKULL, SkullSceptre.RUNED_SCEPTRE)
+                client.await("two sceptres") { client.carried(SkullSceptre.SCEPTRE).takeIf { it == 2 } }
+                client.itemOp(SkullSceptre.SCEPTRE, SkullSceptre.DIVINE)
+                client.awaitDialogue("one charge") { it is DialogueView.Message && it.text == "[skull_sceptre.divine charges=1]" }
+                client.continueDialogue()
             }
         }
     }
