@@ -72,11 +72,25 @@ class LocTypeEncoderTest {
         assertContentEquals(transform + 0, bytes.copyOfRange(bytes.size - transform.size - 1, bytes.size))
         val type = LocTypeDecoder.decode(65002, bytes)
         assertTrue(type.multiloc)
+        assertEquals(20411, type.multiVarbit)
+        assertEquals(-1, type.multiVarp)
+        assertEquals(listOf(65000, 65001, -1), type.multiLocs, "the children by value, then opcode 77's default: none")
         assertEquals(listOf("Activate", null, null, null, null), type.ops)
         assertEquals(3, type.width)
         assertEquals(0, type.collision.interactType)
         val none = LocTypeEncoder.encode(LocTypeEncoder.Definition("X", listOf(1), transform = LocTypeEncoder.Transform(5, listOf(LocTypeEncoder.NONE))))
         assertContentEquals(byteArrayOf(77, 0, 5, -1, -1, 0, -1, -1, 0), none.copyOfRange(none.size - 9, none.size))
+    }
+
+    @Test
+    fun `opcode 92 reads a varp, its default child and the children`() {
+        // 92: varbit none, varp 1234, default 50, one more than 1 child: 40 and none.
+        val bytes = byteArrayOf(92, -1, -1, 0x04, 0xD2.toByte(), 0, 50, 1, 0, 40, -1, -1, 0)
+        val type = LocTypeDecoder.decode(1, bytes)
+        assertTrue(type.multiloc)
+        assertEquals(-1, type.multiVarbit)
+        assertEquals(1234, type.multiVarp)
+        assertEquals(listOf(40, -1, 50), type.multiLocs)
     }
 
     @Test
