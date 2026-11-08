@@ -115,8 +115,11 @@ leaves such a pull request for Sam to merge by hand.
 
 The VM needs, besides the runner service: `git`, `curl`, `unzip`, Node.js 20 or newer (`node` on the path: the
 script checks call it directly) and PowerShell 7 (`pwsh`, for `launch-scripts`). Java 21 comes from `setup-java`
-and Gradle 9.8.1 from the wrapper. No Docker: the deploy scripts' tests use a stand-in. Two runner instances on it let
-two jobs run at once; more Gradle jobs than that make the tick-timing tests flaky.
+and Gradle 9.8.1 from the wrapper. No Docker: the deploy scripts' tests use a stand-in. Two runner instances are
+registered on it, `ci-runner-1` and `ci-runner-2`, but only `ci-runner-1` runs: `ci-runner-2`'s service is disabled on
+purpose, as the builds are CPU-bound and one job on all the VM's cores beats two sharing them (and more Gradle jobs
+at once make the tick-timing tests flaky). So jobs run one at a time, and a build on `main` can wait behind the one
+before it; GitHub shows `ci-runner-2` as offline, which is expected.
 
 ## The staging server
 
