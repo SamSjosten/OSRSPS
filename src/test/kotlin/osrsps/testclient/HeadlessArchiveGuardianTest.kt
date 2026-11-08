@@ -121,12 +121,20 @@ class HeadlessArchiveGuardianTest {
         bob.commandReply("raidparty accept alice") { it.startsWith("You joined") }
     }
 
-    /** `::raid log 200`'s lines. */
+    /**
+     * `::raid log 200`'s lines, all of them. A plain `::raid` after it marks their end: its reply comes after the last of
+     * them, so a slow read can't cut the log short, or leave lines over to count again in the next call's.
+     */
     private fun HeadlessClient.fightLog(): List<String> {
         val from = messages().size
         command("raid log 200")
-        await("::raid log's lines") { messages().drop(from).takeIf { lines -> lines.any { Regex("^\\d+ \\w+: ").containsMatchIn(it.text) } } }
-        return messages().drop(from).map { it.text }
+        command("raid")
+        val lines = await("::raid log's lines") {
+            val after = messages().drop(from).map { it.text }
+            val end = after.indexOfFirst { it.startsWith("guardian #") || it.startsWith("You're not") }
+            if (end < 0) null else after.take(end)
+        }
+        return lines
     }
 
     @Test
@@ -648,6 +656,42 @@ class HeadlessArchiveGuardianTest {
                     alice.await("Bob in the fight") { fight.players.takeIf { bobP in it } }
                     assertTrue(alice.fight().contains("; 2 players"), alice.fight())
                 }
+            }
+        }
+    }
+
+    @Test
+    fun `outside an instance its fight ends when its starter dies or logs out, so they don't come back into it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                alice.await("the login rebuild") { alice.position }
+                // On 10 hitpoints beside it: its first shot kills her. Before (nightly 2026-11-08), she came back at
+                // Lumbridge in its reach and was killed again and again.
+                alice.tele(3222, 3218)
+                alice.commandReply("raid guardian") { it.startsWith("Started") }
+                val fight = server.world.encounters.all.single()
+                val boss = fight.boss
+                val player = server.world.playerNamed("alice")!!
+                alice.await("her death") { if (player.dead) Unit else null }
+                alice.await("the fight called off") { if (fight.ended) Unit else null }
+                assertTrue(fight.lines.any { it.endsWith("ends: alice died") }, fight.lines.joinToString("\n"))
+                assertTrue(server.world.encounters.all.isEmpty())
+                assertTrue(server.world.npcs[boss.index] !== boss, "its boss taken out")
+                alice.await("her back up") { if (!player.dead) Unit else null }
+
+                // Bob starts one and his client goes: once the world lets him go, the fight goes with him. Stepped by
+                // game ticks, as his connection is kept for a reconnect that long.
+                val bob = server.login("bob")
+                bob.await("the login rebuild") { bob.position }
+                bob.commandReply("god on") { it.startsWith("You can't be hurt") }
+                bob.tele(3222, 3218)
+                bob.commandReply("raid guardian") { it.startsWith("Started") }
+                val second = server.world.encounters.all.single()
+                alice.commandReply("pause") { it.startsWith("Paused after tick") }
+                bob.close()
+                alice.stepTicks(World.LINGER_TICKS.toInt() + 5)
+                assertTrue(second.ended, "the fight called off as he left")
+                assertTrue(second.lines.any { it.endsWith("ends: bob left") }, second.lines.joinToString("\n"))
             }
         }
     }
