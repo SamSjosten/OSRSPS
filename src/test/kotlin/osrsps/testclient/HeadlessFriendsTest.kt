@@ -18,6 +18,10 @@ class HeadlessFriendsTest {
         TestServer(dir).use { server ->
             server.login("alice").use { alice ->
                 alice.await("the empty list") { alice.friendsLoaded.takeIf { it } }
+                // An empty list comes as an empty UPDATE_FRIENDLIST: FRIENDLIST_LOADED alone left the client's Friends
+                // tab loading for good.
+                assertTrue(alice.packets().any { it.prot.name == "UPDATE_FRIENDLIST" })
+                assertFalse(alice.packets().any { it.prot.name == "FRIENDLIST_LOADED" })
                 server.login("Bob").use { bob ->
                     alice.addFriend("bob")
                     // Listed under the name the account has, not the one typed.
