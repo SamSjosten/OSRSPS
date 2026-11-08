@@ -39,7 +39,8 @@ class Locs(
     /** By tile and layer: when to put the tile back how it was, and what it was. */
     private val reverts = HashMap<Long, Revert>()
 
-    private class Revert(val dueTick: Long, val previous: ZoneLoc?)
+    /** [owner]: whose door or gate it is the respawn clock of ([restoreAfter]), for [restoreOwnedBy]; null for others. */
+    private class Revert(val dueTick: Long, val previous: ZoneLoc?, val owner: String? = null)
 
     /** The loc on a tile's [layer] now, if any. */
     operator fun get(x: Int, z: Int, level: Int, layer: Int): ZoneLoc? {
@@ -88,6 +89,34 @@ class Locs(
 
     /** Puts a tile's [layer] back to what the cache has there, dropping any timed revert. */
     fun restore(x: Int, z: Int, level: Int, layer: Int) = change(x, z, level, layer, static.at(x, z, level, layer), 0)
+
+    /**
+     * Puts a tile's [layer] back as the cache has it [after] ticks from now, unless something changes it again first:
+     * the respawn clock of a door or gate a player moved ([Doors.RESPAWN_TICKS]). Nothing to put back, and no timer,
+     * when the tile is as the cache has it already. [owner] is who moved it, for [restoreOwnedBy].
+     */
+    fun restoreAfter(x: Int, z: Int, level: Int, layer: Int, after: Int, owner: String? = null) {
+        require(after > 0) { "Can't restore after $after ticks" }
+        val slot = slot(x, z, level, layer)
+        val cached = static.at(x, z, level, layer)
+        if (get(x, z, level, layer) == cached) {
+            reverts.remove(slot)
+            return
+        }
+        reverts[slot] = Revert(currentTick() + after, cached, owner)
+    }
+
+    /**
+     * Puts back now, as the cache has them, the tiles whose respawn clock [owner] started ([restoreAfter]) and nobody
+     * has changed since: `::reset`'s doors and gates, so a test script that stopped part way leaves none open.
+     */
+    fun restoreOwnedBy(owner: String) {
+        val owned = reverts.filterValues { it.owner == owner }
+        for ((slot, revert) in owned) {
+            reverts.remove(slot)
+            set(slot, revert.previous)
+        }
+    }
 
     /** Puts back the tiles whose [add], [remove] or [replace] has run its time. Call once a tick. */
     fun process() {

@@ -48,6 +48,9 @@ fun CommandRegistry.registerScenarioCommands(world: World) {
             world.encounters.all.firstOrNull { it.boss === npc }?.let(world.encounters::stop)
             world.removeNpc(npc)
         }
+        // The doors and gates the player moved and nobody has moved since shut or open again as the cache has them, so a
+        // script that stopped part way leaves none for the next (nightly 2026-11-08, Edgeville's).
+        world.locs.restoreOwnedBy(player.saveKey)
         world.teleport(player, before.x, before.z, before.level)
         player.scenario = null
         player.beforeScenario = null

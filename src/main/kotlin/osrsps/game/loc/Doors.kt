@@ -20,12 +20,18 @@ private val logger = KotlinLogging.logger {}
  * Where an opened door goes: a closed door on the west edge of its tile (angle 0) opens onto the tile to the west,
  * turned a quarter clockwise to lie on that tile's north edge, and so on round. That is the usual RS2 engine rule, and
  * the 241 maps agree with it: of the 191 paired open doors they place, 151 have the wall they would close into lined up
- * with this rule and 19 with the opposite turn (mostly left leaves of double doors). Not yet watched on live. Opened
- * doors stay open until closed (guessed: no timer), and play no sound until a recording gives the ids.
+ * with this rule and 19 with the opposite turn (mostly left leaves of double doors). Not yet watched on live. A door a
+ * player opens or closes goes back as the cache has it [RESPAWN_TICKS] later unless moved again first (OSRS Wiki, Door:
+ * "open doors may close after 300 seconds", and doors "have a respawn clock just like any other object"; that a door
+ * the cache has open shuts and opens again the same way is inferred from the respawn clock). Doors play no sound until
+ * a recording gives the ids.
  */
 class Doors(private val locs: Locs) {
     private val openTypes = HashMap<Int, Int>()
     private val closedTypes = HashMap<Int, Int>()
+
+    /** The tiles the [toggle] running now has changed, for their respawn clock. */
+    private val moved = ArrayList<ZoneLoc>()
 
     /** Registered double doors, by each of their four types. */
     private val doubleDoors = HashMap<Int, DoubleDoor>()
@@ -102,7 +108,16 @@ class Doors(private val locs: Locs) {
      * Opens or closes [loc] if it is a door and [option] is its Open or Close. Returns the door as it is now, or null
      * if [loc] isn't a door that option works on.
      */
-    fun toggle(loc: ZoneLoc, option: Int): ZoneLoc? {
+    fun toggle(loc: ZoneLoc, option: Int, by: String? = null): ZoneLoc? {
+        moved.clear()
+        val now = swingDoor(loc, option)
+        // The respawn clock: each tile the swing changed goes back as the cache has it, unless moved again first.
+        for (tile in moved) locs.restoreAfter(tile.x, tile.z, tile.level, tile.layer, RESPAWN_TICKS, by)
+        moved.clear()
+        return now
+    }
+
+    private fun swingDoor(loc: ZoneLoc, option: Int): ZoneLoc? {
         // Diagonal doors (shape 9) would need their own rule.
         if (loc.shape != LocShape.WALL_STRAIGHT || !locs.exists(loc)) return null
         val type = locs.types[loc.id] ?: return null
@@ -155,7 +170,8 @@ class Doors(private val locs: Locs) {
      * Swings [door], a door [toggle] doesn't pair by name, open as [openType], as a single door opens. With [shutAfter]
      * ticks, both tiles go back as they were then, by the world's own timer ([Locs.process]), whoever opened it.
      */
-    fun openAs(door: ZoneLoc, openType: Int, shutAfter: Int = 0): ZoneLoc = open(door, openType, revertAfter = shutAfter)
+    fun openAs(door: ZoneLoc, openType: Int, shutAfter: Int = 0): ZoneLoc =
+        open(door, openType, revertAfter = shutAfter).also { moved.clear() }
 
     /** Swings [door] open as [openType], turned [turn] quarters clockwise. */
     private fun open(door: ZoneLoc, openType: Int, turn: Int = RIGHT_TURN, revertAfter: Int = 0): ZoneLoc {
@@ -163,6 +179,8 @@ class Doors(private val locs: Locs) {
         val opened = ZoneLoc(openType, door.shape, (door.angle + turn) and 3, door.x + dx, door.z + dz, door.level)
         locs.remove(door, revertAfter)
         locs.add(opened, revertAfter)
+        moved += door
+        moved += opened
         return opened
     }
 
@@ -184,6 +202,8 @@ class Doors(private val locs: Locs) {
             locs.remove(door)
             locs.add(closed)
         }
+        moved += door
+        moved += closed
         return closed
     }
 
@@ -199,6 +219,9 @@ class Doors(private val locs: Locs) {
     companion object {
         const val OPEN = "Open"
         const val CLOSE = "Close"
+
+        /** A moved door's or gate's respawn clock: 300 seconds (OSRS Wiki, Door), 500 ticks of 0.6 s. */
+        const val RESPAWN_TICKS = 500
 
         /** Quarter turns clockwise a door makes as it opens: a single door or a right leaf one, a left leaf three. */
         private const val RIGHT_TURN = 1

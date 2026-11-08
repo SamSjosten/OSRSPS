@@ -33,7 +33,8 @@ class GatesTest {
     )
     private val static = StaticLocs()
     private val zones = Zones()
-    private val locs = Locs(types, static, CollisionMap().apply { markLoaded(48, 50) }, zones) { 0 }
+    private var tick = 0L
+    private val locs = Locs(types, static, CollisionMap().apply { markLoaded(48, 50) }, zones) { tick }
     private val gates = Gates(locs)
 
     // Draynor's pig pen gate as the 241 cache has it: both leaves in a wall along the north edge (angle 1), left at x 3077.
@@ -63,6 +64,21 @@ class GatesTest {
 
         gates.toggle(left, 1)
         assertEquals(right, gates.toggle(rightOpened, 1))
+        assertEquals(0, locs.changed)
+    }
+
+    @Test
+    fun `an opened gate shuts again on its respawn clock`() {
+        static.add(left)
+        static.add(right)
+        gates.toggle(left, 1, by = "alice")
+        tick = Doors.RESPAWN_TICKS - 1L
+        locs.process()
+        assertEquals(listOf(leftOpened), locs.at(3077, 3259, 0))
+        tick = Doors.RESPAWN_TICKS.toLong()
+        locs.process()
+        assertEquals(listOf(left), locs.at(3077, 3258, 0))
+        assertEquals(listOf(right), locs.at(3078, 3258, 0))
         assertEquals(0, locs.changed)
     }
 
