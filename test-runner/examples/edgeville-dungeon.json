@@ -10,7 +10,7 @@
   {"step": "command", "text": "::setlevel strength 99", "expectMessage": "Strength set to level 99"},
   {"step": "command", "text": "::setlevel mining 99", "expectMessage": "Mining set to level 99"},
   {"step": "command", "text": "::item rune_pickaxe", "expectMessage": "Added 1 x Rune pickaxe"},
-  {"step": "command", "text": "::tele 3097 3467 0", "expectMessage": "Teleported to 3097, 3467, 0", "comment": "south of the trapdoor in the ruined house south of the bank"},
+  {"step": "command", "text": "::tele 3097 3469 0", "expectMessage": "Teleported to 3097, 3469, 0", "comment": "north of the trapdoor, inside the ruined house south of the bank (its south wall stands between 3097,3467 and the trapdoor)"},
   {"step": "locOption", "locId": 1579, "option": "Open", "x": 3097, "y": 3468},
   {"step": "assertLoc", "loc": "Trapdoor", "x": 3097, "y": 3468, "option": "Climb-down"},
   {"step": "locOption", "locId": 1581, "option": "Climb-down", "x": 3097, "y": 3468},
