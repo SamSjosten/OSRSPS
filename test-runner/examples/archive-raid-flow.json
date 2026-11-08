@@ -197,8 +197,14 @@
   {
    "step": "command",
    "text": "::raid run",
-   "expectMessage": "points test 5000",
-   "comment": "solo, every room's 1,000 points (a guess) are this player's"
+   "expectMessage": "points test",
+   "comment": "solo, every room's 1,000 points (a guess) are this player's; the account's name may be test or test2 (the nightly runs on test2), so the line is matched up to the name and checked again for the total in the next step"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": " 5000",
+   "comment": "five rooms' 1,000"
   },
   {
    "step": "command",
@@ -397,8 +403,14 @@
   {
    "step": "command",
    "text": "::raid run",
-   "expectMessage": "points test 5000",
-   "comment": "solo, every room's 1,000 points (a guess) are this player's"
+   "expectMessage": "points test",
+   "comment": "solo, every room's 1,000 points (a guess) are this player's; the account's name may be test or test2 (the nightly runs on test2), so the line is matched up to the name and checked again for the total in the next step"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": " 5000",
+   "comment": "five rooms' 1,000"
   },
   {
    "step": "command",

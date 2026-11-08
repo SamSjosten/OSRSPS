@@ -183,8 +183,14 @@
   {
    "step": "command",
    "text": "::raid log 20",
-   "expectMessage": "airborne: laser hits test for 72",
-   "comment": "80 for a player alone, a tenth off for Protect from Magic"
+   "expectMessage": "airborne: laser hits test",
+   "comment": "the account's name may be test or test2 (the nightly runs on test2), so the line is matched up to the name and checked again for its damage in the next step"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "for 72",
+   "comment": "the solo laser's 80 cut by Protect from Magic; only the laser hits for that much"
   },
   {
    "step": "command",

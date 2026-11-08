@@ -75,8 +75,8 @@
   {
    "step": "command",
    "text": "::raid log 30",
-   "expectMessage": "grounded: vine hits test for",
-   "comment": "its swipe round the 3 by 3, 11 at most under Protect from Melee"
+   "expectMessage": "grounded: vine hits test",
+   "comment": "the account's name may be test or test2 (the nightly runs on test2): matched up to the name"
   },
   {
    "step": "command",
