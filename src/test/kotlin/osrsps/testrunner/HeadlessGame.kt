@@ -18,6 +18,7 @@ import osrsps.game.trade.Trades
 import osrsps.game.dialogue.Chatbox
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
+import osrsps.game.script.ScriptContext
 import osrsps.game.skill.LevelUps
 import osrsps.game.zone.ZoneLoc
 import osrsps.testclient.Coord
@@ -63,6 +64,9 @@ internal class HeadlessGame(
     /** A component listing [inv]'s items, slot 0 at sub [firstSub] (the shop's sub 0 is its highlight). */
     data class InvBinding(val inv: Int, val firstSub: Int = 0)
     private var scriptsSeen = 0
+
+    /** The first client script [promptMode] reads: the one after the last prompt answered from here. */
+    private var promptsFrom = 0
 
     private fun c(): HeadlessClient? = client()?.takeUnless { it.isClosed }
 
@@ -310,11 +314,31 @@ internal class HeadlessGame(
     override fun weight(): Int = c()?.weightKg ?: Int.MIN_VALUE
 
     /** The prompt's mode is set by the client's own scripts, which don't run here. */
-    override fun promptMode(): Int = 0
+    /**
+     * Stand-in for varc meslayermode, which the prompts' own client scripts set: the mode of the last prompt script the
+     * server ran (meslayer_mode7, mode9 or mode14), until a meslayer_close for it or any mode, or an answer sent from
+     * here (the client closes its prompt on Enter).
+     */
+    override fun promptMode(): Int {
+        val scripts = c()?.clientScripts() ?: return 0
+        var mode = 0
+        for (i in promptsFrom.coerceAtMost(scripts.size) until scripts.size) {
+            val script = scripts[i]
+            when (script.id) {
+                ScriptContext.MESLAYER_CLOSE -> {
+                    val closes = script.args.firstOrNull() as? Int ?: 0
+                    if (closes == 0 || closes == mode) mode = 0
+                }
+                else -> PROMPT_SCRIPTS[script.id]?.let { mode = it }
+            }
+        }
+        return mode
+    }
 
     override fun enterAmount(amount: Int): String? {
         val client = c() ?: return "not logged in"
         client.resumeCount(amount)
+        promptsFrom = client.clientScripts().size
         return null
     }
 
@@ -394,6 +418,14 @@ internal class HeadlessGame(
     override fun clickWidget(interfaceId: Int, component: Int, sub: Int, op: Int): String? {
         val client = c() ?: return "not logged in"
         if (!interfaceOpen(interfaceId)) return "interface $interfaceId:$component is not open (open: ${client.openInterfaces().sorted()})"
+        if (interfaceId == Chatbox.SKILLMULTI && component - Chatbox.SKILLMULTI_FIRST_ITEM in 0 until Chatbox.SKILLMULTI_MAX_ITEMS) {
+            // Stand-in for the Make-X box's own click script: an item button resumes with the quantity the box shows,
+            // which is the one its setup script started on (its last argument), as no quantity button is clicked here.
+            val setup = client.clientScripts().lastOrNull { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT }
+            val quantity = setup?.args?.lastOrNull() as? Int ?: return "the Make-X box's setup script hasn't come"
+            client.resumePause(interfaceId, component, quantity)
+            return null
+        }
         client.ifButton(interfaceId, component, op, sub, objAt(client, interfaceId, component, sub))
         return null
     }
@@ -451,6 +483,7 @@ internal class HeadlessGame(
     override fun enterText(text: String): String? {
         val client = c() ?: return "not logged in"
         client.resumeString(text)
+        promptsFrom = client.clientScripts().size
         return null
     }
 
@@ -478,6 +511,7 @@ internal class HeadlessGame(
     /** A new login starts from a new client, whose scripts are counted from 0. */
     fun newLogin() {
         scriptsSeen = 0
+        promptsFrom = 0
     }
 
     private fun objAt(client: HeadlessClient, interfaceId: Int, component: Int, sub: Int): Int {
@@ -621,6 +655,14 @@ internal class HeadlessGame(
 
         /** What [modelWornId] gives until the player's appearance is read: no item has this id. */
         const val MODEL_NOT_READ = Int.MAX_VALUE
+
+        /** The prompts' client scripts and the meslayer mode each sets: a number, a line of text, the item search. */
+        val PROMPT_SCRIPTS = mapOf(
+            ScriptContext.MESLAYER_MODE7 to ScriptContext.MESLAYER_COUNT,
+            ScriptContext.MESLAYER_MODE9 to ScriptContext.MESLAYER_STRING,
+            GrandExchangeScreen.MESLAYER_MODE14 to ITEM_SEARCH_MODE,
+        )
+        const val ITEM_SEARCH_MODE = 14
         const val GROUND_LOC_LAYER = 2
         const val PLAYER_OPTION_SLOTS = 8
 
