@@ -262,8 +262,11 @@ class LodestoneNetwork(
     }
 }
 
-/** A world whose loc types don't include the lodestones (a test's world) gets no stones: the server's always do. */
+/**
+ * A world whose loc types don't include the lodestones (a test's world) gets no stones: the server's always do, for
+ * good, so `::resetlocs` over a stone's tile (the nightly's around the courtyard) keeps it.
+ */
 fun registerLodestones(world: World) {
-    for (site in Lodestones.SITES) if (world.locs.types[site.id] != null) world.locs.add(site.loc)
+    for (site in Lodestones.SITES) if (world.locs.types[site.id] != null) world.locs.addPermanent(site.loc)
     world.lodestones.register(world.handlers)
 }
