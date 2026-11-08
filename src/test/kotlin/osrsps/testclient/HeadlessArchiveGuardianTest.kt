@@ -5,6 +5,7 @@ import kotlin.math.sign
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertSame
@@ -33,6 +34,7 @@ import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
 import osrsps.map.LocShape
+import osrsps.map.Tile
 
 /**
  * The Archive Guardian (raid step 16a) through the headless client: waiting in its hall till a member touches it, then
@@ -325,6 +327,25 @@ class HeadlessArchiveGuardianTest {
     }
 
     @Test
+    fun `a new mushroom never grows on a tile whose last one hasn't burst yet`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                alice.await("the login rebuild") { alice.position }
+                alice.commandReply("god on") { it.startsWith("You can't be hurt") }
+                alice.tele(3222, 3218)
+                // Seed 6 put the second wave's mushroom on the first's tile while that one waited out its fuse (exploit
+                // review round 14): the first's burst then cleared the tile, hiding the second while it still went off.
+                alice.commandReply("raid guardian seed=6") { it.startsWith("Started") }
+                alice.tele(3241, 3220)
+                val two = alice.await("two mushrooms") { alice.fightLog().mapNotNull { MUSHROOM_AT.find(it) }.takeIf { it.size >= 2 } }
+                assertNotEquals(two[0].value, two[1].value, "the second on another tile")
+                val (x, z) = two[1].destructured
+                alice.await("the second ready") { server.world.locs.find(ArchiveGuardian.MUSHROOM_ACTIVE, x.toInt(), z.toInt(), 0) }
+            }
+        }
+    }
+
+    @Test
     fun `a mushroom grows by each player and bursts when someone comes within a tile, poisoning and wearying them, and splashes those two off`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->
@@ -442,6 +463,9 @@ class HeadlessArchiveGuardianTest {
                     listOf(ArchiveGuardian.BATTERY_ACTIVE, ArchiveGuardian.BATTERY_ACTIVE, ArchiveGuardian.BATTERY_ACTIVE, ArchiveGuardian.BATTERY_INACTIVE),
                     batteries.map { it.type.id },
                 )
+                // Each with the awake form's 180 hitpoints, though put in asleep (Codex on #481: asleep, it has the default).
+                assertEquals(listOf(180, 180, 180, 180), batteries.map { it.hitpoints })
+                assertEquals(listOf(180, 180, 180, 180), batteries.map { it.maxHitpoints })
                 val shield = boss.maxHitpoints
                 assertEquals(550, shield, "a party of one's shield")
                 val (nw, ne, sw, se) = batteries
@@ -517,6 +541,27 @@ class HeadlessArchiveGuardianTest {
                 assertTrue(second.endsWith("Guardian takes 10"), second)
                 assertEquals(most * ArchiveGuardian.KILL_RANGE_PERCENT / 100, boss.hitpoints)
                 assertEquals(ArchiveGuardian.BATTERY_SPENT, nw.type.id)
+            }
+        }
+    }
+
+    @Test
+    fun `a laser at a target past its reach breaks no inert guardian, as none is behind them`(@TempDir dir: Path) {
+        server(dir, batteries = true).use { server ->
+            server.login("alice").use { alice ->
+                alice.await("the login rebuild") { alice.position }
+                alice.commandReply("god on") { it.startsWith("You can't be hurt") }
+                // Its middle at 3256,3220, the north-west inert guardian on 3247..3248,3221..3222. Alice 33 tiles west, past
+                // the laser's 32: its line runs through that guardian, which is between them, not behind her (Codex on #481).
+                alice.tele(3254, 3218)
+                alice.commandReply("raid guardian phase=airborne") { it.startsWith("Started") }
+                alice.tele(3223, 3228)
+                val fight = server.world.encounters.all.single()
+                val nw = fight.adds.single { it.spawn.type.id == ArchiveGuardian.BATTERY_INACTIVE && it.x == 3247 && it.z == 3221 }
+                assertTrue(Tile(3248, 3222) in ArchiveGuardian.line(fight.boss.x, fight.boss.z, fight.boss.type.size, Tile(3223, 3228)))
+                alice.await("the laser on her") { fight.lines.toList().firstOrNull { it.contains("laser hits alice") } }
+                assertTrue(fight.lines.none { it.contains("laser breaks") }, fight.lines.joinToString("\n"))
+                assertEquals(ArchiveGuardian.BATTERY_INACTIVE, nw.type.id)
             }
         }
     }

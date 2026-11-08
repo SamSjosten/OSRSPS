@@ -110,6 +110,7 @@ object ArchiveGuardian {
     const val MUSHROOM_SPAWN = 62578
     const val MUSHROOM_ACTIVE = 62579
     const val MUSHROOM_DESPAWN = 62580
+    private val MUSHROOM_LOCS = setOf(MUSHROOM_SPAWN, MUSHROOM_ACTIVE, MUSHROOM_DESPAWN)
 
     /** `tfa_archive_guardian_mushroom_spawn`, played on a mushroom as it grows. */
     const val ANIM_MUSHROOM_SPAWN = 14756
@@ -374,6 +375,10 @@ object ArchiveGuardian {
                 spawnAdd(batteries.asleep, cx + dx, cz + dz)?.also {
                     it.scriptedAttacks = true
                     it.holdsAtZero = true
+                    // The asleep form has 1 hitpoint in the cache, and waking keeps what it has: the awake form's
+                    // hitpoints from the start, in every form, so waking it gives a full 180 to beat down.
+                    it.scaledHitpoints = batteries.awake.stats.hitpoints
+                    it.hitpoints = batteries.awake.stats.hitpoints
                 }
             }
         }
@@ -400,10 +405,15 @@ object ArchiveGuardian {
 
     /**
      * The first inert guardian not spent behind [target] on the laser's [line] (past them, away from the Guardian), or
-     * null. A 2 by 2 guardian is behind them when the line crosses any of its tiles.
+     * null, as it is when [target] stands past the line's end. A 2 by 2 guardian is behind them when the line crosses
+     * any of its tiles.
      */
     private fun EncounterContext.behind(batteries: Batteries, line: Set<Tile>, target: Tile): Npc? {
-        val after = line.toList().let { tiles -> tiles.drop(tiles.indexOf(target) + 1) }
+        // A target past the laser's reach isn't on its line: nothing is behind them, only between.
+        val tiles = line.toList()
+        val at = tiles.indexOf(target)
+        if (at < 0) return null
+        val after = tiles.drop(at + 1)
         val standing = batteryList(batteries).filter { it.type.id != batteries.spent.id }
         for (tile in after) {
             standing.firstOrNull { it.covers(tile.x, tile.z) }?.let { return it }
@@ -462,6 +472,9 @@ object ArchiveGuardian {
             val tiles = (-2..2).flatMap { dx -> (-2..2).map { dz -> Tile(player.x + dx, player.z + dz) } }
                 .filter { max(abs(it.x - player.x), abs(it.z - player.z)) == 2 }
                 .filter { it !in taken && !boss.covers(it.x, it.z) && world.canStand(it.x, it.z, boss.level) }
+                // Nor on one whose last mushroom hasn't burst yet: a wave comes every 15 ticks, and a mushroom lasts
+                // up to 22. Its burst would clear the tile, hiding the new one while it still went off.
+                .filter { tile -> world.locs.at(tile.x, tile.z, boss.level).none { it.id in MUSHROOM_LOCS } }
                 .filter { tile -> players.none { it.x == tile.x && it.z == tile.z } }
             if (tiles.isEmpty()) continue
             val tile = tiles[roll(0, tiles.size - 1)]
