@@ -226,13 +226,13 @@
   {
    "step": "walk",
    "x": 3262,
-   "y": 3450,
-   "comment": "among the first floor's displays"
+   "y": 3451,
+   "comment": "among the first floor's displays: 3262,3451, as 3262,3450 is a barrier (VM 215, 2026-11-08)"
   },
   {
    "step": "assertLocation",
    "x": 3262,
-   "y": 3450,
+   "y": 3451,
    "plane": 1,
    "timeoutMs": 20000
   },

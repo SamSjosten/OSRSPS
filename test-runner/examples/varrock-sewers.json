@@ -110,9 +110,9 @@
   },
   {
    "step": "command",
-   "text": "::tele 3211 9898 0",
-   "expectMessage": "Teleported to 3211, 9898, 0",
-   "comment": "by the web east of the deadly red spiders (which side of it is guessed)"
+   "text": "::tele 3210 9898 0",
+   "expectMessage": "Teleported to 3210, 9898, 0",
+   "comment": "on the web's tile, in the corridor east of the deadly red spiders: 3211,9898 is behind the corridor's east wall, where the web can't be reached (VM 215, 2026-11-08)"
   },
   {
    "step": "locOption",

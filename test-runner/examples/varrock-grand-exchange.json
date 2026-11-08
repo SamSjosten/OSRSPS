@@ -30,8 +30,19 @@
    "comment": "ge_offers"
   },
   {
-   "step": "logout",
-   "comment": "closes the screen"
+   "step": "walk",
+   "x": 3164,
+   "y": 3485,
+   "comment": "a step south closes the screen first: the logout click did nothing with it open (VM 215, 2026-11-08)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 465,
+   "absent": true,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "logout"
   },
   {
    "step": "waitForLogin"

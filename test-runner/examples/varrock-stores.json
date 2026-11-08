@@ -74,6 +74,18 @@
    "count": 0
   },
   {
+   "step": "walk",
+   "x": 3216,
+   "y": 3415,
+   "comment": "off the keeper's tile, which closes the shop: with it open the next command's Enter key was dropped (VM 215, 2026-11-03 and 2026-11-08)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "absent": true,
+   "timeoutMs": 10000
+  },
+  {
    "step": "command",
    "text": "::tele 3253 3402 0",
    "expectMessage": "Teleported to 3253, 3402, 0",
