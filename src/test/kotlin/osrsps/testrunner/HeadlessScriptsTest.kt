@@ -7,6 +7,7 @@ import kotlin.io.path.name
 import kotlin.io.path.readText
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
@@ -105,5 +106,14 @@ class HeadlessScriptsTest {
         assertEquals(listOf("a.json", "b.json"), options.scripts.map { it.name })
         assertEquals(Path.of("o"), options.outDir)
         assertEquals(100L, options.tickMillis)
+    }
+
+    @Test
+    fun `two scripts of one name are refused, as their results would overwrite each other`(@TempDir dir: Path) {
+        Files.createDirectories(dir.resolve("x"))
+        Files.writeString(dir.resolve("a.json"), "{}")
+        Files.writeString(dir.resolve("x/a.json"), "{}")
+        val refused = assertFailsWith<IllegalArgumentException> { HeadlessScripts.Options.parse(arrayOf(dir.toString(), dir.resolve("x").toString())) }
+        assertTrue("a.json" in refused.message!!, refused.message)
     }
 }

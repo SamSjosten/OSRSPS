@@ -21,6 +21,7 @@ import osrsps.game.loc.LocTypes
 import osrsps.game.skill.LevelUps
 import osrsps.game.zone.ZoneLoc
 import osrsps.testclient.Coord
+import osrsps.testclient.CopiedZone
 import osrsps.testclient.DialogueView
 import osrsps.testclient.HeadlessClient
 import kotlin.math.abs
@@ -92,7 +93,7 @@ internal class HeadlessGame(
     override fun walk(x: Int, y: Int): String? {
         val client = c() ?: return "not logged in"
         val here = client.position ?: return "no local player"
-        if (!inScene(here, x, y)) return "tile $x, $y is not in the loaded scene"
+        if (!inScene(client, x, y)) return "tile $x, $y is not in the loaded scene"
         client.walk(x, y)
         return null
     }
@@ -130,7 +131,7 @@ internal class HeadlessGame(
     override fun locOption(name: String?, id: Int, option: String, at: Tile?): String? {
         val client = c() ?: return "not logged in"
         val here = client.position ?: return "no local player"
-        if (at != null && !inScene(here, at.x, at.y)) return "tile ${at.x}, ${at.y} is not in the loaded scene"
+        if (at != null && !inScene(client, at.x, at.y)) return "tile ${at.x}, ${at.y} is not in the loaded scene"
         val examine = option.equals(EXAMINE, ignoreCase = true)
         var best: SceneLoc? = null
         var bestOp = -1
@@ -159,7 +160,7 @@ internal class HeadlessGame(
     override fun locAt(name: String?, id: Int, option: String?, at: Tile): String? {
         val client = c() ?: return "not logged in"
         val here = client.position ?: return "no local player"
-        if (!inScene(here, at.x, at.y)) return "tile ${at.x}, ${at.y} is not in the loaded scene"
+        if (!inScene(client, at.x, at.y)) return "tile ${at.x}, ${at.y} is not in the loaded scene"
         val what = (if (name != null) "\"$name\"" else "id $id") + " at ${at.x}, ${at.y}"
         var seen = false
         for (loc in sceneLocs(client, here)) {
@@ -209,7 +210,7 @@ internal class HeadlessGame(
         val items = client.inventory(Inventory.INV)
         val slot = inventorySlot(items, name, id, -1)
         if (slot < 0) return "no ${describeItem(name, id)} in the inventory"
-        if (at != null && !inScene(here, at.x, at.y)) return "tile ${at.x}, ${at.y} is not in the loaded scene"
+        if (at != null && !inScene(client, at.x, at.y)) return "tile ${at.x}, ${at.y} is not in the loaded scene"
         // As locOption finds a loc, without an option to match: the nearest one.
         val loc = sceneLocs(client, here)
             .filter { locMatches(it, locName, locId) && (at == null || it.covers(at.x, at.y)) }
@@ -333,7 +334,7 @@ internal class HeadlessGame(
         return c()?.stat(skill.ordinal)
     }
 
-    override fun tileLoaded(at: Tile): Boolean = c()?.position?.let { inScene(it, at.x, at.y) } == true
+    override fun tileLoaded(at: Tile): Boolean = c()?.let { inScene(it, at.x, at.y) } == true
 
     override fun interfaceOpen(interfaceId: Int): Boolean = c()?.openInterfaces()?.contains(interfaceId) == true
 
@@ -362,10 +363,17 @@ internal class HeadlessGame(
         return if (item == null || item.count <= 0) -1 else item.id
     }
 
-    /** The player's appearance isn't read yet. */
-    override fun modelWornId(wearpos: Int): Int = Game.NOT_ON_MODEL
+    /**
+     * The player's appearance isn't read yet, so this is an id no item has: an equipment check then fails, naming why,
+     * rather than passing as [Game.NOT_ON_MODEL] would for a slot the model doesn't show.
+     */
+    override fun modelWornId(wearpos: Int): Int = MODEL_NOT_READ
 
-    override fun itemName(id: Int): String? = if (id < 0) null else types.objs[id]?.let { Dialogue.clean(it.name) }
+    override fun itemName(id: Int): String? = when {
+        id == MODEL_NOT_READ -> "an appearance the headless client doesn't read yet"
+        id < 0 -> null
+        else -> types.objs[id]?.let { Dialogue.clean(it.name) }
+    }
 
     override fun wornOption(wearpos: Int, option: String): String? {
         val client = c() ?: return "not logged in"
@@ -481,7 +489,8 @@ internal class HeadlessGame(
         }
         val binding = inventoryComponents[packed] ?: return -1
         if (sub < binding.firstSub) return -1
-        return client.inventory(binding.inv).getOrNull(sub - binding.firstSub)?.takeIf { it.count > 0 }?.id ?: -1
+        // A sold-out shop slot keeps its item at 0, and stays clickable; an empty slot is null.
+        return client.inventory(binding.inv).getOrNull(sub - binding.firstSub)?.id ?: -1
     }
 
     // --- Finding things -------------------------------------------------------------------------------------------
@@ -513,16 +522,38 @@ internal class HeadlessGame(
                 if (change.id < 0) null else ZoneLoc(change.id, change.shape, change.angle, change.coord.x, change.coord.z, change.coord.level)
         }
         val out = ArrayList<SceneLoc>()
-        for (x in here.x - SCENE_RADIUS until here.x + SCENE_RADIUS) {
-            for (z in here.z - SCENE_RADIUS until here.z + SCENE_RADIUS) {
+        val origin = client.sceneOrigin() ?: return out
+        val copied = client.regionZones()
+        for (x in origin.x until origin.x + HeadlessClient.SCENE_SIZE) {
+            for (z in origin.z until origin.z + HeadlessClient.SCENE_SIZE) {
                 for (layer in 0 until LAYERS) {
                     val key = slot(x, z, layer)
-                    val loc = if (changed.containsKey(key)) changed[key] else types.staticLoc(x, z, here.level, layer)
+                    val loc = if (changed.containsKey(key)) changed[key] else mapLoc(copied, x, z, here.level, layer)
                     if (loc != null) out += SceneLoc(loc, client)
                 }
             }
         }
         return out
+    }
+
+    /**
+     * The loc the client's map data puts on a tile. In a region rebuild (an instance) the client draws each zone from
+     * the one the rebuild names, so the loc is read from that zone of the cache's maps and moved here; a zone the
+     * rebuild left out is empty. Only unrotated copies are read, which is all the server sends.
+     */
+    private fun mapLoc(copied: Map<Triple<Int, Int, Int>, CopiedZone>?, x: Int, z: Int, level: Int, layer: Int): ZoneLoc? {
+        if (copied == null) return types.staticLoc(x, z, level, layer)
+        val zone = copied[Triple(x shr 3, z shr 3, level)] ?: return null
+        if (zone.rotation != 0) return null
+        val fromX = (zone.zoneX shl 3) + (x and 7)
+        val fromZ = (zone.zoneZ shl 3) + (z and 7)
+        return types.staticLoc(fromX, fromZ, zone.level, layer)?.copy(x = x, z = z, level = level)
+    }
+
+    /** Whether a tile is in the area the client last built. */
+    private fun inScene(client: HeadlessClient, x: Int, z: Int): Boolean {
+        val origin = client.sceneOrigin() ?: return false
+        return x - origin.x in 0 until HeadlessClient.SCENE_SIZE && z - origin.z in 0 until HeadlessClient.SCENE_SIZE
     }
 
     private fun locMatches(loc: SceneLoc, name: String?, id: Int): Boolean {
@@ -586,9 +617,10 @@ internal class HeadlessGame(
         const val TAKE = "Take"
         const val TAKE_OP = 3
 
-        /** The client's scene is 104 tiles across, around the player. */
-        const val SCENE_RADIUS = 52
         const val LAYERS = 4
+
+        /** What [modelWornId] gives until the player's appearance is read: no item has this id. */
+        const val MODEL_NOT_READ = Int.MAX_VALUE
         const val GROUND_LOC_LAYER = 2
         const val PLAYER_OPTION_SLOTS = 8
 
@@ -620,8 +652,6 @@ internal class HeadlessGame(
             (Trades.SIDE shl 16) or Trades.SIDE_ITEMS to InvBinding(Inventory.INV),
             (GrandExchangeScreen.SIDE shl 16) or GrandExchangeScreen.SIDE_ITEMS to InvBinding(Inventory.INV),
         )
-
-        fun inScene(here: Coord, x: Int, z: Int) = abs(x - here.x) < SCENE_RADIUS && abs(z - here.z) < SCENE_RADIUS
 
         /** RuneLite's WorldPoint.distanceTo on one plane: the larger of the two axes. */
         fun distance(a: Coord, b: Coord) = max(abs(a.x - b.x), abs(a.z - b.z))

@@ -74,6 +74,9 @@ internal object HeadlessScripts {
                     if (path.isDirectory()) path.listDirectoryEntries("*.json").sortedBy { it.name } else listOf(path)
                 }
                 require(files.isNotEmpty()) { "Name the scripts to run, or a folder of them" }
+                // A script's name is its id in the results and summary.json, so two of a name would overwrite each other.
+                val twice = files.groupBy { it.name }.filterValues { it.size > 1 }.keys
+                require(twice.isEmpty()) { "Two scripts share a name, which their results would share too: ${twice.sorted().joinToString()}" }
                 return Options(
                     dataDir = Path.of(named["data"] ?: "build/headless/data"),
                     scripts = files,
@@ -109,7 +112,7 @@ internal object HeadlessScripts {
         val types = HeadlessGame.Types.of(server.world)
         val sessions = HashMap<String, ScriptSession>()
         fun session(account: String) = sessions.getOrPut(account.lowercase()) {
-            ScriptSession(account, { name -> HeadlessClient.login("127.0.0.1", ports, key.modulus, RSA_EXPONENT, name, PASSWORD) }, types)
+            ScriptSession(account, { name -> HeadlessClient.login("127.0.0.1", ports, key.modulus, RSA_EXPONENT, name, PASSWORD, huffman = server.huffman) }, types)
         }
         val writer = ResultWriter(options.outDir.resolve("test-results"), GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create(), "headless ${options.runnerVersion}")
         val rows = LinkedHashMap<String, Row>()

@@ -97,6 +97,8 @@ class HeadlessClient private constructor(
     val index: Int,
     /** The ISAAC seed this connection logged in with, which a [reconnect] sends back. */
     val seed: IntArray,
+    /** The server's Huffman table, which compresses chat both ways: the cache's on a real server, [HUFFMAN] on TestServer's. */
+    private val huffman: HuffmanCodec,
     /** A reconnect's player info init block, which comes in the login response rather than a REBUILD_LOGIN. */
     gpiInit: ByteArray? = null,
 ) : AutoCloseable {
@@ -292,6 +294,12 @@ class HeadlessClient private constructor(
      * when its last map rebuild was the world's own.
      */
     fun regionZones(): Map<Triple<Int, Int, Int>, CopiedZone>? = lock.withLock { regionZones }
+
+    /**
+     * The south-west tile of the area the client last built, or null before the login's rebuild. The scene stays put
+     * until the server sends another rebuild, so it isn't centred on the player once they walk.
+     */
+    fun sceneOrigin(): Coord? = lock.withLock { if (zones.built) Coord(zones.originX, zones.originZ, 0) else null }
 
     /**
      * Whether the server has enabled op [op] (1 to 32) on slot [sub] of a component with IF_SETEVENTS. The real client
@@ -551,7 +559,7 @@ class HeadlessClient private constructor(
     /** A private message typed to [name] (MESSAGE_PRIVATE). */
     fun privateMessage(name: String, text: String) = send(GameClientProt.MESSAGE_PRIVATE) {
         pjstr(name)
-        HUFFMAN.encode(this, text)
+        huffman.encode(this, text)
     }
 
     /** Join Chat's prompt answered with [name] (FRIENDCHAT_JOIN_LEAVE). */
@@ -565,7 +573,7 @@ class HeadlessClient private constructor(
         p1(2)
         p1(0)
         p1(0)
-        HUFFMAN.encode(this, text)
+        huffman.encode(this, text)
     }
 
     /** A line typed with `//` in front, for the player's clan (MESSAGE_PUBLIC type 3, then clan type 0 after the text). */
@@ -573,7 +581,7 @@ class HeadlessClient private constructor(
         p1(3)
         p1(0)
         p1(0)
-        HUFFMAN.encode(this, text)
+        huffman.encode(this, text)
         p1(0)
     }
 
@@ -582,7 +590,7 @@ class HeadlessClient private constructor(
         p1(4)
         p1(0)
         p1(0)
-        HUFFMAN.encode(this, text)
+        huffman.encode(this, text)
     }
 
     /** A line typed in public chat (MESSAGE_PUBLIC type 0, plain yellow). */
@@ -590,7 +598,7 @@ class HeadlessClient private constructor(
         p1(0)
         p1(0)
         p1(0)
-        HUFFMAN.encode(this, text)
+        huffman.encode(this, text)
     }
 
     /** A rule picked on the report screen for [name] (SEND_SNAPSHOT). */
@@ -982,7 +990,7 @@ class HeadlessClient private constructor(
                 val world = buf.g2()
                 val counter = buf.g3()
                 buf.g1() // chat crown
-                privateMessages += PrivateMessage(from, null, HUFFMAN.decode(buf), world, counter)
+                privateMessages += PrivateMessage(from, null, huffman.decode(buf), world, counter)
             }
             GameServerProt.UPDATE_FRIENDCHAT_CHANNEL_FULL_V2 -> {
                 friendsChat = if (!buf.isReadable) {
@@ -1019,7 +1027,7 @@ class HeadlessClient private constructor(
                 buf.g2() // world
                 val counter = buf.g3()
                 buf.g1() // chat crown
-                channelMessages += ChannelMessage(sender, channel, HUFFMAN.decode(buf), counter)
+                channelMessages += ChannelMessage(sender, channel, huffman.decode(buf), counter)
             }
             GameServerProt.MESSAGE_CLANCHANNEL -> {
                 // RSProt's MessageClanChannelEncoder: clan type, name, world, counter, crown, then the Huffman text.
@@ -1028,11 +1036,11 @@ class HeadlessClient private constructor(
                 buf.g2()
                 buf.g3()
                 buf.g1()
-                clanMessages += ClanMessage(clanType, sender, HUFFMAN.decode(buf))
+                clanMessages += ClanMessage(clanType, sender, huffman.decode(buf))
             }
             GameServerProt.MESSAGE_PRIVATE_ECHO -> {
                 val to = buf.gjstr()
-                privateMessages += PrivateMessage(null, to, HUFFMAN.decode(buf))
+                privateMessages += PrivateMessage(null, to, huffman.decode(buf))
             }
             GameServerProt.UPDATE_IGNORELIST -> {
                 while (buf.isReadable) {
@@ -1112,6 +1120,9 @@ class HeadlessClient private constructor(
     companion object {
         const val DEFAULT_TIMEOUT_MILLIS = 10_000L
 
+        /** The width of the area a rebuild builds, from [sceneOrigin]: 13 zones of 8 tiles. */
+        const val SCENE_SIZE = 104
+
         /** What a finished `::step` says; the `::pause` reply has more after the number. */
         private val STEPPED = Regex("Paused after tick \\d+")
 
@@ -1139,7 +1150,7 @@ class HeadlessClient private constructor(
         /**
          * Logs in as [username] and returns once the server has accepted the login. The JS5 CRCs are fetched from the
          * same port first. [rsaModulus] and [rsaExponent] are the server's public key. [header] goes in front of both
-         * connections, as a relay's PROXY header would.
+         * connections, as a relay's PROXY header would. [huffman] is the server's chat table.
          */
         fun login(
             host: String,
@@ -1150,6 +1161,7 @@ class HeadlessClient private constructor(
             password: String = "test",
             timeoutMillis: Int = DEFAULT_TIMEOUT_MILLIS.toInt(),
             header: ByteArray = ByteArray(0),
+            huffman: HuffmanCodec = HUFFMAN,
         ): HeadlessClient {
             val crcs = Js5Crcs.fetch(host, port, timeoutMillis, header)
             val socket = Socket()
@@ -1187,7 +1199,7 @@ class HeadlessClient private constructor(
                 repeat(3) { input.readLong() } // account hash, user id, user hash
                 // Game packets come in at the server's pace; the reader waits as long as it has to.
                 socket.soTimeout = 0
-                return HeadlessClient(socket, encoder, decoder, index, seed)
+                return HeadlessClient(socket, encoder, decoder, index, seed, huffman)
             } catch (e: Throwable) {
                 socket.close()
                 throw e
@@ -1232,7 +1244,7 @@ class HeadlessClient private constructor(
                 if (response != RECONNECT_OK) throw LoginFailedException(response)
                 val gpiInit = ByteArray(input.readUnsignedShort()).also(input::readFully)
                 socket.soTimeout = 0
-                return HeadlessClient(socket, IsaacRandom(seed), IsaacRandom(IntArray(4) { seed[it] + 50 }), previous.index, seed, gpiInit)
+                return HeadlessClient(socket, IsaacRandom(seed), IsaacRandom(IntArray(4) { seed[it] + 50 }), previous.index, seed, previous.huffman, gpiInit)
             } catch (e: Throwable) {
                 socket.close()
                 throw e

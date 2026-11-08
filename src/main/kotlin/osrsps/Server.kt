@@ -125,13 +125,16 @@ class GameServer(
         },
     )
     private val js5Connections = AtomicLong()
+
+    /** The cache's Huffman table, which chat is compressed with; set by [start]. */
+    lateinit var huffman: HuffmanCodec
+        private set
     private lateinit var factory: NetworkFactory
     private lateinit var network: NetworkService<Player>
 
     fun start() {
         val library = CacheLibrary.create(dataDir.resolve("cache").toString())
         val js5: Js5Store
-        val huffman: HuffmanCodec
         val map: WorldMap
         val interfaceIds: Set<Int>
         val varTypes: VarTypes
