@@ -13,6 +13,8 @@
   {"step": "assertMessage", "contains": "[lodestone.activated name=[lodestone.lumbridge]]", "timeoutMs": 10000},
   {"step": "command", "text": "::varbit lodestone.lumbridge", "expectMessage": "bits 0-0) = 1", "comment": "bit 0 of the lodestones' varp, by name"},
   {"step": "assertLoc", "loc": "Lodestone", "x": 3232, "y": 3220, "option": "Teleport", "comment": "the client redraws the stone active from the varbit"},
+  {"step": "locOption", "loc": "Lodestone", "option": "Examine", "x": 3232, "y": 3220, "comment": "every stone shares one examine"},
+  {"step": "assertMessage", "contains": "examine.loc_65000", "timeoutMs": 10000, "comment": "its key (::keys on); the words are the Words thread's"},
 
   {"step": "command", "text": "::tele 3102 3300 0", "expectMessage": "Teleported to 3102, 3300, 0", "comment": "Draynor Village: east of the stone, north of the oak by the north road's signpost"},
   {"step": "assertLoc", "loc": "Lodestone", "x": 3098, "y": 3298, "option": "Activate"},
@@ -21,7 +23,7 @@
   {"step": "command", "text": "::varbit lodestone.draynor", "expectMessage": "bits 1-1) = 1"},
   {"step": "assertLoc", "loc": "Lodestone", "x": 3098, "y": 3298, "option": "Teleport"},
 
-  {"step": "command", "text": "::tele 3219 3376 0", "expectMessage": "Teleported to 3219, 3376, 0", "comment": "Varrock: east of the stone south of the south gate, past the tree beside it"},
+  {"step": "command", "text": "::tele 3210 3376 0", "expectMessage": "Teleported to 3210, 3376, 0", "comment": "Varrock: west of the stone south of the south gate, away from the dark wizards' circle east of it, which hunts players up to twice its level (a low-level account hit there is in combat for 16 ticks, and a cast in combat is refused)"},
   {"step": "assertLoc", "loc": "Lodestone", "x": 3213, "y": 3375, "option": "Activate"},
   {"step": "locOption", "loc": "Lodestone", "option": "Activate", "x": 3213, "y": 3375},
   {"step": "assertMessage", "contains": "[lodestone.activated name=[lodestone.varrock]]", "timeoutMs": 10000},
@@ -40,6 +42,7 @@
   {"step": "command", "text": "::varbit lodestone.edgeville", "expectMessage": "bits 4-4) = 1"},
   {"step": "command", "text": "::varp lodestones", "expectMessage": "Varp lodestones = 31", "comment": "all five bits"},
 
+  {"step": "waitTicks", "ticks": 17, "comment": "longer than the 16-tick in-combat window, so a stray hit on the way round cannot refuse the cast below"},
   {"step": "command", "text": "::lodestone", "comment": "the map, from anywhere: our interface 30000, served through the cache overlay (LodestoneMap.kt names the components)"},
   {"step": "assertInterface", "interfaceId": 30000, "timeoutMs": 10000},
   {"step": "assertWidgetText", "interfaceId": 30000, "component": 3, "contains": "[lodestone.title]", "comment": "the title"},
