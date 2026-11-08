@@ -98,6 +98,10 @@
     {"step": "continueDialogue"},
     {"step": "assertDialogue", "contains": "[sigurd.ha_ha]"},
     {"step": "continueDialogue"},
+    {"step": "chooseOption", "text": "[sigurd.who]", "comment": "Sigurd's menu: who or teach"},
+    {"step": "assertDialogue", "contains": "[sigurd.who]", "timeoutMs": 15000},
+    {"step": "finishDialogue", "timeoutMs": 40000, "comment": "clicks through the canoe story (yes on the last menu, then the teaching) so the chatbox is free for ::keys off and the next script"},
+    {"step": "assertNoDialogue"},
     {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
     {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
   ]
