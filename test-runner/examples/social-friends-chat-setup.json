@@ -3,6 +3,8 @@
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},
+  {"step": "runClientScript", "id": 915, "args": [9], "comment": "shows the Friends side tab (toplevel_sidebutton_switch): the runner reads the lists from its widgets, which count only while it shows"},
+  {"step": "clickWidget", "interfaceId": 707, "component": 2, "comment": "the Clans tab's Chat-channel page, where the friends chat panel (7) is; a clan script can leave Your Clan showing"},
   {"step": "command", "text": "::keys on", "expectMessage": "keys"},
   {"step": "setFriendsChatName", "name": "Setup Hut"},
   {"step": "assertWidgetText", "interfaceId": 94, "component": 10, "contains": "Setup Hut"},
