@@ -22,6 +22,7 @@ import osrsps.game.loc.LocTypes
 import osrsps.game.script.ScriptContext
 import osrsps.game.skill.LevelUps
 import osrsps.game.zone.ZoneLoc
+import osrsps.testclient.ClientScript
 import osrsps.testclient.Coord
 import osrsps.testclient.CopiedZone
 import osrsps.testclient.DialogueView
@@ -451,8 +452,13 @@ internal class HeadlessGame(
     override fun clickWidgetNamed(interfaceId: Int, component: Int, name: String, op: Int): String =
         "slots built by the client's own scripts aren't known to the headless client"
 
-    override fun runClientScript(id: Int, args: Array<Any>): String =
-        "client script $id runs in the client, which the headless client doesn't have"
+    /**
+     * Only the scripts whose whole effect stays in the client are stood in for, as doing nothing: the side tab switch
+     * (915, toplevel_sidebutton_switch) shows another tab and tells the server nothing (inferred from its name and
+     * from the server never seeing it). Any other script fails, saying it needs the client.
+     */
+    override fun runClientScript(id: Int, args: Array<Any>): String? =
+        if (id in CLIENT_ONLY_SCRIPTS) null else "client script $id runs in the client, which the headless client doesn't have"
 
     override fun mouseClickWidget(interfaceId: Int, component: Int, sub: Int): String =
         "a mouse click on $interfaceId:$component runs the client's own scripts, which the headless client doesn't have"
@@ -525,6 +531,13 @@ internal class HeadlessGame(
         }
         scriptsSeen = scripts.size
     }
+
+    /**
+     * Stand-in for a chat line a client script prints: the item examine script (6003) puts the item's description in
+     * the chatbox. Inferred: only the description is given, not the price lines the script adds after it.
+     */
+    fun scriptMessage(script: ClientScript): String? =
+        if (script.id == InventoryTab.EXAMINE_SCRIPT) script.args.getOrNull(EXAMINE_DESC_ARG) as? String else null
 
     /** A new login starts from a new client, whose scripts are counted from 0. */
     fun newLogin() {
@@ -673,6 +686,12 @@ internal class HeadlessGame(
 
         /** What [modelWornId] gives until the player's appearance is read: no item has this id. */
         const val MODEL_NOT_READ = Int.MAX_VALUE
+
+        /** Client scripts that change only what the client shows: toplevel_sidebutton_switch. */
+        val CLIENT_ONLY_SCRIPTS = setOf(915)
+
+        /** The examine script's argument holding the item's description. */
+        const val EXAMINE_DESC_ARG = 2
 
         /** The prompts' client scripts and the meslayer mode each sets: a number, a line of text, the item search. */
         val PROMPT_SCRIPTS = mapOf(

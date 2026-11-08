@@ -20,6 +20,7 @@ internal class ScriptSession(
     private val runner = Runner(game, { clock() }, { ACCOUNTS })
     private var ticksSeen = 0
     private var messagesSeen = 0
+    private var scriptsSeen = 0
     private var loginAnnounced = false
     private var nextLoginAt = 0L
     private var nextKeepAliveAt = 0L
@@ -70,6 +71,7 @@ internal class ScriptSession(
                     game.newLogin()
                     ticksSeen = 0
                     messagesSeen = 0
+                    scriptsSeen = 0
                     loginAnnounced = false
                 } catch (e: Exception) {
                     // Logged, not thrown: a step that needs the login fails at its own timeout, with this in the log.
@@ -92,6 +94,19 @@ internal class ScriptSession(
         val messages = current.messages()
         for (i in messagesSeen until messages.size) runner.message(messages[i].text)
         messagesSeen = messages.size
+        val scripts = current.clientScripts()
+        for (i in scriptsSeen until scripts.size) game.scriptMessage(scripts[i])?.let(runner::message)
+        scriptsSeen = scripts.size
+        // As the plugin's AnimationChanged, GraphicChanged and HitsplatApplied: the player as SELF, another player as -2.
+        for (event in events) {
+            val index = if (event.npc) event.index else if (event.index == current.index) Run.SELF else OTHER_PLAYER
+            val npc = if (event.npc) game.npcName(event.index) else null
+            when (event.kind) {
+                ActorEventKind.ANIMATION -> runner.animation(index, npc, event.id)
+                ActorEventKind.SPOTANIM -> runner.spotanim(index, npc, event.id)
+                ActorEventKind.HITSPLAT -> runner.hitsplat(index, npc, event.id, event.amount)
+            }
+        }
         val ticks = current.ticksSeen
         repeat(ticks - ticksSeen) { runner.gameTick() }
         ticksSeen = ticks
