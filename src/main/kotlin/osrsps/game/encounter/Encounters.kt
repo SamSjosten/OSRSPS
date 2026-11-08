@@ -20,6 +20,8 @@ class Encounter internal constructor(
     private val inArea: (Int, Int) -> Boolean,
     startPhase: Int,
     private val admits: (Player) -> Boolean = { true },
+    /** When this says why, the fight is called off before its tick and its boss taken out; null to go on. */
+    internal val calledOff: () -> String? = { null },
 ) : EncounterContext {
     /** The phase it is in, an index into [EncounterDef.phases]. */
     var phase: Int = startPhase
@@ -284,13 +286,20 @@ class Encounters(private val world: World, defs: List<EncounterDef> = emptyList(
 
     /**
      * Starts [def] against [boss], with the players [inArea] says are in the fight and [admits] lets in (everyone, unless
-     * it says otherwise), from the phase at [startPhase]. The
+     * it says otherwise), from the phase at [startPhase]; [calledOff], checked each tick, can stop it. The
      * fight's first tick runs now: the phase's start, steps with no delay and hazards due at once.
      */
-    fun start(def: EncounterDef, boss: Npc, inArea: (Int, Int) -> Boolean, startPhase: Int = 0, admits: (Player) -> Boolean = { true }): Encounter {
+    fun start(
+        def: EncounterDef,
+        boss: Npc,
+        inArea: (Int, Int) -> Boolean,
+        startPhase: Int = 0,
+        admits: (Player) -> Boolean = { true },
+        calledOff: () -> String? = { null },
+    ): Encounter {
         require(startPhase in def.phases.indices) { "${def.name} has no phase $startPhase" }
         require(list.none { it.boss === boss }) { "$boss is already in a fight" }
-        val encounter = Encounter(nextId++, def, boss, world, inArea, startPhase, admits)
+        val encounter = Encounter(nextId++, def, boss, world, inArea, startPhase, admits, calledOff)
         boss.scriptedAttacks = def.scriptedAttacks
         list += encounter
         encounter.begin()
@@ -305,6 +314,13 @@ class Encounters(private val world: World, defs: List<EncounterDef> = emptyList(
 
     fun process() {
         for (encounter in list.toList()) {
+            encounter.calledOff()?.let { why ->
+                encounter.end(why)
+                list -= encounter
+                val boss = encounter.boss
+                if (!boss.dead && world.npcs[boss.index] === boss) world.removeNpc(boss)
+            }
+            if (encounter.ended) continue
             encounter.process()
             if (encounter.ended) list -= encounter
         }

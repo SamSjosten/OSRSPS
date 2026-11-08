@@ -14,9 +14,10 @@ import osrsps.game.raid.PartyScaling
  * `::raid`: starts a boss fight where you stand, at a phase, for a party size and on a seed, so a fight can be played
  * from any point and the same way twice (raid step 12); and shows, logs and stops the fight you are in. The fight's
  * room and gear sets come with each boss's step. In an instance the fight covers the instance; elsewhere, the
- * [FIGHT_RADIUS] tiles round the boss's spawn, for its starter and their party only. In an Archive run (raid step 15),
- * `::raid run` shows it, `::raid tp` goes to a room of it or the nexus and `::raid clear` marks the room you're in
- * done, for testing; a room whose fight never began gives its points to whoever of the party stands in it.
+ * [FIGHT_RADIUS] tiles round the boss's spawn, for its starter and their party only, ending if the starter dies or
+ * logs out. In an Archive run (raid step 15), `::raid run` shows it, `::raid tp` goes to a room of it or the nexus and
+ * `::raid clear` marks the room you're in done, for testing; a room whose fight never began gives its points to whoever
+ * of the party stands in it.
  */
 fun CommandRegistry.registerRaidCommands(world: World) {
     val encounters = world.encounters
@@ -135,7 +136,21 @@ fun CommandRegistry.registerRaidCommands(world: World) {
                 } else {
                     { it === starter || world.parties.of(starter)?.let { party -> world.parties.of(it) === party } == true }
                 }
-                val fight = encounters.start(def, npc, area, phase, admits)
+                // Outside an instance it ends with its starter's death or logout, as nothing else would end it: they
+                // would come back to Lumbridge inside its reach and be killed again and again (nightly 2026-11-08,
+                // test2 left mid-fight by a failed script, then stuck dying).
+                val calledOff: () -> String? = if (instance != null) {
+                    { null }
+                } else {
+                    {
+                        when {
+                            starter.dead -> "${starter.username} died"
+                            starter.loggedOut || world.onlinePlayers.none { it === starter } -> "${starter.username} left"
+                            else -> null
+                        }
+                    }
+                }
+                val fight = encounters.start(def, npc, area, phase, admits, calledOff)
                 val scaled = hitpoints?.let { ", $it hp for a party of $size" }.orEmpty()
                 val seeded = seed?.let { ", seed $it" }.orEmpty()
                 reply("Started ${def.name} #${fight.id} on ${npc.type.name} #${npc.index} at ${npc.x}, ${npc.z}, phase ${phase + 1} (${def.phases[phase].name})$scaled$seeded.")

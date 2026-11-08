@@ -653,6 +653,40 @@ class HeadlessArchiveGuardianTest {
     }
 
     @Test
+    fun `outside an instance its fight ends when its starter dies or logs out, so they don't come back into it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                alice.await("the login rebuild") { alice.position }
+                // On 10 hitpoints beside it: its first shot kills her. Before (nightly 2026-11-08), she came back at
+                // Lumbridge in its reach and was killed again and again.
+                alice.tele(3222, 3218)
+                alice.commandReply("raid guardian") { it.startsWith("Started") }
+                val fight = server.world.encounters.all.single()
+                val boss = fight.boss
+                val player = server.world.playerNamed("alice")!!
+                alice.await("her death") { if (player.dead) Unit else null }
+                alice.await("the fight called off") { if (fight.ended) Unit else null }
+                assertTrue(fight.lines.any { it.endsWith("ends: alice died") }, fight.lines.joinToString("\n"))
+                assertTrue(server.world.encounters.all.isEmpty())
+                assertTrue(server.world.npcs[boss.index] !== boss, "its boss taken out")
+                alice.await("her back up") { if (!player.dead) Unit else null }
+            }
+            server.login("bob").use { bob ->
+                bob.await("the login rebuild") { bob.position }
+                bob.commandReply("god on") { it.startsWith("You can't be hurt") }
+                bob.tele(3222, 3218)
+                bob.commandReply("raid guardian") { it.startsWith("Started") }
+            }
+            // His client gone, he is logged out, and the fight with him.
+            val fight = server.world.encounters.all.single()
+            val until = System.currentTimeMillis() + 15_000
+            while (!fight.ended && System.currentTimeMillis() < until) Thread.sleep(50)
+            assertTrue(fight.ended, "the fight called off as he left")
+            assertTrue(fight.lines.any { it.endsWith("ends: bob left") }, fight.lines.joinToString("\n"))
+        }
+    }
+
+    @Test
     fun `levitating, it is out of melee's reach but for a halberd, and grounded anyone can hit it`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->
