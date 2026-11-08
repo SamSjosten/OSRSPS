@@ -12,24 +12,29 @@ import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
 import osrsps.game.skill.AgilityData
 import osrsps.game.zone.ZoneLoc
+import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
 import osrsps.map.LocShape
 
 /**
  * Agility step 4 through the headless client: laps of the Al Kharid Rooftop Course with its real locs (as the 241 map
- * places them) and agility.json, on open ground (no cache collision in tests). The rl-client script
+ * places them) and agility.json, on open ground (no cache collision in tests) but for the roof's edge and the missing
+ * floor around the tropical tree, blocked as the map has them. The rl-client script
  * test-runner/examples/agility-alkharid.json runs the real course.
  */
 class HeadlessAlKharidRooftopTest {
-    private class Obstacle(val id: Int, val name: String, val option: String, val shape: Int, val angle: Int, val x: Int, val z: Int, val level: Int, val endX: Int, val endZ: Int, val endLevel: Int)
+    private class Obstacle(
+        val id: Int, val name: String, val option: String, val shape: Int, val angle: Int, val x: Int, val z: Int, val level: Int,
+        val endX: Int, val endZ: Int, val endLevel: Int, val width: Int = 1, val length: Int = 1,
+    )
 
     private val course = listOf(
         Obstacle(11633, "Rough wall", "Climb", 4, 3, 3273, 3195, 0, 3273, 3192, 3),
         Obstacle(14398, "Tightrope", "Cross", LocShape.GROUND_DECOR, 2, 3272, 3181, 3, 3272, 3172, 3),
         Obstacle(14402, "Cable", "Swing-across", LocShape.CENTREPIECE_STRAIGHT, 1, 3269, 3166, 3, 3284, 3166, 3),
         Obstacle(14403, "Zip line", "Teeth-grip", LocShape.CENTREPIECE_STRAIGHT, 3, 3302, 3163, 3, 3315, 3163, 1),
-        Obstacle(14404, "Tropical tree", "Swing-across", LocShape.CENTREPIECE_STRAIGHT, 0, 3318, 3166, 1, 3317, 3174, 2),
+        Obstacle(14404, "Tropical tree", "Swing-across", LocShape.CENTREPIECE_STRAIGHT, 0, 3318, 3166, 1, 3317, 3174, 2, length = 2),
         Obstacle(11634, "Roof top beams", "Climb", 4, 1, 3316, 3179, 2, 3316, 3180, 3),
         Obstacle(14409, "Tightrope", "Cross", LocShape.GROUND_DECOR, 3, 3313, 3186, 3, 3304, 3186, 3),
         Obstacle(14399, "Gap", "Jump", LocShape.CENTREPIECE_DIAGONAL, 3, 3300, 3193, 3, 3299, 3194, 0),
@@ -43,10 +48,15 @@ class HeadlessAlKharidRooftopTest {
             CollisionMap().apply {
                 markLoaded(3222 shr 6, 3218 shr 6)
                 markLoaded(3273 shr 6, 3195 shr 6)
+                // Around the tropical tree, as the 241 map has it: no floor beyond the roof, and the roof's edge wall
+                // between the tree's start and the tree, so the tree is used from its start (fromStart).
+                for (x in 3316..3322) for (z in 3166..3168) add(x, z, 1, CollisionFlag.FLOOR)
+                for (x in 3319..3322) for (z in 3163..3165) add(x, z, 1, CollisionFlag.FLOOR)
+                for (x in 3316..3318) add(x, 3165, 1, CollisionFlag.WALL_NORTH)
             },
             locTypes = LocTypes(
                 course.associate {
-                    it.id to LocType(it.id, it.name, listOf(it.option, null, null, null, null), LocCollisionType(width = 1, length = 1, interactType = 0))
+                    it.id to LocType(it.id, it.name, listOf(it.option, null, null, null, null), LocCollisionType(width = it.width, length = it.length, interactType = 0))
                 },
             ),
             staticLocs = StaticLocs().apply { for (o in course) add(ZoneLoc(o.id, o.shape, o.angle, o.x, o.z, o.level)) },
