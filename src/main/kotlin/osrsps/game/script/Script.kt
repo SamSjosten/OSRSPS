@@ -102,8 +102,8 @@ class ScriptContext internal constructor(val player: Player, private val runner:
     suspend fun waitForCount(): Int = runner.countDialog(player)
 
     /** Queues [script] for this player; see [ScriptRunner.queue]. */
-    fun queue(name: String, type: QueueType = QueueType.NORMAL, delay: Int = 0, script: Script) =
-        runner.queue(player, name, type, delay, script)
+    fun queue(name: String, type: QueueType = QueueType.NORMAL, delay: Int = 0, onDrop: (() -> Unit)? = null, script: Script) =
+        runner.queue(player, name, type, delay, onDrop, script)
 
     /** Starts or replaces this player's timer called [name]; see [ScriptRunner.setTimer]. */
     fun setTimer(name: String, interval: Int, type: TimerType = TimerType.NORMAL, script: Script) =

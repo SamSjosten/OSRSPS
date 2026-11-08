@@ -170,11 +170,11 @@ class LodestoneNetworkTest {
         assertTrue(home.casting(player))
         run(27)
         assertTrue(landed.isEmpty())
-        assertEquals(mapOf(100L to 4847, 108L to 4850, 115L to 4853, 119L to 4855, 122L to 4857), anims)
+        assertEquals(mapOf(100L to CustomAnims.LODESTONE_CHARGE, 100L + Lodestones.CAST_TICKS - Lodestones.RISE_TICKS to CustomAnims.LODESTONE_RISE), anims)
         run(1)
         assertEquals(listOf(128L to Lodestones.VARROCK.arrival), landed)
         assertEquals(Triple(3214, 3376, 0), Triple(player.x, player.z, player.level), "the stone's centre tile")
-        assertEquals(-1, anims[128L])
+        assertEquals(CustomAnims.LODESTONE_LAND, anims[128L], "the landing's animation, on the arrival tile")
         assertEquals(0, player.vars[HomeTeleport.VARP_LAST_CAST], "no cooldown")
         assertFalse(home.casting(player))
         assertTrue(said.isEmpty())
@@ -198,7 +198,7 @@ class LodestoneNetworkTest {
         assertTrue(home.casting(player))
         run(27)
         assertTrue(landed.isEmpty())
-        assertEquals(mapOf(100L to 4847, 108L to 4850, 115L to 4853, 119L to 4855, 122L to 4857), anims)
+        assertEquals(mapOf(100L to CustomAnims.LODESTONE_CHARGE, 100L + Lodestones.CAST_TICKS - Lodestones.RISE_TICKS to CustomAnims.LODESTONE_RISE), anims)
         run(1)
         assertEquals(listOf(128L to Lodestones.EDGEVILLE.arrival), landed)
         assertEquals(Triple(3073, 3505, 0), Triple(player.x, player.z, player.level), "the stone's centre tile")
@@ -332,7 +332,7 @@ class LodestoneNetworkTest {
         command(Lodestones.LUMBRIDGE)
         run(25)
         assertEquals(1, landed.size)
-        assertEquals(1, anims.values.count { it == 4847 })
+        assertEquals(1, anims.values.count { it == CustomAnims.LODESTONE_CHARGE })
     }
 
     @Test

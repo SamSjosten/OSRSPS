@@ -102,6 +102,16 @@ revision end at different ids (241's varps end at 5,890 in one build and 5,995 i
 id the cache has; so nothing names them by number: content and tests go through `CustomVars`, and `::varp lodestones`
 and `::varbit lodestone.varrock` take the names in the chatbox and the runner's scripts.
 
+Animations and graphics of our own are code as well: `game/content/CustomAnims.kt` lists sequences (config archive 12,
+`osrsps.cache.SeqCodec`) and spotanims (13, `osrsps.cache.SpotanimCodec`) from id 65,000, above the cache's, and the
+overlay adds them to those groups. The client has no frames of ours, so a sequence of ours plays frames the cache
+already has, at our own pace and in our own order (as the cache's own reversed teleport, 715, plays 714's backwards),
+and a spotanim of ours is a cache graphic's model on a sequence with its colours swapped. The lodestone cast is the
+first (step 8): the arms-raised pose while a white pulse builds, then Tele Other's rise drawn white in the last three
+ticks, and the same frames backwards on the arrival tile, after RS3's player who "flies into the air as white pulse
+and flies back down at the lodestone". `::anim 65000` and `::spotanim 65000` play them, and `lodestone-network.json`
+reads the cast and the landing off the real client after the Teleport click.
+
 ## Run the server
 
 ```bash
