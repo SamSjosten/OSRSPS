@@ -68,6 +68,32 @@ class NpcCommandsTest {
     }
 
     @Test
+    fun `npcs mine lists only the NPCs you put in, however many others stand nearer`() {
+        repeat(25) { world.spawnNpc(osrsps.game.npc.NpcSpawn(world.npcTypes.lookup("hans")!!, 3222, 3218, source = "map"))!! }
+        player.z = 3228
+        run("npc hans")
+        player.z = 3218
+        replies.clear()
+        run("npcs 15")
+        assertEquals(1 + 20 + 1, replies.size, "the plain list stops at 20 and says how many more")
+        assertEquals(false, replies.any { it.startsWith("#26 ") })
+        replies.clear()
+        run("npcs 15 mine")
+        run("npcs mine")
+        run("npcs 5 mine")
+        assertEquals(
+            listOf(
+                "1 NPC you put in within 15 tiles:",
+                "#26 Hans (3105) at 3222, 3228; spawn 3222, 3228, wander 0",
+                "1 NPC you put in within 15 tiles:",
+                "#26 Hans (3105) at 3222, 3228; spawn 3222, 3228, wander 0",
+                "No NPCs you put in within 5 tiles.",
+            ),
+            replies,
+        )
+    }
+
+    @Test
     fun `delnpc mine removes every NPC you put in, and no others`() {
         run("npc hans")
         run("npc hans")
