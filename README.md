@@ -1833,7 +1833,7 @@ a fight started on a seed plays the same way each time.
 | Adds and hazards going when the boss dies or leaves | guessed; each boss's step changes it if live keeps them |
 | A phase also ending when its own test says so (a shield broken); steps put off a few ticks (a laser aimed now, landing later) running after the cycle and before the hazards, never once the fight is over | guessed |
 | A boss whose fight picks its attacks (the Guardian) never swinging, shooting, walking after anyone or retreating by itself, and keeping the first player it took on while they last | guessed |
-| A fight outside an instance covering 32 tiles round the boss's spawn, for the starter and their raid party only (so another test account standing in Lumbridge isn't drawn in) | testing only: the raid's rooms are instances |
+| A fight outside an instance covering 32 tiles round the boss's spawn, for the starter and their raid party only (so another test account standing in Lumbridge isn't drawn in), ending if the starter dies or logs out (else a script stopped mid-fight leaves them dying again and again at Lumbridge's spawn) | testing only: the raid's rooms are instances |
 | The Archive Guardian (step 16); the others each come with their own step, from 17 on, with its room and gear sets for `::raid` | not in yet: steps 17 to 27 |
 
 `::raid boss phase=2 party=3 seed=42` starts a fight where you stand, and `::raid digest 100` sums up its first 100
