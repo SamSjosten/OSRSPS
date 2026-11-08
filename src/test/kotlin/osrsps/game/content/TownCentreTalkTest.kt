@@ -6,13 +6,11 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import osrsps.game.ObjType
 import osrsps.game.Player
-import osrsps.game.Skill
 import osrsps.game.content.DonieAndGee.talk
 import osrsps.game.content.LumbridgeShopkeepers.bob
 import osrsps.game.content.LumbridgeShopkeepers.keeper
 import osrsps.game.content.LumbridgeTownsfolk.abigaila
 import osrsps.game.content.LumbridgeTownsfolk.ironmanTutor
-import osrsps.game.content.LumbridgeTutors.cookingTutor
 import osrsps.game.content.ShearedRam.arthur
 import osrsps.game.content.ShearedRam.bartender
 
@@ -161,37 +159,6 @@ class TownCentreTalkTest {
     }
 
     @Test
-    fun `the Cooking tutor's training talk goes by Cooking level`() {
-        h.talk { with(LumbridgeTutors) { cookingTutor() } }
-        h.expect("cooking_tutor.hello", "cooking_tutor.greeting")
-        h.menu("cooking_tutor.train", "cooking_tutor.kinds", "cooking_tutor.no_thanks")
-        h.pick(1)
-        h.expect(
-            "cooking_tutor.train", "cooking_tutor.low_1", "cooking_tutor.low_2", "cooking_tutor.range_hint", "cooking_tutor.low_3",
-            "cooking_tutor.cooks_range", "cooking_tutor.low_4", "cooking_tutor.low_5", "cooking_tutor.low_6", "cooking_tutor.bank_hint",
-            "cooking_tutor.anything_else",
-        )
-        assertEquals(listOf(LumbridgeTutors.RANGE_ICON, LumbridgeTutors.BANK_ICON), h.boxObjs)
-        h.menu("cooking_tutor.train", "cooking_tutor.kinds", "cooking_tutor.no_thanks")
-        h.pick(2)
-        h.expect("cooking_tutor.kinds", "cooking_tutor.many", "cooking_tutor.which")
-        h.menu("cooking_tutor.fish", "cooking_tutor.brewing", "cooking_tutor.vegetables", "cooking_tutor.pies")
-        h.pick(2)
-        h.expect("cooking_tutor.brewing", "cooking_tutor.brewing_hint", "cooking_tutor.brewing_1", "cooking_tutor.brewing_2", "cooking_tutor.brewing_more")
-        h.menu("cooking_tutor.train", "cooking_tutor.kinds", "cooking_tutor.no_thanks")
-        h.pick(3)
-        h.expect("cooking_tutor.no_thanks", "cooking_tutor.come_back")
-        h.ends()
-
-        h.player.skills.setLevel(Skill.COOKING, 99)
-        h.talk { with(LumbridgeTutors) { cookingTutor() } }
-        h.expect("cooking_tutor.hello", "cooking_tutor.greeting")
-        h.menu("cooking_tutor.train", "cooking_tutor.kinds", "cooking_tutor.no_thanks")
-        h.pick(1)
-        h.expect("cooking_tutor.train", "cooking_tutor.master", "cooking_tutor.pizza", "cooking_tutor.potatoes", "cooking_tutor.curry", "cooking_tutor.anything_else")
-    }
-
-    @Test
     fun `Abigaila tells her story, and won't let a player carrying anything scry`() {
         h.player.inventory.add(coins, 1)
         h.talk { with(LumbridgeTownsfolk) { abigaila() } }
@@ -223,7 +190,7 @@ class TownCentreTalkTest {
     fun `every town centre NPC that talks has an examine`() {
         val ids = listOf(
             LumbridgeShopkeepers.SHOP_KEEPER, LumbridgeShopkeepers.SHOP_ASSISTANT, LumbridgeShopkeepers.BOB, ShearedRam.BARTENDER,
-            ShearedRam.ARTHUR, DonieAndGee.DONIE, DonieAndGee.GEE, LumbridgeTutors.COOKING_TUTOR, Feoras.ID,
+            ShearedRam.ARTHUR, DonieAndGee.DONIE, DonieAndGee.GEE, Feoras.ID,
             Wilfred.ID, LumbridgeTownsfolk.ABIGAILA, LumbridgeTownsfolk.IRONMAN_TUTOR,
         )
         for (id in ids) assertEquals("examine.npc_$id", Examines.npc(id)?.key, "NPC $id")

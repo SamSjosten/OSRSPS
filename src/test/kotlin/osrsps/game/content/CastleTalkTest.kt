@@ -8,7 +8,6 @@ import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.content.Bankers.banker
 import osrsps.game.content.Cadmus.talk
-import osrsps.game.content.Bankers.tutor
 import osrsps.game.content.Doomsayer.talk
 import osrsps.game.content.Hatius.talk
 import osrsps.game.content.Perdu.talk
@@ -119,38 +118,6 @@ class CastleTalkTest {
     }
 
     @Test
-    fun `asking the Banker tutor for the account ends the talk with the bank to open`() {
-        var ask = Bankers.Ask.NOTHING
-        h.talk { ask = with(Bankers) { tutor() } }
-        h.expect("banker_tutor.greeting")
-        h.menu("banker_tutor.how_it_works", "banker_tutor.access", "banker_tutor.pin", "banker_tutor.collect", "banker_tutor.buy_slots")
-        h.pick(2)
-        kotlin.test.assertEquals(-1, h.player.chatModal)
-        kotlin.test.assertEquals(Bankers.Ask.BANK, ask)
-    }
-
-    @Test
-    fun `the Banker tutor goes from the topics to the PIN menu and back`() {
-        h.talk { with(Bankers) { tutor() } }
-        h.expect("banker_tutor.greeting")
-        h.menu("banker_tutor.how_it_works", "banker_tutor.access", "banker_tutor.pin", "banker_tutor.collect", "banker_tutor.buy_slots")
-        h.pick(1)
-        h.menu("banker_tutor.using", "banker_tutor.deposit_boxes", "banker_tutor.what_pin")
-        h.pick(2)
-        h.expect("banker_tutor.deposit_boxes_said", "banker_tutor.deposit_1", "banker_tutor.deposit_2")
-        h.menu("banker_tutor.using", "banker_tutor.deposit_boxes", "banker_tutor.what_pin")
-        h.pick(3)
-        h.expect("banker_tutor.what_pin_said", "banker_tutor.pin_1", "banker_tutor.pin_2", "banker_tutor.pin_3")
-        h.menu("banker_tutor.set_pin", "banker_tutor.remove_pin", "banker_tutor.forgot_pin", "banker_tutor.other_topics", "banker_tutor.goodbye")
-        h.pick(2)
-        h.expect("banker_tutor.remove_pin", "banker_tutor.remove_1", "banker_tutor.remove_2")
-        h.menu("banker_tutor.set_pin", "banker_tutor.remove_pin", "banker_tutor.forgot_pin", "banker_tutor.other_topics", "banker_tutor.goodbye")
-        h.pick(5)
-        h.expect("banker_tutor.goodbye")
-        h.ends()
-    }
-
-    @Test
     fun `the Doomsayer explains himself to a player with every warning on`() {
         h.talk { with(Doomsayer) { talk() } }
         h.expect(
@@ -191,7 +158,7 @@ class CastleTalkTest {
     @Test
     fun `every castle NPC with lines has Talk-to`() {
         val world = World(IntArray(0), CollisionMap())
-        for (id in listOf(Cook.ID, DukeHoracio.ID, Perdu.ID, Cadmus.ID, Bankers.BANKER, Bankers.BANKER_TUTOR, Doomsayer.ID, Hatius.ID, LumbridgeGuide.ID) + Townsfolk.MEN + Townsfolk.WOMEN) {
+        for (id in listOf(Cook.ID, DukeHoracio.ID, Perdu.ID, Cadmus.ID, Bankers.BANKER, Doomsayer.ID, Hatius.ID, LumbridgeGuide.ID) + Townsfolk.MEN + Townsfolk.WOMEN) {
             assertTrue(world.handlers.find(Op(OpTarget.NPC, id, 1)) != null, "NPC $id")
         }
     }

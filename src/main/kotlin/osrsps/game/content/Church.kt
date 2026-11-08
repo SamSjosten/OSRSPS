@@ -1,6 +1,5 @@
 package osrsps.game.content
 
-import osrsps.game.GameFrame
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
@@ -10,33 +9,49 @@ import osrsps.game.dialogue.Lines
 import osrsps.game.script.ScriptContext
 import osrsps.map.Tile
 
-/** Father Aereck's lines once The Restless Ghost is done, from the Wiki's Transcript:Father Aereck, read 2026-10-30. */
+/**
+ * Father Aereck's lines once The Restless Ghost is done, as since 242.1 (he took over the Prayer tutor's tips), from the
+ * Wiki's Transcript:Father Aereck, read 2026-11-08.
+ */
 object AereckLines : Lines("father_aereck", "Transcript:Father Aereck") {
-    val THANKS = line("thanks", "his first line, thanking the player for the ghost")
-    val NEW_QUEST = line("new_quest", "the player asks for a new quest")
-    val ONE_QUEST = line("one_quest", "he has no other quest")
-}
-
-/** The Prayer tutor's lines, from the Wiki's Transcript:Prayer tutor, read 2026-10-30. Every account is a member. */
-object PrayerTutorLines : Lines("prayer_tutor", "Transcript:Prayer tutor") {
-    val GOOD_DAY = line("good_day", "the player's first line")
-    val GREETING = line("greeting", "her first line, with the player's name", "name")
-    val TRAIN = line("train", "the option, which the player then says")
-    val TEACH_ME = line("teach_me", "train, at 99 Prayer: the player should be teaching her")
-    val ADVICE = line("advice", "train, at 99 Prayer: her advice anyway")
-    val BURY_OR_OFFER = line("bury_or_offer", "train, a member: the two ways to train")
-    val ALTARS = line("altars", "train, a member: where altars are")
-    val BONES = line("bones", "train: which bones train faster")
-    val ANYTHING_ELSE = line("anything_else", "after either answer: anything else to know")
-    val USEFUL = line("useful", "the option, which the player then says")
-    val KINDLY = line("kindly", "useful: the gods' favour")
-    val WHAT_BENEFITS = line("what_benefits", "useful: the player asks what benefits")
-    val BENEFITS = line("benefits", "useful: what the benefits are")
-    val PRAYER_BOOK = line("prayer_book", "useful: the prayer book, as the prayer tab opens")
-    val WOW = line("wow", "useful: the player's reply")
-    val CAREFUL = line("careful", "useful, a member: running out of prayer")
-    val NO_THANKS = line("no_thanks", "the option, which the player then says")
-    val FAREWELL = line("farewell", "her last line")
+    val GREETING = line("greeting", "his first line, welcoming the player to the church")
+    val MORE_PRAYERS = line("more_prayers", "the option about prayers")
+    val PRAYERS = line("prayers", "prayers: what the player says (shorter than the option)")
+    val PRAYERS_1 = line("prayers_1", "prayers: Saradomin's benefits for his followers")
+    val SARADOMIN_THING = line("saradomin_thing", "prayers: the player asks whether prayers are only Saradomin's")
+    val OTHER_GODS = line("other_gods", "prayers: why pray to other gods")
+    val CURIOUS = line("curious", "prayers: the player asks what the benefits are")
+    val BATTLE = line("battle", "prayers: useful in battle")
+    val PROTECTION = line("protection", "prayers: protection from attacks")
+    val HINT_PRAYERS = line("hint_prayers", "prayers: the Prayer panel box")
+    val NOT_FREE = line("not_free", "prayers: it takes focus and faith")
+    val HINT_POINTS = line("hint_points", "prayers: the Prayer Points box")
+    val FAITH = line("faith", "prayers: the player asks how not to lose faith")
+    val ALTARS = line("altars", "prayers: the church's altar")
+    val HINT_ALTAR = line("hint_altar", "prayers: the altar icon's box (item 9714)")
+    val ANYTHING_ELSE = line("anything_else", "prayers: the player asks for anything else")
+    val DEDICATION = line("dedication", "prayers: the greater benefits need dedication")
+    val HOW = line("how", "prayers: the player asks how")
+    val BURY = line("bury", "prayers: burying bones")
+    val HINT_BONES = line("hint_bones", "prayers: the bones box (item 526)")
+    val COVERS = line("covers", "prayers: that covers everything")
+    val HINT_GUIDE = line("hint_guide", "prayers: the Skills panel box")
+    val THANKS = line("thanks", "prayers: the player's thanks")
+    val SARADOMIN = line("saradomin", "the option about Saradomin, which the player then says")
+    val SARADOMIN_1 = line("saradomin_1", "Saradomin: the god of all that is good")
+    val SARADOMIN_2 = line("saradomin_2", "Saradomin: the largest religion")
+    val INFO_THANKS = line("info_thanks", "Saradomin: option 1, which the player then says")
+    val SURPRISED = line("surprised", "Saradomin, option 1: his surprise")
+    val NOT_FROM_WORLD = line("not_from_world", "Saradomin: option 2, which the player then says")
+    val TENTACLES = line("tentacles", "Saradomin, option 2: no slime or tentacles")
+    val ONLINE_GAME = line("online_game", "Saradomin, option 2: sub-option 1, which the player then says")
+    val PARDON = line("pardon", "Saradomin, online game: his reply")
+    val NEVER_MIND = line("never_mind", "Saradomin, online game: the player's last line")
+    val JOKING = line("joking", "Saradomin, option 2: sub-option 2, which the player then says")
+    val I_SEE = line("i_see", "Saradomin, joking: his reply")
+    val LEAVE_FIRST = line("leave_first", "the leaving option before another was picked, which the player then says")
+    val LEAVE = line("leave", "the leaving option after another was picked, which the player then says")
+    val GUIDE_YOU = line("guide_you", "his last line")
 }
 
 /**
@@ -131,15 +146,18 @@ object AltarLines : Lines("altar", "Altar") {
 }
 
 /**
- * Lumbridge church and its graveyard: Father Aereck (2812) as he is after The Restless Ghost, the Prayer tutor (3223),
- * Nigel the Deadman tutor (6093, which shows as 8391 on a normal world), Count Check (7414) and the altar (409) that
- * recharges prayer points. Every account is a member and has every quest done ([osrsps.game.Quests]).
+ * Lumbridge church and its graveyard: Father Aereck (2812) as he is after The Restless Ghost, with the Prayer tips he
+ * took over when 242.1 removed the Prayer tutor, Count Check (7414) and the altar (409) that recharges prayer points.
+ * With them Nigel the Deadman tutor (6093, which shows as 8391 on a normal world), whom 242.1 moved to the Grand
+ * Exchange on normal worlds. Every account is a member and has every quest done ([osrsps.game.Quests]).
  *
  * From the Wiki: each NPC's lines and branches, and Count Check's teleport to the Stronghold of Security, once.
  * Readings: Nigel's normal world talk offers the Deadman questions, the rewards store (shut, as there is no Deadman
  * Mode) and goodbye, and leaves out the Deadman worlds' options (access to a temporary event, stopping XP); his Trade
  * says the store is shut too. Count Check's checks fail: no account here is a Jagex Account and the bank has no PIN, so
- * his prize lamp never comes. Guessed: every chathead expression; that each answer goes back to the menu it came from;
+ * his prize lamp never comes. Father Aereck's boxes: the Wiki's picture boxes show the altar icon (item 9714) and bones,
+ * its sprite boxes (the Prayer panel, the Prayer orb, the Skills panel) are message boxes here. Guessed: every chathead
+ * expression; that each answer goes back to the menu it came from;
  * where the teleport lands (beside the Stronghold's entrance, 3081, 3420) and that it plays no animation; the lightning
  * on the Count's square isn't shown (its spotanim isn't known). The altar: the Wiki says Pray-at recharges prayer
  * points and resets prayer-draining effects' timers (the drain counter here); guessed are the kneel (human_pray,
@@ -147,13 +165,16 @@ object AltarLines : Lines("altar", "Altar") {
  */
 object Church {
     const val FATHER_AERECK = 2812
-    const val PRAYER_TUTOR = 3223
     /** deadman_nigel, a multi-NPC on varp deadman_mode. */
     const val NIGEL = 6093
     /** deadman_nigel_regular, the Nigel a normal world shows. */
     const val NIGEL_REGULAR = 8391
     const val COUNT_CHECK = 7414
     const val ALTAR = 409
+
+    /** The items Father Aereck's boxes show: the altar map icon and bones. */
+    const val ALTAR_ICON = 9714
+    const val BONES = 526
 
     const val TALK_TO = 1
     const val TRADE = 4
@@ -168,61 +189,67 @@ object Church {
     /** Beside the Stronghold of Security's entrance in Barbarian Village (loc 20790 at 3081, 3420). Guessed. */
     val STRONGHOLD = Tile(3081, 3421)
 
+    /** The first menu, again after each topic; the leaving option's words change once a topic was picked. */
     internal suspend fun Dialogue.aereck() = with(AereckLines) {
-        chatNpc(ChatAnim.HAPPY, THANKS)
-        chatPlayer(ChatAnim.NEUTRAL, NEW_QUEST)
-        chatNpc(ChatAnim.NEUTRAL, ONE_QUEST)
-    }
-
-    internal suspend fun Dialogue.prayerTutor(sideTab: (Player, Int) -> Unit) = with(PrayerTutorLines) {
-        chatPlayer(ChatAnim.HAPPY, GOOD_DAY)
-        chatNpc(ChatAnim.HAPPY, GREETING, "name" to player.username)
-        var answer = when (choice(TRAIN, USEFUL, NO_THANKS)) {
-            1 -> TRAIN
-            2 -> USEFUL
-            else -> NO_THANKS
-        }
+        chatNpc(ChatAnim.HAPPY, GREETING)
+        var asked = false
         while (true) {
-            answer = when (answer) {
-                TRAIN -> {
-                    train()
-                    if (choice(USEFUL, NO_THANKS) == 1) USEFUL else NO_THANKS
-                }
-                USEFUL -> {
-                    useful(sideTab)
-                    if (choice(TRAIN, NO_THANKS) == 1) TRAIN else NO_THANKS
-                }
+            when (choice(MORE_PRAYERS, SARADOMIN, if (asked) LEAVE else LEAVE_FIRST)) {
+                1 -> prayers()
+                2 -> saradomin()
                 else -> {
-                    chatPlayer(ChatAnim.NEUTRAL, NO_THANKS)
-                    chatNpc(ChatAnim.HAPPY, FAREWELL)
+                    chatPlayer(ChatAnim.NEUTRAL, if (asked) LEAVE else LEAVE_FIRST)
+                    chatNpc(ChatAnim.HAPPY, GUIDE_YOU)
                     return@with
                 }
             }
+            asked = true
         }
     }
 
-    private suspend fun Dialogue.train() = with(PrayerTutorLines) {
-        chatPlayer(ChatAnim.QUIZ, TRAIN)
-        if (player.skills.baseLevel(Skill.PRAYER) >= 99) {
-            chatNpc(ChatAnim.LAUGH, TEACH_ME)
-            chatNpc(ChatAnim.NEUTRAL, ADVICE)
-        }
-        chatNpc(ChatAnim.HAPPY, BURY_OR_OFFER)
-        chatNpc(ChatAnim.NEUTRAL, ALTARS)
-        chatNpc(ChatAnim.HAPPY, BONES)
-        chatNpc(ChatAnim.HAPPY, ANYTHING_ELSE)
+    private suspend fun Dialogue.prayers() = with(AereckLines) {
+        chatPlayer(ChatAnim.QUIZ, PRAYERS)
+        chatNpc(ChatAnim.HAPPY, PRAYERS_1)
+        chatPlayer(ChatAnim.QUIZ, SARADOMIN_THING)
+        chatNpc(ChatAnim.NEUTRAL, OTHER_GODS)
+        chatPlayer(ChatAnim.QUIZ, CURIOUS)
+        chatNpc(ChatAnim.NEUTRAL, BATTLE)
+        chatNpc(ChatAnim.NEUTRAL, PROTECTION)
+        mesbox(HINT_PRAYERS)
+        chatNpc(ChatAnim.NEUTRAL, NOT_FREE)
+        mesbox(HINT_POINTS)
+        chatPlayer(ChatAnim.QUIZ, FAITH)
+        chatNpc(ChatAnim.HAPPY, ALTARS)
+        objbox(ALTAR_ICON, HINT_ALTAR)
+        chatPlayer(ChatAnim.QUIZ, ANYTHING_ELSE)
+        chatNpc(ChatAnim.NEUTRAL, DEDICATION)
+        chatPlayer(ChatAnim.QUIZ, HOW)
+        chatNpc(ChatAnim.NEUTRAL, BURY)
+        objbox(BONES, HINT_BONES)
+        chatNpc(ChatAnim.HAPPY, COVERS)
+        mesbox(HINT_GUIDE)
+        chatPlayer(ChatAnim.HAPPY, THANKS)
     }
 
-    private suspend fun Dialogue.useful(sideTab: (Player, Int) -> Unit) = with(PrayerTutorLines) {
-        chatPlayer(ChatAnim.QUIZ, USEFUL)
-        chatNpc(ChatAnim.HAPPY, KINDLY)
-        chatPlayer(ChatAnim.QUIZ, WHAT_BENEFITS)
-        chatNpc(ChatAnim.HAPPY, BENEFITS)
-        sideTab(player, GameFrame.SIDE_TAB_PRAYER)
-        chatNpc(ChatAnim.HAPPY, PRAYER_BOOK)
-        chatPlayer(ChatAnim.HAPPY, WOW)
-        chatNpc(ChatAnim.NEUTRAL, CAREFUL)
-        chatNpc(ChatAnim.HAPPY, ANYTHING_ELSE)
+    private suspend fun Dialogue.saradomin() = with(AereckLines) {
+        chatPlayer(ChatAnim.QUIZ, SARADOMIN)
+        chatNpc(ChatAnim.SHOCKED, SARADOMIN_1)
+        chatNpc(ChatAnim.HAPPY, SARADOMIN_2)
+        if (choice(INFO_THANKS, NOT_FROM_WORLD) == 1) {
+            chatPlayer(ChatAnim.NEUTRAL, INFO_THANKS)
+            chatNpc(ChatAnim.CONFUSED, SURPRISED)
+            return@with
+        }
+        chatPlayer(ChatAnim.NEUTRAL, NOT_FROM_WORLD)
+        chatNpc(ChatAnim.CONFUSED, TENTACLES)
+        if (choice(ONLINE_GAME, JOKING) == 1) {
+            chatPlayer(ChatAnim.NEUTRAL, ONLINE_GAME)
+            chatNpc(ChatAnim.CONFUSED, PARDON)
+            chatPlayer(ChatAnim.SAD, NEVER_MIND)
+        } else {
+            chatPlayer(ChatAnim.NEUTRAL, JOKING)
+            chatNpc(ChatAnim.NEUTRAL, I_SEE)
+        }
     }
 
     internal suspend fun Dialogue.nigel() = with(NigelLines) {
@@ -406,12 +433,8 @@ object Church {
 
 /** The church NPCs' options and the altar's Pray-at. */
 fun registerChurch(world: World) {
-    val sideTab: (Player, Int) -> Unit = { player, tab -> world.interfaces.switchSideTab(player, tab) }
     world.handlers.onNpc(Church.FATHER_AERECK, Church.TALK_TO) { op ->
         world.dialogues.start(this, op.npc) { with(Church) { aereck() } }
-    }
-    world.handlers.onNpc(Church.PRAYER_TUTOR, Church.TALK_TO) { op ->
-        world.dialogues.start(this, op.npc) { with(Church) { prayerTutor(sideTab) } }
     }
     world.handlers.onNpc(Church.NIGEL_REGULAR, Church.TALK_TO) { op ->
         world.dialogues.start(this, op.npc) { with(Church) { nigel() } }
