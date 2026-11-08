@@ -46,6 +46,8 @@ class ExaminesTest {
         assertSame(Examines.npc(Rick.RICK), Examines.npc(11409))
         // The Rune Essence rock and a portal (the 241 cache's ids).
         for (id in listOf(Mining.ESSENCE_ROCK, EssenceMine.PORTAL)) assertEquals("examine.loc_$id", Examines.loc(id)?.key, "loc $id")
+        // The map's portal, a multiloc, shows the text of the portal it looks like.
+        assertSame(Examines.loc(EssenceMine.PORTAL), Examines.loc(EssenceMine.MAP_PORTAL))
     }
 
     @Test

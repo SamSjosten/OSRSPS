@@ -78,7 +78,7 @@
       "x": 2885,
       "y": 4850,
       "timeoutMs": 20000,
-      "comment": "essencemine_portal_1, placed by the server at 2004Scape's tile"
+      "comment": "the map's portal (multiloc 34825), showing essencemine_portal_1"
     },
     {
       "step": "command",

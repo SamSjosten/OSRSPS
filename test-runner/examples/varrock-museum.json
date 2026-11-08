@@ -219,6 +219,12 @@
   },
   {
    "step": "walk",
+   "x": 3264,
+   "y": 3454,
+   "comment": "half way first: from the stairs' top the displays' tile is off the top of the screen. Not 3264,3453, a barrier (VM 215, 2026-11-08)"
+  },
+  {
+   "step": "walk",
    "x": 3262,
    "y": 3450,
    "comment": "among the first floor's displays"
@@ -251,6 +257,12 @@
    "plane": 2,
    "timeoutMs": 20000,
    "comment": "the second floor"
+  },
+  {
+   "step": "walk",
+   "x": 3254,
+   "y": 3448,
+   "comment": "half way first, as on the first floor"
   },
   {
    "step": "walk",
@@ -372,6 +384,11 @@
   },
   {
    "step": "waitForLogin"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle after the relog: a command typed straight away can be lost (VM 215, 2026-11-03 and 2026-11-08)"
   },
   {
    "step": "command",

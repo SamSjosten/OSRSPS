@@ -188,9 +188,9 @@
     },
     {
       "step": "command",
-      "text": "::tele 3110 3158 1",
-      "expectMessage": "Teleported to 3110, 3158, 1",
-      "comment": "first floor, by the boxes"
+      "text": "::tele 3108 3157 1",
+      "expectMessage": "Teleported to 3108, 3157, 1",
+      "comment": "first floor, in the boxes' room beside them (its doors are shut; found on rl-client 2026-11-08: from 3110, 3158 they can't be reached)"
     },
     {
       "step": "locOption",

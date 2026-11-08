@@ -1,6 +1,6 @@
 {
   "about": [
-    "Agility obstacles, by course. Each obstacle: key, loc (type id), alsoLocs (other loc types that are the same obstacle, when there are), option (the start of the loc's option text), level, xpTenths, at ([x, z, level], only when several locs of one type are different obstacles), routes, and for one that can fail success ([low, high] out of 256, guessed: the Wiki gives no fail rates) and damage ([min, max]), failXpTenths when a failure gives XP, and fromStart (true for a loc that can't be reached from beside it, as a stepping stone in a river: a click walks to the nearest route's start).",
+    "Agility obstacles, by course. Each obstacle: key, loc (type id), alsoLocs (other loc types that are the same obstacle, when there are), option (the start of the loc's option text), level, xpTenths, at ([x, z, level], only when several locs of one type are different obstacles), routes, and for one that can fail success ([low, high] out of 256, guessed: the Wiki gives no fail rates) and damage ([min, max]), failXpTenths when a failure gives XP, and fromStart (true for a loc that can't be reached from beside it, as a stepping stone in a river, the Al Kharid tropical tree behind the roof's edge wall and the Varrock wall with no floor beside it on the 241 map: a click walks to the nearest route's start).",
     "A route: from ([x, z, level], where the player starts), at (the [x, z, level] tiles of the locs this route is for, when the obstacle is several locs; none for every loc), moves, and fail (the moves of a failure, for an obstacle that can fail). Of the routes for the loc clicked, the one starting nearest the player is taken.",
     "Moves, in order: anim (anim, ticks: plays it and waits), teleport (to: straight there, another level too), walk (path of [x, z] turning points, anim: one tile a tick through anything, with anim as the whole stance), slide (to, anim, startCycles, endCycles, ticks: the client's exact move; client cycles are 20 ms, 30 a tick), xp (tenths: XP partway across, with no wait).",
     "Courses: key, obstacles (their keys in order), lapXpTenths (on top of the last obstacle's; 0 for the rooftops, whose last obstacle holds the lap's) and lapLine (the lap count message's key); for marks of grace also level (the course's Agility level), marks (the [x, z, level] tiles a mark lands on) and markChance ([numerator, denominator] a lap). An obstacle may name its own levelLine.",
@@ -452,6 +452,7 @@
       "option": "Swing-across",
       "level": 20,
       "levelLine": "agility.alkharid_level",
+      "fromStart": true,
       "xpTenths": 120,
       "routes": [
         {
@@ -711,6 +712,7 @@
       "option": "Balance",
       "level": 30,
       "levelLine": "agility.varrock_level",
+      "fromStart": true,
       "xpTenths": 280,
       "success": [
         225,
