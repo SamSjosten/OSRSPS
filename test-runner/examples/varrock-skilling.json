@@ -44,7 +44,7 @@
   {"step": "assertInventory", "item": "Bucket of water", "count": 2, "timeoutMs": 10000, "comment": "one a tick"},
   {"step": "assertMessage", "contains": "water.fill_bucket source=sink"},
   {"step": "command", "text": "::item bucket_empty", "expectMessage": "Added 1 x Bucket"},
-  {"step": "command", "text": "::tele 3270 3408 0", "comment": "by the well south-east of the East Bank"},
+  {"step": "command", "text": "::tele 3270 3405 0", "comment": "south of the well south-east of the East Bank: a fence runs along its north side, so 3270,3408 can't reach it (VM 215, 2026-11-03 and 2026-11-08)"},
   {"step": "useItemOnLoc", "item": "Bucket", "locId": 3646, "x": 3270, "y": 3406},
   {"step": "assertInventory", "item": "Bucket of water", "count": 3, "timeoutMs": 10000},
   {"step": "assertMessage", "contains": "water.fill_bucket source=well"},

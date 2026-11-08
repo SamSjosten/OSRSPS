@@ -1,0 +1,71 @@
+{
+ "name": "Raid step 16c: the Archive Guardian's inert guardians (four round it, three awake under its shield; one beaten to 0 charges, taking 40% off the shield), with ::raid outside the raid",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare",
+   "comment": "nothing carried; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel hitpoints 99",
+   "expectMessage": "Hitpoints set to level 99"
+  },
+  {
+   "step": "command",
+   "text": "::heal",
+   "expectMessage": "Healed to 99 hitpoints."
+  },
+  {
+   "step": "command",
+   "text": "::tele 3222 3218 0",
+   "expectMessage": "Teleported to 3222, 3218, 0",
+   "comment": "the Guardian comes up on this tile, its south-west; its middle is 3224,3220"
+  },
+  {
+   "step": "command",
+   "text": "::raid guardian",
+   "expectMessage": "Started guardian",
+   "comment": "the shield phase, a party of one: 550 hitpoints of shield"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3241 3220 0",
+   "expectMessage": "Teleported to 3241, 3220, 0",
+   "comment": "out of its range, so it holds its fire; the north-east inert guardian, at 3232,3221, is the nearest awake one"
+  },
+  {
+   "step": "command",
+   "text": "::hit 180 tfa_guardian_battery_active",
+   "expectMessage": "for 180: 0/180 hp",
+   "comment": "beaten to 0, as attacking it would"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "the fight charges it on its next tick"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 30",
+   "expectMessage": "shield: inert guardian at 3232,3221 charged: shield takes 220",
+   "comment": "40% of the shield's 550; it is spent (tfa_guardian_battery_destroyed) now"
+  },
+  {
+   "step": "command",
+   "text": "::raid stop",
+   "expectMessage": "Stopped guardian.",
+   "comment": "the inert guardians go with the fight"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

@@ -39,6 +39,12 @@ class HeadlessBulwarkTest {
         stats = NpcStats(attack = 100, defence = 1, strength = 40, hitpoints = 5000),
     )
 
+    // A flying monster, as the levitating Archive Guardian is: only a halberd's melee reaches it.
+    private val flyer = NpcType(
+        2096, "Flyer", ops = listOf(null, "Attack", null, null, null), combatLevel = 53, internalName = "flyer",
+        stats = NpcStats(attack = 100, defence = 1, strength = 40, hitpoints = 5000),
+    )
+
     // Shaped like the 241 cache's: param 14 its attack speed, obj category 1014, which is the bulwark's weapon category 28.
     private val bulwark = ObjType(
         BULWARK, "Dinh's bulwark", iops = listOf(null, "Wear", null, null, "Drop"), wearpos1 = WearPos.WEAPON, wearpos2 = WearPos.SHIELD,
@@ -56,22 +62,26 @@ class HeadlessBulwarkTest {
         ),
     )
 
-    private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
-        val types = NpcTypes.of(ogre)
+    private fun server(dir: Path, flying: Boolean = false) = TestServer(dir) { crcs, millis ->
+        val types = if (flying) NpcTypes.of(ogre, flyer) else NpcTypes.of(ogre)
+        val flyerSpawn = if (flying) listOf(NpcSpawn(flyer, 3221, 3219, source = "test")) else emptyList()
         val objs = arrayOfNulls<ObjType>(BULWARK + 1)
         objs[BULWARK] = bulwark
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, random = GameRandom(5), objTypes = ObjTypes(objs), npcTypes = types,
             // The target east of the login tile, two more within 5 tiles of where the player stands to hit it, one 6 off,
             // and one within 5 but in the zone south, which stays single-way.
-            npcSpawns = listOf(3224 to 3218, 3221 to 3221, 3226 to 3222, 3229 to 3218, 3221 to 3214).map { (x, z) -> NpcSpawn(ogre, x, z, source = "test") },
+            npcSpawns = listOf(3224 to 3218, 3221 to 3221, 3226 to 3222, 3229 to 3218, 3221 to 3214).map { (x, z) -> NpcSpawn(ogre, x, z, source = "test") } + flyerSpawn,
             varTypes = VarTypes(6_000, mapOf(VARBIT_WEAPON_CATEGORY to VarbitType(VARP_WEAPON_CATEGORY, 0, 5))),
             attackStyles = styles,
             npcCombat = NpcCombat.parse(
                 """{ "npcs": [ { "npcs": ["ogre"], "attackSpeed": 5, "maxHit": 1, "attackType": "crush", "attackBonus": 0,
                     "strengthBonus": 0,
                     "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
-                    "anims": { "attack": null, "defend": null, "death": null }, "respawnTicks": 25, "source": "test" } ] }""",
+                    "anims": { "attack": null, "defend": null, "death": null }, "respawnTicks": 25, "source": "test" },
+                  { "npcs": ["flyer"], "attackSpeed": 5, "maxHit": 1, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+                    "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+                    "anims": { "attack": null, "defend": null, "death": null }, "respawnTicks": 25, "flying": true, "source": "test" } ] }""",
                 types, SeqNames.NONE,
             ),
             specialAttackCosts = mapOf(BULWARK to 500), cycleMillis = millis,
@@ -205,6 +215,32 @@ class HeadlessBulwarkTest {
                 }
                 assertEquals(false, hurt(lines.getValue(far)) || "drained" in lines.getValue(far), lines.getValue(far))
                 assertEquals(false, hurt(lines.getValue(single)) || "drained" in lines.getValue(single), "single-way: ${lines.getValue(single)}")
+            }
+        }
+    }
+
+    @Test
+    fun `Shield Bash's splash leaves out a monster flying out of melee reach, as a swing at it is`(@TempDir dir: Path) {
+        server(dir, flying = true).use { server ->
+            server.login("alice").use { client ->
+                client.await("the ogres in view") { client.npcs().filter { it.id == ogre.id }.takeIf { it.size == 5 } }
+                val flying = client.await("the flyer in view") { client.npcs().firstOrNull { it.id == flyer.id } }
+                client.await("the login rebuild") { client.position }
+                client.wieldBulwark()
+                client.commandReply("multi on") { it.startsWith("Combat is multi-way") }
+                client.tele(3226, 3222)
+                client.commandReply("multi on") { it.startsWith("Combat is multi-way") }
+                client.tele(3222, 3218)
+                val indexes = client.npcs().filter { it.id == ogre.id }.associate { (it.coord.x to it.coord.z) to it.index }
+                val target = indexes.getValue(3224 to 3218)
+                client.bash(target)
+                val from = client.messages().size
+                client.command("npcs 15")
+                val line = client.await("the flyer's line") { client.messages().drop(from).firstOrNull { it.text.startsWith("#${flying.index} Flyer") }?.text }
+                // Not struck at all: one struck, even for 0, would turn on her.
+                assertTrue(line.endsWith("fighting no one") && !hurt(line), "beside her in multi-way, but flying: $line")
+                val world = server.world
+                assertEquals(5000, world.npcs[flying.index]!!.hitpoints)
             }
         }
     }

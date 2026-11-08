@@ -219,14 +219,20 @@
   },
   {
    "step": "walk",
+   "x": 3264,
+   "y": 3454,
+   "comment": "half way first: from the stairs' top the displays' tile is off the top of the screen. Not 3264,3453, a barrier (VM 215, 2026-11-08)"
+  },
+  {
+   "step": "walk",
    "x": 3262,
-   "y": 3450,
-   "comment": "among the first floor's displays"
+   "y": 3451,
+   "comment": "among the first floor's displays: 3262,3451, as 3262,3450 is a barrier (VM 215, 2026-11-08)"
   },
   {
    "step": "assertLocation",
    "x": 3262,
-   "y": 3450,
+   "y": 3451,
    "plane": 1,
    "timeoutMs": 20000
   },
@@ -251,6 +257,12 @@
    "plane": 2,
    "timeoutMs": 20000,
    "comment": "the second floor"
+  },
+  {
+   "step": "walk",
+   "x": 3254,
+   "y": 3448,
+   "comment": "half way first, as on the first floor"
   },
   {
    "step": "walk",
@@ -310,9 +322,15 @@
   },
   {
    "step": "walk",
-   "x": 3254,
+   "x": 3260,
+   "y": 3451,
+   "comment": "half way first: from the stairs' foot, the tiles by the Natural History stairs are off the top of the screen (VM 215, 2026-11-08)"
+  },
+  {
+   "step": "walk",
+   "x": 3258,
    "y": 3452,
-   "comment": "in front of the stairs down to the Natural History floor"
+   "comment": "east of the stairs down to the Natural History floor (a 3x3 loc at 3255-3257,3451-3453; 3254,3452 behind it is a barrier)"
   },
   {
    "step": "locOption",
@@ -372,6 +390,11 @@
   },
   {
    "step": "waitForLogin"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle after the relog: a command typed straight away can be lost (VM 215, 2026-11-03 and 2026-11-08)"
   },
   {
    "step": "command",
@@ -521,6 +544,18 @@
    "step": "assertNoDialogue"
   },
   {
+   "step": "command",
+   "text": "::tele 3264 3440 0",
+   "expectMessage": "Teleported to 3264, 3440, 0",
+   "comment": "back to the doors' south side, as HeadlessVarrockMuseumTest opens them from"
+  },
+  {
+   "step": "command",
+   "text": "::resetlocs 2",
+   "expectMessage": "Put the locs within 2 of",
+   "comment": "shut the doors first, in case an earlier run stopped with them open (VM 215, 2026-11-08)"
+  },
+  {
    "step": "locOption",
    "locId": 24567,
    "option": "Open",
@@ -532,18 +567,16 @@
   {
    "step": "assertLoc",
    "locId": 24568,
-   "option": "Close",
    "x": 3264,
    "y": 3442,
-   "comment": "the _r leaf open"
+   "comment": "the _r leaf open (the open leaves have no options in the cache: they don't close)"
   },
   {
    "step": "assertLoc",
    "locId": 24566,
-   "option": "Close",
    "x": 3265,
    "y": 3442,
-   "comment": "and the _l leaf with it"
+   "comment": "and the _l leaf with it (the open leaves have no options in the cache: they don't close)"
   },
   {
    "step": "command",

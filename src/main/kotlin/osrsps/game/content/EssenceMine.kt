@@ -45,9 +45,11 @@ object EssenceMineLines : Lines("essence_mine", "Rune essence mine") {
  *   `curse_travel` (109) flies to the player, who gets `curse_impact` (110); four ticks on the player lands on one of the
  *   mine's 22 spots, or a free tile beside it. No animation, as on live (2004Scape's note).
  * - The mine (map square 45_75): the four Rune Essence rocks are the map's ([osrsps.game.skill.Mining] mines them). Its
- *   four portals aren't on the 241 map, which live fills at each entry with one of seven look-alikes (five locs, two
- *   NPCs; the Wiki's Portal (Rune essence mine)); here `essencemine_portal_1` 34774 stands at 2004Scape's four tiles
- *   always, and every portal loc type's option sends the player back. They come out beside Sedridor (2004Scape's
+ *   four portals are on the 241 map as one multiloc (34825, showing 34774 or 34775) at 2004Scape's four tiles; live
+ *   fills them at each entry with one of seven look-alikes (five locs, two NPCs; the Wiki's Portal (Rune essence
+ *   mine)). The client sends the multiloc's own id, so it and every portal type's option send the player back. A map
+ *   without them (the headless tests') gets `essencemine_portal_1` 34774 on those tiles. Found on rl-client 2026-11-08:
+ *   the portal did nothing while only the types it shows were handled. They come out beside Sedridor (2004Scape's
  *   3106,9572), or beside whoever else sent them ([teleportToEssenceMine]'s returnTo, as Aubury does).
  * - Guessed: that the shout is overhead only (the transcript shows it as his line). The projectiles' heights and timing
  *   are 2004Scape's, not measured on live.
@@ -66,6 +68,9 @@ object EssenceMine {
     /** The portal loc types, every one of which leads out. */
     val PORTALS: List<Int> = (34774..34778).toList()
     const val PORTAL = 34774
+
+    /** The map's portal: a multiloc (no name or options of its own) that shows [PORTAL] or 34775. */
+    const val MAP_PORTAL = 34825
 
     /** 2004Scape's four portals, beside the four rocks. */
     val PORTAL_LOCS = listOf(
@@ -193,14 +198,18 @@ suspend fun ScriptContext.teleportToEssenceMine(
 
 fun registerEssenceMine(world: World) {
     with(EssenceMine) {
-        for (portal in PORTAL_LOCS) if (world.locs.types[portal.id] != null) world.locs.add(portal)
+        // Only where the map has no portal: over the map's multiloc, the client would still send the multiloc's id.
+        for (portal in PORTAL_LOCS) {
+            if (world.locs.types[portal.id] == null || world.locs[portal.x, portal.z, portal.level, portal.layer] != null) continue
+            world.locs.add(portal)
+        }
         world.handlers.onNpc(SEDRIDOR, TALK_TO) { op ->
             var send = false
             world.dialogues.start(this, op.npc) { send = sedridor(player) }
             if (send) teleportToEssenceMine(world, op.npc!!)
         }
         world.handlers.onNpc(SEDRIDOR, TELEPORT_OP) { op -> teleportToEssenceMine(world, op.npc!!) }
-        for (portal in PORTALS) {
+        for (portal in PORTALS + MAP_PORTAL) {
             // The way out, as 2004Scape's essence_mine.rs2 has it (its portal, loc_2492): curse_travel from the portal to
             // the player (heights 15 to 31, no delay, offset 128), curse_impact 30 cycles on, and the teleport a tick later.
             world.handlers.onLoc(portal, 1) { op ->

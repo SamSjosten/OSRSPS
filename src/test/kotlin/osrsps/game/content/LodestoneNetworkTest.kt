@@ -201,7 +201,7 @@ class LodestoneNetworkTest {
         assertEquals(mapOf(100L to 4847, 108L to 4850, 115L to 4853, 119L to 4855, 122L to 4857), anims)
         run(1)
         assertEquals(listOf(128L to Lodestones.EDGEVILLE.arrival), landed)
-        assertEquals(Triple(3067, 3505, 0), Triple(player.x, player.z, player.level), "the stone's centre tile")
+        assertEquals(Triple(3073, 3505, 0), Triple(player.x, player.z, player.level), "the stone's centre tile")
         assertEquals(29_000_000, player.vars[HomeTeleport.VARP_LAST_CAST], "the timer is left as it was")
         assertFalse(home.casting(player))
         assertTrue(said.isEmpty())

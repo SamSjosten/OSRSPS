@@ -61,6 +61,11 @@
    "step": "waitForLogin"
   },
   {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle after the relog: a command typed straight away can be lost (VM 215, 2026-11-03 and 2026-11-08)"
+  },
+  {
    "step": "command",
    "text": "::keys on",
    "expectMessage": "Dialogue shows keys",
@@ -109,6 +114,11 @@
    "step": "waitForLogin"
   },
   {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle after the relog: a command typed straight away can be lost (VM 215, 2026-11-03 and 2026-11-08)"
+  },
+  {
    "step": "command",
    "text": "::keys on",
    "expectMessage": "Dialogue shows keys",
@@ -142,11 +152,19 @@
    "comment": "Varrock East Bank, north of the booths (z 3419); the bankers stand south of them at z 3418"
   },
   {
+   "step": "assertLocation",
+   "x": 3254,
+   "y": 3420,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "the East Bank's scene loaded, so the click can't land on a West Bank banker still in view"
+  },
+  {
    "step": "npcOption",
-   "npc": "Banker",
+   "npcId": 2898,
    "option": "Bank",
    "timeoutMs": 20000,
-   "comment": "a banker's own Bank, across the booth"
+   "comment": "banker2_new straight south across the booth (3254 3418); a banker's own Bank, across the booth"
   },
   {
    "step": "assertInterface",
@@ -158,6 +176,11 @@
   },
   {
    "step": "waitForLogin"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle after the relog: a command typed straight away can be lost (VM 215, 2026-11-03 and 2026-11-08)"
   },
   {
    "step": "command",
