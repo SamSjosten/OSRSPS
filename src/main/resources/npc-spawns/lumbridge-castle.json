@@ -20,7 +20,7 @@
     {"npc": "rat", "x": 3222, "z": 3215, "wander": 5, "source": "Courtyard. RSMod rev 233 Lumbridge spawns; 2004Scape agrees"},
     {"npc": "rat", "x": 3229, "z": 3223, "wander": 5, "source": "North gate tower. RSMod rev 233 Lumbridge spawns; 2004Scape agrees"},
     {"npc": "duke_of_lumbridge", "x": 3210, "z": 3224, "level": 1, "wander": 5, "source": "His room. RSMod rev 233 Lumbridge spawns (2004Scape: 3212, 3220)"},
-    {"npc": "aide_tutor_crafting", "x": 3210, "z": 3212, "level": 1, "wander": 5, "source": "Crafting tutor, next to the Duke's room (wiki). RSMod rev 233 Lumbridge spawns"},
+    {"npc": "cadmus", "x": 3210, "z": 3215, "level": 1, "wander": 2, "source": "Cadmus, the steward (the Crafting tutor until 242.1), by the spinning wheel on the first floor. OSRS Wiki map (3210, 3215, plane 1, radius 2), read 2026-11-08; the radius taken as his wander range (inferred)"},
     {"npc": "man", "x": 3206, "z": 3219, "level": 1, "wander": 5, "source": "RSMod rev 233 Lumbridge spawns; 2004Scape agrees"},
     {"npc": "man3", "x": 3209, "z": 3215, "level": 1, "wander": 5, "source": "RSMod rev 233 Lumbridge spawns"},
     {"npc": "woman", "x": 3211, "z": 3213, "level": 1, "wander": 5, "source": "RSMod rev 233 Lumbridge spawns"},

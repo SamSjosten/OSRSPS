@@ -142,8 +142,8 @@ class HeadlessLumbridgeSwampTest {
     }
 
     @Test
-    fun `the Mining tutor teaches the basics and hands over a bronze pickaxe`(@TempDir dir: Path) {
-        val tutor = NpcType(SwampTutors.MINING_TUTOR, "Mining tutor", ops = listOf("Talk-to", null, null, null, null), internalName = "aide_tutor_mining")
+    fun `Monlum hands over a bronze pickaxe`(@TempDir dir: Path) {
+        val tutor = NpcType(SwampTutors.MONLUM, "Monlum", ops = listOf("Talk-to", null, null, null, null), internalName = "monlum")
         val pickaxe = ObjType(SwampTutors.BRONZE_PICKAXE, "Bronze pickaxe", tradeable = true)
         TestServer(dir) { crcs, millis ->
             World(
@@ -152,19 +152,18 @@ class HeadlessLumbridgeSwampTest {
             )
         }.use { server ->
             server.login("carol").use { client ->
-                val npc = client.await("the Mining tutor in view") { client.npcs().firstOrNull { it.id == SwampTutors.MINING_TUTOR } }
+                val npc = client.await("Monlum in view") { client.npcs().firstOrNull { it.id == SwampTutors.MONLUM } }
                 client.npcOp(npc.index, SwampTutors.TALK_TO)
-                val menu = client.awaitDialogue("the menu") { it is DialogueView.Menu } as DialogueView.Menu
-                assertEquals(
-                    listOf("[mining_tutor.basics]", "[mining_tutor.quests]", "[mining_tutor.rocks_and_picks]", "[mining_tutor.goodbye]"),
-                    menu.options,
-                )
-                client.chooseOption(1)
-                client.awaitDialogue("the player's question") { it is DialogueView.Chat && it.text == "[mining_tutor.basics]" }
+                client.awaitDialogue("the greeting") { it is DialogueView.Chat && it.text == "[monlum.greeting]" }
                 client.continueDialogue()
-                assertEquals(DialogueView.Other(Chatbox.OBJECTBOX), client.awaitDialogue("the mining site box") { it is DialogueView.Other })
-                client.resumePause(Chatbox.OBJECTBOX, Chatbox.OBJECTBOX_UNIVERSE, 0)
-                client.awaitDialogue("the pickaxe line") { it is DialogueView.Chat && it.text == "[mining_tutor.have_a_pick]" }
+                val menu = client.awaitDialogue("the menu") { it is DialogueView.Menu } as DialogueView.Menu
+                assertEquals(listOf("[monlum.advice]", "[monlum.pickaxe]", "[monlum.leave]"), menu.options)
+                client.chooseOption(2)
+                client.awaitDialogue("the player's question") { it is DialogueView.Chat && it.text == "[monlum.pickaxe]" }
+                client.continueDialogue()
+                client.awaitDialogue("his line") { it is DialogueView.Chat && it.text == "[monlum.spare]" }
+                client.continueDialogue()
+                assertEquals(DialogueView.Other(Chatbox.OBJECTBOX), client.awaitDialogue("the pickaxe box") { it is DialogueView.Other })
                 client.await("the pickaxe in the bag") {
                     client.inventory(INVENTORY).firstOrNull { it?.id == SwampTutors.BRONZE_PICKAXE }
                 }
@@ -173,8 +172,8 @@ class HeadlessLumbridgeSwampTest {
     }
 
     @Test
-    fun `the Fishing tutor teaches the basics and hands over a small fishing net`(@TempDir dir: Path) {
-        val tutor = NpcType(SwampTutors.FISHING_TUTOR, "Fishing tutor", ops = listOf("Talk-to", null, null, null, null), internalName = "aide_tutor_fishing")
+    fun `Finlay hands over a small fishing net`(@TempDir dir: Path) {
+        val tutor = NpcType(SwampTutors.FINLAY, "Finlay", ops = listOf("Talk-to", null, null, null, null), internalName = "finlay")
         val net = ObjType(SwampTutors.SMALL_FISHING_NET, "Small fishing net", tradeable = true)
         TestServer(dir) { crcs, millis ->
             World(
@@ -183,17 +182,18 @@ class HeadlessLumbridgeSwampTest {
             )
         }.use { server ->
             server.login("erin").use { client ->
-                val npc = client.await("the Fishing tutor in view") { client.npcs().firstOrNull { it.id == SwampTutors.FISHING_TUTOR } }
+                val npc = client.await("Finlay in view") { client.npcs().firstOrNull { it.id == SwampTutors.FINLAY } }
                 client.npcOp(npc.index, SwampTutors.TALK_TO)
-                val menu = client.awaitDialogue("the menu") { it is DialogueView.Menu } as DialogueView.Menu
-                assertEquals(
-                    listOf("[fishing_tutor.basics]", "[fishing_tutor.fish]", "[fishing_tutor.where]", "[fishing_tutor.goodbye]"),
-                    menu.options,
-                )
-                client.chooseOption(1)
-                client.awaitDialogue("the player's question") { it is DialogueView.Chat && it.text == "[fishing_tutor.basics]" }
+                client.awaitDialogue("the greeting") { it is DialogueView.Chat && it.text == "[finlay.greeting]" }
                 client.continueDialogue()
-                client.awaitDialogue("the net line") { it is DialogueView.Chat && it.text == "[fishing_tutor.lost_net]" }
+                val menu = client.awaitDialogue("the menu") { it is DialogueView.Menu } as DialogueView.Menu
+                assertEquals(listOf("[finlay.advice]", "[finlay.tools]", "[finlay.leave]"), menu.options)
+                client.chooseOption(2)
+                client.awaitDialogue("the player's question") { it is DialogueView.Chat && it.text == "[finlay.tools]" }
+                client.continueDialogue()
+                client.awaitDialogue("his line") { it is DialogueView.Chat && it.text == "[finlay.only_a_net]" }
+                client.continueDialogue()
+                assertEquals(DialogueView.Other(Chatbox.OBJECTBOX), client.awaitDialogue("the net box") { it is DialogueView.Other })
                 client.await("the net in the bag") {
                     client.inventory(INVENTORY).firstOrNull { it?.id == SwampTutors.SMALL_FISHING_NET }
                 }

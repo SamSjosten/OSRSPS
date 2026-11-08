@@ -772,7 +772,7 @@ bronze axe can (`test-runner/examples/lumbridge-shops.json`).
 
 The town west of the River Lum, outside the castle: `lumbridge.json` has its NPCs on RSMod's spawn tiles (rev 233),
 and the conversations are in `game/content/` (`LumbridgeShopkeepers.kt`, `ShearedRam.kt`, `DonieAndGee.kt`,
-`LumbridgeTutors.kt`, `LumbridgeTownsfolk.kt`), each from the OSRS Wiki's transcript as a player with every quest done
+`LumbridgeTutors.kt`, `Feoras.kt`, `Wilfred.kt`, `LumbridgeTownsfolk.kt`), each from the OSRS Wiki's transcript as a player with every quest done
 sees it. The words are in the dialogue file, like every other line.
 
 | Who | What they do |
@@ -781,7 +781,9 @@ sees it. The words are in the dialogue file, like every other line.
 | The Sheared Ram's Bartender | Sells a beer for 2 coins |
 | Arthur the Clue Hunter | Explains every clue type (three pages of them) and turns clue vessels on and off (varbit 9365) |
 | Donie and Gee | One of four opening menus at random, the quests, Lumbridge, and Gee's small monsters |
-| The Cooking tutor, Smithing apprentice and Woodsman tutor | Advice by your level; the Woodsman tutor gives an axe and tinderbox when you have none and sells the Woodcutting cape at 99 (trimmed with another 99) |
+| The Cooking tutor | Advice by your level |
+| Feoras (16806, the smithing tutor since 242.1) in the smithy | Smithing advice with its icon boxes, a hammer for a player with none, and his shop (`lumbridge_blacksmith`, inv 1032, the Wiki's prices) |
+| Wilfred (16808, the woodsman tutor since 242.1) | Woodcutting and Firemaking advice; an axe and tinderbox when you have none; the Woodcutting cape at 99 (trimmed with another 99) |
 | Abigaila, upstairs in the General Store | Her story; her scrying ball refuses a player carrying or wearing anything (the Theatre of Blood isn't built) |
 | The Ironman tutor | Explains Ironman; this game has no Ironmen, so his armour and the account modes are refused or end the talk |
 | Men, women and rats | As in the castle |
@@ -913,10 +915,10 @@ a butterfly, with the rats west of the castle wall, and the swamp's talking NPCs
 | Father Urhney (923), in his house, as after The Restless Ghost: he sends the player off, and hands a spare ghostspeak amulet to one who has none carried, worn or banked and has a free slot | the Wiki's Transcript:Father Urhney |
 | The adventurers' camp: the warrior (1158), archer (1157), monk (1159) and wizard (1160), each with their standard talk after Lost City | the Wiki's transcripts of each |
 | The candle seller (1896) by the swamp caves sells a lit candle for 1000 coins, and tells how lanterns are made, which the first menu then offers again | the Wiki's Transcript:Candle seller |
-| The Mining tutor (3222) by the east mine: the basics (Mining 1-24), tips (25-38) or advice (39-99), the quests (Doric and, on a members' world, the Dig Site), and the rocks and pickaxes menus; a bronze pickaxe for a player with none and a free slot | the Wiki's Transcript:Mining tutor |
-| The Fishing tutor (3221) by the shore: the basics (Fishing 1-28), tips (29-38, with the trawler) or advice (39-99, naming no quest as every one is done), the fish menu and where to fish by level, as on a members' world; a small fishing net for a player with none and a free slot | the Wiki's Transcript:Fishing tutor |
+| Monlum (16809, the Mining tutor until 242.1) by the east mine: his mining advice with its boxes, and a bronze pickaxe for a player with none (carried, worn or banked) and a free slot | the Wiki's Transcript:Monlum |
+| Finlay (16810, the Fishing tutor until 242.1) by the shore: his fishing advice with its boxes, and a small fishing net for a player with none and a free slot | the Wiki's Transcript:Finlay |
 | The fight animations (by the stand and walk animations each type has: the updated giant rat's, the giant frog's for all three frogs, the spear goblin's, the updated unicorn's), the curved bone's 1/5,012.5 kept as 1/5013, and every wander range (5) | guessed |
-| For the tutors: that a banked pickaxe or net counts as owned (as for the Woodsman tutor's axe); the items in the boxes the Wiki doesn't name; the fish menu's one slot for the lobster pot (Fishing 29-38) or the harpoon (39 and up), as a menu holds five options; the fishing tutor one tile east of RSMod's, which the 241 map has as water; their wander ranges (2) | guessed |
+| For the tutors: that a banked pickaxe or net counts as owned (as for Wilfred's axe); the icon items in the boxes (the old tutors'); their wander ranges (Monlum 4, Finlay 3: their Wiki map radii) | guessed |
 | Every chathead expression; that a worn ghostspeak amulet counts as carried; the bank as the only store Urhney checks (no Death's Office or item retrieval yet); the candle landing at the player's feet with no free slot; having heard about lanterns kept with the account by name | guessed |
 
 The unicorn retreats at a quarter of its hitpoints ([NPC aggression](#npc-aggression), guessed threshold). The tutors' offers to show a place on the world
@@ -924,7 +926,7 @@ map lead back to the first menu without opening the map, which isn't built yet; 
 gathering skills'. Hewey, Abigale and the two goblin sergeants, which the cache shows by quest varbits, are left out for
 now. What the talking NPCs say and each new NPC's examine are in the dialogue file (keys `father_urhney.*`,
 `lost_city_warrior.*`, `lost_city_archer.*`, `lost_city_monk.*`, `lost_city_wizard.*`, `candle_seller.*`,
-`mining_tutor.*`, `fishing_tutor.*` and `examine.npc_<id>`, one for the level 3 giant rats and one for the level 6).
+`monlum.*`, `finlay.*` and `examine.npc_<id>`, one for the level 3 giant rats and one for the level 6).
 
 Check: `test-runner/examples/lumbridge-swamp.json` examines each kind and kills a giant rat and a giant frog for their
 drops, then talks to Urhney, the adventurers, the candle seller and both tutors; `HeadlessLumbridgeSwampTest` fights a
@@ -1630,7 +1632,7 @@ Hans (`game/content/Hans.kt`) is the example: Talk-to and Age, as the OSRS Wiki'
 | Hans's expressions, Age giving the time-played lines alone, where he runs when threatened | guessed |
 
 Lumbridge Castle's Cook (`Cook.kt`), Duke Horacio (`DukeHoracio.kt`), men and women (`Townsfolk.kt`), Perdu
-(`Perdu.kt`), the Crafting tutor (`CraftingTutor.kt`), the bankers (`Bankers.kt`), and outside the gate the Doomsayer
+(`Perdu.kt`), Cadmus, the steward (the Crafting tutor until 242.1, `Cadmus.kt`), the bankers (`Bankers.kt`), and outside the gate the Doomsayer
 (`Doomsayer.kt`), Hatius Cosaintus (`Hatius.kt`) and the Lumbridge Guide (`LumbridgeGuide.kt`) talk as they do once
 every quest is done, since every account here has done them all. The Duke gives an anti-dragon shield to a player
 carrying or wearing none, one talk with a man or woman in 128 hands over a flier, and the Guide gives a security book to
@@ -1644,7 +1646,7 @@ event talks.
 | The Cook's and the Duke's conversations: lines, options, order, when the shield is offered | OSRS Wiki, Transcript:Cook (Lumbridge) and Transcript:Duke Horacio |
 | The Cook's answer to "other quests" after Recipe for Disaster on a members' world (the free-to-play answer, with no line from the player) | guessed: the Wiki leaves it out |
 | Men's and women's 23 conversations, the 1 in 128 flier | OSRS Wiki, Transcript:Man, Transcript:Woman, Flier |
-| Perdu's, the Crafting tutor's, the banker's, the Banker tutor's, the Doomsayer's and Hatius's conversations | OSRS Wiki, their transcripts |
+| Perdu's, Cadmus's, the banker's, the Banker tutor's, the Doomsayer's and Hatius's conversations | OSRS Wiki, their transcripts |
 | Hatius leaving out "another ring" for a player with no diary done | guessed: the Wiki lists it with no condition |
 | The Lumbridge Guide's conversation: lines, menus, where each option leads, the icon boxes | OSRS Wiki, Transcript:Lumbridge Guide; icon items are the 241 cache's `*_icon_dummy` objs |
 | The levels the Guide's answers change at (combat 20, Smithing 20, Fishing 20); the quest box's icon; the money menu's smithing and monsters options skipping straight to those answers; "has a weapon" meaning worn or carried in the weapon slot | guessed: the Wiki has "X" and "same as above" |

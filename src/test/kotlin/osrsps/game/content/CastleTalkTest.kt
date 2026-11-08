@@ -1,13 +1,14 @@
 package osrsps.game.content
 
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import osrsps.game.ObjType
 import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.content.Bankers.banker
+import osrsps.game.content.Cadmus.talk
 import osrsps.game.content.Bankers.tutor
-import osrsps.game.content.CraftingTutor.talk
 import osrsps.game.content.Doomsayer.talk
 import osrsps.game.content.Hatius.talk
 import osrsps.game.content.Perdu.talk
@@ -47,52 +48,42 @@ class CastleTalkTest {
     }
 
     @Test
-    fun `the Crafting tutor's topics drop off the menu as they are heard`() {
-        h.talk { with(CraftingTutor) { talk() } }
-        h.expect("crafting_tutor.hello", "crafting_tutor.offer")
-        h.menu("crafting_tutor.training", "crafting_tutor.items", "crafting_tutor.no_thanks")
-        h.pick(2)
-        h.expect("crafting_tutor.items", "crafting_tutor.list", "crafting_tutor.which_topic")
-        h.menu("crafting_tutor.armour", "crafting_tutor.pottery", "crafting_tutor.glass", "crafting_tutor.jewellery", "crafting_tutor.weapons")
-        h.pick(3)
+    fun `Cadmus says what a steward does, and the crafting tips lead into his advice and end the talk`() {
+        h.talk { with(Cadmus) { talk() } }
+        h.expect("cadmus.hello", "cadmus.greeting")
+        h.menu("cadmus.what_do_you_do", "cadmus.advice", "cadmus.good")
+        h.pick(1)
         h.expect(
-            "crafting_tutor.glass", "crafting_tutor.glass_1", "crafting_tutor.glass_2", "crafting_tutor.glass_3",
-            "crafting_tutor.glass_reply", "crafting_tutor.more_from_list",
+            "cadmus.what_do_you_do", "cadmus.steward", "cadmus.entail", "cadmus.repairs", "cadmus.handyman", "cadmus.learned",
         )
-        h.menu("crafting_tutor.armour", "crafting_tutor.pottery", "crafting_tutor.jewellery", "crafting_tutor.weapons", "crafting_tutor.no_more")
-        h.pick(5)
-        h.expect("crafting_tutor.no_more", "crafting_tutor.anything_else")
-        h.menu("crafting_tutor.training", "crafting_tutor.no_thanks")
-        h.pick(2)
-        h.expect("crafting_tutor.no_thanks", "crafting_tutor.come_back")
+        h.menu("cadmus.tips", "cadmus.best_be_off")
+        h.pick(1)
+        h.expect(
+            "cadmus.tips", "cadmus.of_course", "cadmus.advice_1", "cadmus.advice_2", "cadmus.advice_3", "cadmus.materials",
+            "cadmus.advice_4", "cadmus.wheel_hint", "cadmus.advice_5", "cadmus.guide_hint",
+        )
+        assertEquals(listOf(Cadmus.SPINNING_WHEEL_ICON), h.boxObjs)
         h.ends()
     }
 
     @Test
-    fun `the Crafting tutor's training talk goes by Crafting level`() {
-        h.player.skills.setLevel(Skill.CRAFTING, 15)
-        h.talk { with(CraftingTutor) { talk() } }
-        h.expect("crafting_tutor.hello", "crafting_tutor.offer")
-        h.menu("crafting_tutor.training", "crafting_tutor.items", "crafting_tutor.no_thanks")
-        h.pick(1)
+    fun `Cadmus's advice straight from the first menu, and good thanks ends it`() {
+        h.talk { with(Cadmus) { talk() } }
+        h.expect("cadmus.hello", "cadmus.greeting")
+        h.menu("cadmus.what_do_you_do", "cadmus.advice", "cadmus.good")
+        h.pick(2)
         h.expect(
-            "crafting_tutor.training", "crafting_tutor.mid_flax", "crafting_tutor.mid_hide_armour", "crafting_tutor.thanks",
-            "crafting_tutor.anything_else",
+            "cadmus.advice", "cadmus.advice_1", "cadmus.advice_2", "cadmus.advice_3", "cadmus.materials", "cadmus.advice_4",
+            "cadmus.wheel_hint", "cadmus.advice_5", "cadmus.guide_hint",
         )
-        h.menu("crafting_tutor.training", "crafting_tutor.items", "crafting_tutor.no_thanks")
-    }
+        h.ends()
 
-    @Test
-    fun `a Crafting tutor at 99 jokes before the high-level advice`() {
-        h.player.skills.setLevel(Skill.CRAFTING, 99)
-        h.talk { with(CraftingTutor) { talk() } }
-        h.expect("crafting_tutor.hello", "crafting_tutor.offer")
-        h.menu("crafting_tutor.training", "crafting_tutor.items", "crafting_tutor.no_thanks")
-        h.pick(1)
-        h.expect(
-            "crafting_tutor.training", "crafting_tutor.high_maxed", "crafting_tutor.high_jewellery", "crafting_tutor.high_armour",
-            "crafting_tutor.high_hides", "crafting_tutor.high_glass", "crafting_tutor.thanks",
-        )
+        h.talk { with(Cadmus) { talk() } }
+        h.expect("cadmus.hello", "cadmus.greeting")
+        h.menu("cadmus.what_do_you_do", "cadmus.advice", "cadmus.good")
+        h.pick(3)
+        h.expect("cadmus.good", "cadmus.very_well")
+        h.ends()
     }
 
     @Test
@@ -200,7 +191,7 @@ class CastleTalkTest {
     @Test
     fun `every castle NPC with lines has Talk-to`() {
         val world = World(IntArray(0), CollisionMap())
-        for (id in listOf(Cook.ID, DukeHoracio.ID, Perdu.ID, CraftingTutor.ID, Bankers.BANKER, Bankers.BANKER_TUTOR, Doomsayer.ID, Hatius.ID, LumbridgeGuide.ID) + Townsfolk.MEN + Townsfolk.WOMEN) {
+        for (id in listOf(Cook.ID, DukeHoracio.ID, Perdu.ID, Cadmus.ID, Bankers.BANKER, Bankers.BANKER_TUTOR, Doomsayer.ID, Hatius.ID, LumbridgeGuide.ID) + Townsfolk.MEN + Townsfolk.WOMEN) {
             assertTrue(world.handlers.find(Op(OpTarget.NPC, id, 1)) != null, "NPC $id")
         }
     }
