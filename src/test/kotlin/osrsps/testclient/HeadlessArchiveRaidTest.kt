@@ -12,6 +12,10 @@ import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.World
 import osrsps.game.combat.Deaths
+import osrsps.game.combat.Spells
+import osrsps.game.content.HomeTeleport
+import osrsps.game.content.LodestoneMap
+import osrsps.game.content.Lodestones
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
@@ -78,7 +82,11 @@ class HeadlessArchiveRaidTest {
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         World(
             crcs,
-            CollisionMap().apply { for (x in 63..65) for (z in 86..88) markLoaded(x, z) },
+            // Lumbridge's square too, for Home Teleport's landing.
+            CollisionMap().apply {
+                for (x in 63..65) for (z in 86..88) markLoaded(x, z)
+                markLoaded(Lodestones.LUMBRIDGE.x shr 6, Lodestones.LUMBRIDGE.z shr 6)
+            },
             locTypes = locTypes,
             staticLocs = staticLocs,
             objTypes = ObjTypes.of(axe),
@@ -391,6 +399,66 @@ class HeadlessArchiveRaidTest {
                 server.login("carol").use { again ->
                     again.awaitAt(Tile(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z), "Carol back in the lobby")
                     again.await("Carol's three axes") { again.inventory(INVENTORY).count { it?.id == axe.id }.takeIf { it == 3 } }
+                }
+            }
+        }
+    }
+
+    /**
+     * Home Teleport to Lumbridge's lodestone with the world paused by [clock]: the cast, the map, the pick, held for the
+     * next tick. Returns once the pick is in, the world still paused.
+     */
+    private fun HeadlessClient.homeTeleportPicked(clock: HeadlessClient) {
+        ifButton(Spells.SPELLBOOK, HomeTeleport.COMPONENT, HomeTeleport.CAST)
+        awaitCycles(2)
+        clock.stepTicks(1)
+        await("the lodestone map") { if (LodestoneMap.INTERFACE in openInterfaces() && opEnabled(LodestoneMap.INTERFACE, LodestoneMap.CLOSE, -1, LodestoneMap.CLOSE_OP)) Unit else null }
+        ifButton(LodestoneMap.INTERFACE, LodestoneMap.row(Lodestones.LUMBRIDGE), LodestoneMap.TELEPORT)
+        awaitCycles(2)
+    }
+
+    @Test
+    fun `a member down who logs out on the tick their Home Teleport lands out of the run still dies of it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { dave ->
+                server.login("carol").use { carol ->
+                    for (client in listOf(carol, dave)) client.await("the login rebuild") { client.position }
+                    val carolPlayer = server.world.playerNamed("carol")!!
+                    val stone = Lodestones.LUMBRIDGE.let { Tile(it.x + 1, it.z + 1) }
+                    fun landed() = carolPlayer.x == stone.x && carolPlayer.z == stone.z
+                    // First, out of the raid: how many ticks after its pick the teleport lands, the world held by Dave.
+                    carol.tele(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z)
+                    dave.commandReply("pause") { it.contains("aused after tick") }
+                    carol.homeTeleportPicked(dave)
+                    var ticks = 0
+                    while (!landed()) {
+                        check(++ticks <= 60) { "no landing within 60 ticks of the pick" }
+                        dave.stepTicks(1)
+                    }
+                    dave.commandReply("resume") { it.startsWith("Resumed") }
+                    carol.commandReply("raidparty invite dave") { it.startsWith("Invited") }
+                    dave.commandReply("raidparty accept carol") { it.startsWith("You joined") }
+                    val run = carol.enter(server, "carol")
+                    assertEquals(run, dave.enter(server, "dave"))
+                    carol.commandReply("item bronze axe 5") { it.contains("Bronze axe") }
+                    carol.command("hit 99 me")
+                    carol.await("Carol down") { if (carolPlayer.saveKey in run.downed && !carolPlayer.dead) Unit else null }
+                    // Out of combat, so she may cast and log out.
+                    carol.awaitTicks(World.LOGOUT_COMBAT_TICKS.toInt() + 1)
+                    val carolKey = carolPlayer.saveKey
+                    dave.commandReply("pause") { it.contains("aused after tick") }
+                    carol.homeTeleportPicked(dave)
+                    dave.stepTicks(ticks - 1)
+                    assertTrue(run.instance.contains(carolPlayer.x, carolPlayer.z), "still in the run the tick before the landing")
+                    // Logout on the landing tick: the run's look for escapes that tick comes before the teleport.
+                    carol.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+                    carol.awaitCycles(2)
+                    dave.stepTicks(1)
+                    assertTrue(landed(), "landed on the logout's tick")
+                    dave.await("Carol gone") { if (server.world.playerNamed("carol") == null) Unit else null }
+                    dave.commandReply("resume") { it.startsWith("Resumed") }
+                    server.assertGraveInLobby(carolKey, "carol", 2)
+                    assertTrue(run.downed.isEmpty(), run.downed.toString())
                 }
             }
         }

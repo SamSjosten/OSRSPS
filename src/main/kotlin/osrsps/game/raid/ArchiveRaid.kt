@@ -392,11 +392,13 @@ class ArchiveRaids(private val world: World) {
 
     /**
      * [player] is leaving the world (logged out, or their wait for a reconnect is over): if they are down in a run, that
-     * counts as their death (RAID-2), before they are saved at its exit.
+     * counts as their death (RAID-2), before they are saved. Found by their being down, not by where they stand: a
+     * Home Teleport landing out of the instance on the tick they log out is past [process]'s look for the run that
+     * tick, and out of it by the next.
      */
     fun leaving(player: Player) {
-        val run = at(player.x, player.z) ?: return
-        if (run.wiped || player.dead || player.saveKey !in run.downed) return
+        if (player.dead) return
+        val run = runs.values.firstOrNull { !it.wiped && player.saveKey in it.downed } ?: return
         escaped(run, player)
     }
 
