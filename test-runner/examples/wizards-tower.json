@@ -1,0 +1,312 @@
+{
+  "name": "Draynor piece step 14: the Wizards' Tower's spiral staircase up and down its three floors, the ladder to the basement and back, a library bookcase's three boxes, the first floor's boxes, a level 9 wizard casting Fire Strike back and its bones, and the caged lesser demon hit by a spell through its railing but out of reach of a punch",
+  "account": "test",
+  "steps": [
+    {
+      "step": "waitForLogin"
+    },
+    {
+      "step": "command",
+      "text": "::scenario lumbridge-bare",
+      "expectMessage": "Started scenario lumbridge-bare.",
+      "comment": "::reset at the end puts the account back"
+    },
+    {
+      "step": "command",
+      "text": "::keys on",
+      "expectMessage": "Dialogue shows keys",
+      "comment": "boxes and messages show their keys, whatever data/dialogue.txt holds"
+    },
+    {
+      "step": "command",
+      "text": "::setlevel hitpoints 99",
+      "expectMessage": "99",
+      "comment": "so the wizards' Fire Strikes can't kill"
+    },
+    {
+      "step": "command",
+      "text": "::tele 3105 3160 0",
+      "expectMessage": "Teleported to 3105, 3160, 0",
+      "comment": "east of the spiral staircase, ground floor"
+    },
+    {
+      "step": "locOption",
+      "loc": "Staircase",
+      "option": "Climb-up",
+      "x": 3103,
+      "y": 3159,
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertLocation",
+      "x": 3104,
+      "y": 3161,
+      "plane": 1,
+      "timeoutMs": 20000,
+      "comment": "first floor, beside the stairs"
+    },
+    {
+      "step": "locOption",
+      "loc": "Staircase",
+      "option": "Climb-up",
+      "x": 3103,
+      "y": 3159,
+      "timeoutMs": 20000,
+      "comment": "the middle's own Climb-up"
+    },
+    {
+      "step": "assertLocation",
+      "x": 3104,
+      "y": 3161,
+      "plane": 2,
+      "timeoutMs": 20000,
+      "comment": "second floor"
+    },
+    {
+      "step": "locOption",
+      "loc": "Staircase",
+      "option": "Climb-down",
+      "x": 3104,
+      "y": 3160,
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertLocation",
+      "x": 3105,
+      "y": 3160,
+      "plane": 1,
+      "timeoutMs": 20000
+    },
+    {
+      "step": "locOption",
+      "loc": "Staircase",
+      "option": "Climb",
+      "x": 3103,
+      "y": 3159,
+      "timeoutMs": 20000,
+      "comment": "the middle's Climb asks which way"
+    },
+    {
+      "step": "chooseOption",
+      "text": "[climb.stairs_down]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertLocation",
+      "x": 3105,
+      "y": 3160,
+      "plane": 0,
+      "timeoutMs": 20000
+    },
+    {
+      "step": "command",
+      "text": "::tele 3105 3162 0",
+      "expectMessage": "Teleported to 3105, 3162, 0",
+      "comment": "beside the library's ladder"
+    },
+    {
+      "step": "locOption",
+      "loc": "Ladder",
+      "option": "Climb-down",
+      "x": 3104,
+      "y": 3162,
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertLocation",
+      "x": 3104,
+      "y": 9576,
+      "plane": 0,
+      "timeoutMs": 20000,
+      "comment": "the basement, beside its ladder (2004Scape)"
+    },
+    {
+      "step": "assertLoc",
+      "locId": 2148,
+      "x": 3103,
+      "y": 9576,
+      "timeoutMs": 20000,
+      "comment": "wizards_tower_ladder"
+    },
+    {
+      "step": "locOption",
+      "loc": "Ladder",
+      "option": "Climb-up",
+      "x": 3103,
+      "y": 9576,
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertLocation",
+      "x": 3105,
+      "y": 3162,
+      "plane": 0,
+      "timeoutMs": 20000
+    },
+    {
+      "step": "command",
+      "text": "::tele 3112 3158 0",
+      "expectMessage": "Teleported to 3112, 3158, 0",
+      "comment": "in the library, west of a bookcase"
+    },
+    {
+      "step": "locOption",
+      "loc": "Bookcase",
+      "option": "Search",
+      "x": 3113,
+      "y": 3158,
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[wizards_tower.bookcase]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[wizards_tower.book_",
+      "timeoutMs": 20000,
+      "comment": "one of the eight, at random"
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[wizards_tower.interesting]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertNoDialogue",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "command",
+      "text": "::tele 3108 3157 1",
+      "expectMessage": "Teleported to 3108, 3157, 1",
+      "comment": "first floor, in the boxes' room beside them (its doors are shut; found on rl-client 2026-11-08: from 3110, 3158 they can't be reached)"
+    },
+    {
+      "step": "locOption",
+      "loc": "Boxes",
+      "option": "Search",
+      "x": 3109,
+      "y": 3157,
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertMessage",
+      "contains": "[search.boxes_empty]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "command",
+      "text": "::tele 3109 3160 0",
+      "expectMessage": "Teleported to 3109, 3160, 0",
+      "comment": "ground floor's west room, by the wizards"
+    },
+    {
+      "step": "npcOption",
+      "npc": "Wizard",
+      "option": "Attack",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertSpotanim",
+      "npc": "Wizard",
+      "ids": [
+        99
+      ],
+      "timeoutMs": 20000,
+      "comment": "firestrike_casting on the wizard as it casts back"
+    },
+    {
+      "step": "assertSpotanim",
+      "ids": [
+        101,
+        85
+      ],
+      "timeoutMs": 20000,
+      "comment": "firestrike_impact or failedspell_impact on the player"
+    },
+    {
+      "step": "command",
+      "text": "::kill wizard",
+      "expectMessage": "Killed Wizard #"
+    },
+    {
+      "step": "assertGroundItem",
+      "item": "Bones",
+      "timeoutMs": 20000,
+      "comment": "its always drop"
+    },
+    {
+      "step": "command",
+      "text": "::setlevel magic 13",
+      "expectMessage": "Magic set to level 13",
+      "comment": "Fire Strike's level"
+    },
+    {
+      "step": "command",
+      "text": "::item mind rune 2",
+      "expectMessage": "Added 2 x Mind rune"
+    },
+    {
+      "step": "command",
+      "text": "::item fire rune 6",
+      "expectMessage": "Added 6 x Fire rune"
+    },
+    {
+      "step": "command",
+      "text": "::item air rune 4",
+      "expectMessage": "Added 4 x Air rune"
+    },
+    {
+      "step": "command",
+      "text": "::tele 3110 3160 2",
+      "expectMessage": "Teleported to 3110, 3160, 2",
+      "comment": "second floor, north of the demon's railing"
+    },
+    {
+      "step": "castOnNpc",
+      "interfaceId": 218,
+      "component": 19,
+      "npc": "Lesser demon",
+      "timeoutMs": 20000,
+      "comment": "Fire Strike through the railing"
+    },
+    {
+      "step": "assertSpotanim",
+      "npc": "Lesser demon",
+      "ids": [
+        101,
+        85
+      ],
+      "timeoutMs": 20000,
+      "comment": "it lands or splashes: the railing lets spells through"
+    },
+    {
+      "step": "npcOption",
+      "npc": "Lesser demon",
+      "option": "Attack",
+      "timeoutMs": 20000,
+      "comment": "no spell picked: a punch, which can't reach"
+    },
+    {
+      "step": "assertMessage",
+      "contains": "[game.cant_reach]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "command",
+      "text": "::reset",
+      "expectMessage": "Back to how you were"
+    }
+  ]
+}

@@ -1,0 +1,183 @@
+{
+ "name": "Varrock step 15: down the manhole east of the palace and back up its ladder, down the bear pen's trapdoor and back up, the web east of the deadly red spiders (Slash with no blade, then a godsword used on it, which always cuts), and a moss giant killed for its big bones (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::god on",
+   "expectMessage": "You can't be hurt now",
+   "comment": "the sewers' spiders, zombies, ghosts and moss giants are aggressive"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3236 3458 0",
+   "expectMessage": "Teleported to 3236, 3458, 0",
+   "comment": "west of the manhole east of the palace: below, the tile east of the ladder is behind a wall, so the player lands west of it (VM 215, 2026-11-03 and 2026-11-08)"
+  },
+  {
+   "step": "locOption",
+   "loc": "Manhole",
+   "option": "Open",
+   "x": 3237,
+   "y": 3458
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Manhole",
+   "x": 3237,
+   "y": 3458,
+   "option": "Climb-down",
+   "comment": "open"
+  },
+  {
+   "step": "locOption",
+   "loc": "Manhole",
+   "option": "Climb-down",
+   "x": 3237,
+   "y": 3458
+  },
+  {
+   "step": "assertLocation",
+   "x": 3236,
+   "y": 9858,
+   "plane": 0,
+   "comment": "beside the ladder 6400 below, on its west"
+  },
+  {
+   "step": "locOption",
+   "loc": "Ladder",
+   "option": "Climb-up",
+   "x": 3237,
+   "y": 9858
+  },
+  {
+   "step": "assertLocation",
+   "x": 3236,
+   "y": 3458,
+   "plane": 0,
+   "comment": "back up beside the manhole"
+  },
+  {
+   "step": "locOption",
+   "loc": "Manhole",
+   "option": "Climb-down",
+   "x": 3237,
+   "y": 3458,
+   "comment": "still open, or it has shut again: then this step fails and the manhole needs opening again"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3231 3503 0",
+   "expectMessage": "Teleported to 3231, 3503, 0",
+   "comment": "south-east of the bear pen's trapdoor (the Hole) on open soil"
+  },
+  {
+   "step": "locOption",
+   "loc": "Hole",
+   "option": "Climb-down",
+   "x": 3230,
+   "y": 3504
+  },
+  {
+   "step": "locOption",
+   "loc": "Ladder",
+   "option": "Climb-up",
+   "x": 3230,
+   "y": 9904,
+   "comment": "the cellar ladder below the trapdoor, 6400 down: reaching it proves the climb down"
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Hole",
+   "x": 3230,
+   "y": 3504,
+   "option": "Climb-down",
+   "comment": "back up beside the trapdoor"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3210 9898 0",
+   "expectMessage": "Teleported to 3210, 9898, 0",
+   "comment": "on the web's tile, in the corridor east of the deadly red spiders: 3211,9898 is behind the corridor's east wall, where the web can't be reached (VM 215, 2026-11-08)"
+  },
+  {
+   "step": "locOption",
+   "loc": "Web",
+   "option": "Slash",
+   "x": 3210,
+   "y": 9898
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[web.no_blade]",
+   "timeoutMs": 10000,
+   "comment": "no blade worn or carried"
+  },
+  {
+   "step": "command",
+   "text": "::item 11802",
+   "expectMessage": "Added 1 x Armadyl godsword",
+   "comment": "slash +132, so it cuts every time (the knife's 50% is checked in HeadlessVarrockSewersTest)"
+  },
+  {
+   "step": "useItemOnLoc",
+   "item": "Armadyl godsword",
+   "loc": "Web",
+   "x": 3210,
+   "y": 9898,
+   "comment": "the godsword used on the web; Slash with a blade carried is checked in HeadlessVarrockSewersTest"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[web.slashed]",
+   "timeoutMs": 10000,
+   "comment": "a slash bonus of +100 or more always cuts"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3157 9904 0",
+   "expectMessage": "Teleported to 3157, 9904, 0",
+   "comment": "among the moss giants in the west"
+  },
+  {
+   "step": "command",
+   "text": "::kill mossgiant",
+   "expectMessage": "Killed Moss giant #"
+  },
+  {
+   "step": "assertGroundItem",
+   "item": "Big bones",
+   "timeoutMs": 15000,
+   "comment": "a moss giant always drops big bones; the rest of its table is checked in NpcDropsTest"
+  },
+  {
+   "step": "command",
+   "text": "::god off",
+   "expectMessage": "You can be hurt again"
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

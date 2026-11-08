@@ -1,0 +1,44 @@
+{
+ "name": "Varrock step 14: the stone circle's dark wizards go for a player in the middle unprovoked and cast from where they stand: a casting graphic on a wizard, then a spell's impact or a splash on the player",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel hitpoints 99",
+   "expectMessage": "99",
+   "comment": "eleven wizards casting at once can't kill; combat level 25 keeps the level 20s aggressive"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3225 3369 0",
+   "expectMessage": "Teleported to 3225, 3369, 0",
+   "comment": "inside the stone circle south of Varrock, west of its stone table: 3227,3369 is on the table, where the wizards never cast at the player (VM 215, 2026-11-03 and 2026-11-08)"
+  },
+  {
+   "step": "assertSpotanim",
+   "ids": [
+    95,
+    104,
+    98,
+    107,
+    85
+   ],
+   "timeoutMs": 30000,
+   "comment": "unprovoked: a spell's impact on the player (waterstrike, confuse, earthstrike, weaken or a splash). Only the level 20s go for combat level 25, so the nearest wizard, a level 7 maybe, needn't cast: the impact on the player is what is checked"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

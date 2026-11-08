@@ -32,7 +32,13 @@ class MultiCombat(val areas: List<MultiArea> = emptyList()) {
 
     /** Whether the tile is in a multi-way area. */
     fun at(level: Int, x: Int, z: Int): Boolean =
-        ZoneKey.of(x, z, level) in zones || bySquare[square(x shr 6, z shr 6)]?.any { it.contains(level, x, z) } == true
+        ZoneKey.of(x, z, level) in zones || bySquare[square(x shr 6, z shr 6)]?.any { it.contains(level, x, z) } == true || dynamic(level, x, z)
+
+    /**
+     * Whether a tile of an instance is multi-way, as a raid's copy is all through; the world sets it. The file's boxes
+     * can't say, since an instance is laid wherever there is room.
+     */
+    var dynamic: (level: Int, x: Int, z: Int) -> Boolean = { _, _, _ -> false }
 
     /** Makes the zone holding the tile multi-way, or single-way again. Only the admin zones change, not [areas]. */
     fun set(level: Int, x: Int, z: Int, multi: Boolean) {

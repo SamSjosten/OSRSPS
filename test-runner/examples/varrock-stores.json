@@ -74,6 +74,20 @@
    "count": 0
   },
   {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 1,
+   "slot": 11,
+   "op": 1,
+   "comment": "shopmain:frame's close button (child 11, made by steelborder, as ge_offers' is): with the shop open the next command's Enter key was dropped (VM 215, 2026-11-03 and 2026-11-08); the shop covers the tiles a walk would click"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "absent": true,
+   "timeoutMs": 10000
+  },
+  {
    "step": "command",
    "text": "::tele 3253 3402 0",
    "expectMessage": "Teleported to 3253, 3402, 0",
@@ -124,6 +138,20 @@
    "step": "assertInventory",
    "item": "Air rune",
    "count": 0
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 1,
+   "slot": 11,
+   "op": 1,
+   "comment": "the shop's close button: with the shop open, the next command's Enter key was dropped (VM 215, 2026-11-03 and 2026-11-08)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "absent": true,
+   "timeoutMs": 10000
   },
   {
    "step": "command",
@@ -178,6 +206,20 @@
    "count": 0
   },
   {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 1,
+   "slot": 11,
+   "op": 1,
+   "comment": "the shop's close button: with the shop open, the next command's Enter key was dropped (VM 215, 2026-11-03 and 2026-11-08)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "absent": true,
+   "timeoutMs": 10000
+  },
+  {
    "step": "command",
    "text": "::tele 3281 3398 0",
    "expectMessage": "Teleported to 3281, 3398, 0",
@@ -228,6 +270,20 @@
    "step": "assertInventory",
    "item": "Blue wizard hat",
    "count": 0
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 1,
+   "slot": 11,
+   "op": 1,
+   "comment": "the shop's close button: with the shop open, the next command's Enter key was dropped (VM 215, 2026-11-03 and 2026-11-08)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "absent": true,
+   "timeoutMs": 10000
   },
   {
    "step": "command",
@@ -282,6 +338,20 @@
    "count": 0
   },
   {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 1,
+   "slot": 11,
+   "op": 1,
+   "comment": "the shop's close button: with the shop open, the next command's Enter key was dropped (VM 215, 2026-11-03 and 2026-11-08)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "absent": true,
+   "timeoutMs": 10000
+  },
+  {
    "step": "command",
    "text": "::tele 3218 3415 0",
    "expectMessage": "Teleported to 3218, 3415, 0",
@@ -308,6 +378,20 @@
    "step": "assertInterface",
    "interfaceId": 300,
    "comment": "the talk ends in the shop"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 1,
+   "slot": 11,
+   "op": 1,
+   "comment": "the shop's close button: with the shop open, the next command's Enter key was dropped (VM 215, 2026-11-03 and 2026-11-08)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "absent": true,
+   "timeoutMs": 10000
   },
   {
    "step": "command",
@@ -338,6 +422,20 @@
    "comment": "the talk ends in the shop"
   },
   {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 1,
+   "slot": 11,
+   "op": 1,
+   "comment": "the shop's close button: with the shop open, the next command's Enter key was dropped (VM 215, 2026-11-03 and 2026-11-08)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "absent": true,
+   "timeoutMs": 10000
+  },
+  {
    "step": "command",
    "text": "::tele 3204 3417 0",
    "expectMessage": "Teleported to 3204, 3417, 0",
@@ -364,6 +462,20 @@
    "step": "assertInterface",
    "interfaceId": 300,
    "comment": "the talk ends in the shop"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 1,
+   "slot": 11,
+   "op": 1,
+   "comment": "the shop's close button: with the shop open, the next command's Enter key was dropped (VM 215, 2026-11-03 and 2026-11-08)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "absent": true,
+   "timeoutMs": 10000
   },
   {
    "step": "command",
@@ -422,6 +534,20 @@
    "comment": "the talk ends in the shop"
   },
   {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 1,
+   "slot": 11,
+   "op": 1,
+   "comment": "the shop's close button: with the shop open, the next command's Enter key was dropped (VM 215, 2026-11-03 and 2026-11-08)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "absent": true,
+   "timeoutMs": 10000
+  },
+  {
    "step": "command",
    "text": "::tele 3271 3411 0",
    "expectMessage": "Teleported to 3271, 3411, 0",
@@ -455,6 +581,20 @@
    "step": "assertInterface",
    "interfaceId": 300,
    "comment": "the talk ends in the shop"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 300,
+   "component": 1,
+   "slot": 11,
+   "op": 1,
+   "comment": "the shop's close button: with the shop open, the next command's Enter key was dropped (VM 215, 2026-11-03 and 2026-11-08)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "absent": true,
+   "timeoutMs": 10000
   },
   {
    "step": "command",

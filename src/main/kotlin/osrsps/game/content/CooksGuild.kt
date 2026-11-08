@@ -251,11 +251,11 @@ fun registerCooksGuild(world: World) {
         // The doors by tile too: the same types anywhere else are plain doors.
         world.handlers.onLoc(FRONT_DOOR, OPEN) { op ->
             val door = op.loc!!
-            if (door.x to door.z == FRONT_DOOR_TILE) frontDoor(world, door) else world.doors.toggle(door, OPEN)
+            if (door.x to door.z == FRONT_DOOR_TILE) frontDoor(world, door) else world.doors.toggle(door, OPEN, player.saveKey)
         }
         world.handlers.onLoc(NORTH_DOOR, OPEN) { op ->
             val door = op.loc!!
-            if (door.x to door.z == NORTH_DOOR_TILE) northDoor(world, door) else world.doors.toggle(door, OPEN)
+            if (door.x to door.z == NORTH_DOOR_TILE) northDoor(world, door) else world.doors.toggle(door, OPEN, player.saveKey)
         }
 
         // The stairs by tile, as the exploit review asks of types that may stand elsewhere.

@@ -405,6 +405,33 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `the Varrock Sewers have their rats, spiders, zombies, skeletons, ghosts and moss giants`() {
+        val names = mapOf(
+            2854 to "rat", 2856 to "giantrat", 2862 to "giantrat1", 2863 to "giantrat1_2", 2864 to "giantrat1_3", 3017 to "giantspider1",
+            3018 to "giantspider2", 3019 to "spider", 3021 to "deadly_red_spider", 3024 to "scorpion", 39 to "zombie_unarmed_sewer2",
+            41 to "zombie_unarmed_sewer4", 44 to "zombie2_c", 55 to "zombie_armed_sewer1", 56 to "zombie_armed_sewer2",
+            57 to "zombie_armed_sewer3", 58 to "zombie_armed_sewer4", 74 to "skeleton_unagressive", 75 to "skeleton_unagressive2",
+            76 to "skeleton_unagressive3", 77 to "skeleton_armed", 80 to "skeleton_armed4", 85 to "ghost", 89 to "ghost5", 92 to "ghost8",
+            2090 to "mossgiant", 2091 to "mossgiant2", 2092 to "mossgiant3", 2093 to "mossgiant4",
+        )
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("varrock-sewers.json"), types, "varrock-sewers.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        // As many of each as mejrs's live list has.
+        assertEquals(89, spawns.size)
+        assertEquals(29, spawns.count { it.type.id == 2854 })
+        assertEquals(10, spawns.count { it.type.id in 2090..2093 })
+        assertEquals(9, spawns.count { it.type.id == 3021 })
+        assertEquals(9, spawns.count { it.type.id == 3019 })
+        assertEquals(7, spawns.count { it.type.id in 39..58 })
+        assertEquals(9, spawns.count { it.type.id in 74..80 })
+        assertEquals(3, spawns.count { it.type.id in 85..92 })
+        // All under the city, a dungeon's 6400 tiles north of it.
+        assertTrue(spawns.all { it.x in 3150..3300 && it.z in 9840..9920 && it.level == 0 && it.wander > 0 && it.source.isNotBlank() })
+    }
+
+    @Test
     fun `Draynor Manor's grounds have the Wiki's 14 undead trees, standing still, and Veronica by the fence`() {
         val result = NpcSpawnFile.parse(file("draynor-manor.json"), manorTypes, "draynor-manor.json")
         assertEquals(emptyList(), result.unknown)
@@ -515,7 +542,7 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `Varrock has its 37 guards, five stray dogs, townsfolk, bankers, the Grand Exchange's, shop keepers, the palace's, churches', inns', the Fitzharmons, the museum's people and the Champions' Guild's`() {
+    fun `Varrock has its 37 guards, five stray dogs, townsfolk, bankers, the Grand Exchange's, shop keepers, the palace's, churches', inns', the Fitzharmons, the museum's people, the Champions' Guild's and its fighters`() {
         val names = mapOf(
             11911 to "fai_varrock_guard02", 11912 to "fai_varrock_guard02_variant01", 11913 to "fai_varrock_guard02_variant02",
             11914 to "fai_varrock_guard02_f", 11915 to "fai_varrock_guard02_f_variant01", 11916 to "fai_varrock_guard02_f_variant02",
@@ -552,6 +579,9 @@ class NpcSpawnFileTest {
             6015 to "vm_natural_history_display_dragon", 6016 to "vm_natural_history_display_case_wyvern",
             6017 to "vm_natural_history_display_case_battle_tortoise", 6018 to "vm_natural_history_display_case_mole",
             814 to "guildmaster", 2871 to "scavvo", 2870 to "valaine",
+            513 to "mugger", 5086 to "qip_ds_young_dark_wizard1", 5087 to "qip_ds_young_dark_wizard2", 5088 to "qip_ds_young_dark_wizard3", 5089 to "qip_ds_young_dark_wizard4", 3252 to "thief1", 5217 to "qip_soa_thief_male01", 5219 to "qip_soa_thief_female01",
+            5220 to "qip_soa_thief_female02", 2862 to "giantrat1", 2864 to "giantrat1_3", 3262 to "barbarianwoman_varrock",
+            3260 to "warrior_woman", 2838 to "brownbear", 516 to "black_knight", 3019 to "spider",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("varrock.json"), types, "varrock.json")
@@ -629,9 +659,16 @@ class NpcSpawnFileTest {
         val guild = spawns.filter { it.type.id in listOf(814, 2870, 2871) }
         assertEquals(listOf(0, 1, 1), guild.sortedBy { it.type.id }.map { it.level })
         assertTrue(guild.all { it.x in 3188..3194 && it.z in 3350..3362 })
+        // Step 12: the city's fighters, as many of each as mejrs's live list has.
+        val fighters = mapOf(513 to 1, 3252 to 1, 5217 to 2, 5219 to 1, 5220 to 1, 2862 to 2, 2864 to 1, 3262 to 1, 3260 to 2, 2838 to 1, 516 to 1, 3019 to 1)
+        assertEquals(fighters, fighters.keys.associateWith { id -> spawns.count { it.type.id == id } })
+        // Step 14: the stone circle's dark wizards, six of level 7 and five of level 20, as mejrs's live list has them.
+        val wizards = spawns.filter { it.type.id in 5086..5089 }
+        assertEquals(mapOf(5086 to 3, 5087 to 3, 5088 to 3, 5089 to 2), wizards.groupingBy { it.type.id }.eachCount())
+        assertTrue(wizards.all { it.x in 3220..3235 && it.z in 3360..3376 && it.level == 0 })
         // East of the Edgeville piece's strip (x 3150 and west), south of the Wilderness ditch, but the museum's Natural History
-        // floor and the Champions' Guild, south of the city.
-        assertTrue((spawns - basement.toSet() - guild.toSet()).all { it.x >= 3150 && it.z in 3375..3520 && it.source.isNotBlank() })
+        // floor, and the Champions' Guild and the stone circle, south of the city.
+        assertTrue((spawns - basement.toSet() - guild.toSet() - wizards.toSet()).all { it.x >= 3150 && it.z in 3375..3520 && it.source.isNotBlank() })
         assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - museumStill.toSet() - displays.toSet() - elsie - iffie).all { it.wander > 0 })
     }
 }

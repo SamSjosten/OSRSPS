@@ -60,6 +60,9 @@ class Parties {
 
     fun of(player: Player): Party? = byMember[player]
 
+    /** [player]'s party, or a new one of their own, led by them, when they have none: a solo raid. */
+    fun start(player: Player): Party = byMember[player] ?: Party(nextId++, player).also { byMember[player] = it }
+
     /**
      * [leader] invites [target] to their party, starting one led by [leader] if they have none. [target] may be in
      * another party when invited, but must leave it to join.

@@ -5,6 +5,8 @@ import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.npc.Npc
 import osrsps.game.npc.NpcSpawn
+import osrsps.game.zone.ZoneLoc
+import osrsps.map.LocShape
 import osrsps.map.Tile
 
 /**
@@ -14,9 +16,12 @@ class Encounter internal constructor(
     val id: Int,
     val def: EncounterDef,
     override val boss: Npc,
-    private val world: World,
+    override val world: World,
     private val inArea: (Int, Int) -> Boolean,
     startPhase: Int,
+    private val admits: (Player) -> Boolean = { true },
+    /** When this says why, the fight is called off before its tick and its boss taken out; null to go on. */
+    internal val calledOff: () -> String? = { null },
 ) : EncounterContext {
     /** The phase it is in, an index into [EncounterDef.phases]. */
     var phase: Int = startPhase
@@ -31,6 +36,14 @@ class Encounter internal constructor(
 
     private val hazards = ArrayList<Hazard>()
     private val addList = ArrayList<Npc>()
+
+    /** The tiles [placeLoc] changed, by tile and layer, that the fight puts back as the cache has them when it ends. */
+    private val locList = LinkedHashMap<Triple<Int, Int, Int>, ZoneLoc>()
+
+    /** What [after] put off, by the tick it is due on, oldest first. */
+    private class Later(val tick: Long, val action: EncounterContext.() -> Unit)
+
+    private val later = ArrayList<Later>()
 
     private val startTick = world.tick
 
@@ -53,7 +66,7 @@ class Encounter internal constructor(
     override val phaseTick: Long get() = world.tick - phaseStart
 
     override val players: List<Player>
-        get() = world.onlinePlayers.filter { !it.dead && it.level == boss.level && inArea(it.x, it.z) }.sortedBy { it.index }
+        get() = world.onlinePlayers.filter { !it.dead && it.level == boss.level && inArea(it.x, it.z) && admits(it) }.sortedBy { it.index }
 
     override val adds: List<Npc> get() = addList.filter { !it.dead && world.npcs[it.index] === it }
 
@@ -83,11 +96,28 @@ class Encounter internal constructor(
         return hazard
     }
 
+    override fun placeLoc(id: Int, x: Int, z: Int): ZoneLoc {
+        val loc = ZoneLoc(id, LocShape.CENTREPIECE_STRAIGHT, 0, x, z, boss.level)
+        world.locs.add(loc)
+        locList[Triple(x, z, loc.layer)] = loc
+        return loc
+    }
+
+    override fun clearLoc(loc: ZoneLoc) {
+        if (locList.remove(Triple(loc.x, loc.z, loc.layer)) == null) return
+        if (world.locs.exists(loc)) world.locs.restore(loc.x, loc.z, loc.level, loc.layer)
+    }
+
     override fun spawnAdd(type: NpcType, x: Int, z: Int): Npc? {
         val npc = world.spawnNpc(NpcSpawn(type, x, z, boss.level, source = "encounter ${def.name}", respawns = false)) ?: return null
         addList += npc
         log("add ${type.name} at $x,$z")
         return npc
+    }
+
+    override fun after(ticks: Int, action: EncounterContext.() -> Unit) {
+        require(ticks >= 1) { "something put off $ticks ticks" }
+        later += Later(world.tick + ticks, action)
     }
 
     override fun log(text: String) {
@@ -155,6 +185,8 @@ class Encounter internal constructor(
         if (bossLeft()) return
         runCycle()
         if (bossLeft()) return
+        runLater()
+        if (bossLeft()) return
         landHazards()
         bossLeft()
     }
@@ -163,7 +195,20 @@ class Encounter internal constructor(
         val percent = phase.endsAtPercent
         if (percent != null && boss.hitpoints * 100 <= boss.maxHitpoints * percent) return true
         val after = phase.endsAfter
-        return after != null && phaseTick >= after
+        if (after != null && phaseTick >= after) return true
+        return phase.endsWhen?.invoke(this) == true
+    }
+
+    /** What was put off to this tick, in the order it was put off; what that puts off again waits its own ticks. */
+    private fun runLater() {
+        val now = world.tick
+        val due = later.filter { it.tick <= now }
+        if (due.isEmpty()) return
+        later.removeAll(due.toSet())
+        for (entry in due) {
+            entry.action(this)
+            if (ended || boss.dead || world.npcs[boss.index] !== boss) return
+        }
     }
 
     private fun runCycle() {
@@ -194,6 +239,10 @@ class Encounter internal constructor(
                 if (player.level != hazard.level || Tile(player.x, player.z) !in hazard.tiles) continue
                 // From no one, so standing in one neither starts a fight nor makes the player hit back. Guessed.
                 val dealt = world.meleeCombat.hitPlayer(player, null, roll(hazard.minDamage, hazard.maxDamage), now)
+                // Still the boss's attack: the player counts as in combat, which cuts a Home Teleport or lodestone cast
+                // short and holds a logout, as a hit from the boss itself would (exploit review round 11, ENC-1).
+                // Guessed: live's boss mechanics put the player in combat; nothing on the Wiki says otherwise.
+                if (!player.dead) player.attackedTick = now
                 log("hazard hit ${player.username} for $dealt")
             }
         }
@@ -204,8 +253,10 @@ class Encounter internal constructor(
         log("ends: $why")
         ended = true
         hazards.clear()
+        later.clear()
         for (add in addList) if (world.npcs[add.index] === add) world.removeNpc(add)
         addList.clear()
+        for (loc in locList.values.toList()) clearLoc(loc)
     }
 
     override fun toString() = "${def.name} #$id"
@@ -234,13 +285,22 @@ class Encounters(private val world: World, defs: List<EncounterDef> = emptyList(
     val all: List<Encounter> get() = list
 
     /**
-     * Starts [def] against [boss], with the players [inArea] says are in the fight, from the phase at [startPhase]. The
+     * Starts [def] against [boss], with the players [inArea] says are in the fight and [admits] lets in (everyone, unless
+     * it says otherwise), from the phase at [startPhase]; [calledOff], checked each tick, can stop it. The
      * fight's first tick runs now: the phase's start, steps with no delay and hazards due at once.
      */
-    fun start(def: EncounterDef, boss: Npc, inArea: (Int, Int) -> Boolean, startPhase: Int = 0): Encounter {
+    fun start(
+        def: EncounterDef,
+        boss: Npc,
+        inArea: (Int, Int) -> Boolean,
+        startPhase: Int = 0,
+        admits: (Player) -> Boolean = { true },
+        calledOff: () -> String? = { null },
+    ): Encounter {
         require(startPhase in def.phases.indices) { "${def.name} has no phase $startPhase" }
         require(list.none { it.boss === boss }) { "$boss is already in a fight" }
-        val encounter = Encounter(nextId++, def, boss, world, inArea, startPhase)
+        val encounter = Encounter(nextId++, def, boss, world, inArea, startPhase, admits, calledOff)
+        boss.scriptedAttacks = def.scriptedAttacks
         list += encounter
         encounter.begin()
         return encounter
@@ -254,6 +314,19 @@ class Encounters(private val world: World, defs: List<EncounterDef> = emptyList(
 
     fun process() {
         for (encounter in list.toList()) {
+            // Ended already, as one can on its first tick in [start]: out of the list, with nothing more to run.
+            if (encounter.ended) {
+                list -= encounter
+                continue
+            }
+            val why = encounter.calledOff()
+            if (why != null) {
+                encounter.end(why)
+                list -= encounter
+                val boss = encounter.boss
+                if (!boss.dead && world.npcs[boss.index] === boss) world.removeNpc(boss)
+                continue
+            }
             encounter.process()
             if (encounter.ended) list -= encounter
         }

@@ -23,6 +23,21 @@ import osrsps.game.script.Op
 
 private val logger = KotlinLogging.logger {}
 
+/**
+ * Where a player who died comes back ([toX], [toZ], [toLevel]) and where their grave goes ([graveX], [graveZ],
+ * [graveLevel]), when not at the spawn and on the tile they died on: a death in an instance, whose tile they can't get
+ * back to, or in a raid. With [keepItems] they lose nothing: a raid death while the party still stands.
+ */
+data class DeathPlace(
+    val keepItems: Boolean,
+    val graveX: Int,
+    val graveZ: Int,
+    val graveLevel: Int,
+    val toX: Int,
+    val toZ: Int,
+    val toLevel: Int,
+)
+
 /** A player's gravestone: the [npc] standing where they died, holding what they lost in [items]. */
 class Grave(
     /** [Player.saveKey] of whose it is. */
@@ -87,6 +102,12 @@ class Deaths(
     private val words: (Player) -> DialogueText = { DialogueText.NONE },
     /** Ends poison, venom and their immunity ([Poison.clear]). */
     private val cure: (Player) -> Unit = {},
+    /** Where a dying player comes back and their grave goes, when not at the spawn and where they fell. */
+    private val placeOf: (Player) -> DeathPlace? = { null },
+    /** Puts a respawning player on a tile, for a [DeathPlace]. */
+    private val teleport: (Player, Int, Int, Int) -> Unit = { _, _, _, _ -> },
+    /** Drops a count of an item under the player, seen by them alone at first, as a drop from the backpack is. */
+    private val drop: (Player, ObjType, Int) -> Unit = { _, _, _ -> },
 ) {
     private val graves = LinkedHashMap<Npc, Grave>()
 
@@ -138,14 +159,26 @@ class Deaths(
 
     /**
      * Puts [player] back in the world: their items sorted into kept and lost, the lost ones in their grave, their stats
-     * and run energy back, and themself at the spawn. Also run for a dead player who logs out, so nobody saves dead.
+     * and run energy back, and themself at the spawn; or as [place] says, [placeOf]'s by default. Also run for a dead
+     * player who logs out, so nobody saves dead, and by a raid's wipe for the party members it had downed.
      */
-    fun respawn(player: Player) {
+    fun respawn(player: Player, place: DeathPlace? = placeOf(player)) {
+        // A raid's wipe respawns members still on their feet: they die first, as anyone does, so a trade hands its
+        // offers back, the price checker keeps its items for the sorting below, and Protect Item counts as they fall.
+        if (!player.dead) die(player)
         player.deathTick = -1
-        val lost = dropItems(player) + unchecked(player)
+        val keep = place?.keepItems == true
+        // The kept items are sorted with the price checker's among them, before it is emptied, so a valuable one being
+        // checked can still be kept.
+        val sorted = if (keep) emptyList() else dropItems(player)
+        val over = unchecked(player)
+        // Everything kept, what the price checker held and the backpack can't take goes under them where they come
+        // back, as closing the screen with a full backpack drops it; left in the closed checker, the next save put it
+        // in the bank, which banked from inside a raid (exploit review round 12, RAID-1).
+        val lost = if (keep) emptyList() else sorted + over
         player.deathKeptItems = KEPT_ITEMS
         val charges = lostCharges(player, lost)
-        if (lost.isNotEmpty() || charges.isNotEmpty()) bury(player, lost + charges)
+        if (lost.isNotEmpty() || charges.isNotEmpty()) bury(player, lost + charges, place)
         for (skill in Skill.entries) player.skills.setCurrentLevel(skill, player.skills.baseLevel(skill))
         player.runEnergy = Movement.MAX_ENERGY
         cure(player)
@@ -153,7 +186,8 @@ class Deaths(
         // dead pose, and holds back the player's steps, until the animation is stopped. Stopping it on respawn is
         // inferred from that; live never shows the pose after the respawn.
         player.anim(-1)
-        teleportToSpawn(player)
+        if (place == null) teleportToSpawn(player) else teleport(player, place.toX, place.toZ, place.toLevel)
+        if (keep) for (obj in over) drop(player, objTypes[obj.id] ?: ObjType(obj.id), obj.count)
     }
 
     /**
@@ -186,8 +220,9 @@ class Deaths(
 
     /**
      * Puts the items [dropItems] kept out of the price checker back in [player]'s backpack, which the death has all but
-     * emptied; returns any that still don't fit, for the grave. Before this, closing the screen on a death put them in
-     * the bank, out of the grave (fourth exploit review, 30 Oct 2026).
+     * emptied, and empties the checker; returns any that still don't fit, for the grave, or to drop under them when a
+     * death [keeps][DeathPlace.keepItems] everything. Before this, closing the screen on a death put them in the bank,
+     * out of the grave (fourth exploit review, 30 Oct 2026).
      */
     private fun unchecked(player: Player): List<InvObj> {
         val left = ArrayList<InvObj>()
@@ -233,9 +268,12 @@ class Deaths(
     private fun lostLast(player: Player, lost: List<InvObj>, ids: Set<Int>): Boolean =
         lost.any { it.id in ids } && listOf(player.inventory, player.equipment, player.bank).none { inv -> inv.contents().any { (_, obj) -> obj.id in ids } }
 
-    /** Puts [lost] in [player]'s grave, raising one on their tile if they have none; an existing grave starts its timer again. */
-    private fun bury(player: Player, lost: List<InvObj>) {
-        val grave = graveOf(player) ?: raise(player)
+    /**
+     * Puts [lost] in [player]'s grave, raising one on their tile, or [place]'s grave tile, if they have none; an existing
+     * grave starts its timer again.
+     */
+    private fun bury(player: Player, lost: List<InvObj>, place: DeathPlace?) {
+        val grave = graveOf(player) ?: if (place == null) raise(player, player.x, player.z, player.level) else raise(player, place.graveX, place.graveZ, place.graveLevel)
         if (grave == null) {
             logger.warn { "${player.username} lost ${lost.size} items with no grave to put them in" }
             return
@@ -250,9 +288,9 @@ class Deaths(
         for (viewer in players()) if (viewing[viewer.saveKey] === grave && hasOpen(viewer)) sendItems(viewer, grave)
     }
 
-    private fun raise(player: Player): Grave? {
+    private fun raise(player: Player, x: Int, z: Int, level: Int): Grave? {
         val type = graveType ?: return null
-        val npc = spawnNpc(NpcSpawn(type, player.x, player.z, player.level, source = "${player.username}'s death")) ?: return null
+        val npc = spawnNpc(NpcSpawn(type, x, z, level, source = "${player.username}'s death")) ?: return null
         val grave = Grave(player.saveKey, npc)
         graves[npc] = grave
         return grave

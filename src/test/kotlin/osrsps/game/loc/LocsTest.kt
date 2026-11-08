@@ -138,6 +138,31 @@ class LocsTest {
     }
 
     @Test
+    fun `a loc added for good is what a restore puts back`() {
+        val stone = ZoneLoc(TABLE, LocShape.CENTREPIECE_STRAIGHT, 0, 3214, 3212, 0)
+        locs.addPermanent(stone)
+        assertEquals(listOf("add $TABLE"), sent())
+        assertEquals(stone, locs.cached(3214, 3212, 0, stone.layer))
+        // ::resetlocs over its tile: the stone is how the tile starts, so nothing changes and nothing is sent.
+        locs.restore(3214, 3212, 0, stone.layer)
+        assertEquals(stone, locs[3214, 3212, 0, stone.layer])
+        assertTrue(sent().isEmpty())
+        assertTrue(map[3214, 3212, 0] and CollisionFlag.LOC != 0)
+        // Taken away, a restore puts the stone back, not the cache's bare tile.
+        locs.remove(stone)
+        assertEquals(listOf("del"), sent())
+        locs.restore(3214, 3212, 0, stone.layer)
+        assertEquals(stone, locs[3214, 3212, 0, stone.layer])
+        assertEquals(listOf("add $TABLE"), sent())
+        // A door-style respawn clock on its tile has nothing to put back either.
+        locs.restoreAfter(3214, 3212, 0, stone.layer, 5)
+        assertFalse(locs.reverting(3214, 3212, 0))
+        // A player arriving later still gets the stone: their cache has the tile bare.
+        val late = Player(2, "late", 3215, 3215, 0)
+        assertTrue(zones.collect(late).any { payloads -> (payloads.shared + payloads.own).any { it is LocAddChangeV2 && it.id == TABLE } })
+    }
+
+    @Test
     fun `a timed change puts the tile back once its time is up`() {
         tick = 100
         locs.replace(wall, STUMP, revertAfter = 3)

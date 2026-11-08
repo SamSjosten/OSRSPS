@@ -19,6 +19,16 @@ data class LocType(
     val multiloc: Boolean = false,
     /** The loc's name in the cache's gameval index, e.g. `poordoor`; null when the cache has none. */
     val internalName: String? = null,
+    /** A multiloc picks which of [multiLocs] it shows by this varbit (or varp, if the varbit is -1), as the client does. */
+    val multiVarbit: Int = -1,
+    val multiVarp: Int = -1,
+    /** The types a multiloc can show, by the var's value; the last entry is the default, -1 for none (opcodes 77, 92). */
+    val multiLocs: List<Int> = emptyList(),
+    /**
+     * The map element (config archive 35) whose sprite the client draws on the minimap where the loc stands, opcode
+     * 82; [NO_MAP_ELEMENT] for none. A multiloc carries it on its forms, not the parent.
+     */
+    val mapElement: Int = NO_MAP_ELEMENT,
 ) {
     val width: Int get() = collision.width
     val length: Int get() = collision.length
@@ -28,6 +38,10 @@ data class LocType(
 
     /** Whether option [option] (1 to 5) shows in the client's menu. */
     fun hasOp(option: Int): Boolean = ops.getOrNull(option - 1) != null
+
+    companion object {
+        const val NO_MAP_ELEMENT = -1
+    }
 }
 
 /** Every loc type in the cache, by id. */

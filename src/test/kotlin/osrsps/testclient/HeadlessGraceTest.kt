@@ -3,6 +3,7 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.Inventory
 import osrsps.game.NpcType
@@ -32,7 +33,8 @@ import osrsps.map.LocShape
  * buying the graceful pieces back at 80%, and the way down to her in the Rogues' Den and back up.
  */
 class HeadlessGraceTest {
-    private val mark = ObjType(Agility.MARK_OF_GRACE, "Mark of grace", stackable = true, cost = 1)
+    /** Named as the 241 cache names it, capital G and all: the server's messages and the shop's currency use that. */
+    private val mark = ObjType(Agility.MARK_OF_GRACE, "Mark of Grace", stackable = true, cost = 1)
     private val pieces = listOf(
         ObjType(HOOD, "Graceful hood", cost = 35), ObjType(TOP, "Graceful top", cost = 55), ObjType(LEGS, "Graceful legs", cost = 60),
         ObjType(GLOVES, "Graceful gloves", cost = 30), ObjType(BOOTS, "Graceful boots", cost = 40), ObjType(CAPE, "Graceful cape", cost = 40),
@@ -64,6 +66,10 @@ class HeadlessGraceTest {
                 add(ZoneLoc(RoguesDen.TRAPDOOR, LocShape.CENTREPIECE_STRAIGHT, 0, 2905, 3537, 0))
                 add(ZoneLoc(RoguesDen.DOOR, LocShape.CENTREPIECE_STRAIGHT, 0, 3061, 4984, 1))
                 add(ZoneLoc(RoguesDen.PASSAGEWAY, LocShape.CENTREPIECE_STRAIGHT, 0, 3061, 4986, 1))
+                // Copies elsewhere, as the den's maze has the door's type: they lead nowhere.
+                for ((id, x) in listOf(RoguesDen.TRAPDOOR to 3224, RoguesDen.PASSAGEWAY to 3226, RoguesDen.DOOR to 3228)) {
+                    add(ZoneLoc(id, LocShape.CENTREPIECE_STRAIGHT, 0, x, 3218, 0))
+                }
             },
             cycleMillis = millis,
         )
@@ -95,7 +101,7 @@ class HeadlessGraceTest {
                 val words = DialogueText.NONE
                 client.ifButton(ShopScreen.MAIN, ShopScreen.MAIN_ITEMS, 6, 1, HOOD)
                 client.awaitMessage("the hood's price") {
-                    it == words[ShopLines.COSTS_IN, "item" to "Graceful hood", "price" to "35", "currency" to "Mark of grace"]
+                    it == words[ShopLines.COSTS_IN, "item" to "Graceful hood", "price" to "35", "currency" to "Mark of Grace"]
                 }
                 client.ifButton(ShopScreen.MAIN, ShopScreen.MAIN_ITEMS, 2, 1, HOOD)
                 client.awaitHeld(HOOD, 1)
@@ -104,7 +110,7 @@ class HeadlessGraceTest {
                 // Back at 80% of 35; the hood can't be traded, but she buys what she sells.
                 client.ifButton(ShopScreen.SIDE, ShopScreen.SIDE_ITEMS, 1, client.slotOf(HOOD), HOOD)
                 client.awaitMessage("the hood's buy-back") {
-                    it == words[ShopLines.BUYS_FOR_IN, "item" to "Graceful hood", "price" to "28", "currency" to "Mark of grace"]
+                    it == words[ShopLines.BUYS_FOR_IN, "item" to "Graceful hood", "price" to "28", "currency" to "Mark of Grace"]
                 }
                 client.ifButton(ShopScreen.SIDE, ShopScreen.SIDE_ITEMS, 2, client.slotOf(HOOD), HOOD)
                 client.awaitHeld(HOOD, 0)
@@ -112,9 +118,9 @@ class HeadlessGraceTest {
 
                 // The marks themselves don't sell, and 93 buy one pair of legs at 60 but not two.
                 client.ifButton(ShopScreen.SIDE, ShopScreen.SIDE_ITEMS, 2, client.slotOf(Agility.MARK_OF_GRACE), Agility.MARK_OF_GRACE)
-                client.awaitMessage("no selling marks") { it == words[ShopLines.CANT_SELL_CURRENCY, "currency" to "Mark of grace"] }
+                client.awaitMessage("no selling marks") { it == words[ShopLines.CANT_SELL_CURRENCY, "currency" to "Mark of Grace"] }
                 client.ifButton(ShopScreen.MAIN, ShopScreen.MAIN_ITEMS, 3, 3, LEGS)
-                client.awaitMessage("not enough marks") { it == words[ShopLines.NOT_ENOUGH_CURRENCY, "currency" to "Mark of grace"] }
+                client.awaitMessage("not enough marks") { it == words[ShopLines.NOT_ENOUGH_CURRENCY, "currency" to "Mark of Grace"] }
                 client.awaitHeld(LEGS, 1)
                 client.awaitHeld(Agility.MARK_OF_GRACE, 33)
                 assertEquals(0, client.held(COINS))
@@ -137,6 +143,25 @@ class HeadlessGraceTest {
                 client.at(RoguesDen.DOOR_ALCOVE.x, RoguesDen.DOOR_ALCOVE.z, 1, "back in the alcove")
                 client.locOp(RoguesDen.PASSAGEWAY, 3061, 4986, 1)
                 client.at(RoguesDen.INN.x, RoguesDen.INN.z, RoguesDen.INN.level, "back up in the inn")
+            }
+        }
+    }
+
+    @Test
+    fun `the den's trapdoor, passageway and door types anywhere else are nothing interesting`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.at(3222, 3218, 0, "on the spawn")
+                for ((id, x) in listOf(RoguesDen.TRAPDOOR to 3224, RoguesDen.PASSAGEWAY to 3226, RoguesDen.DOOR to 3228)) {
+                    val seen = client.messages().count { it.text == "[game.nothing_interesting]" }
+                    client.locOp(id, x, 3218, 1)
+                    client.await("nothing interesting from $id") { client.messages().count { it.text == "[game.nothing_interesting]" }.takeIf { it > seen } }
+                    client.awaitTicks(2)
+                    val at = client.position!!
+                    assertEquals(0, at.level, "still on the surface after $id")
+                    assertTrue(at.z in 3216..3220, "still by the copies after $id, at ${at.x}, ${at.z}")
+                }
             }
         }
     }

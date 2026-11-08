@@ -1,0 +1,193 @@
+{
+ "name": "Draynor piece step 16: Examine (::keys on) on the Wizards' Tower's people, a rune essence mine portal, the Rune Essence rock and Draynor Manor's basement",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys",
+   "comment": "examines show their keys, whatever data/dialogue.txt holds"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3104 9571 0",
+   "expectMessage": "Teleported to 3104, 9571, 0",
+   "comment": "the Wizards' Tower basement"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 11433,
+   "option": "Examine",
+   "timeoutMs": 20000,
+   "comment": "Archmage Sedridor"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_11433]",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3111 3162 1",
+   "expectMessage": "Teleported to 3111, 3162, 1",
+   "comment": "the tower's first floor"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 5081,
+   "option": "Examine",
+   "timeoutMs": 20000,
+   "comment": "Wizard Traiborn"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_5081]",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "npcOption",
+   "npcId": 3232,
+   "option": "Examine",
+   "timeoutMs": 20000,
+   "comment": "Wizard Jalarast"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_3232]",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "npcOption",
+   "npcId": 11410,
+   "option": "Examine",
+   "timeoutMs": 20000,
+   "comment": "Rick"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_11410]",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3109 3161 2",
+   "expectMessage": "Teleported to 3109, 3161, 2",
+   "comment": "the second floor"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 7747,
+   "option": "Examine",
+   "timeoutMs": 20000,
+   "comment": "Wizard Mizgog"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_7747]",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "npcOption",
+   "npcId": 5006,
+   "option": "Examine",
+   "timeoutMs": 20000,
+   "comment": "Wizard Grayzag"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_5006]",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "command",
+   "text": "::tele 2886 4850 0",
+   "expectMessage": "Teleported to 2886, 4850, 0",
+   "comment": "the rune essence mine, by the north-west portal and rock"
+  },
+  {
+   "step": "locOption",
+   "loc": "Portal",
+   "option": "Examine",
+   "x": 2885,
+   "y": 4850,
+   "timeoutMs": 20000,
+   "comment": "essencemine_portal_1"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.loc_34774]",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "locOption",
+   "loc": "Rune Essence",
+   "option": "Examine",
+   "x": 2891,
+   "y": 4847,
+   "timeoutMs": 20000,
+   "comment": "blankrunestone"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.loc_34773]",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3116 9754 0",
+   "expectMessage": "Teleported to 3116, 9754, 0",
+   "comment": "Draynor Manor's basement, at the foot of the ladder"
+  },
+  {
+   "step": "locOption",
+   "loc": "Ladder",
+   "option": "Examine",
+   "x": 3117,
+   "y": 9754,
+   "timeoutMs": 20000,
+   "comment": "puzzle_ladder"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.loc_132]",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "locOption",
+   "loc": "Door",
+   "option": "Examine",
+   "x": 3108,
+   "y": 9758,
+   "timeoutMs": 20000,
+   "comment": "a puzzle door (multiloc 144): shut or ajar, one key"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.loc_11449]",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "locOption",
+   "loc": "Lever B",
+   "option": "Examine",
+   "x": 3118,
+   "y": 9752,
+   "timeoutMs": 20000,
+   "comment": "lever B (multiloc 147): up or down, one key"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.loc_11453]",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3104 3162 0",
+   "expectMessage": "Teleported to 3104, 3162, 0",
+   "comment": "back to the tower"
+  }
+ ]
+}

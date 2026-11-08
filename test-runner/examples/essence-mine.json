@@ -1,0 +1,174 @@
+{
+  "name": "Draynor piece step 15a: Archmage Sedridor's talk and Teleport sending the player to the rune essence mine, a portal back to the Wizards' Tower basement, and the Rune Essence rock giving rune essence below Mining 30 and pure essence from 30",
+  "account": "test",
+  "steps": [
+    {
+      "step": "waitForLogin"
+    },
+    {
+      "step": "command",
+      "text": "::scenario lumbridge-bare",
+      "expectMessage": "Started scenario lumbridge-bare.",
+      "comment": "::reset at the end puts the account back"
+    },
+    {
+      "step": "command",
+      "text": "::keys on",
+      "expectMessage": "Dialogue shows keys",
+      "comment": "boxes and messages show their keys, whatever data/dialogue.txt holds"
+    },
+    {
+      "step": "command",
+      "text": "::tele 3104 9571 0",
+      "expectMessage": "Teleported to 3104, 9571, 0",
+      "comment": "the Wizards' Tower basement, beside Archmage Sedridor"
+    },
+    {
+      "step": "npcOption",
+      "npc": "Archmage Sedridor",
+      "option": "Talk-to",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[sedridor.hello]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[sedridor.greeting name=",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "chooseOption",
+      "text": "[sedridor.teleport]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertDialogue",
+      "contains": "[sedridor.teleport]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "continueDialogue"
+    },
+    {
+      "step": "assertSpotanim",
+      "id": 110,
+      "timeoutMs": 20000,
+      "comment": "curse_impact on the player as he sends them"
+    },
+    {
+      "step": "assertLoc",
+      "locId": 34773,
+      "x": 2891,
+      "y": 4847,
+      "timeoutMs": 20000,
+      "comment": "blankrunestone: the player is in the mine (the landing tile is random)"
+    },
+    {
+      "step": "assertLoc",
+      "locId": 34774,
+      "x": 2885,
+      "y": 4850,
+      "timeoutMs": 20000,
+      "comment": "the map's portal (multiloc 34825), showing essencemine_portal_1"
+    },
+    {
+      "step": "command",
+      "text": "::tele 2886 4850 0",
+      "expectMessage": "Teleported to 2886, 4850, 0",
+      "comment": "beside the north-west portal"
+    },
+    {
+      "step": "locOption",
+      "loc": "Portal",
+      "option": "Use",
+      "x": 2885,
+      "y": 4850,
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertLoc",
+      "locId": 2148,
+      "x": 3103,
+      "y": 9576,
+      "timeoutMs": 20000,
+      "comment": "wizards_tower_ladder: back in the basement beside Sedridor (a random free tile within 2 of 3106, 9572)"
+    },
+    {
+      "step": "npcOption",
+      "npc": "Archmage Sedridor",
+      "option": "Teleport",
+      "timeoutMs": 20000,
+      "comment": "his Teleport sends at once, with no talk"
+    },
+    {
+      "step": "assertLoc",
+      "locId": 34773,
+      "x": 2891,
+      "y": 4847,
+      "timeoutMs": 20000
+    },
+    {
+      "step": "command",
+      "text": "::item 1265",
+      "expectMessage": "Added 1 x Bronze pickaxe"
+    },
+    {
+      "step": "command",
+      "text": "::tele 2890 4849 0",
+      "expectMessage": "Teleported to 2890, 4849, 0",
+      "comment": "west of the north-west Rune Essence rock"
+    },
+    {
+      "step": "locOption",
+      "loc": "Rune Essence",
+      "option": "Mine",
+      "x": 2891,
+      "y": 4847,
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertMessage",
+      "contains": "[mining.swing]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "assertInventory",
+      "item": "Rune essence",
+      "count": 1,
+      "timeoutMs": 30000,
+      "comment": "below Mining 30: rune essence"
+    },
+    {
+      "step": "assertMessage",
+      "contains": "[mining.essence]",
+      "timeoutMs": 20000
+    },
+    {
+      "step": "command",
+      "text": "::setlevel mining 30",
+      "expectMessage": "30",
+      "comment": "it goes on mining by itself"
+    },
+    {
+      "step": "assertInventory",
+      "item": "Pure essence",
+      "count": 1,
+      "timeoutMs": 30000,
+      "comment": "from Mining 30: pure essence"
+    },
+    {
+      "step": "command",
+      "text": "::reset",
+      "expectMessage": "Back to how you were"
+    }
+  ]
+}

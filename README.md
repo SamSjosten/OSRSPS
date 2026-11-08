@@ -73,18 +73,24 @@ lodestone map (`game/content/LodestoneMap.kt`) is the first interface of ours: i
 (`osrsps.cache.InterfaceCodec` writes the if3 form every OSRS interface uses: layers, rectangles, text, graphics and
 lines, with no client scripts; what each does is the server's, through IF_SETEVENTS, IF_SETTEXT and IF_SETHIDE) and
 the overlay serves them as interface 30,000 (above the cache's own, below 32,768, as a packed component id is a signed
-int), with its sprites (65,000 to 65,003) drawn in code too. A file in `data/sprites` under one of those ids takes the
-drawn sprite's place, which is how a real map image goes in:
+int), with its sprites (65,000 to 65,004; 65,004 is the stones' minimap icon) drawn in code too. A file in
+`data/sprites` under one of those ids takes the drawn sprite's place, which is how a real map image goes in:
 
 ```bash
 ./gradlew run --args="import-sprite misthalin.png data/sprites/65003.dat"   # 300 by 262 for the lodestone map
+./gradlew run --args="import-sprite lodestone-icon.png data/sprites/65004.dat"   # 15 by 15, the minimap icon
 ```
 
 Loc types of our own that use such models are code: `game/content/CustomLocs.kt` lists them (ids from 65,000), each a
 `LocTypeEncoder.Definition` (name, models, options, footprint, whether players walk over it) that the overlay adds to
 the cache's loc types group (config archive 6) as a file, packed again with the cache's own loc types, and that the
 server decodes back for itself, so the client and the server see the same loc. The lodestones (`Lodestones.kt`) are
-the first: the server places a stone at each site at start. A loc that looks different per player is a multiloc: its
+the first: the server places a stone at each site at start. A loc's minimap icon is a map element (config archive
+35, `osrsps.cache.MapElementCodec`: a sprite and the flags the cache's icons carry) that the loc names with opcode 82;
+the overlay adds ours to that group too, and the client draws the sprite where the loc stands (the runner's
+`lodestone-network.json` reads the element and its sprite off the client's loc config on both looks, `assertMapIcon`).
+The world map's icons are built into the world map index with the map, so a loc of ours gets none there. A loc that
+looks different per player is a multiloc: its
 definition's `transform` names a varbit and the child locs the client draws for each value, and the server answers
 the one loc's options by the player's varbit. Varps and varbits of our own are code too: `game/content/CustomVars.kt`
 lists them, the overlay adds their types to config archives 16 and 14 so the client reads them like the cache's, and
@@ -351,7 +357,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::locs [radius]` | **everyone.** Lists the locs within radius tiles of you (default 1): id, name, tile, shape and angle, and whether they differ from the cache |
 | `::addloc id [shape] [angle]` | Puts loc `id` on your tile (default shape 10, a ground loc, angle 0), replacing what was on its layer |
 | `::delloc` | Removes every loc on your tile |
-| `::resetlocs [radius]` | Puts the locs within radius tiles of you (default 0, your tile) back as the cache has them |
+| `::resetlocs [radius]` | Puts the locs within radius tiles of you (default 0, your tile) back as the cache has them; a loc the server itself placed for good (a lodestone) stays |
 | `::npc id\|name [wander]` | Spawns an NPC on your tile, by id, menu name or gameval name: `::npc hans`, `::npc cow2_calf 3`. With a wander range it wanders that far from the tile, otherwise it stands still. Gone on restart |
 | `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range, the party size and hitpoints of a raid NPC, and whether each is frozen, hurt (its hitpoints left), poisoned, envenomed or drained, and who it is fighting ("no one" for an idle one that can fight) or retreating from |
 | `::delnpc index` | Removes NPC `index` (from `::npcs`) |
@@ -601,7 +607,21 @@ fall) and deals its damage, with no XP. A course's first obstacle starts a lap a
 obstacle crossed in between, the lap counts (saved with the account) and its count is shown.
 
 Courses built: the Draynor Village Rooftop Course (from the rough wall north of the bank to the crate off Ned's
-house; level 1, 120 XP a lap, nothing fails since the May 2024 rework).
+house; level 1, 120 XP a lap, nothing fails since the May 2024 rework) and the Al Kharid Rooftop Course (from the
+rough wall on Ellis the tanner's building to the gap east of Zeke's; level 20, 216 XP a lap spread over its eight
+obstacles, Tightrope 1 and the zip line failing for 1 to 5 damage) and the Varrock Rooftop Course (from the rough wall
+east of the general store to the edge south of Lowe's; level 30, 269.7 XP a lap, the clothes line failing for 3 to 8
+and the wall for 2 to 5) and the Gnome Stronghold Agility Course (from the log balance to the pipes; level 1, 110.5 XP
+a lap with its 50 XP lap bonus, nothing fails; reached by `::tele 2474 3438`). An obstacle can be several loc types
+(the Gnome Stronghold's two pipes, its rope's pieces) and several locs (its three nets), each route naming the locs
+it is for; of the routes for the loc clicked, the one starting nearest the player is taken (a fence's two sides).
+
+Shortcuts (on no course, both ways): the Varrock south fence (13), the Grand Exchange underwall tunnel (21), the
+Champions' Guild stepping stone (31, 3 XP; a failure still reaches the far bank, for 1 to 3 damage and 1 XP), the
+Draynor underwall tunnel (42), Draynor Manor's broken fence (49, 1.5 XP) and the Champions' Guild south stepping stones
+(52, 2.5 XP on the first stone and 2.5 on the third). The stones are jumped onto from the bank, as their sides are
+water: a click walks to the nearest bank tile, not beside the stone. Left for later: the Lumbridge Swamp stepping stone, the River Lum raft, the Varrock Palace
+trellis (a quest), the Edgeville Dungeon pipes and the Paterdomus railing.
 
 Marks of grace: once three whole minutes of the clock have gone since a player's last mark, each lap they finish has
 the course's chance of one (2/6 on Draynor), a fifth of that when their unboosted Agility is 20 or more over the
@@ -619,6 +639,23 @@ the trapdoor behind the bar, the den's door, and the passageway back up; the maz
 | Draynor rooftop: levels, XP, no failing | OSRS Wiki, Draynor Village Rooftop Course |
 | Draynor rooftop: each start, path and landing tile | inferred from the map |
 | Draynor rooftop: the animations (by their cache names), each obstacle's ticks | guessed until recorded |
+| Al Kharid rooftop: its locs and where they stand; the roofs on levels 1 to 3 (the zip line ends on level 1, the tree swings to level 2) | cache 241 map |
+| Al Kharid rooftop: level 20, each obstacle's XP, which two fail and for how much, the five mark spots | OSRS Wiki, Al Kharid Rooftop Course and the Mark of grace spawns table (read 2026-11-02) |
+| Al Kharid rooftop: each start, path and landing tile | inferred from the map |
+| Al Kharid rooftop: the animations (human_ropeswing_long, zipline_bite and zipline_slide, by their cache names), tick counts, the fail chance (225 to 255 out of 256) and where a fall lands | guessed until recorded |
+| Varrock rooftop: its locs and where they stand; the roofs on levels 1 and 3 (the first gap drops to level 1, the wall climbs back) | cache 241 map |
+| Varrock rooftop: level 30, each obstacle's XP, which two fail and for how much, the five mark spots | OSRS Wiki, Varrock Rooftop Course and the Mark of grace spawns table (read 2026-11-02) |
+| Varrock rooftop: each start, path and landing tile; two mark spots moved to the nearest floor tile | inferred from the map |
+| Varrock rooftop: the animations, the wall's route along its top, tick counts, the fail chance (225 to 255 out of 256) and where a fall lands | guessed until recorded |
+| Gnome Stronghold: its locs and where they stand (the log balance one level down off its bridge; the nets to level 1, the platforms on level 2) | cache 241 map |
+| Gnome Stronghold: level 1, each obstacle's XP and the 50 XP lap bonus (the pipe at 7.5, as the course's 110.5 adds up; its own page says 10), the mark spot | OSRS Wiki, Gnome Stronghold Agility Course and the Mark of grace spawns table (read 2026-11-02) |
+| Gnome Stronghold: each start, path and landing tile; the mark spot moved onto the platform's nearest floor tile | inferred from the map |
+| Gnome Stronghold: the animations (human_walk_logbalance, human_reachforladder, human_doublepipesqueeze, by their cache names), tick counts | guessed until recorded |
+| Gnome Stronghold: the gnome trainers' shouts | not built |
+| Shortcuts: their locs and where they stand | cache 241 map |
+| Shortcuts: levels and XP (the south stones' 2.5 on the first and third stone); the stone's failure landing on the far bank with damage and 1 XP | OSRS Wiki, Shortcuts and each shortcut's page (read 2026-11-02) |
+| Shortcuts: each side's tile; the stones used from the bank (the river around them is blocked in the map) | inferred from the map |
+| Shortcuts: the animations (human_jump_hurdle, human_longcrawl, human_steppingstonejump, human_walk_crumbledwall), tick counts, the stone's fail chance and 1 to 3 damage | guessed until recorded |
 | A lap needing every obstacle; the lap progress kept across a logout | inferred, guessed |
 | The level message as a game message; fail chances (the Wiki gives none); the hit after the fall; the real tile moving when a slide's ticks are up | guessed |
 | Marks: the three-minute timer in whole minutes from the last mark, kept across a logout; 2/6 a lap, a fifth at 20 over; private, ten minutes, stacking resets the time | OSRS Wiki, Mark of Grace (read 2026-11-02) |
@@ -1243,6 +1280,83 @@ Check: `test-runner/examples/hill-giants.json` takes the key, is refused and the
 down, kills a hill giant, is refused at Obor's gate and climbs back; `HeadlessEdgevilleDungeonTest` does the same
 through the headless client, `ObjSpawnFilesTest` the spawns and `NpcDropsTest` the giants' table.
 
+Step 12 is the Stronghold of Security's entrance and first floor, the Vault of War, in
+`game/content/StrongholdOfSecurity.kt` and `npc-spawns/stronghold-of-security.json`.
+
+| Behaviour | Source |
+|-----------|--------|
+| The entrance in the Barbarian Village mine (`Entrance` 20790) climbs down beside the floor's ladder; that ladder and the reward room's climb back up beside the entrance | 241 map; the landing tiles guessed |
+| The Gates of War (19206 and 19207) take the player through at once. The second door of a pair, opened from the passage between them, may ask one of the 33 security questions (the gate's head speaks, `stronghold_of_security.qN`, `.qN_optionM`, `.qN_replyM`): only the right answer lets them through. No questions once the floor's reward is claimed | OSRS Wiki, Stronghold of Security (Doors) and Gate of War; how often a door asks (1 in 2) and which question it picks guessed |
+| The Dead Explorer gives the Stronghold notes to a player not carrying them | OSRS Wiki, Stronghold notes; reading the book is left for later |
+| The Gift of Peace, once: 2,000 coins, the Flap emote (varbit `sos_emote_flap`), Hitpoints and Prayer to full, its jingle; opened again it says so | OSRS Wiki, Gift of Peace; every account counts as having two-factor authentication |
+| The portal by the entrance takes a player with the reward claimed, or of combat level 26 and up, to the reward room | OSRS Wiki, Stronghold of Security; the landing guessed |
+| Goblins (5 to 25), minotaurs (12 and 27), rats and wolves (11 and 14) fight and drop as their Wiki pages, not aggressive; the floor is multi-way. The minotaurs drop the right skull half | OSRS Wiki, the DPS calculator; mejrs's live NPC list for the tiles (39 of the Wiki's 45 minotaurs) |
+
+Left out: the ladder down to the second floor (step 13), reading the notes, and playing the Flap emote (emotes aren't
+built). Check: `test-runner/examples/stronghold-of-security.json` climbs down, takes the notes, uses the portal,
+claims the Gift of Peace, passes a pair of gates without a question and climbs back; `HeadlessStrongholdOfSecurityTest`
+does the same through the headless client and answers a question wrongly and then rightly, `StrongholdOfSecurityTest`
+checks every pair in the cache has one asking side, `NpcCombatTest` and `NpcDropsTest` the new NPCs.
+
+Step 13a is the second floor, the Catacomb of Famine, in the same files: the floors are data
+(`StrongholdOfSecurity.FLOORS`), each with its doors, door head, reward and portal.
+
+| Behaviour | Source |
+|-----------|--------|
+| The Vault of War's ladder down lands beside the Catacomb of Famine's ladder up, which climbs back beside it; the floor's four ropes climb back to the start of the floor | Boney ladder (a floor's first ladder leads to the floor above); the ropes from Jagex's 2011 Catacomb of Famine guide ("return you to the start of the level"), inferred for OSRS; the landings guessed |
+| The Rickety doors ask as the Gates of War (the door of famine's head), and stop once the Grain of Plenty is searched | as step 12 |
+| The Grain of Plenty, once: 3,000 coins, the Slap Head emote (`sos_emote_doh`), Hitpoints and Prayer to full, its jingle | OSRS Wiki, Grain of Plenty |
+| The portal lets through at combat level 51 or with the grain searched; every portal says `stronghold_of_security.portal_enter` | OSRS Wiki, Stronghold of Security |
+| Flesh crawlers (28, 35, 41; the bottom of the sceptre among their drops), zombies (30, 44, 53), giant rats and rats as their Wiki pages; the crawlers aggressive to any level, the zombies aggressive | OSRS Wiki, the DPS calculator; mejrs's live NPC list (148 spawns, the Wiki's counts) |
+
+Check: `test-runner/examples/catacomb-of-famine.json`; `HeadlessStrongholdOfSecurityTest`,
+`StrongholdOfSecurityTest`, `NpcCombatTest` and `NpcDropsTest` as for step 12.
+
+Step 13b is the third floor, the Pit of Pestilence, in the same files, and a melee NPC's spell (`NpcMeleeSpell`).
+
+| Behaviour | Source |
+|-----------|--------|
+| The Catacomb's ladder down lands by the Pit's dripping vine up, which climbs back beside it; the goo covered vine in the reward room climbs back to the start of the floor, as the Catacomb's ropes | the 241 cache's locs (`sos_fam_ladd_down`, `sos_pest_ladd_up`, `sos_pest_rope_up`); the landings guessed |
+| The oozing barriers ask as the Gates of War (the door of pestilence's head), and stop once the Box of Health is opened | as step 12 |
+| The Box of Health, once: 5,000 coins, the Idea emote (`sos_emote_idea`), every lowered stat back to its level (a boost stays), its jingle | OSRS Wiki, Box of Health ("all stats including hitpoints, prayer points and strength restored") |
+| The portal lets through at combat level 76 or with the box opened; every floor's portal works at its level "even if the reward hasn't been claimed before" | OSRS Wiki, Stronghold of Security (verified) |
+| Catablepons (49, 64, 68) fight with stab and, one turn in 4 in reach, a Weaken glare: Strength down 5% of its level from where it is, no hitsplat, blocked by Protect from Magic, and no more glares once 8% + 3 is drained; the top of the sceptre among their drops | OSRS Wiki, Catablepon (the threshold verified; the chance, the 5% and the graphics guessed) |
+| Giant spiders (50, aggressive to any level), spiders (24) and scorpions (37, 59) as their Wiki pages, all aggressive; no main drop table, only their beginner clues (and the scorpions' ensouled heads) | OSRS Wiki, the DPS calculator; mejrs's live NPC list (114 spawns) |
+| A door opened from the tile beside it along its wall asks as from its own row (exploit audit R12B-2) | the passage is checked in the row the player crosses in |
+
+Left out: the dripping vine down to the fourth floor (step 14) and the swamp bubbles' Suck. Check:
+`test-runner/examples/pit-of-pestilence.json`; `HeadlessStrongholdOfSecurityTest`, `StrongholdOfSecurityTest`,
+`NpcCombatTest`, `NpcDropsTest`, `NpcMeleeSpellTest` and `HeadlessCatableponTest` (a real catablepon's Weaken through
+the client).
+
+Step 14a is the fourth floor, the Sepulchre of Death, in the same files.
+
+| Behaviour | Source |
+|-----------|--------|
+| The Pit's dripping vine down lands by the Sepulchre's Boney ladder, which climbs back beside the vine; its two bone chains climb back to the start of the floor, as the Catacomb's ropes | the 241 cache's locs (`sos_pest_ladd_down`, `sos_death_ladd_up`, `sos_death_rope_up`); OSRS Wiki, Boney ladder ("leads back up to the third floor"); the landings guessed, the chains inferred |
+| The portals of death ask as the Gates of War (the door of death's head), and stop once the Cradle of Life is searched | as step 12 |
+| The Cradle of Life: the first search gives the Stamp emote (`sos_emote_stamp`), hitpoints and prayer back, its jingle (`sos_life`) and no coins; every search gives a pair of boots, fancy or fighting. The fancier boots need a Jagex Account, which no account here is | OSRS Wiki, Cradle of Life and Stronghold of Security ("can be used again for more boots"); the stronghold's 10,000 coins is the first three rewards' 2,000 + 3,000 + 5,000 (inferred) |
+| The portal lets through only once the Cradle is searched, at any combat level | OSRS Wiki, Portal (Stronghold of Security) and Stronghold of Security (no level for the fourth; inferred) |
+| The notice by the Cradle can be read | the 241 cache (`sos_thankplayers`); the words wait for the Words thread |
+| Ankou (75, 82, 86), ghosts (76, 77) and skeletons (60, 68, 85), aggressive; the ankou's table with the left skull half (3/100), the skeletons' bones, nothing from the ghosts | OSRS Wiki, Ankou, Ghost, Skeleton (Stronghold of Security), the DPS calculator; mejrs's live NPC list (94 spawns). The ghosts' respawn is inferred and their aggression guessed |
+| The anti-macro shades and zombie (159) by the ladder, not aggressive, give 1 XP for 10 damage; the shades drop their robes, the zombie big bones and its bundles of bones together (a drop line may now give several items) | OSRS Wiki, Shade, Zombie (Sepulchre of Death) |
+
+Left out: the skull sceptre and Solztun (step 14b), and the ghosts' and skeletons' tertiaries (the champion scroll).
+Check: `test-runner/examples/sepulchre-of-death.json`; `HeadlessStrongholdOfSecurityTest`, `StrongholdOfSecurityTest`,
+`NpcCombatTest` and `NpcDropsTest`.
+
+Step 14b is the skull sceptre and Solztun, in `game/content/SkullSceptre.kt`.
+
+| Behaviour | Source |
+|-----------|--------|
+| The left skull half on the right makes the strange skull, the top of the sceptre on the bottom the runed sceptre, and those two the skull sceptre, with 10 charges | OSRS Wiki, Skull sceptre (no level, a tick each) |
+| Invoke takes the player to the Stronghold's entrance in Barbarian Village for a charge, up to level 20 Wilderness; the last charge crumbles a sceptre that isn't imbued. Divine shows the charges in a message box | OSRS Wiki, Skull sceptre; the standard teleport's animation, graphic and 3 ticks guessed |
+| The charges are the player's, as the blowpipe's: two sceptres share them | guessed |
+| Solztun, in the reward room, talks as the Wiki's transcript; once shown the Cradle's boots he imbues every skull sceptre carried. Every account counts as having the authenticator, so its refusals are left out | OSRS Wiki, Solztun and Transcript:Solztun |
+| The imbued sceptre stays when empty and takes bone fragments (a charge each) and pieces (3, the left skull half 5), never past 10; a chisel breaks a piece into that many fragments | OSRS Wiki, Skull sceptre (the Varrock Diary's extra charges wait for the diary) |
+
+Check: `test-runner/examples/skull-sceptre.json` and `HeadlessSkullSceptreTest`.
+
 ## Varrock
 
 The Misthalin roadmap's Varrock piece, built a step at a time ([plan](https://claude.ai/artifact/UnqHb7sdn2TizdxP16Mvxu)).
@@ -1276,12 +1390,13 @@ Village piece's.
 | Step 9b: the museum's other people: Historian Minas (1902) and Torrcs (6019) on the first floor, Art Critic Jacques (1901) on the second, Marfet (6020) in the cleaning area, the teachers and pupils and school visitors on every floor, and on the Natural History floor its four natural historians (6002 to 6005, one a section, each with his section's lectures), Orlando Smith (6001) and the twelve animal displays (NPCs with no options); their talk every way it goes as once every quest is done (`historian_minas.*`, `art_critic_jacques.*`, `museum_adventurer.*`, `museum_teacher.*`, `museum_schoolgirl.*`, `museum_schoolboy.*`, `orlando_smith.*`, `natural_historian.*`), a natural historian's first talk once per account | OSRS Wiki, each NPC's transcript; tiles from mejrs's live NPC list; every expression, the wander ranges, the teachers below the second floor saying the ground floor's pair, and the natural historians' first talk going straight to the menu guessed |
 | Step 10: the Champions' Guild: its door (every account has the 32 quest points; the Guildmaster greets whoever comes in, `guildmaster.welcome`), the Guildmaster (814) and his talk (`guildmaster.*`), Scavvo (2871) and Valaine (2870) upstairs with their talk (`scavvo.*`, `valaine.*`) and shops (Scavvo's Rune Store; Valaine's Shop of Champions, which buys anything as a general store does), and the trapdoor by the stairs (Open, Close, Climb-down) to the basement and its ladder back up | OSRS Wiki, Transcript:Guildmaster, Transcript:Scavvo, Transcript:Valaine and the two shops' pages (prices, stock, restock times); the 241 cache for the door, trapdoor, ladder and the shops' invs; tiles from mejrs's live NPC list; every expression, that the Guildmaster greets only those coming in, Scavvo's inv (runiteshop), the wander ranges and where the trapdoor and ladder put the player guessed |
 | Step 11: mines and skilling spots: the south-east and south-west mines (copper, tin, iron, clay and silver rocks, already Mining's), the anvils (already Smithing's), the houses' ranges (7184) and the posh oven (7421) as ranges, the oaks and yews (already Woodcutting's) and the dying trees (3648, as regular trees, to their stump 3649); buckets, jugs and bowls filling at every sink, fountain and water pump by the cache's name, and buckets at wells (`water.*`; vials stay Herblore's); the training dummies (1764: 5 Attack XP a hit below level 8 with `dummy.hit`, then `dummy.nothing_more`; ranged styles refused, `dummy.no_ranged`) | OSRS Wiki, the Dying tree, Water source, Dummy and Range pages; 2004Scape's dummy messages; the 241 cache for the ids and names; that the oven cooks as a range, the filling animation and one a tick (as Herblore's vials), that a well fills only buckets, and the dummy's swing (the weapon's attack animation, no faster than its attack speed) guessed |
+| Step 12: the city's fighters: muggers (513, aggressive to players of twice their level or less), thieves (3252 and the Varrock gang's 5217, 5219 and 5220), the Black Knight north of the Jolly Boar Inn (516), the Blue Moon Inn's barbarian (3262) and her talk (`blue_moon_barbarian.*`; her scream over her head too), Varrock Palace's warrior women (3260), the grizzly bear in its pen east of the palace (2838, aggressive), giant rats by the south-east mine (2862, 2864) and a spider (3019): combat, drops and spawns | OSRS Wiki, each monster's page (stats, respawn, aggression, drops) and the DPS calculator's bonuses; tiles from mejrs's live NPC list; every fighting animation from the stand animation (punches for the unarmed, sword and shield for the knight and warriors), the mugger's respawn (25, as the thieves'), the gang thieves' drops (the standard thief's) and the barbarian's expressions and screaming order guessed; the player's scream shows only in the chatbox (no overhead text for players yet) |
 
 Left out from step 1: the guards' Pickpocket (Thieving, step 13) and their joining in when another guard is attacked,
 the general seed table's higher subtables (no monster yet is level 49 or more), the player's own overhead lines when shooing or petting a dog, the dog
 following the player after Pet or after being fed and running off when shooed, the staircases down to basements and the sewers (`fai_varrock_bank_stairs`, `fai_varrock_ladder_deep`,
 the sewers' step 15), the West Bank's basement room behind the locked door, its poll booth, the Grand Exchange's item sets (Sets and the clerks' item sets option), the clerks' collection reminders and combat path voucher options, Brugsen Bursen, the item experts and the Grand Exchange tutor (step 8's talkers), and the Phoenix and Black Arm gangs' doors. Left out from step 4: Horvik's corrupted platebody, Lowe's and Zaff's combat path voucher, the keepers' treasure trail and diary talk, and Zaff's daily battlestaves, What Lies Below ring and Bryophyta's essence options. Left out from step 5: Aubury's Teleport and its talk option (no rune essence mine yet) and his Runecraft cape stock, Thessalia's Makeover and its change top and legwear options (no makeover screen yet) and her scythe, bunny ears and frog token options, Asyff's Fur Clothing, bird costume, hunting clothing and priest gown options, and the Tea Seller's shouts at a thief (Thieving, step 13). Left out from step 5b: the Apothecary's quest topics, Baraek's Ring of Charos(a) option and treasure trail clue, and Benny's overhead shouts. Left out from step 6: Reldo's Wise Old Man message, Darklight, the Monk of Zamorak's combat (he casts; the fighters' step), the Varrock Census, Surok Magis (gone once What Lies Below is done), and the White Tree's fruit and Treznor's tree patch (Farming). Left out from step 7: the chaos altar's Check, the church's sleeping church-goers, and the Mage of Zamorak's treasure trail talk. Left out from step 8a: Gertrude's pick-your-own kitten option and the Ring of Charos(a) colour screen, Shilop's and Wilough's talk once paid, Charlie's treasure trail requests, Jonny the Beard's Attack (the fighters' step), the tramp's second-time opening, Iffie's talk after the Halloween 2021 event, the Town Crier's overheads, the sleeping church-goers Martina Scorsby and Jeremy Clerksin, and Toby (the Achievement Diary). Left out from step 8b: Old Man Yarlo's Construction cutscene (the player only thanks him), and Avan's and Caleb's own gauntlet changes. Left out from step 9a: the displays' Study (their screens), the cleaning activity, Kudos and the clerk's rewards, the curator's relics, certificates and medallion trade and his Pickpocket (Thieving, step 13), and the Dig Site workman's gate guard. Left out from step 9b: Historian Minas's quest information (it gives Kudos and lamps; he hears no new quests), the lectures' walk to the display and the historian's pose, Orlando Smith's quiz (he asks every time), Marfet's talk about The Dig Site, the cleaning area's archaeologists (the cleaning activity) and The Collector. Left out from step 10: the Guildmaster's Champion's scroll and maze key options, the basement's Champions' Challenge (its portcullis, ladder and Champion Statue), and the chickens and Evil Chicken in the garden. The furniture's and dogs' words are in the dialogue
-file (`varrock_search.*`, `stray_dog.*`, `varrock_bank_door.*`, `ge_clerk.*`, `varrock_swordshop.*`, `horvik.*`, `lowe.*`, `zaff.*`, `varrock_shop_keeper.*`, `aubury.*`, `thessalia.*`, `asyff.*`, `tea_seller.*`, `benny.*`, `baraek.*`, `apothecary.*`, `apothecary_potions.*`, and steps 6's, 7's, 8a's, 8b's, 9a's, 9b's, 10's and 11's keys above).
+file (`varrock_search.*`, `stray_dog.*`, `varrock_bank_door.*`, `ge_clerk.*`, `varrock_swordshop.*`, `horvik.*`, `lowe.*`, `zaff.*`, `varrock_shop_keeper.*`, `aubury.*`, `thessalia.*`, `asyff.*`, `tea_seller.*`, `benny.*`, `baraek.*`, `apothecary.*`, `apothecary_potions.*`, and steps 6's, 7's, 8a's, 8b's, 9a's, 9b's, 10's, 11's and 12's keys above).
 
 Check: `test-runner/examples/varrock-city.json` walks in through the south gate, opens and shuts a house's door, climbs
 both kinds of straight stairs and a ladder, searches drawers, pets a stray dog and talks to a man; `varrock-banks.json` banks at both banks and knocks at the locked door; `varrock-guards.json` kills a Varrock and an Edgeville guard for their bones; `varrock-grand-exchange.json` uses the Grand Exchange's clerks, booths and a banker; `varrock-shops.json` and `varrock-stores.json` buy and sell back at each shop and talk into each; `varrock-traders.json` buys Benny's newspaper and a fur from Baraek, sells it back, talks to the Apothecary and buys a strength potion on his potions screen; `varrock-palace.json` climbs every palace floor (the roof by ladder), talks to each of its people, searches the library's bookcases and prays at the altar; `HeadlessVarrockTest`
@@ -1598,12 +1713,16 @@ tiles away and back, or log it out and in, and the axe is still there.
 An instance is a private copy of part of the map, as raids and bosses give each party (raid step 10).
 `game/instance/Instances.kt` gives each one a block of map squares in the dynamic area, from x 6400 east where the cache
 has no maps. It copies each zone of the original into the block, on every level: the terrain's collision, and the cache
-locs with their collision. Walking, doors and line of sight then work as in the original. A player in an instance gets a
+locs with their collision. An instance can also be laid out from parts, each taking zones of one level to a place and a
+level of its own, and a part can be laid again over zones it has, for a room that changes as a raid goes on (raid
+step 15). Walking, doors and line of sight then work as in the original. A player in an instance gets a
 REBUILD_REGION, which tells the client to draw each zone of the block from the original's map data. Outside one, they get
 the usual REBUILD_NORMAL, also after a step into or out of one.
 
 An instance ends once nobody is in it, with its NPCs, ground items and loc changes (a door on its edge opened onto the
-tile beyond included), and the respawns, shots and fires due there later; a grave in it moves to its exit. A trade in
+tile beyond included), and the respawns, shots and fires due there later; a grave in it moves to its exit. A player who
+dies in one has their grave raised at its exit, where they can get to it, and comes back at the spawn (exploit review
+round 9, INST-1); the raid has its own rules. A trade in
 one saves both players at its exit, as any save does. A player who loses their connection
 still counts until they are removed, so a reconnect finds it. Nobody is saved in an instance: a save, a logout included,
 puts them at its exit. Blocks are kept a map square apart, so nobody in one sees anyone in another.
@@ -1616,8 +1735,10 @@ puts them at its exit. Blocks are kept a map square apart, so nobody in one sees
 | The client told to reload the region on each REBUILD_REGION | guessed |
 | An instance ending as soon as nobody is in it; saves at its exit | guessed; raids that keep a place for a disconnected player come with parties |
 | A grave left in an ended instance moving to its exit, with its items and time left | guessed |
-| Only doors and gates working on copied locs; content's handlers, written for the original's tiles (the Al Kharid toll gate), not run there, so the player is told "Nothing interesting happens." | guessed, until the raid's rooms bring handlers of their own |
-| Unrotated copies only | not in yet: the raid's rooms bring rotation if they need it |
+| Only doors and gates working on copied locs, and the raid's own locs; content's handlers, written for the original's tiles (the Al Kharid toll gate), not run there, so the player is told "Nothing interesting happens." | guessed |
+| A death in an instance raising its grave at the instance's exit | guessed; a grave inside was out of its owner's reach |
+| A part laid again over an instance's zones losing the flags a neighbouring zone's loc put in them | guessed safe: the raid's nexus has walls all round |
+| Unrotated copies only | no room built so far needs rotating |
 
 `::instance` makes one around you for testing. Check: `./gradlew test --tests 'osrsps.game.instance.*'
 --tests 'osrsps.testclient.HeadlessInstanceTest'` (two players in copies of the same spot can't see each other, and
@@ -1650,6 +1771,54 @@ Check: `./gradlew test --tests 'osrsps.game.raid.*' --tests 'osrsps.game.command
 players form a party, the Guardian's hitpoints follow its size, it lasts through a death, and a member who logs out
 leaves), and in RuneLite `test-runner/examples/party-scaling.json` (the Guardian's hitpoints alone, for 3 and for 8).
 
+## The Fractured Archive's raid flow
+
+A run of The Fractured Archive (raid step 15) is `game/raid/ArchiveRaid.kt`. The lobby's Archive Door takes the
+player's party into its own instance: the cache's map squares 63 to 65 by 86 to 88, level 0, with the nexus (64,87) on
+one of its four levels and the lobby's square left out. The party gathers in the nexus's entrance. The Archive Guardian
+is fought in the nexus's hall, where the cache lays its corpse on the nexus's later levels. Then come three rows of
+doors, each with a room behind its west and east door: Ezekiel or Bork and the Smorks, then Moia or Dreadnoth the
+Jellied, then the Dagon'hai Elder or Xarth. Last, the nexus's Passageway north opens to Ocellus's arena. Each room's
+Passageway goes back out to the nexus, and so does its Archive transporter once the room is done. A room whose boss
+isn't built yet is done as soon as the first party member walks in: that is the run through empty rooms. Each boss's
+step, from 16 on, adds its fight and ends its room when the boss dies. The Guardian (step 16) waits in its hall from
+the run's start and its fight begins when a member touches it. The whole instance is multi-way.
+
+A room's contribution points are shared by damage among those who did any, or evenly among who was there if nobody
+did. A party member who dies while someone still stands keeps everything and is down until the room is done. The
+last of the party to fall wipes it: everyone goes back to the lobby, in front of the Archive Door, and what each
+loses goes in a grave there. The party lasts through the wipe.
+
+| Raid flow behaviour | Source |
+|---------------------|--------|
+| The Guardian first, one room of each of three rows by its left or right door, Ocellus last; the pairs Ezekiel or Bork, Moia or Dreadnoth, Xarth or the Dagon'hai Elder | Wiki, The Fractured Archive, and "Everything You Need To Know" |
+| Each room's map square (Ezekiel 63,86, Bork 65,87, Moia 63,88, Dreadnoth 65,88, the Dagon'hai Elder 63,87, Xarth 65,86), told by its locs' names; each west door to the west room of its pair | 241.4 cache; which room is whose inferred from the names, the doors from the map's columns |
+| The nexus's doors (63088 to 63105, Enter and Quick-enter), the rooms' Passageways (62765, Exit) and Archive transporters (63087, 62610, 63134, Use and Quick-use), the nexus's Passageway north (62766) | 241.4 cache |
+| The Guardian fought in the nexus's hall; Ocellus in the arena north of it (64,88), past the nexus's Passageway | inferred: the Guardian's corpse lies in the hall on the nexus's later levels, and the Passageway is there on the last |
+| The nexus on level 0 of the cache at the start, 2 (the Guardian's corpse, a camp of crates and barricades) once the Guardian is done, 3 (and the Passageway north) once the fourth room is done | inferred from what each level holds; level 1 isn't used |
+| Contribution: each room a fixed amount, shared by damage, minions included; the two rooms of a pair the same | Wiki, "Everything You Need To Know" |
+| Each room's points 1,000, or shared evenly when nobody did damage | guessed: the Wiki gives no number |
+| A wipe sending the party to the lobby with an ordinary gravestone; the party not breaking up | Wiki, The Fractured Archive (Theatre of Blood's system; 28 October 2026 update) |
+| The wipe's tile and graves in front of the Archive Door (4127,5560); each member's grave on it | guessed |
+| A member dying with the party standing keeping everything, down in front of the room's door until it is done, and sent back out if they walk in | guessed (Theatre of Blood's system); spectating isn't built |
+| Any member opening the run, a player in no party as a party of one; others following until the Guardian's fight begins, nobody after | guessed; the Wiki says supplies can't be banked mid-raid |
+| A row's other door shut once one is gone through; a row opening once the room before is done; Enter and Quick-enter, Use and Quick-use, the same | guessed, until a recording shows a run |
+| Passageway out at any time; the transporter once the room is done; both to the nexus in front of the room's door | guessed |
+| A room's fight beginning as the first party member stands in it, and the Guardian's in the hall north of the entrance | guessed |
+| The Guardian's fight beginning on Touch on the waiting "Inert Guardian" (`tfa_guardian_start`, 16657) in the middle of the hall, where its corpse lies later; scaled to everyone standing in the run then | 241.4 cache (the NPC and its Touch); where it waits inferred from the corpse; the party size guessed |
+| The whole of a run's instance multi-way | inferred: a raid of up to eight fights one boss |
+| A member who leaves the party sent to the lobby; a logout saving them there, as any instance's exit | guessed |
+| Every room done as it begins, until its boss's step | stand-in (all but the Guardian's) |
+| The bosses after the Guardian, the Quartermaster and Supply Credits, the party's orbs, the reward room, deaths' item costs | not in yet: steps 17 to 31 |
+
+`::raid run` shows the run you're in, `::raid tp nexus` or `::raid tp ezekiel` goes to its nexus or a room, and
+`::raid clear` marks the room you're in done, as if its boss died; a room whose fight never began (the Guardian before it is touched) gives its points to whoever of the party stands in it. Check: `./gradlew test --tests 'osrsps.game.instance.*'
+--tests 'osrsps.game.combat.DeathsTest' --tests 'osrsps.testclient.HeadlessArchiveRaidTest'` (a run through the empty
+rooms by the west doors and one by the east; rows opening in order and a row's other door shut; a death that leaves the
+party standing, a player too late to come in, and the wipe to the lobby with graves), and in RuneLite
+`test-runner/examples/archive-raid-flow.json` (both runs, solo) and `archive-raid-wipe.json` (a death in the raid back to
+the lobby, with a grave).
+
 ## Encounters
 
 A boss fight is written as an encounter (raid step 12): `game/encounter/Encounter.kt` has the boss, its phases, and each
@@ -1666,15 +1835,63 @@ a fight started on a seed plays the same way each time.
 | A phase changing at the start of the tick its threshold or time is reached, before that tick's steps | guessed |
 | A fight's first tick running as it starts (steps with no delay, hazards due at once), paused or not | guessed |
 | Hazards hurting from no one, so standing in one doesn't start a fight or make the player hit back | guessed |
+| A hazard's hit still counting as combat: it cuts a Home Teleport or lodestone cast short and holds a logout, as the boss's own hit would (exploit review round 11, ENC-1) | guessed |
 | Adds and hazards going when the boss dies or leaves | guessed; each boss's step changes it if live keeps them |
-| A fight outside an instance covering 32 tiles round the boss's spawn | testing only: the raid's rooms are instances |
-| No bosses yet: each one comes with its own step, from 16 on, with its room and gear sets for `::raid` | not in yet |
+| A phase also ending when its own test says so (a shield broken); steps put off a few ticks (a laser aimed now, landing later) running after the cycle and before the hazards, never once the fight is over | guessed |
+| A boss whose fight picks its attacks (the Guardian) never swinging, shooting, walking after anyone or retreating by itself, and keeping the first player it took on while they last | guessed |
+| A fight outside an instance covering 32 tiles round the boss's spawn, for the starter and their raid party only (so another test account standing in Lumbridge isn't drawn in), ending if the starter dies or logs out (else a script stopped mid-fight leaves them dying again and again at Lumbridge's spawn) | testing only: the raid's rooms are instances |
+| The Archive Guardian (step 16); the others each come with their own step, from 17 on, with its room and gear sets for `::raid` | not in yet: steps 17 to 27 |
 
 `::raid boss phase=2 party=3 seed=42` starts a fight where you stand, and `::raid digest 100` sums up its first 100
 ticks. Check: `./gradlew test --tests 'osrsps.game.encounter.*' --tests 'osrsps.game.command.RaidCommandsTest'
 --tests 'osrsps.testclient.HeadlessEncounterTest'` (a test boss plays the same 100 ticks on two runs with the same seed
 and differently on another; its phases change at half hitpoints and on time, with an add and a hazard, and the fight
 ends when the boss leaves).
+
+## The Archive Guardian
+
+The raid's first boss (raid step 16a) is `game/raid/ArchiveGuardian.kt`, an encounter on the cache's two forms. It
+waits in the nexus's hall as the "Inert Guardian" until a member touches it. It wakes levitating, with its shield's
+hitpoints, shooting the player it took on every 5 ticks and slamming anyone who stands under it instead; only ranged,
+magic and halberds reach it. With the shield gone it falls to the ground, blasting whoever is under or beside it, with
+its grounded hitpoints, and swings at a player beside it. At 30% it takes off again for good, with no shield, and fires
+a laser at a random player every 10 ticks, its damage shared by everyone on the laser's line. Its death does the room.
+While its shield is up, and between lasers at the end, it grows a mushroom two tiles from each player; stepping beside one
+bursts it, poisoning and wearying (no running, attacks a tick slower), and the burst splashes anyone two tiles off.
+Grounded, a vine rises on each player's side away from it every 3 ticks and swipes the tiles round it three times.
+Four inert guardians stand round the hall (step 16c). Under its shield three are awake: beaten to 0 one is charged,
+taking 40% off the shield, and spent. The south-east one never wakes; in the last phase the laser breaks the first one
+standing behind its target, halving the laser and hurting the Guardian, but never into kill range.
+
+| Guardian behaviour | Source |
+|--------------------|--------|
+| Stats, bonuses, both forms' hitpoints by party size (shield 550 to 1,950, grounded 1,100 to 3,910), 5-tick attacks, max hits 25 and 99+, 80% fire weakness, poison and venom immunity, Defence drained to 60% at most | Wiki, Archive Guardian (read 2026-11-03) |
+| Two forms: `tfa_guardian` (16659) levitating, `tfa_guardian_unshielded` (16660) grounded with slash defence 90 not 110; the animations and spotanims by name | 241.4 cache |
+| Levitating, only ranged, magic and halberds hitting it; shots at the player it chose; a slam on whoever stands under it; the shield's break grounding it; a blast on those under or next to it; the last phase at 30% with no shield; the laser "fatal if more than two players are alive and it isn't reduced", shared by standing in line, "slightly" cut by Protect from Magic | Wiki, The Fractured Archive/Strategies, as a guide site quotes it (the Wiki's own page is too long to read past its equipment) |
+| The grounded form's 40% fire weakness | a guide (osrsbestinslot); the Wiki lists 80% and 40% without saying which form has which |
+| Ranged shots (Protect from Missiles), a crush swing grounded (Protect from Melee), the slam blocked by Protect from Melee | guessed for the slam; the prayers for the others from the attack styles |
+| The first attack 5 ticks into each phase; the laser every 10 ticks, landing 3 after it is aimed; its line from the boss's middle through its target, 32 tiles on | guessed |
+| The slam up to 25, the blast 10 to 20, the laser 80 for one or two players and 40 for each player from three, Protect from Magic taking a tenth | guessed, to fit the Strategies page's words |
+| It never moves, and keeps to one tank till they fall or go out of its range or sight, when it turns at once on someone in it (holding its fire only when nobody is); grounded, those who stand off get its vines | guessed |
+| The words for melee refused on a flying monster (`combat.flying`) | guessed |
+| Mushrooms (locs 62578 to 62580, `tfa_archive_guardian_mushroom_spawn`), the Vine (16664, `archive_guardian_tentacle`, its spawn, swipe and despawn animations and `vfx_guardian_tentacle_intro`) | 241.4 cache |
+| Mushrooms in the shield phase and alternating with the laser at the end; their 3 to 10, poison and weariness (slower attacks, no running); a run beside one and on popping it, a walk leaving a weaker splash; vines from 6 ticks into the grounded phase, then every 3, each on the player's side away from the boss and swiping a 3x3 three times on a 3-tick cycle, Protect from Melee capping a swipe at 11 | guides (osrstoolkit, runescapeguides, bald.gg; read 2026-11-03) |
+| A mushroom round each player every 15 ticks, 2 tiles off, growing for 2 and bursting after 20 if no one comes; the splash 1 to 5 at 2 tiles; poison severity 20 (hits of 4); weary 10 ticks, a tick on each attack; a vine swipe up to 22 unprayed | guessed |
+| An antipoison beforehand avoiding "the poison damage only" (so weariness comes all the same) | Wiki, The Fractured Archive/Strategies, its equipment table (read 2026-11-03) |
+| The inert guardians' three forms (`tfa_guardian_battery_inactive`, `_active` with Attack, `_destroyed`; 2 by 2), the awake one's 180 hitpoints, Defence and Magic 50, and its stab, slash, crush and magic defence (0, 20, -20, -20, its params 5 to 8, which give the Wiki's figures on the Guardian) | 241.4 cache |
+| Four round the room, charged by attacking them; charging taking ~40% off the shield (596 of 1,490); the south-east one only hit by the beam, which damages the boss's health; the beam destroying the one behind its target; lining it up reducing the laser; no damage to the boss once it is in kill range | guides (runescapeguides, osrstoolkit; read 2026-11-03) |
+| Where they stand (level with its middle 9 tiles west and 8 east, and 10 south); the awake ones put to sleep as it falls; the laser halved; a broken one taking 10% of its most hitpoints off it, never below kill range at 10%; their ranged defences, 0; a swing on a spent one landing for 0 | guessed |
+| The step-under timing, a guide's "firebreath" enrage with braziers, the Serpentine helm shortening weariness, which guardians melee reaches and which only ranged (a guide's earth weakness, with no figure) | not in yet (the enrage isn't on the Strategies page; there is no Serpentine helm yet) |
+
+`::raid guardian party=3` starts it where you stand, `phase=grounded` or `phase=airborne` from a later phase. Check:
+`./gradlew test --tests 'osrsps.testclient.HeadlessArchiveGuardianTest' --tests 'osrsps.game.combat.NpcCombatTest' --tests 'osrsps.game.MovementTest'`
+(touched awake in its hall, through its three phases to its death doing the room, the instance multi-way; the laser
+shared by two on its line; melee refused while it levitates but for a halberd; the laser's line and damage; a mushroom
+bursting with poison and weariness, then splashing; a vine's swipes held to 11 by Protect from Melee; a weary player
+walking with run on; the inert guardians charged into the shield, three grounding it, and broken by the laser, which
+they halve, never into kill range), and in RuneLite `test-runner/examples/archive-guardian.json` (the whole fight solo
+with the right prayers, moved on with `::hit`), `test-runner/examples/archive-guardian-hazards.json` (a vine and a
+mushroom) and `test-runner/examples/archive-guardian-batteries.json` (an inert guardian charged).
 
 ## The Fractured Archive lobby
 
@@ -1696,7 +1913,7 @@ reach the chasm yet: `::tele 4054 4567` stands by the cavity.
 | The Record Keeper's introduction each time, and Yes to his statistics closing the talk | guessed: the var live keeps for it isn't known, and his statistics screen isn't built |
 | Montoya's and the Record Keeper's menus coming back after each topic; every chathead expression | guessed |
 | Where the four NPCs stand | guessed from the lobby's map, beside the locs they tend |
-| The Archive Door, Grouping Board, Alliance records, Strategy board, Ascension rocks, Loot Wheelbarrow, and the guards, druids and Alliance builders | not in yet: the door is step 15, the rest wait for a recording or are left out of the first version |
+| The Grouping Board, Alliance records, Strategy board, Ascension rocks, Loot Wheelbarrow, and the guards, druids and Alliance builders | not in yet: they wait for a recording or are left out of the first version (the Archive Door is the raid flow's) |
 
 Check: `./gradlew test --tests 'osrsps.game.content.ArchiveLobbyTest' --tests 'osrsps.testclient.HeadlessArchiveLobbyTest'`
 (each talk line by line; the cavity open from login and crawled through, the Opening back, the bank chest and banker
@@ -2029,6 +2246,10 @@ any varps or varbits. Scenarios are JSON files in `src/main/resources/scenarios/
 `::reset` puts back the player as they were before their first `::scenario`: a second scenario still resets to before
 the first. The way back is kept in the save (`beforeScenario`), so a logout in the middle loses nothing. The server log
 warns at startup about any scenario naming an item the cache lacks.
+
+`agility` stands you at the Draynor Village Rooftop Course's rough wall (3103, 3279) with 52 Agility, the most anything
+built needs, so every course and shortcut is open; run on and full, and a graceful set in the bank to try its run energy
+bonus. Hitpoints stay a new account's 10, so a fall's damage shows.
 
 `lumbridge-cows` stands you in the Lumbridge cow field (3259, 3263, a tile picked from the cow spawns) with 20 Attack,
 Strength, Defence and Hitpoints, iron armour, an iron scimitar, an amulet of strength, five lobsters, a bronze axe, a

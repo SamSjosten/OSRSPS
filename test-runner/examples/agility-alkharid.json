@@ -1,0 +1,249 @@
+{
+ "name": "Agility step 4: one lap of the Al Kharid Rooftop Course, every obstacle crossed to its landing tile, 216 XP and the lap count (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::xprate 1",
+   "expectMessage": "XP rate set to 1x",
+   "comment": "live's rate; ::xprate restore at the end goes back"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel agility 30",
+   "expectMessage": "30",
+   "comment": "13,363 XP: a lap's 216 opens no level-up box"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel hitpoints 99",
+   "expectMessage": "99",
+   "comment": "Tightrope 1 and the zip line can fail for 1 to 5; a fall stops the script at its assertLocation"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3273 3196 0",
+   "expectMessage": "Teleported to 3273, 3196, 0",
+   "comment": "north of Ellis the tanner's building, below the rough wall"
+  },
+  {
+   "step": "locOption",
+   "loc": "Rough wall",
+   "option": "Climb",
+   "x": 3273,
+   "y": 3195
+  },
+  {
+   "step": "assertLocation",
+   "x": 3273,
+   "y": 3192,
+   "plane": 3,
+   "timeoutMs": 20000,
+   "comment": "obstacle 1 of 8 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine (or a fall, on obstacles 2 and 4)"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Agility",
+   "level": 30,
+   "xp": 13375,
+   "timeoutMs": 5000,
+   "comment": "synced: obstacle 1's XP, so its script has ended before the next click (clicks while it runs are dropped)"
+  },
+  {
+   "step": "locOption",
+   "loc": "Tightrope",
+   "option": "Cross",
+   "x": 3272,
+   "y": 3181
+  },
+  {
+   "step": "assertLocation",
+   "x": 3272,
+   "y": 3172,
+   "plane": 3,
+   "timeoutMs": 20000,
+   "comment": "obstacle 2 of 8 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine (or a fall, on obstacles 2 and 4)"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Agility",
+   "level": 30,
+   "xp": 13411,
+   "timeoutMs": 5000,
+   "comment": "synced: obstacle 2's XP, so its script has ended before the next click (clicks while it runs are dropped)"
+  },
+  {
+   "step": "locOption",
+   "loc": "Cable",
+   "option": "Swing-across",
+   "x": 3269,
+   "y": 3166
+  },
+  {
+   "step": "assertLocation",
+   "x": 3284,
+   "y": 3166,
+   "plane": 3,
+   "timeoutMs": 20000,
+   "comment": "obstacle 3 of 8 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine (or a fall, on obstacles 2 and 4)"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Agility",
+   "level": 30,
+   "xp": 13459,
+   "timeoutMs": 5000,
+   "comment": "synced: obstacle 3's XP, so its script has ended before the next click (clicks while it runs are dropped)"
+  },
+  {
+   "step": "locOption",
+   "loc": "Zip line",
+   "option": "Teeth-grip",
+   "x": 3302,
+   "y": 3163
+  },
+  {
+   "step": "assertLocation",
+   "x": 3315,
+   "y": 3163,
+   "plane": 1,
+   "timeoutMs": 20000,
+   "comment": "obstacle 4 of 8 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine (or a fall, on obstacles 2 and 4)"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Agility",
+   "level": 30,
+   "xp": 13507,
+   "timeoutMs": 5000,
+   "comment": "synced: obstacle 4's XP, so its script has ended before the next click (clicks while it runs are dropped)"
+  },
+  {
+   "step": "locOption",
+   "loc": "Tropical tree",
+   "option": "Swing-across",
+   "x": 3318,
+   "y": 3166
+  },
+  {
+   "step": "assertLocation",
+   "x": 3317,
+   "y": 3174,
+   "plane": 2,
+   "timeoutMs": 20000,
+   "comment": "obstacle 5 of 8 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine (or a fall, on obstacles 2 and 4)"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Agility",
+   "level": 30,
+   "xp": 13519,
+   "timeoutMs": 5000,
+   "comment": "synced: obstacle 5's XP, so its script has ended before the next click (clicks while it runs are dropped)"
+  },
+  {
+   "step": "locOption",
+   "loc": "Roof top beams",
+   "option": "Climb",
+   "x": 3316,
+   "y": 3179
+  },
+  {
+   "step": "assertLocation",
+   "x": 3316,
+   "y": 3180,
+   "plane": 3,
+   "timeoutMs": 20000,
+   "comment": "obstacle 6 of 8 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine (or a fall, on obstacles 2 and 4)"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Agility",
+   "level": 30,
+   "xp": 13525,
+   "timeoutMs": 5000,
+   "comment": "synced: obstacle 6's XP, so its script has ended before the next click (clicks while it runs are dropped)"
+  },
+  {
+   "step": "locOption",
+   "loc": "Tightrope",
+   "option": "Cross",
+   "x": 3313,
+   "y": 3186
+  },
+  {
+   "step": "assertLocation",
+   "x": 3304,
+   "y": 3186,
+   "plane": 3,
+   "timeoutMs": 20000,
+   "comment": "obstacle 7 of 8 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine (or a fall, on obstacles 2 and 4)"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Agility",
+   "level": 30,
+   "xp": 13543,
+   "timeoutMs": 5000,
+   "comment": "synced: obstacle 7's XP, so its script has ended before the next click (clicks while it runs are dropped)"
+  },
+  {
+   "step": "locOption",
+   "loc": "Gap",
+   "option": "Jump",
+   "x": 3300,
+   "y": 3193
+  },
+  {
+   "step": "assertLocation",
+   "x": 3299,
+   "y": 3194,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "obstacle 8 of 8 crossed; the tile is inferred from the map, so a miss here may be the data, not the engine (or a fall, on obstacles 2 and 4)"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Agility",
+   "level": 30,
+   "xp": 13579,
+   "timeoutMs": 5000,
+   "comment": "synced: obstacle 8's XP, so its script has ended before the next click (clicks while it runs are dropped)"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[agility.alkharid_laps count=1]"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Agility",
+   "level": 30,
+   "xp": 13579,
+   "comment": "13,363 at level 30, then the lap's 216"
+  },
+  {
+   "step": "command",
+   "text": "::xprate restore",
+   "expectMessage": "XP rate back to "
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

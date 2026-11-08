@@ -27,6 +27,10 @@ object LocTypeDecoder {
         var blocksProjectile = true
         var accessBlock = 0
         var multiloc = false
+        var multiVarbit = -1
+        var multiVarp = -1
+        var multiLocs = emptyList<Int>()
+        var mapElement = LocType.NO_MAP_ELEMENT
         while (true) {
             when (val opcode = buf.readUnsignedByte().toInt()) {
                 0 -> break
@@ -48,11 +52,18 @@ object LocTypeDecoder {
                 in 30..34 -> ops[opcode - 30] = buf.readString().takeUnless { it.equals("hidden", ignoreCase = true) }
                 69 -> accessBlock = buf.readUnsignedByte().toInt()
                 40, 41 -> buf.skipBytes(buf.readUnsignedByte() * 4)
-                42, 61, 65, 66, 67, 68, 70, 71, 72, 82 -> buf.skipBytes(2)
-                77 -> { buf.skipBytes(4); buf.skipBytes((buf.readUnsignedByte() + 1) * 2); multiloc = true }
+                42, 61, 65, 66, 67, 68, 70, 71, 72 -> buf.skipBytes(2)
+                82 -> mapElement = buf.readUnsignedShort()
+                77, 92 -> {
+                    multiVarbit = buf.readUnsignedShort().takeUnless { it == 0xFFFF } ?: -1
+                    multiVarp = buf.readUnsignedShort().takeUnless { it == 0xFFFF } ?: -1
+                    val default = if (opcode == 92) buf.readUnsignedShort().takeUnless { it == 0xFFFF } ?: -1 else -1
+                    val count = buf.readUnsignedByte().toInt()
+                    multiLocs = List(count + 1) { buf.readUnsignedShort().takeUnless { it == 0xFFFF } ?: -1 } + default
+                    multiloc = true
+                }
                 78 -> buf.skipBytes(4)
                 79 -> { buf.skipBytes(6); buf.skipBytes(buf.readUnsignedByte() * 2) }
-                92 -> { buf.skipBytes(6); buf.skipBytes((buf.readUnsignedByte() + 1) * 2); multiloc = true }
                 93 -> buf.skipBytes(6)
                 100 -> { buf.skipBytes(2); buf.skipString() }
                 101 -> { buf.skipBytes(13); buf.skipString() }
@@ -69,6 +80,10 @@ object LocTypeDecoder {
             accessBlock = accessBlock,
             multiloc = multiloc,
             internalName = internalName,
+            multiVarbit = multiVarbit,
+            multiVarp = multiVarp,
+            multiLocs = multiLocs,
+            mapElement = mapElement,
         )
     }
 

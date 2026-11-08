@@ -1,0 +1,116 @@
+{
+ "name": "Edgeville piece step 15: Examine (::keys on) on Gunthor the brave, the Barbarian anvil, Edgeville's furnace, Abbot Langley and the Cradle of Life",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys",
+   "comment": "examines show their keys, whatever data/dialogue.txt holds"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3081 3442 0",
+   "expectMessage": "Teleported to 3081, 3442, 0",
+   "comment": "Barbarian Village, south of Gunthor"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 299,
+   "option": "Examine",
+   "timeoutMs": 20000,
+   "comment": "Gunthor the brave"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_299]",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3082 3410 0",
+   "expectMessage": "Teleported to 3082, 3410, 0",
+   "comment": "beside the Barbarian anvil, south of the village"
+  },
+  {
+   "step": "locOption",
+   "loc": "Barbarian anvil",
+   "option": "Examine",
+   "x": 3082,
+   "y": 3411,
+   "timeoutMs": 20000,
+   "comment": "Barbarian anvil (25349)"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.loc_25349]",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3109 3499 0",
+   "expectMessage": "Teleported to 3109, 3499, 0",
+   "comment": "beside Edgeville's furnace"
+  },
+  {
+   "step": "locOption",
+   "loc": "Furnace",
+   "option": "Examine",
+   "x": 3110,
+   "y": 3499,
+   "timeoutMs": 20000,
+   "comment": "Edgeville's furnace (16469)"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.loc_16469]",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3058 3486 0",
+   "expectMessage": "Teleported to 3058, 3486, 0",
+   "comment": "the monastery's ground floor"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 2577,
+   "option": "Examine",
+   "timeoutMs": 20000,
+   "comment": "Abbot Langley"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_2577]",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "command",
+   "text": "::tele 2345 5214 0",
+   "expectMessage": "Teleported to 2345, 5214, 0",
+   "comment": "east of the Cradle of Life, the Stronghold of Security's fourth floor"
+  },
+  {
+   "step": "locOption",
+   "loc": "Cradle of Life",
+   "option": "Examine",
+   "x": 2344,
+   "y": 5214,
+   "timeoutMs": 20000,
+   "comment": "Cradle of Life (23731)"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.loc_23731]",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
+  }
+ ]
+}

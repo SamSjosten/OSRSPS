@@ -1,6 +1,7 @@
 package osrsps.game.content
 
 import osrsps.cache.LocTypeEncoder
+import osrsps.cache.MapElementCodec
 import osrsps.game.FrameSlot
 import osrsps.game.Interfaces
 import osrsps.game.Player
@@ -42,9 +43,10 @@ object LodestoneLines : Lines("lodestone", "Lodestone_Network") {
  * sees the one loc ([Site.id]) and the one option on it, and answers by the player's varbit. The cast is Home
  * Teleport's machinery ([HomeTeleport.castTo]) with the stones' own timing and no cooldown.
  *
- * Guessed: the stones' tiles (RS3's spots, by the Wiki's descriptions and the OSRS map, placed where the ground is
- * flat and clear; `::pos` and a change to [SITES] move one), landing on the stone's centre tile, the stages' ticks
- * (Home Teleport's, stretched to 28), and the map's look ([LodestoneMap]).
+ * Guessed: the stones' tiles (RS3's spots, by the Wiki's descriptions, moved to where the 241 map's ground is flat,
+ * outdoors and clear, the tile around included: RS3's Al Kharid spot is inside a house here, Edgeville's in the river,
+ * Draynor's under an oak; `::pos` and a change to [SITES] move one), landing on the stone's centre tile, the stages'
+ * ticks (Home Teleport's, stretched to 28), and the map's look ([LodestoneMap]).
  */
 object Lodestones {
     /** The child types the client draws: the dormant stone and the active one. */
@@ -55,6 +57,14 @@ object Lodestones {
 
     /** The first site's loc id; sites count up from it. */
     const val FIRST_STONE = 65002
+
+    /**
+     * The map element (config archive 35, above the cache's own, which end at 1,267 in the 241 cache) both looks
+     * name, so the minimap draws a stone's icon ([LodestoneMap.MINIMAP_SPRITE]) where it stands. The world map's
+     * icons are the world map index's, built with the map, so none there (step 7's second half, if wanted).
+     */
+    const val MAP_ELEMENT = 65000
+    val MAP_ELEMENT_TYPE = MapElementCodec.Definition(sprite = LodestoneMap.MINIMAP_SPRITE)
 
     /** Op1 of both looks: Activate on the dormant stone, Teleport on the active one. */
     const val ACTIVATE = 1
@@ -105,9 +115,13 @@ object Lodestones {
         )
     }
 
-    /** The child types: flat 3 by 3 stones with our models, each with the one option its look offers. */
+    /**
+     * The child types: flat 3 by 3 stones with our models, each with the one option its look offers and the minimap's
+     * icon (the icon rides on the look the client draws, as the cache's own multilocs carry it, not on the site's loc).
+     */
     private fun child(model: Int, op: String) = LocTypeEncoder.Definition(
         "Lodestone", listOf(model), ops = listOf(op, null, null, null, null), width = 3, length = 3, solid = false,
+        mapElement = MAP_ELEMENT,
     )
 
     val DORMANT_TYPE = CustomLocs.Custom(DORMANT, child(DORMANT_MODEL, "Activate"))
@@ -115,14 +129,17 @@ object Lodestones {
 
     /**
      * The sites, in the menu's order. Lumbridge's stone is outside the castle's east gate on the way to the bridge;
-     * Draynor's by the village's north road; Varrock's south of the city's south gate; Al Kharid's north of the
-     * palace, by the gate; Edgeville's south of the bank, by the river. Tiles guessed (see the class note).
+     * Draynor's on the village's north road, west of the oak at the signpost; Varrock's south of the city's south
+     * gate; Al Kharid's north of the palace's north door, between the well and the cactus; Edgeville's west of the
+     * bank, on the river's east bank below the general store. Tiles guessed (see the class note); each 3 by 3 and
+     * the ring of tiles around it are open ground on the 241 map (Lumbridge's west side stands against the castle
+     * wall), so a player can walk onto every stone.
      */
     val LUMBRIDGE = Site(0, LodestoneLines.LUMBRIDGE, 3232, 3220)
-    val DRAYNOR = Site(1, LodestoneLines.DRAYNOR, 3104, 3297)
+    val DRAYNOR = Site(1, LodestoneLines.DRAYNOR, 3098, 3298)
     val VARROCK = Site(2, LodestoneLines.VARROCK, 3213, 3375)
-    val AL_KHARID = Site(3, LodestoneLines.AL_KHARID, 3296, 3191)
-    val EDGEVILLE = Site(4, LodestoneLines.EDGEVILLE, 3066, 3504)
+    val AL_KHARID = Site(3, LodestoneLines.AL_KHARID, 3295, 3185)
+    val EDGEVILLE = Site(4, LodestoneLines.EDGEVILLE, 3072, 3504)
 
     val SITES = listOf(LUMBRIDGE, DRAYNOR, VARROCK, AL_KHARID, EDGEVILLE)
 
@@ -245,8 +262,11 @@ class LodestoneNetwork(
     }
 }
 
-/** A world whose loc types don't include the lodestones (a test's world) gets no stones: the server's always do. */
+/**
+ * A world whose loc types don't include the lodestones (a test's world) gets no stones: the server's always do, for
+ * good, so `::resetlocs` over a stone's tile (the nightly's around the courtyard) keeps it.
+ */
 fun registerLodestones(world: World) {
-    for (site in Lodestones.SITES) if (world.locs.types[site.id] != null) world.locs.add(site.loc)
+    for (site in Lodestones.SITES) if (world.locs.types[site.id] != null) world.locs.addPermanent(site.loc)
     world.lodestones.register(world.handlers)
 }

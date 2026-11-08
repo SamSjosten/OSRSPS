@@ -35,9 +35,20 @@ class ClanStore(private val file: Path? = null) {
      */
     class Applicant(val key: String, var name: String, var stats: String = "")
 
+    /** A player banned from the clan's channel (Ban guest), by save key and the name they had. */
+    class Banned(val key: String, val name: String)
+
     class Clan(val id: Long, var name: String, val createdMillis: Long, val members: MutableList<Member>) {
         /** Applicants, oldest first. */
         val applicants = ArrayList<Applicant>()
+
+        /** Clan setting vars set by its members (permissions), by var id; unset ones take their defaults. */
+        val settings = HashMap<Int, Int>()
+
+        /** Players banned from its channel, oldest first. */
+        val banned = ArrayList<Banned>()
+
+        fun banned(key: String): Banned? = banned.firstOrNull { it.key == key }
 
         fun member(key: String): Member? = members.firstOrNull { it.key == key }
 
@@ -126,6 +137,41 @@ class ClanStore(private val file: Path? = null) {
         logger.info { "${member.key} joined clan '${clan.name}'" }
     }
 
+    /**
+     * Bans [key] from [clan]'s channel, unless they are banned already, written at the next [flush] (the autosave), not
+     * now: a ban and unban can be repeated as fast as they click, and each write is the whole file.
+     */
+    fun addBanned(clan: Clan, key: String, name: String) {
+        if (clan.banned(key) != null) return
+        clan.banned += Banned(key, name)
+        unwritten = true
+        logger.info { "$key banned from the channel of clan '${clan.name}'" }
+    }
+
+    /** Lifts [key]'s ban from [clan]'s channel, written at the next [flush] as [addBanned]'s; false if they weren't banned. */
+    fun removeBanned(clan: Clan, key: String): Boolean {
+        if (!clan.banned.removeIf { it.key == key }) return false
+        unwritten = true
+        logger.info { "$key unbanned from the channel of clan '${clan.name}'" }
+        return true
+    }
+
+    /** Sets [clan]'s setting var [id] to [value], written at the next [flush]. */
+    fun setSetting(clan: Clan, id: Int, value: Int) {
+        clan.settings[id] = value
+        unwritten = true
+    }
+
+    /**
+     * Gives [member] of [clan] [rank], written at the next [flush] (the autosave), not now: an editor can pick ranks as
+     * fast as they click, and each write is the whole file.
+     */
+    fun setRank(clan: Clan, member: Member, rank: Int) {
+        member.rank = rank
+        unwritten = true
+        logger.info { "${member.key} is now rank $rank in clan '${clan.name}'" }
+    }
+
     /** Takes [key] out of [clan]'s members and saves; false if they weren't one. */
     fun removeMember(clan: Clan, key: String): Boolean {
         if (!clan.members.removeIf { it.key == key }) return false
@@ -175,12 +221,21 @@ class ClanStore(private val file: Path? = null) {
                             }
                         }
                     }
+                    putJsonObject("settings") { for ((id, value) in clan.settings) put(id.toString(), value) }
                     putJsonArray("applicants") {
                         for (applicant in clan.applicants) {
                             addJsonObject {
                                 put("key", applicant.key)
                                 put("name", applicant.name)
                                 if (applicant.stats.isNotEmpty()) put("stats", applicant.stats)
+                            }
+                        }
+                    }
+                    putJsonArray("banned") {
+                        for (banned in clan.banned) {
+                            addJsonObject {
+                                put("key", banned.key)
+                                put("name", banned.name)
                             }
                         }
                     }
@@ -200,10 +255,15 @@ class ClanStore(private val file: Path? = null) {
                 Member(m["key"]!!.jsonPrimitive.content, m["name"]!!.jsonPrimitive.content, m["rank"]!!.jsonPrimitive.int, m["joined"]!!.jsonPrimitive.int)
             }
             val clan = Clan(obj["id"]!!.jsonPrimitive.long, obj["name"]!!.jsonPrimitive.content, obj["created"]!!.jsonPrimitive.long, members.toMutableList())
-            // Files from before applications have none.
+            // Files from before settings, applications or bans have none.
+            for ((id, value) in obj["settings"]?.jsonObject.orEmpty()) clan.settings[id.toInt()] = value.jsonPrimitive.int
             for (a in obj["applicants"]?.jsonArray.orEmpty()) {
                 val o = a.jsonObject
                 clan.applicants += Applicant(o["key"]!!.jsonPrimitive.content, o["name"]!!.jsonPrimitive.content, o["stats"]?.jsonPrimitive?.content.orEmpty())
+            }
+            for (b in obj["banned"]?.jsonArray.orEmpty()) {
+                val o = b.jsonObject
+                clan.banned += Banned(o["key"]!!.jsonPrimitive.content, o["name"]!!.jsonPrimitive.content)
             }
             clans[clan.id] = clan
             if (clan.id >= nextId) nextId = clan.id + 1

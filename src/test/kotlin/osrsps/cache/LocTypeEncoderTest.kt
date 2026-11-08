@@ -6,6 +6,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import osrsps.game.loc.LocType
 
 class LocTypeEncoderTest {
     @Test
@@ -39,6 +40,22 @@ class LocTypeEncoderTest {
     }
 
     @Test
+    fun `a map element writes opcode 82, which the decoder reads back`() {
+        val definition = LocTypeEncoder.Definition("Lodestone", listOf(65000), mapElement = 65000)
+        val bytes = LocTypeEncoder.encode(definition)
+        assertContentEquals(
+            byteArrayOf(7, 1, 0, 0, 0xFD.toByte(), 0xE8.toByte()) + byteArrayOf(2) + "Lodestone".toByteArray() + 0 + byteArrayOf(82, 0xFD.toByte(), 0xE8.toByte()) + 0,
+            bytes,
+        )
+        val type = LocTypeDecoder.decode(65000, bytes)
+        assertEquals("Lodestone", type.name)
+        assertEquals(65000, type.mapElement)
+        assertEquals(LocTypeEncoder.NO_MAP_ELEMENT, LocTypeEncoder.Definition("Rock", listOf(1)).mapElement)
+        assertEquals(LocType.NO_MAP_ELEMENT, LocTypeDecoder.decode(1, LocTypeEncoder.encode(LocTypeEncoder.Definition("Rock", listOf(1)))).mapElement)
+        assertFailsWith<IllegalArgumentException> { LocTypeEncoder.Definition("Lodestone", listOf(65000), mapElement = 65536) }
+    }
+
+    @Test
     fun `a solid loc projectiles pass gets opcode 18`() {
         val bytes = LocTypeEncoder.encode(LocTypeEncoder.Definition("Fence", listOf(1), blocksProjectiles = false))
         assertTrue(18.toByte() in bytes)
@@ -59,11 +76,25 @@ class LocTypeEncoderTest {
         assertContentEquals(transform + 0, bytes.copyOfRange(bytes.size - transform.size - 1, bytes.size))
         val type = LocTypeDecoder.decode(65002, bytes)
         assertTrue(type.multiloc)
+        assertEquals(20411, type.multiVarbit)
+        assertEquals(-1, type.multiVarp)
+        assertEquals(listOf(65000, 65001, -1), type.multiLocs, "the children by value, then opcode 77's default: none")
         assertEquals(listOf("Activate", null, null, null, null), type.ops)
         assertEquals(3, type.width)
         assertEquals(0, type.collision.interactType)
         val none = LocTypeEncoder.encode(LocTypeEncoder.Definition("X", listOf(1), transform = LocTypeEncoder.Transform(5, listOf(LocTypeEncoder.NONE))))
         assertContentEquals(byteArrayOf(77, 0, 5, -1, -1, 0, -1, -1, 0), none.copyOfRange(none.size - 9, none.size))
+    }
+
+    @Test
+    fun `opcode 92 reads a varp, its default child and the children`() {
+        // 92: varbit none, varp 1234, default 50, one more than 1 child: 40 and none.
+        val bytes = byteArrayOf(92, -1, -1, 0x04, 0xD2.toByte(), 0, 50, 1, 0, 40, -1, -1, 0)
+        val type = LocTypeDecoder.decode(1, bytes)
+        assertTrue(type.multiloc)
+        assertEquals(-1, type.multiVarbit)
+        assertEquals(1234, type.multiVarp)
+        assertEquals(listOf(40, -1, 50), type.multiLocs)
     }
 
     @Test

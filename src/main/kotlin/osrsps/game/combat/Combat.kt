@@ -94,8 +94,16 @@ class Combat(
     /** The animations the player swings and blocks with: their weapon's category's. */
     fun anims(player: Player): WeaponAnims = WeaponAnims.of(Weapons.category(equipment.weapon(player)))
 
-    /** Ticks between the player's attacks: the weapon's speed, 4 unarmed, and a combat spell's [MagicCombat.SPEED] when autocasting. */
-    fun attackSpeed(player: Player): Int {
+    /**
+     * Ticks between the player's attacks: the weapon's speed, 4 unarmed, and a combat spell's [MagicCombat.SPEED] when
+     * autocasting; a tick more while weary ([Player.wearyTicks]; guessed, the guides say only that it slows attacks).
+     */
+    fun attackSpeed(player: Player): Int = baseAttackSpeed(player) + wearyDelay(player)
+
+    /** The tick weariness adds to every attack, a manual cast's included. */
+    fun wearyDelay(player: Player): Int = if (player.wearyTicks > 0) 1 else 0
+
+    private fun baseAttackSpeed(player: Player): Int {
         val style = style(player)
         if (style.type != AttackType.MAGIC) return bonuses(player).attackSpeed
         // A powered staff's own speed is its weapon's (5 for Tumeken's shadow).
@@ -140,7 +148,7 @@ class Combat(
         val strength = PrayerBoosts.boost(skills.currentLevel(Skill.STRENGTH), boosts.strength)
         val attackRoll = CombatMath.playerAttackRoll(attack, style.stance, attackBonus(bonuses, type))
         val defenceRoll = CombatMath.npcDefenceRoll(npc.level(NpcStat.DEFENCE), def.defence.against(against ?: type))
-        val npcAttackRoll = CombatMath.npcAttackRoll(npcAttackLevel(npc, def), def.attackBonus)
+        val npcAttackRoll = CombatMath.npcAttackRoll(npcAttackLevel(npc, def.attackType), def.attackBonus)
         val playerDefenceRoll = playerDefenceRoll(player, style, bonuses, def.attackType, boosts)
         return MeleeMatchup(
             style = style,
@@ -273,18 +281,25 @@ class Combat(
      * its Magic or Ranged level for those (OSRS Wiki, Combat: an NPC's attack roll is its level for the style plus 9,
      * times its bonus plus 64), against the player's defence for its attack type.
      */
-    fun npcAttack(npc: Npc, player: Player): NpcAttack? {
+    fun npcAttack(npc: Npc, player: Player): NpcAttack? = npcAttack(npc, player, npcCombat[npc.type]?.attackType ?: return null)
+
+    /**
+     * [npc]'s roll at [player] with an attack of [type]: its own attack type, or magic for a melee NPC's spell
+     * ([NpcMeleeSpell]), which rolls with its Magic level and its magic attack bonus.
+     */
+    fun npcAttack(npc: Npc, player: Player, type: AttackType): NpcAttack? {
         val def = npcCombat[npc.type] ?: return null
         val style = style(player)
+        val bonus = if (type == def.attackType) def.attackBonus else if (type == AttackType.MAGIC) def.magicAttack else 0
         return NpcAttack(
-            attackRoll = CombatMath.npcAttackRoll(npcAttackLevel(npc, def), def.attackBonus),
-            defenceRoll = playerDefenceRoll(player, style, bonuses(player), def.attackType, prayerBoosts(player)),
+            attackRoll = CombatMath.npcAttackRoll(npcAttackLevel(npc, type), bonus),
+            defenceRoll = playerDefenceRoll(player, style, bonuses(player), type, prayerBoosts(player)),
             maxHit = npcMaxHit(npc, def),
         )
     }
 
     /** The level [npc] attacks with: its Magic or Ranged for a magic or ranged NPC, else its Attack. */
-    private fun npcAttackLevel(npc: Npc, def: NpcCombatDef): Int = when (def.attackType) {
+    private fun npcAttackLevel(npc: Npc, type: AttackType): Int = when (type) {
         AttackType.MAGIC -> npc.level(NpcStat.MAGIC)
         AttackType.RANGED -> npc.level(NpcStat.RANGED)
         else -> npc.level(NpcStat.ATTACK)

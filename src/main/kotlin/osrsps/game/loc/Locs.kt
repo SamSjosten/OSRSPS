@@ -11,7 +11,9 @@ private val logger = KotlinLogging.logger {}
 
 /**
  * Every loc in the world as it is now: the cache's [StaticLocs] plus what content has added, removed or changed since.
- * Each change updates collision and tells the players watching the zone, through [Zones].
+ * Each change updates collision and tells the players watching the zone, through [Zones]. A loc the world adds for
+ * good ([addPermanent], the lodestones) counts with the cache's: putting a tile back ([restore], a timed revert) puts
+ * it back, not the bare tile.
  *
  * Like the client, a tile holds at most one loc per layer (wall, wall decoration, ground loc, ground decoration), so
  * adding a loc replaces whatever was on its layer there. Only touched on the game thread.
@@ -36,10 +38,14 @@ class Locs(
     /** By tile and layer: what is there now where it differs from the cache. A null value is a removed cache loc. */
     private val changes = HashMap<Long, ZoneLoc?>()
 
+    /** By tile and layer: the locs the world added for good ([addPermanent]), which a restore puts back. */
+    private val permanent = HashMap<Long, ZoneLoc>()
+
     /** By tile and layer: when to put the tile back how it was, and what it was. */
     private val reverts = HashMap<Long, Revert>()
 
-    private class Revert(val dueTick: Long, val previous: ZoneLoc?)
+    /** [owner]: whose door or gate it is the respawn clock of ([restoreAfter]), for [restoreOwnedBy]; null for others. */
+    private class Revert(val dueTick: Long, val previous: ZoneLoc?, val owner: String? = null)
 
     /** The loc on a tile's [layer] now, if any. */
     operator fun get(x: Int, z: Int, level: Int, layer: Int): ZoneLoc? {
@@ -47,8 +53,11 @@ class Locs(
         return if (slot in changes) changes[slot] else static.at(x, z, level, layer)
     }
 
-    /** The loc the cache puts on a tile's [layer], whatever is there now. */
-    fun cached(x: Int, z: Int, level: Int, layer: Int): ZoneLoc? = static.at(x, z, level, layer)
+    /**
+     * The loc the cache puts on a tile's [layer], or the one the world added there for good ([addPermanent]), whatever
+     * is there now.
+     */
+    fun cached(x: Int, z: Int, level: Int, layer: Int): ZoneLoc? = baseline(x, z, level, layer)
 
     /** Every loc on a tile now, wall first and ground decoration last. */
     fun at(x: Int, z: Int, level: Int): List<ZoneLoc> = (0 until LAYERS).mapNotNull { get(x, z, level, it) }
@@ -68,6 +77,16 @@ class Locs(
      */
     fun add(loc: ZoneLoc, revertAfter: Int = 0) = change(loc.x, loc.z, loc.level, loc.layer, loc, revertAfter)
 
+    /**
+     * Puts [loc] on its tile for good, as if the cache had it there: [restore] (`::resetlocs`), [restoreAfter] and a
+     * timed change's end put it back, not the cache's tile. For what the server places at start, such as the
+     * lodestones. Players still get it as a change, since their cache has the tile bare.
+     */
+    fun addPermanent(loc: ZoneLoc) {
+        permanent[slot(loc.x, loc.z, loc.level, loc.layer)] = loc
+        change(loc.x, loc.z, loc.level, loc.layer, loc, 0)
+    }
+
     /** Takes [loc] away. Returns false, changing nothing, if it isn't there. */
     fun remove(loc: ZoneLoc, revertAfter: Int = 0): Boolean {
         if (!exists(loc)) return false
@@ -86,8 +105,36 @@ class Locs(
         return replacement
     }
 
-    /** Puts a tile's [layer] back to what the cache has there, dropping any timed revert. */
-    fun restore(x: Int, z: Int, level: Int, layer: Int) = change(x, z, level, layer, static.at(x, z, level, layer), 0)
+    /** Puts a tile's [layer] back to what the cache has there (or the world for good, [addPermanent]), dropping any timed revert. */
+    fun restore(x: Int, z: Int, level: Int, layer: Int) = change(x, z, level, layer, baseline(x, z, level, layer), 0)
+
+    /**
+     * Puts a tile's [layer] back as the cache has it [after] ticks from now, unless something changes it again first:
+     * the respawn clock of a door or gate a player moved ([Doors.RESPAWN_TICKS]). Nothing to put back, and no timer,
+     * when the tile is as the cache has it already. [owner] is who moved it, for [restoreOwnedBy].
+     */
+    fun restoreAfter(x: Int, z: Int, level: Int, layer: Int, after: Int, owner: String? = null) {
+        require(after > 0) { "Can't restore after $after ticks" }
+        val slot = slot(x, z, level, layer)
+        val cached = baseline(x, z, level, layer)
+        if (get(x, z, level, layer) == cached) {
+            reverts.remove(slot)
+            return
+        }
+        reverts[slot] = Revert(currentTick() + after, cached, owner)
+    }
+
+    /**
+     * Puts back now, as the cache has them, the tiles whose respawn clock [owner] started ([restoreAfter]) and nobody
+     * has changed since: `::reset`'s doors and gates, so a test script that stopped part way leaves none open.
+     */
+    fun restoreOwnedBy(owner: String) {
+        val owned = reverts.filterValues { it.owner == owner }
+        for ((slot, revert) in owned) {
+            reverts.remove(slot)
+            set(slot, revert.previous)
+        }
+    }
 
     /** Puts back the tiles whose [add], [remove] or [replace] has run its time. Call once a tick. */
     fun process() {
@@ -117,6 +164,10 @@ class Locs(
 
     /** Tiles that differ from the cache now, for ::locs and tests. */
     val changed: Int get() = changes.size
+
+    /** How a tile's [layer] starts: the world's own loc there for good, else the cache's. */
+    private fun baseline(x: Int, z: Int, level: Int, layer: Int): ZoneLoc? =
+        permanent[slot(x, z, level, layer)] ?: static.at(x, z, level, layer)
 
     private fun change(x: Int, z: Int, level: Int, layer: Int, loc: ZoneLoc?, revertAfter: Int) {
         require(revertAfter >= 0) { "Can't revert after $revertAfter ticks" }

@@ -1,0 +1,25 @@
+{
+ "name": "Clan members page, one player: test joins a clan made by ::clanmake as a recruiter (the owner's rank), opens the members page from the settings page, and goes Back to the settings page",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "keys"},
+  {"step": "command", "text": "::clandisband", "expectMessage": "lan", "comment": "test's own clan from another run, if any: 'Clan ... deleted' or 'You aren't in a clan'"},
+  {"step": "command", "text": "::clandisband Rank Gate", "expectMessage": "lan", "comment": "the last run's clan, if any"},
+  {"step": "command", "text": "::clanmake Rank Gate", "expectMessage": "Clan Rank Gate made"},
+  {"step": "command", "text": "::clanjoin Rank Gate recruiter", "expectMessage": "Joined clan Rank Gate as a recruiter"},
+  {"step": "runClientScript", "id": 915, "args": [7], "comment": "shows the Clans side tab (toplevel_sidebutton_switch), so its panels count as open"},
+  {"step": "clickWidget", "interfaceId": 707, "component": 3, "comment": "the Clans tab's Your Clan tab"},
+  {"step": "assertInterface", "interfaceId": 701},
+  {"step": "clickWidget", "interfaceId": 701, "component": 9, "comment": "Settings: the clan's settings page (clans_info)"},
+  {"step": "assertInterface", "interfaceId": 690},
+  {"step": "clickWidget", "interfaceId": 690, "component": 20, "comment": "Members: the members page (clans_members), drawn by the client from the clan settings"},
+  {"step": "assertInterface", "interfaceId": 693},
+  {"step": "clickWidget", "interfaceId": 693, "component": 25, "comment": "Back: the settings page"},
+  {"step": "assertInterface", "interfaceId": 690},
+  {"step": "clickWidget", "interfaceId": 690, "component": 3, "comment": "close the settings page, so no window is left open for the next script"},
+  {"step": "assertInterface", "interfaceId": 690, "absent": true},
+  {"step": "command", "text": "::clandisband Rank Gate", "expectMessage": "Clan Rank Gate deleted"},
+  {"step": "runClientScript", "id": 915, "args": [3], "comment": "back to the inventory tab"}
+ ]
+}

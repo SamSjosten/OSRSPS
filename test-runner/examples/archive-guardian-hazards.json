@@ -1,0 +1,126 @@
+{
+ "name": "Raid step 16b: the Archive Guardian's vines (grounded, a tile beyond the player, swiping under Protect from Melee) and its mushrooms (the shield phase, two tiles from the player), with ::raid outside the raid",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare",
+   "comment": "nothing carried; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel hitpoints 99",
+   "expectMessage": "Hitpoints set to level 99"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel prayer 99",
+   "expectMessage": "Prayer set to level 99"
+  },
+  {
+   "step": "command",
+   "text": "::heal",
+   "expectMessage": "Healed to 99 hitpoints."
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 548,
+   "component": 69,
+   "comment": "toplevel:stone5, the prayer tab, in the fixed frame the VM's client uses"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 541,
+   "component": 23,
+   "comment": "prayerbook:prayer15, Protect from Melee, for the vines"
+  },
+  {
+   "step": "command",
+   "text": "::prayers",
+   "expectMessage": "Protect from Melee"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3222 3218 0",
+   "expectMessage": "Teleported to 3222, 3218, 0",
+   "comment": "the Guardian comes up on this tile, its south-west"
+  },
+  {
+   "step": "command",
+   "text": "::raid guardian phase=grounded",
+   "expectMessage": "Started guardian",
+   "comment": "straight to the grounded phase, outside the raid"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3229 3220 0",
+   "expectMessage": "Teleported to 3229, 3220, 0",
+   "comment": "three tiles east of it, level with its middle: out of its swing"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 14,
+   "comment": "the first vine 6 ticks in, its first swipe 3 after"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 30",
+   "expectMessage": "grounded: add Vine at 3230,3220",
+   "comment": "archive_guardian_tentacle, a tile east of the player: the side away from the Guardian"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 30",
+   "expectMessage": "grounded: vine hits test",
+   "comment": "the account's name may be test or test2 (the nightly runs on test2): matched up to the name"
+  },
+  {
+   "step": "command",
+   "text": "::raid stop",
+   "expectMessage": "Stopped guardian."
+  },
+  {
+   "step": "command",
+   "text": "::tele 3222 3218 0",
+   "expectMessage": "Teleported to 3222, 3218, 0"
+  },
+  {
+   "step": "command",
+   "text": "::raid guardian",
+   "expectMessage": "Started guardian",
+   "comment": "the shield phase"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3241 3220 0",
+   "expectMessage": "Teleported to 3241, 3220, 0",
+   "comment": "15 tiles east of it: out of its range, so it holds its fire"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 20,
+   "comment": "the shield's first mushroom, 15 ticks in"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 30",
+   "expectMessage": "shield: mushroom at",
+   "comment": "tfa_guardian_mushroom_spawn, two tiles from the player"
+  },
+  {
+   "step": "command",
+   "text": "::raid stop",
+   "expectMessage": "Stopped guardian.",
+   "comment": "the mushroom goes with the fight"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

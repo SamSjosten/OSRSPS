@@ -67,6 +67,7 @@ import osrsps.game.shop.ShopTypes
 import osrsps.game.combat.Aggression
 import osrsps.game.combat.AttackStyles
 import osrsps.game.combat.Combat
+import osrsps.game.combat.DeathPlace
 import osrsps.game.combat.Deaths
 import osrsps.game.combat.DinhsBulwark
 import osrsps.game.combat.MagicCombat
@@ -100,6 +101,7 @@ import osrsps.game.content.registerAdventurersCamp
 import osrsps.game.content.registerBarfyBill
 import osrsps.game.content.registerCandleSeller
 import osrsps.game.content.registerChurch
+import osrsps.game.content.registerEssenceMine
 import osrsps.game.content.registerFatherUrhney
 import osrsps.game.content.registerSwampTutors
 import osrsps.game.content.registerHans
@@ -117,6 +119,8 @@ import osrsps.game.content.registerVarrock
 import osrsps.game.content.registerDraynorVillage
 import osrsps.game.content.registerEdgeville
 import osrsps.game.content.registerEdgevilleDungeon
+import osrsps.game.content.registerSkullSceptre
+import osrsps.game.content.registerStrongholdOfSecurity
 import osrsps.game.content.registerBarbarianVillage
 import osrsps.game.content.registerCooksGuild
 import osrsps.game.content.registerEdgevilleMonastery
@@ -136,6 +140,10 @@ import osrsps.game.content.registerDraynorManorGrounds
 import osrsps.game.content.ManorHazards
 import osrsps.game.content.registerWaterAndDummies
 import osrsps.game.content.registerWiseOldMan
+import osrsps.game.content.registerWizardsTower
+import osrsps.game.content.registerWizardsTowerPeople
+import osrsps.game.content.registerJalarast
+import osrsps.game.content.registerRick
 import osrsps.game.content.registerBones
 import osrsps.game.content.registerRoguesDen
 import osrsps.game.content.registerRottenPotato
@@ -165,6 +173,7 @@ import osrsps.game.npc.NpcSpawn
 import osrsps.game.npc.Npcs
 import osrsps.game.encounter.EncounterDef
 import osrsps.game.encounter.Encounters
+import osrsps.game.raid.ArchiveRaids
 import osrsps.game.raid.Parties
 import osrsps.game.raid.PartyScaling
 import osrsps.game.script.Handlers
@@ -205,11 +214,13 @@ import osrsps.game.social.Reports
 import osrsps.game.trade.TradeJournal
 import osrsps.game.trade.Trades
 import osrsps.game.zone.ZoneKey
+import osrsps.game.zone.ZoneLoc
 import osrsps.game.zone.Zones
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
 import osrsps.map.Route
 import osrsps.map.RouteTarget
+import osrsps.map.Tile
 import java.nio.file.Path
 import kotlin.io.path.exists
 import kotlin.io.path.readText
@@ -341,6 +352,9 @@ class World(
     /** Raid parties; see [Parties]. */
     val parties = Parties()
 
+    /** The Fractured Archive's runs; see [ArchiveRaids]. */
+    val archiveRaids = ArchiveRaids(this)
+
     /** Boss fights in progress; see [Encounters]. */
     val encounters = Encounters(this, encounterDefs)
 
@@ -463,7 +477,11 @@ class World(
 
     private val locInteractions = LocInteractions(
         locs, collision, movement, handlers, scripts, doors, gates, words = ::textFor, inInstance = { x, z -> instances.at(x, z) != null },
+        forInstances = { it in ArchiveRaids.INSTANCE_LOCS },
     )
+
+    /** Lets loc type [id] be used from the tiles [tiles] gives, as a stepping stone from the bank; see [LocInteractions.useFrom]. */
+    fun useLocFrom(id: Int, tiles: (Player, ZoneLoc) -> List<Tile>) = locInteractions.useFrom(id, tiles)
 
     val npcInteractions: NpcInteractions = NpcInteractions(
         npcs, npcTypes, collision, movement, handlers, scripts, { tick },
@@ -491,6 +509,7 @@ class World(
         special = { specialAttacks.use(it, combat.weapon(it)) },
         specialLanded = { npc, dealt, special -> specialAttacks.landed(npc, dealt, special) },
         projectile = zones::projectile,
+        npcDamaged = { npc, player, dealt -> archiveRaids.damaged(npc, player, dealt) },
     )
 
     /** Aggressive NPCs going for players, and players' tolerance; see [Aggression]. */
@@ -535,9 +554,24 @@ class World(
         words = ::textFor, cure = {
             poison.clear(it)
             statusEffects.clear(it)
+            it.wearyTicks = 0
             specialAttacks.refill(it)
         },
+        placeOf = ::deathPlace,
+        teleport = { player, x, z, level -> teleport(player, x, z, level) },
+        drop = { player, type, count -> dropUnder(player, type, count) },
     )
+
+    /**
+     * Where a player dying here comes back and their grave goes: a raid's say ([ArchiveRaids.deathPlace]); in any other
+     * instance the grave goes to its exit, since nobody could get back in to it (exploit review round 9, INST-1), and
+     * they come back at the spawn; elsewhere, null: the spawn, and the grave where they fell.
+     */
+    private fun deathPlace(player: Player): DeathPlace? {
+        archiveRaids.deathPlace(player)?.let { return it }
+        val instance = instances.at(player.x, player.z) ?: return null
+        return DeathPlace(keepItems = false, instance.exitX, instance.exitZ, instance.exitLevel, SPAWN_X, SPAWN_Z, SPAWN_LEVEL)
+    }
 
     /** The words of every dialogue line now; see [loadDialogue]. */
     var dialogueText: DialogueText = DialogueText.NONE
@@ -600,6 +634,26 @@ class World(
             }
         },
         playerByKey = { key -> findPlayer(key) },
+        pickRank = { player, list, picked ->
+            interfaces.openInside(player, list.parent, list.component, Clans.POPUPOVERLAY)
+            interfaces.runClientScript(
+                player, Clans.SCRIPT_RANK_POPUP,
+                listOf(list.title, list.current, list.min, list.max, if (list.nobody) 1 else 0, Clans.component(list.parent, list.component)),
+            )
+            scripts.start(player) {
+                // clan_rankpopup sends the rank clicked plus one (0 for Guest); closing it sends the current one's. The
+                // current rank is taken as no change: else closing a list someone else's change made stale would undo it.
+                val answer = waitForCount()
+                if (list.parent in player.modals.values) interfaces.closeInside(player, list.parent, list.component)
+                if (answer >= 0 && answer - 1 != list.current) picked(answer - 1)
+            }
+        },
+        pickOption = { player, title, options, picked ->
+            scripts.start(player) {
+                dialogues.start(this) { picked(choice(*options.toTypedArray(), title = title) - 1) }
+            }
+        },
+        askAmount = { player, prompt, typed -> scripts.start(player) { typed(countDialog(prompt)) } },
         now = clansClock,
     )
 
@@ -739,6 +793,11 @@ class World(
         registerDraynorManor(this)
         registerDraynorManorPeople(this)
         registerWiseOldMan(this)
+        registerWizardsTower(this)
+        registerEssenceMine(this)
+        registerWizardsTowerPeople(this)
+        registerJalarast(this)
+        registerRick(this)
         registerFredsFarm(this)
         registerGroatsFarm(this)
         registerWaterAndDummies(this)
@@ -757,10 +816,13 @@ class World(
         registerBarbarianVillage(this)
         registerCooksGuild(this)
         registerEdgevilleDungeon(this)
+        registerStrongholdOfSecurity(this)
+        registerSkullSceptre(this)
         registerHaystacks(this)
         registerLodestones(this)
         registerVarrock(this)
         registerArchiveLobby(this)
+        archiveRaids.register()
         registerRoguesDen(this)
         registerCrops(this)
         ducks.register()
@@ -1085,7 +1147,13 @@ class World(
     private fun tick() {
         tick++
         phase = TickPhase.WORLD
-        for (player in players) if (player != null) prayers.startTick(player)
+        for (player in players) {
+            if (player == null) continue
+            prayers.startTick(player)
+            // At the tick's start: before an encounter (NPC phase) wearies anyone, so ten ticks of it are ten movement
+            // phases, and before both of the movement phase's combat checks, so they see the same value.
+            if (player.wearyTicks > 0) player.wearyTicks--
+        }
         endEmptyInstances()
         groundObjs.process()
         phase = TickPhase.INPUT
@@ -1107,6 +1175,7 @@ class World(
         deaths.process()
         npcScripts.process()
         encounters.process()
+        archiveRaids.process()
         thieving.process()
         npcs.process()
         fishing.process()
@@ -2110,6 +2179,12 @@ class World(
     /** Kick user on a friends chat member. */
     fun onFriendsChatKick(player: Player, name: String) = act(player) { friendChats.kick(player, name) }
 
+    /** Kick guest in the clan channel's list; see [Clans.kickFromChannel]. */
+    fun onClanKick(player: Player, clanType: Int, name: String) = act(player) { clans.kickFromChannel(player, clanType, name) }
+
+    /** Ban guest in the clan channel's list; see [Clans.banFromChannel]. */
+    fun onClanBan(player: Player, clanType: Int, name: String) = act(player) { clans.banFromChannel(player, clanType, name) }
+
     /** Join Chat's typed name, or Leave Chat (no name). Works while dead, as the client changes its panel at once. */
     fun onFriendsChatJoinLeave(player: Player, name: String?) = actWhileDead(player) {
         if (name == null) friendChats.leave(player) else friendChats.join(player, name)
@@ -2204,6 +2279,9 @@ class World(
         if (interfaceId == Clans.GUEST_SIDEPANEL && clans.clickGuest(player, componentId, ::askGuestClanName)) return@act
         if (interfaceId == Clans.INFO && clans.clickInfo(player, componentId)) return@act
         if (interfaceId == Clans.APPLICANTS && clans.clickApplicants(player, componentId)) return@act
+        if (interfaceId == Clans.MEMBERS && clans.clickMembers(player, componentId, sub)) return@act
+        if (interfaceId == Clans.BANNED && clans.clickBanned(player, componentId)) return@act
+        if (interfaceId == Clans.PERMISSIONS && clans.clickPermissions(player, componentId, sub)) return@act
         if (interfaceId == Clans.YOUR_CLAN && componentId == Clans.YOUR_CLAN_SETTINGS) {
             clans.openYourInfo(player)
             return@act
@@ -2255,6 +2333,9 @@ class World(
             return@act
         }
         if (interfaceId == LOGOUT_TAB && componentId == LOGOUT_BUTTON) {
+            // A delayed player (part way along an agility obstacle, say) can't log out, or they would be saved on a tile
+            // the move only passes through (round 12 exploit review, R12B-1). Inferred from live's p_delay.
+            if (player.scripts.delayed) return@act
             if (inCombat(player)) {
                 player.message(textFor(player)[GameLines.CANT_LOG_OUT])
                 return@act
@@ -2430,7 +2511,8 @@ class World(
 
     fun onResumeString(player: Player, text: String) = act(player) {
         if (player.scripts.delayed) return@act
-        if (!scripts.resumeString(player, text)) logger.debug { "${player.username} typed text nothing waits for" }
+        if (scripts.resumeString(player, text) || clans.typedOnBanned(player, text)) return@act
+        logger.debug { "${player.username} typed text nothing waits for" }
     }
 
     /**
@@ -2689,6 +2771,11 @@ class World(
         player.zoneView.reset()
     }
 
+    /** Sends everyone in [instance] its zones again: for a part of it laid anew ([Instances.replace]). */
+    fun redrawInstance(instance: Instance) {
+        for (player in players) if (player != null && instance.contains(player.x, player.z)) rebuild(player)
+    }
+
     /**
      * Ends each instance nobody is in any more, with everything in it: NPCs, objs and loc changes. A player whose
      * connection dropped still counts until they are removed, so a reconnect finds it.
@@ -2745,7 +2832,8 @@ class World(
             player.logoutRequested = false
             player.message(textFor(player)[GameLines.CANT_LOG_OUT])
         }
-        if (player.logoutRequested || player.logoutForced) {
+        // A request made in the tick a delay began waits for the delay to end, so the move finishes first (R12B-1).
+        if (player.logoutForced || (player.logoutRequested && !player.scripts.delayed)) {
             // Sends the client back to the login screen. requestClose flushes and drops our disconnection hook, so
             // the player is removed on the next tick by hand.
             session.queue(Logout)

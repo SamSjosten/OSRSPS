@@ -70,7 +70,7 @@ class RaidCommandsTest {
                 "guardian's phases: 1 flying, 2 grounded",
                 "The party size must be 1 to 8",
                 "The seed must be a whole number",
-                "Usage: ::raid [boss [phase=name|n] [party=n] [seed=n]] | ::raid log [lines] | ::raid digest [ticks] | ::raid stop",
+                "Usage: ::raid [boss [phase=name|n] [party=n] [seed=n]] | ::raid log [lines] | ::raid digest [ticks] | ::raid stop | ::raid run | ::raid tp <nexus|room> | ::raid clear",
                 "You're not in a fight.",
                 "You're not in a fight.",
             ),
@@ -87,6 +87,18 @@ class RaidCommandsTest {
         replies.clear()
         world.run("raid log")
         assertEquals(listOf("0 open: phase starts", "0 open: first"), replies)
+    }
+
+    @Test
+    fun `a reset ends the test fight the player started, so a script that stopped part way leaves none behind`() {
+        // Nightly 2026-11-08: archive-guardian-hazards failed with its fight still going on the login tile, and the
+        // Guardian killed the account there again and again through every script after it.
+        val world = world(def)
+        player.beforeScenario = world.snapshot(player)
+        world.run("raid guardian")
+        world.run("reset")
+        assertEquals(0, world.npcs.count, "the boss went with the reset")
+        assertEquals(emptyList(), world.encounters.all)
     }
 
     @Test

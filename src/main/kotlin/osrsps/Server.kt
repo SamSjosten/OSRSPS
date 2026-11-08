@@ -42,6 +42,7 @@ import osrsps.game.Quests
 import osrsps.game.Scenarios
 import osrsps.game.VarTypes
 import osrsps.game.World
+import osrsps.game.World.Companion.TICK_MILLIS
 import osrsps.game.XpRate
 import osrsps.game.WearRequirements
 import osrsps.game.SeqNames
@@ -57,6 +58,7 @@ import osrsps.game.combat.Spells
 import osrsps.game.dialogue.ChatFont
 import osrsps.game.dialogue.DialogueFile
 import osrsps.game.npc.NpcSpawnFile
+import osrsps.game.raid.ArchiveGuardian
 import osrsps.game.raid.PartyScaling
 import osrsps.game.shop.ShopTypes
 import osrsps.game.skill.SkillUnlocks
@@ -99,8 +101,12 @@ class GameServer(
     private val rsaModulus: BigInteger? = null,
     /** deploy/auto-deploy.sh's state folder, which can name a newer commit for /version; see [ClientConfig]. */
     deployState: Path? = null,
+    /** Real time between game cycles. Only the headless script runs shorten it; the game itself always runs at [TICK_MILLIS]. */
+    private val cycleMillis: Long = TICK_MILLIS,
 ) {
-    private lateinit var world: World
+    /** The game world, once [start] has built it. The headless script runs read the cache's types and map from it. */
+    lateinit var world: World
+        private set
     private val clientConfig = ClientConfig(
         publicHost, httpPort, gamePort = port, version = version, deployState = deployState, proxy = proxy,
         runelitePins = RuneLitePins.load(), reports = ProblemReports(dataDir.resolve(ProblemReports.FOLDER)),
@@ -119,13 +125,16 @@ class GameServer(
         },
     )
     private val js5Connections = AtomicLong()
+
+    /** The cache's Huffman table, which chat is compressed with; set by [start]. */
+    lateinit var huffman: HuffmanCodec
+        private set
     private lateinit var factory: NetworkFactory
     private lateinit var network: NetworkService<Player>
 
     fun start() {
         val library = CacheLibrary.create(dataDir.resolve("cache").toString())
         val js5: Js5Store
-        val huffman: HuffmanCodec
         val map: WorldMap
         val interfaceIds: Set<Int>
         val varTypes: VarTypes
@@ -246,7 +255,8 @@ class GameServer(
             attackStyles = attackStyles, npcCombat = npcCombat, npcDrops = npcDrops, partyScaling = partyScaling, rangedWeapons = rangedWeapons,
             spells = spells, prayerList = prayers, foodList = Foods.load(objTypes), potionData = Potions.load(objTypes), shopTypes = shopTypes, skillUnlocks = skillUnlocks, ipBans = ipBans, xpRate = xpRate,
             wearRequirements = wearRequirements, itemPrices = itemPrices, itemPricesFile = itemPricesFile, settings = settings,
-            specialAttackCosts = specialAttackCosts,
+            specialAttackCosts = specialAttackCosts, encounterDefs = listOfNotNull(ArchiveGuardian.def(npcTypes)),
+            cycleMillis = cycleMillis,
         )
         loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world, relays, proxy, js5Connections)

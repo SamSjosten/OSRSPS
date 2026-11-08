@@ -1,0 +1,427 @@
+{
+ "name": "Raid step 15: two solo runs of The Fractured Archive through its empty rooms, one by the west doors (Ezekiel, Moia, the Dagon'hai Elder) and one by the east (Bork, Dreadnoth, Xarth), each from the Archive Door through the Guardian's hall to Ocellus's room; the transporters and a Passageway back out. The Guardian's room is marked done with ::raid clear (its fight is archive-guardian.json); no other boss is built yet, so each other room is done as it begins",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare",
+   "comment": "nothing carried; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::tele 4127 5560 0",
+   "expectMessage": "Teleported to 4127, 5560, 0",
+   "comment": "the lobby, in front of the Archive Door"
+  },
+  {
+   "step": "locOption",
+   "locId": 62768,
+   "option": "Enter",
+   "timeoutMs": 20000,
+   "comment": "tfa_lobby_raid_entry: into the party's own copy of the raid (a party of one for a player in none)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 6
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "You're in the nexus's entrance",
+   "comment": "the Archive Door lands in the nexus's entrance, south of its hall"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp guardian",
+   "expectMessage": "To Archive Guardian's room",
+   "comment": "into the nexus's hall, where the Guardian waits to be touched (raid step 16)"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Archive Guardian's room.",
+   "comment": "the Guardian's fight is its own script (archive-guardian.json): here its room is just marked done"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "done Archive Guardian;",
+   "comment": "the first row of doors opens, and the nexus shows the Guardian's corpse and the camp (its level 2)"
+  },
+  {
+   "step": "locOption",
+   "locId": 63088,
+   "option": "Enter",
+   "timeoutMs": 20000,
+   "comment": "the door into Ezekiel's room"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 40,
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "done Archive Guardian, Ezekiel;",
+   "comment": "in Ezekiel's room, done as soon as it begins, no boss being built yet"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "You're in Ezekiel's room"
+  },
+  {
+   "step": "locOption",
+   "locId": 63087,
+   "option": "Use",
+   "timeoutMs": 20000,
+   "comment": "the Archive transporter: back out to the nexus, in front of the door"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 30,
+   "comment": "the walk to the transporter and its teleport, with room to spare"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "You're in the nexus's hall"
+  },
+  {
+   "step": "locOption",
+   "locId": 63096,
+   "option": "Enter",
+   "timeoutMs": 20000,
+   "comment": "the door into Moia's room"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 40,
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "done Archive Guardian, Ezekiel, Moia;",
+   "comment": "in Moia's room, done as soon as it begins, no boss being built yet"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "You're in Moia's room"
+  },
+  {
+   "step": "locOption",
+   "locId": 62610,
+   "option": "Use",
+   "timeoutMs": 20000,
+   "comment": "Moia's Archive transporter: back out to the nexus, in front of the door"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 30,
+   "comment": "the walk to the transporter and its teleport, with room to spare"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "You're in the nexus's hall"
+  },
+  {
+   "step": "locOption",
+   "locId": 63102,
+   "option": "Quick-enter",
+   "timeoutMs": 20000,
+   "comment": "the door into Dagon'hai Elder's room"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 40,
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "done Archive Guardian, Ezekiel, Moia, Dagon'hai Elder;",
+   "comment": "in Dagon'hai Elder's room, done as soon as it begins, no boss being built yet"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "You're in Dagon'hai Elder's room"
+  },
+  {
+   "step": "locOption",
+   "locId": 63087,
+   "option": "Quick-use",
+   "timeoutMs": 20000,
+   "comment": "the Archive transporter: back out to the nexus, in front of the door"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 30,
+   "comment": "the walk to the transporter and its teleport, with room to spare"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "You're in the nexus's hall"
+  },
+  {
+   "step": "locOption",
+   "locId": 62766,
+   "option": "Exit",
+   "timeoutMs": 20000,
+   "comment": "tfa_exit_large, the nexus's Passageway north, there on its level 3 once the fourth room is done"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 40,
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "; complete;",
+   "comment": "Ocellus's room, done as it begins: the run is complete (the reward room is step 28)"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "points test",
+   "comment": "solo, every room's 1,000 points (a guess) are this player's; the account's name may be test or test2 (the nightly runs on test2), so the line is matched up to the name and checked again for the total in the next step"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": " 5000",
+   "comment": "five rooms' 1,000"
+  },
+  {
+   "step": "command",
+   "text": "::tele 4127 5560 0",
+   "expectMessage": "Teleported to 4127, 5560, 0",
+   "comment": "out of the instance, which ends behind us"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "the instance gone before the next run opens"
+  },
+  {
+   "step": "command",
+   "text": "::tele 4127 5560 0",
+   "expectMessage": "Teleported to 4127, 5560, 0",
+   "comment": "the lobby, in front of the Archive Door"
+  },
+  {
+   "step": "locOption",
+   "locId": 62768,
+   "option": "Enter",
+   "timeoutMs": 20000,
+   "comment": "tfa_lobby_raid_entry: into the party's own copy of the raid (a party of one for a player in none)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 6
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "You're in the nexus's entrance",
+   "comment": "the Archive Door lands in the nexus's entrance, south of its hall"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp guardian",
+   "expectMessage": "To Archive Guardian's room",
+   "comment": "into the nexus's hall, where the Guardian waits to be touched (raid step 16)"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Archive Guardian's room.",
+   "comment": "the Guardian's fight is its own script (archive-guardian.json): here its room is just marked done"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "done Archive Guardian;",
+   "comment": "the first row of doors opens, and the nexus shows the Guardian's corpse and the camp (its level 2)"
+  },
+  {
+   "step": "locOption",
+   "locId": 63091,
+   "option": "Quick-enter",
+   "timeoutMs": 20000,
+   "comment": "the door into Bork and the Smorks's room"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 40,
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "done Archive Guardian, Bork and the Smorks;",
+   "comment": "in Bork and the Smorks's room, done as soon as it begins, no boss being built yet"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "You're in Bork and the Smorks's room"
+  },
+  {
+   "step": "locOption",
+   "locId": 63087,
+   "option": "Use",
+   "timeoutMs": 20000,
+   "comment": "the Archive transporter: back out to the nexus, in front of the door"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 30,
+   "comment": "the walk to the transporter and its teleport, with room to spare"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "You're in the nexus's hall"
+  },
+  {
+   "step": "locOption",
+   "locId": 63099,
+   "option": "Enter",
+   "timeoutMs": 20000,
+   "comment": "the door into Dreadnoth the Jellied's room"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 40,
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "done Archive Guardian, Bork and the Smorks, Dreadnoth the Jellied;",
+   "comment": "in Dreadnoth the Jellied's room, done as soon as it begins, no boss being built yet"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "You're in Dreadnoth the Jellied's room"
+  },
+  {
+   "step": "locOption",
+   "locId": 62765,
+   "option": "Exit",
+   "timeoutMs": 20000,
+   "comment": "the Passageway: back out to the nexus, in front of the door"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 40,
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "You're in the nexus's hall"
+  },
+  {
+   "step": "locOption",
+   "locId": 63105,
+   "option": "Enter",
+   "timeoutMs": 20000,
+   "comment": "the door into Xarth's room"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 40,
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "done Archive Guardian, Bork and the Smorks, Dreadnoth the Jellied, Xarth;",
+   "comment": "in Xarth's room, done as soon as it begins, no boss being built yet"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "You're in Xarth's room"
+  },
+  {
+   "step": "locOption",
+   "locId": 63087,
+   "option": "Use",
+   "timeoutMs": 20000,
+   "comment": "the Archive transporter: back out to the nexus, in front of the door"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 30,
+   "comment": "the walk to the transporter and its teleport, with room to spare"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "You're in the nexus's hall"
+  },
+  {
+   "step": "locOption",
+   "locId": 62766,
+   "option": "Exit",
+   "timeoutMs": 20000,
+   "comment": "tfa_exit_large, the nexus's Passageway north, there on its level 3 once the fourth room is done"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 40,
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "; complete;",
+   "comment": "Ocellus's room, done as it begins: the run is complete (the reward room is step 28)"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "points test",
+   "comment": "solo, every room's 1,000 points (a guess) are this player's; the account's name may be test or test2 (the nightly runs on test2), so the line is matched up to the name and checked again for the total in the next step"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": " 5000",
+   "comment": "five rooms' 1,000"
+  },
+  {
+   "step": "command",
+   "text": "::tele 4127 5560 0",
+   "expectMessage": "Teleported to 4127, 5560, 0",
+   "comment": "out of the instance, which ends behind us"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

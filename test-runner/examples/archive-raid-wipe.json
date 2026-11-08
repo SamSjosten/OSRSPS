@@ -1,0 +1,158 @@
+{
+ "name": "Raid step 15: a solo death in The Fractured Archive wipes the party: back to the lobby in front of the Archive Door, with the three most valuable items, and the rest in a grave there to loot",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare",
+   "comment": "nothing worn or carried; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::heal",
+   "expectMessage": "Healed to "
+  },
+  {
+   "step": "command",
+   "text": "::item rune platebody",
+   "expectMessage": "Added 1 x Rune platebody"
+  },
+  {
+   "step": "command",
+   "text": "::item rune full helm",
+   "expectMessage": "Added 1 x Rune full helm"
+  },
+  {
+   "step": "command",
+   "text": "::item rune scimitar",
+   "expectMessage": "Added 1 x Rune scimitar"
+  },
+  {
+   "step": "command",
+   "text": "::item bronze sword",
+   "expectMessage": "Added 1 x Bronze sword"
+  },
+  {
+   "step": "command",
+   "text": "::tele 4127 5560 0",
+   "expectMessage": "Teleported to 4127, 5560, 0",
+   "comment": "the lobby, in front of the Archive Door"
+  },
+  {
+   "step": "locOption",
+   "locId": 62768,
+   "option": "Enter",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 6
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "You're in the nexus's entrance"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp guardian",
+   "expectMessage": "To Archive Guardian's room"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Archive Guardian's room.",
+   "comment": "the Guardian waits to be touched (raid step 16); its fight is archive-guardian.json, so here its room is just marked done"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "done Archive Guardian;"
+  },
+  {
+   "step": "command",
+   "text": "::hit 99 me",
+   "expectMessage": ", dead",
+   "comment": "alone, nobody is left standing: the party wipes"
+  },
+  {
+   "step": "assertLocation",
+   "x": 4127,
+   "y": 5560,
+   "plane": 0,
+   "timeoutMs": 15000,
+   "comment": "back in the lobby, in front of the Archive Door, after the death ticks"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Rune platebody",
+   "count": 1,
+   "comment": "a wipe loses what any death does: the three most valuable kept"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bronze sword",
+   "count": 0
+  },
+  {
+   "step": "npcOption",
+   "npc": "Grave",
+   "option": "Check",
+   "comment": "the grave is in the lobby, on our tile"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[combat.grave_minutes minutes=15]"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Grave",
+   "option": "Loot"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 672,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 672,
+   "component": 8,
+   "comment": "Take-All"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bronze sword",
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "You're not in an Archive run",
+   "comment": "the wiped run has ended with its instance"
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

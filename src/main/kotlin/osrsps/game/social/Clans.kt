@@ -8,6 +8,7 @@ import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
 import net.rsprot.protocol.game.outgoing.misc.player.SetPlayerOp
 import net.rsprot.protocol.message.OutgoingGameMessage
 import osrsps.game.Player
+import osrsps.game.Quests
 import osrsps.game.Skill
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.dialogue.Line
@@ -48,7 +49,20 @@ private val logger = KotlinLogging.logger {}
  * the channel, hears of it), and then reads Withdraw (clan_transmit_guestisapplying). As a member its Leave Clan
  * button asks first and then leaves; the owner can't leave (live: they must hand the clan over first). Its Applications
  * button opens the applicants page (clans_applicants, 699) for recruiters: the applicants by name (client script 4376),
- * Review on one shows their levels (4375), and Accept makes them a member while Decline drops the application.
+ * Review on one shows their levels (4375), and Accept makes them a member while Decline drops the application. Its
+ * Members button opens the members page (clans_members, 693), which draws itself from the clan settings; there Edit
+ * rank on a member below an Administrator or higher shows the client's rank list (clan_rankpopup in popupoverlay), and
+ * the rank picked is theirs. Its columns' dropdowns pick what each column shows (the server keeps track); with Expel
+ * picked, Expel on a member below a member who may expel asks first and then takes them out of the clan. Its
+ * Permissions button opens the permissions page (clans_permissions, 706).
+ *
+ * Kicks and bans (step 11d): in the channel's list, Kick guest takes a guest out of the channel and keeps them out for
+ * an hour, and Ban guest takes them out and puts them on the clan's ban list (in the clan settings), which keeps them
+ * out until Unban on the settings page's ban list (clans_banned, 689) takes them off it.
+ *
+ * Permissions follow client proc clan_permission_get (rev 241): the clan settings carry each permission var as its rank
+ * plus 2, a permission never needs less than its floor (Administrator for most) or the permission it rests on, and
+ * Talk in chat and Kick from chat are the settings' talk and kick ranks, which the permissions page also changes.
  *
  * Guessed: the Hub's edges, the founders' rank after founding (the lowest member rank, 0; the founder is owner, 126),
  * the creation time and join day encodings, that finding a clan doesn't join its channel (the panel's text says "You
@@ -56,8 +70,11 @@ private val logger = KotlinLogging.logger {}
  * rank, the Apply and Leave Clan questions, that only the owner hears of applicants (until ranks and permissions),
  * that someone in a clan can't apply to another, and every game message (keys in [ClanLines], words from the Wiki where
  * it has them), the applicants page's Back going to the settings page, an accepted member's rank (the lowest, 0), the
- * applicant hearing of either answer, and accepting dropping their applications elsewhere. Not built yet: inviting
- * after founding, handing the clan over, ranks and permissions, settings, kicks and bans.
+ * applicant hearing of either answer, accepting dropping their applications elsewhere, and Administrators and up
+ * editing the ranks below their own, the Expel question and expelling only those below, the kick lasting an hour,
+ * guests still finding a clan they are banned from, and a new clan's permissions (Administrator where that is the
+ * floor, the owner for recruiting and kicking, any member talks). Not built yet: inviting after founding, handing the
+ * clan over, rank titles, the guest settings (listening and requirements), the ban list's Add button, and muting.
  */
 class Clans(
     private val store: ClanStore,
@@ -83,6 +100,16 @@ class Clans(
     private val confirm: (Player, String, () -> Unit) -> Unit,
     /** The online player with a save key, or null. */
     private val playerByKey: (String) -> Player?,
+    /**
+     * Shows the client's rank list (clan_rankpopup) in popupoverlay, opened in the given interface and component, titled
+     * with the given words, the current rank picked and the ranks from the first to the second number (with Nobody when
+     * asked); runs the action with the rank clicked.
+     */
+    private val pickRank: (Player, RankList, (Int) -> Unit) -> Unit = { _, _, _ -> },
+    /** Shows the chatbox menu of the given options under the given title; runs the action with the one picked, from 0. */
+    private val pickOption: (Player, String, List<String>, (Int) -> Unit) -> Unit = { _, _, _, _ -> },
+    /** Asks for an amount with the given prompt over the chatbox's input line; runs the action with the amount typed. */
+    private val askAmount: (Player, String, (Int) -> Unit) -> Unit = { _, _, _ -> },
     private val now: () -> Instant = Instant::now,
 ) {
     /** A clan being formed: its leader, the founders who joined, the invited and the name picked. */
@@ -121,6 +148,29 @@ class Clans(
 
     /** The applicant each recruiter chose (Review) on the applicants page, by save key: theirs. */
     private val reviewing = HashMap<String, String>()
+
+    /** The member each editor has the rank list open for, by save key: theirs. Gone once answered or left. */
+    private val pickingRank = HashMap<String, String>()
+
+    /** The permission var each editor has the rank list open for, by save key. Gone once answered or left. */
+    private val pickingPermission = HashMap<String, Int>()
+
+    /**
+     * What each player's members page columns show, by save key: enum_3793 entries (0 Rank ... 6 Expel), picked from the
+     * columns' dropdowns. The client keeps them in varbits it sets itself (clan_members_column_1/2), which start at 0 at
+     * login, so the first column shows Rank and the second Joined until a pick.
+     */
+    private val columns = HashMap<String, IntArray>()
+
+    /** The clans whose recruiters heard of each player's application this session, by save key: their ids. */
+    private val told = HashMap<String, MutableSet<Long>>()
+
+    /**
+     * Guests kicked from each clan's channel, by clan id: until when, by save key. Kept over a logout (a kick that a
+     * relog undid wouldn't keep anyone out). Kicks that ran out go at each new kick and at the guest's next try, so it
+     * holds no more than the kicks of the last [KICK_MINUTES].
+     */
+    private val kicked = HashMap<Long, HashMap<String, Instant>>()
 
     private var updateNum = 0L
 
@@ -198,6 +248,10 @@ class Clans(
         infoAsGuest.remove(player.saveKey)
         shownApplicants.remove(player.saveKey)
         reviewing.remove(player.saveKey)
+        pickingRank.remove(player.saveKey)
+        pickingPermission.remove(player.saveKey)
+        columns.remove(player.saveKey)
+        told.remove(player.saveKey)
         tabs.remove(player.saveKey)
         inHub.remove(player.saveKey)
         shownName.remove(player.saveKey)
@@ -229,6 +283,7 @@ class Clans(
     fun disband(clan: ClanStore.Clan, online: (String) -> Player?) {
         store.delete(clan)
         channels.remove(clan.id)
+        kicked.remove(clan.id)
         // Its guests lose it too, as a Discard would, whether or not they were in its channel.
         for (key in listening.filterValues { it == clan.id }.keys.toList()) {
             listening.remove(key)
@@ -303,6 +358,8 @@ class Clans(
      * clan_transmit_guestisapplying.
      */
     private fun openInfo(player: Player, asGuest: Boolean) {
+        pickingRank.remove(player.saveKey)
+        pickingPermission.remove(player.saveKey)
         infoAsGuest[player.saveKey] = asGuest
         setVarbit(player, VARBIT_INFO_AS_GUEST, if (asGuest) 1 else 0)
         if (asGuest) showApplying(player)
@@ -318,10 +375,16 @@ class Clans(
     /**
      * A click on the clan's settings page. Returns whether it was one. As a guest, Apply asks first and then applies;
      * Withdraw takes the application back. As a member, Leave Clan asks first and then leaves, and Applications opens
-     * the applicants page for recruiters. The other buttons (events, members, hall, permissions, titles, bans) aren't
-     * built.
+     * the applicants page for recruiters, Members the members page and Permissions the permissions page; Banned opens the
+     * ban list either way. The other buttons (events, hall, titles) aren't built.
      */
     fun clickInfo(player: Player, component: Int): Boolean {
+        // The frame's close button (clans_info:close, transmitop 1): the client sends the click and leaves the closing to
+        // the server when clan_info_editable hasn't given it closebutton_click (VM 215, 2026-11-08: the page stayed open).
+        if (component == INFO_CLOSE) {
+            if (INFO in player.modals.values) closeModals(player)
+            return true
+        }
         if (component !in INFO_BUTTONS) return false
         // Only while the page is open: a click sent after it closed, or forged, does nothing.
         if (INFO !in player.modals.values) return true
@@ -336,6 +399,9 @@ class Clans(
                 }
             }
             component == INFO_APPLICATIONS && !asGuest -> openApplicants(player)
+            component == INFO_MEMBERS && !asGuest -> openMembers(player)
+            component == INFO_PERMISSIONS && !asGuest -> openPermissions(player)
+            component == INFO_BANNED -> openBanned(player)
             component == INFO_QUIT && !asGuest -> {
                 val clan = clanOf(player) ?: return true
                 if (clan.member(player.saveKey)?.rank == RANK_OWNER) {
@@ -359,9 +425,11 @@ class Clans(
         store.addApplicant(clan, player.saveKey, player.username, statsOf(player))
         showApplying(player)
         tell(player, ClanLines.APPLIED, clan.name)
-        // Recruiters in the channel hear of it (inferred: the Wiki says recruiters are notified, not how).
+        // Recruiters in the channel hear of it (inferred: the Wiki says recruiters are notified, not how): once per clan
+        // per session, so Apply / Withdraw in a loop can't flood them, and not those who ignore the applicant.
+        if (!told.getOrPut(player.saveKey) { HashSet() }.add(clan.id)) return
         for (member in channels[clan.id].orEmpty()) {
-            if ((clan.member(member.saveKey)?.rank ?: RANK_GUEST) >= RECRUIT_RANK) tell(member, ClanLines.NEW_APPLICANT, player.username)
+            if (has(member, clan, VAR_RECRUITMENT) && !ignores.ignores(member, player)) tell(member, ClanLines.NEW_APPLICANT, player.username)
         }
     }
 
@@ -377,15 +445,22 @@ class Clans(
         if (clan.member(player.saveKey)?.rank == RANK_OWNER) return
         leaveChannel(player, clan, tell = false)
         store.removeMember(clan, player.saveKey)
+        removed(player)
+        sendSettings(clan)
+        tell(player, ClanLines.LEFT_CLAN, clan.name)
+    }
+
+    /** [player] was just taken out of their clan: their client drops it, and the Clans tab shows them out of a clan. */
+    private fun removed(player: Player) {
         setVarbit(player, VARBIT_AFFINITY, AFFINITY_NONE)
         send(player, ClanChannelFull(CLAN_TYPE_CLAN, ClanChannelFull.LeaveUpdate))
         send(player, ClanSettingsFull(CLAN_TYPE_CLAN, ClanSettingsFull.LeaveUpdate))
-        sendSettings(clan)
         infoAsGuest.remove(player.saveKey)
+        pickingRank.remove(player.saveKey)
+        pickingPermission.remove(player.saveKey)
         closeModals(player)
         showRecruit(player)
         if (tabs[player.saveKey] == TAB_YOUR_CLAN) openYourClan(player)
-        tell(player, ClanLines.LEFT_CLAN, clan.name)
     }
 
     /** [clan]'s settings again, to every online member and everyone with it loaded as a guest, in its channel or not. */
@@ -425,7 +500,45 @@ class Clans(
         return true
     }
 
-    private fun isRecruiter(player: Player, clan: ClanStore.Clan): Boolean = (clan.member(player.saveKey)?.rank ?: RANK_GUEST) >= RECRUIT_RANK
+    /**
+     * `::clanbanned`: a ban no account can be under (a name with a `~`) on [clan]'s ban list, for test scripts to unban.
+     * False if it is there already.
+     */
+    fun addTestBan(clan: ClanStore.Clan): Boolean {
+        if (clan.banned(TEST_BANNED_KEY) != null) return false
+        store.addBanned(clan, TEST_BANNED_KEY, TEST_BANNED_NAME)
+        sendSettings(clan)
+        return true
+    }
+
+    private fun isRecruiter(player: Player, clan: ClanStore.Clan): Boolean = has(player, clan, VAR_RECRUITMENT)
+
+    /**
+     * The rank [clan] has set for permission [id] (a varclansetting id, or [PERM_TALK] / [PERM_KICK]): as set, else its
+     * default; a rank the client doesn't take for it (Nobody, kept by an earlier build, or Guest where it isn't allowed)
+     * reads as the owner's, as client proc clan_permission_get reads it (rev 241).
+     */
+    fun setting(clan: ClanStore.Clan, id: Int): Int {
+        val rank = clan.settings[id] ?: SETTING_DEFAULTS[id] ?: RANK_OWNER
+        return if (validFor(id, rank)) rank else RANK_OWNER
+    }
+
+    /**
+     * The rank permission [id] needs in [clan], as client proc clan_permission_get works it out: the rank set, but no
+     * lower than the permission's floor (its struct's param_1253: Administrator for most) or the rank of the permission
+     * it rests on (param_1254: Expel on Assign member ranks, Kick on Talk, Ban on Kick).
+     */
+    fun permission(clan: ClanStore.Clan, id: Int): Int {
+        var rank = maxOf(setting(clan, id), PERMISSION_FLOORS[id] ?: 0)
+        PERMISSION_BASES[id]?.let { rank = maxOf(rank, permission(clan, it)) }
+        return rank
+    }
+
+    /** Whether [rank] can be set for permission [id]: a member rank, or Guest where the floor is below members (Talk). */
+    private fun validFor(id: Int, rank: Int): Boolean = rank in MEMBER_RANKS || (rank == RANK_GUEST && (PERMISSION_FLOORS[id] ?: 0) < 0)
+
+    /** Whether [player]'s rank in [clan] meets the rank permission [id] needs. */
+    private fun has(player: Player, clan: ClanStore.Clan, id: Int): Boolean = (clan.member(player.saveKey)?.rank ?: RANK_GUEST) >= permission(clan, id)
 
     /**
      * The settings page's Applications button as a member: the applicants page, for recruiters (inferred: others get
@@ -478,9 +591,13 @@ class Clans(
     fun clickApplicants(player: Player, component: Int): Boolean {
         if (component !in APPLICANTS_BUTTONS) return false
         if (APPLICANTS !in player.modals.values) return true
+        // Back works even after Recruitment was raised above the player's rank while the page was open.
+        if (component == APPLICANTS_EXIT) {
+            if (clanOf(player) != null) openInfo(player, asGuest = false)
+            return true
+        }
         val clan = clanOf(player)?.takeIf { isRecruiter(player, it) } ?: return true
         when (component) {
-            APPLICANTS_EXIT -> openInfo(player, asGuest = false)
             APPLICANTS_REFRESH -> showApplicants(player, clan)
             APPLICANTS_ACCEPT, APPLICANTS_REJECT -> {
                 val applicant = reviewing[player.saveKey]?.let { clan.applicant(it) }
@@ -574,9 +691,138 @@ class Clans(
         val clan = guestClanOf(player) ?: return
         if (channels[clan.id]?.contains(player) == true) {
             leaveChannel(player, clan, tell = true, clanType = CLAN_TYPE_LISTENED)
-        } else {
+        } else if (mayJoinAsGuest(player, clan)) {
             joinChannel(player, clan)
         }
+    }
+
+    /** How many kicks are kept, every clan's (for tests). */
+    fun kicksKept(): Int = kicked.values.sumOf { it.size }
+
+    /**
+     * Whether [player] may join [clan]'s channel as a guest: not banned from it, the clan lets guests listen, they meet its
+     * guest requirements, and they weren't kicked from it in the last hour.
+     */
+    private fun mayJoinAsGuest(player: Player, clan: ClanStore.Clan): Boolean {
+        if (clan.banned(player.saveKey) != null) {
+            tell(player, ClanLines.STILL_BANNED, clan.name)
+            return false
+        }
+        if (!guestsMayListen(clan)) {
+            tell(player, ClanLines.GUESTS_BLOCKED, clan.name)
+            return false
+        }
+        if (!meetsGuestRequirements(player, clan)) {
+            tell(player, ClanLines.GUEST_REQUIREMENTS, clan.name)
+            return false
+        }
+        val kicks = kicked[clan.id]
+        val until = kicks?.get(player.saveKey) ?: return true
+        if (now().isBefore(until)) {
+            tell(player, ClanLines.STILL_KICKED, clan.name)
+            return false
+        }
+        kicks.remove(player.saveKey)
+        if (kicks.isEmpty()) kicked.remove(clan.id)
+        return true
+    }
+
+    /**
+     * Kick guest on a guest in the clan channel's list (CLANCHANNEL_KICKUSER, from clan_sidepanel_op 7): out of the
+     * channel, and kept out for [KICK_MINUTES]. The client offers it on guests to members whose rank meets the channel's
+     * kick rank (clan_sidepanel_drawchannel, rev 241; the "Kick from chat" permission is "kick guests temporarily").
+     */
+    fun kickFromChannel(player: Player, clanType: Int, name: String) {
+        val clan = clanOf(player) ?: return
+        val target = channelGuest(player, clan, clanType, name) ?: return
+        if (!has(player, clan, PERM_KICK)) {
+            tell(player, ClanLines.KICK_DENIED)
+            return
+        }
+        val time = now()
+        // Kicks that ran out go first, every clan's: else guests who never came back would be kept for good.
+        kicked.values.forEach { kicks -> kicks.values.removeIf { !time.isBefore(it) } }
+        kicked.values.removeIf { it.isEmpty() }
+        kicked.getOrPut(clan.id) { HashMap() }[target.saveKey] = time.plus(KICK_MINUTES, ChronoUnit.MINUTES)
+        leaveChannel(target, clan, tell = true, clanType = CLAN_TYPE_LISTENED)
+        tell(target, ClanLines.KICKED, clan.name)
+        tell(player, ClanLines.KICKED_GUEST, target.username)
+    }
+
+    /**
+     * Ban guest on a guest in the clan channel's list (AFFINEDCLANSETTINGS_ADDBANNED_FROMCHANNEL, from clan_sidepanel_op
+     * 8): out of the channel and on the clan's ban list, which keeps them out until unbanned. The client offers it on
+     * guests to members whose rank meets Ban from chat.
+     */
+    fun banFromChannel(player: Player, clanType: Int, name: String) {
+        val clan = clanOf(player) ?: return
+        val target = channelGuest(player, clan, clanType, name) ?: return
+        if (!has(player, clan, VAR_BAN_FROM_CHAT)) {
+            tell(player, ClanLines.BAN_DENIED)
+            return
+        }
+        if (clan.banned.size >= MAX_BANNED) {
+            tell(player, ClanLines.BAN_LIST_FULL)
+            return
+        }
+        store.addBanned(clan, target.saveKey, target.username)
+        leaveChannel(target, clan, tell = true, clanType = CLAN_TYPE_LISTENED)
+        sendSettings(clan)
+        tell(target, ClanLines.BANNED, clan.name)
+        tell(player, ClanLines.BANNED_GUEST, target.username)
+    }
+
+    /**
+     * The guest named [name] in [clan]'s channel, for a kick or ban from [player], who must be in that channel too; null
+     * when the request isn't for their own clan's channel (clan type 0), or the name isn't a guest there (gone since, or
+     * a member, whom the client never offers these on).
+     */
+    private fun channelGuest(player: Player, clan: ClanStore.Clan, clanType: Int, name: String): Player? {
+        if (clanType != CLAN_TYPE_CLAN) return null
+        val members = channels[clan.id] ?: return null
+        if (player !in members) return null
+        return members.firstOrNull { ClanStore.sameName(it.username, name) }?.takeIf { clan.member(it.saveKey) == null }
+    }
+
+    /**
+     * The settings page's Banned button: the ban list (clans_banned, 689), which draws itself from the clan settings the
+     * client has, as clans_info does (the guest clan's when opened as a guest).
+     */
+    private fun openBanned(player: Player) {
+        openModal(player, BANNED)
+        setEvents(player, BANNED, BANNED_EXIT, -1, -1, OP1, 0)
+    }
+
+    /** A click on the ban list. Returns whether it was one: Back goes to the settings page. */
+    fun clickBanned(player: Player, component: Int): Boolean {
+        if (component != BANNED_EXIT) return false
+        if (BANNED !in player.modals.values) return true
+        openInfo(player, infoAsGuest[player.saveKey] ?: return true)
+        return true
+    }
+
+    /**
+     * Text typed while nothing waits for any, with the ban list open: Unban on a name there, which client script
+     * clan_banned_unban sends as resume_stringdialog with the name (rev 241). Lifts the ban for a member whose rank meets
+     * Ban from chat. Returns whether it was one.
+     */
+    fun typedOnBanned(player: Player, text: String): Boolean {
+        if (BANNED !in player.modals.values) return false
+        // clan_banned_op set clan_editing_lookupinprogress, which greys the list until the server clears it. Set and
+        // cleared in the same tick, the varp still goes out at the end of it.
+        setVarbit(player, VARBIT_LOOKUP_IN_PROGRESS, 1)
+        setVarbit(player, VARBIT_LOOKUP_IN_PROGRESS, 0)
+        if (infoAsGuest[player.saveKey] != false) return true
+        val clan = clanOf(player) ?: return true
+        if (!has(player, clan, VAR_BAN_FROM_CHAT)) {
+            tell(player, ClanLines.UNBAN_DENIED)
+            return true
+        }
+        val banned = clan.banned.firstOrNull { ClanStore.sameName(it.name, text) } ?: return true
+        store.removeBanned(clan, banned.key)
+        sendSettings(clan)
+        tell(player, ClanLines.UNBANNED, banned.name)
+        return true
     }
 
     private fun openYourClan(player: Player) {
@@ -806,7 +1052,7 @@ class Clans(
         val line = text.take(MAX_LENGTH)
         if (line.isBlank()) return
         val rank = clan.member(player.saveKey)?.rank ?: return
-        if (rank < TALK_RANK) return
+        if (rank < permission(clan, PERM_TALK)) return
         sayInChannel(player, clan, members, line)
     }
 
@@ -820,7 +1066,7 @@ class Clans(
         }
         val line = text.take(MAX_LENGTH)
         if (line.isBlank()) return
-        if (RANK_GUEST < TALK_RANK) {
+        if (RANK_GUEST < permission(clan, PERM_TALK)) {
             tell(player, ClanLines.GUEST_CANT_TALK)
             return
         }
@@ -876,7 +1122,9 @@ class Clans(
         val members = online.map { ClanChannelFull.ClanMember(it.username, clan.member(it.saveKey)?.rank ?: RANK_GUEST, FriendLists.WORLD) }
         return ClanChannelFull(
             clanType,
-            ClanChannelFull.JoinUpdate(clan.id, ++updateNum, clan.name, false, KICK_RANK, TALK_RANK, members, ClanChannelFull.DEFAULT_OLDSCHOOL_VERSION, false),
+            // The ranks the channel's own fields need: Kick never below Talk (the settings carry the ranks as set, and
+            // the client works that out from them itself).
+            ClanChannelFull.JoinUpdate(clan.id, ++updateNum, clan.name, false, permission(clan, PERM_KICK), permission(clan, PERM_TALK), members, ClanChannelFull.DEFAULT_OLDSCHOOL_VERSION, false),
         )
     }
 
@@ -886,10 +1134,326 @@ class Clans(
         return ClanSettingsFull(
             clanType,
             ClanSettingsFull.JoinUpdate(
-                (++updateNum).toInt(), created, clan.name, true, TALK_RANK, KICK_RANK, RANK_OWNER, RANK_OWNER,
-                members, emptyList(), emptyList(), false, true,
+                (++updateNum).toInt(), created, clan.name, guestsMayListen(clan), setting(clan, PERM_TALK), setting(clan, PERM_KICK), RANK_OWNER, RANK_OWNER,
+                members, clan.banned.map { ClanSettingsFull.BannedClanMember(it.name) }, settingVars(clan), false, true,
             ),
         )
+    }
+
+    /**
+     * [clan]'s permission vars as the clan settings carry them: each rank plus 2, as client proc clan_permission_get
+     * takes 2 off what it reads (its "unset" is 126 + 2). Talk and Kick go in the settings' own fields instead.
+     */
+    internal fun settingVars(clan: ClanStore.Clan): List<ClanSettingsFull.IntClanSetting> {
+        val ranks = SETTING_DEFAULTS.keys.plus(clan.settings.keys).filter { it !in CHANNEL_PERMISSIONS && it !in GUEST_SETTINGS }
+            .map { ClanSettingsFull.IntClanSetting(it, setting(clan, it) + PERMISSION_VAR_OFFSET) }
+        // The guest requirements go as they are, packed (clan_permissions_buttonresynch reads their bits).
+        val guests = clan.settings[VAR_GUEST_REQUIREMENTS]?.let { listOf(ClanSettingsFull.IntClanSetting(VAR_GUEST_REQUIREMENTS, it)) }.orEmpty()
+        return (ranks + guests).sortedBy { it.id }
+    }
+
+    /** Whether guests may listen in [clan]'s channel (the clan settings' allow-unaffined). Inferred: permitted unless blocked. */
+    fun guestsMayListen(clan: ClanStore.Clan): Boolean = (clan.settings[GUEST_LISTEN] ?: 1) != 0
+
+    /** The guest requirement [requirement] in [clan]: 0 when there is none. */
+    fun guestRequirement(clan: ClanStore.Clan, requirement: GuestRequirement): Int {
+        val packed = clan.settings[VAR_GUEST_REQUIREMENTS] ?: return 0
+        return (packed ushr requirement.shift) and ((1 shl requirement.bits) - 1)
+    }
+
+    /** Whether [player] meets [clan]'s guest requirements. Iron status: nobody here is an Ironman, so any but None shuts all out. */
+    private fun meetsGuestRequirements(player: Player, clan: ClanStore.Clan): Boolean {
+        val skills = player.skills
+        val total = Skill.entries.sumOf { skills.baseLevel(it) }
+        return skills.combatLevel >= guestRequirement(clan, GuestRequirement.COMBAT) &&
+            total >= guestRequirement(clan, GuestRequirement.SKILL_TOTAL) &&
+            // Every account has each quest done at login (Quests.completeAll), and the quest points with them.
+            player.vars[Quests.VARP_QUEST_POINTS] >= guestRequirement(clan, GuestRequirement.QUEST_POINTS) &&
+            guestRequirement(clan, GuestRequirement.IRON_STATUS) == 0
+    }
+
+    /**
+     * The settings page's Members button as a member: the members page (clans_members), which draws itself from the
+     * clan settings. Each column's dropdown entries (op 1, "Select") answer, so the server knows what the columns show.
+     * For those who may edit ranks or expel, each member's entry in a column (op 1, "Edit rank" or "Expel") answers.
+     */
+    private fun openMembers(player: Player) {
+        val clan = clanOf(player) ?: return
+        pickingRank.remove(player.saveKey)
+        openModal(player, MEMBERS)
+        setEvents(player, MEMBERS, MEMBERS_EXIT, -1, -1, OP1, 0)
+        for (options in MEMBERS_OPTIONS) setEvents(player, MEMBERS, options, 1, MEMBERS_COLUMN_KINDS, OP1, 0)
+        memberColumnEvents(player, clan)
+    }
+
+    /** The members page columns' op for [player]: on when they may edit ranks or expel in [clan], else off. */
+    private fun memberColumnEvents(player: Player, clan: ClanStore.Clan) {
+        val ops = if (mayEditRanks(player, clan) || has(player, clan, VAR_EXPEL)) OP1 else 0
+        for (column in MEMBERS_COLUMNS) setEvents(player, MEMBERS, column, 0, MAX_MEMBERS - 1, ops, 0)
+    }
+
+    /** After a rank or permission change in [clan]: each online member with its members page open gets their ops again. */
+    private fun refreshMembersPages(clan: ClanStore.Clan) {
+        for (member in clan.members) {
+            val player = playerByKey(member.key) ?: continue
+            if (MEMBERS in player.modals.values) memberColumnEvents(player, clan)
+        }
+    }
+
+    private fun mayEditRanks(player: Player, clan: ClanStore.Clan): Boolean = has(player, clan, VAR_ASSIGN_RANKS)
+
+    /** What [player]'s members page column [column] (693:11 or 693:13) shows: an enum_3793 entry. */
+    private fun columnShows(player: Player, column: Int): Int =
+        columns[player.saveKey]?.get(MEMBERS_COLUMNS.indexOf(column)) ?: if (column == MEMBERS_COLUMNS.first()) COLUMN_RANK else COLUMN_JOINED
+
+    /**
+     * A click on the members page. Returns whether it was one. Back goes to the settings page; Edit rank on a member
+     * (the column's slot is the member's place in the clan settings) shows the ranks below the editor's own, for a
+     * member below them.
+     */
+    fun clickMembers(player: Player, component: Int, slot: Int): Boolean {
+        if (component != MEMBERS_EXIT && component !in MEMBERS_COLUMNS && component !in MEMBERS_OPTIONS) return false
+        if (MEMBERS !in player.modals.values) return true
+        val clan = clanOf(player) ?: return true
+        if (component == MEMBERS_EXIT) {
+            openInfo(player, asGuest = false)
+            return true
+        }
+        if (component in MEMBERS_OPTIONS) {
+            // The dropdown's entries are its children 1..7, for enum_3793's entries 0..6 (clan_members_header_open, rev
+            // 241); clan_members_header_op keeps the pick in varbits only the client sets, so the server tracks it here.
+            if (slot in 1..MEMBERS_COLUMN_KINDS) {
+                columns.getOrPut(player.saveKey) { intArrayOf(COLUMN_RANK, COLUMN_JOINED) }[MEMBERS_OPTIONS.indexOf(component)] = slot - 1
+            }
+            return true
+        }
+        when (columnShows(player, component)) {
+            COLUMN_RANK -> editRank(player, clan, slot)
+            COLUMN_EXPEL -> askExpel(player, clan, slot)
+        }
+        return true
+    }
+
+    /**
+     * Expel on the member in [slot]: the question, for a member who may expel and a member below them. The Expel column
+     * and its op come from client proc script4262 (rev 241). Inferred (no source): the question, and that only members
+     * below the expeller's rank can be expelled (as Edit rank).
+     */
+    private fun askExpel(player: Player, clan: ClanStore.Clan, slot: Int) {
+        if (!has(player, clan, VAR_EXPEL)) {
+            tell(player, ClanLines.EXPEL_DENIED)
+            return
+        }
+        val target = clan.members.getOrNull(slot) ?: return
+        if (target.rank >= clan.member(player.saveKey)!!.rank) {
+            tell(player, ClanLines.EXPEL_TOO_HIGH, target.name)
+            return
+        }
+        val key = target.key
+        confirm(player, words(player)[ClanLines.EXPEL_CONFIRM, "name" to target.name]) { expel(player, clan.id, key) }
+    }
+
+    /**
+     * Expel, confirmed: the member with [key] is no longer in the clan with [clanId], if [editor] may still expel there
+     * and the member is still below them. An expelled member online hears of it.
+     */
+    fun expel(editor: Player, clanId: Long, key: String) {
+        val clan = clanOf(editor)?.takeIf { it.id == clanId && has(editor, it, VAR_EXPEL) } ?: return
+        val target = clan.member(key) ?: return
+        if (target.rank >= clan.member(editor.saveKey)!!.rank) return
+        val expelled = playerByKey(key)
+        expelled?.let { leaveChannel(it, clan, tell = false) }
+        store.removeMember(clan, key)
+        expelled?.let {
+            removed(it)
+            tell(it, ClanLines.EXPELLED, clan.name)
+        }
+        sendSettings(clan)
+        broadcastChannel(clan)
+        tell(editor, ClanLines.EXPELLED_MEMBER, target.name)
+    }
+
+    /** Edit rank on the member in [slot]: the ranks below the editor's own, for a member below them. */
+    private fun editRank(player: Player, clan: ClanStore.Clan, slot: Int) {
+        if (!mayEditRanks(player, clan)) return
+        val target = clan.members.getOrNull(slot) ?: return
+        val own = clan.member(player.saveKey)!!.rank
+        if (target.rank >= own) {
+            tell(player, ClanLines.RANK_TOO_HIGH, target.name)
+            return
+        }
+        val key = target.key
+        pickingRank[player.saveKey] = key
+        val list = RankList(MEMBERS, MEMBERS_POPUP, words(player)[ClanLines.EDIT_RANK_TITLE, "name" to target.name], target.rank, RANK_FOUNDER, own - 1, false)
+        pickRank(player, list) { rank ->
+            // Only the list still open, for this member: not after Back, another page or a newer list.
+            if (pickingRank[player.saveKey] == key && MEMBERS in player.modals.values) {
+                pickingRank.remove(player.saveKey)
+                setRank(player, clan.id, key, rank)
+            }
+        }
+    }
+
+    /**
+     * A rank picked for the member with [key]: theirs if [editor] still edits ranks in the clan with [clanId], the member
+     * is still below them and the rank is one of the client's member ranks below theirs.
+     */
+    fun setRank(editor: Player, clanId: Long, key: String, rank: Int) {
+        val clan = clanOf(editor)?.takeIf { it.id == clanId && mayEditRanks(editor, it) } ?: return
+        val own = clan.member(editor.saveKey)!!.rank
+        val target = clan.member(key) ?: return
+        if (target.rank >= own || rank >= own || rank !in MEMBER_RANKS || rank == target.rank) return
+        store.setRank(clan, target, rank)
+        sendSettings(clan)
+        broadcastChannel(clan)
+        refreshMembersPages(clan)
+    }
+
+    /** The settings page's Permissions button as a member: the permissions page, drawn from the clan settings. */
+    private fun openPermissions(player: Player) {
+        if (clanOf(player) == null) return
+        pickingPermission.remove(player.saveKey)
+        openModal(player, PERMISSIONS)
+        setEvents(player, PERMISSIONS, PERMISSIONS_EXIT, -1, -1, OP1, 0)
+        setEvents(player, PERMISSIONS, PERMISSIONS_LIST, 0, PERMISSION_BUTTONS - 1, OP1, 0)
+    }
+
+    /**
+     * A click on the permissions page. Returns whether it was one. Back goes to the settings page. A permission's button
+     * (the list's slot is its place on the page) shows the rank list, for a member who meets both Permission access and
+     * the rank the permission requires now; the rank picked, from the lowest it can need up to their own, is the
+     * permission's.
+     */
+    fun clickPermissions(player: Player, component: Int, slot: Int): Boolean {
+        if (component != PERMISSIONS_EXIT && component != PERMISSIONS_LIST) return false
+        if (PERMISSIONS !in player.modals.values) return true
+        val clan = clanOf(player) ?: return true
+        if (component == PERMISSIONS_EXIT) {
+            openInfo(player, asGuest = false)
+            return true
+        }
+        if (slot == GUEST_LISTEN_SLOT || GuestRequirement.entries.any { it.slot == slot }) {
+            clickGuestSetting(player, clan, slot)
+            return true
+        }
+        val id = PERMISSION_VARS[slot] ?: return true
+        if (!mayEditPermission(player, clan, id)) {
+            tell(player, ClanLines.PERMISSION_DENIED)
+            return true
+        }
+        val own = clan.member(player.saveKey)!!.rank
+        pickingPermission[player.saveKey] = id
+        // The list runs from the lowest rank the permission can need up to the editor's own; none of these permissions
+        // takes Nobody (no param_1292 on their structs, rev 241).
+        val list = RankList(PERMISSIONS, PERMISSIONS_POPUP, words(player)[ClanLines.PERMISSION_TITLE], permission(clan, id), lowest(clan, id), own, false)
+        pickRank(player, list) { rank ->
+            if (pickingPermission[player.saveKey] == id && PERMISSIONS in player.modals.values) {
+                pickingPermission.remove(player.saveKey)
+                setPermission(player, clan.id, id, rank)
+            }
+        }
+        return true
+    }
+
+    /**
+     * A guest setting's button on the permissions page, for a member who meets Permission access (the buttons need no other
+     * rank, clan_permissions_buttonresynch). Guessed, as live's way is unknown: Guests may listen and Iron status ask with
+     * the chatbox menu, the others with an amount (0 for none).
+     */
+    private fun clickGuestSetting(player: Player, clan: ClanStore.Clan, slot: Int) {
+        if (!has(player, clan, VAR_PERMISSION_ACCESS)) {
+            tell(player, ClanLines.PERMISSION_DENIED)
+            return
+        }
+        val words = words(player)
+        val clanId = clan.id
+        when (slot) {
+            GUEST_LISTEN_SLOT -> pickOption(player, words[ClanLines.GUEST_LISTEN_TITLE], listOf(words[ClanLines.GUEST_PERMITTED], words[ClanLines.GUEST_BLOCKED])) {
+                setGuestsMayListen(player, clanId, it == 0)
+            }
+            else -> {
+                val requirement = GuestRequirement.entries.first { it.slot == slot }
+                if (requirement == GuestRequirement.IRON_STATUS) {
+                    pickOption(player, words[ClanLines.GUEST_IRON_TITLE], ClanLines.IRON_STATUSES.map { words[it] }) {
+                        setGuestRequirement(player, clanId, requirement, it)
+                    }
+                } else {
+                    askAmount(player, words[requirement.prompt!!]) { setGuestRequirement(player, clanId, requirement, it) }
+                }
+            }
+        }
+    }
+
+    /**
+     * Guests may listen, set by [editor] if they still meet Permission access. Guessed: blocking puts the guests in the
+     * channel out of it, since they may no longer listen.
+     */
+    fun setGuestsMayListen(editor: Player, clanId: Long, permitted: Boolean) {
+        val clan = clanOf(editor)?.takeIf { it.id == clanId } ?: return
+        if (!has(editor, clan, VAR_PERMISSION_ACCESS) || guestsMayListen(clan) == permitted) return
+        store.setSetting(clan, GUEST_LISTEN, if (permitted) 1 else 0)
+        sendSettings(clan)
+        if (!permitted) {
+            // All the guests go at once, and the channel's list goes out once after.
+            val members = channels[clan.id] ?: return
+            val guests = members.filter { clan.member(it.saveKey) == null }
+            if (guests.isEmpty()) return
+            members.removeAll(guests.toSet())
+            if (members.isEmpty()) channels.remove(clan.id)
+            for (guest in guests) {
+                send(guest, ClanChannelFull(CLAN_TYPE_LISTENED, ClanChannelFull.LeaveUpdate))
+                tell(guest, ClanLines.GUESTS_BLOCKED, clan.name)
+            }
+            broadcastChannel(clan)
+        }
+    }
+
+    /**
+     * A guest requirement, set by [editor] if they still meet Permission access: cut to what its bits hold (an amount) or
+     * refused (an Iron status the list hasn't). Guests in the channel stay, as the setting's own words say.
+     */
+    fun setGuestRequirement(editor: Player, clanId: Long, requirement: GuestRequirement, value: Int) {
+        val clan = clanOf(editor)?.takeIf { it.id == clanId } ?: return
+        if (!has(editor, clan, VAR_PERMISSION_ACCESS)) return
+        val max = (1 shl requirement.bits) - 1
+        if (requirement == GuestRequirement.IRON_STATUS && value !in 0 until ClanLines.IRON_STATUSES.size) return
+        val mask = max shl requirement.shift
+        val packed = clan.settings[VAR_GUEST_REQUIREMENTS] ?: 0
+        val updated = (packed and mask.inv()) or (value.coerceIn(0, max) shl requirement.shift)
+        if (updated == packed && clan.settings.containsKey(VAR_GUEST_REQUIREMENTS)) return
+        store.setSetting(clan, VAR_GUEST_REQUIREMENTS, updated)
+        sendSettings(clan)
+    }
+
+    /**
+     * Whether [player] may change permission var [id]: as client proc clan_permissions_buttonresynch (rev 241) enables a
+     * permission's button, which needs the rank Permission access needs and the rank the permission needs now. The
+     * server checks the same, since a client can send any button.
+     */
+    private fun mayEditPermission(player: Player, clan: ClanStore.Clan, id: Int): Boolean {
+        val rank = clan.member(player.saveKey)?.rank ?: return false
+        return rank >= permission(clan, VAR_PERMISSION_ACCESS) && rank >= permission(clan, id)
+    }
+
+    /** The lowest rank permission [id] can need in [clan] now: its floor, or the rank of the permission it rests on. */
+    private fun lowest(clan: ClanStore.Clan, id: Int): Int {
+        val floor = PERMISSION_FLOORS[id] ?: 0
+        return PERMISSION_BASES[id]?.let { maxOf(floor, permission(clan, it)) } ?: floor
+    }
+
+    /**
+     * A rank picked for permission [id]: set if [editor] may still edit it and the rank is one it takes, from its lowest
+     * up to the editor's own. A change to Talk or Kick reaches the channel's list too.
+     */
+    fun setPermission(editor: Player, clanId: Long, id: Int, rank: Int) {
+        val clan = clanOf(editor)?.takeIf { it.id == clanId } ?: return
+        if (id !in PERMISSION_VARS.values || !mayEditPermission(editor, clan, id)) return
+        val own = clan.member(editor.saveKey)!!.rank
+        if (!validFor(id, rank) || rank > own || rank < lowest(clan, id)) return
+        store.setSetting(clan, id, rank)
+        sendSettings(clan)
+        if (id in CHANNEL_PERMISSIONS) broadcastChannel(clan)
+        refreshMembersPages(clan)
     }
 
     /** Shows the creation panel's list and name to [player], if they have it open. */
@@ -996,14 +1560,136 @@ class Clans(
 
         /** clans_info: the clan's settings page, and its buttons. */
         const val INFO = 690
+        const val INFO_CLOSE = 3
         const val INFO_APPLICATIONS = 21
         const val INFO_QUIT = 26
         val INFO_BUTTONS = 19..26
         const val VARBIT_INFO_AS_GUEST = 12165
         const val VARBIT_GUEST_APPLYING = 12166
 
-        /** The lowest rank told of applicants; inferred until ranks and permissions (step 11): the owner (126). */
+        /** `::clanjoin <name> recruiter`'s rank: the owner's, which every permission allows by default. */
         const val RECRUIT_RANK = 126
+
+        const val INFO_MEMBERS = 20
+
+        /** clans_banned: the ban list, opened from the settings page's Banned button, and its Back button. */
+        const val INFO_BANNED = 25
+        const val BANNED = 689
+        const val BANNED_EXIT = 11
+
+        /** clan_editing_lookupinprogress: set by the client on Unban, it greys the ban list until the server clears it. */
+        const val VARBIT_LOOKUP_IN_PROGRESS = 12199
+
+        /** The most the ban list holds: clans_banned draws 500 entries. */
+        const val MAX_BANNED = 500
+
+        /** How long a kicked guest is kept out of the channel (guessed: the old clan chat's hour). */
+        const val KICK_MINUTES = 60L
+
+        /** clans_members: the members page, its Back button and its two columns (the rank column has Edit rank). */
+        const val MEMBERS = 693
+        const val MEMBERS_EXIT = 25
+        val MEMBERS_COLUMNS = listOf(11, 13)
+
+        /** The members page columns' dropdowns (options1, options2), in [MEMBERS_COLUMNS]' order. */
+        val MEMBERS_OPTIONS = listOf(19, 20)
+
+        /** What a members page column can show: enum_3793's entries, of which these answer a click on a member. */
+        const val MEMBERS_COLUMN_KINDS = 7
+        const val COLUMN_RANK = 0
+        const val COLUMN_JOINED = 1
+        const val COLUMN_EXPEL = 6
+
+        /**
+         * The member ranks the client lists (enum_3795, without guest, Jmod and Nobody): titled ranks 0 to 124, then
+         * Administrator (100 among them), Deputy Owner (125) and Owner (126).
+         */
+        val MEMBER_RANKS = setOf(0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 110, 115, 120, 124, 125, 126)
+        const val RANK_ADMINISTRATOR = 100
+
+        const val RANK_NOBODY = 128
+
+        /**
+         * Permission vars (varclansetting ids, proc clan_permission_get) and the cache's defaults (param_1253 of each
+         * permission's struct): Permission access, public profile, assign ranks, expel, rank titles, recruitment, ban from
+         * chat, icons. Recruitment has no default in the cache; the owner's is inferred.
+         */
+        const val VAR_PERMISSION_ACCESS = 12
+        const val VAR_PUBLIC_PROFILE = 13
+        const val VAR_ASSIGN_RANKS = 14
+        const val VAR_EXPEL = 15
+        const val VAR_RANK_TITLES = 16
+        const val VAR_RECRUITMENT = 17
+        const val VAR_BAN_FROM_CHAT = 18
+        const val VAR_ICONS = 25
+
+        /**
+         * Talk in chat and Kick from chat, which the clan settings and channel carry in their own fields (talk rank, kick
+         * rank) rather than as vars; kept with the clan's settings under these ids, which no varclansetting has.
+         */
+        const val PERM_TALK = 1001
+        const val PERM_KICK = 1002
+        val CHANNEL_PERMISSIONS = setOf(PERM_TALK, PERM_KICK)
+
+        /**
+         * The guest settings (structs 2957-2961, param_1255): Guests may listen, the clan settings' allow-unaffined, kept
+         * under this id, which no varclansetting has; the requirements, packed in varclansetting 26.
+         */
+        const val GUEST_LISTEN = 1003
+        const val VAR_GUEST_REQUIREMENTS = 26
+        val GUEST_SETTINGS = setOf(GUEST_LISTEN, VAR_GUEST_REQUIREMENTS)
+
+        /** The permissions page's Guests may listen button (after Ban from chat, enum_3827 order); the requirements follow. */
+        const val GUEST_LISTEN_SLOT = 10
+
+        /** What client proc clan_permission_get takes off a permission var's value to get its rank. */
+        const val PERMISSION_VAR_OFFSET = 2
+
+        /**
+         * Inferred defaults (a new clan's are unknown): Administrator for the permissions whose floor it is, the owner for
+         * recruitment and kicking, and any member talks.
+         */
+        val SETTING_DEFAULTS = mapOf(
+            VAR_PERMISSION_ACCESS to RANK_ADMINISTRATOR, VAR_PUBLIC_PROFILE to RANK_ADMINISTRATOR, VAR_ASSIGN_RANKS to RANK_ADMINISTRATOR,
+            VAR_EXPEL to RANK_ADMINISTRATOR, VAR_RANK_TITLES to RANK_ADMINISTRATOR, VAR_RECRUITMENT to RANK_OWNER,
+            VAR_BAN_FROM_CHAT to RANK_ADMINISTRATOR, VAR_ICONS to RANK_ADMINISTRATOR, PERM_TALK to RANK_FOUNDER, PERM_KICK to RANK_OWNER,
+        )
+
+        /**
+         * Each permission's floor, its struct's param_1253 (0 when it has none; rev 241): no permission needs less, and
+         * only one with a floor below 0 (Talk in chat) takes Guest.
+         */
+        val PERMISSION_FLOORS = mapOf(
+            VAR_PERMISSION_ACCESS to RANK_ADMINISTRATOR, VAR_PUBLIC_PROFILE to RANK_ADMINISTRATOR, VAR_ASSIGN_RANKS to RANK_ADMINISTRATOR,
+            VAR_EXPEL to RANK_ADMINISTRATOR, VAR_RANK_TITLES to RANK_ADMINISTRATOR, VAR_BAN_FROM_CHAT to RANK_ADMINISTRATOR,
+            VAR_ICONS to RANK_ADMINISTRATOR, PERM_TALK to RANK_GUEST,
+        )
+
+        /** The permission each rests on (param_1254): it never needs less than that one. */
+        val PERMISSION_BASES = mapOf(VAR_EXPEL to VAR_ASSIGN_RANKS, PERM_KICK to PERM_TALK, VAR_BAN_FROM_CHAT to PERM_KICK)
+
+        /** clans_permissions: the permissions page, its Back button, its buttons' list and the popup's place. */
+        const val INFO_PERMISSIONS = 23
+        const val PERMISSIONS = 706
+        const val PERMISSIONS_EXIT = 5
+        const val PERMISSIONS_LIST = 12
+        const val PERMISSIONS_POPUP = 14
+        const val PERMISSION_BUTTONS = 54
+
+        /**
+         * The page's buttons the server answers, by slot (clan_permission_init: Permission access first, then enum_3825's
+         * permissions in order), to their vars or channel ranks. The guest settings follow (slots 10-14, [GUEST_LISTEN_SLOT]
+         * and [GuestRequirement]); the others (events, coffer, hall and later ones) aren't built.
+         */
+        val PERMISSION_VARS = mapOf(
+            0 to VAR_PERMISSION_ACCESS, 1 to VAR_RANK_TITLES, 2 to VAR_ASSIGN_RANKS, 3 to VAR_RECRUITMENT, 4 to VAR_EXPEL,
+            5 to VAR_PUBLIC_PROFILE, 6 to VAR_ICONS, 7 to PERM_TALK, 8 to PERM_KICK, 9 to VAR_BAN_FROM_CHAT,
+        )
+
+        /** popupoverlay, opened in clans_members:popup, and clan_rankpopup, which lists ranks in it. */
+        const val MEMBERS_POPUP = 27
+        const val POPUPOVERLAY = 289
+        const val SCRIPT_RANK_POPUP = 4316
 
         /** clans_applicants: the applicants page, its list of 20 and its buttons. */
         const val APPLICANTS = 699
@@ -1040,6 +1726,10 @@ class Clans(
         const val TEST_APPLICANT_NAME = "Applicant"
         val TEST_APPLICANT_STATS = (listOf(3, 32) + List(24) { if (it == 5) 10 else 1 }).joinToString("|")
 
+        /** [addTestBan]'s banned player: `~` is in no account's name. */
+        const val TEST_BANNED_KEY = "~test banned"
+        const val TEST_BANNED_NAME = "Banned"
+
         /** [makeTestClan]'s owner: `~` is in no account's name. */
         const val TEST_OWNER_KEY = "~test owner"
 
@@ -1057,9 +1747,6 @@ class Clans(
         const val RANK_FOUNDER = 0
         const val RANK_OWNER = 126
 
-        /** Inferred defaults until clan settings are built: any member talks, the owner kicks. */
-        const val TALK_RANK = 0
-        const val KICK_RANK = RANK_OWNER
 
         /** The creation panel lists five. */
         const val MAX_FOUNDERS = 5
@@ -1134,5 +1821,54 @@ object ClanLines : Lines("clan", "Clans") {
     val CLAN_FULL = line("clan_full", "accepting an applicant into a clan with the most members")
     val ACCEPTED = line("accepted", "your application to a clan was accepted", "name")
     val DECLINED = line("declined", "your application to a clan was declined", "name")
+    val EDIT_RANK_TITLE = line("edit_rank_title", "the title over the rank list when editing a member's rank", "name")
+    val RANK_TOO_HIGH = line("rank_too_high", "Edit rank on a member whose rank isn't below yours", "name")
+    val PERMISSION_TITLE = line("permission_title", "the title over the rank list when changing a clan permission")
+    val PERMISSION_DENIED = line("permission_denied", "changing a clan permission your rank can't change")
+    val EXPEL_DENIED = line("expel_denied", "Expel on a member when your rank can't expel")
+    val EXPEL_TOO_HIGH = line("expel_too_high", "Expel on a member whose rank isn't below yours", "name")
+    val EXPEL_CONFIRM = line("expel_confirm", "the question before expelling a clan member", "name")
+    val EXPELLED_MEMBER = line("expelled_member", "you expelled a member from your clan", "name")
+    val EXPELLED = line("expelled", "you were expelled from your clan", "name")
     val GUEST_CANT_TALK = line("guest_cant_talk", "guest clan chat in a clan whose talk rank is above guests")
+    val KICK_DENIED = line("kick_denied", "Kick guest when your rank is below the clan's kick rank")
+    val KICKED_GUEST = line("kicked_guest", "you kicked a guest from your clan's channel", "name")
+    val KICKED = line("kicked", "you were kicked from a clan's channel as a guest", "name")
+    val STILL_KICKED = line("still_kicked", "joining a clan's channel within the hour after being kicked from it", "name")
+    val BAN_DENIED = line("ban_denied", "Ban guest when your rank can't ban from chat")
+    val BAN_LIST_FULL = line("ban_list_full", "Ban guest with the clan's ban list full")
+    val BANNED_GUEST = line("banned_guest", "you banned a guest from your clan's channel", "name")
+    val BANNED = line("banned", "you were banned from a clan's channel as a guest", "name")
+    val STILL_BANNED = line("still_banned", "joining a clan's channel you are banned from", "name")
+    val UNBAN_DENIED = line("unban_denied", "Unban on the ban list when your rank can't ban from chat")
+    val UNBANNED = line("unbanned", "you took a player off your clan's ban list", "name")
+    val GUESTS_BLOCKED = line("guests_blocked", "joining, or being in, a clan's channel as a guest when it blocks guests", "name")
+    val GUEST_REQUIREMENTS = line("guest_requirements", "joining a clan's channel as a guest without meeting its guest requirements", "name")
+    val GUEST_LISTEN_TITLE = line("guest_listen_title", "the title over the Guests may listen choice")
+    val GUEST_PERMITTED = line("guest_permitted", "the Guests may listen option that lets them (the page shows the cache's Permitted)")
+    val GUEST_BLOCKED = line("guest_blocked", "the Guests may listen option that stops them (the page shows the cache's Blocked)")
+    val GUEST_COMBAT_PROMPT = line("guest_combat_prompt", "the prompt for a clan's guest minimum combat level")
+    val GUEST_TOTAL_PROMPT = line("guest_total_prompt", "the prompt for a clan's guest minimum skill total")
+    val GUEST_QP_PROMPT = line("guest_qp_prompt", "the prompt for a clan's guest minimum quest points")
+    val GUEST_IRON_TITLE = line("guest_iron_title", "the title over the guest Iron status choice")
+    val IRON_STATUSES = listOf(
+        line("iron_none", "guest Iron status None (enum_3828's default)"),
+        line("iron_any", "guest Iron status Any Ironman (enum_3828 1)"),
+        line("iron_uim", "guest Iron status UIM only (enum_3828 2)"),
+        line("iron_hcim", "guest Iron status HCIM only (enum_3828 3)"),
+    )
 }
+
+/**
+ * The guest requirements on the permissions page: each one's button slot and its bits in varclansetting 26 (clan proc
+ * clan_permissions_buttonresynch, rev 241), and the prompt for an amount (Iron status is picked from enum_3828's list).
+ */
+enum class GuestRequirement(val slot: Int, val shift: Int, val bits: Int, val prompt: Line?) {
+    COMBAT(11, 0, 7, ClanLines.GUEST_COMBAT_PROMPT),
+    SKILL_TOTAL(12, 7, 12, ClanLines.GUEST_TOTAL_PROMPT),
+    QUEST_POINTS(13, 19, 11, ClanLines.GUEST_QP_PROMPT),
+    IRON_STATUS(14, 30, 2, null),
+}
+
+/** What the client's rank list shows: where it opens, its title, the rank picked, the ranks from [min] to [max], and Nobody. */
+data class RankList(val parent: Int, val component: Int, val title: String, val current: Int, val min: Int, val max: Int, val nobody: Boolean)

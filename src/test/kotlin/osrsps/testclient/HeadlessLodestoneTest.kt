@@ -149,6 +149,30 @@ class HeadlessLodestoneTest {
         }
     }
 
+    /**
+     * The nightly's `::resetlocs 10` in the courtyard (3222, 3218) reaches Lumbridge's stone at 3232, 3220. It took the
+     * stone away until a restart when a restore put back the bare cache tile; the stone is the world's for good.
+     */
+    @Test
+    fun `resetlocs around the courtyard keeps Lumbridge's stone, on the server and at the client`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            val world = server.world
+            server.login("alice").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(Coord(3222, 3218))
+                val stone = LocChange(lumbridge.id, lumbridge.loc.shape, lumbridge.loc.angle, Coord(lumbridge.x, lumbridge.z))
+                client.await("the Lumbridge stone to reach the client") { client.locChanges().takeIf { stone in it } }
+                client.commandReply("resetlocs 10") { it.startsWith("Put the locs within 10 of 3222, 3218") }
+                assertEquals(lumbridge.loc, world.locs[lumbridge.x, lumbridge.z, 0, lumbridge.loc.layer])
+                // A tick later (the teleport's round trip) the client still has the stone: nothing took it away.
+                client.tele(Coord(3223, 3218))
+                assertTrue(stone in client.locChanges(), client.locChanges().toString())
+                client.locOp(lumbridge.id, lumbridge.x, lumbridge.z, Lodestones.TELEPORT)
+                client.awaitMap()
+            }
+        }
+    }
+
     /** Logs in once the server has let the last login of [name] go: until then a login is refused as still on. */
     private fun TestServer.loginAgain(name: String): HeadlessClient {
         repeat(50) {

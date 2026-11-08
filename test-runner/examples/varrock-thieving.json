@@ -1,0 +1,167 @@
+{
+ "name": "Varrock step 13: the tea stall (the level box at 4, a cup of tea and 16 XP at 5, empty for 4 ticks) and pickpocketing a guard and a warrior woman at 99 (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "::reset at the end puts the account back, and makes the Tea Seller forget a theft"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel thieving 4",
+   "expectMessage": "4",
+   "comment": "the level check first"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3268 3410 0",
+   "expectMessage": "Teleported to 3268, 3410, 0",
+   "comment": "west of the tea stall, the stall between the player and the Tea Seller"
+  },
+  {
+   "step": "locOption",
+   "loc": "Tea stall",
+   "option": "Steal-from",
+   "x": 3269,
+   "y": 3410
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[thieving.level level=5 stall=tea stall]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel thieving 5",
+   "expectMessage": "5"
+  },
+  {
+   "step": "locOption",
+   "loc": "Tea stall",
+   "option": "Steal-from",
+   "x": 3269,
+   "y": 3410,
+   "comment": "if this fails with the Tea Seller's shout, he wandered into sight of the stall's west side"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[thieving.stolen item=Cup of tea]"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Cup of tea",
+   "count": 1
+  },
+  {
+   "step": "assertStat",
+   "skill": "Thieving",
+   "level": 5,
+   "xp": 404,
+   "comment": "388 at level 5, then 16 for the theft"
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Market stall",
+   "x": 3269,
+   "y": 3410,
+   "comment": "empty for 4 ticks"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 5
+  },
+  {
+   "step": "assertLoc",
+   "loc": "Tea stall",
+   "x": 3269,
+   "y": 3410,
+   "option": "Steal-from",
+   "comment": "back"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel thieving 99",
+   "expectMessage": "99"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel hitpoints 99",
+   "expectMessage": "99",
+   "comment": "room for a few 2-damage stuns"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3206 3461 0",
+   "expectMessage": "Teleported to 3206, 3461, 0",
+   "comment": "the palace's front courtyard, by a guard"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client swap the market's NPCs for the courtyard's: a click straight after the teleport got no answer three times out of four (VM 215, 2026-11-08), likely on a guard still listed from the market, which the server drops as out of view"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Guard",
+   "option": "Pickpocket",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[pickpocket.attempt who=guard]",
+   "timeoutMs": 10000,
+   "comment": "94% at 99: a guard's coin pouch, or a stun of 2 damage"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 12,
+   "comment": "past a stun and the wait after a failure, if there was one"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3203 3486 0",
+   "expectMessage": "Teleported to 3203, 3486, 0",
+   "comment": "the back of the palace, by the two warrior women"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Warrior",
+   "option": "Pickpocket",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[pickpocket.attempt who=warrior]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 12
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

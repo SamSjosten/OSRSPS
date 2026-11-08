@@ -5,6 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import osrsps.game.skill.AgilityData
 
 class ScenarioTest {
     // Made-up items shaped like the 241 cache's.
@@ -162,5 +163,11 @@ class ScenarioTest {
         // A full backpack, one item a slot: stacks are counted, not repeated.
         assertEquals(28, artisan.inventory.size)
         assertEquals(setOf(50), artisan.skills.values.map { it.level }.toSet())
+        val agility = scenarios["agility"]!!
+        // The Draynor rooftop's first start (skills/agility.json), at the highest level anything built needs.
+        val roughWall = AgilityData.load().obstacles.single { it.key == "draynor_rough_wall" }.routes.single().from
+        assertEquals(Triple(roughWall.x, roughWall.z, roughWall.level), Triple(agility.x, agility.z, agility.level))
+        assertEquals(AgilityData.load().obstacles.maxOf { it.level }, agility.skills.getValue(Skill.AGILITY).level)
+        assertEquals(6, agility.bank.size)
     }
 }

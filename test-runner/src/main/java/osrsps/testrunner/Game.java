@@ -70,6 +70,13 @@ interface Game
 	String locAt(String name, int id, String option, Tile at);
 
 	/**
+	 * (0.26.0) Null when a loc with this name (or id, when the name is null) is on the tile, on the player's plane, and
+	 * what it is now names map element {@code icon} as its minimap icon, with a sprite the client has; otherwise what is
+	 * there instead.
+	 */
+	String mapIconAt(String name, int id, int icon, Tile at);
+
+	/**
 	 * Clicks Take on the nearest item on the ground with this name (or id, when the name is null) on the player's plane.
 	 * With a tile, only an item on that tile counts.
 	 */
