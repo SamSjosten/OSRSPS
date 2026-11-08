@@ -3,10 +3,12 @@
  "account": "test2",
  "steps": [
   {"step": "waitForLogin"},
+  {"step": "runClientScript", "id": 915, "args": [9], "comment": "shows the Friends side tab (toplevel_sidebutton_switch): the runner reads the lists from its widgets, which count only while it shows"},
   {"step": "command", "text": "::clearfriends", "expectMessage": "Friends list emptied"},
   {"step": "command", "text": "::clearignores", "expectMessage": "Ignore list emptied"},
   {"step": "logout", "comment": "so the Friends tab starts empty"},
   {"step": "waitForLogin", "comment": "auto login"},
+  {"step": "runClientScript", "id": 915, "args": [9], "comment": "shows the Friends side tab (toplevel_sidebutton_switch): the runner reads the lists from its widgets, which count only while it shows"},
   {"step": "addFriend", "name": "test"},
   {"step": "assertFriend", "name": "test", "world": 301, "timeoutMs": 180000, "comment": "waits for test on the other VM"},
   {"step": "assertMessage", "contains": "pm one from test", "timeoutMs": 120000},

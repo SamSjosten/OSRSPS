@@ -3,10 +3,12 @@
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},
+  {"step": "runClientScript", "id": 915, "args": [9], "comment": "shows the Friends side tab (toplevel_sidebutton_switch): the runner reads the lists from its widgets, which count only while it shows"},
   {"step": "command", "text": "::clearfriends", "expectMessage": "Friends list emptied", "comment": "a friend can't be ignored"},
   {"step": "command", "text": "::clearignores", "expectMessage": "Ignore list emptied"},
   {"step": "logout", "comment": "so the Friends tab starts empty"},
   {"step": "waitForLogin", "comment": "auto login"},
+  {"step": "runClientScript", "id": 915, "args": [9], "comment": "shows the Friends side tab (toplevel_sidebutton_switch): the runner reads the lists from its widgets, which count only while it shows"},
   {"step": "addIgnore", "name": "test2"},
   {"step": "assertInterface", "interfaceId": 432},
   {"step": "assertIgnore", "name": "test2"},
