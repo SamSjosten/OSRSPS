@@ -97,7 +97,6 @@ class RaidCommandsTest {
         player.beforeScenario = world.snapshot(player)
         world.run("raid guardian")
         world.run("reset")
-        world.encounters.process()
         assertEquals(0, world.npcs.count, "the boss went with the reset")
         assertEquals(emptyList(), world.encounters.all)
     }
