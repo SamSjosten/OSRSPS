@@ -121,12 +121,20 @@ class HeadlessArchiveGuardianTest {
         bob.commandReply("raidparty accept alice") { it.startsWith("You joined") }
     }
 
-    /** `::raid log 200`'s lines. */
+    /**
+     * `::raid log 200`'s lines, all of them. A plain `::raid` after it marks their end: its reply comes after the last of
+     * them, so a slow read can't cut the log short, or leave lines over to count again in the next call's.
+     */
     private fun HeadlessClient.fightLog(): List<String> {
         val from = messages().size
         command("raid log 200")
-        await("::raid log's lines") { messages().drop(from).takeIf { lines -> lines.any { Regex("^\\d+ \\w+: ").containsMatchIn(it.text) } } }
-        return messages().drop(from).map { it.text }
+        command("raid")
+        val lines = await("::raid log's lines") {
+            val after = messages().drop(from).map { it.text }
+            val end = after.indexOfFirst { it.startsWith("guardian #") || it.startsWith("You're not") }
+            if (end < 0) null else after.take(end)
+        }
+        return lines
     }
 
     @Test
