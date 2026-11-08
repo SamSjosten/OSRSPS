@@ -87,8 +87,10 @@ the cache's loc types group (config archive 6) as a file, packed again with the 
 server decodes back for itself, so the client and the server see the same loc. The lodestones (`Lodestones.kt`) are
 the first: the server places a stone at each site at start. A loc's minimap icon is a map element (config archive
 35, `osrsps.cache.MapElementCodec`: a sprite and the flags the cache's icons carry) that the loc names with opcode 82;
-the overlay adds ours to that group too, and the client draws the sprite where the loc stands. The world map's icons
-are built into the world map index with the map, so a loc of ours gets none there. A loc that looks different per player is a multiloc: its
+the overlay adds ours to that group too, and the client draws the sprite where the loc stands (the runner's
+`lodestone-network.json` reads the element and its sprite off the client's loc config on both looks, `assertMapIcon`).
+The world map's icons are built into the world map index with the map, so a loc of ours gets none there. A loc that
+looks different per player is a multiloc: its
 definition's `transform` names a varbit and the child locs the client draws for each value, and the server answers
 the one loc's options by the player's varbit. Varps and varbits of our own are code too: `game/content/CustomVars.kt`
 lists them, the overlay adds their types to config archives 16 and 14 so the client reads them like the cache's, and

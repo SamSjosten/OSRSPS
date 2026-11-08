@@ -415,6 +415,42 @@ final class Steps
 		}
 	}
 
+	/**
+	 * (0.26.0) Waits for a loc on a tile to carry a minimap icon: what the loc is now names the map element, and the
+	 * client has the element's sprite. The drawing of it on the minimap is the client's.
+	 */
+	static final class AssertMapIcon extends Step
+	{
+		final String loc;
+		final int locId;
+		/** The map element (config archive 35) the loc should name. */
+		final int icon;
+		/** Its plane is ignored: locs are looked for on the player's plane. */
+		final Tile at;
+
+		AssertMapIcon(long timeoutMs, String loc, int locId, int icon, Tile at)
+		{
+			super("assertMapIcon", timeoutMs, false);
+			this.loc = loc;
+			this.locId = locId;
+			this.icon = icon;
+			this.at = at;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			String error = run.game.mapIconAt(loc, locId, icon, at);
+			return error == null ? Poll.pass("icon " + icon) : Poll.waiting(error);
+		}
+
+		@Override
+		String describe()
+		{
+			return "assert map icon " + icon + " on " + (loc != null ? loc : "loc " + locId) + " at " + at.x + ", " + at.y;
+		}
+	}
+
 	/** Clicks Take on an item on the ground. Waits (to the timeout) for one to be in the scene; does not wait for the result. */
 	static final class TakeItem extends Step
 	{

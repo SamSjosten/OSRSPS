@@ -217,6 +217,30 @@ public class RunnerTest
 	}
 
 	@Test
+	public void assertMapIconWaitsForTheLocToCarryTheIcon() throws Exception
+	{
+		runner.start(script("{\"step\":\"assertMapIcon\",\"loc\":\"Lodestone\",\"icon\":65000,\"x\":3232,\"y\":3220}"), "file");
+		// The scene is still loading after a teleport.
+		assertNull(cycle());
+		game.mapIcons.put("Lodestone at 3232 3220", 65000);
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals("icon 65000", r.steps.get(0).detail);
+		assertTrue(game.actions.isEmpty());
+
+		// A stone that names another icon, or none, is what the failure says.
+		runner.start(script("{\"step\":\"assertMapIcon\",\"loc\":\"Lodestone\",\"icon\":65000,\"x\":3232,\"y\":3220,\"timeoutMs\":100}"), "file");
+		game.mapIcons.put("Lodestone at 3232 3220", -1);
+		r = null;
+		for (int i = 0; i < 10 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertNotNull(r);
+		assertEquals("step 1 (assert map icon 65000 on Lodestone at 3232, 3220): timed out after 100 ms: Lodestone at 3232 3220 has no map icon, not 65000", r.failure);
+	}
+
+	@Test
 	public void walkTimesOutWithWhyItCouldNotClick() throws Exception
 	{
 		game.walkRefusals = Integer.MAX_VALUE;

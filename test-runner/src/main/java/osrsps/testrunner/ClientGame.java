@@ -42,6 +42,7 @@ import net.runelite.api.gameval.InventoryID;
 import net.runelite.api.gameval.VarClientID;
 import net.runelite.api.kit.KitType;
 import net.runelite.api.widgets.Widget;
+import net.runelite.api.worldmap.MapElementConfig;
 
 /**
  * {@link Game} over RuneLite's client API. Every action is the menu entry a click would have made, sent with
@@ -717,6 +718,57 @@ final class ClientGame implements Game
 			return "no loc " + what;
 		}
 		return option == null ? "loc " + what + " is hidden" : "loc " + what + " has no option \"" + option + "\"";
+	}
+
+	@Override
+	public String mapIconAt(String name, int id, int icon, osrsps.testrunner.Tile at)
+	{
+		WorldView wv = client.getTopLevelWorldView();
+		LocalPoint target = LocalPoint.fromWorld(wv, at.x, at.y);
+		if (target == null)
+		{
+			return "tile " + at.x + ", " + at.y + " is not in the loaded scene";
+		}
+		String what = (name != null ? "\"" + name + "\"" : "id " + id) + " at " + at.x + ", " + at.y;
+		net.runelite.api.Tile tile = wv.getScene().getTiles()[wv.getPlane()][target.getSceneX()][target.getSceneY()];
+		if (tile == null)
+		{
+			return "no loc " + what;
+		}
+		List<TileObject> objects = new ArrayList<>(Arrays.asList(tile.getGameObjects()));
+		objects.add(tile.getWallObject());
+		objects.add(tile.getDecorativeObject());
+		objects.add(tile.getGroundObject());
+		String wrong = null;
+		for (TileObject o : objects)
+		{
+			if (o == null || !locMatches(o, name, id))
+			{
+				continue;
+			}
+			// The minimap draws the icon of what the loc is now (a multiloc's current form, which carries the map element,
+			// loc opcode 82), so a hidden loc has none.
+			ObjectComposition c = locComposition(o.getId());
+			if (c == null)
+			{
+				wrong = "loc " + what + " is hidden";
+				continue;
+			}
+			int got = c.getMapIconId();
+			if (got != icon)
+			{
+				wrong = "loc " + what + (got < 0 ? " has no map icon" : " has map icon " + got) + ", not " + icon;
+				continue;
+			}
+			// The element's sprite comes from the sprites index as the client needs it: null until it has it.
+			MapElementConfig element = client.getMapElementConfig(icon);
+			if (element == null || element.getMapIcon(false) == null)
+			{
+				return "the client has no sprite for map icon " + icon;
+			}
+			return null;
+		}
+		return wrong != null ? wrong : "no loc " + what;
 	}
 
 	/** True when the loc stands on the target tile; a big loc counts on every tile it covers. */

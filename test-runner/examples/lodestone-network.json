@@ -9,10 +9,12 @@
 
   {"step": "command", "text": "::tele 3236 3221 0", "expectMessage": "Teleported to 3236, 3221, 0", "comment": "Lumbridge: east of the stone, between it and the bridge"},
   {"step": "assertLoc", "loc": "Lodestone", "x": 3232, "y": 3220, "option": "Activate", "comment": "dormant for this player (the varbit is 0)"},
+    {"step": "assertMapIcon", "loc": "Lodestone", "x": 3232, "y": 3220, "icon": 65000, "comment": "the dormant look names our map element, config archive 35, and the client has its sprite: the stone's icon on the minimap"},
   {"step": "locOption", "loc": "Lodestone", "option": "Activate", "x": 3232, "y": 3220},
   {"step": "assertMessage", "contains": "[lodestone.activated name=[lodestone.lumbridge]]", "timeoutMs": 10000},
   {"step": "command", "text": "::varbit lodestone.lumbridge", "expectMessage": "bits 0-0) = 1", "comment": "bit 0 of the lodestones' varp, by name"},
   {"step": "assertLoc", "loc": "Lodestone", "x": 3232, "y": 3220, "option": "Teleport", "comment": "the client redraws the stone active from the varbit"},
+    {"step": "assertMapIcon", "loc": "Lodestone", "x": 3232, "y": 3220, "icon": 65000, "comment": "the active look keeps the icon"},
   {"step": "locOption", "loc": "Lodestone", "option": "Examine", "x": 3232, "y": 3220, "comment": "every stone shares one examine"},
   {"step": "assertMessage", "contains": "examine.loc_65000", "timeoutMs": 10000, "comment": "its key (::keys on); the words are the Words thread's"},
 

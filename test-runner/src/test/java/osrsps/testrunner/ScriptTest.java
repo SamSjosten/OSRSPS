@@ -93,6 +93,10 @@ public class ScriptTest
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"finishDialogue\",\"text\":\"x\"}]}", "unknown field \"text\"");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertLoc\",\"x\":3207,\"y\":3217}]}", "needs \"loc\" (a name) or \"locId\"");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertLoc\",\"loc\":\"Door\",\"x\":3207}]}", "needs \"x\" and \"y\"");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertMapIcon\",\"icon\":65000,\"x\":3232,\"y\":3220}]}", "needs \"loc\" (a name) or \"locId\"");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertMapIcon\",\"loc\":\"Lodestone\",\"x\":3232,\"y\":3220}]}", "needs \"icon\"");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertMapIcon\",\"loc\":\"Lodestone\",\"icon\":-1,\"x\":3232,\"y\":3220}]}", "\"icon\" must be 0 or more");
+		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertMapIcon\",\"loc\":\"Lodestone\",\"icon\":65000,\"x\":3232}]}", "needs \"x\" and \"y\"");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertHitsplat\"}]}", "needs \"npc\" (a name) or \"self\": true");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertPlayerOption\"}]}", "needs \"option\"");
 		invalid("{\"account\":\"test\",\"steps\":[{\"step\":\"assertHitsplat\",\"npc\":\"Man\",\"self\":true}]}", "not both");
