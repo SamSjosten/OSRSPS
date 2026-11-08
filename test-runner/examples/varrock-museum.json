@@ -322,9 +322,15 @@
   },
   {
    "step": "walk",
-   "x": 3254,
+   "x": 3260,
+   "y": 3451,
+   "comment": "half way first: from the stairs' foot, the tiles by the Natural History stairs are off the top of the screen (VM 215, 2026-11-08)"
+  },
+  {
+   "step": "walk",
+   "x": 3258,
    "y": 3452,
-   "comment": "in front of the stairs down to the Natural History floor"
+   "comment": "east of the stairs down to the Natural History floor (a 3x3 loc at 3255-3257,3451-3453; 3254,3452 behind it is a barrier)"
   },
   {
    "step": "locOption",
