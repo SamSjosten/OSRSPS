@@ -30,8 +30,21 @@
    "comment": "ge_offers"
   },
   {
-   "step": "logout",
-   "comment": "closes the screen"
+   "step": "clickWidget",
+   "interfaceId": 465,
+   "component": 2,
+   "slot": 11,
+   "op": 1,
+   "comment": "ge_offers:frame's close button, as in ge-history-prices.json: the logout click did nothing with the screen open (VM 215, 2026-11-08), and the screen covers the tiles a walk would click"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 465,
+   "absent": true,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "logout"
   },
   {
    "step": "waitForLogin"

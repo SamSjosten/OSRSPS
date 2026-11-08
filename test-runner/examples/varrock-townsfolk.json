@@ -347,9 +347,9 @@
   },
   {
    "step": "command",
-   "text": "::tele 3153 3411 0",
-   "expectMessage": "Teleported to 3153, 3411, 0",
-   "comment": "Gertrude's house"
+   "text": "::tele 3152 3410 0",
+   "expectMessage": "Teleported to 3152, 3410, 0",
+   "comment": "inside Gertrude's house: 3153,3411 is outside its walls, where she can't be reached (VM 215, 2026-11-03 and 2026-11-08)"
   },
   {
    "step": "npcOption",
