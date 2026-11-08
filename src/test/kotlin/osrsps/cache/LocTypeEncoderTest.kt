@@ -6,6 +6,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import osrsps.game.loc.LocType
 
 class LocTypeEncoderTest {
     @Test
@@ -36,6 +37,22 @@ class LocTypeEncoderTest {
         assertEquals(1, type.width)
         assertEquals(2, type.collision.interactType, "solid")
         assertTrue(type.collision.blocksProjectile)
+    }
+
+    @Test
+    fun `a map element writes opcode 82, which the decoder reads back`() {
+        val definition = LocTypeEncoder.Definition("Lodestone", listOf(65000), mapElement = 65000)
+        val bytes = LocTypeEncoder.encode(definition)
+        assertContentEquals(
+            byteArrayOf(7, 1, 0, 0, 0xFD.toByte(), 0xE8.toByte()) + byteArrayOf(2) + "Lodestone".toByteArray() + 0 + byteArrayOf(82, 0xFD.toByte(), 0xE8.toByte()) + 0,
+            bytes,
+        )
+        val type = LocTypeDecoder.decode(65000, bytes)
+        assertEquals("Lodestone", type.name)
+        assertEquals(65000, type.mapElement)
+        assertEquals(LocTypeEncoder.NO_MAP_ELEMENT, LocTypeEncoder.Definition("Rock", listOf(1)).mapElement)
+        assertEquals(LocType.NO_MAP_ELEMENT, LocTypeDecoder.decode(1, LocTypeEncoder.encode(LocTypeEncoder.Definition("Rock", listOf(1)))).mapElement)
+        assertFailsWith<IllegalArgumentException> { LocTypeEncoder.Definition("Lodestone", listOf(65000), mapElement = 65536) }
     }
 
     @Test

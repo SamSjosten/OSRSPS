@@ -73,18 +73,24 @@ lodestone map (`game/content/LodestoneMap.kt`) is the first interface of ours: i
 (`osrsps.cache.InterfaceCodec` writes the if3 form every OSRS interface uses: layers, rectangles, text, graphics and
 lines, with no client scripts; what each does is the server's, through IF_SETEVENTS, IF_SETTEXT and IF_SETHIDE) and
 the overlay serves them as interface 30,000 (above the cache's own, below 32,768, as a packed component id is a signed
-int), with its sprites (65,000 to 65,003) drawn in code too. A file in `data/sprites` under one of those ids takes the
-drawn sprite's place, which is how a real map image goes in:
+int), with its sprites (65,000 to 65,004; 65,004 is the stones' minimap icon) drawn in code too. A file in
+`data/sprites` under one of those ids takes the drawn sprite's place, which is how a real map image goes in:
 
 ```bash
 ./gradlew run --args="import-sprite misthalin.png data/sprites/65003.dat"   # 300 by 262 for the lodestone map
+./gradlew run --args="import-sprite lodestone-icon.png data/sprites/65004.dat"   # 15 by 15, the minimap icon
 ```
 
 Loc types of our own that use such models are code: `game/content/CustomLocs.kt` lists them (ids from 65,000), each a
 `LocTypeEncoder.Definition` (name, models, options, footprint, whether players walk over it) that the overlay adds to
 the cache's loc types group (config archive 6) as a file, packed again with the cache's own loc types, and that the
 server decodes back for itself, so the client and the server see the same loc. The lodestones (`Lodestones.kt`) are
-the first: the server places a stone at each site at start. A loc that looks different per player is a multiloc: its
+the first: the server places a stone at each site at start. A loc's minimap icon is a map element (config archive
+35, `osrsps.cache.MapElementCodec`: a sprite and the flags the cache's icons carry) that the loc names with opcode 82;
+the overlay adds ours to that group too, and the client draws the sprite where the loc stands (the runner's
+`lodestone-network.json` reads the element and its sprite off the client's loc config on both looks, `assertMapIcon`).
+The world map's icons are built into the world map index with the map, so a loc of ours gets none there. A loc that
+looks different per player is a multiloc: its
 definition's `transform` names a varbit and the child locs the client draws for each value, and the server answers
 the one loc's options by the player's varbit. Varps and varbits of our own are code too: `game/content/CustomVars.kt`
 lists them, the overlay adds their types to config archives 16 and 14 so the client reads them like the cache's, and

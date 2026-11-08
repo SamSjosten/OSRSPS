@@ -91,12 +91,18 @@ class LodestoneMapTest {
         assertEquals(LodestoneMap.MAP_WIDTH to LodestoneMap.MAP_HEIGHT, map.width to map.height)
         assertTrue(map.pixels.all { it ushr 24 == 0xFF }, "the map has no clear pixel")
         assertTrue(map.pixels.map { it and 0xFFFFFF }.toSet().size <= SpriteCodec.MAX_COLOURS)
+        // The minimap's icon has the cache's icons' size and frame: clear corners, a dark outline, an opaque middle.
+        val minimap = LodestoneMap.sprites.getValue(LodestoneMap.MINIMAP_SPRITE)
+        assertEquals(LodestoneMap.MINIMAP_ICON to LodestoneMap.MINIMAP_ICON, minimap.width to minimap.height)
+        assertEquals(0, minimap[0, 0], "corner clear")
+        assertEquals(0xFF010101.toInt(), minimap[LodestoneMap.MINIMAP_ICON / 2, 0], "the outline at the top")
+        assertEquals(0xFF, minimap[LodestoneMap.MINIMAP_ICON / 2, LodestoneMap.MINIMAP_ICON / 2] ushr 24, "centre opaque")
     }
 
     @Test
     fun `the overlay serves the interface as one group of its components and each sprite as a group`() {
         val groups = LodestoneMap.overlayGroups
-        assertEquals(listOf("3/30000", "8/65000", "8/65001", "8/65002", "8/65003"), groups.map { "${it.index}/${it.group}" })
+        assertEquals(listOf("3/30000", "8/65000", "8/65001", "8/65002", "8/65003", "8/65004"), groups.map { "${it.index}/${it.group}" })
         val interfaceGroup = groups[0]
         assertEquals(components.indices.toList(), interfaceGroup.files)
         assertEquals(components, InterfaceCodec.decodeGroup(interfaceGroup.data, components.size))
