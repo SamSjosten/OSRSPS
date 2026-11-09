@@ -13,8 +13,6 @@ import osrsps.game.content.LumbridgeShopkeepers.keeper
 import osrsps.game.content.LumbridgeTownsfolk.abigaila
 import osrsps.game.content.LumbridgeTownsfolk.ironmanTutor
 import osrsps.game.content.LumbridgeTutors.cookingTutor
-import osrsps.game.content.LumbridgeTutors.smithingApprentice
-import osrsps.game.content.LumbridgeTutors.woodsmanTutor
 import osrsps.game.content.ShearedRam.arthur
 import osrsps.game.content.ShearedRam.bartender
 
@@ -194,100 +192,6 @@ class TownCentreTalkTest {
     }
 
     @Test
-    fun `the Smithing apprentice sends a player with no ore to the mining tutor`() {
-        h.talk { with(LumbridgeTutors) { smithingApprentice() } }
-        h.expect("smithing_apprentice.teach", "smithing_apprentice.furnace_hint", "smithing_apprentice.need_ore", "smithing_apprentice.mining_hint")
-        h.ends()
-        assertEquals(listOf(LumbridgeTutors.FURNACE_ICON, LumbridgeTutors.MINING_TUTOR_ICON), h.boxObjs)
-
-        h.player.inventory.add(ObjType(LumbridgeTutors.ORES.first(), "Copper ore"), 1)
-        h.talk { with(LumbridgeTutors) { smithingApprentice() } }
-        h.expect(
-            "smithing_apprentice.teach", "smithing_apprentice.furnace_hint", "smithing_apprentice.have_ore", "smithing_apprentice.click_furnace",
-            "smithing_apprentice.full_inventory", "smithing_apprentice.bank_hint", "smithing_apprentice.hammer", "smithing_apprentice.rusted",
-            "smithing_apprentice.varrock",
-        )
-        h.ends()
-
-        h.player.skills.setLevel(Skill.SMITHING, 40)
-        h.talk { with(LumbridgeTutors) { smithingApprentice() } }
-        h.expect("smithing_apprentice.what_next", "smithing_apprentice.smithing_tutor", "smithing_apprentice.smithing_tutor_hint", "smithing_apprentice.smelt")
-        h.ends()
-    }
-
-    @Test
-    fun `the Woodsman tutor hands a beginner an axe and a tinderbox`() {
-        h.talk { with(LumbridgeTutors) { woodsmanTutor(give) } }
-        h.menu("woodsman_tutor.basics", "woodsman_tutor.cape", "woodsman_tutor.goodbye")
-        h.pick(1)
-        h.expect(
-            "woodsman_tutor.basics", "woodsman_tutor.tree_hint", "woodsman_tutor.have_an_axe", "woodsman_tutor.likely_tree",
-            "woodsman_tutor.full_inventory", "woodsman_tutor.bank_hint", "woodsman_tutor.lost_tinderbox", "woodsman_tutor.click_tinderbox",
-        )
-        h.ends()
-        assertEquals(listOf(LumbridgeTutors.BRONZE_AXE, LumbridgeTutors.TINDERBOX), given)
-    }
-
-    @Test
-    fun `the Woodsman tutor hands nothing to a beginner with an axe and a tinderbox in the bank`() {
-        // The free axe sold to Bob for coins from nothing while only the bag and worn items counted (second exploit
-        // review, 29 Oct 2026).
-        h.player.bank.add(ObjType(LumbridgeTutors.BRONZE_AXE, "Bronze axe"), 1)
-        h.player.bank.add(ObjType(LumbridgeTutors.TINDERBOX, "Tinderbox"), 1)
-        h.talk { with(LumbridgeTutors) { woodsmanTutor(give) } }
-        h.menu("woodsman_tutor.basics", "woodsman_tutor.cape", "woodsman_tutor.goodbye")
-        h.pick(1)
-        h.expect(
-            "woodsman_tutor.basics", "woodsman_tutor.tree_hint", "woodsman_tutor.likely_tree",
-            "woodsman_tutor.full_inventory", "woodsman_tutor.bank_hint", "woodsman_tutor.click_tinderbox",
-        )
-        h.ends()
-        assertEquals(emptyList(), given)
-    }
-
-    @Test
-    fun `the Woodsman tutor's trees menu has magic trees from level 29`() {
-        h.player.skills.setLevel(Skill.WOODCUTTING, 40)
-        h.player.inventory.add(ObjType(LumbridgeTutors.BRONZE_AXE, "Bronze axe"), 1)
-        h.talk { with(LumbridgeTutors) { woodsmanTutor(give) } }
-        val top = arrayOf("woodsman_tutor.advice", "woodsman_tutor.trees", "woodsman_tutor.cape", "woodsman_tutor.goodbye")
-        h.menu(*top)
-        h.pick(2)
-        h.expect("woodsman_tutor.trees")
-        h.menu("woodsman_tutor.oak_willow", "woodsman_tutor.maple_yew", "woodsman_tutor.magic", "woodsman_tutor.axes", "woodsman_tutor.go_back")
-        h.pick(3)
-        h.expect("woodsman_tutor.magic_hint", "woodsman_tutor.hollow")
-        h.menu("woodsman_tutor.oak_willow", "woodsman_tutor.maple_yew", "woodsman_tutor.magic", "woodsman_tutor.axes", "woodsman_tutor.go_back")
-        h.pick(5)
-        h.menu(*top)
-        h.pick(1)
-        // Carrying an axe, so none is handed over.
-        h.expect("woodsman_tutor.advice", "woodsman_tutor.better", "woodsman_tutor.also", "woodsman_tutor.look_out")
-        h.menu(*top)
-        h.pick(4)
-        h.expect("woodsman_tutor.goodbye")
-        h.ends()
-        assertEquals(emptyList(), given)
-    }
-
-    @Test
-    fun `at 99 Woodcutting the tutor sells the cape and hood for 99,000 coins`() {
-        h.player.skills.setLevel(Skill.WOODCUTTING, 99)
-        h.player.inventory.add(coins, 100_000)
-        h.talk { with(LumbridgeTutors) { woodsmanTutor(give) } }
-        h.expect("woodsman_tutor.master_1", "woodsman_tutor.master_2")
-        h.menu("woodsman_tutor.no_thanks", "woodsman_tutor.yes_please")
-        h.pick(2)
-        h.expect("woodsman_tutor.yes_please", "woodsman_tutor.price")
-        h.menu("woodsman_tutor.too_rich", "woodsman_tutor.no_problem")
-        h.pick(2)
-        h.expect("woodsman_tutor.no_problem", "woodsman_tutor.sold")
-        h.ends()
-        assertEquals(listOf(LumbridgeTutors.WOODCUTTING_CAPE, LumbridgeTutors.WOODCUTTING_HOOD), given)
-        assertEquals(1_000, h.player.inventory.count(LumbridgeTutors.COINS))
-    }
-
-    @Test
     fun `Abigaila tells her story, and won't let a player carrying anything scry`() {
         h.player.inventory.add(coins, 1)
         h.talk { with(LumbridgeTownsfolk) { abigaila() } }
@@ -319,8 +223,8 @@ class TownCentreTalkTest {
     fun `every town centre NPC that talks has an examine`() {
         val ids = listOf(
             LumbridgeShopkeepers.SHOP_KEEPER, LumbridgeShopkeepers.SHOP_ASSISTANT, LumbridgeShopkeepers.BOB, ShearedRam.BARTENDER,
-            ShearedRam.ARTHUR, DonieAndGee.DONIE, DonieAndGee.GEE, LumbridgeTutors.COOKING_TUTOR, LumbridgeTutors.SMITHING_APPRENTICE,
-            LumbridgeTutors.WOODSMAN_TUTOR, LumbridgeTownsfolk.ABIGAILA, LumbridgeTownsfolk.IRONMAN_TUTOR,
+            ShearedRam.ARTHUR, DonieAndGee.DONIE, DonieAndGee.GEE, LumbridgeTutors.COOKING_TUTOR, Feoras.ID,
+            Wilfred.ID, LumbridgeTownsfolk.ABIGAILA, LumbridgeTownsfolk.IRONMAN_TUTOR,
         )
         for (id in ids) assertEquals("examine.npc_$id", Examines.npc(id)?.key, "NPC $id")
     }

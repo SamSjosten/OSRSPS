@@ -19,7 +19,7 @@ class ExaminesTest {
 
     @Test
     fun `every castle NPC that talks has an examine`() {
-        for (id in listOf(Hans.ID, Cook.ID, DukeHoracio.ID, Perdu.ID, CraftingTutor.ID, Bankers.BANKER, Bankers.BANKER_TUTOR, Doomsayer.ID, Hatius.ID, LumbridgeGuide.ID) + Townsfolk.MEN + Townsfolk.WOMEN) {
+        for (id in listOf(Hans.ID, Cook.ID, DukeHoracio.ID, Perdu.ID, Cadmus.ID, Bankers.BANKER, Bankers.BANKER_TUTOR, Doomsayer.ID, Hatius.ID, LumbridgeGuide.ID) + Townsfolk.MEN + Townsfolk.WOMEN) {
             assertEquals("examine.npc_$id", Examines.npc(id)?.key, "NPC $id")
         }
     }

@@ -17,7 +17,7 @@ import osrsps.game.World
  * type. Inferred, not seen on live.
  *
  * NPCs: Hans (see [Hans]), the Cook ([Cook]), Duke Horacio ([DukeHoracio]), the men and women ([Townsfolk]), Perdu
- * ([Perdu]), the Crafting tutor ([CraftingTutor]), the bankers ([Bankers]), and outside the gate the Doomsayer
+ * ([Perdu]), Cadmus, the steward ([Cadmus]), the bankers ([Bankers]), and outside the gate the Doomsayer
  * ([Doomsayer]), Hatius Cosaintus ([Hatius]) and the Lumbridge Guide ([LumbridgeGuide]) talk, as they do once every
  * quest is done.
  *
@@ -93,7 +93,7 @@ fun registerLumbridgeCastle(world: World) {
     registerDukeHoracio(world)
     registerTownsfolk(world)
     registerPerdu(world)
-    registerCraftingTutor(world)
+    registerCadmus(world)
     registerBankers(world)
     registerDoomsayer(world)
     registerHatius(world)

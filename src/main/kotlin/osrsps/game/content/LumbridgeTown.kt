@@ -12,5 +12,7 @@ fun registerLumbridgeTown(world: World) {
     registerShearedRam(world)
     registerDonieAndGee(world)
     registerLumbridgeTutors(world)
+    registerFeoras(world)
+    registerWilfred(world)
     registerLumbridgeTownsfolk(world)
 }
