@@ -66,7 +66,8 @@ object BorkLines : Lines("tfa_bork", "The_Fractured_Archive/Strategies") {
  * - The tempo (18c): at every 25% the Smorks lose, both call it out and the spacing of his gongs and their shots falls
  *   by a tick, 7 to 4 ([tempo]). Bork dead first, the Smorks go into their frenzy ([frenzyAhead]): a volley at
  *   everyone every [FRENZY_SPACING] ticks, napalm between. The Smorks dead first, Bork stomps over the whole room every
- *   [LONE_STOMP_EVERY] ticks, no tower left to hide behind.
+ *   [LONE_STOMP_EVERY] ticks, no tower left to hide behind. Their tower goes up [SMORKS_BURST] ticks after they fall
+ *   and is gone at 9 (npc-combat.json's deathTicks), as Bork is at 7.
  *
  * From the OSRS Wiki (Bork, The Fractured Archive's; Smorks; read 2026-11-09): their stats and bonuses (npc-combat
  * .json), sizes, the 7-tick attack speed, their hitpoints by party size (party-scaling.json), the flat armour ("starts
@@ -83,7 +84,7 @@ object BorkLines : Lines("tfa_bork", "The_Fractured_Archive/Strategies") {
  *
  * Guessed, until a recording shows the damage (each also in the README): a strike's roll being his melee's at each
  * player's crush defence, the 2-3 tile one's max hit ([WIDE_MAX]), Protect from Melee halving a strike, the tower's
- * shadow keeping a strike off too; the Smorks' max hits and a volley's style picked at random; the gap from a volley
+ * shadow keeping a strike off too; a volley's style picked at random; the gap from a volley
  * to napalm and to the cannonball's call (a spacing); napalm's and the cannonball's target being a random player Bork
  * isn't after, his tank when there is none; the splash's drip being the target tile itself, and which way counts as
  * straight; napalm landing on Bork hurting him by an oil tick's 6-7, once; the burn's 2 every 4 ticks, 5 times, not
@@ -92,7 +93,7 @@ object BorkLines : Lines("tfa_bork", "The_Fractured_Archive/Strategies") {
  * fitted line test ([shadowed]); his next tank a random other player; the Smorks' cycle stopping as Bork dies, till
  * their frenzy; the frenzy's splash running away from the tower only from a tile beside it; the lone stomps' first
  * 45 ticks after the Smorks die, with the daze's line; the tempo's lines said by whichever of them is up; flat armour
- * not taking a hit below 0; the death spotanims; the anchor being the hp handler NPC.
+ * not taking a hit below 0; the anchor being the hp handler NPC.
  */
 object Bork {
     /** What `::raid` and the raid flow know the fight by. */
@@ -154,8 +155,12 @@ object Bork {
     /** tfa_bork_ragged_tile: the oil. */
     const val LOC_OIL = 62544
 
-    /** vfx_smork_death_explosion_spotanim01, the tower going up. */
-    const val SPOT_SMORKS_DEATH = 4062
+    /**
+     * vfx_smork_tower_death_spotanim01, vfx_smork_goblins_death_spotanim01 and vfx_smork_death_explosion_spotanim01: the
+     * tower going up, [SMORKS_BURST] ticks after the Smorks fall (tsps; Sam's recording of 2026-11-09 shows the same).
+     */
+    val SPOTS_SMORKS_DEATH = listOf(4060, 4061, 4062)
+    const val SMORKS_BURST = 2
 
     /** Bork's south-west tile as the fight begins, this far east and north of the tower's (tsps: 4194,5603 to 4190,5598). */
     const val BORK_EAST = 4
@@ -181,8 +186,11 @@ object Bork {
     /** The Smorks' first volley this many ticks in (tsps). */
     const val FIRST_VOLLEY = 13
 
-    /** The potions' max hit. Guessed: the bones' (npc-combat.json's 28, the formula's from their Ranged). */
-    const val POTIONS_MAX = 28
+    /**
+     * The potions' max hit, the bones' too (npc-combat.json's): the most seen in Sam's recording of 2026-11-09, some 45
+     * hits of both on a party of four, most of them in the frenzy. The formula's from their Ranged would be 28.
+     */
+    const val POTIONS_MAX = 7
 
     /** Napalm: its cast this long after its call, its splash this long after the cast, and the oil a tick on (tsps). */
     const val NAPALM_CAST = 1
@@ -219,9 +227,9 @@ object Bork {
     /** The Smorks' next cycle this long after his stomp begins (tsps: 39 ticks after a daze, which lasts 14). */
     const val CYCLE_AFTER_STOMP = 25
 
-    /** A shockwave's damage. Guessed: no guide or capture gives it. */
+    /** A shockwave's damage. The most is the one hit seen in Sam's recording of 2026-11-09; the least is guessed. */
     const val STOMP_MIN = 15
-    const val STOMP_MAX = 30
+    const val STOMP_MAX = 34
 
     /** The tempo: a stage for every 25% the Smorks have lost, up to 3, each a tick off the spacing (tsps: 7, 6, 5, 4). */
     const val TEMPO_EVERY_PERCENT = 25
@@ -402,7 +410,11 @@ object Bork {
         }
         if (smorksHeld != null && smorksHeld.dead && !state.smorksDown) {
             state.smorksDown = true
-            smorksHeld.effects.spotanim(0, SPOT_SMORKS_DEATH, 0)
+            // A fall seen a tick late (a hit after this tick's step) still bursts on its tick.
+            after((SMORKS_BURST - sinceDeath(smorksHeld)).coerceAtLeast(1)) {
+                SPOTS_SMORKS_DEATH.forEachIndexed { slot, spot -> smorksHeld.effects.spotanim(slot, spot, 0) }
+                log("the tower bursts")
+            }
             smorksHeld.effects.say(text(BorkLines.UH_OH))
             log("the Smorks down")
             state.plan.clear()
