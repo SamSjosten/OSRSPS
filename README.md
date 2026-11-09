@@ -922,8 +922,8 @@ a butterfly, with the rats west of the castle wall, and the swamp's talking NPCs
 
 The unicorn retreats at a quarter of its hitpoints ([NPC aggression](#npc-aggression), guessed threshold). The tutors' offers to show a place on the world
 map lead back to the first menu without opening the map, which isn't built yet; the fishing spots and the mines are the
-gathering skills'. Hewey, Abigale and the two goblin sergeants, which the cache shows by quest varbits, are left out for
-now. What the talking NPCs say and each new NPC's examine are in the dialogue file (keys `father_urhney.*`,
+gathering skills'. Hewey, Abigale and the two goblin sergeants are in [the rest of the swamp](#the-rest-of-lumbridge-swamp).
+What the talking NPCs say and each new NPC's examine are in the dialogue file (keys `father_urhney.*`,
 `lost_city_warrior.*`, `lost_city_archer.*`, `lost_city_monk.*`, `lost_city_wizard.*`, `candle_seller.*`,
 `monlum.*`, `finlay.*` and `examine.npc_<id>`, one for the level 3 giant rats and one for the level 6).
 
@@ -932,6 +932,35 @@ drops, then talks to Urhney, the adventurers, the candle seller and both tutors;
 giant rat to death, talks to Urhney and the camp's monk, buys a lit candle and gets a pickaxe and a net from the tutors
 through the headless client, with every branch of the talks in `SwampTalkTest` and `SwampTutorsTest`, the stats in
 `NpcCombatTest` and the drop rates in `NpcDropsTest`.
+
+### The rest of Lumbridge Swamp
+
+Misthalin piece 7 step 1: the swamp's shed, the Water Altar's ruins, the River Lum's broken raft, the stepping stone to
+the desert, the swamp's four quest NPCs and the goblins and spiders between the castle and Draynor. The shed, the ruins
+and the raft's Grapple are `game/content/LumbridgeSwamp.kt`; the raft's Jump-to and the stone are `skills/agility.json`;
+the NPCs are `npc-spawns/lumbridge-swamp-quest.json` and `npc-spawns/lumbridge-west.json`.
+
+| Behaviour | Source |
+|-----------|--------|
+| The shed's door (2406 at 3202,3169) lets a player in or out; with a dramen or lunar staff wielded it refuses with our own line, as Zanaris (where live takes them) is piece 8's. Live's Elite Lumbridge Diary does the same; there are no diaries | OSRS Wiki, Shed (Lumbridge Swamp) |
+| The tools inside (10375) give a rake or a spade, whichever isn't held, and a choice of the two with neither held | OSRS Wiki, Tools (gardening) |
+| The Water Altar's ruins (34815) refuse a water talisman or tiara, and Enter, with our own line: Runecraft isn't built | OSRS Wiki, Mysterious ruins; the 242 cache |
+| The broken raft's Grapple (17068): 8 Agility, 19 Strength and 37 Ranged, a crossbow wielded and a mith grapple worn, from either bank's shortcut icon (3246,3179 and 3259,3179) to the other, no XP; the grapple breaks one time in 25 | OSRS Wiki, Broken Raft (the infobox's 19 Strength; its text says 17) and Mith grapple (Mod Ash's 1/25); the 242 map |
+| The raft's Jump-to (17069 and 17070) at 48 Agility, no grapple, since 12 August 2026 | OSRS Wiki, Broken Raft |
+| The stepping stone to the desert (16513 at 3214,3135) at 66 Agility, no diary since 8 May 2024, from 3214,3140 to 3214,3131 and back | OSRS Wiki, Stepping stone (Lumbridge Swamp); the bank tiles by flood fill over the 242 map |
+| Abigale and Hewey (7428, 7429) and Sergeants Mossfists and Slimetoes (6278, 6279) stand where live has them, as the 242 cache's multi-NPCs, which show nothing after Misthalin Mystery and Another Slice of H.A.M. (every account has done both) | mejrs's live NPC list; osrs-dumps and the 242 cache |
+| 11 level 2 goblins, 8 level 2 giant spiders and 7 level 1 spiders round the H.A.M. trapdoor, west of the castle | mejrs's live NPC list |
+| The shed door standing open 3 ticks; the tools' menu words and messages, and nothing with both tools held; the raft's firing and swimming animations and their 2 and 6 ticks; the jumps going by way of the raft or the stone, two ticks each; the grapple's break rolled on the far bank; every wander range | guessed |
+
+Words for the new lines (`lumbridge_swamp.*`, the two new `agility.*_level` lines) and the two new loc examines go
+through the Words thread.
+
+Check: `test-runner/examples/lumbridge-swamp-rest.json` goes through the shed and takes both tools, uses a water
+talisman on the ruins, crosses the raft by Grapple and back by Jump-to, jumps the stone both ways and mines coal in the
+west mine; `HeadlessLumbridgeSwampRestTest` does the shed, the tools, the ruins and the Grapple through the headless
+client, `HeadlessShortcutsTest` the raft's Jump-to and the stone, `LumbridgeSwampTest` the rules, and
+`NpcSpawnFileTest` the two spawn files.
+
 ## Draynor Village
 
 The village west of Lumbridge (the Draynor piece, plan in the project's Draynor Village 1:1 plan doc). Step 1 is the
@@ -1819,7 +1848,11 @@ loses goes in a grave there. The party lasts through the wipe.
 | The whole of a run's instance multi-way | inferred: a raid of up to eight fights one boss |
 | A member who leaves the party sent to the lobby; a logout saving them there, as any instance's exit | guessed |
 | A member down who gets out (a teleport such as Home Teleport or a lodestone, leaving the party, or a logout once out of combat) dying of it, with a grave in the lobby, as if they had been the last standing; a reconnect within the linger no escape | Sam's decision, 8 November 2026 (exploit review RAID-2); the death's place guessed |
-| Every room done as it begins, until its boss's step | stand-in (all but the Guardian's) |
+| Every room done as it begins, until its boss's step | stand-in (all but the Guardian's and Ezekiel's) |
+| Ezekiel (step 17a): his fight beginning as the first of the party comes into his room, that player his tank; his stats, 3,000 to 10,650 hitpoints by party size, the 25% earth weakness, poison and venom immunity and the 60% Defence drain floor | OSRS Wiki, Ezekiel (2026-11-09) |
+| Ezekiel walking after his tank, a melee swing every 5 ticks cleaving everyone round him but those on his side opposite the tank; lightning on everyone when his tank is out of reach; a cross of lightning on each player after every second swing, and 3% special attack energy for a perfect dodge of it | guides (osrstoolkit, osrsbestinslot; 2026-11-09) |
+| Where he waits (the middle of his room's ring of flames), the safe spot being his whole far side (its corner for a tank at a corner), the lightning's damage (up to 30) and landing, the cross's two-tile arms, its 3-tick warning and damage (20 to 40), his melee's max hit being the Wiki's 77, slash | guessed |
+| Ezekiel's flying swords and his enrage at 35% | not in yet: steps 17b and 17c |
 | Once the run is done, a Passageway (`tfa_exit`) at the south edge of Ocellus's room, just south of where the party comes in, whose Exit leaves to the lobby in front of the Archive Door | stand-in until the reward room (step 28): the cache has no way out of that room (Sam's decision, 8 November 2026, exploit review RAID-3); where it stands guessed |
 | The bosses after the Guardian, the Quartermaster and Supply Credits, the party's orbs, the reward room, deaths' item costs | not in yet: steps 17 to 31 |
 

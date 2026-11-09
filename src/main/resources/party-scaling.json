@@ -10,6 +10,11 @@
       "npcs": ["tfa_guardian_unshielded"],
       "hitpoints": [1100, 1100, 1600, 2060, 2520, 2980, 3440, 3910],
       "source": "OSRS Wiki, Archive Guardian (Grounded)"
+    },
+    {
+      "npcs": ["tfa_ezekiel"],
+      "hitpoints": [3000, 3000, 4350, 5610, 6870, 8130, 9390, 10650],
+      "source": "OSRS Wiki, Ezekiel (read 2026-11-09)"
     }
   ]
 }

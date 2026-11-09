@@ -1,0 +1,31 @@
+{
+  "about": "Between Lumbridge Castle and Draynor Village, round the H.A.M. Hideout's trapdoor (Misthalin piece 7 step 1): the level 2 goblins (goblin_unarmed_melee_1 to 7, ids 3029 to 3035), the level 2 giant spiders (giantspider1, 3017) and the level 1 spiders (spider, 3019) that mejrs's live NPC list sees at x 3141 to 3170, z 3222 to 3261, and that no other spawn file had (checked tile by tile, 2026-11-09). Each tile and type is mejrs's; every wander range is guessed (5), as elsewhere. Their combat and drops are npc-combat.json's and npc-drops.json's, as for the same types east of the river.",
+  "spawns": [
+    {"npc": "goblin_unarmed_melee_3", "x": 3141, "z": 3258, "wander": 5, "source": "Goblin (level 2), west of the H.A.M. trapdoor, towards Draynor. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "goblin_unarmed_melee_1", "x": 3141, "z": 3261, "wander": 5, "source": "Goblin (level 2), west of the H.A.M. trapdoor, towards Draynor. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "goblin_unarmed_melee_2", "x": 3142, "z": 3230, "wander": 5, "source": "Goblin (level 2), west of the H.A.M. trapdoor, towards Draynor. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "goblin_unarmed_melee_2", "x": 3142, "z": 3260, "wander": 5, "source": "Goblin (level 2), west of the H.A.M. trapdoor, towards Draynor. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "goblin_unarmed_melee_3", "x": 3143, "z": 3227, "wander": 5, "source": "Goblin (level 2), west of the H.A.M. trapdoor, towards Draynor. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "goblin_unarmed_melee_5", "x": 3144, "z": 3231, "wander": 5, "source": "Goblin (level 2), west of the H.A.M. trapdoor, towards Draynor. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "goblin_unarmed_melee_6", "x": 3144, "z": 3233, "wander": 5, "source": "Goblin (level 2), west of the H.A.M. trapdoor, towards Draynor. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "goblin_unarmed_melee_6", "x": 3144, "z": 3259, "wander": 5, "source": "Goblin (level 2), west of the H.A.M. trapdoor, towards Draynor. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "goblin_unarmed_melee_4", "x": 3145, "z": 3229, "wander": 5, "source": "Goblin (level 2), west of the H.A.M. trapdoor, towards Draynor. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "goblin_unarmed_melee_7", "x": 3146, "z": 3234, "wander": 5, "source": "Goblin (level 2), west of the H.A.M. trapdoor, towards Draynor. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "goblin_unarmed_melee_6", "x": 3146, "z": 3260, "wander": 5, "source": "Goblin (level 2), west of the H.A.M. trapdoor, towards Draynor. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "spider", "x": 3157, "z": 3225, "wander": 5, "source": "Spider (level 1), round the H.A.M. trapdoor. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "spider", "x": 3158, "z": 3225, "wander": 5, "source": "Spider (level 1), round the H.A.M. trapdoor. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "giantspider1", "x": 3159, "z": 3223, "wander": 5, "source": "Giant spider (level 2), round the H.A.M. trapdoor. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "giantspider1", "x": 3162, "z": 3225, "wander": 5, "source": "Giant spider (level 2), round the H.A.M. trapdoor. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "giantspider1", "x": 3163, "z": 3222, "wander": 5, "source": "Giant spider (level 2), round the H.A.M. trapdoor. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "spider", "x": 3163, "z": 3226, "wander": 5, "source": "Spider (level 1), round the H.A.M. trapdoor. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "spider", "x": 3165, "z": 3247, "wander": 5, "source": "Spider (level 1), round the H.A.M. trapdoor. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "giantspider1", "x": 3165, "z": 3249, "wander": 5, "source": "Giant spider (level 2), round the H.A.M. trapdoor. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "giantspider1", "x": 3166, "z": 3242, "wander": 5, "source": "Giant spider (level 2), round the H.A.M. trapdoor. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "spider", "x": 3166, "z": 3248, "wander": 5, "source": "Spider (level 1), round the H.A.M. trapdoor. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "giantspider1", "x": 3167, "z": 3247, "wander": 5, "source": "Giant spider (level 2), round the H.A.M. trapdoor. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "spider", "x": 3168, "z": 3245, "wander": 5, "source": "Spider (level 1), round the H.A.M. trapdoor. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "spider", "x": 3169, "z": 3243, "wander": 5, "source": "Spider (level 1), round the H.A.M. trapdoor. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "giantspider1", "x": 3170, "z": 3245, "wander": 5, "source": "Giant spider (level 2), round the H.A.M. trapdoor. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "giantspider1", "x": 3170, "z": 3248, "wander": 5, "source": "Giant spider (level 2), round the H.A.M. trapdoor. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"}
+  ]
+}
