@@ -6,6 +6,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.NpcStats
@@ -19,6 +20,7 @@ import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
 import osrsps.game.npc.Npc
+import osrsps.game.npc.Npcs
 import osrsps.game.raid.ArchiveRaids
 import osrsps.game.raid.ArchiveRoom
 import osrsps.game.raid.ArchiveRun
@@ -154,6 +156,27 @@ class HeadlessEzekielTest {
                 alice.commandReply("hit 3000 ${boss.index}") { it.startsWith("Hit ") }
                 alice.await("his room done") { alice.commandReply("raid run") { it.startsWith("Archive run") }.takeIf { it.contains("Ezekiel") && ArchiveRoom.EZEKIEL in run.cleared } }
                 assertNull(run.fights[ArchiveRoom.EZEKIEL])
+            }
+        }
+    }
+
+    @Test
+    fun `he walks after his tank past the seven tiles an ordinary monster keeps to of its spawn`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.commandReply("raid tp guardian") { it.startsWith("To ") }
+                alice.await("the Guardian's room done") { ArchiveRoom.GUARDIAN.takeIf { it in run.cleared } }
+                alice.commandReply("raid tp ezekiel") { it.startsWith("To ") }
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ezekiel #") } }
+                val boss = bossOf(run)
+                // Twelve tiles east of his spawn: within the range a fighting monster chases to, past the one it walks to.
+                val far = Tile(boss.spawn.x + 12, boss.spawn.z + 1)
+                // She stops a tile short, where his body is in the way: no matter, he's past his seven tiles either way.
+                alice.walk(far.x, far.z)
+                alice.await("him walking past his seven tiles") { boss.takeIf { it.x - it.spawn.x > Npcs.MAX_RANGE } }
+                alice.awaitLog("him swinging at alice") { it.endsWith("fight: swings at alice") }
+                assertSame(server.world.playerNamed("alice"), boss.target)
             }
         }
     }

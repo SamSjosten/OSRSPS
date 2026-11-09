@@ -88,6 +88,8 @@ object Ezekiel {
                     ),
                     onStart = {
                         swings = 0
+                        // He walks after his tank anywhere in his room, never giving up for being far from his spawn.
+                        boss.unleashed = true
                         tank()
                     },
                 ),
@@ -105,8 +107,11 @@ object Ezekiel {
             swingCounts[boss] = value
         }
 
-    /** His tank by boss, kept here: his combat target goes whenever they're far off, as at the start. */
-    private val tanks = java.util.WeakHashMap<osrsps.game.npc.Npc, Player>()
+    /**
+     * His tank by boss, kept here as his combat target can go (they died, or left). Held weakly, so a boss whose fight
+     * is over doesn't keep a logged out player.
+     */
+    private val tanks = java.util.WeakHashMap<osrsps.game.npc.Npc, java.lang.ref.WeakReference<Player>>()
 
     /**
      * His tank: the player he fights while they're in the fight, else the one he was set on (the first player in), else
@@ -114,9 +119,9 @@ object Ezekiel {
      */
     private fun EncounterContext.tank(): Player? {
         val fighting = players
-        tanks[boss]?.let { held -> if (fighting.any { it === held }) return held }
+        tanks[boss]?.get()?.let { held -> if (fighting.any { it === held }) return held }
         val pick = boss.target?.takeIf { held -> fighting.any { it === held } } ?: fighting.firstOrNull() ?: return null
-        tanks[boss] = pick
+        tanks[boss] = java.lang.ref.WeakReference(pick)
         if (boss.target !== pick) {
             boss.target = null
             world.meleeCombat.aggress(boss, pick, world.tick)
@@ -182,7 +187,7 @@ object Ezekiel {
         world.meleeCombat.swingAt(boss, tank, world.tick, ANIM_MELEE)
         log("swings at ${tank.username}")
         swings += 1
-        if (swings % 2 == 0) crosses()
+        if (swings % 2 == 0 && players.isNotEmpty()) crosses()
     }
 
     /** Lightning on every player in the fight, landing next tick. */
@@ -217,9 +222,11 @@ object Ezekiel {
 
     /** A cross of lightning on each player, and the special attack energy for whoever dodges theirs at the last tick. */
     private fun EncounterContext.crosses() {
+        val tiles = players.flatMap { cross(it.x, it.z) }.toSet()
+        // No one left in the room (the swing killed the last of them): nothing to aim at.
+        if (tiles.isEmpty()) return
         boss.effects.anim(ANIM_SPECIAL)
         boss.effects.spotanim(0, SPOT_CRACK, 0)
-        val tiles = players.flatMap { cross(it.x, it.z) }.toSet()
         hazard(tiles, warning = SPOT_CROSS_MARKER, warnTicks = CROSS_DELAY, ticks = 1, minDamage = CROSS_MIN, maxDamage = CROSS_MAX, spotanim = SPOT_CROSS)
         // On it the tick before it lands, off it as it lands: a perfect dodge.
         var onIt: List<Player> = emptyList()

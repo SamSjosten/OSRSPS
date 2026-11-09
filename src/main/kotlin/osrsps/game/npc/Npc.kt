@@ -191,6 +191,12 @@ class Npc(
     var scriptedAttacks: Boolean = false
 
     /**
+     * It keeps to no max range of its spawn ([Npcs.MAX_RANGE]) while it fights: it walks after its target anywhere and
+     * never gives up on them for being far from home, as a boss does in its own room (Ezekiel walking after his tank).
+     */
+    var unleashed: Boolean = false
+
+    /**
      * A hit that takes it to 0 hitpoints leaves it standing there, at 0, for its boss fight to change it (a shield
      * broken, a phase over) rather than killing it; later hits do nothing until the fight lets it die again.
      */
