@@ -137,13 +137,14 @@ object AltarLines : Lines("altar", "Altar") {
  * With them Nigel the Deadman tutor (6093, which shows as 8391 on a normal world), whom 242.1 moved to the Grand
  * Exchange on normal worlds. Every account is a member and has every quest done ([osrsps.game.Quests]).
  *
- * From the Wiki: each NPC's lines and branches. Readings: Nigel's normal world talk offers the Deadman questions, the
- * rewards store (shut, as there is no Deadman Mode) and goodbye, and leaves out the Deadman worlds' options (access to
- * a temporary event, stopping XP); his Trade says the store is shut too. Count Check (as since 242.1): his check fails,
- * as no account here is a Jagex Account and the bank has no PIN (the Wiki gives only a pass, so the fail keeps the old
- * talk's line and is followed by the menu a pass has); asked what else he does, he says "No!", as the Wiki has on a
- * main game world, so his once-only teleport to Barbarian Village is never offered here. Father Aereck's boxes: the Wiki's picture boxes show the altar icon (item 9714) and bones,
- * its sprite boxes (the Prayer panel, the Prayer orb, the Skills panel) are message boxes here. Guessed: every chathead
+ * From the Wiki: each NPC's lines and branches; Count Check (as since 242.1), asked what else he does, says "No!", as
+ * the Wiki has on a main game world, so his once-only teleport to Barbarian Village is never offered here; Father
+ * Aereck's picture boxes show the altar icon (item 9714) and bones. Inferred: Nigel's normal world talk offers the
+ * Deadman questions, the rewards store (shut, as there is no Deadman Mode) and goodbye, and leaves out the Deadman
+ * worlds' options (access to a temporary event, stopping XP); his Trade says the store is shut too. Guessed: that Count
+ * Check's check always fails (no account here is a Jagex Account and the bank has no PIN), with the old talk's fail
+ * line, and that the fail is followed by the menu the Wiki shows after a pass (the Wiki gives only a pass); that
+ * Aereck's sprite boxes (the Prayer panel, the Prayer orb, the Skills panel) are message boxes here; every chathead
  * expression; that each answer goes back to the menu it came from (the Count's "would you like to be checked" questions
  * to his first menu, but after who he is, to the menu with the Salve). The altar: the Wiki says Pray-at recharges prayer
  * points and resets prayer-draining effects' timers (the drain counter here); guessed are the kneel (human_pray,
@@ -326,6 +327,7 @@ object Church {
                 YES_PLEASE -> {
                     chatPlayer(ChatAnim.HAPPY, YES_PLEASE)
                     chatNpc(ChatAnim.LAUGH, BEGIN)
+                    // Guessed: the check fails with the old talk's line, then the menu the Wiki shows after a pass.
                     chatNpc(ChatAnim.SAD, FAIL)
                     menu = 2
                 }

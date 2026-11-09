@@ -55,6 +55,7 @@ object Doomsayer {
             chatNpc(ChatAnim.SAD, VERY_WELL)
         } else {
             chatPlayer(ChatAnim.HAPPY, leave)
+            // Guessed: the Wiki marks his reply to the thanks missing; the old talk's words.
             if (first) chatNpc(ChatAnim.HAPPY, WELCOME)
         }
     }

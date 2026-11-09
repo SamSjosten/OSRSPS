@@ -96,6 +96,7 @@ object LumbridgeGuide {
                 }
                 2 -> {
                     chatPlayer(ChatAnim.QUIZ, QUEST_TO_GO_ON)
+                    // Guessed: the Wiki is missing this answer; the old talk's line for a player with every quest done.
                     chatNpc(ChatAnim.NEUTRAL, NO_MORE_QUESTS)
                 }
                 3 -> chatNpc(ChatAnim.NEUTRAL, COMBAT_HARLAN)
