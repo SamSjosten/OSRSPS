@@ -70,7 +70,7 @@ class RaidCommandsTest {
                 "guardian's phases: 1 flying, 2 grounded",
                 "The party size must be 1 to 8",
                 "The seed must be a whole number",
-                "Usage: ::raid [boss [phase=name|n] [party=n] [seed=n]] | ::raid log [lines] | ::raid digest [ticks] | ::raid stop | ::raid run | ::raid tp <nexus|room> | ::raid clear",
+                "Usage: ::raid [boss [phase=name|n] [party=n] [seed=n]] | ::raid log [lines] | ::raid digest [ticks] | ::raid stop | ::raid run | ::raid tp <nexus|room> | ::raid clear | ::raid hold [ticks]",
                 "You're not in a fight.",
                 "You're not in a fight.",
             ),
