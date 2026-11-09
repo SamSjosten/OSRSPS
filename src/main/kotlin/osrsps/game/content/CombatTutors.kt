@@ -45,7 +45,7 @@ object HarlanLines : Lines("captain_harlan", "Transcript:Captain Harlan") {
     val ADVICE_THANKS = line("advice_thanks", "combat advice: the player's thanks")
 
     val WEAPONS = line("weapons", "first menu: weapons he could give, which the player then says")
-    val TOO_SOON_ALL = line("too_soon_all", "weapons, given some in the last 30 minutes, every option open: his refusal ({minutes})")
+    val TOO_SOON_ALL = line("too_soon_all", "weapons, given some in the last 30 minutes, every option open: his refusal ({minutes})", "minutes")
     val OFFER_ALL = line("offer_all", "weapons, mage outlaw killed: his offer of all three")
     val ASK_MELEE = line("ask_melee", "weapons menu: a shortsword and a shield, which the player then says")
     val ASK_RANGED = line("ask_ranged", "weapons menu: a shortbow and some arrows, which the player then says")

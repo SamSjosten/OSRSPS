@@ -29,6 +29,13 @@ class DialogueTextTest {
     }
 
     @Test
+    fun `giving a line a value it doesn't declare fails under test`() {
+        val error = assertFailsWith<AssertionError> { DialogueText.NONE.get(Greeter.HELLO, "minutes" to 30) }
+        assertEquals("greeter.hello is given minutes but declares [no placeholders]", error.message)
+        assertFailsWith<AssertionError> { DialogueText.NONE.get(Greeter.SCORE, "points" to 1, "minutes" to 2) }
+    }
+
+    @Test
     fun `reads key = words, skipping notes and blank lines`() {
         val read = DialogueFile.parse("﻿# a note\n\ngreeter.hello = Hi = hello.  \n  greeter.score =\r\n")
         assertEquals(mapOf("greeter.hello" to "Hi = hello.", "greeter.score" to ""), read.words)
