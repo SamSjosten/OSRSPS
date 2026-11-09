@@ -156,17 +156,17 @@
    "comment": "the transition, then the arena"
   },
   {
-   "step": "command",
-   "text": "::raid log 20",
-   "expectMessage": "enrage: arena at",
-   "comment": "he stands east in his room, a fence of swords round a three by three west of him, the player brought into it"
-  },
-  {
    "step": "assertAnimation",
    "npc": "Ezekiel",
    "id": 14696,
    "timeoutMs": 10000,
-   "comment": "npc_ezekiel_finale_loop01"
+   "comment": "npc_ezekiel_finale_loop01, sent once as the arena goes up; before the next command, as a command resets what an assert looks back over"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "enrage: arena at",
+   "comment": "he stands east in his room, a fence of swords round a three by three west of him, the player brought into it"
   },
   {
    "step": "waitTicks",
