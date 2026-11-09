@@ -173,6 +173,12 @@ class Reports(
     }
 
     companion object {
+        /** Every interface and component id above with its gameval name in the rev 242 cache, for [osrsps.cache.GameFrameCheck]. */
+        val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>>
+            get() = mapOf(
+                INTERFACE to ("reportabuse" to mapOf(CLOSE to "close")),
+            )
+
         const val INTERFACE = 875
         const val CLOSE = 23
 

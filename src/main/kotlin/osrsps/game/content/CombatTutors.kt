@@ -1,8 +1,6 @@
 package osrsps.game.content
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import osrsps.game.GameFrame
-import osrsps.game.Inventory
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
@@ -13,105 +11,130 @@ import osrsps.game.dialogue.Lines
 private val logger = KotlinLogging.logger {}
 
 /**
- * Harlan's lines; the words are in the dialogue file, from the Wiki's Transcript:Melee combat tutor, read 2026-10-28.
- * One key per page of the transcript, so a line that reads the same in two branches still has a key in each.
+ * Captain Harlan's lines; the words are in the dialogue file, from the Wiki's Transcript:Captain Harlan, read 2026-11-08.
+ * Keys marked "missing" have no transcript (the page says so); their words are guessed or left empty.
  */
-object HarlanLines : Lines("harlan", "Transcript:Melee combat tutor") {
-    val GREETING = line("greeting", "Standard dialogue: the tutor's first line")
-    val MELEE = line("melee", "first menu, option 1: melee combat, which the player then says")
-    val WEAPON_TYPES = line("weapon_types", "first menu, option 2: weapon types, which the player then says")
-    val SKILLCAPES = line("skillcapes", "first menu, option 3: skillcapes, which the player then says")
-    val TRAINING_KIT = line("training_kit", "first menu, option 4: a training sword and shield, which the player then says")
-    val GOODBYE = line("goodbye", "first menu, option 5: goodbye, which the player then says (end of dialogue)")
-    val HUMAN = line("human", "menu after melee combat: fighting something more human, which the player then says")
+object HarlanLines : Lines("captain_harlan", "Transcript:Captain Harlan") {
+    val GREETING_FIRST = line("greeting_first", "Standard dialogue: first time, his greeting")
+    val GREETING = line("greeting", "Standard dialogue: later times, his greeting")
 
-    val MELEE_1 = line("melee_1", "melee combat: first line, a sword and shield for your level")
-    val MELEE_2 = line("melee_2", "melee combat: second line, after the Worn equipment tab opens: equipping them")
-    val MELEE_3 = line("melee_3", "melee combat: third line, after the Combat options tab opens: the options with a sword")
-    val MELEE_4 = line("melee_4", "melee combat: fourth line, the four styles")
-    val STYLES = line("styles", "melee combat: the player asking what each style does")
-    val ACCURATE = line("accurate", "melee combat: accurate")
-    val AGGRESSIVE = line("aggressive", "melee combat: aggressive")
-    val DEFENSIVE = line("defensive", "melee combat: defensive")
-    val CONTROLLED = line("controlled", "melee combat: controlled")
-    val ATTACK_TYPES_1 = line("attack_types_1", "melee combat: the training sword's attack types, first line")
-    val ATTACK_TYPES_2 = line("attack_types_2", "melee combat: the training sword's attack types, second line")
-    val HOVER = line("hover", "melee combat: hover over a style's button")
-    val MELEE_ANYTHING_ELSE = line("melee_anything_else", "melee combat: the tutor asking if there's anything else")
+    val GUARDS = line("guards", "first menu: where the other guards are, which the player then says")
+    val GUARDS_1 = line("guards_1", "the other guards: his answer, sent to Varrock")
+    val GUARDS_ASK = line("guards_ask", "the other guards: the player asking if that causes problems")
+    val GUARDS_2 = line("guards_2", "the other guards: his answer, problems now and then")
 
-    val HUMAN_1 = line("human_1", "more human: first line, places to fight")
-    val HUMAN_2 = line("human_2", "more human: second line, Castle Wars")
-    val CAPTURE_THE_FLAG = line("capture_the_flag", "more human: the player's remark after Castle Wars")
-    val HUMAN_3 = line("human_3", "more human: third line, Clan Wars (the Grouping tab opens after it)")
-    val HUMAN_4 = line("human_4", "more human: fourth line, safe minigames")
-    val HUMAN_5 = line("human_5", "more human: fifth line, where the Wilderness is")
-    val HUMAN_6 = line("human_6", "more human: sixth line, losing items to other players")
-    val HUMAN_7 = line("human_7", "more human: seventh line, looting")
-    val HUMAN_8 = line("human_8", "more human: eighth line, the Wilderness level")
-    val HUMAN_9 = line("human_9", "more human: ninth line, combat levels you can attack")
-    val HUMAN_ANYTHING_ELSE = line("human_anything_else", "more human: the tutor asking if there's anything else")
+    val ADVICE = line("advice", "first menu: combat advice, which the player then says")
+    val ADVICE_1 = line("advice_1", "combat advice: three types, melee and ranged")
+    val ADVICE_2 = line("advice_2", "combat advice: magic and staves")
+    val TRIANGLE = line("triangle", "combat advice: the player asking about the combat triangle")
+    val ADVICE_3 = line("advice_3", "combat advice: the triangle")
+    val ADVICE_4 = line("advice_4", "combat advice: the triangle isn't an absolute rule")
+    val WEAPON_KINDS = line("weapon_kinds", "combat advice: the player asking about weapon types")
+    val ADVICE_5 = line("advice_5", "combat advice: crush, slash and stab")
+    val ADVICE_6 = line("advice_6", "combat advice: the right weapon for the job")
+    val ADVICE_7 = line("advice_7", "combat advice: maces and warhammers, daggers and shortswords")
+    val HINT_EQUIPMENT = line("hint_equipment", "combat advice: the Worn Equipment box")
+    val ADVICE_8 = line("advice_8", "combat advice: a weapon's preferred style, the scimitar")
+    val HINT_STYLES = line("hint_styles", "combat advice: the first Combat Options box, attack options")
+    val HINT_XP = line("hint_xp", "combat advice: the second Combat Options box, XP per option")
+    val ADVICE_9 = line("advice_9", "combat advice: his spare weapons, the blacksmith")
+    val ADVICE_10 = line("advice_10", "combat advice: food")
+    val ADVICE_11 = line("advice_11", "combat advice: buying or cooking food, the castle's cook")
+    val ADVICE_12 = line("advice_12", "combat advice: that covers the basics")
+    val HINT_GUIDES = line("hint_guides", "combat advice: the Skills panel box")
+    val ADVICE_THANKS = line("advice_thanks", "combat advice: the player's thanks")
 
-    val WEAPONS_1 = line("weapons_1", "weapon types: first line, the types")
-    val WEAPONS_2 = line("weapons_2", "weapon types: second line, experimenting")
-    val WEAPONS_3 = line("weapons_3", "weapon types: third line, the tutor's own sword")
-    val WEAPONS_4 = line("weapons_4", "weapon types: fourth line, accuracy against each monster")
-    val WEAPONS_ANYTHING_ELSE = line("weapons_anything_else", "weapon types: the tutor asking if there's anything else")
+    val WEAPONS = line("weapons", "first menu: weapons he could give, which the player then says")
+    val TOO_SOON_ALL = line("too_soon_all", "weapons, given some in the last 30 minutes, every option open: his refusal ({minutes})")
+    val OFFER_ALL = line("offer_all", "weapons, mage outlaw killed: his offer of all three")
+    val ASK_MELEE = line("ask_melee", "weapons menu: a shortsword and a shield, which the player then says")
+    val ASK_RANGED = line("ask_ranged", "weapons menu: a shortbow and some arrows, which the player then says")
+    val ASK_MAGIC = line("ask_magic", "weapons menu: a staff and some runes, which the player then says")
+    val SOMETHING_ELSE = line("something_else", "weapons menu: talk about something else, which the player then says")
 
-    val CAPES_1 = line("capes_1", "skillcapes: first line")
-    val CAPES_2 = line("capes_2", "skillcapes: second line, the Defence cape's effect")
-    val CAPES_ANYTHING_ELSE = line("capes_anything_else", "skillcapes: the tutor asking if there's anything else")
+    val GIVES_MELEE = line("gives_melee", "shortsword and shield, owning neither: the box with both")
+    val NO_SPACE_MELEE = line("no_space_melee", "shortsword and shield, owning neither, no room: his line")
+    val GIVES_SHIELD = line("gives_shield", "shortsword and shield, owning the shortsword: the box with the shield (missing)")
+    val NO_SPACE_SHIELD = line("no_space_shield", "shortsword and shield, owning the shortsword, no room: his line (missing)")
+    val GIVES_SHORTSWORD = line("gives_shortsword", "shortsword and shield, owning the shield: the box with the shortsword")
+    val NO_SPACE_SHORTSWORD = line("no_space_shortsword", "shortsword and shield, owning the shield, no room: his line (missing)")
+    val HAS_MELEE = line("has_melee", "shortsword and shield, owning both: his refusal")
 
-    val HAS_BOTH = line("has_both", "training sword and shield, already owning both: the tutor's refusal")
-    val GIVES_BOTH = line("gives_both", "training sword and shield, owning neither: the box with both items")
-    val GIVES_SWORD = line("gives_sword", "training sword and shield, owning the shield: the box with the sword")
-    val GIVES_SHIELD = line("gives_shield", "training sword and shield, owning the sword: the box with the shield")
-    val THERE_YOU_GO = line("there_you_go", "training sword and shield, after an item box: the tutor's line")
-    val KIT_ANYTHING_ELSE = line("kit_anything_else", "training sword and shield: the tutor asking if there's anything else")
+    val GIVES_RANGED = line("gives_ranged", "shortbow and arrows, no shortbow: the box with the bow and 40 arrows")
+    val NO_SPACE_RANGED = line("no_space_ranged", "shortbow and arrows, no shortbow, no room: his line")
+    val GIVES_ARROWS = line("gives_arrows", "shortbow and arrows, owning a shortbow: the box with 40 arrows")
+    val NO_SPACE_ARROWS = line("no_space_arrows", "shortbow and arrows, owning a shortbow, no room: his line")
 
-    val MASTER_1 = line("master_1", "99 Defence: the tutor's first line")
-    val MASTER_2 = line("master_2", "99 Defence: second line, the skillcape on offer")
-    val BUY_CAPE = line("buy_cape", "99 Defence menu, option 1: buying the skillcape")
-    val BUY_CAPE_ASK = line("buy_cape_ask", "buying the skillcape: what the player says after choosing it")
-    val MASTER_WEAPON_TYPES = line("master_weapon_types", "99 Defence menu, option 2: weapon types, which the player then says")
-    val PRICE = line("price", "buying the skillcape: the tutor's price")
-    val TOO_EXPENSIVE = line("too_expensive", "price menu, option 1: much too expensive, which the player then says")
-    val TOO_EXPENSIVE_REPLY = line("too_expensive_reply", "much too expensive: the tutor's answer")
-    val HAVE_MONEY = line("have_money", "price menu, option 2: the money is here, which the player then says")
-    val NO_MONEY = line("no_money", "the money is here, under 99,000 coins: the player's admission")
-    val NO_MONEY_REPLY = line("no_money_reply", "the money is here, under 99,000 coins: the tutor's answer")
-    val NO_SPACE = line("no_space", "the money is here, no room for the hood: the tutor's line")
-    val SOLD = line("sold", "the money is here, sold: the tutor's line")
+    val GIVES_MAGIC = line("gives_magic", "staff and runes, no staff: the box with the staff and runes")
+    val NO_SPACE_MAGIC = line("no_space_magic", "staff and runes, no staff, no room: his line")
+    val GIVES_RUNES = line("gives_runes", "staff and runes, owning a staff: the box with the runes")
+    val NO_SPACE_RUNES = line("no_space_runes", "staff and runes, owning a staff, no room: his line")
 
-    val RETURN_SWORD = line("return_sword", "Training sword used on the tutor: the player's line")
-    val RETURN_SWORD_REPLY = line("return_sword_reply", "Training sword used on the tutor: the tutor's answer")
-    val RETURNED_SWORD = line("returned_sword", "Training sword used on the tutor: the box with the sword")
-    val RETURN_SHIELD = line("return_shield", "Training shield used on the tutor: the player's line")
-    val RETURN_SHIELD_REPLY = line("return_shield_reply", "Training shield used on the tutor: the tutor's answer")
-    val RETURNED_SHIELD = line("returned_shield", "Training shield used on the tutor: the box with the shield")
-    val NO_USE = line("no_use", "any other item used on the tutor: the tutor's line")
+    val ANYTHING_ELSE = line("anything_else", "weapons: his line after each answer, anything else you need")
+
+    val CAPE = line("cape", "first menu: the cape he's wearing, which the player then says")
+    val CAPE_WHAT = line("cape_what", "the cape: his question")
+    val BUY_CAPE = line("buy_cape", "cape menu: buying one, which the player then says")
+    val PRICE = line("price", "buying a cape: his price")
+    val ACCEPT = line("accept", "price menu: sounds good, which the player then says")
+    val TOO_MUCH = line("too_much", "price menu: too much, which the player then says")
+    val TOO_MUCH_REPLY = line("too_much_reply", "too much: his answer (missing)")
+    val NOT_MASTER = line("not_master", "sounds good, under 99 Defence: his refusal (missing)")
+    val NO_MONEY = line("no_money", "sounds good, under 99,000 coins: the player's admission (missing)")
+    val NO_MONEY_REPLY = line("no_money_reply", "sounds good, under 99,000 coins: his answer (missing)")
+    val NO_SPACE_CAPE = line("no_space_cape", "sounds good, no room for the cape and hood: his line (missing)")
+    val SOLD = line("sold", "sounds good, sold: his line (missing)")
+    val HOOD = line("hood", "cape menu: another hood, which the player then says")
+    val HOOD_NO_CAPE = line("hood_no_cape", "another hood, owning no Defence cape: his line (missing)")
+    val HOOD_NO_SPACE = line("hood_no_space", "another hood, no room: his line (missing)")
+    val HOOD_GIVEN = line("hood_given", "another hood, given: his line (missing)")
+
+    val LEAVE = line("leave", "first menu: better be off, which the player then says")
+    val LEAVE_REPLY = line("leave_reply", "better be off: his farewell (end of dialogue)")
+
+    val CLAIM_MELEE = line("claim_melee", "Claim-weapons menu: a shortsword and a shield")
+    val CLAIM_RANGED = line("claim_ranged", "Claim-weapons menu: a shortbow and some arrows")
+    val CLAIM_MAGIC = line("claim_magic", "Claim-weapons menu: a staff and some runes")
+    val CANCEL = line("cancel", "Claim-weapons menu: cancel")
 }
 
 /**
- * The combat tutors on the hill north of Lumbridge Castle: Harlan (melee, NPC 3216), Nemarti (ranged, 3217) and Mikasi
- * (magic, 3218). Only Harlan talks for now; the other two come with ranged and magic.
+ * Captain Harlan (NPC 16821, captain_harlan), head of the Lumbridge Guard on the hill north of Lumbridge Castle. Since
+ * revision 242.1 (3 November 2026) he is the only combat tutor: the melee, ranged and magic tutors (3216 to 3218) are
+ * gone from the cache.
  *
- * From the Wiki's transcript: every branch, its lines and its order; a training sword and shield for a player who owns
- * neither, or the one they lack; at 99 Defence the skillcape for 99,000 coins, trimmed with another 99, and the hood
- * free. Guessed: every chathead expression; that "owns" means carried or worn (there is no bank yet); that after the
- * melee talk the "more human" option takes melee's place in the first menu (six options don't fit), and the first menu
- * comes back after every other branch, without the greeting; that the Grouping tab isn't opened (the transcript opens
- * it after Clan Wars; the tab isn't built); that the Adventure paths line never shows (there are no Adventure paths);
- * that the cape and hood need two free slots, counting the coins' slot when they are all spent; that a sword or shield
- * used on him is taken back; and that with a full inventory the training kit lands at the player's feet, as a drop
- * does. Deadman worlds' dialogue is left out.
+ * From the Wiki's transcript, after Mudfoot's Big Adventure (every account has every quest done): the first menu's
+ * options and lines; the free weapons once every 30 minutes, with all three kinds open (the mage outlaw is dead); each
+ * kind's checks of what the player already has and their room; Claim-weapons straight to the same handling; the cape
+ * talk's first lines and price; and the Defence cape, trimmed with another 99, for 99,000 coins (the Wiki's stock).
+ *
+ * Guessed: every chathead expression; that the quest's options (help, the thieves) are gone after it (the post-quest
+ * dialogue is missing from the page); the first-time greeting, as finishing the quest leaves captain_harlan_intro set
+ * ([osrsps.game.Quests.AFTER_QUESTS]); that the Wiki's icon boxes are plain message boxes (we have no sprite box);
+ * that the 30 minutes are real time kept in a var of ours ([CustomVars.harlanClaimVarp]), counted to the second from the
+ * last time he gave anything, rounded up to whole minutes when he says how long is left, and checked again on every pick, so one talk gives
+ * one kind; that "previous" after a kind is the weapons menu and "other" the first menu; that "has" means carried or
+ * worn or banked (as the old Melee combat tutor's "inventory or bank"); which slots each kind needs (a stack already carried needs none); what happens with the shortsword and no
+ * shield (missing, so the shield is given as the shortsword is); the bonus giveaways (captain_harlan_bonus_*) are left
+ * out. The cape purchase after the price, the hood and "too much" are missing from the page: they follow the old
+ * Melee combat tutor's cape sale (99 Defence, coins, room for cape and hood).
  */
 object Harlan {
-    const val ID = 3216
+    const val ID = 16821
     const val TALK_TO = 1
+    const val CLAIM_WEAPONS = 3
 
-    /** aide_shortsword and aide_shield. */
-    const val TRAINING_SWORD = 9703
-    const val TRAINING_SHIELD = 9704
+    /** Varbit captain_harlan_intro: 1 once he has greeted the player. */
+    const val VARBIT_INTRO = 16780
+
+    const val BRONZE_SHORTSWORD = 1277
+    const val WOODEN_SHIELD = 1171
+    const val SHORTBOW = 841
+    const val BRONZE_ARROW = 882
+    const val STAFF = 1379
+    const val AIR_RUNE = 556
+    const val MIND_RUNE = 558
+    const val AMMO = 40
 
     /** skillcape_defence, skillcape_defence_trimmed and skillcape_defence_hood. */
     const val DEFENCE_CAPE = 9753
@@ -122,172 +145,284 @@ object Harlan {
     const val CAPE_PRICE = 99_000
     const val MAX_LEVEL = 99
 
+    /** Minutes between two handouts. */
+    const val CLAIM_MINUTES = 30
+
     internal suspend fun Dialogue.talk(tutor: Tutor) = with(HarlanLines) {
-        if (player.skills.baseLevel(Skill.DEFENCE) >= MAX_LEVEL) {
-            chatNpc(ChatAnim.HAPPY, MASTER_1)
-            chatNpc(ChatAnim.HAPPY, MASTER_2)
-            if (choice(BUY_CAPE, MASTER_WEAPON_TYPES) == 1) {
-                buyCape(tutor)
-                return@with
-            }
-            chatPlayer(ChatAnim.QUIZ, MASTER_WEAPON_TYPES)
-            weaponTypes()
+        // A cache without the varbit (tests) counts as met.
+        if (player.vars.types.varbit(VARBIT_INTRO) != null && player.vars.getVarbit(VARBIT_INTRO) == 0) {
+            player.vars.setVarbit(VARBIT_INTRO, 1)
+            chatNpc(ChatAnim.HAPPY, GREETING_FIRST)
         } else {
             chatNpc(ChatAnim.HAPPY, GREETING)
         }
-        var first = MELEE
+        mainMenu(tutor)
+    }
+
+    private suspend fun Dialogue.mainMenu(tutor: Tutor) = with(HarlanLines) {
         while (true) {
-            when (val picked = listOf(first, WEAPON_TYPES, SKILLCAPES, TRAINING_KIT, GOODBYE).let { it[choice(*it.toTypedArray()) - 1] }) {
-                MELEE -> {
-                    chatPlayer(ChatAnim.QUIZ, MELEE)
-                    melee(tutor)
-                    first = HUMAN
+            when (choice(GUARDS, ADVICE, WEAPONS, CAPE, LEAVE)) {
+                1 -> guards()
+                2 -> advice()
+                3 -> {
+                    chatPlayer(ChatAnim.QUIZ, WEAPONS)
+                    if (!weapons(tutor)) return@with
                 }
-                HUMAN -> {
-                    chatPlayer(ChatAnim.QUIZ, HUMAN)
-                    human()
-                    first = MELEE
-                }
-                WEAPON_TYPES -> {
-                    chatPlayer(ChatAnim.QUIZ, picked)
-                    weaponTypes()
-                }
-                SKILLCAPES -> {
-                    chatPlayer(ChatAnim.QUIZ, SKILLCAPES)
-                    chatNpc(ChatAnim.NEUTRAL, CAPES_1)
-                    chatNpc(ChatAnim.NEUTRAL, CAPES_2)
-                    chatNpc(ChatAnim.HAPPY, CAPES_ANYTHING_ELSE)
-                }
-                TRAINING_KIT -> {
-                    chatPlayer(ChatAnim.QUIZ, TRAINING_KIT)
-                    trainingKit(tutor)
-                }
+                4 -> cape(tutor)
                 else -> {
-                    chatPlayer(ChatAnim.NEUTRAL, GOODBYE)
+                    chatPlayer(ChatAnim.NEUTRAL, LEAVE)
+                    chatNpc(ChatAnim.HAPPY, LEAVE_REPLY)
                     return@with
                 }
             }
         }
     }
 
-    private suspend fun Dialogue.melee(tutor: Tutor) = with(HarlanLines) {
-        chatNpc(ChatAnim.NEUTRAL, MELEE_1)
-        tutor.sideTab(player, GameFrame.SIDE_TAB_WORN)
-        chatNpc(ChatAnim.NEUTRAL, MELEE_2)
-        tutor.sideTab(player, GameFrame.SIDE_TAB_COMBAT)
-        chatNpc(ChatAnim.NEUTRAL, MELEE_3)
-        chatNpc(ChatAnim.NEUTRAL, MELEE_4)
-        chatPlayer(ChatAnim.QUIZ, STYLES)
-        for (line in listOf(ACCURATE, AGGRESSIVE, DEFENSIVE, CONTROLLED, ATTACK_TYPES_1, ATTACK_TYPES_2, HOVER)) chatNpc(ChatAnim.NEUTRAL, line)
-        chatNpc(ChatAnim.HAPPY, MELEE_ANYTHING_ELSE)
+    private suspend fun Dialogue.guards() = with(HarlanLines) {
+        chatPlayer(ChatAnim.QUIZ, GUARDS)
+        chatNpc(ChatAnim.NEUTRAL, GUARDS_1)
+        chatPlayer(ChatAnim.QUIZ, GUARDS_ASK)
+        chatNpc(ChatAnim.NEUTRAL, GUARDS_2)
     }
 
-    private suspend fun Dialogue.human() = with(HarlanLines) {
-        chatNpc(ChatAnim.NEUTRAL, HUMAN_1)
-        chatNpc(ChatAnim.NEUTRAL, HUMAN_2)
-        chatPlayer(ChatAnim.HAPPY, CAPTURE_THE_FLAG)
-        for (line in listOf(HUMAN_3, HUMAN_4, HUMAN_5, HUMAN_6, HUMAN_7, HUMAN_8, HUMAN_9)) chatNpc(ChatAnim.NEUTRAL, line)
-        chatNpc(ChatAnim.HAPPY, HUMAN_ANYTHING_ELSE)
+    private suspend fun Dialogue.advice() = with(HarlanLines) {
+        chatPlayer(ChatAnim.QUIZ, ADVICE)
+        chatNpc(ChatAnim.NEUTRAL, ADVICE_1)
+        chatNpc(ChatAnim.NEUTRAL, ADVICE_2)
+        chatPlayer(ChatAnim.QUIZ, TRIANGLE)
+        chatNpc(ChatAnim.NEUTRAL, ADVICE_3)
+        chatNpc(ChatAnim.NEUTRAL, ADVICE_4)
+        chatPlayer(ChatAnim.QUIZ, WEAPON_KINDS)
+        chatNpc(ChatAnim.NEUTRAL, ADVICE_5)
+        chatNpc(ChatAnim.NEUTRAL, ADVICE_6)
+        chatNpc(ChatAnim.NEUTRAL, ADVICE_7)
+        mesbox(HINT_EQUIPMENT)
+        chatNpc(ChatAnim.NEUTRAL, ADVICE_8)
+        mesbox(HINT_STYLES)
+        mesbox(HINT_XP)
+        for (line in listOf(ADVICE_9, ADVICE_10, ADVICE_11, ADVICE_12)) chatNpc(ChatAnim.NEUTRAL, line)
+        mesbox(HINT_GUIDES)
+        chatPlayer(ChatAnim.HAPPY, ADVICE_THANKS)
     }
 
-    private suspend fun Dialogue.weaponTypes() = with(HarlanLines) {
-        for (line in listOf(WEAPONS_1, WEAPONS_2, WEAPONS_3, WEAPONS_4)) chatNpc(ChatAnim.NEUTRAL, line)
-        chatNpc(ChatAnim.HAPPY, WEAPONS_ANYTHING_ELSE)
-    }
-
-    private suspend fun Dialogue.trainingKit(tutor: Tutor) = with(HarlanLines) {
-        val sword = owns(player, TRAINING_SWORD)
-        val shield = owns(player, TRAINING_SHIELD)
-        if (sword && shield) {
-            chatNpc(ChatAnim.NEUTRAL, HAS_BOTH)
-        } else {
-            if (!sword) tutor.give(player, TRAINING_SWORD)
-            if (!shield) tutor.give(player, TRAINING_SHIELD)
-            when {
-                !sword && !shield -> doubleobjbox(TRAINING_SWORD, TRAINING_SHIELD, text(GIVES_BOTH))
-                !sword -> objbox(TRAINING_SWORD, GIVES_SWORD)
-                else -> objbox(TRAINING_SHIELD, GIVES_SHIELD)
+    /** The weapons branch from the first menu. False when the talk ends there (too soon). */
+    private suspend fun Dialogue.weapons(tutor: Tutor): Boolean {
+        with(HarlanLines) {
+            if (refusedTooSoon(tutor)) return false
+            chatNpc(ChatAnim.HAPPY, OFFER_ALL)
+            while (true) {
+                val kind = when (choice(ASK_MELEE, ASK_RANGED, ASK_MAGIC, SOMETHING_ELSE)) {
+                    1 -> Kind.MELEE
+                    2 -> Kind.RANGED
+                    3 -> Kind.MAGIC
+                    else -> {
+                        chatPlayer(ChatAnim.NEUTRAL, SOMETHING_ELSE)
+                        return true
+                    }
+                }
+                chatPlayer(ChatAnim.QUIZ, kind.ask)
+                if (refusedTooSoon(tutor)) return false
+                if (!give(tutor, kind)) return true
             }
-            chatNpc(ChatAnim.HAPPY, THERE_YOU_GO)
         }
-        chatNpc(ChatAnim.HAPPY, KIT_ANYTHING_ELSE)
     }
 
-    private suspend fun Dialogue.buyCape(tutor: Tutor) = with(HarlanLines) {
-        chatPlayer(ChatAnim.QUIZ, BUY_CAPE_ASK)
-        chatNpc(ChatAnim.NEUTRAL, PRICE)
-        if (choice(TOO_EXPENSIVE, HAVE_MONEY) == 1) {
-            chatPlayer(ChatAnim.SHOCKED, TOO_EXPENSIVE)
-            chatNpc(ChatAnim.NEUTRAL, TOO_EXPENSIVE_REPLY)
+    /** Claim-weapons: the kinds as a menu, straight to the handout; the talk ends after it (guessed). */
+    internal suspend fun Dialogue.claim(tutor: Tutor) = with(HarlanLines) {
+        val kind = when (choice(CLAIM_MELEE, CLAIM_RANGED, CLAIM_MAGIC, CANCEL)) {
+            1 -> Kind.MELEE
+            2 -> Kind.RANGED
+            3 -> Kind.MAGIC
+            else -> return@with
+        }
+        if (refusedTooSoon(tutor)) return@with
+        give(tutor, kind)
+    }
+
+    /** His refusal while the last handout is under [CLAIM_MINUTES] old; true when he refused. */
+    private suspend fun Dialogue.refusedTooSoon(tutor: Tutor): Boolean = with(HarlanLines) {
+        val left = minutesLeft(player, tutor.nowSeconds())
+        if (left <= 0) return@with false
+        chatNpc(ChatAnim.NEUTRAL, TOO_SOON_ALL, "minutes" to left)
+        true
+    }
+
+    /** Minutes until the next handout at [now] (seconds since the epoch), rounded up; 0 when one is due. */
+    fun minutesLeft(player: Player, now: Long): Long {
+        val varp = player.vars.types.namedVarps[CustomVars.HARLAN_CLAIMED] ?: return 0
+        val last = player.vars[varp]
+        if (last == 0) return 0
+        val seconds = (last + CLAIM_MINUTES * 60L - now).coerceIn(0, CLAIM_MINUTES * 60L)
+        return (seconds + 59) / 60
+    }
+
+    private fun claimed(player: Player, now: Long) {
+        val varp = player.vars.types.namedVarps[CustomVars.HARLAN_CLAIMED] ?: return
+        player.vars[varp] = now.toInt()
+    }
+
+    enum class Kind(val ask: osrsps.game.dialogue.Line) {
+        MELEE(HarlanLines.ASK_MELEE), RANGED(HarlanLines.ASK_RANGED), MAGIC(HarlanLines.ASK_MAGIC)
+    }
+
+    /**
+     * Hands out [kind] as far as the player's room allows, with its box or his no-room line, then his "anything else".
+     * True when the weapons menu comes back after it ("previous"), false for the first menu ("other").
+     */
+    private suspend fun Dialogue.give(tutor: Tutor, kind: Kind): Boolean = with(HarlanLines) {
+        val free = player.inventory.freeSlots
+        val previous: Boolean
+        when (kind) {
+            Kind.MELEE -> {
+                val sword = hasAnywhere(player, BRONZE_SHORTSWORD)
+                val shield = hasAnywhere(player, WOODEN_SHIELD)
+                when {
+                    sword && shield -> {
+                        chatNpc(ChatAnim.NEUTRAL, HAS_MELEE)
+                        previous = false
+                    }
+                    !sword && !shield -> if (free >= 2) {
+                        handOut(tutor, BRONZE_SHORTSWORD to 1, WOODEN_SHIELD to 1)
+                        doubleobjbox(BRONZE_SHORTSWORD, WOODEN_SHIELD, text(GIVES_MELEE))
+                        previous = true
+                    } else {
+                        chatNpc(ChatAnim.NEUTRAL, NO_SPACE_MELEE)
+                        previous = false
+                    }
+                    else -> {
+                        val missing = if (sword) WOODEN_SHIELD else BRONZE_SHORTSWORD
+                        if (free >= 1) {
+                            handOut(tutor, missing to 1)
+                            objbox(missing, if (sword) GIVES_SHIELD else GIVES_SHORTSWORD)
+                        } else {
+                            chatNpc(ChatAnim.NEUTRAL, if (sword) NO_SPACE_SHIELD else NO_SPACE_SHORTSWORD)
+                        }
+                        previous = true
+                    }
+                }
+            }
+            Kind.RANGED -> if (!hasAnywhere(player, SHORTBOW)) {
+                // The Wiki: one free slot is enough; with exactly one the arrows land on the ground.
+                if (free >= 1) {
+                    handOut(tutor, SHORTBOW to 1, BRONZE_ARROW to AMMO)
+                    doubleobjbox(SHORTBOW, BRONZE_ARROW, text(GIVES_RANGED))
+                } else {
+                    chatNpc(ChatAnim.NEUTRAL, NO_SPACE_RANGED)
+                }
+                previous = true
+            } else if (slotsFor(player, BRONZE_ARROW) <= free) {
+                handOut(tutor, BRONZE_ARROW to AMMO)
+                objbox(BRONZE_ARROW, GIVES_ARROWS)
+                previous = true
+            } else {
+                chatNpc(ChatAnim.NEUTRAL, NO_SPACE_ARROWS)
+                previous = false
+            }
+            Kind.MAGIC -> if (!hasAnywhere(player, STAFF)) {
+                if (1 + slotsFor(player, MIND_RUNE, AIR_RUNE) <= free) {
+                    handOut(tutor, STAFF to 1, MIND_RUNE to AMMO, AIR_RUNE to AMMO)
+                    doubleobjbox(STAFF, MIND_RUNE, text(GIVES_MAGIC))
+                    previous = true
+                } else {
+                    chatNpc(ChatAnim.NEUTRAL, NO_SPACE_MAGIC)
+                    previous = false
+                }
+            } else if (slotsFor(player, MIND_RUNE, AIR_RUNE) <= free) {
+                handOut(tutor, MIND_RUNE to AMMO, AIR_RUNE to AMMO)
+                doubleobjbox(MIND_RUNE, AIR_RUNE, text(GIVES_RUNES))
+                previous = true
+            } else {
+                chatNpc(ChatAnim.NEUTRAL, NO_SPACE_RUNES)
+                previous = false
+            }
+        }
+        chatNpc(ChatAnim.HAPPY, ANYTHING_ELSE)
+        previous
+    }
+
+    private fun Dialogue.handOut(tutor: Tutor, vararg objs: Pair<Int, Int>) {
+        for ((obj, count) in objs) tutor.give(player, obj, count)
+        claimed(player, tutor.nowSeconds())
+    }
+
+    /** Slots [objs] (stackables) take: none for one already carried. */
+    private fun slotsFor(player: Player, vararg objs: Int): Int = objs.count { player.inventory.count(it) == 0L }
+
+    private suspend fun Dialogue.cape(tutor: Tutor) = with(HarlanLines) {
+        chatPlayer(ChatAnim.QUIZ, CAPE)
+        chatNpc(ChatAnim.NEUTRAL, CAPE_WHAT)
+        if (choice(BUY_CAPE, HOOD) == 2) {
+            chatPlayer(ChatAnim.QUIZ, HOOD)
+            when {
+                !owns(player, DEFENCE_CAPE) && !owns(player, DEFENCE_CAPE_TRIMMED) -> chatNpc(ChatAnim.NEUTRAL, HOOD_NO_CAPE)
+                player.inventory.freeSlots < 1 -> chatNpc(ChatAnim.NEUTRAL, HOOD_NO_SPACE)
+                else -> {
+                    tutor.give(player, DEFENCE_HOOD, 1)
+                    chatNpc(ChatAnim.HAPPY, HOOD_GIVEN)
+                }
+            }
             return@with
         }
-        chatPlayer(ChatAnim.HAPPY, HAVE_MONEY)
+        chatPlayer(ChatAnim.QUIZ, BUY_CAPE)
+        chatNpc(ChatAnim.HAPPY, PRICE)
+        if (choice(ACCEPT, TOO_MUCH) == 2) {
+            chatPlayer(ChatAnim.SHOCKED, TOO_MUCH)
+            chatNpc(ChatAnim.NEUTRAL, TOO_MUCH_REPLY)
+            return@with
+        }
+        chatPlayer(ChatAnim.HAPPY, ACCEPT)
         val coins = player.inventory.count(COINS)
         when {
+            player.skills.baseLevel(Skill.DEFENCE) < MAX_LEVEL -> chatNpc(ChatAnim.NEUTRAL, NOT_MASTER)
             coins < CAPE_PRICE -> {
                 chatPlayer(ChatAnim.SAD, NO_MONEY)
                 chatNpc(ChatAnim.NEUTRAL, NO_MONEY_REPLY)
             }
-            player.inventory.freeSlots + (if (coins == CAPE_PRICE.toLong()) 1 else 0) < 2 -> chatNpc(ChatAnim.NEUTRAL, NO_SPACE)
+            player.inventory.freeSlots + (if (coins == CAPE_PRICE.toLong()) 1 else 0) < 2 -> chatNpc(ChatAnim.NEUTRAL, NO_SPACE_CAPE)
             else -> {
-                removeCount(player.inventory, COINS, CAPE_PRICE)
-                tutor.give(player, if (otherMaxedSkill(player)) DEFENCE_CAPE_TRIMMED else DEFENCE_CAPE)
-                tutor.give(player, DEFENCE_HOOD)
-                // The Wiki's transcript has the cape and hood handed over with no game message.
+                removeCount(player, COINS, CAPE_PRICE)
+                tutor.give(player, if (otherMaxedSkill(player)) DEFENCE_CAPE_TRIMMED else DEFENCE_CAPE, 1)
+                tutor.give(player, DEFENCE_HOOD, 1)
                 chatNpc(ChatAnim.HAPPY, SOLD)
             }
         }
     }
 
-    /** A training sword or shield used on Harlan: he takes it back. */
-    internal suspend fun Dialogue.giveBack(obj: Int, slot: Int) = with(HarlanLines) {
-        val sword = obj == TRAINING_SWORD
-        chatPlayer(ChatAnim.QUIZ, if (sword) RETURN_SWORD else RETURN_SHIELD)
-        chatNpc(ChatAnim.HAPPY, if (sword) RETURN_SWORD_REPLY else RETURN_SHIELD_REPLY)
-        // The item could have moved while the lines were read; take it from wherever it is now.
-        if (slot in 0 until player.inventory.capacity && player.inventory[slot]?.id == obj) player.inventory.remove(slot, 1)
-        else removeCount(player.inventory, obj, 1)
-        objbox(obj, if (sword) RETURNED_SWORD else RETURNED_SHIELD)
-    }
-
     fun owns(player: Player, obj: Int): Boolean = player.inventory.count(obj) > 0 || player.equipment.count(obj) > 0
+
+    /** Whether the player carries, wears or banks [obj]: what the free weapons check. */
+    fun hasAnywhere(player: Player, obj: Int): Boolean = owns(player, obj) || player.bank.count(obj) > 0
 
     /** Whether a skill other than Defence is at 99, which makes the cape trimmed. */
     fun otherMaxedSkill(player: Player): Boolean =
         Skill.entries.any { it != Skill.DEFENCE && player.skills.baseLevel(it) >= MAX_LEVEL }
 
-    /** What the talk does outside the chatbox: hand over one of an item (at the player's feet if they have no room) and show a side tab. */
-    class Tutor(val give: (Player, Int) -> Unit, val sideTab: (Player, Int) -> Unit) {
+    /** What the talk does outside the chatbox: hand over items (at the player's feet without room), and the clock. */
+    class Tutor(val give: (Player, Int, Int) -> Unit, val nowSeconds: () -> Long = { System.currentTimeMillis() / 1_000 }) {
         constructor(world: World) : this(
-            give = { player, obj ->
-                world.objTypes[obj]?.let { world.groundObjs.give(player, it, 1) } ?: logger.warn { "No item $obj in the cache" }
+            give = { player, obj, count ->
+                world.objTypes[obj]?.let { world.groundObjs.give(player, it, count) } ?: logger.warn { "No item $obj in the cache" }
             },
-            sideTab = { player, tab -> world.interfaces.switchSideTab(player, tab) },
         )
     }
 
-    /** Takes [count] of [obj] from [inventory], from its first slots on. */
-    private fun removeCount(inventory: Inventory, obj: Int, count: Int) {
+    /** Takes [count] of [obj] from the inventory, from its first slots on. */
+    private fun removeCount(player: Player, obj: Int, count: Int) {
         var left = count
-        for ((slot, held) in inventory.contents()) {
+        for ((slot, held) in player.inventory.contents()) {
             if (left == 0) break
-            if (held.id == obj) left -= inventory.remove(slot, left)
+            if (held.id == obj) left -= player.inventory.remove(slot, left)
         }
     }
 }
 
-/** Harlan's Talk-to and items used on him. */
+/** Captain Harlan's Talk-to and Claim-weapons. */
 fun registerCombatTutors(world: World) {
     val tutor = Harlan.Tutor(world)
     world.handlers.onNpc(Harlan.ID, Harlan.TALK_TO) { op ->
         world.dialogues.start(this, op.npc) { with(Harlan) { talk(tutor) } }
     }
-    for (obj in listOf(Harlan.TRAINING_SWORD, Harlan.TRAINING_SHIELD)) {
-        world.handlers.onObjOnNpc(Harlan.ID, obj) { op ->
-            world.dialogues.start(this, op.npc) { with(Harlan) { giveBack(op.obj, op.sub) } }
-        }
-    }
-    world.handlers.onObjOnNpc(Harlan.ID) { op ->
-        world.dialogues.start(this, op.npc) { chatNpc(ChatAnim.NEUTRAL, HarlanLines.NO_USE) }
+    world.handlers.onNpc(Harlan.ID, Harlan.CLAIM_WEAPONS) { op ->
+        world.dialogues.start(this, op.npc) { with(Harlan) { claim(tutor) } }
     }
 }

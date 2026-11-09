@@ -635,6 +635,14 @@ class Trades(
     private fun message(player: Player, line: Line) = player.message(words(player)[line])
 
     companion object {
+        /** Every interface and component id above with its gameval name in the rev 242 cache, for [osrsps.cache.GameFrameCheck]. */
+        val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>>
+            get() = mapOf(
+                MAIN to ("trademain" to mapOf(MAIN_FREE_SPACE to "free_space_text", MAIN_ACCEPT to "accept", MAIN_DECLINE to "decline", MAIN_YOUR_HEADER to "your_offer_header", MAIN_YOUR_OFFER to "your_offer", MAIN_OTHER_HEADER to "other_offer_header", MAIN_OTHER_OFFER to "other_offer", MAIN_STATUS to "status", MAIN_TITLE to "title")),
+                SIDE to ("tradeside" to mapOf(SIDE_ITEMS to "side_layer")),
+                CONFIRM to ("tradeconfirm" to mapOf(CONFIRM_TITLE to "title", CONFIRM_ACCEPT to "trade2accept", CONFIRM_DECLINE to "trade2decline", CONFIRM_GIVE to "you_will_give", CONFIRM_RECEIVE to "you_will_receive", CONFIRM_OPPONENT to "tradeopponent")),
+            )
+
         /** The trade screen, trademain, and the inventory beside it, tradeside. */
         const val MAIN = 335
         const val SIDE = 336

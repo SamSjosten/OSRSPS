@@ -284,6 +284,12 @@ class Smithing(private val world: World) {
     }
 
     companion object {
+        /** Every interface and component id above with its gameval name in the rev 242 cache, for [osrsps.cache.GameFrameCheck]. */
+        val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>>
+            get() = mapOf(
+                INTERFACE to ("smithing" to mapOf(3 to "make_1", 4 to "make_5", 5 to "make_10", 6 to "make_x", 7 to "make_all", 8 to "make_some")),
+            )
+
         /** Interface smithing, the anvil. */
         const val INTERFACE = 312
 

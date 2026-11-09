@@ -324,6 +324,13 @@ class Crafting(private val world: World, val data: CraftingData) {
     }
 
     companion object {
+        /** Every interface and component id above with its gameval name in the rev 242 cache, for [osrsps.cache.GameFrameCheck]. */
+        val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>>
+            get() = mapOf(
+                JEWELLERY_INTERFACE to ("crafting_gold" to emptyMap()),
+                SILVER_INTERFACE to ("silver_crafting" to emptyMap()),
+            )
+
         const val SPIN = "Spin"
 
         /** crafting_gold and silver_crafting (osrs-dumps, rev 241). */

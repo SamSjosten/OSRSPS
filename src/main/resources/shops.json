@@ -167,6 +167,88 @@
       ]
     },
     {
+      "key": "lumbridge_blacksmith",
+      "title": "Lumbridge Blacksmith",
+      "inv": 1032,
+      "size": 11,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 600,
+      "changePer": 20,
+      "npcs": [
+        "lumbridge_blacksmith"
+      ],
+      "source": "OSRS Wiki, Feoras, Stock, read 2026-11-08: Sells at 100.0%, Buys at 60.0%, Change per 2.0% (the Wiki marks the change as needing confirmation), and the stock table; inv lumbridge_blacksmith (1032, size 11) in the 242 cache",
+      "stock": [
+        {
+          "item": 2347,
+          "name": "Hammer",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 1205,
+          "name": "Bronze dagger",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 1277,
+          "name": "Bronze shortsword",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 1291,
+          "name": "Bronze longsword",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 1173,
+          "name": "Bronze sq shield",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 1103,
+          "name": "Bronze chainbody",
+          "count": 5,
+          "restock": 100
+        },
+        {
+          "item": 1203,
+          "name": "Iron dagger",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 1279,
+          "name": "Iron shortsword",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 1293,
+          "name": "Iron longsword",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 1175,
+          "name": "Iron sq shield",
+          "count": 0,
+          "restock": 100
+        },
+        {
+          "item": 1101,
+          "name": "Iron chainbody",
+          "count": 0,
+          "restock": 100
+        }
+      ]
+    },
+    {
       "key": "draynor_wine_shop",
       "title": "Fortunato's Fine Wine",
       "inv": 384,

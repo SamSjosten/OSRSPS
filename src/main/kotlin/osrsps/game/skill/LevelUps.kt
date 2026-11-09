@@ -141,6 +141,12 @@ class LevelUps(
     }
 
     companion object {
+        /** Every interface and component id above with its gameval name in the rev 242 cache, for [osrsps.cache.GameFrameCheck]. */
+        val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>>
+            get() = mapOf(
+                INTERFACE to ("levelup_display" to mapOf(TEXT1 to "text1", TEXT2 to "text2", CONTINUE to "continue", LAYER_COMBAT to "combat")),
+            )
+
         /** levelup_display. */
         const val INTERFACE = 233
         const val TEXT1 = 1

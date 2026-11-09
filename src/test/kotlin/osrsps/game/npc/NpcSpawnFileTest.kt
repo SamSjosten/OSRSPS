@@ -17,9 +17,7 @@ class NpcSpawnFileTest {
         NpcType(2793, "Cow", size = 2, internalName = "cow3"),
         NpcType(2792, "Cow calf", size = 2, internalName = "cow2_calf"),
         NpcType(2794, "Cow calf", size = 2, internalName = "cow3_calf"),
-        NpcType(3216, "Melee combat tutor", internalName = "aide_tutor_melee"),
-        NpcType(3217, "Ranged combat tutor", internalName = "aide_tutor_ranging"),
-        NpcType(3218, "Magic combat tutor", internalName = "aide_tutor_magic"),
+        NpcType(16821, "Captain Harlan", internalName = "captain_harlan"),
         // The 241 cache's ids (dump.npc).
         NpcType(2813, "Shop keeper", internalName = "generalshopkeeper1"),
         NpcType(2814, "Shop assistant", internalName = "generalassistant1"),
@@ -27,8 +25,8 @@ class NpcSpawnFileTest {
         NpcType(7546, "Bartender", internalName = "ram_bartender"),
         NpcType(8665, "Arthur the Clue Hunter", internalName = "aide_tutor_clues"),
         NpcType(3219, "Cooking tutor", internalName = "aide_tutor_cooking"),
-        NpcType(3226, "Woodsman tutor", internalName = "aide_tutor_woodsman"),
-        NpcType(3224, "Smithing apprentice", internalName = "aide_tutor_smithing_apprentice"),
+        NpcType(16808, "Wilfred", internalName = "wilfred"),
+        NpcType(16806, "Feoras", internalName = "lumbridge_blacksmith"),
         NpcType(921, "Donie", internalName = "lumbridge_guide2_woman"),
         NpcType(6816, "Gee", internalName = "lumbridge_guide2_man"),
         NpcType(311, "Ironman tutor", internalName = "ironman_tutor_1"),
@@ -63,7 +61,7 @@ class NpcSpawnFileTest {
     @Test
     fun `the town centre's NPCs stand west of the river, Abigaila upstairs in the General Store`() {
         val spawns = NpcSpawnFile.parse(file("lumbridge.json"), types).spawns
-        val town = spawns.filter { it.type.id in setOf(7546, 8665, 3219, 3226, 3224, 311, 8368) }
+        val town = spawns.filter { it.type.id in setOf(7546, 8665, 3219, 16808, 16806, 311, 8368) }
         assertEquals(7, town.size)
         assertTrue(town.all { it.x < 3240 && it.z in 3190..3260 })
         assertEquals(1, town.single { it.type.id == 8368 }.level)
@@ -72,12 +70,12 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `the three combat tutors stand together on the hill north of the castle`() {
+    fun `Captain Harlan alone stands on the hill north of the castle, the three 241 tutors gone`() {
         val result = NpcSpawnFile.parse(file("lumbridge.json"), types)
         assertEquals(emptyList(), result.unknown)
-        val tutors = result.spawns.filter { it.type.id in 3216..3218 }
-        assertEquals(listOf(3216, 3217, 3218), tutors.map { it.type.id }.sorted())
-        assertTrue(tutors.all { it.x in 3217..3219 && it.z in 3238..3239 && it.level == 0 })
+        assertTrue(result.spawns.none { it.type.id in 3216..3218 })
+        val harlan = result.spawns.single { it.type.id == 16821 }
+        assertEquals(Triple(3218, 3238, 0), Triple(harlan.x, harlan.z, harlan.level))
     }
 
     @Test
@@ -103,7 +101,7 @@ class NpcSpawnFileTest {
             NpcType(5007, "Imp", internalName = "imp"),
             NpcType(2854, "Rat", internalName = "rat"),
             NpcType(815, "Duke Horacio", internalName = "duke_of_lumbridge"),
-            NpcType(3220, "Crafting tutor", internalName = "aide_tutor_crafting"),
+            NpcType(16807, "Cadmus", internalName = "cadmus"),
             NpcType(6520, "null", internalName = "deadman_banker_blue_south"),
             NpcType(3227, "Banker tutor", internalName = "aide_tutor_banker"),
             NpcType(306, "Lumbridge Guide", internalName = "lumbridge_guide"),
@@ -121,8 +119,9 @@ class NpcSpawnFileTest {
         assertEquals(10, hans.patrol.sumOf { it.wait })
         assertEquals(MoveRestrict.OUTDOORS, hans.restrict)
         assertEquals(MoveRestrict.INDOORS, spawns.single { it.type.id == 4626 }.restrict)
-        // Everyone but Hans wanders or stands still on purpose.
-        assertTrue(spawns.filter { it.patrol.isEmpty() }.all { it.wander == 0 || it.wander == 5 })
+        // Everyone but Hans and Cadmus wanders 5 or stands still on purpose.
+        assertTrue(spawns.filter { it.patrol.isEmpty() && it.type.id != 16807 }.all { it.wander == 0 || it.wander == 5 })
+        assertEquals(2, spawns.single { it.type.id == 16807 }.wander, "Cadmus: his Wiki map's radius")
     }
 
     @Test
@@ -175,7 +174,7 @@ class NpcSpawnFileTest {
             2864 to "giantrat1_3", 2854 to "rat", 8700 to "giant_frog_nodrops", 8701 to "medium_frog_nodrops", 8702 to "little_frog_nodrops",
             3045 to "goblin_armed", 2837 to "unicorn", 238 to "butterfly_viceroy", 923 to "father_urhney", 1157 to "archeradventurerpg",
             1158 to "warrioradventurerpg", 1159 to "monkadventurerpg", 1160 to "wizardadventuterpg", 1896 to "swamp_candle_guy",
-            3222 to "aide_tutor_mining", 3221 to "aide_tutor_fishing",
+            16809 to "monlum", 16810 to "finlay",
         )
         val swampTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("lumbridge-swamp.json"), swampTypes, "lumbridge-swamp.json")
@@ -197,9 +196,9 @@ class NpcSpawnFileTest {
         assertEquals(4, spawns.count { it.type.id in 1157..1160 && it.x in 3148..3153 && it.z in 3204..3208 })
         assertEquals(Tile(3170, 3176), spawns.single { it.type.id == 1896 }.let { Tile(it.x, it.z) })
         // The mining tutor by the east mine and the fishing tutor by the shore.
-        assertEquals(Tile(3227, 3146), spawns.single { it.type.id == 3222 }.let { Tile(it.x, it.z) })
-        assertEquals(Tile(3246, 3157), spawns.single { it.type.id == 3221 }.let { Tile(it.x, it.z) })
-        assertTrue(spawns.all { it.source.isNotBlank() && it.wander == if (it.type.id in setOf(1896, 3221, 3222)) 2 else 5 })
+        assertEquals(Tile(3227, 3146), spawns.single { it.type.id == 16809 }.let { Tile(it.x, it.z) })
+        assertEquals(Tile(3244, 3157), spawns.single { it.type.id == 16810 }.let { Tile(it.x, it.z) })
+        assertTrue(spawns.all { it.source.isNotBlank() && it.wander == when (it.type.id) { 1896 -> 2; 16809 -> 4; 16810 -> 3; else -> 5 } })
     }
 
     @Test

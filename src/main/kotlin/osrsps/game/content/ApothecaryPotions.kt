@@ -23,6 +23,12 @@ import osrsps.game.shop.ShopScreen
  * Wiki doesn't give a price), the model zoom, that the screen stays open after a purchase, and every message.
  */
 object ApothecaryPotions {
+    /** Every interface and component id above with its gameval name in the rev 242 cache, for [osrsps.cache.GameFrameCheck]. */
+    val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>>
+        get() = mapOf(
+            INTERFACE to ("apothecary_potions" to emptyMap()),
+        )
+
     const val INTERFACE = 556
     const val POTIONS_OP = 3
     const val BUY_1 = 1

@@ -240,12 +240,12 @@
   },
   {
    "step": "npcOption",
-   "npc": "Crafting tutor",
+   "npc": "Cadmus",
    "option": "Examine"
   },
   {
    "step": "assertMessage",
-   "contains": "[examine.npc_3220]"
+   "contains": "[examine.npc_16807]"
   },
   {
    "step": "locOption",
