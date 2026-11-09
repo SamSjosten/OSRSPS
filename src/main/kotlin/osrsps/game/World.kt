@@ -2921,6 +2921,12 @@ class World(
         const val LOGOUT_TAB = 182
         const val LOGOUT_BUTTON = 8
 
+        /** Every interface and component id above with its gameval name in the rev 242 cache, for [osrsps.cache.GameFrameCheck]. */
+        val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>>
+            get() = mapOf(
+                LOGOUT_TAB to ("logout" to mapOf(LOGOUT_BUTTON to "logout")),
+            )
+
         /** The logout button does nothing until this many ticks after the player was last hit (OSRS Wiki, Logout button). */
         const val LOGOUT_COMBAT_TICKS = 16L
 

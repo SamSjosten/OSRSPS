@@ -337,6 +337,13 @@ class Prayers(
     }
 
     companion object {
+        /** Every interface and component id above with its gameval name in the rev 242 cache, for [osrsps.cache.GameFrameCheck]. */
+        val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>>
+            get() = mapOf(
+                PRAYERBOOK to ("prayerbook" to emptyMap()),
+                QUICKPRAYER to ("quickprayer" to mapOf(QUICKPRAYER_BUTTONS to "buttons", QUICKPRAYER_CLOSE to "close")),
+            )
+
         const val RESOURCE = "/prayers.json"
 
         const val PRAYERBOOK = 541

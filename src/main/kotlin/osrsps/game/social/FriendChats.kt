@@ -339,6 +339,13 @@ class FriendChats(
     }
 
     companion object {
+        /** Every interface and component id above with its gameval name in the rev 242 cache, for [osrsps.cache.GameFrameCheck]. */
+        val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>>
+            get() = mapOf(
+                CURRENT to ("chatchannel_current" to mapOf(CURRENT_SETUP to "setup")),
+                SETUP to ("chatchannel_setup" to mapOf(SETUP_PREFIX to "opt_prefix", SETUP_ENTER to "opt_enter", SETUP_TALK to "opt_talk", SETUP_KICK to "opt_kick")),
+            )
+
         /** chatchannel_current, the Chat-channel tab's friends chat panel, opened inside side_channels' contents. */
         const val CURRENT = 7
         const val CURRENT_SETUP = 20
