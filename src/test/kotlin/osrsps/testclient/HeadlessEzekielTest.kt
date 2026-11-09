@@ -34,10 +34,11 @@ import osrsps.map.LocShape
 import osrsps.map.Tile
 
 /**
- * Ezekiel (raid step 17a) through the headless client: his fight beginning with the first of the party into his room,
+ * Ezekiel (raid steps 17a to 17c) through the headless client: his fight beginning with the first of the party into his room,
  * scaled to the party, him taking that player on and walking to them; his cleave sparing the one behind him; his
  * lightning on everyone when his tank is out of reach; the cross after every second swing and a perfect dodge's
- * special attack energy; and his death doing the room. The rl-client script test-runner/examples/archive-ezekiel.json
+ * special attack energy; his flying swords; his enrage at 35%, its arena, fence and strikes; and his death doing the
+ * room. The rl-client script test-runner/examples/archive-ezekiel.json
  * fights him in the real client.
  */
 class HeadlessEzekielTest {
@@ -49,8 +50,9 @@ class HeadlessEzekielTest {
         Ezekiel.SWORD, "Animated sword", ops = listOf(null, "Attack", null, null, null), internalName = "tfa_ezekiel_sword",
         stats = NpcStats(hitpoints = 100),
     )
+    private val mark = NpcType(Ezekiel.SWORD_NOOP, "Animated sword", internalName = "tfa_ezekiel_sword_noop")
     private val grave = NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null))
-    private val types = NpcTypes.of(ezekiel, sword, grave)
+    private val types = NpcTypes.of(ezekiel, sword, mark, grave)
 
     private val locTypes = LocTypes(
         mapOf(ArchiveRaids.ARCHIVE_DOOR to LocType(ArchiveRaids.ARCHIVE_DOOR, "Archive Door", ops = listOf("Enter", null, null, null, null), collision = LocCollisionType(width = 9, length = 1))),
@@ -427,6 +429,105 @@ class HeadlessEzekielTest {
                 assertTrue(lines.none { it.contains("sword hits him") })
                 assertEquals(before + heal, boss.hitpoints)
                 alice.commandReply("resume") { it.startsWith("Resumed") }
+            }
+        }
+    }
+
+    @Test
+    fun `the enrage's arena is three by three west of him, fenced on its other sides, its marks west of its back row`() {
+        val arena = Ezekiel.arenaFor(100, 200)
+        assertEquals(Tile(97, 200), arena)
+        val tiles = Ezekiel.arenaTiles(arena)
+        assertEquals(9, tiles.size)
+        assertEquals((97..99).toList(), tiles.map { it.x }.distinct().sorted())
+        val fence = Ezekiel.fence(arena)
+        assertEquals(11, fence.size)
+        assertEquals(11, fence.toSet().size)
+        assertTrue(fence.none { it in tiles })
+        // Every tile round the arena but its east side, which is his (x 100 on).
+        val round = (96..100).flatMap { x -> (199..203).map { z -> Tile(x, z) } }.filter { it !in tiles && it.x < 100 }
+        assertEquals(round.toSet(), fence.toSet())
+        for (row in 0 until 3) {
+            val mark = Ezekiel.mark(arena, row)
+            assertTrue(mark in fence)
+            val safe = Ezekiel.safeTile(arena, row)
+            assertTrue(safe in tiles)
+            assertEquals(Tile(mark.x + 1, mark.z), safe)
+        }
+    }
+
+    private fun lines(run: ArchiveRun): List<String> = assertNotNull(run.fights[ArchiveRoom.EZEKIEL]).lines.toList()
+
+    private fun HeadlessClient.stepUntil(run: ArchiveRun, what: String, limit: Int, predicate: (String) -> Boolean): String {
+        var ticks = 0
+        while (true) {
+            lines(run).lastOrNull(predicate)?.let { return it }
+            check(++ticks <= limit) { "no $what within $limit ticks: ${lines(run).takeLast(10)}" }
+            stepTicks(1)
+        }
+    }
+
+    @Test
+    fun `at 35 percent he enrages, the swords out go unflown, a fence shuts her in beside him, and a strike spares only the unstruck mark's tile`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.commandReply("raid tp guardian") { it.startsWith("To ") }
+                alice.await("the Guardian's room done") { ArchiveRoom.GUARDIAN.takeIf { it in run.cleared } }
+                alice.commandReply("raid tp ezekiel") { it.startsWith("To ") }
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ezekiel #") } }
+                val boss = bossOf(run)
+                val world = server.world
+                // Paused with a volley out, then down to 34%.
+                alice.toVolley()
+                assertTrue(world.npcs.all.any { it.type.id == Ezekiel.SWORD })
+                alice.commandReply("hit ${boss.maxHitpoints * 66 / 100} ${boss.index}") { it.startsWith("Hit ") }
+                alice.stepUntil(run, "the enrage", 3) { it.contains("enrage: enrage at") }
+                assertTrue(world.npcs.all.none { it.type.id == Ezekiel.SWORD }, "the volley's swords gone")
+                // The arena, once the transition is over.
+                alice.stepUntil(run, "the arena", Ezekiel.ENRAGE_TRANSITION + 2) { it.contains("enrage: arena at") }
+                val spot = Tile(boss.spawn.x + Ezekiel.ENRAGE_EAST, boss.spawn.z)
+                assertEquals(spot, Tile(boss.x, boss.z))
+                val arena = Ezekiel.arenaFor(spot.x, spot.z)
+                val tiles = Ezekiel.arenaTiles(arena)
+                val player = world.playerNamed("alice")!!
+                assertTrue(Tile(player.x, player.z) in tiles, "alice in the arena at ${player.x},${player.z}")
+                val fence = world.npcs.all.filter { it.type.id == Ezekiel.SWORD_NOOP }.map { Tile(it.x, it.z) }.toSet()
+                assertEquals(Ezekiel.fence(arena).toSet(), fence)
+                // The volley's flight passes: no sword hits anyone, nor heals him.
+                alice.commandReply("setlevel hitpoints 99") { it.contains("set to level 99") }
+                alice.commandReply("heal") { it.startsWith("Healed to ") }
+                alice.commandReply("god off") { it.contains("can be hurt") }
+                // A strike with her on its safe tile: nothing lands on her.
+                val first = alice.stepUntil(run, "a strike", Ezekiel.ENRAGE_VOLLEY_EVERY) { it.contains("enrage: lightning, safe row") }
+                val safe = Ezekiel.safeTile(arena, first.substringAfterLast(' ').toInt())
+                world.teleport(player, safe.x, safe.z, 0)
+                val before = lines(run).size
+                alice.stepTicks(Ezekiel.ENRAGE_STRIKE_DELAY)
+                assertTrue(lines(run).drop(before).none { it.contains("lightning hits alice") }, lines(run).drop(before).toString())
+                // The next with her on another: it lands, Protect from Magic off.
+                alice.stepTicks(1)
+                val second = alice.stepUntil(run, "the next strike", Ezekiel.ENRAGE_VOLLEY_EVERY) { it.contains("enrage: lightning, safe row") && it != first }
+                val unsafe = tiles.first { it != Ezekiel.safeTile(arena, second.substringAfterLast(' ').toInt()) }
+                world.teleport(player, unsafe.x, unsafe.z, 0)
+                val hpBefore = player.hitpoints
+                alice.stepTicks(Ezekiel.ENRAGE_STRIKE_DELAY)
+                val hit = lines(run).last { it.contains("lightning hits alice for") }
+                val dealt = hit.substringAfterLast(' ').toInt()
+                assertTrue(dealt in Ezekiel.ENRAGE_MIN..Ezekiel.ENRAGE_MAX, hit)
+                assertEquals(hpBefore - dealt, player.hitpoints)
+                val all = lines(run)
+                assertTrue(all.none { it.contains("sword hits him") || it.contains("heals") }, all.toString())
+                alice.commandReply("god on") { it.startsWith("You can't be hurt") }
+                alice.commandReply("resume") { it.startsWith("Resumed") }
+                // The fence holds her in: a walk west ends back in the arena.
+                alice.walk(arena.x - 5, arena.z + 1)
+                alice.awaitTicks(8)
+                assertTrue(Tile(player.x, player.z) in tiles, "alice still in the arena at ${player.x},${player.z}")
+                assertTrue(lines(run).any { it.endsWith("enrage: alice back into the arena") }, lines(run).takeLast(10).toString())
+                // His death does the room, as before.
+                alice.commandReply("hit 3000 ${boss.index}") { it.startsWith("Hit ") }
+                alice.await("his room done") { ArchiveRoom.EZEKIEL.takeIf { it in run.cleared } }
             }
         }
     }

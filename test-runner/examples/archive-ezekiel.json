@@ -1,5 +1,5 @@
 {
- "name": "Raid steps 17a and 17b: Ezekiel solo, his fight beginning as the first player comes into his room, his walk over with lightning while he can't reach, his swings under Protect from Melee, the cross after every second one and the flying swords with it, to his death doing the room",
+ "name": "Raid steps 17a, 17b and 17c: Ezekiel solo, his fight beginning as the first player comes into his room, his walk over with lightning while he can't reach, his swings under Protect from Melee, the cross after every second one and the flying swords with it, his enrage at 35% shutting the player into a fenced three by three beside him under strikes of lightning, to his death doing the room",
  "account": "test",
  "steps": [
   {
@@ -136,7 +136,51 @@
   },
   {
    "step": "command",
-   "text": "::hit 3000",
+   "text": "::hit 2000",
+   "expectMessage": "1000/3000 hp",
+   "comment": "down to a third, under the 35% his enrage begins at (step 17c)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "enrage: enrage at",
+   "comment": "the swords out go unflown, his finale begins"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 8,
+   "comment": "the transition, then the arena"
+  },
+  {
+   "step": "assertAnimation",
+   "npc": "Ezekiel",
+   "id": 14696,
+   "timeoutMs": 10000,
+   "comment": "npc_ezekiel_finale_loop01, sent once as the arena goes up; before the next command, as a command resets what an assert looks back over"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "enrage: arena at",
+   "comment": "he stands east in his room, a fence of swords round a three by three west of him, the player brought into it"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "enrage: lightning, safe row",
+   "comment": "two of the three marks struck, the back-row tile on the third's row spared"
+  },
+  {
+   "step": "command",
+   "text": "::hit 1000",
    "expectMessage": "0/3000 hp, dead"
   },
   {

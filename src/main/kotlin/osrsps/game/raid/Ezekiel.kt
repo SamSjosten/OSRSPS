@@ -16,7 +16,7 @@ import osrsps.game.npc.Npc
 import osrsps.map.Tile
 
 /**
- * Ezekiel (raid steps 17a and 17b), one of the second row's two bosses, in his own room: a 3 by 3 justiciar who keeps
+ * Ezekiel (raid steps 17a, 17b and 17c), one of the second row's two bosses, in his own room: a 3 by 3 justiciar who keeps
  * to his tank, the first player in, and walks after them.
  *
  * - Every [ATTACK_SPEED] ticks, with his tank beside him, a melee swing that cleaves almost all the way round him: it
@@ -31,6 +31,10 @@ import osrsps.map.Tile
  *   does, he heals [HEAL_PERCENT] of his hitpoints. Whoever is in a lane is hit, and a perfect dodge of one counts too.
  *   Damage dealt to a sword charges it, up to [CHARGE_HITPOINTS]: a charged one hits him harder ([swordDamage]), and
  *   the players in its lane too ([laneDamage]). They're weak to air spells and resist ranged (npc-combat.json).
+ * - At [ENRAGE_PERCENT] of his hitpoints, the enrage ([enrage]): the swords out go, and [ENRAGE_TRANSITION] ticks on he
+ *   stands east in his room, a fence of swords shuts every player into a three by three west of him ([arena]), and
+ *   volleys of [ENRAGE_STRIKES] strikes follow every [ENRAGE_VOLLEY_EVERY] ticks till he dies: two of three marks in the
+ *   fence struck, then lightning on the whole arena but the back-row tile on the unstruck mark's row ([strike]).
  *
  * From the OSRS Wiki (Ezekiel, read 2026-11-09): his stats and bonuses, 3 by 3, the 5-tick attack speed, max hit 77,
  * magic and melee, the 25% earth weakness, the poison and venom immunity, Defence drained to 120 at most, his
@@ -53,7 +57,13 @@ import osrsps.map.Tile
  * max hit being the Wiki's 77; for the swords, the arena ([ARENA_RADIUS] round his spawn), their lanes (his width, at
  * random, from a random end), the count picked at random, one volley out at a time, all of a volley flying together and
  * at once along the whole lane (live's fly across), their timer, damage, charge, the stun's and the heal's size, and
- * the sword's own type (16653 rather than the `_noop` one) and air weakness. The enrage (17c) is not in yet.
+ * the sword's own type (16653 rather than the `_noop` one) and air weakness; for the enrage, where he stands, the
+ * arena's place and its fence's shape, the fence holding them by putting back whoever steps off ([hold]), where each
+ * player lands, the transition's length, the strikes' gap, delay and
+ * damage, Protect from Magic halving it, the marks' and impacts' spotanims picked by name, and that he neither moves
+ * nor swings in it. From the Wiki (Ezekiel): the 35%, the 3x3 arena, the volleys of 3 lightning attacks shown by which
+ * swords are struck, dodged on the tile of the sword not struck; its changes (28 October and 3 November 2026): no
+ * sword of the fight before hurting anyone through the enrage, and no stun animation over the enrage's.
  */
 object Ezekiel {
     /** What `::raid` and the raid flow know the fight by. */
@@ -64,6 +74,9 @@ object Ezekiel {
 
     /** `tfa_ezekiel_sword`: a flying sword, waiting at its lane's end to fly. */
     const val SWORD = 16653
+
+    /** `tfa_ezekiel_sword_noop`: a sword that only stands, the enrage's fence round the players and its three marks. */
+    const val SWORD_NOOP = 16654
 
     /** npc_ezekiel_*: his swing, his lightning cast and his cross burst (special). */
     const val ANIM_MELEE = 14685
@@ -79,6 +92,14 @@ object Ezekiel {
     /** The sword's spin as it flies. */
     const val ANIM_SWORD_SPIN = 14707
 
+    /** The enrage: npc_ezekiel_finale01 as it begins, then npc_ezekiel_finale_loop01 as he casts from his place. */
+    const val ANIM_FINALE = 14694
+    const val ANIM_FINALE_LOOP = 14696
+
+    /** vfx_ezekiel_sword_fence_drop01 on each sword of the fence, vfx_ezekiel_finale_sword_drop01 on the three marks. */
+    const val ANIM_FENCE_DROP = 14731
+    const val ANIM_MARK_DROP = 14710
+
     /** ezekiel_magic_attack_vfx01 and its impact; ezekiel_special_crack_vfx01; the star explosion's marker and burst. */
     const val SPOT_MAGIC = 4167
     const val SPOT_MAGIC_IMPACT = 4168
@@ -88,6 +109,13 @@ object Ezekiel {
 
     /** ezekiel_heal_vfx01, his heal's glow. */
     const val SPOT_HEAL = 4173
+
+    /**
+     * vfx_ezekiel_sword_telegraph03, the lightning on a struck mark, and vfx_ezekiel_finale_impact_large01, the enrage's
+     * lightning landing on a player.
+     */
+    const val SPOT_MARK_STRUCK = 4190
+    const val SPOT_FINALE_IMPACT = 4196
 
     /** The Wiki's attack speed. */
     const val ATTACK_SPEED = 5
@@ -139,10 +167,37 @@ object Ezekiel {
     /** His heal when no sword of a volley hit him, in percent of his most hitpoints. Guessed ("a significant amount"). */
     const val HEAL_PERCENT = 10
 
+    /** The enrage begins at this share of his hitpoints, in percent (the Wiki's 35%; osrstoolkit says 33%). */
+    const val ENRAGE_PERCENT = 35
+
+    /** Where he stands for the enrage: his south-west tile this many tiles east of his spawn's. Guessed ("central east"). */
+    const val ENRAGE_EAST = 6
+
+    /**
+     * Ticks from the enrage beginning to the players brought into its arena. Guessed; longer than a cross's two bursts
+     * take, so a cross already shown lands before anyone is shut in where they couldn't dodge it.
+     */
+    const val ENRAGE_TRANSITION = 6
+
+    /** The enrage's volleys of [ENRAGE_STRIKES] strikes, one every this many ticks (bald.gg's 11). */
+    const val ENRAGE_VOLLEY_EVERY = 11
+
+    /** Strikes in a volley (the Wiki's "volleys of 3 lightning attacks"), this many ticks apart. The gap guessed. */
+    const val ENRAGE_STRIKES = 3
+    const val ENRAGE_STRIKE_GAP = 3
+
+    /** Ticks from the marks being struck to the lightning landing. Guessed (a guide's dodge: a tick's wait, then a step). */
+    const val ENRAGE_STRIKE_DELAY = 2
+
+    /** A strike's damage on whoever is on one of its tiles, halved by Protect from Magic (a guide's "reduces"). Guessed. */
+    const val ENRAGE_MIN = 30
+    const val ENRAGE_MAX = 60
+
     /** The fight, or null when the cache hasn't Ezekiel (a test world's). Without the sword's type, no swords fly. */
     fun def(types: NpcTypes): EncounterDef? {
         val type = types[BOSS] ?: return null
         val sword = types[SWORD]
+        val mark = types[SWORD_NOOP]
         return EncounterDef(
             NAME, type,
             listOf(
@@ -156,12 +211,18 @@ object Ezekiel {
                             if (phaseTick > 0 && phaseTick % ATTACK_SPEED == 0L) attack(tank, sword)
                         },
                     ),
+                    endsAtPercent = ENRAGE_PERCENT,
                     onStart = {
                         state.swings = 0
                         // He walks after his tank anywhere in his room, never giving up for being far from his spawn.
                         boss.unleashed = true
                         tank()
                     },
+                ),
+                PhaseDef(
+                    "enrage",
+                    cycle = listOf(CycleStep(1) { enrageTick(mark) }),
+                    onStart = { enrage() },
                 ),
             ),
             scriptedAttacks = true,
@@ -184,6 +245,12 @@ object Ezekiel {
          * which its end lets go of, so nothing here can hold a sword, its attacker and through them the boss.
          */
         var volleyOut = false
+
+        /** Whether the enrage has begun: nothing of the fight before it lands after. */
+        var enraged = false
+
+        /** The enrage's arena's south-west tile, once the players are in it; its three by three west of him. */
+        var arena: Tile? = null
     }
 
     /** A flying sword at the end of its [lane], across the arena [alongX] or along z, at [offset]. */
@@ -327,10 +394,12 @@ object Ezekiel {
      * Whoever is on [tiles] the tick before a strike lands on them [ticks] ticks from now and off them as it lands, a
      * perfect dodge, gets [DODGE_ENERGY] of special attack energy back.
      */
-    private fun EncounterContext.perfectDodge(tiles: Set<Tile>, ticks: Int, what: String) {
+    private fun EncounterContext.perfectDodge(tiles: Set<Tile>, ticks: Int, what: String, lands: EncounterContext.() -> Boolean = { true }) {
         var onIt: List<Player> = emptyList()
         if (ticks > 1) after(ticks - 1) { onIt = players.filter { Tile(it.x, it.z) in tiles } } else onIt = players.filter { Tile(it.x, it.z) in tiles }
         after(ticks) {
+            // Nothing to dodge when what was coming never came.
+            if (!lands()) return@after
             for (player in onIt) {
                 if (player.dead || player !in players || Tile(player.x, player.z) in tiles) continue
                 val energy = world.specialAttacks.energy(player)
@@ -404,12 +473,14 @@ object Ezekiel {
         }
         if (swords.isEmpty()) return
         state.volleyOut = true
-        for (sword in swords) perfectDodge(sword.lane, SWORD_LAUNCH, "a sword")
+        for (sword in swords) perfectDodge(sword.lane, SWORD_LAUNCH, "a sword") { !state.enraged }
         after(SWORD_LAUNCH) { fly(swords) }
     }
 
     /** The volley flies: each hits whoever is in its lane, and him if he's lined up with it; none hitting him heals him. */
     private fun EncounterContext.fly(swords: List<Sword>) {
+        // The enrage took them away: none flies, so none hurts anyone (the Wiki's changes, 28 October 2026), nor heals him.
+        if (state.enraged) return
         state.volleyOut = false
         var struck = false
         for (sword in swords) {
@@ -441,10 +512,11 @@ object Ezekiel {
         world.npcs.stopFollowing(boss)
         if (fresh) {
             boss.effects.anim(ANIM_WEAKEN_START)
-            after(1) { if (stunned()) boss.effects.anim(ANIM_WEAKEN) }
+            after(1) { if (stunned() && !state.enraged) boss.effects.anim(ANIM_WEAKEN) }
         }
         val until = state.stunnedUntil
-        after(STUN_TICKS) { if (state.stunnedUntil == until) boss.effects.anim(ANIM_WEAKEN_END) }
+        // Not over the enrage's own animation (the Wiki's changes, 3 November 2026).
+        after(STUN_TICKS) { if (state.stunnedUntil == until && !state.enraged) boss.effects.anim(ANIM_WEAKEN_END) }
         log("stunned for $STUN_TICKS ticks")
     }
 
@@ -457,6 +529,128 @@ object Ezekiel {
         boss.effects.anim(ANIM_HEAL)
         boss.effects.spotanim(0, SPOT_HEAL, 0)
         log("no sword hit him: heals ${boss.hitpoints - before}")
+    }
+
+    /**
+     * The enrage begins: he stops where he is, out of any stun, the swords out are taken away unflown, and his finale
+     * begins. [ENRAGE_TRANSITION] ticks on, [arena].
+     */
+    private fun EncounterContext.enrage() {
+        state.enraged = true
+        state.stunnedUntil = 0
+        state.volleyOut = false
+        world.npcs.stopFollowing(boss)
+        for (add in adds.toList()) if (add.type.id == SWORD) world.removeNpc(add)
+        boss.effects.anim(ANIM_FINALE)
+        log("enrage at ${boss.hitpoints} hp")
+    }
+
+    /** The enrage's tick: the arena once its transition is over, then the volleys of strikes, till he dies. */
+    private fun EncounterContext.enrageTick(mark: NpcType?) {
+        if (phaseTick == ENRAGE_TRANSITION.toLong()) arena(mark)
+        val arena = state.arena ?: return
+        hold(arena)
+        val since = phaseTick - ENRAGE_TRANSITION - 1
+        if (since < 0) return
+        val inVolley = (since % ENRAGE_VOLLEY_EVERY).toInt()
+        if (inVolley % ENRAGE_STRIKE_GAP == 0 && inVolley / ENRAGE_STRIKE_GAP < ENRAGE_STRIKES) strike(arena)
+    }
+
+    /**
+     * The fence holds every player in the fight in [arena]: one who stepped off it last tick is put back on its nearest
+     * tile, before any strike lands. Guessed: live's fence presumably stops the step itself, but NPCs don't block a
+     * player's walk here, and how live's does isn't known.
+     */
+    private fun EncounterContext.hold(arena: Tile) {
+        val tiles = arenaTiles(arena)
+        for (player in players) {
+            if (Tile(player.x, player.z) in tiles) continue
+            val back = tiles.minBy { maxOf(kotlin.math.abs(it.x - player.x), kotlin.math.abs(it.z - player.z)) }
+            world.teleport(player, back.x, back.z, boss.level)
+            log("${player.username} back into the arena")
+        }
+    }
+
+    /** The enrage's three by three, west of him standing with his south-west tile at ([x], [z]): its south-west tile. */
+    fun arenaFor(x: Int, z: Int): Tile = Tile(x - 3, z)
+
+    /** The arena's nine tiles, from its south-west tile [arena]. */
+    fun arenaTiles(arena: Tile): Set<Tile> = (0 until 3).flatMap { dx -> (0 until 3).map { dz -> Tile(arena.x + dx, arena.z + dz) } }.toSet()
+
+    /**
+     * The fence round [arena]: a column of five swords along its west side, and three along each of its north and south
+     * sides, him its east side. The middle three of the west column are the marks, row by row from the south.
+     */
+    fun fence(arena: Tile): List<Tile> {
+        val tiles = ArrayList<Tile>()
+        for (dz in -1..3) tiles += Tile(arena.x - 1, arena.z + dz)
+        for (dx in 0 until 3) {
+            tiles += Tile(arena.x + dx, arena.z - 1)
+            tiles += Tile(arena.x + dx, arena.z + 3)
+        }
+        return tiles
+    }
+
+    /** The mark of [row] (0 the south) west of [arena]. */
+    fun mark(arena: Tile, row: Int): Tile = Tile(arena.x - 1, arena.z + row)
+
+    /** The tile a strike leaving [row]'s mark unstruck spares: the arena's west column, the back row, on that row. */
+    fun safeTile(arena: Tile, row: Int): Tile = Tile(arena.x, arena.z + row)
+
+    /**
+     * He goes to his place [ENRAGE_EAST] of his spawn, a fence of swords goes up west of him and every player in the
+     * fight is brought into the three by three it shuts in, beside him. Guessed: where, the fence's shape (the Wiki's
+     * "3x3 arena"), him its east side, and where in it each player lands.
+     */
+    private fun EncounterContext.arena(mark: NpcType?) {
+        val x = boss.spawn.x + ENRAGE_EAST
+        val z = boss.spawn.z
+        world.npcs.teleport(boss, x, z)
+        boss.effects.anim(ANIM_FINALE_LOOP)
+        val arena = arenaFor(x, z)
+        val marks = (0 until 3).map { mark(arena, it) }.toSet()
+        if (mark != null) {
+            for (tile in fence(arena)) {
+                val sword = spawnAdd(mark, tile.x, tile.z) ?: continue
+                sword.scriptedAttacks = true
+                sword.effects.anim(if (tile in marks) ANIM_MARK_DROP else ANIM_FENCE_DROP)
+            }
+        }
+        // The middle first, then round it.
+        val tiles = arenaTiles(arena).sortedBy { (it.x - arena.x - 1) * (it.x - arena.x - 1) + (it.z - arena.z - 1) * (it.z - arena.z - 1) }
+        for ((i, player) in players.withIndex()) {
+            val tile = tiles[i % tiles.size]
+            world.teleport(player, tile.x, tile.z, boss.level)
+        }
+        state.arena = arena
+        log("arena at ${arena.x},${arena.z}")
+    }
+
+    /**
+     * A strike: two of the three marks struck, then, [ENRAGE_STRIKE_DELAY] ticks on, lightning on every tile of the arena
+     * but the back row's on the unstruck mark's row ([safeTile]). A perfect dodge of it counts, as of the cross.
+     */
+    private fun EncounterContext.strike(arena: Tile) {
+        val safeRow = roll(0, 2)
+        for (row in 0 until 3) {
+            if (row == safeRow) continue
+            val at = mark(arena, row)
+            adds.firstOrNull { it.type.id == SWORD_NOOP && it.x == at.x && it.z == at.z }?.effects?.spotanim(0, SPOT_MARK_STRUCK, 0)
+        }
+        boss.effects.anim(ANIM_MAGIC)
+        val tiles = arenaTiles(arena) - safeTile(arena, safeRow)
+        log("lightning, safe row $safeRow")
+        perfectDodge(tiles, ENRAGE_STRIKE_DELAY, "the lightning")
+        after(ENRAGE_STRIKE_DELAY) {
+            for (player in players) {
+                if (gone()) return@after
+                if (Tile(player.x, player.z) !in tiles || player.level != boss.level) continue
+                player.effects.spotanim(0, SPOT_FINALE_IMPACT, 0, 0)
+                val roll = roll(ENRAGE_MIN, ENRAGE_MAX)
+                val dealt = hit(player, if (world.prayers.protects(player, AttackType.MAGIC)) roll / 2 else roll)
+                log("lightning hits ${player.username} for $dealt")
+            }
+        }
     }
 
     /** Whether the fight is over, the boss dead or gone: nothing lands after. */
