@@ -41,15 +41,21 @@ class CustomVars(
      */
     val lodestonePreviousVarbit: Int = firstVarbit + Lodestones.SITES.size
 
+    /**
+     * The second (since the epoch) Captain Harlan last handed the player free weapons, 0 for never: he gives them once
+     * every [Harlan.CLAIM_MINUTES] ([Harlan]). Live keeps this somewhere we haven't found; ours is guessed.
+     */
+    val harlanClaimVarp: Int = firstVarp + 1
+
     /** Every varbit of ours, by id. */
     val varbits: Map<Int, VarbitType> = Lodestones.SITES.associate { lodestoneVarbit(it) to VarbitType(lodestonesVarp, it.index, it.index) } +
         (lodestonePreviousVarbit to VarbitType(lodestonesVarp, Lodestones.PREVIOUS_LOW_BIT, Lodestones.PREVIOUS_HIGH_BIT))
 
     /** Every varp of ours. */
-    val varps: List<Int> = listOf(lodestonesVarp)
+    val varps: List<Int> = listOf(lodestonesVarp, harlanClaimVarp)
 
-    /** The varps by name, for `::varp name`: [LODESTONES]. */
-    val varpNames: Map<String, Int> = mapOf(LODESTONES to lodestonesVarp)
+    /** The varps by name, for `::varp name`: [LODESTONES] and [HARLAN_CLAIMED]. */
+    val varpNames: Map<String, Int> = mapOf(LODESTONES to lodestonesVarp, HARLAN_CLAIMED to harlanClaimVarp)
 
     /** The varbits by name, for `::varbit name`: each site's line key (`lodestone.lumbridge`, `lodestone.al_kharid`) and [LODESTONE_PREVIOUS]. */
     val varbitNames: Map<String, Int> = Lodestones.SITES.associate { it.name.key to lodestoneVarbit(it) } + (LODESTONE_PREVIOUS to lodestonePreviousVarbit)
@@ -75,6 +81,9 @@ class CustomVars(
         /** The lodestones' varp's name, and the previous destination varbit's. */
         const val LODESTONES = "lodestones"
         const val LODESTONE_PREVIOUS = "lodestone.previous"
+
+        /** Captain Harlan's last handout's varp's name. */
+        const val HARLAN_CLAIMED = "harlan.claimed"
 
         /** Our vars with ids right after [cache]'s, the loaded cache's own types (before ours are added to them). */
         fun after(cache: VarTypes): CustomVars = CustomVars(cache.varpCount, cache.varbitCount)

@@ -17,9 +17,7 @@ class NpcSpawnFileTest {
         NpcType(2793, "Cow", size = 2, internalName = "cow3"),
         NpcType(2792, "Cow calf", size = 2, internalName = "cow2_calf"),
         NpcType(2794, "Cow calf", size = 2, internalName = "cow3_calf"),
-        NpcType(3216, "Melee combat tutor", internalName = "aide_tutor_melee"),
-        NpcType(3217, "Ranged combat tutor", internalName = "aide_tutor_ranging"),
-        NpcType(3218, "Magic combat tutor", internalName = "aide_tutor_magic"),
+        NpcType(16821, "Captain Harlan", internalName = "captain_harlan"),
         // The 241 cache's ids (dump.npc).
         NpcType(2813, "Shop keeper", internalName = "generalshopkeeper1"),
         NpcType(2814, "Shop assistant", internalName = "generalassistant1"),
@@ -72,12 +70,12 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `the three combat tutors stand together on the hill north of the castle`() {
+    fun `Captain Harlan alone stands on the hill north of the castle, the three 241 tutors gone`() {
         val result = NpcSpawnFile.parse(file("lumbridge.json"), types)
         assertEquals(emptyList(), result.unknown)
-        val tutors = result.spawns.filter { it.type.id in 3216..3218 }
-        assertEquals(listOf(3216, 3217, 3218), tutors.map { it.type.id }.sorted())
-        assertTrue(tutors.all { it.x in 3217..3219 && it.z in 3238..3239 && it.level == 0 })
+        assertTrue(result.spawns.none { it.type.id in 3216..3218 })
+        val harlan = result.spawns.single { it.type.id == 16821 }
+        assertEquals(Triple(3218, 3238, 0), Triple(harlan.x, harlan.z, harlan.level))
     }
 
     @Test

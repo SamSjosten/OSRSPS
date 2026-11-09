@@ -1,5 +1,5 @@
 {
- "name": "Combat step 7: Harlan, the melee combat tutor, hands over a training sword and shield once (::keys on, so keys show whatever data/dialogue.txt holds)",
+ "name": "Lumbridge 242 step 1: Captain Harlan hands over a shortsword and shield, then nothing more for 30 minutes (::keys on, so keys show whatever data/dialogue.txt holds)",
  "account": "test",
  "steps": [
   {
@@ -17,61 +17,84 @@
   },
   {
    "step": "command",
-   "text": "::tele 3219 3236 0",
-   "expectMessage": "Teleported to 3219, 3236, 0"
+   "text": "::varp harlan.claimed 0"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3218 3236 0",
+   "expectMessage": "Teleported to 3218, 3236, 0"
   },
   {
    "step": "assertLocation",
-   "x": 3219,
+   "x": 3218,
    "y": 3236,
    "plane": 0
   },
   {
    "step": "npcOption",
-   "npc": "Melee combat tutor",
+   "npc": "Captain Harlan",
    "option": "Examine"
   },
   {
    "step": "assertMessage",
-   "contains": "[examine.npc_3216]"
+   "contains": "[examine.npc_16821]"
   },
   {
    "step": "npcOption",
-   "npc": "Melee combat tutor",
+   "npc": "Captain Harlan",
    "option": "Talk-to"
   },
   {
    "step": "assertDialogue",
-   "contains": "[harlan.greeting]",
-   "speaker": "Melee combat tutor"
+   "contains": "[captain_harlan.greeting]",
+   "speaker": "Captain Harlan"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "chooseOption",
-   "text": "[harlan.training_kit]"
+   "text": "[captain_harlan.weapons]"
   },
   {
    "step": "assertDialogue",
-   "contains": "[harlan.training_kit]"
+   "contains": "[captain_harlan.weapons]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[captain_harlan.offer_all]",
+   "speaker": "Captain Harlan"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[captain_harlan.ask_melee]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[captain_harlan.ask_melee]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertInventory",
-   "item": "Training sword",
+   "item": "Bronze shortsword",
    "count": 1
   },
   {
    "step": "assertInventory",
-   "item": "Training shield",
+   "item": "Wooden shield",
    "count": 1
   },
   {
    "step": "assertDialogue",
-   "contains": "[harlan.gives_both]",
+   "contains": "[captain_harlan.gives_melee]",
    "comment": "the box with both items"
   },
   {
@@ -79,52 +102,28 @@
   },
   {
    "step": "assertDialogue",
-   "contains": "[harlan.there_you_go]",
-   "speaker": "Melee combat tutor"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[harlan.kit_anything_else]"
+   "contains": "[captain_harlan.anything_else]",
+   "speaker": "Captain Harlan"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "chooseOption",
-   "text": "[harlan.training_kit]"
+   "text": "[captain_harlan.ask_ranged]"
   },
   {
    "step": "assertDialogue",
-   "contains": "[harlan.training_kit]"
+   "contains": "[captain_harlan.ask_ranged]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[harlan.has_both]",
-   "speaker": "Melee combat tutor"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[harlan.kit_anything_else]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "chooseOption",
-   "text": "[harlan.goodbye]"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[harlan.goodbye]"
+   "contains": "[captain_harlan.too_soon_all minutes=30]",
+   "speaker": "Captain Harlan",
+   "comment": "one kind per 30 minutes"
   },
   {
    "step": "continueDialogue"
@@ -134,29 +133,28 @@
   },
   {
    "step": "assertInventory",
-   "item": "Training sword",
-   "count": 1,
-   "comment": "the second ask gave nothing more"
+   "item": "Shortbow",
+   "count": 0
   },
   {
    "step": "itemOption",
-   "item": "Training sword",
+   "item": "Bronze shortsword",
    "option": "Wield"
   },
   {
    "step": "assertEquipment",
    "slot": "weapon",
-   "item": "Training sword"
+   "item": "Bronze shortsword"
   },
   {
    "step": "itemOption",
-   "item": "Training shield",
-   "option": "Wear"
+   "item": "Wooden shield",
+   "option": "Wield"
   },
   {
    "step": "assertEquipment",
    "slot": "shield",
-   "item": "Training shield"
+   "item": "Wooden shield"
   },
   {
    "step": "command",

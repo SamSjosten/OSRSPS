@@ -47,9 +47,9 @@ class CustomVarsTest {
             val varbits = files.filter { it.group == CustomVars.VARBIT_GROUP }
             assertEquals(files.size, varps.size + varbits.size)
             assertTrue(files.all { it.index == 2 })
-            assertEquals(listOf(vars.lodestonesVarp), varps.map { it.file })
+            assertEquals(listOf(vars.lodestonesVarp, vars.harlanClaimVarp), varps.map { it.file })
             assertTrue(varps.all { it.file >= cache.varpCount }, "a varp id the cache has would be refused at startup")
-            assertContentEquals(byteArrayOf(0), varps.single().data)
+            assertTrue(varps.all { it.data.contentEquals(byteArrayOf(0)) })
             assertEquals(Lodestones.SITES.map { vars.lodestoneVarbit(it) } + vars.lodestonePreviousVarbit, varbits.map { it.file })
             for (file in varbits) {
                 assertEquals(vars.varbits[file.file], VarTypeLoader.decodeVarbit(file.data))
@@ -64,7 +64,7 @@ class CustomVarsTest {
     @Test
     fun `the vars go by name, for the chatbox and the runner scripts, which can't know a cache's ids`() {
         val vars = CustomVars.after(build2746)
-        assertEquals(mapOf("lodestones" to 5996), vars.varpNames)
+        assertEquals(mapOf("lodestones" to 5996, "harlan.claimed" to 5997), vars.varpNames)
         assertEquals(5996, vars.varp("Lodestones"))
         assertNull(vars.varp("5996"))
         assertEquals(
@@ -101,13 +101,13 @@ class CustomVarsTest {
 
         // Our varps by name too, for the saves, with the cache's own count kept for telling an old numeric id of ours apart.
         val named = build2746.with(vars.varbits, vars.varpNames)
-        assertEquals(mapOf("lodestones" to 5996), named.namedVarps)
+        assertEquals(mapOf("lodestones" to 5996, "harlan.claimed" to 5997), named.namedVarps)
         assertEquals("lodestones", named.varpName(5996))
         assertNull(named.varpName(5995))
         assertEquals(5996, named.cacheVarpCount)
-        assertEquals(5997, named.varpCount)
+        assertEquals(5998, named.varpCount)
         assertEquals(5996, build2746.cacheVarpCount, "a cache's own types: every varp is its")
-        assertFailsWith<IllegalArgumentException>("a name used twice") { named.with(emptyMap(), mapOf("lodestones" to 5997)) }
+        assertFailsWith<IllegalArgumentException>("a name used twice") { named.with(emptyMap(), mapOf("lodestones" to 5998)) }
         assertFailsWith<IllegalArgumentException>("a named varp among the cache's") { VarTypes(6_000, emptyMap(), 0, mapOf("x" to 5)) }
         assertFailsWith<IllegalArgumentException>("two names, one varp") { VarTypes(6_002, emptyMap(), 0, mapOf("x" to 6_001, "y" to 6_001), 6_000) }
         assertEquals(6, VarTypes(6_000, mapOf(5 to VarbitType(5, 0, 0))).varbitCount, "the count defaults to the highest id plus one")
