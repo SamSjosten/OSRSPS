@@ -220,6 +220,10 @@ class Npc(
     var dead: Boolean = false
         internal set
 
+    /** The tick of the hit that killed it; -1 while it lives. A boss fight times what follows a death from it. */
+    var diedTick: Long = -1
+        internal set
+
     /** The player who hit it last, and the tick they did; see [osrsps.game.combat.MeleeCombat]. */
     var attacker: Player? = null
         internal set

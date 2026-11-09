@@ -121,6 +121,11 @@ data class NpcCombatDef(
      * The Fractured Archive/Strategies).
      */
     val flying: Boolean = false,
+    /**
+     * Ticks from its death until its body goes and its drops go down ([MeleeCombat]): 4 for most monsters, longer for a
+     * boss whose death animation runs longer (Bork's 7, from the tsps capture notes).
+     */
+    val deathTicks: Int = MeleeCombat.DEATH_TICKS,
 )
 
 /**
@@ -293,6 +298,9 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                     )
                 },
                 flying = entry["flying"]?.jsonPrimitive?.boolean ?: false,
+                deathTicks = (entry["deathTicks"]?.jsonPrimitive?.int ?: MeleeCombat.DEATH_TICKS).also {
+                    require(it >= MeleeCombat.DEATH_TICKS) { "a body going $it ticks after its death" }
+                },
             )
         }
 
