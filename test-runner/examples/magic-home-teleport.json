@@ -32,7 +32,7 @@
   {"step": "assertInterface", "interfaceId": 30000, "timeoutMs": 10000},
   {"step": "clickWidget", "interfaceId": 30000, "component": 6, "op": 1, "comment": "Previous destination: Lumbridge again"},
   {"step": "assertInterface", "interfaceId": 30000, "absent": true, "timeoutMs": 10000},
-  {"step": "assertAnimation", "id": 4847, "timeoutMs": 10000},
+  {"step": "assertAnimation", "id": 65000, "timeoutMs": 10000, "comment": "the lodestone cast's first stage again"},
   {"step": "walk", "x": 3236, "y": 3221, "comment": "walking removes the cast's weak queue"},
   {"step": "waitTicks", "ticks": 32},
   {"step": "assertLocation", "x": 3236, "y": 3221, "plane": 0, "comment": "still here: the cast stopped"},
