@@ -21,8 +21,8 @@ class HarlanTest {
     private val harness = DialogueHarness("Captain Harlan", types)
     private val player = harness.player
     private val given = mutableListOf<Pair<Int, Int>>()
-    private var now = 1_000_000L
-    private val tutor = Harlan.Tutor(give = { _, obj, count -> given += obj to count }, nowMinutes = { now })
+    private var now = 1_700_000_000L
+    private val tutor = Harlan.Tutor(give = { _, obj, count -> given += obj to count }, nowSeconds = { now })
     private val root = arrayOf(
         "captain_harlan.guards", "captain_harlan.advice", "captain_harlan.weapons", "captain_harlan.cape", "captain_harlan.leave",
     )
@@ -93,7 +93,10 @@ class HarlanTest {
         harness.ends()
         assertEquals(30, Harlan.minutesLeft(player, now))
 
-        now += 29
+        // Counted to the second, rounded up: 29 minutes 59 seconds on is still 1 minute to go.
+        now += 29 * 60
+        assertEquals(1, Harlan.minutesLeft(player, now))
+        now += 59
         start()
         harness.pick(3)
         harness.expect("captain_harlan.weapons", "captain_harlan.too_soon_all minutes=1")
@@ -126,6 +129,33 @@ class HarlanTest {
         harness.menu(*root)
         assertTrue(given.isEmpty())
         assertEquals(0, Harlan.minutesLeft(player, now))
+    }
+
+    @Test
+    fun `a banked shortsword and shield count too, so nothing is given and the clock doesn't start`() {
+        player.bank.add(ObjType(Harlan.BRONZE_SHORTSWORD, "Bronze shortsword"), 1)
+        player.bank.add(ObjType(Harlan.WOODEN_SHIELD, "Wooden shield"), 1)
+        start()
+        harness.pick(3)
+        harness.expect("captain_harlan.weapons", "captain_harlan.offer_all")
+        harness.menu(*kinds)
+        harness.pick(1)
+        harness.expect("captain_harlan.ask_melee", "captain_harlan.has_melee", "captain_harlan.anything_else")
+        harness.menu(*root)
+        assertTrue(given.isEmpty())
+        assertEquals(0, Harlan.minutesLeft(player, now))
+    }
+
+    @Test
+    fun `a banked shortbow means arrows only`() {
+        player.bank.add(ObjType(Harlan.SHORTBOW, "Shortbow"), 1)
+        start()
+        harness.pick(3)
+        harness.expect("captain_harlan.weapons", "captain_harlan.offer_all")
+        harness.menu(*kinds)
+        harness.pick(2)
+        harness.expect("captain_harlan.ask_ranged", "captain_harlan.gives_arrows")
+        assertEquals(listOf(Harlan.BRONZE_ARROW to Harlan.AMMO), given)
     }
 
     @Test

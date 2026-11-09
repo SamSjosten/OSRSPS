@@ -42,7 +42,7 @@ class CustomVars(
     val lodestonePreviousVarbit: Int = firstVarbit + Lodestones.SITES.size
 
     /**
-     * The minute (since the epoch) Captain Harlan last handed the player free weapons, 0 for never: he gives them once
+     * The second (since the epoch) Captain Harlan last handed the player free weapons, 0 for never: he gives them once
      * every [Harlan.CLAIM_MINUTES] ([Harlan]). Live keeps this somewhere we haven't found; ours is guessed.
      */
     val harlanClaimVarp: Int = firstVarp + 1

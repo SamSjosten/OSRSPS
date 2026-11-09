@@ -111,10 +111,10 @@ object HarlanLines : Lines("captain_harlan", "Transcript:Captain Harlan") {
  * Guessed: every chathead expression; that the quest's options (help, the thieves) are gone after it (the post-quest
  * dialogue is missing from the page); the first-time greeting, as finishing the quest leaves captain_harlan_intro set
  * ([osrsps.game.Quests.AFTER_QUESTS]); that the Wiki's icon boxes are plain message boxes (we have no sprite box);
- * that the 30 minutes are real minutes kept in a var of ours ([CustomVars.harlanClaimVarp]), counted from the last
- * time he gave anything, rounded up when he says how long is left, and checked again on every pick, so one talk gives
+ * that the 30 minutes are real time kept in a var of ours ([CustomVars.harlanClaimVarp]), counted to the second from the
+ * last time he gave anything, rounded up to whole minutes when he says how long is left, and checked again on every pick, so one talk gives
  * one kind; that "previous" after a kind is the weapons menu and "other" the first menu; that "has" means carried or
- * worn; which slots each kind needs (a stack already carried needs none); what happens with the shortsword and no
+ * worn or banked (as the old Melee combat tutor's "inventory or bank"); which slots each kind needs (a stack already carried needs none); what happens with the shortsword and no
  * shield (missing, so the shield is given as the shortsword is); the bonus giveaways (captain_harlan_bonus_*) are left
  * out. The cape purchase after the price, the hood and "too much" are missing from the page: they follow the old
  * Melee combat tutor's cape sale (99 Defence, coins, room for cape and hood).
@@ -241,18 +241,19 @@ object Harlan {
 
     /** His refusal while the last handout is under [CLAIM_MINUTES] old; true when he refused. */
     private suspend fun Dialogue.refusedTooSoon(tutor: Tutor): Boolean = with(HarlanLines) {
-        val left = minutesLeft(player, tutor.nowMinutes())
+        val left = minutesLeft(player, tutor.nowSeconds())
         if (left <= 0) return@with false
         chatNpc(ChatAnim.NEUTRAL, TOO_SOON_ALL, "minutes" to left)
         true
     }
 
-    /** Minutes until the next handout, 0 when one is due. */
+    /** Minutes until the next handout at [now] (seconds since the epoch), rounded up; 0 when one is due. */
     fun minutesLeft(player: Player, now: Long): Long {
         val varp = player.vars.types.namedVarps[CustomVars.HARLAN_CLAIMED] ?: return 0
         val last = player.vars[varp]
         if (last == 0) return 0
-        return (last + CLAIM_MINUTES - now).coerceIn(0, CLAIM_MINUTES.toLong())
+        val seconds = (last + CLAIM_MINUTES * 60L - now).coerceIn(0, CLAIM_MINUTES * 60L)
+        return (seconds + 59) / 60
     }
 
     private fun claimed(player: Player, now: Long) {
@@ -273,8 +274,8 @@ object Harlan {
         val previous: Boolean
         when (kind) {
             Kind.MELEE -> {
-                val sword = owns(player, BRONZE_SHORTSWORD)
-                val shield = owns(player, WOODEN_SHIELD)
+                val sword = hasAnywhere(player, BRONZE_SHORTSWORD)
+                val shield = hasAnywhere(player, WOODEN_SHIELD)
                 when {
                     sword && shield -> {
                         chatNpc(ChatAnim.NEUTRAL, HAS_MELEE)
@@ -300,7 +301,7 @@ object Harlan {
                     }
                 }
             }
-            Kind.RANGED -> if (!owns(player, SHORTBOW)) {
+            Kind.RANGED -> if (!hasAnywhere(player, SHORTBOW)) {
                 // The Wiki: one free slot is enough; with exactly one the arrows land on the ground.
                 if (free >= 1) {
                     handOut(tutor, SHORTBOW to 1, BRONZE_ARROW to AMMO)
@@ -317,7 +318,7 @@ object Harlan {
                 chatNpc(ChatAnim.NEUTRAL, NO_SPACE_ARROWS)
                 previous = false
             }
-            Kind.MAGIC -> if (!owns(player, STAFF)) {
+            Kind.MAGIC -> if (!hasAnywhere(player, STAFF)) {
                 if (1 + slotsFor(player, MIND_RUNE, AIR_RUNE) <= free) {
                     handOut(tutor, STAFF to 1, MIND_RUNE to AMMO, AIR_RUNE to AMMO)
                     doubleobjbox(STAFF, MIND_RUNE, text(GIVES_MAGIC))
@@ -341,7 +342,7 @@ object Harlan {
 
     private fun Dialogue.handOut(tutor: Tutor, vararg objs: Pair<Int, Int>) {
         for ((obj, count) in objs) tutor.give(player, obj, count)
-        claimed(player, tutor.nowMinutes())
+        claimed(player, tutor.nowSeconds())
     }
 
     /** Slots [objs] (stackables) take: none for one already carried. */
@@ -389,12 +390,15 @@ object Harlan {
 
     fun owns(player: Player, obj: Int): Boolean = player.inventory.count(obj) > 0 || player.equipment.count(obj) > 0
 
+    /** Whether the player carries, wears or banks [obj]: what the free weapons check. */
+    fun hasAnywhere(player: Player, obj: Int): Boolean = owns(player, obj) || player.bank.count(obj) > 0
+
     /** Whether a skill other than Defence is at 99, which makes the cape trimmed. */
     fun otherMaxedSkill(player: Player): Boolean =
         Skill.entries.any { it != Skill.DEFENCE && player.skills.baseLevel(it) >= MAX_LEVEL }
 
     /** What the talk does outside the chatbox: hand over items (at the player's feet without room), and the clock. */
-    class Tutor(val give: (Player, Int, Int) -> Unit, val nowMinutes: () -> Long = { System.currentTimeMillis() / 60_000 }) {
+    class Tutor(val give: (Player, Int, Int) -> Unit, val nowSeconds: () -> Long = { System.currentTimeMillis() / 1_000 }) {
         constructor(world: World) : this(
             give = { player, obj, count ->
                 world.objTypes[obj]?.let { world.groundObjs.give(player, it, count) } ?: logger.warn { "No item $obj in the cache" }
