@@ -58,6 +58,15 @@
   {"step": "locOption", "locId": 11367, "option": "Mine", "x": 3144, "y": 3150},
   {"step": "assertInventory", "item": "Coal", "count": 1, "timeoutMs": 120000, "comment": "the west mine works with no swamp code: Mining knows the rock by its type"},
 
+  {"step": "command", "text": "::tele 3155 3240 0", "comment": "the road west of the castle (npc-spawns/lumbridge-west.json)"},
+  {"step": "assertLocation", "x": 3155, "y": 3240, "plane": 0},
+  {"step": "npcOption", "npc": "Goblin", "option": "Examine", "timeoutMs": 20000, "comment": "any of its seven goblin types, which share one examine"},
+  {"step": "assertMessage", "contains": "[examine.npc_3029]"},
+  {"step": "npcOption", "npc": "Giant spider", "option": "Examine", "timeoutMs": 20000, "comment": "giantspider1, 3017"},
+  {"step": "assertMessage", "contains": "[examine.npc_3017]"},
+  {"step": "npcOption", "npc": "Spider", "option": "Examine", "timeoutMs": 20000, "comment": "spider, 3019"},
+  {"step": "assertMessage", "contains": "[examine.npc_3019]"},
+
   {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
  ]

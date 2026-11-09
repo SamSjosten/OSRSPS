@@ -6,6 +6,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
+import osrsps.game.NpcType
+import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.SeqNames
@@ -17,6 +19,7 @@ import osrsps.game.content.LumbridgeSwamp
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
+import osrsps.game.npc.NpcSpawnFile
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
@@ -38,7 +41,8 @@ class HeadlessLumbridgeSwampRestTest {
             type(LumbridgeSwamp.SHED_DOOR, "Door", "Open"),
             LocType(LumbridgeSwamp.SHED_DOOR_OPEN, "null"),
             type(LumbridgeSwamp.TOOLS, "Tools", "Take"),
-            LocType(LumbridgeSwamp.WATER_RUINS, "null", collision = LocCollisionType(width = 3, length = 3)),
+            // A multiloc, as on the map: its Enter comes from the type it shows, but the client sends this id.
+            LocType(LumbridgeSwamp.WATER_RUINS, "null", collision = LocCollisionType(width = 3, length = 3), multiloc = true),
             type(LumbridgeSwamp.RAFT, "Broken Raft", "Grapple"),
         ).associateBy { it.id },
     )
@@ -142,7 +146,7 @@ class HeadlessLumbridgeSwampRestTest {
     }
 
     @Test
-    fun `the Water Altar's ruins refuse a water talisman, as Runecraft isn't built`(@TempDir dir: Path) {
+    fun `the Water Altar's ruins refuse a water talisman and Enter, as Runecraft isn't built`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { client ->
                 client.await("the login rebuild") { client.position }
@@ -152,6 +156,9 @@ class HeadlessLumbridgeSwampRestTest {
                 client.locTarget(ruins.id, ruins.x, ruins.z, INVENTORY, INVENTORY_ITEMS, slot, LumbridgeSwamp.WATER_TALISMAN)
                 client.awaitMessage("[lumbridge_swamp.runecraft_closed]")
                 assertEquals(1, client.held(LumbridgeSwamp.WATER_TALISMAN))
+
+                client.locOp(ruins.id, ruins.x, ruins.z, LumbridgeSwamp.ENTER)
+                client.await("the second refusal") { if (client.messages().count { it.text == "[lumbridge_swamp.runecraft_closed]" } == 2) Unit else null }
             }
         }
     }
@@ -187,6 +194,32 @@ class HeadlessLumbridgeSwampRestTest {
                 client.locOp(raft.id, raft.x, raft.z, LumbridgeSwamp.GRAPPLE)
                 client.awaitAt(3246, 3179)
                 assertTrue(client.messages().none { it.text == "[game.cant_reach]" }, "${client.messages()}")
+            }
+        }
+    }
+
+    @Test
+    fun `the road west of the castle has its goblins, giant spiders and spiders, as the spawn file loads them`(@TempDir dir: Path) {
+        // The cache's names for them: the file is read as the server reads it, by name.
+        val names = (1..7).associate { (3028 + it) to "goblin_unarmed_melee_$it" } + mapOf(3017 to "giantspider1", 3019 to "spider")
+        val npcTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val text = NpcSpawnFile::class.java.getResource("/npc-spawns/lumbridge-west.json")!!.readText()
+        val parsed = NpcSpawnFile.parse(text, npcTypes, "lumbridge-west.json")
+        assertEquals(emptyList(), parsed.unknown)
+        TestServer(dir) { crcs, millis ->
+            World(
+                crcs,
+                CollisionMap().apply { for (x in 3141..3170 step 8) for (z in 3222..3261 step 8) markLoaded(x shr 6, z shr 6) },
+                random = GameRandom(3), npcTypes = npcTypes, npcSpawns = parsed.spawns, cycleMillis = millis,
+            )
+        }.use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3155, 3240)
+                val seen = client.await("a goblin, a giant spider and a spider in view") {
+                    client.npcs().map { it.id }.toSet().takeIf { ids -> ids.any { it in 3029..3035 } && 3017 in ids && 3019 in ids }
+                }
+                assertTrue(seen.all { it in names }, "$seen")
             }
         }
     }

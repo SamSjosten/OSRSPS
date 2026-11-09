@@ -195,8 +195,9 @@ fun registerLumbridgeSwamp(world: World) {
             arriveDelay()
             world.message(player, LumbridgeSwampLines.RUNECRAFT_CLOSED)
         }
-        world.handlers.onLoc(WATER_RUINS_ENTER, ENTER) { refuse() }
+        // The client sends the map's multiloc id (34815) for Enter, not the shown type's: both are handled.
         for (ruins in listOf(WATER_RUINS, WATER_RUINS_ENTER)) {
+            world.handlers.onLoc(ruins, ENTER) { refuse() }
             for (obj in listOf(WATER_TALISMAN, WATER_TIARA)) world.handlers.onObjOnLoc(ruins, obj) { refuse() }
         }
         world.handlers.onLoc(RAFT, GRAPPLE) { grapple(world) }
