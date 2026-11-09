@@ -23,7 +23,7 @@ import osrsps.game.script.OpTarget
 import osrsps.game.script.ScriptRunner
 import osrsps.map.CollisionMap
 
-/** The lodestone network's rules: activating, the map, the 28-tick cast with no cooldown, Previous destination, and what refuses it. */
+/** The lodestone network's rules: activating, the map, the 17-tick cast with no cooldown, Previous destination, and what refuses it. */
 class LodestoneNetworkTest {
     private var tick = 0L
     private var attackedRecently = false
@@ -137,7 +137,7 @@ class LodestoneNetworkTest {
     }
 
     @Test
-    fun `clicking an active stone opens the map, which shows each stone's state, and Teleport on a row casts there in 28 ticks`() {
+    fun `clicking an active stone opens the map, which shows each stone's state, and Teleport on a row casts there in 17 ticks`() {
         network.login(player)
         network.unlock(player, Lodestones.VARROCK)
         tick = 100
@@ -168,13 +168,13 @@ class LodestoneNetworkTest {
         assertFalse(network.isOpen(player), "the map closes on the pick")
         assertEquals(1, sent.filterIsInstance<IfCloseSub>().size)
         assertTrue(home.casting(player))
-        run(27)
+        run(Lodestones.CAST_TICKS - 1)
         assertTrue(landed.isEmpty())
         assertEquals(mapOf(100L to CustomAnims.LODESTONE_CHARGE, 100L + Lodestones.CAST_TICKS - Lodestones.RISE_TICKS to CustomAnims.LODESTONE_RISE), anims)
         run(1)
-        assertEquals(listOf(128L to Lodestones.VARROCK.arrival), landed)
+        assertEquals(listOf(100L + Lodestones.CAST_TICKS to Lodestones.VARROCK.arrival), landed)
         assertEquals(Triple(3214, 3376, 0), Triple(player.x, player.z, player.level), "the stone's centre tile")
-        assertEquals(CustomAnims.LODESTONE_LAND, anims[128L], "the landing's animation, on the arrival tile")
+        assertEquals(CustomAnims.LODESTONE_LAND, anims[100L + Lodestones.CAST_TICKS], "the landing's animation, on the arrival tile")
         assertEquals(0, player.vars[HomeTeleport.VARP_LAST_CAST], "no cooldown")
         assertFalse(home.casting(player))
         assertTrue(said.isEmpty())
@@ -183,7 +183,7 @@ class LodestoneNetworkTest {
     }
 
     @Test
-    fun `Home Teleport opens the map, and Teleport on an icon casts there in 28 ticks with no cooldown, whatever the timer says`() {
+    fun `Home Teleport opens the map, and Teleport on an icon casts there in 17 ticks with no cooldown, whatever the timer says`() {
         network.login(player)
         network.unlock(player, Lodestones.EDGEVILLE)
         // OSRS's cooldown would refuse a cast for 30 minutes from here; the lodestones' doesn't count it.
@@ -196,11 +196,11 @@ class LodestoneNetworkTest {
         clickMap(LodestoneMap.iconButton(Lodestones.EDGEVILLE))
         assertFalse(network.isOpen(player))
         assertTrue(home.casting(player))
-        run(27)
+        run(Lodestones.CAST_TICKS - 1)
         assertTrue(landed.isEmpty())
         assertEquals(mapOf(100L to CustomAnims.LODESTONE_CHARGE, 100L + Lodestones.CAST_TICKS - Lodestones.RISE_TICKS to CustomAnims.LODESTONE_RISE), anims)
         run(1)
-        assertEquals(listOf(128L to Lodestones.EDGEVILLE.arrival), landed)
+        assertEquals(listOf(100L + Lodestones.CAST_TICKS to Lodestones.EDGEVILLE.arrival), landed)
         assertEquals(Triple(3073, 3505, 0), Triple(player.x, player.z, player.level), "the stone's centre tile")
         assertEquals(29_000_000, player.vars[HomeTeleport.VARP_LAST_CAST], "the timer is left as it was")
         assertFalse(home.casting(player))

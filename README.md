@@ -1981,7 +1981,7 @@ RuneLite `test-runner/examples/combat-ranged-shortbow.json`.
 Home Teleport, the standard spellbook's first spell (`game/content/HomeTeleport.kt`): on this server Cast opens the
 lodestone map (`Lodestones.kt` and `LodestoneMap.kt`, as RS3's does: each stone's icon where it stands, lit once the
 player has activated it, the stones' names beside, Teleport on the activated ones, and Previous destination for the
-stone last teleported to) and a pick plays the five stages on the spot and lands the player on that stone 28 ticks
+stone last teleported to) and a pick plays the cast's stages on the spot and lands the player on that stone 17 ticks
 later, free and with no cooldown. OSRS's own cast, to the castle courtyard 24 ticks after the click with the
 30-minute cooldown in varp 892 (which RuneLite's home teleport timer reads), is the class's default and stays tested,
 but no world uses it: `HomeTeleport.target` is the seam the lodestone network takes when it registers. Not in yet:
