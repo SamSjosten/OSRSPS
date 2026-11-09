@@ -41,19 +41,22 @@ enum class ArchiveRoom(
     val squareZ: Int,
     /** The nexus door into it; -1 for none (the Guardian's is the nexus's hall, Ocellus's is past the nexus's Passageway). */
     val door: Int,
-    /** Where a player going in lands, and where `::raid tp` takes them. */
+    /**
+     * Where a player going in lands, and where `::raid tp` takes them: the tsps capture notes' arrivals for Ezekiel's,
+     * Bork's, Dreadnoth's and Xarth's rooms; the rest guessed.
+     */
     val entryX: Int,
     val entryZ: Int,
     /** Its Archive transporter; -1 for none. */
     val transporter: Int,
 ) {
     GUARDIAN("Archive Guardian", 1, null, 64, 87, -1, 4127, 5590, -1),
-    EZEKIEL("Ezekiel", 2, DoorSide.WEST, 63, 86, ArchiveRaids.DOOR_1_WEST, 4083, 5535, ArchiveRaids.TRANSPORTER),
-    BORK("Bork and the Smorks", 2, DoorSide.EAST, 65, 87, ArchiveRaids.DOOR_1_EAST, 4167, 5599, ArchiveRaids.TRANSPORTER),
+    EZEKIEL("Ezekiel", 2, DoorSide.WEST, 63, 86, ArchiveRaids.DOOR_1_WEST, 4079, 5536, ArchiveRaids.TRANSPORTER),
+    BORK("Bork and the Smorks", 2, DoorSide.EAST, 65, 87, ArchiveRaids.DOOR_1_EAST, 4173, 5599, ArchiveRaids.TRANSPORTER),
     MOIA("Moia", 3, DoorSide.WEST, 63, 88, ArchiveRaids.DOOR_2_WEST, 4084, 5663, ArchiveRaids.TRANSPORTER_MOIA),
-    DREADNOTH("Dreadnoth the Jellied", 3, DoorSide.EAST, 65, 88, ArchiveRaids.DOOR_2_EAST, 4172, 5663, ArchiveRaids.TRANSPORTER_JELLY),
+    DREADNOTH("Dreadnoth the Jellied", 3, DoorSide.EAST, 65, 88, ArchiveRaids.DOOR_2_EAST, 4174, 5664, ArchiveRaids.TRANSPORTER_JELLY),
     DAGONHAI("Dagon'hai Elder", 4, DoorSide.WEST, 63, 87, ArchiveRaids.DOOR_3_WEST, 4086, 5599, ArchiveRaids.TRANSPORTER),
-    XARTH("Xarth", 4, DoorSide.EAST, 65, 86, ArchiveRaids.DOOR_3_EAST, 4172, 5535, ArchiveRaids.TRANSPORTER),
+    XARTH("Xarth", 4, DoorSide.EAST, 65, 86, ArchiveRaids.DOOR_3_EAST, 4175, 5535, ArchiveRaids.TRANSPORTER),
     OCELLUS("Ocellus", 5, null, 64, 88, -1, 4121, 5634, -1),
     ;
 
@@ -316,8 +319,8 @@ class ArchiveRaids(private val world: World) {
     }
 
     /**
-     * The first of the party into Ezekiel's room: his fight begins, him where he waits ([EZEKIEL_X], guessed: the middle
-     * of the room's ring of flames), scaled to everyone standing in the run, [first] his tank.
+     * The first of the party onto Ezekiel's arena (by its transporter, [EZEKIEL_ARENA_X]): his fight begins, him where he
+     * waits ([EZEKIEL_X]), scaled to everyone standing in the run, [first] his tank.
      */
     private fun beginEzekiel(run: ArchiveRun, first: Player) {
         val room = ArchiveRoom.EZEKIEL
@@ -420,8 +423,9 @@ class ArchiveRaids(private val world: World) {
     }
 
     /**
-     * A boss room's Archive transporter: back to the nexus, once the room is done. Before then Bork's puts the player on
-     * the floor of his arena ([BORK_ARENA_X]), the way into his fight.
+     * A boss room's Archive transporter: back to the nexus, once the room is done. Before then Bork's and Ezekiel's put
+     * the player in the arena ([BORK_ARENA_X], [EZEKIEL_ARENA_X]), the way into the fight: the arena is walled off from
+     * the way in (tsps capture notes: "between the arrival and the arena").
      */
     fun transporter(player: Player) {
         val run = at(player.x, player.z) ?: return
@@ -431,8 +435,19 @@ class ArchiveRaids(private val world: World) {
             if (!inBorkArena(run, player)) world.teleport(player, to.x, to.z, 0)
             return
         }
+        if (room == ArchiveRoom.EZEKIEL && room !in run.cleared) {
+            val to = tile(run, EZEKIEL_ARENA_X, EZEKIEL_ARENA_Z)
+            if (!inEzekielArena(run, player)) world.teleport(player, to.x, to.z, 0)
+            return
+        }
         if (room !in run.cleared) return
         out(player, run, room)
+    }
+
+    /** Whether [player] stands in Ezekiel's arena in [run] (tsps capture notes: 4056-4068 x 5528-5540). */
+    private fun inEzekielArena(run: ArchiveRun, player: Player): Boolean {
+        val from = tile(run, EZEKIEL_ARENA_MIN_X, EZEKIEL_ARENA_MIN_Z)
+        return player.x - from.x in 0..EZEKIEL_ARENA_SPAN && player.z - from.z in 0..EZEKIEL_ARENA_SPAN
     }
 
     /** Whether [player] stands on the floor of Bork's arena in [run]. */
@@ -489,9 +504,9 @@ class ArchiveRaids(private val world: World) {
                 if (room !in run.started && room !in run.cleared && room.stage == run.stage) {
                     when {
                         !built(room) -> begin(run, room)
-                        // The Guardian waits for a Touch; Ezekiel's begins with the first of the party in, and Bork and the
-                        // Smorks' with the first onto their arena's floor (by its transporter), out of the way in he can't reach.
-                        room == ArchiveRoom.EZEKIEL -> beginEzekiel(run, player)
+                        // The Guardian waits for a Touch; Ezekiel's, and Bork and the Smorks', begin with the first into the
+                        // arena (by its transporter), which is walled off from the way in.
+                        room == ArchiveRoom.EZEKIEL -> if (inEzekielArena(run, player)) beginEzekiel(run, player)
                         room == ArchiveRoom.BORK -> if (inBorkArena(run, player)) beginBork(run, player)
                     }
                 }
@@ -725,9 +740,18 @@ class ArchiveRaids(private val world: World) {
         const val OCELLUS_EXIT_X = 4119
         const val OCELLUS_EXIT_Z = 5632
 
-        /** Ezekiel's south-west tile as his fight begins: him in the middle of the ring of flames round his room. Guessed. */
+        /** Ezekiel's south-west tile as his fight begins (tsps capture notes). */
         const val EZEKIEL_X = 4062
-        const val EZEKIEL_Z = 5534
+        const val EZEKIEL_Z = 5537
+
+        /** Where Ezekiel's room's transporter puts the player: the east edge of his arena (tsps capture notes). */
+        const val EZEKIEL_ARENA_X = 4067
+        const val EZEKIEL_ARENA_Z = 5535
+
+        /** Ezekiel's arena, its south-west tile and its span: 4056-4068 x 5528-5540 (tsps capture notes). */
+        const val EZEKIEL_ARENA_MIN_X = 4056
+        const val EZEKIEL_ARENA_MIN_Z = 5528
+        const val EZEKIEL_ARENA_SPAN = 12
 
         /**
          * The Smorks' cart's south-west tile as Bork and the Smorks' fight begins, its 3 by 3 round the one blocked tile

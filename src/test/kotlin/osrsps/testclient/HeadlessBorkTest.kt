@@ -423,6 +423,10 @@ class HeadlessBorkTest {
                 alice.awaitLine(run, "a shockwave on her") { it.endsWith("fight: shockwave on alice") }
                 // No napalm, volleys or cannonballs from Smorks that are gone.
                 assertTrue(lines(run).none { tickOf(it) > tickOf(down) && (it.contains("the Smorks fire") || it.contains("the Smorks call")) }, lines(run).toString())
+                // ::raid hold holds Bork himself, not the fight's anchor, which never moves.
+                val theBork = npc(run, Bork.BORK)
+                alice.commandReply("raid hold 10") { it == "Held ${theBork.type.name} for 10 ticks." }
+                assertTrue(theBork.freezeTicks > 0)
             }
         }
     }

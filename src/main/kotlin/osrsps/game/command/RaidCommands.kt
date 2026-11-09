@@ -16,15 +16,16 @@ import osrsps.game.raid.PartyScaling
  * room and gear sets come with each boss's step. In an instance the fight covers the instance; elsewhere, the
  * [FIGHT_RADIUS] tiles round the boss's spawn, for its starter and their party only, ending if the starter dies or
  * logs out. In an Archive run (raid step 15), `::raid run` shows it, `::raid tp` goes to a room of it or the nexus and
- * `::raid clear` marks the room you're in done, for testing; a room whose fight never began gives its points to whoever
+ * `::raid clear` marks the room you're in done, and `::raid hold` freezes the boss of the fight you're in where it
+ * stands (Bork, in his and the Smorks'), as a kite keeps it off, for testing; a room whose fight never began gives its points to whoever
  * of the party stands in it.
  */
 fun CommandRegistry.registerRaidCommands(world: World) {
     val encounters = world.encounters
     val usage = "Usage: ::raid [boss [phase=name|n] [party=n] [seed=n]] | ::raid log [lines] | ::raid digest [ticks] | ::raid stop | " +
-        "::raid run | ::raid tp <nexus|room> | ::raid clear"
+        "::raid run | ::raid tp <nexus|room> | ::raid clear | ::raid hold [ticks]"
 
-    register("raid", "::raid [boss [phase=] [party=] [seed=]] | log | digest | stop | run | tp | clear", admin = true) {
+    register("raid", "::raid [boss [phase=] [party=] [seed=]] | log | digest | stop | run | tp | clear | hold", admin = true) {
         fun here(): Encounter? = encounters.all.firstOrNull { !it.ended && it.boss.level == player.level && it.covers(player.x, player.z) }
         fun mine(): Encounter = here() ?: fail("You're not in a fight.")
         when (args.firstOrNull()?.lowercase()) {
@@ -91,6 +92,19 @@ fun CommandRegistry.registerRaidCommands(world: World) {
                 if (room.stage != run.stage) fail("${room.boss}'s room isn't the run's next.")
                 raids.clearNow(run, room)
                 reply("Cleared ${room.boss}'s room.")
+            }
+            "hold" -> {
+                if (args.size > 2) fail(usage)
+                val ticks = args.getOrNull(1)?.let { it.toIntOrNull()?.takeIf { n -> n in 1..MAX_HOLD_TICKS } ?: fail("The ticks must be 1 to $MAX_HOLD_TICKS") } ?: DEFAULT_HOLD_TICKS
+                val fight = mine()
+                // The one that walks: the boss, or whom the fight names when its boss is only its anchor (Bork's).
+                val npcs = fight.def.held?.invoke(fight) ?: listOf(fight.boss)
+                if (npcs.isEmpty()) fail("Nothing of ${fight.def.name} is left to hold.")
+                // A command runs in the tick's input phase, before the tick counts freezes down, which takes one off
+                // at once: one more, so it stands this tick and the rest of the ticks asked.
+                val held = npcs.filter { world.npcs.freeze(it, ticks + 1) }
+                if (held.isEmpty()) fail("${npcs.joinToString { it.type.name }} can't be held now: held already, or not long after a hold.")
+                reply("Held ${held.joinToString { it.type.name }} for $ticks ticks.")
             }
             "stop" -> {
                 if (args.size != 1) fail(usage)
@@ -171,3 +185,7 @@ private fun describe(fight: Encounter): String {
 private const val FIGHT_RADIUS = 32
 
 private const val DEFAULT_LOG_LINES = 10
+
+/** `::raid hold`'s ticks unless given, and the most it takes. */
+private const val DEFAULT_HOLD_TICKS = 20
+private const val MAX_HOLD_TICKS = 200
