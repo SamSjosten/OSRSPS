@@ -1820,6 +1820,7 @@ loses goes in a grave there. The party lasts through the wipe.
 | A member who leaves the party sent to the lobby; a logout saving them there, as any instance's exit | guessed |
 | A member down who gets out (a teleport such as Home Teleport or a lodestone, leaving the party, or a logout once out of combat) dying of it, with a grave in the lobby, as if they had been the last standing; a reconnect within the linger no escape | Sam's decision, 8 November 2026 (exploit review RAID-2); the death's place guessed |
 | Every room done as it begins, until its boss's step | stand-in (all but the Guardian's) |
+| Once the run is done, a Passageway (`tfa_exit`) at the south edge of Ocellus's room, just south of where the party comes in, whose Exit leaves to the lobby in front of the Archive Door | stand-in until the reward room (step 28): the cache has no way out of that room (Sam's decision, 8 November 2026, exploit review RAID-3); where it stands guessed |
 | The bosses after the Guardian, the Quartermaster and Supply Credits, the party's orbs, the reward room, deaths' item costs | not in yet: steps 17 to 31 |
 
 `::raid run` shows the run you're in, `::raid tp nexus` or `::raid tp ezekiel` goes to its nexus or a room, and
@@ -1981,7 +1982,7 @@ RuneLite `test-runner/examples/combat-ranged-shortbow.json`.
 Home Teleport, the standard spellbook's first spell (`game/content/HomeTeleport.kt`): on this server Cast opens the
 lodestone map (`Lodestones.kt` and `LodestoneMap.kt`, as RS3's does: each stone's icon where it stands, lit once the
 player has activated it, the stones' names beside, Teleport on the activated ones, and Previous destination for the
-stone last teleported to) and a pick plays the five stages on the spot and lands the player on that stone 28 ticks
+stone last teleported to) and a pick plays the cast's stages on the spot and lands the player on that stone 17 ticks
 later, free and with no cooldown. OSRS's own cast, to the castle courtyard 24 ticks after the click with the
 30-minute cooldown in varp 892 (which RuneLite's home teleport timer reads), is the class's default and stays tested,
 but no world uses it: `HomeTeleport.target` is the seam the lodestone network takes when it registers. Not in yet:

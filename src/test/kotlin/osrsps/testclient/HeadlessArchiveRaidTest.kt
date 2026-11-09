@@ -146,7 +146,7 @@ class HeadlessArchiveRaidTest {
         return regionZones()?.get(Triple(hall.x shr 3, hall.z shr 3, 0))?.level
     }
 
-    private fun HeadlessClient.goThrough(server: TestServer, username: String, rooms: List<ArchiveRoom>, passagewayIn: ArchiveRoom? = null) {
+    private fun HeadlessClient.goThrough(server: TestServer, username: String, rooms: List<ArchiveRoom>, passagewayIn: ArchiveRoom? = null, outByExit: Boolean = false) {
         val run = enter(server, username)
         assertTrue(runSays().contains("next Archive Guardian"))
         assertEquals(ArchiveRaids.NEXUS_START, nexusLevel(server, run))
@@ -157,13 +157,25 @@ class HeadlessArchiveRaidTest {
         for (room in rooms) through(server, run, room, passageway = room == passagewayIn)
         await("the nexus with its Passageway north") { nexusLevel(server, run)?.takeIf { it == ArchiveRaids.NEXUS_OCELLUS } }
         val passage = server.world.archiveRaids.tile(run, 4124, 5625)
+        // Ocellus's room's stand-in exit isn't there until the run is done.
+        val exitTile = server.world.archiveRaids.tile(run, ArchiveRaids.OCELLUS_EXIT_X, ArchiveRaids.OCELLUS_EXIT_Z)
+        val exit = ZoneLoc(ArchiveRaids.PASSAGEWAY, LocShape.CENTREPIECE_STRAIGHT, 0, exitTile.x, exitTile.z, 0)
+        assertTrue(!server.world.locs.exists(exit), "no exit from Ocellus's room before it is done")
         locOp(ArchiveRaids.NEXUS_PASSAGEWAY, passage.x, passage.z, ArchiveRaids.EXIT)
         awaitAt(server.world.archiveRaids.tile(run, ArchiveRoom.OCELLUS.entryX, ArchiveRoom.OCELLUS.entryZ), "Ocellus's room")
         awaitRun("the run complete") { it.contains("; complete;") }
         // Solo, every room's points are the one player's.
         assertTrue(runSays().contains("points $username ${ArchiveRaids.ROOM_POINTS * 5}"), runSays())
-        // Out by teleport: the instance ends behind them.
-        tele(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z)
+        assertTrue(server.world.locs.exists(exit), "the stand-in exit from Ocellus's room once the run is done")
+        if (outByExit) {
+            // Out by the stand-in Passageway, to the lobby in front of the Archive Door.
+            locOp(ArchiveRaids.PASSAGEWAY, exit.x, exit.z, ArchiveRaids.EXIT)
+            awaitAt(Tile(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z), "out to the lobby by Ocellus's room's exit")
+        } else {
+            // Out by teleport.
+            tele(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z)
+        }
+        // The instance ends behind them.
         await("the instance ended") { if (server.world.instances.all.none { it === run.instance }) Unit else null }
     }
 
@@ -173,7 +185,7 @@ class HeadlessArchiveRaidTest {
             server.login("alice").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.goThrough(server, "alice", listOf(ArchiveRoom.EZEKIEL, ArchiveRoom.MOIA, ArchiveRoom.DAGONHAI))
-                client.goThrough(server, "alice", listOf(ArchiveRoom.BORK, ArchiveRoom.DREADNOTH, ArchiveRoom.XARTH), passagewayIn = ArchiveRoom.DREADNOTH)
+                client.goThrough(server, "alice", listOf(ArchiveRoom.BORK, ArchiveRoom.DREADNOTH, ArchiveRoom.XARTH), passagewayIn = ArchiveRoom.DREADNOTH, outByExit = true)
             }
         }
     }

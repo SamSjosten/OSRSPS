@@ -10,6 +10,8 @@ import osrsps.game.instance.Instance
 import osrsps.game.instance.InstancePart
 import osrsps.game.npc.Npc
 import osrsps.game.npc.NpcSpawn
+import osrsps.game.zone.ZoneLoc
+import osrsps.map.LocShape
 import osrsps.map.Tile
 
 private val logger = KotlinLogging.logger {}
@@ -160,6 +162,8 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
  *   Quick-use: their difference, likely a warning first, isn't known.
  * - The Passageway goes back to the nexus at any time, in front of the room's door; the transporter, once the room is
  *   done. Ocellus's room is past the nexus's own Passageway (`tfa_exit_large`), open once the fourth room is done.
+ * - STAND-IN until the reward room (step 28): once Ocellus's room is done, a Passageway at its south edge leaves to the
+ *   lobby; the cache has no way out of that room.
  * - The nexus is the cache's map square 64,87 on one of its four levels: 0 at the start, 2 (the Guardian's corpse and a
  *   camp of crates and barricades) once the Guardian is done, 3 (the same and the Passageway north) once the fourth
  *   room is done. The Guardian is fought in the nexus's hall, from its first row of doors north; the Archive Door lands
@@ -324,11 +328,30 @@ class ArchiveRaids(private val world: World) {
         world.teleport(player, to.x, to.z, 0)
     }
 
-    /** A boss room's Passageway: back out to the nexus. */
+    /**
+     * A boss room's Passageway: back out to the nexus. In Ocellus's room, once the run is done, the stand-in one
+     * ([placeOcellusExit]) leaves to the lobby.
+     */
     fun passageway(player: Player) {
         val run = at(player.x, player.z) ?: return
-        val room = roomAt(run, player.x, player.z)?.takeIf { it.door >= 0 } ?: return
+        val room = roomAt(run, player.x, player.z) ?: return
+        if (room == ArchiveRoom.OCELLUS) {
+            if (run.completed) world.teleport(player, run.instance.exitX, run.instance.exitZ, run.instance.exitLevel)
+            return
+        }
+        if (room.door < 0) return
         out(player, run, room)
+    }
+
+    /**
+     * STAND-IN until the reward room (raid step 28): a way out of Ocellus's room, which has none in the cache, once the
+     * run is done. A room's Passageway (`tfa_exit`, [PASSAGEWAY]) is put at its south edge, in front of where the party
+     * comes in, as the nexus's own sits at its north; its Exit goes to the lobby, in front of the Archive Door, the
+     * instance's exit. Sam's decision of 8 November 2026 on exploit review RAID-3; where it stands is guessed.
+     */
+    private fun placeOcellusExit(run: ArchiveRun) {
+        val at = tile(run, OCELLUS_EXIT_X, OCELLUS_EXIT_Z)
+        world.locs.add(ZoneLoc(PASSAGEWAY, LocShape.CENTREPIECE_STRAIGHT, 0, at.x, at.z, 0))
     }
 
     /** A boss room's Archive transporter: back to the nexus, once the room is done. */
@@ -469,6 +492,7 @@ class ArchiveRaids(private val world: World) {
         // Whoever got out while down (a Home Teleport landing last tick) dies of it before the room's end gets them up.
         settleEscapes(run, ended = false)
         share(run, room)
+        if (room == ArchiveRoom.OCELLUS) placeOcellusExit(run)
         run.downed.clear()
         run.clearedTick = world.tick
         val level = nexusLevel(run.stage)
@@ -609,6 +633,10 @@ class ArchiveRaids(private val world: World) {
         /** The nexus tile the Archive Door lands on, just inside its south end. Guessed. */
         const val NEXUS_X = 4127
         const val NEXUS_Z = 5573
+
+        /** The stand-in exit's south-west tile in Ocellus's room: its 5 by 2 just south of where the party comes in. Guessed. */
+        const val OCELLUS_EXIT_X = 4119
+        const val OCELLUS_EXIT_Z = 5632
 
         /** In front of the nexus's own Passageway (4124,5625, 7 by 2). Guessed. */
         const val PASSAGE_FRONT_X = 4127

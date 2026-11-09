@@ -1,5 +1,5 @@
 {
- "name": "Lodestones: every stone activates once per player and turns active for them, ::lodestone opens the map (our interface 30000), Teleport on an activated stone's row or icon casts there in 28 ticks, Previous destination names the last stone, a stone not yet activated is refused, and nothing casts above level 20 Wilderness (::keys on)",
+ "name": "Lodestones: every stone activates once per player and turns active for them, ::lodestone opens the map (our interface 30000), Teleport on an activated stone's row or icon casts there in 17 ticks, Previous destination names the last stone, a stone not yet activated is refused, and nothing casts above level 20 Wilderness (::keys on)",
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},
@@ -56,7 +56,7 @@
   {"step": "assertSpotanim", "id": 65000, "timeoutMs": 10000, "comment": "the pulse: Tele Other's graphic drawn white-cyan, our own spotanim, on the player"},
   {"step": "assertAnimation", "id": 65001, "timeoutMs": 25000, "comment": "the rise (Tele Other's recipient's frames), 3 ticks before the landing"},
   {"step": "assertAnimation", "id": 65003, "timeoutMs": 10000, "comment": "the landing (step 8b): the rise backwards on the arrival tile, 1.4 s, so it is waited for before the tile is checked"},
-  {"step": "assertLocation", "x": 3233, "y": 3221, "plane": 0, "timeoutMs": 10000, "comment": "the stone's centre, 28 ticks after the pick"},
+  {"step": "assertLocation", "x": 3233, "y": 3221, "plane": 0, "timeoutMs": 10000, "comment": "the stone's centre, 17 ticks after the pick"},
   {"step": "command", "text": "::varp 892", "expectMessage": "Varp 892 = 1234567", "comment": "no cooldown: a lodestone cast leaves the home teleport timer as it was"},
   {"step": "command", "text": "::varbit lodestone.previous", "expectMessage": "bits 8-11) = 1", "comment": "Previous destination: Lumbridge's index plus one, in the lodestones' varp"},
 
