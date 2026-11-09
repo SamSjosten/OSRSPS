@@ -98,44 +98,30 @@ object NigelLines : Lines("nigel", "Transcript:Nigel") {
     val GOODBYE = line("goodbye", "the option, which the player then says")
 }
 
-/** Count Check's lines, from the Wiki's Transcript:Count Check (its standard dialogue), read 2026-10-30. */
+/**
+ * Count Check's lines as since 242.1, which made his talk "more in-universe"; from the Wiki's Transcript:Count Check
+ * (Standard dialogue), read 2026-11-08. The Wiki gives only a passed check, so [FAIL] keeps the old talk's words.
+ */
 object CountCheckLines : Lines("count_check", "Transcript:Count Check") {
-    val INTRO = line("intro", "his first line: would the player like their account checked")
-    val CHECK = line("check", "the option, which the player then says")
-    val FAIL = line("fail", "check: no Jagex Account and no Bank PIN")
-    val ADVICE = line("advice", "the option, which the player then says")
-    val COUNT_STEPS = line("count_steps", "advice: count the steps with him")
-    val ONE = line("one", "advice: one")
-    val ONE_PASSWORD = line("one_password", "advice: a unique password")
-    val TWO = line("two", "advice: two")
-    val TWO_EMAIL = line("two_email", "advice: two-step verification for email")
-    val THREE = line("three", "advice: three, with no Jagex Account")
-    val THREE_WEBSITE = line("three_website", "advice: where to update the account settings")
-    val CARRY_ON = line("carry_on", "advice: the option, which the player then says")
-    val WHAT_THREE = line("what_three", "advice: the option, which the player then says")
-    val FLOW = line("flow", "advice: he likes counting")
-    val SILENCE = line("silence", "advice: the player's reply")
-    val FOUR = line("four", "advice: four, with no Bank PIN")
-    val FOUR_PIN = line("four_pin", "advice: ask a banker about the PIN settings")
-    val FUN = line("fun", "advice: his last line, as lightning strikes")
-    val LEARN = line("learn", "the option, which the player then says")
-    val STRONGHOLD = line("stronghold", "learn, not yet sent there: he offers to send the player once")
-    val TELEPORT = line("teleport", "learn: the yes or no menu's title")
-    val YES = line("yes", "learn: the menu's yes")
-    val NO = line("no", "learn: the menu's no")
-    val STRONGHOLD_VISITED = line("stronghold_visited", "learn, already sent there")
-    val MAY_CHECK = line("may_check", "after learn's no, or the Salve: may he check the account")
-    val WHO = line("who", "the option, which the player then says")
-    val VAMPYRE = line("vampyre", "who: where he is from")
+    val INTRO_CHECK = line("intro_check", "his first line: the renowned expert on checking, does the player wish to be checked")
+    val YES_PLEASE = line("yes_please", "the option to be checked, which the player then says")
+    val BEGIN = line("begin", "checked: let us begin")
+    val FAIL = line("fail", "checked: no Jagex Account and no Bank PIN (the Wiki gives only the pass; the old talk's words kept)")
+    val WHO_ARE_YOU = line("who_are_you", "the option asking who he is, which the player then says")
+    val LIKE_I_SAID = line("like_i_said", "who: a vampyre from Morytania, warning of perils")
     val PERILS = line("perils", "who: the player's reply")
-    val BE_WARNED = line("be_warned", "who: his warning")
-    val LEFT_WAYS = line("left_ways", "who: what he does now")
-    val BLESSED = line("blessed", "who: his gift")
-    val SALVE = line("salve", "after who, with Priest in Peril done: the option, which the player then says")
-    val OF_COURSE = line("of_course", "the Salve: his protest")
-    val NOT_ROLE_PLAY = line("not_role_play", "the Salve: more protest")
-    val RIGHT = line("right", "the Salve: the player's reply")
-    val BYE = line("bye", "the option, which the player then says")
+    val WARNED = line("warned", "who: be warned, his vampyric ways behind him")
+    val OKAY = line("okay", "who: the player's reply")
+    val NOW_CHECKED = line("now_checked", "now, would the player like to be checked")
+    val SALVE_CROSS = line("salve_cross", "after who: the Salve option, which the player then says")
+    val WHAT_MEAN = line("what_mean", "the Salve: 'if' he is a vampyre")
+    val ROLE_PLAY = line("role_play", "the Salve: not a role-playing enthusiast")
+    val RIGHT_DOTS = line("right_dots", "the Salve: the player's reply")
+    val SO_CHECKED = line("so_checked", "the Salve: so, would the player like to be checked")
+    val ANYTHING_ELSE = line("anything_else", "the option asking what else he does, which the player then says")
+    val NO_BANG = line("no_bang", "anything else, on a main game world: his answer")
+    val BEST_BE_OFF = line("best_be_off", "the leaving option (said as is after a check)")
+    val MAYBE_LATER = line("maybe_later", "what the player says leaving before a check; also the leaving option after who")
 }
 
 /** The altar's game messages; every one's words guessed but the Wiki's use-an-item line. */
@@ -151,15 +137,16 @@ object AltarLines : Lines("altar", "Altar") {
  * With them Nigel the Deadman tutor (6093, which shows as 8391 on a normal world), whom 242.1 moved to the Grand
  * Exchange on normal worlds. Every account is a member and has every quest done ([osrsps.game.Quests]).
  *
- * From the Wiki: each NPC's lines and branches, and Count Check's teleport to the Stronghold of Security, once.
- * Readings: Nigel's normal world talk offers the Deadman questions, the rewards store (shut, as there is no Deadman
- * Mode) and goodbye, and leaves out the Deadman worlds' options (access to a temporary event, stopping XP); his Trade
- * says the store is shut too. Count Check's checks fail: no account here is a Jagex Account and the bank has no PIN, so
- * his prize lamp never comes. Father Aereck's boxes: the Wiki's picture boxes show the altar icon (item 9714) and bones,
- * its sprite boxes (the Prayer panel, the Prayer orb, the Skills panel) are message boxes here. Guessed: every chathead
- * expression; that each answer goes back to the menu it came from;
- * where the teleport lands (beside the Stronghold's entrance, 3081, 3420) and that it plays no animation; the lightning
- * on the Count's square isn't shown (its spotanim isn't known). The altar: the Wiki says Pray-at recharges prayer
+ * From the Wiki: each NPC's lines and branches; Count Check (as since 242.1), asked what else he does, says "No!", as
+ * the Wiki has on a main game world, so his once-only teleport to Barbarian Village is never offered here; Father
+ * Aereck's picture boxes show the altar icon (item 9714) and bones. Inferred: Nigel's normal world talk offers the
+ * Deadman questions, the rewards store (shut, as there is no Deadman Mode) and goodbye, and leaves out the Deadman
+ * worlds' options (access to a temporary event, stopping XP); his Trade says the store is shut too. Guessed: that Count
+ * Check's check always fails (no account here is a Jagex Account and the bank has no PIN), with the old talk's fail
+ * line, and that the fail is followed by the menu the Wiki shows after a pass (the Wiki gives only a pass); that
+ * Aereck's sprite boxes (the Prayer panel, the Prayer orb, the Skills panel) are message boxes here; every chathead
+ * expression; that each answer goes back to the menu it came from (the Count's "would you like to be checked" questions
+ * to his first menu, but after who he is, to the menu with the Salve). The altar: the Wiki says Pray-at recharges prayer
  * points and resets prayer-draining effects' timers (the drain counter here); guessed are the kneel (human_pray,
  * seq 645), that points above the level (a boost) are kept, the messages and that full points still kneel.
  */
@@ -183,10 +170,10 @@ object Church {
     /** human_pray. */
     const val ANIM_PRAY = 645
 
-    /** sos_teleported_by_count: Count Check has sent the player to the Stronghold of Security. */
-    const val VARBIT_SENT_TO_STRONGHOLD = 5371
-
-    /** Beside the Stronghold of Security's entrance in Barbarian Village (loc 20790 at 3081, 3420). Guessed. */
+    /**
+     * Beside the Stronghold of Security's entrance in Barbarian Village (loc 20790 at 3081, 3420), where the Skull
+     * sceptre takes the player. Guessed.
+     */
     val STRONGHOLD = Tile(3081, 3421)
 
     /** The first menu, again after each topic; the leaving option's words change once a topic was picked. */
@@ -326,101 +313,53 @@ object Church {
 
     internal suspend fun Dialogue.nigelTrade() = chatNpc(ChatAnim.SAD, NigelLines.STORE_CLOSED)
 
-    /**
-     * Count Check's talk. [sentToStronghold] and [sendToStronghold] read and set whether he has sent the player to the
-     * Stronghold of Security; [sendToStronghold] also moves them there, after the conversation.
-     */
-    internal suspend fun Dialogue.countCheck(sentToStronghold: (Player) -> Boolean, sendToStronghold: (Player) -> Unit) =
-        with(CountCheckLines) {
-            chatNpc(ChatAnim.LAUGH, INTRO)
-            var afterWho = false
-            while (true) {
-                val picked = if (afterWho) {
-                    when (choice(SALVE, CHECK, ADVICE, LEARN, BYE)) {
-                        1 -> SALVE
-                        2 -> CHECK
-                        3 -> ADVICE
-                        4 -> LEARN
-                        else -> BYE
-                    }
-                } else {
-                    when (choice(CHECK, ADVICE, LEARN, WHO, BYE)) {
-                        1 -> CHECK
-                        2 -> ADVICE
-                        3 -> LEARN
-                        4 -> WHO
-                        else -> BYE
-                    }
+    /** Count Check's talk: his first menu, the one after who he is, and the one after a check. */
+    internal suspend fun Dialogue.countCheck() = with(CountCheckLines) {
+        chatNpc(ChatAnim.LAUGH, INTRO_CHECK)
+        var menu = 0
+        while (true) {
+            val picked = when (menu) {
+                0 -> listOf(YES_PLEASE, WHO_ARE_YOU, ANYTHING_ELSE, BEST_BE_OFF)
+                1 -> listOf(YES_PLEASE, SALVE_CROSS, ANYTHING_ELSE, MAYBE_LATER)
+                else -> listOf(WHO_ARE_YOU, ANYTHING_ELSE, BEST_BE_OFF)
+            }.let { it[choice(*it.toTypedArray()) - 1] }
+            when (picked) {
+                YES_PLEASE -> {
+                    chatPlayer(ChatAnim.HAPPY, YES_PLEASE)
+                    chatNpc(ChatAnim.LAUGH, BEGIN)
+                    // Guessed: the check fails with the old talk's line, then the menu the Wiki shows after a pass.
+                    chatNpc(ChatAnim.SAD, FAIL)
+                    menu = 2
                 }
-                afterWho = false
-                when (picked) {
-                    CHECK -> {
-                        chatPlayer(ChatAnim.HAPPY, CHECK)
-                        chatNpc(ChatAnim.SAD, FAIL)
-                        return@with
-                    }
-                    ADVICE -> advice()
-                    LEARN -> {
-                        chatPlayer(ChatAnim.QUIZ, LEARN)
-                        if (sentToStronghold(player)) {
-                            chatNpc(ChatAnim.NEUTRAL, STRONGHOLD_VISITED)
-                        } else {
-                            chatNpc(ChatAnim.NEUTRAL, STRONGHOLD)
-                            if (choice(YES, NO, title = text(TELEPORT)) == 1) {
-                                sendToStronghold(player)
-                                return@with
-                            }
-                            chatNpc(ChatAnim.NEUTRAL, MAY_CHECK)
-                        }
-                    }
-                    WHO -> {
-                        chatPlayer(ChatAnim.QUIZ, WHO)
-                        chatNpc(ChatAnim.NEUTRAL, VAMPYRE)
-                        chatPlayer(ChatAnim.QUIZ, PERILS)
-                        chatNpc(ChatAnim.NEUTRAL, BE_WARNED)
-                        chatNpc(ChatAnim.NEUTRAL, LEFT_WAYS)
-                        chatNpc(ChatAnim.NEUTRAL, BLESSED)
-                        afterWho = true
-                    }
-                    SALVE -> {
-                        chatPlayer(ChatAnim.QUIZ, SALVE)
-                        chatNpc(ChatAnim.ANGRY, OF_COURSE)
-                        chatNpc(ChatAnim.ANGRY, NOT_ROLE_PLAY)
-                        chatPlayer(ChatAnim.NEUTRAL, RIGHT)
-                        chatNpc(ChatAnim.NEUTRAL, MAY_CHECK)
-                    }
-                    else -> {
-                        chatPlayer(ChatAnim.NEUTRAL, BYE)
-                        return@with
-                    }
+                WHO_ARE_YOU -> {
+                    chatPlayer(ChatAnim.QUIZ, WHO_ARE_YOU)
+                    chatNpc(ChatAnim.NEUTRAL, LIKE_I_SAID)
+                    chatPlayer(ChatAnim.QUIZ, PERILS)
+                    chatNpc(ChatAnim.NEUTRAL, WARNED)
+                    chatPlayer(ChatAnim.CONFUSED, OKAY)
+                    chatNpc(ChatAnim.QUIZ, NOW_CHECKED)
+                    menu = 1
+                }
+                SALVE_CROSS -> {
+                    chatPlayer(ChatAnim.QUIZ, SALVE_CROSS)
+                    chatNpc(ChatAnim.ANGRY, WHAT_MEAN)
+                    chatNpc(ChatAnim.ANGRY, ROLE_PLAY)
+                    chatPlayer(ChatAnim.NEUTRAL, RIGHT_DOTS)
+                    chatNpc(ChatAnim.QUIZ, SO_CHECKED)
+                }
+                ANYTHING_ELSE -> {
+                    chatPlayer(ChatAnim.QUIZ, ANYTHING_ELSE)
+                    chatNpc(ChatAnim.ANGRY, NO_BANG)
+                    chatNpc(ChatAnim.QUIZ, NOW_CHECKED)
+                    menu = 0
+                }
+                else -> {
+                    chatPlayer(ChatAnim.NEUTRAL, if (picked == BEST_BE_OFF && menu == 2) BEST_BE_OFF else MAYBE_LATER)
+                    return@with
                 }
             }
         }
-
-    private suspend fun Dialogue.advice() = with(CountCheckLines) {
-        chatPlayer(ChatAnim.QUIZ, ADVICE)
-        chatNpc(ChatAnim.HAPPY, COUNT_STEPS)
-        chatNpc(ChatAnim.HAPPY, ONE)
-        chatNpc(ChatAnim.NEUTRAL, ONE_PASSWORD)
-        chatNpc(ChatAnim.HAPPY, TWO)
-        chatNpc(ChatAnim.NEUTRAL, TWO_EMAIL)
-        chatNpc(ChatAnim.CONFUSED, THREE)
-        chatNpc(ChatAnim.NEUTRAL, THREE_WEBSITE)
-        if (choice(CARRY_ON, WHAT_THREE) == 1) {
-            chatPlayer(ChatAnim.NEUTRAL, CARRY_ON)
-        } else {
-            chatPlayer(ChatAnim.QUIZ, WHAT_THREE)
-            chatNpc(ChatAnim.ANGRY, FLOW)
-            chatPlayer(ChatAnim.NEUTRAL, SILENCE)
-        }
-        chatNpc(ChatAnim.HAPPY, FOUR)
-        chatNpc(ChatAnim.NEUTRAL, FOUR_PIN)
-        chatNpc(ChatAnim.LAUGH, FUN)
     }
-
-    /** Whether Count Check has sent [player] to the Stronghold; false when the cache has no such varbit (tests'). */
-    fun sentToStronghold(player: Player): Boolean =
-        player.vars.types.varbit(VARBIT_SENT_TO_STRONGHOLD) != null && player.vars.getVarbit(VARBIT_SENT_TO_STRONGHOLD) != 0
 
     /** Pray-at: the points back up to the Prayer level, the drain counter reset. */
     fun pray(player: Player) {
@@ -442,12 +381,8 @@ fun registerChurch(world: World) {
     world.handlers.onNpc(Church.NIGEL_REGULAR, Church.TRADE) { op ->
         world.dialogues.start(this, op.npc) { with(Church) { nigelTrade() } }
     }
-    val send: (Player) -> Unit = { player ->
-        if (player.vars.types.varbit(Church.VARBIT_SENT_TO_STRONGHOLD) != null) player.vars.setVarbit(Church.VARBIT_SENT_TO_STRONGHOLD, 1)
-        world.teleport(player, Church.STRONGHOLD.x, Church.STRONGHOLD.z, 0)
-    }
     world.handlers.onNpc(Church.COUNT_CHECK, Church.TALK_TO) { op ->
-        world.dialogues.start(this, op.npc) { with(Church) { countCheck(Church::sentToStronghold, send) } }
+        world.dialogues.start(this, op.npc) { with(Church) { countCheck() } }
     }
     world.handlers.onLoc(Church.ALTAR, Church.PRAY_AT) { prayAt(world) }
     world.handlers.onObjOnLoc(Church.ALTAR) { world.message(player, AltarLines.WRATH) }

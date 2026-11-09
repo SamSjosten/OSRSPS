@@ -1,5 +1,5 @@
 {
- "name": "Lumbridge Castle: Talk-to the Doomsayer (::keys on, so keys show whatever data/dialogue.txt holds)",
+ "name": "Lumbridge Castle: Talk-to the Doomsayer as since 242.1 (Lumbridge 242 step 4b): his first talk, then the short one (::keys on, so keys show whatever data/dialogue.txt holds)",
  "account": "test",
  "steps": [
   {
@@ -20,6 +20,11 @@
    "x": 3233,
    "y": 3223,
    "plane": 0
+  },
+  {
+   "step": "command",
+   "text": "::varbit 16791 0",
+   "comment": "doomsayer_intro: as if never met, for his first talk"
   },
   {
    "step": "npcOption",
@@ -56,28 +61,7 @@
   },
   {
    "step": "assertDialogue",
-   "contains": "[doomsayer.my_role]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[doomsayer.title]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[doomsayer.patrol]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[doomsayer.disable]"
+   "contains": "[doomsayer.nothing_needed]"
   },
   {
    "step": "continueDialogue"
@@ -90,29 +74,12 @@
    "step": "continueDialogue"
   },
   {
-   "step": "assertDialogue",
-   "contains": "[doomsayer.see_again]"
-  },
-  {
-   "step": "continueDialogue"
+   "step": "chooseOption",
+   "text": "[doomsayer.thanks_signs]"
   },
   {
    "step": "assertDialogue",
-   "contains": "[doomsayer.waiting]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[doomsayer.re_enable]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[doomsayer.remember]"
+   "contains": "[doomsayer.thanks_signs]"
   },
   {
    "step": "continueDialogue"
@@ -120,6 +87,39 @@
   {
    "step": "assertDialogue",
    "contains": "[doomsayer.welcome]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Doomsayer",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[doomsayer.doom]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[doomsayer.get_rid]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[doomsayer.get_rid]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[doomsayer.very_well]"
   },
   {
    "step": "continueDialogue"

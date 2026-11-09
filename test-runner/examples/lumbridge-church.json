@@ -1,5 +1,5 @@
 {
- "name": "Rest of Lumbridge step 10, as since 242.1: the church. Examine (::keys on) on Father Aereck and Count Check; Pray-at the altar fills drained points; Father Aereck's prayer tips and Saradomin talk (Lumbridge 242 step 3), and Count Check's advice, Who, the Salve and the failed check",
+ "name": "Rest of Lumbridge step 10, as since 242.1: the church. Examine (::keys on) on Father Aereck and Count Check; Pray-at the altar fills drained points; Father Aereck's prayer tips and Saradomin talk (Lumbridge 242 step 3), and Count Check's talk as since 242.1: who he is, the Salve, nothing else on a main world, and the failed check",
  "account": "test",
  "steps": [
   {
@@ -353,117 +353,25 @@
   },
   {
    "step": "assertDialogue",
-   "contains": "[count_check.intro]"
+   "contains": "[count_check.intro_check]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "chooseOption",
-   "text": "[count_check.advice]"
+   "text": "[count_check.who_are_you]"
   },
   {
    "step": "assertDialogue",
-   "contains": "[count_check.advice]"
+   "contains": "[count_check.who_are_you]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[count_check.count_steps]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[count_check.one]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[count_check.one_password]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[count_check.two]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[count_check.two_email]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[count_check.three]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[count_check.three_website]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "chooseOption",
-   "text": "[count_check.carry_on]"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[count_check.carry_on]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[count_check.four]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[count_check.four_pin]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[count_check.fun]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "chooseOption",
-   "text": "[count_check.who]"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[count_check.who]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[count_check.vampyre]"
+   "contains": "[count_check.like_i_said]"
   },
   {
    "step": "continueDialogue"
@@ -477,101 +385,103 @@
   },
   {
    "step": "assertDialogue",
-   "contains": "[count_check.be_warned]"
+   "contains": "[count_check.warned]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[count_check.left_ways]"
+   "contains": "[count_check.okay]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[count_check.blessed]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "chooseOption",
-   "text": "[count_check.salve]"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[count_check.salve]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[count_check.of_course]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[count_check.not_role_play]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[count_check.right]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[count_check.may_check]"
+   "contains": "[count_check.now_checked]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "chooseOption",
-   "text": "[count_check.learn]"
+   "text": "[count_check.salve_cross]"
   },
   {
    "step": "assertDialogue",
-   "contains": "[count_check.learn]"
+   "contains": "[count_check.salve_cross]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[count_check.stronghold]",
-   "comment": "the test account hasn't been sent to the Stronghold; the teleport itself is the headless test's, so the account keeps its one offer"
+   "contains": "[count_check.what_mean]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.role_play]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.right_dots]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.so_checked]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "chooseOption",
-   "text": "[count_check.no]"
+   "text": "[count_check.anything_else]"
   },
   {
    "step": "assertDialogue",
-   "contains": "[count_check.may_check]"
+   "contains": "[count_check.anything_else]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.no_bang]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.now_checked]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "chooseOption",
-   "text": "[count_check.check]"
+   "text": "[count_check.yes_please]"
   },
   {
    "step": "assertDialogue",
-   "contains": "[count_check.check]"
+   "contains": "[count_check.yes_please]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.begin]"
   },
   {
    "step": "continueDialogue"
@@ -579,6 +489,17 @@
   {
    "step": "assertDialogue",
    "contains": "[count_check.fail]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[count_check.best_be_off]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[count_check.best_be_off]"
   },
   {
    "step": "continueDialogue"

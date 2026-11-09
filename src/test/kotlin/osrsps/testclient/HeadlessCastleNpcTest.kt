@@ -22,8 +22,7 @@ class HeadlessCastleNpcTest {
     private val guide = NpcSpawn(NpcType(LumbridgeGuide.ID, "Lumbridge Guide", ops = listOf("Talk-to", null, null, null, null)), 3221, 3220, source = "test")
 
     private fun server(dir: Path, npc: NpcSpawn) = TestServer(dir) { crcs, millis ->
-        val types = arrayOfNulls<ObjType>(LumbridgeGuide.SECURITY_BOOK_OBJ + 1)
-        types[LumbridgeGuide.SECURITY_BOOK_OBJ] = ObjType(LumbridgeGuide.SECURITY_BOOK_OBJ, "Security book")
+        val types = arrayOfNulls<ObjType>(DukeHoracio.ANTI_DRAGON_SHIELD + 1)
         types[DukeHoracio.ANTI_DRAGON_SHIELD] = ObjType(DukeHoracio.ANTI_DRAGON_SHIELD, "Anti-dragon shield")
         types[BRONZE_AXE] = ObjType(BRONZE_AXE, "Bronze axe")
         World(
@@ -168,43 +167,26 @@ class HeadlessCastleNpcTest {
     }
 
     @Test
-    fun `the Lumbridge Guide hands over a security book from his security menu`(@TempDir dir: Path) {
+    fun `the Lumbridge Guide tells where the bank is, with its icon box, and says goodbye from more options`(@TempDir dir: Path) {
         server(dir, guide).use { server ->
             server.login("erin").use { client ->
                 client.talkTo(LumbridgeGuide.ID)
-                client.says("Lumbridge Guide" to "[lumbridge_guide.greeting]")
+                client.says("Lumbridge Guide" to "[lumbridge_guide.hello]")
                 client.menu(
-                    "[lumbridge_guide.quest]", "[lumbridge_guide.monsters]", "[lumbridge_guide.money]", "[lumbridge_guide.info]",
+                    "[lumbridge_guide.goals]", "[lumbridge_guide.quest_to_go_on]", "[lumbridge_guide.combat]", "[lumbridge_guide.skills]",
                     "[lumbridge_guide.more_options]",
                 )
                 client.chooseOption(5)
-                client.menu("[lumbridge_guide.security]", "[lumbridge_guide.bank]", "[lumbridge_guide.no_help]", "[lumbridge_guide.previous]")
-                client.chooseOption(1)
-                client.says(
-                    "erin" to "[lumbridge_guide.security]",
-                    "Lumbridge Guide" to "[lumbridge_guide.security_1]",
-                    "Lumbridge Guide" to "[lumbridge_guide.security_topics_1]",
-                    "Lumbridge Guide" to "[lumbridge_guide.security_topics_2]",
+                val more = arrayOf(
+                    "[lumbridge_guide.make_money]", "[lumbridge_guide.find_bank]", "[lumbridge_guide.be_off]", "[lumbridge_guide.previous_options]",
                 )
-                client.awaitDialogue("the security menu") { it is DialogueView.Menu }
-                client.chooseOption(4)
-                client.says(
-                    "erin" to "[lumbridge_guide.stronghold]",
-                    "Lumbridge Guide" to "[lumbridge_guide.stronghold_1]",
-                    "erin" to "[lumbridge_guide.fell_on_head]",
-                    "Lumbridge Guide" to "[lumbridge_guide.stronghold_2]",
-                    "erin" to "[lumbridge_guide.how_so]",
-                    "Lumbridge Guide" to "[lumbridge_guide.stronghold_3]",
-                    "erin" to "[lumbridge_guide.where_explorer]",
-                    "Lumbridge Guide" to "[lumbridge_guide.stronghold_4]",
-                )
-                assertEquals(DialogueView.Other(Chatbox.OBJECTBOX), client.awaitDialogue("the book") { it is DialogueView.Other })
-                assertEquals(listOf(InvObj(LumbridgeGuide.SECURITY_BOOK_OBJ, 1)), client.inventory(BACKPACK).filterNotNull())
-                client.resumePause(Chatbox.OBJECTBOX, Chatbox.OBJECTBOX_UNIVERSE, 0)
-                client.says("Lumbridge Guide" to "[lumbridge_guide.anything_else]")
-                client.menu("[lumbridge_guide.more_security]", "[lumbridge_guide.something_else]", "[lumbridge_guide.no_thanks]")
+                client.menu(*more)
+                client.chooseOption(2)
+                client.says("erin" to "[lumbridge_guide.find_bank]", "Lumbridge Guide" to "[lumbridge_guide.bank_roof]")
+                client.box()
+                client.menu(*more)
                 client.chooseOption(3)
-                client.says("erin" to "[lumbridge_guide.no_thanks]")
+                client.says("erin" to "[lumbridge_guide.be_off]", "Lumbridge Guide" to "[lumbridge_guide.until_next]")
                 client.await("the dialogue to close") { if (client.dialogueView == null) Unit else null }
             }
         }

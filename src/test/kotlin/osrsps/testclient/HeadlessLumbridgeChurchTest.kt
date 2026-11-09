@@ -21,7 +21,8 @@ import osrsps.map.LocShape
 
 /**
  * Rest of Lumbridge step 10 through the headless client: the altar's Pray-at fills drained prayer points, Father Aereck
- * talks (as since 242.1), and Nigel, a multi-NPC, talks as the Nigel a normal world shows. The points are drained with ::pray, as the
+ * talks (as since 242.1), Count Check checks, and Nigel, a multi-NPC, talks as the Nigel a normal world shows. The points
+ * are drained with ::pray, as the
  * raid's tests already drain them by praying. The rl-client script test-runner/examples/lumbridge-church.json does the
  * same in the real client, in the church.
  */
@@ -118,24 +119,25 @@ class HeadlessLumbridgeChurchTest {
     }
 
     @Test
-    fun `Count Check sends the player to the Stronghold of Security`(@TempDir dir: Path) {
+    fun `Count Check checks the player, who fails, and then offers who he is`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { client ->
                 client.await("the login rebuild") { client.position }
                 val npc = client.await("Count Check in view") { client.npcs().firstOrNull { it.id == Church.COUNT_CHECK } }
                 client.npcOp(npc.index, Church.TALK_TO)
-                client.awaitDialogue("his first line") { it is DialogueView.Chat && it.text == "[count_check.intro]" }
+                client.awaitDialogue("his first line") { it is DialogueView.Chat && it.text == "[count_check.intro_check]" }
                 client.continueDialogue()
                 client.awaitDialogue("the menu") { it is DialogueView.Menu }
-                client.chooseOption(3)
-                for (key in listOf("count_check.learn", "count_check.stronghold")) {
+                client.chooseOption(1)
+                for (key in listOf("count_check.yes_please", "count_check.begin", "count_check.fail")) {
                     client.awaitDialogue(key) { it is DialogueView.Chat && it.text == "[$key]" }
                     client.continueDialogue()
                 }
-                val menu = client.awaitDialogue("yes or no") { it is DialogueView.Menu } as DialogueView.Menu
-                assertEquals(listOf("[count_check.yes]", "[count_check.no]"), menu.options)
-                client.chooseOption(1)
-                client.await("the Stronghold's entrance") { client.position?.takeIf { it.x == Church.STRONGHOLD.x && it.z == Church.STRONGHOLD.z } }
+                val menu = client.awaitDialogue("the menu after the check") { it is DialogueView.Menu } as DialogueView.Menu
+                assertEquals(listOf("[count_check.who_are_you]", "[count_check.anything_else]", "[count_check.best_be_off]"), menu.options)
+                client.chooseOption(3)
+                client.awaitDialogue("leaving") { it is DialogueView.Chat && it.text == "[count_check.best_be_off]" }
+                client.continueDialogue()
                 client.await("the dialogue to close") { if (client.dialogueView == null) Unit else null }
             }
         }

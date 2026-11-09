@@ -1,5 +1,5 @@
 {
- "name": "Lumbridge Castle: Talk-to the Lumbridge Guide (::keys on, so keys show whatever data/dialogue.txt holds)",
+ "name": "Lumbridge Castle: Talk-to the Lumbridge Guide as since 242.1 (Lumbridge 242 step 4b): his introduction, every answer and menu, then his later hello (::keys on, so keys show whatever data/dialogue.txt holds)",
  "account": "test",
  "steps": [
   {
@@ -22,24 +22,47 @@
    "plane": 0
   },
   {
+   "step": "command",
+   "text": "::varbit 16839 0",
+   "comment": "lumbridge_guide_met: as if never met, for his introduction"
+  },
+  {
    "step": "npcOption",
    "npc": "Lumbridge Guide",
    "option": "Talk-to"
   },
   {
    "step": "assertDialogue",
-   "contains": "[lumbridge_guide.greeting]"
+   "contains": "[lumbridge_guide.greeting_first]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "chooseOption",
-   "text": "[lumbridge_guide.quest]"
+   "text": "[lumbridge_guide.goals]"
   },
   {
    "step": "assertDialogue",
-   "contains": "[lumbridge_guide.quest]"
+   "contains": "[lumbridge_guide.goals]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.goals_answer]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[lumbridge_guide.quest_to_go_on]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.quest_to_go_on]"
   },
   {
    "step": "continueDialogue"
@@ -52,26 +75,287 @@
    "step": "continueDialogue"
   },
   {
-   "step": "assertDialogue",
-   "contains": "[lumbridge_guide.quest_icon]"
-  },
-  {
-   "step": "continueDialogue"
+   "step": "chooseOption",
+   "text": "[lumbridge_guide.combat]"
   },
   {
    "step": "assertDialogue",
-   "contains": "[lumbridge_guide.anything_else]"
+   "contains": "[lumbridge_guide.combat_harlan]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "chooseOption",
-   "text": "[lumbridge_guide.no_thanks]"
+   "text": "[lumbridge_guide.skills]"
   },
   {
    "step": "assertDialogue",
-   "contains": "[lumbridge_guide.no_thanks]"
+   "contains": "[lumbridge_guide.skills]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.skills_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.skills_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.skills_mining]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.hint_mining]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.skills_smithing]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.hint_furnace]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.hint_anvil]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.skills_fishing]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.hint_fishing]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.hint_range]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.skills_woodcutting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.hint_trees]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.skills_3]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.skills_4]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.skills_5]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.hint_guide]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[lumbridge_guide.more_options]"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[lumbridge_guide.make_money]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.make_money]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.money_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.money_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.money_3]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.money_4]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.money_5]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.money_6]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.money_7]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[lumbridge_guide.find_bank]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.find_bank]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.bank_roof]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.hint_bank]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[lumbridge_guide.previous_options]"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[lumbridge_guide.more_options]"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[lumbridge_guide.be_off]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.be_off]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.until_next]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Lumbridge Guide",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.hello]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[lumbridge_guide.more_options]"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[lumbridge_guide.be_off]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.be_off]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[lumbridge_guide.until_next]"
   },
   {
    "step": "continueDialogue"
