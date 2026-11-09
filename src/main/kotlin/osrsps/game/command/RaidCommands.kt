@@ -17,7 +17,7 @@ import osrsps.game.raid.PartyScaling
  * [FIGHT_RADIUS] tiles round the boss's spawn, for its starter and their party only, ending if the starter dies or
  * logs out. In an Archive run (raid step 15), `::raid run` shows it, `::raid tp` goes to a room of it or the nexus and
  * `::raid clear` marks the room you're in done, and `::raid hold` freezes the boss of the fight you're in where it
- * stands, as a kite keeps it off, for testing; a room whose fight never began gives its points to whoever
+ * stands (Bork, in his and the Smorks'), as a kite keeps it off, for testing; a room whose fight never began gives its points to whoever
  * of the party stands in it.
  */
 fun CommandRegistry.registerRaidCommands(world: World) {
@@ -97,8 +97,14 @@ fun CommandRegistry.registerRaidCommands(world: World) {
                 if (args.size > 2) fail(usage)
                 val ticks = args.getOrNull(1)?.let { it.toIntOrNull()?.takeIf { n -> n in 1..MAX_HOLD_TICKS } ?: fail("The ticks must be 1 to $MAX_HOLD_TICKS") } ?: DEFAULT_HOLD_TICKS
                 val fight = mine()
-                if (!world.npcs.freeze(fight.boss, ticks)) fail("${fight.boss.type.name} can't be held now: held already, or not long after a hold.")
-                reply("Held ${fight.boss.type.name} for $ticks ticks.")
+                // The one that walks: the boss, or whom the fight names when its boss is only its anchor (Bork's).
+                val npcs = fight.def.held?.invoke(fight) ?: listOf(fight.boss)
+                if (npcs.isEmpty()) fail("Nothing of ${fight.def.name} is left to hold.")
+                // A command runs in the tick's input phase, before the tick counts freezes down, which takes one off
+                // at once: one more, so it stands this tick and the rest of the ticks asked.
+                val held = npcs.filter { world.npcs.freeze(it, ticks + 1) }
+                if (held.isEmpty()) fail("${npcs.joinToString { it.type.name }} can't be held now: held already, or not long after a hold.")
+                reply("Held ${held.joinToString { it.type.name }} for $ticks ticks.")
             }
             "stop" -> {
                 if (args.size != 1) fail(usage)
