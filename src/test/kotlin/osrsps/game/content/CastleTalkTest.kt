@@ -129,7 +129,7 @@ class CastleTalkTest {
     }
 
     @Test
-    fun `Mikasi, the taskmaster since 242, opens with a menu and comes back to it after saying who she is`() {
+    fun `Mikasi, the taskmaster since 242, opens with a menu and comes back to it after saying who she is or goodbye`() {
         h.talk { with(Mikasi) { talk() } }
         h.menu("mikasi.who_are_you", "mikasi.my_diary", "mikasi.farewell")
         h.pick(1)
@@ -137,7 +137,14 @@ class CastleTalkTest {
         h.menu("mikasi.who_are_you", "mikasi.my_diary", "mikasi.farewell")
         h.pick(3)
         h.expect("mikasi.farewell", "mikasi.goodbye")
-        h.ends()
+        h.menu("mikasi.who_are_you", "mikasi.my_diary", "mikasi.farewell")
+        // Goodbye from the diary menu brings the first menu back too.
+        h.pick(2)
+        h.expect("mikasi.my_diary_said")
+        h.menu("mikasi.what_diary", "mikasi.rewards", "mikasi.claim", "mikasi.farewell")
+        h.pick(4)
+        h.expect("mikasi.farewell", "mikasi.goodbye")
+        h.menu("mikasi.who_are_you", "mikasi.my_diary", "mikasi.farewell")
     }
 
     @Test

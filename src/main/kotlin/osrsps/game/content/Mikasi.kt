@@ -45,8 +45,8 @@ object MikasiLines : Lines("mikasi", "Transcript:Mikasi") {
  * Falador isn't built, so he is left out). From the Wiki: Talk-to for a player who has done no diary tasks (there are
  * no diaries here yet). She says nothing before the first menu. Guessed: every chathead expression; leaving out the
  * Wiki's "another ring" option, which a player who has earned no ring can't need; and that the diary menu comes back
- * after "what is the diary" (the Wiki doesn't say); and that goodbye ends the talk (the Wiki has her menu come back
- * after "See you later.", read as a slip).
+ * after "what is the diary" (the Wiki doesn't say). Goodbye brings her first menu back, as the Wiki's transcript has
+ * it after "See you later." (from either menu), so the talk ends only when the player walks away.
  */
 object Mikasi {
     const val ID = 16804
@@ -65,15 +65,12 @@ object Mikasi {
                     chatPlayer(ChatAnim.QUIZ, MY_DIARY_SAID)
                     if (!diaryMenu()) return@with
                 }
-                else -> {
-                    farewell()
-                    return@with
-                }
+                else -> farewell()
             }
         }
     }
 
-    /** The diary menu; true to go back to the first menu (after "how to claim"), false when the talk has ended. */
+    /** The diary menu; true to go back to the first menu (after "how to claim" or goodbye), false when the talk has ended. */
     private suspend fun Dialogue.diaryMenu(): Boolean {
         val lines = MikasiLines
         while (true) {
@@ -93,7 +90,7 @@ object Mikasi {
                 }
                 else -> {
                     farewell()
-                    return false
+                    return true
                 }
             }
         }
