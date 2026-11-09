@@ -163,7 +163,8 @@ private fun describe(fight: Encounter): String {
     val boss = fight.boss
     val phase = fight.def.phases[fight.phase]
     return "${fight.def.name} #${fight.id}: phase ${fight.phase + 1} (${phase.name}) for ${fight.phaseTick} of ${fight.ticks} ticks; " +
-        "${boss.type.name} ${boss.hitpoints}/${boss.maxHitpoints} hp; ${fight.players.size} players, ${fight.adds.size} adds, ${fight.activeHazards.size} hazards"
+        "${fight.def.status?.invoke(fight) ?: "${boss.type.name} ${boss.hitpoints}/${boss.maxHitpoints} hp"}; " +
+        "${fight.players.size} players, ${fight.adds.size} adds, ${fight.activeHazards.size} hazards"
 }
 
 /** How far from the boss's spawn a fight outside an instance reaches. Testing only; the raid's rooms are instances. */

@@ -357,7 +357,7 @@ class RangedCombat(
             val rolled = if (shot.hit) CombatMath.rollDamage(random, shot.maxHit) else 0
             val damage = reserve(shot.player, npc, style, rolled)
             npc.incoming -= damage
-            melee.hit(npc, shot.player, damage, tick, shot.maxHit, shot.from)
+            melee.hit(npc, shot.player, melee.armoured(npc, damage, magic = false), tick, shot.maxHit, shot.from)
         }
     }
 
@@ -378,7 +378,7 @@ class RangedCombat(
             npc.incoming -= shot.damage
             // A shot whose NPC is still there hits it, and bounces on even if that hit kills it.
             val landed = npcs[npc.index] === npc && !npc.dead
-            if (landed) melee.weaponPoison(npc, melee.hit(npc, shot.player, shot.damage, tick, shot.rolledMax, shot.from), shot.poison, shot.venom, ranged = true)
+            if (landed) melee.weaponPoison(npc, melee.hit(npc, shot.player, melee.armoured(npc, shot.damage, magic = false), tick, shot.rolledMax, shot.from), shot.poison, shot.venom, ranged = true)
             land(shot, npc)
             if (landed && shot.bounces > 0) bounce(shot, tick)?.let { bounced += it }
             if (landed && shot.targets > 1) splash(shot, tick)

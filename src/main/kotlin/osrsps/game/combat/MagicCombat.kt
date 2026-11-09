@@ -366,7 +366,7 @@ class MagicCombat(
             if (cast.hit) {
                 if (cast.spell.impact >= 0) npc.effects.spotanim(0, cast.spell.impact, IMPACT_HEIGHT)
                 // Guessed: Bind, which can't do damage, shows no hitsplat, as a splash shows none.
-                if (cast.spell.maxHit == 0) melee.splashed(npc, cast.player, tick, cast.from) else melee.hit(npc, cast.player, cast.damage, tick, cast.maxHit, cast.from)
+                if (cast.spell.maxHit == 0) melee.splashed(npc, cast.player, tick, cast.from) else melee.hit(npc, cast.player, melee.armoured(npc, cast.damage, magic = true), tick, cast.maxHit, cast.from)
                 if (cast.spell.freezeTicks > 0 && !npc.dead) npcs.freeze(npc, cast.spell.freezeTicks)
             } else {
                 if (spells.splash >= 0) npc.effects.spotanim(0, spells.splash, IMPACT_HEIGHT)

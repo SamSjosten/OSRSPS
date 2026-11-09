@@ -72,6 +72,7 @@ class NpcCombatTest {
             "bear_rework_attack" to 4925, "bear_rework_defend" to 4927, "bear_rework_death" to 4929,
             "npc_archive_guardian_range_attack01" to 14751, "npc_archive_guardian_melee_attack01" to 14752, "npc_archive_guardian_death01" to 14749,
             "npc_ezekiel_melee01" to 14685, "npc_ezekiel_death01" to 14689,
+            "npc_bork_gong_melee01" to 14542, "npc_bork_death01" to 14541, "npc_smork_cannon_attack01" to 14554,
             "demon_attack" to 64, "demon_block" to 65, "demon_death" to 67,
             "shade_attack" to 1283, "shade_block" to 1286, "shade_sink" to 1287,
         ),
@@ -562,6 +563,30 @@ class NpcCombatTest {
         // The cache's slash bonus is 110 levitating and 90 grounded; the Wiki's crush 20 for both.
         assertEquals(listOf(110, 90), listOf(up.defence.against(AttackType.SLASH), down.defence.against(AttackType.SLASH)))
         assertEquals(20, down.defence.against(AttackType.CRUSH))
+    }
+
+    @Test
+    fun `Bork and the Smorks fight as the Wiki has them, each max hit the formula's`() {
+        val bork = NpcType(16640, "Bork", size = 4, internalName = "tfa_bork", stats = NpcStats(attack = 200, defence = 300, strength = 200, hitpoints = 1500, ranged = 200, magic = 90))
+        val smorks = NpcType(16641, "Smorks", size = 3, internalName = "tfa_smork", stats = NpcStats(attack = 1, defence = 220, strength = 1, hitpoints = 600, ranged = 185, magic = 185))
+        val combat = NpcCombat.load(NpcTypes.of(bork, smorks), seqs)
+        val him = combat[bork]!!
+        val them = combat[smorks]!!
+        assertEquals(listOf(7, 7), listOf(him.attackSpeed, them.attackSpeed))
+        assertEquals(AttackType.CRUSH, him.attackType)
+        assertEquals(AttackType.RANGED, them.attackType)
+        // The Wiki lists neither max hit: the formula's from the levels and bonuses.
+        assertEquals(CombatMath.npcMaxHit(200, 40), him.maxHit)
+        assertEquals(CombatMath.npcMaxHit(185, 30), them.maxHit)
+        assertEquals(listOf(100, 250, 185), listOf(him.attackBonus, them.attackBonus, them.magicAttack))
+        assertEquals(NpcCombatAnims(14542, -1, 14541), him.anims)
+        assertEquals(listOf(NpcRangedAttack(anim = 14554, projectile = 4056, impact = 4055)), them.attacks)
+        assertEquals(ElementalWeakness(Element.EARTH, 40), him.weakness)
+        assertEquals(ElementalWeakness(Element.EARTH, 85), them.weakness)
+        assertEquals(mapOf(NpcStat.DEFENCE to 40), him.drainCaps)
+        assertTrue(him.poisonImmune && him.venomImmune && them.poisonImmune && !them.venomImmune)
+        assertEquals(listOf(140, 130, 10, 300), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { him.defence.against(it) })
+        assertEquals(listOf(220, 170, 160, 400), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { them.defence.against(it) })
     }
 
     @Test

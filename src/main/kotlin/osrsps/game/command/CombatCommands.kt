@@ -325,7 +325,12 @@ private fun target(world: World, player: Player, args: List<String>, usage: Stri
         args.size == 1 && args[0].toIntOrNull() != null -> world.npcs[args[0].toInt()] ?: throw CommandFailure("No NPC #${args[0]}")
         else -> {
             val text = args.joinToString(" ")
-            pick { it.type.name.equals(text, true) || it.type.internalName.equals(text, true) }
+            val named: (Npc) -> Boolean = { it.type.name.equals(text, true) || it.type.internalName.equals(text, true) }
+            pick { named(it) }
+                // Else one of the boss fight's NPCs, anywhere in it: the Smorks' cart stands further off in their room
+                // than the search reaches from its way in (raid step 18a).
+                ?: world.encounters.all.firstOrNull { !it.ended && it.boss.level == player.level && it.covers(player.x, player.z) }
+                    ?.let { fight -> (listOf(fight.boss) + fight.adds).firstOrNull { !it.dead && named(it) } }
                 ?: throw CommandFailure("No NPC called '$text' within $SEARCH_RADIUS tiles")
         }
     }

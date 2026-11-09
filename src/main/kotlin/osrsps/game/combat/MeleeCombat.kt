@@ -377,10 +377,20 @@ class MeleeCombat(
             val npc = swing.npc
             npc.incoming -= swing.damage
             if (npcs[npc.index] !== npc || npc.dead) continue
-            val dealt = hit(npc, swing.player, swing.damage, tick, swing.maxHit, swing.from)
+            val dealt = hit(npc, swing.player, armoured(npc, swing.damage, magic = false), tick, swing.maxHit, swing.from)
             if (swing.special != null) specialLanded(npc, dealt, swing.special)
             weaponPoison(npc, dealt, swing.poison, venom = false, ranged = false)
         }
+    }
+
+    /**
+     * [damage] of a player's melee or ranged hit, or a spell's ([magic]), on [npc] less its flat armour ([Npc.flatArmour],
+     * [Npc.magicArmour]). Guessed: a hit can't go below 0 for it, and a 0 stays 0.
+     */
+    fun armoured(npc: Npc, damage: Int, magic: Boolean): Int {
+        if (damage <= 0) return damage
+        val armour = if (magic) npc.magicArmour else npc.flatArmour
+        return (damage - armour).coerceAtLeast(0)
     }
 
     /**
@@ -698,30 +708,33 @@ class MeleeCombat(
     /**
      * [npc] fires one of its magic or ranged attacks (by weight) at [player] now, as its fight back does when its attack
      * is due and they are in range and sight: the roll as it fires and the hit landing after the flight. A boss fight
-     * calls it for its boss's own shots ([Npc.scriptedAttacks]). Does nothing for an NPC with no such attacks.
+     * calls it for its boss's own shots ([Npc.scriptedAttacks]), and can name the [attack] and its [type] (the Smorks'
+     * ranged bones or magic potions, raid step 18a); without them, one of its file's by weight, of its file's type. Does
+     * nothing for an NPC with no such attacks.
      */
-    fun fireAt(npc: Npc, player: Player, tick: Long) {
+    fun fireAt(npc: Npc, player: Player, tick: Long, attack: NpcRangedAttack? = null, type: AttackType? = null) {
         val def = combat.npcCombat[npc.type] ?: return
-        if (def.attacks.isEmpty()) return
+        if (attack == null && def.attacks.isEmpty()) return
+        val shotType = type ?: def.attackType
         val distance = maxOf(1, LineOfSight.distance(npc.x, npc.z, npc.type.size, player.x, player.z))
         npc.face(player)
         npc.nextAttackTick = tick + def.attackSpeed
         // As a melee swing does, so another player can't take it over while it keeps firing.
         npc.fightTick = tick
-        val attack = pick(def.attacks)
-        val anim = if (attack.anim >= 0) attack.anim else def.anims.attack
+        val shot = attack ?: pick(def.attacks)
+        val anim = if (shot.anim >= 0) shot.anim else def.anims.attack
         if (anim >= 0) npc.effects.anim(anim)
-        if (attack.cast >= 0) npc.effects.spotanim(0, attack.cast, CAST_HEIGHT)
-        val delay = (if (def.attackType == AttackType.MAGIC) HitDelay.MAGIC else HitDelay.BOW).ticks(distance)
-        if (attack.projectile >= 0) projectile(flight(npc, player, attack.projectile, delay))
-        val roll = combat.npcAttack(npc, player) ?: return
+        if (shot.cast >= 0) npc.effects.spotanim(0, shot.cast, CAST_HEIGHT)
+        val delay = (if (shotType == AttackType.MAGIC) HitDelay.MAGIC else HitDelay.BOW).ticks(distance)
+        if (shot.projectile >= 0) projectile(flight(npc, player, shot.projectile, delay))
+        val roll = combat.npcAttack(npc, player, shotType) ?: return
         val hit = CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)
-        val max = attack.maxHit ?: roll.maxHit
+        val max = shot.maxHit ?: roll.maxHit
         val damage = if (hit && max > 0) CombatMath.rollDamage(random, max) else 0
-        val blocked = protects(player, def.attackType)
+        val blocked = protects(player, shotType)
         // Dinh's bulwark counts as it fires, as the prayer does and as for a melee swing.
         val reduced = if (combat.bulwarkBlocking(player, tick)) DinhsBulwark.blocked(damage) else damage
-        shots += Shot(npc, player, attack, hit, blocked, if (blocked) 0 else reduced, tick + delay)
+        shots += Shot(npc, player, shot, hit, blocked, if (blocked) 0 else reduced, tick + delay)
     }
 
     private fun spellCasts(spell: NpcMeleeSpell, player: Player): Boolean {

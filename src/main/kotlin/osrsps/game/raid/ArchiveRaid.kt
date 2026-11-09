@@ -284,6 +284,7 @@ class ArchiveRaids(private val world: World) {
     fun built(room: ArchiveRoom): Boolean = when (room) {
         ArchiveRoom.GUARDIAN -> world.encounters.defs[ArchiveGuardian.NAME] != null && world.npcTypes[ArchiveGuardian.DORMANT] != null
         ArchiveRoom.EZEKIEL -> world.encounters.defs[Ezekiel.NAME] != null
+        ArchiveRoom.BORK -> world.encounters.defs[Bork.NAME] != null
         else -> false
     }
 
@@ -335,6 +336,38 @@ class ArchiveRaids(private val world: World) {
         world.meleeCombat.aggress(boss, first, world.tick)
         run.fights[room] = world.encounters.start(def, boss, { x, z -> inRoom(run, room, x, z) })
         logger.info { "$run began Ezekiel's fight with ${standing.size} standing, ${first.username} first in" }
+    }
+
+    /**
+     * The first of the party into Bork's room: his and the Smorks' fight begins, its anchor ([Bork.ANCHOR]) where their
+     * cart stands ([BORK_CART_X], guessed: the middle of the room), scaled to everyone standing in the run, [first]
+     * Bork's tank.
+     */
+    private fun beginBork(run: ArchiveRun, first: Player) {
+        val room = ArchiveRoom.BORK
+        val def = world.encounters.defs[Bork.NAME] ?: return
+        val at = tile(run, BORK_CART_X, BORK_CART_Z)
+        val standing = standing(run)
+        // With no NPC slot free for the anchor, Bork or the Smorks, the room isn't started (as R18A-3 for Ezekiel): it
+        // would never begin, nor open the next row. The next tick with one of the party in it tries again.
+        val anchor = world.spawnNpc(NpcSpawn(def.boss, at.x, at.z, 0, source = "$run", respawns = false))
+        if (anchor == null) {
+            logger.warn { "$run: no room for Bork and the Smorks" }
+            return
+        }
+        world.partyScaling.scale(anchor, standing.size.coerceIn(1, PartyScaling.MAX_PARTY))
+        val fight = world.encounters.start(def, anchor, { x, z -> inRoom(run, room, x, z) })
+        if (fight.adds.size < 2) {
+            world.encounters.stop(fight)
+            world.removeNpc(anchor)
+            logger.warn { "$run: no room for Bork and the Smorks" }
+            return
+        }
+        run.started += room
+        run.presentAtStart[room] = standing.filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
+        run.fights[room] = fight
+        fight.adds.firstOrNull { it.type.id == Bork.BORK }?.let { world.meleeCombat.aggress(it, first, world.tick) }
+        logger.info { "$run began Bork and the Smorks' fight with ${standing.size} standing, ${first.username} first in" }
     }
 
     /** A nexus door: into its room, if its row is open to the party. */
@@ -441,8 +474,9 @@ class ArchiveRaids(private val world: World) {
                 if (room !in run.started && room !in run.cleared && room.stage == run.stage) {
                     when {
                         !built(room) -> begin(run, room)
-                        // The Guardian waits for a Touch; Ezekiel's fight begins with the first of the party in.
+                        // The Guardian waits for a Touch; Ezekiel's, and Bork and the Smorks', begin with the first of the party in.
                         room == ArchiveRoom.EZEKIEL -> beginEzekiel(run, player)
+                        room == ArchiveRoom.BORK -> beginBork(run, player)
                     }
                 }
             }
@@ -678,6 +712,13 @@ class ArchiveRaids(private val world: World) {
         /** Ezekiel's south-west tile as his fight begins: him in the middle of the ring of flames round his room. Guessed. */
         const val EZEKIEL_X = 4062
         const val EZEKIEL_Z = 5534
+
+        /**
+         * The Smorks' cart's south-west tile as Bork and the Smorks' fight begins, its 3 by 3 round the one blocked tile
+         * in the middle of their room's floor (4191,5599). Guessed.
+         */
+        const val BORK_CART_X = 4190
+        const val BORK_CART_Z = 5598
 
         /** In front of the nexus's own Passageway (4124,5625, 7 by 2). Guessed. */
         const val PASSAGE_FRONT_X = 4127
