@@ -37,6 +37,13 @@ class ExaminesTest {
     }
 
     @Test
+    fun `the reworked Lumbridge NPCs of 242 have examines, and the Ironman tutor's shown type shares his`() {
+        val ids = listOf(Harlan.ID, Mikasi.ID, Feoras.ID, Cadmus.ID, Wilfred.ID, SwampTutors.MONLUM, SwampTutors.FINLAY, ShearedRam.ARTHUR)
+        for (id in ids) assertEquals("examine.npc_$id", Examines.npc(id)?.key, "NPC $id")
+        assertSame(Examines.npc(LumbridgeTownsfolk.IRONMAN_TUTOR), Examines.npc(LumbridgeTownsfolk.IRONMAN_TUTOR_VISIBLE))
+    }
+
+    @Test
     fun `the Wizards' Tower's people and the essence mine have examines, and multi-NPCs share theirs`() {
         val ids = listOf(EssenceMine.SEDRIDOR, WizardsTowerPeople.TRAIBORN, WizardsTowerPeople.MIZGOG, WizardsTowerPeople.GRAYZAG, WizardsTowerPeople.ONGLEWIP, Jalarast.JALARAST, Rick.RICK)
         for (id in ids) assertEquals("examine.npc_$id", Examines.npc(id)?.key, "NPC $id")
