@@ -35,13 +35,18 @@ object BorkLines : Lines("tfa_bork", "The_Fractured_Archive/Strategies") {
     val VERY_ANGRY = line("very_angry", "Bork as his stomp begins after the daze")
     val STOMP_TIME = line("stomp_time", "Bork as his stomp begins after a heavy cannonball misses him (the Wiki's)")
     val SMASH = line("smash", "Bork naming his next tank as his stomp ends", "player")
+    val TEMPO_BORK = (1..3).map { line("tempo_bork_$it", "Bork as the Smorks fall to ${100 - 25 * it}%, the tempo rising") }
+    val TEMPO_SMORKS = (1..3).map { line("tempo_smorks_$it", "a Smork as they fall to ${100 - 25 * it}%, the tempo rising") }
+    val AVENGE = line("avenge", "Bork as he dies")
+    val HUMAN_DIE = line("human_die", "a Smork as Bork's body goes, before their frenzy")
+    val UH_OH = line("uh_oh", "a Smork as the Smorks die")
 
     private fun ordinal(n: Int) = listOf("first", "second", "third")[n - 1]
 }
 
 /**
- * Bork and the Smorks (raid steps 18a and 18b), the second row's other pair of bosses, in their own room: Bork, a 4 by 4
- * ork who keeps to his tank, and the Smorks, three goblins in a 3 by 3 cannon tower in the middle of the room. Both
+ * Bork and the Smorks (raid steps 18a, 18b and 18c), the second row's other pair of bosses, in their own room: Bork,
+ * a 4 by 4 ork who keeps to his tank, and the Smorks, three goblins in a 3 by 3 cannon tower in the middle of the room. Both
  * have to die for the room to be done; the fight's own NPC is only its anchor (`tfa_bork_smork_hp_ui_handler`,
  * [ANCHOR]), which carries the party size and is taken away once both are gone.
  *
@@ -58,6 +63,10 @@ object BorkLines : Lines("tfa_bork", "The_Fractured_Archive/Strategies") {
  * - Bork's flat armour ([armourFor]): [ARMOUR_BASE] off each melee and ranged hit on him as it's rolled, and
  *   [ARMOUR_STEP] more of it, and of his magic resistance, for every [ARMOUR_EVERY_PERCENT]% the Smorks have lost, up
  *   to [ARMOUR_MAX] and [MAGIC_ARMOUR_MAX]; none while he is dazed.
+ * - The tempo (18c): at every 25% the Smorks lose, both call it out and the spacing of his gongs and their shots falls
+ *   by a tick, 7 to 4 ([tempo]). Bork dead first, the Smorks go into their frenzy ([frenzyAhead]): a volley at
+ *   everyone every [FRENZY_SPACING] ticks, napalm between. The Smorks dead first, Bork stomps over the whole room every
+ *   [LONE_STOMP_EVERY] ticks, no tower left to hide behind.
  *
  * From the OSRS Wiki (Bork, The Fractured Archive's; Smorks; read 2026-11-09): their stats and bonuses (npc-combat
  * .json), sizes, the 7-tick attack speed, their hitpoints by party size (party-scaling.json), the flat armour ("starts
@@ -80,9 +89,10 @@ object BorkLines : Lines("tfa_bork", "The_Fractured_Archive/Strategies") {
  * straight; napalm landing on Bork hurting him by an oil tick's 6-7, once; the burn's 2 every 4 ticks, 5 times, not
  * starting again while it runs; the cannonball hurting no player; the stomp after a miss and its line in place of the
  * daze's; a shockwave's damage ([STOMP_MIN] to [STOMP_MAX], no prayer helping), hitting all at once; the shadow's
- * fitted line test ([shadowed]); his next tank a random other player; a cycle with Bork dead going on without its
- * cannonball; flat armour not taking a hit below 0; the death spotanims; the anchor being the hp handler NPC.
- * Still to come (18c): the tempo stages and both enrages.
+ * fitted line test ([shadowed]); his next tank a random other player; the Smorks' cycle stopping as Bork dies, till
+ * their frenzy; the frenzy's splash running away from the tower only from a tile beside it; the lone stomps' first
+ * 45 ticks after the Smorks die, with the daze's line; the tempo's lines said by whichever of them is up; flat armour
+ * not taking a hit below 0; the death spotanims; the anchor being the hp handler NPC.
  */
 object Bork {
     /** What `::raid` and the raid flow know the fight by. */
@@ -213,6 +223,25 @@ object Bork {
     const val STOMP_MIN = 15
     const val STOMP_MAX = 30
 
+    /** The tempo: a stage for every 25% the Smorks have lost, up to 3, each a tick off the spacing (tsps: 7, 6, 5, 4). */
+    const val TEMPO_EVERY_PERCENT = 25
+    const val TEMPO_MAX = 3
+
+    /** After Bork dies (tsps): his body gone this long after, and the Smorks' frenzy this long after that. */
+    const val BORK_GONE = 7
+    const val FRENZY_AFTER = 4
+
+    /**
+     * The frenzy (tsps): a volley at everyone every [FRENZY_SPACING] ticks; napalm after the first two or three, the next
+     * volley [FRENZY_AFTER_NAPALM] ticks after its cast, then [FRENZY_VOLLEYS] volleys between napalms.
+     */
+    const val FRENZY_SPACING = 2
+    const val FRENZY_AFTER_NAPALM = 3
+    const val FRENZY_VOLLEYS = 5
+
+    /** With the Smorks dead, Bork stomps every this many ticks over the whole room, the first this long after they die (the tsps notes' estimate). */
+    const val LONE_STOMP_EVERY = 45
+
     /** Bork's flat armour: the Wiki's 8, 2 more for each 25% the Smorks have lost, up to 14; his magic resistance up to 6. */
     const val ARMOUR_BASE = 8
     const val ARMOUR_STEP = 2
@@ -234,6 +263,19 @@ object Bork {
 
     /** A later one (tsps): two or three volleys, napalm, then volleys to four in all, the heavy cannonball. */
     fun laterCycle(before: Int): List<Shot> = List(before) { Shot.VOLLEY } + Shot.NAPALM + List(4 - before) { Shot.VOLLEY } + Shot.CANNONBALL
+
+    /** The frenzy's start (tsps): two or three volleys, then napalm. */
+    fun frenzyStart(volleys: Int): List<Shot> = List(volleys) { Shot.VOLLEY } + Shot.NAPALM
+
+    /** The frenzy after that, over and over (tsps): [FRENZY_VOLLEYS] volleys, then napalm. */
+    fun frenzyRound(): List<Shot> = List(FRENZY_VOLLEYS) { Shot.VOLLEY } + Shot.NAPALM
+
+    /** The tempo for the Smorks at [hitpoints] of [max] (dead: at its most): a stage for every whole 25% lost, up to 3. */
+    fun tempoFor(hitpoints: Int, max: Int): Int {
+        if (max <= 0) return TEMPO_MAX
+        val lost = (max - hitpoints.coerceIn(0, max)) * 100 / max
+        return minOf(TEMPO_MAX, lost / TEMPO_EVERY_PERCENT)
+    }
 
     /** The fight, or null when the cache hasn't the three (a test world's). */
     fun def(types: NpcTypes): EncounterDef? {
@@ -312,6 +354,15 @@ object Bork {
         var borkDown = false
         var smorksDown = false
 
+        /** The tempo stage reached, 0 to [TEMPO_MAX]. */
+        var tempo = 0
+
+        /** Whether the Smorks are in their frenzy, Bork dead. */
+        var frenzy = false
+
+        /** With the Smorks dead, the phase tick of Bork's next stomp. */
+        var loneStomp = Long.MAX_VALUE
+
         /** His flat armour and magic resistance as last logged. */
         var armour = -1
         var magicArmour = -1
@@ -331,8 +382,8 @@ object Bork {
 
     private fun EncounterContext.text(line: Line, vararg values: Pair<String, Any>): String = world.dialogueText.get(line, *values)
 
-    /** The spacing of his gongs and their shots. 18c raises it with the tempo. */
-    private fun spacing(): Int = ATTACK_SPEED
+    /** The spacing of his gongs and their shots: [ATTACK_SPEED], a tick less for each tempo stage (tsps). */
+    private fun EncounterContext.spacing(): Int = ATTACK_SPEED - state.tempo
 
     /** One tick of the fight. */
     private fun EncounterContext.tick() {
@@ -343,12 +394,18 @@ object Bork {
         if (borkHeld != null && borkHeld.dead && !state.borkDown) {
             state.borkDown = true
             borkHeld.effects.spotanim(0, SPOT_BORK_DEATH, 0)
+            borkHeld.effects.say(text(BorkLines.AVENGE))
             log("Bork down")
+            if (!state.smorksDown) frenzyAhead()
         }
         if (smorksHeld != null && smorksHeld.dead && !state.smorksDown) {
             state.smorksDown = true
             smorksHeld.effects.spotanim(0, SPOT_SMORKS_DEATH, 0)
+            smorksHeld.effects.say(text(BorkLines.UH_OH))
             log("the Smorks down")
+            state.plan.clear()
+            state.smorksNext = Long.MAX_VALUE
+            if (!state.borkDown) state.loneStomp = phaseTick + LONE_STOMP_EVERY
         }
         // Done once both are gone, their death animations over: the anchor dies, which does the room.
         if ((borkHeld == null || !inWorld(borkHeld)) && (smorksHeld == null || !inWorld(smorksHeld))) {
@@ -360,9 +417,15 @@ object Bork {
         oil()
         val bork = alive(borkHeld)
         val smorks = alive(smorksHeld)
+        tempo(bork, smorks)
         if (bork != null) {
             armour(bork)
             val tank = tank(bork)
+            if (phaseTick >= state.loneStomp && phaseTick >= state.boundUntil) {
+                // The Smorks dead: his stomp over the whole room every [LONE_STOMP_EVERY] ticks, no tower to hide behind.
+                state.loneStomp = phaseTick + LONE_STOMP_EVERY
+                stomp(missed = false)
+            }
             if (phaseTick < state.boundUntil) {
                 hold(bork)
             } else if (tank != null) {
@@ -374,6 +437,36 @@ object Bork {
             }
         }
         if (smorks != null && phaseTick >= state.smorksNext) smorksMove(smorks, bork)
+    }
+
+    /** The tempo rising as the Smorks fall, each stage called out by both, and the spacing a tick shorter (tsps). */
+    private fun EncounterContext.tempo(bork: Npc?, smorks: Npc?) {
+        val held = state.smorks?.get() ?: return
+        val stage = if (held.dead) TEMPO_MAX else tempoFor(held.hitpoints, held.maxHitpoints)
+        if (stage <= state.tempo) return
+        state.tempo = stage
+        bork?.effects?.say(text(BorkLines.TEMPO_BORK[stage - 1]))
+        smorks?.effects?.say(text(BorkLines.TEMPO_SMORKS[stage - 1]))
+        log("tempo $stage, every ${spacing()} ticks")
+    }
+
+    /**
+     * Bork dead with the Smorks up: their cycle stops; as his body goes [BORK_GONE] ticks on they swear revenge, and
+     * [FRENZY_AFTER] after that their frenzy begins (tsps).
+     */
+    private fun EncounterContext.frenzyAhead() {
+        state.plan.clear()
+        state.smorksNext = Long.MAX_VALUE
+        after(BORK_GONE) { liveSmorks?.effects?.say(text(BorkLines.HUMAN_DIE)) }
+        after(BORK_GONE + FRENZY_AFTER) {
+            if (liveSmorks == null) return@after
+            state.frenzy = true
+            state.plan.clear()
+            state.plan.addAll(frenzyStart(roll(2, 3)))
+            log("the Smorks' frenzy")
+            // This runs after the tick's cycle step, so the first volley goes now rather than a tick late.
+            liveSmorks?.let { smorksMove(it, null) }
+        }
     }
 
     /**
@@ -547,12 +640,13 @@ object Bork {
 
     /** The Smorks' next move in their cycle, and when the one after it comes. */
     private fun EncounterContext.smorksMove(smorks: Npc, bork: Npc?) {
+        if (state.frenzy && state.plan.isEmpty()) state.plan.addAll(frenzyRound())
         val shot = state.plan.removeFirstOrNull()
         if (shot == null) {
             state.smorksNext = Long.MAX_VALUE
             return
         }
-        val spacing = spacing()
+        val spacing = if (state.frenzy) FRENZY_SPACING else spacing()
         when (shot) {
             Shot.VOLLEY -> {
                 volley(smorks, bork)
@@ -560,12 +654,13 @@ object Bork {
             }
             Shot.NAPALM -> {
                 napalm(smorks)
-                // Its cast a tick on, and the next volley 2 spacings less a tick after that (tsps).
-                state.smorksNext = phaseTick + 2 * spacing
+                // Its cast a tick on, and the next volley 2 spacings less a tick after that; in the frenzy, 3 ticks after
+                // the cast (tsps).
+                state.smorksNext = phaseTick + if (state.frenzy) NAPALM_CAST + FRENZY_AFTER_NAPALM else 2 * spacing
             }
             Shot.CANNONBALL -> if (bork == null) {
-                // No Bork to lure onto it: on with the next cycle. Guessed; 18c's frenzy takes this over.
-                nextCycle(spacing)
+                // No Bork to lure onto it: his death has stopped the cycle for the frenzy ([frenzyAhead]).
+                state.smorksNext = Long.MAX_VALUE
             } else {
                 cannonball(smorks)
                 state.smorksNext = Long.MAX_VALUE
@@ -573,8 +668,9 @@ object Bork {
         }
     }
 
-    /** The Smorks' next cycle, its first move [delay] ticks from now. */
+    /** The Smorks' next cycle, its first move [delay] ticks from now; none once either has died (the frenzy, or no Smorks). */
     private fun EncounterContext.nextCycle(delay: Int) {
+        if (state.borkDown || state.smorksDown) return
         state.plan.clear()
         state.plan.addAll(laterCycle(roll(2, 3)))
         state.smorksNext = phaseTick + delay
@@ -635,14 +731,15 @@ object Bork {
      * The tiles napalm aimed at ([x], [z]) splashes, for the tower [towerSize] by [towerSize] at ([towerX], [towerZ])
      * (tsps): the tile itself (its drip, guessed) and, two deep beyond it towards the tower, the 3 wide row when the
      * tower lies straight that way, or the 2 by 2 when it lies on a diagonal (more than twice as far along one way as
-     * the other counting as straight, guessed). Never the tower's own tiles.
+     * the other counting as straight, guessed). [away], in the frenzy next to the tower, it runs away from it instead
+     * (tsps). Never the tower's own tiles.
      */
-    fun splash(towerX: Int, towerZ: Int, towerSize: Int, x: Int, z: Int): Set<Tile> {
+    fun splash(towerX: Int, towerZ: Int, towerSize: Int, x: Int, z: Int, away: Boolean = false): Set<Tile> {
         val middle = towerSize / 2
         val ax = towerX + middle - x
         val az = towerZ + middle - z
-        val sx = ax.sign
-        val sz = az.sign
+        val sx = if (away) -ax.sign else ax.sign
+        val sz = if (away) -az.sign else az.sign
         val tiles = linkedSetOf(Tile(x, z))
         when {
             ax == 0 && az == 0 -> {}
@@ -655,7 +752,8 @@ object Bork {
 
     /** Napalm splashing down round [at]: Bork under it is hurt, and a tick on its tiles lie in oil. */
     private fun EncounterContext.splashDown(towerX: Int, towerZ: Int, towerSize: Int, at: Tile) {
-        val tiles = splash(towerX, towerZ, towerSize, at.x, at.z).filter { inArena(boss.x, boss.z, it.x, it.z) }
+        val away = state.frenzy && distance(towerX, towerZ, towerSize, at.x, at.z) == 1
+        val tiles = splash(towerX, towerZ, towerSize, at.x, at.z, away).filter { inArena(boss.x, boss.z, it.x, it.z) }
         world.zones.mapAnim(at.x, at.z, boss.level, SPOT_NAPALM_FIRE)
         for (tile in tiles) world.zones.mapAnim(tile.x, tile.z, boss.level, SPOT_NAPALM_SPLAT)
         val bork = liveBork
