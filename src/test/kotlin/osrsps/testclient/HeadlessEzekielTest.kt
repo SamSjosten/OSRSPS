@@ -44,8 +44,12 @@ class HeadlessEzekielTest {
         Ezekiel.BOSS, "Ezekiel", size = 3, ops = listOf(null, "Attack", null, null, null), internalName = "tfa_ezekiel",
         stats = NpcStats(attack = 250, defence = 200, strength = 150, hitpoints = 3000, ranged = 80, magic = 200),
     )
+    private val sword = NpcType(
+        Ezekiel.SWORD, "Animated sword", ops = listOf(null, "Attack", null, null, null), internalName = "tfa_ezekiel_sword",
+        stats = NpcStats(hitpoints = 100),
+    )
     private val grave = NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null))
-    private val types = NpcTypes.of(ezekiel, grave)
+    private val types = NpcTypes.of(ezekiel, sword, grave)
 
     private val locTypes = LocTypes(
         mapOf(ArchiveRaids.ARCHIVE_DOOR to LocType(ArchiveRaids.ARCHIVE_DOOR, "Archive Door", ops = listOf("Enter", null, null, null, null), collision = LocCollisionType(width = 9, length = 1))),
@@ -116,10 +120,13 @@ class HeadlessEzekielTest {
     private fun bossOf(run: ArchiveRun): Npc = assertNotNull(run.fights[ArchiveRoom.EZEKIEL]).boss
 
     @Test
-    fun `the cross is its middle and two tiles each way, and the safe spot is his side away from the tank`() {
-        assertEquals(9, Ezekiel.cross(10, 10).size)
-        assertTrue(Tile(12, 10) in Ezekiel.cross(10, 10) && Tile(10, 8) in Ezekiel.cross(10, 10))
-        assertFalse(Tile(11, 11) in Ezekiel.cross(10, 10), "a diagonal step is off it")
+    fun `the cross is two bands his width through him, the safe spot is his side away from the tank, and a sword's lane`() {
+        val cross = Ezekiel.cross(10, 10, 3)
+        assertEquals(2 * 2 * Ezekiel.CROSS_REACH * 3, cross.size)
+        assertTrue(Tile(13, 11) in cross && Tile(11, 9) in cross && Tile(10 - Ezekiel.CROSS_REACH, 12) in cross)
+        assertFalse(Tile(13 + Ezekiel.CROSS_REACH, 11) in cross, "past its reach")
+        assertFalse(Tile(11, 11) in cross, "his own tiles")
+        assertFalse(Tile(13, 13) in cross, "off his corner: a diagonal step from the end of a side is off it")
         // Him on 10..12; his tank east of him: the west side is safe, the north and south sides aren't.
         val east = Tile(13, 11)
         assertTrue((9..13).all { z -> z !in 9..13 || Ezekiel.behind(10, 10, 3, east, 9, z) })
@@ -130,6 +137,18 @@ class HeadlessEzekielTest {
         assertTrue(Ezekiel.behind(10, 10, 3, corner, 9, 9))
         assertFalse(Ezekiel.behind(10, 10, 3, corner, 9, 11))
         assertFalse(Ezekiel.behind(10, 10, 3, corner, 11, 9))
+        // A lane across x at z 5 to 7: him at z 5 is lined up with it, a tile off isn't.
+        val lane = Ezekiel.lane(true, 5, 3, 0, 20)
+        assertEquals(63, lane.size)
+        assertTrue(Tile(0, 5) in lane && Tile(20, 7) in lane && Tile(3, 8) !in lane)
+        assertTrue(Ezekiel.linedUp(true, 5, 9, 5))
+        assertFalse(Ezekiel.linedUp(true, 5, 9, 6))
+        assertTrue(Ezekiel.linedUp(false, 4, 4, 30))
+        // Its hits: 20 to 80 on him with its charge, and up to twice on a player.
+        assertEquals(Ezekiel.SWORD_HIT, Ezekiel.swordDamage(0.0))
+        assertEquals(50, Ezekiel.swordDamage(0.5))
+        assertEquals(Ezekiel.SWORD_HIT_FULL, Ezekiel.swordDamage(1.0))
+        assertEquals(Ezekiel.LANE_MIN * 2..Ezekiel.LANE_MAX * 2, Ezekiel.laneDamage(1.0))
     }
 
     @Test
@@ -212,7 +231,7 @@ class HeadlessEzekielTest {
                         val lines = alice.awaitLog("a swing cleaving bob") { it.endsWith("fight: cleaves bob") }
                         assertTrue(lines.none { it.endsWith("fight: cleaves carol") }, lines.joinToString("\n"))
                         // His second swing, and with it a cross on each of them.
-                        val crossed = alice.awaitLog("the cross") { it.contains("fight: hazard on") }
+                        val crossed = alice.awaitLog("the cross") { it.contains("fight: cross on him") }
                         assertTrue(crossed.count { it.endsWith("fight: swings at alice") } >= 2, crossed.joinToString("\n"))
                     }
                 }
@@ -246,29 +265,139 @@ class HeadlessEzekielTest {
                 alice.commandReply("raid tp ezekiel") { it.startsWith("To ") }
                 alice.awaitLog("his first swing") { it.endsWith("fight: swings at alice") }
                 val player = server.world.playerNamed("alice")!!
+                val boss = bossOf(run)
+                // To the end of the side she's beside, where a diagonal step out takes her off his corner, off the cross.
+                val (end, off) = when {
+                    player.x == boss.x - 1 || player.x == boss.x + 3 -> {
+                        val sx = if (player.x < boss.x) -1 else 1
+                        Tile(player.x, boss.z + 2) to Tile(player.x + sx, boss.z + 3)
+                    }
+                    else -> {
+                        val sz = if (player.z < boss.z) -1 else 1
+                        Tile(boss.x + 2, player.z) to Tile(boss.x + 3, player.z + sz)
+                    }
+                }
+                alice.walkTo(end)
                 server.world.specialAttacks.setEnergy(player, 500)
                 // Paused, tick by tick to the cross, then on it till its last tick and a diagonal step off as it lands.
                 alice.commandReply("pause") { it.contains("aused after tick") }
+                val crossesBefore = alice.fightLog().count { it.contains("fight: cross on him") }
                 var ticks = 0
-                while (alice.fightLog().none { it.contains("fight: hazard on") }) {
+                while (alice.fightLog().count { it.contains("fight: cross on him") } == crossesBefore) {
                     check(++ticks <= 20) { "no cross within 20 ticks" }
                     alice.stepTicks(1)
                 }
-                val boss = bossOf(run)
+                assertTrue(Tile(player.x, player.z) in Ezekiel.cross(boss.x, boss.z, 3), "she's on it, beside him")
                 alice.stepTicks(Ezekiel.CROSS_DELAY - 2)
-                // A diagonal step away from him, clicked now: she's on the cross as the tick before its landing looks, and
-                // steps off in that tick's movement, so it lands on nobody.
-                val sx = if (player.x < boss.x) -1 else 1
-                val sz = if (player.z < boss.z) -1 else 1
-                val from = Tile(player.x, player.z)
-                alice.walk(player.x + sx, player.z + sz)
+                // Clicked now: she's on the cross as the tick before its landing looks, and steps off in that tick's
+                // movement, so it lands on nobody.
+                alice.walk(off.x, off.z)
                 alice.awaitCycles(2)
                 alice.stepTicks(1)
-                assertEquals(Tile(from.x + sx, from.z + sz), Tile(player.x, player.z))
+                assertEquals(off, Tile(player.x, player.z))
+                assertFalse(off in Ezekiel.cross(boss.x, boss.z, 3))
                 alice.stepTicks(1)
                 alice.commandReply("resume") { it.startsWith("Resumed") }
                 alice.awaitLog("the dodge") { it.endsWith("fight: alice dodged the cross") }
                 assertEquals(500 + Ezekiel.DODGE_ENERGY, server.world.specialAttacks.energy(player))
+            }
+        }
+    }
+
+    /** The swords of the volley out, from the fight's log: where each stands, across x or not, and its lane's offset. */
+    private data class LoggedSword(val at: Tile, val alongX: Boolean, val offset: Int)
+
+    private fun swordsIn(lines: List<String>): List<LoggedSword> {
+        val pattern = Regex("""fight: sword at (\d+),(\d+) across ([xz]) at (\d+)$""")
+        return lines.mapNotNull { pattern.find(it) }.map { m ->
+            val (x, z, axis, offset) = m.destructured
+            LoggedSword(Tile(x.toInt(), z.toInt()), axis == "x", offset.toInt())
+        }
+    }
+
+    /** Paused, tick by tick to his first volley of swords; its swords. */
+    private fun HeadlessClient.toVolley(): List<LoggedSword> {
+        commandReply("pause") { it.contains("aused after tick") }
+        var ticks = 0
+        while (true) {
+            val swords = swordsIn(fightLog())
+            if (swords.isNotEmpty()) return swords
+            check(++ticks <= 40) { "no swords within 40 ticks" }
+            stepTicks(1)
+        }
+    }
+
+    @Test
+    fun `a charged sword lined up with him hits him harder and stuns him`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.commandReply("raid tp guardian") { it.startsWith("To ") }
+                alice.await("the Guardian's room done") { ArchiveRoom.GUARDIAN.takeIf { it in run.cleared } }
+                alice.commandReply("raid tp ezekiel") { it.startsWith("To ") }
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ezekiel #") } }
+                val swords = alice.toVolley()
+                assertTrue(swords.size in Ezekiel.SWORDS_MIN..Ezekiel.SWORDS_MAX, swords.toString())
+                val boss = bossOf(run)
+                val first = swords.first()
+                val npc = server.world.npcs.all.first { it.type.id == Ezekiel.SWORD && it.x == first.at.x && it.z == first.at.z }
+                // Half charged: 50 of its 100.
+                alice.commandReply("hit 50 ${npc.index}") { it.startsWith("Hit ") }
+                alice.stepTicks(Ezekiel.SWORD_LAUNCH - 1)
+                // Lined up with its lane as it flies, and with none of the others.
+                val others = swords.drop(1)
+                val (x, z) = if (first.alongX) {
+                    val x = (boss.spawn.x - 6..boss.spawn.x + 6).first { x -> others.none { !it.alongX && Ezekiel.linedUp(false, it.offset, x, first.offset) } }
+                    x to first.offset
+                } else {
+                    val z = (boss.spawn.z - 6..boss.spawn.z + 6).first { z -> others.none { it.alongX && Ezekiel.linedUp(true, it.offset, first.offset, z) } }
+                    first.offset to z
+                }
+                server.world.npcs.teleport(boss, x, z)
+                val before = boss.hitpoints
+                alice.stepTicks(1)
+                val lines = alice.fightLog()
+                assertTrue(lines.any { it.endsWith("fight: sword hits him for 50") }, lines.joinToString("\n"))
+                assertTrue(lines.any { it.endsWith("fight: stunned for ${Ezekiel.STUN_TICKS} ticks") })
+                assertTrue(lines.none { it.contains("heals") })
+                assertEquals(before - 50, boss.hitpoints)
+                assertTrue(server.world.npcs.all.none { it.type.id == Ezekiel.SWORD }, "the swords are gone once flown")
+                // Stunned, he neither walks nor swings.
+                val swingsBefore = lines.count { it.endsWith("fight: swings at alice") || it.contains("lightning on") }
+                val at = Tile(boss.x, boss.z)
+                alice.stepTicks(Ezekiel.STUN_TICKS - 1)
+                assertEquals(at, Tile(boss.x, boss.z))
+                assertEquals(swingsBefore, alice.fightLog().count { it.endsWith("fight: swings at alice") || it.contains("lightning on") })
+                alice.commandReply("resume") { it.startsWith("Resumed") }
+            }
+        }
+    }
+
+    @Test
+    fun `with no sword lined up with him he heals`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.commandReply("raid tp guardian") { it.startsWith("To ") }
+                alice.await("the Guardian's room done") { ArchiveRoom.GUARDIAN.takeIf { it in run.cleared } }
+                alice.commandReply("raid tp ezekiel") { it.startsWith("To ") }
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ezekiel #") } }
+                val boss = bossOf(run)
+                val swords = alice.toVolley()
+                alice.commandReply("hit 1000 ${boss.index}") { it.startsWith("Hit ") }
+                alice.stepTicks(Ezekiel.SWORD_LAUNCH - 1)
+                // Somewhere lined up with no lane.
+                val spot = (boss.spawn.x - 8..boss.spawn.x + 8).flatMap { x -> (boss.spawn.z - 8..boss.spawn.z + 8).map { z -> x to z } }
+                    .first { (x, z) -> swords.none { Ezekiel.linedUp(it.alongX, it.offset, x, z) } }
+                server.world.npcs.teleport(boss, spot.first, spot.second)
+                val before = boss.hitpoints
+                alice.stepTicks(1)
+                val lines = alice.fightLog()
+                val heal = boss.maxHitpoints * Ezekiel.HEAL_PERCENT / 100
+                assertTrue(lines.any { it.endsWith("fight: no sword hit him: heals $heal") }, lines.joinToString("\n"))
+                assertTrue(lines.none { it.contains("sword hits him") })
+                assertEquals(before + heal, boss.hitpoints)
+                alice.commandReply("resume") { it.startsWith("Resumed") }
             }
         }
     }

@@ -678,6 +678,15 @@
       "source": "OSRS Wiki, Ezekiel (id 16652), read 2026-11-09: speed 5, max hit 77, the defence bonuses, the 25% earth weakness, immune to poison and venom, Defence drained to 120 at most (60% of his 200, so a drain cap of 40%). The infobox's +250 read as his attack bonus. His swing is npc_ezekiel_melee01. Guessed: slash for his melee (the infobox says only Melee), the max hit being the melee's, the strength bonus 245 (what the formula needs for 77 from his Strength of 150), no block animation, the respawn, which never comes"
     },
     {
+      "npcs": ["tfa_ezekiel_sword"],
+      "attackSpeed": 4, "maxHit": 0, "attackType": "slash", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 300, "standard": 300, "heavy": 300 },
+      "anims": { "attack": null, "defend": null, "death": null },
+      "respawnTicks": 50,
+      "weakness": { "element": "air", "percent": 50 },
+      "source": "Guides (runescapeguides, bald.gg; read 2026-11-09): Ezekiel's flying swords resist ranged and are very weak to air magic, and The Fractured Archive/Strategies' inventory table has wind spells empower them. Its fight (Ezekiel) charges it with the damage it takes, holding it at 0, and it never fights back. Guessed: every figure here (the cache's stats weren't to hand), the ranged defences of 300, the 50% air weakness, no animations, the respawn, which never comes"
+    },
+    {
       "npcs": ["tfa_guardian_battery_active", "tfa_guardian_battery_inactive", "tfa_guardian_battery_destroyed"],
       "attackSpeed": 4, "maxHit": 0, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
       "defence": { "stab": 0, "slash": 20, "crush": -20, "magic": -20, "light": 0, "standard": 0, "heavy": 0 },
