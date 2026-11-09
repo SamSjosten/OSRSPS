@@ -517,6 +517,50 @@ class HeadlessArchiveRaidTest {
     }
 
     @Test
+    fun `a member down whose Home Teleport has landed outside still drops only to themselves before the escape is settled`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { dave ->
+                server.login("carol").use { carol ->
+                    for (client in listOf(carol, dave)) client.await("the login rebuild") { client.position }
+                    carol.commandReply("raidparty invite dave") { it.startsWith("Invited") }
+                    dave.commandReply("raidparty accept carol") { it.startsWith("You joined") }
+                    val run = carol.enter(server, "carol")
+                    assertEquals(run, dave.enter(server, "dave"))
+                    val carolPlayer = server.world.playerNamed("carol")!!
+                    carol.commandReply("item bronze pickaxe") { it.contains("Bronze pickaxe") }
+                    val slot = carol.await("the pickaxe") { carol.inventory(INVENTORY).indexOfFirst { it?.id == pickaxe.id }.takeIf { it >= 0 } }
+                    carol.command("hit 99 me")
+                    carol.await("Carol down") { if (carolPlayer.saveKey in run.downed && !carolPlayer.dead) Unit else null }
+                    carol.awaitTicks(World.LOGOUT_COMBAT_TICKS.toInt() + 1)
+                    dave.commandReply("pause") { it.contains("aused after tick") }
+                    carol.homeTeleportPicked(dave)
+                    var ticks = 0
+                    while (run.instance.contains(carolPlayer.x, carolPlayer.z)) {
+                        check(++ticks <= 60) { "no landing within 60 ticks of the pick" }
+                        dave.stepTicks(1)
+                    }
+                    // Landed outside, the escape not yet settled: the next tick's input, her drop, comes before it is, and
+                    // she dies of it that tick, the pickaxe left where she landed.
+                    assertTrue(carolPlayer.saveKey in run.downed, "still down on landing")
+                    assertTrue(server.world.archiveRaids.isDown(carolPlayer), "down, outside the instance")
+                    carol.ifButton(INVENTORY_IF, INVENTORY_ITEMS, DROP, slot, pickaxe.id)
+                    carol.awaitCycles(2)
+                    val landed = Tile(carolPlayer.x, carolPlayer.z)
+                    dave.stepTicks(1)
+                    val dropped = assertNotNull(
+                        server.world.groundObjs.visibleAt(carolPlayer, landed.x, landed.z, 0).firstOrNull { it.id == pickaxe.id },
+                        "the pickaxe dropped where she landed",
+                    )
+                    assertTrue(dropped.neverPublic, "the drop of a member down stays private outside too")
+                    dave.commandReply("resume") { it.startsWith("Resumed") }
+                    carol.awaitAt(Tile(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z), "Carol dead of it, in the lobby")
+                    assertTrue(!server.world.archiveRaids.isDown(carolPlayer), "no longer down once dead of it")
+                }
+            }
+        }
+    }
+
+    @Test
     fun `a member down who leaves the party just before the room is done still dies of it`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { carol ->

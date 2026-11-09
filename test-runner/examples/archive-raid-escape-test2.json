@@ -1,5 +1,5 @@
 {
- "name": "RAID-2, two players (run with archive-raid-escape-test.json on the other VM at the same time): test2 joins test's party, goes down in the nexus's entrance with test standing, keeping its five axes, then teleports out: that counts as its death, back in the lobby with three axes and a grave of two there to loot",
+ "name": "RAID-2, two players (run with archive-raid-escape-test.json on the other VM at the same time): test2 joins test's party, gets test's trade request, goes down in the nexus's entrance with test standing, keeping its five axes, can't answer the request (no trade opens), then teleports out: that counts as its death, back in the lobby with three axes and a grave of two there to loot",
  "account": "test2",
  "steps": [
   {"step": "waitForLogin"},
@@ -15,10 +15,14 @@
   {"step": "waitTicks", "ticks": 6},
   {"step": "command", "text": "::raid run", "expectMessage": "You're in the nexus's entrance"},
   {"step": "playerOption", "player": "test", "option": "Follow", "timeoutMs": 120000, "comment": "once test is in view here in the entrance, so our death leaves it standing; the follow goes nowhere, test standing on our tile"},
+  {"step": "assertMessage", "contains": "[trade.request name=test]", "timeoutMs": 120000, "comment": "test's request, before we fall"},
   {"step": "command", "text": "::hit 99 me", "expectMessage": ", dead", "comment": "with test standing: down, everything kept"},
   {"step": "waitTicks", "ticks": 10, "comment": "the death ticks, back up in the entrance"},
   {"step": "command", "text": "::raid run", "expectMessage": "down: test2"},
   {"step": "assertInventory", "item": "Bronze axe", "count": 5, "comment": "down keeps everything"},
+  {"step": "playerOption", "player": "test", "option": "Trade with", "comment": "answering test's request, which standing would open the trade"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "assertInterface", "interfaceId": 335, "absent": true, "comment": "no trade: a member down can't trade, or the axes could go to test before the escape (exploit review R18A-1)"},
   {"step": "command", "text": "::tele 3222 3218 0", "expectMessage": "Teleported to 3222, 3218, 0", "comment": "out of the run as Home Teleport or a lodestone would take us"},
   {"step": "assertMessage", "contains": "[combat.dead]", "timeoutMs": 10000, "comment": "getting out while down is a death (RAID-2)"},
   {"step": "assertLocation", "x": 4127, "y": 5560, "plane": 0, "timeoutMs": 15000, "comment": "back in the lobby, in front of the Archive Door, as if we had been the last standing"},
