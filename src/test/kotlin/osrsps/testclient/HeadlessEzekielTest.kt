@@ -20,6 +20,7 @@ import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
 import osrsps.game.npc.Npc
+import osrsps.game.npc.NpcSpawn
 import osrsps.game.npc.Npcs
 import osrsps.game.raid.ArchiveRaids
 import osrsps.game.raid.ArchiveRoom
@@ -178,6 +179,31 @@ class HeadlessEzekielTest {
                 alice.commandReply("hit 3000 ${boss.index}") { it.startsWith("Hit ") }
                 alice.await("his room done") { alice.commandReply("raid run") { it.startsWith("Archive run") }.takeIf { it.contains("Ezekiel") && ArchiveRoom.EZEKIEL in run.cleared } }
                 assertNull(run.fights[ArchiveRoom.EZEKIEL])
+            }
+        }
+    }
+
+    @Test
+    fun `with no NPC slot free his room isn't started, and his fight begins once one is`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.commandReply("raid tp guardian") { it.startsWith("To ") }
+                alice.await("the Guardian's room done") { ArchiveRoom.GUARDIAN.takeIf { it in run.cleared } }
+                // Every free slot taken, by NPCs standing still on one tile far off.
+                val npcs = server.world.npcs
+                val filler = NpcType(1, "Filler")
+                val fillers = generateSequence { npcs.add(NpcSpawn(filler, 1000, 1000, source = "test")) }.toList()
+                assertTrue(fillers.size > 1000, "${fillers.size} fillers")
+                alice.commandReply("raid tp ezekiel") { it.startsWith("To ") }
+                alice.awaitTicks(5)
+                assertFalse(ArchiveRoom.EZEKIEL in run.started, "his room started without him")
+                assertNull(run.fights[ArchiveRoom.EZEKIEL])
+                // A slot frees: with her still in his room, his fight begins.
+                for (npc in fillers) npcs.remove(npc)
+                val begun = alice.await("his fight") { alice.fight().takeIf { it.startsWith("ezekiel #") } }
+                assertTrue(begun.contains("Ezekiel 3000/3000 hp; 1 players"), begun)
+                assertTrue(ArchiveRoom.EZEKIEL in run.started && ArchiveRoom.EZEKIEL !in run.cleared)
             }
         }
     }
