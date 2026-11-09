@@ -144,6 +144,9 @@ class HeadlessEzekielTest {
         assertTrue(Ezekiel.linedUp(true, 5, 9, 5))
         assertFalse(Ezekiel.linedUp(true, 5, 9, 6))
         assertTrue(Ezekiel.linedUp(false, 4, 4, 30))
+        assertTrue(Ezekiel.inLane(lane, 18, 5, 3))
+        assertFalse(Ezekiel.inLane(lane, 19, 5, 3), "lined up, but one tile of him past the lane's end")
+        assertFalse(Ezekiel.inLane(lane, 9, 6, 3))
         // Its hits: 20 to 80 on him with its charge, and up to twice on a player.
         assertEquals(Ezekiel.SWORD_HIT, Ezekiel.swordDamage(0.0))
         assertEquals(50, Ezekiel.swordDamage(0.5))
@@ -361,12 +364,12 @@ class HeadlessEzekielTest {
                 assertTrue(lines.any { it.endsWith("fight: stunned for ${Ezekiel.STUN_TICKS} ticks") })
                 assertTrue(lines.none { it.contains("heals") })
                 assertEquals(before - 50, boss.hitpoints)
-                assertTrue(server.world.npcs.all.none { it.type.id == Ezekiel.SWORD }, "the swords are gone once flown")
                 // Stunned, he neither walks nor swings.
                 val swingsBefore = lines.count { it.endsWith("fight: swings at alice") || it.contains("lightning on") }
                 val at = Tile(boss.x, boss.z)
                 alice.stepTicks(Ezekiel.STUN_TICKS - 1)
                 assertEquals(at, Tile(boss.x, boss.z))
+                assertTrue(server.world.npcs.all.none { it.type.id == Ezekiel.SWORD }, "the swords are gone once flown")
                 assertEquals(swingsBefore, alice.fightLog().count { it.endsWith("fight: swings at alice") || it.contains("lightning on") })
                 alice.commandReply("resume") { it.startsWith("Resumed") }
             }

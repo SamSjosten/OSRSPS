@@ -6,6 +6,7 @@ import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.Player
 import osrsps.game.combat.AttackType
+import osrsps.game.combat.MeleeCombat
 import osrsps.game.combat.SpecialAttacks
 import osrsps.game.encounter.CycleStep
 import osrsps.game.encounter.EncounterContext
@@ -343,8 +344,15 @@ object Ezekiel {
         return tiles
     }
 
-    /** Whether a [size] by [size] boss at ([x], [z]) is wholly in the lane [alongX] at [offset], lined up with it. */
+    /** Whether a boss at ([x], [z]) is lined up with the lane [alongX] at [offset], however far along it. */
     fun linedUp(alongX: Boolean, offset: Int, x: Int, z: Int): Boolean = if (alongX) z == offset else x == offset
+
+    /**
+     * Whether a [size] by [size] boss at ([x], [z]) is wholly in [lane]: lined up with it and between its ends, where its
+     * sword hits him. Past an end of the lane, where it can't hit a player either, it misses him.
+     */
+    fun inLane(lane: Set<Tile>, x: Int, z: Int, size: Int): Boolean =
+        (0 until size).all { dx -> (0 until size).all { dz -> Tile(x + dx, z + dz) in lane } }
 
     /** How much of its [CHARGE_HITPOINTS] [sword] has taken, from 0 to 1. */
     private fun charge(sword: Npc): Double = (CHARGE_HITPOINTS - sword.hitpoints.coerceIn(0, CHARGE_HITPOINTS)).toDouble() / CHARGE_HITPOINTS
@@ -400,14 +408,15 @@ object Ezekiel {
             val damage = laneDamage(charge)
             // Lands this tick, after this, on whoever is in the lane.
             hazard(sword.lane, warning = -1, warnTicks = 0, ticks = 1, minDamage = damage.first, maxDamage = damage.last)
-            if (linedUp(sword.alongX, sword.offset, boss.x, boss.z)) {
+            if (inLane(sword.lane, boss.x, boss.z, boss.type.size)) {
                 struck = true
                 val dealt = world.meleeCombat.hit(boss, null, swordDamage(charge), world.tick)
                 log("sword hits him for $dealt")
                 if (gone()) return
                 stun()
             }
-            world.removeNpc(npc)
+            // Gone the tick after, so its spin is sent first: NPC effects go out at the end of the tick, to those in the world.
+            after(1) { if (world.npcs[npc.index] === npc) world.removeNpc(npc) }
         }
         if (!struck) heal()
     }
@@ -430,6 +439,8 @@ object Ezekiel {
     private fun EncounterContext.heal() {
         val before = boss.hitpoints
         boss.hitpoints = minOf(boss.maxHitpoints, before + boss.maxHitpoints * HEAL_PERCENT / 100)
+        // His health bar shows it: bars go out only as they are queued, as a hit queues one.
+        boss.effects.headBar(-1, MeleeCombat.HEALTH_BAR, MeleeCombat.healthBarFill(boss.hitpoints, boss.maxHitpoints))
         boss.effects.anim(ANIM_HEAL)
         boss.effects.spotanim(0, SPOT_HEAL, 0)
         log("no sword hit him: heals ${boss.hitpoints - before}")
