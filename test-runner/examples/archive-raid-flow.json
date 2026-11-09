@@ -413,10 +413,22 @@
    "comment": "five rooms' 1,000"
   },
   {
+   "step": "locOption",
+   "locId": 62765,
+   "option": "Exit",
+   "timeoutMs": 20000,
+   "comment": "STAND-IN until the reward room (step 28): the Passageway put at the south edge of Ocellus's room once the run is done, out to the lobby"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 15,
+   "comment": "the walk to the Passageway, a few tiles south, and its teleport"
+  },
+  {
    "step": "command",
-   "text": "::tele 4127 5560 0",
-   "expectMessage": "Teleported to 4127, 5560, 0",
-   "comment": "out of the instance, which ends behind us"
+   "text": "::pos",
+   "expectMessage": "4127, 5560, 0",
+   "comment": "in the lobby, in front of the Archive Door; the instance ends behind us"
   },
   {
    "step": "command",
