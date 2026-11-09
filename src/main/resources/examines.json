@@ -46,7 +46,7 @@
     {"npc": 276, "name": "Town Crier"},
     {"npc": 299, "name": "Gunthor the brave"},
     {"npc": 306, "name": "Lumbridge Guide"},
-    {"npc": 311, "name": "Ironman tutor"},
+    {"npc": 311, "name": "Ironman tutor", "also": [16814], "wiki": "Ironman tutor page, infobox (16814 is the type the 242 multi-NPC shows Ironmen)"},
     {"npc": 403, "name": "Vannaka"},
     {"npc": 473, "name": "Ghost"},
     {"npc": 474, "name": "Ghost"},
