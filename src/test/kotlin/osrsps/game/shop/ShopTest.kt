@@ -14,6 +14,7 @@ class ShopTest {
     /** The items of the shop file with their values in the 241 cache (the Wiki's item pages agree). */
     private val values = mapOf(
         1931 to 1, 1935 to 1, 20742 to 140, 1735 to 1, 946 to 6, 1925 to 2, 22660 to 500, 1923 to 4, 1887 to 10, 590 to 1,
+        1173 to 48, 1175 to 168,
         1755 to 1, 952 to 3, 2347 to 1, 550 to 1, 9003 to 2,
         1265 to 1, 1351 to 16, 1349 to 56, 1353 to 200, 1363 to 182, 1365 to 650, 1369 to 1690,
         // Draynor's market.
@@ -85,6 +86,7 @@ class ShopTest {
             NpcType(2813, "Shop keeper", internalName = "generalshopkeeper1"),
             NpcType(2814, "Shop assistant", internalName = "generalassistant1"),
             NpcType(10619, "Bob", internalName = "bob"),
+            NpcType(16806, "Feoras", internalName = "lumbridge_blacksmith"),
             NpcType(1260, "Fortunato", internalName = "rag_wine_merchant"),
             NpcType(500, "Olivia", internalName = "seed_merchant"),
             NpcType(8693, "Diango", internalName = "aprilfoolshorsesalesman"),
@@ -131,6 +133,10 @@ class ShopTest {
             1 to 0, 1 to 0, 182 to 56, 1 to 0, 7 to 2, 2 to 0, 650 to 200, 5 to 1, 13 to 4, 1 to 0, 1 to 0, 3 to 1, 1 to 0, 1 to 0, 2 to 0,
         ),
         "bobs_brilliant_axes" to listOf(1 to 0, 16 to 9, 56 to 33, 200 to 120, 182 to 109, 650 to 390, 1690 to 1014),
+        // Feoras's Lumbridge Blacksmith (new in 242.1), read 2026-11-08.
+        "lumbridge_blacksmith" to listOf(
+            1 to 0, 10 to 6, 26 to 15, 40 to 24, 48 to 28, 60 to 36, 35 to 21, 91 to 54, 140 to 84, 168 to 100, 210 to 126,
+        ),
         // Read 2026-10-30.
         "draynor_wine_shop" to listOf(1 to 0, 1 to 0, 140 to 84, 500 to 300),
         "draynor_seed_market" to listOf(
@@ -189,7 +195,7 @@ class ShopTest {
         val shops = realShops()
         assertEquals(emptyList(), shops.warnings)
         assertEquals(
-            listOf("lumbridge_general_store", "bobs_brilliant_axes", "draynor_wine_shop", "draynor_seed_market", "diangos_toy_store", "neds_rope_shop", "avas_odds_and_ends") +
+            listOf("lumbridge_general_store", "bobs_brilliant_axes", "lumbridge_blacksmith", "draynor_wine_shop", "draynor_seed_market", "diangos_toy_store", "neds_rope_shop", "avas_odds_and_ends") +
                 wikiSoldAt.keys,
             shops.all.map { it.key },
         )
@@ -213,6 +219,7 @@ class ShopTest {
         assertEquals(mapOf("al_kharid_general_store" to setOf(950)), shops.all.filter { it.refuses.isNotEmpty() }.associate { it.key to it.refuses })
         assertEquals(shops["lumbridge_general_store"], shops.ofNpc(2814))
         assertEquals(shops["bobs_brilliant_axes"], shops.ofNpc(10619))
+        assertEquals(shops["lumbridge_blacksmith"], shops.ofNpc(16806))
         assertEquals(shops["neds_rope_shop"], shops.ofNpc(4280))
         assertEquals(shops["avas_odds_and_ends"], shops.ofNpc(4407))
         for (type in shops.all) {

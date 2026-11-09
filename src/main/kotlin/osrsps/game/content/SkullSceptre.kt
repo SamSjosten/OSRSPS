@@ -293,7 +293,7 @@ private suspend fun ScriptContext.invoke(world: World, used: Int, worn: Boolean)
     // The worn Invoke comes without the inventory's closing of modals: close them, or a bank open here would stay
     // usable at the Stronghold (Codex on #476).
     world.interfaces.closeModals(player)
-    player.scripts.weakQueue.clear()
+    player.scripts.dropWeak()
     player.waypoints.clear()
     player.anim(SkullSceptre.TELEPORT_ANIM)
     player.spotanim(SkullSceptre.TELEPORT_SPOTANIM, SkullSceptre.TELEPORT_SPOTANIM_HEIGHT)

@@ -3,12 +3,15 @@ package osrsps.game.raid
 import io.github.oshai.kotlinlogging.KotlinLogging
 import osrsps.game.Player
 import osrsps.game.World
+import osrsps.game.combat.CombatLines
 import osrsps.game.combat.DeathPlace
 import osrsps.game.encounter.Encounter
 import osrsps.game.instance.Instance
 import osrsps.game.instance.InstancePart
 import osrsps.game.npc.Npc
 import osrsps.game.npc.NpcSpawn
+import osrsps.game.zone.ZoneLoc
+import osrsps.map.LocShape
 import osrsps.map.Tile
 
 private val logger = KotlinLogging.logger {}
@@ -158,7 +161,10 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
  *   once the room before is done. Enter and Quick-enter both go straight in, as do the transporter's Use and
  *   Quick-use: their difference, likely a warning first, isn't known.
  * - The Passageway goes back to the nexus at any time, in front of the room's door; the transporter, once the room is
- *   done. Ocellus's room is past the nexus's own Passageway (`tfa_exit_large`), open once the fourth room is done.
+ *   done. Before then Bork's room's transporter puts the player on the arena's floor (tsps capture notes: 4184,5599),
+ *   past a gap in its west wall too narrow for him. Ocellus's room is past the nexus's own Passageway (`tfa_exit_large`), open once the fourth room is done.
+ * - STAND-IN until the reward room (step 28): once Ocellus's room is done, a Passageway at its south edge leaves to the
+ *   lobby; the cache has no way out of that room.
  * - The nexus is the cache's map square 64,87 on one of its four levels: 0 at the start, 2 (the Guardian's corpse and a
  *   camp of crates and barricades) once the Guardian is done, 3 (the same and the Passageway north) once the fourth
  *   room is done. The Guardian is fought in the nexus's hall, from its first row of doors north; the Archive Door lands
@@ -176,12 +182,21 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
  * - The wipe: once nobody in the raid is left standing, each member goes to the lobby, in front of the Archive Door,
  *   and what they lose goes in a grave there.
  * - A member who leaves the party is sent to the lobby. Logging out saves them there, as any instance does at its exit.
+ * - A member down who gets out (a teleport, leaving the party, logging out) dies of it, with a grave in the lobby, as
+ *   if they had been the last standing (Sam's decision of 8 November 2026 on exploit review RAID-2). A reconnect within
+ *   the linger is no escape.
  */
 class ArchiveRaids(private val world: World) {
     private val runs = LinkedHashMap<Party, ArchiveRun>()
     private var nextId = 1
 
     fun of(party: Party): ArchiveRun? = runs[party]
+
+    /**
+     * Whether [player] is down in a run: out of the fight till its room is done, their items at stake. Wherever they
+     * stand, as [leaving] looks: a Home Teleport lands them outside a tick before the escape is settled.
+     */
+    fun isDown(player: Player): Boolean = runs.values.any { !it.wiped && player.saveKey in it.downed }
 
     /** The run whose instance holds tile [x], [z]. */
     fun at(x: Int, z: Int): ArchiveRun? {
@@ -269,6 +284,8 @@ class ArchiveRaids(private val world: World) {
      */
     fun built(room: ArchiveRoom): Boolean = when (room) {
         ArchiveRoom.GUARDIAN -> world.encounters.defs[ArchiveGuardian.NAME] != null && world.npcTypes[ArchiveGuardian.DORMANT] != null
+        ArchiveRoom.EZEKIEL -> world.encounters.defs[Ezekiel.NAME] != null
+        ArchiveRoom.BORK -> world.encounters.defs[Bork.NAME] != null
         else -> false
     }
 
@@ -298,6 +315,62 @@ class ArchiveRaids(private val world: World) {
         logger.info { "$run began the Guardian's fight with ${standing.size} standing, woken by ${player.username}" }
     }
 
+    /**
+     * The first of the party into Ezekiel's room: his fight begins, him where he waits ([EZEKIEL_X], guessed: the middle
+     * of the room's ring of flames), scaled to everyone standing in the run, [first] his tank.
+     */
+    private fun beginEzekiel(run: ArchiveRun, first: Player) {
+        val room = ArchiveRoom.EZEKIEL
+        val def = world.encounters.defs[Ezekiel.NAME] ?: return
+        val at = tile(run, EZEKIEL_X, EZEKIEL_Z)
+        val boss = world.spawnNpc(NpcSpawn(def.boss, at.x, at.z, 0, source = "$run", respawns = false))
+        // With no NPC slot free, the room isn't started (exploit review round 18, R18A-3): it would then never begin,
+        // nor open the next row. The next tick with one of the party in it tries again.
+        if (boss == null) {
+            logger.warn { "$run: no room for Ezekiel" }
+            return
+        }
+        run.started += room
+        val standing = standing(run)
+        run.presentAtStart[room] = standing.filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
+        world.partyScaling.scale(boss, standing.size.coerceIn(1, PartyScaling.MAX_PARTY))
+        world.meleeCombat.aggress(boss, first, world.tick)
+        run.fights[room] = world.encounters.start(def, boss, { x, z -> inRoom(run, room, x, z) })
+        logger.info { "$run began Ezekiel's fight with ${standing.size} standing, ${first.username} first in" }
+    }
+
+    /**
+     * The first of the party into Bork's room: his and the Smorks' fight begins, its anchor ([Bork.ANCHOR]) where their
+     * cart stands ([BORK_CART_X], guessed: the middle of the room), scaled to everyone standing in the run, [first]
+     * Bork's tank.
+     */
+    private fun beginBork(run: ArchiveRun, first: Player) {
+        val room = ArchiveRoom.BORK
+        val def = world.encounters.defs[Bork.NAME] ?: return
+        val at = tile(run, BORK_CART_X, BORK_CART_Z)
+        val standing = standing(run)
+        // With no NPC slot free for the anchor, Bork or the Smorks, the room isn't started (as R18A-3 for Ezekiel): it
+        // would never begin, nor open the next row. The next tick with one of the party in it tries again.
+        val anchor = world.spawnNpc(NpcSpawn(def.boss, at.x, at.z, 0, source = "$run", respawns = false))
+        if (anchor == null) {
+            logger.warn { "$run: no room for Bork and the Smorks" }
+            return
+        }
+        world.partyScaling.scale(anchor, standing.size.coerceIn(1, PartyScaling.MAX_PARTY))
+        val fight = world.encounters.start(def, anchor, { x, z -> inRoom(run, room, x, z) })
+        if (fight.adds.size < 2) {
+            world.encounters.stop(fight)
+            world.removeNpc(anchor)
+            logger.warn { "$run: no room for Bork and the Smorks" }
+            return
+        }
+        run.started += room
+        run.presentAtStart[room] = standing.filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
+        run.fights[room] = fight
+        fight.adds.firstOrNull { it.type.id == Bork.BORK }?.let { world.meleeCombat.aggress(it, first, world.tick) }
+        logger.info { "$run began Bork and the Smorks' fight with ${standing.size} standing, ${first.username} first in" }
+    }
+
     /** A nexus door: into its room, if its row is open to the party. */
     fun door(player: Player, door: Int) {
         val run = at(player.x, player.z) ?: return
@@ -320,19 +393,52 @@ class ArchiveRaids(private val world: World) {
         world.teleport(player, to.x, to.z, 0)
     }
 
-    /** A boss room's Passageway: back out to the nexus. */
+    /**
+     * A boss room's Passageway: back out to the nexus. In Ocellus's room, once the run is done, the stand-in one
+     * ([placeOcellusExit]) leaves to the lobby.
+     */
     fun passageway(player: Player) {
         val run = at(player.x, player.z) ?: return
-        val room = roomAt(run, player.x, player.z)?.takeIf { it.door >= 0 } ?: return
+        val room = roomAt(run, player.x, player.z) ?: return
+        if (room == ArchiveRoom.OCELLUS) {
+            if (run.completed) world.teleport(player, run.instance.exitX, run.instance.exitZ, run.instance.exitLevel)
+            return
+        }
+        if (room.door < 0) return
         out(player, run, room)
     }
 
-    /** A boss room's Archive transporter: back to the nexus, once the room is done. */
+    /**
+     * STAND-IN until the reward room (raid step 28): a way out of Ocellus's room, which has none in the cache, once the
+     * run is done. A room's Passageway (`tfa_exit`, [PASSAGEWAY]) is put at its south edge, in front of where the party
+     * comes in, as the nexus's own sits at its north; its Exit goes to the lobby, in front of the Archive Door, the
+     * instance's exit. Sam's decision of 8 November 2026 on exploit review RAID-3; where it stands is guessed.
+     */
+    private fun placeOcellusExit(run: ArchiveRun) {
+        val at = tile(run, OCELLUS_EXIT_X, OCELLUS_EXIT_Z)
+        world.locs.add(ZoneLoc(PASSAGEWAY, LocShape.CENTREPIECE_STRAIGHT, 0, at.x, at.z, 0))
+    }
+
+    /**
+     * A boss room's Archive transporter: back to the nexus, once the room is done. Before then Bork's puts the player on
+     * the floor of his arena ([BORK_ARENA_X]), the way into his fight.
+     */
     fun transporter(player: Player) {
         val run = at(player.x, player.z) ?: return
         val room = roomAt(run, player.x, player.z)?.takeIf { it.door >= 0 } ?: return
+        if (room == ArchiveRoom.BORK && room !in run.cleared) {
+            val to = tile(run, BORK_ARENA_X, BORK_ARENA_Z)
+            if (!inBorkArena(run, player)) world.teleport(player, to.x, to.z, 0)
+            return
+        }
         if (room !in run.cleared) return
         out(player, run, room)
+    }
+
+    /** Whether [player] stands on the floor of Bork's arena in [run]. */
+    private fun inBorkArena(run: ArchiveRun, player: Player): Boolean {
+        val tower = tile(run, BORK_CART_X, BORK_CART_Z)
+        return Bork.inArena(tower.x, tower.z, player.x, player.z)
     }
 
     private fun out(player: Player, run: ArchiveRun, room: ArchiveRoom) {
@@ -354,7 +460,13 @@ class ArchiveRaids(private val world: World) {
      * with nobody left standing (the last standing one logged out) wipes.
      */
     fun process() {
-        runs.values.removeIf { run -> world.instances.all.none { it === run.instance } }
+        runs.values.removeIf { run ->
+            val ended = world.instances.all.none { it === run.instance }
+            // Everyone out at once (the last standing with a member down, both by Home Teleport on one tick): the
+            // instance ended before this look, and whoever was down got out all the same.
+            if (ended && !run.wiped) settleEscapes(run, ended = true)
+            ended
+        }
         for (run in runs.values.toList()) {
             if (run.wiped) continue
             // A fight whose boss has died: its room is done.
@@ -374,11 +486,59 @@ class ArchiveRaids(private val world: World) {
                     out(player, run, room)
                     continue
                 }
-                if (room !in run.started && room !in run.cleared && room.stage == run.stage && !built(room)) begin(run, room)
+                if (room !in run.started && room !in run.cleared && room.stage == run.stage) {
+                    when {
+                        !built(room) -> begin(run, room)
+                        // The Guardian waits for a Touch; Ezekiel's begins with the first of the party in, and Bork and the
+                        // Smorks' with the first onto their arena's floor (by its transporter), out of the way in he can't reach.
+                        room == ArchiveRoom.EZEKIEL -> beginEzekiel(run, player)
+                        room == ArchiveRoom.BORK -> if (inBorkArena(run, player)) beginBork(run, player)
+                    }
+                }
             }
+            settleEscapes(run, ended = false)
             val present = present(run)
             if (present.isNotEmpty() && present.none { it.dead } && standing(run).isEmpty()) wipe(run, null)
         }
+    }
+
+    /**
+     * A member down who got out of [run], by a teleport or by leaving the party, dies of it (RAID-2). Once its
+     * instance has [ended], everyone is out of it. One who left the party counts at once, before [process] sends them out
+     * of the instance: a room done in the same input would otherwise get them up first.
+     */
+    private fun settleEscapes(run: ArchiveRun, ended: Boolean) {
+        for (key in run.downed.toList()) {
+            val player = world.onlinePlayers.firstOrNull { it.saveKey == key } ?: continue
+            val out = ended || !run.instance.contains(player.x, player.z) || world.parties.of(player) !== run.party
+            if (!player.dead && out) escaped(run, player)
+        }
+    }
+
+    /**
+     * [player] is leaving the world (logged out, or their wait for a reconnect is over): if they are down in a run, that
+     * counts as their death (RAID-2), before they are saved. Found by their being down, not by where they stand: a
+     * Home Teleport landing out of the instance on the tick they log out is past [process]'s look for the run that
+     * tick, and out of it by the next.
+     */
+    fun leaving(player: Player) {
+        if (player.dead) return
+        val run = runs.values.firstOrNull { !it.wiped && player.saveKey in it.downed } ?: return
+        escaped(run, player)
+    }
+
+    /**
+     * [player], down in [run], got out of it before it was done with them: they die as the last one standing would,
+     * losing what a death loses into a grave in the lobby, and come back there. Without this a member down kept
+     * everything and could teleport out or log out to keep it, so with an alt standing every death was free (exploit
+     * review round 12, RAID-2, and its round 13 addendum). Sam's decision of 8 November 2026; the death's place is guessed.
+     */
+    private fun escaped(run: ArchiveRun, player: Player) {
+        run.downed -= player.saveKey
+        run.deaths[player.saveKey] = (run.deaths[player.saveKey] ?: 0) + 1
+        logger.info { "$run: ${player.username} got out while down, so dies of it" }
+        player.message(world.textFor(player)[CombatLines.DEAD])
+        world.deaths.respawn(player, wipePlace(run))
     }
 
     /** [room]'s fight begins, with whoever of the party stands in it. Its boss isn't built yet, so it is done at once. */
@@ -416,7 +576,10 @@ class ArchiveRaids(private val world: World) {
         run.started += room
         run.cleared += room
         run.chosen[room.stage] = room
+        // Whoever got out while down (a Home Teleport landing last tick) dies of it before the room's end gets them up.
+        settleEscapes(run, ended = false)
         share(run, room)
+        if (room == ArchiveRoom.OCELLUS) placeOcellusExit(run)
         run.downed.clear()
         run.clearedTick = world.tick
         val level = nexusLevel(run.stage)
@@ -483,6 +646,8 @@ class ArchiveRaids(private val world: World) {
      * [dying] is the one whose death did it, whose own respawn carries on after; the others lying dead go as they get up.
      */
     private fun wipe(run: ArchiveRun, dying: Player?) {
+        // Whoever got out while down (a Home Teleport landing last tick) dies of it first: the wipe only sees who is in.
+        settleEscapes(run, ended = false)
         run.wiped = true
         for (room in run.fights.keys.toList()) stopFight(run, room)
         logger.info { "$run wiped${dying?.let { " as ${it.username} died" }.orEmpty()}" }
@@ -555,6 +720,25 @@ class ArchiveRaids(private val world: World) {
         /** The nexus tile the Archive Door lands on, just inside its south end. Guessed. */
         const val NEXUS_X = 4127
         const val NEXUS_Z = 5573
+
+        /** The stand-in exit's south-west tile in Ocellus's room: its 5 by 2 just south of where the party comes in. Guessed. */
+        const val OCELLUS_EXIT_X = 4119
+        const val OCELLUS_EXIT_Z = 5632
+
+        /** Ezekiel's south-west tile as his fight begins: him in the middle of the ring of flames round his room. Guessed. */
+        const val EZEKIEL_X = 4062
+        const val EZEKIEL_Z = 5534
+
+        /**
+         * The Smorks' cart's south-west tile as Bork and the Smorks' fight begins, its 3 by 3 round the one blocked tile
+         * in the middle of their room's floor (4191,5599). Guessed.
+         */
+        const val BORK_CART_X = 4190
+        const val BORK_CART_Z = 5598
+
+        /** Where Bork's room's transporter puts the player: the west edge of his arena's floor (tsps capture notes). */
+        const val BORK_ARENA_X = 4184
+        const val BORK_ARENA_Z = 5599
 
         /** In front of the nexus's own Passageway (4124,5625, 7 by 2). Guessed. */
         const val PASSAGE_FRONT_X = 4127

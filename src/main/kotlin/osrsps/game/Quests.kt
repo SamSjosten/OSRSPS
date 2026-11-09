@@ -100,6 +100,9 @@ class Quests(val all: List<Quest>) {
             // wgs_tfa_shortcut_unlocked: While Guthix Sleeps opens the Chasm of Tears' cavity to The Fractured Archive's
             // lobby (inferred from the name; [osrsps.game.content.ArchiveLobby]).
             16354 to 1,
+            // captain_harlan_intro: Mudfoot's Big Adventure starts with Captain Harlan, so after it he greets the player
+            // as one he has met (inferred; [osrsps.game.content.Harlan]).
+            16780 to 1,
         )
 
         val NONE = Quests(emptyList())

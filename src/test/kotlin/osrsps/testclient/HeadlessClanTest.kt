@@ -654,6 +654,8 @@ class HeadlessClanTest {
                             assertEquals(listOf("carol", "dave"), alice.await("the list") { alice.applicantsListed(since) })
                             assertEquals("", alice.reviewed(since))
                             alice.await("Accept enabled") { Unit.takeIf { alice.opEnabled(Clans.APPLICANTS, Clans.APPLICANTS_ACCEPT, -1, 1) } }
+                            // Review is op 1 on each entry's own component, which the client offers only once it is enabled.
+                            for (entry in Clans.APPLICANTS_ENTRIES) assertTrue(alice.opEnabled(Clans.APPLICANTS, entry, -1, 1), "Review on 699:$entry")
 
                             // Accept with nobody chosen does nothing.
                             alice.ifButton(Clans.APPLICANTS, Clans.APPLICANTS_ACCEPT, 1)

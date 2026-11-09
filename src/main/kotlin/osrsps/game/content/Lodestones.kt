@@ -30,8 +30,8 @@ object LodestoneLines : Lines("lodestone", "Lodestone_Network") {
  * Lodestones, custom content after RS3's lodestone network: a stone at each major town that a player activates once
  * and can then teleport to, free, from any stone, with Home Teleport or with `::lodestone`. Verified on the RS3 Wiki
  * (Lodestone Network, Home Teleport; read 2026-11-02): Lumbridge's is active from the start and every other stone is
- * activated by clicking it once; Home Teleport opens the network and lands on the stone picked; the teleport takes 17
- * seconds, so [CAST_TICKS]; it can't start in combat, and being attacked stops it; it's refused above level 20
+ * activated by clicking it once; Home Teleport opens the network and lands on the stone picked; the cast takes 17
+ * ticks, so [CAST_TICKS]; it can't start in combat, and being attacked stops it; it's refused above level 20
  * Wilderness; there is no cooldown. Sam's picks (2 Nov 2026): RS3's timing, the Wilderness block like other teleports.
  * RS3's "Previous destination" (an option on the spell there; the spell's right-click has no room for it in OSRS's
  * spellbook) is a button on the map ([LodestoneMap.PREVIOUS]), the stone last teleported to.
@@ -41,12 +41,13 @@ object LodestoneLines : Lines("lodestone", "Lodestone_Network") {
  * after. The varbit is a bit of the lodestones' varp ([CustomVars.lodestonesVarp]), saved with the player; its id
  * follows the loaded cache's, so the site's loc type is built for a world's [CustomVars] ([Site.type]). The server
  * sees the one loc ([Site.id]) and the one option on it, and answers by the player's varbit. The cast is Home
- * Teleport's machinery ([HomeTeleport.castTo]) with the stones' own timing and no cooldown.
+ * Teleport's machinery ([HomeTeleport.castTo]) with the stones' own timing, no cooldown and an animation of our own
+ * ([STAGES], [LANDING], [CustomAnims]).
  *
  * Guessed: the stones' tiles (RS3's spots, by the Wiki's descriptions, moved to where the 241 map's ground is flat,
  * outdoors and clear, the tile around included: RS3's Al Kharid spot is inside a house here, Edgeville's in the river,
- * Draynor's under an oak; `::pos` and a change to [SITES] move one), landing on the stone's centre tile, the stages'
- * ticks (Home Teleport's, stretched to 28), and the map's look ([LodestoneMap]).
+ * Draynor's under an oak; `::pos` and a change to [SITES] move one), landing on the stone's centre tile, the cast's
+ * pace and colour ([CustomAnims]), and the map's look ([LodestoneMap]).
  */
 object Lodestones {
     /** The child types the client draws: the dormant stone and the active one. */
@@ -70,8 +71,11 @@ object Lodestones {
     const val ACTIVATE = 1
     const val TELEPORT = 1
 
-    /** From the click to landing: RS3's 17 seconds, at 0.6 s a tick (28.3, rounded down). */
-    const val CAST_TICKS = 28
+    /**
+     * From the click to landing: RS3's 17 ticks, 10.2 s (the RS3 Wiki, Home Teleport, read 8 Nov 2026; the 2 Nov read took
+     * the 17 for seconds, so the cast was 28 ticks until Sam's pick of 8 Nov).
+     */
+    const val CAST_TICKS = 17
 
     /**
      * The lodestones' varp holds the stone last teleported to as well, for Previous destination: its site index plus
@@ -80,14 +84,22 @@ object Lodestones {
     const val PREVIOUS_LOW_BIT = 8
     const val PREVIOUS_HIGH_BIT = 11
 
-    /** Home Teleport's five stages stretched over the 28 ticks (its own run 0, 7, 13, 16, 19 of 24). Guessed. */
+    /** The rise starts this many ticks before the landing: Tele Other's 16 frames at 4 cycles are 1.3 s, two ticks and a bit. */
+    const val RISE_TICKS = 3
+
+    /**
+     * The cast's two stages (step 8, after RS3's player who stands briefly and then flies up as a white pulse): from
+     * the click, the arms-raised pose while the white pulse builds and stays; [RISE_TICKS] before the landing, Tele
+     * Other's rise with the whole swirl, so the player flies up and is gone. All ours, served by the overlay
+     * ([CustomAnims]).
+     */
     val STAGES = listOf(
-        HomeTeleport.Stage(0, 4847, 800),
-        HomeTeleport.Stage(8, 4850, 801),
-        HomeTeleport.Stage(15, 4853, 802),
-        HomeTeleport.Stage(19, 4855, 803),
-        HomeTeleport.Stage(22, 4857, 804),
+        HomeTeleport.Stage(0, CustomAnims.LODESTONE_CHARGE, CustomAnims.LODESTONE_PULSE),
+        HomeTeleport.Stage(CAST_TICKS - RISE_TICKS, CustomAnims.LODESTONE_RISE, CustomAnims.LODESTONE_FLASH),
     )
+
+    /** On the arrival tile: the rise backwards with the swirl closing in, so the player comes down at the stone, as RS3's "flies back down at the lodestone". */
+    val LANDING = HomeTeleport.Stage(CAST_TICKS, CustomAnims.LODESTONE_LAND, CustomAnims.LODESTONE_LAND_FLASH)
 
     /**
      * One site: its stone's south-west tile ([x], [z]; the stone is 3 by 3), its loc and its name. Its varbit, 1 once
@@ -256,14 +268,17 @@ class LodestoneNetwork(
             message(player, LodestoneLines.LOCKED, arrayOf("name" to words(player, site.name, emptyArray())))
             return false
         }
-        val started = with(homeTeleport) { castTo(site.arrival, Lodestones.CAST_TICKS, Lodestones.STAGES, cooldown = false) }
+        val started = with(homeTeleport) { castTo(site.arrival, Lodestones.CAST_TICKS, Lodestones.STAGES, cooldown = false, landing = Lodestones.LANDING) }
         if (started) player.vars.setVarbit(vars.lodestonePreviousVarbit, site.index + 1)
         return started
     }
 }
 
-/** A world whose loc types don't include the lodestones (a test's world) gets no stones: the server's always do. */
+/**
+ * A world whose loc types don't include the lodestones (a test's world) gets no stones: the server's always do, for
+ * good, so `::resetlocs` over a stone's tile (the nightly's around the courtyard) keeps it.
+ */
 fun registerLodestones(world: World) {
-    for (site in Lodestones.SITES) if (world.locs.types[site.id] != null) world.locs.add(site.loc)
+    for (site in Lodestones.SITES) if (world.locs.types[site.id] != null) world.locs.addPermanent(site.loc)
     world.lodestones.register(world.handlers)
 }

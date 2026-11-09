@@ -10,6 +10,26 @@
       "npcs": ["tfa_guardian_unshielded"],
       "hitpoints": [1100, 1100, 1600, 2060, 2520, 2980, 3440, 3910],
       "source": "OSRS Wiki, Archive Guardian (Grounded)"
+    },
+    {
+      "npcs": ["tfa_ezekiel"],
+      "hitpoints": [3000, 3000, 4350, 5610, 6870, 8130, 9390, 10650],
+      "source": "OSRS Wiki, Ezekiel (read 2026-11-09)"
+    },
+    {
+      "npcs": ["tfa_bork"],
+      "hitpoints": [1500, 1500, 2180, 2810, 3440, 4070, 4700, 5330],
+      "source": "OSRS Wiki, Bork (The Fractured Archive), read 2026-11-09"
+    },
+    {
+      "npcs": ["tfa_smork"],
+      "hitpoints": [600, 600, 870, 1120, 1370, 1630, 1880, 2130],
+      "source": "OSRS Wiki, Bork (The Fractured Archive)'s table of both, read 2026-11-09"
+    },
+    {
+      "npcs": ["tfa_bork_smork_hp_ui_handler"],
+      "hitpoints": [2100, 2100, 3050, 3930, 4810, 5700, 6580, 7460],
+      "source": "Ours: Bork's and the Smorks' together, for the anchor of their fight (Bork, raid step 18a), which isn't fought; it carries the party size the fight scales the two to, as ::raid bork party=n sets it"
     }
   ]
 }

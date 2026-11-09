@@ -25,9 +25,12 @@ import net.rsprot.protocol.game.incoming.buttons.If3Button
 import net.rsprot.protocol.game.incoming.buttons.IfButtonD
 import net.rsprot.protocol.game.incoming.buttons.IfButtonT
 import net.rsprot.protocol.game.incoming.buttons.IfScriptTrigger
-import net.rsprot.protocol.game.incoming.locs.OpLoc6
-import net.rsprot.protocol.game.incoming.locs.OpLocT
+import net.rsprot.protocol.game.incoming.locs.OpLoc6V1
+import net.rsprot.protocol.game.incoming.locs.OpLoc6V2
+import net.rsprot.protocol.game.incoming.locs.OpLocTV1
+import net.rsprot.protocol.game.incoming.locs.OpLocTV2
 import net.rsprot.protocol.game.incoming.locs.OpLocV2
+import net.rsprot.protocol.game.incoming.locs.OpLocV3
 import net.rsprot.protocol.game.incoming.messaging.MessagePrivate
 import net.rsprot.protocol.game.incoming.messaging.MessagePublic
 import net.rsprot.protocol.game.incoming.objs.OpObj6
@@ -177,16 +180,29 @@ class NetworkFactory(
             )
         })
         builder.addListener(OpNpc6::class.java, MessageConsumer { player, message -> world.onNpcExamine(player, message.id) })
+        // Revision 242 gave each loc packet a second form with a 3-byte loc id (RSProt's V3, TV2 and 6V2) beside the
+        // 2-byte one; which the client picks isn't recorded yet (inferred: the long form only for ids past 65,535), so
+        // both forms go to the same handler.
         builder.addListener(OpLocV2::class.java, MessageConsumer { player, message ->
             world.onLocOp(player, message.id, message.x, message.z, message.op, message.controlKey)
         })
-        builder.addListener(OpLocT::class.java, MessageConsumer { player, message ->
+        builder.addListener(OpLocV3::class.java, MessageConsumer { player, message ->
+            world.onLocOp(player, message.id, message.x, message.z, message.op, message.controlKey)
+        })
+        builder.addListener(OpLocTV1::class.java, MessageConsumer { player, message ->
             world.onLocTarget(
                 player, message.id, message.x, message.z, message.selectedInterfaceId, message.selectedComponentId,
                 message.selectedSub, message.selectedObj, message.controlKey,
             )
         })
-        builder.addListener(OpLoc6::class.java, MessageConsumer { player, message -> world.onLocExamine(player, message.id) })
+        builder.addListener(OpLocTV2::class.java, MessageConsumer { player, message ->
+            world.onLocTarget(
+                player, message.id, message.x, message.z, message.selectedInterfaceId, message.selectedComponentId,
+                message.selectedSub, message.selectedObj, message.controlKey,
+            )
+        })
+        builder.addListener(OpLoc6V1::class.java, MessageConsumer { player, message -> world.onLocExamine(player, message.id) })
+        builder.addListener(OpLoc6V2::class.java, MessageConsumer { player, message -> world.onLocExamine(player, message.id) })
         builder.addListener(OpObjV2::class.java, MessageConsumer { player, message ->
             world.onGroundObjOp(player, message.id, message.x, message.z, message.op, message.controlKey)
         })

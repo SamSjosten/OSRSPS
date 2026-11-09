@@ -2,63 +2,79 @@ package osrsps.game.content
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import osrsps.game.GameFrame
-import osrsps.game.Player
 import osrsps.game.Skill
 
 /** Rest of Lumbridge step 10: the church's talk and its altar, with no dialogue file, so every line shows its key. */
 class ChurchTest {
     private val h = DialogueHarness()
 
-    /** The side tabs shown, in order. */
-    private val tabs = mutableListOf<Int>()
-    private val sideTab: (Player, Int) -> Unit = { _, tab -> tabs += tab }
+    private val root = arrayOf("father_aereck.more_prayers", "father_aereck.saradomin", "father_aereck.leave_first")
+    private val rootAfter = arrayOf("father_aereck.more_prayers", "father_aereck.saradomin", "father_aereck.leave")
 
     @Test
-    fun `Father Aereck thanks the player for the ghost and has no more quests`() {
+    fun `Father Aereck welcomes the player, and leaving first is the longer goodbye`() {
         h.talk { with(Church) { aereck() } }
-        h.expect("father_aereck.thanks", "father_aereck.new_quest", "father_aereck.one_quest")
+        h.expect("father_aereck.greeting")
+        h.menu(*root)
+        h.pick(3)
+        h.expect("father_aereck.leave_first", "father_aereck.guide_you")
         h.ends()
     }
 
     @Test
-    fun `the Prayer tutor answers both questions, each offering the other, and opens the prayer tab`() {
-        h.talk { with(Church) { prayerTutor(sideTab) } }
-        h.expect("prayer_tutor.good_day", "prayer_tutor.greeting name=Zezima")
-        h.menu("prayer_tutor.train", "prayer_tutor.useful", "prayer_tutor.no_thanks")
+    fun `his prayer tips since 242, with the altar and bones boxes, come back to the menu with the shorter goodbye`() {
+        h.talk { with(Church) { aereck() } }
+        h.expect("father_aereck.greeting")
+        h.menu(*root)
         h.pick(1)
         h.expect(
-            "prayer_tutor.train", "prayer_tutor.bury_or_offer", "prayer_tutor.altars", "prayer_tutor.bones",
-            "prayer_tutor.anything_else",
+            "father_aereck.prayers", "father_aereck.prayers_1", "father_aereck.saradomin_thing", "father_aereck.other_gods",
+            "father_aereck.curious", "father_aereck.battle", "father_aereck.protection", "father_aereck.hint_prayers",
+            "father_aereck.not_free", "father_aereck.hint_points", "father_aereck.faith", "father_aereck.altars",
+            "father_aereck.hint_altar", "father_aereck.anything_else", "father_aereck.dedication", "father_aereck.how",
+            "father_aereck.bury", "father_aereck.hint_bones", "father_aereck.covers", "father_aereck.hint_guide",
+            "father_aereck.thanks",
         )
-        h.menu("prayer_tutor.useful", "prayer_tutor.no_thanks")
-        h.pick(1)
-        h.expect(
-            "prayer_tutor.useful", "prayer_tutor.kindly", "prayer_tutor.what_benefits", "prayer_tutor.benefits",
-            "prayer_tutor.prayer_book", "prayer_tutor.wow", "prayer_tutor.careful", "prayer_tutor.anything_else",
-        )
-        assertEquals(listOf(GameFrame.SIDE_TAB_PRAYER), tabs)
-        h.menu("prayer_tutor.train", "prayer_tutor.no_thanks")
-        h.pick(2)
-        h.expect("prayer_tutor.no_thanks", "prayer_tutor.farewell")
+        assertEquals(listOf(Church.ALTAR_ICON, Church.BONES), h.boxObjs)
+        h.menu(*rootAfter)
+        h.pick(3)
+        h.expect("father_aereck.leave", "father_aereck.guide_you")
         h.ends()
     }
 
     @Test
-    fun `at 99 Prayer the tutor says the player should teach her, then gives her advice anyway`() {
-        h.player.skills.setLevel(Skill.PRAYER, 99)
-        h.talk { with(Church) { prayerTutor(sideTab) } }
-        h.expect("prayer_tutor.good_day", "prayer_tutor.greeting name=Zezima")
-        h.menu("prayer_tutor.train", "prayer_tutor.useful", "prayer_tutor.no_thanks")
+    fun `asked about Saradomin, the player can claim another world, as a game or a joke`() {
+        h.talk { with(Church) { aereck() } }
+        h.expect("father_aereck.greeting")
+        h.menu(*root)
+        h.pick(2)
+        h.expect("father_aereck.saradomin", "father_aereck.saradomin_1", "father_aereck.saradomin_2")
+        h.menu("father_aereck.info_thanks", "father_aereck.not_from_world")
+        h.pick(2)
+        h.expect("father_aereck.not_from_world", "father_aereck.tentacles")
+        h.menu("father_aereck.online_game", "father_aereck.joking")
+        h.pick(1)
+        h.expect("father_aereck.online_game", "father_aereck.pardon", "father_aereck.never_mind")
+        h.menu(*rootAfter)
+        h.pick(2)
+        h.expect("father_aereck.saradomin", "father_aereck.saradomin_1", "father_aereck.saradomin_2")
+        h.menu("father_aereck.info_thanks", "father_aereck.not_from_world")
+        h.pick(2)
+        h.expect("father_aereck.not_from_world", "father_aereck.tentacles")
+        h.menu("father_aereck.online_game", "father_aereck.joking")
+        h.pick(2)
+        h.expect("father_aereck.joking", "father_aereck.i_see")
+        h.menu(*rootAfter)
         h.pick(1)
         h.expect(
-            "prayer_tutor.train", "prayer_tutor.teach_me", "prayer_tutor.advice", "prayer_tutor.bury_or_offer",
-            "prayer_tutor.altars", "prayer_tutor.bones", "prayer_tutor.anything_else",
+            "father_aereck.prayers", "father_aereck.prayers_1", "father_aereck.saradomin_thing", "father_aereck.other_gods",
+            "father_aereck.curious", "father_aereck.battle", "father_aereck.protection", "father_aereck.hint_prayers",
+            "father_aereck.not_free", "father_aereck.hint_points", "father_aereck.faith", "father_aereck.altars",
+            "father_aereck.hint_altar", "father_aereck.anything_else", "father_aereck.dedication", "father_aereck.how",
+            "father_aereck.bury", "father_aereck.hint_bones", "father_aereck.covers", "father_aereck.hint_guide",
+            "father_aereck.thanks",
         )
-        h.menu("prayer_tutor.useful", "prayer_tutor.no_thanks")
-        h.pick(2)
-        h.expect("prayer_tutor.no_thanks", "prayer_tutor.farewell")
-        h.ends()
+        h.menu(*rootAfter)
     }
 
     @Test
@@ -107,74 +123,54 @@ class ChurchTest {
         rewards.ends()
     }
 
-    private fun countCheck(sent: MutableList<Player>) {
-        h.talk { with(Church) { countCheck({ it in sent }, { sent += it }) } }
-        h.expect("count_check.intro")
+    private val first = arrayOf("count_check.yes_please", "count_check.who_are_you", "count_check.anything_else", "count_check.best_be_off")
+    private val afterWho = arrayOf("count_check.yes_please", "count_check.salve_cross", "count_check.anything_else", "count_check.maybe_later")
+    private val afterCheck = arrayOf("count_check.who_are_you", "count_check.anything_else", "count_check.best_be_off")
+
+    private fun countCheck() {
+        h.talk { with(Church) { countCheck() } }
+        h.expect("count_check.intro_check")
+        h.menu(*first)
     }
 
-    private val top = arrayOf("count_check.check", "count_check.advice", "count_check.learn", "count_check.who", "count_check.bye")
-
     @Test
-    fun `Count Check's check fails, as there is no Jagex Account or Bank PIN`() {
-        countCheck(mutableListOf())
-        h.menu(*top)
+    fun `Count Check's check fails, as there is no Jagex Account or Bank PIN, and leaving then is said as offered`() {
+        countCheck()
         h.pick(1)
-        h.expect("count_check.check", "count_check.fail")
+        h.expect("count_check.yes_please", "count_check.begin", "count_check.fail")
+        h.menu(*afterCheck)
+        h.pick(3)
+        h.expect("count_check.best_be_off")
         h.ends()
     }
 
     @Test
-    fun `Count Check counts his advice, and three can be questioned`() {
-        countCheck(mutableListOf())
-        h.menu(*top)
-        h.pick(2)
-        h.expect(
-            "count_check.advice", "count_check.count_steps", "count_check.one", "count_check.one_password", "count_check.two",
-            "count_check.two_email", "count_check.three", "count_check.three_website",
-        )
-        h.menu("count_check.carry_on", "count_check.what_three")
-        h.pick(2)
-        h.expect("count_check.what_three", "count_check.flow", "count_check.silence", "count_check.four", "count_check.four_pin", "count_check.fun")
-        h.menu(*top)
-        h.pick(5)
-        h.expect("count_check.bye")
-        h.ends()
-    }
-
-    @Test
-    fun `Count Check sends the player to the Stronghold only once, and after Who the Salve is asked about`() {
-        val sent = mutableListOf<Player>()
-        countCheck(sent)
-        h.menu(*top)
+    fun `Count Check does nothing else on a main world, and leaving before a check is maybe another time`() {
+        countCheck()
         h.pick(3)
-        h.expect("count_check.learn", "count_check.stronghold")
-        h.menu("count_check.yes", "count_check.no")
-        h.pick(2)
-        h.expect("count_check.may_check")
-        h.menu(*top)
-        h.pick(3)
-        h.expect("count_check.learn", "count_check.stronghold")
-        h.menu("count_check.yes", "count_check.no")
-        h.pick(1)
-        assertEquals(listOf(h.player), sent)
-        assertEquals(-1, h.player.chatModal)
-
-        countCheck(sent)
-        h.menu(*top)
-        h.pick(3)
-        h.expect("count_check.learn", "count_check.stronghold_visited")
-        h.menu(*top)
+        h.expect("count_check.anything_else", "count_check.no_bang", "count_check.now_checked")
+        h.menu(*first)
         h.pick(4)
+        h.expect("count_check.maybe_later")
+        h.ends()
+    }
+
+    @Test
+    fun `after who he is the Salve is asked about, and his menu with it comes back`() {
+        countCheck()
+        h.pick(2)
         h.expect(
-            "count_check.who", "count_check.vampyre", "count_check.perils", "count_check.be_warned", "count_check.left_ways",
-            "count_check.blessed",
+            "count_check.who_are_you", "count_check.like_i_said", "count_check.perils", "count_check.warned", "count_check.okay",
+            "count_check.now_checked",
         )
-        h.menu("count_check.salve", "count_check.check", "count_check.advice", "count_check.learn", "count_check.bye")
-        h.pick(1)
-        h.expect("count_check.salve", "count_check.of_course", "count_check.not_role_play", "count_check.right", "count_check.may_check")
-        h.menu(*top)
-        h.pick(5)
-        h.expect("count_check.bye")
+        h.menu(*afterWho)
+        h.pick(2)
+        h.expect(
+            "count_check.salve_cross", "count_check.what_mean", "count_check.role_play", "count_check.right_dots", "count_check.so_checked",
+        )
+        h.menu(*afterWho)
+        h.pick(4)
+        h.expect("count_check.maybe_later")
         h.ends()
     }
 

@@ -1,0 +1,229 @@
+{
+ "name": "Raid steps 18a to 18c: Bork and the Smorks solo, their fight beginning as the player takes the room's transporter onto the arena's floor, both at the Wiki's hitpoints, Bork taking the player on and beating his gong under Protect from Melee, napalm leaving oil under the player, the heavy cannonball missing him and his stomp after it, his flat armour and the tempo rising as the Smorks are hurt, the Smorks' frenzy once Bork is dead, and the room done only once both are dead, Bork first",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare",
+   "comment": "nothing carried; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel prayer 99",
+   "expectMessage": "Prayer set to level 99"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel hitpoints 99",
+   "expectMessage": "Hitpoints set to level 99"
+  },
+  {
+   "step": "command",
+   "text": "::heal",
+   "expectMessage": "Healed to 99 hitpoints."
+  },
+  {
+   "step": "command",
+   "text": "::god on",
+   "expectMessage": "You can't be hurt now",
+   "comment": "his beats still land but do nothing, so the waits can't kill the account; ::god off at the end"
+  },
+  {
+   "step": "command",
+   "text": "::tele 4127 5560 0",
+   "expectMessage": "Teleported to 4127, 5560, 0",
+   "comment": "the lobby, in front of the Archive Door"
+  },
+  {
+   "step": "locOption",
+   "locId": 62768,
+   "option": "Enter",
+   "timeoutMs": 20000,
+   "comment": "into a run of one"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 6
+  },
+  {
+   "step": "command",
+   "text": "::raid tp guardian",
+   "expectMessage": "To Archive Guardian's room"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Archive Guardian's room.",
+   "comment": "the first row done, so the second's doors open"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 548,
+   "component": 69,
+   "comment": "toplevel:stone5, the prayer tab, in the fixed frame the VM's client uses"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 541,
+   "component": 23,
+   "comment": "prayerbook:prayer15, Protect from Melee, for his beats"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp bork",
+   "expectMessage": "To Bork and the Smorks's room",
+   "comment": "in at the room's way in, west of the arena, out of Bork's reach"
+  },
+  {
+   "step": "locOption",
+   "locId": 63087,
+   "option": "Use",
+   "timeoutMs": 20000,
+   "comment": "tfa_boss_teleporter, the Archive transporter: onto the arena's floor, the first in, so Bork's tank"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "Bork 1500/1500 hp, the Smorks 600/600 hp",
+   "comment": "the Wiki's hitpoints for a player alone (counted as two)"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "fight: Bork takes on test",
+   "comment": "the account may be test or test2; the line is matched up to the name"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "fight: Bork's armour 8, magic 0",
+   "comment": "his flat armour with the Smorks unhurt (the Wiki's 8 and 0)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 24,
+   "comment": "he walks over round the tower, gonging (8 ticks in, then every 7)"
+  },
+  {
+   "step": "assertAnimation",
+   "npc": "Bork",
+   "id": 14542,
+   "timeoutMs": 10000,
+   "comment": "npc_bork_gong_melee01, his beat, every 7 ticks"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 40",
+   "expectMessage": "beat hits test for",
+   "comment": "alone, the player is his and the Smorks' volleys have no one to fire at"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 32,
+   "comment": "napalm at the player 20 ticks in, its oil 6 after; the heavy cannonball at the player too (none else to aim at), missing Bork, and his stomp 2 ticks after it lands, by tick 57 at the latest"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 150",
+   "expectMessage": "fight: oil burns test for",
+   "comment": "the oil under the player, 6 to 7 a tick (nothing with ::god on)"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 150",
+   "expectMessage": "fight: the heavy cannonball misses Bork"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 150",
+   "expectMessage": "fight: Bork stomps",
+   "comment": "4 shockwaves over the arena, then he names his tank again"
+  },
+  {
+   "step": "command",
+   "text": "::hit 150 tfa_smork",
+   "expectMessage": "450/600 hp",
+   "comment": "a quarter off the Smorks, by name from across the room (::hit finds them in the fight)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "fight: Bork's armour 10, magic 2",
+   "comment": "2 more of each for the quarter they've lost"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "fight: tempo 1, every 6 ticks",
+   "comment": "step 18c: the tempo rises a stage at 75%, a tick off his gongs and their shots"
+  },
+  {
+   "step": "command",
+   "text": "::hit 1500 tfa_bork",
+   "expectMessage": "0/1500 hp, dead"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 6,
+   "comment": "his death animation, then his body goes"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "fight: Bork down"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 6,
+   "comment": "his body goes 7 ticks after he falls, and the Smorks' frenzy begins 4 after that"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "fight: the Smorks' frenzy"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "done Archive Guardian;",
+   "comment": "the Smorks still up, so the room isn't done"
+  },
+  {
+   "step": "command",
+   "text": "::hit 450 tfa_smork",
+   "expectMessage": "0/600 hp, dead"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 6
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "done Archive Guardian, Bork and the Smorks;",
+   "comment": "both gone: their room is done"
+  },
+  {
+   "step": "command",
+   "text": "::god off",
+   "expectMessage": "You can be hurt again"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

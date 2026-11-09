@@ -78,7 +78,7 @@ class LevelUps(
 
     /** A level-up still waiting (behind an open bank, say) shows the level reached when it runs, so one is enough. */
     private fun queueOnce(player: Player, name: String, script: suspend ScriptContext.() -> Unit) {
-        if (player.scripts.queued.none { it.name == name }) scripts.queue(player, name, QueueType.NORMAL, 0, script)
+        if (player.scripts.queued.none { it.name == name }) scripts.queue(player, name, QueueType.NORMAL, 0, script = script)
     }
 
     private suspend fun ScriptContext.announce(skill: Skill) {
@@ -141,6 +141,12 @@ class LevelUps(
     }
 
     companion object {
+        /** Every interface and component id above with its gameval name in the rev 242 cache, for [osrsps.cache.GameFrameCheck]. */
+        val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>>
+            get() = mapOf(
+                INTERFACE to ("levelup_display" to mapOf(TEXT1 to "text1", TEXT2 to "text2", CONTINUE to "continue", LAYER_COMBAT to "combat")),
+            )
+
         /** levelup_display. */
         const val INTERFACE = 233
         const val TEXT1 = 1

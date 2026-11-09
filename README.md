@@ -102,6 +102,16 @@ revision end at different ids (241's varps end at 5,890 in one build and 5,995 i
 id the cache has; so nothing names them by number: content and tests go through `CustomVars`, and `::varp lodestones`
 and `::varbit lodestone.varrock` take the names in the chatbox and the runner's scripts.
 
+Animations and graphics of our own are code as well: `game/content/CustomAnims.kt` lists sequences (config archive 12,
+`osrsps.cache.SeqCodec`) and spotanims (13, `osrsps.cache.SpotanimCodec`) from id 65,000, above the cache's, and the
+overlay adds them to those groups. The client has no frames of ours, so a sequence of ours plays frames the cache
+already has, at our own pace and in our own order (as the cache's own reversed teleport, 715, plays 714's backwards),
+and a spotanim of ours is a cache graphic's model on a sequence with its colours swapped. The lodestone cast is the
+first (step 8): the arms-raised pose while a white pulse builds, then Tele Other's rise drawn white in the last three
+ticks, and the same frames backwards on the arrival tile, after RS3's player who "flies into the air as white pulse
+and flies back down at the lodestone". `::anim 65000` and `::spotanim 65000` play them, and `lodestone-network.json`
+reads the cast and the landing off the real client after the Teleport click.
+
 ## Run the server
 
 ```bash
@@ -357,7 +367,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::locs [radius]` | **everyone.** Lists the locs within radius tiles of you (default 1): id, name, tile, shape and angle, and whether they differ from the cache |
 | `::addloc id [shape] [angle]` | Puts loc `id` on your tile (default shape 10, a ground loc, angle 0), replacing what was on its layer |
 | `::delloc` | Removes every loc on your tile |
-| `::resetlocs [radius]` | Puts the locs within radius tiles of you (default 0, your tile) back as the cache has them |
+| `::resetlocs [radius]` | Puts the locs within radius tiles of you (default 0, your tile) back as the cache has them; a loc the server itself placed for good (a lodestone) stays |
 | `::npc id\|name [wander]` | Spawns an NPC on your tile, by id, menu name or gameval name: `::npc hans`, `::npc cow2_calf 3`. With a wander range it wanders that far from the tile, otherwise it stands still. Gone on restart |
 | `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range, the party size and hitpoints of a raid NPC, and whether each is frozen, hurt (its hitpoints left), poisoned, envenomed or drained, and who it is fighting ("no one" for an idle one that can fight) or retreating from |
 | `::delnpc index` | Removes NPC `index` (from `::npcs`) |
@@ -762,18 +772,19 @@ bronze axe can (`test-runner/examples/lumbridge-shops.json`).
 
 The town west of the River Lum, outside the castle: `lumbridge.json` has its NPCs on RSMod's spawn tiles (rev 233),
 and the conversations are in `game/content/` (`LumbridgeShopkeepers.kt`, `ShearedRam.kt`, `DonieAndGee.kt`,
-`LumbridgeTutors.kt`, `LumbridgeTownsfolk.kt`), each from the OSRS Wiki's transcript as a player with every quest done
+`Feoras.kt`, `Wilfred.kt`, `LumbridgeTownsfolk.kt`), each from the OSRS Wiki's transcript as a player with every quest done
 sees it. The words are in the dialogue file, like every other line.
 
 | Who | What they do |
 |-----|--------------|
 | The General Store's Shop keeper and Shop assistant, Bob | Talk-to; "what do you sell" opens their shop. Bob's Repair and an item used on him answer that nothing needs repairing |
 | The Sheared Ram's Bartender | Sells a beer for 2 coins |
-| Arthur the Clue Hunter | Explains every clue type (three pages of them) and turns clue vessels on and off (varbit 9365) |
+| Arthur the Clue Hunter (16811), by the Grand Exchange's south wall since 242.1 (`varrock.json`) | Explains every clue type (three pages of them) and turns clue vessels on and off (varbit 9365) |
 | Donie and Gee | One of four opening menus at random, the quests, Lumbridge, and Gee's small monsters |
-| The Cooking tutor, Smithing apprentice and Woodsman tutor | Advice by your level; the Woodsman tutor gives an axe and tinderbox when you have none and sells the Woodcutting cape at 99 (trimmed with another 99) |
+| Feoras (16806, the smithing tutor since 242.1) in the smithy | Smithing advice with its icon boxes, a hammer for a player with none, and his shop (`lumbridge_blacksmith`, inv 1032, the Wiki's prices) |
+| Wilfred (16808, the woodsman tutor since 242.1) | Woodcutting and Firemaking advice; an axe and tinderbox when you have none and room for them; the Woodcutting cape at 99 (trimmed with another 99) |
 | Abigaila, upstairs in the General Store | Her story; her scrying ball refuses a player carrying or wearing anything (the Theatre of Blood isn't built) |
-| The Ironman tutor | Explains Ironman; this game has no Ironmen, so his armour and the account modes are refused or end the talk |
+| The Ironman tutor | Explains Ironman; this game has no Ironmen, so his armour and the account modes are refused or end the talk. Since 242.1 the cache shows him to Ironmen only (311 is a multi-NPC on varp `ironman` showing 16814), so no account here sees him; both ids have his handlers |
 | Men, women and rats | As in the castle |
 
 | Behaviour | Source |
@@ -903,24 +914,53 @@ a butterfly, with the rats west of the castle wall, and the swamp's talking NPCs
 | Father Urhney (923), in his house, as after The Restless Ghost: he sends the player off, and hands a spare ghostspeak amulet to one who has none carried, worn or banked and has a free slot | the Wiki's Transcript:Father Urhney |
 | The adventurers' camp: the warrior (1158), archer (1157), monk (1159) and wizard (1160), each with their standard talk after Lost City | the Wiki's transcripts of each |
 | The candle seller (1896) by the swamp caves sells a lit candle for 1000 coins, and tells how lanterns are made, which the first menu then offers again | the Wiki's Transcript:Candle seller |
-| The Mining tutor (3222) by the east mine: the basics (Mining 1-24), tips (25-38) or advice (39-99), the quests (Doric and, on a members' world, the Dig Site), and the rocks and pickaxes menus; a bronze pickaxe for a player with none and a free slot | the Wiki's Transcript:Mining tutor |
-| The Fishing tutor (3221) by the shore: the basics (Fishing 1-28), tips (29-38, with the trawler) or advice (39-99, naming no quest as every one is done), the fish menu and where to fish by level, as on a members' world; a small fishing net for a player with none and a free slot | the Wiki's Transcript:Fishing tutor |
+| Monlum (16809, the Mining tutor until 242.1) by the east mine: his mining advice with its boxes, and a bronze pickaxe for a player with none (carried, worn or banked) and a free slot | the Wiki's Transcript:Monlum |
+| Finlay (16810, the Fishing tutor until 242.1) by the shore: his fishing advice with its boxes, and a small fishing net for a player with none and a free slot | the Wiki's Transcript:Finlay |
 | The fight animations (by the stand and walk animations each type has: the updated giant rat's, the giant frog's for all three frogs, the spear goblin's, the updated unicorn's), the curved bone's 1/5,012.5 kept as 1/5013, and every wander range (5) | guessed |
-| For the tutors: that a banked pickaxe or net counts as owned (as for the Woodsman tutor's axe); the items in the boxes the Wiki doesn't name; the fish menu's one slot for the lobster pot (Fishing 29-38) or the harpoon (39 and up), as a menu holds five options; the fishing tutor one tile east of RSMod's, which the 241 map has as water; their wander ranges (2) | guessed |
+| For the tutors: that a banked pickaxe or net counts as owned (as for Wilfred's axe); the icon items in the boxes (the old tutors'); their wander ranges (Monlum 4, Finlay 3: their Wiki map radii); that with a full backpack they give nothing and say so in a line of their own (the Wiki has none) | guessed |
 | Every chathead expression; that a worn ghostspeak amulet counts as carried; the bank as the only store Urhney checks (no Death's Office or item retrieval yet); the candle landing at the player's feet with no free slot; having heard about lanterns kept with the account by name | guessed |
 
 The unicorn retreats at a quarter of its hitpoints ([NPC aggression](#npc-aggression), guessed threshold). The tutors' offers to show a place on the world
 map lead back to the first menu without opening the map, which isn't built yet; the fishing spots and the mines are the
-gathering skills'. Hewey, Abigale and the two goblin sergeants, which the cache shows by quest varbits, are left out for
-now. What the talking NPCs say and each new NPC's examine are in the dialogue file (keys `father_urhney.*`,
+gathering skills'. Hewey, Abigale and the two goblin sergeants are in [the rest of the swamp](#the-rest-of-lumbridge-swamp).
+What the talking NPCs say and each new NPC's examine are in the dialogue file (keys `father_urhney.*`,
 `lost_city_warrior.*`, `lost_city_archer.*`, `lost_city_monk.*`, `lost_city_wizard.*`, `candle_seller.*`,
-`mining_tutor.*`, `fishing_tutor.*` and `examine.npc_<id>`, one for the level 3 giant rats and one for the level 6).
+`monlum.*`, `finlay.*` and `examine.npc_<id>`, one for the level 3 giant rats and one for the level 6).
 
 Check: `test-runner/examples/lumbridge-swamp.json` examines each kind and kills a giant rat and a giant frog for their
 drops, then talks to Urhney, the adventurers, the candle seller and both tutors; `HeadlessLumbridgeSwampTest` fights a
 giant rat to death, talks to Urhney and the camp's monk, buys a lit candle and gets a pickaxe and a net from the tutors
 through the headless client, with every branch of the talks in `SwampTalkTest` and `SwampTutorsTest`, the stats in
 `NpcCombatTest` and the drop rates in `NpcDropsTest`.
+
+### The rest of Lumbridge Swamp
+
+Misthalin piece 7 step 1: the swamp's shed, the Water Altar's ruins, the River Lum's broken raft, the stepping stone to
+the desert, the swamp's four quest NPCs and the goblins and spiders between the castle and Draynor. The shed, the ruins
+and the raft's Grapple are `game/content/LumbridgeSwamp.kt`; the raft's Jump-to and the stone are `skills/agility.json`;
+the NPCs are `npc-spawns/lumbridge-swamp-quest.json` and `npc-spawns/lumbridge-west.json`.
+
+| Behaviour | Source |
+|-----------|--------|
+| The shed's door (2406 at 3202,3169) lets a player in or out; with a dramen or lunar staff wielded it refuses with our own line, as Zanaris (where live takes them) is piece 8's. Live's Elite Lumbridge Diary does the same; there are no diaries | OSRS Wiki, Shed (Lumbridge Swamp) |
+| The tools inside (10375) give a rake or a spade, whichever isn't held, and a choice of the two with neither held | OSRS Wiki, Tools (gardening) |
+| The Water Altar's ruins (34815) refuse a water talisman or tiara, and Enter, with our own line: Runecraft isn't built | OSRS Wiki, Mysterious ruins; the 242 cache |
+| The broken raft's Grapple (17068): 8 Agility, 19 Strength and 37 Ranged, a crossbow wielded and a mith grapple worn, from either bank's shortcut icon (3246,3179 and 3259,3179) to the other, no XP; the grapple breaks one time in 25 | OSRS Wiki, Broken Raft (the infobox's 19 Strength; its text says 17) and Mith grapple (Mod Ash's 1/25); the 242 map |
+| The raft's Jump-to (17069 and 17070) at 48 Agility, no grapple, since 12 August 2026 | OSRS Wiki, Broken Raft |
+| The stepping stone to the desert (16513 at 3214,3135) at 66 Agility, no diary since 8 May 2024, from 3214,3140 to 3214,3131 and back | OSRS Wiki, Stepping stone (Lumbridge Swamp); the bank tiles by flood fill over the 242 map |
+| Abigale and Hewey (7428, 7429) and Sergeants Mossfists and Slimetoes (6278, 6279) stand where live has them, as the 242 cache's multi-NPCs, which show nothing after Misthalin Mystery and Another Slice of H.A.M. (every account has done both) | mejrs's live NPC list; osrs-dumps and the 242 cache |
+| 11 level 2 goblins, 8 level 2 giant spiders and 7 level 1 spiders round the H.A.M. trapdoor, west of the castle | mejrs's live NPC list |
+| The shed door standing open 3 ticks; the tools' menu words and messages, and nothing with both tools held; the raft's firing and swimming animations and their 2 and 6 ticks; the jumps going by way of the raft or the stone, two ticks each; the grapple's break rolled on the far bank; every wander range | guessed |
+
+Words for the new lines (`lumbridge_swamp.*`, the two new `agility.*_level` lines) and the two new loc examines go
+through the Words thread.
+
+Check: `test-runner/examples/lumbridge-swamp-rest.json` goes through the shed and takes both tools, uses a water
+talisman on the ruins, crosses the raft by Grapple and back by Jump-to, jumps the stone both ways and mines coal in the
+west mine; `HeadlessLumbridgeSwampRestTest` does the shed, the tools, the ruins and the Grapple through the headless
+client, `HeadlessShortcutsTest` the raft's Jump-to and the stone, `LumbridgeSwampTest` the rules, and
+`NpcSpawnFileTest` the two spawn files.
+
 ## Draynor Village
 
 The village west of Lumbridge (the Draynor piece, plan in the project's Draynor Village 1:1 plan doc). Step 1 is the
@@ -988,21 +1028,20 @@ done.
 | Behaviour | Source |
 |-----------|--------|
 | The altar (409) in the church: Pray-at fills prayer points up to the Prayer level and resets the drain counter; an item used on it is refused with a message | OSRS Wiki, Altar |
-| Father Aereck (2812), as after The Restless Ghost: his thanks, and he has no other quest | the Wiki's Transcript:Father Aereck |
-| The Prayer tutor (3223): how to train Prayer (with the 99 Prayer lines) and what it is for (which opens the prayer tab), as on a members' world; each answer offers the other | the Wiki's Transcript:Prayer tutor |
-| Nigel (6093, a multi-NPC that shows as 8391 on a normal world) in the graveyard: the two pages of Deadman Mode questions, and the rewards store, which is shut | the Wiki's Transcript:Nigel |
-| Count Check (7414): his advice counted out (with the questioned THREE), who he is and the Salve after Priest in Peril, the Stronghold of Security, to which he sends the player once (varbit `sos_teleported_by_count`), and his check, which fails | the Wiki's Transcript:Count Check |
+| Father Aereck (2812), as after The Restless Ghost and since 242.1, when he took over the removed Prayer tutor's tips: the prayer tips (with the altar icon and bones boxes), Saradomin (and claiming to be from another world), each back to his menu, whose goodbye is shorter once a topic was picked | the Wiki's Transcript:Father Aereck |
+| Nigel (6093, a multi-NPC that shows as 8391 on a normal world), at the Grand Exchange since 242.1 (`varrock.json`): the two pages of Deadman Mode questions, and the rewards store, which is shut | the Wiki's Transcript:Nigel; his tile from the Wiki's map |
+| Count Check (7414), as since 242.1: his check, which fails (the Wiki gives only a pass, so the old fail line is kept, then the menu a pass has), who he is and the Salve, and "No!" when asked what else he does, as on a main game world (so his once-only Barbarian Village teleport is never offered) | the Wiki's Transcript:Count Check |
 | Nigel's normal world menu leaving out the Deadman worlds' options, his Trade saying the store is shut, and the check failing as no account is a Jagex Account and the bank has no PIN (so his lamp never comes) | readings |
 | Every chathead expression; each answer going back to the menu it came from; the kneel (human_pray, 645) and the altar's messages; points above the level kept; the Stronghold tile (beside its entrance, 3081, 3421) and no teleport animation; the wander ranges (2, Father Aereck 5) | guessed |
 
-Left out: the lightning on Count Check's square, whose spotanim isn't known; the church organ; the treasure trail
+Left out: the church organ; the treasure trail
 and Wise Old Man parts of Father Aereck's talk. What they say, the altar's messages and each new NPC's and the altar's
-examine are in the dialogue file (keys `father_aereck.*`, `prayer_tutor.*`, `nigel.*`, `count_check.*`, `altar.*`,
+examine are in the dialogue file (keys `father_aereck.*`, `nigel.*`, `count_check.*`, `altar.*`,
 `examine.npc_<id>` and `examine.loc_409`).
 
-Check: `test-runner/examples/lumbridge-church.json` examines the four NPCs, prays at the altar with drained points,
-and talks to each NPC; `HeadlessLumbridgeChurchTest` prays at an altar, talks to Father Aereck and Nigel (through his
-multi-NPC) and is sent to the Stronghold by Count Check through the headless client, with every branch in
+Check: `test-runner/examples/lumbridge-church.json` examines Father Aereck and Count Check, prays at the altar with
+drained points, and talks to both (`ge-nigel.json` does Nigel at the Grand Exchange); `HeadlessLumbridgeChurchTest` prays at an altar, talks to Father Aereck and Nigel (through his
+multi-NPC) and fails Count Check's check through the headless client, with every branch in
 `ChurchTest`.
 
 ## Al Kharid
@@ -1620,24 +1659,23 @@ Hans (`game/content/Hans.kt`) is the example: Talk-to and Age, as the OSRS Wiki'
 | Hans's expressions, Age giving the time-played lines alone, where he runs when threatened | guessed |
 
 Lumbridge Castle's Cook (`Cook.kt`), Duke Horacio (`DukeHoracio.kt`), men and women (`Townsfolk.kt`), Perdu
-(`Perdu.kt`), the Crafting tutor (`CraftingTutor.kt`), the bankers (`Bankers.kt`), and outside the gate the Doomsayer
-(`Doomsayer.kt`), Hatius Cosaintus (`Hatius.kt`) and the Lumbridge Guide (`LumbridgeGuide.kt`) talk as they do once
+(`Perdu.kt`), Cadmus, the steward (the Crafting tutor until 242.1, `Cadmus.kt`), the bankers (`Bankers.kt`), and outside the gate the Doomsayer
+(`Doomsayer.kt`), Mikasi, the diary taskmaster since 242.1 moved Hatius Cosaintus to Falador (`Mikasi.kt`), and the Lumbridge Guide (`LumbridgeGuide.kt`) talk as they do once
 every quest is done, since every account here has done them all. The Duke gives an anti-dragon shield to a player
-carrying or wearing none, one talk with a man or woman in 128 hands over a flier, and the Guide gives a security book to
-a player carrying none. The bankers' collect (asked or op4 Collect) opens the Grand Exchange collection box (since
-the Varrock piece's step 3). Not built yet, so their options end the talk or do nothing: bank space; Perdu's Lost Property Shop; the Doomsayer's warnings (Toggle warnings); achievement diaries; Attack
-and Pickpocket; the Guide opening the account management tab's links, and his lost amulet, locket, clue and random
+carrying or wearing none, and one talk with a man or woman in 128 hands over a flier. The bankers' collect (asked or op4 Collect) opens the Grand Exchange collection box (since
+the Varrock piece's step 3). Not built yet, so their options end the talk or do nothing: bank space; Perdu's Lost Property Shop; the Doomsayer's warnings (Toggle warnings, and getting rid of signs, which ends after his answer); achievement diaries; Attack
+and Pickpocket; the Guide's owed experience (242.1's quest XP), and his lost amulet, locket, clue and random
 event talks.
 
 | Castle NPC behaviour | Source |
 |----------------------|--------|
-| The Cook's and the Duke's conversations: lines, options, order, when the shield is offered | OSRS Wiki, Transcript:Cook (Lumbridge) and Transcript:Duke Horacio |
+| The Cook's and the Duke's conversations: lines, options, order, when the shield is offered; the Cook's cooking advice since 242.1 (the removed Cooking tutor's role), with its icon boxes, back to his menu | OSRS Wiki, Transcript:Cook (Lumbridge) and Transcript:Duke Horacio |
 | The Cook's answer to "other quests" after Recipe for Disaster on a members' world (the free-to-play answer, with no line from the player) | guessed: the Wiki leaves it out |
 | Men's and women's 23 conversations, the 1 in 128 flier | OSRS Wiki, Transcript:Man, Transcript:Woman, Flier |
-| Perdu's, the Crafting tutor's, the banker's, the Banker tutor's, the Doomsayer's and Hatius's conversations | OSRS Wiki, their transcripts |
-| Hatius leaving out "another ring" for a player with no diary done | guessed: the Wiki lists it with no condition |
-| The Lumbridge Guide's conversation: lines, menus, where each option leads, the icon boxes | OSRS Wiki, Transcript:Lumbridge Guide; icon items are the 241 cache's `*_icon_dummy` objs |
-| The levels the Guide's answers change at (combat 20, Smithing 20, Fishing 20); the quest box's icon; the money menu's smithing and monsters options skipping straight to those answers; "has a weapon" meaning worn or carried in the weapon slot | guessed: the Wiki has "X" and "same as above" |
+| Perdu's, Cadmus's, the banker's (the Bank tutor is a normal banker since 242.1), the Doomsayer's and Mikasi's conversations | OSRS Wiki, their transcripts |
+| Mikasi leaving out "another ring" for a player with no diary done | guessed: the Wiki lists it with no condition |
+| The Lumbridge Guide's and the Doomsayer's conversations as since 242.1, which made them "more in-universe": their first-time talks (varbits `lumbridge_guide_met` and `doomsayer_intro`) and later ones, the Guide's menus, where each option leads, the icon boxes | OSRS Wiki, Transcript:Lumbridge Guide and Transcript:Doomsayer; icon items are the cache's `*_icon_dummy` objs |
+| The Guide's quest answer (missing on the Wiki: the old line for a player with every quest done) and goals answer (the Wiki's, under an unknown condition, always); the Doomsayer's thanks branch (missing on the Wiki: the old "welcome") | readings |
 | The Duke's first menu's order; skipping the "which dragon" menu once only one option is left; an item handed over landing at your feet with a full inventory; the other 22 townsfolk talks being equally likely; where the tutors' menus lead after a topic; every expression | guessed |
 
 Check: Talk-to Hans. He greets you; continue, pick each option in turn (talk to him again for each), and walk away
@@ -1808,14 +1846,32 @@ loses goes in a grave there. The party lasts through the wipe.
 | The Guardian's fight beginning on Touch on the waiting "Inert Guardian" (`tfa_guardian_start`, 16657) in the middle of the hall, where its corpse lies later; scaled to everyone standing in the run then | 241.4 cache (the NPC and its Touch); where it waits inferred from the corpse; the party size guessed |
 | The whole of a run's instance multi-way | inferred: a raid of up to eight fights one boss |
 | A member who leaves the party sent to the lobby; a logout saving them there, as any instance's exit | guessed |
-| Every room done as it begins, until its boss's step | stand-in (all but the Guardian's) |
-| The bosses after the Guardian, the Quartermaster and Supply Credits, the party's orbs, the reward room, deaths' item costs | not in yet: steps 17 to 31 |
+| A member down who gets out (a teleport such as Home Teleport or a lodestone, leaving the party, or a logout once out of combat) dying of it, with a grave in the lobby, as if they had been the last standing; a reconnect within the linger no escape | Sam's decision, 8 November 2026 (exploit review RAID-2); the death's place guessed |
+| A member down can't trade or be traded with, and what they drop stays theirs alone (never turning public), so a standing friend can't be handed their items before they get out (exploit review round 18, R18A-1) | guessed: live's raid rules aren't known; nothing is said on a refused request |
+| With no NPC slot free as the first of the party comes into Ezekiel's room, his room isn't started: each tick with one of the party in it tries again, rather than the run being stuck for good (exploit review round 18, R18A-3) | guessed |
+| Every room done as it begins, until its boss's step | stand-in (all but the Guardian's, Ezekiel's and Bork and the Smorks') |
+| Ezekiel (step 17a): his fight beginning as the first of the party comes into his room, that player his tank; his stats, 3,000 to 10,650 hitpoints by party size, the 25% earth weakness, poison and venom immunity and the 60% Defence drain floor | OSRS Wiki, Ezekiel (2026-11-09) |
+| Ezekiel walking after his tank, a melee swing every 5 ticks cleaving everyone round him but those on his side opposite the tank; lightning on everyone when his tank is out of reach; a cross of lightning centred on him after every second swing, bursting twice, and 3% special attack energy for a perfect dodge of a burst | guides (osrstoolkit, osrsbestinslot, runescapeguides, bald.gg; 2026-11-09) |
+| Ezekiel's flying swords (step 17b, `tfa_ezekiel_sword`): three or four with the cross, flying straight across once their timer is up; one lined up with him hitting and stunning him, none doing so healing him; damage to a sword charging it, a charged one hitting him (up to 80) and the player in its path harder; weak to air spells, resisting ranged; 3% special attack energy for a perfect dodge of one | guides (runescapeguides, bald.gg, osrsbestinslot, osrstoolkit; 2026-11-09), the Wiki's Strategies inventory table (wind spells empower them), the cache's NPC |
+| Where he waits (the middle of his room's ring of flames), the safe spot being his whole far side (its corner for a tank at a corner), the lightning's damage (up to 30) and landing, the cross's width (his) and reach (6 tiles out), its 3-tick warning, the 2 ticks between its bursts and its damage (20 to 40), his melee's max hit being the Wiki's 77, slash | guessed |
+| The swords' arena (10 tiles round his spawn), their lanes his width wide at random from a random end, the count at random, one volley out at a time, a volley flying together all along its lanes at once (live's fly across), their 15-tick timer, 100 points of charge, 20 to 80 on him, 10 to 25 on a player (twice that charged), the 8-tick stun, the 10% heal, the sword's type (rather than `tfa_ezekiel_sword_noop`), its stats, 50% air weakness and 300 ranged defence | guessed |
+| The swords' red launch timer and yellow charge bars over them (their cache head-bar ids aren't known: a sword shows only the ordinary health bar, falling as it charges) | not in yet: until the ids are found or a recording shows them |
+| Ezekiel's enrage at 35% (step 17c): every player in the fight shut into a three by three beside him, and volleys of three lightning strikes, each shown by which of three swords are struck and dodged on the tile of the one not struck; no sword of the fight before it hurting anyone through it, and no stun animation over its own | OSRS Wiki, Ezekiel and its changes of 28 October and 3 November 2026 (2026-11-09) |
+| The enrage's arena: him moving 6 tiles east of his spawn, the three by three west of him fenced on its other three sides by 11 `tfa_ezekiel_sword_noop` (the three marks the middle of its west side, the safe tile beside the unstruck one), each player put in it, the fence holding them by putting back whoever steps off; the 6-tick transition; a volley every 11 ticks (bald.gg) of three strikes 3 ticks apart, landing 2 ticks after the marks are struck, for 30 to 60, halved by Protect from Magic; the marks' and impacts' spotanims picked by name; him neither moving nor swinging in it | guessed |
+| Bork and the Smorks (steps 18a to 18c): both to die, either first, for the room to be done; their stats, Bork 1,500 to 5,330 and the Smorks 600 to 2,130 hitpoints by party size, Bork 4 by 4 and crush, the Smorks 3 by 3, ranged and magic, both every 7 ticks; Bork's flat armour of 8 to 14 and magic resistance of 0 to 6, 2 of each for every 25% the Smorks have lost, none while he is dazed, when melee always hits him; the oil's 6 to 7 a tick and its burn; his 40% and their 85% earth weakness, both immune to freeze, the 60% Defence drain floor on Bork | OSRS Wiki, Bork (The Fractured Archive) and Smorks (2026-11-09) |
+| Where Bork (4194,5603) and the Smorks' tower (4190,5598) stand; the room's transporter putting the player on the arena's floor (4184,5599), Bork going for the first in; his gong 8 ticks in and every 7 after, two strikes 2 ticks apart, the first out to his tank 2 or 3 tiles off, the second round him; the Smorks' cycles (a volley 13 ticks in, napalm, one or two volleys, the heavy cannonball; later two or three volleys, napalm, volleys to four, the cannonball), a spacing between shots and two spacings less a tick from napalm's cast to the next volley; napalm's cast a tick after its call and its splash 4 after that, the 3 wide row two deep beyond its tile towards the tower (2 by 2 on a diagonal), oil a tick on for 199 ticks; the heavy cannonball shot 2 ticks after its call at a player Bork isn't after, landing 5 later; the 14-tick daze; the stomp's 4 shockwaves 3, 6, 9 and 12 ticks in over the arena (4184-4198 x 5591-5607 bar its corners) but for the tower's shadow (every line from his middle 2 by 2 to points 0.3 in from a tile's corners crossing the tower), his tank call at 15 and gong at 19, the Smorks' next cycle 39 ticks after the daze; the tempo, a tick off both their spacings at each of the Smorks' 75, 50 and 25% (7 down to 4), with their lines; Bork gone 7 ticks after he falls and the Smorks' frenzy 4 after that, a volley at everyone every 2 ticks, napalm after 2 or 3 of them and then after every 5, the next volley 3 ticks after its cast, napalm by the tower splashing away from it; the Smorks dead first, Bork stomping over the whole room about every 45 ticks (their estimate), with Bork at the fastest tempo; every overhead line (keys in code, words in the dialogue file); the animations and spotanims by name | tsps capture notes (RSPSApp/tsps docs/fractured-archive.md: five spectator captures of live fights, rev 241.1; 2026-11-09) |
+| Protect from Melee cutting his gong; the volleys and napalm at players Bork isn't after; luring him onto the heavy cannonball | guides (bald.gg, tonsofxp, osrsbestinslot, runescapeguides; 2026-11-09) |
+| His max hit 34 and the Smorks' 28 (the formula's from the Wiki's levels and bonuses, the potions' the same); a strike rolled as his melee, up to 50 when it reaches out, halved by Protect from Melee, and the tower's shadow keeping a strike off too; a volley's style at random, all of it the same; a spacing from a volley to napalm or the cannonball's call; napalm and the cannonball at a random player Bork isn't after, his tank when there is none; the splash's drip on its own tile, and more than twice as far one way as the other counting as straight; napalm on Bork hurting him once by 6 to 7; the burn's 2 every 4 ticks, 5 times, not again while it runs; the cannonball hurting no player; a missed cannonball's stomp 2 ticks after it lands, with the miss line rather than the daze's; a shockwave's 15 to 30, no prayer helping, all at once rather than rolling out from his feet; his next tank a random other player; the frenzy's first volley on the tick it begins; the tempo staying where it is if the Smorks heal; Bork's first lone stomp 45 ticks after the Smorks fall; the fight beginning as the first steps onto the floor (live: 6 ticks after); flat armour coming off as a hit is rolled (before what he has left caps it, and the XP) and not taking it below 0; the fight's anchor being `tfa_bork_smork_hp_ui_handler`, and the room done once both bodies have gone | guessed |
+| The shared health bar and the Smorks' second bar; the gong's and shockwaves' dust on each tile | not in yet |
+| Once the run is done, a Passageway (`tfa_exit`) at the south edge of Ocellus's room, just south of where the party comes in, whose Exit leaves to the lobby in front of the Archive Door | stand-in until the reward room (step 28): the cache has no way out of that room (Sam's decision, 8 November 2026, exploit review RAID-3); where it stands guessed |
+| The bosses after the Guardian, the Quartermaster and Supply Credits, the party's orbs, the reward room, deaths' item costs | not in yet: steps 18 to 31 |
 
 `::raid run` shows the run you're in, `::raid tp nexus` or `::raid tp ezekiel` goes to its nexus or a room, and
 `::raid clear` marks the room you're in done, as if its boss died; a room whose fight never began (the Guardian before it is touched) gives its points to whoever of the party stands in it. Check: `./gradlew test --tests 'osrsps.game.instance.*'
 --tests 'osrsps.game.combat.DeathsTest' --tests 'osrsps.testclient.HeadlessArchiveRaidTest'` (a run through the empty
 rooms by the west doors and one by the east; rows opening in order and a row's other door shut; a death that leaves the
-party standing, a player too late to come in, and the wipe to the lobby with graves), and in RuneLite
+party standing, a player too late to come in, the wipe to the lobby with graves, and a member down who teleports out,
+leaves the party or logs out dying of it), and in RuneLite
 `test-runner/examples/archive-raid-flow.json` (both runs, solo) and `archive-raid-wipe.json` (a death in the raid back to
 the lobby, with a grave).
 
@@ -1969,7 +2025,7 @@ RuneLite `test-runner/examples/combat-ranged-shortbow.json`.
 Home Teleport, the standard spellbook's first spell (`game/content/HomeTeleport.kt`): on this server Cast opens the
 lodestone map (`Lodestones.kt` and `LodestoneMap.kt`, as RS3's does: each stone's icon where it stands, lit once the
 player has activated it, the stones' names beside, Teleport on the activated ones, and Previous destination for the
-stone last teleported to) and a pick plays the five stages on the spot and lands the player on that stone 28 ticks
+stone last teleported to) and a pick plays the cast's stages on the spot and lands the player on that stone 17 ticks
 later, free and with no cooldown. OSRS's own cast, to the castle courtyard 24 ticks after the click with the
 30-minute cooldown in varp 892 (which RuneLite's home teleport timer reads), is the class's default and stays tested,
 but no world uses it: `HomeTeleport.target` is the seam the lodestone network takes when it registers. Not in yet:

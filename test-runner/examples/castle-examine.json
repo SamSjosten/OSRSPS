@@ -180,12 +180,12 @@
   },
   {
    "step": "npcOption",
-   "npc": "Hatius Cosaintus",
+   "npc": "Mikasi",
    "option": "Examine"
   },
   {
    "step": "assertMessage",
-   "contains": "[examine.npc_5523]"
+   "contains": "[examine.npc_16804]"
   },
   {
    "step": "command",
@@ -240,12 +240,12 @@
   },
   {
    "step": "npcOption",
-   "npc": "Crafting tutor",
+   "npc": "Cadmus",
    "option": "Examine"
   },
   {
    "step": "assertMessage",
-   "contains": "[examine.npc_3220]"
+   "contains": "[examine.npc_16807]"
   },
   {
    "step": "locOption",
@@ -275,15 +275,6 @@
   {
    "step": "assertMessage",
    "contains": "[examine.npc_2897]"
-  },
-  {
-   "step": "npcOption",
-   "npc": "Banker tutor",
-   "option": "Examine"
-  },
-  {
-   "step": "assertMessage",
-   "contains": "[examine.npc_3227]"
   },
   {
    "step": "locOption",

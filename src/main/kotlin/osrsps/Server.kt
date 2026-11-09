@@ -20,6 +20,7 @@ import osrsps.cache.SkillUnlockLoader
 import osrsps.cache.VarTypeLoader
 import osrsps.cache.WorldMap
 import osrsps.cache.overlay.CacheOverlay
+import osrsps.game.content.CustomAnims
 import osrsps.game.content.CustomLocs
 import osrsps.game.content.CustomVars
 import osrsps.game.content.LodestoneMap
@@ -59,6 +60,8 @@ import osrsps.game.dialogue.ChatFont
 import osrsps.game.dialogue.DialogueFile
 import osrsps.game.npc.NpcSpawnFile
 import osrsps.game.raid.ArchiveGuardian
+import osrsps.game.raid.Bork
+import osrsps.game.raid.Ezekiel
 import osrsps.game.raid.PartyScaling
 import osrsps.game.shop.ShopTypes
 import osrsps.game.skill.SkillUnlocks
@@ -159,14 +162,14 @@ class GameServer(
             logger.info { "Custom vars after the cache's (varps to ${varTypes.varpCount - 1}, varbits to ${varTypes.varbitCount - 1}): $customVars" }
             val customLocs = CustomLocs(customVars)
             // The lodestone map's interface and sprites are built in code; a sprite file in data/sprites takes its place.
-            val overlay = CacheOverlay.load(dataDir).withGroups(LodestoneMap.overlayGroups) + customLocs.overlayFiles + customVars.overlayFiles
+            val overlay = CacheOverlay.load(dataDir).withGroups(LodestoneMap.overlayGroups) + customLocs.overlayFiles + customVars.overlayFiles + CustomAnims.overlayFiles
             logger.info { "Cache overlay: ${overlay.size} custom group(s) and file(s): $overlay" }
             js5 = Js5Store.load(library, overlay)
             map = MapCollisionLoader.loadWorld(library, customLocs.types)
             objTypes = ObjTypeLoader.load(library)
             npcTypes = NpcTypeLoader.load(library)
             quests = QuestLoader.load(library)
-            effectIds = EffectIdLoader.load(library)
+            effectIds = EffectIdLoader.load(library).withCustom(CustomAnims.seqs.keys, CustomAnims.spotanims.keys)
             chatFont = FontLoader.loadDialogueFont(library)
             attackStyles = CombatLoader.attackStyles(library)
             seqNames = CombatLoader.seqNames(library)
@@ -255,7 +258,7 @@ class GameServer(
             attackStyles = attackStyles, npcCombat = npcCombat, npcDrops = npcDrops, partyScaling = partyScaling, rangedWeapons = rangedWeapons,
             spells = spells, prayerList = prayers, foodList = Foods.load(objTypes), potionData = Potions.load(objTypes), shopTypes = shopTypes, skillUnlocks = skillUnlocks, ipBans = ipBans, xpRate = xpRate,
             wearRequirements = wearRequirements, itemPrices = itemPrices, itemPricesFile = itemPricesFile, settings = settings,
-            specialAttackCosts = specialAttackCosts, encounterDefs = listOfNotNull(ArchiveGuardian.def(npcTypes)),
+            specialAttackCosts = specialAttackCosts, encounterDefs = listOfNotNull(ArchiveGuardian.def(npcTypes), Ezekiel.def(npcTypes), Bork.def(npcTypes)),
             cycleMillis = cycleMillis,
         )
         loadObjSpawns(objTypes)

@@ -105,8 +105,8 @@ class HeadlessLodestoneTest {
                 client.stepTicks(1)
                 client.await("the landing") { client.position?.takeIf { it == lumbridgeCentre } }
                 assertEquals(started + Lodestones.CAST_TICKS, client.ticksSeen, "lands ${Lodestones.CAST_TICKS} ticks after the first stage")
-                val allStages = client.animationTicks().drop(animsBefore).take(5)
-                assertEquals(listOf(8, 7, 4, 3), allStages.zipWithNext { a, b -> b - a }, "the gaps between the stages, from $allStages")
+                val allStages = client.animationTicks().drop(animsBefore).take(Lodestones.STAGES.size + 1)
+                assertEquals(listOf(Lodestones.CAST_TICKS - Lodestones.RISE_TICKS, Lodestones.RISE_TICKS), allStages.zipWithNext { a, b -> b - a }, "the gaps between the charge, the rise and the landing, from $allStages")
                 client.commandReply("resume") { it.startsWith("Resumed after tick") }
 
                 // Standing on the stone, Teleport (op1 of the active look) opens the same map, now with Previous destination.
@@ -145,6 +145,30 @@ class HeadlessLodestoneTest {
                 val save = PlayerSave.fromJson(saves.read(SaveStore.saveKey("alice")!!)!!)
                 assertEquals(mapOf("lodestones" to SAVED), save.customVars)
                 assertFalse(vars.lodestonesVarp in save.varps, "not by id")
+            }
+        }
+    }
+
+    /**
+     * The nightly's `::resetlocs 10` in the courtyard (3222, 3218) reaches Lumbridge's stone at 3232, 3220. It took the
+     * stone away until a restart when a restore put back the bare cache tile; the stone is the world's for good.
+     */
+    @Test
+    fun `resetlocs around the courtyard keeps Lumbridge's stone, on the server and at the client`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            val world = server.world
+            server.login("alice").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(Coord(3222, 3218))
+                val stone = LocChange(lumbridge.id, lumbridge.loc.shape, lumbridge.loc.angle, Coord(lumbridge.x, lumbridge.z))
+                client.await("the Lumbridge stone to reach the client") { client.locChanges().takeIf { stone in it } }
+                client.commandReply("resetlocs 10") { it.startsWith("Put the locs within 10 of 3222, 3218") }
+                assertEquals(lumbridge.loc, world.locs[lumbridge.x, lumbridge.z, 0, lumbridge.loc.layer])
+                // A tick later (the teleport's round trip) the client still has the stone: nothing took it away.
+                client.tele(Coord(3223, 3218))
+                assertTrue(stone in client.locChanges(), client.locChanges().toString())
+                client.locOp(lumbridge.id, lumbridge.x, lumbridge.z, Lodestones.TELEPORT)
+                client.awaitMap()
             }
         }
     }

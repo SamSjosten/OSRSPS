@@ -97,6 +97,8 @@ data class NpcCombatDef(
     /** The Wiki's immunities: poison and venom from players' weapons do nothing to it. */
     val poisonImmune: Boolean = false,
     val venomImmune: Boolean = false,
+    /** Whether binding and ice spells' freeze can't hold it (the Wiki's freeze immunity; Bork and the Smorks). */
+    val freezeImmune: Boolean = false,
     /** The most of each stat's level drains can take, in percent ([NpcDrains]); a stat not listed can be drained to 0. */
     val drainCaps: Map<NpcStat, Int> = emptyMap(),
     /** How it attacks players unprovoked ([Aggression]); null for a monster that only fights back. */
@@ -119,6 +121,11 @@ data class NpcCombatDef(
      * The Fractured Archive/Strategies).
      */
     val flying: Boolean = false,
+    /**
+     * Ticks from its death until its body goes and its drops go down ([MeleeCombat]): 4 for most monsters, longer for a
+     * boss whose death animation runs longer (Bork's 7, from the tsps capture notes).
+     */
+    val deathTicks: Int = MeleeCombat.DEATH_TICKS,
 )
 
 /**
@@ -187,7 +194,7 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
          * ```
          *
          * An animation may be `null` for none. An entry may add `"magicAttack"`, `"weakness": { "element": "water", "percent": 10 }`,
-         * `"poison"` (the Wiki's starting damage of the poison its attacks give), `"immune": ["poison", "venom"]` and
+         * `"poison"` (the Wiki's starting damage of the poison its attacks give), `"immune": ["poison", "venom", "freeze"]` and
          * `"drainCap": { "defence": 60 }` (the most of a level drains can take, in percent) and `"aggressive"`: `true`, or
          * `{ "huntRange": 3, "ignoresLevels": true, "tolerant": false }` with any of the three ([NpcAggression]), and
          * `"retreatsAt": 25` (the share of its hitpoints, in percent, at which it retreats) and `"xpBonus": -97.5` (the
@@ -241,7 +248,7 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                 return seqs[name] ?: throw IllegalArgumentException("no animation called $name")
             }
             val immune = entry["immune"]?.jsonArray?.map { it.jsonPrimitive.content }.orEmpty().toSet()
-            require(immune.all { it == "poison" || it == "venom" }) { "immune to ${immune.joinToString()}: only poison and venom" }
+            require(immune.all { it == "poison" || it == "venom" || it == "freeze" }) { "immune to ${immune.joinToString()}: only poison, venom and freeze" }
             val attackType = entry.required("attackType").jsonPrimitive.content.let { text ->
                 AttackType.entries.firstOrNull { it.name.equals(text, ignoreCase = true) }
                     ?: throw IllegalArgumentException("unknown attack type '$text'")
@@ -266,6 +273,7 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                 poison = (entry["poison"]?.jsonPrimitive?.int ?: 0).also { require(it in 0..Poison.VENOM_MAX) { "poison starting at $it" } } * 5,
                 poisonImmune = "poison" in immune,
                 venomImmune = "venom" in immune,
+                freezeImmune = "freeze" in immune,
                 drainCaps = entry["drainCap"]?.jsonObject?.entries?.associate { (stat, percent) ->
                     NpcStat.parse(stat) to percent.jsonPrimitive.int.also { require(it in 0..100) { "a drain cap of $it%" } }
                 }.orEmpty(),
@@ -290,6 +298,9 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                     )
                 },
                 flying = entry["flying"]?.jsonPrimitive?.boolean ?: false,
+                deathTicks = (entry["deathTicks"]?.jsonPrimitive?.int ?: MeleeCombat.DEATH_TICKS).also {
+                    require(it >= MeleeCombat.DEATH_TICKS) { "a body going $it ticks after its death" }
+                },
             )
         }
 

@@ -15,8 +15,10 @@ import kotlin.io.path.name
  *   client's format ([osrsps.cache.SpriteCodec]), which take the place of the sprites built in code under the same
  *   id (the lodestone map's image). An id has to be above every live group of its index, as the client takes the
  *   group it already has for a known id, and below 65536, as a JS5 request carries a 2-byte group id.
- * - [files] added to live groups: our own loc types in config archive 6, encoded in code
- *   ([osrsps.game.content.CustomLocs]). A file id has to be above every live file of its group.
+ * - [files] added to live groups: our own loc types in config archive 6 and map elements in 35
+ *   ([osrsps.game.content.CustomLocs]), var types in 14 and 16 ([osrsps.game.content.CustomVars]) and sequences and
+ *   spotanims in 12 and 13 ([osrsps.game.content.CustomAnims]), all encoded in code. A file id has to be above every
+ *   live file of its group.
  */
 class CacheOverlay(val groups: List<Group>, val files: List<File> = emptyList()) {
     /** A whole group of ours: [data] is the group as the client unpacks it, holding [files] (one, id 0, unless packed as several). */

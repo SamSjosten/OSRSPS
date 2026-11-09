@@ -115,6 +115,48 @@ class MapCollisionLoaderTest {
     }
 
     @Test
+    fun `reads revision 242's multilocs, whose loc ids are 3 bytes`() {
+        // 97: varbit, varp, count 1, two 3-byte ids (one past 65,535); then a 2 by 3 footprint, to show the bytes line up.
+        val plain = byteArrayOf(97, 0, 1, 0, 2, 1, 1, 0, 0, 0, 0, 7, 14, 2, 15, 3, 0)
+        // 98: as 97 with a 3-byte default id (-1, all ones) before the count.
+        val withDefault = byteArrayOf(98, 0, 1, 0, 2, -1, -1, -1, 1, 0, 0, 9, 1, 0, 0, 14, 2, 15, 3, 0)
+        // 98 again, with a default of 70000 and a child of -1 (none), both 3 bytes.
+        val longDefault = byteArrayOf(98, 0, 1, 0, 2, 1, 17, 112, 1, -1, -1, -1, 0, 0, 9, 14, 2, 15, 3, 0)
+        val children = listOf(listOf(65536, 7, -1), listOf(9, 65536, -1), listOf(-1, 9, 70000))
+        for ((def, expected) in listOf(plain, withDefault, longDefault).zip(children)) {
+            val loc = LocTypeDecoder.decode(1, def, null)
+            assertTrue(loc.multiloc)
+            assertEquals(listOf(1, 2), listOf(loc.multiVarbit, loc.multiVarp))
+            assertEquals(expected, loc.multiLocs, "the children, then the default")
+            val type = LocTypeDecoder.decode(def)
+            assertEquals(2, type.width)
+            assertEquals(3, type.length)
+        }
+    }
+
+    @Test
+    fun `a 242 multiloc's collision reaches the map`(@TempDir dir: Path) {
+        val cacheDir = Files.createDirectories(dir.resolve("cache"))
+        cacheDir.resolve("main_file_cache.dat2").createFile()
+        cacheDir.resolve("main_file_cache.idx255").createFile()
+        val library = CacheLibrary.create(cacheDir.toString())
+        repeat(5) { library.createIndex(named = true) }
+        library.createIndex(named = false)
+        library.put(0, 0, kotlin.random.Random(1).nextBytes(100_000))
+        // Loc type 5: a 98 multiloc, then 2 wide. Were 98 misread, the type would fail to decode and block nothing.
+        library.put(2, 6, 5, byteArrayOf(98, 0, 1, 0, 2, -1, -1, -1, 0, 0, 0, 9, 14, 2, 0))
+        library.put(5, (50 shl 8) or 50, 0, terrain(emptyMap()))
+        library.put(5, (50 shl 8) or 50, 1, locs(5, 20, 20, 0, 10, 0))
+        library.update()
+        library.close()
+
+        val map = CacheLibrary.create(cacheDir.toString()).use { MapCollisionLoader.load(it) }
+        assertEquals(CollisionFlag.LOC or CollisionFlag.LOC_PROJ, map[3220, 3220, 0])
+        assertEquals(CollisionFlag.LOC or CollisionFlag.LOC_PROJ, map[3221, 3220, 0])
+        assertEquals(0, map[3222, 3220, 0])
+    }
+
+    @Test
     fun `fails loudly on an unknown loc opcode`() {
         assertFailsWith<IllegalStateException> { LocTypeDecoder.decode(byteArrayOf(200.toByte(), 0)) }
     }

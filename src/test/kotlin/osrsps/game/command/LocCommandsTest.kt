@@ -62,4 +62,16 @@ class LocCommandsTest {
         assertEquals(1, world.locs.at(3222, 3218, 0).size)
         assertEquals(0, world.locs.changed)
     }
+
+    @Test
+    fun `resetlocs keeps a loc the server placed for good`() {
+        val stone = ZoneLoc(2, LocShape.CENTREPIECE_STRAIGHT, 0, 3223, 3218, 0)
+        world.locs.addPermanent(stone)
+        run("::resetlocs 1")
+        assertEquals("Put the locs within 1 of 3222, 3218 back as the cache has them", replies.last())
+        assertEquals(stone, world.locs.find(2, 3223, 3218, 0))
+        run("::locs 1")
+        assertTrue(replies.contains("2 Crate at 3223, 3218 shape 10 angle 0"), replies.toString())
+        assertTrue(replies.none { it.endsWith("(changed)") }, replies.toString())
+    }
 }

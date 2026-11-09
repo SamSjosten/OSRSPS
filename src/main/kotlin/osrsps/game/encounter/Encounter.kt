@@ -10,9 +10,17 @@ import osrsps.map.Tile
 /**
  * A boss fight as content writes it: [boss] fought through [phases] in order, from the first. Each boss of the raid is
  * one of these, and [Encounters] runs it a tick at a time. [name] is what `::raid` takes, one word. With
- * [scriptedAttacks] the boss attacks only as its phases' steps say ([Npc.scriptedAttacks]), never by itself.
+ * [scriptedAttacks] the boss attacks only as its phases' steps say ([Npc.scriptedAttacks]), never by itself. [status]
+ * says what `::raid` shows of the fight's NPCs; without it, the boss's hitpoints (a fight whose [boss] is only its
+ * anchor, as Bork and the Smorks' is, shows its two).
  */
-class EncounterDef(val name: String, val boss: NpcType, val phases: List<PhaseDef>, val scriptedAttacks: Boolean = false) {
+class EncounterDef(
+    val name: String,
+    val boss: NpcType,
+    val phases: List<PhaseDef>,
+    val scriptedAttacks: Boolean = false,
+    val status: (EncounterContext.() -> String)? = null,
+) {
     init {
         require(name.isNotEmpty() && name.none(Char::isWhitespace)) { "Bad encounter name '$name'" }
         require(phases.isNotEmpty()) { "$name has no phases" }

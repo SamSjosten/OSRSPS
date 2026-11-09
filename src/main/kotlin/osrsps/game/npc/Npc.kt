@@ -191,13 +191,37 @@ class Npc(
     var scriptedAttacks: Boolean = false
 
     /**
+     * It keeps to no max range of its spawn ([Npcs.MAX_RANGE]) while it fights: it walks after its target anywhere and
+     * never gives up on them for being far from home, as a boss does in its own room (Ezekiel walking after his tank).
+     */
+    var unleashed: Boolean = false
+
+    /**
      * A hit that takes it to 0 hitpoints leaves it standing there, at 0, for its boss fight to change it (a shield
      * broken, a phase over) rather than killing it; later hits do nothing until the fight lets it die again.
      */
     var holdsAtZero: Boolean = false
 
+    /**
+     * Its flat armour, asked as each player hit is rolled ([osrsps.game.combat.MeleeCombat.armoured]): what a melee or
+     * ranged hit loses, or a spell's when given true. Null, none, for most; a boss fight sets it (Bork's, raid step 18a,
+     * worked out from the Smorks' hitpoints as each hit is rolled). The OSRS Wiki's infobox lists both ("Flat armour",
+     * "Magic resistance") for Bork.
+     */
+    var armour: ((magic: Boolean) -> Int)? = null
+
+    /**
+     * Melee hits on it always land before this tick, whatever their roll; -1, none. A boss fight sets it: Bork dazed by
+     * the Smorks' heavy cannonball (raid step 18b; OSRS Wiki: "melee attacks will always hit").
+     */
+    var meleeSureUntil: Long = -1
+
     /** True from the hit that killed it until it is taken out of the world; it can't be attacked meanwhile. */
     var dead: Boolean = false
+        internal set
+
+    /** The tick of the hit that killed it; -1 while it lives. A boss fight times what follows a death from it. */
+    var diedTick: Long = -1
         internal set
 
     /** The player who hit it last, and the tick they did; see [osrsps.game.combat.MeleeCombat]. */

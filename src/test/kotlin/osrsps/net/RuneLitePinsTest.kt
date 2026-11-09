@@ -23,6 +23,14 @@ class RuneLitePinsTest {
     }
 
     @Test
+    fun `revision 242 is RuneLite 1_13_6`() {
+        val pin = RuneLitePins.load()[242]!!
+        assertEquals("1.13.6", pin.runelite)
+        assertEquals("b4dab8e7cfdef726c45d2772d60d8a633d397361", pin.commit)
+        assertEquals("a499704b700c88668ab381c20c2e4b2941b3cea377225cc651c86ce7c08bf440", pin.bootstrapSha256)
+    }
+
+    @Test
     fun `a commit or hash that isn't all lowercase hex fails the file`() {
         val short = assertFailsWith<IllegalArgumentException> { RuneLitePins.parse(file(commit = "1e634e6")) }
         assertContains(short.message!!, "isn't 40 lowercase hex digits")

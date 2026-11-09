@@ -19,14 +19,14 @@ class ExaminesTest {
 
     @Test
     fun `every castle NPC that talks has an examine`() {
-        for (id in listOf(Hans.ID, Cook.ID, DukeHoracio.ID, Perdu.ID, CraftingTutor.ID, Bankers.BANKER, Bankers.BANKER_TUTOR, Doomsayer.ID, Hatius.ID, LumbridgeGuide.ID) + Townsfolk.MEN + Townsfolk.WOMEN) {
+        for (id in listOf(Hans.ID, Cook.ID, DukeHoracio.ID, Perdu.ID, Cadmus.ID, Bankers.BANKER, Doomsayer.ID, Mikasi.ID, LumbridgeGuide.ID) + Townsfolk.MEN + Townsfolk.WOMEN) {
             assertEquals("examine.npc_$id", Examines.npc(id)?.key, "NPC $id")
         }
     }
 
     @Test
     fun `the church's NPCs and the scenery outside the castle have examines`() {
-        for (id in listOf(Church.FATHER_AERECK, Church.PRAYER_TUTOR, Church.NIGEL_REGULAR, Church.COUNT_CHECK)) {
+        for (id in listOf(Church.FATHER_AERECK, Church.NIGEL_REGULAR, Church.COUNT_CHECK)) {
             assertEquals("examine.npc_$id", Examines.npc(id)?.key, "NPC $id")
         }
         // Nigel's multi-NPC id shares the Nigel a normal world shows.
@@ -34,6 +34,13 @@ class ExaminesTest {
         // The church's altar, organ and pews, the graveyard's gravestones, a water wheel and a plant west of the castle: the 241
         // cache's ids (dump.loc).
         for (id in listOf(Church.ALTAR, 3500, 5788, 404, 405, 5590, 1391)) assertEquals("examine.loc_$id", Examines.loc(id)?.key, "loc $id")
+    }
+
+    @Test
+    fun `the reworked Lumbridge NPCs of 242 have examines, and the Ironman tutor's shown type shares his`() {
+        val ids = listOf(Harlan.ID, Mikasi.ID, Feoras.ID, Cadmus.ID, Wilfred.ID, SwampTutors.MONLUM, SwampTutors.FINLAY, ShearedRam.ARTHUR)
+        for (id in ids) assertEquals("examine.npc_$id", Examines.npc(id)?.key, "NPC $id")
+        assertSame(Examines.npc(LumbridgeTownsfolk.IRONMAN_TUTOR), Examines.npc(LumbridgeTownsfolk.IRONMAN_TUTOR_VISIBLE))
     }
 
     @Test

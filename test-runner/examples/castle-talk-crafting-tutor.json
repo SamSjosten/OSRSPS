@@ -1,5 +1,5 @@
 {
- "name": "Lumbridge Castle: Talk-to the Crafting tutor (::keys on, so keys show whatever data/dialogue.txt holds)",
+ "name": "Lumbridge Castle: Talk-to Cadmus, the steward (the Crafting tutor until 242.1) (::keys on, so keys show whatever data/dialogue.txt holds)",
  "account": "test",
  "steps": [
   {
@@ -12,48 +12,48 @@
   },
   {
    "step": "command",
-   "text": "::tele 3210 3213 1",
-   "expectMessage": "Teleported to 3210, 3213, 1"
+   "text": "::tele 3210 3214 1",
+   "expectMessage": "Teleported to 3210, 3214, 1"
   },
   {
    "step": "assertLocation",
    "x": 3210,
-   "y": 3213,
+   "y": 3214,
    "plane": 1
   },
   {
    "step": "npcOption",
-   "npc": "Crafting tutor",
+   "npc": "Cadmus",
    "option": "Talk-to"
   },
   {
    "step": "assertDialogue",
-   "contains": "[crafting_tutor.hello]"
+   "contains": "[cadmus.hello]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[crafting_tutor.offer]"
+   "contains": "[cadmus.greeting]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "chooseOption",
-   "text": "[crafting_tutor.no_thanks]"
+   "text": "[cadmus.good]"
   },
   {
    "step": "assertDialogue",
-   "contains": "[crafting_tutor.no_thanks]"
+   "contains": "[cadmus.good]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[crafting_tutor.come_back]"
+   "contains": "[cadmus.very_well]"
   },
   {
    "step": "continueDialogue"

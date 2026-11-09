@@ -1,5 +1,5 @@
 {
- "name": "Rest of Lumbridge step 9: the swamp. Examine (::keys on) on a level 6 giant rat, the three frogs, the level 5 goblin and the unicorn; a giant rat and a giant frog killed for their drops; Father Urhney's spare ghostspeak amulet, the adventurers' camp, a lit candle bought, and the Mining and Fishing tutors' basics",
+ "name": "Rest of Lumbridge step 9: the swamp. Examine (::keys on) on a level 6 giant rat, the three frogs, the level 5 goblin and the unicorn; a giant rat and a giant frog killed for their drops; Father Urhney's spare ghostspeak amulet, the adventurers' camp, a lit candle bought, and Monlum's and Finlay's talk (Lumbridge 242 step 2)",
  "account": "test",
  "steps": [
   {
@@ -540,99 +540,112 @@
    "step": "command",
    "text": "::tele 3227 3148 0",
    "expectMessage": "Teleported to 3227, 3148, 0",
-   "comment": "the Mining tutor, by the east mine"
+   "comment": "Monlum, by the east mine"
   },
   {
    "step": "command",
    "text": "::item bronze pickaxe 1",
    "expectMessage": "Added",
-   "comment": "carried, so the line is the same whatever the bank holds"
+   "comment": "so he has none to give"
   },
   {
    "step": "npcOption",
-   "npc": "Mining tutor",
+   "npc": "Monlum",
    "option": "Talk-to",
    "timeoutMs": 20000
   },
   {
-   "step": "chooseOption",
-   "text": "[mining_tutor.basics]"
-  },
-  {
    "step": "assertDialogue",
-   "contains": "[mining_tutor.basics]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[mining_tutor.site_hint]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[mining_tutor.already_pick]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[mining_tutor.tell_ore]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[mining_tutor.click_rock]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[mining_tutor.full_inventory]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[mining_tutor.bank_hint]"
+   "contains": "[monlum.greeting]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "chooseOption",
-   "text": "[mining_tutor.quests]"
+   "text": "[monlum.advice]"
   },
   {
    "step": "assertDialogue",
-   "contains": "[mining_tutor.doric]"
+   "contains": "[monlum.advice]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[mining_tutor.dig_site]",
-   "comment": "every quest counts as done on a members' world"
+   "contains": "[monlum.advice_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[monlum.mine_hint]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[monlum.advice_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[monlum.advice_3]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[monlum.guide_hint]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[monlum.thanks]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "chooseOption",
-   "text": "[mining_tutor.goodbye]"
+   "text": "[monlum.pickaxe]"
   },
   {
    "step": "assertDialogue",
-   "contains": "[mining_tutor.goodbye]"
+   "contains": "[monlum.pickaxe]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[monlum.has_one]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[monlum.so_i_do]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[monlum.leave]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[monlum.leave]"
   },
   {
    "step": "continueDialogue"
@@ -641,121 +654,181 @@
    "step": "assertNoDialogue"
   },
   {
-   "step": "command",
-   "text": "::tele 3247 3156 0",
-   "expectMessage": "Teleported to 3247, 3156, 0",
-   "comment": "the Fishing tutor, by the shore"
+   "step": "assertInventory",
+   "item": "Bronze pickaxe",
+   "count": 1
   },
   {
    "step": "command",
-   "text": "::item small fishing net 1",
-   "expectMessage": "Added"
+   "text": "::tele 3245 3156 0",
+   "expectMessage": "Teleported to 3245, 3156, 0",
+   "comment": "Finlay, by the shore"
   },
   {
    "step": "npcOption",
-   "npc": "Fishing tutor",
+   "npc": "Finlay",
    "option": "Talk-to",
    "timeoutMs": 20000
   },
   {
-   "step": "chooseOption",
-   "text": "[fishing_tutor.basics]"
-  },
-  {
    "step": "assertDialogue",
-   "contains": "[fishing_tutor.basics]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[fishing_tutor.have_net]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[fishing_tutor.spot_hint]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[fishing_tutor.how_to]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[fishing_tutor.is_that_it]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[fishing_tutor.progress]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[fishing_tutor.full_inventory]"
+   "contains": "[finlay.greeting]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "chooseOption",
-   "text": "[fishing_tutor.fish]"
+   "text": "[finlay.advice]"
   },
   {
    "step": "assertDialogue",
-   "contains": "[fishing_tutor.fish]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "chooseOption",
-   "text": "[fishing_tutor.small_net]"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[fishing_tutor.small_net_hint]"
+   "contains": "[finlay.advice]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[fishing_tutor.small_net_catch]"
+   "contains": "[finlay.advice_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[finlay.what_parrot]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[finlay.percy]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[finlay.sure]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[finlay.advice_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[finlay.advice_3]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[finlay.spot_hint]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[finlay.advice_4]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[finlay.advice_5]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[finlay.guide_hint]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[finlay.thanks]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[finlay.dont_mention_it]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "chooseOption",
-   "text": "[fishing_tutor.tell_me_about]"
-  },
-  {
-   "step": "chooseOption",
-   "text": "[fishing_tutor.goodbye]"
+   "text": "[finlay.tools]"
   },
   {
    "step": "assertDialogue",
-   "contains": "[fishing_tutor.goodbye]"
+   "contains": "[finlay.tools]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[finlay.only_a_net]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[finlay.gives_net]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[finlay.thanks]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[finlay.happy_to_help]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[finlay.leave]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[finlay.leave]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Small fishing net",
+   "count": 1
   },
   {
    "step": "command",

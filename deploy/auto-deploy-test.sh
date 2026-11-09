@@ -21,13 +21,14 @@ cat >"$tmp/bin/docker" <<'EOF'
 echo "docker $* OSRSPS_COMMIT=${OSRSPS_COMMIT:-} built=$(cat .deploy/built 2>/dev/null)" >>"$DOCKER_LOG"
 if [[ " $* " == *" build "* && -e $FAIL_BUILD ]]; then exit 1; fi
 if [[ " $* " == *" up "* && -e $FAIL_UP ]]; then exit 1; fi
+if [[ " $* " == *" builder prune "* && -e $FAIL_PRUNE ]]; then exit 1; fi
 if [[ " $* " == *" fetch-cache "* ]]; then
 	mkdir -p data
 	echo "openrs2 runescape/1 build ${*: -1} 2026-01-01T00:00:00Z" >data/cache-source.txt
 fi
 EOF
 chmod +x "$tmp/bin/docker"
-export PATH=$tmp/bin:$PATH DOCKER_LOG=$tmp/docker.log FAIL_BUILD=$tmp/fail-build FAIL_UP=$tmp/fail-up
+export PATH=$tmp/bin:$PATH DOCKER_LOG=$tmp/docker.log FAIL_BUILD=$tmp/fail-build FAIL_UP=$tmp/fail-up FAIL_PRUNE=$tmp/fail-prune
 # /proc/meminfo as the script reads it: plenty available unless a step says otherwise.
 echo "MemAvailable:    8000000 kB" >"$tmp/meminfo"
 export OSRSPS_MEMINFO=$tmp/meminfo
@@ -123,6 +124,9 @@ expect_calls "compose build OSRSPS_COMMIT=$head" 1
 expect_calls "compose up -d OSRSPS_COMMIT=$head" 1
 expect_state deployed "$head"
 expect_state built "$head"
+# Each build's leftovers are pruned once the new server is up.
+expect_calls "builder prune -f --filter until=24h" 1
+[[ $(tail -1 "$DOCKER_LOG") == "docker builder prune"* ]] || fail "the build cache wasn't pruned after the new server was up"
 
 step="a doc in src/main is part of the server"
 merge src/main/resources/README.md=1
@@ -360,6 +364,26 @@ expect_calls "compose start" 1
 expect_state built "$running"
 expect_state failed "$head"
 echo "MemAvailable:    8000000 kB" >"$tmp/meminfo"
+
+step="a prune that fails doesn't fail the deploy"
+merge src/main/Server.kt=prune
+touch "$tmp/fail-prune"
+deploy
+rm -f "$tmp/fail-prune"
+expect_status 0
+expect_calls "builder prune" 1
+expect_state deployed "$head"
+expect_state built "$head"
+grep -q "Pruning the build cache FAILED" "$tmp/out" || fail "the output doesn't say the prune failed"
+
+step="a build that fails prunes nothing"
+merge src/main/Server.kt=noprune
+touch "$tmp/fail-build"
+deploy
+rm -f "$tmp/fail-build"
+expect_status 1
+expect_calls "builder prune" 0
+rm -f "$tmp/vm/.deploy/failed"
 
 if ((failures)); then
 	echo "$failures check(s) failed"

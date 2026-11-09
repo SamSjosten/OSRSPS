@@ -1,0 +1,207 @@
+{
+ "name": "Raid steps 17a, 17b and 17c: Ezekiel solo, his fight beginning as the first player comes into his room, his walk over with lightning while he can't reach, his swings under Protect from Melee, the cross after every second one and the flying swords with it, his enrage at 35% shutting the player into a fenced three by three beside him under strikes of lightning, to his death doing the room",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare",
+   "comment": "nothing carried; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel prayer 99",
+   "expectMessage": "Prayer set to level 99"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel hitpoints 99",
+   "expectMessage": "Hitpoints set to level 99",
+   "comment": "enough for his lightning while he walks over, and a cross"
+  },
+  {
+   "step": "command",
+   "text": "::heal",
+   "expectMessage": "Healed to 99 hitpoints."
+  },
+  {
+   "step": "command",
+   "text": "::god on",
+   "expectMessage": "You can't be hurt now",
+   "comment": "his swings, lightning and crosses still land but do nothing, so the waits can't kill the account; ::god off at the end"
+  },
+  {
+   "step": "command",
+   "text": "::tele 4127 5560 0",
+   "expectMessage": "Teleported to 4127, 5560, 0",
+   "comment": "the lobby, in front of the Archive Door"
+  },
+  {
+   "step": "locOption",
+   "locId": 62768,
+   "option": "Enter",
+   "timeoutMs": 20000,
+   "comment": "into a run of one"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 6
+  },
+  {
+   "step": "command",
+   "text": "::raid tp guardian",
+   "expectMessage": "To Archive Guardian's room"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Archive Guardian's room.",
+   "comment": "the first row done, so the second's doors open"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 548,
+   "component": 69,
+   "comment": "toplevel:stone5, the prayer tab, in the fixed frame the VM's client uses"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 541,
+   "component": 23,
+   "comment": "prayerbook:prayer15, Protect from Melee, for his swings"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp ezekiel",
+   "expectMessage": "To Ezekiel's room",
+   "comment": "in at the room's east end: the first in, so his tank"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "Ezekiel 3000/3000 hp",
+   "comment": "the Wiki's hitpoints for a player alone (counted as two)"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "fight: takes on test",
+   "comment": "the account may be test or test2; the line is matched up to the name"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 30,
+   "comment": "he walks over from the middle of the room, casting lightning while he can't reach, then swings once beside"
+  },
+  {
+   "step": "assertAnimation",
+   "npc": "Ezekiel",
+   "id": 14685,
+   "timeoutMs": 10000,
+   "comment": "npc_ezekiel_melee01, his swing, every 5 ticks"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 40",
+   "expectMessage": "fight: swings at test"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 12,
+   "comment": "a second swing, and with it the cross"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 60",
+   "expectMessage": "fight: cross on him",
+   "comment": "the cross of lightning centred on him, after every second swing"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 60",
+   "expectMessage": "fight: sword at",
+   "comment": "with the cross, the flying swords at the arena's edge (step 17b)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 16,
+   "comment": "the swords fly: lined up with him one stuns him, else he heals"
+  },
+  {
+   "step": "command",
+   "text": "::hit 2000",
+   "expectMessage": "1000/3000 hp",
+   "comment": "down to a third, under the 35% his enrage begins at (step 17c)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "enrage: enrage at",
+   "comment": "the swords out go unflown, his finale begins"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 8,
+   "comment": "the transition, then the arena"
+  },
+  {
+   "step": "assertAnimation",
+   "npc": "Ezekiel",
+   "id": 14696,
+   "timeoutMs": 10000,
+   "comment": "npc_ezekiel_finale_loop01, sent once as the arena goes up; before the next command, as a command resets what an assert looks back over"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "enrage: arena at",
+   "comment": "he stands east in his room, a fence of swords round a three by three west of him, the player brought into it"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "enrage: lightning, safe row",
+   "comment": "two of the three marks struck, the back-row tile on the third's row spared"
+  },
+  {
+   "step": "command",
+   "text": "::hit 1000",
+   "expectMessage": "0/3000 hp, dead"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "done Archive Guardian, Ezekiel;",
+   "comment": "his death does his room"
+  },
+  {
+   "step": "command",
+   "text": "::god off",
+   "expectMessage": "You can be hurt again"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

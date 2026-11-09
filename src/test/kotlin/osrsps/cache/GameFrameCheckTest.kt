@@ -2,19 +2,9 @@ package osrsps.cache
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import osrsps.game.AllSettings
-import osrsps.game.EquipmentTab
 import osrsps.game.FrameSlot
 import osrsps.game.GameFrame
-import osrsps.game.SettingsSide
-import osrsps.game.WorldMapScreen
-import osrsps.game.bank.BankPinSettings
-import osrsps.game.bank.BankScreen
-import osrsps.game.bank.DepositBox
 import osrsps.game.dialogue.ChatAnim
-import osrsps.game.dialogue.Chatbox
-import osrsps.game.ge.GrandExchangeScreen
-import osrsps.game.shop.ShopScreen
 
 class GameFrameCheckTest {
     /** Gameval names as the 241 cache has them, built from our own tables. */
@@ -24,7 +14,12 @@ class GameFrameCheckTest {
             names[frame.interfaceId] = InterfaceNames(frame.cacheName, FrameSlot.entries.associate { frame.component(it) to it.cacheName })
         }
         for (overlay in GameFrame.overlays) names[overlay.interfaceId] = InterfaceNames(overlay.cacheName, emptyMap())
-        for ((id, expected) in GameFrame.ORBS_CACHE_NAMES + WorldMapScreen.CACHE_NAMES + EquipmentTab.CACHE_NAMES + Chatbox.CACHE_NAMES + BankScreen.CACHE_NAMES + DepositBox.CACHE_NAMES + BankPinSettings.CACHE_NAMES + SettingsSide.CACHE_NAMES + AllSettings.CACHE_NAMES + ShopScreen.CACHE_NAMES + GrandExchangeScreen.CACHE_NAMES + osrsps.game.ge.PriceChecker.CACHE_NAMES) names[id] = InterfaceNames(expected.first, expected.second)
+        for (table in GameFrameCheck.INTERFACE_NAMES) {
+            for ((id, expected) in table) {
+                val known = names[id]?.components.orEmpty()
+                names[id] = InterfaceNames(expected.first, known + expected.second)
+            }
+        }
         return names
     }
 
@@ -43,6 +38,13 @@ class GameFrameCheckTest {
             listOf("toplevel component 41 should be mainmodal but is com_41", "interface 149 should be inventory but is inventory_new"),
             GameFrameCheck.check { names[it] },
         )
+    }
+
+    @Test
+    fun `a moved component in a window outside the frame is reported`() {
+        val names = names()
+        names[699] = InterfaceNames("clans_applicants", names.getValue(699).components + (12 to "com_12"))
+        assertEquals(listOf("clans_applicants component 12 should be 00 but is com_12"), GameFrameCheck.check { names[it] })
     }
 
     @Test

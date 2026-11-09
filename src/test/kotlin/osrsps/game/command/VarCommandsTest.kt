@@ -74,7 +74,7 @@ class VarCommandsTest {
         assertEquals(
             listOf(
                 "Usage: ::varp id|name [value]",
-                "Usage: ::varp id|name [value] ('abc' is not a number or one of lodestones)",
+                "Usage: ::varp id|name [value] ('abc' is not a number or one of harlan.claimed, lodestones)",
                 "Varps are 0 to 4999",
                 "Usage: ::varp id|name [value] ('x' is not a number)",
                 "No varbit 1 in the cache",

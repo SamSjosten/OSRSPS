@@ -111,7 +111,7 @@ main() {
 		return 0
 	fi
 
-	local commit=$built
+	local commit=$built rebuilt=0
 	if ((code && !force)) && [[ -n $built ]] && ! server_changed "$built" "$target"; then
 		# A restart would kick every player for nothing: the checkout moves on, and the server's /version reads the new
 		# commit from .deploy/deployed, as `built` still names its own.
@@ -151,6 +151,7 @@ main() {
 		# The image is the new build from here on, not the running server's.
 		put built ""
 		commit=$target
+		rebuilt=1
 	fi
 
 	# The cache is fetched by the image just built, while the old server still runs; the restart below picks it up.
@@ -188,6 +189,7 @@ main() {
 		fi
 		put built "$commit"
 		echo "Deployed ${commit:-unknown}"
+		if ((rebuilt)); then prune_build_cache; fi
 	else
 		((code)) && echo "$target" >.deploy/failed
 		echo "Starting ${commit:-unknown} FAILED"
@@ -204,6 +206,15 @@ server_changed() {
 	files=$(git diff --no-renames --name-only "$1" "$2" --) || return 0
 	[[ -n $files ]] || return 1
 	grep -qvE '^((test-runner|tick-recorder|launcher|deploy|docs|\.github)/|src/test/|[^/]+\.md$)' <<<"$files"
+}
+
+# Each build leaves a few hundred MB of build cache (the source layer and Gradle's output for that commit), which filled
+# 214's 40 GB disk at about 2.5 GB a day. After a new server is up, the cache nothing has used for a day goes
+# (OSRSPS_BUILD_CACHE_KEEP, a duration such as 24h); what every build reuses, like the Gradle dependency layer, stays
+# warm. A prune that fails doesn't fail the deploy: the next build's prune tries again.
+prune_build_cache() {
+	docker builder prune -f --filter "until=${OSRSPS_BUILD_CACHE_KEEP:-24h}" >/dev/null 2>&1 ||
+		echo "Pruning the build cache FAILED; the next deploy tries again"
 }
 
 # MB the kernel says it can give out without swapping (MemAvailable); OSRSPS_MEMINFO stands in for /proc/meminfo in the

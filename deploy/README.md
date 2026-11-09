@@ -38,6 +38,10 @@ VM with cron, a line in `sam`'s crontab) runs it, and when `origin/main` has mov
   to one small JVM and raises that step's OOM score to the top, and compose fixes the server's heap at 512 MB and
   lowers its score to -500: if memory runs out anyway, the kernel kills the build first and every process with the
   default score before the server.
+- After a build's new server is up, the Docker build cache nothing used for a day is pruned
+  (`docker builder prune --filter until=24h`; `OSRSPS_BUILD_CACHE_KEEP` sets another duration). Each build leaves a
+  few hundred MB, which filled the 40 GB disk at about 2.5 GB a day; the layers every build reuses stay warm. A failed
+  prune only logs a line.
 - A deploy that fails (build error, a server that doesn't start, or a checkout that can't fast-forward) is written to
   `.deploy/failed` and is not retried every minute. The next commit on main tries again, or
   `deploy/auto-deploy.sh --force` by hand.

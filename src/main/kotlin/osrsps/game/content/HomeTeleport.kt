@@ -33,7 +33,8 @@ object HomeTeleportLines : Lines("home_teleport", "Lumbridge_Home_Teleport") {
  * Wilderness the cast is refused, as every teleport's is (OSRS Wiki, Wilderness level; see [Wilderness]).
  *
  * Any click that interrupts the player (walking, an NPC, a loc, closing an interface) removes the weak queue, which
- * stops the cast; being attacked stops it at the next tick.
+ * stops the cast; being attacked stops it at the next tick. A cast cut short stops the animation and the graphic it
+ * had on the player ([stop]), as a stage of ours can hold its last frame for good (the lodestones' pulse).
  *
  * One seam for another teleport to swap in without touching this file: [target], chosen when the player clicks Cast.
  * The default is OSRS's own cast to Lumbridge with the cooldown; the lodestone network ([LodestoneNetwork.register])
@@ -52,8 +53,11 @@ class HomeTeleport(
     /** The Wilderness level the player stands at; 0 outside it. */
     private val wildernessLevel: (Player) -> Int = { Wilderness.level(it.x, it.z) },
 ) {
-    /** A cast's landing tile, length, stages and whether the cooldown counts; the default is OSRS's own. */
-    class Target(val to: Destination, val ticks: Int = CAST_TICKS, val stages: List<Stage> = STAGES, val cooldown: Boolean = true)
+    /**
+     * A cast's landing tile, length, stages, whether the cooldown counts and what plays on the arrival tile ([landing];
+     * none stops the cast's animation there, as OSRS's own does); the default is OSRS's own.
+     */
+    class Target(val to: Destination, val ticks: Int = CAST_TICKS, val stages: List<Stage> = STAGES, val cooldown: Boolean = true, val landing: Stage? = null)
 
     /**
      * What a click on Cast starts, chosen before the animation (a menu can open here); null casts nothing. Combat and
@@ -82,7 +86,7 @@ class HomeTeleport(
         if (casting(player)) return
         if (!canCast(player, cooldown = false)) return
         val target = target() ?: return
-        castTo(target.to, target.ticks, target.stages, target.cooldown)
+        castTo(target.to, target.ticks, target.stages, target.cooldown, target.landing)
     }
 
     /** Whether [player] can start a cast now, saying why not when they can't; [cooldown] is whether theirs applies. */
@@ -107,30 +111,39 @@ class HomeTeleport(
     }
 
     /**
-     * Starts a cast that lands on [to] after [ticks] ticks, playing [stages] on the way, and records the cooldown at
-     * the landing when [cooldown]. Refused, with the reason said, part way through another cast, in combat, above
-     * level 20 Wilderness, or within the cooldown when it applies. Returns whether the cast started.
+     * Starts a cast that lands on [to] after [ticks] ticks, playing [stages] on the way and [landing] on the arrival
+     * tile (without one, the cast's animation is stopped there), and records the cooldown at the landing when
+     * [cooldown]. Refused, with the reason said, part way through another cast, in combat, above level 20 Wilderness,
+     * or within the cooldown when it applies. Returns whether the cast started.
      */
-    fun ScriptContext.castTo(to: Destination, ticks: Int = CAST_TICKS, stages: List<Stage> = STAGES, cooldown: Boolean = true): Boolean {
+    fun ScriptContext.castTo(to: Destination, ticks: Int = CAST_TICKS, stages: List<Stage> = STAGES, cooldown: Boolean = true, landing: Stage? = null): Boolean {
         if (casting(player)) return false
         if (!canCast(player, cooldown)) return false
         // Casting stops whatever the player was doing and keeps them where they stand (inferred: the stages are
         // animations on the spot); a queued activity (milking, making) would otherwise carry on beside the cast.
-        player.scripts.weakQueue.clear()
+        player.scripts.dropWeak()
         player.waypoints.clear()
         player.interaction = null
-        step(Cast(to, ticks, stages, cooldown), currentTick(), 0)
+        step(Cast(to, ticks, stages, cooldown, landing), currentTick(), 0)
         return true
     }
 
-    private class Cast(val to: Destination, val ticks: Int, val stages: List<Stage>, val cooldown: Boolean)
+    private class Cast(val to: Destination, val ticks: Int, val stages: List<Stage>, val cooldown: Boolean, val landing: Stage?)
 
     /** Stage [elapsed] ticks into [cast], started on tick [started]; queues the next tick's. */
     private fun ScriptContext.step(cast: Cast, started: Long, elapsed: Int) {
-        if (player.attackedTick >= started) return
+        if (player.attackedTick >= started) {
+            stop(player)
+            return
+        }
         if (elapsed >= cast.ticks) {
             teleport(player, cast.to)
-            player.anim(-1)
+            if (cast.landing != null) {
+                player.anim(cast.landing.anim)
+                player.spotanim(cast.landing.spotanim)
+            } else {
+                player.anim(-1)
+            }
             if (cast.cooldown) player.vars[VARP_LAST_CAST] = nowMinutes().toInt()
             return
         }
@@ -138,16 +151,28 @@ class HomeTeleport(
             player.anim(stage.anim)
             player.spotanim(stage.spotanim)
         }
-        queue(QUEUE, QueueType.WEAK, delay = 1) { step(cast, started, elapsed + 1) }
+        queue(QUEUE, QueueType.WEAK, delay = 1, onDrop = { stop(player) }) { step(cast, started, elapsed + 1) }
     }
 
-    /** One stage of the cast: from [tick] ticks in, animation [anim] with graphic [spotanim] on the player. */
+    /** The cast cut short: whatever stage was playing stops, and the graphic with it (slot 0, the one the stages use). */
+    private fun stop(player: Player) {
+        player.anim(-1)
+        player.spotanim(-1)
+    }
+
+    /** One stage of the cast: from [tick] ticks in, animation [anim] with graphic [spotanim] on the player. A landing's [tick] is the cast's length. */
     data class Stage(val tick: Int, val anim: Int, val spotanim: Int)
 
     companion object {
         /** `magic_spellbook:teleport_home_standard`, and its op1, Cast. */
         const val COMPONENT = 6
         const val CAST = 1
+
+        /** Every interface and component id above with its gameval name in the rev 242 cache, for [osrsps.cache.GameFrameCheck]. */
+        val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>>
+            get() = mapOf(
+                Spells.SPELLBOOK to ("magic_spellbook" to mapOf(COMPONENT to "teleport_home_standard")),
+            )
 
         /** `aide_tele_timer`: the minute of the last home teleport, which RuneLite's home teleport timer reads. */
         const val VARP_LAST_CAST = 892

@@ -1,5 +1,5 @@
 {
- "name": "Rest of Lumbridge step 5: Talk-to the Cooking tutor, the Smithing apprentice and the Woodsman tutor at several levels (::keys on, so keys show whatever data/dialogue.txt holds)",
+ "name": "Lumbridge 242 step 2: Talk-to Feoras (advice, a hammer, his shop) and Wilfred (both tools, then the Woodcutting cape at 99) (::keys on, so keys show whatever data/dialogue.txt holds)",
  "account": "test",
  "steps": [
   {
@@ -18,11 +18,6 @@
   },
   {
    "step": "command",
-   "text": "::setlevel cooking 1",
-   "expectMessage": "Cooking set to level 1"
-  },
-  {
-   "step": "command",
    "text": "::setlevel smithing 1",
    "expectMessage": "Smithing set to level 1"
   },
@@ -33,216 +28,145 @@
   },
   {
    "step": "command",
-   "text": "::tele 3234 3196 0",
-   "expectMessage": "Teleported to 3234, 3196, 0",
-   "comment": "the Cooking tutor's house south of Bob's"
+   "text": "::tele 3226 3253 0",
+   "expectMessage": "Teleported to 3226, 3253, 0",
+   "comment": "the smithy, Feoras's spawn tile"
   },
   {
    "step": "npcOption",
-   "npc": "Cooking tutor",
+   "npc": "Feoras",
    "option": "Talk-to"
   },
   {
    "step": "assertDialogue",
-   "contains": "[cooking_tutor.hello]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[cooking_tutor.greeting]"
+   "contains": "[feoras.greeting]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "chooseOption",
-   "text": "[cooking_tutor.train]"
+   "text": "[feoras.advice]"
   },
   {
    "step": "assertDialogue",
-   "contains": "[cooking_tutor.train]"
+   "contains": "[feoras.advice]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[cooking_tutor.low_1]"
+   "contains": "[feoras.advice_1]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[cooking_tutor.low_2]"
+   "contains": "[feoras.advice_2]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[cooking_tutor.range_hint]"
+   "contains": "[feoras.mine_hint]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[cooking_tutor.low_3]"
+   "contains": "[feoras.advice_3]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[cooking_tutor.cooks_range]"
+   "contains": "[feoras.furnace_hint]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[cooking_tutor.low_4]"
+   "contains": "[feoras.advice_4]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[cooking_tutor.low_5]"
+   "contains": "[feoras.anvil_hint]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[cooking_tutor.low_6]"
+   "contains": "[feoras.advice_5]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[cooking_tutor.bank_hint]"
+   "contains": "[feoras.advice_6]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[cooking_tutor.anything_else]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "chooseOption",
-   "text": "[cooking_tutor.kinds]"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[cooking_tutor.kinds]"
+   "contains": "[feoras.advice_7]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[cooking_tutor.many]"
+   "contains": "[feoras.guide_hint]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[cooking_tutor.which]"
+   "contains": "[feoras.thanks]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[feoras.anything_else]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "chooseOption",
-   "text": "[cooking_tutor.pies]"
+   "text": "[feoras.hammer]"
   },
   {
    "step": "assertDialogue",
-   "contains": "[cooking_tutor.pies]"
+   "contains": "[feoras.hammer]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[cooking_tutor.dough_hint]"
+   "contains": "[feoras.spare]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[cooking_tutor.pie_shell_hint]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[cooking_tutor.pies_1]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[cooking_tutor.pies_2]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[cooking_tutor.pizza_base]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[cooking_tutor.pizza_hint]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[cooking_tutor.toppings]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[cooking_tutor.pies_more]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "chooseOption",
-   "text": "[cooking_tutor.no_thanks]"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[cooking_tutor.no_thanks]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[cooking_tutor.come_back]"
+   "contains": "[feoras.gives_hammer]"
   },
   {
    "step": "continueDialogue"
@@ -251,238 +175,120 @@
    "step": "assertNoDialogue"
   },
   {
-   "step": "command",
-   "text": "::tele 3227 3253 0",
-   "expectMessage": "Teleported to 3227, 3253, 0",
-   "comment": "the smiths' building, the Smithing apprentice's spawn tile"
+   "step": "assertInventory",
+   "item": "Hammer",
+   "count": 1
   },
   {
    "step": "npcOption",
-   "npc": "Smithing apprentice",
+   "npc": "Feoras",
+   "option": "Trade"
+  },
+  {
+   "step": "assertInterface",
+   "comment": "the shop screen (Lumbridge Blacksmith)",
+   "interfaceId": 300
+  },
+  {
+   "step": "command",
+   "text": "::tele 3227 3245 0",
+   "expectMessage": "Teleported to 3227, 3245, 0",
+   "comment": "north of the Sheared Ram, Wilfred's spawn tile"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Wilfred",
    "option": "Talk-to"
   },
   {
    "step": "assertDialogue",
-   "contains": "[smithing_apprentice.teach]"
+   "contains": "[wilfred.greeting]"
   },
   {
    "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[smithing_apprentice.furnace_hint]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[smithing_apprentice.need_ore]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[smithing_apprentice.mining_hint]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertNoDialogue"
-  },
-  {
-   "step": "command",
-   "text": "::item copper ore",
-   "expectMessage": "Added 1 x Copper ore"
-  },
-  {
-   "step": "npcOption",
-   "npc": "Smithing apprentice",
-   "option": "Talk-to"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[smithing_apprentice.teach]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[smithing_apprentice.furnace_hint]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[smithing_apprentice.have_ore]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[smithing_apprentice.click_furnace]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[smithing_apprentice.full_inventory]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[smithing_apprentice.bank_hint]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[smithing_apprentice.hammer]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[smithing_apprentice.rusted]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[smithing_apprentice.varrock]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertNoDialogue"
-  },
-  {
-   "step": "command",
-   "text": "::setlevel smithing 20",
-   "expectMessage": "Smithing set to level 20"
-  },
-  {
-   "step": "npcOption",
-   "npc": "Smithing apprentice",
-   "option": "Talk-to"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[smithing_apprentice.know_basics]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[smithing_apprentice.stockpile]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[smithing_apprentice.rarely_wrong]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[smithing_apprentice.lose_iron]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[smithing_apprentice.keldagrim]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertNoDialogue"
-  },
-  {
-   "step": "command",
-   "text": "::tele 3228 3245 0",
-   "expectMessage": "Teleported to 3228, 3245, 0",
-   "comment": "the Woodsman tutor's spawn tile, north of the Sheared Ram"
-  },
-  {
-   "step": "npcOption",
-   "npc": "Woodsman tutor",
-   "option": "Talk-to"
   },
   {
    "step": "chooseOption",
-   "text": "[woodsman_tutor.basics]"
+   "text": "[wilfred.tools]"
   },
   {
    "step": "assertDialogue",
-   "contains": "[woodsman_tutor.basics]"
+   "contains": "[wilfred.tools]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[woodsman_tutor.tree_hint]"
+   "contains": "[wilfred.offer]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[wilfred.both_please]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wilfred.both_please]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[woodsman_tutor.have_an_axe]"
+   "contains": "[wilfred.gives_both]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[woodsman_tutor.likely_tree]"
+   "contains": "[wilfred.thanks]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[woodsman_tutor.full_inventory]"
+   "contains": "[wilfred.dont_mention_it]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[wilfred.tools]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wilfred.tools]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[woodsman_tutor.bank_hint]"
+   "contains": "[wilfred.has_both]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[wilfred.leave]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wilfred.leave]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[woodsman_tutor.lost_tinderbox]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[woodsman_tutor.click_tinderbox]"
+   "contains": "[wilfred.leave_reply]"
   },
   {
    "step": "continueDialogue"
@@ -502,102 +308,6 @@
   },
   {
    "step": "command",
-   "text": "::setlevel woodcutting 40",
-   "expectMessage": "Woodcutting set to level 40"
-  },
-  {
-   "step": "npcOption",
-   "npc": "Woodsman tutor",
-   "option": "Talk-to"
-  },
-  {
-   "step": "chooseOption",
-   "text": "[woodsman_tutor.trees]"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[woodsman_tutor.trees]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "chooseOption",
-   "text": "[woodsman_tutor.magic]"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[woodsman_tutor.magic_hint]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[woodsman_tutor.hollow]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "chooseOption",
-   "text": "[woodsman_tutor.axes]"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[woodsman_tutor.bronze_hint]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[woodsman_tutor.progress]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[woodsman_tutor.iron_steel_hint]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[woodsman_tutor.rune_hint]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "chooseOption",
-   "text": "[woodsman_tutor.go_back]"
-  },
-  {
-   "step": "chooseOption",
-   "text": "[woodsman_tutor.cape]"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[woodsman_tutor.cape]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[woodsman_tutor.skillcape]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertNoDialogue"
-  },
-  {
-   "step": "command",
    "text": "::setlevel woodcutting 99",
    "expectMessage": "Woodcutting set to level 99"
   },
@@ -608,55 +318,84 @@
   },
   {
    "step": "npcOption",
-   "npc": "Woodsman tutor",
+   "npc": "Wilfred",
    "option": "Talk-to"
   },
   {
    "step": "assertDialogue",
-   "contains": "[woodsman_tutor.master_1]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[woodsman_tutor.master_2]"
+   "contains": "[wilfred.greeting]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "chooseOption",
-   "text": "[woodsman_tutor.yes_please]"
+   "text": "[wilfred.cape]"
   },
   {
    "step": "assertDialogue",
-   "contains": "[woodsman_tutor.yes_please]"
+   "contains": "[wilfred.cape]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[woodsman_tutor.price]"
+   "contains": "[wilfred.cape_what]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "chooseOption",
-   "text": "[woodsman_tutor.no_problem]"
+   "text": "[wilfred.buy_cape]"
   },
   {
    "step": "assertDialogue",
-   "contains": "[woodsman_tutor.no_problem]"
+   "contains": "[wilfred.buy_cape]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[woodsman_tutor.sold]"
+   "contains": "[wilfred.price]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[wilfred.accept]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wilfred.accept]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wilfred.sold]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[wilfred.leave]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wilfred.leave]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[wilfred.leave_reply]"
   },
   {
    "step": "continueDialogue"

@@ -15,6 +15,10 @@ class EffectIds(
     fun synthExists(id: Int) = synths?.contains(id) ?: (id in 0..MAX_ID)
     fun jingleExists(id: Int) = jingles?.contains(id) ?: (id in 0..MAX_ID)
 
+    /** These ids and our own [seqs] and [spotanims] (the overlay's, which the client has as it has the cache's). */
+    fun withCustom(seqs: Set<Int>, spotanims: Set<Int>): EffectIds =
+        EffectIds(this.seqs?.plus(seqs), this.spotanims?.plus(spotanims), synths, jingles)
+
     companion object {
         /** All four ids go to the client in two bytes. */
         const val MAX_ID = 65535

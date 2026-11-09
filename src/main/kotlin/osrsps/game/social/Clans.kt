@@ -549,6 +549,10 @@ class Clans(
         if (!isRecruiter(player, clan)) return
         openModal(player, APPLICANTS)
         for (component in APPLICANTS_BUTTONS) setEvents(player, APPLICANTS, component, -1, -1, OP1, 0)
+        // Each entry's Review is op 1 on the entry's own component, which clan_applicants_entry_init gives the op and
+        // its handler; the client shows an op only when the server has enabled it, so without these the list had no
+        // Review (RuneLite nightly 2026-11-08, social-clan-applicants step 15).
+        for (component in APPLICANTS_ENTRIES) setEvents(player, APPLICANTS, component, -1, -1, OP1, 0)
         setEvents(player, APPLICANTS, APPLICANTS_LIST, 0, APPLICANTS_SLOTS - 1, 0, EVENT_PAUSE_BUTTON)
         showApplicants(player, clan)
     }
@@ -1501,6 +1505,21 @@ class Clans(
     private fun runeDay(): Int = ChronoUnit.DAYS.between(RUNE_EPOCH, now().atOffset(ZoneOffset.UTC).toLocalDate()).toInt()
 
     companion object {
+        /** Every interface and component id above with its gameval name in the rev 242 cache, for [osrsps.cache.GameFrameCheck]. */
+        val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>>
+            get() = mapOf(
+                SIDE_CHANNELS to ("side_channels" to mapOf(2 to "tab_0", 3 to "tab_1", 4 to "tab_2", 5 to "tab_3", SIDE_CHANNELS_CONTENTS to "contents")),
+                YOUR_CLAN to ("clans_sidepanel" to mapOf(YOUR_CLAN_REFRESH to "refresh", YOUR_CLAN_CHAT to "chat", YOUR_CLAN_SETTINGS to "info")),
+                GUEST_SIDEPANEL to ("clans_guest_sidepanel" to mapOf(GUEST_REFRESH to "refresh", GUEST_CHAT to "chat", GUEST_INFO to "info", GUEST_SEARCH to "search")),
+                CREATION to ("clans_creation_sidepanel" to mapOf(CREATION_UNIVERSE to "universe", CREATION_REFRESH to "refresh", CREATION_CONTENTS to "contents", CREATION_NAME to "name", CREATION_INVITE to "invite", CREATION_CANCEL to "cancel", CREATION_CONFIRM to "confirm")),
+                INFO to ("clans_info" to mapOf(INFO_CLOSE to "close", INFO_BUTTONS.first to "events", INFO_MEMBERS to "members", INFO_APPLICATIONS to "applications", INFO_PERMISSIONS to "permissions", INFO_BANNED to "banned", INFO_QUIT to "quit")),
+                BANNED to ("clans_banned" to mapOf(BANNED_EXIT to "exit")),
+                MEMBERS to ("clans_members" to mapOf(MEMBERS_COLUMNS[0] to "column1", MEMBERS_COLUMNS[1] to "column2", MEMBERS_OPTIONS[0] to "options1", MEMBERS_OPTIONS[1] to "options2", MEMBERS_EXIT to "exit", MEMBERS_POPUP to "popup")),
+                PERMISSIONS to ("clans_permissions" to mapOf(PERMISSIONS_EXIT to "exit", PERMISSIONS_LIST to "list_contents", PERMISSIONS_POPUP to "popup")),
+                APPLICANTS to ("clans_applicants" to mapOf(APPLICANTS_LIST to "list", APPLICANTS_ENTRIES.first to "00", APPLICANTS_ENTRIES.last to "19", APPLICANTS_EXIT to "exit", APPLICANTS_REFRESH to "refresh", APPLICANTS_REJECT to "reject", APPLICANTS_ACCEPT to "accept")),
+                POPUPOVERLAY to ("popupoverlay" to emptyMap()),
+            )
+
         /** The Clans tab (side_channels) and its contents. */
         const val SIDE_CHANNELS = 707
         val SIDE_CHANNELS_TABS = 2..5
@@ -1695,6 +1714,9 @@ class Clans(
         const val APPLICANTS = 699
         const val APPLICANTS_LIST = 11
         const val APPLICANTS_SLOTS = 20
+
+        /** The list's entries, clans_applicants:00 to :19 (enum_3805 maps slot n to component 12 + n). */
+        val APPLICANTS_ENTRIES = 12 until 12 + APPLICANTS_SLOTS
         const val APPLICANTS_EXIT = 33
         const val APPLICANTS_REFRESH = 34
         const val APPLICANTS_REJECT = 39

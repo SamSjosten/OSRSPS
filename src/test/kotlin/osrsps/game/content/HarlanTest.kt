@@ -3,97 +3,237 @@ package osrsps.game.content
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import osrsps.game.GameFrame
 import osrsps.game.InvObj
 import osrsps.game.ObjType
 import osrsps.game.Skill
+import osrsps.game.VarTypes
+import osrsps.game.VarbitType
 import osrsps.game.WearPos
-import osrsps.game.content.Harlan.giveBack
+import osrsps.game.content.Harlan.claim
 import osrsps.game.content.Harlan.talk
 
-/** Harlan, the melee combat tutor: combat step 7. Keys show for words, as with no dialogue file. */
+/** Captain Harlan, the combat tutor since 242.1 (Lumbridge 242 step 1). Keys show for words, as with no dialogue file. */
 class HarlanTest {
-    private val harness = DialogueHarness("Melee combat tutor")
+    private val types = VarTypes.NONE.with(
+        mapOf(Harlan.VARBIT_INTRO to VarbitType(6240, 9, 9)),
+        mapOf(CustomVars.HARLAN_CLAIMED to 6_000),
+    )
+    private val harness = DialogueHarness("Captain Harlan", types)
     private val player = harness.player
-    private val given = mutableListOf<Int>()
-    private val tabs = mutableListOf<Int>()
-    private val tutor = Harlan.Tutor(give = { _, obj -> given += obj }, sideTab = { _, tab -> tabs += tab })
-    private val root = arrayOf("harlan.melee", "harlan.weapon_types", "harlan.skillcapes", "harlan.training_kit", "harlan.goodbye")
+    private val given = mutableListOf<Pair<Int, Int>>()
+    private var now = 1_700_000_000L
+    private val tutor = Harlan.Tutor(give = { _, obj, count -> given += obj to count }, nowSeconds = { now })
+    private val root = arrayOf(
+        "captain_harlan.guards", "captain_harlan.advice", "captain_harlan.weapons", "captain_harlan.cape", "captain_harlan.leave",
+    )
+    private val kinds = arrayOf(
+        "captain_harlan.ask_melee", "captain_harlan.ask_ranged", "captain_harlan.ask_magic", "captain_harlan.something_else",
+    )
 
-    private fun start() {
+    init {
+        // Every account has met him (Mudfoot's Big Adventure is done); the first test clears it.
+        player.vars.setVarbit(Harlan.VARBIT_INTRO, 1)
+    }
+
+    private fun start(greeting: String = "captain_harlan.greeting") {
         harness.talk { talk(tutor) }
+        harness.expect(greeting)
+        harness.menu(*root)
+    }
+
+    private fun fill(free: Int) {
+        val bones = ObjType(526, "Bones")
+        player.inventory.add(bones, player.inventory.freeSlots - free)
     }
 
     @Test
-    fun `melee combat opens the worn and combat tabs, then the human option takes melee's place`() {
-        start()
-        harness.expect("harlan.greeting")
-        harness.menu(*root)
-        harness.pick(1)
-        harness.expect("harlan.melee", "harlan.melee_1", "harlan.melee_2")
-        assertEquals(listOf(GameFrame.SIDE_TAB_WORN), tabs)
-        harness.next()
-        harness.expect(
-            "harlan.melee_3", "harlan.melee_4", "harlan.styles", "harlan.accurate", "harlan.aggressive", "harlan.defensive",
-            "harlan.controlled", "harlan.attack_types_1", "harlan.attack_types_2", "harlan.hover", "harlan.melee_anything_else",
-        )
-        assertEquals(listOf(GameFrame.SIDE_TAB_WORN, GameFrame.SIDE_TAB_COMBAT), tabs)
-        harness.menu("harlan.human", *root.drop(1).toTypedArray())
-        harness.pick(1)
-        harness.expect(
-            "harlan.human", "harlan.human_1", "harlan.human_2", "harlan.capture_the_flag", "harlan.human_3",
-            "harlan.human_4", "harlan.human_5", "harlan.human_6", "harlan.human_7", "harlan.human_8", "harlan.human_9",
-            "harlan.human_anything_else",
-        )
-        harness.menu(*root)
+    fun `the first talk greets as new and sets the intro varbit, later ones greet again, and leaving ends it`() {
+        player.vars.setVarbit(Harlan.VARBIT_INTRO, 0)
+        start("captain_harlan.greeting_first")
+        assertEquals(1, player.vars.getVarbit(Harlan.VARBIT_INTRO))
         harness.pick(5)
-        harness.expect("harlan.goodbye")
+        harness.expect("captain_harlan.leave", "captain_harlan.leave_reply")
         harness.ends()
+        start()
     }
 
     @Test
-    fun `weapon types and skillcapes come back to the first menu`() {
+    fun `the guards and the combat advice come back to the first menu`() {
         start()
-        harness.expect("harlan.greeting")
+        harness.pick(1)
+        harness.expect("captain_harlan.guards", "captain_harlan.guards_1", "captain_harlan.guards_ask", "captain_harlan.guards_2")
         harness.menu(*root)
         harness.pick(2)
-        harness.expect("harlan.weapon_types", "harlan.weapons_1", "harlan.weapons_2", "harlan.weapons_3", "harlan.weapons_4", "harlan.weapons_anything_else")
+        harness.expect(
+            "captain_harlan.advice", "captain_harlan.advice_1", "captain_harlan.advice_2", "captain_harlan.triangle",
+            "captain_harlan.advice_3", "captain_harlan.advice_4", "captain_harlan.weapon_kinds", "captain_harlan.advice_5",
+            "captain_harlan.advice_6", "captain_harlan.advice_7", "captain_harlan.hint_equipment", "captain_harlan.advice_8",
+            "captain_harlan.hint_styles", "captain_harlan.hint_xp", "captain_harlan.advice_9", "captain_harlan.advice_10",
+            "captain_harlan.advice_11", "captain_harlan.advice_12", "captain_harlan.hint_guides", "captain_harlan.advice_thanks",
+        )
         harness.menu(*root)
+    }
+
+    @Test
+    fun `a shortsword and shield once, then 30 minutes before anything else, counted down in whole minutes`() {
+        start()
         harness.pick(3)
-        harness.expect("harlan.skillcapes", "harlan.capes_1", "harlan.capes_2", "harlan.capes_anything_else")
-        harness.menu(*root)
-    }
-
-    @Test
-    fun `a player with neither gets the training sword and shield, and a second ask is refused`() {
-        start()
-        harness.expect("harlan.greeting")
-        harness.menu(*root)
-        harness.pick(4)
-        harness.expect("harlan.training_kit", "harlan.gives_both")
-        assertEquals(listOf(Harlan.TRAINING_SWORD, Harlan.TRAINING_SHIELD), given)
-        assertEquals(listOf(Harlan.TRAINING_SWORD, Harlan.TRAINING_SHIELD), harness.boxObjs)
-        // The fake hands nothing over, so put them where the real one would.
-        player.inventory.add(ObjType(Harlan.TRAINING_SWORD, "Training sword"), 1)
-        player.inventory.add(ObjType(Harlan.TRAINING_SHIELD, "Training shield"), 1)
+        harness.expect("captain_harlan.weapons", "captain_harlan.offer_all")
+        harness.menu(*kinds)
+        harness.pick(1)
+        harness.expect("captain_harlan.ask_melee", "captain_harlan.gives_melee")
+        assertEquals(listOf(Harlan.BRONZE_SHORTSWORD to 1, Harlan.WOODEN_SHIELD to 1), given)
+        assertEquals(listOf(Harlan.BRONZE_SHORTSWORD, Harlan.WOODEN_SHIELD), harness.boxObjs)
         harness.next()
-        harness.expect("harlan.there_you_go", "harlan.kit_anything_else")
-        harness.menu(*root)
-        harness.pick(4)
-        harness.expect("harlan.training_kit", "harlan.has_both", "harlan.kit_anything_else")
-        assertEquals(2, given.size)
+        harness.expect("captain_harlan.anything_else")
+        harness.menu(*kinds)
+        // A second kind in the same talk is refused: the handout started the clock.
+        harness.pick(2)
+        harness.expect("captain_harlan.ask_ranged", "captain_harlan.too_soon_all minutes=30")
+        harness.ends()
+        assertEquals(30, Harlan.minutesLeft(player, now))
+
+        // Counted to the second, rounded up: 29 minutes 59 seconds on is still 1 minute to go.
+        now += 29 * 60
+        assertEquals(1, Harlan.minutesLeft(player, now))
+        now += 59
+        start()
+        harness.pick(3)
+        harness.expect("captain_harlan.weapons", "captain_harlan.too_soon_all minutes=1")
+        harness.ends()
+        assertEquals(1, Harlan.minutesLeft(player, now))
+
+        now += 1
+        start()
+        harness.pick(3)
+        harness.expect("captain_harlan.weapons", "captain_harlan.offer_all")
+        harness.menu(*kinds)
+        harness.pick(3)
+        harness.expect("captain_harlan.ask_magic", "captain_harlan.gives_magic")
+        assertEquals(
+            listOf(Harlan.STAFF to 1, Harlan.MIND_RUNE to Harlan.AMMO, Harlan.AIR_RUNE to Harlan.AMMO),
+            given.drop(2),
+        )
     }
 
     @Test
-    fun `a worn training shield counts, so only the sword is given`() {
-        player.equipment[WearPos.SHIELD] = InvObj(Harlan.TRAINING_SHIELD, 1)
+    fun `owning both a shortsword and shield gets nothing and the clock doesn't start`() {
+        player.inventory.add(ObjType(Harlan.BRONZE_SHORTSWORD, "Bronze shortsword"), 1)
+        player.equipment[WearPos.SHIELD] = InvObj(Harlan.WOODEN_SHIELD, 1)
         start()
-        harness.expect("harlan.greeting")
+        harness.pick(3)
+        harness.expect("captain_harlan.weapons", "captain_harlan.offer_all")
+        harness.menu(*kinds)
+        harness.pick(1)
+        harness.expect("captain_harlan.ask_melee", "captain_harlan.has_melee", "captain_harlan.anything_else")
         harness.menu(*root)
-        harness.pick(4)
-        harness.expect("harlan.training_kit", "harlan.gives_sword", "harlan.there_you_go", "harlan.kit_anything_else")
-        assertEquals(listOf(Harlan.TRAINING_SWORD), given)
-        assertEquals(listOf(Harlan.TRAINING_SWORD), harness.boxObjs)
+        assertTrue(given.isEmpty())
+        assertEquals(0, Harlan.minutesLeft(player, now))
+    }
+
+    @Test
+    fun `a banked shortsword and shield count too, so nothing is given and the clock doesn't start`() {
+        player.bank.add(ObjType(Harlan.BRONZE_SHORTSWORD, "Bronze shortsword"), 1)
+        player.bank.add(ObjType(Harlan.WOODEN_SHIELD, "Wooden shield"), 1)
+        start()
+        harness.pick(3)
+        harness.expect("captain_harlan.weapons", "captain_harlan.offer_all")
+        harness.menu(*kinds)
+        harness.pick(1)
+        harness.expect("captain_harlan.ask_melee", "captain_harlan.has_melee", "captain_harlan.anything_else")
+        harness.menu(*root)
+        assertTrue(given.isEmpty())
+        assertEquals(0, Harlan.minutesLeft(player, now))
+    }
+
+    @Test
+    fun `a banked shortbow means arrows only`() {
+        player.bank.add(ObjType(Harlan.SHORTBOW, "Shortbow"), 1)
+        start()
+        harness.pick(3)
+        harness.expect("captain_harlan.weapons", "captain_harlan.offer_all")
+        harness.menu(*kinds)
+        harness.pick(2)
+        harness.expect("captain_harlan.ask_ranged", "captain_harlan.gives_arrows")
+        assertEquals(listOf(Harlan.BRONZE_ARROW to Harlan.AMMO), given)
+    }
+
+    @Test
+    fun `a worn wooden shield means only the shortsword, which needs one slot`() {
+        player.equipment[WearPos.SHIELD] = InvObj(Harlan.WOODEN_SHIELD, 1)
+        fill(1)
+        start()
+        harness.pick(3)
+        harness.expect("captain_harlan.weapons", "captain_harlan.offer_all")
+        harness.menu(*kinds)
+        harness.pick(1)
+        harness.expect("captain_harlan.ask_melee", "captain_harlan.gives_shortsword", "captain_harlan.anything_else")
+        assertEquals(listOf(Harlan.BRONZE_SHORTSWORD to 1), given)
+        harness.menu(*kinds)
+    }
+
+    @Test
+    fun `with one slot the shortsword and shield are refused but the shortbow and arrows are given`() {
+        fill(1)
+        start()
+        harness.pick(3)
+        harness.expect("captain_harlan.weapons", "captain_harlan.offer_all")
+        harness.menu(*kinds)
+        harness.pick(1)
+        harness.expect("captain_harlan.ask_melee", "captain_harlan.no_space_melee", "captain_harlan.anything_else")
+        harness.menu(*root)
+        assertTrue(given.isEmpty())
+        harness.pick(3)
+        harness.expect("captain_harlan.weapons", "captain_harlan.offer_all")
+        harness.menu(*kinds)
+        harness.pick(2)
+        harness.expect("captain_harlan.ask_ranged", "captain_harlan.gives_ranged", "captain_harlan.anything_else")
+        assertEquals(listOf(Harlan.SHORTBOW to 1, Harlan.BRONZE_ARROW to Harlan.AMMO), given)
+    }
+
+    @Test
+    fun `a carried shortbow gets arrows, and with no room for them nothing`() {
+        player.inventory.add(ObjType(Harlan.SHORTBOW, "Shortbow"), 1)
+        fill(0)
+        start()
+        harness.pick(3)
+        harness.expect("captain_harlan.weapons", "captain_harlan.offer_all")
+        harness.menu(*kinds)
+        harness.pick(2)
+        harness.expect("captain_harlan.ask_ranged", "captain_harlan.no_space_arrows", "captain_harlan.anything_else")
+        harness.menu(*root)
+        assertTrue(given.isEmpty())
+
+        // Arrows already carried stack, so they need no slot.
+        player.inventory.remove(1, 1)
+        player.inventory.add(ObjType(Harlan.BRONZE_ARROW, "Bronze arrow", stackable = true), 5)
+        harness.pick(3)
+        harness.expect("captain_harlan.weapons", "captain_harlan.offer_all")
+        harness.menu(*kinds)
+        harness.pick(2)
+        harness.expect("captain_harlan.ask_ranged", "captain_harlan.gives_arrows", "captain_harlan.anything_else")
+        assertEquals(listOf(Harlan.BRONZE_ARROW to Harlan.AMMO), given)
+    }
+
+    @Test
+    fun `Claim-weapons goes straight to the handout and ends after it`() {
+        harness.talk { claim(tutor) }
+        harness.menu(
+            "captain_harlan.claim_melee", "captain_harlan.claim_ranged", "captain_harlan.claim_magic", "captain_harlan.cancel",
+        )
+        harness.pick(2)
+        harness.expect("captain_harlan.gives_ranged", "captain_harlan.anything_else")
+        harness.ends()
+        assertEquals(listOf(Harlan.SHORTBOW to 1, Harlan.BRONZE_ARROW to Harlan.AMMO), given)
+
+        harness.talk { claim(tutor) }
+        harness.menu(
+            "captain_harlan.claim_melee", "captain_harlan.claim_ranged", "captain_harlan.claim_magic", "captain_harlan.cancel",
+        )
+        harness.pick(1)
+        harness.expect("captain_harlan.too_soon_all minutes=30")
+        harness.ends()
+        assertEquals(2, given.size)
     }
 
     @Test
@@ -102,55 +242,39 @@ class HarlanTest {
         player.skills.setLevel(Skill.ATTACK, 99)
         player.inventory.add(ObjType(Harlan.COINS, "Coins", stackable = true), 100_000)
         start()
-        harness.expect("harlan.master_1", "harlan.master_2")
-        harness.menu("harlan.buy_cape", "harlan.master_weapon_types")
+        harness.pick(4)
+        harness.expect("captain_harlan.cape", "captain_harlan.cape_what")
+        harness.menu("captain_harlan.buy_cape", "captain_harlan.hood")
         harness.pick(1)
-        harness.expect("harlan.buy_cape_ask", "harlan.price")
-        harness.menu("harlan.too_expensive", "harlan.have_money")
-        harness.pick(2)
-        harness.expect("harlan.have_money", "harlan.sold")
-        assertEquals(listOf(Harlan.DEFENCE_CAPE_TRIMMED, Harlan.DEFENCE_HOOD), given)
+        harness.expect("captain_harlan.buy_cape", "captain_harlan.price")
+        harness.menu("captain_harlan.accept", "captain_harlan.too_much")
+        harness.pick(1)
+        harness.expect("captain_harlan.accept", "captain_harlan.sold")
+        assertEquals(listOf(Harlan.DEFENCE_CAPE_TRIMMED to 1, Harlan.DEFENCE_HOOD to 1), given)
         assertEquals(1_000, player.inventory.count(Harlan.COINS))
-        harness.ends()
+        harness.menu(*root)
     }
 
     @Test
-    fun `at 99 Defence with too few coins or no room nothing is sold`() {
-        player.skills.setLevel(Skill.DEFENCE, 99)
-        player.inventory.add(ObjType(Harlan.COINS, "Coins", stackable = true), 98_999)
+    fun `under 99 Defence no cape is sold, and a hood needs a Defence cape`() {
+        player.inventory.add(ObjType(Harlan.COINS, "Coins", stackable = true), 100_000)
         start()
-        harness.expect("harlan.master_1", "harlan.master_2")
-        harness.menu("harlan.buy_cape", "harlan.master_weapon_types")
+        harness.pick(4)
+        harness.expect("captain_harlan.cape", "captain_harlan.cape_what")
+        harness.menu("captain_harlan.buy_cape", "captain_harlan.hood")
         harness.pick(1)
-        harness.expect("harlan.buy_cape_ask", "harlan.price")
-        harness.menu("harlan.too_expensive", "harlan.have_money")
-        harness.pick(2)
-        harness.expect("harlan.have_money", "harlan.no_money", "harlan.no_money_reply")
-        harness.ends()
-
-        player.inventory.add(ObjType(Harlan.COINS, "Coins", stackable = true), 1)
-        val bones = ObjType(526, "Bones")
-        player.inventory.add(bones, player.inventory.freeSlots - 1)
-        start()
-        harness.expect("harlan.master_1", "harlan.master_2")
-        harness.menu("harlan.buy_cape", "harlan.master_weapon_types")
+        harness.expect("captain_harlan.buy_cape", "captain_harlan.price")
+        harness.menu("captain_harlan.accept", "captain_harlan.too_much")
         harness.pick(1)
-        harness.expect("harlan.buy_cape_ask", "harlan.price")
-        harness.menu("harlan.too_expensive", "harlan.have_money")
+        harness.expect("captain_harlan.accept", "captain_harlan.not_master")
+        harness.menu(*root)
+        harness.pick(4)
+        harness.expect("captain_harlan.cape", "captain_harlan.cape_what")
+        harness.menu("captain_harlan.buy_cape", "captain_harlan.hood")
         harness.pick(2)
-        // Exactly 99,000 coins free their slot, which with the one free slot is room for both.
-        harness.expect("harlan.have_money", "harlan.sold")
-        assertEquals(listOf(Harlan.DEFENCE_CAPE, Harlan.DEFENCE_HOOD), given)
-        assertEquals(0, player.inventory.count(Harlan.COINS))
-    }
-
-    @Test
-    fun `a training sword used on him is taken back`() {
-        player.inventory.add(ObjType(Harlan.TRAINING_SWORD, "Training sword"), 1)
-        harness.talk { giveBack(Harlan.TRAINING_SWORD, 0) }
-        harness.expect("harlan.return_sword", "harlan.return_sword_reply", "harlan.returned_sword")
-        assertTrue(player.inventory.isEmpty())
-        assertEquals(listOf(Harlan.TRAINING_SWORD), harness.boxObjs)
-        harness.ends()
+        harness.expect("captain_harlan.hood", "captain_harlan.hood_no_cape")
+        harness.menu(*root)
+        assertTrue(given.isEmpty())
+        assertEquals(100_000, player.inventory.count(Harlan.COINS))
     }
 }

@@ -67,7 +67,9 @@ jobs:
           distribution: temurin
           java-version: "21"
       - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
-      - run: ./gradlew build --build-cache -PtestShard=${{ matrix.shard }}/5
+      # On the CI VM (12 vCPU) a part runs its test classes in 3 JVMs at once: with one, a part used about a third of
+      # the VM's CPU and the five parts ran one after another. GitHub's 4-vCPU machines keep one.
+      - run: ./gradlew build --build-cache -PtestShard=${{ matrix.shard }}/5 -PtestForks=${{ runner.environment == 'self-hosted' && 3 || 1 }}
 
   # The server's build and every one of its tests: passes when each part above did. Also fails when `changes` did,
   # since the jobs that wait on it would be skipped, and a skipped job counts as passing.

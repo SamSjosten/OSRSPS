@@ -1,15 +1,17 @@
 package osrsps.game.content
 
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import osrsps.game.ObjType
 import osrsps.game.Skill
+import osrsps.game.VarTypes
+import osrsps.game.VarbitType
 import osrsps.game.World
 import osrsps.game.content.Bankers.banker
-import osrsps.game.content.Bankers.tutor
-import osrsps.game.content.CraftingTutor.talk
+import osrsps.game.content.Cadmus.talk
 import osrsps.game.content.Doomsayer.talk
-import osrsps.game.content.Hatius.talk
+import osrsps.game.content.Mikasi.talk
 import osrsps.game.content.Perdu.talk
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
@@ -47,52 +49,42 @@ class CastleTalkTest {
     }
 
     @Test
-    fun `the Crafting tutor's topics drop off the menu as they are heard`() {
-        h.talk { with(CraftingTutor) { talk() } }
-        h.expect("crafting_tutor.hello", "crafting_tutor.offer")
-        h.menu("crafting_tutor.training", "crafting_tutor.items", "crafting_tutor.no_thanks")
-        h.pick(2)
-        h.expect("crafting_tutor.items", "crafting_tutor.list", "crafting_tutor.which_topic")
-        h.menu("crafting_tutor.armour", "crafting_tutor.pottery", "crafting_tutor.glass", "crafting_tutor.jewellery", "crafting_tutor.weapons")
-        h.pick(3)
+    fun `Cadmus says what a steward does, and the crafting tips lead into his advice and end the talk`() {
+        h.talk { with(Cadmus) { talk() } }
+        h.expect("cadmus.hello", "cadmus.greeting")
+        h.menu("cadmus.what_do_you_do", "cadmus.advice", "cadmus.good")
+        h.pick(1)
         h.expect(
-            "crafting_tutor.glass", "crafting_tutor.glass_1", "crafting_tutor.glass_2", "crafting_tutor.glass_3",
-            "crafting_tutor.glass_reply", "crafting_tutor.more_from_list",
+            "cadmus.what_do_you_do", "cadmus.steward", "cadmus.entail", "cadmus.repairs", "cadmus.handyman", "cadmus.learned",
         )
-        h.menu("crafting_tutor.armour", "crafting_tutor.pottery", "crafting_tutor.jewellery", "crafting_tutor.weapons", "crafting_tutor.no_more")
-        h.pick(5)
-        h.expect("crafting_tutor.no_more", "crafting_tutor.anything_else")
-        h.menu("crafting_tutor.training", "crafting_tutor.no_thanks")
-        h.pick(2)
-        h.expect("crafting_tutor.no_thanks", "crafting_tutor.come_back")
+        h.menu("cadmus.tips", "cadmus.best_be_off")
+        h.pick(1)
+        h.expect(
+            "cadmus.tips", "cadmus.of_course", "cadmus.advice_1", "cadmus.advice_2", "cadmus.advice_3", "cadmus.materials",
+            "cadmus.advice_4", "cadmus.wheel_hint", "cadmus.advice_5", "cadmus.guide_hint",
+        )
+        assertEquals(listOf(Cadmus.SPINNING_WHEEL_ICON), h.boxObjs)
         h.ends()
     }
 
     @Test
-    fun `the Crafting tutor's training talk goes by Crafting level`() {
-        h.player.skills.setLevel(Skill.CRAFTING, 15)
-        h.talk { with(CraftingTutor) { talk() } }
-        h.expect("crafting_tutor.hello", "crafting_tutor.offer")
-        h.menu("crafting_tutor.training", "crafting_tutor.items", "crafting_tutor.no_thanks")
-        h.pick(1)
+    fun `Cadmus's advice straight from the first menu, and good thanks ends it`() {
+        h.talk { with(Cadmus) { talk() } }
+        h.expect("cadmus.hello", "cadmus.greeting")
+        h.menu("cadmus.what_do_you_do", "cadmus.advice", "cadmus.good")
+        h.pick(2)
         h.expect(
-            "crafting_tutor.training", "crafting_tutor.mid_flax", "crafting_tutor.mid_hide_armour", "crafting_tutor.thanks",
-            "crafting_tutor.anything_else",
+            "cadmus.advice", "cadmus.advice_1", "cadmus.advice_2", "cadmus.advice_3", "cadmus.materials", "cadmus.advice_4",
+            "cadmus.wheel_hint", "cadmus.advice_5", "cadmus.guide_hint",
         )
-        h.menu("crafting_tutor.training", "crafting_tutor.items", "crafting_tutor.no_thanks")
-    }
+        h.ends()
 
-    @Test
-    fun `a Crafting tutor at 99 jokes before the high-level advice`() {
-        h.player.skills.setLevel(Skill.CRAFTING, 99)
-        h.talk { with(CraftingTutor) { talk() } }
-        h.expect("crafting_tutor.hello", "crafting_tutor.offer")
-        h.menu("crafting_tutor.training", "crafting_tutor.items", "crafting_tutor.no_thanks")
-        h.pick(1)
-        h.expect(
-            "crafting_tutor.training", "crafting_tutor.high_maxed", "crafting_tutor.high_jewellery", "crafting_tutor.high_armour",
-            "crafting_tutor.high_hides", "crafting_tutor.high_glass", "crafting_tutor.thanks",
-        )
+        h.talk { with(Cadmus) { talk() } }
+        h.expect("cadmus.hello", "cadmus.greeting")
+        h.menu("cadmus.what_do_you_do", "cadmus.advice", "cadmus.good")
+        h.pick(3)
+        h.expect("cadmus.good", "cadmus.very_well")
+        h.ends()
     }
 
     @Test
@@ -128,79 +120,72 @@ class CastleTalkTest {
     }
 
     @Test
-    fun `asking the Banker tutor for the account ends the talk with the bank to open`() {
-        var ask = Bankers.Ask.NOTHING
-        h.talk { ask = with(Bankers) { tutor() } }
-        h.expect("banker_tutor.greeting")
-        h.menu("banker_tutor.how_it_works", "banker_tutor.access", "banker_tutor.pin", "banker_tutor.collect", "banker_tutor.buy_slots")
-        h.pick(2)
-        kotlin.test.assertEquals(-1, h.player.chatModal)
-        kotlin.test.assertEquals(Bankers.Ask.BANK, ask)
-    }
-
-    @Test
-    fun `the Banker tutor goes from the topics to the PIN menu and back`() {
-        h.talk { with(Bankers) { tutor() } }
-        h.expect("banker_tutor.greeting")
-        h.menu("banker_tutor.how_it_works", "banker_tutor.access", "banker_tutor.pin", "banker_tutor.collect", "banker_tutor.buy_slots")
-        h.pick(1)
-        h.menu("banker_tutor.using", "banker_tutor.deposit_boxes", "banker_tutor.what_pin")
-        h.pick(2)
-        h.expect("banker_tutor.deposit_boxes_said", "banker_tutor.deposit_1", "banker_tutor.deposit_2")
-        h.menu("banker_tutor.using", "banker_tutor.deposit_boxes", "banker_tutor.what_pin")
-        h.pick(3)
-        h.expect("banker_tutor.what_pin_said", "banker_tutor.pin_1", "banker_tutor.pin_2", "banker_tutor.pin_3")
-        h.menu("banker_tutor.set_pin", "banker_tutor.remove_pin", "banker_tutor.forgot_pin", "banker_tutor.other_topics", "banker_tutor.goodbye")
-        h.pick(2)
-        h.expect("banker_tutor.remove_pin", "banker_tutor.remove_1", "banker_tutor.remove_2")
-        h.menu("banker_tutor.set_pin", "banker_tutor.remove_pin", "banker_tutor.forgot_pin", "banker_tutor.other_topics", "banker_tutor.goodbye")
-        h.pick(5)
-        h.expect("banker_tutor.goodbye")
-        h.ends()
-    }
-
-    @Test
-    fun `the Doomsayer explains himself to a player with every warning on`() {
-        h.talk { with(Doomsayer) { talk() } }
-        h.expect(
-            "doomsayer.doom", "doomsayer.where", "doomsayer.everywhere", "doomsayer.stop_it", "doomsayer.my_role", "doomsayer.title",
-            "doomsayer.patrol", "doomsayer.disable", "doomsayer.danger_areas", "doomsayer.see_again", "doomsayer.waiting",
-            "doomsayer.re_enable", "doomsayer.remember", "doomsayer.welcome",
+    fun `the Doomsayer explains himself the first time since 242, then only says doom, and getting rid of signs ends it`() {
+        val d = DialogueHarness("Doomsayer", VarTypes.NONE.with(mapOf(Doomsayer.VARBIT_INTRO to VarbitType(6240, 23, 23)), emptyMap()))
+        d.talk { with(Doomsayer) { talk() } }
+        d.expect(
+            "doomsayer.doom", "doomsayer.where", "doomsayer.everywhere", "doomsayer.stop_it", "doomsayer.nothing_needed",
+            "doomsayer.danger_areas",
         )
-        h.ends()
+        assertEquals(1, d.player.vars.getVarbit(Doomsayer.VARBIT_INTRO))
+        d.menu("doomsayer.get_rid", "doomsayer.thanks_signs")
+        d.pick(2)
+        d.expect("doomsayer.thanks_signs", "doomsayer.welcome")
+        d.ends()
+
+        d.talk { with(Doomsayer) { talk() } }
+        d.expect("doomsayer.doom")
+        d.menu("doomsayer.get_rid", "doomsayer.be_off")
+        d.pick(2)
+        d.expect("doomsayer.be_off")
+        d.ends()
+
+        d.talk { with(Doomsayer) { talk() } }
+        d.expect("doomsayer.doom")
+        d.menu("doomsayer.get_rid", "doomsayer.be_off")
+        d.pick(1)
+        d.expect("doomsayer.get_rid", "doomsayer.very_well")
+        d.ends()
     }
 
     @Test
-    fun `Hatius opens with a menu and comes back to it after saying who he is`() {
-        h.talk { with(Hatius) { talk() } }
-        h.menu("hatius.who_are_you", "hatius.my_diary", "hatius.farewell")
+    fun `Mikasi, the taskmaster since 242, opens with a menu and comes back to it after saying who she is or goodbye`() {
+        h.talk { with(Mikasi) { talk() } }
+        h.menu("mikasi.who_are_you", "mikasi.my_diary", "mikasi.farewell")
         h.pick(1)
-        h.expect("hatius.who_are_you", "hatius.taskmaster", "hatius.what_diary", "hatius.explain", "hatius.explore", "hatius.side_panel")
-        h.menu("hatius.who_are_you", "hatius.my_diary", "hatius.farewell")
+        h.expect("mikasi.who_are_you", "mikasi.taskmaster", "mikasi.what_diary", "mikasi.explain", "mikasi.side_panel")
+        h.menu("mikasi.who_are_you", "mikasi.my_diary", "mikasi.farewell")
         h.pick(3)
-        h.expect("hatius.farewell", "hatius.goodbye")
-        h.ends()
+        h.expect("mikasi.farewell", "mikasi.goodbye")
+        h.menu("mikasi.who_are_you", "mikasi.my_diary", "mikasi.farewell")
+        // Goodbye from the diary menu brings the first menu back too.
+        h.pick(2)
+        h.expect("mikasi.my_diary_said")
+        h.menu("mikasi.what_diary", "mikasi.rewards", "mikasi.claim", "mikasi.farewell")
+        h.pick(4)
+        h.expect("mikasi.farewell", "mikasi.goodbye")
+        h.menu("mikasi.who_are_you", "mikasi.my_diary", "mikasi.farewell")
     }
 
     @Test
-    fun `Hatius tells a tier's rewards and the talk ends`() {
-        h.talk { with(Hatius) { talk() } }
-        h.menu("hatius.who_are_you", "hatius.my_diary", "hatius.farewell")
+    fun `Mikasi tells a tier's rewards and the talk ends`() {
+        h.talk { with(Mikasi) { talk() } }
+        h.menu("mikasi.who_are_you", "mikasi.my_diary", "mikasi.farewell")
         h.pick(2)
-        h.expect("hatius.my_diary")
-        h.menu("hatius.what_diary", "hatius.rewards", "hatius.claim", "hatius.farewell")
+        h.expect("mikasi.my_diary_said")
+        h.menu("mikasi.what_diary", "mikasi.rewards", "mikasi.claim", "mikasi.farewell")
         h.pick(2)
-        h.expect("hatius.rewards", "hatius.four_tiers", "hatius.which_tier")
-        h.menu("hatius.easy", "hatius.medium", "hatius.hard", "hatius.elite")
+        h.expect("mikasi.four_tiers")
+        h.menu("mikasi.easy", "mikasi.medium", "mikasi.hard", "mikasi.elite")
         h.pick(3)
-        h.expect("hatius.hard", "hatius.hard_rewards", "hatius.thanks")
+        h.expect("mikasi.hard_said", "mikasi.hard_rewards", "mikasi.thanks")
         h.ends()
     }
 
     @Test
     fun `every castle NPC with lines has Talk-to`() {
         val world = World(IntArray(0), CollisionMap())
-        for (id in listOf(Cook.ID, DukeHoracio.ID, Perdu.ID, CraftingTutor.ID, Bankers.BANKER, Bankers.BANKER_TUTOR, Doomsayer.ID, Hatius.ID, LumbridgeGuide.ID) + Townsfolk.MEN + Townsfolk.WOMEN) {
+        for (id in listOf(Cook.ID, DukeHoracio.ID, Perdu.ID, Cadmus.ID, Bankers.BANKER, Doomsayer.ID, Mikasi.ID, LumbridgeGuide.ID) + Townsfolk.MEN + Townsfolk.WOMEN) {
             assertTrue(world.handlers.find(Op(OpTarget.NPC, id, 1)) != null, "NPC $id")
         }
     }

@@ -103,6 +103,7 @@ import osrsps.game.content.registerCandleSeller
 import osrsps.game.content.registerChurch
 import osrsps.game.content.registerEssenceMine
 import osrsps.game.content.registerFatherUrhney
+import osrsps.game.content.registerLumbridgeSwamp
 import osrsps.game.content.registerSwampTutors
 import osrsps.game.content.registerHans
 import osrsps.game.content.registerArchiveLobby
@@ -379,6 +380,7 @@ class World(
             save(taker)
         },
         words = ::textFor,
+        dropsStayPrivate = { archiveRaids.isDown(it) },
     )
 
     private val equipment = Equipment(objTypes, wearRequirements)
@@ -597,6 +599,7 @@ class World(
         setVarbit = { player, id, value -> player.vars.setVarbitIfKnown(id, value) },
         varbit = { player, id -> player.vars.getVarbitIfKnown(id) },
         commit = { a, b, swap, undo -> commitTrade(a, b, swap, undo) },
+        refuses = { archiveRaids.isDown(it) },
     )
 
     /** Report abuse; see [Reports]. */
@@ -807,6 +810,7 @@ class World(
         registerAdventurersCamp(this)
         registerCandleSeller(this)
         registerSwampTutors(this)
+        registerLumbridgeSwamp(this)
         registerChurch(this)
         registerAlKharid(this)
         registerEdgeville(this)
@@ -2883,6 +2887,8 @@ class World(
         try {
             // Nobody is saved dead: a leaver's death finishes now, grave and all.
             if (player.dead) deaths.respawn(player)
+            // Down in a raid, leaving counts as a death (RAID-2), also when the death just finished put them down.
+            archiveRaids.leaving(player)
             trades.leave(player)
             thieving.forgive(player)
             friendChats.logout(player)
@@ -2918,6 +2924,12 @@ class World(
         /** The logout tab and its "Click here to logout" button, logout:logout. */
         const val LOGOUT_TAB = 182
         const val LOGOUT_BUTTON = 8
+
+        /** Every interface and component id above with its gameval name in the rev 242 cache, for [osrsps.cache.GameFrameCheck]. */
+        val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>>
+            get() = mapOf(
+                LOGOUT_TAB to ("logout" to mapOf(LOGOUT_BUTTON to "logout")),
+            )
 
         /** The logout button does nothing until this many ticks after the player was last hit (OSRS Wiki, Logout button). */
         const val LOGOUT_COMBAT_TICKS = 16L

@@ -458,8 +458,8 @@ class HeadlessAllSettingsTest {
         val packets = packets()
         val both = packets.lastOrNull { it.prot.name == "CHAT_FILTER_SETTINGS" } ?: return null
         val private = packets.lastOrNull { it.prot.name == "CHAT_FILTER_SETTINGS_PRIVATECHAT" } ?: return null
-        fun alt1(byte: Byte) = (byte.toInt() - 128) and 0xff
-        return Triple(alt1(both.payload[0]), private.payload[0].toInt() and 0xff, alt1(both.payload[1]))
+        // RSProt 242's ChatFilterSettingsEncoder: public, then trade, each a plain byte.
+        return Triple(both.payload[0].toInt() and 0xff, private.payload[0].toInt() and 0xff, both.payload[1].toInt() and 0xff)
     }
 
     private fun open(client: HeadlessClient) {
