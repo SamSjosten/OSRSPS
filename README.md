@@ -978,6 +978,26 @@ west mine; `HeadlessLumbridgeSwampRestTest` does the shed, the tools, the ruins 
 client, `HeadlessShortcutsTest` the raft's Jump-to and the stone, `LumbridgeSwampTest` the rules, and
 `NpcSpawnFileTest` the two spawn files.
 
+### The Lumbridge Swamp Caves
+
+Misthalin piece 7 step 2b (`game/content/LumbridgeSwampCaves.kt`, words under `swamp_caves.*`): the dark hole by the
+candle seller wants a rope used on it once (varbit 279 remembers it), then Climb-down goes down and the climbing rope
+below climbs back up. The caves are dark: with no light (`LightSources`) the insects warn after 15 ticks and bite for
+1 every tick from 30, and a player within 3 tiles of the rope climbs out instead. In the north-west and south-middle
+gas a naked flame flares and, 7 ticks later, explodes for a quarter of the Hitpoints level and goes out. The two
+stepping stones are Agility shortcuts whose falls put the lights out. The tunnel to the Chasm of Tears refuses. The
+caves' monsters are step 3.
+
+| Swamp caves behaviour | Source |
+|-----------------------|--------|
+| The dark tiles (`areas/lumbridge-swamp-caves-dark.txt`): every level 0 tile reachable from the climbing rope, and the far side of the south stone | 242 map, flood-filled |
+| The gas tiles (`areas/lumbridge-swamp-caves-gas.txt`) | OSRS Wiki's hazard map, placed by its wall beast holes (within a tile) |
+| Rope once, the 3-tile climb-out, 15 and 30 ticks, 1 a tick, the flare and the 7 ticks, a quarter of Hitpoints | OSRS Wiki, Lumbridge Swamp Caves, Darkness, Light sources (the caves page's older 12 damage not used) |
+| Stepping stones: level 1, 3 XP, 1 XP for a fall, 51/256 to 252/256, a fall puts the lights out | OSRS Wiki, Stepping stone (Lumbridge Swamp Caves) (Mod Ash's chart), Light sources |
+| Ids, options, varbit 279 and the tiles of each stone's sides | 242 cache and map |
+| The explosion's message, the rope's messages, where an escape lands, a fall landing back where it started with no damage | guessed |
+| Out: the screen's darkness (varbit 278), refusing attacks with no light, the Fire of Eternal Light, the cellar hole and Dorgesh-Kaan (piece 8) | out of scope |
+
 ## Draynor Village
 
 The village west of Lumbridge (the Draynor piece, plan in the project's Draynor Village 1:1 plan doc). Step 1 is the
