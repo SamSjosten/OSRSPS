@@ -549,6 +549,10 @@ class Clans(
         if (!isRecruiter(player, clan)) return
         openModal(player, APPLICANTS)
         for (component in APPLICANTS_BUTTONS) setEvents(player, APPLICANTS, component, -1, -1, OP1, 0)
+        // Each entry's Review is op 1 on the entry's own component, which clan_applicants_entry_init gives the op and
+        // its handler; the client shows an op only when the server has enabled it, so without these the list had no
+        // Review (RuneLite nightly 2026-11-08, social-clan-applicants step 15).
+        for (component in APPLICANTS_ENTRIES) setEvents(player, APPLICANTS, component, -1, -1, OP1, 0)
         setEvents(player, APPLICANTS, APPLICANTS_LIST, 0, APPLICANTS_SLOTS - 1, 0, EVENT_PAUSE_BUTTON)
         showApplicants(player, clan)
     }
@@ -1695,6 +1699,9 @@ class Clans(
         const val APPLICANTS = 699
         const val APPLICANTS_LIST = 11
         const val APPLICANTS_SLOTS = 20
+
+        /** The list's entries, clans_applicants:00 to :19 (enum_3805 maps slot n to component 12 + n). */
+        val APPLICANTS_ENTRIES = 12 until 12 + APPLICANTS_SLOTS
         const val APPLICANTS_EXIT = 33
         const val APPLICANTS_REFRESH = 34
         const val APPLICANTS_REJECT = 39
