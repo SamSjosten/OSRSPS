@@ -24,6 +24,7 @@ import osrsps.game.skill.BirdNestLines
 import osrsps.game.skill.CookingLines
 import osrsps.game.skill.CraftingLines
 import osrsps.game.skill.FiremakingLines
+import osrsps.game.skill.LightSourceLines
 import osrsps.game.skill.FishingLines
 import osrsps.game.skill.FletchingLines
 import osrsps.game.skill.HerbloreLines
@@ -145,6 +146,7 @@ object DialogueLines {
         FatherLawrenceLines,
         FerrnookLines,
         FiremakingLines,
+        LightSourceLines,
         FishingLines,
         FletchingLines,
         FoodLines,

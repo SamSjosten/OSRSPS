@@ -462,6 +462,23 @@ out. Ops on items on the ground can now re-run each tick too (`World.repeatOp`, 
 | The step off the fire is walked (2004Scape moves the player at once); fires allowed in banks | guessed |
 | Out: bows as tinderboxes, coloured logs, Forester's campfires, a tinderbox used on logs on the ground | out of scope |
 
+### Light sources
+
+A tinderbox used on an unlit light source (either way round) lights it at the Wiki's Firemaking level, and its
+Extinguish option puts it out (`game/skill/LightSources.kt`, words under `light_source.*`). A candle goes into an empty
+candle lantern, and an unlit torch lights on a fire or range. Dark areas ask `LightSources.hasLight` and swamp gas asks
+`nakedFlames` and puts them out with `extinguish` (piece 7 step 2b).
+
+| Light source behaviour | Source |
+|------------------------|--------|
+| Which items light (candles, black candles, torches, candle, oil and bullseye lanterns, oil lamps, the sapphire and emerald lanterns, the mining helmet), the level to light each, brightness, which set off gas and which effects can put out | OSRS Wiki, Light sources |
+| Lights that are always lit: the Firemaking and max capes, the Bruma torch, the abyssal lantern lit with logs | OSRS Wiki, Light sources |
+| A candle into an empty candle lantern, Firemaking 4 for a lit one, no XP | OSRS Wiki, Candle lantern |
+| An unlit torch lights on anything that cooks | OSRS Wiki, Light sources |
+| Item ids, names and the Extinguish option | 242 cache |
+| No XP, animation or delay for lighting or putting out; the messages' words | guessed (no source; keys only) |
+| Out: lamp oil (its still is in Rimmington), the worn mining helmet's Extinguish, dry sticks, spicy stews, lighting the abyssal lantern | out of scope |
+
 ### Mining
 
 Mine on a rock mines it with the best pickaxe the player can use (`game/skill/Mining.kt`, words under `mining.*`):
