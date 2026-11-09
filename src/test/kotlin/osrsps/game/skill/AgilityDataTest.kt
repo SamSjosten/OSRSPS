@@ -82,6 +82,8 @@ class AgilityDataTest {
                 "shortcut_champions_guild_south_stones" to (52 to 50),
                 "shortcut_river_lum_raft" to (48 to 0),
                 "shortcut_lumbridge_swamp_desert_stone" to (66 to 0),
+                "shortcut_swamp_caves_stone_north" to (1 to 30),
+                "shortcut_swamp_caves_stone_south" to (1 to 30),
             ),
             // A crossing's XP: the obstacle's own at the end, and any given partway, the same both ways.
             shortcuts.associate { shortcut ->
@@ -95,16 +97,23 @@ class AgilityDataTest {
             assertEquals(listOf(1, 4), route.moves.withIndex().filter { it.value is AgilityMove.Xp }.map { it.index })
             assertTrue(route.moves.filterIsInstance<AgilityMove.Xp>().all { it.tenths == 25 })
         }
-        // Only the stones and the raft, whose sides are river, are used from the bank.
+        // Only the stones and the raft, whose sides are river or cave water, are used from the bank.
         assertEquals(
-            setOf("shortcut_champions_guild_stone", "shortcut_champions_guild_south_stones", "shortcut_river_lum_raft", "shortcut_lumbridge_swamp_desert_stone"),
+            setOf(
+                "shortcut_champions_guild_stone", "shortcut_champions_guild_south_stones", "shortcut_river_lum_raft",
+                "shortcut_lumbridge_swamp_desert_stone", "shortcut_swamp_caves_stone_north", "shortcut_swamp_caves_stone_south",
+            ),
             shortcuts.filter { it.fromStart }.map { it.key }.toSet(),
         )
         assertTrue(shortcuts.none { it in data.courseOf })
         assertTrue(shortcuts.all { it.routes.size == 2 })
-        // Each has its own level line, as live words each refusal for its obstacle.
-        assertEquals(shortcuts.size, shortcuts.map { it.levelLine }.toSet().size)
-        assertTrue(shortcuts.none { it.levelLine == AgilityLines.LEVEL })
+        // Each that can refuse has its own level line, as live words each refusal for its obstacle; a level 1 one never
+        // refuses (the swamp caves' stepping stones).
+        val refusing = shortcuts.filter { it.level > 1 }
+        assertEquals(refusing.size, refusing.map { it.levelLine }.toSet().size)
+        assertTrue(refusing.none { it.levelLine == AgilityLines.LEVEL })
+        // Only the swamp caves' stones put the lights out on a fall.
+        assertEquals(setOf("shortcut_swamp_caves_stone_north", "shortcut_swamp_caves_stone_south"), shortcuts.filter { it.failDouses }.map { it.key }.toSet())
         // Each way ends where the other starts.
         for (shortcut in shortcuts) {
             val (there, back) = shortcut.routes

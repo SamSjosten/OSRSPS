@@ -1,0 +1,47 @@
+{
+ "name": "Misthalin piece 7 step 2b: the Lumbridge Swamp Caves: the dark hole wanting a rope once, down and up the climbing rope, a candle flaring and exploding in the north-west gas, the insects warning and biting with no light, and the Chasm of Tears' tunnel refusing (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::varbit 279 0", "comment": "swamp_caves_roped_entrance: no rope tied yet"},
+  {"step": "command", "text": "::setlevel hitpoints 40", "expectMessage": "40"},
+
+  {"step": "command", "text": "::tele 3168 3172 0", "comment": "beside the dark hole, between the warning signs"},
+  {"step": "assertLocation", "x": 3168, "y": 3172, "plane": 0},
+  {"step": "locOption", "locId": 5947, "option": "Climb-down", "x": 3169, "y": 3172},
+  {"step": "assertMessage", "contains": "[swamp_caves.need_rope]"},
+  {"step": "command", "text": "::item rope", "expectMessage": "Added 1 x Rope"},
+  {"step": "useItemOnLoc", "item": "Rope", "locId": 5947, "x": 3169, "y": 3172},
+  {"step": "assertMessage", "contains": "[swamp_caves.rope_tied]"},
+  {"step": "assertInventory", "item": "Rope", "count": 0},
+  {"step": "command", "text": "::item tinderbox", "expectMessage": "Added 1 x Tinderbox"},
+  {"step": "command", "text": "::item lit_candle", "expectMessage": "Added 1 x Lit candle"},
+  {"step": "locOption", "locId": 5947, "option": "Climb-down", "x": 3169, "y": 3172},
+  {"step": "assertLocation", "x": 3168, "y": 9572, "plane": 0, "timeoutMs": 10000, "comment": "beside the climbing rope below"},
+
+  {"step": "command", "text": "::tele 3160 9590 0", "comment": "the north-west gas, traced from the Wiki's hazard map"},
+  {"step": "assertMessage", "contains": "[swamp_caves.gas_flare item=candle]", "timeoutMs": 5000},
+  {"step": "assertMessage", "contains": "[swamp_caves.gas_explode]", "timeoutMs": 10000, "comment": "7 ticks after the flare"},
+  {"step": "assertInventory", "itemId": 36, "count": 1, "comment": "the candle went out"},
+
+  {"step": "command", "text": "::tele 3188 9565 0", "comment": "the dark, out of the gas and away from the rope, with no light"},
+  {"step": "assertMessage", "contains": "[swamp_caves.insects_warn]", "timeoutMs": 15000, "comment": "15 ticks"},
+  {"step": "assertMessage", "contains": "[swamp_caves.insects_swarm]", "timeoutMs": 15000, "comment": "30 ticks"},
+  {"step": "useItemOnItem", "item": "Tinderbox", "onItem": "Candle"},
+  {"step": "assertInventory", "itemId": 33, "count": 1, "comment": "lit again: the bites stop"},
+
+  {"step": "command", "text": "::tele 3226 9542 0", "comment": "beside the tunnel to the Chasm of Tears, past the south stepping stone"},
+  {"step": "locOption", "locId": 6659, "option": "Enter", "x": 3226, "y": 9540},
+  {"step": "assertMessage", "contains": "[swamp_caves.chasm_closed]"},
+
+  {"step": "command", "text": "::tele 3168 9572 0"},
+  {"step": "locOption", "locId": 5946, "option": "Climb", "x": 3169, "y": 9572},
+  {"step": "assertLocation", "x": 3168, "y": 3172, "plane": 0, "timeoutMs": 10000, "comment": "back up beside the dark hole"},
+
+  {"step": "command", "text": "::varbit 279 0"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
