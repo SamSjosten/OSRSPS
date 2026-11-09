@@ -560,6 +560,7 @@ class MeleeCombat(
 
     private fun die(npc: Npc, def: NpcCombatDef, killer: Player?, tick: Long) {
         npc.dead = true
+        npc.diedTick = tick
         npc.retreatingFrom = null
         giveUp(npc)
         if (def.anims.death >= 0) npc.effects.anim(def.anims.death)

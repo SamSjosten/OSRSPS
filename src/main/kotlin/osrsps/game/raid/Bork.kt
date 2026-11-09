@@ -396,7 +396,7 @@ object Bork {
             borkHeld.effects.spotanim(0, SPOT_BORK_DEATH, 0)
             borkHeld.effects.say(text(BorkLines.AVENGE))
             log("Bork down")
-            if (!state.smorksDown) frenzyAhead()
+            if (!state.smorksDown) frenzyAhead(sinceDeath(borkHeld))
         }
         if (smorksHeld != null && smorksHeld.dead && !state.smorksDown) {
             state.smorksDown = true
@@ -405,7 +405,7 @@ object Bork {
             log("the Smorks down")
             state.plan.clear()
             state.smorksNext = Long.MAX_VALUE
-            if (!state.borkDown) state.loneStomp = phaseTick + LONE_STOMP_EVERY
+            if (!state.borkDown) state.loneStomp = phaseTick + LONE_STOMP_EVERY - sinceDeath(smorksHeld)
         }
         // Done once both are gone, their death animations over: the anchor dies, which does the room.
         if ((borkHeld == null || !inWorld(borkHeld)) && (smorksHeld == null || !inWorld(smorksHeld))) {
@@ -454,11 +454,11 @@ object Bork {
      * Bork dead with the Smorks up: their cycle stops; as his body goes [BORK_GONE] ticks on they swear revenge, and
      * [FRENZY_AFTER] after that their frenzy begins (tsps).
      */
-    private fun EncounterContext.frenzyAhead() {
+    private fun EncounterContext.frenzyAhead(late: Int) {
         state.plan.clear()
         state.smorksNext = Long.MAX_VALUE
-        after(BORK_GONE) { liveSmorks?.effects?.say(text(BorkLines.HUMAN_DIE)) }
-        after(BORK_GONE + FRENZY_AFTER) {
+        after(BORK_GONE - late) { liveSmorks?.effects?.say(text(BorkLines.HUMAN_DIE)) }
+        after(BORK_GONE + FRENZY_AFTER - late) {
             if (liveSmorks == null) return@after
             state.frenzy = true
             state.plan.clear()
@@ -918,6 +918,14 @@ object Bork {
         // After them this tick: the fight's tick, before this call, had him chase the tank before.
         chase(bork, pick)
     }
+
+    /**
+     * How many ticks ago [npc] died, seen at this tick's death check: 0 for a hit before the fight's tick, 1 for one later
+     * in the last tick (napalm splashing after the check, or a player's hit after the fight's tick), so what follows a
+     * death keeps to the tick of the death itself.
+     */
+    private fun EncounterContext.sinceDeath(npc: Npc): Int =
+        if (npc.diedTick < 0) 0 else (world.tick - npc.diedTick).toInt().coerceIn(0, BORK_GONE - 1)
 
     private fun EncounterContext.gone(npc: Npc): Boolean = boss.dead || npc.dead || !inWorld(npc)
 }

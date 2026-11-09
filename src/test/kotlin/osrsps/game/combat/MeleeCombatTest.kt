@@ -330,6 +330,7 @@ class MeleeCombatTest {
         tick = 10
         assertEquals(npc.hitpoints, melee.hit(npc, alice, 100, tick))
         assertTrue(npc.dead)
+        assertEquals(10L, npc.diedTick)
         // Bork's body stays for 7 ticks (tsps capture notes), not the usual 4; his 2-tick respawn is held to it.
         repeat(6) { tick() }
         assertTrue(removed.isEmpty())
