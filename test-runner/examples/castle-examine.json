@@ -277,15 +277,6 @@
    "contains": "[examine.npc_2897]"
   },
   {
-   "step": "npcOption",
-   "npc": "Banker tutor",
-   "option": "Examine"
-  },
-  {
-   "step": "assertMessage",
-   "contains": "[examine.npc_3227]"
-  },
-  {
    "step": "locOption",
    "loc": "Bank booth",
    "option": "Examine"

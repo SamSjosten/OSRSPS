@@ -11,7 +11,6 @@ fun registerLumbridgeTown(world: World) {
     registerLumbridgeShopkeepers(world)
     registerShearedRam(world)
     registerDonieAndGee(world)
-    registerLumbridgeTutors(world)
     registerFeoras(world)
     registerWilfred(world)
     registerLumbridgeTownsfolk(world)

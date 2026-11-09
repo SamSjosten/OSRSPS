@@ -20,59 +20,14 @@ object BankerLines : Lines("banker", "Transcript:Banker") {
 }
 
 /**
- * The Banker tutor's lines; the words are in the dialogue file, from the Wiki's Transcript:Banker tutor (Standard
- * dialogue), read 2026-10-25.
- */
-object BankerTutorLines : Lines("banker_tutor", "Transcript:Banker tutor") {
-    val GREETING = line("greeting", "the tutor's first line")
-    val HOW_IT_WORKS = line("how_it_works", "first menu, option 1: how banking works")
-    val ACCESS = line("access", "first menu, option 2: access the account")
-    val PIN = line("pin", "first menu, option 3: PIN settings")
-    val COLLECT = line("collect", "first menu, option 4: collect items")
-    val BUY_SLOTS = line("buy_slots", "first menu, option 5: more bank space, which the player then says")
-    val USING = line("using", "topic menu, option 1: using the bank")
-    val USING_SAID = line("using_said", "topic menu, option 1: what the player then says (longer than the option)")
-    val USING_1 = line("using_1", "using the bank: the tutor's first line")
-    val USING_2 = line("using_2", "using the bank: second line")
-    val USING_3 = line("using_3", "using the bank: third line, right-click")
-    val USING_4 = line("using_4", "using the bank: fourth line, rearranging")
-    val USING_5 = line("using_5", "using the bank: fifth line, notes")
-    val USING_6 = line("using_6", "using the bank: sixth line, the logs example")
-    val USING_7 = line("using_7", "using the bank: seventh line")
-    val DEPOSIT_BOXES = line("deposit_boxes", "topic menu, option 2: deposit boxes")
-    val DEPOSIT_BOXES_SAID = line("deposit_boxes_said", "topic menu, option 2: what the player then says")
-    val DEPOSIT_1 = line("deposit_1", "deposit boxes: the tutor's first line")
-    val DEPOSIT_2 = line("deposit_2", "deposit boxes: second line")
-    val WHAT_PIN = line("what_pin", "topic menu, option 3: what a PIN is")
-    val WHAT_PIN_SAID = line("what_pin_said", "topic menu, option 3: what the player then says")
-    val PIN_1 = line("pin_1", "PIN: the tutor's first line")
-    val PIN_2 = line("pin_2", "PIN: second line")
-    val PIN_3 = line("pin_3", "PIN: third line")
-    val SET_PIN = line("set_pin", "PIN menu, option 1: setting one, which the player then says")
-    val REMOVE_PIN = line("remove_pin", "PIN menu, option 2: removing one, which the player then says")
-    val FORGOT_PIN = line("forgot_pin", "PIN menu, option 3: forgetting it, which the player then says")
-    val OTHER_TOPICS = line("other_topics", "PIN menu, option 4: back to the other topics")
-    val GOODBYE = line("goodbye", "PIN menu, option 5: goodbye, which the player then says")
-    val SET_1 = line("set_1", "setting a PIN: the tutor's first line")
-    val SET_2 = line("set_2", "setting a PIN: second line")
-    val SET_3 = line("set_3", "setting a PIN: third line, the recovery delay")
-    val SET_4 = line("set_4", "setting a PIN: fourth line")
-    val SET_5 = line("set_5", "setting a PIN: fifth line")
-    val REMOVE_1 = line("remove_1", "removing a PIN: the tutor's first line")
-    val REMOVE_2 = line("remove_2", "removing a PIN: second line")
-    val FORGOT_1 = line("forgot_1", "a forgotten PIN: the tutor's first line")
-    val FORGOT_2 = line("forgot_2", "a forgotten PIN: second line")
-}
-
-/**
  * The bankers on the castle's top floor: the Banker (multi-NPC 6520, which players see as 2897 while varbit 4153 is 0)
- * and the Banker tutor (3227). From the Wiki: both conversations; asking for the bank opens it, asking for PIN settings
+ * and, where the Banker tutor stood until 242.1 replaced her with a normal banker, a second Banker (2897). From the
+ * Wiki: the conversation; asking for the bank opens it, asking for PIN settings
  * opens [osrsps.game.bank.BankPinSettings], asking to collect (and Collect, op4) opens the Grand Exchange collection
  * box. Not built yet: buying bank space, so that option ends the conversation. Al Kharid's five bankers (3090 and
  * 3091) talk and bank the same way: the Wiki's Banker transcript is every banker's. So do Varrock's west and east bank
  * bankers (2897 and 2898) and the Grand Exchange's (1633, 1634 and 3089).
- * Guessed: every chathead expression; that the tutor's topic menu comes back after each topic (the Wiki doesn't say
- * where they lead).
+ * Guessed: every chathead expression.
  */
 object Bankers {
     /** banker1_new: the banker players see. */
@@ -97,7 +52,6 @@ object Bankers {
 
     /** Every banker with the standard conversation. */
     val STANDARD = listOf(BANKER, VARROCK_BANKER_2) + DRAYNOR + AL_KHARID + GRAND_EXCHANGE
-    const val BANKER_TUTOR = 3227
     const val TALK_TO = 1
 
     /** The NPCs' Bank option (op3 in the 241 cache). */
@@ -125,65 +79,11 @@ object Bankers {
         }
         Ask.NOTHING
     }
-
-    internal suspend fun Dialogue.tutor(): Ask = with(BankerTutorLines) {
-        chatNpc(ChatAnim.HAPPY, GREETING)
-        when (choice(HOW_IT_WORKS, ACCESS, PIN, COLLECT, BUY_SLOTS)) {
-            1 -> tutorTopics()
-            2 -> return Ask.BANK
-            3 -> return Ask.PIN
-            4 -> return Ask.COLLECT
-            5 -> chatPlayer(ChatAnim.QUIZ, BUY_SLOTS)
-        }
-        Ask.NOTHING
-    }
-
-    /** The topic menu, again after each topic, and the PIN menu after the PIN topic, until the player says goodbye. */
-    private suspend fun Dialogue.tutorTopics() = with(BankerTutorLines) {
-        var pinMenu = false
-        while (true) {
-            if (!pinMenu) {
-                when (choice(USING, DEPOSIT_BOXES, WHAT_PIN)) {
-                    1 -> {
-                        chatPlayer(ChatAnim.QUIZ, USING_SAID)
-                        for (line in listOf(USING_1, USING_2, USING_3, USING_4, USING_5, USING_6, USING_7)) chatNpc(ChatAnim.NEUTRAL, line)
-                    }
-                    2 -> {
-                        chatPlayer(ChatAnim.QUIZ, DEPOSIT_BOXES_SAID)
-                        chatNpc(ChatAnim.NEUTRAL, DEPOSIT_1)
-                        chatNpc(ChatAnim.NEUTRAL, DEPOSIT_2)
-                    }
-                    else -> {
-                        chatPlayer(ChatAnim.QUIZ, WHAT_PIN_SAID)
-                        for (line in listOf(PIN_1, PIN_2, PIN_3)) chatNpc(ChatAnim.NEUTRAL, line)
-                        pinMenu = true
-                    }
-                }
-                continue
-            }
-            val (asked, answer) = when (choice(SET_PIN, REMOVE_PIN, FORGOT_PIN, OTHER_TOPICS, GOODBYE)) {
-                1 -> SET_PIN to listOf(SET_1, SET_2, SET_3, SET_4, SET_5)
-                2 -> REMOVE_PIN to listOf(REMOVE_1, REMOVE_2)
-                3 -> FORGOT_PIN to listOf(FORGOT_1, FORGOT_2)
-                4 -> {
-                    pinMenu = false
-                    continue
-                }
-                else -> {
-                    chatPlayer(ChatAnim.HAPPY, GOODBYE)
-                    return@with
-                }
-            }
-            chatPlayer(ChatAnim.QUIZ, asked)
-            for (line in answer) chatNpc(ChatAnim.NEUTRAL, line)
-        }
-    }
 }
 
 /** The bankers' Talk-to, Bank and Collect, from across their booths. */
 fun registerBankers(world: World) {
     for (banker in Bankers.STANDARD) world.npcInteractions.reachOverCounter(banker)
-    world.npcInteractions.reachOverCounter(Bankers.BANKER_TUTOR)
     fun ScriptContext.answer(ask: Bankers.Ask) = when (ask) {
         Bankers.Ask.BANK -> world.bankScreen.open(player)
         Bankers.Ask.PIN -> world.bankPinSettings.open(player)
@@ -196,13 +96,6 @@ fun registerBankers(world: World) {
             world.dialogues.start(this, op.npc) { ask = with(Bankers) { banker() } }
             answer(ask)
         }
-    }
-    world.handlers.onNpc(Bankers.BANKER_TUTOR, Bankers.TALK_TO) { op ->
-        var ask = Bankers.Ask.NOTHING
-        world.dialogues.start(this, op.npc) { ask = with(Bankers) { tutor() } }
-        answer(ask)
-    }
-    for (banker in Bankers.STANDARD + Bankers.BANKER_TUTOR) {
         world.handlers.onNpc(banker, Bankers.BANK) { world.bankScreen.open(player) }
         world.handlers.onNpc(banker, Bankers.COLLECT) { world.grandExchangeScreen.openCollectionBox(player) }
     }

@@ -50,13 +50,13 @@ class HeadlessCastleNpcTest {
         assertEquals(options.toList(), (awaitDialogue("the menu") { it is DialogueView.Menu } as DialogueView.Menu).options)
 
     @Test
-    fun `the Cook talks about his range`(@TempDir dir: Path) {
+    fun `the Cook talks about his range, now his third option`(@TempDir dir: Path) {
         server(dir, cook).use { server ->
             server.login("alice").use { client ->
                 client.talkTo(Cook.ID)
                 client.says("Cook" to "[cook.greeting]")
-                client.menu("[cook.other_quests]", "[cook.strong]", "[cook.dying]", "[cook.range]")
-                client.chooseOption(4)
+                client.menu("[cook.other_quests]", "[cook.advice]", "[cook.range]")
+                client.chooseOption(3)
                 client.says(
                     "alice" to "[cook.range]",
                     "Cook" to "[cook.range_yes]",
@@ -68,6 +68,38 @@ class HeadlessCastleNpcTest {
                 client.await("the dialogue to close") { if (client.dialogueView == null) Unit else null }
             }
         }
+    }
+
+    @Test
+    fun `the Cook's cooking advice since 242, with its three icon boxes, comes back to the menu`(@TempDir dir: Path) {
+        server(dir, cook).use { server ->
+            server.login("frank").use { client ->
+                client.talkTo(Cook.ID)
+                client.says("Cook" to "[cook.greeting]")
+                client.menu("[cook.other_quests]", "[cook.advice]", "[cook.range]")
+                client.chooseOption(2)
+                client.says(
+                    "frank" to "[cook.advice]", "Cook" to "[cook.advice_1]", "frank" to "[cook.imagine]", "Cook" to "[cook.advice_2]",
+                    "Cook" to "[cook.advice_3]",
+                )
+                client.box()
+                client.says("Cook" to "[cook.advice_4]")
+                client.box()
+                client.says("Cook" to "[cook.advice_5]", "Cook" to "[cook.advice_6]")
+                client.box()
+                client.says("Cook" to "[cook.advice_7]")
+                client.awaitDialogue("the Skills panel box") { it is DialogueView.Message && it.text == "[cook.guide_hint]" }
+                client.continueDialogue()
+                client.says("frank" to "[cook.info_thanks]", "Cook" to "[cook.happy_to_help]")
+                client.menu("[cook.other_quests]", "[cook.advice]", "[cook.range]")
+            }
+        }
+    }
+
+    /** Continues an item box. */
+    private fun HeadlessClient.box() {
+        assertEquals(DialogueView.Other(Chatbox.OBJECTBOX), awaitDialogue("an item box") { it is DialogueView.Other })
+        resumePause(Chatbox.OBJECTBOX, Chatbox.OBJECTBOX_UNIVERSE, 0)
     }
 
     @Test

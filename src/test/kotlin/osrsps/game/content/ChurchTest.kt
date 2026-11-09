@@ -2,7 +2,6 @@ package osrsps.game.content
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import osrsps.game.GameFrame
 import osrsps.game.Player
 import osrsps.game.Skill
 
@@ -10,55 +9,73 @@ import osrsps.game.Skill
 class ChurchTest {
     private val h = DialogueHarness()
 
-    /** The side tabs shown, in order. */
-    private val tabs = mutableListOf<Int>()
-    private val sideTab: (Player, Int) -> Unit = { _, tab -> tabs += tab }
+    private val root = arrayOf("father_aereck.more_prayers", "father_aereck.saradomin", "father_aereck.leave_first")
+    private val rootAfter = arrayOf("father_aereck.more_prayers", "father_aereck.saradomin", "father_aereck.leave")
 
     @Test
-    fun `Father Aereck thanks the player for the ghost and has no more quests`() {
+    fun `Father Aereck welcomes the player, and leaving first is the longer goodbye`() {
         h.talk { with(Church) { aereck() } }
-        h.expect("father_aereck.thanks", "father_aereck.new_quest", "father_aereck.one_quest")
+        h.expect("father_aereck.greeting")
+        h.menu(*root)
+        h.pick(3)
+        h.expect("father_aereck.leave_first", "father_aereck.guide_you")
         h.ends()
     }
 
     @Test
-    fun `the Prayer tutor answers both questions, each offering the other, and opens the prayer tab`() {
-        h.talk { with(Church) { prayerTutor(sideTab) } }
-        h.expect("prayer_tutor.good_day", "prayer_tutor.greeting name=Zezima")
-        h.menu("prayer_tutor.train", "prayer_tutor.useful", "prayer_tutor.no_thanks")
+    fun `his prayer tips since 242, with the altar and bones boxes, come back to the menu with the shorter goodbye`() {
+        h.talk { with(Church) { aereck() } }
+        h.expect("father_aereck.greeting")
+        h.menu(*root)
         h.pick(1)
         h.expect(
-            "prayer_tutor.train", "prayer_tutor.bury_or_offer", "prayer_tutor.altars", "prayer_tutor.bones",
-            "prayer_tutor.anything_else",
+            "father_aereck.prayers", "father_aereck.prayers_1", "father_aereck.saradomin_thing", "father_aereck.other_gods",
+            "father_aereck.curious", "father_aereck.battle", "father_aereck.protection", "father_aereck.hint_prayers",
+            "father_aereck.not_free", "father_aereck.hint_points", "father_aereck.faith", "father_aereck.altars",
+            "father_aereck.hint_altar", "father_aereck.anything_else", "father_aereck.dedication", "father_aereck.how",
+            "father_aereck.bury", "father_aereck.hint_bones", "father_aereck.covers", "father_aereck.hint_guide",
+            "father_aereck.thanks",
         )
-        h.menu("prayer_tutor.useful", "prayer_tutor.no_thanks")
-        h.pick(1)
-        h.expect(
-            "prayer_tutor.useful", "prayer_tutor.kindly", "prayer_tutor.what_benefits", "prayer_tutor.benefits",
-            "prayer_tutor.prayer_book", "prayer_tutor.wow", "prayer_tutor.careful", "prayer_tutor.anything_else",
-        )
-        assertEquals(listOf(GameFrame.SIDE_TAB_PRAYER), tabs)
-        h.menu("prayer_tutor.train", "prayer_tutor.no_thanks")
-        h.pick(2)
-        h.expect("prayer_tutor.no_thanks", "prayer_tutor.farewell")
+        assertEquals(listOf(Church.ALTAR_ICON, Church.BONES), h.boxObjs)
+        h.menu(*rootAfter)
+        h.pick(3)
+        h.expect("father_aereck.leave", "father_aereck.guide_you")
         h.ends()
     }
 
     @Test
-    fun `at 99 Prayer the tutor says the player should teach her, then gives her advice anyway`() {
-        h.player.skills.setLevel(Skill.PRAYER, 99)
-        h.talk { with(Church) { prayerTutor(sideTab) } }
-        h.expect("prayer_tutor.good_day", "prayer_tutor.greeting name=Zezima")
-        h.menu("prayer_tutor.train", "prayer_tutor.useful", "prayer_tutor.no_thanks")
+    fun `asked about Saradomin, the player can claim another world, as a game or a joke`() {
+        h.talk { with(Church) { aereck() } }
+        h.expect("father_aereck.greeting")
+        h.menu(*root)
+        h.pick(2)
+        h.expect("father_aereck.saradomin", "father_aereck.saradomin_1", "father_aereck.saradomin_2")
+        h.menu("father_aereck.info_thanks", "father_aereck.not_from_world")
+        h.pick(2)
+        h.expect("father_aereck.not_from_world", "father_aereck.tentacles")
+        h.menu("father_aereck.online_game", "father_aereck.joking")
+        h.pick(1)
+        h.expect("father_aereck.online_game", "father_aereck.pardon", "father_aereck.never_mind")
+        h.menu(*rootAfter)
+        h.pick(2)
+        h.expect("father_aereck.saradomin", "father_aereck.saradomin_1", "father_aereck.saradomin_2")
+        h.menu("father_aereck.info_thanks", "father_aereck.not_from_world")
+        h.pick(2)
+        h.expect("father_aereck.not_from_world", "father_aereck.tentacles")
+        h.menu("father_aereck.online_game", "father_aereck.joking")
+        h.pick(2)
+        h.expect("father_aereck.joking", "father_aereck.i_see")
+        h.menu(*rootAfter)
         h.pick(1)
         h.expect(
-            "prayer_tutor.train", "prayer_tutor.teach_me", "prayer_tutor.advice", "prayer_tutor.bury_or_offer",
-            "prayer_tutor.altars", "prayer_tutor.bones", "prayer_tutor.anything_else",
+            "father_aereck.prayers", "father_aereck.prayers_1", "father_aereck.saradomin_thing", "father_aereck.other_gods",
+            "father_aereck.curious", "father_aereck.battle", "father_aereck.protection", "father_aereck.hint_prayers",
+            "father_aereck.not_free", "father_aereck.hint_points", "father_aereck.faith", "father_aereck.altars",
+            "father_aereck.hint_altar", "father_aereck.anything_else", "father_aereck.dedication", "father_aereck.how",
+            "father_aereck.bury", "father_aereck.hint_bones", "father_aereck.covers", "father_aereck.hint_guide",
+            "father_aereck.thanks",
         )
-        h.menu("prayer_tutor.useful", "prayer_tutor.no_thanks")
-        h.pick(2)
-        h.expect("prayer_tutor.no_thanks", "prayer_tutor.farewell")
-        h.ends()
+        h.menu(*rootAfter)
     }
 
     @Test

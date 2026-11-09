@@ -306,10 +306,11 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   a willow chopped at level 30, a shrimp netted at the shore's Small Net spots and cooked on the permanent fire.
 - `draynor-market.json`: Draynor step 3: Fortunato's, Olivia's and Diango's talks (`::keys on`) into their shops, and
   one buy in each at the Wiki's price (a jug of wine for 1, a potato seed for 2, a Disk of Returning for 21,000, a Chronicle for 300), then a second Chronicle refused while one is held.
-- `lumbridge-church.json`: Lumbridge church: Examine (with `::keys on`) on Father Aereck, the Prayer tutor, Nigel and
-  Count Check; Pray-at the altar with drained prayer points (then again, full); Father Aereck's thanks, the Prayer
-  tutor's two answers, Nigel's Deadman questions and his Trade, and Count Check's advice, who he is, the Salve, the
-  Stronghold offer turned down and his check.
+- `lumbridge-church.json`: Lumbridge church as since 242.1: Examine (with `::keys on`) on Father Aereck and Count
+  Check; Pray-at the altar with drained prayer points (then again, full); Father Aereck's prayer tips and his talk of
+  Saradomin, and Count Check's advice, who he is, the Salve, the Stronghold offer turned down and his check.
+- `ge-nigel.json`: Nigel at the Grand Exchange (since 242.1 on normal worlds): Examine, his Deadman questions and his
+  Trade, the store shut.
 - `lumbridge-examine.json`: Examine (with `::keys on`) on scenery outside the castle: the church's altar, organ,
   pews and candles, and the graveyard's two gravestones.
 - `draynor-ned-aggie.json`: Draynor step 4: Ned's rope talk (`::keys on`), the rope bought for 15 coins with the free

@@ -19,14 +19,14 @@ class ExaminesTest {
 
     @Test
     fun `every castle NPC that talks has an examine`() {
-        for (id in listOf(Hans.ID, Cook.ID, DukeHoracio.ID, Perdu.ID, Cadmus.ID, Bankers.BANKER, Bankers.BANKER_TUTOR, Doomsayer.ID, Hatius.ID, LumbridgeGuide.ID) + Townsfolk.MEN + Townsfolk.WOMEN) {
+        for (id in listOf(Hans.ID, Cook.ID, DukeHoracio.ID, Perdu.ID, Cadmus.ID, Bankers.BANKER, Doomsayer.ID, Hatius.ID, LumbridgeGuide.ID) + Townsfolk.MEN + Townsfolk.WOMEN) {
             assertEquals("examine.npc_$id", Examines.npc(id)?.key, "NPC $id")
         }
     }
 
     @Test
     fun `the church's NPCs and the scenery outside the castle have examines`() {
-        for (id in listOf(Church.FATHER_AERECK, Church.PRAYER_TUTOR, Church.NIGEL_REGULAR, Church.COUNT_CHECK)) {
+        for (id in listOf(Church.FATHER_AERECK, Church.NIGEL_REGULAR, Church.COUNT_CHECK)) {
             assertEquals("examine.npc_$id", Examines.npc(id)?.key, "NPC $id")
         }
         // Nigel's multi-NPC id shares the Nigel a normal world shows.
