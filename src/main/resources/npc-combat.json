@@ -663,6 +663,21 @@
       "source": "OSRS Wiki, Archive Guardian (id 16659; the grounded form is 16660 in the 241.4 cache), read 2026-11-03: speed 5, max hit 25, crush (the infobox's style), the defence bonuses but slash 90, the cache's param for this form against 110 for the levitating one, immune to poison and venom, Defence drained to 60% at most. Grounded it swings with npc_archive_guardian_melee_attack01. Guessed: the 40% fire weakness (a guide's, osrsbestinslot; the Wiki lists 80% and 40% without saying which form has which), no block animation, the respawn, which never comes"
     },
     {
+      "npcs": ["tfa_ezekiel"],
+      "attackSpeed": 5,
+      "maxHit": 77,
+      "attackType": "slash",
+      "attackBonus": 250,
+      "strengthBonus": 0,
+      "defence": { "stab": 150, "slash": 90, "crush": 35, "magic": 200, "light": 445, "standard": 370, "heavy": 320 },
+      "anims": { "attack": "npc_ezekiel_melee01", "defend": null, "death": "npc_ezekiel_death01" },
+      "respawnTicks": 50,
+      "weakness": {"element": "earth", "percent": 25},
+      "immune": ["poison", "venom"],
+      "drainCap": { "defence": 60 },
+      "source": "OSRS Wiki, Ezekiel (id 16652), read 2026-11-09: speed 5, max hit 77, the defence bonuses, the 25% earth weakness, immune to poison and venom, Defence drained to 120 (60%) at most. The infobox's +250 read as his attack bonus. His swing is npc_ezekiel_melee01. Guessed: slash for his melee (the infobox says only Melee), the max hit being the melee's, no strength bonus (the max hit is given), no block animation, the respawn, which never comes"
+    },
+    {
       "npcs": ["tfa_guardian_battery_active", "tfa_guardian_battery_inactive", "tfa_guardian_battery_destroyed"],
       "attackSpeed": 4, "maxHit": 0, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
       "defence": { "stab": 0, "slash": 20, "crush": -20, "magic": -20, "light": 0, "standard": 0, "heavy": 0 },

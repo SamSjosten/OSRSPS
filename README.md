@@ -1819,7 +1819,11 @@ loses goes in a grave there. The party lasts through the wipe.
 | The whole of a run's instance multi-way | inferred: a raid of up to eight fights one boss |
 | A member who leaves the party sent to the lobby; a logout saving them there, as any instance's exit | guessed |
 | A member down who gets out (a teleport such as Home Teleport or a lodestone, leaving the party, or a logout once out of combat) dying of it, with a grave in the lobby, as if they had been the last standing; a reconnect within the linger no escape | Sam's decision, 8 November 2026 (exploit review RAID-2); the death's place guessed |
-| Every room done as it begins, until its boss's step | stand-in (all but the Guardian's) |
+| Every room done as it begins, until its boss's step | stand-in (all but the Guardian's and Ezekiel's) |
+| Ezekiel (step 17a): his fight beginning as the first of the party comes into his room, that player his tank; his stats, 3,000 to 10,650 hitpoints by party size, the 25% earth weakness, poison and venom immunity and the 60% Defence drain floor | OSRS Wiki, Ezekiel (2026-11-09) |
+| Ezekiel walking after his tank, a melee swing every 5 ticks cleaving everyone round him but those on his side opposite the tank; lightning on everyone when his tank is out of reach; a cross of lightning on each player after every second swing, and 3% special attack energy for a perfect dodge of it | guides (osrstoolkit, osrsbestinslot; 2026-11-09) |
+| Where he waits (the middle of his room's ring of flames), the safe spot being his whole far side (its corner for a tank at a corner), the lightning's damage (up to 30) and landing, the cross's two-tile arms, its 3-tick warning and damage (20 to 40), his melee's max hit being the Wiki's 77, slash | guessed |
+| Ezekiel's flying swords and his enrage at 35% | not in yet: steps 17b and 17c |
 | Once the run is done, a Passageway (`tfa_exit`) at the south edge of Ocellus's room, just south of where the party comes in, whose Exit leaves to the lobby in front of the Archive Door | stand-in until the reward room (step 28): the cache has no way out of that room (Sam's decision, 8 November 2026, exploit review RAID-3); where it stands guessed |
 | The bosses after the Guardian, the Quartermaster and Supply Credits, the party's orbs, the reward room, deaths' item costs | not in yet: steps 17 to 31 |
 

@@ -277,6 +277,7 @@ class ArchiveRaids(private val world: World) {
      */
     fun built(room: ArchiveRoom): Boolean = when (room) {
         ArchiveRoom.GUARDIAN -> world.encounters.defs[ArchiveGuardian.NAME] != null && world.npcTypes[ArchiveGuardian.DORMANT] != null
+        ArchiveRoom.EZEKIEL -> world.encounters.defs[Ezekiel.NAME] != null
         else -> false
     }
 
@@ -304,6 +305,28 @@ class ArchiveRaids(private val world: World) {
         boss.effects.spotanim(0, ArchiveGuardian.SPOT_WAKE, 0)
         run.fights[room] = world.encounters.start(def, boss, { x, z -> inRoom(run, room, x, z) })
         logger.info { "$run began the Guardian's fight with ${standing.size} standing, woken by ${player.username}" }
+    }
+
+    /**
+     * The first of the party into Ezekiel's room: his fight begins, him where he waits ([EZEKIEL_X], guessed: the middle
+     * of the room's ring of flames), scaled to everyone standing in the run, [first] his tank.
+     */
+    private fun beginEzekiel(run: ArchiveRun, first: Player) {
+        val room = ArchiveRoom.EZEKIEL
+        val def = world.encounters.defs[Ezekiel.NAME] ?: return
+        run.started += room
+        val standing = standing(run)
+        run.presentAtStart[room] = standing.filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
+        val at = tile(run, EZEKIEL_X, EZEKIEL_Z)
+        val boss = world.spawnNpc(NpcSpawn(def.boss, at.x, at.z, 0, source = "$run", respawns = false))
+        if (boss == null) {
+            logger.warn { "$run: no room for Ezekiel" }
+            return
+        }
+        world.partyScaling.scale(boss, standing.size.coerceIn(1, PartyScaling.MAX_PARTY))
+        world.meleeCombat.aggress(boss, first, world.tick)
+        run.fights[room] = world.encounters.start(def, boss, { x, z -> inRoom(run, room, x, z) })
+        logger.info { "$run began Ezekiel's fight with ${standing.size} standing, ${first.username} first in" }
     }
 
     /** A nexus door: into its room, if its row is open to the party. */
@@ -407,7 +430,13 @@ class ArchiveRaids(private val world: World) {
                     out(player, run, room)
                     continue
                 }
-                if (room !in run.started && room !in run.cleared && room.stage == run.stage && !built(room)) begin(run, room)
+                if (room !in run.started && room !in run.cleared && room.stage == run.stage) {
+                    when {
+                        !built(room) -> begin(run, room)
+                        // The Guardian waits for a Touch; Ezekiel's fight begins with the first of the party in.
+                        room == ArchiveRoom.EZEKIEL -> beginEzekiel(run, player)
+                    }
+                }
             }
             settleEscapes(run, ended = false)
             val present = present(run)
@@ -637,6 +666,10 @@ class ArchiveRaids(private val world: World) {
         /** The stand-in exit's south-west tile in Ocellus's room: its 5 by 2 just south of where the party comes in. Guessed. */
         const val OCELLUS_EXIT_X = 4119
         const val OCELLUS_EXIT_Z = 5632
+
+        /** Ezekiel's south-west tile as his fight begins: him in the middle of the ring of flames round his room. Guessed. */
+        const val EZEKIEL_X = 4062
+        const val EZEKIEL_Z = 5534
 
         /** In front of the nexus's own Passageway (4124,5625, 7 by 2). Guessed. */
         const val PASSAGE_FRONT_X = 4127
