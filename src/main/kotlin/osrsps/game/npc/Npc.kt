@@ -210,6 +210,12 @@ class Npc(
      */
     var armour: ((magic: Boolean) -> Int)? = null
 
+    /**
+     * Melee hits on it always land before this tick, whatever their roll; -1, none. A boss fight sets it: Bork dazed by
+     * the Smorks' heavy cannonball (raid step 18b; OSRS Wiki: "melee attacks will always hit").
+     */
+    var meleeSureUntil: Long = -1
+
     /** True from the hit that killed it until it is taken out of the world; it can't be attacked meanwhile. */
     var dead: Boolean = false
         internal set

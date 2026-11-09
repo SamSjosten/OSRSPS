@@ -9,6 +9,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.EquipmentTab
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
@@ -33,11 +34,12 @@ import osrsps.map.LocShape
 import osrsps.map.Tile
 
 /**
- * Bork and the Smorks (raid step 18a) through the headless client: their fight beginning with the first of the party
- * into their room, both scaled to the party, Bork taking that player on and beating his gong; the Smorks firing at
- * everyone Bork isn't after; Bork's flat armour rising with the Smorks' damage and taking that off hits; and the room
- * done only once both are dead, whichever goes first. The rl-client script test-runner/examples/archive-bork.json
- * fights them in the real client.
+ * Bork and the Smorks (raid steps 18a and 18b) through the headless client: their fight beginning with the first of the
+ * party into their room, both scaled to the party, Bork taking that player on and beating his gong; the Smorks firing
+ * at everyone Bork isn't after; their napalm leaving oil that burns; the heavy cannonball lured onto Bork dazing him,
+ * his armour gone; his stomp sparing the tower's shadow and naming his next tank; Bork's flat armour rising with the
+ * Smorks' damage and taking that off hits; and the room done only once both are dead, whichever goes first. The
+ * rl-client script test-runner/examples/archive-bork.json fights them in the real client.
  */
 class HeadlessBorkTest {
     private val bork = NpcType(
@@ -97,12 +99,19 @@ class HeadlessBorkTest {
         return assertNotNull(server.world.parties.of(server.world.playerNamed(username)!!)?.let(server.world.archiveRaids::of))
     }
 
-    /** Through the Guardian's hall (done at once) to Bork's room, his fight begun. */
-    private fun HeadlessClient.toBork(run: ArchiveRun) {
+    /** Through the Guardian's hall (done at once) to Bork's room and onto his arena's floor, his fight begun. */
+    private fun HeadlessClient.toBork(server: TestServer, run: ArchiveRun) {
         commandReply("raid tp guardian") { it.startsWith("To ") }
         await("the Guardian's room done") { ArchiveRoom.GUARDIAN.takeIf { it in run.cleared } }
         commandReply("raid tp bork") { it.startsWith("To ") }
+        ontoFloor(server, run)
         await("their fight") { fight().takeIf { it.startsWith("bork #") } }
+    }
+
+    /** Where their room's transporter puts a player: the west edge of the arena's floor (this world has no transporter). */
+    private fun HeadlessClient.ontoFloor(server: TestServer, run: ArchiveRun) {
+        val at = server.world.archiveRaids.tile(run, ArchiveRaids.BORK_ARENA_X, ArchiveRaids.BORK_ARENA_Z)
+        tele(at.x, at.z)
     }
 
     private fun lines(run: ArchiveRun): List<String> = run.fights[ArchiveRoom.BORK]?.lines?.toList().orEmpty()
@@ -114,10 +123,12 @@ class HeadlessBorkTest {
             throw AssertionError("${e.message}; the fight's last lines: ${lines(run).takeLast(12)}", e)
         }
 
+    private fun tickOf(line: String): Long = line.substringBefore(' ').toLong()
+
     private fun npc(run: ArchiveRun, type: Int): Npc = assertNotNull(run.fights[ArchiveRoom.BORK]).adds.first { it.type.id == type }
 
     @Test
-    fun `his flat armour rises with the Smorks' damage, beside and near are his reach, and the cart shields whoever is behind it`() {
+    fun `his flat armour rises with the Smorks' damage, beside and near are his reach, and the tower shades whoever is behind it`() {
         assertEquals(8 to 0, Bork.armourFor(600, 600))
         assertEquals(8 to 0, Bork.armourFor(451, 600), "24.8% lost")
         assertEquals(10 to 2, Bork.armourFor(450, 600), "25% lost")
@@ -133,12 +144,40 @@ class HeadlessBorkTest {
         assertFalse(Bork.near(10, 10, 4, 15, 12, 1))
         assertTrue(Bork.near(10, 10, 4, 16, 16, 3))
         assertFalse(Bork.near(10, 10, 4, 17, 12, 3))
-        // The cart on 15..17 x 10..12, east of him: whoever is east of it is behind it; north-east of him isn't.
-        assertTrue(Bork.shields(15, 10, 3, 10, 10, 4, 18, 11))
-        assertTrue(Bork.shields(15, 10, 3, 10, 10, 4, 19, 12))
-        assertFalse(Bork.shields(15, 10, 3, 10, 10, 4, 16, 15))
-        assertFalse(Bork.shields(15, 10, 3, 10, 10, 4, 14, 11), "between him and the cart")
-        assertFalse(Bork.shields(15, 10, 3, 10, 10, 4, 16, 11), "on the cart itself")
+        assertEquals(0, Bork.distance(10, 10, 4, 13, 13))
+        assertEquals(1, Bork.distance(10, 10, 4, 9, 14))
+        assertEquals(3, Bork.distance(10, 10, 4, 16, 11))
+        // The tower on 15..17 x 10..12, east of him: whoever is east of it is in its shadow; north-east of him isn't.
+        assertTrue(Bork.shadowed(15, 10, 3, 10, 10, 4, 19, 11))
+        assertTrue(Bork.shadowed(15, 10, 3, 10, 10, 4, 22, 11))
+        assertFalse(Bork.shadowed(15, 10, 3, 10, 10, 4, 16, 15))
+        assertFalse(Bork.shadowed(15, 10, 3, 10, 10, 4, 14, 11), "between him and the tower")
+        assertFalse(Bork.shadowed(15, 10, 3, 10, 10, 4, 16, 11), "on the tower itself")
+        // Their room's floor: 15 by 17 round the tower's, without its corners.
+        assertTrue(Bork.inArena(100, 100, 94, 94))
+        assertFalse(Bork.inArena(100, 100, 94, 93), "a corner")
+        assertFalse(Bork.inArena(100, 100, 108, 109), "a corner")
+        assertTrue(Bork.inArena(100, 100, 108, 108))
+        assertFalse(Bork.inArena(100, 100, 109, 100))
+    }
+
+    @Test
+    fun `napalm splashes towards the tower, and their cycles are a volley, napalm and volleys before the heavy cannonball`() {
+        // The tower on 100..102: straight west of it, the tile and the 3 wide row two deep beyond it.
+        assertEquals(setOf(Tile(95, 101)) + (96..97).flatMap { x -> (100..102).map { Tile(x, it) } }, Bork.splash(100, 100, 3, 95, 101))
+        // Straight south.
+        assertEquals(setOf(Tile(101, 95)) + (96..97).flatMap { z -> (100..102).map { Tile(it, z) } }, Bork.splash(100, 100, 3, 101, 95))
+        // On a diagonal: the 2 by 2 beyond.
+        assertEquals(setOf(Tile(97, 97), Tile(98, 98), Tile(98, 99), Tile(99, 98), Tile(99, 99)), Bork.splash(100, 100, 3, 97, 97))
+        // Right beside the tower: never on it.
+        assertEquals(setOf(Tile(99, 101)), Bork.splash(100, 100, 3, 99, 101))
+        val v = Bork.Shot.VOLLEY
+        val n = Bork.Shot.NAPALM
+        val c = Bork.Shot.CANNONBALL
+        assertEquals(listOf(v, n, v, c), Bork.firstCycle(1))
+        assertEquals(listOf(v, n, v, v, c), Bork.firstCycle(2))
+        assertEquals(listOf(v, v, n, v, v, c), Bork.laterCycle(2))
+        assertEquals(listOf(v, v, v, n, v, c), Bork.laterCycle(3))
     }
 
     @Test
@@ -149,6 +188,10 @@ class HeadlessBorkTest {
                 alice.commandReply("raid tp guardian") { it.startsWith("To ") }
                 alice.await("the Guardian's room done") { ArchiveRoom.GUARDIAN.takeIf { it in run.cleared } }
                 alice.commandReply("raid tp bork") { it.startsWith("To ") }
+                // In at the way in, out of Bork's reach past the narrow gap in his arena's wall: nothing yet.
+                alice.awaitTicks(3)
+                assertFalse(ArchiveRoom.BORK in run.started)
+                alice.ontoFloor(server, run)
                 val begun = alice.await("their fight") { alice.fight().takeIf { it.startsWith("bork #") } }
                 // A party of one counts as two: the Wiki's 1,500 and 600.
                 assertTrue(begun.contains("Bork 1500/1500 hp, the Smorks 600/600 hp; 1 players, 2 adds"), begun)
@@ -158,7 +201,7 @@ class HeadlessBorkTest {
                 val theSmorks = npc(run, Bork.SMORKS)
                 val theBork = npc(run, Bork.BORK)
                 assertEquals(cart, Tile(theSmorks.spawn.x, theSmorks.spawn.z))
-                assertEquals(Tile(cart.x - Bork.BORK_WEST, cart.z), Tile(theBork.spawn.x, theBork.spawn.z))
+                assertEquals(Tile(cart.x + Bork.BORK_EAST, cart.z + Bork.BORK_NORTH), Tile(theBork.spawn.x, theBork.spawn.z))
                 // She, the first in, is his tank: he walks to her and beats.
                 alice.awaitLine(run, "Bork beating at alice") { it.contains("beat hits alice for") }
                 assertSame(world.playerNamed("alice"), theBork.target)
@@ -167,7 +210,8 @@ class HeadlessBorkTest {
                 // Alone, she's his: the Smorks fire at no one.
                 assertTrue(lines(run).none { it.contains("the Smorks fire") }, lines(run).toString())
                 // A quarter off the Smorks: two more armour, and magic resistance, off each hit on him. By name, from
-                // further off than ::hit's search reaches: it finds them in the fight she's in.
+                // further off than ::hit's search reaches, back at the way in: it finds them in the fight she's in.
+                alice.commandReply("raid tp bork") { it.startsWith("To ") }
                 assertTrue(maxOf(kotlin.math.abs(world.playerNamed("alice")!!.x - theSmorks.x), kotlin.math.abs(world.playerNamed("alice")!!.z - theSmorks.z)) > 15)
                 alice.commandReply("hit 150 tfa_smork") { it.startsWith("Hit ") }
                 alice.awaitLine(run, "his armour up") { it.endsWith("fight: Bork's armour 10, magic 2") }
@@ -210,7 +254,7 @@ class HeadlessBorkTest {
                     party(clients)
                     val run = alice.intoRun(server, "alice")
                     assertEquals(run, bob.intoRun(server, "bob"))
-                    alice.toBork(run)
+                    alice.toBork(server, run)
                     bob.commandReply("raid tp bork") { it.startsWith("To ") }
                     val theSmorks = npc(run, Bork.SMORKS)
                     val theBork = npc(run, Bork.BORK)
@@ -220,9 +264,11 @@ class HeadlessBorkTest {
                     val volley = alice.awaitLine(run, "a volley at bob") { it.contains("the Smorks fire") && it.endsWith(" at bob") }
                     assertTrue(volley.contains("bones at bob") || volley.contains("potions at bob"), volley)
                     assertTrue(lines(run).none { it.contains("the Smorks fire") && it.contains("alice") }, lines(run).toString())
-                    // Their volleys come 3 ticks after his beats, the first after his first.
-                    val volleyTicks = lines(run).filter { it.contains("the Smorks fire") }.map { it.substringBefore(' ').toLong() }
-                    assertTrue(volleyTicks.all { it >= Bork.ATTACK_SPEED + Bork.SMORKS_OFFSET && it % Bork.ATTACK_SPEED == Bork.SMORKS_OFFSET.toLong() }, volleyTicks.toString())
+                    // Their first volley 13 ticks in, napalm a spacing after it.
+                    alice.awaitLine(run, "napalm called") { it.endsWith("fight: the Smorks call napalm") }
+                    assertEquals(Bork.FIRST_VOLLEY.toLong(), tickOf(lines(run).first { it.contains("the Smorks fire") }))
+                    assertEquals((Bork.FIRST_VOLLEY + Bork.ATTACK_SPEED).toLong(), tickOf(lines(run).first { it.contains("the Smorks call napalm") }))
+                    assertEquals(Bork.FIRST_GONG.toLong(), tickOf(lines(run).first { it.contains("beat on") }))
                     // The Smorks dead first: Bork's armour at its most, and the room done only with him dead too.
                     alice.commandReply("hit 600 ${theSmorks.index}") { it.startsWith("Hit ") }
                     alice.awaitLine(run, "the Smorks down") { it.endsWith("fight: the Smorks down") }
@@ -231,6 +277,79 @@ class HeadlessBorkTest {
                     assertFalse(ArchiveRoom.BORK in run.cleared)
                     alice.commandReply("hit 1500 ${theBork.index}") { it.startsWith("Hit ") }
                     alice.await("their room done") { ArchiveRoom.BORK.takeIf { it in run.cleared } }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `napalm leaves oil that burns, the heavy cannonball lured onto Bork dazes him, and his stomp spares the tower's shadow`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    val clients = listOf(alice to "alice", bob to "bob")
+                    for ((client, _) in clients) client.await("the login rebuild") { client.position }
+                    party(clients)
+                    val run = alice.intoRun(server, "alice")
+                    assertEquals(run, bob.intoRun(server, "bob"))
+                    alice.toBork(server, run)
+                    val world = server.world
+                    val cart = world.archiveRaids.tile(run, ArchiveRaids.BORK_CART_X, ArchiveRaids.BORK_CART_Z)
+                    val theSmorks = npc(run, Bork.SMORKS)
+                    val theBork = npc(run, Bork.BORK)
+                    // Both on their room's floor, west of the tower: alice, first in, his tank. Neither hits back, so each
+                    // stays where they're put.
+                    for (client in listOf(alice, bob)) {
+                        client.command("varp ${EquipmentTab.VARP_AUTO_RETALIATE_OFF} 1")
+                        client.await("auto retaliate off") { if (client.varp(EquipmentTab.VARP_AUTO_RETALIATE_OFF) == 1) Unit else null }
+                    }
+                    alice.tele(cart.x - 4, cart.z + 1)
+                    bob.tele(cart.x - 4, cart.z - 4)
+                    // Napalm at bob, who stays put: oil under him a tick after it splashes, burning him.
+                    val aimed = alice.awaitLine(run, "napalm at bob") { it.contains("fight: napalm at ") }
+                    assertTrue(aimed.endsWith("(bob)"), aimed)
+                    val at = aimed.substringAfter("napalm at ").substringBefore(' ')
+                    assertEquals("${cart.x - 4},${cart.z - 4}", at)
+                    val oil = alice.awaitLine(run, "the oil") { it.contains("fight: oil on ") }
+                    assertTrue(oil.substringAfter("oil on ").split(' ').contains(at), oil)
+                    assertEquals(Bork.NAPALM_CAST + Bork.NAPALM_FLIGHT + Bork.OIL_AFTER_SPLASH.toLong(), tickOf(oil) - tickOf(lines(run).first { it.contains("the Smorks call napalm") }))
+                    // The oil burns him the tick it appears, and holds him in combat though it comes from no one.
+                    val burnt = alice.awaitLine(run, "the oil burning bob") { it.contains("fight: oil burns bob for") }
+                    assertEquals(tickOf(oil), tickOf(lines(run).first { it.contains("fight: oil burns bob for") }))
+                    val fight = assertNotNull(run.fights[ArchiveRoom.BORK])
+                    val began = generateSequence { world.tick - fight.phaseTick }.zipWithNext().first { (a, b) -> a == b }.first
+                    assertTrue(world.playerNamed("bob")!!.attackedTick >= began + tickOf(burnt), "bob's combat lock from the oil")
+                    alice.awaitLine(run, "bob on fire") { it.contains("fight: burn on bob for") }
+                    // Bork beside alice, standing; bob under him, where the heavy cannonball will follow him.
+                    alice.awaitLine(run, "Bork beating at alice") { it.contains("beat hits alice for") }
+                    bob.tele(theBork.x + 1, theBork.z + 1)
+                    val shot = alice.awaitLine(run, "the heavy cannonball") { it.contains("fight: heavy cannonball at ") }
+                    assertTrue(shot.endsWith("(bob)"), shot)
+                    assertEquals(Bork.CANNON_SHOT.toLong(), tickOf(shot) - tickOf(lines(run).last { it.contains("the Smorks call a heavy cannonball") }))
+                    val dazed = alice.awaitLine(run, "Bork dazed") { it.endsWith("fight: Bork dazed") }
+                    assertEquals(Bork.CANNON_FLIGHT.toLong(), tickOf(dazed) - tickOf(shot))
+                    // Dazed: no armour, and melee always hits him.
+                    alice.awaitLine(run, "his armour gone") { it.endsWith("fight: Bork's armour 0, magic 0") }
+                    assertEquals(20, world.meleeCombat.armoured(theBork, 20, magic = false))
+                    assertTrue(theBork.meleeSureUntil > world.tick)
+                    // Bob into the tower's shadow before the stomp; alice stays beside Bork, out in the open.
+                    val shade = (cart.x + Bork.ARENA_WEST..cart.x + Bork.ARENA_EAST).flatMap { x -> (cart.z + Bork.ARENA_SOUTH..cart.z + Bork.ARENA_NORTH).map { Tile(x, it) } }
+                        .first { Bork.inArena(cart.x, cart.z, it.x, it.z) && Bork.shadowed(theSmorks.x, theSmorks.z, 3, theBork.x, theBork.z, 4, it.x, it.z) }
+                    bob.tele(shade.x, shade.z)
+                    val stomps = alice.awaitLine(run, "Bork stomping") { it.endsWith("fight: Bork stomps") }
+                    assertEquals(Bork.DAZE_TICKS.toLong(), tickOf(stomps) - tickOf(dazed))
+                    alice.awaitLine(run, "his armour back") { it.endsWith("fight: Bork's armour 8, magic 0") }
+                    val call = alice.awaitLine(run, "his next tank") { it.endsWith("fight: Bork takes on bob") }
+                    assertEquals(Bork.STOMP_CALL.toLong(), tickOf(call) - tickOf(stomps))
+                    val waves = lines(run).filter { it.contains("fight: shockwave on ") }
+                    assertEquals(Bork.STOMP_WAVES.map { tickOf(stomps) + it }, waves.map(::tickOf))
+                    assertTrue(waves.all { it.endsWith("shockwave on alice, the tower shading bob") }, waves.toString())
+                    // His next gong 19 ticks into the stomp, and the Smorks' next cycle 25.
+                    alice.awaitLine(run, "his next gong") { it.contains("beat on") && tickOf(it) > tickOf(stomps) }
+                    assertEquals(Bork.STOMP_GONG.toLong(), tickOf(lines(run).first { it.contains("beat on") && tickOf(it) > tickOf(stomps) }) - tickOf(stomps))
+                    val next = alice.awaitLine(run, "their next volley") { it.contains("the Smorks fire") && tickOf(it) > tickOf(stomps) }
+                    assertEquals(Bork.CYCLE_AFTER_STOMP.toLong(), tickOf(next) - tickOf(stomps))
+                    assertTrue(next.endsWith(" at alice"), "bob is his tank now: $next")
                 }
             }
         }
@@ -251,6 +370,7 @@ class HeadlessBorkTest {
                 npcs.remove(fillers[0])
                 npcs.remove(fillers[1])
                 alice.commandReply("raid tp bork") { it.startsWith("To ") }
+                alice.ontoFloor(server, run)
                 alice.awaitTicks(5)
                 assertFalse(ArchiveRoom.BORK in run.started, "their room started without Bork")
                 assertNull(run.fights[ArchiveRoom.BORK])
