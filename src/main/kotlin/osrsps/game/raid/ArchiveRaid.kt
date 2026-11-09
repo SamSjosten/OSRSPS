@@ -634,11 +634,11 @@ class ArchiveRaids(private val world: World) {
         const val NEXUS_X = 4127
         const val NEXUS_Z = 5573
 
-        /** In front of the nexus's own Passageway (4124,5625, 7 by 2). Guessed. */
         /** The stand-in exit's south-west tile in Ocellus's room: its 5 by 2 just south of where the party comes in. Guessed. */
         const val OCELLUS_EXIT_X = 4119
         const val OCELLUS_EXIT_Z = 5632
 
+        /** In front of the nexus's own Passageway (4124,5625, 7 by 2). Guessed. */
         const val PASSAGE_FRONT_X = 4127
         const val PASSAGE_FRONT_Z = 5623
 
