@@ -320,6 +320,8 @@ object Bork {
                 val smorks = state.smorks?.get()
                 "Bork ${hp(bork)}, the Smorks ${hp(smorks)}"
             },
+            // The anchor never moves and the Smorks' tower stands: Bork is the one a hold keeps off.
+            held = { listOfNotNull(liveBork) },
         )
     }
 

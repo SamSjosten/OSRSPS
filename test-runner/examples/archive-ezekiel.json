@@ -1,5 +1,5 @@
 {
- "name": "Raid steps 17a, 17b and 17c: Ezekiel solo, his fight beginning as the first player comes into his room, his walk over with lightning while he can't reach, his swings under Protect from Melee, the cross after every second one and the flying swords with it, his enrage at 35% shutting the player into a fenced three by three beside him under strikes of lightning, to his death doing the room",
+ "name": "Raid steps 17a, 17b and 17c: Ezekiel solo, his fight beginning as the first player takes the room's transporter into his arena, his swings under Protect from Melee, the cross after every second attack and the flying swords with it, his enrage at 35% shutting the player into a fenced three by three beside him under strikes of lightning, to his death doing the room",
  "account": "test",
  "steps": [
   {
@@ -77,7 +77,14 @@
    "step": "command",
    "text": "::raid tp ezekiel",
    "expectMessage": "To Ezekiel's room",
-   "comment": "in at the room's east end: the first in, so his tank"
+   "comment": "in at the way into his room, east of his arena, which is walled off from it"
+  },
+  {
+   "step": "locOption",
+   "locId": 63087,
+   "option": "Use",
+   "timeoutMs": 20000,
+   "comment": "tfa_boss_teleporter, the Archive transporter: into his arena at its east edge (4067,5535), the first in, so his tank"
   },
   {
    "step": "waitTicks",
@@ -98,7 +105,7 @@
   {
    "step": "waitTicks",
    "ticks": 30,
-   "comment": "he walks over from the middle of the room, casting lightning while he can't reach, then swings once beside"
+   "comment": "he walks the few tiles over and swings, every 5 ticks"
   },
   {
    "step": "assertAnimation",

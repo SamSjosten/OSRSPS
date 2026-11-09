@@ -2,6 +2,7 @@ package osrsps.game.command
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
@@ -70,13 +71,43 @@ class RaidCommandsTest {
                 "guardian's phases: 1 flying, 2 grounded",
                 "The party size must be 1 to 8",
                 "The seed must be a whole number",
-                "Usage: ::raid [boss [phase=name|n] [party=n] [seed=n]] | ::raid log [lines] | ::raid digest [ticks] | ::raid stop | ::raid run | ::raid tp <nexus|room> | ::raid clear",
+                "Usage: ::raid [boss [phase=name|n] [party=n] [seed=n]] | ::raid log [lines] | ::raid digest [ticks] | ::raid stop | ::raid run | ::raid tp <nexus|room> | ::raid clear | ::raid hold [ticks]",
                 "You're not in a fight.",
                 "You're not in a fight.",
             ),
             replies,
         )
         assertEquals(0, world.npcs.count)
+    }
+
+    @Test
+    fun `a hold keeps the boss standing for the ticks asked, this tick the first, and a fight can name whom it holds`() {
+        val world = world(def)
+        world.run("raid guardian")
+        val boss = world.npcs.all.single()
+        replies.clear()
+        world.run("raid hold 1")
+        world.run("raid hold 1")
+        assertEquals(listOf("Held Archive Guardian for 1 ticks.", "Archive Guardian can't be held now: held already, or not long after a hold."), replies)
+        // A command runs before the tick counts freezes down (World.tick): it still stands in this tick's NPC phase,
+        // and is free in the next.
+        world.npcs.countDownFreezes()
+        assertEquals(1, boss.freezeTicks)
+        world.npcs.countDownFreezes()
+        assertEquals(0, boss.freezeTicks)
+        world.run("raid stop")
+        // A fight whose boss is only its anchor names the one that walks; with none left, there is nothing to hold.
+        var walker: osrsps.game.npc.Npc? = null
+        val anchored = EncounterDef("anchored", guardian, listOf(PhaseDef("open", onStart = { walker = spawnAdd(guardian, boss.x + 6, boss.z) })), held = { listOfNotNull(walker) })
+        val other = world(anchored)
+        other.run("raid anchored")
+        replies.clear()
+        other.run("raid hold 3")
+        assertEquals(listOf("Held Archive Guardian for 3 ticks."), replies)
+        assertEquals(listOf(4, 0), listOf(assertNotNull(walker).freezeTicks, other.npcs.all.first { it !== walker }.freezeTicks))
+        walker = null
+        other.run("raid hold 3")
+        assertEquals("Nothing of anchored is left to hold.", replies.last())
     }
 
     @Test

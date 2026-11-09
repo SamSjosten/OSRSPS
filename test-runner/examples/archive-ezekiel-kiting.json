@@ -1,5 +1,5 @@
 {
- "name": "Raid step 17 (kiting): Ezekiel solo held out of reach of the player by Bind, as a kite keeps him off, his attacks all lightning, and the second of them still bringing the cross and the flying swords",
+ "name": "Raid step 17 (kiting): Ezekiel solo held out of reach of the player with ::raid hold, as a kite keeps him off, his attacks all lightning, and the second of them still bringing the cross and the flying swords",
  "account": "test",
  "steps": [
   {
@@ -26,33 +26,6 @@
    "step": "command",
    "text": "::heal",
    "expectMessage": "Healed to 99 hitpoints."
-  },
-  {
-   "step": "command",
-   "text": "::setlevel magic 99",
-   "expectMessage": "Magic set to level 99",
-   "comment": "Bind needs 20"
-  },
-  {
-   "step": "command",
-   "text": "::item nature rune 2",
-   "expectMessage": "Added 2 x Nature rune"
-  },
-  {
-   "step": "command",
-   "text": "::item water rune 3",
-   "expectMessage": "Added 3 x Water rune"
-  },
-  {
-   "step": "command",
-   "text": "::item earth rune 3",
-   "expectMessage": "Added 3 x Earth rune"
-  },
-  {
-   "step": "command",
-   "text": "::sure on",
-   "expectMessage": "Your attacks can't miss now",
-   "comment": "a splash holds nothing, so the accuracy roll always passes here"
   },
   {
    "step": "command",
@@ -92,11 +65,26 @@
    "step": "command",
    "text": "::raid tp ezekiel",
    "expectMessage": "To Ezekiel's room",
-   "comment": "in at the room's east end: the first in, so his tank"
+   "comment": "in at the way into his room, east of his arena"
   },
   {
-   "step": "waitTicks",
-   "ticks": 3
+   "step": "locOption",
+   "locId": 63087,
+   "option": "Use",
+   "timeoutMs": 20000,
+   "comment": "the Archive transporter: into his arena, 3 tiles east of him, the first in, so his tank"
+  },
+  {
+   "step": "command",
+   "text": "::raid hold 100",
+   "expectMessage": "Held Ezekiel for 100 ticks",
+   "comment": "frozen where he stands; he may have reached the player by now, 3 tiles off as they land"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp ezekiel",
+   "expectMessage": "To Ezekiel's room",
+   "comment": "back to the way in, a dozen tiles east of where he is held: out of his reach whatever came before, as a kite keeps him off"
   },
   {
    "step": "command",
@@ -111,24 +99,9 @@
    "comment": "the account may be test or test2; the line is matched up to the name"
   },
   {
-   "step": "castOnNpc",
-   "interfaceId": 218,
-   "component": 23,
-   "npc": "Ezekiel",
-   "timeoutMs": 20000,
-   "comment": "Bind on him as he walks over, standing in for a kite: held 8 ticks out of reach of the player"
-  },
-  {
-   "step": "assertSpotanim",
-   "npc": "Ezekiel",
-   "id": 181,
-   "timeoutMs": 20000,
-   "comment": "bind_impact: it hit"
-  },
-  {
    "step": "waitTicks",
-   "ticks": 8,
-   "comment": "his attacks every 5 ticks, both lightning while he can't reach"
+   "ticks": 12,
+   "comment": "his attacks come every 5 ticks, lightning now he can't reach: the second of the fight is one of them"
   },
   {
    "step": "command",
@@ -153,11 +126,6 @@
    "text": "::raid stop",
    "expectMessage": "Stopped",
    "comment": "ends the fight"
-  },
-  {
-   "step": "command",
-   "text": "::sure off",
-   "expectMessage": "Your attacks can miss again."
   },
   {
    "step": "command",
