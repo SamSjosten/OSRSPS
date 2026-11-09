@@ -60,9 +60,10 @@ object LumbridgeGuideLines : Lines("lumbridge_guide", "Transcript:Lumbridge Guid
  * options menu (money, bank, leaving), each back to the menu it was picked from; the icon boxes.
  *
  * Not built: owed experience (the 242.1 quest XP the Guide and Perdu hand out), the lost Amulet of the Eye (there is no
- * way to lose it here), the Tarnished locket, his Treasure Trails and Astral Contacts parts. Readings: the goals answer
- * the Wiki gives under an unknown condition is always given; the quest answer (missing on the Wiki) keeps the old talk's
- * line for a player with every quest done. Guessed: every chathead expression.
+ * way to lose it here), the Tarnished locket, his Treasure Trails and Astral Contacts parts. Guessed: every chathead
+ * expression; that the goals answer, which the Wiki gives under a condition it doesn't name, is always given (no other
+ * goals answer is on the page); and that the quest answer (missing on the Wiki) keeps the old talk's line for a player
+ * with every quest done.
  */
 object LumbridgeGuide {
     const val ID = 306
@@ -90,6 +91,7 @@ object LumbridgeGuide {
             when (choice(GOALS, QUEST_TO_GO_ON, COMBAT, SKILLS, MORE_OPTIONS)) {
                 1 -> {
                     chatPlayer(ChatAnim.QUIZ, GOALS)
+                    // Guessed: always this answer; the Wiki gives it under a condition it doesn't name.
                     chatNpc(ChatAnim.NEUTRAL, GOALS_ANSWER)
                 }
                 2 -> {
