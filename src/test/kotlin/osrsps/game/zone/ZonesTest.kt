@@ -9,6 +9,7 @@ import kotlin.test.assertTrue
 import net.rsprot.protocol.game.outgoing.zone.header.UpdateZoneFullFollows
 import net.rsprot.protocol.game.outgoing.zone.header.UpdateZonePartialEnclosed
 import net.rsprot.protocol.game.outgoing.zone.payload.LocAddChangeV2
+import net.rsprot.protocol.game.outgoing.zone.payload.LocAddChangeV3
 import net.rsprot.protocol.game.outgoing.zone.payload.LocDel
 import net.rsprot.protocol.game.outgoing.zone.payload.MapAnim
 import net.rsprot.protocol.game.outgoing.zone.payload.ObjAdd
@@ -89,8 +90,8 @@ class ZonesTest {
         val b = toBob.single() as UpdateZonePartialEnclosed
         assertEquals(listOf(48, 48, 0), listOf(a.zoneX, a.zoneZ, a.level))
         assertSame(a.payload, b.payload)
-        // The first byte is the zone prot's index, which is 0 for MAP_ANIM.
-        assertEquals(0, a.payload.getByte(a.payload.readerIndex()).toInt())
+        // The first byte is the zone prot's index, which is 1 for MAP_ANIM (RSProt 242's IndexedZoneProtEncoder).
+        assertEquals(1, a.payload.getByte(a.payload.readerIndex()).toInt())
     }
 
     @Test
@@ -200,6 +201,17 @@ class ZonesTest {
         assertEquals(listOf(1531, 0, 2), listOf(add.id, add.shape, add.rotation))
         val del = prots.filterIsInstance<LocDel>().single()
         assertEquals(listOf(7, 2, 10), listOf(del.xInZone, del.zInZone, del.shape))
+    }
+
+    @Test
+    fun `a loc id past 65535 goes out as LOC_ADD_CHANGE_V3 with its full id`() {
+        zones.addLoc(ZoneLoc(65535, shape = 10, angle = 0, 3222, 3218, 0))
+        zones.addLoc(ZoneLoc(65536, shape = 10, angle = 1, 3220, 3218, 0))
+        zones.endCycle()
+        val prots = cycle(alice).single().prots()
+        assertEquals(65535, prots.filterIsInstance<LocAddChangeV2>().single().id, "the last 2-byte id keeps the old form")
+        val long = prots.filterIsInstance<LocAddChangeV3>().single()
+        assertEquals(listOf(65536, 10, 1), listOf(long.id, long.shape, long.rotation))
     }
 
     @Test

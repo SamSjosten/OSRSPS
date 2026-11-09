@@ -26,7 +26,7 @@ data class LocChange(val id: Int, val shape: Int, val angle: Int, val coord: Coo
 }
 
 /**
- * The client's side of zone updates: ground objs and loc changes in the build area. Built against RSProt 241's zone
+ * The client's side of zone updates: ground objs and loc changes in the build area. Built against RSProt 242's zone
  * encoders: UPDATE_ZONE_FULL_FOLLOWS wipes a zone, UPDATE_ZONE_PARTIAL_ENCLOSED carries a batch of zone prots (each
  * led by its index in the client's own order, see [ENCLOSED]), and UPDATE_ZONE_PARTIAL_FOLLOWS names the zone for the
  * single zone prots after it. Zone headers are tiles from the build area's south-west corner, which REBUILD gives.
@@ -70,19 +70,19 @@ class ZoneReader {
         val buf = Unpooled.wrappedBuffer(payload).toJagByteBuf()
         when (prot) {
             GameServerProt.UPDATE_ZONE_FULL_FOLLOWS -> {
-                zoneZ = buf.g1()
-                level = buf.g1()
-                zoneX = buf.g1()
+                zoneX = buf.g1Alt3()
+                level = buf.g1Alt2()
+                zoneZ = buf.g1Alt1()
                 wipeZone()
             }
             GameServerProt.UPDATE_ZONE_PARTIAL_FOLLOWS -> {
-                level = buf.g1Alt1()
-                zoneZ = buf.g1Alt1()
-                zoneX = buf.g1()
+                level = buf.g1Alt3()
+                zoneZ = buf.g1Alt2()
+                zoneX = buf.g1Alt2()
             }
             GameServerProt.UPDATE_ZONE_PARTIAL_ENCLOSED -> {
-                zoneZ = buf.g1()
-                zoneX = buf.g1()
+                zoneZ = buf.g1Alt2()
+                zoneX = buf.g1Alt2()
                 level = buf.g1Alt3()
                 while (buf.isReadable) readZoneProt(ENCLOSED[buf.g1()], buf)
             }
@@ -104,38 +104,51 @@ class ZoneReader {
     private fun readZoneProt(prot: GameServerProt, buf: JagByteBuf) {
         when (prot) {
             GameServerProt.LOC_ADD_CHANGE_V2 -> {
-                val properties = buf.g1Alt1()
-                buf.g1() // op flags
-                val coord = tile(buf.g1Alt1())
+                val id = buf.g2()
+                val coord = tile(buf.g1Alt3())
+                val properties = buf.g1Alt2()
                 repeat(buf.g1Alt2()) {
-                    buf.g1Alt2() // op
+                    buf.g1() // op
                     buf.gjstr()
                 }
-                val id = buf.g2()
+                buf.g1Alt3() // op flags
+                val change = LocChange(id, properties shr 2, properties and 3, coord)
+                locs[coord to change.layer] = change
+            }
+            // Revision 242's form with a 3-byte loc id.
+            GameServerProt.LOC_ADD_CHANGE_V3 -> {
+                val coord = tile(buf.g1Alt2())
+                buf.g1Alt2() // op flags
+                repeat(buf.g1()) {
+                    buf.g1() // op
+                    buf.gjstr()
+                }
+                val id = buf.g3Alt2()
+                val properties = buf.g1Alt3()
                 val change = LocChange(id, properties shr 2, properties and 3, coord)
                 locs[coord to change.layer] = change
             }
             GameServerProt.LOC_DEL -> {
-                val properties = buf.g1Alt3()
-                val coord = tile(buf.g1())
+                val coord = tile(buf.g1Alt3())
+                val properties = buf.g1Alt2()
                 val change = LocChange(-1, properties shr 2, properties and 3, coord)
                 locs[coord to change.layer] = change
             }
             GameServerProt.OBJ_ADD -> {
-                buf.g1Alt2() // ownership type
-                val coord = tile(buf.g1Alt3())
                 val id = buf.g2Alt1()
-                buf.g2Alt2() // ticks until it despawns
-                buf.g1Alt2() // op flags
-                val count = buf.g4()
-                buf.g2Alt3() // ticks until it turns public
-                buf.g1Alt3() // never turns public
+                buf.g1Alt3() // ownership type
+                val coord = tile(buf.g1Alt1())
+                buf.g2() // ticks until it despawns
+                buf.g2() // ticks until it turns public
+                buf.g1Alt1() // op flags
+                buf.g1() // never turns public
+                val count = buf.g4Alt1()
                 objs.getOrPut(coord, ::ArrayList) += GroundObjView(id, count, coord)
             }
             GameServerProt.OBJ_DEL -> {
                 val id = buf.g2Alt1()
-                val coord = tile(buf.g1Alt2())
-                val count = buf.g4()
+                val coord = tile(buf.g1Alt3())
+                val count = buf.g4Alt1()
                 val onTile = objs[coord] ?: return
                 // Guessed: the newest matching obj on the tile goes, as the client's obj list is newest first.
                 val index = onTile.indexOfLast { it.id == id && it.count == count }
@@ -143,16 +156,17 @@ class ZoneReader {
                 if (onTile.isEmpty()) objs.remove(coord)
             }
             GameServerProt.OBJ_COUNT -> {
-                val coord = tile(buf.g1Alt1())
+                val coord = tile(buf.g1Alt2())
+                val oldCount = buf.g4Alt3()
+                val newCount = buf.g4()
                 val id = buf.g2Alt3()
-                val newCount = buf.g4Alt3()
-                val oldCount = buf.g4()
                 val onTile = objs[coord] ?: return
                 val index = onTile.indexOfLast { it.id == id && it.count == oldCount }
                 if (index >= 0) onTile[index] = onTile[index].copy(count = newCount)
             }
             GameServerProt.LOC_ANIM -> buf.skipRead(1 + 1 + 2)
-            GameServerProt.LOC_MERGE -> buf.skipRead(1 + 1 + 2 + 1 + 1 + 2 + 2 + 1 + 2 + 1 + 2)
+            // RSProt 242 has no LOC_MERGE layout (its encoder throws), and the server sends none.
+            GameServerProt.LOC_MERGE -> error("LOC_MERGE has no 242 layout")
             GameServerProt.OBJ_ENABLED_OPS -> buf.skipRead(2 + 1 + 1)
             GameServerProt.MAP_ANIM -> buf.skipRead(2 + 1 + 2 + 1)
             GameServerProt.SOUND_AREA -> buf.skipRead(1 + 1 + 1 + 1 + 1 + 2)
@@ -168,23 +182,24 @@ class ZoneReader {
     private companion object {
         const val BUILD_AREA_ZONE_RADIUS = 6
 
-        /** The zone prots by their index inside UPDATE_ZONE_PARTIAL_ENCLOSED, in the client's order. */
+        /** The zone prots by their index inside UPDATE_ZONE_PARTIAL_ENCLOSED, in the client's order (RSProt 242's IndexedZoneProtEncoder). */
         val ENCLOSED = listOf(
+            GameServerProt.SOUND_AREA,
             GameServerProt.MAP_ANIM,
-            GameServerProt.MAP_PROJANIM_V2,
-            GameServerProt.OBJ_COUNT,
-            GameServerProt.LOC_DEL,
-            GameServerProt.OBJ_ENABLED_OPS,
-            GameServerProt.OBJ_DEL,
+            GameServerProt.LOC_MERGE,
             GameServerProt.LOC_ANIM,
-            GameServerProt.OBJ_CUSTOMISE,
+            GameServerProt.LOC_ADD_CHANGE_V3,
+            GameServerProt.MAP_PROJANIM_V2,
             GameServerProt.OBJ_UNCUSTOMISE,
             GameServerProt.OBJ_ADD,
+            GameServerProt.OBJ_COUNT,
+            GameServerProt.LOC_DEL,
+            GameServerProt.OBJ_CUSTOMISE,
+            GameServerProt.OBJ_ENABLED_OPS,
+            GameServerProt.OBJ_DEL,
+            GameServerProt.SCRIPTEDPROJ_ADD,
             GameServerProt.SCRIPTEDPROJ_CHANGE,
             GameServerProt.LOC_ADD_CHANGE_V2,
-            GameServerProt.LOC_MERGE,
-            GameServerProt.SCRIPTEDPROJ_ADD,
-            GameServerProt.SOUND_AREA,
         )
     }
 }

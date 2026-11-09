@@ -27,7 +27,7 @@ import osrsps.testclient.HeadlessClient
 
 /**
  * Plays the RuneLite runner's JSON scripts (test-runner/examples) against our server with no RuneLite and no VM: the
- * server runs in this process on the live 241 cache, and each script's account plays through a [HeadlessClient]
+ * server runs in this process on the live 242 cache, and each script's account plays through a [HeadlessClient]
  * ([ScriptSession]). As the nightly did on VM 217: a reset before every script, every failure run once more (a pass
  * then is "flaky"), a result file per script and one summary.json for the run.
  *
@@ -39,7 +39,7 @@ fun main(args: Array<String>) {
 
 internal object HeadlessScripts {
     /** The OpenRS2 cache VM 214 serves (its data/cache-source.txt), so a run plays what the live server does. */
-    const val CACHE_ID = 2746
+    const val CACHE_ID = 2757
 
     /** Every run starts from the same random seed, so a run can be played again roll for roll. */
     const val SEED = 241L
@@ -211,11 +211,11 @@ internal object HeadlessScripts {
         Files.list(dataDir).use { files -> files.filter { it.name !in keep }.toList() }.forEach { it.toFile().deleteRecursively() }
         val cacheDir = dataDir.resolve("cache")
         val source = dataDir.resolve("cache-source.txt")
-        val wanted = "openrs2 runescape/$CACHE_ID build 241"
+        val wanted = "openrs2 runescape/$CACHE_ID build 242"
         if (cacheDir.exists() && source.exists() && source.readText().startsWith(wanted)) return
         println("Fetching OpenRS2 cache $CACHE_ID into $cacheDir")
         cacheDir.toFile().deleteRecursively()
-        OpenRs2Archive().download(CacheEntry(CACHE_ID, "runescape", 241, null, null), cacheDir)
+        OpenRs2Archive().download(CacheEntry(CACHE_ID, "runescape", 242, null, null), cacheDir)
         Files.writeString(source, "$wanted\n")
     }
 
