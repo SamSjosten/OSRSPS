@@ -30,8 +30,8 @@ object LodestoneLines : Lines("lodestone", "Lodestone_Network") {
  * Lodestones, custom content after RS3's lodestone network: a stone at each major town that a player activates once
  * and can then teleport to, free, from any stone, with Home Teleport or with `::lodestone`. Verified on the RS3 Wiki
  * (Lodestone Network, Home Teleport; read 2026-11-02): Lumbridge's is active from the start and every other stone is
- * activated by clicking it once; Home Teleport opens the network and lands on the stone picked; the teleport takes 17
- * seconds, so [CAST_TICKS]; it can't start in combat, and being attacked stops it; it's refused above level 20
+ * activated by clicking it once; Home Teleport opens the network and lands on the stone picked; the cast takes 17
+ * ticks, so [CAST_TICKS]; it can't start in combat, and being attacked stops it; it's refused above level 20
  * Wilderness; there is no cooldown. Sam's picks (2 Nov 2026): RS3's timing, the Wilderness block like other teleports.
  * RS3's "Previous destination" (an option on the spell there; the spell's right-click has no room for it in OSRS's
  * spellbook) is a button on the map ([LodestoneMap.PREVIOUS]), the stone last teleported to.
@@ -71,8 +71,11 @@ object Lodestones {
     const val ACTIVATE = 1
     const val TELEPORT = 1
 
-    /** From the click to landing: RS3's 17 seconds, at 0.6 s a tick (28.3, rounded down). */
-    const val CAST_TICKS = 28
+    /**
+     * From the click to landing: RS3's 17 ticks, 10.2 s (the RS3 Wiki, Home Teleport, read 8 Nov 2026; the 2 Nov read took
+     * the 17 for seconds, so the cast was 28 ticks until Sam's pick of 8 Nov).
+     */
+    const val CAST_TICKS = 17
 
     /**
      * The lodestones' varp holds the stone last teleported to as well, for Previous destination: its site index plus
