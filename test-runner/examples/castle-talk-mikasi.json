@@ -1,5 +1,5 @@
 {
- "name": "Lumbridge Castle: Talk-to Hatius Cosaintus (::keys on, so keys show whatever data/dialogue.txt holds)",
+ "name": "Lumbridge Castle: Talk-to Mikasi, the diary taskmaster since 242.1 (Lumbridge 242 step 4) (::keys on, so keys show whatever data/dialogue.txt holds)",
  "account": "test",
  "steps": [
   {
@@ -23,33 +23,34 @@
   },
   {
    "step": "npcOption",
-   "npc": "Hatius Cosaintus",
+   "npc": "Mikasi",
    "option": "Talk-to"
   },
   {
    "step": "assertDialogue",
-   "contains": "[hatius.who_are_you]"
+   "contains": "[mikasi.who_are_you]"
   },
   {
    "step": "chooseOption",
-   "text": "[hatius.farewell]"
+   "text": "[mikasi.farewell]"
   },
   {
    "step": "assertDialogue",
-   "contains": "[hatius.farewell]"
+   "contains": "[mikasi.farewell]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[hatius.goodbye]"
+   "contains": "[mikasi.goodbye]"
   },
   {
    "step": "continueDialogue"
   },
   {
-   "step": "assertNoDialogue"
+   "step": "assertDialogue",
+   "contains": "[mikasi.who_are_you]"
   }
  ]
 }
