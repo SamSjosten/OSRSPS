@@ -75,6 +75,12 @@ object TanningLines : Lines("tanning", "Tanner") {
  * Wiki's table's), the model zoom, that the screen closes after a tanning, the messages' cases, the expressions.
  */
 object Ellis {
+    /** Every interface and component id above with its gameval name in the rev 242 cache, for [osrsps.cache.GameFrameCheck]. */
+    val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>>
+        get() = mapOf(
+            INTERFACE to ("tanne" to mapOf(MODEL to "tanning_a_model", NAME to "tanning_a_text", PRICE to "tanning_a_price", ALL to "tanning_a_all", X to "tanning_a_x", FIVE to "tanning_a_5", ONE to "tanning_a_1")),
+        )
+
     const val ID = 3231
     const val TALK_TO = 1
     const val TRADE = 3

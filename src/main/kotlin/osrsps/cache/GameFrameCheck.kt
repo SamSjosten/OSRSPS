@@ -2,6 +2,24 @@ package osrsps.cache
 
 import com.displee.cache.CacheLibrary
 import osrsps.game.AllSettings
+import osrsps.game.JournalTab
+import osrsps.game.World
+import osrsps.game.combat.Deaths
+import osrsps.game.combat.Prayers
+import osrsps.game.content.ApothecaryPotions
+import osrsps.game.content.AvaDevicesShop
+import osrsps.game.content.Ellis
+import osrsps.game.content.HomeTeleport
+import osrsps.game.ge.GrandExchangeScreen
+import osrsps.game.ge.PriceChecker
+import osrsps.game.skill.Crafting
+import osrsps.game.skill.LevelUps
+import osrsps.game.skill.Smithing
+import osrsps.game.social.Clans
+import osrsps.game.social.FriendChats
+import osrsps.game.social.IgnoreLists
+import osrsps.game.social.Reports
+import osrsps.game.trade.Trades
 import osrsps.game.EquipmentTab
 import osrsps.game.FrameSlot
 import osrsps.game.GameFrame
@@ -16,7 +34,7 @@ import osrsps.game.shop.ShopScreen
 import java.nio.charset.Charset
 
 /**
- * Checks [GameFrame]'s (the frame's slots and the orbs' buttons), [WorldMapScreen]'s, [EquipmentTab]'s, [Chatbox]'s, [BankScreen]'s, [SettingsSide]'s and [AllSettings]'s interface and component ids, and [ChatAnim]'s seqs, against
+ * Checks [GameFrame]'s (the frame's slots and the orbs' buttons) and every table in [INTERFACE_NAMES]: the interface and component ids the server opens or answers, and [ChatAnim]'s seqs, against
  * the names in the cache's gameval index, which Jagex ships with the cache from about rev 230. A mismatch means a
  * revision moved something and the frame will show a missing or wrong panel, or a dialogue a wrong head animation.
  */
@@ -25,6 +43,21 @@ object GameFrameCheck {
     private const val GAMEVAL_INTERFACES = 14
     private const val GAMEVAL_SEQS = 7
     private val CP1252: Charset = Charset.forName("windows-1252")
+
+    /**
+     * Every table of interface and component ids the server opens or answers, each with the gameval names it expects.
+     * Kept as separate tables, so an interface two of them name is checked against both.
+     */
+    val INTERFACE_NAMES: List<Map<Int, Pair<String, Map<Int, String>>>>
+        get() = listOf(
+            GameFrame.ORBS_CACHE_NAMES, WorldMapScreen.CACHE_NAMES, EquipmentTab.CACHE_NAMES, Chatbox.CACHE_NAMES,
+            BankScreen.CACHE_NAMES, DepositBox.CACHE_NAMES, BankPinSettings.CACHE_NAMES, SettingsSide.CACHE_NAMES,
+            AllSettings.CACHE_NAMES, ShopScreen.CACHE_NAMES, GrandExchangeScreen.CACHE_NAMES, PriceChecker.CACHE_NAMES,
+            JournalTab.CACHE_NAMES, World.CACHE_NAMES, Clans.CACHE_NAMES, FriendChats.CACHE_NAMES, IgnoreLists.CACHE_NAMES,
+            Reports.CACHE_NAMES, Trades.CACHE_NAMES, Smithing.CACHE_NAMES, Crafting.CACHE_NAMES, Prayers.CACHE_NAMES,
+            LevelUps.CACHE_NAMES, Deaths.CACHE_NAMES, HomeTeleport.CACHE_NAMES, AvaDevicesShop.CACHE_NAMES,
+            Ellis.CACHE_NAMES, ApothecaryPotions.CACHE_NAMES,
+        )
 
     /** The problems found, empty when every id matches. [names] looks up an interface's gameval entry by id. */
     fun check(names: (Int) -> InterfaceNames?): List<String> {
@@ -47,7 +80,7 @@ object GameFrameCheck {
             val actual = names(overlay.interfaceId)?.name
             if (actual != overlay.cacheName) problems += "interface ${overlay.interfaceId} should be ${overlay.cacheName} but is $actual"
         }
-        for ((interfaceId, expected) in GameFrame.ORBS_CACHE_NAMES + WorldMapScreen.CACHE_NAMES + EquipmentTab.CACHE_NAMES + Chatbox.CACHE_NAMES + BankScreen.CACHE_NAMES + DepositBox.CACHE_NAMES + BankPinSettings.CACHE_NAMES + SettingsSide.CACHE_NAMES + AllSettings.CACHE_NAMES + ShopScreen.CACHE_NAMES + osrsps.game.ge.GrandExchangeScreen.CACHE_NAMES + osrsps.game.ge.PriceChecker.CACHE_NAMES) {
+        for ((interfaceId, expected) in INTERFACE_NAMES.flatMap { it.entries }.map { it.key to it.value }) {
             val (name, components) = expected
             val interfaceNames = names(interfaceId)
             if (interfaceNames == null || interfaceNames.name != name) {

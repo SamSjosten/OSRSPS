@@ -424,6 +424,12 @@ class Deaths(
     }
 
     companion object {
+        /** Every interface and component id above with its gameval name in the rev 242 cache, for [osrsps.cache.GameFrameCheck]. */
+        val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>>
+            get() = mapOf(
+                GRAVESTONE to ("gravestone_generic" to mapOf(FREEITEMS to "freeitems", FREEBUTTON to "freebutton")),
+            )
+
         /** NPC "Grave" (cache rev 241): op1 Check, op3 Loot. 9857 is the same with an angel. */
         const val GRAVE = 9856
         const val CHECK = 1

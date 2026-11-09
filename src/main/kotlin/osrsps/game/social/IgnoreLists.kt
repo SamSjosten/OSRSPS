@@ -62,6 +62,13 @@ class IgnoreLists(
     fun ignores(player: Player, other: Player): Boolean = player.ignores.any { sameName(it, other.username) }
 
     companion object {
+        /** Every interface and component id above with its gameval name in the rev 242 cache, for [osrsps.cache.GameFrameCheck]. */
+        val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>>
+            get() = mapOf(
+                FRIENDS_TAB to ("friends" to mapOf(FRIENDS_TAB_IGNORE_BUTTON to "ignore")),
+                IGNORE_TAB to ("ignore" to mapOf(IGNORE_TAB_FRIENDS_BUTTON to "friends")),
+            )
+
         /** Members may ignore 400 names, free players 100 (OSRS Wiki, Ignore List). Our one world is a members world. */
         const val MAX_IGNORES = 400
 
