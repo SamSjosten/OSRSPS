@@ -134,6 +134,8 @@ class Trades(
      * false, after running the undo, when the trade couldn't be made safe to save.
      */
     private val commit: (Player, Player, swap: () -> Unit, undo: () -> Unit) -> Boolean = { _, _, swap, _ -> swap(); true },
+    /** Whether the player can't trade where they are now: a raid member down, whose items a death may yet take. */
+    private val refuses: (Player) -> Boolean = { false },
 ) {
     /** A click on Trade with [target]. */
     fun click(player: Player, target: Player, invertRun: Boolean) {
@@ -185,6 +187,9 @@ class Trades(
         // Nor with one whose connection has dropped (waiting for a reconnect) or who is leaving: they couldn't see the
         // screens. Guessed, as live's lingering player isn't known to refuse; nothing is said.
         if (gone(player) || gone(target)) return
+        // Nor with a raid member down (exploit review round 18, R18A-1): handing everything to a standing friend before
+        // getting out would leave nothing for the death RAID-2 makes of it. Guessed, as is that nothing is said.
+        if (refuses(player) || refuses(target)) return
         // A delayed player (part way up a ladder) is busy too, or the climb would carry them off mid-trade.
         if (target.trade != null || target.modalOpen || target.scripts.delayed) {
             message(player, TradeLines.BUSY)

@@ -22,6 +22,7 @@ import osrsps.game.loc.StaticLocs
 import osrsps.game.raid.ArchiveRaids
 import osrsps.game.raid.ArchiveRoom
 import osrsps.game.raid.ArchiveRun
+import osrsps.game.trade.Trades
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
@@ -78,6 +79,7 @@ class HeadlessArchiveRaidTest {
     }
 
     private val axe = ObjType(1351, "Bronze axe", cost = 16, internalName = "bronze_axe")
+    private val pickaxe = ObjType(1265, "Bronze pickaxe", cost = 1, tradeable = true, iops = listOf(null, null, null, null, "Drop"), internalName = "bronze_pickaxe")
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         World(
@@ -89,7 +91,7 @@ class HeadlessArchiveRaidTest {
             },
             locTypes = locTypes,
             staticLocs = staticLocs,
-            objTypes = ObjTypes.of(axe),
+            objTypes = ObjTypes.of(axe, pickaxe),
             npcTypes = NpcTypes.of(NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null))),
             cycleMillis = millis,
         )
@@ -319,6 +321,47 @@ class HeadlessArchiveRaidTest {
     }
 
     /** The logout button, and the server's logout. */
+    @Test
+    fun `a member down can't trade or be traded with, and what they drop stays theirs alone`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { carol ->
+                server.login("dave").use { dave ->
+                    for (client in listOf(carol, dave)) client.await("the login rebuild") { client.position }
+                    carol.commandReply("raidparty invite dave") { it.startsWith("Invited") }
+                    dave.commandReply("raidparty accept carol") { it.startsWith("You joined") }
+                    val run = carol.enter(server, "carol")
+                    assertEquals(run, dave.enter(server, "dave"))
+                    val carolPlayer = server.world.playerNamed("carol")!!
+                    val davePlayer = server.world.playerNamed("dave")!!
+                    // Standing, they can trade: Carol's request reaches Dave, who doesn't answer it yet.
+                    carol.playerOp(dave.index, 4)
+                    dave.await("the request while standing") { dave.messages().firstOrNull { it.type == Trades.CHATTYPE_TRADEREQ } }
+                    val before = dave.messages().count { it.type == Trades.CHATTYPE_TRADEREQ }
+                    carol.commandReply("item bronze pickaxe") { it.contains("Bronze pickaxe") }
+                    carol.command("hit 99 me")
+                    carol.await("Carol down") { if (carolPlayer.saveKey in run.downed && !carolPlayer.dead) Unit else null }
+                    assertTrue(server.world.archiveRaids.isDown(carolPlayer))
+                    // Down, she can't ask again, and Dave's answer to her earlier request opens no trade.
+                    carol.playerOp(dave.index, 4)
+                    dave.playerOp(carol.index, 4)
+                    carol.awaitTicks(4)
+                    assertEquals(before, dave.messages().count { it.type == Trades.CHATTYPE_TRADEREQ }, "a request from Carol down")
+                    assertTrue(carol.messages().none { it.type == Trades.CHATTYPE_TRADEREQ }, "a request to Carol down")
+                    assertEquals(null, carolPlayer.trade)
+                    assertEquals(null, davePlayer.trade)
+                    // Her pickaxe, tradeable, dropped while down: hers alone, never turning public for Dave to take.
+                    val slot = carol.await("the pickaxe") { carol.inventory(INVENTORY).indexOfFirst { it?.id == pickaxe.id }.takeIf { it >= 0 } }
+                    carol.ifButton(INVENTORY_IF, INVENTORY_ITEMS, DROP, slot, pickaxe.id)
+                    val dropped = carol.await("the pickaxe on the ground") {
+                        server.world.groundObjs.visibleAt(carolPlayer, carolPlayer.x, carolPlayer.z, carolPlayer.level).firstOrNull { it.id == pickaxe.id }
+                    }
+                    assertTrue(dropped.neverPublic, "the drop of a member down stays private")
+                    assertEquals(carolPlayer.saveKey, dropped.owner)
+                }
+            }
+        }
+    }
+
     private fun HeadlessClient.logout() {
         ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
         await("the logout") { packets().firstOrNull { it.prot.name == "LOGOUT" } }
@@ -644,5 +687,8 @@ class HeadlessArchiveRaidTest {
 
     private companion object {
         const val INVENTORY = 93
+        const val INVENTORY_IF = 149
+        const val INVENTORY_ITEMS = 0
+        const val DROP = 7
     }
 }

@@ -191,6 +191,9 @@ class ArchiveRaids(private val world: World) {
 
     fun of(party: Party): ArchiveRun? = runs[party]
 
+    /** Whether [player] is down in the run they stand in: out of the fight till its room is done, their items at stake. */
+    fun isDown(player: Player): Boolean = at(player.x, player.z)?.let { player.saveKey in it.downed } ?: false
+
     /** The run whose instance holds tile [x], [z]. */
     fun at(x: Int, z: Int): ArchiveRun? {
         val instance = world.instances.at(x, z) ?: return null
