@@ -168,6 +168,28 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `the swamp's four quest NPCs stand still where live has them, as the multi-NPCs that hide them after their quests`() {
+        val names = mapOf(7428 to "mistmyst_abigale", 7429 to "mistmyst_hewey", 6278 to "slice_sergeant_mossfists_swamp", 6279 to "slice_sergeant_slimetoes_swamp")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, "null", internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("lumbridge-swamp-quest.json"), types, "lumbridge-swamp-quest.json")
+        assertEquals(emptyList(), result.unknown)
+        val tiles = result.spawns.associate { it.type.id to Tile(it.x, it.z) }
+        assertEquals(mapOf(7428 to Tile(3237, 3155), 7429 to Tile(3237, 3153), 6278 to Tile(3169, 3170), 6279 to Tile(3171, 3170)), tiles)
+        assertTrue(result.spawns.all { it.wander == 0 && it.level == 0 && it.source.isNotBlank() })
+    }
+
+    @Test
+    fun `west of the castle has mejrs's 11 goblins, 8 giant spiders and 7 spiders round the H A M trapdoor`() {
+        val names = (1..7).associate { (3028 + it) to "goblin_unarmed_melee_$it" } + mapOf(3017 to "giantspider1", 3019 to "spider")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("lumbridge-west.json"), types, "lumbridge-west.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        assertEquals(listOf(11, 8, 7), listOf(spawns.count { it.type.id in 3029..3035 }, spawns.count { it.type.id == 3017 }, spawns.count { it.type.id == 3019 }))
+        assertTrue(spawns.all { it.x in 3141..3170 && it.z in 3222..3261 && it.level == 0 && it.wander == 5 && it.source.isNotBlank() })
+    }
+
+    @Test
     fun `the swamp has its 23 giant rats, 82 frogs, the level 5 goblin, the unicorn, its talking NPCs and tutors, and rats west of the castle`() {
         val names = mapOf(
             2856 to "giantrat", 2859 to "giantrat_grey", 2860 to "giantrat_grey2", 2861 to "giantrat_grey3", 2863 to "giantrat1_2",

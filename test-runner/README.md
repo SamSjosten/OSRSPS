@@ -160,6 +160,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   adventurers' talks; the candle seller refusing a player with no coins, then selling a lit candle for 1000; and the
   Mining and Fishing tutors' basics (with a pickaxe and a net carried), the Mining tutor's quests and the small net
   fish.
+- `lumbridge-swamp-rest.json`: Misthalin piece 7 step 1: through the swamp shed's door and back, its tools giving a
+  spade (by the menu) then a rake, a water talisman refused at the Water Altar's ruins (with `::keys on`), the River
+  Lum's raft by Grapple (crossbow and mith grapple) and back by Jump-to, the stepping stone to the desert and back at
+  66 Agility, and one coal from the west swamp mine.
 - `al-kharid-toll-gate.json`: Al Kharid step 1: Open on the toll gate from both sides with no coins, a Border
   Guard's talk (with `::keys on`) that ends with the player through the gate, and the palace's west large doors
   opened together and shut again, and the curtain upstairs in the palace opened and shut.

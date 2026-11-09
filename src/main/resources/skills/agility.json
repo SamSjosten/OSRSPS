@@ -9,7 +9,8 @@
     "Al Kharid Rooftop Course: locs, tiles and options from the 241 cache's map (roofs at levels 1 to 3: the zip line lands on level 1 and the tree swings to level 2); level 20, the XP of each obstacle (216 a lap) and Tightrope 1 and the zip line failing for 1 to 5 damage from the OSRS Wiki (read 2026-11-02); its mark spots from the Wiki's spawns table (the plateskirt shop's roof on level 1, the others on level 3). Inferred from the map: each start, path and landing tile. Guessed until recorded: the animations by their cache names (human_ropeswing_long for the cable and the tree, zipline_bite and zipline_slide, human_walk_logbalance_stumble for a fall), every tick count and exact move timing, the fail chances and where a fall lands.",
     "Varrock Rooftop Course: locs, tiles and options from the 241 cache's map (roofs on levels 1 and 3: the first gap lands on level 1 and the wall climbs back to 3); level 30, each obstacle's XP (269.7 a lap, the edge's 143.7 holding the lap's) and the clothes line failing for 3 to 8, the wall for 2 to 5 from the OSRS Wiki (read 2026-11-02); its mark spots from the Wiki's spawns table, two moved onto the nearest floor tile (the clothes shop ledge to 3196,3416 on level 1, the tavern roof to 3220,3402). Inferred from the map: each start, path and landing tile. Guessed until recorded: the animations by their cache names, the wall's route along its top, every tick count and exact move timing, the fail chances and where a fall lands.",
     "Gnome Stronghold Agility Course: locs, tiles and options from the 241 cache's map (the nets climb to level 1, the first branch to the level 2 platform, the second branch back down to the ground); level 1, each obstacle's XP and the 50 XP lap bonus (110.5 a lap) from the OSRS Wiki (read 2026-11-02, after the 8 May 2024 rebalance; the pipe's own page says 10 XP but the course page's 7.5 is the one that adds up to 110.5); its one mark spot from the Wiki's spawns table (2486,3422, before the branch down) moved onto the platform's nearest floor tile (2486,3421 on level 2). Inferred from the map: each start, path and landing tile. Guessed until recorded: the animations by their cache names (human_walk_logbalance for the log and the rope, human_reachforladder for the nets and branches, human_doublepipesqueeze for the pipe), every tick count and exact move timing. Not built: the gnome trainers' shouts.",
-    "Misthalin shortcuts (on no course): locs, tiles and options from the 241 cache's map; levels and XP from the OSRS Wiki's Shortcuts page and each shortcut's page (read 2026-11-02): the Varrock south fence (13, no XP), the Grand Exchange underwall tunnel (21, no XP), the Champions' Guild stepping stone (31, 3 XP; a failure still reaches the far bank, with damage and 1 XP), the Draynor underwall tunnel (42, no XP), Draynor Manor's broken fence (49, 1.5 XP) and the Champions' Guild south stepping stones (52, 5 XP a crossing: 2.5 on the first stone and 2.5 on the third). Both stones are jumped onto from the bank, as their sides are water. Inferred from the map: each side's tile (the fences' two sides of their wall, the tunnels' ends either side of the city or manor wall, the river banks either side of the stones). Guessed until recorded: the animations by their cache names (human_jump_hurdle, human_longcrawl, human_steppingstonejump, human_walk_crumbledwall, human_walk_logbalance_stumble for a stone's fall), every tick count and exact move timing, the stone's fail chance and its 1 to 3 damage (the Wiki says a few). Left for later: the Lumbridge Swamp stepping stone (66; its river's edges aren't clear in the map), the River Lum broken raft (a grapple), the Varrock Palace trellis (a quest), the Edgeville Dungeon pipes (not built yet) and the Paterdomus railing (Morytania)."
+    "Misthalin shortcuts (on no course): locs, tiles and options from the 241 cache's map; levels and XP from the OSRS Wiki's Shortcuts page and each shortcut's page (read 2026-11-02): the Varrock south fence (13, no XP), the Grand Exchange underwall tunnel (21, no XP), the Champions' Guild stepping stone (31, 3 XP; a failure still reaches the far bank, with damage and 1 XP), the Draynor underwall tunnel (42, no XP), Draynor Manor's broken fence (49, 1.5 XP) and the Champions' Guild south stepping stones (52, 5 XP a crossing: 2.5 on the first stone and 2.5 on the third). Both stones are jumped onto from the bank, as their sides are water. Inferred from the map: each side's tile (the fences' two sides of their wall, the tunnels' ends either side of the city or manor wall, the river banks either side of the stones). Guessed until recorded: the animations by their cache names (human_jump_hurdle, human_longcrawl, human_steppingstonejump, human_walk_crumbledwall, human_walk_logbalance_stumble for a stone's fall), every tick count and exact move timing, the stone's fail chance and its 1 to 3 damage (the Wiki says a few). Left for later: the Lumbridge Swamp stepping stone (66; its river's edges aren't clear in the map), the River Lum broken raft (a grapple), the Varrock Palace trellis (a quest), the Edgeville Dungeon pipes (not built yet) and the Paterdomus railing (Morytania).",
+    "The River Lum's broken raft (Jump-to, 48 Agility without a grapple since 12 August 2026; the Grapple option is LumbridgeSwamp.kt's) and the Lumbridge Swamp stepping stone to the desert (66 Agility, no diary since 8 May 2024): levels from the Wiki's Broken Raft and Stepping stone (Lumbridge Swamp) pages, read 2026-11-09. Their bank tiles are the 242 map's agility_shortcut_icon locs for the raft (3246,3179 and 3259,3179) and, for the stone, the nearest tiles each side reaches on foot (3214,3140 and 3214,3131, by flood fill over the 242 map). Guessed: the jumps go by way of the raft or the stone, two ticks each, with the stepping-stone jump animation."
   ],
   "obstacles": [
     {
@@ -1868,6 +1869,163 @@
               "to": [
                 3193,
                 3338,
+                0
+              ],
+              "anim": 769,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "shortcut_river_lum_raft",
+      "loc": 17069,
+      "alsoLocs": [
+        17070
+      ],
+      "option": "Jump-to",
+      "level": 48,
+      "levelLine": "agility.river_lum_raft_level",
+      "xpTenths": 0,
+      "fromStart": true,
+      "routes": [
+        {
+          "from": [
+            3246,
+            3179,
+            0
+          ],
+          "moves": [
+            {
+              "type": "slide",
+              "to": [
+                3252,
+                3180,
+                0
+              ],
+              "anim": 769,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            },
+            {
+              "type": "slide",
+              "to": [
+                3259,
+                3179,
+                0
+              ],
+              "anim": 769,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            }
+          ]
+        },
+        {
+          "from": [
+            3259,
+            3179,
+            0
+          ],
+          "moves": [
+            {
+              "type": "slide",
+              "to": [
+                3253,
+                3180,
+                0
+              ],
+              "anim": 769,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            },
+            {
+              "type": "slide",
+              "to": [
+                3246,
+                3179,
+                0
+              ],
+              "anim": 769,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "shortcut_lumbridge_swamp_desert_stone",
+      "loc": 16513,
+      "option": "Jump-to",
+      "level": 66,
+      "levelLine": "agility.lumbridge_swamp_desert_stone_level",
+      "xpTenths": 0,
+      "fromStart": true,
+      "routes": [
+        {
+          "from": [
+            3214,
+            3140,
+            0
+          ],
+          "moves": [
+            {
+              "type": "slide",
+              "to": [
+                3214,
+                3135,
+                0
+              ],
+              "anim": 769,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            },
+            {
+              "type": "slide",
+              "to": [
+                3214,
+                3131,
+                0
+              ],
+              "anim": 769,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            }
+          ]
+        },
+        {
+          "from": [
+            3214,
+            3131,
+            0
+          ],
+          "moves": [
+            {
+              "type": "slide",
+              "to": [
+                3214,
+                3135,
+                0
+              ],
+              "anim": 769,
+              "startCycles": 15,
+              "endCycles": 45,
+              "ticks": 2
+            },
+            {
+              "type": "slide",
+              "to": [
+                3214,
+                3140,
                 0
               ],
               "anim": 769,
