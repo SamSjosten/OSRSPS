@@ -10,7 +10,8 @@
     "Locs: the Champions' Guild's own: its door (with its open type), the trapdoor to its basement (shut and open) and the basement's ladder up (the 241 cache, 2026-11-02).",
     "Locs and NPCs: Agility (steps 1 to 8): every obstacle loc type of the Draynor Village, Al Kharid and Varrock rooftops, the Gnome Stronghold course and the six Misthalin shortcuts (skills/agility.json; names from the 241 cache, 2026-11-03), keyed one per id until the Wiki shows ids sharing a text; and Grace in the Rogues' Den.",
     "Locs and NPCs: Draynor (step 16): every named loc type of map squares 48,49 to 48,52 (Draynor Village, its manor and the Wizards' Tower, x 3072 to 3135, every level), 48,149 and 48,150 (the tower's basement and Draynor Sewers), 48,152 (Draynor Manor's basement, its doors and levers keyed by their visible types with the map's multiloc ids under also) and 45,75 (the rune essence mine) that had none, with the mine's five portal types, which aren't on the map (the 241 cache, 2026-11-03), keyed one per id; and every NPC type the Draynor, manor, sewers and tower spawns use, with the types their multi-NPCs show.",
-    "Locs and NPCs: Edgeville, Barbarian Village and the land between (Edgeville piece step 15): every named loc type that had none on the surface from x 3030 to 3150 and z 3392 to 3519 (Edgeville, the monastery, Barbarian Village, the woods west of it and the land east to the Cooks' Guild, but not the Black Knights' Fortress), in Edgeville Dungeon and the Basement of Doom (x 3040 to 3150, z 9792 to 9919) and on the Stronghold of Security's four floors (map squares 29,81, 31,81, 33,82 and 36,81), every level (the 241 cache, 2026-11-03), keyed one per id; and every NPC type the edgeville, barbarian-village, cooks-guild, edgeville-dungeon and stronghold-of-security spawns use, with the types their multi-NPCs show."
+    "Locs and NPCs: Edgeville, Barbarian Village and the land between (Edgeville piece step 15): every named loc type that had none on the surface from x 3030 to 3150 and z 3392 to 3519 (Edgeville, the monastery, Barbarian Village, the woods west of it and the land east to the Cooks' Guild, but not the Black Knights' Fortress), in Edgeville Dungeon and the Basement of Doom (x 3040 to 3150, z 9792 to 9919) and on the Stronghold of Security's four floors (map squares 29,81, 31,81, 33,82 and 36,81), every level (the 241 cache, 2026-11-03), keyed one per id; and every NPC type the edgeville, barbarian-village, cooks-guild, edgeville-dungeon and stronghold-of-security spawns use, with the types their multi-NPCs show.",
+    "Locs: Misthalin piece 7 step 1, the rest of Lumbridge Swamp: the stepping stone to the desert and the Water Altar's ruins (both types the ruins show; the 242 cache, 2026-11-09). Hewey, Abigale and the two goblin sergeants get none: after their quests the 242 cache never shows them."
   ],
   "npcs": [
     {"npc": 38, "name": "Zombie"},
@@ -1230,6 +1231,7 @@
     {"loc": 16474, "name": "Coal"},
     {"loc": 16475, "name": "Coal"},
     {"loc": 16511, "name": "Obstacle pipe"},
+    {"loc": 16513, "name": "Stepping stone", "wiki": "Stepping stone (Lumbridge Swamp)"},
     {"loc": 16518, "name": "Fence", "wiki": "the Varrock south fence's page (Shortcuts page links it)"},
     {"loc": 16529, "name": "Underwall tunnel", "wiki": "the Grand Exchange underwall tunnel's page (Shortcuts page links it)"},
     {"loc": 16530, "name": "Underwall tunnel", "wiki": "the Grand Exchange underwall tunnel's page (Shortcuts page links it)"},
@@ -1474,6 +1476,7 @@
     {"loc": 28968, "name": "None"},
     {"loc": 29008, "name": "None"},
     {"loc": 29059, "name": "None"},
+    {"loc": 29096, "name": "Mysterious ruins", "also": [29097], "wiki": "Mysterious ruins, the Water version (ids 29096 and 29097)"},
     {"loc": 29486, "name": "Gate"},
     {"loc": 29487, "name": "Gate"},
     {"loc": 29488, "name": "Gate"},

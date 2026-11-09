@@ -39,6 +39,8 @@ object AgilityLines : Lines("agility", "Agility") {
     val DRAYNOR_TUNNEL_LEVEL = line("draynor_tunnel_level", "Shortcut: the Draynor underwall tunnel clicked below level 42", "level")
     val DRAYNOR_MANOR_FENCE_LEVEL = line("draynor_manor_fence_level", "Shortcut: Draynor Manor's broken fence clicked below level 49", "level")
     val CHAMPIONS_GUILD_SOUTH_STONES_LEVEL = line("champions_guild_south_stones_level", "Shortcut: the Champions' Guild south stepping stones clicked below level 52", "level")
+    val RIVER_LUM_RAFT_LEVEL = line("river_lum_raft_level", "Shortcut: the River Lum's broken raft, Jump-to clicked below level 48", "level")
+    val LUMBRIDGE_SWAMP_DESERT_STONE_LEVEL = line("lumbridge_swamp_desert_stone_level", "Shortcut: the Lumbridge Swamp stepping stone to the desert clicked below level 66", "level")
 
     /** A line by its key, for agility.json to name one. */
     fun byKey(key: String): Line = lines.firstOrNull { it.key == key } ?: error("No agility line $key")

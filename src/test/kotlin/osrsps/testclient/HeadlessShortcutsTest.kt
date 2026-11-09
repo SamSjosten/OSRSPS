@@ -17,7 +17,7 @@ import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
 
 /**
- * Agility step 7 through the headless client: the Misthalin shortcuts with their real locs (as the 241 map places them)
+ * Agility step 7 through the headless client (with Misthalin piece 7 step 1's raft and desert stone): the Misthalin shortcuts with their real locs (as the 241 map places them)
  * and agility.json, on open ground (no cache collision in tests) but for the rivers around the stepping stones, which are
  * blocked as the map has them, so the stones are used from the bank. Each is crossed there and back. The rl-client script
  * test-runner/examples/agility-shortcuts.json runs them in the real world.
@@ -36,6 +36,9 @@ class HeadlessShortcutsTest {
         Shortcut(19032, "Underwall tunnel", "Climb-into", 10, 2, 3067, 3257, 3066 to 3257, 3070 to 3257, 42, Triple(19036, 3069, 3257)),
         Shortcut(62422, "Broken fence", "Squeeze-Through", 0, 2, 3085, 3352, 3085 to 3352, 3086 to 3352, 49),
         Shortcut(62412, "Stepping stone", "Jump-to", 22, 0, 3193, 3340, 3193 to 3338, 3193 to 3346, 52, Triple(62412, 3193, 3344)),
+        // Misthalin piece 7 step 1: the River Lum's raft without a grapple, there by one half and back by the other.
+        Shortcut(17069, "Broken Raft", "Jump-to", 22, 0, 3252, 3180, 3246 to 3179, 3259 to 3179, 48, Triple(17070, 3253, 3180)),
+        Shortcut(16513, "Stepping stone", "Jump-to", 22, 0, 3214, 3135, 3214 to 3140, 3214 to 3131, 66),
     )
 
     private val text = AgilityData::class.java.getResource(AgilityData.RESOURCE)!!.readText()
@@ -85,8 +88,8 @@ class HeadlessShortcutsTest {
         server(dir, sure).use { server ->
             server.login("alice").use { client ->
                 client.await("the login rebuild") { client.position }
-                client.command("setlevel agility 52")
-                val before = client.await("level 52") { client.stat(AGILITY)?.takeIf { it.level == 52 } }.xp
+                client.command("setlevel agility 66")
+                val before = client.await("level 66") { client.stat(AGILITY)?.takeIf { it.level == 66 } }.xp
                 for (s in shortcuts) {
                     client.teleTo(s.sideA.first, s.sideA.second)
                     client.crossTo(s.id, s.x, s.z, s.sideB)
@@ -151,7 +154,7 @@ class HeadlessShortcutsTest {
          * The river tiles around each stepping stone (x range, z range), from the 241 map's blocked tiles: the banks the
          * stones are jumped from stay open.
          */
-        val RIVERS = listOf(3150..3153 to 3360..3366, 3190..3196 to 3339..3345)
+        val RIVERS = listOf(3150..3153 to 3360..3366, 3190..3196 to 3339..3345, 3247..3258 to 3176..3183, 3210..3218 to 3132..3139)
 
         /** The stone's success pair, as agility.json writes it. */
         val SUCCESS = Regex("\"success\": \\[\\s*225,\\s*255\\s*]")
