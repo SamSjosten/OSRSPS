@@ -320,15 +320,17 @@ class ArchiveRaids(private val world: World) {
     private fun beginEzekiel(run: ArchiveRun, first: Player) {
         val room = ArchiveRoom.EZEKIEL
         val def = world.encounters.defs[Ezekiel.NAME] ?: return
-        run.started += room
-        val standing = standing(run)
-        run.presentAtStart[room] = standing.filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
         val at = tile(run, EZEKIEL_X, EZEKIEL_Z)
         val boss = world.spawnNpc(NpcSpawn(def.boss, at.x, at.z, 0, source = "$run", respawns = false))
+        // With no NPC slot free, the room isn't started (exploit review round 18, R18A-3): it would then never begin,
+        // nor open the next row. The next tick with one of the party in it tries again.
         if (boss == null) {
             logger.warn { "$run: no room for Ezekiel" }
             return
         }
+        run.started += room
+        val standing = standing(run)
+        run.presentAtStart[room] = standing.filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
         world.partyScaling.scale(boss, standing.size.coerceIn(1, PartyScaling.MAX_PARTY))
         world.meleeCombat.aggress(boss, first, world.tick)
         run.fights[room] = world.encounters.start(def, boss, { x, z -> inRoom(run, room, x, z) })
