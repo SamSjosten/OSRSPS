@@ -73,16 +73,17 @@ class NpcInfoReader {
         while (bits.remaining() >= 16) {
             val index = bits.read(16)
             if (index == 0xFFFF) break
-            val dz = signed(bits.read(deltaBits), deltaBits)
-            bits.read(1) // jump: whether the client snaps it there rather than walking it
+            // RSProt 242's DesktopLowResolutionChangeEncoder.
+            val dx = signed(bits.read(deltaBits), deltaBits)
             bits.read(3) // direction it faces
+            if (bits.read(1) == 1) extended += index
+            val id = bits.read(TYPE_BITS[bits.read(2)])
             if (bits.read(1) == 1) {
                 val clockBits = SPAWN_CLOCK_BITS[bits.read(2)]
                 bits.read(clockBits) // spawn cycle
             }
-            if (bits.read(1) == 1) extended += index
-            val id = bits.read(TYPE_BITS[bits.read(2)])
-            val dx = signed(bits.read(deltaBits), deltaBits)
+            bits.read(1) // jump: whether the client snaps it there rather than walking it
+            val dz = signed(bits.read(deltaBits), deltaBits)
             kept += NpcView(index, id, Coord(local.x + dx, local.z + dz, local.level))
         }
         inView.clear()
@@ -94,8 +95,8 @@ class NpcInfoReader {
     /**
      * The extended info after the bits, one block set per index in [extended], as RSProt's
      * NpcAvatarExtendedInfoDesktopWriter writes them: a flag byte, a second, third and fourth when the one before has its
-     * marker bit (0x10, 0x2000, 0x40000), then the blocks in the writer's order. Of those, head bars, the animation, a
-     * face at an entity, overhead text and hitsplats are read, from RSProt's NpcHeadbarEncoder, NpcSequenceEncoder,
+     * marker bit (0x4, 0x400, 0x200000), then the blocks in the writer's order. Of those, hitsplats, the animation, head
+     * bars, overhead text and a face at an entity are read, from RSProt's NpcHeadbarEncoder, NpcSequenceEncoder,
      * NpcFaceEncoder, NpcSayEncoder and NpcHitmarkEncoder; any other flag or face kind stops the reading.
      */
     private fun readBlocks(payload: ByteArray, start: Int, extended: List<Int>) {
@@ -107,10 +108,20 @@ class NpcInfoReader {
         for (index in extended) {
             if (position >= payload.size) break
             var flags = u1()
-            if (flags and 0x10 != 0) flags = flags or (u1() shl 8)
-            if (flags and 0x2000 != 0) flags = flags or (u1() shl 16)
-            if (flags and 0x40000 != 0) flags = flags or (u1() shl 24)
-            if (flags and (0x10 or 0x2000 or 0x40000 or HEADBAR or SEQUENCE or FACE or SAY or HIT).inv() != 0) break
+            if (flags and EXTENDED_SHORT != 0) flags = flags or (u1() shl 8)
+            if (flags and EXTENDED_MEDIUM != 0) flags = flags or (u1() shl 16)
+            if (flags and EXTENDED_INT != 0) flags = flags or (u1() shl 24)
+            if (flags and (EXTENDED_SHORT or EXTENDED_MEDIUM or EXTENDED_INT or HEADBAR or SEQUENCE or FACE or SAY or HIT).inv() != 0) break
+            if (flags and HIT != 0) {
+                repeat((128 - u1()) and 0xFF) {
+                    val type = smart()
+                    val value = smart()
+                    smart() // delay
+                    smart() // limit (RSProt's NpcHitmarkEncoder writes four smarts a hit)
+                    hits += Triple(index, type, value)
+                }
+            }
+            if (flags and SEQUENCE != 0) position += 3 // id, delay
             if (flags and HEADBAR != 0) {
                 repeat(u1()) {
                     smart() // type
@@ -122,27 +133,18 @@ class NpcInfoReader {
                     }
                 }
             }
-            if (flags and SEQUENCE != 0) position += 3 // id, delay
-            if (flags and FACE != 0) {
-                // A flag byte (negated) with the kind in bits 3-5. Only kind 0, facing an entity, is read: its type, its
-                // index (2 bytes, or 4 with the top bit set) and one more smart, as Face.encode writes them.
-                if (((-u1() and 0xFF) shr 3) and 7 != 0) break
-                smart()
-                position += if ((payload[position].toInt() and 0x80) == 0) 2 else 4
-                smart()
-            }
             if (flags and SAY != 0) {
                 val end = (position until payload.size).firstOrNull { payload[it].toInt() == 0 } ?: break
                 said += index to String(payload, position, end - position, Charsets.ISO_8859_1)
                 position = end + 1
             }
-            if (flags and HIT != 0) {
-                repeat((128 - u1()) and 0xFF) {
-                    val type = smart()
-                    val value = smart()
-                    smart() // delay
-                    hits += Triple(index, type, value)
-                }
+            if (flags and FACE != 0) {
+                // A flag byte (plus 128) with the kind in bits 3-5. Only kind 0, facing an entity, is read: its type, its
+                // index (2 bytes, or 4 with the top bit set) and one more smart, as Face.encode writes them.
+                if ((((u1() - 128) and 0xFF) shr 3) and 7 != 0) break
+                smart()
+                position += if ((payload[position].toInt() and 0x80) == 0) 2 else 4
+                smart()
             }
         }
         this.said = said
@@ -162,12 +164,15 @@ class NpcInfoReader {
         val SPAWN_CLOCK_BITS = intArrayOf(18, 19, 20, 32)
         val TYPE_BITS = intArrayOf(12, 14, 17, 24)
 
-        /** Block flags on the wire (RSProt's desktop writer). */
-        const val SEQUENCE = 0x8
+        /** Block flags on the wire (RSProt 242's desktop writer), and the markers for a second, third and fourth flag byte. */
+        const val EXTENDED_SHORT = 0x4
+        const val EXTENDED_MEDIUM = 0x400
+        const val EXTENDED_INT = 0x200000
+        const val SEQUENCE = 0x2
         const val FACE = 0x20
-        const val SAY = 0x40
-        const val HIT = 0x10000
-        const val HEADBAR = 0x2000000
+        const val SAY = 0x10
+        const val HIT = 0x400000
+        const val HEADBAR = 0x1000000
 
         /** A head bar's end time that removes it, with no more fields. */
         const val HEADBAR_REMOVED = 32767

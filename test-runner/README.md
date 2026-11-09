@@ -19,8 +19,8 @@ The plugin clicks for you. That is botting on Jagex's worlds, so:
 
 ## Headless: no RuneLite, no VM
 
-The same scripts play without RuneLite: `./gradlew headlessScripts` starts our server in-process on the live 241 cache
-(OpenRS2 2746, fetched once into `build/headless/data`) and plays every example through the headless test client
+The same scripts play without RuneLite: `./gradlew headlessScripts` starts our server in-process on the live 242 cache
+(OpenRS2 2757, fetched once into `build/headless/data`) and plays every example through the headless test client
 (`src/test/kotlin/osrsps/testrunner`, `HeadlessGame` standing in for `ClientGame`). As the nightly did: the account is
 put back before each script, a failure is played once more (a pass then is flaky), and the results and `summary.json`
 go to `build/headless/results`. `-Pscripts=hans-demo.json,lumbridge-bank.json` plays some; `-PheadlessTickMs=300` plays
