@@ -28,6 +28,6 @@
     {"npc": "banker1_new", "x": 3208, "z": 3222, "level": 2, "wander": 0, "source": "Banker where the Bank tutor stood (RSMod rev 233 Lumbridge spawns) until 242.1 replaced her with a normal banker (Wiki update notes, 3 November 2026). That it is banker1_new on her tile is inferred; wander 0 as 2004Scape's bankers"},
     {"npc": "lumbridge_guide", "x": 3238, "z": 3220, "direction": "W", "wander": 0, "source": "Outside the gate. RSMod rev 233 Lumbridge spawns, wander 0 facing west"},
     {"npc": "cws_doomsayer", "x": 3232, "z": 3223, "direction": "E", "wander": 0, "source": "Outside the gate: varbit 4153 = 0 shows the ordinary Doomsayer. RSMod rev 233 Lumbridge spawns, wander 0 facing east"},
-    {"npc": "hatius_lumbridge_diary", "x": 3234, "z": 3214, "wander": 5, "source": "Hatius Cosaintus, outside the gate. RSMod rev 233 Lumbridge spawns"}
+    {"npc": "mikasi_lumbridge_diary", "x": 3233, "z": 3214, "wander": 4, "source": "Mikasi, the Lumbridge & Draynor Diary's taskmaster since 242.1, outside the gate where Hatius Cosaintus stood (he moved to the Falador pub). OSRS Wiki map (3233, 3214, radius 4), read 2026-11-08; the radius taken as her wander range (inferred)"}
   ]
 }

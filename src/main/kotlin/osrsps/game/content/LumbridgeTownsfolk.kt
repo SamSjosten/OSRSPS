@@ -65,6 +65,12 @@ object IronmanTutorLines : Lines("ironman_tutor", "Transcript:Ironman tutor") {
 object LumbridgeTownsfolk {
     const val ABIGAILA = 8368
     const val IRONMAN_TUTOR = 311
+
+    /**
+     * ironman_tutor_1_vis: since 242.1 the Ironman tutor (311) is a multi-NPC on varp ironman that shows this type to
+     * Ironmen only (cache 2757), so other accounts don't see him. Its options are his, so its handlers are his.
+     */
+    const val IRONMAN_TUTOR_VISIBLE = 16814
     const val TALK_TO = 1
     const val SCRY = 3
     const val ARMOUR = 3
@@ -137,10 +143,12 @@ fun registerLumbridgeTownsfolk(world: World) {
     world.handlers.onNpc(LumbridgeTownsfolk.ABIGAILA, LumbridgeTownsfolk.SCRY) { op ->
         world.dialogues.start(this, op.npc) { with(LumbridgeTownsfolk) { scry() } }
     }
-    world.handlers.onNpc(LumbridgeTownsfolk.IRONMAN_TUTOR, LumbridgeTownsfolk.TALK_TO) { op ->
-        world.dialogues.start(this, op.npc) { with(LumbridgeTownsfolk) { ironmanTutor() } }
-    }
-    world.handlers.onNpc(LumbridgeTownsfolk.IRONMAN_TUTOR, LumbridgeTownsfolk.ARMOUR) { op ->
-        world.dialogues.start(this, op.npc) { with(LumbridgeTownsfolk) { armour(said = false) } }
+    for (tutor in listOf(LumbridgeTownsfolk.IRONMAN_TUTOR, LumbridgeTownsfolk.IRONMAN_TUTOR_VISIBLE)) {
+        world.handlers.onNpc(tutor, LumbridgeTownsfolk.TALK_TO) { op ->
+            world.dialogues.start(this, op.npc) { with(LumbridgeTownsfolk) { ironmanTutor() } }
+        }
+        world.handlers.onNpc(tutor, LumbridgeTownsfolk.ARMOUR) { op ->
+            world.dialogues.start(this, op.npc) { with(LumbridgeTownsfolk) { armour(said = false) } }
+        }
     }
 }

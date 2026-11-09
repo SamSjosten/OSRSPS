@@ -5,11 +5,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import osrsps.game.ObjType
 import osrsps.game.Skill
+import osrsps.game.VarTypes
+import osrsps.game.VarbitType
 import osrsps.game.World
 import osrsps.game.content.Bankers.banker
 import osrsps.game.content.Cadmus.talk
 import osrsps.game.content.Doomsayer.talk
-import osrsps.game.content.Hatius.talk
+import osrsps.game.content.Mikasi.talk
 import osrsps.game.content.Perdu.talk
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
@@ -118,47 +120,72 @@ class CastleTalkTest {
     }
 
     @Test
-    fun `the Doomsayer explains himself to a player with every warning on`() {
-        h.talk { with(Doomsayer) { talk() } }
-        h.expect(
-            "doomsayer.doom", "doomsayer.where", "doomsayer.everywhere", "doomsayer.stop_it", "doomsayer.my_role", "doomsayer.title",
-            "doomsayer.patrol", "doomsayer.disable", "doomsayer.danger_areas", "doomsayer.see_again", "doomsayer.waiting",
-            "doomsayer.re_enable", "doomsayer.remember", "doomsayer.welcome",
+    fun `the Doomsayer explains himself the first time since 242, then only says doom, and getting rid of signs ends it`() {
+        val d = DialogueHarness("Doomsayer", VarTypes.NONE.with(mapOf(Doomsayer.VARBIT_INTRO to VarbitType(6240, 23, 23)), emptyMap()))
+        d.talk { with(Doomsayer) { talk() } }
+        d.expect(
+            "doomsayer.doom", "doomsayer.where", "doomsayer.everywhere", "doomsayer.stop_it", "doomsayer.nothing_needed",
+            "doomsayer.danger_areas",
         )
-        h.ends()
+        assertEquals(1, d.player.vars.getVarbit(Doomsayer.VARBIT_INTRO))
+        d.menu("doomsayer.get_rid", "doomsayer.thanks_signs")
+        d.pick(2)
+        d.expect("doomsayer.thanks_signs", "doomsayer.welcome")
+        d.ends()
+
+        d.talk { with(Doomsayer) { talk() } }
+        d.expect("doomsayer.doom")
+        d.menu("doomsayer.get_rid", "doomsayer.be_off")
+        d.pick(2)
+        d.expect("doomsayer.be_off")
+        d.ends()
+
+        d.talk { with(Doomsayer) { talk() } }
+        d.expect("doomsayer.doom")
+        d.menu("doomsayer.get_rid", "doomsayer.be_off")
+        d.pick(1)
+        d.expect("doomsayer.get_rid", "doomsayer.very_well")
+        d.ends()
     }
 
     @Test
-    fun `Hatius opens with a menu and comes back to it after saying who he is`() {
-        h.talk { with(Hatius) { talk() } }
-        h.menu("hatius.who_are_you", "hatius.my_diary", "hatius.farewell")
+    fun `Mikasi, the taskmaster since 242, opens with a menu and comes back to it after saying who she is or goodbye`() {
+        h.talk { with(Mikasi) { talk() } }
+        h.menu("mikasi.who_are_you", "mikasi.my_diary", "mikasi.farewell")
         h.pick(1)
-        h.expect("hatius.who_are_you", "hatius.taskmaster", "hatius.what_diary", "hatius.explain", "hatius.explore", "hatius.side_panel")
-        h.menu("hatius.who_are_you", "hatius.my_diary", "hatius.farewell")
+        h.expect("mikasi.who_are_you", "mikasi.taskmaster", "mikasi.what_diary", "mikasi.explain", "mikasi.side_panel")
+        h.menu("mikasi.who_are_you", "mikasi.my_diary", "mikasi.farewell")
         h.pick(3)
-        h.expect("hatius.farewell", "hatius.goodbye")
-        h.ends()
+        h.expect("mikasi.farewell", "mikasi.goodbye")
+        h.menu("mikasi.who_are_you", "mikasi.my_diary", "mikasi.farewell")
+        // Goodbye from the diary menu brings the first menu back too.
+        h.pick(2)
+        h.expect("mikasi.my_diary_said")
+        h.menu("mikasi.what_diary", "mikasi.rewards", "mikasi.claim", "mikasi.farewell")
+        h.pick(4)
+        h.expect("mikasi.farewell", "mikasi.goodbye")
+        h.menu("mikasi.who_are_you", "mikasi.my_diary", "mikasi.farewell")
     }
 
     @Test
-    fun `Hatius tells a tier's rewards and the talk ends`() {
-        h.talk { with(Hatius) { talk() } }
-        h.menu("hatius.who_are_you", "hatius.my_diary", "hatius.farewell")
+    fun `Mikasi tells a tier's rewards and the talk ends`() {
+        h.talk { with(Mikasi) { talk() } }
+        h.menu("mikasi.who_are_you", "mikasi.my_diary", "mikasi.farewell")
         h.pick(2)
-        h.expect("hatius.my_diary")
-        h.menu("hatius.what_diary", "hatius.rewards", "hatius.claim", "hatius.farewell")
+        h.expect("mikasi.my_diary_said")
+        h.menu("mikasi.what_diary", "mikasi.rewards", "mikasi.claim", "mikasi.farewell")
         h.pick(2)
-        h.expect("hatius.rewards", "hatius.four_tiers", "hatius.which_tier")
-        h.menu("hatius.easy", "hatius.medium", "hatius.hard", "hatius.elite")
+        h.expect("mikasi.four_tiers")
+        h.menu("mikasi.easy", "mikasi.medium", "mikasi.hard", "mikasi.elite")
         h.pick(3)
-        h.expect("hatius.hard", "hatius.hard_rewards", "hatius.thanks")
+        h.expect("mikasi.hard_said", "mikasi.hard_rewards", "mikasi.thanks")
         h.ends()
     }
 
     @Test
     fun `every castle NPC with lines has Talk-to`() {
         val world = World(IntArray(0), CollisionMap())
-        for (id in listOf(Cook.ID, DukeHoracio.ID, Perdu.ID, Cadmus.ID, Bankers.BANKER, Doomsayer.ID, Hatius.ID, LumbridgeGuide.ID) + Townsfolk.MEN + Townsfolk.WOMEN) {
+        for (id in listOf(Cook.ID, DukeHoracio.ID, Perdu.ID, Cadmus.ID, Bankers.BANKER, Doomsayer.ID, Mikasi.ID, LumbridgeGuide.ID) + Townsfolk.MEN + Townsfolk.WOMEN) {
             assertTrue(world.handlers.find(Op(OpTarget.NPC, id, 1)) != null, "NPC $id")
         }
     }
