@@ -66,7 +66,8 @@ object BorkLines : Lines("tfa_bork", "The_Fractured_Archive/Strategies") {
  * - The tempo (18c): at every 25% the Smorks lose, both call it out and the spacing of his gongs and their shots falls
  *   by a tick, 7 to 4 ([tempo]). Bork dead first, the Smorks go into their frenzy ([frenzyAhead]): a volley at
  *   everyone every [FRENZY_SPACING] ticks, napalm between. The Smorks dead first, Bork stomps over the whole room every
- *   [LONE_STOMP_EVERY] ticks, no tower left to hide behind.
+ *   [LONE_STOMP_EVERY] ticks, no tower left to hide behind. Their tower goes up [SMORKS_BURST] ticks after they fall
+ *   and is gone at 9 (npc-combat.json's deathTicks), as Bork is at 7.
  *
  * From the OSRS Wiki (Bork, The Fractured Archive's; Smorks; read 2026-11-09): their stats and bonuses (npc-combat
  * .json), sizes, the 7-tick attack speed, their hitpoints by party size (party-scaling.json), the flat armour ("starts
@@ -92,7 +93,7 @@ object BorkLines : Lines("tfa_bork", "The_Fractured_Archive/Strategies") {
  * fitted line test ([shadowed]); his next tank a random other player; the Smorks' cycle stopping as Bork dies, till
  * their frenzy; the frenzy's splash running away from the tower only from a tile beside it; the lone stomps' first
  * 45 ticks after the Smorks die, with the daze's line; the tempo's lines said by whichever of them is up; flat armour
- * not taking a hit below 0; the death spotanims; the anchor being the hp handler NPC.
+ * not taking a hit below 0; the anchor being the hp handler NPC.
  */
 object Bork {
     /** What `::raid` and the raid flow know the fight by. */
@@ -154,8 +155,12 @@ object Bork {
     /** tfa_bork_ragged_tile: the oil. */
     const val LOC_OIL = 62544
 
-    /** vfx_smork_death_explosion_spotanim01, the tower going up. */
-    const val SPOT_SMORKS_DEATH = 4062
+    /**
+     * vfx_smork_tower_death_spotanim01, vfx_smork_goblins_death_spotanim01 and vfx_smork_death_explosion_spotanim01: the
+     * tower going up, [SMORKS_BURST] ticks after the Smorks fall (tsps; Sam's recording of 2026-11-09 shows the same).
+     */
+    val SPOTS_SMORKS_DEATH = listOf(4060, 4061, 4062)
+    const val SMORKS_BURST = 2
 
     /** Bork's south-west tile as the fight begins, this far east and north of the tower's (tsps: 4194,5603 to 4190,5598). */
     const val BORK_EAST = 4
@@ -402,7 +407,11 @@ object Bork {
         }
         if (smorksHeld != null && smorksHeld.dead && !state.smorksDown) {
             state.smorksDown = true
-            smorksHeld.effects.spotanim(0, SPOT_SMORKS_DEATH, 0)
+            // A fall seen a tick late (a hit after this tick's step) still bursts on its tick.
+            after((SMORKS_BURST - sinceDeath(smorksHeld)).coerceAtLeast(1)) {
+                SPOTS_SMORKS_DEATH.forEachIndexed { slot, spot -> smorksHeld.effects.spotanim(slot, spot, 0) }
+                log("the tower bursts")
+            }
             smorksHeld.effects.say(text(BorkLines.UH_OH))
             log("the Smorks down")
             state.plan.clear()

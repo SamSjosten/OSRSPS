@@ -207,7 +207,23 @@
   },
   {
    "step": "waitTicks",
-   "ticks": 6
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::raid log 5",
+   "expectMessage": "fight: the tower bursts",
+   "comment": "the tower goes up 2 ticks after the Smorks fall"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "done Archive Guardian;",
+   "comment": "their tower is gone 9 ticks after they fall, so the room isn't done yet"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 9
   },
   {
    "step": "command",
