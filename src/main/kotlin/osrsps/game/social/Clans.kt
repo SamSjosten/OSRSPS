@@ -1505,6 +1505,21 @@ class Clans(
     private fun runeDay(): Int = ChronoUnit.DAYS.between(RUNE_EPOCH, now().atOffset(ZoneOffset.UTC).toLocalDate()).toInt()
 
     companion object {
+        /** Every interface and component id above with its gameval name in the rev 242 cache, for [osrsps.cache.GameFrameCheck]. */
+        val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>>
+            get() = mapOf(
+                SIDE_CHANNELS to ("side_channels" to mapOf(2 to "tab_0", 3 to "tab_1", 4 to "tab_2", 5 to "tab_3", SIDE_CHANNELS_CONTENTS to "contents")),
+                YOUR_CLAN to ("clans_sidepanel" to mapOf(YOUR_CLAN_REFRESH to "refresh", YOUR_CLAN_CHAT to "chat", YOUR_CLAN_SETTINGS to "info")),
+                GUEST_SIDEPANEL to ("clans_guest_sidepanel" to mapOf(GUEST_REFRESH to "refresh", GUEST_CHAT to "chat", GUEST_INFO to "info", GUEST_SEARCH to "search")),
+                CREATION to ("clans_creation_sidepanel" to mapOf(CREATION_UNIVERSE to "universe", CREATION_REFRESH to "refresh", CREATION_CONTENTS to "contents", CREATION_NAME to "name", CREATION_INVITE to "invite", CREATION_CANCEL to "cancel", CREATION_CONFIRM to "confirm")),
+                INFO to ("clans_info" to mapOf(INFO_CLOSE to "close", INFO_BUTTONS.first to "events", INFO_MEMBERS to "members", INFO_APPLICATIONS to "applications", INFO_PERMISSIONS to "permissions", INFO_BANNED to "banned", INFO_QUIT to "quit")),
+                BANNED to ("clans_banned" to mapOf(BANNED_EXIT to "exit")),
+                MEMBERS to ("clans_members" to mapOf(MEMBERS_COLUMNS[0] to "column1", MEMBERS_COLUMNS[1] to "column2", MEMBERS_OPTIONS[0] to "options1", MEMBERS_OPTIONS[1] to "options2", MEMBERS_EXIT to "exit", MEMBERS_POPUP to "popup")),
+                PERMISSIONS to ("clans_permissions" to mapOf(PERMISSIONS_EXIT to "exit", PERMISSIONS_LIST to "list_contents", PERMISSIONS_POPUP to "popup")),
+                APPLICANTS to ("clans_applicants" to mapOf(APPLICANTS_LIST to "list", APPLICANTS_ENTRIES.first to "00", APPLICANTS_ENTRIES.last to "19", APPLICANTS_EXIT to "exit", APPLICANTS_REFRESH to "refresh", APPLICANTS_REJECT to "reject", APPLICANTS_ACCEPT to "accept")),
+                POPUPOVERLAY to ("popupoverlay" to emptyMap()),
+            )
+
         /** The Clans tab (side_channels) and its contents. */
         const val SIDE_CHANNELS = 707
         val SIDE_CHANNELS_TABS = 2..5

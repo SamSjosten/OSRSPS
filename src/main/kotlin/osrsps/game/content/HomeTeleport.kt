@@ -168,6 +168,12 @@ class HomeTeleport(
         const val COMPONENT = 6
         const val CAST = 1
 
+        /** Every interface and component id above with its gameval name in the rev 242 cache, for [osrsps.cache.GameFrameCheck]. */
+        val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>>
+            get() = mapOf(
+                Spells.SPELLBOOK to ("magic_spellbook" to mapOf(COMPONENT to "teleport_home_standard")),
+            )
+
         /** `aide_tele_timer`: the minute of the last home teleport, which RuneLite's home teleport timer reads. */
         const val VARP_LAST_CAST = 892
 

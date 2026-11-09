@@ -44,6 +44,12 @@ object AvaDevicesLines : Lines("ava_devices", "Ava's device; Ava's attractor; Av
  * stops at the first one the player can't pay for, and that the screen stays open after a buy.
  */
 object AvaDevicesShop {
+    /** Every interface and component id above with its gameval name in the rev 242 cache, for [osrsps.cache.GameFrameCheck]. */
+    val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>>
+        get() = mapOf(
+            INTERFACE to ("anma_reward" to mapOf(ATTRACTOR_BUTTON to "30", ATTRACTOR_TEXT to "30_contents", ACCUMULATOR_BUTTON to "50", ACCUMULATOR_TEXT to "50_contents", ASSEMBLER_BUTTON to "assembler", ASSEMBLER_TEXT to "assembler_contents")),
+        )
+
     const val INTERFACE = 67
     const val ATTRACTOR_BUTTON = 2
     const val ACCUMULATOR_BUTTON = 7

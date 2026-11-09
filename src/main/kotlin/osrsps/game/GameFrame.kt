@@ -181,10 +181,10 @@ enum class FrameSlot(val fixed: Int, val classic: Int, val modern: Int) {
  * Interface ids are from their cache names (account_summary_sidepanel, questlist, area_task); not checked against
  * a live login. Adventure paths and leagues (values 3 and 4) are hidden outside those modes and left out.
  */
-enum class JournalTab(val value: Int, val button: Int, val interfaceId: Int) {
-    SUMMARY(0, 2, 712),
-    QUESTS(1, 10, 399),
-    DIARIES(2, 18, 259),
+enum class JournalTab(val value: Int, val button: Int, val interfaceId: Int, val buttonName: String) {
+    SUMMARY(0, 2, 712, "summary_list"),
+    QUESTS(1, 10, 399, "quest_list"),
+    DIARIES(2, 18, 259, "task_list"),
     ;
 
     companion object {
@@ -195,5 +195,14 @@ enum class JournalTab(val value: Int, val button: Int, val interfaceId: Int) {
         fun forValue(value: Int): JournalTab = entries.firstOrNull { it.value == value } ?: SUMMARY
 
         fun forButton(component: Int): JournalTab? = entries.firstOrNull { it.button == component }
+
+        /** Every interface and component id above with its gameval name in the rev 242 cache, for [osrsps.cache.GameFrameCheck]. */
+        val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>>
+            get() = mapOf(
+                SIDE_JOURNAL to ("side_journal" to entries.associate { it.button to it.buttonName } + (TAB_CONTAINER to "tab_container")),
+                SUMMARY.interfaceId to ("account_summary_sidepanel" to emptyMap()),
+                QUESTS.interfaceId to ("questlist" to emptyMap()),
+                DIARIES.interfaceId to ("area_task" to emptyMap()),
+            )
     }
 }
