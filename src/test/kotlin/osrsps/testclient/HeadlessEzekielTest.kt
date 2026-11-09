@@ -287,6 +287,26 @@ class HeadlessEzekielTest {
     }
 
     @Test
+    fun `kiting him out of reach still brings the cross and the swords, his lightning counting as his swings do`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.commandReply("raid tp guardian") { it.startsWith("To ") }
+                alice.await("the Guardian's room done") { ArchiveRoom.GUARDIAN.takeIf { it in run.cleared } }
+                alice.commandReply("raid tp ezekiel") { it.startsWith("To ") }
+                alice.awaitLog("his first lightning") { it.endsWith("fight: can't reach his tank: lightning on alice") }
+                // Held where he stands, as a kite keeps him off her: every attack is lightning, and the second brings the cross.
+                assertTrue(server.world.npcs.freeze(bossOf(run), 100))
+                val lines = alice.awaitLog("the cross") { it.contains("fight: cross on him") }
+                val upToCross = lines.take(lines.indexOfFirst { it.contains("fight: cross on him") } + 1)
+                assertEquals(2, upToCross.count { it.endsWith("fight: can't reach his tank: lightning on alice") }, lines.joinToString("\n"))
+                assertTrue(upToCross.none { it.contains("swings at") }, lines.joinToString("\n"))
+                alice.awaitLog("the swords with it") { it.contains("fight: sword at") }
+            }
+        }
+    }
+
+    @Test
     fun `a perfect dodge of the cross gives back three percent of special attack energy`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->

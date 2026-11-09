@@ -1,0 +1,173 @@
+{
+ "name": "Raid step 17 (kiting): Ezekiel solo held out of reach of the player by Bind, as a kite keeps him off, his attacks all lightning, and the second of them still bringing the cross and the flying swords",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare",
+   "comment": "nothing carried; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel prayer 99",
+   "expectMessage": "Prayer set to level 99"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel hitpoints 99",
+   "expectMessage": "Hitpoints set to level 99",
+   "comment": "enough for his lightning while he walks over, and a cross"
+  },
+  {
+   "step": "command",
+   "text": "::heal",
+   "expectMessage": "Healed to 99 hitpoints."
+  },
+  {
+   "step": "command",
+   "text": "::setlevel magic 99",
+   "expectMessage": "Magic set to level 99",
+   "comment": "Bind needs 20"
+  },
+  {
+   "step": "command",
+   "text": "::item nature rune 2",
+   "expectMessage": "Added 2 x Nature rune"
+  },
+  {
+   "step": "command",
+   "text": "::item water rune 3",
+   "expectMessage": "Added 3 x Water rune"
+  },
+  {
+   "step": "command",
+   "text": "::item earth rune 3",
+   "expectMessage": "Added 3 x Earth rune"
+  },
+  {
+   "step": "command",
+   "text": "::sure on",
+   "expectMessage": "Your attacks can't miss now",
+   "comment": "a splash holds nothing, so the accuracy roll always passes here"
+  },
+  {
+   "step": "command",
+   "text": "::god on",
+   "expectMessage": "You can't be hurt now",
+   "comment": "his swings, lightning and crosses still land but do nothing, so the waits can't kill the account; ::god off at the end"
+  },
+  {
+   "step": "command",
+   "text": "::tele 4127 5560 0",
+   "expectMessage": "Teleported to 4127, 5560, 0",
+   "comment": "the lobby, in front of the Archive Door"
+  },
+  {
+   "step": "locOption",
+   "locId": 62768,
+   "option": "Enter",
+   "timeoutMs": 20000,
+   "comment": "into a run of one"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 6
+  },
+  {
+   "step": "command",
+   "text": "::raid tp guardian",
+   "expectMessage": "To Archive Guardian's room"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Archive Guardian's room.",
+   "comment": "the first row done, so the second's doors open"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp ezekiel",
+   "expectMessage": "To Ezekiel's room",
+   "comment": "in at the room's east end: the first in, so his tank"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "Ezekiel 3000/3000 hp",
+   "comment": "the Wiki's hitpoints for a player alone (counted as two)"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "fight: takes on test",
+   "comment": "the account may be test or test2; the line is matched up to the name"
+  },
+  {
+   "step": "castOnNpc",
+   "interfaceId": 218,
+   "component": 23,
+   "npc": "Ezekiel",
+   "timeoutMs": 20000,
+   "comment": "Bind on him as he walks over, standing in for a kite: held 8 ticks out of reach of the player"
+  },
+  {
+   "step": "assertSpotanim",
+   "npc": "Ezekiel",
+   "id": 181,
+   "timeoutMs": 20000,
+   "comment": "bind_impact: it hit"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 8,
+   "comment": "his attacks every 5 ticks, both lightning while he can't reach"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 40",
+   "expectMessage": "fight: can't reach his tank: lightning on test",
+   "comment": "the account may be test or test2; the line is matched up to the name"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 40",
+   "expectMessage": "fight: cross on him",
+   "comment": "his lightning counts toward the cross as his swings do, so kiting him still brings it (Sam's call)"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 40",
+   "expectMessage": "fight: sword at",
+   "comment": "and the flying swords with it"
+  },
+  {
+   "step": "command",
+   "text": "::raid stop",
+   "expectMessage": "Stopped",
+   "comment": "ends the fight"
+  },
+  {
+   "step": "command",
+   "text": "::sure off",
+   "expectMessage": "Your attacks can miss again."
+  },
+  {
+   "step": "command",
+   "text": "::god off",
+   "expectMessage": "You can be hurt again"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
