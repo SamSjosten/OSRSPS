@@ -21,7 +21,7 @@ import osrsps.map.LocShape
 
 /**
  * Rest of Lumbridge step 10 through the headless client: the altar's Pray-at fills drained prayer points, Father Aereck
- * talks, and Nigel, a multi-NPC, talks as the Nigel a normal world shows. The points are drained with ::pray, as the
+ * talks (as since 242.1), and Nigel, a multi-NPC, talks as the Nigel a normal world shows. The points are drained with ::pray, as the
  * raid's tests already drain them by praying. The rl-client script test-runner/examples/lumbridge-church.json does the
  * same in the real client, in the church.
  */
@@ -74,16 +74,30 @@ class HeadlessLumbridgeChurchTest {
     }
 
     @Test
-    fun `Father Aereck thanks the player, and Nigel talks as a normal world's Nigel`(@TempDir dir: Path) {
+    fun `Father Aereck talks of Saradomin, and Nigel talks as a normal world's Nigel`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bob").use { client ->
                 client.await("the login rebuild") { client.position }
                 val father = client.await("Father Aereck in view") { client.npcs().firstOrNull { it.id == Church.FATHER_AERECK } }
                 client.npcOp(father.index, Church.TALK_TO)
-                for (key in listOf("father_aereck.thanks", "father_aereck.new_quest", "father_aereck.one_quest")) {
-                    client.awaitDialogue(key) { it is DialogueView.Chat && it.text == "[$key]" }
+                fun says(vararg keys: String) = keys.forEach { key ->
+                    client.awaitDialogue(key) { it is DialogueView.Chat && it.text == "[father_aereck.$key]" }
                     client.continueDialogue()
                 }
+                fun menu(vararg keys: String) = assertEquals(
+                    keys.map { "[father_aereck.$it]" }, (client.awaitDialogue("the menu") { it is DialogueView.Menu } as DialogueView.Menu).options,
+                )
+                says("greeting")
+                menu("more_prayers", "saradomin", "leave_first")
+                client.chooseOption(2)
+                says("saradomin", "saradomin_1", "saradomin_2")
+                menu("info_thanks", "not_from_world")
+                client.chooseOption(1)
+                says("info_thanks", "surprised")
+                // Back to his menu, where leaving now has its shorter words.
+                menu("more_prayers", "saradomin", "leave")
+                client.chooseOption(3)
+                says("leave", "guide_you")
                 client.await("the dialogue to close") { if (client.dialogueView == null) Unit else null }
 
                 val npc = client.await("Nigel in view") { client.npcs().firstOrNull { it.id == Church.NIGEL } }

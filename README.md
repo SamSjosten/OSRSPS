@@ -772,7 +772,7 @@ bronze axe can (`test-runner/examples/lumbridge-shops.json`).
 
 The town west of the River Lum, outside the castle: `lumbridge.json` has its NPCs on RSMod's spawn tiles (rev 233),
 and the conversations are in `game/content/` (`LumbridgeShopkeepers.kt`, `ShearedRam.kt`, `DonieAndGee.kt`,
-`LumbridgeTutors.kt`, `Feoras.kt`, `Wilfred.kt`, `LumbridgeTownsfolk.kt`), each from the OSRS Wiki's transcript as a player with every quest done
+`Feoras.kt`, `Wilfred.kt`, `LumbridgeTownsfolk.kt`), each from the OSRS Wiki's transcript as a player with every quest done
 sees it. The words are in the dialogue file, like every other line.
 
 | Who | What they do |
@@ -781,7 +781,6 @@ sees it. The words are in the dialogue file, like every other line.
 | The Sheared Ram's Bartender | Sells a beer for 2 coins |
 | Arthur the Clue Hunter | Explains every clue type (three pages of them) and turns clue vessels on and off (varbit 9365) |
 | Donie and Gee | One of four opening menus at random, the quests, Lumbridge, and Gee's small monsters |
-| The Cooking tutor | Advice by your level |
 | Feoras (16806, the smithing tutor since 242.1) in the smithy | Smithing advice with its icon boxes, a hammer for a player with none, and his shop (`lumbridge_blacksmith`, inv 1032, the Wiki's prices) |
 | Wilfred (16808, the woodsman tutor since 242.1) | Woodcutting and Firemaking advice; an axe and tinderbox when you have none and room for them; the Woodcutting cape at 99 (trimmed with another 99) |
 | Abigaila, upstairs in the General Store | Her story; her scrying ball refuses a player carrying or wearing anything (the Theatre of Blood isn't built) |
@@ -923,8 +922,8 @@ a butterfly, with the rats west of the castle wall, and the swamp's talking NPCs
 
 The unicorn retreats at a quarter of its hitpoints ([NPC aggression](#npc-aggression), guessed threshold). The tutors' offers to show a place on the world
 map lead back to the first menu without opening the map, which isn't built yet; the fishing spots and the mines are the
-gathering skills'. Hewey, Abigale and the two goblin sergeants, which the cache shows by quest varbits, are left out for
-now. What the talking NPCs say and each new NPC's examine are in the dialogue file (keys `father_urhney.*`,
+gathering skills'. Hewey, Abigale and the two goblin sergeants are in [the rest of the swamp](#the-rest-of-lumbridge-swamp).
+What the talking NPCs say and each new NPC's examine are in the dialogue file (keys `father_urhney.*`,
 `lost_city_warrior.*`, `lost_city_archer.*`, `lost_city_monk.*`, `lost_city_wizard.*`, `candle_seller.*`,
 `monlum.*`, `finlay.*` and `examine.npc_<id>`, one for the level 3 giant rats and one for the level 6).
 
@@ -933,6 +932,35 @@ drops, then talks to Urhney, the adventurers, the candle seller and both tutors;
 giant rat to death, talks to Urhney and the camp's monk, buys a lit candle and gets a pickaxe and a net from the tutors
 through the headless client, with every branch of the talks in `SwampTalkTest` and `SwampTutorsTest`, the stats in
 `NpcCombatTest` and the drop rates in `NpcDropsTest`.
+
+### The rest of Lumbridge Swamp
+
+Misthalin piece 7 step 1: the swamp's shed, the Water Altar's ruins, the River Lum's broken raft, the stepping stone to
+the desert, the swamp's four quest NPCs and the goblins and spiders between the castle and Draynor. The shed, the ruins
+and the raft's Grapple are `game/content/LumbridgeSwamp.kt`; the raft's Jump-to and the stone are `skills/agility.json`;
+the NPCs are `npc-spawns/lumbridge-swamp-quest.json` and `npc-spawns/lumbridge-west.json`.
+
+| Behaviour | Source |
+|-----------|--------|
+| The shed's door (2406 at 3202,3169) lets a player in or out; with a dramen or lunar staff wielded it refuses with our own line, as Zanaris (where live takes them) is piece 8's. Live's Elite Lumbridge Diary does the same; there are no diaries | OSRS Wiki, Shed (Lumbridge Swamp) |
+| The tools inside (10375) give a rake or a spade, whichever isn't held, and a choice of the two with neither held | OSRS Wiki, Tools (gardening) |
+| The Water Altar's ruins (34815) refuse a water talisman or tiara, and Enter, with our own line: Runecraft isn't built | OSRS Wiki, Mysterious ruins; the 242 cache |
+| The broken raft's Grapple (17068): 8 Agility, 19 Strength and 37 Ranged, a crossbow wielded and a mith grapple worn, from either bank's shortcut icon (3246,3179 and 3259,3179) to the other, no XP; the grapple breaks one time in 25 | OSRS Wiki, Broken Raft (the infobox's 19 Strength; its text says 17) and Mith grapple (Mod Ash's 1/25); the 242 map |
+| The raft's Jump-to (17069 and 17070) at 48 Agility, no grapple, since 12 August 2026 | OSRS Wiki, Broken Raft |
+| The stepping stone to the desert (16513 at 3214,3135) at 66 Agility, no diary since 8 May 2024, from 3214,3140 to 3214,3131 and back | OSRS Wiki, Stepping stone (Lumbridge Swamp); the bank tiles by flood fill over the 242 map |
+| Abigale and Hewey (7428, 7429) and Sergeants Mossfists and Slimetoes (6278, 6279) stand where live has them, as the 242 cache's multi-NPCs, which show nothing after Misthalin Mystery and Another Slice of H.A.M. (every account has done both) | mejrs's live NPC list; osrs-dumps and the 242 cache |
+| 11 level 2 goblins, 8 level 2 giant spiders and 7 level 1 spiders round the H.A.M. trapdoor, west of the castle | mejrs's live NPC list |
+| The shed door standing open 3 ticks; the tools' menu words and messages, and nothing with both tools held; the raft's firing and swimming animations and their 2 and 6 ticks; the jumps going by way of the raft or the stone, two ticks each; the grapple's break rolled on the far bank; every wander range | guessed |
+
+Words for the new lines (`lumbridge_swamp.*`, the two new `agility.*_level` lines) and the two new loc examines go
+through the Words thread.
+
+Check: `test-runner/examples/lumbridge-swamp-rest.json` goes through the shed and takes both tools, uses a water
+talisman on the ruins, crosses the raft by Grapple and back by Jump-to, jumps the stone both ways and mines coal in the
+west mine; `HeadlessLumbridgeSwampRestTest` does the shed, the tools, the ruins and the Grapple through the headless
+client, `HeadlessShortcutsTest` the raft's Jump-to and the stone, `LumbridgeSwampTest` the rules, and
+`NpcSpawnFileTest` the two spawn files.
+
 ## Draynor Village
 
 The village west of Lumbridge (the Draynor piece, plan in the project's Draynor Village 1:1 plan doc). Step 1 is the
@@ -1000,20 +1028,19 @@ done.
 | Behaviour | Source |
 |-----------|--------|
 | The altar (409) in the church: Pray-at fills prayer points up to the Prayer level and resets the drain counter; an item used on it is refused with a message | OSRS Wiki, Altar |
-| Father Aereck (2812), as after The Restless Ghost: his thanks, and he has no other quest | the Wiki's Transcript:Father Aereck |
-| The Prayer tutor (3223): how to train Prayer (with the 99 Prayer lines) and what it is for (which opens the prayer tab), as on a members' world; each answer offers the other | the Wiki's Transcript:Prayer tutor |
-| Nigel (6093, a multi-NPC that shows as 8391 on a normal world) in the graveyard: the two pages of Deadman Mode questions, and the rewards store, which is shut | the Wiki's Transcript:Nigel |
+| Father Aereck (2812), as after The Restless Ghost and since 242.1, when he took over the removed Prayer tutor's tips: the prayer tips (with the altar icon and bones boxes), Saradomin (and claiming to be from another world), each back to his menu, whose goodbye is shorter once a topic was picked | the Wiki's Transcript:Father Aereck |
+| Nigel (6093, a multi-NPC that shows as 8391 on a normal world), at the Grand Exchange since 242.1 (`varrock.json`): the two pages of Deadman Mode questions, and the rewards store, which is shut | the Wiki's Transcript:Nigel; his tile from the Wiki's map |
 | Count Check (7414): his advice counted out (with the questioned THREE), who he is and the Salve after Priest in Peril, the Stronghold of Security, to which he sends the player once (varbit `sos_teleported_by_count`), and his check, which fails | the Wiki's Transcript:Count Check |
 | Nigel's normal world menu leaving out the Deadman worlds' options, his Trade saying the store is shut, and the check failing as no account is a Jagex Account and the bank has no PIN (so his lamp never comes) | readings |
 | Every chathead expression; each answer going back to the menu it came from; the kneel (human_pray, 645) and the altar's messages; points above the level kept; the Stronghold tile (beside its entrance, 3081, 3421) and no teleport animation; the wander ranges (2, Father Aereck 5) | guessed |
 
 Left out: the lightning on Count Check's square, whose spotanim isn't known; the church organ; the treasure trail
 and Wise Old Man parts of Father Aereck's talk. What they say, the altar's messages and each new NPC's and the altar's
-examine are in the dialogue file (keys `father_aereck.*`, `prayer_tutor.*`, `nigel.*`, `count_check.*`, `altar.*`,
+examine are in the dialogue file (keys `father_aereck.*`, `nigel.*`, `count_check.*`, `altar.*`,
 `examine.npc_<id>` and `examine.loc_409`).
 
-Check: `test-runner/examples/lumbridge-church.json` examines the four NPCs, prays at the altar with drained points,
-and talks to each NPC; `HeadlessLumbridgeChurchTest` prays at an altar, talks to Father Aereck and Nigel (through his
+Check: `test-runner/examples/lumbridge-church.json` examines Father Aereck and Count Check, prays at the altar with
+drained points, and talks to both (`ge-nigel.json` does Nigel at the Grand Exchange); `HeadlessLumbridgeChurchTest` prays at an altar, talks to Father Aereck and Nigel (through his
 multi-NPC) and is sent to the Stronghold by Count Check through the headless client, with every branch in
 `ChurchTest`.
 
@@ -1643,10 +1670,10 @@ event talks.
 
 | Castle NPC behaviour | Source |
 |----------------------|--------|
-| The Cook's and the Duke's conversations: lines, options, order, when the shield is offered | OSRS Wiki, Transcript:Cook (Lumbridge) and Transcript:Duke Horacio |
+| The Cook's and the Duke's conversations: lines, options, order, when the shield is offered; the Cook's cooking advice since 242.1 (the removed Cooking tutor's role), with its icon boxes, back to his menu | OSRS Wiki, Transcript:Cook (Lumbridge) and Transcript:Duke Horacio |
 | The Cook's answer to "other quests" after Recipe for Disaster on a members' world (the free-to-play answer, with no line from the player) | guessed: the Wiki leaves it out |
 | Men's and women's 23 conversations, the 1 in 128 flier | OSRS Wiki, Transcript:Man, Transcript:Woman, Flier |
-| Perdu's, Cadmus's, the banker's, the Banker tutor's, the Doomsayer's and Hatius's conversations | OSRS Wiki, their transcripts |
+| Perdu's, Cadmus's, the banker's (the Bank tutor is a normal banker since 242.1), the Doomsayer's and Hatius's conversations | OSRS Wiki, their transcripts |
 | Hatius leaving out "another ring" for a player with no diary done | guessed: the Wiki lists it with no condition |
 | The Lumbridge Guide's conversation: lines, menus, where each option leads, the icon boxes | OSRS Wiki, Transcript:Lumbridge Guide; icon items are the 241 cache's `*_icon_dummy` objs |
 | The levels the Guide's answers change at (combat 20, Smithing 20, Fishing 20); the quest box's icon; the money menu's smithing and monsters options skipping straight to those answers; "has a weapon" meaning worn or carried in the weapon slot | guessed: the Wiki has "X" and "same as above" |

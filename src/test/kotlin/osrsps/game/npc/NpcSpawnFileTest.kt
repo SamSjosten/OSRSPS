@@ -24,7 +24,6 @@ class NpcSpawnFileTest {
         NpcType(10619, "Bob", internalName = "bob"),
         NpcType(7546, "Bartender", internalName = "ram_bartender"),
         NpcType(8665, "Arthur the Clue Hunter", internalName = "aide_tutor_clues"),
-        NpcType(3219, "Cooking tutor", internalName = "aide_tutor_cooking"),
         NpcType(16808, "Wilfred", internalName = "wilfred"),
         NpcType(16806, "Feoras", internalName = "lumbridge_blacksmith"),
         NpcType(921, "Donie", internalName = "lumbridge_guide2_woman"),
@@ -61,8 +60,8 @@ class NpcSpawnFileTest {
     @Test
     fun `the town centre's NPCs stand west of the river, Abigaila upstairs in the General Store`() {
         val spawns = NpcSpawnFile.parse(file("lumbridge.json"), types).spawns
-        val town = spawns.filter { it.type.id in setOf(7546, 8665, 3219, 16808, 16806, 311, 8368) }
-        assertEquals(7, town.size)
+        val town = spawns.filter { it.type.id in setOf(7546, 8665, 16808, 16806, 311, 8368) }
+        assertEquals(6, town.size)
         assertTrue(town.all { it.x < 3240 && it.z in 3190..3260 })
         assertEquals(1, town.single { it.type.id == 8368 }.level)
         assertEquals(2, spawns.count { it.type.id == 921 })
@@ -103,7 +102,7 @@ class NpcSpawnFileTest {
             NpcType(815, "Duke Horacio", internalName = "duke_of_lumbridge"),
             NpcType(16807, "Cadmus", internalName = "cadmus"),
             NpcType(6520, "null", internalName = "deadman_banker_blue_south"),
-            NpcType(3227, "Banker tutor", internalName = "aide_tutor_banker"),
+            NpcType(2897, "Banker", internalName = "banker1_new"),
             NpcType(306, "Lumbridge Guide", internalName = "lumbridge_guide"),
             NpcType(119, "null", internalName = "cws_doomsayer"),
             NpcType(5523, "Hatius Cosaintus", internalName = "hatius_lumbridge_diary"),
@@ -165,6 +164,28 @@ class NpcSpawnFileTest {
         // East of the river's west bank, north of the church, south of the cow field; all on the ground.
         assertTrue(spawns.all { it.x in 3238..3266 && it.z in 3215..3260 && it.level == 0 })
         assertTrue(spawns.all { it.source.isNotBlank() && it.wander == if (it.type.id == 1326) 2 else 5 })
+    }
+
+    @Test
+    fun `the swamp's four quest NPCs stand still where live has them, as the multi-NPCs that hide them after their quests`() {
+        val names = mapOf(7428 to "mistmyst_abigale", 7429 to "mistmyst_hewey", 6278 to "slice_sergeant_mossfists_swamp", 6279 to "slice_sergeant_slimetoes_swamp")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, "null", internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("lumbridge-swamp-quest.json"), types, "lumbridge-swamp-quest.json")
+        assertEquals(emptyList(), result.unknown)
+        val tiles = result.spawns.associate { it.type.id to Tile(it.x, it.z) }
+        assertEquals(mapOf(7428 to Tile(3237, 3155), 7429 to Tile(3237, 3153), 6278 to Tile(3169, 3170), 6279 to Tile(3171, 3170)), tiles)
+        assertTrue(result.spawns.all { it.wander == 0 && it.level == 0 && it.source.isNotBlank() })
+    }
+
+    @Test
+    fun `west of the castle has mejrs's 11 goblins, 8 giant spiders and 7 spiders round the H A M trapdoor`() {
+        val names = (1..7).associate { (3028 + it) to "goblin_unarmed_melee_$it" } + mapOf(3017 to "giantspider1", 3019 to "spider")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("lumbridge-west.json"), types, "lumbridge-west.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        assertEquals(listOf(11, 8, 7), listOf(spawns.count { it.type.id in 3029..3035 }, spawns.count { it.type.id == 3017 }, spawns.count { it.type.id == 3019 }))
+        assertTrue(spawns.all { it.x in 3141..3170 && it.z in 3222..3261 && it.level == 0 && it.wander == 5 && it.source.isNotBlank() })
     }
 
     @Test
@@ -468,22 +489,28 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `the church has Father Aereck and the Prayer tutor inside, Nigel in the graveyard and Count Check by it`() {
+    fun `the church has Father Aereck inside and Count Check by the graveyard, the Prayer tutor and Nigel gone since 242`() {
         val names = mapOf(2812 to "father_aereck", 3223 to "aide_tutor_prayer", 6093 to "deadman_nigel", 7414 to "count_check")
         val churchTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("lumbridge-church.json"), churchTypes, "lumbridge-church.json")
         assertEquals(emptyList(), result.unknown)
         val spawns = result.spawns.associateBy { it.type.id }
-        assertEquals(setOf(2812, 3223, 6093, 7414), spawns.keys)
-        assertEquals(4, result.spawns.size)
+        assertEquals(setOf(2812, 7414), spawns.keys)
+        assertEquals(2, result.spawns.size)
         // The church's floor is 3239 to 3247 by 3205 to 3215.
-        for (id in listOf(2812, 3223)) {
-            val npc = spawns.getValue(id)
-            assertTrue(npc.x in 3239..3247 && npc.z in 3205..3215 && npc.restrict == MoveRestrict.INDOORS)
-        }
-        assertEquals(Tile(3243, 3201), spawns.getValue(6093).let { Tile(it.x, it.z) })
+        val father = spawns.getValue(2812)
+        assertTrue(father.x in 3239..3247 && father.z in 3205..3215 && father.restrict == MoveRestrict.INDOORS)
         assertEquals(Tile(3238, 3199), spawns.getValue(7414).let { Tile(it.x, it.z) })
         assertTrue(result.spawns.all { it.source.isNotBlank() && it.level == 0 && it.wander == if (it.type.id == 2812) 5 else 2 })
+    }
+
+    @Test
+    fun `Nigel stands north-west of the Grand Exchange on a normal world since 242`() {
+        val nigel = NpcType(6093, "null", internalName = "deadman_nigel")
+        val spawns = NpcSpawnFile.parse(file("varrock.json"), NpcTypes.of(nigel), "varrock.json").spawns
+        val only = spawns.single()
+        assertEquals(Tile(3152, 3512), Tile(only.x, only.z))
+        assertEquals(2, only.wander)
     }
 
     @Test
@@ -581,6 +608,7 @@ class NpcSpawnFileTest {
             513 to "mugger", 5086 to "qip_ds_young_dark_wizard1", 5087 to "qip_ds_young_dark_wizard2", 5088 to "qip_ds_young_dark_wizard3", 5089 to "qip_ds_young_dark_wizard4", 3252 to "thief1", 5217 to "qip_soa_thief_male01", 5219 to "qip_soa_thief_female01",
             5220 to "qip_soa_thief_female02", 2862 to "giantrat1", 2864 to "giantrat1_3", 3262 to "barbarianwoman_varrock",
             3260 to "warrior_woman", 2838 to "brownbear", 516 to "black_knight", 3019 to "spider",
+            6093 to "deadman_nigel",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("varrock.json"), types, "varrock.json")

@@ -1,0 +1,142 @@
+{
+ "name": "Lumbridge 242 step 3: Nigel, at the Grand Exchange on a normal world since 242.1. Examine (::keys on), his talk's Deadman questions and his Trade, the store shut",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3152 3509 0",
+   "expectMessage": "Teleported to 3152, 3509, 0",
+   "comment": "north-west of the Grand Exchange, by Nigel (3152, 3512, radius 2)"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Nigel",
+   "option": "Examine",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[examine.npc_8391]"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Nigel",
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "deadman_nigel (6093), a multi-NPC, shows as deadman_nigel_regular (8391) on a normal world"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[nigel.who]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[nigel.intro]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[nigel.question]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[nigel.question]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[nigel.what_like]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[nigel.kill]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[nigel.kill]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[nigel.kill_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[nigel.kill_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[nigel.more]"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[nigel.safe_zones]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[nigel.safe_zones]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[nigel.safe_zones_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[nigel.previous]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[nigel.what_is]",
+   "comment": "back on the first page of questions, which has no goodbye"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Nigel",
+   "option": "Trade",
+   "timeoutMs": 20000,
+   "comment": "a new click closes the questions"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[nigel.store_closed]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  }
+ ]
+}

@@ -1,5 +1,5 @@
 {
- "name": "Rest of Lumbridge step 10: the church. Examine (::keys on) on Father Aereck, the Prayer tutor, Nigel and Count Check; Pray-at the altar fills drained points; each NPC's talk, Nigel's Trade, and Count Check's advice, Who, the Salve and the failed check",
+ "name": "Rest of Lumbridge step 10, as since 242.1: the church. Examine (::keys on) on Father Aereck and Count Check; Pray-at the altar fills drained points; Father Aereck's prayer tips and Saradomin talk (Lumbridge 242 step 3), and Count Check's advice, Who, the Salve and the failed check",
  "account": "test",
  "steps": [
   {
@@ -37,16 +37,6 @@
   {
    "step": "assertMessage",
    "contains": "[examine.npc_2812]"
-  },
-  {
-   "step": "npcOption",
-   "npcId": 3223,
-   "option": "Examine",
-   "timeoutMs": 20000
-  },
-  {
-   "step": "assertMessage",
-   "contains": "[examine.npc_3223]"
   },
   {
    "step": "command",
@@ -101,161 +91,237 @@
   },
   {
    "step": "assertDialogue",
+   "contains": "[father_aereck.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[father_aereck.more_prayers]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_aereck.prayers]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_aereck.prayers_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_aereck.saradomin_thing]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_aereck.other_gods]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_aereck.curious]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_aereck.battle]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_aereck.protection]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_aereck.hint_prayers]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_aereck.not_free]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_aereck.hint_points]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_aereck.faith]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_aereck.altars]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_aereck.hint_altar]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_aereck.anything_else]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_aereck.dedication]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_aereck.how]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_aereck.bury]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_aereck.hint_bones]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_aereck.covers]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[father_aereck.hint_guide]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
    "contains": "[father_aereck.thanks]"
   },
   {
    "step": "continueDialogue"
   },
   {
+   "step": "chooseOption",
+   "text": "[father_aereck.saradomin]"
+  },
+  {
    "step": "assertDialogue",
-   "contains": "[father_aereck.new_quest]"
+   "contains": "[father_aereck.saradomin]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[father_aereck.one_quest]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertNoDialogue"
-  },
-  {
-   "step": "npcOption",
-   "npcId": 3223,
-   "option": "Talk-to",
-   "timeoutMs": 20000
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[prayer_tutor.good_day]"
+   "contains": "[father_aereck.saradomin_1]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[prayer_tutor.greeting"
+   "contains": "[father_aereck.saradomin_2]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "chooseOption",
-   "text": "[prayer_tutor.train]"
+   "text": "[father_aereck.not_from_world]"
   },
   {
    "step": "assertDialogue",
-   "contains": "[prayer_tutor.train]"
+   "contains": "[father_aereck.not_from_world]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[prayer_tutor.bury_or_offer]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[prayer_tutor.altars]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[prayer_tutor.bones]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[prayer_tutor.anything_else]"
+   "contains": "[father_aereck.tentacles]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "chooseOption",
-   "text": "[prayer_tutor.useful]"
+   "text": "[father_aereck.joking]"
   },
   {
    "step": "assertDialogue",
-   "contains": "[prayer_tutor.useful]"
+   "contains": "[father_aereck.joking]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[prayer_tutor.kindly]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[prayer_tutor.what_benefits]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[prayer_tutor.benefits]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[prayer_tutor.prayer_book]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[prayer_tutor.wow]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[prayer_tutor.careful]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[prayer_tutor.anything_else]"
+   "contains": "[father_aereck.i_see]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "chooseOption",
-   "text": "[prayer_tutor.no_thanks]"
+   "text": "[father_aereck.leave]"
   },
   {
    "step": "assertDialogue",
-   "contains": "[prayer_tutor.no_thanks]"
+   "contains": "[father_aereck.leave]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[prayer_tutor.farewell]"
+   "contains": "[father_aereck.guide_you]"
   },
   {
    "step": "continueDialogue"
@@ -267,17 +333,7 @@
    "step": "command",
    "text": "::tele 3241 3201 0",
    "expectMessage": "Teleported to 3241, 3201, 0",
-   "comment": "the graveyard, by Nigel and Count Check"
-  },
-  {
-   "step": "npcOption",
-   "npc": "Nigel",
-   "option": "Examine",
-   "timeoutMs": 20000
-  },
-  {
-   "step": "assertMessage",
-   "contains": "[examine.npc_8391]"
+   "comment": "the graveyard, by Count Check (Nigel is at the Grand Exchange since 242.1: test-runner/examples/ge-nigel.json)"
   },
   {
    "step": "npcOption",
@@ -288,118 +344,6 @@
   {
    "step": "assertMessage",
    "contains": "[examine.npc_7414]"
-  },
-  {
-   "step": "npcOption",
-   "npc": "Nigel",
-   "option": "Talk-to",
-   "timeoutMs": 20000,
-   "comment": "deadman_nigel (6093), a multi-NPC, shows as deadman_nigel_regular (8391) on a normal world"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[nigel.who]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[nigel.intro]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "chooseOption",
-   "text": "[nigel.question]"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[nigel.question]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[nigel.what_like]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "chooseOption",
-   "text": "[nigel.kill]"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[nigel.kill]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[nigel.kill_1]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[nigel.kill_2]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "chooseOption",
-   "text": "[nigel.more]"
-  },
-  {
-   "step": "chooseOption",
-   "text": "[nigel.safe_zones]"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[nigel.safe_zones]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[nigel.safe_zones_1]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "chooseOption",
-   "text": "[nigel.previous]"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[nigel.what_is]",
-   "comment": "back on the first page of questions, which has no goodbye"
-  },
-  {
-   "step": "npcOption",
-   "npc": "Nigel",
-   "option": "Trade",
-   "timeoutMs": 20000,
-   "comment": "a new click closes the questions"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[nigel.store_closed]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertNoDialogue"
   },
   {
    "step": "npcOption",

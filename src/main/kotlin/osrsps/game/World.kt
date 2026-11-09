@@ -103,6 +103,7 @@ import osrsps.game.content.registerCandleSeller
 import osrsps.game.content.registerChurch
 import osrsps.game.content.registerEssenceMine
 import osrsps.game.content.registerFatherUrhney
+import osrsps.game.content.registerLumbridgeSwamp
 import osrsps.game.content.registerSwampTutors
 import osrsps.game.content.registerHans
 import osrsps.game.content.registerArchiveLobby
@@ -807,6 +808,7 @@ class World(
         registerAdventurersCamp(this)
         registerCandleSeller(this)
         registerSwampTutors(this)
+        registerLumbridgeSwamp(this)
         registerChurch(this)
         registerAlKharid(this)
         registerEdgeville(this)

@@ -80,6 +80,8 @@ class AgilityDataTest {
                 "shortcut_draynor_tunnel" to (42 to 0),
                 "shortcut_draynor_manor_fence" to (49 to 15),
                 "shortcut_champions_guild_south_stones" to (52 to 50),
+                "shortcut_river_lum_raft" to (48 to 0),
+                "shortcut_lumbridge_swamp_desert_stone" to (66 to 0),
             ),
             // A crossing's XP: the obstacle's own at the end, and any given partway, the same both ways.
             shortcuts.associate { shortcut ->
@@ -93,9 +95,9 @@ class AgilityDataTest {
             assertEquals(listOf(1, 4), route.moves.withIndex().filter { it.value is AgilityMove.Xp }.map { it.index })
             assertTrue(route.moves.filterIsInstance<AgilityMove.Xp>().all { it.tenths == 25 })
         }
-        // Only the stones, whose sides are river, are used from the bank.
+        // Only the stones and the raft, whose sides are river, are used from the bank.
         assertEquals(
-            setOf("shortcut_champions_guild_stone", "shortcut_champions_guild_south_stones"),
+            setOf("shortcut_champions_guild_stone", "shortcut_champions_guild_south_stones", "shortcut_river_lum_raft", "shortcut_lumbridge_swamp_desert_stone"),
             shortcuts.filter { it.fromStart }.map { it.key }.toSet(),
         )
         assertTrue(shortcuts.none { it in data.courseOf })

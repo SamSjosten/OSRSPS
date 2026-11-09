@@ -1,5 +1,5 @@
 {
- "name": "Lumbridge Castle: Talk-to the Cook (::keys on, so keys show whatever data/dialogue.txt holds)",
+ "name": "Lumbridge Castle: Talk-to the Cook, his cooking advice since 242.1 (Lumbridge 242 step 3) back to his menu, then his range (::keys on, so keys show whatever data/dialogue.txt holds)",
  "account": "test",
  "steps": [
   {
@@ -35,18 +35,155 @@
   },
   {
    "step": "chooseOption",
-   "text": "[cook.dying]"
+   "text": "[cook.advice]"
   },
   {
    "step": "assertDialogue",
-   "contains": "[cook.dying]"
+   "contains": "[cook.advice]"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "assertDialogue",
-   "contains": "[cook.come_back]"
+   "contains": "[cook.advice_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[cook.imagine]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[cook.advice_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[cook.advice_3]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[cook.fish_hint]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[cook.advice_4]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[cook.range_hint]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[cook.advice_5]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[cook.advice_6]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[cook.water_hint]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[cook.advice_7]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[cook.guide_hint]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[cook.info_thanks]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[cook.happy_to_help]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[cook.range]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[cook.range]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[cook.range_yes]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[cook.range_name]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[cook.burn_less]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[cook.salesman]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[cook.thanks]"
   },
   {
    "step": "continueDialogue"

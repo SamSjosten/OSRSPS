@@ -1,5 +1,5 @@
 {
- "name": "Lumbridge Castle: Talk-to the banker and the bank tutor (::keys on, so keys show whatever data/dialogue.txt holds)",
+ "name": "Lumbridge Castle: Talk-to the banker (the bank tutor is a normal banker since 242.1) (::keys on, so keys show whatever data/dialogue.txt holds)",
  "account": "test",
  "steps": [
   {
@@ -61,32 +61,6 @@
   {
    "step": "assertDialogue",
    "contains": "[banker.safekeeping]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "assertNoDialogue"
-  },
-  {
-   "step": "npcOption",
-   "npc": "Banker tutor",
-   "option": "Talk-to"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[banker_tutor.greeting]"
-  },
-  {
-   "step": "continueDialogue"
-  },
-  {
-   "step": "chooseOption",
-   "text": "[banker_tutor.buy_slots]"
-  },
-  {
-   "step": "assertDialogue",
-   "contains": "[banker_tutor.buy_slots]"
   },
   {
    "step": "continueDialogue"
