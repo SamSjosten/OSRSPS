@@ -116,7 +116,10 @@ object Ezekiel {
     const val SWORDS_MIN = 3
     const val SWORDS_MAX = 4
 
-    /** Ticks from a volley showing to its flight: the guides' red bar. Guessed. */
+    /**
+     * Ticks from a volley showing to its flight: the guides' red bar. Guessed. The bar itself isn't shown, as its cache
+     * head-bar id isn't known; nor is the yellow charge bar, a sword showing only its health bar falling as it charges.
+     */
     const val SWORD_LAUNCH = 15
 
     /** Damage a sword can take, its charge: the guides' yellow bar. Guessed. */
