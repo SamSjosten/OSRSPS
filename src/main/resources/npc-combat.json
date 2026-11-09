@@ -668,14 +668,14 @@
       "maxHit": 77,
       "attackType": "slash",
       "attackBonus": 250,
-      "strengthBonus": 0,
+      "strengthBonus": 245,
       "defence": { "stab": 150, "slash": 90, "crush": 35, "magic": 200, "light": 445, "standard": 370, "heavy": 320 },
       "anims": { "attack": "npc_ezekiel_melee01", "defend": null, "death": "npc_ezekiel_death01" },
       "respawnTicks": 50,
       "weakness": {"element": "earth", "percent": 25},
       "immune": ["poison", "venom"],
       "drainCap": { "defence": 60 },
-      "source": "OSRS Wiki, Ezekiel (id 16652), read 2026-11-09: speed 5, max hit 77, the defence bonuses, the 25% earth weakness, immune to poison and venom, Defence drained to 120 (60%) at most. The infobox's +250 read as his attack bonus. His swing is npc_ezekiel_melee01. Guessed: slash for his melee (the infobox says only Melee), the max hit being the melee's, no strength bonus (the max hit is given), no block animation, the respawn, which never comes"
+      "source": "OSRS Wiki, Ezekiel (id 16652), read 2026-11-09: speed 5, max hit 77, the defence bonuses, the 25% earth weakness, immune to poison and venom, Defence drained to 120 (60%) at most. The infobox's +250 read as his attack bonus. His swing is npc_ezekiel_melee01. Guessed: slash for his melee (the infobox says only Melee), the max hit being the melee's, the strength bonus 245 (what the formula needs for 77 from his Strength of 150), no block animation, the respawn, which never comes"
     },
     {
       "npcs": ["tfa_guardian_battery_active", "tfa_guardian_battery_inactive", "tfa_guardian_battery_destroyed"],

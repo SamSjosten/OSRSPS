@@ -206,8 +206,9 @@ class HeadlessEzekielTest {
                 alice.await("the Guardian's room done") { ArchiveRoom.GUARDIAN.takeIf { it in run.cleared } }
                 alice.commandReply("raid tp ezekiel") { it.startsWith("To ") }
                 // She comes in at the room's east end, far from him: his first attack is due before he can reach her.
-                val lines = alice.awaitLog("his lightning") { it.endsWith("fight: can't reach his tank: lightning on alice") }
-                assertTrue(lines.any { it.contains("fight: hit alice for") }, lines.joinToString("\n"))
+                alice.awaitLog("his lightning") { it.endsWith("fight: can't reach his tank: lightning on alice") }
+                // It lands the tick after.
+                alice.awaitLog("the lightning landing on her") { it.contains("fight: hit alice for") }
             }
         }
     }
