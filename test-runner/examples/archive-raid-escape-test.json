@@ -1,5 +1,5 @@
 {
- "name": "RAID-2, two players (run with archive-raid-escape-test2.json on the other VM at the same time): test leads a party of test and test2 into The Fractured Archive and stays standing in the nexus's entrance while test2 goes down and teleports out; test2's escape counts as a second death, and the run goes on",
+ "name": "RAID-2, two players (run with archive-raid-escape-test2.json on the other VM at the same time): test leads a party of test and test2 into The Fractured Archive and stays standing in the nexus's entrance and asks test2 to trade, while test2 goes down, can't answer it, and teleports out; test2's escape counts as a second death, and the run goes on",
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},
@@ -12,6 +12,7 @@
   {"step": "locOption", "locId": 62768, "option": "Enter", "timeoutMs": 20000, "comment": "tfa_lobby_raid_entry: into the party's run"},
   {"step": "waitTicks", "ticks": 6},
   {"step": "command", "text": "::raid run", "expectMessage": "You're in the nexus's entrance", "comment": "standing here, so test2's death leaves the party standing; test2 waits to see us here before it falls"},
+  {"step": "playerOption", "player": "test2", "option": "Trade with", "timeoutMs": 120000, "comment": "a request test2 waits for before it falls, then answers once down: no trade opens, a member down can't trade (exploit review R18A-1)"},
   {"step": "assertMessage", "contains": "test2 left the party", "timeoutMs": 180000, "comment": "test2's sign that it is done: down, out by teleport, dead of it and its grave looted"},
   {"step": "command", "text": "::raid run", "expectMessage": "deaths: test2 2", "comment": "its fall and its escape, each a death; the run goes on with us standing"},
   {"step": "command", "text": "::tele 4127 5560 0", "expectMessage": "Teleported to 4127, 5560, 0", "comment": "out of the instance, which ends behind us"},

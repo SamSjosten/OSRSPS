@@ -49,6 +49,8 @@ class GroundObjs(
     private val handedOver: (Player, String) -> Unit = { _, _ -> },
     /** Each player's words for the game messages ([GameLines]). */
     private val words: (Player) -> DialogueText = { DialogueText.NONE },
+    /** Whether what the player drops now stays theirs alone, never turning public: a raid member down. */
+    private val dropsStayPrivate: (Player) -> Boolean = { false },
     private val send: (Player, OutgoingGameMessage) -> Unit = { player, message -> player.session.queue(message) },
 ) {
     /** Objs whose timers are running, in the order they were put down. */
@@ -95,7 +97,9 @@ class GroundObjs(
             logger.warn { "${player.username} dropped unknown obj ${held.id}" }
             return null
         }
-        val neverPublic = !type.tradeable
+        // A raid member down keeps their drops to themselves (exploit review round 18, R18A-1), or a standing friend could
+        // pick up everything a death RAID-2 makes of getting out was to take. Guessed: live's raid rules aren't known.
+        val neverPublic = !type.tradeable || dropsStayPrivate(player)
         if (!fitsOnTile(type, held.count, player.x, player.z, player.level, player.saveKey, neverPublic)) {
             message(player, words(player)[GameLines.TILE_FULL])
             return null

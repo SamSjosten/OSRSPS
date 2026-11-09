@@ -380,6 +380,7 @@ class World(
             save(taker)
         },
         words = ::textFor,
+        dropsStayPrivate = { archiveRaids.isDown(it) },
     )
 
     private val equipment = Equipment(objTypes, wearRequirements)
@@ -598,6 +599,7 @@ class World(
         setVarbit = { player, id, value -> player.vars.setVarbitIfKnown(id, value) },
         varbit = { player, id -> player.vars.getVarbitIfKnown(id) },
         commit = { a, b, swap, undo -> commitTrade(a, b, swap, undo) },
+        refuses = { archiveRaids.isDown(it) },
     )
 
     /** Report abuse; see [Reports]. */
