@@ -18,7 +18,7 @@ import osrsps.game.World
  *
  * NPCs: Hans (see [Hans]), the Cook ([Cook]), Duke Horacio ([DukeHoracio]), the men and women ([Townsfolk]), Perdu
  * ([Perdu]), Cadmus, the steward ([Cadmus]), the bankers ([Bankers]), and outside the gate the Doomsayer
- * ([Doomsayer]), Hatius Cosaintus ([Hatius]) and the Lumbridge Guide ([LumbridgeGuide]) talk, as they do once every
+ * ([Doomsayer]), Mikasi ([Mikasi]) and the Lumbridge Guide ([LumbridgeGuide]) talk, as they do once every
  * quest is done.
  *
  * Searching: the crates, sacks, chest and drawers (see [Searching]). Not done yet, for want of a source: the Lost Tribe
@@ -96,7 +96,7 @@ fun registerLumbridgeCastle(world: World) {
     registerCadmus(world)
     registerBankers(world)
     registerDoomsayer(world)
-    registerHatius(world)
+    registerMikasi(world)
     registerLumbridgeGuide(world)
     with(LumbridgeCastle) {
         for (crate in listOf(CRATE, CRATE_2, CRATE_3)) registerSearch(world, crate, 1, SearchLines.CRATE_EMPTY)

@@ -6,6 +6,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import osrsps.game.ObjType
 import osrsps.game.Player
+import osrsps.game.World
 import osrsps.game.content.DonieAndGee.talk
 import osrsps.game.content.LumbridgeShopkeepers.bob
 import osrsps.game.content.LumbridgeShopkeepers.keeper
@@ -13,6 +14,9 @@ import osrsps.game.content.LumbridgeTownsfolk.abigaila
 import osrsps.game.content.LumbridgeTownsfolk.ironmanTutor
 import osrsps.game.content.ShearedRam.arthur
 import osrsps.game.content.ShearedRam.bartender
+import osrsps.game.script.Op
+import osrsps.game.script.OpTarget
+import osrsps.map.CollisionMap
 
 /** Rest of Lumbridge step 5: the town centre's conversations, with no dialogue file, so every line shows its key. */
 class TownCentreTalkTest {
@@ -184,6 +188,18 @@ class TownCentreTalkTest {
         h.pick(3)
         h.expect("ironman_tutor.armour", "ironman_tutor.not_ironman")
         h.ends()
+    }
+
+    @Test
+    fun `the Ironman tutor's Talk-to and Armour answer on the type Ironmen see since 242 too, and Arthur's on his Grand Exchange id`() {
+        val world = World(IntArray(0), CollisionMap())
+        for (id in listOf(LumbridgeTownsfolk.IRONMAN_TUTOR, LumbridgeTownsfolk.IRONMAN_TUTOR_VISIBLE)) {
+            for (op in listOf(LumbridgeTownsfolk.TALK_TO, LumbridgeTownsfolk.ARMOUR)) {
+                assertTrue(world.handlers.find(Op(OpTarget.NPC, id, op)) != null, "NPC $id op $op")
+            }
+        }
+        assertEquals(16811, ShearedRam.ARTHUR)
+        assertTrue(world.handlers.find(Op(OpTarget.NPC, ShearedRam.ARTHUR, ShearedRam.TALK_TO)) != null)
     }
 
     @Test

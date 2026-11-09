@@ -98,7 +98,10 @@ object ArthurLines : Lines("arthur", "Transcript:Arthur the Clue Hunter") {
 }
 
 /**
- * The Sheared Ram, north-east of Lumbridge Castle: its Bartender (7546) and Arthur the Clue Hunter (8665). Veos, who
+ * The Sheared Ram, north-east of Lumbridge Castle: its Bartender (7546). With it Arthur the Clue Hunter, who stood by
+ * the inn as 8665 until 242.1 moved him to the Grand Exchange's south wall as Arthur (clue_hunter_arthur, 16811; Wiki
+ * update notes, 3 November 2026). That his talk is unchanged by the move is inferred (the Wiki's transcript has no new
+ * section). Veos, who
  * also stands here on live, is only in Lumbridge during X Marks the Spot (the Wiki: he is in Port Sarim after it), and
  * the cache hides him by varbit veos_lumbridge_vis, so with every quest done he isn't spawned.
  *
@@ -110,7 +113,8 @@ object ArthurLines : Lines("arthur", "Transcript:Arthur the Clue Hunter") {
  */
 object ShearedRam {
     const val BARTENDER = 7546
-    const val ARTHUR = 8665
+    /** clue_hunter_arthur, at the Grand Exchange since 242.1 (8665, aide_tutor_clues, before). */
+    const val ARTHUR = 16811
     const val TALK_TO = 1
 
     const val COINS = 995
