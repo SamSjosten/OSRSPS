@@ -560,12 +560,13 @@ class MeleeCombat(
 
     private fun die(npc: Npc, def: NpcCombatDef, killer: Player?, tick: Long) {
         npc.dead = true
+        npc.diedTick = tick
         npc.retreatingFrom = null
         giveUp(npc)
         if (def.anims.death >= 0) npc.effects.anim(def.anims.death)
         // The body goes before the replacement comes, however short the respawn time (a rat's is 2 ticks).
-        val respawnTick = tick + maxOf(def.respawnTicks, DEATH_TICKS)
-        dying += Dying(npc, killer, tick + DEATH_TICKS, respawnTick)
+        val respawnTick = tick + maxOf(def.respawnTicks, def.deathTicks)
+        dying += Dying(npc, killer, tick + def.deathTicks, respawnTick)
         logger.debug { "$npc died; back on tick $respawnTick" }
         npcDied(npc)
     }
@@ -595,7 +596,7 @@ class MeleeCombat(
                 loot(entry.npc, entry.killer)
             }
             if (tick >= entry.respawnTick) {
-                // Never before the body has gone: a respawn no shorter than DEATH_TICKS and the removal above see to it.
+                // Never before the body has gone: a respawn no shorter than its death ticks and the removal above see to it.
                 check(npcs[entry.npc.index] !== entry.npc) { "${entry.npc} respawning with its body still there" }
                 iterator.remove()
                 if (entry.npc.spawn.respawns) spawnNpc(entry.npc.spawn)

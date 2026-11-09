@@ -700,7 +700,8 @@
       "immune": ["poison", "venom", "freeze"],
       "drainCap": { "defence": 40 },
       "xpBonus": 60,
-      "source": "OSRS Wiki, Bork (The Fractured Archive, id 16640), read 2026-11-09: speed 7, crush, attack +100 and strength +40, the defence bonuses, the 40% earth weakness, immune to poison, venom and freeze, Defence drained to 180 at most (60% of his 300, the 21 October 2026 hotfix), +60% XP. His flat armour, 8 to 14 with the Smorks' damage, is his fight's (Bork). The Wiki lists no max hit: 34 is the formula's from his Strength of 200 and +40. His swing is npc_bork_gong_melee01, his death npc_bork_death01. Guessed: no block animation, the respawn, which never comes"
+      "deathTicks": 7,
+      "source": "OSRS Wiki, Bork (The Fractured Archive, id 16640), read 2026-11-09: speed 7, crush, attack +100 and strength +40, the defence bonuses, the 40% earth weakness, immune to poison, venom and freeze, Defence drained to 180 at most (60% of his 300, the 21 October 2026 hotfix), +60% XP. His flat armour, 8 to 14 with the Smorks' damage, is his fight's (Bork). The Wiki lists no max hit: 34 is the formula's from his Strength of 200 and +40. His swing is npc_bork_gong_melee01, his death npc_bork_death01; his body goes 7 ticks after he falls (tsps capture notes, RSPSApp/tsps docs/fractured-archive.md). Guessed: no block animation, the respawn, which never comes"
     },
     {
       "npcs": ["tfa_smork"],

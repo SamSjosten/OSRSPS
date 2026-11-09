@@ -178,6 +178,18 @@ class HeadlessBorkTest {
         assertEquals(listOf(v, n, v, v, c), Bork.firstCycle(2))
         assertEquals(listOf(v, v, n, v, v, c), Bork.laterCycle(2))
         assertEquals(listOf(v, v, v, n, v, c), Bork.laterCycle(3))
+        // The frenzy: two or three volleys and napalm, then five and napalm over and over; beside the tower, the splash
+        // runs away from it.
+        assertEquals(listOf(v, v, n), Bork.frenzyStart(2))
+        assertEquals(listOf(v, v, v, v, v, n), Bork.frenzyRound())
+        assertEquals(setOf(Tile(99, 101)) + (97..98).flatMap { x -> (100..102).map { Tile(x, it) } }, Bork.splash(100, 100, 3, 99, 101, away = true))
+        // The tempo: a stage for every 25% the Smorks have lost, up to 3.
+        assertEquals(0, Bork.tempoFor(600, 600))
+        assertEquals(0, Bork.tempoFor(451, 600))
+        assertEquals(1, Bork.tempoFor(450, 600))
+        assertEquals(2, Bork.tempoFor(300, 600))
+        assertEquals(3, Bork.tempoFor(150, 600))
+        assertEquals(3, Bork.tempoFor(0, 600))
     }
 
     @Test
@@ -351,6 +363,66 @@ class HeadlessBorkTest {
                     assertEquals(Bork.CYCLE_AFTER_STOMP.toLong(), tickOf(next) - tickOf(stomps))
                     assertTrue(next.endsWith(" at alice"), "bob is his tank now: $next")
                 }
+            }
+        }
+    }
+
+    @Test
+    fun `the tempo rises as the Smorks fall, and with Bork dead they go into their frenzy at everyone`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    val clients = listOf(alice to "alice", bob to "bob")
+                    for ((client, _) in clients) client.await("the login rebuild") { client.position }
+                    party(clients)
+                    val run = alice.intoRun(server, "alice")
+                    assertEquals(run, bob.intoRun(server, "bob"))
+                    alice.toBork(server, run)
+                    bob.commandReply("raid tp bork") { it.startsWith("To ") }
+                    bob.ontoFloor(server, run)
+                    val theSmorks = npc(run, Bork.SMORKS)
+                    val theBork = npc(run, Bork.BORK)
+                    // A quarter off the Smorks before his first gong: every gong 6 ticks apart from then.
+                    alice.commandReply("hit 150 ${theSmorks.index}") { it.startsWith("Hit ") }
+                    val tempo = alice.awaitLine(run, "the tempo up") { it.endsWith("fight: tempo 1, every 6 ticks") }
+                    assertTrue(tickOf(tempo) < Bork.FIRST_GONG, tempo)
+                    alice.awaitLine(run, "three gongs") { line -> lines(run).count { it.contains("beat on") } >= 5 && line.contains("beat on") }
+                    val gongs = lines(run).filter { it.contains("beat on") }.map(::tickOf)
+                    assertEquals(listOf(8L, 10L, 14L, 16L, 20L), gongs.take(5))
+                    // Three quarters off: the tempo at its most.
+                    alice.commandReply("hit 300 ${theSmorks.index}") { it.startsWith("Hit ") }
+                    alice.awaitLine(run, "the tempo at its most") { it.endsWith("fight: tempo 3, every 4 ticks") }
+                    // Bork dead first: 11 ticks on, the Smorks' frenzy, a volley at everyone every 2 ticks, napalm after
+                    // two or three.
+                    alice.commandReply("hit 1500 ${theBork.index}") { it.startsWith("Hit ") }
+                    val down = alice.awaitLine(run, "Bork down") { it.endsWith("fight: Bork down") }
+                    val frenzy = alice.awaitLine(run, "their frenzy") { it.endsWith("fight: the Smorks' frenzy") }
+                    assertEquals((Bork.BORK_GONE + Bork.FRENZY_AFTER).toLong(), tickOf(frenzy) - tickOf(down))
+                    alice.awaitLine(run, "napalm in the frenzy") { it.endsWith("fight: the Smorks call napalm") && tickOf(it) > tickOf(frenzy) }
+                    val volleys = lines(run).filter { it.contains("the Smorks fire") && tickOf(it) >= tickOf(frenzy) }
+                    assertTrue(volleys.size in 2..3, volleys.toString())
+                    assertTrue(volleys.all { it.endsWith(" at alice, bob") }, volleys.toString())
+                    assertEquals(volleys.indices.map { tickOf(frenzy) + Bork.FRENZY_SPACING * it }, volleys.map(::tickOf))
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `with the Smorks dead first Bork stomps over the whole room every 45 ticks`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.toBork(server, run)
+                val theSmorks = npc(run, Bork.SMORKS)
+                alice.commandReply("hit 600 ${theSmorks.index}") { it.startsWith("Hit ") }
+                val down = alice.awaitLine(run, "the Smorks down") { it.endsWith("fight: the Smorks down") }
+                alice.awaitLine(run, "the tempo at its most") { it.endsWith("fight: tempo 3, every 4 ticks") }
+                val stomp = alice.awaitLine(run, "his stomp") { it.endsWith("fight: Bork stomps") }
+                assertEquals(Bork.LONE_STOMP_EVERY.toLong(), tickOf(stomp) - tickOf(down))
+                alice.awaitLine(run, "a shockwave on her") { it.endsWith("fight: shockwave on alice") }
+                // No napalm, volleys or cannonballs from Smorks that are gone.
+                assertTrue(lines(run).none { tickOf(it) > tickOf(down) && (it.contains("the Smorks fire") || it.contains("the Smorks call")) }, lines(run).toString())
             }
         }
     }

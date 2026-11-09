@@ -5,6 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import osrsps.game.Equipment
 import osrsps.game.EquipmentTab
@@ -39,7 +40,8 @@ class MeleeCombatTest {
     private val hans = NpcType(3105, "Hans", ops = listOf("Talk-to", null, "Attack", null, null), internalName = "hans")
     private val rat = NpcType(2854, "Rat", ops = listOf(null, "Attack", null, null, null), combatLevel = 1, internalName = "rat", stats = NpcStats(hitpoints = 2))
     private val spider = NpcType(3019, "Poison spider", ops = listOf(null, "Attack", null, null, null), combatLevel = 64, internalName = "poison_spider", stats = NpcStats(hitpoints = 64))
-    private val npcTypes = NpcTypes.of(man, hans, rat, spider)
+    private val ork = NpcType(16640, "Bork", ops = listOf(null, "Attack", null, null, null), size = 4, internalName = "slow_ork", stats = NpcStats(hitpoints = 7))
+    private val npcTypes = NpcTypes.of(man, hans, rat, spider, ork)
     private val shortbow = ObjType(841, "Shortbow", wearpos1 = WearPos.WEAPON, wearpos2 = WearPos.SHIELD, params = mapOf(14 to 5), internalName = "shortbow", category = 64)
     private val styles = AttackStyles.fromRows(
         listOf(
@@ -62,7 +64,10 @@ class MeleeCombatTest {
             { "npcs": ["poison_spider"], "attackSpeed": 4, "maxHit": 1, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
             "poison": 6,
             "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -21, "light": -21, "standard": -21, "heavy": -21 },
-            "anims": { "attack": "punch", "defend": "block", "death": "death" }, "respawnTicks": 25, "source": "test" } ] }""",
+            "anims": { "attack": "punch", "defend": "block", "death": "death" }, "respawnTicks": 25, "source": "test" },
+            { "npcs": ["slow_ork"], "attackSpeed": 7, "maxHit": 1, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+            "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -21, "light": -21, "standard": -21, "heavy": -21 },
+            "anims": { "attack": "punch", "defend": "block", "death": "death" }, "respawnTicks": 2, "deathTicks": 7, "source": "test" } ] }""",
         npcTypes, SeqNames(mapOf("punch" to 422, "block" to 424, "death" to 836)),
     )
     private val map = CollisionMap().apply { markLoaded(50, 50) }
@@ -317,6 +322,23 @@ class MeleeCombatTest {
         tick()
         assertEquals(listOf(npc.spawn), respawned)
         assertEquals(0, melee.respawning)
+    }
+
+    @Test
+    fun `a monster with a longer death keeps its body that long, and its respawn waits for it`() {
+        val npc = spawn(ork)
+        tick = 10
+        assertEquals(npc.hitpoints, melee.hit(npc, alice, 100, tick))
+        assertTrue(npc.dead)
+        assertEquals(10L, npc.diedTick)
+        // Bork's body stays for 7 ticks (tsps capture notes), not the usual 4; his 2-tick respawn is held to it.
+        repeat(6) { tick() }
+        assertTrue(removed.isEmpty())
+        assertSame(npc, npcs[npc.index])
+        tick()
+        assertEquals(listOf(npc), removed)
+        assertEquals(listOf<Pair<Npc, Player?>>(npc to alice), looted)
+        assertEquals(listOf(npc.spawn), respawned)
     }
 
     @Test
