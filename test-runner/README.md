@@ -164,6 +164,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   spade (by the menu) then a rake, a water talisman refused at the Water Altar's ruins (with `::keys on`), the River
   Lum's raft by Grapple (crossbow and mith grapple) and back by Jump-to, the stepping stone to the desert and back at
   66 Agility, and one coal from the west swamp mine.
+- `light-sources.json`: Misthalin piece 7 step 2a: a tinderbox lights a candle and Extinguish puts it out, an oil
+  lantern refused below 26 Firemaking then lit, a candle put into an empty candle lantern, and an unlit torch lit on
+  Lumbridge Castle's range (with `::keys on`).
 - `al-kharid-toll-gate.json`: Al Kharid step 1: Open on the toll gate from both sides with no coins, a Border
   Guard's talk (with `::keys on`) that ends with the player through the gate, and the palace's west large doors
   opened together and shut again, and the curtain upstairs in the palace opened and shut.
