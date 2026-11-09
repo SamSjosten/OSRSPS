@@ -5,6 +5,7 @@ import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.combat.HitsplatType
+import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
 import osrsps.game.script.ScriptContext
 import osrsps.game.skill.LightSources
@@ -31,7 +32,7 @@ object SwampCavesLines : Lines("swamp_caves", "Lumbridge Swamp Caves") {
  *   (`swamp_caves_roped_entrance`) remembers it, and Climb-down then goes down with no rope. The climbing rope (5946)
  *   below climbs back up. Both keep the player's tile, 6400 apart, as any dungeon ladder does ([climbDungeonLadder]).
  * - The warning signs (15566) show their words in a message box.
- * - The dark: [DARK] is every tile of the caves on level 0. With no light ([LightSources.hasLight]) a player is warned
+ * - The dark: [DARK] is every tile of the caves on level 0, the two stepping stones' own tiles too. With no light ([LightSources.hasLight]) a player is warned
  *   after [WARN_TICKS] and swarmed after [SWARM_TICKS], then takes 1 typeless damage every tick until they light
  *   something or leave; a light resets the count. A player within [ESCAPE_RANGE] tiles of the climbing rope climbs back
  *   up instead of being swarmed.
@@ -134,6 +135,13 @@ class SwampCavesHazards(private val world: World) {
         world.meleeCombat.statusHit(player, damage, HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER)
     }
 
+    /** A message to the player; tests swap it for a recorder. */
+    @Volatile internal var say: (Player, Line, Array<out Pair<String, Any>>) -> Unit = { player, line, values ->
+        world.message(player, line, *values)
+    }
+
+    private fun Player.tell(line: Line, vararg values: Pair<String, Any>) = say(this, line, values)
+
     fun process(player: Player): Unit = with(LumbridgeSwampCaves) {
         if (player.loggedOut || !isDark(player.x, player.z, player.level)) {
             states.remove(player)
@@ -147,14 +155,14 @@ class SwampCavesHazards(private val world: World) {
         }
         state.darkTicks++
         when {
-            state.darkTicks == WARN_TICKS -> world.message(player, SwampCavesLines.INSECTS_WARN)
+            state.darkTicks == WARN_TICKS -> player.tell(SwampCavesLines.INSECTS_WARN)
             state.darkTicks < SWARM_TICKS -> {}
             state.darkTicks == SWARM_TICKS && nearRope(player.x, player.z) -> {
                 states.remove(player)
                 world.teleport(player, ROPE_TOP.first, ROPE_TOP.second, ROPE_TOP.third)
             }
             else -> {
-                if (state.darkTicks == SWARM_TICKS) world.message(player, SwampCavesLines.INSECTS_SWARM)
+                if (state.darkTicks == SWARM_TICKS) player.tell(SwampCavesLines.INSECTS_SWARM)
                 hurt(player, 1)
             }
         }
@@ -168,15 +176,24 @@ class SwampCavesHazards(private val world: World) {
         }
         if (state.gasTicks == 0) {
             val name = world.objTypes[flames.first().lit]?.name?.lowercase() ?: flames.first().name
-            world.message(player, SwampCavesLines.GAS_FLARE, "item" to name)
+            player.tell(SwampCavesLines.GAS_FLARE, "item" to name)
         }
+        // The flare's own tick is 1, so the explosion comes on the 8th: GAS_TICKS ticks after the flare.
         state.gasTicks++
-        if (state.gasTicks < GAS_TICKS) return
+        if (state.gasTicks <= GAS_TICKS) return
         state.gasTicks = 0
         LightSources.extinguish(player) { it.nakedFlame }
-        world.message(player, SwampCavesLines.GAS_EXPLODE)
+        player.tell(SwampCavesLines.GAS_EXPLODE)
         hurt(player, gasDamage(player.skills.baseLevel(Skill.HITPOINTS)))
     }
+
+    /** Forgets a player who leaves the world, wherever they stood. */
+    fun forget(player: Player) {
+        states.remove(player)
+    }
+
+    /** Whether [player] has a count running; for tests. */
+    internal fun tracking(player: Player) = player in states
 
     /** Forgets everyone, as a reset between tests would. */
     internal fun clear() = states.clear()

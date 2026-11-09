@@ -2902,6 +2902,7 @@ class World(
             clans.logout(player)
             parties.logout(player)
             reports.forget(player)
+            swampCavesHazards.forget(player)
             npcs.forget(player, scripts::busy)
             save(player)
         } finally {
