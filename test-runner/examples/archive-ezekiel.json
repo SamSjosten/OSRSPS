@@ -1,5 +1,5 @@
 {
- "name": "Raid step 17a: Ezekiel solo, his fight beginning as the first player comes into his room, his walk over with lightning while he can't reach, his swings under Protect from Melee and the cross after every second one, to his death doing the room",
+ "name": "Raid steps 17a and 17b: Ezekiel solo, his fight beginning as the first player comes into his room, his walk over with lightning while he can't reach, his swings under Protect from Melee, the cross after every second one and the flying swords with it, to his death doing the room",
  "account": "test",
  "steps": [
   {
@@ -120,8 +120,19 @@
   {
    "step": "command",
    "text": "::raid log 60",
-   "expectMessage": "fight: hazard on",
-   "comment": "the cross of lightning on the player, after every second swing"
+   "expectMessage": "fight: cross on him",
+   "comment": "the cross of lightning centred on him, after every second swing"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 60",
+   "expectMessage": "fight: sword at",
+   "comment": "with the cross, the flying swords at the arena's edge (step 17b)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 16,
+   "comment": "the swords fly: lined up with him one stuns him, else he heals"
   },
   {
    "step": "command",
