@@ -303,7 +303,7 @@ class MagicCombat(
         // Accuracy first, then damage, as for melee and ranged.
         val hit = CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll) || player.sureHits
         val rolled = if (hit) CombatMath.rollDamage(random, matchup.maxHit) else 0
-        val damage = minOf(rolled, (npc.hitpoints - npc.incoming).coerceAtLeast(0))
+        val damage = minOf(melee.armoured(npc, rolled, magic = true), (npc.hitpoints - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage
         val bonus = combat.npcCombat[npc.type]?.xpBonusTenths ?: 0
         if (defensive) {
@@ -366,8 +366,8 @@ class MagicCombat(
             if (cast.hit) {
                 if (cast.spell.impact >= 0) npc.effects.spotanim(0, cast.spell.impact, IMPACT_HEIGHT)
                 // Guessed: Bind, which can't do damage, shows no hitsplat, as a splash shows none.
-                if (cast.spell.maxHit == 0) melee.splashed(npc, cast.player, tick, cast.from) else melee.hit(npc, cast.player, melee.armoured(npc, cast.damage, magic = true), tick, cast.maxHit, cast.from)
-                if (cast.spell.freezeTicks > 0 && !npc.dead) npcs.freeze(npc, cast.spell.freezeTicks)
+                if (cast.spell.maxHit == 0) melee.splashed(npc, cast.player, tick, cast.from) else melee.hit(npc, cast.player, cast.damage, tick, cast.maxHit, cast.from)
+                if (cast.spell.freezeTicks > 0 && !npc.dead && combat.npcCombat[npc.type]?.freezeImmune != true) npcs.freeze(npc, cast.spell.freezeTicks)
             } else {
                 if (spells.splash >= 0) npc.effects.spotanim(0, spells.splash, IMPACT_HEIGHT)
                 melee.splashed(npc, cast.player, tick, cast.from)

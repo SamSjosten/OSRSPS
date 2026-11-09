@@ -585,6 +585,7 @@ class NpcCombatTest {
         assertEquals(ElementalWeakness(Element.EARTH, 85), them.weakness)
         assertEquals(mapOf(NpcStat.DEFENCE to 40), him.drainCaps)
         assertTrue(him.poisonImmune && him.venomImmune && them.poisonImmune && !them.venomImmune)
+        assertTrue(him.freezeImmune && them.freezeImmune)
         assertEquals(listOf(140, 130, 10, 300), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { him.defence.against(it) })
         assertEquals(listOf(220, 170, 160, 400), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { them.defence.against(it) })
     }

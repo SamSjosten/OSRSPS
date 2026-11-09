@@ -337,7 +337,7 @@ class MeleeCombat(
             0
         }
         // XP for what the swing can still deal: what the NPC has left after the swings and shots already on their way.
-        val damage = minOf(rolled, (npc.hitpoints - npc.incoming).coerceAtLeast(0))
+        val damage = minOf(armoured(npc, rolled, magic = false), (npc.hitpoints - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage
         val bonus = combat.npcCombat[npc.type]?.xpBonusTenths ?: 0
         for (skill in style.xp) player.skills.addTenths(skill, CombatMath.withXpBonus(CombatMath.styleXpTenths(damage, style.xp.size), bonus))
@@ -377,19 +377,20 @@ class MeleeCombat(
             val npc = swing.npc
             npc.incoming -= swing.damage
             if (npcs[npc.index] !== npc || npc.dead) continue
-            val dealt = hit(npc, swing.player, armoured(npc, swing.damage, magic = false), tick, swing.maxHit, swing.from)
+            val dealt = hit(npc, swing.player, swing.damage, tick, swing.maxHit, swing.from)
             if (swing.special != null) specialLanded(npc, dealt, swing.special)
             weaponPoison(npc, dealt, swing.poison, venom = false, ranged = false)
         }
     }
 
     /**
-     * [damage] of a player's melee or ranged hit, or a spell's ([magic]), on [npc] less its flat armour ([Npc.flatArmour],
-     * [Npc.magicArmour]). Guessed: a hit can't go below 0 for it, and a 0 stays 0.
+     * [damage] of a player's melee or ranged hit, or a spell's ([magic]), on [npc] less its flat armour ([Npc.armour]),
+     * as the hit is rolled: before what it has left caps it and its XP is given, so a hit can still finish it and the XP
+     * is for what lands. Guessed: a hit can't go below 0 for it, and a 0 stays 0.
      */
     fun armoured(npc: Npc, damage: Int, magic: Boolean): Int {
         if (damage <= 0) return damage
-        val armour = if (magic) npc.magicArmour else npc.flatArmour
+        val armour = npc.armour?.invoke(magic) ?: return damage
         return (damage - armour).coerceAtLeast(0)
     }
 

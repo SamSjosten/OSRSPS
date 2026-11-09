@@ -9,6 +9,7 @@ import osrsps.game.NpcTypes
 import osrsps.game.Player
 import osrsps.game.combat.AttackType
 import osrsps.game.combat.CombatMath
+import osrsps.game.combat.DinhsBulwark
 import osrsps.game.combat.NpcRangedAttack
 import osrsps.game.encounter.CycleStep
 import osrsps.game.encounter.EncounterContext
@@ -27,7 +28,7 @@ import osrsps.game.npc.Npc
  *   after it a close one again. The Smorks' cart in the way of a beat ([shields]) keeps it off whoever is behind it.
  * - Every [ATTACK_SPEED] ticks, [SMORKS_OFFSET] after Bork's, the Smorks fire at everyone Bork isn't after ([volley]):
  *   bones, ranged, or a cluster of potions, magic, each player's own shot, all of a volley the same.
- * - Bork's flat armour ([armour]): [ARMOUR_BASE] off each melee and ranged hit on him, and [ARMOUR_STEP] more of it, and
+ * - Bork's flat armour ([armourFor]): [ARMOUR_BASE] off each melee and ranged hit on him as it's rolled, and [ARMOUR_STEP] more of it, and
  *   of his magic resistance, for every [ARMOUR_EVERY_PERCENT]% the Smorks have lost, up to [ARMOUR_MAX] and
  *   [MAGIC_ARMOUR_MAX].
  *
@@ -144,6 +145,10 @@ object Bork {
                         }
                         state.smorks = smorks?.let(::WeakReference)
                         state.bork = bork?.let(::WeakReference)
+                        // Worked out as each hit on him is rolled, so a hit taking the Smorks past a quarter counts at
+                        // once for the next on him, in the same tick too.
+                        val held = smorks?.let(::WeakReference)
+                        bork?.armour = { magic -> armourAgainst(held?.get(), magic) }
                         bork?.let { armour(it) }
                         log("Bork at ${bork?.x},${bork?.z}, the Smorks at ${smorks?.x},${smorks?.z}")
                     },
@@ -221,7 +226,8 @@ object Bork {
                 if (phaseTick > 0 && phaseTick % ATTACK_SPEED == 0L) beat(bork, smorks, tank)
             }
         }
-        if (smorks != null && phaseTick % ATTACK_SPEED == SMORKS_OFFSET.toLong()) volley(smorks, bork)
+        // Their first [SMORKS_OFFSET] ticks after his first beat, then every [ATTACK_SPEED].
+        if (smorks != null && phaseTick >= ATTACK_SPEED + SMORKS_OFFSET && phaseTick % ATTACK_SPEED == SMORKS_OFFSET.toLong()) volley(smorks, bork)
     }
 
     /**
@@ -234,11 +240,17 @@ object Bork {
         return minOf(ARMOUR_MAX, ARMOUR_BASE + ARMOUR_STEP * steps) to minOf(MAGIC_ARMOUR_MAX, ARMOUR_STEP * steps)
     }
 
+    /** Bork's flat armour, or magic resistance for a spell, with [smorks] as they are now (null or dead: at its most). */
+    private fun armourAgainst(smorks: Npc?, magic: Boolean): Int {
+        val (flat, resistance) = if (smorks == null || smorks.dead) armourFor(0, 1) else armourFor(smorks.hitpoints, smorks.maxHitpoints)
+        return if (magic) resistance else flat
+    }
+
+    /** Logs Bork's armour when it changes; what hits on him lose comes from [Npc.armour] as each is rolled. */
     private fun EncounterContext.armour(bork: Npc) {
         val smorks = state.smorks?.get()
-        val (flat, magic) = if (smorks == null || smorks.dead) armourFor(0, 1) else armourFor(smorks.hitpoints, smorks.maxHitpoints)
-        bork.flatArmour = flat
-        bork.magicArmour = magic
+        val flat = armourAgainst(smorks, magic = false)
+        val magic = armourAgainst(smorks, magic = true)
         if (flat != state.armour || magic != state.magicArmour) {
             state.armour = flat
             state.magicArmour = magic
@@ -333,12 +345,16 @@ object Bork {
         }
     }
 
-    /** A beat's damage on [player]: his melee's roll at them, up to his max hit or [WIDE_MAX], halved by Protect from Melee. */
+    /**
+     * A beat's damage on [player]: his melee's roll at them, up to his max hit or [WIDE_MAX], cut by Dinh's bulwark on
+     * Block as any NPC's melee is, then halved by Protect from Melee.
+     */
     private fun EncounterContext.beatDamage(bork: Npc, player: Player, wide: Boolean): Int {
         val roll = world.combat.npcAttack(bork, player) ?: return 0
         val hits = CombatMath.rollHits(world.random, roll.attackRoll, roll.defenceRoll)
         val damage = if (hits) CombatMath.rollDamage(world.random, if (wide) WIDE_MAX else roll.maxHit) else 0
-        return if (world.prayers.protects(player, AttackType.CRUSH)) damage / 2 else damage
+        val blocked = if (world.combat.bulwarkBlocking(player, world.tick)) DinhsBulwark.blocked(damage) else damage
+        return if (world.prayers.protects(player, AttackType.CRUSH)) blocked / 2 else blocked
     }
 
     /** The Smorks' shots, all bones or all potions, at everyone Bork isn't after. */

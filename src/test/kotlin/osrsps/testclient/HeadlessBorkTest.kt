@@ -171,14 +171,20 @@ class HeadlessBorkTest {
                 assertTrue(maxOf(kotlin.math.abs(world.playerNamed("alice")!!.x - theSmorks.x), kotlin.math.abs(world.playerNamed("alice")!!.z - theSmorks.z)) > 15)
                 alice.commandReply("hit 150 tfa_smork") { it.startsWith("Hit ") }
                 alice.awaitLine(run, "his armour up") { it.endsWith("fight: Bork's armour 10, magic 2") }
-                assertEquals(10, theBork.flatArmour)
                 assertEquals(10, world.meleeCombat.armoured(theBork, 20, magic = false))
                 assertEquals(18, world.meleeCombat.armoured(theBork, 20, magic = true))
                 assertEquals(0, world.meleeCombat.armoured(theBork, 7, magic = false), "not below 0")
                 assertEquals(0, world.meleeCombat.armoured(theSmorks, 0, magic = false))
                 assertEquals(20, world.meleeCombat.armoured(theSmorks, 20, magic = false), "the Smorks have none")
-                // Bork dead first: the Smorks fight on, and the room isn't done.
-                alice.commandReply("hit 1500 ${theBork.index}") { it.startsWith("Hit ") }
+                // Bork dead first, by her own swing at his last hitpoint: the armour comes off as it's rolled, before
+                // what he has left caps it, so an armoured hit can still finish him. The Smorks fight on, and the room
+                // isn't done.
+                alice.commandReply("hit 1499 ${theBork.index}") { it.contains("1/1500 hp") }
+                alice.commandReply("setlevel strength 99") { it.contains("set to level 99") }
+                alice.commandReply("setlevel attack 99") { it.contains("set to level 99") }
+                alice.commandReply("sure max") { it.startsWith("Your attacks can't miss and") }
+                alice.npcOp(theBork.index, 2)
+                alice.await("her swing killing him") { theBork.takeIf { it.dead } }
                 alice.awaitLine(run, "Bork down") { it.endsWith("fight: Bork down") }
                 alice.await("Bork's body gone") { theBork.takeIf { world.npcs[it.index] !== it } }
                 alice.awaitTicks(3)
@@ -214,6 +220,9 @@ class HeadlessBorkTest {
                     val volley = alice.awaitLine(run, "a volley at bob") { it.contains("the Smorks fire") && it.endsWith(" at bob") }
                     assertTrue(volley.contains("bones at bob") || volley.contains("potions at bob"), volley)
                     assertTrue(lines(run).none { it.contains("the Smorks fire") && it.contains("alice") }, lines(run).toString())
+                    // Their volleys come 3 ticks after his beats, the first after his first.
+                    val volleyTicks = lines(run).filter { it.contains("the Smorks fire") }.map { it.substringBefore(' ').toLong() }
+                    assertTrue(volleyTicks.all { it >= Bork.ATTACK_SPEED + Bork.SMORKS_OFFSET && it % Bork.ATTACK_SPEED == Bork.SMORKS_OFFSET.toLong() }, volleyTicks.toString())
                     // The Smorks dead first: Bork's armour at its most, and the room done only with him dead too.
                     alice.commandReply("hit 600 ${theSmorks.index}") { it.startsWith("Hit ") }
                     alice.awaitLine(run, "the Smorks down") { it.endsWith("fight: the Smorks down") }

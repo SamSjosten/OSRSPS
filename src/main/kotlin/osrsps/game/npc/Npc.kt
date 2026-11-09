@@ -203,12 +203,12 @@ class Npc(
     var holdsAtZero: Boolean = false
 
     /**
-     * Flat armour: what each melee and ranged hit on it that does damage loses, after the roll ([osrsps.game.combat
-     * .MeleeCombat.armoured]), and [magicArmour] the same for each spell's. 0 for most; a boss fight sets it (Bork, raid
-     * step 18a). The OSRS Wiki's infobox lists both ("Flat armour", "Magic resistance") for Bork.
+     * Its flat armour, asked as each player hit is rolled ([osrsps.game.combat.MeleeCombat.armoured]): what a melee or
+     * ranged hit loses, or a spell's when given true. Null, none, for most; a boss fight sets it (Bork's, raid step 18a,
+     * worked out from the Smorks' hitpoints as each hit is rolled). The OSRS Wiki's infobox lists both ("Flat armour",
+     * "Magic resistance") for Bork.
      */
-    var flatArmour: Int = 0
-    var magicArmour: Int = 0
+    var armour: ((magic: Boolean) -> Int)? = null
 
     /** True from the hit that killed it until it is taken out of the world; it can't be attacked meanwhile. */
     var dead: Boolean = false
