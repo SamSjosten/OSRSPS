@@ -1030,18 +1030,18 @@ done.
 | The altar (409) in the church: Pray-at fills prayer points up to the Prayer level and resets the drain counter; an item used on it is refused with a message | OSRS Wiki, Altar |
 | Father Aereck (2812), as after The Restless Ghost and since 242.1, when he took over the removed Prayer tutor's tips: the prayer tips (with the altar icon and bones boxes), Saradomin (and claiming to be from another world), each back to his menu, whose goodbye is shorter once a topic was picked | the Wiki's Transcript:Father Aereck |
 | Nigel (6093, a multi-NPC that shows as 8391 on a normal world), at the Grand Exchange since 242.1 (`varrock.json`): the two pages of Deadman Mode questions, and the rewards store, which is shut | the Wiki's Transcript:Nigel; his tile from the Wiki's map |
-| Count Check (7414): his advice counted out (with the questioned THREE), who he is and the Salve after Priest in Peril, the Stronghold of Security, to which he sends the player once (varbit `sos_teleported_by_count`), and his check, which fails | the Wiki's Transcript:Count Check |
+| Count Check (7414), as since 242.1: his check, which fails (the Wiki gives only a pass, so the old fail line is kept, then the menu a pass has), who he is and the Salve, and "No!" when asked what else he does, as on a main game world (so his once-only Barbarian Village teleport is never offered) | the Wiki's Transcript:Count Check |
 | Nigel's normal world menu leaving out the Deadman worlds' options, his Trade saying the store is shut, and the check failing as no account is a Jagex Account and the bank has no PIN (so his lamp never comes) | readings |
 | Every chathead expression; each answer going back to the menu it came from; the kneel (human_pray, 645) and the altar's messages; points above the level kept; the Stronghold tile (beside its entrance, 3081, 3421) and no teleport animation; the wander ranges (2, Father Aereck 5) | guessed |
 
-Left out: the lightning on Count Check's square, whose spotanim isn't known; the church organ; the treasure trail
+Left out: the church organ; the treasure trail
 and Wise Old Man parts of Father Aereck's talk. What they say, the altar's messages and each new NPC's and the altar's
 examine are in the dialogue file (keys `father_aereck.*`, `nigel.*`, `count_check.*`, `altar.*`,
 `examine.npc_<id>` and `examine.loc_409`).
 
 Check: `test-runner/examples/lumbridge-church.json` examines Father Aereck and Count Check, prays at the altar with
 drained points, and talks to both (`ge-nigel.json` does Nigel at the Grand Exchange); `HeadlessLumbridgeChurchTest` prays at an altar, talks to Father Aereck and Nigel (through his
-multi-NPC) and is sent to the Stronghold by Count Check through the headless client, with every branch in
+multi-NPC) and fails Count Check's check through the headless client, with every branch in
 `ChurchTest`.
 
 ## Al Kharid
@@ -1662,10 +1662,9 @@ Lumbridge Castle's Cook (`Cook.kt`), Duke Horacio (`DukeHoracio.kt`), men and wo
 (`Perdu.kt`), Cadmus, the steward (the Crafting tutor until 242.1, `Cadmus.kt`), the bankers (`Bankers.kt`), and outside the gate the Doomsayer
 (`Doomsayer.kt`), Mikasi, the diary taskmaster since 242.1 moved Hatius Cosaintus to Falador (`Mikasi.kt`), and the Lumbridge Guide (`LumbridgeGuide.kt`) talk as they do once
 every quest is done, since every account here has done them all. The Duke gives an anti-dragon shield to a player
-carrying or wearing none, one talk with a man or woman in 128 hands over a flier, and the Guide gives a security book to
-a player carrying none. The bankers' collect (asked or op4 Collect) opens the Grand Exchange collection box (since
-the Varrock piece's step 3). Not built yet, so their options end the talk or do nothing: bank space; Perdu's Lost Property Shop; the Doomsayer's warnings (Toggle warnings); achievement diaries; Attack
-and Pickpocket; the Guide opening the account management tab's links, and his lost amulet, locket, clue and random
+carrying or wearing none, and one talk with a man or woman in 128 hands over a flier. The bankers' collect (asked or op4 Collect) opens the Grand Exchange collection box (since
+the Varrock piece's step 3). Not built yet, so their options end the talk or do nothing: bank space; Perdu's Lost Property Shop; the Doomsayer's warnings (Toggle warnings, and getting rid of signs, which ends after his answer); achievement diaries; Attack
+and Pickpocket; the Guide's owed experience (242.1's quest XP), and his lost amulet, locket, clue and random
 event talks.
 
 | Castle NPC behaviour | Source |
@@ -1675,8 +1674,8 @@ event talks.
 | Men's and women's 23 conversations, the 1 in 128 flier | OSRS Wiki, Transcript:Man, Transcript:Woman, Flier |
 | Perdu's, Cadmus's, the banker's (the Bank tutor is a normal banker since 242.1), the Doomsayer's and Mikasi's conversations | OSRS Wiki, their transcripts |
 | Mikasi leaving out "another ring" for a player with no diary done | guessed: the Wiki lists it with no condition |
-| The Lumbridge Guide's conversation: lines, menus, where each option leads, the icon boxes | OSRS Wiki, Transcript:Lumbridge Guide; icon items are the 241 cache's `*_icon_dummy` objs |
-| The levels the Guide's answers change at (combat 20, Smithing 20, Fishing 20); the quest box's icon; the money menu's smithing and monsters options skipping straight to those answers; "has a weapon" meaning worn or carried in the weapon slot | guessed: the Wiki has "X" and "same as above" |
+| The Lumbridge Guide's and the Doomsayer's conversations as since 242.1, which made them "more in-universe": their first-time talks (varbits `lumbridge_guide_met` and `doomsayer_intro`) and later ones, the Guide's menus, where each option leads, the icon boxes | OSRS Wiki, Transcript:Lumbridge Guide and Transcript:Doomsayer; icon items are the cache's `*_icon_dummy` objs |
+| The Guide's quest answer (missing on the Wiki: the old line for a player with every quest done) and goals answer (the Wiki's, under an unknown condition, always); the Doomsayer's thanks branch (missing on the Wiki: the old "welcome") | readings |
 | The Duke's first menu's order; skipping the "which dragon" menu once only one option is left; an item handed over landing at your feet with a full inventory; the other 22 townsfolk talks being equally likely; where the tutors' menus lead after a topic; every expression | guessed |
 
 Check: Talk-to Hans. He greets you; continue, pick each option in turn (talk to him again for each), and walk away

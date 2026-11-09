@@ -5,6 +5,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import osrsps.game.ObjType
 import osrsps.game.Skill
+import osrsps.game.VarTypes
+import osrsps.game.VarbitType
 import osrsps.game.World
 import osrsps.game.content.Bankers.banker
 import osrsps.game.content.Cadmus.talk
@@ -118,14 +120,32 @@ class CastleTalkTest {
     }
 
     @Test
-    fun `the Doomsayer explains himself to a player with every warning on`() {
-        h.talk { with(Doomsayer) { talk() } }
-        h.expect(
-            "doomsayer.doom", "doomsayer.where", "doomsayer.everywhere", "doomsayer.stop_it", "doomsayer.my_role", "doomsayer.title",
-            "doomsayer.patrol", "doomsayer.disable", "doomsayer.danger_areas", "doomsayer.see_again", "doomsayer.waiting",
-            "doomsayer.re_enable", "doomsayer.remember", "doomsayer.welcome",
+    fun `the Doomsayer explains himself the first time since 242, then only says doom, and getting rid of signs ends it`() {
+        val d = DialogueHarness("Doomsayer", VarTypes.NONE.with(mapOf(Doomsayer.VARBIT_INTRO to VarbitType(6240, 23, 23)), emptyMap()))
+        d.talk { with(Doomsayer) { talk() } }
+        d.expect(
+            "doomsayer.doom", "doomsayer.where", "doomsayer.everywhere", "doomsayer.stop_it", "doomsayer.nothing_needed",
+            "doomsayer.danger_areas",
         )
-        h.ends()
+        assertEquals(1, d.player.vars.getVarbit(Doomsayer.VARBIT_INTRO))
+        d.menu("doomsayer.get_rid", "doomsayer.thanks_signs")
+        d.pick(2)
+        d.expect("doomsayer.thanks_signs", "doomsayer.welcome")
+        d.ends()
+
+        d.talk { with(Doomsayer) { talk() } }
+        d.expect("doomsayer.doom")
+        d.menu("doomsayer.get_rid", "doomsayer.be_off")
+        d.pick(2)
+        d.expect("doomsayer.be_off")
+        d.ends()
+
+        d.talk { with(Doomsayer) { talk() } }
+        d.expect("doomsayer.doom")
+        d.menu("doomsayer.get_rid", "doomsayer.be_off")
+        d.pick(1)
+        d.expect("doomsayer.get_rid", "doomsayer.very_well")
+        d.ends()
     }
 
     @Test

@@ -2,7 +2,6 @@ package osrsps.game.content
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import osrsps.game.Player
 import osrsps.game.Skill
 
 /** Rest of Lumbridge step 10: the church's talk and its altar, with no dialogue file, so every line shows its key. */
@@ -124,74 +123,54 @@ class ChurchTest {
         rewards.ends()
     }
 
-    private fun countCheck(sent: MutableList<Player>) {
-        h.talk { with(Church) { countCheck({ it in sent }, { sent += it }) } }
-        h.expect("count_check.intro")
+    private val first = arrayOf("count_check.yes_please", "count_check.who_are_you", "count_check.anything_else", "count_check.best_be_off")
+    private val afterWho = arrayOf("count_check.yes_please", "count_check.salve_cross", "count_check.anything_else", "count_check.maybe_later")
+    private val afterCheck = arrayOf("count_check.who_are_you", "count_check.anything_else", "count_check.best_be_off")
+
+    private fun countCheck() {
+        h.talk { with(Church) { countCheck() } }
+        h.expect("count_check.intro_check")
+        h.menu(*first)
     }
 
-    private val top = arrayOf("count_check.check", "count_check.advice", "count_check.learn", "count_check.who", "count_check.bye")
-
     @Test
-    fun `Count Check's check fails, as there is no Jagex Account or Bank PIN`() {
-        countCheck(mutableListOf())
-        h.menu(*top)
+    fun `Count Check's check fails, as there is no Jagex Account or Bank PIN, and leaving then is said as offered`() {
+        countCheck()
         h.pick(1)
-        h.expect("count_check.check", "count_check.fail")
+        h.expect("count_check.yes_please", "count_check.begin", "count_check.fail")
+        h.menu(*afterCheck)
+        h.pick(3)
+        h.expect("count_check.best_be_off")
         h.ends()
     }
 
     @Test
-    fun `Count Check counts his advice, and three can be questioned`() {
-        countCheck(mutableListOf())
-        h.menu(*top)
-        h.pick(2)
-        h.expect(
-            "count_check.advice", "count_check.count_steps", "count_check.one", "count_check.one_password", "count_check.two",
-            "count_check.two_email", "count_check.three", "count_check.three_website",
-        )
-        h.menu("count_check.carry_on", "count_check.what_three")
-        h.pick(2)
-        h.expect("count_check.what_three", "count_check.flow", "count_check.silence", "count_check.four", "count_check.four_pin", "count_check.fun")
-        h.menu(*top)
-        h.pick(5)
-        h.expect("count_check.bye")
-        h.ends()
-    }
-
-    @Test
-    fun `Count Check sends the player to the Stronghold only once, and after Who the Salve is asked about`() {
-        val sent = mutableListOf<Player>()
-        countCheck(sent)
-        h.menu(*top)
+    fun `Count Check does nothing else on a main world, and leaving before a check is maybe another time`() {
+        countCheck()
         h.pick(3)
-        h.expect("count_check.learn", "count_check.stronghold")
-        h.menu("count_check.yes", "count_check.no")
-        h.pick(2)
-        h.expect("count_check.may_check")
-        h.menu(*top)
-        h.pick(3)
-        h.expect("count_check.learn", "count_check.stronghold")
-        h.menu("count_check.yes", "count_check.no")
-        h.pick(1)
-        assertEquals(listOf(h.player), sent)
-        assertEquals(-1, h.player.chatModal)
-
-        countCheck(sent)
-        h.menu(*top)
-        h.pick(3)
-        h.expect("count_check.learn", "count_check.stronghold_visited")
-        h.menu(*top)
+        h.expect("count_check.anything_else", "count_check.no_bang", "count_check.now_checked")
+        h.menu(*first)
         h.pick(4)
+        h.expect("count_check.maybe_later")
+        h.ends()
+    }
+
+    @Test
+    fun `after who he is the Salve is asked about, and his menu with it comes back`() {
+        countCheck()
+        h.pick(2)
         h.expect(
-            "count_check.who", "count_check.vampyre", "count_check.perils", "count_check.be_warned", "count_check.left_ways",
-            "count_check.blessed",
+            "count_check.who_are_you", "count_check.like_i_said", "count_check.perils", "count_check.warned", "count_check.okay",
+            "count_check.now_checked",
         )
-        h.menu("count_check.salve", "count_check.check", "count_check.advice", "count_check.learn", "count_check.bye")
-        h.pick(1)
-        h.expect("count_check.salve", "count_check.of_course", "count_check.not_role_play", "count_check.right", "count_check.may_check")
-        h.menu(*top)
-        h.pick(5)
-        h.expect("count_check.bye")
+        h.menu(*afterWho)
+        h.pick(2)
+        h.expect(
+            "count_check.salve_cross", "count_check.what_mean", "count_check.role_play", "count_check.right_dots", "count_check.so_checked",
+        )
+        h.menu(*afterWho)
+        h.pick(4)
+        h.expect("count_check.maybe_later")
         h.ends()
     }
 
