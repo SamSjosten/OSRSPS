@@ -11,6 +11,10 @@ import java.nio.file.Path
 class DialogueText(private val words: Map<String, String>) {
     /** [line]'s words, with each `{arg}` replaced by its value in [values]. */
     operator fun get(line: Line, vararg values: Pair<String, Any>): String {
+        // Tests run with assertions on, so a value the line doesn't declare fails there, not on the live check.
+        assert(values.all { (name) -> name in line.args }) {
+            "${line.key} is given ${values.joinToString { it.first }} but declares ${line.args.ifEmpty { listOf("no placeholders") }}"
+        }
         val text = words[line.key]
             ?: return "[" + (listOf(line.key) + values.map { (name, value) -> "$name=$value" }).joinToString(" ") + "]"
         return values.fold(text) { result, (name, value) -> result.replace("{$name}", value.toString()) }
