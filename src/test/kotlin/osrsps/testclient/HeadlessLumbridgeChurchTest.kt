@@ -30,8 +30,8 @@ class HeadlessLumbridgeChurchTest {
     private val talkTo = listOf("Talk-to", null, null, null, null)
     private val aereck = NpcType(Church.FATHER_AERECK, "Father Aereck", ops = talkTo, internalName = "father_aereck")
     private val nigel = NpcType(
-        Church.NIGEL, "null", ops = NpcType.DEFAULT_OPS, multiVarp = 0,
-        multiNpcs = intArrayOf(Church.NIGEL_REGULAR, NIGEL_DMM, Church.NIGEL_REGULAR), internalName = "deadman_nigel",
+        Church.NIGEL_VARROCK, "null", ops = NpcType.DEFAULT_OPS, multiVarp = 0,
+        multiNpcs = intArrayOf(Church.NIGEL_REGULAR, -1), internalName = "deadman_nigel_varrock",
     )
     private val count = NpcType(Church.COUNT_CHECK, "Count Check", ops = talkTo, internalName = "count_check")
     private val nigelRegular = NpcType(
@@ -101,7 +101,7 @@ class HeadlessLumbridgeChurchTest {
                 says("leave", "guide_you")
                 client.await("the dialogue to close") { if (client.dialogueView == null) Unit else null }
 
-                val npc = client.await("Nigel in view") { client.npcs().firstOrNull { it.id == Church.NIGEL } }
+                val npc = client.await("Nigel in view") { client.npcs().firstOrNull { it.id == Church.NIGEL_VARROCK } }
                 client.npcOp(npc.index, Church.TALK_TO)
                 client.awaitDialogue("the player's question") { it is DialogueView.Chat && it.text == "[nigel.who]" }
                 client.continueDialogue()
@@ -145,6 +145,5 @@ class HeadlessLumbridgeChurchTest {
 
     private companion object {
         const val PRAYER = 5
-        const val NIGEL_DMM = 8390
     }
 }

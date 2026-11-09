@@ -134,8 +134,9 @@ object AltarLines : Lines("altar", "Altar") {
 /**
  * Lumbridge church and its graveyard: Father Aereck (2812) as he is after The Restless Ghost, with the Prayer tips he
  * took over when 242.1 removed the Prayer tutor, Count Check (7414) and the altar (409) that recharges prayer points.
- * With them Nigel the Deadman tutor (6093, which shows as 8391 on a normal world), whom 242.1 moved to the Grand
- * Exchange on normal worlds. Every account is a member and has every quest done ([osrsps.game.Quests]).
+ * With them Nigel the Deadman tutor, whom 242.1 moved to the Grand Exchange on normal worlds: there he is
+ * deadman_nigel_varrock (16812), which shows as 8391 on a normal world, while Lumbridge's deadman_nigel (6093) now shows
+ * nothing off Deadman worlds (osrs-dumps 853150e, verified on 242.1 live client 2026-11-09). Every account is a member and has every quest done ([osrsps.game.Quests]).
  *
  * From the Wiki: each NPC's lines and branches; Count Check (as since 242.1), asked what else he does, says "No!", as
  * the Wiki has on a main game world, so his once-only teleport to Barbarian Village is never offered here; Father
@@ -152,8 +153,10 @@ object AltarLines : Lines("altar", "Altar") {
  */
 object Church {
     const val FATHER_AERECK = 2812
-    /** deadman_nigel, a multi-NPC on varp deadman_mode. */
+    /** deadman_nigel, Lumbridge's multi-NPC on varp deadman_mode; since 242 it shows only the Deadman Nigel. */
     const val NIGEL = 6093
+    /** deadman_nigel_varrock, the Grand Exchange's multi-NPC on varp deadman_mode, which shows [NIGEL_REGULAR] on a normal world. */
+    const val NIGEL_VARROCK = 16812
     /** deadman_nigel_regular, the Nigel a normal world shows. */
     const val NIGEL_REGULAR = 8391
     const val COUNT_CHECK = 7414

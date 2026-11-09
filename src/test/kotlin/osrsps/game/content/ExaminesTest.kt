@@ -31,6 +31,7 @@ class ExaminesTest {
         }
         // Nigel's multi-NPC id shares the Nigel a normal world shows.
         assertSame(Examines.npc(Church.NIGEL_REGULAR), Examines.npc(Church.NIGEL))
+        assertSame(Examines.npc(Church.NIGEL_REGULAR), Examines.npc(Church.NIGEL_VARROCK))
         // The church's altar, organ and pews, the graveyard's gravestones, a water wheel and a plant west of the castle: the 241
         // cache's ids (dump.loc).
         for (id in listOf(Church.ALTAR, 3500, 5788, 404, 405, 5590, 1391)) assertEquals("examine.loc_$id", Examines.loc(id)?.key, "loc $id")
