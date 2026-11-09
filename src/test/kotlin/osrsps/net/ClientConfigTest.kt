@@ -23,7 +23,7 @@ class ClientConfigTest {
         val lines = config.javConfig().lines()
         assertContains(lines, "codebase=http://192.168.0.210/")
         assertContains(lines, "param=17=http://192.168.0.210:43595/world_list.ws")
-        assertContains(lines, "param=25=241")
+        assertContains(lines, "param=25=242")
         assertContains(lines, "param=12=${ClientConfig.WORLD_ID}")
     }
 
@@ -51,7 +51,7 @@ class ClientConfigTest {
             config:
               - name: OSRSPS
                 jav_config_url: http://192.168.0.210:43595/jav_config.ws
-                revision: 241.1
+                revision: 242.1
                 modulus: abc123
 
             """.trimIndent(),

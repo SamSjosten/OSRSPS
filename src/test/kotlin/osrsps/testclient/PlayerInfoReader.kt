@@ -116,11 +116,11 @@ class PlayerInfoReader(val localIndex: Int) {
         return moves
     }
 
-    /** An extended info block's flags as RSProt's desktop writer puts them: a byte, then more while 0x80 and 0x2000 say so. */
+    /** An extended info block's flags as RSProt 242's desktop writer puts them: a byte, then more while 0x4 and 0x1000 say so. */
     private fun blockFlags(payload: ByteArray, at: Int): Int {
         var flags = payload[at].toInt() and 0xFF
-        if (flags and 0x80 != 0) flags = flags or ((payload[at + 1].toInt() and 0xFF) shl 8)
-        if (flags and 0x2000 != 0) flags = flags or ((payload[at + 2].toInt() and 0xFF) shl 16)
+        if (flags and 0x4 != 0) flags = flags or ((payload[at + 1].toInt() and 0xFF) shl 8)
+        if (flags and 0x1000 != 0) flags = flags or ((payload[at + 2].toInt() and 0xFF) shl 16)
         return flags
     }
 
@@ -216,11 +216,11 @@ class PlayerInfoReader(val localIndex: Int) {
     private companion object {
         const val CAPACITY = 2048
 
-        /** The sequence (animation) block's flag on the wire, as RSProt 241's desktop writer converts it. */
-        const val SEQUENCE_FLAG = 0x40
+        /** The sequence (animation) block's flag on the wire, as RSProt 242's desktop writer converts it. */
+        const val SEQUENCE_FLAG = 0x10
 
         /** The exact move block's flag, likewise. */
-        const val EXACT_MOVE_FLAG = 0x800
+        const val EXACT_MOVE_FLAG = 0x2000
 
         /** Walk opcodes 0-7: SW, S, SE, W, E, NW, N, NE. */
         val WALK = arrayOf(-1 to -1, 0 to -1, 1 to -1, -1 to 0, 1 to 0, -1 to 1, 0 to 1, 1 to 1)

@@ -8,6 +8,7 @@ import net.rsprot.protocol.game.outgoing.util.OpFlags
 import net.rsprot.protocol.game.outgoing.zone.header.UpdateZoneFullFollows
 import net.rsprot.protocol.game.outgoing.zone.header.UpdateZonePartialEnclosed
 import net.rsprot.protocol.game.outgoing.zone.payload.LocAddChangeV2
+import net.rsprot.protocol.game.outgoing.zone.payload.LocAddChangeV3
 import net.rsprot.protocol.game.outgoing.zone.payload.LocAnim
 import net.rsprot.protocol.game.outgoing.zone.payload.LocDel
 import net.rsprot.protocol.game.outgoing.zone.payload.MapAnim
@@ -403,11 +404,17 @@ class Zones internal constructor(
         )
     }
 
-    private fun locAddChange(loc: ZoneLoc) = LocAddChangeV2(loc.id, loc.x and 7, loc.z and 7, loc.shape, loc.angle, OpFlags.ALL_SHOWN)
+    /** The 2-byte form while the id fits (every loc in the 242 cache does), the 3-byte one revision 242 added past that. */
+    private fun locAddChange(loc: ZoneLoc) =
+        if (loc.id <= MAX_SHORT_LOC_ID) LocAddChangeV2(loc.id, loc.x and 7, loc.z and 7, loc.shape, loc.angle, OpFlags.ALL_SHOWN)
+        else LocAddChangeV3(loc.id, loc.x and 7, loc.z and 7, loc.shape, loc.angle, OpFlags.ALL_SHOWN)
 
     companion object {
         /** Zones watched in each direction: a 7x7 block of zones (56x56 tiles) around the player. From RSMod, not live. */
         const val VIEW_RADIUS = 3
+
+        /** The highest loc id LOC_ADD_CHANGE_V2 carries. */
+        const val MAX_SHORT_LOC_ID = 0xFFFF
 
         /** The client's build area is 13x13 zones, centred on the zone it was built around. */
         const val BUILD_AREA_ZONE_RADIUS = 6

@@ -23,6 +23,9 @@ class HeadlessExamineTest {
                 client.await("the Cook's examine") { client.messages().firstOrNull { it.type == NPC_EXAMINE && it.text == "Our own words for the Cook." } }
                 client.examineLoc(SACKS)
                 client.await("the sacks' examine") { client.messages().firstOrNull { it.type == OBJ_EXAMINE && it.text == "[examine.loc_$SACKS]" } }
+                // Revision 242's OPLOC6_V2 carries a 3-byte loc id: the server reads the whole id, past 65535 too.
+                client.examineLoc(LONG_ID, longId = true)
+                client.await("a 3-byte loc id's examine") { client.messages().firstOrNull { it.type == OBJ_EXAMINE && it.text == "Loc (loc $LONG_ID): no examine text yet." } }
                 // As test scripts do: with keys on, the Cook's examine shows its key though the file has words for it.
                 client.commandReply("keys on") { it == "Dialogue shows keys" }
                 client.examineNpc(Cook.ID)
@@ -37,5 +40,8 @@ class HeadlessExamineTest {
 
         /** sacks: one of the castle's. */
         const val SACKS = 365
+
+        /** A loc id past 65535, which only the 3-byte packet forms can carry; no such loc exists, so the fallback line answers. */
+        const val LONG_ID = 70000
     }
 }
