@@ -148,6 +148,30 @@ class FeorasWilfredTest {
     }
 
     @Test
+    fun `without room Wilfred gives nothing, and both tools need two free slots`() {
+        h.player.inventory.add(ObjType(526, "Bones"), h.player.inventory.capacity - 1)
+        h.talk { with(Wilfred) { talk(give) } }
+        h.expect("wilfred.greeting")
+        h.menu(*wilfredMenu)
+        h.pick(3)
+        h.expect("wilfred.tools", "wilfred.offer")
+        h.menu("wilfred.axe_please", "wilfred.tinderbox_please", "wilfred.both_please", "wilfred.neither")
+        h.pick(3)
+        h.expect("wilfred.both_please", "wilfred.no_room_both")
+        h.menu(*wilfredMenu)
+        assertTrue(given.isEmpty())
+
+        h.player.inventory.add(ObjType(526, "Bones"), 1)
+        h.pick(3)
+        h.expect("wilfred.tools", "wilfred.offer")
+        h.menu("wilfred.axe_please", "wilfred.tinderbox_please", "wilfred.both_please", "wilfred.neither")
+        h.pick(1)
+        h.expect("wilfred.axe_please", "wilfred.no_room")
+        h.menu(*wilfredMenu)
+        assertTrue(given.isEmpty())
+    }
+
+    @Test
     fun `at 99 Woodcutting Wilfred sells the cape and hood for 99,000 coins`() {
         h.player.skills.setLevel(Skill.WOODCUTTING, 99)
         h.player.inventory.add(ObjType(Wilfred.COINS, "Coins", stackable = true), 99_500)

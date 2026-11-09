@@ -25,6 +25,7 @@ object MonlumLines : Lines("monlum", "Transcript:Monlum") {
     val NO_PROBLEM = line("no_problem", "a pickaxe, after the thanks: his answer")
     val HAS_ONE = line("has_one", "a pickaxe, owning one: his line")
     val SO_I_DO = line("so_i_do", "a pickaxe, owning one: the player's answer")
+    val NO_ROOM = line("no_room", "pickaxe, owning none, a full backpack: his line (missing)")
     val LEAVE = line("leave", "first menu: better be off, which the player then says (end of dialogue)")
 }
 
@@ -50,6 +51,7 @@ object FinlayLines : Lines("finlay", "Transcript:Finlay") {
     val HAPPY_TO_HELP = line("happy_to_help", "tools, after the thanks: his answer")
     val HAS_NET = line("has_net", "tools, owning a small net: his line")
     val I_DO = line("i_do", "tools, owning a small net: the player's answer")
+    val NO_ROOM = line("no_room", "tools, owning no small net, a full backpack: his line (missing)")
     val LEAVE = line("leave", "first menu: better get going, which the player then says (end of dialogue)")
 }
 
@@ -61,8 +63,9 @@ object FinlayLines : Lines("finlay", "Transcript:Finlay") {
  * one. Guessed: every chathead expression; that the boxes show the old tutors' icon items (5082, 5088) and the Skills
  * panel ones are plain message boxes; that "previous"/"other" is the first menu again; that any pickaxe counts as one
  * (Monlum says "on you", the old tutor counted the bank too: we count carried, worn and banked so a free pickaxe can't
- * be sold for coins from nothing, as the second exploit review asked); and that the item lands at the player's feet
- * without room (the Wiki gives no no-room line).
+ * be sold for coins from nothing, as the second exploit review asked); and that with a full backpack he gives nothing
+ * and says so, in a line of his own (the Wiki gives no no-room line; a gift dropped at the player's feet could be
+ * asked for again and again).
  */
 object SwampTutors {
     const val MONLUM = 16809
@@ -96,6 +99,8 @@ object SwampTutors {
                     if (PICKAXES.any { owns(player, it) }) {
                         chatNpc(ChatAnim.NEUTRAL, HAS_ONE)
                         chatPlayer(ChatAnim.NEUTRAL, SO_I_DO)
+                    } else if (player.inventory.freeSlots == 0) {
+                        chatNpc(ChatAnim.NEUTRAL, NO_ROOM)
                     } else {
                         chatNpc(ChatAnim.HAPPY, SPARE)
                         give(player, BRONZE_PICKAXE)
@@ -136,6 +141,8 @@ object SwampTutors {
                     if (owns(player, SMALL_FISHING_NET)) {
                         chatNpc(ChatAnim.NEUTRAL, HAS_NET)
                         chatPlayer(ChatAnim.NEUTRAL, I_DO)
+                    } else if (player.inventory.freeSlots == 0) {
+                        chatNpc(ChatAnim.NEUTRAL, NO_ROOM)
                     } else {
                         chatNpc(ChatAnim.HAPPY, ONLY_A_NET)
                         give(player, SMALL_FISHING_NET)

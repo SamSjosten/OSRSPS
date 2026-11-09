@@ -42,6 +42,8 @@ object WilfredLines : Lines("wilfred", "Transcript:Wilfred") {
     val GIVES_AXE = line("gives_axe", "the box with the bronze axe")
     val GIVES_TINDERBOX = line("gives_tinderbox", "the box with the tinderbox")
     val GIVES_BOTH = line("gives_both", "the box with the bronze axe and the tinderbox")
+    val NO_ROOM = line("no_room", "an axe or a tinderbox, a full backpack: his line (missing)")
+    val NO_ROOM_BOTH = line("no_room_both", "both tools, fewer than two free slots: his line (missing)")
     val THANKS = line("thanks", "after a box: the player's thanks")
     val DONT_MENTION_IT = line("dont_mention_it", "after a box: his answer")
     val FAIR_ENOUGH = line("fair_enough", "no thanks or neither: his answer")
@@ -72,8 +74,9 @@ object WilfredLines : Lines("wilfred", "Transcript:Wilfred") {
  * the player lacks), and the cape talk's first lines. Guessed: every chathead expression; that the boxes show the old
  * tutor's tree icon (9713) and the Skills panel ones are plain message boxes; that "previous" after the tools is the
  * first menu; that owning counts carried, worn and banked (as the old tutor's did, so a free axe can't be sold for
- * coins from nothing) and any woodcutting axe counts as an axe; that the tools land at the player's feet without room
- * (the Wiki gives no no-room line); the cape purchase and hood (missing from the page) follow the old Woodsman tutor's:
+ * coins from nothing) and any woodcutting axe counts as an axe; that without room for them he gives nothing and says
+ * so, in lines of his own (the Wiki gives no no-room line; a gift dropped at the player's feet could be asked for again
+ * and again); the cape purchase and hood (missing from the page) follow the old Woodsman tutor's:
  * 99 Woodcutting, 99,000 coins, room for cape and hood, trimmed with another 99.
  */
 object Wilfred {
@@ -156,6 +159,10 @@ object Wilfred {
                     }
                     3 -> {
                         chatPlayer(ChatAnim.HAPPY, BOTH_PLEASE)
+                        if (player.inventory.freeSlots < 2) {
+                            chatNpc(ChatAnim.NEUTRAL, NO_ROOM_BOTH)
+                            return@with
+                        }
                         give(player, BRONZE_AXE)
                         give(player, TINDERBOX)
                         doubleobjbox(BRONZE_AXE, TINDERBOX, text(GIVES_BOTH))
@@ -172,6 +179,10 @@ object Wilfred {
     }
 
     private suspend fun Dialogue.handOver(give: (Player, Int) -> Unit, obj: Int) = with(WilfredLines) {
+        if (player.inventory.freeSlots == 0) {
+            chatNpc(ChatAnim.NEUTRAL, NO_ROOM)
+            return@with
+        }
         give(player, obj)
         objbox(obj, if (obj == BRONZE_AXE) GIVES_AXE else GIVES_TINDERBOX)
         chatPlayer(ChatAnim.HAPPY, THANKS)

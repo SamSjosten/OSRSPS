@@ -783,7 +783,7 @@ sees it. The words are in the dialogue file, like every other line.
 | Donie and Gee | One of four opening menus at random, the quests, Lumbridge, and Gee's small monsters |
 | The Cooking tutor | Advice by your level |
 | Feoras (16806, the smithing tutor since 242.1) in the smithy | Smithing advice with its icon boxes, a hammer for a player with none, and his shop (`lumbridge_blacksmith`, inv 1032, the Wiki's prices) |
-| Wilfred (16808, the woodsman tutor since 242.1) | Woodcutting and Firemaking advice; an axe and tinderbox when you have none; the Woodcutting cape at 99 (trimmed with another 99) |
+| Wilfred (16808, the woodsman tutor since 242.1) | Woodcutting and Firemaking advice; an axe and tinderbox when you have none and room for them; the Woodcutting cape at 99 (trimmed with another 99) |
 | Abigaila, upstairs in the General Store | Her story; her scrying ball refuses a player carrying or wearing anything (the Theatre of Blood isn't built) |
 | The Ironman tutor | Explains Ironman; this game has no Ironmen, so his armour and the account modes are refused or end the talk |
 | Men, women and rats | As in the castle |
@@ -918,7 +918,7 @@ a butterfly, with the rats west of the castle wall, and the swamp's talking NPCs
 | Monlum (16809, the Mining tutor until 242.1) by the east mine: his mining advice with its boxes, and a bronze pickaxe for a player with none (carried, worn or banked) and a free slot | the Wiki's Transcript:Monlum |
 | Finlay (16810, the Fishing tutor until 242.1) by the shore: his fishing advice with its boxes, and a small fishing net for a player with none and a free slot | the Wiki's Transcript:Finlay |
 | The fight animations (by the stand and walk animations each type has: the updated giant rat's, the giant frog's for all three frogs, the spear goblin's, the updated unicorn's), the curved bone's 1/5,012.5 kept as 1/5013, and every wander range (5) | guessed |
-| For the tutors: that a banked pickaxe or net counts as owned (as for Wilfred's axe); the icon items in the boxes (the old tutors'); their wander ranges (Monlum 4, Finlay 3: their Wiki map radii) | guessed |
+| For the tutors: that a banked pickaxe or net counts as owned (as for Wilfred's axe); the icon items in the boxes (the old tutors'); their wander ranges (Monlum 4, Finlay 3: their Wiki map radii); that with a full backpack they give nothing and say so in a line of their own (the Wiki has none) | guessed |
 | Every chathead expression; that a worn ghostspeak amulet counts as carried; the bank as the only store Urhney checks (no Death's Office or item retrieval yet); the candle landing at the player's feet with no free slot; having heard about lanterns kept with the account by name | guessed |
 
 The unicorn retreats at a quarter of its hitpoints ([NPC aggression](#npc-aggression), guessed threshold). The tutors' offers to show a place on the world

@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import osrsps.game.InvObj
+import osrsps.game.ObjType
 import osrsps.game.Player
 import osrsps.game.content.SwampTutors.finlay
 import osrsps.game.content.SwampTutors.monlum
@@ -57,6 +58,28 @@ class SwampTutorsTest {
         h.pick(2)
         h.expect("monlum.pickaxe", "monlum.has_one", "monlum.so_i_do")
         assertEquals(1, given.size)
+    }
+
+    @Test
+    fun `with a full backpack Monlum and Finlay give nothing, so a gift can't pile up at the player's feet`() {
+        h.player.inventory.add(ObjType(526, "Bones"), h.player.inventory.capacity)
+        h.talk { monlum(give) }
+        h.expect("monlum.greeting")
+        h.menu(*monlumMenu)
+        h.pick(2)
+        h.expect("monlum.pickaxe", "monlum.no_room")
+        h.menu(*monlumMenu)
+        h.pick(3)
+        h.expect("monlum.leave")
+        h.ends()
+
+        h.talk { finlay(give) }
+        h.expect("finlay.greeting")
+        h.menu(*finlayMenu)
+        h.pick(2)
+        h.expect("finlay.tools", "finlay.no_room")
+        h.menu(*finlayMenu)
+        assertTrue(given.isEmpty())
     }
 
     @Test
