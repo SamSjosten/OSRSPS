@@ -664,7 +664,7 @@ class MeleeCombat(
      * waits there first is guessed.
      */
     private fun leftBehind(npc: Npc, player: Player, tick: Long): Boolean =
-        !Aggression.inAggressionRange(npc, player.x, player.z, combat.npcCombat[npc.type]?.range ?: Aggression.ATTACK_RANGE) &&
+        !npc.unleashed && !Aggression.inAggressionRange(npc, player.x, player.z, combat.npcCombat[npc.type]?.range ?: Aggression.ATTACK_RANGE) &&
             tick - npc.fightTick > IN_COMBAT_TICKS && !hitBy(npc, player)
 
     /**
@@ -838,9 +838,9 @@ class MeleeCombat(
     /** Magic and ranged NPC shots on their way, for tests. */
     val shotsInFlight: Int get() = shots.size
 
-    /** Whether [player] is further than [CHASE_RANGE] from [npc]'s spawn on either axis. */
+    /** Whether [player] is further than [CHASE_RANGE] from [npc]'s spawn on either axis; never for an unleashed one. */
     private fun outOfRange(npc: Npc, player: Player): Boolean =
-        abs(player.x - npc.spawn.x) > CHASE_RANGE || abs(player.z - npc.spawn.z) > CHASE_RANGE
+        !npc.unleashed && (abs(player.x - npc.spawn.x) > CHASE_RANGE || abs(player.z - npc.spawn.z) > CHASE_RANGE)
 
     /**
      * [player] takes [damage] from [source] (null for none), capped at their hitpoints and 0 under `::god`, on [tick]:
