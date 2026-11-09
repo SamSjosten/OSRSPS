@@ -84,7 +84,7 @@ object BorkLines : Lines("tfa_bork", "The_Fractured_Archive/Strategies") {
  *
  * Guessed, until a recording shows the damage (each also in the README): a strike's roll being his melee's at each
  * player's crush defence, the 2-3 tile one's max hit ([WIDE_MAX]), Protect from Melee halving a strike, the tower's
- * shadow keeping a strike off too; the Smorks' max hits and a volley's style picked at random; the gap from a volley
+ * shadow keeping a strike off too; a volley's style picked at random; the gap from a volley
  * to napalm and to the cannonball's call (a spacing); napalm's and the cannonball's target being a random player Bork
  * isn't after, his tank when there is none; the splash's drip being the target tile itself, and which way counts as
  * straight; napalm landing on Bork hurting him by an oil tick's 6-7, once; the burn's 2 every 4 ticks, 5 times, not
@@ -186,8 +186,11 @@ object Bork {
     /** The Smorks' first volley this many ticks in (tsps). */
     const val FIRST_VOLLEY = 13
 
-    /** The potions' max hit. Guessed: the bones' (npc-combat.json's 28, the formula's from their Ranged). */
-    const val POTIONS_MAX = 28
+    /**
+     * The potions' max hit, the bones' too (npc-combat.json's): the most seen in Sam's recording of 2026-11-09, some 45
+     * hits of both on a party of four, most of them in the frenzy. The formula's from their Ranged would be 28.
+     */
+    const val POTIONS_MAX = 7
 
     /** Napalm: its cast this long after its call, its splash this long after the cast, and the oil a tick on (tsps). */
     const val NAPALM_CAST = 1
@@ -224,9 +227,9 @@ object Bork {
     /** The Smorks' next cycle this long after his stomp begins (tsps: 39 ticks after a daze, which lasts 14). */
     const val CYCLE_AFTER_STOMP = 25
 
-    /** A shockwave's damage. Guessed: no guide or capture gives it. */
+    /** A shockwave's damage. The most is the one hit seen in Sam's recording of 2026-11-09; the least is guessed. */
     const val STOMP_MIN = 15
-    const val STOMP_MAX = 30
+    const val STOMP_MAX = 34
 
     /** The tempo: a stage for every 25% the Smorks have lost, up to 3, each a tick off the spacing (tsps: 7, 6, 5, 4). */
     const val TEMPO_EVERY_PERCENT = 25

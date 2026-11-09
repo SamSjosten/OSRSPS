@@ -577,7 +577,8 @@ class NpcCombatTest {
         assertEquals(AttackType.RANGED, them.attackType)
         // The Wiki lists neither max hit: the formula's from the levels and bonuses.
         assertEquals(CombatMath.npcMaxHit(200, 40), him.maxHit)
-        assertEquals(CombatMath.npcMaxHit(185, 30), them.maxHit)
+        // Theirs is the most seen on live (Sam's recording of 2026-11-09), well under the formula's 28.
+        assertEquals(7, them.maxHit)
         assertEquals(listOf(100, 250, 185), listOf(him.attackBonus, them.attackBonus, them.magicAttack))
         assertEquals(NpcCombatAnims(14542, -1, 14541), him.anims)
         assertEquals(listOf(NpcRangedAttack(anim = 14554, projectile = 4056, impact = 4055)), them.attacks)

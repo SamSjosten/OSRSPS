@@ -706,7 +706,7 @@
     {
       "npcs": ["tfa_smork"],
       "attackSpeed": 7,
-      "maxHit": 28,
+      "maxHit": 7,
       "attackType": "ranged",
       "attackBonus": 250,
       "strengthBonus": 30,
@@ -719,7 +719,7 @@
       "weakness": {"element": "earth", "percent": 85},
       "immune": ["poison", "freeze"],
       "deathTicks": 9,
-      "source": "OSRS Wiki, Smorks (id 16641), read 2026-11-09: speed 7, ranged and magic, ranged +250 and ranged strength +30, magic +185, the defence bonuses, the 85% earth weakness, immune to poison and freeze (venom unknown, so left off). Their bones (ranged) and potions (magic) come from their fight (Bork), at everyone Bork isn't after (guides). The Wiki lists no max hit: 28 is the formula's from their Ranged of 185 and +30, the magic's too (its +35% magic damage left out). The bones are vfx_smork_range_attack_projanim01 (4056) landing as vfx_smork_range_player_spotanim01 (4055). Their fight fires at players anywhere in their room; the range is only the file's most, 10. Their tower gone 9 ticks after they fall (tsps capture notes; Sam's recording of 2026-11-09 has the room done that long after). Guessed: the cannon's attack animation for both, the bones' impact, the respawn, which never comes"
+      "source": "OSRS Wiki, Smorks (id 16641), read 2026-11-09: speed 7, ranged and magic, ranged +250 and ranged strength +30, magic +185, the defence bonuses, the 85% earth weakness, immune to poison and freeze (venom unknown, so left off). Their bones (ranged) and potions (magic) come from their fight (Bork), at everyone Bork isn't after (guides). The Wiki lists no max hit: 7 is the most seen in Sam's recording of 2026-11-09 (some 45 hits of bones and potions on a party of four), where the formula's from their Ranged of 185 and +30 would be 28. The bones are vfx_smork_range_attack_projanim01 (4056) landing as vfx_smork_range_player_spotanim01 (4055). Their fight fires at players anywhere in their room; the range is only the file's most, 10. Their tower gone 9 ticks after they fall (tsps capture notes; Sam's recording of 2026-11-09 has the room done that long after). Guessed: the cannon's attack animation for both, the bones' impact, the respawn, which never comes"
     },
     {
       "npcs": ["tfa_guardian_battery_active", "tfa_guardian_battery_inactive", "tfa_guardian_battery_destroyed"],
