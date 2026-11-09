@@ -1,0 +1,24 @@
+# Lumbridge Swamp Caves: the tiles where a naked flame sets off the gas, a row a line as in the dark file.
+# Traced from the OSRS Wiki's hazard map (File:Lumbridge swamp caves hazards.png, read 2026-11-09), placed by fitting
+# its seven wall beast holes to mejrs's live tiles (8 pixels a tile, within a tile), kept to dark tiles.
+9595 3161-3161
+9594 3158-3161 3170-3170
+9593 3156-3164 3168-3171
+9592 3155-3164 3167-3171
+9591 3155-3170
+9590 3157-3170
+9589 3158-3170
+9588 3158-3171
+9587 3158-3173
+9586 3160-3166 3170-3174
+9585 3161-3163 3166-3166 3172-3174
+9584 3161-3161 3166-3166
+9560 3209-3209
+9559 3205-3213
+9558 3205-3212
+9557 3205-3212
+9556 3203-3212
+9555 3203-3212
+9554 3203-3211
+9553 3202-3211
+9552 3207-3208

@@ -855,6 +855,8 @@
     {"loc": 5792, "name": "Flour bin", "wiki": "Flour bin page, infobox (empty)"},
     {"loc": 5917, "name": "Gas hole"},
     {"loc": 5947, "name": "Dark hole"},
+    {"loc": 5948, "name": "Stepping stone", "wiki": "Stepping stone (Lumbridge Swamp Caves)"},
+    {"loc": 5949, "name": "Stepping stone", "wiki": "Stepping stone (Lumbridge Swamp Caves)"},
     {"loc": 6045, "name": "Mine cart"},
     {"loc": 6297, "name": "Skeleton"},
     {"loc": 6298, "name": "Skeleton"},
