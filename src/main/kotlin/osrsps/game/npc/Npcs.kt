@@ -309,8 +309,9 @@ class Npcs(
                 ?: return
         }
         // Fighting, it keeps within its max range of its spawn (OSRS Wiki, Retreat: almost always 7 tiles), standing
-        // at the edge rather than stepping past it. Guessed that this is the same range a chasing NPC keeps to.
-        if (npc.target != null && (abs(npc.x + sx - npc.spawn.x) > MAX_RANGE || abs(npc.z + sz - npc.spawn.z) > MAX_RANGE)) return
+        // at the edge rather than stepping past it. Guessed that this is the same range a chasing NPC keeps to. An
+        // unleashed one ([Npc.unleashed]) keeps to none.
+        if (npc.target != null && !npc.unleashed && (abs(npc.x + sx - npc.spawn.x) > MAX_RANGE || abs(npc.z + sz - npc.spawn.z) > MAX_RANGE)) return
         move(npc, sx, sz)
     }
 
