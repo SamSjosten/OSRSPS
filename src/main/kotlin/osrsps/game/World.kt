@@ -182,6 +182,7 @@ import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
 import osrsps.game.skill.BirdNests
 import osrsps.game.skill.Firemaking
+import osrsps.game.skill.LightSources
 import osrsps.game.skill.LevelUps
 import osrsps.game.skill.Making
 import osrsps.game.skill.Cooking
@@ -839,6 +840,7 @@ class World(
         woodcutting.register()
         birdNests.register()
         firemaking.register()
+        LightSources.register(this)
         mining.register()
         thieving.register()
         pickpocketing.register()
