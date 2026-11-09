@@ -161,7 +161,8 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
  *   once the room before is done. Enter and Quick-enter both go straight in, as do the transporter's Use and
  *   Quick-use: their difference, likely a warning first, isn't known.
  * - The Passageway goes back to the nexus at any time, in front of the room's door; the transporter, once the room is
- *   done. Ocellus's room is past the nexus's own Passageway (`tfa_exit_large`), open once the fourth room is done.
+ *   done. Before then Bork's room's transporter puts the player on the arena's floor (tsps capture notes: 4184,5599),
+ *   past a gap in its west wall too narrow for him. Ocellus's room is past the nexus's own Passageway (`tfa_exit_large`), open once the fourth room is done.
  * - STAND-IN until the reward room (step 28): once Ocellus's room is done, a Passageway at its south edge leaves to the
  *   lobby; the cache has no way out of that room.
  * - The nexus is the cache's map square 64,87 on one of its four levels: 0 at the start, 2 (the Guardian's corpse and a
@@ -418,12 +419,26 @@ class ArchiveRaids(private val world: World) {
         world.locs.add(ZoneLoc(PASSAGEWAY, LocShape.CENTREPIECE_STRAIGHT, 0, at.x, at.z, 0))
     }
 
-    /** A boss room's Archive transporter: back to the nexus, once the room is done. */
+    /**
+     * A boss room's Archive transporter: back to the nexus, once the room is done. Before then Bork's puts the player on
+     * the floor of his arena ([BORK_ARENA_X]), the way into his fight.
+     */
     fun transporter(player: Player) {
         val run = at(player.x, player.z) ?: return
         val room = roomAt(run, player.x, player.z)?.takeIf { it.door >= 0 } ?: return
+        if (room == ArchiveRoom.BORK && room !in run.cleared) {
+            val to = tile(run, BORK_ARENA_X, BORK_ARENA_Z)
+            if (!inBorkArena(run, player)) world.teleport(player, to.x, to.z, 0)
+            return
+        }
         if (room !in run.cleared) return
         out(player, run, room)
+    }
+
+    /** Whether [player] stands on the floor of Bork's arena in [run]. */
+    private fun inBorkArena(run: ArchiveRun, player: Player): Boolean {
+        val tower = tile(run, BORK_CART_X, BORK_CART_Z)
+        return Bork.inArena(tower.x, tower.z, player.x, player.z)
     }
 
     private fun out(player: Player, run: ArchiveRun, room: ArchiveRoom) {
@@ -474,9 +489,10 @@ class ArchiveRaids(private val world: World) {
                 if (room !in run.started && room !in run.cleared && room.stage == run.stage) {
                     when {
                         !built(room) -> begin(run, room)
-                        // The Guardian waits for a Touch; Ezekiel's, and Bork and the Smorks', begin with the first of the party in.
+                        // The Guardian waits for a Touch; Ezekiel's begins with the first of the party in, and Bork and the
+                        // Smorks' with the first onto their arena's floor (by its transporter), out of the way in he can't reach.
                         room == ArchiveRoom.EZEKIEL -> beginEzekiel(run, player)
-                        room == ArchiveRoom.BORK -> beginBork(run, player)
+                        room == ArchiveRoom.BORK -> if (inBorkArena(run, player)) beginBork(run, player)
                     }
                 }
             }
@@ -719,6 +735,10 @@ class ArchiveRaids(private val world: World) {
          */
         const val BORK_CART_X = 4190
         const val BORK_CART_Z = 5598
+
+        /** Where Bork's room's transporter puts the player: the west edge of his arena's floor (tsps capture notes). */
+        const val BORK_ARENA_X = 4184
+        const val BORK_ARENA_Z = 5599
 
         /** In front of the nexus's own Passageway (4124,5625, 7 by 2). Guessed. */
         const val PASSAGE_FRONT_X = 4127

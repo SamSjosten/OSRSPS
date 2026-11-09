@@ -1,5 +1,5 @@
 {
- "name": "Raid step 18a: Bork and the Smorks solo, their fight beginning as the first player comes into their room, both at the Wiki's hitpoints, Bork taking the player on and beating his gong under Protect from Melee, his flat armour rising as the Smorks are hurt, and the room done only once both are dead, Bork first",
+ "name": "Raid steps 18a and 18b: Bork and the Smorks solo, their fight beginning as the player takes the room's transporter onto the arena's floor, both at the Wiki's hitpoints, Bork taking the player on and beating his gong under Protect from Melee, napalm leaving oil under the player, the heavy cannonball missing him and his stomp after it, his flat armour rising as the Smorks are hurt, and the room done only once both are dead, Bork first",
  "account": "test",
  "steps": [
   {
@@ -76,7 +76,14 @@
    "step": "command",
    "text": "::raid tp bork",
    "expectMessage": "To Bork and the Smorks's room",
-   "comment": "in at the room's west end: the first in, so Bork's tank"
+   "comment": "in at the room's way in, west of the arena, out of Bork's reach"
+  },
+  {
+   "step": "locOption",
+   "locId": 63087,
+   "option": "Use",
+   "timeoutMs": 20000,
+   "comment": "tfa_boss_teleporter, the Archive transporter: onto the arena's floor, the first in, so Bork's tank"
   },
   {
    "step": "waitTicks",
@@ -103,7 +110,7 @@
   {
    "step": "waitTicks",
    "ticks": 24,
-   "comment": "he walks over from the cart, beating wide while he can't reach, then close beside"
+   "comment": "he walks over round the tower, gonging (8 ticks in, then every 7)"
   },
   {
    "step": "assertAnimation",
@@ -116,7 +123,29 @@
    "step": "command",
    "text": "::raid log 40",
    "expectMessage": "beat hits test for",
-   "comment": "alone, the player is his and the Smorks fire at no one"
+   "comment": "alone, the player is his and the Smorks' volleys have no one to fire at"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 32,
+   "comment": "napalm at the player 20 ticks in, its oil 6 after; the heavy cannonball at the player too (none else to aim at), missing Bork, and his stomp 2 ticks after it lands, by tick 57 at the latest"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 150",
+   "expectMessage": "fight: oil burns test for",
+   "comment": "the oil under the player, 6 to 7 a tick (nothing with ::god on)"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 150",
+   "expectMessage": "fight: the heavy cannonball misses Bork"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 150",
+   "expectMessage": "fight: Bork stomps",
+   "comment": "4 shockwaves over the arena, then he names his tank again"
   },
   {
    "step": "command",
