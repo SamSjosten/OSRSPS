@@ -2883,6 +2883,8 @@ class World(
         try {
             // Nobody is saved dead: a leaver's death finishes now, grave and all.
             if (player.dead) deaths.respawn(player)
+            // Down in a raid, leaving counts as a death (RAID-2), also when the death just finished put them down.
+            archiveRaids.leaving(player)
             trades.leave(player)
             thieving.forgive(player)
             friendChats.logout(player)

@@ -3,6 +3,7 @@ package osrsps.game.raid
 import io.github.oshai.kotlinlogging.KotlinLogging
 import osrsps.game.Player
 import osrsps.game.World
+import osrsps.game.combat.CombatLines
 import osrsps.game.combat.DeathPlace
 import osrsps.game.encounter.Encounter
 import osrsps.game.instance.Instance
@@ -176,6 +177,9 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
  * - The wipe: once nobody in the raid is left standing, each member goes to the lobby, in front of the Archive Door,
  *   and what they lose goes in a grave there.
  * - A member who leaves the party is sent to the lobby. Logging out saves them there, as any instance does at its exit.
+ * - A member down who gets out (a teleport, leaving the party, logging out) dies of it, with a grave in the lobby, as
+ *   if they had been the last standing (Sam's decision of 8 November 2026 on exploit review RAID-2). A reconnect within
+ *   the linger is no escape.
  */
 class ArchiveRaids(private val world: World) {
     private val runs = LinkedHashMap<Party, ArchiveRun>()
@@ -354,7 +358,13 @@ class ArchiveRaids(private val world: World) {
      * with nobody left standing (the last standing one logged out) wipes.
      */
     fun process() {
-        runs.values.removeIf { run -> world.instances.all.none { it === run.instance } }
+        runs.values.removeIf { run ->
+            val ended = world.instances.all.none { it === run.instance }
+            // Everyone out at once (the last standing with a member down, both by Home Teleport on one tick): the
+            // instance ended before this look, and whoever was down got out all the same.
+            if (ended && !run.wiped) settleEscapes(run, ended = true)
+            ended
+        }
         for (run in runs.values.toList()) {
             if (run.wiped) continue
             // A fight whose boss has died: its room is done.
@@ -376,9 +386,49 @@ class ArchiveRaids(private val world: World) {
                 }
                 if (room !in run.started && room !in run.cleared && room.stage == run.stage && !built(room)) begin(run, room)
             }
+            settleEscapes(run, ended = false)
             val present = present(run)
             if (present.isNotEmpty() && present.none { it.dead } && standing(run).isEmpty()) wipe(run, null)
         }
+    }
+
+    /**
+     * A member down who got out of [run], by a teleport or by leaving the party, dies of it (RAID-2). Once its
+     * instance has [ended], everyone is out of it. One who left the party counts at once, before [process] sends them out
+     * of the instance: a room done in the same input would otherwise get them up first.
+     */
+    private fun settleEscapes(run: ArchiveRun, ended: Boolean) {
+        for (key in run.downed.toList()) {
+            val player = world.onlinePlayers.firstOrNull { it.saveKey == key } ?: continue
+            val out = ended || !run.instance.contains(player.x, player.z) || world.parties.of(player) !== run.party
+            if (!player.dead && out) escaped(run, player)
+        }
+    }
+
+    /**
+     * [player] is leaving the world (logged out, or their wait for a reconnect is over): if they are down in a run, that
+     * counts as their death (RAID-2), before they are saved. Found by their being down, not by where they stand: a
+     * Home Teleport landing out of the instance on the tick they log out is past [process]'s look for the run that
+     * tick, and out of it by the next.
+     */
+    fun leaving(player: Player) {
+        if (player.dead) return
+        val run = runs.values.firstOrNull { !it.wiped && player.saveKey in it.downed } ?: return
+        escaped(run, player)
+    }
+
+    /**
+     * [player], down in [run], got out of it before it was done with them: they die as the last one standing would,
+     * losing what a death loses into a grave in the lobby, and come back there. Without this a member down kept
+     * everything and could teleport out or log out to keep it, so with an alt standing every death was free (exploit
+     * review round 12, RAID-2, and its round 13 addendum). Sam's decision of 8 November 2026; the death's place is guessed.
+     */
+    private fun escaped(run: ArchiveRun, player: Player) {
+        run.downed -= player.saveKey
+        run.deaths[player.saveKey] = (run.deaths[player.saveKey] ?: 0) + 1
+        logger.info { "$run: ${player.username} got out while down, so dies of it" }
+        player.message(world.textFor(player)[CombatLines.DEAD])
+        world.deaths.respawn(player, wipePlace(run))
     }
 
     /** [room]'s fight begins, with whoever of the party stands in it. Its boss isn't built yet, so it is done at once. */
@@ -416,6 +466,8 @@ class ArchiveRaids(private val world: World) {
         run.started += room
         run.cleared += room
         run.chosen[room.stage] = room
+        // Whoever got out while down (a Home Teleport landing last tick) dies of it before the room's end gets them up.
+        settleEscapes(run, ended = false)
         share(run, room)
         run.downed.clear()
         run.clearedTick = world.tick
@@ -483,6 +535,8 @@ class ArchiveRaids(private val world: World) {
      * [dying] is the one whose death did it, whose own respawn carries on after; the others lying dead go as they get up.
      */
     private fun wipe(run: ArchiveRun, dying: Player?) {
+        // Whoever got out while down (a Home Teleport landing last tick) dies of it first: the wipe only sees who is in.
+        settleEscapes(run, ended = false)
         run.wiped = true
         for (room in run.fights.keys.toList()) stopFight(run, room)
         logger.info { "$run wiped${dying?.let { " as ${it.username} died" }.orEmpty()}" }
