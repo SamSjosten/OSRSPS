@@ -664,11 +664,15 @@ object Bork {
             log("napalm burns Bork for $dealt")
         }
         after(OIL_AFTER_SPLASH) {
+            // Tiles that had no oil: whoever stands on one is burnt this tick too, as the oil appears. Oil already there
+            // burnt them earlier in this tick ([oil]).
+            val fresh = tiles.filter { it !in state.oil }.toSet()
             for (tile in tiles) {
                 state.oil.remove(tile)?.let { clearLoc(it.loc) }
                 state.oil[tile] = Oil(placeLoc(LOC_OIL, tile.x, tile.z), phaseTick + OIL_TICKS)
             }
             log("oil on ${tiles.joinToString(" ") { "${it.x},${it.z}" }}")
+            for (player in players) if (Tile(player.x, player.z) in fresh) oilBurns(player)
         }
     }
 
@@ -682,12 +686,24 @@ object Bork {
             clearLoc(gone.loc)
             world.zones.mapAnim(tile.x, tile.z, boss.level, SPOT_OIL_GONE)
         }
-        for (player in players) {
-            if (Tile(player.x, player.z) !in oil) continue
-            val dealt = world.meleeCombat.hitPlayer(player, null, roll(OIL_MIN, OIL_MAX), world.tick)
-            log("oil burns ${player.username} for $dealt")
-            burn(player)
-        }
+        for (player in players) if (Tile(player.x, player.z) in oil) oilBurns(player)
+    }
+
+    /** The oil under [player] burns them: 6 to 7, and their burn starts if it isn't running. */
+    private fun EncounterContext.oilBurns(player: Player) {
+        val dealt = fromTheRoom(player, roll(OIL_MIN, OIL_MAX))
+        log("oil burns ${player.username} for $dealt")
+        burn(player)
+    }
+
+    /**
+     * [player] takes [damage] from the room (the oil, its burn): from no one, so they don't hit back, but in combat all
+     * the same, as a boss's hazard holds them ([osrsps.game.encounter.Hazard]): a Home Teleport cut short, a logout held.
+     */
+    private fun EncounterContext.fromTheRoom(player: Player, damage: Int): Int {
+        val dealt = world.meleeCombat.hitPlayer(player, null, damage, world.tick)
+        if (!player.dead) player.attackedTick = world.tick
+        return dealt
     }
 
     /** [player] catches fire: [BURN_DAMAGE] every [BURN_EVERY] ticks, [BURN_HITS] times; not again while it runs. */
@@ -697,7 +713,7 @@ object Bork {
         for (i in 1..BURN_HITS) {
             after(BURN_EVERY * i) {
                 if (players.none { it === player }) return@after
-                val dealt = world.meleeCombat.hitPlayer(player, null, BURN_DAMAGE, world.tick)
+                val dealt = fromTheRoom(player, BURN_DAMAGE)
                 log("burn on ${player.username} for $dealt")
             }
         }
@@ -801,6 +817,8 @@ object Bork {
         val pick = if (others.isNotEmpty()) others[roll(0, others.size - 1)] else players.firstOrNull() ?: return
         bork.effects.say(text(BorkLines.SMASH, "player" to pick.username))
         takeOn(bork, pick)
+        // After them this tick: the fight's tick, before this call, had him chase the tank before.
+        chase(bork, pick)
     }
 
     private fun EncounterContext.gone(npc: Npc): Boolean = boss.dead || npc.dead || !inWorld(npc)

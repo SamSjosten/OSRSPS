@@ -313,7 +313,12 @@ class HeadlessBorkTest {
                     val oil = alice.awaitLine(run, "the oil") { it.contains("fight: oil on ") }
                     assertTrue(oil.substringAfter("oil on ").split(' ').contains(at), oil)
                     assertEquals(Bork.NAPALM_CAST + Bork.NAPALM_FLIGHT + Bork.OIL_AFTER_SPLASH.toLong(), tickOf(oil) - tickOf(lines(run).first { it.contains("the Smorks call napalm") }))
-                    alice.awaitLine(run, "the oil burning bob") { it.contains("fight: oil burns bob for") }
+                    // The oil burns him the tick it appears, and holds him in combat though it comes from no one.
+                    val burnt = alice.awaitLine(run, "the oil burning bob") { it.contains("fight: oil burns bob for") }
+                    assertEquals(tickOf(oil), tickOf(lines(run).first { it.contains("fight: oil burns bob for") }))
+                    val fight = assertNotNull(run.fights[ArchiveRoom.BORK])
+                    val began = generateSequence { world.tick - fight.phaseTick }.zipWithNext().first { (a, b) -> a == b }.first
+                    assertTrue(world.playerNamed("bob")!!.attackedTick >= began + tickOf(burnt), "bob's combat lock from the oil")
                     alice.awaitLine(run, "bob on fire") { it.contains("fight: burn on bob for") }
                     // Bork beside alice, standing; bob under him, where the heavy cannonball will follow him.
                     alice.awaitLine(run, "Bork beating at alice") { it.contains("beat hits alice for") }
