@@ -165,7 +165,7 @@ object Ezekiel {
         )
     }
 
-    /** What a fight keeps between ticks, by boss: the context keeps none. Holds no boss and its tank only weakly. */
+    /** What a fight keeps between ticks, by boss: the context keeps none. Holds no NPC, and its tank only weakly. */
     private class State {
         /** Swings since the fight began: every second one brings a cross. */
         var swings = 0
@@ -176,8 +176,11 @@ object Ezekiel {
         /** The tick his stun wears off; he's stunned before it. */
         var stunnedUntil = 0L
 
-        /** The swords of the volley out, till it flies. */
-        var volley: List<Sword> = emptyList()
+        /**
+         * Whether a volley is out, till it flies. Only the flag: the swords themselves stay in the fight's own callbacks,
+         * which its end lets go of, so nothing here can hold a sword, its attacker and through them the boss.
+         */
+        var volleyOut = false
     }
 
     /** A flying sword at the end of its [lane], across the arena [alongX] or along z, at [offset]. */
@@ -267,7 +270,7 @@ object Ezekiel {
         // Not when his swing left no one in the room.
         if (state.swings % 2 == 0 && players.isNotEmpty()) {
             crosses()
-            if (sword != null && state.volley.isEmpty()) volley(sword)
+            if (sword != null && !state.volleyOut) volley(sword)
         }
     }
 
@@ -373,10 +376,17 @@ object Ezekiel {
         val cz = boss.spawn.z + size / 2
         val count = roll(SWORDS_MIN, SWORDS_MAX)
         val swords = ArrayList<Sword>()
+        val taken = HashSet<Pair<Boolean, Int>>()
         repeat(count) {
-            val alongX = roll(0, 1) == 0
-            val centre = if (alongX) cz else cx
-            val offset = roll(centre - ARENA_RADIUS, centre + ARENA_RADIUS - size + 1)
+            // Each its own lane: two on one would hit as one, twice. Guessed: live's paths look distinct.
+            var alongX: Boolean
+            var offset: Int
+            var tries = 0
+            do {
+                alongX = roll(0, 1) == 0
+                val centre = if (alongX) cz else cx
+                offset = roll(centre - ARENA_RADIUS, centre + ARENA_RADIUS - size + 1)
+            } while (!taken.add(alongX to offset) && ++tries < 20)
             val (min, max) = if (alongX) cx - ARENA_RADIUS to cx + ARENA_RADIUS else cz - ARENA_RADIUS to cz + ARENA_RADIUS
             // From either end, its middle at the edge.
             val end = if (roll(0, 1) == 0) min else max
@@ -390,14 +400,14 @@ object Ezekiel {
             log("sword at $x,$z across ${if (alongX) "x" else "z"} at $offset")
         }
         if (swords.isEmpty()) return
-        state.volley = swords
+        state.volleyOut = true
         for (sword in swords) perfectDodge(sword.lane, SWORD_LAUNCH, "a sword")
         after(SWORD_LAUNCH) { fly(swords) }
     }
 
     /** The volley flies: each hits whoever is in its lane, and him if he's lined up with it; none hitting him heals him. */
     private fun EncounterContext.fly(swords: List<Sword>) {
-        state.volley = emptyList()
+        state.volleyOut = false
         var struck = false
         for (sword in swords) {
             if (gone()) return
