@@ -314,7 +314,7 @@ class MagicCombat(
         // Accuracy first, then damage, as for melee and ranged.
         val hit = CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll) || player.sureHits
         val rolled = if (hit) CombatMath.rollDamage(random, matchup.maxHit) else 0
-        val damage = minOf(melee.armoured(npc, rolled, magic = true), (npc.hitpoints - npc.incoming).coerceAtLeast(0))
+        val damage = minOf(melee.armoured(npc, rolled, magic = true), (npc.hitpoints - combat.floor(npc, player) - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage
         val bonus = combat.npcCombat[npc.type]?.xpBonusTenths ?: 0
         if (defensive) {

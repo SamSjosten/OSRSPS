@@ -173,6 +173,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `swamp-caves-monsters.json`: Misthalin piece 7 step 3a: a cave slime refusing an attack below Slayer 17 and
   killed at 17 for its swamp tar, a cave goblin's plea and the promise not to hurt it, and the west spot's Small Net
   refused below 33 Fishing then netting frog spawn or swamp weed (with `::keys on` and `::god on`).
+- `swamp-caves-slayer.json`: Misthalin piece 7 step 3b: a wall beast grabbing a player with no helmet and coming out
+  of its hole to fight one in a spiny helmet, and a rockslug held at 1 hitpoint (with `::keys on` and `::god on`; the
+  bag of salt that finishes it is in the headless test, as the runner has no item-on-NPC step).
 - `al-kharid-toll-gate.json`: Al Kharid step 1: Open on the toll gate from both sides with no coins, a Border
   Guard's talk (with `::keys on`) that ends with the player through the gate, and the palace's west large doors
   opened together and shut again, and the curtain upstairs in the palace opened and shut.
