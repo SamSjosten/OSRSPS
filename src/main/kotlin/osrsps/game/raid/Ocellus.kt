@@ -2761,7 +2761,10 @@ object Ocellus {
         val x = boss.x
         val z = boss.z
         val level = boss.level
+        // Bound to his run's instance: one ended in the meantime may have its block reused by another (Codex, PR 588).
+        val instance = world.instances.at(x, z)
         world.npcScripts.later(BLADE_AFTER) {
+            if (world.instances.at(x, z) !== instance) return@later
             world.spawnNpc(NpcSpawn(type, x, z, level, source = "ocellus vault entry", respawns = false))
         }
     }
