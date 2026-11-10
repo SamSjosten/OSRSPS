@@ -46,7 +46,8 @@ class RangedWeaponsTest {
         // poisons, 7 thrownaxes, 2 ballistae.
         assertEquals(33 + 1 + 9 * 4 + 8 * 4 + 7 + 2, weapons.weaponCount)
         // 25 kinds, and (p), (p+) and (p++) of each arrow and bolt; 8 javelins with theirs; the five ascension bolts.
-        assertEquals(25 + 16 * 3 + 8 * 4 + 5, weapons.ammoCount)
+        // A4c: the ten gem-tipped bolts with their dragon bolts (20), and both enchanted (20).
+        assertEquals(25 + 16 * 3 + 8 * 4 + 5 + 20 + 20, weapons.ammoCount)
     }
 
     @Test
@@ -83,6 +84,11 @@ class RangedWeaponsTest {
         assertFalse(fires("xbows_crossbow_iron", "xbows_crossbow_bolts_steel"))
         assertFalse(fires("xbows_crossbow_runite", "dragon_bolts"))
         assertTrue(fires("acb", "dragon_bolts"))
+        // Gem-tipped dragon bolts are dragon bolts, enchanted or not.
+        assertFalse(fires("xbows_crossbow_runite", "dragon_bolts_unenchanted_opal"))
+        assertFalse(fires("xbows_crossbow_runite", "dragon_bolts_unenchanted_onyx"))
+        assertTrue(fires("acb", "dragon_bolts_unenchanted_opal"))
+        assertTrue(fires("xbows_crossbow_runite", "xbows_crossbow_bolts_runite_tipped_onyx"))
         assertFalse(fires("xbows_crossbow_dragon", "dragon_arrow"))
         assertFalse(fires("darkbow", "bolt"))
     }

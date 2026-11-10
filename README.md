@@ -2458,8 +2458,9 @@ NPC is in range and in sight, then you shoot every weapon-speed ticks. Which wea
 and graphics are in `src/main/resources/ranged-weapons.json` (items, animations and spotanims by gameval name; every
 name there is in both 241 caches). `::combat` shows your ranged numbers with a bow; `::fight` covers ranged fights.
 Thrown weapons (darts, knives and thrownaxes, every metal and poison) throw from the weapon slot, and the light and
-heavy ballistas fire javelins from the ammo slot. Not in yet: crystal bows, the dragon hunter crossbow, enchanted
-bolts and the thrown weapons' and ballistas' special attacks.
+heavy ballistas fire javelins from the ammo slot. Gem-tipped bolts fire from the crossbow of their metal, and
+enchanted ones roll their effect on monsters (`game/combat/BoltEffects.kt`). Not in yet: crystal bows, the dragon
+hunter crossbow, the thrown weapons' and ballistas' special attacks, and enchanted bolts against players.
 
 | Ranged behaviour | Source |
 |------------------|--------|
@@ -2480,10 +2481,15 @@ bolts and the thrown weapons' and ballistas' special attacks.
 | Thrown weapons fire from the weapon slot, one a throw; their launch and travel graphics and the dart, dragon knife and ballista animations by their 242 cache names | OSRS Wiki, Thrown weapons; 242 cache |
 | A thrown weapon that doesn't break falls under the target, as arrows do, unless an Ava's device brings it back | inferred from arrows |
 | The knife and thrownaxe throw animation (`human_stake2_pvn`); the ballista's wrong-ammunition message (`combat.wrong_javelins`, words on the server) | guessed |
+| Gem-tipped bolts (opal to onyx) and the same enchanted, each at its metal's tier; their dragon bolts, enchanted or not, at the dragon bolts' tier | OSRS Wiki, each bolt's page |
+| Enchanted bolts on monsters: opal 5% (Ranged / 10 more) and pearl 6% (Ranged / 20) hit or miss; sapphire 25% on a hit (an eighth of a tenth of the monster's Ranged as prayer); emerald 55% on a hit (poisoned, 5 at first, 75 in all); ruby 6% hit or miss (a fifth of its hitpoints, at most 100, for a tenth of yours, and not when you can't spare a hitpoint); diamond 10% hit or miss (a sure hit on a max hit 15% higher); dragonstone 6% on a hit (Ranged / 5 more); onyx 11% on a hit (20% more, healing a quarter); topaz only on players; each one's graphic (749 to 758) on the monster | OSRS Wiki, each (e) bolt's page (read 2026-11-10); 242 cache |
+| The Zaryte crossbow's passive: each effect 10% stronger (opal Ranged / 9, pearl / 18, dragonstone 22%, onyx 132%, diamond 126%, ruby 22% to 110, emerald 6 at first; sapphire unchanged) | OSRS Wiki, Zaryte crossbow |
+| The effect rolled after accuracy, a draw only for an enchanted bolt; onyx's 20% on the rolled damage; heal, prayer and ruby's cost as the bolt lands; jade's knockdown not on monsters; dragonfire-immune and undead monsters not told apart yet; the pearl's fiery bonus and the hard Kandarin Diary's 10% not counted | guessed, or not built |
 
 Check: `./gradlew test --tests 'osrsps.game.combat.Ranged*' --tests 'osrsps.testclient.HeadlessRangedTest'`, and in
-RuneLite `test-runner/examples/combat-ranged-shortbow.json` and `combat-thrown.json`; thrown weapons and ballistas
-also in `HeadlessThrownTest`.
+RuneLite `test-runner/examples/combat-ranged-shortbow.json`, `combat-thrown.json` and `combat-bolt-effects.json`;
+thrown weapons and ballistas also in `HeadlessThrownTest`, the bolt effects in `BoltEffectsTest` and
+`HeadlessBoltEffectsTest` (ruby's cost to the shooter as the client sees it).
 
 ## Home teleport
 
