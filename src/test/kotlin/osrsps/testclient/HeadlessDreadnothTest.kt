@@ -38,7 +38,7 @@ import osrsps.map.Tile
  * whoever is round him; his waves at 85%, 65% and 45%, one, two and three volleys six ticks apart, each a slam on
  * everyone and three shots at each player; the jellies rising where the shots landed, going for the nearest player and
  * draining their prayer as they hit; jelly on the floor where a jelly falls and by him at each volley, burning whoever
- * stands in it; and his death doing the room. The rl-client script test-runner/examples/archive-dreadnoth.json fights
+ * stands in it; his enrage at 25% (20b); and at 0 his split into seven jellies, the room won once they're gone (20c). The rl-client script test-runner/examples/archive-dreadnoth.json fights
  * him in the real client.
  */
 class HeadlessDreadnothTest {
@@ -160,7 +160,7 @@ class HeadlessDreadnothTest {
     }
 
     @Test
-    fun `his fight begins with the first onto his arena, he crawls a tile every two ticks to her and swings every four, and his death does the room`(@TempDir dir: Path) {
+    fun `his fight begins with the first onto his arena, he crawls a tile every two ticks to her and swings every four, and at 0 he splits into seven jellies, the room won once they're gone`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->
                 val run = alice.intoRun(server, "alice")
@@ -191,9 +191,33 @@ class HeadlessDreadnothTest {
                 // No wave yet, nor any jelly.
                 assertTrue(lines(run).none { it.contains("wave") }, lines(run).toString())
 
+                // At 0 he doesn't die: he splits, his death animation and seven jellies of 37 on his footprint.
+                val world = server.world
                 alice.commandReply("hit 2100 ${him.index}") { it.startsWith("Hit ") }
+                val split = alice.awaitLine(run, "his split") { it.contains("split: splits into ") }
+                assertTrue(split.endsWith("splits into ${Dreadnoth.SPLIT_JELLIES} jellies"), split)
+                assertFalse(him.dead)
+                assertTrue(ArchiveRoom.DREADNOTH !in run.cleared)
+                val seven = jellies(run)
+                assertEquals(Dreadnoth.SPLIT_JELLIES, seven.size)
+                for (one in seven) {
+                    assertEquals(Dreadnoth.SPLIT_HITPOINTS, one.hitpoints)
+                    assertEquals(Dreadnoth.SPLIT_HITPOINTS, one.maxHitpoints)
+                }
+                assertEquals(Dreadnoth.SPLIT_JELLIES, seven.map { Tile(it.spawn.x, it.spawn.z) }.toSet().size, "each rose on its own tile")
+                // Six of them down: the room isn't won yet, and each leaves jelly where it fell.
+                for (one in seven.dropLast(1)) alice.commandReply("hit 37 ${one.index}") { it.startsWith("Hit ") }
+                alice.awaitTicks(4)
+                assertTrue(ArchiveRoom.DREADNOTH !in run.cleared)
+                val fell = seven.first().let { Tile(it.x, it.z) }
+                alice.awaitLine(run, "jelly where one fell") { it.contains("a jelly falls at ${fell.x},${fell.z}") }
+                assertTrue(world.locs.at(fell.x, fell.z, 0).any { it.id == Dreadnoth.LOC_JELLY })
+                // The last: once it's gone the room is won, and the jelly is cleared from the floor.
+                alice.commandReply("hit 37 ${seven.last().index}") { it.startsWith("Hit ") }
                 alice.await("his room done") { ArchiveRoom.DREADNOTH.takeIf { it in run.cleared } }
                 assertNull(run.fights[ArchiveRoom.DREADNOTH])
+                assertTrue(world.locs.at(fell.x, fell.z, 0).none { it.id == Dreadnoth.LOC_JELLY })
+                assertTrue(seven.none { world.npcs[it.index] === it })
             }
         }
     }

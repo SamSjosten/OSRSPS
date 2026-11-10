@@ -346,10 +346,11 @@ class MeleeCombat(
         } else {
             0
         }
-        // XP for what the swing can still deal: what the NPC has left after the swings and shots already on their way.
-        // Nothing through its Protect from Melee (Npc.protectsFromMelee), rolled as the prayer's flag stood at the swing.
+        // XP for what the swing can still deal: what the NPC has left after the swings and shots already on their way,
+        // down to its floor (a rockslug's 1 hitpoint pays nothing more). Nothing through its Protect from Melee
+        // (Npc.protectsFromMelee), rolled as the prayer's flag stood at the swing.
         val landed = if (npc.protectsFromMelee) 0 else rolled
-        val damage = minOf(armoured(npc, landed, magic = false), (npc.hitpoints - npc.incoming).coerceAtLeast(0))
+        val damage = minOf(armoured(npc, landed, magic = false), (npc.hitpoints - combat.floor(npc, player) - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage
         val bonus = combat.npcCombat[npc.type]?.xpBonusTenths ?: 0
         for (skill in style.xp) player.skills.addTenths(skill, CombatMath.withXpBonus(CombatMath.styleXpTenths(damage, style.xp.size), bonus))
@@ -440,12 +441,13 @@ class MeleeCombat(
      * the hitsplat and health bar for everyone, its block animation, or its death. A hit NPC turns on whoever hit it, or
      * retreats from them; [attackedFrom] is where they stood when they attacked, their tile now if null. [maxHit] is the
      * most a rolled hit could have done, 0 for damage that wasn't rolled against one (recoil, retribution, poison,
-     * commands). Returns the damage dealt.
+     * commands). [finishing] lets it go below its [NpcCombatDef.minHitpoints] (a bag of salt, ::kill). Returns the
+     * damage dealt.
      */
-    fun hit(npc: Npc, source: Player?, damage: Int, tick: Long, maxHit: Int = 0, attackedFrom: Tile? = null): Int {
+    fun hit(npc: Npc, source: Player?, damage: Int, tick: Long, maxHit: Int = 0, attackedFrom: Tile? = null, finishing: Boolean = false): Int {
         val def = combat.npcCombat[npc.type] ?: throw IllegalArgumentException("${npc.type.name} can't be fought")
         if (npc.dead) return 0
-        val dealt = damage.coerceIn(0, npc.hitpoints)
+        val dealt = damage.coerceIn(0, if (finishing) npc.hitpoints else (npc.hitpoints - combat.floor(npc, source)).coerceAtLeast(0))
         npc.hitpoints -= dealt
         if (source != null && dealt > 0) npcDamaged(npc, source, dealt)
         val from = if (source != null) NpcEffects.PLAYER_SOURCE + source.index else -1
@@ -510,9 +512,13 @@ class MeleeCombat(
         npc.destination = null
     }
 
-    /** Whether [npc]'s hitpoints are at or below its [NpcCombatDef.retreatsAt] share, rounded up. */
+    /**
+     * Whether [npc]'s hitpoints are at or below its [NpcCombatDef.retreatsAt] share, rounded up, or down at its
+     * [NpcCombatDef.minHitpoints] (a rockslug at 1 "will stop retaliating and wander off", OSRS Wiki, Rockslug).
+     */
     private fun lowOnHitpoints(npc: Npc, def: NpcCombatDef): Boolean =
-        def.retreatsAt > 0 && npc.hitpoints <= (npc.maxHitpoints * def.retreatsAt + 99) / 100
+        (def.retreatsAt > 0 && npc.hitpoints <= (npc.maxHitpoints * def.retreatsAt + 99) / 100) ||
+            (def.minHitpoints > 0 && npc.hitpoints <= def.minHitpoints)
 
     /**
      * Ends [npc]'s retreat once [player] has left its interaction range, died or gone, or not hit it for
@@ -925,7 +931,7 @@ class MeleeCombat(
     fun statusHit(npc: Npc, damage: Int, hitsplat: Int): Int {
         val def = combat.npcCombat[npc.type] ?: return 0
         if (npc.dead || npc.hitpoints <= 0) return 0
-        val dealt = damage.coerceIn(0, npc.hitpoints)
+        val dealt = damage.coerceIn(0, (npc.hitpoints - combat.floor(npc, null)).coerceAtLeast(0))
         npc.hitpoints -= dealt
         npc.effects.hit(-1, hitsplat, hitsplat, dealt)
         npc.effects.headBar(-1, HEALTH_BAR, healthBarFill(npc.hitpoints, npc.maxHitpoints))
@@ -954,8 +960,9 @@ class MeleeCombat(
      * Retribution, as [player] falls: every NPC they could fight within a tile of them takes up to a quarter of their
      * Prayer level, rounded down, a roll each, 0s included (OSRS Wiki, Retribution). Guessed: the Wiki says only
      * "nearby enemies", so the 3x3 around the player in multi-way combat, and in single-way the NPC that last hit them
-     * alone, if it is in that 3x3; the spotanim on the player; the targets' hits on this tick; an NPC their Slayer level
-     * can't hurt ([Combat.slayerGated]) passed over, as every other attack refuses it.
+     * alone, if it is in that 3x3 and can be fought (not a wall beast's hole); the spotanim on the player; the targets'
+     * hits on this tick; an NPC their Slayer level can't hurt ([Combat.slayerGated]) passed over, as every other attack
+     * refuses it.
      */
     private fun retribution(player: Player, tick: Long) {
         if (!hasPrayer(player, Prayers.RETRIBUTION)) return
@@ -969,8 +976,8 @@ class MeleeCombat(
         } else {
             listOfNotNull(
                 player.attackedBy?.takeIf {
-                    !it.dead && npcs[it.index] === it && it.level == player.level && withinATile(player, it) &&
-                        !combat.slayerGated(player, it)
+                    !it.dead && npcs[it.index] === it && combat.npcCombat[it.type] != null && it.level == player.level &&
+                        withinATile(player, it) && !combat.slayerGated(player, it)
                 },
             )
         }
@@ -990,7 +997,8 @@ class MeleeCombat(
      */
     private fun retaliate(player: Player, npc: Npc, tick: Long) {
         // Below its Slayer level they can't fight back (guessed: silently, as live shows nothing on a hit).
-        if (foughtByAnother(player, npc) || combat.slayerGated(player, npc)) return
+        // Nor at what can't be fought, as a wall beast's hole that grabbed them.
+        if (combat.npcCombat[npc.type] == null || foughtByAnother(player, npc) || combat.slayerGated(player, npc)) return
         player.interaction = fight(player, npc) ?: return
         player.nextAttackTick = maxOf(tick + (combat.attackSpeed(player) + 1) / 2, player.attackLockedUntil)
     }

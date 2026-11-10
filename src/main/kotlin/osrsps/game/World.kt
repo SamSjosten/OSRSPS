@@ -107,6 +107,8 @@ import osrsps.game.content.registerLumbridgeSwamp
 import osrsps.game.content.registerLumbridgeSwampCaves
 import osrsps.game.content.SwampCavesHazards
 import osrsps.game.content.SwampCaveGoblins
+import osrsps.game.content.WallBeasts
+import osrsps.game.content.registerRockslugs
 import osrsps.game.content.registerSwampCaveGoblins
 import osrsps.game.content.registerSwampTutors
 import osrsps.game.content.registerHans
@@ -692,6 +694,7 @@ class World(
     val manorHazards = ManorHazards(this)
     val swampCavesHazards = SwampCavesHazards(this)
     val caveGoblins = SwampCaveGoblins(this)
+    val wallBeasts = WallBeasts(this)
     val pickpocketing = Pickpocketing(this)
     val agility = Agility(this, agilityData)
 
@@ -820,6 +823,7 @@ class World(
         registerLumbridgeSwamp(this)
         registerLumbridgeSwampCaves(this)
         registerSwampCaveGoblins(this)
+        registerRockslugs(this)
         registerChurch(this)
         registerAlKharid(this)
         registerEdgeville(this)
@@ -1174,6 +1178,7 @@ class World(
         readInput(ticking = true)
         phase = TickPhase.NPCS
         npcs.countDownFreezes()
+        wallBeasts.keepFighting()
         npcs.countDownTransforms()
         npcInteractions.releaseNpcs()
         // Shots and spells land before NPCs fight, as melee hits from the last tick are already in; a shot NPC strikes from the next.
@@ -1219,6 +1224,7 @@ class World(
             // After the step, so the vines see the tile the player walked onto this tick.
             perPlayer(player, "manor hazards") { manorHazards.process(player) }
             perPlayer(player, "swamp caves") { swampCavesHazards.process(player) }
+            perPlayer(player, "wall beasts") { wallBeasts.process(player) }
         }
         phase = TickPhase.UPDATES
         if (clock.paused && clock.stepsLeft == 0) finishStepping()
@@ -2908,6 +2914,7 @@ class World(
             reports.forget(player)
             swampCavesHazards.forget(player)
             caveGoblins.forget(player)
+            wallBeasts.forget(player)
             npcs.forget(player, scripts::busy)
             save(player)
         } finally {

@@ -133,6 +133,11 @@ data class NpcCombatDef(
     val slayerLevel: Int = 0,
     /** Ticks between the hitpoints it gets back ([MeleeCombat]): [MeleeCombat.REGEN_TICKS] for most, 5 for cave bugs and crawlers. */
     val regenTicks: Int = MeleeCombat.REGEN_TICKS,
+    /**
+     * The hitpoints no hit or poison takes it below, 0 for none: a rockslug's 1, finished only with a bag of salt or
+     * by a weapon [Combat.finishes] lets through. Down there it stops fighting and wanders off, as on retreating.
+     */
+    val minHitpoints: Int = 0,
 )
 
 /**
@@ -206,7 +211,8 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
          * `{ "huntRange": 3, "ignoresLevels": true, "tolerant": false }` with any of the three ([NpcAggression]), and
          * `"retreatsAt": 25` (the share of its hitpoints, in percent, at which it retreats) and `"xpBonus": -97.5` (the
          * Wiki's XP bonus, in percent to a tenth), `"slayerLevel": 7` (the Slayer level to hurt it) and `"regenTicks": 5`
-         * (ticks between the hitpoints it gets back, when faster than the usual 100).
+         * (ticks between the hitpoints it gets back, when faster than the usual 100) and `"minHitpoints": 1` (what no hit
+         * takes it below, for a rockslug).
          * A magic or ranged NPC adds `"range"` and its `"attacks"`, each `{ "anim": "human_caststrike", "cast": 93,
          * "projectile": 94, "impact": 95, "weight": 1, "maxHit": 2, "drain": { "skill": "attack", "percent": 5 } }`, all
          * optional ([NpcRangedAttack]); its `attackBonus` is its bonus for its attack type, magic or ranged.
@@ -307,6 +313,7 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                 },
                 flying = entry["flying"]?.jsonPrimitive?.boolean ?: false,
                 slayerLevel = (entry["slayerLevel"]?.jsonPrimitive?.int ?: 0).also { require(it in 0..99) { "a Slayer level of $it" } },
+                minHitpoints = (entry["minHitpoints"]?.jsonPrimitive?.int ?: 0).also { require(it >= 0) { "held at $it hitpoints" } },
                 regenTicks = (entry["regenTicks"]?.jsonPrimitive?.int ?: MeleeCombat.REGEN_TICKS).also { require(it >= 1) { "regenerating every $it ticks" } },
                 deathTicks = (entry["deathTicks"]?.jsonPrimitive?.int ?: MeleeCombat.DEATH_TICKS).also {
                     require(it >= MeleeCombat.DEATH_TICKS) { "a body going $it ticks after its death" }
