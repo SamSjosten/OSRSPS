@@ -1,0 +1,37 @@
+{
+ "name": "Fishing and Cooking 2 step FC4: a small net nets monkfish at the Piscatoris Fishing Colony, a rod baited with sandworms catches an anglerfish at Port Piscarilius, then the Lumbridge kitchen range cooks a monkfish (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario fishing-cooking", "expectMessage": "Started scenario fishing-cooking.", "comment": "99 Fishing and Cooking, a small net, a fishing rod and 50 sandworms; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+
+  {"step": "command", "text": "::tele 2326 3699 0", "comment": "the shore south of a Piscatoris Net/Harpoon spot"},
+  {"step": "assertLocation", "x": 2326, "y": 3699, "plane": 0},
+  {"step": "npcOption", "npcId": 4316, "option": "Net", "timeoutMs": 20000, "comment": "swan_fishingspot"},
+  {"step": "assertMessage", "contains": "fishing.cast_net"},
+  {"step": "assertAnimation", "id": 621, "comment": "human_smallnet"},
+  {"step": "assertMessage", "contains": "fishing.catch_monkfish", "timeoutMs": 60000, "comment": "about 35% a roll at 99"},
+  {"step": "assertInventory", "item": "Raw monkfish", "timeoutMs": 10000},
+
+  {"step": "command", "text": "::tele 1827 3769 0", "comment": "the quay south of a Port Piscarilius anglerfish spot"},
+  {"step": "assertLocation", "x": 1827, "y": 3769, "plane": 0},
+  {"step": "npcOption", "npcId": 6825, "option": "Bait", "timeoutMs": 20000, "comment": "piscariliusfish"},
+  {"step": "assertMessage", "contains": "fishing.cast_line"},
+  {"step": "assertAnimation", "id": 622, "comment": "human_fishing_casting"},
+  {"step": "assertMessage", "contains": "fishing.catch_anglerfish", "timeoutMs": 120000, "comment": "about 14% a roll at 99, a sandworm a catch"},
+  {"step": "assertInventory", "item": "Raw anglerfish", "timeoutMs": 10000},
+
+  {"step": "command", "text": "::tele 3211 3215 0", "comment": "beside the Lumbridge Castle kitchen's Cooking range"},
+  {"step": "assertLocation", "x": 3211, "y": 3215, "plane": 0},
+  {"step": "command", "text": "::empty", "comment": "one raw monkfish alone, so it cooks with no box"},
+  {"step": "command", "text": "::item 7944 1"},
+  {"step": "assertInventory", "itemId": 7944, "count": 1, "timeoutMs": 10000},
+  {"step": "useItemOnLoc", "item": "Raw monkfish", "locId": 114, "x": 3212, "y": 3215},
+  {"step": "assertMessage", "contains": "cooking.cooked_monkfish", "timeoutMs": 20000, "comment": "no burns on a range from 90"},
+  {"step": "assertInventory", "itemId": 7946, "count": 1, "timeoutMs": 10000, "comment": "monkfish"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

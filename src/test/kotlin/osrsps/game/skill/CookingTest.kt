@@ -120,4 +120,22 @@ class CookingTest {
             assertTrue(kotlin.math.abs(cooked.toDouble() / tries - expected) < 0.006, "level $level: ${cooked.toDouble() / tries}, chart $expected")
         }
     }
+
+    @Test
+    fun `monkfish and anglerfish have the Wiki's levels, XP and burn pairs, a range burning less than a fire`() {
+        val foods = listOf(Cooking.MONKFISH, Cooking.ANGLERFISH)
+        assertEquals(listOf(7946 to 7948, 13441 to 13443), foods.map { it.cooked to it.burnt })
+        assertEquals(listOf(62, 84), foods.map { it.level })
+        assertEquals(listOf(1500, 2300), foods.map { it.xpTenths })
+        assertEquals(listOf(11 to 275, 1 to 200), foods.map { it.low to it.high })
+        assertEquals(listOf(13 to 280, 1 to 220), foods.map { it.rangeLow to it.rangeHigh })
+        assertEquals(listOf(13 to 280, 1 to 220), foods.map { it.lumbridgeLow to it.lumbridgeHigh })
+        // The Wiki's Monkfish page: it stops burning at 92 on a fire and 90 on a range. Anglerfish never stops (its high
+        // pairs stay under 256).
+        fun stops(low: Int, high: Int) = (1..99).firstOrNull { SuccessRoll.chance(low, high, it) >= 256 }
+        assertEquals(92, stops(11, 275))
+        assertEquals(90, stops(13, 280))
+        assertEquals(null, stops(1, 200))
+        assertEquals(null, stops(1, 220))
+    }
 }
