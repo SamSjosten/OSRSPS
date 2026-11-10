@@ -78,6 +78,14 @@
       "source": "OSRS Wiki, Man (ids 3106 to 3109 share the infobox; Al Kharid's man, 3261, is a version of the same page and shares it too, though the DPS calculator gives it 0 defence bonuses)"
     },
     {
+      "npcs": ["farmer1", "farmer2", "farmer3", "farmer1_f", "farmer2_f", "farmer3_f", "farmer4"],
+      "attackSpeed": 6, "maxHit": 1, "attackType": "stab", "attackBonus": 5, "strengthBonus": 6,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 25,
+      "source": "OSRS Wiki, Farmer (ids 3114, 3243, 3244, 11918 to 11921 share the infobox), read 2026-11-10 (Thieving 2 step T1a). The animations are GUESSED: the man's, as the farmer holds nothing the cache names"
+    },
+    {
       "npcs": ["al_kharid_warrior"],
       "attackSpeed": 4, "maxHit": 2, "attackType": "slash", "attackBonus": 10, "strengthBonus": 9,
       "defence": { "stab": 12, "slash": 15, "crush": 10, "magic": -1, "light": 12, "standard": 12, "heavy": 12 },
