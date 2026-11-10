@@ -432,7 +432,7 @@ object Dreadnoth {
             // Guessed: the prayer blocking all of it, as it does an ordinary monster's melee.
             val damage = if (world.prayers.protects(player, AttackType.CRUSH)) 0 else roll(0, SLAM_MAX)
             val dealt = world.meleeCombat.hitPlayer(player, boss, damage, world.tick)
-            log("slam hits ${player.username} for $damage" + if (dealt != damage) ", $dealt dealt" else "")
+            log("slam of $damage hits ${player.username}" + if (dealt != damage) ", $dealt dealt" else "")
         }
     }
 
@@ -670,7 +670,7 @@ object Dreadnoth {
             } else if (!world.prayers.protects(player, AttackType.CRUSH)) {
                 val damage = roll(0, STRAY_MAX)
                 val dealt = world.meleeCombat.hitPlayer(player, boss, damage, world.tick)
-                log("slam hits ${player.username} for $damage" + if (dealt != damage) ", $dealt dealt" else "")
+                log("slam of $damage hits ${player.username}" + if (dealt != damage) ", $dealt dealt" else "")
             }
         }
         if (gone()) return

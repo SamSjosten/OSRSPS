@@ -172,7 +172,7 @@
   {
    "step": "command",
    "text": "::raid log 30",
-   "expectMessage": "fight: slam hits test",
+   "expectMessage": "fight: slam of 0 hits",
    "comment": "Protect from Melee blocks the slam"
   },
   {
@@ -200,7 +200,7 @@
   {
    "step": "command",
    "text": "::raid log 30",
-   "expectMessage": "fight: a jelly hits test",
+   "expectMessage": "for 0, draining",
    "comment": "Protect from Melee blocks its hit, but it drains prayer all the same"
   },
   {
