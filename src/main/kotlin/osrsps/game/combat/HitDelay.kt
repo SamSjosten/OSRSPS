@@ -18,6 +18,9 @@ enum class HitDelay(private val delay: (Int) -> Int) {
     /** Thrown weapons (darts, knives, thrownaxes, the blowpipe) and chinchompas: 1 + distance / 6. */
     THROWN({ 1 + it / 6 }),
 
+    /** Ballistae: 2 ticks up to 4 tiles, 3 from 5 to 10 (the Wiki's table), which is 1 + (7 + distance) / 6. */
+    BALLISTA({ 1 + (7 + it) / 6 }),
+
     /** Spells and powered staves: 1 + (1 + distance) / 3. */
     MAGIC({ 1 + (1 + it) / 3 }),
     ;

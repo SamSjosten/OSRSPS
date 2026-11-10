@@ -16,11 +16,15 @@ import osrsps.game.Weapons
 
 private val logger = KotlinLogging.logger {}
 
-/** What a ranged weapon fires: arrows from bows, bolts from crossbows, darts from the blowpipe, and chinchompas. */
+/**
+ * What a ranged weapon fires: arrows from bows, bolts from crossbows, darts from the blowpipe (or thrown themselves, as
+ * knives and thrownaxes are), javelins from ballistae, and chinchompas.
+ */
 enum class AmmoKind {
     ARROWS,
     BOLTS,
     DARTS,
+    JAVELINS,
 
     /** Thrown from the weapon slot ([RangedWeapon.thrown]), and blowing up in a 3x3 area ([RangedWeapon.targets]). */
     CHINCHOMPAS,
@@ -76,8 +80,8 @@ data class RangedAmmo(val kind: AmmoKind, val tier: Int, val launch: Int, val do
 /**
  * The ranged weapons and the ammunition they fire, by item id. Tiers stand for the Wiki's "up to and including" lists
  * on each weapon's page (an iron crossbow fires bronze, blurite and iron bolts); ranges are the Wiki's Attack range
- * table. Weapons that aren't here (thrown weapons other than chinchompas, crystal bows, the dragon hunter crossbow with
- * its own rules, ballistas) come with later steps.
+ * table. Thrown darts, knives and thrownaxes are `darts` weapons that are `thrown`; ballistae fire `javelins` (Artisan 2,
+ * A4a). Weapons that aren't here (crystal bows, the dragon hunter crossbow with its own rules) come with later steps.
  */
 class RangedWeapons(private val weapons: Map<Int, RangedWeapon>, private val ammo: Map<Int, RangedAmmo>) {
     fun weapon(type: ObjType?): RangedWeapon? = type?.let { weapons[it.id] }
@@ -203,6 +207,7 @@ class RangedWeapons(private val weapons: Map<Int, RangedWeapon>, private val amm
                 AmmoKind.ARROWS -> Weapons.BOW
                 AmmoKind.BOLTS -> Weapons.CROSSBOW
                 AmmoKind.DARTS -> Weapons.THROWN
+                AmmoKind.JAVELINS -> Weapons.CROSSBOW
                 AmmoKind.CHINCHOMPAS -> Weapons.GRENADE
             }
             if (category != expected) logger.warn { "${type.name} (${type.id}) has weapon category $category, not $expected; it won't fire" }
