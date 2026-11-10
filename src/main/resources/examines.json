@@ -338,6 +338,8 @@
     {"npc": 4641, "name": "Irena"},
     {"npc": 4642, "name": "Shantay"},
     {"npc": 4643, "name": "Shantay Guard", "also": [4648]},
+    {"npc": 4710, "name": "Fishing spot", "wiki": "Fishing spot (karambwanji) page, infobox"},
+    {"npc": 4712, "name": "Fishing spot", "also": [4713], "wiki": "Fishing spot (karambwan) page, infobox"},
     {"npc": 4806, "name": "Evil Dave"},
     {"npc": 4808, "name": "Doris"},
     {"npc": 4809, "name": "Hell-Rat"},

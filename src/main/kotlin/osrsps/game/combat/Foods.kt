@@ -29,11 +29,16 @@ object FoodLines : Lines("food", "Food") {
     val CAKE_FIRST = line("cake_first", "a whole cake's first bite (the Cake page)", "food")
     val CAKE_SECOND = line("cake_second", "the second bite, of the 2/3 cake", "food")
     val CAKE_LAST = line("cake_last", "the last bite, the slice", "food")
+    val EAT_KARAMBWAN = line(
+        "eat_karambwan", "eating a cooked or a poison karambwan, whose words don't use the food's name (the Cooked karambwan and Poison karambwan pages)", "food",
+    )
+    val PAINFUL = line("painful", "after eating a poison karambwan (the Poison karambwan page)")
 
     /** The data file's names for them. */
     val BY_NAME: Map<String, Line> = mapOf(
         "eat" to EAT, "eat_half" to EAT_HALF, "eat_rest" to EAT_REST,
         "cake_first" to CAKE_FIRST, "cake_second" to CAKE_SECOND, "cake_last" to CAKE_LAST,
+        "eat_karambwan" to EAT_KARAMBWAN,
     )
 }
 
@@ -41,7 +46,8 @@ object FoodLines : Lines("food", "Food") {
  * One bite of a food, by its [obj]: the hitpoints it [heals], what is left in the slot after it ([next], -1 for nothing),
  * the ticks before the next food ([eatDelay]) and those it adds to an attack still waiting ([attackDelay]), whether it
  * is a [combo] food, the [message] line and the [name] that line shows (the whole food's, for a pie's second half).
- * [anglerfish] heals by the Hitpoints level instead of [heals], and past it.
+ * [anglerfish] heals by the Hitpoints level instead of [heals], and past it. A [painful] food (poison karambwan) hits
+ * for that much instead, with the [FoodLines.PAINFUL] message after its own.
  */
 data class Food(
     val obj: Int,
@@ -53,6 +59,7 @@ data class Food(
     val combo: Boolean = false,
     val message: Line = FoodLines.EAT,
     val anglerfish: Boolean = false,
+    val painful: Int = 0,
 )
 
 /**
@@ -66,13 +73,15 @@ data class Food(
  * Guessed: that a combo food blocks other food for its eat delay (the Wiki gives only the order food then combo food);
  * pies' and pizzas' attack delays matching their eat delays, and cakes' 3 for every bite (the Wiki says only that cake
  * bites alternate); "heals some health" only after a bite that gave hitpoints back; that a food can be eaten at full
- * hitpoints; the animation (human_eat), and no sound, as the 241 synth id for eating isn't known. The other edible items
+ * hitpoints; a poison karambwan's eat and attack delays being the cooked one's; the animation (human_eat), and no sound, as the 241 synth id for eating isn't known. The other edible items
  * (drinks with stat changes, kebabs, teas, hunter meats) come with stat boosts, step 6b.
  */
 class Foods(
     val all: Map<Int, Food>,
     private val words: (Player) -> DialogueText = { DialogueText.NONE },
     private val message: (Player, String) -> Unit = Player::message,
+    /** Hits the player for a painful food, with a poison hitsplat. */
+    private val hit: (Player, Int) -> Unit = { _, _ -> },
 ) {
     /** Makes Eat on each food eat it. */
     fun register(world: World) {
@@ -99,6 +108,11 @@ class Foods(
         val text = words(player)
         message(player, text[food.message, "food" to food.name])
         if (player.hitpoints > before) message(player, text[FoodLines.HEALS])
+        if (food.painful > 0) {
+            message(player, text[FoodLines.PAINFUL])
+            // The Wiki: it only hurts from 6 hitpoints, and only that once, with no poison after it.
+            if (player.hitpoints >= PAINFUL_LEAST_HITPOINTS) hit(player, food.painful)
+        }
         return true
     }
 
@@ -114,6 +128,9 @@ class Foods(
         const val RESOURCE = "/food.json"
         const val EAT = "Eat"
         const val DEFAULT_DELAY = 3
+
+        /** The Poison karambwan page: it hurts only a player on 6 hitpoints or more. */
+        const val PAINFUL_LEAST_HITPOINTS = 6
 
         /** human_eat. */
         const val EAT_ANIM = 829
@@ -168,6 +185,7 @@ class Foods(
                         combo = entry["combo"]?.jsonPrimitive?.boolean ?: false,
                         message = message ?: FoodLines.EAT,
                         anglerfish = entry["anglerfish"]?.jsonPrimitive?.boolean ?: false,
+                        painful = entry["painful"]?.jsonPrimitive?.int?.also { require(it in 1..99) { "painful $it" } } ?: 0,
                     )
                 } catch (e: Exception) {
                     throw IllegalArgumentException("$fileName: foods entry ${i + 1}: ${e.message}", e)
@@ -184,7 +202,7 @@ class Foods(
             }
         }
 
-        private val KEYS = setOf("food", "heals", "next", "eatDelay", "attackDelay", "combo", "message", "anglerfish")
+        private val KEYS = setOf("food", "heals", "next", "eatDelay", "attackDelay", "combo", "message", "anglerfish", "painful")
 
         private fun JsonObject.required(key: String): JsonElement = get(key) ?: throw IllegalArgumentException("no \"$key\"")
     }

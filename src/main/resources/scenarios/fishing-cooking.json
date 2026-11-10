@@ -1,5 +1,5 @@
 {
-  "about": "On Catherby's beach (::tele 2850 3430) with 99 Fishing and Cooking, a harpoon, a lobster pot, a big fishing net, a tinderbox and logs, so every fish Fishing and Cooking 2 has built so far can be caught and cooked. The bank holds the dragon and barb-tail harpoons to try the better and wieldable harpoons. Musa Point's spots are at ::tele 2924 3178.",
+  "about": "On Catherby's beach (::tele 2850 3430) with 99 Fishing and Cooking, a harpoon, a lobster pot, a big fishing net, a small fishing net, a karambwan vessel and 50 raw karambwanji, a tinderbox and logs, so every fish Fishing and Cooking 2 has built so far can be caught and cooked. The bank holds the dragon and barb-tail harpoons to try the better and wieldable harpoons. Musa Point's spots are at ::tele 2924 3178; Karamja's karambwanji spots at ::tele 2791 3018 and karambwan spots at ::tele 2899 3118.",
   "notes": "For Fishing and Cooking 2's checks by hand. Each later step adds its tools and bait here. The loadout is ours.",
   "position": { "x": 2850, "z": 3430, "level": 0 },
   "skills": { "fishing": 99, "cooking": 99, "firemaking": 99 },
@@ -7,6 +7,9 @@
     { "item": "harpoon" },
     { "item": "lobster_pot" },
     { "item": "big_net" },
+    { "item": "net" },
+    { "item": "tbwt_karambwan_vessel" },
+    { "item": "tbwt_raw_karambwanji", "count": 50 },
     { "item": "tinderbox" },
     { "item": "logs" },
     { "item": "logs" },

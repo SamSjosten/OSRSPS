@@ -1,0 +1,47 @@
+{
+ "name": "Fishing and Cooking 2 step FC3: a small net nets karambwanji in Karamja's Holy Lake, a karambwan vessel baited with them catches a karambwan by the fairy ring DKP, then the Lumbridge kitchen range cooks one thoroughly and one poorly through the Make-X box, and the poison karambwan hurts (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario fishing-cooking", "expectMessage": "Started scenario fishing-cooking.", "comment": "99 Fishing and Cooking, a small net, a karambwan vessel and 50 raw karambwanji; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+
+  {"step": "command", "text": "::tele 2791 3018 0", "comment": "the shore south of the Holy Lake's western karambwanji spot"},
+  {"step": "assertLocation", "x": 2791, "y": 3018, "plane": 0},
+  {"step": "npcOption", "npcId": 4710, "option": "Net", "timeoutMs": 20000, "comment": "0_43_47_karambwanji"},
+  {"step": "assertMessage", "contains": "fishing.cast_net"},
+  {"step": "assertAnimation", "id": 621, "comment": "human_smallnet"},
+  {"step": "assertMessage", "contains": "fishing.catch_karambwanji", "timeoutMs": 60000, "comment": "twenty at a time at 99"},
+
+  {"step": "command", "text": "::tele 2899 3118 0", "comment": "the shore south of the western karambwan spot by DKP"},
+  {"step": "assertLocation", "x": 2899, "y": 3118, "plane": 0},
+  {"step": "npcOption", "npcId": 4712, "option": "Fish", "timeoutMs": 20000, "comment": "0_45_48_karambwan; the vessel is baited from the karambwanji first"},
+  {"step": "assertMessage", "contains": "fishing.cast_vessel"},
+  {"step": "assertAnimation", "id": 1193, "comment": "human_octopus_pot"},
+  {"step": "assertMessage", "contains": "fishing.catch_karambwan]", "timeoutMs": 90000, "comment": "about 63% a roll at 99; a miss says fishing.snatched"},
+  {"step": "assertInventory", "item": "Raw karambwan", "timeoutMs": 10000},
+
+  {"step": "command", "text": "::tele 3211 3215 0", "comment": "beside the Lumbridge Castle kitchen's Cooking range"},
+  {"step": "assertLocation", "x": 3211, "y": 3215, "plane": 0},
+  {"step": "useItemOnLoc", "item": "Raw karambwan", "locId": 114, "x": 3212, "y": 3215},
+  {"step": "assertInterface", "interfaceId": 270, "comment": "skillmulti: even one karambwan asks which way"},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15, "comment": "the first item, the cooked karambwan"},
+  {"step": "assertMessage", "contains": "cooking.cooked_karambwan", "timeoutMs": 20000, "comment": "no burns at 99"},
+  {"step": "assertInventory", "item": "Cooked karambwan", "timeoutMs": 10000},
+  {"step": "waitTicks", "ticks": 20, "comment": "every karambwan caught cooks, 4 ticks each; let them finish"},
+
+  {"step": "command", "text": "::item 3142 1", "comment": "one more raw karambwan to cook poorly"},
+  {"step": "useItemOnLoc", "item": "Raw karambwan", "locId": 114, "x": 3212, "y": 3215},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 16, "comment": "the second item, the poison karambwan"},
+  {"step": "assertMessage", "contains": "cooking.cooked_poison_karambwan", "timeoutMs": 20000},
+  {"step": "assertInventory", "item": "Poison karambwan", "timeoutMs": 10000},
+
+  {"step": "itemOption", "item": "Poison karambwan", "option": "Eat"},
+  {"step": "assertMessage", "contains": "food.painful"},
+  {"step": "assertHitsplat", "self": true, "amount": 5, "timeoutMs": 10000, "comment": "a poison hitsplat of 5 from 99 hitpoints"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

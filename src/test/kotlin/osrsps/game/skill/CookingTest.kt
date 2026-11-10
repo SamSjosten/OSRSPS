@@ -37,7 +37,10 @@ class CookingTest {
 
     @Test
     fun `every raw food is listed once, and only bread needs a range`() {
-        assertEquals(Cooking.FOODS.size, Cooking.FOODS.map { it.raw }.toSet().size)
+        // Karambwan alone cooks two ways from one raw fish.
+        assertEquals(Cooking.FOODS.size - 1, Cooking.FOODS.map { it.raw }.toSet().size)
+        assertEquals(listOf(Cooking.KARAMBWAN, Cooking.POISON_KARAMBWAN), Cooking.FOODS.filter { it.raw == 3142 })
+        assertEquals(Cooking.FOODS.size, Cooking.FOODS.map { it.raw to it.cooked }.toSet().size)
         assertEquals(listOf(Cooking.BREAD), Cooking.FOODS.filter { it.rangeOnly })
         for (food in Cooking.FOODS) assertTrue(food.raw != food.cooked && food.cooked != food.burnt, "${food.raw}")
     }
@@ -87,5 +90,34 @@ class CookingTest {
         assertEquals(listOf(45, 51, 79), foods.map { stops(it.low, it.high) })
         assertEquals(49, stops(Cooking.COD.rangeLow, Cooking.COD.rangeHigh))
         assertEquals(listOf(41, 47), listOf(Cooking.MACKEREL, Cooking.COD).map { stops(it.lumbridgeLow, it.lumbridgeHigh) })
+    }
+
+    @Test
+    fun `karambwan cooks thoroughly from 30 and poorly from 1, both by the Wiki's one chart, burning to burnt karambwan`() {
+        val ways = listOf(Cooking.KARAMBWAN, Cooking.POISON_KARAMBWAN)
+        assertEquals(listOf(3144, 3146), ways.map { it.cooked })
+        assertEquals(listOf(3148, 3148), ways.map { it.burnt })
+        assertEquals(listOf(30, 1), ways.map { it.level })
+        assertEquals(listOf(1900, 800), ways.map { it.xpTenths })
+        for (food in ways) {
+            assertEquals(70 to 255, food.low to food.high)
+            assertEquals(70 to 255, food.rangeLow to food.rangeHigh)
+            assertEquals(70 to 255, food.lumbridgeLow to food.lumbridgeHigh)
+        }
+        // The Wiki: karambwan stops burning only at 99.
+        assertEquals(254, SuccessRoll.chance(70, 255, 98))
+        assertEquals(256, SuccessRoll.chance(70, 255, 99))
+        assertEquals(71, SuccessRoll.chance(70, 255, 1))
+    }
+
+    @Test
+    fun `seeded cooking burns karambwan as often as its chart says`() {
+        val random = GameRandom(7)
+        val tries = 100_000
+        for (level in listOf(1, 30, 65)) {
+            val cooked = (1..tries).count { SuccessRoll.roll(random, 70, 255, level) }
+            val expected = SuccessRoll.chance(70, 255, level) / 256.0
+            assertTrue(kotlin.math.abs(cooked.toDouble() / tries - expected) < 0.006, "level $level: ${cooked.toDouble() / tries}, chart $expected")
+        }
     }
 }

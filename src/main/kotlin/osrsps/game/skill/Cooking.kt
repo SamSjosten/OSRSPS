@@ -45,6 +45,9 @@ object CookingLines : Lines("cooking", "Cooking") {
     val BURNT_SWORDFISH = line("burnt_swordfish", "Swordfish: the message on burning one")
     val COOKED_SHARK = line("cooked_shark", "Shark: the message on cooking one")
     val BURNT_SHARK = line("burnt_shark", "Shark: the message on burning one")
+    val COOKED_KARAMBWAN = line("cooked_karambwan", "Cooked karambwan: the message on cooking one thoroughly")
+    val COOKED_POISON_KARAMBWAN = line("cooked_poison_karambwan", "Poison karambwan: the message on cooking one poorly")
+    val BURNT_KARAMBWAN = line("burnt_karambwan", "Karambwan: the message on burning one, either way")
     val COOKED_MACKEREL = line("cooked_mackerel", "Mackerel: the message on cooking one")
     val BURNT_MACKEREL = line("burnt_mackerel", "Mackerel: the message on burning one")
     val COOKED_COD = line("cooked_cod", "Cod: the message on cooking one")
@@ -89,6 +92,10 @@ class Food(
  * gathering skills' first roll), and the burnt items (by the Wiki's Burnt fish pages). Out: cooking gauntlets, the
  * cooking cape, the Hosidius range, wines and other multi-step food, and the sounds (the 241 synth ids have no names).
  * Lobster, tuna, swordfish and shark came with Fishing and Cooking 2's step FC1; mackerel, cod and bass with FC2.
+ *
+ * Karambwan (step FC3) cooks two ways from the one raw fish, so the box always asks, showing the cooked karambwan first
+ * (the Wiki's change of 28 February 2024 made it the default) and the poison karambwan second. Out: the poison
+ * karambwan's 1-tick first piece (the Wiki's Poison karambwan recipe) and the warning before making one.
  */
 class Cooking(private val world: World) {
     /** What each player is cooking, by the fire or range they chose it at. */
@@ -106,8 +113,8 @@ class Cooking(private val world: World) {
             world.handlers.onLoc(loc, option) { op ->
                 if (op.repeat) cook(op) else if (loc in RANGES || loc in COOK_FIRES) chooseAtRange(op)
             }
-            for (food in FOODS) {
-                world.handlers.onObjOnLoc(loc, food.raw) { op -> chooseFood(op.loc ?: return@onObjOnLoc, option, food) }
+            for (food in FOODS.distinctBy { it.raw }) {
+                world.handlers.onObjOnLoc(loc, food.raw) { op -> chooseFood(op.loc ?: return@onObjOnLoc, option, food.raw) }
             }
         }
     }
@@ -119,18 +126,29 @@ class Cooking(private val world: World) {
         return if (index >= 0) index + 1 else 1
     }
 
-    /** Raw food used on a fire or range: that food, how many if there are several. */
-    private suspend fun ScriptContext.chooseFood(loc: ZoneLoc, option: Int, food: Food) {
-        if (!canCook(loc, food)) return
-        val held = player.inventory.count(food.raw).toInt()
-        val quantity = if (held <= 1) 1 else askMakeX(listOf(food.raw), held).second
-        start(loc, option, food, quantity)
+    /**
+     * Raw food used on a fire or range: that food, how many if there are several; for a raw food that cooks more than
+     * one way (karambwan), which way too, so the box always asks.
+     */
+    private suspend fun ScriptContext.chooseFood(loc: ZoneLoc, option: Int, raw: Int) {
+        val ways = FOODS.filter { it.raw == raw }
+        val held = player.inventory.count(raw).toInt()
+        if (ways.size == 1) {
+            val food = ways[0]
+            if (!canCook(loc, food)) return
+            val quantity = if (held <= 1) 1 else askMakeX(listOf(food.raw), held).second
+            start(loc, option, food, quantity)
+            return
+        }
+        val (index, quantity) = askMakeX(ways.map { it.cooked }, maxOf(held, 1))
+        start(loc, option, ways[index], quantity)
     }
 
     /** Cook on a range: every kind of raw food the player holds, which and how many. */
     private suspend fun ScriptContext.chooseAtRange(op: Op) {
         val loc = op.loc ?: return
-        val held = FOODS.filter { player.inventory.count(it.raw) > 0 }.distinctBy { it.raw }.take(MAX_KINDS)
+        // A raw food that cooks more than one way shows each, by what it makes (guessed: the others show the raw food).
+        val held = FOODS.filter { player.inventory.count(it.raw) > 0 }.take(MAX_KINDS)
         if (held.isEmpty()) {
             // Guessed: Cook with nothing to cook says what a raw food would.
             player.message(world.textFor(player)[GameLines.NOTHING_INTERESTING])
@@ -140,7 +158,7 @@ class Cooking(private val world: World) {
         val (index, quantity) = if (held.size == 1 && most == 1) {
             0 to 1
         } else {
-            askMakeX(held.map { it.raw }, most)
+            askMakeX(held.map { food -> if (held.count { it.raw == food.raw } > 1) food.cooked else food.raw }, most)
         }
         val food = held[index]
         if (!canCook(loc, food)) return
@@ -156,7 +174,7 @@ class Cooking(private val world: World) {
 
     private fun ScriptContext.start(loc: ZoneLoc, option: Int, food: Food, quantity: Int) {
         if (!world.locs.exists(loc)) return
-        // Again after the box: a boost can wear off while it is open.
+        // After the box too: a boost can wear off while it is open, and the box may have picked another way to cook.
         if (!canCook(loc, food)) return
         // The box closes as cooking starts, rather than after this script, so the first tick doesn't see it open.
         world.interfaces.closeChatModal(player)
@@ -319,9 +337,22 @@ class Cooking(private val world: World) {
         )
         val BASS = Food(363, 365, 367, 43, 1300, 33, 312, 33, 312, CookingLines.COOKED_BASS, CookingLines.BURNT_BASS)
 
+        /**
+         * Karambwan (step FC3), from the Wiki's Raw karambwan, Cooked karambwan and Poison karambwan pages (read
+         * 2026-11-10): thoroughly from 30 for 190 XP, poorly from 1 for 80, both burning by the one chart, 70/255 on a
+         * fire or any range (it stops burning at 99). The Cooked karambwan page notes the game checks only level 1 for
+         * the thorough way, the quest asking 30; the 30 stands here, as quests count as done.
+         */
+        val KARAMBWAN = Food(
+            3142, 3144, 3148, 30, 1900, 70, 255, 70, 255, CookingLines.COOKED_KARAMBWAN, CookingLines.BURNT_KARAMBWAN,
+        )
+        val POISON_KARAMBWAN = Food(
+            3142, 3146, 3148, 1, 800, 70, 255, 70, 255, CookingLines.COOKED_POISON_KARAMBWAN, CookingLines.BURNT_KARAMBWAN,
+        )
+
         val FOODS = listOf(
             SHRIMPS, ANCHOVIES, SARDINE, HERRING, TROUT, PIKE, SALMON, BEEF, RAT_MEAT, BEAR_MEAT, CHICKEN, BREAD,
-            LOBSTER, TUNA, SWORDFISH, SHARK, MACKEREL, COD, BASS,
+            LOBSTER, TUNA, SWORDFISH, SHARK, MACKEREL, COD, BASS, KARAMBWAN, POISON_KARAMBWAN,
         )
     }
 }
