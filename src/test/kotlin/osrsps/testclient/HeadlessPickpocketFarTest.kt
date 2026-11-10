@@ -29,6 +29,11 @@ class HeadlessPickpocketFarTest {
         CITIZEN, "Wealthy citizen", ops = listOf("Pickpocket", null, "Talk-to", null, null), combatLevel = 0, internalName = "varlamore_wealthy_citizen_a",
     )
 
+    private val goblin = NpcType(
+        Pickpocketing.CAVE_GOBLINS.first(), "Cave goblin", ops = listOf(null, "Attack", "Pickpocket", null, null), combatLevel = 3,
+        internalName = "dorgesh_citizen",
+    )
+
     private fun server(dir: Path, seed: Long = 5) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
         val objs = arrayOfNulls<ObjType>(KEYS + 100)
         objs[TOKKUL] = ObjType(TOKKUL, "Tokkul", stackable = true)
@@ -36,10 +41,15 @@ class HeadlessPickpocketFarTest {
         objs[ICE_GLOVES] = ObjType(ICE_GLOVES, "Ice gloves")
         objs[Pickpocketing.WEALTHY_CITIZEN_POUCH] = ObjType(Pickpocketing.WEALTHY_CITIZEN_POUCH, "Coin pouch", stackable = true, iops = listOf("Open-all", "Open", null, null, "Destroy"))
         objs[KEYS] = ObjType(KEYS, "House keys", stackable = true)
+        for (loot in Pickpocketing.CAVE_GOBLIN_LOOT) objs[loot.obj] = ObjType(loot.obj, "Loot ${loot.obj}", stackable = loot.obj == Pickpocketing.CAVE_GOBLIN_POUCH)
+        objs[POT] = ObjType(POT, "Pot")
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs), random = GameRandom(seed),
-            npcTypes = NpcTypes.of(hur, citizen),
-            npcSpawns = listOf(NpcSpawn(hur, 3223, 3218, wander = 0, source = "test"), NpcSpawn(citizen, 3221, 3218, wander = 0, source = "test")),
+            npcTypes = NpcTypes.of(hur, citizen, goblin),
+            npcSpawns = listOf(
+                NpcSpawn(hur, 3223, 3218, wander = 0, source = "test"), NpcSpawn(citizen, 3221, 3218, wander = 0, source = "test"),
+                NpcSpawn(goblin, 3222, 3220, wander = 0, source = "test"),
+            ),
             cycleMillis = millis,
         )
     }
@@ -137,7 +147,30 @@ class HeadlessPickpocketFarTest {
         }
     }
 
+    @Test
+    fun `a cave goblin isn't pickpocketed without room for its most, 4 iron ores`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.level("thieving", THIEVING, 99)
+                client.command("item $POT 25")
+                client.await("25 pots") { if (client.count(POT) == 25) Unit else null }
+                client.npcOp(client.npc(goblin.id).index, Pickpocketing.PICKPOCKET)
+                client.await("no room") { if (client.seen("[pickpocket.inventory_full]") == 1) Unit else null }
+                assertEquals(0, client.seen("[pickpocket.attempt who=cave goblin]"))
+                client.command("empty")
+                client.await("an empty backpack") { if (client.count(POT) == 0) Unit else null }
+                client.command("item $POT 24")
+                client.await("24 pots") { if (client.count(POT) == 24) Unit else null }
+                client.ready(server, "dave")
+                client.npcOp(client.npc(goblin.id).index, Pickpocketing.PICKPOCKET)
+                client.await("the attempt with 4 free") { if (client.seen("[pickpocket.attempt who=cave goblin]") == 1) Unit else null }
+            }
+        }
+    }
+
     private companion object {
+        const val POT = 1931
         const val HUR = 7682
         const val CITIZEN = 13302
         const val TOKKUL = 6529

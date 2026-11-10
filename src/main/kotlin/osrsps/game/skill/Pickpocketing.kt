@@ -128,7 +128,7 @@ class Pickpocketing(private val world: World) {
             player.message(text[PickpocketLines.POUCHES_FULL])
             return
         }
-        val roomNeeded = (if (pocket.pouch == null || player.inventory.count(pocket.pouch) == 0L) 1 else 0) +
+        val roomNeeded = (if (pocket.pouch == null) lootRoom(player, pocket) else if (player.inventory.count(pocket.pouch) == 0L) 1 else 0) +
             pocket.extra.count { extra -> world.objTypes[extra.obj]?.stackable != true || player.inventory.count(extra.obj) == 0L }
         if (player.inventory.freeSlots < roomNeeded || !stacksFit(player, pocket)) {
             player.message(text[PickpocketLines.INVENTORY_FULL])
@@ -180,6 +180,19 @@ class Pickpocketing(private val world: World) {
      * otherwise be lost while the XP and the rest came anyway (live's inv_add refuses a whole add; guessed that the
      * pickpocket is refused before it starts, as with no room).
      */
+    /**
+     * The free slots the worst roll of [pocket]'s table needs: a slot for each of an unstackable line's most (the cave
+     * goblins' 4 iron ores), one for a stack not yet held, none for nothing or a stack held.
+     */
+    private fun lootRoom(player: Player, pocket: Pocket): Int = pocket.loot.maxOfOrNull { line ->
+        when {
+            line.obj < 0 -> 0
+            world.objTypes[line.obj]?.stackable != true -> line.max
+            player.inventory.count(line.obj) == 0L -> 1
+            else -> 0
+        }
+    } ?: 1
+
     private fun stacksFit(player: Player, pocket: Pocket): Boolean {
         fun fits(obj: Int, count: Int): Boolean {
             if (world.objTypes[obj]?.stackable != true) return true
