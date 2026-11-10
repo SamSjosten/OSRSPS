@@ -58,12 +58,21 @@ object CookingLines : Lines("cooking", "Cooking") {
     val BURNT_COD = line("burnt_cod", "Cod: the message on burning one")
     val COOKED_BASS = line("cooked_bass", "Bass: the message on cooking one")
     val BURNT_BASS = line("burnt_bass", "Bass: the message on burning one")
+    val COOKED_PIE = line("cooked_pie", "Apple pie and the other pies: the message on baking one", "item")
+    val BURNT_PIE = line("burnt_pie", "Burnt pie: the message on burning any pie", "item")
+    val COOKED_PIZZA = line("cooked_pizza", "Plain pizza: the message on baking one")
+    val BURNT_PIZZA = line("burnt_pizza", "Burnt pizza: the message on burning one")
+    val COOKED_CAKE = line("cooked_cake", "Cake: the message on baking one")
+    val BURNT_CAKE = line("burnt_cake", "Burnt cake: the message on burning one")
+    val COOKED_PITTA = line("cooked_pitta", "Pitta bread: the message on baking one")
+    val BURNT_PITTA = line("burnt_pitta", "Burnt pitta bread: the message on burning one")
+    val NO_ROOM = line("no_room", "Cake: the message when there is no room for the cake tin back (guessed)")
 }
 
 /**
  * One food: raw, cooked and burnt objs, the level and XP in tenths, and its success pairs (out of 256): on a fire (and
  * on a range, unless [rangeLow] and [rangeHigh] say otherwise), and on the Lumbridge Castle range. [rangeOnly] food
- * (bread) won't cook on a fire.
+ * (bread) won't cook on a fire. [returns] comes back with each piece, cooked or burnt: the cake tin (-1 for none).
  */
 class Food(
     val raw: Int,
@@ -80,6 +89,7 @@ class Food(
     val rangeOnly: Boolean = false,
     val rangeLow: Int = low,
     val rangeHigh: Int = high,
+    val returns: Int = -1,
 )
 
 /**
@@ -94,10 +104,11 @@ class Food(
  * chart for these foods, the Lumbridge range has its own. Guessed: the Make-X box showing the raw food, its quantity
  * starting on all of it, cooking straight away with only one, the first piece 3 ticks after the choice (as the other
  * gathering skills' first roll), and the burnt items (by the Wiki's Burnt fish pages). Out: cooking gauntlets, the
- * cooking cape, the Hosidius range, wines and other multi-step food, and the sounds (the 241 synth ids have no names).
+ * cooking cape, the Hosidius range, wines, stews and dairy, and the sounds (the 241 synth ids have no names).
  * Lobster, tuna, swordfish and shark came with Fishing and Cooking 2's step FC1; mackerel, cod and bass with FC2.
  *
- * Monkfish and anglerfish came with step FC4.
+ * Monkfish and anglerfish came with step FC4; pies, pizza, cake and pitta bread with FC5a, whose mixing is
+ * [CookingMixes].
  *
  * Karambwan (step FC3) cooks two ways from the one raw fish, so the box always asks, showing the cooked karambwan first
  * (the Wiki's change of 28 February 2024 made it the default) and the poison karambwan second. Out: the poison
@@ -123,6 +134,7 @@ class Cooking(private val world: World) {
                 world.handlers.onObjOnLoc(loc, food.raw) { op -> chooseFood(op.loc ?: return@onObjOnLoc, option, food.raw) }
             }
         }
+        CookingMixes.register(world)
     }
 
     /** The range's Cook option, 1 to 5; 1 for a fire, or when the cache doesn't say (tests). */
@@ -226,6 +238,11 @@ class Cooking(private val world: World) {
         when (step) {
             ClockStep.STARTED, ClockStep.WAITING -> {}
             ClockStep.DUE -> {
+                // Guessed: with no slot for the cake tin to come back to, the cake isn't put in.
+                if (job.food.returns >= 0 && player.inventory.contents().size >= player.inventory.capacity) {
+                    player.message(world.textFor(player)[CookingLines.NO_ROOM])
+                    return finish()
+                }
                 cookOne(job.food, loc)
                 job.left--
                 // The next piece's animation comes with the clock starting again next tick.
@@ -248,13 +265,18 @@ class Cooking(private val world: World) {
             val cooked = world.objTypes[food.cooked] ?: error("No obj type ${food.cooked} for cooked food")
             player.inventory.add(cooked, 1)
             player.skills.addTenths(Skill.COOKING, food.xpTenths)
-            player.message(text[food.cookedLine])
+            player.message(text.get(food.cookedLine, *named(food.cookedLine, cooked.name)))
         } else {
             val burnt = world.objTypes[food.burnt] ?: error("No obj type ${food.burnt} for burnt food")
             player.inventory.add(burnt, 1)
-            player.message(text[food.burntLine])
+            player.message(text.get(food.burntLine, *named(food.burntLine, world.objTypes[food.cooked]?.name ?: "")))
         }
+        if (food.returns >= 0) player.inventory.add(world.objTypes[food.returns] ?: error("No obj type ${food.returns}"), 1)
     }
+
+    /** The cooked food's name, in lower case, for a line that asks for `item` (the pies'). */
+    private fun named(line: Line, name: String): Array<Pair<String, Any>> =
+        if ("item" in line.args) arrayOf("item" to name.lowercase()) else emptyArray()
 
     private fun ScriptContext.finish(stopAnim: Boolean = true) {
         jobs.remove(player)
@@ -371,9 +393,40 @@ class Cooking(private val world: World) {
             rangeLow = 1, rangeHigh = 220,
         )
 
+        /**
+         * Pies, pizza, cake and pitta bread (step FC5a), baked on a range only, from the Wiki's food pages (read
+         * 2026-11-10), whose burn charts give each range pair. Redberry, meat, botanical and mushroom pies burn less on
+         * the Lumbridge range (its page's list and each pie's chart); the rest cook there as on any range. Every pie burns
+         * to the one burnt pie; a cake gives its tin back, cooked or burnt (the Uncooked cake page). Out: the pies' 1-tick
+         * first bake with no box, the Lunar Bake Pie spell, the Hosidius range.
+         */
+        private fun bake(raw: Int, cooked: Int, burnt: Int, level: Int, xpTenths: Int, low: Int, high: Int, line: Line, burntLine: Line,
+                         lumbridgeLow: Int = low, lumbridgeHigh: Int = high, returns: Int = -1) =
+            Food(raw, cooked, burnt, level, xpTenths, low, high, lumbridgeLow, lumbridgeHigh, line, burntLine, rangeOnly = true, returns = returns)
+
+        const val BURNT_PIE = 2329
+        val REDBERRY_PIE = bake(2321, 2325, BURNT_PIE, 10, 780, 98, 452, CookingLines.COOKED_PIE, CookingLines.BURNT_PIE, 108, 462)
+        val MEAT_PIE = bake(2319, 2327, BURNT_PIE, 20, 1100, 78, 412, CookingLines.COOKED_PIE, CookingLines.BURNT_PIE, 88, 432)
+        val MUD_PIE = bake(7168, 7170, BURNT_PIE, 29, 1280, 58, 372, CookingLines.COOKED_PIE, CookingLines.BURNT_PIE)
+        val APPLE_PIE = bake(2317, 2323, BURNT_PIE, 30, 1300, 58, 372, CookingLines.COOKED_PIE, CookingLines.BURNT_PIE)
+        val GARDEN_PIE = bake(7176, 7178, BURNT_PIE, 34, 1380, 48, 352, CookingLines.COOKED_PIE, CookingLines.BURNT_PIE)
+        val FISH_PIE = bake(7186, 7188, BURNT_PIE, 47, 1640, 38, 332, CookingLines.COOKED_PIE, CookingLines.BURNT_PIE)
+        val BOTANICAL_PIE = bake(19656, 19662, BURNT_PIE, 52, 1800, 20, 300, CookingLines.COOKED_PIE, CookingLines.BURNT_PIE, 108, 462)
+        val MUSHROOM_PIE = bake(21684, 21690, BURNT_PIE, 60, 2000, 17, 285, CookingLines.COOKED_PIE, CookingLines.BURNT_PIE, 140, 450)
+        val ADMIRAL_PIE = bake(7196, 7198, BURNT_PIE, 70, 2100, 15, 270, CookingLines.COOKED_PIE, CookingLines.BURNT_PIE)
+        val DRAGONFRUIT_PIE = bake(22789, 22795, BURNT_PIE, 73, 2200, 8, 250, CookingLines.COOKED_PIE, CookingLines.BURNT_PIE)
+        val WILD_PIE = bake(7206, 7208, BURNT_PIE, 85, 2400, 1, 222, CookingLines.COOKED_PIE, CookingLines.BURNT_PIE)
+        val SUMMER_PIE = bake(7216, 7218, BURNT_PIE, 95, 2600, 1, 212, CookingLines.COOKED_PIE, CookingLines.BURNT_PIE)
+        val PIZZA = bake(2287, 2289, 2305, 35, 1430, 48, 352, CookingLines.COOKED_PIZZA, CookingLines.BURNT_PIZZA)
+        const val CAKE_TIN = 1887
+        val CAKE = bake(1889, 1891, 1903, 40, 1800, 38, 332, CookingLines.COOKED_CAKE, CookingLines.BURNT_CAKE, returns = CAKE_TIN)
+        val PITTA = bake(1863, 1865, 1867, 58, 400, 118, 492, CookingLines.COOKED_PITTA, CookingLines.BURNT_PITTA)
+
         val FOODS = listOf(
             SHRIMPS, ANCHOVIES, SARDINE, HERRING, TROUT, PIKE, SALMON, BEEF, RAT_MEAT, BEAR_MEAT, CHICKEN, BREAD,
             LOBSTER, TUNA, SWORDFISH, SHARK, MACKEREL, COD, BASS, KARAMBWAN, POISON_KARAMBWAN, MONKFISH, ANGLERFISH,
+            REDBERRY_PIE, MEAT_PIE, MUD_PIE, APPLE_PIE, GARDEN_PIE, FISH_PIE, BOTANICAL_PIE, MUSHROOM_PIE, ADMIRAL_PIE,
+            DRAGONFRUIT_PIE, WILD_PIE, SUMMER_PIE, PIZZA, CAKE, PITTA,
         )
     }
 }
