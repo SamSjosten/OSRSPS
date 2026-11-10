@@ -751,6 +751,25 @@
       "source": "OSRS Wiki, Jelly (Dreadnoth) (id 16666), read 2026-11-10: speed 5, crush, max hit 17 (the formula's from its Strength of 160), the defence bonuses, the 60% fire weakness. Its hitpoints are the cache's 75 (the tsps capture notes' too; the Wiki's infobox says 61). It attacks with jelly_attack and dies with jelly_death (tsps capture notes); its hits, which drain prayer (Wiki), come from Dreadnoth's fight. Guessed: no block animation, the respawn, which never comes. Not in: the Wiki's 20% freeze resistance"
     },
     {
+      "npcs": ["tfa_xarth"],
+      "attackSpeed": 4,
+      "maxHit": 36,
+      "attackType": "magic",
+      "attackBonus": 250,
+      "strengthBonus": 30,
+      "range": 10,
+      "attacks": [ { "anim": "xarth_attack_magic_01", "projectile": 4034 } ],
+      "defence": { "stab": 115, "slash": 105, "crush": 20, "magic": 205, "light": 125, "standard": 230, "heavy": 155 },
+      "anims": { "attack": "xarth_attack_magic_01", "defend": null, "death": "xarth_death_01" },
+      "respawnTicks": 50,
+      "weakness": {"element": "water", "percent": 85},
+      "immune": ["poison", "venom"],
+      "drainCap": { "defence": 40 },
+      "xpBonus": 180,
+      "deathTicks": 6,
+      "source": "OSRS Wiki, Xarth (id 16684), read 2026-11-10: speed 4, magic in phase one with max hit 36 (ranged 34 and slash 34 come with phase two, raid step 19b), magic attack +250, ranged strength +30, the defence bonuses, the 85% water weakness, immune to poison and venom, Defence drained to 60% at most (the 21 October 2026 hotfix), +180% XP. His fireball is luc2_undead_demon_fireball_proj_big (4034) and his death xarth_death_01; he and the fight's NPCs go 6 ticks after he falls (tsps capture notes, RSPSApp/tsps docs/fractured-archive.md). His shots come from his fight (Xarth), at players anywhere in his arena; the range is only the file's most. Guessed: no block animation (tsps: none of the bosses plays one), the respawn, which never comes. Not in: the 20% demonbane resistance and the 50% cap on lowering his other stats (28 October 2026)"
+    },
+    {
       "npcs": ["tfa_guardian_battery_active", "tfa_guardian_battery_inactive", "tfa_guardian_battery_destroyed"],
       "attackSpeed": 4, "maxHit": 0, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
       "defence": { "stab": 0, "slash": 20, "crush": -20, "magic": -20, "light": 0, "standard": 0, "heavy": 0 },

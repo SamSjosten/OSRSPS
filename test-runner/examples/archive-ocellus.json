@@ -80,11 +80,12 @@
    "step": "command",
    "text": "::raid tp xarth",
    "expectMessage": "To Xarth's room",
-   "comment": "done as soon as it begins while his room isn't built; once it is, a ::raid clear goes after this"
+   "comment": "his fight begins only on his arena, past the room's transporter (archive-xarth.json): here his room is just marked done"
   },
   {
-   "step": "waitTicks",
-   "ticks": 2
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Xarth's room."
   },
   {
    "step": "command",
