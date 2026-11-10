@@ -240,7 +240,7 @@ class HeadlessArchiveGuardianTest {
     }
 
     @Test
-    fun `at 30 percent with its time on the ground nearly up, it still lifts off 4 ticks later, for good`(@TempDir dir: Path) {
+    fun `at 30 percent with its time on the ground nearly up, it still lifts off 4 ticks later, for good, though a hitpoint comes back`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->
                 alice.await("the login rebuild") { alice.position }
@@ -261,6 +261,10 @@ class HeadlessArchiveGuardianTest {
                 alice.commandReply("step $left") { it.startsWith("Stepping") }
                 alice.await("the fight's tick $late") { (fight.ticks == late).takeIf { it } }
                 alice.commandReply("hit 770 ${boss.index}") { it.contains("330/1100 hp") }
+                // A tick on, the count begun, a hitpoint comes back (as its regeneration would bring): it changes nothing.
+                alice.commandReply("step 1") { it.startsWith("Stepping") }
+                alice.await("the fight's tick ${late + 1}") { (fight.ticks == late + 1).takeIf { it } }
+                alice.commandReply("npchp 331 ${boss.index}") { it.contains("now on 331 hitpoints") }
                 alice.commandReply("resume") { it.isNotEmpty() }
 
                 alice.awaitFight("the airborne phase") { it.contains("(airborne)") }

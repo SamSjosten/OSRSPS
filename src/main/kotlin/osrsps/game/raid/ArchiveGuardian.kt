@@ -270,7 +270,7 @@ object ArchiveGuardian {
                     ),
                     endsWhen = { liftsOff() },
                     // To its shield again, or with its hitpoints down to the last phase's, into the air for good.
-                    next = { if (low()) "airborne" else "shield" },
+                    next = { if (state.low >= 0) "airborne" else "shield" },
                     onStart = {
                         val state = state
                         state.groundings++
@@ -337,7 +337,7 @@ object ArchiveGuardian {
         /** How many times it has come down. */
         var groundings = 0
 
-        /** The tick its hitpoints were first seen at the last phase's this time down; -1 before. */
+        /** The tick its hitpoints were first seen at the last phase's this time down, kept though they rise again; -1 before. */
         var low = -1L
     }
 
@@ -365,15 +365,13 @@ object ArchiveGuardian {
      */
     private fun EncounterContext.liftsOff(): Boolean {
         val state = state
-        if (low()) {
-            if (state.low < 0) {
-                state.low = world.tick
-                log("down to $AIRBORNE_AT%: lifts off in $AIRBORNE_DELAY")
-            }
-            // Guessed: once it is that low the count runs its course, though its time on the ground would be up
-            // sooner (the one recording of it had 2 ticks to spare).
-            return world.tick - state.low >= AIRBORNE_DELAY
+        if (state.low < 0 && low()) {
+            state.low = world.tick
+            log("down to $AIRBORNE_AT%: lifts off in $AIRBORNE_DELAY")
         }
+        // Guessed: once it has been that low the count runs its course, though its time on the ground would be up
+        // sooner (the one recording of it had 2 ticks to spare) or a hitpoint has come back since.
+        if (state.low >= 0) return world.tick - state.low >= AIRBORNE_DELAY
         return phaseTick >= if (state.groundings <= 1) GROUNDED_FIRST else GROUNDED_LATER
     }
 
