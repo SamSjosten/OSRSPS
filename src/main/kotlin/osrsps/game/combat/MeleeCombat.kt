@@ -978,13 +978,13 @@ class MeleeCombat(
         val max = player.skills.baseLevel(Skill.PRAYER) / 4
         val targets = if (multi.at(player.level, player.x, player.z)) {
             npcs.all.filter {
-                !it.dead && it.level == player.level && combat.npcCombat[it.type] != null && withinATile(player, it) &&
+                !it.outOfPlay && it.level == player.level && combat.npcCombat[it.type] != null && withinATile(player, it) &&
                     combat.barred(player, it) == null
             }.toList()
         } else {
             listOfNotNull(
                 player.attackedBy?.takeIf {
-                    !it.dead && npcs[it.index] === it && combat.npcCombat[it.type] != null && it.level == player.level &&
+                    !it.outOfPlay && npcs[it.index] === it && combat.npcCombat[it.type] != null && it.level == player.level &&
                         withinATile(player, it) && combat.barred(player, it) == null
                 },
             )
@@ -1058,7 +1058,8 @@ class MeleeCombat(
     private fun regenerateNpcs() {
         for (npc in npcs.all) {
             val def = combat.npcCombat[npc.type] ?: continue
-            // A hidden NPC regenerates as its other timers go on (Npc.hidden); only a dead one doesn't.
+            // Guessed: a hidden NPC regenerates as its other timers go on (Npc.hidden); only a dead one doesn't. No
+            // recording shows a hurt boss going from sight.
             if (npc.dead) continue
             // Held at 0 (a boss's shield broken, Npc.holdsAtZero): it stays at 0 till its fight moves it on, or a point
             // back on this tick would mend the shield before the fight sees it broken.

@@ -37,7 +37,7 @@ fun registerRockslugs(world: World) {
         world.combat.finishers[slug] = { player -> player.equipment[WearPos.WEAPON]?.id == Rockslugs.BRINE_SABRE }
         world.handlers.onObjOnNpc(slug, Rockslugs.BAG_OF_SALT) { op ->
             val npc = op.npc ?: return@onObjOnNpc
-            if (npc.dead || world.npcs[npc.index] !== npc) return@onObjOnNpc
+            if (npc.outOfPlay || world.npcs[npc.index] !== npc) return@onObjOnNpc
             if (world.combat.slayerGated(player, npc)) {
                 world.message(player, CombatLines.SLAYER_LEVEL)
                 return@onObjOnNpc
@@ -111,7 +111,7 @@ class WallBeasts(private val world: World) {
     private fun holeFacing(player: Player): Npc? {
         if (player.level != 0) return null
         return world.npcs.near(player.x, player.z + 1, 0, 0).firstOrNull {
-            it.spawn.type.id == HOLE && it.x == player.x && it.z == player.z + 1 && !it.dead
+            it.spawn.type.id == HOLE && it.x == player.x && it.z == player.z + 1 && !it.outOfPlay
         }
     }
 
@@ -157,7 +157,7 @@ class WallBeasts(private val world: World) {
         val players = world.onlinePlayers
         lastFought.keys.removeIf { it.transformedTo?.id != BEAST || it.dead || world.npcs[it.index] !== it }
         for (npc in world.npcs.all) {
-            if (npc.spawn.type.id != HOLE || npc.transformedTo?.id != BEAST || npc.dead) continue
+            if (npc.spawn.type.id != HOLE || npc.transformedTo?.id != BEAST || npc.outOfPlay) continue
             if (npc.target != null) {
                 lastFought[npc] = world.tick
                 npc.transformTicks = ticksLeft(world.tick, world.tick)

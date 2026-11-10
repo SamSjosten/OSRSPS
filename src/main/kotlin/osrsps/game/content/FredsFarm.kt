@@ -100,7 +100,7 @@ private suspend fun ScriptContext.shear(world: World, sheep: Npc, sheared: Int) 
     sheep.face(player)
     delay(2)
     // Another player may have sheared it meanwhile, or it may have gone.
-    if (sheep.dead || sheep.transformedTo != null || world.npcs[sheep.index] !== sheep) return
+    if (sheep.outOfPlay || sheep.transformedTo != null || world.npcs[sheep.index] !== sheep) return
     val type = world.npcTypes[sheared] ?: return
     world.npcs.transform(sheep, type, FredsFarm.REGROW_TICKS)
     world.message(player, SheepLines.GOT_WOOL)
