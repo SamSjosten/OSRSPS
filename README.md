@@ -692,6 +692,30 @@ the trapdoor behind the bar, the den's door, and the passageway back up; the maz
 | Grace (`rooftops_grace`) at 3050,4962 in the den; her shop's stock, prices and 80% buy-back | mejrs NPCList_OSRS; OSRS Wiki, Grace's Graceful Clothing |
 | Grace's shop inv, roguesden_shop (279); the tiles the trapdoor, door and passageway take the player to; the passageway being the way out | guessed (the 241 map shows no other exit) |
 
+### Magic: teleports
+
+The standard spellbook's teleports to places, Varrock Teleport to Ape Atoll Teleport, and the teleport tablets for the
+same places (`game/skill/magic/Teleports.kt`, landing areas and XP in `skills/magic-teleports.json`). Cast on a spell
+checks the level and runes (a staff stands in for its runes, as for combat spells), takes them, gives the XP and lands
+the player on a free tile of the spell's area 3 ticks later; Break on a tablet uses it up and lands 4 ticks later, with
+no level needed and no XP. Above level 20 Wilderness both are refused with the two lines Home Teleport shows there,
+and nothing is taken. Destinations whose towns aren't built land on live's tiles all the same; where the map isn't
+loaded the player lands on the area's centre. The quests that unlock some of these on live count as done.
+
+| Teleport behaviour | Source |
+|--------------------|--------|
+| The ten spells' levels, runes and magic tab components; Ape Atoll's banana (params 606 and 607); the eight `poh_tablet_*` tablets, Break as iop1 | cache 242 (osrs-dumps 2026-11-03-rev242) |
+| Base XP; tablets needing no level and giving no XP; no teleport above level 20 Wilderness | OSRS Wiki, each spell's page, Magic tablet, Wilderness level |
+| Landing areas for Lumbridge, Falador, Ardougne, Trollheim, Ape Atoll, Kourend Castle and Civitas illa Fortis | OSRS Wiki, each spell's map |
+| Animation 714 with graphic 111 at height 92, the landing 3 ticks after the cast with the animation stopped, the player held meanwhile (being attacked doesn't stop it), runes and XP taken at the cast, Varrock and Camelot landing within 2 tiles of the Wiki's tile | inferred from 2004Scape's teleport script |
+| Watchtower landing on its Wiki tile only, on level 2; the tablet's animations 4069 then 4071 with graphic 678 two ticks in, landing 4 ticks after the break | guessed |
+| Not built: the Achievement Diary destinations and Configure (Grand Exchange, Seers' Village, Yanille), Teleport to House, Tele Other, Teleport Block, Ancient and other books' teleports | next steps |
+
+`::scenario magic` stands you on the Lumbridge spawn with 99 Magic, a staff of air, runes for ten of every teleport
+and two of each tablet.
+
+Check: `./gradlew test --tests 'osrsps.game.skill.magic.*' --tests 'osrsps.testclient.HeadlessTeleportsTest'`.
+
 ## Items and inventory
 
 Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for
@@ -2402,6 +2426,9 @@ a bronze axe in bank tab 1 and 1,000 coins in the main tab: for the tab script, 
 `lumbridge-run-low` stands you on the Lumbridge spawn with run on and no run energy, the energy threshold to re-enable
 running at 5% and Ctrl+click to invert run mode on Run -> Walk only: for the run settings script, as nothing else sets
 run energy.
+
+`magic` stands you on the Lumbridge spawn with 99 Magic and a staff of air, the runes for ten casts of every standard
+teleport built (and a banana for Ape Atoll), and two of each teleport tablet: for the Magic steps.
 
 Check: `::scenario lumbridge-cows` puts you by the cows in iron with the loadout above; `::reset` puts you back where
 you were with your own stats and items.

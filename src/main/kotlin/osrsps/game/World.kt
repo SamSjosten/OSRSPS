@@ -206,6 +206,8 @@ import osrsps.game.skill.SkillUnlocks
 import osrsps.game.skill.Smithing
 import osrsps.game.skill.Woodcutting
 import osrsps.game.skill.WoodcuttingData
+import osrsps.game.skill.magic.TeleportData
+import osrsps.game.skill.magic.Teleports
 import osrsps.game.script.ScriptRunner
 import osrsps.game.social.ClanFoundingRule
 import osrsps.game.social.ClanLines
@@ -706,6 +708,9 @@ class World(
     val crafting = Crafting(this, CraftingData.load())
     val herblore = Herblore(this, HerbloreData.load())
 
+    /** The standard spellbook's teleports to places and their tablets; see [Teleports]. */
+    val teleports = Teleports(this, TeleportData.load(objTypes))
+
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
 
@@ -859,6 +864,7 @@ class World(
         fletching.register()
         crafting.register()
         herblore.register()
+        teleports.register()
         loadDialogue()
     }
 
