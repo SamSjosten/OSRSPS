@@ -588,7 +588,7 @@ class HeadlessEzekielTest {
                 assertTrue(raids.roomAt(run, alice.position!!.x, alice.position!!.z) == ArchiveRoom.EZEKIEL, "out before his line is done")
                 alice.continueDialogue()
                 alice.await("the nexus, in front of his room's door") { alice.position?.takeIf { it == Coord(front.x, front.z, 0) } }
-                assertTrue(run.following.isEmpty(), "her follow done with")
+                assertTrue(run.moving.isEmpty(), "her follow done with")
                 // Quick-follow, back on his arena: no line, and out four ticks after the option, counted in game ticks.
                 alice.commandReply("raid tp ezekiel") { it.startsWith("To ") }
                 alice.tele(entry.x, entry.z + 1)
@@ -596,11 +596,11 @@ class HeadlessEzekielTest {
                 alice.commandReply("pause") { it.contains("aused after tick") }
                 alice.npcOp(navigator.index, 3)
                 var waited = 0
-                while (player.saveKey !in run.following) {
+                while (player.saveKey !in run.moving) {
                     check(++waited <= 5) { "her Quick-follow not taken within 5 ticks" }
                     alice.stepTicks(1)
                 }
-                alice.stepTicks(ArchiveRaids.FOLLOW_DELAY - 1)
+                alice.stepTicks(ArchiveRaids.MOVE_DELAY - 1)
                 assertEquals(ArchiveRoom.EZEKIEL, raids.roomAt(run, player.x, player.z), "out a tick early")
                 alice.stepTicks(1)
                 assertEquals(Tile(front.x, front.z), Tile(player.x, player.z))

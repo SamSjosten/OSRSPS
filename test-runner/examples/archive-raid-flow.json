@@ -66,7 +66,7 @@
   {
    "step": "waitTicks",
    "ticks": 40,
-   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26) and the move comes four ticks after the door is reached, so room to spare"
   },
   {
    "step": "command",
@@ -95,7 +95,7 @@
   {
    "step": "waitTicks",
    "ticks": 30,
-   "comment": "the walk to the transporter and its teleport, with room to spare"
+   "comment": "the walk to the transporter and its move four ticks on, with room to spare"
   },
   {
    "step": "command",
@@ -112,7 +112,7 @@
   {
    "step": "waitTicks",
    "ticks": 40,
-   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26) and the move comes four ticks after the door is reached, so room to spare"
   },
   {
    "step": "command",
@@ -135,7 +135,7 @@
   {
    "step": "waitTicks",
    "ticks": 30,
-   "comment": "the walk to the transporter and its teleport, with room to spare"
+   "comment": "the walk to the transporter and its move four ticks on, with room to spare"
   },
   {
    "step": "command",
@@ -152,7 +152,7 @@
   {
    "step": "waitTicks",
    "ticks": 40,
-   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26) and the move comes four ticks after the door is reached, so room to spare"
   },
   {
    "step": "command",
@@ -175,7 +175,7 @@
   {
    "step": "waitTicks",
    "ticks": 30,
-   "comment": "the walk to the transporter and its teleport, with room to spare"
+   "comment": "the walk to the transporter and its move four ticks on, with room to spare"
   },
   {
    "step": "command",
@@ -198,7 +198,7 @@
   {
    "step": "waitTicks",
    "ticks": 40,
-   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26) and the move comes four ticks after the door is reached, so room to spare"
   },
   {
    "step": "command",
@@ -290,7 +290,7 @@
   {
    "step": "waitTicks",
    "ticks": 40,
-   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26) and the move comes four ticks after the door is reached, so room to spare"
   },
   {
    "step": "command",
@@ -319,7 +319,7 @@
   {
    "step": "waitTicks",
    "ticks": 30,
-   "comment": "the walk to the transporter and its teleport, with room to spare"
+   "comment": "the walk to the transporter and its move four ticks on, with room to spare"
   },
   {
    "step": "command",
@@ -348,7 +348,7 @@
   {
    "step": "waitTicks",
    "ticks": 40,
-   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26) and the move comes four ticks after the door is reached, so room to spare"
   },
   {
    "step": "command",
@@ -377,7 +377,7 @@
   {
    "step": "waitTicks",
    "ticks": 40,
-   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26) and the move comes four ticks after the door is reached, so room to spare"
   },
   {
    "step": "command",
@@ -395,7 +395,7 @@
   {
    "step": "waitTicks",
    "ticks": 40,
-   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26) and the move comes four ticks after the door is reached, so room to spare"
   },
   {
    "step": "command",
@@ -424,7 +424,7 @@
   {
    "step": "waitTicks",
    "ticks": 30,
-   "comment": "the walk to the transporter and its teleport, with room to spare"
+   "comment": "the walk to the transporter and its move four ticks on, with room to spare"
   },
   {
    "step": "command",
@@ -448,7 +448,7 @@
   {
    "step": "waitTicks",
    "ticks": 40,
-   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26) and the move comes four ticks after the door is reached, so room to spare"
   },
   {
    "step": "command",

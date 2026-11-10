@@ -111,6 +111,9 @@ enum class ArchiveRoom(
     }
 }
 
+/** A member on their way into [room] from the nexus ([into]) or out of it, moved on tick [due] ([ArchiveRaids.MOVE_DELAY]). */
+internal data class RoomMove(val room: ArchiveRoom, val into: Boolean, val due: Long)
+
 /**
  * One party's run of The Fractured Archive, in its own [instance]. See [ArchiveRaids].
  */
@@ -169,8 +172,11 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
     /** Rooms won whose Alliance Navigator is still to come, by the tick he does ([ArchiveRaids.NAVIGATOR_DELAY]). */
     internal val navigatorDue = HashMap<ArchiveRoom, Long>()
 
-    /** Members following an Alliance Navigator out, by save key: the room they leave and the tick they do ([ArchiveRaids.FOLLOW_DELAY]). */
-    internal val following = HashMap<String, Pair<ArchiveRoom, Long>>()
+    /**
+     * Members on their way between the nexus and a room, by save key: the room, whether they go into it or out of it,
+     * and the tick they are moved ([ArchiveRaids.MOVE_DELAY] after the door, Passageway, transporter or Navigator).
+     */
+    internal val moving = HashMap<String, RoomMove>()
 
     /** The tick the last room was done on; a member who fell before it gets up standing. -1 before any. */
     var clearedTick: Long = -1
@@ -208,8 +214,10 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
  * - Any party member opens the run through the Archive Door, a player in no party as a party of one, and the others
  *   can follow until the Guardian's fight begins; nobody comes in after, or back after leaving.
  * - Going through one door of a row chooses it for the party: the other stays shut for the run. A row's doors open
- *   once the room before is done. Enter and Quick-enter both go straight in, as do the transporter's Use and
- *   Quick-use: their difference, likely a warning first, isn't known.
+ *   once the room before is done. Enter and Quick-enter both go in, as do the transporter's Use and
+ *   Quick-use: their difference, likely a warning first, isn't known. A move between the nexus and a room comes
+ *   [ArchiveRaids.MOVE_DELAY] ticks after its door, Passageway, transporter or Navigator (tsps capture notes); the
+ *   transporter's move onto the arena is at once (their estimate).
  * - The Passageway goes back to the nexus at any time, in front of the room's door; the transporter, once the room is
  *   done. Before then Bork's room's transporter puts the player on the arena's floor (tsps capture notes: 4184,5599),
  *   past a gap in its west wall too narrow for him. Ocellus's room is past the nexus's Archive Door north (`tfa_nexus_ocellus_door_open`), open once the fourth room is done.
@@ -600,7 +608,20 @@ class ArchiveRaids(private val world: World) {
         val from = Tile(player.x - run.instance.baseX + FROM_X, player.z - run.instance.baseZ + FROM_Z)
         if (from.x == room.doorFront.x && from.z in doorZ(room.stage) until doorZ(room.stage) + DOOR_LENGTH) run.leftFrom[player.saveKey to room] = from
         else run.leftFrom -= player.saveKey to room
-        go(player, run, room)
+        move(run, player, room, into = true)
+    }
+
+    /**
+     * [player] sets off between the nexus and [room]: moved [MOVE_DELAY] ticks on (tsps capture notes, moving between
+     * rooms: "a fade, then the move four ticks later"; Sam's recording of 2026-11-09 has the screen black for 1.5 to
+     * 2 seconds at each door and each Navigator). The fade itself isn't sent. A second click on the way doesn't start
+     * the count again. Guessed: the player isn't held meanwhile, and one who isn't where they set off from by then (the
+     * nexus for a door, the room for the way out), or has fallen, isn't moved.
+     */
+    private fun move(run: ArchiveRun, player: Player, room: ArchiveRoom, into: Boolean) {
+        val pending = run.moving[player.saveKey]
+        if (pending != null && pending.room == room && pending.into == into) return
+        run.moving[player.saveKey] = RoomMove(room, into, world.tick + MOVE_DELAY)
     }
 
     private fun mayEnter(run: ArchiveRun, player: Player, room: ArchiveRoom): Boolean {
@@ -630,7 +651,7 @@ class ArchiveRaids(private val world: World) {
             return
         }
         if (room.door < 0) return
-        out(player, run, room)
+        move(run, player, room, into = false)
     }
 
     /**
@@ -677,7 +698,7 @@ class ArchiveRaids(private val world: World) {
             return
         }
         if (room !in run.cleared) return
-        out(player, run, room)
+        move(run, player, room, into = false)
     }
 
     /** Whether [player] stands on the floor of Xarth's arena in [run]. */
@@ -768,9 +789,7 @@ class ArchiveRaids(private val world: World) {
      * Follow on the Alliance Navigator in a room that is won: back to the nexus, in front of the room's door (tsps
      * capture notes: "beside the door the party took"), after his one line. Quick-follow goes at once. Guessed: that his
      * line comes with Follow and not as he appears, that Quick-follow skips it, and that only the one who follows goes.
-     * The move is [FOLLOW_DELAY] ticks after the option, or after his line is clicked on (tsps capture notes, moving
-     * between rooms: "a fade, then the move four ticks later"). The fade itself isn't sent. Guessed: the player isn't
-     * held meanwhile, and one who has left the room by then, or fallen, isn't moved.
+     * The move is [MOVE_DELAY] ticks after the option, or after his line is clicked on ([move]).
      */
     suspend fun follow(context: ScriptContext, npc: Npc, quick: Boolean) {
         val player = context.player
@@ -778,26 +797,34 @@ class ArchiveRaids(private val world: World) {
         val room = roomAt(run, npc.x, npc.z) ?: return
         if (room !in run.cleared || player.saveKey !in run.entered || world.parties.of(player) !== run.party) return
         if (quick) {
-            run.following[player.saveKey] = room to world.tick + FOLLOW_DELAY
+            move(run, player, room, into = false)
             return
         }
         val line = if (room.stage >= LAST_DOORS) ArchiveNavigatorLines.VAULT else ArchiveNavigatorLines.ONWARD
         world.dialogues.start(context, npc) {
             chatNpc(ChatAnim.NEUTRAL, line, "name" to player.username)
             // Still in the room: a teleport or a death while he spoke took them elsewhere already.
-            if (at(player.x, player.z) === run && roomAt(run, player.x, player.z) == room) run.following[player.saveKey] = room to world.tick + FOLLOW_DELAY
+            if (at(player.x, player.z) === run && roomAt(run, player.x, player.z) == room) move(run, player, room, into = false)
         }
     }
 
-    /** Those following a Navigator whose [FOLLOW_DELAY] ticks are up go out to the nexus, if they still stand in the room they were leaving. */
-    private fun followers(run: ArchiveRun) {
-        for ((key, leaving) in run.following.entries.toList()) {
-            val (room, due) = leaving
-            if (world.tick < due) continue
-            run.following -= key
+    /**
+     * Those on their way between the nexus and a room whose [MOVE_DELAY] ticks are up are moved ([move]): out to the
+     * nexus if they still stand in the room they were leaving, into the room if they still stand in the nexus and its
+     * door is still theirs to take.
+     */
+    private fun movers(run: ArchiveRun) {
+        for ((key, pending) in run.moving.entries.toList()) {
+            if (world.tick < pending.due) continue
+            run.moving -= key
             val player = world.onlinePlayers.firstOrNull { it.saveKey == key } ?: continue
-            if (player.dead || world.parties.of(player) !== run.party) continue
-            if (at(player.x, player.z) === run && roomAt(run, player.x, player.z) == room) out(player, run, room)
+            if (player.dead || world.parties.of(player) !== run.party || at(player.x, player.z) !== run) continue
+            val room = pending.room
+            if (pending.into) {
+                if (inNexus(run, player.x, player.z) && mayEnter(run, player, room)) go(player, run, room)
+            } else if (roomAt(run, player.x, player.z) == room) {
+                out(player, run, room)
+            }
         }
     }
 
@@ -806,12 +833,12 @@ class ArchiveRaids(private val world: World) {
         val run = at(player.x, player.z) ?: return
         if (!inNexus(run, player.x, player.z)) return
         if (!mayEnter(run, player, ArchiveRoom.OCELLUS)) return
-        go(player, run, ArchiveRoom.OCELLUS)
+        move(run, player, ArchiveRoom.OCELLUS, into = true)
     }
 
     /**
-     * Each tick, after deaths: runs whose instance has ended go; members who left the party are sent out; a room's fight
-     * begins as the first member stands in it; a member who is down and walks back into a room is sent out; and a party
+     * Each tick, after deaths: runs whose instance has ended go; those due a move between the nexus and a room are moved
+     * ([movers]); members who left the party are sent out; a room's fight begins as the first member stands in it; a member who is down and walks back into a room is sent out; and a party
      * with nobody left standing (the last standing one logged out) wipes.
      */
     fun process() {
@@ -830,6 +857,9 @@ class ArchiveRaids(private val world: World) {
                 run.fights -= room
                 if (fight.boss.dead) clear(run, room)
             }
+            // Before the look at who stands where: a room begins on the tick its first member arrives, as it did when
+            // a door moved them at once.
+            movers(run)
             for (player in world.onlinePlayers) {
                 if (!run.instance.contains(player.x, player.z) || player.saveKey !in run.entered || player.dead) continue
                 if (world.parties.of(player) !== run.party) {
@@ -856,7 +886,6 @@ class ArchiveRaids(private val world: World) {
             placeOcellusFigure(run)
             if (ArchiveRoom.OCELLUS !in run.started && ArchiveRoom.OCELLUS.stage == run.stage && run.ocellusFigure != null && ocellusReady(run)) beginOcellus(run)
             navigators(run)
-            followers(run)
             settleEscapes(run, ended = false)
             val present = present(run)
             if (present.isNotEmpty() && present.none { it.dead } && standing(run).isEmpty()) wipe(run, null)
@@ -1103,8 +1132,11 @@ class ArchiveRaids(private val world: World) {
         const val QUICK_FOLLOW = "Quick-follow"
         const val NAVIGATOR_DELAY = 3
 
-        /** Ticks from following the Navigator to the move to the nexus (tsps capture notes: "a fade, then the move four ticks later"). */
-        const val FOLLOW_DELAY = 4
+        /**
+         * Ticks from a door, a Passageway, the transporter back out or the Navigator to the move between the nexus and
+         * a room (tsps capture notes: "a fade, then the move four ticks later").
+         */
+        const val MOVE_DELAY = 4
 
         const val STAGES = 5
 
