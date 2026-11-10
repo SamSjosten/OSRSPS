@@ -125,8 +125,9 @@ class MagicCombat(
             logger.info { "${player.username} cast ${spell.name} on $npc, which can't be fought" }
             return
         }
-        if (combat.slayerGated(player, npc)) {
-            message(player, words(player)[CombatLines.SLAYER_LEVEL])
+        val barred = combat.barred(player, npc)
+        if (barred != null) {
+            message(player, words(player)[barred])
             return
         }
         if (melee.underAttackByAnother(player, npc)) {
@@ -192,9 +193,11 @@ class MagicCombat(
             stopFacing(player)
             return true
         }
-        // Checked at every attack, not just the first: a boosted Slayer level can drop back mid-fight.
-        if (combat.slayerGated(player, npc)) {
-            message(player, words(player)[CombatLines.SLAYER_LEVEL])
+        // Checked at every attack, not just the first: a boosted Slayer level can drop back mid-fight, and a player can
+        // leave where the NPC is fought.
+        val barred = combat.barred(player, npc)
+        if (barred != null) {
+            message(player, words(player)[barred])
             stopFacing(player)
             return true
         }
@@ -298,7 +301,7 @@ class MagicCombat(
         player.skills.addTenths(Skill.MAGIC, if (hit) spell.xpTenths else spell.splashXpTenths)
         if (spell.area && multi.at(npc.level, npc.x, npc.z)) {
             for (other in around(npc)) {
-                if (combat.slayerGated(player, other)) continue
+                if (combat.barred(player, other) != null) continue
                 val otherMatchup = combat.magicMatchup(player, other, spell) ?: continue
                 roll(player, other, spell, otherMatchup, landTick, defensive)
             }

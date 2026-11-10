@@ -1,5 +1,5 @@
 {
- "name": "Raid steps 17a, 17b and 17c: Ezekiel solo, his fight beginning as the first player takes the room's transporter into his arena, his swings under Protect from Melee, the cross after every second attack and the flying swords with it, his enrage at 35% shutting the player into a fenced three by three beside him under strikes of lightning, to his death doing the room",
+ "name": "Raid steps 17a, 17b and 17c: Ezekiel solo, his fight beginning as the first player takes the room's transporter into his arena, his swings under Protect from Melee, the cross after every second attack and the flying swords with it, his enrage at 35% shutting the player into a fenced three by three beside him under strikes of lightning, to his death doing the room, and the Alliance Navigator leading back to the nexus",
  "account": "test",
  "steps": [
   {
@@ -10,6 +10,12 @@
    "text": "::scenario lumbridge-bare",
    "expectMessage": "Started scenario lumbridge-bare",
    "comment": "nothing carried; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys",
+   "comment": "the Alliance Navigator's line is checked by its key, so it passes with or without its words on the server"
   },
   {
    "step": "command",
@@ -32,6 +38,12 @@
    "text": "::god on",
    "expectMessage": "You can't be hurt now",
    "comment": "his swings, lightning and crosses still land but do nothing, so the waits can't kill the account; ::god off at the end"
+  },
+  {
+   "step": "command",
+   "text": "::varp 172 1",
+   "expectMessage": "Varp 172:",
+   "comment": "auto retaliate off, or punches back at him take a hitpoint here and there and his hitpoints below aren't the Wiki's; ::reset at the end puts it back"
   },
   {
    "step": "command",
@@ -92,15 +104,17 @@
    "comment": "tfa_boss_teleporter, the Archive transporter: into his arena at its east edge (4067,5535), the first in, so his tank"
   },
   {
-   "step": "waitTicks",
-   "ticks": 10,
-   "comment": "the walk to the transporter, a tile a tick, then into the arena: 7 to 8 ticks on the VM (2026-11-10)"
+   "step": "assertAnimation",
+   "npc": "Ezekiel",
+   "id": 14685,
+   "timeoutMs": 30000,
+   "comment": "npc_ezekiel_melee01, his first swing, 5 ticks after the fight begins: looked for from the click on the transporter, before any command, as a command resets what an assert looks back over (on VM 215, 2026-11-10, his first swing came on the tick of the commands below in one run of three, and none was seen after it)"
   },
   {
    "step": "command",
    "text": "::raid",
    "expectMessage": "Ezekiel 3000/3000 hp",
-   "comment": "the Wiki's hitpoints for a player alone (counted as two)"
+   "comment": "the Wiki's hitpoints for a player alone (counted as two), auto retaliate being off"
   },
   {
    "step": "command",
@@ -111,19 +125,13 @@
   {
    "step": "waitTicks",
    "ticks": 30,
-   "comment": "he walks the few tiles over and swings, every 5 ticks"
-  },
-  {
-   "step": "assertAnimation",
-   "npc": "Ezekiel",
-   "id": 14685,
-   "timeoutMs": 10000,
-   "comment": "npc_ezekiel_melee01, his swing, every 5 ticks"
+   "comment": "more swings, every 5 ticks, each second one with the cross"
   },
   {
    "step": "command",
    "text": "::raid log 40",
-   "expectMessage": "fight: swings at test"
+   "expectMessage": "fight: swings at test",
+   "comment": "his swings in the fight's log"
   },
   {
    "step": "waitTicks",
@@ -150,8 +158,8 @@
   {
    "step": "command",
    "text": "::hit 2000",
-   "expectMessage": "1000/3000 hp",
-   "comment": "down to a third, under the 35% his enrage begins at (step 17c)"
+   "expectMessage": "/3000 hp",
+   "comment": "down to a third or just under, under the 35% his enrage begins at (step 17c): a sword that flew lined up with him has taken 20 more (VM 215, 2026-11-10: 980 left)"
   },
   {
    "step": "waitTicks",
@@ -179,7 +187,7 @@
    "step": "command",
    "text": "::raid log 20",
    "expectMessage": "enrage: arena at",
-   "comment": "he stands east in his room, a fence of swords round a three by three west of him, the player brought into it"
+   "comment": "he stands west in his arena (4059,5534), three swords on his own tiles and a fence of swords round the three by three east of him, the player brought into it"
   },
   {
    "step": "waitTicks",
@@ -189,7 +197,7 @@
    "step": "command",
    "text": "::raid log 20",
    "expectMessage": "enrage: lightning, safe row",
-   "comment": "two of the three marks struck, the back-row tile on the third's row spared"
+   "comment": "two of the three marks struck, the far tile on the third's row spared"
   },
   {
    "step": "command",
@@ -205,6 +213,38 @@
    "text": "::raid run",
    "expectMessage": "done Archive Guardian, Ezekiel;",
    "comment": "his death does his room"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4,
+   "comment": "the Alliance Navigator comes to the arena 3 ticks after the room is won: the way back, the arena being walled off from the transporter"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 16700,
+   "option": "Follow",
+   "timeoutMs": 20000,
+   "comment": "tfa's Alliance Navigator, where the transporter put us in (4067,5535; the tile guessed)"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_navigator.onward name=",
+   "speaker": "Alliance Navigator",
+   "comment": "his one line, with the player's name: its key and the name, with ::keys on (the account may be test or test2, so the name is left open)"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 6,
+   "comment": "the move comes 4 ticks after his line is clicked on"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "You're in the nexus's hall",
+   "comment": "out in front of his room's door"
   },
   {
    "step": "command",
