@@ -6,9 +6,11 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.EquipmentTab
+import osrsps.game.GameLines
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
@@ -94,7 +96,9 @@ class HeadlessOcellusTest {
         )
     }
     private val grave = NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null))
-    private val types = NpcTypes.of(figure, notMet, met, first, second, blade, third, vine, grave, *flares.toTypedArray())
+    /** The Blade at the vault's entry, 3 by 3 with Commune and Travel, as the 241.4 cache has it (`tfa_blade_npc_vault_entry`). */
+    private val vaultBlade = NpcType(Ocellus.BLADE_TRAVEL, "The Blade", size = 3, ops = listOf("Commune", null, "Travel", null, null), internalName = "tfa_blade_npc_vault_entry")
+    private val types = NpcTypes.of(figure, notMet, met, first, second, blade, third, vine, grave, vaultBlade, *flares.toTypedArray())
 
     private val portal = LocCollisionType(width = 2, length = 1, interactType = 1, blocksProjectile = false)
     private val locTypes = LocTypes(
@@ -558,6 +562,46 @@ class HeadlessOcellusTest {
     }
 
     @Test
+    fun `nobody attacks him or anything of his from the corridor his room is come into by`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.throughTheRest(run)
+                alice.toOcellus(server, run)
+                alice.npcOp(assertNotNull(run.ocellusFigure).index, 1)
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ocellus #") } }
+                val boss = boss(run)
+                val world = server.world
+                val player = world.playerNamed("alice")!!
+                val centre = Ocellus.centre(boss.spawn.x, boss.spawn.z)
+                val level = ArchiveRoom.OCELLUS.level
+                assertNull(world.combat.barred(player, boss), "on his arena")
+                alice.commandReply("raid hold 100") { it.startsWith("Held ") }
+                // The arena's south edge, on the arm: still on it.
+                alice.tele(centre.x, centre.z - Ocellus.STRIP_LENGTH, level)
+                assertNull(world.combat.barred(player, boss), "on the arena's last row")
+                // A tile south of it, the corridor's north end: in his room, so his fight goes on, but off the arena,
+                // which none of his room-wide attacks leave (exploit review round 23, R23B-1): shut out, and refused.
+                alice.tele(centre.x, centre.z - Ocellus.STRIP_LENGTH - 1, level)
+                assertTrue(world.archiveRaids.inRoom(run, ArchiveRoom.OCELLUS, player.x, player.z), "the corridor is in his room")
+                assertSame(GameLines.CANT_REACH, world.combat.barred(player, boss), "from the corridor")
+                // Him held on the arena's last row, beside her (a swing is tried on arrival, and she has arrived).
+                world.npcs.teleport(boss, centre.x - 1, centre.z - Ocellus.STRIP_LENGTH)
+                alice.await("him beside her, to the north") { alice.npcs().firstOrNull { it.index == boss.index && it.coord.z == centre.z - Ocellus.STRIP_LENGTH } }
+                alice.npcOp(boss.index, 2)
+                alice.await("the refusal") { alice.messages().firstOrNull { it.text == "[game.cant_reach]" } }
+                alice.awaitTicks(4)
+                assertTrue(alice.npcHits().none { it.index == boss.index }, "${alice.npcHits()}")
+                // Where she comes into his room, far down the corridor: the same.
+                val entry = world.archiveRaids.tile(run, ArchiveRoom.OCELLUS.entryX, ArchiveRoom.OCELLUS.entryZ)
+                alice.tele(entry.x, entry.z, level)
+                assertSame(GameLines.CANT_REACH, world.combat.barred(player, boss), "from where the room is come into")
+                assertTrue(run.fights[ArchiveRoom.OCELLUS] != null, "his fight goes on with her in the corridor")
+            }
+        }
+    }
+
+    @Test
     fun `later in a quadrant's turn the pools burst, every portal turns purple, the floor portal takes her on, and the last volley kills`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->
@@ -759,6 +803,37 @@ class HeadlessOcellusTest {
                 alice.commandReply("hit ${boss.hitpoints} ${boss.index}") { it.startsWith("Hit ") }
                 alice.await("his room done", 30_000) { ArchiveRoom.OCELLUS.takeIf { it in run.cleared } }
                 assertTrue(boss.dead)
+            }
+        }
+    }
+
+    @Test
+    fun `in his third phase a burst stops at his next fall, nothing hurts him while it falls, and his corridor is no shelter`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.throughTheRest(run)
+                alice.toOcellus(server, run)
+                alice.npcOp(assertNotNull(run.ocellusFigure).index, 1)
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ocellus #") } }
+                val boss = boss(run)
+                val level = ArchiveRoom.OCELLUS.level
+                val centre = Ocellus.centre(boss.spawn.x, boss.spawn.z)
+                alice.toHisThird(run)
+                alice.awaitLine(run, "his quadrant", 30_000) { it.contains("third: takes quadrant NW") }
+                // Exploit review R23B-2: one hit from full to nearly nothing stops at 75%, and he falls there.
+                alice.commandReply("hit 5000 ${boss.index}") { it.startsWith("Hit ") }
+                assertEquals(5250 * 75 / 100, boss.hitpoints)
+                // R23B-1: she waits it out in his room's corridor, south of the arena.
+                alice.tele(centre.x, centre.z - Ocellus.STRIP_LENGTH - 3, level)
+                assertFalse(Ocellus.inArena(centre, centre.x, centre.z - Ocellus.STRIP_LENGTH - 3))
+                alice.awaitLine(run, "the north-west to fall") { it.contains("third: NW to fall at ${5250 * 75 / 100}/5250") }
+                // While it falls nothing hurts him.
+                alice.commandReply("hit 1000 ${boss.index}") { it.startsWith("Hit ") }
+                assertEquals(5250 * 75 / 100, boss.hitpoints)
+                // The corridor is no shelter: she goes with the quadrant.
+                alice.awaitLine(run, "her lost from the corridor") { it.contains("third: alice lost with it for ") }
+                assertEquals(5250 * 75 / 100, boss.hitpoints)
             }
         }
     }
@@ -1202,6 +1277,17 @@ class HeadlessOcellusTest {
                 alice.commandReply("hit ${boss.hitpoints} ${boss.index}") { it.startsWith("Hit ") }
                 alice.await("his room done", 30_000) { ArchiveRoom.OCELLUS.takeIf { it in run.cleared } }
                 assertTrue(boss.dead)
+                // His body goes and the Blade appears where he fell, with Travel, to the vault.
+                val fell = Tile(boss.x, boss.z)
+                val world = server.world
+                val vaultBlade = alice.await("the Blade", 30_000) { world.npcs.all.singleOrNull { it.type.id == Ocellus.BLADE_TRAVEL } }
+                assertEquals(boss.diedTick + Ocellus.BLADE_AFTER, vaultBlade.spawnTick)
+                assertEquals(fell, Tile(vaultBlade.x, vaultBlade.z))
+                assertEquals(boss.level, vaultBlade.level)
+                alice.await("his body gone") { if (world.npcs.all.none { it === boss }) Unit else null }
+                alice.npcOp(vaultBlade.index, Ocellus.TRAVEL)
+                val to = world.archiveRaids.tile(run, osrsps.game.raid.ArchiveRaids.REWARD_X, osrsps.game.raid.ArchiveRaids.REWARD_Z)
+                alice.await("the reward vault", 30_000) { alice.position?.takeIf { it == Coord(to.x, to.z, osrsps.game.raid.ArchiveRaids.REWARD_LEVEL) } }
             }
         }
     }

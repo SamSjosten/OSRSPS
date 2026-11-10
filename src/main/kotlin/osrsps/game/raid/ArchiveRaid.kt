@@ -769,7 +769,9 @@ class ArchiveRaids(private val world: World) {
 
     /**
      * Whether tile [x], [z] is on [room]'s arena in [run]; null for a room with no arena built. The Guardian's is its
-     * hall, all of its room: the fight is in the open there, and the nexus's entrance south of it is outside.
+     * hall, all of its room: the fight is in the open there, and the nexus's entrance south of it is outside. Ocellus's
+     * is the floor round his cross ([Ocellus.inArena], about where his hooded figure stands, as his fight has it), which
+     * leaves out the corridor his room is come into by.
      */
     private fun onArena(run: ArchiveRun, room: ArchiveRoom, x: Int, z: Int): Boolean? = when (room) {
         ArchiveRoom.GUARDIAN -> inRoom(run, room, x, z)
@@ -777,6 +779,7 @@ class ArchiveRaids(private val world: World) {
         ArchiveRoom.BORK -> tile(run, BORK_CART_X, BORK_CART_Z).let { Bork.inArena(it.x, it.z, x, z) }
         ArchiveRoom.DREADNOTH -> tile(run, Dreadnoth.X, Dreadnoth.Z).let { Dreadnoth.inArena(it.x, it.z, x, z) }
         ArchiveRoom.XARTH -> tile(run, XARTH_X, XARTH_Z).let { Xarth.inArena(it.x, it.z, x, z) }
+        ArchiveRoom.OCELLUS -> tile(run, Ocellus.FIGURE_X, Ocellus.FIGURE_Z).let { Ocellus.inArena(Ocellus.centre(it.x, it.z), x, z) }
         else -> null
     }
 
@@ -791,6 +794,12 @@ class ArchiveRaids(private val world: World) {
      * so nothing of the fight reaches a player there, while an inert guardian in the hall's south was within a bow's
      * reach of them (exploit review round 22, R22A-1). Guessed: that live refuses an attack from the entrance; where
      * its fight ends to the south isn't known ([HALL_Z] is inferred).
+     *
+     * Ocellus's corridor is in his room, so his fight goes on with someone there, but none of his attacks that take
+     * the whole arena reach it, and nothing stood between it and the arena's south edge for a bow or a spell (exploit
+     * review round 23, R23B-1). On live "the entrance closes behind the party" as his fight starts (tsps capture
+     * notes), so nobody fights from there; that closing isn't built, and the rule stands in for it. Guessed: that live
+     * would refuse an attack from the corridor, and with what words.
      */
     fun shutOut(player: Player, npc: Npc): Boolean {
         val run = at(npc.x, npc.z) ?: return false
@@ -1121,10 +1130,22 @@ class ArchiveRaids(private val world: World) {
     /**
      * Where [player], dying in a run, comes back: down in the nexus with everything kept while someone still stands, or
      * the lobby with a grave there when they were the last, which wipes the party. Null outside a run.
+     *
+     * In a run that is done (Ocellus's room cleared) a death costs nothing and leaves them standing: back at the reward
+     * vault's arrival tile if they died there, else at the nexus's entrance. Guessed, all of it: what a death after the
+     * last room costs on live, where it puts the player, and whether it is counted, aren't known.
      */
     fun deathPlace(player: Player): DeathPlace? {
         val run = at(player.x, player.z) ?: return null
         if (player.saveKey !in run.entered) return null
+        // Once the run is done there is no fight to be out of and no room left whose end would get anyone up: a death
+        // then (poison, a late hit) kept its victim down for good, where leaving or logging out was a death with a
+        // grave, and wiped a lone player out of a finished run (exploit review round 23, R23A-1).
+        // Guessed: that such a death isn't counted, keeps everything and leaves them standing, and where they come back.
+        if (run.completed && !run.wiped) {
+            val (to, level) = if (inRewardRoom(run, player.x, player.z)) tile(run, REWARD_X, REWARD_Z) to REWARD_LEVEL else tile(run, NEXUS_X, NEXUS_Z) to NEXUS_PLANE
+            return DeathPlace(keepItems = true, to.x, to.z, level, to.x, to.z, level)
+        }
         run.deaths[player.saveKey] = (run.deaths[player.saveKey] ?: 0) + 1
         if (run.wiped) return wipePlace(run)
         val others = standing(run).filter { it !== player }

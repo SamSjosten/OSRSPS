@@ -457,6 +457,65 @@ class HeadlessArchiveRaidTest {
     }
 
     @Test
+    fun `a death once the run is done costs nothing and leaves them standing, in the nexus or the vault, and a lone one's is no wipe`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { carol ->
+                server.login("dave").use { dave ->
+                    for (client in listOf(carol, dave)) client.await("the login rebuild") { client.position }
+                    carol.commandReply("raidparty invite dave") { it.startsWith("Invited") }
+                    dave.commandReply("raidparty accept carol") { it.startsWith("You joined") }
+                    val run = carol.enter(server, "carol")
+                    assertEquals(run, dave.enter(server, "dave"))
+                    val world = server.world
+                    val raids = world.archiveRaids
+                    val carolPlayer = world.playerNamed("carol")!!
+                    for (room in listOf(ArchiveRoom.GUARDIAN, ArchiveRoom.BORK, ArchiveRoom.DREADNOTH, ArchiveRoom.XARTH, ArchiveRoom.OCELLUS)) {
+                        carol.command("raid tp ${room.name.lowercase()}")
+                        carol.awaitRun("${room.boss}'s room done") { room in run.cleared }
+                    }
+                    assertTrue(run.completed)
+                    carol.awaitAt(raids.tile(run, ArchiveRoom.OCELLUS.entryX, ArchiveRoom.OCELLUS.entryZ), "Ocellus's room", ArchiveRoom.OCELLUS.level)
+                    carol.commandReply("item bronze axe 5") { it.contains("Bronze axe") }
+                    // Carol dies in his room with Dave standing (exploit review round 23, R23A-1: she was down for
+                    // good): up at the nexus's entrance, standing, her axes kept, and the death not counted.
+                    val entrance = raids.tile(run, ArchiveRaids.NEXUS_X, ArchiveRaids.NEXUS_Z)
+                    carol.command("hit 99 me")
+                    carol.awaitAt(entrance, "Carol back at the nexus's entrance")
+                    carol.await("Carol up") { if (carolPlayer.dead) null else Unit }
+                    assertTrue(run.downed.isEmpty() && run.deaths.isEmpty() && !run.wiped, carol.runSays())
+                    carol.await("Carol's axes kept") { carol.inventory(INVENTORY).count { it?.id == axe.id }.takeIf { it == 5 } }
+                    // Standing, so the way on is still hers: back into his room and by Travel to the vault.
+                    val arena = raids.tile(run, ArchiveRoom.OCELLUS.entryX, ArchiveRoom.OCELLUS.entryZ)
+                    carol.command("raid tp ocellus")
+                    carol.awaitAt(arena, "Ocellus's room again", ArchiveRoom.OCELLUS.level)
+                    // Dave leaves the party: Carol is the only one in the run.
+                    dave.commandReply("raidparty leave") { it.contains("left") || it.contains("Left") }
+                    dave.awaitAt(Tile(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z), "Dave out to the lobby")
+                    assertEquals("Travelling to the reward vault.", carol.commandReply("raid travel") { it.contains("ravel") })
+                    val vault = raids.tile(run, ArchiveRaids.REWARD_X, ArchiveRaids.REWARD_Z)
+                    carol.awaitAt(vault, "the reward vault", ArchiveRaids.REWARD_LEVEL)
+                    // She dies up the vault's walk, alone: no wipe, and up at its arrival tile with everything.
+                    carol.command("raid tp 4127 5790")
+                    carol.awaitAt(raids.tile(run, 4127, 5790), "the north end of the vault's walk", ArchiveRaids.REWARD_LEVEL)
+                    carol.command("hit 99 me")
+                    carol.awaitAt(vault, "Carol back at the vault's arrival tile", ArchiveRaids.REWARD_LEVEL)
+                    carol.await("Carol up in the vault") { if (carolPlayer.dead) null else Unit }
+                    assertTrue(run.downed.isEmpty() && run.deaths.isEmpty() && !run.wiped, carol.runSays())
+                    assertTrue(world.instances.all.any { it === run.instance }, "the run still there")
+                    // Out by the Rift, as anyone: the lobby, her five axes on her and no grave anywhere.
+                    carol.command("raid tp 4127 5790")
+                    carol.awaitAt(raids.tile(run, 4127, 5790), "the north end of the walk again", ArchiveRaids.REWARD_LEVEL)
+                    val rift = carol.await("the Rift out in view") { carol.npcs().firstOrNull { it.id == ArchiveRaids.RIFT_OUT } }
+                    carol.npcOp(rift.index, 1)
+                    carol.awaitAt(Tile(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z), "out to the lobby by the Rift's Leave")
+                    carol.await("Carol's axes still hers") { carol.inventory(INVENTORY).count { it?.id == axe.id }.takeIf { it == 5 } }
+                    assertTrue(world.deaths.all.isEmpty(), "no grave: ${world.deaths.all.map { it.owner }}")
+                }
+            }
+        }
+    }
+
+    @Test
     fun `a row opens once the room before is done, and its other door stays shut once one is chosen`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bob").use { client ->

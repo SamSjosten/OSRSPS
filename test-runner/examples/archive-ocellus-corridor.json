@@ -1,0 +1,265 @@
+{
+ "name": "Exploit review R23B-1: Ocellus can't be shot from the corridor his room is come into by, which is in his fight but off his arena, and can from the arena",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare",
+   "comment": "nothing carried; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys",
+   "comment": "the refusal is checked by its key, so it passes with or without its words on the server"
+  },
+  {
+   "step": "command",
+   "text": "::item shortbow",
+   "expectMessage": "Added 1 x Shortbow"
+  },
+  {
+   "step": "itemOption",
+   "item": "Shortbow",
+   "option": "Wield"
+  },
+  {
+   "step": "assertEquipment",
+   "slot": "weapon",
+   "item": "Shortbow"
+  },
+  {
+   "step": "command",
+   "text": "::item bronze arrow 20",
+   "expectMessage": "Added 20 x Bronze arrow"
+  },
+  {
+   "step": "itemOption",
+   "item": "Bronze arrow",
+   "option": "Wield"
+  },
+  {
+   "step": "assertEquipment",
+   "slot": "ammo",
+   "item": "Bronze arrow"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel hitpoints 99",
+   "expectMessage": "Hitpoints set to level 99"
+  },
+  {
+   "step": "command",
+   "text": "::heal",
+   "expectMessage": "Healed to 99 hitpoints."
+  },
+  {
+   "step": "command",
+   "text": "::god on",
+   "expectMessage": "You can't be hurt now",
+   "comment": "his shots and cracks still land but do nothing; ::god off at the end"
+  },
+  {
+   "step": "command",
+   "text": "::tele 4127 5560 0",
+   "expectMessage": "Teleported to 4127, 5560, 0",
+   "comment": "the lobby, in front of the Archive Door"
+  },
+  {
+   "step": "locOption",
+   "locId": 62768,
+   "option": "Enter",
+   "timeoutMs": 20000,
+   "comment": "into a run of one"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 6
+  },
+  {
+   "step": "command",
+   "text": "::raid tp guardian",
+   "expectMessage": "To Archive Guardian's room"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Archive Guardian's room."
+  },
+  {
+   "step": "command",
+   "text": "::raid tp bork",
+   "expectMessage": "To Bork and the Smorks's room"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Bork and the Smorks's room.",
+   "comment": "their fight is archive-bork.json; here the room is just marked done"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp dreadnoth",
+   "expectMessage": "To Dreadnoth the Jellied's room",
+   "comment": "his fight begins only on his arena, past the room's transporter (archive-dreadnoth.json): here his room is just marked done"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Dreadnoth the Jellied's room."
+  },
+  {
+   "step": "command",
+   "text": "::raid tp xarth",
+   "expectMessage": "To Xarth's room",
+   "comment": "his fight begins only on his arena, past the room's transporter (archive-xarth.json): here his room is just marked done"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Xarth's room."
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "done Archive Guardian, Bork and the Smorks, Dreadnoth the Jellied, Xarth;",
+   "comment": "the four rooms before his done"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp ocellus",
+   "expectMessage": "To Ocellus's room",
+   "comment": "his room's landing, upstairs on the vault's level 1"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "done Archive Guardian, Bork and the Smorks, Dreadnoth the Jellied, Xarth;",
+   "comment": "walking in starts nothing: he waits as the hooded figure for the party to ready up"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp 4126 5666",
+   "expectMessage": "To 4126, 5666 of the raid",
+   "comment": "beside the hooded figure (4126,5669), which is out of view from the landing"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "npcOption",
+   "npc": "Hooded Figure",
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "tfa_ocellus_intro (16671), shown to an account that hasn't met him as tfa_ocellus_intro_not_met, \"Hooded Figure\" (242 cache): Talk-to readies the player up. Alone, the player is the whole party, so his fight begins at once"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "Ocellus 2500/2500 hp, charge 0/96",
+   "comment": "the Wiki's first-phase hitpoints for a player alone (counted as two)"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp 4127 5659",
+   "expectMessage": "To 4127, 5659 of the raid",
+   "comment": "the corridor's north end, a row south of the doorway onto his arena (4126-4128 on 5660; the arena's last row is 5661): where the party walks in from the landing"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "the client's scene after the move"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "You're in Ocellus's room, at 4127, 5659 of the raid",
+   "comment": "in his room, so his fight goes on with us here, but off his arena, which none of his attacks that take the whole arena leave"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 16674,
+   "option": "Attack",
+   "timeoutMs": 20000,
+   "comment": "tfa_ocellus_p1, walking his corners north of us"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[game.cant_reach]",
+   "timeoutMs": 10000,
+   "comment": "exploit review R23B-1: refused at once, with the line for a target that can't be reached, and no walk in after it. On live the entrance closes behind the party as his fight starts (tsps capture notes), which isn't built: this rule stands in for it (the refusal and its words are a guess)"
+  },
+  {
+   "step": "command",
+   "text": "::fight",
+   "expectMessage": "You are not fighting anything"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "You're in Ocellus's room, at 4127, 5659 of the raid",
+   "comment": "still where we stood"
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "Ocellus 2500/2500 hp",
+   "comment": "nothing reached him"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp 4127 5663",
+   "expectMessage": "To 4127, 5663 of the raid",
+   "comment": "onto his arena, on the south arm of its cross"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "npcOption",
+   "npcId": 16674,
+   "option": "Attack",
+   "timeoutMs": 20000,
+   "comment": "from the arena the attack is taken: a walk into the shortbow's range of 7, then the shot"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::fight",
+   "expectMessage": "You are fighting Ocellus #"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Ocellus's room.",
+   "comment": "the fight ended, so nothing is left running behind the script"
+  },
+  {
+   "step": "command",
+   "text": "::god off",
+   "expectMessage": "You can be hurt again."
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

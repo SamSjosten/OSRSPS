@@ -1127,10 +1127,11 @@
       "range": 10,
       "defence": { "stab": 350, "slash": 100, "crush": 30, "magic": 200, "light": 250, "standard": 250, "heavy": 250 },
       "anims": { "attack": "npc_ocellus_phase3_melee_basic", "defend": null, "death": "npc_ocellus_phase3_death" },
+      "deathTicks": 14,
       "respawnTicks": 50,
       "immune": ["poison", "venom", "freeze"],
       "drainCap": { "defence": 60 },
-      "source": "OSRS Wiki, Ocellus (phase 3, id 16677), read 2026-11-10: speed 3, melee max hit 30 and magic 36, the defence bonuses, immune to poison and venom, Defence drained to 150 at most (60% of 250). Immune to freeze, guessed as in his first phase. His attacks come from his fight (Ocellus): melee on his tank, his slash, a void shot at everyone when he can't reach the tank (tsps capture notes; Wiki). Guessed: slash as his melee style, no attack bonuses (the Wiki's are unreadable), no block animation, the 10-tile range, the respawn, which never comes"
+      "source": "OSRS Wiki, Ocellus (phase 3, id 16677), read 2026-11-10: speed 3, melee max hit 30 and magic 36, the defence bonuses, immune to poison and venom, Defence drained to 150 at most (60% of 250). Immune to freeze, guessed as in his first phase. His attacks come from his fight (Ocellus): melee on his tank, his slash, a void shot at everyone when he can't reach the tank (tsps capture notes; Wiki). Guessed: slash as his melee style, no attack bonuses (the Wiki's are unreadable), no block animation, the 10-tile range, his body going 14 ticks after his death, as the Blade appears where he fell (step 27c; the capture notes' 14 ticks to the Blade), the respawn, which never comes"
     },
     {
       "npcs": ["tfa_ocellus_p3_void_vine"],
@@ -1199,6 +1200,30 @@
       "immune": ["poison", "venom", "freeze"],
       "xpBonus": 12.5,
       "source": "OSRS Wiki, Ocellus (phase 2, ids 16675 and 16676), read 2026-11-10: magic, the portal's max hit 25, the defence bonuses, the 12.5% XP bonus, the Blade's Defence drained to 0 (no cap). Neither attacks by itself: his second phase has no Attack and the Blade only takes the party's (his fight, Ocellus; tsps capture notes). The portals' shots come from his fight. Guessed: the 5-tick speed (the Wiki gives 0, never used), no block or death animation, poison, venom and freeze immunity as in his first phase, the respawn, which never comes"
+    },
+    {
+      "npcs": ["favour_guard_male_no_beard"],
+      "attackSpeed": 7, "maxHit": 2, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 5, "slash": 5, "crush": 0, "magic": 0, "light": 5, "standard": 5, "heavy": 5 },
+      "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 25,
+      "source": "OSRS Wiki, H.A.M. Guard (level 12), read 2026-11-10: speed 7, max hit 2, crush, no attack or strength bonus, stab and slash +5, ranged +5, crush and magic 0, respawn 25, not aggressive. The level 18 and 22 rows were read from the page's data where its infobox was garbled. The animations are guessed (unarmed, as the jail guards')"
+    },
+    {
+      "npcs": ["favour_guard_male_bearded"],
+      "attackSpeed": 6, "maxHit": 3, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 6, "slash": 6, "crush": 0, "magic": 0, "light": 6, "standard": 6, "heavy": 6 },
+      "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 25,
+      "source": "OSRS Wiki, H.A.M. Guard (level 18), read 2026-11-10: speed 6, max hit 3, crush, no attack or strength bonus, stab and slash +6, ranged +6, crush and magic 0, respawn 25, not aggressive. The level 18 and 22 rows were read from the page's data where its infobox was garbled. The animations are guessed (unarmed, as the jail guards')"
+    },
+    {
+      "npcs": ["favour_guard_long_beard"],
+      "attackSpeed": 5, "maxHit": 3, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 7, "slash": 7, "crush": 0, "magic": 0, "light": 7, "standard": 7, "heavy": 7 },
+      "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 25,
+      "source": "OSRS Wiki, H.A.M. Guard (level 22), read 2026-11-10: speed 5, max hit 3, crush, no attack or strength bonus, stab and slash +7, ranged +7, crush and magic 0, respawn 25, not aggressive. The level 18 and 22 rows were read from the page's data where its infobox was garbled. The animations are guessed (unarmed, as the jail guards')"
     }
   ]
 }

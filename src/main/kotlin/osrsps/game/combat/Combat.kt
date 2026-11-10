@@ -145,11 +145,11 @@ class Combat(
      */
     val finishers = HashMap<Int, (Player) -> Boolean>()
 
-    /** The hitpoints a hit from [source] (null for none) leaves [npc] at the least. */
+    /** The hitpoints a hit from [source] (null for none) leaves [npc] at the least: its own, or its fight's [Npc.holdsAt]. */
     fun floor(npc: Npc, source: Player?): Int {
         val min = npcCombat[npc.type]?.minHitpoints ?: 0
-        if (min == 0) return 0
-        return if (source != null && finishers[npc.type.id]?.invoke(source) == true) 0 else min
+        val own = if (min == 0 || (source != null && finishers[npc.type.id]?.invoke(source) == true)) 0 else min
+        return maxOf(own, npc.holdsAt)
     }
 
     /** The animations the player swings and blocks with: their weapon's category's. */

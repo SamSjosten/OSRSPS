@@ -779,6 +779,21 @@ class NpcCombatTest {
     }
 
     @Test
+    fun `the HAM guards hit with crush at the Wiki's speeds and max hits, unarmed`() {
+        // The 242 cache's Strength levels.
+        val names = mapOf("favour_guard_male_no_beard" to 12, "favour_guard_male_bearded" to 18, "favour_guard_long_beard" to 20)
+        val guardTypes = NpcTypes.of(*names.entries.mapIndexed { i, (name, str) -> NpcType(2900 + i, name, internalName = name, stats = NpcStats(strength = str)) }.toTypedArray())
+        val combat = NpcCombat.load(guardTypes, seqs)
+        assertEquals(names.size, combat.size)
+        fun def(name: String) = combat[guardTypes.find(name)!!]!!
+        assertEquals(listOf(7, 6, 5), names.keys.map { def(it).attackSpeed })
+        assertEquals(listOf(2, 3, 3), names.keys.map { def(it).maxHit })
+        for ((name, str) in names) assertEquals(CombatMath.npcMaxHit(str, def(name).strengthBonus), def(name).maxHit, name)
+        assertTrue(names.keys.all { def(it).aggression == null && def(it).respawnTicks == 25 })
+        assertEquals(NpcCombatAnims(422, 424, 836), def("favour_guard_long_beard").anims)
+    }
+
+    @Test
     fun `each max hit in the file is what the formula gives from the levels`() {
         val combat = NpcCombat.load(types, seqs)
         for (name in names) {

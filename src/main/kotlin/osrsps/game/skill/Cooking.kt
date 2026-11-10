@@ -47,6 +47,10 @@ object CookingLines : Lines("cooking", "Cooking") {
     val BURNT_SHARK = line("burnt_shark", "Shark: the message on burning one")
     val COOKED_KARAMBWAN = line("cooked_karambwan", "Cooked karambwan: the message on cooking one thoroughly")
     val COOKED_POISON_KARAMBWAN = line("cooked_poison_karambwan", "Poison karambwan: the message on cooking one poorly")
+    val COOKED_MONKFISH = line("cooked_monkfish", "Monkfish: the message on cooking one")
+    val BURNT_MONKFISH = line("burnt_monkfish", "Monkfish: the message on burning one")
+    val COOKED_ANGLERFISH = line("cooked_anglerfish", "Anglerfish: the message on cooking one")
+    val BURNT_ANGLERFISH = line("burnt_anglerfish", "Anglerfish: the message on burning one")
     val BURNT_KARAMBWAN = line("burnt_karambwan", "Karambwan: the message on burning one, either way")
     val COOKED_MACKEREL = line("cooked_mackerel", "Mackerel: the message on cooking one")
     val BURNT_MACKEREL = line("burnt_mackerel", "Mackerel: the message on burning one")
@@ -92,6 +96,8 @@ class Food(
  * gathering skills' first roll), and the burnt items (by the Wiki's Burnt fish pages). Out: cooking gauntlets, the
  * cooking cape, the Hosidius range, wines and other multi-step food, and the sounds (the 241 synth ids have no names).
  * Lobster, tuna, swordfish and shark came with Fishing and Cooking 2's step FC1; mackerel, cod and bass with FC2.
+ *
+ * Monkfish and anglerfish came with step FC4.
  *
  * Karambwan (step FC3) cooks two ways from the one raw fish, so the box always asks, showing the cooked karambwan first
  * (the Wiki's change of 28 February 2024 made it the default) and the poison karambwan second. Out: the poison
@@ -350,9 +356,24 @@ class Cooking(private val world: World) {
             3142, 3146, 3148, 1, 800, 70, 255, 70, 255, CookingLines.COOKED_POISON_KARAMBWAN, CookingLines.BURNT_KARAMBWAN,
         )
 
+        /**
+         * Monkfish and anglerfish (step FC4), from the Wiki's Monkfish and Anglerfish pages (read 2026-11-10): monkfish
+         * from 62 for 150 XP, 11/275 on a fire and 13/280 on a range; anglerfish from 84 for 230 XP, 1/200 on a fire and
+         * 1/220 on a range. Neither is on the Lumbridge range's list, so it cooks them as any range. Out: monkfish's 1-tick
+         * cook without the box (the Wiki's Monkfish recipe note).
+         */
+        val MONKFISH = Food(
+            7944, 7946, 7948, 62, 1500, 11, 275, 13, 280, CookingLines.COOKED_MONKFISH, CookingLines.BURNT_MONKFISH,
+            rangeLow = 13, rangeHigh = 280,
+        )
+        val ANGLERFISH = Food(
+            13439, 13441, 13443, 84, 2300, 1, 200, 1, 220, CookingLines.COOKED_ANGLERFISH, CookingLines.BURNT_ANGLERFISH,
+            rangeLow = 1, rangeHigh = 220,
+        )
+
         val FOODS = listOf(
             SHRIMPS, ANCHOVIES, SARDINE, HERRING, TROUT, PIKE, SALMON, BEEF, RAT_MEAT, BEAR_MEAT, CHICKEN, BREAD,
-            LOBSTER, TUNA, SWORDFISH, SHARK, MACKEREL, COD, BASS, KARAMBWAN, POISON_KARAMBWAN,
+            LOBSTER, TUNA, SWORDFISH, SHARK, MACKEREL, COD, BASS, KARAMBWAN, POISON_KARAMBWAN, MONKFISH, ANGLERFISH,
         )
     }
 }

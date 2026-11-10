@@ -216,6 +216,22 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `the HAM Hideout has its 26 pickpocketable members, 11 seated, 22 guards, the Deacon, Johanhus and Jimmy in his cell`() {
+        val names = mapOf(
+            2540 to "favour_male_ham_civilian", 2541 to "favour_female_ham_civilian", 2542 to "favour_npc_chair",
+            2543 to "favour_npc_floor", 2536 to "favour_guard_male_no_beard", 2537 to "favour_guard_male_bearded",
+            2538 to "favour_guard_long_beard",
+        )
+        val result = NpcSpawnFile.parse(file("ham-hideout.json"), NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray()), "ham-hideout.json")
+        val spawns = result.spawns
+        fun count(vararg ids: Int) = spawns.count { it.type.id in ids }
+        assertEquals(listOf(26, 11, 22), listOf(count(2540, 2541), count(2542, 2543), count(2536, 2537, 2538)))
+        assertTrue(spawns.all { it.x in 3140..3190 && it.z in 9600..9660 && it.level == 0 && it.source.isNotBlank() })
+        assertTrue(spawns.filter { it.type.id in setOf(2542, 2543) }.all { it.wander == 0 })
+        assertEquals(3, result.unknown.size, "the Deacon, Johanhus and Jimmy: ${result.unknown}")
+    }
+
+    @Test
     fun `the swamp has its 23 giant rats, 82 frogs, the level 5 goblin, the unicorn, its talking NPCs and tutors, and rats west of the castle`() {
         val names = mapOf(
             2856 to "giantrat", 2859 to "giantrat_grey", 2860 to "giantrat_grey2", 2861 to "giantrat_grey3", 2863 to "giantrat1_2",
@@ -729,10 +745,11 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `the fishing spots outside Misthalin are Catherby's seven, Musa Point's six and Karamja's five, each on a tile of its area or staying put`() {
+    fun `the fishing spots outside Misthalin are Catherby's seven, Musa Point's six, Karamja's five, Piscatoris's five and Port Piscarilius's three, each on a tile of its area or staying put`() {
         val names = mapOf(
             1518 to "0_44_53_saltfish", 1519 to "0_44_53_rarefish", 1520 to "0_44_53_memberfish", 1521 to "0_45_49_saltfish", 1522 to "0_45_49_rarefish",
             4710 to "0_43_47_karambwanji", 4712 to "0_45_48_karambwan", 4713 to "general_karambwan",
+            4316 to "swan_fishingspot", 6825 to "piscariliusfish",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, "Fishing spot", internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("fishing-spots.json"), types, "fishing-spots.json")
@@ -741,9 +758,13 @@ class NpcSpawnFileTest {
         // The OSRS Wiki's spot pages (read 2026-11-10): Catherby has two Cage/Harpoon and three Big Net/Harpoon spots,
         // Musa Point three Cage/Harpoon; mejrs's live list adds two Net/Bait at Catherby and three at Musa Point.
         // Karamja (step FC3): the Wiki's three karambwanji spots in the Holy Lake and two karambwan spots by DKP.
-        assertEquals(listOf(2, 2, 3, 3, 3, 3, 1, 1), names.keys.map { id -> spawns.count { it.type.id == id } })
+        assertEquals(listOf(2, 2, 3, 3, 3, 3, 1, 1), names.keys.take(8).map { id -> spawns.count { it.type.id == id } })
+        // Step FC4: the Wiki's five Piscatoris spots and three Port Piscarilius anglerfish spots.
+        assertEquals(listOf(5, 3), listOf(4316, 6825).map { id -> spawns.count { it.type.id == id } })
         for (spot in spawns) {
-            val staysPut = spot.type.id in setOf(Fishing.KARAMBWANJI_SPOT, Fishing.KARAMBWAN_SPOT, Fishing.KARAMBWAN_SPOT_EAST)
+            val staysPut = spot.type.id in setOf(
+                Fishing.KARAMBWANJI_SPOT, Fishing.KARAMBWAN_SPOT, Fishing.KARAMBWAN_SPOT_EAST, Fishing.PISCATORIS_SPOT, Fishing.PISCARILIUS_SPOT,
+            )
             assertEquals(!staysPut, Fishing.AREAS.any { Tile(spot.x, spot.z) in it }, "a spot at ${spot.x}, ${spot.z}")
             assertTrue(spot.wander == 0 && spot.source.isNotBlank())
         }
