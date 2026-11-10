@@ -1,0 +1,28 @@
+{
+  "about": "On the Lumbridge spawn with 99 Fletching and what the Artisan 2 steps make things from: crossbow parts, unfinished and finished bolts, gems for bolt tips, and javelin tips and shafts.",
+  "notes": "For trying the Artisan 2 steps by hand (A1: crossbows, bolts, bolt tips and javelins). Limbs on a stock with the hammer held, then a crossbow string; a feather on the unfinished bolts (10 a click; the All Settings toggle 'Make-X for darts and bolts' opens the box instead); the chisel on an opal; the opal tips on the bronze bolts; the javelin tips on the shafts. The loadout is ours.",
+  "position": { "x": 3222, "z": 3218, "level": 0 },
+  "skills": { "fletching": 99 },
+  "inventory": [
+    { "item": "hammer" },
+    { "item": "chisel" },
+    { "item": "feather", "count": 200 },
+    { "item": "xbows_crossbow_stock_wood" },
+    { "item": "xbows_crossbow_stock_wood" },
+    { "item": "xbows_crossbow_stock_wood" },
+    { "item": "xbows_crossbow_limbs_bronze" },
+    { "item": "xbows_crossbow_limbs_bronze" },
+    { "item": "xbows_crossbow_limbs_bronze" },
+    { "item": "xbows_crossbow_string" },
+    { "item": "xbows_crossbow_string" },
+    { "item": "xbows_crossbow_string" },
+    { "item": "xbows_crossbow_bolts_bronze_unfeathered", "count": 100 },
+    { "item": "bolt", "count": 30 },
+    { "item": "opal_bolttips", "count": 30 },
+    { "item": "opal" },
+    { "item": "opal" },
+    { "item": "opal" },
+    { "item": "javelin_shaft", "count": 30 },
+    { "item": "bronze_javelin_head", "count": 30 }
+  ]
+}
