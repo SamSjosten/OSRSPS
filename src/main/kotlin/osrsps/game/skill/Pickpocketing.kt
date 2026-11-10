@@ -285,8 +285,13 @@ class Pickpocketing(private val world: World) {
         val PALADINS = listOf(3293, 3294, 8853, 11901, 11930, 11931, 11932, 11933)
         val HEROES = listOf(3295, 11934, 11935)
 
-        /** gnome, browclothedgnome, darkskinned_gnome, the two gnome women and three gnome children: one pocket. */
-        val GNOMES = listOf(6094, 6095, 6096, 6086, 6087, 6077, 6078, 6079)
+        /** gnome, browclothedgnome, darkskinned_gnome. */
+        val GNOME_MEN = listOf(6094, 6095, 6096)
+
+        /** The two gnome women and three gnome children, whose pocket gives 133.5 XP to the men's 133.3. */
+        val GNOME_WOMEN_AND_CHILDREN = listOf(6086, 6087, 6077, 6078, 6079)
+
+        val GNOMES = GNOME_MEN + GNOME_WOMEN_AND_CHILDREN
 
         /** Warriors since November 2022 (warrior_woman's variants and warrior_man's), Ardougne's and the Fishing Guild's. */
         val WARRIORS_2022 = listOf(11925, 11926, 11927, 11928, 11929)
@@ -454,11 +459,11 @@ class Pickpocketing(private val world: World) {
          * rogues 32, 36.5 XP, 75 to 240, 2 damage, a table out of 144 with a pouch of 25 to 40; Knights of Ardougne 55,
          * 84.3 XP, 50 to 240, 3 damage, a pouch of 50; watchmen 65, 137.5 XP, 15 to 160, 3 damage, a pouch of 60 and a
          * bread; paladins 70, 131.8 XP, 40 to 170, 3 damage, a pouch of 80 and 2 chaos runes; gnomes (men, women and
-         * children alike) 75, 133.3 XP, 43 to 175, 1 damage, a table out of 128 with a pouch of 300; heroes 80, 163.3 XP,
+         * children alike, but for the women's and children's 133.5 XP) 75, 133.3 XP, 43 to 175, 1 damage, a table out of 128 with a pouch of 300; heroes 80, 163.3 XP,
          * 39 to 160, 3 damage, a table out of 128 with a pouch of 200 to 300. The Wiki's stun times, 4.8 seconds for
          * knights and paladins and 6 for heroes, are 8 and 10 ticks; its 5 seconds stay the Stun page's 9 ticks.
-         * Guessed: their caught line (the townsfolk's), the words in the messages, and that the gnome women and children
-         * share the men's pocket ("gnome"). Left out: the clue scrolls, Rocky, the Ardougne diary.
+         * Guessed: their caught line (the townsfolk's), the words in the messages, and "gnome" in the women's and
+         * children's messages too. Left out: the clue scrolls, Rocky, the Ardougne diary.
          */
         val POCKETS = listOf(
             Pocket(Townsfolk.MEN + AL_KHARID_MAN, "man", 1, 80, 180, 240, 1, PickpocketLines.CAUGHT_CITIZEN, CITIZEN_POUCH, COINS_PER_CITIZEN_POUCH),
@@ -478,7 +483,11 @@ class Pickpocketing(private val world: World) {
                 PALADINS, "paladin", 70, 1318, 40, 170, 3, PickpocketLines.CAUGHT_CITIZEN, PALADIN_POUCH, 80, stunTicks = STUN_4_8_SECONDS,
                 extra = listOf(line(562, 1, 2, 2)),
             ),
-            Pocket(GNOMES, "gnome", 75, 1333, 43, 175, 1, PickpocketLines.CAUGHT_CITIZEN, loot = GNOME_LOOT, coins = 300, lootPouch = GNOME_POUCH),
+            Pocket(GNOME_MEN, "gnome", 75, 1333, 43, 175, 1, PickpocketLines.CAUGHT_CITIZEN, loot = GNOME_LOOT, coins = 300, lootPouch = GNOME_POUCH),
+            Pocket(
+                GNOME_WOMEN_AND_CHILDREN, "gnome", 75, 1335, 43, 175, 1, PickpocketLines.CAUGHT_CITIZEN, loot = GNOME_LOOT, coins = 300,
+                lootPouch = GNOME_POUCH,
+            ),
             Pocket(
                 HEROES, "hero", 80, 1633, 39, 160, 3, PickpocketLines.CAUGHT_CITIZEN, loot = HERO_LOOT, coins = 200, coinsMax = 300, lootPouch = HERO_POUCH,
                 stunTicks = STUN_6_SECONDS,

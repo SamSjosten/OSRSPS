@@ -817,7 +817,7 @@ and heroes (reached by `::tele`). Gloves of silence and the dodgy necklace work 
 | Knights of Ardougne: 55, 84.3 XP, 50 to 240, 3 damage, a pouch of 50, a 4.8-second stun (8 ticks) | OSRS Wiki, Knight of Ardougne |
 | Watchmen: 65, 137.5 XP, 15 to 160, 3 damage, a pouch of 60 and a bread every time | OSRS Wiki, Watchman |
 | Paladins: 70, 131.8 XP, 40 to 170, 3 damage, a pouch of 80 and 2 chaos runes every time, an 8-tick stun | OSRS Wiki, Paladin |
-| Gnomes (the men, women and children alike): 75, 133.3 XP, 43 to 175, 1 damage; a table out of 128 (2 to 4 arrow shafts 56, a pouch of 300 30, a swamp toad 24, gold ore 8, an earth rune 5, a king worm 3, a fire orb 2) | OSRS Wiki, Gnome, Gnome woman, Gnome child |
+| Gnomes (the men, women and children alike, but for the women's and children's 133.5 XP): 75, 133.3 XP, 43 to 175, 1 damage; a table out of 128 (2 to 4 arrow shafts 56, a pouch of 300 30, a swamp toad 24, gold ore 8, an earth rune 5, a king worm 3, a fire orb 2) | OSRS Wiki, Gnome, Gnome woman, Gnome child |
 | Heroes: 80, 163.3 XP, 39 to 160, 3 damage; a table out of 128 (a pouch of 200 to 300 105, 2 death runes 8, a jug of wine 6, a blood rune 5, a fire orb 2, a diamond 1, gold ore 1); a 6-second stun (10 ticks) | OSRS Wiki, Hero |
 | Warriors: Ardougne's (the pre-2022 warrior woman type) and the 2022 types join the warrior's pocket | OSRS Wiki, Warrior (Thieving) |
 | No room: a pickpocket needs a slot for a new pouch and one for each extra it gives that isn't a stack already held | guessed (the Wiki gives the extras, not the room they need) |

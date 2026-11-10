@@ -96,9 +96,17 @@ class PickpocketNpcsTest {
         }
         // Every version on the Wiki's pages shares its pocket: the knights, paladins and heroes, the gnome men, women and
         // children, and the 2022 warriors with the warrior women.
-        for (group in listOf(Pickpocketing.KNIGHTS_OF_ARDOUGNE, Pickpocketing.PALADINS, Pickpocketing.HEROES, Pickpocketing.GNOMES)) {
+        for (group in listOf(Pickpocketing.KNIGHTS_OF_ARDOUGNE, Pickpocketing.PALADINS, Pickpocketing.HEROES, Pickpocketing.GNOME_MEN, Pickpocketing.GNOME_WOMEN_AND_CHILDREN)) {
             assertEquals(1, group.map { pocketOf(it) }.toSet().size)
         }
+        // The gnome women and children differ from the men in their XP alone: 133.5 to 133.3.
+        val men = pocketOf(Pickpocketing.GNOME_MEN.first())
+        val women = pocketOf(Pickpocketing.GNOME_WOMEN_AND_CHILDREN.first())
+        assertEquals(1335, women.xpTenths)
+        assertEquals(
+            listOf(men.level, men.low, men.high, men.damage, men.anyPouch, men.loot, men.stunTicks),
+            listOf(women.level, women.low, women.high, women.damage, women.anyPouch, women.loot, women.stunTicks),
+        )
         assertTrue(Pickpocketing.WARRIORS_2022.all { pocketOf(it) == pocketOf(Pickpocketing.WARRIOR_WOMAN) })
         val all = Pickpocketing.POCKETS.flatMap { it.npcs }
         assertEquals(all.size, all.toSet().size)
