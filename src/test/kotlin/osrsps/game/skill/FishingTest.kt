@@ -1,16 +1,18 @@
 package osrsps.game.skill
 
+import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import osrsps.game.GameRandom
 
 class FishingTest {
     /** The chance a roll of [method] at [level] catches [fish]: the better fish it can catch are tried first. */
-    private fun chance(method: FishingMethod, fish: Fish, level: Int): Double {
+    private fun chance(method: FishingMethod, fish: Fish, level: Int, percent: Int = 100): Double {
         var missed = 1.0
         for (tried in method.fish) {
             if (level < tried.level) continue
-            val p = SuccessRoll.chance(tried.low, tried.high, level).coerceAtMost(256) / 256.0
+            val p = SuccessRoll.chance(tried.low * percent / 100, tried.high * percent / 100, level).coerceAtMost(256) / 256.0
             if (tried === fish) return missed * p
             missed *= 1 - p
         }
@@ -68,5 +70,58 @@ class FishingTest {
     fun `no two spots in an area share a tile`() {
         val tiles = Fishing.AREAS.flatten()
         assertEquals(tiles.size, tiles.toSet().size)
+    }
+    @Test
+    fun `cage and harpoon fish have the Wiki's levels, XP and pairs, and the dragon harpoon's pairs are its charts'`() {
+        // The Wiki's Raw lobster, Raw tuna, Raw swordfish and Raw shark pages (read 2026-11-10).
+        assertEquals(listOf(40, 35, 50, 76), listOf(Fishing.LOBSTER, Fishing.TUNA, Fishing.SWORDFISH, Fishing.SHARK).map { it.level })
+        assertEquals(listOf(900, 800, 1000, 1100), listOf(Fishing.LOBSTER, Fishing.TUNA, Fishing.SWORDFISH, Fishing.SHARK).map { it.xpTenths })
+        assertEquals(listOf(377, 359, 371, 383), listOf(Fishing.LOBSTER, Fishing.TUNA, Fishing.SWORDFISH, Fishing.SHARK).map { it.obj })
+        val pairs = listOf(Fishing.LOBSTER, Fishing.TUNA, Fishing.SWORDFISH, Fishing.SHARK).map { it.low to it.high }
+        assertEquals(listOf(6 to 95, 8 to 64, 4 to 48, 3 to 40), pairs)
+        // The dragon harpoon's charts: tuna 9/76, swordfish 4/57, shark 3/48, the harpoon's times 1.2 rounded down.
+        val dragon = Fishing.HARPOON_TUNA.otherTools.single { it.obj == Fishing.DRAGON_HARPOON }
+        assertEquals(61, dragon.level)
+        assertEquals(listOf(9 to 76, 4 to 57, 3 to 48), listOf(Fishing.TUNA, Fishing.SWORDFISH, Fishing.SHARK).map { it.low * dragon.percent / 100 to it.high * dragon.percent / 100 })
+        assertEquals(100, Fishing.HARPOON_TUNA.otherTools.single { it.obj == Fishing.BARB_TAIL_HARPOON }.percent)
+        assertEquals(Fishing.HARPOON_TUNA.otherTools, Fishing.HARPOON_SHARK.otherTools)
+        assertEquals(listOf(40, 35, 76), listOf(Fishing.CAGE, Fishing.HARPOON_TUNA, Fishing.HARPOON_SHARK).map { it.level })
+    }
+
+    @Test
+    fun `seeded rolls catch each cage and harpoon fish as often as the Wiki's charts say`() {
+        val random = GameRandom(1234)
+        val cases = listOf(
+            Triple(Fishing.CAGE, 40, 100), Triple(Fishing.CAGE, 99, 100),
+            Triple(Fishing.HARPOON_TUNA, 35, 100), Triple(Fishing.HARPOON_TUNA, 50, 100), Triple(Fishing.HARPOON_TUNA, 99, 100),
+            Triple(Fishing.HARPOON_TUNA, 80, 120), Triple(Fishing.HARPOON_SHARK, 76, 100), Triple(Fishing.HARPOON_SHARK, 99, 120),
+        )
+        val rolls = 200_000
+        for ((method, level, percent) in cases) {
+            val caught = HashMap<Fish, Int>()
+            repeat(rolls) {
+                // As Fishing.roll: each fish the level allows, best first, its pair scaled by the tool.
+                val fish = method.fish.firstOrNull {
+                    level >= it.level && SuccessRoll.roll(random, it.low * percent / 100, it.high * percent / 100, level)
+                }
+                if (fish != null) caught.merge(fish, 1, Int::plus)
+            }
+            for (fish in method.fish.filter { level >= it.level }) {
+                val expected = chance(method, fish, level, percent)
+                val seen = (caught[fish] ?: 0).toDouble() / rolls
+                assertTrue(abs(seen - expected) < 0.005, "${fish.obj} by ${method.name} at $level with $percent%: $seen, the chart's $expected")
+            }
+        }
+    }
+
+    @Test
+    fun `Catherby and Musa Point have their spots' methods, and every spot's spawn tiles are in one area`() {
+        fun methods(npc: Int) = Fishing.SPOTS.single { it.npc == npc }.methods
+        assertEquals(listOf(Fishing.CAGE, Fishing.HARPOON_TUNA), methods(Fishing.CATHERBY_CAGE_SPOT))
+        assertEquals(listOf(Fishing.CAGE, Fishing.HARPOON_TUNA), methods(Fishing.MUSA_POINT_CAGE_SPOT))
+        assertEquals(listOf(Fishing.HARPOON_SHARK), methods(Fishing.CATHERBY_SHARK_SPOT))
+        assertEquals(listOf(Fishing.SMALL_NET, Fishing.SEA_BAIT), methods(Fishing.CATHERBY_NET_SPOT))
+        assertEquals(listOf(Fishing.SMALL_NET, Fishing.SEA_BAIT), methods(Fishing.MUSA_POINT_NET_SPOT))
+        assertEquals(listOf(Fishing.DRAGON_HARPOON, Fishing.BARB_TAIL_HARPOON, Fishing.HARPOON), Fishing.HARPOON_TUNA.tools)
     }
 }

@@ -1,0 +1,33 @@
+{
+ "name": "Fishing and Cooking 2 step FC1: on Catherby's beach a lobster pot cages a lobster and a harpoon catches a tuna or swordfish at the Cage/Harpoon spot and a shark at the Big Net/Harpoon spot, then the Lumbridge kitchen range cooks them through the Make-X box (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario fishing-cooking", "expectMessage": "Started scenario fishing-cooking.", "comment": "Catherby's beach, 99 Fishing and Cooking, a harpoon and a lobster pot; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "assertLocation", "x": 2850, "y": 3430, "plane": 0},
+
+  {"step": "npcOption", "npcId": 1519, "option": "Cage", "timeoutMs": 20000, "comment": "0_44_53_rarefish, the Cage/Harpoon spot"},
+  {"step": "assertMessage", "contains": "fishing.cast_cage"},
+  {"step": "assertAnimation", "id": 619, "comment": "human_lobster"},
+  {"step": "assertMessage", "contains": "fishing.catch_lobster", "timeoutMs": 90000},
+
+  {"step": "npcOption", "npcId": 1519, "option": "Harpoon", "timeoutMs": 20000},
+  {"step": "assertMessage", "contains": "fishing.cast_harpoon"},
+  {"step": "assertAnimation", "id": 618, "comment": "human_harpoon"},
+  {"step": "assertMessage", "contains": "fishing.catch_", "timeoutMs": 90000, "comment": "a tuna or a swordfish"},
+
+  {"step": "npcOption", "npcId": 1520, "option": "Harpoon", "timeoutMs": 20000, "comment": "0_44_53_memberfish, the Big Net/Harpoon spot"},
+  {"step": "assertMessage", "contains": "fishing.catch_shark", "timeoutMs": 180000, "comment": "about one roll in six at 99"},
+
+  {"step": "command", "text": "::tele 3211 3215 0", "comment": "beside the Lumbridge Castle kitchen's Cooking range"},
+  {"step": "assertLocation", "x": 3211, "y": 3215, "plane": 0},
+  {"step": "locOption", "locId": 114, "option": "Cook", "x": 3212, "y": 3215},
+  {"step": "assertInterface", "interfaceId": 270, "comment": "skillmulti: several kinds of raw fish"},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15, "comment": "the first fish in the box"},
+  {"step": "assertMessage", "contains": "cooking.cooked_", "timeoutMs": 20000},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

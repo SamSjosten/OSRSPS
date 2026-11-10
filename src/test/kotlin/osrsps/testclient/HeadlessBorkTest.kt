@@ -263,6 +263,11 @@ class HeadlessBorkTest {
                 alice.commandReply("setlevel strength 99") { it.contains("set to level 99") }
                 alice.commandReply("setlevel attack 99") { it.contains("set to level 99") }
                 alice.commandReply("sure max") { it.startsWith("Your attacks can't miss and") }
+                // From the arena's floor: from the way in nobody's attack reaches them (exploit review round 21, R21A-2).
+                assertSame(osrsps.game.GameLines.CANT_REACH, world.combat.barred(world.playerNamed("alice")!!, theBork))
+                alice.ontoFloor(server, run)
+                val she = world.playerNamed("alice")!!
+                alice.await("Bork beside her on the floor") { theBork.takeIf { Bork.near(it.x, it.z, it.type.size, she.x, she.z, 1) } }
                 alice.npcOp(theBork.index, 2)
                 alice.await("her swing killing him") { theBork.takeIf { it.dead } }
                 alice.awaitLine(run, "Bork down") { it.endsWith("fight: Bork down") }

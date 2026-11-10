@@ -39,8 +39,10 @@ import osrsps.map.Tile
  * figure readying the party up and his fight beginning once everyone standing is in and ready, or 2 minutes after the
  * first ready; his walk to a corner with Protect from Melee up and a shot every five ticks; the seven cracks at a
  * corner, uncaught ones charging him and a caught one healing the player's chip damage; his line and explosion; his walk
- * on to the next corner anticlockwise; and, until step 24b, his death at the end of his blue bar doing the room. The
- * rl-client script test-runner/examples/archive-ocellus.json fights him in the real client.
+ * on to the next corner anticlockwise; his move to the middle at two thirds and a quarter, its four sides of cracks, his
+ * line and his charge expended (raid step 24b); and the hold at the end of his blue bar, his line, his transformation
+ * and, until step 25, his death as his second phase would begin, doing the room. The rl-client script
+ * test-runner/examples/archive-ocellus.json fights him in the real client.
  */
 class HeadlessOcellusTest {
     /**
@@ -165,6 +167,87 @@ class HeadlessOcellusTest {
     }
 
     @Test
+    fun `at the middle each side's two cracks run diagonally out from the ends of that side, clockwise first`() {
+        val middle = Ocellus.middle(Ocellus.FIGURE_X, Ocellus.FIGURE_Z)
+        // On 4126..4128 x 5672..5674. North: from his north-west corner, then his north-east.
+        val north = Ocellus.sideTendrils(middle.x, middle.z, 0)
+        assertEquals((1..6).map { Tile(4126 - it, 5674 + it) }, north[0])
+        assertEquals((1..6).map { Tile(4128 + it, 5674 + it) }, north[1])
+        // East: north-east, then south-east; south: south-east, then south-west; west: south-west, then north-west.
+        val east = Ocellus.sideTendrils(middle.x, middle.z, 1)
+        assertEquals(north[1], east[0])
+        assertEquals((1..6).map { Tile(4128 + it, 5672 - it) }, east[1])
+        val south = Ocellus.sideTendrils(middle.x, middle.z, 2)
+        assertEquals(east[1], south[0])
+        assertEquals((1..6).map { Tile(4126 - it, 5672 - it) }, south[1])
+        val west = Ocellus.sideTendrils(middle.x, middle.z, 3)
+        assertEquals(listOf(south[1], north[0]), west)
+        assertTrue((0..3).flatMap { Ocellus.sideTendrils(middle.x, middle.z, it) }.all { it.size == Ocellus.SIDE_LENGTH })
+    }
+
+    @Test
+    fun `at two thirds he goes to the middle, lays four sides of cracks, expends his charge on her and walks on, and again at a quarter`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.throughTheRest(run)
+                alice.toOcellus(server, run)
+                alice.npcOp(assertNotNull(run.ocellusFigure).index, 1)
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ocellus #") } }
+                val boss = boss(run)
+                // Back to the landing, off every crack, so each charges him.
+                val landing = server.world.archiveRaids.tile(run, ArchiveRoom.OCELLUS.entryX, ArchiveRoom.OCELLUS.entryZ)
+                alice.tele(landing.x, landing.z, ArchiveRoom.OCELLUS.level)
+                alice.keepAlive()
+                // To two thirds of 2,500 as he walks: whatever he is doing, he goes.
+                alice.commandReply("hit 834 ${boss.index}") { it.startsWith("Hit ") }
+                val went = alice.awaitLine(run, "to the middle") { it.contains("shield: to the middle (1)") }
+                val start = tickOf(went)
+                val firstSide = Ocellus.middles(boss).second
+                assertFalse(boss.protectsFromMelee)
+                val inAt = alice.awaitLine(run, "in at the middle") { it.endsWith("shield: in at the middle") }
+                assertEquals(start + Ocellus.MIDDLE_IN, tickOf(inAt))
+                assertEquals(Ocellus.middle(boss.spawn.x, boss.spawn.z), Tile(boss.x, boss.z))
+                assertEquals(Ocellus.Doing.MIDDLE, Ocellus.doing(boss)!!.first)
+                alice.keepAlive()
+                val onward = alice.awaitLine(run, "on from the middle") { it.contains("shield: on from the middle") }
+                val sides = lines(run).filter { it.contains("shield: side ") }
+                val first = start + Ocellus.MIDDLE_IN + Ocellus.FIRST_SIDE
+                // Four sides clockwise from the first, eight ticks apart, each's second crack two ticks after its first.
+                assertEquals((0 until 4).flatMap { listOf(first + 8 * it, first + 8 * it + 2) }, sides.map(::tickOf))
+                val names = listOf("north", "east", "south", "west")
+                assertEquals((0 until 4).flatMap { i -> listOf(1, 2).map { "${names[(firstSide + i) % 4]} crack $it" } }, sides.map { it.substringAfter("side ").substringBefore(" on ") })
+                // An explosion six ticks after each side begins.
+                val explosions = lines(run).filter { it.endsWith("shield: explodes") && tickOf(it) > start }
+                assertEquals((0 until 4).map { first + 8 * it + Ocellus.SIDE_EXPLODES }, explosions.map(::tickOf))
+                // Each crack flowed back four ticks after it was laid, uncaught: 16 charge on the 0 he had, so his line is
+                // the hard one, eight ticks after the last side, and it lands on her two ticks later as the charge empties.
+                val charged = lines(run).filter { it.contains("shield: uncaught: charge ") && tickOf(it) > start }
+                assertEquals(sides.map { tickOf(it) + Ocellus.SIDE_FLOWS }, charged.map(::tickOf))
+                val lastSide = first + 8 * 3
+                val line = lines(run).single { it.contains("shield: annihilation at charge ") || it.contains("shield: death awaits at charge ") }
+                assertEquals(lastSide + Ocellus.MIDDLE_LINE, tickOf(line))
+                val charge = line.substringAfter("at charge ").toInt()
+                assertTrue(charge >= 16, line)
+                assertTrue(line.contains("annihilation"), line)
+                val expended = lines(run).single { it.contains("shield: expends charge ") }
+                assertEquals(tickOf(line) + Ocellus.EXPEND_AFTER_LINE, tickOf(expended))
+                assertTrue(lines(run).any { it.contains("shield: charge hits alice for ") && tickOf(it) == tickOf(expended) })
+                assertEquals(tickOf(expended) + Ocellus.WALK_AFTER_EXPEND, tickOf(onward))
+                assertEquals(Ocellus.Doing.WALKING, Ocellus.doing(boss)!!.first)
+                assertTrue(boss.protectsFromMelee)
+                assertTrue(Ocellus.charge(boss) <= Ocellus.CHARGE_PER, "emptied, a crack or so since")
+                // No shots while he was there.
+                assertTrue(lines(run).none { it.contains("ball at") && tickOf(it) in start..tickOf(onward) })
+                // To a quarter: the second time.
+                alice.commandReply("hit 1041 ${boss.index}") { it.startsWith("Hit ") }
+                alice.awaitLine(run, "to the middle again") { it.contains("shield: to the middle (2)") }
+                assertEquals(2, Ocellus.middles(boss).first)
+            }
+        }
+    }
+
+    @Test
     fun `his arena is upstairs, he waits as the hooded figure until she readies, then walks his corners with Protect from Melee up`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->
@@ -237,10 +320,27 @@ class HeadlessOcellusTest {
                 alice.npcOp(boss.index, 2)
                 alice.awaitTicks(4)
                 if (boss.protectsFromMelee) assertEquals(2500, boss.hitpoints, "nothing through Protect from Melee")
-                // Until step 24b, his blue bar run out kills him, and the room is done.
+                // His blue bar run out, he holds at it: nothing more hurts him, nor does he go to the middle for the two
+                // thresholds he passed on the way.
                 alice.commandReply("hit 2500 ${boss.index}") { it.startsWith("Hit ") }
+                val held = alice.awaitLine(run, "held") { it.endsWith("held: phase starts") }
+                assertFalse(boss.dead)
+                assertEquals(0, boss.hitpoints)
+                assertTrue(alice.fight().contains("held"))
+                assertTrue(lines(run).none { it.contains("to the middle (") })
+                // His line three ticks in, there teleporting to the middle; his transformation three after it.
+                val disappear = alice.awaitLine(run, "his line") { it.endsWith("held: will disappear") }
+                assertEquals(tickOf(held) + Ocellus.HOLD_LINE, tickOf(disappear))
+                assertEquals(Ocellus.middle(boss.spawn.x, boss.spawn.z), Tile(boss.x, boss.z))
+                val transformation = alice.awaitLine(run, "his transformation") { it.endsWith("held: transformation") }
+                assertEquals(tickOf(disappear) + Ocellus.TRANSFORM_ANIM_AFTER, tickOf(transformation))
+                assertFalse(boss.dead)
+                // Until step 25, he dies as his second phase would begin, ten ticks after his line, and the room is done.
+                val fight = assertNotNull(run.fights[ArchiveRoom.OCELLUS])
                 alice.await("his room done") { ArchiveRoom.OCELLUS.takeIf { it in run.cleared } }
                 assertTrue(run.completed)
+                assertTrue(boss.dead)
+                assertEquals(tickOf(disappear) + Ocellus.SECOND_PHASE_AFTER, tickOf(fight.lines.single { it.endsWith("held: second phase: stand-in, he dies") }))
             }
         }
     }

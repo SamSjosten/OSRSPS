@@ -1,5 +1,5 @@
 {
- "name": "Raid step 16a: the Archive Guardian solo, from Touch in the nexus's hall through its shield (shots blocked by Protect from Missiles), its fall to the ground (Protect from Melee), its lift-off behind a whole shield 35 ticks later and its second fall with the hitpoints it had left, and its lift-off at 30% with the laser (Protect from Magic), to its death doing the room; phases moved on with ::hit",
+ "name": "Raid step 16a: the Archive Guardian solo, from Touch and Yes in the nexus's hall through its shield (shots blocked by Protect from Missiles), its fall to the ground (Protect from Melee), its lift-off behind a whole shield 35 ticks later and its second fall with the hitpoints it had left, its lift-off at 30% behind the shield with the beams (the chat line, then the beam), and its last time down with the beams going on, to its death doing the room; phases moved on with ::hit (::keys on)",
  "account": "test",
  "steps": [
   {
@@ -13,6 +13,12 @@
   },
   {
    "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys",
+   "comment": "its menu and its chat line are checked by their keys, so they pass with or without their words on the server"
+  },
+  {
+   "step": "command",
    "text": "::setlevel prayer 99",
    "expectMessage": "Prayer set to level 99",
    "comment": "for the protection prayers through the whole fight"
@@ -21,7 +27,7 @@
    "step": "command",
    "text": "::setlevel hitpoints 99",
    "expectMessage": "Hitpoints set to level 99",
-   "comment": "enough to live through a solo laser (80)"
+   "comment": "for its landing's blast and a stray swing or vine before ::god on"
   },
   {
    "step": "command",
@@ -79,12 +85,34 @@
    "npcId": 16657,
    "option": "Touch",
    "timeoutMs": 20000,
-   "comment": "tfa_guardian_start, the Inert Guardian: the fight begins"
+   "comment": "tfa_guardian_start, the Inert Guardian: it asks first (Sam's recordings, 2026-11-10)"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[tfa_guardian.no]",
+   "comment": "its menu, titled [tfa_guardian.begin], after the walk up to it: No"
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "You're not in a fight",
+   "comment": "No begins nothing"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 16657,
+   "option": "Touch",
+   "timeoutMs": 20000,
+   "comment": "Touch again"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[tfa_guardian.yes]",
+   "comment": "Yes: it wakes"
   },
   {
    "step": "waitTicks",
-   "ticks": 10,
-   "comment": "the walk up to it first: on the VM (2026-11-03) the fight began 5 ticks after the click"
+   "ticks": 2
   },
   {
    "step": "command",
@@ -151,7 +179,7 @@
    "step": "command",
    "text": "::god on",
    "expectMessage": "You can't be hurt now",
-   "comment": "till it is in the air for good: the vines' swipes every 3 ticks would kill a player who stands still through its time on the ground"
+   "comment": "to its death: the vines' swipes every 3 ticks would kill a player who stands still through its times down, and under the beams' shield one prayer can't hold both its shots and its beam; ::god off at the end"
   },
   {
    "step": "command",
@@ -211,12 +239,6 @@
    "comment": "what it had left (1000, or a point or two more by its regeneration), not full again"
   },
   {
-   "step": "clickWidget",
-   "interfaceId": 541,
-   "component": 21,
-   "comment": "prayerbook:prayer13, Protect from Magic, for the laser"
-  },
-  {
    "step": "command",
    "text": "::hit 700",
    "expectMessage": "/1100 hp",
@@ -230,37 +252,64 @@
   {
    "step": "command",
    "text": "::raid",
-   "expectMessage": "phase 3 (airborne)",
-   "comment": "in the air again for good, with no shield"
+   "expectMessage": "phase 3 (beams)",
+   "comment": "up behind one more whole shield, the one with the beams (Sam's recordings: no beam before its hitpoints are under 30%)"
   },
   {
    "step": "command",
-   "text": "::god off",
-   "expectMessage": "You can be hurt again.",
-   "comment": "before its laser, whose damage is read below"
+   "text": "::raid",
+   "expectMessage": "Archive Guardian 550/550 hp",
+   "comment": "that shield whole"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[tfa_guardian.focus_you]",
+   "timeoutMs": 15000,
+   "comment": "the chat line naming its beam's target, 11 ticks into this shield, 9 before the beam"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 11,
+   "comment": "the beam, 20 ticks after the shield went up"
   },
   {
    "step": "command",
-   "text": "::heal",
-   "expectMessage": "Healed to 99 hitpoints.",
-   "comment": "back to full after the landing's blast (10 to 20, which no prayer blocks), any vine and any swing after Protect from Melee went off; the laser's damage is read from the log below, as a mushroom left from the shield can splash after"
+   "text": "::raid log 20",
+   "expectMessage": "beams: beam hits test",
+   "comment": "from its middle through the player and on; no inert guardian stands behind them here, so the whole of it (0 with ::god on). The account's name may be test or test2, so the line is matched up to the name"
+  },
+  {
+   "step": "command",
+   "text": "::hit 550",
+   "expectMessage": "0/550 hp",
+   "comment": "this shield has no timer: the party's damage breaks it (or an inert guardian spent by a beam, in archive-guardian-batteries.json)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4,
+   "comment": "2 ticks at 0, then down"
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "phase 4 (final)",
+   "comment": "down for the last time"
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "/1100 hp",
+   "comment": "with what it had left, about 300"
   },
   {
    "step": "waitTicks",
    "ticks": 16,
-   "comment": "its first laser: aimed 10 ticks into the phase, landing 3 after"
+   "comment": "the beams go on by the same count: the next 40 ticks after that shield went up"
   },
   {
    "step": "command",
    "text": "::raid log 20",
-   "expectMessage": "airborne: laser hits test",
-   "comment": "the account's name may be test or test2 (the nightly runs on test2), so the line is matched up to the name and checked again for its damage in the next step"
-  },
-  {
-   "step": "command",
-   "text": "::raid log 20",
-   "expectMessage": "for 72",
-   "comment": "the solo laser's 80 cut by Protect from Magic; only the laser hits for that much"
+   "expectMessage": "final: beam hits test"
   },
   {
    "step": "command",
@@ -276,6 +325,11 @@
    "text": "::raid run",
    "expectMessage": "done Archive Guardian;",
    "comment": "its death does the room: the first row of doors opens"
+  },
+  {
+   "step": "command",
+   "text": "::god off",
+   "expectMessage": "You can be hurt again."
   },
   {
    "step": "command",

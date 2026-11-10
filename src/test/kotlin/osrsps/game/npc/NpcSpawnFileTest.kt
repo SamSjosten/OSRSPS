@@ -727,4 +727,22 @@ class NpcSpawnFileTest {
         // Arthur stands still at the Grand Exchange (his Wiki pin, as he stood still by the Sheared Ram).
         assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - museumStill.toSet() - displays.toSet() - elsie - iffie - spawns.filter { it.type.id == 16811 }.toSet()).all { it.wander > 0 })
     }
+
+    @Test
+    fun `the fishing spots outside Misthalin are Catherby's seven and Musa Point's six, each on a tile of its area`() {
+        val names = mapOf(
+            1518 to "0_44_53_saltfish", 1519 to "0_44_53_rarefish", 1520 to "0_44_53_memberfish", 1521 to "0_45_49_saltfish", 1522 to "0_45_49_rarefish",
+        )
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, "Fishing spot", internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("fishing-spots.json"), types, "fishing-spots.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        // The OSRS Wiki's spot pages (read 2026-11-10): Catherby has two Cage/Harpoon and three Big Net/Harpoon spots,
+        // Musa Point three Cage/Harpoon; mejrs's live list adds two Net/Bait at Catherby and three at Musa Point.
+        assertEquals(listOf(2, 2, 3, 3, 3), names.keys.map { id -> spawns.count { it.type.id == id } })
+        for (spot in spawns) {
+            assertTrue(Fishing.AREAS.any { Tile(spot.x, spot.z) in it }, "a spot at ${spot.x}, ${spot.z}")
+            assertTrue(spot.wander == 0 && spot.source.isNotBlank())
+        }
+    }
 }
