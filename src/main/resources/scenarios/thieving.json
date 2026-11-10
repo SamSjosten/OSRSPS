@@ -1,0 +1,15 @@
+{
+  "about": "On the farm south of Varrock beside a farmer, with 99 Thieving and Hitpoints, 54 Hunter, gloves of silence and a dodgy necklace worn and food, for the Thieving 2 steps.",
+  "notes": "The farmer at 3181, 3293 (npc-spawns/lumbridge-farms.json). Al Kharid's warriors: ::tele 3290 3172. Edgeville's guards: ::tele 3100 3515. Lower Thieving with ::setlevel to see the failures, the gloves' wear (Check) and the necklace's saves. The loadout is ours.",
+  "position": { "x": 3182, "z": 3294, "level": 0 },
+  "skills": { "thieving": 99, "hitpoints": 99, "hunter": 54 },
+  "run": true,
+  "inventory": [
+    { "item": "shark", "count": 10 },
+    { "item": "dodgy_necklace" }
+  ],
+  "equipment": [
+    { "item": "hunting_silent_gloves" },
+    { "item": "dodgy_necklace" }
+  ]
+}

@@ -36,6 +36,7 @@ import osrsps.game.skill.HerbloreLines
 import osrsps.game.skill.LevelUpLines
 import osrsps.game.skill.MakeLines
 import osrsps.game.skill.MiningLines
+import osrsps.game.skill.PickpocketGearLines
 import osrsps.game.skill.PickpocketLines
 import osrsps.game.skill.SmithingLines
 import osrsps.game.skill.ThievingLines
@@ -246,6 +247,7 @@ object DialogueLines {
         PerduLines,
         PhillipaLines,
         PickpocketLines,
+        PickpocketGearLines,
         PlayingChildLines,
         PoisonLines,
         PortSarimJailLines,

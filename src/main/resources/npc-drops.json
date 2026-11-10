@@ -176,6 +176,36 @@
       "source": "OSRS Wiki, Man and Woman (the same table; the Wilderness looting bag and the clue-step key are left out); Al Kharid's man and the Al Kharid warrior have the same table on their pages (read 2026-10-30)"
     },
     {
+      "npcs": ["farmer1", "farmer2", "farmer3", "farmer1_f", "farmer2_f", "farmer3_f", "farmer4"],
+      "always": [{"item": 526, "name": "Bones"}],
+      "table": {
+        "slots": 128,
+        "lines": [
+          {"item": 557, "name": "Earth rune", "count": 4, "weight": 2},
+          {"item": 554, "name": "Fire rune", "count": 6, "weight": 2},
+          {"item": 558, "name": "Mind rune", "count": 9, "weight": 2},
+          {"item": 562, "name": "Chaos rune", "count": 2, "weight": 1},
+          {"table": "herbs", "weight": 11},
+          {"table": "allotment_seeds", "weight": 27},
+          {"item": 995, "name": "Coins", "count": 3, "weight": 38},
+          {"item": 995, "name": "Coins", "count": 25, "weight": 1},
+          {"nothing": true, "weight": 28},
+          {"item": 313, "name": "Fishing bait", "weight": 5},
+          {"item": 5341, "name": "Rake", "weight": 3},
+          {"item": 1440, "name": "Earth talisman", "weight": 2},
+          {"item": 5345, "name": "Gardening boots", "weight": 2},
+          {"item": 5343, "name": "Seed dibber", "weight": 2},
+          {"item": 5329, "name": "Secateurs", "weight": 1},
+          {"item": 5340, "name": "Watering can(8)", "weight": 1}
+        ]
+      },
+      "tertiary": [
+        {"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/90"},
+        {"item": 2677, "name": "Clue scroll (easy)", "chance": "1/128"}
+      ],
+      "source": "OSRS Wiki, Farmer, the members' drops (read 2026-11-10; Thieving 2 step T1a)"
+    },
+    {
       "npcs": ["guard1", "fai_varrock_guard02", "fai_varrock_guard02_variant01", "fai_varrock_guard02_variant02", "fai_varrock_guard02_f", "fai_varrock_guard02_f_variant01", "fai_varrock_guard02_f_variant02", "fai_varrock_guard_captain02"],
       "always": [{"item": 526, "name": "Bones"}],
       "table": {

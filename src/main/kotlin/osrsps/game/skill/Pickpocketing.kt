@@ -80,8 +80,8 @@ class Pocket(
  * Guessed: the Master Farmer's herb seeds move linearly from their Farming 1 rates to their Farming 85 ones (the Wiki
  * gives the two ends and says they scale up to 85, not how); a next attempt waits [ATTEMPT_TICKS] (the Wiki's 2 ticks a
  * try); the stunned message; no animation for an NPC with no attack animation in npc-combat.json. Left out: Rocky (the
- * pet), gloves of silence, the Ardougne diary and cloak, the thieving cape's boost, the Rogue outfit's extra loot, and
- * pickpocketing NPCs outside Misthalin's builds so far (farmers, other towns' guards and on).
+ * pet), the Ardougne diary and cloak, the thieving cape's boost, the Rogue outfit's extra loot, and
+ * pickpocketing NPCs outside Misthalin's builds so far (other towns' guards and on; farmers came with Thieving 2).
  *
  * H.A.M. members (Misthalin piece 7 step 4a, the Wiki's H.A.M. Member page): level 15, 22.2 XP, 136/256 at 1 to 240/256 at
  * 99 (135 to 239), 1 to 3 damage, a 4-second stun ([HAM_STUN_TICKS]), their own table ([HAM_LOOT]) and coin pouch (1 to
@@ -89,8 +89,11 @@ class Pocket(
  * stunned message (guessed).
  */
 class Pickpocketing(private val world: World) {
+    /** The gloves of silence and the dodgy necklace. */
+    val gear = PickpocketGear(world)
 
     fun register() {
+        gear.register()
         for (pocket in POCKETS) {
             for (npc in pocket.npcs) world.handlers.onNpc(npc, pocket.op) { op -> pick(op.npc ?: return@onNpc, pocket) }
         }
@@ -134,7 +137,7 @@ class Pickpocketing(private val world: World) {
             return
         }
         val thieving = player.skills.currentLevel(Skill.THIEVING)
-        if (!SuccessRoll.roll(world.random, pocket.low, pocket.high, thieving)) {
+        if (!SuccessRoll.roll(world.random, gear.low(player, pocket.low), gear.high(player, pocket.high), thieving)) {
             caught(npc, pocket)
             return
         }
@@ -150,6 +153,8 @@ class Pickpocketing(private val world: World) {
         npc.face(player)
         world.combat.npcCombat[npc.type]?.anims?.attack?.takeIf { it >= 0 }?.let { npc.effects.anim(it) }
         player.message(text[PickpocketLines.FAIL, "who" to pocket.who])
+        gear.glovesFailed(player)
+        if (gear.necklaceSaves(player)) return
         val damage = world.random.between(pocket.damageMin, pocket.damage)
         world.statusEffects.stun(player, pocket.stunTicks, damage, npc, StatusEffects.THIEVING_SPOTANIM)
         player.nextPickpocketTick = tick + ATTEMPT_TICKS + FAIL_TICKS
@@ -251,6 +256,26 @@ class Pickpocketing(private val world: World) {
 
         /** warrior_woman, Varrock Palace's two. */
         const val WARRIOR_WOMAN = 3260
+
+        /** al_kharid_man and al_kharid_warrior, Al Kharid's. */
+        const val AL_KHARID_MAN = 3261
+        const val AL_KHARID_WARRIOR = 3292
+
+        /** guard1, Edgeville's six. */
+        const val EDGEVILLE_GUARD = 3254
+
+        /** farmer1 to farmer3 and the November 2022 looks, farmer1_f to farmer3_f and farmer4. */
+        val FARMERS = listOf(3114, 3243, 3244, 11918, 11919, 11920, 11921)
+
+        /** pickpocket_coin_pouch_farmer: 9 coins each (the Wiki's Coin pouch page). */
+        const val FARMER_POUCH = 22522
+        const val COINS_PER_FARMER_POUCH = 9
+
+        /** potato_seed. */
+        const val POTATO_SEED = 5318
+
+        /** The Wiki's Farmer pickpocket table: the coin pouch 123/128, a potato seed 5/128. Rocky left out. */
+        val FARMER_LOOT = listOf(PocketLoot(FARMER_POUCH, 1, 1) { 123 }, PocketLoot(POTATO_SEED, 1, 1) { 5 })
 
         val MASTER_FARMERS = listOf(5730, 5731)
 
@@ -366,16 +391,25 @@ class Pickpocketing(private val world: World) {
          * Pickpocketing, Guard and Warrior woman pages, read 2026-11-03): guards level 40, 46.8 XP, 2 damage; warrior
          * women level 25, 26 XP, 2 damage. The warrior's 100 to 240 is worked back from the Wiki's chart (135/256 at 25,
          * 241/256 at 99). The guard's 50 to 240 is GUESSED: the Wiki's chart wasn't readable, so it is the pair with the
-         * others' 240 that reaches 100% at 95 with the Ardougne diary's 10%, the Pickpocketing page's 100% level.
+         * others' 240 that reaches 100% at 95 with the Ardougne diary's 10%, the Pickpocketing page's 100% level; the
+         * Guard page's chart, read 2026-11-10, gives the same 50 to 240.
          * Guessed too: that guards and warrior women say the townsfolk's caught line, and the lower case "guard" and
          * "warrior" in the messages (the Wiki gives neither).
+         *
+         * Thieving 2 step T1a (the Wiki's Thieving, Farmer, Al Kharid warrior, Guard and Coin pouch pages, read
+         * 2026-11-10): Al Kharid's man (3261) is a man; Edgeville's guards (guard1, 3254) are guards. Farmers: level
+         * 10, 14.5 XP, 150 to 240 (the Wiki's chart), 1 damage, a farmer's coin pouch of 9 coins 123/128 or a potato
+         * seed 5/128. Al Kharid warriors: the warrior's numbers (Mod Ash: the same code), 100 to 240 as their chart.
+         * Guessed: that farmers say the townsfolk's caught line, and "farmer" and "Al Kharid warrior" in the messages.
          */
         val POCKETS = listOf(
-            Pocket(Townsfolk.MEN, "man", 1, 80, 180, 240, 1, PickpocketLines.CAUGHT_CITIZEN, CITIZEN_POUCH, COINS_PER_CITIZEN_POUCH),
+            Pocket(Townsfolk.MEN + AL_KHARID_MAN, "man", 1, 80, 180, 240, 1, PickpocketLines.CAUGHT_CITIZEN, CITIZEN_POUCH, COINS_PER_CITIZEN_POUCH),
             Pocket(Townsfolk.WOMEN, "woman", 1, 80, 180, 240, 1, PickpocketLines.CAUGHT_CITIZEN, CITIZEN_POUCH, COINS_PER_CITIZEN_POUCH),
             Pocket(MASTER_FARMERS, "Master Farmer", 38, 430, 90, 240, 3, PickpocketLines.CAUGHT_FARMER, loot = MASTER_FARMER_LOOT),
-            Pocket(VARROCK_GUARDS, "guard", 40, 468, 50, 240, 2, PickpocketLines.CAUGHT_CITIZEN, GUARD_POUCH, COINS_PER_GUARD_POUCH),
+            Pocket(VARROCK_GUARDS + EDGEVILLE_GUARD, "guard", 40, 468, 50, 240, 2, PickpocketLines.CAUGHT_CITIZEN, GUARD_POUCH, COINS_PER_GUARD_POUCH),
             Pocket(listOf(WARRIOR_WOMAN), "warrior", 25, 260, 100, 240, 2, PickpocketLines.CAUGHT_CITIZEN, WARRIOR_POUCH, COINS_PER_WARRIOR_POUCH),
+            Pocket(listOf(AL_KHARID_WARRIOR), "Al Kharid warrior", 25, 260, 100, 240, 2, PickpocketLines.CAUGHT_CITIZEN, WARRIOR_POUCH, COINS_PER_WARRIOR_POUCH),
+            Pocket(FARMERS, "farmer", 10, 145, 150, 240, 1, PickpocketLines.CAUGHT_CITIZEN, loot = FARMER_LOOT, coins = COINS_PER_FARMER_POUCH, lootPouch = FARMER_POUCH),
             Pocket(
                 HAM_MEMBERS, "H.A.M. member", 15, 222, 135, 239, 3, PickpocketLines.CAUGHT_HAM, loot = HAM_LOOT, op = HAM_PICKPOCKET,
                 damageMin = 1, lootPouch = HAM_POUCH, concussions = true, stunTicks = HAM_STUN_TICKS,
@@ -384,6 +418,7 @@ class Pickpocketing(private val world: World) {
 
         /** Each coin pouch and the coins it holds. */
         val POUCH_COINS: Map<Int, IntRange> =
-            POCKETS.mapNotNull { pocket -> pocket.pouch?.let { it to pocket.coins..pocket.coinsMax } }.toMap() + (HAM_POUCH to HAM_POUCH_COINS)
+            POCKETS.mapNotNull { pocket -> pocket.anyPouch?.takeIf { pocket.coins > 0 }?.let { it to pocket.coins..pocket.coinsMax } }.toMap() +
+                (HAM_POUCH to HAM_POUCH_COINS)
     }
 }
