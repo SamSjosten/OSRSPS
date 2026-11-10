@@ -9,9 +9,12 @@ import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.Player
 import osrsps.game.combat.AttackType
+import osrsps.game.combat.HitsplatType
 import osrsps.game.combat.MagicInteraction
+import osrsps.game.combat.MeleeCombat
 import osrsps.game.combat.MeleeInteraction
 import osrsps.game.combat.RangedInteraction
+import osrsps.game.dialogue.Lines
 import osrsps.game.encounter.CycleStep
 import osrsps.game.encounter.EncounterContext
 import osrsps.game.encounter.EncounterDef
@@ -21,7 +24,19 @@ import osrsps.game.npc.Npcs
 import osrsps.map.Tile
 
 /**
- * The Archive Guardian (raid steps 16a to 16c), the first boss of every Archive run: three phases on the cache's two
+ * The Archive Guardian's words: the menu on Touch on the waiting Inert Guardian, and the chat line as it picks who its
+ * next beam follows. Seen in Sam's recordings of 9 and 10 November 2026 (clip notes).
+ */
+object ArchiveGuardianLines : Lines("tfa_guardian", "The_Fractured_Archive/Strategies") {
+    val BEGIN = line("begin", "the title of the Yes/No menu on Touch on the waiting Inert Guardian")
+    val YES = line("yes", "that menu, option 1: its fight begins")
+    val NO = line("no", "that menu, option 2")
+    val FOCUS_YOU = line("focus_you", "chat, to the player its next beam follows, as it picks them")
+    val FOCUS = line("focus", "chat, to everyone else in the fight then, with that player's name", "name")
+}
+
+/**
+ * The Archive Guardian (raid steps 16a to 16c), the first boss of every Archive run: four phases on the cache's two
  * forms, the first two by turns.
  *
  * - **Shield**: levitating (`tfa_guardian`, 16659), its hitpoints the shield's (the Wiki's "Flying" row, 550 to 1,950).
@@ -32,48 +47,67 @@ import osrsps.map.Tile
  *   first time, and after that what it had left as it last lifted off. Its fall blasts whoever is under or beside it.
  *   It swings at a player beside it every 5 ticks (crush, max hit 25). After [GROUNDED_FIRST] ticks, and
  *   [GROUNDED_LATER] each time after its first, it lifts off again behind a whole shield: the shield phase once more.
- * - **Airborne**: [AIRBORNE_DELAY] ticks after its hitpoints fall to 30% it lifts off, without its shield, for the
- *   rest of the fight: a laser at a random player every [LASER_EVERY] ticks, its damage shared by everyone standing
- *   on its line.
+ * - **Beams**: [LOW_DELAY] ticks after its hitpoints fall to [LOW_PERCENT]% it lifts off behind one more whole shield,
+ *   and from then to its death it sends a beam (the game's word is its "breath") at a player every [BEAM_EVERY] ticks:
+ *   a chat line names them ([ArchiveGuardianLines.FOCUS]) [BEAM_WARNING] ticks before. The beam runs from its middle
+ *   through that player and on. With an inert guardian behind them it spends that one, which takes [STATUE_SPLAT] and
+ *   goes dark, and those on its line take [BEAM_BLOCKED_MIN] to [BEAM_BLOCKED_MAX]; [BEAM_CHARGE_DELAY] ticks later
+ *   the shield loses [BATTERY_SHIELD_PERCENT]% of its most, or with no more than that left breaks at once, with no
+ *   ticks at 0. With none behind them the beam's whole damage ([beamDamage]) is shared by those on its line, and the
+ *   shield is untouched. There is no timer on this shield.
+ * - **Final**: down for the last time, with the hitpoints it had left, until it dies; the beams go on by the same
+ *   count.
  *
- * From Sam's recordings of three live fights (2026-11-09, parties of four and five, the bars read tick by tick): the
- * shield and the hitpoints by turns, the shield whole again each time and the hitpoints carried over; the broken
- * shield's 2 to 3 ticks at 0; its first time down lasting 34 to 36 ticks whatever its hitpoints (55%, 76% and 64%
- * left), its second 40 to 41; and a time down ending about 4 ticks after its hitpoints went under 30%. They also show
- * a shield in the last phase, cut off after a beam at a player, which isn't in yet.
+ * From Sam's recordings of three live fights (2026-11-09 and 10, parties of four and five, the bars read tick by tick,
+ * clip notes "tick pass", "full-frame pass" and H1 to H6): the shield and the hitpoints by turns, the shield whole again
+ * each time and the hitpoints carried over; the broken shield's 2 to 3 ticks at 0; its first time down lasting 34 to 36
+ * ticks whatever its hitpoints (55%, 76% and 64% left), its second 40 to 41; a time down ending about 4 ticks after its
+ * hitpoints went under 30% (three fights); beams only in the shield after that and in the time down that follows, none
+ * before; a beam 19 to 21 ticks into that shield and each 20 ticks after it (seven beams), the same count carrying on
+ * once it is down; the inert guardian behind a beam's target taking 400 and going dark (three times); 40% of the
+ * shield's most gone in one tick 4 to 6 ticks after such a beam (504 of 1,260 and 412 of 1,030), and the three last
+ * shields ending 4 to 5 ticks after one with less than that left (103, 123 and 66), the hitpoints back on that tick;
+ * 8, 8 and 10 on players on such a beam's line; a beam with no inert guardian behind its target killing him, the
+ * shield untouched; the last time down lasting to the death or the wipe (22, about 29 and 63 ticks), with no shield
+ * after it; and "Begin the challenge?", Yes or No, on Touch.
+ *
+ * Inferred from them: the chat line [BEAM_WARNING] ticks before its beam (the one clip read at 10 frames a second has
+ * it 5.3 s before each of two beams, and a fight's first line 11 ticks into the shield; the chat read once a second
+ * elsewhere puts it at 2 to 7); that the beams begin with the shield that follows 30%, not with a count of shields.
  *
  * From the OSRS Wiki (Archive Guardian, read 2026-11-03): its stats, bonuses, both forms' hitpoints by party size, the
- * 5-tick attack speed, max hits 25 and 99+ (the laser), the 80% fire weakness, the poison and venom immunity, and the
+ * 5-tick attack speed, max hits 25 and 99+ (the beam), the 80% fire weakness, the poison and venom immunity, and the
  * 60% Defence drain floor (21 October 2026). From The Fractured Archive/Strategies, as a guide site quotes it (the
  * Wiki's own page cuts off before the bosses): the levitating phase hit only by ranged, magic and halberds, the
  * shots at the player it chose and the slam on whoever steps under it, the shield breaking to ground it, the blast on
- * those under or next to it as it falls, 30% for the last phase with no shield, and the laser that "is fatal if more
- * than two players are alive and it isn't reduced", shared by standing in line with its target and "slightly"
- * reduced by Protect from Magic. From the 241.4 cache: both forms (Attack on each, size 5, the slash bonus 90 on the
- * grounded one, 110 levitating), the dormant `tfa_guardian_start` ("Inert Guardian", Touch) and the animations and
- * spotanims named `npc_archive_guardian_*` and `vfx_guardian_*`.
+ * those under or next to it as it falls, 30% for the last phase, and the beam that "is fatal if more than two players
+ * are alive and it isn't reduced", shared by standing in line with its target and "slightly" reduced by Protect from
+ * Magic. Its "no shield" in the last phase is not what the recordings show. From the 241.4 cache: both forms (Attack on
+ * each, size 5, the slash bonus 90 on the grounded one, 110 levitating), the dormant `tfa_guardian_start` ("Inert
+ * Guardian", Touch) and the animations and spotanims named `npc_archive_guardian_*` and `vfx_guardian_*`.
  *
- * Guessed, until a recording shows the fight (each also in the README): every timing past the attack speed (the first
- * attack 5 ticks into each phase, the laser every [LASER_EVERY] ticks landing [LASER_DELAY] after it is aimed); the
- * slam's and the blast's damage ([SLAM_MAX], [BLAST_MIN] to [BLAST_MAX]); the laser's ([laserDamage]) and its line, from
- * the Guardian's middle through its target to [LASER_LENGTH] tiles; Protect from Magic taking a tenth off it; the
- * grounded form's 40% fire weakness (a guide's); that it never moves, and keeps one tank till they fall or are out of
- * its shot, when it turns on someone in it.
+ * Guessed, until a recording shows it (each also in the README): the first attack 5 ticks into each phase; the slam's
+ * and the blast's damage ([SLAM_MAX], [BLAST_MIN] to [BLAST_MAX]); the whole beam's ([beamDamage]) and its line, from
+ * the Guardian's middle through its target to [BEAM_LENGTH] tiles; Protect from Magic taking a tenth off it; that
+ * everyone on a blocked beam's line takes the 8 to 10; what a spent inert guardian does once the Guardian is down for
+ * the last time ([BATTERY_BEAM_PERCENT] of its hitpoints, never into kill range, [KILL_RANGE_PERCENT]: a guide's "the
+ * beam damages the boss's health", its figures guessed); that its shots, mushrooms and the inert guardians awake go on
+ * under the beams' shield as under the others; the grounded form's 40% fire weakness (a guide's); that it never moves,
+ * and keeps one tank till they fall or are out of its shot, when it turns on someone in it. Not in: the 5 or so ticks
+ * from Yes to its rise (it wakes at once), and the chat line to a player taking the whole beam, whose words weren't
+ * legible.
  *
  * Step 16b, from guides (osrstoolkit, runescapeguides, bald.gg; read 2026-11-03) and the cache's mushroom locs and
- * `archive_guardian_tentacle` Vine: mushrooms ([mushrooms]) in the shield phase and between lasers at the end, bursting
- * on a player who steps beside one for 3 to 10 with poison and weariness ([Player.wearyTicks]), splashing those two
- * tiles off; vines ([vines]) from [VINES_FROM] ticks into the grounded phase and every [VINES_EVERY] after, each on its
- * player's side away from the boss, swiping the 3x3 round it [VINE_SWIPES] times, Protect from Melee holding a swipe to
- * [VINE_PROTECTED_MAX]. Guessed: [MUSHROOMS_EVERY], [MUSHROOM_GROW], [MUSHROOM_FUSE], the splash, [MUSHROOM_POISON],
- * [WEARY_TICKS] and [VINE_MAX].
+ * `archive_guardian_tentacle` Vine: mushrooms ([mushrooms]) while a shield is up, bursting on a player who steps beside
+ * one for 3 to 10 with poison and weariness ([Player.wearyTicks]), splashing those two tiles off; vines ([vines]) from
+ * [VINES_FROM] ticks into each time down and every [VINES_EVERY] after, each on its player's side away from the boss,
+ * swiping the 3x3 round it [VINE_SWIPES] times, Protect from Melee holding a swipe to [VINE_PROTECTED_MAX]. Guessed:
+ * [MUSHROOMS_EVERY], [MUSHROOM_GROW], [MUSHROOM_FUSE], the splash, [MUSHROOM_POISON], [WEARY_TICKS] and [VINE_MAX].
  *
  * Step 16c, from guides (runescapeguides, osrstoolkit; read 2026-11-03) and the cache's `tfa_guardian_battery_*`: four
- * inert guardians round the hall ([BATTERY_SPOTS], guessed), three awake under the shield; one beaten to 0 is charged
- * ([charge]), taking [BATTERY_SHIELD_PERCENT] of the shield off, and spent. The south-east one never wakes. In the last
- * phase the laser breaks the first one behind its target ([behind]), cutting the laser by [BATTERY_LASER_CUT_PERCENT]
- * and taking [BATTERY_BEAM_PERCENT] of the Guardian's hitpoints, never into kill range ([KILL_RANGE_PERCENT]); those
- * three figures are guessed.
+ * inert guardians round the hall ([BATTERY_SPOTS], guessed), three awake under a shield; one beaten to 0 is charged
+ * ([charge]), taking [BATTERY_SHIELD_PERCENT] of the shield off, and spent (the recordings show players attacking
+ * them under the first two shields, one at 0). The south-east one never wakes, so only a beam spends it ([behind]).
  */
 object ArchiveGuardian {
     /** What `::raid` and the raid flow know the fight by. */
@@ -87,7 +121,7 @@ object ArchiveGuardian {
     const val FLYING = 16659
     const val GROUNDED = 16660
 
-    /** npc_archive_guardian_*: its fall and lift-off, its slam (swoosh), the laser (special) and waking (spawn). */
+    /** npc_archive_guardian_*: its fall and lift-off, its slam (swoosh), the beam (special) and waking (spawn). */
     const val ANIM_TO_GROUND = 14747
     const val ANIM_TO_FLYING = 14748
     const val ANIM_SLAM = 14750
@@ -103,11 +137,11 @@ object ArchiveGuardian {
     /** The Wiki's attack speed, for every phase's attacks. */
     const val ATTACK_SPEED = 5
 
-    /** At this share of its grounded hitpoints, in percent, it takes off for good (a guide's 30%). */
-    const val AIRBORNE_AT = 30
+    /** At this share of its grounded hitpoints, in percent, its next shield is the beams' (a guide's 30%; Sam's recordings: 30.3%, 29.6% and 29.4%). */
+    const val LOW_PERCENT = 30
 
-    /** How long after its hitpoints fall that far (Sam's recordings: about 4 ticks, seen once). */
-    const val AIRBORNE_DELAY = 4
+    /** How long after its hitpoints fall that far it lifts off (Sam's recordings: about 4 ticks, three fights). */
+    const val LOW_DELAY = 4
 
     /** A broken shield holds at 0 this long before it drops (Sam's recordings: 2 to 3 ticks, four times). */
     const val SHIELD_DOWN_TICKS = 2
@@ -126,12 +160,30 @@ object ArchiveGuardian {
     const val BLAST_MIN = 10
     const val BLAST_MAX = 20
 
-    /** Ticks between lasers in the last phase, and from aiming one to its landing. Guessed. */
-    const val LASER_EVERY = 10
-    const val LASER_DELAY = 3
+    /**
+     * Ticks from the beams' shield going up to its first beam, and between beams from then to its death (Sam's
+     * recordings: first beams 19, 20 and 21 ticks in, each next one 20 on, seven beams in three fights).
+     */
+    const val BEAM_EVERY = 20
 
-    /** How far its laser reaches past its middle, in tiles. Guessed: across the hall. */
-    const val LASER_LENGTH = 32
+    /** Ticks from the chat line naming a beam's target to the beam. Inferred (5.3 s twice in one clip; 2 to 7 ticks by coarser reads). */
+    const val BEAM_WARNING = 9
+
+    /**
+     * Ticks from a beam spending an inert guardian to that one's charge reaching the Guardian (Sam's recordings: 4, 4,
+     * 4 to 5, 4 to 5 and 5 to 6).
+     */
+    const val BEAM_CHARGE_DELAY = 4
+
+    /** What a beam leaves for each player on its line when an inert guardian behind its target takes it (Sam's recordings: 8, 8 and 10). */
+    const val BEAM_BLOCKED_MIN = 8
+    const val BEAM_BLOCKED_MAX = 10
+
+    /** The hitsplat on an inert guardian a beam spends (Sam's recordings, twice legible). */
+    const val STATUE_SPLAT = 400
+
+    /** How far its beam reaches past its middle, in tiles. Guessed: across the hall. */
+    const val BEAM_LENGTH = 32
 
     /** `tfa_guardian_mushroom_spawn`, `_active` and `_despawn`: a mushroom growing, ready, and bursting. */
     const val MUSHROOM_SPAWN = 62578
@@ -187,36 +239,39 @@ object ArchiveGuardian {
     const val BATTERY_ACTIVE = 16662
     const val BATTERY_SPENT = 16663
 
-    /** A charged inert guardian takes this share of the shield's most hitpoints off it, in percent (a guide's ~40%: 596 of 1,490). */
+    /**
+     * A charged inert guardian, or one a beam spends, takes this share of the shield's most hitpoints off it, in percent
+     * (a guide's ~40%, 596 of 1,490; Sam's recordings: 504 of 1,260 and 412 of 1,030 after a beam).
+     */
     const val BATTERY_SHIELD_PERCENT = 40
 
     /**
-     * An inert guardian the laser breaks hits the Guardian for this share of its most hitpoints, in percent, unless that
-     * would take it into kill range, [KILL_RANGE_PERCENT] or less, where they stop hurting it; and it takes this share of
-     * the laser off the players on the line. All guessed: the guides say only that it is damaged, and the beam reduced.
+     * Down for the last time, an inert guardian a beam spends hits the Guardian for this share of its most hitpoints, in
+     * percent, unless that would take it into kill range, [KILL_RANGE_PERCENT] or less, where they stop hurting it.
+     * Guessed: the guides say only that it is damaged.
      */
     const val BATTERY_BEAM_PERCENT = 10
     const val KILL_RANGE_PERCENT = 10
-    const val BATTERY_LASER_CUT_PERCENT = 50
 
     /**
      * The four inert guardians, north-west, north-east, south-west and south-east, by their south-west tiles from the
-     * Guardian's middle; the south-east one never wakes, so only the laser reaches it (a guide's). Where they stand is
+     * Guardian's middle; the south-east one never wakes, so only a beam reaches it (a guide's). Where they stand is
      * guessed: level with it and ten tiles south, clear of the hall's pillars and doors.
      */
     val BATTERY_SPOTS: List<Pair<Int, Int>> = listOf(-9 to 1, 8 to 1, -9 to -9, 8 to -9)
     const val SOUTH_EAST = 3
 
-    /** The laser's damage, before it is shared: [LASER_PER_PLAYER] for each player in the fight, [LASER_MIN] at least. */
-    const val LASER_MIN = 80
-    const val LASER_PER_PLAYER = 40
+    /** A whole beam's damage, before it is shared: [BEAM_PER_PLAYER] for each player in the fight, [BEAM_MIN] at least. */
+    const val BEAM_MIN = 80
+    const val BEAM_PER_PLAYER = 40
 
     /**
-     * The laser's damage with [alive] players in the fight, shared out among those in its line: 80 for one or two, which a
-     * player alone can live through at high hitpoints or with a tick-eat, and 120 and up from three, which kills one
-     * player alone. Guessed, to fit the Strategies page's words.
+     * A beam's damage with [alive] players in the fight and no inert guardian behind its target, shared out among those
+     * in its line: 80 for one or two, which a player alone can live through at high hitpoints or with a tick-eat, and
+     * 120 and up from three, which kills one player alone (as it did Sam, in a party of four). Guessed, to fit the
+     * Strategies page's words.
      */
-    fun laserDamage(alive: Int): Int = max(LASER_MIN, LASER_PER_PLAYER * alive)
+    fun beamDamage(alive: Int): Int = max(BEAM_MIN, BEAM_PER_PLAYER * alive)
 
     /** The fight, or null when the cache hasn't the Guardian's two forms (a test world's). */
     fun def(types: NpcTypes): EncounterDef? {
@@ -230,86 +285,117 @@ object ArchiveGuardian {
             listOf(
                 PhaseDef(
                     "shield",
-                    cycle = listOf(
-                        CycleStep(1) {
-                            // Its shield broken, it does nothing more till it drops.
-                            if (state.shieldDown < 0) {
-                                if (phaseTick % ATTACK_SPEED == 0L) shoot()
-                                if (phaseTick % MUSHROOMS_EVERY == 0L) mushrooms()
-                                if (batteries != null) charge(batteries)
-                            }
-                        },
-                    ),
-                    onStart = {
-                        val state = state
-                        state.shieldDown = -1
-                        // Up from the ground: what it has left is kept for its next time down, and its shield is whole.
-                        if (boss.type.id == grounded.id) {
-                            state.health = boss.hitpoints
-                            form(flying)
-                            pool(flying)
-                            boss.hitpoints = boss.maxHitpoints
-                            boss.effects.anim(ANIM_TO_FLYING)
-                            boss.effects.spotanim(0, SPOT_TO_FLYING, 0)
-                            log("lifts off with ${state.health} hp left, its shield whole: ${boss.hitpoints}")
-                        }
-                        boss.holdsAtZero = true
-                        form(flying)
-                        if (batteries != null) placeBatteries(batteries, awake = true)
-                        tank()
-                    },
+                    cycle = listOf(CycleStep(1) { shielded(batteries) }),
+                    onStart = { raise(flying, grounded, batteries) },
                     endsWhen = { shieldBroken() },
                 ),
                 PhaseDef(
                     "grounded",
-                    cycle = listOf(
-                        CycleStep(1) {
-                            if (phaseTick % ATTACK_SPEED == 0L) strike()
-                            if (vine != null && phaseTick >= VINES_FROM && (phaseTick - VINES_FROM) % VINES_EVERY == 0L) vines(vine)
-                        },
-                    ),
+                    cycle = listOf(CycleStep(1) { downed(vine) }),
                     endsWhen = { liftsOff() },
-                    // To its shield again, or with its hitpoints down to the last phase's, into the air for good.
-                    next = { if (state.low >= 0) "airborne" else "shield" },
-                    onStart = {
-                        val state = state
-                        state.groundings++
-                        state.low = -1
-                        boss.holdsAtZero = false
-                        form(grounded)
-                        pool(grounded)
-                        // Full the first time down; after that, what it had left as it last lifted off.
-                        boss.hitpoints = state.health.takeIf { it > 0 }?.coerceAtMost(boss.maxHitpoints) ?: boss.maxHitpoints
-                        boss.effects.anim(ANIM_TO_GROUND)
-                        boss.effects.spotanim(0, SPOT_TO_GROUND, 0)
-                        // No shield to charge now: those not charged fall asleep again, for the laser. Guessed.
-                        if (batteries != null) placeBatteries(batteries, awake = false)
-                        val size = boss.type.size
-                        val around = (boss.x - 1..boss.x + size).flatMap { x -> (boss.z - 1..boss.z + size).map { z -> Tile(x, z) } }
-                        hazard(around, warning = -1, warnTicks = 0, ticks = 1, minDamage = BLAST_MIN, maxDamage = BLAST_MAX)
-                        log("grounded with ${boss.hitpoints} hp")
-                    },
+                    // To its shield again, or with its hitpoints down to the last phases', to the shield with the beams.
+                    next = { if (state.low >= 0) "beams" else "shield" },
+                    onStart = { ground(grounded, batteries) },
                 ),
                 PhaseDef(
-                    "airborne",
-                    // Its laser and its mushrooms by turns (a guide's "alternates mushrooms with his laser").
-                    cycle = listOf(CycleStep(LASER_EVERY) { laser(batteries) }, CycleStep(LASER_EVERY) { mushrooms() }),
+                    "beams",
+                    cycle = listOf(
+                        CycleStep(1) {
+                            shielded(batteries)
+                            beams(batteries)
+                        },
+                    ),
                     onStart = {
-                        boss.holdsAtZero = false
+                        val state = state
                         // Jumped straight here with ::raid: the grounded hitpoints, down to where this phase begins.
-                        val fromGround = boss.type.id == grounded.id
-                        pool(grounded)
-                        if (!fromGround) boss.hitpoints = boss.maxHitpoints * AIRBORNE_AT / 100
-                        form(flying)
-                        if (batteries != null) placeBatteries(batteries, awake = false)
-                        boss.effects.anim(ANIM_TO_FLYING)
-                        boss.effects.spotanim(0, SPOT_TO_FLYING, 0)
-                        log("airborne with ${boss.hitpoints} hp")
+                        if (state.health < 0 && boss.type.id != grounded.id) {
+                            pool(grounded)
+                            state.health = boss.maxHitpoints * LOW_PERCENT / 100
+                            pool(flying)
+                            boss.hitpoints = boss.maxHitpoints
+                        }
+                        raise(flying, grounded, batteries)
+                        state.beamsFrom = world.tick
+                        state.chargeDue = -1
+                    },
+                    // No timer on this shield: the party's damage breaks it, or a spent inert guardian's charge.
+                    endsWhen = { chargeBreaks() || shieldBroken() },
+                ),
+                PhaseDef(
+                    "final",
+                    cycle = listOf(
+                        CycleStep(1) {
+                            downed(vine)
+                            beams(batteries)
+                            chargeOnHealth()
+                        },
+                    ),
+                    onStart = {
+                        val state = state
+                        // Jumped straight here with ::raid: as from the beams' shield, with the beams' count from now.
+                        if (state.health < 0 && boss.type.id != grounded.id) {
+                            pool(grounded)
+                            state.health = boss.maxHitpoints * LOW_PERCENT / 100
+                        }
+                        if (state.beamsFrom < 0) state.beamsFrom = world.tick
+                        ground(grounded, batteries)
                     },
                 ),
             ),
             scriptedAttacks = true,
         )
+    }
+
+    /** A tick behind a shield: a shot or a slam every [ATTACK_SPEED] ticks, mushrooms, and the inert guardians charged; nothing once it is broken. */
+    private fun EncounterContext.shielded(batteries: Batteries?) {
+        if (state.shieldDown >= 0) return
+        if (phaseTick % ATTACK_SPEED == 0L) shoot()
+        if (phaseTick % MUSHROOMS_EVERY == 0L) mushrooms()
+        if (batteries != null) charge(batteries)
+    }
+
+    /** A tick on the ground: a swing every [ATTACK_SPEED] ticks, and its vines. */
+    private fun EncounterContext.downed(vine: NpcType?) {
+        if (phaseTick % ATTACK_SPEED == 0L) strike()
+        if (vine != null && phaseTick >= VINES_FROM && (phaseTick - VINES_FROM) % VINES_EVERY == 0L) vines(vine)
+    }
+
+    /** Behind a whole shield: as the fight begins, or up from the ground, when what it has left is kept for its next time down. */
+    private fun EncounterContext.raise(flying: NpcType, grounded: NpcType, batteries: Batteries?) {
+        val state = state
+        state.shieldDown = -1
+        if (boss.type.id == grounded.id) {
+            state.health = boss.hitpoints
+            form(flying)
+            pool(flying)
+            boss.hitpoints = boss.maxHitpoints
+            boss.effects.anim(ANIM_TO_FLYING)
+            boss.effects.spotanim(0, SPOT_TO_FLYING, 0)
+            log("lifts off with ${state.health} hp left, its shield whole: ${boss.hitpoints}")
+        }
+        boss.holdsAtZero = true
+        form(flying)
+        if (batteries != null) placeBatteries(batteries, awake = true)
+        tank()
+    }
+
+    /** Down to the ground, blasting whoever is under or beside it: its hitpoints full the first time, after that what it had left as it last lifted off. */
+    private fun EncounterContext.ground(grounded: NpcType, batteries: Batteries?) {
+        val state = state
+        state.groundings++
+        state.low = -1
+        boss.holdsAtZero = false
+        form(grounded)
+        pool(grounded)
+        boss.hitpoints = state.health.takeIf { it > 0 }?.coerceAtMost(boss.maxHitpoints) ?: boss.maxHitpoints
+        boss.effects.anim(ANIM_TO_GROUND)
+        boss.effects.spotanim(0, SPOT_TO_GROUND, 0)
+        // No shield to charge now: those not charged fall asleep again, till a shield or a beam. Guessed.
+        if (batteries != null) placeBatteries(batteries, awake = false)
+        val size = boss.type.size
+        val around = (boss.x - 1..boss.x + size).flatMap { x -> (boss.z - 1..boss.z + size).map { z -> Tile(x, z) } }
+        hazard(around, warning = -1, warnTicks = 0, ticks = 1, minDamage = BLAST_MIN, maxDamage = BLAST_MAX)
+        log("grounded with ${boss.hitpoints} hp")
     }
 
     /** Shows the boss as [type] for good, unless it is that already. */
@@ -337,8 +423,14 @@ object ArchiveGuardian {
         /** How many times it has come down. */
         var groundings = 0
 
-        /** The tick its hitpoints were first seen at the last phase's this time down, kept though they rise again; -1 before. */
+        /** The tick its hitpoints were first seen at the last phases' this time down, kept though they rise again; -1 before. */
         var low = -1L
+
+        /** The tick the beams' shield went up, which its beams are counted from to its death; -1 before. */
+        var beamsFrom = -1L
+
+        /** The tick a spent inert guardian's charge reaches it; -1 with none on its way. */
+        var chargeDue = -1L
     }
 
     private val states = WeakHashMap<Npc, State>()
@@ -356,22 +448,22 @@ object ArchiveGuardian {
         return world.tick - state.shieldDown >= SHIELD_DOWN_TICKS
     }
 
-    /** Whether its hitpoints are down to the last phase's. */
-    private fun EncounterContext.low(): Boolean = boss.hitpoints * 100 <= boss.maxHitpoints * AIRBORNE_AT
+    /** Whether its hitpoints are down to the last phases'. */
+    private fun EncounterContext.low(): Boolean = boss.hitpoints * 100 <= boss.maxHitpoints * LOW_PERCENT
 
     /**
      * Whether its time on the ground is up: [GROUNDED_FIRST] ticks the first time and [GROUNDED_LATER] after, or
-     * [AIRBORNE_DELAY] ticks after its hitpoints fell to the last phase's.
+     * [LOW_DELAY] ticks after its hitpoints fell to the last phases'.
      */
     private fun EncounterContext.liftsOff(): Boolean {
         val state = state
         if (state.low < 0 && low()) {
             state.low = world.tick
-            log("down to $AIRBORNE_AT%: lifts off in $AIRBORNE_DELAY")
+            log("down to $LOW_PERCENT%: lifts off in $LOW_DELAY")
         }
         // Guessed: once it has been that low the count runs its course, though its time on the ground would be up
-        // sooner (the one recording of it had 2 ticks to spare) or a hitpoint has come back since.
-        if (state.low >= 0) return world.tick - state.low >= AIRBORNE_DELAY
+        // sooner or a hitpoint has come back since.
+        if (state.low >= 0) return world.tick - state.low >= LOW_DELAY
         return phaseTick >= if (state.groundings <= 1) GROUNDED_FIRST else GROUNDED_LATER
     }
 
@@ -523,12 +615,12 @@ object ArchiveGuardian {
     }
 
     /**
-     * The first inert guardian not spent behind [target] on the laser's [line] (past them, away from the Guardian), or
+     * The first inert guardian not spent behind [target] on a beam's [line] (past them, away from the Guardian), or
      * null, as it is when [target] stands past the line's end. A 2 by 2 guardian is behind them when the line crosses
      * any of its tiles.
      */
     private fun EncounterContext.behind(batteries: Batteries, line: Set<Tile>, target: Tile): Npc? {
-        // A target past the laser's reach isn't on its line: nothing is behind them, only between.
+        // A target past the beam's reach isn't on its line: nothing is behind them, only between.
         val tiles = line.toList()
         val at = tiles.indexOf(target)
         if (at < 0) return null
@@ -540,45 +632,103 @@ object ArchiveGuardian {
         return null
     }
 
-    /** The last phase's laser: aimed at a random player now, landing [LASER_DELAY] ticks later on its line. */
-    private fun EncounterContext.laser(batteries: Batteries?) {
+    /**
+     * The beams' count, from the tick their shield went up to the Guardian's death: every [BEAM_EVERY] ticks a beam,
+     * its target picked at random and named in chat [BEAM_WARNING] ticks before.
+     */
+    private fun EncounterContext.beams(batteries: Batteries?) {
+        val since = world.tick - state.beamsFrom + BEAM_WARNING
+        if (since < BEAM_EVERY || since % BEAM_EVERY != 0L) return
         val target = randomPlayer() ?: return
+        for (player in players) {
+            // Each in their own words: a player with ::keys on reads the line's key.
+            val words = world.textFor(player)
+            player.message(if (player === target) words[ArchiveGuardianLines.FOCUS_YOU] else words[ArchiveGuardianLines.FOCUS, "name" to target.username])
+        }
+        log("focuses on ${target.username}")
+        after(BEAM_WARNING) { beam(batteries, target) }
+    }
+
+    /**
+     * Its beam, from its middle through [target] and on. An inert guardian behind them takes it and is spent, its charge
+     * on its way to the Guardian, and those on the line take little; with none there they share the whole of it.
+     */
+    private fun EncounterContext.beam(batteries: Batteries?, target: Player) {
+        val fighting = players
+        if (fighting.none { it === target }) {
+            log("beam has nobody to land on")
+            return
+        }
         boss.effects.anim(ANIM_LASER)
         boss.effects.spotanim(0, SPOT_LASER, 0)
         boss.face(target)
-        log("aims its laser at ${target.username}")
-        after(LASER_DELAY) {
-            val fighting = players
-            if (fighting.none { it === target }) {
-                log("laser has nobody to land on")
-                return@after
-            }
-            val line = line(boss.x, boss.z, boss.type.size, Tile(target.x, target.z))
-            val struck = fighting.filter { it === target || Tile(it.x, it.z) in line }
-            var total = laserDamage(fighting.size)
-            // An inert guardian behind them takes the beam: it breaks, cutting the laser and hurting the Guardian
-            // (guides: "line the beam up with an inert guardian to reduce the damage"; the beam "destroying the inert
-            // guardian behind them"; in kill range "they stop dealing damage to the boss").
-            val shield = batteries?.let { behind(it, line, Tile(target.x, target.z)) }
-            if (batteries != null && shield != null) {
-                world.npcs.transform(shield, batteries.spent, Npcs.FOREVER)
-                untarget(shield)
-                total = total * (100 - BATTERY_LASER_CUT_PERCENT) / 100
-                val floor = boss.maxHitpoints * KILL_RANGE_PERCENT / 100
-                val damage = minOf(boss.maxHitpoints * BATTERY_BEAM_PERCENT / 100, boss.hitpoints - floor).coerceAtLeast(0)
-                val dealt = if (damage > 0) world.meleeCombat.hit(boss, null, damage, world.tick) else 0
-                log("laser breaks the inert guardian at ${shield.x},${shield.z}: Guardian takes $dealt")
-                if (gone()) return@after
-            }
-            val share = (total + struck.size - 1) / struck.size
+        val at = Tile(target.x, target.z)
+        val line = line(boss.x, boss.z, boss.type.size, at)
+        val struck = fighting.filter { it === target || Tile(it.x, it.z) in line }
+        val statue = batteries?.let { behind(it, line, at) }
+        if (batteries != null && statue != null) {
+            spend(batteries, statue)
+            state.chargeDue = world.tick + BEAM_CHARGE_DELAY
+            log("beam spends the inert guardian at ${statue.x},${statue.z}")
             for (player in struck) {
                 // A hit can end the fight (Retribution killing the boss); nothing lands after that.
-                if (gone()) return@after
-                val damage = if (world.prayers.protects(player, AttackType.MAGIC)) share * 9 / 10 else share
-                val dealt = world.meleeCombat.hitPlayer(player, boss, damage, world.tick)
-                log("laser hits ${player.username} for $dealt")
+                if (gone()) return
+                val dealt = world.meleeCombat.hitPlayer(player, boss, roll(BEAM_BLOCKED_MIN, BEAM_BLOCKED_MAX), world.tick)
+                log("beam hits ${player.username} for $dealt")
             }
+            return
         }
+        val total = beamDamage(fighting.size)
+        val share = (total + struck.size - 1) / struck.size
+        for (player in struck) {
+            if (gone()) return
+            val damage = if (world.prayers.protects(player, AttackType.MAGIC)) share * 9 / 10 else share
+            val dealt = world.meleeCombat.hitPlayer(player, boss, damage, world.tick)
+            log("beam hits ${player.username} for $dealt")
+        }
+    }
+
+    /** [statue] takes a beam: [STATUE_SPLAT] on it over an empty bar, and it is spent, whatever it had left and awake or not. */
+    private fun EncounterContext.spend(batteries: Batteries, statue: Npc) {
+        statue.hitpoints = 0
+        statue.effects.hit(-1, HitsplatType.DAMAGE_OTHER, HitsplatType.DAMAGE_OTHER, STATUE_SPLAT)
+        statue.effects.headBar(-1, MeleeCombat.HEALTH_BAR, MeleeCombat.healthBarFill(0, statue.maxHitpoints))
+        world.npcs.transform(statue, batteries.spent, Npcs.FOREVER)
+        untarget(statue)
+    }
+
+    /**
+     * Behind the beams' shield, a spent inert guardian's charge reaching the Guardian: [BATTERY_SHIELD_PERCENT] of the
+     * shield's most hitpoints off it. Whether that breaks it: with no more than that left it does, at once, the
+     * Guardian down on this tick with no hold at 0.
+     */
+    private fun EncounterContext.chargeBreaks(): Boolean {
+        val state = state
+        if (state.chargeDue < 0 || world.tick < state.chargeDue) return false
+        state.chargeDue = -1
+        val share = boss.maxHitpoints * BATTERY_SHIELD_PERCENT / 100
+        if (boss.hitpoints <= share) {
+            log("the spent inert guardian's charge breaks its shield, ${boss.hitpoints} left")
+            return true
+        }
+        val dealt = world.meleeCombat.hit(boss, null, share, world.tick)
+        log("the spent inert guardian's charge: shield takes $dealt")
+        return false
+    }
+
+    /**
+     * Down for the last time, that charge hurts the Guardian itself: [BATTERY_BEAM_PERCENT] of its most hitpoints, but
+     * never into kill range (guides: the beam's inert guardian "damages the boss's health"; in kill range "they stop
+     * dealing damage to the boss"). The figures are guessed.
+     */
+    private fun EncounterContext.chargeOnHealth() {
+        val state = state
+        if (state.chargeDue < 0 || world.tick < state.chargeDue) return
+        state.chargeDue = -1
+        val floor = boss.maxHitpoints * KILL_RANGE_PERCENT / 100
+        val damage = minOf(boss.maxHitpoints * BATTERY_BEAM_PERCENT / 100, boss.hitpoints - floor).coerceAtLeast(0)
+        val dealt = if (damage > 0) world.meleeCombat.hit(boss, null, damage, world.tick) else 0
+        log("the spent inert guardian's charge: Guardian takes $dealt")
     }
 
     /**
@@ -677,8 +827,8 @@ object ArchiveGuardian {
     }
 
     /**
-     * The laser's tiles: from the middle of a boss of [size] whose south-west tile is [bossX], [bossZ], through
-     * [through] and on, [LASER_LENGTH] of them; [through] alone when it is the middle.
+     * A beam's tiles: from the middle of a boss of [size] whose south-west tile is [bossX], [bossZ], through
+     * [through] and on, [BEAM_LENGTH] of them; [through] alone when it is the middle.
      */
     internal fun line(bossX: Int, bossZ: Int, size: Int, through: Tile): Set<Tile> {
         val cx = bossX + size / 2
@@ -687,7 +837,7 @@ object ArchiveGuardian {
         val dz = through.z - cz
         val steps = max(abs(dx), abs(dz))
         if (steps == 0) return setOf(through)
-        return (1..LASER_LENGTH).mapTo(LinkedHashSet()) { k ->
+        return (1..BEAM_LENGTH).mapTo(LinkedHashSet()) { k ->
             Tile(cx + (dx.toDouble() * k / steps).roundToInt(), cz + (dz.toDouble() * k / steps).roundToInt())
         }
     }
