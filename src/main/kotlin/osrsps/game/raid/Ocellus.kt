@@ -2760,9 +2760,10 @@ object Ocellus {
         val level = boss.level
         // Bound to his run's instance: one ended in the meantime may have its block reused by another (Codex, PR 588).
         val instance = world.instances.at(x, z)
-        world.npcScripts.later(BLADE_AFTER) {
-            if (world.instances.at(x, z) !== instance) return@later
-            world.spawnNpc(NpcSpawn(type, x, z, level, source = "ocellus vault entry", respawns = false))
+        // With no NPC slot free it is tried again each tick, till it stands or his run's instance ends (Codex, PR 588).
+        world.npcScripts.laterUntil(BLADE_AFTER) {
+            world.instances.at(x, z) !== instance ||
+                world.spawnNpc(NpcSpawn(type, x, z, level, source = "ocellus vault entry", respawns = false)) != null
         }
     }
 

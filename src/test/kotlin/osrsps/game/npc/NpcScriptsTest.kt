@@ -106,6 +106,18 @@ class NpcScriptsTest {
     }
 
     @Test
+    fun `a later action that doesn't take yet is tried again each tick until it does`() {
+        val tried = ArrayList<Long>()
+        scripts.laterUntil(2) { tried += tick; tick >= 4 }
+        run(1)
+        assertEquals(emptyList(), tried)
+        run(1)
+        assertEquals(listOf(2L), tried)
+        run(4)
+        assertEquals(listOf(2L, 3L, 4L), tried, "till it took, then no more")
+    }
+
+    @Test
     fun `a type gets one timer, and timers and queues are at least a tick`() {
         scripts.onTimer(listOf(duck.id), 1) { 1 }
         assertFailsWith<IllegalArgumentException> { scripts.onTimer(listOf(duck.id), 1) { 1 } }

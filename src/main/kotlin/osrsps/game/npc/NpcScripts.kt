@@ -56,6 +56,14 @@ class NpcScripts(private val npcs: Npcs, private val currentTick: () -> Long) {
         later += currentTick() + delay to action
     }
 
+    /**
+     * As [later], and again each tick after until [action] returns true: something that may not take yet, as a boss's
+     * way out with no NPC slot free (Codex, PR 588).
+     */
+    fun laterUntil(delay: Int, action: () -> Boolean) {
+        later(delay) { if (!action()) laterUntil(1, action) }
+    }
+
     /** [npc] was just killed. */
     fun died(npc: Npc) {
         deaths[npc.spawn.type.id]?.forEach { it(npc) }
