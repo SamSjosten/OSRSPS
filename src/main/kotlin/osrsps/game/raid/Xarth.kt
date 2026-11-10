@@ -417,7 +417,11 @@ object Xarth {
             if (players.none { it === player }) return@after
             when {
                 prayed -> world.meleeCombat.hitPlayer(player, boss, damage, world.tick)
-                !hit -> player.effects.spotanim(0, MeleeCombat.SPLASH, MeleeCombat.IMPACT_HEIGHT, 0)
+                !hit -> {
+                    player.effects.spotanim(0, MeleeCombat.SPLASH, MeleeCombat.IMPACT_HEIGHT, 0)
+                    // A splash still counts as his attack: auto-retaliate turns them on him, as for any NPC's magic.
+                    world.meleeCombat.attackedWithoutHit(player, boss, world.tick)
+                }
                 else -> {
                     val dealt = world.meleeCombat.hitPlayer(player, boss, damage, world.tick)
                     log("fireball hits ${player.username} for $dealt")
