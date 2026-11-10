@@ -1,0 +1,51 @@
+{
+ "name": "Artisan 2 step A2a: at 99, a torstol on a super attack(4) with the super strength and defence held makes a super combat potion(4); amylase on two super energy(3) makes two stamina potion(3); unicorn horn dust, snake weed and nail beast nails take a super restore(4) to a sanfew serum(4); two lava scale shards on an antifire potion(2) make an extended antifire(2) (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::setlevel herblore 99", "expectMessage": "Herblore set to level 99"},
+
+  {"step": "command", "text": "::item 269", "expectMessage": "Added 1 x Torstol"},
+  {"step": "command", "text": "::item 2436", "expectMessage": "Added 1 x Super attack(4)"},
+  {"step": "command", "text": "::item 2440", "expectMessage": "Added 1 x Super strength(4)"},
+  {"step": "command", "text": "::item 2442", "expectMessage": "Added 1 x Super defence(4)"},
+  {"step": "useItemOnItem", "item": "Torstol", "onItem": "Super attack(4)"},
+  {"step": "assertInterface", "interfaceId": 270, "comment": "skillmulti"},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15},
+  {"step": "assertInventory", "item": "Super combat potion(4)", "count": 1, "timeoutMs": 10000},
+  {"step": "assertInventory", "item": "Super defence(4)", "count": 0},
+  {"step": "assertInventory", "itemId": 229, "count": 2, "comment": "two of the three potions' vials back"},
+
+  {"step": "command", "text": "::item 3018 2", "expectMessage": "Added 2 x Super energy(3)"},
+  {"step": "command", "text": "::item 12640 6", "expectMessage": "Added 6 x Amylase crystal"},
+  {"step": "useItemOnItem", "item": "Amylase crystal", "onItem": "Super energy(3)"},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15},
+  {"step": "assertInventory", "item": "Stamina potion(3)", "count": 2, "timeoutMs": 10000, "comment": "three crystals each"},
+  {"step": "assertInventory", "item": "Amylase crystal", "count": 0},
+
+  {"step": "command", "text": "::item 3024", "expectMessage": "Added 1 x Super restore(4)"},
+  {"step": "command", "text": "::item 235", "expectMessage": "Added 1 x Unicorn horn dust"},
+  {"step": "command", "text": "::item 1526", "expectMessage": "Added 1 x Snake weed"},
+  {"step": "command", "text": "::item 10937", "expectMessage": "Added 1 x Nail beast nails"},
+  {"step": "useItemOnItem", "item": "Unicorn horn dust", "onItem": "Super restore(4)", "comment": "each sanfew step is one potion a use, with no Make-X box (Wiki)"},
+  {"step": "assertInventory", "item": "Mixture - step 1(4)", "count": 1, "timeoutMs": 10000},
+  {"step": "useItemOnItem", "item": "Snake weed", "onItem": "Mixture - step 1(4)"},
+  {"step": "assertInventory", "item": "Mixture - step 2(4)", "count": 1, "timeoutMs": 10000},
+  {"step": "useItemOnItem", "item": "Nail beast nails", "onItem": "Mixture - step 2(4)"},
+  {"step": "assertInventory", "item": "Sanfew serum(4)", "count": 1, "timeoutMs": 10000},
+
+  {"step": "command", "text": "::item 2456", "expectMessage": "Added 1 x Antifire potion(2)"},
+  {"step": "command", "text": "::item 11994 2", "expectMessage": "Added 2 x Lava scale shard"},
+  {"step": "useItemOnItem", "item": "Lava scale shard", "onItem": "Antifire potion(2)"},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15},
+  {"step": "assertInventory", "item": "Extended antifire(2)", "count": 1, "timeoutMs": 10000},
+  {"step": "assertStat", "skill": "Herblore", "level": 99, "xp": 13034981, "comment": "150 + 153 + 192 + 55 = 550 XP"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
