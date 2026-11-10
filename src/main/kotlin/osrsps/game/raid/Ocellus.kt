@@ -1510,7 +1510,9 @@ object Ocellus {
         val iterator = state.voids.entries.iterator()
         while (iterator.hasNext()) {
             val (_, patch) = iterator.next()
-            if (patch.until > phaseTick && (patch.quadrant == null || patch.quadrant !in state.fallen)) continue
+            // Laid after this check on its first tick, so it still burns on the tick it reaches [VoidPatch.until] and
+            // goes after: its full count of damage ticks (Codex, PR 581).
+            if (patch.until >= phaseTick && (patch.quadrant == null || patch.quadrant !in state.fallen)) continue
             patch.loc?.let { clearLoc(it) }
             iterator.remove()
         }
