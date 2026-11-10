@@ -766,9 +766,9 @@ object Ocellus {
      * animation) with [SPOT_DEATH], [SPOT_DEATH_SKIRT] and [SPOT_DEATH_CRACK] and [SOUND_DEATH], his room done at once.
      * [BLADE_AFTER] ticks later the Blade ([BLADE_TRAVEL], `tfa_blade_npc_vault_entry`, 3 by 3, Commune and Travel)
      * appears where he fell, and [TRAVEL] on it takes the party in his room to the vault. Guessed: the graphics' slots, the sound's reach, his body
-     * going as the Blade appears ([BLADE_AFTER] his death ticks), Travel moving everyone in his room at once with no
-     * delay or graphic; Commune doing nothing yet. Stand-in until the reward vault (step 28, map square 64,90 level 2) is in the instance:
-     * [BLADE_TO], the south end of the vault's corridor beside its Passageway, whose Exit leaves once the run is done.
+     * going as the Blade appears ([BLADE_AFTER] his death ticks), Travel setting off everyone in his room at once
+     * (each by [ArchiveRaids.travel], to the reward vault [ArchiveRaids.MOVE_DELAY] ticks on) with no graphic; Commune
+     * doing nothing yet.
      * Not in yet: the raid's total time, the Combat Achievements kill.
      */
     const val SPOT_DEATH = 4274
@@ -779,9 +779,6 @@ object Ocellus {
     const val BLADE_AFTER = 14
     const val BLADE_TRAVEL = 16683
     const val TRAVEL = 3
-
-    /** Where Travel lands the party, as the cache has it, on his arena's level: a stand-in for the reward vault. */
-    val BLADE_TO = Tile(4127, 5628)
 
     /** headicons_prayer (sprite group 440): the curses' icons, by the capture notes. */
     const val HEAD_ICON_SOUL_SPLIT = 11
@@ -2769,16 +2766,17 @@ object Ocellus {
         }
     }
 
-    /** Travel on the Blade at the vault's entry: everyone of the party in his room to [BLADE_TO]. */
+    /**
+     * Travel on the Blade at the vault's entry: everyone of the party in his room sets off to the reward vault
+     * ([ArchiveRaids.travel], which holds it to once the run is done and to his room).
+     */
     private fun travel(world: World, blade: Npc) {
         val raids = world.archiveRaids
         val run = raids.at(blade.x, blade.z) ?: return
         val room = ArchiveRoom.OCELLUS
-        // Only once his room is done, so the vault's Exit leaves (Raid thread's condition).
         if (room !in run.cleared) return
-        val to = raids.tile(run, BLADE_TO.x, BLADE_TO.z)
         val party = raids.present(run).filter { !it.dead && raids.inRoom(run, room, it.x, it.z) }
-        for (member in party) world.teleport(member, to.x, to.z, room.level)
+        for (member in party) raids.travel(member)
     }
 
     /** What each player has dealt each Siphon standing, for the heal as it is destroyed. */

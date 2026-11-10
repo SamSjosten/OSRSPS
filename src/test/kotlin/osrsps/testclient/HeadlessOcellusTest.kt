@@ -1213,8 +1213,8 @@ class HeadlessOcellusTest {
                 assertEquals(boss.level, vaultBlade.level)
                 alice.await("his body gone") { if (world.npcs.all.none { it === boss }) Unit else null }
                 alice.npcOp(vaultBlade.index, Ocellus.TRAVEL)
-                val to = world.archiveRaids.tile(run, Ocellus.BLADE_TO.x, Ocellus.BLADE_TO.z)
-                alice.await("the vault", 30_000) { alice.position?.takeIf { it == Coord(to.x, to.z, ArchiveRoom.OCELLUS.level) } }
+                val to = world.archiveRaids.tile(run, osrsps.game.raid.ArchiveRaids.REWARD_X, osrsps.game.raid.ArchiveRaids.REWARD_Z)
+                alice.await("the reward vault", 30_000) { alice.position?.takeIf { it == Coord(to.x, to.z, osrsps.game.raid.ArchiveRaids.REWARD_LEVEL) } }
             }
         }
     }
