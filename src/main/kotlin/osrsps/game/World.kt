@@ -106,6 +106,8 @@ import osrsps.game.content.registerFatherUrhney
 import osrsps.game.content.registerLumbridgeSwamp
 import osrsps.game.content.registerLumbridgeSwampCaves
 import osrsps.game.content.SwampCavesHazards
+import osrsps.game.content.SwampCaveGoblins
+import osrsps.game.content.registerSwampCaveGoblins
 import osrsps.game.content.registerSwampTutors
 import osrsps.game.content.registerHans
 import osrsps.game.content.registerArchiveLobby
@@ -689,6 +691,7 @@ class World(
     val thieving = Thieving(this, collision)
     val manorHazards = ManorHazards(this)
     val swampCavesHazards = SwampCavesHazards(this)
+    val caveGoblins = SwampCaveGoblins(this)
     val pickpocketing = Pickpocketing(this)
     val agility = Agility(this, agilityData)
 
@@ -816,6 +819,7 @@ class World(
         registerSwampTutors(this)
         registerLumbridgeSwamp(this)
         registerLumbridgeSwampCaves(this)
+        registerSwampCaveGoblins(this)
         registerChurch(this)
         registerAlKharid(this)
         registerEdgeville(this)
@@ -2903,6 +2907,7 @@ class World(
             parties.logout(player)
             reports.forget(player)
             swampCavesHazards.forget(player)
+            caveGoblins.forget(player)
             npcs.forget(player, scripts::busy)
             save(player)
         } finally {

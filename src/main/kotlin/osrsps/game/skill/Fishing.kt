@@ -23,6 +23,11 @@ object FishingLines : Lines("fishing", "Fishing") {
     val CATCH_PIKE = line("catch_pike", "Raw pike: the message for each catch")
     val LEVEL_BAIT = line("level_bait", "the message when bait fishing needs a higher level", "level")
     val LEVEL_LURE = line("level_lure", "the message when lure fishing needs a higher level", "level")
+    val LEVEL_NET = line("level_net", "the message when netting the swamp caves' spots needs a higher level (33); words guessed", "level")
+    val CATCH_FROG_SPAWN = line("catch_frog_spawn", "Frog spawn: the message for each catch in the swamp caves; words guessed")
+    val CATCH_SWAMP_WEED = line("catch_swamp_weed", "Swamp weed: the message for each one netted in the swamp caves; words guessed")
+    val CATCH_CAVE_EEL = line("catch_cave_eel", "Raw cave eel: the message for each catch (the Raw cave eel page's changes, 27 November 2024)")
+    val CATCH_SLIMY_EEL = line("catch_slimy_eel", "Raw slimy eel: the message for each catch (the Raw slimy eel page's changes)")
     val NO_NET = line("no_net", "Small fishing net: the message on Net without one")
     val NO_ROD = line("no_rod", "Fishing rod: the message on Bait without one")
     val NO_FLY_ROD = line("no_fly_rod", "Fly fishing rod: the message on Lure without one")
@@ -225,6 +230,15 @@ class Fishing(private val world: World) {
         val SALMON = Fish(331, 30, 700, 16, 96, FishingLines.CATCH_SALMON) // raw_salmon
         val PIKE = Fish(349, 25, 600, 16, 96, FishingLines.CATCH_PIKE) // raw_pike
 
+        /**
+         * The swamp caves' spots: their pairs are the Wiki's own charts (Frog spawn: frog spawn 16/96 and swamp weed 10/10
+         * from 33; Raw cave eel: cave eel and slimy eel 10/80 each, the cave eel tried first).
+         */
+        val FROG_SPAWN = Fish(5004, 33, 750, 16, 96, FishingLines.CATCH_FROG_SPAWN) // giant_frogspawn
+        val SWAMP_WEED = Fish(10978, 33, 10, 10, 10, FishingLines.CATCH_SWAMP_WEED) // dorgesh_swamp_weed
+        val CAVE_EEL = Fish(5001, 38, 800, 10, 80, FishingLines.CATCH_CAVE_EEL) // raw_cave_eel
+        val SLIMY_EEL = Fish(3379, 28, 650, 10, 80, FishingLines.CATCH_SLIMY_EEL) // mort_slimey_eel
+
         private val BAIT = Bait(FISHING_BAIT, FishingLines.NO_BAIT)
         private val FEATHERS = Bait(FEATHER, FishingLines.NO_FEATHERS)
 
@@ -245,6 +259,15 @@ class Fishing(private val world: World) {
             FishingLines.LEVEL_BAIT, recasts = true,
         )
 
+        val CAVE_NET = FishingMethod(
+            "Small Net", NET, FishingLines.NO_NET, null, FishingLines.CAST_NET, NET_ANIM, NET_ANIM, listOf(FROG_SPAWN, SWAMP_WEED),
+            FishingLines.LEVEL_NET,
+        )
+        val CAVE_BAIT = FishingMethod(
+            "Bait", FISHING_ROD, FishingLines.NO_ROD, BAIT, FishingLines.CAST_LINE, CAST_ANIM, ROD_ANIM, listOf(CAVE_EEL, SLIMY_EEL),
+            FishingLines.LEVEL_BAIT,
+        )
+
         /** Net/Bait spots (`0_50_49_saltfish` in Lumbridge Swamp) and Lure/Bait spots (`0_50_50_freshfish` on the River Lum). */
         const val SWAMP_SPOT = 1530
         const val RIVER_SPOT = 1527
@@ -257,12 +280,21 @@ class Fishing(private val world: World) {
         /** Lure/Bait spots on the River Barbarian by Barbarian Village (`0_48_53_freshfish`), as the River Lum's. */
         const val BARBARIAN_SPOT = 1526
 
+        /**
+         * The Lumbridge Swamp Caves' Small Net/Bait spots (`0_49_149_cavefish` and `0_50_149_cavefish`), for frog spawn and
+         * eels. They have no area, so they stay put (guessed; the Wiki says only that the Dorgesh-Kaan one never moves).
+         */
+        const val SWAMP_CAVES_WEST_SPOT = 1497
+        const val SWAMP_CAVES_EAST_SPOT = 1498
+
         val SPOTS = listOf(
             SpotType(SWAMP_SPOT, listOf(SMALL_NET, SEA_BAIT)),
             SpotType(RIVER_SPOT, listOf(LURE, RIVER_BAIT)),
             SpotType(DRAYNOR_SPOT, listOf(SMALL_NET, SEA_BAIT)),
             SpotType(AL_KHARID_SPOT, listOf(SMALL_NET, SEA_BAIT)),
             SpotType(BARBARIAN_SPOT, listOf(LURE, RIVER_BAIT)),
+            SpotType(SWAMP_CAVES_WEST_SPOT, listOf(CAVE_NET, CAVE_BAIT)),
+            SpotType(SWAMP_CAVES_EAST_SPOT, listOf(CAVE_NET, CAVE_BAIT)),
         )
         private val SPOT_IDS = SPOTS.map { it.npc }.toSet()
 
