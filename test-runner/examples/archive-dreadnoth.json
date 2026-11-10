@@ -1,0 +1,282 @@
+{
+ "name": "Raid step 20a: Dreadnoth the Jellied solo, his fight beginning as the player takes the room's transporter onto his arena, at the Wiki's hitpoints, his crawl over and his swing under Protect from Melee, the first wave at 85% with its slam blocked by the prayer, its shots and the jelly rising where they landed, the jelly's hit draining prayer, its fall leaving jelly on the floor, and his death doing the room",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare",
+   "comment": "nothing carried; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel prayer 99",
+   "expectMessage": "Prayer set to level 99"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel hitpoints 99",
+   "expectMessage": "Hitpoints set to level 99"
+  },
+  {
+   "step": "command",
+   "text": "::heal",
+   "expectMessage": "Healed to 99 hitpoints."
+  },
+  {
+   "step": "command",
+   "text": "::god on",
+   "expectMessage": "You can't be hurt now",
+   "comment": "his swings, slams and shots still land but do nothing, so the waits can't kill the account; ::god off at the end"
+  },
+  {
+   "step": "command",
+   "text": "::tele 4127 5560 0",
+   "expectMessage": "Teleported to 4127, 5560, 0",
+   "comment": "the lobby, in front of the Archive Door"
+  },
+  {
+   "step": "locOption",
+   "locId": 62768,
+   "option": "Enter",
+   "timeoutMs": 20000,
+   "comment": "into a run of one"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 6
+  },
+  {
+   "step": "command",
+   "text": "::raid tp guardian",
+   "expectMessage": "To Archive Guardian's room"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Archive Guardian's room.",
+   "comment": "the first row done, so the second's doors open"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp bork",
+   "expectMessage": "To Bork and the Smorks's room"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Bork and the Smorks's room.",
+   "comment": "the second row done (their fight is archive-bork.json), so the third's doors open"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 548,
+   "component": 69,
+   "comment": "toplevel:stone5, the prayer tab, in the fixed frame the VM's client uses"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 541,
+   "component": 23,
+   "comment": "prayerbook:prayer15, Protect from Melee, for his swings and slams"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp dreadnoth",
+   "expectMessage": "To Dreadnoth the Jellied's room",
+   "comment": "in at the room's way in, west of the arena"
+  },
+  {
+   "step": "locOption",
+   "locId": 63134,
+   "option": "Use",
+   "timeoutMs": 20000,
+   "comment": "tfa_teleporter_jelly, his room's Archive transporter: onto the arena's west edge, the first in, so his target"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "Dreadnoth the Jellied 2100/2100 hp, 0 jellies",
+   "comment": "the Wiki's hitpoints for a player alone (counted as two)"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "fight: takes on test",
+   "comment": "the account may be test or test2; the line is matched up to the name"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 12,
+   "comment": "he crawls over, a tile every two ticks"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "fight: crawls to ",
+   "comment": "his crawl"
+  },
+  {
+   "step": "assertAnimation",
+   "npc": "Dreadnoth the Jellied",
+   "id": 14779,
+   "timeoutMs": 10000,
+   "comment": "dreadnoth_melee01, his swing at whoever is round him, every 4 ticks"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "fight: swings at test"
+  },
+  {
+   "step": "command",
+   "text": "::hit 315 tfa_jelly_boss",
+   "expectMessage": "1785/2100 hp",
+   "comment": "down to 85%: his first wave"
+  },
+  {
+   "step": "assertAnimation",
+   "npc": "Dreadnoth the Jellied",
+   "id": 14777,
+   "timeoutMs": 5000,
+   "comment": "dreadnoth_jump01, the wave's one volley"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 30",
+   "expectMessage": "fight: wave 1 at 1785 hp: 1 volleys"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::raid log 30",
+   "expectMessage": "fight: shoots at test on ",
+   "comment": "three shots at the player, thrown a tick after the jump"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 30",
+   "expectMessage": "fight: slam hits test for 0",
+   "comment": "Protect from Melee blocks the slam"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 10,
+   "comment": "the shots land 3, 4 and 5 ticks after they're thrown, and the jellies rise 8 after"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 40",
+   "expectMessage": "fight: 1 jellies rise",
+   "comment": "one jelly, on the tile the player stood on: they didn't move"
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "1 jellies, 3 tiles of jelly",
+   "comment": "the jelly, and the volley's three tiles of jelly by him"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 8,
+   "comment": "it comes out from under the player and hits"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 30",
+   "expectMessage": "fight: a jelly hits test for 0",
+   "comment": "Protect from Melee blocks its hit, but it drains prayer all the same"
+  },
+  {
+   "step": "command",
+   "text": "::hit 75 tfa_jelly_minion",
+   "expectMessage": "0/75 hp, dead"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::raid log 30",
+   "expectMessage": "fight: a jelly falls at ",
+   "comment": "jelly on the floor where it fell"
+  },
+  {
+   "step": "command",
+   "text": "::hit 1260 tfa_jelly_boss",
+   "expectMessage": "525/2100 hp",
+   "comment": "down to 25%: his enrage (20b)"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 30",
+   "expectMessage": "enrage: enrage at 525 hp"
+  },
+  {
+   "step": "assertAnimation",
+   "npc": "Dreadnoth the Jellied",
+   "id": 14780,
+   "timeoutMs": 6000,
+   "comment": "dreadnoth_jump02, his first jump 5 ticks after his line"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 30",
+   "expectMessage": "enrage: jumps at test, landing on "
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4,
+   "comment": "he lands 3 ticks after he jumps"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 30",
+   "expectMessage": "enrage: lands on ",
+   "comment": "landed, then a shot and a splatter at her"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 30",
+   "expectMessage": "enrage: shoots and splatters at test on "
+  },
+  {
+   "step": "command",
+   "text": "::kill tfa_jelly_boss",
+   "expectMessage": "Killed Dreadnoth the Jellied",
+   "comment": "whatever he healed, down he goes"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 8,
+   "comment": "his death animation; the room is done as he dies"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "done Archive Guardian, Bork and the Smorks, Dreadnoth the Jellied;",
+   "comment": "his room done"
+  },
+  {
+   "step": "command",
+   "text": "::god off",
+   "expectMessage": "You can be hurt again"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

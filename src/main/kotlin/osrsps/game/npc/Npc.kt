@@ -198,6 +198,12 @@ class Npc(
     var unleashed: Boolean = false
 
     /**
+     * It walks through other NPCs, and they don't stop it: Dreadnoth and his jellies, which stack on one tile and never
+     * block him (tsps capture notes, raid step 20a). Others still can't step onto its tiles.
+     */
+    var passesNpcs: Boolean = false
+
+    /**
      * A hit that takes it to 0 hitpoints leaves it standing there, at 0, for its boss fight to change it (a shield
      * broken, a phase over) rather than killing it; later hits do nothing until the fight lets it die again.
      */
