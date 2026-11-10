@@ -1,0 +1,64 @@
+{
+ "name": "Artisan 2 step A1: at 99, bronze limbs on a wooden stock (hammer held) and a crossbow string make a bronze crossbow; a feather on unfinished bolts makes 10 bolts with no box, and with Make-X for darts and bolts on it opens the box; a chisel cuts an opal into 12 tips, which tip 12 bronze bolts; bronze javelin tips on shafts make 15 javelins (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::varbit 10971 0", "expectMessage": "Varbit 10971", "comment": "option_fletch_dart_or_bolt_makex off, the default"},
+  {"step": "command", "text": "::setlevel fletching 99", "expectMessage": "Fletching set to level 99"},
+
+  {"step": "command", "text": "::item 9440", "expectMessage": "Added 1 x Wooden stock"},
+  {"step": "command", "text": "::item 9420", "expectMessage": "Added 1 x Bronze limbs"},
+  {"step": "command", "text": "::item 2347", "expectMessage": "Added 1 x Hammer"},
+  {"step": "useItemOnItem", "item": "Bronze limbs", "onItem": "Wooden stock"},
+  {"step": "assertInterface", "interfaceId": 270, "comment": "skillmulti"},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15},
+  {"step": "assertAnimation", "id": 4436, "comment": "xbows_fletching_wood_bronze"},
+  {"step": "assertInventory", "item": "Bronze crossbow (u)", "count": 1, "timeoutMs": 10000},
+  {"step": "assertMessage", "contains": "fletching.limbs item=bronze crossbow (u)"},
+
+  {"step": "command", "text": "::item 9438", "expectMessage": "Added 1 x Crossbow string"},
+  {"step": "useItemOnItem", "item": "Crossbow string", "onItem": "Bronze crossbow (u)"},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15},
+  {"step": "assertAnimation", "id": 6671, "comment": "xbows_stringing_crossbow_bronze"},
+  {"step": "assertInventory", "item": "Bronze crossbow", "count": 1, "timeoutMs": 10000},
+
+  {"step": "command", "text": "::item 9375 20", "expectMessage": "Added 20 x Bronze bolts (unf)"},
+  {"step": "command", "text": "::item 314 20", "expectMessage": "Added 20 x Feather"},
+  {"step": "useItemOnItem", "item": "Feather", "onItem": "Bronze bolts (unf)"},
+  {"step": "assertInventory", "item": "Bronze bolts", "count": 10, "timeoutMs": 5000, "comment": "straight away, no box"},
+  {"step": "assertMessage", "contains": "fletching.bolts amount=10 item=bronze bolts"},
+  {"step": "command", "text": "::varbit 10971 1", "expectMessage": "Varbit 10971", "comment": "Make-X for darts and bolts on"},
+  {"step": "useItemOnItem", "item": "Feather", "onItem": "Bronze bolts (unf)"},
+  {"step": "assertInterface", "interfaceId": 270, "comment": "the box over sets of 10"},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15},
+  {"step": "assertInventory", "item": "Bronze bolts", "count": 20, "timeoutMs": 10000},
+  {"step": "command", "text": "::varbit 10971 0", "expectMessage": "Varbit 10971"},
+
+  {"step": "command", "text": "::item 1755", "expectMessage": "Added 1 x Chisel"},
+  {"step": "command", "text": "::item 1609", "expectMessage": "Added 1 x Opal"},
+  {"step": "useItemOnItem", "item": "Chisel", "onItem": "Opal"},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15},
+  {"step": "assertInventory", "item": "Opal bolt tips", "count": 12, "timeoutMs": 10000},
+
+  {"step": "useItemOnItem", "item": "Opal bolt tips", "onItem": "Bronze bolts"},
+  {"step": "assertInterface", "interfaceId": 270, "comment": "two sets: 10, then 2"},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15},
+  {"step": "assertInventory", "item": "Opal bolts", "count": 12, "timeoutMs": 10000},
+  {"step": "assertInventory", "item": "Bronze bolts", "count": 8},
+
+  {"step": "command", "text": "::item 19584 15", "expectMessage": "Added 15 x Javelin shaft"},
+  {"step": "command", "text": "::item 19570 15", "expectMessage": "Added 15 x Bronze javelin tips"},
+  {"step": "useItemOnItem", "item": "Bronze javelin tips", "onItem": "Javelin shaft"},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15},
+  {"step": "assertInventory", "item": "Bronze javelin", "count": 15, "timeoutMs": 10000},
+  {"step": "assertStat", "skill": "Fletching", "level": 99, "xp": 13034494, "comment": "12 + 6 + 5 + 5 + 1.5 + 19.2 + 15 = 63.7 XP"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

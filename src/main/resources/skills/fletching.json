@@ -1,5 +1,5 @@
 {
- "about": "Fletching, as the OSRS Wiki's item pages give it (read 2026-10-30). knifeOnLogs: what a knife on each kind of log makes, in the Make-X box's order (guessed: shafts, javelin shafts, the bows, the stock), with the level, the XP in tenths, how many one log makes and the message key in FletchingLines. Every product takes 'first' ticks after the choice, then 'interval' ticks each: the Arrow shaft page's 'Make-X is 2, then 3 ticks' and the Wooden stock page's 'Make-all is 2, then 3 ticks'; the bow (u) pages give 3 ticks with no note, so they are taken to work the same (inferred). Ids are the 241 cache's; names are its gamevals. Redwood logs make only shafts here: the redwood shield is out. stringing: a bow string on each unstrung bow, 2 ticks each (the bows' pages; the first after 2 ticks is inferred), with the levels and XP of the unstrung bow and the stringing animation the cache names for each. arrows: feathers on arrow shafts make headless arrows and arrowtips on headless arrows make arrows, up to 15 at a time (fewer when fewer are left), 2 ticks a set, XP per arrow in tenths (Headless arrow, Bronze arrow and Arrows pages). darts: a feather on dart tips makes 10 darts at once with every click, no box and no wait (the Wiki gives them 0 ticks), XP per dart in tenths (Dart page). Amethyst arrows and darts are in: their tips come from amethyst crafting, which is out, so only ::item gives them.",
+ "about": "Fletching, as the OSRS Wiki's item pages give it (read 2026-10-30). knifeOnLogs: what a knife on each kind of log makes, in the Make-X box's order (guessed: shafts, javelin shafts, the bows, the stock), with the level, the XP in tenths, how many one log makes and the message key in FletchingLines. Every product takes 'first' ticks after the choice, then 'interval' ticks each: the Arrow shaft page's 'Make-X is 2, then 3 ticks' and the Wooden stock page's 'Make-all is 2, then 3 ticks'; the bow (u) pages give 3 ticks with no note, so they are taken to work the same (inferred). Ids are the 241 cache's; names are its gamevals. Redwood logs make only shafts here: the redwood shield is out. stringing: a bow string on each unstrung bow, 2 ticks each (the bows' pages; the first after 2 ticks is inferred), with the levels and XP of the unstrung bow and the stringing animation the cache names for each. arrows: feathers on arrow shafts make headless arrows and arrowtips on headless arrows make arrows, up to 15 at a time (fewer when fewer are left), 2 ticks a set, XP per arrow in tenths (Headless arrow, Bronze arrow and Arrows pages). darts: a feather on dart tips makes 10 darts at once with every click, no box and no wait (the Wiki gives them 0 ticks), XP per dart in tenths (Dart page). Amethyst arrows and darts are in: their tips come from amethyst crafting, which is out, so only ::item gives them. crossbows (Artisan 2, A1; read 2026-11-10): limbs on a stock with a hammer held make the unstrung crossbow, a crossbow string on that strings it, both at the stock's level (Template:Table/Fletching/Crossbows for levels and XP; Bronze crossbow (u): 2 ticks, hammer; Bronze crossbow: 'Make-X is 1, then 2 ticks', taken for the limbs too, inferred). Animations are the cache's xbows_fletching_* and xbows_stringing_crossbow_* seqs (the dragon crossbow's limbs seq is named yew_dragon in the cache). bolts: a feather on unfinished bolts makes 10 bolts a click with no box and no wait, as darts (the Wiki gives them 0 ticks), XP per bolt (Template:Table/Fletching/Bolts), with the cache's human_fletching_add_bolt_feathers_* seq for each metal; broad bolts have no seq of their own (none played, guessed) and need the Slayer unlock 'broader fletching', taken as unlocked (Slayer isn't built). tippedBolts: bolt tips on finished bolts, up to 10 at a time, 2 ticks a set (Opal bolts page; the first after 2 ticks inferred from arrows), XP per bolt (Template:Table/Fletching/Tipped bolts and Tipped dragon bolts), with the human_fletching_add_bolt_tips_* seq of the bolt's metal; the Make-X box over sets of 10 is guessed. Amethyst broad bolts are in, as amethyst arrows are. boltTips: a chisel on a cut gem, 5 ticks each (each tips page; the first tips 2 ticks after the choice is guessed, from arrows), 12 tips a gem, 24 from an onyx or oyster pearls and 6 from an oyster pearl (Template:Table/Fletching/Bolt tips); the gem's cutting seq is guessed for the animation (xbows_fletching_pearl for pearls, by its name). Out: the jeweller's chisel, zenyte has no tips. javelins: javelin tips on javelin shafts, up to 15 at a time: the first two sets a tick apart, then 2 ticks a set (Bronze javelin page: 1 tick; Template:Table/Fletching/Javelins: 3,000 sets an hour made straight through, the first 2 sets in rapid succession; the first set 1 tick after the choice inferred), XP per javelin (Template:Table/Fletching/Javelins); the animation, human_fletching_add_arrow_tips, is guessed. Out: kebbit, antler and ascension bolts, the hunters' crossbows.",
  "knife": 946,
  "anim": 1248,
  "first": 2,
@@ -85,5 +85,74 @@
   {"tips": 824, "dart": 811, "name": "rune_dart", "level": 81, "xpTenths": 188},
   {"tips": 25853, "dart": 25849, "name": "amethyst_dart", "level": 90, "xpTenths": 210},
   {"tips": 11232, "dart": 11230, "name": "dragon_dart", "level": 95, "xpTenths": 250}
+ ]},
+ "crossbows": {"hammer": 2347, "string": 9438, "first": 1, "interval": 2, "list": [
+  {"stock": 9440, "limbs": 9420, "unstrung": 9454, "crossbow": 9174, "name": "xbows_crossbow_bronze", "level": 9, "limbsXpTenths": 120, "stringXpTenths": 60, "limbsAnim": 4436, "limbsAnimName": "xbows_fletching_wood_bronze", "stringAnim": 6671, "stringAnimName": "xbows_stringing_crossbow_bronze"},
+  {"stock": 9442, "limbs": 9422, "unstrung": 9456, "crossbow": 9176, "name": "xbows_crossbow_blurite", "level": 24, "limbsXpTenths": 320, "stringXpTenths": 160, "limbsAnim": 4437, "limbsAnimName": "xbows_fletching_oak_blurite", "stringAnim": 6672, "stringAnimName": "xbows_stringing_crossbow_blurite"},
+  {"stock": 9444, "limbs": 9423, "unstrung": 9457, "crossbow": 9177, "name": "xbows_crossbow_iron", "level": 39, "limbsXpTenths": 440, "stringXpTenths": 220, "limbsAnim": 4438, "limbsAnimName": "xbows_fletching_willow_iron", "stringAnim": 6673, "stringAnimName": "xbows_stringing_crossbow_iron"},
+  {"stock": 9446, "limbs": 9425, "unstrung": 9459, "crossbow": 9179, "name": "xbows_crossbow_steel", "level": 46, "limbsXpTenths": 540, "stringXpTenths": 270, "limbsAnim": 4439, "limbsAnimName": "xbows_fletching_teak_steel", "stringAnim": 6674, "stringAnimName": "xbows_stringing_crossbow_steel"},
+  {"stock": 9448, "limbs": 9427, "unstrung": 9461, "crossbow": 9181, "name": "xbows_crossbow_mithril", "level": 54, "limbsXpTenths": 640, "stringXpTenths": 320, "limbsAnim": 4440, "limbsAnimName": "xbows_fletching_maple_mithril", "stringAnim": 6675, "stringAnimName": "xbows_stringing_crossbow_mithril"},
+  {"stock": 9450, "limbs": 9429, "unstrung": 9463, "crossbow": 9183, "name": "xbows_crossbow_adamantite", "level": 61, "limbsXpTenths": 820, "stringXpTenths": 410, "limbsAnim": 4441, "limbsAnimName": "xbows_fletching_mahogany_adamantite", "stringAnim": 6676, "stringAnimName": "xbows_stringing_crossbow_adamantite"},
+  {"stock": 9452, "limbs": 9431, "unstrung": 9465, "crossbow": 9185, "name": "xbows_crossbow_runite", "level": 69, "limbsXpTenths": 1000, "stringXpTenths": 500, "limbsAnim": 4442, "limbsAnimName": "xbows_fletching_yew_runite", "stringAnim": 6677, "stringAnimName": "xbows_stringing_crossbow_runite"},
+  {"stock": 21952, "limbs": 21918, "unstrung": 21921, "crossbow": 21902, "name": "xbows_crossbow_dragon", "level": 78, "limbsXpTenths": 1350, "stringXpTenths": 700, "limbsAnim": 7860, "limbsAnimName": "xbows_fletching_yew_dragon", "stringAnim": 7961, "stringAnimName": "xbows_stringing_crossbow_dragon"}
+ ]},
+ "bolts": {"feather": 314, "amount": 10, "list": [
+  {"unfinished": 9375, "bolt": 877, "name": "bolt", "level": 9, "xpTenths": 5, "anim": 8463, "animName": "human_fletching_add_bolt_feathers_bronze"},
+  {"unfinished": 9376, "bolt": 9139, "name": "xbows_crossbow_bolts_blurite", "level": 24, "xpTenths": 10, "anim": 8466, "animName": "human_fletching_add_bolt_feathers_blurite"},
+  {"unfinished": 9377, "bolt": 9140, "name": "xbows_crossbow_bolts_iron", "level": 39, "xpTenths": 15, "anim": 8464, "animName": "human_fletching_add_bolt_feathers_iron"},
+  {"unfinished": 9382, "bolt": 9145, "name": "xbows_crossbow_bolts_silver", "level": 43, "xpTenths": 25, "anim": 8465, "animName": "human_fletching_add_bolt_feathers_silver"},
+  {"unfinished": 9378, "bolt": 9141, "name": "xbows_crossbow_bolts_steel", "level": 46, "xpTenths": 35, "anim": 8467, "animName": "human_fletching_add_bolt_feathers_steel"},
+  {"unfinished": 9379, "bolt": 9142, "name": "xbows_crossbow_bolts_mithril", "level": 54, "xpTenths": 50, "anim": 8468, "animName": "human_fletching_add_bolt_feathers_mithril"},
+  {"unfinished": 11876, "bolt": 11875, "name": "slayer_broad_bolt", "level": 55, "xpTenths": 30, "anim": -1, "animName": ""},
+  {"unfinished": 9380, "bolt": 9143, "name": "xbows_crossbow_bolts_adamantite", "level": 61, "xpTenths": 70, "anim": 8469, "animName": "human_fletching_add_bolt_feathers_adamant"},
+  {"unfinished": 9381, "bolt": 9144, "name": "xbows_crossbow_bolts_runite", "level": 69, "xpTenths": 100, "anim": 8470, "animName": "human_fletching_add_bolt_feathers_rune"},
+  {"unfinished": 21930, "bolt": 21905, "name": "dragon_bolts", "level": 84, "xpTenths": 120, "anim": 8471, "animName": "human_fletching_add_bolt_feathers_dragon"}
+ ]},
+ "tippedBolts": {"amount": 10, "first": 2, "interval": 2, "list": [
+  {"tips": 45, "bolts": 877, "tipped": 879, "name": "opal_bolt", "level": 11, "xpTenths": 16, "anim": 8472, "animName": "human_fletching_add_bolt_tips_bronze"},
+  {"tips": 9187, "bolts": 9139, "tipped": 9335, "name": "xbows_crossbow_bolts_blurite_tipped_jade", "level": 26, "xpTenths": 24, "anim": 8474, "animName": "human_fletching_add_bolt_tips_blurite"},
+  {"tips": 46, "bolts": 9140, "tipped": 880, "name": "pearl_bolt", "level": 41, "xpTenths": 32, "anim": 8473, "animName": "human_fletching_add_bolt_tips_iron"},
+  {"tips": 9188, "bolts": 9141, "tipped": 9336, "name": "xbows_crossbow_bolts_steel_tipped_redtopaz", "level": 48, "xpTenths": 39, "anim": 8475, "animName": "human_fletching_add_bolt_tips_steel"},
+  {"tips": 47, "bolts": 877, "tipped": 881, "name": "barbed_bolt", "level": 51, "xpTenths": 95, "anim": 8472, "animName": "human_fletching_add_bolt_tips_bronze"},
+  {"tips": 9189, "bolts": 9142, "tipped": 9337, "name": "xbows_crossbow_bolts_mithril_tipped_sapphire", "level": 56, "xpTenths": 47, "anim": 8476, "animName": "human_fletching_add_bolt_tips_mithril"},
+  {"tips": 9190, "bolts": 9142, "tipped": 9338, "name": "xbows_crossbow_bolts_mithril_tipped_emerald", "level": 58, "xpTenths": 55, "anim": 8476, "animName": "human_fletching_add_bolt_tips_mithril"},
+  {"tips": 9191, "bolts": 9143, "tipped": 9339, "name": "xbows_crossbow_bolts_adamantite_tipped_ruby", "level": 63, "xpTenths": 63, "anim": 8477, "animName": "human_fletching_add_bolt_tips_adamant"},
+  {"tips": 9192, "bolts": 9143, "tipped": 9340, "name": "xbows_crossbow_bolts_adamantite_tipped_diamond", "level": 65, "xpTenths": 70, "anim": 8477, "animName": "human_fletching_add_bolt_tips_adamant"},
+  {"tips": 9193, "bolts": 9144, "tipped": 9341, "name": "xbows_crossbow_bolts_runite_tipped_dragonstone", "level": 71, "xpTenths": 82, "anim": 8478, "animName": "human_fletching_add_bolt_tips_rune"},
+  {"tips": 9194, "bolts": 9144, "tipped": 9342, "name": "xbows_crossbow_bolts_runite_tipped_onyx", "level": 73, "xpTenths": 94, "anim": 8478, "animName": "human_fletching_add_bolt_tips_rune"},
+  {"tips": 21338, "bolts": 11875, "tipped": 21316, "name": "slayer_broad_bolt_amethyst", "level": 76, "xpTenths": 106, "anim": -1, "animName": ""},
+  {"tips": 45, "bolts": 21905, "tipped": 21955, "name": "dragon_bolts_unenchanted_opal", "level": 84, "xpTenths": 16, "anim": 8479, "animName": "human_fletching_add_bolt_tips_dragon"},
+  {"tips": 9187, "bolts": 21905, "tipped": 21957, "name": "dragon_bolts_unenchanted_jade", "level": 84, "xpTenths": 24, "anim": 8479, "animName": "human_fletching_add_bolt_tips_dragon"},
+  {"tips": 46, "bolts": 21905, "tipped": 21959, "name": "dragon_bolts_unenchanted_pearl", "level": 84, "xpTenths": 32, "anim": 8479, "animName": "human_fletching_add_bolt_tips_dragon"},
+  {"tips": 9188, "bolts": 21905, "tipped": 21961, "name": "dragon_bolts_unenchanted_topaz", "level": 84, "xpTenths": 40, "anim": 8479, "animName": "human_fletching_add_bolt_tips_dragon"},
+  {"tips": 9189, "bolts": 21905, "tipped": 21963, "name": "dragon_bolts_unenchanted_sapphire", "level": 84, "xpTenths": 47, "anim": 8479, "animName": "human_fletching_add_bolt_tips_dragon"},
+  {"tips": 9190, "bolts": 21905, "tipped": 21965, "name": "dragon_bolts_unenchanted_emerald", "level": 84, "xpTenths": 55, "anim": 8479, "animName": "human_fletching_add_bolt_tips_dragon"},
+  {"tips": 9191, "bolts": 21905, "tipped": 21967, "name": "dragon_bolts_unenchanted_ruby", "level": 84, "xpTenths": 63, "anim": 8479, "animName": "human_fletching_add_bolt_tips_dragon"},
+  {"tips": 9192, "bolts": 21905, "tipped": 21969, "name": "dragon_bolts_unenchanted_diamond", "level": 84, "xpTenths": 70, "anim": 8479, "animName": "human_fletching_add_bolt_tips_dragon"},
+  {"tips": 9193, "bolts": 21905, "tipped": 21971, "name": "dragon_bolts_unenchanted_dragonstone", "level": 84, "xpTenths": 82, "anim": 8479, "animName": "human_fletching_add_bolt_tips_dragon"},
+  {"tips": 9194, "bolts": 21905, "tipped": 21973, "name": "dragon_bolts_unenchanted_onyx", "level": 84, "xpTenths": 94, "anim": 8479, "animName": "human_fletching_add_bolt_tips_dragon"}
+ ]},
+ "boltTips": {"chisel": 1755, "first": 2, "interval": 5, "list": [
+  {"gem": 1609, "tips": 45, "name": "opal", "amount": 12, "level": 11, "xpTenths": 15, "anim": 890, "animName": "human_opalcutting"},
+  {"gem": 1611, "tips": 9187, "name": "jade", "amount": 12, "level": 26, "xpTenths": 20, "anim": 891, "animName": "human_jadecutting"},
+  {"gem": 411, "tips": 46, "name": "smalloysterpearls", "amount": 6, "level": 41, "xpTenths": 32, "anim": 4470, "animName": "xbows_fletching_pearl"},
+  {"gem": 413, "tips": 46, "name": "bigoysterpearls", "amount": 24, "level": 41, "xpTenths": 32, "anim": 4470, "animName": "xbows_fletching_pearl"},
+  {"gem": 1613, "tips": 9188, "name": "red_topaz", "amount": 12, "level": 48, "xpTenths": 39, "anim": 892, "animName": "human_redtopazcutting"},
+  {"gem": 1607, "tips": 9189, "name": "sapphire", "amount": 12, "level": 56, "xpTenths": 40, "anim": 888, "animName": "human_sapphirecutting"},
+  {"gem": 1605, "tips": 9190, "name": "emerald", "amount": 12, "level": 58, "xpTenths": 55, "anim": 889, "animName": "human_emeraldcutting"},
+  {"gem": 1603, "tips": 9191, "name": "ruby", "amount": 12, "level": 63, "xpTenths": 63, "anim": 887, "animName": "human_rubycutting"},
+  {"gem": 1601, "tips": 9192, "name": "diamond", "amount": 12, "level": 65, "xpTenths": 70, "anim": 886, "animName": "human_diamondcutting"},
+  {"gem": 1615, "tips": 9193, "name": "dragonstone", "amount": 12, "level": 71, "xpTenths": 82, "anim": 885, "animName": "human_dragonstonecutting"},
+  {"gem": 6573, "tips": 9194, "name": "onyx", "amount": 24, "level": 73, "xpTenths": 94, "anim": 2717, "animName": "human_onyxcutting"}
+ ]},
+ "javelins": {"shaft": 19584, "amount": 15, "first": 1, "second": 1, "interval": 2, "anim": 8480, "animName": "human_fletching_add_arrow_tips", "list": [
+  {"tips": 19570, "javelin": 825, "name": "bronze_javelin", "level": 3, "xpTenths": 10},
+  {"tips": 19572, "javelin": 826, "name": "iron_javelin", "level": 17, "xpTenths": 20},
+  {"tips": 19574, "javelin": 827, "name": "steel_javelin", "level": 32, "xpTenths": 50},
+  {"tips": 19576, "javelin": 828, "name": "mithril_javelin", "level": 47, "xpTenths": 80},
+  {"tips": 19578, "javelin": 829, "name": "adamant_javelin", "level": 62, "xpTenths": 100},
+  {"tips": 19580, "javelin": 830, "name": "rune_javelin", "level": 77, "xpTenths": 124},
+  {"tips": 21352, "javelin": 21318, "name": "amethyst_javelin", "level": 84, "xpTenths": 135},
+  {"tips": 19582, "javelin": 19484, "name": "dragon_javelin", "level": 92, "xpTenths": 150}
  ]}
 }
