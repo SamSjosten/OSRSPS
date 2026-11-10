@@ -87,6 +87,17 @@ class NpcCommandsTest {
     }
 
     @Test
+    fun `npcs leaves hidden NPCs out for a player who isn't an admin`() {
+        run("npc hans")
+        run("npc cow calf")
+        run("hidenpc 1")
+        replies.clear()
+        val players = CommandRegistry { false }.apply { registerNpcCommands(world) }
+        players.execute(player, "npcs", replies::add)
+        assertEquals(listOf("1 NPC within 15 tiles:", "#2 Cow calf (2792) at 3222, 3218; spawn 3222, 3218, wander 0"), replies)
+    }
+
+    @Test
     fun `npcs lists the NPCs nearby and delnpc removes one`() {
         run("npcs")
         run("npc hans 2")

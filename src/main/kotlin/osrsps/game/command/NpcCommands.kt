@@ -30,7 +30,8 @@ fun CommandRegistry.registerNpcCommands(world: World) {
             1 -> rest[0].toIntOrNull()?.takeIf { it in 0..MAX_LIST_RADIUS } ?: fail("The radius must be 0 to $MAX_LIST_RADIUS")
             else -> fail("Usage: ::npcs [radius] [mine]")
         }
-        val near = world.npcs.near(player.x, player.z, player.level, radius, hidden = true)
+        // Hidden NPCs (a boss gone from sight mid-fight) only for admins: anyone else would learn where it is and how hurt.
+        val near = world.npcs.near(player.x, player.z, player.level, radius, hidden = admin)
             .let { all -> if (mine) all.filter { it.spawn.source == spawnSource(player.username) } else all }
         val yours = if (mine) " you put in" else ""
         if (near.isEmpty()) {
