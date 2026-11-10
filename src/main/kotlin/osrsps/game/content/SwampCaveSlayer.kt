@@ -92,6 +92,10 @@ class WallBeasts(private val world: World) {
     /** By hole, the players it has reached for, each until they step off its tile. */
     private val reached = HashMap<Npc, MutableSet<Player>>()
 
+    /** The grab's damage, 0 to [GRAB_MAX_HIT]; a test can fix it. */
+    @Volatile
+    internal var roll: () -> Int = { world.random.nextInt(GRAB_MAX_HIT + 1) }
+
     /** By beast, the last tick it had someone to fight. */
     private val lastFought = HashMap<Npc, Long>()
 
@@ -127,12 +131,21 @@ class WallBeasts(private val world: World) {
             hole.effects.anim(ANIM_REPELLED)
             world.meleeCombat.aggress(hole, player, world.tick)
         } else {
-            hole.effects.anim(ANIM_GRAB)
-            player.anim(ANIM_PLAYER_GRABBED)
-            world.message(player, SwampCaveSlayerLines.GRABBED)
-            // From the hole, so the hit puts them in combat (no logging out); the stun keeps them from hitting back.
-            world.statusEffects.stun(player, GRAB_TICKS, world.random.nextInt(GRAB_MAX_HIT + 1), source = hole, spotanim = -1)
+            grab(player, hole, roll())
         }
+    }
+
+    /**
+     * [hole] grabs [player] for [damage]. The hit comes from the hole, a 0 too, so it puts them in combat (no logging
+     * out); the stun keeps them from hitting back.
+     */
+    private fun grab(player: Player, hole: Npc, damage: Int) {
+        hole.effects.anim(ANIM_GRAB)
+        player.anim(ANIM_PLAYER_GRABBED)
+        world.message(player, SwampCaveSlayerLines.GRABBED)
+        val held = world.statusEffects.stun(player, GRAB_TICKS, damage, source = hole, spotanim = -1)
+        // The stun deals only a hit over 0.
+        if (held && damage == 0) world.meleeCombat.hitPlayer(player, hole, 0, world.tick)
     }
 
     /**
@@ -147,14 +160,21 @@ class WallBeasts(private val world: World) {
             if (npc.spawn.type.id != HOLE || npc.transformedTo?.id != BEAST || npc.dead) continue
             if (npc.target != null) {
                 lastFought[npc] = world.tick
-                npc.transformTicks = BACK_TICKS
+                npc.transformTicks = ticksLeft(world.tick, world.tick)
                 continue
             }
             var last = maxOf(npc.attackedTick, lastFought[npc] ?: Long.MIN_VALUE)
             for (player in players) if (player.attackedNpc === npc) last = maxOf(last, player.attackedNpcTick)
-            npc.transformTicks = (BACK_TICKS - (world.tick - last)).toInt().coerceIn(1, BACK_TICKS)
+            npc.transformTicks = ticksLeft(world.tick, last)
         }
     }
+
+    /**
+     * The countdown to set on [now] for a beast whose fight's last tick was [last]: one more than what is left of
+     * [BACK_TICKS], as [osrsps.game.npc.Npcs.countDownTransforms] takes one off straight after, so it goes back in on
+     * [last] + [BACK_TICKS] exactly.
+     */
+    internal fun ticksLeft(now: Long, last: Long): Int = (BACK_TICKS + 1 - (now - last)).coerceIn(1L, BACK_TICKS + 1L).toInt()
 
     /** Forgets [player] as they leave the world. */
     fun forget(player: Player) {

@@ -169,6 +169,8 @@ class HeadlessSwampCaveSlayerTest {
                 val npc = server.world.npcs[view.index]!!
                 val player = server.world.playerNamed("carol")!!
 
+                // A grab that rolls 0: no damage, and still a hit from the hole.
+                server.world.wallBeasts.roll = { 0 }
                 client.tele(3164, 9555)
                 client.seen("[swamp_slayer.grabbed]")
                 assertTrue(player.stunnedUntil > 0, "held")
