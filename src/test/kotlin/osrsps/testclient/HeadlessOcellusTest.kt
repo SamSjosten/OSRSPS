@@ -584,6 +584,9 @@ class HeadlessOcellusTest {
             val (width, length) = if (arm == Ocellus.Arm.N || arm == Ocellus.Arm.S) 3 to 11 else 11 to 3
             assertTrue(way.stones.all { it.x in sw.x until sw.x + width && it.z in sw.z until sw.z + length }, arm.name)
         }
+        // His room's corridor south of the arena is no part of it: nobody there is moved off the cross or lost.
+        assertTrue(Ocellus.inArena(centre, 4127, 5661))
+        assertFalse(Ocellus.inArena(centre, 4127, 5629))
         // The arms: the north 5675-5685 and the south 5661-5671 at x 4126-4128, the east 4129-4139 and west 4115-4125.
         assertEquals(Tile(4126, 5675), Ocellus.armTile(centre, Ocellus.Arm.N))
         assertEquals(Tile(4126, 5661), Ocellus.armTile(centre, Ocellus.Arm.S))

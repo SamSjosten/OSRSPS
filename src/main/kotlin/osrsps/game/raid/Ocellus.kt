@@ -686,6 +686,12 @@ object Ocellus {
         Arm.W -> Tile(centre.x - 12, centre.z - 1)
     }
 
+    /**
+     * Whether ([x], [z]) is on his arena's floor, within [STRIP_LENGTH] of the cross either way: his room reaches down
+     * the corridor south of it too, where his third phase moves and loses nobody.
+     */
+    fun inArena(centre: Tile, x: Int, z: Int): Boolean = kotlin.math.abs(x - centre.x) <= STRIP_LENGTH && kotlin.math.abs(z - centre.z) <= STRIP_LENGTH
+
     /** Whether ([x], [z]) is on the cross: an arm, 3 wide, or the middle. */
     fun onCross(centre: Tile, x: Int, z: Int): Boolean = kotlin.math.abs(x - centre.x) <= 1 || kotlin.math.abs(z - centre.z) <= 1
 
@@ -1307,7 +1313,7 @@ object Ocellus {
         }
         for (dx in -1..1) for (dz in -1..1) placeLoc(LOC_VOID, centre.x + dx, centre.z + dz)
         for (player in players) {
-            if (!onCross(centre, player.x, player.z)) continue
+            if (!inArena(centre, player.x, player.z) || !onCross(centre, player.x, player.z)) continue
             val westOfHis = state.held == Quadrant.NW || state.held == Quadrant.SW
             val southOfHis = state.held == Quadrant.SE || state.held == Quadrant.SW
             val dx = player.x - centre.x
@@ -1462,7 +1468,7 @@ object Ocellus {
                 for (arm in listOf(ns, ew)) state.stones.remove(arm)?.forEach { clearLoc(it) }
                 log("quadrant ${quadrant.name} falls")
                 for (player in players) {
-                    if (quadrant(centre, player.x, player.z) != quadrant) continue
+                    if (!inArena(centre, player.x, player.z) || quadrant(centre, player.x, player.z) != quadrant) continue
                     player.anim(ANIM_VOID_DEATH)
                     val dealt = fromTheRoom(player, maxOf(1, player.hitpoints))
                     log("${player.username} lost with it for $dealt")
