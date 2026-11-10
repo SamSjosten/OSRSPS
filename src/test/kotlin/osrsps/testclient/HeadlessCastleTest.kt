@@ -90,9 +90,10 @@ class HeadlessCastleTest {
         ZoneLoc(KITCHEN_DOOR, LocShape.WALL_STRAIGHT, 1, 3207, 3217, 0),
         ZoneLoc(LARGE_DOOR_LEFT, LocShape.WALL_STRAIGHT, 0, 3213, 3221, 0),
         ZoneLoc(LARGE_DOOR_RIGHT, LocShape.WALL_STRAIGHT, 0, 3213, 3222, 0),
-        ZoneLoc(CHEST, LocShape.CENTREPIECE_STRAIGHT, 0, 3209, 3218, 1),
-        ZoneLoc(CRATE, LocShape.CENTREPIECE_STRAIGHT, 0, 3210, 3218, 1),
-        ZoneLoc(DRAWERS, LocShape.CENTREPIECE_STRAIGHT, 2, 3213, 3216, 1),
+        // Where cache 2757 (242) has them: 242 refurnished the Duke's floor.
+        ZoneLoc(CHEST, LocShape.CENTREPIECE_STRAIGHT, 1, 3208, 3218, 1),
+        ZoneLoc(CRATE, LocShape.CENTREPIECE_STRAIGHT, 1, 3213, 3221, 1),
+        ZoneLoc(DRAWERS, LocShape.CENTREPIECE_STRAIGHT, 1, 3213, 3216, 1),
         ZoneLoc(SACKS, LocShape.CENTREPIECE_STRAIGHT, 0, 3205, 3218, 2),
     )
 
@@ -250,20 +251,21 @@ class HeadlessCastleTest {
         server(dir).use { server ->
             server.login("gina").use { client ->
                 client.await("the login rebuild") { client.position }
-                client.tele(3208, 3218, 1)
-                client.locOp(CRATE, 3210, 3218, 1)
+                client.tele(3212, 3221, 1)
+                client.locOp(CRATE, 3213, 3221, 1)
                 client.awaitMessage("the crate searched") { it == DialogueText.NONE[SearchLines.CRATE_EMPTY] }
 
-                val chestOpen = LocChange(CHEST_OPEN, LocShape.CENTREPIECE_STRAIGHT, 0, Coord(3209, 3218, 1))
-                client.locOp(CHEST, 3209, 3218, 1)
+                client.tele(3209, 3218, 1)
+                val chestOpen = LocChange(CHEST_OPEN, LocShape.CENTREPIECE_STRAIGHT, 1, Coord(3208, 3218, 1))
+                client.locOp(CHEST, 3208, 3218, 1)
                 client.await("the chest open") { client.locChanges().takeIf { chestOpen in it } }
-                client.locOp(CHEST_OPEN, 3209, 3218, Searching.SEARCH)
+                client.locOp(CHEST_OPEN, 3208, 3218, Searching.SEARCH)
                 client.awaitMessage("the chest searched") { it == DialogueText.NONE[SearchLines.CHEST_EMPTY] }
-                client.locOp(CHEST_OPEN, 3209, 3218, Searching.SHUT)
+                client.locOp(CHEST_OPEN, 3208, 3218, Searching.SHUT)
                 client.await("the chest shut") { client.locChanges().takeIf { chestOpen !in it } }
 
-                client.tele(3212, 3216, 1)
-                val drawersOpen = LocChange(DRAWERS_OPEN, LocShape.CENTREPIECE_STRAIGHT, 2, Coord(3213, 3216, 1))
+                client.tele(3213, 3215, 1)
+                val drawersOpen = LocChange(DRAWERS_OPEN, LocShape.CENTREPIECE_STRAIGHT, 1, Coord(3213, 3216, 1))
                 client.locOp(DRAWERS, 3213, 3216, 1)
                 client.await("the drawers open") { client.locChanges().takeIf { drawersOpen in it } }
                 client.locOp(DRAWERS_OPEN, 3213, 3216, Searching.SEARCH)
