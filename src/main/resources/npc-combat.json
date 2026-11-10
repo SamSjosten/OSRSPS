@@ -1133,6 +1133,19 @@
       "source": "OSRS Wiki, Ocellus (phase 3, id 16677), read 2026-11-10: speed 3, melee max hit 30 and magic 36, the defence bonuses, immune to poison and venom, Defence drained to 150 at most (60% of 250). Immune to freeze, guessed as in his first phase. His attacks come from his fight (Ocellus): melee on his tank, his slash, a void shot at everyone when he can't reach the tank (tsps capture notes; Wiki). Guessed: slash as his melee style, no attack bonuses (the Wiki's are unreadable), no block animation, the 10-tile range, the respawn, which never comes"
     },
     {
+      "npcs": ["tfa_ocellus_p3_void_vine"],
+      "attackSpeed": 5,
+      "maxHit": 1,
+      "attackType": "magic",
+      "attackBonus": 0,
+      "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": null, "defend": null, "death": null },
+      "respawnTicks": 50,
+      "immune": ["poison", "venom", "freeze"],
+      "source": "242 cache, tfa_ocellus_p3_void_vine (16681, \"Void Vine\"): 44 hitpoints and Defence 1 (Sam's recording of 2026-11-09 shows its target box at 0/44). It never attacks: it roots a player for Ocellus's fight (Ocellus), which takes it away when it is broken or its time is up. Guessed: no defence bonuses, the immunities, the speed and max hit (never used), no animations (it has no model), the respawn, which never comes"
+    },
+    {
       "npcs": ["tfa_ocellus_p2", "tfa_ocellus_p2_sword_hitbox"],
       "attackSpeed": 5,
       "maxHit": 25,
