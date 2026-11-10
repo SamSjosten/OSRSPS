@@ -216,6 +216,12 @@ class Npc(
      */
     var meleeSureUntil: Long = -1
 
+    /**
+     * Melee hits on it do nothing while this is up, as an NPC's Protect from Melee does: a boss fight sets it (Ocellus
+     * walking between corners in his first phase, raid step 24a; tsps capture notes: "melee does nothing then").
+     */
+    var protectsFromMelee: Boolean = false
+
     /** True from the hit that killed it until it is taken out of the world; it can't be attacked meanwhile. */
     var dead: Boolean = false
         internal set

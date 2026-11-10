@@ -1,0 +1,205 @@
+{
+ "name": "Raid step 24a: Ocellus solo, his arena upstairs, the hooded figure waiting until the party readies up, then his first phase walking between his corners under Protect from Melee, and at each corner his cracks, line and explosion",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare",
+   "comment": "nothing carried; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel hitpoints 99",
+   "expectMessage": "Hitpoints set to level 99"
+  },
+  {
+   "step": "command",
+   "text": "::heal",
+   "expectMessage": "Healed to 99 hitpoints."
+  },
+  {
+   "step": "command",
+   "text": "::god on",
+   "expectMessage": "You can't be hurt now",
+   "comment": "his shots and cracks still land but do nothing; ::god off at the end"
+  },
+  {
+   "step": "command",
+   "text": "::tele 4127 5560 0",
+   "expectMessage": "Teleported to 4127, 5560, 0",
+   "comment": "the lobby, in front of the Archive Door"
+  },
+  {
+   "step": "locOption",
+   "locId": 62768,
+   "option": "Enter",
+   "timeoutMs": 20000,
+   "comment": "into a run of one"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 6
+  },
+  {
+   "step": "command",
+   "text": "::raid tp guardian",
+   "expectMessage": "To Archive Guardian's room"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Archive Guardian's room."
+  },
+  {
+   "step": "command",
+   "text": "::raid tp bork",
+   "expectMessage": "To Bork and the Smorks's room"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Bork and the Smorks's room.",
+   "comment": "their fight is archive-bork.json; here the room is just marked done"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp dreadnoth",
+   "expectMessage": "To Dreadnoth the Jellied's room",
+   "comment": "done as soon as it begins while his room isn't built; once it is, a ::raid clear goes after this"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::raid tp xarth",
+   "expectMessage": "To Xarth's room",
+   "comment": "likewise"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "done Archive Guardian, Bork and the Smorks, Dreadnoth the Jellied, Xarth;",
+   "comment": "the four rooms before his done"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp ocellus",
+   "expectMessage": "To Ocellus's room",
+   "comment": "his room's landing, upstairs on the vault's level 1"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "done Archive Guardian, Bork and the Smorks, Dreadnoth the Jellied, Xarth;",
+   "comment": "walking in starts nothing: he waits as the hooded figure for the party to ready up"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp 4126 5666",
+   "expectMessage": "To 4126, 5666 of the raid",
+   "comment": "beside the hooded figure (4126,5669), which is out of view from the landing"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "npcOption",
+   "npc": "Hooded Figure",
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "tfa_ocellus_intro (16671), shown to an account that hasn't met him as tfa_ocellus_intro_not_met, \"Hooded Figure\" (242 cache): Talk-to readies the player up. Alone, the player is the whole party, so his fight begins at once"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "Ocellus 2500/2500 hp, charge 0/96",
+   "comment": "the Wiki's first-phase hitpoints for a player alone (counted as two)"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "shield: Protect from Melee up",
+   "comment": "walking between his corners he prays against melee"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 45,
+   "comment": "he walks to a corner (shooting every 5 ticks), then at it: seven cracks 2 ticks apart, his line 3 after the last, the explosion 3 after that, and on to the next corner 3 after it"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 60",
+   "expectMessage": "shield: at the ",
+   "comment": "at his corner, the prayer down"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 60",
+   "expectMessage": "shield: crack ",
+   "comment": "a crack laid towards the middle; nobody on it as its energy flows charges him 2 of 96, a player on it is healed what they lost since and nicked 2 to 6"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 60",
+   "expectMessage": "shield: corner line ",
+   "comment": "his line at the corner"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 60",
+   "expectMessage": "shield: explodes",
+   "comment": "2 rings round him"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 60",
+   "expectMessage": "shield: on to the ",
+   "comment": "on to the next corner anticlockwise, praying again"
+  },
+  {
+   "step": "command",
+   "text": "::hit 2500 tfa_ocellus_p1",
+   "expectMessage": "0/2500 hp",
+   "comment": "until step 24b his first phase run out kills him"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "; complete;",
+   "comment": "his room done: the run is complete (the reward room is step 28)"
+  },
+  {
+   "step": "command",
+   "text": "::god off",
+   "expectMessage": "You can be hurt again"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

@@ -102,8 +102,8 @@ class HeadlessArchiveRaidTest {
         await("the teleport to $x, $z, $level") { position?.takeIf { it == Coord(x, z, level) } }
     }
 
-    private fun HeadlessClient.awaitAt(tile: Tile, what: String) =
-        assertEquals(Coord(tile.x, tile.z, 0), await(what) { position?.takeIf { it == Coord(tile.x, tile.z, 0) } }, what)
+    private fun HeadlessClient.awaitAt(tile: Tile, what: String, level: Int = 0) =
+        assertEquals(Coord(tile.x, tile.z, level), await(what) { position?.takeIf { it == Coord(tile.x, tile.z, level) } }, what)
 
     private fun HeadlessClient.runSays(): String = commandReply("raid run") { it.startsWith("Archive run") || it.startsWith("You're not") }
 
@@ -161,10 +161,11 @@ class HeadlessArchiveRaidTest {
         val passage = server.world.archiveRaids.tile(run, 4124, 5625)
         // Ocellus's room's stand-in exit isn't there until the run is done.
         val exitTile = server.world.archiveRaids.tile(run, ArchiveRaids.OCELLUS_EXIT_X, ArchiveRaids.OCELLUS_EXIT_Z)
-        val exit = ZoneLoc(ArchiveRaids.PASSAGEWAY, LocShape.CENTREPIECE_STRAIGHT, 0, exitTile.x, exitTile.z, 0)
+        val exit = ZoneLoc(ArchiveRaids.PASSAGEWAY, LocShape.CENTREPIECE_STRAIGHT, 0, exitTile.x, exitTile.z, ArchiveRoom.OCELLUS.level)
         assertTrue(!server.world.locs.exists(exit), "no exit from Ocellus's room before it is done")
         locOp(ArchiveRaids.NEXUS_PASSAGEWAY, passage.x, passage.z, ArchiveRaids.EXIT)
-        awaitAt(server.world.archiveRaids.tile(run, ArchiveRoom.OCELLUS.entryX, ArchiveRoom.OCELLUS.entryZ), "Ocellus's room")
+        // His arena is on the vault's upper floor, as live has it.
+        awaitAt(server.world.archiveRaids.tile(run, ArchiveRoom.OCELLUS.entryX, ArchiveRoom.OCELLUS.entryZ), "Ocellus's room", ArchiveRoom.OCELLUS.level)
         awaitRun("the run complete") { it.contains("; complete;") }
         // Solo, every room's points are the one player's.
         assertTrue(runSays().contains("points $username ${ArchiveRaids.ROOM_POINTS * 5}"), runSays())

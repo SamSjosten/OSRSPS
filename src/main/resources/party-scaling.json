@@ -30,6 +30,11 @@
       "npcs": ["tfa_bork_smork_hp_ui_handler"],
       "hitpoints": [2100, 2100, 3050, 3930, 4810, 5700, 6580, 7460],
       "source": "Ours: Bork's and the Smorks' together, for the anchor of their fight (Bork, raid step 18a), which isn't fought; it carries the party size the fight scales the two to, as ::raid bork party=n sets it"
+    },
+    {
+      "npcs": ["tfa_ocellus_p1"],
+      "hitpoints": [2500, 2500, 3630, 4680, 5730, 6780, 7830, 8880],
+      "source": "OSRS Wiki, Ocellus's Hitpoints table, phase 1, read 2026-11-10; 4680 and 5730 seen on the live bar in Sam's recordings of 2026-11-09"
     }
   ]
 }
