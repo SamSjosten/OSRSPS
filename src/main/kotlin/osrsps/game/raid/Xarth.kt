@@ -62,7 +62,7 @@ object XarthLines : Lines("tfa_xarth", "The_Fractured_Archive/Strategies") {
  * stats and bonuses (npc-combat.json), his hitpoints by party size (party-scaling.json), magic only in phase one at the
  * player closest to him, a fireball that hits setting a burn that "will reset and stack on successive hits", the bind
  * on everyone before the blast, the wave's ~45 behind no cover, and a player acting as a pillar taking the full ~45
- * while those behind take ~7. From Sam's recordings of 2026-11-09: "You have been set alight!" twice early in each
+ * while those behind take ~7. From Sam's recordings of 2026-11-09: the set-alight message ([XarthLines.SET_ALIGHT]) twice early in each
  * fight; the burn's 7 or 8 every 4 ticks; a fireball's 1 to 6 through Protect from Missiles, and its flight; the AoE's
  * flames reaching the party 2 ticks on and hitting for 23; a wave's 100 on a player in the open, and a player south of a heap taking none
  * (the Review thread's dense pass of the clips, 2026-11-10). From the cache (RuneLite's gamevals): the ids below.
@@ -173,7 +173,7 @@ object Xarth {
     /**
      * The burn a fireball sets: a hit every [BURN_EVERY] ticks, [BURN_HITS] of them, each [BURN_MIN] to [BURN_MAX] and
      * [BURN_STACK] more for every stack past the first, up to [BURN_MAX_STACKS]. Sam's clip 16-09-17 (the Review
-     * thread's dense pass, 2026-11-10) has one after "You have been set alight!": 7, 7, 7, 7, 7 and 8, exactly 4 ticks
+     * thread's dense pass, 2026-11-10) has one after the set-alight message: 7, 7, 7, 7, 7 and 8, exactly 4 ticks
      * apart, at least 6. Guessed: that it stops at 6, and the stacks' step and most.
      */
     const val BURN_EVERY = 4
@@ -399,7 +399,9 @@ object Xarth {
         world.zones.projectile(
             Projectile(
                 id = SPOT_FIREBALL, fromX = boss.x + SIZE / 2, fromZ = boss.z + SIZE / 2, level = boss.level, toX = player.x, toZ = player.z,
-                startHeight = 100, endHeight = 30, startTime = 0, endTime = delay * CYCLES_PER_TICK, angle = 16, progress = 64,
+                // Launched the tick after the wind-up, landing with the hit (Sam's clip); at once from right beside him,
+                // where the hit lands a tick on.
+                startHeight = 100, endHeight = 30, startTime = if (delay > 1) CYCLES_PER_TICK else 0, endTime = delay * CYCLES_PER_TICK, angle = 16, progress = 64,
                 sourceIndex = boss.index + 1, targetIndex = -(player.index + 1),
             ),
         )
