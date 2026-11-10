@@ -181,6 +181,7 @@ import osrsps.game.npc.NpcSpawn
 import osrsps.game.npc.Npcs
 import osrsps.game.encounter.EncounterDef
 import osrsps.game.encounter.Encounters
+import osrsps.game.raid.ArchiveChestWindow
 import osrsps.game.raid.ArchiveRaids
 import osrsps.game.raid.Parties
 import osrsps.game.raid.PartyScaling
@@ -465,6 +466,13 @@ class World(
         examine = { player, id, count -> objTypes[id]?.let { inventoryTab.examine(player, it, count) } },
         words = ::textFor,
         drop = { player, type, count -> dropUnder(player, type, count) },
+    )
+
+    /** The window over a player's unclaimed loot of The Fractured Archive: the vault's chests and the lobby's Loot Wheelbarrow. */
+    val archiveChestWindow = ArchiveChestWindow(
+        objTypes, interfaces::openModal, interfaces::closeModals, interfaces::setVarbitNow, bankScreen, scripts, { dialogues },
+        examine = { player, id, count -> objTypes[id]?.let { inventoryTab.examine(player, it, count) } },
+        words = ::textFor,
     )
 
     /** Puts [count] of [id] into [player]'s bank as a deposit would, a note as its item; returns how many went in. */
@@ -1365,6 +1373,7 @@ class World(
                 shopScreen.flush(player)
                 grandExchangeScreen.flush(player)
                 priceChecker.flush(player)
+                archiveChestWindow.flush(player)
                 trades.flush(player)
             }
         }
@@ -2243,6 +2252,7 @@ class World(
         if (shopScreen.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (grandExchangeScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (priceChecker.click(player, interfaceId, componentId, sub, op, obj)) return@act
+        if (archiveChestWindow.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (interfaceId == EquipmentTab.WORNITEMS && componentId == PriceChecker.WORNITEMS_BUTTON) {
             priceChecker.open(player)
             return@act

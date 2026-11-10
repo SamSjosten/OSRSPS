@@ -383,6 +383,11 @@ class ArchiveRaids(private val world: World) {
 
     /** Through the Archive Door: into the party's run, opening one if it has none. */
     fun enter(player: Player) {
+        // Loot of an earlier run still in the Loot Wheelbarrow: claimed first (a guess; see [ArchiveChests]).
+        if (world.archiveChestWindow.waiting(player)) {
+            player.message(world.textFor(player)[ArchiveVaultLines.CLAIM_FIRST])
+            return
+        }
         val party = world.parties.start(player)
         val run = runs[party] ?: open(party, player) ?: return
         // Once the Guardian's fight has begun, nobody comes in, or back in: that would be a way to the bank mid-raid.
