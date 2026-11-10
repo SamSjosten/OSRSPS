@@ -3,6 +3,7 @@ package osrsps.game.skill
 import osrsps.game.Inventory
 import osrsps.game.Player
 import osrsps.game.Skill
+import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.combat.StatusEffects
 import osrsps.game.content.HamHideout
@@ -40,7 +41,8 @@ class PocketLoot(val obj: Int, val min: Int, val max: Int, val weight: (farming:
  * out of 256, the damage when caught ([damageMin] to [damage]), its [caught] line, and either a coin [pouch] holding
  * [coins] to [coinsMax] each or a [loot] table, which may hold a [lootPouch]. Pickpocket is its [op]; a catch stuns for
  * [stunTicks]; [concussions] hands a catch to the H.A.M. Hideout's count ([HamHideout.caught]). [extra] comes with every
- * success beside the pouch (a paladin's chaos runes, a watchman's bread).
+ * success beside the pouch (a paladin's chaos runes, a watchman's bread). [heatDamage] hits on a success too, unless ice
+ * gloves are worn (the TzHaar-Hur's heat).
  */
 class Pocket(
     val npcs: Collection<Int>,
@@ -61,6 +63,7 @@ class Pocket(
     val concussions: Boolean = false,
     val stunTicks: Int = StatusEffects.PICKPOCKET_TICKS,
     val extra: List<PocketLoot> = emptyList(),
+    val heatDamage: Int = 0,
 ) {
     /** The coin pouch it gives, from its own pouch or its table. */
     val anyPouch: Int? get() = pouch ?: lootPouch
@@ -126,7 +129,7 @@ class Pickpocketing(private val world: World) {
             player.message(text[PickpocketLines.POUCHES_FULL])
             return
         }
-        val roomNeeded = (if (pocket.pouch == null || player.inventory.count(pocket.pouch) == 0L) 1 else 0) +
+        val roomNeeded = (if (pocket.pouch == null) lootRoom(player, pocket) else if (player.inventory.count(pocket.pouch) == 0L) 1 else 0) +
             pocket.extra.count { extra -> world.objTypes[extra.obj]?.stackable != true || player.inventory.count(extra.obj) == 0L }
         if (player.inventory.freeSlots < roomNeeded || !stacksFit(player, pocket)) {
             player.message(text[PickpocketLines.INVENTORY_FULL])
@@ -150,6 +153,10 @@ class Pickpocketing(private val world: World) {
         player.skills.addTenths(Skill.THIEVING, pocket.xpTenths)
         give(player, pocket)
         player.message(text[PickpocketLines.SUCCESS, "who" to pocket.who])
+        if (pocket.heatDamage > 0 && player.equipment[WearPos.HANDS]?.id != ICE_GLOVES) {
+            // No source: the heat is no blow, so it starts no retaliation.
+            world.meleeCombat.hitPlayer(player, null, pocket.heatDamage, tick)
+        }
     }
 
     private fun ScriptContext.caught(npc: Npc, pocket: Pocket) {
@@ -175,6 +182,19 @@ class Pickpocketing(private val world: World) {
      * otherwise be lost while the XP and the rest came anyway (live's inv_add refuses a whole add; guessed that the
      * pickpocket is refused before it starts, as with no room).
      */
+    /**
+     * The free slots the worst roll of [pocket]'s table needs: a slot for each of an unstackable line's most (the cave
+     * goblins' 4 iron ores), one for a stack not yet held, none for nothing or a stack held.
+     */
+    private fun lootRoom(player: Player, pocket: Pocket): Int = pocket.loot.maxOfOrNull { line ->
+        when {
+            line.obj < 0 -> 0
+            world.objTypes[line.obj]?.stackable != true -> line.max
+            player.inventory.count(line.obj) == 0L -> 1
+            else -> 0
+        }
+    } ?: 1
+
     private fun stacksFit(player: Player, pocket: Pocket): Boolean {
         fun fits(obj: Int, count: Int): Boolean {
             if (world.objTypes[obj]?.stackable != true) return true
@@ -323,6 +343,77 @@ class Pickpocketing(private val world: World) {
         /** The Wiki's 4.8-second stun (knights, paladins) and 6-second one (heroes), at 0.6 seconds a tick. */
         const val STUN_4_8_SECONDS = 8
         const val STUN_6_SECONDS = 10
+
+        /** Thieving 2 step T1c's NPCs (the 242 cache's types). dorgesh_male_1 to 9 and dorgesh_female_1 to 9. */
+        val CAVE_GOBLINS = (2268..2285).toList()
+
+        /** Rellekka's Agnar, Freidir, Borrokar, Lanzig, Pontak, Lensa, Jennella, Sassilik and Inga. */
+        val FREMENNIK_CITIZENS = listOf(3937, 3938, 3939, 3940, 3941, 3943, 3944, 3945, 3946)
+
+        /** The Bandit Camp's bandits (fourdiamonds_sword_bandit_1 and _free); Pollnivneach's wait for blackjacks. */
+        val DESERT_BANDITS = listOf(690, 695)
+
+        /** varlamore_wealthy_citizen_a to d. */
+        val WEALTHY_CITIZENS = listOf(13302, 13303, 13304, 13305)
+
+        /** Darkmeyer's thirty vyres, each a named type. */
+        val VYRES = (9685..9714).toList()
+
+        /** Lletya's Goreu, Arvel and Mawrth, and Prifddinas's citizens (prif_citizen_*), each a named type. */
+        val ELVES = listOf(5297, 5299, 5300) + (9054..9090).toList() + (9106..9117).toList()
+
+        /** Mor Ul Rek's tzhaar_hur_city1 to 6. */
+        val TZHAAR_HURS = (7682..7687).toList()
+
+        const val CAVE_GOBLIN_POUCH = 22526
+        const val FREMENNIK_POUCH = 22528
+        const val DESERT_BANDIT_POUCH = 22530
+        const val WEALTHY_CITIZEN_POUCH = 28822
+        const val VYRE_POUCH = 24703
+        const val ELF_POUCH = 22538
+
+        /** The Wiki's 4-second stun (wealthy citizens), at 0.6 seconds a tick, rounded up. */
+        const val STUN_4_SECONDS = 7
+
+        /** What a TzHaar-Hur's heat does on a success without [ICE_GLOVES], as its caught blow. */
+        const val TZHAAR_HEAT = 4
+        const val ICE_GLOVES = 1580
+        const val TOKKUL = 6529
+
+        /** The wealthy citizens' Pickpocket is their first op. */
+        const val WEALTHY_PICKPOCKET = 1
+
+        /** The Wiki's Cave goblin table, out of 20: the pouch 7, each other item 1. */
+        val CAVE_GOBLIN_LOOT = listOf(
+            line(CAVE_GOBLIN_POUCH, 7), line(10964, 1), line(10963, 1), line(10965, 1), line(10962, 1), line(10961, 1), line(10960, 1),
+            line(4548, 1), line(10981, 1, 2), line(440, 1, 4), line(4537, 1), line(1939, 1), line(590, 1), line(596, 1),
+            // pouch, bat shish, coated frogs' legs, fingers, frogburger, frogspawn gumbo, green gloop soup, bullseye lantern,
+            // 1 to 2 cave goblin wire, 1 to 4 iron ore, oil lantern, swamp tar, tinderbox, unlit torch
+        )
+
+        /** The Wiki's Bandit (Bandit Camp) table, out of 7. */
+        val DESERT_BANDIT_LOOT = listOf(line(DESERT_BANDIT_POUCH, 5), line(179, 1), line(1523, 1)) // pouch, antipoison(1), lockpick
+
+        /** The Wiki's Wealthy citizen table, out of 85: the 1/85 left (an easy clue, left out) gives nothing. */
+        val WEALTHY_CITIZEN_LOOT = listOf(line(WEALTHY_CITIZEN_POUCH, 79), line(29325, 5), line(-1, 1)) // pouch, house keys
+
+        /** The Wiki's Vyre table, out of 132. */
+        val VYRE_LOOT = listOf(
+            line(VYRE_POUCH, 109), line(560, 8, 2, 2), line(565, 2, 4, 4), line(24774, 6), line(1619, 5), line(1601, 1), line(24785, 1),
+            // pouch, 2 death runes, 4 blood runes, blood pint, uncut ruby, diamond, cooked mystery meat
+        )
+
+        /** The Wiki's Elf table, out of 128; Prifddinas's crystal shards and enhanced seeds left out. */
+        val ELF_LOOT = listOf(
+            line(ELF_POUCH, 105), line(560, 8, 2, 2), line(561, 5, 3, 3), line(1993, 6), line(1601, 1), line(569, 2), line(444, 1),
+            // pouch, 2 death runes, 3 nature runes, jug of wine, diamond, fire orb, gold ore
+        )
+
+        /** The Wiki's TzHaar-Hur table, out of 195. */
+        val TZHAAR_HUR_LOOT = listOf(
+            line(TOKKUL, 182, 7, 3), line(1623, 5), line(1621, 4), line(1619, 3), line(1617, 1),
+            // 3 to 7 tokkul, uncut sapphire, emerald, ruby, diamond
+        )
 
         private fun line(obj: Int, weight: Int, max: Int = 1, min: Int = 1) = PocketLoot(obj, min, max) { weight }
 
@@ -481,6 +572,20 @@ class Pickpocketing(private val world: World) {
          * knights and paladins and 6 for heroes, are 8 and 10 ticks; its 5 seconds stay the Stun page's 9 ticks.
          * Guessed: their caught line (the townsfolk's), the words in the messages, and "gnome" in the women's and
          * children's messages too. Left out: the clue scrolls, Rocky, the Ardougne diary.
+         *
+         * Thieving 2 step T1c (the Wiki's Cave goblin (Dorgesh-Kaan), Fremennik citizen, Bandit (Bandit Camp), Wealthy
+         * citizen, Vyre, Elf (Thieving), TzHaar-Hur and Coin pouch pages, read 2026-11-10): cave goblins 36, 40 XP, 1
+         * damage, a table out of 20 with a pouch of 10 to 50; Fremennik citizens 45, 65 XP, 2 damage, a pouch of 40;
+         * desert bandits 53, 79.4 XP, 50 to 240, 3 damage, a table out of 7 with a pouch of 30; wealthy citizens 50, 96
+         * XP, 35 to 200, 3 damage, a table out of 85 with a pouch of 85 and house keys, Pickpocket their first op, a
+         * 4-second stun (7 ticks); vyres 82, 306.9 XP, 8 to 128, 5 damage, a table out of 132 with a pouch of 230 to
+         * 315; elves 85, 353.3 XP, 6 to 100, 5 damage, a table out of 128 with a pouch of 280 to 350; TzHaar-Hur 90,
+         * 103.4 XP, -200 to 200, 4 damage, a table out of 195 (tokkul, uncut gems) and 4 more on every success without
+         * ice gloves. Vyres', elves' and TzHaar-Hur's 6 seconds are 10 ticks. Where a Wiki table says coins, the Coin
+         * pouch page gives that NPC a pouch, so a pouch it is. GUESSED: the cave goblins' and Fremennik citizens' charts
+         * (the Wiki has none: 75 to 240 and 65 to 240, between their neighbours'), every caught line, the names in the
+         * messages. Left out: the urchins' distractions, Prifddinas's crystal shards and seeds, the quests and the fire
+         * cape that gate the areas, the clue scrolls, Rocky.
          */
         val POCKETS = listOf(
             Pocket(Townsfolk.MEN + AL_KHARID_MAN, "man", 1, 80, 180, 240, 1, PickpocketLines.CAUGHT_CITIZEN, CITIZEN_POUCH, COINS_PER_CITIZEN_POUCH),
@@ -508,6 +613,31 @@ class Pickpocketing(private val world: World) {
             Pocket(
                 HEROES, "hero", 80, 1633, 39, 160, 3, PickpocketLines.CAUGHT_CITIZEN, loot = HERO_LOOT, coins = 200, coinsMax = 300, lootPouch = HERO_POUCH,
                 stunTicks = STUN_6_SECONDS,
+            ),
+            Pocket(
+                CAVE_GOBLINS, "cave goblin", 36, 400, 75, 240, 1, PickpocketLines.CAUGHT_CITIZEN, loot = CAVE_GOBLIN_LOOT, coins = 10, coinsMax = 50,
+                lootPouch = CAVE_GOBLIN_POUCH,
+            ),
+            Pocket(FREMENNIK_CITIZENS, "Fremennik citizen", 45, 650, 65, 240, 2, PickpocketLines.CAUGHT_CITIZEN, FREMENNIK_POUCH, 40),
+            Pocket(
+                DESERT_BANDITS, "bandit", 53, 794, 50, 240, 3, PickpocketLines.CAUGHT_CITIZEN, loot = DESERT_BANDIT_LOOT, coins = 30,
+                lootPouch = DESERT_BANDIT_POUCH,
+            ),
+            Pocket(
+                WEALTHY_CITIZENS, "wealthy citizen", 50, 960, 35, 200, 3, PickpocketLines.CAUGHT_CITIZEN, loot = WEALTHY_CITIZEN_LOOT, coins = 85,
+                lootPouch = WEALTHY_CITIZEN_POUCH, op = WEALTHY_PICKPOCKET, stunTicks = STUN_4_SECONDS,
+            ),
+            Pocket(
+                VYRES, "vyre", 82, 3069, 8, 128, 5, PickpocketLines.CAUGHT_CITIZEN, loot = VYRE_LOOT, coins = 230, coinsMax = 315,
+                lootPouch = VYRE_POUCH, stunTicks = STUN_6_SECONDS,
+            ),
+            Pocket(
+                ELVES, "elf", 85, 3533, 6, 100, 5, PickpocketLines.CAUGHT_CITIZEN, loot = ELF_LOOT, coins = 280, coinsMax = 350,
+                lootPouch = ELF_POUCH, stunTicks = STUN_6_SECONDS,
+            ),
+            Pocket(
+                TZHAAR_HURS, "TzHaar-Hur", 90, 1034, -200, 200, 4, PickpocketLines.CAUGHT_CITIZEN, loot = TZHAAR_HUR_LOOT,
+                stunTicks = STUN_6_SECONDS, heatDamage = TZHAAR_HEAT,
             ),
             Pocket(
                 HAM_MEMBERS, "H.A.M. member", 15, 222, 135, 239, 3, PickpocketLines.CAUGHT_HAM, loot = HAM_LOOT, op = HAM_PICKPOCKET,
