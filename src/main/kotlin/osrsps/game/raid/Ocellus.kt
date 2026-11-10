@@ -550,6 +550,9 @@ object Ocellus {
         var held = Quadrant.NW
         var heldSince = -1L
 
+        /** The world tick he took it, for the hits on him since (his attacker's tick is a world tick). */
+        var heldWorldTick = -1L
+
         /** Its two barriers up: nobody jumps. */
         var barriers = false
 
@@ -1236,6 +1239,8 @@ object Ocellus {
 
     /** One tick of his third phase: the cross falling, then his quadrant, his attacks and its fall. */
     private fun EncounterContext.thirdPhase() {
+        // Hits on the Blade until it goes still reach his bar (Codex, PR 576).
+        forwardBlade()
         val at = phaseTick.toInt()
         val centre = centre(boss.spawn.x, boss.spawn.z)
         when (at) {
@@ -1336,6 +1341,7 @@ object Ocellus {
         boss.effects.spotanim(0, SPOT_TELEPORT_IN, 0)
         state.held = quadrant
         state.heldSince = phaseTick
+        state.heldWorldTick = world.tick
         state.barriers = true
         state.fallStart = -1
         state.tank = null
@@ -1358,7 +1364,8 @@ object Ocellus {
         if (state.tank != null) return
         val attacker = boss.attacker ?: return
         if (attacker.dead || players.none { it === attacker } || quadrant(centre, attacker.x, attacker.z) != state.held) return
-        if (boss.attackedTick < state.heldSince) return
+        // A world tick, as the attacker's is: a hit from before he took this quadrant doesn't count (Codex, PR 576).
+        if (boss.attackedTick < state.heldWorldTick) return
         state.tank = attacker
         for (player in players) player.message(world.textFor(player)[OcellusLines.TURNS_TO, "name" to attacker.username])
         log("turns to ${attacker.username}")
@@ -1469,8 +1476,9 @@ object Ocellus {
                 log("quadrant ${quadrant.name} falls")
                 for (player in players) {
                     if (!inArena(centre, player.x, player.z) || quadrant(centre, player.x, player.z) != quadrant) continue
-                    player.anim(ANIM_VOID_DEATH)
                     val dealt = fromTheRoom(player, maxOf(1, player.hitpoints))
+                    // After the hit: a death sets its own animation, which this one replaces (Codex, PR 576).
+                    player.anim(ANIM_VOID_DEATH)
                     log("${player.username} lost with it for $dealt")
                 }
             }
