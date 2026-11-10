@@ -27,6 +27,9 @@ object OcellusLines : Lines("tfa_ocellus", "The_Fractured_Archive/Strategies") {
     val CORNER = (1..3).map { line("corner_$it", "Ocellus three ticks after his last crack at a corner: the ${ordinal(it)} of the three he picks from") }
     val READY = line("ready", "chat, to a player readying up at the hooded figure: how many of the party are ready", "ready", "total")
     val READY_WAIT = line("ready_wait", "chat, with the ready count: the fight begins once everyone else has come in and readied, or 2 minutes after the first ready")
+    val DEATH_AWAITS = line("death_awaits", "Ocellus at the middle, eight ticks after his last side, his charge under 12: everyone is hit a little")
+    val ANNIHILATION = line("annihilation", "Ocellus at the middle, eight ticks after his last side, his charge 12 or more: everyone is hit hard")
+    val WILL_DISAPPEAR = line("will_disappear", "Ocellus with his first-phase bar run out, before he changes to his second phase")
 
     private fun ordinal(n: Int) = listOf("first", "second", "third")[n - 1]
 }
@@ -49,8 +52,18 @@ object OcellusLines : Lines("tfa_ocellus", "The_Fractured_Archive/Strategies") {
  *   [CHARGE_MAX].
  * - [CORNER_LINE] ticks after the last crack one of his three lines, [EXPLODE_AFTER_LINE] after that his explosion: the
  *   ring of tiles round him, then the ring outside it a tick later ([explode]). [WALK_AFTER_EXPLODE] after it he walks on.
- * - STAND-IN until step 24b: his move to the middle at two thirds and a quarter, his charge's discharge, the shield held
- *   at 1 and his change to the second phase aren't built. His first-phase bar run out, he dies, and the room is done.
+ * - At two thirds and at a quarter of his bar (raid step 24b), whatever he is doing, he goes to the middle ([middleStep]):
+ *   he teleports out, and [MIDDLE_IN] ticks later in at the arena's middle. Then four sides, clockwise from a random one,
+ *   [SIDE_GAP] ticks apart: on each, a diagonal crack [SIDE_LENGTH] long from each end of that side, the second
+ *   [SIDE_TENDRIL_GAP] ticks after the first, each shown at once and flowing back [SIDE_FLOWS] after it is laid, caught or
+ *   charging him as a corner's cracks do; [SIDE_EXPLODES] ticks after a side begins, his explosion. [MIDDLE_LINE] ticks
+ *   after the last side begins, [OcellusLines.DEATH_AWAITS], or from a charge of [ANNIHILATION_CHARGE]
+ *   [OcellusLines.ANNIHILATION]; [EXPEND_AFTER_LINE] after it he expends his charge on everyone, unavoidably, and it
+ *   empties; [WALK_AFTER_EXPEND] after that he walks on.
+ * - His bar run out, he holds at it ([Npc.holdsAtZero]) and nothing hurts him; [HOLD_LINE] ticks on
+ *   [OcellusLines.WILL_DISAPPEAR], and he teleports to the middle if he isn't there; [TRANSFORM_ANIM_AFTER] after the
+ *   line his transformation, and [SECOND_PHASE_AFTER] after the line his second phase.
+ * - STAND-IN until step 25: the second phase ([P2]) isn't built. As it would begin he dies, and the room is done.
  *
  * From the OSRS Wiki (Ocellus, read 2026-11-10): his first phase's stats and bonuses (npc-combat.json), 3 by 3, the
  * 5-tick attack speed, magic and ranged, the max hit 36, the 60% Defence drain cap, poison and venom immunity, his
@@ -59,10 +72,15 @@ object OcellusLines : Lines("tfa_ocellus", "The_Fractured_Archive/Strategies") {
  * tile, his corners and their order, Protect from Melee while he walks, the shot every five ticks and its graphics,
  * the seven cracks at a corner, their spots, timings and length, the interception and the charge of 2 a crack on a bar
  * of 96, the line three ticks after the last crack and the explosion three after that, his walking on three after it,
- * the two rings, and every overhead line. From Sam's recordings of 2026-11-09 (three runs, parties of three to five):
+ * the two rings, the middle at two thirds and a quarter and everything there (the teleport, the four sides and their
+ * cracks, the line and the charge's threshold for the harder one, the expending, the walk on), the hold at the end of his
+ * bar, his line then, his teleport to the middle and the transformation's timing, and every overhead line. From Sam's
+ * recordings of 2026-11-09 (three runs, parties of three to five):
  * the arena on the upper floor (plane 1) and where a player comes in, the blue bar's hitpoints for four and five, the
  * first-phase level (1255), his line as it begins ([OcellusLines.ASCENSION]), the three corner lines, the thin bar under the blue one
- * rising in steps of about 2% of 96, players on a crack's line taking hits of 2 to 6, and the ready lines. From the cache
+ * rising in steps of about 2% of 96, players on a crack's line taking hits of 2 to 6, the ready lines, "Death... awaits..."
+ * hitting everyone for 17 or 18 and emptying the charge bar with it, and the blue bar held for 13 ticks before the health
+ * bar (so his line three ticks into the hold, the capture notes having ten from the line to the second phase). From the cache
  * (RuneLite's gameval tables for 242): the ids below.
  *
  * Guessed, until a recording shows more (each also in the README): the order of the seven cracks (each spot once, in a
@@ -70,7 +88,13 @@ object OcellusLines : Lines("tfa_ocellus", "The_Fractured_Archive/Strategies") {
  * after the phase begins and after he walks on from a corner; the explosion's damage
  * ([EXPLODE_MIN] to [EXPLODE_MAX]: the capture notes' "up to 35") with no prayer helping; the shots' landing by the
  * usual NPC flight times; which crack graphic is the straight one and which way each is turned; the figure's options
- * readying at once without the "Begin the challenge?" question; the head icon's sprite (440:0).
+ * readying at once without the "Begin the challenge?" question; the head icon's sprite (440:0); at the middle, his first
+ * side a tick after he is in (as a corner's first crack is), the clockwise end's crack first, no shots and Protect from
+ * Melee down while he is there, "Embrace... annihilation..."'s 80 to 90 landing as he expends the charge as
+ * "Death... awaits..."'s does, and walking on to the corner he was going to (or from one, the next); a second middle
+ * owed (both thresholds crossed at once) coming right after the first; while held, Protect from Melee down and no
+ * cracks or shots, and the teleport to the middle at once with the line. Not sent: the fades of his teleports (the
+ * engine has no NPC transparency yet) and the middle's walk-block loc (its id isn't in the capture notes).
  */
 object Ocellus {
     /** What `::raid` and the raid flow know the fight by. */
@@ -81,8 +105,9 @@ object Ocellus {
     const val INTRO_NOT_MET = 16672
     const val INTRO_MET = 16673
 
-    /** `tfa_ocellus_p1`, his first phase. */
+    /** `tfa_ocellus_p1`, his first phase, and `tfa_ocellus_p2`, his second (step 25). */
     const val P1 = 16674
+    const val P2 = 16675
 
     /**
      * The figure's options that ready a player up: Talk-to (op 1) on the "Hooded Figure" a player who hasn't met him sees,
@@ -112,6 +137,16 @@ object Ocellus {
     const val ANIM_SHOT_MAGIC = 14807
     const val ANIM_CHARGE = 14809
     const val ANIM_EXPLODE = 14811
+
+    /** npc_ocellus_phase1_expend, _teleport_out, _teleport_in and _transformation. */
+    const val ANIM_EXPEND = 14810
+    const val ANIM_TELEPORT_OUT = 14812
+    const val ANIM_TELEPORT_IN = 14813
+    const val ANIM_TRANSFORMATION = 14814
+
+    /** vfx_ocellus_p1_teleport_out and _in, on him as he goes and comes. */
+    const val SPOT_TELEPORT_OUT = 4266
+    const val SPOT_TELEPORT_IN = 4267
 
     /** vfx_ocellus_fire_attack01_*: the fireball's cast, flight and impact. */
     const val SPOT_FIRE_CAST = 4231
@@ -176,8 +211,45 @@ object Ocellus {
     const val EXPLODE_MIN = 15
     const val EXPLODE_MAX = 35
 
+    /** His bar's shares at which he goes to the middle (tsps): two thirds, then a quarter, as fractions. */
+    val MIDDLE_AT: List<Pair<Int, Int>> = listOf(2 to 3, 1 to 4)
+
+    /** At the middle (tsps): he comes in this long after he goes, and the sides are this many, this far apart. */
+    const val MIDDLE_IN = 4
+    const val SIDES = 4
+    const val SIDE_GAP = 8
+
+    /** His first side this long after he is in. Guessed, as a corner's first crack the tick after he arrives. */
+    const val FIRST_SIDE = 1
+
+    /** A side's cracks (tsps): how long, how far apart its two, when each flows back, and the explosion after it begins. */
+    const val SIDE_LENGTH = 6
+    const val SIDE_TENDRIL_GAP = 2
+    const val SIDE_FLOWS = 4
+    const val SIDE_EXPLODES = 6
+
+    /** The line this long after the last side begins, the charge expended this long after it, and on (tsps). */
+    const val MIDDLE_LINE = 8
+    const val EXPEND_AFTER_LINE = 2
+    const val WALK_AFTER_EXPEND = 7
+
+    /**
+     * The charge from which his line is "Embrace... annihilation..." (the capture notes' estimate), and what each line's
+     * expending deals everyone: 17 to 18 (Sam's recordings; the notes agree) or 80 to 90 (the notes' estimate).
+     */
+    const val ANNIHILATION_CHARGE = 12
+    const val DEATH_MIN = 17
+    const val DEATH_MAX = 18
+    const val ANNIHILATION_MIN = 80
+    const val ANNIHILATION_MAX = 90
+
+    /** His bar run out: his line this long into the hold, his transformation and second phase this long after it. */
+    const val HOLD_LINE = 3
+    const val TRANSFORM_ANIM_AFTER = 3
+    const val SECOND_PHASE_AFTER = 10
+
     /** What he is doing in his first phase. */
-    enum class Doing { WALKING, CORNER }
+    enum class Doing { WALKING, CORNER, MIDDLE }
 
     /** A crack: its tiles, and the phase tick its energy flows back. */
     class Crack(val tiles: List<Tile>, val flows: Long)
@@ -200,6 +272,12 @@ object Ocellus {
         /** His charge, 0 to [CHARGE_MAX]. */
         var charge = 0
 
+        /** The middles begun ([MIDDLE_AT]), the phase tick the one now began, its first side, and the corner after it. */
+        var middles = 0
+        var middleStart = 0L
+        var firstSide = 0
+        var cornerAfter = 0
+
         /** Each player's most hitpoints since their last interception, for the heal. */
         val peak = WeakHashMap<Player, Int>()
     }
@@ -213,6 +291,9 @@ object Ocellus {
 
     /** What he is doing, and at or towards which corner, for tests. */
     fun doing(boss: Npc): Pair<Doing, Int>? = states[boss]?.let { it.doing to it.corner }
+
+    /** How many times he has gone to the middle, and the side he began there with (0 north, clockwise), for tests. */
+    fun middles(boss: Npc): Pair<Int, Int> = states[boss]?.let { it.middles to it.firstSide } ?: (0 to 0)
 
     /** The middle's south-west tile for a boss who became his first phase at ([x], [z]). */
     fun middle(x: Int, z: Int): Tile = Tile(x, z + MIDDLE_DZ)
@@ -241,6 +322,21 @@ object Ocellus {
             listOf(line(innerX + sx, innerZ + sz, sx, sz), line(innerX + sx, innerZ, sx, sz), line(innerX, innerZ + sz, sx, sz))
     }
 
+    /**
+     * The two cracks of side [side] (0 north, then clockwise) for a boss of [size] at ([x], [z]), in the order they're laid
+     * (tsps): each diagonal, [SIDE_LENGTH] long, out from a corner of his footprint at an end of that side; the end the
+     * clockwise way round comes first (guessed).
+     */
+    fun sideTendrils(x: Int, z: Int, side: Int, size: Int = 3): List<List<Tile>> {
+        // His footprint's corners clockwise from the north-west, each with the way out from it.
+        val corners = listOf(-1 to 1, 1 to 1, 1 to -1, -1 to -1)
+        return listOf(corners[side % 4], corners[(side + 1) % 4]).map { (dx, dz) ->
+            val fromX = if (dx > 0) x + size - 1 else x
+            val fromZ = if (dz > 0) z + size - 1 else z
+            (1..SIDE_LENGTH).map { Tile(fromX + dx * it, fromZ + dz * it) }
+        }
+    }
+
     /** The fight, or null when the cache hasn't his first phase (a test world's). */
     fun def(types: NpcTypes): EncounterDef? {
         val first = types[P1] ?: return null
@@ -255,15 +351,35 @@ object Ocellus {
                         state.corner = roll(0, CORNERS.size - 1)
                         state.doing = Doing.WALKING
                         state.nextShot = SHOT_EVERY.toLong()
+                        // His bar run out, he stays at it for his change to the second phase (tsps; Sam's recordings).
+                        boss.holdsAtZero = true
                         protect(true)
                         boss.effects.say(world.dialogueText.get(OcellusLines.ASCENSION))
                         for (player in players) state.peak[player] = player.hitpoints
                         log("first phase; to the ${cornerName(state.corner)} corner")
                     },
+                    endsWhen = { boss.hitpoints <= 0 },
+                ),
+                PhaseDef(
+                    "held",
+                    cycle = listOf(CycleStep(1) { held() }),
+                    onStart = {
+                        // Guessed: nothing more from his first phase once his bar is out; what was laid is gone.
+                        state.cracks.clear()
+                        protect(false)
+                        log("held at the end of his bar")
+                    },
                 ),
             ),
             scriptedAttacks = true,
-            status = { "Ocellus ${boss.hitpoints}/${boss.maxHitpoints} hp, charge ${state.charge}/$CHARGE_MAX, ${state.doing.name.lowercase()} ${cornerName(state.corner)}" },
+            status = {
+                val doing = when {
+                    boss.hitpoints <= 0 -> "held"
+                    state.doing == Doing.MIDDLE -> "at the middle"
+                    else -> "${state.doing.name.lowercase()} ${cornerName(state.corner)}"
+                }
+                "Ocellus ${boss.hitpoints}/${boss.maxHitpoints} hp, charge ${state.charge}/$CHARGE_MAX, $doing"
+            },
         )
     }
 
@@ -286,9 +402,134 @@ object Ocellus {
             if (best == null || player.hitpoints > best) state.peak[player] = player.hitpoints
         }
         flowCracks()
+        if (boss.dead) return
+        // Guessed: both thresholds passed at once (one big hit), the second middle comes as soon as the first is over.
+        val due = MIDDLE_AT.count { (num, den) -> boss.hitpoints * den <= boss.maxHitpoints * num }
+        if (state.doing != Doing.MIDDLE && state.middles < due) {
+            toTheMiddle()
+            return
+        }
         when (state.doing) {
             Doing.WALKING -> walk()
             Doing.CORNER -> atCorner()
+            Doing.MIDDLE -> middleStep()
+        }
+    }
+
+    /** He goes to the middle, from wherever he is and whatever he is doing (tsps: even mid-walk). */
+    private fun EncounterContext.toTheMiddle() {
+        // To the corner he was walking to afterwards, or from one he stood at, the next. Guessed.
+        state.cornerAfter = if (state.doing == Doing.CORNER) (state.corner + 1) % CORNERS.size else state.corner
+        state.doing = Doing.MIDDLE
+        state.middles++
+        state.middleStart = phaseTick
+        state.firstSide = roll(0, SIDES - 1)
+        // Guessed: no prayer and no shots at the middle, as at a corner, where he stands laying cracks too.
+        protect(false)
+        boss.destination = null
+        boss.effects.anim(ANIM_TELEPORT_OUT)
+        boss.effects.spotanim(0, SPOT_TELEPORT_OUT, 0)
+        log("to the middle (${state.middles}); first side ${sideName(state.firstSide)}")
+    }
+
+    private fun sideName(side: Int) = listOf("north", "east", "south", "west")[side]
+
+    /** At the middle, by ticks since he went: in, the four sides, his line, the charge expended, and on. */
+    private fun EncounterContext.middleStep() {
+        val at = (phaseTick - state.middleStart).toInt()
+        val firstSide = MIDDLE_IN + FIRST_SIDE
+        val lastSide = firstSide + SIDE_GAP * (SIDES - 1)
+        val line = lastSide + MIDDLE_LINE
+        val expend = line + EXPEND_AFTER_LINE
+        val sideAt = at - firstSide
+        when {
+            at == MIDDLE_IN -> {
+                val middle = middle(boss.spawn.x, boss.spawn.z)
+                world.npcs.teleport(boss, middle.x, middle.z)
+                boss.effects.anim(ANIM_TELEPORT_IN)
+                boss.effects.spotanim(0, SPOT_TELEPORT_IN, 0)
+                log("in at the middle")
+            }
+            sideAt >= 0 && at <= lastSide + SIDE_EXPLODES && sideAt % SIDE_GAP in setOf(0, SIDE_TENDRIL_GAP, SIDE_EXPLODES) -> {
+                val side = (state.firstSide + sideAt / SIDE_GAP) % SIDES
+                when (sideAt % SIDE_GAP) {
+                    0 -> {
+                        boss.effects.anim(ANIM_CHARGE)
+                        sideTendril(side, 0)
+                    }
+                    SIDE_TENDRIL_GAP -> sideTendril(side, 1)
+                    else -> explode()
+                }
+            }
+            at == line -> {
+                val lineKey = if (state.charge >= ANNIHILATION_CHARGE) OcellusLines.ANNIHILATION else OcellusLines.DEATH_AWAITS
+                boss.effects.say(world.dialogueText.get(lineKey))
+                log("${if (lineKey == OcellusLines.ANNIHILATION) "annihilation" else "death awaits"} at charge ${state.charge}")
+            }
+            at == expend -> expend()
+            at >= expend + WALK_AFTER_EXPEND -> {
+                state.corner = state.cornerAfter
+                state.doing = Doing.WALKING
+                // Guessed: his first shot a full spacing after he walks on, as from a corner.
+                state.nextShot = phaseTick + SHOT_EVERY
+                protect(true)
+                log("on from the middle to the ${cornerName(state.corner)} corner")
+                walk()
+            }
+        }
+    }
+
+    /** Crack [which] (0 or 1) of side [side]: shown at once, its energy back [SIDE_FLOWS] on (tsps). */
+    private fun EncounterContext.sideTendril(side: Int, which: Int) {
+        val tiles = sideTendrils(boss.x, boss.z, side, boss.type.size)[which]
+        for (tile in tiles) world.zones.mapAnim(tile.x, tile.z, boss.level, SPOT_CRACK_DIAGONAL)
+        state.cracks += Crack(tiles, phaseTick + SIDE_FLOWS)
+        log("side ${sideName(side)} crack ${which + 1} on ${tiles.first().x},${tiles.first().z} to ${tiles.last().x},${tiles.last().z}")
+    }
+
+    /**
+     * He expends his charge on everyone, unavoidably (Wiki), as his line said: 17 to 18 below [ANNIHILATION_CHARGE], 80 to
+     * 90 from it; and it empties (Sam's recordings: the hit and the empty bar together). Guessed: the harder one lands
+     * as he expends the charge too.
+     */
+    private fun EncounterContext.expend() {
+        val hard = state.charge >= ANNIHILATION_CHARGE
+        boss.effects.anim(ANIM_EXPEND)
+        log("expends charge ${state.charge}")
+        state.charge = 0
+        for (player in players) {
+            if (boss.dead) return
+            val dealt = world.meleeCombat.hitPlayer(player, boss, if (hard) roll(ANNIHILATION_MIN, ANNIHILATION_MAX) else roll(DEATH_MIN, DEATH_MAX), world.tick)
+            log("charge hits ${player.username} for $dealt")
+        }
+    }
+
+    /** One tick of the hold at the end of his bar, by ticks since it began: his line, the transformation, and on. */
+    private fun EncounterContext.held() {
+        val at = phaseTick.toInt()
+        when (at) {
+            HOLD_LINE -> {
+                boss.effects.say(world.dialogueText.get(OcellusLines.WILL_DISAPPEAR))
+                val middle = middle(boss.spawn.x, boss.spawn.z)
+                if (boss.x != middle.x || boss.z != middle.z) {
+                    // Guessed: at once, with the line; the capture notes say only that he teleports there.
+                    boss.destination = null
+                    world.npcs.teleport(boss, middle.x, middle.z)
+                    boss.effects.spotanim(0, SPOT_TELEPORT_IN, 0)
+                    log("to the middle")
+                }
+                log("will disappear")
+            }
+            HOLD_LINE + TRANSFORM_ANIM_AFTER -> {
+                boss.effects.anim(ANIM_TRANSFORMATION)
+                log("transformation")
+            }
+            HOLD_LINE + SECOND_PHASE_AFTER -> {
+                // STAND-IN until step 25: his second phase isn't built, so he dies as it would begin, and the room is done.
+                log("second phase: stand-in, he dies")
+                boss.holdsAtZero = false
+                world.meleeCombat.hit(boss, null, 0, world.tick)
+            }
         }
     }
 

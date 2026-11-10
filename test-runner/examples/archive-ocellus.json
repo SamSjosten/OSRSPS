@@ -1,5 +1,5 @@
 {
- "name": "Raid step 24a: Ocellus solo, his arena upstairs, the hooded figure waiting until the party readies up, then his first phase walking between his corners under Protect from Melee, and at each corner his cracks, line and explosion",
+ "name": "Raid steps 24a and 24b: Ocellus solo, his arena upstairs, the hooded figure waiting until the party readies up, then his first phase walking between his corners under Protect from Melee, at each corner his cracks, line and explosion, at two thirds the middle with its four sides and his charge expended, and the hold at the end of his blue bar",
  "account": "test",
  "steps": [
   {
@@ -179,13 +179,68 @@
   },
   {
    "step": "command",
-   "text": "::hit 2500 tfa_ocellus_p1",
-   "expectMessage": "0/2500 hp",
-   "comment": "until step 24b his first phase run out kills him"
+   "text": "::hit 834 tfa_ocellus_p1",
+   "expectMessage": "1666/2500 hp",
+   "comment": "to two thirds of his blue bar: whatever he is doing, he goes to the middle (step 24b)"
   },
   {
    "step": "waitTicks",
-   "ticks": 3
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "at the middle",
+   "comment": "teleported out; in at the middle four ticks later"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 50,
+   "comment": "in at the middle, four sides of two diagonal cracks 8 ticks apart with an explosion 6 into each, his line 8 after the last side, the charge expended on the player 2 after it, and on 7 after that"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "shield: in at the middle"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "shield: side ",
+   "comment": "a side crack, diagonal from an end of that side of him"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "shield: expends charge ",
+   "comment": "\"Death... awaits...\" or, from a charge of 12, \"Embrace... annihilation...\", then the charge on everyone and the bar empty"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "shield: on from the middle",
+   "comment": "walking his corners again, praying against melee"
+  },
+  {
+   "step": "command",
+   "text": "::hit 2500 tfa_ocellus_p1",
+   "expectMessage": "0/2500 hp",
+   "comment": "his blue bar run out: he holds at it"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "held",
+   "comment": "nothing hurts him; his line 3 ticks in, the transformation 3 after it"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 14,
+   "comment": "until step 25 he dies as his second phase would begin, 10 ticks after his line"
   },
   {
    "step": "command",
