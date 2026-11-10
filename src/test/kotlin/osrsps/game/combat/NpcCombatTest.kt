@@ -840,6 +840,19 @@ class NpcCombatTest {
     }
 
     @Test
+    fun `the HAM Storerooms' guards hit as the level 22 hideout guards do`() {
+        val names = (1..5).map { "dttd_ham_guard_${it}_postquest" }
+        val guardTypes = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(4522 + i, name, internalName = name, stats = NpcStats(strength = 20)) }.toTypedArray())
+        val combat = NpcCombat.load(guardTypes, seqs)
+        assertEquals(names.size, combat.size)
+        for (name in names) {
+            val def = combat[guardTypes.find(name)!!]!!
+            assertEquals(5 to 3, def.attackSpeed to def.maxHit, name)
+            assertTrue(def.aggression == null && def.respawnTicks == 25, name)
+        }
+    }
+
+    @Test
     fun `each max hit in the file is what the formula gives from the levels`() {
         val combat = NpcCombat.load(types, seqs)
         for (name in names) {

@@ -103,6 +103,10 @@ class Quests(val all: List<Quest>) {
             // captain_harlan_intro: Mudfoot's Big Adventure starts with Captain Harlan, so after it he greets the player
             // as one he has met (inferred; [osrsps.game.content.Harlan]).
             16780 to 1,
+            // dttd_ham_trapdoor_state: Death to the Dorgeshuun leaves the hidden trapdoor below the H.A.M. Hideout open,
+            // Climb-down, as the quest's later steps climb down it without a pick (inferred from the Wiki's quick guide;
+            // [osrsps.game.content.HamStorerooms]).
+            2270 to 2,
         )
 
         val NONE = Quests(emptyList())

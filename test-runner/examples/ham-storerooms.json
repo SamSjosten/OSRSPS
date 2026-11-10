@@ -1,0 +1,49 @@
+{
+ "name": "Misthalin piece 7 step 4b: the H.A.M. Storerooms: the hidden trapdoor climbed down, the south-east room's door locked and picked, its chest opened with a steel key, the door opened from inside, a crack squeezed through both ways, a guard pickpocketed, and the ladder back up (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::god on", "comment": "a guard who sees the pick attacks; a caught pickpocket's blow would hurt"},
+  {"step": "command", "text": "::setlevel thieving 99", "expectMessage": "99"},
+  {"step": "command", "text": "::item lockpick", "expectMessage": "Added 1 x Lockpick", "comment": "a door pick always works at 99 with a lockpick"},
+  {"step": "command", "text": "::item 8866", "expectMessage": "Added 1 x Steel key"},
+
+  {"step": "command", "text": "::tele 3166 9623 0", "expectMessage": "Teleported to 3166, 9623, 0", "comment": "north of the hidden trapdoor, south of the Deacon's podium"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "locOption", "locId": 15766, "option": "Climb-down", "x": 3166, "y": 9622, "comment": "open after Death to the Dorgeshuun (varbit 2270 = 2)"},
+  {"step": "assertLocation", "x": 2568, "y": 5185, "plane": 0, "timeoutMs": 10000, "comment": "the foot of the storerooms' ladder"},
+
+  {"step": "command", "text": "::tele 2577 5192 0", "expectMessage": "Teleported to 2577, 5192, 0", "comment": "the corridor east of the south-east room"},
+  {"step": "locOption", "locId": 15759, "option": "Open", "x": 2576, "y": 5192},
+  {"step": "assertMessage", "contains": "[ham_storerooms.door_locked]", "timeoutMs": 10000},
+  {"step": "locOption", "locId": 15759, "option": "Pick-lock", "x": 2576, "y": 5192},
+  {"step": "assertMessage", "contains": "[ham_storerooms.door_pick_done]", "timeoutMs": 15000, "comment": "9 ticks"},
+  {"step": "assertLocation", "x": 2576, "y": 5192, "plane": 0, "timeoutMs": 5000, "comment": "inside the room"},
+  {"step": "locOption", "locId": 15722, "option": "Open", "x": 2573, "y": 5193, "timeoutMs": 10000},
+  {"step": "assertMessage", "contains": "[ham_storerooms.key_breaks key=steel]", "timeoutMs": 10000},
+  {"step": "waitTicks", "ticks": 3, "comment": "the door has shut again"},
+  {"step": "locOption", "locId": 15759, "option": "Open", "x": 2576, "y": 5192, "timeoutMs": 10000},
+  {"step": "assertLocation", "x": 2577, "y": 5192, "plane": 0, "timeoutMs": 5000, "comment": "out in the corridor, no pick"},
+
+  {"step": "command", "text": "::tele 2569 5189 0", "expectMessage": "Teleported to 2569, 5189, 0", "comment": "the corridor south of the south-west room's crack"},
+  {"step": "locOption", "locId": 15731, "option": "Squeeze-through", "x": 2569, "y": 5190},
+  {"step": "assertLocation", "x": 2569, "y": 5190, "plane": 0, "timeoutMs": 5000},
+  {"step": "locOption", "locId": 15731, "option": "Squeeze-through", "x": 2569, "y": 5190},
+  {"step": "assertLocation", "x": 2569, "y": 5189, "plane": 0, "timeoutMs": 5000},
+
+  {"step": "waitTicks", "ticks": 10, "comment": "out of combat if a guard came for us"},
+  {"step": "npcOption", "npc": "Guard", "option": "Pickpocket", "timeoutMs": 20000},
+  {"step": "assertMessage", "contains": "[pickpocket.attempt who=guard]", "timeoutMs": 10000},
+  {"step": "waitTicks", "ticks": 12, "comment": "past a stun, if there was one"},
+
+  {"step": "command", "text": "::tele 2568 5185 0", "expectMessage": "Teleported to 2568, 5185, 0"},
+  {"step": "locOption", "locId": 15747, "option": "Climb-up", "x": 2567, "y": 5185},
+  {"step": "assertLocation", "x": 3166, "y": 9623, "plane": 0, "timeoutMs": 10000, "comment": "back in the hideout"},
+
+  {"step": "command", "text": "::god off"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

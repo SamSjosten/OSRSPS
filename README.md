@@ -1223,7 +1223,33 @@ steps to 27% to 123%, or 47% to 141%; each fail 0.5 XP). A trapdoor pick takes 9
 | Members: level 15, 22.2 XP, 136/256 to 240/256, 1 to 3 damage, the 4-second stun, Agility's 1/256 to 255/256 share of blows, the loot and pouch, concussions, the three quoted messages, 4% a clothing piece | OSRS Wiki, H.A.M. Member, read 2026-11-10 |
 | Guards: stats, speeds, max hits, defences, drops (one table for the three) | OSRS Wiki, H.A.M. Guard, read 2026-11-10 |
 | Linear chances between the Wiki's ends, the cell door's 9 ticks a try and no numbing there, the stun's 7 ticks, the even surface or cell, the tiles, the guards' animations, the other messages | guessed |
-| Out: the trapdoor's occasional 1 XP on a fail, the easy clue, Talk-to on guards, seated members, Johanhus and Jimmy, the quest-only archers and mages, the storerooms (step 4b) | out of scope |
+| Out: the trapdoor's occasional 1 XP on a fail, the easy clue, Talk-to on guards, seated members, Johanhus and Jimmy, the quest-only archers and mages, the storerooms (step 4b, below) | out of scope |
+
+#### The H.A.M. Storerooms
+
+Misthalin piece 7 step 4b (`game/content/HamStorerooms.kt`, `npc-spawns/ham-storerooms.json`, words under
+`ham_storerooms.*`): every account counts as having done Death to the Dorgeshuun, so the hidden trapdoor south of the
+Deacon's podium shows open (varbit `dttd_ham_trapdoor_state` 2) and Climb-down leads to the storerooms' ladder, which
+climbs back up. Four storerooms have locked doors: Pick-lock needs Thieving 23 and works at the Wiki's 10 to 254 out of
+256 (60 to 300 with a lockpick), 3.8 XP, or 0.5 XP on a fail; from inside, Open lets the player out. Two cracks lead into
+the south-west room without a pick, and the large room to the north has an unlocked double door. Each small chest takes
+its own key (bronze south-west, iron north-east, silver north-west, steel south-east and the large room's two), which
+breaks, and rolls the Wiki's 150-slot table of coins and jewellery. Five level 22 guards patrol the corridors; one who
+sees a door being picked attacks, unless a failed pickpocket has sent it back to its post, after which it stays there
+and leaves the player be. Pickpocketing a guard (Thieving 20, 22.2 XP, 1 to 3 damage, no concussions) gives a key of
+each colour at 1/10 each, the H.A.M. coin pouch, or the rest of the Wiki's table.
+
+| The H.A.M. Storerooms | Source |
+|-----------------------|--------|
+| Guards' tiles and types | mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022); OSRS Wiki, Guard (H.A.M. Storerooms) |
+| The trapdoor's forms and varbit 2270, the ladder, doors, cracks, chests, double door, keys, ids and tiles | 242 cache |
+| Open after the quest (its later steps climb down without a pick) | inferred from OSRS Wiki, Death to the Dorgeshuun/Quick guide, read 2026-11-10 |
+| Doors: Thieving 23, 3.8 XP, 0.5 a fail, the chart's 10 to 254 and 60 to 300 | OSRS Wiki, Door (H.A.M. Storerooms), read 2026-11-10 |
+| Which key opens which chest; the key used up and its message | OSRS Wiki, H.A.M. Storerooms, Small chest and Steel key (H.A.M.), read 2026-11-10 |
+| The chest table, 20 outcomes out of 150 | OSRS Wiki, Small chest, read 2026-11-10 |
+| Guards: level 22, stats, speed 5, max hit 3, defences, respawn; pickpocket level 20, 22.2 XP, up to 3 damage, the table; attacking a door picker in sight unless a failed pickpocket has sent them back | OSRS Wiki, Guard (H.A.M. Storerooms) and H.A.M. Storerooms, read 2026-11-10 |
+| The guards' patrols, sight range and pickpocket chance (the members' 135 to 239), the usual stun, a settled guard staying settled, the 9-tick door pick and one try a click, Open from inside, the landing tiles, the 4 free slots a chest needs, 0 coins giving nothing, the messages but the key's | guessed |
+| Out: the easy clue, the chests' open look, the crack's animation, Talk-to on the guards, aggression when spoken to without the robes | out of scope |
 
 ## Draynor Village
 
