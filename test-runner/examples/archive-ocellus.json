@@ -1,5 +1,5 @@
 {
- "name": "Raid steps 24a to 25b: Ocellus solo, his arena upstairs, the hooded figure waiting until the party readies up, then his first phase walking between his corners under Protect from Melee, at each corner his cracks, line and explosion, at two thirds the middle with its four sides and his charge expended, the hold at the end of his blue bar, and his second phase: the portals on the cross, the Blade passing damage to his bar, the quadrants' volleys, and the rest of a quadrant's turn: pools, every portal purple, the floor portal and the last volley",
+ "name": "Raid steps 24a to 26a: Ocellus solo, his arena upstairs, the hooded figure waiting until the party readies up, then his first phase walking between his corners under Protect from Melee, at each corner his cracks, line and explosion, at two thirds the middle with its four sides and his charge expended, the hold at the end of his blue bar, and his second phase: the portals on the cross, the Blade passing damage to his bar, the quadrants' volleys, and the rest of a quadrant's turn: pools, every portal purple, the floor portal and the last volley, and his third phase: the cross falling to stepping stones, his quadrant, and the quadrants falling at 75, 50 and 25%",
  "account": "test",
  "steps": [
   {
@@ -328,7 +328,66 @@
   {
    "step": "waitTicks",
    "ticks": 84,
-   "comment": "two more quadrants, clockwise, 42 ticks each; 123 ticks into the phase his line (tfa_ocellus.this_is_enough), and until step 26 he dies, as his third phase would begin"
+   "comment": "two more quadrants, clockwise, 42 ticks each; 123 ticks into the phase his line (tfa_ocellus.this_is_enough), and a tick later his third phase (step 26a)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 14,
+   "comment": "the cross falls: the arms crack 4 ticks in (anyone on them moved off), fall in at 9, and at 12 their empty forms stand with three stepping stones each, and he takes the quadrant the second phase ended in"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: stepping stones stand"
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "third phase, quadrant ",
+   "comment": "on the same bar as his second phase"
+  },
+  {
+   "step": "command",
+   "text": "::hit 1000 tfa_ocellus_p3",
+   "expectMessage": "Hit Ocellus",
+   "comment": "to 75% of his bar"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 19,
+   "comment": "his line and the barriers down, 11 ticks later his second line, the quadrant falling at 13 and the next taken at 17"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": " falls",
+   "comment": "the first quadrant fallen, with the stones of its arms"
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": ", quadrant ",
+   "comment": "the next quadrant clockwise"
+  },
+  {
+   "step": "command",
+   "text": "::hit 1300 tfa_ocellus_p3",
+   "expectMessage": "Hit Ocellus",
+   "comment": "to 50%"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 19
+  },
+  {
+   "step": "command",
+   "text": "::hit 1300 tfa_ocellus_p3",
+   "expectMessage": "Hit Ocellus",
+   "comment": "to 25%: the third quadrant falls, and until step 27 he dies as his final stand would begin"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 20
   },
   {
    "step": "command",

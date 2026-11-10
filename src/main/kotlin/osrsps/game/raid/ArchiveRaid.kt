@@ -260,6 +260,8 @@ class ArchiveRaids(private val world: World) {
         for (type in listOf(Ocellus.INTRO, Ocellus.INTRO_NOT_MET, Ocellus.INTRO_MET)) {
             for (op in Ocellus.READY_OPS) world.handlers.onNpc(type, op) { o -> readyUp(player, o.npc!!) }
         }
+        // His stepping stones' Jump, in his third phase.
+        Ocellus.register(world)
         world.handlers.onLoc(ARCHIVE_DOOR, ENTER) { enter(player) }
         for (door in DOORS) {
             world.handlers.onLoc(door, ENTER) { door(player, door) }
@@ -1095,7 +1097,7 @@ class ArchiveRaids(private val world: World) {
         const val LAST_DOORS = 4
 
         /** The locs in a run's instance whose options are handled here, on their copies. */
-        val INSTANCE_LOCS: Set<Int> get() = (DOORS + TRANSPORTERS + PASSAGEWAY + OCELLUS_DOOR_OPEN).toSet()
+        val INSTANCE_LOCS: Set<Int> get() = (DOORS + TRANSPORTERS + PASSAGEWAY + OCELLUS_DOOR_OPEN).toSet() + Ocellus.GAPS
 
         /** The z of the nexus's row of doors for [stage] 2 to 4 (each door covers it and the 4 tiles north). */
         fun doorZ(stage: Int): Int = 5584 + (stage - 2) * 13
