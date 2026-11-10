@@ -302,6 +302,10 @@ class HeadlessDreadnothTest {
         assertEquals(Tile(4189, 5661), Dreadnoth.landingFor(east.x, east.z, 5, 4180, 5662, x, z))
         // A diagonal: south-west, kept on the arena.
         assertEquals(Tile(4189, 5656), Dreadnoth.landingFor(east.x, east.z, 5, 4185, 5652, x, z))
+        // Nearest by angle: 10 east and 4 north of his middle is 21.8 degrees off east, so east, not north-east.
+        assertEquals(Tile(4189, 5656), Dreadnoth.landingFor(4184, 5656, 5, 4196, 5662, x, z))
+        // 10 east and 5 north, 26.6 degrees: north-east.
+        assertEquals(Tile(4189, 5661), Dreadnoth.landingFor(4184, 5656, 5, 4196, 5663, x, z))
         // Never west of 4184, nor past the arena's other edges.
         assertEquals(4184, Dreadnoth.landingFor(4186, z, 5, 4181, 5663, x, z).x)
         val far = Dreadnoth.landingFor(x, z, 5, 4198, 5670, x, z)

@@ -2,9 +2,12 @@ package osrsps.game.raid
 
 import java.lang.ref.WeakReference
 import java.util.WeakHashMap
+import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.atan2
+import kotlin.math.cos
 import kotlin.math.max
-import kotlin.math.sign
+import kotlin.math.sin
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.Player
@@ -72,7 +75,7 @@ object DreadnothLines : Lines("tfa_dreadnoth", "The_Fractured_Archive/Strategies
  * hitpoints for a party of four and 4,810 for five, as the Wiki has them; a 38 and a 28 on Sam as the first wave
  * landed; mostly 8 to 10 later, beside jellies.
  *
- * For the enrage (20b): from the Wiki's Strategies, the "*glub glub*" at 25%, jumping towards and slamming a random
+ * For the enrage (20b): from the Wiki's Strategies, his line at 25% (`tfa_dreadnoth.glub`), jumping towards and slamming a random
  * player, large damage and a heal of about 30 to 40 for one underneath, damage regardless of place without Protect
  * from Melee, a ranged shot and a jelly splatter at the player after, jellies landed on absorbed and healing him, no
  * more melee; from the tsps captures, the first jump 5 ticks after the line and one every 8 after, `jump02`, the
@@ -244,7 +247,7 @@ object Dreadnoth {
                 PhaseDef(
                     "enrage",
                     cycle = listOf(CycleStep(1) { enrageTick(jelly) }),
-                    onStart = { enrage() },
+                    onStart = { enrage(jelly) },
                 ),
             ),
             scriptedAttacks = true,
@@ -545,11 +548,13 @@ object Dreadnoth {
     private fun EncounterContext.text(line: Line): String = world.dialogueText.get(line)
 
     /** His enrage begins: his line, and he stands, swinging no more, till his first jump [FIRST_JUMP] ticks on. */
-    private fun EncounterContext.enrage() {
+    private fun EncounterContext.enrage(jelly: NpcType?) {
         hold()
         boss.effects.say(text(DreadnothLines.GLUB))
         state.nextJump = FIRST_JUMP.toLong()
         log("enrage at ${boss.hitpoints} hp")
+        // The phase's cycle first runs next tick: the jellies and jelly on the floor go on this one all the same.
+        jelliesAndFloor(jelly)
     }
 
     /** The enrage's tick: his jumps, and the jellies and jelly on the floor as before. */
@@ -578,10 +583,10 @@ object Dreadnoth {
         val (mx, mz) = if (max(abs(dx), abs(dz)) <= JUMP_REACH) {
             toX to toZ
         } else {
-            // The nearest of the eight ways: a diagonal when the lesser leg is past tan 22.5 degrees of the greater.
-            val diagonal = 5 * minOf(abs(dx), abs(dz)) >= 2 * max(abs(dx), abs(dz))
-            val sx = if (abs(dx) >= abs(dz) || diagonal) dx.sign else 0
-            val sz = if (abs(dz) >= abs(dx) || diagonal) dz.sign else 0
+            // The nearest of the eight ways, by angle: the octant the direction to them rounds to.
+            val way = Math.round(atan2(dz.toDouble(), dx.toDouble()) / (PI / 4)) * (PI / 4)
+            val sx = Math.round(cos(way)).toInt()
+            val sz = Math.round(sin(way)).toInt()
             (cx + JUMP_REACH * sx) to (cz + JUMP_REACH * sz)
         }
         val minX = spawnX + (ARENA_ENTRY_X - X)
