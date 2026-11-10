@@ -94,7 +94,9 @@ class HeadlessOcellusTest {
         )
     }
     private val grave = NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null))
-    private val types = NpcTypes.of(figure, notMet, met, first, second, blade, third, vine, grave, *flares.toTypedArray())
+    /** The Blade at the vault's entry, 3 by 3 with Commune and Travel, as the 241.4 cache has it (`tfa_blade_npc_vault_entry`). */
+    private val vaultBlade = NpcType(Ocellus.BLADE_TRAVEL, "The Blade", size = 3, ops = listOf("Commune", null, "Travel", null, null), internalName = "tfa_blade_npc_vault_entry")
+    private val types = NpcTypes.of(figure, notMet, met, first, second, blade, third, vine, grave, vaultBlade, *flares.toTypedArray())
 
     private val portal = LocCollisionType(width = 2, length = 1, interactType = 1, blocksProjectile = false)
     private val locTypes = LocTypes(
@@ -1202,6 +1204,17 @@ class HeadlessOcellusTest {
                 alice.commandReply("hit ${boss.hitpoints} ${boss.index}") { it.startsWith("Hit ") }
                 alice.await("his room done", 30_000) { ArchiveRoom.OCELLUS.takeIf { it in run.cleared } }
                 assertTrue(boss.dead)
+                // His body goes and the Blade appears where he fell, with Travel, to the vault.
+                val fell = Tile(boss.x, boss.z)
+                val world = server.world
+                val vaultBlade = alice.await("the Blade", 30_000) { world.npcs.all.singleOrNull { it.type.id == Ocellus.BLADE_TRAVEL } }
+                assertEquals(boss.diedTick + Ocellus.BLADE_AFTER, vaultBlade.spawnTick)
+                assertEquals(fell, Tile(vaultBlade.x, vaultBlade.z))
+                assertEquals(boss.level, vaultBlade.level)
+                alice.await("his body gone") { if (world.npcs.all.none { it === boss }) Unit else null }
+                alice.npcOp(vaultBlade.index, Ocellus.TRAVEL)
+                val to = world.archiveRaids.tile(run, Ocellus.BLADE_TO.x, Ocellus.BLADE_TO.z)
+                alice.await("the vault", 30_000) { alice.position?.takeIf { it == Coord(to.x, to.z, ArchiveRoom.OCELLUS.level) } }
             }
         }
     }
