@@ -13,6 +13,12 @@
   },
   {
    "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys",
+   "comment": "the Alliance Navigator's line is checked by its key, so it passes with or without its words on the server"
+  },
+  {
+   "step": "command",
    "text": "::setlevel prayer 99",
    "expectMessage": "Prayer set to level 99"
   },
@@ -222,7 +228,7 @@
    "step": "assertDialogue",
    "contains": "[tfa_navigator.onward]",
    "speaker": "Alliance Navigator",
-   "comment": "his one line, with the player's name (its words on the server)"
+   "comment": "his one line, with the player's name: its key, with ::keys on"
   },
   {
    "step": "continueDialogue"
