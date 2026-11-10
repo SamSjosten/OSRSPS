@@ -170,6 +170,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `swamp-caves.json`: Misthalin piece 7 step 2b: the Lumbridge Swamp Caves' dark hole refusing until a rope is
   tied, down and back up the climbing rope, a candle flaring and exploding in the north-west gas, the insects' warning
   and swarm with no light until the candle is lit again, and the Chasm of Tears' tunnel refusing (with `::keys on`).
+- `swamp-caves-monsters.json`: Misthalin piece 7 step 3a: a cave slime refusing an attack below Slayer 17 and
+  killed at 17 for its swamp tar, a cave goblin's plea and the promise not to hurt it, and the west spot's Small Net
+  refused below 33 Fishing then netting frog spawn or swamp weed (with `::keys on` and `::god on`).
 - `al-kharid-toll-gate.json`: Al Kharid step 1: Open on the toll gate from both sides with no coins, a Border
   Guard's talk (with `::keys on`) that ends with the player through the gate, and the palace's west large doors
   opened together and shut again, and the curtain upstairs in the palace opened and shut.

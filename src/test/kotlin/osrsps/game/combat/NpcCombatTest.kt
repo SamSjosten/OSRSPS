@@ -76,6 +76,10 @@ class NpcCombatTest {
             "dreadnoth_melee01" to 14779, "dreadnoth_death01" to 14782, "jelly_attack" to 1586, "jelly_death" to 1587,
             "demon_attack" to 64, "demon_block" to 65, "demon_death" to 67,
             "shade_attack" to 1283, "shade_block" to 1286, "shade_sink" to 1287,
+            "monalisk_cave_bug_attack" to 6079, "monalisk_cave_bug_defend" to 6080, "monalisk_mini_cave_bug_death" to 6082,
+            "cave_slime_attack" to 1789, "cave_slime_defend" to 1791, "cave_slime_death" to 1792,
+            "crawler_attack" to 227, "crawler_parry" to 1504, "crawler_death" to 228,
+            "dorgesh_goblin_unarmed_attack" to 6001, "dorgesh_goblin_unarmed_defend" to 6002, "dorgesh_goblin_death" to 6003,
         ),
     )
 
@@ -639,6 +643,35 @@ class NpcCombatTest {
         assertEquals(ElementalWeakness(Element.WATER, 40), demon.weakness)
         assertTrue(demon.aggression != null)
         assertEquals(NpcCombatAnims(64, 65, 67), demon.anims)
+    }
+
+    @Test
+    fun `the Lumbridge Swamp Caves' monsters fight as the Wiki has them, with their Slayer levels and fast regeneration`() {
+        // The 242 cache's Strength levels.
+        val caves = mapOf(
+            "swamp_cave_bug" to 5, "swamp_cave_slime" to 13, "slayer_cave_crawler_1" to 18, "slayer_cave_crawler_2" to 18,
+            "slayer_cave_crawler_3" to 18, "slayer_cave_crawler_4" to 18, "medium_frog" to 20, "giant_frog" to 80,
+            "cave_goblin" to 1, "cave_goblin2" to 1, "cave_goblin3" to 1, "cave_goblin4" to 1,
+        )
+        val caveTypes = NpcTypes.of(*caves.entries.mapIndexed { i, (name, str) -> NpcType(2700 + i, name, internalName = name, stats = NpcStats(strength = str)) }.toTypedArray())
+        val combat = NpcCombat.load(caveTypes, seqs)
+        assertEquals(caves.size, combat.size)
+        fun def(name: String) = combat[caveTypes.find(name)!!]!!
+        for (name in caves.keys) {
+            assertEquals(CombatMath.npcMaxHit(caveTypes.find(name)!!.stats.strength, def(name).strengthBonus), def(name).maxHit, name)
+        }
+        val shown = listOf("swamp_cave_bug", "swamp_cave_slime", "slayer_cave_crawler_1", "medium_frog", "giant_frog", "cave_goblin")
+        assertEquals(listOf(1, 2, 3, 3, 9, 1), shown.map { def(it).maxHit })
+        assertEquals(listOf(7, 17, 10, 0, 0, 0), shown.map { def(it).slayerLevel })
+        assertEquals(listOf(5, MeleeCombat.REGEN_TICKS, 5, MeleeCombat.REGEN_TICKS, MeleeCombat.REGEN_TICKS, MeleeCombat.REGEN_TICKS), shown.map { def(it).regenTicks })
+        assertEquals(listOf(true, false, true, false, false, false), shown.map { def(it).aggression != null })
+        assertEquals(listOf(0, 15, 40, 0, 0, 0), shown.map { def(it).poison })
+        assertEquals(listOf(35, 15, 15, 50, 50, 50), shown.map { def(it).respawnTicks })
+        assertEquals(ElementalWeakness(Element.EARTH, 50), def("swamp_cave_slime").weakness)
+        assertEquals(ElementalWeakness(Element.FIRE, 40), def("cave_goblin4").weakness)
+        assertEquals(NpcCombatAnims(6079, 6080, 6082), def("swamp_cave_bug").anims)
+        assertEquals(NpcCombatAnims(227, 1504, 228), def("slayer_cave_crawler_3").anims)
+        assertEquals(NpcCombatAnims(1793, 1794, 1795), def("giant_frog").anims)
     }
 
     @Test

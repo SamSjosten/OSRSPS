@@ -91,6 +91,14 @@ class Combat(
     /** The category of the weapon the player wields ([Weapons]), [Weapons.UNARMED] for none. */
     fun weaponCategory(player: Player): Int = Weapons.category(equipment.weapon(player))
 
+    /**
+     * Whether [player]'s Slayer level, boosts counted, is below what [npc] needs to be hurt ([NpcCombatDef.slayerLevel]):
+     * then no attack of theirs reaches it, a click, a retaliation or a hit that spreads to it (OSRS Wiki, Slayer: "a
+     * player cannot attack a monster that requires a higher Slayer level"). Boosts count (OSRS Wiki, Slayer, Boosts).
+     */
+    fun slayerGated(player: Player, npc: Npc): Boolean =
+        (npcCombat[npc.type]?.slayerLevel ?: 0) > player.skills.currentLevel(Skill.SLAYER)
+
     /** The animations the player swings and blocks with: their weapon's category's. */
     fun anims(player: Player): WeaponAnims = WeaponAnims.of(Weapons.category(equipment.weapon(player)))
 
