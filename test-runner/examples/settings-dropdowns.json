@@ -55,9 +55,9 @@
   {"step": "assertVarbit", "id": 12274, "value": 2},
   {"step": "assertVarbit", "id": 1627, "value": 0},
 
-  {"step": "clickWidget", "interfaceId": 134, "component": 24, "slot": 6, "comment": "Interfaces. On the VM's fixed client, neither row 74 (chatbox scrollbar side, excludes fixed) nor row 80 (stat boosts HUD displays) opened a list, so only the quest list sort is picked here"},
+  {"step": "clickWidget", "interfaceId": 134, "component": 24, "slot": 6, "comment": "Interfaces. On the VM's fixed client, neither row 75 (chatbox scrollbar side, excludes fixed) nor row 81 (stat boosts HUD displays) opened a list, so only the quest list sort is picked here"},
   {"step": "assertVarbit", "id": 9656, "value": 6},
-  {"step": "clickWidget", "interfaceId": 134, "component": 20, "slot": 39, "comment": "quest list sort"},
+  {"step": "clickWidget", "interfaceId": 134, "component": 20, "slot": 40, "comment": "quest list sort"},
   {"step": "clickWidget", "interfaceId": 134, "component": 29, "slot": 23, "comment": "option 7"},
   {"step": "waitTicks", "ticks": 3},
   {"step": "assertVarbit", "id": 13772, "value": 7},
