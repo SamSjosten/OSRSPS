@@ -41,6 +41,12 @@
   },
   {
    "step": "command",
+   "text": "::varp 172 1",
+   "expectMessage": "Varp 172:",
+   "comment": "auto retaliate off, or punches back at him take a hitpoint here and there and his hitpoints below aren't the Wiki's; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
    "text": "::tele 4127 5560 0",
    "expectMessage": "Teleported to 4127, 5560, 0",
    "comment": "the lobby, in front of the Archive Door"
@@ -98,15 +104,17 @@
    "comment": "tfa_boss_teleporter, the Archive transporter: into his arena at its east edge (4067,5535), the first in, so his tank"
   },
   {
-   "step": "waitTicks",
-   "ticks": 10,
-   "comment": "the walk to the transporter, a tile a tick, then into the arena: 7 to 8 ticks on the VM (2026-11-10)"
+   "step": "assertAnimation",
+   "npc": "Ezekiel",
+   "id": 14685,
+   "timeoutMs": 30000,
+   "comment": "npc_ezekiel_melee01, his first swing, 5 ticks after the fight begins: looked for from the click on the transporter, before any command, as a command resets what an assert looks back over (on VM 215, 2026-11-10, his first swing came on the tick of the commands below in one run of three, and none was seen after it)"
   },
   {
    "step": "command",
    "text": "::raid",
    "expectMessage": "Ezekiel 3000/3000 hp",
-   "comment": "the Wiki's hitpoints for a player alone (counted as two)"
+   "comment": "the Wiki's hitpoints for a player alone (counted as two), auto retaliate being off"
   },
   {
    "step": "command",
@@ -117,19 +125,13 @@
   {
    "step": "waitTicks",
    "ticks": 30,
-   "comment": "he walks the few tiles over and swings, every 5 ticks"
-  },
-  {
-   "step": "assertAnimation",
-   "npc": "Ezekiel",
-   "id": 14685,
-   "timeoutMs": 10000,
-   "comment": "npc_ezekiel_melee01, his swing, every 5 ticks"
+   "comment": "more swings, every 5 ticks, each second one with the cross"
   },
   {
    "step": "command",
    "text": "::raid log 40",
-   "expectMessage": "fight: swings at test"
+   "expectMessage": "fight: swings at test",
+   "comment": "his swings in the fight's log"
   },
   {
    "step": "waitTicks",
@@ -156,8 +158,8 @@
   {
    "step": "command",
    "text": "::hit 2000",
-   "expectMessage": "1000/3000 hp",
-   "comment": "down to a third, under the 35% his enrage begins at (step 17c)"
+   "expectMessage": "/3000 hp",
+   "comment": "down to a third or just under, under the 35% his enrage begins at (step 17c): a sword that flew lined up with him has taken 20 more (VM 215, 2026-11-10: 980 left)"
   },
   {
    "step": "waitTicks",
