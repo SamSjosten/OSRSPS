@@ -530,6 +530,68 @@ class NpcDropsTest {
     }
 
     @Test
+    fun `farmers share one table, bones then coins, tools, herbs and allotment seeds as the Wiki's members' table`() {
+        val names = listOf("farmer1", "farmer2", "farmer3", "farmer1_f", "farmer2_f", "farmer3_f", "farmer4")
+        val farmers = names.mapIndexed { i, name -> NpcType(3114 + i, "Farmer", combatLevel = 7, internalName = name) }
+        val loaded = NpcDrops.load(NpcTypes.of(*farmers.toTypedArray()), objTypes)
+        assertEquals(names.size, loaded.size)
+        val def = loaded[farmers[0]]!!
+        assertTrue(farmers.all { loaded[it]!!.table == def.table })
+        assertEquals(listOf("Bones"), def.always.map { it.type.name })
+        assertEquals(128, def.table!!.slots)
+        assertEquals(listOf("Clue scroll (beginner)" to 90, "Clue scroll (easy)" to 128), def.tertiary.map { it.item.type.name to it.denominator })
+
+        val random = GameRandom(41)
+        val counts = HashMap<String, Int>()
+        repeat(KILLS) {
+            for (drop in def.roll(random).filter { it.type.name != "Bones" && !it.type.name.startsWith("Clue") }) counts.merge(drop.type.name, 1, Int::plus)
+        }
+        fun expect(name: String, weight: Int) {
+            val p = weight / 128.0
+            val mean = KILLS * p
+            val got = counts[name] ?: 0
+            assertTrue(abs(got - mean) <= 5 * sqrt(KILLS * p * (1 - p)) + 1, "$name: $got of $KILLS, expected about ${mean.toInt()}")
+        }
+        expect("Coins", 39)
+        expect("Rake", 3)
+        expect("Gardening boots", 2)
+        expect("Seed dibber", 2)
+        expect("Secateurs", 1)
+        expect("Watering can(8)", 1)
+        expect("Fishing bait", 5)
+    }
+
+    @Test
+    fun `the HAM guards share one table, with bones, out of 660`() {
+        val guards = listOf("favour_guard_male_no_beard", "favour_guard_male_bearded", "favour_guard_long_beard")
+            .mapIndexed { i, name -> NpcType(2536 + i, "H.A.M. Guard", combatLevel = 12 + 5 * i, internalName = name) }
+        val loaded = NpcDrops.load(NpcTypes.of(*guards.toTypedArray()), objTypes)
+        assertEquals(3, loaded.size)
+        val def = loaded[guards[0]]!!
+        assertEquals(listOf("Bones"), def.always.map { it.type.name })
+        assertEquals(660, def.table!!.slots)
+        assertTrue(guards.all { loaded[it]!!.table == def.table })
+        assertEquals(emptyList(), def.tertiary)
+
+        val random = GameRandom(93)
+        val counts = HashMap<String, Int>()
+        repeat(KILLS) {
+            val items = def.roll(random).filter { it.type.name != "Bones" }
+            for (drop in items) counts.merge(drop.type.name, 1, Int::plus)
+        }
+        fun expect(name: String, weight: Int) {
+            val p = weight / 660.0
+            val mean = KILLS * p
+            val got = counts[name] ?: 0
+            assertTrue(abs(got - mean) <= 5 * sqrt(KILLS * p * (1 - p)) + 1, "$name: $got of $KILLS, expected about ${mean.toInt()}")
+        }
+        expect("Coins", 81)
+        expect("Ham gloves", 15)
+        expect("Ham hood", 6)
+        expect("Rusty sword", 24)
+    }
+
+    @Test
     fun `Varrock's level 20 dark wizards drop runes, robes and energy potions as the Wiki's table says`() {
         val def = drops[darkWizard20]!!
         assertEquals(listOf("Bones"), def.always.map { it.type.name })

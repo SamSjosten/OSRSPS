@@ -4,6 +4,7 @@ import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.combat.StatusEffects
+import osrsps.game.content.HamHideout
 import osrsps.game.content.Townsfolk
 import osrsps.game.content.arriveDelay
 import osrsps.game.dialogue.Lines
@@ -23,18 +24,20 @@ object PickpocketLines : Lines("pickpocket", "Pickpocketing") {
     val POUCHES_FULL = line("pouches_full", "pickpocketing while holding the most coin pouches")
     val CAUGHT_CITIZEN = line("caught_citizen", "a man, woman, guard or warrior who catches a thief: overhead")
     val CAUGHT_FARMER = line("caught_farmer", "a Master Farmer who catches a thief: overhead")
+    val CAUGHT_HAM = line("caught_ham", "a H.A.M. member who catches a thief: overhead; words unsourced")
     val POUCH_OPEN = line("pouch_open", "Open on one coin pouch, with the coins it gave", "coins")
     val POUCH_OPEN_ALL = line("pouch_open_all", "Open-all on coin pouches, with the coins they gave", "coins")
     val POUCH_NO_ROOM = line("pouch_no_room", "opening a coin pouch with no room for the coins")
 }
 
-/** What a pickpocket gives: [min] to [max] of [obj], weighted as [weight] among its table's others. */
+/** What a pickpocket gives: [min] to [max] of [obj] (-1 for nothing), weighted as [weight] among its table's others. */
 class PocketLoot(val obj: Int, val min: Int, val max: Int, val weight: (farming: Int) -> Int)
 
 /**
  * An NPC to pickpocket: [who] for the messages, the level, the XP in tenths, the [low] and [high] of its [SuccessRoll]
- * out of 256, the damage when caught, its [caught] line, and either a coin [pouch] holding [coins] each or a seed [loot]
- * table.
+ * out of 256, the damage when caught ([damageMin] to [damage]), its [caught] line, and either a coin [pouch] holding
+ * [coins] to [coinsMax] each or a [loot] table, which may hold a [lootPouch]. Pickpocket is its [op]; a catch stuns for
+ * [stunTicks]; [concussions] hands a catch to the H.A.M. Hideout's count ([HamHideout.caught]).
  */
 class Pocket(
     val npcs: Collection<Int>,
@@ -48,7 +51,16 @@ class Pocket(
     val pouch: Int? = null,
     val coins: Int = 0,
     val loot: List<PocketLoot> = emptyList(),
-)
+    val op: Int = Pickpocketing.PICKPOCKET,
+    val damageMin: Int = damage,
+    val coinsMax: Int = coins,
+    val lootPouch: Int? = null,
+    val concussions: Boolean = false,
+    val stunTicks: Int = StatusEffects.PICKPOCKET_TICKS,
+) {
+    /** The coin pouch it gives, from its own pouch or its table. */
+    val anyPouch: Int? get() = pouch ?: lootPouch
+}
 
 /**
  * Pickpocketing (Draynor piece step 8), as the OSRS Wiki's Pickpocketing, Man, Master Farmer and Coin pouch pages give
@@ -68,14 +80,22 @@ class Pocket(
  * Guessed: the Master Farmer's herb seeds move linearly from their Farming 1 rates to their Farming 85 ones (the Wiki
  * gives the two ends and says they scale up to 85, not how); a next attempt waits [ATTEMPT_TICKS] (the Wiki's 2 ticks a
  * try); the stunned message; no animation for an NPC with no attack animation in npc-combat.json. Left out: Rocky (the
- * pet), gloves of silence, the Ardougne diary and cloak, the thieving cape's boost, the Rogue outfit's extra loot, and
- * pickpocketing NPCs outside Misthalin's builds so far (farmers, H.A.M. members, other towns' guards and on).
+ * pet), the Ardougne diary and cloak, the thieving cape's boost, the Rogue outfit's extra loot, and
+ * pickpocketing NPCs outside Misthalin's builds so far (other towns' guards and on; farmers came with Thieving 2).
+ *
+ * H.A.M. members (Misthalin piece 7 step 4a, the Wiki's H.A.M. Member page): level 15, 22.2 XP, 136/256 at 1 to 240/256 at
+ * 99 (135 to 239), 1 to 3 damage, a 4-second stun ([HAM_STUN_TICKS]), their own table ([HAM_LOOT]) and coin pouch (1 to
+ * 21 coins), Pickpocket as their op1; a catch counts toward being thrown out ([HamHideout.caught]) in place of the
+ * stunned message (guessed).
  */
 class Pickpocketing(private val world: World) {
+    /** The gloves of silence and the dodgy necklace. */
+    val gear = PickpocketGear(world)
 
     fun register() {
+        gear.register()
         for (pocket in POCKETS) {
-            for (npc in pocket.npcs) world.handlers.onNpc(npc, PICKPOCKET) { op -> pick(op.npc ?: return@onNpc, pocket) }
+            for (npc in pocket.npcs) world.handlers.onNpc(npc, pocket.op) { op -> pick(op.npc ?: return@onNpc, pocket) }
         }
         for ((id, coins) in POUCH_COINS) {
             val pouch = world.objTypes[id] ?: continue
@@ -97,7 +117,8 @@ class Pickpocketing(private val world: World) {
             player.message(text[PickpocketLines.IN_COMBAT])
             return
         }
-        if (pocket.pouch != null && player.inventory.count(pocket.pouch) >= MAX_POUCHES) {
+        val pouch = pocket.anyPouch
+        if (pouch != null && player.inventory.count(pouch) >= MAX_POUCHES) {
             player.message(text[PickpocketLines.POUCHES_FULL])
             return
         }
@@ -116,7 +137,7 @@ class Pickpocketing(private val world: World) {
             return
         }
         val thieving = player.skills.currentLevel(Skill.THIEVING)
-        if (!SuccessRoll.roll(world.random, pocket.low, pocket.high, thieving)) {
+        if (!SuccessRoll.roll(world.random, gear.low(player, pocket.low), gear.high(player, pocket.high), thieving)) {
             caught(npc, pocket)
             return
         }
@@ -132,9 +153,14 @@ class Pickpocketing(private val world: World) {
         npc.face(player)
         world.combat.npcCombat[npc.type]?.anims?.attack?.takeIf { it >= 0 }?.let { npc.effects.anim(it) }
         player.message(text[PickpocketLines.FAIL, "who" to pocket.who])
-        world.statusEffects.stun(player, StatusEffects.PICKPOCKET_TICKS, pocket.damage, npc, StatusEffects.THIEVING_SPOTANIM)
-        player.message(text[PickpocketLines.STUNNED])
+        gear.glovesFailed(player)
+        if (gear.necklaceSaves(player)) return
+        val damage = world.random.between(pocket.damageMin, pocket.damage)
+        world.statusEffects.stun(player, pocket.stunTicks, damage, npc, StatusEffects.THIEVING_SPOTANIM)
         player.nextPickpocketTick = tick + ATTEMPT_TICKS + FAIL_TICKS
+        // A blow that kills ends it there: no concussion, and no teleport moving the grave off the death tile.
+        if (player.dead) return
+        if (pocket.concussions) HamHideout.caught(world, player) else player.message(text[PickpocketLines.STUNNED])
     }
 
     private fun give(player: Player, pocket: Pocket) {
@@ -143,6 +169,7 @@ class Pickpocketing(private val world: World) {
             return
         }
         val (obj, count) = pick(pocket, player.skills.currentLevel(Skill.FARMING))
+        if (obj < 0) return
         world.objTypes[obj]?.let { player.inventory.add(it, count) }
     }
 
@@ -157,13 +184,22 @@ class Pickpocketing(private val world: World) {
         error("Unreachable")
     }
 
-    /** Open (one) or Open-all on the [pouch]es in [slot]: [coinsEach] coins each. */
-    private fun open(player: Player, slot: Int, pouch: Int, coinsEach: Int, all: Boolean) {
+    /**
+     * Open (one) or Open-all on the [pouch]es in [slot]: [coinsEach] coins each, rolled for each pouch. Open-all on pouches
+     * of rolled coins opens at most [MAX_POUCHES] (all play can stack; a bigger stack is an admin's `::item`), so one
+     * click never rolls more than that.
+     */
+    private fun open(player: Player, slot: Int, pouch: Int, coinsEach: IntRange, all: Boolean) {
         val held = player.inventory[slot]?.takeIf { it.id == pouch } ?: return
         val coins = world.objTypes[COINS] ?: return
         val text = world.textFor(player)
-        val pouches = if (all) held.count else 1
-        val gain = pouches.toLong() * coinsEach
+        val fixed = coinsEach.first == coinsEach.last
+        val pouches = if (!all) 1 else if (fixed) held.count else held.count.coerceAtMost(MAX_POUCHES)
+        val gain = if (fixed) {
+            pouches.toLong() * coinsEach.first
+        } else {
+            (0 until pouches).sumOf { world.random.between(coinsEach.first, coinsEach.last).toLong() }
+        }
         val have = player.inventory.count(COINS)
         // The coins need a stack of their own, or the slot the last pouch leaves.
         if (have == 0L && player.inventory.freeSlots == 0 && pouches < held.count) {
@@ -221,7 +257,70 @@ class Pickpocketing(private val world: World) {
         /** warrior_woman, Varrock Palace's two. */
         const val WARRIOR_WOMAN = 3260
 
+        /** al_kharid_man and al_kharid_warrior, Al Kharid's. */
+        const val AL_KHARID_MAN = 3261
+        const val AL_KHARID_WARRIOR = 3292
+
+        /** guard1, Edgeville's six. */
+        const val EDGEVILLE_GUARD = 3254
+
+        /** farmer1 to farmer3 and the November 2022 looks, farmer1_f to farmer3_f and farmer4. */
+        val FARMERS = listOf(3114, 3243, 3244, 11918, 11919, 11920, 11921)
+
+        /** pickpocket_coin_pouch_farmer: 9 coins each (the Wiki's Coin pouch page). */
+        const val FARMER_POUCH = 22522
+        const val COINS_PER_FARMER_POUCH = 9
+
+        /** potato_seed. */
+        const val POTATO_SEED = 5318
+
+        /** The Wiki's Farmer pickpocket table: the coin pouch 123/128, a potato seed 5/128. Rocky left out. */
+        val FARMER_LOOT = listOf(PocketLoot(FARMER_POUCH, 1, 1) { 123 }, PocketLoot(POTATO_SEED, 1, 1) { 5 })
+
         val MASTER_FARMERS = listOf(5730, 5731)
+
+        /** favour_male_ham_civilian and favour_female_ham_civilian: Pickpocket is their op1, not op3. */
+        val HAM_MEMBERS = listOf(2540, 2541)
+        const val HAM_PICKPOCKET = 1
+
+        /** pickpocket_coin_pouch_ham: 1 to 21 coins each (the Wiki's Coin pouch page). */
+        const val HAM_POUCH = 22523
+
+        /** The Wiki's 4-second stun for a H.A.M. member's catch, rounded to whole ticks (6.7 to 7; the rounding guessed). */
+        const val HAM_STUN_TICKS = 7
+        val HAM_POUCH_COINS = 1..21
+
+        /** One line of the H.A.M. table, out of [HAM_SLOTS]. */
+        private fun ham(obj: Int, weight: Int, max: Int = 1, min: Int = 1) = PocketLoot(obj, min, max) { weight }
+
+        /** The H.A.M. table's slots: the Wiki's 102nds times 11, so the herbs' 561sts are whole. */
+        const val HAM_SLOTS = 1122
+
+        /**
+         * The Wiki's H.A.M. Member pickpocket table (read 2026-11-10), each x/102 as 11x/1122 and each herb's x/561 as
+         * 2x/1122. The easy clue (1/50) is left out (no Treasure Trails yet) and counted as nothing, as the Wiki says a
+         * clue that can't be given is; nothing is 2/102 with it. Left out: Rocky, the higher robe rate during Death to
+         * the Dorgeshuun.
+         */
+        val HAM_LOOT = listOf(
+            ham(4298, 11), ham(4300, 11), ham(4302, 11), ham(4304, 11), ham(4306, 11), ham(4308, 11), ham(4310, 11), // H.A.M. clothing
+            ham(882, 33, 13), // bronze_arrow 1-13
+            ham(1351, 33), ham(1205, 33), ham(1265, 33), // bronze axe, dagger, pickaxe
+            ham(1349, 33), ham(1203, 33), ham(1267, 33), // iron axe, dagger, pickaxe
+            ham(1129, 33), // leather body
+            ham(886, 22, 13), // steel_arrow 1-13
+            ham(1353, 22), ham(1207, 22), ham(1269, 22), // steel axe, dagger, pickaxe
+            ham(688, 44), // buttons
+            ham(HAM_POUCH, 187), // coin pouch
+            ham(314, 33, 7), // feather 1-7
+            ham(946, 22), ham(1733, 22), ham(321, 22), ham(2138, 22), ham(590, 22), ham(1625, 22), ham(453, 22), ham(440, 22),
+            ham(1511, 33), ham(1739, 33), // logs, cowhide
+            ham(1734, 33, 10), // thread 1-10
+            ham(697, 44), ham(686, 44), // damaged armour, rusty sword
+            ham(1627, 22), // uncut jade
+            ham(199, 12), ham(201, 6), ham(203, 4), // grimy guam, marrentill, tarromin
+            ham(-1, 22), // nothing (and the left-out clue)
+        )
 
         private fun option(iops: List<String?>, name: String): Int? =
             iops.indexOfFirst { it.equals(name, ignoreCase = true) }.takeIf { it >= 0 }?.plus(1)
@@ -292,19 +391,34 @@ class Pickpocketing(private val world: World) {
          * Pickpocketing, Guard and Warrior woman pages, read 2026-11-03): guards level 40, 46.8 XP, 2 damage; warrior
          * women level 25, 26 XP, 2 damage. The warrior's 100 to 240 is worked back from the Wiki's chart (135/256 at 25,
          * 241/256 at 99). The guard's 50 to 240 is GUESSED: the Wiki's chart wasn't readable, so it is the pair with the
-         * others' 240 that reaches 100% at 95 with the Ardougne diary's 10%, the Pickpocketing page's 100% level.
+         * others' 240 that reaches 100% at 95 with the Ardougne diary's 10%, the Pickpocketing page's 100% level; the
+         * Guard page's chart, read 2026-11-10, gives the same 50 to 240.
          * Guessed too: that guards and warrior women say the townsfolk's caught line, and the lower case "guard" and
          * "warrior" in the messages (the Wiki gives neither).
+         *
+         * Thieving 2 step T1a (the Wiki's Thieving, Farmer, Al Kharid warrior, Guard and Coin pouch pages, read
+         * 2026-11-10): Al Kharid's man (3261) is a man; Edgeville's guards (guard1, 3254) are guards. Farmers: level
+         * 10, 14.5 XP, 150 to 240 (the Wiki's chart), 1 damage, a farmer's coin pouch of 9 coins 123/128 or a potato
+         * seed 5/128. Al Kharid warriors: the warrior's numbers (Mod Ash: the same code), 100 to 240 as their chart.
+         * Guessed: that farmers say the townsfolk's caught line, and "farmer" and "Al Kharid warrior" in the messages.
          */
         val POCKETS = listOf(
-            Pocket(Townsfolk.MEN, "man", 1, 80, 180, 240, 1, PickpocketLines.CAUGHT_CITIZEN, CITIZEN_POUCH, COINS_PER_CITIZEN_POUCH),
+            Pocket(Townsfolk.MEN + AL_KHARID_MAN, "man", 1, 80, 180, 240, 1, PickpocketLines.CAUGHT_CITIZEN, CITIZEN_POUCH, COINS_PER_CITIZEN_POUCH),
             Pocket(Townsfolk.WOMEN, "woman", 1, 80, 180, 240, 1, PickpocketLines.CAUGHT_CITIZEN, CITIZEN_POUCH, COINS_PER_CITIZEN_POUCH),
             Pocket(MASTER_FARMERS, "Master Farmer", 38, 430, 90, 240, 3, PickpocketLines.CAUGHT_FARMER, loot = MASTER_FARMER_LOOT),
-            Pocket(VARROCK_GUARDS, "guard", 40, 468, 50, 240, 2, PickpocketLines.CAUGHT_CITIZEN, GUARD_POUCH, COINS_PER_GUARD_POUCH),
+            Pocket(VARROCK_GUARDS + EDGEVILLE_GUARD, "guard", 40, 468, 50, 240, 2, PickpocketLines.CAUGHT_CITIZEN, GUARD_POUCH, COINS_PER_GUARD_POUCH),
             Pocket(listOf(WARRIOR_WOMAN), "warrior", 25, 260, 100, 240, 2, PickpocketLines.CAUGHT_CITIZEN, WARRIOR_POUCH, COINS_PER_WARRIOR_POUCH),
+            Pocket(listOf(AL_KHARID_WARRIOR), "Al Kharid warrior", 25, 260, 100, 240, 2, PickpocketLines.CAUGHT_CITIZEN, WARRIOR_POUCH, COINS_PER_WARRIOR_POUCH),
+            Pocket(FARMERS, "farmer", 10, 145, 150, 240, 1, PickpocketLines.CAUGHT_CITIZEN, loot = FARMER_LOOT, coins = COINS_PER_FARMER_POUCH, lootPouch = FARMER_POUCH),
+            Pocket(
+                HAM_MEMBERS, "H.A.M. member", 15, 222, 135, 239, 3, PickpocketLines.CAUGHT_HAM, loot = HAM_LOOT, op = HAM_PICKPOCKET,
+                damageMin = 1, lootPouch = HAM_POUCH, concussions = true, stunTicks = HAM_STUN_TICKS,
+            ),
         )
 
         /** Each coin pouch and the coins it holds. */
-        val POUCH_COINS: Map<Int, Int> = POCKETS.mapNotNull { pocket -> pocket.pouch?.let { it to pocket.coins } }.toMap()
+        val POUCH_COINS: Map<Int, IntRange> =
+            POCKETS.mapNotNull { pocket -> pocket.anyPouch?.takeIf { pocket.coins > 0 }?.let { it to pocket.coins..pocket.coinsMax } }.toMap() +
+                (HAM_POUCH to HAM_POUCH_COINS)
     }
 }

@@ -126,12 +126,13 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `the farms file has Fred's sheep, rams, lambs and 33 chickens north-west of the castle, Gillie and Millie`() {
+    fun `the farms file has Fred's sheep, rams, lambs and 33 chickens north-west of the castle, Gillie, Millie and nine farmers`() {
         val names = mapOf(
             732 to "fred_the_farmer", 2693 to "sheepunsheered", 2699 to "sheepunsheered3", 2694 to "sheepunsheeredg", 2695 to "sheepunsheeredw",
             2786 to "sheepunsheered3g", 2787 to "sheepunsheered3w", 1262 to "ramunsheered", 1263 to "ramunsheered2", 1264 to "ramunsheered3",
             1176 to "lamb1", 1177 to "lamb2", 1301 to "sheepsheered2w", 1308 to "sheepsheered3g", 1173 to "chicken", 1174 to "chicken_brown",
             4628 to "gillie_the_milkmaid", 4627 to "millie_the_miller",
+            3114 to "farmer1", 3243 to "farmer2", 3244 to "farmer3", 11918 to "farmer1_f", 11919 to "farmer2_f", 11920 to "farmer3_f", 11921 to "farmer4",
         )
         val farmTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("lumbridge-farms.json"), farmTypes, "lumbridge-farms.json")
@@ -142,7 +143,8 @@ class NpcSpawnFileTest {
         assertEquals(4, spawns.count { it.type.internalName!!.startsWith("ram") })
         assertEquals(33, spawns.count { it.type.internalName!!.startsWith("chicken") })
         // Fred's farm is west of the River Lum and north of the castle; the two shorn sheep are in the pen west of it.
-        val farm = spawns.filter { !it.type.internalName!!.startsWith("sheepsheered") && it.type.id !in setOf(4627, 4628) }
+        val farmers = spawns.filter { it.type.internalName!!.startsWith("farmer") }
+        val farm = spawns.filter { !it.type.internalName!!.startsWith("sheepsheered") && it.type.id !in setOf(4627, 4628) && it !in farmers }
         assertTrue(farm.all { it.x in 3165..3215 && it.z in 3255..3310 && it.level == 0 })
         assertTrue(spawns.filter { it.type.internalName!!.startsWith("sheepsheered") }.all { it.x < 3200 && it.z < 3225 })
         assertTrue(spawns.all { it.source.isNotBlank() && it.wander == 5 })
@@ -151,6 +153,10 @@ class NpcSpawnFileTest {
         assertTrue(gillie.x in 3250..3258 && gillie.z in 3268..3278)
         val millie = spawns.single { it.type.id == 4627 }
         assertTrue(millie.x in 3163..3170 && millie.z in 3303..3310 && millie.restrict == MoveRestrict.INDOORS)
+        // The Wiki's nine Misthalin farmers (Thieving 2): six on the farm south of Varrock, one at the Groats', two by Lumbridge.
+        assertEquals(9, farmers.size)
+        assertEquals(7, farmers.map { it.type.id }.toSet().size)
+        assertTrue(farmers.all { it.x in 3150..3265 && it.z in 3285..3340 && it.level == 0 })
     }
 
     @Test
@@ -213,6 +219,22 @@ class NpcSpawnFileTest {
         val holes = spawns.filter { it.type.id == 475 }
         assertEquals(7, holes.size)
         assertTrue(holes.all { it.restrict == MoveRestrict.NOMOVE && it.wander == 0 && !LumbridgeSwampCaves.isDark(it.x, it.z, 0) && LumbridgeSwampCaves.isDark(it.x, it.z - 1, 0) })
+    }
+
+    @Test
+    fun `the HAM Hideout has its 26 pickpocketable members, 11 seated, 22 guards, the Deacon, Johanhus and Jimmy in his cell`() {
+        val names = mapOf(
+            2540 to "favour_male_ham_civilian", 2541 to "favour_female_ham_civilian", 2542 to "favour_npc_chair",
+            2543 to "favour_npc_floor", 2536 to "favour_guard_male_no_beard", 2537 to "favour_guard_male_bearded",
+            2538 to "favour_guard_long_beard",
+        )
+        val result = NpcSpawnFile.parse(file("ham-hideout.json"), NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray()), "ham-hideout.json")
+        val spawns = result.spawns
+        fun count(vararg ids: Int) = spawns.count { it.type.id in ids }
+        assertEquals(listOf(26, 11, 22), listOf(count(2540, 2541), count(2542, 2543), count(2536, 2537, 2538)))
+        assertTrue(spawns.all { it.x in 3140..3190 && it.z in 9600..9660 && it.level == 0 && it.source.isNotBlank() })
+        assertTrue(spawns.filter { it.type.id in setOf(2542, 2543) }.all { it.wander == 0 })
+        assertEquals(3, result.unknown.size, "the Deacon, Johanhus and Jimmy: ${result.unknown}")
     }
 
     @Test

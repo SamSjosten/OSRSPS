@@ -78,6 +78,14 @@
       "source": "OSRS Wiki, Man (ids 3106 to 3109 share the infobox; Al Kharid's man, 3261, is a version of the same page and shares it too, though the DPS calculator gives it 0 defence bonuses)"
     },
     {
+      "npcs": ["farmer1", "farmer2", "farmer3", "farmer1_f", "farmer2_f", "farmer3_f", "farmer4"],
+      "attackSpeed": 6, "maxHit": 1, "attackType": "stab", "attackBonus": 5, "strengthBonus": 6,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 25,
+      "source": "OSRS Wiki, Farmer (ids 3114, 3243, 3244, 11918 to 11921 share the infobox), read 2026-11-10 (Thieving 2 step T1a). The animations are GUESSED: the man's, as the farmer holds nothing the cache names"
+    },
+    {
       "npcs": ["al_kharid_warrior"],
       "attackSpeed": 4, "maxHit": 2, "attackType": "slash", "attackBonus": 10, "strengthBonus": 9,
       "defence": { "stab": 12, "slash": 15, "crush": 10, "magic": -1, "light": 12, "standard": 12, "heavy": 12 },
@@ -1200,6 +1208,30 @@
       "immune": ["poison", "venom", "freeze"],
       "xpBonus": 12.5,
       "source": "OSRS Wiki, Ocellus (phase 2, ids 16675 and 16676), read 2026-11-10: magic, the portal's max hit 25, the defence bonuses, the 12.5% XP bonus, the Blade's Defence drained to 0 (no cap). Neither attacks by itself: his second phase has no Attack and the Blade only takes the party's (his fight, Ocellus; tsps capture notes). The portals' shots come from his fight. Guessed: the 5-tick speed (the Wiki gives 0, never used), no block or death animation, poison, venom and freeze immunity as in his first phase, the respawn, which never comes"
+    },
+    {
+      "npcs": ["favour_guard_male_no_beard"],
+      "attackSpeed": 7, "maxHit": 2, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 5, "slash": 5, "crush": 0, "magic": 0, "light": 5, "standard": 5, "heavy": 5 },
+      "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 25,
+      "source": "OSRS Wiki, H.A.M. Guard (level 12), read 2026-11-10: speed 7, max hit 2, crush, no attack or strength bonus, stab and slash +5, ranged +5, crush and magic 0, respawn 25, not aggressive. The level 18 and 22 rows were read from the page's data where its infobox was garbled. The animations are guessed (unarmed, as the jail guards')"
+    },
+    {
+      "npcs": ["favour_guard_male_bearded"],
+      "attackSpeed": 6, "maxHit": 3, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 6, "slash": 6, "crush": 0, "magic": 0, "light": 6, "standard": 6, "heavy": 6 },
+      "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 25,
+      "source": "OSRS Wiki, H.A.M. Guard (level 18), read 2026-11-10: speed 6, max hit 3, crush, no attack or strength bonus, stab and slash +6, ranged +6, crush and magic 0, respawn 25, not aggressive. The level 18 and 22 rows were read from the page's data where its infobox was garbled. The animations are guessed (unarmed, as the jail guards')"
+    },
+    {
+      "npcs": ["favour_guard_long_beard"],
+      "attackSpeed": 5, "maxHit": 3, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 7, "slash": 7, "crush": 0, "magic": 0, "light": 7, "standard": 7, "heavy": 7 },
+      "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 25,
+      "source": "OSRS Wiki, H.A.M. Guard (level 22), read 2026-11-10: speed 5, max hit 3, crush, no attack or strength bonus, stab and slash +7, ranged +7, crush and magic 0, respawn 25, not aggressive. The level 18 and 22 rows were read from the page's data where its infobox was garbled. The animations are guessed (unarmed, as the jail guards')"
     }
   ]
 }

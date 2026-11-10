@@ -28,6 +28,7 @@ import osrsps.game.shop.ShopLines
 import osrsps.game.skill.AgilityLines
 import osrsps.game.skill.BirdNestLines
 import osrsps.game.skill.CookingLines
+import osrsps.game.skill.CookingMixLines
 import osrsps.game.skill.CraftingLines
 import osrsps.game.skill.FiremakingLines
 import osrsps.game.skill.LightSourceLines
@@ -37,6 +38,7 @@ import osrsps.game.skill.HerbloreLines
 import osrsps.game.skill.LevelUpLines
 import osrsps.game.skill.MakeLines
 import osrsps.game.skill.MiningLines
+import osrsps.game.skill.PickpocketGearLines
 import osrsps.game.skill.PickpocketLines
 import osrsps.game.skill.SmithingLines
 import osrsps.game.skill.ThievingLines
@@ -117,6 +119,7 @@ object DialogueLines {
         CombatLines,
         CookLines,
         CookingLines,
+        CookingMixLines,
         CooksGuildLines,
         CountCheckLines,
         CraftingLines,
@@ -217,6 +220,7 @@ object DialogueLines {
         SwampCavesLines,
         CaveGoblinLines,
         SwampCaveSlayerLines,
+        HamHideoutLines,
         MageOfZamorakLines,
         MakeLines,
         ManLines,
@@ -247,6 +251,7 @@ object DialogueLines {
         PerduLines,
         PhillipaLines,
         PickpocketLines,
+        PickpocketGearLines,
         PlayingChildLines,
         PoisonLines,
         PortSarimJailLines,

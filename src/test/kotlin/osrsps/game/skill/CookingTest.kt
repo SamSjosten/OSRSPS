@@ -41,7 +41,14 @@ class CookingTest {
         assertEquals(Cooking.FOODS.size - 1, Cooking.FOODS.map { it.raw }.toSet().size)
         assertEquals(listOf(Cooking.KARAMBWAN, Cooking.POISON_KARAMBWAN), Cooking.FOODS.filter { it.raw == 3142 })
         assertEquals(Cooking.FOODS.size, Cooking.FOODS.map { it.raw to it.cooked }.toSet().size)
-        assertEquals(listOf(Cooking.BREAD), Cooking.FOODS.filter { it.rangeOnly })
+        assertEquals(
+            listOf(
+                Cooking.BREAD, Cooking.REDBERRY_PIE, Cooking.MEAT_PIE, Cooking.MUD_PIE, Cooking.APPLE_PIE, Cooking.GARDEN_PIE,
+                Cooking.FISH_PIE, Cooking.BOTANICAL_PIE, Cooking.MUSHROOM_PIE, Cooking.ADMIRAL_PIE, Cooking.DRAGONFRUIT_PIE,
+                Cooking.WILD_PIE, Cooking.SUMMER_PIE, Cooking.PIZZA, Cooking.CAKE, Cooking.PITTA,
+            ),
+            Cooking.FOODS.filter { it.rangeOnly },
+        )
         for (food in Cooking.FOODS) assertTrue(food.raw != food.cooked && food.cooked != food.burnt, "${food.raw}")
     }
 
@@ -137,5 +144,90 @@ class CookingTest {
         assertEquals(90, stops(13, 280))
         assertEquals(null, stops(1, 200))
         assertEquals(null, stops(1, 220))
+    }
+
+    @Test
+    fun `pies, pizza, cake and pitta bake from the Wiki's levels and XP, and stop burning where their charts do`() {
+        val bakes = listOf(
+            Cooking.REDBERRY_PIE, Cooking.MEAT_PIE, Cooking.MUD_PIE, Cooking.APPLE_PIE, Cooking.GARDEN_PIE, Cooking.FISH_PIE,
+            Cooking.BOTANICAL_PIE, Cooking.MUSHROOM_PIE, Cooking.ADMIRAL_PIE, Cooking.DRAGONFRUIT_PIE, Cooking.WILD_PIE,
+            Cooking.SUMMER_PIE, Cooking.PIZZA, Cooking.CAKE, Cooking.PITTA,
+        )
+        assertEquals(listOf(10, 20, 29, 30, 34, 47, 52, 60, 70, 73, 85, 95, 35, 40, 58), bakes.map { it.level })
+        assertEquals(listOf(780, 1100, 1280, 1300, 1380, 1640, 1800, 2000, 2100, 2200, 2400, 2600, 1430, 1800, 400), bakes.map { it.xpTenths })
+        assertEquals(List(12) { Cooking.BURNT_PIE } + listOf(2305, 1903, 1867), bakes.map { it.burnt })
+        assertEquals(listOf(Cooking.CAKE), bakes.filter { it.returns == Cooking.CAKE_TIN })
+        fun stops(low: Int, high: Int) = (1..99).firstOrNull { SuccessRoll.chance(low, high, it) >= 256 }
+        // The pages' text: redberry 45, mud and apple 63, garden and pizza 68, fish and cake 74, botanical 84, admiral 94,
+        // pitta 37; dragonfruit, wild and summer never. Meat pie's and mushroom pie's charts reach 256 a level before the
+        // text's 54 and 89; the charts' pairs stand.
+        assertEquals(
+            listOf(45, 53, 63, 63, 68, 74, 84, 88, 94, null, null, null, 68, 74, 37),
+            bakes.map { stops(it.rangeLow, it.rangeHigh) },
+        )
+        // The Lumbridge range helps the four on its list: redberry stops at 42 and meat at 49 there; botanical and
+        // mushroom never burn there from the level they need.
+        assertEquals(listOf(42, 49, 42, 38), listOf(Cooking.REDBERRY_PIE, Cooking.MEAT_PIE, Cooking.BOTANICAL_PIE, Cooking.MUSHROOM_PIE).map {
+            stops(it.lumbridgeLow, it.lumbridgeHigh)
+        })
+        val helped = setOf(Cooking.REDBERRY_PIE, Cooking.MEAT_PIE, Cooking.BOTANICAL_PIE, Cooking.MUSHROOM_PIE)
+        for (food in bakes - helped) assertEquals(food.rangeLow to food.rangeHigh, food.lumbridgeLow to food.lumbridgeHigh)
+    }
+
+    @Test
+    fun `seeded baking burns pies as often as the charts say`() {
+        val random = GameRandom(5)
+        // Apple pie at 40, summer pie at 99, mushroom pie at 70 on a range and at Lumbridge.
+        for ((low, high, level) in listOf(Triple(58, 372, 40), Triple(1, 212, 99), Triple(17, 285, 70), Triple(140, 450, 60))) {
+            val rolls = 100_000
+            val baked = (1..rolls).count { SuccessRoll.roll(random, low, high, level) }
+            val expected = SuccessRoll.chance(low, high, level) / 256.0
+            assertTrue(kotlin.math.abs(baked.toDouble() / rolls - expected) < 0.006, "$low/$high at $level: ${baked.toDouble() / rolls}, the chart's $expected")
+        }
+    }
+
+    @Test
+    fun `the mixes follow the Wiki's recipes, every pie chain ending in a pie that bakes`() {
+        val recipes = CookingMixes.PAIRS.flatMap { it.third }.distinct()
+        val byKey = recipes.associateBy { it.key }
+        // Flour and water: four doughs in each box, the pot and the container back.
+        val doughBoxes = CookingMixes.PAIRS.filter { it.first == 1933 && it.second in setOf(1929, 1921, 1937) }
+        assertEquals(3, doughBoxes.size)
+        for ((_, water, box) in doughBoxes) {
+            assertEquals(listOf(CookingMixes.BREAD_DOUGH, CookingMixes.PASTRY_DOUGH, CookingMixes.PIZZA_BASE, CookingMixes.PITTA_DOUGH), box.map { it.product })
+            assertEquals(listOf(1, 1, 35, 58), box.map { it.level })
+            val container = mapOf(1929 to 1925, 1921 to 1923, 1937 to 1935).getValue(water)
+            for (recipe in box) assertEquals(listOf(1931, container), recipe.byproducts.map { it.obj })
+        }
+        // Only the pizza toppings and the chocolate cake give XP.
+        val xp = recipes.filter { it.xpTenths > 0 }.associate { it.key to (it.level to it.xpTenths) }
+        assertEquals(
+            mapOf(
+                "meat_pizza" to (45 to 260), "meat_pizza_chicken" to (45 to 260), "anchovy_pizza" to (55 to 390),
+                "pineapple_pizza" to (65 to 450), "pineapple_pizza_chunks" to (65 to 450),
+                "chocolate_cake" to (50 to 300), "chocolate_cake_dust" to (50 to 300),
+            ),
+            xp,
+        )
+        // Each pie's raw form, from its fillings, is a food the range bakes at the same level.
+        val raws = Cooking.FOODS.associateBy { it.raw }
+        for (key in listOf("redberry_pie", "meat_pie", "apple_pie", "botanical_pie", "mushroom_pie", "dragonfruit_pie") +
+            listOf("mud", "garden", "fish", "admiral", "wild", "summer").map { "${it}_pie_3" }) {
+            val recipe = byKey.getValue(key)
+            assertEquals(recipe.level, raws.getValue(recipe.product).level, key)
+        }
+        for (pie in listOf("mud", "garden", "fish", "admiral", "wild", "summer")) {
+            val (one, two, three) = (1..3).map { byKey.getValue("${pie}_pie_$it") }
+            assertEquals(CookingMixes.PIE_SHELL, one.inputs[0].obj, pie)
+            assertEquals(one.product, two.inputs[0].obj, pie)
+            assertEquals(two.product, three.inputs[0].obj, pie)
+        }
+        // The mud pie's compost and water give their buckets back; the cake mix its pot and bucket.
+        assertEquals(listOf(1925), byKey.getValue("mud_pie_1").byproducts.map { it.obj })
+        assertEquals(listOf(1925), byKey.getValue("mud_pie_2").byproducts.map { it.obj })
+        assertEquals(listOf(1931, 1925), byKey.getValue("uncooked_cake").byproducts.map { it.obj })
+        assertEquals(listOf(Cooking.CAKE_TIN, 1944, 1933, 1927), byKey.getValue("uncooked_cake").inputs.map { it.obj })
+        // No pair is listed twice.
+        assertEquals(CookingMixes.PAIRS.size, CookingMixes.PAIRS.map { setOf(it.first, it.second) }.toSet().size)
     }
 }

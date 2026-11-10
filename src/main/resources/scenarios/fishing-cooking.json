@@ -1,5 +1,5 @@
 {
-  "about": "On Catherby's beach (::tele 2850 3430) with 99 Fishing and Cooking, a harpoon, a lobster pot, a big fishing net, a small fishing net, a karambwan vessel and 50 raw karambwanji, a fishing rod and 50 sandworms, a tinderbox and logs, so every fish Fishing and Cooking 2 has built so far can be caught and cooked. The bank holds the dragon and barb-tail harpoons to try the better and wieldable harpoons. Musa Point's spots are at ::tele 2924 3178; Karamja's karambwanji spots at ::tele 2791 3018, karambwan spots at ::tele 2899 3118, the Piscatoris Fishing Colony's monkfish spots at ::tele 2326 3699 and Port Piscarilius's anglerfish spots at ::tele 1827 3769.",
+  "about": "On Catherby's beach (::tele 2850 3430) with 99 Fishing and Cooking, a harpoon, a lobster pot, a big fishing net, a small fishing net, a karambwan vessel and 50 raw karambwanji, a fishing rod and 50 sandworms, a tinderbox and logs, so every fish Fishing and Cooking 2 has built so far can be caught and cooked. The bank holds the dragon and barb-tail harpoons to try the better and wieldable harpoons, and flour, water, pie dishes, cooking apples, tomatoes, cheese, cake tins, eggs, milk and chocolate for pies, pizzas and cakes, baked on a range such as Lumbridge Castle's (::tele 3211 3215). Musa Point's spots are at ::tele 2924 3178; Karamja's karambwanji spots at ::tele 2791 3018, karambwan spots at ::tele 2899 3118, the Piscatoris Fishing Colony's monkfish spots at ::tele 2326 3699 and Port Piscarilius's anglerfish spots at ::tele 1827 3769.",
   "notes": "For Fishing and Cooking 2's checks by hand. Each later step adds its tools and bait here. The loadout is ours.",
   "position": { "x": 2850, "z": 3430, "level": 0 },
   "skills": { "fishing": 99, "cooking": 99, "firemaking": 99 },
@@ -19,6 +19,16 @@
   ],
   "bank": [
     { "item": "dragon_harpoon" },
-    { "item": "hunting_barbed_harpoon" }
+    { "item": "hunting_barbed_harpoon" },
+    { "item": "pot_flour", "count": 10 },
+    { "item": "bucket_water", "count": 10 },
+    { "item": "piedish", "count": 5 },
+    { "item": "cooking_apple", "count": 5 },
+    { "item": "tomato", "count": 5 },
+    { "item": "cheese", "count": 5 },
+    { "item": "cake_tin", "count": 2 },
+    { "item": "egg", "count": 2 },
+    { "item": "bucket_milk", "count": 2 },
+    { "item": "chocolate_bar", "count": 2 }
   ]
 }

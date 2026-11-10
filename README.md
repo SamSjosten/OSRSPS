@@ -562,7 +562,11 @@ a sandworm a catch. The `fishing-cooking` scenario starts there with everything 
 
 Raw food used on a fire or range, or Cook on a range, cooks it (`game/skill/Cooking.kt`, words under `cooking.*`):
 shrimps, anchovies, sardines, herring, trout, pike, salmon, beef, rat and bear meat, chicken, and bread dough (range
-only); lobster, tuna, swordfish and shark came with Fishing and Cooking 2's step FC1, mackerel, cod and bass with FC2, karambwan with FC3, monkfish and anglerfish with FC4. With more than one to cook, the chatbox's Make-X box (`skillmulti`, interface 270, set up by client script
+only); lobster, tuna, swordfish and shark came with Fishing and Cooking 2's step FC1, mackerel, cod and bass with FC2, karambwan with FC3, monkfish and anglerfish with FC4. Step FC5a adds
+multi-step food (`game/skill/CookingMixes.kt`, words under `cooking_mix.*`): flour and water into bread, pastry, pizza or
+pitta dough, pie shells and every pie's fillings (three at a time for mud, garden, fish, admiral, wild and summer pies),
+a pizza's tomato, cheese and topping, and a cake's egg, flour and milk, each pair through the Make-X box, then baked on a
+range. With more than one to cook, the chatbox's Make-X box (`skillmulti`, interface 270, set up by client script
 2046) asks which and how many; a resume_pausebutton from one of its items starts the job. Lumbridge Castle's kitchen
 range (114) burns less. The cooking re-runs every tick on the loc (`World.repeatOp`).
 
@@ -575,8 +579,12 @@ range (114) burns less. The cooking re-runs every tick on the loc (`World.repeat
 | The Make-X box: its components, client script 2046's arguments and the pause button carrying the quantity | decompiled client scripts (osrs-dumps) |
 | Karambwan: cooked from 30 for 190 XP or poison from 1 for 80, one burn chart for both (stops at 99), the box always asking with the cooked one first; a poison karambwan hitting for 5 from 6 hitpoints with its two messages | OSRS Wiki, Raw karambwan, Cooked karambwan, Poison karambwan |
 | Monkfish: from 62 for 150 XP, 11/275 on a fire and 13/280 on a range (stops burning at 92 and 90); anglerfish: from 84 for 230 XP, 1/200 and 1/220 (never stops burning); the Lumbridge range cooking both as any range | OSRS Wiki, Raw monkfish, Monkfish, Raw anglerfish, Anglerfish |
+| Pies, pizza, cake and pitta: levels, XP and each range pair (the Lumbridge range helping redberry, meat, botanical and mushroom pies), every pie burning to a burnt pie, the cake tin coming back | OSRS Wiki food pages; Cooking range (Lumbridge Castle) |
+| The mixes: each step's level, materials, XP (only pizza toppings and chocolate cake give any), the pot, bucket, bowl or jug coming back, 1 tick a dough and 2 for the rest | OSRS Wiki item pages (Pastry dough, Pie shell, Part garden pie and the rest) |
+| Meat pie and mushroom pie stopping burning at 53 and 88, where their charts reach 256, a level before the pages' text | the charts over the text |
+| The first mix a tick after the choice; one pair with one to make skipping the box; the doughs' box order; no animation for mixing; a cake not baked when there is no slot for its tin; the level message as a chat line (2004Scape shows it in a box) | guessed |
 | Cook with nothing raw saying Nothing interesting happens; one piece cooking with no box; the box closing as the first piece starts; the level-up box ending the job as for the other skills | guessed |
-| Out: cooking gauntlets, the cooking cape, Hosidius ranges, pies, stews, pizzas, wines and every other recipe | out of scope |
+| Out: cooking gauntlets, the cooking cape, Hosidius ranges, the pies' 1-tick bake without the box, Bake Pie; stews, curries, wine, dairy, potatoes with toppings and kebabs (step FC5b) | out of scope |
 
 ### Smithing
 
@@ -606,6 +614,13 @@ logs to magic logs, plus teak and mahogany stocks and redwood shafts. A bow stri
 make headless arrows, and arrowtips on those make arrows, up to 15 at a time (the box counts sets). A feather on dart
 tips makes 10 darts on every click, with no box. The numbers are in `skills/fletching.json`.
 
+Crossbows, bolts and javelins (Artisan 2, A1): crossbow limbs on a stock, with a hammer held, make the unstrung
+crossbow (bronze on a wooden stock up to dragon on a magic stock), and a crossbow string strings it. A feather on
+unfinished bolts makes 10 bolts a click, as darts do; the All Settings toggle "Make-X for darts and bolts" opens the box
+for both. Bolt tips on bolts make tipped bolts, and javelin tips on javelin shafts make javelins, up to 10 and 15 at a
+time. A chisel on a cut gem or oyster pearl cuts bolt tips. `::scenario artisan-2` stands you on the Lumbridge spawn
+with 99 Fletching and the parts.
+
 The making itself is the loop all three artisan skills share (`game/skill/Making.kt`, the box's title under
 `make.title`): each product waits in a weak queue, so walking off, closing an interface or using something else ends
 it, as do running out, the count being done, the level being too low and a level-up.
@@ -618,7 +633,13 @@ it, as do running out, the count being done, the level being too low and a level
 | Animations `human_fletching` (1248) and each bow's `stringing_*` (6678 to 6689) | cache 241 gamevals |
 | No animation for arrows and darts; the first bow strung 2 ticks after the choice | guessed |
 | The box opening even for one log, its order, the quantity starting on as many as can be made, the animation as each product starts, a boost wearing off stopping it without a word | guessed |
-| Out: the redwood shield; the crossbows and javelins that stocks and javelin shafts go into | out of scope |
+| Crossbows: levels, limbs and string XP; 2 ticks each, the first 1 tick after the choice; the hammer | OSRS Wiki, Template:Table/Fletching/Crossbows, Bronze crossbow (u), Bronze crossbow ("Make-X is 1, then 2 ticks") |
+| Bolts: levels, XP per bolt, 10 a click with no wait; tipped bolts: levels, XP per bolt, 10 a set, 2 ticks a set; dragon bolts taking every gem tip | OSRS Wiki, Template:Table/Fletching/Bolts, Tipped bolts, Tipped dragon bolts, Bronze bolts, Opal bolts |
+| Bolt tips: levels, XP per gem, 12 a gem (24 from an onyx or oyster pearls, 6 from an oyster pearl), 5 ticks a gem | OSRS Wiki, Template:Table/Fletching/Bolt tips, each tips page |
+| Javelins: levels, XP per javelin, 15 a set, the first two sets a tick apart, then 2 ticks a set | OSRS Wiki, Template:Table/Fletching/Javelins, Bronze javelin |
+| Animations: `xbows_fletching_*` for limbs, `xbows_stringing_crossbow_*`, `human_fletching_add_bolt_feathers_*` and `human_fletching_add_bolt_tips_*` by metal | cache 242 gamevals |
+| The Make-X box for tipping bolts and for javelins, the bolts' sets-of-10 title; the gem's cutting animation for bolt tips; `human_fletching_add_arrow_tips` for javelins; no animation for broad bolts; the first tipped set and the first bolt tips 2 ticks after the choice, and the first javelins 1; broad bolts' Slayer unlock taken as unlocked | guessed |
+| Out: the redwood shield; kebbit, antler and ascension bolts and the hunters' crossbows; the jeweller's chisel | out of scope |
 
 ### Crafting
 
@@ -766,6 +787,26 @@ and two of each tablet.
 
 Check: `./gradlew test --tests 'osrsps.game.skill.magic.*' --tests 'osrsps.testclient.HeadlessTeleportsTest'`, and in
 RuneLite `test-runner/examples/magic-teleports.json`.
+
+### Thieving: more pickpockets and their gear
+
+Thieving 2 step T1a (`game/skill/Pickpocketing.kt`, `game/skill/PickpocketGear.kt`). Pickpocket now works on the
+farmers (nine on Misthalin's farms, `npc-spawns/lumbridge-farms.json`, with their combat and drops), Al Kharid's man and
+warriors, and Edgeville's guards. Gloves of silence and the dodgy necklace work when worn.
+
+| Pickpocketing behaviour | Source |
+|-------------------------|--------|
+| Farmers: level 10, 14.5 XP, 150 to 240 out of 256, 1 damage; a farmer's coin pouch (9 coins) 123/128 or a potato seed 5/128; level 7, speed 6, max hit 1, stab, respawn 25, the members' drop table | OSRS Wiki, Farmer, Coin pouch (read 2026-11-10) |
+| The farmers' nine tiles and which look stands on each (farmer1 to farmer3, farmer1_f to farmer3_f, farmer4) | OSRS Wiki, Farmer (its map) |
+| Al Kharid warriors: the warrior woman's level, XP, 100 to 240, damage and warrior's pouch; Al Kharid's man (3261) as a man; Edgeville's guards (3254) as guards, whose 50 to 240 the Guard page's chart now confirms | OSRS Wiki, Al Kharid warrior (Mod Ash: the same code), Guard, Thieving |
+| Gloves of silence: the NPC's low and high times 1.05, rounded down; worn out by 62 failed pickpockets, with the Wiki's warning one before the end and its six Check messages | OSRS Wiki, Gloves of silence, each NPC's chart |
+| Dodgy necklace: one failure in four costs no stun and no damage and uses a charge; the tenth crumbles it; Check gives the charges left | OSRS Wiki, Dodgy necklace |
+| Both items' counts belong to the player, not the item (`player.charges`) | OSRS Wiki, both pages |
+| The bands between the gloves' Check messages; after a saved failure the next pickpocket comes 2 ticks later; the gloves wear even when the necklace saves; the necklace's and the gloves' last messages; "farmer" and "Al Kharid warrior" in the messages and their caught line; the farmers' animations and wander | guessed |
+| Not built: repairing the gloves, the necklace's Break, the Ardougne diary, Shadow Veil, Rocky; the pickpockets outside Misthalin (steps T1b and T1c) | next steps |
+
+`::scenario thieving` stands you beside a farmer on the farm south of Varrock with 99 Thieving and Hitpoints, 54
+Hunter, gloves of silence and a dodgy necklace worn, a spare necklace and food.
 
 ## Items and inventory
 
@@ -1116,6 +1157,32 @@ for 20 ticks it goes back in. Hurting rockslugs needs Slayer 20, wall beasts 35.
 | Ids, the hole and beast forms, animations | 242 cache |
 | The grab's 4 ticks, its even roll from 0 to 18, one grab per step onto the tile, the 20 ticks before it goes back in, the 10-tick respawn, the salt and grab messages, no salting animation and no XP for the salt's kill | guessed |
 | Out: the Slug salter perk, Slayer XP (no Slayer rewards or tasks yet) | out of scope |
+
+#### The H.A.M. Hideout
+
+Misthalin piece 7 step 4a (`game/content/HamHideout.kt`, `npc-spawns/ham-hideout.json`, words under `ham_hideout.*`
+and `pickpocket.caught_ham`): the trapdoor west of Lumbridge's general store is locked. Pick-Lock opens it at 4% at
+Thieving 1 to 98% at 99 (24% to 99% with a lockpick in the backpack) for 3.8 XP, and a fail numbs the fingers,
+Thieving down 1. Picked open (varbit `ham_thief` shows it open), Climb-down takes the player to the foot of the ladder
+and Close shuts it; the ladder climbs back up. Inside, 26 members can be pickpocketed (Thieving 15, 22.2 XP, loot or a
+H.A.M. coin pouch), 11 sit, and 22 guards of levels 12, 18 and 22 fight and drop the Wiki's table. A caught thief
+takes 1 to 3 damage and a concussion, unless Agility takes the blow; the third concussion bundles them out to the
+surface or into Jimmy the Chisel's cell, 4% less likely for each piece of H.A.M. clothing worn; a catch stuns for 7
+ticks (the Wiki's 4 seconds). The cell door is locked; one Pick-lock from inside keeps trying, 9 ticks a try, until the
+player is out (4% to 99% at Thieving 1 to 99 on the first try, or 24% to 118% with a lockpick, rising in four equal
+steps to 27% to 123%, or 47% to 141%; each fail 0.5 XP). A trapdoor pick takes 9 ticks.
+
+| The H.A.M. Hideout | Source |
+|--------------------|--------|
+| Spawns: tiles and types (Sigmund, quest-only, left out) | mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022) |
+| The trapdoor's two forms and their options, the ladder, the cell door, ids, varbit 235 | 242 cache |
+| Pick-Lock's rates at 1 and 99, the lockpick's, 3.8 XP, the numbing; no rise on repeated fails | OSRS Wiki, Trapdoor (H.A.M. Hideout), read 2026-11-10 (a Jagex moderator's word for the last) |
+| The trapdoor pick's 9 ticks (4-tick manipulation left out) | OSRS Wiki, Tick manipulation, read 2026-11-10 |
+| The cell door's rates at 1 and 99, with and without a lockpick, first and after the rise; four equal steps; a restart resetting it; 3.8 XP, 0.5 a fail; no picking from outside | OSRS Wiki, Door (H.A.M. Hideout Jail), read 2026-11-10 |
+| Members: level 15, 22.2 XP, 136/256 to 240/256, 1 to 3 damage, the 4-second stun, Agility's 1/256 to 255/256 share of blows, the loot and pouch, concussions, the three quoted messages, 4% a clothing piece | OSRS Wiki, H.A.M. Member, read 2026-11-10 |
+| Guards: stats, speeds, max hits, defences, drops (one table for the three) | OSRS Wiki, H.A.M. Guard, read 2026-11-10 |
+| Linear chances between the Wiki's ends, the cell door's 9 ticks a try and no numbing there, the stun's 7 ticks, the even surface or cell, the tiles, the guards' animations, the other messages | guessed |
+| Out: the trapdoor's occasional 1 XP on a fail, the easy clue, Talk-to on guards, seated members, Johanhus and Jimmy, the quest-only archers and mages, the storerooms (step 4b) | out of scope |
 
 ## Draynor Village
 
@@ -2600,7 +2667,8 @@ tinderbox and three logs, and the
 dragon and barb-tail harpoons in the bank: every fish Fishing and Cooking 2 has built so far, caught and cooked on a fire.
 Musa Point's spots are at `::tele 2924 3178`, Karamja's karambwanji spots at `::tele 2791 3018`, karambwan spots at
 `::tele 2899 3118`, the Piscatoris monkfish spots at `::tele 2326 3699` and Port Piscarilius's anglerfish spots at
-`::tele 1827 3769`.
+`::tele 1827 3769`. The bank holds flour, water, pie dishes, cooking apples, tomatoes, cheese, cake tins, eggs, milk and
+chocolate for pies, pizzas and cakes.
 
 `lumbridge-cows` stands you in the Lumbridge cow field (3259, 3263, a tile picked from the cow spawns) with 20 Attack,
 Strength, Defence and Hitpoints, iron armour, an iron scimitar, an amulet of strength, five lobsters, a bronze axe, a

@@ -176,6 +176,12 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `swamp-caves-slayer.json`: Misthalin piece 7 step 3b: a wall beast grabbing a player with no helmet and coming out
   of its hole to fight one in a spiny helmet, and a rockslug held at 1 hitpoint (with `::keys on` and `::god on`; the
   bag of salt that finishes it is in the headless test, as the runner has no item-on-NPC step).
+- `ham-hideout.json`: Misthalin piece 7 step 4a: the H.A.M. Hideout's trapdoor locked, picked open at 99 Thieving
+  with a lockpick, climbed down and back up by the ladder, a H.A.M. member pickpocketed, and Jimmy's cell door locked
+  from outside and picked from inside (with `::keys on` and `::god on`; the concussions are in the headless test).
+- `thieving-t1a.json`: Thieving 2 step T1a: a farmer pickpocketed at 99 with the gloves of silence and its coin
+  pouches opened, Check on carried gloves and a dodgy necklace, and an Al Kharid warrior and an Edgeville guard
+  pickpocketed (with `::keys on` and `::god on`; the gloves' wear and the necklace's saves are in the headless test).
 - `al-kharid-toll-gate.json`: Al Kharid step 1: Open on the toll gate from both sides with no coins, a Border
   Guard's talk (with `::keys on`) that ends with the player through the gate, and the palace's west large doors
   opened together and shut again, and the curtain upstairs in the palace opened and shut.
@@ -420,6 +426,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `fletching-arrows.json`: at 99, feathers on 20 arrow shafts make headless arrows in sets (15, then 5), bronze
   arrowtips make 15 bronze arrows, a bow string strings a shortbow and a feather on dart tips makes 10 darts. Needs
   0.10.0.
+- `fletching-crossbows.json` (Artisan 2, A1): at 99, bronze limbs on a wooden stock with a hammer held and a crossbow
+  string make a bronze crossbow; a feather on unfinished bolts makes 10 bolts with no box, and opens the box with Make-X
+  for darts and bolts on; a chisel cuts an opal into 12 bolt tips, which tip 12 bronze bolts in two sets; bronze javelin
+  tips on 15 shafts make 15 javelins. Needs 0.10.0.
 - `crafting-spinning.json`: at Lumbridge Castle's first-floor spinning wheel, Spin with nothing does nothing, then at
   99 two wool spin into balls (5 XP), and at level 1 flax needs 10. Needs only 0.5.0.
 - `crafting-leather.json`: at 99, a needle on leather makes two pairs of gloves with one thread (one left), steel
