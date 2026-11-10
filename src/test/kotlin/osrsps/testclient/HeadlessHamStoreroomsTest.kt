@@ -166,6 +166,8 @@ class HeadlessHamStoreroomsTest {
                     } else {
                         wins++
                         client.awaitAt(2567, 5192)
+                        // Picked open, the door stands open for 2 ticks; a pick sent before it shuts finds no door.
+                        client.await("the door shut") { if (server.world.locs.exists(westDoor)) Unit else null }
                         client.tele(2566, 5192)
                     }
                 }
