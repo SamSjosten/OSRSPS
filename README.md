@@ -577,7 +577,9 @@ sets that, keeps the quantity buttons' choice in varp `makexcrafting`, and answe
 | Lumbridge's rusted anvil smiths only bronze | OSRS Wiki, Anvil |
 | Each bar's anvil items, levels, bars and counts | client scripts and enums 844 to 846 (cache 241), checked against the Wiki's bronze and iron tables (`SmithingTest`) |
 | The furnace box showing every free-to-play bar and suggesting All; Smith opening the best bar the level can use; a cancelled X smithing one; the rusted anvil's message for other bars; the messages' arguments | guessed |
-| Out: the ring of forging, goldsmith gauntlets, the imcando hammer, smiths' uniform, Blast Furnace, cannonballs, jewellery, blurite and lovakite | out of scope |
+| Cannonballs (`Cannonballs.kt`): a bar or the ammo mould used on a furnace with the mould held casts one bar into 4, 8 ticks then 10; bronze 5 (8.8 XP a bar), iron 20 (17.2), steel 35 (25.6), mithril 55 (34), adamant 75 (42.4), rune 90 (50.8); the double ammo mould casts two bars into 8 for twice the XP | OSRS Wiki, Steel cannonball and the other cannonball pages, Double ammo mould |
+| Cannonballs: Dwarf Cannon and Sleeping Giants count as done; a double mould casting a last odd bar into 4; one message a cast; the animation | guessed |
+| Out: the ring of forging, goldsmith gauntlets, the imcando hammer, smiths' uniform, Blast Furnace, granite cannonballs, the ancient furnace, jewellery, blurite and lovakite | out of scope |
 
 ### Fletching
 
