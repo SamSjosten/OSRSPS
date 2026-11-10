@@ -55,6 +55,15 @@ object BoltEffects {
      */
     const val EMERALD_POISON = 25
 
+    /** The Zaryte crossbow's: 6 first (OSRS Wiki, Zaryte crossbow); guessed severity 30, a fifth rounded up. */
+    const val EMERALD_POISON_ZARYTE = 30
+
+    /** Ruby's cap with the Zaryte crossbow. */
+    const val RUBY_CAP_ZARYTE = 110
+
+    /** The weapon whose passive strengthens enchanted bolts by 10% (OSRS Wiki, Zaryte crossbow). */
+    const val ZARYTE = "zaryte_xbow"
+
     /** Ruby's cap. */
     const val RUBY_CAP = 100
 
@@ -66,9 +75,11 @@ object BoltEffects {
 
     /**
      * One shot with [effect]: whether it fires ([random]'s one draw, taken only when it [rolls]), then the hit and its
-     * damage, [roll] giving a normal roll for a max hit and [hit] the accuracy roll's result.
+     * damage, [roll] giving a normal roll for a max hit and [hit] the accuracy roll's result. From the Zaryte crossbow
+     * ([zaryte]) each is 10% stronger, as the Wiki's passive table gives it: opal ranged / 9, pearl / 18, dragonstone
+     * 22%, onyx 132%, diamond 126%, ruby 22% to 110 (sapphire unchanged, its rounding eats the 10%).
      */
-    fun roll(effect: BoltEffect, random: GameRandom, player: Player, npc: Npc, hit: Boolean, maxHit: Int, roll: (Int) -> Int): Rolled {
+    fun roll(effect: BoltEffect, random: GameRandom, player: Player, npc: Npc, hit: Boolean, maxHit: Int, zaryte: Boolean = false, roll: (Int) -> Int): Rolled {
         val spec = specs[effect] ?: return Rolled(hit, if (hit) roll(maxHit) else 0, false, maxHit)
         // Blood Forfeit doesn't activate when the shooter can't spare a hitpoint (OSRS Wiki, Ruby bolts (e)).
         val fires = (random.nextInt(1000) < spec.perMille) && (hit || !spec.onHit) && (effect != BoltEffect.RUBY || rubyCost(player) >= 1)
@@ -76,13 +87,13 @@ object BoltEffects {
         val ranged = player.skills.currentLevel(Skill.RANGED)
         val base = if (hit) roll(maxHit) else 0
         return when (effect) {
-            BoltEffect.OPAL -> Rolled(true, base + ranged / 10, true, maxHit + ranged / 10)
-            BoltEffect.PEARL -> Rolled(true, base + ranged / 20, true, maxHit + ranged / 20)
-            BoltEffect.DRAGONSTONE -> Rolled(true, base + ranged / 5, true, maxHit + ranged / 5)
-            BoltEffect.ONYX -> Rolled(true, base * 6 / 5, true, maxHit * 6 / 5)
+            BoltEffect.OPAL -> (if (zaryte) ranged / 9 else ranged / 10).let { Rolled(true, base + it, true, maxHit + it) }
+            BoltEffect.PEARL -> (if (zaryte) ranged / 18 else ranged / 20).let { Rolled(true, base + it, true, maxHit + it) }
+            BoltEffect.DRAGONSTONE -> (if (zaryte) ranged * 22 / 100 else ranged / 5).let { Rolled(true, base + it, true, maxHit + it) }
+            BoltEffect.ONYX -> (if (zaryte) 132 else 120).let { Rolled(true, base * it / 100, true, maxHit * it / 100) }
             // Guessed: ruby's set damage isn't a roll, so it keeps the ordinary max for the hitsplat.
-            BoltEffect.RUBY -> Rolled(true, minOf(RUBY_CAP, npc.hitpoints / 5), true, maxHit)
-            BoltEffect.DIAMOND -> (maxHit * 115 / 100).let { Rolled(true, roll(it), true, it) }
+            BoltEffect.RUBY -> Rolled(true, if (zaryte) minOf(RUBY_CAP_ZARYTE, npc.hitpoints * 22 / 100) else minOf(RUBY_CAP, npc.hitpoints / 5), true, maxHit)
+            BoltEffect.DIAMOND -> (maxHit * (if (zaryte) 126 else 115) / 100).let { Rolled(true, roll(it), true, it) }
             else -> Rolled(hit, base, true, maxHit)
         }
     }

@@ -60,9 +60,9 @@ class BoltEffectsTest {
     }
 
     /** The first roll of [effect] that fires, from seed 3 on. */
-    private fun fired(effect: BoltEffect, target: Npc, hit: Boolean, roll: (Int) -> Int): BoltEffects.Rolled {
+    private fun fired(effect: BoltEffect, target: Npc, hit: Boolean, zaryte: Boolean = false, roll: (Int) -> Int): BoltEffects.Rolled {
         val random = GameRandom(3)
-        repeat(10_000) { BoltEffects.roll(effect, random, player, target, hit, 30, roll).takeIf { it.fired }?.let { return it } }
+        repeat(10_000) { BoltEffects.roll(effect, random, player, target, hit, 30, zaryte, roll).takeIf { it.fired }?.let { return it } }
         error("$effect never fired")
     }
 
@@ -80,6 +80,19 @@ class BoltEffectsTest {
         // Ruby: a fifth of the monster's hitpoints now, at most 100.
         assertEquals(40, fired(BoltEffect.RUBY, npc(hitpoints = 200), hit = false) { 0 }.damage)
         assertEquals(100, fired(BoltEffect.RUBY, npc(hitpoints = 10_000), hit = true) { 0 }.damage)
+    }
+
+    @Test
+    fun `from the Zaryte crossbow each effect is a tenth stronger`() {
+        // 99 Ranged: opal / 9 = 11, pearl / 18 = 5, dragonstone 22% = 21; onyx 132%; diamond 126% of 30 = 37.
+        assertEquals(BoltEffects.Rolled(true, 11, true, 30 + 11), fired(BoltEffect.OPAL, npc(), hit = false, zaryte = true) { 0 })
+        assertEquals(BoltEffects.Rolled(true, 10 + 5, true, 30 + 5), fired(BoltEffect.PEARL, npc(), hit = true, zaryte = true) { 10 })
+        assertEquals(BoltEffects.Rolled(true, 10 + 21, true, 30 + 21), fired(BoltEffect.DRAGONSTONE, npc(), hit = true, zaryte = true) { 10 })
+        assertEquals(BoltEffects.Rolled(true, 26, true, 39), fired(BoltEffect.ONYX, npc(), hit = true, zaryte = true) { 20 })
+        assertEquals(BoltEffects.Rolled(true, 37, true, 37), fired(BoltEffect.DIAMOND, npc(), hit = false, zaryte = true) { it })
+        // Ruby: 22% of the monster's hitpoints, at most 110.
+        assertEquals(44, fired(BoltEffect.RUBY, npc(hitpoints = 200), hit = false, zaryte = true) { 0 }.damage)
+        assertEquals(110, fired(BoltEffect.RUBY, npc(hitpoints = 10_000), hit = true, zaryte = true) { 0 }.damage)
     }
 
     @Test

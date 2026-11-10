@@ -70,7 +70,9 @@ class RangedCombatTest {
     // Artisan 2, A4c: emerald bolts (e) and ruby bolts (e).
     private val emeraldBoltsE = ObjType(9241, "Emerald bolts (e)", stackable = true, wearpos1 = WearPos.AMMO, params = mapOf(12 to 85), internalName = "xbows_crossbow_bolts_mithril_tipped_emerald_enchanted")
     private val rubyBoltsE = ObjType(9242, "Ruby bolts (e)", stackable = true, wearpos1 = WearPos.AMMO, params = mapOf(12 to 103), internalName = "xbows_crossbow_bolts_adamantite_tipped_ruby_enchanted")
-    private val objTypes = ObjTypes.of(shortbow, darkbow, runeCrossbow, twistedBow, venator, blowpipe, emptyBlowpipe, dragonDart, chinchompa, sword, bronzeArrow, poisonedArrow, steelArrow, runiteBolts, dragonBolts, runeKnife, ballista, runeJavelin, emeraldBoltsE, rubyBoltsE)
+    // Zaryte crossbow bonuses guessed for the test: only its internal name matters ([BoltEffects.ZARYTE]).
+    private val zaryteCrossbow = ObjType(26374, "Zaryte crossbow", wearpos1 = WearPos.WEAPON, params = mapOf(4 to 110, 14 to 5), internalName = "zaryte_xbow", category = 37)
+    private val objTypes = ObjTypes.of(zaryteCrossbow, shortbow, darkbow, runeCrossbow, twistedBow, venator, blowpipe, emptyBlowpipe, dragonDart, chinchompa, sword, bronzeArrow, poisonedArrow, steelArrow, runiteBolts, dragonBolts, runeKnife, ballista, runeJavelin, emeraldBoltsE, rubyBoltsE)
 
     private val spotanims = SpotanimNames(
         mapOf(
@@ -92,6 +94,7 @@ class RangedCombatTest {
               "loaded": true, "delay": "thrown", "source": "test" },
             { "items": ["chinchompa_black"], "ammo": "chinchompas", "tier": 1, "range": 9, "targets": 3, "anim": "human_chinchompa_attack_pvn",
               "travel": "black_chinchompa_grenade", "thrown": true, "delay": "thrown", "source": "test" },
+            { "items": ["zaryte_xbow"], "ammo": "bolts", "tier": 8, "range": 8, "anim": "xbows_human_fire_and_reload_pvn", "source": "test" },
             { "items": ["xbows_crossbow_runite"], "ammo": "bolts", "tier": 7, "range": 7, "anim": "xbows_human_fire_and_reload_pvn", "source": "test" },
             { "items": ["rune_knife"], "ammo": "darts", "tier": 1, "range": 4, "anim": "human_stake2_pvn", "launch": "rune_tknife_launch",
               "travel": "rune_tknife_travel", "thrown": true, "delay": "thrown", "source": "test" },
@@ -466,6 +469,18 @@ class RangedCombatTest {
         assertTrue(poisonedNpcs.all { it == npc to BoltEffects.EMERALD_POISON })
         // The harness never sends NPC info, so the graphic is still pending: only an emerald's goes on the dummy.
         assertEquals(listOf(BoltEffects.spotanim(BoltEffect.EMERALD)), npc.effects.pendingSpotanims.map { it.id })
+    }
+
+    @Test
+    fun `emerald bolts (e) from the Zaryte crossbow poison at severity 30 (6 a hit at first)`() {
+        wield(alice, zaryteCrossbow, emeraldBoltsE, 1000)
+        val npc = spawn(type = dummy, x = 3214)
+        attack(alice, npc)
+        alice.god = true
+        alice.sureHits = true
+        repeat(200) { tick() }
+        assertTrue(poisonedNpcs.isNotEmpty())
+        assertTrue(poisonedNpcs.all { it == npc to BoltEffects.EMERALD_POISON_ZARYTE })
     }
 
     @Test
