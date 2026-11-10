@@ -23,6 +23,7 @@ import osrsps.game.encounter.EncounterContext
 import osrsps.game.encounter.EncounterDef
 import osrsps.game.encounter.PhaseDef
 import osrsps.game.npc.Npc
+import osrsps.game.npc.Npcs
 import osrsps.game.zone.Projectile
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.Tile
@@ -36,7 +37,7 @@ object DreadnothLines : Lines("tfa_dreadnoth", "The_Fractured_Archive/Strategies
 }
 
 /**
- * Dreadnoth the Jellied (raid steps 20a and 20b), the third row's east boss, in his own room: a 5 by 5 demon in a shell of jelly
+ * Dreadnoth the Jellied (raid steps 20a, 20b and 20c), the third row's east boss, in his own room: a 5 by 5 demon in a shell of jelly
  * who crawls after his target and hits everyone round him, and his jellies.
  *
  * - He crawls a tile every [CRAWL_EVERY] ticks after his target, the first player onto his arena ([crawl]).
@@ -56,6 +57,9 @@ object DreadnothLines : Lines("tfa_dreadnoth", "The_Fractured_Archive/Strategies
  *   without Protect from Melee is hurt all the same; jellies under him are absorbed, healing him by what they had left.
  *   As he lands, jelly in his footprint, and at each player a shot and a splatter of jelly that lands on their tile
  *   [SPLATTER_LANDS] ticks on and lies there.
+ * - At 0 hitpoints he doesn't die but splits (20c, [split]): his death animation, and [SPLIT_JELLIES] jellies of
+ *   [SPLIT_HITPOINTS] hitpoints rising from his footprint. [SPLIT_GONE] ticks on he is gone from sight; the room is won
+ *   ([splitTick]) once every jelly is gone, which ends the fight and clears the jelly from the floor.
  *
  * From the OSRS Wiki (Dreadnoth the Jellied and Jelly (Dreadnoth), read 2026-11-10): his stats and bonuses, 5 by 5,
  * the 4-tick attack speed, max hit 45, the 85% fire weakness, poison immunity, the 50% cap on his offensive stats'
@@ -84,6 +88,10 @@ object DreadnothLines : Lines("tfa_dreadnoth", "The_Fractured_Archive/Strategies
  * footprint as he lands, and at each player a `ranged_proj01` (90 cycles) and a `ranged_proj02` (180, sound 12362) at
  * their tile, which becomes a damage tile 6 ticks later.
  *
+ * For his death (20c), from the tsps captures: his splitting into seven jellies of 37 hitpoints (half the cache's 75,
+ * rounded down), the room won when the last one dies, and the jelly on the floor cleared then. The Wiki's Strategies say
+ * about ten jellies at half their hitpoints: the captures, five live fights, are taken over it.
+ *
  * Guessed, until a recording shows more (each also in the README): every damage figure ([SLAM_MAX], [SHOT_MAX], his
  * melee's type, crush) and both protection prayers blocking all of theirs; his target being the first player in, then
  * whoever he fights; his first swing [ATTACK_SPEED] ticks in, and the swing waiting for someone to be round him; his
@@ -97,6 +105,11 @@ object DreadnothLines : Lines("tfa_dreadnoth", "The_Fractured_Archive/Strategies
  * prayer helping) and off him ([STRAY_MAX]), the shot's as a wave's, the absorbed jellies' heal being their hitpoints
  * left, his landing kept wholly on his arena, the splatter hurting nobody as it lands, and the jump itself a teleport
  * as it lands (the 90-cycle exact move isn't sent: NPC exact moves aren't built), the shadow shown as he jumps.
+ * For his death: the split jellies rising on tiles of his footprint as his death animation begins, at once and past
+ * [MAX_JELLIES]; nothing of his still in the air landing once he splits, and no more jellies rising from gathered jelly;
+ * every jelly, the waves' too, having to go before the room is won; his going from sight [SPLIT_GONE] ticks on (as
+ * Xarth's six), shown by his turning into the raid's unseen hitpoints NPC ([Bork.ANCHOR]) as no NPC of his own is in
+ * the cache for it.
  */
 object Dreadnoth {
     /** What `::raid` and the raid flow know the fight by. */
@@ -222,6 +235,16 @@ object Dreadnoth {
     const val LANDING_SHOT_LANDS = 3
     const val SPLATTER_LANDS = 6
 
+    /** dreadnoth_death01, his death animation as he splits. */
+    const val ANIM_DEATH = 14782
+
+    /** At 0 hitpoints he splits into this many jellies of this many hitpoints each (tsps). */
+    const val SPLIT_JELLIES = 7
+    const val SPLIT_HITPOINTS = 37
+
+    /** He goes from sight this many ticks after he splits. Guessed (Xarth goes six ticks after his death animation). */
+    const val SPLIT_GONE = 6
+
     /** The fight, or null when the cache hasn't Dreadnoth (a test world's). Without the jelly's type, no jellies rise. */
     fun def(types: NpcTypes): EncounterDef? {
         val type = types[BOSS] ?: return null
@@ -237,6 +260,8 @@ object Dreadnoth {
                         // and through his jellies.
                         boss.unleashed = true
                         boss.passesNpcs = true
+                        // At 0 he splits rather than dies: his fight's last phase ends it once the jellies are gone.
+                        boss.holdsAtZero = true
                         // Never at a walk: taken on before his fight began (the raid's aggress), he'd follow at a tile a tick.
                         world.npcs.stopFollowing(boss)
                         state.nextMelee = ATTACK_SPEED.toLong()
@@ -248,10 +273,16 @@ object Dreadnoth {
                     "enrage",
                     cycle = listOf(CycleStep(1) { enrageTick(jelly) }),
                     onStart = { enrage(jelly) },
+                    endsWhen = { boss.hitpoints <= 0 },
+                ),
+                PhaseDef(
+                    "split",
+                    cycle = listOf(CycleStep(1) { splitTick(jelly) }),
+                    onStart = { split(jelly, types[Bork.ANCHOR]) },
                 ),
             ),
             scriptedAttacks = true,
-            status = { "${boss.type.name} ${boss.hitpoints}/${boss.maxHitpoints} hp, ${adds.count { it.type.id == JELLY }} jellies, ${state.floor.size} tiles of jelly" },
+            status = { "${type.name} ${boss.hitpoints}/${boss.maxHitpoints} hp, ${adds.count { it.type.id == JELLY }} jellies, ${state.floor.size} tiles of jelly" },
         )
     }
 
@@ -279,6 +310,12 @@ object Dreadnoth {
 
         /** Jelly on the floor, by tile. */
         val floor = LinkedHashMap<Tile, ZoneLoc>()
+
+        /** Every jelly risen in the fight, the room won once none is left in the world. */
+        val risen = ArrayList<Npc>()
+
+        /** Whether he has split, at 0: nothing of his lands after. */
+        var split = false
     }
 
     private val states = WeakHashMap<Npc, State>()
@@ -373,14 +410,14 @@ object Dreadnoth {
         hold()
         state.boundUntil = phaseTick + VOLLEY_GAP * (number - 1) + VOLLEY_LANDS + 1
         volley(last = number == 1)
-        for (i in 1 until number) after(VOLLEY_GAP * i) { volley(last = i == number - 1) }
+        for (i in 1 until number) unlessSplit(VOLLEY_GAP * i) { volley(last = i == number - 1) }
     }
 
     /** A volley: his jump, then a tick on the slam, the jelly by him and the shots, the [last] of a wave's. */
     private fun EncounterContext.volley(last: Boolean) {
         boss.effects.anim(ANIM_WAVE)
         log("jumps")
-        after(VOLLEY_LANDS) {
+        unlessSplit(VOLLEY_LANDS) {
             slam()
             volleyTiles()
             for (player in players) shoot(player)
@@ -438,10 +475,10 @@ object Dreadnoth {
             )
             // Guessed: the shot follows its player (the Wiki's Protect from Missiles for them), and the jelly gathers on
             // the tile it was thrown at, where the projectile lands.
-            after(SHOT_LANDS[i]) {
+            unlessSplit(SHOT_LANDS[i]) {
                 // Shown on the tick it lands, this tick's gathering already sent, then every tick with the rest.
                 if (inArena(boss.spawn.x, boss.spawn.z, at.x, at.z) && state.gathering.add(at)) world.zones.mapAnim(at.x, at.z, boss.level, SPOT_GATHERING)
-                if (player.dead || players.none { it === player }) return@after
+                if (player.dead || players.none { it === player }) return@unlessSplit
                 val damage = if (world.prayers.protects(player, AttackType.RANGED)) 0 else roll(0, SHOT_MAX)
                 val dealt = world.meleeCombat.hitPlayer(player, boss, damage, world.tick)
                 log("shot hits ${player.username} for $damage" + if (dealt != damage) ", $dealt dealt" else "")
@@ -471,6 +508,7 @@ object Dreadnoth {
             npc.passesNpcs = true
             npc.effects.anim(ANIM_JELLY_RISE)
             state.jellies[npc] = world.tick + JELLY_SPEED
+            state.risen += npc
             risen++
         }
         log("$risen jellies rise")
@@ -550,7 +588,8 @@ object Dreadnoth {
     /** His enrage begins: his line, and he stands, swinging no more, till his first jump [FIRST_JUMP] ticks on. */
     private fun EncounterContext.enrage(jelly: NpcType?) {
         hold()
-        boss.effects.say(text(DreadnothLines.GLUB))
+        // Taken from above 25% to 0 at once, he splits next tick without a word. Guessed.
+        if (boss.hitpoints > 0) boss.effects.say(text(DreadnothLines.GLUB))
         state.nextJump = FIRST_JUMP.toLong()
         log("enrage at ${boss.hitpoints} hp")
         // The phase's cycle first runs next tick: the jellies and jelly on the floor go on this one all the same.
@@ -605,7 +644,7 @@ object Dreadnoth {
         boss.effects.anim(ANIM_JUMP)
         world.zones.mapAnim(to.x + size / 2, to.z + size / 2, boss.level, SPOT_SHADOW)
         log("jumps at ${at.username}, landing on ${to.x},${to.z}")
-        after(JUMP_LANDS) { land(to) }
+        unlessSplit(JUMP_LANDS) { land(to) }
     }
 
     /**
@@ -679,17 +718,69 @@ object Dreadnoth {
         )
         world.zones.soundArea(fromX, fromZ, boss.level, SOUND_SPLATTER, radius = 15)
         log("shoots and splatters at ${player.username} on ${at.x},${at.z}")
-        after(LANDING_SHOT_LANDS) {
-            if (player.dead || players.none { it === player }) return@after
+        unlessSplit(LANDING_SHOT_LANDS) {
+            if (player.dead || players.none { it === player }) return@unlessSplit
             val damage = if (world.prayers.protects(player, AttackType.RANGED)) 0 else roll(0, SHOT_MAX)
             val dealt = world.meleeCombat.hitPlayer(player, boss, damage, world.tick)
             log("shot hits ${player.username} for $damage" + if (dealt != damage) ", $dealt dealt" else "")
         }
-        after(SPLATTER_LANDS) {
-            if (!inArena(boss.spawn.x, boss.spawn.z, at.x, at.z)) return@after
+        unlessSplit(SPLATTER_LANDS) {
+            if (!inArena(boss.spawn.x, boss.spawn.z, at.x, at.z)) return@unlessSplit
             addFloor(at)
             log("splatter lands on ${at.x},${at.z}")
         }
+    }
+
+    /** [action] in [ticks] ticks, unless he has split by then: nothing of his lands after. */
+    private fun EncounterContext.unlessSplit(ticks: Int, action: EncounterContext.() -> Unit) {
+        after(ticks) { if (!state.split) action() }
+    }
+
+    /**
+     * He splits, at 0 hitpoints: his death animation, and [SPLIT_JELLIES] jellies of [SPLIT_HITPOINTS] hitpoints rising
+     * on tiles of his footprint. [SPLIT_GONE] ticks on he goes from sight, turned into the [unseen] NPC.
+     */
+    private fun EncounterContext.split(jelly: NpcType?, unseen: NpcType?) {
+        state.split = true
+        hold()
+        boss.target = null
+        boss.effects.anim(ANIM_DEATH)
+        // Guessed: no more jellies from jelly gathered before he split.
+        state.gathering.clear()
+        state.riseAt = Long.MAX_VALUE
+        val size = boss.type.size
+        val footprint = (0 until size).flatMap { dx -> (0 until size).map { dz -> Tile(boss.x + dx, boss.z + dz) } }.toMutableList()
+        var split = 0
+        if (jelly != null) {
+            repeat(minOf(SPLIT_JELLIES, footprint.size)) {
+                val tile = footprint.removeAt(roll(0, footprint.size - 1))
+                val npc = spawnAdd(jelly, tile.x, tile.z) ?: return@repeat
+                npc.scriptedAttacks = true
+                npc.unleashed = true
+                npc.passesNpcs = true
+                npc.scaledHitpoints = SPLIT_HITPOINTS
+                npc.hitpoints = SPLIT_HITPOINTS
+                npc.effects.anim(ANIM_JELLY_RISE)
+                state.jellies[npc] = world.tick + JELLY_SPEED
+                state.risen += npc
+                split++
+            }
+        }
+        log("splits into $split jellies")
+        after(SPLIT_GONE) {
+            if (unseen != null) world.npcs.transform(boss, unseen, Npcs.FOREVER)
+            log("gone from sight")
+        }
+    }
+
+    /** A tick after he split: the jellies and jelly on the floor as before, and the room won once every jelly is gone. */
+    private fun EncounterContext.splitTick(jelly: NpcType?) {
+        jelliesAndFloor(jelly)
+        if (phaseTick < SPLIT_GONE || state.risen.any { world.npcs[it.index] === it }) return
+        log("the last jelly gone")
+        // His death does the room, and the fight's end takes the jelly from the floor.
+        boss.dead = true
+        world.removeNpc(boss)
     }
 
     /** Whether the fight is over, the boss dead or gone: nothing lands after. */
