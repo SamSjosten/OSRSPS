@@ -722,6 +722,35 @@
       "source": "OSRS Wiki, Smorks (id 16641), read 2026-11-09: speed 7, ranged and magic, ranged +250 and ranged strength +30, magic +185, the defence bonuses, the 85% earth weakness, immune to poison and freeze (venom unknown, so left off). Their bones (ranged) and potions (magic) come from their fight (Bork), at everyone Bork isn't after (guides). The Wiki lists no max hit: 7 is the most seen in Sam's recording of 2026-11-09 (some 45 hits of bones and potions on a party of four), where the formula's from their Ranged of 185 and +30 would be 28. The bones are vfx_smork_range_attack_projanim01 (4056) landing as vfx_smork_range_player_spotanim01 (4055). Their fight fires at players anywhere in their room; the range is only the file's most, 10. Their tower gone 9 ticks after they fall (tsps capture notes; Sam's recording of 2026-11-09 has the room done that long after). Guessed: the cannon's attack animation for both, the bones' impact, the respawn, which never comes"
     },
     {
+      "npcs": ["tfa_jelly_boss"],
+      "attackSpeed": 4,
+      "maxHit": 45,
+      "attackType": "crush",
+      "attackBonus": 185,
+      "strengthBonus": 35,
+      "defence": { "stab": 15, "slash": 20, "crush": 5, "magic": 20, "light": 100, "standard": 80, "heavy": 80 },
+      "anims": { "attack": "dreadnoth_melee01", "defend": null, "death": "dreadnoth_death01" },
+      "respawnTicks": 50,
+      "weakness": {"element": "fire", "percent": 85},
+      "immune": ["poison"],
+      "drainCap": { "attack": 50, "strength": 50, "ranged": 50, "magic": 50 },
+      "xpBonus": 77.5,
+      "source": "OSRS Wiki, Dreadnoth the Jellied (id 16665), read 2026-11-10: speed 4, max hit 45 (the formula's from his Strength of 285 and +35 too), attack +185 and strength +35, the defence bonuses, the 85% fire weakness, immune to poison, his offensive stats drained by 50% at most (28 October 2026), +77.5% XP. His swing is dreadnoth_melee01 (14779), his death dreadnoth_death01 (14782), by name from the cache; his swings, waves and crawl come from his fight (Dreadnoth). Guessed: crush (the Wiki says only melee), no block animation (tsps capture notes: none of the bosses plays one), the respawn, which never comes. Not in: the Wiki's 40% freeze resistance and 75% demonbane resistance"
+    },
+    {
+      "npcs": ["tfa_jelly_minion"],
+      "attackSpeed": 5,
+      "maxHit": 17,
+      "attackType": "crush",
+      "attackBonus": 0,
+      "strengthBonus": 0,
+      "defence": { "stab": 4, "slash": 5, "crush": 0, "magic": 15, "light": -45, "standard": 18, "heavy": -50 },
+      "anims": { "attack": "jelly_attack", "defend": null, "death": "jelly_death" },
+      "respawnTicks": 50,
+      "weakness": {"element": "fire", "percent": 60},
+      "source": "OSRS Wiki, Jelly (Dreadnoth) (id 16666), read 2026-11-10: speed 5, crush, max hit 17 (the formula's from its Strength of 160), the defence bonuses, the 60% fire weakness. Its hitpoints are the cache's 75 (the tsps capture notes' too; the Wiki's infobox says 61). It attacks with jelly_attack and dies with jelly_death (tsps capture notes); its hits, which drain prayer (Wiki), come from Dreadnoth's fight. Guessed: no block animation, the respawn, which never comes. Not in: the Wiki's 20% freeze resistance"
+    },
+    {
       "npcs": ["tfa_xarth"],
       "attackSpeed": 4,
       "maxHit": 36,

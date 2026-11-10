@@ -32,6 +32,11 @@
       "source": "Ours: Bork's and the Smorks' together, for the anchor of their fight (Bork, raid step 18a), which isn't fought; it carries the party size the fight scales the two to, as ::raid bork party=n sets it"
     },
     {
+      "npcs": ["tfa_jelly_boss"],
+      "hitpoints": [2100, 2100, 3050, 3930, 4810, 5690, 6570, 7460],
+      "source": "OSRS Wiki, Dreadnoth the Jellied, read 2026-11-10; Sam's recordings of 2026-11-09 show 3,930 for four and 4,810 for five"
+    },
+    {
       "npcs": ["tfa_xarth"],
       "hitpoints": [2600, 2600, 3770, 4860, 5950, 7050, 8140, 9230],
       "source": "OSRS Wiki, Xarth (read 2026-11-10); 4,860 for four and 5,950 for five seen on his bar in Sam's recordings of 2026-11-09"

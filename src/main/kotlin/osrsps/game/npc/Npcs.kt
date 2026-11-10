@@ -316,6 +316,15 @@ class Npcs(
     }
 
     /**
+     * [npc] takes one step after [player] now, as a chase does ([follow]), whatever it is doing: for a boss whose fight
+     * sets its pace, as Dreadnoth crawls a tile every two ticks (raid step 20a). Beside them it stays put.
+     */
+    fun stepTowards(npc: Npc, player: Player) {
+        if (npcs[npc.index] !== npc || npc.freezeTicks > 0 || player.level != npc.level) return
+        approach(npc, player.x, player.z)
+    }
+
+    /**
      * One step away from [player], retreating ([osrsps.game.combat.MeleeCombat]): straight away diagonally first, then
      * along either axis, never past its max range of its spawn, standing when it can't. Guessed, as the Wiki says only
      * that it runs away within its max range.
@@ -414,7 +423,8 @@ class Npcs(
         if (!Steps.canStep(collision, npc.level, npc.x, npc.z, dx, dz, size, block, need)) return false
         if (!restrictAllows(npc, dx, dz)) return false
         // Inferred from live, where NPCs don't stack: tiles the NPC steps onto must be free of others. Players don't
-        // block NPCs here; that isn't checked.
+        // block NPCs here; that isn't checked. One that passes through NPCs ([Npc.passesNpcs]) doesn't look.
+        if (npc.passesNpcs) return true
         for (tx in npc.x + dx until npc.x + dx + size) {
             for (tz in npc.z + dz until npc.z + dz + size) {
                 if (!npc.covers(tx, tz) && (occupied[tileKey(tx, tz, npc.level)] ?: 0) > 0) return false
