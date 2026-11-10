@@ -1017,6 +1017,7 @@ object Ocellus {
         forwardBlade()
         val at = phaseTick.toInt()
         if (at == PORTALS_AT) {
+            offTheArms()
             for (arm in Arm.entries) for (index in 0 until PORTALS_PER_ARM) portal(arm, index, false)
             log("portals stand")
         }
@@ -1042,6 +1043,33 @@ object Ocellus {
             log("your time; the Blade; first quadrant ${state.firstQuadrant.name}")
         }
         if (at >= BLADE_AT) quadrantStep(at - BLADE_AT)
+    }
+
+    /**
+     * The portals are about to stand on the arms of the cross: whoever is on an arm or the middle is moved a tile into
+     * the quadrant beside them, the party's if it is one of the two, else the first clockwise from the north-west; from
+     * the middle, into the party's quadrant. Nobody stands under a portal or shelters from the volleys on the cross
+     * (exploit review round 22, R22B-1). Guessed: live may never let a player stand there; the tile they go to.
+     */
+    private fun EncounterContext.offTheArms() {
+        val centre = centre(boss.spawn.x, boss.spawn.z)
+        val party = partyQuadrant()
+        for (player in players) {
+            if (!inArena(centre, player.x, player.z) || quadrant(centre, player.x, player.z) != null) continue
+            val beside = Quadrant.entries.filter { q ->
+                val tile = quadrantTile(centre, q, 1, 1)
+                (player.x - centre.x).sign in setOf(0, (tile.x - centre.x).sign) && (player.z - centre.z).sign in setOf(0, (tile.z - centre.z).sign)
+            }
+            val into = if (party in beside) party else beside.first()
+            val west = into == Quadrant.NW || into == Quadrant.SW
+            val north = into == Quadrant.NW || into == Quadrant.NE
+            val to = Tile(
+                if (player.x == centre.x) centre.x + if (west) -1 else 1 else player.x,
+                if (player.z == centre.z) centre.z + if (north) 1 else -1 else player.z,
+            )
+            world.teleport(player, to.x, to.z, boss.level)
+            log("${player.username} moved off the cross to ${to.x},${to.z}")
+        }
     }
 
     /**
@@ -1204,9 +1232,11 @@ object Ocellus {
         }
         log("$what fires from ${purple.size} portals")
         val hitBy = mapOf(ns to HashSet<Player>(), ew to HashSet<Player>())
-        for (tick in 1..(flight + CYCLES_PER_TICK - 1) / CYCLES_PER_TICK) {
+        val ticks = (flight + CYCLES_PER_TICK - 1) / CYCLES_PER_TICK
+        for (tick in 1..ticks) {
             after(tick) {
                 if (boss.dead) return@after
+                if (lethal && tick == ticks) outsideTheSafeQuadrant(quadrant)
                 for ((arm, index) in purple) {
                     for (out in 1..STRIP_LENGTH) {
                         if ((out * SHOT_CYCLES_PER_TILE + CYCLES_PER_TICK - 1) / CYCLES_PER_TICK != tick) continue
@@ -1219,6 +1249,24 @@ object Ocellus {
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * The last volley in [quadrant] also takes whoever in the arena isn't in the next quadrant clockwise, where its
+     * floor portal leads: on the middle of the cross, or in a quadrant whose turn is yet to come or is past, out of the
+     * volleys' strips (exploit review round 22, R22B-1: a player there was never shot). Nobody just through the floor
+     * portal. Guessed: that live has no such shelter, and how it takes them.
+     */
+    private fun EncounterContext.outsideTheSafeQuadrant(quadrant: Quadrant) {
+        val centre = centre(boss.spawn.x, boss.spawn.z)
+        val safe = Quadrant.entries[(quadrant.ordinal + 1) % Quadrant.entries.size]
+        for (player in players) {
+            if (player.dead || immune(player) || !inArena(centre, player.x, player.z)) continue
+            val at = quadrant(centre, player.x, player.z)
+            if (at == safe || at == quadrant) continue
+            val dealt = fromTheRoom(player, maxOf(1, player.hitpoints))
+            log("last volley takes ${player.username} outside ${safe.name} for $dealt")
         }
     }
 
@@ -1538,6 +1586,10 @@ object Ocellus {
     /** His stepping stones' Jump, on their copies in a run's instance ([ArchiveRaids.INSTANCE_LOCS] has [GAPS]). */
     fun register(world: World) {
         for (gap in GAPS) world.handlers.onLoc(gap, 1) { op -> jump(world, op) }
+        // His second phase is fought only through the Blade on his tiles: no splash of a barrage or chinchompa reaches
+        // him as well, in full (exploit review round 22, R22B-3). He has no Attack then, so nobody is told why.
+        val shutOut = world.combat.shutOut
+        world.combat.shutOut = { player, npc -> npc.type.id == P2 || shutOut(player, npc) }
     }
 
     /** Walking to his corner: a step a tick, a shot every [SHOT_EVERY], and the corner's cracks the tick after he's there. */
