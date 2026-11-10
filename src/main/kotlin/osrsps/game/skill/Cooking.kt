@@ -37,11 +37,20 @@ object CookingLines : Lines("cooking", "Cooking") {
     val BURNT_CHICKEN = line("burnt_chicken", "Cooked chicken: the message on burning it")
     val COOKED_BREAD = line("cooked_bread", "Bread: the message on baking it")
     val BURNT_BREAD = line("burnt_bread", "Bread: the message on burning it")
+    val COOKED_LOBSTER = line("cooked_lobster", "Lobster: the message on cooking one")
+    val BURNT_LOBSTER = line("burnt_lobster", "Lobster: the message on burning one")
+    val COOKED_TUNA = line("cooked_tuna", "Tuna: the message on cooking one")
+    val BURNT_TUNA = line("burnt_tuna", "Tuna: the message on burning one")
+    val COOKED_SWORDFISH = line("cooked_swordfish", "Swordfish: the message on cooking one")
+    val BURNT_SWORDFISH = line("burnt_swordfish", "Swordfish: the message on burning one")
+    val COOKED_SHARK = line("cooked_shark", "Shark: the message on cooking one")
+    val BURNT_SHARK = line("burnt_shark", "Shark: the message on burning one")
 }
 
 /**
- * One food: raw, cooked and burnt objs, the level and XP in tenths, and its success pairs (out of 256): on a fire or
- * range, and on the Lumbridge Castle range. [rangeOnly] food (bread) won't cook on a fire.
+ * One food: raw, cooked and burnt objs, the level and XP in tenths, and its success pairs (out of 256): on a fire (and
+ * on a range, unless [rangeLow] and [rangeHigh] say otherwise), and on the Lumbridge Castle range. [rangeOnly] food
+ * (bread) won't cook on a fire.
  */
 class Food(
     val raw: Int,
@@ -56,6 +65,8 @@ class Food(
     val cookedLine: Line,
     val burntLine: Line,
     val rangeOnly: Boolean = false,
+    val rangeLow: Int = low,
+    val rangeHigh: Int = high,
 )
 
 /**
@@ -71,6 +82,7 @@ class Food(
  * starting on all of it, cooking straight away with only one, the first piece 3 ticks after the choice (as the other
  * gathering skills' first roll), and the burnt items (by the Wiki's Burnt fish pages). Out: cooking gauntlets, the
  * cooking cape, the Hosidius range, wines and other multi-step food, and the sounds (the 241 synth ids have no names).
+ * Lobster, tuna, swordfish and shark came with Fishing and Cooking 2's step FC1.
  */
 class Cooking(private val world: World) {
     /** What each player is cooking, by the fire or range they chose it at. */
@@ -196,9 +208,11 @@ class Cooking(private val world: World) {
     private fun ScriptContext.cookOne(food: Food, loc: ZoneLoc) {
         val slot = player.inventory.contents().firstOrNull { it.second.id == food.raw }?.first ?: return
         player.inventory.remove(slot, 1)
-        val lumbridge = loc.id == LUMBRIDGE_RANGE
-        val low = if (lumbridge) food.lumbridgeLow else food.low
-        val high = if (lumbridge) food.lumbridgeHigh else food.high
+        val (low, high) = when (loc.id) {
+            LUMBRIDGE_RANGE -> food.lumbridgeLow to food.lumbridgeHigh
+            in RANGES -> food.rangeLow to food.rangeHigh
+            else -> food.low to food.high
+        }
         val text = world.textFor(player)
         if (SuccessRoll.roll(world.random, low, high, player.skills.currentLevel(Skill.COOKING))) {
             val cooked = world.objTypes[food.cooked] ?: error("No obj type ${food.cooked} for cooked food")
@@ -270,6 +284,26 @@ class Cooking(private val world: World) {
         val CHICKEN = Food(2138, 2140, 2144, 1, 300, 128, 512, 138, 532, CookingLines.COOKED_CHICKEN, CookingLines.BURNT_CHICKEN)
         val BREAD = Food(2307, 2309, 2311, 1, 400, 118, 492, 128, 512, CookingLines.COOKED_BREAD, CookingLines.BURNT_BREAD, rangeOnly = true)
 
-        val FOODS = listOf(SHRIMPS, ANCHOVIES, SARDINE, HERRING, TROUT, PIKE, SALMON, BEEF, RAT_MEAT, BEAR_MEAT, CHICKEN, BREAD)
+        /**
+         * The cage and harpoon fish (step FC1): levels, XP and pairs are the Wiki's food pages' (read 2026-11-10), whose
+         * burn charts give each pair. Swordfish and shark burn less on a range than on a fire; none of the four is on the
+         * Lumbridge range's list of foods it helps (the Wiki's Cooking range (Lumbridge Castle) page), so it cooks them as
+         * any range does. Tuna burns to burntfish4, the Wiki's Burnt fish (tuna).
+         */
+        val LOBSTER = Food(377, 379, 381, 40, 1200, 38, 332, 38, 332, CookingLines.COOKED_LOBSTER, CookingLines.BURNT_LOBSTER)
+        val TUNA = Food(359, 361, 367, 30, 1000, 58, 372, 58, 372, CookingLines.COOKED_TUNA, CookingLines.BURNT_TUNA)
+        val SWORDFISH = Food(
+            371, 373, 375, 45, 1400, 18, 292, 30, 310, CookingLines.COOKED_SWORDFISH, CookingLines.BURNT_SWORDFISH,
+            rangeLow = 30, rangeHigh = 310,
+        )
+        val SHARK = Food(
+            383, 385, 387, 80, 2100, 1, 202, 1, 232, CookingLines.COOKED_SHARK, CookingLines.BURNT_SHARK,
+            rangeLow = 1, rangeHigh = 232,
+        )
+
+        val FOODS = listOf(
+            SHRIMPS, ANCHOVIES, SARDINE, HERRING, TROUT, PIKE, SALMON, BEEF, RAT_MEAT, BEAR_MEAT, CHICKEN, BREAD,
+            LOBSTER, TUNA, SWORDFISH, SHARK,
+        )
     }
 }
