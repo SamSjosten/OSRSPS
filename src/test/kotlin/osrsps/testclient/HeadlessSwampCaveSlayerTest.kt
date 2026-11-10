@@ -107,8 +107,24 @@ class HeadlessSwampCaveSlayerTest {
                 assertEquals(1, client.held(Rockslugs.BAG_OF_SALT))
                 assertEquals(27, npc.hitpoints)
 
-                client.npcOp(view.index, 2)
-                client.await("the rockslug at 1", timeoutMillis = 60_000) { if (npc.hitpoints == 1) Unit else null }
+                // A bystander with salt of their own, ready before the fight.
+                server.login("eve").use { eve ->
+                    eve.await("eve's login rebuild") { eve.position }
+                    eve.commandReply("god") { it.startsWith("You can") }
+                    eve.command("setlevel slayer 35")
+                    eve.tele(3221, 9573)
+                    val eveView = eve.await("the rockslug in eve's view") { eve.npcs().firstOrNull { it.index == view.index } }
+                    eve.command("item ${Rockslugs.BAG_OF_SALT} 1")
+                    val eveSlot = eve.slot(Rockslugs.BAG_OF_SALT)
+
+                    client.npcOp(view.index, 2)
+                    client.await("the rockslug at 1", timeoutMillis = 60_000) { if (npc.hitpoints == 1) Unit else null }
+                    // Alice's rockslug in the single-way caves: eve can't salt it.
+                    eve.npcTarget(eveView.index, InventoryTab.INTERFACE, InventoryTab.ITEMS, eveSlot, Rockslugs.BAG_OF_SALT)
+                    eve.seen("[combat.someone_else]")
+                    assertEquals(1, eve.held(Rockslugs.BAG_OF_SALT))
+                    assertFalse(npc.dead)
+                }
                 client.awaitTicks(2)
                 val xp = client.stat(ATTACK)!!.xp
                 client.awaitTicks(8)

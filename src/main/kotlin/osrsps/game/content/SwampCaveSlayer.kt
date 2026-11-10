@@ -19,7 +19,7 @@ object SwampCaveSlayerLines : Lines("swamp_slayer", "OSRS Wiki, Rockslug, Bag of
  * The Lumbridge Swamp Caves' rockslugs (Misthalin piece 7 step 3b), from the OSRS Wiki's Rockslug and Bag of salt pages:
  * no hit takes one below 1 hitpoint ([osrsps.game.combat.NpcCombatDef.minHitpoints]), and down there it stops fighting
  * and wanders off. A bag of salt used on one at 4 or less finishes it; on one at 5 or more the bag is used up for
- * nothing. A brine sabre wielded kills them outright ([osrsps.game.combat.Combat.finishers]).
+ * nothing; someone else's rockslug can't be salted in the single-way caves. A brine sabre wielded kills them outright ([osrsps.game.combat.Combat.finishers]).
  *
  * Guessed: the messages; no animation for the salting; no XP for the salt's kill. Out: the Slug salter perk (Slayer
  * rewards aren't built).
@@ -40,6 +40,15 @@ fun registerRockslugs(world: World) {
             if (npc.dead || world.npcs[npc.index] !== npc) return@onObjOnNpc
             if (world.combat.slayerGated(player, npc)) {
                 world.message(player, CombatLines.SLAYER_LEVEL)
+                return@onObjOnNpc
+            }
+            // Single-way: not someone else's rockslug, nor while another monster fights them, as any attack.
+            if (world.meleeCombat.underAttackByAnother(player, npc)) {
+                world.message(player, CombatLines.ALREADY_UNDER_ATTACK)
+                return@onObjOnNpc
+            }
+            if (world.meleeCombat.foughtByAnother(player, npc)) {
+                world.message(player, CombatLines.SOMEONE_ELSE)
                 return@onObjOnNpc
             }
             val slot = op.sub.takeIf { it >= 0 && player.inventory[it]?.id == Rockslugs.BAG_OF_SALT } ?: return@onObjOnNpc
