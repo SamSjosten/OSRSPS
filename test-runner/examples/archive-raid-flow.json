@@ -476,15 +476,15 @@
   },
   {
    "step": "locOption",
-   "locId": 62765,
+   "locId": 62766,
    "option": "Exit",
    "timeoutMs": 20000,
-   "comment": "STAND-IN until the reward room (step 28): the Passageway put at the south edge of Ocellus's room once the run is done, out to the lobby"
+   "comment": "tfa_exit_large, the vault's own Passageway across the south end of its corridor (4124,5625 on the level above the nexus's): out to the lobby once the run is done (a guess, until the reward room, step 28)"
   },
   {
    "step": "waitTicks",
-   "ticks": 15,
-   "comment": "the walk to the Passageway, a few tiles south, and its teleport"
+   "ticks": 20,
+   "comment": "the walk down the corridor to the Passageway, ten tiles south of the landing, and its teleport"
   },
   {
    "step": "command",
