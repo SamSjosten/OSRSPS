@@ -45,6 +45,7 @@ class HeadlessArchiveRaidTest {
             listOf(
                 type(ArchiveRaids.ARCHIVE_DOOR, "Archive Door", 9, 1, "Enter"),
                 type(ArchiveRaids.PASSAGEWAY, "Passageway", 5, 2, "Exit"),
+                type(ArchiveRaids.VAULT_PASSAGEWAY, "Passageway", 7, 2, "Exit"),
                 type(ArchiveRaids.OCELLUS_DOOR_SHUT, "Archive Door", 7, 2),
                 type(ArchiveRaids.OCELLUS_DOOR_OPEN, "Archive Door", 7, 2, "Enter", "Quick-enter"),
             ) + ArchiveRaids.DOORS.map { type(it, "Door", 5, 1, "Enter", "Quick-enter") } +
@@ -71,6 +72,8 @@ class HeadlessArchiveRaidTest {
                 add(ZoneLoc(room.door, LocShape.CENTREPIECE_STRAIGHT, if (room.side == osrsps.game.raid.DoorSide.WEST) 3 else 1, doorX(room), ArchiveRaids.doorZ(room.stage), level))
             }
         }
+        // The vault's Passageway, across the south end of its corridor on the level above each of the nexus's.
+        for (level in listOf(1, 3)) add(ZoneLoc(ArchiveRaids.VAULT_PASSAGEWAY, LocShape.CENTREPIECE_STRAIGHT, 0, 4124, 5625, level))
         for ((room, locs) in roomLocs) {
             val (passage, transporter) = locs
             add(ZoneLoc(ArchiveRaids.PASSAGEWAY, LocShape.CENTREPIECE_STRAIGHT, passage.third, passage.first, passage.second, 0))
@@ -144,20 +147,22 @@ class HeadlessArchiveRaidTest {
         awaitAt(raids.tile(run, back.x, back.z), "out beside ${room.boss}'s door")
     }
 
-    /** The level of the cache's nexus the client draws the instance's nexus from. */
-    private fun HeadlessClient.nexusLevel(server: TestServer, run: ArchiveRun): Int? {
+    /** The level of the cache's nexus the client draws the instance's nexus from, on the instance's [level]. */
+    private fun HeadlessClient.nexusLevel(server: TestServer, run: ArchiveRun, level: Int = 0): Int? {
         val hall = server.world.archiveRaids.tile(run, 4127, 5590)
-        return regionZones()?.get(Triple(hall.x shr 3, hall.z shr 3, 0))?.level
+        return regionZones()?.get(Triple(hall.x shr 3, hall.z shr 3, level))?.level
     }
 
     private fun HeadlessClient.goThrough(server: TestServer, username: String, rooms: List<ArchiveRoom>, passagewayIn: ArchiveRoom? = null, outByExit: Boolean = false) {
         val run = enter(server, username)
         assertTrue(runSays().contains("next Archive Guardian"))
         assertEquals(ArchiveRaids.NEXUS_START, nexusLevel(server, run))
+        assertEquals(ArchiveRaids.NEXUS_START + 1, nexusLevel(server, run, level = 1), "the level above it on the instance's level 1")
         // Into the hall: the Guardian's fight, done at once with no Guardian yet.
         command("raid tp guardian")
         awaitRun("the Guardian's room done") { ArchiveRoom.GUARDIAN in run.cleared }
         await("the nexus with the Guardian's corpse") { nexusLevel(server, run)?.takeIf { it == ArchiveRaids.NEXUS_CAMP } }
+        assertEquals(ArchiveRaids.NEXUS_CAMP + 1, nexusLevel(server, run, level = 1), "the level above the camp's on the instance's level 1, as live copies it")
         // The Archive Door north is shut, and still blocks its tiles on the level laid over the nexus.
         val door = server.world.archiveRaids.tile(run, ArchiveRaids.OCELLUS_DOOR_X, ArchiveRaids.OCELLUS_DOOR_Z)
         fun doorOf(id: Int) = ZoneLoc(id, LocShape.CENTREPIECE_STRAIGHT, 0, door.x, door.z, ArchiveRaids.NEXUS_PLANE)
@@ -174,27 +179,47 @@ class HeadlessArchiveRaidTest {
         awaitTicks(4)
         assertEquals(ArchiveRaids.NEXUS_PLANE, position?.level, "still in the nexus")
         assertTrue(ArchiveRoom.OCELLUS !in run.started)
+        // North of the door the nexus's square is the vault's: the south end of its corridor, on the level above, shut
+        // by the vault's own Passageway, which does nothing until the run is done.
+        val raids = server.world.archiveRaids
+        val corridor = raids.tile(run, 4127, 5628)
+        assertEquals(ArchiveRoom.OCELLUS, raids.roomAt(run, corridor.x, corridor.z))
+        assertTrue(!raids.inNexus(run, corridor.x, corridor.z))
+        assertEquals(ArchiveRoom.GUARDIAN, raids.roomAt(run, door.x + 3, door.z - 1))
+        assertTrue(raids.inNexus(run, door.x + 3, door.z - 1))
+        val exitTile = raids.tile(run, 4124, 5625)
+        val exit = ZoneLoc(ArchiveRaids.VAULT_PASSAGEWAY, LocShape.CENTREPIECE_STRAIGHT, 0, exitTile.x, exitTile.z, ArchiveRoom.OCELLUS.level)
+        assertTrue(server.world.locs.exists(exit), "the vault's Passageway, from the cache's level above the nexus's")
+        for (dx in 0 until 7) for (dz in 0 until 2) {
+            assertTrue(!server.world.canStand(exitTile.x + dx, exitTile.z + dz, ArchiveRoom.OCELLUS.level), "the Passageway blocks +$dx, +$dz")
+        }
+        command("raid tp 4127 5628")
+        awaitAt(corridor, "the south end of the vault's corridor", ArchiveRoom.OCELLUS.level)
+        assertTrue(runSays().contains("You're in Ocellus's room, at 4127, 5628"), runSays())
+        locOp(ArchiveRaids.VAULT_PASSAGEWAY, exitTile.x, exitTile.z, ArchiveRaids.EXIT)
+        awaitTicks(4)
+        // Walked to, a tile south, and no further.
+        assertEquals(Coord(corridor.x, corridor.z - 1, ArchiveRoom.OCELLUS.level), position, "the vault's Passageway does nothing before the run is done")
+        assertTrue(ArchiveRoom.OCELLUS !in run.started, "nor does standing in the vault begin Ocellus's room before its turn")
+        command("raid tp ${ArchiveRaids.OCELLUS_DOOR_FRONT_X} ${ArchiveRaids.OCELLUS_DOOR_FRONT_Z}")
+        awaitAt(server.world.archiveRaids.tile(run, ArchiveRaids.OCELLUS_DOOR_FRONT_X, ArchiveRaids.OCELLUS_DOOR_FRONT_Z), "back in front of the Archive Door north")
         for (room in rooms) through(server, run, room, passageway = room == passagewayIn)
         // Live stays on the camp's level for the visit after the fourth room too (Sam's recording); the door opens.
         assertEquals(ArchiveRaids.NEXUS_CAMP, nexusLevel(server, run))
         assertTrue(server.world.locs.exists(doorOf(ArchiveRaids.OCELLUS_DOOR_OPEN)), "the Archive Door north, open")
         assertTrue(!server.world.locs.exists(doorOf(ArchiveRaids.OCELLUS_DOOR_SHUT)))
         await("the open Archive Door in view") { (shown(ArchiveRaids.OCELLUS_DOOR_OPEN) && !shown(ArchiveRaids.OCELLUS_DOOR_SHUT)).takeIf { it } }
-        // Ocellus's room's stand-in exit isn't there until the run is done.
-        val exitTile = server.world.archiveRaids.tile(run, ArchiveRaids.OCELLUS_EXIT_X, ArchiveRaids.OCELLUS_EXIT_Z)
-        val exit = ZoneLoc(ArchiveRaids.PASSAGEWAY, LocShape.CENTREPIECE_STRAIGHT, 0, exitTile.x, exitTile.z, ArchiveRoom.OCELLUS.level)
-        assertTrue(!server.world.locs.exists(exit), "no exit from Ocellus's room before it is done")
         locOp(ArchiveRaids.OCELLUS_DOOR_OPEN, door.x, door.z, if (outByExit) ArchiveRaids.QUICK_ENTER else ArchiveRaids.ENTER)
         // His arena is on the vault's upper floor, as live has it.
         awaitAt(server.world.archiveRaids.tile(run, ArchiveRoom.OCELLUS.entryX, ArchiveRoom.OCELLUS.entryZ), "Ocellus's room", ArchiveRoom.OCELLUS.level)
         awaitRun("the run complete") { it.contains("; complete;") }
         // Solo, every room's points are the one player's.
         assertTrue(runSays().contains("points $username ${ArchiveRaids.ROOM_POINTS * 5}"), runSays())
-        assertTrue(server.world.locs.exists(exit), "the stand-in exit from Ocellus's room once the run is done")
+        assertTrue(server.world.locs.exists(exit), "the vault's Passageway is still there, on the camp's upper level")
         if (outByExit) {
-            // Out by the stand-in Passageway, to the lobby in front of the Archive Door.
-            locOp(ArchiveRaids.PASSAGEWAY, exit.x, exit.z, ArchiveRaids.EXIT)
-            awaitAt(Tile(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z), "out to the lobby by Ocellus's room's exit")
+            // Out by the vault's Passageway, down the corridor: to the lobby in front of the Archive Door.
+            locOp(ArchiveRaids.VAULT_PASSAGEWAY, exit.x, exit.z, ArchiveRaids.EXIT)
+            awaitAt(Tile(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z), "out to the lobby by the vault's Passageway")
         } else {
             // Out by teleport.
             tele(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z)
