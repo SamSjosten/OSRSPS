@@ -1,6 +1,9 @@
 package osrsps.game.skill
 
+import osrsps.game.Player
 import osrsps.game.Skill
+import osrsps.game.WearPos
+import osrsps.game.Wilderness
 import osrsps.game.World
 import osrsps.game.dialogue.Lines
 import osrsps.game.script.Op
@@ -21,13 +24,36 @@ object MiningLines : Lines("mining", "Mining") {
     val EMPTY = line("empty", "the message on Mine on a rock with no ore left")
     val ESSENCE = line("essence", "the message for each essence mined at the Rune Essence rock (2004Scape's)")
     val ESSENCE_FULL = line("essence_full", "the message on Mine on the Rune Essence rock with a full backpack (2004Scape's)")
+    val GEM_ROCK_OPAL = line("gem_rock_opal", "the message on mining an uncut opal from a gem rock")
+    val GEM_ROCK_JADE = line("gem_rock_jade", "the message on mining an uncut jade from a gem rock")
+    val GEM_ROCK_RED_TOPAZ = line("gem_rock_red_topaz", "the message on mining an uncut red topaz from a gem rock")
+    val GEM_ROCK_SAPPHIRE = line("gem_rock_sapphire", "the message on mining an uncut sapphire from a gem rock")
+    val GEM_ROCK_EMERALD = line("gem_rock_emerald", "the message on mining an uncut emerald from a gem rock")
+    val GEM_ROCK_RUBY = line("gem_rock_ruby", "the message on mining an uncut ruby from a gem rock")
+    val GEM_ROCK_DIAMOND = line("gem_rock_diamond", "the message on mining an uncut diamond from a gem rock")
+    val GEM_ROCK_FULL = line("gem_rock_full", "the message on Mine on a gem rock with a full backpack")
 }
 
 /** A pickaxe: its tool for [SkillTools], its ticks between rolls, and a chance of one tick fewer (dragon, crystal). */
 class Pickaxe(val tool: SkillTool, val ticks: Int, val fastNumerator: Int = 0, val fastDenominator: Int = 1)
 
-/** One kind of rock: level, XP in tenths, the ore, its success pair (out of 256) and ticks to come back. */
-class RockType(val key: String, val level: Int, val xpTenths: Int, val ore: Int, val low: Int, val high: Int, val respawn: Int)
+/**
+ * One kind of rock: level, XP in tenths, the ore, its success pair (out of 256) and ticks to come back. Most rocks empty
+ * on their first ore; [minYield] to [maxYield] ores for those that last longer (amethyst). A [gemRock] gives a gem from
+ * [Mining.GEM_ROCK_TABLE] in place of [ore] and has no pre-roll at the mining gem table.
+ */
+class RockType(
+    val key: String,
+    val level: Int,
+    val xpTenths: Int,
+    val ore: Int,
+    val low: Int,
+    val high: Int,
+    val respawn: Int,
+    val minYield: Int = 1,
+    val maxYield: Int = 1,
+    val gemRock: Boolean = false,
+)
 
 /**
  * Mining: Mine on a rock with ore checks the backpack, level and pickaxe, then rolls every few ticks (the pickaxe's
@@ -39,9 +65,23 @@ class RockType(val key: String, val level: Int, val xpTenths: Int, val ore: Int,
  * the gem table; each rock's pair is fitted to the Wiki's success chart points, which it matches exactly; the flow of a
  * swing (the click starts the clock, the message and animation, the roll when due, re-running the op each tick) is the
  * 2004Scape project's mining script. Guessed: which empty rock each rock becomes (rockN to rocksN, as the gamevals pair
- * them); the swing message and animation on the click's own tick (2004Scape waits a tick). Out: the amulet of glory's
- * gem chance, mining gloves, Varrock armour and other extra-ore items, the prospector kit, rock golems, gem rocks.
+ * them; runite and gem rocks share their models); the swing message and animation on the click's own tick (2004Scape
+ * waits a tick). Out: mining gloves, Varrock armour and other extra-ore items, the prospector kit, rock golems,
+ * unidentified minerals, the Mining Guild's doors and level 60 (it is reached by ::tele), the visible-boost cap at 99.
  * No sounds: the 241 synth ids have no names.
+ *
+ * Gathering 2, step G1 (OSRS Wiki, Runite rocks, Amethyst crystals, Gem rocks, Mining Guild and the mining gem table
+ * template, read 2026-11-10):
+ * - Runite rocks (85, 125 XP, pair 1/18) respawn in 12 minutes, 6 in the Mining Guild and the Wilderness.
+ * - Amethyst crystals (92, 240 XP, pair -18/10, Mining Guild only) give 2 to 3 amethysts before they become an empty
+ *   wall for 75 seconds; mining goes on between them. Guessed: the count is drawn evenly on the first amethyst and kept
+ *   until the crystals empty.
+ * - Gem rocks (40, 65 XP, pair 28/70, 84/210 with a charged amulet of glory: Shilo Village and the Lunar Isle mine) give
+ *   one gem from their own table and respawn in 99 ticks; they never roll the mining gem table.
+ * - A charged amulet of glory adds a second 3/256 roll at the mining gem table when the first misses (1/64.2 overall).
+ * - The Mining Guild's members' area gives an invisible +7 to the success roll (not to the level a rock needs) and
+ *   halves every rock's respawn but amethyst's (inferred: amethyst grows nowhere else, so its 75 seconds is the
+ *   guild's). Inferred: the area's bounds, drawn around every members' rock tile the Wiki lists.
  *
  * The Rune Essence rock (`blankrunestone` 34773, in the rune essence mine) is its own kind: every roll succeeds, at the
  * pickaxe's interval, it never empties and has no gem table, and it gives pure essence from Mining 30 (the world counts
@@ -51,6 +91,9 @@ class RockType(val key: String, val level: Int, val xpTenths: Int, val ore: Int,
 class Mining(private val world: World) {
     val tools = SkillTools(Skill.MINING, PICKAXES.map { it.tool })
     private val pickaxes = PICKAXES.associateBy { it.tool.obj }
+
+    /** Ores left in each part-mined rock that lasts more than one ore, by tile; at most one entry per such rock. */
+    private val yieldsLeft = HashMap<Long, Int>()
 
     fun register() {
         for ((locId, rock) in ROCKS) {
@@ -76,11 +119,11 @@ class Mining(private val world: World) {
         // As for woodcutting: a box opened since the last tick (the level-up an ore gave) ends it.
         if (op.repeat && player.modalOpen) return stop()
         val text = world.textFor(player)
-        val ore = world.objTypes[rock.type.ore]
+        val type = rock.type
         // Live names the metal or mineral ("some copper"), not the ore item: the rock's key.
-        val oreName = rock.type.key
+        val oreName = type.key
         if (player.inventory.freeSlots == 0) {
-            player.message(text[MiningLines.INVENTORY_FULL, "ore" to oreName])
+            player.message(if (type.gemRock) text[MiningLines.GEM_ROCK_FULL] else text[MiningLines.INVENTORY_FULL, "ore" to oreName])
             return stop()
         }
         if (player.skills.currentLevel(Skill.MINING) < rock.type.level) {
@@ -104,23 +147,58 @@ class Mining(private val world: World) {
         val ticks = if (player.actionDelay < tick) interval(pickaxe) + (if (op.repeat) 0 else 1) else 1
         if (SkillClock.step(player, tick, ticks) == ClockStep.DUE) {
             player.anim(tool.anim)
-            if (world.random.chance(GEM_TABLE_CHANCE, GEM_TABLE_DENOMINATOR)) {
+            val guild = inGuild(loc.x, loc.z, loc.level)
+            val level = player.skills.currentLevel(Skill.MINING) + if (guild) GUILD_BOOST else 0
+            val glory = wearsChargedGlory(player)
+            if (type.gemRock) {
+                val low = if (glory) type.low * GLORY_GEM_ROCK_MULTIPLIER else type.low
+                val high = if (glory) type.high * GLORY_GEM_ROCK_MULTIPLIER else type.high
+                if (SuccessRoll.roll(world.random, low, high, level)) {
+                    val gem = BirdNests.pick(world.random, GEM_ROCK_TABLE)
+                    val gemType = world.objTypes[gem] ?: error("No obj type $gem for a gem rock's gem")
+                    world.locs.replace(loc, rock.empty, revertAfter = respawn(type, loc.x, loc.z, loc.level))
+                    player.inventory.add(gemType, 1)
+                    player.skills.addTenths(Skill.MINING, type.xpTenths)
+                    GEM_ROCK_LINES[gem]?.let { player.message(text[it]) }
+                    return stop()
+                }
+            } else if (gemTableRoll(glory)) {
                 val gem = BirdNests.pick(world.random, GEMS)
                 if (gem != NOTHING) {
-                    val type = world.objTypes[gem] ?: error("No obj type $gem for a mined gem")
-                    player.inventory.add(type, 1)
+                    val gemType = world.objTypes[gem] ?: error("No obj type $gem for a mined gem")
+                    player.inventory.add(gemType, 1)
                     GEM_LINES[gem]?.let { player.message(text[it]) }
                 }
-            } else if (SuccessRoll.roll(world.random, rock.type.low, rock.type.high, player.skills.currentLevel(Skill.MINING))) {
-                ore ?: error("No obj type ${rock.type.ore} for ${rock.type.key} ore")
-                world.locs.replace(loc, rock.empty, revertAfter = rock.type.respawn)
+            } else if (SuccessRoll.roll(world.random, type.low, type.high, level)) {
+                val ore = world.objTypes[type.ore] ?: error("No obj type ${type.ore} for ${type.key} ore")
+                val emptied = takeYield(type, loc.x, loc.z, loc.level)
+                if (emptied) world.locs.replace(loc, rock.empty, revertAfter = respawn(type, loc.x, loc.z, loc.level))
                 player.inventory.add(ore, 1)
-                player.skills.addTenths(Skill.MINING, rock.type.xpTenths)
+                player.skills.addTenths(Skill.MINING, type.xpTenths)
                 player.message(text[MiningLines.GET_ORE, "ore" to oreName])
-                return stop()
+                if (emptied) return stop()
+                // Crystals with ore left: the swing goes on (a full backpack ends it on the next run).
             }
         }
         world.repeatOp(player, op)
+    }
+
+    /** The mining gem table's roll: 1/256, and with a charged glory a second 3/256 when that misses. */
+    private fun gemTableRoll(glory: Boolean): Boolean =
+        world.random.chance(GEM_TABLE_CHANCE, GEM_TABLE_DENOMINATOR) ||
+            (glory && world.random.chance(GLORY_GEM_TABLE_CHANCE, GEM_TABLE_DENOMINATOR))
+
+    /** Takes one ore from the rock at the tile; true when that was its last and it empties. */
+    private fun takeYield(type: RockType, x: Int, z: Int, level: Int): Boolean {
+        if (type.maxYield <= 1) return true
+        val key = tileKey(x, z, level)
+        val left = (yieldsLeft[key] ?: world.random.between(type.minYield, type.maxYield)) - 1
+        if (left <= 0) {
+            yieldsLeft.remove(key)
+            return true
+        }
+        yieldsLeft[key] = left
+        return false
     }
 
     /** Mine on the Rune Essence rock: an essence each roll until the backpack is full. */
@@ -166,6 +244,8 @@ class Mining(private val world: World) {
         player.anim(-1)
     }
 
+    private fun tileKey(x: Int, z: Int, level: Int): Long = (level.toLong() shl 40) or (x.toLong() shl 20) or z.toLong()
+
     /** A rock loc and the empty rock it becomes. */
     class Rock(val type: RockType, val empty: Int)
 
@@ -195,6 +275,42 @@ class Mining(private val world: World) {
         private val GOLD = RockType("gold", 40, 650, 444, 7, 75, 100)
         private val MITHRIL = RockType("mithril", 55, 800, 447, 4, 50, 200)
         private val ADAMANTITE = RockType("adamantite", 70, 950, 449, 2, 25, 400)
+        private val RUNITE = RockType("runite", 85, 1250, 451, 1, 18, 1200)
+        private val AMETHYST = RockType("amethyst", 92, 2400, 21347, -18, 10, 125, minYield = 2, maxYield = 3)
+        private val GEM_ROCK = RockType("gem", 40, 650, NOTHING, 28, 70, 99, gemRock = true)
+
+        /** Runite's respawn in the Wilderness (OSRS Wiki, Runite rocks); the Wiki gives no Wilderness time for others. */
+        const val RUNITE_WILDERNESS_RESPAWN = 600
+
+        /** The Mining Guild's members' area: the invisible boost and the halved respawns. */
+        const val GUILD_BOOST = 7
+        private const val GUILD_WEST = 2998
+        private const val GUILD_EAST = 3059
+        private const val GUILD_SOUTH = 9695
+        private const val GUILD_NORTH = 9729
+
+        /** Whether the tile is in the Mining Guild's members' area (inferred bounds; the free area starts at 9732). */
+        fun inGuild(x: Int, z: Int, level: Int): Boolean = level == 0 && x in GUILD_WEST..GUILD_EAST && z in GUILD_SOUTH..GUILD_NORTH
+
+        /** Ticks until a rock of [type] mined at the tile comes back. */
+        fun respawn(type: RockType, x: Int, z: Int, level: Int): Int = when {
+            // Inferred: amethyst grows only in the guild, so the Wiki's 75 seconds is already the guild's time.
+            type === AMETHYST -> type.respawn
+            inGuild(x, z, level) -> type.respawn / 2
+            type === RUNITE && Wilderness.level(x, z) > 0 -> RUNITE_WILDERNESS_RESPAWN
+            else -> type.respawn
+        }
+
+        /** Every charged amulet of glory, the trimmed and eternal ones too (OSRS Wiki, mining gem table). */
+        val CHARGED_GLORIES = setOf(
+            1706, 1708, 1710, 1712, 11976, 11978, // amulet_of_glory_1 to _6
+            10360, 10358, 10356, 10354, 11966, 11964, // trail_amulet_of_glory_1 to _6
+            19707, // amulet_of_glory_inf
+        )
+        const val GLORY_GEM_TABLE_CHANCE = 3
+        const val GLORY_GEM_ROCK_MULTIPLIER = 3
+
+        fun wearsChargedGlory(player: Player): Boolean = player.equipment[WearPos.NECK]?.id in CHARGED_GLORIES
 
         /** blankrunestone, the rune essence mine's four outcrops. */
         const val ESSENCE_ROCK = 34773
@@ -208,7 +324,8 @@ class Mining(private val world: World) {
 
         const val ROCKS1 = 11390 // rocks1
         const val ROCKS2 = 11391 // rocks2
-        val EMPTY_ROCKS = listOf(ROCKS1, ROCKS2)
+        const val AMETHYST_EMPTY = 11393 // amethystrock_empty, "Empty wall"
+        val EMPTY_ROCKS = listOf(ROCKS1, ROCKS2, AMETHYST_EMPTY)
 
         /**
          * Rock locs by gameval (rockN becomes rocksN). Pairs fitted to the Wiki's charts, respawns from its pages in
@@ -234,6 +351,12 @@ class Mining(private val world: World) {
             11373 to Rock(MITHRIL, ROCKS2), // mithrilrock2
             11374 to Rock(ADAMANTITE, ROCKS1), // adamantiterock1
             11375 to Rock(ADAMANTITE, ROCKS2), // adamantiterock2
+            11376 to Rock(RUNITE, ROCKS1), // runiterock1
+            11377 to Rock(RUNITE, ROCKS2), // runiterock2
+            11388 to Rock(AMETHYST, AMETHYST_EMPTY), // amethystrock1
+            11389 to Rock(AMETHYST, AMETHYST_EMPTY), // amethystrock2
+            11380 to Rock(GEM_ROCK, ROCKS1), // gemrock1
+            11381 to Rock(GEM_ROCK, ROCKS2), // gemrock
         )
 
         /** The mining gem table: 128 in 32,768 a roll (1/256), most of it gems. */
@@ -250,6 +373,22 @@ class Mining(private val world: World) {
             NestEntry(1621, 16), // uncut_emerald
             NestEntry(1619, 8), // uncut_ruby
             NestEntry(1617, 2), // uncut_diamond
+        )
+
+        /** A gem rock's gem, out of 128 (OSRS Wiki, Gem rocks). */
+        val GEM_ROCK_TABLE = listOf(
+            NestEntry(1625, 60), // uncut_opal
+            NestEntry(1627, 30), // uncut_jade
+            NestEntry(1629, 15), // uncut_red_topaz
+            NestEntry(1623, 9), // uncut_sapphire
+            NestEntry(1621, 5), // uncut_emerald
+            NestEntry(1619, 5), // uncut_ruby
+            NestEntry(1617, 4), // uncut_diamond
+        )
+        val GEM_ROCK_LINES = mapOf(
+            1625 to MiningLines.GEM_ROCK_OPAL, 1627 to MiningLines.GEM_ROCK_JADE, 1629 to MiningLines.GEM_ROCK_RED_TOPAZ,
+            1623 to MiningLines.GEM_ROCK_SAPPHIRE, 1621 to MiningLines.GEM_ROCK_EMERALD, 1619 to MiningLines.GEM_ROCK_RUBY,
+            1617 to MiningLines.GEM_ROCK_DIAMOND,
         )
     }
 }

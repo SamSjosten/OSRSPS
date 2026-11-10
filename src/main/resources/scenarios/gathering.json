@@ -1,0 +1,12 @@
+{
+  "about": "In the Mining Guild's members' area beside its runite rocks with 99 Mining and a rune pickaxe, for the Gathering 2 steps.",
+  "notes": "Runite at 3056, 9721 and 3054, 9725; amethyst crystals to the south-west (::tele 3018 9702). Shilo Village's gem rocks: ::tele 2824 3001. A charged amulet of glory is worn (the gem rocks' tripled chance and the gem table's extra roll); take it off to compare. The loadout is ours.",
+  "position": { "x": 3055, "z": 9721, "level": 0 },
+  "skills": { "mining": 99 },
+  "inventory": [
+    { "item": "rune_pickaxe" }
+  ],
+  "equipment": [
+    { "item": "amulet_of_glory_4" }
+  ]
+}
