@@ -894,10 +894,12 @@ as `Op.sub`. The inventory is saved with the player.
 | Dragging swaps two slots; a click on a slot that holds something else is dropped | RSMod / inferred |
 | An option or "Use" nothing handles says live's "nothing interesting" message (`game.nothing_interesting`) | from memory of live |
 | Bury on bones: a message (`bones.dig`), seq 827, the player stops; a tick later the bones go, the Prayer XP comes and a second message (`bones.buried`) (bones, burnt bones 4.5 XP, big bones 15, dragon bones 72) | XP from the Wiki; the steps from the 2004Scape project's script; no sound yet (its 241 synth id isn't known) |
+| Scatter on demonic ashes: fiendish 10 Prayer XP, vile 25, malicious 65, abyssal 85, infernal 110 | XP from the Wiki (Remains, read 2026-11-10); seq 2295 (farming_ingredient_sprinkle), the one-tick delay as a bury, and one message a tick later (`bones.scattered`) guessed |
 | Stacks stop at 2,147,483,647; `::item` adds what fits | client limit; adding part is ours |
 
 Check: `::item 1351` puts a bronze axe in your inventory; drag it to another slot; Examine it. `::item bones 2`, then Bury both: Prayer XP goes to 9
-(`test-runner/examples/lumbridge-bury-bones.json` does it in the real client).
+(`test-runner/examples/lumbridge-bury-bones.json` does it in the real client). `::item 25769`, then Scatter: 25 Prayer XP
+(`scatter-ashes.json`).
 
 ## Bank
 
