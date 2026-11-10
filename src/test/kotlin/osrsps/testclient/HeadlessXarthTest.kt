@@ -22,6 +22,7 @@ import osrsps.game.loc.StaticLocs
 import osrsps.game.npc.Npc
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.raid.ArchiveRaids
+import osrsps.game.raid.Bork
 import osrsps.game.raid.ArchiveRoom
 import osrsps.game.raid.ArchiveRun
 import osrsps.game.raid.PartyScaling
@@ -47,14 +48,20 @@ class HeadlessXarthTest {
     )
     private val heap = NpcType(Xarth.HEAP, "Rubble", size = 2, internalName = "tfa_xarth_rubble_npc")
     private val heapDown = NpcType(Xarth.HEAP_DOWN, "Rubble", size = 2, internalName = "tfa_xarth_rubble_npc_destroyed")
+    private val corpse = NpcType(
+        Xarth.CORPSE, "Corpse", ops = listOf(null, "Attack", null, null, null), internalName = "tfa_xarth_corpse",
+        stats = NpcStats(attack = 50, defence = 100, strength = 40, hitpoints = 62, ranged = 1, magic = 100),
+    )
     private val grave = NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null))
-    private val types = NpcTypes.of(xarth, heap, heapDown, grave)
+    private val types = NpcTypes.of(xarth, heap, heapDown, corpse, grave)
 
     private val locTypes = LocTypes(
         mapOf(
             ArchiveRaids.ARCHIVE_DOOR to LocType(ArchiveRaids.ARCHIVE_DOOR, "Archive Door", ops = listOf("Enter", null, null, null, null), collision = LocCollisionType(width = 9, length = 1)),
             Xarth.LOC_BLOCKING to LocType(Xarth.LOC_BLOCKING, collision = LocCollisionType(blocksProjectile = false)),
             Xarth.LOC_HEAP_BLOCKING to LocType(Xarth.LOC_HEAP_BLOCKING, collision = LocCollisionType(width = 2, length = 2, blocksProjectile = false)),
+            // Guessed, as in Xarth.kt: a fire on the floor doesn't block the way.
+            Xarth.LOC_ARENA_FIRE to LocType(Xarth.LOC_ARENA_FIRE, collision = LocCollisionType(interactType = 0, blocksProjectile = false)),
         ),
     )
     private val staticLocs = StaticLocs().apply { add(ZoneLoc(ArchiveRaids.ARCHIVE_DOOR, LocShape.CENTREPIECE_STRAIGHT, 0, 4123, 5562, 0)) }
@@ -176,6 +183,16 @@ class HeadlessXarthTest {
         assertEquals(10..11, Xarth.burnRange(2))
         assertEquals(13..14, Xarth.burnRange(3))
         assertEquals(13..14, Xarth.burnRange(9))
+        // A Corpse heads for the tile beside him along his nearest side, never one off a corner.
+        assertEquals(Tile(99, 101), Xarth.besideTile(100, 100, 95, 101))
+        assertEquals(Tile(101, 103), Xarth.besideTile(100, 100, 101, 108))
+        assertEquals(Tile(99, 100), Xarth.besideTile(100, 100, 92, 95))
+        assertEquals(Tile(100, 99), Xarth.besideTile(100, 100, 97, 92))
+        for (x in 90..112) for (z in 90..112) {
+            if (x in 100..102 && z in 100..102) continue
+            val to = Xarth.besideTile(100, 100, x, z)
+            assertTrue(Bork.beside(100, 100, Xarth.SIZE, to.x, to.z), "from $x,$z to $to")
+        }
     }
 
     @Test
@@ -190,7 +207,7 @@ class HeadlessXarthTest {
                 alice.ontoArena(server, run)
                 val begun = alice.await("his fight") { alice.fight().takeIf { it.startsWith("xarth #") } }
                 // A party of one counts as two: the Wiki's 2,600. Three heaps.
-                assertTrue(begun.contains("Xarth 2600/2600 hp, 3 heaps standing, 0 waves; 1 players, 3 adds"), begun)
+                assertTrue(begun.contains("Xarth 2600/2600 hp, 3 heaps standing, 0 waves, 0 fires, 0 corpses; 1 players, 3 adds"), begun)
                 val world = server.world
                 val at = world.archiveRaids.tile(run, ArchiveRaids.XARTH_X, ArchiveRaids.XARTH_Z)
                 val him = boss(run)
@@ -219,15 +236,121 @@ class HeadlessXarthTest {
                 assertEquals(2L * Xarth.CYCLE, tickOf(third) - tickOf(wave))
                 val second = lines(run).first { it.contains(": wave 2 ") }
                 assertTrue(second.endsWith("wave 2 east, east heap falling"), second)
-                alice.awaitLine(run, "phase two") { it.endsWith(": phase two (stand-in)") }
+                val two = alice.awaitLine(run, "phase two") { it.contains(": phase two: ") }
+                assertEquals(1L, tickOf(two) - tickOf(third), "phase two the tick after the third wave")
                 alice.await("every heap down") { assertNotNull(run.fights[ArchiveRoom.XARTH]).adds.takeIf { adds -> adds.none { it.type.id == Xarth.HEAP } } }
                 // He dies: the room is done, and nothing of his fight is left.
                 alice.commandReply("hit 2600 ${him.index}") { it.startsWith("Hit ") }
                 alice.await("his room done") { ArchiveRoom.XARTH.takeIf { it in run.cleared } }
                 assertNull(run.fights[ArchiveRoom.XARTH])
-                assertTrue(world.npcs.all.none { it.type.id == Xarth.HEAP || it.type.id == Xarth.HEAP_DOWN })
+                assertTrue(world.npcs.all.none { it.type.id == Xarth.HEAP || it.type.id == Xarth.HEAP_DOWN || it.type.id == Xarth.CORPSE })
                 // His body goes once his death animation is over (npc-combat.json's 6 ticks).
                 alice.await("his body gone") { him.takeIf { world.npcs[it.index] !== it } }
+            }
+        }
+    }
+
+    @Test
+    fun `in phase two the fires spread and burn, he shoots and swings, and Corpses that walk to him, heal him and set off the blast`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                alice.await("the login rebuild") { alice.position }
+                alice.commandReply("god on") { it.startsWith("You can't be hurt") }
+                val start = assertNotNull(alice.position)
+                alice.commandReply("raid xarth phase=two seed=19") { it.startsWith("Started") }
+                val world = server.world
+                val fight = world.encounters.all.single()
+                val him = fight.boss
+                val lines = { fight.lines.toList() }
+                fun awaitLine(what: String, predicate: (String) -> Boolean): String = try {
+                    alice.await(what, timeoutMillis = 30_000) { lines().lastOrNull(predicate) }
+                } catch (e: AssertionError) {
+                    throw AssertionError("${e.message}; the fight's last lines: ${lines().takeLast(12)}", e)
+                }
+                assertEquals(Tile(start.x, start.z), Tile(him.x, him.z))
+                // Out from under him, five tiles west of his footprint.
+                alice.tele(him.x - 5, him.z + 1)
+                // The first fires, each 1 to 7 tiles off his footprint, none under him.
+                val opened = awaitLine("phase two") { it.contains(": phase two: ") }
+                val fires = opened.substringAfter(" fires, on ").split(' ').map { s -> s.split(',').let { Tile(it[0].toInt(), it[1].toInt()) } }
+                assertEquals(Xarth.TWO_FIRES, fires.size, opened)
+                for (f in fires) assertTrue(Bork.distance(him.x, him.z, Xarth.SIZE, f.x, f.z) in Xarth.FIRE_OUT_MIN..Xarth.FIRE_OUT_MAX, "$f")
+                assertTrue(fires.all { world.locs.at(it.x, it.z, him.level).any { l -> l.id == Xarth.LOC_ARENA_FIRE } }, "the fires' locs")
+                // He's hurt, so a Corpse's heal shows.
+                alice.commandReply("hit 1000 ${him.index}") { it.startsWith("Hit ") }
+                // His first two shots, 4 ticks apart, at her (the only one there).
+                awaitLine("the second shot") { lines().count { l -> l.contains(": shoots at alice") } >= 2 }
+                val shots = lines().filter { it.contains(": shoots at alice") }.map(::tickOf)
+                assertEquals(4L, shots[1] - shots[0])
+                // The cycle: two Corpses raised 2 ticks apart, each rising 3 ticks on at an edge tile.
+                val raised = awaitLine("a corpse raised") { it.contains(": raises a corpse at ") }
+                assertEquals(Xarth.TWO_CYCLE_FROM.toLong() - Xarth.TWO_SHOTS_AT[0], tickOf(raised) - shots[0])
+                val risen = awaitLine("a corpse risen") { it.contains(": a corpse rises at ") }
+                assertEquals(Xarth.CORPSE_AFTER.toLong(), tickOf(risen) - tickOf(raised))
+                assertEquals(raised.substringAfter(" at "), risen.substringAfter(" at "))
+                val edge = risen.substringAfter(" at ").split(',').let { Tile(it[0].toInt(), it[1].toInt()) }
+                assertTrue(Xarth.inArena(him.x, him.z, edge.x, edge.z))
+                assertTrue(Xarth.Side.entries.any { !Xarth.inArena(him.x, him.z, edge.x + it.dx, edge.z + it.dz) }, "$edge on the edge")
+                // They walk to him; the first absorbed heals him twice its 62, the second sets off the blast.
+                val first = awaitLine("the first absorbed") { it.contains(": absorbs a corpse with 62 left, 1 absorbed") }
+                assertTrue(lines().any { it.endsWith(": heals 124") && tickOf(it) == tickOf(first) }, lines().takeLast(8).toString())
+                assertTrue(him.hitpoints >= 1600 + 124, "${him.hitpoints}")
+                val second = awaitLine("the second absorbed") { it.contains(", 2 absorbed") }
+                val blast = awaitLine("the flame blast") { it.endsWith(": flame blast") && tickOf(it) >= tickOf(second) }
+                assertEquals(tickOf(second), tickOf(blast))
+                val all = awaitLine("the blast") { it.endsWith(": the blast all round") }
+                assertEquals(Xarth.WAVE_AFTER_BLAST.toLong(), tickOf(all) - tickOf(blast))
+                assertTrue(lines().any { it.contains(": blast hits alice for 0") }, lines().takeLast(8).toString())
+                assertTrue(lines().any { it.contains(": alice burns, ") && tickOf(it) == tickOf(all) }, "set alight")
+                // The fires spread: 3 more, each next to one burning.
+                val spread = awaitLine("the spread") { it.contains(": the fires spread to ") }
+                val more = spread.substringAfter(" spread to ").split(' ').map { s -> s.split(',').let { Tile(it[0].toInt(), it[1].toInt()) } }
+                assertEquals(Xarth.SPREAD_FIRES, more.size)
+                assertTrue(alice.commandReply("raid") { it.startsWith("xarth #") }.contains("${Xarth.TWO_FIRES + Xarth.SPREAD_FIRES} fires"))
+                // On a fire she's hurt and set alight.
+                val fire = fires.first()
+                alice.tele(fire.x, fire.z)
+                awaitLine("the fire under her") { it.contains(": fire under alice for 0") }
+                // Beside him he swings instead of shooting.
+                alice.tele(him.x - 1, him.z + 1)
+                awaitLine("his swing") { it.contains(": swings at alice for 0") }
+                // He dies: the Corpses, fires and his footprint go with his fight.
+                alice.commandReply("hit 9000 ${him.index}") { it.startsWith("Hit ") }
+                alice.await("his fight over") { world.encounters.all.isEmpty().takeIf { it } }
+                assertTrue(world.npcs.all.none { it.type.id == Xarth.CORPSE })
+                assertTrue(fires.none { world.locs.at(it.x, it.z, him.level).any { l -> l.id == Xarth.LOC_ARENA_FIRE } })
+            }
+        }
+    }
+
+    @Test
+    fun `a Corpse frozen stands where it is, even beside him, and one killed is never absorbed`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                alice.await("the login rebuild") { alice.position }
+                alice.commandReply("god on") { it.startsWith("You can't be hurt") }
+                alice.commandReply("raid xarth phase=two seed=5") { it.startsWith("Started") }
+                val world = server.world
+                val fight = world.encounters.all.single()
+                val him = fight.boss
+                alice.tele(him.x - 5, him.z + 1)
+                alice.await("a corpse", timeoutMillis = 30_000) { fight.adds.firstOrNull { it.type.id == Xarth.CORPSE } }
+                val corpses = alice.await("two corpses", timeoutMillis = 30_000) { fight.adds.filter { it.type.id == Xarth.CORPSE }.takeIf { it.size >= 2 } }
+                val (frozen, killed) = corpses.sortedBy { it.index }
+                // Frozen, it doesn't move; killed, it dies where it stands and is never absorbed.
+                assertTrue(world.npcs.freeze(frozen, 20))
+                val at = Tile(frozen.x, frozen.z)
+                alice.commandReply("hit 62 ${killed.index}") { it.startsWith("Hit ") }
+                alice.awaitTicks(8)
+                assertEquals(at, Tile(frozen.x, frozen.z))
+                assertTrue(fight.lines.none { it.contains(": absorbs a corpse") }, fight.lines.takeLast(8).toString())
+                // Frozen beside him it isn't absorbed (the Wiki's freeze a tile out); once it thaws it is.
+                world.npcs.teleport(frozen, him.x - 1, him.z + 1)
+                alice.awaitTicks(4)
+                assertTrue(fight.lines.none { it.contains(": absorbs a corpse") }, fight.lines.takeLast(8).toString())
+                alice.await("absorbed once it thaws", timeoutMillis = 30_000) { frozen.takeIf { world.npcs[it.index] !== it } }
+                assertTrue(fight.lines.any { it.contains(": absorbs a corpse with 62 left") }, fight.lines.takeLast(8).toString())
+                alice.await("the killed one gone") { killed.takeIf { world.npcs[it.index] !== it } }
             }
         }
     }

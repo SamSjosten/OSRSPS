@@ -770,6 +770,20 @@
       "source": "OSRS Wiki, Xarth (id 16684), read 2026-11-10: speed 4, magic in phase one with max hit 36 (ranged 34 and slash 34 come with phase two, raid step 19b), magic attack +250, ranged strength +30, the defence bonuses, the 85% water weakness, immune to poison and venom, Defence drained to 60% at most (the 21 October 2026 hotfix), +180% XP. His fireball is luc2_undead_demon_fireball_proj_big (4034) and his death xarth_death_01; he and the fight's NPCs go 6 ticks after he falls (tsps capture notes, RSPSApp/tsps docs/fractured-archive.md). His shots come from his fight (Xarth), at players anywhere in his arena; the range is only the file's most. Guessed: no block animation (tsps: none of the bosses plays one), the respawn, which never comes. Not in: the 20% demonbane resistance and the 50% cap on lowering his other stats (28 October 2026)"
     },
     {
+      "npcs": ["tfa_xarth_corpse"],
+      "attackSpeed": 4,
+      "maxHit": 0,
+      "attackType": "crush",
+      "attackBonus": 0,
+      "strengthBonus": 0,
+      "defence": { "stab": 100, "slash": 100, "crush": 100, "magic": 0, "light": -20, "standard": 80, "heavy": 80 },
+      "anims": { "attack": null, "defend": null, "death": "xarth_corpse_death_01" },
+      "respawnTicks": 50,
+      "weakness": {"element": "water", "percent": 40},
+      "deathTicks": 4,
+      "source": "OSRS Wiki, Corpse (Xarth) (id 16687), read 2026-11-10: 62 hitpoints (the cache's), no attack (max hit 0), the defence bonuses, the 40% water weakness (its 100% fire weakness left off: one element only here). It never fights; its fight (Xarth, raid step 19b) walks it to him. Gone 4 ticks after it dies (tsps capture notes). Guessed: the respawn, which never comes"
+    },
+    {
       "npcs": ["tfa_guardian_battery_active", "tfa_guardian_battery_inactive", "tfa_guardian_battery_destroyed"],
       "attackSpeed": 4, "maxHit": 0, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
       "defence": { "stab": 0, "slash": 20, "crush": -20, "magic": -20, "light": 0, "standard": 0, "heavy": 0 },

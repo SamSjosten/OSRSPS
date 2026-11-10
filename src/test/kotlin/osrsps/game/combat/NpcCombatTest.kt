@@ -74,7 +74,7 @@ class NpcCombatTest {
             "npc_ezekiel_melee01" to 14685, "npc_ezekiel_death01" to 14689,
             "npc_bork_gong_melee01" to 14542, "npc_bork_death01" to 14541, "npc_smork_cannon_attack01" to 14554,
             "dreadnoth_melee01" to 14779, "dreadnoth_death01" to 14782, "jelly_attack" to 1586, "jelly_death" to 1587,
-            "xarth_attack_magic_01" to 14984, "xarth_death_01" to 14995,
+            "xarth_attack_magic_01" to 14984, "xarth_death_01" to 14995, "xarth_corpse_death_01" to 15003,
             "demon_attack" to 64, "demon_block" to 65, "demon_death" to 67,
             "shade_attack" to 1283, "shade_block" to 1286, "shade_sink" to 1287,
             "monalisk_cave_bug_attack" to 6079, "monalisk_cave_bug_defend" to 6080, "monalisk_mini_cave_bug_death" to 6082,
@@ -638,6 +638,17 @@ class NpcCombatTest {
         assertTrue(him.poisonImmune && him.venomImmune && !him.freezeImmune)
         assertEquals(6, him.deathTicks)
         assertEquals(listOf(115, 105, 20, 205), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { him.defence.against(it) })
+    }
+
+    @Test
+    fun `Xarth's Corpse never fights, and goes four ticks after it dies`() {
+        val corpse = NpcType(16687, "Corpse", internalName = "tfa_xarth_corpse", stats = NpcStats(attack = 50, defence = 100, strength = 40, hitpoints = 62, ranged = 1, magic = 100))
+        val it = NpcCombat.load(NpcTypes.of(corpse), seqs)[corpse]!!
+        assertEquals(0, it.maxHit)
+        assertEquals(NpcCombatAnims(-1, -1, 15003), it.anims)
+        assertEquals(ElementalWeakness(Element.WATER, 40), it.weakness)
+        assertEquals(4, it.deathTicks)
+        assertEquals(listOf(100, 100, 100, 0), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { c -> it.defence.against(c) })
     }
 
     @Test

@@ -1,5 +1,5 @@
 {
- "name": "Raid step 19a: Xarth solo, his fight beginning as the player takes the room's transporter onto his arena, at the Wiki's hitpoints with his three rubble heaps; phase one's fireballs under Protect from Magic, the AoE binding the player, the flame blast and three waves, a heap falling with each, then phase two (a stand-in until 19b), and his death doing the room",
+ "name": "Raid steps 19a and 19b: Xarth solo, his fight beginning as the player takes the room's transporter onto his arena, at the Wiki's hitpoints with his three rubble heaps; phase one's fireballs under Protect from Magic, the AoE binding the player, the flame blast and three waves, a heap falling with each, then phase two's fires, shots, Corpses and the fires spreading, and his death doing the room",
  "account": "test",
  "steps": [
   {
@@ -201,13 +201,49 @@
   {
    "step": "command",
    "text": "::raid log 100",
-   "expectMessage": ": phase two (stand-in)",
-   "comment": "STAND-IN until step 19b: he stands and does nothing"
+   "expectMessage": ": phase two: 7 fires",
+   "comment": "phase two the tick after the third wave (raid step 19b): seven arena fires (tfa_xarth_arenafire) 1 to 7 tiles off his footprint"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 30,
+   "comment": "his shots at 7 and 11 ticks in; from 15 a 21-tick cycle: two Corpses raised 2 ticks apart, rising 3 ticks on, shots from 5, the fires spreading at 12"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 100",
+   "expectMessage": ": shoots at test",
+   "comment": "xarth_attack_ranged_01 and its projectile; Protect from Magic doesn't block it, and god mode keeps it at 0"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 100",
+   "expectMessage": ": raises a corpse at ",
+   "comment": "his magic attack animation at an edge tile of the arena"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 100",
+   "expectMessage": ": a corpse rises at ",
+   "comment": "tfa_xarth_corpse, walking a tile a tick to him"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 100",
+   "expectMessage": ": the fires spread to ",
+   "comment": "three more fires next to burning ones"
+  },
+  {
+   "step": "assertAnimation",
+   "npc": "Xarth",
+   "id": 14985,
+   "timeoutMs": 10000,
+   "comment": "xarth_attack_ranged_01: his next shot of the cycle"
   },
   {
    "step": "command",
    "text": "::raid",
-   "expectMessage": "0 heaps standing, 3 waves"
+   "expectMessage": "0 heaps standing, 3 waves, "
   },
   {
    "step": "command",
