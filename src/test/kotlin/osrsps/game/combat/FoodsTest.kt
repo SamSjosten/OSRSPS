@@ -21,9 +21,11 @@ class FoodsTest {
     private val halfMeatPie = food(2331, "half_a_meat_pie", "Half a meat pie")
     private val pieDish = ObjType(2313, "Pie dish", internalName = "piedish")
     private val anglerfish = food(13441, "anglerfish", "Anglerfish")
-    private val objTypes = ObjTypes.of(shark, karambwan, meatPie, halfMeatPie, pieDish, anglerfish)
+    private val poisonKarambwan = food(3146, "tbwt_poorly_cooked_karambwan", "Poison karambwan")
+    private val objTypes = ObjTypes.of(shark, karambwan, meatPie, halfMeatPie, pieDish, anglerfish, poisonKarambwan)
     private val messages = mutableListOf<String>()
-    private val foods = Foods(Foods.load(objTypes), message = { _, text -> messages += text })
+    private val hits = mutableListOf<Int>()
+    private val foods = Foods(Foods.load(objTypes), message = { _, text -> messages += text }, hit = { _, damage -> hits += damage })
 
     private val alice = Player(1, "alice", 3222, 3218, 0).apply {
         skills.setLevel(Skill.HITPOINTS, 99)
@@ -38,8 +40,8 @@ class FoodsTest {
 
     @Test
     fun `the file is read against the cache, skipping foods it doesn't have`() {
-        // The test cache has 6 of the file's objs, so 5 foods.
-        assertEquals(setOf(shark.id, karambwan.id, meatPie.id, halfMeatPie.id, anglerfish.id), foods.all.keys)
+        // The test cache has 7 of the file's objs, so 6 foods.
+        assertEquals(setOf(shark.id, karambwan.id, meatPie.id, halfMeatPie.id, anglerfish.id, poisonKarambwan.id), foods.all.keys)
         assertEquals(Food(shark.id, "shark", 20), foods.all[shark.id])
         val bite = foods.all.getValue(halfMeatPie.id)
         assertEquals(pieDish.id, bite.next)
@@ -117,6 +119,24 @@ class FoodsTest {
         assertEquals(121, alice.hitpoints)
         eat(1, 13)
         assertEquals(121, alice.hitpoints, "no further than 22 past the level")
+    }
+
+    @Test
+    fun `a poison karambwan hits for 5 from 6 hitpoints instead of healing, with the karambwan's messages`() {
+        give(poisonKarambwan, poisonKarambwan, karambwan)
+        eat(0, 10)
+        assertEquals(listOf("[food.eat_karambwan food=poison karambwan]", "[food.painful]"), messages)
+        assertEquals(listOf(5), hits)
+        assertEquals(50, alice.hitpoints, "the hit lands through combat, not here")
+        assertNull(alice.inventory[0])
+        // The Wiki: it doesn't hurt below 6 hitpoints. It is a combo food, as the cooked one.
+        alice.hitpoints = 5
+        eat(1, 13)
+        assertEquals(listOf(5), hits)
+        assertTrue(foods.all.getValue(poisonKarambwan.id).combo)
+        messages.clear()
+        eat(2, 16)
+        assertEquals(listOf("[food.eat_karambwan food=cooked karambwan]", "[food.heals]"), messages)
     }
 
     @Test
