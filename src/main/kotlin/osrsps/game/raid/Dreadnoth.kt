@@ -59,8 +59,8 @@ object DreadnothLines : Lines("tfa_dreadnoth", "The_Fractured_Archive/Strategies
  *   [SPLATTER_LANDS] ticks on and lies there.
  * - At 0 hitpoints he doesn't die but splits (20c, [split]): his death animation, and [SPLIT_JELLIES] jellies of
  *   [SPLIT_HITPOINTS] hitpoints rising from his footprint. The room is won ([splitTick]) once his death animation's
- *   [SPLIT_GONE] ticks are over and every jelly is gone, which ends the fight and clears the jelly from the floor. Till
- *   then he stands at 0, as the engine can't yet hide an NPC that is still in a fight (not in yet: his going from sight).
+ *   [SPLIT_GONE] ticks are over and every jelly is gone, which ends the fight and clears the jelly from the floor. Once
+ *   his death animation is over he goes from sight ([osrsps.game.World.hide]), at 0, his fight going on without him.
  *
  * From the OSRS Wiki (Dreadnoth the Jellied and Jelly (Dreadnoth), read 2026-11-10): his stats and bonuses, 5 by 5,
  * the 4-tick attack speed, max hit 45, the 85% fire weakness, poison immunity, the 50% cap on his offensive stats'
@@ -108,7 +108,8 @@ object DreadnothLines : Lines("tfa_dreadnoth", "The_Fractured_Archive/Strategies
  * as it lands (the 90-cycle exact move isn't sent: NPC exact moves aren't built), the shadow shown as he jumps.
  * For his death: the split jellies rising on tiles of his footprint as his death animation begins, at once and past
  * [MAX_JELLIES]; nothing of his still in the air landing once he splits, and no more jellies rising from gathered jelly;
- * every jelly, the waves' too, having to go before the room is won, and not before [SPLIT_GONE] ticks (as Xarth's six).
+ * every jelly, the waves' too, having to go before the room is won, and not before [SPLIT_GONE] ticks (as Xarth's six);
+ * his going from sight as that animation ends, not as it begins.
  */
 object Dreadnoth {
     /** What `::raid` and the raid flow know the fight by. */
@@ -777,7 +778,10 @@ object Dreadnoth {
     /** A tick after he split: the jellies and jelly on the floor as before, and the room won once every jelly is gone. */
     private fun EncounterContext.splitTick(jelly: NpcType?) {
         jelliesAndFloor(jelly)
-        if (phaseTick < SPLIT_GONE || state.risen.any { world.npcs[it.index] === it }) return
+        if (phaseTick < SPLIT_GONE) return
+        // His death animation over, he goes from sight, the fight going on till the last jelly is gone.
+        if (world.hide(boss)) log("goes from sight")
+        if (state.risen.any { world.npcs[it.index] === it }) return
         log("the last jelly gone")
         // His death does the room, and the fight's end takes the jelly from the floor.
         boss.dead = true
