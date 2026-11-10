@@ -40,6 +40,11 @@
       "npcs": ["tfa_xarth"],
       "hitpoints": [2600, 2600, 3770, 4860, 5950, 7050, 8140, 9230],
       "source": "OSRS Wiki, Xarth (read 2026-11-10); 4,860 for four and 5,950 for five seen on his bar in Sam's recordings of 2026-11-09"
+    },
+    {
+      "npcs": ["tfa_ocellus_p1"],
+      "hitpoints": [2500, 2500, 3630, 4680, 5730, 6780, 7830, 8880],
+      "source": "OSRS Wiki, Ocellus's Hitpoints table, phase 1, read 2026-11-10; 4680 and 5730 seen on the live bar in Sam's recordings of 2026-11-09"
     }
   ]
 }
