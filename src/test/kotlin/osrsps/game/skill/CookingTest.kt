@@ -230,4 +230,55 @@ class CookingTest {
         // No pair is listed twice.
         assertEquals(CookingMixes.PAIRS.size, CookingMixes.PAIRS.map { setOf(it.first, it.second) }.toSet().size)
     }
+
+    @Test
+    fun `stew and curry cook from the Wiki's levels and XP on a fire, and stop burning where their charts do`() {
+        assertEquals(listOf(25 to 1170, 60 to 2800), listOf(Cooking.STEW, Cooking.CURRY).map { it.level to it.xpTenths })
+        assertEquals(listOf(false, false), listOf(Cooking.STEW, Cooking.CURRY).map { it.rangeOnly })
+        fun stops(low: Int, high: Int) = (1..99).firstOrNull { SuccessRoll.chance(low, high, it) >= 256 }
+        // The pages: stew 58, 54 at Lumbridge; curry 74 anywhere. The Lumbridge chart's pair (78/412, meat pie's)
+        // reaches 256 a level before the text's 54, as meat pie's does; the chart's pair stands.
+        assertEquals(58, stops(Cooking.STEW.low, Cooking.STEW.high))
+        assertEquals(53, stops(Cooking.STEW.lumbridgeLow, Cooking.STEW.lumbridgeHigh))
+        assertEquals(74, stops(Cooking.CURRY.low, Cooking.CURRY.high))
+        assertEquals(74, stops(Cooking.CURRY.lumbridgeLow, Cooking.CURRY.lumbridgeHigh))
+    }
+
+    @Test
+    fun `stew, curry and wine mix by the Wiki's recipes, curry leaves three at a time`() {
+        val byKey = CookingMixes.PAIRS.flatMap { it.third }.associateBy { it.key }
+        for (key in listOf("stew_add_meat", "stew_add_chicken", "stew_add_potato")) {
+            assertEquals(Cooking.STEW.raw, byKey.getValue(key).product, key)
+            assertEquals(Cooking.STEW.level, byKey.getValue(key).level, key)
+        }
+        for (key in listOf("curry_spice", "curry_leaves")) {
+            assertEquals(Cooking.CURRY.raw, byKey.getValue(key).product, key)
+            assertEquals(Cooking.CURRY.level, byKey.getValue(key).level, key)
+        }
+        assertEquals(3, byKey.getValue("curry_leaves").inputs.single { it.obj == CookingMixes.CURRY_LEAF }.count)
+        val wine = byKey.getValue("wine")
+        assertEquals(listOf(35, 0, 3, 2), listOf(wine.level, wine.xpTenths, wine.first, wine.interval))
+        assertEquals(Wine.UNFERMENTED, wine.product)
+        // 48/352 at 35, the level it needs, and never failing from 68.
+        assertEquals(68, (1..99).first { SuccessRoll.chance(Wine.LOW, Wine.HIGH, it) >= 256 })
+    }
+
+    @Test
+    fun `the churn makes cream, butter and cheese at the Wiki's levels, XP and ticks, from each input`() {
+        val got = Churn.RECIPES.associate { (it.inputs.single().obj to it.product) to listOf(it.level, it.xpTenths, it.interval) }
+        assertEquals(
+            mapOf(
+                (Churn.MILK to Churn.CREAM) to listOf(21, 180, 10),
+                (Churn.CREAM to Churn.BUTTER) to listOf(38, 225, 10),
+                (Churn.MILK to Churn.BUTTER) to listOf(38, 405, 19),
+                (Churn.BUTTER to Churn.CHEESE) to listOf(48, 235, 10),
+                (Churn.CREAM to Churn.CHEESE) to listOf(48, 460, 19),
+                (Churn.MILK to Churn.CHEESE) to listOf(48, 640, 26),
+            ),
+            got,
+        )
+        for (recipe in Churn.RECIPES) {
+            assertEquals(if (recipe.inputs.single().obj == Churn.MILK) listOf(1925) else emptyList(), recipe.byproducts.map { it.obj }, recipe.key)
+        }
+    }
 }

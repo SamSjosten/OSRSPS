@@ -566,7 +566,11 @@ only); lobster, tuna, swordfish and shark came with Fishing and Cooking 2's step
 multi-step food (`game/skill/CookingMixes.kt`, words under `cooking_mix.*`): flour and water into bread, pastry, pizza or
 pitta dough, pie shells and every pie's fillings (three at a time for mud, garden, fish, admiral, wild and summer pies),
 a pizza's tomato, cheese and topping, and a cake's egg, flour and milk, each pair through the Make-X box, then baked on a
-range. With more than one to cook, the chatbox's Make-X box (`skillmulti`, interface 270, set up by client script
+range. Step FC5b adds stew (a potato and cooked meat or chicken in a bowl of water) and curry (spice, or three
+curry leaves, in an uncooked stew), cooked on a fire or range; wine (grapes in a jug of water), which ferments 20 ticks
+after the last jug is made, every unfermented wine in the backpack and the bank at once, a jug of wine for 200 XP or a jug
+of bad wine (`game/skill/Wine.kt`; a login with unfermented wine starts the wait again); and the dairy churn
+(`game/skill/Churn.kt`), whose Make-X box turns milk, cream or butter into cream, butter or cheese. With more than one to cook, the chatbox's Make-X box (`skillmulti`, interface 270, set up by client script
 2046) asks which and how many; a resume_pausebutton from one of its items starts the job. Lumbridge Castle's kitchen
 range (114) burns less. The cooking re-runs every tick on the loc (`World.repeatOp`).
 
@@ -815,9 +819,10 @@ RuneLite `test-runner/examples/magic-teleports.json`.
 
 ### Thieving: more pickpockets and their gear
 
-Thieving 2 step T1a (`game/skill/Pickpocketing.kt`, `game/skill/PickpocketGear.kt`). Pickpocket now works on the
+Thieving 2 steps T1a and T1b (`game/skill/Pickpocketing.kt`, `game/skill/PickpocketGear.kt`). Pickpocket now works on the
 farmers (nine on Misthalin's farms, `npc-spawns/lumbridge-farms.json`, with their combat and drops), Al Kharid's man and
-warriors, and Edgeville's guards. Gloves of silence and the dodgy necklace work when worn.
+warriors, Edgeville's guards, and Kandarin's and the Wilderness's rogues, Knights of Ardougne, watchmen, paladins, gnomes
+and heroes (reached by `::tele`). Gloves of silence and the dodgy necklace work when worn.
 
 | Pickpocketing behaviour | Source |
 |-------------------------|--------|
@@ -828,7 +833,18 @@ warriors, and Edgeville's guards. Gloves of silence and the dodgy necklace work 
 | Dodgy necklace: one failure in four costs no stun and no damage and uses a charge; the tenth crumbles it; Check gives the charges left | OSRS Wiki, Dodgy necklace |
 | Both items' counts belong to the player, not the item (`player.charges`) | OSRS Wiki, both pages |
 | The bands between the gloves' Check messages; after a saved failure the next pickpocket comes 2 ticks later; the gloves wear even when the necklace saves; the necklace's and the gloves' last messages; "farmer" and "Al Kharid warrior" in the messages and their caught line; the farmers' animations and wander | guessed |
-| Not built: repairing the gloves, the necklace's Break, the Ardougne diary, Shadow Veil, Rocky; the pickpockets outside Misthalin (steps T1b and T1c) | next steps |
+| Rogues: level 32, 36.5 XP, 75 to 240, 2 damage; a table out of 144 (a pouch of 25 to 40 coins 123, 8 air runes 9, a jug of wine 6, a lockpick 5, a poisoned iron dagger 1); 22 in Rogues' Castle and south-west of the Mage Arena (`npc-spawns/rogues-castle.json`) | OSRS Wiki, Rogue, Coin pouch (read 2026-11-10); mejrs NPCList_OSRS.json |
+| Knights of Ardougne: 55, 84.3 XP, 50 to 240, 3 damage, a pouch of 50, a 4.8-second stun (8 ticks) | OSRS Wiki, Knight of Ardougne |
+| Watchmen: 65, 137.5 XP, 15 to 160, 3 damage, a pouch of 60 and a bread every time | OSRS Wiki, Watchman |
+| Paladins: 70, 131.8 XP, 40 to 170, 3 damage, a pouch of 80 and 2 chaos runes every time, an 8-tick stun | OSRS Wiki, Paladin |
+| Gnomes (the men, women and children alike, but for the women's and children's 133.5 XP): 75, 133.3 XP, 43 to 175, 1 damage; a table out of 128 (2 to 4 arrow shafts 56, a pouch of 300 30, a swamp toad 24, gold ore 8, an earth rune 5, a king worm 3, a fire orb 2) | OSRS Wiki, Gnome, Gnome woman, Gnome child |
+| Heroes: 80, 163.3 XP, 39 to 160, 3 damage; a table out of 128 (a pouch of 200 to 300 105, 2 death runes 8, a jug of wine 6, a blood rune 5, a fire orb 2, a diamond 1, gold ore 1); a 6-second stun (10 ticks) | OSRS Wiki, Hero |
+| Warriors: Ardougne's (the pre-2022 warrior woman type) and the 2022 types join the warrior's pocket | OSRS Wiki, Warrior (Thieving) |
+| No room: a pickpocket needs a slot for a new pouch and one for each extra it gives that isn't a stack already held | guessed (the Wiki gives the extras, not the room they need) |
+| Where they stand: East Ardougne's 5 knights, 22 paladins (the castle's two floors among them), 3 heroes and 10 warriors, the Watchtower's 4 watchmen, the Tree Gnome Stronghold's 153 gnomes (`npc-spawns/thieving-kandarin.json`) | mejrs NPCList_OSRS.json (live, pre-Nov 2022) |
+| Their combat: the Wiki's speeds, max hits, bonuses and respawns | OSRS Wiki, each NPC's infobox |
+| The T1b NPCs' caught line (the townsfolk's), their names in the messages, their animations, their wander; the gnomes' max hit 1 (the Wiki's, where the formula gives 0) | guessed |
+| Not built: repairing the gloves, the necklace's Break, the Ardougne diary, Shadow Veil, Rocky, the clue scrolls from pickpocketing; the T1b NPCs' drops; West Ardougne, the Mourner Tunnels, Tree Gnome Village and the Battlefield; the far pickpockets (step T1c) | next steps |
 
 `::scenario thieving` stands you beside a farmer on the farm south of Varrock with 99 Thieving and Hitpoints, 54
 Hunter, gloves of silence and a dodgy necklace worn, a spare necklace and food.
@@ -2699,7 +2715,8 @@ dragon and barb-tail harpoons in the bank: every fish Fishing and Cooking 2 has 
 Musa Point's spots are at `::tele 2924 3178`, Karamja's karambwanji spots at `::tele 2791 3018`, karambwan spots at
 `::tele 2899 3118`, the Piscatoris monkfish spots at `::tele 2326 3699` and Port Piscarilius's anglerfish spots at
 `::tele 1827 3769`. The bank holds flour, water, pie dishes, cooking apples, tomatoes, cheese, cake tins, eggs, milk and
-chocolate for pies, pizzas and cakes.
+chocolate for pies, pizzas and cakes, and bowls of water, potatoes, cooked meat, spice, curry leaves, grapes and jugs of
+water for stews, curries and wine; the Lumbridge east farm's dairy churn is at `::tele 3226 3293`.
 
 `lumbridge-cows` stands you in the Lumbridge cow field (3259, 3263, a tile picked from the cow spawns) with 20 Attack,
 Strength, Defence and Hitpoints, iron armour, an iron scimitar, an amulet of strength, five lobsters, a bronze axe, a

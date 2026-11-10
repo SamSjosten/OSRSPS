@@ -182,6 +182,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `thieving-t1a.json`: Thieving 2 step T1a: a farmer pickpocketed at 99 with the gloves of silence and its coin
   pouches opened, Check on carried gloves and a dodgy necklace, and an Al Kharid warrior and an Edgeville guard
   pickpocketed (with `::keys on` and `::god on`; the gloves' wear and the necklace's saves are in the headless test).
+- `thieving-t1b.json`: Thieving 2 step T1b: a Knight of Ardougne, a hero, a paladin, a warrior, a watchman, a gnome and
+  a rogue pickpocketed at 99, each reached by `::tele` (with `::keys on` and `::god on`; the tables, extras, stuns and
+  the room check are in the headless and unit tests).
 - `al-kharid-toll-gate.json`: Al Kharid step 1: Open on the toll gate from both sides with no coins, a Border
   Guard's talk (with `::keys on`) that ends with the player through the gate, and the palace's west large doors
   opened together and shut again, and the curtain upstairs in the palace opened and shut.
