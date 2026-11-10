@@ -433,6 +433,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `herblore-mixing.json` (Artisan 2, A2a): at 99, a super combat potion(4) from a torstol and the three super
   potions, two stamina potion(3) from super energy and amylase, a sanfew serum(4) in three steps, and an extended
   antifire(2) from two lava scale shards (550 XP). Needs 0.10.0.
+- `crafting-gaps.json` (Artisan 2, A3): at 99, a water orb on a battlestaff makes a water battlestaff, a chisel on a
+  blamish myre shell a myre snelm, and on amethyst opens the box over its four cuts and makes 15 bolt tips; then at South
+  Falador Farm's loom, reached with `::tele`, Weave turns 4 balls of wool into a strip of cloth (204.5 XP). Needs 0.10.0.
+  Not yet run on a VM.
 - `decanting.json` (Artisan 2, A2b): Bob Barter (herbs) at the Grand Exchange: Decant opening the decant interface
   (582) and the 4 key taking four super energy(3) to three super energy(4) and a vial back, then his Talk-to's "Can you
   decant things for me?" and the 1 key taking two noted super energy(2) to four noted super energy(1), the two missing
