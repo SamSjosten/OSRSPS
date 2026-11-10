@@ -45,8 +45,11 @@ class LootResult(val chests: Map<String, List<Drop>>, val unique: String?)
  *   cabbage", and a cabbage rules out every tertiary drop. The Wiki gives no numbers.
  *
  * Guessed: that the one who finds the unique gets nothing else (the Wiki lists the tertiary drops under the standard
- * loot); that a cabbage is what a member with no contribution left gets, and only them (the chance each death adds
- * isn't known, so it isn't rolled); that a fragment is one of those not owned, each as likely.
+ * loot); that a cabbage is what a member who "performed poorly" gets, below [poorBelow], a quarter of an even share of
+ * the run's points, and that they take no part in the unique either (the chance each death adds isn't known, so it
+ * isn't rolled; exploit review round 24, R24A-1: with a cabbage only at nothing, a point of damage was a full chest,
+ * so alts that barely touched a room were paid as the one carrying them); that a fragment is one of those not owned,
+ * each as likely.
  *
  * Not in yet: Orion, the pet (1/750), until pets are built; the clue's better rate with the elite Combat
  * Achievements; scroll boxes.
@@ -88,14 +91,17 @@ class ArchiveLoot(
      * and the fragment (which one, when it hits). A member with no contribution takes no draw.
      */
     fun roll(random: GameRandom, members: List<LootMember>): LootResult {
-        val total = members.sumOf { it.contribution.coerceAtLeast(0) }
+        val poor = poorBelow(members.size)
+        // A member who performed poorly counts for nothing: a cabbage, and no share of the unique.
+        fun share(member: LootMember): Int = member.contribution.takeIf { it > 0 && it >= poor } ?: 0
+        val total = members.sumOf { share(it) }
         var finder: String? = null
         var found: Drop? = null
         val (numerator, denominator) = uniqueChance(members.size)
         if (uniques != null && total > 0 && random.chance(numerator, denominator)) {
             var left = random.nextInt(total)
             for (member in members) {
-                left -= member.contribution.coerceAtLeast(0)
+                left -= share(member)
                 if (left < 0) {
                     finder = member.key
                     break
@@ -106,7 +112,7 @@ class ArchiveLoot(
         val chests = LinkedHashMap<String, List<Drop>>()
         for (member in members) {
             chests[member.key] = when {
-                member.contribution <= 0 -> listOfNotNull(junk?.let { Drop(it, 1) })
+                share(member) <= 0 -> listOfNotNull(junk?.let { Drop(it, 1) })
                 member.key == finder && found != null -> listOf(found)
                 else -> standardChest(random, member)
             }
@@ -151,6 +157,15 @@ class ArchiveLoot(
          * for each of their [deaths] ("All deaths penalise the player for 10% of their expected contribution": 35 of a
          * duo's 350, "8 or 9" of an eight's 87.5). Never below nothing. Guessed: that the tenth is rounded down.
          */
+        /**
+         * The contribution below which one of [size] "performed poorly" and gets a cabbage: a quarter of an even share of
+         * the run's points (175 alone, 87 for two, 21 for eight). Guessed: the Wiki gives no number.
+         */
+        fun poorBelow(size: Int): Int = RUN_POINTS / (size.coerceAtLeast(1) * POOR_SHARE_DIVISOR)
+
+        /** [poorBelow]'s quarter. Guessed. */
+        const val POOR_SHARE_DIVISOR = 4
+
         fun contribution(points: Int, deaths: Int, size: Int): Int =
             (points - deaths * (RUN_POINTS / (size.coerceAtLeast(1) * 10))).coerceAtLeast(0)
 
