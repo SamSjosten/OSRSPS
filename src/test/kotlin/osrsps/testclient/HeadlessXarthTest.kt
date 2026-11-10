@@ -321,7 +321,8 @@ class HeadlessXarthTest {
                 // Still on it, the fire sets her alight again just as the burn's first tick is due: that tick still lands.
                 val again = awaitLine("the fire under her again") { it.contains(": fire under alice for 0") && tickOf(it) > tickOf(under) }
                 assertEquals(Xarth.FIRE_EVERY.toLong(), tickOf(again) - tickOf(under))
-                assertTrue(lines().any { it.contains(": burn on alice for 0") && tickOf(it) == tickOf(again) }, lines().takeLast(8).toString())
+                // Once, never twice.
+                assertEquals(1, lines().count { it.contains(": burn on alice for ") && tickOf(it) == tickOf(again) }, lines().takeLast(8).toString())
                 // Beside him he swings instead of shooting.
                 alice.tele(him.x - 1, him.z + 1)
                 awaitLine("his swing") { it.contains(": swings at alice for 0") }

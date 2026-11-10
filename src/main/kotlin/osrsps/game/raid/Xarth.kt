@@ -471,7 +471,10 @@ object Xarth {
         var footprint = false
     }
 
-    private class Burn(var stacks: Int, var since: Long)
+    private class Burn(var stacks: Int, var since: Long) {
+        /** The tick it last hurt, so each of its hits lands once however it's reached. */
+        var lastHit = -1L
+    }
 
     private val states = WeakHashMap<Npc, State>()
 
@@ -555,7 +558,7 @@ object Xarth {
         // and a fire under the player every [FIRE_EVERY] ticks would stop the burn ever hurting.
         if (running != null) {
             val since = world.tick - running.since
-            if (since in 1..BURN_EVERY.toLong() * BURN_HITS && since % BURN_EVERY == 0L) burnHit(player, running)
+            if (since in 1..BURN_EVERY.toLong() * BURN_HITS && since % BURN_EVERY == 0L && running.lastHit != world.tick) burnHit(player, running)
         }
         val burn = running?.takeIf { world.tick - it.since < BURN_EVERY * BURN_HITS }
         val stacks = minOf(BURN_MAX_STACKS, (burn?.stacks ?: 0) + 1)
@@ -566,7 +569,7 @@ object Xarth {
         for (i in 1..BURN_HITS) {
             after(BURN_EVERY * i) {
                 // A later fireball has set it again: that burn's ticks run instead.
-                if (state.burns[player] !== now || players.none { it === player }) return@after
+                if (state.burns[player] !== now || now.lastHit == world.tick || players.none { it === player }) return@after
                 burnHit(player, now)
             }
         }
@@ -575,6 +578,7 @@ object Xarth {
     /** One tick of [burn] on [player]. */
     private fun EncounterContext.burnHit(player: Player, burn: Burn) {
         if (player.dead) return
+        burn.lastHit = world.tick
         val range = burnRange(burn.stacks)
         val dealt = world.meleeCombat.hitPlayer(player, null, roll(range.first, range.last), world.tick)
         if (!player.dead) player.attackedTick = world.tick
