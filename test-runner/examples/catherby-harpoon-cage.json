@@ -1,5 +1,5 @@
 {
- "name": "Fishing and Cooking 2 step FC1: on Catherby's beach a lobster pot cages a lobster and a harpoon catches a tuna or swordfish at the Cage/Harpoon spot and a shark at the Big Net/Harpoon spot, then the Lumbridge kitchen range cooks them through the Make-X box (::keys on)",
+ "name": "Fishing and Cooking 2 step FC1: on Catherby's beach a lobster pot cages a lobster and a harpoon catches a tuna or swordfish at the Cage/Harpoon spot and a shark at the Big Net/Harpoon spot, a big net brings up mackerel there (step FC2), then the Lumbridge kitchen range cooks the mackerel and the rest through the Make-X box (::keys on)",
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},
@@ -20,10 +20,21 @@
   {"step": "npcOption", "npcId": 1520, "option": "Harpoon", "timeoutMs": 20000, "comment": "0_44_53_memberfish, the Big Net/Harpoon spot"},
   {"step": "assertMessage", "contains": "fishing.catch_shark", "timeoutMs": 180000, "comment": "about one roll in six at 99"},
 
+  {"step": "npcOption", "npcId": 1520, "option": "Big Net", "timeoutMs": 20000},
+  {"step": "assertMessage", "contains": "fishing.cast_net"},
+  {"step": "assertAnimation", "id": 620, "comment": "human_largenet"},
+  {"step": "assertInventory", "item": "Raw mackerel", "timeoutMs": 90000, "comment": "the first mackerel roll is about one in four at 99; both rolls can land together, so any number"},
+  {"step": "command", "text": "::item 353 1", "comment": "one more Raw mackerel, so there are always several and the Make-X box always asks"},
+
   {"step": "command", "text": "::tele 3211 3215 0", "comment": "beside the Lumbridge Castle kitchen's Cooking range"},
   {"step": "assertLocation", "x": 3211, "y": 3215, "plane": 0},
+  {"step": "useItemOnLoc", "item": "Raw mackerel", "locId": 114, "x": 3212, "y": 3215, "comment": "a step FC2 fish on the range"},
+  {"step": "assertInterface", "interfaceId": 270, "comment": "skillmulti: how many mackerel"},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15, "comment": "the only item in the box, the mackerel"},
+  {"step": "assertMessage", "contains": "cooking.cooked_mackerel", "timeoutMs": 20000, "comment": "no burns from 45 on the Lumbridge range"},
+  {"step": "assertInventory", "item": "Mackerel", "timeoutMs": 10000},
   {"step": "locOption", "locId": 114, "option": "Cook", "x": 3212, "y": 3215},
-  {"step": "assertInterface", "interfaceId": 270, "comment": "skillmulti: several kinds of raw fish"},
+  {"step": "assertInterface", "interfaceId": 270, "comment": "skillmulti: the step FC1 fish left"},
   {"step": "clickWidget", "interfaceId": 270, "component": 15, "comment": "the first fish in the box"},
   {"step": "assertMessage", "contains": "cooking.cooked_", "timeoutMs": 20000},
 

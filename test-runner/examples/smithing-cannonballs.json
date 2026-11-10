@@ -1,0 +1,35 @@
+{
+ "name": "Gathering 2 step G5: at the furnace north of Lumbridge Castle, steel bars and an ammo mould make cannonballs 4 a bar, then a double ammo mould makes 8 from two bars (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::tele 3225 3254 0", "comment": "beside the furnace north of Lumbridge Castle"},
+  {"step": "assertLocation", "x": 3225, "y": 3254, "plane": 0},
+  {"step": "command", "text": "::setlevel smithing 35", "expectMessage": "Smithing set to level 35"},
+  {"step": "command", "text": "::item 2353 2", "expectMessage": "Added 2 x Steel bar"},
+
+  {"step": "useItemOnLoc", "item": "Steel bar", "locId": 24009, "x": 3226, "y": 3256},
+  {"step": "assertMessage", "contains": "game.nothing_interesting", "comment": "no mould held"},
+  {"step": "command", "text": "::item 4", "expectMessage": "Added 1 x Ammo mould"},
+  {"step": "useItemOnLoc", "item": "Ammo mould", "locId": 24009, "x": 3226, "y": 3256},
+  {"step": "assertInterface", "interfaceId": 270, "comment": "skillmulti over the steel cannonball"},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15, "comment": "the steel cannonball; the box suggests both bars"},
+  {"step": "assertAnimation", "id": 899, "comment": "human_furnace"},
+  {"step": "assertInventory", "item": "Steel cannonball", "count": 8, "timeoutMs": 15000, "comment": "8 ticks, then 10"},
+  {"step": "assertMessage", "contains": "smithing.cannonballs amount=4 item=steel cannonball"},
+  {"step": "assertStat", "skill": "Smithing", "level": 35, "xp": 22457, "comment": "22,406 at 35, plus 25.6 a bar"},
+
+  {"step": "command", "text": "::item 27012", "expectMessage": "Added 1 x Double ammo mould"},
+  {"step": "command", "text": "::item 2353 2", "expectMessage": "Added 2 x Steel bar"},
+  {"step": "useItemOnLoc", "item": "Steel bar", "locId": 24009, "x": 3226, "y": 3256},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15, "comment": "the double mould casts both bars at once"},
+  {"step": "assertInventory", "item": "Steel cannonball", "count": 16, "timeoutMs": 10000},
+  {"step": "assertMessage", "contains": "smithing.cannonballs amount=8 item=steel cannonball"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
