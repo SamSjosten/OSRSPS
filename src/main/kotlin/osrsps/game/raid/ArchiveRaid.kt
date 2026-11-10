@@ -210,8 +210,8 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
  *   in the entrance south of it, where the party gathers.
  * - A room's fight begins as the first party member stands in it. A room whose boss isn't built yet is done as soon
  *   as it begins: that is what lets a run go through empty rooms. The Guardian's begins instead as a member touches
- *   it, waiting in the hall as the cache's "Inert Guardian" (`tfa_guardian_start`, Touch) from the run's start; its
- *   party size is everyone standing in the run then ([ArchiveGuardian], raid step 16).
+ *   it and answers Yes to its menu, waiting in the hall as the cache's "Inert Guardian" (`tfa_guardian_start`, Touch)
+ *   from the run's start; its party size is everyone standing in the run then ([ArchiveGuardian], raid step 16).
  * - The whole of a run's instance is multi-way, as a raid of up to eight against one boss must be. Inferred.
  * - A room's points are [ROOM_POINTS], shared by damage among those who did any, or evenly among who was there when it
  *   began if nobody did. The number is made up: the Wiki has none.
@@ -245,7 +245,7 @@ class ArchiveRaids(private val world: World) {
 
     fun register() {
         world.multiCombat.dynamic = { _, x, z -> at(x, z) != null }
-        world.handlers.onNpc(ArchiveGuardian.DORMANT, ArchiveGuardian.TOUCH) { op -> touch(player, op.npc!!) }
+        world.handlers.onNpc(ArchiveGuardian.DORMANT, ArchiveGuardian.TOUCH) { op -> askTouch(this, op.npc!!) }
         // The figure is a multi-NPC: an op names the type the player is shown, met or not (242 cache).
         for (type in listOf(Ocellus.INTRO, Ocellus.INTRO_NOT_MET, Ocellus.INTRO_MET)) {
             for (op in Ocellus.READY_OPS) world.handlers.onNpc(type, op) { o -> readyUp(player, o.npc!!) }
@@ -343,14 +343,35 @@ class ArchiveRaids(private val world: World) {
         else -> false
     }
 
+    /** Whether [player] may wake the waiting Guardian [npc]: it waits in their run, they stand in that run, and its fight hasn't begun. */
+    private fun touchable(player: Player, npc: Npc): Boolean {
+        val run = at(npc.x, npc.z) ?: return false
+        if (run.guardian !== npc || run.wiped || ArchiveRoom.GUARDIAN in run.started) return false
+        return player.saveKey in run.entered && player.saveKey !in run.downed && at(player.x, player.z) === run
+    }
+
     /**
-     * Touch on the waiting Guardian: its fight begins, if the toucher is in the run and standing and the fight hasn't
-     * already. It wakes where it waited, as the levitating form, scaled to everyone standing in the run.
+     * Touch on the waiting Guardian: "Begin the challenge?", Yes or No (Sam's recordings of 10 November 2026: the menu
+     * on each Touch, the fight after Yes). Asked again as Yes comes: someone else may have begun it, or the toucher
+     * left or fell, while the menu was up.
+     */
+    suspend fun askTouch(context: ScriptContext, npc: Npc) {
+        val player = context.player
+        if (!touchable(player, npc)) return
+        world.dialogues.start(context, npc) {
+            val yes = choice(ArchiveGuardianLines.YES, ArchiveGuardianLines.NO, title = text(ArchiveGuardianLines.BEGIN)) == 1
+            if (yes) touch(player, npc)
+        }
+    }
+
+    /**
+     * Yes to the waiting Guardian's menu: its fight begins, if the toucher is in the run and standing and the fight
+     * hasn't already. It wakes where it waited, as the levitating form, scaled to everyone standing in the run.
      */
     fun touch(player: Player, npc: Npc) {
+        if (!touchable(player, npc)) return
         val run = at(npc.x, npc.z) ?: return
         val room = ArchiveRoom.GUARDIAN
-        if (run.guardian !== npc || run.wiped || room in run.started || player.saveKey !in run.entered || player.saveKey in run.downed) return
         val def = world.encounters.defs[ArchiveGuardian.NAME] ?: return
         run.started += room
         val standing = standing(run)
