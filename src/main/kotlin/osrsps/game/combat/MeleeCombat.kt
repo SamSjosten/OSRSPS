@@ -136,6 +136,10 @@ class MeleeCombat(
     /** Starts a fight with [npc], tried at once when [now]. False when the NPC can't be fought; see [attack]. */
     private fun start(player: Player, npc: Npc, now: Boolean): Boolean {
         combat.npcCombat[npc.type] ?: return false
+        if (combat.slayerGated(player, npc)) {
+            message(player, words(player)[CombatLines.SLAYER_LEVEL])
+            return true
+        }
         if (combat.bulwarkBlock(player)) {
             message(player, words(player)[CombatLines.BULWARK_BLOCK])
             return true
@@ -174,6 +178,12 @@ class MeleeCombat(
     internal fun tryInteract(player: Player, interaction: MeleeInteraction): Boolean {
         val npc = interaction.npc
         if (npcs[npc.index] !== npc || npc.level != player.level || npc.dead) {
+            stopFacing(player)
+            return true
+        }
+        // Checked at every attack, not just the first: a boosted Slayer level can drop back mid-fight.
+        if (combat.slayerGated(player, npc)) {
+            message(player, words(player)[CombatLines.SLAYER_LEVEL])
             stopFacing(player)
             return true
         }
@@ -317,7 +327,7 @@ class MeleeCombat(
         return npcs.near(player.x, player.z, player.level, radius + MAX_NPC_SIZE)
             .filter {
                 it !== target && !it.dead && npcs[it.index] === it && combat.npcCombat[it.type] != null && distance(it) <= radius &&
-                    multi.at(it.level, it.x, it.z) && !flyingOutOfReach(player, it)
+                    multi.at(it.level, it.x, it.z) && !flyingOutOfReach(player, it) && !combat.slayerGated(player, it)
             }
             .sortedBy(::distance)
     }
@@ -968,7 +978,8 @@ class MeleeCombat(
      * that delay. A stunned player doesn't retaliate ([StatusEffects], guessed).
      */
     private fun retaliate(player: Player, npc: Npc, tick: Long) {
-        if (foughtByAnother(player, npc)) return
+        // Below its Slayer level they can't fight back (guessed: silently, as live shows nothing on a hit).
+        if (foughtByAnother(player, npc) || combat.slayerGated(player, npc)) return
         player.interaction = fight(player, npc) ?: return
         player.nextAttackTick = maxOf(tick + (combat.attackSpeed(player) + 1) / 2, player.attackLockedUntil)
     }
@@ -1019,18 +1030,19 @@ class MeleeCombat(
      */
     private fun regenerateNpcs() {
         for (npc in npcs.all) {
-            if (npc.dead || combat.npcCombat[npc.type] == null) continue
+            val def = combat.npcCombat[npc.type] ?: continue
+            if (npc.dead) continue
             // Held at 0 (a boss's shield broken, Npc.holdsAtZero): it stays at 0 till its fight moves it on, or a point
             // back on this tick would mend the shield before the fight sees it broken.
             if (npc.holdsAtZero && npc.hitpoints <= 0) continue
             // The tick it appears on starts the countdown without counting, whether it came before this phase (a
             // command, the server starting) or in it (a respawn), so the first hitpoint comes a full minute later.
             if (npc.hitpointsRegenTicks < 0) {
-                npc.hitpointsRegenTicks = REGEN_TICKS
+                npc.hitpointsRegenTicks = def.regenTicks
                 continue
             }
             if (--npc.hitpointsRegenTicks > 0) continue
-            npc.hitpointsRegenTicks = REGEN_TICKS
+            npc.hitpointsRegenTicks = def.regenTicks
             if (npc.hitpoints < npc.maxHitpoints) npc.hitpoints++
         }
     }

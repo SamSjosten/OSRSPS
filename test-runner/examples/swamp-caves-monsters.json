@@ -1,0 +1,42 @@
+{
+ "name": "Misthalin piece 7 step 3a: the Lumbridge Swamp Caves' monsters: a cave slime refused below Slayer 17 then killed at 17 for its swamp tar, a cave goblin's plea and the promise not to hurt it, and the west spot's Small Net refused below 33 Fishing then netting frog spawn or swamp weed (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::god on", "comment": "the caves' bugs and crawlers are aggressive and the dark bites; this script is about the gate, the talk and the net"},
+  {"step": "command", "text": "::item lit_candle", "expectMessage": "Added 1 x Lit candle"},
+
+  {"step": "command", "text": "::setlevel attack 99", "expectMessage": "99", "comment": "before going down: at combat 67 the level 6 cave bugs aren't aggressive, so none holds us in combat away from the slime"},
+  {"step": "command", "text": "::setlevel strength 99", "expectMessage": "99"},
+  {"step": "command", "text": "::tele 3160 9558 0", "comment": "between the west slimes at 3157,9561 and 3162,9557"},
+  {"step": "assertLocation", "x": 3160, "y": 9558, "plane": 0},
+  {"step": "npcOption", "npc": "Cave slime", "option": "Attack", "timeoutMs": 20000},
+  {"step": "assertMessage", "contains": "[combat.slayer_level]", "comment": "Slayer 1 is below the slime's 17"},
+  {"step": "command", "text": "::setlevel slayer 17", "expectMessage": "17"},
+  {"step": "npcOption", "npc": "Cave slime", "option": "Attack", "timeoutMs": 20000},
+  {"step": "assertGroundItem", "item": "Swamp tar", "timeoutMs": 90000, "comment": "always dropped, 1 to 6"},
+
+  {"step": "command", "text": "::tele 3250 9565 0", "comment": "among the east cave goblins"},
+  {"step": "npcOption", "npc": "Cave goblin", "option": "Talk-to", "timeoutMs": 20000},
+  {"step": "assertDialogue", "contains": "[cave_goblin.dont_hurt]", "comment": "the first talk since this login"},
+  {"step": "continueDialogue"},
+  {"step": "chooseOption", "text": "[cave_goblin.not_going_to]"},
+  {"step": "assertDialogue", "contains": "[cave_goblin.not_going_to]"},
+  {"step": "continueDialogue"},
+  {"step": "assertNoDialogue"},
+
+  {"step": "command", "text": "::tele 3155 9545 0", "comment": "beside the west spot"},
+  {"step": "command", "text": "::item net", "expectMessage": "Added 1 x Small fishing net"},
+  {"step": "npcOption", "npcId": 1497, "option": "Small Net", "timeoutMs": 20000},
+  {"step": "assertMessage", "contains": "[fishing.level_net level=33]"},
+  {"step": "command", "text": "::setlevel fishing 99", "expectMessage": "99"},
+  {"step": "npcOption", "npcId": 1497, "option": "Small Net", "timeoutMs": 20000},
+  {"step": "assertMessage", "contains": "[fishing.catch_", "timeoutMs": 60000, "comment": "frog spawn or swamp weed"},
+
+  {"step": "command", "text": "::god off"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
