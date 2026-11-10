@@ -81,4 +81,82 @@ class FletchingDataTest {
         inventory.add(ObjType(314, "Feather", stackable = true), 31)
         assertEquals(2, sets.times(inventory), "15 and 5")
     }
+
+    @Test
+    fun `crossbows match the Wiki's table, each stock's own limbs, a hammer, then the string, at the stock's level`() {
+        // Template:Table/Fletching/Crossbows (read 2026-11-10): level, limbs XP, string XP.
+        val expected = mapOf(9454 to Triple(9, 120, 60), 9456 to Triple(24, 320, 160), 9457 to Triple(39, 440, 220),
+            9459 to Triple(46, 540, 270), 9461 to Triple(54, 640, 320), 9463 to Triple(61, 820, 410), 9465 to Triple(69, 1000, 500),
+            21921 to Triple(78, 1350, 700))
+        assertEquals(expected.keys, data.limbs.map { it.product }.toSet())
+        for (limbs in data.limbs) {
+            val strung = data.crossbows.getValue(limbs.product)
+            assertEquals(expected.getValue(limbs.product), Triple(limbs.level, limbs.xpTenths, strung.xpTenths), "crossbow ${limbs.product}")
+            assertEquals(limbs.level, strung.level)
+            assertEquals(listOf(2347), limbs.tools)
+            assertEquals(ObjCount(9438, 1), strung.inputs[1])
+            assertTrue(listOf(limbs, strung).all { it.first == 1 && it.interval == 2 && it.anim >= 0 })
+        }
+        // The stock a crossbow takes is the log tier with the same level: the stock's own level in knifeOnLogs.
+        val stockLevels = data.knifeOnLogs.values.flatten().filter { it.key.contains("stock") }.associate { it.product to it.level }
+        assertTrue(data.limbs.all { stockLevels.getValue(it.inputs[0].obj) == it.level }, "stock levels")
+        assertEquals(listOf(ObjCount(9440, 1), ObjCount(9420, 1)), data.limbs.first().inputs)
+        assertEquals(9174, data.crossbows.getValue(9454).product)
+        assertEquals(21902, data.crossbows.getValue(21921).product)
+    }
+
+    @Test
+    fun `bolts, tipped bolts, bolt tips and javelins match the Wiki`() {
+        // Template:Table/Fletching/Bolts: XP per bolt, 10 to a click.
+        val bolts = data.bolts.mapValues { (_, it) -> Triple(it.product, it.level, it.xpTenths) }
+        assertEquals(10, bolts.size)
+        assertEquals(Triple(877, 9, 5), bolts[9375])
+        assertEquals(Triple(9145, 43, 25), bolts[9382])
+        assertEquals(Triple(11875, 55, 30), bolts[11876])
+        assertEquals(Triple(9144, 69, 100), bolts[9381])
+        assertEquals(Triple(21905, 84, 120), bolts[21930])
+        assertTrue(data.bolts.values.all { it.batch && it.amount == 10 && it.inputs[1] == ObjCount(314, 1) })
+        // Template:Table/Fletching/Tipped bolts and Tipped dragon bolts: XP per bolt, 2 ticks a set of 10.
+        fun tipped(tips: Int, bolts: Int) = data.tippedBolts.single { it.inputs == listOf(ObjCount(bolts, 1), ObjCount(tips, 1)) }
+        assertEquals(22, data.tippedBolts.size)
+        assertEquals(Triple(879, 11, 16), tipped(45, 877).let { Triple(it.product, it.level, it.xpTenths) })
+        assertEquals(Triple(881, 51, 95), tipped(47, 877).let { Triple(it.product, it.level, it.xpTenths) })
+        assertEquals(Triple(9342, 73, 94), tipped(9194, 9144).let { Triple(it.product, it.level, it.xpTenths) })
+        assertEquals(Triple(21961, 84, 40), tipped(9188, 21905).let { Triple(it.product, it.level, it.xpTenths) })
+        assertEquals(Triple(9336, 48, 39), tipped(9188, 9141).let { Triple(it.product, it.level, it.xpTenths) })
+        assertEquals(10, data.tippedBolts.count { it.inputs[0].obj == 21905 }, "dragon bolts take every gem tip")
+        assertTrue(data.tippedBolts.all { it.batch && it.amount == 10 && it.first == 2 && it.interval == 2 })
+        // Template:Table/Fletching/Bolt tips: 12 a gem, 24 from an onyx or oyster pearls, 6 from an oyster pearl; 5 ticks.
+        val tips = data.boltTips.mapValues { (_, it) -> listOf(it.product, it.amount, it.level, it.xpTenths) }
+        assertEquals(11, tips.size)
+        assertEquals(listOf(45, 12, 11, 15), tips[1609])
+        assertEquals(listOf(46, 6, 41, 32), tips[411])
+        assertEquals(listOf(46, 24, 41, 32), tips[413])
+        assertEquals(listOf(9189, 12, 56, 40), tips[1607])
+        assertEquals(listOf(9194, 24, 73, 94), tips[6573])
+        assertTrue(data.boltTips.values.all { it.tools == listOf(1755) && it.interval == 5 && !it.batch })
+        // Template:Table/Fletching/Javelins: XP per javelin, 15 at a time, 1 tick a set.
+        val javelins = data.javelins.mapValues { (_, it) -> Triple(it.product, it.level, it.xpTenths) }
+        assertEquals(8, javelins.size)
+        assertEquals(Triple(825, 3, 10), javelins[19570])
+        assertEquals(Triple(830, 77, 124), javelins[19580])
+        assertEquals(Triple(21318, 84, 135), javelins[21352])
+        assertEquals(Triple(19484, 92, 150), javelins[19582])
+        assertTrue(data.javelins.values.all { it.batch && it.amount == 15 && it.interval == 1 && it.inputs[0] == ObjCount(19584, 1) })
+    }
+
+    @Test
+    fun `20 bolts and 7 tips make one set of 7, and a gem needs the chisel`() {
+        val inventory = Inventory(93, 28)
+        val opal = data.tippedBolts.first()
+        inventory.add(ObjType(877, "Bronze bolts", stackable = true), 20)
+        inventory.add(ObjType(45, "Opal bolt tips", stackable = true), 7)
+        assertEquals(1, opal.times(inventory))
+        assertEquals(7L, opal.units(inventory))
+        val cut = data.boltTips.getValue(1609)
+        inventory.add(ObjType(1609, "Opal"), 1)
+        assertEquals(0, cut.times(inventory), "no chisel")
+        inventory.add(ObjType(1755, "Chisel"), 1)
+        assertEquals(1, cut.times(inventory))
+    }
 }

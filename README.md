@@ -600,6 +600,13 @@ logs to magic logs, plus teak and mahogany stocks and redwood shafts. A bow stri
 make headless arrows, and arrowtips on those make arrows, up to 15 at a time (the box counts sets). A feather on dart
 tips makes 10 darts on every click, with no box. The numbers are in `skills/fletching.json`.
 
+Crossbows, bolts and javelins (Artisan 2, A1): crossbow limbs on a stock, with a hammer held, make the unstrung
+crossbow (bronze on a wooden stock up to dragon on a magic stock), and a crossbow string strings it. A feather on
+unfinished bolts makes 10 bolts a click, as darts do; the All Settings toggle "Make-X for darts and bolts" opens the box
+for both. Bolt tips on bolts make tipped bolts, and javelin tips on javelin shafts make javelins, up to 10 and 15 at a
+time. A chisel on a cut gem or oyster pearl cuts bolt tips. `::scenario artisan-2` stands you on the Lumbridge spawn
+with 99 Fletching and the parts.
+
 The making itself is the loop all three artisan skills share (`game/skill/Making.kt`, the box's title under
 `make.title`): each product waits in a weak queue, so walking off, closing an interface or using something else ends
 it, as do running out, the count being done, the level being too low and a level-up.
@@ -612,7 +619,13 @@ it, as do running out, the count being done, the level being too low and a level
 | Animations `human_fletching` (1248) and each bow's `stringing_*` (6678 to 6689) | cache 241 gamevals |
 | No animation for arrows and darts; the first bow strung 2 ticks after the choice | guessed |
 | The box opening even for one log, its order, the quantity starting on as many as can be made, the animation as each product starts, a boost wearing off stopping it without a word | guessed |
-| Out: the redwood shield; the crossbows and javelins that stocks and javelin shafts go into | out of scope |
+| Crossbows: levels, limbs and string XP; 2 ticks each, the first 1 tick after the choice; the hammer | OSRS Wiki, Template:Table/Fletching/Crossbows, Bronze crossbow (u), Bronze crossbow ("Make-X is 1, then 2 ticks") |
+| Bolts: levels, XP per bolt, 10 a click with no wait; tipped bolts: levels, XP per bolt, 10 a set, 2 ticks a set; dragon bolts taking every gem tip | OSRS Wiki, Template:Table/Fletching/Bolts, Tipped bolts, Tipped dragon bolts, Bronze bolts, Opal bolts |
+| Bolt tips: levels, XP per gem, 12 a gem (24 from an onyx or oyster pearls, 6 from an oyster pearl), 5 ticks a gem | OSRS Wiki, Template:Table/Fletching/Bolt tips, each tips page |
+| Javelins: levels, XP per javelin, 15 a set, 1 tick a set | OSRS Wiki, Template:Table/Fletching/Javelins, Bronze javelin |
+| Animations: `xbows_fletching_*` for limbs, `xbows_stringing_crossbow_*`, `human_fletching_add_bolt_feathers_*` and `human_fletching_add_bolt_tips_*` by metal | cache 242 gamevals |
+| The Make-X box for tipping bolts and for javelins, the bolts' sets-of-10 title; the gem's cutting animation for bolt tips; `human_fletching_add_arrow_tips` for javelins; no animation for broad bolts; the first tipped set 2 ticks after the choice and the first javelins 1; broad bolts' Slayer unlock taken as unlocked | guessed |
+| Out: the redwood shield; kebbit, antler and ascension bolts and the hunters' crossbows; the jeweller's chisel | out of scope |
 
 ### Crafting
 
