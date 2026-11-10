@@ -482,8 +482,11 @@ candle lantern, and an unlit torch lights on a fire or range. Dark areas ask `Li
 ### Mining
 
 Mine on a rock mines it with the best pickaxe the player can use (`game/skill/Mining.kt`, words under `mining.*`):
-clay, copper, tin, iron, coal, mithril and adamantite rocks, with the bronze to crystal pickaxes. A mined rock turns into
-an empty rock (`rocks1`/`rocks2`) until it respawns.
+clay, copper, tin, iron, coal, mithril, adamantite and runite rocks, amethyst crystals and gem rocks, with the bronze to
+crystal pickaxes. A mined rock turns into an empty rock (`rocks1`/`rocks2`, amethyst an empty wall) until it respawns.
+Rocks outside Misthalin are where live has them and reached by ::tele: the Mining Guild's runite and amethyst
+(`::tele 3055 9721`, or `::scenario gathering`), Shilo Village's gem rocks (`::tele 2824 3001`), the Lava Maze's runite
+(`::tele 3058 3885`).
 
 | Mining behaviour | Source |
 |------------------|--------|
@@ -493,7 +496,14 @@ an empty rock (`rocks1`/`rocks2`) until it respawns.
 | The mining gem table, 1/256 a roll: a gem (or nothing) in place of ore, no XP, the rock stays | OSRS Wiki, Mining |
 | The click starts the clock and the first roll comes a whole interval later; the swing message and animation | 2004Scape mining script |
 | Which empty rock each rock becomes (rockN to rocksN); swinging on the click's own tick | guessed |
-| Out: the glory's gem chance, mining gloves and other extra-ore items, the prospector kit, gem rocks, essence | out of scope |
+| Runite rocks: 85, 125 XP, pair 1/18 (17/256 at 85, 19/256 from 97), 12 minutes back, 6 in the Mining Guild and the Wilderness | OSRS Wiki, Runite rocks |
+| Amethyst crystals: 92, 240 XP, pair -18/10, 2 to 3 amethysts from one swing before an empty wall (`amethystrock_empty`) for 75 seconds | OSRS Wiki, Amethyst crystals |
+| Gem rocks: 40, 65 XP, pair 28/70 (84/210 with a charged glory), one gem out of 128 (opal 60, jade 30, red topaz 15, sapphire 9, emerald 5, ruby 5, diamond 4), 99 ticks back, no mining gem table | OSRS Wiki, Gem rocks |
+| A charged amulet of glory (any, trimmed or eternal) adds a second 3/256 roll at the mining gem table | OSRS Wiki, mining gem table template |
+| The Mining Guild's members' area: an invisible +7 on the roll (not on the level needed) and every respawn halved | OSRS Wiki, Mining Guild |
+| The members' area's bounds (x 2998-3059, z 9695-9729), drawn around the Wiki's rock tiles; amethyst's 75 seconds not halved again | inferred |
+| How the amethyst count is drawn (evenly, 2 or 3, on the first amethyst, kept until the wall empties); runite and gem rocks' empty rocks (by their shared models) | guessed |
+| Out: mining gloves and other extra-ore items, the prospector kit, unidentified minerals, the guild's doors and level 60, essence (Runecraft), the visible-boost cap at 99 | out of scope |
 
 ### Fishing
 
@@ -691,6 +701,31 @@ the trapdoor behind the bar, the den's door, and the passageway back up; the maz
 | Not built: marks pausing on the ground while the player is logged out (ours keep counting down), the Achievement Diary rerolls | |
 | Grace (`rooftops_grace`) at 3050,4962 in the den; her shop's stock, prices and 80% buy-back | mejrs NPCList_OSRS; OSRS Wiki, Grace's Graceful Clothing |
 | Grace's shop inv, roguesden_shop (279); the tiles the trapdoor, door and passageway take the player to; the passageway being the way out | guessed (the 241 map shows no other exit) |
+
+### Magic: teleports
+
+The standard spellbook's teleports to places, Varrock Teleport to Ape Atoll Teleport, and the teleport tablets for the
+same places (`game/skill/magic/Teleports.kt`, landing areas and XP in `skills/magic-teleports.json`). Cast on a spell
+checks the level and runes (a staff stands in for its runes, as for combat spells), takes them, gives the XP and lands
+the player on a free tile of the spell's area 3 ticks later; Break on a tablet uses it up and lands 4 ticks later, with
+no level needed and no XP. Above level 20 Wilderness both are refused with the two lines Home Teleport shows there,
+and nothing is taken. Destinations whose towns aren't built land on live's tiles all the same; where the map isn't
+loaded the player lands on the area's centre. The quests that unlock some of these on live count as done.
+
+| Teleport behaviour | Source |
+|--------------------|--------|
+| The ten spells' levels, runes and magic tab components; Ape Atoll's banana (params 606 and 607); the eight `poh_tablet_*` tablets, Break as iop1 | cache 242 (osrs-dumps 2026-11-03-rev242) |
+| Base XP; tablets needing no level and giving no XP; no teleport above level 20 Wilderness | OSRS Wiki, each spell's page, Magic tablet, Wilderness level |
+| Landing areas for Lumbridge, Falador, Ardougne, Trollheim, Ape Atoll, Kourend Castle and Civitas illa Fortis | OSRS Wiki, each spell's map |
+| Animation 714 with graphic 111 at height 92, the landing 3 ticks after the cast with the animation stopped, the player held meanwhile (being attacked doesn't stop it), runes and XP taken at the cast, Varrock and Camelot landing within 2 tiles of the Wiki's tile | inferred from 2004Scape's teleport script |
+| Watchtower landing on its Wiki tile only, on level 2; the tablet's animations 4069 then 4071 with graphic 678 two ticks in, landing 4 ticks after the break | guessed |
+| Not built: the Achievement Diary destinations and Configure (Grand Exchange, Seers' Village, Yanille), Teleport to House, Tele Other, Teleport Block, Ancient and other books' teleports | next steps |
+
+`::scenario magic` stands you on the Lumbridge spawn with 99 Magic, a staff of air, runes for ten of every teleport
+and two of each tablet.
+
+Check: `./gradlew test --tests 'osrsps.game.skill.magic.*' --tests 'osrsps.testclient.HeadlessTeleportsTest'`, and in
+RuneLite `test-runner/examples/magic-teleports.json`.
 
 ## Items and inventory
 
@@ -2440,6 +2475,9 @@ a bronze axe in bank tab 1 and 1,000 coins in the main tab: for the tab script, 
 `lumbridge-run-low` stands you on the Lumbridge spawn with run on and no run energy, the energy threshold to re-enable
 running at 5% and Ctrl+click to invert run mode on Run -> Walk only: for the run settings script, as nothing else sets
 run energy.
+
+`magic` stands you on the Lumbridge spawn with 99 Magic and a staff of air, the runes for ten casts of every standard
+teleport built (and a banana for Ape Atoll), and two of each teleport tablet: for the Magic steps.
 
 Check: `::scenario lumbridge-cows` puts you by the cows in iron with the loadout above; `::reset` puts you back where
 you were with your own stats and items.
