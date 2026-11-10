@@ -25,7 +25,7 @@ import kotlin.math.max
 
 /**
  * Combat testing tools: `::combat`, `::fight`, `::hp` and `::drops` only read, so anyone may run them; `::hit`
- * (an NPC, or yourself with `me`), `::kill`, `::god`, `::heal`, `::poison`, `::stun`, `::drain`, `::spec`, `::multi` and `::blowpipe` change the world,
+ * (an NPC, or yourself with `me`), `::kill`, `::god`, `::heal`, `::poison`, `::stun`, `::drain`, `::spec`, `::multi`, `::blowpipe`, `::shadow` and `::tome` change the world,
  * so admins only.
  */
 fun CommandRegistry.registerCombatCommands(world: World) {
@@ -112,15 +112,16 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         reply(blowpipe.check(player))
     }
 
-    register("shadow", "::shadow [charges]", admin = true) {
-        val staff = PoweredStaves.TUMEKENS_SHADOW
-        if (args.isNotEmpty()) {
-            // Charges it without the runes, as the bank's Configure-Charges would, which isn't in: ::shadow 20000.
-            val charges = args.singleOrNull()?.let { parseCount(it) }?.takeIf { it in 0..staff.maxCharges }
-                ?: fail("Usage: ::shadow [charges] (0 to ${staff.maxCharges})")
-            player.charges[staff.charge] = charges
+    // Charge a powered staff without the runes, as the bank's Configure-Charges would, which isn't in: ::shadow 20000.
+    for ((name, staff) in listOf("shadow" to PoweredStaves.TUMEKENS_SHADOW, "tome" to PoweredStaves.ZORYAS_TOME)) {
+        register(name, "::$name [charges]", admin = true) {
+            if (args.isNotEmpty()) {
+                val charges = args.singleOrNull()?.let { parseCount(it) }?.takeIf { it in 0..staff.maxCharges }
+                    ?: fail("Usage: ::$name [charges] (0 to ${staff.maxCharges})")
+                player.charges[staff.charge] = charges
+            }
+            reply(world.poweredStaves.check(player, staff))
         }
-        reply(world.poweredStaves.check(player, staff))
     }
 
     register("multi", "::multi [on|off]", admin = true) {
