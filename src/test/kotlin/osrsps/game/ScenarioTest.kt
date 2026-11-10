@@ -6,6 +6,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import osrsps.game.skill.AgilityData
+import osrsps.game.skill.Mining
 
 class ScenarioTest {
     // Made-up items shaped like the 241 cache's.
@@ -173,5 +174,9 @@ class ScenarioTest {
         // On Catherby's beach, by its spots in npc-spawns/fishing-spots.json, at the highest level anything built needs.
         assertTrue(fishing.x in 2836..2860 && fishing.z in 3423..3431 && fishing.level == 0)
         assertEquals(99, fishing.skills.getValue(Skill.FISHING).level)
+        val gathering = scenarios["gathering"]!!
+        // Beside the guild's runite, inside its members' area, at the level amethyst needs.
+        assertEquals(true, Mining.inGuild(gathering.x, gathering.z, gathering.level))
+        assertEquals(99, gathering.skills.getValue(Skill.MINING).level)
     }
 }

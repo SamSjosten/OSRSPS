@@ -1060,6 +1060,47 @@
       "respawnTicks": 50,
       "weakness": { "element": "fire", "percent": 40 },
       "source": "OSRS Wiki, Cave goblin (monster) (level 3, ids 6434 to 6437), read 2026-11-10: speed 4, max hit 1, crush, no bonuses, respawn 50, not aggressive, 40% weak to fire. They stand with dorgesh_goblin_ready, so the dorgesh_goblin unarmed attack and defend and its death are taken"
+    },
+    {
+      "npcs": ["slayer_rockslug", "slayer_rockslug_baby"],
+      "attackSpeed": 4, "maxHit": 4, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "rockslug_attack", "defend": "rockslug_defend", "death": "rockslug_death" },
+      "respawnTicks": 15,
+      "weakness": { "element": "earth", "percent": 25 },
+      "slayerLevel": 20,
+      "minHitpoints": 1,
+      "source": "OSRS Wiki, Rockslug (level 29, ids 421 and 422), read 2026-11-10: speed 4, max hit 4, crush, no bonuses, respawn 15, not aggressive, 25% weak to earth, Slayer 20, and finished only by a bag of salt at 4 or less (\"If a rockslug's health is reduced to 1 but a bag of salt is not used on it, the rockslug will stop retaliating and wander off\"). Its own rockslug animations"
+    },
+    {
+      "npcs": ["swamp_wallbeast_combat"],
+      "attackSpeed": 4, "maxHit": 4, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "wall_beast_specialattack_attack", "defend": "wall_beast_specialattack_defend", "death": "wall_beast_specialattack_death" },
+      "respawnTicks": 10,
+      "aggressive": true,
+      "immune": ["poison", "venom"],
+      "slayerLevel": 35,
+      "source": "OSRS Wiki, Wall beast (level 49, id 476 out of its hole, 475 in it), read 2026-11-10: speed 4, max hit 4 (18 grabbing a player without a spiny helmet, content/SwampCaveSlayer.kt), crush, no bonuses, aggressive, immune to poison and venom, Slayer 35. Guessed: the 10-tick respawn (the Wiki has none but says they come back quickly), and the cache's wall_beast_specialattack attack, defend and death animations, its only ones"
+    },
+    {
+      "npcs": ["tfa_ocellus_p1"],
+      "attackSpeed": 5,
+      "maxHit": 36,
+      "attackType": "ranged",
+      "attackBonus": 150,
+      "strengthBonus": 0,
+      "magicAttack": 150,
+      "range": 10,
+      "attacks": [
+        { "anim": "npc_ocellus_phase1_basic_projectile_start", "cast": 4231, "projectile": 4232, "impact": 4233 }
+      ],
+      "defence": { "stab": 150, "slash": 95, "crush": 60, "magic": 100, "light": 50, "standard": 135, "heavy": 50 },
+      "anims": { "attack": "npc_ocellus_phase1_basic_projectile_start", "defend": null, "death": null },
+      "respawnTicks": 50,
+      "immune": ["poison", "venom"],
+      "drainCap": { "defence": 60 },
+      "source": "OSRS Wiki, Ocellus (phase 1, id 16674), read 2026-11-10: speed 5, magic and ranged, max hit 36, magic and ranged attack +150, the defence bonuses, immune to poison and venom, Defence drained to 129 at most (60% of 215). His shots come from his fight (Ocellus): a fireball (ranged, vfx_ocellus_fire_attack01_*, 4231-4233) or a water ball (magic, 4228-4230) at everyone as he walks (tsps capture notes, RSPSApp/tsps docs/fractured-archive.md). Ranged is the file's primary style so his fireballs roll with the +150 (attackBonus) and his water balls with magicAttack's +150 (Codex, PR 552). Guessed: the 10-tile range (the file's most; his fight fires at players anywhere in his arena), no block or death animation in this phase (he changes form rather than dying; step 24b), the respawn, which never comes"
     }
   ]
 }

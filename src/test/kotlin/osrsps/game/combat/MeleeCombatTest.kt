@@ -41,7 +41,8 @@ class MeleeCombatTest {
     private val rat = NpcType(2854, "Rat", ops = listOf(null, "Attack", null, null, null), combatLevel = 1, internalName = "rat", stats = NpcStats(hitpoints = 2))
     private val spider = NpcType(3019, "Poison spider", ops = listOf(null, "Attack", null, null, null), combatLevel = 64, internalName = "poison_spider", stats = NpcStats(hitpoints = 64))
     private val ork = NpcType(16640, "Bork", ops = listOf(null, "Attack", null, null, null), size = 4, internalName = "slow_ork", stats = NpcStats(hitpoints = 7))
-    private val npcTypes = NpcTypes.of(man, hans, rat, spider, ork)
+    private val crawler = NpcType(406, "Cave crawler", ops = listOf(null, "Attack", null, null, null), combatLevel = 23, internalName = "cave_crawler", stats = NpcStats(hitpoints = 22))
+    private val npcTypes = NpcTypes.of(man, hans, rat, spider, ork, crawler)
     private val shortbow = ObjType(841, "Shortbow", wearpos1 = WearPos.WEAPON, wearpos2 = WearPos.SHIELD, params = mapOf(14 to 5), internalName = "shortbow", category = 64)
     private val styles = AttackStyles.fromRows(
         listOf(
@@ -67,7 +68,11 @@ class MeleeCombatTest {
             "anims": { "attack": "punch", "defend": "block", "death": "death" }, "respawnTicks": 25, "source": "test" },
             { "npcs": ["slow_ork"], "attackSpeed": 7, "maxHit": 1, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
             "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -21, "light": -21, "standard": -21, "heavy": -21 },
-            "anims": { "attack": "punch", "defend": "block", "death": "death" }, "respawnTicks": 2, "deathTicks": 7, "source": "test" } ] }""",
+            "anims": { "attack": "punch", "defend": "block", "death": "death" }, "respawnTicks": 2, "deathTicks": 7, "source": "test" },
+            { "npcs": ["cave_crawler"], "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+            "slayerLevel": 10,
+            "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -21, "light": -21, "standard": -21, "heavy": -21 },
+            "anims": { "attack": "punch", "defend": "block", "death": "death" }, "respawnTicks": 25, "source": "test" } ] }""",
         npcTypes, SeqNames(mapOf("punch" to 422, "block" to 424, "death" to 836)),
     )
     private val map = CollisionMap().apply { markLoaded(50, 50) }
@@ -873,6 +878,41 @@ class MeleeCombatTest {
         assertEquals(1, beside.effects.pendingHits.size)
         assertTrue(far.effects.pendingHits.isEmpty())
         // Hans can't be fought.
+        assertTrue(shopkeeper.effects.pendingHits.isEmpty())
+    }
+
+    @Test
+    fun `Retribution passes over NPCs her Slayer level can't hurt, the one that killed her included`() {
+        alice.skills.setLevel(Skill.PRAYER, 4)
+        prayerEffects += Prayers.RETRIBUTION
+        val killer = spawn(crawler, x = 3213)
+        melee.hitPlayer(alice, killer, 10, tick)
+        assertEquals(listOf(alice), deadPlayers)
+        assertTrue(killer.effects.pendingHits.isEmpty())
+
+        multi.set(0, alice.x, alice.z, true)
+        bob.skills.setLevel(Skill.PRAYER, 4)
+        bob.x = 3212
+        bob.z = 3211
+        val beside = spawn(x = 3211)
+        melee.hitPlayer(bob, killer, 10, tick)
+        assertTrue(killer.effects.pendingHits.isEmpty())
+        assertEquals(1, beside.effects.pendingHits.size)
+        // At Slayer 10 it can be hurt again.
+        bob.skills.setLevel(Skill.SLAYER, 10)
+        bob.hitpoints = 10
+        deadPlayers.clear()
+        melee.hitPlayer(bob, killer, 10, tick)
+        assertEquals(1, killer.effects.pendingHits.size)
+    }
+
+    @Test
+    fun `Retribution passes over what can't be fought, as a wall beast's hole, and the death still goes ahead`() {
+        alice.skills.setLevel(Skill.PRAYER, 4)
+        prayerEffects += Prayers.RETRIBUTION
+        val shopkeeper = spawn(hans, x = 3213)
+        melee.hitPlayer(alice, shopkeeper, 10, tick)
+        assertEquals(listOf(alice), deadPlayers)
         assertTrue(shopkeeper.effects.pendingHits.isEmpty())
     }
 

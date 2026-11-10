@@ -298,7 +298,7 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         val target = target(world, player, args, "::kill")
         if (target.dead) fail("${target.type.name} #${target.index} is already dead")
         if (world.combat.npcCombat[target.type] == null) fail("${target.type.name} #${target.index} can't be fought")
-        world.meleeCombat.hit(target, player, target.hitpoints, world.tick)
+        world.meleeCombat.hit(target, player, target.hitpoints, world.tick, finishing = true)
         reply("Killed ${target.type.name} #${target.index}.")
     }
 }

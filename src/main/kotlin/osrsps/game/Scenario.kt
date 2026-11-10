@@ -198,11 +198,13 @@ class Scenarios(scenarios: Collection<Scenario>) {
         val FILES = listOf(
             "agility",
             "fishing-cooking",
+            "gathering",
             "lumbridge-artisan",
             "lumbridge-bare",
             "lumbridge-bank-tabs",
             "lumbridge-cows",
             "lumbridge-run-low",
+            "magic",
         )
 
         /** Reads every file in [FILES] from the resources. A file that is missing or malformed stops the server. */

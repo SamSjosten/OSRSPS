@@ -381,6 +381,20 @@ class Npcs(
         npc.patrolIndex = (npc.patrolIndex + 1) % patrol.size
     }
 
+    /**
+     * One step of [npc] towards [x], [z] now, as a walk would take it (diagonal first, then along x, then z): for a boss
+     * fight that walks its boss to a tile while it is being fought, which [process] would otherwise hold still (Ocellus
+     * going corner to corner, raid step 24a). False when it is there already or every way is blocked.
+     */
+    fun stepTo(npc: Npc, x: Int, z: Int): Boolean {
+        if (npcs[npc.index] !== npc || npc.freezeTicks > 0) return false
+        npc.destination = Tile(x, z)
+        val before = npc.x to npc.z
+        step(npc)
+        npc.destination = null
+        return before != (npc.x to npc.z)
+    }
+
     /** One naive step toward the destination. */
     private fun step(npc: Npc) {
         val target = npc.destination ?: return
@@ -416,6 +430,7 @@ class Npcs(
      * in the way.
      */
     fun canStep(npc: Npc, dx: Int, dz: Int): Boolean {
+        if (npc.spawn.restrict == MoveRestrict.NOMOVE) return false
         val size = npc.type.size
         val blocked = npc.spawn.restrict == MoveRestrict.BLOCKED
         val block = if (blocked) CollisionFlag.BLOCK_WALK and CollisionFlag.FLOOR.inv() else CollisionFlag.BLOCK_WALK
@@ -449,6 +464,8 @@ class Npcs(
                     MoveRestrict.INDOORS -> flags and CollisionFlag.BLOCK_WALK == 0 && flags and CollisionFlag.ROOF != 0
                     MoveRestrict.OUTDOORS -> flags and CollisionFlag.BLOCK_WALK == 0 && flags and CollisionFlag.ROOF == 0
                     MoveRestrict.NORMAL -> flags and CollisionFlag.BLOCK_WALK == 0
+                    // Its own tile only, wherever it was put: it may stand in a wall.
+                    MoveRestrict.NOMOVE -> x == npc.spawn.x && z == npc.spawn.z
                 }
                 if (!ok) return false
             }

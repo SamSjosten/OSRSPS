@@ -1,5 +1,5 @@
 {
- "name": "Raid step 15: two solo runs of The Fractured Archive through its empty rooms, one by the west doors (Ezekiel, Moia, the Dagon'hai Elder) and one by the east (Bork, Dreadnoth, Xarth), each from the Archive Door through the Guardian's hall to Ocellus's room; the transporters and a Passageway back out. The Guardian's, Ezekiel's, Bork and the Smorks', Dreadnoth's and Xarth's rooms are marked done with ::raid clear (their fights are their own scripts); no other boss is built yet, so each other room is done as it begins",
+ "name": "Raid step 15: two solo runs of The Fractured Archive through its empty rooms, one by the west doors (Ezekiel, Moia, the Dagon'hai Elder) and one by the east (Bork, Dreadnoth, Xarth), each from the Archive Door through the Guardian's hall to Ocellus's room; the transporters and a Passageway back out. The Guardian's, Ezekiel's, Bork and the Smorks', Dreadnoth's, Xarth's and Ocellus's rooms are marked done with ::raid clear (their fights are their own scripts); no other boss is built yet, so each other room is done as it begins",
  "account": "test",
  "steps": [
   {
@@ -196,9 +196,15 @@
   },
   {
    "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Ocellus's room.",
+   "comment": "Ocellus's room, on the vault's upper floor: his fight is his own script (archive-ocellus.json), so it is marked done here, the hooded figure going with it"
+  },
+  {
+   "step": "command",
    "text": "::raid run",
    "expectMessage": "; complete;",
-   "comment": "Ocellus's room, done as it begins: the run is complete (the reward room is step 28)"
+   "comment": "the run is complete (the reward room is step 28)"
   },
   {
    "step": "command",
@@ -420,9 +426,15 @@
   },
   {
    "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Ocellus's room.",
+   "comment": "Ocellus's room, on the vault's upper floor: his fight is his own script (archive-ocellus.json), so it is marked done here, the hooded figure going with it"
+  },
+  {
+   "step": "command",
    "text": "::raid run",
    "expectMessage": "; complete;",
-   "comment": "Ocellus's room, done as it begins: the run is complete (the reward room is step 28)"
+   "comment": "the run is complete (the reward room is step 28)"
   },
   {
    "step": "command",

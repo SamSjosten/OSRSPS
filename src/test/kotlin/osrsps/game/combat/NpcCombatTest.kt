@@ -73,6 +73,7 @@ class NpcCombatTest {
             "npc_archive_guardian_range_attack01" to 14751, "npc_archive_guardian_melee_attack01" to 14752, "npc_archive_guardian_death01" to 14749,
             "npc_ezekiel_melee01" to 14685, "npc_ezekiel_death01" to 14689,
             "npc_bork_gong_melee01" to 14542, "npc_bork_death01" to 14541, "npc_smork_cannon_attack01" to 14554,
+            "npc_ocellus_phase1_basic_projectile_start" to 14806,
             "dreadnoth_melee01" to 14779, "dreadnoth_death01" to 14782, "jelly_attack" to 1586, "jelly_death" to 1587,
             "xarth_attack_magic_01" to 14984, "xarth_death_01" to 14995,
             "demon_attack" to 64, "demon_block" to 65, "demon_death" to 67,
@@ -81,6 +82,8 @@ class NpcCombatTest {
             "cave_slime_attack" to 1789, "cave_slime_defend" to 1791, "cave_slime_death" to 1792,
             "crawler_attack" to 227, "crawler_parry" to 1504, "crawler_death" to 228,
             "dorgesh_goblin_unarmed_attack" to 6001, "dorgesh_goblin_unarmed_defend" to 6002, "dorgesh_goblin_death" to 6003,
+            "rockslug_attack" to 1567, "rockslug_defend" to 1565, "rockslug_death" to 1568,
+            "wall_beast_specialattack_attack" to 1802, "wall_beast_specialattack_defend" to 1803, "wall_beast_specialattack_death" to 1804,
         ),
     )
 
@@ -600,6 +603,19 @@ class NpcCombatTest {
     }
 
     @Test
+    fun `Ocellus's first phase fights as the Wiki has it, both his shots at the +150`() {
+        val ocellus = NpcType(16674, "Ocellus", size = 3, internalName = "tfa_ocellus_p1", stats = NpcStats(attack = 1, defence = 215, strength = 1, hitpoints = 2500, ranged = 250, magic = 350))
+        val him = NpcCombat.load(NpcTypes.of(ocellus), seqs)[ocellus]!!
+        assertEquals(listOf(5, 36), listOf(him.attackSpeed, him.maxHit))
+        // His fireball rolls ranged and his water ball magic: ranged is the primary style, so each finds its +150.
+        assertEquals(AttackType.RANGED, him.attackType)
+        assertEquals(listOf(150, 150), listOf(him.attackBonus, him.magicAttack))
+        assertEquals(listOf(150, 95, 60, 100), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { him.defence.against(it) })
+        assertEquals(mapOf(NpcStat.DEFENCE to 60), him.drainCaps)
+        assertTrue(him.poisonImmune && him.venomImmune)
+    }
+
+    @Test
     fun `Dreadnoth and his jellies fight as the Wiki has them, each max hit the formula's`() {
         val dreadnoth = NpcType(16665, "Dreadnoth the Jellied", size = 5, internalName = "tfa_jelly_boss", stats = NpcStats(attack = 280, defence = 125, strength = 285, hitpoints = 2100, ranged = 250, magic = 220))
         val jelly = NpcType(16666, "Jelly", internalName = "tfa_jelly_minion", stats = NpcStats(attack = 200, defence = 100, strength = 160, hitpoints = 75, ranged = 1, magic = 100))
@@ -691,6 +707,28 @@ class NpcCombatTest {
         assertEquals(NpcCombatAnims(6079, 6080, 6082), def("swamp_cave_bug").anims)
         assertEquals(NpcCombatAnims(227, 1504, 228), def("slayer_cave_crawler_3").anims)
         assertEquals(NpcCombatAnims(1793, 1794, 1795), def("giant_frog").anims)
+    }
+
+    @Test
+    fun `rockslugs stop at 1 hitpoint and wall beasts out of their holes need Slayer 35, as the Wiki has them`() {
+        // The 242 cache's Strength levels.
+        val names = mapOf("slayer_rockslug" to 27, "slayer_rockslug_baby" to 27, "swamp_wallbeast_combat" to 30)
+        val slayerTypes = NpcTypes.of(*names.entries.mapIndexed { i, (name, str) -> NpcType(2800 + i, name, internalName = name, stats = NpcStats(strength = str)) }.toTypedArray())
+        val combat = NpcCombat.load(slayerTypes, seqs)
+        assertEquals(names.size, combat.size)
+        fun def(name: String) = combat[slayerTypes.find(name)!!]!!
+        for (name in names.keys) {
+            assertEquals(CombatMath.npcMaxHit(slayerTypes.find(name)!!.stats.strength, def(name).strengthBonus), def(name).maxHit, name)
+        }
+        val shown = listOf("slayer_rockslug", "swamp_wallbeast_combat")
+        assertEquals(listOf(4, 4), shown.map { def(it).maxHit })
+        assertEquals(listOf(20, 35), shown.map { def(it).slayerLevel })
+        assertEquals(listOf(1, 0), shown.map { def(it).minHitpoints })
+        assertEquals(listOf(false, true), shown.map { def(it).aggression != null })
+        assertEquals(1, def("slayer_rockslug_baby").minHitpoints)
+        assertEquals(ElementalWeakness(Element.EARTH, 25), def("slayer_rockslug").weakness)
+        assertEquals(NpcCombatAnims(1567, 1565, 1568), def("slayer_rockslug").anims)
+        assertEquals(NpcCombatAnims(1802, 1803, 1804), def("swamp_wallbeast_combat").anims)
     }
 
     @Test

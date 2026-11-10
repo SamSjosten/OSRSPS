@@ -65,13 +65,14 @@ class NpcSpawn(
  * NPC only steps onto roofed tiles and an [OUTDOORS] one only onto open sky; a [BLOCKED] one only onto tiles whose floor
  * can't be walked on, which is water where ducks swim, with walls and locs still in its way (RSMod's ducks, and its
  * route finder's blocked collision strategy). The Lumbridge cook keeps to the castle this way, and the ducks to the
- * river.
+ * river. A [NOMOVE] one never takes a step, as the swamp caves' wall beasts in their holes (2004Scape's `nomove`).
  */
 enum class MoveRestrict {
     NORMAL,
     INDOORS,
     OUTDOORS,
     BLOCKED,
+    NOMOVE,
 }
 
 /** A tile on an NPC's patrol, and how many ticks it stands there on arriving before it walks to the next. */
@@ -221,6 +222,12 @@ class Npc(
      * the Smorks' heavy cannonball (raid step 18b; OSRS Wiki: "melee attacks will always hit").
      */
     var meleeSureUntil: Long = -1
+
+    /**
+     * Melee hits on it do nothing while this is up, as an NPC's Protect from Melee does: a boss fight sets it (Ocellus
+     * walking between corners in his first phase, raid step 24a; tsps capture notes: "melee does nothing then").
+     */
+    var protectsFromMelee: Boolean = false
 
     /** True from the hit that killed it until it is taken out of the world; it can't be attacked meanwhile. */
     var dead: Boolean = false
