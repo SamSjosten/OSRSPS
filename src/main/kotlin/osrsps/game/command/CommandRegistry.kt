@@ -20,6 +20,8 @@ class CommandContext(
     val player: Player,
     val args: List<String>,
     private val output: (String) -> Unit,
+    /** Whether [player] is an admin, for the non-admin commands that show admins more. */
+    val admin: Boolean = false,
 ) {
     fun reply(message: String) = output(message)
 
@@ -83,7 +85,7 @@ class CommandRegistry(private val isAdmin: (Player) -> Boolean = { true }) {
         }
         logger.info { "${player.username} ran ::${words.joinToString(" ")}" }
         try {
-            CommandContext(player, words.drop(1), reply).apply(command.run)
+            CommandContext(player, words.drop(1), reply, admin).apply(command.run)
         } catch (e: CommandFailure) {
             reply(e.message ?: "Usage: ${command.usage}")
         } catch (e: Exception) {
