@@ -6,6 +6,7 @@ import osrsps.game.World
 import osrsps.game.dialogue.Lines
 import osrsps.game.script.Op
 import osrsps.game.script.ScriptContext
+import osrsps.game.skill.SuccessRoll
 
 /** The H.A.M. Hideout's words, in the dialogue file. */
 object HamHideoutLines : Lines("ham_hideout", "OSRS Wiki, H.A.M. Hideout, Trapdoor (H.A.M. Hideout) and H.A.M. Member, read 2026-11-10") {
@@ -32,18 +33,19 @@ object HamHideoutLines : Lines("ham_hideout", "OSRS Wiki, H.A.M. Hideout, Trapdo
  *   with a lockpick, rising in four equal steps over the tries to 27% to 123%, or 47% to 141%; starting again resets
  *   it), each fail 0.5 XP, and lets the player out for 3.8 XP.
  * - Pickpocketing H.A.M. members ([osrsps.game.skill.Pickpocketing]): each blow that lands is a concussion ([caught]);
- *   Agility takes some blows instead, which don't count. The third concussion bundles the player out, unless their
- *   H.A.M. clothing keeps them in (each piece 4% less likely to be thrown out); out is the surface by the trapdoor or
- *   Jimmy's cell. Leaving or being thrown out starts the count again.
+ *   Agility takes some blows instead, which don't count ([avoids]: 1/256 at Agility 1 to 255/256 at 99, the Wiki's
+ *   chart). The third concussion bundles the player out, unless their H.A.M. clothing keeps them in (each piece 4% less
+ *   likely to be thrown out); out is the surface by the trapdoor or Jimmy's cell. Leaving or being thrown out starts
+ *   the count again.
+ * - A pick takes 9 ticks, the Wiki's Tick manipulation page's normal trapdoor pick.
  *
- * Guessed: the messages but the three the H.A.M. Member page quotes; the chance moving linearly with Thieving between
- * the Wiki's two ends, with none rising on repeated fails (a Jagex moderator's word on the Trapdoor page); the cell
- * door's chances moving linearly with Thieving between the Wiki's ends, its tries taking the trapdoor's 9 ticks, and no
- * numbing there; Agility's share of the blows (its level in
- * hundredths); the even chance of the surface or the cell; the tiles the player lands on. Left out: the trapdoor's
- * occasional 1 XP on a fail (the Wiki gives no rate). The 9 ticks a trapdoor pick takes are the Wiki's Tick
- * manipulation page's; its 4-tick manipulated pick is left out, Talk-to on the guards, Johanhus, Jimmy and the seated members
- * (quest talk), the archers and mages (quest-only), Sigmund, the storerooms (step 4b).
+ * Guessed: the messages but the three the H.A.M. Member page quotes; the trapdoor's chance moving linearly with Thieving
+ * between the Wiki's two ends, with none rising on repeated fails (a Jagex moderator's word on the Trapdoor page); the
+ * cell door's chances moving linearly with Thieving between the Wiki's ends, its tries taking the trapdoor's 9 ticks,
+ * and no numbing there; the even chance of the surface or the cell; the tiles the player lands on. Left out: the
+ * trapdoor's occasional 1 XP on a fail (the Wiki gives no rate), the 4-tick manipulated pick, Talk-to on the guards,
+ * Johanhus, Jimmy and the seated members (quest talk), the archers and mages (quest-only), Sigmund, the storerooms
+ * (step 4b).
  */
 object HamHideout {
     const val TRAPDOOR = 5492
@@ -87,8 +89,8 @@ object HamHideout {
     const val OPEN = "ham_trapdoor_open"
     const val CONCUSSIONS = "ham_concussions"
 
-    /** [Player.charges] names for a pick in progress: ticks left of this try, and the cell door's fails so far. */
-    const val PICK_WAIT = "ham_pick_wait"
+    /** [Player.charges] names for a pick in progress: the tick this try ends, and the cell door's fails so far. */
+    const val PICK_DUE = "ham_pick_due"
     const val CELL_FAILS = "ham_cell_fails"
 
     /** A Pick-lock's chance in hundredths at Thieving [level]: 4 to 98, or 24 to 99 [withLockpick]. */
@@ -110,6 +112,10 @@ object HamHideout {
         return (start + (end - start) * fails.coerceIn(0, CELL_STEPS) / CELL_STEPS).toInt()
     }
 
+    /** Agility's chance to take a blow, as [SuccessRoll] ends: 1/256 at level 1 to 255/256 at 99 (the Wiki's chart). */
+    const val AVOID_LOW = 0
+    const val AVOID_HIGH = 254
+
     /** The chance in hundredths that a third concussion throws the player out: 4 less for each H.A.M. piece worn. */
     fun ejectChance(pieces: Int): Int = 100 - CLOTHING_PERCENT * pieces.coerceIn(0, CLOTHING.size)
 
@@ -129,7 +135,7 @@ object HamHideout {
      * third throws them out, unless their clothing keeps them in this time.
      */
     fun caught(world: World, player: Player) {
-        if (world.random.nextInt(100) < player.skills.currentLevel(Skill.AGILITY)) {
+        if (SuccessRoll.roll(world.random, AVOID_LOW, AVOID_HIGH, player.skills.currentLevel(Skill.AGILITY))) {
             world.message(player, HamHideoutLines.AVOIDED)
             return
         }
@@ -153,7 +159,7 @@ object HamHideout {
             arriveDelay()
             if (trapdoorOpen(player)) return
             world.message(player, HamHideoutLines.PICK)
-            player.charges[PICK_WAIT] = PICK_TICKS
+            startTry()
         }
         if (!waited(world, op)) return
         val thieving = player.skills.currentLevel(Skill.THIEVING)
@@ -166,11 +172,14 @@ object HamHideout {
         player.skills.setCurrentLevel(Skill.THIEVING, (thieving - 1).coerceAtLeast(0))
     }
 
-    /** Counts down this try's ticks: true once they are up, otherwise runs [op] again next tick. */
+    /** Starts a try: it ends [PICK_TICKS] ticks from now. */
+    private fun ScriptContext.startTry() {
+        player.charges[PICK_DUE] = (tick + PICK_TICKS).toInt()
+    }
+
+    /** True once this try's ticks are up; otherwise runs [op] again next tick and is false. */
     private fun ScriptContext.waited(world: World, op: Op): Boolean {
-        val wait = player.charges[PICK_WAIT] - 1
-        player.charges[PICK_WAIT] = wait
-        if (wait <= 0) return true
+        if (tick >= player.charges[PICK_DUE]) return true
         world.repeatOp(player, op)
         return false
     }
@@ -186,7 +195,7 @@ object HamHideout {
             if (!inCell(player)) return world.message(player, HamHideoutLines.CELL_LOCKED)
             world.message(player, HamHideoutLines.PICK)
             player.charges[CELL_FAILS] = 0
-            player.charges[PICK_WAIT] = PICK_TICKS
+            startTry()
         }
         if (!waited(world, op)) return
         val fails = player.charges[CELL_FAILS]
@@ -200,7 +209,7 @@ object HamHideout {
         world.message(player, HamHideoutLines.PICK_FAIL)
         player.skills.addTenths(Skill.THIEVING, CELL_FAIL_XP_TENTHS)
         player.charges[CELL_FAILS] = fails + 1
-        player.charges[PICK_WAIT] = PICK_TICKS
+        startTry()
         world.repeatOp(player, op)
     }
 

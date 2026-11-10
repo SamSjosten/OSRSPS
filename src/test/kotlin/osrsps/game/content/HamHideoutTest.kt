@@ -35,12 +35,18 @@ class HamHideoutTest {
     }
 
     @Test
+    fun `Agility takes a blow 1 in 256 at level 1 and 255 in 256 at 99`() = with(HamHideout) {
+        assertEquals(1, SuccessRoll.chance(AVOID_LOW, AVOID_HIGH, 1))
+        assertEquals(255, SuccessRoll.chance(AVOID_LOW, AVOID_HIGH, 99))
+    }
+
+    @Test
     fun `a member's pocket runs 53 to 94 percent, and the table fills its 1122 slots`() {
         val ham = Pickpocketing.POCKETS.single { Pickpocketing.HAM_MEMBERS.containsAll(it.npcs) }
         assertEquals(15, ham.level)
         assertEquals(222, ham.xpTenths)
         assertEquals(136, SuccessRoll.chance(ham.low, ham.high, 1), "53.1%")
-        assertEquals(241, SuccessRoll.chance(ham.low, ham.high, 99), "94.1%")
+        assertEquals(240, SuccessRoll.chance(ham.low, ham.high, 99), "93.75%")
         assertEquals(1 to 3, ham.damageMin to ham.damage)
         assertEquals(7, ham.stunTicks, "the Wiki's 4 seconds")
         assertEquals(Pickpocketing.HAM_SLOTS, Pickpocketing.HAM_LOOT.sumOf { it.weight(1) })

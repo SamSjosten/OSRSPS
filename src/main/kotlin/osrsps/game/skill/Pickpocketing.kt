@@ -83,8 +83,8 @@ class Pocket(
  * pet), gloves of silence, the Ardougne diary and cloak, the thieving cape's boost, the Rogue outfit's extra loot, and
  * pickpocketing NPCs outside Misthalin's builds so far (farmers, other towns' guards and on).
  *
- * H.A.M. members (Misthalin piece 7 step 4a, the Wiki's H.A.M. Member page): level 15, 22.2 XP, 53% at 1 to 94% at 99
- * (135 to 240), 1 to 3 damage, a 4-second stun ([HAM_STUN_TICKS]), their own table ([HAM_LOOT]) and coin pouch (1 to
+ * H.A.M. members (Misthalin piece 7 step 4a, the Wiki's H.A.M. Member page): level 15, 22.2 XP, 136/256 at 1 to 240/256 at
+ * 99 (135 to 239), 1 to 3 damage, a 4-second stun ([HAM_STUN_TICKS]), their own table ([HAM_LOOT]) and coin pouch (1 to
  * 21 coins), Pickpocket as their op1; a catch counts toward being thrown out ([HamHideout.caught]) in place of the
  * stunned message (guessed).
  */
@@ -372,7 +372,7 @@ class Pickpocketing(private val world: World) {
             Pocket(VARROCK_GUARDS, "guard", 40, 468, 50, 240, 2, PickpocketLines.CAUGHT_CITIZEN, GUARD_POUCH, COINS_PER_GUARD_POUCH),
             Pocket(listOf(WARRIOR_WOMAN), "warrior", 25, 260, 100, 240, 2, PickpocketLines.CAUGHT_CITIZEN, WARRIOR_POUCH, COINS_PER_WARRIOR_POUCH),
             Pocket(
-                HAM_MEMBERS, "H.A.M. member", 15, 222, 135, 240, 3, PickpocketLines.CAUGHT_HAM, loot = HAM_LOOT, op = HAM_PICKPOCKET,
+                HAM_MEMBERS, "H.A.M. member", 15, 222, 135, 239, 3, PickpocketLines.CAUGHT_HAM, loot = HAM_LOOT, op = HAM_PICKPOCKET,
                 damageMin = 1, lootPouch = HAM_POUCH, concussions = true, stunTicks = HAM_STUN_TICKS,
             ),
         )

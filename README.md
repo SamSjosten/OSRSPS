@@ -1132,9 +1132,9 @@ steps to 27% to 123%, or 47% to 141%; each fail 0.5 XP). A trapdoor pick takes 9
 | Pick-Lock's rates at 1 and 99, the lockpick's, 3.8 XP, the numbing; no rise on repeated fails | OSRS Wiki, Trapdoor (H.A.M. Hideout), read 2026-11-10 (a Jagex moderator's word for the last) |
 | The trapdoor pick's 9 ticks (4-tick manipulation left out) | OSRS Wiki, Tick manipulation, read 2026-11-10 |
 | The cell door's rates at 1 and 99, with and without a lockpick, first and after the rise; four equal steps; a restart resetting it; 3.8 XP, 0.5 a fail; no picking from outside | OSRS Wiki, Door (H.A.M. Hideout Jail), read 2026-11-10 |
-| Members: level 15, 22.2 XP, 1 to 3 damage, the 4-second stun, the loot and pouch, concussions, the three quoted messages, 4% a clothing piece | OSRS Wiki, H.A.M. Member, read 2026-11-10 |
+| Members: level 15, 22.2 XP, 136/256 to 240/256, 1 to 3 damage, the 4-second stun, Agility's 1/256 to 255/256 share of blows, the loot and pouch, concussions, the three quoted messages, 4% a clothing piece | OSRS Wiki, H.A.M. Member, read 2026-11-10 |
 | Guards: stats, speeds, max hits, defences, drops (one table for the three) | OSRS Wiki, H.A.M. Guard, read 2026-11-10 |
-| Linear chances between the Wiki's ends, the cell door's 9 ticks a try and no numbing there, the stun's 7 ticks, Agility's share of blows (its level in hundredths), the even surface or cell, the tiles, the guards' animations, the other messages | guessed |
+| Linear chances between the Wiki's ends, the cell door's 9 ticks a try and no numbing there, the stun's 7 ticks, the even surface or cell, the tiles, the guards' animations, the other messages | guessed |
 | Out: the trapdoor's occasional 1 XP on a fail, the easy clue, Talk-to on guards, seated members, Johanhus and Jimmy, the quest-only archers and mages, the storerooms (step 4b) | out of scope |
 
 ## Draynor Village
