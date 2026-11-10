@@ -13,7 +13,9 @@ import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
+import osrsps.game.SeqNames
 import osrsps.game.World
+import osrsps.game.combat.NpcCombat
 import osrsps.game.content.HamHideout
 import osrsps.game.content.HamStorerooms
 import osrsps.game.loc.LocType
@@ -79,7 +81,7 @@ class HeadlessHamStoreroomsTest {
                 ).associateBy { it.id },
             ),
             staticLocs = StaticLocs().apply { listOf(trapdoor, ladder, westDoor, eastDoor, southCrack, steelChest, largeLeft, largeRight).forEach(::add) },
-            npcTypes = NpcTypes.of(guardA, guardB),
+            npcTypes = NpcTypes.of(guardA, guardB), npcCombat = NpcCombat.load(NpcTypes.of(guardA, guardB), SeqNames.NONE),
             npcSpawns = listOf(
                 // A patrols the corridor west of the rooms; B stands in the south corridor, in sight of both doors.
                 NpcSpawn(guardA, 2566, 5199, patrol = listOf(PatrolStop(2566, 5201, 3), PatrolStop(2566, 5199, 3)), source = "test"),

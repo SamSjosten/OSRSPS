@@ -49,9 +49,9 @@ object HamStoreroomsLines : Lines("ham_storerooms", "OSRS Wiki, H.A.M. Storeroom
  *   of each colour at 1/10 each and the H.A.M. members' coin pouch. A catch doesn't throw the player out.
  *
  * Guessed: the messages but the key's; the tiles the ladder and trapdoor land on; a door pick's 9 ticks (the hideout
- * trapdoor's) and one try a click; Open from inside letting the player out with no pick; the guards' patrols (corridor
- * to corridor, [GUARD_WAIT] ticks at each end), how far they see, and that a settled guard stays settled for as long
- * as the world runs; the guards' pickpocket chance (the H.A.M. members' 135 to 239: the Wiki has no chart yet) and the
+ * trapdoor's) and one try a click; Open from inside letting the player out with no pick; the guards' patrols (along a
+ * corridor, within the combat leash, [GUARD_WAIT] ticks at each end), how far they see, and that a settled guard stays
+ * settled for as long as the world runs; the guards' pickpocket chance (the H.A.M. members' 135 to 239: the Wiki has no chart yet) and the
  * usual 9-tick stun; 0 coins giving nothing; needing [CHEST_ROOM] free slots to open a chest. Left out: the easy clue
  * (no Treasure Trails yet; counted as nothing, as the members'), the chests' open look, the crack's squeeze animation,
  * Talk-to on the guards (quest talk), aggression when spoken to without the H.A.M. robes.
@@ -225,7 +225,8 @@ object HamStorerooms {
             if (guard.type.id !in GUARDS || guard.dead || guard.level != player.level || isSettled(guard)) continue
             if (maxOf(kotlin.math.abs(guard.x - player.x), kotlin.math.abs(guard.z - player.z)) > SIGHT_TILES) continue
             if (guard.target != null || !world.aggression.sees(guard, player)) continue
-            world.meleeCombat.aggress(guard, player, tick)
+            // provoke keeps the single-way rules: no guard joins a fight the player is already in.
+            world.meleeCombat.provoke(guard, player, tick)
         }
     }
 

@@ -247,7 +247,9 @@ class NpcSpawnFileTest {
             setOf(4522 to (2566 to 5189), 4523 to (2566 to 5201), 4524 to (2567 to 5195), 4525 to (2577 to 5201), 4526 to (2567 to 5202)),
             spawns.map { it.type.id to (it.x to it.z) }.toSet(),
         )
+        // Every stop within the combat leash of the post, so a guard can chase a picker from anywhere on its route.
         assertTrue(spawns.all { it.patrol.size == 2 && it.patrol.all { stop -> stop.x in 2566..2577 && stop.z in 5189..5202 } && it.source.isNotBlank() })
+        assertTrue(spawns.all { it.patrol.all { stop -> maxOf(kotlin.math.abs(stop.x - it.x), kotlin.math.abs(stop.z - it.z)) <= osrsps.game.npc.Npcs.MAX_RANGE } })
     }
 
     @Test
