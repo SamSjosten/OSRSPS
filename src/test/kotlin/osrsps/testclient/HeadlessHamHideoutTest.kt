@@ -6,6 +6,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
+import osrsps.game.InventoryTab
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.ObjType
@@ -46,6 +47,8 @@ class HeadlessHamHideoutTest {
         for (loot in Pickpocketing.HAM_LOOT) if (loot.obj >= 0) objs[loot.obj] = ObjType(loot.obj, "Loot ${loot.obj}", stackable = true)
         for ((i, id) in HamHideout.CLOTHING.withIndex()) objs[id] = ObjType(id, "Ham $i", iops = listOf(null, "Wear", null, null, "Drop"), wearpos1 = WearPos.BODY)
         objs[HamHideout.LOCKPICK] = ObjType(HamHideout.LOCKPICK, "Lockpick")
+        objs[Pickpocketing.HAM_POUCH] = ObjType(Pickpocketing.HAM_POUCH, "Coin pouch", stackable = true, iops = listOf("Open-all", "Open", null, null, "Destroy"))
+        objs[COINS] = ObjType(COINS, "Coins", stackable = true)
         World(
             crcs,
             CollisionMap().apply { markLoaded(3166 shr 6, 3252 shr 6); markLoaded(3149 shr 6, 9653 shr 6); markLoaded(3183 shr 6, 9611 shr 6) },
@@ -72,6 +75,8 @@ class HeadlessHamHideoutTest {
     }
 
     private fun HeadlessClient.awaitAt(x: Int, z: Int) = await("$x, $z") { position?.takeIf { it == Coord(x, z, 0) } }
+
+    private fun HeadlessClient.count(id: Int) = inventory(BACKPACK).filterNotNull().filter { it.id == id }.sumOf { it.count }
 
     private fun HeadlessClient.seen(text: String) = messages().count { it.text == text }
 
@@ -188,6 +193,22 @@ class HeadlessHamHideoutTest {
     }
 
     @Test
+    fun `Open-all on an admin's huge stack of H,A,M, pouches opens at most 28, each 1 to 21 coins`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item ${Pickpocketing.HAM_POUCH} 1000000")
+                val slot = client.await("the pouches") { client.inventory(BACKPACK).indexOfFirst { it?.id == Pickpocketing.HAM_POUCH }.takeIf { it >= 0 } }
+                client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, 2, slot, Pickpocketing.HAM_POUCH)
+                client.await("opened") { if (client.count(Pickpocketing.HAM_POUCH) < 1_000_000) Unit else null }
+                assertEquals(1_000_000 - Pickpocketing.MAX_POUCHES, client.count(Pickpocketing.HAM_POUCH))
+                val coins = client.await("the coins") { client.count(COINS).takeIf { it > 0 } }
+                assertTrue(coins in Pickpocketing.MAX_POUCHES..Pickpocketing.MAX_POUCHES * 21, "$coins")
+            }
+        }
+    }
+
+    @Test
     fun `a catch that kills counts no concussion and moves no one`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("dave").use { client ->
@@ -265,6 +286,8 @@ class HeadlessHamHideoutTest {
         const val THIEVING = 17
         const val AGILITY = 16
         const val HITPOINTS = 3
+        const val COINS = 995
+        const val BACKPACK = 93
         const val DONE = "[ham_hideout.pick_done]"
         const val FAIL = "[ham_hideout.pick_fail]"
         const val CONCUSSED = "[ham_hideout.concussed]"

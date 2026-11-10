@@ -179,13 +179,18 @@ class Pickpocketing(private val world: World) {
         error("Unreachable")
     }
 
-    /** Open (one) or Open-all on the [pouch]es in [slot]: [coinsEach] coins each, rolled for each pouch. */
+    /**
+     * Open (one) or Open-all on the [pouch]es in [slot]: [coinsEach] coins each, rolled for each pouch. Open-all on pouches
+     * of rolled coins opens at most [MAX_POUCHES] (all play can stack; a bigger stack is an admin's `::item`), so one
+     * click never rolls more than that.
+     */
     private fun open(player: Player, slot: Int, pouch: Int, coinsEach: IntRange, all: Boolean) {
         val held = player.inventory[slot]?.takeIf { it.id == pouch } ?: return
         val coins = world.objTypes[COINS] ?: return
         val text = world.textFor(player)
-        val pouches = if (all) held.count else 1
-        val gain = if (coinsEach.first == coinsEach.last) {
+        val fixed = coinsEach.first == coinsEach.last
+        val pouches = if (!all) 1 else if (fixed) held.count else held.count.coerceAtMost(MAX_POUCHES)
+        val gain = if (fixed) {
             pouches.toLong() * coinsEach.first
         } else {
             (0 until pouches).sumOf { world.random.between(coinsEach.first, coinsEach.last).toLong() }
