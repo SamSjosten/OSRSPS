@@ -1,0 +1,26 @@
+{
+ "name": "Gathering 2 step G2: chop Chompy Marsh's teak until it falls and a redwood section in the Woodcutting Guild, with a dragon axe at 99 (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::item dragon_axe", "expectMessage": "Added 1 x Dragon axe"},
+  {"step": "command", "text": "::setlevel woodcutting 99"},
+
+  {"step": "command", "text": "::tele 2334 3048 0", "comment": "west of the teak at 2335, 3048; the standing tile is not yet checked on the VM"},
+  {"step": "locOption", "locId": 9036, "option": "Chop down", "x": 2335, "y": 3048},
+  {"step": "assertMessage", "contains": "woodcutting.swing"},
+  {"step": "assertAnimation", "id": 2846, "comment": "the dragon axe's"},
+  {"step": "assertLoc", "locId": 9037, "x": 2335, "y": 3048, "timeoutMs": 60000, "comment": "teak_stump once the 50-tick timer has run out"},
+  {"step": "assertMessage", "contains": "woodcutting.get_logs logs=teak logs"},
+  {"step": "assertLoc", "locId": 9036, "x": 2335, "y": 3048, "option": "Chop down", "timeoutMs": 20000, "comment": "back after 15 ticks"},
+
+  {"step": "command", "text": "::tele 1567 3493 1", "comment": "on the first scaffold beside a redwood section (Wiki: 1568, 3493, level 1); the standing tile is not yet checked"},
+  {"step": "locOption", "loc": "Redwood tree", "option": "Cut"},
+  {"step": "assertInventory", "item": "Redwood logs", "count": 1, "timeoutMs": 120000, "comment": "the dragon axe's 7/30 pair at 99 is about 12% a roll"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
