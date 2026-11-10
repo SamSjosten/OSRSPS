@@ -241,6 +241,25 @@ class MeleeCombatTest {
     }
 
     @Test
+    fun `content can take what a swing rolled before it lands, by its style`() {
+        combat.sureHit = { _, _, _ -> SureHit.MAX }
+        val seen = ArrayList<AttackType>()
+        combat.rolledOn = { _, _, type, _ -> seen += type; 0 }
+        val npc = spawn()
+        attack(alice, npc)
+        val hits = ArrayList<Int>()
+        repeat(10) {
+            tick()
+            npc.effects.pendingHits.singleOrNull()?.let { hits += it.value }
+            npc.effects.flush({}, {}, {})
+        }
+        // Every punch maxed, then taken to nothing: three blocked hitsplats, each asked once, as a crush.
+        assertEquals(listOf(0, 0, 0), hits)
+        assertEquals(List(3) { AttackType.CRUSH }, seen)
+        assertEquals(npc.maxHitpoints, npc.hitpoints)
+    }
+
+    @Test
     fun `a swing animates the player, shows the splat and health bar, holds the NPC and gives XP`() {
         val npc = spawn(wander = 5)
         attack(alice, npc)

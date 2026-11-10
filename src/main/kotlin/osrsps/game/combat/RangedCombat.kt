@@ -294,7 +294,7 @@ class RangedCombat(
             val sure = combat.sureHit(player, npc, style.type)
             val hit = CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll) || player.sureHits || sure == SureHit.MAX
             val rolled = if (hit) CombatMath.rollDamage(random, matchup.maxHit).let { if (sure != SureHit.ROLLED) matchup.maxHit else it } else 0
-            val damage = reserve(player, npc, style, rolled)
+            val damage = reserve(player, npc, style, combat.rolledOn(player, npc, style.type, rolled))
             melee.attackMade(player, npc, tick)
             inFlight += Shot(player, npc, damage, landTick, dropped, weapon.bounces, style, matchup.attackRoll, matchup.maxHit, travel, hit, weapon.targets, poison, venom, from = Tile(player.x, player.z), recover = recover, slot = slot, floor = floor)
         }
