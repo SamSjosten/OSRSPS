@@ -1111,6 +1111,28 @@ for 20 ticks it goes back in. Hurting rockslugs needs Slayer 20, wall beasts 35.
 | The grab's 4 ticks, its even roll from 0 to 18, one grab per step onto the tile, the 20 ticks before it goes back in, the 10-tick respawn, the salt and grab messages, no salting animation and no XP for the salt's kill | guessed |
 | Out: the Slug salter perk, Slayer XP (no Slayer rewards or tasks yet) | out of scope |
 
+#### The H.A.M. Hideout
+
+Misthalin piece 7 step 4a (`game/content/HamHideout.kt`, `npc-spawns/ham-hideout.json`, words under `ham_hideout.*`
+and `pickpocket.caught_ham`): the trapdoor west of Lumbridge's general store is locked. Pick-Lock opens it at 4% at
+Thieving 1 to 98% at 99 (24% to 99% with a lockpick in the backpack) for 3.8 XP, and a fail numbs the fingers,
+Thieving down 1. Picked open (varbit `ham_thief` shows it open), Climb-down takes the player to the foot of the ladder
+and Close shuts it; the ladder climbs back up. Inside, 26 members can be pickpocketed (Thieving 15, 22.2 XP, loot or a
+H.A.M. coin pouch), 11 sit, and 22 guards of levels 12, 18 and 22 fight and drop the Wiki's table. A caught thief
+takes 1 to 3 damage and a concussion, unless Agility takes the blow; the third concussion bundles them out to the
+surface or into Jimmy the Chisel's cell, 4% less likely for each piece of H.A.M. clothing worn. The cell door is
+locked, and picked from inside lets the player out.
+
+| The H.A.M. Hideout | Source |
+|--------------------|--------|
+| Spawns: tiles and types (Sigmund, quest-only, left out) | mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022) |
+| The trapdoor's two forms and their options, the ladder, the cell door, ids, varbit 235 | 242 cache |
+| Pick-Lock's rates at 1 and 99, the lockpick's, 3.8 XP, the numbing; no rise on repeated fails | OSRS Wiki, Trapdoor (H.A.M. Hideout), read 2026-11-10 (a Jagex moderator's word for the last) |
+| Members: level 15, 22.2 XP, 1 to 3 damage, the loot and pouch, concussions, the three quoted messages, 4% a clothing piece | OSRS Wiki, H.A.M. Member, read 2026-11-10 |
+| Guards: stats, speeds, max hits, defences, drops (one table for the three) | OSRS Wiki, H.A.M. Guard, read 2026-11-10 |
+| Linear chance between the two ends, the 3 ticks a pick takes, the cell door at the trapdoor's rates without numbing, Agility's share of blows (its level in hundredths), the even surface or cell, the tiles, the guards' animations, the other messages | guessed |
+| Out: the trapdoor's occasional 1 XP on a fail, the easy clue, Talk-to on guards, seated members, Johanhus and Jimmy, the quest-only archers and mages, the storerooms (step 4b) | out of scope |
+
 ## Draynor Village
 
 The village west of Lumbridge (the Draynor piece, plan in the project's Draynor Village 1:1 plan doc). Step 1 is the

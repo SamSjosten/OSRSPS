@@ -1,0 +1,44 @@
+{
+ "name": "Misthalin piece 7 step 4a: the H.A.M. Hideout's trapdoor locked, picked open and climbed down, the ladder back up, a H.A.M. member pickpocketed, and Jimmy's cell door locked from outside and picked from inside (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::god on", "comment": "a caught pickpocket's blow would otherwise hurt"},
+  {"step": "command", "text": "::setlevel thieving 99", "expectMessage": "99"},
+  {"step": "command", "text": "::item lockpick", "expectMessage": "Added 1 x Lockpick", "comment": "99% at Thieving 99 with a lockpick"},
+
+  {"step": "command", "text": "::tele 3165 3251 0", "comment": "beside the trapdoor west of the general store"},
+  {"step": "assertLocation", "x": 3165, "y": 3251, "plane": 0},
+  {"step": "locOption", "locId": 5492, "option": "Open", "x": 3166, "y": 3252},
+  {"step": "assertMessage", "contains": "[ham_hideout.trapdoor_locked]", "timeoutMs": 10000},
+  {"step": "locOption", "locId": 5492, "option": "Pick-Lock", "x": 3166, "y": 3252},
+  {"step": "assertMessage", "contains": "[ham_hideout.pick_done]", "timeoutMs": 10000, "comment": "99%: one run in a hundred fails here"},
+  {"step": "waitTicks", "ticks": 2, "comment": "the trapdoor shows open: Climb-down and Close"},
+  {"step": "locOption", "locId": 5492, "option": "Climb-down", "x": 3166, "y": 3252},
+  {"step": "assertLocation", "x": 3149, "y": 9652, "plane": 0, "timeoutMs": 10000, "comment": "the foot of the ladder"},
+  {"step": "locOption", "locId": 5493, "option": "Climb-up", "x": 3149, "y": 9653},
+  {"step": "assertLocation", "x": 3165, "y": 3251, "plane": 0, "timeoutMs": 10000},
+  {"step": "locOption", "locId": 5492, "option": "Close", "x": 3166, "y": 3252},
+  {"step": "waitTicks", "ticks": 2},
+
+  {"step": "command", "text": "::tele 3166 9631 0", "expectMessage": "Teleported to 3166, 9631, 0", "comment": "among the members in the hideout's middle"},
+  {"step": "waitTicks", "ticks": 3, "comment": "let the client list the hideout's NPCs"},
+  {"step": "npcOption", "npc": "H.A.M. Member", "option": "Pickpocket", "timeoutMs": 20000},
+  {"step": "assertMessage", "contains": "[pickpocket.attempt who=H.A.M. member]", "timeoutMs": 10000, "comment": "94% at 99: loot, or a blow and a concussion"},
+  {"step": "waitTicks", "ticks": 12, "comment": "past a stun, if there was one"},
+
+  {"step": "command", "text": "::tele 3182 9611 0", "expectMessage": "Teleported to 3182, 9611, 0", "comment": "the corridor west of Jimmy's cell door"},
+  {"step": "locOption", "locId": 5501, "option": "Open", "x": 3183, "y": 9611},
+  {"step": "assertMessage", "contains": "[ham_hideout.cell_locked]", "timeoutMs": 10000},
+  {"step": "command", "text": "::tele 3184 9611 0", "expectMessage": "Teleported to 3184, 9611, 0", "comment": "inside the cell, beside Jimmy"},
+  {"step": "locOption", "locId": 5501, "option": "Pick-lock", "x": 3183, "y": 9611},
+  {"step": "assertMessage", "contains": "[ham_hideout.pick_done]", "timeoutMs": 10000, "comment": "99% again"},
+  {"step": "assertLocation", "x": 3182, "y": 9611, "plane": 0, "timeoutMs": 5000, "comment": "out in the corridor"},
+
+  {"step": "command", "text": "::god off"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

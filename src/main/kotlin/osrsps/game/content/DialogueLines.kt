@@ -215,6 +215,7 @@ object DialogueLines {
         SwampCavesLines,
         CaveGoblinLines,
         SwampCaveSlayerLines,
+        HamHideoutLines,
         MageOfZamorakLines,
         MakeLines,
         ManLines,

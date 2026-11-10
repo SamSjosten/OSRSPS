@@ -216,6 +216,22 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `the HAM Hideout has its 26 pickpocketable members, 11 seated, 22 guards, the Deacon, Johanhus and Jimmy in his cell`() {
+        val names = mapOf(
+            2540 to "favour_male_ham_civilian", 2541 to "favour_female_ham_civilian", 2542 to "favour_npc_chair",
+            2543 to "favour_npc_floor", 2536 to "favour_guard_male_no_beard", 2537 to "favour_guard_male_bearded",
+            2538 to "favour_guard_long_beard",
+        )
+        val result = NpcSpawnFile.parse(file("ham-hideout.json"), NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray()), "ham-hideout.json")
+        val spawns = result.spawns
+        fun count(vararg ids: Int) = spawns.count { it.type.id in ids }
+        assertEquals(listOf(26, 11, 22), listOf(count(2540, 2541), count(2542, 2543), count(2536, 2537, 2538)))
+        assertTrue(spawns.all { it.x in 3140..3190 && it.z in 9600..9660 && it.level == 0 && it.source.isNotBlank() })
+        assertTrue(spawns.filter { it.type.id in setOf(2542, 2543) }.all { it.wander == 0 })
+        assertEquals(3, result.unknown.size, "the Deacon, Johanhus and Jimmy: ${result.unknown}")
+    }
+
+    @Test
     fun `the swamp has its 23 giant rats, 82 frogs, the level 5 goblin, the unicorn, its talking NPCs and tutors, and rats west of the castle`() {
         val names = mapOf(
             2856 to "giantrat", 2859 to "giantrat_grey", 2860 to "giantrat_grey2", 2861 to "giantrat_grey3", 2863 to "giantrat1_2",
