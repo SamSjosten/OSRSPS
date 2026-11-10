@@ -1,0 +1,76 @@
+{
+  "about": "What the reward vault's chests hold at the end of a run of The Fractured Archive, as the OSRS Wiki's page Chest (The Fractured Archive) lists it (read 2026-11-10). One roll for the party decides whether a unique is found, and contribution who finds it; everyone else's chest takes three rolls on the standard table (a line's weight out of the slots, as in 11/330; the Wiki writes each as 3 x 11/330 for the three rolls), each roll with a chance to give five times its count, then the tertiary drops. Items are ids with their cache names beside them; the loader warns when a name doesn't match. Clue scrolls drop as plain items until clues are their own piece; Orion (1/750) waits for pets.",
+  "unique": {
+    "oneIn": 14,
+    "perPlayerPastTwo": "4%",
+    "slots": 15,
+    "lines": [
+      {"item": 34719, "name": "Rondache", "weight": 5},
+      {"item": 34727, "name": "Zorya's tome (uncharged)", "weight": 4},
+      {"item": 34679, "name": "Horn of Bran", "weight": 3},
+      {"item": 34681, "name": "Ascension crossbows", "weight": 2},
+      {"item": 34717, "name": "Obligator (uncharged)", "weight": 1}
+    ]
+  },
+  "standard": {
+    "rolls": 3,
+    "fiveTimesOneIn": 51,
+    "slots": 330,
+    "lines": [
+      {"item": 1391, "name": "Battlestaff", "min": 34, "max": 37, "weight": 11},
+      {"item": 4087, "name": "Dragon platelegs", "weight": 11},
+      {"item": 4585, "name": "Dragon plateskirt", "weight": 11},
+      {"item": 1201, "name": "Rune kiteshield", "min": 5, "max": 7, "weight": 11},
+      {"item": 561, "name": "Nature rune", "min": 301, "max": 385, "weight": 11},
+      {"item": 9075, "name": "Astral rune", "min": 301, "max": 385, "weight": 11},
+      {"item": 565, "name": "Blood rune", "min": 301, "max": 385, "weight": 11},
+      {"item": 566, "name": "Soul rune", "min": 301, "max": 380, "weight": 11},
+      {"item": 557, "name": "Earth rune", "min": 3009, "max": 3662, "weight": 11},
+      {"item": 205, "name": "Grimy harralander", "min": 60, "max": 66, "weight": 7},
+      {"item": 207, "name": "Grimy ranarr weed", "min": 18, "max": 20, "weight": 7},
+      {"item": 3049, "name": "Grimy toadflax", "min": 24, "max": 28, "weight": 7},
+      {"item": 5300, "name": "Snapdragon seed", "min": 3, "max": 4, "weight": 7},
+      {"item": 5299, "name": "Kwuarm seed", "min": 7, "max": 8, "weight": 7},
+      {"item": 22879, "name": "Snape grass seed", "min": 7, "max": 8, "weight": 7},
+      {"item": 5315, "name": "Yew seed", "min": 4, "max": 5, "weight": 7},
+      {"item": 1607, "name": "Sapphire", "min": 24, "max": 27, "weight": 11},
+      {"item": 1605, "name": "Emerald", "min": 24, "max": 26, "weight": 11},
+      {"item": 1603, "name": "Ruby", "min": 23, "max": 27, "weight": 11},
+      {"item": 1601, "name": "Diamond", "min": 24, "max": 26, "weight": 11},
+      {"item": 440, "name": "Iron ore", "min": 851, "max": 915, "weight": 6},
+      {"item": 449, "name": "Adamantite ore", "min": 60, "max": 72, "weight": 6},
+      {"item": 451, "name": "Runite ore", "min": 25, "max": 26, "weight": 6},
+      {"item": 34669, "name": "Ascension shards", "min": 75, "max": 82, "weight": 55},
+      {"item": 9194, "name": "Onyx bolt tips", "min": 50, "max": 58, "weight": 11},
+      {"item": 575, "name": "Earth orb", "min": 68, "max": 75, "weight": 11},
+      {"item": 245, "name": "Wine of Zamorak", "min": 32, "max": 36, "weight": 7},
+      {"item": 30640, "name": "Desiccated page", "min": 30, "max": 36, "weight": 6},
+      {"item": 30771, "name": "Aether catalyst", "min": 180, "max": 191, "weight": 6},
+      {"item": 7936, "name": "Pure essence", "min": 1404, "max": 1632, "weight": 6},
+      {"item": 6332, "name": "Mahogany logs", "min": 140, "max": 152, "weight": 6},
+      {"item": 11237, "name": "Dragon arrowtips", "min": 350, "max": 369, "weight": 6},
+      {"item": 383, "name": "Raw shark", "min": 80, "max": 92, "weight": 6}
+    ]
+  },
+  "tertiary": {
+    "clue": {"item": 12073, "name": "Clue scroll (elite)", "chance": "1/10"},
+    "folio": {
+      "item": 34722,
+      "name": "Archivist's folio (inert)",
+      "chance": "1/15",
+      "alsoOwnedAs": [
+        34723
+      ]
+    },
+    "fragments": {
+      "chance": "1/20",
+      "items": [
+        {"item": 34675, "name": "Fragment of whispering wind", "unlocked": 16435, "varbit": "tfa_mote_air_unlocked"},
+        {"item": 34673, "name": "Fragment of deep water", "unlocked": 16437, "varbit": "tfa_mote_water_unlocked"},
+        {"item": 34671, "name": "Fragment of living earth", "unlocked": 16434, "varbit": "tfa_mote_earth_unlocked"},
+        {"item": 34677, "name": "Fragment of burning fire", "unlocked": 16436, "varbit": "tfa_mote_fire_unlocked"}
+      ]
+    }
+  },
+  "junk": {"item": 1965, "name": "Cabbage"}
+}
