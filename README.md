@@ -849,6 +849,25 @@ and heroes (reached by `::tele`). Gloves of silence and the dodgy necklace work 
 `::scenario thieving` stands you beside a farmer on the farm south of Varrock with 99 Thieving and Hitpoints, 54
 Hunter, gloves of silence and a dodgy necklace worn, a spare necklace and food.
 
+### Magic: Enchant Crossbow Bolt
+
+Cast on the magic tab's Enchant Crossbow Bolt (`game/skill/magic/BoltEnchant.kt`, the enchantments in
+`skills/bolt-enchant.json`) opens the Make-X box over the enchantments whose bolts the player holds, each shown as the
+bolt it makes. The choice casts that enchantment the picked number of times: each cast checks the level and runes (a
+staff stands in for its runes), takes them and up to 10 bolts, and gives as many enchanted bolts and the spell's XP.
+Walking off stops it, as making does, but it doesn't stop mining, fishing or the like: the Wiki gives it as zero-time
+Magic. One cast a tick at most, however fast the clicks come. What the enchanted bolts do in combat is the next step.
+
+| Bolt enchanting behaviour | Source |
+|---------------------------|--------|
+| The ten enchantments, opal to onyx: levels 4, 7, 14, 24, 27, 29, 49, 57, 68 and 87, XP 9, 17.5, 19, 29.5, 37, 33, 59, 67, 78 and 97; 10 bolts a cast; each also enchanting its dragon bolts, and diamond and onyx their ascension bolts; a box of spells | OSRS Wiki, Enchant Crossbow Bolt and each spell's page (read 2026-11-10) |
+| The runes (the sub-spell objs `04_enchant_bolt_opal` on, params 365 to 370); the button `magic_spellbook:xbows_enchant` (218:13); the animation `human_xbow_enchant_arrowtip` (4462) and graphic `xbows_enchanting_tips_spot` (759) | 242 cache |
+| Casting leaves gathering going, and clicks can cast faster than the pace | OSRS Wiki, Enchant Crossbow Bolt |
+| A cast every 3 ticks, the first on the choice; gathering still stops if the Make-X box is open at its next roll, as for a level-up box (live's spell interface may not); the ordinary bolts before the dragon or ascension ones; fewer than 10 enchanted when fewer are held; only the held bolts' spells in the box; the box's title and the no-bolts message (`bolt_enchant.title`, `bolt_enchant.no_bolts`, words on the server) | guessed |
+
+Check: `./gradlew test --tests 'osrsps.game.skill.magic.BoltEnchantDataTest' --tests 'osrsps.testclient.HeadlessBoltEnchantTest'`,
+and in RuneLite `test-runner/examples/magic-bolt-enchant.json`.
+
 ## Items and inventory
 
 Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for

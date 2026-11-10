@@ -211,6 +211,8 @@ import osrsps.game.skill.SkillUnlocks
 import osrsps.game.skill.Smithing
 import osrsps.game.skill.Woodcutting
 import osrsps.game.skill.WoodcuttingData
+import osrsps.game.skill.magic.BoltEnchant
+import osrsps.game.skill.magic.BoltEnchantData
 import osrsps.game.skill.magic.TeleportData
 import osrsps.game.skill.magic.Teleports
 import osrsps.game.script.ScriptRunner
@@ -725,6 +727,9 @@ class World(
     /** The standard spellbook's teleports to places and their tablets; see [Teleports]. */
     val teleports = Teleports(this, TeleportData.load(objTypes))
 
+    /** Enchant Crossbow Bolt; see [BoltEnchant]. */
+    val boltEnchant = BoltEnchant(this, BoltEnchantData.load(objTypes))
+
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
 
@@ -883,6 +888,7 @@ class World(
         herblore.register()
         decanting.register()
         teleports.register()
+        boltEnchant.register()
         loadDialogue()
     }
 

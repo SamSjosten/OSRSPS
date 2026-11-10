@@ -1,0 +1,25 @@
+{
+ "name": "Artisan 2 step A4b: Enchant Crossbow Bolt from the magic tab with no bolts refused, then 20 opal bolts enchanted in two casts from the Make-X box, taking their cosmic and air runes (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats, nothing worn or carried; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::setlevel magic 4", "expectMessage": "Magic set to level 4"},
+  {"step": "clickWidget", "interfaceId": 218, "component": 13, "op": 1, "comment": "magic_spellbook:xbows_enchant, Cast"},
+  {"step": "assertMessage", "contains": "[bolt_enchant.no_bolts]", "timeoutMs": 5000},
+  {"step": "command", "text": "::item 879 20", "expectMessage": "Added 20 x Opal bolts"},
+  {"step": "command", "text": "::item 564 2", "expectMessage": "Added 2 x Cosmic rune"},
+  {"step": "command", "text": "::item 556 4", "expectMessage": "Added 4 x Air rune"},
+  {"step": "clickWidget", "interfaceId": 218, "component": 13, "op": 1},
+  {"step": "assertInterface", "interfaceId": 270, "comment": "skillmulti, showing Opal bolts (e)"},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15, "comment": "the first item at the box's quantity, as many as the bolts make (2)"},
+  {"step": "assertAnimation", "id": 4462, "timeoutMs": 5000, "comment": "human_xbow_enchant_arrowtip"},
+  {"step": "assertSpotanim", "id": 759, "timeoutMs": 5000, "comment": "xbows_enchanting_tips_spot"},
+  {"step": "assertInventory", "item": "Opal bolts (e)", "count": 20, "timeoutMs": 10000, "comment": "10 a cast, a cast every 3 ticks (guessed)"},
+  {"step": "assertInventory", "item": "Cosmic rune", "count": 0},
+  {"step": "assertInventory", "item": "Air rune", "count": 0},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
