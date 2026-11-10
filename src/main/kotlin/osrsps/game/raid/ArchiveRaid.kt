@@ -260,8 +260,6 @@ class ArchiveRaids(private val world: World) {
         for (type in listOf(Ocellus.INTRO, Ocellus.INTRO_NOT_MET, Ocellus.INTRO_MET)) {
             for (op in Ocellus.READY_OPS) world.handlers.onNpc(type, op) { o -> readyUp(player, o.npc!!) }
         }
-        // His stepping stones' Jump, in his third phase.
-        Ocellus.register(world)
         world.handlers.onLoc(ARCHIVE_DOOR, ENTER) { enter(player) }
         for (door in DOORS) {
             world.handlers.onLoc(door, ENTER) { door(player, door) }
@@ -281,6 +279,9 @@ class ArchiveRaids(private val world: World) {
         world.handlers.onNpc(NAVIGATOR, follow) { op -> follow(this, op.npc!!, quick = false) }
         world.handlers.onNpc(NAVIGATOR, quick) { op -> follow(this, op.npc!!, quick = true) }
         world.combat.shutOut = ::shutOut
+        // His stepping stones' Jump, in his third phase, and his second phase barred to splash: after the shutOut
+        // above, which Ocellus adds to.
+        Ocellus.register(world)
     }
 
     /** The cache's tile [x], [z] in [run]'s instance. */
