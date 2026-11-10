@@ -369,8 +369,9 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::delloc` | Removes every loc on your tile |
 | `::resetlocs [radius]` | Puts the locs within radius tiles of you (default 0, your tile) back as the cache has them; a loc the server itself placed for good (a lodestone) stays |
 | `::npc id\|name [wander]` | Spawns an NPC on your tile, by id, menu name or gameval name: `::npc hans`, `::npc cow2_calf 3`. With a wander range it wanders that far from the tile, otherwise it stands still. Gone on restart |
-| `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range, the party size and hitpoints of a raid NPC, and whether each is frozen, hurt (its hitpoints left), poisoned, envenomed or drained, and who it is fighting ("no one" for an idle one that can fight) or retreating from |
+| `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range, the party size and hitpoints of a raid NPC, and whether each is frozen, hidden, hurt (its hitpoints left), poisoned, envenomed or drained, and who it is fighting ("no one" for an idle one that can fight) or retreating from |
 | `::delnpc index` | Removes NPC `index` (from `::npcs`) |
+| `::hidenpc index\|mine` | Hides NPC `index` (from `::npcs`) where it stands, or shows it again if it is hidden: still in the world, but shown to no client, covering no tile, and neither clicked, hurt nor fighting. `mine` does it to every NPC you put in with `::npc`. What a boss fight does to a boss that is gone for a while |
 | `::respawns` | **everyone.** Lists the killed NPCs waiting to come back: type, spawn tile and ticks left (each type's Wiki respawn time from the killing blow, at least the 4 ticks the body lies) |
 | `::follow index` | NPC `index` (from `::npcs`) follows you and stops beside you, as an NPC chasing its target does; again to stop |
 | `::scenario [name]` | Starts a testing scenario: position, stats, inventory, equipment and vars in one go. Alone, lists the scenarios. `::scenario lumbridge-cows` |
@@ -525,7 +526,9 @@ Cage/Harpoon 1519, Big Net/Harpoon 1520, whose Big Net comes later) and Musa Poi
 Small Net/Bait 1521, Cage/Harpoon 1522), built in place outside Misthalin; their spawns are in
 `npc-spawns/fishing-spots.json`. A lobster pot cages lobsters from 40; a harpoon catches tuna from 35 and swordfish from
 50 at Cage/Harpoon spots, sharks from 76 at Big Net/Harpoon spots. The barb-tail harpoon fishes as the harpoon does, the
-dragon harpoon 20% better from 61; both work wielded. The `fishing-cooking` scenario starts there with everything built.
+dragon harpoon 20% better from 61; both work wielded. The big net (step FC2) fishes the Big Net/Harpoon spots from 16:
+each of its nine catches (boots, seaweed, gloves, two mackerel, oyster, casket, cod from 23, bass from 46) is rolled on
+its own, so one roll can bring up several. The `fishing-cooking` scenario starts there with everything built.
 
 | Fishing behaviour | Source |
 |-------------------|--------|
@@ -540,14 +543,16 @@ dragon harpoon 20% better from 61; both work wielded. The `fishing-cooking` scen
 | The dragon harpoon's 20% (each pair times 1.2, rounded down, which gives the Wiki's dragon harpoon charts) and its level 61; the barb-tail fishing as a harpoon | OSRS Wiki, Harpoon, Dragon harpoon, Barb-tail harpoon |
 | Catherby's and Musa Point's spawn tiles; the tiles their spots move between | mejrs NPCList_OSRS and the Wiki's spot pages; 2004Scape's movement enums |
 | The cage and harpoon cast messages and checks | 2004Scape rarefish and memberfish scripts |
-| The harpoon's first roll as the other methods' (2004Scape has it a tick later); a dragon harpoon below 61 counting as no harpoon | guessed |
-| Out: pearl and barbarian rods, stripy feathers, big nets, karambwanji, barehanded fishing, infernal and crystal harpoons, the dragon harpoon's special, outfits and other catch boosts, whirlpools | out of scope |
+| The big net's nine rolls, each on its own, in Mod Ash's order; mackerel, cod and bass pairs, levels and XP; the casket's rate | OSRS Wiki, Fishing spot (big net, harpoon) and fish pages; Mod Ash (3 October 2020) |
+| The boots', seaweed's, gloves' and oyster's pairs and the junk's XP | 2004Scape's big net roll (the Wiki only calls them uncommon) |
+| The harpoon's first roll as the other methods' (2004Scape has it a tick later); a dragon harpoon below 61 counting as no harpoon; a big net catch lost when the backpack fills mid-roll | guessed |
+| Out: pearl and barbarian rods, stripy feathers, big bass, swordfish and shark, the skills necklace casket boost, karambwanji, barehanded fishing, infernal and crystal harpoons, the dragon harpoon's special, outfits and other catch boosts, whirlpools | out of scope |
 
 ### Cooking
 
 Raw food used on a fire or range, or Cook on a range, cooks it (`game/skill/Cooking.kt`, words under `cooking.*`):
 shrimps, anchovies, sardines, herring, trout, pike, salmon, beef, rat and bear meat, chicken, and bread dough (range
-only); lobster, tuna, swordfish and shark came with Fishing and Cooking 2's step FC1. With more than one to cook, the chatbox's Make-X box (`skillmulti`, interface 270, set up by client script
+only); lobster, tuna, swordfish and shark came with Fishing and Cooking 2's step FC1, mackerel, cod and bass with FC2. With more than one to cook, the chatbox's Make-X box (`skillmulti`, interface 270, set up by client script
 2046) asks which and how many; a resume_pausebutton from one of its items starts the job. Lumbridge Castle's kitchen
 range (114) burns less. The cooking re-runs every tick on the loc (`World.repeatOp`).
 
@@ -556,7 +561,7 @@ range (114) burns less. The cooking re-runs every tick on the loc (`World.repeat
 | Levels and XP | OSRS Wiki food pages |
 | 4 ticks a piece | OSRS Wiki, Raw shrimps |
 | Each food's burn pair on a fire or range and on the Lumbridge range, fitted to and checked against the Wiki's charts (`CookingTest`) | OSRS Wiki food pages |
-| Swordfish and shark burning less on a range than on a fire; lobster, tuna, swordfish and shark getting no Lumbridge range bonus | OSRS Wiki food pages; Cooking range (Lumbridge Castle) |
+| Swordfish, shark and cod burning less on a range than on a fire; mackerel and cod helped by the Lumbridge range, lobster, tuna, swordfish, shark and bass not | OSRS Wiki food pages; Cooking range (Lumbridge Castle) |
 | The Make-X box: its components, client script 2046's arguments and the pause button carrying the quantity | decompiled client scripts (osrs-dumps) |
 | Cook with nothing raw saying Nothing interesting happens; one piece cooking with no box; the box closing as the first piece starts; the level-up box ending the job as for the other skills | guessed |
 | Out: cooking gauntlets, the cooking cape, Hosidius ranges, pies, stews, pizzas, wines and every other recipe | out of scope |
@@ -2071,8 +2076,20 @@ warning graphic now, then damage each tick to whoever stands on the tiles), or p
 adds and hazards go with it. Each fight keeps a log of what it did, by tick. Every roll comes from the world's random, so
 a fight started on a seed plays the same way each time.
 
+A boss that goes from sight in the middle of its fight and comes back (Dreadnoth, split into jellies) is hidden, not
+removed: `World.hide(npc)` keeps it in the world under its index, with its fight, timers and hitpoints going on, while no
+client is shown it (RSProt's inaccessible avatar), its tiles are free, it stands still (a fight's own steps and swings
+for it do nothing), and nothing clicks, attacks or hurts it and it fights no one, so a player who was fighting it is
+free for other monsters, and content that looks NPCs up (`Npcs.inPlay`, `Npcs.near`: a gate's guard, a stall's owner)
+doesn't find it, while the engine's own loops (`Npcs.all`) still do; `World.show(npc)` brings it back where it stands (moved meanwhile with
+`Npcs.teleport`, there). By hand: `::hidenpc`.
+
+Check: `./gradlew test --tests 'osrsps.game.npc.NpcsTest' --tests 'osrsps.testclient.HeadlessHiddenNpcTest'`, and in
+RuneLite `test-runner/examples/npc-hidden.json`.
+
 | Encounter behaviour | Source |
 |---------------------|--------|
+| A hidden boss's poison waiting, its timer where it was, till it is shown, and hits already on their way to it when it is hidden doing nothing; its drained stats coming back and its hitpoints regenerating meanwhile, as its other timers go on | guessed |
 | Fights running in the NPC phase, after NPC scripts | guessed, until a recording shows a boss |
 | A phase changing at the start of the tick its threshold or time is reached, before that tick's steps | guessed |
 | A fight's first tick running as it starts (steps with no delay, hazards due at once), paused or not | guessed |
@@ -2517,7 +2534,7 @@ built needs, so every course and shortcut is open; run on and full, and a gracef
 bonus. Hitpoints stay a new account's 10, so a fall's damage shows.
 
 `fishing-cooking` stands you on Catherby's beach (2850, 3430) with 99 Fishing, Cooking and Firemaking, a harpoon, a
-lobster pot, a tinderbox and three logs, and the dragon and barb-tail harpoons in the bank: every fish Fishing and
+lobster pot, a big fishing net, a tinderbox and three logs, and the dragon and barb-tail harpoons in the bank: every fish Fishing and
 Cooking 2 has built so far, caught and cooked on a fire. Musa Point's spots are at `::tele 2924 3178`.
 
 `lumbridge-cows` stands you in the Lumbridge cow field (3259, 3263, a tile picked from the cow spawns) with 20 Attack,

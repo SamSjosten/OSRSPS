@@ -233,6 +233,21 @@ class Npc(
     var dead: Boolean = false
         internal set
 
+    /**
+     * True while [osrsps.game.World.hide] has it out of sight: still in the world under its index, with its fight, its
+     * timers and its hitpoints going on (its script timers, drained stats coming back, hitpoints regenerating), but
+     * shown to no client, covering no tile, standing still, and neither clicked, attacked, hurt nor fighting anyone,
+     * till [osrsps.game.World.show]. Only its poison waits, as nothing hurts it (guessed, see
+     * [osrsps.game.combat.Poison.process]). Content that asks which NPCs are about (a stall's owner watching it, a
+     * duck's ducklings) asks [outOfPlay], so a hidden one isn't. A boss fight uses it for a boss that is gone
+     * for a while and comes back (Dreadnoth, split into jellies).
+     */
+    var hidden: Boolean = false
+        internal set
+
+    /** Whether it can't be fought now: [dead], or [hidden]. */
+    val outOfPlay: Boolean get() = dead || hidden
+
     /** The tick of the hit that killed it; -1 while it lives. A boss fight times what follows a death from it. */
     var diedTick: Long = -1
         internal set

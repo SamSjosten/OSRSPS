@@ -160,6 +160,33 @@ class HeadlessSwampCaveSlayerTest {
         }
     }
 
+    /** A hidden NPC ([osrsps.game.World.hide], by hand with ::hidenpc) is out of play: its hole reaches for no one. */
+    @Test
+    fun `a hidden wall beast grabs no one, and grabs again once it is shown`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel hitpoints 99")
+                client.await("Hitpoints 99") { client.stat(HITPOINTS)?.takeIf { it.level == 99 } }
+                client.tele(3164, 9553)
+                val view = client.await("the hole in view") { client.npcs().firstOrNull { it.id == WallBeasts.HOLE } }
+                val player = server.world.playerNamed("carol")!!
+                server.world.wallBeasts.roll = { 0 }
+                client.commandReply("hidenpc ${view.index}") { it.startsWith("Hid") }
+                client.tele(3164, 9555)
+                client.awaitTicks(3)
+                assertEquals(0L, player.stunnedUntil, "the hidden hole grabbed no one")
+                assertNull(player.attackedBy)
+                client.tele(3164, 9553)
+                client.awaitTicks(1)
+                client.commandReply("hidenpc ${view.index}") { it.contains("is back") }
+                client.tele(3164, 9555)
+                client.seen("[swamp_slayer.grabbed]")
+                assertTrue(player.stunnedUntil > 0, "shown, it grabs")
+            }
+        }
+    }
+
     @Test
     fun `a wall beast grabs a player with no helmet each time they step in front, and comes out to fight one in a spiny helmet`(@TempDir dir: Path) {
         server(dir).use { server ->

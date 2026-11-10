@@ -744,6 +744,17 @@ class MeleeCombatTest {
     }
 
     @Test
+    fun `a hidden NPC gets its hitpoints back as ever, and takes no hit`() {
+        val npc = spawn()
+        npc.hitpoints = 3
+        npc.hidden = true
+        assertEquals(0, melee.hit(npc, alice, 2, tick))
+        assertEquals(0, melee.statusHit(npc, 2, 0))
+        repeat(MeleeCombat.REGEN_TICKS + 1) { tick() }
+        assertEquals(4, npc.hitpoints, "its timers go on while it is hidden")
+    }
+
+    @Test
     fun `an NPC held at 0, a boss's broken shield, gets no hitpoint back till its fight moves it on`() {
         val held = spawn()
         val hurt = spawn(x = 3211)

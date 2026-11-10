@@ -2509,6 +2509,29 @@ class World(
     }
 
     /**
+     * Takes [npc] out of sight and out of play while it stays in the world ([Npc.hidden]): no client is shown it
+     * (RSProt's inaccessible avatar, as it has for an NPC waiting to respawn), players facing or fighting it stop, it
+     * fights no one, and its tiles are free. Its fight ([osrsps.game.encounter.Encounters]), timers and hitpoints go
+     * on. Returns false for one that is gone or hidden already.
+     */
+    fun hide(npc: Npc): Boolean {
+        if (!npcs.hide(npc)) return false
+        npc.target = null
+        npc.attacker = null
+        npc.holdTicks = 0
+        npcInteractions.removed(npc, players.asIterable())
+        npc.avatar?.setInaccessible(true)
+        return true
+    }
+
+    /** Brings a hidden [npc] back where it stands, for every client in range to see and fight. See [hide]. */
+    fun show(npc: Npc): Boolean {
+        if (!npcs.show(npc)) return false
+        npc.avatar?.setInaccessible(false)
+        return true
+    }
+
+    /**
      * The player clicked a dialogue's "Click here to continue" or a chat menu option: [sub] is -1, or the option from 1.
      * See [Dialogues.resume]. A click while delayed is dropped, as other clicks are.
      */

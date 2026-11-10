@@ -109,6 +109,8 @@ class Pickpocketing(private val world: World) {
         player.nextPickpocketTick = tick + ATTEMPT_TICKS
         player.message(text[PickpocketLines.ATTEMPT, "who" to pocket.who])
         delay(1)
+        // Hidden in that tick (World.hide), it is out of reach; nothing comes of the attempt.
+        if (npc.hidden) return
         if (npc.dead) {
             player.message(text[PickpocketLines.DEAD])
             return

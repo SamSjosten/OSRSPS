@@ -137,7 +137,7 @@ class Thieving(private val world: World, private val collision: CollisionMap) {
     /** The nearest NPC of [types] within [SIGHT] tiles that can see [player] and isn't already fighting them. */
     private fun watching(player: Player, types: Set<Int>): Npc? =
         world.npcs.near(player.x, player.z, player.level, SIGHT)
-            .filter { it.spawn.type.id in types && !it.dead && it.target !== player }
+            .filter { it.spawn.type.id in types && !it.outOfPlay && it.target !== player }
             .filter { LineOfSight.clear(collision, player.level, it.x, it.z, it.type.size, player.x, player.z) }
             .minByOrNull { maxOf(kotlin.math.abs(it.x - player.x), kotlin.math.abs(it.z - player.z)) }
 
@@ -158,7 +158,7 @@ class Thieving(private val world: World, private val collision: CollisionMap) {
         shouts += Shout(owner, text[ThievingLines.GUARDS], tick + 1)
         val guards = STALLS.values.filter { it.owner == owner.spawn.type.id }.flatMapTo(mutableSetOf()) { it.guards }
         for (guard in world.npcs.near(owner.x, owner.z, owner.level, SIGHT)) {
-            if (guard.spawn.type.id !in guards || guard.dead || guard.target === player) continue
+            if (guard.spawn.type.id !in guards || guard.outOfPlay || guard.target === player) continue
             if (!LineOfSight.clear(collision, owner.level, guard.x, guard.z, guard.type.size, player.x, player.z)) continue
             world.meleeCombat.provoke(guard, player, tick)
         }
@@ -174,7 +174,7 @@ class Thieving(private val world: World, private val collision: CollisionMap) {
             val shout = iterator.next()
             if (shout.tick > tick) continue
             iterator.remove()
-            if (!shout.npc.dead && world.npcs[shout.npc.index] === shout.npc) ownerSays(shout.npc, shout.text)
+            if (!shout.npc.outOfPlay && world.npcs[shout.npc.index] === shout.npc) ownerSays(shout.npc, shout.text)
         }
     }
 

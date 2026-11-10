@@ -45,6 +45,16 @@ object FishingLines : Lines("fishing", "Fishing") {
     val LEVEL_HARPOON = line("level_harpoon", "the message when harpooning a spot's fish needs a higher level (35 tuna, 76 shark)", "level")
     val NO_HARPOON = line("no_harpoon", "Harpoon: the message on Harpoon without one")
     val NO_CAGE = line("no_cage", "Lobster pot: the message on Cage without one")
+    val CATCH_MACKEREL = line("catch_mackerel", "Raw mackerel: the message for each one netted (the Raw mackerel page's changes, 27 November 2024)")
+    val CATCH_COD = line("catch_cod", "Raw cod: the message for each one netted (the Raw cod page's changes, 27 November 2024)")
+    val CATCH_BASS = line("catch_bass", "Raw bass: the message for each one netted (the Raw bass page's changes, 27 November 2024)")
+    val CATCH_BOOTS = line("catch_boots", "Leather boots: the message when the big net brings up a pair")
+    val CATCH_GLOVES = line("catch_gloves", "Leather gloves: the message when the big net brings up a pair")
+    val CATCH_SEAWEED = line("catch_seaweed", "Seaweed: the message when the big net brings some up")
+    val CATCH_OYSTER = line("catch_oyster", "Oyster: the message when the big net brings one up")
+    val CATCH_CASKET = line("catch_casket", "Casket: the message when the big net brings one up")
+    val LEVEL_BIG_NET = line("level_big_net", "the message when big net fishing needs a higher level (16)", "level")
+    val NO_BIG_NET = line("no_big_net", "Big fishing net: the message on Big Net without one")
 }
 
 /** One fish: the obj caught, the level and XP in tenths, its success pair (out of 256) and its catch message. */
@@ -80,6 +90,11 @@ class FishingMethod(
     val otherNames: Set<String> = emptySet(),
     /** Tools that also fish this way, best first; the method's own [tool] is tried after them. */
     val otherTools: List<FishingTool> = emptyList(),
+    /**
+     * The big net's way: every entry of [fish] is rolled on its own, in order, so one roll can bring up several (the
+     * Wiki's Fishing spot (big net, harpoon) page and Mod Ash's 9 rolls); otherwise the first success is the catch.
+     */
+    val rollsEach: Boolean = false,
 ) {
     val level: Int get() = fish.minOf { it.level }
 
@@ -110,9 +125,12 @@ class SpotType(val npc: Int, val methods: List<FishingMethod>)
  * scripts; guessed: their first roll comes as the other methods' does (2004Scape has the harpoon's a tick later, which
  * no Wiki page confirms), and the wieldable harpoons' animations playing for the cast as well as each roll.
  *
- * Out: pearl and barbarian rods, stripy feathers (rainbow fish), the big net, karambwanji, barehanded fishing, the
- * infernal and crystal harpoons, fishing outfits and other catch boosts, heron pets, the random fishing spot whirlpools.
- * No sounds: the 241 synth ids have no names.
+ * The big net (step FC2) fishes Catherby's Big Net/Harpoon spots: each of its nine rolls is made on its own, so one
+ * roll can bring up mackerel, cod, bass and junk together.
+ *
+ * Out: pearl and barbarian rods, stripy feathers (rainbow fish), karambwanji, big bass, big swordfish and big shark,
+ * barehanded fishing, the infernal and crystal harpoons, the skills necklace's casket boost, fishing outfits and other
+ * catch boosts, heron pets, the random fishing spot whirlpools. No sounds: the 241 synth ids have no names.
  */
 class Fishing(private val world: World) {
     /** The tick each spot moves next, set the first time it is seen. */
@@ -138,7 +156,7 @@ class Fishing(private val world: World) {
     /** Moves the fishing spots whose time is up. Call once a tick, in the NPC phase. */
     fun process() {
         val tick = world.tick
-        for (npc in world.npcs.all) {
+        for (npc in world.npcs.inPlay) {
             if (npc.spawn.type.id !in SPOT_IDS) continue
             val due = nextMove.getOrPut(npc) { tick + moveDelay() }
             if (due > tick) continue
@@ -224,6 +242,7 @@ class Fishing(private val world: World) {
 
     /** Tries each fish the player can catch, best first, with pairs scaled by the tool's [percent]; the first success is caught. */
     private fun ScriptContext.roll(method: FishingMethod, level: Int, percent: Int) {
+        if (method.rollsEach) return rollEach(method, level)
         for (fish in method.fish) {
             if (level < fish.level) continue
             if (!SuccessRoll.roll(world.random, fish.low * percent / 100, fish.high * percent / 100, level)) continue
@@ -236,6 +255,23 @@ class Fishing(private val world: World) {
             player.skills.addTenths(Skill.FISHING, fish.xpTenths)
             player.message(world.textFor(player)[fish.line])
             return
+        }
+    }
+
+    /**
+     * The big net: every entry the level allows is rolled, each catch added with its XP and message. Guessed: a catch
+     * that finds the backpack full is lost and the rest of the rolls are skipped (the next tick's check then stops).
+     */
+    private fun ScriptContext.rollEach(method: FishingMethod, level: Int) {
+        val text = world.textFor(player)
+        for (fish in method.fish) {
+            if (level < fish.level) continue
+            if (!SuccessRoll.roll(world.random, fish.low, fish.high, level)) continue
+            if (player.inventory.freeSlots == 0) return
+            val type = world.objTypes[fish.obj] ?: error("No obj type ${fish.obj} for a caught fish")
+            player.inventory.add(type, 1)
+            player.skills.addTenths(Skill.FISHING, fish.xpTenths)
+            player.message(text[fish.line])
         }
     }
 
@@ -266,6 +302,7 @@ class Fishing(private val world: World) {
         const val HARPOON = 311 // harpoon
         const val BARB_TAIL_HARPOON = 10129 // hunting_barbed_harpoon
         const val DRAGON_HARPOON = 21028 // dragon_harpoon
+        const val BIG_NET = 305 // big_net
 
         /** Stands for a method's own tool in [toolFor]: its pairs as they are, and the method's animations. */
         private val PLAIN = FishingTool(-1, 1, 100, -1)
@@ -280,6 +317,9 @@ class Fishing(private val world: World) {
         const val CAGE_ANIM = 619
         const val BARB_TAIL_HARPOON_ANIM = 5108
         const val DRAGON_HARPOON_ANIM = 7401
+
+        /** human_largenet. */
+        const val BIG_NET_ANIM = 620
 
         /** Levels and XP from the Wiki's fish pages; pairs fitted to their charts. Obj ids by gameval name. */
         val SHRIMPS = Fish(317, 1, 100, 48, 256, FishingLines.CATCH_SHRIMPS) // raw_shrimp
@@ -339,6 +379,30 @@ class Fishing(private val world: World) {
             FishingTool(BARB_TAIL_HARPOON, 1, 100, BARB_TAIL_HARPOON_ANIM),
         )
 
+        /**
+         * The big net's catches, each its own roll in this order (Mod Ash, 3 October 2020: boots, seaweed, gloves,
+         * mackerel, another mackerel, oyster, casket, cod, bass). The mackerel's pairs (5/65, the second 10/10), cod's,
+         * bass's and the casket's rate are the Wiki's (Raw mackerel, Raw cod, Raw bass and Casket pages, read
+         * 2026-11-10; the casket's 1 in 128 rising to 1 in 85.3 is 1/2); the boots', seaweed's, gloves' and oyster's
+         * pairs and the junk's XP are 2004Scape's (the Wiki only calls them uncommon), and agree with the Wiki where both
+         * give them.
+         */
+        val BIG_NET_BOOTS = Fish(1061, 16, 10, 10, 10, FishingLines.CATCH_BOOTS) // leather_boots
+        val BIG_NET_SEAWEED = Fish(401, 16, 1, 10, 10, FishingLines.CATCH_SEAWEED) // seaweed
+        val BIG_NET_GLOVES = Fish(1059, 16, 10, 5, 5, FishingLines.CATCH_GLOVES) // leather_gloves
+        val MACKEREL = Fish(353, 16, 200, 5, 65, FishingLines.CATCH_MACKEREL) // raw_mackerel
+        val MACKEREL_AGAIN = Fish(353, 16, 200, 10, 10, FishingLines.CATCH_MACKEREL) // raw_mackerel, the second roll
+        val BIG_NET_OYSTER = Fish(407, 16, 100, 3, 7, FishingLines.CATCH_OYSTER) // oystershell
+        val BIG_NET_CASKET = Fish(405, 16, 100, 1, 2, FishingLines.CATCH_CASKET) // casket
+        val COD = Fish(341, 23, 450, 4, 55, FishingLines.CATCH_COD) // raw_cod
+        val BASS = Fish(363, 46, 1000, 3, 40, FishingLines.CATCH_BASS) // raw_bass
+
+        val BIG_NET_FISHING = FishingMethod(
+            "Big Net", BIG_NET, FishingLines.NO_BIG_NET, null, FishingLines.CAST_NET, BIG_NET_ANIM, BIG_NET_ANIM,
+            listOf(BIG_NET_BOOTS, BIG_NET_SEAWEED, BIG_NET_GLOVES, MACKEREL, MACKEREL_AGAIN, BIG_NET_OYSTER, BIG_NET_CASKET, COD, BASS),
+            FishingLines.LEVEL_BIG_NET, rollsEach = true,
+        )
+
         val CAGE = FishingMethod(
             "Cage", LOBSTER_POT, FishingLines.NO_CAGE, null, FishingLines.CAST_CAGE, CAGE_ANIM, CAGE_ANIM, listOf(LOBSTER),
             FishingLines.LEVEL_CAGE,
@@ -382,7 +446,7 @@ class Fishing(private val world: World) {
 
         /**
          * Catherby's beach (built in place, reached by ::tele): Net/Bait (`0_44_53_saltfish`), Cage/Harpoon
-         * (`0_44_53_rarefish`) and Big Net/Harpoon (`0_44_53_memberfish`; its Big Net comes with the big net step).
+         * (`0_44_53_rarefish`) and Big Net/Harpoon (`0_44_53_memberfish`).
          */
         const val CATHERBY_NET_SPOT = 1518
         const val CATHERBY_CAGE_SPOT = 1519
@@ -402,7 +466,7 @@ class Fishing(private val world: World) {
             SpotType(SWAMP_CAVES_EAST_SPOT, listOf(CAVE_NET, CAVE_BAIT)),
             SpotType(CATHERBY_NET_SPOT, listOf(SMALL_NET, SEA_BAIT)),
             SpotType(CATHERBY_CAGE_SPOT, listOf(CAGE, HARPOON_TUNA)),
-            SpotType(CATHERBY_SHARK_SPOT, listOf(HARPOON_SHARK)),
+            SpotType(CATHERBY_SHARK_SPOT, listOf(BIG_NET_FISHING, HARPOON_SHARK)),
             SpotType(MUSA_POINT_NET_SPOT, listOf(SMALL_NET, SEA_BAIT)),
             SpotType(MUSA_POINT_CAGE_SPOT, listOf(CAGE, HARPOON_TUNA)),
         )

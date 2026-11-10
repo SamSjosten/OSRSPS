@@ -141,6 +141,23 @@ class HeadlessThievingTest {
         }
     }
 
+    /** A hidden NPC ([World.hide]) is out of play: a guard hidden with ::hidenpc sees no theft. */
+    @Test
+    fun `a hidden Market Guard sees nothing, so the theft goes through`(@TempDir dir: Path) {
+        server(dir, listOf(NpcSpawn(guard, 3226, 3221, source = "test"))).use { server ->
+            server.login("carol").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel thieving 27")
+                client.await("level 27") { client.stat(THIEVING)?.takeIf { it.level == 27 } }
+                val npc = server.world.npcs.all.single { it.spawn.type.id == Thieving.MARKET_GUARD }
+                client.commandReply("hidenpc ${npc.index}") { it.startsWith("Hid Market Guard") }
+                client.locOp(SEED_STALL, 3224, 3218, 2)
+                client.await("a seed") { client.items().singleOrNull() }
+                assertNull(npc.target, "the hidden guard fights no one")
+            }
+        }
+    }
+
     @Test
     fun `of two guards Olivia calls, only one fights in single-way combat`(@TempDir dir: Path) {
         // Olivia 7 tiles off, out of sight of the theft.

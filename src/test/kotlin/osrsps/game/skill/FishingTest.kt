@@ -40,7 +40,8 @@ class FishingTest {
     @Test
     fun `methods list their fish best first, and the lowest sets the level`() {
         for (spot in Fishing.SPOTS) {
-            for (method in spot.methods) {
+            // The big net rolls each entry on its own, in Mod Ash's order, so its order isn't by level.
+            for (method in spot.methods.filter { !it.rollsEach }) {
                 assertEquals(method.fish.sortedByDescending { it.level }, method.fish)
                 assertEquals(method.fish.last().level, method.level)
             }
@@ -119,9 +120,48 @@ class FishingTest {
         fun methods(npc: Int) = Fishing.SPOTS.single { it.npc == npc }.methods
         assertEquals(listOf(Fishing.CAGE, Fishing.HARPOON_TUNA), methods(Fishing.CATHERBY_CAGE_SPOT))
         assertEquals(listOf(Fishing.CAGE, Fishing.HARPOON_TUNA), methods(Fishing.MUSA_POINT_CAGE_SPOT))
-        assertEquals(listOf(Fishing.HARPOON_SHARK), methods(Fishing.CATHERBY_SHARK_SPOT))
+        assertEquals(listOf(Fishing.BIG_NET_FISHING, Fishing.HARPOON_SHARK), methods(Fishing.CATHERBY_SHARK_SPOT))
         assertEquals(listOf(Fishing.SMALL_NET, Fishing.SEA_BAIT), methods(Fishing.CATHERBY_NET_SPOT))
         assertEquals(listOf(Fishing.SMALL_NET, Fishing.SEA_BAIT), methods(Fishing.MUSA_POINT_NET_SPOT))
         assertEquals(listOf(Fishing.DRAGON_HARPOON, Fishing.BARB_TAIL_HARPOON, Fishing.HARPOON), Fishing.HARPOON_TUNA.tools)
+    }
+
+    @Test
+    fun `the big net rolls Mod Ash's nine in order, with the Wiki's pairs where it gives them`() {
+        val net = Fishing.BIG_NET_FISHING
+        assertTrue(net.rollsEach)
+        assertEquals(16, net.level)
+        // Boots, seaweed, gloves, mackerel, another mackerel, oyster, casket, cod, bass.
+        assertEquals(listOf(1061, 401, 1059, 353, 353, 407, 405, 341, 363), net.fish.map { it.obj })
+        // The Wiki: mackerel 5/65 then a second roll of 10/10, cod 4/55 from 23, bass 3/40 from 46, with 20, 45 and 100 XP.
+        assertEquals(listOf(5 to 65, 10 to 10, 4 to 55, 3 to 40), listOf(Fishing.MACKEREL, Fishing.MACKEREL_AGAIN, Fishing.COD, Fishing.BASS).map { it.low to it.high })
+        assertEquals(listOf(16, 23, 46), listOf(Fishing.MACKEREL, Fishing.COD, Fishing.BASS).map { it.level })
+        assertEquals(listOf(200, 450, 1000), listOf(Fishing.MACKEREL, Fishing.COD, Fishing.BASS).map { it.xpTenths })
+        // The Wiki's casket: about 1 in 128 at low levels, 1 in 85.3 at high ones.
+        assertEquals(2, SuccessRoll.chance(Fishing.BIG_NET_CASKET.low, Fishing.BIG_NET_CASKET.high, 16))
+        assertEquals(3, SuccessRoll.chance(Fishing.BIG_NET_CASKET.low, Fishing.BIG_NET_CASKET.high, 99))
+        assertEquals(listOf(Fishing.BIG_NET_FISHING, Fishing.HARPOON_SHARK), Fishing.SPOTS.single { it.npc == Fishing.CATHERBY_SHARK_SPOT }.methods)
+    }
+
+    @Test
+    fun `seeded big net rolls bring up each catch at its own rate, several at once`() {
+        val random = GameRandom(4321)
+        val level = 99
+        val rolls = 200_000
+        val caught = IntArray(Fishing.BIG_NET_FISHING.fish.size)
+        var several = 0
+        repeat(rolls) {
+            var count = 0
+            Fishing.BIG_NET_FISHING.fish.forEachIndexed { index, fish ->
+                if (SuccessRoll.roll(random, fish.low, fish.high, level)) { caught[index]++; count++ }
+            }
+            if (count > 1) several++
+        }
+        Fishing.BIG_NET_FISHING.fish.forEachIndexed { index, fish ->
+            val expected = SuccessRoll.chance(fish.low, fish.high, level) / 256.0
+            val seen = caught[index].toDouble() / rolls
+            assertTrue(abs(seen - expected) < 0.004, "${fish.obj}: $seen, the pair's $expected")
+        }
+        assertTrue(several > 0, "some rolls bring up more than one catch")
     }
 }

@@ -178,7 +178,7 @@ class MeleeCombat(
 
     internal fun tryInteract(player: Player, interaction: MeleeInteraction): Boolean {
         val npc = interaction.npc
-        if (npcs[npc.index] !== npc || npc.level != player.level || npc.dead) {
+        if (npcs[npc.index] !== npc || npc.level != player.level || npc.outOfPlay) {
             stopFacing(player)
             return true
         }
@@ -257,7 +257,8 @@ class MeleeCombat(
     internal fun fightingAnother(player: Player, npc: Npc): Boolean {
         if (multi.at(player.level, player.x, player.z)) return false
         val other = player.attackedNpc ?: return false
-        return other !== npc && !other.dead && npcs[other.index] === other && currentTick() - player.attackedNpcTick <= IN_COMBAT_TICKS
+        // A hidden NPC is out of its fight with them (Npc.hidden), as a dead one is.
+        return other !== npc && !other.outOfPlay && npcs[other.index] === other && currentTick() - player.attackedNpcTick <= IN_COMBAT_TICKS
     }
 
     /** [player] made an attack on [npc] on [tick], whatever it does when it lands; see [fightingAnother]. */
@@ -329,7 +330,7 @@ class MeleeCombat(
         }
         return npcs.near(player.x, player.z, player.level, radius + MAX_NPC_SIZE)
             .filter {
-                it !== target && !it.dead && npcs[it.index] === it && combat.npcCombat[it.type] != null && distance(it) <= radius &&
+                it !== target && !it.outOfPlay && npcs[it.index] === it && combat.npcCombat[it.type] != null && distance(it) <= radius &&
                     multi.at(it.level, it.x, it.z) && !flyingOutOfReach(player, it) && combat.barred(player, it) == null
             }
             .sortedBy(::distance)
@@ -392,7 +393,8 @@ class MeleeCombat(
             iterator.remove()
             val npc = swing.npc
             npc.incoming -= swing.damage
-            if (npcs[npc.index] !== npc || npc.dead) continue
+            // Guessed for a hidden NPC: a swing on its way when it went from sight does nothing, as for one that died.
+            if (npcs[npc.index] !== npc || npc.outOfPlay) continue
             val dealt = hit(npc, swing.player, swing.damage, tick, swing.maxHit, swing.from)
             if (swing.special != null) specialLanded(npc, dealt, swing.special)
             weaponPoison(npc, dealt, swing.poison, venom = false, ranged = false)
@@ -431,7 +433,7 @@ class MeleeCombat(
      * rolls no dice.
      */
     fun weaponPoison(npc: Npc, dealt: Int, poison: Int, venom: Boolean, ranged: Boolean) {
-        if (dealt <= 0 || npc.dead) return
+        if (dealt <= 0 || npc.outOfPlay) return
         if (venom) {
             if (random.chance(1, PoisonedWeapons.VENOM_CHANCE)) envenomNpc(npc)
         } else if (poison > 0) {
@@ -449,7 +451,7 @@ class MeleeCombat(
      */
     fun hit(npc: Npc, source: Player?, damage: Int, tick: Long, maxHit: Int = 0, attackedFrom: Tile? = null, finishing: Boolean = false): Int {
         val def = combat.npcCombat[npc.type] ?: throw IllegalArgumentException("${npc.type.name} can't be fought")
-        if (npc.dead) return 0
+        if (npc.outOfPlay) return 0
         val dealt = damage.coerceIn(0, if (finishing) npc.hitpoints else (npc.hitpoints - combat.floor(npc, source)).coerceAtLeast(0))
         npc.hitpoints -= dealt
         if (source != null && dealt > 0) npcDamaged(npc, source, dealt)
@@ -475,7 +477,7 @@ class MeleeCombat(
      */
     fun splashed(npc: Npc, source: Player, tick: Long, attackedFrom: Tile? = null) {
         val def = combat.npcCombat[npc.type] ?: throw IllegalArgumentException("${npc.type.name} can't be fought")
-        if (npc.dead) return
+        if (npc.outOfPlay) return
         attacked(npc, source, tick)
         hitBy(npc, def, source, attackedFrom ?: Tile(source.x, source.z), tick)
     }
@@ -540,7 +542,7 @@ class MeleeCombat(
      * sent at once only the first to land a hit keeps on. Does nothing to an NPC that can't fight.
      */
     fun provoke(npc: Npc, player: Player, tick: Long) {
-        if (npc.dead || combat.npcCombat[npc.type] == null) return
+        if (npc.outOfPlay || combat.npcCombat[npc.type] == null) return
         if (foughtByAnother(player, npc) || underAttackByAnother(player, npc) || fightingAnother(player, npc)) return
         npc.face(player)
         aggress(npc, player, tick)
@@ -561,7 +563,7 @@ class MeleeCombat(
 
     /** [npc] was hit by [player]: it turns on them, striking from the next tick (guessed) if it isn't fighting already. */
     private fun retaliate(npc: Npc, player: Player, tick: Long) {
-        if (npc.target === player) return
+        if (npc.target === player || npc.hidden) return
         // A boss whose fight picks its attacks keeps to the player it took on first while they last (Npc.scriptedAttacks).
         if (npc.scriptedAttacks) {
             val held = npc.target
@@ -634,7 +636,7 @@ class MeleeCombat(
 
     private fun fightBack(npc: Npc, player: Player, tick: Long) {
         val def = combat.npcCombat[npc.type] ?: return giveUp(npc)
-        if (npc.dead) return
+        if (npc.outOfPlay) return
         // A newcomer in single-way combat doesn't make it give up on a player who is hitting it themselves.
         if (player.loggedOut || player.level != npc.level || player.hitpoints <= 0 || outOfRange(npc, player) ||
             (underAttackByAnother(player, npc) && !hitBy(npc, player))
@@ -671,6 +673,8 @@ class MeleeCombat(
      */
     fun swingAt(npc: Npc, player: Player, tick: Long, anim: Int = -1) {
         val def = combat.npcCombat[npc.type] ?: return
+        // A hidden NPC fights no one, whoever asks: a boss fight's steps go on while its boss is out of sight.
+        if (npc.hidden) return
         npc.nextAttackTick = tick + def.attackSpeed
         npc.fightTick = tick
         // Only an NPC with a spell rolls for it, so World.random runs as before for every other.
@@ -737,6 +741,7 @@ class MeleeCombat(
      */
     fun fireAt(npc: Npc, player: Player, tick: Long, attack: NpcRangedAttack? = null, type: AttackType? = null) {
         val def = combat.npcCombat[npc.type] ?: return
+        if (npc.hidden) return
         if (attack == null && def.attacks.isEmpty()) return
         val shotType = type ?: def.attackType
         val distance = maxOf(1, LineOfSight.distance(npc.x, npc.z, npc.type.size, player.x, player.z))
@@ -933,7 +938,7 @@ class MeleeCombat(
      */
     fun statusHit(npc: Npc, damage: Int, hitsplat: Int): Int {
         val def = combat.npcCombat[npc.type] ?: return 0
-        if (npc.dead || npc.hitpoints <= 0) return 0
+        if (npc.outOfPlay || npc.hitpoints <= 0) return 0
         val dealt = damage.coerceIn(0, (npc.hitpoints - combat.floor(npc, null)).coerceAtLeast(0))
         npc.hitpoints -= dealt
         npc.effects.hit(-1, hitsplat, hitsplat, dealt)
@@ -972,14 +977,14 @@ class MeleeCombat(
         player.spotanim(RETRIBUTION_SPOTANIM)
         val max = player.skills.baseLevel(Skill.PRAYER) / 4
         val targets = if (multi.at(player.level, player.x, player.z)) {
-            npcs.all.filter {
-                !it.dead && it.level == player.level && combat.npcCombat[it.type] != null && withinATile(player, it) &&
+            npcs.inPlay.filter {
+                !it.outOfPlay && it.level == player.level && combat.npcCombat[it.type] != null && withinATile(player, it) &&
                     combat.barred(player, it) == null
             }.toList()
         } else {
             listOfNotNull(
                 player.attackedBy?.takeIf {
-                    !it.dead && npcs[it.index] === it && combat.npcCombat[it.type] != null && it.level == player.level &&
+                    !it.outOfPlay && npcs[it.index] === it && combat.npcCombat[it.type] != null && it.level == player.level &&
                         withinATile(player, it) && combat.barred(player, it) == null
                 },
             )
@@ -1053,6 +1058,8 @@ class MeleeCombat(
     private fun regenerateNpcs() {
         for (npc in npcs.all) {
             val def = combat.npcCombat[npc.type] ?: continue
+            // Guessed: a hidden NPC regenerates as its other timers go on (Npc.hidden); only a dead one doesn't. No
+            // recording shows a hurt boss going from sight.
             if (npc.dead) continue
             // Held at 0 (a boss's shield broken, Npc.holdsAtZero): it stays at 0 till its fight moves it on, or a point
             // back on this tick would mend the shield before the fight sees it broken.

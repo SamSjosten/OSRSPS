@@ -38,8 +38,17 @@ class Npcs(
 
     val count: Int get() = npcs.count { it != null }
 
-    /** Every NPC, in index order. */
+    /**
+     * Every NPC, in index order, hidden ones too ([Npc.hidden]): for the engine's own loops (timers, effects, removal)
+     * and admin commands. Anything that looks for an NPC to do something with asks [inPlay] or [near].
+     */
     val all: Sequence<Npc> get() = npcs.asSequence().filterNotNull()
+
+    /**
+     * The NPCs in play, in index order: every one that isn't hidden. What content asks when it looks an NPC up by type
+     * or place (a gate's guard, a stall's owner), so a hidden one is out of that too.
+     */
+    val inPlay: Sequence<Npc> get() = all.filter { !it.hidden }
 
     operator fun get(index: Int): Npc? = npcs.getOrNull(index)
 
@@ -66,6 +75,7 @@ class Npcs(
      * hold it up. It faces them while it follows. Pets trail a tile behind instead; that isn't modelled.
      */
     fun follow(npc: Npc, player: Player) {
+        if (npc.hidden) return
         npc.following = player
         npc.destination = null
         // Busy with someone, it keeps facing them; release turns it to the player it follows.
@@ -85,6 +95,7 @@ class Npcs(
      */
     fun followNpc(npc: Npc, leader: Npc) {
         require(leader !== npc) { "$npc can't follow itself" }
+        if (npc.hidden) return
         npc.leader = leader
         npc.destination = null
     }
@@ -149,6 +160,32 @@ class Npcs(
     }
 
     /**
+     * Takes [npc] out of play where it stands ([Npc.hidden]): it leaves its tiles free, drops its walk, whoever it
+     * followed and whoever it was busy with, and stands still till [show], whoever asks it to step or follow (a boss
+     * fight's steps go on); only [teleport] moves it. What clients see and who was fighting it are
+     * [osrsps.game.World.hide]'s. Returns false for one that is gone or hidden already.
+     */
+    fun hide(npc: Npc): Boolean {
+        if (npcs[npc.index] !== npc || npc.hidden) return false
+        occupy(npc, -1)
+        npc.hidden = true
+        npc.destination = null
+        npc.following = null
+        npc.leader = null
+        npc.retreatingFrom = null
+        release(npc)
+        return true
+    }
+
+    /** Puts a hidden [npc] back into play on the tiles it stands on. Returns false for one that is gone or not hidden. */
+    fun show(npc: Npc): Boolean {
+        if (npcs[npc.index] !== npc || !npc.hidden) return false
+        npc.hidden = false
+        occupy(npc, 1)
+        return true
+    }
+
+    /**
      * Moves [npc] straight to [x], [z] on its level, as a fishing spot moves: the client draws it there with no walk in
      * between (NPC info's teleport with jump). Anything it was walking to is dropped.
      */
@@ -162,9 +199,12 @@ class Npcs(
         npc.avatar?.teleport(npc.level, x, z, true)
     }
 
-    /** The NPCs on [level] whose south-west tile is within [radius] tiles of [x], [z] on both axes. */
-    fun near(x: Int, z: Int, level: Int, radius: Int): List<Npc> =
-        all.filter { it.level == level && abs(it.x - x) <= radius && abs(it.z - z) <= radius }.toList()
+    /**
+     * The NPCs on [level] whose south-west tile is within [radius] tiles of [x], [z] on both axes: those in play
+     * ([inPlay]), or with [hidden] the hidden ones too (::npcs lists them).
+     */
+    fun near(x: Int, z: Int, level: Int, radius: Int, hidden: Boolean = false): List<Npc> =
+        (if (hidden) all else inPlay).filter { it.level == level && abs(it.x - x) <= radius && abs(it.z - z) <= radius }.toList()
 
     /**
      * Counts every NPC's freeze and freeze immunity down a tick. The world calls it at the start of the NPC phase, before
@@ -206,7 +246,8 @@ class Npcs(
     /** One tick of movement for every NPC, in index order. */
     fun process() {
         for (npc in npcs) {
-            if (npc == null) continue
+            // A hidden one stands where it is; a boss fight moves it with [teleport] if it should come back elsewhere.
+            if (npc == null || npc.hidden) continue
             val frozen = npc.freezeTicks > 0
             val following = npc.following
             val fleeing = npc.retreatingFrom
@@ -282,7 +323,7 @@ class Npcs(
      * has left the world, died, or is out of reach as a player would be. Guessed, as in [chase]: the give-up range.
      */
     private fun trail(npc: Npc, leader: Npc) {
-        if (npcs[leader.index] !== leader || leader.dead || leader.level != npc.level ||
+        if (npcs[leader.index] !== leader || leader.outOfPlay || leader.level != npc.level ||
             abs(leader.x - npc.x) > FOLLOW_RANGE || abs(leader.z - npc.z) > FOLLOW_RANGE
         ) {
             stopFollowingNpc(npc)
@@ -320,7 +361,7 @@ class Npcs(
      * sets its pace, as Dreadnoth crawls a tile every two ticks (raid step 20a). Beside them it stays put.
      */
     fun stepTowards(npc: Npc, player: Player) {
-        if (npcs[npc.index] !== npc || npc.freezeTicks > 0 || player.level != npc.level) return
+        if (npcs[npc.index] !== npc || npc.hidden || npc.freezeTicks > 0 || player.level != npc.level) return
         approach(npc, player.x, player.z)
     }
 
@@ -330,7 +371,7 @@ class Npcs(
      * (raid step 19b), fought or not. Frozen, blocked or there already, it stays.
      */
     fun stepToward(npc: Npc, x: Int, z: Int) {
-        if (npcs[npc.index] !== npc || npc.freezeTicks > 0) return
+        if (npcs[npc.index] !== npc || npc.hidden || npc.freezeTicks > 0) return
         val dx = (x - npc.x).sign
         val dz = (z - npc.z).sign
         val (sx, sz) = sequenceOf(dx to dz, dx to 0, 0 to dz)
@@ -403,7 +444,7 @@ class Npcs(
      * going corner to corner, raid step 24a). False when it is there already or every way is blocked.
      */
     fun stepTo(npc: Npc, x: Int, z: Int): Boolean {
-        if (npcs[npc.index] !== npc || npc.freezeTicks > 0) return false
+        if (npcs[npc.index] !== npc || npc.hidden || npc.freezeTicks > 0) return false
         npc.destination = Tile(x, z)
         val before = npc.x to npc.z
         step(npc)
@@ -512,6 +553,8 @@ class Npcs(
     }
 
     private fun occupy(npc: Npc, change: Int) {
+        // A hidden NPC covers no tile, wherever it is moved to meanwhile.
+        if (npc.hidden) return
         val size = npc.type.size
         for (tx in npc.x until npc.x + size) {
             for (tz in npc.z until npc.z + size) {
