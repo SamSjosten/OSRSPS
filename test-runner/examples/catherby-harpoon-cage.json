@@ -1,5 +1,5 @@
 {
- "name": "Fishing and Cooking 2 step FC1: on Catherby's beach a lobster pot cages a lobster and a harpoon catches a tuna or swordfish at the Cage/Harpoon spot and a shark at the Big Net/Harpoon spot, then the Lumbridge kitchen range cooks them through the Make-X box (::keys on)",
+ "name": "Fishing and Cooking 2 step FC1: on Catherby's beach a lobster pot cages a lobster and a harpoon catches a tuna or swordfish at the Cage/Harpoon spot and a shark at the Big Net/Harpoon spot, a big net brings up a catch there (step FC2), then the Lumbridge kitchen range cooks them through the Make-X box (::keys on)",
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},
@@ -19,6 +19,11 @@
 
   {"step": "npcOption", "npcId": 1520, "option": "Harpoon", "timeoutMs": 20000, "comment": "0_44_53_memberfish, the Big Net/Harpoon spot"},
   {"step": "assertMessage", "contains": "fishing.catch_shark", "timeoutMs": 180000, "comment": "about one roll in six at 99"},
+
+  {"step": "npcOption", "npcId": 1520, "option": "Big Net", "timeoutMs": 20000},
+  {"step": "assertMessage", "contains": "fishing.cast_net"},
+  {"step": "assertAnimation", "id": 620, "comment": "human_largenet"},
+  {"step": "assertInventory", "item": "Raw mackerel", "count": 1, "timeoutMs": 90000, "comment": "the first mackerel roll is about one in four at 99"},
 
   {"step": "command", "text": "::tele 3211 3215 0", "comment": "beside the Lumbridge Castle kitchen's Cooking range"},
   {"step": "assertLocation", "x": 3211, "y": 3215, "plane": 0},

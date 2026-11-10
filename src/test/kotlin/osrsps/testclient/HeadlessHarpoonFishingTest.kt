@@ -28,7 +28,8 @@ import osrsps.map.LocShape
 /**
  * Fishing and Cooking 2 step FC1 through the headless client, on Catherby's beach as npc-spawns/fishing-spots.json has
  * it: a harpoon catches a tuna from 35 and the tuna cooks on a range; a lobster pot cages a lobster from 40; a wielded
- * dragon harpoon fishes only from 61; the Big Net/Harpoon spot harpoons sharks from 76. The rl-client script
+ * dragon harpoon fishes only from 61; the Big Net/Harpoon spot harpoons sharks from 76 and big nets mackerel, junk and
+ * cod (step FC2). The rl-client script
  * test-runner/examples/catherby-harpoon-cage.json does the same in the real client against the real cache.
  */
 class HeadlessHarpoonFishingTest {
@@ -42,7 +43,9 @@ class HeadlessHarpoonFishingTest {
         objs[Fishing.DRAGON_HARPOON] = ObjType(
             Fishing.DRAGON_HARPOON, "Dragon harpoon", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON,
         )
-        for (food in listOf(Cooking.LOBSTER, Cooking.TUNA, Cooking.SWORDFISH, Cooking.SHARK)) {
+        objs[Fishing.BIG_NET] = ObjType(Fishing.BIG_NET, "Big fishing net")
+        for (fish in Fishing.BIG_NET_FISHING.fish) objs[fish.obj] = ObjType(fish.obj, "Catch ${fish.obj}")
+        for (food in listOf(Cooking.LOBSTER, Cooking.TUNA, Cooking.SWORDFISH, Cooking.SHARK, Cooking.MACKEREL, Cooking.COD, Cooking.BASS)) {
             for (id in listOf(food.raw, food.cooked, food.burnt)) objs[id] = ObjType(id, "Food $id")
         }
         World(
@@ -190,6 +193,40 @@ class HeadlessHarpoonFishingTest {
         }
     }
 
+    @Test
+    fun `the big net nets mackerel and junk from 16, cod only from 23`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("tele $SHARK_X ${SHARK_Z + 1}")
+                client.await("the teleport") { client.position?.takeIf { it.x == SHARK_X && it.z == SHARK_Z + 1 } }
+                val spot = client.spot(Fishing.CATHERBY_SHARK_SPOT)
+                client.level("fishing", FISHING, 16)
+                client.npcOp(spot.index, BIG_NET_OP)
+                client.seen("[fishing.no_big_net]")
+                client.give(Fishing.BIG_NET)
+                client.level("fishing", FISHING, 15)
+                client.npcOp(spot.index, BIG_NET_OP)
+                client.seen("[fishing.level_big_net level=16]")
+
+                // At 22: four catches, none of them cod (23) or bass (46).
+                client.level("fishing", FISHING, 22)
+                client.npcOp(spot.index, BIG_NET_OP)
+                client.seen("[fishing.cast_net]")
+                val catches = client.await("four catches", timeoutMillis = 60_000) {
+                    client.messages().filter { it.text.startsWith("[fishing.catch_") }.takeIf { it.size >= 4 }
+                }
+                assertTrue(catches.none { it.text == "[fishing.catch_cod]" || it.text == "[fishing.catch_bass]" }, "${catches.map { it.text }}")
+                assertEquals(0, client.count(Cooking.COD.raw) + client.count(Cooking.BASS.raw))
+
+                client.level("fishing", FISHING, 99)
+                client.npcOp(spot.index, BIG_NET_OP)
+                client.seen("[fishing.catch_cod]", timeoutMillis = 60_000)
+                client.await("the cod") { if (client.count(Cooking.COD.raw) >= 1) Unit else null }
+            }
+        }
+    }
+
     private companion object {
         /** A Cage/Harpoon and a Big Net/Harpoon spot on Catherby's beach, where mejrs's live list has them. */
         const val CAGE_X = 2844
@@ -200,6 +237,7 @@ class HeadlessHarpoonFishingTest {
         const val RANGE_Z = 3432
 
         const val CAGE_OP = 1
+        const val BIG_NET_OP = 1
         const val HARPOON_OP = 3
 
         const val BACKPACK = 93
