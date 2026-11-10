@@ -17,6 +17,7 @@ import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
 import osrsps.game.ge.GrandExchangeLines
 import osrsps.game.ge.PriceCheckerLines
+import osrsps.game.raid.ArchiveGuardianLines
 import osrsps.game.raid.ArchiveNavigatorLines
 import osrsps.game.raid.BorkLines
 import osrsps.game.raid.DreadnothLines
@@ -64,6 +65,7 @@ object DialogueLines {
         ApothecaryLines,
         ApothecaryPotionsLines,
         ArchiveBankerLines,
+        ArchiveGuardianLines,
         ArchiveNavigatorLines,
         ArenaStubLines,
         ArisLines,

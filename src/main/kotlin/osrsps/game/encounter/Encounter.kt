@@ -130,7 +130,7 @@ interface EncounterContext {
 
     /**
      * Runs [action] [ticks] ticks from now (at least 1), in the fight's part of that tick after the cycle's steps and
-     * before the hazards; never once the fight has ended. What is aimed now and lands later: a laser, a slam.
+     * before the hazards; never once the fight has ended. What is aimed now and lands later: a beam, a slam.
      */
     fun after(ticks: Int, action: EncounterContext.() -> Unit)
 

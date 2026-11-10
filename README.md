@@ -417,8 +417,11 @@ The shared clock is the 2004Scape project's `%action_delay` model, inferred to h
 ### Woodcutting
 
 Chop down on a tree, or an axe used on one, chops it (`game/skill/Woodcutting.kt`, data in
-`src/main/resources/skills/woodcutting.json`): every regular, dead, evergreen, oak, willow, maple, yew and magic tree in
-the world, with the bronze to crystal axes. Words are under `woodcutting.*` in the dialogue file.
+`src/main/resources/skills/woodcutting.json`): every regular, dead, evergreen, oak, willow, teak, maple, mahogany, arctic
+pine, yew, magic and redwood tree in the world, with the bronze to crystal axes. Words are under `woodcutting.*` in the
+dialogue file. Trees outside Misthalin are where live has them and reached by ::tele: Chompy Marsh's teak
+(`::tele 2334 3048`), the Hardwood Grove's teaks and mahoganies (`::tele 2821 3083`), Neitiznot's arctic pines
+(`::tele 2318 3815`), and the Woodcutting Guild's redwood sections on its scaffolds (`::tele 1567 3493 1`, and level 2).
 
 | Woodcutting behaviour | Source |
 |-----------------------|--------|
@@ -431,6 +434,10 @@ the world, with the bronze to crystal axes. Words are under `woodcutting.*` in t
 | The timer runs down one a tick while anyone chops and back up one a tick while nobody does; the tree falls at the first log after it runs out | guessed (the Wiki gives only totals) |
 | No chopping sound | the 241 synth ids have no names to find it by |
 | A level-up box ends the action | 2004Scape engine's busy() check; guessed that live ends rather than waits |
+| Teak (35, 85 XP, timer 50, back in 15), mahogany (50, 125 XP, 100, 14), arctic pine (54, 40 XP, 140, 14), redwood sections (90, 380 XP, 440, 199), with each chart's pair per axe (`WoodcuttingG2Test`) | OSRS Wiki tree pages (read 2026-11-10) |
+| Their stumps: teaktree to teak_stump and the like, redwoodtree_l/_r to their _cut sections | 242 gamevals, by name |
+| Redwoods give no seed, ring or egg nests (only clue nests, which are out) | OSRS Wiki, Redwood tree |
+| Out: the Woodcutting Guild (its +7, doors and the redwoods' ladders), the Hardwood Grove's trading sticks, Etceteria's trees giving no logs, Farming's patch trees | out of scope; later pieces |
 
 Each log has a 1/256 chance of a bird nest (`game/skill/BirdNests.kt`, words under `birdnest.*`), 11/2560 with a
 Woodcutting cape worn; `::nest [seeds|ring|red|green|blue]` drops one as a tree does. Search on a nest leaves an empty
@@ -512,6 +519,13 @@ Fishing spots are NPCs (`game/skill/Fishing.kt`, words under `fishing.*`): the L
 (trout and salmon with a fly fishing rod and feathers, pike with a rod and bait). Their spawns are in
 `npc-spawns/lumbridge.json`. The option re-runs every tick on the NPC (`World.repeatOp`, as RS2's `p_opnpc`).
 
+Cages and harpoons (Fishing and Cooking 2, step FC1) fish Catherby's beach (`::tele 2850 3430`: Net/Bait 1518,
+Cage/Harpoon 1519, Big Net/Harpoon 1520, whose Big Net comes later) and Musa Point on Karamja (`::tele 2924 3178`:
+Small Net/Bait 1521, Cage/Harpoon 1522), built in place outside Misthalin; their spawns are in
+`npc-spawns/fishing-spots.json`. A lobster pot cages lobsters from 40; a harpoon catches tuna from 35 and swordfish from
+50 at Cage/Harpoon spots, sharks from 76 at Big Net/Harpoon spots. The barb-tail harpoon fishes as the harpoon does, the
+dragon harpoon 20% better from 61; both work wielded. The `fishing-cooking` scenario starts there with everything built.
+
 | Fishing behaviour | Source |
 |-------------------|--------|
 | Levels, XP, tools and bait (one bait or feather a catch) | OSRS Wiki fish pages, Fishing |
@@ -521,13 +535,18 @@ Fishing spots are NPCs (`game/skill/Fishing.kt`, words under `fishing.*`): the L
 | The river spots' tiles; the cast message and animation on the click, the first roll 4 ticks later, the last bait freeing its slot | 2004Scape fishing scripts |
 | Spawn tiles | RSMod rev 233 Lumbridge spawns |
 | The swamp spots' area (their spawn tiles, so they stay put); the player stopping when the spot moves | guessed |
-| Out: pearl and barbarian rods, stripy feathers, big nets, harpoons, cages, outfits and other catch boosts, whirlpools | out of scope |
+| Lobster, tuna, swordfish and shark: levels, XP and success pairs, swordfish tried before tuna | OSRS Wiki fish pages (their charts give the pairs) |
+| The dragon harpoon's 20% (each pair times 1.2, rounded down, which gives the Wiki's dragon harpoon charts) and its level 61; the barb-tail fishing as a harpoon | OSRS Wiki, Harpoon, Dragon harpoon, Barb-tail harpoon |
+| Catherby's and Musa Point's spawn tiles; the tiles their spots move between | mejrs NPCList_OSRS and the Wiki's spot pages; 2004Scape's movement enums |
+| The cage and harpoon cast messages and checks | 2004Scape rarefish and memberfish scripts |
+| The harpoon's first roll as the other methods' (2004Scape has it a tick later); a dragon harpoon below 61 counting as no harpoon | guessed |
+| Out: pearl and barbarian rods, stripy feathers, big nets, karambwanji, barehanded fishing, infernal and crystal harpoons, the dragon harpoon's special, outfits and other catch boosts, whirlpools | out of scope |
 
 ### Cooking
 
 Raw food used on a fire or range, or Cook on a range, cooks it (`game/skill/Cooking.kt`, words under `cooking.*`):
 shrimps, anchovies, sardines, herring, trout, pike, salmon, beef, rat and bear meat, chicken, and bread dough (range
-only). With more than one to cook, the chatbox's Make-X box (`skillmulti`, interface 270, set up by client script
+only); lobster, tuna, swordfish and shark came with Fishing and Cooking 2's step FC1. With more than one to cook, the chatbox's Make-X box (`skillmulti`, interface 270, set up by client script
 2046) asks which and how many; a resume_pausebutton from one of its items starts the job. Lumbridge Castle's kitchen
 range (114) burns less. The cooking re-runs every tick on the loc (`World.repeatOp`).
 
@@ -536,6 +555,7 @@ range (114) burns less. The cooking re-runs every tick on the loc (`World.repeat
 | Levels and XP | OSRS Wiki food pages |
 | 4 ticks a piece | OSRS Wiki, Raw shrimps |
 | Each food's burn pair on a fire or range and on the Lumbridge range, fitted to and checked against the Wiki's charts (`CookingTest`) | OSRS Wiki food pages |
+| Swordfish and shark burning less on a range than on a fire; lobster, tuna, swordfish and shark getting no Lumbridge range bonus | OSRS Wiki food pages; Cooking range (Lumbridge Castle) |
 | The Make-X box: its components, client script 2046's arguments and the pause button carrying the quantity | decompiled client scripts (osrs-dumps) |
 | Cook with nothing raw saying Nothing interesting happens; one piece cooking with no box; the box closing as the first piece starts; the level-up box ending the job as for the other skills | guessed |
 | Out: cooking gauntlets, the cooking cape, Hosidius ranges, pies, stews, pizzas, wines and every other recipe | out of scope |
@@ -1964,7 +1984,7 @@ loses goes in a grave there. The party lasts through the wipe.
 | The Navigator standing where the room's transporter puts a player; his line coming with Follow and Quick-follow skipping it; only the one who follows going; the player not held during the four ticks before the move, and one who has left the room by then not moved; his fade-in and the move's fade not sent; the first line after the third room too; with no Navigator in the cache or no NPC slot for him, whoever is on the arena sent out instead (exploit review round 21, R21A-1: a won arena had no way out) | guessed |
 | Nobody attacking an NPC in a room with an arena (Ezekiel's, Bork and the Smorks', Dreadnoth's, Xarth's) from off that arena: a click, a spell, a shot, a hit spreading from another NPC and auto retaliate are all refused, a click with the line for a target that can't be reached (exploit review round 21, R21A-2: from the way in, out of the fight or out of its reach, a boss could be shot) | guessed: live's walls presumably stop it; whether the cache's stop a bow or a spell isn't known |
 | A room's fight beginning as the first party member stands in it, and the Guardian's in the hall north of the entrance | guessed |
-| The Guardian's fight beginning on Touch on the waiting "Inert Guardian" (`tfa_guardian_start`, 16657) in the middle of the hall, where its corpse lies later; scaled to everyone standing in the run then | 241.4 cache (the NPC and its Touch); where it waits inferred from the corpse; the party size guessed |
+| The Guardian's fight beginning on Touch on the waiting "Inert Guardian" (`tfa_guardian_start`, 16657) in the middle of the hall, where its corpse lies later, and Yes to "Begin the challenge?"; scaled to everyone standing in the run then | 241.4 cache (the NPC and its Touch); Sam's recordings (the menu); where it waits inferred from the corpse; the party size guessed |
 | The whole of a run's instance multi-way | inferred: a raid of up to eight fights one boss |
 | A member who leaves the party sent to the lobby; a logout saving them there, as any instance's exit | guessed |
 | A member down who gets out (a teleport such as Home Teleport or a lodestone, leaving the party, or a logout once out of combat) dying of it, with a grave in the lobby, as if they had been the last standing; a reconnect within the linger no escape | Sam's decision, 8 November 2026 (exploit review RAID-2); the death's place guessed |
@@ -2056,7 +2076,7 @@ a fight started on a seed plays the same way each time.
 | A hazard's hit still counting as combat: it cuts a Home Teleport or lodestone cast short and holds a logout, as the boss's own hit would (exploit review round 11, ENC-1) | guessed |
 | Adds and hazards going when the boss dies or leaves | guessed; each boss's step changes it if live keeps them |
 | A loc a fight places (a mushroom, a portal) standing until the fight takes it away or ends, which puts the tile back as the cache has it, its own loc and turn included; turned a quarter or more (Ocellus's portals, step 25a) it blocks its turned footprint | ours: the cache's loc must come back; turning as the cache's own locs turn |
-| A phase also ending when its own test says so (a shield broken); steps put off a few ticks (a laser aimed now, landing later) running after the cycle and before the hazards, never once the fight is over | guessed |
+| A phase also ending when its own test says so (a shield broken); steps put off a few ticks (a beam aimed now, landing later) running after the cycle and before the hazards, never once the fight is over | guessed |
 | A phase naming the one that follows it, an earlier one too; a name the fight hasn't ending the fight, said in its log | ours: a mistake in a fight's own code, kept from throwing in the game tick |
 | A boss whose fight picks its attacks (the Guardian) never swinging, shooting, walking after anyone or retreating by itself, and keeping the first player it took on while they last | guessed |
 | A fight outside an instance covering 32 tiles round the boss's spawn, for the starter and their raid party only (so another test account standing in Lumbridge isn't drawn in), ending if the starter dies or logs out (else a script stopped mid-fight leaves them dying again and again at Lumbridge's spawn) | testing only: the raid's rooms are instances |
@@ -2072,52 +2092,67 @@ blocking its turned footprint and the cache's loc back when the fight ends).
 ## The Archive Guardian
 
 The raid's first boss (raid step 16a) is `game/raid/ArchiveGuardian.kt`, an encounter on the cache's two forms. It
-waits in the nexus's hall as the "Inert Guardian" until a member touches it. It wakes levitating, with its shield's
+waits in the nexus's hall as the "Inert Guardian" until a member touches it and answers Yes to "Begin the challenge?".
+It wakes levitating, with its shield's
 hitpoints, shooting the player it took on every 5 ticks and slamming anyone who stands under it instead; only ranged,
 magic and halberds reach it. With the shield gone it holds at 0 for 2 ticks and falls to the ground, blasting whoever is
 under or beside it, with its grounded hitpoints, and swings at a player beside it. After 35 ticks on the ground it lifts
 off behind a whole shield, and when that is gone it comes down again with the hitpoints it had left, for 41 ticks each
-time from then on. Once its hitpoints are at 30%, 4 ticks later it takes off for good, with no shield, and fires
-a laser at a random player every 10 ticks, its damage shared by everyone on the laser's line. Its death does the room.
-While its shield is up, and between lasers at the end, it grows a mushroom two tiles from each player; stepping beside one
+time from then on. Once its hitpoints are at 30%, 4 ticks later it lifts off behind one more whole shield, and from
+then to its death it sends a beam at a random player every 20 ticks, naming them in chat 9 ticks before. The beam runs
+from its middle through that player and on. With an inert guardian behind them, that one takes the beam and goes dark,
+the players on the line take 8 to 10, and 4 ticks later the shield loses 40% of its most, or breaks at once with no
+more than that left. With none behind them, the players on the line share the whole beam and the shield is untouched.
+That shield has no timer. When it is gone the Guardian is down for the last time, with the hitpoints it had left, and
+the beams go on by the same count until it dies. Its death does the room.
+While a shield is up it grows a mushroom two tiles from each player; stepping beside one
 bursts it, poisoning and wearying (no running, attacks a tick slower), and the burst splashes anyone two tiles off.
 Grounded, a vine rises on each player's side away from it every 3 ticks and swipes the tiles round it three times.
-Four inert guardians stand round the hall (step 16c). Under its shield three are awake: beaten to 0 one is charged,
-taking 40% off the shield, and spent. The south-east one never wakes; in the last phase the laser breaks the first one
-standing behind its target, halving the laser and hurting the Guardian, but never into kill range.
+Four inert guardians stand round the hall (step 16c). Under a shield three are awake: beaten to 0 one is charged,
+taking 40% off the shield, and spent. The south-east one never wakes, so only a beam spends it.
 
 | Guardian behaviour | Source |
 |--------------------|--------|
 | Stats, bonuses, both forms' hitpoints by party size (shield 550 to 1,950, grounded 1,100 to 3,910), 5-tick attacks, max hits 25 and 99+, 80% fire weakness, poison and venom immunity, Defence drained to 60% at most | Wiki, Archive Guardian (read 2026-11-03) |
 | Two forms: `tfa_guardian` (16659) levitating, `tfa_guardian_unshielded` (16660) grounded with slash defence 90 not 110; the animations and spotanims by name | 241.4 cache |
-| Levitating, only ranged, magic and halberds hitting it; shots at the player it chose; a slam on whoever stands under it; the shield's break grounding it; a blast on those under or next to it; the last phase at 30% with no shield; the laser "fatal if more than two players are alive and it isn't reduced", shared by standing in line, "slightly" cut by Protect from Magic | Wiki, The Fractured Archive/Strategies, as a guide site quotes it (the Wiki's own page is too long to read past its equipment) |
-| The shield and the hitpoints by turns: the shield whole again each time it lifts off, the hitpoints carried over; a broken shield's 2 ticks at 0 (2 to 3 seen); its first time down 35 ticks (34, 36 and 35 seen, with 55%, 76% and 64% of its hitpoints left) and 41 each time after (41 and 40 to 41 seen); a time down ending 4 ticks after its hitpoints go under 30% (seen once, 33 ticks in; guessed: the 4 ticks run their course even when its time on the ground would be up sooner) | Sam's recordings of three live fights (2026-11-09, parties of four and five), the bars read tick by tick |
-| A shield in the last phase too, a beam at a player spending the inert guardian behind them for 40% of it, and the beams going on after | Sam's recordings; not in yet (the last phase here is still the Wiki's, with no shield) |
+| Levitating, only ranged, magic and halberds hitting it; shots at the player it chose; a slam on whoever stands under it; the shield's break grounding it; a blast on those under or next to it; the last phase at 30%; the beam "fatal if more than two players are alive and it isn't reduced", shared by standing in line, "slightly" cut by Protect from Magic | Wiki, The Fractured Archive/Strategies, as a guide site quotes it (the Wiki's own page is too long to read past its equipment); its "no shield" in the last phase is not what the recordings show |
+| The shield and the hitpoints by turns: the shield whole again each time it lifts off, the hitpoints carried over; a broken shield's 2 ticks at 0 (2 to 3 seen); its first time down 35 ticks (34, 36 and 35 seen, with 55%, 76% and 64% of its hitpoints left) and 41 each time after (41 and 40 to 41 seen); a time down ending 4 ticks after its hitpoints go under 30% (three fights, at 30.3%, 29.6% and 29.4%; guessed: the 4 ticks run their course even when its time on the ground would be up sooner) | Sam's recordings of three live fights (2026-11-09 and 10, parties of four and five), the bars read tick by tick |
+| "Begin the challenge?", Yes or No, on Touch | Sam's recordings (the menu on each Touch, the fight after Yes); not in: the 5 or so ticks from Yes to its rise, it wakes at once |
+| After 30%, one more whole shield, with beams; no beam before it in any fight; a beam 19, 20 and 21 ticks into that shield and each 20 ticks after it (seven beams), the same count going on once it is down; the inert guardian behind a beam's target taking 400 and going dark (three times); 40% of the shield's most gone in one tick 4 to 6 ticks after such a beam (504 of 1,260, 412 of 1,030); that shield ending 4 to 5 ticks after a beam with less than 40% left (103, 123, 66), the hitpoints back on that tick with no ticks at 0; 8, 8 and 10 on players on such a beam's line; a beam with no inert guardian behind its target killing him, the shield untouched; no timer on that shield (43, 44 and 64 ticks); the time down after it lasting to the death or the wipe (22, about 29 and 63 ticks) | Sam's recordings (clip notes: tick pass, full-frame pass, H1 to H6) |
+| The chat line naming a beam's target 9 ticks before the beam | inferred: the one clip read at 10 frames a second has the line 5.3 s before each of two beams, and another fight's first line 11 ticks into the shield; chat read once a second elsewhere puts it at 2 to 7 ticks |
+| The beams beginning with the shield that follows 30%, not with the third shield | inferred: one fight's third shield, entered at 34.6%, had none, and its fourth, entered at 23%, did |
+| Everyone on a blocked beam's line taking the 8 to 10; a spent inert guardian's charge, once the Guardian is down for the last time, taking a tenth of its hitpoints off it but never into kill range (10%); shots, mushrooms and the inert guardians awake under the beams' shield as under the others | guessed (a guide: the beam's inert guardian "damages the boss's health", and in kill range "they stop dealing damage to the boss") |
+| The chat line to a player who takes a whole beam (the game calls it the Guardian's "breath") | not in: its words weren't legible in the recording |
 | The grounded form's 40% fire weakness | a guide (osrsbestinslot); the Wiki lists 80% and 40% without saying which form has which |
 | Ranged shots (Protect from Missiles), a crush swing grounded (Protect from Melee), the slam blocked by Protect from Melee | guessed for the slam; the prayers for the others from the attack styles |
-| The first attack 5 ticks into each phase; the laser every 10 ticks, landing 3 after it is aimed; its line from the boss's middle through its target, 32 tiles on | guessed |
-| The slam up to 25, the blast 10 to 20, the laser 80 for one or two players and 40 for each player from three, Protect from Magic taking a tenth | guessed, to fit the Strategies page's words |
+| The first attack 5 ticks into each phase; a beam's line from the boss's middle through its target, 32 tiles on | guessed |
+| The slam up to 25, the blast 10 to 20, a whole beam 80 for one or two players and 40 for each player from three, Protect from Magic taking a tenth | guessed, to fit the Strategies page's words |
 | It never moves, and keeps to one tank till they fall or go out of its range or sight, when it turns at once on someone in it (holding its fire only when nobody is); grounded, those who stand off get its vines | guessed |
 | The words for melee refused on a flying monster (`combat.flying`) | guessed |
 | Mushrooms (locs 62578 to 62580, `tfa_archive_guardian_mushroom_spawn`), the Vine (16664, `archive_guardian_tentacle`, its spawn, swipe and despawn animations and `vfx_guardian_tentacle_intro`) | 241.4 cache |
-| Mushrooms in the shield phase and alternating with the laser at the end; their 3 to 10, poison and weariness (slower attacks, no running); a run beside one and on popping it, a walk leaving a weaker splash; vines from 6 ticks into the grounded phase, then every 3, each on the player's side away from the boss and swiping a 3x3 three times on a 3-tick cycle, Protect from Melee capping a swipe at 11 | guides (osrstoolkit, runescapeguides, bald.gg; read 2026-11-03) |
+| Mushrooms while a shield is up; their 3 to 10, poison and weariness (slower attacks, no running); a run beside one and on popping it, a walk leaving a weaker splash; vines from 6 ticks into the grounded phase, then every 3, each on the player's side away from the boss and swiping a 3x3 three times on a 3-tick cycle, Protect from Melee capping a swipe at 11 | guides (osrstoolkit, runescapeguides, bald.gg; read 2026-11-03) |
 | A mushroom round each player every 15 ticks, 2 tiles off, growing for 2 and bursting after 20 if no one comes; the splash 1 to 5 at 2 tiles; poison severity 20 (hits of 4); weary 10 ticks, a tick on each attack; a vine swipe up to 22 unprayed | guessed |
 | An antipoison beforehand avoiding "the poison damage only" (so weariness comes all the same) | Wiki, The Fractured Archive/Strategies, its equipment table (read 2026-11-03) |
 | The inert guardians' three forms (`tfa_guardian_battery_inactive`, `_active` with Attack, `_destroyed`; 2 by 2), the awake one's 180 hitpoints, Defence and Magic 50, and its stab, slash, crush and magic defence (0, 20, -20, -20, its params 5 to 8, which give the Wiki's figures on the Guardian) | 241.4 cache |
-| Four round the room, charged by attacking them; charging taking ~40% off the shield (596 of 1,490); the south-east one only hit by the beam, which damages the boss's health; the beam destroying the one behind its target; lining it up reducing the laser; no damage to the boss once it is in kill range | guides (runescapeguides, osrstoolkit; read 2026-11-03) |
-| Where they stand (level with its middle 9 tiles west and 8 east, and 10 south); the awake ones put to sleep as it falls; the laser halved; a broken one taking 10% of its most hitpoints off it, never below kill range at 10%; their ranged defences, 0; a swing on a spent one landing for 0 | guessed |
+| Four round the room, charged by attacking them; charging taking ~40% off the shield (596 of 1,490); the south-east one only hit by the beam, which damages the boss's health; the beam destroying the one behind its target; lining it up reducing the beam; no damage to the boss once it is in kill range | guides (runescapeguides, osrstoolkit; read 2026-11-03); the recordings show players attacking them under the first two shields, one at 0 |
+| Where they stand (level with its middle 9 tiles west and 8 east, and 10 south; the recordings show them as statues set in the hall's walls, one west at about 4113,5603 and one on the south wall, their count not read); the awake ones put to sleep as it falls; their ranged defences, 0; a swing on a spent one landing for 0 | guessed |
 | The step-under timing, a guide's "firebreath" enrage with braziers, the Serpentine helm shortening weariness, which guardians melee reaches and which only ranged (a guide's earth weakness, with no figure) | not in yet (the enrage isn't on the Strategies page; there is no Serpentine helm yet) |
 
-`::raid guardian party=3` starts it where you stand, `phase=grounded` or `phase=airborne` from a later phase. Check:
+`::raid guardian party=3` starts it where you stand, `phase=grounded`, `phase=beams` or `phase=final` from a later phase. Check:
 `./gradlew test --tests 'osrsps.testclient.HeadlessArchiveGuardianTest' --tests 'osrsps.game.combat.NpcCombatTest' --tests 'osrsps.game.MovementTest'`
-(touched awake in its hall, through its three phases to its death doing the room, the instance multi-way; its shield
-back after 35 ticks on the ground and after 41 the next time, its hitpoints carried over; the laser
-shared by two on its line; melee refused while it levitates but for a halberd; the laser's line and damage; a mushroom
-bursting with poison and weariness, then splashing; a vine's swipes held to 11 by Protect from Melee; a weary player
-walking with run on; the inert guardians charged into the shield, three grounding it, and broken by the laser, which
-they halve, never into kill range), and in RuneLite `test-runner/examples/archive-guardian.json` (the whole fight solo
-with the right prayers, one round of its shield coming back, moved on with `::hit`), `test-runner/examples/archive-guardian-hazards.json` (a vine and a
-mushroom) and `test-runner/examples/archive-guardian-batteries.json` (an inert guardian charged).
+(touched and told Yes in its hall, No leaving it waiting, through its four phases to its death doing the room, the
+instance multi-way; its shield back after 35 ticks on the ground and after 41 the next time, its hitpoints carried
+over; the beams' shield 4 ticks after 30%; a beam 20 ticks after that shield goes up and every 20 after, named 9 ticks
+before, the count going on once it is down; a whole beam shared by two on its line, each told who it follows; melee
+refused while it levitates but for a halberd; a beam's line and damage; a mushroom bursting with poison and weariness,
+then splashing; a vine's swipes held to 11 by Protect from Melee; a weary player walking with run on; the inert
+guardians charged into the shield, three grounding it; one behind a beam's target spent by it, 8 to 10 left for the
+player, its charge taking 40% of the shield 4 ticks on or breaking it at once; and down for the last time a tenth of
+its hitpoints, never into kill range), and in RuneLite `test-runner/examples/archive-guardian.json` (the whole fight
+solo, Touch with No then Yes, one round of its shield coming back, the beams' shield with its chat line and beam, and
+its last time down, moved on with `::hit`), `test-runner/examples/archive-guardian-hazards.json` (a vine and a
+mushroom) and `test-runner/examples/archive-guardian-batteries.json` (an inert guardian charged, and one spent by a
+beam for 40% of the shield).
 
 ## The Fractured Archive lobby
 
@@ -2476,6 +2511,10 @@ warns at startup about any scenario naming an item the cache lacks.
 `agility` stands you at the Draynor Village Rooftop Course's rough wall (3103, 3279) with 52 Agility, the most anything
 built needs, so every course and shortcut is open; run on and full, and a graceful set in the bank to try its run energy
 bonus. Hitpoints stay a new account's 10, so a fall's damage shows.
+
+`fishing-cooking` stands you on Catherby's beach (2850, 3430) with 99 Fishing, Cooking and Firemaking, a harpoon, a
+lobster pot, a tinderbox and three logs, and the dragon and barb-tail harpoons in the bank: every fish Fishing and
+Cooking 2 has built so far, caught and cooked on a fire. Musa Point's spots are at `::tele 2924 3178`.
 
 `lumbridge-cows` stands you in the Lumbridge cow field (3259, 3263, a tile picked from the cow spawns) with 20 Attack,
 Strength, Defence and Hitpoints, iron armour, an iron scimitar, an amulet of strength, five lobsters, a bronze axe, a
