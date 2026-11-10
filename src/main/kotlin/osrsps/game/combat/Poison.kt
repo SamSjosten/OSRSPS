@@ -153,10 +153,13 @@ class Poison(
      * venom kills give no XP (the Wiki), and the NPC doesn't turn on anyone for them.
      */
     fun process(npc: Npc) {
-        if (npc.outOfPlay || npc.poison == 0) {
+        if (npc.dead || npc.poison == 0) {
             npc.poisonTicks = -1
             return
         }
+        // Guessed: a hidden NPC's poison waits, its timer where it was, and goes on from there once it is shown. No
+        // recording shows a poisoned boss going from sight.
+        if (npc.hidden) return
         if (npc.poisonTicks < 0) {
             npc.poisonTicks = TICKS
             return

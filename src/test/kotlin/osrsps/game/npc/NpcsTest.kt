@@ -46,6 +46,16 @@ class NpcsTest {
         assertTrue(npcs.canStep(other, 1, 0), "its tiles are free")
         repeat(200) { npcs.process() }
         assertEquals(Tile(3230, 3230), Tile(hidden.x, hidden.z), "it doesn't wander")
+        // A boss fight's own steps don't move it either, nor set it following anyone.
+        val player = Player(1, "test", 3240, 3230, 0)
+        npcs.stepTowards(hidden, player)
+        npcs.stepToward(hidden, 3240, 3230)
+        assertFalse(npcs.stepTo(hidden, 3240, 3230))
+        npcs.follow(hidden, player)
+        npcs.followNpc(hidden, other)
+        repeat(5) { npcs.process() }
+        assertEquals(Tile(3230, 3230), Tile(hidden.x, hidden.z), "nor do a fight's steps move it")
+        assertTrue(hidden.following == null && hidden.leader == null && hidden.destination == null)
         // Moved while hidden, it blocks neither the tiles it left nor the ones it is on.
         npcs.teleport(hidden, 3227, 3230)
         assertTrue(npcs.canStep(other, 1, 0))

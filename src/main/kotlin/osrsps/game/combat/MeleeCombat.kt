@@ -257,7 +257,8 @@ class MeleeCombat(
     internal fun fightingAnother(player: Player, npc: Npc): Boolean {
         if (multi.at(player.level, player.x, player.z)) return false
         val other = player.attackedNpc ?: return false
-        return other !== npc && !other.dead && npcs[other.index] === other && currentTick() - player.attackedNpcTick <= IN_COMBAT_TICKS
+        // A hidden NPC is out of its fight with them (Npc.hidden), as a dead one is.
+        return other !== npc && !other.outOfPlay && npcs[other.index] === other && currentTick() - player.attackedNpcTick <= IN_COMBAT_TICKS
     }
 
     /** [player] made an attack on [npc] on [tick], whatever it does when it lands; see [fightingAnother]. */
@@ -392,6 +393,7 @@ class MeleeCombat(
             iterator.remove()
             val npc = swing.npc
             npc.incoming -= swing.damage
+            // Guessed for a hidden NPC: a swing on its way when it went from sight does nothing, as for one that died.
             if (npcs[npc.index] !== npc || npc.outOfPlay) continue
             val dealt = hit(npc, swing.player, swing.damage, tick, swing.maxHit, swing.from)
             if (swing.special != null) specialLanded(npc, dealt, swing.special)
@@ -561,7 +563,7 @@ class MeleeCombat(
 
     /** [npc] was hit by [player]: it turns on them, striking from the next tick (guessed) if it isn't fighting already. */
     private fun retaliate(npc: Npc, player: Player, tick: Long) {
-        if (npc.target === player) return
+        if (npc.target === player || npc.hidden) return
         // A boss whose fight picks its attacks keeps to the player it took on first while they last (Npc.scriptedAttacks).
         if (npc.scriptedAttacks) {
             val held = npc.target
@@ -671,6 +673,8 @@ class MeleeCombat(
      */
     fun swingAt(npc: Npc, player: Player, tick: Long, anim: Int = -1) {
         val def = combat.npcCombat[npc.type] ?: return
+        // A hidden NPC fights no one, whoever asks: a boss fight's steps go on while its boss is out of sight.
+        if (npc.hidden) return
         npc.nextAttackTick = tick + def.attackSpeed
         npc.fightTick = tick
         // Only an NPC with a spell rolls for it, so World.random runs as before for every other.
@@ -737,6 +741,7 @@ class MeleeCombat(
      */
     fun fireAt(npc: Npc, player: Player, tick: Long, attack: NpcRangedAttack? = null, type: AttackType? = null) {
         val def = combat.npcCombat[npc.type] ?: return
+        if (npc.hidden) return
         if (attack == null && def.attacks.isEmpty()) return
         val shotType = type ?: def.attackType
         val distance = maxOf(1, LineOfSight.distance(npc.x, npc.z, npc.type.size, player.x, player.z))

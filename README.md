@@ -2072,8 +2072,9 @@ a fight started on a seed plays the same way each time.
 
 A boss that goes from sight in the middle of its fight and comes back (Dreadnoth, split into jellies) is hidden, not
 removed: `World.hide(npc)` keeps it in the world under its index, with its fight, timers and hitpoints going on, while no
-client is shown it (RSProt's inaccessible avatar), its tiles are free, it stands still, and nothing clicks, attacks or
-hurts it and it fights no one; `World.show(npc)` brings it back where it stands (moved meanwhile with
+client is shown it (RSProt's inaccessible avatar), its tiles are free, it stands still (a fight's own steps and swings
+for it do nothing), and nothing clicks, attacks or hurts it and it fights no one, so a player who was fighting it is
+free for other monsters; `World.show(npc)` brings it back where it stands (moved meanwhile with
 `Npcs.teleport`, there). By hand: `::hidenpc`.
 
 Check: `./gradlew test --tests 'osrsps.game.npc.NpcsTest' --tests 'osrsps.testclient.HeadlessHiddenNpcTest'`, and in
@@ -2081,7 +2082,7 @@ RuneLite `test-runner/examples/npc-hidden.json`.
 
 | Encounter behaviour | Source |
 |---------------------|--------|
-| A hidden boss's poison waiting till it is shown, and hits already on their way to it when it is hidden doing nothing | guessed |
+| A hidden boss's poison waiting, its timer where it was, till it is shown, and hits already on their way to it when it is hidden doing nothing | guessed |
 | Fights running in the NPC phase, after NPC scripts | guessed, until a recording shows a boss |
 | A phase changing at the start of the tick its threshold or time is reached, before that tick's steps | guessed |
 | A fight's first tick running as it starts (steps with no delay, hazards due at once), paused or not | guessed |

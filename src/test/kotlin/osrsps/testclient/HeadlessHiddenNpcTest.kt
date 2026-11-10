@@ -78,6 +78,7 @@ class HeadlessHiddenNpcTest {
                 assertSame(player, npc.target)
                 alice.commandReply("hit 10 ${npc.index}") { it.startsWith("Hit Man") }
                 val hitpoints = npc.hitpoints
+                assertTrue(world.meleeCombat.fightingAnother(player, other), "fighting the man, the player is his in single-way combat")
 
                 assertEquals("Hid Man #${npc.index}.", alice.commandReply("hidenpc ${npc.index}") { it.startsWith("Hid") })
                 alice.stepTicks(2)
@@ -87,6 +88,11 @@ class HeadlessHiddenNpcTest {
                 assertNull(npc.target, "he fights no one")
                 assertNull(player.interaction, "the player's fight with him is over")
                 assertTrue(world.npcs.canStep(other, -1, 0), "his tile is free")
+                assertFalse(world.meleeCombat.fightingAnother(player, other), "the player is free for another monster to fight")
+                // A boss fight's own swing for him does nothing either.
+                val nextAttack = npc.nextAttackTick
+                world.meleeCombat.swingAt(npc, player, world.tick)
+                assertEquals(nextAttack, npc.nextAttackTick, "hidden, he swings at no one")
                 assertTrue(alice.commandReply("npcs") { it.startsWith("#${npc.index} ") }.contains("; hidden"), "::npcs says so")
 
                 // A click on him now is one the client couldn't have sent: nothing comes of it, nor of anything else.

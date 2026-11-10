@@ -376,6 +376,7 @@ class MagicCombat(
             iterator.remove()
             val npc = cast.npc
             npc.incoming -= cast.damage
+            // Guessed for a hidden NPC: a spell on its way when it went from sight does nothing, as for one that died.
             if (npcs[npc.index] !== npc || npc.outOfPlay) continue
             if (cast.hit) {
                 if (cast.spell.impact >= 0) npc.effects.spotanim(0, cast.spell.impact, IMPACT_HEIGHT)

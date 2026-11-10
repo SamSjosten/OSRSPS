@@ -66,6 +66,7 @@ class Npcs(
      * hold it up. It faces them while it follows. Pets trail a tile behind instead; that isn't modelled.
      */
     fun follow(npc: Npc, player: Player) {
+        if (npc.hidden) return
         npc.following = player
         npc.destination = null
         // Busy with someone, it keeps facing them; release turns it to the player it follows.
@@ -85,6 +86,7 @@ class Npcs(
      */
     fun followNpc(npc: Npc, leader: Npc) {
         require(leader !== npc) { "$npc can't follow itself" }
+        if (npc.hidden) return
         npc.leader = leader
         npc.destination = null
     }
@@ -150,7 +152,8 @@ class Npcs(
 
     /**
      * Takes [npc] out of play where it stands ([Npc.hidden]): it leaves its tiles free, drops its walk, whoever it
-     * followed and whoever it was busy with, and stands still till [show]. What clients see and who was fighting it are
+     * followed and whoever it was busy with, and stands still till [show], whoever asks it to step or follow (a boss
+     * fight's steps go on); only [teleport] moves it. What clients see and who was fighting it are
      * [osrsps.game.World.hide]'s. Returns false for one that is gone or hidden already.
      */
     fun hide(npc: Npc): Boolean {
@@ -346,7 +349,7 @@ class Npcs(
      * sets its pace, as Dreadnoth crawls a tile every two ticks (raid step 20a). Beside them it stays put.
      */
     fun stepTowards(npc: Npc, player: Player) {
-        if (npcs[npc.index] !== npc || npc.freezeTicks > 0 || player.level != npc.level) return
+        if (npcs[npc.index] !== npc || npc.hidden || npc.freezeTicks > 0 || player.level != npc.level) return
         approach(npc, player.x, player.z)
     }
 
@@ -356,7 +359,7 @@ class Npcs(
      * (raid step 19b), fought or not. Frozen, blocked or there already, it stays.
      */
     fun stepToward(npc: Npc, x: Int, z: Int) {
-        if (npcs[npc.index] !== npc || npc.freezeTicks > 0) return
+        if (npcs[npc.index] !== npc || npc.hidden || npc.freezeTicks > 0) return
         val dx = (x - npc.x).sign
         val dz = (z - npc.z).sign
         val (sx, sz) = sequenceOf(dx to dz, dx to 0, 0 to dz)
@@ -429,7 +432,7 @@ class Npcs(
      * going corner to corner, raid step 24a). False when it is there already or every way is blocked.
      */
     fun stepTo(npc: Npc, x: Int, z: Int): Boolean {
-        if (npcs[npc.index] !== npc || npc.freezeTicks > 0) return false
+        if (npcs[npc.index] !== npc || npc.hidden || npc.freezeTicks > 0) return false
         npc.destination = Tile(x, z)
         val before = npc.x to npc.z
         step(npc)

@@ -384,7 +384,8 @@ class RangedCombat(
             iterator.remove()
             val npc = shot.npc
             npc.incoming -= shot.damage
-            // A shot whose NPC is still there hits it, and bounces on even if that hit kills it.
+            // A shot whose NPC is still there hits it, and bounces on even if that hit kills it. Guessed for a hidden
+            // NPC: a shot on its way when it went from sight does nothing, as for one that died.
             val landed = npcs[npc.index] === npc && !npc.outOfPlay
             if (landed) melee.weaponPoison(npc, melee.hit(npc, shot.player, shot.damage, tick, shot.rolledMax, shot.from), shot.poison, shot.venom, ranged = true)
             land(shot, npc)
