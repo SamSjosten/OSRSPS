@@ -278,12 +278,7 @@
   {
    "step": "waitTicks",
    "ticks": 7,
-   "comment": "he goes from sight six ticks on"
-  },
-  {
-   "step": "command",
-   "text": "::raid log 30",
-   "expectMessage": "split: gone from sight"
+   "comment": "his death animation, six ticks"
   },
   {
    "step": "command",

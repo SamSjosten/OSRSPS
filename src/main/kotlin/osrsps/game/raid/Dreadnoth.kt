@@ -23,7 +23,6 @@ import osrsps.game.encounter.EncounterContext
 import osrsps.game.encounter.EncounterDef
 import osrsps.game.encounter.PhaseDef
 import osrsps.game.npc.Npc
-import osrsps.game.npc.Npcs
 import osrsps.game.zone.Projectile
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.Tile
@@ -58,8 +57,9 @@ object DreadnothLines : Lines("tfa_dreadnoth", "The_Fractured_Archive/Strategies
  *   As he lands, jelly in his footprint, and at each player a shot and a splatter of jelly that lands on their tile
  *   [SPLATTER_LANDS] ticks on and lies there.
  * - At 0 hitpoints he doesn't die but splits (20c, [split]): his death animation, and [SPLIT_JELLIES] jellies of
- *   [SPLIT_HITPOINTS] hitpoints rising from his footprint. [SPLIT_GONE] ticks on he is gone from sight; the room is won
- *   ([splitTick]) once every jelly is gone, which ends the fight and clears the jelly from the floor.
+ *   [SPLIT_HITPOINTS] hitpoints rising from his footprint. The room is won ([splitTick]) once his death animation's
+ *   [SPLIT_GONE] ticks are over and every jelly is gone, which ends the fight and clears the jelly from the floor. Till
+ *   then he stands at 0, as the engine can't yet hide an NPC that is still in a fight (not in yet: his going from sight).
  *
  * From the OSRS Wiki (Dreadnoth the Jellied and Jelly (Dreadnoth), read 2026-11-10): his stats and bonuses, 5 by 5,
  * the 4-tick attack speed, max hit 45, the 85% fire weakness, poison immunity, the 50% cap on his offensive stats'
@@ -107,9 +107,7 @@ object DreadnothLines : Lines("tfa_dreadnoth", "The_Fractured_Archive/Strategies
  * as it lands (the 90-cycle exact move isn't sent: NPC exact moves aren't built), the shadow shown as he jumps.
  * For his death: the split jellies rising on tiles of his footprint as his death animation begins, at once and past
  * [MAX_JELLIES]; nothing of his still in the air landing once he splits, and no more jellies rising from gathered jelly;
- * every jelly, the waves' too, having to go before the room is won; his going from sight [SPLIT_GONE] ticks on (as
- * Xarth's six), shown by his turning into the raid's unseen hitpoints NPC ([Bork.ANCHOR]) as no NPC of his own is in
- * the cache for it.
+ * every jelly, the waves' too, having to go before the room is won, and not before [SPLIT_GONE] ticks (as Xarth's six).
  */
 object Dreadnoth {
     /** What `::raid` and the raid flow know the fight by. */
@@ -242,7 +240,7 @@ object Dreadnoth {
     const val SPLIT_JELLIES = 7
     const val SPLIT_HITPOINTS = 37
 
-    /** He goes from sight this many ticks after he splits. Guessed (Xarth goes six ticks after his death animation). */
+    /** The room isn't won till this many ticks after he splits, his death animation over. Guessed (Xarth's six). */
     const val SPLIT_GONE = 6
 
     /** The fight, or null when the cache hasn't Dreadnoth (a test world's). Without the jelly's type, no jellies rise. */
@@ -278,7 +276,7 @@ object Dreadnoth {
                 PhaseDef(
                     "split",
                     cycle = listOf(CycleStep(1) { splitTick(jelly) }),
-                    onStart = { split(jelly, types[Bork.ANCHOR]) },
+                    onStart = { split(jelly) },
                 ),
             ),
             scriptedAttacks = true,
@@ -738,9 +736,9 @@ object Dreadnoth {
 
     /**
      * He splits, at 0 hitpoints: his death animation, and [SPLIT_JELLIES] jellies of [SPLIT_HITPOINTS] hitpoints rising
-     * on tiles of his footprint. [SPLIT_GONE] ticks on he goes from sight, turned into the [unseen] NPC.
+     * on tiles of his footprint.
      */
-    private fun EncounterContext.split(jelly: NpcType?, unseen: NpcType?) {
+    private fun EncounterContext.split(jelly: NpcType?) {
         state.split = true
         hold()
         boss.target = null
@@ -767,10 +765,8 @@ object Dreadnoth {
             }
         }
         log("splits into $split jellies")
-        after(SPLIT_GONE) {
-            if (unseen != null) world.npcs.transform(boss, unseen, Npcs.FOREVER)
-            log("gone from sight")
-        }
+        // The phase's cycle first runs next tick: the jellies and jelly on the floor go on this one all the same.
+        jelliesAndFloor(jelly)
     }
 
     /** A tick after he split: the jellies and jelly on the floor as before, and the room won once every jelly is gone. */

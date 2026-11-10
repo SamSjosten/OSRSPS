@@ -24,7 +24,6 @@ import osrsps.game.npc.Npc
 import osrsps.game.raid.ArchiveRaids
 import osrsps.game.raid.ArchiveRoom
 import osrsps.game.raid.ArchiveRun
-import osrsps.game.raid.Bork
 import osrsps.game.raid.Dreadnoth
 import osrsps.game.raid.PartyScaling
 import osrsps.game.zone.ZoneLoc
@@ -52,8 +51,7 @@ class HeadlessDreadnothTest {
         stats = NpcStats(attack = 200, defence = 100, strength = 160, hitpoints = 75, ranged = 1, magic = 100),
     )
     private val grave = NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null))
-    private val unseen = NpcType(Bork.ANCHOR, "null", ops = listOf(null, null, null, null, null), internalName = "tfa_bork_smork_hp_ui_handler")
-    private val types = NpcTypes.of(dreadnoth, jelly, grave, unseen)
+    private val types = NpcTypes.of(dreadnoth, jelly, grave)
 
     private val locTypes = LocTypes(
         mapOf(ArchiveRaids.ARCHIVE_DOOR to LocType(ArchiveRaids.ARCHIVE_DOOR, "Archive Door", ops = listOf("Enter", null, null, null, null), collision = LocCollisionType(width = 9, length = 1))),
@@ -207,10 +205,6 @@ class HeadlessDreadnothTest {
                     assertEquals(Dreadnoth.SPLIT_HITPOINTS, one.maxHitpoints)
                 }
                 assertEquals(Dreadnoth.SPLIT_JELLIES, seven.map { Tile(it.x, it.z) }.toSet().size, "each on its own tile")
-                // Out of sight six ticks on, the raid's unseen NPC.
-                val gone = alice.awaitLine(run, "him gone from sight") { it.endsWith("split: gone from sight") }
-                assertEquals(tickOf(split) + Dreadnoth.SPLIT_GONE, tickOf(gone))
-                assertEquals(Bork.ANCHOR, him.type.id)
                 // Six of them down: the room isn't won yet, and each leaves jelly where it fell.
                 for (one in seven.dropLast(1)) alice.commandReply("hit 37 ${one.index}") { it.startsWith("Hit ") }
                 alice.awaitTicks(4)
