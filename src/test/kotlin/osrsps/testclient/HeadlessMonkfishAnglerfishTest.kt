@@ -3,7 +3,6 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
 import osrsps.game.InventoryTab
@@ -138,6 +137,7 @@ class HeadlessMonkfishAnglerfishTest {
                 client.seen("[fishing.no_sandworms]")
 
                 client.give(Fishing.SANDWORMS, 3)
+                val before = client.stat(FISHING)!!.xp
                 client.npcOp(spot.index, BAIT_OP)
                 client.seen("[fishing.cast_line]")
                 // About 14% a roll at 99: three sandworms make three catches, then it stops for want of bait.
@@ -147,7 +147,8 @@ class HeadlessMonkfishAnglerfishTest {
                 assertEquals(3, client.count(Cooking.ANGLERFISH.raw))
                 assertEquals(3, client.messages().count { it.text == "[fishing.catch_anglerfish]" })
                 assertEquals(0, client.count(Fishing.SANDWORMS))
-                assertTrue(client.stat(FISHING)!!.xp >= 3 * 120)
+                val gained = client.await("Fishing XP") { (client.stat(FISHING)!!.xp - before).takeIf { it >= 3 * 120 } }
+                assertEquals(3 * 120, gained, "120 XP an anglerfish")
             }
         }
     }
