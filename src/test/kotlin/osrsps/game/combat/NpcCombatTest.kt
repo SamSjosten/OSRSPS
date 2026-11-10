@@ -600,6 +600,19 @@ class NpcCombatTest {
     }
 
     @Test
+    fun `Ocellus's first phase fights as the Wiki has it, both his shots at the +150`() {
+        val ocellus = NpcType(16674, "Ocellus", size = 3, internalName = "tfa_ocellus_p1", stats = NpcStats(attack = 1, defence = 215, strength = 1, hitpoints = 2500, ranged = 250, magic = 350))
+        val him = NpcCombat.load(NpcTypes.of(ocellus), seqs)[ocellus]!!
+        assertEquals(listOf(5, 36), listOf(him.attackSpeed, him.maxHit))
+        // His fireball rolls ranged and his water ball magic: ranged is the primary style, so each finds its +150.
+        assertEquals(AttackType.RANGED, him.attackType)
+        assertEquals(listOf(150, 150), listOf(him.attackBonus, him.magicAttack))
+        assertEquals(listOf(150, 95, 60, 100), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { him.defence.against(it) })
+        assertEquals(mapOf(NpcStat.DEFENCE to 60), him.drainCaps)
+        assertTrue(him.poisonImmune && him.venomImmune)
+    }
+
+    @Test
     fun `Dreadnoth and his jellies fight as the Wiki has them, each max hit the formula's`() {
         val dreadnoth = NpcType(16665, "Dreadnoth the Jellied", size = 5, internalName = "tfa_jelly_boss", stats = NpcStats(attack = 280, defence = 125, strength = 285, hitpoints = 2100, ranged = 250, magic = 220))
         val jelly = NpcType(16666, "Jelly", internalName = "tfa_jelly_minion", stats = NpcStats(attack = 200, defence = 100, strength = 160, hitpoints = 75, ranged = 1, magic = 100))

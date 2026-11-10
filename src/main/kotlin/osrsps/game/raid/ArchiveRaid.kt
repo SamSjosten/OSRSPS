@@ -298,10 +298,7 @@ class ArchiveRaids(private val world: World) {
             val dormant = world.npcTypes[ArchiveGuardian.DORMANT]!!
             run.guardian = world.spawnNpc(NpcSpawn(dormant, at.x, at.z, 0, source = "$run", respawns = false))
         }
-        if (built(ArchiveRoom.OCELLUS)) {
-            val at = tile(run, Ocellus.FIGURE_X, Ocellus.FIGURE_Z)
-            run.ocellusFigure = world.spawnNpc(NpcSpawn(world.npcTypes[Ocellus.INTRO]!!, at.x, at.z, ArchiveRoom.OCELLUS.level, source = "$run", respawns = false))
-        }
+        placeOcellusFigure(run)
         logger.info { "$run opened by ${player.username} in $instance" }
         return run
     }
@@ -399,6 +396,18 @@ class ArchiveRaids(private val world: World) {
         run.fights[room] = fight
         fight.adds.firstOrNull { it.type.id == Bork.BORK }?.let { world.meleeCombat.aggress(it, first, world.tick) }
         logger.info { "$run began Bork and the Smorks' fight with ${standing.size} standing, ${first.username} first in" }
+    }
+
+    /**
+     * Ocellus's hooded figure put in his arena, if his room is built and not yet begun and the figure isn't there: as the
+     * run opens, and again each tick after, so a run opened with no NPC slot free still gets it once one is (Codex,
+     * PR 552), rather than its last room never beginning.
+     */
+    private fun placeOcellusFigure(run: ArchiveRun) {
+        val room = ArchiveRoom.OCELLUS
+        if (run.ocellusFigure != null || room in run.started || run.wiped || !built(room)) return
+        val at = tile(run, Ocellus.FIGURE_X, Ocellus.FIGURE_Z)
+        run.ocellusFigure = world.spawnNpc(NpcSpawn(world.npcTypes[Ocellus.INTRO]!!, at.x, at.z, room.level, source = "$run", respawns = false))
     }
 
     /**
@@ -627,6 +636,7 @@ class ArchiveRaids(private val world: World) {
                     }
                 }
             }
+            placeOcellusFigure(run)
             if (ArchiveRoom.OCELLUS !in run.started && ArchiveRoom.OCELLUS.stage == run.stage && run.ocellusFigure != null && ocellusReady(run)) beginOcellus(run)
             settleEscapes(run, ended = false)
             val present = present(run)

@@ -11,10 +11,10 @@ import org.junit.jupiter.api.io.TempDir
 import osrsps.game.EquipmentTab
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
-import osrsps.game.VarTypes
-import osrsps.game.VarbitType
 import osrsps.game.NpcTypes
 import osrsps.game.SeqNames
+import osrsps.game.VarTypes
+import osrsps.game.VarbitType
 import osrsps.game.World
 import osrsps.game.combat.Deaths
 import osrsps.game.combat.NpcCombat
@@ -22,6 +22,7 @@ import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
 import osrsps.game.npc.Npc
+import osrsps.game.npc.NpcSpawn
 import osrsps.game.raid.ArchiveRaids
 import osrsps.game.raid.ArchiveRoom
 import osrsps.game.raid.ArchiveRun
@@ -283,6 +284,31 @@ class HeadlessOcellusTest {
                 assertEquals(99 - nick, player.hitpoints)
                 // Caught, it charged him nothing.
                 assertFalse(lines(run).any { it.contains("uncaught") && tickOf(it) == tickOf(caught) })
+            }
+        }
+    }
+
+    @Test
+    fun `a run opened with no NPC slot free gets the hooded figure once one is`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                // Every free slot taken, by NPCs standing still on one tile far off, before the run opens.
+                val npcs = server.world.npcs
+                val filler = NpcType(1, "Filler")
+                val fillers = generateSequence { npcs.add(NpcSpawn(filler, 1000, 1000, source = "test")) }.toList()
+                assertTrue(fillers.size > 1000, "${fillers.size} fillers")
+                val run = alice.intoRun(server, "alice")
+                alice.awaitTicks(3)
+                assertNull(run.ocellusFigure, "no slot for the figure")
+                // A slot frees: the figure is put in where it stands, and his room can begin as usual.
+                for (npc in fillers) npcs.remove(npc)
+                val hooded = alice.await("the figure, once a slot is free") { run.ocellusFigure }
+                assertEquals(server.world.archiveRaids.tile(run, Ocellus.FIGURE_X, Ocellus.FIGURE_Z), Tile(hooded.x, hooded.z))
+                assertEquals(ArchiveRoom.OCELLUS.level, hooded.level)
+                alice.throughTheRest(run)
+                alice.toOcellus(server, run)
+                alice.npcOp(hooded.index, 1)
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ocellus #") } }
             }
         }
     }

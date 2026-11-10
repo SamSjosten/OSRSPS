@@ -61,7 +61,7 @@ object OcellusLines : Lines("tfa_ocellus", "The_Fractured_Archive/Strategies") {
  * of 96, the line three ticks after the last crack and the explosion three after that, his walking on three after it,
  * the two rings, and every overhead line. From Sam's recordings of 2026-11-09 (three runs, parties of three to five):
  * the arena on the upper floor (plane 1) and where a player comes in, the blue bar's hitpoints for four and five, the
- * first-phase level (1255), "Now... ascension..." as it begins, the three corner lines, the thin bar under the blue one
+ * first-phase level (1255), his line as it begins ([OcellusLines.ASCENSION]), the three corner lines, the thin bar under the blue one
  * rising in steps of about 2% of 96, players on a crack's line taking hits of 2 to 6, and the ready lines. From the cache
  * (RuneLite's gameval tables for 242): the ids below.
  *

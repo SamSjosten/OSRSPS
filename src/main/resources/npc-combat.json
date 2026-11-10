@@ -1046,7 +1046,7 @@
       "npcs": ["tfa_ocellus_p1"],
       "attackSpeed": 5,
       "maxHit": 36,
-      "attackType": "magic",
+      "attackType": "ranged",
       "attackBonus": 150,
       "strengthBonus": 0,
       "magicAttack": 150,
@@ -1059,7 +1059,7 @@
       "respawnTicks": 50,
       "immune": ["poison", "venom"],
       "drainCap": { "defence": 60 },
-      "source": "OSRS Wiki, Ocellus (phase 1, id 16674), read 2026-11-10: speed 5, magic and ranged, max hit 36, magic and ranged attack +150, the defence bonuses, immune to poison and venom, Defence drained to 129 at most (60% of 215). His shots come from his fight (Ocellus): a fireball (ranged, vfx_ocellus_fire_attack01_*, 4231-4233) or a water ball (magic, 4228-4230) at everyone as he walks (tsps capture notes, RSPSApp/tsps docs/fractured-archive.md). Guessed: the 10-tile range (the file's most; his fight fires at players anywhere in his arena), no block or death animation in this phase (he changes form rather than dying; step 24b), the respawn, which never comes"
+      "source": "OSRS Wiki, Ocellus (phase 1, id 16674), read 2026-11-10: speed 5, magic and ranged, max hit 36, magic and ranged attack +150, the defence bonuses, immune to poison and venom, Defence drained to 129 at most (60% of 215). His shots come from his fight (Ocellus): a fireball (ranged, vfx_ocellus_fire_attack01_*, 4231-4233) or a water ball (magic, 4228-4230) at everyone as he walks (tsps capture notes, RSPSApp/tsps docs/fractured-archive.md). Ranged is the file's primary style so his fireballs roll with the +150 (attackBonus) and his water balls with magicAttack's +150 (Codex, PR 552). Guessed: the 10-tile range (the file's most; his fight fires at players anywhere in his arena), no block or death animation in this phase (he changes form rather than dying; step 24b), the respawn, which never comes"
     }
   ]
 }
