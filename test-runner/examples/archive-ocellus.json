@@ -499,9 +499,9 @@
   },
   {
    "step": "command",
-   "text": "::hit 1300 tfa_ocellus_p3",
+   "text": "::hit 2000 tfa_ocellus_p3",
    "expectMessage": "Hit Ocellus",
-   "comment": "to 50%"
+   "comment": "to 50%, where his bar is held however hard the hit (exploit review R23B-2)"
   },
   {
    "step": "waitTicks",
@@ -519,9 +519,9 @@
   },
   {
    "step": "command",
-   "text": "::hit 1300 tfa_ocellus_p3",
+   "text": "::hit 2000 tfa_ocellus_p3",
    "expectMessage": "Hit Ocellus",
-   "comment": "to 25%: the third quadrant falls, and he takes the last for his final stand (step 27a)"
+   "comment": "to 25%, held there as at 50%: the third quadrant falls, and he takes the last for his final stand (step 27a)"
   },
   {
    "step": "waitTicks",
