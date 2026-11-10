@@ -756,6 +756,9 @@ object Ocellus {
                 // It takes the party's attacks and never hits back or dies of them: its damage goes to his bar.
                 blade.scriptedAttacks = true
                 blade.holdsAtZero = true
+                // Nor does it win hitpoints back by itself: a point regained before this fight's part of the tick would
+                // hide a point of damage from [forwardBlade] (Codex, PR 566).
+                blade.hitpointsRegenTicks = Int.MAX_VALUE
                 state.blade = blade
             }
             state.firstQuadrant = partyQuadrant()

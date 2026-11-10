@@ -450,6 +450,8 @@ class HeadlessOcellusTest {
                 assertEquals(5250 - 430, boss.hitpoints)
                 assertEquals(1000, sword.hitpoints)
                 assertFalse(sword.dead)
+                // It never regains hitpoints by itself, so no point of damage is lost to a regeneration tick.
+                assertTrue(sword.hitpointsRegenTicks > 1_000_000)
                 // Each quadrant 42 ticks, clockwise; until step 26, he dies 123 ticks in, in the third, and the room is done.
                 for (next in listOf("SW", "NW")) {
                     alice.keepAlive()
