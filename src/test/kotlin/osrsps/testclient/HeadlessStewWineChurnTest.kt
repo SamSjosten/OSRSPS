@@ -189,6 +189,24 @@ class HeadlessStewWineChurnTest {
     }
 
     @Test
+    fun `a first jug made with no other wine held still ferments`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                // At 99 every wine ferments; the grapes' first jug comes 3 ticks after the use.
+                client.level(99)
+                client.give(GRAPES)
+                client.give(JUG_OF_WATER)
+                val start = client.xp()
+                client.make(GRAPES, JUG_OF_WATER, Wine.UNFERMENTED)
+                client.await("the wine", 30_000) { if (client.count(Wine.JUG_OF_WINE) == 1) Unit else null }
+                assertEquals(0, client.count(Wine.UNFERMENTED))
+                assertEquals(200, client.await("wine XP") { client.xp().takeIf { it > start } } - start)
+            }
+        }
+    }
+
+    @Test
     fun `the churn asks which of cream, butter and cheese, takes the nearest input, and gives the milk's bucket back`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { client ->

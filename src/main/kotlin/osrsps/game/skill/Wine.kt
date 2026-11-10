@@ -45,11 +45,21 @@ class Wine(private val world: World) {
         val held = held(player)
         if (held > watch.held) watch.since = world.tick
         watch.held = held
-        if (held <= 0L) return stop(player)
-        if (world.tick - watch.since < FERMENT_TICKS) return
+        val waited = world.tick - watch.since >= FERMENT_TICKS
+        // Grapes and a jug still held may yet make wine (the first one comes ticks after the grapes are used), so the
+        // watch goes on; with neither, it ends once the wait is over.
+        if (held <= 0L) {
+            if (waited && !canMake(player)) stop(player)
+            return
+        }
+        if (!waited) return
         ferment(player)
-        stop(player)
+        watch.held = 0
+        if (!canMake(player)) stop(player)
     }
+
+    private fun canMake(player: Player) =
+        player.inventory.count(CookingMixes.GRAPES) > 0 && player.inventory.count(CookingMixes.JUG_OF_WATER) > 0
 
     private fun stop(player: Player) {
         watching.remove(player)
@@ -86,11 +96,14 @@ class Wine(private val world: World) {
 
     /**
      * Whether the bank can take the wine and bad wine stacks once the unfermented stack's slot is free: each that has no
-     * slot yet needs one.
+     * slot yet needs one, and neither stack may overflow.
      */
     private fun bankHasRoom(player: Player): Boolean {
         val new = listOf(JUG_OF_WINE, BAD_WINE).count { id -> player.bank.contents().none { it.second.id == id } }
-        return world.bank.used(player.bank) - 1 + new <= world.bank.capacity()
+        // Each stack must also take every banked wine, should all of them land in it.
+        val banked = player.bank.count(UNFERMENTED)
+        val fits = listOf(JUG_OF_WINE, BAD_WINE).all { player.bank.count(it) + banked <= Int.MAX_VALUE }
+        return fits && world.bank.used(player.bank) - 1 + new <= world.bank.capacity()
     }
 
     private fun deposit(player: Player, id: Int, count: Int) {

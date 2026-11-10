@@ -76,7 +76,7 @@ object CookingMixes {
     private const val POT_OF_FLOUR = 1933
     private const val BUCKET_OF_WATER = 1929
     private const val BOWL_OF_WATER = 1921
-    private const val JUG_OF_WATER = 1937
+    const val JUG_OF_WATER = 1937
     private const val POT = 1931
     private const val BUCKET = 1925
     private const val BOWL = 1923
