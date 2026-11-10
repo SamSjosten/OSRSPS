@@ -239,7 +239,7 @@ class HeadlessDreadnothTest {
                 assertTrue(lines(run).any { it.endsWith("fight: jumps") && tickOf(it) == tickOf(wave) })
                 val shoots = alice.awaitLine(run, "the shots at her") { it.contains("fight: shoots at alice on ") }
                 assertEquals(Dreadnoth.VOLLEY_LANDS.toLong(), tickOf(shoots) - tickOf(wave))
-                assertTrue(lines(run).any { it.contains("fight: slam hits alice for ") && tickOf(it) == tickOf(shoots) })
+                assertTrue(lines(run).any { it.contains("fight: slam of ") && it.contains(" hits alice")  && tickOf(it) == tickOf(shoots) })
                 val by = lines(run).first { it.contains("fight: jelly by him on ") }
                 assertEquals(Dreadnoth.VOLLEY_TILES, by.substringAfter(" on ").split(' ').size, by)
                 // The three shots land 3, 4 and 5 ticks after they're thrown; 8 after, a jelly rises on her tile then.

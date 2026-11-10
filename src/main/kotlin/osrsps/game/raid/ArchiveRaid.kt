@@ -41,7 +41,8 @@ enum class DoorSide { WEST, EAST }
  * `tfa_xarth01_corpse`, `tfa_dagonhai_book01`, `tfa_soulprison`, Bork's forge), its Passageway (`tfa_exit`, 62765, Exit)
  * and its Archive transporter (Use, Quick-use); the nexus's six doors (`tfa_nexus_section1_door_west` and on, Enter,
  * Quick-enter); the Guardian's corpse (`tfa_corpse_guardian01`, 5 by 5) in the middle of the nexus on the nexus's two
- * later levels; and the arena north of the nexus, past its Passageway, on its level 1 with The Blade. From the
+ * later levels; and the arena north of the nexus, up a corridor from a Passageway of its own (`tfa_exit_large`), on
+ * its level 1 with The Blade. From the
  * Wiki: the order, the Guardian first and Ocellus last, and the pairs. From the tsps capture notes and Sam's recordings
  * of 2026-11-09: Ocellus's arena is that square's level 1, where The Blade is too. Inferred: that each west door leads
  * to the west room of its pair (all three west rooms are in map column 63, the east ones in 65), which room is whose by
@@ -53,7 +54,7 @@ enum class ArchiveRoom(
     val side: DoorSide?,
     val squareX: Int,
     val squareZ: Int,
-    /** The nexus door into it; -1 for none (the Guardian's is the nexus's hall, Ocellus's is past the nexus's Passageway). */
+    /** The nexus door into it; -1 for none (the Guardian's is the nexus's hall, Ocellus's is past the nexus's Archive Door north). */
     val door: Int,
     /**
      * Where a player going in lands, and where `::raid tp` takes them: the tsps capture notes' arrivals for Ezekiel's,
@@ -83,17 +84,17 @@ enum class ArchiveRoom(
 
     /**
      * The nexus tile a player coming back out of the room lands on when the tile they went in from isn't known
-     * ([ArchiveRun.leftFrom]): beside its door, in front of the nexus's Passageway for Ocellus's, and the nexus's
-     * entrance for the Guardian's hall. Sam's recording of 2026-11-09 (clip 16-55-42) has the east doors' tiles on
-     * x 4140: 4140,5585 back from Bork, 4140,5598 for Dreadnoth and 4140,5612 for Xarth. Inferred: the west side
-     * mirrors it on x 4114. Guessed: the tile a row north of the door's south end where none was seen, and the
-     * Passageway's and the entrance's tiles.
+     * ([ArchiveRun.leftFrom]): beside its door, in front of the nexus's Archive Door north for Ocellus's, and the
+     * nexus's entrance for the Guardian's hall. Sam's recording of 2026-11-09 (clip 16-55-42) has the east doors'
+     * tiles on x 4140: 4140,5585 back from Bork, 4140,5598 for Dreadnoth and 4140,5612 for Xarth. Inferred: the west
+     * side mirrors it on x 4114, and the Archive Door's tile ([ArchiveRaids.OCELLUS_DOOR_FRONT_X]). Guessed: the tile a
+     * row north of the door's south end where none was seen, and the entrance's tile.
      */
     val doorFront: Tile
         get() = when {
             side == DoorSide.WEST -> Tile(ArchiveRaids.DOOR_FRONT_WEST_X, ArchiveRaids.doorZ(stage) + 1)
             side == DoorSide.EAST -> Tile(ArchiveRaids.DOOR_FRONT_EAST_X, ArchiveRaids.doorZ(stage) + 1)
-            this == OCELLUS -> Tile(ArchiveRaids.PASSAGE_FRONT_X, ArchiveRaids.PASSAGE_FRONT_Z)
+            this == OCELLUS -> Tile(ArchiveRaids.OCELLUS_DOOR_FRONT_X, ArchiveRaids.OCELLUS_DOOR_FRONT_Z)
             else -> Tile(ArchiveRaids.NEXUS_X, ArchiveRaids.NEXUS_Z)
         }
 
@@ -211,13 +212,12 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
  *   Quick-use: their difference, likely a warning first, isn't known.
  * - The Passageway goes back to the nexus at any time, in front of the room's door; the transporter, once the room is
  *   done. Before then Bork's room's transporter puts the player on the arena's floor (tsps capture notes: 4184,5599),
- *   past a gap in its west wall too narrow for him. Ocellus's room is past the nexus's own Passageway (`tfa_exit_large`), open once the fourth room is done.
+ *   past a gap in its west wall too narrow for him. Ocellus's room is past the nexus's Archive Door north (`tfa_nexus_ocellus_door_open`), open once the fourth room is done.
  * - STAND-IN until the reward room (step 28): once Ocellus's room is done, a Passageway at its south edge leaves to the
- *   lobby; the cache has no way out of that room.
- * - The nexus is the cache's map square 64,87 on one of its four levels: 0 at the start, 2 (the Guardian's corpse and a
- *   camp of crates and barricades) once the Guardian is done, 3 (the same and the Passageway north) once the fourth
- *   room is done. The Guardian is fought in the nexus's hall, from its first row of doors north; the Archive Door lands
- *   in the entrance south of it, where the party gathers.
+ *   lobby; the vault's own Passageway (`tfa_exit_large`, on the nexus's square's levels 1 and 3) isn't shown yet.
+ * - The nexus is the cache's map square 64,87 on its level 0 at the start and its level 2 (the Guardian's corpse and a
+ *   camp of crates and barricades) once the Guardian is done. The Guardian is fought in the nexus's hall, from its
+ *   first row of doors north; the Archive Door lands in the entrance south of it, where the party gathers.
  * - A room's fight begins as the first party member stands in it. A room whose boss isn't built yet is done as soon
  *   as it begins: that is what lets a run go through empty rooms. The Guardian's begins instead as a member touches
  *   it and answers Yes to its menu, waiting in the hall as the cache's "Inert Guardian" (`tfa_guardian_start`, Touch)
@@ -266,7 +266,8 @@ class ArchiveRaids(private val world: World) {
             world.handlers.onLoc(door, QUICK_ENTER) { door(player, door) }
         }
         world.handlers.onLoc(PASSAGEWAY, EXIT) { passageway(player) }
-        world.handlers.onLoc(NEXUS_PASSAGEWAY, EXIT) { nexusPassageway(player) }
+        world.handlers.onLoc(OCELLUS_DOOR_OPEN, ENTER) { ocellusDoor(player) }
+        world.handlers.onLoc(OCELLUS_DOOR_OPEN, QUICK_ENTER) { ocellusDoor(player) }
         for (transporter in TRANSPORTERS) {
             world.handlers.onLoc(transporter, USE) { transporter(player) }
             world.handlers.onLoc(transporter, QUICK_USE) { transporter(player) }
@@ -335,6 +336,7 @@ class ArchiveRaids(private val world: World) {
             run.guardian = world.spawnNpc(NpcSpawn(dormant, at.x, at.z, 0, source = "$run", respawns = false))
         }
         placeOcellusFigure(run)
+        placeOcellusDoor(run)
         logger.info { "$run opened by ${player.username} in $instance" }
         return run
     }
@@ -618,9 +620,25 @@ class ArchiveRaids(private val world: World) {
     }
 
     /**
-     * STAND-IN until the reward room (raid step 28): a way out of Ocellus's room, which has none in the cache, once the
-     * run is done. A room's Passageway (`tfa_exit`, [PASSAGEWAY]) is put at its south edge, in front of where the party
-     * comes in, as the nexus's own sits at its north; its Exit goes to the lobby, in front of the Archive Door, the
+     * The nexus's Archive Door north, to Ocellus: the server's own loc, not the map's, in the gap the cache leaves
+     * between two pillars at the hall's north end (tsps capture notes: `tfa_nexus_ocellus_door_closed` at 4124,5621 from
+     * the start, `tfa_nexus_ocellus_door_open` once the third room of a side is done). Put there again whenever the
+     * nexus changes level: laying a level over its zones takes the collision under it.
+     */
+    private fun placeOcellusDoor(run: ArchiveRun) {
+        val at = tile(run, OCELLUS_DOOR_X, OCELLUS_DOOR_Z)
+        for (id in listOf(OCELLUS_DOOR_SHUT, OCELLUS_DOOR_OPEN)) world.locs.find(id, at.x, at.z, NEXUS_PLANE)?.let { world.locs.remove(it) }
+        // Guessed: it opens as the fourth room is done, with no `tfa_nexus_ocellus_door_closed_anim` in between.
+        val id = if (run.stage > LAST_DOORS) OCELLUS_DOOR_OPEN else OCELLUS_DOOR_SHUT
+        // Inferred: angle 0, as the cache's own 7 by 2 Passageway four tiles north on the level above has.
+        world.locs.add(ZoneLoc(id, LocShape.CENTREPIECE_STRAIGHT, 0, at.x, at.z, NEXUS_PLANE))
+    }
+
+    /**
+     * STAND-IN until the reward room (raid step 28): a way out of Ocellus's room once the run is done. A room's
+     * Passageway (`tfa_exit`, [PASSAGEWAY]) is put at its south edge, in front of where the party comes in (the cache's
+     * own, `tfa_exit_large`, is ten tiles south, on a level of the nexus's square the instance doesn't show yet); its
+     * Exit goes to the lobby, in front of the Archive Door, the
      * instance's exit. Sam's decision of 8 November 2026 on exploit review RAID-3; where it stands is guessed.
      */
     private fun placeOcellusExit(run: ArchiveRun) {
@@ -772,8 +790,8 @@ class ArchiveRaids(private val world: World) {
         }
     }
 
-    /** The nexus's own Passageway, north: on to Ocellus, once the fourth room is done. */
-    fun nexusPassageway(player: Player) {
+    /** The nexus's Archive Door, north: on to Ocellus, once the fourth room is done and it stands open ([placeOcellusDoor]). */
+    fun ocellusDoor(player: Player) {
         val run = at(player.x, player.z) ?: return
         if (!inNexus(run, player.x, player.z)) return
         if (!mayEnter(run, player, ArchiveRoom.OCELLUS)) return
@@ -894,8 +912,8 @@ class ArchiveRaids(private val world: World) {
     }
 
     /**
-     * [room] is done: its points are shared out, whoever was down is up again, and the next row opens. After the third
-     * and fourth rooms the nexus changes ([nexusLevel]).
+     * [room] is done: its points are shared out, whoever was down is up again, and the next row opens. After the
+     * Guardian's the nexus changes ([nexusLevel]); after the fourth room its Archive Door north opens ([placeOcellusDoor]).
      */
     fun clear(run: ArchiveRun, room: ArchiveRoom) {
         if (room in run.cleared) return
@@ -924,7 +942,10 @@ class ArchiveRaids(private val world: World) {
         if (level != run.nexusLevel) {
             run.nexusLevel = level
             world.instances.replace(run.instance, nexusPart(level))
+            placeOcellusDoor(run)
             world.redrawInstance(run.instance)
+        } else if (room.stage == LAST_DOORS) {
+            placeOcellusDoor(run)
         }
         logger.info { "$run cleared ${room.boss}'s room; points ${run.points}" }
     }
@@ -1034,10 +1055,19 @@ class ArchiveRaids(private val world: World) {
         const val DOOR_3_EAST = 63105
         val DOORS = listOf(DOOR_1_WEST, DOOR_1_EAST, DOOR_2_WEST, DOOR_2_EAST, DOOR_3_WEST, DOOR_3_EAST)
 
-        /** tfa_exit, a boss room's Passageway, and tfa_exit_large, the nexus's own north: Exit. */
+        /** tfa_exit, a boss room's Passageway: Exit. */
         const val PASSAGEWAY = 62765
-        const val NEXUS_PASSAGEWAY = 62766
         const val EXIT = 1
+
+        /**
+         * tfa_nexus_ocellus_door_closed (no options) and tfa_nexus_ocellus_door_open (Enter, Quick-enter), the nexus's
+         * Archive Door north, 7 by 2, and its south-west tile (tsps capture notes; 241.4 cache for the types and the
+         * gap: pillars at 4123 and 4131 on z 5621, and the floor shut on z 5622).
+         */
+        const val OCELLUS_DOOR_SHUT = 63110
+        const val OCELLUS_DOOR_OPEN = 63111
+        const val OCELLUS_DOOR_X = 4124
+        const val OCELLUS_DOOR_Z = 5621
 
         /** tfa_boss_teleporter, tfa_teleporter_moia and tfa_teleporter_jelly, the Archive transporters: Use, Quick-use. */
         const val TRANSPORTER = 63087
@@ -1065,7 +1095,7 @@ class ArchiveRaids(private val world: World) {
         const val LAST_DOORS = 4
 
         /** The locs in a run's instance whose options are handled here, on their copies. */
-        val INSTANCE_LOCS: Set<Int> get() = (DOORS + TRANSPORTERS + PASSAGEWAY + NEXUS_PASSAGEWAY).toSet()
+        val INSTANCE_LOCS: Set<Int> get() = (DOORS + TRANSPORTERS + PASSAGEWAY + OCELLUS_DOOR_OPEN).toSet()
 
         /** The z of the nexus's row of doors for [stage] 2 to 4 (each door covers it and the 4 tiles north). */
         fun doorZ(stage: Int): Int = 5584 + (stage - 2) * 13
@@ -1120,9 +1150,13 @@ class ArchiveRaids(private val world: World) {
         const val XARTH_ARENA_X = 4184
         const val XARTH_ARENA_Z = 5535
 
-        /** In front of the nexus's own Passageway (4124,5625, 7 by 2). Guessed. */
-        const val PASSAGE_FRONT_X = 4127
-        const val PASSAGE_FRONT_Z = 5623
+        /**
+         * In front of the nexus's Archive Door north, the tile south of its middle. Inferred: Sam's recording of
+         * 2026-11-09 (clip 16-55-42) reads "about 4127, 5622" before the fade, within a tile or two, and the door covers
+         * z 5621 and 5622.
+         */
+        const val OCELLUS_DOOR_FRONT_X = 4127
+        const val OCELLUS_DOOR_FRONT_Z = 5620
 
         /** The nexus's map square in the cache, and the z its hall starts at: its first row of doors' south edge. */
         const val NEXUS_SQUARE_X = 64
@@ -1141,19 +1175,18 @@ class ArchiveRaids(private val world: World) {
         const val LOBBY_Z = 5560
 
         /**
-         * The cache's levels of the nexus: at the start; with the Guardian's corpse and the camp of crates and
-         * barricades; and with the Passageway north as well. Level 1, with the Passageway but no corpse, isn't used.
+         * The cache's levels of the nexus the instance's level 0 shows: at the start, and with the Guardian's corpse and
+         * the camp of crates and barricades. Sam's recording of 2026-11-09 has all three of a run's visits on the
+         * cache's level 2, the one after the fourth room too. Levels 1 and 3 are the same hall a storey and a half up,
+         * but for their north end, which is level with the hall's floor: the south end of the vault's corridor, with its
+         * own Passageway (`tfa_exit_large`). Live copies them onto the instance's level 1 (tsps capture notes); here
+         * they aren't shown yet.
          */
         const val NEXUS_START = 0
         const val NEXUS_CAMP = 2
-        const val NEXUS_OCELLUS = 3
 
-        /** The level of the nexus for a run at [stage]: the corpse and camp once the Guardian is done, the way north after the fourth room. */
-        fun nexusLevel(stage: Int): Int = when {
-            stage > 4 -> NEXUS_OCELLUS
-            stage > 1 -> NEXUS_CAMP
-            else -> NEXUS_START
-        }
+        /** The level of the nexus for a run at [stage]: the corpse and camp once the Guardian is done. */
+        fun nexusLevel(stage: Int): Int = if (stage > 1) NEXUS_CAMP else NEXUS_START
 
         /** Each room's points, shared by damage. Guessed: the Wiki gives no number. */
         const val ROOM_POINTS = 1000

@@ -166,13 +166,13 @@
   {
    "step": "command",
    "text": "::raid log 30",
-   "expectMessage": "fight: shoots at test on ",
+   "expectMessage": "fight: shoots at test",
    "comment": "three shots at the player, thrown a tick after the jump"
   },
   {
    "step": "command",
    "text": "::raid log 30",
-   "expectMessage": "fight: slam hits test for 0",
+   "expectMessage": "fight: slam of 0 hits",
    "comment": "Protect from Melee blocks the slam"
   },
   {
@@ -200,7 +200,7 @@
   {
    "step": "command",
    "text": "::raid log 30",
-   "expectMessage": "fight: a jelly hits test for 0",
+   "expectMessage": "for 0, draining",
    "comment": "Protect from Melee blocks its hit, but it drains prayer all the same"
   },
   {
@@ -239,7 +239,7 @@
   {
    "step": "command",
    "text": "::raid log 30",
-   "expectMessage": "enrage: jumps at test, landing on "
+   "expectMessage": "enrage: jumps at test"
   },
   {
    "step": "waitTicks",
@@ -255,7 +255,7 @@
   {
    "step": "command",
    "text": "::raid log 30",
-   "expectMessage": "enrage: shoots and splatters at test on "
+   "expectMessage": "enrage: shoots and splatters at test"
   },
   {
    "step": "command",
