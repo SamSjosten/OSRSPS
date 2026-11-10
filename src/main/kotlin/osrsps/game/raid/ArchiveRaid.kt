@@ -203,6 +203,18 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
     var riftOut: Npc? = null
         internal set
 
+    /** What the run's end paid, each member's chest by save key ([ArchiveChests.pay]); null until Ocellus's room is done. */
+    var loot: LootResult? = null
+        internal set
+
+    /** Each paid member's chest in the reward vault, by save key: its slot, from 0 ([ArchiveChests.SLOTS]). */
+    val chestSlots = LinkedHashMap<String, Int>()
+
+    /** The vault's chests by slot, the slots opening with the tick each is open on, and the slots open. */
+    internal val chests = HashMap<Int, Npc>()
+    internal val opening = HashMap<Int, Long>()
+    val opened = HashSet<Int>()
+
     /** The stage the party is at: the first not done. */
     val stage: Int get() = (1..ArchiveRaids.STAGES).firstOrNull { s -> ArchiveRoom.atStage(s).none { it in cleared } } ?: (ArchiveRaids.STAGES + 1)
 
@@ -240,8 +252,8 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
  * - The reward vault (raid step 28) is the cache's map square 64,90, two squares north of Ocellus's as on the map, on
  *   its own levels, the party on level 2 (tsps capture notes). [ArchiveRaids.travel] takes a member there from
  *   Ocellus's room once it is done (the Blade's Travel); its Rift out comes [ArchiveRaids.RIFT_OUT_DELAY] ticks after
- *   the first of them and leaves to the lobby. Its chests and the loot aren't built (raid step 29), nor its Merit
- *   scroll's records.
+ *   the first of them and leaves to the lobby. Its chests and what a run pays are [ArchiveChests] (raid step 29a);
+ *   its Merit scroll's records aren't built.
  * - The nexus is the cache's map square 64,87 on its level 0 at the start and its level 2 (the Guardian's corpse and a
  *   camp of crates and barricades) once the Guardian is done, with the level above each on the instance's level 1 (the
  *   hall again a storey and a half up, and the south end of the vault's corridor). The Guardian is fought in the nexus's hall, from its
@@ -251,8 +263,10 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
  *   it and answers Yes to its menu, waiting in the hall as the cache's "Inert Guardian" (`tfa_guardian_start`, Touch)
  *   from the run's start; its party size is everyone standing in the run then ([ArchiveGuardian], raid step 16).
  * - The whole of a run's instance is multi-way, as a raid of up to eight against one boss must be. Inferred.
- * - A room's points are [ROOM_POINTS], shared by damage among those who did any, or evenly among who was there when it
- *   began if nobody did. The number is made up: the Wiki has none.
+ * - A room's points are [ROOM_POINTS], and Ocellus's [OCELLUS_POINTS] ("Every boss except Ocellus awards 100
+ *   contribution points to the team, which is divided between party members based on damage dealt", and his 300: the
+ *   Wiki's chest page), shared by damage among those who did any, or evenly among who was there when it began if
+ *   nobody did. Guessed: the even share. Not in: the Wiki's soft cap on what damage to a boss's minions counts.
  * - A party member who dies with someone still standing keeps everything and is down until the room is done: in the
  *   nexus, in front of the room's door (in the entrance, for the Guardian's hall), and sent out again if they walk back
  *   in. Spectating isn't built.
@@ -264,6 +278,8 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
  *   the linger is no escape.
  */
 class ArchiveRaids(private val world: World) {
+    /** The reward vault's chests, and what a run's end pays into them (raid step 29a). */
+    val chests = ArchiveChests(world, this)
     private val runs = LinkedHashMap<Party, ArchiveRun>()
     private var nextId = 1
 
@@ -312,6 +328,7 @@ class ArchiveRaids(private val world: World) {
             val op = riftOps.indexOf(name).takeIf { it >= 0 }?.plus(1) ?: if (name == LEAVE) 1 else 3
             world.handlers.onNpc(RIFT_OUT, op) { leave(player) }
         }
+        chests.register()
         world.combat.shutOut = ::shutOut
         // His stepping stones' Jump, in his third phase, and his second phase barred to splash: after the shutOut
         // above, which Ocellus adds to.
@@ -898,6 +915,7 @@ class ArchiveRaids(private val world: World) {
             run.rewardTick = world.tick
             logger.info { "$run: ${player.username} is the first into the reward vault" }
         }
+        chests.showOwn(run, player)
     }
 
     /**
@@ -999,6 +1017,7 @@ class ArchiveRaids(private val world: World) {
             if (ArchiveRoom.OCELLUS !in run.started && ArchiveRoom.OCELLUS.stage == run.stage && run.ocellusFigure != null && ocellusReady(run)) beginOcellus(run)
             navigators(run)
             riftOut(run)
+            chests.process(run)
             settleEscapes(run, ended = false)
             val present = present(run)
             if (present.isNotEmpty() && present.none { it.dead } && standing(run).isEmpty()) wipe(run, null)
@@ -1087,6 +1106,8 @@ class ArchiveRaids(private val world: World) {
         // Whoever got out while down (a Home Teleport landing last tick) dies of it before the room's end gets them up.
         settleEscapes(run, ended = false)
         share(run, room)
+        // The raid's end: the loot is rolled, for whoever of the party is in the run now.
+        if (room == ArchiveRoom.OCELLUS) chests.pay(run)
         run.downed.clear()
         run.clearedTick = world.tick
         if (arenaEntry(room) != null && built(room)) run.navigatorDue[room] = world.tick + NAVIGATOR_DELAY
@@ -1107,10 +1128,10 @@ class ArchiveRaids(private val world: World) {
         val dealt = run.damage[room].orEmpty().filterValues { it > 0 }
         val total = dealt.values.sum()
         val shares: Map<String, Int> = if (total > 0) {
-            dealt.mapValues { (_, damage) -> (ROOM_POINTS.toLong() * damage / total).toInt() }
+            dealt.mapValues { (_, damage) -> (points(room).toLong() * damage / total).toInt() }
         } else {
             val there = run.presentAtStart[room].orEmpty()
-            if (there.isEmpty()) emptyMap() else there.associateWith { ROOM_POINTS / there.size }
+            if (there.isEmpty()) emptyMap() else there.associateWith { points(room) / there.size }
         }
         for ((key, points) in shares) run.points[key] = (run.points[key] ?: 0) + points
     }
@@ -1396,8 +1417,15 @@ class ArchiveRaids(private val world: World) {
         /** The level of the nexus for a run at [stage]: the corpse and camp once the Guardian is done. */
         fun nexusLevel(stage: Int): Int = if (stage > 1) NEXUS_CAMP else NEXUS_START
 
-        /** Each room's points, shared by damage. Guessed: the Wiki gives no number. */
-        const val ROOM_POINTS = 1000
+        /**
+         * The team's points for a room, shared by damage, and for Ocellus's: 700 a run ([ArchiveLoot.RUN_POINTS]), as
+         * the Wiki's chest page has them.
+         */
+        const val ROOM_POINTS = 100
+        const val OCELLUS_POINTS = 300
+
+        /** The team's points for [room]. */
+        fun points(room: ArchiveRoom): Int = if (room == ArchiveRoom.OCELLUS) OCELLUS_POINTS else ROOM_POINTS
 
         /**
          * The instance: the cache's map squares 63 to 65 by 86 to 88, level 0, laid out as they are, but for the
