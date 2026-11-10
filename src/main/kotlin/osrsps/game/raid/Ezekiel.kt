@@ -32,9 +32,9 @@ import osrsps.map.Tile
  *   Damage dealt to a sword charges it, up to [CHARGE_HITPOINTS]: a charged one hits him harder ([swordDamage]), and
  *   the players in its lane too ([laneDamage]). They're weak to air spells and resist ranged (npc-combat.json).
  * - At [ENRAGE_PERCENT] of his hitpoints, the enrage ([enrage]): the swords out go, and [ENRAGE_TRANSITION] ticks on he
- *   stands east in his room, a fence of swords shuts every player into a three by three west of him ([arena]), and
- *   volleys of [ENRAGE_STRIKES] strikes follow every [ENRAGE_VOLLEY_EVERY] ticks till he dies: two of three marks in the
- *   fence struck, then lightning on the whole arena but the back-row tile on the unstruck mark's row ([strike]).
+ *   stands west in his arena, a fence of swords shuts every player into the three by three east of him ([arena]), and
+ *   volleys of [ENRAGE_STRIKES] strikes follow every [ENRAGE_VOLLEY_EVERY] ticks till he dies: two of the three marks on
+ *   his tiles struck, then lightning on the whole three by three but its far tile on the unstruck mark's row ([strike]).
  *
  * From the OSRS Wiki (Ezekiel, read 2026-11-09): his stats and bonuses, 3 by 3, the 5-tick attack speed, max hit 77,
  * magic and melee, the 25% earth weakness, the poison and venom immunity, Defence drained to 120 at most, his
@@ -48,17 +48,18 @@ import osrsps.map.Tile
  * up with him stunning him "for a few seconds" and none doing so healing him "a significant amount"; hitting a sword
  * charging it, which raises its damage to him (80 at full charge, bald.gg) and to the player; swords very weak to air
  * magic and resisting ranged. From the cache: `tfa_ezekiel` (16652), `tfa_ezekiel_sword` (16653), his `npc_ezekiel_*`
- * animations and `ezekiel_*` spotanims.
+ * animations and `ezekiel_*` spotanims. From the tsps capture notes: his arena ([ARENA_WEST] to [ARENA_NORTH]), the swords
+ * flying across it edge to edge, where he stands for the enrage ([ENRAGE_DX], [ENRAGE_DZ]) with its three by three in
+ * front of him, east, three swords on his own tiles, and the spared tile being in the three by three's east column.
  *
  * Guessed, until a recording shows the fight (each also in the README): where he stands as the fight begins
  * ([ArchiveRaids.EZEKIEL_X]), the first attack [ATTACK_SPEED] ticks in, the safe spot being his whole side opposite
  * the tank (its corner for a tank at a corner), the lightning's damage ([MAGIC_MAX]) and its landing a tick after the
  * cast, the cross's reach ([CROSS_REACH]), its width (his), its timings and damage ([CROSS_MIN] to [CROSS_MAX]), the melee's
- * max hit being the Wiki's 77; for the swords, the arena ([ARENA_RADIUS] round his spawn), their lanes (his width, at
+ * max hit being the Wiki's 77; for the swords, their lanes (his width, at
  * random, from a random end), the count picked at random, one volley out at a time, all of a volley flying together and
  * at once along the whole lane (live's fly across), their timer, damage, charge, the stun's and the heal's size, and
- * the sword's own type (16653 rather than the `_noop` one) and air weakness; for the enrage, where he stands, the
- * arena's place and its fence's shape, the fence holding them by putting back whoever steps off ([hold]), where each
+ * the sword's own type (16653 rather than the `_noop` one) and air weakness; for the enrage, its fence's shape, the fence holding them by putting back whoever steps off ([hold]), where each
  * player lands, the transition's length, the strikes' gap, delay and
  * damage, Protect from Magic halving it, the marks' and impacts' spotanims picked by name, and that he neither moves
  * nor swings in it. From the Wiki (Ezekiel): the 35%, the 3x3 arena, the volleys of 3 lightning attacks shown by which
@@ -137,8 +138,15 @@ object Ezekiel {
     /** A perfect dodge's special attack energy: 3% (a guide's), in tenths of a percent. */
     const val DODGE_ENERGY = 30
 
-    /** The swords fly across this many tiles each way of his spawn's middle, along both axes. Guessed. */
-    const val ARENA_RADIUS = 10
+    /**
+     * His arena, from his spawn's south-west tile: 4056-4068 x 5528-5540 round 4062,5537 (tsps capture notes). The swords
+     * fly across it, edge to edge. It was a guessed 10 tiles each way of him until exploit review round 21 (R21A-3):
+     * swords then stood where nobody on the arena could reach them, one end at the room's way in.
+     */
+    const val ARENA_WEST = -6
+    const val ARENA_EAST = 6
+    const val ARENA_SOUTH = -9
+    const val ARENA_NORTH = 3
 
     /** Swords in a volley (a guide's three to four, picked at random here). */
     const val SWORDS_MIN = 3
@@ -170,8 +178,12 @@ object Ezekiel {
     /** The enrage begins at this share of his hitpoints, in percent (the Wiki's 35%; osrstoolkit says 33%). */
     const val ENRAGE_PERCENT = 35
 
-    /** Where he stands for the enrage: his south-west tile this many tiles east of his spawn's. Guessed ("central east"). */
-    const val ENRAGE_EAST = 6
+    /**
+     * Where he stands for the enrage, his south-west tile from his spawn's: 4059,5534 from 4062,5537, the three by
+     * three in front of him 4062-4064 x 5534-5536 (tsps capture notes).
+     */
+    const val ENRAGE_DX = -3
+    const val ENRAGE_DZ = -3
 
     /**
      * Ticks from the enrage beginning to the players brought into its arena. Guessed; longer than a cross's two bursts
@@ -249,7 +261,7 @@ object Ezekiel {
         /** Whether the enrage has begun: nothing of the fight before it lands after. */
         var enraged = false
 
-        /** The enrage's arena's south-west tile, once the players are in it; its three by three west of him. */
+        /** The enrage's arena's south-west tile, once the players are in it; its three by three east of him. */
         var arena: Tile? = null
     }
 
@@ -438,6 +450,10 @@ object Ezekiel {
     fun inLane(lane: Set<Tile>, x: Int, z: Int, size: Int): Boolean =
         (0 until size).all { dx -> (0 until size).all { dz -> Tile(x + dx, z + dz) in lane } }
 
+    /** Whether ([x], [z]) is on the arena of an Ezekiel who began with his south-west tile at ([spawnX], [spawnZ]). */
+    fun inArena(spawnX: Int, spawnZ: Int, x: Int, z: Int): Boolean =
+        x - spawnX in ARENA_WEST..ARENA_EAST && z - spawnZ in ARENA_SOUTH..ARENA_NORTH
+
     /** How much of its [CHARGE_HITPOINTS] [sword] has taken, from 0 to 1. */
     private fun charge(sword: Npc): Double = (CHARGE_HITPOINTS - sword.hitpoints.coerceIn(0, CHARGE_HITPOINTS)).toDouble() / CHARGE_HITPOINTS
 
@@ -450,11 +466,15 @@ object Ezekiel {
         return (LANE_MIN * times).toInt()..(LANE_MAX * times).toInt()
     }
 
-    /** A volley of swords at the arena's edge, each at the end of a lane across it, flying [SWORD_LAUNCH] ticks on. */
+    /**
+     * A volley of swords, each at an end of a lane across the arena and wholly on it, flying [SWORD_LAUNCH] ticks on.
+     */
     private fun EncounterContext.volley(type: NpcType) {
         val size = boss.type.size
-        val cx = boss.spawn.x + size / 2
-        val cz = boss.spawn.z + size / 2
+        val west = boss.spawn.x + ARENA_WEST
+        val east = boss.spawn.x + ARENA_EAST
+        val south = boss.spawn.z + ARENA_SOUTH
+        val north = boss.spawn.z + ARENA_NORTH
         val count = roll(SWORDS_MIN, SWORDS_MAX)
         val swords = ArrayList<Sword>()
         val taken = HashSet<Pair<Boolean, Int>>()
@@ -465,13 +485,12 @@ object Ezekiel {
             var tries = 0
             do {
                 alongX = roll(0, 1) == 0
-                val centre = if (alongX) cz else cx
-                offset = roll(centre - ARENA_RADIUS, centre + ARENA_RADIUS - size + 1)
+                offset = if (alongX) roll(south, north - size + 1) else roll(west, east - size + 1)
             } while (!taken.add(alongX to offset) && ++tries < 20)
-            val (min, max) = if (alongX) cx - ARENA_RADIUS to cx + ARENA_RADIUS else cz - ARENA_RADIUS to cz + ARENA_RADIUS
-            // From either end, its middle at the edge.
-            val end = if (roll(0, 1) == 0) min else max
-            val (x, z) = if (alongX) end to offset + size / 2 else offset + size / 2 to end
+            val (min, max) = if (alongX) west to east else south to north
+            // At either end of its lane, across the lane's width and inside the arena's edge.
+            val end = if (roll(0, 1) == 0) min else max - size + 1
+            val (x, z) = if (alongX) end to offset else offset to end
             val npc = spawnAdd(type, x, z) ?: return@repeat
             npc.scriptedAttacks = true
             npc.holdsAtZero = true
@@ -580,19 +599,19 @@ object Ezekiel {
         }
     }
 
-    /** The enrage's three by three, west of him standing with his south-west tile at ([x], [z]): its south-west tile. */
-    fun arenaFor(x: Int, z: Int): Tile = Tile(x - 3, z)
+    /** The enrage's three by three, east of him standing with his south-west tile at ([x], [z]): its south-west tile. */
+    fun arenaFor(x: Int, z: Int): Tile = Tile(x + 3, z)
 
     /** The arena's nine tiles, from its south-west tile [arena]. */
     fun arenaTiles(arena: Tile): Set<Tile> = (0 until 3).flatMap { dx -> (0 until 3).map { dz -> Tile(arena.x + dx, arena.z + dz) } }.toSet()
 
     /**
-     * The fence round [arena]: a column of five swords along its west side, and three along each of its north and south
-     * sides, him its east side. The middle three of the west column are the marks, row by row from the south.
+     * The fence round [arena]: a column of five swords along its east side, and three along each of its north and south
+     * sides, him its west side, the marks ([mark]) on his tiles there.
      */
     fun fence(arena: Tile): List<Tile> {
         val tiles = ArrayList<Tile>()
-        for (dz in -1..3) tiles += Tile(arena.x - 1, arena.z + dz)
+        for (dz in -1..3) tiles += Tile(arena.x + 3, arena.z + dz)
         for (dx in 0 until 3) {
             tiles += Tile(arena.x + dx, arena.z - 1)
             tiles += Tile(arena.x + dx, arena.z + 3)
@@ -600,26 +619,34 @@ object Ezekiel {
         return tiles
     }
 
-    /** The mark of [row] (0 the south) west of [arena]. */
+    /**
+     * The mark of [row] (0 the south): one of the three swords on his own tiles (tsps capture notes: "three finale
+     * swords on his footprint"). Guessed: on his column beside [arena].
+     */
     fun mark(arena: Tile, row: Int): Tile = Tile(arena.x - 1, arena.z + row)
 
-    /** The tile a strike leaving [row]'s mark unstruck spares: the arena's west column, the back row, on that row. */
-    fun safeTile(arena: Tile, row: Int): Tile = Tile(arena.x, arena.z + row)
+    /**
+     * The tile a strike leaving [row]'s mark unstruck spares: the arena's east column, the one furthest from him, on
+     * that row (tsps capture notes: "the east row of the 3x3 at that sword's row", itself from guides).
+     */
+    fun safeTile(arena: Tile, row: Int): Tile = Tile(arena.x + 2, arena.z + row)
 
     /**
-     * He goes to his place [ENRAGE_EAST] of his spawn, a fence of swords goes up west of him and every player in the
-     * fight is brought into the three by three it shuts in, beside him. Guessed: where, the fence's shape (the Wiki's
-     * "3x3 arena"), him its east side, and where in it each player lands.
+     * He goes to his place ([ENRAGE_DX], [ENRAGE_DZ] from his spawn), three swords drop on his own tiles, a fence of
+     * swords goes up round the three by three in front of him, east, and every player in the fight is brought into it
+     * (tsps capture notes). Guessed: the fence's shape (the notes count seven swords, not where they stand) and where
+     * in the three by three each player lands. He was a guessed 6 tiles east of his spawn, two columns off his arena,
+     * with the three by three west of him, until exploit review round 21 (R21A-3).
      */
     private fun EncounterContext.arena(mark: NpcType?) {
-        val x = boss.spawn.x + ENRAGE_EAST
-        val z = boss.spawn.z
+        val x = boss.spawn.x + ENRAGE_DX
+        val z = boss.spawn.z + ENRAGE_DZ
         world.npcs.teleport(boss, x, z)
         boss.effects.anim(ANIM_FINALE_LOOP)
         val arena = arenaFor(x, z)
-        val marks = (0 until 3).map { mark(arena, it) }.toSet()
+        val marks = (0 until 3).map { mark(arena, it) }
         if (mark != null) {
-            for (tile in fence(arena)) {
+            for (tile in marks + fence(arena)) {
                 val sword = spawnAdd(mark, tile.x, tile.z) ?: continue
                 sword.scriptedAttacks = true
                 sword.effects.anim(if (tile in marks) ANIM_MARK_DROP else ANIM_FENCE_DROP)
@@ -637,7 +664,7 @@ object Ezekiel {
 
     /**
      * A strike: two of the three marks struck, then, [ENRAGE_STRIKE_DELAY] ticks on, lightning on every tile of the arena
-     * but the back row's on the unstruck mark's row ([safeTile]). A perfect dodge of it counts, as of the cross.
+     * but the far column's on the unstruck mark's row ([safeTile]). A perfect dodge of it counts, as of the cross.
      */
     private fun EncounterContext.strike(arena: Tile) {
         val safeRow = roll(0, 2)

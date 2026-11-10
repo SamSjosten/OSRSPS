@@ -5,16 +5,29 @@ import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.combat.CombatLines
 import osrsps.game.combat.DeathPlace
+import osrsps.game.dialogue.ChatAnim
+import osrsps.game.dialogue.Lines
 import osrsps.game.encounter.Encounter
 import osrsps.game.instance.Instance
 import osrsps.game.instance.InstancePart
 import osrsps.game.npc.Npc
 import osrsps.game.npc.NpcSpawn
+import osrsps.game.script.ScriptContext
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.LocShape
 import osrsps.map.Tile
 
 private val logger = KotlinLogging.logger {}
+
+/**
+ * The Alliance Navigator's lines to whoever follows him out of a room that is won, each with the player's name. Seen in
+ * Sam's recordings of 9 November 2026 (clip notes): [ONWARD] after Bork and the Smorks, [VAULT] after Xarth, the fourth
+ * room. Guessed: [ONWARD] after the third room too.
+ */
+object ArchiveNavigatorLines : Lines("tfa_navigator", "The_Fractured_Archive") {
+    val ONWARD = line("onward", "followed out of the second or third room: his one line, with the player's name", "name")
+    val VAULT = line("vault", "followed out of the fourth room: his one line, with the player's name", "name")
+}
 
 /** Which of a row's two doors a room is behind, as the nexus faces north: west is the Wiki's left. */
 enum class DoorSide { WEST, EAST }
@@ -142,6 +155,12 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
     var firstReadyTick: Long = -1
         internal set
 
+    /** Rooms won whose Alliance Navigator is still to come, by the tick he does ([ArchiveRaids.NAVIGATOR_DELAY]). */
+    internal val navigatorDue = HashMap<ArchiveRoom, Long>()
+
+    /** Members following an Alliance Navigator out, by save key: the room they leave and the tick they do ([ArchiveRaids.FOLLOW_DELAY]). */
+    internal val following = HashMap<String, Pair<ArchiveRoom, Long>>()
+
     /** The tick the last room was done on; a member who fell before it gets up standing. -1 before any. */
     var clearedTick: Long = -1
         internal set
@@ -242,6 +261,13 @@ class ArchiveRaids(private val world: World) {
             world.handlers.onLoc(transporter, USE) { transporter(player) }
             world.handlers.onLoc(transporter, QUICK_USE) { transporter(player) }
         }
+        // His options by their names in the cache, whichever slots they are in; the first two if it hasn't them.
+        val ops = world.npcTypes[NAVIGATOR]?.ops.orEmpty()
+        val follow = ops.indexOf(FOLLOW).takeIf { it >= 0 }?.plus(1) ?: 1
+        val quick = ops.indexOf(QUICK_FOLLOW).takeIf { it >= 0 }?.plus(1) ?: 2
+        world.handlers.onNpc(NAVIGATOR, follow) { op -> follow(this, op.npc!!, quick = false) }
+        world.handlers.onNpc(NAVIGATOR, quick) { op -> follow(this, op.npc!!, quick = true) }
+        world.combat.shutOut = ::shutOut
     }
 
     /** The cache's tile [x], [z] in [run]'s instance. */
@@ -599,32 +625,114 @@ class ArchiveRaids(private val world: World) {
     }
 
     /** Whether [player] stands on the floor of Xarth's arena in [run]. */
-    private fun inXarthArena(run: ArchiveRun, player: Player): Boolean {
-        val at = tile(run, XARTH_X, XARTH_Z)
-        return Xarth.inArena(at.x, at.z, player.x, player.z)
-    }
+    private fun inXarthArena(run: ArchiveRun, player: Player): Boolean =
+        onArena(run, ArchiveRoom.XARTH, player.x, player.z) == true
 
     /** Whether [player] stands in Ezekiel's arena in [run] (tsps capture notes: 4056-4068 x 5528-5540). */
-    private fun inEzekielArena(run: ArchiveRun, player: Player): Boolean {
-        val from = tile(run, EZEKIEL_ARENA_MIN_X, EZEKIEL_ARENA_MIN_Z)
-        return player.x - from.x in 0..EZEKIEL_ARENA_SPAN && player.z - from.z in 0..EZEKIEL_ARENA_SPAN
-    }
+    private fun inEzekielArena(run: ArchiveRun, player: Player): Boolean =
+        onArena(run, ArchiveRoom.EZEKIEL, player.x, player.z) == true
 
     /** Whether [player] stands on the floor of Dreadnoth's arena in [run] (tsps capture notes: 4181-4198 x 5656-5670). */
-    private fun inDreadnothArena(run: ArchiveRun, player: Player): Boolean {
-        val spawn = tile(run, Dreadnoth.X, Dreadnoth.Z)
-        return Dreadnoth.inArena(spawn.x, spawn.z, player.x, player.z)
-    }
+    private fun inDreadnothArena(run: ArchiveRun, player: Player): Boolean =
+        onArena(run, ArchiveRoom.DREADNOTH, player.x, player.z) == true
 
     /** Whether [player] stands on the floor of Bork's arena in [run]. */
-    private fun inBorkArena(run: ArchiveRun, player: Player): Boolean {
-        val tower = tile(run, BORK_CART_X, BORK_CART_Z)
-        return Bork.inArena(tower.x, tower.z, player.x, player.z)
-    }
+    private fun inBorkArena(run: ArchiveRun, player: Player): Boolean =
+        onArena(run, ArchiveRoom.BORK, player.x, player.z) == true
 
     private fun out(player: Player, run: ArchiveRun, room: ArchiveRoom) {
         val to = tile(run, room.doorFront.x, room.doorFront.z)
         world.teleport(player, to.x, to.z, NEXUS_PLANE)
+    }
+
+    /** Where [room]'s transporter puts a player, on its arena (the cache's tile); null for a room with no arena built. */
+    private fun arenaEntry(room: ArchiveRoom): Tile? = when (room) {
+        ArchiveRoom.EZEKIEL -> Tile(EZEKIEL_ARENA_X, EZEKIEL_ARENA_Z)
+        ArchiveRoom.BORK -> Tile(BORK_ARENA_X, BORK_ARENA_Z)
+        ArchiveRoom.DREADNOTH -> Tile(Dreadnoth.ARENA_ENTRY_X, Dreadnoth.ARENA_ENTRY_Z)
+        ArchiveRoom.XARTH -> Tile(XARTH_ARENA_X, XARTH_ARENA_Z)
+        else -> null
+    }
+
+    /** Whether tile [x], [z] is on [room]'s arena in [run]; null for a room with no arena built. */
+    private fun onArena(run: ArchiveRun, room: ArchiveRoom, x: Int, z: Int): Boolean? = when (room) {
+        ArchiveRoom.EZEKIEL -> tile(run, EZEKIEL_X, EZEKIEL_Z).let { Ezekiel.inArena(it.x, it.z, x, z) }
+        ArchiveRoom.BORK -> tile(run, BORK_CART_X, BORK_CART_Z).let { Bork.inArena(it.x, it.z, x, z) }
+        ArchiveRoom.DREADNOTH -> tile(run, Dreadnoth.X, Dreadnoth.Z).let { Dreadnoth.inArena(it.x, it.z, x, z) }
+        ArchiveRoom.XARTH -> tile(run, XARTH_X, XARTH_Z).let { Xarth.inArena(it.x, it.z, x, z) }
+        else -> null
+    }
+
+    /**
+     * Whether [player] is shut out of attacking [npc]: it is in a room of a run with an arena, and they aren't on that
+     * arena. The arena is walled off from the room's way in (tsps capture notes), so on live nobody fights from there;
+     * here the walls are the cache's, and whether they stop a bow or a spell isn't known, so the rule is kept outright
+     * (exploit review round 21, R21A-2: the way in was out of Dreadnoth's and Xarth's fights, and out of Ezekiel's and
+     * Bork's reach, yet their bosses could be shot from it). Guessed: that live refuses it, and with what words.
+     */
+    fun shutOut(player: Player, npc: Npc): Boolean {
+        val run = at(npc.x, npc.z) ?: return false
+        val room = roomAt(run, npc.x, npc.z) ?: return false
+        return onArena(run, room, player.x, player.z) == false
+    }
+
+    /**
+     * The Alliance Navigator comes to the arena of each room [run] has won, [NAVIGATOR_DELAY] ticks after (tsps capture
+     * notes: he "appears in the arena three ticks later"), where its transporter puts a player. He is the way back:
+     * the arena is walled off from the room's way in, where its transporter and Passageway are (exploit review round
+     * 21, R21A-1: whoever won a room was left on its arena). Guessed: the tile. His fade-in isn't sent. With no
+     * Navigator in the cache, or no NPC slot for him, whoever is on the arena is sent out instead.
+     */
+    private fun navigators(run: ArchiveRun) {
+        for ((room, due) in run.navigatorDue.entries.toList()) {
+            if (world.tick < due) continue
+            run.navigatorDue -= room
+            val entry = arenaEntry(room) ?: continue
+            val at = tile(run, entry.x, entry.z)
+            val npc = world.npcTypes[NAVIGATOR]?.let { world.spawnNpc(NpcSpawn(it, at.x, at.z, 0, source = "$run", respawns = false)) }
+            if (npc != null) continue
+            logger.warn { "$run: no Alliance Navigator for ${room.boss}'s room, so its arena is emptied" }
+            for (player in present(run)) {
+                if (!player.dead && onArena(run, room, player.x, player.z) == true) out(player, run, room)
+            }
+        }
+    }
+
+    /**
+     * Follow on the Alliance Navigator in a room that is won: back to the nexus, in front of the room's door (tsps
+     * capture notes: "beside the door the party took"), after his one line. Quick-follow goes at once. Guessed: that his
+     * line comes with Follow and not as he appears, that Quick-follow skips it, and that only the one who follows goes.
+     * The move is [FOLLOW_DELAY] ticks after the option, or after his line is clicked on (tsps capture notes, moving
+     * between rooms: "a fade, then the move four ticks later"). The fade itself isn't sent. Guessed: the player isn't
+     * held meanwhile, and one who has left the room by then, or fallen, isn't moved.
+     */
+    suspend fun follow(context: ScriptContext, npc: Npc, quick: Boolean) {
+        val player = context.player
+        val run = at(npc.x, npc.z) ?: return
+        val room = roomAt(run, npc.x, npc.z) ?: return
+        if (room !in run.cleared || player.saveKey !in run.entered || world.parties.of(player) !== run.party) return
+        if (quick) {
+            run.following[player.saveKey] = room to world.tick + FOLLOW_DELAY
+            return
+        }
+        val line = if (room.stage >= LAST_DOORS) ArchiveNavigatorLines.VAULT else ArchiveNavigatorLines.ONWARD
+        world.dialogues.start(context, npc) {
+            chatNpc(ChatAnim.NEUTRAL, line, "name" to player.username)
+            // Still in the room: a teleport or a death while he spoke took them elsewhere already.
+            if (at(player.x, player.z) === run && roomAt(run, player.x, player.z) == room) run.following[player.saveKey] = room to world.tick + FOLLOW_DELAY
+        }
+    }
+
+    /** Those following a Navigator whose [FOLLOW_DELAY] ticks are up go out to the nexus, if they still stand in the room they were leaving. */
+    private fun followers(run: ArchiveRun) {
+        for ((key, leaving) in run.following.entries.toList()) {
+            val (room, due) = leaving
+            if (world.tick < due) continue
+            run.following -= key
+            val player = world.onlinePlayers.firstOrNull { it.saveKey == key } ?: continue
+            if (player.dead || world.parties.of(player) !== run.party) continue
+            if (at(player.x, player.z) === run && roomAt(run, player.x, player.z) == room) out(player, run, room)
+        }
     }
 
     /** The nexus's own Passageway, north: on to Ocellus, once the fourth room is done. */
@@ -681,6 +789,8 @@ class ArchiveRaids(private val world: World) {
             }
             placeOcellusFigure(run)
             if (ArchiveRoom.OCELLUS !in run.started && ArchiveRoom.OCELLUS.stage == run.stage && run.ocellusFigure != null && ocellusReady(run)) beginOcellus(run)
+            navigators(run)
+            followers(run)
             settleEscapes(run, ended = false)
             val present = present(run)
             if (present.isNotEmpty() && present.none { it.dead } && standing(run).isEmpty()) wipe(run, null)
@@ -772,6 +882,7 @@ class ArchiveRaids(private val world: World) {
         if (room == ArchiveRoom.OCELLUS) placeOcellusExit(run)
         run.downed.clear()
         run.clearedTick = world.tick
+        if (arenaEntry(room) != null && built(room)) run.navigatorDue[room] = world.tick + NAVIGATOR_DELAY
         val level = nexusLevel(run.stage)
         if (level != run.nexusLevel) {
             run.nexusLevel = level
@@ -899,7 +1010,22 @@ class ArchiveRaids(private val world: World) {
         const val USE = 1
         const val QUICK_USE = 2
 
+        /**
+         * The Alliance Navigator, who comes to a won room's arena [NAVIGATOR_DELAY] ticks after and leads back to the
+         * nexus: Follow, Quick-follow (tsps capture notes).
+         */
+        const val NAVIGATOR = 16700
+        const val FOLLOW = "Follow"
+        const val QUICK_FOLLOW = "Quick-follow"
+        const val NAVIGATOR_DELAY = 3
+
+        /** Ticks from following the Navigator to the move to the nexus (tsps capture notes: "a fade, then the move four ticks later"). */
+        const val FOLLOW_DELAY = 4
+
         const val STAGES = 5
+
+        /** The stage of the last row of doors, the fourth room: Ocellus's is next. */
+        const val LAST_DOORS = 4
 
         /** The locs in a run's instance whose options are handled here, on their copies. */
         val INSTANCE_LOCS: Set<Int> get() = (DOORS + TRANSPORTERS + PASSAGEWAY + NEXUS_PASSAGEWAY).toSet()
@@ -932,10 +1058,6 @@ class ArchiveRaids(private val world: World) {
         const val EZEKIEL_ARENA_X = 4067
         const val EZEKIEL_ARENA_Z = 5535
 
-        /** Ezekiel's arena, its south-west tile and its span: 4056-4068 x 5528-5540 (tsps capture notes). */
-        const val EZEKIEL_ARENA_MIN_X = 4056
-        const val EZEKIEL_ARENA_MIN_Z = 5528
-        const val EZEKIEL_ARENA_SPAN = 12
 
         /**
          * The Smorks' cart's south-west tile as Bork and the Smorks' fight begins, its 3 by 3 round the one blocked tile
