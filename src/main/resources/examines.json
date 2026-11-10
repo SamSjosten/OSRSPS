@@ -406,7 +406,7 @@
     {"npc": 7723, "name": "Gertrude", "also": [3500, 7284]},
     {"npc": 7747, "name": "Wizard Mizgog", "also": [5005]},
     {"npc": 8368, "name": "Abigaila"},
-    {"npc": 8391, "name": "Nigel", "also": [6093], "wiki": "Nigel page, infobox, Normal"},
+    {"npc": 8391, "name": "Nigel", "also": [6093, 16812], "wiki": "Nigel page, infobox, Normal"},
     {"npc": 8666, "name": "Banker", "wiki": "Banker page, infobox (the West Bank's locked door)"},
     {"npc": 8687, "name": "Tea Seller"},
     {"npc": 8693, "name": "Diango"},

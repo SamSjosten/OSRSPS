@@ -507,11 +507,11 @@ class NpcSpawnFileTest {
 
     @Test
     fun `Nigel and Arthur stand by the Grand Exchange since 242, Nigel north-west and Arthur by the south wall`() {
-        val nigel = NpcType(6093, "null", internalName = "deadman_nigel")
+        val nigel = NpcType(16812, "null", internalName = "deadman_nigel_varrock")
         val arthur = NpcType(16811, "Arthur", internalName = "clue_hunter_arthur")
         val spawns = NpcSpawnFile.parse(file("varrock.json"), NpcTypes.of(nigel, arthur), "varrock.json").spawns.associateBy { it.type.id }
-        assertEquals(setOf(6093, 16811), spawns.keys)
-        assertEquals(Triple(3152, 3512, 2), spawns.getValue(6093).let { Triple(it.x, it.z, it.wander) })
+        assertEquals(setOf(16812, 16811), spawns.keys)
+        assertEquals(Triple(3152, 3512, 2), spawns.getValue(16812).let { Triple(it.x, it.z, it.wander) })
         assertEquals(Triple(3158, 3469, 0), spawns.getValue(16811).let { Triple(it.x, it.z, it.wander) })
     }
 
@@ -610,7 +610,7 @@ class NpcSpawnFileTest {
             513 to "mugger", 5086 to "qip_ds_young_dark_wizard1", 5087 to "qip_ds_young_dark_wizard2", 5088 to "qip_ds_young_dark_wizard3", 5089 to "qip_ds_young_dark_wizard4", 3252 to "thief1", 5217 to "qip_soa_thief_male01", 5219 to "qip_soa_thief_female01",
             5220 to "qip_soa_thief_female02", 2862 to "giantrat1", 2864 to "giantrat1_3", 3262 to "barbarianwoman_varrock",
             3260 to "warrior_woman", 2838 to "brownbear", 516 to "black_knight", 3019 to "spider",
-            6093 to "deadman_nigel", 16811 to "clue_hunter_arthur",
+            16812 to "deadman_nigel_varrock", 16811 to "clue_hunter_arthur",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("varrock.json"), types, "varrock.json")

@@ -31,7 +31,7 @@
    "npc": "Nigel",
    "option": "Talk-to",
    "timeoutMs": 20000,
-   "comment": "deadman_nigel (6093), a multi-NPC, shows as deadman_nigel_regular (8391) on a normal world"
+   "comment": "deadman_nigel_varrock (16812), a multi-NPC, shows as deadman_nigel_regular (8391) on a normal world"
   },
   {
    "step": "assertDialogue",

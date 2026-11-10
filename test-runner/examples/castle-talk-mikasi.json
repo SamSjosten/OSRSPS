@@ -51,6 +51,15 @@
   {
    "step": "assertDialogue",
    "contains": "[mikasi.who_are_you]"
+  },
+  {
+   "step": "walk",
+   "x": 3233,
+   "y": 3216,
+   "comment": "a step away shuts his menu, so the next script's ::keys on reaches the chat"
+  },
+  {
+   "step": "assertNoDialogue"
   }
  ]
 }
