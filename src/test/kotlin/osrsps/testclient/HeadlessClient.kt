@@ -182,6 +182,9 @@ class HeadlessClient private constructor(
     /** How many SERVER_TICK_END packets have arrived: one per server tick since login. */
     val ticksSeen: Int get() = lock.withLock { ticks }
 
+    /** How many server cycles' PLAYER_INFO have arrived: one per cycle, ticking or paused, as the client's time runs on. */
+    val cyclesSeen: Int get() = lock.withLock { cycles }
+
     fun packets(): List<ServerPacket> = lock.withLock { packets.toList() }
 
     /** Drops the packets kept so far, so a headless script run that plays for hours doesn't keep every one of them. */
@@ -920,7 +923,7 @@ class HeadlessClient private constructor(
                     packet.payload,
                     large = packet.prot == GameServerProt.NPC_INFO_LARGE_V6,
                     local = playerInfo.coord(index) ?: error("NPC info before the login rebuild"),
-                    ticks = ticks,
+                    cycles = cycles,
                 )
                 for ((npc, text) in npcInfo.said) npcSaid += NpcSaid(npc, text, ticks)
                 for ((npc, type, value) in npcInfo.hits) npcHits += NpcHit(npc, type, value, ticks)

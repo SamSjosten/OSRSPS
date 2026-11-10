@@ -339,9 +339,9 @@ internal class HeadlessGame(
         val type = types.headbars[bar.type] ?: HeadbarTypes.Type()
         // As the client: a bar not updated for its type's stick time (counted from when it settled) is gone.
         // Inferred: the client counts the stick time from the update's start delay plus its end time.
-        // The bar came before its own tick's end, which counted one more tick: that tick is not time it has been up.
-        val upTicks = client.ticksSeen - bar.ticks - 1
-        if (upTicks * CYCLES_PER_TICK >= bar.settleCycles + type.stickCycles) return Game.Health(-1, 0)
+        // Counted in server cycles, which a paused world still sends, as the client's own time runs on while paused.
+        val upCycles = client.cyclesSeen - bar.cycle
+        if (upCycles * CYCLES_PER_TICK >= bar.settleCycles + type.stickCycles) return Game.Health(-1, 0)
         return Game.Health(bar.fill, type.width)
     }
 
@@ -734,7 +734,7 @@ internal class HeadlessGame(
 
         const val LAYERS = 4
 
-        /** Client cycles (20 ms) in a game tick (600 ms). */
+        /** Client cycles (20 ms) in a server cycle (600 ms, a tick or a paused cycle). */
         const val CYCLES_PER_TICK = 30
 
         /** Client scripts that change only what the client shows: toplevel_sidebutton_switch. */

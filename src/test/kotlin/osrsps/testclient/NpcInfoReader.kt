@@ -10,11 +10,11 @@ data class NpcSaid(val index: Int, val text: String, val ticks: Int)
 data class NpcHit(val index: Int, val type: Int, val value: Int, val ticks: Int)
 
 /**
- * An NPC's head bar as the client was last told it: its type, how much of the type's width is filled, the tick count
- * the client had seen when it came, and the client cycles (20 ms) after that until it settles: its start delay and,
- * for a bar that slides, its end time. The bar stays up for the type's stick time after that.
+ * An NPC's head bar as the client was last told it: its type, how much of the type's width is filled, the server cycles
+ * the client had seen when it came (its own counted), and the client cycles (20 ms) after that until it settles: its
+ * start delay and, for a bar that slides, its end time. The bar stays up for the type's stick time after that.
  */
-data class HeadbarView(val type: Int, val fill: Int, val ticks: Int = 0, val settleCycles: Int = 0)
+data class HeadbarView(val type: Int, val fill: Int, val cycle: Int = 0, val settleCycles: Int = 0)
 
 /** An NPC the client can see: its index in the world, its type id and its tile. */
 data class NpcView(val index: Int, val id: Int, val coord: Coord)
@@ -60,8 +60,8 @@ class NpcInfoReader {
     /** An NPC's health bar; null while it shows none. */
     fun health(index: Int): HeadbarView? = fills[index]
 
-    /** Applies one packet; [local] is the local player's tile after this tick's player info, [ticks] the ticks seen. */
-    fun read(payload: ByteArray, large: Boolean, local: Coord, ticks: Int = 0) {
+    /** Applies one packet; [local] is the local player's tile after this cycle's player info, [cycles] the cycles seen. */
+    fun read(payload: ByteArray, large: Boolean, local: Coord, cycles: Int = 0) {
         val bits = BitReader(payload)
         val extended = ArrayList<Int>()
         val count = bits.read(8)
@@ -115,7 +115,7 @@ class NpcInfoReader {
         fills.keys.retainAll(keptIndices)
         spotanims.keys.retainAll(keptIndices)
         extendedInfo = extended
-        readBlocks(payload, bits.alignedBytes(), extended, ticks)
+        readBlocks(payload, bits.alignedBytes(), extended, cycles)
     }
 
     /**
@@ -123,7 +123,7 @@ class NpcInfoReader {
      * NpcAvatarExtendedInfoDesktopWriter writes them: a flag byte, a second, third and fourth when the one before has its
      * marker bit (0x4, 0x400, 0x200000), then the blocks in the writer's order, each read as its RSProt encoder writes it.
      */
-    private fun readBlocks(payload: ByteArray, start: Int, extended: List<Int>, ticks: Int) {
+    private fun readBlocks(payload: ByteArray, start: Int, extended: List<Int>, cycles: Int) {
         val said = ArrayList<Pair<Int, String>>()
         val hits = ArrayList<Triple<Int, Int, Int>>()
         val events = ArrayList<ActorEvent>()
@@ -180,7 +180,7 @@ class NpcInfoReader {
                         val startFill = buf.g1Alt1()
                         // A bar that slides (an end time) ends at its end fill, which is what it shows once it settles.
                         val fill = if (end > 0) buf.g1Alt3() else startFill
-                        fills[index] = HeadbarView(type, fill, ticks, start + maxOf(end, 0))
+                        fills[index] = HeadbarView(type, fill, cycles, start + maxOf(end, 0))
                     }
                 }
             }
