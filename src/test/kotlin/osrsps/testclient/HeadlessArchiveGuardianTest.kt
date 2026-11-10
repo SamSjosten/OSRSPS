@@ -365,6 +365,37 @@ class HeadlessArchiveGuardianTest {
     }
 
     @Test
+    fun `a beam whose target is due to be named on the tick its shield comes down is named then, and the count isn't broken`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                alice.await("the login rebuild") { alice.position }
+                alice.commandReply("god on") { it.startsWith("You can't be hurt") }
+                alice.tele(3222, 3218)
+                alice.commandReply("pause") { it.startsWith("Paused") }
+                alice.commandReply("raid guardian phase=beams") { it.startsWith("Started") }
+                val fight = server.world.encounters.all.single()
+                val boss = fight.boss
+                fun ticks(end: String) = fight.lines.toList().filter { it.endsWith(end) }.map { it.substringBefore(' ').toLong() }
+                val up = ticks("beams: phase starts").single()
+                val named = up + ArchiveGuardian.BEAM_EVERY - ArchiveGuardian.BEAM_WARNING
+                // Its shield broken so that it has sat at 0 for its two ticks, and comes down, on the very tick the
+                // first beam's target is named: a phase's first tick runs none of its cycle.
+                alice.stepTicks((named - ArchiveGuardian.SHIELD_DOWN_TICKS - 1 - fight.ticks).toInt())
+                alice.commandReply("hit 550 ${boss.index}") { it.startsWith("Hit ") }
+                alice.stepTicks(ArchiveGuardian.SHIELD_DOWN_TICKS + 1)
+                assertEquals(listOf(named), ticks("final: phase starts"), "down on the tick the target is named")
+                assertEquals(listOf(named), ticks("final: focuses on alice"))
+                alice.stepTicks(ArchiveGuardian.BEAM_WARNING)
+                assertEquals(listOf(up + ArchiveGuardian.BEAM_EVERY), ticks("final: beam hits alice for 0"))
+                // And the one after it, 20 ticks on.
+                alice.stepTicks(ArchiveGuardian.BEAM_EVERY)
+                assertEquals(listOf(up + ArchiveGuardian.BEAM_EVERY, up + 2 * ArchiveGuardian.BEAM_EVERY), ticks("final: beam hits alice for 0"))
+                alice.commandReply("resume") { it.isNotEmpty() }
+            }
+        }
+    }
+
+    @Test
     fun `a beam with no inert guardian behind its target is shared by the players on its line, each told who it follows`(@TempDir dir: Path) {
         server(dir, vines = false).use { server ->
             server.login("alice").use { alice ->

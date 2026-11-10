@@ -339,6 +339,9 @@ object ArchiveGuardian {
                         }
                         if (state.beamsFrom < 0) state.beamsFrom = world.tick
                         ground(grounded, batteries)
+                        // A phase's first tick runs none of its cycle: a target due to be named on it is named here,
+                        // or that beam would be skipped and the count broken.
+                        beams(batteries)
                     },
                 ),
             ),
