@@ -762,6 +762,71 @@ class HeadlessArchiveRaidTest {
     }
 
     @Test
+    fun `a fall before Ocellus dies counts though they get up after the run's end`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { carol ->
+                server.login("dave").use { dave ->
+                    for (client in listOf(carol, dave)) client.await("the login rebuild") { client.position }
+                    carol.commandReply("raidparty invite dave") { it.startsWith("Invited") }
+                    dave.commandReply("raidparty accept carol") { it.startsWith("You joined") }
+                    val run = carol.enter(server, "carol")
+                    assertEquals(run, dave.enter(server, "dave"))
+                    val davePlayer = server.world.playerNamed("dave")!!
+                    val daveKey = davePlayer.saveKey
+                    for (room in listOf(ArchiveRoom.GUARDIAN, ArchiveRoom.BORK, ArchiveRoom.DREADNOTH, ArchiveRoom.XARTH)) {
+                        carol.command("raid tp ${room.name.lowercase()}")
+                        carol.awaitRun("${room.boss}'s room done") { room in run.cleared }
+                    }
+                    // Dave falls in Ocellus's room on the tick before it is done: counted as he falls, so the loot
+                    // rolled at the end sees it, though he is up only after. Counted at his respawn, it was free
+                    // (exploit review round 24, R24A-3).
+                    carol.commandReply("pause") { it.contains("aused after tick") }
+                    carol.commandReply("raid tp ocellus") { it.startsWith("To ") }
+                    dave.commandReply("raid tp ocellus") { it.startsWith("To ") }
+                    dave.commandReply("hit 99 me") { it.endsWith(", dead") }
+                    assertEquals(mapOf(daveKey to 1), run.deaths.toMap())
+                    carol.stepTicks(1)
+                    assertTrue(run.completed && !run.wiped && run.loot != null && davePlayer.dead)
+                    carol.commandReply("resume") { it.startsWith("Resumed") }
+                    dave.await("Dave up") { if (davePlayer.dead) null else Unit }
+                    assertEquals(mapOf(daveKey to 1), run.deaths.toMap(), "one death, counted once")
+                    assertTrue(!run.wiped && run.downed.isEmpty())
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `Ocellus dying with nobody of the party standing is a wipe, not the run's end`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bob").use { client ->
+                // Eve, out of the run, holds the world's clock: a dead player's commands wait for him to get up.
+                server.login("eve").use { eve ->
+                    for (each in listOf(client, eve)) each.await("the login rebuild") { each.position }
+                    val run = client.enter(server, "bob")
+                    val raids = server.world.archiveRaids
+                    val bob = server.world.playerNamed("bob")!!
+                    for (room in listOf(ArchiveRoom.GUARDIAN, ArchiveRoom.BORK, ArchiveRoom.DREADNOTH, ArchiveRoom.XARTH)) {
+                        client.command("raid tp ${room.name.lowercase()}")
+                        client.awaitRun("${room.boss}'s room done") { room in run.cleared }
+                    }
+                    // Bob lies dying in Ocellus's room as Ocellus falls (exploit review round 24, R24A-3): before, the
+                    // run was done and paid, his death free; now the party is wiped, with no loot.
+                    eve.commandReply("pause") { it.contains("aused after tick") }
+                    client.commandReply("raid tp ocellus") { it.startsWith("To ") }
+                    client.commandReply("hit 99 me") { it.endsWith(", dead") }
+                    raids.clearNow(run, ArchiveRoom.OCELLUS)
+                    assertTrue(run.wiped && !run.completed && run.loot == null, "wiped ${run.wiped}, done ${run.completed}, loot ${run.loot}")
+                    eve.commandReply("resume") { it.startsWith("Resumed") }
+                    client.awaitAt(Tile(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z), "Bob back in the lobby")
+                    client.await("Bob up") { if (bob.dead) null else Unit }
+                    assertEquals(mapOf(bob.saveKey to 1), run.deaths.toMap())
+                }
+            }
+        }
+    }
+
+    @Test
     fun `a row opens once the room before is done, and its other door stays shut once one is chosen`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bob").use { client ->

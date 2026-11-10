@@ -1,5 +1,9 @@
 package osrsps.game.npc
 
+import io.github.oshai.kotlinlogging.KotlinLogging
+
+private val logger = KotlinLogging.logger {}
+
 /**
  * What content gives NPCs of a type to do on their own, RS2's NPC scripts as RSMod has them: a timer that fires every
  * so many ticks ([onTimer], RSMod's ai timer), something every tick ([onTick]), something when one dies ([onDeath]),
@@ -95,6 +99,14 @@ class NpcScripts(private val npcs: Npcs, private val currentTick: () -> Long) {
         val tick = currentTick()
         val due = later.filter { it.first <= tick }
         later.removeAll(due)
-        for ((_, action) in due) action()
+        // Each on its own: they are out of the list already, so one that throws must not lose the rest this tick
+        // (exploit review round 24, R24C-4), nor stop the tick.
+        for ((_, action) in due) {
+            try {
+                action()
+            } catch (e: Exception) {
+                logger.error(e) { "an action due on tick $tick failed" }
+            }
+        }
     }
 }

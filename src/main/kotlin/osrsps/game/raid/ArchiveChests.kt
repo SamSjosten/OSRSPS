@@ -109,8 +109,20 @@ class ArchiveChests(private val world: World, private val raids: ArchiveRaids) {
         if (varp < player.vars.types.varpCount) player.vars[varp] = player.vars[varp] + 1
     }
 
+    /**
+     * Whether [player] has [item] anywhere of their own: carried, worn or banked; and, since those were each a way to
+     * keep it out of sight for a roll (exploit review round 24, R24A-4), in the guide prices screen, offered in a trade
+     * not yet done, in their grave, or held by a Grand Exchange offer. Guessed: live's own check isn't known. One given
+     * to someone else or dropped is no longer theirs, and that stays so.
+     */
     private fun owns(player: Player, item: Int): Boolean =
-        player.inventory.count(item) > 0 || player.bank.count(item) > 0 || player.equipment.count(item) > 0
+        player.inventory.count(item) > 0 || player.bank.count(item) > 0 || player.equipment.count(item) > 0 ||
+            player.priceChecker.count(item) > 0 ||
+            player.trade?.let { trade -> !trade.over && trade.sideOf(player).offer.count(item) > 0 } == true ||
+            world.deaths.graveOf(player)?.items?.let { it.count(item) > 0 } == true ||
+            player.ge.contents().any { (_, offer) ->
+                offer.item == item && (offer.collectItems > 0 || offer.type == osrsps.game.ge.OfferType.SELL && !offer.finished)
+            }
 
     private fun varbit(player: Player, id: Int): Int = if (player.vars.types.varbit(id) != null) player.vars.getVarbit(id) else 0
 
