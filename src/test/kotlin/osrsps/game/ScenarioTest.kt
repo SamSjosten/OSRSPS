@@ -179,9 +179,10 @@ class ScenarioTest {
         assertEquals(true, Mining.inGuild(gathering.x, gathering.z, gathering.level))
         assertEquals(99, gathering.skills.getValue(Skill.MINING).level)
         val artisan2 = scenarios["artisan-2"]!!
-        // Every fletching A1 product is made at 99 or below; 20 of the 28 slots.
+        // Every fletching A1 product and herblore A2a potion is made at 99 or below; 26 of the 28 slots.
         assertEquals(99, artisan2.skills.getValue(Skill.FLETCHING).level)
-        assertEquals(20, artisan2.inventory.size)
+        assertEquals(26, artisan2.inventory.size)
+        assertEquals(99, artisan2.skills.getValue(Skill.HERBLORE).level)
         val thieving = scenarios["thieving"]!!
         // Beside the south Varrock farm's farmer, in npc-spawns/lumbridge-farms.json, wearing both pieces of gear.
         assertTrue(thieving.x in 3178..3185 && thieving.z in 3290..3297 && thieving.level == 0)

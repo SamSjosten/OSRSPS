@@ -682,6 +682,12 @@ blue dragon scale opens the box for the ground item; the first is ground as the 
 sink, fountain or water pump fills every vial held, one a tick. A secondary on its unfinished potion opens the box for
 the finished potion (23 of them, attack potion to Saradomin brew), a (3) dose each. Making goes through `Making.kt`.
 
+Potions of more ingredients or made by the dose (Artisan 2, A2a, herblore.json's `mixing`): a torstol or torstol potion
+(unf) on a super attack(4), strength(4) or defence(4), with all four held, makes a super combat potion(4); amylase
+crystals on a super energy and lava scale shards on an antifire potion make stamina and extended antifire, one crystal
+or shard a dose; unicorn horn dust, snake weed and nail beast nails, in that order, take a super restore of any dose to
+sanfew serum.
+
 | Herblore behaviour | Source |
 |--------------------|--------|
 | The 15 herbs' cleaning levels and XP; Clean taking no time | OSRS Wiki, each grimy herb's page |
@@ -692,7 +698,10 @@ the finished potion (23 of them, attack potion to Saradomin brew), a (3) dose ea
 | Animations 363 (`human_herbing_vial`) and 364 (`human_herbing_grind`) | cache 241 gamevals |
 | Finished potions' levels, XP, secondaries, 2 ticks, a (3) dose | OSRS Wiki, Herblore (potions table) and each potion's page |
 | Which locs count as water; filling with no box; the filling animation (832); no animation for cleaning; the first potion 2 ticks after the choice | guessed |
-| Out: potions of three or more ingredients (super combat, stamina, sanfew, divine), coconut-milk potions, Varlamore's, herb sacks, tar, barbarian mixes, ashes, other ground items | out of scope |
+| Super combat (90, 150 XP), stamina (77, 25.5 XP a dose), sanfew's three steps (65, 32 x doses + 64 XP in all), extended antifire (84, 27.5 XP a dose); 2 ticks each; sanfew's steps one potion a use with no Make-X box; super combat from a clean torstol giving 2 vials back | OSRS Wiki, Super combat potion, Stamina potion, Sanfew serum, Extended antifire, Money making guide/Making super combat potions |
+| Super combat from a torstol potion (unf) giving 3 vials back (its own vial spare too) | inferred |
+| Which item pairs start a super combat potion (the torstol on any of the three; the three on each other start nothing); Zogre Flesh Eaters counting as done | guessed |
+| Out: divine potions, extended super antifire, coconut-milk potions, Varlamore's, herb sacks, tar, barbarian mixes, ashes, other ground items; Bob Barter's decanting is the next step (A2b) | out of scope |
 
 ### Agility
 

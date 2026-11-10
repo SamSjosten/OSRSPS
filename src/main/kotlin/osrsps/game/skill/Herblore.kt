@@ -2,6 +2,7 @@ package osrsps.game.skill
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -40,6 +41,9 @@ class HerbloreData(
     val fillVial: MakeRecipe,
     val waterSources: List<String>,
     val potions: Map<Pair<Int, Int>, MakeRecipe> = emptyMap(),
+    val mixing: Map<Pair<Int, Int>, List<MakeRecipe>> = emptyMap(),
+    /** The mixing recipes made one at a time on each use, with no Make-X box (sanfew serum's steps), by key. */
+    val oneAtATime: Set<String> = emptySet(),
 ) {
     companion object {
         const val RESOURCE = "/skills/herblore.json"
@@ -96,7 +100,29 @@ class HerbloreData(
                 val key = potion.int("unf") to potion.int("secondary")
                 require(potions.put(key, recipe) == null) { "Potion ${potion.name()} is listed twice" }
             }
-            return HerbloreData(cleaning, vialOfWater, unfinished, pestle, grinding, fill, sources, potions)
+            val mix = root.getValue("mixing").jsonObject
+            val mixed = LinkedHashMap<Pair<Int, Int>, MutableList<MakeRecipe>>()
+            val oneAtATime = HashSet<String>()
+            for (potion in mix.getValue("recipes").jsonArray.map { it.jsonObject }) {
+                val inputs = potion.getValue("inputs").jsonArray.map { pair ->
+                    pair.jsonArray.let { ObjCount(it[0].jsonPrimitive.int, it[1].jsonPrimitive.int) }
+                }
+                val recipe = MakeRecipe(
+                    potion.name(), Skill.HERBLORE, potion.int("product"), 1, potion.int("level"), potion.int("xpTenths"), inputs,
+                    emptyList(), mix.int("anim"), mix.int("first"), mix.int("interval"), HerbloreLines.MIX, HerbloreLines.LEVEL,
+                    byproducts = potion["byproducts"]?.jsonArray?.map { pair ->
+                        pair.jsonArray.let { ObjCount(it[0].jsonPrimitive.int, it[1].jsonPrimitive.int) }
+                    } ?: emptyList(),
+                )
+                if (potion["oneAtATime"]?.jsonPrimitive?.boolean == true) oneAtATime += recipe.key
+                for (trigger in potion.getValue("triggers").jsonArray.map { it.jsonArray }) {
+                    val a = trigger[0].jsonPrimitive.int
+                    val b = trigger[1].jsonPrimitive.int
+                    require(inputs.any { it.obj == a } && inputs.any { it.obj == b }) { "Potion ${potion.name()}: a trigger isn't its inputs" }
+                    mixed.getOrPut(minOf(a, b) to maxOf(a, b)) { ArrayList() } += recipe
+                }
+            }
+            return HerbloreData(cleaning, vialOfWater, unfinished, pestle, grinding, fill, sources, potions, mixed, oneAtATime)
         }
 
         private fun JsonObject.int(name: String): Int = getValue(name).jsonPrimitive.int
@@ -111,13 +137,13 @@ class HerbloreData(
  * horn (or the other things it grinds) opens it for the dust, the first ground at once, the next 2 ticks later and the
  * rest every 3; an empty vial on a sink, a fountain or a water pump fills every vial held, one a tick. A secondary on
  * its unfinished potion (or the other way round) opens the box for the finished potion, a (3) dose, 2 ticks each. The
- * making is [Making]'s.
+ * making is [Making]'s. Artisan 2 (A2a) adds the potions of more ingredients or made by the dose (herblore.json's
+ * mixing): super combat, stamina, the three steps of sanfew serum and extended antifire.
  *
  * Sources: the OSRS Wiki's grimy herb, unfinished potion, ground item and Vial of water pages (read 2026-10-30), see
  * herblore.json. Guessed: the box opening even for one; the first potion 2 ticks after the choice; filling every vial held without a box; which locs count as
  * water (the cache's sinks, fountains and water pumps, not wells); the filling animation (human_pickuptable) and no
- * animation for cleaning; the messages' arguments. Out: potions of more than two ingredients (super combat, stamina,
- * sanfew, the divine potions), the coconut-milk potions (antidote+, weapon poison+), Varlamore's (huasca's prayer
+ * animation for cleaning; the messages' arguments. Out: the divine potions, extended super antifire, the coconut-milk potions (antidote+, weapon poison+), Varlamore's (huasca's prayer
  * regeneration), quest and minigame potions, herb sacks, the herb tar and barbarian mixes, Ashes, the Zahur-style and
  * Kandarin-diary shortcuts, and the other ground items (crushed for quests, Varrock's mud runes).
  */
@@ -135,6 +161,12 @@ class Herblore(private val world: World, val data: HerbloreData) {
         }
         for ((pair, recipe) in data.potions) {
             world.handlers.onObjOnObj(pair.second, pair.first) { world.making.choose(this, listOf(recipe)) }
+        }
+        for ((pair, recipes) in data.mixing) {
+            val single = recipes.singleOrNull()?.takeIf { it.key in data.oneAtATime }
+            world.handlers.onObjOnObj(pair.first, pair.second) {
+                if (single != null) world.making.start(this, single, 1) else world.making.choose(this, recipes)
+            }
         }
         for (source in waterSources()) {
             world.handlers.onObjOnLoc(source, data.fillVial.inputs[0].obj) {
