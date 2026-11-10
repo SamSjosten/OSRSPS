@@ -1,0 +1,47 @@
+{
+ "name": "Magic M1: ::scenario magic; Varrock Teleport plays 714 with graphic 111 and takes its law and fire rune (the staff pays the air); Watchtower Teleport lands on its one tile on the top floor; a Watchtower teleport tablet's Break plays 4069, then 4071 with 678, and lands there too; neither works in level 23 Wilderness (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario magic", "expectMessage": "Started scenario magic."},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "assertStat", "skill": "Magic", "level": 99},
+  {"step": "assertInventory", "item": "Law rune", "count": 20},
+  {"step": "assertInventory", "item": "Watchtower teleport", "count": 2},
+
+  {"step": "clickWidget", "interfaceId": 218, "component": 26, "op": 1, "comment": "magic_spellbook:varrock_teleport, op1 (the client names it Cast or Varrock)"},
+  {"step": "assertAnimation", "id": 714, "timeoutMs": 5000, "comment": "human_castteleport"},
+  {"step": "assertSpotanim", "id": 111, "timeoutMs": 5000, "comment": "teleport_casting"},
+  {"step": "waitTicks", "ticks": 5, "comment": "lands 3 ticks after the cast, on a random free tile within 2 of 3213, 3424"},
+  {"step": "assertInventory", "item": "Law rune", "count": 19},
+  {"step": "assertInventory", "item": "Fire rune", "count": 19},
+  {"step": "assertInventory", "item": "Air rune", "count": 50, "comment": "the staff of air pays the 3 air runes"},
+
+  {"step": "clickWidget", "interfaceId": 218, "component": 50, "op": 1, "comment": "magic_spellbook:watchtower_teleport"},
+  {"step": "assertAnimation", "id": 714, "timeoutMs": 5000},
+  {"step": "assertLocation", "x": 2546, "y": 3114, "plane": 2, "timeoutMs": 10000, "comment": "the Watchtower's top floor, the Wiki's tile"},
+  {"step": "assertInventory", "item": "Law rune", "count": 17},
+  {"step": "assertInventory", "item": "Earth rune", "count": 18},
+
+  {"step": "command", "text": "::tele 3222 3218 0", "expectMessage": "Teleported to 3222, 3218, 0"},
+  {"step": "itemOption", "item": "Watchtower teleport", "option": "Break"},
+  {"step": "assertAnimation", "id": 4069, "timeoutMs": 5000, "comment": "poh_smash_magic_tablet"},
+  {"step": "assertAnimation", "id": 4071, "timeoutMs": 5000, "comment": "poh_absorb_tablet_teleport, 2 ticks in"},
+  {"step": "assertSpotanim", "id": 678, "timeoutMs": 5000, "comment": "poh_absorb_tablet_magic"},
+  {"step": "assertLocation", "x": 2546, "y": 3114, "plane": 2, "timeoutMs": 10000, "comment": "4 ticks after the break"},
+  {"step": "assertInventory", "item": "Watchtower teleport", "count": 1},
+
+  {"step": "command", "text": "::tele 3100 3700 0", "expectMessage": "Teleported to 3100, 3700, 0", "comment": "level 23 Wilderness"},
+  {"step": "clickWidget", "interfaceId": 218, "component": 26, "op": 1},
+  {"step": "assertMessage", "contains": "[home_teleport.wilderness]", "timeoutMs": 5000},
+  {"step": "assertMessage", "contains": "[home_teleport.wilderness_2]", "timeoutMs": 5000},
+  {"step": "itemOption", "item": "Watchtower teleport", "option": "Break"},
+  {"step": "waitTicks", "ticks": 6},
+  {"step": "assertLocation", "x": 3100, "y": 3700, "plane": 0, "comment": "neither works above level 20"},
+  {"step": "assertInventory", "item": "Law rune", "count": 17, "comment": "nothing taken"},
+  {"step": "assertInventory", "item": "Watchtower teleport", "count": 1},
+
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"}
+ ]
+}
