@@ -506,6 +506,7 @@ Rocks outside Misthalin are where live has them and reached by ::tele: the Minin
 | Runite rocks: 85, 125 XP, pair 1/18 (17/256 at 85, 19/256 from 97), 12 minutes back, 6 in the Mining Guild and the Wilderness | OSRS Wiki, Runite rocks |
 | Amethyst crystals: 92, 240 XP, pair -18/10, 2 to 3 amethysts from one swing before an empty wall (`amethystrock_empty`) for 75 seconds | OSRS Wiki, Amethyst crystals |
 | Gem rocks: 40, 65 XP, pair 28/70 (84/210 with a charged glory), one gem out of 128 (opal 60, jade 30, red topaz 15, sapphire 9, emerald 5, ruby 5, diamond 4), 99 ticks back, no mining gem table | OSRS Wiki, Gem rocks |
+| Granite rocks: 45; 5kg (75 XP, pair 6/64), 2kg (60, 8/75), 500g (50, 16/100) rolled largest first, the first success given (42.0% any at 45, 68.2% at 99); sandstone rocks: 35; 10kg (60, 4/50), 5kg (50, 8/75), 2kg (40, 16/100), 1kg (30, 25/200) (56.5% to 92.7%). Each success empties the rock for 9 ticks; no gem table. Desert heat is not in yet | OSRS Wiki, Granite rocks, Sandstone rocks |
 | A charged amulet of glory (any, trimmed or eternal) adds a second 3/256 roll at the mining gem table | OSRS Wiki, mining gem table template |
 | The Mining Guild's members' area: an invisible +7 on the roll (not on the level needed) and every respawn halved | OSRS Wiki, Mining Guild |
 | The members' area's bounds (x 2998-3059, z 9695-9729), drawn around the Wiki's rock tiles; amethyst's 75 seconds not halved again | inferred |
