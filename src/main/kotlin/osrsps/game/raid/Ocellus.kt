@@ -78,8 +78,8 @@ object OcellusLines : Lines("tfa_ocellus", "The_Fractured_Archive/Strategies") {
  * recordings of 2026-11-09 (three runs, parties of three to five):
  * the arena on the upper floor (plane 1) and where a player comes in, the blue bar's hitpoints for four and five, the
  * first-phase level (1255), his line as it begins ([OcellusLines.ASCENSION]), the three corner lines, the thin bar under the blue one
- * rising in steps of about 2% of 96, players on a crack's line taking hits of 2 to 6, the ready lines, "Death... awaits..."
- * hitting everyone for 17 or 18 and emptying the charge bar with it, and the blue bar held for 13 ticks before the health
+ * rising in steps of about 2% of 96, players on a crack's line taking hits of 2 to 6, the ready lines, his softer middle line
+ * ([OcellusLines.DEATH_AWAITS]) hitting everyone for 17 or 18 and emptying the charge bar with it, and the blue bar held for 13 ticks before the health
  * bar (so his line three ticks into the hold, the capture notes having ten from the line to the second phase). From the cache
  * (RuneLite's gameval tables for 242): the ids below.
  *
@@ -90,8 +90,8 @@ object OcellusLines : Lines("tfa_ocellus", "The_Fractured_Archive/Strategies") {
  * usual NPC flight times; which crack graphic is the straight one and which way each is turned; the figure's options
  * readying at once without the "Begin the challenge?" question; the head icon's sprite (440:0); at the middle, his first
  * side a tick after he is in (as a corner's first crack is), the clockwise end's crack first, no shots and Protect from
- * Melee down while he is there, "Embrace... annihilation..."'s 80 to 90 landing as he expends the charge as
- * "Death... awaits..."'s does, and walking on to the corner he was going to (or from one, the next); a second middle
+ * Melee down while he is there, the harder line's 80 to 90 landing as he expends the charge as
+ * the softer one's does, and walking on to the corner he was going to (or from one, the next); a second middle
  * owed (both thresholds crossed at once) coming right after the first; while held, Protect from Melee down and no
  * cracks or shots, and the teleport to the middle at once with the line. Not sent: the fades of his teleports (the
  * engine has no NPC transparency yet) and the middle's walk-block loc (its id isn't in the capture notes).
@@ -234,7 +234,7 @@ object Ocellus {
     const val WALK_AFTER_EXPEND = 7
 
     /**
-     * The charge from which his line is "Embrace... annihilation..." (the capture notes' estimate), and what each line's
+     * The charge from which his line is [OcellusLines.ANNIHILATION] (the capture notes' estimate), and what each line's
      * expending deals everyone: 17 to 18 (Sam's recordings; the notes agree) or 80 to 90 (the notes' estimate).
      */
     const val ANNIHILATION_CHARGE = 12
@@ -682,6 +682,9 @@ object Ocellus {
 
     /** One ring of the explosion, [out] tiles off his footprint: everyone on it is hit. */
     private fun EncounterContext.ring(out: Int) {
+        // His bar run out between the two rings, the outer one is gone with the rest of his first phase: the hold
+        // keeps him alive, so the fight's queue still holds it (Codex, PR 559).
+        if (boss.hitpoints <= 0) return
         val size = boss.type.size
         val tiles = ((boss.x - out)..(boss.x + size - 1 + out)).flatMap { x -> ((boss.z - out)..(boss.z + size - 1 + out)).map { z -> Tile(x, z) } }
             .filter { Bork.distance(boss.x, boss.z, size, it.x, it.z) == out }

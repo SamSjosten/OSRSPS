@@ -213,7 +213,7 @@
    "step": "command",
    "text": "::raid log 80",
    "expectMessage": "shield: expends charge ",
-   "comment": "\"Death... awaits...\" or, from a charge of 12, \"Embrace... annihilation...\", then the charge on everyone and the bar empty"
+   "comment": "his line (tfa_ocellus.death_awaits, or from a charge of 12 tfa_ocellus.annihilation), then the charge on everyone and the bar empty"
   },
   {
    "step": "command",
