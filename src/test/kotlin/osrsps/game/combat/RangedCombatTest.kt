@@ -474,8 +474,23 @@ class RangedCombatTest {
         alice.skills.setLevel(Skill.HITPOINTS, 99)
         val npc = spawn(type = dummy, x = 3214)
         attack(alice, npc)
-        repeat(400) { tick() }
-        assertTrue(alice.hitpoints < 99, "some ruby effect fired in ${1000 - ammoLeft(alice)} shots")
+        // The dummy hits back (max 1, from its own index), so only hitsplats with no source are the ruby's. Hitpoints
+        // go back to 99 before each tick, so the ruby's cost is always exactly 9 and the drop is the tick's hits.
+        var seen = 0
+        var ruby = 0
+        repeat(2000) {
+            if (ruby > 0) return@repeat
+            alice.hitpoints = 99
+            tick()
+            val fresh = alice.effects.pendingHits.drop(seen)
+            seen = alice.effects.pendingHits.size
+            val own = fresh.filter { it.source == -1 }
+            if (own.isEmpty()) return@repeat
+            assertEquals(listOf(9), own.map { it.value }, "a tenth of 99")
+            assertEquals(99 - fresh.sumOf { it.value }, alice.hitpoints)
+            ruby++
+        }
+        assertEquals(1, ruby, "some ruby effect fired in ${1000 - ammoLeft(alice)} shots")
     }
 
     @Test
