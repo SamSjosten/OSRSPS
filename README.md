@@ -655,6 +655,11 @@ the anvil. A ball of wool strings an amulet. Soda ash or a bucket of sand on a f
 comes back), and a glassblowing pipe blows it. Water on clay softens it; soft clay on a potter's wheel shapes pots,
 cups, pie dishes, bowls, plant pots and lids, and a pottery oven fires them, some cracking below level 13. The making is the artisan loop in `Making.kt`.
 
+Artisan 2, A3: an air, water, earth or fire orb on a battlestaff makes that elemental battlestaff. A chisel on a blamish snail
+shell, round or pointed, makes its snelm, and on amethyst opens the box over amethyst bolt tips, arrowtips, javelin tips and
+dart tips. Weave on a loom, or wool, jute or willow branches used on one, opens the box over a strip of cloth, an empty sack, a
+drift net and a basket. Misthalin has no loom: South Falador Farm's (3039, 3287) is where live has it, reached by ::tele.
+
 | Crafting behaviour | Source |
 |--------------------|--------|
 | Ball of wool level 1, 2.5 XP; bow string level 10, 15 XP; 3 ticks each | OSRS Wiki, Ball of wool and Bow string |
@@ -671,7 +676,10 @@ cups, pie dishes, bowls, plant pots and lids, and a pottery oven fires them, som
 | Pottery levels and both XPs; 3 ticks at the wheel, 7 in the oven, firing at any level; the oven's crack chart, which the pair 180/800 gives exactly (`CraftingDataTest`) | OSRS Wiki, Crafting (Pottery), Unfired pie dish, Pie dish and the other pots' pages |
 | A cracked pot lost with no XP; the oven animation; the other glassblowing items' ticks | guessed |
 | Spin with nothing saying Nothing interesting happens; the box opening even for one | guessed |
-| Out: sinew, magic roots, yak hair and the other members' spinning; d'hide shields, snakeskin, the costume needle; the jeweller's chisel, amethyst; the slayer ring, quest silver items, silver bolts, enchanting | out of scope |
+| Battlestaves 54/58/62/66, 100 to 137.5 XP, 'Make-X is 3t, then 2t'; snelms 15, 32.5 XP, 2 ticks; amethyst cuts 83/85/87/89, 60 XP, 15/15/5/8 a piece, 2 ticks; the loom's four at 10/21/26/36, 12/38/55/56 XP, 4 ticks then 3, a drift net 3 | OSRS Wiki, each battlestaff, snelm and amethyst tips page, Loom (read 2026-11-10) |
+| The animations `human_battlestaff_crafting`, `human_snailshellcutting`, `human_amethystcutting` | cache 242 gamevals |
+| The loom's animation (`farming_useloom`, by its name); the first snelm and amethyst cut 2 ticks after the choice; the battlestaff's flash left out | guessed |
+| Out: sinew, magic roots, yak hair and the other members' spinning; d'hide shields, snakeskin, the costume needle; the jeweller's chisel; the slayer ring, quest silver items, silver bolts, enchanting; linen, canvas and cotton (Varlamore's yarns), the Vampyre snelm, combination battlestaves | out of scope |
 
 ### Herblore
 

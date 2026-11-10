@@ -94,4 +94,29 @@ class CraftingDataTest {
         assertEquals(4, data.softening.size)
         assertTrue(data.softening.values.all { it.xpTenths == 0 && it.byproducts.size == 1 })
     }
+
+    @Test
+    fun `battlestaves, snelms, amethyst and the loom match the Wiki`() {
+        // Each battlestaff's page: level, XP, the orb; Make-X is 3 ticks, then 2.
+        val staves = data.battlestaves.mapValues { (_, it) -> Triple(it.product, it.level, it.xpTenths) }
+        assertEquals(mapOf(571 to Triple(1395, 54, 1000), 575 to Triple(1399, 58, 1125), 569 to Triple(1393, 62, 1250), 573 to Triple(1397, 66, 1375)), staves)
+        assertTrue(data.battlestaves.values.all { it.inputs[1] == ObjCount(1391, 1) && it.first == 3 && it.interval == 2 && it.anim == 7531 })
+        // Each snelm's page: level 15, 32.5 XP, a chisel, 2 ticks; nine shells.
+        assertEquals(9, data.snelms.size)
+        assertEquals(3327, data.snelms.getValue(3345).product)
+        assertEquals(3343, data.snelms.getValue(3361).product)
+        assertTrue(data.snelms.values.all { it.level == 15 && it.xpTenths == 325 && it.tools == listOf(1755) && it.interval == 2 })
+        // Each amethyst tips page: 60 XP a piece; 15, 15, 5 and 8 at 83, 85, 87 and 89.
+        assertEquals(
+            listOf(Triple(21338, 15, 83), Triple(21350, 15, 85), Triple(21352, 5, 87), Triple(25853, 8, 89)),
+            data.amethystCuts.map { Triple(it.product, it.amount, it.level) },
+        )
+        assertTrue(data.amethystCuts.all { it.xpTenths == 600 && it.inputs == listOf(ObjCount(21347, 1)) && it.interval == 2 })
+        // The Loom page: 4 ticks, then 3; a drift net 3 every time.
+        assertEquals(
+            listOf(listOf(1759, 4, 3224, 10, 120, 4), listOf(5931, 4, 5418, 21, 380, 4), listOf(5931, 2, 21652, 26, 550, 3), listOf(5933, 6, 5376, 36, 560, 4)),
+            data.weaving.map { listOf(it.inputs[0].obj, it.inputs[0].count, it.product, it.level, it.xpTenths, it.first) },
+        )
+        assertTrue(data.weaving.all { it.interval == 3 })
+    }
 }
