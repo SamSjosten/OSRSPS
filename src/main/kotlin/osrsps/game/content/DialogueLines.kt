@@ -27,6 +27,7 @@ import osrsps.game.shop.ShopLines
 import osrsps.game.skill.AgilityLines
 import osrsps.game.skill.BirdNestLines
 import osrsps.game.skill.CookingLines
+import osrsps.game.skill.CookingMixLines
 import osrsps.game.skill.CraftingLines
 import osrsps.game.skill.FiremakingLines
 import osrsps.game.skill.LightSourceLines
@@ -116,6 +117,7 @@ object DialogueLines {
         CombatLines,
         CookLines,
         CookingLines,
+        CookingMixLines,
         CooksGuildLines,
         CountCheckLines,
         CraftingLines,
