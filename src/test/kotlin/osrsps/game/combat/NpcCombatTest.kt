@@ -74,6 +74,7 @@ class NpcCombatTest {
             "npc_ezekiel_melee01" to 14685, "npc_ezekiel_death01" to 14689,
             "npc_bork_gong_melee01" to 14542, "npc_bork_death01" to 14541, "npc_smork_cannon_attack01" to 14554,
             "dreadnoth_melee01" to 14779, "dreadnoth_death01" to 14782, "jelly_attack" to 1586, "jelly_death" to 1587,
+            "xarth_attack_magic_01" to 14984, "xarth_death_01" to 14995,
             "demon_attack" to 64, "demon_block" to 65, "demon_death" to 67,
             "shade_attack" to 1283, "shade_block" to 1286, "shade_sink" to 1287,
             "monalisk_cave_bug_attack" to 6079, "monalisk_cave_bug_defend" to 6080, "monalisk_mini_cave_bug_death" to 6082,
@@ -619,6 +620,24 @@ class NpcCombatTest {
         assertTrue(him.poisonImmune && !him.venomImmune && !minion.poisonImmune)
         assertEquals(775, him.xpBonusTenths)
         assertEquals(listOf(15, 20, 5, 20), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { him.defence.against(it) })
+    }
+
+    @Test
+    fun `Xarth fights as the Wiki has him, magic in phase one`() {
+        val xarth = NpcType(16684, "Xarth", size = 3, internalName = "tfa_xarth", stats = NpcStats(attack = 250, defence = 170, strength = 225, hitpoints = 2600, ranged = 220, magic = 350))
+        val him = NpcCombat.load(NpcTypes.of(xarth), seqs)[xarth]!!
+        assertEquals(4, him.attackSpeed)
+        assertEquals(AttackType.MAGIC, him.attackType)
+        // The Wiki's magic max hit and magic attack bonus.
+        assertEquals(36, him.maxHit)
+        assertEquals(250, him.attackBonus)
+        assertEquals(listOf(NpcRangedAttack(anim = 14984, projectile = 4034)), him.attacks)
+        assertEquals(NpcCombatAnims(14984, -1, 14995), him.anims)
+        assertEquals(ElementalWeakness(Element.WATER, 85), him.weakness)
+        assertEquals(mapOf(NpcStat.DEFENCE to 40), him.drainCaps)
+        assertTrue(him.poisonImmune && him.venomImmune && !him.freezeImmune)
+        assertEquals(6, him.deathTicks)
+        assertEquals(listOf(115, 105, 20, 205), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { him.defence.against(it) })
     }
 
     @Test
