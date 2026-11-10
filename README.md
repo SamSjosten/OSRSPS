@@ -1963,7 +1963,7 @@ leaves), and in RuneLite `test-runner/examples/party-scaling.json` (the Guardian
 
 A run of The Fractured Archive (raid step 15) is `game/raid/ArchiveRaid.kt`. The lobby's Archive Door takes the
 player's party into its own instance: the cache's map squares 63 to 65 by 86 to 88, level 0, with the nexus (64,87) on
-its level 0 or 2 and the lobby's square left out. The party gathers in the nexus's entrance. The Archive Guardian
+its level 0 or 2, the level above that on the instance's level 1, and the lobby's square left out. The party gathers in the nexus's entrance. The Archive Guardian
 is fought in the nexus's hall, where the cache lays its corpse on the nexus's later levels. Then come three rows of
 doors, each with a room behind its west and east door: Ezekiel or Bork and the Smorks, then Moia or Dreadnoth the
 Jellied, then the Dagon'hai Elder or Xarth. Last, the nexus's Archive Door north opens to Ocellus's arena. Each room's
@@ -1988,7 +1988,8 @@ loses goes in a grave there. The party lasts through the wipe.
 | A member down in Ocellus's room, or sent back out of it, at 4127,5620 in the nexus, the tile south of the door's middle | inferred: Sam's recording of 2026-11-09 reads "about 4127, 5622" before the fade, within a tile or two, and the door covers z 5621 and 5622 |
 | The Guardian fought in the nexus's hall; Ocellus in the arena north of it (64,88), past the nexus's Archive Door | inferred: the Guardian's corpse lies in the hall on the nexus's later levels; Sam's recording of 2026-11-09 for the arena (4127,5637 on plane 1) |
 | The nexus on level 0 of the cache at the start and 2 (the Guardian's corpse, a camp of crates and barricades) once the Guardian is done, for the rest of the run | level 2 on all three of a run's visits: Sam's recording of 2026-11-09; level 0 before the Guardian is done inferred from what it holds |
-| NOT BUILT: the cache's levels 1 and 3 of the nexus's square on the instance's level 1, as live copies them (the hall again a storey and a half up, and at its north end, level with the floor, the south end of the vault's corridor with its Passageway, 62766) | tsps capture notes for the copy; 241.4 cache for what the levels hold |
+| The level above the nexus's on the instance's level 1 (the cache's 3 over its 2): the hall again 392 height units up, and at its north end, level with the floor, the south end of the vault's corridor, shut by the vault's Passageway (62766, 7 by 2 at 4124,5625) | tsps capture notes (a captured build area with levels 2 and 3 on the instance's 0 and 1); 241.4 cache for what the levels hold and their heights; the cache's 1 over its 0 before the Guardian is done inferred, the two pairs holding the same but for the corpse and camp |
+| The nexus's square north of its Archive Door (z 5623 on) counted as Ocellus's room: nobody gets there on the nexus's level, and on the level above it is the vault's corridor | inferred from the 241.4 cache's collision: from the vault the corridor is walkable south to z 5627 and no further |
 | Contribution: each room a fixed amount, shared by damage, minions included; the two rooms of a pair the same | Wiki, "Everything You Need To Know" |
 | Each room's points 1,000, or shared evenly when nobody did damage | guessed: the Wiki gives no number |
 | A wipe sending the party to the lobby with an ordinary gravestone; the party not breaking up | Wiki, The Fractured Archive (Theatre of Blood's system; 28 October 2026 update) |
@@ -2061,7 +2062,7 @@ loses goes in a grave there. The party lasts through the wipe.
 | The barriers' locs (`tfa_ocellus_quadrant_barrier_01-03`, tiles unknown), his fade out and in (the engine has no NPC transparency yet), the fallen quadrant's floor locs, the stones crumbling, his third-phase head bar | not sent yet |
 | His specials (the cog, the void and its Vine, Untether, Insolence), the void bombs, the void flares and the censers | not in yet: step 26b |
 | Until step 27, he dies as his final stand would begin, after the third quadrant falls, and the room is done; his final stand; his charge bar and health bars on screen | stand-in / not in yet: step 27 |
-| Once the run is done, a Passageway (`tfa_exit`) at the south edge of Ocellus's room, just south of where the party comes in, whose Exit leaves to the lobby in front of the Archive Door | stand-in until the reward room (step 28): the cache has no way out of that room (Sam's decision, 8 November 2026, exploit review RAID-3); where it stands guessed |
+| The vault's Passageway (62766, Exit) leaving to the lobby in front of the Archive Door once the run is done, and doing nothing before | guessed, until the reward room (step 28) and a recording of a run's end; a way out once the run is done was Sam's decision of 8 November 2026 (exploit review RAID-3), first as a stand-in `tfa_exit` in the corridor, now on the cache's own loc |
 | The bosses after the Guardian, the Quartermaster and Supply Credits, the party's orbs, the reward room, deaths' item costs | not in yet: steps 18 to 31 |
 
 `::raid run` shows the run you're in and where you stand in it (the room, and the cache's tile as `::raid tp x z` takes it), `::raid tp nexus` or `::raid tp ezekiel` goes to its nexus or a room, `::raid tp x z`
