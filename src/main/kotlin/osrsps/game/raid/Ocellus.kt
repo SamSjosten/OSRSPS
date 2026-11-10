@@ -377,6 +377,9 @@ object Ocellus {
         if (due.isEmpty()) return
         state.cracks.removeAll(due.toSet())
         for (crack in due) {
+            // A catch can kill him (a player's Retribution as the nick kills them): nothing more once he is dead, as
+            // with his explosion's rings (Codex, PR 552).
+            if (boss.dead) return
             val end = if (crack.tiles.first().let { a -> crack.tiles.last().let { b -> a.x != b.x && a.z != b.z } }) SPOT_CRACK_DIAGONAL_END else SPOT_CRACK_STRAIGHT_END
             for (tile in crack.tiles) world.zones.mapAnim(tile.x, tile.z, boss.level, end)
             val on = players.filter { p -> crack.tiles.any { it.x == p.x && it.z == p.z } }
@@ -385,7 +388,10 @@ object Ocellus {
                 boss.effects.spotanim(0, SPOT_CHARGE, 0)
                 log("uncaught: charge ${state.charge}")
             } else {
-                for (player in on) intercept(player)
+                for (player in on) {
+                    if (boss.dead) return
+                    intercept(player)
+                }
             }
         }
     }
