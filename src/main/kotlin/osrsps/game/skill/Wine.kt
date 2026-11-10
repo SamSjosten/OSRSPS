@@ -32,7 +32,8 @@ class Wine(private val world: World) {
      * existing watch as it is: only a new jug, seen as the count going up, restarts the wait.
      */
     fun watch(player: Player) {
-        if (player in watching) return
+        // A death or logout drops every timer (ScriptRunner.clearAll), so the timer, not the map, says whether a watch runs.
+        if (player in watching && TIMER in player.scripts.timers) return
         watching[player] = Watch(held(player), world.tick)
         world.scripts.setTimer(player, TIMER, 1, TimerType.SOFT) { check(player) }
     }
@@ -98,14 +99,24 @@ class Wine(private val world: World) {
 
     /**
      * Whether the bank can take the wine and bad wine stacks once the unfermented stack's slot is free: each that has no
-     * slot yet needs one, and neither stack may overflow.
+     * slot (or placeholder) yet needs one, and neither stack may overflow.
      */
     private fun bankHasRoom(player: Player): Boolean {
-        val new = listOf(JUG_OF_WINE, BAD_WINE).count { id -> player.bank.contents().none { it.second.id == id } }
+        // A stack or its placeholder already has a slot (Bank.deposit fills the placeholder).
+        val new = listOf(JUG_OF_WINE, BAD_WINE).count { id ->
+            val placeholder = placeholderOf(id)
+            player.bank.contents().none { it.second.id == id || it.second.id == placeholder }
+        }
         // Each stack must also take every banked wine, should all of them land in it.
         val banked = player.bank.count(UNFERMENTED)
         val fits = listOf(JUG_OF_WINE, BAD_WINE).all { player.bank.count(it) + banked <= Int.MAX_VALUE }
         return fits && world.bank.used(player.bank) - 1 + new <= world.bank.capacity()
+    }
+
+    private fun placeholderOf(id: Int): Int? {
+        val link = world.objTypes[id]?.placeholderlink ?: return null
+        if (link < 0) return null
+        return world.objTypes[link]?.takeIf { it.isPlaceholder && it.placeholderlink == id }?.id
     }
 
     private fun deposit(player: Player, id: Int, count: Int) {
