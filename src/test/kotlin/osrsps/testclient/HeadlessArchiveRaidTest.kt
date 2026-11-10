@@ -278,6 +278,81 @@ class HeadlessArchiveRaidTest {
     }
 
     @Test
+    fun `a door, a Passageway and the transporter back out each move the player four ticks on, and not one who has gone elsewhere by then`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                client.await("the login rebuild") { client.position }
+                val run = client.enter(server, "carol")
+                val world = server.world
+                val raids = world.archiveRaids
+                val player = world.playerNamed("carol")!!
+                val key = player.saveKey
+                client.command("raid tp guardian")
+                client.awaitRun("the Guardian's room done") { ArchiveRoom.GUARDIAN in run.cleared }
+                val room = ArchiveRoom.BORK
+                val front = raids.tile(run, room.doorFront.x, room.doorFront.z)
+                val entry = raids.tile(run, room.entryX, room.entryZ)
+                val door = raids.tile(run, doorX(room), ArchiveRaids.doorZ(room.stage))
+                val (passage, transporter) = roomLocs.getValue(room).let { (p, t) -> raids.tile(run, p.first, p.second) to raids.tile(run, t.x, t.z) }
+
+                /** Steps the paused world until her move is set down, and returns it. */
+                fun setOff(what: String): osrsps.game.raid.RoomMove {
+                    var waited = 0
+                    while (key !in run.moving) {
+                        check(++waited <= 30) { "$what not taken within 30 ticks" }
+                        client.stepTicks(1)
+                    }
+                    return run.moving.getValue(key)
+                }
+
+                // The door, from beside it: still in the nexus for three ticks, in the room on the fourth. A second
+                // click on the way doesn't start the count again.
+                client.tele(front.x, front.z)
+                client.commandReply("pause") { it.contains("aused after tick") }
+                client.locOp(room.door, door.x, door.z, ArchiveRaids.ENTER)
+                val into = setOff("the door")
+                assertEquals(osrsps.game.raid.RoomMove(room, true, world.tick + ArchiveRaids.MOVE_DELAY), into, "four ticks from the door")
+                client.locOp(room.door, door.x, door.z, ArchiveRaids.ENTER)
+                client.stepTicks(ArchiveRaids.MOVE_DELAY - 1)
+                assertEquals(into, run.moving[key], "the count not started again")
+                assertEquals(Tile(front.x, front.z), Tile(player.x, player.z), "in a tick early")
+                client.stepTicks(1)
+                assertEquals(Tile(entry.x, entry.z), Tile(player.x, player.z))
+                assertTrue(run.moving.isEmpty())
+                assertTrue(room in run.started, "the room begun on the tick she arrived, not the one after")
+                client.commandReply("resume") { it.startsWith("Resumed") }
+                client.awaitRun("Bork's room done") { room in run.cleared }
+
+                // The Passageway, after the walk to it: the same four ticks, then out in front of the door.
+                client.commandReply("pause") { it.contains("aused after tick") }
+                client.locOp(ArchiveRaids.PASSAGEWAY, passage.x, passage.z, ArchiveRaids.EXIT)
+                val out = setOff("the Passageway")
+                assertEquals(osrsps.game.raid.RoomMove(room, false, world.tick + ArchiveRaids.MOVE_DELAY), out)
+                client.stepTicks(ArchiveRaids.MOVE_DELAY - 1)
+                assertEquals(room, raids.roomAt(run, player.x, player.z), "out a tick early")
+                client.stepTicks(1)
+                assertEquals(Tile(front.x, front.z), Tile(player.x, player.z))
+
+                // The transporter back out, and somewhere else before the four ticks are up: not moved from there.
+                client.command("raid tp bork")
+                client.stepTicks(1)
+                assertEquals(Tile(entry.x, entry.z), Tile(player.x, player.z))
+                client.locOp(room.transporter, transporter.x, transporter.z, ArchiveRaids.USE)
+                val back = setOff("the transporter")
+                assertEquals(osrsps.game.raid.RoomMove(room, false, world.tick + ArchiveRaids.MOVE_DELAY), back)
+                client.command("raid tp guardian")
+                client.stepTicks(1)
+                val hall = Tile(player.x, player.z)
+                assertEquals(ArchiveRoom.GUARDIAN, raids.roomAt(run, hall.x, hall.z))
+                client.stepTicks(ArchiveRaids.MOVE_DELAY)
+                assertEquals(hall, Tile(player.x, player.z), "moved from where she had gone")
+                assertTrue(run.moving.isEmpty(), "her move done with all the same")
+                client.commandReply("resume") { it.startsWith("Resumed") }
+            }
+        }
+    }
+
+    @Test
     fun `a row opens once the room before is done, and its other door stays shut once one is chosen`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bob").use { client ->
