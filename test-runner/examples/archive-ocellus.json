@@ -1,5 +1,5 @@
 {
- "name": "Raid steps 24a to 27b: Ocellus solo, his arena upstairs, the hooded figure waiting until the party readies up, then his first phase walking between his corners under Protect from Melee, at each corner his cracks, line and explosion, at two thirds the middle with its four sides and his charge expended, the hold at the end of his blue bar, and his second phase: the portals on the cross, the Blade passing damage to his bar, the quadrants' volleys, and the rest of a quadrant's turn: pools, every portal purple, the floor portal and the last volley, and his third phase: the cross falling to stepping stones, his quadrant, and the quadrants falling at 75, 50 and 25%, with the void bombs and his specials: the cog, the void and Untether, and Insolence first in the next quadrant, and his void flares: Siphons, Augmenters and Rifts, and the censers, and his final stand: Deflect Melee, the lifeforce and void bursts, a blast and Deflect Range",
+ "name": "Raid steps 24a to 27c: Ocellus solo, his arena upstairs, the hooded figure waiting until the party readies up, then his first phase walking between his corners under Protect from Melee, at each corner his cracks, line and explosion, at two thirds the middle with its four sides and his charge expended, the hold at the end of his blue bar, and his second phase: the portals on the cross, the Blade passing damage to his bar, the quadrants' volleys, and the rest of a quadrant's turn: pools, every portal purple, the floor portal and the last volley, and his third phase: the cross falling to stepping stones, his quadrant, and the quadrants falling at 75, 50 and 25%, with the void bombs and his specials: the cog, the void and Untether, and Insolence first in the next quadrant, and his void flares: Siphons, Augmenters and Rifts, and the censers, and his final stand: Deflect Melee, the lifeforce and void bursts, a blast and Deflect Range, and his death and the Blade",
  "account": "test",
  "steps": [
   {
@@ -591,6 +591,27 @@
    "text": "::raid run",
    "expectMessage": "; complete;",
    "comment": "his room done: the run is complete (the reward room is step 28)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 12,
+   "comment": "the Blade 14 ticks after his death where he fell (step 27c)"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp 4127 5673",
+   "expectMessage": "To 4127, 5673 of the raid",
+   "comment": "to the arena's middle, within 20 tiles of the Blade in whichever quadrant he fell"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::npcs 20",
+   "expectMessage": "(16683) at ",
+   "comment": "tfa_blade_npc_vault_entry where he fell. Travel isn't clicked here: under ::god the player outlived the quadrants' falls on a fallen floor, which can't reach his last quadrant (HeadlessOcellusTest takes Travel to the vault)"
   },
   {
    "step": "command",

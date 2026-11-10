@@ -25,6 +25,7 @@ import osrsps.game.encounter.EncounterContext
 import osrsps.game.encounter.EncounterDef
 import osrsps.game.encounter.PhaseDef
 import osrsps.game.npc.Npc
+import osrsps.game.npc.NpcSpawn
 import osrsps.game.npc.Npcs
 import osrsps.game.script.Op
 import osrsps.game.script.ScriptContext
@@ -759,6 +760,25 @@ object Ocellus {
 
     /** The slot his fragment graphic shows in (capture notes), beside his others. */
     const val FRAGMENT_SLOT = 2
+
+    /**
+     * His death (raid step 27c; tsps capture notes): `npc_ocellus_phase3_death` (his NPC combat entry's death
+     * animation) with [SPOT_DEATH], [SPOT_DEATH_SKIRT] and [SPOT_DEATH_CRACK] and [SOUND_DEATH], his room done at once.
+     * [BLADE_AFTER] ticks later the Blade ([BLADE_TRAVEL], `tfa_blade_npc_vault_entry`, 3 by 3, Commune and Travel)
+     * appears where he fell, and [TRAVEL] on it takes the party in his room to the vault. Guessed: the graphics' slots, the sound's reach, his body
+     * going as the Blade appears ([BLADE_AFTER] his death ticks), Travel setting off everyone in his room at once
+     * (each by [ArchiveRaids.travel], to the reward vault [ArchiveRaids.MOVE_DELAY] ticks on) with no graphic; Commune
+     * doing nothing yet.
+     * Not in yet: the raid's total time, the Combat Achievements kill.
+     */
+    const val SPOT_DEATH = 4274
+    const val SPOT_DEATH_SKIRT = 4275
+    const val SPOT_DEATH_CRACK = 4276
+    const val SOUND_DEATH = 12826
+    const val SOUND_DEATH_RADIUS = 15
+    const val BLADE_AFTER = 14
+    const val BLADE_TRAVEL = 16683
+    const val TRAVEL = 3
 
     /** headicons_prayer (sprite group 440): the curses' icons, by the capture notes. */
     const val HEAD_ICON_SOUL_SPLIT = 11
@@ -2720,6 +2740,44 @@ object Ocellus {
         world.combat.sureHit = { player, npc, type -> flareHit(npc.type.id, type) ?: censerHit(player, npc, type) ?: sureHit(player, npc, type) }
         val rolledOn = world.combat.rolledOn
         world.combat.rolledOn = { player, npc, type, rolled -> rolledOn(player, npc, type, slowed(world, player, npc, deflected(npc, type, rolled))) }
+        // Death scripts go by the type an NPC appeared as: he becomes his third phase from his first.
+        world.npcScripts.onDeath(listOf(P1, P2, P3).distinct()) { boss -> if (boss.type.id == P3) died(world, boss) }
+        world.handlers.onNpc(BLADE_TRAVEL, TRAVEL) { op -> travel(world, op.npc!!) }
+    }
+
+    /** His death (see [SPOT_DEATH]): its graphics and sound now, the Blade [BLADE_AFTER] ticks on where he fell. */
+    private fun died(world: World, boss: Npc) {
+        // His room is done and its fight gone with it this tick, its log too: nothing more is logged.
+        states[boss]?.orbs?.clear()
+        boss.effects.spotanim(0, SPOT_DEATH, 0)
+        boss.effects.spotanim(1, SPOT_DEATH_SKIRT, 0)
+        boss.effects.spotanim(FRAGMENT_SLOT, SPOT_DEATH_CRACK, 0)
+        val size = boss.type.size
+        world.zones.soundArea(boss.x + size / 2, boss.z + size / 2, boss.level, SOUND_DEATH, radius = SOUND_DEATH_RADIUS)
+        val type = world.npcTypes[BLADE_TRAVEL] ?: return
+        val x = boss.x
+        val z = boss.z
+        val level = boss.level
+        // Bound to his run's instance: one ended in the meantime may have its block reused by another (Codex, PR 588).
+        val instance = world.instances.at(x, z)
+        // With no NPC slot free it is tried again each tick, till it stands or his run's instance ends (Codex, PR 588).
+        world.npcScripts.laterUntil(BLADE_AFTER) {
+            world.instances.at(x, z) !== instance ||
+                world.spawnNpc(NpcSpawn(type, x, z, level, source = "ocellus vault entry", respawns = false)) != null
+        }
+    }
+
+    /**
+     * Travel on the Blade at the vault's entry: everyone of the party in his room sets off to the reward vault
+     * ([ArchiveRaids.travel], which holds it to once the run is done and to his room).
+     */
+    private fun travel(world: World, blade: Npc) {
+        val raids = world.archiveRaids
+        val run = raids.at(blade.x, blade.z) ?: return
+        val room = ArchiveRoom.OCELLUS
+        if (room !in run.cleared) return
+        val party = raids.present(run).filter { !it.dead && raids.inRoom(run, room, it.x, it.z) }
+        for (member in party) raids.travel(member)
     }
 
     /** What each player has dealt each Siphon standing, for the heal as it is destroyed. */

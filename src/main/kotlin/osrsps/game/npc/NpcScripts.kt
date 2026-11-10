@@ -3,7 +3,8 @@ package osrsps.game.npc
 /**
  * What content gives NPCs of a type to do on their own, RS2's NPC scripts as RSMod has them: a timer that fires every
  * so many ticks ([onTimer], RSMod's ai timer), something every tick ([onTick]), something when one dies ([onDeath]),
- * and actions queued to run a few ticks later ([queue]). Ducks quack and ducklings follow them this way.
+ * and actions queued to run a few ticks later ([queue]), or after an NPC's death, with no NPC ([later]). Ducks quack
+ * and ducklings follow them this way.
  *
  * [process] runs once a tick in the NPC phase, in NPC index order, timers before queues. A timer counts from the tick
  * the NPC appeared on ([Npc.spawnTick]), so one that respawns in the combat phase keeps the same timing as one put in
@@ -16,6 +17,7 @@ class NpcScripts(private val npcs: Npcs, private val currentTick: () -> Long) {
     private val timers = HashMap<Int, Timer>()
     private val ticks = HashMap<Int, MutableList<(Npc) -> Unit>>()
     private val deaths = HashMap<Int, MutableList<(Npc) -> Unit>>()
+    private val later = ArrayList<Pair<Long, () -> Unit>>()
 
     /**
      * Fires [fire] for every NPC of [types] [first] ticks after it appears, and after that as many ticks later as
@@ -45,6 +47,23 @@ class NpcScripts(private val npcs: Npcs, private val currentTick: () -> Long) {
         npc.queued += Npc.Queued(currentTick() + delay, action)
     }
 
+    /**
+     * Runs [action] [delay] ticks from now, tied to no NPC: what follows one's death, as a boss's way out appearing
+     * where it fell. Runs after the NPCs' own scripts that tick.
+     */
+    fun later(delay: Int, action: () -> Unit) {
+        require(delay > 0) { "a delay of $delay ticks" }
+        later += currentTick() + delay to action
+    }
+
+    /**
+     * As [later], and again each tick after until [action] returns true: something that may not take yet, as a boss's
+     * way out with no NPC slot free (Codex, PR 588).
+     */
+    fun laterUntil(delay: Int, action: () -> Boolean) {
+        later(delay) { if (!action()) laterUntil(1, action) }
+    }
+
     /** [npc] was just killed. */
     fun died(npc: Npc) {
         deaths[npc.spawn.type.id]?.forEach { it(npc) }
@@ -72,5 +91,10 @@ class NpcScripts(private val npcs: Npcs, private val currentTick: () -> Long) {
                 queued.action(npc)
             }
         }
+        if (later.isEmpty()) return
+        val tick = currentTick()
+        val due = later.filter { it.first <= tick }
+        later.removeAll(due)
+        for ((_, action) in due) action()
     }
 }
