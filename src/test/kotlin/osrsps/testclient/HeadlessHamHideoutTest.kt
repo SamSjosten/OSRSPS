@@ -188,6 +188,36 @@ class HeadlessHamHideoutTest {
     }
 
     @Test
+    fun `a catch that kills counts no concussion and moves no one`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                val dave = server.world.playerNamed("dave")!!
+                client.setLevel("thieving", THIEVING, 15)
+                client.setLevel("agility", AGILITY, 1)
+                client.setLevel("hitpoints", HITPOINTS, 1)
+                dave.charges[HamHideout.CONCUSSIONS] = HamHideout.CONCUSSIONS_OUT - 1
+                client.tele(3150, 9651)
+                val view = client.await("the member in view") { client.npcs().firstOrNull { it.id == MEMBER } }
+                repeat(80) {
+                    if (dave.dead) return@repeat
+                    client.await("the wait to end") { if (server.world.tick >= dave.nextPickpocketTick) Unit else null }
+                    val fails = client.seen("[pickpocket.fail who=H.A.M. member]")
+                    val wins = client.seen("[pickpocket.success who=H.A.M. member]")
+                    client.npcOp(view.index, Pickpocketing.HAM_PICKPOCKET)
+                    client.await("the pickpocket's result") {
+                        if (client.seen("[pickpocket.success who=H.A.M. member]") > wins || client.seen("[pickpocket.fail who=H.A.M. member]") > fails) Unit else null
+                    }
+                }
+                assertTrue(dave.dead, "a catch in 80 tries kills at 1 hitpoint")
+                assertEquals(0, client.seen(CONCUSSED) + client.seen(AVOIDED) + client.seen(BUNDLED))
+                assertEquals(HamHideout.CONCUSSIONS_OUT - 1, dave.charges[HamHideout.CONCUSSIONS])
+                assertEquals(3150 to 9651, dave.x to dave.z, "died where caught")
+            }
+        }
+    }
+
+    @Test
     fun `Jimmy's cell door is locked, and one Pick-lock from inside keeps trying until the player is out`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { client ->
@@ -219,6 +249,7 @@ class HeadlessHamHideoutTest {
         const val MEMBER = 2540
         const val THIEVING = 17
         const val AGILITY = 16
+        const val HITPOINTS = 3
         const val DONE = "[ham_hideout.pick_done]"
         const val FAIL = "[ham_hideout.pick_fail]"
         const val CONCUSSED = "[ham_hideout.concussed]"

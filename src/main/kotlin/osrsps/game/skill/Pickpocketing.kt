@@ -152,8 +152,10 @@ class Pickpocketing(private val world: World) {
         player.message(text[PickpocketLines.FAIL, "who" to pocket.who])
         val damage = world.random.between(pocket.damageMin, pocket.damage)
         world.statusEffects.stun(player, pocket.stunTicks, damage, npc, StatusEffects.THIEVING_SPOTANIM)
-        if (pocket.concussions) HamHideout.caught(world, player) else player.message(text[PickpocketLines.STUNNED])
         player.nextPickpocketTick = tick + ATTEMPT_TICKS + FAIL_TICKS
+        // A blow that kills ends it there: no concussion, and no teleport moving the grave off the death tile.
+        if (player.dead) return
+        if (pocket.concussions) HamHideout.caught(world, player) else player.message(text[PickpocketLines.STUNNED])
     }
 
     private fun give(player: Player, pocket: Pocket) {
