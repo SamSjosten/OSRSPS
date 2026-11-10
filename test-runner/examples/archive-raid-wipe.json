@@ -38,8 +38,8 @@
   },
   {
    "step": "command",
-   "text": "::item bronze sword",
-   "expectMessage": "Added 1 x Bronze sword"
+   "text": "::item bronze shortsword",
+   "expectMessage": "Added 1 x Bronze shortsword"
   },
   {
    "step": "command",
@@ -104,7 +104,7 @@
   },
   {
    "step": "assertInventory",
-   "item": "Bronze sword",
+   "item": "Bronze shortsword",
    "count": 0
   },
   {
@@ -135,7 +135,7 @@
   },
   {
    "step": "assertInventory",
-   "item": "Bronze sword",
+   "item": "Bronze shortsword",
    "count": 1
   },
   {

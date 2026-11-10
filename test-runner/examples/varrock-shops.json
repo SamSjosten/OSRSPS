@@ -48,11 +48,11 @@
    "component": 16,
    "slot": 1,
    "op": 2,
-   "comment": "Buy 1 Bronze sword"
+   "comment": "Buy 1 Bronze shortsword"
   },
   {
    "step": "assertInventory",
-   "item": "Bronze sword",
+   "item": "Bronze shortsword",
    "count": 1
   },
   {
@@ -70,7 +70,7 @@
   },
   {
    "step": "assertInventory",
-   "item": "Bronze sword",
+   "item": "Bronze shortsword",
    "count": 0
   },
   {
