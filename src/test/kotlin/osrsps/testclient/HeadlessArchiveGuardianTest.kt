@@ -788,6 +788,10 @@ class HeadlessArchiveGuardianTest {
             server.login("alice").use { alice ->
                 alice.await("the login rebuild") { alice.position }
                 alice.commandReply("god on") { it.startsWith("You can't be hurt") }
+                // Auto retaliate off: on the ground it can be punched, and she would walk up and punch back at its beam. A
+                // punch that lands leaves less than 10 for the second charge to take (seen once in CI, 2026-11-10).
+                alice.command("varp ${EquipmentTab.VARP_AUTO_RETALIATE_OFF} 1")
+                alice.await("auto retaliate off") { if (alice.varp(EquipmentTab.VARP_AUTO_RETALIATE_OFF) == 1) Unit else null }
                 alice.tele(3222, 3218)
                 alice.commandReply("pause") { it.startsWith("Paused") }
                 alice.commandReply("raid guardian phase=final") { it.startsWith("Started") }
@@ -814,6 +818,7 @@ class HeadlessArchiveGuardianTest {
                 assertTrue(fight.lines.any { it.endsWith("charge: Guardian takes 10") || it.endsWith("charge: Guardian takes 11") }, fight.lines.joinToString("\n"))
                 assertTrue(boss.hitpoints - most * ArchiveGuardian.KILL_RANGE_PERCENT / 100 in 0..1, "${boss.hitpoints} left")
                 assertEquals(ArchiveGuardian.BATTERY_SPENT, nw.type.id)
+                assertEquals(Coord(3220, 3221, 0), alice.position, "she stood where she was put, not punching back")
                 alice.commandReply("resume") { it.isNotEmpty() }
             }
         }
