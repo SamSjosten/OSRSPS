@@ -655,6 +655,11 @@ the anvil. A ball of wool strings an amulet. Soda ash or a bucket of sand on a f
 comes back), and a glassblowing pipe blows it. Water on clay softens it; soft clay on a potter's wheel shapes pots,
 cups, pie dishes, bowls, plant pots and lids, and a pottery oven fires them, some cracking below level 13. The making is the artisan loop in `Making.kt`.
 
+Artisan 2, A3: an air, water, earth or fire orb on a battlestaff makes that elemental battlestaff. A chisel on a blamish snail
+shell, round or pointed, makes its snelm, and on amethyst opens the box over amethyst bolt tips, arrowtips, javelin tips and
+dart tips. Weave on a loom, or wool, jute or willow branches used on one, opens the box over a strip of cloth, an empty sack, a
+drift net and a basket. Misthalin has no loom: South Falador Farm's (3039, 3287) is where live has it, reached by ::tele.
+
 | Crafting behaviour | Source |
 |--------------------|--------|
 | Ball of wool level 1, 2.5 XP; bow string level 10, 15 XP; 3 ticks each | OSRS Wiki, Ball of wool and Bow string |
@@ -671,7 +676,10 @@ cups, pie dishes, bowls, plant pots and lids, and a pottery oven fires them, som
 | Pottery levels and both XPs; 3 ticks at the wheel, 7 in the oven, firing at any level; the oven's crack chart, which the pair 180/800 gives exactly (`CraftingDataTest`) | OSRS Wiki, Crafting (Pottery), Unfired pie dish, Pie dish and the other pots' pages |
 | A cracked pot lost with no XP; the oven animation; the other glassblowing items' ticks | guessed |
 | Spin with nothing saying Nothing interesting happens; the box opening even for one | guessed |
-| Out: sinew, magic roots, yak hair and the other members' spinning; d'hide shields, snakeskin, the costume needle; the jeweller's chisel, amethyst; the slayer ring, quest silver items, silver bolts, enchanting | out of scope |
+| Battlestaves 54/58/62/66, 100 to 137.5 XP, 'Make-X is 3t, then 2t'; snelms 15, 32.5 XP, 2 ticks; amethyst cuts 83/85/87/89, 60 XP, 15/15/5/8 a piece, 2 ticks; the loom's four at 10/21/26/36, 12/38/55/56 XP, 4 ticks then 3, a drift net 3 | OSRS Wiki, each battlestaff, snelm and amethyst tips page, Loom (read 2026-11-10) |
+| The animations `human_battlestaff_crafting`, `human_snailshellcutting`, `human_amethystcutting` | cache 242 gamevals |
+| The loom's animation (`farming_useloom`, by its name); the first snelm and amethyst cut 2 ticks after the choice; the battlestaff's flash left out | guessed |
+| Out: sinew, magic roots, yak hair and the other members' spinning; d'hide shields, snakeskin, the costume needle; the jeweller's chisel; the slayer ring, quest silver items, silver bolts, enchanting; linen, canvas and cotton (Varlamore's yarns), the Vampyre snelm, combination battlestaves | out of scope |
 
 ### Herblore
 
@@ -688,6 +696,11 @@ crystals on a super energy and lava scale shards on an antifire potion make stam
 or shard a dose; unicorn horn dust, snake weed and nail beast nails, in that order, take a super restore of any dose to
 sanfew serum.
 
+Bob Barter (herbs) stands at the Grand Exchange (Artisan 2, A2b, `game/skill/Decanting.kt`, words under `bob_barter.*`).
+Decant on him, or "Can you decant things for me?" in his talk, opens the decant interface; a dose button (or its number
+key) decants every potion in the backpack to that many doses, with one potion of fewer for what is left over. Empty
+vials he is short of are bought from the coins held.
+
 | Herblore behaviour | Source |
 |--------------------|--------|
 | The 15 herbs' cleaning levels and XP; Clean taking no time | OSRS Wiki, each grimy herb's page |
@@ -701,7 +714,10 @@ sanfew serum.
 | Super combat (90, 150 XP), stamina (77, 25.5 XP a dose), sanfew's three steps (65, 32 x doses + 64 XP in all), extended antifire (84, 27.5 XP a dose); 2 ticks each; sanfew's steps one potion a use with no Make-X box; super combat from a clean torstol giving 2 vials back | OSRS Wiki, Super combat potion, Stamina potion, Sanfew serum, Extended antifire, Money making guide/Making super combat potions |
 | Super combat from a torstol potion (unf) giving 3 vials back (its own vial spare too) | inferred |
 | Which item pairs start a super combat potion (the torstol on any of the three; the three on each other start nothing); Zogre Flesh Eaters counting as done | guessed |
-| Out: divine potions, extended super antifire, coconut-milk potions, Varlamore's, herb sacks, tar, barbarian mixes, ashes, other ground items; Bob Barter's decanting is the next step (A2b) | out of scope |
+| Out: divine potions, extended super antifire, coconut-milk potions, Varlamore's, herb sacks, tar, barbarian mixes, ashes, other ground items | out of scope |
+| Bob Barter (herbs) at the Grand Exchange (5449, `ge_expert_herbs`; Talk-to, Prices, Decant), the decant interface (582) and its four dose buttons; any dose 1 to 4, noted potions too, the potions' own vials reused, spare vials back, missing ones bought at the vial's guide price + 2; results noted when any input was or when they won't fit; his lines | OSRS Wiki, Bob Barter (herbs), Decanting and Transcript:Bob Barter (herbs) (read 2026-11-10); cache 242 (NPC, interface 582), osrs-dumps decant.if3 and decant_init |
+| His spot (3155, 3480, the Wiki's map pin, wandering 1); a potion being any item with Drink and all four "Name(n)" doses; out of cash part way, potions decanted in backpack order; "short of inventory space" when even notes won't fit; 3 coins a vial with no guide price; the chatheads' expressions | guessed |
+| Out: the herb and potion price guide (Prices, and its Talk-to option, end there), cups of tea, barbarian mixes, Guthix rests, oils, moth mixes; the free-to-play lines | out of scope |
 
 ### Agility
 

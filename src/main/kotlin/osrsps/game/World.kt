@@ -711,6 +711,7 @@ class World(
     val fletching = Fletching(this, FletchingData.load())
     val crafting = Crafting(this, CraftingData.load())
     val herblore = Herblore(this, HerbloreData.load())
+    val decanting = osrsps.game.skill.Decanting(this)
 
     /** The standard spellbook's teleports to places and their tablets; see [Teleports]. */
     val teleports = Teleports(this, TeleportData.load(objTypes))
@@ -870,6 +871,7 @@ class World(
         fletching.register()
         crafting.register()
         herblore.register()
+        decanting.register()
         teleports.register()
         loadDialogue()
     }

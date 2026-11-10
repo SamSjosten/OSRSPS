@@ -27,6 +27,7 @@ import osrsps.game.raid.XarthLines
 import osrsps.game.shop.ShopLines
 import osrsps.game.skill.AgilityLines
 import osrsps.game.skill.BirdNestLines
+import osrsps.game.skill.BobBarterLines
 import osrsps.game.skill.CookingLines
 import osrsps.game.skill.CookingMixLines
 import osrsps.game.skill.CraftingLines
@@ -101,6 +102,7 @@ object DialogueLines {
         WebLines,
         BlueMoonBartenderLines,
         BlueMoonCookLines,
+        BobBarterLines,
         BobLines,
         BonesLines,
         BorderGuardLines,
