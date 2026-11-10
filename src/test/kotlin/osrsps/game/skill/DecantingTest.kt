@@ -60,6 +60,15 @@ class DecantingTest {
     }
 
     @Test
+    fun `a vial a later family frees pays for an earlier family's, with no coins`() {
+        // Super energy(4) to two 2-dose needs a vial; the two super restore(1) into one 2-dose free one.
+        val result = decanting.decant(backpack(InvObj(ENERGY[3], 1), InvObj(RESTORE[0], 1), InvObj(RESTORE[0], 1)), 2, 3)
+        assertEquals(DecantOutcome.ALL_DONE, result.outcome)
+        assertEquals(mapOf(ENERGY[1] to 2, RESTORE[1] to 1), counts(result.inventory))
+        assertEquals(0, result.bought)
+    }
+
+    @Test
     fun `noted potions come back as notes, with the spare vials`() {
         val result = decanting.decant(backpack(InvObj(ENERGY[1] + 1, 5)), 4, 3)
         assertEquals(DecantOutcome.ALL_DONE, result.outcome)

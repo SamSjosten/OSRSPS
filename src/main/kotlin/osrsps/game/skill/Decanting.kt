@@ -169,10 +169,14 @@ class Decanting(private val world: World) {
         val need = held.values.associateWith { (it.doses + dose - 1) / dose }
         val shortBy = (need.values.sum() - held.values.sumOf { it.vials } - spareVials).coerceAtLeast(0)
         val affordable = if (price <= 0) shortBy else minOf(shortBy, coins / price)
-        var pool = spareVials + affordable
+        // Families that free vials (more doses a potion) always go, and what they free goes to the ones that need
+        // more, in backpack order, so an earlier family isn't skipped for vials a later one gives back.
+        val extras = held.values.associateWith { need.getValue(it) - it.vials }
+        var pool = spareVials + affordable + extras.values.filter { it < 0 }.sumOf { -it }
         val decanted = ArrayList<Held>()
         for (h in held.values) {
-            val extra = need.getValue(h) - h.vials
+            val extra = extras.getValue(h)
+            if (extra <= 0) { decanted += h; continue }
             if (extra > pool) continue
             pool -= extra
             decanted += h
