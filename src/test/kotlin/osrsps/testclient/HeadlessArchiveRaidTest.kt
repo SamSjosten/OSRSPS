@@ -10,8 +10,13 @@ import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
+import osrsps.game.VarTypes
+import osrsps.game.VarbitType
 import osrsps.game.World
 import osrsps.game.combat.Deaths
+import osrsps.game.combat.DropItem
+import osrsps.game.combat.DropSlot
+import osrsps.game.combat.DropTable
 import osrsps.game.combat.Spells
 import osrsps.game.content.HomeTeleport
 import osrsps.game.content.LodestoneMap
@@ -19,6 +24,8 @@ import osrsps.game.content.Lodestones
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
+import osrsps.game.raid.ArchiveChests
+import osrsps.game.raid.ArchiveLoot
 import osrsps.game.raid.ArchiveRaids
 import osrsps.game.raid.ArchiveRoom
 import osrsps.game.raid.ArchiveRun
@@ -86,6 +93,23 @@ class HeadlessArchiveRaidTest {
     private val axe = ObjType(1351, "Bronze axe", cost = 16, internalName = "bronze_axe")
     private val pickaxe = ObjType(1265, "Bronze pickaxe", cost = 1, tradeable = true, iops = listOf(null, null, null, null, "Drop"), internalName = "bronze_pickaxe")
 
+    /**
+     * The reward vault's chests as the 241.4 cache has them: what one shows as, closed (Open) or the Rift it leaves
+     * (Search), the player's own or not; and the eight, closed and open, each showing as the player's own with
+     * `tfa_vault_own_chest` at its number and as another's otherwise.
+     */
+    private val chestTypes = listOf(
+        NpcType(ArchiveChests.CLOSED_OTHERS, "Chest", ops = listOf("Open", null, null, null, null)),
+        NpcType(ArchiveChests.CLOSED_OWN, "Chest", ops = listOf("Open", null, null, null, null)),
+        NpcType(ArchiveChests.OPEN_OTHERS, "Rift", ops = listOf("Search", null, null, null, null)),
+        NpcType(ArchiveChests.OPEN_OWN, "Rift", ops = listOf("Search", null, null, null, null)),
+    ) + (0 until ArchiveChests.SLOTS.size).flatMap { slot ->
+        listOf(false, true).map { open ->
+            val (others, own) = if (open) ArchiveChests.OPEN_OTHERS to ArchiveChests.OPEN_OWN else ArchiveChests.CLOSED_OTHERS to ArchiveChests.CLOSED_OWN
+            NpcType(ArchiveChests.chestType(slot, open), multiVarbit = ArchiveChests.OWN_CHEST, multiNpcs = IntArray(slot + 3) { if (it == slot + 1) own else others })
+        }
+    }
+
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         World(
             crcs,
@@ -103,7 +127,10 @@ class HeadlessArchiveRaidTest {
                 NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null)),
                 // The reward vault's Rift out, as the 241.4 cache has it.
                 NpcType(ArchiveRaids.RIFT_OUT, "Rift", size = 3, ops = listOf(ArchiveRaids.LEAVE, null, ArchiveRaids.QUICK_LEAVE, null, null)),
+                *chestTypes.toTypedArray(),
             ),
+            // tfa_vault_own_chest, where the 241.4 cache has it.
+            varTypes = VarTypes(6_000, mapOf(ArchiveChests.OWN_CHEST to VarbitType(OWN_CHEST_VARP, 0, 3))),
             cycleMillis = millis,
         )
     }
@@ -221,8 +248,13 @@ class HeadlessArchiveRaidTest {
         // His arena is on the vault's upper floor, as live has it.
         awaitAt(server.world.archiveRaids.tile(run, ArchiveRoom.OCELLUS.entryX, ArchiveRoom.OCELLUS.entryZ), "Ocellus's room", ArchiveRoom.OCELLUS.level)
         awaitRun("the run complete") { it.contains("; complete;") }
-        // Solo, every room's points are the one player's.
-        assertTrue(runSays().contains("points $username ${ArchiveRaids.ROOM_POINTS * 5}"), runSays())
+        // Solo, every room's points are the one player's: four rooms' 100 and Ocellus's 300.
+        assertTrue(runSays().contains("points $username ${ArchiveLoot.RUN_POINTS}"), runSays())
+        // The run's end paid them, into the first chest: of this cache's two items the loot's file has none.
+        val key = server.world.playerNamed(username)!!.saveKey
+        assertEquals(listOf(key), run.loot?.chests?.keys?.toList())
+        assertEquals(mapOf(key to 0), run.chestSlots.toMap())
+        assertEquals("Loot for 1, no unique. Your chest is 1, closed: nothing.", commandReply("raid loot") { it.contains("oot") })
         assertTrue(server.world.locs.exists(exit), "the vault's Passageway is still there, on the camp's upper level")
         if (outByExit) {
             // Out by the vault's Passageway, down the corridor: to the lobby in front of the Archive Door.
@@ -452,6 +484,127 @@ class HeadlessArchiveRaidTest {
                 client.npcOp(seen.index, 1)
                 client.awaitAt(Tile(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z), "out to the lobby by the Rift's Leave")
                 client.await("the instance ended") { if (world.instances.all.none { it === run.instance }) Unit else null }
+            }
+        }
+    }
+
+    @Test
+    fun `the run's end pays the members in it by their contribution, and each opens only their own chest, the Rift it leaves there a tick on`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { carol ->
+                server.login("erin").use { erin ->
+                    server.login("dave").use { dave ->
+                        for (client in listOf(carol, erin, dave)) client.await("the login rebuild") { client.position }
+                        // Erin is the party's second and Dave its third; she never goes in.
+                        for ((client, name) in listOf(erin to "erin", dave to "dave")) {
+                            carol.commandReply("raidparty invite $name") { it.startsWith("Invited") }
+                            client.commandReply("raidparty accept carol") { it.startsWith("You joined") }
+                        }
+                        val run = carol.enter(server, "carol")
+                        assertEquals(run, dave.enter(server, "dave"))
+                        val world = server.world
+                        val raids = world.archiveRaids
+                        val carolKey = world.playerNamed("carol")!!.saveKey
+                        val davePlayer = world.playerNamed("dave")!!
+                        val daveKey = davePlayer.saveKey
+                        // A table of this cache's two items: the pickaxe the unique, found every run, and two axes a
+                        // standard roll, each roll five times over.
+                        raids.chests.table = ArchiveLoot(
+                            1, 4, DropTable(1, listOf(DropSlot(1, DropItem(pickaxe, 1, 1)))), 3, 1, DropTable(1, listOf(DropSlot(1, DropItem(axe, 2, 2)))),
+                            null, 10, null, 15, emptySet(), emptyList(), 20, null,
+                        )
+                        // Carol does the first four rooms alone, and Dave falls once on the way.
+                        carol.command("raid tp guardian")
+                        carol.awaitRun("the Guardian's room done") { ArchiveRoom.GUARDIAN in run.cleared }
+                        dave.command("hit 99 me")
+                        carol.awaitRun("Dave down") { it.contains("down: dave") }
+                        for (room in listOf(ArchiveRoom.BORK, ArchiveRoom.DREADNOTH, ArchiveRoom.XARTH)) {
+                            carol.command("raid tp ${room.name.lowercase()}")
+                            carol.awaitRun("${room.boss}'s room done") { room in run.cleared }
+                        }
+                        dave.await("Dave up") { if (davePlayer.dead || daveKey in run.downed) null else Unit }
+                        assertEquals(null, run.loot, "no loot before the end")
+                        assertEquals("No loot yet: Ocellus's room isn't done.", carol.commandReply("raid loot") { it.contains("oot") })
+                        // Both in Ocellus's room as it begins, so its 300 are shared evenly: the run is done, and paid.
+                        carol.commandReply("pause") { it.contains("aused after tick") }
+                        carol.commandReply("raid tp ocellus") { it.startsWith("To ") }
+                        dave.commandReply("raid tp ocellus") { it.startsWith("To ") }
+                        carol.stepTicks(1)
+                        assertTrue(run.completed)
+                        assertEquals(mapOf(carolKey to 4 * ArchiveRaids.ROOM_POINTS + ArchiveRaids.OCELLUS_POINTS / 2, daveKey to ArchiveRaids.OCELLUS_POINTS / 2), run.points.toMap())
+                        assertEquals(mapOf(daveKey to 1), run.deaths.toMap())
+                        val loot = assertNotNull(run.loot, "the loot")
+                        // The two in the run, each by their place in the party: Carol's chest the first, Dave's the third.
+                        assertEquals(listOf(carolKey, daveKey), loot.chests.keys.toList())
+                        assertEquals(mapOf(carolKey to 0, daveKey to 2), run.chestSlots.toMap())
+                        assertEquals(setOf(0, 2), run.chests.keys)
+                        for (slot in listOf(0, 2)) {
+                            val chest = run.chests.getValue(slot)
+                            val at = raids.tile(run, ArchiveChests.SLOTS[slot].first, ArchiveChests.SLOTS[slot].second)
+                            assertEquals(ArchiveChests.chestType(slot, open = false), chest.type.id)
+                            assertEquals(Triple(at.x, at.z, ArchiveRaids.REWARD_LEVEL), Triple(chest.x, chest.z, chest.level), "chest ${slot + 1}")
+                        }
+                        // One of them found the unique, and has it alone; the other has three rolls of ten axes.
+                        val finder = assertNotNull(loot.unique, "the unique's finder")
+                        assertTrue(finder == carolKey || finder == daveKey, finder)
+                        for (key in listOf(carolKey, daveKey)) {
+                            val expected = if (key == finder) listOf(pickaxe.id to 1) else listOf(axe.id to 30)
+                            assertEquals(expected, loot.chests.getValue(key).map { it.type.id to it.count })
+                        }
+                        carol.commandReply("resume") { it.startsWith("Resumed") }
+                        val uniqueIn = if (finder == carolKey) 1 else 3
+                        val carols = if (finder == carolKey) "Bronze pickaxe x1" else "Bronze axe x30"
+                        assertEquals("Loot for 2, a unique in chest $uniqueIn. Your chest is 1, closed: $carols.", carol.commandReply("raid loot") { it.contains("oot") })
+                        assertEquals("Loot for 2, a unique in chest $uniqueIn. You have no chest.", erin.commandReply("raid loot") { it.contains("oot") })
+
+                        // In the vault each one's own chest shows as theirs, by the varbit at its number.
+                        val vault = raids.tile(run, ArchiveRaids.REWARD_X, ArchiveRaids.REWARD_Z)
+                        for (client in listOf(carol, dave)) {
+                            assertEquals("Travelling to the reward vault.", client.commandReply("raid travel") { it.contains("ravel") })
+                            client.awaitAt(vault, "the reward vault", ArchiveRaids.REWARD_LEVEL)
+                        }
+                        carol.await("Carol's own chest, the first") { carol.varp(OWN_CHEST_VARP).takeIf { it and 15 == 1 } }
+                        dave.await("Dave's own chest, the third") { dave.varp(OWN_CHEST_VARP).takeIf { it and 15 == 3 } }
+                        // Beside her chest, on the island: Open, and it is the Rift a tick later.
+                        val own = raids.tile(run, ArchiveChests.SLOTS[0].first, ArchiveChests.SLOTS[0].second)
+                        carol.command("raid tp ${ArchiveChests.SLOTS[0].first + 1} ${ArchiveChests.SLOTS[0].second}")
+                        carol.awaitAt(Tile(own.x + 1, own.z), "beside her chest", ArchiveRaids.REWARD_LEVEL)
+                        val closed = carol.await("the two chests in view") {
+                            carol.npcs().filter { it.id == ArchiveChests.chestType(0, false) || it.id == ArchiveChests.chestType(2, false) }.takeIf { it.size == 2 }
+                        }
+                        val hers = closed.first { it.id == ArchiveChests.chestType(0, false) }
+                        assertEquals(Coord(own.x, own.z, ArchiveRaids.REWARD_LEVEL), hers.coord)
+                        carol.commandReply("pause") { it.contains("aused after tick") }
+                        carol.npcOp(hers.index, ArchiveChests.OPEN)
+                        carol.stepTicks(1)
+                        assertEquals(mapOf(0 to world.tick + ArchiveChests.OPEN_TICKS), run.opening.toMap(), "opening")
+                        assertEquals(ArchiveChests.chestType(0, open = false), run.chests.getValue(0).type.id)
+                        assertTrue(carol.commandReply("raid loot") { it.contains("oot") }.contains("Your chest is 1, opening: "))
+                        carol.stepTicks(ArchiveChests.OPEN_TICKS)
+                        assertTrue(run.opening.isEmpty() && run.opened == setOf(0), "open: ${run.opened}")
+                        val rift = run.chests.getValue(0)
+                        assertEquals(ArchiveChests.chestType(0, open = true), rift.type.id)
+                        assertEquals(Triple(own.x, own.z, ArchiveRaids.REWARD_LEVEL), Triple(rift.x, rift.z, rift.level))
+                        carol.commandReply("resume") { it.startsWith("Resumed") }
+                        carol.await("her chest the Rift in view") {
+                            carol.npcs().let { seen -> seen.any { it.id == ArchiveChests.chestType(0, true) } && seen.none { it.id == ArchiveChests.chestType(0, false) } }.takeIf { it }
+                        }
+                        assertTrue(carol.commandReply("raid loot") { it.contains("oot") }.contains("Your chest is 1, open: $carols."))
+                        // Dave's chest isn't hers to open: a line, and it stays shut.
+                        val his = closed.first { it.id == ArchiveChests.chestType(2, false) }
+                        carol.npcOp(his.index, ArchiveChests.OPEN)
+                        carol.awaitMessage("the refusal at another's chest") { it.contains("chest_not_yours") }
+                        assertTrue(run.opening.isEmpty() && run.opened == setOf(0), "Dave's chest opened by Carol")
+                        // He opens it himself.
+                        val third = raids.tile(run, ArchiveChests.SLOTS[2].first, ArchiveChests.SLOTS[2].second)
+                        dave.command("raid tp ${ArchiveChests.SLOTS[2].first + 1} ${ArchiveChests.SLOTS[2].second}")
+                        dave.awaitAt(Tile(third.x + 1, third.z), "beside his chest", ArchiveRaids.REWARD_LEVEL)
+                        val seen = dave.await("his chest in view") { dave.npcs().firstOrNull { it.id == ArchiveChests.chestType(2, false) } }
+                        dave.npcOp(seen.index, ArchiveChests.OPEN)
+                        dave.await("his chest open") { if (run.opened == setOf(0, 2)) Unit else null }
+                        assertEquals(ArchiveChests.chestType(2, open = true), run.chests.getValue(2).type.id)
+                    }
+                }
             }
         }
     }
@@ -1053,6 +1206,8 @@ class HeadlessArchiveRaidTest {
     }
 
     private companion object {
+        /** The varp tfa_vault_own_chest is the low four bits of (241.4 cache). */
+        const val OWN_CHEST_VARP = 5922
         const val INVENTORY = 93
         const val INVENTORY_IF = 149
         const val INVENTORY_ITEMS = 0

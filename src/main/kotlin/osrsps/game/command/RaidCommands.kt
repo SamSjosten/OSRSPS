@@ -23,9 +23,9 @@ import osrsps.game.raid.PartyScaling
 fun CommandRegistry.registerRaidCommands(world: World) {
     val encounters = world.encounters
     val usage = "Usage: ::raid [boss [phase=name|n] [party=n] [seed=n]] | ::raid log [lines] | ::raid digest [ticks] | ::raid stop | " +
-        "::raid run | ::raid tp <nexus|vault|room|x z> | ::raid travel | ::raid clear | ::raid hold [ticks]"
+        "::raid run | ::raid tp <nexus|vault|room|x z> | ::raid travel | ::raid loot | ::raid clear | ::raid hold [ticks]"
 
-    register("raid", "::raid [boss [phase=] [party=] [seed=]] | log | digest | stop | run | tp | travel | clear | hold", admin = true) {
+    register("raid", "::raid [boss [phase=] [party=] [seed=]] | log | digest | stop | run | tp | travel | loot | clear | hold", admin = true) {
         fun here(): Encounter? = encounters.all.firstOrNull { !it.ended && it.boss.level == player.level && it.covers(player.x, player.z) }
         fun mine(): Encounter = here() ?: fail("You're not in a fight.")
         when (args.firstOrNull()?.lowercase()) {
@@ -113,6 +113,13 @@ fun CommandRegistry.registerRaidCommands(world: World) {
                 if (args.size != 1) fail(usage)
                 if (!world.archiveRaids.travel(player)) fail("You can't travel to the reward vault: only from Ocellus's room, once it is done.")
                 reply("Travelling to the reward vault.")
+            }
+            "loot" -> {
+                // What the run's end paid: who found the unique, and what the player's own chest holds.
+                if (args.size != 1) fail(usage)
+                val raids = world.archiveRaids
+                val run = raids.at(player.x, player.z) ?: world.parties.of(player)?.let(raids::of) ?: fail("You're not in an Archive run.")
+                reply(raids.chests.describe(run, player))
             }
             "clear" -> {
                 // Testing only: the room you're in counts as done, as if its boss died.
