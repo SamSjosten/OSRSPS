@@ -381,6 +381,20 @@ class Npcs(
         npc.patrolIndex = (npc.patrolIndex + 1) % patrol.size
     }
 
+    /**
+     * One step of [npc] towards [x], [z] now, as a walk would take it (diagonal first, then along x, then z): for a boss
+     * fight that walks its boss to a tile while it is being fought, which [process] would otherwise hold still (Ocellus
+     * going corner to corner, raid step 24a). False when it is there already or every way is blocked.
+     */
+    fun stepTo(npc: Npc, x: Int, z: Int): Boolean {
+        if (npcs[npc.index] !== npc || npc.freezeTicks > 0) return false
+        npc.destination = Tile(x, z)
+        val before = npc.x to npc.z
+        step(npc)
+        npc.destination = null
+        return before != (npc.x to npc.z)
+    }
+
     /** One naive step toward the destination. */
     private fun step(npc: Npc) {
         val target = npc.destination ?: return

@@ -21,17 +21,18 @@ enum class DoorSide { WEST, EAST }
 
 /**
  * One of The Fractured Archive's rooms: the boss in it, the [stage] of the run it is fought at (1 the Guardian, 2 to 4
- * the three rows of doors, 5 Ocellus), and its map square ([squareX], [squareZ]) in the 241.4 cache, level 0. Tiles
+ * the three rows of doors, 5 Ocellus), and its map square ([squareX], [squareZ]) in the 241.4 cache, on [level]. Tiles
  * are the cache's; [ArchiveRaids] maps them into a run's instance.
  *
  * From the cache: each boss room's map square, told by its locs' names (`tfa_corpse_ezekiel01`, `tfa_moia_bones`,
  * `tfa_xarth01_corpse`, `tfa_dagonhai_book01`, `tfa_soulprison`, Bork's forge), its Passageway (`tfa_exit`, 62765, Exit)
  * and its Archive transporter (Use, Quick-use); the nexus's six doors (`tfa_nexus_section1_door_west` and on, Enter,
  * Quick-enter); the Guardian's corpse (`tfa_corpse_guardian01`, 5 by 5) in the middle of the nexus on the nexus's two
- * later levels; and the arena north of the nexus, past its Passageway, with The Blade on its level above. From the
- * Wiki: the order, the Guardian first and Ocellus last, and the pairs. Inferred: that each west door leads to the west
- * room of its pair (all three west rooms are in map column 63, the east ones in 65), which room is whose by its locs,
- * that the Guardian is fought in the nexus's hall, where its corpse lies, and Ocellus in the arena north of it.
+ * later levels; and the arena north of the nexus, past its Passageway, on its level 1 with The Blade. From the
+ * Wiki: the order, the Guardian first and Ocellus last, and the pairs. From the tsps capture notes and Sam's recordings
+ * of 2026-11-09: Ocellus's arena is that square's level 1, where The Blade is too. Inferred: that each west door leads
+ * to the west room of its pair (all three west rooms are in map column 63, the east ones in 65), which room is whose by
+ * its locs, and that the Guardian is fought in the nexus's hall, where its corpse lies.
  */
 enum class ArchiveRoom(
     val boss: String,
@@ -57,8 +58,15 @@ enum class ArchiveRoom(
     DREADNOTH("Dreadnoth the Jellied", 3, DoorSide.EAST, 65, 88, ArchiveRaids.DOOR_2_EAST, 4174, 5664, ArchiveRaids.TRANSPORTER_JELLY),
     DAGONHAI("Dagon'hai Elder", 4, DoorSide.WEST, 63, 87, ArchiveRaids.DOOR_3_WEST, 4086, 5599, ArchiveRaids.TRANSPORTER),
     XARTH("Xarth", 4, DoorSide.EAST, 65, 86, ArchiveRaids.DOOR_3_EAST, 4175, 5535, ArchiveRaids.TRANSPORTER),
-    OCELLUS("Ocellus", 5, null, 64, 88, -1, 4121, 5634, -1),
+    OCELLUS("Ocellus", 5, null, 64, 88, -1, 4128, 5637, -1),
     ;
+
+    /**
+     * The level its fight is on in a run's instance: the cache's own, which the instance copies as it is. Ocellus's arena
+     * is on the vault's upper floor, level 1 (tsps capture notes; Sam's recordings of 2026-11-09 land a player at
+     * 4127-4128,5637 on plane 1 and fight on 4116-4136 x 5665-5685 there); every other room is on level 0.
+     */
+    val level: Int get() = if (this == OCELLUS) 1 else 0
 
     /**
      * The nexus tile a player coming back out of the room lands on: in front of its door, in front of the nexus's
@@ -124,6 +132,15 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
 
     /** The boss fights going on, by room; a room's goes once its boss dies, and the room is done. */
     val fights = LinkedHashMap<ArchiveRoom, Encounter>()
+
+    /** Ocellus's hooded figure in his arena, waiting for the party to ready up; null once his fight begins ([Ocellus]). */
+    var ocellusFigure: Npc? = null
+        internal set
+
+    /** Who has readied up at the hooded figure, by [Player.saveKey], and the tick the first did; -1 before anyone. */
+    val ready = LinkedHashSet<String>()
+    var firstReadyTick: Long = -1
+        internal set
 
     /** The tick the last room was done on; a member who fell before it gets up standing. -1 before any. */
     var clearedTick: Long = -1
@@ -210,6 +227,10 @@ class ArchiveRaids(private val world: World) {
     fun register() {
         world.multiCombat.dynamic = { _, x, z -> at(x, z) != null }
         world.handlers.onNpc(ArchiveGuardian.DORMANT, ArchiveGuardian.TOUCH) { op -> touch(player, op.npc!!) }
+        // The figure is a multi-NPC: an op names the type the player is shown, met or not (242 cache).
+        for (type in listOf(Ocellus.INTRO, Ocellus.INTRO_NOT_MET, Ocellus.INTRO_MET)) {
+            for (op in Ocellus.READY_OPS) world.handlers.onNpc(type, op) { o -> readyUp(player, o.npc!!) }
+        }
         world.handlers.onLoc(ARCHIVE_DOOR, ENTER) { enter(player) }
         for (door in DOORS) {
             world.handlers.onLoc(door, ENTER) { door(player, door) }
@@ -277,6 +298,7 @@ class ArchiveRaids(private val world: World) {
             val dormant = world.npcTypes[ArchiveGuardian.DORMANT]!!
             run.guardian = world.spawnNpc(NpcSpawn(dormant, at.x, at.z, 0, source = "$run", respawns = false))
         }
+        placeOcellusFigure(run)
         logger.info { "$run opened by ${player.username} in $instance" }
         return run
     }
@@ -291,6 +313,7 @@ class ArchiveRaids(private val world: World) {
         ArchiveRoom.BORK -> world.encounters.defs[Bork.NAME] != null
         ArchiveRoom.DREADNOTH -> world.encounters.defs[Dreadnoth.NAME] != null
         ArchiveRoom.XARTH -> world.encounters.defs[Xarth.NAME] != null
+        ArchiveRoom.OCELLUS -> world.encounters.defs[Ocellus.NAME] != null && world.npcTypes[Ocellus.INTRO] != null
         else -> false
     }
 
@@ -407,6 +430,70 @@ class ArchiveRaids(private val world: World) {
     }
 
     /**
+     * Ocellus's hooded figure put in his arena, if his room is built and not yet begun and the figure isn't there: as the
+     * run opens, and again each tick after, so a run opened with no NPC slot free still gets it once one is (Codex,
+     * PR 552), rather than its last room never beginning.
+     */
+    private fun placeOcellusFigure(run: ArchiveRun) {
+        val room = ArchiveRoom.OCELLUS
+        if (run.ocellusFigure != null || room in run.started || run.wiped || !built(room)) return
+        val at = tile(run, Ocellus.FIGURE_X, Ocellus.FIGURE_Z)
+        run.ocellusFigure = world.spawnNpc(NpcSpawn(world.npcTypes[Ocellus.INTRO]!!, at.x, at.z, room.level, source = "$run", respawns = false))
+    }
+
+    /**
+     * An option on Ocellus's hooded figure: [player] is ready, if they are in the run, standing, in his room and it is
+     * the run's next. They are told how many of those standing are ready, and the fight may begin ([ocellusReady]).
+     */
+    fun readyUp(player: Player, npc: Npc) {
+        val run = at(npc.x, npc.z) ?: return
+        val room = ArchiveRoom.OCELLUS
+        if (run.ocellusFigure !== npc || run.wiped || room in run.started || room.stage != run.stage) return
+        if (player.saveKey !in run.entered || player.saveKey in run.downed || roomAt(run, player.x, player.z) != room) return
+        if (run.ready.add(player.saveKey) && run.firstReadyTick < 0) run.firstReadyTick = world.tick
+        val standing = standing(run)
+        val words = world.textFor(player)
+        player.message(words[OcellusLines.READY, "ready" to standing.count { it.saveKey in run.ready }, "total" to standing.size])
+        player.message(words[OcellusLines.READY_WAIT])
+        if (ocellusReady(run)) beginOcellus(run)
+    }
+
+    /**
+     * Whether Ocellus's fight begins now: everyone standing is in his room and ready, or [Ocellus.READY_TIMEOUT] ticks
+     * have passed since the first ready (the game's own words in Sam's recording of 2026-11-09).
+     */
+    private fun ocellusReady(run: ArchiveRun): Boolean {
+        if (run.firstReadyTick < 0) return false
+        if (world.tick - run.firstReadyTick >= Ocellus.READY_TIMEOUT) return true
+        val standing = standing(run)
+        return standing.isNotEmpty() && standing.all { it.saveKey in run.ready && roomAt(run, it.x, it.z) == ArchiveRoom.OCELLUS }
+    }
+
+    /**
+     * Ocellus's fight begins: the hooded figure becomes his first phase where it stood, scaled to everyone standing in
+     * the run, and the party in his room is in it.
+     */
+    private fun beginOcellus(run: ArchiveRun) {
+        val room = ArchiveRoom.OCELLUS
+        val def = world.encounters.defs[Ocellus.NAME] ?: return
+        val figure = run.ocellusFigure ?: return
+        val boss = world.spawnNpc(NpcSpawn(def.boss, figure.x, figure.z, figure.level, source = "$run", respawns = false))
+        // With no NPC slot free, the figure waits and the next tick tries again (as R18A-3 for Ezekiel).
+        if (boss == null) {
+            logger.warn { "$run: no room for Ocellus" }
+            return
+        }
+        world.removeNpc(figure)
+        run.ocellusFigure = null
+        run.started += room
+        val standing = standing(run)
+        run.presentAtStart[room] = standing.filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
+        world.partyScaling.scale(boss, standing.size.coerceIn(1, PartyScaling.MAX_PARTY))
+        run.fights[room] = world.encounters.start(def, boss, { x, z -> inRoom(run, room, x, z) })
+        logger.info { "$run began Ocellus's fight with ${standing.size} standing, ${run.ready.size} ready" }
+    }
+
+    /**
      * The first of the party onto Dreadnoth's arena (by its transporter, [Dreadnoth.ARENA_ENTRY_X]): his fight begins,
      * him where he waits ([Dreadnoth.X]), scaled to everyone standing in the run, [first] his target.
      */
@@ -450,7 +537,7 @@ class ArchiveRaids(private val world: World) {
 
     private fun go(player: Player, run: ArchiveRun, room: ArchiveRoom) {
         val to = tile(run, room.entryX, room.entryZ)
-        world.teleport(player, to.x, to.z, 0)
+        world.teleport(player, to.x, to.z, room.level)
     }
 
     /**
@@ -476,7 +563,7 @@ class ArchiveRaids(private val world: World) {
      */
     private fun placeOcellusExit(run: ArchiveRun) {
         val at = tile(run, OCELLUS_EXIT_X, OCELLUS_EXIT_Z)
-        world.locs.add(ZoneLoc(PASSAGEWAY, LocShape.CENTREPIECE_STRAIGHT, 0, at.x, at.z, 0))
+        world.locs.add(ZoneLoc(PASSAGEWAY, LocShape.CENTREPIECE_STRAIGHT, 0, at.x, at.z, ArchiveRoom.OCELLUS.level))
     }
 
     /**
@@ -537,7 +624,7 @@ class ArchiveRaids(private val world: World) {
 
     private fun out(player: Player, run: ArchiveRun, room: ArchiveRoom) {
         val to = tile(run, room.doorFront.x, room.doorFront.z)
-        world.teleport(player, to.x, to.z, 0)
+        world.teleport(player, to.x, to.z, NEXUS_PLANE)
     }
 
     /** The nexus's own Passageway, north: on to Ocellus, once the fourth room is done. */
@@ -592,6 +679,8 @@ class ArchiveRaids(private val world: World) {
                     }
                 }
             }
+            placeOcellusFigure(run)
+            if (ArchiveRoom.OCELLUS !in run.started && ArchiveRoom.OCELLUS.stage == run.stage && run.ocellusFigure != null && ocellusReady(run)) beginOcellus(run)
             settleEscapes(run, ended = false)
             val present = present(run)
             if (present.isNotEmpty() && present.none { it.dead } && standing(run).isEmpty()) wipe(run, null)
@@ -669,6 +758,11 @@ class ArchiveRaids(private val world: World) {
             run.guardian?.let { if (!it.dead && world.npcs[it.index] === it) world.removeNpc(it) }
             run.guardian = null
         }
+        // Done before his fight began (::raid clear): the hooded figure goes too.
+        if (room == ArchiveRoom.OCELLUS) {
+            run.ocellusFigure?.let { if (world.npcs[it.index] === it) world.removeNpc(it) }
+            run.ocellusFigure = null
+        }
         run.started += room
         run.cleared += room
         run.chosen[room.stage] = room
@@ -730,7 +824,7 @@ class ArchiveRaids(private val world: World) {
         // A death in the hall once the Guardian is done (a stray hit) has no fight to be out of.
         val front = room?.takeIf { it !in run.cleared }?.doorFront ?: Tile(NEXUS_X, NEXUS_Z)
         val to = tile(run, front.x, front.z)
-        return DeathPlace(keepItems = true, to.x, to.z, 0, to.x, to.z, 0)
+        return DeathPlace(keepItems = true, to.x, to.z, NEXUS_PLANE, to.x, to.z, NEXUS_PLANE)
     }
 
     private fun wipePlace(run: ArchiveRun) = DeathPlace(
@@ -817,9 +911,18 @@ class ArchiveRaids(private val world: World) {
         const val NEXUS_X = 4127
         const val NEXUS_Z = 5573
 
-        /** The stand-in exit's south-west tile in Ocellus's room: its 5 by 2 just south of where the party comes in. Guessed. */
-        const val OCELLUS_EXIT_X = 4119
-        const val OCELLUS_EXIT_Z = 5632
+        /**
+         * The stand-in exit's south-west tile in Ocellus's room, on its level: its 5 by 2 just south of where the party
+         * comes in. Guessed.
+         */
+        const val OCELLUS_EXIT_X = 4126
+        const val OCELLUS_EXIT_Z = 5635
+
+        /**
+         * The level of a run's instance the nexus is on, where a player leaving a room or down in one goes. The cache's
+         * nexus level is copied onto it ([nexusPart]).
+         */
+        const val NEXUS_PLANE = 0
 
         /** Ezekiel's south-west tile as his fight begins (tsps capture notes). */
         const val EZEKIEL_X = 4062
@@ -893,8 +996,8 @@ class ArchiveRaids(private val world: World) {
 
         /**
          * The instance: the cache's map squares 63 to 65 by 86 to 88, level 0, laid out as they are, but for the
-         * lobby's square (64,86), left out, and the nexus (64,87), copied from the level [nexusLevel] gives. Nothing
-         * else is above level 0.
+         * lobby's square (64,86), left out, and the nexus (64,87), copied from the level [nexusLevel] gives; and
+         * Ocellus's arena, his square's level 1, on level 1 ([ocellusArena]).
          */
         const val FROM_X = 63 shl 6
         const val FROM_Z = 86 shl 6
@@ -906,6 +1009,11 @@ class ArchiveRaids(private val world: World) {
         fun parts(nexusLevel: Int): List<InstancePart> =
             ArchiveRoom.entries.filter { it != ArchiveRoom.GUARDIAN }.map { room ->
                 InstancePart(room.squareX shl 6, room.squareZ shl 6, 0, 8, 8, (room.squareX - 63) * 8, (room.squareZ - 86) * 8, 0)
-            } + nexusPart(nexusLevel)
+            } + ocellusArena() + nexusPart(nexusLevel)
+
+        /** Ocellus's arena: his square's level 1, copied onto the instance's level 1 as live shows it ([ArchiveRoom.level]). */
+        private fun ocellusArena(): InstancePart = ArchiveRoom.OCELLUS.let { room ->
+            InstancePart(room.squareX shl 6, room.squareZ shl 6, room.level, 8, 8, (room.squareX - 63) * 8, (room.squareZ - 86) * 8, room.level)
+        }
     }
 }
