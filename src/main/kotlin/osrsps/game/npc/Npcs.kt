@@ -325,6 +325,22 @@ class Npcs(
     }
 
     /**
+     * [npc] takes one step toward the tile ([x], [z]) now, whatever it is doing, diagonally first and then along either
+     * axis, as [step] walks to a destination: for a fight that walks its adds itself, as Xarth's corpses walk to him
+     * (raid step 19b), fought or not. Frozen, blocked or there already, it stays.
+     */
+    fun stepToward(npc: Npc, x: Int, z: Int) {
+        if (npcs[npc.index] !== npc || npc.freezeTicks > 0) return
+        val dx = (x - npc.x).sign
+        val dz = (z - npc.z).sign
+        val (sx, sz) = sequenceOf(dx to dz, dx to 0, 0 to dz)
+            .filter { (sx, sz) -> sx != 0 || sz != 0 }
+            .firstOrNull { (sx, sz) -> canStep(npc, sx, sz) }
+            ?: return
+        move(npc, sx, sz)
+    }
+
+    /**
      * One step away from [player], retreating ([osrsps.game.combat.MeleeCombat]): straight away diagonally first, then
      * along either axis, never past its max range of its spawn, standing when it can't. Guessed, as the Wiki says only
      * that it runs away within its max range.

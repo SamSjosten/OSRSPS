@@ -10,6 +10,7 @@ import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.EquipmentTab
+import osrsps.game.GameLines
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
@@ -53,14 +54,15 @@ class HeadlessEzekielTest {
     )
     private val mark = NpcType(Ezekiel.SWORD_NOOP, "Animated sword", internalName = "tfa_ezekiel_sword_noop")
     private val grave = NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null))
-    private val types = NpcTypes.of(ezekiel, sword, mark, grave)
+    private val navigator = NpcType(ArchiveRaids.NAVIGATOR, "Alliance Navigator", ops = listOf("Follow", null, "Quick-follow", null, null))
+    private val types = NpcTypes.of(ezekiel, sword, mark, grave, navigator)
 
     private val locTypes = LocTypes(
         mapOf(ArchiveRaids.ARCHIVE_DOOR to LocType(ArchiveRaids.ARCHIVE_DOOR, "Archive Door", ops = listOf("Enter", null, null, null, null), collision = LocCollisionType(width = 9, length = 1))),
     )
     private val staticLocs = StaticLocs().apply { add(ZoneLoc(ArchiveRaids.ARCHIVE_DOOR, LocShape.CENTREPIECE_STRAIGHT, 0, 4123, 5562, 0)) }
 
-    private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
+    private fun server(dir: Path, types: NpcTypes = this.types) = TestServer(dir) { crcs, millis ->
         World(
             crcs,
             CollisionMap().apply {
@@ -301,7 +303,7 @@ class HeadlessEzekielTest {
                 alice.commandReply("raid tp guardian") { it.startsWith("To ") }
                 alice.await("the Guardian's room done") { ArchiveRoom.GUARDIAN.takeIf { it in run.cleared } }
                 // In at the arena's far corner from him: his first attack is due before he can reach her.
-                alice.intoArena(server, run, ArchiveRaids.EZEKIEL_ARENA_MIN_X, ArchiveRaids.EZEKIEL_ARENA_MIN_Z)
+                alice.intoArena(server, run, ArchiveRaids.EZEKIEL_X + Ezekiel.ARENA_WEST, ArchiveRaids.EZEKIEL_Z + Ezekiel.ARENA_SOUTH)
                 alice.awaitLog("his lightning") { it.endsWith("fight: can't reach his tank: lightning on alice") }
                 // It lands the tick after.
                 alice.awaitLog("the lightning landing on her") { it.contains("fight: hit alice for") }
@@ -316,7 +318,7 @@ class HeadlessEzekielTest {
                 val run = alice.intoRun(server, "alice")
                 alice.commandReply("raid tp guardian") { it.startsWith("To ") }
                 alice.await("the Guardian's room done") { ArchiveRoom.GUARDIAN.takeIf { it in run.cleared } }
-                alice.intoArena(server, run, ArchiveRaids.EZEKIEL_ARENA_MIN_X, ArchiveRaids.EZEKIEL_ARENA_MIN_Z)
+                alice.intoArena(server, run, ArchiveRaids.EZEKIEL_X + Ezekiel.ARENA_WEST, ArchiveRaids.EZEKIEL_Z + Ezekiel.ARENA_SOUTH)
                 alice.await("his fight") { alice.fight().takeIf { it.startsWith("ezekiel #") } }
                 // Held where he stands as soon as it begins, as a kite keeps him off her: every attack is lightning, and the
                 // second brings the cross.
@@ -414,6 +416,15 @@ class HeadlessEzekielTest {
                 val swords = alice.toVolley()
                 assertTrue(swords.size in Ezekiel.SWORDS_MIN..Ezekiel.SWORDS_MAX, swords.toString())
                 val boss = bossOf(run)
+                // Each wholly on his arena, three by three from where it stands, at an end of its lane (R21A-3).
+                for (sword in swords) {
+                    assertTrue(Ezekiel.inArena(boss.spawn.x, boss.spawn.z, sword.at.x, sword.at.z), "$sword")
+                    assertTrue(Ezekiel.inArena(boss.spawn.x, boss.spawn.z, sword.at.x + 2, sword.at.z + 2), "$sword")
+                    val (along, across) = if (sword.alongX) sword.at.x - boss.spawn.x to sword.at.z else sword.at.z - boss.spawn.z to sword.at.x
+                    assertEquals(sword.offset, across, "$sword")
+                    val ends = if (sword.alongX) listOf(Ezekiel.ARENA_WEST, Ezekiel.ARENA_EAST - 2) else listOf(Ezekiel.ARENA_SOUTH, Ezekiel.ARENA_NORTH - 2)
+                    assertTrue(along in ends, "$sword")
+                }
                 val first = swords.first()
                 val npc = server.world.npcs.all.first { it.type.id == Ezekiel.SWORD && it.x == first.at.x && it.z == first.at.z }
                 // Half charged: 50 of its 100.
@@ -478,25 +489,143 @@ class HeadlessEzekielTest {
     }
 
     @Test
-    fun `the enrage's arena is three by three west of him, fenced on its other sides, its marks west of its back row`() {
+    fun `the enrage's arena is three by three east of him, fenced on its other sides, its marks on his tiles and its safe tiles its far column`() {
         val arena = Ezekiel.arenaFor(100, 200)
-        assertEquals(Tile(97, 200), arena)
+        assertEquals(Tile(103, 200), arena)
         val tiles = Ezekiel.arenaTiles(arena)
         assertEquals(9, tiles.size)
-        assertEquals((97..99).toList(), tiles.map { it.x }.distinct().sorted())
+        assertEquals((103..105).toList(), tiles.map { it.x }.distinct().sorted())
         val fence = Ezekiel.fence(arena)
         assertEquals(11, fence.size)
         assertEquals(11, fence.toSet().size)
         assertTrue(fence.none { it in tiles })
-        // Every tile round the arena but its east side, which is his (x 100 on).
-        val round = (96..100).flatMap { x -> (199..203).map { z -> Tile(x, z) } }.filter { it !in tiles && it.x < 100 }
+        // Every tile round the arena but its west side, which is his (x 100 to 102).
+        val round = (102..106).flatMap { x -> (199..203).map { z -> Tile(x, z) } }.filter { it !in tiles && it.x > 102 }
         assertEquals(round.toSet(), fence.toSet())
         for (row in 0 until 3) {
             val mark = Ezekiel.mark(arena, row)
-            assertTrue(mark in fence)
+            assertTrue(mark !in fence && mark.x == 102 && mark.z in 200..202, "$mark on his east column")
             val safe = Ezekiel.safeTile(arena, row)
             assertTrue(safe in tiles)
-            assertEquals(Tile(mark.x + 1, mark.z), safe)
+            assertEquals(Tile(mark.x + 3, mark.z), safe)
+        }
+        // As the captures have it: him at 4059,5534 from 4062,5537, the three by three 4062-4064 x 5534-5536, on his arena.
+        val live = Ezekiel.arenaFor(4062 + Ezekiel.ENRAGE_DX, 5537 + Ezekiel.ENRAGE_DZ)
+        assertEquals(Tile(4062, 5534), live)
+        assertTrue((Ezekiel.arenaTiles(live) + Ezekiel.fence(live)).all { Ezekiel.inArena(4062, 5537, it.x, it.z) })
+        assertTrue(Ezekiel.inArena(4062, 5537, 4056, 5528) && Ezekiel.inArena(4062, 5537, 4068, 5540))
+        assertFalse(Ezekiel.inArena(4062, 5537, 4069, 5535) || Ezekiel.inArena(4062, 5537, 4060, 5541) || Ezekiel.inArena(4062, 5537, 4055, 5530))
+    }
+
+    @Test
+    fun `nobody attacks him from outside his arena, beside him or not`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.commandReply("raid tp guardian") { it.startsWith("To ") }
+                alice.await("the Guardian's room done") { ArchiveRoom.GUARDIAN.takeIf { it in run.cleared } }
+                alice.intoArena(server, run)
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ezekiel #") } }
+                alice.commandReply("raid hold 100") { it.startsWith("Held Ezekiel") }
+                val world = server.world
+                val boss = bossOf(run)
+                val player = world.playerNamed("alice")!!
+                assertNull(world.combat.barred(player, boss), "on his arena")
+                // At the room's way in: shut out.
+                alice.commandReply("raid tp ezekiel") { it.startsWith("To ") }
+                alice.await("the way in") { if (world.combat.barred(player, boss) === GameLines.CANT_REACH) Unit else null }
+                // Him at his arena's east edge, her beside him a tile past it: still shut out, and her Attack is refused.
+                world.npcs.teleport(boss, boss.spawn.x + Ezekiel.ARENA_EAST - 2, boss.spawn.z)
+                alice.tele(boss.spawn.x + Ezekiel.ARENA_EAST + 1, boss.spawn.z + 1)
+                assertSame(GameLines.CANT_REACH, world.combat.barred(player, boss))
+                alice.npcOp(boss.index, 2)
+                alice.await("the refusal") { alice.messages().firstOrNull { it.text == "[game.cant_reach]" } }
+                alice.awaitTicks(4)
+                assertTrue(alice.npcHits().none { it.index == boss.index }, "${alice.npcHits()}")
+                // A step onto it, south of him: her swing goes.
+                alice.tele(boss.spawn.x + Ezekiel.ARENA_EAST - 1, boss.spawn.z - 1)
+                assertNull(world.combat.barred(player, boss))
+                alice.npcOp(boss.index, 2)
+                alice.await("her swing") { alice.npcHits().firstOrNull { it.index == boss.index } }
+            }
+        }
+    }
+
+    @Test
+    fun `his death brings the Alliance Navigator to his arena three ticks on, and following him leads back to the nexus four ticks later`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.commandReply("raid tp guardian") { it.startsWith("To ") }
+                alice.await("the Guardian's room done") { ArchiveRoom.GUARDIAN.takeIf { it in run.cleared } }
+                alice.intoArena(server, run)
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ezekiel #") } }
+                val world = server.world
+                val raids = world.archiveRaids
+                val boss = bossOf(run)
+                fun navigators() = world.npcs.all.filter { it.type.id == ArchiveRaids.NAVIGATOR }.toList()
+                alice.commandReply("pause") { it.contains("aused after tick") }
+                alice.commandReply("hit 3000 ${boss.index}") { it.startsWith("Hit ") }
+                var ticks = 0
+                while (ArchiveRoom.EZEKIEL !in run.cleared) {
+                    check(++ticks <= 40) { "his room not done within 40 ticks" }
+                    alice.stepTicks(1)
+                }
+                assertTrue(navigators().isEmpty(), "the Navigator there as the room is won")
+                alice.stepTicks(ArchiveRaids.NAVIGATOR_DELAY - 1)
+                assertTrue(navigators().isEmpty(), "the Navigator there early")
+                alice.stepTicks(1)
+                val navigator = navigators().single()
+                val entry = raids.tile(run, ArchiveRaids.EZEKIEL_ARENA_X, ArchiveRaids.EZEKIEL_ARENA_Z)
+                assertEquals(entry, Tile(navigator.x, navigator.z))
+                alice.commandReply("resume") { it.startsWith("Resumed") }
+                val front = raids.tile(run, ArchiveRoom.EZEKIEL.doorFront.x, ArchiveRoom.EZEKIEL.doorFront.z)
+                // Follow: his one line, with her name, then out in front of the room's door, four ticks after it is clicked on.
+                alice.npcOp(navigator.index, 1)
+                val said = alice.await("his line") { alice.dialogueView as? DialogueView.Chat }
+                assertEquals("Alliance Navigator", said.name)
+                assertTrue(said.text.contains("tfa_navigator.onward"), said.text)
+                assertTrue(raids.roomAt(run, alice.position!!.x, alice.position!!.z) == ArchiveRoom.EZEKIEL, "out before his line is done")
+                alice.continueDialogue()
+                alice.await("the nexus, in front of his room's door") { alice.position?.takeIf { it == Coord(front.x, front.z, 0) } }
+                assertTrue(run.following.isEmpty(), "her follow done with")
+                // Quick-follow, back on his arena: no line, and out four ticks after the option, counted in game ticks.
+                alice.commandReply("raid tp ezekiel") { it.startsWith("To ") }
+                alice.tele(entry.x, entry.z + 1)
+                val player = world.playerNamed("alice")!!
+                alice.commandReply("pause") { it.contains("aused after tick") }
+                alice.npcOp(navigator.index, 3)
+                var waited = 0
+                while (player.saveKey !in run.following) {
+                    check(++waited <= 5) { "her Quick-follow not taken within 5 ticks" }
+                    alice.stepTicks(1)
+                }
+                alice.stepTicks(ArchiveRaids.FOLLOW_DELAY - 1)
+                assertEquals(ArchiveRoom.EZEKIEL, raids.roomAt(run, player.x, player.z), "out a tick early")
+                alice.stepTicks(1)
+                assertEquals(Tile(front.x, front.z), Tile(player.x, player.z))
+                assertNull(alice.dialogueView as? DialogueView.Chat)
+                alice.commandReply("resume") { it.startsWith("Resumed") }
+            }
+        }
+    }
+
+    @Test
+    fun `with no Navigator in the cache, whoever is on his arena is sent out three ticks after his death`(@TempDir dir: Path) {
+        server(dir, NpcTypes.of(ezekiel, sword, mark, grave)).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.commandReply("raid tp guardian") { it.startsWith("To ") }
+                alice.await("the Guardian's room done") { ArchiveRoom.GUARDIAN.takeIf { it in run.cleared } }
+                alice.intoArena(server, run)
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ezekiel #") } }
+                val raids = server.world.archiveRaids
+                val boss = bossOf(run)
+                alice.commandReply("hit 3000 ${boss.index}") { it.startsWith("Hit ") }
+                val front = raids.tile(run, ArchiveRoom.EZEKIEL.doorFront.x, ArchiveRoom.EZEKIEL.doorFront.z)
+                alice.await("the nexus, in front of his room's door") { alice.position?.takeIf { it == Coord(front.x, front.z, 0) } }
+                assertTrue(ArchiveRoom.EZEKIEL in run.cleared)
+            }
         }
     }
 
@@ -530,14 +659,15 @@ class HeadlessEzekielTest {
                 assertTrue(world.npcs.all.none { it.type.id == Ezekiel.SWORD }, "the volley's swords gone")
                 // The arena, once the transition is over.
                 alice.stepUntil(run, "the arena", Ezekiel.ENRAGE_TRANSITION + 2) { it.contains("enrage: arena at") }
-                val spot = Tile(boss.spawn.x + Ezekiel.ENRAGE_EAST, boss.spawn.z)
+                val spot = Tile(boss.spawn.x + Ezekiel.ENRAGE_DX, boss.spawn.z + Ezekiel.ENRAGE_DZ)
                 assertEquals(spot, Tile(boss.x, boss.z))
                 val arena = Ezekiel.arenaFor(spot.x, spot.z)
                 val tiles = Ezekiel.arenaTiles(arena)
                 val player = world.playerNamed("alice")!!
                 assertTrue(Tile(player.x, player.z) in tiles, "alice in the arena at ${player.x},${player.z}")
                 val fence = world.npcs.all.filter { it.type.id == Ezekiel.SWORD_NOOP }.map { Tile(it.x, it.z) }.toSet()
-                assertEquals(Ezekiel.fence(arena).toSet(), fence)
+                assertEquals(Ezekiel.fence(arena).toSet() + (0 until 3).map { Ezekiel.mark(arena, it) }, fence)
+                assertTrue((tiles + fence).all { Ezekiel.inArena(boss.spawn.x, boss.spawn.z, it.x, it.z) }, "the enrage on his arena")
                 // The volley's flight passes: no sword hits anyone, nor heals him.
                 alice.commandReply("setlevel hitpoints 99") { it.contains("set to level 99") }
                 alice.commandReply("heal") { it.startsWith("Healed to ") }

@@ -3,6 +3,7 @@ package osrsps.game.raid
 import java.lang.ref.WeakReference
 import java.util.WeakHashMap
 import kotlin.math.abs
+import osrsps.game.NpcStat
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.Player
@@ -49,8 +50,18 @@ object XarthLines : Lines("tfa_xarth", "The_Fractured_Archive/Strategies") {
  * - The heaps fall in the order [fallOrder] picks, south or north first, then east, then the other; a fallen one's
  *   NPC goes and its collapse plays for [COLLAPSE_TICKS] ticks where it stood.
  *
- * STAND-IN until step 19b: phase two (the arena fires, the burning corpse piles, his ranged and melee, the Corpses that
- * walk to him and heal him) is a phase in which he stands and does nothing, so a party can still kill him.
+ * Phase two (19b), from the tick after the third wave:
+ * - [TWO_FIRES] arena fires ([LOC_ARENA_FIRE]) [FIRE_OUT_MIN] to [FIRE_OUT_MAX] tiles from his footprint, and
+ *   [SPREAD_FIRES] more next to those already burning every cycle ([spread]). They never go out. A player on one is
+ *   hurt for [FIRE_MIN] to [FIRE_MAX] and set alight, at most once every [FIRE_EVERY] ticks ([fires]).
+ * - No more magic: his ranged ([shoot]) at [TWO_SHOTS_AT] ticks in, then in each [TWO_CYCLE]-tick cycle from
+ *   [TWO_CYCLE_FROM] [TWO_SHOTS] shots [TWO_SHOT_GAP] ticks apart from [TWO_SHOT_FROM], Protect from Missiles
+ *   blocking them all; a melee swing instead at a player beside him.
+ * - At the start of each cycle he raises [SUMMONS] Corpses ([SUMMONS_BIG] for a party of five or more) [SUMMON_GAP]
+ *   ticks apart ([summon]): each rises at an edge tile of the arena [CORPSE_AFTER] ticks on and walks a tile a tick to
+ *   him ([corpses]). One that gets beside him is absorbed ([absorb]), healing him twice the hitpoints it has left, and
+ *   every second absorbed sets off the blast ([blast]): the flame blast, then a wave all round him that sets those it
+ *   hits alight.
  *
  * From the tsps capture notes (RSPSApp/tsps docs/fractured-archive.md, read 2026-11-10: five spectator captures of live
  * fights on rev 241.1, so they show no damage on players): where he and the heaps stand, the three 31-tick cycles of
@@ -73,8 +84,14 @@ object XarthLines : Lines("tfa_xarth", "The_Fractured_Archive/Strategies") {
  * the burn stopping at [BURN_HITS] and its stacks ([BURN_STACK], [BURN_MAX_STACKS]); the
  * wave's damage ([WAVE_MIN] to [WAVE_MAX]: the Wiki's ~45, a 100 twice and a 60 in Sam's clip), no prayer helping and its landing on the wave's own tick; the smaller explosion doing no
  * damage (the tsps notes' reading); the screened damage; the arena's floor, his room's as Bork's is round its middle;
- * the heaps blocking the way until they fall. Not built: the "shield" the Wiki says the first explosion takes off,
- * the blast on everyone when all hide too soon, the AoE's shadow, and the blockrange the fallen heap's tiles get.
+ * the heaps blocking the way until they fall. In phase two (19b): every damage figure but the Wiki's 34s; where on the
+ * edge a Corpse rises and the summon's projectile there; the fires' damage, how often they hurt, and where the new
+ * ones go (next to burning ones, as Sam's clips show the field filling); his shot's target (a random player) and its
+ * flight; a melee swing only at a player beside him, in place of a shot; the blast after every second Corpse absorbed
+ * (the Wiki: "within a short period of time", unclarified), with the wave's damage. Not built: the "shield" the Wiki
+ * says the first explosion takes off, the blast on everyone when all hide too soon, the AoE's shadow, the blockrange
+ * the fallen heap's tiles get, the eight corpse piles catching fire, a Corpse doused by water spells, fire spells
+ * raising more, his death's graphic, and him and the Corpses lingering six ticks after he dies.
  */
 object Xarth {
     /** What `::raid` and the raid flow know the fight by. */
@@ -115,6 +132,29 @@ object Xarth {
 
     /** invisible_type8_blocking_size2: a standing heap's 2 by 2. Guessed: the tsps notes say only that a fallen one is walkable. */
     const val LOC_HEAP_BLOCKING = 47348
+
+    /** `tfa_xarth_corpse`: a Corpse he raises in phase two. */
+    const val CORPSE = 16687
+
+    /** tfa_xarth_arenafire: a fire on the arena's floor in phase two. */
+    const val LOC_ARENA_FIRE = 62713
+
+    /** xarth_attack_ranged_01, and its vfx on him, its projectile and its landing (gamevals). */
+    const val ANIM_RANGED = 14985
+    const val SPOT_RANGED = 4373
+    const val SPOT_RANGED_PROJECTILE = 4374
+    const val SPOT_RANGED_LANDS = 4375
+
+    /** xarth_attack_melee_01. */
+    const val ANIM_MELEE = 14983
+
+    /** vfx_xarth_corpse_walk_fire_01: a Corpse's flames as it walks. */
+    const val SPOT_CORPSE_FIRE = 4383
+
+    /** xarth_corpse_absorbed_01 with vfx_xarth_corpse_absorbed_01, and vfx_xarth_absorb_corpse_fire_01 on him. */
+    const val ANIM_CORPSE_ABSORBED = 15005
+    const val SPOT_CORPSE_ABSORBED = 4386
+    const val SPOT_ABSORB_FIRE = 4387
 
     const val SIZE = 3
     const val HEAP_SIZE = 2
@@ -192,6 +232,62 @@ object Xarth {
     const val WAVE_MAX = 100
     const val SCREENED_MIN = 5
     const val SCREENED_MAX = 9
+
+    /** Phase two's first fires, and how far from his footprint they land: mostly [FIRE_OUT_MOSTLY] (tsps). */
+    const val TWO_FIRES = 7
+    const val FIRE_OUT_MIN = 1
+    const val FIRE_OUT_MAX = 7
+    val FIRE_OUT_MOSTLY = 2..5
+
+    /** His shots before the cycles begin, the cycle's length and its first tick (tsps). */
+    val TWO_SHOTS_AT = listOf(7, 11)
+    const val TWO_CYCLE = 21
+    const val TWO_CYCLE_FROM = 15
+
+    /** Each cycle: shots from this tick of it, this many, this many ticks apart (tsps). */
+    const val TWO_SHOT_FROM = 5
+    const val TWO_SHOTS = 4
+    const val TWO_SHOT_GAP = 4
+
+    /** Each cycle: Corpses raised from its first tick, this many ticks apart, more for a party of five (tsps). */
+    const val SUMMONS = 2
+    const val SUMMONS_BIG = 3
+    const val SUMMON_GAP = 2
+
+    /** A Corpse rises this many ticks after he raises it (tsps). */
+    const val CORPSE_AFTER = 3
+
+    /** Each cycle on this tick, this many more fires next to burning ones (tsps; next to them, Sam's clips). */
+    const val SPREAD_AT = 12
+    const val SPREAD_FIRES = 3
+
+    /** His phase-two attack bonuses and max hits (OSRS Wiki, Xarth: ranged +250, melee +150, both 34). */
+    const val RANGED_BONUS = 250
+    const val MELEE_BONUS = 150
+    const val RANGED_MAX = 34
+    const val MELEE_MAX = 34
+
+    /** His melee and ranged strength bonuses (Wiki: +30 each), for how much a drain to Strength or Ranged takes off [MELEE_MAX] and [RANGED_MAX]. */
+    const val STRENGTH_BONUS = 30
+
+    /**
+     * [max] less what a drain to [stat] takes off, the way [osrsps.game.combat.Combat] lowers a drained NPC's max hit:
+     * the drop in the max hit his [STRENGTH_BONUS] gives at his level now against at full.
+     */
+    fun drainedMax(max: Int, full: Int, now: Int): Int =
+        if (now >= full) max else (max - (CombatMath.npcMaxHit(full, STRENGTH_BONUS) - CombatMath.npcMaxHit(now, STRENGTH_BONUS))).coerceAtLeast(0)
+
+    /** A fire under a player: this much, and set alight, at most once every [FIRE_EVERY] ticks. Guessed. */
+    const val FIRE_MIN = 5
+    const val FIRE_MAX = 10
+    const val FIRE_EVERY = 4
+
+    /** A Corpse absorbed heals him this many times what it has left, and is gone this many ticks later (tsps). */
+    const val CORPSE_HEALS = 2
+    const val ABSORBED_TICKS = 2
+
+    /** His heal's hitsplat (tsps: hitsplat 6). */
+    const val HITSPLAT_HEAL = 6
 
     /** How much of the wave reaches a tile: all of it, the smaller explosion, or none. */
     enum class Shelter { NONE, PARTLY, FULLY }
@@ -308,6 +404,7 @@ object Xarth {
         val type = types[BOSS] ?: return null
         val heapType = types[HEAP] ?: return null
         val downType = types[HEAP_DOWN]
+        val corpseType = types[CORPSE]
         return EncounterDef(
             NAME, type,
             listOf(
@@ -315,8 +412,7 @@ object Xarth {
                     "one",
                     cycle = listOf(CycleStep(1) { phaseOne(downType) }),
                     onStart = {
-                        // He never moves: his footprint blocks the way, as live's nine blocking tiles do.
-                        for (dx in 0 until SIZE) for (dz in 0 until SIZE) placeLoc(LOC_BLOCKING, boss.x + dx, boss.z + dz)
+                        footprint()
                         state.heaps.clear()
                         state.heapLocs.clear()
                         for (heap in Heap.entries) {
@@ -330,13 +426,17 @@ object Xarth {
                     },
                     endsWhen = { state.waves >= CYCLES },
                 ),
-                // STAND-IN until step 19b: he stands, and the party can finish him.
-                PhaseDef("two", onStart = { log("phase two (stand-in)") }),
+                PhaseDef(
+                    "two",
+                    cycle = listOf(CycleStep(1) { phaseTwo(corpseType) }),
+                    onStart = { startPhaseTwo() },
+                ),
             ),
             scriptedAttacks = true,
             status = {
                 val standing = state.heaps.values.count { alive(it.get()) != null }
-                "Xarth ${boss.hitpoints}/${boss.maxHitpoints} hp, $standing heaps standing, ${state.waves} waves"
+                val corpses = state.corpses.count { alive(it.get()) != null }
+                "Xarth ${boss.hitpoints}/${boss.maxHitpoints} hp, $standing heaps standing, ${state.waves} waves, ${state.fires.size} fires, $corpses corpses"
             },
         )
     }
@@ -352,11 +452,29 @@ object Xarth {
         /** Waves so far: phase one ends with the [CYCLES]th. */
         var waves = 0
 
-        /** Each player's burn: its stacks, and the phase tick it was last set or set again. */
+        /** Each player's burn: its stacks, and the tick it was last set or set again. */
         val burns = WeakHashMap<Player, Burn>()
+
+        /** Phase two's fires, by tile. */
+        val fires = LinkedHashMap<Tile, ZoneLoc>()
+
+        /** The tick each player may next be hurt by a fire under them. */
+        val nextFireHurt = WeakHashMap<Player, Long>()
+
+        /** The Corpses walking to him, in the order they rose. */
+        val corpses = ArrayList<WeakReference<Npc>>()
+
+        /** Corpses absorbed so far: every second sets off the blast. */
+        var absorbed = 0
+
+        /** Whether his footprint's blocking tiles are down. */
+        var footprint = false
     }
 
-    private class Burn(var stacks: Int, var since: Long)
+    private class Burn(var stacks: Int, var since: Long) {
+        /** The tick it last hurt, so each of its hits lands once however it's reached. */
+        var lastHit = -1L
+    }
 
     private val states = WeakHashMap<Npc, State>()
 
@@ -434,22 +552,37 @@ object Xarth {
 
     /** [player] set alight, or a stack hotter if they burn already: the burn starts again from now. */
     private fun EncounterContext.burn(player: Player) {
-        val burn = state.burns[player]?.takeIf { phaseTick - it.since < BURN_EVERY * BURN_HITS }
+        // By the world's tick: a burn set in phase one runs on into phase two.
+        val running = state.burns[player]
+        // The running burn's hit due this very tick still lands: set again on that tick, its callback would skip it,
+        // and a fire under the player every [FIRE_EVERY] ticks would stop the burn ever hurting.
+        if (running != null) {
+            val since = world.tick - running.since
+            if (since in 1..BURN_EVERY.toLong() * BURN_HITS && since % BURN_EVERY == 0L && running.lastHit != world.tick) burnHit(player, running)
+        }
+        val burn = running?.takeIf { world.tick - it.since < BURN_EVERY * BURN_HITS }
         val stacks = minOf(BURN_MAX_STACKS, (burn?.stacks ?: 0) + 1)
-        val now = Burn(stacks, phaseTick)
+        val now = Burn(stacks, world.tick)
         state.burns[player] = now
         player.message(text(XarthLines.SET_ALIGHT))
         log("${player.username} burns, $stacks stack${if (stacks == 1) "" else "s"}")
         for (i in 1..BURN_HITS) {
             after(BURN_EVERY * i) {
                 // A later fireball has set it again: that burn's ticks run instead.
-                if (state.burns[player] !== now || players.none { it === player }) return@after
-                val range = burnRange(now.stacks)
-                val dealt = world.meleeCombat.hitPlayer(player, null, roll(range.first, range.last), world.tick)
-                if (!player.dead) player.attackedTick = world.tick
-                log("burn on ${player.username} for $dealt")
+                if (state.burns[player] !== now || now.lastHit == world.tick || players.none { it === player }) return@after
+                burnHit(player, now)
             }
         }
+    }
+
+    /** One tick of [burn] on [player]. */
+    private fun EncounterContext.burnHit(player: Player, burn: Burn) {
+        if (player.dead) return
+        burn.lastHit = world.tick
+        val range = burnRange(burn.stacks)
+        val dealt = world.meleeCombat.hitPlayer(player, null, roll(range.first, range.last), world.tick)
+        if (!player.dead) player.attackedTick = world.tick
+        log("burn on ${player.username} for $dealt")
     }
 
     /**
@@ -506,6 +639,17 @@ object Xarth {
             world.zones.mapAnim(tile.x, tile.z, boss.level, if (shelter == Shelter.PARTLY) SPOT_WAVE_SMALL else SPOT_WAVE, delay = out)
         }
         log("wave ${cycle + 1} ${side?.name?.lowercase() ?: "all round"}, ${heap?.name?.lowercase() ?: "no"} heap falling")
+        strike(tiles, shelterOf, "wave", setsAlight = false)
+        if (boss.dead) return
+        if (heap != null && heapNpc != null) fall(heap, heapNpc, downType)
+    }
+
+    /**
+     * The wave's hit on everyone on [tiles] whom [shelterOf] leaves in the open: its full force, or [SCREENED_MIN] to
+     * [SCREENED_MAX] for one with another player on the line from his middle (the Wiki's pillar). With [setsAlight],
+     * those it hits are set alight too, as the blast's are (Wiki).
+     */
+    private fun EncounterContext.strike(tiles: List<Tile>, shelterOf: (Int, Int) -> Shelter, what: String, setsAlight: Boolean) {
         val struck = tiles.toSet()
         val inWave = players.filter { Tile(it.x, it.z) in struck && shelterOf(it.x, it.z) == Shelter.NONE }
         val occupied = inWave.map { Tile(it.x, it.z) }
@@ -518,9 +662,9 @@ object Xarth {
             val damage = if (screened) roll(SCREENED_MIN, SCREENED_MAX) else roll(WAVE_MIN, WAVE_MAX)
             val dealt = world.meleeCombat.hitPlayer(player, null, damage, world.tick)
             if (!player.dead) player.attackedTick = world.tick
-            log("wave hits ${player.username} for $dealt" + if (screened) ", screened" else "")
+            log("$what hits ${player.username} for $dealt" + if (screened) ", screened" else "")
+            if (setsAlight && !player.dead) burn(player)
         }
-        if (heap != null && heapNpc != null) fall(heap, heapNpc, downType)
     }
 
     /** [heap] falls: its NPC goes, its collapse plays where it stood for [COLLAPSE_TICKS] ticks, and its tiles open. */
@@ -537,6 +681,254 @@ object Xarth {
             after(COLLAPSE_TICKS) { if (world.npcs[down.index] === down) world.removeNpc(down) }
         }
         log("the ${heap.name.lowercase()} heap falls")
+    }
+
+    /** He never moves: his footprint blocks the way, as live's nine blocking tiles do. */
+    private fun EncounterContext.footprint() {
+        if (state.footprint) return
+        for (dx in 0 until SIZE) for (dz in 0 until SIZE) placeLoc(LOC_BLOCKING, boss.x + dx, boss.z + dz)
+        state.footprint = true
+    }
+
+    /** Phase two begins: the first fires, and nothing absorbed yet; his footprint too, for a fight `::raid` starts here. */
+    private fun EncounterContext.startPhaseTwo() {
+        footprint()
+        state.absorbed = 0
+        val placed = ArrayList<Tile>()
+        repeat(TWO_FIRES) { firstFireTile()?.let { placeFire(it); placed += it } }
+        log("phase two: ${placed.size} fires, on ${placed.joinToString(" ") { "${it.x},${it.z}" }}")
+    }
+
+    /** One tick of phase two: where in its cycle it is says what he does; the Corpses walk and the fires burn. */
+    private fun EncounterContext.phaseTwo(corpseType: NpcType?) {
+        val t = phaseTick
+        if (t in TWO_SHOTS_AT.map { it.toLong() }) attack()
+        if (t >= TWO_CYCLE_FROM) {
+            val at = ((t - TWO_CYCLE_FROM) % TWO_CYCLE).toInt()
+            val summons = if (players.size >= 5) SUMMONS_BIG else SUMMONS
+            if (at % SUMMON_GAP == 0 && at / SUMMON_GAP < summons) summon(corpseType)
+            val shot = at - TWO_SHOT_FROM
+            if (shot >= 0 && shot % TWO_SHOT_GAP == 0 && shot / TWO_SHOT_GAP < TWO_SHOTS) attack()
+            if (at == SPREAD_AT) spread()
+        }
+        if (boss.dead) return
+        corpses()
+        fires()
+    }
+
+    /** Whether ([x], [z]) is a tile a fire can burn on: the arena's floor, not under him. */
+    private fun EncounterContext.fireCan(x: Int, z: Int): Boolean =
+        inArena(boss.x, boss.z, x, z) && !(x - boss.x in 0 until SIZE && z - boss.z in 0 until SIZE) && Tile(x, z) !in state.fires
+
+    /**
+     * Where one of phase two's first fires lands: a free tile [FIRE_OUT_MIN] to [FIRE_OUT_MAX] tiles off his footprint,
+     * rolled again once outside [FIRE_OUT_MOSTLY] so most land there (tsps: "mostly two to five"). Guessed: the roll.
+     */
+    private fun EncounterContext.firstFireTile(): Tile? {
+        var out = roll(FIRE_OUT_MIN, FIRE_OUT_MAX)
+        if (out !in FIRE_OUT_MOSTLY) out = roll(FIRE_OUT_MIN, FIRE_OUT_MAX)
+        val choices = waveTiles(boss.x, boss.z, null).filter { Bork.distance(boss.x, boss.z, SIZE, it.x, it.z) == out && fireCan(it.x, it.z) }
+        return choices.getOrNull(if (choices.isEmpty()) 0 else roll(0, choices.size - 1))
+    }
+
+    private fun EncounterContext.placeFire(tile: Tile) {
+        state.fires[tile] = placeLoc(LOC_ARENA_FIRE, tile.x, tile.z)
+    }
+
+    /** [SPREAD_FIRES] more fires, each on a free tile next to one burning (Wiki: "spread to adjacent tiles"). */
+    private fun EncounterContext.spread() {
+        val placed = ArrayList<Tile>()
+        repeat(SPREAD_FIRES) {
+            val next = state.fires.keys.flatMap { f -> (-1..1).flatMap { dx -> (-1..1).map { dz -> Tile(f.x + dx, f.z + dz) } } }
+                .distinct().filter { fireCan(it.x, it.z) }
+            if (next.isEmpty()) return@repeat
+            val tile = next[roll(0, next.size - 1)]
+            placeFire(tile)
+            placed += tile
+        }
+        if (placed.isNotEmpty()) log("the fires spread to ${placed.joinToString(" ") { "${it.x},${it.z}" }}")
+    }
+
+    /** Whoever stands on a fire is hurt and set alight, at most once every [FIRE_EVERY] ticks. */
+    private fun EncounterContext.fires() {
+        for (player in players) {
+            if (boss.dead) return
+            if (Tile(player.x, player.z) !in state.fires) continue
+            if (world.tick < (state.nextFireHurt[player] ?: 0L)) continue
+            state.nextFireHurt[player] = world.tick + FIRE_EVERY
+            val dealt = world.meleeCombat.hitPlayer(player, null, roll(FIRE_MIN, FIRE_MAX), world.tick)
+            if (!player.dead) player.attackedTick = world.tick
+            log("fire under ${player.username} for $dealt")
+            if (!player.dead) burn(player)
+        }
+    }
+
+    /**
+     * His attack in phase two: a melee swing at a player beside him if there is one, else a shot at a random player
+     * (guessed: the Wiki says he uses both, the tsps notes count only shots).
+     */
+    private fun EncounterContext.attack() {
+        val beside = players.filter { Bork.beside(boss.x, boss.z, SIZE, it.x, it.z) }
+        if (beside.isNotEmpty()) swing(beside[roll(0, beside.size - 1)]) else randomPlayer()?.let { shoot(it) }
+    }
+
+    /** What his roll at [player] with an attack of [type] and [bonus] lands, up to [max]: 0 on a miss. */
+    private fun EncounterContext.rolled(player: Player, type: AttackType, level: Int, bonus: Int, max: Int): Int {
+        val defence = world.combat.npcAttack(boss, player, type)?.defenceRoll ?: return 0
+        val hit = CombatMath.rollHits(world.random, CombatMath.npcAttackRoll(level, bonus), defence)
+        return if (hit) CombatMath.rollDamage(world.random, max) else 0
+    }
+
+    /**
+     * A shot at [player], landing on impact (Wiki) after a bow's flight: Protect from Missiles blocks all of it (Wiki:
+     * "fully blocked").
+     */
+    private fun EncounterContext.shoot(player: Player) {
+        boss.face(player)
+        boss.effects.anim(ANIM_RANGED)
+        boss.effects.spotanim(0, SPOT_RANGED, 0)
+        val distance = LineOfSight.distance(boss.x, boss.z, SIZE, player.x, player.z).coerceAtLeast(1)
+        // Guessed: a bow's flight.
+        val delay = HitDelay.BOW.ticks(distance)
+        world.zones.projectile(
+            Projectile(
+                id = SPOT_RANGED_PROJECTILE, fromX = boss.x + SIZE / 2, fromZ = boss.z + SIZE / 2, level = boss.level, toX = player.x, toZ = player.z,
+                startHeight = 100, endHeight = 30, startTime = 0, endTime = delay * CYCLES_PER_TICK, angle = 16, progress = 64,
+                sourceIndex = boss.index + 1, targetIndex = -(player.index + 1),
+            ),
+        )
+        log("shoots at ${player.username}")
+        after(delay) {
+            if (players.none { it === player }) return@after
+            player.effects.spotanim(0, SPOT_RANGED_LANDS, MeleeCombat.IMPACT_HEIGHT, 0)
+            // On impact, so the prayer counts as the shot lands (Wiki).
+            val prayed = world.prayers.protects(player, AttackType.RANGED)
+            val rolled = if (prayed) 0 else rolled(player, AttackType.RANGED, boss.level(NpcStat.RANGED), RANGED_BONUS, drainedMax(RANGED_MAX, boss.type.stats.ranged, boss.level(NpcStat.RANGED)))
+            val damage = if (world.combat.bulwarkBlocking(player, world.tick)) DinhsBulwark.blocked(rolled) else rolled
+            val dealt = world.meleeCombat.hitPlayer(player, boss, damage, world.tick)
+            if (!player.dead) player.attackedTick = world.tick
+            log("shot hits ${player.username} for $dealt" + if (prayed) ", prayed against" else "")
+        }
+    }
+
+    /** A slash at [player] beside him, landing at once; Protect from Melee blocks it. Guessed: that the prayer blocks all of it. */
+    private fun EncounterContext.swing(player: Player) {
+        boss.face(player)
+        boss.effects.anim(ANIM_MELEE)
+        val prayed = world.prayers.protects(player, AttackType.SLASH)
+        val rolled = if (prayed) 0 else rolled(player, AttackType.SLASH, boss.level(NpcStat.ATTACK), MELEE_BONUS, drainedMax(MELEE_MAX, boss.type.stats.strength, boss.level(NpcStat.STRENGTH)))
+        val damage = if (world.combat.bulwarkBlocking(player, world.tick)) DinhsBulwark.blocked(rolled) else rolled
+        val dealt = world.meleeCombat.hitPlayer(player, boss, damage, world.tick)
+        if (!player.dead) player.attackedTick = world.tick
+        log("swings at ${player.username} for $dealt" + if (prayed) ", prayed against" else "")
+    }
+
+    /** The arena's edge: its floor tiles beside one that isn't floor. */
+    private fun EncounterContext.edge(): List<Tile> =
+        waveTiles(boss.x, boss.z, null).filter { t -> Side.entries.any { !inArena(boss.x, boss.z, t.x + it.dx, t.z + it.dz) } }
+
+    /**
+     * He raises a Corpse (the Wiki: shown by his magic attack animation): it rises at an edge tile [CORPSE_AFTER] ticks
+     * on (tsps). Guessed: which edge tile, and his fireball's flight there.
+     */
+    private fun EncounterContext.summon(corpseType: NpcType?) {
+        val edge = edge()
+        if (edge.isEmpty()) return
+        val at = edge[roll(0, edge.size - 1)]
+        boss.effects.anim(ANIM_MAGIC)
+        world.zones.projectile(
+            Projectile(
+                id = SPOT_FIREBALL, fromX = boss.x + SIZE / 2, fromZ = boss.z + SIZE / 2, level = boss.level, toX = at.x, toZ = at.z,
+                startHeight = 100, endHeight = 0, startTime = 0, endTime = CORPSE_AFTER * CYCLES_PER_TICK, angle = 16, progress = 64,
+            ),
+        )
+        log("raises a corpse at ${at.x},${at.z}")
+        after(CORPSE_AFTER) {
+            val corpse = corpseType?.let { spawnAdd(it, at.x, at.z) } ?: return@after
+            // It walks only as the fight walks it, fought or not, and never fights back.
+            corpse.scriptedAttacks = true
+            corpse.effects.spotanim(0, SPOT_CORPSE_FIRE, 0)
+            state.corpses += WeakReference(corpse)
+            log("a corpse rises at ${at.x},${at.z}")
+        }
+    }
+
+    /**
+     * The tile beside him a Corpse on ([x], [z]) heads for: along his nearest side, never off a corner, as it must stand
+     * beside him to be absorbed. Guessed: the way it goes.
+     */
+    fun besideTile(bossX: Int, bossZ: Int, x: Int, z: Int): Tile {
+        var tx = x.coerceIn(bossX - 1, bossX + SIZE)
+        var tz = z.coerceIn(bossZ - 1, bossZ + SIZE)
+        val cornerX = tx == bossX - 1 || tx == bossX + SIZE
+        val cornerZ = tz == bossZ - 1 || tz == bossZ + SIZE
+        if (cornerX && cornerZ) {
+            // Off a corner: to the side it is further out along.
+            if (abs(x - tx) >= abs(z - tz)) tz = tz.coerceIn(bossZ, bossZ + SIZE - 1) else tx = tx.coerceIn(bossX, bossX + SIZE - 1)
+        }
+        return Tile(tx, tz)
+    }
+
+    /** Each Corpse: gone if killed, absorbed if beside him and free to move, else a step towards him (tsps: a tile a tick). */
+    private fun EncounterContext.corpses() {
+        val walking = state.corpses.mapNotNull { it.get() }.sortedBy { it.index }
+        state.corpses.removeAll { ref -> ref.get().let { it == null || alive(it) == null } }
+        for (corpse in walking) {
+            if (boss.dead) return
+            if (alive(corpse) == null) continue
+            if (Bork.beside(boss.x, boss.z, SIZE, corpse.x, corpse.z)) {
+                // Beside him it is absorbed the tick after it arrives, unless it is frozen there: the Wiki has players
+                // bind them a tile out "so that they will be bound next to him".
+                if (corpse.freezeTicks == 0) absorb(corpse)
+                continue
+            }
+            val to = besideTile(boss.x, boss.z, corpse.x, corpse.z)
+            world.npcs.stepToward(corpse, to.x, to.z)
+        }
+    }
+
+    /**
+     * [corpse] is absorbed: it goes [ABSORBED_TICKS] ticks on, he heals [CORPSE_HEALS] times what it had left (tsps),
+     * and every second one absorbed sets off the blast (Wiki, Corpse (Xarth)).
+     */
+    private fun EncounterContext.absorb(corpse: Npc) {
+        state.corpses.removeAll { it.get() === corpse }
+        val left = corpse.hitpoints
+        corpse.effects.anim(ANIM_CORPSE_ABSORBED)
+        corpse.effects.spotanim(0, SPOT_CORPSE_ABSORBED, 0)
+        boss.effects.spotanim(0, SPOT_ABSORB_FIRE, 0)
+        after(ABSORBED_TICKS) { if (world.npcs[corpse.index] === corpse) world.removeNpc(corpse) }
+        heal(left * CORPSE_HEALS)
+        state.absorbed++
+        log("absorbs a corpse with $left left, ${state.absorbed} absorbed")
+        if (state.absorbed % 2 == 0) blast()
+    }
+
+    /** He heals by [amount], the heal's hitsplat and his health bar showing it. */
+    private fun EncounterContext.heal(amount: Int) {
+        if (amount <= 0) return
+        val before = boss.hitpoints
+        boss.hitpoints = minOf(boss.maxHitpoints, before + amount)
+        val healed = boss.hitpoints - before
+        boss.effects.hit(-1, HITSPLAT_HEAL, HITSPLAT_HEAL, healed)
+        // Bars go out only as they are queued, as a hit queues one.
+        boss.effects.headBar(-1, MeleeCombat.HEALTH_BAR, MeleeCombat.healthBarFill(boss.hitpoints, boss.maxHitpoints))
+        log("heals $healed")
+    }
+
+    /**
+     * The blast after a second Corpse absorbed (Wiki): the flame blast, then [WAVE_AFTER_BLAST] ticks on a wave all
+     * round him, sheltered by nothing but a player in front, setting those it hits alight. Guessed: its timing, as
+     * phase one's flame blast and wave.
+     */
+    private fun EncounterContext.blast() {
+        flameBlast()
+        after(WAVE_AFTER_BLAST) {
+            val tiles = waveTiles(boss.x, boss.z, null)
+            for (tile in tiles) world.zones.mapAnim(tile.x, tile.z, boss.level, SPOT_WAVE, delay = Bork.distance(boss.x, boss.z, SIZE, tile.x, tile.z))
+            log("the blast all round")
+            strike(tiles, { _, _ -> Shelter.NONE }, "blast", setsAlight = true)
+        }
     }
 
     private const val CYCLES_PER_TICK = 30
