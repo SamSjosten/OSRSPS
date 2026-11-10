@@ -319,6 +319,7 @@ class HeadlessArchiveRaidTest {
                 client.stepTicks(1)
                 assertEquals(Tile(entry.x, entry.z), Tile(player.x, player.z))
                 assertTrue(run.moving.isEmpty())
+                assertTrue(room in run.started, "the room begun on the tick she arrived, not the one after")
                 client.commandReply("resume") { it.startsWith("Resumed") }
                 client.awaitRun("Bork's room done") { room in run.cleared }
 

@@ -837,8 +837,8 @@ class ArchiveRaids(private val world: World) {
     }
 
     /**
-     * Each tick, after deaths: runs whose instance has ended go; members who left the party are sent out; a room's fight
-     * begins as the first member stands in it; a member who is down and walks back into a room is sent out; and a party
+     * Each tick, after deaths: runs whose instance has ended go; those due a move between the nexus and a room are moved
+     * ([movers]); members who left the party are sent out; a room's fight begins as the first member stands in it; a member who is down and walks back into a room is sent out; and a party
      * with nobody left standing (the last standing one logged out) wipes.
      */
     fun process() {
@@ -857,6 +857,9 @@ class ArchiveRaids(private val world: World) {
                 run.fights -= room
                 if (fight.boss.dead) clear(run, room)
             }
+            // Before the look at who stands where: a room begins on the tick its first member arrives, as it did when
+            // a door moved them at once.
+            movers(run)
             for (player in world.onlinePlayers) {
                 if (!run.instance.contains(player.x, player.z) || player.saveKey !in run.entered || player.dead) continue
                 if (world.parties.of(player) !== run.party) {
@@ -883,7 +886,6 @@ class ArchiveRaids(private val world: World) {
             placeOcellusFigure(run)
             if (ArchiveRoom.OCELLUS !in run.started && ArchiveRoom.OCELLUS.stage == run.stage && run.ocellusFigure != null && ocellusReady(run)) beginOcellus(run)
             navigators(run)
-            movers(run)
             settleEscapes(run, ended = false)
             val present = present(run)
             if (present.isNotEmpty() && present.none { it.dead } && standing(run).isEmpty()) wipe(run, null)
