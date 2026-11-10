@@ -702,6 +702,19 @@
       "source": "OSRS Wiki, Grizzly bear (Level 21, id 2838) and the DPS calculator's 2838, read 2026-11-02: speed 4, max hit 3, slash, no bonuses, respawn 50, weak to fire 20%, aggressive. It stands with bear_rework_ready, so the bear_rework fight animations are taken; the default hunt range is guessed"
     },
     {
+      "npcs": ["darkbear"],
+      "attackSpeed": 4,
+      "maxHit": 3,
+      "attackType": "slash",
+      "attackBonus": 0,
+      "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "bear_rework_attack", "defend": "bear_rework_defend", "death": "bear_rework_death" },
+      "respawnTicks": 50,
+      "weakness": { "element": "fire", "percent": 30 },
+      "source": "OSRS Wiki, Black bear (Level 19, id 2839), read 2026-11-10: speed 4, max hit 3, slash, no bonuses, respawn 50, weak to fire 30%, not aggressive (Misthalin piece 7 step 5). It stands with bear_rework_ready, so the bear_rework fight animations are taken, as the grizzly's"
+    },
+    {
       "npcs": ["tfa_guardian"],
       "attackSpeed": 5,
       "maxHit": 25,

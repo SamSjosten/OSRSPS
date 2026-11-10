@@ -65,6 +65,7 @@ object NpcSpawnFile {
         "lumbridge-swamp-caves.json",
         "ham-hideout.json",
         "ham-storerooms.json",
+        "misthalin-farms-roads.json",
         "fishing-spots.json",
         "thieving-kandarin.json",
         "rogues-castle.json",

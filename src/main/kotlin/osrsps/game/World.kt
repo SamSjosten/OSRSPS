@@ -105,6 +105,7 @@ import osrsps.game.content.registerEssenceMine
 import osrsps.game.content.registerFatherUrhney
 import osrsps.game.content.registerHamHideout
 import osrsps.game.content.registerHamStorerooms
+import osrsps.game.content.registerFarmsRoads
 import osrsps.game.content.registerLumbridgeSwamp
 import osrsps.game.content.registerLumbridgeSwampCaves
 import osrsps.game.content.SwampCavesHazards
@@ -847,6 +848,7 @@ class World(
         registerRockslugs(this)
         registerHamHideout(this)
         registerHamStorerooms(this)
+        registerFarmsRoads(this)
         registerChurch(this)
         registerAlKharid(this)
         registerEdgeville(this)
