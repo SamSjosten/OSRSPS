@@ -65,13 +65,14 @@ class NpcSpawn(
  * NPC only steps onto roofed tiles and an [OUTDOORS] one only onto open sky; a [BLOCKED] one only onto tiles whose floor
  * can't be walked on, which is water where ducks swim, with walls and locs still in its way (RSMod's ducks, and its
  * route finder's blocked collision strategy). The Lumbridge cook keeps to the castle this way, and the ducks to the
- * river.
+ * river. A [NOMOVE] one never takes a step, as the swamp caves' wall beasts in their holes (2004Scape's `nomove`).
  */
 enum class MoveRestrict {
     NORMAL,
     INDOORS,
     OUTDOORS,
     BLOCKED,
+    NOMOVE,
 }
 
 /** A tile on an NPC's patrol, and how many ticks it stands there on arriving before it walks to the next. */

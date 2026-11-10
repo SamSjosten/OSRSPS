@@ -1020,7 +1020,27 @@ cave eels (38) or slimy eels (28).
 | Frog spawn, swamp weed, cave and slimy eels: levels, XP, catch rates | OSRS Wiki, Frog spawn, Swamp weed, Cave eel, Slimy eel |
 | Ids, options, animations | 242 cache |
 | The promise kept until logout, the even chances among the goblins' talks, their expressions, a gift skipped with a full backpack, the threat's 8-tile cry, the cave bug's death animation, the frog spawn and swamp weed catch messages | guessed |
-| Out: Slayer XP (no Slayer tasks yet), the threatened goblins running away, rockslugs and wall beasts (step 3b) | out of scope |
+| Out: Slayer XP (no Slayer tasks yet), the threatened goblins running away | out of scope |
+
+#### Rockslugs and wall beasts
+
+Misthalin piece 7 step 3b (`game/content/SwampCaveSlayer.kt`, words under `swamp_slayer.*`): 5 rockslugs and 7 wall
+beasts' holes join the caves' spawns. No hit takes a rockslug below 1 hitpoint (`minHitpoints` in `npc-combat.json`),
+and down there it stops fighting and wanders off; a bag of salt used on one at 4 or less finishes it, and one used at
+5 or more is wasted. A wielded brine sabre kills them outright. A wall beast sits in its hole (a `nomove` spawn) and
+reaches for whoever steps onto the tile in front: a spiny helmet or any slayer helmet repels it, and it comes out to
+fight; anyone else is grabbed, held for 4 ticks and hurt for up to 18, once each time they step there. Out of a fight
+for 20 ticks it goes back in. Hurting rockslugs needs Slayer 20, wall beasts 35.
+
+| Rockslugs and wall beasts | Source |
+|---------------------------|--------|
+| Spawns: tiles and types | mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022); the Wiki's Wall beast page lists the same seven holes |
+| Each hole grabs from the tile south of it | 242 map: the only cave tile beside each |
+| Stats, max hits (4, and 18 for the grab), Slayer levels, the 1 hitpoint, the salt at 4 or less and the wasted bag, the brine sabre, the helmets, drops | OSRS Wiki, Rockslug, Bag of salt and Wall beast, read 2026-11-10 |
+| "Your helmet repels the wall beast!" | OSRS Wiki, Wall beast |
+| Ids, the hole and beast forms, animations | 242 cache |
+| The grab's 4 ticks, its even roll from 0 to 18, one grab per step onto the tile, the 20 ticks before it goes back in, the 10-tick respawn, the salt and grab messages, no salting animation and no XP for the salt's kill | guessed |
+| Out: the Slug salter perk, Slayer XP (no Slayer rewards or tasks yet) | out of scope |
 
 ## Draynor Village
 

@@ -1,0 +1,38 @@
+{
+ "name": "Misthalin piece 7 step 3b: the Lumbridge Swamp Caves' rockslugs held at 1 hitpoint, and a wall beast grabbing a player with no helmet and coming out to fight one in a spiny helmet (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::god on", "comment": "the grab and the beast's hits would otherwise hurt; the grab still holds us"},
+  {"step": "command", "text": "::item lit_candle", "expectMessage": "Added 1 x Lit candle"},
+  {"step": "command", "text": "::setlevel attack 99", "expectMessage": "99", "comment": "before going down: at combat 67 the cave bugs and crawlers aren't aggressive"},
+  {"step": "command", "text": "::setlevel strength 99", "expectMessage": "99"},
+  {"step": "command", "text": "::setlevel slayer 35", "expectMessage": "35", "comment": "rockslugs need 20, wall beasts 35"},
+  {"step": "command", "text": "::setlevel defence 5", "expectMessage": "5", "comment": "to wear the spiny helmet"},
+
+  {"step": "command", "text": "::tele 3164 9553 0", "comment": "two tiles south of the hole at 3164,9556"},
+  {"step": "assertLocation", "x": 3164, "y": 9553, "plane": 0},
+  {"step": "command", "text": "::tele 3164 9555 0", "comment": "the tile in front of the hole"},
+  {"step": "assertMessage", "contains": "[swamp_slayer.grabbed]", "timeoutMs": 5000, "comment": "no helmet: grabbed and held"},
+  {"step": "waitTicks", "ticks": 6},
+  {"step": "command", "text": "::tele 3164 9553 0"},
+  {"step": "command", "text": "::item wallbeast_spike_helmet", "expectMessage": "Added 1 x Spiny helmet"},
+  {"step": "itemOption", "item": "Spiny helmet", "option": "Wear"},
+  {"step": "assertInventory", "item": "Spiny helmet", "count": 0, "comment": "worn"},
+  {"step": "command", "text": "::tele 3164 9555 0"},
+  {"step": "assertMessage", "contains": "[swamp_slayer.helmet_repels]", "timeoutMs": 5000},
+  {"step": "command", "text": "::npcs 2", "expectMessage": "Wall beast (476) at 3164, 9556", "comment": "out of its hole and fighting us, never moving"},
+  {"step": "command", "text": "::tele 3164 9545 0", "comment": "away, so it goes back in"},
+
+  {"step": "command", "text": "::tele 3224 9575 0", "comment": "among the rockslugs"},
+  {"step": "npcOption", "npc": "Rockslug", "option": "Attack", "timeoutMs": 20000},
+  {"step": "waitTicks", "ticks": 40, "comment": "long enough at 99 Strength to take it down to 1"},
+  {"step": "command", "text": "::npcs 6", "expectMessage": "1/27 hp", "comment": "held at 1: only a bag of salt finishes it (the headless test uses one; the runner has no item-on-NPC step yet)"},
+
+  {"step": "command", "text": "::god off"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

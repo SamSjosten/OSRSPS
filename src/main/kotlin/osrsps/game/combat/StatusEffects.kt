@@ -25,7 +25,7 @@ class StatusEffects(
 ) {
     /**
      * Stuns [player] for [ticks] from this tick: they can't move or attack this tick or the [ticks] - 1 after. Shows
-     * [spotanim] (the plain birds by default; thieving has its own) and, with [damage] over 0, deals that hit from
+     * [spotanim] (the plain birds by default; thieving has its own; -1 for none, as a wall beast's grab) and, with [damage] over 0, deals that hit from
      * [source] after the stun, so it can't start a retaliation. False, and nothing happens, while they are stunned already.
      */
     fun stun(player: Player, ticks: Int, damage: Int = 0, source: Npc? = null, spotanim: Int = STUN_SPOTANIM): Boolean {
@@ -34,7 +34,7 @@ class StatusEffects(
         if (isStunned(player, tick)) return false
         player.stunnedUntil = tick + ticks
         stop(player)
-        player.spotanim(spotanim, STUN_HEIGHT)
+        if (spotanim >= 0) player.spotanim(spotanim, STUN_HEIGHT)
         if (damage > 0) hit(player, source, damage)
         return true
     }
