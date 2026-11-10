@@ -710,8 +710,12 @@ class ArchiveRaids(private val world: World) {
         else -> null
     }
 
-    /** Whether tile [x], [z] is on [room]'s arena in [run]; null for a room with no arena built. */
+    /**
+     * Whether tile [x], [z] is on [room]'s arena in [run]; null for a room with no arena built. The Guardian's is its
+     * hall, all of its room: the fight is in the open there, and the nexus's entrance south of it is outside.
+     */
     private fun onArena(run: ArchiveRun, room: ArchiveRoom, x: Int, z: Int): Boolean? = when (room) {
+        ArchiveRoom.GUARDIAN -> inRoom(run, room, x, z)
         ArchiveRoom.EZEKIEL -> tile(run, EZEKIEL_X, EZEKIEL_Z).let { Ezekiel.inArena(it.x, it.z, x, z) }
         ArchiveRoom.BORK -> tile(run, BORK_CART_X, BORK_CART_Z).let { Bork.inArena(it.x, it.z, x, z) }
         ArchiveRoom.DREADNOTH -> tile(run, Dreadnoth.X, Dreadnoth.Z).let { Dreadnoth.inArena(it.x, it.z, x, z) }
@@ -725,6 +729,11 @@ class ArchiveRaids(private val world: World) {
      * here the walls are the cache's, and whether they stop a bow or a spell isn't known, so the rule is kept outright
      * (exploit review round 21, R21A-2: the way in was out of Dreadnoth's and Xarth's fights, and out of Ezekiel's and
      * Bork's reach, yet their bosses could be shot from it). Guessed: that live refuses it, and with what words.
+     *
+     * The Guardian's hall has no wall to its south: the nexus's entrance is open to it, and out of its fight ([inRoom]),
+     * so nothing of the fight reaches a player there, while an inert guardian in the hall's south was within a bow's
+     * reach of them (exploit review round 22, R22A-1). Guessed: that live refuses an attack from the entrance; where
+     * its fight ends to the south isn't known ([HALL_Z] is inferred).
      */
     fun shutOut(player: Player, npc: Npc): Boolean {
         val run = at(npc.x, npc.z) ?: return false
