@@ -74,6 +74,9 @@ class HeadlessSwampCaveSlayerTest {
 
     private fun HeadlessClient.held(id: Int) = inventory(Inventory.INV).filter { it?.id == id }.sumOf { it!!.count }
 
+    /** Waits for [count] of [id] in the backpack: the inventory update can come after the chat line that goes with it. */
+    private fun HeadlessClient.holds(id: Int, count: Int) = await("$count x item $id") { if (held(id) == count) Unit else null }
+
     private fun HeadlessClient.slot(id: Int) = await("item $id in the backpack") { inventory(Inventory.INV).indexOfFirst { it?.id == id }.takeIf { it >= 0 } }
 
     private fun HeadlessClient.wear(id: Int) {
@@ -100,11 +103,11 @@ class HeadlessSwampCaveSlayerTest {
                 val npc = server.world.npcs[view.index]!!
                 client.strong()
                 client.command("item ${Rockslugs.BAG_OF_SALT} 2")
-                client.await("the salt") { if (client.held(Rockslugs.BAG_OF_SALT) == 2) Unit else null }
+                client.holds(Rockslugs.BAG_OF_SALT, 2)
 
                 client.npcTarget(view.index, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slot(Rockslugs.BAG_OF_SALT), Rockslugs.BAG_OF_SALT)
                 client.seen("[swamp_slayer.salt_wasted]")
-                assertEquals(1, client.held(Rockslugs.BAG_OF_SALT))
+                client.holds(Rockslugs.BAG_OF_SALT, 1)
                 assertEquals(27, npc.hitpoints)
 
                 // A bystander with salt of their own, ready before the fight.
@@ -136,7 +139,7 @@ class HeadlessSwampCaveSlayerTest {
                 client.npcTarget(view.index, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slot(Rockslugs.BAG_OF_SALT), Rockslugs.BAG_OF_SALT)
                 client.seen("[swamp_slayer.salt_kills]")
                 client.await("the rockslug's death") { if (npc.dead) Unit else null }
-                assertEquals(0, client.held(Rockslugs.BAG_OF_SALT))
+                client.holds(Rockslugs.BAG_OF_SALT, 0)
             }
         }
     }
