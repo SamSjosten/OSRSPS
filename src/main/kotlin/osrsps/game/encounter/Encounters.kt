@@ -181,7 +181,7 @@ class Encounter internal constructor(
         addList.removeAll { world.npcs[it.index] !== it }
         if (bossLeft()) return
         val current = def.phases[phase]
-        if (phase < def.phases.size - 1 && phaseOver(current)) startPhase(phase + 1)
+        if ((phase < def.phases.size - 1 || current.next != null) && phaseOver(current)) following(current)?.let(::startPhase)
         if (bossLeft()) return
         runCycle()
         if (bossLeft()) return
@@ -189,6 +189,15 @@ class Encounter internal constructor(
         if (bossLeft()) return
         landHazards()
         bossLeft()
+    }
+
+    /**
+     * The phase that follows [ended]: the one it names, or the one after it; null when it is the last and names none.
+     * A name the fight hasn't is the fight's own mistake: it ends there, saying so, sooner than throw in the game tick.
+     */
+    private fun following(ended: PhaseDef): Int? {
+        val named = ended.next?.invoke(this) ?: return (phase + 1).takeIf { it < def.phases.size }
+        return def.phase(named) ?: null.also { end("no phase '$named' to go on to") }
     }
 
     private fun phaseOver(phase: PhaseDef): Boolean {

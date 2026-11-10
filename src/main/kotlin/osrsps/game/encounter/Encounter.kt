@@ -35,7 +35,8 @@ class EncounterDef(
 /**
  * One phase of an [EncounterDef]: [onStart] when it begins, then its [cycle] over and over, each step [CycleStep.delay]
  * ticks after the one before, until the boss's hitpoints are at or below [endsAtPercent] of its maximum, [endsAfter]
- * ticks have passed or [endsWhen] says so, when the next phase begins. The last phase lasts until the fight ends.
+ * ticks have passed or [endsWhen] says so, when the next phase begins: the one after it, or the one [next] names (a
+ * fight that goes round: a shield that comes back). The last phase lasts until the fight ends, unless it has a [next].
  */
 class PhaseDef(
     val name: String,
@@ -47,6 +48,11 @@ class PhaseDef(
     val onStart: EncounterContext.() -> Unit = {},
     /** Whether the next phase begins now, asked each tick before the cycle; null for never. A shield broken, say. */
     val endsWhen: (EncounterContext.() -> Boolean)? = null,
+    /**
+     * The name of the phase that begins when this one ends, asked as it ends; null, or a null answer, for the one
+     * after it in the list. It may name an earlier phase, or this one again.
+     */
+    val next: (EncounterContext.() -> String?)? = null,
 ) {
     init {
         require(endsAtPercent == null || endsAtPercent in 1..99) { "$name ends at $endsAtPercent%" }

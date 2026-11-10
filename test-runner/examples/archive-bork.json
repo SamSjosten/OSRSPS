@@ -79,6 +79,11 @@
    "comment": "in at the room's way in, west of the arena, out of Bork's reach"
   },
   {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "the client redraws the scene after the teleport; a click before that goes to the wrong tile (\"I can't reach that!\" on the VMs, 2026-11-10)"
+  },
+  {
    "step": "locOption",
    "locId": 63087,
    "option": "Use",
@@ -87,7 +92,8 @@
   },
   {
    "step": "waitTicks",
-   "ticks": 3
+   "ticks": 10,
+   "comment": "the walk to the transporter, a tile a tick, then into the arena: 7 to 8 ticks on the VM (2026-11-10)"
   },
   {
    "step": "command",

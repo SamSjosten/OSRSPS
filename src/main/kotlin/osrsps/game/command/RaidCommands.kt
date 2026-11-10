@@ -23,7 +23,7 @@ import osrsps.game.raid.PartyScaling
 fun CommandRegistry.registerRaidCommands(world: World) {
     val encounters = world.encounters
     val usage = "Usage: ::raid [boss [phase=name|n] [party=n] [seed=n]] | ::raid log [lines] | ::raid digest [ticks] | ::raid stop | " +
-        "::raid run | ::raid tp <nexus|room> | ::raid clear | ::raid hold [ticks]"
+        "::raid run | ::raid tp <nexus|room|x z> | ::raid clear | ::raid hold [ticks]"
 
     register("raid", "::raid [boss [phase=] [party=] [seed=]] | log | digest | stop | run | tp | clear | hold", admin = true) {
         fun here(): Encounter? = encounters.all.firstOrNull { !it.ended && it.boss.level == player.level && it.covers(player.x, player.z) }
@@ -69,9 +69,22 @@ fun CommandRegistry.registerRaidCommands(world: World) {
             }
             "tp" -> {
                 // Testing only: to a room of the run you're in, or the nexus, as its door or passage would take you.
-                if (args.size != 2) fail(usage)
+                if (args.size != 2 && args.size != 3) fail(usage)
                 val raids = world.archiveRaids
                 val run = raids.at(player.x, player.z) ?: fail("You're not in an Archive run.")
+                if (args.size == 3) {
+                    // A cache tile of the raid, mapped into the run's instance, on the level of the room it is in: for
+                    // scripts, which can't know where the instance lies (Ocellus's hooded figure is out of view from
+                    // where his room is come into).
+                    val x = args[1].toIntOrNull() ?: fail(usage)
+                    val z = args[2].toIntOrNull() ?: fail(usage)
+                    val tile = raids.tile(run, x, z)
+                    if (!run.instance.contains(tile.x, tile.z)) fail("$x, $z isn't in the raid.")
+                    val level = raids.roomAt(run, tile.x, tile.z)?.level ?: ArchiveRaids.NEXUS_PLANE
+                    world.teleport(player, tile.x, tile.z, level)
+                    reply("To $x, $z of the raid at ${tile.x}, ${tile.z}, $level.")
+                    return@register
+                }
                 val name = args[1].lowercase()
                 val (tile, room) = if (name == "nexus") {
                     raids.tile(run, ArchiveRaids.NEXUS_X, ArchiveRaids.NEXUS_Z) to null
@@ -79,7 +92,7 @@ fun CommandRegistry.registerRaidCommands(world: World) {
                     val room = ArchiveRoom.named(name) ?: fail("Rooms: nexus, ${ArchiveRoom.entries.joinToString { it.name.lowercase() }}")
                     raids.tile(run, room.entryX, room.entryZ) to room
                 }
-                world.teleport(player, tile.x, tile.z, 0)
+                world.teleport(player, tile.x, tile.z, room?.level ?: ArchiveRaids.NEXUS_PLANE)
                 reply("To ${room?.boss?.let { "$it's room" } ?: "the nexus"} at ${tile.x}, ${tile.z}.")
             }
             "clear" -> {
