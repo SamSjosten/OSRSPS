@@ -1,6 +1,7 @@
 package osrsps.game.skill
 
 import osrsps.game.Skill
+import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
@@ -34,10 +35,27 @@ object FishingLines : Lines("fishing", "Fishing") {
     val NO_BAIT = line("no_bait", "Fishing bait: the message on Bait with none left")
     val NO_FEATHERS = line("no_feathers", "Feather: the message on Lure with none left")
     val INVENTORY_FULL = line("inventory_full", "the message when the backpack is full")
+    val CAST_HARPOON = line("cast_harpoon", "the message on starting to fish with a harpoon")
+    val CAST_CAGE = line("cast_cage", "the message on starting to fish with a lobster pot")
+    val CATCH_LOBSTER = line("catch_lobster", "Raw lobster: the message for each catch")
+    val CATCH_TUNA = line("catch_tuna", "Raw tuna: the message for each catch (the Raw tuna page's changes, 27 November 2024)")
+    val CATCH_SWORDFISH = line("catch_swordfish", "Raw swordfish: the message for each catch (the Raw swordfish page's changes, 27 November 2024)")
+    val CATCH_SHARK = line("catch_shark", "Raw shark: the message for each catch")
+    val LEVEL_CAGE = line("level_cage", "the message when caging lobsters needs a higher level (40)", "level")
+    val LEVEL_HARPOON = line("level_harpoon", "the message when harpooning a spot's fish needs a higher level (35 tuna, 76 shark)", "level")
+    val NO_HARPOON = line("no_harpoon", "Harpoon: the message on Harpoon without one")
+    val NO_CAGE = line("no_cage", "Lobster pot: the message on Cage without one")
 }
 
 /** One fish: the obj caught, the level and XP in tenths, its success pair (out of 256) and its catch message. */
 class Fish(val obj: Int, val level: Int, val xpTenths: Int, val low: Int, val high: Int, val line: Line)
+
+/**
+ * A tool that fishes as well as, or better than, a method's own: the wieldable harpoons. It is used from the backpack or
+ * the weapon slot, from [level] Fishing; [percent] scales each fish's pair, rounded down (the Wiki's dragon harpoon
+ * charts are the harpoon's times 1.2, its crystal harpoon's times 1.35), and [anim] is the player's animation with it.
+ */
+class FishingTool(val obj: Int, val level: Int, val percent: Int, val anim: Int)
 
 /** Bait a method uses up, one per catch, and what the player is told when it runs out. */
 class Bait(val obj: Int, val none: Line)
@@ -60,8 +78,13 @@ class FishingMethod(
     val recasts: Boolean = false,
     /** Other spellings of the option on some spots: Draynor's Net/Bait spots say "Small Net". */
     val otherNames: Set<String> = emptySet(),
+    /** Tools that also fish this way, best first; the method's own [tool] is tried after them. */
+    val otherTools: List<FishingTool> = emptyList(),
 ) {
     val level: Int get() = fish.minOf { it.level }
+
+    /** Every obj that fishes this way, used on a spot or held. */
+    val tools: List<Int> get() = otherTools.map { it.obj } + tool
 }
 
 /** A kind of fishing spot (an NPC) and the methods its options use. */
@@ -80,9 +103,16 @@ class SpotType(val npc: Int, val methods: List<FishingMethod>)
  * (the click's cast message and animation, the first roll 4 ticks after the click, the checks before every roll, the
  * last bait freeing its own slot) and the river spots' tiles are the 2004Scape project's fishing scripts; the spawn
  * tiles are RSMod's (rev 233). Guessed: the swamp spots' area (their five spawn tiles, so they never find a free one and
- * stay put; the Wiki only says most spots move) and the player stopping when their spot moves. Out: pearl and
- * barbarian rods, stripy feathers (rainbow fish), the big net, harpoons, cages, karambwanji, fishing outfits and other
- * catch boosts, heron pets, the random fishing spot whirlpools. No sounds: the 241 synth ids have no names.
+ * stay put; the Wiki only says most spots move) and the player stopping when their spot moves.
+ *
+ * Cages and harpoons (Fishing and Cooking 2, step FC1) work the same way at Catherby and Musa Point, which are built in
+ * place and reached by ::tele. Their cast messages, animations and checks follow 2004Scape's rarefish and memberfish
+ * scripts; guessed: their first roll comes as the other methods' does (2004Scape has the harpoon's a tick later, which
+ * no Wiki page confirms), and the wieldable harpoons' animations playing for the cast as well as each roll.
+ *
+ * Out: pearl and barbarian rods, stripy feathers (rainbow fish), the big net, karambwanji, barehanded fishing, the
+ * infernal and crystal harpoons, fishing outfits and other catch boosts, heron pets, the random fishing spot whirlpools.
+ * No sounds: the 241 synth ids have no names.
  */
 class Fishing(private val world: World) {
     /** The tick each spot moves next, set the first time it is seen. */
@@ -94,10 +124,12 @@ class Fishing(private val world: World) {
             for (method in spot.methods) {
                 val option = (1..5).firstOrNull { type.op(it) == method.name || type.op(it) in method.otherNames } ?: continue
                 world.handlers.onNpc(spot.npc, option) { op -> fish(op, method) }
-                world.handlers.onObjOnNpc(spot.npc, method.tool) { op ->
-                    // A tool used on a spot fishes it, as clicking the option does (2004Scape).
-                    val npc = op.npc ?: return@onObjOnNpc
-                    fish(Op(OpTarget.NPC, spot.npc, option, npc = npc), method)
+                for (tool in method.tools) {
+                    world.handlers.onObjOnNpc(spot.npc, tool) { op ->
+                        // A tool used on a spot fishes it, as clicking the option does (2004Scape).
+                        val npc = op.npc ?: return@onObjOnNpc
+                        fish(Op(OpTarget.NPC, spot.npc, option, npc = npc), method)
+                    }
                 }
             }
         }
@@ -140,10 +172,13 @@ class Fishing(private val world: World) {
             method.levelLine?.let { player.message(text[it, "level" to method.level]) }
             return stop()
         }
-        if (player.inventory.count(method.tool) < 1) {
+        val tool = toolFor(method, level)
+        if (tool == null) {
             player.message(text[method.noTool])
             return stop()
         }
+        val castAnim = if (tool === PLAIN) method.castAnim else tool.anim
+        val rollAnim = if (tool === PLAIN) method.rollAnim else tool.anim
         val bait = method.bait
         val baitLeft = if (bait == null) 0L else player.inventory.count(bait.obj)
         if (bait != null && baitLeft < 1) {
@@ -157,29 +192,41 @@ class Fishing(private val world: World) {
         }
         if (!op.repeat) {
             player.message(text[method.cast])
-            player.anim(method.castAnim)
+            player.anim(castAnim)
         }
         val step = SkillClock.step(player, tick, CYCLE)
         if (step == ClockStep.DUE) {
             if (method.recasts && world.random.chance(RECAST_CHANCE, RECAST_DENOMINATOR)) {
                 // The next roll is a tick later: 6 ticks on, not 5.
                 player.actionDelay = tick + CYCLE + 1
-                player.anim(method.castAnim)
+                player.anim(castAnim)
             } else {
-                player.anim(method.rollAnim)
+                player.anim(rollAnim)
             }
-            roll(method, level)
+            roll(method, level, tool.percent)
         } else if (step == ClockStep.WAITING && method.recasts && player.actionDelay - tick == CYCLE.toLong()) {
             // The tick after a recast (only then is a whole cycle still to wait): the second cast the Wiki shows.
-            player.anim(method.castAnim)
+            player.anim(castAnim)
         }
         world.repeatOp(player, Op(OpTarget.NPC, op.id, op.option, npc = npc))
     }
 
-    /** Tries each fish the player can catch, best first; the first success is caught. */
-    private fun ScriptContext.roll(method: FishingMethod, level: Int) {
+    /**
+     * The best tool for [method] the player holds, in the backpack or the weapon slot, that their [level] can use;
+     * [PLAIN] for the method's own tool, null for none. Guessed: a better tool the level can't use yet counts as no
+     * tool, so the method's own tool or the no-tool message comes next.
+     */
+    private fun ScriptContext.toolFor(method: FishingMethod, level: Int): FishingTool? {
+        val weapon = player.equipment[WearPos.WEAPON]?.id
+        fun held(obj: Int) = weapon == obj || player.inventory.count(obj) > 0
+        return method.otherTools.firstOrNull { level >= it.level && held(it.obj) } ?: PLAIN.takeIf { held(method.tool) }
+    }
+
+    /** Tries each fish the player can catch, best first, with pairs scaled by the tool's [percent]; the first success is caught. */
+    private fun ScriptContext.roll(method: FishingMethod, level: Int, percent: Int) {
         for (fish in method.fish) {
-            if (level < fish.level || !SuccessRoll.roll(world.random, fish.low, fish.high, level)) continue
+            if (level < fish.level) continue
+            if (!SuccessRoll.roll(world.random, fish.low * percent / 100, fish.high * percent / 100, level)) continue
             val type = world.objTypes[fish.obj] ?: error("No obj type ${fish.obj} for a caught fish")
             method.bait?.let { bait ->
                 val slot = player.inventory.contents().firstOrNull { it.second.id == bait.obj }?.first
@@ -215,11 +262,24 @@ class Fishing(private val world: World) {
         const val FLY_FISHING_ROD = 309 // fly_fishing_rod
         const val FISHING_BAIT = 313 // fishing_bait
         const val FEATHER = 314 // feather
+        const val LOBSTER_POT = 301 // lobster_pot
+        const val HARPOON = 311 // harpoon
+        const val BARB_TAIL_HARPOON = 10129 // hunting_barbed_harpoon
+        const val DRAGON_HARPOON = 21028 // dragon_harpoon
+
+        /** Stands for a method's own tool in [toolFor]: its pairs as they are, and the method's animations. */
+        private val PLAIN = FishingTool(-1, 1, 100, -1)
 
         /** human_smallnet, human_fishing_casting, human_fish_onspot. */
         const val NET_ANIM = 621
         const val CAST_ANIM = 622
         const val ROD_ANIM = 623
+
+        /** human_harpoon, human_lobster, human_harpoon_barbed, human_harpoon_dragon. */
+        const val HARPOON_ANIM = 618
+        const val CAGE_ANIM = 619
+        const val BARB_TAIL_HARPOON_ANIM = 5108
+        const val DRAGON_HARPOON_ANIM = 7401
 
         /** Levels and XP from the Wiki's fish pages; pairs fitted to their charts. Obj ids by gameval name. */
         val SHRIMPS = Fish(317, 1, 100, 48, 256, FishingLines.CATCH_SHRIMPS) // raw_shrimp
@@ -239,6 +299,16 @@ class Fishing(private val world: World) {
         val CAVE_EEL = Fish(5001, 38, 800, 10, 80, FishingLines.CATCH_CAVE_EEL) // raw_cave_eel
         val SLIMY_EEL = Fish(3379, 28, 650, 10, 80, FishingLines.CATCH_SLIMY_EEL) // mort_slimey_eel
 
+        /**
+         * Cage and harpoon fish: levels, XP and pairs are the Wiki's (Raw lobster, Raw tuna, Raw swordfish and Raw shark
+         * pages, read 2026-11-10, whose success charts give each pair; swordfish is tried before tuna, the charts'
+         * cascade).
+         */
+        val LOBSTER = Fish(377, 40, 900, 6, 95, FishingLines.CATCH_LOBSTER) // raw_lobster
+        val TUNA = Fish(359, 35, 800, 8, 64, FishingLines.CATCH_TUNA) // raw_tuna
+        val SWORDFISH = Fish(371, 50, 1000, 4, 48, FishingLines.CATCH_SWORDFISH) // raw_swordfish
+        val SHARK = Fish(383, 76, 1100, 3, 40, FishingLines.CATCH_SHARK) // raw_shark
+
         private val BAIT = Bait(FISHING_BAIT, FishingLines.NO_BAIT)
         private val FEATHERS = Bait(FEATHER, FishingLines.NO_FEATHERS)
 
@@ -257,6 +327,29 @@ class Fishing(private val world: World) {
         val RIVER_BAIT = FishingMethod(
             "Bait", FISHING_ROD, FishingLines.NO_ROD, BAIT, FishingLines.CAST_LINE, CAST_ANIM, ROD_ANIM, listOf(PIKE),
             FishingLines.LEVEL_BAIT, recasts = true,
+        )
+
+        /**
+         * The harpoons that wield: the barb-tail fishes as the harpoon does, the dragon harpoon 20% better from 61 Fishing
+         * (the Wiki's Harpoon, Barb-tail harpoon and Dragon harpoon pages). Out: the infernal harpoon (its charges and the
+         * fish it cooks) and the crystal harpoon (its charges), and the dragon harpoon's special attack.
+         */
+        private val HARPOONS = listOf(
+            FishingTool(DRAGON_HARPOON, 61, 120, DRAGON_HARPOON_ANIM),
+            FishingTool(BARB_TAIL_HARPOON, 1, 100, BARB_TAIL_HARPOON_ANIM),
+        )
+
+        val CAGE = FishingMethod(
+            "Cage", LOBSTER_POT, FishingLines.NO_CAGE, null, FishingLines.CAST_CAGE, CAGE_ANIM, CAGE_ANIM, listOf(LOBSTER),
+            FishingLines.LEVEL_CAGE,
+        )
+        val HARPOON_TUNA = FishingMethod(
+            "Harpoon", HARPOON, FishingLines.NO_HARPOON, null, FishingLines.CAST_HARPOON, HARPOON_ANIM, HARPOON_ANIM,
+            listOf(SWORDFISH, TUNA), FishingLines.LEVEL_HARPOON, otherTools = HARPOONS,
+        )
+        val HARPOON_SHARK = FishingMethod(
+            "Harpoon", HARPOON, FishingLines.NO_HARPOON, null, FishingLines.CAST_HARPOON, HARPOON_ANIM, HARPOON_ANIM,
+            listOf(SHARK), FishingLines.LEVEL_HARPOON, otherTools = HARPOONS,
         )
 
         val CAVE_NET = FishingMethod(
@@ -287,6 +380,18 @@ class Fishing(private val world: World) {
         const val SWAMP_CAVES_WEST_SPOT = 1497
         const val SWAMP_CAVES_EAST_SPOT = 1498
 
+        /**
+         * Catherby's beach (built in place, reached by ::tele): Net/Bait (`0_44_53_saltfish`), Cage/Harpoon
+         * (`0_44_53_rarefish`) and Big Net/Harpoon (`0_44_53_memberfish`; its Big Net comes with the big net step).
+         */
+        const val CATHERBY_NET_SPOT = 1518
+        const val CATHERBY_CAGE_SPOT = 1519
+        const val CATHERBY_SHARK_SPOT = 1520
+
+        /** Musa Point on Karamja (built in place, reached by ::tele): Net/Bait (`0_45_49_saltfish`) and Cage/Harpoon (`0_45_49_rarefish`). */
+        const val MUSA_POINT_NET_SPOT = 1521
+        const val MUSA_POINT_CAGE_SPOT = 1522
+
         val SPOTS = listOf(
             SpotType(SWAMP_SPOT, listOf(SMALL_NET, SEA_BAIT)),
             SpotType(RIVER_SPOT, listOf(LURE, RIVER_BAIT)),
@@ -295,6 +400,11 @@ class Fishing(private val world: World) {
             SpotType(BARBARIAN_SPOT, listOf(LURE, RIVER_BAIT)),
             SpotType(SWAMP_CAVES_WEST_SPOT, listOf(CAVE_NET, CAVE_BAIT)),
             SpotType(SWAMP_CAVES_EAST_SPOT, listOf(CAVE_NET, CAVE_BAIT)),
+            SpotType(CATHERBY_NET_SPOT, listOf(SMALL_NET, SEA_BAIT)),
+            SpotType(CATHERBY_CAGE_SPOT, listOf(CAGE, HARPOON_TUNA)),
+            SpotType(CATHERBY_SHARK_SPOT, listOf(HARPOON_SHARK)),
+            SpotType(MUSA_POINT_NET_SPOT, listOf(SMALL_NET, SEA_BAIT)),
+            SpotType(MUSA_POINT_CAGE_SPOT, listOf(CAGE, HARPOON_TUNA)),
         )
         private val SPOT_IDS = SPOTS.map { it.npc }.toSet()
 
@@ -314,6 +424,14 @@ class Fishing(private val world: World) {
             // Barbarian Village's: 2004Scape's fishing_movement_barbarian_village_enum, which holds the two tiles mejrs's
             // live NPC list has the spots on (3104, 3424 and 3110, 3434).
             listOf(Tile(3110, 3434), Tile(3110, 3433), Tile(3110, 3432), Tile(3104, 3425), Tile(3104, 3424)),
+            // Catherby's, which all three kinds of spot share: 2004Scape's fishing_movement_catherby_enum, which holds the
+            // seven tiles mejrs's live NPC list and the Wiki's spot pages have the spots on.
+            listOf(Tile(2836, 3431), Tile(2837, 3431), Tile(2838, 3431), Tile(2844, 3429), Tile(2845, 3429), Tile(2846, 3429),
+                Tile(2853, 3423), Tile(2854, 3423), Tile(2855, 3423), Tile(2859, 3426), Tile(2860, 3426)),
+            // Musa Point's, shared by both kinds: 2004Scape's fishing_movement_musa_point_enum, which holds the six tiles
+            // mejrs's live NPC list has the spots on.
+            listOf(Tile(2921, 3178), Tile(2926, 3176), Tile(2926, 3179), Tile(2926, 3180), Tile(2925, 3181), Tile(2924, 3181),
+                Tile(2923, 3180), Tile(2923, 3179)),
         )
     }
 }
