@@ -1,5 +1,5 @@
 {
- "name": "Raid step 15: two solo runs of The Fractured Archive through its empty rooms, one by the west doors (Ezekiel, Moia, the Dagon'hai Elder) and one by the east (Bork, Dreadnoth, Xarth), each from the Archive Door through the Guardian's hall to Ocellus's room; the transporters and a Passageway back out; the first run out by the reward vault (raid step 28: Travel, its Merit scroll and Rift, the Rift out's Leave), the second by the inner vault's Passageway. The Guardian's, Ezekiel's, Bork and the Smorks', Dreadnoth's, Xarth's and Ocellus's rooms are marked done with ::raid clear (their fights are their own scripts); no other boss is built yet, so each other room is done as it begins",
+ "name": "Raid step 15: two solo runs of The Fractured Archive through its empty rooms, one by the west doors (Ezekiel, Moia, the Dagon'hai Elder) and one by the east (Bork, Dreadnoth, Xarth), each from the Archive Door through the Guardian's hall to Ocellus's room; the transporters and a Passageway back out; the first run out by the reward vault (raid step 28: Travel, its Merit scroll and Rift, the Rift out's Leave; a death there costs nothing, exploit review R23A-1), the second by the inner vault's Passageway. The Guardian's, Ezekiel's, Bork and the Smorks', Dreadnoth's, Xarth's and Ocellus's rooms are marked done with ::raid clear (their fights are their own scripts); no other boss is built yet, so each other room is done as it begins",
  "account": "test",
  "steps": [
   {
@@ -269,6 +269,46 @@
    "step": "waitTicks",
    "ticks": 12,
    "comment": "the Rift out comes 15 ticks after the first of the party does"
+  },
+  {
+   "step": "command",
+   "text": "::hit 99 me",
+   "expectMessage": ", dead",
+   "comment": "exploit review R23A-1: a death once the run is done (poison, a late hit), here up the vault's walk and alone"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 12,
+   "comment": "the death ticks and the client's redraw"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": " 5000. You're in the reward vault, at 4127, 5779 of the raid",
+   "comment": "up again at the vault's arrival tile, the run still there: nothing between the points and the place, so nobody down and no death counted (a guess: what such a death costs on live isn't known)"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "; complete;",
+   "comment": "and no wipe, though nobody else stood"
+  },
+  {
+   "step": "command",
+   "text": "::pos",
+   "expectMessage": ", 2 (region",
+   "comment": "on the vault's level"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp 4127 5790",
+   "expectMessage": "To 4127, 5790 of the raid",
+   "comment": "standing, so the way out is still ours: up the walk again"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "the client's scene after the move"
   },
   {
    "step": "npcOption",

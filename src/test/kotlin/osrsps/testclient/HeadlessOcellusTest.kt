@@ -6,9 +6,11 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.EquipmentTab
+import osrsps.game.GameLines
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
@@ -553,6 +555,46 @@ class HeadlessOcellusTest {
                 val taken = alice.awaitLine(run, "the last volley taking her", 30_000) { it.contains("second: last volley takes alice outside NE for ") }
                 val last = fight.lines.single { it.contains("second: last volley fires from ") }
                 assertTrue(tickOf(taken) in tickOf(last) + 1..tickOf(last) + 3, taken)
+            }
+        }
+    }
+
+    @Test
+    fun `nobody attacks him or anything of his from the corridor his room is come into by`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.throughTheRest(run)
+                alice.toOcellus(server, run)
+                alice.npcOp(assertNotNull(run.ocellusFigure).index, 1)
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ocellus #") } }
+                val boss = boss(run)
+                val world = server.world
+                val player = world.playerNamed("alice")!!
+                val centre = Ocellus.centre(boss.spawn.x, boss.spawn.z)
+                val level = ArchiveRoom.OCELLUS.level
+                assertNull(world.combat.barred(player, boss), "on his arena")
+                alice.commandReply("raid hold 100") { it.startsWith("Held ") }
+                // The arena's south edge, on the arm: still on it.
+                alice.tele(centre.x, centre.z - Ocellus.STRIP_LENGTH, level)
+                assertNull(world.combat.barred(player, boss), "on the arena's last row")
+                // A tile south of it, the corridor's north end: in his room, so his fight goes on, but off the arena,
+                // which none of his room-wide attacks leave (exploit review round 23, R23B-1): shut out, and refused.
+                alice.tele(centre.x, centre.z - Ocellus.STRIP_LENGTH - 1, level)
+                assertTrue(world.archiveRaids.inRoom(run, ArchiveRoom.OCELLUS, player.x, player.z), "the corridor is in his room")
+                assertSame(GameLines.CANT_REACH, world.combat.barred(player, boss), "from the corridor")
+                // Him held on the arena's last row, beside her (a swing is tried on arrival, and she has arrived).
+                world.npcs.teleport(boss, centre.x - 1, centre.z - Ocellus.STRIP_LENGTH)
+                alice.await("him beside her, to the north") { alice.npcs().firstOrNull { it.index == boss.index && it.coord.z == centre.z - Ocellus.STRIP_LENGTH } }
+                alice.npcOp(boss.index, 2)
+                alice.await("the refusal") { alice.messages().firstOrNull { it.text == "[game.cant_reach]" } }
+                alice.awaitTicks(4)
+                assertTrue(alice.npcHits().none { it.index == boss.index }, "${alice.npcHits()}")
+                // Where she comes into his room, far down the corridor: the same.
+                val entry = world.archiveRaids.tile(run, ArchiveRoom.OCELLUS.entryX, ArchiveRoom.OCELLUS.entryZ)
+                alice.tele(entry.x, entry.z, level)
+                assertSame(GameLines.CANT_REACH, world.combat.barred(player, boss), "from where the room is come into")
+                assertTrue(run.fights[ArchiveRoom.OCELLUS] != null, "his fight goes on with her in the corridor")
             }
         }
     }
