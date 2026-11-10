@@ -181,6 +181,12 @@ class MeleeCombat(
             stopFacing(player)
             return true
         }
+        // Checked at every attack, not just the first: a boosted Slayer level can drop back mid-fight.
+        if (combat.slayerGated(player, npc)) {
+            message(player, words(player)[CombatLines.SLAYER_LEVEL])
+            stopFacing(player)
+            return true
+        }
         // It can take off mid-fight, as the Archive Guardian does once it is low.
         if (flyingOutOfReach(player, npc)) {
             message(player, words(player)[CombatLines.FLYING])

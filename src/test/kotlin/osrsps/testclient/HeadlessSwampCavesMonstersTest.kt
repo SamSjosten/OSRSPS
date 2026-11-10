@@ -50,7 +50,7 @@ class HeadlessSwampCavesMonstersTest {
         World(
             crcs, CollisionMap().apply { markLoaded(3160 shr 6, 9560 shr 6) }, random = GameRandom(11), objTypes = objTypes, npcTypes = types,
             npcSpawns = listOf(
-                NpcSpawn(slime, 3162, 9560, source = "test"), NpcSpawn(goblin, 3158, 9563, source = "test"),
+                NpcSpawn(slime, 3162, 9560, source = "test"), NpcSpawn(goblin, 3158, 9563, source = "test"), NpcSpawn(goblin, 3156, 9563, source = "test"),
                 NpcSpawn(spot, 3154, 9544, source = "test"),
             ),
             npcCombat = NpcCombat.load(types, SeqNames.NONE), npcDrops = NpcDrops.load(types, objTypes), cycleMillis = millis,
@@ -64,10 +64,12 @@ class HeadlessSwampCavesMonstersTest {
 
     private fun HeadlessClient.seen(text: String) = await(text) { messages().firstOrNull { it.text == text } }
 
+    private fun HeadlessClient.seen2(text: String) = await("$text twice") { messages().filter { it.text == text }.takeIf { it.size >= 2 } }
+
     private fun HeadlessClient.held(id: Int) = inventory(BACKPACK).count { it?.id == id }
 
     @Test
-    fun `a cave slime refuses a player below Slayer 17, and one at 17 kills it for its swamp tar`(@TempDir dir: Path) {
+    fun `a cave slime refuses a player below Slayer 17, even mid-fight, and one at 17 kills it for its swamp tar`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { client ->
                 client.await("the login rebuild") { client.position }
@@ -81,19 +83,30 @@ class HeadlessSwampCavesMonstersTest {
 
                 client.command("setlevel slayer 17")
                 client.await("Slayer 17") { client.stat(SLAYER)?.takeIf { it.level == 17 } }
+                // Mid-fight, dropping below 17 stops the fight at the next swing.
+                client.npcOp(npc.index, 2)
+                client.await("a first swing") { client.npcHits().firstOrNull { it.index == npc.index } }
+                client.command("setlevel slayer 16")
+                client.seen2("[combat.slayer_level]")
+                val hits = client.npcHits().count { it.index == npc.index }
+                client.awaitTicks(8)
+                assertEquals(hits, client.npcHits().count { it.index == npc.index }, "no swings after the refusal")
+
+                client.command("setlevel slayer 17")
+                client.await("Slayer 17 again") { client.stat(SLAYER)?.takeIf { it.level == 17 } }
                 client.command("setlevel attack 99")
                 client.command("setlevel strength 99")
                 client.await("Strength 99") { client.stat(STRENGTH)?.takeIf { it.level == 99 } }
                 client.npcOp(npc.index, 2)
                 client.await("the slime's death", timeoutMillis = 90_000) { if (client.npcs().none { it.id == SLIME }) Unit else null }
                 client.await("its swamp tar") { client.groundObjs().map { it.id }.takeIf { SWAMP_TAR in it } }
-                assertEquals(1, client.messages().count { it.text == "[combat.slayer_level]" })
+                assertEquals(2, client.messages().count { it.text == "[combat.slayer_level]" })
             }
         }
     }
 
     @Test
-    fun `a cave goblin begs not to be hurt, then gives a player with no light a lit torch`(@TempDir dir: Path) {
+    fun `a cave goblin begs not to be hurt, gives a player with no light a lit torch, and begs again once one is killed`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bob").use { client ->
                 client.await("the login rebuild") { client.position }
@@ -123,6 +136,12 @@ class HeadlessSwampCavesMonstersTest {
                     talks++
                 }
                 assertEquals(1, client.held(LightSources.LIT_TORCH), "after $talks talks")
+
+                // Killing one breaks the promise: the other begs again.
+                client.commandReply("kill ${npc.index}") { it.startsWith("Killed") }
+                val other = client.await("the other goblin") { client.npcs().firstOrNull { it.id == goblin.id && it.index != npc.index } }
+                client.npcOp(other.index, SwampCaveGoblins.TALK_TO)
+                client.awaitDialogue("the plea again") { it is DialogueView.Chat && it.text == "[cave_goblin.dont_hurt]" }
             }
         }
     }

@@ -55,10 +55,11 @@ object CaveGoblinLines : Lines("cave_goblin", "Transcript:Cave goblin (monster),
  * a player with no light (9), a tinderbox for one with none (10), a warning about a naked flame (7) or a bright light
  * (8). The Lost Tribe counts as done, as every quest does here, so line 6 is always among them.
  *
- * Guessed: that the promise is remembered until logout rather than in a saved variable, and isn't forgotten on killing
- * one (the Wiki: "after killing one of them" they beg again); the even chances among the lines that can come up; the
- * expressions; that a gift is skipped with a full backpack; that the overheads come from goblins within [CRY_RADIUS]
- * tiles. Out: the threatened goblins running away.
+ * Killing one breaks the promise (the Wiki: "First time talking or after killing one of them"): the next talk begs
+ * again. Guessed: that the promise is remembered until logout rather than in a saved variable; that the killer is
+ * whoever fought it last; the even chances among the lines that can come up; the expressions; that a gift is skipped
+ * with a full backpack; that the overheads come from goblins within [CRY_RADIUS] tiles. Out: the threatened goblins
+ * running away.
  */
 class SwampCaveGoblins(private val world: World) {
     companion object {
@@ -160,6 +161,8 @@ class SwampCaveGoblins(private val world: World) {
 }
 
 fun registerSwampCaveGoblins(world: World) {
+    // Whoever fought it last killed it, and their promise is broken.
+    world.npcScripts.onDeath(SwampCaveGoblins.GOBLINS) { goblin -> goblin.lastAttacker?.let(world.caveGoblins::forget) }
     for (goblin in SwampCaveGoblins.GOBLINS) {
         world.handlers.onNpc(goblin, SwampCaveGoblins.TALK_TO) { op ->
             world.dialogues.start(this, op.npc) { with(world.caveGoblins) { talk { world.random.nextInt(it) } } }

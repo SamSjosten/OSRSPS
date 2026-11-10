@@ -146,6 +146,12 @@ class RangedCombat(
             stopFacing(player)
             return true
         }
+        // Checked at every attack, not just the first: a boosted Slayer level can drop back mid-fight.
+        if (combat.slayerGated(player, npc)) {
+            message(player, words(player)[CombatLines.SLAYER_LEVEL])
+            stopFacing(player)
+            return true
+        }
         val weapon = weapon(player)
         val style = combat.style(player)
         if (weapon == null || style.type != AttackType.RANGED) {
