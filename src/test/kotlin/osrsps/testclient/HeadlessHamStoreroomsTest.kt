@@ -178,6 +178,12 @@ class HeadlessHamStoreroomsTest {
                 client.awaitAt(2567, 5192)
                 client.await("3.8 XP") { client.stat(THIEVING)?.takeIf { it.xp >= xp + 3 } }
 
+                // Close by hand on the open door puts the locked storeroom door back, not a plain one.
+                val opened = server.world.locs.at(2566, 5192, 0).firstOrNull { it.id == HamStorerooms.DOOR_OPEN }
+                if (opened != null) {
+                    client.locOp(opened.id, opened.x, opened.z, 1)
+                    client.await("shut by hand") { if (server.world.locs.exists(westDoor)) Unit else null }
+                }
                 // From inside, Open lets the player out, no pick. The door has shut again by then.
                 client.await("the door shut") { if (server.world.locs.exists(westDoor)) Unit else null }
                 client.locOp(westDoor.id, westDoor.x, westDoor.z, HamStorerooms.OP_OPEN)
@@ -275,6 +281,28 @@ class HeadlessHamStoreroomsTest {
                 client.locOp(steelChest.id, steelChest.x, steelChest.z, 1)
                 client.awaitSeen("[ham_storerooms.chest_locked]", 2)
                 assertEquals(1, client.count(HamStorerooms.BRONZE_KEY))
+
+                // A coin stack too full for a coin roll keeps the key; rolls with no coins still open the chest.
+                val erin = server.world.playerNamed("erin")!!
+                erin.inventory.add(server.world.objTypes[COINS]!!, Int.MAX_VALUE)
+                client.command("item ${HamStorerooms.STEEL_KEY} 6")
+                client.await("six steel keys") { if (client.count(HamStorerooms.STEEL_KEY) == 6) Unit else null }
+                var kept = false
+                repeat(6) {
+                    if (kept || erin.inventory.count(HamStorerooms.STEEL_KEY) == 0L) return@repeat
+                    val keys = erin.inventory.count(HamStorerooms.STEEL_KEY)
+                    val full = client.seen("[ham_storerooms.chest_no_room]")
+                    val broke = client.seen("[ham_storerooms.key_breaks key=steel]")
+                    client.locOp(steelChest.id, steelChest.x, steelChest.z, 1)
+                    client.await("the chest's answer") { if (client.seen("[ham_storerooms.chest_no_room]") > full || client.seen("[ham_storerooms.key_breaks key=steel]") > broke) Unit else null }
+                    if (client.seen("[ham_storerooms.chest_no_room]") > full) {
+                        kept = true
+                        assertEquals(keys, erin.inventory.count(HamStorerooms.STEEL_KEY), "the key kept")
+                    }
+                }
+                assertTrue(kept, "a coin roll (1/2 a roll) in six")
+                assertEquals(Int.MAX_VALUE.toLong(), erin.inventory.count(COINS), "no coins lost or added past the cap")
+                erin.inventory.contents().filter { it.second.id != HamStorerooms.BRONZE_KEY }.forEach { erin.inventory.remove(it.first) }
 
                 val jewels = HamStorerooms.CHEST_LOOT.flatMap { roll -> roll.items.map { it.first } }.toSet()
                 client.command("item ${HamStorerooms.STEEL_KEY} 1")

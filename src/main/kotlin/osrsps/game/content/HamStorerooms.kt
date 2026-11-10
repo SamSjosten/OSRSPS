@@ -295,13 +295,14 @@ object HamStorerooms {
         val slot = player.inventory.contents().firstOrNull { it.second.id == key }?.first
         if (slot == null) return world.message(player, HamStoreroomsLines.CHEST_LOCKED)
         if (player.inventory.freeSlots < CHEST_ROOM) return world.message(player, HamStoreroomsLines.CHEST_NO_ROOM)
+        // Rolled before the key goes, so a coin stack too full for the coins keeps the key and loses nothing.
+        val reward = rollChest(world).filter { it.second > 0 }
+        val coins = reward.filter { it.first == COINS }.sumOf { it.second.toLong() }
+        if (player.inventory.count(COINS) + coins > Int.MAX_VALUE) return world.message(player, HamStoreroomsLines.CHEST_NO_ROOM)
         player.anim(Searching.ANIM_OPEN)
         player.inventory.remove(slot, 1)
         world.message(player, HamStoreroomsLines.KEY_BREAKS, "key" to KEY_COLOURS.getValue(key))
-        for ((obj, count) in rollChest(world)) {
-            if (count <= 0) continue
-            world.objTypes[obj]?.let { player.inventory.add(it, count) }
-        }
+        for ((obj, count) in reward) world.objTypes[obj]?.let { player.inventory.add(it, count) }
     }
 
     fun trapdoorOpen(player: Player): Boolean =
@@ -322,6 +323,8 @@ fun registerHamStorerooms(world: World) = with(HamStorerooms) {
         delay(1)
         world.teleport(player, ABOVE.first, ABOVE.second, ABOVE.third)
     }
+    // Closing the opened door by hand puts the locked storeroom door back, not the plain door 1536 shuts into.
+    world.doors.addClosedType(DOOR, DOOR_OPEN)
     world.handlers.onLoc(DOOR, OP_OPEN) { op -> openDoor(world, op.loc!!) }
     world.handlers.onLoc(DOOR, OP_PICK) { op -> pickDoor(world, op) }
     world.handlers.onLoc(CRACK, 1) { op -> squeeze(world, op.loc!!) }
