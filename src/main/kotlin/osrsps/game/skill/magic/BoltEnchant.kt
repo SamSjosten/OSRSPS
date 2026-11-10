@@ -109,9 +109,14 @@ class BoltEnchantData(val enchantments: List<BoltEnchantment>) {
  * player holds, each shown as the bolt it makes, and the choice casts that enchantment the picked number of times, one
  * cast every [INTERVAL] ticks, each taking its runes (an elemental staff standing in for its own) and up to [PER_CAST]
  * bolts, giving as many enchanted and the spell's XP, with [ANIM] and [SPOTANIM]. Each cast is a weak queue entry, as
- * the artisan skills' making is ([Making]), so walking off ends it. See `skills/bolt-enchant.json` for what is verified.
+ * the artisan skills' making is ([Making]), so walking off ends it; it leaves the player's interaction alone, so
+ * gathering goes on (though, as for a level-up box, gathering stops if the Make-X box is still open at its next roll;
+ * guessed). One cast a tick at most. See `skills/bolt-enchant.json` for what is verified.
  */
 class BoltEnchant(private val world: World, private val data: BoltEnchantData) {
+    /** The tick of each player's last cast, so a cast a tick is the most anyone gets. */
+    private val lastCast = java.util.WeakHashMap<osrsps.game.Player, Long>()
+
     fun register() {
         if (data.enchantments.isEmpty()) return
         world.handlers.onButton(Spells.SPELLBOOK, COMPONENT, CAST) { open() }
@@ -132,8 +137,9 @@ class BoltEnchant(private val world: World, private val data: BoltEnchantData) {
         val enchantment = held.getOrNull(index)?.first ?: return
         if (quantity <= 0) return
         world.interfaces.closeChatModal(player)
-        world.scripts.clearQueue(player, Making.QUEUE)
-        player.interaction = null
+        // Casting doesn't interrupt mining, fishing and the like (OSRS Wiki, Enchant Crossbow Bolt: zero-time Magic), so
+        // the player's interaction stays; only an earlier run of casts gives way.
+        world.scripts.clearQueue(player, QUEUE)
         castOne(enchantment, quantity)
     }
 
@@ -148,6 +154,8 @@ class BoltEnchant(private val world: World, private val data: BoltEnchantData) {
     /** One cast, then the next queued while [left] casts remain and the level, runes and bolts last. */
     private fun ScriptContext.castOne(enchantment: BoltEnchantment, left: Int) {
         val text = world.textFor(player)
+        // At most one cast a tick: clicks can beat [INTERVAL] (the Wiki's space bar and rapid clicks), never the tick.
+        if (lastCast[player] == world.tick) return
         val pair = boltsHeld(enchantment) ?: return
         if (player.skills.currentLevel(Skill.MAGIC) < enchantment.level) {
             player.message(text[CombatLines.MAGIC_LEVEL])
@@ -171,11 +179,12 @@ class BoltEnchant(private val world: World, private val data: BoltEnchantData) {
             player.message(text[MakeLines.NO_SPACE])
             return
         }
+        lastCast[player] = world.tick
         player.skills.addTenths(Skill.MAGIC, enchantment.xpTenths)
         player.anim(ANIM)
         player.spotanim(SPOTANIM)
         if (left <= 1 || boltsHeld(enchantment) == null) return
-        queue(Making.QUEUE, QueueType.WEAK, INTERVAL) { castOne(enchantment, left - 1) }
+        queue(QUEUE, QueueType.WEAK, INTERVAL) { castOne(enchantment, left - 1) }
     }
 
     /** The item's name as the not-enough message has it, as [Teleports] does: Cosmic Runes. */
@@ -191,6 +200,9 @@ class BoltEnchant(private val world: World, private val data: BoltEnchantData) {
 
         /** Bolts a cast enchants (Wiki). */
         const val PER_CAST = 10
+
+        /** The casts' own queue key, apart from [Making.QUEUE], so a cast doesn't end what the player is making. */
+        const val QUEUE = "bolt_enchant"
 
         /** Ticks between casts; guessed. */
         const val INTERVAL = 3

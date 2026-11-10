@@ -36,7 +36,7 @@ class HeadlessBoltEnchantTest {
     private fun bolts(id: Int, internal: String, name: String) =
         ObjType(id, name, stackable = true, iops = listOf(null, "Wield", null, null, "Drop"), internalName = internal)
 
-    private fun server(dir: Path) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
+    private fun server(dir: Path, cycleMillis: Long = 40) = TestServer(dir, cycleMillis = cycleMillis) { crcs, millis ->
         val objTypes = TeleportObjs.objTypes(
             ObjType(COSMIC, "Cosmic rune", stackable = true, internalName = "cosmicrune"),
             ObjType(BLOOD, "Blood rune", stackable = true, internalName = "bloodrune"),
@@ -127,6 +127,30 @@ class HeadlessBoltEnchantTest {
                 client.await("the dragon bolts enchanted") { if (client.count(OPAL_DRAGON_E) == 4) Unit else null }
                 assertEquals(10, client.count(OPAL_E))
                 assertEquals(0, client.count(COSMIC))
+            }
+        }
+    }
+
+    @Test
+    fun `two casts sent in one tick enchant once`(@TempDir dir: Path) {
+        // Long ticks, so the four packets all land in one.
+        server(dir, cycleMillis = 1500).use { server ->
+            server.login("dave").use { client ->
+                client.ready(4)
+                val start = client.magicXp()
+                client.give(OPAL, 30)
+                client.give(COSMIC, 5)
+                client.give(TeleportObjs.AIR, 10)
+                client.cast()
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 1)
+                client.cast()
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 1)
+                client.await("10 enchanted") { if (client.count(OPAL_E) >= 10) Unit else null }
+                client.await("two more ticks") { client.position }
+                Thread.sleep(3_500)
+                assertEquals(10, client.count(OPAL_E), "one cast, not two")
+                assertEquals(4, client.count(COSMIC))
+                assertEquals(9, client.magicXp() - start)
             }
         }
     }
