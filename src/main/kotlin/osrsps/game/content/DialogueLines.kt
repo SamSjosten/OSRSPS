@@ -18,6 +18,8 @@ import osrsps.game.dialogue.Lines
 import osrsps.game.ge.GrandExchangeLines
 import osrsps.game.ge.PriceCheckerLines
 import osrsps.game.raid.BorkLines
+import osrsps.game.raid.DreadnothLines
+import osrsps.game.raid.XarthLines
 import osrsps.game.shop.ShopLines
 import osrsps.game.skill.AgilityLines
 import osrsps.game.skill.BirdNestLines
@@ -80,6 +82,8 @@ object DialogueLines {
         BirdNestLines,
         BlueMoonBarbarianLines,
         BorkLines,
+        DreadnothLines,
+        XarthLines,
         CadmusLines,
         FeorasLines,
         FinlayLines,
