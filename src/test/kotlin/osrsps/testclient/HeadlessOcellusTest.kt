@@ -13,11 +13,14 @@ import osrsps.game.NpcStats
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.SeqNames
+import osrsps.game.Skill
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.World
+import osrsps.game.combat.AttackType
 import osrsps.game.combat.Deaths
 import osrsps.game.combat.NpcCombat
+import osrsps.game.combat.SureHit
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
@@ -82,8 +85,16 @@ class HeadlessOcellusTest {
         Ocellus.VINE, "<col=00ffff>Void Vine</col>", ops = listOf(null, "Attack", null, null, null), internalName = "tfa_ocellus_p3_void_vine",
         stats = NpcStats(attack = 1, defence = 1, strength = 1, hitpoints = 44, ranged = 1, magic = 1),
     )
+    /** His void flares, as the 242 cache has them: 44 hitpoints, Defence 175, Magic 300 and Attack. */
+    private val flares = Ocellus.Flare.entries.map { kind ->
+        NpcType(
+            kind.id, "Void ${kind.name.lowercase().replaceFirstChar { it.uppercase() }}", ops = listOf(null, "Attack", null, null, null),
+            internalName = listOf("tfa_ocellus_p3_bombportal_basic", "tfa_ocellus_p3_bombportal_heal", "tfa_ocellus_p3_bombportal_buff")[kind.ordinal],
+            stats = NpcStats(attack = 1, defence = 175, strength = 1, hitpoints = 44, ranged = 1, magic = 300),
+        )
+    }
     private val grave = NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null))
-    private val types = NpcTypes.of(figure, notMet, met, first, second, blade, third, vine, grave)
+    private val types = NpcTypes.of(figure, notMet, met, first, second, blade, third, vine, grave, *flares.toTypedArray())
 
     private val portal = LocCollisionType(width = 2, length = 1, interactType = 1, blocksProjectile = false)
     private val locTypes = LocTypes(
@@ -838,6 +849,22 @@ class HeadlessOcellusTest {
                 assertEquals(untether + Ocellus.SLAM_AT, tickOf(down))
                 assertEquals(4, fight.lines.count { it.contains("third: eruption ") && it.contains(" on ") })
                 assertTrue(fight.lines.none { it.contains("he comes down on alice") }, "safe in the square")
+                // As Untether ends, in his first quadrant, two Siphons: each heals him every four ticks.
+                val siphons = alice.awaitLine(run, "the siphons") { it.contains("third: siphon flares at ") }
+                assertEquals(2, Ocellus.flares(boss).size)
+                assertTrue(Ocellus.flares(boss).all { it.type.id == Ocellus.Flare.SIPHON.id && Ocellus.quadrant(centre, it.x, it.z) == Ocellus.Quadrant.NW })
+                val heal = alice.awaitLine(run, "a siphon's heal") { it.contains("third: siphon heals him ") }
+                assertEquals(tickOf(siphons) + Ocellus.SIPHON_HEAL_EVERY, tickOf(heal))
+                // Standing between one and him, she blocks its next heal; destroying it, she is empowered.
+                val siphon = Ocellus.flares(boss).first()
+                val (midX, midZ) = boss.x + 1 to boss.z + 1
+                val steps = maxOf(kotlin.math.abs(midX - siphon.x), kotlin.math.abs(midZ - siphon.z))
+                val block = Tile(siphon.x + Math.round((midX - siphon.x) / steps.toDouble()).toInt(), siphon.z + Math.round((midZ - siphon.z) / steps.toDouble()).toInt())
+                alice.tele(block.x, block.z, level)
+                alice.awaitLine(run, "her block") { it.contains("third: alice blocks a siphon's heal, healed ") }
+                alice.commandReply("hit 44 ${siphon.index}") { it.startsWith("Hit ") }
+                alice.awaitLine(run, "her empowerment") { it.endsWith("third: siphon destroyed: alice empowered") }
+                alice.tele(stand.x, stand.z, level)
                 // At 75% the north-west falls with its void; she goes on to the north-east, and there Insolence is first:
                 // three superior slashes towards her, five ticks apart, leaving void.
                 alice.commandReply("hit ${boss.hitpoints - 5250 * 75 / 100} ${boss.index}") { it.startsWith("Hit ") }
@@ -852,6 +879,68 @@ class HeadlessOcellusTest {
                 assertEquals((0..2).map { insolence + Ocellus.INSOLENCE_GAP * it }, slashes)
                 alice.awaitTicks(2)
                 assertTrue(Ocellus.voids(boss).any { world.locs[it.x, it.z, level, 2]?.id in Ocellus.LOC_INSOLENCE }, "its bands")
+            }
+        }
+    }
+
+    @Test
+    fun `from his second quadrant void flares come with his first attack, Augmenters then Rifts, empowering whoever destroys one, and one left detonates`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.throughTheRest(run)
+                alice.toOcellus(server, run)
+                alice.npcOp(assertNotNull(run.ocellusFigure).index, 1)
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ocellus #") } }
+                val boss = boss(run)
+                val world = server.world
+                val level = ArchiveRoom.OCELLUS.level
+                val centre = Ocellus.centre(boss.spawn.x, boss.spawn.z)
+                alice.command("varp ${EquipmentTab.VARP_AUTO_RETALIATE_OFF} 1")
+                alice.toHisThird(run)
+                alice.awaitLine(run, "his quadrant") { it.contains("third: takes quadrant NW") }
+                val player = world.playerNamed("alice")!!
+                // Straight to 75%: no Untether in the north-west, so no Siphons.
+                alice.commandReply("hit ${boss.hitpoints - 5250 * 75 / 100} ${boss.index}") { it.startsWith("Hit ") }
+                alice.awaitLine(run, "the north-west to fall") { it.contains("third: NW to fall at ") }
+                val ne = Ocellus.quadrantTile(centre, Ocellus.Quadrant.NE, 3, 3)
+                alice.tele(ne.x, ne.z, level)
+                val took = tickOf(alice.awaitLine(run, "the north-east") { it.contains("third: takes quadrant NE") })
+                // With his first attack there, two Augmenters in his quadrant, off the void and the cross.
+                val augmenters = alice.awaitLine(run, "the augmenters") { it.contains("third: augmenter flares at ") }
+                assertEquals(took + Ocellus.FIRST_ATTACK_AFTER, tickOf(augmenters))
+                assertTrue(lines(run).none { it.contains("siphon flares") })
+                val two = Ocellus.flares(boss)
+                assertEquals(2, two.size)
+                assertTrue(two.all { it.type.id == Ocellus.Flare.AUGMENTER.id && Ocellus.quadrant(centre, it.x, it.z) == Ocellus.Quadrant.NE }, "$two")
+                assertTrue(two.none { Tile(it.x, it.z) in Ocellus.voids(boss) || Ocellus.onCross(centre, it.x, it.z) })
+                // Destroying one boosts her Attack and Strength as a super combat potion, Magic and Ranged as a ranging potion.
+                alice.commandReply("hit 44 ${two[0].index}") { it.startsWith("Hit ") }
+                alice.awaitLine(run, "her empowerment") { it.endsWith("third: augmenter destroyed: alice empowered") }
+                for ((skill, percent, constant) in listOf(Triple(Skill.ATTACK, 15, 5), Triple(Skill.STRENGTH, 15, 5), Triple(Skill.MAGIC, 10, 4), Triple(Skill.RANGED, 10, 4))) {
+                    val base = player.skills.baseLevel(skill)
+                    assertEquals(base + base * percent / 100 + constant, player.skills.currentLevel(skill), skill.name)
+                }
+                // The other, left, detonates as its bar fills, on everyone.
+                alice.keepAlive()
+                val detonates = alice.awaitLine(run, "the detonation", 30_000) { it.endsWith("third: augmenter flare detonates") }
+                assertEquals(tickOf(augmenters) + Ocellus.FLARE_CHARGE, tickOf(detonates))
+                alice.awaitLine(run, "its hit on her") { it.contains("third: flare hits alice for ") }
+                assertTrue(Ocellus.flares(boss).isEmpty())
+                // At 50% on to the south-east, where they are Rifts, maxed by melee.
+                alice.commandReply("hit ${boss.hitpoints - 5250 * 50 / 100} ${boss.index}") { it.startsWith("Hit ") }
+                alice.awaitLine(run, "the north-east to fall") { it.contains("third: NE to fall at ") }
+                val se = Ocellus.quadrantTile(centre, Ocellus.Quadrant.SE, 3, 3)
+                alice.tele(se.x, se.z, level)
+                alice.keepAlive()
+                alice.awaitLine(run, "the south-east", 30_000) { it.contains("third: takes quadrant SE") }
+                alice.awaitLine(run, "the rifts") { it.contains("third: rift flares at ") }
+                val rifts = Ocellus.flares(boss)
+                assertTrue(rifts.size == 2 && rifts.all { it.type.id == Ocellus.Flare.RIFT.id }, "$rifts")
+                assertEquals(SureHit.MAX, world.combat.sureHit(player, rifts[0], AttackType.SLASH))
+                assertEquals(SureHit.ROLLED, world.combat.sureHit(player, boss, AttackType.SLASH))
+                alice.commandReply("hit 44 ${rifts[0].index}") { it.startsWith("Hit ") }
+                alice.awaitLine(run, "her empowerment by the rift") { it.endsWith("third: rift destroyed: alice empowered") }
             }
         }
     }
