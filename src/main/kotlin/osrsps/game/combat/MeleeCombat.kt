@@ -820,7 +820,7 @@ class MeleeCombat(
      * [npc]'s shot reached [player] without a hitsplat (a splash, or a drain-only spell): they are attacked by it all the
      * same, and auto-retaliate turns them on it as a hit would ([hitPlayer]).
      */
-    private fun attackedWithoutHit(player: Player, npc: Npc, tick: Long) {
+    fun attackedWithoutHit(player: Player, npc: Npc, tick: Long) {
         player.attackedBy = npc
         player.attackedTick = tick
         if (player.autoRetaliate && player.interaction == null && !player.modalOpen && tick >= player.stunnedUntil) retaliate(player, npc, tick)
