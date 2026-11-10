@@ -82,6 +82,8 @@ class NpcCombatTest {
             "cave_slime_attack" to 1789, "cave_slime_defend" to 1791, "cave_slime_death" to 1792,
             "crawler_attack" to 227, "crawler_parry" to 1504, "crawler_death" to 228,
             "dorgesh_goblin_unarmed_attack" to 6001, "dorgesh_goblin_unarmed_defend" to 6002, "dorgesh_goblin_death" to 6003,
+            "rockslug_attack" to 1567, "rockslug_defend" to 1565, "rockslug_death" to 1568,
+            "wall_beast_specialattack_attack" to 1802, "wall_beast_specialattack_defend" to 1803, "wall_beast_specialattack_death" to 1804,
         ),
     )
 
@@ -705,6 +707,28 @@ class NpcCombatTest {
         assertEquals(NpcCombatAnims(6079, 6080, 6082), def("swamp_cave_bug").anims)
         assertEquals(NpcCombatAnims(227, 1504, 228), def("slayer_cave_crawler_3").anims)
         assertEquals(NpcCombatAnims(1793, 1794, 1795), def("giant_frog").anims)
+    }
+
+    @Test
+    fun `rockslugs stop at 1 hitpoint and wall beasts out of their holes need Slayer 35, as the Wiki has them`() {
+        // The 242 cache's Strength levels.
+        val names = mapOf("slayer_rockslug" to 27, "slayer_rockslug_baby" to 27, "swamp_wallbeast_combat" to 30)
+        val slayerTypes = NpcTypes.of(*names.entries.mapIndexed { i, (name, str) -> NpcType(2800 + i, name, internalName = name, stats = NpcStats(strength = str)) }.toTypedArray())
+        val combat = NpcCombat.load(slayerTypes, seqs)
+        assertEquals(names.size, combat.size)
+        fun def(name: String) = combat[slayerTypes.find(name)!!]!!
+        for (name in names.keys) {
+            assertEquals(CombatMath.npcMaxHit(slayerTypes.find(name)!!.stats.strength, def(name).strengthBonus), def(name).maxHit, name)
+        }
+        val shown = listOf("slayer_rockslug", "swamp_wallbeast_combat")
+        assertEquals(listOf(4, 4), shown.map { def(it).maxHit })
+        assertEquals(listOf(20, 35), shown.map { def(it).slayerLevel })
+        assertEquals(listOf(1, 0), shown.map { def(it).minHitpoints })
+        assertEquals(listOf(false, true), shown.map { def(it).aggression != null })
+        assertEquals(1, def("slayer_rockslug_baby").minHitpoints)
+        assertEquals(ElementalWeakness(Element.EARTH, 25), def("slayer_rockslug").weakness)
+        assertEquals(NpcCombatAnims(1567, 1565, 1568), def("slayer_rockslug").anims)
+        assertEquals(NpcCombatAnims(1802, 1803, 1804), def("swamp_wallbeast_combat").anims)
     }
 
     @Test

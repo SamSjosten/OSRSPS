@@ -482,8 +482,11 @@ candle lantern, and an unlit torch lights on a fire or range. Dark areas ask `Li
 ### Mining
 
 Mine on a rock mines it with the best pickaxe the player can use (`game/skill/Mining.kt`, words under `mining.*`):
-clay, copper, tin, iron, coal, mithril and adamantite rocks, with the bronze to crystal pickaxes. A mined rock turns into
-an empty rock (`rocks1`/`rocks2`) until it respawns.
+clay, copper, tin, iron, coal, mithril, adamantite and runite rocks, amethyst crystals and gem rocks, with the bronze to
+crystal pickaxes. A mined rock turns into an empty rock (`rocks1`/`rocks2`, amethyst an empty wall) until it respawns.
+Rocks outside Misthalin are where live has them and reached by ::tele: the Mining Guild's runite and amethyst
+(`::tele 3055 9721`, or `::scenario gathering`), Shilo Village's gem rocks (`::tele 2824 3001`), the Lava Maze's runite
+(`::tele 3058 3885`).
 
 | Mining behaviour | Source |
 |------------------|--------|
@@ -493,7 +496,14 @@ an empty rock (`rocks1`/`rocks2`) until it respawns.
 | The mining gem table, 1/256 a roll: a gem (or nothing) in place of ore, no XP, the rock stays | OSRS Wiki, Mining |
 | The click starts the clock and the first roll comes a whole interval later; the swing message and animation | 2004Scape mining script |
 | Which empty rock each rock becomes (rockN to rocksN); swinging on the click's own tick | guessed |
-| Out: the glory's gem chance, mining gloves and other extra-ore items, the prospector kit, gem rocks, essence | out of scope |
+| Runite rocks: 85, 125 XP, pair 1/18 (17/256 at 85, 19/256 from 97), 12 minutes back, 6 in the Mining Guild and the Wilderness | OSRS Wiki, Runite rocks |
+| Amethyst crystals: 92, 240 XP, pair -18/10, 2 to 3 amethysts from one swing before an empty wall (`amethystrock_empty`) for 75 seconds | OSRS Wiki, Amethyst crystals |
+| Gem rocks: 40, 65 XP, pair 28/70 (84/210 with a charged glory), one gem out of 128 (opal 60, jade 30, red topaz 15, sapphire 9, emerald 5, ruby 5, diamond 4), 99 ticks back, no mining gem table | OSRS Wiki, Gem rocks |
+| A charged amulet of glory (any, trimmed or eternal) adds a second 3/256 roll at the mining gem table | OSRS Wiki, mining gem table template |
+| The Mining Guild's members' area: an invisible +7 on the roll (not on the level needed) and every respawn halved | OSRS Wiki, Mining Guild |
+| The members' area's bounds (x 2998-3059, z 9695-9729), drawn around the Wiki's rock tiles; amethyst's 75 seconds not halved again | inferred |
+| How the amethyst count is drawn (evenly, 2 or 3, on the first amethyst, kept until the wall empties); runite and gem rocks' empty rocks (by their shared models) | guessed |
+| Out: mining gloves and other extra-ore items, the prospector kit, unidentified minerals, the guild's doors and level 60, essence (Runecraft), the visible-boost cap at 99 | out of scope |
 
 ### Fishing
 
@@ -691,6 +701,31 @@ the trapdoor behind the bar, the den's door, and the passageway back up; the maz
 | Not built: marks pausing on the ground while the player is logged out (ours keep counting down), the Achievement Diary rerolls | |
 | Grace (`rooftops_grace`) at 3050,4962 in the den; her shop's stock, prices and 80% buy-back | mejrs NPCList_OSRS; OSRS Wiki, Grace's Graceful Clothing |
 | Grace's shop inv, roguesden_shop (279); the tiles the trapdoor, door and passageway take the player to; the passageway being the way out | guessed (the 241 map shows no other exit) |
+
+### Magic: teleports
+
+The standard spellbook's teleports to places, Varrock Teleport to Ape Atoll Teleport, and the teleport tablets for the
+same places (`game/skill/magic/Teleports.kt`, landing areas and XP in `skills/magic-teleports.json`). Cast on a spell
+checks the level and runes (a staff stands in for its runes, as for combat spells), takes them, gives the XP and lands
+the player on a free tile of the spell's area 3 ticks later; Break on a tablet uses it up and lands 4 ticks later, with
+no level needed and no XP. Above level 20 Wilderness both are refused with the two lines Home Teleport shows there,
+and nothing is taken. Destinations whose towns aren't built land on live's tiles all the same; where the map isn't
+loaded the player lands on the area's centre. The quests that unlock some of these on live count as done.
+
+| Teleport behaviour | Source |
+|--------------------|--------|
+| The ten spells' levels, runes and magic tab components; Ape Atoll's banana (params 606 and 607); the eight `poh_tablet_*` tablets, Break as iop1 | cache 242 (osrs-dumps 2026-11-03-rev242) |
+| Base XP; tablets needing no level and giving no XP; no teleport above level 20 Wilderness | OSRS Wiki, each spell's page, Magic tablet, Wilderness level |
+| Landing areas for Lumbridge, Falador, Ardougne, Trollheim, Ape Atoll, Kourend Castle and Civitas illa Fortis | OSRS Wiki, each spell's map |
+| Animation 714 with graphic 111 at height 92, the landing 3 ticks after the cast with the animation stopped, the player held meanwhile (being attacked doesn't stop it), runes and XP taken at the cast, Varrock and Camelot landing within 2 tiles of the Wiki's tile | inferred from 2004Scape's teleport script |
+| Watchtower landing on its Wiki tile only, on level 2; the tablet's animations 4069 then 4071 with graphic 678 two ticks in, landing 4 ticks after the break | guessed |
+| Not built: the Achievement Diary destinations and Configure (Grand Exchange, Seers' Village, Yanille), Teleport to House, Tele Other, Teleport Block, Ancient and other books' teleports | next steps |
+
+`::scenario magic` stands you on the Lumbridge spawn with 99 Magic, a staff of air, runes for ten of every teleport
+and two of each tablet.
+
+Check: `./gradlew test --tests 'osrsps.game.skill.magic.*' --tests 'osrsps.testclient.HeadlessTeleportsTest'`, and in
+RuneLite `test-runner/examples/magic-teleports.json`.
 
 ## Items and inventory
 
@@ -1020,7 +1055,27 @@ cave eels (38) or slimy eels (28).
 | Frog spawn, swamp weed, cave and slimy eels: levels, XP, catch rates | OSRS Wiki, Frog spawn, Swamp weed, Cave eel, Slimy eel |
 | Ids, options, animations | 242 cache |
 | The promise kept until logout, the even chances among the goblins' talks, their expressions, a gift skipped with a full backpack, the threat's 8-tile cry, the cave bug's death animation, the frog spawn and swamp weed catch messages | guessed |
-| Out: Slayer XP (no Slayer tasks yet), the threatened goblins running away, rockslugs and wall beasts (step 3b) | out of scope |
+| Out: Slayer XP (no Slayer tasks yet), the threatened goblins running away | out of scope |
+
+#### Rockslugs and wall beasts
+
+Misthalin piece 7 step 3b (`game/content/SwampCaveSlayer.kt`, words under `swamp_slayer.*`): 5 rockslugs and 7 wall
+beasts' holes join the caves' spawns. No hit takes a rockslug below 1 hitpoint (`minHitpoints` in `npc-combat.json`),
+and down there it stops fighting and wanders off; a bag of salt used on one at 4 or less finishes it, and one used at
+5 or more is wasted. A wielded brine sabre kills them outright. A wall beast sits in its hole (a `nomove` spawn) and
+reaches for whoever steps onto the tile in front: a spiny helmet or any slayer helmet repels it, and it comes out to
+fight; anyone else is grabbed, held for 4 ticks and hurt for up to 18, once each time they step there. Out of a fight
+for 20 ticks it goes back in. Hurting rockslugs needs Slayer 20, wall beasts 35.
+
+| Rockslugs and wall beasts | Source |
+|---------------------------|--------|
+| Spawns: tiles and types | mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022); the Wiki's Wall beast page lists the same seven holes |
+| Each hole grabs from the tile south of it | 242 map: the only cave tile beside each |
+| Stats, max hits (4, and 18 for the grab), Slayer levels, the 1 hitpoint, the salt at 4 or less and the wasted bag, the brine sabre, the helmets, drops | OSRS Wiki, Rockslug, Bag of salt and Wall beast, read 2026-11-10 |
+| "Your helmet repels the wall beast!" | OSRS Wiki, Wall beast |
+| Ids, the hole and beast forms, animations | 242 cache |
+| The grab's 4 ticks, its even roll from 0 to 18, one grab per step onto the tile, the 20 ticks before it goes back in, the 10-tick respawn, the salt and grab messages, no salting animation and no XP for the salt's kill | guessed |
+| Out: the Slug salter perk, Slayer XP (no Slayer rewards or tasks yet) | out of scope |
 
 ## Draynor Village
 
@@ -1905,8 +1960,8 @@ loses goes in a grave there. The party lasts through the wipe.
 | Any member opening the run, a player in no party as a party of one; others following until the Guardian's fight begins, nobody after | guessed; the Wiki says supplies can't be banked mid-raid |
 | A row's other door shut once one is gone through; a row opening once the room before is done; Enter and Quick-enter, Use and Quick-use, the same | guessed, until a recording shows a run |
 | Passageway out at any time; the transporter once the room is done; both to the nexus in front of the room's door | guessed |
-| The Alliance Navigator (16700, Follow and Quick-follow) coming to a won room's arena three ticks after, and following him leading back to the nexus beside the door taken | tsps capture notes (RSPSApp/tsps docs/fractured-archive.md); his two lines, one after the second room and one after the fourth, seen in Sam's recordings of 2026-11-09 (keys `tfa_navigator.onward` and `tfa_navigator.vault`, their words on the server, not in git) |
-| The Navigator standing where the room's transporter puts a player; his line coming with Follow and Quick-follow skipping it; only the one who follows going, and at once (live fades and moves four ticks later; his fade-in isn't sent); the first line after the third room too; with no Navigator in the cache or no NPC slot for him, whoever is on the arena sent out instead (exploit review round 21, R21A-1: a won arena had no way out) | guessed |
+| The Alliance Navigator (16700, Follow and Quick-follow) coming to a won room's arena three ticks after, and following him leading back to the nexus beside the door taken, the move four ticks after the option or his line ("a fade, then the move four ticks later") | tsps capture notes (RSPSApp/tsps docs/fractured-archive.md); his two lines, one after the second room and one after the fourth, seen in Sam's recordings of 2026-11-09 (keys `tfa_navigator.onward` and `tfa_navigator.vault`, their words on the server, not in git) |
+| The Navigator standing where the room's transporter puts a player; his line coming with Follow and Quick-follow skipping it; only the one who follows going; the player not held during the four ticks before the move, and one who has left the room by then not moved; his fade-in and the move's fade not sent; the first line after the third room too; with no Navigator in the cache or no NPC slot for him, whoever is on the arena sent out instead (exploit review round 21, R21A-1: a won arena had no way out) | guessed |
 | Nobody attacking an NPC in a room with an arena (Ezekiel's, Bork and the Smorks', Dreadnoth's, Xarth's) from off that arena: a click, a spell, a shot, a hit spreading from another NPC and auto retaliate are all refused, a click with the line for a target that can't be reached (exploit review round 21, R21A-2: from the way in, out of the fight or out of its reach, a boss could be shot) | guessed: live's walls presumably stop it; whether the cache's stop a bow or a spell isn't known |
 | A room's fight beginning as the first party member stands in it, and the Guardian's in the hall north of the entrance | guessed |
 | The Guardian's fight beginning on Touch on the waiting "Inert Guardian" (`tfa_guardian_start`, 16657) in the middle of the hall, where its corpse lies later; scaled to everyone standing in the run then | 241.4 cache (the NPC and its Touch); where it waits inferred from the corpse; the party size guessed |
@@ -2426,6 +2481,9 @@ a bronze axe in bank tab 1 and 1,000 coins in the main tab: for the tab script, 
 `lumbridge-run-low` stands you on the Lumbridge spawn with run on and no run energy, the energy threshold to re-enable
 running at 5% and Ctrl+click to invert run mode on Run -> Walk only: for the run settings script, as nothing else sets
 run energy.
+
+`magic` stands you on the Lumbridge spawn with 99 Magic and a staff of air, the runes for ten casts of every standard
+teleport built (and a banana for Ape Atoll), and two of each teleport tablet: for the Magic steps.
 
 Check: `::scenario lumbridge-cows` puts you by the cows in iron with the loadout above; `::reset` puts you back where
 you were with your own stats and items.

@@ -552,7 +552,7 @@ class HeadlessEzekielTest {
     }
 
     @Test
-    fun `his death brings the Alliance Navigator to his arena three ticks on, and following him leads back to the nexus`(@TempDir dir: Path) {
+    fun `his death brings the Alliance Navigator to his arena three ticks on, and following him leads back to the nexus four ticks later`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->
                 val run = alice.intoRun(server, "alice")
@@ -580,7 +580,7 @@ class HeadlessEzekielTest {
                 assertEquals(entry, Tile(navigator.x, navigator.z))
                 alice.commandReply("resume") { it.startsWith("Resumed") }
                 val front = raids.tile(run, ArchiveRoom.EZEKIEL.doorFront.x, ArchiveRoom.EZEKIEL.doorFront.z)
-                // Follow: his one line, with her name, then out in front of the room's door.
+                // Follow: his one line, with her name, then out in front of the room's door, four ticks after it is clicked on.
                 alice.npcOp(navigator.index, 1)
                 val said = alice.await("his line") { alice.dialogueView as? DialogueView.Chat }
                 assertEquals("Alliance Navigator", said.name)
@@ -588,12 +588,24 @@ class HeadlessEzekielTest {
                 assertTrue(raids.roomAt(run, alice.position!!.x, alice.position!!.z) == ArchiveRoom.EZEKIEL, "out before his line is done")
                 alice.continueDialogue()
                 alice.await("the nexus, in front of his room's door") { alice.position?.takeIf { it == Coord(front.x, front.z, 0) } }
-                // Quick-follow, back on his arena: out at once, with no line.
+                assertTrue(run.following.isEmpty(), "her follow done with")
+                // Quick-follow, back on his arena: no line, and out four ticks after the option, counted in game ticks.
                 alice.commandReply("raid tp ezekiel") { it.startsWith("To ") }
                 alice.tele(entry.x, entry.z + 1)
+                val player = world.playerNamed("alice")!!
+                alice.commandReply("pause") { it.contains("aused after tick") }
                 alice.npcOp(navigator.index, 3)
-                alice.await("the nexus again") { alice.position?.takeIf { it == Coord(front.x, front.z, 0) } }
+                var waited = 0
+                while (player.saveKey !in run.following) {
+                    check(++waited <= 5) { "her Quick-follow not taken within 5 ticks" }
+                    alice.stepTicks(1)
+                }
+                alice.stepTicks(ArchiveRaids.FOLLOW_DELAY - 1)
+                assertEquals(ArchiveRoom.EZEKIEL, raids.roomAt(run, player.x, player.z), "out a tick early")
+                alice.stepTicks(1)
+                assertEquals(Tile(front.x, front.z), Tile(player.x, player.z))
                 assertNull(alice.dialogueView as? DialogueView.Chat)
+                alice.commandReply("resume") { it.startsWith("Resumed") }
             }
         }
     }

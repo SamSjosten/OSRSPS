@@ -228,16 +228,17 @@
   },
   {
    "step": "assertDialogue",
-   "contains": "[tfa_navigator.onward]",
+   "contains": "[tfa_navigator.onward name=",
    "speaker": "Alliance Navigator",
-   "comment": "his one line, with the player's name: its key, with ::keys on"
+   "comment": "his one line, with the player's name: its key and the name, with ::keys on (the account may be test or test2, so the name is left open)"
   },
   {
    "step": "continueDialogue"
   },
   {
    "step": "waitTicks",
-   "ticks": 2
+   "ticks": 6,
+   "comment": "the move comes 4 ticks after his line is clicked on"
   },
   {
    "step": "command",

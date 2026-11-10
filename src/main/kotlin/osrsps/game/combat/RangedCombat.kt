@@ -304,7 +304,7 @@ class RangedCombat(
      * kept for it and given as XP now.
      */
     private fun reserve(player: Player, npc: Npc, style: AttackStyle, rolled: Int): Int {
-        val damage = minOf(melee.armoured(npc, rolled, magic = false), (npc.hitpoints - npc.incoming).coerceAtLeast(0))
+        val damage = minOf(melee.armoured(npc, rolled, magic = false), (npc.hitpoints - combat.floor(npc, player) - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage
         val bonus = combat.npcCombat[npc.type]?.xpBonusTenths ?: 0
         for (skill in style.xp) player.skills.addTenths(skill, CombatMath.withXpBonus(CombatMath.styleXpTenths(damage, style.xp.size), bonus))

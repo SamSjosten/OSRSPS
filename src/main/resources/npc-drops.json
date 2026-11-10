@@ -997,6 +997,50 @@
       {"item": 590, "name": "Tinderbox", "weight": 4}
     ]}, "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/64"}, {"item": 2677, "name": "Clue scroll (easy)", "chance": "1/128"}],
       "source": "OSRS Wiki, Cave goblin (monster), read 2026-11-10: bones always; the table out of 50; the beginner clue 1/64 and the easy clue 1/128. Left out: the cave goblin skull (only during Rag and Bone Man II) and the goblin champion scroll, as for the moss giant"
+    },
+    {"npcs": ["slayer_rockslug", "slayer_rockslug_baby"],
+      "table": {"slots": 128, "lines": [
+      {"item": 557, "name": "Earth rune", "count": 5, "weight": 30},
+      {"item": 557, "name": "Earth rune", "count": 42, "weight": 4},
+      {"item": 562, "name": "Chaos rune", "count": 2, "weight": 4},
+      {"item": 453, "name": "Coal", "weight": 13},
+      {"item": 440, "name": "Iron ore", "weight": 22},
+      {"item": 2349, "name": "Bronze bar", "weight": 2},
+      {"item": 2351, "name": "Iron bar", "weight": 3},
+      {"item": 436, "name": "Copper ore", "weight": 3},
+      {"item": 438, "name": "Tin ore", "weight": 8},
+      {"item": 447, "name": "Mithril ore", "weight": 1},
+      {"table": "general_seeds", "weight": 9},
+      {"item": 1913, "name": "Dwarven stout", "weight": 13},
+      {"item": 2347, "name": "Hammer", "weight": 10},
+      {"table": "gems", "weight": 6}
+    ]}, "tertiary": [{"item": 4115, "name": "Mystic gloves (light)", "chance": "1/512"}],
+      "source": "OSRS Wiki, Rockslug, read 2026-11-10: no bones; the table out of 128 with the general seed table at 9/128 and the gem table at 6/128 (the underground one; the Wiki's nature talisman on it isn't on ours); mystic gloves (light) 1/512"
+    },
+    {"npcs": ["swamp_wallbeast_combat"],
+      "table": {"slots": 128, "lines": [
+      {"item": 556, "name": "Air rune", "count": 3, "weight": 3},
+      {"item": 564, "name": "Cosmic rune", "count": 2, "weight": 3},
+      {"item": 562, "name": "Chaos rune", "count": 3, "weight": 2},
+      {"item": 562, "name": "Chaos rune", "count": 7, "weight": 1},
+      {"item": 1139, "name": "Bronze med helm", "weight": 2},
+      {"item": 1155, "name": "Bronze full helm", "weight": 2},
+      {"item": 1137, "name": "Iron med helm", "weight": 8},
+      {"item": 1141, "name": "Steel med helm", "weight": 7},
+      {"item": 1157, "name": "Steel full helm", "weight": 4},
+      {"item": 1143, "name": "Mithril med helm", "weight": 1},
+      {"item": 1159, "name": "Mithril full helm", "weight": 1},
+      {"item": 1145, "name": "Adamant med helm", "weight": 1},
+      {"item": 199, "name": "Grimy guam leaf", "weight": 32},
+      {"item": 995, "name": "Coins", "count": 15, "weight": 10},
+      {"item": 590, "name": "Tinderbox", "weight": 21},
+      {"item": 4542, "name": "Lantern lens", "weight": 12},
+      {"item": 596, "name": "Unlit torch", "weight": 9},
+      {"item": 221, "name": "Eye of newt", "weight": 1},
+      {"item": 4544, "name": "Bullseye lantern (unf)", "weight": 5},
+      {"nothing": true, "weight": 3}
+    ]}, "tertiary": [{"item": 4109, "name": "Mystic hat (light)", "chance": "1/512"}],
+      "source": "OSRS Wiki, Wall beast, read 2026-11-10: no bones; the table out of 128; mystic hat (light) 1/512"
     }
   ]
 }

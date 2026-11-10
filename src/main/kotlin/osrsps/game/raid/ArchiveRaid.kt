@@ -158,6 +158,9 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
     /** Rooms won whose Alliance Navigator is still to come, by the tick he does ([ArchiveRaids.NAVIGATOR_DELAY]). */
     internal val navigatorDue = HashMap<ArchiveRoom, Long>()
 
+    /** Members following an Alliance Navigator out, by save key: the room they leave and the tick they do ([ArchiveRaids.FOLLOW_DELAY]). */
+    internal val following = HashMap<String, Pair<ArchiveRoom, Long>>()
+
     /** The tick the last room was done on; a member who fell before it gets up standing. -1 before any. */
     var clearedTick: Long = -1
         internal set
@@ -699,18 +702,35 @@ class ArchiveRaids(private val world: World) {
      * Follow on the Alliance Navigator in a room that is won: back to the nexus, in front of the room's door (tsps
      * capture notes: "beside the door the party took"), after his one line. Quick-follow goes at once. Guessed: that his
      * line comes with Follow and not as he appears, that Quick-follow skips it, and that only the one who follows goes.
-     * Live fades out and moves four ticks later; here the move is at once, as a door's is.
+     * The move is [FOLLOW_DELAY] ticks after the option, or after his line is clicked on (tsps capture notes, moving
+     * between rooms: "a fade, then the move four ticks later"). The fade itself isn't sent. Guessed: the player isn't
+     * held meanwhile, and one who has left the room by then, or fallen, isn't moved.
      */
     suspend fun follow(context: ScriptContext, npc: Npc, quick: Boolean) {
         val player = context.player
         val run = at(npc.x, npc.z) ?: return
         val room = roomAt(run, npc.x, npc.z) ?: return
         if (room !in run.cleared || player.saveKey !in run.entered || world.parties.of(player) !== run.party) return
-        if (quick) return out(player, run, room)
+        if (quick) {
+            run.following[player.saveKey] = room to world.tick + FOLLOW_DELAY
+            return
+        }
         val line = if (room.stage >= LAST_DOORS) ArchiveNavigatorLines.VAULT else ArchiveNavigatorLines.ONWARD
         world.dialogues.start(context, npc) {
             chatNpc(ChatAnim.NEUTRAL, line, "name" to player.username)
             // Still in the room: a teleport or a death while he spoke took them elsewhere already.
+            if (at(player.x, player.z) === run && roomAt(run, player.x, player.z) == room) run.following[player.saveKey] = room to world.tick + FOLLOW_DELAY
+        }
+    }
+
+    /** Those following a Navigator whose [FOLLOW_DELAY] ticks are up go out to the nexus, if they still stand in the room they were leaving. */
+    private fun followers(run: ArchiveRun) {
+        for ((key, leaving) in run.following.entries.toList()) {
+            val (room, due) = leaving
+            if (world.tick < due) continue
+            run.following -= key
+            val player = world.onlinePlayers.firstOrNull { it.saveKey == key } ?: continue
+            if (player.dead || world.parties.of(player) !== run.party) continue
             if (at(player.x, player.z) === run && roomAt(run, player.x, player.z) == room) out(player, run, room)
         }
     }
@@ -770,6 +790,7 @@ class ArchiveRaids(private val world: World) {
             placeOcellusFigure(run)
             if (ArchiveRoom.OCELLUS !in run.started && ArchiveRoom.OCELLUS.stage == run.stage && run.ocellusFigure != null && ocellusReady(run)) beginOcellus(run)
             navigators(run)
+            followers(run)
             settleEscapes(run, ended = false)
             val present = present(run)
             if (present.isNotEmpty() && present.none { it.dead } && standing(run).isEmpty()) wipe(run, null)
@@ -997,6 +1018,9 @@ class ArchiveRaids(private val world: World) {
         const val FOLLOW = "Follow"
         const val QUICK_FOLLOW = "Quick-follow"
         const val NAVIGATOR_DELAY = 3
+
+        /** Ticks from following the Navigator to the move to the nexus (tsps capture notes: "a fade, then the move four ticks later"). */
+        const val FOLLOW_DELAY = 4
 
         const val STAGES = 5
 

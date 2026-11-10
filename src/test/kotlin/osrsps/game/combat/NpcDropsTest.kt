@@ -489,6 +489,47 @@ class NpcDropsTest {
     }
 
     @Test
+    fun `rockslugs and wall beasts drop as the Wiki's tables say, with no bones`() {
+        val slug = NpcType(421, "Rockslug", combatLevel = 29, internalName = "slayer_rockslug")
+        val baby = NpcType(422, "Rockslug", combatLevel = 29, internalName = "slayer_rockslug_baby")
+        val beast = NpcType(476, "Wall beast", combatLevel = 49, internalName = "swamp_wallbeast_combat")
+        val loaded = NpcDrops.load(NpcTypes.of(slug, baby, beast), objTypes)
+        assertEquals(3, loaded.size)
+        assertEquals(emptyList(), loaded[slug]!!.always)
+        assertEquals(emptyList(), loaded[beast]!!.always)
+        assertEquals(loaded[slug]!!.table, loaded[baby]!!.table)
+        assertEquals(listOf("Mystic gloves (light)" to 512), loaded[slug]!!.tertiary.map { it.item.type.name to it.denominator })
+        assertEquals(listOf("Mystic hat (light)" to 512), loaded[beast]!!.tertiary.map { it.item.type.name to it.denominator })
+
+        fun counts(def: NpcDropsDef, seed: Long): Map<String, Int> {
+            val random = GameRandom(seed)
+            val counts = HashMap<String, Int>()
+            var empty = 0
+            repeat(KILLS) {
+                val items = def.roll(random)
+                if (items.isEmpty()) empty++
+                for (drop in items) counts.merge("${drop.type.name} x${drop.count}", 1, Int::plus)
+            }
+            return counts + ("nothing" to empty)
+        }
+        fun expect(counts: Map<String, Int>, key: String, weight: Double) {
+            val p = weight / 128
+            val mean = KILLS * p
+            val sigma = sqrt(KILLS * p * (1 - p))
+            val got = counts[key] ?: 0
+            assertTrue(abs(got - mean) <= 5 * sigma + 1, "$key: $got of $KILLS, expected about ${mean.toInt()}")
+        }
+        val slugs = counts(loaded[slug]!!, 91)
+        expect(slugs, "Earth rune x5", 30.0)
+        expect(slugs, "Iron ore x1", 22.0)
+        expect(slugs, "Hammer x1", 10.0)
+        val beasts = counts(loaded[beast]!!, 92)
+        expect(beasts, "Grimy guam leaf x1", 32.0)
+        expect(beasts, "Tinderbox x1", 21.0)
+        expect(beasts, "nothing", 3.0)
+    }
+
+    @Test
     fun `Varrock's level 20 dark wizards drop runes, robes and energy potions as the Wiki's table says`() {
         val def = drops[darkWizard20]!!
         assertEquals(listOf("Bones"), def.always.map { it.type.name })

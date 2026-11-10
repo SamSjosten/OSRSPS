@@ -212,6 +212,7 @@ object DialogueLines {
         LumbridgeSwampLines,
         SwampCavesLines,
         CaveGoblinLines,
+        SwampCaveSlayerLines,
         MageOfZamorakLines,
         MakeLines,
         ManLines,
