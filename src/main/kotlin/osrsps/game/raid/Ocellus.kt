@@ -394,6 +394,13 @@ object Ocellus {
         log(if (on) "Protect from Melee up" else "Protect from Melee down")
     }
 
+    /**
+     * Whether his first phase is over: he is dead, or his bar has run out and he holds at it. A hit on a player can bring
+     * either about mid-attack (their Retribution as they die), so each attack asks before each player it hurts; the
+     * hold keeps him alive, so being dead isn't enough to ask (Codex, PR 559).
+     */
+    private val EncounterContext.shieldOut: Boolean get() = boss.dead || boss.hitpoints <= 0
+
     /** One tick of his first phase. */
     private fun EncounterContext.firstPhase() {
         // Each player's best since their last interception, for the heal; anyone new to the fight counts from now.
@@ -402,7 +409,7 @@ object Ocellus {
             if (best == null || player.hitpoints > best) state.peak[player] = player.hitpoints
         }
         flowCracks()
-        if (boss.dead) return
+        if (shieldOut) return
         // Guessed: both thresholds passed at once (one big hit), the second middle comes as soon as the first is over.
         val due = MIDDLE_AT.count { (num, den) -> boss.hitpoints * den <= boss.maxHitpoints * num }
         if (state.doing != Doing.MIDDLE && state.middles < due) {
@@ -498,7 +505,7 @@ object Ocellus {
         log("expends charge ${state.charge}")
         state.charge = 0
         for (player in players) {
-            if (boss.dead) return
+            if (shieldOut) return
             val dealt = world.meleeCombat.hitPlayer(player, boss, if (hard) roll(ANNIHILATION_MIN, ANNIHILATION_MAX) else roll(DEATH_MIN, DEATH_MAX), world.tick)
             log("charge hits ${player.username} for $dealt")
         }
@@ -563,7 +570,7 @@ object Ocellus {
         val magic = roll(0, 1) == 1
         log("${if (magic) "water ball" else "fireball"} at ${targets.joinToString { it.username }}")
         for (player in targets) {
-            if (boss.dead) return
+            if (shieldOut) return
             world.meleeCombat.fireAt(boss, player, world.tick, if (magic) WATER_BALL else FIREBALL, if (magic) AttackType.MAGIC else AttackType.RANGED)
         }
     }
@@ -620,7 +627,7 @@ object Ocellus {
         for (crack in due) {
             // A catch can kill him (a player's Retribution as the nick kills them): nothing more once he is dead, as
             // with his explosion's rings (Codex, PR 552).
-            if (boss.dead) return
+            if (shieldOut) return
             val end = if (crack.tiles.first().let { a -> crack.tiles.last().let { b -> a.x != b.x && a.z != b.z } }) SPOT_CRACK_DIAGONAL_END else SPOT_CRACK_STRAIGHT_END
             for (tile in crack.tiles) world.zones.mapAnim(tile.x, tile.z, boss.level, end)
             val on = players.filter { p -> crack.tiles.any { it.x == p.x && it.z == p.z } }
@@ -630,7 +637,7 @@ object Ocellus {
                 log("uncaught: charge ${state.charge}")
             } else {
                 for (player in on) {
-                    if (boss.dead) return
+                    if (shieldOut) return
                     intercept(player)
                 }
             }
@@ -684,13 +691,13 @@ object Ocellus {
     private fun EncounterContext.ring(out: Int) {
         // His bar run out between the two rings, the outer one is gone with the rest of his first phase: the hold
         // keeps him alive, so the fight's queue still holds it (Codex, PR 559).
-        if (boss.hitpoints <= 0) return
+        if (shieldOut) return
         val size = boss.type.size
         val tiles = ((boss.x - out)..(boss.x + size - 1 + out)).flatMap { x -> ((boss.z - out)..(boss.z + size - 1 + out)).map { z -> Tile(x, z) } }
             .filter { Bork.distance(boss.x, boss.z, size, it.x, it.z) == out }
         for (tile in tiles) world.zones.mapAnim(tile.x, tile.z, boss.level, SPOT_EXPLODE_FLOOR)
         for (player in players) {
-            if (boss.dead) return
+            if (shieldOut) return
             if (Bork.distance(boss.x, boss.z, size, player.x, player.z) != out) continue
             val dealt = world.meleeCombat.hitPlayer(player, boss, roll(EXPLODE_MIN, EXPLODE_MAX), world.tick)
             log("explosion ring $out hits ${player.username} for $dealt")
