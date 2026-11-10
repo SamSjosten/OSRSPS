@@ -136,8 +136,9 @@ class MeleeCombat(
     /** Starts a fight with [npc], tried at once when [now]. False when the NPC can't be fought; see [attack]. */
     private fun start(player: Player, npc: Npc, now: Boolean): Boolean {
         combat.npcCombat[npc.type] ?: return false
-        if (combat.slayerGated(player, npc)) {
-            message(player, words(player)[CombatLines.SLAYER_LEVEL])
+        val barred = combat.barred(player, npc)
+        if (barred != null) {
+            message(player, words(player)[barred])
             return true
         }
         if (combat.bulwarkBlock(player)) {
@@ -181,9 +182,11 @@ class MeleeCombat(
             stopFacing(player)
             return true
         }
-        // Checked at every attack, not just the first: a boosted Slayer level can drop back mid-fight.
-        if (combat.slayerGated(player, npc)) {
-            message(player, words(player)[CombatLines.SLAYER_LEVEL])
+        // Checked at every attack, not just the first: a boosted Slayer level can drop back mid-fight, and a player can
+        // leave where the NPC is fought.
+        val barred = combat.barred(player, npc)
+        if (barred != null) {
+            message(player, words(player)[barred])
             stopFacing(player)
             return true
         }
@@ -327,7 +330,7 @@ class MeleeCombat(
         return npcs.near(player.x, player.z, player.level, radius + MAX_NPC_SIZE)
             .filter {
                 it !== target && !it.dead && npcs[it.index] === it && combat.npcCombat[it.type] != null && distance(it) <= radius &&
-                    multi.at(it.level, it.x, it.z) && !flyingOutOfReach(player, it) && !combat.slayerGated(player, it)
+                    multi.at(it.level, it.x, it.z) && !flyingOutOfReach(player, it) && combat.barred(player, it) == null
             }
             .sortedBy(::distance)
     }
@@ -955,7 +958,7 @@ class MeleeCombat(
      * Prayer level, rounded down, a roll each, 0s included (OSRS Wiki, Retribution). Guessed: the Wiki says only
      * "nearby enemies", so the 3x3 around the player in multi-way combat, and in single-way the NPC that last hit them
      * alone, if it is in that 3x3; the spotanim on the player; the targets' hits on this tick; an NPC their Slayer level
-     * can't hurt ([Combat.slayerGated]) passed over, as every other attack refuses it.
+     * can't hurt, or that they are shut out of fighting ([Combat.barred]), passed over, as every other attack refuses it.
      */
     private fun retribution(player: Player, tick: Long) {
         if (!hasPrayer(player, Prayers.RETRIBUTION)) return
@@ -964,13 +967,13 @@ class MeleeCombat(
         val targets = if (multi.at(player.level, player.x, player.z)) {
             npcs.all.filter {
                 !it.dead && it.level == player.level && combat.npcCombat[it.type] != null && withinATile(player, it) &&
-                    !combat.slayerGated(player, it)
+                    combat.barred(player, it) == null
             }.toList()
         } else {
             listOfNotNull(
                 player.attackedBy?.takeIf {
                     !it.dead && npcs[it.index] === it && it.level == player.level && withinATile(player, it) &&
-                        !combat.slayerGated(player, it)
+                        combat.barred(player, it) == null
                 },
             )
         }
@@ -989,8 +992,9 @@ class MeleeCombat(
      * that delay. A stunned player doesn't retaliate ([StatusEffects], guessed).
      */
     private fun retaliate(player: Player, npc: Npc, tick: Long) {
-        // Below its Slayer level they can't fight back (guessed: silently, as live shows nothing on a hit).
-        if (foughtByAnother(player, npc) || combat.slayerGated(player, npc)) return
+        // Below its Slayer level, or shut out of where it is fought, they can't fight back (guessed: silently, as live
+        // shows nothing on a hit).
+        if (foughtByAnother(player, npc) || combat.barred(player, npc) != null) return
         player.interaction = fight(player, npc) ?: return
         player.nextAttackTick = maxOf(tick + (combat.attackSpeed(player) + 1) / 2, player.attackLockedUntil)
     }

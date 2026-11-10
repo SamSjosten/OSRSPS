@@ -3,12 +3,14 @@ package osrsps.game.combat
 import osrsps.game.Equipment
 import osrsps.game.EquipmentBonuses
 import osrsps.game.EquipmentTab
+import osrsps.game.GameLines
 import osrsps.game.NpcStat
 import osrsps.game.ObjType
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.Weapons
 import osrsps.game.WearPos
+import osrsps.game.dialogue.Line
 import osrsps.game.npc.Npc
 import osrsps.map.LineOfSight
 
@@ -98,6 +100,23 @@ class Combat(
      */
     fun slayerGated(player: Player, npc: Npc): Boolean =
         (npcCombat[npc.type]?.slayerLevel ?: 0) > player.skills.currentLevel(Skill.SLAYER)
+
+    /**
+     * Set by content: whether a player is shut out of attacking an NPC by where the two stand, as a raid room's arena
+     * shuts out whoever isn't on it ([osrsps.game.raid.ArchiveRaids.shutOut]).
+     */
+    var shutOut: (Player, Npc) -> Boolean = { _, _ -> false }
+
+    /**
+     * Why no attack of [player]'s reaches [npc], as the line that tells them, null when one can: its Slayer level
+     * ([slayerGated]), or being shut out of where it is fought ([shutOut]). Asked wherever an attack begins, goes on,
+     * or spreads to another NPC.
+     */
+    fun barred(player: Player, npc: Npc): Line? = when {
+        slayerGated(player, npc) -> CombatLines.SLAYER_LEVEL
+        shutOut(player, npc) -> GameLines.CANT_REACH
+        else -> null
+    }
 
     /** The animations the player swings and blocks with: their weapon's category's. */
     fun anims(player: Player): WeaponAnims = WeaponAnims.of(Weapons.category(equipment.weapon(player)))
