@@ -1,0 +1,26 @@
+{
+ "name": "Gathering 2 step G4: the Desert Quarry's granite and sandstone rocks, from ::scenario gathering (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario gathering", "expectMessage": "Started scenario gathering.", "comment": "Mining 99 and a rune pickaxe; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+
+  {"step": "command", "text": "::tele 3171 2920 0", "comment": "west of the granite at 3172, 2920; the standing tile is not yet checked on the VM"},
+  {"step": "locOption", "locId": 11387, "option": "Mine", "x": 3172, "y": 2920},
+  {"step": "assertMessage", "contains": "mining.swing"},
+  {"step": "assertAnimation", "id": 624, "comment": "human_mining_rune_pickaxe"},
+  {"step": "assertMessage", "contains": "mining.quarry ore=granite", "timeoutMs": 30000, "comment": "68% a roll at 99"},
+  {"step": "assertLoc", "locId": 11391, "x": 3172, "y": 2920, "comment": "rocks2 for 9 ticks"},
+  {"step": "assertLoc", "locId": 11387, "x": 3172, "y": 2920, "timeoutMs": 15000, "comment": "back after 5.4 seconds"},
+
+  {"step": "command", "text": "::tele 3168 2922 0", "comment": "west of the sandstone at 3169, 2922; the standing tile is not yet checked on the VM"},
+  {"step": "locOption", "locId": 11386, "option": "Mine", "x": 3169, "y": 2922},
+  {"step": "assertMessage", "contains": "mining.swing"},
+  {"step": "assertMessage", "contains": "mining.quarry ore=sandstone", "timeoutMs": 30000, "comment": "93% a roll at 99"},
+  {"step": "assertLoc", "locId": 11390, "x": 3169, "y": 2922, "comment": "rocks1 for 9 ticks"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
