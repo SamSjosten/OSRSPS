@@ -280,7 +280,7 @@ object ThievingLocks {
             player.inventory.add(type, item.count)
         }
         player.skills.addTenths(Skill.THIEVING, chest.xpTenths)
-        delay(OPEN_TICKS - 1)
+        delay(OPEN_TICKS)
         chest.teleport?.let { (x, z, level) ->
             world.message(player, ThievingLockLines.SECOND_TRAP)
             world.teleport(player, x, z, level)
@@ -293,6 +293,8 @@ object ThievingLocks {
     private suspend fun ScriptContext.openDoor(world: World, op: Op) {
         val door = op.loc ?: return
         arriveDelay()
+        // Another thief may have gone through, swinging the door open, while this one walked up.
+        if (!world.locs.exists(door)) return
         if (!inside(door, player.x, player.z)) return world.message(player, ThievingLockLines.DOOR_LOCKED)
         world.message(player, ThievingLockLines.THROUGH)
         goThrough(world, door)
@@ -301,6 +303,8 @@ object ThievingLocks {
     private suspend fun ScriptContext.pickDoor(world: World, op: Op, data: LockedDoor) {
         val door = op.loc ?: return
         arriveDelay()
+        // Another thief may have gone through, swinging the door open, while this one walked up.
+        if (!world.locs.exists(door)) return
         if (inside(door, player.x, player.z)) {
             world.message(player, ThievingLockLines.ALREADY_UNLOCKED)
             delay(1)

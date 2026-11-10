@@ -3,6 +3,7 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
@@ -108,14 +109,30 @@ class HeadlessThievingLocksTest {
 
                 client.level("thieving", THIEVING, 13)
                 val tenths = alice.skills.tenths(Skill.THIEVING)
+                // Paused and stepped, so the chest's 4 open ticks and 12 empty ones are counted in game ticks.
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
                 client.locOp(coinChest.id, coinChest.x, coinChest.z, ThievingLocks.OP_SECOND)
-                for (key in listOf("search", "trap_found", "trap_disabled", "chest_opened", "treasure")) client.awaitSeen("[thieving_lock.$key]")
+                var stepped = 0
+                while (client.seen("[thieving_lock.treasure]") == 0) {
+                    client.stepTicks(1)
+                    assertTrue(++stepped < 20, "the search ends in treasure")
+                }
+                for (key in listOf("trap_found", "trap_disabled", "chest_opened")) assertEquals(1, client.seen("[thieving_lock.$key]"), key)
+                assertEquals(ThievingLocks.OPEN_CHEST, client.locAt(coinChest.x, coinChest.z), "open on the treasure's tick")
                 client.await("10 coins") { if (client.count(ThievingLocks.COINS) == 10) Unit else null }
                 assertEquals(tenths + 78, alice.skills.tenths(Skill.THIEVING))
-                client.await("the empty chest") { if (client.locAt(coinChest.x, coinChest.z) == ThievingLocks.EMPTY_TRAP_CHEST) Unit else null }
+                client.stepTicks(ThievingLocks.OPEN_TICKS - 1)
+                assertEquals(ThievingLocks.OPEN_CHEST, client.locAt(coinChest.x, coinChest.z), "still open after 3 ticks")
+                client.stepTicks(1)
+                assertEquals(ThievingLocks.EMPTY_TRAP_CHEST, client.locAt(coinChest.x, coinChest.z), "empty after 4")
+                val relock = ThievingLocks.CHESTS.getValue(coinChest.id).respawnTicks
                 client.locOp(ThievingLocks.EMPTY_TRAP_CHEST, coinChest.x, coinChest.z, ThievingLocks.OP_SECOND)
-                client.awaitSeen("[thieving_lock.looted]")
-                client.await("the chest relocked") { if (server.world.locs.exists(coinChest)) Unit else null }
+                client.stepTicks(relock - 1)
+                assertEquals(1, client.seen("[thieving_lock.looted]"))
+                assertFalse(server.world.locs.exists(coinChest), "still empty a tick before the relock")
+                client.stepTicks(1)
+                assertTrue(server.world.locs.exists(coinChest), "relocked $relock ticks after emptying")
+                client.commandReply("resume") { it.startsWith("Resumed") }
             }
         }
     }
