@@ -1115,6 +1115,20 @@
       "immune": ["poison", "venom"],
       "drainCap": { "defence": 60 },
       "source": "OSRS Wiki, Ocellus (phase 1, id 16674), read 2026-11-10: speed 5, magic and ranged, max hit 36, magic and ranged attack +150, the defence bonuses, immune to poison and venom, Defence drained to 129 at most (60% of 215). His shots come from his fight (Ocellus): a fireball (ranged, vfx_ocellus_fire_attack01_*, 4231-4233) or a water ball (magic, 4228-4230) at everyone as he walks (tsps capture notes, RSPSApp/tsps docs/fractured-archive.md). Ranged is the file's primary style so his fireballs roll with the +150 (attackBonus) and his water balls with magicAttack's +150 (Codex, PR 552). Guessed: the 10-tile range (the file's most; his fight fires at players anywhere in his arena), no block or death animation in this phase (he changes form rather than dying; step 24b), the respawn, which never comes"
+    },
+    {
+      "npcs": ["tfa_ocellus_p2", "tfa_ocellus_p2_sword_hitbox"],
+      "attackSpeed": 5,
+      "maxHit": 25,
+      "attackType": "magic",
+      "attackBonus": 0,
+      "strengthBonus": 0,
+      "defence": { "stab": 150, "slash": 120, "crush": 10, "magic": 100, "light": 100, "standard": 110, "heavy": 80 },
+      "anims": { "attack": null, "defend": null, "death": null },
+      "respawnTicks": 50,
+      "immune": ["poison", "venom"],
+      "xpBonus": 12.5,
+      "source": "OSRS Wiki, Ocellus (phase 2, ids 16675 and 16676), read 2026-11-10: magic, the portal's max hit 25, the defence bonuses, the 12.5% XP bonus, the Blade's Defence drained to 0 (no cap). Neither attacks by itself: his second phase has no Attack and the Blade only takes the party's (his fight, Ocellus; tsps capture notes). The portals' shots come from his fight. Guessed: the 5-tick speed (the Wiki gives 0, never used), no block or death animation, poison and venom immunity as in his first phase, the respawn, which never comes"
     }
   ]
 }

@@ -2,19 +2,25 @@ package osrsps.game.raid
 
 import java.util.WeakHashMap
 import kotlin.math.sign
+import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.combat.AttackType
 import osrsps.game.combat.HitsplatType
+import osrsps.game.combat.MagicInteraction
 import osrsps.game.combat.MeleeCombat
+import osrsps.game.combat.MeleeInteraction
 import osrsps.game.combat.NpcRangedAttack
+import osrsps.game.combat.RangedInteraction
 import osrsps.game.dialogue.Lines
 import osrsps.game.encounter.CycleStep
 import osrsps.game.encounter.EncounterContext
 import osrsps.game.encounter.EncounterDef
 import osrsps.game.encounter.PhaseDef
 import osrsps.game.npc.Npc
+import osrsps.game.npc.Npcs
+import osrsps.game.zone.Projectile
 import osrsps.map.Tile
 
 /**
@@ -30,13 +36,14 @@ object OcellusLines : Lines("tfa_ocellus", "The_Fractured_Archive/Strategies") {
     val DEATH_AWAITS = line("death_awaits", "Ocellus at the middle, eight ticks after his last side, his charge under 12: everyone is hit a little")
     val ANNIHILATION = line("annihilation", "Ocellus at the middle, eight ticks after his last side, his charge 12 or more: everyone is hit hard")
     val WILL_DISAPPEAR = line("will_disappear", "Ocellus with his first-phase bar run out, before he changes to his second phase")
+    val YOUR_TIME = line("your_time", "Ocellus seven ticks into his second phase, as the Blade appears beside him")
 
     private fun ordinal(n: Int) = listOf("first", "second", "third")[n - 1]
 }
 
 /**
- * Ocellus (raid step 24a), the last boss of The Fractured Archive, in the vault's arena on its upper floor: in this step
- * his first phase, the shielded one, whose blue bar is his first-phase hitpoints.
+ * Ocellus (raid steps 24 and 25), the last boss of The Fractured Archive, in the vault's arena on its upper floor: his
+ * first phase, the shielded one, whose blue bar is his first-phase hitpoints, and his second, the Blade's.
  *
  * - The hooded figure ([INTRO]) waits in the arena; its options ready a player up, and the fight begins once every one
  *   of the party standing has come into the room and readied, or [READY_TIMEOUT] ticks after the first ready
@@ -63,7 +70,18 @@ object OcellusLines : Lines("tfa_ocellus", "The_Fractured_Archive/Strategies") {
  * - His bar run out, he holds at it ([Npc.holdsAtZero]) and nothing hurts him; [HOLD_LINE] ticks on
  *   [OcellusLines.WILL_DISAPPEAR], and he teleports to the middle if he isn't there; [TRANSFORM_ANIM_AFTER] after the
  *   line his transformation, and [SECOND_PHASE_AFTER] after the line his second phase.
- * - STAND-IN until step 25: the second phase ([P2]) isn't built. As it would begin he dies, and the room is done.
+ * - His second phase (raid step 25a, [toSecondPhase]): he becomes [P2], with no Attack, on a bar of the remainder of his
+ *   hitpoints for the party. [PORTALS_AT] ticks in, [PORTALS_PER_ARM] orange portals stand on each arm of the cross
+ *   ([portalTiles]), blocking the way across. [BLADE_AT] ticks in, [OcellusLines.YOUR_TIME], and the Blade ([BLADE])
+ *   stands with him: the party attacks it, and [BLADE_SHARE]% of its damage comes off his bar ([forwardBlade]).
+ * - From then the quadrants take turns of [QUADRANT_TICKS] ticks, from the one most of the party stands in, clockwise
+ *   ([quadrantStep]). In each, [VOLLEYS] volleys [VOLLEY_GAP] ticks apart: every portal on the two arms beside it turns
+ *   purple but one of each, as [ORANGE] has it, and [VOLLEY_FIRES] ticks later each purple one shoots across the
+ *   quadrant along its [STRIP_LENGTH]-tile strip ([strip]), hitting whoever it reaches ([PORTAL_MIN] to [PORTAL_MAX]).
+ *   Where the two orange strips cross is safe.
+ * - STAND-IN until step 25b: nothing else in a quadrant's turn (no pools, no last all-purple volley, no floor portal on
+ *   to the next quadrant). STAND-IN until step 26: [SECOND_PHASE_TICKS] ticks in, as his third phase would begin, he
+ *   dies, and the room is done.
  *
  * From the OSRS Wiki (Ocellus, read 2026-11-10): his first phase's stats and bonuses (npc-combat.json), 3 by 3, the
  * 5-tick attack speed, magic and ranged, the max hit 36, the 60% Defence drain cap, poison and venom immunity, his
@@ -81,7 +99,13 @@ object OcellusLines : Lines("tfa_ocellus", "The_Fractured_Archive/Strategies") {
  * rising in steps of about 2% of 96, players on a crack's line taking hits of 2 to 6, the ready lines, his softer middle line
  * ([OcellusLines.DEATH_AWAITS]) hitting everyone for 17 or 18 and emptying the charge bar with it, and the blue bar held for 13 ticks before the health
  * bar (so his line three ticks into the hold, the capture notes having ten from the line to the second phase). From the cache
- * (RuneLite's gameval tables for 242): the ids below.
+ * (RuneLite's gameval tables for 242): the ids below. Step 25a: from the capture notes, the second phase's 123 ticks, the
+ * portals' tiles and timing, the line and the Blade seven ticks in, the 43% of its damage that reaches his bar, the
+ * quadrants' order and turns, the volleys, their purple and orange portals, the orange pattern, the strips and the
+ * shots' speed, and their 20 to 25; from the Wiki, his remainder hitpoints by party size, the second phase's stats and
+ * bonuses (the Blade's), its Defence drained to 0, the portal's max hit of 25, and a volley's shots hitting a player
+ * once from each axis at most; from the 242 cache, the Blade's 1,000 hitpoints and 3 by 3, the second phase having no
+ * Attack, and the portals' size and collision.
  *
  * Guessed, until a recording shows more (each also in the README): the order of the seven cracks (each spot once, in a
  * random order); the crack's small hit landing as its energy flows, after the heal; his first shot [SHOT_EVERY] ticks
@@ -96,6 +120,13 @@ object OcellusLines : Lines("tfa_ocellus", "The_Fractured_Archive/Strategies") {
  * owed (both thresholds crossed at once) coming right after the first; while held, Protect from Melee down and no
  * cracks or shots, and the teleport to the middle at once with the line. Not sent: the fades of his teleports (the
  * engine has no NPC transparency yet) and the middle's walk-block loc (its id isn't in the capture notes).
+ *
+ * Guessed in step 25a: which portal id is orange and which purple, and which way round the north and south arms' are
+ * turned; the first quadrant on a tie (the first clockwise from the north-west); a quadrant's first volley as its turn
+ * begins; the shots' height and their hit landing the tick they reach a player; no prayer against them; all the
+ * portals orange again after a quadrant's last volley; the Blade never hitting back, made whole each tick and its bar
+ * shown so; no diminishing returns on its damage within a quadrant (the Wiki says there are, not how much). Not sent:
+ * the portals' spawn and idle animations and the Blade's discharge.
  */
 object Ocellus {
     /** What `::raid` and the raid flow know the fight by. */
@@ -249,6 +280,63 @@ object Ocellus {
     const val TRANSFORM_ANIM_AFTER = 3
     const val SECOND_PHASE_AFTER = 10
 
+    /** `tfa_ocellus_p2_sword_hitbox`: the Blade beside him in his second phase, which the party attacks (242 cache). */
+    const val BLADE = 16676
+
+    /**
+     * `Portal`, 2 by 1, blocking the way but not shots (242 cache): the orange one standing idle and the purple one about
+     * to fire (`quadrant_wall_active`, tsps). Which id is which colour is guessed.
+     */
+    const val LOC_PORTAL = 62684
+    const val LOC_PORTAL_ACTIVE = 62685
+
+    /** vfx_ocellus_portal_projectile: a purple portal's shot across the quadrant. */
+    const val SPOT_PORTAL_SHOT = 4269
+
+    /** His second phase (tsps): the portals this long in, his line and the Blade this long in, and its end. */
+    const val PORTALS_AT = 2
+    const val BLADE_AT = 7
+    const val SECOND_PHASE_TICKS = 123
+
+    /** The share, in percent, of the Blade's damage that reaches his bar (tsps: 832 of 1,951 seen). */
+    const val BLADE_SHARE = 43
+
+    /** Portals on each arm of the cross, each 2 tiles long, and how far across the quadrant a portal's strip reaches (tsps). */
+    const val PORTALS_PER_ARM = 6
+    const val STRIP_LENGTH = 12
+
+    /**
+     * A quadrant's turn (tsps): this many ticks from the first at [BLADE_AT]; six volleys this far apart, each
+     * firing this long after its portals turn purple, its shot crossing a tile in this many client cycles.
+     */
+    const val QUADRANT_TICKS = 42
+    const val VOLLEYS = 6
+    const val VOLLEY_GAP = 5
+    const val VOLLEY_FIRES = 4
+    const val SHOT_CYCLES_PER_TILE = 6
+
+    /** Client cycles in a game tick (20 ms each). */
+    private const val CYCLES_PER_TICK = 30
+
+    /** A portal's shot on whoever is in its strip as it reaches them (tsps: 20-25; the Wiki's max hit 25). */
+    const val PORTAL_MIN = 20
+    const val PORTAL_MAX = 25
+
+    /** The quadrants, clockwise from the north-west, and the arms of the cross, clockwise from the north. */
+    enum class Quadrant { NW, NE, SE, SW }
+    enum class Arm { N, E, S, W }
+
+    /**
+     * Which portal of each arm beside a quadrant stays orange in each of its six volleys (tsps `ORANGE`, the same in
+     * every captured kill): counted out from the middle from 0, the north or south arm's, then the east or west arm's.
+     */
+    val ORANGE: Map<Quadrant, List<Pair<Int, Int>>> = mapOf(
+        Quadrant.NW to listOf(2 to 2, 2 to 3, 1 to 4, 2 to 2, 2 to 4, 3 to 3),
+        Quadrant.NE to listOf(1 to 0, 1 to 3, 1 to 5, 3 to 3, 2 to 2, 3 to 0),
+        Quadrant.SE to listOf(1 to 1, 3 to 1, 1 to 3, 1 to 1, 2 to 2, 4 to 1),
+        Quadrant.SW to listOf(2 to 2, 2 to 3, 1 to 4, 2 to 2, 2 to 4, 3 to 3),
+    )
+
     /** What he is doing in his first phase. */
     enum class Doing { WALKING, CORNER, MIDDLE }
 
@@ -281,6 +369,14 @@ object Ocellus {
 
         /** Each player's most hitpoints since their last interception, for the heal. */
         val peak = WeakHashMap<Player, Int>()
+
+        /** In his second phase: the Blade, the share of a hitpoint it has carried over, and the first quadrant. */
+        var blade: Npc? = null
+        var bladeCarry = 0
+        var firstQuadrant = Quadrant.NW
+
+        /** Each portal standing, by arm and index out from the middle, and whether it is purple. */
+        val portals = HashMap<Pair<Arm, Int>, Boolean>()
     }
 
     private val states = WeakHashMap<Npc, State>()
@@ -295,6 +391,55 @@ object Ocellus {
 
     /** How many times he has gone to the middle, and the side he began there with (0 north, clockwise), for tests. */
     fun middles(boss: Npc): Pair<Int, Int> = states[boss]?.let { it.middles to it.firstSide } ?: (0 to 0)
+
+    /** The Blade beside [boss] in his second phase, for tests; null before it appears. */
+    fun blade(boss: Npc): Npc? = states[boss]?.blade
+
+    /** The portals standing in his second phase, by arm and index out from the middle: true for purple. For tests. */
+    fun portals(boss: Npc): Map<Pair<Arm, Int>, Boolean> = states[boss]?.portals?.toMap().orEmpty()
+
+    /** The arena's middle tile, where the arms of the cross meet, for a boss who became his first phase at ([x], [z]). */
+    fun centre(x: Int, z: Int): Tile = middle(x, z).let { Tile(it.x + 1, it.z + 1) }
+
+    /** The quadrant ([x], [z]) is in around [centre]; null on an arm of the cross. */
+    fun quadrant(centre: Tile, x: Int, z: Int): Quadrant? = when {
+        x < centre.x && z > centre.z -> Quadrant.NW
+        x > centre.x && z > centre.z -> Quadrant.NE
+        x > centre.x && z < centre.z -> Quadrant.SE
+        x < centre.x && z < centre.z -> Quadrant.SW
+        else -> null
+    }
+
+    /** The north or south arm and the east or west arm beside [quadrant]. */
+    fun arms(quadrant: Quadrant): Pair<Arm, Arm> = when (quadrant) {
+        Quadrant.NW -> Arm.N to Arm.W
+        Quadrant.NE -> Arm.N to Arm.E
+        Quadrant.SE -> Arm.S to Arm.E
+        Quadrant.SW -> Arm.S to Arm.W
+    }
+
+    /**
+     * The two tiles of portal [index] (from 0, out from the middle) on [arm] around [centre], the first its south-west
+     * tile (tsps: E x 4128-4138 and W x 4115-4125 at the middle's z, N z 5674-5684 and S z 5661-5671 at its x, every two).
+     */
+    fun portalTiles(centre: Tile, arm: Arm, index: Int): List<Tile> = when (arm) {
+        Arm.E -> (centre.x + 1 + 2 * index).let { listOf(Tile(it, centre.z), Tile(it + 1, centre.z)) }
+        Arm.W -> (centre.x - 2 - 2 * index).let { listOf(Tile(it, centre.z), Tile(it + 1, centre.z)) }
+        Arm.N -> (centre.z + 1 + 2 * index).let { listOf(Tile(centre.x, it), Tile(centre.x, it + 1)) }
+        Arm.S -> (centre.z - 2 - 2 * index).let { listOf(Tile(centre.x, it), Tile(centre.x, it + 1)) }
+    }
+
+    /**
+     * The tiles portal [index] on [arm] shoots across in [quadrant], [out] tiles from the arm (1 to [STRIP_LENGTH]): its
+     * strip, as wide as the portal is long.
+     */
+    fun strip(centre: Tile, arm: Arm, index: Int, quadrant: Quadrant, out: Int): List<Tile> {
+        val west = quadrant == Quadrant.NW || quadrant == Quadrant.SW
+        val north = quadrant == Quadrant.NW || quadrant == Quadrant.NE
+        return portalTiles(centre, arm, index).map {
+            if (arm == Arm.N || arm == Arm.S) Tile(centre.x + if (west) -out else out, it.z) else Tile(it.x, centre.z + if (north) out else -out)
+        }
+    }
 
     /** The middle's south-west tile for a boss who became his first phase at ([x], [z]). */
     fun middle(x: Int, z: Int): Tile = Tile(x, z + MIDDLE_DZ)
@@ -342,6 +487,8 @@ object Ocellus {
     /** The fight, or null when the cache hasn't his first phase (a test world's). */
     fun def(types: NpcTypes): EncounterDef? {
         val first = types[P1] ?: return null
+        val second = types[P2] ?: return null
+        val blade = types[BLADE] ?: return null
         return EncounterDef(
             NAME, first,
             listOf(
@@ -365,6 +512,7 @@ object Ocellus {
                 PhaseDef(
                     "held",
                     cycle = listOf(CycleStep(1) { held() }),
+                    endsAfter = HOLD_LINE + SECOND_PHASE_AFTER,
                     onStart = {
                         // Guessed: nothing more from his first phase once his bar is out; what was laid is gone.
                         state.cracks.clear()
@@ -372,15 +520,24 @@ object Ocellus {
                         log("held at the end of his bar")
                     },
                 ),
+                PhaseDef(
+                    "second",
+                    cycle = listOf(CycleStep(1) { secondPhase(blade) }),
+                    onStart = { toSecondPhase(second) },
+                ),
             ),
             scriptedAttacks = true,
             status = {
-                val doing = when {
-                    boss.hitpoints <= 0 -> "held"
-                    state.doing == Doing.MIDDLE -> "at the middle"
-                    else -> "${state.doing.name.lowercase()} ${cornerName(state.corner)}"
+                if (boss.type.id == P2) {
+                    "Ocellus ${boss.hitpoints}/${boss.maxHitpoints} hp, second phase" + (quadrantNow()?.let { ", quadrant ${it.name}" } ?: "")
+                } else {
+                    val doing = when {
+                        boss.hitpoints <= 0 -> "held"
+                        state.doing == Doing.MIDDLE -> "at the middle"
+                        else -> "${state.doing.name.lowercase()} ${cornerName(state.corner)}"
+                    }
+                    "Ocellus ${boss.hitpoints}/${boss.maxHitpoints} hp, charge ${state.charge}/$CHARGE_MAX, $doing"
                 }
-                "Ocellus ${boss.hitpoints}/${boss.maxHitpoints} hp, charge ${state.charge}/$CHARGE_MAX, $doing"
             },
         )
     }
@@ -533,11 +690,186 @@ object Ocellus {
                 boss.effects.anim(ANIM_TRANSFORMATION)
                 log("transformation")
             }
-            HOLD_LINE + SECOND_PHASE_AFTER -> {
-                // STAND-IN until step 25: his second phase isn't built, so he dies as it would begin, and the room is done.
-                log("second phase: stand-in, he dies")
-                boss.holdsAtZero = false
-                world.meleeCombat.hit(boss, null, 0, world.tick)
+        }
+    }
+
+    /**
+     * His second phase begins ([SECOND_PHASE_AFTER] after his line): he becomes [form], with no Attack, on the bar of
+     * what is left of him, the Wiki's remainder for his party size (party-scaling.json); it holds at 0 as his first did.
+     */
+    private fun EncounterContext.toSecondPhase(form: NpcType) {
+        world.npcs.transform(boss, form, Npcs.FOREVER)
+        untarget(boss)
+        val party = boss.scaledFor
+        boss.scaledHitpoints = (if (party > 0) world.partyScaling.hitpoints(form, party) else null) ?: form.stats.hitpoints
+        boss.hitpoints = boss.maxHitpoints
+        boss.effects.headBar(-1, MeleeCombat.HEALTH_BAR, MeleeCombat.healthBarFill(boss.hitpoints, boss.maxHitpoints))
+        state.portals.clear()
+        log("second phase: ${boss.hitpoints} hitpoints")
+    }
+
+    /**
+     * [npc] has lost its Attack: whoever was attacking it stops, rather than swinging, shooting or casting on at a type
+     * with no Attack (as the Guardian's inert guardians, Codex on #481). A hit already on its way still lands.
+     */
+    private fun EncounterContext.untarget(npc: Npc) {
+        for (player in world.onlinePlayers) {
+            val on = when (val fight = player.interaction) {
+                is MeleeInteraction -> fight.npc
+                is RangedInteraction -> fight.npc
+                is MagicInteraction -> fight.npc
+                else -> null
+            }
+            if (on !== npc) continue
+            player.interaction = null
+            world.npcInteractions.stopFacing(player)
+        }
+    }
+
+    /** The quadrant whose turn it is in his second phase; null before the first, at [BLADE_AT]. */
+    private fun EncounterContext.quadrantNow(): Quadrant? {
+        val since = phaseTick - BLADE_AT
+        if (since < 0) return null
+        return Quadrant.entries[(state.firstQuadrant.ordinal + (since / QUADRANT_TICKS).toInt()) % Quadrant.entries.size]
+    }
+
+    /** One tick of his second phase: the Blade's damage to his bar, the portals, the Blade, the quadrants' volleys. */
+    private fun EncounterContext.secondPhase(bladeType: NpcType) {
+        forwardBlade()
+        val at = phaseTick.toInt()
+        if (at == PORTALS_AT) {
+            for (arm in Arm.entries) for (index in 0 until PORTALS_PER_ARM) portal(arm, index, false)
+            log("portals stand")
+        }
+        if (at == SECOND_PHASE_TICKS) {
+            // STAND-IN until step 26: his third phase isn't built, so he dies as it would begin, and the room is done.
+            log("end of the second phase: stand-in, he dies")
+            boss.holdsAtZero = false
+            boss.hitpoints = 0
+            world.meleeCombat.hit(boss, null, 0, world.tick)
+            return
+        }
+        if (at == BLADE_AT) {
+            boss.effects.say(world.dialogueText.get(OcellusLines.YOUR_TIME))
+            val blade = spawnAdd(bladeType, boss.x, boss.z)
+            if (blade != null) {
+                // It takes the party's attacks and never hits back or dies of them: its damage goes to his bar.
+                blade.scriptedAttacks = true
+                blade.holdsAtZero = true
+                state.blade = blade
+            }
+            state.firstQuadrant = partyQuadrant()
+            log("your time; the Blade; first quadrant ${state.firstQuadrant.name}")
+        }
+        if (at >= BLADE_AT) quadrantStep(at - BLADE_AT)
+    }
+
+    /**
+     * The quadrant most of the party stands in (tsps); a tie, or nobody in one, goes to the first of them clockwise from
+     * the north-west (guessed).
+     */
+    private fun EncounterContext.partyQuadrant(): Quadrant {
+        val centre = centre(boss.spawn.x, boss.spawn.z)
+        val counts = players.mapNotNull { quadrant(centre, it.x, it.z) }.groupingBy { it }.eachCount()
+        return Quadrant.entries.maxBy { counts[it] ?: 0 }
+    }
+
+    /**
+     * The Blade's damage since last tick: [BLADE_SHARE] of it comes off his bar, a hitpoint's share carried over, and
+     * the Blade is whole again. Guessed: no diminishing returns within a quadrant (the Wiki says there are some, but
+     * not how much), and the Blade's bar shown full again at once.
+     */
+    private fun EncounterContext.forwardBlade() {
+        val blade = state.blade ?: return
+        if (blade.dead || world.npcs[blade.index] !== blade) return
+        val lost = blade.maxHitpoints - blade.hitpoints
+        if (lost <= 0) return
+        blade.hitpoints = blade.maxHitpoints
+        blade.effects.headBar(-1, MeleeCombat.HEALTH_BAR, MeleeCombat.healthBarFill(blade.hitpoints, blade.maxHitpoints))
+        val total = lost * BLADE_SHARE + state.bladeCarry
+        state.bladeCarry = total % 100
+        val share = minOf(total / 100, boss.hitpoints)
+        boss.hitpoints -= share
+        boss.effects.headBar(-1, MeleeCombat.HEALTH_BAR, MeleeCombat.healthBarFill(boss.hitpoints, boss.maxHitpoints))
+        log("the Blade takes $lost: $share to his bar")
+    }
+
+    /** Ticks [t] into the quadrants' turns: whose turn, its volleys' portals turning purple, and their firing. */
+    private fun EncounterContext.quadrantStep(t: Int) {
+        val quadrant = Quadrant.entries[(state.firstQuadrant.ordinal + t / QUADRANT_TICKS) % Quadrant.entries.size]
+        val at = t % QUADRANT_TICKS
+        if (at == 0) log("quadrant ${quadrant.name}")
+        if (at % VOLLEY_GAP == 0 && at / VOLLEY_GAP < VOLLEYS) volley(quadrant, at / VOLLEY_GAP)
+        val firing = at - VOLLEY_FIRES
+        if (firing >= 0 && firing % VOLLEY_GAP == 0 && firing / VOLLEY_GAP < VOLLEYS) {
+            fire(quadrant, firing / VOLLEY_GAP)
+            if (firing / VOLLEY_GAP == VOLLEYS - 1) {
+                // Guessed, until step 25b's end of the quadrant: all orange again after its last volley.
+                for (arm in Arm.entries) for (index in 0 until PORTALS_PER_ARM) portal(arm, index, false)
+            }
+        }
+    }
+
+    /** Volley [volley] in [quadrant]: every portal on its two arms turns purple but the one of each the pattern keeps orange. */
+    private fun EncounterContext.volley(quadrant: Quadrant, volley: Int) {
+        val (ns, ew) = arms(quadrant)
+        val (keepNs, keepEw) = ORANGE.getValue(quadrant)[volley]
+        for (arm in Arm.entries) for (index in 0 until PORTALS_PER_ARM) {
+            portal(arm, index, (arm == ns && index != keepNs) || (arm == ew && index != keepEw))
+        }
+        log("volley ${volley + 1}: orange ${ns.name} $keepNs, ${ew.name} $keepEw")
+    }
+
+    /**
+     * Portal [index] on [arm], orange or [purple], placed only when it changes. The north and south arms' turned a
+     * quarter so they lie along the arm (which way round is guessed).
+     */
+    private fun EncounterContext.portal(arm: Arm, index: Int, purple: Boolean) {
+        if (state.portals[arm to index] == purple) return
+        val at = portalTiles(centre(boss.spawn.x, boss.spawn.z), arm, index).first()
+        placeLoc(if (purple) LOC_PORTAL_ACTIVE else LOC_PORTAL, at.x, at.z, if (arm == Arm.N || arm == Arm.S) 1 else 0)
+        state.portals[arm to index] = purple
+    }
+
+    /**
+     * Volley [volley] fires: each purple portal on [quadrant]'s arms shoots across it, along both tiles of its strip,
+     * crossing a tile every [SHOT_CYCLES_PER_TILE] client cycles. Whoever is on a strip's tile as the shot reaches it
+     * is hit, once a volley by each arm's shots (the Wiki's changes: never twice from the same axis, but by both).
+     * Guessed: no prayer helps, and the hit lands on the tick the shot reaches them, by 30 cycles a tick.
+     */
+    private fun EncounterContext.fire(quadrant: Quadrant, volley: Int) {
+        val centre = centre(boss.spawn.x, boss.spawn.z)
+        val (ns, ew) = arms(quadrant)
+        val purple = state.portals.filter { (key, on) -> on && (key.first == ns || key.first == ew) }.keys.sortedWith(compareBy({ it.first }, { it.second }))
+        val flight = STRIP_LENGTH * SHOT_CYCLES_PER_TILE
+        for ((arm, index) in purple) {
+            val from = portalTiles(centre, arm, index)
+            val to = strip(centre, arm, index, quadrant, STRIP_LENGTH)
+            for (lane in from.indices) {
+                world.zones.projectile(
+                    Projectile(
+                        id = SPOT_PORTAL_SHOT, fromX = from[lane].x, fromZ = from[lane].z, level = boss.level, toX = to[lane].x, toZ = to[lane].z,
+                        startHeight = 40, endHeight = 40, startTime = 0, endTime = flight, angle = 0, progress = 0,
+                    ),
+                )
+            }
+        }
+        log("volley ${volley + 1} fires from ${purple.size} portals")
+        val hitBy = mapOf(ns to HashSet<Player>(), ew to HashSet<Player>())
+        for (tick in 1..(flight + CYCLES_PER_TICK - 1) / CYCLES_PER_TICK) {
+            after(tick) {
+                if (boss.dead) return@after
+                for ((arm, index) in purple) {
+                    for (out in 1..STRIP_LENGTH) {
+                        if ((out * SHOT_CYCLES_PER_TILE + CYCLES_PER_TICK - 1) / CYCLES_PER_TICK != tick) continue
+                        val tiles = strip(centre, arm, index, quadrant, out)
+                        for (player in players) {
+                            if (tiles.none { it.x == player.x && it.z == player.z } || !hitBy.getValue(arm).add(player)) continue
+                            val dealt = fromTheRoom(player, roll(PORTAL_MIN, PORTAL_MAX))
+                            log("portal shot from ${arm.name} $index hits ${player.username} for $dealt")
+                        }
+                    }
+                }
             }
         }
     }

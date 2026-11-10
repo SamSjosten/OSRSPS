@@ -115,11 +115,12 @@ interface EncounterContext {
     fun spawnAdd(type: NpcType, x: Int, z: Int): Npc?
 
     /**
-     * Puts a loc of type [id] (a centrepiece, facing north) on [x], [z] on the boss's level, replacing what is on its
-     * layer there, until [clearLoc] or the fight's end puts the tile back as the cache has it. What grows in the fight:
-     * a mushroom.
+     * Puts a loc of type [id] (a centrepiece, turned [rotation] quarter turns clockwise from facing north) with its
+     * south-west tile on [x], [z] on the boss's level, replacing what is on its layer there, until [clearLoc] or the
+     * fight's end puts the tile back as the cache has it. What grows in the fight: a mushroom. A turned loc wider than
+     * it is long blocks its length along x and its width along z.
      */
-    fun placeLoc(id: Int, x: Int, z: Int): ZoneLoc
+    fun placeLoc(id: Int, x: Int, z: Int, rotation: Int = 0): ZoneLoc
 
     /** Puts [loc]'s tile back as the cache has it, if [placeLoc] put it there and nothing has changed it since. */
     fun clearLoc(loc: ZoneLoc)

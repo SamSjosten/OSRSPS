@@ -96,8 +96,9 @@ class Encounter internal constructor(
         return hazard
     }
 
-    override fun placeLoc(id: Int, x: Int, z: Int): ZoneLoc {
-        val loc = ZoneLoc(id, LocShape.CENTREPIECE_STRAIGHT, 0, x, z, boss.level)
+    override fun placeLoc(id: Int, x: Int, z: Int, rotation: Int): ZoneLoc {
+        require(rotation in 0..3) { "a loc turned $rotation times" }
+        val loc = ZoneLoc(id, LocShape.CENTREPIECE_STRAIGHT, rotation, x, z, boss.level)
         world.locs.add(loc)
         locList[Triple(x, z, loc.layer)] = loc
         return loc
