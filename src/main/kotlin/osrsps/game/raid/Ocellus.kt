@@ -10,6 +10,7 @@ import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.combat.AttackType
 import osrsps.game.combat.CombatMath
+import osrsps.game.combat.DinhsBulwark
 import osrsps.game.combat.HitsplatType
 import osrsps.game.combat.MagicInteraction
 import osrsps.game.combat.MeleeCombat
@@ -1351,8 +1352,8 @@ object Ocellus {
     }
 
     /**
-     * His tank (tsps): the first to hit him while they stay in his quadrant. Whoever hit him last, if they are in it,
-     * when he has none. The party is told who he turns to ([OcellusLines.TURNS_TO]; Sam's recordings).
+     * His tank (tsps): the first to hit him while they stay in his quadrant. When he has none, whoever in it first attacked
+     * him since he took it. The party is told who he turns to ([OcellusLines.TURNS_TO]; Sam's recordings).
      */
     private fun EncounterContext.pickTank() {
         val centre = centre(boss.spawn.x, boss.spawn.z)
@@ -1362,10 +1363,12 @@ object Ocellus {
             log("${tank.username} is no longer his tank")
         }
         if (state.tank != null) return
-        val attacker = boss.attacker ?: return
-        if (attacker.dead || players.none { it === attacker } || quadrant(centre, attacker.x, attacker.z) != state.held) return
-        // A world tick, as the attacker's is: a hit from before he took this quadrant doesn't count (Codex, PR 576).
-        if (boss.attackedTick < state.heldWorldTick) return
+        // Each player's own record of attacking him, not his last attacker: of several who hit him in one tick, the
+        // first stays first, and one hitting from outside his quadrant doesn't hide one inside it (Codex, PR 576).
+        // World ticks: an attack from before he took this quadrant doesn't count. Ties go to the party's order.
+        val attacker = players.filter {
+            !it.dead && it.attackedNpc === boss && it.attackedNpcTick >= state.heldWorldTick && quadrant(centre, it.x, it.z) == state.held
+        }.minByOrNull { it.attackedNpcTick } ?: return
         state.tank = attacker
         for (player in players) player.message(world.textFor(player)[OcellusLines.TURNS_TO, "name" to attacker.username])
         log("turns to ${attacker.username}")
@@ -1435,7 +1438,9 @@ object Ocellus {
                 val roll = world.combat.npcAttack(boss, player, AttackType.SLASH) ?: continue
                 val rolled = if (CombatMath.rollHits(world.random, roll.attackRoll, roll.defenceRoll)) CombatMath.rollDamage(world.random, roll.maxHit) else 0
                 val prayed = world.prayers.protects(player, AttackType.SLASH)
-                val dealt = world.meleeCombat.hitPlayer(player, boss, if (prayed) 0 else rolled, world.tick)
+                // Dinh's bulwark blocks it as it does his other swings (Codex, PR 576).
+                val blocked = if (world.combat.bulwarkBlocking(player, world.tick)) DinhsBulwark.blocked(rolled) else rolled
+                val dealt = world.meleeCombat.hitPlayer(player, boss, if (prayed) 0 else blocked, world.tick)
                 if (!player.dead) player.attackedTick = world.tick
                 log("slash hits ${player.username} for $dealt" + if (prayed) ", prayed against" else "")
             }
