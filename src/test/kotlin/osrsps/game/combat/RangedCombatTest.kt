@@ -721,6 +721,18 @@ class RangedCombatTest {
     }
 
     @Test
+    fun `the last knife thrown waits the knife's 3 ticks, not an empty hand's 4`() {
+        alice.god = true
+        wield(alice, runeKnife, bronzeArrow, 50)
+        alice.equipment[WearPos.WEAPON] = InvObj(runeKnife.id, 1)
+        val npc = spawn(type = dummy, x = 3214)
+        attack(alice, npc)
+        tick()
+        assertNull(alice.equipment[WearPos.WEAPON])
+        assertEquals(4L, alice.nextAttackTick)
+    }
+
+    @Test
     fun `an Ava's device brings thrown knives back to the weapon slot`() {
         recover = AvaDevices.RECOVERED.getValue(AvaDevices.ASSEMBLER)
         alice.god = true

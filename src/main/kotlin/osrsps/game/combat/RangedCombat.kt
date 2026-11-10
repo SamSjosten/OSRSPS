@@ -246,7 +246,7 @@ class RangedCombat(
     }
 
     /**
-     * A throw: one from the stack in the weapon slot, the numbers taken while it was still there, and nothing to the
+     * A throw: one from the stack in the weapon slot, the numbers (and the speed) taken while it was still there, and nothing to the
      * floor. Chinchompas can't be picked up again, even when they do no damage (OSRS Wiki, Chinchompa (weapon)), and no
      * Ava's device brings them back (Ava's device); darts, knives, thrownaxes and the rest come back to the weapon slot
      * as arrows do to the quiver, and without one fall under the target as arrows do (a fifth breaking; inferred from
@@ -256,10 +256,12 @@ class RangedCombat(
         val matchup = combat.rangedMatchup(player, npc) ?: return false
         val thrown = combat.weapon(player)
         val poison = PoisonedWeapons.ranged(thrown)
+        // The speed too: the last one thrown leaves the slot empty, and an empty hand's speed is slower.
+        val speed = speed(player, matchup.style)
         player.equipment.remove(WearPos.WEAPON, 1)
         val recover = if (weapon.targets > 1) 0 else recovery(player)
         val back = if (recover > 0 || !weapon.splash) thrown else null
-        release(player, npc, weapon, null, back, matchup, 1, tick, poison = poison, recover = recover, slot = WearPos.WEAPON, floor = !weapon.splash)
+        release(player, npc, weapon, null, back, matchup, 1, tick, poison = poison, recover = recover, slot = WearPos.WEAPON, floor = !weapon.splash, speed = speed)
         return true
     }
 
@@ -278,9 +280,10 @@ class RangedCombat(
         recover: Int = 0,
         slot: Int = WearPos.AMMO,
         floor: Boolean = true,
+        speed: Int = speed(player, matchup.style),
     ) {
         val style = matchup.style
-        player.nextAttackTick = tick + speed(player, style)
+        player.nextAttackTick = tick + speed
         if (weapon.anim >= 0) player.effects.anim(weapon.anim, 0)
         val launch = when {
             weapon.launch >= 0 -> weapon.launch
