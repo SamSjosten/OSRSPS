@@ -921,6 +921,15 @@ object Ocellus {
     private fun EncounterContext.floorPortal(quadrant: Quadrant, open: Int) {
         val centre = centre(boss.spawn.x, boss.spawn.z)
         val tile = quadrantTile(centre, quadrant, FLOOR_PORTAL_OUT, FLOOR_PORTAL_OUT)
+        // The fight runs before players move in a tick, so whoever stepped on it in its last open tick is only on it
+        // now, as it goes: they are taken on before it does (Codex, PR 572).
+        for (player in players) {
+            if (open == 0 || player.x != tile.x || player.z != tile.z) continue
+            val to = throughFloorPortal(centre, quadrant, player.x, player.z)
+            world.teleport(player, to.x, to.z, boss.level)
+            state.immune[player] = phaseTick + FLOOR_PORTAL_IMMUNE
+            log("${player.username} through the floor portal to ${to.x},${to.z}")
+        }
         if (open == FLOOR_PORTAL_TICKS) {
             world.zones.mapAnim(tile.x, tile.z, boss.level, SPOT_FLOOR_PORTAL_DESPAWN)
             state.floorPortal = null
@@ -934,13 +943,6 @@ object Ocellus {
             log("floor portal at ${tile.x},${tile.z}")
         } else {
             world.zones.mapAnim(tile.x, tile.z, boss.level, SPOT_FLOOR_PORTAL)
-        }
-        for (player in players) {
-            if (player.x != tile.x || player.z != tile.z) continue
-            val to = throughFloorPortal(centre, quadrant, player.x, player.z)
-            world.teleport(player, to.x, to.z, boss.level)
-            state.immune[player] = phaseTick + FLOOR_PORTAL_IMMUNE
-            log("${player.username} through the floor portal to ${to.x},${to.z}")
         }
     }
 
