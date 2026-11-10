@@ -1,0 +1,44 @@
+{
+ "name": "Thieving 2 step T1a: a farmer, an Al Kharid warrior and an Edgeville guard pickpocketed at 99, the farmer's pouch opened, and Check on carried gloves of silence and a dodgy necklace (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario thieving", "expectMessage": "Started scenario thieving.", "comment": "99 Thieving, gloves of silence and a dodgy necklace worn, a spare necklace; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::god on", "comment": "a caught pickpocket's blow would otherwise hurt"},
+  {"step": "assertEquipment", "slot": "hands", "item": "Gloves of silence"},
+  {"step": "assertEquipment", "slot": "amulet", "item": "Dodgy necklace"},
+
+  {"step": "waitTicks", "ticks": 3, "comment": "let the client list the farm's NPCs"},
+  {"step": "npcOption", "npc": "Farmer", "option": "Pickpocket", "timeoutMs": 20000},
+  {"step": "assertMessage", "contains": "[pickpocket.attempt who=farmer]", "timeoutMs": 10000},
+  {"step": "assertMessage", "contains": "[pickpocket.success who=farmer]", "timeoutMs": 10000, "comment": "99% at 99 with the gloves: a farmer's pouch 123/128, a potato seed 5/128"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "npcOption", "npc": "Farmer", "option": "Pickpocket", "timeoutMs": 20000},
+  {"step": "assertMessage", "contains": "[pickpocket.success who=farmer]", "timeoutMs": 10000},
+  {"step": "itemOption", "item": "Coin pouch", "option": "Open-all", "comment": "two tries make a pouch all but certain (1 in 655 gives two seeds)"},
+  {"step": "assertMessage", "contains": "[pickpocket.pouch_open_all coins=", "timeoutMs": 5000, "comment": "9 coins a pouch"},
+
+  {"step": "command", "text": "::item hunting_silent_gloves", "expectMessage": "Added 1 x Gloves of silence"},
+  {"step": "itemOption", "item": "Gloves of silence", "option": "Check"},
+  {"step": "assertMessage", "contains": "[pickpocket_gear.gloves_", "timeoutMs": 5000, "comment": "gloves_new unless a failure wore them"},
+  {"step": "itemOption", "item": "Dodgy necklace", "option": "Check"},
+  {"step": "assertMessage", "contains": "[pickpocket_gear.necklace_check charges=", "timeoutMs": 5000, "comment": "10 unless a failure used one"},
+
+  {"step": "command", "text": "::tele 3290 3172 0", "expectMessage": "Teleported to 3290, 3172, 0", "comment": "Al Kharid palace, among its warriors"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "npcOption", "npc": "Al Kharid warrior", "option": "Pickpocket", "timeoutMs": 20000},
+  {"step": "assertMessage", "contains": "[pickpocket.attempt who=Al Kharid warrior]", "timeoutMs": 10000},
+  {"step": "waitTicks", "ticks": 12, "comment": "past a stun, if there was one"},
+
+  {"step": "command", "text": "::tele 3100 3515 0", "expectMessage": "Teleported to 3100, 3515, 0", "comment": "Edgeville, by its guards"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "npcOption", "npc": "Guard", "option": "Pickpocket", "timeoutMs": 20000},
+  {"step": "assertMessage", "contains": "[pickpocket.attempt who=guard]", "timeoutMs": 10000},
+  {"step": "waitTicks", "ticks": 12},
+
+  {"step": "command", "text": "::god off"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

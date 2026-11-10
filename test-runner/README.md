@@ -179,6 +179,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `ham-hideout.json`: Misthalin piece 7 step 4a: the H.A.M. Hideout's trapdoor locked, picked open at 99 Thieving
   with a lockpick, climbed down and back up by the ladder, a H.A.M. member pickpocketed, and Jimmy's cell door locked
   from outside and picked from inside (with `::keys on` and `::god on`; the concussions are in the headless test).
+- `thieving-t1a.json`: Thieving 2 step T1a: a farmer pickpocketed at 99 with the gloves of silence and its coin
+  pouches opened, Check on carried gloves and a dodgy necklace, and an Al Kharid warrior and an Edgeville guard
+  pickpocketed (with `::keys on` and `::god on`; the gloves' wear and the necklace's saves are in the headless test).
 - `al-kharid-toll-gate.json`: Al Kharid step 1: Open on the toll gate from both sides with no coins, a Border
   Guard's talk (with `::keys on`) that ends with the player through the gate, and the palace's west large doors
   opened together and shut again, and the curtain upstairs in the palace opened and shut.

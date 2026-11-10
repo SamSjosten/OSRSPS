@@ -24,7 +24,8 @@ import osrsps.map.CollisionMap
 /**
  * Thieving 2 step T1a through the headless client: a farmer (level 10, 14.5 XP, a farmer's pouch of 9 coins or a potato
  * seed), an Al Kharid warrior (a warrior's pouch, 26 XP), and the gloves of silence and dodgy necklace (Check, wear on
- * each failure, the necklace's saved stun, both breaking).
+ * each failure, the necklace's saved stun, both breaking). The rl-client script test-runner/examples/thieving-t1a.json
+ * pickpockets the real farmers, warriors and guards and checks both items there.
  */
 class HeadlessPickpocketGearTest {
     private val pick = listOf(null, "Attack", "Pickpocket", null, null)
