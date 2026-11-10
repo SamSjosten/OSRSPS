@@ -151,6 +151,33 @@ class HeadlessPickpocketKandarinTest {
     }
 
     @Test
+    fun `a paladin won't be pickpocketed when the chaos runes would pass the most a stack holds`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.level("thieving", THIEVING, 99)
+                val player = server.world.playerNamed("dave")!!
+                player.inventory.add(server.world.objTypes[CHAOS_RUNE]!!, Int.MAX_VALUE - 1)
+                client.await("the chaos runes") { if (client.count(CHAOS_RUNE) == Int.MAX_VALUE - 1) Unit else null }
+                val tenths = player.skills.tenths(Skill.THIEVING)
+                client.ready(server, "dave")
+                client.npcOp(client.npc(PALADIN).index, Pickpocketing.PICKPOCKET)
+                client.await("no room") { if (client.seen("[pickpocket.inventory_full]") == 1) Unit else null }
+                assertEquals(0, client.seen("[pickpocket.attempt who=paladin]"))
+                assertEquals(tenths, player.skills.tenths(Skill.THIEVING))
+                assertEquals(0, client.count(Pickpocketing.PALADIN_POUCH))
+                // One rune fewer leaves room for the two.
+                player.inventory.remove(player.inventory.contents().single { it.second.id == CHAOS_RUNE }.first, 1)
+                client.level("hitpoints", HITPOINTS, 99)
+                var tries = 0
+                while (!client.run { ready(server, "dave"); tryOnce(PALADIN, "paladin") }) assertTrue(++tries <= 30, "a success within 30 tries")
+                client.await("a full stack") { if (client.count(CHAOS_RUNE) == Int.MAX_VALUE) Unit else null }
+                assertEquals(1, client.count(Pickpocketing.PALADIN_POUCH))
+            }
+        }
+    }
+
+    @Test
     fun `a hero gives from its table, mostly a pouch, and 163,3 XP, or stuns for 6 seconds`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { client ->

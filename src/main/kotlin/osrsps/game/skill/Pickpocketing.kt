@@ -1,5 +1,6 @@
 package osrsps.game.skill
 
+import osrsps.game.Inventory
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
@@ -126,7 +127,7 @@ class Pickpocketing(private val world: World) {
         }
         val roomNeeded = (if (pocket.pouch == null || player.inventory.count(pocket.pouch) == 0L) 1 else 0) +
             pocket.extra.count { extra -> world.objTypes[extra.obj]?.stackable != true || player.inventory.count(extra.obj) == 0L }
-        if (player.inventory.freeSlots < roomNeeded) {
+        if (player.inventory.freeSlots < roomNeeded || !stacksFit(player, pocket)) {
             player.message(text[PickpocketLines.INVENTORY_FULL])
             return
         }
@@ -164,6 +165,20 @@ class Pickpocketing(private val world: World) {
         // A blow that kills ends it there: no concussion, and no teleport moving the grave off the death tile.
         if (player.dead) return
         if (pocket.concussions) HamHideout.caught(world, player) else player.message(text[PickpocketLines.STUNNED])
+    }
+
+    /**
+     * Whether every stack a success could add to still has room: each [Pocket.extra], and the most of each table item
+     * the player already holds a stack of. A stack can't pass [Inventory.MAX_STACK], and part of a reward would
+     * otherwise be lost while the XP and the rest came anyway (live's inv_add refuses a whole add; guessed that the
+     * pickpocket is refused before it starts, as with no room).
+     */
+    private fun stacksFit(player: Player, pocket: Pocket): Boolean {
+        fun fits(obj: Int, count: Int): Boolean {
+            if (world.objTypes[obj]?.stackable != true) return true
+            return player.inventory.count(obj) + count <= Inventory.MAX_STACK
+        }
+        return pocket.extra.all { fits(it.obj, it.min) } && pocket.loot.all { it.obj < 0 || fits(it.obj, it.max) }
     }
 
     private fun give(player: Player, pocket: Pocket) {
