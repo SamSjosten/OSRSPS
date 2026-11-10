@@ -9,7 +9,6 @@ import kotlin.math.sign
 import osrsps.game.NpcTypes
 import osrsps.game.Player
 import osrsps.game.combat.AttackType
-import osrsps.game.combat.CombatMath
 import osrsps.game.combat.DinhsBulwark
 import osrsps.game.combat.NpcRangedAttack
 import osrsps.game.dialogue.Line
@@ -82,9 +81,14 @@ object BorkLines : Lines("tfa_bork", "The_Fractured_Archive/Strategies") {
  * 2026-11-09): Protect from Melee reducing his damage, and the volleys and napalm at players Bork isn't after. From
  * the cache: the ids below.
  *
- * Guessed, until a recording shows the damage (each also in the README): a strike's roll being his melee's at each
- * player's crush defence, the 2-3 tile one's max hit ([WIDE_MAX]), Protect from Melee halving a strike, the tower's
- * shadow keeping a strike off too; a volley's style picked at random; the gap from a volley
+ * From Sam's recordings of 2026-11-09 (three fights, parties of four and five): through Protect from Melee a strike
+ * never missing, the first of a gong's two doing 4 to 7 and the second 5 to 8 ([PRAYED_FIRST], [PRAYED_SECOND]: 35
+ * strikes on his tank); with the prayer run out, a 6 and a 16, then a 32 and a killing blow.
+ *
+ * Guessed, until a recording shows more of the damage (each also in the README): a strike with no prayer never
+ * missing either, and anything from the prayer's least up to his max hit ([strikeRange]); the 2-3 tile one's max hit
+ * ([WIDE_MAX]) and its being a first strike's through the prayer; the tower's shadow keeping a strike off too;
+ * a volley's style picked at random; the gap from a volley
  * to napalm and to the cannonball's call (a spacing); napalm's and the cannonball's target being a random player Bork
  * isn't after, his tank when there is none; the splash's drip being the target tile itself, and which way counts as
  * straight; napalm landing on Bork hurting him by an oil tick's 6-7, once; the burn's 2 every 4 ticks, 5 times, not
@@ -182,6 +186,13 @@ object Bork {
     /** A strike's reach out to his tank, at most, and its max hit then. The reach is the tsps notes'; the max is guessed. */
     const val WIDE_REACH = 3
     const val WIDE_MAX = 50
+
+    /**
+     * What a strike of his gong does through Protect from Melee, its first and its second: every one of 35 on his tank
+     * in Sam's recordings of 2026-11-09, none a 0.
+     */
+    val PRAYED_FIRST = 4..7
+    val PRAYED_SECOND = 5..8
 
     /** The Smorks' first volley this many ticks in (tsps). */
     const val FIRST_VOLLEY = 13
@@ -283,6 +294,19 @@ object Bork {
         if (max <= 0) return TEMPO_MAX
         val lost = (max - hitpoints.coerceIn(0, max)) * 100 / max
         return minOf(TEMPO_MAX, lost / TEMPO_EVERY_PERCENT)
+    }
+
+    /**
+     * What a strike can do to a player, never missing, for a Bork whose max hit is [max]. [praying] with Protect from
+     * Melee: [PRAYED_FIRST], or [PRAYED_SECOND] for a gong's [second]. Without: from the least of those up to [max], or
+     * to [WIDE_MAX] for the one reaching out ([wide]); the recordings have a 6 and a 16 for the first and a 32 for the
+     * second, with [max] at 34, and the rest of it is guessed.
+     */
+    fun strikeRange(max: Int, wide: Boolean, second: Boolean, praying: Boolean): IntRange {
+        val prayed = if (second) PRAYED_SECOND else PRAYED_FIRST
+        if (praying) return prayed
+        val most = if (wide) WIDE_MAX else max
+        return minOf(prayed.first, most)..most
     }
 
     /** The fight, or null when the cache hasn't the three (a test world's). */
@@ -619,37 +643,35 @@ object Bork {
         strike(bork, if (off in 2..WIDE_REACH) off else 1)
         after(GONG_GAP) {
             val now = liveBork
-            if (now != null && phaseTick >= state.boundUntil) strike(now, 1)
+            if (now != null && phaseTick >= state.boundUntil) strike(now, 1, second = true)
         }
     }
 
-    /** One strike of his gong on everyone within [reach] of him that the tower doesn't shade. */
-    private fun EncounterContext.strike(bork: Npc, reach: Int) {
+    /** One strike of his gong, its first or its [second], on everyone within [reach] of him that the tower doesn't shade. */
+    private fun EncounterContext.strike(bork: Npc, reach: Int, second: Boolean = false) {
         val size = bork.type.size
         val smorks = liveSmorks
         val inReach = players.filter { near(bork.x, bork.z, size, it.x, it.z, reach) }
         val struck = inReach.filter { smorks == null || !shadowed(smorks.x, smorks.z, smorks.type.size, bork.x, bork.z, size, it.x, it.z) }
         val behind = inReach - struck.toSet()
         val wide = reach > 1
-        val what = if (wide) "wide beat" else "beat"
+        val what = if (wide) "wide beat" else if (second) "second beat" else "beat"
         log("$what on ${struck.joinToString { it.username }.ifEmpty { "no one" }}" + if (behind.isEmpty()) "" else ", the tower shading ${behind.joinToString { it.username }}")
         for (player in struck) {
             if (gone(bork)) return
-            val dealt = world.meleeCombat.hitPlayer(player, bork, beatDamage(bork, player, wide), world.tick)
-            log("$what hits ${player.username} for $dealt")
+            val damage = beatDamage(bork, player, wide, second)
+            val dealt = world.meleeCombat.hitPlayer(player, bork, damage, world.tick)
+            // What the strike would do, and what it did when that is less (`::god`, or their last hitpoints).
+            log("$what hits ${player.username} for $damage" + if (dealt != damage) ", $dealt dealt" else "")
         }
     }
 
-    /**
-     * A strike's damage on [player]: his melee's roll at them, up to his max hit or [WIDE_MAX], cut by Dinh's bulwark
-     * on Block as any NPC's melee is, then halved by Protect from Melee.
-     */
-    private fun EncounterContext.beatDamage(bork: Npc, player: Player, wide: Boolean): Int {
-        val roll = world.combat.npcAttack(bork, player) ?: return 0
-        val hits = CombatMath.rollHits(world.random, roll.attackRoll, roll.defenceRoll)
-        val damage = if (hits) CombatMath.rollDamage(world.random, if (wide) WIDE_MAX else roll.maxHit) else 0
-        val blocked = if (world.combat.bulwarkBlocking(player, world.tick)) DinhsBulwark.blocked(damage) else damage
-        return if (world.prayers.protects(player, AttackType.CRUSH)) blocked / 2 else blocked
+    /** A strike's damage on [player]: [strikeRange]'s roll, cut by Dinh's bulwark on Block as any NPC's melee is. */
+    private fun EncounterContext.beatDamage(bork: Npc, player: Player, wide: Boolean, second: Boolean): Int {
+        val max = world.combat.npcAttack(bork, player)?.maxHit ?: return 0
+        val range = strikeRange(max, wide, second, world.prayers.protects(player, AttackType.CRUSH))
+        val rolled = roll(range.first, range.last)
+        return if (world.combat.bulwarkBlocking(player, world.tick)) DinhsBulwark.blocked(rolled) else rolled
     }
 
     /** The Smorks' next move in their cycle, and when the one after it comes. */

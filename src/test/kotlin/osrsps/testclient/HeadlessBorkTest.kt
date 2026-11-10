@@ -162,6 +162,20 @@ class HeadlessBorkTest {
     }
 
     @Test
+    fun `a strike of his gong never misses, and Protect from Melee keeps it to what Sam's recordings show`() {
+        // Through the prayer: the gong's first strike 4 to 7, its second 5 to 8, the one reaching out as the first.
+        assertEquals(4..7, Bork.strikeRange(34, wide = false, second = false, praying = true))
+        assertEquals(5..8, Bork.strikeRange(34, wide = false, second = true, praying = true))
+        assertEquals(4..7, Bork.strikeRange(34, wide = true, second = false, praying = true))
+        // Without it: from the prayer's least up to his max hit of 34, or to 50 reaching out. The recordings' 6, 16
+        // and 32 are in it.
+        assertEquals(4..34, Bork.strikeRange(34, wide = false, second = false, praying = false))
+        assertEquals(5..34, Bork.strikeRange(34, wide = false, second = true, praying = false))
+        assertEquals(4..50, Bork.strikeRange(34, wide = true, second = false, praying = false))
+        assertEquals(3..3, Bork.strikeRange(3, wide = false, second = true, praying = false), "never over his max hit")
+    }
+
+    @Test
     fun `napalm splashes towards the tower, and their cycles are a volley, napalm and volleys before the heavy cannonball`() {
         // The tower on 100..102: straight west of it, the tile and the 3 wide row two deep beyond it.
         assertEquals(setOf(Tile(95, 101)) + (96..97).flatMap { x -> (100..102).map { Tile(x, it) } }, Bork.splash(100, 100, 3, 95, 101))
@@ -219,6 +233,16 @@ class HeadlessBorkTest {
                 assertSame(world.playerNamed("alice"), theBork.target)
                 assertTrue(lines(run).any { it.endsWith("fight: Bork takes on alice") })
                 assertTrue(lines(run).any { it.endsWith("fight: Bork's armour 8, magic 0") })
+                // Beside her, both strikes of a gong reach her, 2 ticks apart, and neither misses: 4 to his 34, then 5
+                // to it, with no prayer. Nothing of it dealt, under ::god.
+                fun rolled(line: String) = line.substringAfter(" for ").substringBefore(',').toInt()
+                fun firstOf(second: String) = lines(run).lastOrNull { it.contains("fight: beat hits alice for") && tickOf(it) == tickOf(second) - Bork.GONG_GAP }
+                val second = alice.awaitLine(run, "both strikes of a gong on alice") { it.contains("fight: second beat hits alice for") && firstOf(it) != null }
+                val first = assertNotNull(firstOf(second))
+                assertTrue(rolled(first) in Bork.PRAYED_FIRST.first..34, first)
+                assertTrue(rolled(second) in Bork.PRAYED_SECOND.first..34, second)
+                assertTrue(first.endsWith(", 0 dealt") && second.endsWith(", 0 dealt"), "$first; $second")
+                assertTrue(lines(run).filter { it.contains("beat hits alice for") }.all { rolled(it) >= Bork.PRAYED_FIRST.first }, lines(run).toString())
                 // Alone, she's his: the Smorks fire at no one.
                 assertTrue(lines(run).none { it.contains("the Smorks fire") }, lines(run).toString())
                 // A quarter off the Smorks: two more armour, and magic resistance, off each hit on him. By name, from

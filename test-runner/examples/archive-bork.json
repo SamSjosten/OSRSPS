@@ -126,6 +126,12 @@
    "comment": "alone, the player is his and the Smorks' volleys have no one to fire at"
   },
   {
+   "step": "command",
+   "text": "::raid log 40",
+   "expectMessage": "second beat hits test for",
+   "comment": "the gong's second strike 2 ticks after its first, both on the player beside him; neither misses, and under Protect from Melee they do 4 to 7, then 5 to 8, as Sam's recordings have them, none of it dealt under ::god"
+  },
+  {
    "step": "waitTicks",
    "ticks": 32,
    "comment": "napalm at the player 20 ticks in, its oil 6 after; the heavy cannonball at the player too (none else to aim at), missing Bork, and his stomp 2 ticks after it lands, by tick 57 at the latest"
