@@ -1847,6 +1847,8 @@ class World(
         player.inventory.resendAll()
         player.equipment.resendAll()
         player.geSent.resendAll()
+        // The Fractured Archive's chest window stays open over a reconnect: its loot goes again with the next flush.
+        player.archiveChest.resendAll()
         player.sentRunEnabled = null
         player.sentRunEnergy = -1
         player.sentWeight = Int.MIN_VALUE

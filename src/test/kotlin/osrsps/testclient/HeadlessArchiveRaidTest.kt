@@ -940,6 +940,32 @@ class HeadlessArchiveRaidTest {
     }
 
     @Test
+    fun `the chest's window shows its loot again after a reconnect`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            val world = server.world
+            val alice = server.login("alice")
+            alice.tele(WHEELBARROW_X + 2, WHEELBARROW_Z)
+            val player = world.playerNamed("alice")!!
+            // Loot left unclaimed, as leaving the vault leaves it, put in while the world is paused.
+            alice.commandReply("pause") { it.contains("aused after tick") }
+            player.archiveChest[0] = InvObj(axe.id, 3)
+            world.archiveChestWindow.showClaimable(player)
+            alice.commandReply("resume") { it.startsWith("Resumed") }
+            alice.locOp(ArchiveChestWindow.WHEELBARROW, WHEELBARROW_X, WHEELBARROW_Z, ArchiveChestWindow.SEARCH)
+            alice.await("the Wheelbarrow's window") { (ArchiveChestWindow.ID in alice.openInterfaces()).takeIf { it } }
+            alice.await("the axes in it") { alice.inventory(ArchiveChestWindow.INV).filterNotNull().takeIf { it.size == 1 } }
+            // A new connection comes back while the old one is still open: the window stays, and its loot comes again.
+            server.reconnect("alice", alice).use { back ->
+                back.await("the axes in the window again") {
+                    back.inventory(ArchiveChestWindow.INV).filterNotNull().map { it.id to it.count }.takeIf { it == listOf(axe.id to 3) }
+                }
+                assertTrue(world.archiveChestWindow.isOpen(world.playerNamed("alice")!!))
+            }
+            alice.close()
+        }
+    }
+
+    @Test
     fun `a member down who teleports out or leaves the party dies of it, with a grave in the lobby`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { carol ->
