@@ -109,7 +109,7 @@ internal object HeadlessScripts {
         )
         server.start()
         val key = RsaKeys.load(options.dataDir)
-        val types = HeadlessGame.Types.of(server.world)
+        val types = HeadlessGame.Types.of(server.world, HeadbarWidths.load(options.dataDir.resolve("cache")))
         val sessions = HashMap<String, ScriptSession>()
         fun session(account: String) = sessions.getOrPut(account.lowercase()) {
             ScriptSession(account, { name -> HeadlessClient.login("127.0.0.1", ports, key.modulus, RSA_EXPONENT, name, PASSWORD, huffman = server.huffman) }, types)

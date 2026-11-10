@@ -72,6 +72,7 @@ class HeadlessEquipmentTest {
                 client.command("item $AXE")
                 client.itemOp(AXE, WIELD)
                 client.awaitWorn(WearPos.WEAPON, AXE)
+                client.await("the axe on the model") { client.appearance()?.worn?.get(WearPos.WEAPON)?.takeIf { it == AXE } }
                 client.await("the axe out of the backpack") { if (client.inventory(BACKPACK).none { it?.id == AXE }) Unit else null }
                 client.await("the axe category") { if (client.varp(VARP_WEAPON_CATEGORY) and 0x3F == AXE_CATEGORY) Unit else null }
                 client.awaitCombatTab("Bronze axe", "Category: Axe")
@@ -84,6 +85,7 @@ class HeadlessEquipmentTest {
 
                 client.ifButton(WORNITEMS, WORNITEMS_WEAPON, REMOVE)
                 client.awaitWorn(WearPos.WEAPON, null)
+                client.await("nothing in the model's hand") { client.appearance()?.worn?.get(WearPos.WEAPON)?.takeIf { it == -1 } }
                 client.await("the axe back in the backpack") { client.inventory(BACKPACK).firstOrNull { it?.id == AXE } }
                 client.await("unarmed again") { if (client.varp(VARP_WEAPON_CATEGORY) and 0x3F == 0) Unit else null }
                 client.awaitCombatTab("Unarmed", "Category: Unarmed")

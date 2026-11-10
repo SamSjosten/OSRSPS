@@ -56,6 +56,29 @@ class HeadlessScriptsTest {
     }
 
     @Test
+    fun `the player's animations and spotanims reach the script, as RuneLite's events would`(@TempDir dir: Path) {
+        TestServer(dir).use { server ->
+            ScriptSession("test", { server.login(it) }, HeadlessGame.Types.of(server.world)).use { session ->
+                val result = session.run(
+                    script(
+                        """
+                        {"account": "test", "steps": [
+                          {"step": "waitForLogin"},
+                          {"step": "command", "text": "::anim 422", "expectMessage": "Animation 422"},
+                          {"step": "assertAnimation", "id": 422, "timeoutMs": 3000},
+                          {"step": "command", "text": "::spotanim 85", "expectMessage": "Spotanim 85"},
+                          {"step": "assertSpotanim", "id": 85, "timeoutMs": 3000}
+                        ]}
+                        """.trimIndent(),
+                    ),
+                    "test",
+                )
+                assertEquals(Result.PASS, result.result, result.failure)
+            }
+        }
+    }
+
+    @Test
     fun `a step that never holds fails with what the headless client saw`(@TempDir dir: Path) {
         TestServer(dir).use { server ->
             ScriptSession("test", { server.login(it) }, HeadlessGame.Types.of(server.world)).use { session ->
