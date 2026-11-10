@@ -528,7 +528,10 @@ Small Net/Bait 1521, Cage/Harpoon 1522), built in place outside Misthalin; their
 50 at Cage/Harpoon spots, sharks from 76 at Big Net/Harpoon spots. The barb-tail harpoon fishes as the harpoon does, the
 dragon harpoon 20% better from 61; both work wielded. The big net (step FC2) fishes the Big Net/Harpoon spots from 16:
 each of its nine catches (boots, seaweed, gloves, two mackerel, oyster, casket, cod from 23, bass from 46) is rolled on
-its own, so one roll can bring up several. The `fishing-cooking` scenario starts there with everything built.
+its own, so one roll can bring up several. Karamja's karambwanji spots (step FC3, 4710, `::tele 2791 3018`) net
+karambwanji from 5, level / 5 + 1 at a time, before shrimps; a karambwan vessel baited with them catches karambwan from 65
+at the spots by the fairy ring DKP (4712 and 4713, `::tele 2899 3118`), each roll emptying the vessel, caught or not,
+and the next baiting it again from the backpack. The `fishing-cooking` scenario starts there with everything built.
 
 | Fishing behaviour | Source |
 |-------------------|--------|
@@ -546,13 +549,15 @@ its own, so one roll can bring up several. The `fishing-cooking` scenario starts
 | The big net's nine rolls, each on its own, in Mod Ash's order; mackerel, cod and bass pairs, levels and XP; the casket's rate | OSRS Wiki, Fishing spot (big net, harpoon) and fish pages; Mod Ash (3 October 2020) |
 | The boots', seaweed's, gloves' and oyster's pairs and the junk's XP | 2004Scape's big net roll (the Wiki only calls them uncommon) |
 | The harpoon's first roll as the other methods' (2004Scape has it a tick later); a dragon harpoon below 61 counting as no harpoon; a big net catch lost when the backpack fills mid-roll | guessed |
-| Out: pearl and barbarian rods, stripy feathers, big bass, swordfish and shark, the skills necklace casket boost, karambwanji, barehanded fishing, infernal and crystal harpoons, the dragon harpoon's special, outfits and other catch boosts, whirlpools | out of scope |
+| Karambwanji: level 5, 5 XP, the count by level, the 100/250 pair tried before shrimps, no shrimps with the backpack full; karambwan: level 65, 50 XP, the 5/160 pair, the bait lost on every roll, the vessel baited again on its own; the spots' tiles and the karambwan spots staying put | OSRS Wiki, Raw karambwanji, Raw karambwan, Fishing spot (karambwanji) and (karambwan); mejrs NPCList_OSRS |
+| The vessel's cast message and animation (human_octopus_pot); the baiting saying nothing; the karambwanji spots staying put | guessed |
+| Out: pearl and barbarian rods, stripy feathers, big bass, swordfish and shark, the skills necklace casket boost, barehanded fishing, infernal and crystal harpoons, the dragon harpoon's special, outfits and other catch boosts, whirlpools | out of scope |
 
 ### Cooking
 
 Raw food used on a fire or range, or Cook on a range, cooks it (`game/skill/Cooking.kt`, words under `cooking.*`):
 shrimps, anchovies, sardines, herring, trout, pike, salmon, beef, rat and bear meat, chicken, and bread dough (range
-only); lobster, tuna, swordfish and shark came with Fishing and Cooking 2's step FC1, mackerel, cod and bass with FC2. With more than one to cook, the chatbox's Make-X box (`skillmulti`, interface 270, set up by client script
+only); lobster, tuna, swordfish and shark came with Fishing and Cooking 2's step FC1, mackerel, cod and bass with FC2, karambwan with FC3. With more than one to cook, the chatbox's Make-X box (`skillmulti`, interface 270, set up by client script
 2046) asks which and how many; a resume_pausebutton from one of its items starts the job. Lumbridge Castle's kitchen
 range (114) burns less. The cooking re-runs every tick on the loc (`World.repeatOp`).
 
@@ -563,6 +568,7 @@ range (114) burns less. The cooking re-runs every tick on the loc (`World.repeat
 | Each food's burn pair on a fire or range and on the Lumbridge range, fitted to and checked against the Wiki's charts (`CookingTest`) | OSRS Wiki food pages |
 | Swordfish, shark and cod burning less on a range than on a fire; mackerel and cod helped by the Lumbridge range, lobster, tuna, swordfish, shark and bass not | OSRS Wiki food pages; Cooking range (Lumbridge Castle) |
 | The Make-X box: its components, client script 2046's arguments and the pause button carrying the quantity | decompiled client scripts (osrs-dumps) |
+| Karambwan: cooked from 30 for 190 XP or poison from 1 for 80, one burn chart for both (stops at 99), the box always asking with the cooked one first; a poison karambwan hitting for 5 from 6 hitpoints with its two messages | OSRS Wiki, Raw karambwan, Cooked karambwan, Poison karambwan |
 | Cook with nothing raw saying Nothing interesting happens; one piece cooking with no box; the box closing as the first piece starts; the level-up box ending the job as for the other skills | guessed |
 | Out: cooking gauntlets, the cooking cape, Hosidius ranges, pies, stews, pizzas, wines and every other recipe | out of scope |
 
@@ -1957,10 +1963,10 @@ leaves), and in RuneLite `test-runner/examples/party-scaling.json` (the Guardian
 
 A run of The Fractured Archive (raid step 15) is `game/raid/ArchiveRaid.kt`. The lobby's Archive Door takes the
 player's party into its own instance: the cache's map squares 63 to 65 by 86 to 88, level 0, with the nexus (64,87) on
-one of its four levels and the lobby's square left out. The party gathers in the nexus's entrance. The Archive Guardian
+its level 0 or 2 and the lobby's square left out. The party gathers in the nexus's entrance. The Archive Guardian
 is fought in the nexus's hall, where the cache lays its corpse on the nexus's later levels. Then come three rows of
 doors, each with a room behind its west and east door: Ezekiel or Bork and the Smorks, then Moia or Dreadnoth the
-Jellied, then the Dagon'hai Elder or Xarth. Last, the nexus's Passageway north opens to Ocellus's arena. Each room's
+Jellied, then the Dagon'hai Elder or Xarth. Last, the nexus's Archive Door north opens to Ocellus's arena. Each room's
 Passageway goes back out to the nexus, and so does its Archive transporter once the room is done; from a boss's arena,
 which is walled off from both, the way back is the Alliance Navigator, who comes to it three ticks after the room is
 won. A room whose boss
@@ -1977,9 +1983,12 @@ loses goes in a grave there. The party lasts through the wipe.
 |---------------------|--------|
 | The Guardian first, one room of each of three rows by its left or right door, Ocellus last; the pairs Ezekiel or Bork, Moia or Dreadnoth, Xarth or the Dagon'hai Elder | Wiki, The Fractured Archive, and "Everything You Need To Know" |
 | Each room's map square (Ezekiel 63,86, Bork 65,87, Moia 63,88, Dreadnoth 65,88, the Dagon'hai Elder 63,87, Xarth 65,86), told by its locs' names; each west door to the west room of its pair | 241.4 cache; which room is whose inferred from the names, the doors from the map's columns |
-| The nexus's doors (63088 to 63105, Enter and Quick-enter), the rooms' Passageways (62765, Exit) and Archive transporters (63087, 62610, 63134, Use and Quick-use), the nexus's Passageway north (62766) | 241.4 cache |
-| The Guardian fought in the nexus's hall; Ocellus in the arena north of it (64,88), past the nexus's Passageway | inferred: the Guardian's corpse lies in the hall on the nexus's later levels, and the Passageway is there on the last |
-| The nexus on level 0 of the cache at the start, 2 (the Guardian's corpse, a camp of crates and barricades) once the Guardian is done, 3 (and the Passageway north) once the fourth room is done | inferred from what each level holds; level 1 isn't used |
+| The nexus's doors (63088 to 63105, Enter and Quick-enter), the rooms' Passageways (62765, Exit) and Archive transporters (63087, 62610, 63134, Use and Quick-use) | 241.4 cache |
+| The nexus's Archive Door north, 7 by 2 at 4124,5621, put there by the server: shut (63110, no options) from the start, open (63111, Enter and Quick-enter) once the fourth room is done | tsps capture notes; 241.4 cache for the two types and the gap between the pillars at 4123 and 4131; its angle 0 inferred from the cache's Passageway of the same size four tiles north; opening at once, with no 63109 animation between, guessed |
+| A member down in Ocellus's room, or sent back out of it, at 4127,5620 in the nexus, the tile south of the door's middle | inferred: Sam's recording of 2026-11-09 reads "about 4127, 5622" before the fade, within a tile or two, and the door covers z 5621 and 5622 |
+| The Guardian fought in the nexus's hall; Ocellus in the arena north of it (64,88), past the nexus's Archive Door | inferred: the Guardian's corpse lies in the hall on the nexus's later levels; Sam's recording of 2026-11-09 for the arena (4127,5637 on plane 1) |
+| The nexus on level 0 of the cache at the start and 2 (the Guardian's corpse, a camp of crates and barricades) once the Guardian is done, for the rest of the run | level 2 on all three of a run's visits: Sam's recording of 2026-11-09; level 0 before the Guardian is done inferred from what it holds |
+| NOT BUILT: the cache's levels 1 and 3 of the nexus's square on the instance's level 1, as live copies them (the hall again a storey and a half up, and at its north end, level with the floor, the south end of the vault's corridor with its Passageway, 62766) | tsps capture notes for the copy; 241.4 cache for what the levels hold |
 | Contribution: each room a fixed amount, shared by damage, minions included; the two rooms of a pair the same | Wiki, "Everything You Need To Know" |
 | Each room's points 1,000, or shared evenly when nobody did damage | guessed: the Wiki gives no number |
 | A wipe sending the party to the lobby with an ordinary gravestone; the party not breaking up | Wiki, The Fractured Archive (Theatre of Blood's system; 28 October 2026 update) |
@@ -2024,8 +2033,8 @@ loses goes in a grave there. The party lasts through the wipe.
 | The enrage's first jump 5 ticks after his line, then one every 8; landing centred on the player if within 5 tiles, else 5 tiles the nearest of eight ways towards them, never west of x 4184; the shadow where he lands, 3 ticks on (a 90-cycle move); one to three tiles of jelly in his footprint as he lands; the two projectiles at each player's tile, which becomes jelly 6 ticks later | tsps capture notes (2026-11-10) |
 | The enrage's damage: 30 to 50 under him with no prayer helping, up to 20 off him; the shot's as a wave's; an absorbed jelly's heal being its hitpoints left; his landings kept on his arena; the splatter hurting nobody as it lands; the jump shown as a teleport as he lands (NPC exact moves aren't built) | guessed |
 | His death (step 20c): splitting into seven jellies of 37 hitpoints, the room won when the last one dies, the jelly on the floor cleared then | tsps capture notes (2026-11-10); the Wiki's Strategies say about ten at half their hitpoints, the captures taken over it |
-| The split jellies rising on his footprint at once, past the twelve; nothing of his still in the air landing once he splits, and no more jellies from gathered jelly; every jelly, the waves' too, having to go before the room is won, and not before 6 ticks (his death animation) | guessed |
-| Dreadnoth going from sight as he splits (he stands at 0 till the room is won: the engine can't yet hide an NPC still in a fight); the Wiki's freeze and demonbane resistances | not in yet |
+| The split jellies rising on his footprint at once, past the twelve; nothing of his still in the air landing once he splits, and no more jellies from gathered jelly; every jelly, the waves' too, having to go before the room is won, and not before 6 ticks (his death animation); his going from sight as that animation ends | guessed |
+| Dreadnoth's Wiki freeze and demonbane resistances | not in yet |
 | Xarth (step 19a): 3 by 3, never moving; his stats, 2,600 to 9,230 hitpoints by party size, magic only in phase one at the player closest to him (max hit 36 with no prayer), the 85% water weakness, poison and venom immunity and the 60% Defence drain floor; a fireball that hits setting the player alight, the burn starting again a stack hotter with each that hits while it runs; the bind on everyone before the blast; the wave's ~45 on whoever has no cover, and a player in front taking that for one behind, who takes ~7 | OSRS Wiki, Xarth and The Fractured Archive/Strategies (2026-11-10) |
 | Where he (4190,5534) and his three 2 by 2 rubble heaps (4193,5530, 4196,5536, 4193,5540) stand, his footprint's nine blocking tiles; the room's transporter putting the player on his arena (4184,5535), which begins his fight; phase one's three 31-tick cycles of five fireballs 4 ticks apart, the AoE with a projectile at each player's tile, the flame blast 3 ticks after it and the wave 3 after that, rolling out a client cycle per tile; the wave's 90 degree wedge towards the heap that falls (a row out his width and a tile each side, a tile wider each row), all round the third time; the heaps falling south or north first, then east, then the other; the falling heap sheltering the tiles it hides from his middle tile (no wave) or only from his nearest footprint tile (the smaller explosion); its collapse for 3 ticks; his body gone 6 ticks after he falls; the animations and spotanims by name | tsps capture notes (RSPSApp/tsps docs/fractured-archive.md: five spectator captures of live fights, rev 241.1; 2026-11-10) |
 | The set-alight chat message (`tfa_xarth.set_alight`, a key in code, the words in the dialogue file); his bar's 4,860 for four and 5,950 for five; the burn after it, 7 or 8 every 4 ticks, at least 6 of them; a wave's 100 on a player in the open (twice) and a 60 on another, and a player just south of a heap taking none; a fireball never missing through Protect from Missiles and doing 1 to 6, and landing 3 ticks after the wind-up from 6 or 7 tiles; the AoE's flames reaching the party 2 ticks on, 23 on Sam | Sam's recordings of live parties of four and five (2026-11-09), read by the Review thread's dense pass (2026-11-10) |
@@ -2541,8 +2550,10 @@ built needs, so every course and shortcut is open; run on and full, and a gracef
 bonus. Hitpoints stay a new account's 10, so a fall's damage shows.
 
 `fishing-cooking` stands you on Catherby's beach (2850, 3430) with 99 Fishing, Cooking and Firemaking, a harpoon, a
-lobster pot, a big fishing net, a tinderbox and three logs, and the dragon and barb-tail harpoons in the bank: every fish Fishing and
-Cooking 2 has built so far, caught and cooked on a fire. Musa Point's spots are at `::tele 2924 3178`.
+lobster pot, a big fishing net, a small fishing net, a karambwan vessel, 50 raw karambwanji, a tinderbox and three logs, and the
+dragon and barb-tail harpoons in the bank: every fish Fishing and Cooking 2 has built so far, caught and cooked on a fire.
+Musa Point's spots are at `::tele 2924 3178`, Karamja's karambwanji spots at `::tele 2791 3018` and karambwan spots at
+`::tele 2899 3118`.
 
 `lumbridge-cows` stands you in the Lumbridge cow field (3259, 3263, a tile picked from the cow spawns) with 20 Attack,
 Strength, Defence and Hitpoints, iron armour, an iron scimitar, an amulet of strength, five lobsters, a bronze axe, a

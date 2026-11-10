@@ -719,7 +719,7 @@ class World(
 
     private val levelUps = LevelUps(interfaces, scripts, skillUnlocks, words = ::textFor)
 
-    val foods = Foods(foodList, words = ::textFor)
+    val foods = Foods(foodList, words = ::textFor, hit = { player, damage -> meleeCombat.statusHit(player, damage, Poison.POISON_HITSPLAT) })
 
     /** Poison and venom on players; see [Poison]. */
     val poison = Poison(
