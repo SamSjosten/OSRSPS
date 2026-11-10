@@ -214,8 +214,48 @@
   },
   {
    "step": "command",
-   "text": "::hit 1785 tfa_jelly_boss",
-   "expectMessage": "0/2100 hp, dead"
+   "text": "::hit 1260 tfa_jelly_boss",
+   "expectMessage": "525/2100 hp",
+   "comment": "down to 25%: his enrage (20b)"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 30",
+   "expectMessage": "enrage: enrage at 525 hp"
+  },
+  {
+   "step": "assertAnimation",
+   "npc": "Dreadnoth the Jellied",
+   "id": 14780,
+   "timeoutMs": 6000,
+   "comment": "dreadnoth_jump02, his first jump 5 ticks after his line"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 30",
+   "expectMessage": "enrage: jumps at test, landing on "
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4,
+   "comment": "he lands 3 ticks after he jumps"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 30",
+   "expectMessage": "enrage: lands on ",
+   "comment": "landed, then a shot and a splatter at her"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 30",
+   "expectMessage": "enrage: shoots and splatters at test on "
+  },
+  {
+   "step": "command",
+   "text": "::kill tfa_jelly_boss",
+   "expectMessage": "Killed Dreadnoth the Jellied",
+   "comment": "whatever he healed, down he goes"
   },
   {
    "step": "waitTicks",
