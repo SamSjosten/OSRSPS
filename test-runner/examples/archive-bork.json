@@ -1,5 +1,5 @@
 {
- "name": "Raid steps 18a and 18b: Bork and the Smorks solo, their fight beginning as the player takes the room's transporter onto the arena's floor, both at the Wiki's hitpoints, Bork taking the player on and beating his gong under Protect from Melee, napalm leaving oil under the player, the heavy cannonball missing him and his stomp after it, his flat armour rising as the Smorks are hurt, and the room done only once both are dead, Bork first",
+ "name": "Raid steps 18a to 18c: Bork and the Smorks solo, their fight beginning as the player takes the room's transporter onto the arena's floor, both at the Wiki's hitpoints, Bork taking the player on and beating his gong under Protect from Melee, napalm leaving oil under the player, the heavy cannonball missing him and his stomp after it, his flat armour and the tempo rising as the Smorks are hurt, the Smorks' frenzy once Bork is dead, and the room done only once both are dead, Bork first",
  "account": "test",
  "steps": [
   {
@@ -126,6 +126,12 @@
    "comment": "alone, the player is his and the Smorks' volleys have no one to fire at"
   },
   {
+   "step": "command",
+   "text": "::raid log 40",
+   "expectMessage": "second beat hits test for",
+   "comment": "the gong's second strike 2 ticks after its first, both on the player beside him; neither misses, and under Protect from Melee they do 4 to 7, then 5 to 8, as Sam's recordings have them, none of it dealt under ::god"
+  },
+  {
    "step": "waitTicks",
    "ticks": 32,
    "comment": "napalm at the player 20 ticks in, its oil 6 after; the heavy cannonball at the player too (none else to aim at), missing Bork, and his stomp 2 ticks after it lands, by tick 57 at the latest"
@@ -165,6 +171,12 @@
   },
   {
    "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "fight: tempo 1, every 6 ticks",
+   "comment": "step 18c: the tempo rises a stage at 75%, a tick off his gongs and their shots"
+  },
+  {
+   "step": "command",
    "text": "::hit 1500 tfa_bork",
    "expectMessage": "0/1500 hp, dead"
   },
@@ -179,6 +191,16 @@
    "expectMessage": "fight: Bork down"
   },
   {
+   "step": "waitTicks",
+   "ticks": 6,
+   "comment": "his body goes 7 ticks after he falls, and the Smorks' frenzy begins 4 after that"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "fight: the Smorks' frenzy"
+  },
+  {
    "step": "command",
    "text": "::raid run",
    "expectMessage": "done Archive Guardian;",
@@ -191,7 +213,23 @@
   },
   {
    "step": "waitTicks",
-   "ticks": 6
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::raid log 5",
+   "expectMessage": "fight: the tower bursts",
+   "comment": "the tower goes up 2 ticks after the Smorks fall"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "done Archive Guardian;",
+   "comment": "their tower is gone 9 ticks after they fall, so the room isn't done yet"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 9
   },
   {
    "step": "command",

@@ -104,6 +104,8 @@ import osrsps.game.content.registerChurch
 import osrsps.game.content.registerEssenceMine
 import osrsps.game.content.registerFatherUrhney
 import osrsps.game.content.registerLumbridgeSwamp
+import osrsps.game.content.registerLumbridgeSwampCaves
+import osrsps.game.content.SwampCavesHazards
 import osrsps.game.content.registerSwampTutors
 import osrsps.game.content.registerHans
 import osrsps.game.content.registerArchiveLobby
@@ -182,6 +184,7 @@ import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
 import osrsps.game.skill.BirdNests
 import osrsps.game.skill.Firemaking
+import osrsps.game.skill.LightSources
 import osrsps.game.skill.LevelUps
 import osrsps.game.skill.Making
 import osrsps.game.skill.Cooking
@@ -685,6 +688,7 @@ class World(
     val mining = Mining(this)
     val thieving = Thieving(this, collision)
     val manorHazards = ManorHazards(this)
+    val swampCavesHazards = SwampCavesHazards(this)
     val pickpocketing = Pickpocketing(this)
     val agility = Agility(this, agilityData)
 
@@ -811,6 +815,7 @@ class World(
         registerCandleSeller(this)
         registerSwampTutors(this)
         registerLumbridgeSwamp(this)
+        registerLumbridgeSwampCaves(this)
         registerChurch(this)
         registerAlKharid(this)
         registerEdgeville(this)
@@ -839,6 +844,7 @@ class World(
         woodcutting.register()
         birdNests.register()
         firemaking.register()
+        LightSources.register(this)
         mining.register()
         thieving.register()
         pickpocketing.register()
@@ -1208,6 +1214,7 @@ class World(
             perPlayer(player, "movement") { movePhase(player) }
             // After the step, so the vines see the tile the player walked onto this tick.
             perPlayer(player, "manor hazards") { manorHazards.process(player) }
+            perPlayer(player, "swamp caves") { swampCavesHazards.process(player) }
         }
         phase = TickPhase.UPDATES
         if (clock.paused && clock.stepsLeft == 0) finishStepping()
@@ -2895,6 +2902,7 @@ class World(
             clans.logout(player)
             parties.logout(player)
             reports.forget(player)
+            swampCavesHazards.forget(player)
             npcs.forget(player, scripts::busy)
             save(player)
         } finally {

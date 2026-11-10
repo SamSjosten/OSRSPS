@@ -1,0 +1,39 @@
+{
+ "name": "Misthalin piece 7 step 2a: light sources: a tinderbox lights a candle and Extinguish puts it out, an oil lantern needs 26 Firemaking, a candle goes into an empty candle lantern, and an unlit torch lights on Lumbridge Castle's range (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+
+  {"step": "command", "text": "::item tinderbox", "expectMessage": "Added 1 x Tinderbox"},
+  {"step": "command", "text": "::item unlit_candle", "expectMessage": "Added 1 x Candle"},
+  {"step": "useItemOnItem", "item": "Tinderbox", "onItem": "Candle"},
+  {"step": "assertMessage", "contains": "[light_source.lit item=candle]"},
+  {"step": "assertInventory", "itemId": 33, "count": 1, "comment": "lit_candle"},
+  {"step": "itemOption", "item": "Lit candle", "option": "Extinguish"},
+  {"step": "assertMessage", "contains": "[light_source.extinguished item=candle]"},
+  {"step": "assertInventory", "itemId": 36, "count": 1, "comment": "unlit_candle again"},
+
+  {"step": "command", "text": "::item oil_lantern_unlit", "expectMessage": "Added 1 x Oil lantern"},
+  {"step": "useItemOnItem", "item": "Tinderbox", "onItem": "Oil lantern"},
+  {"step": "assertMessage", "contains": "[light_source.level level=26 item=oil lantern]"},
+  {"step": "command", "text": "::setlevel firemaking 26", "expectMessage": "Firemaking set to level 26"},
+  {"step": "useItemOnItem", "item": "Tinderbox", "onItem": "Oil lantern"},
+  {"step": "assertInventory", "itemId": 4539, "count": 1, "comment": "oil_lantern_lit"},
+
+  {"step": "command", "text": "::item candle_lantern_empty", "expectMessage": "Added 1 x Empty candle lantern"},
+  {"step": "useItemOnItem", "item": "Candle", "onItem": "Empty candle lantern"},
+  {"step": "assertMessage", "contains": "[light_source.lantern_filled item=candle lantern]"},
+  {"step": "assertInventory", "itemId": 4529, "count": 1, "comment": "candle_lantern_unlit"},
+
+  {"step": "command", "text": "::tele 3211 3215 0", "comment": "Lumbridge Castle's kitchen, by the range"},
+  {"step": "assertLocation", "x": 3211, "y": 3215, "plane": 0},
+  {"step": "command", "text": "::item torch_unlit", "expectMessage": "Added 1 x Unlit torch"},
+  {"step": "useItemOnLoc", "item": "Unlit torch", "locId": 114, "x": 3212, "y": 3215},
+  {"step": "assertInventory", "itemId": 594, "count": 1, "timeoutMs": 10000, "comment": "torch_lit"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

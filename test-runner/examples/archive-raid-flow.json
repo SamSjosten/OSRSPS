@@ -72,7 +72,7 @@
    "step": "command",
    "text": "::raid clear",
    "expectMessage": "Cleared Ezekiel's room.",
-   "comment": "Ezekiel's fight began as we came in (raid step 17a); it is its own script (archive-ezekiel.json): here his room is just marked done"
+   "comment": "his fight begins only once the room's transporter takes us into his arena (raid step 17a); it is its own script (archive-ezekiel.json): here his room is just marked done"
   },
   {
    "step": "command",
@@ -284,7 +284,7 @@
    "step": "command",
    "text": "::raid clear",
    "expectMessage": "Cleared Bork and the Smorks's room.",
-   "comment": "their fight began as we came in (raid step 18a); it is its own script (archive-bork.json): here their room is just marked done"
+   "comment": "their fight begins only once the room's transporter takes us onto their arena's floor (raid step 18b); it is its own script (archive-bork.json): here their room is just marked done"
   },
   {
    "step": "command",

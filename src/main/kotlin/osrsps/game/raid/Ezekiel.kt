@@ -231,7 +231,7 @@ object Ezekiel {
 
     /** What a fight keeps between ticks, by boss: the context keeps none. Holds no NPC, and its tank only weakly. */
     private class State {
-        /** Swings since the fight began: every second one brings a cross. */
+        /** Attacks since the fight began, swings and lightning alike: every second one brings a cross. */
         var swings = 0
 
         /** His tank, kept here as his combat target can go (they died, or left). */
@@ -319,10 +319,14 @@ object Ezekiel {
         return if (dx != 0) sx == -dx else sz == -dz
     }
 
-    /** His attack, as it's due: the cleave with his tank beside him, else lightning on everyone. */
+    /**
+     * His attack, as it's due: the cleave with his tank beside him, else lightning on everyone. Either counts toward the
+     * cross, so kiting him out of reach still brings it and the swords (Sam's call, 2026-11-09: no source says either way).
+     */
     private fun EncounterContext.attack(tank: Player, sword: NpcType?) {
         if (!beside(tank.x, tank.z)) {
             lightning()
+            counted(sword)
             return
         }
         val tankTile = Tile(tank.x, tank.z)
@@ -336,8 +340,13 @@ object Ezekiel {
         if (gone()) return
         world.meleeCombat.swingAt(boss, tank, world.tick, ANIM_MELEE)
         log("swings at ${tank.username}")
+        counted(sword)
+    }
+
+    /** One more attack, swing or lightning: every second brings the cross, and the swords unless some are out. */
+    private fun EncounterContext.counted(sword: NpcType?) {
         state.swings += 1
-        // Not when his swing left no one in the room.
+        // Not when his attack left no one in the room.
         if (state.swings % 2 == 0 && players.isNotEmpty()) {
             crosses()
             if (sword != null && !state.volleyOut) volley(sword)

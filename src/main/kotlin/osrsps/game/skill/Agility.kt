@@ -110,6 +110,8 @@ class Obstacle(
      * reached from beside it: a stepping stone in a river, jumped onto from the bank. See [osrsps.game.loc.LocInteractions.useFrom].
      */
     val fromStart: Boolean = false,
+    /** Whether a failure puts out the player's lights, as a fall into water does (the Wiki's Light sources page). */
+    val failDouses: Boolean = false,
 ) {
     /** Every loc type that is this obstacle. */
     val locs: List<Int> get() = listOf(loc) + alsoLocs
@@ -218,6 +220,7 @@ class AgilityData(val obstacles: List<Obstacle>, val courses: List<AgilityCourse
                 json["alsoLocs"]?.jsonArray.orEmpty().map { it.jsonPrimitive.int },
                 json["failXpTenths"]?.jsonPrimitive?.int ?: 0,
                 json["fromStart"]?.jsonPrimitive?.boolean ?: false,
+                json["failDouses"]?.jsonPrimitive?.boolean ?: false,
             )
         }
 
@@ -296,6 +299,7 @@ class Agility(private val world: World, val data: AgilityData) {
             crossed(obstacle)
         } else {
             if (obstacle.failXpTenths > 0) player.skills.addTenths(Skill.AGILITY, obstacle.failXpTenths)
+            if (obstacle.failDouses) LightSources.extinguish(player)
             if (obstacle.damage.isEmpty()) return
             val damage = world.random.between(obstacle.damage.first, obstacle.damage.last)
             world.meleeCombat.statusHit(player, damage, HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER)

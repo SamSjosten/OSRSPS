@@ -12,7 +12,8 @@ import osrsps.map.Tile
  * one of these, and [Encounters] runs it a tick at a time. [name] is what `::raid` takes, one word. With
  * [scriptedAttacks] the boss attacks only as its phases' steps say ([Npc.scriptedAttacks]), never by itself. [status]
  * says what `::raid` shows of the fight's NPCs; without it, the boss's hitpoints (a fight whose [boss] is only its
- * anchor, as Bork and the Smorks' is, shows its two).
+ * anchor, as Bork and the Smorks' is, shows its two). [held] says which of the fight's NPCs `::raid hold` freezes;
+ * without it, the boss (such a fight names the one that walks).
  */
 class EncounterDef(
     val name: String,
@@ -20,6 +21,7 @@ class EncounterDef(
     val phases: List<PhaseDef>,
     val scriptedAttacks: Boolean = false,
     val status: (EncounterContext.() -> String)? = null,
+    val held: (EncounterContext.() -> List<Npc>)? = null,
 ) {
     init {
         require(name.isNotEmpty() && name.none(Char::isWhitespace)) { "Bad encounter name '$name'" }

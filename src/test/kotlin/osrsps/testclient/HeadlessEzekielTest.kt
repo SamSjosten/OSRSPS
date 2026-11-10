@@ -9,6 +9,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.EquipmentTab
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
@@ -122,6 +123,21 @@ class HeadlessEzekielTest {
 
     private fun bossOf(run: ArchiveRun): Npc = assertNotNull(run.fights[ArchiveRoom.EZEKIEL]).boss
 
+    /**
+     * Into Ezekiel's room and, as its transporter does, into his arena: at the tile it puts a player on, or [cacheX],
+     * [cacheZ] (this world has no transporter loc, so a `::tele`).
+     */
+    private fun HeadlessClient.intoArena(
+        server: TestServer,
+        run: ArchiveRun,
+        cacheX: Int = ArchiveRaids.EZEKIEL_ARENA_X,
+        cacheZ: Int = ArchiveRaids.EZEKIEL_ARENA_Z,
+    ) {
+        commandReply("raid tp ezekiel") { it.startsWith("To ") }
+        val at = server.world.archiveRaids.tile(run, cacheX, cacheZ)
+        tele(at.x, at.z)
+    }
+
     @Test
     fun `the cross is two bands his width through him, the safe spot is his side away from the tank, and a sword's lane`() {
         val cross = Ezekiel.cross(10, 10, 3)
@@ -158,14 +174,18 @@ class HeadlessEzekielTest {
     }
 
     @Test
-    fun `his fight begins with the first into his room, he walks to them and swings, and his death does the room`(@TempDir dir: Path) {
+    fun `his fight begins with the first into his arena, he walks to them and swings, and his death does the room`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->
                 val run = alice.intoRun(server, "alice")
                 alice.commandReply("raid tp guardian") { it.startsWith("To ") }
                 alice.await("the Guardian's room done") { ArchiveRoom.GUARDIAN.takeIf { it in run.cleared } }
                 assertTrue(alice.fight().startsWith("You're not in a fight"))
+                // At the way into his room nothing begins: his arena is walled off from it, past the room's transporter.
                 alice.commandReply("raid tp ezekiel") { it.startsWith("To ") }
+                alice.awaitTicks(5)
+                assertFalse(ArchiveRoom.EZEKIEL in run.started, "his fight begun at the way in")
+                alice.intoArena(server, run)
                 val begun = alice.await("his fight") { alice.fight().takeIf { it.startsWith("ezekiel #") } }
                 // A party of one counts as two: the Wiki's 3,000.
                 assertTrue(begun.contains("Ezekiel 3000/3000 hp; 1 players"), begun)
@@ -197,7 +217,7 @@ class HeadlessEzekielTest {
                 val filler = NpcType(1, "Filler")
                 val fillers = generateSequence { npcs.add(NpcSpawn(filler, 1000, 1000, source = "test")) }.toList()
                 assertTrue(fillers.size > 1000, "${fillers.size} fillers")
-                alice.commandReply("raid tp ezekiel") { it.startsWith("To ") }
+                alice.intoArena(server, run)
                 alice.awaitTicks(5)
                 assertFalse(ArchiveRoom.EZEKIEL in run.started, "his room started without him")
                 assertNull(run.fights[ArchiveRoom.EZEKIEL])
@@ -217,7 +237,10 @@ class HeadlessEzekielTest {
                 val run = alice.intoRun(server, "alice")
                 alice.commandReply("raid tp guardian") { it.startsWith("To ") }
                 alice.await("the Guardian's room done") { ArchiveRoom.GUARDIAN.takeIf { it in run.cleared } }
-                alice.commandReply("raid tp ezekiel") { it.startsWith("To ") }
+                // Auto retaliate off, so his swings don't turn her back to him on her way.
+                alice.command("varp ${EquipmentTab.VARP_AUTO_RETALIATE_OFF} 1")
+                alice.await("auto retaliate off") { if (alice.varp(EquipmentTab.VARP_AUTO_RETALIATE_OFF) == 1) Unit else null }
+                alice.intoArena(server, run)
                 alice.await("his fight") { alice.fight().takeIf { it.startsWith("ezekiel #") } }
                 val boss = bossOf(run)
                 // Twelve tiles east of his spawn: within the range a fighting monster chases to, past the one it walks to.
@@ -244,7 +267,7 @@ class HeadlessEzekielTest {
                         for ((client, name) in clients.drop(1)) assertEquals(run, client.intoRun(server, name))
                         alice.commandReply("raid tp guardian") { it.startsWith("To ") }
                         alice.await("the Guardian's room done") { ArchiveRoom.GUARDIAN.takeIf { it in run.cleared } }
-                        alice.commandReply("raid tp ezekiel") { it.startsWith("To ") }
+                        alice.intoArena(server, run)
                         alice.awaitLog("him swinging at alice") { it.endsWith("fight: swings at alice") }
                         val boss = bossOf(run)
                         // A party of three: the Wiki's 4,350.
@@ -277,11 +300,32 @@ class HeadlessEzekielTest {
                 val run = alice.intoRun(server, "alice")
                 alice.commandReply("raid tp guardian") { it.startsWith("To ") }
                 alice.await("the Guardian's room done") { ArchiveRoom.GUARDIAN.takeIf { it in run.cleared } }
-                alice.commandReply("raid tp ezekiel") { it.startsWith("To ") }
-                // She comes in at the room's east end, far from him: his first attack is due before he can reach her.
+                // In at the arena's far corner from him: his first attack is due before he can reach her.
+                alice.intoArena(server, run, ArchiveRaids.EZEKIEL_ARENA_MIN_X, ArchiveRaids.EZEKIEL_ARENA_MIN_Z)
                 alice.awaitLog("his lightning") { it.endsWith("fight: can't reach his tank: lightning on alice") }
                 // It lands the tick after.
                 alice.awaitLog("the lightning landing on her") { it.contains("fight: hit alice for") }
+            }
+        }
+    }
+
+    @Test
+    fun `kiting him out of reach still brings the cross and the swords, his lightning counting as his swings do`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.commandReply("raid tp guardian") { it.startsWith("To ") }
+                alice.await("the Guardian's room done") { ArchiveRoom.GUARDIAN.takeIf { it in run.cleared } }
+                alice.intoArena(server, run, ArchiveRaids.EZEKIEL_ARENA_MIN_X, ArchiveRaids.EZEKIEL_ARENA_MIN_Z)
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ezekiel #") } }
+                // Held where he stands as soon as it begins, as a kite keeps him off her: every attack is lightning, and the
+                // second brings the cross.
+                alice.commandReply("raid hold 100") { it.startsWith("Held Ezekiel") }
+                val lines = alice.awaitLog("the cross") { it.contains("fight: cross on him") }
+                val upToCross = lines.take(lines.indexOfFirst { it.contains("fight: cross on him") } + 1)
+                assertEquals(2, upToCross.count { it.endsWith("fight: can't reach his tank: lightning on alice") }, lines.joinToString("\n"))
+                assertTrue(upToCross.none { it.contains("swings at") }, lines.joinToString("\n"))
+                alice.awaitLog("the swords with it") { it.contains("fight: sword at") }
             }
         }
     }
@@ -293,7 +337,7 @@ class HeadlessEzekielTest {
                 val run = alice.intoRun(server, "alice")
                 alice.commandReply("raid tp guardian") { it.startsWith("To ") }
                 alice.await("the Guardian's room done") { ArchiveRoom.GUARDIAN.takeIf { it in run.cleared } }
-                alice.commandReply("raid tp ezekiel") { it.startsWith("To ") }
+                alice.intoArena(server, run)
                 alice.awaitLog("his first swing") { it.endsWith("fight: swings at alice") }
                 val player = server.world.playerNamed("alice")!!
                 val boss = bossOf(run)
@@ -365,7 +409,7 @@ class HeadlessEzekielTest {
                 val run = alice.intoRun(server, "alice")
                 alice.commandReply("raid tp guardian") { it.startsWith("To ") }
                 alice.await("the Guardian's room done") { ArchiveRoom.GUARDIAN.takeIf { it in run.cleared } }
-                alice.commandReply("raid tp ezekiel") { it.startsWith("To ") }
+                alice.intoArena(server, run)
                 alice.await("his fight") { alice.fight().takeIf { it.startsWith("ezekiel #") } }
                 val swords = alice.toVolley()
                 assertTrue(swords.size in Ezekiel.SWORDS_MIN..Ezekiel.SWORDS_MAX, swords.toString())
@@ -411,7 +455,7 @@ class HeadlessEzekielTest {
                 val run = alice.intoRun(server, "alice")
                 alice.commandReply("raid tp guardian") { it.startsWith("To ") }
                 alice.await("the Guardian's room done") { ArchiveRoom.GUARDIAN.takeIf { it in run.cleared } }
-                alice.commandReply("raid tp ezekiel") { it.startsWith("To ") }
+                alice.intoArena(server, run)
                 alice.await("his fight") { alice.fight().takeIf { it.startsWith("ezekiel #") } }
                 val boss = bossOf(run)
                 val swords = alice.toVolley()
@@ -474,7 +518,7 @@ class HeadlessEzekielTest {
                 val run = alice.intoRun(server, "alice")
                 alice.commandReply("raid tp guardian") { it.startsWith("To ") }
                 alice.await("the Guardian's room done") { ArchiveRoom.GUARDIAN.takeIf { it in run.cleared } }
-                alice.commandReply("raid tp ezekiel") { it.startsWith("To ") }
+                alice.intoArena(server, run)
                 alice.await("his fight") { alice.fight().takeIf { it.startsWith("ezekiel #") } }
                 val boss = bossOf(run)
                 val world = server.world
