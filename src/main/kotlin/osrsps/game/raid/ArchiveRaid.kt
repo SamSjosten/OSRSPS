@@ -314,6 +314,7 @@ class ArchiveRaids(private val world: World) {
         ArchiveRoom.GUARDIAN -> world.encounters.defs[ArchiveGuardian.NAME] != null && world.npcTypes[ArchiveGuardian.DORMANT] != null
         ArchiveRoom.EZEKIEL -> world.encounters.defs[Ezekiel.NAME] != null
         ArchiveRoom.BORK -> world.encounters.defs[Bork.NAME] != null
+        ArchiveRoom.DREADNOTH -> world.encounters.defs[Dreadnoth.NAME] != null
         ArchiveRoom.OCELLUS -> world.encounters.defs[Ocellus.NAME] != null && world.npcTypes[Ocellus.INTRO] != null
         else -> false
     }
@@ -452,6 +453,31 @@ class ArchiveRaids(private val world: World) {
         logger.info { "$run began Ocellus's fight with ${standing.size} standing, ${run.ready.size} ready" }
     }
 
+    /**
+     * The first of the party onto Dreadnoth's arena (by its transporter, [Dreadnoth.ARENA_ENTRY_X]): his fight begins,
+     * him where he waits ([Dreadnoth.X]), scaled to everyone standing in the run, [first] his target.
+     */
+    private fun beginDreadnoth(run: ArchiveRun, first: Player) {
+        val room = ArchiveRoom.DREADNOTH
+        val def = world.encounters.defs[Dreadnoth.NAME] ?: return
+        val at = tile(run, Dreadnoth.X, Dreadnoth.Z)
+        val boss = world.spawnNpc(NpcSpawn(def.boss, at.x, at.z, 0, source = "$run", respawns = false))
+        // With no NPC slot free, the room isn't started (as R18A-3 for Ezekiel): the next tick with one of the party in
+        // it tries again.
+        if (boss == null) {
+            logger.warn { "$run: no room for Dreadnoth" }
+            return
+        }
+        run.started += room
+        val standing = standing(run)
+        run.presentAtStart[room] = standing.filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
+        world.partyScaling.scale(boss, standing.size.coerceIn(1, PartyScaling.MAX_PARTY))
+        world.meleeCombat.aggress(boss, first, world.tick)
+        // Only those on his arena are in his fight: one still at the way in, short of the transporter, isn't hurt.
+        run.fights[room] = world.encounters.start(def, boss, { x, z -> Dreadnoth.inArena(at.x, at.z, x, z) })
+        logger.info { "$run began Dreadnoth's fight with ${standing.size} standing, ${first.username} first in" }
+    }
+
     /** A nexus door: into its room, if its row is open to the party. */
     fun door(player: Player, door: Int) {
         val run = at(player.x, player.z) ?: return
@@ -501,8 +527,8 @@ class ArchiveRaids(private val world: World) {
     }
 
     /**
-     * A boss room's Archive transporter: back to the nexus, once the room is done. Before then Bork's and Ezekiel's put
-     * the player in the arena ([BORK_ARENA_X], [EZEKIEL_ARENA_X]), the way into the fight: the arena is walled off from
+     * A boss room's Archive transporter: back to the nexus, once the room is done. Before then Bork's, Ezekiel's and
+     * Dreadnoth's put the player in the arena ([BORK_ARENA_X], [EZEKIEL_ARENA_X], [Dreadnoth.ARENA_ENTRY_X]), the way into the fight: the arena is walled off from
      * the way in (tsps capture notes: "between the arrival and the arena").
      */
     fun transporter(player: Player) {
@@ -518,6 +544,11 @@ class ArchiveRaids(private val world: World) {
             if (!inEzekielArena(run, player)) world.teleport(player, to.x, to.z, 0)
             return
         }
+        if (room == ArchiveRoom.DREADNOTH && room !in run.cleared) {
+            val to = tile(run, Dreadnoth.ARENA_ENTRY_X, Dreadnoth.ARENA_ENTRY_Z)
+            if (!inDreadnothArena(run, player)) world.teleport(player, to.x, to.z, 0)
+            return
+        }
         if (room !in run.cleared) return
         out(player, run, room)
     }
@@ -526,6 +557,12 @@ class ArchiveRaids(private val world: World) {
     private fun inEzekielArena(run: ArchiveRun, player: Player): Boolean {
         val from = tile(run, EZEKIEL_ARENA_MIN_X, EZEKIEL_ARENA_MIN_Z)
         return player.x - from.x in 0..EZEKIEL_ARENA_SPAN && player.z - from.z in 0..EZEKIEL_ARENA_SPAN
+    }
+
+    /** Whether [player] stands on the floor of Dreadnoth's arena in [run] (tsps capture notes: 4181-4198 x 5656-5670). */
+    private fun inDreadnothArena(run: ArchiveRun, player: Player): Boolean {
+        val spawn = tile(run, Dreadnoth.X, Dreadnoth.Z)
+        return Dreadnoth.inArena(spawn.x, spawn.z, player.x, player.z)
     }
 
     /** Whether [player] stands on the floor of Bork's arena in [run]. */
@@ -582,10 +619,11 @@ class ArchiveRaids(private val world: World) {
                 if (room !in run.started && room !in run.cleared && room.stage == run.stage) {
                     when {
                         !built(room) -> begin(run, room)
-                        // The Guardian waits for a Touch; Ezekiel's, and Bork and the Smorks', begin with the first into the
-                        // arena (by its transporter), which is walled off from the way in.
+                        // The Guardian waits for a Touch; Ezekiel's, Bork and the Smorks' and Dreadnoth's begin with the
+                        // first into the arena (by its transporter), which is walled off from the way in.
                         room == ArchiveRoom.EZEKIEL -> if (inEzekielArena(run, player)) beginEzekiel(run, player)
                         room == ArchiveRoom.BORK -> if (inBorkArena(run, player)) beginBork(run, player)
+                        room == ArchiveRoom.DREADNOTH -> if (inDreadnothArena(run, player)) beginDreadnoth(run, player)
                     }
                 }
             }

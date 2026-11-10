@@ -69,21 +69,18 @@
    "step": "command",
    "text": "::raid tp dreadnoth",
    "expectMessage": "To Dreadnoth the Jellied's room",
-   "comment": "done as soon as it begins while his room isn't built; once it is, a ::raid clear goes after this"
+   "comment": "his fight begins only on his arena, past the room's transporter (archive-dreadnoth.json): here his room is just marked done"
   },
   {
-   "step": "waitTicks",
-   "ticks": 2
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Dreadnoth the Jellied's room."
   },
   {
    "step": "command",
    "text": "::raid tp xarth",
    "expectMessage": "To Xarth's room",
-   "comment": "likewise"
-  },
-  {
-   "step": "waitTicks",
-   "ticks": 2
+   "comment": "done as soon as it begins while his room isn't built; once it is, a ::raid clear goes after this"
   },
   {
    "step": "command",
@@ -114,19 +111,11 @@
    "comment": "beside the hooded figure (4126,5669), which is out of view from the landing"
   },
   {
-   "step": "waitTicks",
-   "ticks": 2
-  },
-  {
    "step": "npcOption",
    "npc": "Hooded Figure",
    "option": "Talk-to",
    "timeoutMs": 20000,
    "comment": "tfa_ocellus_intro (16671), shown to an account that hasn't met him as tfa_ocellus_intro_not_met, \"Hooded Figure\" (242 cache): Talk-to readies the player up. Alone, the player is the whole party, so his fight begins at once"
-  },
-  {
-   "step": "waitTicks",
-   "ticks": 2
   },
   {
    "step": "command",
