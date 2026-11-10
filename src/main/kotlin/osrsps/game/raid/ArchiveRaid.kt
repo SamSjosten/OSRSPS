@@ -82,13 +82,17 @@ enum class ArchiveRoom(
     val level: Int get() = if (this == OCELLUS) 1 else 0
 
     /**
-     * The nexus tile a player coming back out of the room lands on: in front of its door, in front of the nexus's
-     * Passageway for Ocellus's, and the nexus's entrance for the Guardian's hall. Guessed.
+     * The nexus tile a player coming back out of the room lands on when the tile they went in from isn't known
+     * ([ArchiveRun.leftFrom]): beside its door, in front of the nexus's Passageway for Ocellus's, and the nexus's
+     * entrance for the Guardian's hall. Sam's recording of 2026-11-09 (clip 16-55-42) has the east doors' tiles on
+     * x 4140: 4140,5585 back from Bork, 4140,5598 for Dreadnoth and 4140,5612 for Xarth. Inferred: the west side
+     * mirrors it on x 4114. Guessed: the tile a row north of the door's south end where none was seen, and the
+     * Passageway's and the entrance's tiles.
      */
     val doorFront: Tile
         get() = when {
-            side == DoorSide.WEST -> Tile(4115, ArchiveRaids.doorZ(stage) + 2)
-            side == DoorSide.EAST -> Tile(4139, ArchiveRaids.doorZ(stage) + 2)
+            side == DoorSide.WEST -> Tile(ArchiveRaids.DOOR_FRONT_WEST_X, ArchiveRaids.doorZ(stage) + 1)
+            side == DoorSide.EAST -> Tile(ArchiveRaids.DOOR_FRONT_EAST_X, ArchiveRaids.doorZ(stage) + 1)
             this == OCELLUS -> Tile(ArchiveRaids.PASSAGE_FRONT_X, ArchiveRaids.PASSAGE_FRONT_Z)
             else -> Tile(ArchiveRaids.NEXUS_X, ArchiveRaids.NEXUS_Z)
         }
@@ -134,6 +138,12 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
 
     /** Who is down now, by [Player.saveKey]: dead in this room, with the party still standing. Up again once it is done. */
     val downed = LinkedHashSet<String>()
+
+    /**
+     * The nexus tile each member went through a room's door from, by [Player.saveKey] and room, in the cache's
+     * coordinates: where they come back out ([ArchiveRoom.doorFront] has the recording).
+     */
+    internal val leftFrom = HashMap<Pair<String, ArchiveRoom>, Tile>()
 
     /** The level of the cache's nexus (map square 64,87) the instance shows; see [ArchiveRaids.nexusLevel]. */
     var nexusLevel: Int = ArchiveRaids.NEXUS_START
@@ -571,6 +581,11 @@ class ArchiveRaids(private val world: World) {
         val room = ArchiveRoom.ofDoor(door) ?: return
         if (!mayEnter(run, player, room)) return
         run.chosen[room.stage] = room
+        // Inferred from Sam's recording of 2026-11-09: he came back to the tile he had left from, both times both
+        // are seen (4140,5598 for Dreadnoth and 4140,5612 for Xarth), a row apart along their doors.
+        val from = Tile(player.x - run.instance.baseX + FROM_X, player.z - run.instance.baseZ + FROM_Z)
+        if (from.x == room.doorFront.x && from.z in doorZ(room.stage) until doorZ(room.stage) + DOOR_LENGTH) run.leftFrom[player.saveKey to room] = from
+        else run.leftFrom -= player.saveKey to room
         go(player, run, room)
     }
 
@@ -662,7 +677,8 @@ class ArchiveRaids(private val world: World) {
         onArena(run, ArchiveRoom.BORK, player.x, player.z) == true
 
     private fun out(player: Player, run: ArchiveRun, room: ArchiveRoom) {
-        val to = tile(run, room.doorFront.x, room.doorFront.z)
+        val back = run.leftFrom.remove(player.saveKey to room) ?: room.doorFront
+        val to = tile(run, back.x, back.z)
         world.teleport(player, to.x, to.z, NEXUS_PLANE)
     }
 
@@ -1053,6 +1069,11 @@ class ArchiveRaids(private val world: World) {
 
         /** The z of the nexus's row of doors for [stage] 2 to 4 (each door covers it and the 4 tiles north). */
         fun doorZ(stage: Int): Int = 5584 + (stage - 2) * 13
+        const val DOOR_LENGTH = 5
+
+        /** The nexus's column of tiles beside its east doors (Sam's recording of 2026-11-09) and its west ones (inferred, mirrored). */
+        const val DOOR_FRONT_EAST_X = 4140
+        const val DOOR_FRONT_WEST_X = 4114
 
         /** The nexus tile the Archive Door lands on, just inside its south end. Guessed. */
         const val NEXUS_X = 4127
