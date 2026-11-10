@@ -1,6 +1,7 @@
 package osrsps.game.raid
 
 import java.lang.ref.WeakReference
+import java.util.Collections
 import java.util.WeakHashMap
 import kotlin.math.PI
 import kotlin.math.abs
@@ -310,7 +311,7 @@ object Dreadnoth {
         val floor = LinkedHashMap<Tile, ZoneLoc>()
 
         /** Every jelly risen in the fight, the room won once none is left in the world. */
-        val risen = ArrayList<Npc>()
+        val risen: MutableSet<Npc> = Collections.newSetFromMap(WeakHashMap())
 
         /** Whether he has split, at 0: nothing of his lands after. */
         var split = false
@@ -685,7 +686,8 @@ object Dreadnoth {
 
     /** He heals by [amount], his health bar showing it. */
     private fun EncounterContext.heal(amount: Int, why: String) {
-        if (amount <= 0) return
+        // At 0 (a Retribution as he landed, say) he splits next tick: no heal brings him back.
+        if (amount <= 0 || boss.hitpoints <= 0) return
         val before = boss.hitpoints
         boss.hitpoints = minOf(boss.maxHitpoints, before + amount)
         // His health bar shows it: bars go out only as they are queued, as a hit queues one.
@@ -779,6 +781,10 @@ object Dreadnoth {
         world.removeNpc(boss)
     }
 
-    /** Whether the fight is over, the boss dead or gone: nothing lands after. */
-    private fun EncounterContext.gone(): Boolean = boss.dead || world.npcs[boss.index] !== boss
+    /**
+     * Whether the fight is over, the boss dead or gone, or brought to 0 and about to split (a Retribution mid-attack,
+     * say): nothing more of his lands this tick. Once split, the jellies and the floor go on.
+     */
+    private fun EncounterContext.gone(): Boolean =
+        boss.dead || world.npcs[boss.index] !== boss || (boss.hitpoints <= 0 && !state.split)
 }

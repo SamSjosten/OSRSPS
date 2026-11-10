@@ -204,7 +204,7 @@ class HeadlessDreadnothTest {
                     assertEquals(Dreadnoth.SPLIT_HITPOINTS, one.hitpoints)
                     assertEquals(Dreadnoth.SPLIT_HITPOINTS, one.maxHitpoints)
                 }
-                assertEquals(Dreadnoth.SPLIT_JELLIES, seven.map { Tile(it.x, it.z) }.toSet().size, "each on its own tile")
+                assertEquals(Dreadnoth.SPLIT_JELLIES, seven.map { Tile(it.spawn.x, it.spawn.z) }.toSet().size, "each rose on its own tile")
                 // Six of them down: the room isn't won yet, and each leaves jelly where it fell.
                 for (one in seven.dropLast(1)) alice.commandReply("hit 37 ${one.index}") { it.startsWith("Hit ") }
                 alice.awaitTicks(4)
