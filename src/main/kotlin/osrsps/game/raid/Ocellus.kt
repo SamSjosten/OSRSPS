@@ -1637,6 +1637,9 @@ object Ocellus {
             }
         }
         if (state.heldSince < 0) return
+        // His final stand's tick first: its void hurts from the tick it is laid (Codex, PR 585).
+        val final = state.finalSince >= 0 && phaseTick >= state.finalSince && state.fallStart < 0
+        if (final) finalStand(((phaseTick - state.finalSince) % FINAL_LOOP).toInt())
         voidFloor()
         vine()
         flares()
@@ -1645,10 +1648,7 @@ object Ocellus {
             falling((phaseTick - fall).toInt())
             return
         }
-        if (state.fallen.size >= FALLS_AT.size) {
-            if (state.finalSince >= 0 && phaseTick >= state.finalSince) finalStand(((phaseTick - state.finalSince) % FINAL_LOOP).toInt())
-            return
-        }
+        if (state.fallen.size >= FALLS_AT.size) return
         val due = FALLS_AT.getOrNull(state.fallen.size)
         if (due != null && boss.hitpoints * 100 <= boss.maxHitpoints * due) {
             startFall()
