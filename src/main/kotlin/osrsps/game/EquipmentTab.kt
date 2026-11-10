@@ -170,7 +170,8 @@ class EquipmentTab(
     private fun actualSpeed(player: Player, base: Int): Int {
         val category = Weapons.category(equipment.weapon(player))
         val ranged = category == Weapons.BOW || category == Weapons.CROSSBOW || category == Weapons.THROWN || category == Weapons.GRENADE
-        return if (ranged && player.vars[VARP_COM_MODE] == RAPID_BUTTON) base - 1 else base
+        if (ranged && player.vars[VARP_COM_MODE] == RAPID_BUTTON) return base - 1
+        return Weapons.styleSpeed(category, player.vars[VARP_COM_MODE], base)
     }
 
     /**

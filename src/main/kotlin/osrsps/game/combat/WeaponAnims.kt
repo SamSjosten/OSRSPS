@@ -45,6 +45,15 @@ class WeaponAnims(private val attackAnim: (AttackStyle) -> Int, val defend: Int)
         /** human_dinhs_bulwark_crush for Pummel; human_dinhs_bulwark_block. Guessed from the names, as above. */
         private val BULWARK = WeaponAnims({ 7507 }, 7512)
 
+        /**
+         * The Obligator's: tfa_human_obligator_multihit for Thrust, which can reach targets behind its own (OSRS Wiki,
+         * Obligator), tfa_human_obligator_attack for Smash; tfa_human_obligator_def. Guessed from the names, as above.
+         */
+        private val OBLIGATOR = WeaponAnims({ if (it.name == "Thrust") 15123 else 15122 }, 15133)
+
+        /** Zorya's tome's: tfa_human_zorya_tome_attack (its spell plays it, [PoweredStaves.ZORYAS_TOME]); _defend. */
+        private val ZORYAS_TOME = WeaponAnims({ 15139 }, 15141)
+
         private val BY_CATEGORY = mapOf(
             Weapons.UNARMED to UNARMED,
             Weapons.STABSWORD to SWORD,
@@ -52,6 +61,8 @@ class WeaponAnims(private val attackAnim: (AttackStyle) -> Int, val defend: Int)
             Weapons.AXE to AXE,
             Weapons.SPEAR to SPEAR,
             Weapons.BULWARK to BULWARK,
+            Weapons.EXTENDING_CHAINMACE to OBLIGATOR,
+            Weapons.POWERED_BOOK to ZORYAS_TOME,
         )
 
         /** The animations of weapon [category] (varbit 357's value); [UNARMED] for one not filled in. */

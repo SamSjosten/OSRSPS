@@ -18,6 +18,7 @@ import osrsps.game.script.ScriptContext
  * [charge]), [runesPerCharge] for each, up to [maxCharges]. Worn in its charged form [charged]; [uncharged] is the same
  * staff with none. The built-in spell's max hit is [maxHit] of the visible Magic level, and for it the worn equipment's
  * magic attack and magic damage bonuses are multiplied by [bonusMultiplier] (1 for none), the damage capped at 100%.
+ * The spell reaches [range] tiles, 2 more on longrange.
  */
 class PoweredStaff(
     val charged: Int,
@@ -31,10 +32,11 @@ class PoweredStaff(
     val impact: Int,
     val bonusMultiplier: Int,
     val maxHit: (magicLevel: Int) -> Int,
+    val range: Int = 8,
 )
 
 /**
- * The powered staves that are in: Tumeken's shadow for now. From the OSRS Wiki (Tumeken's shadow, Powered staff, read
+ * The powered staves that are in: Tumeken's shadow, and Zorya's tome ([ZORYAS_TOME]), a book that works as one. From the OSRS Wiki (Tumeken's shadow, Powered staff, read
  * 2026-10-29): its spell's max hit is Magic / 3 + 1; it multiplies the worn magic attack and magic damage by 3 for that
  * spell alone (by 4 in the Tombs of Amascut, which aren't in), the damage capped at 100%; it holds up to 20,000 charges
  * of 2 soul runes and 5 chaos runes each, all given back when it is uncharged; the charged staff has Check, Charge and
@@ -175,8 +177,37 @@ class PoweredStaves(
             maxHit = { magic -> magic / 3 + 1 },
         )
 
+        const val ASTRAL_RUNE = 9075
+        const val NATURE_RUNE = 561
+
+        /**
+         * Zorya's tome, from the Fractured Archive (OSRS Wiki, Zorya's tome, read 2026-11-10): it works "similar to a
+         * powered staff", its built-in spell charged "with astral and nature runes", "up to 20,000 charges", "3 astral
+         * runes and 2 nature runes" a cast, all given back when uncharged; 7 tiles on accurate and 9 on longrange; its
+         * own +15% magic damage is a worn bonus (241 cache), so nothing is multiplied. The max hit is the Wiki's
+         * "Max Hit = ⌊Magic Level / 3⌋ − 9" (inferred: the page's formula renders garbled, read as a third of the Magic
+         * level, rounded down, less 9, which is the "base max hit of 18" at 81). The animation and graphics are the
+         * cache's tfa_human_zorya_tome_attack, vfx_zorya_tome_standard_spotanim, vfx_zorya_tome_proj and
+         * vfx_zorya_tome_impact (guessed: which is the cast and which the travel, from their names). Not in yet: Zorya's
+         * flow, its special attack; the female versions of the animation and the cast; Configure-Charges in the bank.
+         */
+        val ZORYAS_TOME = PoweredStaff(
+            charged = 34725,
+            uncharged = 34727,
+            charge = "zoryas_tome",
+            maxCharges = 20_000,
+            runesPerCharge = listOf(RuneCost(ASTRAL_RUNE, 3), RuneCost(NATURE_RUNE, 2)),
+            anim = 15139,
+            casting = 4433,
+            travel = 4427,
+            impact = 4429,
+            bonusMultiplier = 1,
+            maxHit = { magic -> (magic / 3 - 9).coerceAtLeast(0) },
+            range = 7,
+        )
+
         /** Every powered staff that is in. */
-        val ALL = listOf(TUMEKENS_SHADOW)
+        val ALL = listOf(TUMEKENS_SHADOW, ZORYAS_TOME)
 
         private const val CHECK = "Check"
         private const val CHARGE = "Charge"

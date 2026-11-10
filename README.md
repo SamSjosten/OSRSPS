@@ -819,10 +819,10 @@ RuneLite `test-runner/examples/magic-teleports.json`.
 
 ### Thieving: more pickpockets and their gear
 
-Thieving 2 steps T1a and T1b (`game/skill/Pickpocketing.kt`, `game/skill/PickpocketGear.kt`). Pickpocket now works on the
+Thieving 2 steps T1a to T1c (`game/skill/Pickpocketing.kt`, `game/skill/PickpocketGear.kt`). Pickpocket now works on the
 farmers (nine on Misthalin's farms, `npc-spawns/lumbridge-farms.json`, with their combat and drops), Al Kharid's man and
 warriors, Edgeville's guards, and Kandarin's and the Wilderness's rogues, Knights of Ardougne, watchmen, paladins, gnomes
-and heroes (reached by `::tele`). Gloves of silence and the dodgy necklace work when worn.
+and heroes, and the far pickpockets from Dorgesh-Kaan to Mor Ul Rek (all reached by `::tele`). Gloves of silence and the dodgy necklace work when worn.
 
 | Pickpocketing behaviour | Source |
 |-------------------------|--------|
@@ -844,7 +844,16 @@ and heroes (reached by `::tele`). Gloves of silence and the dodgy necklace work 
 | Where they stand: East Ardougne's 5 knights, 22 paladins (the castle's two floors among them), 3 heroes and 10 warriors, the Watchtower's 4 watchmen, the Tree Gnome Stronghold's 153 gnomes (`npc-spawns/thieving-kandarin.json`) | mejrs NPCList_OSRS.json (live, pre-Nov 2022) |
 | Their combat: the Wiki's speeds, max hits, bonuses and respawns | OSRS Wiki, each NPC's infobox |
 | The T1b NPCs' caught line (the townsfolk's), their names in the messages, their animations, their wander; the gnomes' max hit 1 (the Wiki's, where the formula gives 0) | guessed |
-| Not built: repairing the gloves, the necklace's Break, the Ardougne diary, Shadow Veil, Rocky, the clue scrolls from pickpocketing; the T1b NPCs' drops; West Ardougne, the Mourner Tunnels, Tree Gnome Village and the Battlefield; the far pickpockets (step T1c) | next steps |
+| Cave goblins (Dorgesh-Kaan): 36, 40 XP, 1 damage; a table out of 20 (a pouch of 10 to 50 coins 7, then 1 each: bat shish, coated frogs' legs, fingers, frogburger, frogspawn gumbo, green gloop soup, bullseye lantern, 1 to 2 cave goblin wire, 1 to 4 iron ore, oil lantern, swamp tar, tinderbox, unlit torch) | OSRS Wiki, Cave goblin (Dorgesh-Kaan), Coin pouch (read 2026-11-10) |
+| Fremennik citizens (Rellekka's nine): 45, 65 XP, 2 damage, a pouch of 40 | OSRS Wiki, Fremennik citizen |
+| Desert bandits (the Bandit Camp): 53, 79.4 XP, 50 to 240, 3 damage; a pouch of 30 5/7, an antipoison(1) 1/7, a lockpick 1/7 | OSRS Wiki, Bandit (Bandit Camp) |
+| Wealthy citizens (Civitas illa Fortis): Pickpocket is their first op; 50, 96 XP, 35 to 200, 3 damage, a 4-second stun (7 ticks); a pouch of 85 79/85, house keys 5/85 | OSRS Wiki, Wealthy citizen |
+| Vyres (Darkmeyer's thirty): 82, 306.9 XP, 8 to 128, 5 damage, a 10-tick stun; a table out of 132 (a pouch of 230 to 315 109, 2 death runes 8, a blood pint 6, an uncut ruby 5, 4 blood runes 2, a diamond 1, cooked mystery meat 1) | OSRS Wiki, Vyre |
+| Elves (Lletya's three, Prifddinas's 49): 85, 353.3 XP, 6 to 100, 5 damage, a 10-tick stun; a table out of 128 (a pouch of 280 to 350 105, 2 death runes 8, a jug of wine 6, 3 nature runes 5, a fire orb 2, a diamond 1, gold ore 1) | OSRS Wiki, Elf (Thieving) |
+| TzHaar-Hur (Mor Ul Rek's inner city): 90, 103.4 XP, -200 to 200, 4 damage, a 10-tick stun; 3 to 7 tokkul 182/195 or an uncut sapphire 5, emerald 4, ruby 3, diamond 1; their heat does 4 more on every success unless ice gloves are worn | OSRS Wiki, TzHaar-Hur |
+| Where the far ones stand (`npc-spawns/thieving-far.json`): 174 spawns, the wealthy citizens on the Wiki map's nine tiles | mejrs NPCList_OSRS.json (live, pre-Nov 2022); OSRS Wiki, Wealthy citizen (its map) |
+| The cave goblins' and Fremennik citizens' charts (75 to 240 and 65 to 240: the Wiki has none); which wealthy citizen look stands on each tile; the far NPCs' caught line and names in the messages; a Wiki table's coins read as the pouch the Coin pouch page gives that NPC; the wealthy citizens' last 1/85 (an easy clue, left out) giving nothing | guessed |
+| Not built: repairing the gloves, the necklace's Break, the Ardougne diary, Shadow Veil, Rocky, the clue scrolls from pickpocketing; the T1b and T1c NPCs' drops and fights; West Ardougne, the Mourner Tunnels, Tree Gnome Village and the Battlefield; the urchins' distractions, Prifddinas's crystal shards and seeds, the quests and the fire cape that gate the far areas; Pollnivneach's bandits and the Menaphite thugs (blackjacking), the pirates | next steps |
 
 `::scenario thieving` stands you beside a farmer on the farm south of Varrock with 99 Thieving and Hitpoints, 54
 Hunter, gloves of silence and a dodgy necklace worn, a spare necklace and food.
@@ -2254,6 +2263,9 @@ loses goes in a grave there. The party lasts through the wipe.
 | The grid as two columns of three; Discard-all asking Yes or No first; the loot saved with the player (so a logout keeps it); the same window for the Wheelbarrow; the varbit set whenever loot waits, in the vault too; the Archive Door turning away a player with loot of an earlier run unclaimed (as the Theatre of Blood's chest holds a player to their last loot); another's Rift refusing Search with the line Open on another's chest gives (live took Search off others' Rifts on 3 November 2026); a chest never opened paying into the Wheelbarrow all the same | guessed |
 | The unique's own chest on the northern platform (16730) and the purple braziers that show one was found; Orion the pet (1 in 750); the clue's better rate with the elite Combat Achievements; scroll boxes; the cabbage's chance by deaths; the loot's graphics; the collection log | not in yet |
 | The Merit scroll's records, the braziers' fires, the vault's music, the Rift out's fade-in | not in yet |
+| The uniques worn (step 30): their bonuses, slots and speeds the cache's, which are the Wiki's infoboxes (Ascension crossbows, Obligator and Zorya's tome two-handed; the Rondache a shield; the Horn of Bran not worn); their requirements 80 Ranged, 85 Attack, 80 Defence and 85 Magic (`item-requirements.tsv`); the Obligator's combat tab (dbtable 78's row 36: Thrust, Thrust and Smash, all crush) and Smash every 3 ticks where Thrust is 5; the tome's (row 37: Accurate, Accurate and Longrange) and its own spell as a powered staff's, a charge a cast of 3 astral and 2 nature runes, up to 20,000, 7 tiles and 9 on longrange; the crossbows firing ascension bolts and their gem-tipped forms only, which no other crossbow fires, 6 tiles and 8 on longrange; their animations and the bolts' and tome's graphics the cache's (`ArchiveUniquesAuditTest` checks the cache's numbers against the Wiki's) | OSRS Wiki, Ascension crossbows, Obligator, Rondache, Zorya's tome, Horn of Bran, Weapons/Types, read 10 November 2026; 241 cache |
+| The tome's max hit, a third of the Magic level rounded down less 9 before its +15% (the Wiki's formula renders garbled); which of the Obligator's two attack animations is Thrust and which Smash; which tome graphic is the cast and which the travel; the uniques' turning and side-step animations (the cache has none of their own); the crossbows firing from one hand, where live alternates them; the uncharged tome's prayer bonus, 0 in the cache where the Wiki gives +2 (the cache's kept) | inferred or guessed |
+| The uniques' effects: the Obligator's charges and its second hit and reach, the Rondache's armour and Shield Slam, Zorya's flow, the crossbows' halved bolt effects, the Horn of Bran's Zeal prayer; the female animations; the tome's Configure-Charges | not in yet |
 | The bosses after the Guardian, the Quartermaster and Supply Credits, the party's orbs, taking the loot out of the reward vault's chests, deaths' item costs | not in yet: steps 18 to 31 |
 
 `::raid run` shows the run you're in and where you stand in it (the room, and the cache's tile as `::raid tp x z` takes it), `::raid tp nexus` or `::raid tp ezekiel` goes to its nexus or a room, `::raid tp x z`
@@ -2273,7 +2285,11 @@ second folio or fragment; the cabbage), and in RuneLite
 `test-runner/examples/archive-raid-flow.json` (both runs, solo, the first out by the reward vault after opening its
 chest there, Search on the Rift it leaves and Bank-all from the chest's window, and a death that costs nothing), `archive-ocellus-corridor.json` (a bow's Attack on Ocellus refused from his corridor and taken
 from his arena) and `archive-raid-wipe.json` (a death in the raid back to
-the lobby, with a grave). Ocellus: `./gradlew test --tests 'osrsps.testclient.HeadlessOcellusTest'` (the figure and the
+the lobby, with a grave). The uniques: `./gradlew test --tests 'osrsps.testclient.HeadlessArchiveUniquesTest'` (the
+Obligator taking the Rondache off, its combat tab and Smash's 3 ticks; the crossbows refusing rune bolts and shooting
+ascension bolts, 2 ticks on Rapid; the tome charged with astral and nature runes killing a man with its own spell),
+`ArchiveUniquesAuditTest` with `OSRSPS_FLATCACHE` set (the cache's numbers against the Wiki's), and
+`test-runner/examples/archive-uniques.json`. Ocellus: `./gradlew test --tests 'osrsps.testclient.HeadlessOcellusTest'` (the figure and the
 ready check, alone, with two, and the 2 minutes; his walk, corners, cracks, charge and explosion; a crack caught; the middle at two thirds and a quarter; the hold and the
 transformation; the second phase's portals, the Blade's damage reaching his bar, the quadrants' turns and volleys, a
 shot reaching a player and the safe crossing; the pools, every portal purple, the floor portal taking her on and the
