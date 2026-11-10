@@ -83,6 +83,10 @@
    "comment": "done as soon as it begins while his room isn't built; once it is, a ::raid clear goes after this"
   },
   {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
    "step": "command",
    "text": "::raid run",
    "expectMessage": "done Archive Guardian, Bork and the Smorks, Dreadnoth the Jellied, Xarth;",
@@ -111,11 +115,19 @@
    "comment": "beside the hooded figure (4126,5669), which is out of view from the landing"
   },
   {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
    "step": "npcOption",
    "npc": "Hooded Figure",
    "option": "Talk-to",
    "timeoutMs": 20000,
    "comment": "tfa_ocellus_intro (16671), shown to an account that hasn't met him as tfa_ocellus_intro_not_met, \"Hooded Figure\" (242 cache): Talk-to readies the player up. Alone, the player is the whole party, so his fight begins at once"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
   },
   {
    "step": "command",
