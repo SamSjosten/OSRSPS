@@ -495,6 +495,44 @@ class HeadlessOcellusTest {
     }
 
     @Test
+    fun `nobody shelters from his second phase on the cross, and no splash reaches him past the Blade`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.throughTheRest(run)
+                alice.toOcellus(server, run)
+                alice.npcOp(assertNotNull(run.ocellusFigure).index, 1)
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ocellus #") } }
+                val boss = boss(run)
+                val fight = assertNotNull(run.fights[ArchiveRoom.OCELLUS])
+                val world = server.world
+                val centre = Ocellus.centre(boss.spawn.x, boss.spawn.z)
+                // On the north arm as the portals come: moved a tile off it, into the north-west (nobody's quadrant, so
+                // the first clockwise from there), not left under a portal (exploit review round 22, R22B-1).
+                alice.commandReply("hit 2500 ${boss.index}") { it.startsWith("Hit ") }
+                alice.tele(centre.x, centre.z + 4, ArchiveRoom.OCELLUS.level)
+                val second = tickOf(alice.awaitLine(run, "his second phase") { it.endsWith("second: phase starts") })
+                val moved = alice.awaitLine(run, "her moved off the arm") { it.contains("second: alice moved off the cross to ") }
+                assertEquals(second + Ocellus.PORTALS_AT, tickOf(moved))
+                assertTrue(moved.endsWith("${centre.x - 1},${centre.z + 4}"), moved)
+                alice.await("in the north-west") { alice.position?.takeIf { it == Coord(centre.x - 1, centre.z + 4, ArchiveRoom.OCELLUS.level) } }
+                // His second phase is barred to her: an area spell or a chinchompa's splash finds only the Blade.
+                val player = world.playerNamed("alice")!!
+                assertTrue(world.combat.barred(player, boss) != null, "his second phase can't be hit")
+                alice.awaitLine(run, "the Blade") { it.contains("second: your time; the Blade; first quadrant NW") }
+                assertNull(world.combat.barred(player, assertNotNull(Ocellus.blade(boss))), "the Blade can be")
+                // Then on the middle of the cross, which no portal covers: the north-west's last volley takes her there,
+                // outside the north-east, where its floor portal leads.
+                alice.tele(centre.x, centre.z, ArchiveRoom.OCELLUS.level)
+                alice.keepAlive()
+                val taken = alice.awaitLine(run, "the last volley taking her", 30_000) { it.contains("second: last volley takes alice outside NE for ") }
+                val last = fight.lines.single { it.contains("second: last volley fires from ") }
+                assertTrue(tickOf(taken) in tickOf(last) + 1..tickOf(last) + 3, taken)
+            }
+        }
+    }
+
+    @Test
     fun `later in a quadrant's turn the pools burst, every portal turns purple, the floor portal takes her on, and the last volley kills`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->

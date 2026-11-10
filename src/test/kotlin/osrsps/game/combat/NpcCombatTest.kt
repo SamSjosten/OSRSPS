@@ -614,7 +614,8 @@ class NpcCombatTest {
         assertEquals(listOf(150, 150), listOf(him.attackBonus, him.magicAttack))
         assertEquals(listOf(150, 95, 60, 100), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { him.defence.against(it) })
         assertEquals(mapOf(NpcStat.DEFENCE to 60), him.drainCaps)
-        assertTrue(him.poisonImmune && him.venomImmune)
+        // Nor does a barrage hold him from his corners (exploit review round 22, R22B-2).
+        assertTrue(him.poisonImmune && him.venomImmune && him.freezeImmune)
     }
 
     @Test
@@ -626,7 +627,7 @@ class NpcCombatTest {
         assertEquals(NpcCombatAnims(14842, -1, 14872), him.anims)
         assertEquals(listOf(350, 100, 30, 200), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { him.defence.against(it) })
         assertEquals(mapOf(NpcStat.DEFENCE to 60), him.drainCaps)
-        assertTrue(him.poisonImmune && him.venomImmune)
+        assertTrue(him.poisonImmune && him.venomImmune && him.freezeImmune)
     }
 
     @Test
