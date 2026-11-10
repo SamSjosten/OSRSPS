@@ -288,4 +288,74 @@ class HeadlessDreadnothTest {
             }
         }
     }
+
+    @Test
+    fun `an enrage jump lands centred on a player within five tiles, else five tiles towards them, never west of the arena's x 4184`() {
+        val x = Dreadnoth.X
+        val z = Dreadnoth.Z
+        // His middle 4191,5663: a player 3 tiles off, landed on.
+        assertEquals(Tile(4192, 5664), Dreadnoth.landingFor(x, z, 5, 4194, 5666, x, z))
+        // 8 tiles north: 5 tiles that way.
+        assertEquals(Tile(4189, 5666), Dreadnoth.landingFor(x, z, 5, 4191, 5671, x, z))
+        // From the arena's east edge, a player far to the west and a little south: due west 5, kept to x 4184 or east.
+        val east = Tile(4194, 5661)
+        assertEquals(Tile(4189, 5661), Dreadnoth.landingFor(east.x, east.z, 5, 4180, 5662, x, z))
+        // A diagonal: south-west, kept on the arena.
+        assertEquals(Tile(4189, 5656), Dreadnoth.landingFor(east.x, east.z, 5, 4185, 5652, x, z))
+        // Nearest by angle: 10 east and 4 north of his middle is 21.8 degrees off east, so east, not north-east.
+        assertEquals(Tile(4189, 5656), Dreadnoth.landingFor(4184, 5656, 5, 4196, 5662, x, z))
+        // 10 east and 5 north, 26.6 degrees: north-east.
+        assertEquals(Tile(4189, 5661), Dreadnoth.landingFor(4184, 5656, 5, 4196, 5663, x, z))
+        // Never west of 4184, nor past the arena's other edges.
+        assertEquals(4184, Dreadnoth.landingFor(4186, z, 5, 4181, 5663, x, z).x)
+        val far = Dreadnoth.landingFor(x, z, 5, 4198, 5670, x, z)
+        assertTrue(far.x + 4 <= Dreadnoth.ARENA_MAX_X && far.z + 4 <= Dreadnoth.ARENA_MAX_Z, far.toString())
+    }
+
+    @Test
+    fun `at 25 percent he enrages, jumps at her 5 ticks on and every 8 after, absorbs the jelly he lands on and heals off her`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.toThirdRow(run)
+                alice.commandReply("setlevel hitpoints 99") { it.contains("set to level 99") }
+                alice.ontoArena(server, run)
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("dreadnoth #") } }
+                // Just north of him, so a landing centred on her stays on his arena.
+                val spot = server.world.archiveRaids.tile(run, 4192, 5667)
+                alice.tele(spot.x, spot.z)
+                // A jelly first, risen on her tile and come out beside her.
+                alice.hitTo(run, 85)
+                alice.awaitLine(run, "the jelly rising") { it.endsWith("fight: 1 jellies rise") }
+                alice.awaitLine(run, "the jelly hitting her") { it.contains("fight: a jelly hits alice for ") }
+                val theJelly = jellies(run).single()
+                alice.hitTo(run, 25)
+                val enrage = alice.awaitLine(run, "his enrage") { it.contains("enrage: enrage at ") }
+                // His first jump 5 ticks on, at her (the only one), landing centred on her 3 ticks after.
+                val jump = alice.awaitLine(run, "his first jump") { it.contains("enrage: jumps at alice, landing on ") }
+                assertEquals(Dreadnoth.FIRST_JUMP.toLong(), tickOf(jump) - tickOf(enrage))
+                val her = assertNotNull(alice.position)
+                assertTrue(jump.endsWith("landing on ${her.x - 2},${her.z - 2}"), "$jump; alice at $her")
+                // She steps out of ::god just before he lands: the slam is dealt, and he heals by it.
+                alice.commandReply("god off") { it.startsWith("You can be hurt") }
+                val crushed = alice.awaitLine(run, "his landing on her") { it.contains("enrage: lands on alice for ") }
+                alice.commandReply("god on") { it.startsWith("You can't be hurt") }
+                assertEquals(Dreadnoth.JUMP_LANDS.toLong(), tickOf(crushed) - tickOf(jump))
+                val dealt = crushed.substringAfter(" for ").substringBefore(',').toInt()
+                assertTrue(dealt in Dreadnoth.CRUSH_MIN..Dreadnoth.CRUSH_MAX, crushed)
+                assertTrue(lines(run).any { it.contains("enrage: heals off alice: heals $dealt") }, lines(run).toString())
+                // The jelly beside her was under him: absorbed, healing him by what it had left.
+                assertTrue(lines(run).any { it.contains("enrage: absorbs a jelly: heals ${theJelly.maxHitpoints}") }, lines(run).toString())
+                assertTrue(jellies(run).isEmpty())
+                // The shot and the splatter at her; the splatter lies as jelly on her tile 6 ticks on.
+                val splatter = alice.awaitLine(run, "the splatter") { it.contains("enrage: splatter lands on ${her.x},${her.z}") }
+                assertEquals(Dreadnoth.SPLATTER_LANDS.toLong(), tickOf(splatter) - tickOf(crushed))
+                // Every 8 ticks after; no swings in the enrage.
+                alice.awaitLine(run, "his second jump") { it.contains("enrage: jumps at alice") && tickOf(it) > tickOf(jump) }
+                val jumps = lines(run).filter { it.contains("enrage: jumps at alice") }.map(::tickOf)
+                assertEquals(Dreadnoth.JUMP_EVERY.toLong(), jumps[1] - jumps[0])
+                assertTrue(lines(run).none { it.contains("enrage: swings at") }, lines(run).toString())
+            }
+        }
+    }
 }
