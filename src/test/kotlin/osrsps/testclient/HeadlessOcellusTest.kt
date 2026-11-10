@@ -794,12 +794,18 @@ class HeadlessOcellusTest {
                 }
                 assertEquals(Ocellus.LOC_BOMB, world.locs[dropped.last().x, dropped.last().z, level, 2]?.id)
                 assertTrue(voids.none { Ocellus.onCross(centre, it.x, it.z) }, "none on the cross, its arms and stones")
+                // Where she stands for the cog: beside him, on a tile no bomb's void has taken, whose void would
+                // outlast the debris's (Codex, PR 581).
+                val size = boss.type.size
+                val stand = if (beside !in voids) beside else ((boss.x - 1)..(boss.x + size)).flatMap { x -> ((boss.z - 1)..(boss.z + size)).map { z -> Tile(x, z) } }
+                    .first { (it.x !in boss.x until boss.x + size || it.z !in boss.z until boss.z + size) && it !in voids &&
+                        Ocellus.quadrant(centre, it.x, it.z) == Ocellus.Quadrant.NW && !Ocellus.onCross(centre, it.x, it.z) }
                 // On one, the void hurts her each tick.
                 // One clear of his footprint, so she can stand on it.
                 val onBomb = dropped.first { it.x !in boss.x - 1..boss.x + 3 || it.z !in boss.z - 1..boss.z + 3 }
                 alice.tele(onBomb.x, onBomb.z, level)
                 alice.awaitLine(run, "the void on her") { it.contains("third: void on alice for ") }
-                alice.tele(beside.x, beside.z, level)
+                alice.tele(stand.x, stand.z, level)
                 // Six attacks on, the cog: two strikes in the first quadrant, three ticks apart, and debris where she stood
                 // on the first of them, void five ticks later.
                 val cog = alice.awaitLine(run, "the cog", 30_000) { it.endsWith("third: cog: 2 strikes") }
@@ -807,12 +813,12 @@ class HeadlessOcellusTest {
                 val first = alice.awaitLine(run, "the cog's first strike") { it.contains("third: cog strike 1 hits alice for ") }
                 assertEquals(tickOf(cog) + Ocellus.COG_GAP, tickOf(first))
                 val debris = alice.awaitLine(run, "the debris") { it.contains("third: debris falls on ") }
-                assertTrue(debris.endsWith("${beside.x},${beside.z}"), debris)
+                assertTrue(debris.endsWith("${stand.x},${stand.z}"), debris)
                 alice.awaitLine(run, "the cog's second strike") { it.contains("third: cog strike 2 hits alice for ") }
                 val void = alice.awaitLine(run, "the debris's void") { it.endsWith("third: debris void") }
                 assertEquals(tickOf(debris) + Ocellus.DEBRIS_AFTER, tickOf(void))
-                assertTrue(beside in Ocellus.voids(boss))
-                assertEquals(Ocellus.LOC_DEBRIS, world.locs[beside.x, beside.z, level, 2]?.id)
+                assertTrue(stand in Ocellus.voids(boss))
+                assertEquals(Ocellus.LOC_DEBRIS, world.locs[stand.x, stand.z, level, 2]?.id)
                 // Six more, the void: his line, then three ticks later his void shot; alone, she is his tank, so no vine.
                 alice.keepAlive()
                 val voidLine = alice.awaitLine(run, "the void", 30_000) { it.endsWith("third: the void") }

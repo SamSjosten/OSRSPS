@@ -701,7 +701,7 @@ object Ocellus {
     }
 
     /** Void on a tile: its loc (none on a bomb's outer tiles), the phase tick it crumbles, and its quadrant. */
-    private class VoidPatch(val loc: ZoneLoc?, val until: Long, val quadrant: Quadrant?)
+    private class VoidPatch(var loc: ZoneLoc?, val until: Long, val quadrant: Quadrant?)
 
     private val states = WeakHashMap<Npc, State>()
 
@@ -1531,7 +1531,12 @@ object Ocellus {
         // Never on the cross, whose arms and stepping stones are the fight's locs (Codex, PR 581).
         if (quadrant in state.fallen || !inArena(centre, tile.x, tile.z) || onCross(centre, tile.x, tile.z)) return
         // A bomb's void, there until its quadrant falls, outlasts what lands on it (Codex, PR 581).
-        if ((state.voids[tile]?.until ?: Long.MIN_VALUE) >= until) return
+        val there = state.voids[tile]
+        if (there != null && there.until >= until) {
+            // Still shown: a bomb's centre on an earlier bomb's ring gets its loc (Codex, PR 581).
+            if (locId >= 0 && there.loc == null) there.loc = placeLoc(locId, tile.x, tile.z)
+            return
+        }
         state.voids.remove(tile)?.loc?.let { clearLoc(it) }
         val loc = if (locId >= 0) placeLoc(locId, tile.x, tile.z) else null
         state.voids[tile] = VoidPatch(loc, until, quadrant)
@@ -1591,6 +1596,22 @@ object Ocellus {
         return (INSOLENCE_SLASHES - 1) * INSOLENCE_GAP + 1
     }
 
+    /**
+     * A superior slash's wave from [mid], out past [half] towards ([dx], [dz]): [INSOLENCE_REACH] rows, each
+     * [INSOLENCE_WIDTH] across. A diagonal row's tiles touch only at their corners, so the tiles between it and the
+     * next go with it: no holes in the wave to stand in (Codex, PR 581).
+     */
+    fun slashRows(mid: Tile, half: Int, dx: Int, dz: Int): List<List<Tile>> = (1..INSOLENCE_REACH).map { out ->
+        val at = Tile(mid.x + dx * (half + out), mid.z + dz * (half + out))
+        val row = (-(INSOLENCE_WIDTH / 2)..INSOLENCE_WIDTH / 2).map { across -> Tile(at.x - dz * across, at.z + dx * across) }
+        if (dx == 0 || dz == 0 || out == INSOLENCE_REACH) return@map row
+        // Halfway to the next row along (p), and half a tile either side of the middle across (q), in doubled units.
+        val p = 2 * (half + out) + 1
+        row + (-(INSOLENCE_WIDTH / 2) + 1..INSOLENCE_WIDTH / 2).map { 2 * it - 1 }.map { q ->
+            Tile(mid.x + (dx * p - dz * q) / 2, mid.z + (dz * p + dx * q) / 2)
+        }
+    }
+
     /** One superior slash towards one of the party at random, its wave landing a tick later, then its void. */
     private fun EncounterContext.superiorSlash(run: Int) {
         val centre = centre(boss.spawn.x, boss.spawn.z)
@@ -1600,10 +1621,7 @@ object Ocellus {
         val dx = (target.x - mid.x).sign
         val dz = (target.z - mid.z).sign
         if (dx == 0 && dz == 0) return
-        val rows = (1..INSOLENCE_REACH).map { out ->
-            val at = Tile(mid.x + dx * (half + out), mid.z + dz * (half + out))
-            (-(INSOLENCE_WIDTH / 2)..INSOLENCE_WIDTH / 2).map { across -> Tile(at.x - dz * across, at.z + dx * across) }
-        }
+        val rows = slashRows(mid, half, dx, dz)
         boss.face(target)
         boss.effects.anim(ANIM_SUPERIOR_SLASH)
         for ((row, tiles) in rows.withIndex()) for (tile in tiles) world.zones.mapAnim(tile.x, tile.z, boss.level, SPOT_SUPERIOR_SLASH, delay = INSOLENCE_STEP_CYCLES * row)
