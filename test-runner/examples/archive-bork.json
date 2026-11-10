@@ -128,13 +128,13 @@
   {
    "step": "command",
    "text": "::raid log 40",
-   "expectMessage": "beat hits test for",
-   "comment": "alone, the player is his and the Smorks' volleys have no one to fire at"
+   "expectMessage": "beat hits test",
+   "comment": "the account may be test or test2, so the line is matched up to the name; alone, the player is his and the Smorks' volleys have no one to fire at"
   },
   {
    "step": "command",
    "text": "::raid log 40",
-   "expectMessage": "second beat hits test for",
+   "expectMessage": "second beat hits test",
    "comment": "the gong's second strike 2 ticks after its first, both on the player beside him; neither misses, and under Protect from Melee they do 4 to 7, then 5 to 8, as Sam's recordings have them, none of it dealt under ::god"
   },
   {
@@ -145,7 +145,7 @@
   {
    "step": "command",
    "text": "::raid log 150",
-   "expectMessage": "fight: oil burns test for",
+   "expectMessage": "fight: oil burns test",
    "comment": "the oil under the player, 6 to 7 a tick (nothing with ::god on)"
   },
   {
