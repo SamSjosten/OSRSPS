@@ -26,18 +26,22 @@ object HamHideoutLines : Lines("ham_hideout", "OSRS Wiki, H.A.M. Hideout, Trapdo
  *   open, otherwise shut). Shut: Open says it is locked; Pick-Lock works at 4% at Thieving 1 to 98% at 99, or 24% to
  *   99% with a lockpick in the backpack, gives 3.8 XP (the infobox), and a fail numbs the fingers, Thieving down 1.
  *   Open: Climb-down to the foot of the ladder, Close. The ladder ([LADDER]) climbs back up beside it.
- * - Jimmy the Chisel's cell ([CELL_DOOR]): Open says it is locked; Pick-lock from inside at the trapdoor's rates lets
- *   the player out.
+ * - Jimmy the Chisel's cell ([CELL_DOOR], the Door (H.A.M. Hideout Jail) page): Open says it is locked; Pick-lock from
+ *   inside keeps trying until it works ([cellChance]: 4% to 99% at Thieving 1 to 99 on the first try, or 24% to 118%
+ *   with a lockpick, rising in four equal steps over the tries to 27% to 123%, or 47% to 141%; starting again resets
+ *   it), each fail 0.5 XP, and lets the player out for 3.8 XP.
  * - Pickpocketing H.A.M. members ([osrsps.game.skill.Pickpocketing]): each blow that lands is a concussion ([caught]);
  *   Agility takes some blows instead, which don't count. The third concussion bundles the player out, unless their
  *   H.A.M. clothing keeps them in (each piece 4% less likely to be thrown out); out is the surface by the trapdoor or
  *   Jimmy's cell. Leaving or being thrown out starts the count again.
  *
  * Guessed: the messages but the three the H.A.M. Member page quotes; the chance moving linearly with Thieving between
- * the Wiki's two ends, with none rising on repeated fails (a Jagex moderator's word on the Trapdoor page); the 3 ticks a
- * pick takes; the cell door at the trapdoor's rates and XP, with no numbing; Agility's share of the blows (its level in
+ * the Wiki's two ends, with none rising on repeated fails (a Jagex moderator's word on the Trapdoor page); the cell
+ * door's chances moving linearly with Thieving between the Wiki's ends, its tries taking the trapdoor's 9 ticks, and no
+ * numbing there; Agility's share of the blows (its level in
  * hundredths); the even chance of the surface or the cell; the tiles the player lands on. Left out: the trapdoor's
- * occasional 1 XP on a fail (the Wiki gives no rate), Talk-to on the guards, Johanhus, Jimmy and the seated members
+ * occasional 1 XP on a fail (the Wiki gives no rate). The 9 ticks a trapdoor pick takes are the Wiki's Tick
+ * manipulation page's; its 4-tick manipulated pick is left out, Talk-to on the guards, Johanhus, Jimmy and the seated members
  * (quest talk), the archers and mages (quest-only), Sigmund, the storerooms (step 4b).
  */
 object HamHideout {
@@ -68,7 +72,13 @@ object HamHideout {
     val CLOTHING = listOf(4298, 4300, 4302, 4304, 4306, 4308, 4310)
 
     const val PICK_XP_TENTHS = 38
-    const val PICK_TICKS = 3
+    const val CELL_FAIL_XP_TENTHS = 5
+
+    /** A pick takes 9 ticks (the Wiki's Tick manipulation page, the trapdoor's; the cell door's guessed the same). */
+    const val PICK_TICKS = 9
+
+    /** The cell door's chance rises over this many fails, in equal steps. */
+    const val CELL_STEPS = 4
     const val CONCUSSIONS_OUT = 3
     const val CLOTHING_PERCENT = 4
 
@@ -81,6 +91,18 @@ object HamHideout {
         val (low, high) = if (withLockpick) 24 to 99 else 4 to 98
         val at = (level.coerceIn(1, 99) - 1) / 98.0
         return (low + (high - low) * at).toInt()
+    }
+
+    /**
+     * The cell door's chance in hundredths at Thieving [level] after [fails] failed tries: 4 to 99 first, rising to 27
+     * to 123, or 24 to 118 rising to 47 to 141 [withLockpick]. 100 or more always works.
+     */
+    fun cellChance(level: Int, withLockpick: Boolean, fails: Int): Int {
+        val (first, last) = if (withLockpick) (24 to 118) to (47 to 141) else (4 to 99) to (27 to 123)
+        val at = (level.coerceIn(1, 99) - 1) / 98.0
+        val start = first.first + (first.second - first.first) * at
+        val end = last.first + (last.second - last.first) * at
+        return (start + (end - start) * fails.coerceIn(0, CELL_STEPS) / CELL_STEPS).toInt()
     }
 
     /** The chance in hundredths that a third concussion throws the player out: 4 less for each H.A.M. piece worn. */
@@ -117,31 +139,45 @@ object HamHideout {
         world.teleport(player, x, z, level)
     }
 
+    /** One Pick-Lock try on the trapdoor; a fail numbs the fingers, Thieving down 1. */
     internal suspend fun ScriptContext.pickTrapdoor(world: World) {
         arriveDelay()
         if (trapdoorOpen(player)) return
-        if (pick(world, numbs = true)) setTrapdoor(player, true)
-    }
-
-    internal suspend fun ScriptContext.pickCell(world: World) {
-        arriveDelay()
-        if (!inCell(player)) return world.message(player, HamHideoutLines.CELL_LOCKED)
-        if (pick(world, numbs = false)) world.teleport(player, OUTSIDE_CELL.first, OUTSIDE_CELL.second, OUTSIDE_CELL.third)
-    }
-
-    /** One Pick-lock try: true when it works. A fail [numbs] the fingers, Thieving down 1. */
-    private suspend fun ScriptContext.pick(world: World, numbs: Boolean): Boolean {
         world.message(player, HamHideoutLines.PICK)
         delay(PICK_TICKS)
         val thieving = player.skills.currentLevel(Skill.THIEVING)
-        if (world.random.nextInt(100) < pickChance(thieving, player.inventory.count(LOCKPICK) > 0)) {
-            player.skills.addTenths(Skill.THIEVING, PICK_XP_TENTHS)
-            world.message(player, HamHideoutLines.PICK_DONE)
-            return true
+        if (world.random.nextInt(100) < pickChance(thieving, hasLockpick(player))) {
+            picked(world)
+            setTrapdoor(player, true)
+            return
         }
         world.message(player, HamHideoutLines.PICK_FAIL)
-        if (numbs) player.skills.setCurrentLevel(Skill.THIEVING, (thieving - 1).coerceAtLeast(0))
-        return false
+        player.skills.setCurrentLevel(Skill.THIEVING, (thieving - 1).coerceAtLeast(0))
+    }
+
+    /** Pick-lock on the cell door from inside: tries until it works, each fail raising the next try's chance. */
+    internal suspend fun ScriptContext.pickCell(world: World) {
+        arriveDelay()
+        if (!inCell(player)) return world.message(player, HamHideoutLines.CELL_LOCKED)
+        world.message(player, HamHideoutLines.PICK)
+        var fails = 0
+        while (true) {
+            delay(PICK_TICKS)
+            val chance = cellChance(player.skills.currentLevel(Skill.THIEVING), hasLockpick(player), fails)
+            if (world.random.nextInt(100) < chance) break
+            world.message(player, HamHideoutLines.PICK_FAIL)
+            player.skills.addTenths(Skill.THIEVING, CELL_FAIL_XP_TENTHS)
+            fails++
+        }
+        picked(world)
+        world.teleport(player, OUTSIDE_CELL.first, OUTSIDE_CELL.second, OUTSIDE_CELL.third)
+    }
+
+    private fun hasLockpick(player: Player) = player.inventory.count(LOCKPICK) > 0
+
+    private fun ScriptContext.picked(world: World) {
+        player.skills.addTenths(Skill.THIEVING, PICK_XP_TENTHS)
+        world.message(player, HamHideoutLines.PICK_DONE)
     }
 }
 

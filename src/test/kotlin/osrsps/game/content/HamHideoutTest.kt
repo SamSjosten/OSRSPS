@@ -18,6 +18,15 @@ class HamHideoutTest {
     }
 
     @Test
+    fun `the cell door runs 4 to 99 percent first, or 24 to 118 with a lockpick, rising over four fails`() = with(HamHideout) {
+        assertEquals(listOf(4, 99, 24, 118), listOf(cellChance(1, false, 0), cellChance(99, false, 0), cellChance(1, true, 0), cellChance(99, true, 0)))
+        assertEquals(listOf(27, 123, 47, 141), listOf(cellChance(1, false, 4), cellChance(99, false, 4), cellChance(1, true, 4), cellChance(99, true, 4)))
+        // Equal steps: halfway after two fails, and no higher after a fifth.
+        assertEquals(15, cellChance(1, false, 2))
+        assertEquals(27, cellChance(1, false, 9))
+    }
+
+    @Test
     fun `each H,A,M, piece makes being thrown out 4 percent less likely`() = with(HamHideout) {
         assertEquals(100, ejectChance(0))
         assertEquals(96, ejectChance(1))
@@ -33,6 +42,7 @@ class HamHideoutTest {
         assertEquals(136, SuccessRoll.chance(ham.low, ham.high, 1), "53.1%")
         assertEquals(241, SuccessRoll.chance(ham.low, ham.high, 99), "94.1%")
         assertEquals(1 to 3, ham.damageMin to ham.damage)
+        assertEquals(7, ham.stunTicks, "the Wiki's 4 seconds")
         assertEquals(Pickpocketing.HAM_SLOTS, Pickpocketing.HAM_LOOT.sumOf { it.weight(1) })
         // The coin pouch, 17/102.
         assertEquals(17 * 11, Pickpocketing.HAM_LOOT.single { it.obj == Pickpocketing.HAM_POUCH }.weight(1))

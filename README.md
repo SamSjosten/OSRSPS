@@ -1120,17 +1120,21 @@ Thieving down 1. Picked open (varbit `ham_thief` shows it open), Climb-down take
 and Close shuts it; the ladder climbs back up. Inside, 26 members can be pickpocketed (Thieving 15, 22.2 XP, loot or a
 H.A.M. coin pouch), 11 sit, and 22 guards of levels 12, 18 and 22 fight and drop the Wiki's table. A caught thief
 takes 1 to 3 damage and a concussion, unless Agility takes the blow; the third concussion bundles them out to the
-surface or into Jimmy the Chisel's cell, 4% less likely for each piece of H.A.M. clothing worn. The cell door is
-locked, and picked from inside lets the player out.
+surface or into Jimmy the Chisel's cell, 4% less likely for each piece of H.A.M. clothing worn; a catch stuns for 7
+ticks (the Wiki's 4 seconds). The cell door is locked; one Pick-lock from inside keeps trying, 9 ticks a try, until the
+player is out (4% to 99% at Thieving 1 to 99 on the first try, or 24% to 118% with a lockpick, rising in four equal
+steps to 27% to 123%, or 47% to 141%; each fail 0.5 XP). A trapdoor pick takes 9 ticks.
 
 | The H.A.M. Hideout | Source |
 |--------------------|--------|
 | Spawns: tiles and types (Sigmund, quest-only, left out) | mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022) |
 | The trapdoor's two forms and their options, the ladder, the cell door, ids, varbit 235 | 242 cache |
 | Pick-Lock's rates at 1 and 99, the lockpick's, 3.8 XP, the numbing; no rise on repeated fails | OSRS Wiki, Trapdoor (H.A.M. Hideout), read 2026-11-10 (a Jagex moderator's word for the last) |
-| Members: level 15, 22.2 XP, 1 to 3 damage, the loot and pouch, concussions, the three quoted messages, 4% a clothing piece | OSRS Wiki, H.A.M. Member, read 2026-11-10 |
+| The trapdoor pick's 9 ticks (4-tick manipulation left out) | OSRS Wiki, Tick manipulation, read 2026-11-10 |
+| The cell door's rates at 1 and 99, with and without a lockpick, first and after the rise; four equal steps; a restart resetting it; 3.8 XP, 0.5 a fail; no picking from outside | OSRS Wiki, Door (H.A.M. Hideout Jail), read 2026-11-10 |
+| Members: level 15, 22.2 XP, 1 to 3 damage, the 4-second stun, the loot and pouch, concussions, the three quoted messages, 4% a clothing piece | OSRS Wiki, H.A.M. Member, read 2026-11-10 |
 | Guards: stats, speeds, max hits, defences, drops (one table for the three) | OSRS Wiki, H.A.M. Guard, read 2026-11-10 |
-| Linear chance between the two ends, the 3 ticks a pick takes, the cell door at the trapdoor's rates without numbing, Agility's share of blows (its level in hundredths), the even surface or cell, the tiles, the guards' animations, the other messages | guessed |
+| Linear chances between the Wiki's ends, the cell door's 9 ticks a try and no numbing there, the stun's 7 ticks, Agility's share of blows (its level in hundredths), the even surface or cell, the tiles, the guards' animations, the other messages | guessed |
 | Out: the trapdoor's occasional 1 XP on a fail, the easy clue, Talk-to on guards, seated members, Johanhus and Jimmy, the quest-only archers and mages, the storerooms (step 4b) | out of scope |
 
 ## Draynor Village

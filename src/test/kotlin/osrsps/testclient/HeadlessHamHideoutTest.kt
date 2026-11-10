@@ -188,7 +188,7 @@ class HeadlessHamHideoutTest {
     }
 
     @Test
-    fun `Jimmy's cell door is locked, and picked from inside lets the player out`(@TempDir dir: Path) {
+    fun `Jimmy's cell door is locked, and one Pick-lock from inside keeps trying until the player is out`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { client ->
                 client.await("the login rebuild") { client.position }
@@ -200,12 +200,17 @@ class HeadlessHamHideoutTest {
                 client.awaitSeen("[ham_hideout.cell_locked]", 2)
                 assertEquals(0, client.seen("[ham_hideout.pick]"))
 
+                // Thieving 1, no lockpick: one Pick-lock keeps trying, each fail worth 0.5 XP and raising the chance, until out.
                 client.tele(HamHideout.CELL.first, HamHideout.CELL.second)
-                client.setLevel("thieving", THIEVING, 99)
-                client.command("item ${HamHideout.LOCKPICK} 1")
-                client.pickUntilDone(cellDoor)
-                client.awaitAt(HamHideout.OUTSIDE_CELL.first, HamHideout.OUTSIDE_CELL.second)
-                assertEquals(99, client.stat(THIEVING)!!.level, "no numbing on the cell door")
+                client.setLevel("thieving", THIEVING, 1)
+                val xp = client.stat(THIEVING)!!.xp
+                client.locOp(cellDoor.id, cellDoor.x, cellDoor.z, HamHideout.OP_PICK)
+                client.await("out of the cell", 60_000) { client.position?.takeIf { it == Coord(HamHideout.OUTSIDE_CELL.first, HamHideout.OUTSIDE_CELL.second, 0) } }
+                assertEquals(1, client.seen("[ham_hideout.pick]"), "one Pick-lock")
+                assertEquals(1, client.seen(DONE))
+                val fails = client.seen(FAIL)
+                client.await("3.8 XP and 0.5 a fail") { client.stat(THIEVING)?.takeIf { it.xp >= xp + 3 + fails / 2 } }
+                assertEquals(1, client.stat(THIEVING)!!.level, "no numbing on the cell door")
             }
         }
     }

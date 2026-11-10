@@ -36,8 +36,8 @@ class PocketLoot(val obj: Int, val min: Int, val max: Int, val weight: (farming:
 /**
  * An NPC to pickpocket: [who] for the messages, the level, the XP in tenths, the [low] and [high] of its [SuccessRoll]
  * out of 256, the damage when caught ([damageMin] to [damage]), its [caught] line, and either a coin [pouch] holding
- * [coins] to [coinsMax] each or a [loot] table, which may hold a [lootPouch]. Pickpocket is its [op]; [concussions]
- * hands a catch to the H.A.M. Hideout's count ([HamHideout.caught]).
+ * [coins] to [coinsMax] each or a [loot] table, which may hold a [lootPouch]. Pickpocket is its [op]; a catch stuns for
+ * [stunTicks]; [concussions] hands a catch to the H.A.M. Hideout's count ([HamHideout.caught]).
  */
 class Pocket(
     val npcs: Collection<Int>,
@@ -56,6 +56,7 @@ class Pocket(
     val coinsMax: Int = coins,
     val lootPouch: Int? = null,
     val concussions: Boolean = false,
+    val stunTicks: Int = StatusEffects.PICKPOCKET_TICKS,
 ) {
     /** The coin pouch it gives, from its own pouch or its table. */
     val anyPouch: Int? get() = pouch ?: lootPouch
@@ -83,8 +84,9 @@ class Pocket(
  * pickpocketing NPCs outside Misthalin's builds so far (farmers, other towns' guards and on).
  *
  * H.A.M. members (Misthalin piece 7 step 4a, the Wiki's H.A.M. Member page): level 15, 22.2 XP, 53% at 1 to 94% at 99
- * (135 to 240), 1 to 3 damage, their own table ([HAM_LOOT]) and coin pouch (1 to 21 coins), Pickpocket as their op1;
- * a catch counts toward being thrown out ([HamHideout.caught]) in place of the stunned message (guessed).
+ * (135 to 240), 1 to 3 damage, a 4-second stun ([HAM_STUN_TICKS]), their own table ([HAM_LOOT]) and coin pouch (1 to
+ * 21 coins), Pickpocket as their op1; a catch counts toward being thrown out ([HamHideout.caught]) in place of the
+ * stunned message (guessed).
  */
 class Pickpocketing(private val world: World) {
 
@@ -149,7 +151,7 @@ class Pickpocketing(private val world: World) {
         world.combat.npcCombat[npc.type]?.anims?.attack?.takeIf { it >= 0 }?.let { npc.effects.anim(it) }
         player.message(text[PickpocketLines.FAIL, "who" to pocket.who])
         val damage = world.random.between(pocket.damageMin, pocket.damage)
-        world.statusEffects.stun(player, StatusEffects.PICKPOCKET_TICKS, damage, npc, StatusEffects.THIEVING_SPOTANIM)
+        world.statusEffects.stun(player, pocket.stunTicks, damage, npc, StatusEffects.THIEVING_SPOTANIM)
         if (pocket.concussions) HamHideout.caught(world, player) else player.message(text[PickpocketLines.STUNNED])
         player.nextPickpocketTick = tick + ATTEMPT_TICKS + FAIL_TICKS
     }
@@ -251,6 +253,9 @@ class Pickpocketing(private val world: World) {
 
         /** pickpocket_coin_pouch_ham: 1 to 21 coins each (the Wiki's Coin pouch page). */
         const val HAM_POUCH = 22523
+
+        /** The Wiki's 4-second stun for a H.A.M. member's catch, rounded to whole ticks (6.7 to 7; the rounding guessed). */
+        const val HAM_STUN_TICKS = 7
         val HAM_POUCH_COINS = 1..21
 
         /** One line of the H.A.M. table, out of [HAM_SLOTS]. */
@@ -366,7 +371,7 @@ class Pickpocketing(private val world: World) {
             Pocket(listOf(WARRIOR_WOMAN), "warrior", 25, 260, 100, 240, 2, PickpocketLines.CAUGHT_CITIZEN, WARRIOR_POUCH, COINS_PER_WARRIOR_POUCH),
             Pocket(
                 HAM_MEMBERS, "H.A.M. member", 15, 222, 135, 240, 3, PickpocketLines.CAUGHT_HAM, loot = HAM_LOOT, op = HAM_PICKPOCKET,
-                damageMin = 1, lootPouch = HAM_POUCH, concussions = true,
+                damageMin = 1, lootPouch = HAM_POUCH, concussions = true, stunTicks = HAM_STUN_TICKS,
             ),
         )
 
