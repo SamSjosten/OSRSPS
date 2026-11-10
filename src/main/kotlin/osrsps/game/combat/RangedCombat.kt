@@ -217,7 +217,12 @@ class RangedCombat(
         val ammoType = objTypes[worn.id]
         val ammo = weapons.ammo(ammoType)
         if (ammoType == null || ammo == null || !weapon.fires(ammo)) {
-            message(player, words(player)[if (weapon.kind == AmmoKind.BOLTS) CombatLines.WRONG_BOLTS else CombatLines.WRONG_ARROWS])
+            val line = when (weapon.kind) {
+                AmmoKind.BOLTS -> CombatLines.WRONG_BOLTS
+                AmmoKind.JAVELINS -> CombatLines.WRONG_JAVELINS
+                else -> CombatLines.WRONG_ARROWS
+            }
+            message(player, words(player)[line])
             return false
         }
         val matchup = combat.rangedMatchup(player, npc) ?: return false
@@ -244,7 +249,8 @@ class RangedCombat(
      * A throw: one from the stack in the weapon slot, the numbers taken while it was still there, and nothing to the
      * floor. Chinchompas can't be picked up again, even when they do no damage (OSRS Wiki, Chinchompa (weapon)), and no
      * Ava's device brings them back (Ava's device); darts, knives, thrownaxes and the rest come back to the weapon slot
-     * as arrows do to the quiver.
+     * as arrows do to the quiver, and without one fall under the target as arrows do (a fifth breaking; inferred from
+     * arrows, as the Wiki's Ammunition page treats them alike).
      */
     private fun fireThrown(player: Player, npc: Npc, weapon: RangedWeapon, tick: Long): Boolean {
         val matchup = combat.rangedMatchup(player, npc) ?: return false
@@ -252,8 +258,8 @@ class RangedCombat(
         val poison = PoisonedWeapons.ranged(thrown)
         player.equipment.remove(WearPos.WEAPON, 1)
         val recover = if (weapon.targets > 1) 0 else recovery(player)
-        val back = if (recover > 0) thrown else null
-        release(player, npc, weapon, null, back, matchup, 1, tick, poison = poison, recover = recover, slot = WearPos.WEAPON, floor = false)
+        val back = if (recover > 0 || !weapon.splash) thrown else null
+        release(player, npc, weapon, null, back, matchup, 1, tick, poison = poison, recover = recover, slot = WearPos.WEAPON, floor = !weapon.splash)
         return true
     }
 
