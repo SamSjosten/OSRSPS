@@ -12,13 +12,14 @@
   },
   {
    "step": "command",
-   "text": "::tele 3212 3216 1",
-   "expectMessage": "Teleported to 3212, 3216, 1"
+   "text": "::tele 3213 3215 1",
+   "expectMessage": "Teleported to 3213, 3215, 1",
+   "comment": "south of the drawers: since 242 the red bed covers 3212, 3215 and 3212, 3216"
   },
   {
    "step": "assertLocation",
-   "x": 3212,
-   "y": 3216,
+   "x": 3213,
+   "y": 3215,
    "plane": 1
   },
   {
