@@ -482,8 +482,11 @@ candle lantern, and an unlit torch lights on a fire or range. Dark areas ask `Li
 ### Mining
 
 Mine on a rock mines it with the best pickaxe the player can use (`game/skill/Mining.kt`, words under `mining.*`):
-clay, copper, tin, iron, coal, mithril and adamantite rocks, with the bronze to crystal pickaxes. A mined rock turns into
-an empty rock (`rocks1`/`rocks2`) until it respawns.
+clay, copper, tin, iron, coal, mithril, adamantite and runite rocks, amethyst crystals and gem rocks, with the bronze to
+crystal pickaxes. A mined rock turns into an empty rock (`rocks1`/`rocks2`, amethyst an empty wall) until it respawns.
+Rocks outside Misthalin are where live has them and reached by ::tele: the Mining Guild's runite and amethyst
+(`::tele 3055 9721`, or `::scenario gathering`), Shilo Village's gem rocks (`::tele 2824 3001`), the Lava Maze's runite
+(`::tele 3058 3885`).
 
 | Mining behaviour | Source |
 |------------------|--------|
@@ -493,7 +496,14 @@ an empty rock (`rocks1`/`rocks2`) until it respawns.
 | The mining gem table, 1/256 a roll: a gem (or nothing) in place of ore, no XP, the rock stays | OSRS Wiki, Mining |
 | The click starts the clock and the first roll comes a whole interval later; the swing message and animation | 2004Scape mining script |
 | Which empty rock each rock becomes (rockN to rocksN); swinging on the click's own tick | guessed |
-| Out: the glory's gem chance, mining gloves and other extra-ore items, the prospector kit, gem rocks, essence | out of scope |
+| Runite rocks: 85, 125 XP, pair 1/18 (17/256 at 85, 19/256 from 97), 12 minutes back, 6 in the Mining Guild and the Wilderness | OSRS Wiki, Runite rocks |
+| Amethyst crystals: 92, 240 XP, pair -18/10, 2 to 3 amethysts from one swing before an empty wall (`amethystrock_empty`) for 75 seconds | OSRS Wiki, Amethyst crystals |
+| Gem rocks: 40, 65 XP, pair 28/70 (84/210 with a charged glory), one gem out of 128 (opal 60, jade 30, red topaz 15, sapphire 9, emerald 5, ruby 5, diamond 4), 99 ticks back, no mining gem table | OSRS Wiki, Gem rocks |
+| A charged amulet of glory (any, trimmed or eternal) adds a second 3/256 roll at the mining gem table | OSRS Wiki, mining gem table template |
+| The Mining Guild's members' area: an invisible +7 on the roll (not on the level needed) and every respawn halved | OSRS Wiki, Mining Guild |
+| The members' area's bounds (x 2998-3059, z 9695-9729), drawn around the Wiki's rock tiles; amethyst's 75 seconds not halved again | inferred |
+| How the amethyst count is drawn (evenly, 2 or 3, on the first amethyst, kept until the wall empties); runite and gem rocks' empty rocks (by their shared models) | guessed |
+| Out: mining gloves and other extra-ore items, the prospector kit, unidentified minerals, the guild's doors and level 60, essence (Runecraft), the visible-boost cap at 99 | out of scope |
 
 ### Fishing
 

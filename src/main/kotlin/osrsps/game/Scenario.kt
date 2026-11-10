@@ -197,6 +197,7 @@ class Scenarios(scenarios: Collection<Scenario>) {
         /** The scenario files the server loads. Add a new file's name here. */
         val FILES = listOf(
             "agility",
+            "gathering",
             "lumbridge-artisan",
             "lumbridge-bare",
             "lumbridge-bank-tabs",
