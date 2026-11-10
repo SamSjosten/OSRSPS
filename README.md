@@ -2082,7 +2082,7 @@ RuneLite `test-runner/examples/npc-hidden.json`.
 
 | Encounter behaviour | Source |
 |---------------------|--------|
-| A hidden boss's poison waiting, its timer where it was, till it is shown, and hits already on their way to it when it is hidden doing nothing | guessed |
+| A hidden boss's poison waiting, its timer where it was, till it is shown, and hits already on their way to it when it is hidden doing nothing; its drained stats coming back and its hitpoints regenerating meanwhile, as its other timers go on | guessed |
 | Fights running in the NPC phase, after NPC scripts | guessed, until a recording shows a boss |
 | A phase changing at the start of the tick its threshold or time is reached, before that tick's steps | guessed |
 | A fight's first tick running as it starts (steps with no delay, hazards due at once), paused or not | guessed |

@@ -51,7 +51,8 @@ class NpcDrains(
      * first level comes back a full minute after the drain.
      */
     fun process(npc: Npc) {
-        if (npc.outOfPlay) return
+        // A hidden NPC's stats come back as its other timers go on (Npc.hidden); only a dead one's stop.
+        if (npc.dead) return
         if (npc.drainRestoreTicks < 0) {
             if (npc.drained.any { it > 0 }) npc.drainRestoreTicks = RESTORE_TICKS
             return

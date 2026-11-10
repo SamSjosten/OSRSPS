@@ -123,7 +123,7 @@ class Ducks(
 
     private fun around(npc: Npc, type: Int, range: Int): List<Npc> =
         npcs.near(npc.x, npc.z, npc.level, range)
-            .filter { it !== npc && it.spawn.type.id == type && !it.dead }
+            .filter { it !== npc && it.spawn.type.id == type && !it.outOfPlay }
             .filter { LineOfSight.clear(collision, npc.level, npc.x, npc.z, npc.type.size, it.x, it.z, it.type.size, it.type.size) }
             .sortedWith(compareBy({ maxOf(abs(it.x - npc.x), abs(it.z - npc.z)) }, { it.index }))
 

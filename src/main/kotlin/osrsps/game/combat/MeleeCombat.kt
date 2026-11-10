@@ -1058,7 +1058,8 @@ class MeleeCombat(
     private fun regenerateNpcs() {
         for (npc in npcs.all) {
             val def = combat.npcCombat[npc.type] ?: continue
-            if (npc.outOfPlay) continue
+            // A hidden NPC regenerates as its other timers go on (Npc.hidden); only a dead one doesn't.
+            if (npc.dead) continue
             // Held at 0 (a boss's shield broken, Npc.holdsAtZero): it stays at 0 till its fight moves it on, or a point
             // back on this tick would mend the shield before the fight sees it broken.
             if (npc.holdsAtZero && npc.hitpoints <= 0) continue

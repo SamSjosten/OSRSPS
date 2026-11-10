@@ -82,6 +82,17 @@ class NpcDrainsTest {
     }
 
     @Test
+    fun `a hidden NPC's drained stats come back as ever, and it can't be drained further`() {
+        val npc = npc(ogre)
+        drains.drain(npc, NpcStat.DEFENCE, 2)
+        drains.process(npc)
+        npc.hidden = true
+        assertEquals(0, drains.drain(npc, NpcStat.DEFENCE, 10))
+        repeat(NpcDrains.RESTORE_TICKS) { drains.process(npc) }
+        assertEquals(74, npc.level(NpcStat.DEFENCE), "its timers go on while it is hidden")
+    }
+
+    @Test
     fun `a dead NPC can't be drained`() {
         val npc = npc(ogre)
         npc.dead = true

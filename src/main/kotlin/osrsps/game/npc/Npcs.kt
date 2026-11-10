@@ -311,7 +311,7 @@ class Npcs(
      * has left the world, died, or is out of reach as a player would be. Guessed, as in [chase]: the give-up range.
      */
     private fun trail(npc: Npc, leader: Npc) {
-        if (npcs[leader.index] !== leader || leader.dead || leader.level != npc.level ||
+        if (npcs[leader.index] !== leader || leader.outOfPlay || leader.level != npc.level ||
             abs(leader.x - npc.x) > FOLLOW_RANGE || abs(leader.z - npc.z) > FOLLOW_RANGE
         ) {
             stopFollowingNpc(npc)
