@@ -17,7 +17,7 @@ data class Stance(
 /**
  * What the wielded weapon decides: its combat tab (weapon category) and its stance.
  *
- * Verified in the 241 cache: the weapon categories 0 to 32 and their attack styles are rows of dbtable 78
+ * Verified in the 241 cache: the weapon categories 0 to 37 and their attack styles are rows of dbtable 78
  * (combat_interface_weapon_category), which the combat tab reads through varbit 357 (combat_weapon_category); every
  * animation id below has the gameval name in its comment.
  *
@@ -53,11 +53,17 @@ object Weapons {
     const val BULWARK = 28
     const val PARTISAN = 30
 
+    /** The Obligator's (dbtable 78 row combat_interface_extending_chainmace): Thrust, Thrust and Smash, all crush. */
+    const val EXTENDING_CHAINMACE = 36
+
+    /** Zorya's tome's (combat_interface_book_selfpowering): Accurate, Accurate and Longrange, as a powered staff's. */
+    const val POWERED_BOOK = 37
+
     /**
      * The categories whose dbtable 78 row has buttons 0, 1 and 3. Besides the named ones: 13 polestaff, 21 and 22
      * bladed staves, 29 self-powering wands, 26 chargespear, 32 egg.
      */
-    private val THREE_STYLE = setOf(UNARMED, BLUNT, BLUNT_BLUDGEON, BOW, CROSSBOW, GRENADE, POLEARM, 13, 26, STAFF, 21, 22, THROWN, WHIP, POWERED_STAFF, 29, 32)
+    private val THREE_STYLE = setOf(UNARMED, BLUNT, BLUNT_BLUDGEON, BOW, CROSSBOW, GRENADE, POLEARM, 13, 26, STAFF, 21, 22, THROWN, WHIP, POWERED_STAFF, 29, 32, POWERED_BOOK)
 
     /**
      * The attack style buttons [category] has, from dbtable 78's button column. Varp 43 (com_mode) holds the one the
@@ -65,7 +71,7 @@ object Weapons {
      */
     fun styleButtons(category: Int): List<Int> = when (category) {
         8 -> listOf(0, 1)
-        FLAMER, 31 -> listOf(0, 1, 2)
+        FLAMER, 31, EXTENDING_CHAINMACE -> listOf(0, 1, 2)
         BULWARK -> listOf(0, 3)
         in THREE_STYLE -> listOf(0, 1, 3)
         else -> listOf(0, 1, 2, 3)
@@ -97,21 +103,37 @@ object Weapons {
         1014 to BULWARK,
         1193 to SCYTHE,
         1588 to PARTISAN,
+        2543 to EXTENDING_CHAINMACE, // the Obligator, charged and not
+        2544 to POWERED_BOOK, // Zorya's tome, charged and not
     )
 
     /**
      * What the combat tab shows after "Category:", by weapon category. The words are the OSRS Wiki's weapon type names
-     * (Weapons/Types, read 2026-10-28), matched to the categories by their dbtable 78 row names. Guessed: 22 (spellblade
+     * (Weapons/Types, read 2026-10-28; 36 and 37 read 2026-11-10), matched to the categories by their dbtable 78 row names. Guessed: 22 (spellblade
      * staff), 26 (chargespear), 29 (self-powering wand) and 33 (sailing cannon), which the Wiki doesn't name apart.
      */
     private val CATEGORY_NAMES = listOf(
         "Unarmed", "Axe", "Blunt", "Bow", "Claw", "Crossbow", "Salamander", "Chinchompa", "Gun", "Slash sword",
         "2h sword", "Pickaxe", "Polearm", "Polestaff", "Scythe", "Spear", "Spiked", "Stab sword", "Staff", "Thrown",
         "Whip", "Bladed staff", "Bladed staff", "2h sword", "Powered Staff", "Banner", "Polearm", "Bludgeon", "Bulwark",
-        "Powered Staff", "Partisan", "Multi-style", "Egg", "Blaster", "Multi-melee", "Flail",
+        "Powered Staff", "Partisan", "Multi-style", "Egg", "Blaster", "Multi-melee", "Flail", "Extending Chain Mace", "Powered Book",
     )
 
     fun categoryName(category: Int): String = CATEGORY_NAMES.getOrElse(category) { CATEGORY_NAMES[UNARMED] }
+
+    /**
+     * Ticks between attacks with style [button] of [category], the weapon's own [speed] aside from one: the Obligator's
+     * Smash (button 2) attacks every 3 ticks (OSRS Wiki, Obligator: "5 ticks (3.0s) for Thrust; 3 ticks (1.8s) for
+     * Smash").
+     */
+    fun styleSpeed(category: Int, button: Int, speed: Int): Int =
+        if (category == EXTENDING_CHAINMACE && button == SMASH_BUTTON) SMASH_SPEED else speed
+
+    private const val SMASH_BUTTON = 2
+    private const val SMASH_SPEED = 3
+
+    /** Whether weapons of [category] cast a built-in spell of their own ([osrsps.game.combat.PoweredStaves]). */
+    fun selfPowered(category: Int): Boolean = category == POWERED_STAFF || category == POWERED_BOOK
 
     fun category(weapon: ObjType?): Int {
         if (weapon == null) return UNARMED
@@ -158,6 +180,16 @@ object Weapons {
     /** toa_sot_ready with the staff turn and walks; guessed: the stand from its name, the rest from the staves'. */
     val TUMEKENS_SHADOW_STANCE = Stance(9494, 1209, 1205, 1206, 1207, 1208, 1210)
 
+    /**
+     * The Fractured Archive's uniques (241 cache: tfa_human_obligator_ready, _walk_f, _walk_b and _run_f;
+     * tfa_human_ascension_crossbow_ready, _walk_f and _run; tfa_human_zorya_tome_ready, _walk_f, _walk_b and _run).
+     * Guessed: the human turn and side steps, which the cache has none of their own for, and the crossbows' forward
+     * walk for walking back. Not in: the cache's female versions of the Obligator's and the tome's.
+     */
+    val OBLIGATOR_STANCE = Stance(15118, 823, 15119, 15120, 821, 822, 15121)
+    val ASCENSION_CROSSBOWS_STANCE = Stance(15110, 823, 15111, 15111, 821, 822, 15112)
+    val ZORYAS_TOME_STANCE = Stance(15135, 823, 15136, 15137, 821, 822, 15138)
+
     /** human_chinchompa_ready, _walk and _run. */
     val CHINCHOMPA_STANCE = Stance(3175, 823, 3177, 3177, 3177, 3177, 3178)
 
@@ -178,7 +210,9 @@ object Weapons {
                 HEAVYSWORD -> TWO_HANDED_STANCE
                 WHIP -> WHIP_STANCE
                 BULWARK -> BULWARK_STANCE
-                CROSSBOW -> CROSSBOW_STANCE
+                CROSSBOW -> if (name.startsWith("ascension_crossbows")) ASCENSION_CROSSBOWS_STANCE else CROSSBOW_STANCE
+                EXTENDING_CHAINMACE -> OBLIGATOR_STANCE
+                POWERED_BOOK -> ZORYAS_TOME_STANCE
                 GRENADE -> CHINCHOMPA_STANCE
                 BANNER -> BANNER_STANCE
                 else -> HUMAN

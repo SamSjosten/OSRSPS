@@ -218,7 +218,7 @@ class RangedCombat(
         val ammo = weapons.ammo(ammoType)
         if (ammoType == null || ammo == null || !weapon.fires(ammo)) {
             val line = when (weapon.kind) {
-                AmmoKind.BOLTS -> CombatLines.WRONG_BOLTS
+                AmmoKind.BOLTS, AmmoKind.ASCENSION_BOLTS -> CombatLines.WRONG_BOLTS
                 AmmoKind.JAVELINS -> CombatLines.WRONG_JAVELINS
                 else -> CombatLines.WRONG_ARROWS
             }
