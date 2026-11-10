@@ -21,7 +21,7 @@
   {"step": "assertInventory", "item": "Dragon boots", "count": 3},
   {"step": "npcOption", "npc": "Grave", "option": "Loot"},
   {"step": "assertInterface", "interfaceId": 672, "timeoutMs": 10000},
-  {"step": "assertVarbit", "id": 10472, "value": 1, "comment": "gravestone_feethreshold_under100k: the paid list is the first slot, the boots"},
+  {"step": "assertVarbit", "id": 10472, "value": 2, "comment": "where the free list starts, plus one: the paid list is the first slot, the boots"},
   {"step": "clickWidget", "interfaceId": 672, "component": 15, "comment": "Unlock: 1,000, an Ironman's half, the raid's quarter of that"},
   {"step": "assertMessage", "contains": "[combat.grave_cant_pay fee=125]", "timeoutMs": 10000, "comment": "nothing in the bank"},
   {"step": "command", "text": "::item coins 125", "expectMessage": "Added 125 x Coins"},

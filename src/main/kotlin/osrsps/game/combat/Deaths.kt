@@ -138,6 +138,17 @@ class Deaths(
     private val drop: (Player, ObjType, Int) -> Unit = { _, _, _ -> },
     /** Sets a varp and sends it ahead of the queue, as [setVarbitNow] does a varbit. */
     private val setVarpNow: (Player, Int, Int) -> Unit = { player, varp, value -> if (varp < player.vars.types.varpCount) player.vars[varp] = value },
+    /**
+     * Takes a count of an item out of the player's bank, as a fee, keeping its tabs right ([osrsps.game.bank.Bank.take]):
+     * with only the slots emptied, a tab whose last item the coins were stayed counted (Codex, PR 614).
+     */
+    private val takeFromBank: (Player, Int, Int) -> Unit = { player, id, count ->
+        var left = count
+        for ((slot, obj) in player.bank.contents()) {
+            if (left == 0) break
+            if (obj.id == id) left -= player.bank.remove(slot, minOf(left, obj.count))
+        }
+    },
 ) {
     private val graves = LinkedHashMap<Npc, Grave>()
 
@@ -507,11 +518,7 @@ class Deaths(
             message(player, words(player)[CombatLines.GRAVE_CANT_PAY, "fee" to String.format(java.util.Locale.ROOT, "%,d", fee)])
             return
         }
-        var left = fee
-        for ((slot, obj) in player.bank.contents()) {
-            if (left == 0L) break
-            if (obj.id == COINS) left -= player.bank.remove(slot, minOf(left, obj.count.toLong()).toInt())
-        }
+        takeFromBank(player, COINS, fee.toInt())
         grave.paid = true
         message(player, words(player)[CombatLines.GRAVE_PAID, "fee" to String.format(java.util.Locale.ROOT, "%,d", fee)])
         sendGrave(player, grave)

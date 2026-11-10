@@ -276,6 +276,16 @@ class DeathsTest {
         val godsword = ObjType(20_001, "Godsword", cost = 20_000_000)
         val dagger = ObjType(20_002, "Dragon dagger", cost = 150_000)
         val types = ObjTypes.of(coins, bones, crown, godsword, dagger)
+        // The bank's first tab, as its varbits keep it: the coins the fee is paid from are its only item.
+        val tabs = object : osrsps.game.bank.BankTabs {
+            val sizes = IntArray(osrsps.game.bank.Bank.TABS + 1)
+            override fun get(tab: Int) = sizes[tab]
+            override fun set(tab: Int, size: Int) {
+                sizes[tab] = size
+            }
+            override var current = 1
+        }
+        val bank = osrsps.game.bank.Bank(types)
         val fees = Deaths(
             types, graveType, { tick }, { online.asSequence() }, { key -> online.firstOrNull { it.saveKey == key } },
             spawnNpc = { npcs.add(it) }, removeNpc = { npcs.remove(it); removed += it },
@@ -283,6 +293,7 @@ class DeathsTest {
             openModal = { player, id -> player.modals[FrameSlot.MAINMODAL] = id }, closeModals = { it.modals.clear() },
             setVarbitNow = { player, id, value -> varbits += Triple(player, id, value) },
             send = { player, message -> sent += player to message }, message = { player, text -> messages += player to text },
+            takeFromBank = { player, id, count -> bank.take(player.bank, tabs, id, count) },
         )
         val feeHandlers = Handlers()
         fees.register(feeHandlers)
@@ -318,13 +329,16 @@ class DeathsTest {
         assertEquals(1L, alice.inventory.count(bones.id))
 
         alice.bank.add(coins, 50_000)
+        tabs[1] = 1
         press(Deaths.PAYBUTTON)
         assertEquals(alice to "[combat.grave_cant_pay fee=101,000]", messages.last())
         assertEquals(50_000L, alice.bank.count(coins.id))
-        alice.bank.add(coins, 150_000)
+        alice.bank.add(coins, 51_000)
         press(Deaths.PAYBUTTON)
         assertEquals(alice to "[combat.grave_paid fee=101,000]", messages.last())
-        assertEquals(99_000L, alice.bank.count(coins.id))
+        // Every coin taken, through the bank's own take: the tab they were the last of is gone too (Codex, PR 614).
+        assertTrue(alice.bank.isEmpty())
+        assertEquals(0, tabs[1])
         assertEquals(0L, fees.fee(alice, grave))
         assertEquals(listOf<Any>(0, 0), sent.map { it.second }.filterIsInstance<RunClientScript>().last().values.toList())
 

@@ -589,6 +589,7 @@ class World(
                 interfaces.sendVarpNow(player, varp)
             }
         },
+        takeFromBank = { player, id, count -> bank.take(player.bank, bankScreen.tabs(player), id, count) },
     )
 
     /**
