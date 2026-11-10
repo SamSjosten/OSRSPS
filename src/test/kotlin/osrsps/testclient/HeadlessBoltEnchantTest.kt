@@ -133,7 +133,7 @@ class HeadlessBoltEnchantTest {
 
     @Test
     fun `two casts sent in one tick enchant once`(@TempDir dir: Path) {
-        // Long ticks, so the four packets all land in one.
+        // Long ticks, and the four packets sent just after one begins, checked to have gone before the next.
         server(dir, cycleMillis = 1500).use { server ->
             server.login("dave").use { client ->
                 client.ready(4)
@@ -141,13 +141,17 @@ class HeadlessBoltEnchantTest {
                 client.give(OPAL, 30)
                 client.give(COSMIC, 5)
                 client.give(TeleportObjs.AIR, 10)
+                val before = server.world.tick
+                client.await("a new tick") { if (server.world.tick > before) Unit else null }
+                val sent = server.world.tick
                 client.cast()
                 client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 1)
                 client.cast()
                 client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 1)
+                assertEquals(sent, server.world.tick, "all four sent within one tick")
                 client.await("10 enchanted") { if (client.count(OPAL_E) >= 10) Unit else null }
-                client.await("two more ticks") { client.position }
-                Thread.sleep(3_500)
+                // Two ticks more: a second cast, had one been let through or queued, would show by then.
+                client.await("two ticks on", 10_000) { if (server.world.tick >= sent + 3) Unit else null }
                 assertEquals(10, client.count(OPAL_E), "one cast, not two")
                 assertEquals(4, client.count(COSMIC))
                 assertEquals(9, client.magicXp() - start)
