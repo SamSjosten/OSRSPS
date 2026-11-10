@@ -1,5 +1,5 @@
 {
- "name": "Raid step 16c: the Archive Guardian's inert guardians (four round it, three awake under its shield; one beaten to 0 charges, taking 40% off the shield), with ::raid outside the raid",
+ "name": "Raid step 16c: the Archive Guardian's inert guardians (four round it, three awake under its shield; one beaten to 0 charges, taking 40% off the shield; one behind a beam's target is spent by the beam, its charge taking 40% off the shield 4 ticks later), with ::raid outside the raid",
  "account": "test",
  "steps": [
   {
@@ -61,6 +61,66 @@
    "text": "::raid stop",
    "expectMessage": "Stopped guardian.",
    "comment": "the inert guardians go with the fight"
+  },
+  {
+   "step": "command",
+   "text": "::god on",
+   "expectMessage": "You can't be hurt now",
+   "comment": "its shots under the beams' shield; ::god off at the end"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3222 3218 0",
+   "expectMessage": "Teleported to 3222, 3218, 0"
+  },
+  {
+   "step": "command",
+   "text": "::raid guardian phase=beams",
+   "expectMessage": "Started guardian",
+   "comment": "the shield it lifts off behind once its hitpoints are under 30%, with its beams: 550 of shield again"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3228 3221 0",
+   "expectMessage": "Teleported to 3228, 3221, 0",
+   "comment": "from its middle, 3224,3220, through this tile its beam runs on over 3232,3222: the north-east inert guardian stands behind the player"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 22,
+   "comment": "its first beam, 20 ticks after the shield went up"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 30",
+   "expectMessage": "beams: beam spends the inert guardian at 3232,3221",
+   "comment": "the inert guardian takes the beam (a 400 on it, Sam's recordings) and goes dark"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4,
+   "comment": "its charge reaches the Guardian 4 ticks after the beam"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 30",
+   "expectMessage": "charge: shield takes 220",
+   "comment": "40% of the shield's 550 again (Sam's recordings: 504 of 1,260 and 412 of 1,030)"
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "Archive Guardian 330/550 hp"
+  },
+  {
+   "step": "command",
+   "text": "::raid stop",
+   "expectMessage": "Stopped guardian."
+  },
+  {
+   "step": "command",
+   "text": "::god off",
+   "expectMessage": "You can be hurt again."
   },
   {
    "step": "command",
