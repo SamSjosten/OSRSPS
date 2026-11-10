@@ -125,6 +125,10 @@ class MagicCombat(
             logger.info { "${player.username} cast ${spell.name} on $npc, which can't be fought" }
             return
         }
+        if (combat.slayerGated(player, npc)) {
+            message(player, words(player)[CombatLines.SLAYER_LEVEL])
+            return
+        }
         if (melee.underAttackByAnother(player, npc)) {
             message(player, words(player)[CombatLines.ALREADY_UNDER_ATTACK])
             return
@@ -185,6 +189,12 @@ class MagicCombat(
     internal fun tryInteract(player: Player, interaction: MagicInteraction): Boolean {
         val npc = interaction.npc
         if (npcs[npc.index] !== npc || npc.level != player.level || npc.dead) {
+            stopFacing(player)
+            return true
+        }
+        // Checked at every attack, not just the first: a boosted Slayer level can drop back mid-fight.
+        if (combat.slayerGated(player, npc)) {
+            message(player, words(player)[CombatLines.SLAYER_LEVEL])
             stopFacing(player)
             return true
         }
@@ -288,6 +298,7 @@ class MagicCombat(
         player.skills.addTenths(Skill.MAGIC, if (hit) spell.xpTenths else spell.splashXpTenths)
         if (spell.area && multi.at(npc.level, npc.x, npc.z)) {
             for (other in around(npc)) {
+                if (combat.slayerGated(player, other)) continue
                 val otherMatchup = combat.magicMatchup(player, other, spell) ?: continue
                 roll(player, other, spell, otherMatchup, landTick, defensive)
             }

@@ -2,6 +2,7 @@ package osrsps.game.skill
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class FishingTest {
     /** The chance a roll of [method] at [level] catches [fish]: the better fish it can catch are tried first. */
@@ -43,6 +44,24 @@ class FishingTest {
             }
         }
         assertEquals(listOf(1, 5, 20, 25), listOf(Fishing.SMALL_NET, Fishing.SEA_BAIT, Fishing.LURE, Fishing.RIVER_BAIT).map { it.level })
+    }
+
+    @Test
+    fun `the swamp caves' spots net frog spawn and swamp weed from 33 and bait cave eels from 38, slimy eels below`() {
+        for (spot in listOf(Fishing.SWAMP_CAVES_WEST_SPOT, Fishing.SWAMP_CAVES_EAST_SPOT)) {
+            assertEquals(listOf(Fishing.CAVE_NET, Fishing.CAVE_BAIT), Fishing.SPOTS.single { it.npc == spot }.methods)
+        }
+        assertEquals(listOf(33, 28), listOf(Fishing.CAVE_NET, Fishing.CAVE_BAIT).map { it.level })
+        assertEquals(listOf(5004, 10978), Fishing.CAVE_NET.fish.map { it.obj })
+        assertEquals(listOf(750, 10), Fishing.CAVE_NET.fish.map { it.xpTenths })
+        assertEquals(listOf(5001, 3379), Fishing.CAVE_BAIT.fish.map { it.obj })
+        assertEquals(listOf(800, 650), Fishing.CAVE_BAIT.fish.map { it.xpTenths })
+        // The Wiki's charts: frog spawn 16/96 and swamp weed a flat 10/256; both eels 10/80, the cave eel tried first.
+        assertEquals(SuccessRoll.chance(16, 96, 33) / 256.0, chance(Fishing.CAVE_NET, Fishing.FROG_SPAWN, 33), 1e-9)
+        assertEquals((1 - SuccessRoll.chance(16, 96, 50) / 256.0) * SuccessRoll.chance(10, 10, 50) / 256.0, chance(Fishing.CAVE_NET, Fishing.SWAMP_WEED, 50), 1e-9)
+        assertEquals((1 - SuccessRoll.chance(10, 80, 38) / 256.0) * SuccessRoll.chance(10, 80, 38) / 256.0, chance(Fishing.CAVE_BAIT, Fishing.SLIMY_EEL, 38), 1e-9)
+        // No area: they stay put.
+        assertTrue(Fishing.AREAS.flatten().none { it == osrsps.map.Tile(3154, 9544) || it == osrsps.map.Tile(3245, 9570) })
     }
 
     @Test

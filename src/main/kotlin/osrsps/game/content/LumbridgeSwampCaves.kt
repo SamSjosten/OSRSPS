@@ -85,6 +85,12 @@ object LumbridgeSwampCaves {
 
     fun nearRope(x: Int, z: Int) = maxOf(abs(x - ROPE_X), abs(z - ROPE_Z)) <= ESCAPE_RANGE
 
+    /**
+     * The flaring item as the flare message names it: the lit item's name in lower case without its "Lit " (the cache's
+     * "Lit candle" flares as "candle", as the Wiki's "Your [light source] flares brightly!" reads).
+     */
+    fun flareName(litName: String) = litName.lowercase().removePrefix("lit ")
+
     /** The gas's damage: a quarter of the Hitpoints level, at least 1. */
     fun gasDamage(hitpointsLevel: Int) = (hitpointsLevel / 4).coerceAtLeast(1)
 
@@ -175,7 +181,7 @@ class SwampCavesHazards(private val world: World) {
             return
         }
         if (state.gasTicks == 0) {
-            val name = world.objTypes[flames.first().lit]?.name?.lowercase() ?: flames.first().name
+            val name = flareName(world.objTypes[flames.first().lit]?.name ?: flames.first().name)
             player.tell(SwampCavesLines.GAS_FLARE, "item" to name)
         }
         // The flare's own tick is 1, so the explosion comes on the 8th: GAS_TICKS ticks after the flare.

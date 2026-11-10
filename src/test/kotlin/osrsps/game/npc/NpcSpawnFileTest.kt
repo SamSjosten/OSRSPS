@@ -6,6 +6,7 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
+import osrsps.game.content.LumbridgeSwampCaves
 import osrsps.game.skill.Fishing
 import osrsps.map.Tile
 
@@ -187,6 +188,25 @@ class NpcSpawnFileTest {
         val spawns = result.spawns
         assertEquals(listOf(11, 8, 7), listOf(spawns.count { it.type.id in 3029..3035 }, spawns.count { it.type.id == 3017 }, spawns.count { it.type.id == 3019 }))
         assertTrue(spawns.all { it.x in 3141..3170 && it.z in 3222..3261 && it.level == 0 && it.wander == 5 && it.source.isNotBlank() })
+    }
+
+    @Test
+    fun `the swamp caves have the Wiki's counts of their monsters, all on dark tiles, and the two fishing spots`() {
+        val names = mapOf(
+            481 to "swamp_cave_bug", 482 to "cave_littlebug", 480 to "swamp_cave_slime", 406 to "slayer_cave_crawler_1", 407 to "slayer_cave_crawler_2",
+            408 to "slayer_cave_crawler_3", 409 to "slayer_cave_crawler_4", 478 to "medium_frog", 477 to "giant_frog", 6434 to "cave_goblin",
+            6435 to "cave_goblin2", 6436 to "cave_goblin3", 6437 to "cave_goblin4", 1497 to "0_49_149_cavefish", 1498 to "0_50_149_cavefish",
+        )
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("lumbridge-swamp-caves.json"), types, "lumbridge-swamp-caves.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        fun count(vararg ids: Int) = spawns.count { it.type.id in ids }
+        // OSRS Wiki, Lumbridge Swamp Caves: 21 bugs, 36 larvae, 17 slimes, 3 crawlers, 11 big frogs, 3 giant frogs, 4 cave goblins.
+        assertEquals(listOf(21, 36, 17, 3, 11, 3, 4), listOf(count(481), count(482), count(480), count(406, 407, 408, 409), count(478), count(477), count(6434, 6435, 6436, 6437)))
+        val monsters = spawns.filter { it.type.id !in setOf(1497, 1498) }
+        assertTrue(monsters.all { LumbridgeSwampCaves.isDark(it.x, it.z, it.level) && it.wander == 5 && it.source.isNotBlank() })
+        assertEquals(setOf(Tile(3154, 9544), Tile(3245, 9570)), spawns.filter { it.type.id in setOf(1497, 1498) }.map { Tile(it.x, it.z) }.toSet())
     }
 
     @Test

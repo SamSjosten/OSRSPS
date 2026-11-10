@@ -203,6 +203,7 @@ object DialogueLines {
         LumbridgeGuideLines,
         LumbridgeSwampLines,
         SwampCavesLines,
+        CaveGoblinLines,
         MageOfZamorakLines,
         MakeLines,
         ManLines,

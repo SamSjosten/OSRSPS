@@ -14,7 +14,8 @@ object DropTestItems {
     /** Stackable in the cache: coins, runes, bolts, arrows, javelins and seeds. */
     private val stackable = setOf(995, 554, 555, 556, 557, 558, 559, 561, 562, 563, 564, 565, 825, 830, 877, 882, 884, 886, 888, 9140, 5318, 5319, 5320, 5321, 5322, 5323, 5324, 22879)
 
-    fun objTypes(): ObjTypes {
+    /** Every item the drop file names, plus [extra] (which win over a drop's stand-in of the same id). */
+    fun objTypes(extra: List<ObjType> = emptyList()): ObjTypes {
         val text = NpcDrops::class.java.getResource(NpcDrops.RESOURCE)!!.readText()
         val root = Json.parseToJsonElement(text).jsonObject
         val items = HashMap<Int, ObjType>()
@@ -31,6 +32,7 @@ object DropTestItems {
             }
         }
         collect(root)
+        for (type in extra) items[type.id] = type
         return ObjTypes.of(*items.values.toTypedArray())
     }
 }

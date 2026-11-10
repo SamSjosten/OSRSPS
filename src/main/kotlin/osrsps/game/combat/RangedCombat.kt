@@ -146,6 +146,12 @@ class RangedCombat(
             stopFacing(player)
             return true
         }
+        // Checked at every attack, not just the first: a boosted Slayer level can drop back mid-fight.
+        if (combat.slayerGated(player, npc)) {
+            message(player, words(player)[CombatLines.SLAYER_LEVEL])
+            stopFacing(player)
+            return true
+        }
         val weapon = weapon(player)
         val style = combat.style(player)
         if (weapon == null || style.type != AttackType.RANGED) {
@@ -321,7 +327,7 @@ class RangedCombat(
         val size = from.type.size
         val targets = npcs.all.filter { npc ->
             npc !== from && !npc.dead && npc.level == from.level && combat.npcCombat[npc.type] != null &&
-                multi.at(npc.level, npc.x, npc.z) &&
+                multi.at(npc.level, npc.x, npc.z) && !combat.slayerGated(shot.player, npc) &&
                 LineOfSight.distance(from.x, from.z, size, npc.x, npc.z, npc.type.size, npc.type.size) <= BOUNCE_RANGE
         }.toList()
         if (targets.isEmpty()) return null
@@ -351,7 +357,7 @@ class RangedCombat(
         val style = shot.style ?: return
         val around = npcs.all.filter { npc ->
             npc !== from && !npc.dead && npc.level == from.level && combat.npcCombat[npc.type] != null &&
-                abs(npc.x - from.x) <= SPLASH_RADIUS && abs(npc.z - from.z) <= SPLASH_RADIUS && multi.at(npc.level, npc.x, npc.z)
+                !combat.slayerGated(shot.player, npc) && abs(npc.x - from.x) <= SPLASH_RADIUS && abs(npc.z - from.z) <= SPLASH_RADIUS && multi.at(npc.level, npc.x, npc.z)
         }.take(shot.targets - 1).toList()
         for (npc in around) {
             val rolled = if (shot.hit) CombatMath.rollDamage(random, shot.maxHit) else 0
