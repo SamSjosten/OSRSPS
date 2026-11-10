@@ -74,6 +74,8 @@ class NpcCombatTest {
             "npc_ezekiel_melee01" to 14685, "npc_ezekiel_death01" to 14689,
             "npc_bork_gong_melee01" to 14542, "npc_bork_death01" to 14541, "npc_smork_cannon_attack01" to 14554,
             "npc_ocellus_phase1_basic_projectile_start" to 14806,
+            "npc_ocellus_phase3_melee_basic" to 14842,
+            "npc_ocellus_phase3_death" to 14872,
             "dreadnoth_melee01" to 14779, "dreadnoth_death01" to 14782, "jelly_attack" to 1586, "jelly_death" to 1587,
             "xarth_attack_magic_01" to 14984, "xarth_death_01" to 14995, "xarth_corpse_death_01" to 15003,
             "demon_attack" to 64, "demon_block" to 65, "demon_death" to 67,
@@ -611,6 +613,18 @@ class NpcCombatTest {
         assertEquals(AttackType.RANGED, him.attackType)
         assertEquals(listOf(150, 150), listOf(him.attackBonus, him.magicAttack))
         assertEquals(listOf(150, 95, 60, 100), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { him.defence.against(it) })
+        assertEquals(mapOf(NpcStat.DEFENCE to 60), him.drainCaps)
+        assertTrue(him.poisonImmune && him.venomImmune)
+    }
+
+    @Test
+    fun `Ocellus's third phase fights as the Wiki has it, speed 3 and melee max 30`() {
+        val ocellus = NpcType(16677, "Ocellus", size = 3, internalName = "tfa_ocellus_p3", stats = NpcStats(attack = 325, defence = 250, strength = 250, hitpoints = 5250, ranged = 300, magic = 300))
+        val him = NpcCombat.load(NpcTypes.of(ocellus), seqs)[ocellus]!!
+        assertEquals(listOf(3, 30), listOf(him.attackSpeed, him.maxHit))
+        assertEquals(AttackType.SLASH, him.attackType)
+        assertEquals(NpcCombatAnims(14842, -1, 14872), him.anims)
+        assertEquals(listOf(350, 100, 30, 200), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { him.defence.against(it) })
         assertEquals(mapOf(NpcStat.DEFENCE to 60), him.drainCaps)
         assertTrue(him.poisonImmune && him.venomImmune)
     }
