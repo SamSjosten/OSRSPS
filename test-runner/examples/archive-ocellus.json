@@ -444,6 +444,61 @@
   },
   {
    "step": "command",
+   "text": "::setlevel prayer 99",
+   "expectMessage": "Prayer set to level 99"
+  },
+  {
+   "step": "command",
+   "text": "::boost prayer 1",
+   "expectMessage": "Prayer is now 1/99",
+   "comment": "the censers (step 26d): Saradomin's, in the south-east still standing, lit for its 40 prayer back"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp 4138 5661",
+   "expectMessage": "To ",
+   "comment": "beside the south-east censer, on the quadrant's outer corner (guessed)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::locs 1",
+   "expectMessage": "62699 ",
+   "comment": "the censer beside the player, as the server has it"
+  },
+  {
+   "step": "locOption",
+   "locId": 62699,
+   "option": "Interact",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "lights the saradomin censer"
+  },
+  {
+   "step": "command",
+   "text": "::stats",
+   "expectMessage": "Prayer 41/",
+   "comment": "40 prayer points back"
+  },
+  {
+   "step": "locOption",
+   "locId": 62700,
+   "option": "Examine",
+   "timeoutMs": 10000,
+   "comment": "its inactive form in its place, with no Interact"
+  },
+  {
+   "step": "command",
    "text": "::hit 1300 tfa_ocellus_p3",
    "expectMessage": "Hit Ocellus",
    "comment": "to 50%"
