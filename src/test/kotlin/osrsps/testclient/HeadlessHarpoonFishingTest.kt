@@ -227,6 +227,30 @@ class HeadlessHarpoonFishingTest {
         }
     }
 
+    @Test
+    fun `the range cooks the big net's mackerel, cod and bass`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("tele $CAGE_X ${CAGE_Z + 1}")
+                client.await("the teleport") { client.position?.takeIf { it.x == CAGE_X && it.z == CAGE_Z + 1 } }
+                // At 99 none of them burn on a range: mackerel stop at 45, cod at 49, bass at 79.
+                client.level("cooking", COOKING, 99)
+                for ((food, xp) in listOf(Cooking.MACKEREL to 60, Cooking.COD to 75, Cooking.BASS to 130)) {
+                    client.give(food.raw)
+                    val before = client.xp(COOKING)
+                    client.locTarget(Cooking.RANGE, RANGE_X, RANGE_Z, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slot(food.raw), food.raw)
+                    client.await("${food.raw} cooked") { if (client.count(food.cooked) == 1 && client.count(food.raw) == 0) Unit else null }
+                    assertEquals(0, client.count(food.burnt))
+                    assertEquals(xp, client.await("Cooking XP") { client.xp(COOKING).takeIf { it > before } } - before)
+                }
+                client.seen("[cooking.cooked_mackerel]")
+                client.seen("[cooking.cooked_cod]")
+                client.seen("[cooking.cooked_bass]")
+            }
+        }
+    }
+
     private companion object {
         /** A Cage/Harpoon and a Big Net/Harpoon spot on Catherby's beach, where mejrs's live list has them. */
         const val CAGE_X = 2844
