@@ -67,7 +67,10 @@ class RangedCombatTest {
     private val runeKnife = ObjType(868, "Rune knife", stackable = true, wearpos1 = WearPos.WEAPON, params = mapOf(4 to 25, 12 to 24, 14 to 3), internalName = "rune_knife", category = 24)
     private val ballista = ObjType(19478, "Light ballista", wearpos1 = WearPos.WEAPON, params = mapOf(4 to 110, 14 to 7), internalName = "light_ballista", category = 567)
     private val runeJavelin = ObjType(830, "Rune javelin", stackable = true, wearpos1 = WearPos.AMMO, params = mapOf(12 to 124), internalName = "rune_javelin")
-    private val objTypes = ObjTypes.of(shortbow, darkbow, runeCrossbow, twistedBow, venator, blowpipe, emptyBlowpipe, dragonDart, chinchompa, sword, bronzeArrow, poisonedArrow, steelArrow, runiteBolts, dragonBolts, runeKnife, ballista, runeJavelin)
+    // Artisan 2, A4c: emerald bolts (e) and ruby bolts (e).
+    private val emeraldBoltsE = ObjType(9241, "Emerald bolts (e)", stackable = true, wearpos1 = WearPos.AMMO, params = mapOf(12 to 85), internalName = "xbows_crossbow_bolts_mithril_tipped_emerald_enchanted")
+    private val rubyBoltsE = ObjType(9242, "Ruby bolts (e)", stackable = true, wearpos1 = WearPos.AMMO, params = mapOf(12 to 103), internalName = "xbows_crossbow_bolts_adamantite_tipped_ruby_enchanted")
+    private val objTypes = ObjTypes.of(shortbow, darkbow, runeCrossbow, twistedBow, venator, blowpipe, emptyBlowpipe, dragonDart, chinchompa, sword, bronzeArrow, poisonedArrow, steelArrow, runiteBolts, dragonBolts, runeKnife, ballista, runeJavelin, emeraldBoltsE, rubyBoltsE)
 
     private val spotanims = SpotanimNames(
         mapOf(
@@ -98,6 +101,8 @@ class RangedCombatTest {
             { "items": ["steel_arrow"], "ammo": "arrows", "tier": 2, "launch": "steel_arrow_launch", "doubleLaunch": "double_steel_arrow_launch", "travel": "steel_arrow_travel" },
             { "items": ["xbows_crossbow_bolts_runite"], "ammo": "bolts", "tier": 7, "travel": "crossbowbolt_travel" },
             { "items": ["dragon_bolts"], "ammo": "bolts", "tier": 8, "travel": "dragon_crossbowbolt_travel" },
+            { "items": ["xbows_crossbow_bolts_mithril_tipped_emerald_enchanted"], "ammo": "bolts", "tier": 5, "travel": "crossbowbolt_travel", "effect": "emerald" },
+            { "items": ["xbows_crossbow_bolts_adamantite_tipped_ruby_enchanted"], "ammo": "bolts", "tier": 6, "travel": "crossbowbolt_travel", "effect": "ruby" },
             { "items": ["dragon_dart"], "ammo": "darts", "tier": 7, "travel": "ii_dragon_dart_projanim" },
             { "items": ["rune_javelin"], "ammo": "javelins", "tier": 1, "travel": "rune_javelin_travel" } ] }""",
         objTypes, SeqNames(mapOf("human_bow" to 426, "xbows_human_fire_and_reload_pvn" to 7552, "human_weapon_bow_venator01_shoot" to 9858, "snakeboss_blowpipe_attack" to 5061, "human_chinchompa_attack_pvn" to 7618, "human_stake2_pvn" to 7617, "ballista_attack_pvn" to 7555)), spotanims,
@@ -445,6 +450,32 @@ class RangedCombatTest {
         assertTrue(landed >= 90, "$landed landed")
         assertTrue(poisonedNpcs.size in 4..30, "poisoned ${poisonedNpcs.size} times in $landed shots")
         assertTrue(poisonedNpcs.all { it == npc to 16 })
+    }
+
+    @Test
+    fun `emerald bolts (e) poison at severity 25 (5 a hit at first) on about 55 hits in 100, with their graphic on the NPC`() {
+        wield(alice, runeCrossbow, emeraldBoltsE, 1000)
+        val npc = spawn(type = dummy, x = 3214)
+        attack(alice, npc)
+        alice.god = true
+        alice.sureHits = true
+        repeat(400) { tick() }
+        val landed = 1000 - ammoLeft(alice) - ranged.shotsInFlight
+        assertTrue(landed >= 60, "$landed landed")
+        assertTrue(poisonedNpcs.size in landed * 40 / 100..landed * 70 / 100, "poisoned ${poisonedNpcs.size} times in $landed shots")
+        assertTrue(poisonedNpcs.all { it == npc to BoltEffects.EMERALD_POISON })
+        // The harness never sends NPC info, so the graphic is still pending: only an emerald's goes on the dummy.
+        assertEquals(listOf(BoltEffects.spotanim(BoltEffect.EMERALD)), npc.effects.pendingSpotanims.map { it.id })
+    }
+
+    @Test
+    fun `ruby bolts (e) take a tenth of the shooter's hitpoints when their effect fires`() {
+        wield(alice, runeCrossbow, rubyBoltsE, 1000)
+        alice.skills.setLevel(Skill.HITPOINTS, 99)
+        val npc = spawn(type = dummy, x = 3214)
+        attack(alice, npc)
+        repeat(400) { tick() }
+        assertTrue(alice.hitpoints < 99, "some ruby effect fired in ${1000 - ammoLeft(alice)} shots")
     }
 
     @Test

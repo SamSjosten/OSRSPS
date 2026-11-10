@@ -45,7 +45,8 @@ class RangedWeaponsTest {
         // 33 bows, crossbows, the blowpipe and chinchompas; 9 darts, 8 knives with their poisons, 7 thrownaxes, 2 ballistae.
         assertEquals(33 + 9 * 4 + 8 * 4 + 7 + 2, weapons.weaponCount)
         // 25 kinds, and (p), (p+) and (p++) of each arrow and bolt; 8 javelins with theirs.
-        assertEquals(25 + 16 * 3 + 8 * 4, weapons.ammoCount)
+        // A4c: the ten gem-tipped bolts with their dragon bolts (20), and both enchanted (20).
+        assertEquals(25 + 16 * 3 + 8 * 4 + 20 + 20, weapons.ammoCount)
     }
 
     @Test
