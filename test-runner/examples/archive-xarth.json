@@ -1,0 +1,233 @@
+{
+ "name": "Raid step 19a: Xarth solo, his fight beginning as the player takes the room's transporter onto his arena, at the Wiki's hitpoints with his three rubble heaps; phase one's fireballs under Protect from Magic, the AoE binding the player, the flame blast and three waves, a heap falling with each, then phase two (a stand-in until 19b), and his death doing the room",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare",
+   "comment": "nothing carried; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel prayer 99",
+   "expectMessage": "Prayer set to level 99"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel hitpoints 99",
+   "expectMessage": "Hitpoints set to level 99"
+  },
+  {
+   "step": "command",
+   "text": "::heal",
+   "expectMessage": "Healed to 99 hitpoints."
+  },
+  {
+   "step": "command",
+   "text": "::god on",
+   "expectMessage": "You can't be hurt now",
+   "comment": "his fireballs, burns and wave still land but do nothing, so the waits can't kill the account; ::god off at the end"
+  },
+  {
+   "step": "command",
+   "text": "::tele 4127 5560 0",
+   "expectMessage": "Teleported to 4127, 5560, 0",
+   "comment": "the lobby, in front of the Archive Door"
+  },
+  {
+   "step": "locOption",
+   "locId": 62768,
+   "option": "Enter",
+   "timeoutMs": 20000,
+   "comment": "into a run of one"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 6
+  },
+  {
+   "step": "command",
+   "text": "::raid tp guardian",
+   "expectMessage": "To Archive Guardian's room"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Archive Guardian's room.",
+   "comment": "the first row done"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp bork",
+   "expectMessage": "To Bork and the Smorks's room"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Bork and the Smorks's room.",
+   "comment": "the second row done; their fight is its own script"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp dreadnoth",
+   "expectMessage": "To Dreadnoth the Jellied's room"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Dreadnoth the Jellied's room",
+   "comment": "the third row done, so the fourth's doors open: 'Cleared Dreadnoth the Jellied's room.' once Dreadnoth is built, 'Dreadnoth the Jellied's room is done already.' while his room is still done as it begins"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 548,
+   "component": 69,
+   "comment": "toplevel:stone5, the prayer tab, in the fixed frame the VM's client uses"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 541,
+   "component": 21,
+   "comment": "prayerbook:prayer13, Protect from Magic, for his fireballs"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp xarth",
+   "expectMessage": "To Xarth's room",
+   "comment": "in at the room's way in, west of his arena: nothing begins yet"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "You're in Xarth's room"
+  },
+  {
+   "step": "locOption",
+   "locId": 63087,
+   "option": "Use",
+   "timeoutMs": 20000,
+   "comment": "tfa_boss_teleporter, the Archive transporter: onto his arena, which begins his fight"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "Xarth 2600/2600 hp, 3 heaps standing",
+   "comment": "the Wiki's hitpoints for a player alone (counted as two), and his three rubble heaps"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": ": Xarth at ",
+   "comment": "where he stands the whole fight (tsps capture notes: 4190,5534, here in the run's instance), and the order his heaps fall in"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 10,
+   "comment": "fireballs from tick 2, every 4 ticks, at the nearest player"
+  },
+  {
+   "step": "assertAnimation",
+   "npc": "Xarth",
+   "id": 14984,
+   "timeoutMs": 10000,
+   "comment": "xarth_attack_magic_01, his fireball"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 40",
+   "expectMessage": ", prayed against",
+   "comment": "Protect from Magic blocks it whole (guessed); the account may be test or test2, matched up to the name"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 20,
+   "comment": "the AoE 22 ticks in, the flame blast at 25 and the first wave at 28"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 60",
+   "expectMessage": ": AoE binds test",
+   "comment": "bound where they stand for 3 ticks, with vfx_xarth_aoe_stunanim_01"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 60",
+   "expectMessage": ": flame blast"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 60",
+   "expectMessage": ": wave 1 ",
+   "comment": "out towards the heap that falls, south or north at random"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 60",
+   "expectMessage": "heap falls"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 64,
+   "comment": "two more cycles of 31 ticks: the second wave east, the third all round at tick 90, then phase two"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 100",
+   "expectMessage": ": wave 2 east, east heap falling"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 100",
+   "expectMessage": ": wave 3 all round"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 100",
+   "expectMessage": ": phase two (stand-in)",
+   "comment": "STAND-IN until step 19b: he stands and does nothing"
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "0 heaps standing, 3 waves"
+  },
+  {
+   "step": "command",
+   "text": "::hit 2600 tfa_xarth",
+   "expectMessage": "0/2600 hp, dead"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 8,
+   "comment": "his death animation; the room is done as the fight ends"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "done Archive Guardian, Bork and the Smorks, Dreadnoth the Jellied, Xarth;",
+   "comment": "his room done"
+  },
+  {
+   "step": "command",
+   "text": "::god off",
+   "expectMessage": "You can be hurt again"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
