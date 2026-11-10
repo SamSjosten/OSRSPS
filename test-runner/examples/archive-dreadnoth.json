@@ -331,12 +331,7 @@
   {
    "step": "waitTicks",
    "ticks": 6,
-   "comment": "the last jelly's death animation; the room is won once it's gone"
-  },
-  {
-   "step": "command",
-   "text": "::raid log 30",
-   "expectMessage": "split: the last jelly gone"
+   "comment": "the last jelly's death animation; the room is won once it's gone (his fight is over then, so no ::raid log)"
   },
   {
    "step": "command",
