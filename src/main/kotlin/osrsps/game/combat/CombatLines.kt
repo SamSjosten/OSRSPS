@@ -17,6 +17,7 @@ object CombatLines : Lines("combat", "Combat") {
     val NO_AMMO = line("no_ammo", "a bow or crossbow with no ammunition worn (the Ammunition page)")
     val WRONG_ARROWS = line("wrong_arrows", "a bow with ammunition it can't fire; words guessed, live's aren't on the Wiki")
     val WRONG_BOLTS = line("wrong_bolts", "a crossbow with ammunition it can't fire; words guessed")
+    val WRONG_JAVELINS = line("wrong_javelins", "a ballista with ammunition it can't fire; words guessed")
 
     val ALREADY_HELD = line("already_held", "a hold spell on a frozen target (the Snare page)")
     val IMMUNE = line("immune", "a hold spell on a target in the ticks after a freeze (the Snare page)")

@@ -659,6 +659,11 @@ the anvil. A ball of wool strings an amulet. Soda ash or a bucket of sand on a f
 comes back), and a glassblowing pipe blows it. Water on clay softens it; soft clay on a potter's wheel shapes pots,
 cups, pie dishes, bowls, plant pots and lids, and a pottery oven fires them, some cracking below level 13. The making is the artisan loop in `Making.kt`.
 
+Artisan 2, A3: an air, water, earth or fire orb on a battlestaff makes that elemental battlestaff. A chisel on a blamish snail
+shell, round or pointed, makes its snelm, and on amethyst opens the box over amethyst bolt tips, arrowtips, javelin tips and
+dart tips. Weave on a loom, or wool, jute or willow branches used on one, opens the box over a strip of cloth, an empty sack, a
+drift net and a basket. Misthalin has no loom: South Falador Farm's (3039, 3287) is where live has it, reached by ::tele.
+
 | Crafting behaviour | Source |
 |--------------------|--------|
 | Ball of wool level 1, 2.5 XP; bow string level 10, 15 XP; 3 ticks each | OSRS Wiki, Ball of wool and Bow string |
@@ -675,7 +680,10 @@ cups, pie dishes, bowls, plant pots and lids, and a pottery oven fires them, som
 | Pottery levels and both XPs; 3 ticks at the wheel, 7 in the oven, firing at any level; the oven's crack chart, which the pair 180/800 gives exactly (`CraftingDataTest`) | OSRS Wiki, Crafting (Pottery), Unfired pie dish, Pie dish and the other pots' pages |
 | A cracked pot lost with no XP; the oven animation; the other glassblowing items' ticks | guessed |
 | Spin with nothing saying Nothing interesting happens; the box opening even for one | guessed |
-| Out: sinew, magic roots, yak hair and the other members' spinning; d'hide shields, snakeskin, the costume needle; the jeweller's chisel, amethyst; the slayer ring, quest silver items, silver bolts, enchanting | out of scope |
+| Battlestaves 54/58/62/66, 100 to 137.5 XP, 'Make-X is 3t, then 2t'; snelms 15, 32.5 XP, 2 ticks; amethyst cuts 83/85/87/89, 60 XP, 15/15/5/8 a piece, 2 ticks; the loom's four at 10/21/26/36, 12/38/55/56 XP, 4 ticks then 3, a drift net 3 | OSRS Wiki, each battlestaff, snelm and amethyst tips page, Loom (read 2026-11-10) |
+| The animations `human_battlestaff_crafting`, `human_snailshellcutting`, `human_amethystcutting` | cache 242 gamevals |
+| The loom's animation (`farming_useloom`, by its name); the first snelm and amethyst cut 2 ticks after the choice; the battlestaff's flash left out | guessed |
+| Out: sinew, magic roots, yak hair and the other members' spinning; d'hide shields, snakeskin, the costume needle; the jeweller's chisel; the slayer ring, quest silver items, silver bolts, enchanting; linen, canvas and cotton (Varlamore's yarns), the Vampyre snelm, combination battlestaves | out of scope |
 
 ### Herblore
 
@@ -2385,8 +2393,9 @@ Bows and crossbows fire at NPCs (`game/combat/RangedCombat.kt`). Attack with a r
 NPC is in range and in sight, then you shoot every weapon-speed ticks. Which weapons fire which ammunition, their ranges
 and graphics are in `src/main/resources/ranged-weapons.json` (items, animations and spotanims by gameval name; every
 name there is in both 241 caches). `::combat` shows your ranged numbers with a bow; `::fight` covers ranged fights.
-Not in yet: thrown weapons, crystal bows, the twisted bow, the dragon hunter crossbow, ballistas, enchanted bolts, Ava's
-devices and special attacks.
+Thrown weapons (darts, knives and thrownaxes, every metal and poison) throw from the weapon slot, and the light and
+heavy ballistas fire javelins from the ammo slot. Not in yet: crystal bows, the dragon hunter crossbow, enchanted
+bolts and the thrown weapons' and ballistas' special attacks.
 
 | Ranged behaviour | Source |
 |------------------|--------|
@@ -2403,9 +2412,14 @@ devices and special attacks.
 | "You can't use that ammo with your bow." / "... crossbow." | guessed wording |
 | Projectile heights, start, arc and the second dark bow arrow leaving 10 cycles later; the crossbow animation (xbows_human_fire_and_reload_pvn) | guessed |
 | No or wrong ammunition ends the fight when you would fire, not on the click | guessed |
+| Darts range 3, knives and thrownaxes 4, ballistas 9; ballistas fire bronze to dragon javelins every 7 ticks, the hit landing 1 + (7 + d) / 6 ticks later (`HitDelay.BALLISTA`) | OSRS Wiki, Attack range, Light ballista, Heavy ballista and Hit delay |
+| Thrown weapons fire from the weapon slot, one a throw; their launch and travel graphics and the dart, dragon knife and ballista animations by their 242 cache names | OSRS Wiki, Thrown weapons; 242 cache |
+| A thrown weapon that doesn't break falls under the target, as arrows do, unless an Ava's device brings it back | inferred from arrows |
+| The knife and thrownaxe throw animation (`human_stake2_pvn`); the ballista's wrong-ammunition message (`combat.wrong_javelins`, words on the server) | guessed |
 
 Check: `./gradlew test --tests 'osrsps.game.combat.Ranged*' --tests 'osrsps.testclient.HeadlessRangedTest'`, and in
-RuneLite `test-runner/examples/combat-ranged-shortbow.json`.
+RuneLite `test-runner/examples/combat-ranged-shortbow.json` and `combat-thrown.json`; thrown weapons and ballistas
+also in `HeadlessThrownTest`.
 
 ## Home teleport
 

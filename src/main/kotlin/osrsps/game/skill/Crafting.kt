@@ -32,6 +32,10 @@ object CraftingLines : Lines("crafting", "Crafting") {
     val CRACK = line("crack", "Pot and the others: the message when one cracks in the oven", "item")
     val SOFT_CLAY = line("soft_clay", "Soft clay: the message on watering clay")
     val STUDS = line("studs", "Studded body and Studded chaps: the message on adding the studs", "item")
+    val BATTLESTAFF = line("battlestaff", "Water battlestaff and the other elemental battlestaves: the message on adding the orb", "item")
+    val SNELM = line("snelm", "Myre snelm and the other snelms: the message on chiselling the shell", "item")
+    val AMETHYST = line("amethyst", "Amethyst bolt tips and the other amethyst pieces: the message on chiselling the amethyst", "amount", "item")
+    val WEAVE = line("weave", "Strip of cloth, Empty sack, Drift net and Basket: the message on weaving one at a loom", "item")
 }
 
 /**
@@ -68,6 +72,16 @@ class CraftingData(
     val clay: Int = -1,
     /** Soft clay, by the water used. */
     val softening: Map<Int, MakeRecipe> = emptyMap(),
+    val battlestaff: Int = -1,
+    /** Elemental battlestaves, by the orb. */
+    val battlestaves: Map<Int, MakeRecipe> = emptyMap(),
+    /** Snelms, by the shell (a chisel on it). */
+    val snelms: Map<Int, MakeRecipe> = emptyMap(),
+    val amethyst: Int = -1,
+    /** What a chisel cuts amethyst into, in the box's order. */
+    val amethystCuts: List<MakeRecipe> = emptyList(),
+    /** What a loom weaves, in the box's order. */
+    val weaving: List<MakeRecipe> = emptyList(),
 ) {
     companion object {
         const val RESOURCE = "/skills/crafting.json"
@@ -192,9 +206,46 @@ class CraftingData(
                     soft.int("interval"), CraftingLines.SOFT_CLAY, CraftingLines.LEVEL, byproducts = listOf(ObjCount(water.int("empty"), 1)),
                 )
             }
+            val staves = root.getValue("battlestaves").jsonObject
+            val battlestaff = staves.int("battlestaff")
+            val battlestaves = staves.getValue("list").jsonArray.map { it.jsonObject }.associate { staff ->
+                staff.int("orb") to MakeRecipe(
+                    "battlestaff:${staff.getValue("name").jsonPrimitive.content}", Skill.CRAFTING, staff.int("product"), 1,
+                    staff.int("level"), staff.int("xpTenths"), listOf(ObjCount(staff.int("orb"), 1), ObjCount(battlestaff, 1)),
+                    emptyList(), staves.int("anim"), staves.int("first"), staves.int("interval"), CraftingLines.BATTLESTAFF,
+                    CraftingLines.LEVEL,
+                )
+            }
+            val snelm = root.getValue("snelms").jsonObject
+            val snelms = snelm.getValue("list").jsonArray.map { it.jsonObject }.associate { shell ->
+                shell.int("shell") to MakeRecipe(
+                    "snelm:${shell.getValue("name").jsonPrimitive.content}", Skill.CRAFTING, shell.int("product"), 1, snelm.int("level"),
+                    snelm.int("xpTenths"), listOf(ObjCount(shell.int("shell"), 1)), listOf(snelm.int("chisel")), snelm.int("anim"),
+                    snelm.int("first"), snelm.int("interval"), CraftingLines.SNELM, CraftingLines.LEVEL,
+                )
+            }
+            val gem = root.getValue("amethyst").jsonObject
+            val amethyst = gem.int("amethyst")
+            val amethystCuts = gem.getValue("list").jsonArray.map { it.jsonObject }.map { cut ->
+                MakeRecipe(
+                    "amethyst:${cut.getValue("name").jsonPrimitive.content}", Skill.CRAFTING, cut.int("product"), cut.int("amount"),
+                    cut.int("level"), cut.int("xpTenths"), listOf(ObjCount(amethyst, 1)), listOf(gem.int("chisel")), gem.int("anim"),
+                    gem.int("first"), gem.int("interval"), CraftingLines.AMETHYST, CraftingLines.LEVEL,
+                )
+            }
+            val loom = root.getValue("loom").jsonObject
+            val weaving = loom.getValue("list").jsonArray.map { it.jsonObject }.map { woven ->
+                val first = woven["first"]?.jsonPrimitive?.int ?: loom.int("first")
+                MakeRecipe(
+                    "weave:${woven.getValue("name").jsonPrimitive.content}", Skill.CRAFTING, woven.int("product"), 1, woven.int("level"),
+                    woven.int("xpTenths"), listOf(ObjCount(woven.int("input"), woven.int("count"))), emptyList(), loom.int("anim"),
+                    // The Loom page: 4 ticks for the first, 3 for each after; a drift net is 3 ticks every time.
+                    first, loom.int("interval"), CraftingLines.WEAVE, CraftingLines.LEVEL,
+                )
+            }
             return CraftingData(
                 spun, needle, hides, studId, studded, chisel, cuts, jewellery, wool, amulets, molten, pipe, blown, shaping, firing, clay,
-                softening,
+                softening, battlestaff, battlestaves, snelms, amethyst, amethystCuts, weaving,
             )
         }
 
@@ -227,6 +278,10 @@ class CraftingData(
  * Cook does), the box opening even for one, the spinning animation, the thread counter living on the player rather than
  * the item, and the messages' arguments. Out: sinew, magic roots, yak hair and the other members' spinning; d'hide
  * shields, snakeskin and the costume needle.
+ *
+ * Artisan 2, A3: an orb on a battlestaff makes the elemental battlestaff; a chisel on a snail shell makes its snelm and on
+ * amethyst opens the box over its four cuts; Weave on a loom, or a material used on it, opens the box over what it weaves.
+ * Sources and guesses are in crafting.json's about.
  */
 class Crafting(private val world: World, val data: CraftingData) {
     fun register() {
@@ -295,6 +350,26 @@ class Crafting(private val world: World, val data: CraftingData) {
         for ((water, recipe) in data.softening) {
             world.handlers.onObjOnObj(water, data.clay) { world.making.choose(this, listOf(recipe)) }
         }
+        for ((orb, recipe) in data.battlestaves) {
+            world.handlers.onObjOnObj(orb, data.battlestaff) { world.making.choose(this, listOf(recipe)) }
+        }
+        for ((shell, recipe) in data.snelms) {
+            world.handlers.onObjOnObj(recipe.tools[0], shell) { world.making.choose(this, listOf(recipe)) }
+        }
+        data.amethystCuts.firstOrNull()?.let { cut ->
+            world.handlers.onObjOnObj(cut.tools[0], data.amethyst) { world.making.choose(this, data.amethystCuts) }
+        }
+        for (loom in locsNamed(world, "Loom", WEAVE)) {
+            val option = loom.ops.indexOfFirst { it == WEAVE } + 1
+            world.handlers.onLoc(loom.id, option) {
+                val held = data.weaving.filter { it.times(player.inventory) > 0 }
+                if (held.isEmpty()) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
+                world.making.choose(this, held)
+            }
+            for ((input, recipes) in data.weaving.groupBy { it.inputs[0].obj }) {
+                world.handlers.onObjOnLoc(loom.id, input) { world.making.choose(this, recipes) }
+            }
+        }
     }
 
     /**
@@ -342,6 +417,7 @@ class Crafting(private val world: World, val data: CraftingData) {
 
         const val USE = "Use"
         const val FIRE = "Fire"
+        const val WEAVE = "Weave"
 
         /** Lumbridge has none: Barbarian Village's potter's wheel and pottery oven. */
         const val POTTERS_WHEEL = 14887
