@@ -189,6 +189,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `thieving-t1b.json`: Thieving 2 step T1b: a Knight of Ardougne, a hero, a paladin, a warrior, a watchman, a gnome and
   a rogue pickpocketed at 99, each reached by `::tele` (with `::keys on` and `::god on`; the tables, extras, stuns and
   the room check are in the headless and unit tests).
+- `thieving-t1c.json`: Thieving 2 step T1c: a cave goblin, a Fremennik citizen, a bandit, a wealthy citizen, a vyre,
+  an elf and a TzHaar-Hur pickpocketed at 99, each reached by `::tele` (with `::keys on` and `::god on`; the heat and
+  the ice gloves are in the headless test).
 - `al-kharid-toll-gate.json`: Al Kharid step 1: Open on the toll gate from both sides with no coins, a Border
   Guard's talk (with `::keys on`) that ends with the player through the gate, and the palace's west large doors
   opened together and shut again, and the curtain upstairs in the palace opened and shut.
