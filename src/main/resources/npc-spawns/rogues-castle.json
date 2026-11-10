@@ -1,0 +1,27 @@
+{
+  "about": "The Wilderness's rogues (Thieving 2 step T1b): Rogues' Castle's four floors and the two south-west of the Mage Arena. Each tile and type is mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live, pre-Nov 2022). Wander ranges are guessed (5).",
+  "spawns": [
+    {"npc": "rogue", "x": 3076, "z": 3916, "wander": 5, "source": "Rogue, south-west of the Mage Arena. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "rogue", "x": 3079, "z": 3909, "wander": 5, "source": "Rogue, south-west of the Mage Arena. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "rogue", "x": 3276, "z": 3930, "wander": 5, "source": "Rogue, Rogues' Castle. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "rogue", "x": 3276, "z": 3933, "wander": 5, "source": "Rogue, Rogues' Castle. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "rogue", "x": 3278, "z": 3927, "wander": 5, "source": "Rogue, Rogues' Castle. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "rogue", "x": 3281, "z": 3934, "wander": 5, "source": "Rogue, Rogues' Castle. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "rogue", "x": 3284, "z": 3929, "wander": 5, "source": "Rogue, Rogues' Castle. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "rogue", "x": 3285, "z": 3933, "wander": 5, "source": "Rogue, Rogues' Castle. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "rogue", "x": 3285, "z": 3939, "wander": 5, "source": "Rogue, Rogues' Castle. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "rogue", "x": 3287, "z": 3930, "wander": 5, "source": "Rogue, Rogues' Castle. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "rogue", "x": 3291, "z": 3932, "wander": 5, "source": "Rogue, Rogues' Castle. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "rogue", "x": 3292, "z": 3924, "wander": 5, "source": "Rogue, Rogues' Castle. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "rogue", "x": 3288, "z": 3931, "level": 1, "wander": 5, "source": "Rogue, Rogues' Castle (level 1). mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "rogue", "x": 3289, "z": 3930, "level": 1, "wander": 5, "source": "Rogue, Rogues' Castle (level 1). mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "rogue", "x": 3286, "z": 3939, "level": 2, "wander": 5, "source": "Rogue, Rogues' Castle (level 2). mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "rogue", "x": 3287, "z": 3929, "level": 2, "wander": 5, "source": "Rogue, Rogues' Castle (level 2). mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "rogue", "x": 3289, "z": 3932, "level": 2, "wander": 5, "source": "Rogue, Rogues' Castle (level 2). mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "rogue", "x": 3290, "z": 3931, "level": 2, "wander": 5, "source": "Rogue, Rogues' Castle (level 2). mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "rogue", "x": 3293, "z": 3933, "level": 2, "wander": 5, "source": "Rogue, Rogues' Castle (level 2). mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "rogue", "x": 3296, "z": 3934, "level": 2, "wander": 5, "source": "Rogue, Rogues' Castle (level 2). mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "rogue", "x": 3281, "z": 3934, "level": 3, "wander": 5, "source": "Rogue, Rogues' Castle (level 3). mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "rogue", "x": 3282, "z": 3938, "level": 3, "wander": 5, "source": "Rogue, Rogues' Castle (level 3). mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"}
+  ]
+}

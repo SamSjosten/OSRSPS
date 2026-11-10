@@ -37,7 +37,8 @@ class PocketLoot(val obj: Int, val min: Int, val max: Int, val weight: (farming:
  * An NPC to pickpocket: [who] for the messages, the level, the XP in tenths, the [low] and [high] of its [SuccessRoll]
  * out of 256, the damage when caught ([damageMin] to [damage]), its [caught] line, and either a coin [pouch] holding
  * [coins] to [coinsMax] each or a [loot] table, which may hold a [lootPouch]. Pickpocket is its [op]; a catch stuns for
- * [stunTicks]; [concussions] hands a catch to the H.A.M. Hideout's count ([HamHideout.caught]).
+ * [stunTicks]; [concussions] hands a catch to the H.A.M. Hideout's count ([HamHideout.caught]). [extra] comes with every
+ * success beside the pouch (a paladin's chaos runes, a watchman's bread).
  */
 class Pocket(
     val npcs: Collection<Int>,
@@ -57,6 +58,7 @@ class Pocket(
     val lootPouch: Int? = null,
     val concussions: Boolean = false,
     val stunTicks: Int = StatusEffects.PICKPOCKET_TICKS,
+    val extra: List<PocketLoot> = emptyList(),
 ) {
     /** The coin pouch it gives, from its own pouch or its table. */
     val anyPouch: Int? get() = pouch ?: lootPouch
@@ -122,8 +124,9 @@ class Pickpocketing(private val world: World) {
             player.message(text[PickpocketLines.POUCHES_FULL])
             return
         }
-        val roomNeeded = pocket.pouch == null || player.inventory.count(pocket.pouch) == 0L
-        if (roomNeeded && player.inventory.freeSlots == 0) {
+        val roomNeeded = (if (pocket.pouch == null || player.inventory.count(pocket.pouch) == 0L) 1 else 0) +
+            pocket.extra.count { extra -> world.objTypes[extra.obj]?.stackable != true || player.inventory.count(extra.obj) == 0L }
+        if (player.inventory.freeSlots < roomNeeded) {
             player.message(text[PickpocketLines.INVENTORY_FULL])
             return
         }
@@ -164,6 +167,7 @@ class Pickpocketing(private val world: World) {
     }
 
     private fun give(player: Player, pocket: Pocket) {
+        for (extra in pocket.extra) world.objTypes[extra.obj]?.let { player.inventory.add(it, extra.min) }
         if (pocket.pouch != null) {
             world.objTypes[pocket.pouch]?.let { player.inventory.add(it, 1) }
             return
@@ -273,6 +277,49 @@ class Pickpocketing(private val world: World) {
 
         /** potato_seed. */
         const val POTATO_SEED = 5318
+
+        /** Thieving 2 step T1b's NPCs (the 242 cache's types). */
+        val ROGUES = listOf(526)
+        val KNIGHTS_OF_ARDOUGNE = listOf(3297, 3300, 8854, 11902, 11936)
+        val WATCHMEN = listOf(5420)
+        val PALADINS = listOf(3293, 3294, 8853, 11901, 11930, 11931, 11932, 11933)
+        val HEROES = listOf(3295, 11934, 11935)
+
+        /** gnome, browclothedgnome, darkskinned_gnome, the two gnome women and three gnome children: one pocket. */
+        val GNOMES = listOf(6094, 6095, 6096, 6086, 6087, 6077, 6078, 6079)
+
+        /** Warriors since November 2022 (warrior_woman's variants and warrior_man's), Ardougne's and the Fishing Guild's. */
+        val WARRIORS_2022 = listOf(11925, 11926, 11927, 11928, 11929)
+
+        const val ROGUE_POUCH = 22525
+        const val KNIGHT_POUCH = 22531
+        const val WATCHMAN_POUCH = 22533
+        const val PALADIN_POUCH = 22535
+        const val GNOME_POUCH = 22536
+        const val HERO_POUCH = 22537
+
+        /** The Wiki's 4.8-second stun (knights, paladins) and 6-second one (heroes), at 0.6 seconds a tick. */
+        const val STUN_4_8_SECONDS = 8
+        const val STUN_6_SECONDS = 10
+
+        private fun line(obj: Int, weight: Int, max: Int = 1, min: Int = 1) = PocketLoot(obj, min, max) { weight }
+
+        /** The Wiki's Rogue table, out of 144. Rocky left out. */
+        val ROGUE_LOOT = listOf(
+            line(ROGUE_POUCH, 123), line(556, 9, 8, 8), line(1993, 6), line(1523, 5), line(1219, 1), // pouch, air runes, jug of wine, lockpick, iron dagger(p)
+        )
+
+        /** The Wiki's Gnome table, out of 128; the medium clue (1/150) left out with Treasure Trails. */
+        val GNOME_LOOT = listOf(
+            line(52, 56, 4, 2), line(GNOME_POUCH, 30), line(2150, 24), line(444, 8), line(557, 5), line(2162, 3), line(569, 2),
+            // arrow shafts 2 to 4, pouch, swamp toad, gold ore, earth rune, king worm, fire orb
+        )
+
+        /** The Wiki's Hero table, out of 128; the elite clue (1/900) left out with Treasure Trails. */
+        val HERO_LOOT = listOf(
+            line(HERO_POUCH, 105), line(560, 8, 2, 2), line(1993, 6), line(565, 5), line(1601, 1), line(569, 2), line(444, 1),
+            // pouch, 2 death runes, jug of wine, blood rune, diamond, fire orb, gold ore
+        )
 
         /** The Wiki's Farmer pickpocket table: the coin pouch 123/128, a potato seed 5/128. Rocky left out. */
         val FARMER_LOOT = listOf(PocketLoot(FARMER_POUCH, 1, 1) { 123 }, PocketLoot(POTATO_SEED, 1, 1) { 5 })
@@ -401,15 +448,41 @@ class Pickpocketing(private val world: World) {
          * 10, 14.5 XP, 150 to 240 (the Wiki's chart), 1 damage, a farmer's coin pouch of 9 coins 123/128 or a potato
          * seed 5/128. Al Kharid warriors: the warrior's numbers (Mod Ash: the same code), 100 to 240 as their chart.
          * Guessed: that farmers say the townsfolk's caught line, and "farmer" and "Al Kharid warrior" in the messages.
+         *
+         * Thieving 2 step T1b (the Wiki's Rogue, Knight of Ardougne, Watchman, Paladin, Gnome, Gnome woman, Gnome
+         * child, Hero, Warrior (Thieving) and Coin pouch pages, read 2026-11-10; each pair is its chart's "Normal" line):
+         * rogues 32, 36.5 XP, 75 to 240, 2 damage, a table out of 144 with a pouch of 25 to 40; Knights of Ardougne 55,
+         * 84.3 XP, 50 to 240, 3 damage, a pouch of 50; watchmen 65, 137.5 XP, 15 to 160, 3 damage, a pouch of 60 and a
+         * bread; paladins 70, 131.8 XP, 40 to 170, 3 damage, a pouch of 80 and 2 chaos runes; gnomes (men, women and
+         * children alike) 75, 133.3 XP, 43 to 175, 1 damage, a table out of 128 with a pouch of 300; heroes 80, 163.3 XP,
+         * 39 to 160, 3 damage, a table out of 128 with a pouch of 200 to 300. The Wiki's stun times, 4.8 seconds for
+         * knights and paladins and 6 for heroes, are 8 and 10 ticks; its 5 seconds stay the Stun page's 9 ticks.
+         * Guessed: their caught line (the townsfolk's), the words in the messages, and that the gnome women and children
+         * share the men's pocket ("gnome"). Left out: the clue scrolls, Rocky, the Ardougne diary.
          */
         val POCKETS = listOf(
             Pocket(Townsfolk.MEN + AL_KHARID_MAN, "man", 1, 80, 180, 240, 1, PickpocketLines.CAUGHT_CITIZEN, CITIZEN_POUCH, COINS_PER_CITIZEN_POUCH),
             Pocket(Townsfolk.WOMEN, "woman", 1, 80, 180, 240, 1, PickpocketLines.CAUGHT_CITIZEN, CITIZEN_POUCH, COINS_PER_CITIZEN_POUCH),
             Pocket(MASTER_FARMERS, "Master Farmer", 38, 430, 90, 240, 3, PickpocketLines.CAUGHT_FARMER, loot = MASTER_FARMER_LOOT),
             Pocket(VARROCK_GUARDS + EDGEVILLE_GUARD, "guard", 40, 468, 50, 240, 2, PickpocketLines.CAUGHT_CITIZEN, GUARD_POUCH, COINS_PER_GUARD_POUCH),
-            Pocket(listOf(WARRIOR_WOMAN), "warrior", 25, 260, 100, 240, 2, PickpocketLines.CAUGHT_CITIZEN, WARRIOR_POUCH, COINS_PER_WARRIOR_POUCH),
+            Pocket(listOf(WARRIOR_WOMAN) + WARRIORS_2022, "warrior", 25, 260, 100, 240, 2, PickpocketLines.CAUGHT_CITIZEN, WARRIOR_POUCH, COINS_PER_WARRIOR_POUCH),
             Pocket(listOf(AL_KHARID_WARRIOR), "Al Kharid warrior", 25, 260, 100, 240, 2, PickpocketLines.CAUGHT_CITIZEN, WARRIOR_POUCH, COINS_PER_WARRIOR_POUCH),
             Pocket(FARMERS, "farmer", 10, 145, 150, 240, 1, PickpocketLines.CAUGHT_CITIZEN, loot = FARMER_LOOT, coins = COINS_PER_FARMER_POUCH, lootPouch = FARMER_POUCH),
+            Pocket(ROGUES, "rogue", 32, 365, 75, 240, 2, PickpocketLines.CAUGHT_CITIZEN, loot = ROGUE_LOOT, coins = 25, coinsMax = 40, lootPouch = ROGUE_POUCH),
+            Pocket(
+                KNIGHTS_OF_ARDOUGNE, "Knight of Ardougne", 55, 843, 50, 240, 3, PickpocketLines.CAUGHT_CITIZEN, KNIGHT_POUCH, 50,
+                stunTicks = STUN_4_8_SECONDS,
+            ),
+            Pocket(WATCHMEN, "watchman", 65, 1375, 15, 160, 3, PickpocketLines.CAUGHT_CITIZEN, WATCHMAN_POUCH, 60, extra = listOf(line(2309, 1))),
+            Pocket(
+                PALADINS, "paladin", 70, 1318, 40, 170, 3, PickpocketLines.CAUGHT_CITIZEN, PALADIN_POUCH, 80, stunTicks = STUN_4_8_SECONDS,
+                extra = listOf(line(562, 1, 2, 2)),
+            ),
+            Pocket(GNOMES, "gnome", 75, 1333, 43, 175, 1, PickpocketLines.CAUGHT_CITIZEN, loot = GNOME_LOOT, coins = 300, lootPouch = GNOME_POUCH),
+            Pocket(
+                HEROES, "hero", 80, 1633, 39, 160, 3, PickpocketLines.CAUGHT_CITIZEN, loot = HERO_LOOT, coins = 200, coinsMax = 300, lootPouch = HERO_POUCH,
+                stunTicks = STUN_6_SECONDS,
+            ),
             Pocket(
                 HAM_MEMBERS, "H.A.M. member", 15, 222, 135, 239, 3, PickpocketLines.CAUGHT_HAM, loot = HAM_LOOT, op = HAM_PICKPOCKET,
                 damageMin = 1, lootPouch = HAM_POUCH, concussions = true, stunTicks = HAM_STUN_TICKS,
