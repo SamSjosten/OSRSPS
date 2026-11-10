@@ -27,6 +27,7 @@ class HeadlessMixingTest {
         objs[TORSTOL] = ObjType(TORSTOL, "Torstol", tradeable = true)
         objs[SUPER_COMBAT] = ObjType(SUPER_COMBAT, "Super combat potion(4)", tradeable = true)
         objs[AMYLASE] = ObjType(AMYLASE, "Amylase crystal", stackable = true, tradeable = true)
+        objs[VIAL] = ObjType(VIAL, "Vial", tradeable = true)
         World(crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs), cycleMillis = millis)
     }
 
@@ -76,6 +77,7 @@ class HeadlessMixingTest {
                 client.mix(SUPER_DEFENCE, TORSTOL)
                 client.await("the super combat") { if (client.count(SUPER_COMBAT) == 1) Unit else null }
                 for (id in listOf(TORSTOL, SUPER_ATTACK, SUPER_STRENGTH, SUPER_DEFENCE)) assertEquals(0, client.count(id), "item $id used")
+                assertEquals(2, client.count(VIAL), "two of the three potions' vials back")
                 assertEquals(150, client.await("150 XP") { client.xpOver99().takeIf { it >= 150 } })
             }
         }
@@ -100,18 +102,24 @@ class HeadlessMixingTest {
     }
 
     @Test
-    fun `a super restore(4) takes unicorn horn dust, snake weed and nail beast nails to a sanfew serum(4), 192 XP in all`(@TempDir dir: Path) {
+    fun `sanfew serum's three steps go one potion a use with no box, 192 XP for a serum(4)`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { client ->
                 client.ready()
-                for (id in listOf(SUPER_RESTORE_4, UNICORN_HORN_DUST, SNAKE_WEED, NAIL_BEAST_NAILS)) client.give(id)
-                client.mix(UNICORN_HORN_DUST, SUPER_RESTORE_4)
+                client.give(SUPER_RESTORE_4, 2)
+                client.give(UNICORN_HORN_DUST, 2)
+                for (id in listOf(SNAKE_WEED, NAIL_BEAST_NAILS)) client.give(id)
+                client.use(UNICORN_HORN_DUST, SUPER_RESTORE_4)
                 client.await("step 1") { if (client.count(SANFEW_STEP_1_4) == 1) Unit else null }
-                client.mix(SNAKE_WEED, SANFEW_STEP_1_4)
+                client.awaitTicks(4)
+                assertEquals(1, client.count(SANFEW_STEP_1_4), "one potion a use, though two could be mixed")
+                assertEquals(1, client.count(SUPER_RESTORE_4))
+                client.use(SNAKE_WEED, SANFEW_STEP_1_4)
                 client.await("step 2") { if (client.count(SANFEW_STEP_2_4) == 1) Unit else null }
-                client.mix(SANFEW_STEP_2_4, NAIL_BEAST_NAILS)
+                client.use(SANFEW_STEP_2_4, NAIL_BEAST_NAILS)
                 client.await("the serum") { if (client.count(SANFEW_4) == 1) Unit else null }
                 assertEquals(192, client.await("192 XP") { client.xpOver99().takeIf { it >= 192 } })
+                assertEquals(0, client.boxes(), "no Make-X box for any step")
             }
         }
     }
@@ -137,6 +145,7 @@ class HeadlessMixingTest {
     }
 
     private companion object {
+        const val VIAL = 229
         const val TORSTOL = 269
         const val SUPER_ATTACK = 2436
         const val SUPER_STRENGTH = 2440

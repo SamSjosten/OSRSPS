@@ -76,6 +76,10 @@ class HerbloreDataTest {
             assertEquals((32 * dose + 64) * 10, total, "$dose doses")
         }
         assertEquals(10925, named("sanfew_4").product)
+        // Sanfew serum page: each step by hand, one at a time, no Make-X; super combat gives the spare vials back.
+        assertEquals((1..4).flatMap { listOf("sanfew_step_1_$it", "sanfew_step_2_$it", "sanfew_$it") }.toSet(), data.oneAtATime)
+        assertEquals(listOf(ObjCount(229, 2)), named("super_combat").byproducts)
+        assertEquals(listOf(ObjCount(229, 3)), named("super_combat_unf").byproducts)
         assertTrue(recipes.all { it.first == 2 && it.interval == 2 && it.anim == 363 && it.skill == osrsps.game.Skill.HERBLORE })
         // No trigger pair is also a two-ingredient potion's.
         val pairs = data.potions.keys.map { minOf(it.first, it.second) to maxOf(it.first, it.second) }.toSet()

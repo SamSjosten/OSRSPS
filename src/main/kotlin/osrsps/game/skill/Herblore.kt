@@ -2,6 +2,7 @@ package osrsps.game.skill
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -41,6 +42,8 @@ class HerbloreData(
     val waterSources: List<String>,
     val potions: Map<Pair<Int, Int>, MakeRecipe> = emptyMap(),
     val mixing: Map<Pair<Int, Int>, List<MakeRecipe>> = emptyMap(),
+    /** The mixing recipes made one at a time on each use, with no Make-X box (sanfew serum's steps), by key. */
+    val oneAtATime: Set<String> = emptySet(),
 ) {
     companion object {
         const val RESOURCE = "/skills/herblore.json"
@@ -99,6 +102,7 @@ class HerbloreData(
             }
             val mix = root.getValue("mixing").jsonObject
             val mixed = LinkedHashMap<Pair<Int, Int>, MutableList<MakeRecipe>>()
+            val oneAtATime = HashSet<String>()
             for (potion in mix.getValue("recipes").jsonArray.map { it.jsonObject }) {
                 val inputs = potion.getValue("inputs").jsonArray.map { pair ->
                     pair.jsonArray.let { ObjCount(it[0].jsonPrimitive.int, it[1].jsonPrimitive.int) }
@@ -106,7 +110,11 @@ class HerbloreData(
                 val recipe = MakeRecipe(
                     potion.name(), Skill.HERBLORE, potion.int("product"), 1, potion.int("level"), potion.int("xpTenths"), inputs,
                     emptyList(), mix.int("anim"), mix.int("first"), mix.int("interval"), HerbloreLines.MIX, HerbloreLines.LEVEL,
+                    byproducts = potion["byproducts"]?.jsonArray?.map { pair ->
+                        pair.jsonArray.let { ObjCount(it[0].jsonPrimitive.int, it[1].jsonPrimitive.int) }
+                    } ?: emptyList(),
                 )
+                if (potion["oneAtATime"]?.jsonPrimitive?.boolean == true) oneAtATime += recipe.key
                 for (trigger in potion.getValue("triggers").jsonArray.map { it.jsonArray }) {
                     val a = trigger[0].jsonPrimitive.int
                     val b = trigger[1].jsonPrimitive.int
@@ -114,7 +122,7 @@ class HerbloreData(
                     mixed.getOrPut(minOf(a, b) to maxOf(a, b)) { ArrayList() } += recipe
                 }
             }
-            return HerbloreData(cleaning, vialOfWater, unfinished, pestle, grinding, fill, sources, potions, mixed)
+            return HerbloreData(cleaning, vialOfWater, unfinished, pestle, grinding, fill, sources, potions, mixed, oneAtATime)
         }
 
         private fun JsonObject.int(name: String): Int = getValue(name).jsonPrimitive.int
@@ -155,7 +163,10 @@ class Herblore(private val world: World, val data: HerbloreData) {
             world.handlers.onObjOnObj(pair.second, pair.first) { world.making.choose(this, listOf(recipe)) }
         }
         for ((pair, recipes) in data.mixing) {
-            world.handlers.onObjOnObj(pair.first, pair.second) { world.making.choose(this, recipes) }
+            val single = recipes.singleOrNull()?.takeIf { it.key in data.oneAtATime }
+            world.handlers.onObjOnObj(pair.first, pair.second) {
+                if (single != null) world.making.start(this, single, 1) else world.making.choose(this, recipes)
+            }
         }
         for (source in waterSources()) {
             world.handlers.onObjOnLoc(source, data.fillVial.inputs[0].obj) {
