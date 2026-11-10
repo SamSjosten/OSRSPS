@@ -3,10 +3,13 @@ package osrsps.game.raid
 import java.util.WeakHashMap
 import kotlin.math.sign
 import osrsps.game.NpcType
+import osrsps.game.PlayerEffects
+import osrsps.game.World
 import osrsps.game.NpcTypes
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.combat.AttackType
+import osrsps.game.combat.CombatMath
 import osrsps.game.combat.HitsplatType
 import osrsps.game.combat.MagicInteraction
 import osrsps.game.combat.MeleeCombat
@@ -20,6 +23,10 @@ import osrsps.game.encounter.EncounterDef
 import osrsps.game.encounter.PhaseDef
 import osrsps.game.npc.Npc
 import osrsps.game.npc.Npcs
+import osrsps.game.script.Op
+import osrsps.game.script.ScriptContext
+import osrsps.game.skill.Agility
+import osrsps.game.zone.ZoneLoc
 import osrsps.game.zone.Projectile
 import osrsps.map.Tile
 
@@ -38,13 +45,20 @@ object OcellusLines : Lines("tfa_ocellus", "The_Fractured_Archive/Strategies") {
     val WILL_DISAPPEAR = line("will_disappear", "Ocellus with his first-phase bar run out, before he changes to his second phase")
     val YOUR_TIME = line("your_time", "Ocellus seven ticks into his second phase, as the Blade appears beside him")
     val THIS_IS_ENOUGH = line("this_is_enough", "Ocellus as his second phase ends, in the middle of the third quadrant's turn")
+    val OBLITERATION = line("obliteration", "Ocellus in his third phase as his quadrant's barriers drop (at 75, 50 and 25%): one of the two he picks from")
+    val RUN = line("run", "Ocellus in his third phase as his quadrant's barriers drop (at 75, 50 and 25%): the other of the two")
+    val THIS_END = line("this_end", "Ocellus in his third phase, eleven ticks after his quadrant's barriers drop: the first of the three he picks from")
+    val EVERYTHING_ENDS = line("everything_ends", "Ocellus in his third phase, eleven ticks after his quadrant's barriers drop: the second of the three")
+    val CANT_ESCAPE = line("cant_escape", "Ocellus in his third phase, eleven ticks after his quadrant's barriers drop: the third of the three")
+    val TURNS_TO = line("turns_to", "chat, to his party, as he takes a new tank in his third phase: the tank's name", "name")
+    val WAY_BACK_CLOSED = line("way_back_closed", "chat, to a player trying to jump the stepping stones back the way the fight came")
 
     private fun ordinal(n: Int) = listOf("first", "second", "third")[n - 1]
 }
 
 /**
- * Ocellus (raid steps 24 and 25), the last boss of The Fractured Archive, in the vault's arena on its upper floor: his
- * first phase, the shielded one, whose blue bar is his first-phase hitpoints, and his second, the Blade's.
+ * Ocellus (raid steps 24 to 26), the last boss of The Fractured Archive, in the vault's arena on its upper floor: his
+ * first phase, the shielded one, whose blue bar is his first-phase hitpoints, his second, the Blade's, and his third.
  *
  * - The hooded figure ([INTRO]) waits in the arena; its options ready a player up, and the fight begins once every one
  *   of the party standing has come into the room and readied, or [READY_TIMEOUT] ticks after the first ready
@@ -85,8 +99,17 @@ object OcellusLines : Lines("tfa_ocellus", "The_Fractured_Archive/Strategies") {
  *   portal on its two arms purple; [FLOOR_PORTAL_AT] ticks in, an orange portal on its floor for [FLOOR_PORTAL_TICKS]
  *   ticks ([floorPortal]), which moves whoever steps on it to the same spot in the next quadrant clockwise; and
  *   [LAST_VOLLEY_AT] ticks in, every purple portal fires across the quadrant, killing whoever is still in it.
- * - [SECOND_PHASE_TICKS] ticks in, in the middle of the third quadrant's turn, [OcellusLines.THIS_IS_ENOUGH]. STAND-IN
- *   until step 26: then, as his third phase would begin, he dies, and the room is done.
+ * - [SECOND_PHASE_TICKS] ticks in, in the middle of the third quadrant's turn, [OcellusLines.THIS_IS_ENOUGH], and
+ *   [THIRD_PHASE_AFTER] later his third phase (raid step 26a, [toThirdPhase]): he becomes [P3], with Attack, on the same
+ *   bar, holding the quadrant the second phase ended in. The Blade drops, the portals go, and the cross falls
+ *   ([thirdPhase]): the arms crack at [ARMS_CRACK_AT] (whoever is on them moved off), fall in at [ARMS_FALL_AT], and at
+ *   [ARMS_EMPTY_AT] stand empty with three stepping stones each ([crossing]), when he takes his quadrant from its corner
+ *   with its barriers up ([take]). His tank is the first to hit him there ([pickTank]); every [ATTACK_EVERY] ticks
+ *   melee, melee and his slash on the tank, twice ([attack], [slash]), or a void shot at everyone with no tank in reach.
+ *   At each of [FALLS_AT]% of his bar his quadrant falls ([startFall], [falling]): his line and the barriers down, so
+ *   the party can Jump the stones clockwise to the next ([jump]); his second line; the fall, losing whoever is still on
+ *   it; and he takes the next. STAND-IN until step 27: after the third fall, as his final stand would begin, he dies,
+ *   and the room is done.
  *
  * From the OSRS Wiki (Ocellus, read 2026-11-10): his first phase's stats and bonuses (npc-combat.json), 3 by 3, the
  * 5-tick attack speed, magic and ranged, the max hit 36, the 60% Defence drain cap, poison and venom immunity, his
@@ -139,6 +162,18 @@ object OcellusLines : Lines("tfa_ocellus", "The_Fractured_Archive/Strategies") {
  * floor portal's destination (the same spot in the next quadrant). From the Wiki's changes, an immunity window after
  * the floor portal. Guessed: the pools' graphic, which tiles and no prayer against them, the floor portal at the
  * quadrant's middle, the immunity's [FLOOR_PORTAL_IMMUNE] ticks covering the pools as well as the shots.
+ *
+ * Step 26a: from the capture notes, the third phase on the same bar, the Blade's drop, the portals going, the arms'
+ * cracking, falling and empty forms with their timings and graphics, the middle's void, the stones and the crossings'
+ * ends, the quadrant the second phase ended in first and then clockwise from its corner with its barriers, his
+ * rotation and his tank, the slash's wave, the falls at 75, 50 and 25% with his lines and their timings, the fallen
+ * quadrant losing whoever is on it and the stones of the arms beside it; from the Wiki, the third phase's stats and
+ * bonuses, his speed of 3 and max hits (melee 30, magic 36), and the void shot when he can't reach the tank; from the
+ * 242 cache, the locs, their sizes and collision, and the animation and graphic ids by their names; from Sam's
+ * recordings, the chat line naming his tank. Guessed: see the README (which arm loc is which, the stones' tiles, one
+ * Jump over a whole arm, who is moved where off the cross, his corner in a quadrant, his first attack's timing, the
+ * slash's roll and prayer, his lines picked at random, no attacks while a quadrant falls). Not sent: the barriers' locs
+ * (tiles unknown), his fades, the fallen quadrant's floor locs.
  */
 object Ocellus {
     /** What `::raid` and the raid flow know the fight by. */
@@ -368,6 +403,86 @@ object Ocellus {
     /** vfx_ocellus_p2_sword_discharge: on the Blade as the floor portal opens (tsps). */
     const val SPOT_SWORD_DISCHARGE = 4305
 
+    /** His third phase (raid step 26a): the 242 cache's `tfa_ocellus_p3`, with Attack, on the second phase's bar. */
+    const val P3 = 16677
+
+    /** Ticks after the second phase's line that the third begins. Guessed: the next. */
+    const val THIRD_PHASE_AFTER = 1
+
+    /**
+     * Ticks into the third phase: the Blade's drop explodes, the portals go, the arms crack and anyone on them or the
+     * middle is moved off, the arms fall in, and their empty forms stand with the stepping stones, when he takes his first
+     * quadrant (tsps).
+     */
+    const val SWORD_DROP_AT = 1
+    const val PORTALS_GO_AT = 2
+    const val ARMS_CRACK_AT = 4
+    const val ARMS_FALL_AT = 9
+    const val ARMS_EMPTY_AT = 12
+
+    /** The arms' explosions run out from the middle every [EXPLOSION_EVERY] tiles, [EXPLOSION_CYCLES] client cycles apart (tsps). */
+    const val EXPLOSION_EVERY = 3
+    const val EXPLOSION_CYCLES = 15
+
+    /**
+     * The arms of the cross as they fall (`tfa_wallkit_archive03_straight_collapse_01` to `_04`, 3 by 11 and 11 by 3,
+     * blocking walking and shots; guessed: north, east, south, west in that order), their empty forms after (blocking only
+     * walking), the middle's void (`tfa_ocellus_platform_void_noblockrange`), and the stepping stones ("Gap", Jump): the
+     * middle one and each arm's outer ones.
+     */
+    val LOC_ARMS = listOf(62929, 62930, 62931, 62932)
+    val LOC_ARMS_EMPTY = listOf(62933, 62934, 62935, 62936)
+    const val LOC_VOID = 62692
+    const val LOC_STONE_MIDDLE = 62686
+    val LOC_STONES_OUTER = listOf(62687, 62688, 62689, 62690)
+
+    /** Every stepping stone's loc type: their Jump is handled on the copies in a run's instance ([register]). */
+    val GAPS: Set<Int> = (LOC_STONES_OUTER + LOC_STONE_MIDDLE).toSet()
+
+    /** The Blade's drop and the arms' four explosions (tsps: `tfa_arena_collapsing_explosion02, 03, 04, 01`). */
+    const val SPOT_SWORD_DROP = 4388
+    val SPOT_ARM_EXPLOSIONS = listOf(4391, 4392, 4393, 4390)
+
+    /** A hop onto a stone (`human_steppingstonejump`), a tick each (tsps); the exact move's cycles are guessed. */
+    const val ANIM_JUMP = 769
+    const val JUMP_CYCLES = 30
+
+    /** His attacks: three ticks apart (Wiki: speed 3), melee, melee and a slash, twice (tsps). */
+    const val ATTACK_EVERY = 3
+    const val ROTATION = 6
+    const val ANIM_MELEE = 14842
+    const val ANIM_SLASH = 14846
+    const val ANIM_VOID_SHOT = 14850
+
+    /** His first attack in a quadrant, this many ticks after he takes it. Guessed. */
+    const val FIRST_ATTACK_AFTER = 3
+
+    /**
+     * The slash: a wave [SLASH_DEPTH] tiles deep and his width in front of him towards the tank, its rows
+     * [SLASH_ROW_CYCLES] cycles apart the tick after his swing, hitting [SLASH_LANDS] ticks after the swing (tsps).
+     */
+    const val SLASH_DEPTH = 3
+    const val SLASH_ROW_CYCLES = 2
+    const val SLASH_LANDS = 2
+    const val SPOT_SLASH = 4335
+
+    /** His void shot at everyone when he can't reach the tank (Wiki), his magic max 36 (Wiki); its graphics guessed. */
+    const val VOID_SHOT_MAX = 36
+    val VOID_SHOT = NpcRangedAttack(anim = ANIM_VOID_SHOT, projectile = 4297, impact = 4293, maxHit = VOID_SHOT_MAX)
+
+    /**
+     * A quadrant falls at 75, 50 and 25% of his bar (tsps): his first line and the barriers down, then by ticks since
+     * then his second line, his fade out, the quadrant's fall, and his taking the next.
+     */
+    val FALLS_AT = listOf(75, 50, 25)
+    const val FALL_LINE = 11
+    const val FALL_FADE = 12
+    const val FALL_FALLS = 13
+    const val FALL_NEXT = 17
+
+    /** A player lost with a fallen quadrant (`tfa_ocellus_void_player_death`). */
+    const val ANIM_VOID_DEATH = 14893
+
     /** The quadrants, clockwise from the north-west, and the arms of the cross, clockwise from the north. */
     enum class Quadrant { NW, NE, SE, SW }
     enum class Arm { N, E, S, W }
@@ -427,6 +542,29 @@ object Ocellus {
         /** The floor portal's tile while it is open, and the phase tick each player who went through is safe until. */
         var floorPortal: Tile? = null
         val immune = WeakHashMap<Player, Long>()
+
+        /** The portals' locs as placed, to take them away as his third phase begins. */
+        val portalLocs = HashMap<Pair<Arm, Int>, ZoneLoc>()
+
+        /** His third phase: the quadrant he holds, the phase tick he took it (-1 while he hasn't one). */
+        var held = Quadrant.NW
+        var heldSince = -1L
+
+        /** Its two barriers up: nobody jumps. */
+        var barriers = false
+
+        /** The phase tick his quadrant began to fall (-1 when it isn't), and how many have fallen. */
+        var fallStart = -1L
+        val fallen = LinkedHashSet<Quadrant>()
+
+        /** The tank, the next attack's tick and where in his rotation it is. */
+        var tank: Player? = null
+        var nextAttack = 0L
+        var rotation = 0
+
+        /** The arms' locs, the middle's void, and each arm's three stepping stones standing. */
+        val armLocs = HashMap<Arm, ZoneLoc>()
+        val stones = HashMap<Arm, List<ZoneLoc>>()
     }
 
     private val states = WeakHashMap<Npc, State>()
@@ -447,6 +585,15 @@ object Ocellus {
 
     /** The portals standing in his second phase, by arm and index out from the middle: true for purple. For tests. */
     fun portals(boss: Npc): Map<Pair<Arm, Int>, Boolean> = states[boss]?.portals?.toMap().orEmpty()
+
+    /** The quadrant he holds in his third phase, null before he takes one; for tests. */
+    fun held(boss: Npc): Quadrant? = states[boss]?.takeIf { it.heldSince >= 0 }?.held
+
+    /** The quadrants fallen in his third phase, in order; for tests. */
+    fun fallen(boss: Npc): List<Quadrant> = states[boss]?.fallen?.toList().orEmpty()
+
+    /** His tank in his third phase; for tests. */
+    fun tank(boss: Npc): Player? = states[boss]?.tank
 
     /** The arena's middle tile, where the arms of the cross meet, for a boss who became his first phase at ([x], [z]). */
     fun centre(x: Int, z: Int): Tile = middle(x, z).let { Tile(it.x + 1, it.z + 1) }
@@ -505,6 +652,54 @@ object Ocellus {
         }
     }
 
+    /**
+     * The way over [arm] once the cross has fallen: from the quadrant [from] to [to], the next clockwise, over its three
+     * stones (the outer one nearer [from] first), from the edge tile [start] to the tile [land] (tsps: SE 4129,5663 to SW
+     * 4125,5669, SW 4117,5671 to NW 4123,5675, NW 4125,5683 to NE 4129,5677, NE 4137,5675 to SE 4131,5671). Guessed: the
+     * stones' tiles, evenly between those.
+     */
+    class Crossing(val arm: Arm, val from: Quadrant, val to: Quadrant, val start: Tile, val stones: List<Tile>, val land: Tile)
+
+    fun crossing(centre: Tile, arm: Arm): Crossing {
+        val (cx, cz) = centre.x to centre.z
+        return when (arm) {
+            Arm.S -> Crossing(arm, Quadrant.SE, Quadrant.SW, Tile(cx + 2, cz - 10), listOf(Tile(cx + 1, cz - 9), Tile(cx, cz - 7), Tile(cx - 1, cz - 5)), Tile(cx - 2, cz - 4))
+            Arm.W -> Crossing(arm, Quadrant.SW, Quadrant.NW, Tile(cx - 10, cz - 2), listOf(Tile(cx - 9, cz - 1), Tile(cx - 7, cz), Tile(cx - 5, cz + 1)), Tile(cx - 4, cz + 2))
+            Arm.N -> Crossing(arm, Quadrant.NW, Quadrant.NE, Tile(cx - 2, cz + 10), listOf(Tile(cx - 1, cz + 9), Tile(cx, cz + 7), Tile(cx + 1, cz + 5)), Tile(cx + 2, cz + 4))
+            Arm.E -> Crossing(arm, Quadrant.NE, Quadrant.SE, Tile(cx + 10, cz + 2), listOf(Tile(cx + 9, cz + 1), Tile(cx + 7, cz), Tile(cx + 5, cz - 1)), Tile(cx + 4, cz - 2))
+        }
+    }
+
+    /** The arm a player crosses to leave [quadrant] for the next clockwise. */
+    fun armOut(quadrant: Quadrant): Arm = when (quadrant) {
+        Quadrant.NW -> Arm.N
+        Quadrant.NE -> Arm.E
+        Quadrant.SE -> Arm.S
+        Quadrant.SW -> Arm.W
+    }
+
+    /** The south-west tile of [arm]'s fallen loc, 3 wide and 11 long from beside the middle's 3 by 3 out (tsps). */
+    fun armTile(centre: Tile, arm: Arm): Tile = when (arm) {
+        Arm.N -> Tile(centre.x - 1, centre.z + 2)
+        Arm.E -> Tile(centre.x + 2, centre.z - 1)
+        Arm.S -> Tile(centre.x - 1, centre.z - 12)
+        Arm.W -> Tile(centre.x - 12, centre.z - 1)
+    }
+
+    /** Whether ([x], [z]) is on the cross: an arm, 3 wide, or the middle. */
+    fun onCross(centre: Tile, x: Int, z: Int): Boolean = kotlin.math.abs(x - centre.x) <= 1 || kotlin.math.abs(z - centre.z) <= 1
+
+    /** His corner in [quadrant] in his third phase: his first phase's corner there (guessed; tsps: "from its corner tile"). */
+    fun quadrantCorner(middle: Tile, quadrant: Quadrant): Tile = corner(
+        middle,
+        when (quadrant) {
+            Quadrant.SE -> 0
+            Quadrant.NE -> 1
+            Quadrant.NW -> 2
+            Quadrant.SW -> 3
+        },
+    )
+
     /** The middle's south-west tile for a boss who became his first phase at ([x], [z]). */
     fun middle(x: Int, z: Int): Tile = Tile(x, z + MIDDLE_DZ)
 
@@ -553,6 +748,7 @@ object Ocellus {
         val first = types[P1] ?: return null
         val second = types[P2] ?: return null
         val blade = types[BLADE] ?: return null
+        val third = types[P3] ?: return null
         return EncounterDef(
             NAME, first,
             listOf(
@@ -587,12 +783,21 @@ object Ocellus {
                 PhaseDef(
                     "second",
                     cycle = listOf(CycleStep(1) { secondPhase(blade) }),
+                    endsAfter = SECOND_PHASE_TICKS + THIRD_PHASE_AFTER,
                     onStart = { toSecondPhase(second) },
+                ),
+                PhaseDef(
+                    "third",
+                    cycle = listOf(CycleStep(1) { thirdPhase() }),
+                    onStart = { toThirdPhase(third) },
                 ),
             ),
             scriptedAttacks = true,
             status = {
-                if (boss.type.id == P2) {
+                if (boss.type.id == P3) {
+                    "Ocellus ${boss.hitpoints}/${boss.maxHitpoints} hp, third phase" +
+                        (if (state.heldSince >= 0) ", quadrant ${state.held.name}" else "") + (if (state.fallStart >= 0) ", falling" else "")
+                } else if (boss.type.id == P2) {
                     "Ocellus ${boss.hitpoints}/${boss.maxHitpoints} hp, second phase" + (quadrantNow()?.let { ", quadrant ${it.name}" } ?: "")
                 } else {
                     val doing = when {
@@ -808,13 +1013,9 @@ object Ocellus {
         if (at == SECOND_PHASE_TICKS) {
             boss.effects.say(world.dialogueText.get(OcellusLines.THIS_IS_ENOUGH))
             log("this is enough")
-            // STAND-IN until step 26: his third phase isn't built, so he dies as it would begin, and the room is done.
-            log("end of the second phase: stand-in, he dies")
-            boss.holdsAtZero = false
-            boss.hitpoints = 0
-            world.meleeCombat.hit(boss, null, 0, world.tick)
             return
         }
+        if (at > SECOND_PHASE_TICKS) return
         if (at == BLADE_AT) {
             boss.effects.say(world.dialogueText.get(OcellusLines.YOUR_TIME))
             val blade = spawnAdd(bladeType, boss.x, boss.z)
@@ -963,7 +1164,7 @@ object Ocellus {
     private fun EncounterContext.portal(arm: Arm, index: Int, purple: Boolean) {
         if (state.portals[arm to index] == purple) return
         val at = portalTiles(centre(boss.spawn.x, boss.spawn.z), arm, index).first()
-        placeLoc(if (purple) LOC_PORTAL_ACTIVE else LOC_PORTAL, at.x, at.z, if (arm == Arm.N || arm == Arm.S) 1 else 0)
+        state.portalLocs[arm to index] = placeLoc(if (purple) LOC_PORTAL_ACTIVE else LOC_PORTAL, at.x, at.z, if (arm == Arm.N || arm == Arm.S) 1 else 0)
         state.portals[arm to index] = purple
     }
 
@@ -1009,6 +1210,315 @@ object Ocellus {
                 }
             }
         }
+    }
+
+    /**
+     * His third phase begins: he becomes [form], with Attack, on the same bar (tsps), as he holds the quadrant whose turn
+     * the second phase ended in. The Blade's drop and the portals' going come a tick or two in ([thirdPhase]).
+     */
+    private fun EncounterContext.toThirdPhase(form: NpcType) {
+        world.npcs.transform(boss, form, Npcs.FOREVER)
+        boss.destination = null
+        // The quadrant whose turn his second phase ended in (tsps: the portals' last).
+        state.held = Quadrant.entries[(state.firstQuadrant.ordinal + (SECOND_PHASE_TICKS - BLADE_AT) / QUADRANT_TICKS) % Quadrant.entries.size]
+        state.heldSince = -1
+        state.barriers = false
+        state.fallStart = -1
+        state.tank = null
+        log("third phase: ${boss.hitpoints} hitpoints; his quadrant ${state.held.name}")
+    }
+
+    /** One tick of his third phase: the cross falling, then his quadrant, his attacks and its fall. */
+    private fun EncounterContext.thirdPhase() {
+        val at = phaseTick.toInt()
+        val centre = centre(boss.spawn.x, boss.spawn.z)
+        when (at) {
+            SWORD_DROP_AT -> {
+                val blade = state.blade
+                if (blade != null && !blade.dead && world.npcs[blade.index] === blade) {
+                    world.zones.mapAnim(blade.x + 1, blade.z + 1, boss.level, SPOT_SWORD_DROP)
+                    world.removeNpc(blade)
+                }
+                state.blade = null
+                log("the Blade drops")
+            }
+            PORTALS_GO_AT -> {
+                for (loc in state.portalLocs.values) clearLoc(loc)
+                state.portalLocs.clear()
+                state.portals.clear()
+                log("portals go")
+            }
+            ARMS_CRACK_AT -> crackArms(centre)
+            ARMS_FALL_AT -> {
+                for (arm in Arm.entries) {
+                    val (dx, dz) = when (arm) {
+                        Arm.N -> 0 to 1
+                        Arm.E -> 1 to 0
+                        Arm.S -> 0 to -1
+                        Arm.W -> -1 to 0
+                    }
+                    for ((i, spot) in SPOT_ARM_EXPLOSIONS.withIndex()) {
+                        val out = 2 + EXPLOSION_EVERY * i
+                        world.zones.mapAnim(centre.x + dx * out, centre.z + dz * out, boss.level, spot, delay = EXPLOSION_CYCLES * i)
+                    }
+                }
+                log("the arms fall in")
+            }
+            ARMS_EMPTY_AT -> {
+                for (arm in Arm.entries) {
+                    val tile = armTile(centre, arm)
+                    state.armLocs[arm] = placeLoc(LOC_ARMS_EMPTY[arm.ordinal], tile.x, tile.z)
+                    val way = crossing(centre, arm)
+                    state.stones[arm] = way.stones.mapIndexed { i, stone ->
+                        placeLoc(if (i == 1) LOC_STONE_MIDDLE else LOC_STONES_OUTER[arm.ordinal], stone.x, stone.z)
+                    }
+                }
+                log("stepping stones stand")
+                take(state.held)
+            }
+        }
+        if (state.heldSince < 0) return
+        val fall = state.fallStart
+        if (fall >= 0) {
+            falling((phaseTick - fall).toInt())
+            return
+        }
+        val due = FALLS_AT.getOrNull(state.fallen.size)
+        if (due != null && boss.hitpoints * 100 <= boss.maxHitpoints * due) {
+            startFall()
+            return
+        }
+        pickTank()
+        if (phaseTick >= state.nextAttack) {
+            attack(state.rotation)
+            state.rotation = (state.rotation + 1) % ROTATION
+            state.nextAttack = phaseTick + ATTACK_EVERY
+        }
+    }
+
+    /**
+     * The arms crack and stand solid (tsps), with the middle's 3 by 3 blocked: whoever is on the cross is moved into
+     * the quadrant beside them, or from the middle into his (the notes' estimate; which quadrant guessed).
+     */
+    private fun EncounterContext.crackArms(centre: Tile) {
+        for (arm in Arm.entries) {
+            val tile = armTile(centre, arm)
+            state.armLocs[arm] = placeLoc(LOC_ARMS[arm.ordinal], tile.x, tile.z)
+        }
+        for (dx in -1..1) for (dz in -1..1) placeLoc(LOC_VOID, centre.x + dx, centre.z + dz)
+        for (player in players) {
+            if (!onCross(centre, player.x, player.z)) continue
+            val westOfHis = state.held == Quadrant.NW || state.held == Quadrant.SW
+            val southOfHis = state.held == Quadrant.SE || state.held == Quadrant.SW
+            val dx = player.x - centre.x
+            val dz = player.z - centre.z
+            val to = when {
+                kotlin.math.abs(dx) <= 1 && kotlin.math.abs(dz) <= 1 -> quadrantTile(centre, state.held, 2, 2)
+                kotlin.math.abs(dx) <= 1 -> Tile(centre.x + if (dx > 0 || (dx == 0 && !westOfHis)) 2 else -2, player.z)
+                else -> Tile(player.x, centre.z + if (dz > 0 || (dz == 0 && !southOfHis)) 2 else -2)
+            }
+            world.teleport(player, to.x, to.z, boss.level)
+            log("${player.username} moved off the cross to ${to.x},${to.z}")
+        }
+        log("the arms crack")
+    }
+
+    /** He takes [quadrant] from its corner, its barriers up, his tank to be found and his rotation from its start. */
+    private fun EncounterContext.take(quadrant: Quadrant) {
+        val corner = quadrantCorner(middle(boss.spawn.x, boss.spawn.z), quadrant)
+        world.npcs.teleport(boss, corner.x, corner.z)
+        boss.effects.spotanim(0, SPOT_TELEPORT_IN, 0)
+        state.held = quadrant
+        state.heldSince = phaseTick
+        state.barriers = true
+        state.fallStart = -1
+        state.tank = null
+        state.rotation = 0
+        state.nextAttack = phaseTick + FIRST_ATTACK_AFTER
+        log("takes quadrant ${quadrant.name} from ${corner.x},${corner.z}; barriers up")
+    }
+
+    /**
+     * His tank (tsps): the first to hit him while they stay in his quadrant. Whoever hit him last, if they are in it,
+     * when he has none. The party is told who he turns to ([OcellusLines.TURNS_TO]; Sam's recordings).
+     */
+    private fun EncounterContext.pickTank() {
+        val centre = centre(boss.spawn.x, boss.spawn.z)
+        val tank = state.tank
+        if (tank != null && (tank.dead || players.none { it === tank } || quadrant(centre, tank.x, tank.z) != state.held)) {
+            state.tank = null
+            log("${tank.username} is no longer his tank")
+        }
+        if (state.tank != null) return
+        val attacker = boss.attacker ?: return
+        if (attacker.dead || players.none { it === attacker } || quadrant(centre, attacker.x, attacker.z) != state.held) return
+        if (boss.attackedTick < state.heldSince) return
+        state.tank = attacker
+        for (player in players) player.message(world.textFor(player)[OcellusLines.TURNS_TO, "name" to attacker.username])
+        log("turns to ${attacker.username}")
+    }
+
+    /** Whether [player] stands beside his footprint, not at a corner of it: where he reaches with melee. */
+    private fun EncounterContext.beside(player: Player): Boolean {
+        val size = boss.type.size
+        val alongX = player.x in boss.x until boss.x + size
+        val alongZ = player.z in boss.z until boss.z + size
+        return (alongX && (player.z == boss.z - 1 || player.z == boss.z + size)) || (alongZ && (player.x == boss.x - 1 || player.x == boss.x + size))
+    }
+
+    /**
+     * Attack [step] of his rotation (tsps): a melee hit on the tank, or at steps 2 and 5 his slash. With no tank, or one
+     * he can't reach, a void shot at everyone instead (Wiki). Guessed: no tank counting as one out of reach.
+     */
+    private fun EncounterContext.attack(step: Int) {
+        val tank = state.tank
+        if (tank == null || !beside(tank)) {
+            log("void shot at ${players.joinToString { it.username }}")
+            for (player in players) world.meleeCombat.fireAt(boss, player, world.tick, VOID_SHOT, AttackType.MAGIC)
+            return
+        }
+        if (step % 3 == 2) {
+            slash(tank)
+            return
+        }
+        world.meleeCombat.swingAt(boss, tank, world.tick, ANIM_MELEE)
+        log("melee at ${tank.username}")
+    }
+
+    /**
+     * His slash towards [tank] (tsps): a wave [SLASH_DEPTH] deep across his width on that side, its rows shown the tick
+     * after the swing, hitting a tick later whoever is on it. Guessed: a melee roll at his max, which Protect from Melee
+     * blocks, as for his other swings.
+     */
+    private fun EncounterContext.slash(tank: Player) {
+        val size = boss.type.size
+        val (dx, dz) = when {
+            tank.z >= boss.z + size -> 0 to 1
+            tank.z < boss.z -> 0 to -1
+            tank.x >= boss.x + size -> 1 to 0
+            else -> -1 to 0
+        }
+        val rows = (1..SLASH_DEPTH).map { out ->
+            (0 until size).map { across ->
+                when {
+                    dz > 0 -> Tile(boss.x + across, boss.z + size - 1 + out)
+                    dz < 0 -> Tile(boss.x + across, boss.z - out)
+                    dx > 0 -> Tile(boss.x + size - 1 + out, boss.z + across)
+                    else -> Tile(boss.x - out, boss.z + across)
+                }
+            }
+        }
+        boss.face(tank)
+        boss.effects.anim(ANIM_SLASH)
+        log("slash towards ${tank.username}")
+        after(1) {
+            for ((row, tiles) in rows.withIndex()) for (tile in tiles) world.zones.mapAnim(tile.x, tile.z, boss.level, SPOT_SLASH, delay = SLASH_ROW_CYCLES * row)
+        }
+        val wave = rows.flatten().toSet()
+        after(SLASH_LANDS) {
+            if (boss.dead) return@after
+            for (player in players) {
+                if (Tile(player.x, player.z) !in wave) continue
+                val roll = world.combat.npcAttack(boss, player, AttackType.SLASH) ?: continue
+                val rolled = if (CombatMath.rollHits(world.random, roll.attackRoll, roll.defenceRoll)) CombatMath.rollDamage(world.random, roll.maxHit) else 0
+                val prayed = world.prayers.protects(player, AttackType.SLASH)
+                val dealt = world.meleeCombat.hitPlayer(player, boss, if (prayed) 0 else rolled, world.tick)
+                if (!player.dead) player.attackedTick = world.tick
+                log("slash hits ${player.username} for $dealt" + if (prayed) ", prayed against" else "")
+            }
+        }
+    }
+
+    /** His bar reached the next of [FALLS_AT]: his line, and the barriers drop (tsps). */
+    private fun EncounterContext.startFall() {
+        state.fallStart = phaseTick
+        state.barriers = false
+        val line = if (roll(0, 1) == 0) OcellusLines.OBLITERATION else OcellusLines.RUN
+        boss.effects.say(world.dialogueText.get(line))
+        log("${state.held.name} to fall at ${boss.hitpoints}/${boss.maxHitpoints}; barriers down")
+    }
+
+    /**
+     * [t] ticks into his quadrant's fall (tsps): his second line, his fade out, the quadrant's fall with whoever is still
+     * on it and the stones of the arms beside it, and then the next quadrant. STAND-IN until step 27: after the third
+     * fall, when his final stand would begin, he dies, and the room is done. Guessed: no attacks while it falls.
+     */
+    private fun EncounterContext.falling(t: Int) {
+        when (t) {
+            FALL_LINE -> {
+                val line = listOf(OcellusLines.THIS_END, OcellusLines.EVERYTHING_ENDS, OcellusLines.CANT_ESCAPE)[roll(0, 2)]
+                boss.effects.say(world.dialogueText.get(line))
+                log("the end line")
+            }
+            FALL_FADE -> {
+                boss.effects.spotanim(0, SPOT_TELEPORT_OUT, 0)
+                log("fades out")
+            }
+            FALL_FALLS -> {
+                val centre = centre(boss.spawn.x, boss.spawn.z)
+                val quadrant = state.held
+                state.fallen += quadrant
+                val (ns, ew) = arms(quadrant)
+                for (arm in listOf(ns, ew)) state.stones.remove(arm)?.forEach { clearLoc(it) }
+                log("quadrant ${quadrant.name} falls")
+                for (player in players) {
+                    if (quadrant(centre, player.x, player.z) != quadrant) continue
+                    player.anim(ANIM_VOID_DEATH)
+                    val dealt = fromTheRoom(player, maxOf(1, player.hitpoints))
+                    log("${player.username} lost with it for $dealt")
+                }
+            }
+            FALL_NEXT -> {
+                if (state.fallen.size >= FALLS_AT.size) {
+                    // STAND-IN until step 27: his final stand isn't built, so he dies as it would begin.
+                    log("final stand: stand-in, he dies")
+                    boss.holdsAtZero = false
+                    boss.hitpoints = 0
+                    world.meleeCombat.hit(boss, null, 0, world.tick)
+                    return
+                }
+                take(Quadrant.entries[(state.held.ordinal + 1) % Quadrant.entries.size])
+            }
+        }
+    }
+
+    /**
+     * The Jump option on a stepping stone (tsps): from the quadrant before its arm, clockwise, while his barriers are
+     * down, the player hops onto each of the arm's three stones and off onto the next quadrant, a tick a hop. Back the
+     * other way: [OcellusLines.WAY_BACK_CLOSED] (the notes' estimate). Guessed: one Jump carrying them all the way over (live
+     * hops a stone a click), and nothing said while the barriers stand.
+     */
+    private suspend fun ScriptContext.jump(world: World, op: Op) {
+        val loc = op.loc ?: return
+        val fight = world.encounters.all.firstOrNull { it.def.name == NAME && !it.ended && it.covers(loc.x, loc.z) } ?: return
+        val state = states[fight.boss] ?: return
+        val centre = centre(fight.boss.spawn.x, fight.boss.spawn.z)
+        val (arm, stones) = state.stones.entries.firstOrNull { (_, locs) -> locs.any { it.x == loc.x && it.z == loc.z } } ?: return
+        val way = crossing(centre, arm)
+        if (stones.isEmpty()) return
+        if (quadrant(centre, player.x, player.z) != way.from) {
+            player.message(world.textFor(player)[OcellusLines.WAY_BACK_CLOSED])
+            fight.log("${player.username} can't jump the ${arm.name} arm back")
+            return
+        }
+        if (state.barriers) {
+            fight.log("${player.username} can't jump the ${arm.name} arm: barriers up")
+            return
+        }
+        fight.log("${player.username} jumps the ${arm.name} arm")
+        for (to in way.stones + way.land) {
+            val angle = Agility.angle(to.x - player.x, to.z - player.z)
+            player.effects.exactMove(PlayerEffects.ExactMove(player.x, player.z, to.x, to.z, 0, JUMP_CYCLES, angle))
+            player.anim(ANIM_JUMP)
+            delay(1)
+            world.teleport(player, to.x, to.z, fight.boss.level)
+        }
+        fight.log("${player.username} over to ${way.to.name} at ${way.land.x},${way.land.z}")
+    }
+
+    /** His stepping stones' Jump, on their copies in a run's instance ([ArchiveRaids.INSTANCE_LOCS] has [GAPS]). */
+    fun register(world: World) {
+        for (gap in GAPS) world.handlers.onLoc(gap, 1) { op -> jump(world, op) }
     }
 
     /** Walking to his corner: a step a tick, a shot every [SHOT_EVERY], and the corner's cracks the tick after he's there. */
