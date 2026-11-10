@@ -688,6 +688,11 @@ crystals on a super energy and lava scale shards on an antifire potion make stam
 or shard a dose; unicorn horn dust, snake weed and nail beast nails, in that order, take a super restore of any dose to
 sanfew serum.
 
+Bob Barter (herbs) stands at the Grand Exchange (Artisan 2, A2b, `game/skill/Decanting.kt`, words under `bob_barter.*`).
+Decant on him, or "Can you decant things for me?" in his talk, opens the decant interface; a dose button (or its number
+key) decants every potion in the backpack to that many doses, with one potion of fewer for what is left over. Empty
+vials he is short of are bought from the coins held.
+
 | Herblore behaviour | Source |
 |--------------------|--------|
 | The 15 herbs' cleaning levels and XP; Clean taking no time | OSRS Wiki, each grimy herb's page |
@@ -701,7 +706,10 @@ sanfew serum.
 | Super combat (90, 150 XP), stamina (77, 25.5 XP a dose), sanfew's three steps (65, 32 x doses + 64 XP in all), extended antifire (84, 27.5 XP a dose); 2 ticks each; sanfew's steps one potion a use with no Make-X box; super combat from a clean torstol giving 2 vials back | OSRS Wiki, Super combat potion, Stamina potion, Sanfew serum, Extended antifire, Money making guide/Making super combat potions |
 | Super combat from a torstol potion (unf) giving 3 vials back (its own vial spare too) | inferred |
 | Which item pairs start a super combat potion (the torstol on any of the three; the three on each other start nothing); Zogre Flesh Eaters counting as done | guessed |
-| Out: divine potions, extended super antifire, coconut-milk potions, Varlamore's, herb sacks, tar, barbarian mixes, ashes, other ground items; Bob Barter's decanting is the next step (A2b) | out of scope |
+| Out: divine potions, extended super antifire, coconut-milk potions, Varlamore's, herb sacks, tar, barbarian mixes, ashes, other ground items | out of scope |
+| Bob Barter (herbs) at the Grand Exchange (5449, `ge_expert_herbs`; Talk-to, Prices, Decant), the decant interface (582) and its four dose buttons; any dose 1 to 4, noted potions too, the potions' own vials reused, spare vials back, missing ones bought at the vial's guide price + 2; results noted when any input was or when they won't fit; his lines | OSRS Wiki, Bob Barter (herbs), Decanting and Transcript:Bob Barter (herbs) (read 2026-11-10); cache 242 (NPC, interface 582), osrs-dumps decant.if3 and decant_init |
+| His spot (3155, 3480, the Wiki's map pin, wandering 1); a potion being any item with Drink and all four "Name(n)" doses; out of cash part way, potions decanted in backpack order; "short of inventory space" when even notes won't fit; 3 coins a vial with no guide price; the chatheads' expressions | guessed |
+| Out: the herb and potion price guide (Prices, and its Talk-to option, end there), cups of tea, barbarian mixes, Guthix rests, oils, moth mixes; the free-to-play lines | out of scope |
 
 ### Agility
 
