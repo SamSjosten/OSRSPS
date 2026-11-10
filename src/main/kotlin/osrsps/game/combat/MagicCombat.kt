@@ -170,11 +170,10 @@ class MagicCombat(
         )
     }
 
-    /** How far [spell] reaches: a powered staff's spell 8 tiles, 10 on longrange (OSRS Wiki, Tumeken's shadow). */
-    private fun range(player: Player, spell: CombatSpell): Int = when {
-        spell.staff == null -> RANGE
-        combat.style(player).stance == AttackStance.LONGRANGE -> POWERED_LONGRANGE
-        else -> POWERED_RANGE
+    /** How far [spell] reaches: a powered staff's spell its own range (8 tiles for Tumeken's shadow), 2 more on longrange. */
+    private fun range(player: Player, spell: CombatSpell): Int {
+        val staff = spell.staff ?: return RANGE
+        return if (combat.style(player).stance == AttackStance.LONGRANGE) staff.range + POWERED_LONGRANGE_BONUS else staff.range
     }
 
     /** The spell the player autocasts, or null when they don't. */
@@ -432,9 +431,8 @@ class MagicCombat(
         const val HARMONISED_STAFF = 24423
         const val HARMONISED_SPEED = 4
 
-        /** A powered staff's spell reaches 8 tiles, 10 on longrange (OSRS Wiki, Tumeken's shadow). */
-        const val POWERED_RANGE = 8
-        const val POWERED_LONGRANGE = 10
+        /** A powered staff's spell reaches 2 tiles more on longrange (OSRS Wiki, Tumeken's shadow: 8 and 10; Zorya's tome: 7 and 9). */
+        const val POWERED_LONGRANGE_BONUS = 2
 
         /** Guessed: about the hands, as the ranged launch graphics are. */
         const val CASTING_HEIGHT = 92

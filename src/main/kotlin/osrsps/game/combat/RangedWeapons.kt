@@ -23,6 +23,9 @@ private val logger = KotlinLogging.logger {}
 enum class AmmoKind {
     ARROWS,
     BOLTS,
+
+    /** The ascension crossbows' own, which no other crossbow fires (OSRS Wiki, Ascension crossbows). */
+    ASCENSION_BOLTS,
     DARTS,
     JAVELINS,
 
@@ -211,7 +214,7 @@ class RangedWeapons(private val weapons: Map<Int, RangedWeapon>, private val amm
             val category = Weapons.category(type)
             val expected = when (value.kind) {
                 AmmoKind.ARROWS -> Weapons.BOW
-                AmmoKind.BOLTS -> Weapons.CROSSBOW
+                AmmoKind.BOLTS, AmmoKind.ASCENSION_BOLTS -> Weapons.CROSSBOW
                 AmmoKind.DARTS -> Weapons.THROWN
                 AmmoKind.JAVELINS -> Weapons.CROSSBOW
                 AmmoKind.CHINCHOMPAS -> Weapons.GRENADE

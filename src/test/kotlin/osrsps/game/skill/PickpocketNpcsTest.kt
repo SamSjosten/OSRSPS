@@ -10,7 +10,7 @@ import osrsps.game.GameRandom
 /**
  * Thieving 2 step T1a against the OSRS Wiki (read 2026-11-10): the farmer's, Al Kharid warrior's and guard's numbers
  * and success charts, the farmer's table, the NPCs that joined existing pockets, and the gloves of silence's 5%; and step
- * T1b's rogues, Knights of Ardougne, watchmen, paladins, gnomes and heroes.
+ * T1b's rogues, Knights of Ardougne, watchmen, paladins, gnomes and heroes; and step T1c's far pickpockets.
  */
 class PickpocketNpcsTest {
     private fun pocketOf(npc: Int) = Pickpocketing.POCKETS.single { npc in it.npcs }
@@ -131,6 +131,51 @@ class PickpocketNpcsTest {
         val watchman = pocketOf(Pickpocketing.WATCHMEN.first()).extra.single()
         assertEquals(listOf(BREAD, 1), listOf(watchman.obj, watchman.min))
         assertTrue(pocketOf(Pickpocketing.HEROES.first()).extra.isEmpty())
+    }
+
+    @Test
+    fun `the far pockets have the Wiki's levels, XP, charts, damage, pouches and stuns`() {
+        // npc, level, XP tenths, low, high, damage, pouch, coins, stun ticks, op
+        val rows = listOf(
+            listOf(Pickpocketing.CAVE_GOBLINS.first(), 36, 400, 75, 240, 1, Pickpocketing.CAVE_GOBLIN_POUCH, 10, 50, 9, 3),
+            listOf(Pickpocketing.FREMENNIK_CITIZENS.first(), 45, 650, 65, 240, 2, Pickpocketing.FREMENNIK_POUCH, 40, 40, 9, 3),
+            listOf(Pickpocketing.DESERT_BANDITS.first(), 53, 794, 50, 240, 3, Pickpocketing.DESERT_BANDIT_POUCH, 30, 30, 9, 3),
+            listOf(Pickpocketing.WEALTHY_CITIZENS.first(), 50, 960, 35, 200, 3, Pickpocketing.WEALTHY_CITIZEN_POUCH, 85, 85, 7, 1),
+            listOf(Pickpocketing.VYRES.first(), 82, 3069, 8, 128, 5, Pickpocketing.VYRE_POUCH, 230, 315, 10, 3),
+            listOf(Pickpocketing.ELVES.first(), 85, 3533, 6, 100, 5, Pickpocketing.ELF_POUCH, 280, 350, 10, 3),
+        )
+        for (row in rows) {
+            val pocket = pocketOf(row[0])
+            assertEquals(row.subList(1, 7), listOf(pocket.level, pocket.xpTenths, pocket.low, pocket.high, pocket.damage, pocket.anyPouch), pocket.who)
+            assertEquals(row[7]..row[8], Pickpocketing.POUCH_COINS[pocket.anyPouch], pocket.who)
+            assertEquals(listOf(row[9], row[10]), listOf(pocket.stunTicks, pocket.op), pocket.who)
+        }
+        val hur = pocketOf(Pickpocketing.TZHAAR_HURS.first())
+        assertEquals(listOf(90, 1034, -200, 200, 4, 10, 4), listOf(hur.level, hur.xpTenths, hur.low, hur.high, hur.damage, hur.stunTicks, hur.heatDamage))
+        assertEquals(null, hur.anyPouch)
+        // The Wiki's charts: TzHaar-Hur -200/200 to -210/210 with the gloves, vyre 8/128 to 8/134, elf 6/100 to 6/105.
+        fun gloves(value: Int) = value * PickpocketGear.GLOVES_PERCENT / 100
+        assertEquals(listOf(-210, 210, 8, 134, 6, 105), listOf(gloves(-200), gloves(200), gloves(8), gloves(128), gloves(6), gloves(100)))
+        // The rolls the charts give: vyres 9/256 at 1 and 129/256 at 99, elves 101/256 at 99, TzHaar-Hur 164/256 at 90.
+        assertEquals(listOf(9, 129), listOf(SuccessRoll.chance(8, 128, 1), SuccessRoll.chance(8, 128, 99)))
+        assertEquals(101, SuccessRoll.chance(6, 100, 99))
+        assertEquals(164, SuccessRoll.chance(-200, 200, 90))
+        val all = Pickpocketing.POCKETS.flatMap { it.npcs }
+        assertEquals(all.size, all.toSet().size)
+    }
+
+    @Test
+    fun `the far tables add up to the Wiki's`() {
+        fun weights(npc: Int) = pocketOf(npc).loot.sumOf { it.weight(1) }
+        assertEquals(
+            listOf(20, 7, 85, 132, 128, 195),
+            listOf(Pickpocketing.CAVE_GOBLINS, Pickpocketing.DESERT_BANDITS, Pickpocketing.WEALTHY_CITIZENS, Pickpocketing.VYRES, Pickpocketing.ELVES, Pickpocketing.TZHAAR_HURS)
+                .map { weights(it.first()) },
+        )
+        val tokkul = pocketOf(Pickpocketing.TZHAAR_HURS.first()).loot.single { it.obj == Pickpocketing.TOKKUL }
+        assertEquals(listOf(182, 3, 7), listOf(tokkul.weight(1), tokkul.min, tokkul.max))
+        assertEquals(79, pocketOf(Pickpocketing.WEALTHY_CITIZENS.first()).loot.single { it.obj == Pickpocketing.WEALTHY_CITIZEN_POUCH }.weight(1))
+        assertEquals(109, pocketOf(Pickpocketing.VYRES.first()).loot.single { it.obj == Pickpocketing.VYRE_POUCH }.weight(1))
     }
 
     private companion object {

@@ -42,11 +42,22 @@ class RangedWeaponsTest {
     @Test
     fun `the file lists every bow, crossbow and ammunition it names`() {
         assertEquals(names.size, weapons.weaponCount + weapons.ammoCount)
-        // 33 bows, crossbows, the blowpipe and chinchompas; 9 darts, 8 knives with their poisons, 7 thrownaxes, 2 ballistae.
-        assertEquals(33 + 9 * 4 + 8 * 4 + 7 + 2, weapons.weaponCount)
-        // 25 kinds, and (p), (p+) and (p++) of each arrow and bolt; 8 javelins with theirs.
+        // 33 bows, crossbows, the blowpipe and chinchompas; the ascension crossbows; 9 darts, 8 knives with their
+        // poisons, 7 thrownaxes, 2 ballistae.
+        assertEquals(33 + 1 + 9 * 4 + 8 * 4 + 7 + 2, weapons.weaponCount)
+        // 25 kinds, and (p), (p+) and (p++) of each arrow and bolt; 8 javelins with theirs; the five ascension bolts.
         // A4c: the ten gem-tipped bolts with their dragon bolts (20), and both enchanted (20).
-        assertEquals(25 + 16 * 3 + 8 * 4 + 20 + 20, weapons.ammoCount)
+        assertEquals(25 + 16 * 3 + 8 * 4 + 5 + 20 + 20, weapons.ammoCount)
+    }
+
+    @Test
+    fun `the ascension crossbows fire ascension bolts and nothing else, and nothing else fires them`() {
+        for (bolts in listOf("ascension_bolts", "ascension_bolts_diamond_enchanted", "ascension_bolts_onyx_unenchanted")) {
+            assertTrue(fires("ascension_crossbows", bolts), bolts)
+            assertFalse(fires("zaryte_xbow", bolts), bolts)
+        }
+        assertFalse(fires("ascension_crossbows", "bolt"))
+        assertFalse(fires("ascension_crossbows", "dragon_bolts"))
     }
 
     @Test
