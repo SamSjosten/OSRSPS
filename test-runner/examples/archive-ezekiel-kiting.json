@@ -68,11 +68,21 @@
    "comment": "in at the way into his room, east of his arena"
   },
   {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "the client redraws the scene after the teleport; a click before that goes to the wrong tile (\"I can't reach that!\" on the VMs, 2026-11-10)"
+  },
+  {
    "step": "locOption",
    "locId": 63087,
    "option": "Use",
    "timeoutMs": 20000,
    "comment": "the Archive transporter: into his arena, 3 tiles east of him, the first in, so his tank"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 10,
+   "comment": "the walk to the transporter, a tile a tick, then into the arena: 7 to 8 ticks on the VM (2026-11-10)"
   },
   {
    "step": "command",
