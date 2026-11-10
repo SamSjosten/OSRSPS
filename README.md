@@ -1957,10 +1957,10 @@ leaves), and in RuneLite `test-runner/examples/party-scaling.json` (the Guardian
 
 A run of The Fractured Archive (raid step 15) is `game/raid/ArchiveRaid.kt`. The lobby's Archive Door takes the
 player's party into its own instance: the cache's map squares 63 to 65 by 86 to 88, level 0, with the nexus (64,87) on
-one of its four levels and the lobby's square left out. The party gathers in the nexus's entrance. The Archive Guardian
+its level 0 or 2 and the lobby's square left out. The party gathers in the nexus's entrance. The Archive Guardian
 is fought in the nexus's hall, where the cache lays its corpse on the nexus's later levels. Then come three rows of
 doors, each with a room behind its west and east door: Ezekiel or Bork and the Smorks, then Moia or Dreadnoth the
-Jellied, then the Dagon'hai Elder or Xarth. Last, the nexus's Passageway north opens to Ocellus's arena. Each room's
+Jellied, then the Dagon'hai Elder or Xarth. Last, the nexus's Archive Door north opens to Ocellus's arena. Each room's
 Passageway goes back out to the nexus, and so does its Archive transporter once the room is done; from a boss's arena,
 which is walled off from both, the way back is the Alliance Navigator, who comes to it three ticks after the room is
 won. A room whose boss
@@ -1977,9 +1977,12 @@ loses goes in a grave there. The party lasts through the wipe.
 |---------------------|--------|
 | The Guardian first, one room of each of three rows by its left or right door, Ocellus last; the pairs Ezekiel or Bork, Moia or Dreadnoth, Xarth or the Dagon'hai Elder | Wiki, The Fractured Archive, and "Everything You Need To Know" |
 | Each room's map square (Ezekiel 63,86, Bork 65,87, Moia 63,88, Dreadnoth 65,88, the Dagon'hai Elder 63,87, Xarth 65,86), told by its locs' names; each west door to the west room of its pair | 241.4 cache; which room is whose inferred from the names, the doors from the map's columns |
-| The nexus's doors (63088 to 63105, Enter and Quick-enter), the rooms' Passageways (62765, Exit) and Archive transporters (63087, 62610, 63134, Use and Quick-use), the nexus's Passageway north (62766) | 241.4 cache |
-| The Guardian fought in the nexus's hall; Ocellus in the arena north of it (64,88), past the nexus's Passageway | inferred: the Guardian's corpse lies in the hall on the nexus's later levels, and the Passageway is there on the last |
-| The nexus on level 0 of the cache at the start, 2 (the Guardian's corpse, a camp of crates and barricades) once the Guardian is done, 3 (and the Passageway north) once the fourth room is done | inferred from what each level holds; level 1 isn't used |
+| The nexus's doors (63088 to 63105, Enter and Quick-enter), the rooms' Passageways (62765, Exit) and Archive transporters (63087, 62610, 63134, Use and Quick-use) | 241.4 cache |
+| The nexus's Archive Door north, 7 by 2 at 4124,5621, put there by the server: shut (63110, no options) from the start, open (63111, Enter and Quick-enter) once the fourth room is done | tsps capture notes; 241.4 cache for the two types and the gap between the pillars at 4123 and 4131; its angle 0 inferred from the cache's Passageway of the same size four tiles north; opening at once, with no 63109 animation between, guessed |
+| A member down in Ocellus's room, or sent back out of it, at 4127,5620 in the nexus, the tile south of the door's middle | inferred: Sam's recording of 2026-11-09 reads "about 4127, 5622" before the fade, within a tile or two, and the door covers z 5621 and 5622 |
+| The Guardian fought in the nexus's hall; Ocellus in the arena north of it (64,88), past the nexus's Archive Door | inferred: the Guardian's corpse lies in the hall on the nexus's later levels; Sam's recording of 2026-11-09 for the arena (4127,5637 on plane 1) |
+| The nexus on level 0 of the cache at the start and 2 (the Guardian's corpse, a camp of crates and barricades) once the Guardian is done, for the rest of the run | level 2 on all three of a run's visits: Sam's recording of 2026-11-09; level 0 before the Guardian is done inferred from what it holds |
+| NOT BUILT: the cache's levels 1 and 3 of the nexus's square on the instance's level 1, as live copies them (the hall again a storey and a half up, and at its north end, level with the floor, the south end of the vault's corridor with its Passageway, 62766) | tsps capture notes for the copy; 241.4 cache for what the levels hold |
 | Contribution: each room a fixed amount, shared by damage, minions included; the two rooms of a pair the same | Wiki, "Everything You Need To Know" |
 | Each room's points 1,000, or shared evenly when nobody did damage | guessed: the Wiki gives no number |
 | A wipe sending the party to the lobby with an ordinary gravestone; the party not breaking up | Wiki, The Fractured Archive (Theatre of Blood's system; 28 October 2026 update) |
