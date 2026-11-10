@@ -26,6 +26,8 @@ object SmithingLines : Lines("smithing", "Smithing") {
     val ANVIL_LEVEL = line("anvil_level", "the message when an anvil item needs a higher level", "level", "item")
     val ANVIL_BARS = line("anvil_bars", "the message when an anvil item needs more bars than held", "bars", "bar", "item")
     val SMITHED = line("smithed", "the message on hammering out an item", "bar", "item")
+    val CANNONBALLS = line("cannonballs", "the message on taking cannonballs from the ammo mould", "amount", "item")
+    val CANNONBALL_LEVEL = line("cannonball_level", "the message when a bar needs a higher level to make cannonballs", "level", "item")
 }
 
 /**
@@ -78,6 +80,7 @@ class Smithing(private val world: World) {
                 world.handlers.onObjOnLoc(anvil, bar.obj) { op -> openAnvil(op.loc ?: return@onObjOnLoc, bar) }
             }
         }
+        Cannonballs.register(world)
         for ((component, quantity) in QUANTITY_BUTTONS) {
             world.handlers.onButton(INTERFACE, component) { setQuantity(quantity) }
         }
