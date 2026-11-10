@@ -1296,6 +1296,14 @@
       "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
       "respawnTicks": 25,
       "source": "OSRS Wiki, H.A.M. Guard (level 22), read 2026-11-10: speed 5, max hit 3, crush, no attack or strength bonus, stab and slash +7, ranged +7, crush and magic 0, respawn 25, not aggressive. The level 18 and 22 rows were read from the page's data where its infobox was garbled. The animations are guessed (unarmed, as the jail guards')"
+    },
+    {
+      "npcs": ["dttd_ham_guard_1_postquest", "dttd_ham_guard_2_postquest", "dttd_ham_guard_3_postquest", "dttd_ham_guard_4_postquest", "dttd_ham_guard_5_postquest"],
+      "attackSpeed": 5, "maxHit": 3, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 7, "slash": 7, "crush": 0, "magic": 0, "light": 7, "standard": 7, "heavy": 7 },
+      "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 25,
+      "source": "OSRS Wiki, Guard (H.A.M. Storerooms), read 2026-11-10: speed 5, max hit 3, crush, no attack or strength bonus, stab and slash +7, ranged +7, crush and magic 0, respawn 25, not aggressive (they attack a player picking a door in sight, HamStorerooms.kt). No drops on the page. The animations are guessed (unarmed, as the hideout's guards')"
     }
   ]
 }

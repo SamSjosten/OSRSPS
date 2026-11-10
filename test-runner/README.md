@@ -182,6 +182,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `thieving-t1a.json`: Thieving 2 step T1a: a farmer pickpocketed at 99 with the gloves of silence and its coin
   pouches opened, Check on carried gloves and a dodgy necklace, and an Al Kharid warrior and an Edgeville guard
   pickpocketed (with `::keys on` and `::god on`; the gloves' wear and the necklace's saves are in the headless test).
+- `ham-storerooms.json`: Misthalin piece 7 step 4b: the H.A.M. Storerooms' hidden trapdoor climbed down, the
+  south-east room's door locked and picked, its chest opened with a steel key, the door opened from inside, a crack
+  squeezed through both ways, a guard pickpocketed and the ladder back up (with `::keys on` and `::god on`; the guards
+  attacking a picker and settling are in the headless test).
 - `thieving-t1b.json`: Thieving 2 step T1b: a Knight of Ardougne, a hero, a paladin, a warrior, a watchman, a gnome and
   a rogue pickpocketed at 99, each reached by `::tele` (with `::keys on` and `::god on`; the tables, extras, stuns and
   the room check are in the headless and unit tests).
