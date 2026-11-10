@@ -210,7 +210,7 @@ object ThievingLocks {
                 world.handlers.onLoc(chest.loc, OP_SECOND) { op -> pickChest(world, op, chest) }
                 world.handlers.onObjOnLoc(chest.loc, LOCKPICK) { op -> pickChest(world, op, chest) }
             } else {
-                world.handlers.onLoc(chest.loc, OP_OPEN) { openTrapped(world, chest) }
+                world.handlers.onLoc(chest.loc, OP_OPEN) { op -> openTrapped(world, op, chest) }
                 world.handlers.onLoc(chest.loc, OP_SECOND) { op -> searchChest(world, op, chest) }
             }
         }
@@ -225,8 +225,11 @@ object ThievingLocks {
         }
     }
 
-    private suspend fun ScriptContext.openTrapped(world: World, chest: TrapChest) {
+    private suspend fun ScriptContext.openTrapped(world: World, op: Op, chest: TrapChest) {
+        val loc = op.loc ?: return
         arriveDelay()
+        // Another thief may have looted it, leaving it open, while this one walked up.
+        if (!world.locs.exists(loc)) return
         world.message(player, ThievingLockLines.CHEST_TRAP)
         player.anim(ANIM_SEARCH)
         delay(1)
@@ -272,7 +275,8 @@ object ThievingLocks {
         if (!world.locs.exists(loc)) return world.message(player, ThievingLockLines.LOOTED)
         // The room may have gone in the ticks the search took.
         if (!fits(player, chest) { world.objTypes[it]?.stackable == true }) return world.message(player, ThievingLockLines.NO_ROOM)
-        val open = world.locs.replace(loc, OPEN_CHEST, revertAfter = OPEN_TICKS + chest.respawnTicks) ?: return
+        // The world turns it empty and relocks it, so the stages go on even if the looter dies or logs out.
+        world.locs.replaceInStages(loc, OPEN_CHEST, OPEN_TICKS, chest.empty, chest.respawnTicks) ?: return
         world.message(player, ThievingLockLines.TREASURE)
         player.anim(ANIM_OPEN)
         for (item in chest.loot) {
@@ -280,14 +284,10 @@ object ThievingLocks {
             player.inventory.add(type, item.count)
         }
         player.skills.addTenths(Skill.THIEVING, chest.xpTenths)
+        val (x, z, level) = chest.teleport ?: return
         delay(OPEN_TICKS)
-        chest.teleport?.let { (x, z, level) ->
-            world.message(player, ThievingLockLines.SECOND_TRAP)
-            world.teleport(player, x, z, level)
-        }
-        // A timed swap would put back the open chest; the chest comes back as the cache has it instead.
-        val empty = world.locs.replace(open, chest.empty) ?: return
-        world.locs.restoreAfter(empty.x, empty.z, empty.level, empty.layer, chest.respawnTicks)
+        world.message(player, ThievingLockLines.SECOND_TRAP)
+        world.teleport(player, x, z, level)
     }
 
     private suspend fun ScriptContext.openDoor(world: World, op: Op) {
