@@ -1,0 +1,26 @@
+{
+  "about": "On the Lumbridge spawn with 99 Magic, a staff of air worn, the runes for ten of every standard teleport built and a banana for Ape Atoll, and two of each teleport tablet.",
+  "notes": "For the Magic utility steps (teleports first) and trying them by hand. The loadout is ours. Ten casts of the most each rune is needed for: Ape Atoll's 2 law, 2 water and 2 fire, Watchtower's 2 earth; the staff covers the air runes.",
+  "position": { "x": 3222, "z": 3218, "level": 0 },
+  "skills": { "magic": 99 },
+  "run": true,
+  "inventory": [
+    { "item": "lawrune", "count": 20 },
+    { "item": "firerune", "count": 20 },
+    { "item": "waterrune", "count": 20 },
+    { "item": "earthrune", "count": 20 },
+    { "item": "airrune", "count": 50 },
+    { "item": "banana" },
+    { "item": "poh_tablet_varrockteleport", "count": 2 },
+    { "item": "poh_tablet_lumbridgeteleport", "count": 2 },
+    { "item": "poh_tablet_faladorteleport", "count": 2 },
+    { "item": "poh_tablet_camelotteleport", "count": 2 },
+    { "item": "poh_tablet_kourendteleport", "count": 2 },
+    { "item": "poh_tablet_ardougneteleport", "count": 2 },
+    { "item": "poh_tablet_fortisteleport", "count": 2 },
+    { "item": "poh_tablet_watchtowerteleport", "count": 2 }
+  ],
+  "equipment": [
+    { "item": "staff_of_air" }
+  ]
+}

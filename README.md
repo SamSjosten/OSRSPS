@@ -482,8 +482,11 @@ candle lantern, and an unlit torch lights on a fire or range. Dark areas ask `Li
 ### Mining
 
 Mine on a rock mines it with the best pickaxe the player can use (`game/skill/Mining.kt`, words under `mining.*`):
-clay, copper, tin, iron, coal, mithril and adamantite rocks, with the bronze to crystal pickaxes. A mined rock turns into
-an empty rock (`rocks1`/`rocks2`) until it respawns.
+clay, copper, tin, iron, coal, mithril, adamantite and runite rocks, amethyst crystals and gem rocks, with the bronze to
+crystal pickaxes. A mined rock turns into an empty rock (`rocks1`/`rocks2`, amethyst an empty wall) until it respawns.
+Rocks outside Misthalin are where live has them and reached by ::tele: the Mining Guild's runite and amethyst
+(`::tele 3055 9721`, or `::scenario gathering`), Shilo Village's gem rocks (`::tele 2824 3001`), the Lava Maze's runite
+(`::tele 3058 3885`).
 
 | Mining behaviour | Source |
 |------------------|--------|
@@ -493,7 +496,14 @@ an empty rock (`rocks1`/`rocks2`) until it respawns.
 | The mining gem table, 1/256 a roll: a gem (or nothing) in place of ore, no XP, the rock stays | OSRS Wiki, Mining |
 | The click starts the clock and the first roll comes a whole interval later; the swing message and animation | 2004Scape mining script |
 | Which empty rock each rock becomes (rockN to rocksN); swinging on the click's own tick | guessed |
-| Out: the glory's gem chance, mining gloves and other extra-ore items, the prospector kit, gem rocks, essence | out of scope |
+| Runite rocks: 85, 125 XP, pair 1/18 (17/256 at 85, 19/256 from 97), 12 minutes back, 6 in the Mining Guild and the Wilderness | OSRS Wiki, Runite rocks |
+| Amethyst crystals: 92, 240 XP, pair -18/10, 2 to 3 amethysts from one swing before an empty wall (`amethystrock_empty`) for 75 seconds | OSRS Wiki, Amethyst crystals |
+| Gem rocks: 40, 65 XP, pair 28/70 (84/210 with a charged glory), one gem out of 128 (opal 60, jade 30, red topaz 15, sapphire 9, emerald 5, ruby 5, diamond 4), 99 ticks back, no mining gem table | OSRS Wiki, Gem rocks |
+| A charged amulet of glory (any, trimmed or eternal) adds a second 3/256 roll at the mining gem table | OSRS Wiki, mining gem table template |
+| The Mining Guild's members' area: an invisible +7 on the roll (not on the level needed) and every respawn halved | OSRS Wiki, Mining Guild |
+| The members' area's bounds (x 2998-3059, z 9695-9729), drawn around the Wiki's rock tiles; amethyst's 75 seconds not halved again | inferred |
+| How the amethyst count is drawn (evenly, 2 or 3, on the first amethyst, kept until the wall empties); runite and gem rocks' empty rocks (by their shared models) | guessed |
+| Out: mining gloves and other extra-ore items, the prospector kit, unidentified minerals, the guild's doors and level 60, essence (Runecraft), the visible-boost cap at 99 | out of scope |
 
 ### Fishing
 
@@ -691,6 +701,31 @@ the trapdoor behind the bar, the den's door, and the passageway back up; the maz
 | Not built: marks pausing on the ground while the player is logged out (ours keep counting down), the Achievement Diary rerolls | |
 | Grace (`rooftops_grace`) at 3050,4962 in the den; her shop's stock, prices and 80% buy-back | mejrs NPCList_OSRS; OSRS Wiki, Grace's Graceful Clothing |
 | Grace's shop inv, roguesden_shop (279); the tiles the trapdoor, door and passageway take the player to; the passageway being the way out | guessed (the 241 map shows no other exit) |
+
+### Magic: teleports
+
+The standard spellbook's teleports to places, Varrock Teleport to Ape Atoll Teleport, and the teleport tablets for the
+same places (`game/skill/magic/Teleports.kt`, landing areas and XP in `skills/magic-teleports.json`). Cast on a spell
+checks the level and runes (a staff stands in for its runes, as for combat spells), takes them, gives the XP and lands
+the player on a free tile of the spell's area 3 ticks later; Break on a tablet uses it up and lands 4 ticks later, with
+no level needed and no XP. Above level 20 Wilderness both are refused with the two lines Home Teleport shows there,
+and nothing is taken. Destinations whose towns aren't built land on live's tiles all the same; where the map isn't
+loaded the player lands on the area's centre. The quests that unlock some of these on live count as done.
+
+| Teleport behaviour | Source |
+|--------------------|--------|
+| The ten spells' levels, runes and magic tab components; Ape Atoll's banana (params 606 and 607); the eight `poh_tablet_*` tablets, Break as iop1 | cache 242 (osrs-dumps 2026-11-03-rev242) |
+| Base XP; tablets needing no level and giving no XP; no teleport above level 20 Wilderness | OSRS Wiki, each spell's page, Magic tablet, Wilderness level |
+| Landing areas for Lumbridge, Falador, Ardougne, Trollheim, Ape Atoll, Kourend Castle and Civitas illa Fortis | OSRS Wiki, each spell's map |
+| Animation 714 with graphic 111 at height 92, the landing 3 ticks after the cast with the animation stopped, the player held meanwhile (being attacked doesn't stop it), runes and XP taken at the cast, Varrock and Camelot landing within 2 tiles of the Wiki's tile | inferred from 2004Scape's teleport script |
+| Watchtower landing on its Wiki tile only, on level 2; the tablet's animations 4069 then 4071 with graphic 678 two ticks in, landing 4 ticks after the break | guessed |
+| Not built: the Achievement Diary destinations and Configure (Grand Exchange, Seers' Village, Yanille), Teleport to House, Tele Other, Teleport Block, Ancient and other books' teleports | next steps |
+
+`::scenario magic` stands you on the Lumbridge spawn with 99 Magic, a staff of air, runes for ten of every teleport
+and two of each tablet.
+
+Check: `./gradlew test --tests 'osrsps.game.skill.magic.*' --tests 'osrsps.testclient.HeadlessTeleportsTest'`, and in
+RuneLite `test-runner/examples/magic-teleports.json`.
 
 ## Items and inventory
 
@@ -1020,7 +1055,27 @@ cave eels (38) or slimy eels (28).
 | Frog spawn, swamp weed, cave and slimy eels: levels, XP, catch rates | OSRS Wiki, Frog spawn, Swamp weed, Cave eel, Slimy eel |
 | Ids, options, animations | 242 cache |
 | The promise kept until logout, the even chances among the goblins' talks, their expressions, a gift skipped with a full backpack, the threat's 8-tile cry, the cave bug's death animation, the frog spawn and swamp weed catch messages | guessed |
-| Out: Slayer XP (no Slayer tasks yet), the threatened goblins running away, rockslugs and wall beasts (step 3b) | out of scope |
+| Out: Slayer XP (no Slayer tasks yet), the threatened goblins running away | out of scope |
+
+#### Rockslugs and wall beasts
+
+Misthalin piece 7 step 3b (`game/content/SwampCaveSlayer.kt`, words under `swamp_slayer.*`): 5 rockslugs and 7 wall
+beasts' holes join the caves' spawns. No hit takes a rockslug below 1 hitpoint (`minHitpoints` in `npc-combat.json`),
+and down there it stops fighting and wanders off; a bag of salt used on one at 4 or less finishes it, and one used at
+5 or more is wasted. A wielded brine sabre kills them outright. A wall beast sits in its hole (a `nomove` spawn) and
+reaches for whoever steps onto the tile in front: a spiny helmet or any slayer helmet repels it, and it comes out to
+fight; anyone else is grabbed, held for 4 ticks and hurt for up to 18, once each time they step there. Out of a fight
+for 20 ticks it goes back in. Hurting rockslugs needs Slayer 20, wall beasts 35.
+
+| Rockslugs and wall beasts | Source |
+|---------------------------|--------|
+| Spawns: tiles and types | mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022); the Wiki's Wall beast page lists the same seven holes |
+| Each hole grabs from the tile south of it | 242 map: the only cave tile beside each |
+| Stats, max hits (4, and 18 for the grab), Slayer levels, the 1 hitpoint, the salt at 4 or less and the wasted bag, the brine sabre, the helmets, drops | OSRS Wiki, Rockslug, Bag of salt and Wall beast, read 2026-11-10 |
+| "Your helmet repels the wall beast!" | OSRS Wiki, Wall beast |
+| Ids, the hole and beast forms, animations | 242 cache |
+| The grab's 4 ticks, its even roll from 0 to 18, one grab per step onto the tile, the 20 ticks before it goes back in, the 10-tick respawn, the salt and grab messages, no salting animation and no XP for the salt's kill | guessed |
+| Out: the Slug salter perk, Slayer XP (no Slayer rewards or tasks yet) | out of scope |
 
 ## Draynor Village
 
@@ -1933,7 +1988,9 @@ loses goes in a grave there. The party lasts through the wipe.
 | Dreadnoth's enrage at 25% (step 20b): his line (key `tfa_dreadnoth.glub`, its words on the server, not in git), no more melee or crawl; his jumps at a random player, slamming them for a lot and healing about as much if they're under him, hurting everyone else without Protect from Melee wherever they stand; a ranged shot and a jelly splatter at each player after; jellies he lands on absorbed, healing him | OSRS Wiki, The Fractured Archive/Strategies (2026-11-10) |
 | The enrage's first jump 5 ticks after his line, then one every 8; landing centred on the player if within 5 tiles, else 5 tiles the nearest of eight ways towards them, never west of x 4184; the shadow where he lands, 3 ticks on (a 90-cycle move); one to three tiles of jelly in his footprint as he lands; the two projectiles at each player's tile, which becomes jelly 6 ticks later | tsps capture notes (2026-11-10) |
 | The enrage's damage: 30 to 50 under him with no prayer helping, up to 20 off him; the shot's as a wave's; an absorbed jelly's heal being its hitpoints left; his landings kept on his arena; the splatter hurting nobody as it lands; the jump shown as a teleport as he lands (NPC exact moves aren't built) | guessed |
-| His death splitting into seven jellies (step 20c); the Wiki's freeze and demonbane resistances | not in yet |
+| His death (step 20c): splitting into seven jellies of 37 hitpoints, the room won when the last one dies, the jelly on the floor cleared then | tsps capture notes (2026-11-10); the Wiki's Strategies say about ten at half their hitpoints, the captures taken over it |
+| The split jellies rising on his footprint at once, past the twelve; nothing of his still in the air landing once he splits, and no more jellies from gathered jelly; every jelly, the waves' too, having to go before the room is won, and not before 6 ticks (his death animation) | guessed |
+| Dreadnoth going from sight as he splits (he stands at 0 till the room is won: the engine can't yet hide an NPC still in a fight); the Wiki's freeze and demonbane resistances | not in yet |
 | Xarth (step 19a): 3 by 3, never moving; his stats, 2,600 to 9,230 hitpoints by party size, magic only in phase one at the player closest to him (max hit 36 with no prayer), the 85% water weakness, poison and venom immunity and the 60% Defence drain floor; a fireball that hits setting the player alight, the burn starting again a stack hotter with each that hits while it runs; the bind on everyone before the blast; the wave's ~45 on whoever has no cover, and a player in front taking that for one behind, who takes ~7 | OSRS Wiki, Xarth and The Fractured Archive/Strategies (2026-11-10) |
 | Where he (4190,5534) and his three 2 by 2 rubble heaps (4193,5530, 4196,5536, 4193,5540) stand, his footprint's nine blocking tiles; the room's transporter putting the player on his arena (4184,5535), which begins his fight; phase one's three 31-tick cycles of five fireballs 4 ticks apart, the AoE with a projectile at each player's tile, the flame blast 3 ticks after it and the wave 3 after that, rolling out a client cycle per tile; the wave's 90 degree wedge towards the heap that falls (a row out his width and a tile each side, a tile wider each row), all round the third time; the heaps falling south or north first, then east, then the other; the falling heap sheltering the tiles it hides from his middle tile (no wave) or only from his nearest footprint tile (the smaller explosion); its collapse for 3 ticks; his body gone 6 ticks after he falls; the animations and spotanims by name | tsps capture notes (RSPSApp/tsps docs/fractured-archive.md: five spectator captures of live fights, rev 241.1; 2026-11-10) |
 | The set-alight chat message (`tfa_xarth.set_alight`, a key in code, the words in the dialogue file); his bar's 4,860 for four and 5,950 for five; the burn after it, 7 or 8 every 4 ticks, at least 6 of them; a wave's 100 on a player in the open (twice) and a 60 on another, and a player just south of a heap taking none; a fireball never missing through Protect from Missiles and doing 1 to 6, and landing 3 ticks after the wind-up from 6 or 7 tiles; the AoE's flames reaching the party 2 ticks on, 23 on Sam | Sam's recordings of live parties of four and five (2026-11-09), read by the Review thread's dense pass (2026-11-10) |
@@ -2421,6 +2478,9 @@ a bronze axe in bank tab 1 and 1,000 coins in the main tab: for the tab script, 
 `lumbridge-run-low` stands you on the Lumbridge spawn with run on and no run energy, the energy threshold to re-enable
 running at 5% and Ctrl+click to invert run mode on Run -> Walk only: for the run settings script, as nothing else sets
 run energy.
+
+`magic` stands you on the Lumbridge spawn with 99 Magic and a staff of air, the runes for ten casts of every standard
+teleport built (and a banana for Ape Atoll), and two of each teleport tablet: for the Magic steps.
 
 Check: `::scenario lumbridge-cows` puts you by the cows in iron with the loadout above; `::reset` puts you back where
 you were with your own stats and items.

@@ -99,6 +99,19 @@ class Combat(
     fun slayerGated(player: Player, npc: Npc): Boolean =
         (npcCombat[npc.type]?.slayerLevel ?: 0) > player.skills.currentLevel(Skill.SLAYER)
 
+    /**
+     * By NPC type id, what lets a player's hits take one below its [NpcCombatDef.minHitpoints]: the brine sabre for
+     * rockslugs ([osrsps.game.content.Rockslugs]). Content fills it in.
+     */
+    val finishers = HashMap<Int, (Player) -> Boolean>()
+
+    /** The hitpoints a hit from [source] (null for none) leaves [npc] at the least. */
+    fun floor(npc: Npc, source: Player?): Int {
+        val min = npcCombat[npc.type]?.minHitpoints ?: 0
+        if (min == 0) return 0
+        return if (source != null && finishers[npc.type.id]?.invoke(source) == true) 0 else min
+    }
+
     /** The animations the player swings and blocks with: their weapon's category's. */
     fun anims(player: Player): WeaponAnims = WeaponAnims.of(Weapons.category(equipment.weapon(player)))
 

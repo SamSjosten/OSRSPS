@@ -1,0 +1,15 @@
+{
+  "source": "XP: OSRS Wiki, each spell's page (read 2026-11-10). Levels, runes, the extra item (Ape Atoll's banana) and the magic tab component come from the cache's spell objs. Landing areas (each minX, minZ, maxX, maxZ, inclusive): the Wiki spell pages' maps for Lumbridge (the plus-shaped polygon, as two rectangles), Falador, Ardougne, Trollheim, Ape Atoll, Kourend Castle and Civitas illa Fortis (a square of radius r is the tile plus or minus r; a polygon's corners are tile edges, so its east and north edges are one past the last tile). Inferred: Varrock and Camelot land within 2 tiles of the Wiki's tile, as 2004Scape's teleport script does for every standard teleport. Guessed: Watchtower lands on the Wiki's tile only, on the top floor (level 2). Tablets: the cache's poh_tablet objs for the same places. Kourend Castle Teleport and Civitas illa Fortis Teleport have reused ids, so their gameval names are an old lamp's note and a sack's placeholder (21836 and 24612; the param 601 names are the spells').",
+  "teleports": [
+    { "spell": "25_varrock_teleport", "xp": 35, "tablet": "poh_tablet_varrockteleport", "land": [[3211, 3422, 3215, 3426]] },
+    { "spell": "31_lumbridge_teleport", "xp": 41, "tablet": "poh_tablet_lumbridgeteleport", "land": [[3219, 3218, 3223, 3219], [3221, 3216, 3222, 3220]] },
+    { "spell": "37_falador_teleport", "xp": 48, "tablet": "poh_tablet_faladorteleport", "land": [[2962, 3376, 2966, 3380]] },
+    { "spell": "45_camelot_teleport", "xp": 55.5, "tablet": "poh_tablet_camelotteleport", "land": [[2755, 3477, 2759, 3481]] },
+    { "spell": "cert_deadman_level99_lamp", "xp": 58, "tablet": "poh_tablet_kourendteleport", "land": [[1639, 3671, 1643, 3675]] },
+    { "spell": "51_ardougne_teleport", "xp": 61, "tablet": "poh_tablet_ardougneteleport", "land": [[2659, 3302, 2665, 3308]] },
+    { "spell": "placeholder_blighted_sack_snare", "xp": 64, "tablet": "poh_tablet_fortisteleport", "land": [[1679, 3131, 1683, 3135]] },
+    { "spell": "58_watchtower_teleport", "xp": 68, "tablet": "poh_tablet_watchtowerteleport", "level": 2, "land": [[2546, 3114, 2546, 3114]] },
+    { "spell": "61_trollheim_teleport", "xp": 68, "land": [[2888, 3677, 2892, 3681]] },
+    { "spell": "64_ape_atoll_teleport", "xp": 74, "land": [[2796, 2797, 2800, 2801]] }
+  ]
+}

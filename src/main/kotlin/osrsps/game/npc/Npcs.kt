@@ -446,6 +446,7 @@ class Npcs(
      * in the way.
      */
     fun canStep(npc: Npc, dx: Int, dz: Int): Boolean {
+        if (npc.spawn.restrict == MoveRestrict.NOMOVE) return false
         val size = npc.type.size
         val blocked = npc.spawn.restrict == MoveRestrict.BLOCKED
         val block = if (blocked) CollisionFlag.BLOCK_WALK and CollisionFlag.FLOOR.inv() else CollisionFlag.BLOCK_WALK
@@ -479,6 +480,8 @@ class Npcs(
                     MoveRestrict.INDOORS -> flags and CollisionFlag.BLOCK_WALK == 0 && flags and CollisionFlag.ROOF != 0
                     MoveRestrict.OUTDOORS -> flags and CollisionFlag.BLOCK_WALK == 0 && flags and CollisionFlag.ROOF == 0
                     MoveRestrict.NORMAL -> flags and CollisionFlag.BLOCK_WALK == 0
+                    // Its own tile only, wherever it was put: it may stand in a wall.
+                    MoveRestrict.NOMOVE -> x == npc.spawn.x && z == npc.spawn.z
                 }
                 if (!ok) return false
             }
