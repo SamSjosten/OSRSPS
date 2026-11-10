@@ -216,13 +216,13 @@
    "step": "command",
    "text": "::raid run",
    "expectMessage": "points test",
-   "comment": "solo, every room's 1,000 points (a guess) are this player's; the account's name may be test or test2 (the nightly runs on test2), so the line is matched up to the name and checked again for the total in the next step"
+   "comment": "solo, every room's points are this player's (100 a room and 300 for Ocellus's, the Wiki's chest page); the account's name may be test or test2 (the nightly runs on test2), so the line is matched up to the name and checked again for the total in the next step"
   },
   {
    "step": "command",
    "text": "::raid run",
-   "expectMessage": " 5000",
-   "comment": "five rooms' 1,000"
+   "expectMessage": " 700",
+   "comment": "four rooms' 100 and Ocellus's 300 (the Wiki's chest page)"
   },
   {
    "step": "command",
@@ -261,6 +261,64 @@
   },
   {
    "step": "command",
+   "text": "::raid loot",
+   "expectMessage": "Loot for 1, ",
+   "comment": "raid step 29a: the run's end paid the party, here the one player (a unique 1 in 14, else three standard rolls and the tertiary drops: the Wiki's chest page)"
+  },
+  {
+   "step": "command",
+   "text": "::raid loot",
+   "expectMessage": "Your chest is 1, closed: ",
+   "comment": "alone, the party's first slot: chest 1, not opened yet"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 16433,
+   "value": 1,
+   "comment": "tfa_vault_own_chest: chest 1 shows as this player's own (241 cache)"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp 4125 5793",
+   "expectMessage": "To 4125, 5793 of the raid",
+   "comment": "beside chest 1, on the island's south-west (tsps capture notes: 4124,5793)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "the client's scene after the move"
+  },
+  {
+   "step": "command",
+   "text": "::npcs 2",
+   "expectMessage": "(16736)",
+   "comment": "tfa_rewards_chest_vault_1_closed, shown as the player's own Chest"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 16736,
+   "option": "Open",
+   "timeoutMs": 20000,
+   "comment": "Open on one's own chest: its opening animation, then the Rift it leaves a tick later (a tick: the animation's length)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4
+  },
+  {
+   "step": "command",
+   "text": "::raid loot",
+   "expectMessage": "Your chest is 1, open: ",
+   "comment": "open; Search and the chest's window are raid step 29b"
+  },
+  {
+   "step": "command",
+   "text": "::npcs 2",
+   "expectMessage": "(16737)",
+   "comment": "tfa_rewards_chest_vault_1_open, the Rift (Search) the chest leaves"
+  },
+  {
+   "step": "command",
    "text": "::raid tp 4127 5790",
    "expectMessage": "To 4127, 5790 of the raid",
    "comment": "up the walk to the island: the Rift out is out of view from the south end"
@@ -284,7 +342,7 @@
   {
    "step": "command",
    "text": "::raid run",
-   "expectMessage": " 5000. You're in the reward vault, at 4127, 5779 of the raid",
+   "expectMessage": " 700. You're in the reward vault, at 4127, 5779 of the raid",
    "comment": "up again at the vault's arrival tile, the run still there: nothing between the points and the place, so nobody down and no death counted (a guess: what such a death costs on live isn't known)"
   },
   {
@@ -564,13 +622,13 @@
    "step": "command",
    "text": "::raid run",
    "expectMessage": "points test",
-   "comment": "solo, every room's 1,000 points (a guess) are this player's; the account's name may be test or test2 (the nightly runs on test2), so the line is matched up to the name and checked again for the total in the next step"
+   "comment": "solo, every room's points are this player's (100 a room and 300 for Ocellus's, the Wiki's chest page); the account's name may be test or test2 (the nightly runs on test2), so the line is matched up to the name and checked again for the total in the next step"
   },
   {
    "step": "command",
    "text": "::raid run",
-   "expectMessage": " 5000",
-   "comment": "five rooms' 1,000"
+   "expectMessage": " 700",
+   "comment": "four rooms' 100 and Ocellus's 300 (the Wiki's chest page)"
   },
   {
    "step": "locOption",
