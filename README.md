@@ -566,7 +566,11 @@ only); lobster, tuna, swordfish and shark came with Fishing and Cooking 2's step
 multi-step food (`game/skill/CookingMixes.kt`, words under `cooking_mix.*`): flour and water into bread, pastry, pizza or
 pitta dough, pie shells and every pie's fillings (three at a time for mud, garden, fish, admiral, wild and summer pies),
 a pizza's tomato, cheese and topping, and a cake's egg, flour and milk, each pair through the Make-X box, then baked on a
-range. With more than one to cook, the chatbox's Make-X box (`skillmulti`, interface 270, set up by client script
+range. Step FC5b adds stew (a potato and cooked meat or chicken in a bowl of water) and curry (spice, or three
+curry leaves, in an uncooked stew), cooked on a fire or range; wine (grapes in a jug of water), which ferments 20 ticks
+after the last jug is made, every unfermented wine in the backpack and the bank at once, a jug of wine for 200 XP or a jug
+of bad wine (`game/skill/Wine.kt`; a login with unfermented wine starts the wait again); and the dairy churn
+(`game/skill/Churn.kt`), whose Make-X box turns milk, cream or butter into cream, butter or cheese. With more than one to cook, the chatbox's Make-X box (`skillmulti`, interface 270, set up by client script
 2046) asks which and how many; a resume_pausebutton from one of its items starts the job. Lumbridge Castle's kitchen
 range (114) burns less. The cooking re-runs every tick on the loc (`World.repeatOp`).
 
@@ -836,7 +840,7 @@ and heroes (reached by `::tele`). Gloves of silence and the dodgy necklace work 
 | Gnomes (the men, women and children alike, but for the women's and children's 133.5 XP): 75, 133.3 XP, 43 to 175, 1 damage; a table out of 128 (2 to 4 arrow shafts 56, a pouch of 300 30, a swamp toad 24, gold ore 8, an earth rune 5, a king worm 3, a fire orb 2) | OSRS Wiki, Gnome, Gnome woman, Gnome child |
 | Heroes: 80, 163.3 XP, 39 to 160, 3 damage; a table out of 128 (a pouch of 200 to 300 105, 2 death runes 8, a jug of wine 6, a blood rune 5, a fire orb 2, a diamond 1, gold ore 1); a 6-second stun (10 ticks) | OSRS Wiki, Hero |
 | Warriors: Ardougne's (the pre-2022 warrior woman type) and the 2022 types join the warrior's pocket | OSRS Wiki, Warrior (Thieving) |
-| No room: a pickpocket needs a slot for a new pouch and one for each extra it gives that isn't a stack already held | guessed (the Wiki gives the extras, not the room they need) |
+| No room: a pickpocket needs a slot for a new pouch and one for each extra it gives that isn't a stack already held, and room in every stack a success could add to (an extra, or the most of a table item already held) | guessed (the Wiki gives the extras, not the room they need) |
 | Where they stand: East Ardougne's 5 knights, 22 paladins (the castle's two floors among them), 3 heroes and 10 warriors, the Watchtower's 4 watchmen, the Tree Gnome Stronghold's 153 gnomes (`npc-spawns/thieving-kandarin.json`) | mejrs NPCList_OSRS.json (live, pre-Nov 2022) |
 | Their combat: the Wiki's speeds, max hits, bonuses and respawns | OSRS Wiki, each NPC's infobox |
 | The T1b NPCs' caught line (the townsfolk's), their names in the messages, their animations, their wander; the gnomes' max hit 1 (the Wiki's, where the formula gives 0) | guessed |
@@ -2392,8 +2396,9 @@ Bows and crossbows fire at NPCs (`game/combat/RangedCombat.kt`). Attack with a r
 NPC is in range and in sight, then you shoot every weapon-speed ticks. Which weapons fire which ammunition, their ranges
 and graphics are in `src/main/resources/ranged-weapons.json` (items, animations and spotanims by gameval name; every
 name there is in both 241 caches). `::combat` shows your ranged numbers with a bow; `::fight` covers ranged fights.
-Not in yet: thrown weapons, crystal bows, the twisted bow, the dragon hunter crossbow, ballistas, enchanted bolts, Ava's
-devices and special attacks.
+Thrown weapons (darts, knives and thrownaxes, every metal and poison) throw from the weapon slot, and the light and
+heavy ballistas fire javelins from the ammo slot. Not in yet: crystal bows, the dragon hunter crossbow, enchanted
+bolts and the thrown weapons' and ballistas' special attacks.
 
 | Ranged behaviour | Source |
 |------------------|--------|
@@ -2410,9 +2415,14 @@ devices and special attacks.
 | "You can't use that ammo with your bow." / "... crossbow." | guessed wording |
 | Projectile heights, start, arc and the second dark bow arrow leaving 10 cycles later; the crossbow animation (xbows_human_fire_and_reload_pvn) | guessed |
 | No or wrong ammunition ends the fight when you would fire, not on the click | guessed |
+| Darts range 3, knives and thrownaxes 4, ballistas 9; ballistas fire bronze to dragon javelins every 7 ticks, the hit landing 1 + (7 + d) / 6 ticks later (`HitDelay.BALLISTA`) | OSRS Wiki, Attack range, Light ballista, Heavy ballista and Hit delay |
+| Thrown weapons fire from the weapon slot, one a throw; their launch and travel graphics and the dart, dragon knife and ballista animations by their 242 cache names | OSRS Wiki, Thrown weapons; 242 cache |
+| A thrown weapon that doesn't break falls under the target, as arrows do, unless an Ava's device brings it back | inferred from arrows |
+| The knife and thrownaxe throw animation (`human_stake2_pvn`); the ballista's wrong-ammunition message (`combat.wrong_javelins`, words on the server) | guessed |
 
 Check: `./gradlew test --tests 'osrsps.game.combat.Ranged*' --tests 'osrsps.testclient.HeadlessRangedTest'`, and in
-RuneLite `test-runner/examples/combat-ranged-shortbow.json`.
+RuneLite `test-runner/examples/combat-ranged-shortbow.json` and `combat-thrown.json`; thrown weapons and ballistas
+also in `HeadlessThrownTest`.
 
 ## Home teleport
 
@@ -2708,7 +2718,8 @@ dragon and barb-tail harpoons in the bank: every fish Fishing and Cooking 2 has 
 Musa Point's spots are at `::tele 2924 3178`, Karamja's karambwanji spots at `::tele 2791 3018`, karambwan spots at
 `::tele 2899 3118`, the Piscatoris monkfish spots at `::tele 2326 3699` and Port Piscarilius's anglerfish spots at
 `::tele 1827 3769`. The bank holds flour, water, pie dishes, cooking apples, tomatoes, cheese, cake tins, eggs, milk and
-chocolate for pies, pizzas and cakes.
+chocolate for pies, pizzas and cakes, and bowls of water, potatoes, cooked meat, spice, curry leaves, grapes and jugs of
+water for stews, curries and wine; the Lumbridge east farm's dairy churn is at `::tele 3226 3293`.
 
 `lumbridge-cows` stands you in the Lumbridge cow field (3259, 3263, a tile picked from the cow spawns) with 20 Attack,
 Strength, Defence and Hitpoints, iron armour, an iron scimitar, an amulet of strength, five lobsters, a bronze axe, a
