@@ -1,5 +1,5 @@
 {
- "name": "Raid steps 24a to 26a: Ocellus solo, his arena upstairs, the hooded figure waiting until the party readies up, then his first phase walking between his corners under Protect from Melee, at each corner his cracks, line and explosion, at two thirds the middle with its four sides and his charge expended, the hold at the end of his blue bar, and his second phase: the portals on the cross, the Blade passing damage to his bar, the quadrants' volleys, and the rest of a quadrant's turn: pools, every portal purple, the floor portal and the last volley, and his third phase: the cross falling to stepping stones, his quadrant, and the quadrants falling at 75, 50 and 25%",
+ "name": "Raid steps 24a to 26b: Ocellus solo, his arena upstairs, the hooded figure waiting until the party readies up, then his first phase walking between his corners under Protect from Melee, at each corner his cracks, line and explosion, at two thirds the middle with its four sides and his charge expended, the hold at the end of his blue bar, and his second phase: the portals on the cross, the Blade passing damage to his bar, the quadrants' volleys, and the rest of a quadrant's turn: pools, every portal purple, the floor portal and the last volley, and his third phase: the cross falling to stepping stones, his quadrant, and the quadrants falling at 75, 50 and 25%, with the void bombs and his first special, the cog",
  "account": "test",
  "steps": [
   {
@@ -345,6 +345,22 @@
    "text": "::raid",
    "expectMessage": "third phase, quadrant ",
    "comment": "on the same bar as his second phase"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 30,
+   "comment": "three ticks into his quadrant two void bombs fall in each quadrant (step 26b); after six attacks his first special, the cog: a circle, then two strikes three ticks apart (the player under ::god)"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: void bombs at "
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: cog strike 2 hits ",
+   "comment": "the cog's second strike, on everyone in the arena"
   },
   {
    "step": "command",

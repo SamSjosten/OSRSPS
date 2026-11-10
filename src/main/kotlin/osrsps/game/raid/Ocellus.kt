@@ -53,6 +53,11 @@ object OcellusLines : Lines("tfa_ocellus", "The_Fractured_Archive/Strategies") {
     val CANT_ESCAPE = line("cant_escape", "Ocellus in his third phase, eleven ticks after his quadrant's barriers drop: the third of the three")
     val TURNS_TO = line("turns_to", "chat, to his party, as he takes a new tank in his third phase: the tank's name", "name")
     val WAY_BACK_CLOSED = line("way_back_closed", "chat, to a player trying to jump the stepping stones back the way the fight came")
+    val INSOLENCE = line("insolence", "Ocellus in his third phase as his three superior slashes begin, first in each quadrant after the first")
+    val UNTETHER = line("untether", "Ocellus in his third phase as he rises over his quadrant, before it erupts and he comes down on it")
+    val AWAIT_VOID = line("await_void", "Ocellus in his third phase before his void shot and the Void Vine: the first of the three he picks from")
+    val PANIC_FUTILE = line("panic_futile", "Ocellus in his third phase before his void shot and the Void Vine: the second of the three")
+    val VOID_TAKE_YOU = line("void_take_you", "Ocellus in his third phase before his void shot and the Void Vine: the third of the three")
 
     private fun ordinal(n: Int) = listOf("first", "second", "third")[n - 1]
 }
@@ -111,6 +116,15 @@ object OcellusLines : Lines("tfa_ocellus", "The_Fractured_Archive/Strategies") {
  *   the party can Jump the stones clockwise to the next ([jump]); his second line; the fall, losing whoever is still on
  *   it; and he takes the next. STAND-IN until step 27: after the third fall, as his final stand would begin, he dies,
  *   and the room is done.
+ * - In each quadrant (raid step 26b), [BOMBS_AT] ticks in, void bombs in every quadrant still standing ([bombs]),
+ *   leaving void ([voidFloor]: [VOID_MIN] to [VOID_MAX] a tick on whoever stands on it) until it falls; and after each
+ *   [ROTATION] attacks a special ([special]): from the second quadrant on [Special.INSOLENCE] first, then the cog, the
+ *   void and Untether in turn ([SPECIALS]). Insolence: three superior slashes, waves running out towards a player,
+ *   leaving void ([insolence]); the cog: strikes on everyone that Protect from Melee blocks unless an overhead prayer
+ *   was on as it formed, and debris leaving void ([cog]); the void: a void shot at everyone and the Void Vine rooting
+ *   someone other than the tank until another player breaks it, or it crushes them ([voidSpecial], [vine]); Untether:
+ *   eruptions over his quadrant, then his coming down on it but for the square round him ([untether]). Not in yet
+ *   (step 26c): the void flares and the censers.
  *
  * From the OSRS Wiki (Ocellus, read 2026-11-10): his first phase's stats and bonuses (npc-combat.json), 3 by 3, the
  * 5-tick attack speed, magic and ranged, the max hit 36, the 60% Defence drain cap, poison and venom immunity, his
@@ -484,6 +498,103 @@ object Ocellus {
     /** A player lost with a fallen quadrant (`tfa_ocellus_void_player_death`). */
     const val ANIM_VOID_DEATH = 14893
 
+    /**
+     * Void on the floor (raid step 26b): whoever stands on it takes [VOID_MIN] to [VOID_MAX] a tick (tsps). The locs it
+     * shows as (242 cache, walkable): a void bomb's (`tfa_ocellus_void_degen_bomb`, "Void"), the cog's debris
+     * (`_aoe`, "Debris") and Insolence's three bands (`_aoe_insolence_1`, `_4`, `_7`, "Cracks").
+     */
+    const val VOID_MIN = 6
+    const val VOID_MAX = 7
+    const val LOC_BOMB = 62701
+    const val LOC_DEBRIS = 62702
+    val LOC_INSOLENCE = listOf(62703, 62704, 62705)
+
+    /**
+     * [BOMBS_AT] ticks after he takes a quadrant, [BOMBS] void bombs fall in each quadrant still standing, leaving void
+     * until it falls (tsps), on the bomb's tile and [BOMB_REACH] round it (guessed), with its drop graphic
+     * (`vfx_ocellus_quadrant_bomb_drop_01`).
+     */
+    const val BOMBS_AT = 3
+    const val BOMBS = 2
+    const val BOMB_REACH = 1
+    const val SPOT_BOMB_DROP = 4301
+
+    /** His specials, one after each [ROTATION] of attacks (tsps). */
+    enum class Special { INSOLENCE, COG, VOID, UNTETHER }
+
+    /** From the second quadrant on Insolence comes first in each; after that the cog, the void and Untether, round again (tsps). */
+    val SPECIALS = listOf(Special.COG, Special.VOID, Special.UNTETHER)
+
+    /**
+     * Insolence (tsps): [INSOLENCE_SLASHES] superior slashes [INSOLENCE_GAP] ticks apart, each a wave
+     * [INSOLENCE_WIDTH] wide running [INSOLENCE_REACH] tiles out towards a player, [INSOLENCE_STEP_CYCLES] client cycles
+     * a step, leaving void in three bands that crumbles after [INSOLENCE_VOID] ticks. Guessed: the player each is aimed
+     * at (one of the party at random), its hit a melee roll as his slash's a tick after the swing, and the bands' rows
+     * (1 to 3, 4 to 6, 7 and 8 out).
+     */
+    const val INSOLENCE_SLASHES = 3
+    const val INSOLENCE_GAP = 5
+    const val INSOLENCE_WIDTH = 3
+    const val INSOLENCE_REACH = 8
+    const val INSOLENCE_STEP_CYCLES = 2
+    const val INSOLENCE_VOID = 15
+    const val ANIM_SUPERIOR_SLASH = 14848
+    const val SPOT_SUPERIOR_SLASH = 4336
+
+    /**
+     * The cog (tsps): a circle under him ([ANIM_COG_IN]), then a strike [COG_GAP] ticks later and every [COG_GAP] after,
+     * one more each quadrant, for [COG_DAMAGE] on everyone; Protect from Melee blocks it, but not for anyone with an
+     * overhead prayer on as the circle formed. On the second-last strike debris falls where everyone stands, leaving void
+     * [DEBRIS_AFTER] ticks later for [DEBRIS_TICKS]. Guessed: two strikes in the first quadrant, and the bulwark
+     * blocking as for his other melee.
+     */
+    const val COG_GAP = 3
+    const val COG_FIRST_STRIKES = 2
+    const val COG_DAMAGE = 40
+    const val DEBRIS_AFTER = 5
+    const val DEBRIS_TICKS = 24
+    const val ANIM_COG_IN = 14869
+    const val ANIM_COG_STRIKE = 14845
+    const val ANIM_COG_OUT = 14871
+    const val SPOT_COG_IN = 4325
+    const val SPOT_COG = 4326
+    const val SPOT_DEBRIS = 4346
+
+    /**
+     * The void (tsps): his line, and [VOID_AFTER] ticks later a void shot at everyone and a Void Vine ([VINE], 44
+     * hitpoints in the 242 cache) rooting someone other than the tank; another player must break it within
+     * [VINE_TICKS] ticks, or the rooted player takes [VINE_DAMAGE]. The entangle shows on the rooted player (start, idle
+     * each tick, end). Guessed: nobody rooted when the tank is alone, and the rooted player unable to hit it themselves.
+     */
+    const val VINE = 16681
+    const val VOID_AFTER = 3
+    const val VINE_TICKS = 15
+    const val VINE_DAMAGE = 50
+    const val SPOT_ENTANGLE_START = 4290
+    const val SPOT_ENTANGLE = 4291
+    const val SPOT_ENTANGLE_END = 4292
+
+    /**
+     * Untether (tsps): he rises over his corner, his quadrant erupts [ERUPTIONS] times [ERUPTION_GAP] ticks apart, on
+     * every player's tile among others, for [ERUPTION_DAMAGE]; [SQUARE_AT] ticks in the safe square shows under him and
+     * [SLAM_AT] in he comes down on the quadrant for [SLAM_DAMAGE], all but the square (his footprint and a tile round
+     * it). Guessed: the first eruption [ERUPTION_FIRST] ticks in, [ERUPTION_TILES] other tiles each, landing
+     * [ERUPTION_LANDS] ticks after it shows, and the graphics.
+     */
+    const val ERUPTIONS = 4
+    const val ERUPTION_GAP = 4
+    const val ERUPTION_FIRST = 3
+    const val ERUPTION_TILES = 8
+    const val ERUPTION_LANDS = 2
+    const val ERUPTION_DAMAGE = 40
+    const val SQUARE_AT = 25
+    const val SLAM_AT = 29
+    const val SLAM_DAMAGE = 45
+    const val ANIM_UNLEASH_IN = 14857
+    const val ANIM_UNLEASH_OUT = 14861
+    const val SPOT_ERUPTION = 4321
+    const val SPOT_SQUARE = 4317
+
     /** The quadrants, clockwise from the north-west, and the arms of the cross, clockwise from the north. */
     enum class Quadrant { NW, NE, SE, SW }
     enum class Arm { N, E, S, W }
@@ -569,7 +680,28 @@ object Ocellus {
         /** The arms' locs, the middle's void, and each arm's three stepping stones standing. */
         val armLocs = HashMap<Arm, ZoneLoc>()
         val stones = HashMap<Arm, List<ZoneLoc>>()
+
+        /** The void on the floor, by tile. */
+        val voids = HashMap<Tile, VoidPatch>()
+
+        /**
+         * His specials: how many of [SPECIALS] he has used, whether Insolence comes next, the phase tick he is busy until,
+         * and a count bumped as a quadrant is taken or begins to fall, which ends what a special had yet to do.
+         */
+        var specials = 0
+        var insolenceDue = false
+        var busyUntil = -1L
+        var run = 0
+
+        /** The Void Vine, whom it roots, on which tile, and the phase tick it hurts them. */
+        var vine: Npc? = null
+        var rooted: Player? = null
+        var rootTile: Tile? = null
+        var vineDue = 0L
     }
+
+    /** Void on a tile: its loc (none on a bomb's outer tiles), the phase tick it crumbles, and its quadrant. */
+    private class VoidPatch(val loc: ZoneLoc?, val until: Long, val quadrant: Quadrant?)
 
     private val states = WeakHashMap<Npc, State>()
 
@@ -595,6 +727,10 @@ object Ocellus {
 
     /** The quadrants fallen in his third phase, in order; for tests. */
     fun fallen(boss: Npc): List<Quadrant> = states[boss]?.fallen?.toList().orEmpty()
+
+    /** The tiles with void on them in his third phase, and the player the Void Vine roots; for tests. */
+    fun voids(boss: Npc): Set<Tile> = states[boss]?.voids?.keys?.toSet().orEmpty()
+    fun rooted(boss: Npc): Player? = states[boss]?.rooted
 
     /** His tank in his third phase; for tests. */
     fun tank(boss: Npc): Player? = states[boss]?.tank
@@ -759,6 +895,8 @@ object Ocellus {
         val second = types[P2] ?: return null
         val blade = types[BLADE] ?: return null
         val third = types[P3] ?: return null
+        // The Void Vine, if the cache has it: without it, his void roots nobody.
+        val vine = types[VINE]
         return EncounterDef(
             NAME, first,
             listOf(
@@ -798,7 +936,7 @@ object Ocellus {
                 ),
                 PhaseDef(
                     "third",
-                    cycle = listOf(CycleStep(1) { thirdPhase() }),
+                    cycle = listOf(CycleStep(1) { thirdPhase(vine) }),
                     onStart = { toThirdPhase(third) },
                 ),
             ),
@@ -1287,7 +1425,7 @@ object Ocellus {
     }
 
     /** One tick of his third phase: the cross falling, then his quadrant, his attacks and its fall. */
-    private fun EncounterContext.thirdPhase() {
+    private fun EncounterContext.thirdPhase(vineType: NpcType?) {
         // Hits on the Blade until it goes still reach his bar (Codex, PR 576).
         forwardBlade()
         val at = phaseTick.toInt()
@@ -1338,6 +1476,8 @@ object Ocellus {
             }
         }
         if (state.heldSince < 0) return
+        voidFloor()
+        vine()
         val fall = state.fallStart
         if (fall >= 0) {
             falling((phaseTick - fall).toInt())
@@ -1349,11 +1489,288 @@ object Ocellus {
             return
         }
         pickTank()
-        if (phaseTick >= state.nextAttack) {
-            attack(state.rotation)
-            state.rotation = (state.rotation + 1) % ROTATION
-            state.nextAttack = phaseTick + ATTACK_EVERY
+        if (phaseTick == state.heldSince + BOMBS_AT) bombs()
+        if (phaseTick < state.busyUntil || phaseTick < state.nextAttack) return
+        if (state.rotation >= ROTATION) {
+            state.rotation = 0
+            special(vineType)
+            return
         }
+        attack(state.rotation)
+        state.rotation++
+        state.nextAttack = phaseTick + ATTACK_EVERY
+    }
+
+    /**
+     * The void on the floor: what has crumbled goes, and whoever stands on the rest takes [VOID_MIN] to [VOID_MAX]
+     * (tsps). Nobody just through the floor portal is spared: that was the second phase.
+     */
+    private fun EncounterContext.voidFloor() {
+        val centre = centre(boss.spawn.x, boss.spawn.z)
+        val iterator = state.voids.entries.iterator()
+        while (iterator.hasNext()) {
+            val (_, patch) = iterator.next()
+            if (patch.until > phaseTick && (patch.quadrant == null || patch.quadrant !in state.fallen)) continue
+            patch.loc?.let { clearLoc(it) }
+            iterator.remove()
+        }
+        for (player in players) {
+            if (!inArena(centre, player.x, player.z) || Tile(player.x, player.z) !in state.voids) continue
+            // From the floor, not from him: it doesn't turn anyone's auto retaliate on him (guessed, as the Guardian's vines).
+            val dealt = fromTheRoom(player, roll(VOID_MIN, VOID_MAX))
+            log("void on ${player.username} for $dealt")
+        }
+    }
+
+    /** Void on [tile] until [until] (a phase tick), shown as [locId] (-1 for none), replacing any there. */
+    private fun EncounterContext.voidOn(tile: Tile, until: Long, locId: Int) {
+        val centre = centre(boss.spawn.x, boss.spawn.z)
+        val quadrant = quadrant(centre, tile.x, tile.z) ?: return
+        if (quadrant in state.fallen || !inArena(centre, tile.x, tile.z)) return
+        state.voids.remove(tile)?.loc?.let { clearLoc(it) }
+        val loc = if (locId >= 0) placeLoc(locId, tile.x, tile.z) else null
+        state.voids[tile] = VoidPatch(loc, until, quadrant)
+    }
+
+    /** [BOMBS] void bombs in each quadrant still standing (tsps), on tiles of it at random. */
+    private fun EncounterContext.bombs() {
+        val centre = centre(boss.spawn.x, boss.spawn.z)
+        val placed = ArrayList<Tile>()
+        for (quadrant in Quadrant.entries) {
+            if (quadrant in state.fallen) continue
+            repeat(BOMBS) {
+                val at = quadrantTile(centre, quadrant, roll(1 + BOMB_REACH, STRIP_LENGTH - BOMB_REACH), roll(1 + BOMB_REACH, STRIP_LENGTH - BOMB_REACH))
+                world.zones.mapAnim(at.x, at.z, boss.level, SPOT_BOMB_DROP)
+                for (dx in -BOMB_REACH..BOMB_REACH) for (dz in -BOMB_REACH..BOMB_REACH) {
+                    voidOn(Tile(at.x + dx, at.z + dz), Long.MAX_VALUE, if (dx == 0 && dz == 0) LOC_BOMB else -1)
+                }
+                placed += at
+            }
+        }
+        log("void bombs at ${placed.joinToString(" ") { "${it.x},${it.z}" }}")
+    }
+
+    /** [player] takes [damage] from him now; what they took. */
+    private fun EncounterContext.strike(player: Player, damage: Int): Int {
+        val dealt = world.meleeCombat.hitPlayer(player, boss, damage, world.tick)
+        if (!player.dead) player.attackedTick = world.tick
+        return dealt
+    }
+
+    /** Runs [action] [ticks] from now if he is still on the special begun with [run] (no new quadrant, no fall). */
+    private fun EncounterContext.during(run: Int, ticks: Int, action: EncounterContext.() -> Unit) {
+        val go: EncounterContext.() -> Unit = { if (!boss.dead && state.run == run && state.fallStart < 0) action() }
+        if (ticks == 0) go() else after(ticks, go)
+    }
+
+    /** His next special (tsps), his attacks waiting until it is over and [ATTACK_EVERY] after. */
+    private fun EncounterContext.special(vineType: NpcType?) {
+        val kind = if (state.insolenceDue) Special.INSOLENCE else SPECIALS[state.specials++ % SPECIALS.size]
+        state.insolenceDue = false
+        val run = state.run
+        val length = when (kind) {
+            Special.INSOLENCE -> insolence(run)
+            Special.COG -> cog(run)
+            Special.VOID -> voidSpecial(run, vineType)
+            Special.UNTETHER -> untether(run)
+        }
+        state.busyUntil = phaseTick + length
+        state.nextAttack = phaseTick + length + ATTACK_EVERY
+    }
+
+    /** Insolence: his line and his three superior slashes; the ticks it takes. */
+    private fun EncounterContext.insolence(run: Int): Int {
+        boss.effects.say(world.dialogueText.get(OcellusLines.INSOLENCE))
+        log("insolence")
+        for (i in 0 until INSOLENCE_SLASHES) during(run, i * INSOLENCE_GAP) { superiorSlash() }
+        return (INSOLENCE_SLASHES - 1) * INSOLENCE_GAP + 1
+    }
+
+    /** One superior slash towards one of the party at random, its wave landing a tick later, then its void. */
+    private fun EncounterContext.superiorSlash() {
+        val centre = centre(boss.spawn.x, boss.spawn.z)
+        val target = players.filter { inArena(centre, it.x, it.z) }.let { if (it.isEmpty()) null else it[roll(0, it.size - 1)] } ?: return
+        val half = boss.type.size / 2
+        val mid = Tile(boss.x + half, boss.z + half)
+        val dx = (target.x - mid.x).sign
+        val dz = (target.z - mid.z).sign
+        if (dx == 0 && dz == 0) return
+        val rows = (1..INSOLENCE_REACH).map { out ->
+            val at = Tile(mid.x + dx * (half + out), mid.z + dz * (half + out))
+            (-(INSOLENCE_WIDTH / 2)..INSOLENCE_WIDTH / 2).map { across -> Tile(at.x - dz * across, at.z + dx * across) }
+        }
+        boss.face(target)
+        boss.effects.anim(ANIM_SUPERIOR_SLASH)
+        for ((row, tiles) in rows.withIndex()) for (tile in tiles) world.zones.mapAnim(tile.x, tile.z, boss.level, SPOT_SUPERIOR_SLASH, delay = INSOLENCE_STEP_CYCLES * row)
+        log("superior slash towards ${target.username}")
+        val wave = rows.flatten().toSet()
+        after(1) {
+            if (boss.dead) return@after
+            for (player in players) {
+                if (Tile(player.x, player.z) !in wave) continue
+                val (dealt, prayed) = meleeRoll(player)
+                log("superior slash hits ${player.username} for $dealt" + if (prayed) ", prayed against" else "")
+            }
+            for ((row, tiles) in rows.withIndex()) {
+                val band = LOC_INSOLENCE[minOf(row / 3, LOC_INSOLENCE.size - 1)]
+                for (tile in tiles) voidOn(tile, phaseTick + INSOLENCE_VOID, band)
+            }
+        }
+    }
+
+    /** A melee roll of his on [player], as his slash's: what they took and whether they prayed against it. */
+    private fun EncounterContext.meleeRoll(player: Player): Pair<Int, Boolean> {
+        val roll = world.combat.npcAttack(boss, player, AttackType.SLASH) ?: return 0 to false
+        val rolled = if (CombatMath.rollHits(world.random, roll.attackRoll, roll.defenceRoll)) CombatMath.rollDamage(world.random, roll.maxHit) else 0
+        val prayed = world.prayers.protects(player, AttackType.SLASH)
+        // Dinh's bulwark blocks it as it does his other swings (Codex, PR 576).
+        val blocked = if (world.combat.bulwarkBlocking(player, world.tick)) DinhsBulwark.blocked(rolled) else rolled
+        return strike(player, if (prayed) 0 else blocked) to prayed
+    }
+
+    /** The cog: its circle, its strikes and the debris; the ticks it takes. */
+    private fun EncounterContext.cog(run: Int): Int {
+        val centre = centre(boss.spawn.x, boss.spawn.z)
+        val strikes = COG_FIRST_STRIKES + state.fallen.size
+        boss.effects.anim(ANIM_COG_IN)
+        boss.effects.spotanim(0, SPOT_COG_IN, 0)
+        // Whoever has an overhead prayer on as the circle forms is hit through Protect from Melee.
+        val praying = players.filter { inArena(centre, it.x, it.z) && it.overheadIcon >= 0 }.toSet()
+        log("cog: $strikes strikes" + if (praying.isEmpty()) "" else "; praying as it forms: ${praying.joinToString { it.username }}")
+        for (strike in 1..strikes) {
+            during(run, COG_GAP * strike) {
+                boss.effects.anim(if (strike == strikes) ANIM_COG_OUT else ANIM_COG_STRIKE)
+                boss.effects.spotanim(0, SPOT_COG, 0)
+                val here = players.filter { inArena(centre, it.x, it.z) }
+                for (player in here) {
+                    val prayed = player !in praying && world.prayers.protects(player, AttackType.CRUSH)
+                    val rolled = if (prayed) 0 else COG_DAMAGE
+                    val blocked = if (world.combat.bulwarkBlocking(player, world.tick)) DinhsBulwark.blocked(rolled) else rolled
+                    val dealt = strike(player, blocked)
+                    log("cog strike $strike hits ${player.username} for $dealt" + if (prayed) ", prayed against" else "")
+                }
+                if (strike == strikes - 1) {
+                    val tiles = here.map { Tile(it.x, it.z) }.toSet()
+                    for (tile in tiles) world.zones.mapAnim(tile.x, tile.z, boss.level, SPOT_DEBRIS)
+                    log("debris falls on ${tiles.joinToString(" ") { "${it.x},${it.z}" }}")
+                    after(DEBRIS_AFTER) {
+                        if (boss.dead) return@after
+                        for (tile in tiles) voidOn(tile, phaseTick + DEBRIS_TICKS, LOC_DEBRIS)
+                        log("debris void")
+                    }
+                }
+            }
+        }
+        return COG_GAP * strikes + 1
+    }
+
+    /** The void: his line, then his void shot at everyone and the Void Vine; the ticks it takes. */
+    private fun EncounterContext.voidSpecial(run: Int, vineType: NpcType?): Int {
+        val line = listOf(OcellusLines.AWAIT_VOID, OcellusLines.PANIC_FUTILE, OcellusLines.VOID_TAKE_YOU)[roll(0, 2)]
+        boss.effects.say(world.dialogueText.get(line))
+        log("the void")
+        during(run, VOID_AFTER) {
+            val centre = centre(boss.spawn.x, boss.spawn.z)
+            val here = players.filter { inArena(centre, it.x, it.z) }
+            log("void shot at ${here.joinToString { it.username }}")
+            for (player in here) world.meleeCombat.fireAt(boss, player, world.tick, VOID_SHOT, AttackType.MAGIC)
+            val others = here.filter { it !== state.tank && quadrant(centre, it.x, it.z)?.let { q -> q !in state.fallen } == true }
+            if (vineType == null || others.isEmpty() || state.rooted != null) return@during
+            val player = others[roll(0, others.size - 1)]
+            val vine = spawnAdd(vineType, player.x, player.z) ?: return@during
+            // It never hits back, nor wins hitpoints back by itself.
+            vine.scriptedAttacks = true
+            vine.hitpointsRegenTicks = Int.MAX_VALUE
+            state.vine = vine
+            state.rooted = player
+            state.rootTile = Tile(player.x, player.z)
+            state.vineDue = phaseTick + VINE_TICKS
+            player.waypoints.clear()
+            player.effects.spotanim(0, SPOT_ENTANGLE_START, 0, 0)
+            log("void vine roots ${player.username}")
+        }
+        return VOID_AFTER + 1
+    }
+
+    /**
+     * The Void Vine each tick: broken, its player is free; not broken in time, they take [VINE_DAMAGE] and are free;
+     * else they stay where it rooted them.
+     */
+    private fun EncounterContext.vine() {
+        val player = state.rooted ?: return
+        val vine = state.vine
+        when {
+            vine == null || vine.dead || world.npcs[vine.index] !== vine -> {
+                log("${player.username} breaks free of the void vine")
+                unroot()
+            }
+            player.dead || players.none { it === player } -> unroot()
+            phaseTick >= state.vineDue -> {
+                val dealt = strike(player, VINE_DAMAGE)
+                log("void vine crushes ${player.username} for $dealt")
+                unroot()
+            }
+            else -> {
+                // The fight runs before players move in a tick: a route asked for now goes nowhere.
+                player.waypoints.clear()
+                val tile = state.rootTile
+                if (tile != null && (player.x != tile.x || player.z != tile.z)) world.teleport(player, tile.x, tile.z, boss.level)
+                player.effects.spotanim(0, SPOT_ENTANGLE, 0, 0)
+            }
+        }
+    }
+
+    /** Frees whoever the Void Vine roots and takes it away. */
+    private fun EncounterContext.unroot() {
+        val vine = state.vine
+        if (vine != null && !vine.dead && world.npcs[vine.index] === vine) world.removeNpc(vine)
+        state.rooted?.takeIf { !it.dead }?.effects?.spotanim(0, SPOT_ENTANGLE_END, 0, 0)
+        state.vine = null
+        state.rooted = null
+        state.rootTile = null
+    }
+
+    /** Untether: his line and rise, the eruptions, the square and his coming down; the ticks it takes. */
+    private fun EncounterContext.untether(run: Int): Int {
+        val centre = centre(boss.spawn.x, boss.spawn.z)
+        val quadrant = state.held
+        boss.effects.say(world.dialogueText.get(OcellusLines.UNTETHER))
+        boss.effects.anim(ANIM_UNLEASH_IN)
+        log("untether")
+        val all = (1..STRIP_LENGTH).flatMap { x -> (1..STRIP_LENGTH).map { z -> quadrantTile(centre, quadrant, x, z) } }
+        for (eruption in 1..ERUPTIONS) {
+            during(run, ERUPTION_FIRST + ERUPTION_GAP * (eruption - 1)) {
+                val pool = all.toMutableList()
+                val tiles = LinkedHashSet<Tile>()
+                repeat(ERUPTION_TILES) { tiles += pool.removeAt(roll(0, pool.size - 1)) }
+                for (player in players) if (inArena(centre, player.x, player.z)) tiles += Tile(player.x, player.z)
+                for (tile in tiles) world.zones.mapAnim(tile.x, tile.z, boss.level, SPOT_ERUPTION)
+                log("eruption $eruption on ${tiles.size} tiles")
+                during(run, ERUPTION_LANDS) {
+                    for (player in players) {
+                        if (Tile(player.x, player.z) !in tiles) continue
+                        val dealt = strike(player, ERUPTION_DAMAGE)
+                        log("eruption hits ${player.username} for $dealt")
+                    }
+                }
+            }
+        }
+        val size = boss.type.size
+        val safe = (boss.x - 1..boss.x + size).flatMap { x -> (boss.z - 1..boss.z + size).map { z -> Tile(x, z) } }.toSet()
+        during(run, SQUARE_AT) {
+            world.zones.mapAnim(boss.x + size / 2, boss.z + size / 2, boss.level, SPOT_SQUARE)
+            log("the square shows")
+        }
+        during(run, SLAM_AT) {
+            boss.effects.anim(ANIM_UNLEASH_OUT)
+            for (player in players) {
+                if (!inArena(centre, player.x, player.z) || quadrant(centre, player.x, player.z) != quadrant || Tile(player.x, player.z) in safe) continue
+                val dealt = strike(player, SLAM_DAMAGE)
+                log("he comes down on ${player.username} for $dealt")
+            }
+            log("he comes down")
+        }
+        return SLAM_AT + 1
     }
 
     /**
@@ -1396,6 +1813,9 @@ object Ocellus {
         state.tank = null
         state.rotation = 0
         state.nextAttack = phaseTick + FIRST_ATTACK_AFTER
+        state.run++
+        state.busyUntil = -1
+        state.insolenceDue = state.fallen.isNotEmpty()
         log("takes quadrant ${quadrant.name} from ${corner.x},${corner.z}; barriers up")
     }
 
@@ -1483,13 +1903,7 @@ object Ocellus {
             if (boss.dead) return@after
             for (player in players) {
                 if (Tile(player.x, player.z) !in wave) continue
-                val roll = world.combat.npcAttack(boss, player, AttackType.SLASH) ?: continue
-                val rolled = if (CombatMath.rollHits(world.random, roll.attackRoll, roll.defenceRoll)) CombatMath.rollDamage(world.random, roll.maxHit) else 0
-                val prayed = world.prayers.protects(player, AttackType.SLASH)
-                // Dinh's bulwark blocks it as it does his other swings (Codex, PR 576).
-                val blocked = if (world.combat.bulwarkBlocking(player, world.tick)) DinhsBulwark.blocked(rolled) else rolled
-                val dealt = world.meleeCombat.hitPlayer(player, boss, if (prayed) 0 else blocked, world.tick)
-                if (!player.dead) player.attackedTick = world.tick
+                val (dealt, prayed) = meleeRoll(player)
                 log("slash hits ${player.username} for $dealt" + if (prayed) ", prayed against" else "")
             }
         }
@@ -1499,6 +1913,10 @@ object Ocellus {
     private fun EncounterContext.startFall() {
         state.fallStart = phaseTick
         state.barriers = false
+        // Whatever special he was on ends, and the vine lets go (guessed).
+        state.run++
+        state.busyUntil = -1
+        unroot()
         val line = if (roll(0, 1) == 0) OcellusLines.OBLITERATION else OcellusLines.RUN
         boss.effects.say(world.dialogueText.get(line))
         log("${state.held.name} to fall at ${boss.hitpoints}/${boss.maxHitpoints}; barriers down")
@@ -1584,12 +2002,15 @@ object Ocellus {
     }
 
     /** His stepping stones' Jump, on their copies in a run's instance ([ArchiveRaids.INSTANCE_LOCS] has [GAPS]). */
+    /** Whom [npc] roots, if it is a fight's Void Vine: they can't break it themselves (guessed). */
+    private fun rootedBy(npc: Npc): Player? = if (npc.type.id != VINE) null else states.values.firstOrNull { it.vine === npc }?.rooted
+
     fun register(world: World) {
         for (gap in GAPS) world.handlers.onLoc(gap, 1) { op -> jump(world, op) }
         // His second phase is fought only through the Blade on his tiles: no splash of a barrage or chinchompa reaches
         // him as well, in full (exploit review round 22, R22B-3). He has no Attack then, so nobody is told why.
         val shutOut = world.combat.shutOut
-        world.combat.shutOut = { player, npc -> npc.type.id == P2 || shutOut(player, npc) }
+        world.combat.shutOut = { player, npc -> npc.type.id == P2 || rootedBy(npc) === player || shutOut(player, npc) }
     }
 
     /** Walking to his corner: a step a tick, a shot every [SHOT_EVERY], and the corner's cracks the tick after he's there. */
