@@ -2,6 +2,7 @@ package osrsps.game.skill
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.intOrNull
 import kotlinx.serialization.json.jsonArray
@@ -39,6 +40,8 @@ class TreeType(
     val despawn: Int?,
     /** Success pairs (low, high) by axe tier. */
     val rates: Map<String, Pair<Int, Int>>,
+    /** Whether its logs roll for seed, ring and egg nests; redwoods give only clue nests (OSRS Wiki, Redwood tree). */
+    val birdNests: Boolean = true,
 )
 
 /** woodcutting.json: the axes, best first, and every tree loc with its stump. */
@@ -71,6 +74,7 @@ class WoodcuttingData(val axes: List<Axe>, val trees: Map<Int, TreeType>, val st
                 val type = TreeType(
                     tree.getValue("key").jsonPrimitive.content, tree.int("level"), tree.int("xpTenths"), tree.int("logs"),
                     respawn[0], respawn[1], tree.getValue("despawn").jsonPrimitive.intOrNull, rates,
+                    tree["birdNests"]?.jsonPrimitive?.boolean ?: true,
                 )
                 require(axes.all { it.tier in rates }) { "Tree ${type.key} has no success pair for some axe tier" }
                 for (loc in tree.getValue("locs").jsonArray.map { it.jsonObject }) {
@@ -168,7 +172,7 @@ class Woodcutting(private val world: World, val data: WoodcuttingData, private v
                 player.inventory.add(logs, 1)
                 player.skills.addTenths(Skill.WOODCUTTING, tree.xpTenths)
                 player.message(text[WoodcuttingLines.GET_LOGS, "logs" to logs.name.lowercase()])
-                nests.roll(player)
+                if (tree.birdNests) nests.roll(player)
                 if (timer == null || timer.left <= 0) {
                     fell(loc, tree)
                     return stop()

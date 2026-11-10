@@ -436,6 +436,7 @@ dialogue file. Trees outside Misthalin are where live has them and reached by ::
 | A level-up box ends the action | 2004Scape engine's busy() check; guessed that live ends rather than waits |
 | Teak (35, 85 XP, timer 50, back in 15), mahogany (50, 125 XP, 100, 14), arctic pine (54, 40 XP, 140, 14), redwood sections (90, 380 XP, 440, 199), with each chart's pair per axe (`WoodcuttingG2Test`) | OSRS Wiki tree pages (read 2026-11-10) |
 | Their stumps: teaktree to teak_stump and the like, redwoodtree_l/_r to their _cut sections | 242 gamevals, by name |
+| Redwoods give no seed, ring or egg nests (only clue nests, which are out) | OSRS Wiki, Redwood tree |
 | Out: the Woodcutting Guild (its +7, doors and the redwoods' ladders), the Hardwood Grove's trading sticks, Etceteria's trees giving no logs, Farming's patch trees | out of scope; later pieces |
 
 Each log has a 1/256 chance of a bird nest (`game/skill/BirdNests.kt`, words under `birdnest.*`), 11/2560 with a

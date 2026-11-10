@@ -1,5 +1,5 @@
 {
-  "about": "Woodcutting, as the OSRS Wiki's tree and axe pages give it (read 2026-10-29). Each tree's success pairs (low, high out of 256, see SuccessRoll) are per axe tier; each was checked against the Wiki chart's points for that tree and axe (WoodcuttingDataTest). Where the chart's points allow a range (crystal axes mostly) a pair inside it was picked. respawn is in ticks, low and high, picked at random; despawn is the tree timer in ticks, null for trees that fall after one log. Ids are the 241 cache's; names are its gamevals. Which stump each tree turns into isn't in the cache: these follow the RSMod project's table, every pair checked to match by gameval name.",
+  "about": "Woodcutting, as the OSRS Wiki's tree and axe pages give it (read 2026-10-29). Each tree's success pairs (low, high out of 256, see SuccessRoll) are per axe tier; each was checked against the Wiki chart's points for that tree and axe (WoodcuttingDataTest). Where the chart's points allow a range (crystal axes mostly) a pair inside it was picked. respawn is in ticks, low and high, picked at random; despawn is the tree timer in ticks, null for trees that fall after one log. Ids are the 241 cache's; names are its gamevals. Which stump each tree turns into isn't in the cache: these follow the RSMod project's table, every pair checked to match by gameval name. birdNests false (redwood) means its logs never roll for seed, ring or egg nests.",
   "axes": [
     {"obj": 23673, "name": "crystal_axe", "level": 71, "anim": 8324, "tier": "crystal"},
     {"obj": 20011, "name": "3a_axe", "level": 61, "anim": 7264, "tier": "dragon"},
@@ -350,6 +350,7 @@
       "xpTenths": 3800,
       "logs": 19669,
       "logsName": "redwood_logs",
+      "birdNests": false,
       "respawn": [199, 199],
       "despawn": 440,
       "rates": {

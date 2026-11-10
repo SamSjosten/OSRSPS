@@ -41,6 +41,11 @@ class WoodcuttingG2Test {
     }
 
     @Test
+    fun `redwoods give no seed, ring or egg nests and every other tree does`() {
+        assertEquals(listOf("redwood"), data.trees.values.distinct().filter { !it.birdNests }.map { it.key })
+    }
+
+    @Test
     fun `every tree loc has its stump, paired by gameval name`() {
         val stumps = mapOf(
             9036 to 9037, 36686 to 36687, 40758 to 40759, // teaktree, prif_teaktree, teaktree_update
