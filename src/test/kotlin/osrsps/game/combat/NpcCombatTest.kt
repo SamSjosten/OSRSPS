@@ -73,6 +73,7 @@ class NpcCombatTest {
             "npc_archive_guardian_range_attack01" to 14751, "npc_archive_guardian_melee_attack01" to 14752, "npc_archive_guardian_death01" to 14749,
             "npc_ezekiel_melee01" to 14685, "npc_ezekiel_death01" to 14689,
             "npc_bork_gong_melee01" to 14542, "npc_bork_death01" to 14541, "npc_smork_cannon_attack01" to 14554,
+            "dreadnoth_melee01" to 14779, "dreadnoth_death01" to 14782, "jelly_attack" to 1586, "jelly_death" to 1587,
             "demon_attack" to 64, "demon_block" to 65, "demon_death" to 67,
             "shade_attack" to 1283, "shade_block" to 1286, "shade_sink" to 1287,
             "monalisk_cave_bug_attack" to 6079, "monalisk_cave_bug_defend" to 6080, "monalisk_mini_cave_bug_death" to 6082,
@@ -595,6 +596,29 @@ class NpcCombatTest {
         assertEquals(listOf(7, 9), listOf(him.deathTicks, them.deathTicks))
         assertEquals(listOf(140, 130, 10, 300), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { him.defence.against(it) })
         assertEquals(listOf(220, 170, 160, 400), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { them.defence.against(it) })
+    }
+
+    @Test
+    fun `Dreadnoth and his jellies fight as the Wiki has them, each max hit the formula's`() {
+        val dreadnoth = NpcType(16665, "Dreadnoth the Jellied", size = 5, internalName = "tfa_jelly_boss", stats = NpcStats(attack = 280, defence = 125, strength = 285, hitpoints = 2100, ranged = 250, magic = 220))
+        val jelly = NpcType(16666, "Jelly", internalName = "tfa_jelly_minion", stats = NpcStats(attack = 200, defence = 100, strength = 160, hitpoints = 75, ranged = 1, magic = 100))
+        val combat = NpcCombat.load(NpcTypes.of(dreadnoth, jelly), seqs)
+        val him = combat[dreadnoth]!!
+        val minion = combat[jelly]!!
+        assertEquals(listOf(4, 5), listOf(him.attackSpeed, minion.attackSpeed))
+        assertEquals(listOf(AttackType.CRUSH, AttackType.CRUSH), listOf(him.attackType, minion.attackType))
+        // The Wiki's 45 and 17 are the formula's too.
+        assertEquals(listOf(45, 17), listOf(him.maxHit, minion.maxHit))
+        assertEquals(CombatMath.npcMaxHit(285, 35), him.maxHit)
+        assertEquals(CombatMath.npcMaxHit(160, 0), minion.maxHit)
+        assertEquals(NpcCombatAnims(14779, -1, 14782), him.anims)
+        assertEquals(NpcCombatAnims(1586, -1, 1587), minion.anims)
+        assertEquals(ElementalWeakness(Element.FIRE, 85), him.weakness)
+        assertEquals(ElementalWeakness(Element.FIRE, 60), minion.weakness)
+        assertEquals(mapOf(NpcStat.ATTACK to 50, NpcStat.STRENGTH to 50, NpcStat.RANGED to 50, NpcStat.MAGIC to 50), him.drainCaps)
+        assertTrue(him.poisonImmune && !him.venomImmune && !minion.poisonImmune)
+        assertEquals(775, him.xpBonusTenths)
+        assertEquals(listOf(15, 20, 5, 20), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { him.defence.against(it) })
     }
 
     @Test
