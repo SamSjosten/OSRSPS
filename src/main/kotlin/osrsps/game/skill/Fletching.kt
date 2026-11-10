@@ -199,7 +199,7 @@ class FletchingData(
                     javelin.getValue("name").jsonPrimitive.content, Skill.FLETCHING, javelin.int("javelin"), javelins.int("amount"),
                     javelin.int("level"), javelin.int("xpTenths"), listOf(ObjCount(javelinShaft, 1), ObjCount(javelin.int("tips"), 1)),
                     emptyList(), javelins.int("anim"), javelins.int("first"), javelins.int("interval"), FletchingLines.JAVELINS,
-                    FletchingLines.LEVEL, batch = true,
+                    FletchingLines.LEVEL, batch = true, second = javelins.int("second"),
                 )
                 require(javelinRecipes.put(javelin.int("tips"), recipe) == null) { "Javelin tips ${javelin.int("tips")} are listed twice" }
             }

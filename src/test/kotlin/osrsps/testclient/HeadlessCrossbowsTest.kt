@@ -200,21 +200,21 @@ class HeadlessCrossbowsTest {
     }
 
     @Test
-    fun `bronze javelin tips on 20 shafts make javelins 15 then 5, a tick apart, 1 XP each`(@TempDir dir: Path) {
+    fun `bronze javelin tips on 50 shafts make two sets a tick apart, then a set every 2 ticks, 1 XP each`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("fred").use { client ->
                 client.ready()
-                client.give(data.javelinShaft, 20)
-                client.give(BRONZE_JAVELIN_TIPS, 20)
+                client.give(data.javelinShaft, 50)
+                client.give(BRONZE_JAVELIN_TIPS, 50)
                 client.use(BRONZE_JAVELIN_TIPS, data.javelinShaft)
                 val setup = client.box()
                 assertTrue("[fletching.sets_title]" in setup.args, "the sets of 15 title: ${setup.args}")
-                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 2)
-                val sets = client.await("two sets") { client.made().takeIf { it.size >= 2 } }
-                assertEquals(listOf(15, 5).map { "[fletching.javelins amount=$it item=bronze javelin]" }, sets.map { it.text })
-                assertEquals(1, sets[1].tick - sets[0].tick)
-                client.await("20 javelins") { if (client.count(BRONZE_JAVELIN) == 20) Unit else null }
-                assertEquals(20, client.await("20 XP") { client.xpOver(XP_99).takeIf { it >= 20 } })
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 4)
+                val sets = client.await("four sets") { client.made().takeIf { it.size >= 4 } }
+                assertEquals(listOf(15, 15, 15, 5).map { "[fletching.javelins amount=$it item=bronze javelin]" }, sets.map { it.text })
+                assertEquals(listOf(1, 2, 2), sets.zipWithNext { a, b -> b.tick - a.tick })
+                client.await("50 javelins") { if (client.count(BRONZE_JAVELIN) == 50) Unit else null }
+                assertEquals(50, client.await("50 XP") { client.xpOver(XP_99).takeIf { it >= 50 } })
             }
         }
     }

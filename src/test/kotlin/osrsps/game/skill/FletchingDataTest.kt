@@ -135,14 +135,14 @@ class FletchingDataTest {
         assertEquals(listOf(9189, 12, 56, 40), tips[1607])
         assertEquals(listOf(9194, 24, 73, 94), tips[6573])
         assertTrue(data.boltTips.values.all { it.tools == listOf(1755) && it.interval == 5 && !it.batch })
-        // Template:Table/Fletching/Javelins: XP per javelin, 15 at a time, 1 tick a set.
+        // Template:Table/Fletching/Javelins: XP per javelin, 15 at a time, two sets a tick apart, then 2 ticks a set.
         val javelins = data.javelins.mapValues { (_, it) -> Triple(it.product, it.level, it.xpTenths) }
         assertEquals(8, javelins.size)
         assertEquals(Triple(825, 3, 10), javelins[19570])
         assertEquals(Triple(830, 77, 124), javelins[19580])
         assertEquals(Triple(21318, 84, 135), javelins[21352])
         assertEquals(Triple(19484, 92, 150), javelins[19582])
-        assertTrue(data.javelins.values.all { it.batch && it.amount == 15 && it.interval == 1 && it.inputs[0] == ObjCount(19584, 1) })
+        assertTrue(data.javelins.values.all { it.batch && it.amount == 15 && it.first == 1 && it.second == 1 && it.interval == 2 && it.inputs[0] == ObjCount(19584, 1) })
     }
 
     @Test

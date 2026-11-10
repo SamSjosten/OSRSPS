@@ -622,7 +622,7 @@ it, as do running out, the count being done, the level being too low and a level
 | Crossbows: levels, limbs and string XP; 2 ticks each, the first 1 tick after the choice; the hammer | OSRS Wiki, Template:Table/Fletching/Crossbows, Bronze crossbow (u), Bronze crossbow ("Make-X is 1, then 2 ticks") |
 | Bolts: levels, XP per bolt, 10 a click with no wait; tipped bolts: levels, XP per bolt, 10 a set, 2 ticks a set; dragon bolts taking every gem tip | OSRS Wiki, Template:Table/Fletching/Bolts, Tipped bolts, Tipped dragon bolts, Bronze bolts, Opal bolts |
 | Bolt tips: levels, XP per gem, 12 a gem (24 from an onyx or oyster pearls, 6 from an oyster pearl), 5 ticks a gem | OSRS Wiki, Template:Table/Fletching/Bolt tips, each tips page |
-| Javelins: levels, XP per javelin, 15 a set, 1 tick a set | OSRS Wiki, Template:Table/Fletching/Javelins, Bronze javelin |
+| Javelins: levels, XP per javelin, 15 a set, the first two sets a tick apart, then 2 ticks a set | OSRS Wiki, Template:Table/Fletching/Javelins, Bronze javelin |
 | Animations: `xbows_fletching_*` for limbs, `xbows_stringing_crossbow_*`, `human_fletching_add_bolt_feathers_*` and `human_fletching_add_bolt_tips_*` by metal | cache 242 gamevals |
 | The Make-X box for tipping bolts and for javelins, the bolts' sets-of-10 title; the gem's cutting animation for bolt tips; `human_fletching_add_arrow_tips` for javelins; no animation for broad bolts; the first tipped set and the first bolt tips 2 ticks after the choice, and the first javelins 1; broad bolts' Slayer unlock taken as unlocked | guessed |
 | Out: the redwood shield; kebbit, antler and ascension bolts and the hunters' crossbows; the jeweller's chisel | out of scope |
