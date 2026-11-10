@@ -7,7 +7,7 @@
   {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
   {"step": "command", "text": "::god on", "comment": "a caught pickpocket's blow would otherwise hurt"},
   {"step": "assertEquipment", "slot": "hands", "item": "Gloves of silence"},
-  {"step": "assertEquipment", "slot": "amulet", "item": "Dodgy necklace"},
+  {"step": "assertEquipment", "slot": "neck", "item": "Dodgy necklace"},
 
   {"step": "waitTicks", "ticks": 3, "comment": "let the client list the farm's NPCs"},
   {"step": "npcOption", "npc": "Farmer", "option": "Pickpocket", "timeoutMs": 20000},
