@@ -29,8 +29,11 @@ import osrsps.game.npc.Npc
  * told apart; the hard Kandarin Diary's 10% more not counted.
  */
 object BoltEffects {
-    /** What the effect does to one shot: the [damage] to reserve, a [sure] hit, and whether it [fired] (for its graphic). */
-    data class Rolled(val hit: Boolean, val damage: Int, val fired: Boolean)
+    /**
+     * What the effect does to one shot: the [damage] to reserve, a [sure] hit, whether it [fired] (for its graphic), and
+     * the [max] the damage could have reached, for the max-hit hitsplat (diamond's 115%, a flat bonus added, onyx's 20%).
+     */
+    data class Rolled(val hit: Boolean, val damage: Int, val fired: Boolean, val max: Int)
 
     /** Its chance out of 1000, whether it needs the accuracy roll to pass, and its graphic. */
     private class Spec(val perMille: Int, val onHit: Boolean, val spotanim: Int)
@@ -66,20 +69,21 @@ object BoltEffects {
      * damage, [roll] giving a normal roll for a max hit and [hit] the accuracy roll's result.
      */
     fun roll(effect: BoltEffect, random: GameRandom, player: Player, npc: Npc, hit: Boolean, maxHit: Int, roll: (Int) -> Int): Rolled {
-        val spec = specs[effect] ?: return Rolled(hit, if (hit) roll(maxHit) else 0, false)
+        val spec = specs[effect] ?: return Rolled(hit, if (hit) roll(maxHit) else 0, false, maxHit)
         // Blood Forfeit doesn't activate when the shooter can't spare a hitpoint (OSRS Wiki, Ruby bolts (e)).
         val fires = (random.nextInt(1000) < spec.perMille) && (hit || !spec.onHit) && (effect != BoltEffect.RUBY || rubyCost(player) >= 1)
-        if (!fires) return Rolled(hit, if (hit) roll(maxHit) else 0, false)
+        if (!fires) return Rolled(hit, if (hit) roll(maxHit) else 0, false, maxHit)
         val ranged = player.skills.currentLevel(Skill.RANGED)
         val base = if (hit) roll(maxHit) else 0
         return when (effect) {
-            BoltEffect.OPAL -> Rolled(true, base + ranged / 10, true)
-            BoltEffect.PEARL -> Rolled(true, base + ranged / 20, true)
-            BoltEffect.DRAGONSTONE -> Rolled(true, base + ranged / 5, true)
-            BoltEffect.ONYX -> Rolled(true, base * 6 / 5, true)
-            BoltEffect.RUBY -> Rolled(true, minOf(RUBY_CAP, npc.hitpoints / 5), true)
-            BoltEffect.DIAMOND -> Rolled(true, roll(maxHit * 115 / 100), true)
-            else -> Rolled(hit, base, true)
+            BoltEffect.OPAL -> Rolled(true, base + ranged / 10, true, maxHit + ranged / 10)
+            BoltEffect.PEARL -> Rolled(true, base + ranged / 20, true, maxHit + ranged / 20)
+            BoltEffect.DRAGONSTONE -> Rolled(true, base + ranged / 5, true, maxHit + ranged / 5)
+            BoltEffect.ONYX -> Rolled(true, base * 6 / 5, true, maxHit * 6 / 5)
+            // Guessed: ruby's set damage isn't a roll, so it keeps the ordinary max for the hitsplat.
+            BoltEffect.RUBY -> Rolled(true, minOf(RUBY_CAP, npc.hitpoints / 5), true, maxHit)
+            BoltEffect.DIAMOND -> (maxHit * 115 / 100).let { Rolled(true, roll(it), true, it) }
+            else -> Rolled(hit, base, true, maxHit)
         }
     }
 

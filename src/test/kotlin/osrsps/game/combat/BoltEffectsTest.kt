@@ -69,12 +69,14 @@ class BoltEffectsTest {
     @Test
     fun `what each one does to the hit`() {
         // Opal: 99 Ranged / 10 more, landing even on a miss; pearl / 20; dragonstone / 5.
-        assertEquals(BoltEffects.Rolled(true, 9, true), fired(BoltEffect.OPAL, npc(), hit = false) { it })
-        assertEquals(BoltEffects.Rolled(true, 10 + 4, true), fired(BoltEffect.PEARL, npc(), hit = true) { 10 })
-        assertEquals(BoltEffects.Rolled(true, 10 + 19, true), fired(BoltEffect.DRAGONSTONE, npc(), hit = true) { 10 })
+        assertEquals(BoltEffects.Rolled(true, 9, true, 30 + 9), fired(BoltEffect.OPAL, npc(), hit = false) { it })
+        assertEquals(BoltEffects.Rolled(true, 10 + 4, true, 30 + 4), fired(BoltEffect.PEARL, npc(), hit = true) { 10 })
+        assertEquals(BoltEffects.Rolled(true, 10 + 19, true, 30 + 19), fired(BoltEffect.DRAGONSTONE, npc(), hit = true) { 10 })
         // Onyx: a fifth more. Diamond: a sure hit on a max hit 15% higher (30 to 34).
         assertEquals(24, fired(BoltEffect.ONYX, npc(), hit = true) { 20 }.damage)
-        assertEquals(BoltEffects.Rolled(true, 34, true), fired(BoltEffect.DIAMOND, npc(), hit = false) { it })
+        // The max hit for the hitsplat follows the effect: onyx's fifth more of 30 is 36.
+        assertEquals(36, fired(BoltEffect.ONYX, npc(), hit = true) { 20 }.max)
+        assertEquals(BoltEffects.Rolled(true, 34, true, 34), fired(BoltEffect.DIAMOND, npc(), hit = false) { it })
         // Ruby: a fifth of the monster's hitpoints now, at most 100.
         assertEquals(40, fired(BoltEffect.RUBY, npc(hitpoints = 200), hit = false) { 0 }.damage)
         assertEquals(100, fired(BoltEffect.RUBY, npc(hitpoints = 10_000), hit = true) { 0 }.damage)

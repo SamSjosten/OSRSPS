@@ -312,7 +312,7 @@ class RangedCombat(
             val rolled = bolt?.damage ?: if (hit) damageRoll(matchup.maxHit) else 0
             val damage = reserve(player, npc, style, combat.rolledOn(player, npc, style.type, rolled))
             melee.attackMade(player, npc, tick)
-            inFlight += Shot(player, npc, damage, landTick, dropped, weapon.bounces, style, matchup.attackRoll, matchup.maxHit, travel, hit, weapon.targets, poison, venom, from = Tile(player.x, player.z), recover = recover, slot = slot, floor = floor, effect = effect?.takeIf { bolt?.fired == true })
+            inFlight += Shot(player, npc, damage, landTick, dropped, weapon.bounces, style, matchup.attackRoll, matchup.maxHit, travel, hit, weapon.targets, poison, venom, from = Tile(player.x, player.z), recover = recover, slot = slot, floor = floor, effect = effect?.takeIf { bolt?.fired == true }, rolledMax = bolt?.max ?: matchup.maxHit)
         }
     }
 
