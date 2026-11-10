@@ -37,6 +37,7 @@ object OcellusLines : Lines("tfa_ocellus", "The_Fractured_Archive/Strategies") {
     val ANNIHILATION = line("annihilation", "Ocellus at the middle, eight ticks after his last side, his charge 12 or more: everyone is hit hard")
     val WILL_DISAPPEAR = line("will_disappear", "Ocellus with his first-phase bar run out, before he changes to his second phase")
     val YOUR_TIME = line("your_time", "Ocellus seven ticks into his second phase, as the Blade appears beside him")
+    val THIS_IS_ENOUGH = line("this_is_enough", "Ocellus as his second phase ends, in the middle of the third quadrant's turn")
 
     private fun ordinal(n: Int) = listOf("first", "second", "third")[n - 1]
 }
@@ -79,9 +80,13 @@ object OcellusLines : Lines("tfa_ocellus", "The_Fractured_Archive/Strategies") {
  *   purple but one of each, as [ORANGE] has it, and [VOLLEY_FIRES] ticks later each purple one shoots across the
  *   quadrant along its [STRIP_LENGTH]-tile strip ([strip]), hitting whoever it reaches ([PORTAL_MIN] to [PORTAL_MAX]).
  *   Where the two orange strips cross is safe.
- * - STAND-IN until step 25b: nothing else in a quadrant's turn (no pools, no last all-purple volley, no floor portal on
- *   to the next quadrant). STAND-IN until step 26: [SECOND_PHASE_TICKS] ticks in, as his third phase would begin, he
- *   dies, and the room is done.
+ * - Later in a quadrant's turn (raid step 25b): [POOLS_AT] ticks in, purple pools on [POOL_TILES] of its tiles and on
+ *   every player's ([pools]), bursting [POOL_LANDS] ticks later for [POOL_DAMAGE]; [ALL_PURPLE_AT] ticks in, every
+ *   portal on its two arms purple; [FLOOR_PORTAL_AT] ticks in, an orange portal on its floor for [FLOOR_PORTAL_TICKS]
+ *   ticks ([floorPortal]), which moves whoever steps on it to the same spot in the next quadrant clockwise; and
+ *   [LAST_VOLLEY_AT] ticks in, every purple portal fires across the quadrant, killing whoever is still in it.
+ * - [SECOND_PHASE_TICKS] ticks in, in the middle of the third quadrant's turn, [OcellusLines.THIS_IS_ENOUGH]. STAND-IN
+ *   until step 26: then, as his third phase would begin, he dies, and the room is done.
  *
  * From the OSRS Wiki (Ocellus, read 2026-11-10): his first phase's stats and bonuses (npc-combat.json), 3 by 3, the
  * 5-tick attack speed, magic and ranged, the max hit 36, the 60% Defence drain cap, poison and venom immunity, his
@@ -123,10 +128,17 @@ object OcellusLines : Lines("tfa_ocellus", "The_Fractured_Archive/Strategies") {
  *
  * Guessed in step 25a: which portal id is orange and which purple, and which way round the north and south arms' are
  * turned; the first quadrant on a tie (the first clockwise from the north-west); a quadrant's first volley as its turn
- * begins; the shots' height and their hit landing the tick they reach a player; no prayer against them; all the
- * portals orange again after a quadrant's last volley; the Blade never hitting back, made whole each tick and its bar
- * shown so; no diminishing returns on its damage within a quadrant (the Wiki says there are, not how much). Not sent:
- * the portals' spawn and idle animations and the Blade's discharge.
+ * begins; the shots' height and their hit landing the tick they reach a player; no prayer against them; the Blade
+ * never hitting back, made whole each tick and its bar shown so, and never regaining hitpoints by itself; no
+ * diminishing returns on its damage within a quadrant (the Wiki says there are, not how much). Not sent: the portals'
+ * spawn and idle animations.
+ *
+ * Step 25b: from the capture notes, the pools' timing and their tiles (10 to 12 and every player's), every portal
+ * purple 31 ticks in, the floor portal from 33 for seven ticks with the Blade's discharge and its graphics, the last
+ * volley at 40 killing whoever is left, the line at the end of the phase; the notes' estimates, the pools' 25 and the
+ * floor portal's destination (the same spot in the next quadrant). From the Wiki's changes, an immunity window after
+ * the floor portal. Guessed: the pools' graphic, which tiles and no prayer against them, the floor portal at the
+ * quadrant's middle, the immunity's [FLOOR_PORTAL_IMMUNE] ticks covering the pools as well as the shots.
  */
 object Ocellus {
     /** What `::raid` and the raid flow know the fight by. */
@@ -322,6 +334,40 @@ object Ocellus {
     const val PORTAL_MIN = 20
     const val PORTAL_MAX = 25
 
+    /**
+     * Later in a quadrant's turn (tsps): the pools this long in, on this many of its tiles (and every player's), bursting
+     * this long after for this much (the notes' estimate); every portal on its arms purple this long in; the floor
+     * portal this long in, for this many ticks; and the last volley, which kills, this long in.
+     */
+    const val POOLS_AT = 28
+    val POOL_TILES = 10..12
+    const val POOL_LANDS = 4
+    const val POOL_DAMAGE = 25
+    const val ALL_PURPLE_AT = 31
+    const val FLOOR_PORTAL_AT = 33
+    const val FLOOR_PORTAL_TICKS = 7
+    const val LAST_VOLLEY_AT = 40
+
+    /**
+     * Ticks after going through the floor portal in which nothing of his hurts a player: the Wiki's changes speak of an
+     * immunity window after using it, not how long. Guessed.
+     */
+    const val FLOOR_PORTAL_IMMUNE = 3
+
+    /** Where the floor portal opens, this many tiles out from each arm of the quadrant: its middle. Guessed. */
+    const val FLOOR_PORTAL_OUT = 6
+
+    /** vfx_ocellus_p2_aoe_dodge: a pool on its tile, guessed to be the pools' graphic. */
+    const val SPOT_POOL = 4270
+
+    /** vfx_ocellus_p2_safe_portal_spawn, _idle and _despawn: the floor portal. */
+    const val SPOT_FLOOR_PORTAL_SPAWN = 4271
+    const val SPOT_FLOOR_PORTAL = 4272
+    const val SPOT_FLOOR_PORTAL_DESPAWN = 4273
+
+    /** vfx_ocellus_p2_sword_discharge: on the Blade as the floor portal opens (tsps). */
+    const val SPOT_SWORD_DISCHARGE = 4305
+
     /** The quadrants, clockwise from the north-west, and the arms of the cross, clockwise from the north. */
     enum class Quadrant { NW, NE, SE, SW }
     enum class Arm { N, E, S, W }
@@ -377,6 +423,10 @@ object Ocellus {
 
         /** Each portal standing, by arm and index out from the middle, and whether it is purple. */
         val portals = HashMap<Pair<Arm, Int>, Boolean>()
+
+        /** The floor portal's tile while it is open, and the phase tick each player who went through is safe until. */
+        var floorPortal: Tile? = null
+        val immune = WeakHashMap<Player, Long>()
     }
 
     private val states = WeakHashMap<Npc, State>()
@@ -409,6 +459,20 @@ object Ocellus {
         x < centre.x && z < centre.z -> Quadrant.SW
         else -> null
     }
+
+    /**
+     * The tile [outX] tiles east or west of the cross's north-south arm and [outZ] north or south of its east-west one,
+     * in [quadrant] (1 is beside the arm).
+     */
+    fun quadrantTile(centre: Tile, quadrant: Quadrant, outX: Int, outZ: Int): Tile {
+        val west = quadrant == Quadrant.NW || quadrant == Quadrant.SW
+        val north = quadrant == Quadrant.NW || quadrant == Quadrant.NE
+        return Tile(centre.x + if (west) -outX else outX, centre.z + if (north) outZ else -outZ)
+    }
+
+    /** Where the floor portal in [quadrant] takes a player at ([x], [z]): the same spot in the next quadrant clockwise. */
+    fun throughFloorPortal(centre: Tile, quadrant: Quadrant, x: Int, z: Int): Tile =
+        quadrantTile(centre, Quadrant.entries[(quadrant.ordinal + 1) % Quadrant.entries.size], kotlin.math.abs(x - centre.x), kotlin.math.abs(z - centre.z))
 
     /** The north or south arm and the east or west arm beside [quadrant]. */
     fun arms(quadrant: Quadrant): Pair<Arm, Arm> = when (quadrant) {
@@ -742,6 +806,8 @@ object Ocellus {
             log("portals stand")
         }
         if (at == SECOND_PHASE_TICKS) {
+            boss.effects.say(world.dialogueText.get(OcellusLines.THIS_IS_ENOUGH))
+            log("this is enough")
             // STAND-IN until step 26: his third phase isn't built, so he dies as it would begin, and the room is done.
             log("end of the second phase: stand-in, he dies")
             boss.holdsAtZero = false
@@ -797,19 +863,86 @@ object Ocellus {
         log("the Blade takes $lost: $share to his bar")
     }
 
-    /** Ticks [t] into the quadrants' turns: whose turn, its volleys' portals turning purple, and their firing. */
+    /**
+     * Ticks [t] into the quadrants' turns: whose turn, its volleys' portals turning purple and their firing, the pools,
+     * every portal purple, the floor portal, and the last volley.
+     */
     private fun EncounterContext.quadrantStep(t: Int) {
         val quadrant = Quadrant.entries[(state.firstQuadrant.ordinal + t / QUADRANT_TICKS) % Quadrant.entries.size]
         val at = t % QUADRANT_TICKS
         if (at == 0) log("quadrant ${quadrant.name}")
         if (at % VOLLEY_GAP == 0 && at / VOLLEY_GAP < VOLLEYS) volley(quadrant, at / VOLLEY_GAP)
         val firing = at - VOLLEY_FIRES
-        if (firing >= 0 && firing % VOLLEY_GAP == 0 && firing / VOLLEY_GAP < VOLLEYS) {
-            fire(quadrant, firing / VOLLEY_GAP)
-            if (firing / VOLLEY_GAP == VOLLEYS - 1) {
-                // Guessed, until step 25b's end of the quadrant: all orange again after its last volley.
-                for (arm in Arm.entries) for (index in 0 until PORTALS_PER_ARM) portal(arm, index, false)
+        if (firing >= 0 && firing % VOLLEY_GAP == 0 && firing / VOLLEY_GAP < VOLLEYS) fire(quadrant, "volley ${firing / VOLLEY_GAP + 1}")
+        when (at) {
+            POOLS_AT -> pools(quadrant)
+            ALL_PURPLE_AT -> {
+                val (ns, ew) = arms(quadrant)
+                for (arm in Arm.entries) for (index in 0 until PORTALS_PER_ARM) portal(arm, index, arm == ns || arm == ew)
+                log("every portal purple")
             }
+            LAST_VOLLEY_AT -> fire(quadrant, "last volley", lethal = true)
+        }
+        if (at in FLOOR_PORTAL_AT..FLOOR_PORTAL_AT + FLOOR_PORTAL_TICKS) floorPortal(quadrant, at - FLOOR_PORTAL_AT)
+    }
+
+    /** Whether [player] went through the floor portal lately, and nothing of his hurts them yet. */
+    private fun EncounterContext.immune(player: Player): Boolean = (state.immune[player] ?: -1L) >= phaseTick
+
+    /**
+     * The pools in [quadrant] (tsps): on [POOL_TILES] of its tiles at random and on every player's tile, each player in
+     * it or not, bursting [POOL_LANDS] ticks later on whoever stands on one. Guessed: the graphic, which tiles (any of
+     * the quadrant's, each once), the burst landing on the tile rather than the player, and no prayer against it.
+     */
+    private fun EncounterContext.pools(quadrant: Quadrant) {
+        val centre = centre(boss.spawn.x, boss.spawn.z)
+        val all = (1..STRIP_LENGTH).flatMap { x -> (1..STRIP_LENGTH).map { z -> quadrantTile(centre, quadrant, x, z) } }.toMutableList()
+        val count = roll(POOL_TILES.first, POOL_TILES.last)
+        val tiles = LinkedHashSet<Tile>()
+        repeat(count) { tiles += all.removeAt(roll(0, all.size - 1)) }
+        for (player in players) tiles += Tile(player.x, player.z)
+        for (tile in tiles) world.zones.mapAnim(tile.x, tile.z, boss.level, SPOT_POOL)
+        log("pools on ${tiles.size} tiles: ${tiles.joinToString(" ") { "${it.x},${it.z}" }}")
+        after(POOL_LANDS) {
+            if (boss.dead) return@after
+            for (player in players) {
+                if (Tile(player.x, player.z) !in tiles || immune(player)) continue
+                val dealt = fromTheRoom(player, POOL_DAMAGE)
+                log("pool bursts on ${player.username} for $dealt")
+            }
+        }
+    }
+
+    /**
+     * The floor portal in [quadrant], [open] ticks after it opened (tsps): it opens with the Blade's discharge, shows
+     * its idle graphic each tick, and goes after [FLOOR_PORTAL_TICKS]. Whoever stands on it while it is open goes to the
+     * same spot in the next quadrant clockwise (the notes' estimate), safe from him for [FLOOR_PORTAL_IMMUNE] ticks.
+     */
+    private fun EncounterContext.floorPortal(quadrant: Quadrant, open: Int) {
+        val centre = centre(boss.spawn.x, boss.spawn.z)
+        val tile = quadrantTile(centre, quadrant, FLOOR_PORTAL_OUT, FLOOR_PORTAL_OUT)
+        // The fight runs before players move in a tick, so whoever stepped on it in its last open tick is only on it
+        // now, as it goes: they are taken on before it does (Codex, PR 572).
+        for (player in players) {
+            if (open == 0 || player.x != tile.x || player.z != tile.z) continue
+            val to = throughFloorPortal(centre, quadrant, player.x, player.z)
+            world.teleport(player, to.x, to.z, boss.level)
+            state.immune[player] = phaseTick + FLOOR_PORTAL_IMMUNE
+            log("${player.username} through the floor portal to ${to.x},${to.z}")
+        }
+        if (open == FLOOR_PORTAL_TICKS) {
+            world.zones.mapAnim(tile.x, tile.z, boss.level, SPOT_FLOOR_PORTAL_DESPAWN)
+            state.floorPortal = null
+            log("floor portal gone")
+            return
+        }
+        if (open == 0) {
+            state.floorPortal = tile
+            world.zones.mapAnim(tile.x, tile.z, boss.level, SPOT_FLOOR_PORTAL_SPAWN)
+            state.blade?.takeIf { !it.dead }?.effects?.spotanim(0, SPOT_SWORD_DISCHARGE, 0)
+            log("floor portal at ${tile.x},${tile.z}")
+        } else {
+            world.zones.mapAnim(tile.x, tile.z, boss.level, SPOT_FLOOR_PORTAL)
         }
     }
 
@@ -835,12 +968,13 @@ object Ocellus {
     }
 
     /**
-     * Volley [volley] fires: each purple portal on [quadrant]'s arms shoots across it, along both tiles of its strip,
+     * A volley ([what]) fires: each purple portal on [quadrant]'s arms shoots across it, along both tiles of its strip,
      * crossing a tile every [SHOT_CYCLES_PER_TILE] client cycles. Whoever is on a strip's tile as the shot reaches it
-     * is hit, once a volley by each arm's shots (the Wiki's changes: never twice from the same axis, but by both).
-     * Guessed: no prayer helps, and the hit lands on the tick the shot reaches them, by 30 cycles a tick.
+     * is hit, once a volley by each arm's shots (the Wiki's changes: never twice from the same axis, but by both); the
+     * last volley, [lethal], kills (tsps). Nobody just through the floor portal is hit. Guessed: no prayer helps, and
+     * the hit lands on the tick the shot reaches them, by 30 cycles a tick.
      */
-    private fun EncounterContext.fire(quadrant: Quadrant, volley: Int) {
+    private fun EncounterContext.fire(quadrant: Quadrant, what: String, lethal: Boolean = false) {
         val centre = centre(boss.spawn.x, boss.spawn.z)
         val (ns, ew) = arms(quadrant)
         val purple = state.portals.filter { (key, on) -> on && (key.first == ns || key.first == ew) }.keys.sortedWith(compareBy({ it.first }, { it.second }))
@@ -857,7 +991,7 @@ object Ocellus {
                 )
             }
         }
-        log("volley ${volley + 1} fires from ${purple.size} portals")
+        log("$what fires from ${purple.size} portals")
         val hitBy = mapOf(ns to HashSet<Player>(), ew to HashSet<Player>())
         for (tick in 1..(flight + CYCLES_PER_TICK - 1) / CYCLES_PER_TICK) {
             after(tick) {
@@ -867,9 +1001,9 @@ object Ocellus {
                         if ((out * SHOT_CYCLES_PER_TILE + CYCLES_PER_TICK - 1) / CYCLES_PER_TICK != tick) continue
                         val tiles = strip(centre, arm, index, quadrant, out)
                         for (player in players) {
-                            if (tiles.none { it.x == player.x && it.z == player.z } || !hitBy.getValue(arm).add(player)) continue
-                            val dealt = fromTheRoom(player, roll(PORTAL_MIN, PORTAL_MAX))
-                            log("portal shot from ${arm.name} $index hits ${player.username} for $dealt")
+                            if (tiles.none { it.x == player.x && it.z == player.z } || immune(player) || !hitBy.getValue(arm).add(player)) continue
+                            val dealt = fromTheRoom(player, if (lethal) maxOf(1, player.hitpoints) else roll(PORTAL_MIN, PORTAL_MAX))
+                            log("${if (lethal) "last volley" else "portal shot"} from ${arm.name} $index hits ${player.username} for $dealt")
                         }
                     }
                 }
