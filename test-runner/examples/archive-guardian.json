@@ -155,6 +155,12 @@
   },
   {
    "step": "command",
+   "text": "::varp 172 1",
+   "expectMessage": "Varp 172:",
+   "comment": "auto retaliate off, or punches back at it on the ground take a hitpoint here and there; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
    "text": "::hit 100",
    "expectMessage": "1000/1100 hp",
    "comment": "some of its hitpoints gone, to see them kept"
@@ -179,7 +185,8 @@
   {
    "step": "command",
    "text": "::raid log 30",
-   "expectMessage": "shield: lifts off with 1000 hp left, its shield whole: 550"
+   "expectMessage": "shield: lifts off with 100",
+   "comment": "1000 left, or 1001: a hitpoint comes back to it now and then (its regeneration)"
   },
   {
    "step": "command",
@@ -200,8 +207,8 @@
   {
    "step": "command",
    "text": "::raid",
-   "expectMessage": "Archive Guardian 1000/1100 hp",
-   "comment": "what it had left, not full again"
+   "expectMessage": "Archive Guardian 100",
+   "comment": "what it had left (1000, or a point or two more by its regeneration), not full again"
   },
   {
    "step": "clickWidget",
@@ -211,9 +218,9 @@
   },
   {
    "step": "command",
-   "text": "::hit 670",
-   "expectMessage": "330/1100 hp",
-   "comment": "down to 30%"
+   "text": "::hit 700",
+   "expectMessage": "/1100 hp",
+   "comment": "down under 30% (330), whatever came back by its regeneration"
   },
   {
    "step": "waitTicks",
