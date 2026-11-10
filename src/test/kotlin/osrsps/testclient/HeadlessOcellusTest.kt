@@ -378,6 +378,11 @@ class HeadlessOcellusTest {
         // The north arm's second portal (5676-5677) shoots west across the north-west quadrant, its strip 12 tiles long.
         assertEquals(listOf(Tile(4126, 5676), Tile(4126, 5677)), Ocellus.strip(centre, Ocellus.Arm.N, 1, Ocellus.Quadrant.NW, 1))
         assertEquals(listOf(Tile(4115, 5676), Tile(4115, 5677)), Ocellus.strip(centre, Ocellus.Arm.N, 1, Ocellus.Quadrant.NW, 12))
+        // The floor portal's way on: the same spot in the next quadrant clockwise, the south-west back round to the north-west.
+        assertEquals(Tile(4133, 5679), Ocellus.throughFloorPortal(centre, Ocellus.Quadrant.NW, 4121, 5679))
+        assertEquals(Tile(4133, 5667), Ocellus.throughFloorPortal(centre, Ocellus.Quadrant.NE, 4133, 5679))
+        assertEquals(Tile(4121, 5667), Ocellus.throughFloorPortal(centre, Ocellus.Quadrant.SE, 4133, 5667))
+        assertEquals(Tile(4121, 5679), Ocellus.throughFloorPortal(centre, Ocellus.Quadrant.SW, 4121, 5667))
         // The east arm's first (4128-4129) south across the south-east one.
         assertEquals(listOf(Tile(4128, 5672), Tile(4129, 5672)), Ocellus.strip(centre, Ocellus.Arm.E, 0, Ocellus.Quadrant.SE, 1))
         // Each quadrant's strips stay in it.
@@ -469,6 +474,72 @@ class HeadlessOcellusTest {
                 // The portals and the Blade go with the fight.
                 assertTrue(world.locs[east.x, east.z, boss.level, 2]?.id != Ocellus.LOC_PORTAL)
                 assertTrue(sword.dead || world.npcs[sword.index] !== sword)
+            }
+        }
+    }
+
+    @Test
+    fun `later in a quadrant's turn the pools burst, every portal turns purple, the floor portal takes her on, and the last volley kills`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.throughTheRest(run)
+                alice.toOcellus(server, run)
+                alice.npcOp(assertNotNull(run.ocellusFigure).index, 1)
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ocellus #") } }
+                val boss = boss(run)
+                val fight = assertNotNull(run.fights[ArchiveRoom.OCELLUS])
+                val centre = Ocellus.centre(boss.spawn.x, boss.spawn.z)
+                alice.commandReply("hit 2500 ${boss.index}") { it.startsWith("Hit ") }
+                // In the south-east quadrant, under ::god, so every hit is logged and none hurts.
+                val stand = Tile(centre.x + 3, centre.z - 3)
+                alice.tele(stand.x, stand.z, ArchiveRoom.OCELLUS.level)
+                val second = tickOf(alice.awaitLine(run, "his second phase") { it.endsWith("second: phase starts") })
+                val turn = second + Ocellus.BLADE_AT
+                alice.keepAlive()
+                // 28 ticks into the turn the pools, on her tile among them, bursting 4 ticks later.
+                val pools = alice.awaitLine(run, "the pools", 30_000) { it.contains("second: pools on ") }
+                assertEquals(turn + Ocellus.POOLS_AT, tickOf(pools))
+                assertTrue(pools.contains("${stand.x},${stand.z}"), pools)
+                val count = pools.substringAfter("pools on ").substringBefore(' ').toInt()
+                assertTrue(count in Ocellus.POOL_TILES.first..Ocellus.POOL_TILES.last + 1, pools)
+                val burst = alice.awaitLine(run, "the pool bursting") { it.contains("second: pool bursts on alice") }
+                assertEquals(tickOf(pools) + Ocellus.POOL_LANDS, tickOf(burst))
+                // 31 in, every portal on the south and east arms purple, the others orange.
+                val purple = alice.awaitLine(run, "every portal purple") { it.endsWith("second: every portal purple") }
+                assertEquals(turn + Ocellus.ALL_PURPLE_AT, tickOf(purple))
+                val portals = Ocellus.portals(boss)
+                assertTrue(portals.filterKeys { it.first == Ocellus.Arm.S || it.first == Ocellus.Arm.E }.values.all { it })
+                assertTrue(portals.filterKeys { it.first == Ocellus.Arm.N || it.first == Ocellus.Arm.W }.values.none { it })
+                // 33 in, the floor portal at the quadrant's middle; on it, she goes to the same spot in the south-west.
+                val opened = alice.awaitLine(run, "the floor portal") { it.contains("second: floor portal at ") }
+                assertEquals(turn + Ocellus.FLOOR_PORTAL_AT, tickOf(opened))
+                val portal = Ocellus.quadrantTile(centre, Ocellus.Quadrant.SE, Ocellus.FLOOR_PORTAL_OUT, Ocellus.FLOOR_PORTAL_OUT)
+                assertTrue(opened.endsWith("${portal.x},${portal.z}"), opened)
+                // Not awaited there: the portal can take her on before the client sees her on it.
+                alice.command("tele ${portal.x} ${portal.z} ${ArchiveRoom.OCELLUS.level}")
+                val through = alice.awaitLine(run, "her going through") { it.contains("second: alice through the floor portal to ") }
+                val landed = Ocellus.throughFloorPortal(centre, Ocellus.Quadrant.SE, portal.x, portal.z)
+                assertTrue(through.endsWith("${landed.x},${landed.z}"), through)
+                alice.await("in the south-west quadrant") { alice.position?.takeIf { it == Coord(landed.x, landed.z, ArchiveRoom.OCELLUS.level) } }
+                // 40 in, every purple portal fires: she is out of it.
+                val last = alice.awaitLine(run, "the last volley") { it.contains("second: last volley fires from 12 portals") }
+                assertEquals(turn + Ocellus.LAST_VOLLEY_AT, tickOf(last))
+                alice.awaitLine(run, "the floor portal gone") { it.endsWith("second: floor portal gone") }
+                alice.awaitTicks(4)
+                assertTrue(fight.lines.none { it.contains("last volley from") }, "nobody left in the south-east")
+                // Staying in the south-west through its turn, a tile off the spot she landed on (where its own floor portal
+                // will open), its last volley reaches her.
+                alice.tele(landed.x + 1, landed.z, ArchiveRoom.OCELLUS.level)
+                alice.keepAlive()
+                val hit = alice.awaitLine(run, "the next last volley", 30_000) { it.contains("second: last volley from ") }
+                assertTrue(hit.contains(" hits alice for "), hit)
+                assertTrue(tickOf(hit) in turn + Ocellus.QUADRANT_TICKS + Ocellus.LAST_VOLLEY_AT + 1..turn + Ocellus.QUADRANT_TICKS + Ocellus.LAST_VOLLEY_AT + 3, hit)
+                // His line as the phase ends, in the third quadrant's turn.
+                alice.keepAlive()
+                alice.await("his room done", 30_000) { ArchiveRoom.OCELLUS.takeIf { it in run.cleared } }
+                val enough = fight.lines.single { it.endsWith("second: this is enough") }
+                assertEquals(second + Ocellus.SECOND_PHASE_TICKS, tickOf(enough))
             }
         }
     }

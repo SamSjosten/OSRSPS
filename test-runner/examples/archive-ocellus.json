@@ -1,5 +1,5 @@
 {
- "name": "Raid steps 24a, 24b and 25a: Ocellus solo, his arena upstairs, the hooded figure waiting until the party readies up, then his first phase walking between his corners under Protect from Melee, at each corner his cracks, line and explosion, at two thirds the middle with its four sides and his charge expended, the hold at the end of his blue bar, and his second phase: the portals on the cross, the Blade passing damage to his bar, and the quadrants' volleys",
+ "name": "Raid steps 24a to 25b: Ocellus solo, his arena upstairs, the hooded figure waiting until the party readies up, then his first phase walking between his corners under Protect from Melee, at each corner his cracks, line and explosion, at two thirds the middle with its four sides and his charge expended, the hold at the end of his blue bar, and his second phase: the portals on the cross, the Blade passing damage to his bar, the quadrants' volleys, and the rest of a quadrant's turn: pools, every portal purple, the floor portal and the last volley",
  "account": "test",
  "steps": [
   {
@@ -299,8 +299,36 @@
   },
   {
    "step": "waitTicks",
-   "ticks": 90,
-   "comment": "two more quadrants, clockwise, 42 ticks each; until step 26 he dies 123 ticks into the phase, as his third would begin"
+   "ticks": 6,
+   "comment": "the rest of the first quadrant's turn (step 25b): pools 28 ticks in, every portal on its arms purple at 31, the floor portal at 33 for 7 ticks, and the last volley at 40"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "second: pools on ",
+   "comment": "purple pools on 10 to 12 of its tiles and the player's, bursting 4 ticks later"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "second: every portal purple"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "second: floor portal at ",
+   "comment": "the orange portal on the quadrant's floor: stepping on it moves a player to the same spot in the next quadrant clockwise"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "second: last volley fires from 12 portals",
+   "comment": "every purple portal fires across the quadrant, killing whoever is still in it (the player is under ::god)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 84,
+   "comment": "two more quadrants, clockwise, 42 ticks each; 123 ticks into the phase his line (tfa_ocellus.this_is_enough), and until step 26 he dies, as his third phase would begin"
   },
   {
    "step": "command",

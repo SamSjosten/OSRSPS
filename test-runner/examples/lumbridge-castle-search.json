@@ -12,6 +12,29 @@
   },
   {
    "step": "command",
+   "text": "::tele 3212 3221 1",
+   "expectMessage": "Teleported to 3212, 3221, 1",
+   "comment": "the Duke's room: 242 moved the crate here from 3210, 3218"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3212,
+   "y": 3221,
+   "plane": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Crate",
+   "option": "Search",
+   "x": 3213,
+   "y": 3221
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[search.crate_empty]"
+  },
+  {
+   "step": "command",
    "text": "::tele 3210 3219 1",
    "expectMessage": "Teleported to 3210, 3219, 1"
   },
@@ -23,27 +46,17 @@
   },
   {
    "step": "locOption",
-   "loc": "Crate",
-   "option": "Search",
-   "x": 3210,
-   "y": 3218
-  },
-  {
-   "step": "assertMessage",
-   "contains": "[search.crate_empty]"
-  },
-  {
-   "step": "locOption",
    "loc": "Closed chest",
    "option": "Open",
-   "x": 3209,
-   "y": 3218
+   "x": 3208,
+   "y": 3218,
+   "comment": "242 moved the chest here from 3209, 3218"
   },
   {
    "step": "locOption",
    "loc": "Open chest",
    "option": "Search",
-   "x": 3209,
+   "x": 3208,
    "y": 3218,
    "comment": "only there once the chest has opened"
   },
@@ -55,14 +68,14 @@
    "step": "locOption",
    "loc": "Open chest",
    "option": "Shut",
-   "x": 3209,
+   "x": 3208,
    "y": 3218
   },
   {
    "step": "locOption",
    "loc": "Closed chest",
    "option": "Open",
-   "x": 3209,
+   "x": 3208,
    "y": 3218,
    "comment": "only there once the chest has shut"
   },
@@ -70,14 +83,14 @@
    "step": "locOption",
    "loc": "Open chest",
    "option": "Shut",
-   "x": 3209,
+   "x": 3208,
    "y": 3218
   },
   {
    "step": "assertLoc",
    "loc": "Closed chest",
    "option": "Open",
-   "x": 3209,
+   "x": 3208,
    "y": 3218,
    "comment": "shut before the teleport, which cancels a click the server hasn't carried out yet"
   },
