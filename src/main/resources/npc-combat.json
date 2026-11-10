@@ -968,6 +968,69 @@
       "respawnTicks": 75,
       "xpBonus": -97.5,
       "source": "OSRS Wiki, Zombie (Sepulchre of Death, level 159, id 6741) and the DPS calculator's, read 2026-11-03: speed 4, max hit 14, crush, no bonuses, respawn 75, not aggressive, XP -97.5% (\"1 experience for 10 damage dealt\"). It stands with zombie_update_ready_weapon, so the weapon fight animations are taken"
+    },
+    {
+      "npcs": ["swamp_cave_bug"],
+      "attackSpeed": 4, "maxHit": 1, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 10, "slash": 10, "crush": 5, "magic": 5, "light": 10, "standard": 10, "heavy": 10 },
+      "anims": { "attack": "monalisk_cave_bug_attack", "defend": "monalisk_cave_bug_defend", "death": "monalisk_mini_cave_bug_death" },
+      "respawnTicks": 35,
+      "aggressive": true,
+      "weakness": { "element": "fire", "percent": 50 },
+      "slayerLevel": 7,
+      "regenTicks": 5,
+      "source": "OSRS Wiki, Cave bug (level 6, id 481), read 2026-11-10: speed 4, max hit 1, stab, no attack bonuses, the defences, respawn 35, aggressive, 50% weak to fire, Slayer 7, and its hitpoints come back every 5 ticks (Mod Ash, quoted there: about 20 times the usual rate). It stands with monalisk_cave_bug_ready, so monalisk_cave_bug_attack and _defend are taken; of the two deaths, monalisk_mini_cave_bug_death is GUESSED for the small one (the other is the level 96 giant's)"
+    },
+    {
+      "npcs": ["swamp_cave_slime"],
+      "attackSpeed": 4, "maxHit": 2, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "cave_slime_attack", "defend": "cave_slime_defend", "death": "cave_slime_death" },
+      "respawnTicks": 15,
+      "poison": 3,
+      "weakness": { "element": "earth", "percent": 50 },
+      "slayerLevel": 17,
+      "source": "OSRS Wiki, Cave slime (level 23, id 480), read 2026-11-10: speed 4, max hit 2, stab, no bonuses, respawn 15, not aggressive, poisonous (3), 50% weak to earth, Slayer 17. Its own cave_slime animations"
+    },
+    {
+      "npcs": ["slayer_cave_crawler_1", "slayer_cave_crawler_2", "slayer_cave_crawler_3", "slayer_cave_crawler_4"],
+      "attackSpeed": 4, "maxHit": 3, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 10, "slash": 10, "crush": 5, "magic": 5, "light": 10, "standard": 10, "heavy": 10 },
+      "anims": { "attack": "crawler_attack", "defend": "crawler_parry", "death": "crawler_death" },
+      "respawnTicks": 15,
+      "aggressive": true,
+      "poison": 8,
+      "weakness": { "element": "fire", "percent": 50 },
+      "slayerLevel": 10,
+      "regenTicks": 5,
+      "source": "OSRS Wiki, Cave crawler (level 23, ids 406 to 409), read 2026-11-10: speed 4, max hit 3, stab, no attack bonuses, the defences, respawn 15, aggressive, poisonous (8), 50% weak to fire, Slayer 10, and \"regenerating 1 hitpoint every 5 ticks\". Its own crawler animations"
+    },
+    {
+      "npcs": ["medium_frog"],
+      "attackSpeed": 4, "maxHit": 3, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "giant_frog_attack", "defend": "giant_frog_block", "death": "giant_frog_death" },
+      "respawnTicks": 50,
+      "weakness": { "element": "earth", "percent": 25 },
+      "source": "OSRS Wiki, Big frog (level 24, id 478), read 2026-11-10: speed 4, max hit 3, crush, no bonuses, respawn 50, not aggressive, 25% weak to earth. It stands with giant_frog_ready, so the giant frog's attack, block and death are taken"
+    },
+    {
+      "npcs": ["giant_frog"],
+      "attackSpeed": 4, "maxHit": 9, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "giant_frog_attack", "defend": "giant_frog_block", "death": "giant_frog_death" },
+      "respawnTicks": 50,
+      "weakness": { "element": "earth", "percent": 25 },
+      "source": "OSRS Wiki, Giant frog (level 99, id 477), read 2026-11-10: speed 4, max hit 9, crush, no bonuses, respawn 50, not aggressive, 25% weak to earth. Its own giant_frog animations"
+    },
+    {
+      "npcs": ["cave_goblin", "cave_goblin2", "cave_goblin3", "cave_goblin4"],
+      "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "dorgesh_goblin_unarmed_attack", "defend": "dorgesh_goblin_unarmed_defend", "death": "dorgesh_goblin_death" },
+      "respawnTicks": 50,
+      "weakness": { "element": "fire", "percent": 40 },
+      "source": "OSRS Wiki, Cave goblin (monster) (level 3, ids 6434 to 6437), read 2026-11-10: speed 4, max hit 1, crush, no bonuses, respawn 50, not aggressive, 40% weak to fire. They stand with dorgesh_goblin_ready, so the dorgesh_goblin unarmed attack and defend and its death are taken"
     }
   ]
 }

@@ -429,6 +429,66 @@ class NpcDropsTest {
     }
 
     @Test
+    fun `the Lumbridge Swamp Caves' monsters drop as the Wiki's tables say`() {
+        val bug = NpcType(481, "Cave bug", combatLevel = 6, internalName = "swamp_cave_bug")
+        val slime = NpcType(480, "Cave slime", combatLevel = 23, internalName = "swamp_cave_slime")
+        val crawlers = (1..4).map { NpcType(405 + it, "Cave crawler", combatLevel = 23, internalName = "slayer_cave_crawler_$it") }
+        val bigFrog = NpcType(478, "Big frog", combatLevel = 24, internalName = "medium_frog")
+        val giantFrog = NpcType(477, "Giant frog", combatLevel = 99, internalName = "giant_frog")
+        val goblins = listOf("cave_goblin", "cave_goblin2", "cave_goblin3", "cave_goblin4").mapIndexed { i, name -> NpcType(6434 + i, "Cave goblin", combatLevel = 3, internalName = name) }
+        val caves = NpcDrops.load(NpcTypes.of(bug, slime, bigFrog, giantFrog, *crawlers.toTypedArray(), *goblins.toTypedArray()), objTypes)
+        assertEquals(12, caves.size)
+        // No bones from bugs, slimes or crawlers; swamp tar from slimes.
+        assertEquals(emptyList(), caves[bug]!!.always)
+        assertEquals(emptyList(), caves[crawlers[2]]!!.always)
+        assertEquals(listOf("Swamp tar"), caves[slime]!!.always.map { it.type.name })
+        assertEquals(listOf("Bones"), caves[bigFrog]!!.always.map { it.type.name })
+        assertEquals(listOf("Big bones"), caves[giantFrog]!!.always.map { it.type.name })
+        assertEquals(listOf("Bones"), caves[goblins[3]]!!.always.map { it.type.name })
+        assertEquals(listOf("Clue scroll (easy)" to 128), caves[slime]!!.tertiary.map { it.item.type.name to it.denominator })
+        assertEquals(listOf("Clue scroll (beginner)" to 64, "Clue scroll (easy)" to 128), caves[goblins[0]]!!.tertiary.map { it.item.type.name to it.denominator })
+        assertEquals(listOf("Long bone" to 400, "Curved bone" to 5013), caves[giantFrog]!!.tertiary.map { it.item.type.name to it.denominator })
+        assertEquals(50, caves[goblins[1]]!!.table!!.slots)
+        assertTrue(crawlers.all { caves[it]!!.table == caves[crawlers[0]]!!.table })
+
+        fun counts(def: NpcDropsDef, seed: Long): Map<String, Int> {
+            val random = GameRandom(seed)
+            val counts = HashMap<String, Int>()
+            var empty = 0
+            repeat(KILLS) {
+                val items = def.roll(random).filter { it.type.name !in setOf("Bones", "Big bones", "Swamp tar") }
+                if (items.isEmpty()) empty++
+                for (drop in items) counts.merge("${drop.type.name} x${drop.count}", 1, Int::plus)
+            }
+            return counts + ("nothing" to empty)
+        }
+        fun expect(counts: Map<String, Int>, key: String, weight: Double, slots: Int = 128) {
+            val p = weight / slots
+            val mean = KILLS * p
+            val sigma = sqrt(KILLS * p * (1 - p))
+            val got = counts[key] ?: 0
+            assertTrue(abs(got - mean) <= 5 * sigma + 1, "$key: $got of $KILLS, expected about ${mean.toInt()}")
+        }
+        val bugs = counts(caves[bug]!!, 81)
+        expect(bugs, "nothing", 48.0)
+        // Its own guam line beside the herb table's guam: 16/128 + 23/128 x 32/128.
+        expect(bugs, "Grimy guam leaf x1", 16.0 + 23.0 * 32 / 128)
+        expect(bugs, "Coins x3", 8.0)
+        expect(bugs, "Candle x1", 5.0)
+        val slimes = counts(caves[slime]!!, 82)
+        expect(slimes, "Coins x10", 39.0)
+        expect(slimes, "Unlit torch x1", 11.0)
+        val frogs = counts(caves[bigFrog]!!, 83)
+        expect(frogs, "nothing", 42.0)
+        expect(frogs, "Coins x5", 32.0)
+        val giants = counts(caves[giantFrog]!!, 84)
+        expect(giants, "Giant frog legs x1", 64.0)
+        val goblinDrops = counts(caves[goblins[0]]!!, 85)
+        expect(goblinDrops, "Coins x15", 6.0, slots = 50)
+        expect(goblinDrops, "Hammer x1", 4.0, slots = 50)
+    }
+
+    @Test
     fun `Varrock's level 20 dark wizards drop runes, robes and energy potions as the Wiki's table says`() {
         val def = drops[darkWizard20]!!
         assertEquals(listOf("Bones"), def.always.map { it.type.name })

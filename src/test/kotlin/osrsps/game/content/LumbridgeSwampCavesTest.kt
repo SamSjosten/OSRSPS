@@ -35,6 +35,14 @@ class LumbridgeSwampCavesTest {
     }
 
     @Test
+    fun `the flare names the lit item without its Lit, as the cache names it`() {
+        assertEquals("candle", LumbridgeSwampCaves.flareName("Lit candle"))
+        assertEquals("black candle", LumbridgeSwampCaves.flareName("Lit black candle"))
+        assertEquals("torch", LumbridgeSwampCaves.flareName("Lit torch"))
+        assertEquals("oil lamp", LumbridgeSwampCaves.flareName("Oil lamp"))
+    }
+
+    @Test
     fun `the gas explodes 7 ticks after the flare, and a player who leaves the world is forgotten`() {
         val world = World(IntArray(0), CollisionMap())
         val hazards = world.swampCavesHazards

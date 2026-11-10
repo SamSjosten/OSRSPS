@@ -986,7 +986,7 @@ below climbs back up. The caves are dark: with no light (`LightSources`) the ins
 1 every tick from 30, and a player within 3 tiles of the rope climbs out instead. In the north-west and south-middle
 gas a naked flame flares and, 7 ticks later, explodes for a quarter of the Hitpoints level and goes out. The two
 stepping stones are Agility shortcuts whose falls put the lights out. The tunnel to the Chasm of Tears refuses. The
-caves' monsters are step 3.
+caves' monsters are step 3 (below).
 
 | Swamp caves behaviour | Source |
 |-----------------------|--------|
@@ -997,6 +997,30 @@ caves' monsters are step 3.
 | Ids, options, varbit 279 and the tiles of each stone's sides | 242 cache and map |
 | The explosion's message, the rope's messages, where an escape lands, a fall landing back where it started with no damage | guessed |
 | Out: the screen's darkness (varbit 278), refusing attacks with no light, the Fire of Eternal Light, the cellar hole and Dorgesh-Kaan (piece 8) | out of scope |
+
+#### The swamp caves' monsters and the Slayer level gate
+
+Misthalin piece 7 step 3a (`npc-spawns/lumbridge-swamp-caves.json`, `game/content/SwampCaveGoblins.kt`, words under
+`cave_goblin.*`, `combat.slayer_level` and `fishing.*`): the caves hold 21 cave bugs, 36 larvae, 17 cave slimes, 3
+cave crawlers, 11 big frogs, 3 giant frogs and 4 cave goblins, with their stats, attacks and drops in
+`npc-combat.json` and `npc-drops.json`. A monster with a `slayerLevel` refuses melee, ranged and magic from a player
+below that Slayer level (cave bugs 7, crawlers 10, slimes 17), doesn't fight back against them and isn't hit by their
+bouncing or area attacks. Cave bugs and crawlers heal 1 every 5 ticks (`regenTicks`). The cave goblins beg not to be
+hurt the first time; after the promise they talk at random, and hand a lit torch to a player with no light or a
+tinderbox to one without. Two fishing spots stay put: Small Net catches frog spawn (33) or swamp weed, Bait catches
+cave eels (38) or slimy eels (28).
+
+| Swamp caves monsters | Source |
+|----------------------|--------|
+| Spawns: tiles and types | mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022), kept to the dark tiles; counts agree with the Wiki's Lumbridge Swamp Caves page |
+| Stats, max hits, attack styles, weaknesses, respawns, Slayer levels, poison, aggression, the 5-tick heal | OSRS Wiki monster pages (Cave bug, Cave slime, Cave crawler, Big frog, Giant frog, Cave goblin), read 2026-11-10 |
+| Drops (weights, tertiaries) | OSRS Wiki drop tables, same pages |
+| That a Slayer monster refuses below its level (the message itself is unsourced) | OSRS Wiki, Slayer |
+| The goblins' talk, the torch and tinderbox gifts and when they come up | OSRS Wiki, Transcript:Cave goblin (monster) |
+| Frog spawn, swamp weed, cave and slimy eels: levels, XP, catch rates | OSRS Wiki, Frog spawn, Swamp weed, Cave eel, Slimy eel |
+| Ids, options, animations | 242 cache |
+| The promise kept until logout, the even chances among the goblins' talks, their expressions, a gift skipped with a full backpack, the threat's 8-tile cry, the cave bug's death animation, the frog spawn and swamp weed catch messages | guessed |
+| Out: Slayer XP (no Slayer tasks yet), the threatened goblins running away, rockslugs and wall beasts (step 3b) | out of scope |
 
 ## Draynor Village
 
