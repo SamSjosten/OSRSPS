@@ -232,7 +232,7 @@ class ArchiveLootTest {
             null, 10, null, 15, emptySet(), emptyList(), 20, cabbage,
         )
         repeat(200) {
-            val result = table.roll(random, listOf(LootMember("ann", 0), LootMember("bob", 40), LootMember("cat", 60)))
+            val result = table.roll(random, listOf(LootMember("ann", 0), LootMember("bob", 100), LootMember("cat", 150)))
             assertEquals(listOf(cabbage to 1), result.chests.getValue("ann").map { it.type to it.count })
             val finder = assertNotNull(result.unique)
             assertTrue(finder == "bob" || finder == "cat", finder)
@@ -248,5 +248,29 @@ class ArchiveLootTest {
         assertEquals(before, random.draws, "no draw for a party with nothing")
         // With no table at all (a cache with none of the items) the chests come up empty.
         assertEquals(mapOf("ann" to emptyList(), "bob" to emptyList()), ArchiveLoot.NONE.roll(random, listOf(LootMember("ann", 0), LootMember("bob", 700))).chests)
+    }
+
+    @Test
+    fun `a member under a quarter of an even share performed poorly - a cabbage, and never the unique`() {
+        assertEquals(listOf(175, 87, 58, 43, 21), listOf(1, 2, 3, 4, 8).map { ArchiveLoot.poorBelow(it) })
+        val random = GameRandom(24)
+        val axe = ObjType(1351, "Bronze axe")
+        val shield = ObjType(1171, "Wooden shield")
+        val cabbage = ObjType(1965, "Cabbage")
+        // A unique every run, and a standard table of one line.
+        val table = ArchiveLoot(
+            1, 4, DropTable(1, listOf(DropSlot(1, DropItem(shield, 1, 1)))), 3, 1, DropTable(1, listOf(DropSlot(1, DropItem(axe, 1, 1)))),
+            null, 10, null, 15, emptySet(), emptyList(), 20, cabbage,
+        )
+        // A carry and three alts that each touched a room for a point or so (R24A-1): a party of four, 43 to pass.
+        val party = listOf(LootMember("carry", 690), LootMember("alt1", 7), LootMember("alt2", 2), LootMember("alt3", 42))
+        repeat(200) {
+            val result = table.roll(random, party)
+            assertEquals("carry", result.unique)
+            for (alt in listOf("alt1", "alt2", "alt3")) assertEquals(listOf(cabbage to 1), result.chests.getValue(alt).map { it.type to it.count })
+        }
+        // At the line, a member is paid as anyone else.
+        val paid = table.roll(random, listOf(LootMember("ann", 600), LootMember("bob", 87)))
+        assertTrue(paid.chests.values.none { chest -> chest.any { it.type == cabbage } }, "${paid.chests}")
     }
 }
