@@ -819,10 +819,10 @@ RuneLite `test-runner/examples/magic-teleports.json`.
 
 ### Thieving: more pickpockets and their gear
 
-Thieving 2 steps T1a and T1b (`game/skill/Pickpocketing.kt`, `game/skill/PickpocketGear.kt`). Pickpocket now works on the
+Thieving 2 steps T1a to T1c (`game/skill/Pickpocketing.kt`, `game/skill/PickpocketGear.kt`). Pickpocket now works on the
 farmers (nine on Misthalin's farms, `npc-spawns/lumbridge-farms.json`, with their combat and drops), Al Kharid's man and
 warriors, Edgeville's guards, and Kandarin's and the Wilderness's rogues, Knights of Ardougne, watchmen, paladins, gnomes
-and heroes (reached by `::tele`). Gloves of silence and the dodgy necklace work when worn.
+and heroes, and the far pickpockets from Dorgesh-Kaan to Mor Ul Rek (all reached by `::tele`). Gloves of silence and the dodgy necklace work when worn.
 
 | Pickpocketing behaviour | Source |
 |-------------------------|--------|
@@ -844,7 +844,16 @@ and heroes (reached by `::tele`). Gloves of silence and the dodgy necklace work 
 | Where they stand: East Ardougne's 5 knights, 22 paladins (the castle's two floors among them), 3 heroes and 10 warriors, the Watchtower's 4 watchmen, the Tree Gnome Stronghold's 153 gnomes (`npc-spawns/thieving-kandarin.json`) | mejrs NPCList_OSRS.json (live, pre-Nov 2022) |
 | Their combat: the Wiki's speeds, max hits, bonuses and respawns | OSRS Wiki, each NPC's infobox |
 | The T1b NPCs' caught line (the townsfolk's), their names in the messages, their animations, their wander; the gnomes' max hit 1 (the Wiki's, where the formula gives 0) | guessed |
-| Not built: repairing the gloves, the necklace's Break, the Ardougne diary, Shadow Veil, Rocky, the clue scrolls from pickpocketing; the T1b NPCs' drops; West Ardougne, the Mourner Tunnels, Tree Gnome Village and the Battlefield; the far pickpockets (step T1c) | next steps |
+| Cave goblins (Dorgesh-Kaan): 36, 40 XP, 1 damage; a table out of 20 (a pouch of 10 to 50 coins 7, then 1 each: bat shish, coated frogs' legs, fingers, frogburger, frogspawn gumbo, green gloop soup, bullseye lantern, 1 to 2 cave goblin wire, 1 to 4 iron ore, oil lantern, swamp tar, tinderbox, unlit torch) | OSRS Wiki, Cave goblin (Dorgesh-Kaan), Coin pouch (read 2026-11-10) |
+| Fremennik citizens (Rellekka's nine): 45, 65 XP, 2 damage, a pouch of 40 | OSRS Wiki, Fremennik citizen |
+| Desert bandits (the Bandit Camp): 53, 79.4 XP, 50 to 240, 3 damage; a pouch of 30 5/7, an antipoison(1) 1/7, a lockpick 1/7 | OSRS Wiki, Bandit (Bandit Camp) |
+| Wealthy citizens (Civitas illa Fortis): Pickpocket is their first op; 50, 96 XP, 35 to 200, 3 damage, a 4-second stun (7 ticks); a pouch of 85 79/85, house keys 5/85 | OSRS Wiki, Wealthy citizen |
+| Vyres (Darkmeyer's thirty): 82, 306.9 XP, 8 to 128, 5 damage, a 10-tick stun; a table out of 132 (a pouch of 230 to 315 109, 2 death runes 8, a blood pint 6, an uncut ruby 5, 4 blood runes 2, a diamond 1, cooked mystery meat 1) | OSRS Wiki, Vyre |
+| Elves (Lletya's three, Prifddinas's 49): 85, 353.3 XP, 6 to 100, 5 damage, a 10-tick stun; a table out of 128 (a pouch of 280 to 350 105, 2 death runes 8, a jug of wine 6, 3 nature runes 5, a fire orb 2, a diamond 1, gold ore 1) | OSRS Wiki, Elf (Thieving) |
+| TzHaar-Hur (Mor Ul Rek's inner city): 90, 103.4 XP, -200 to 200, 4 damage, a 10-tick stun; 3 to 7 tokkul 182/195 or an uncut sapphire 5, emerald 4, ruby 3, diamond 1; their heat does 4 more on every success unless ice gloves are worn | OSRS Wiki, TzHaar-Hur |
+| Where the far ones stand (`npc-spawns/thieving-far.json`): 174 spawns, the wealthy citizens on the Wiki map's nine tiles | mejrs NPCList_OSRS.json (live, pre-Nov 2022); OSRS Wiki, Wealthy citizen (its map) |
+| The cave goblins' and Fremennik citizens' charts (75 to 240 and 65 to 240: the Wiki has none); which wealthy citizen look stands on each tile; the far NPCs' caught line and names in the messages; a Wiki table's coins read as the pouch the Coin pouch page gives that NPC; the wealthy citizens' last 1/85 (an easy clue, left out) giving nothing | guessed |
+| Not built: repairing the gloves, the necklace's Break, the Ardougne diary, Shadow Veil, Rocky, the clue scrolls from pickpocketing; the T1b and T1c NPCs' drops and fights; West Ardougne, the Mourner Tunnels, Tree Gnome Village and the Battlefield; the urchins' distractions, Prifddinas's crystal shards and seeds, the quests and the fire cape that gate the far areas; Pollnivneach's bandits and the Menaphite thugs (blackjacking), the pirates | next steps |
 
 `::scenario thieving` stands you beside a farmer on the farm south of Varrock with 99 Thieving and Hitpoints, 54
 Hunter, gloves of silence and a dodgy necklace worn, a spare necklace and food.
