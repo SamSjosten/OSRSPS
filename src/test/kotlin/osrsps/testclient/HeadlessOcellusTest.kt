@@ -793,6 +793,7 @@ class HeadlessOcellusTest {
                     assertTrue((-1..1).all { dx -> (-1..1).all { dz -> Tile(bomb.x + dx, bomb.z + dz) in voids } }, "void round $bomb")
                 }
                 assertEquals(Ocellus.LOC_BOMB, world.locs[dropped.last().x, dropped.last().z, level, 2]?.id)
+                assertTrue(voids.none { Ocellus.onCross(centre, it.x, it.z) }, "none on the cross, its arms and stones")
                 // On one, the void hurts her each tick.
                 // One clear of his footprint, so she can stand on it.
                 val onBomb = dropped.first { it.x !in boss.x - 1..boss.x + 3 || it.z !in boss.z - 1..boss.z + 3 }
@@ -889,6 +890,7 @@ class HeadlessOcellusTest {
                     // He can't go, nor break it himself.
                     bob.command("tele ${spot.x + 3} ${spot.z} $level")
                     bob.await("back where it holds him") { bob.position?.takeIf { it == Coord(spot.x, spot.z, level) } }
+                    assertTrue(bobPlayer.rootedTicks > 0, "held in the movement phase too")
                     assertTrue(world.combat.barred(bobPlayer, vineNpc) != null)
                     val alicePlayer = world.playerNamed("alice")!!
                     assertNull(world.combat.barred(alicePlayer, vineNpc))
@@ -896,6 +898,7 @@ class HeadlessOcellusTest {
                     alice.commandReply("hit 44 ${vineNpc.index}") { it.startsWith("Hit ") }
                     alice.awaitLine(run, "his freeing") { it.endsWith("third: bob breaks free of the void vine") }
                     assertNull(Ocellus.rooted(boss))
+                    assertEquals(0, bobPlayer.rootedTicks)
                     assertTrue(run.fights[ArchiveRoom.OCELLUS]!!.lines.none { it.contains("void vine crushes") })
                 }
             }

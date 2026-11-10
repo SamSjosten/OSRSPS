@@ -1526,20 +1526,23 @@ object Ocellus {
     private fun EncounterContext.voidOn(tile: Tile, until: Long, locId: Int) {
         val centre = centre(boss.spawn.x, boss.spawn.z)
         val quadrant = quadrant(centre, tile.x, tile.z) ?: return
-        if (quadrant in state.fallen || !inArena(centre, tile.x, tile.z)) return
+        // Never on the cross, whose arms and stepping stones are the fight's locs (Codex, PR 581).
+        if (quadrant in state.fallen || !inArena(centre, tile.x, tile.z) || onCross(centre, tile.x, tile.z)) return
+        // A bomb's void, there until its quadrant falls, outlasts what lands on it (Codex, PR 581).
+        if ((state.voids[tile]?.until ?: Long.MIN_VALUE) >= until) return
         state.voids.remove(tile)?.loc?.let { clearLoc(it) }
         val loc = if (locId >= 0) placeLoc(locId, tile.x, tile.z) else null
         state.voids[tile] = VoidPatch(loc, until, quadrant)
     }
 
-    /** [BOMBS] void bombs in each quadrant still standing (tsps), on tiles of it at random. */
+    /** [BOMBS] void bombs in each quadrant still standing (tsps), on tiles of it at random, their void clear of the cross. */
     private fun EncounterContext.bombs() {
         val centre = centre(boss.spawn.x, boss.spawn.z)
         val placed = ArrayList<Tile>()
         for (quadrant in Quadrant.entries) {
             if (quadrant in state.fallen) continue
             repeat(BOMBS) {
-                val at = quadrantTile(centre, quadrant, roll(1 + BOMB_REACH, STRIP_LENGTH - BOMB_REACH), roll(1 + BOMB_REACH, STRIP_LENGTH - BOMB_REACH))
+                val at = quadrantTile(centre, quadrant, roll(2 + BOMB_REACH, STRIP_LENGTH - BOMB_REACH), roll(2 + BOMB_REACH, STRIP_LENGTH - BOMB_REACH))
                 world.zones.mapAnim(at.x, at.z, boss.level, SPOT_BOMB_DROP)
                 for (dx in -BOMB_REACH..BOMB_REACH) for (dz in -BOMB_REACH..BOMB_REACH) {
                     voidOn(Tile(at.x + dx, at.z + dz), Long.MAX_VALUE, if (dx == 0 && dz == 0) LOC_BOMB else -1)
@@ -1582,12 +1585,12 @@ object Ocellus {
     private fun EncounterContext.insolence(run: Int): Int {
         boss.effects.say(world.dialogueText.get(OcellusLines.INSOLENCE))
         log("insolence")
-        for (i in 0 until INSOLENCE_SLASHES) during(run, i * INSOLENCE_GAP) { superiorSlash() }
+        for (i in 0 until INSOLENCE_SLASHES) during(run, i * INSOLENCE_GAP) { superiorSlash(run) }
         return (INSOLENCE_SLASHES - 1) * INSOLENCE_GAP + 1
     }
 
     /** One superior slash towards one of the party at random, its wave landing a tick later, then its void. */
-    private fun EncounterContext.superiorSlash() {
+    private fun EncounterContext.superiorSlash(run: Int) {
         val centre = centre(boss.spawn.x, boss.spawn.z)
         val target = players.filter { inArena(centre, it.x, it.z) }.let { if (it.isEmpty()) null else it[roll(0, it.size - 1)] } ?: return
         val half = boss.type.size / 2
@@ -1604,8 +1607,8 @@ object Ocellus {
         for ((row, tiles) in rows.withIndex()) for (tile in tiles) world.zones.mapAnim(tile.x, tile.z, boss.level, SPOT_SUPERIOR_SLASH, delay = INSOLENCE_STEP_CYCLES * row)
         log("superior slash towards ${target.username}")
         val wave = rows.flatten().toSet()
-        after(1) {
-            if (boss.dead) return@after
+        // Nothing lands once his quadrant has begun to fall (Codex, PR 581).
+        during(run, 1) {
             for (player in players) {
                 if (Tile(player.x, player.z) !in wave) continue
                 val (dealt, prayed) = meleeRoll(player)
@@ -1653,8 +1656,7 @@ object Ocellus {
                     val tiles = here.map { Tile(it.x, it.z) }.toSet()
                     for (tile in tiles) world.zones.mapAnim(tile.x, tile.z, boss.level, SPOT_DEBRIS)
                     log("debris falls on ${tiles.joinToString(" ") { "${it.x},${it.z}" }}")
-                    after(DEBRIS_AFTER) {
-                        if (boss.dead) return@after
+                    during(run, DEBRIS_AFTER) {
                         for (tile in tiles) voidOn(tile, phaseTick + DEBRIS_TICKS, LOC_DEBRIS)
                         log("debris void")
                     }
@@ -1686,6 +1688,7 @@ object Ocellus {
             state.rootTile = Tile(player.x, player.z)
             state.vineDue = phaseTick + VINE_TICKS
             player.waypoints.clear()
+            player.rootedTicks = 2
             player.effects.spotanim(0, SPOT_ENTANGLE_START, 0, 0)
             log("void vine roots ${player.username}")
         }
@@ -1713,6 +1716,8 @@ object Ocellus {
             else -> {
                 // The fight runs before players move in a tick: a route asked for now goes nowhere.
                 player.waypoints.clear()
+                // Held in the movement phase too, whatever asks for a route after this (Codex, PR 581).
+                player.rootedTicks = 2
                 val tile = state.rootTile
                 if (tile != null && (player.x != tile.x || player.z != tile.z)) world.teleport(player, tile.x, tile.z, boss.level)
                 player.effects.spotanim(0, SPOT_ENTANGLE, 0, 0)
@@ -1724,6 +1729,7 @@ object Ocellus {
     private fun EncounterContext.unroot() {
         val vine = state.vine
         if (vine != null && !vine.dead && world.npcs[vine.index] === vine) world.removeNpc(vine)
+        state.rooted?.let { it.rootedTicks = 0 }
         state.rooted?.takeIf { !it.dead }?.effects?.spotanim(0, SPOT_ENTANGLE_END, 0, 0)
         state.vine = null
         state.rooted = null
@@ -1816,6 +1822,8 @@ object Ocellus {
         state.run++
         state.busyUntil = -1
         state.insolenceDue = state.fallen.isNotEmpty()
+        // Each quadrant's specials begin again from the cog (Codex, PR 581).
+        state.specials = 0
         log("takes quadrant ${quadrant.name} from ${corner.x},${corner.z}; barriers up")
     }
 

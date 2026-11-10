@@ -1177,6 +1177,7 @@ class World(
             // At the tick's start: before an encounter (NPC phase) wearies anyone, so ten ticks of it are ten movement
             // phases, and before both of the movement phase's combat checks, so they see the same value.
             if (player.wearyTicks > 0) player.wearyTicks--
+            if (player.rootedTicks > 0) player.rootedTicks--
         }
         endEmptyInstances()
         groundObjs.process()
