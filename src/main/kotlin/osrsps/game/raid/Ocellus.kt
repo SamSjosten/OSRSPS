@@ -726,7 +726,7 @@ object Ocellus {
      * the bursts run, the hits of weapons slower than two ticks on him are cut ([slowed]: [SLOW_KEEP]). Captured: the
      * ticks, the orb's growing, the bursts' spacing and landing, [ANIM_SOUL_START] and [ANIM_SOUL_END], his fragment
      * graphics. Estimates (capture notes): the bursts' damage. Guessed: the orb's distance and when it is too late (his
-     * landing, then the arena's end), the wind's graphic, weapons of six ticks and slower kept as five, the dodge
+     * landing, then the arena's end), the wind's graphic, attacks of six ticks and slower kept as five, the dodge
      * taken off the cooldown already running.
      */
     val SOUL_AT = listOf(3, 34)
@@ -2527,15 +2527,23 @@ object Ocellus {
         return healed
     }
 
-    /** What of [rolled] by [player] he takes while his void bursts run: cut for weapons slower than two ticks ([SLOW_KEEP]). */
+    /**
+     * What of [rolled] by [player] he takes while his void bursts run: cut for attacks slower than two ticks
+     * ([SLOW_KEEP]). Asked as the attack is made, so its interval is the cooldown it has just set: rapid's tick and a
+     * manual cast's own speed counted, weariness's tick not (Codex, PR 586).
+     */
     fun slowed(world: World, player: Player, npc: Npc, rolled: Int): Int {
         if (npc.type.id != P3 || rolled <= 0) return rolled
         val until = states[npc]?.burstsUntil ?: return rolled
         if (world.tick > until) return rolled
-        // The weapon's own interval, rapid's tick off, not weariness's (Codex, PR 586).
-        val speed = world.combat.weaponInterval(player)
-        if (speed <= 2) return rolled
-        val keep = SLOW_KEEP[speed] ?: SLOW_KEEP.getValue(5)
+        val interval = (player.nextAttackTick - world.tick).toInt() - world.combat.wearyDelay(player)
+        return slowedBy(interval, rolled)
+    }
+
+    /** What of [rolled] is kept for an attack every [interval] ticks while the bursts run (see [SLOW_KEEP]). */
+    fun slowedBy(interval: Int, rolled: Int): Int {
+        if (interval <= 2) return rolled
+        val keep = SLOW_KEEP[interval] ?: SLOW_KEEP.getValue(5)
         return rolled * keep / 100
     }
 
