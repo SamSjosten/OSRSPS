@@ -88,8 +88,9 @@ object OcellusLines : Lines("tfa_ocellus", "The_Fractured_Archive/Strategies") {
  * after the phase begins and after he walks on from a corner; the explosion's damage
  * ([EXPLODE_MIN] to [EXPLODE_MAX]: the capture notes' "up to 35") with no prayer helping; the shots' landing by the
  * usual NPC flight times; which crack graphic is the straight one and which way each is turned; the figure's options
- * readying at once without the "Begin the challenge?" question; the head icon's sprite (440:0); at the middle, his first
- * side a tick after he is in (as a corner's first crack is), the clockwise end's crack first, no shots and Protect from
+ * readying at once without the capture notes' estimated question first; the head icon's sprite (440:0); at the middle, his first
+ * side a tick after he is in (as a corner's first crack is), on each side first the end a clockwise sweep round him reaches first (on
+ * the north side the north-west end, then the north-east), no shots and Protect from
  * Melee down while he is there, the harder line's 80 to 90 landing as he expends the charge as
  * the softer one's does, and walking on to the corner he was going to (or from one, the next); a second middle
  * owed (both thresholds crossed at once) coming right after the first; while held, Protect from Melee down and no
@@ -324,8 +325,9 @@ object Ocellus {
 
     /**
      * The two cracks of side [side] (0 north, then clockwise) for a boss of [size] at ([x], [z]), in the order they're laid
-     * (tsps): each diagonal, [SIDE_LENGTH] long, out from a corner of his footprint at an end of that side; the end the
-     * clockwise way round comes first (guessed).
+     * (tsps): each diagonal, [SIDE_LENGTH] long, out from a corner of his footprint at an end of that side; the
+     * end a clockwise sweep round him reaches first comes first: on the north side the north-west one,
+     * then the north-east (guessed).
      */
     fun sideTendrils(x: Int, z: Int, side: Int, size: Int = 3): List<List<Tile>> {
         // His footprint's corners clockwise from the north-west, each with the way out from it.
