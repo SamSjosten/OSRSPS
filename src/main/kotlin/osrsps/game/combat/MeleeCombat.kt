@@ -952,16 +952,25 @@ class MeleeCombat(
      * Retribution, as [player] falls: every NPC they could fight within a tile of them takes up to a quarter of their
      * Prayer level, rounded down, a roll each, 0s included (OSRS Wiki, Retribution). Guessed: the Wiki says only
      * "nearby enemies", so the 3x3 around the player in multi-way combat, and in single-way the NPC that last hit them
-     * alone, if it is in that 3x3; the spotanim on the player; the targets' hits on this tick.
+     * alone, if it is in that 3x3; the spotanim on the player; the targets' hits on this tick; an NPC their Slayer level
+     * can't hurt ([Combat.slayerGated]) passed over, as every other attack refuses it.
      */
     private fun retribution(player: Player, tick: Long) {
         if (!hasPrayer(player, Prayers.RETRIBUTION)) return
         player.spotanim(RETRIBUTION_SPOTANIM)
         val max = player.skills.baseLevel(Skill.PRAYER) / 4
         val targets = if (multi.at(player.level, player.x, player.z)) {
-            npcs.all.filter { !it.dead && it.level == player.level && combat.npcCombat[it.type] != null && withinATile(player, it) }.toList()
+            npcs.all.filter {
+                !it.dead && it.level == player.level && combat.npcCombat[it.type] != null && withinATile(player, it) &&
+                    !combat.slayerGated(player, it)
+            }.toList()
         } else {
-            listOfNotNull(player.attackedBy?.takeIf { !it.dead && npcs[it.index] === it && it.level == player.level && withinATile(player, it) })
+            listOfNotNull(
+                player.attackedBy?.takeIf {
+                    !it.dead && npcs[it.index] === it && it.level == player.level && withinATile(player, it) &&
+                        !combat.slayerGated(player, it)
+                },
+            )
         }
         for (npc in targets) hit(npc, player, CombatMath.rollDamage(random, max), tick)
     }
