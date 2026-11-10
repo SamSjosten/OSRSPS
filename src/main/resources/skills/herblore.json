@@ -94,5 +94,35 @@
       { "name": "zamorak_brew", "unf": 111, "secondary": 247, "potion": 189, "level": 78, "xpTenths": 1750 },
       { "name": "saradomin_brew", "unf": 3002, "secondary": 6693, "potion": 6687, "level": 81, "xpTenths": 1800 }
     ]
+  },
+  "mixing": {
+    "_source": "Artisan 2, A2a (read 2026-11-10): potions of more than two ingredients or by the dose, from the OSRS Wiki's Super combat potion, Stamina potion, Sanfew serum and Extended antifire pages (level, XP, 2 ticks). Each recipe takes every input, the secondary first so the message names it, and is started by any of its triggers, an item used on another either way round. Super combat: a torstol or torstol potion (unf) with a super attack(4), strength(4) and defence(4), each of the three a trigger (guessed: the three potions on each other start nothing). Stamina and extended antifire: one amylase crystal or lava scale shard a dose. Sanfew: unicorn horn dust, then snake weed, then nail beast nails, on a super restore of any dose, three steps; Zogre Flesh Eaters counts as done (no quests). Animation and first tick as the two-ingredient potions'. Out: extended super antifire (super antifire isn't made yet), divine potions, antidote+ and ++, the anti-venoms.",
+    "anim": 363,
+    "first": 2,
+    "interval": 2,
+    "recipes": [
+      { "name": "super_combat", "level": 90, "xpTenths": 1500, "inputs": [[269, 1], [2436, 1], [2440, 1], [2442, 1]], "product": 12695, "triggers": [[269, 2436], [269, 2440], [269, 2442]] },
+      { "name": "super_combat_unf", "level": 90, "xpTenths": 1500, "inputs": [[111, 1], [2436, 1], [2440, 1], [2442, 1]], "product": 12695, "triggers": [[111, 2436], [111, 2440], [111, 2442]] },
+      { "name": "stamina_1", "level": 77, "xpTenths": 255, "inputs": [[12640, 1], [3022, 1]], "product": 12631, "triggers": [[12640, 3022]] },
+      { "name": "stamina_2", "level": 77, "xpTenths": 510, "inputs": [[12640, 2], [3020, 1]], "product": 12629, "triggers": [[12640, 3020]] },
+      { "name": "stamina_3", "level": 77, "xpTenths": 765, "inputs": [[12640, 3], [3018, 1]], "product": 12627, "triggers": [[12640, 3018]] },
+      { "name": "stamina_4", "level": 77, "xpTenths": 1020, "inputs": [[12640, 4], [3016, 1]], "product": 12625, "triggers": [[12640, 3016]] },
+      { "name": "sanfew_step_1_1", "level": 65, "xpTenths": 285, "inputs": [[235, 1], [3030, 1]], "product": 10915, "triggers": [[235, 3030]] },
+      { "name": "sanfew_step_1_2", "level": 65, "xpTenths": 380, "inputs": [[235, 1], [3028, 1]], "product": 10913, "triggers": [[235, 3028]] },
+      { "name": "sanfew_step_1_3", "level": 65, "xpTenths": 475, "inputs": [[235, 1], [3026, 1]], "product": 10911, "triggers": [[235, 3026]] },
+      { "name": "sanfew_step_1_4", "level": 65, "xpTenths": 570, "inputs": [[235, 1], [3024, 1]], "product": 10909, "triggers": [[235, 3024]] },
+      { "name": "sanfew_step_2_1", "level": 65, "xpTenths": 315, "inputs": [[1526, 1], [10915, 1]], "product": 10923, "triggers": [[1526, 10915]] },
+      { "name": "sanfew_step_2_2", "level": 65, "xpTenths": 420, "inputs": [[1526, 1], [10913, 1]], "product": 10921, "triggers": [[1526, 10913]] },
+      { "name": "sanfew_step_2_3", "level": 65, "xpTenths": 525, "inputs": [[1526, 1], [10911, 1]], "product": 10919, "triggers": [[1526, 10911]] },
+      { "name": "sanfew_step_2_4", "level": 65, "xpTenths": 630, "inputs": [[1526, 1], [10909, 1]], "product": 10917, "triggers": [[1526, 10909]] },
+      { "name": "sanfew_1", "level": 65, "xpTenths": 360, "inputs": [[10937, 1], [10923, 1]], "product": 10931, "triggers": [[10937, 10923]] },
+      { "name": "sanfew_2", "level": 65, "xpTenths": 480, "inputs": [[10937, 1], [10921, 1]], "product": 10929, "triggers": [[10937, 10921]] },
+      { "name": "sanfew_3", "level": 65, "xpTenths": 600, "inputs": [[10937, 1], [10919, 1]], "product": 10927, "triggers": [[10937, 10919]] },
+      { "name": "sanfew_4", "level": 65, "xpTenths": 720, "inputs": [[10937, 1], [10917, 1]], "product": 10925, "triggers": [[10937, 10917]] },
+      { "name": "extended_antifire_1", "level": 84, "xpTenths": 275, "inputs": [[11994, 1], [2458, 1]], "product": 11957, "triggers": [[11994, 2458]] },
+      { "name": "extended_antifire_2", "level": 84, "xpTenths": 550, "inputs": [[11994, 2], [2456, 1]], "product": 11955, "triggers": [[11994, 2456]] },
+      { "name": "extended_antifire_3", "level": 84, "xpTenths": 825, "inputs": [[11994, 3], [2454, 1]], "product": 11953, "triggers": [[11994, 2454]] },
+      { "name": "extended_antifire_4", "level": 84, "xpTenths": 1100, "inputs": [[11994, 4], [2452, 1]], "product": 11951, "triggers": [[11994, 2452]] }
+    ]
   }
 }

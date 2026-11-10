@@ -427,6 +427,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   string make a bronze crossbow; a feather on unfinished bolts makes 10 bolts with no box, and opens the box with Make-X
   for darts and bolts on; a chisel cuts an opal into 12 bolt tips, which tip 12 bronze bolts in two sets; bronze javelin
   tips on 15 shafts make 15 javelins. Needs 0.10.0.
+- `herblore-mixing.json` (Artisan 2, A2a): at 99, a super combat potion(4) from a torstol and the three super
+  potions, two stamina potion(3) from super energy and amylase, a sanfew serum(4) in three steps, and an extended
+  antifire(2) from two lava scale shards (550 XP). Needs 0.10.0.
 - `crafting-spinning.json`: at Lumbridge Castle's first-floor spinning wheel, Spin with nothing does nothing, then at
   99 two wool spin into balls (5 XP), and at level 1 flax needs 10. Needs only 0.5.0.
 - `crafting-leather.json`: at 99, a needle on leather makes two pairs of gloves with one thread (one left), steel
