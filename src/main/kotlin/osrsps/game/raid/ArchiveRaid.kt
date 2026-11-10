@@ -395,7 +395,8 @@ class ArchiveRaids(private val world: World) {
         run.presentAtStart[room] = standing.filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
         world.partyScaling.scale(boss, standing.size.coerceIn(1, PartyScaling.MAX_PARTY))
         world.meleeCombat.aggress(boss, first, world.tick)
-        run.fights[room] = world.encounters.start(def, boss, { x, z -> inRoom(run, room, x, z) })
+        // Only those on his arena are in his fight: one still at the way in, short of the transporter, isn't hurt.
+        run.fights[room] = world.encounters.start(def, boss, { x, z -> Dreadnoth.inArena(at.x, at.z, x, z) })
         logger.info { "$run began Dreadnoth's fight with ${standing.size} standing, ${first.username} first in" }
     }
 

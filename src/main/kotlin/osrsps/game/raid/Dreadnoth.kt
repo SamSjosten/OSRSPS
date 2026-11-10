@@ -9,6 +9,7 @@ import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.combat.AttackType
 import osrsps.game.combat.CombatMath
+import osrsps.game.combat.DinhsBulwark
 import osrsps.game.encounter.CycleStep
 import osrsps.game.encounter.EncounterContext
 import osrsps.game.encounter.EncounterDef
@@ -205,7 +206,8 @@ object Dreadnoth {
     /** One tick of the fight. */
     private fun EncounterContext.tick(jelly: NpcType?) {
         val target = target()
-        if (state.waves < WAVES.size && phaseTick >= state.boundUntil && boss.hitpoints * 100 <= boss.maxHitpoints * WAVES[state.waves]) {
+        // Guessed: a wave waits for the last one's jellies to rise, so each rises on its own wave's tiles.
+        if (state.waves < WAVES.size && phaseTick >= state.boundUntil && state.riseAt == Long.MAX_VALUE && boss.hitpoints * 100 <= boss.maxHitpoints * WAVES[state.waves]) {
             state.waves += 1
             wave(state.waves)
         }
@@ -350,7 +352,8 @@ object Dreadnoth {
             // Guessed: the shot follows its player (the Wiki's Protect from Missiles for them), and the jelly gathers on
             // the tile it was thrown at, where the projectile lands.
             after(SHOT_LANDS[i]) {
-                if (inArena(boss.spawn.x, boss.spawn.z, at.x, at.z)) state.gathering += at
+                // Shown on the tick it lands, this tick's gathering already sent, then every tick with the rest.
+                if (inArena(boss.spawn.x, boss.spawn.z, at.x, at.z) && state.gathering.add(at)) world.zones.mapAnim(at.x, at.z, boss.level, SPOT_GATHERING)
                 if (player.dead || players.none { it === player }) return@after
                 val damage = if (world.prayers.protects(player, AttackType.RANGED)) 0 else roll(0, SHOT_MAX)
                 val dealt = world.meleeCombat.hitPlayer(player, boss, damage, world.tick)
@@ -389,7 +392,8 @@ object Dreadnoth {
     /** Each jelly goes for the nearest player and hits them when beside them; one that died leaves jelly on its tile. */
     private fun EncounterContext.jellies() {
         val fighting = players
-        for ((npc, next) in state.jellies.entries.toList()) {
+        // By index, so a seeded fight rolls the same for each jelly every time.
+        for ((npc, next) in state.jellies.entries.sortedBy { it.key.index }) {
             if (npc.dead || world.npcs[npc.index] !== npc) {
                 state.jellies.remove(npc)
                 if (inArena(boss.spawn.x, boss.spawn.z, npc.x, npc.z)) addFloor(Tile(npc.x, npc.z))
@@ -419,9 +423,13 @@ object Dreadnoth {
         jelly.effects.anim(ANIM_JELLY_ATTACK)
         val roll = world.combat.npcAttack(jelly, player) ?: return
         val rolled = if (CombatMath.rollHits(world.random, roll.attackRoll, roll.defenceRoll)) CombatMath.rollDamage(world.random, roll.maxHit) else 0
-        val damage = if (world.prayers.protects(player, AttackType.CRUSH)) 0 else rolled
-        val dealt = world.meleeCombat.hitPlayer(player, null, damage, world.tick)
-        if (!player.dead) player.attackedTick = world.tick
+        // Cut by Dinh's bulwark on Block, as any NPC's melee is; the drain stays the roll.
+        val damage = when {
+            world.prayers.protects(player, AttackType.CRUSH) -> 0
+            world.combat.bulwarkBlocking(player, world.tick) -> DinhsBulwark.blocked(rolled)
+            else -> rolled
+        }
+        val dealt = world.meleeCombat.hitPlayer(player, jelly, damage, world.tick)
         // Guessed: the drain is the roll, at least 1, whatever the prayer; the Wiki says only "much like the Tz-Kihs".
         val drain = max(1, rolled)
         val prayer = player.skills.currentLevel(Skill.PRAYER)
@@ -439,6 +447,7 @@ object Dreadnoth {
     private fun EncounterContext.floor() {
         if (state.floor.isEmpty()) return
         for (player in players) {
+            if (gone()) return
             if (Tile(player.x, player.z) !in state.floor) continue
             val dealt = world.meleeCombat.hitPlayer(player, null, roll(FLOOR_MIN, FLOOR_MAX), world.tick)
             // In combat all the same, as a boss's hazard holds them (osrsps.game.encounter.Hazard).
