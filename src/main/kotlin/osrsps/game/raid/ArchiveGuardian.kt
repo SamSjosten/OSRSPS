@@ -366,8 +366,13 @@ object ArchiveGuardian {
     private fun EncounterContext.liftsOff(): Boolean {
         val state = state
         if (low()) {
-            if (state.low < 0) state.low = world.tick
-            if (world.tick - state.low >= AIRBORNE_DELAY) return true
+            if (state.low < 0) {
+                state.low = world.tick
+                log("down to $AIRBORNE_AT%: lifts off in $AIRBORNE_DELAY")
+            }
+            // Guessed: once it is that low the count runs its course, though its time on the ground would be up
+            // sooner (the one recording of it had 2 ticks to spare).
+            return world.tick - state.low >= AIRBORNE_DELAY
         }
         return phaseTick >= if (state.groundings <= 1) GROUNDED_FIRST else GROUNDED_LATER
     }

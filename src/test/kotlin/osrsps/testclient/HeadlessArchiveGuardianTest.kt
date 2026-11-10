@@ -232,10 +232,43 @@ class HeadlessArchiveGuardianTest {
                 alice.commandReply("hit 550 ${boss.index}") { it.startsWith("Hit ") }
                 alice.awaitFight("its third time down") { it.contains("(grounded)") }
                 alice.commandReply("hit 670 ${boss.index}") { it.contains("330/1100 hp") }
-                val low = fight.ticks
                 val air = alice.awaitFight("the airborne phase") { it.contains("(airborne)") }
                 assertTrue(air.contains("Archive Guardian 330/1100 hp"), air)
-                assertTrue(starts("airborne").single() - low in ArchiveGuardian.AIRBORNE_DELAY - 1L..ArchiveGuardian.AIRBORNE_DELAY + 1L, "${starts("airborne")} after $low")
+                assertEquals(ArchiveGuardian.AIRBORNE_DELAY.toLong(), starts("airborne").single() - tickOf("grounded: down to 30%: lifts off in 4"))
+            }
+        }
+    }
+
+    @Test
+    fun `at 30 percent with its time on the ground nearly up, it still lifts off 4 ticks later, for good`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                alice.await("the login rebuild") { alice.position }
+                alice.commandReply("god on") { it.startsWith("You can't be hurt") }
+                alice.tele(3222, 3218)
+                alice.commandReply("raid guardian") { it.startsWith("Started") }
+                val fight = server.world.encounters.all.single()
+                val boss = fight.boss
+                fun start(phase: String) = fight.lines.single { it.endsWith(" $phase: phase starts") }.substringBefore(' ').toLong()
+                alice.commandReply("hit 550 ${boss.index}") { it.startsWith("Hit ") }
+                alice.awaitFight("its first time down") { it.contains("(grounded)") }
+
+                // The clock stopped and stepped to 2 ticks short of its 35, so the hit lands on a tick we know.
+                alice.commandReply("pause") { it.startsWith("Paused") }
+                val late = start("grounded") + ArchiveGuardian.GROUNDED_FIRST - 2
+                val left = (late - fight.ticks).toInt()
+                assertTrue(left > 0, "$left ticks left to step")
+                alice.commandReply("step $left") { it.startsWith("Stepping") }
+                alice.await("the fight's tick $late") { (fight.ticks == late).takeIf { it } }
+                alice.commandReply("hit 770 ${boss.index}") { it.contains("330/1100 hp") }
+                alice.commandReply("resume") { it.isNotEmpty() }
+
+                alice.awaitFight("the airborne phase") { it.contains("(airborne)") }
+                val low = fight.lines.single { it.endsWith("grounded: down to 30%: lifts off in 4") }.substringBefore(' ').toLong()
+                assertEquals(ArchiveGuardian.AIRBORNE_DELAY.toLong(), start("airborne") - low)
+                assertTrue(start("airborne") - start("grounded") > ArchiveGuardian.GROUNDED_FIRST, "past its ${ArchiveGuardian.GROUNDED_FIRST} ticks: ${fight.lines}")
+                // Never behind its shield again on the way.
+                start("shield")
             }
         }
     }
