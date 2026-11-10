@@ -212,6 +212,14 @@ class HeadlessDreadnothTest {
                 val fell = seven.first().let { Tile(it.x, it.z) }
                 alice.awaitLine(run, "jelly where one fell") { it.contains("a jelly falls at ${fell.x},${fell.z}") }
                 assertTrue(world.locs.at(fell.x, fell.z, 0).any { it.id == Dreadnoth.LOC_JELLY })
+                // His death animation over, he goes from sight: still in the world at 0, his fight going on, but no
+                // client shown him.
+                val hidden = alice.awaitLine(run, "his going from sight") { it.endsWith("split: goes from sight") }
+                assertEquals(tickOf(split) + Dreadnoth.SPLIT_GONE, tickOf(hidden))
+                assertTrue(him.hidden && !him.dead && world.npcs[him.index] === him)
+                assertEquals(0, him.hitpoints)
+                alice.await("him out of her sight") { if (alice.npcs().none { it.index == him.index }) Unit else null }
+                assertTrue(ArchiveRoom.DREADNOTH !in run.cleared)
                 // The last: once it's gone the room is won, and the jelly is cleared from the floor.
                 alice.commandReply("hit 37 ${seven.last().index}") { it.startsWith("Hit ") }
                 alice.await("his room done") { ArchiveRoom.DREADNOTH.takeIf { it in run.cleared } }

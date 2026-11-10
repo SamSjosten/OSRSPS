@@ -288,6 +288,12 @@
   },
   {
    "step": "command",
+   "text": "::raid log 30",
+   "expectMessage": "split: goes from sight",
+   "comment": "his death animation over, he is hidden while the jellies fight on"
+  },
+  {
+   "step": "command",
    "text": "::hit 37 tfa_jelly_minion",
    "expectMessage": "0/37 hp, dead",
    "comment": "jelly 1 of 7"
