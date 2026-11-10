@@ -161,6 +161,15 @@ class ZonesTest {
     }
 
     @Test
+    fun `a graphic shown to one player reaches them alone`() {
+        cycle(alice, bob)
+        zones.mapAnim(3222, 3218, 0, id = 85, onlyFor = "alice")
+        val (toAlice, toBob) = cycle(alice, bob)
+        assertEquals(85, (toAlice.single().own.single() as MapAnim).id)
+        assertEquals(emptyList(), toBob)
+    }
+
+    @Test
     fun `a private obj goes to its owner alone`() {
         cycle(alice, bob)
         zones.addObj(ZoneObj(1351, 1, 3222, 3218, 0, owner = "alice"))

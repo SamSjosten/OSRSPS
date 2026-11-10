@@ -1207,6 +1207,105 @@ class HeadlessOcellusTest {
     }
 
     @Test
+    fun `in his final stand his lifeforce orbs give back what they took, or heal him, and his void bursts hit or are dodged`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.commandReply("setlevel hitpoints 99") { it.contains("set to level 99") }
+                alice.commandReply("heal") { it.startsWith("Healed") }
+                alice.throughTheRest(run)
+                alice.toOcellus(server, run)
+                alice.npcOp(assertNotNull(run.ocellusFigure).index, 1)
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ocellus #") } }
+                val boss = boss(run)
+                val world = server.world
+                val player = world.playerNamed("alice")!!
+                val level = ArchiveRoom.OCELLUS.level
+                val centre = Ocellus.centre(boss.spawn.x, boss.spawn.z)
+                alice.command("varp ${EquipmentTab.VARP_AUTO_RETALIATE_OFF} 1")
+                alice.toHisThird(run)
+                alice.awaitLine(run, "his quadrant") { it.contains("third: takes quadrant NW") }
+                val safe = Ocellus.quadrantTile(centre, Ocellus.Quadrant.SW, 8, 8)
+                alice.tele(safe.x, safe.z, level)
+                for ((percent, next) in listOf(75 to "NE", 50 to "SE")) {
+                    alice.commandReply("hit ${boss.hitpoints - 5250 * percent / 100} ${boss.index}") { it.startsWith("Hit ") }
+                    alice.keepAlive()
+                    alice.awaitLine(run, "his quadrant $next", 30_000) { it.contains("third: takes quadrant $next") }
+                }
+                alice.commandReply("hit ${boss.hitpoints - 5250 / 4} ${boss.index}") { it.startsWith("Hit ") }
+                alice.keepAlive()
+                alice.awaitLine(run, "his final stand", 30_000) { it.endsWith("third: final stand in SW") }
+                val clear = Ocellus.quadrantTile(centre, Ocellus.Quadrant.SW, 3, 10)
+                alice.tele(clear.x, clear.z, level)
+                alice.commandReply("heal") { it.startsWith("Healed") }
+                alice.commandReply("god off") { it.startsWith("You can be hurt") }
+                val risen = tickOf(alice.awaitLine(run, "his rise", 30_000) { it.endsWith("third: final: rises, Deflect Melee, void round him") })
+                // The wind takes half her hitpoints into her orb, a few tiles off.
+                val soul = alice.awaitLine(run, "the lifeforce") { it.endsWith("third: final: lifeforce and void bursts") }
+                assertEquals(risen + Ocellus.SOUL_AT[0], tickOf(soul))
+                val lost = alice.awaitLine(run, "her lifeforce taken") { it.contains("third: lifeforce: alice loses ") }
+                alice.commandReply("god on") { it.startsWith("You can't be hurt") }
+                val stolen = lost.substringAfter("loses ").toInt()
+                assertTrue(stolen in 45..49, lost)
+                val orb = assertNotNull(Ocellus.orbs(boss)[player])
+                assertEquals(stolen, orb.stolen)
+                assertEquals(Ocellus.quadrant(centre, orb.tile.x, orb.tile.z), Ocellus.Quadrant.SW)
+                assertTrue(orb.tile !in Ocellus.voids(boss))
+                assertFalse(Ocellus.onCross(centre, orb.tile.x, orb.tile.z), "not on the fallen cross")
+                assertTrue(maxOf(kotlin.math.abs(orb.tile.x - clear.x), kotlin.math.abs(orb.tile.z - clear.z)) in Ocellus.ORB_NEAR_MIN..Ocellus.ORB_NEAR_MAX, "${orb.tile}")
+                // Slower attacks are cut while the bursts run, by the cooldown the attack sets.
+                assertEquals(listOf(30, 30, 20, 15, 12, 12), (1..6).map { Ocellus.slowedBy(it, 30) })
+                player.nextAttackTick = world.tick + 100
+                assertEquals(12, Ocellus.slowed(world, player, boss, 30))
+                // Standing still, the first burst lands on her.
+                val hit = alice.awaitLine(run, "a burst on her") { it.contains("third: burst hits alice for ") }
+                assertEquals(tickOf(soul) + Ocellus.BURST_LANDS, tickOf(hit))
+                // A step off the next one's tile, with her attack waiting: a perfect dodge, three ticks off it.
+                player.nextAttackTick = world.tick + 50
+                val waited = player.nextAttackTick
+                alice.tele(clear.x + 1, clear.z, level)
+                alice.awaitLine(run, "her dodge") { it.contains("third: alice dodges a burst") }
+                assertTrue(player.nextAttackTick <= waited - Ocellus.DODGE_TICKS, "${player.nextAttackTick} from $waited")
+                // On her orb before it has grown, nothing; once grown, her hitpoints back.
+                alice.tele(orb.tile.x, orb.tile.z, level)
+                alice.awaitTicks(2)
+                if (world.tick < orb.grown) assertTrue(Ocellus.orbs(boss).containsKey(player))
+                val back = alice.awaitLine(run, "her lifeforce back", 30_000) { it.contains("third: lifeforce: alice takes back ") }
+                assertTrue(tickOf(back) >= tickOf(soul) + Ocellus.ORB_GROWN, back)
+                assertEquals(stolen, back.substringAfter("takes back ").toInt())
+                assertFalse(Ocellus.orbs(boss).containsKey(player))
+                alice.awaitTicks(4)
+                assertEquals(30, Ocellus.slowed(world, player, boss, 30), "not once the bursts are over")
+                // Landed, beside him, out of the coming void; the second orb left alone heals him at the arena's end.
+                alice.keepAlive()
+                alice.awaitLine(run, "his landing", 30_000) { it.endsWith("third: final: lands") }
+                val beside = Tile(boss.x - 1, boss.z + boss.type.size / 2)
+                alice.tele(beside.x, beside.z, level)
+                alice.commandReply("heal") { it.startsWith("Healed") }
+                alice.keepAlive()
+                alice.awaitLine(run, "Deflect Range", 30_000) { it.endsWith("third: final: Deflect Range, his quadrant void") }
+                alice.commandReply("god off") { it.startsWith("You can be hurt") }
+                val second = tickOf(alice.awaitLine(run, "the second lifeforce", 30_000) { it.endsWith("lifeforce and void bursts") && tickOf(it) > tickOf(soul) })
+                assertEquals(risen + Ocellus.SOUL_AT[1], second)
+                val lostAgain = alice.awaitLine(run, "her lifeforce taken again") { it.contains("lifeforce: alice loses ") && tickOf(it) == second }
+                alice.commandReply("god on") { it.startsWith("You can't be hurt") }
+                val again = assertNotNull(Ocellus.orbs(boss)[player])
+                assertEquals(lostAgain.substringAfter("loses ").toInt(), again.stolen)
+                assertTrue(again.tile !in Ocellus.voids(boss), "on the safe tiles beside him")
+                val before = boss.hitpoints
+                alice.keepAlive()
+                val heals = alice.awaitLine(run, "her orb healing him", 30_000) { it.contains("third: lifeforce: alice's orb heals him ") }
+                assertEquals(risen + Ocellus.SOUL_ENDS[1], tickOf(heals))
+                assertEquals(again.stolen, heals.substringAfter("heals him ").toInt())
+                assertEquals(before + again.stolen, boss.hitpoints)
+                assertTrue(Ocellus.orbs(boss).isEmpty())
+                alice.commandReply("hit ${boss.hitpoints} ${boss.index}") { it.startsWith("Hit ") }
+                alice.await("his room done", 30_000) { ArchiveRoom.OCELLUS.takeIf { it in run.cleared } }
+            }
+        }
+    }
+
+    @Test
     fun `a run opened with no NPC slot free gets the hooded figure once one is`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->

@@ -159,9 +159,12 @@ class Zones internal constructor(
         fun reaches(observer: String): Boolean = if (onlyFor != null) onlyFor == observer else except != observer
     }
 
-    /** Plays spotanim [id] on a tile. [height] is above the ground; [delay] is in client cycles (20 ms). */
-    fun mapAnim(x: Int, z: Int, level: Int, id: Int, height: Int = 0, delay: Int = 0) =
-        event(x, z, level, MapAnim(id, delay, height, x and 7, z and 7))
+    /**
+     * Plays spotanim [id] on a tile. [height] is above the ground; [delay] is in client cycles (20 ms). [onlyFor], a
+     * player's save key, shows it to that player alone.
+     */
+    fun mapAnim(x: Int, z: Int, level: Int, id: Int, height: Int = 0, delay: Int = 0, onlyFor: String? = null) =
+        event(x, z, level, MapAnim(id, delay, height, x and 7, z and 7), onlyFor = onlyFor)
 
     /** Fires a projectile; it belongs to the zone it starts in. */
     fun projectile(projectile: Projectile) = with(projectile) {

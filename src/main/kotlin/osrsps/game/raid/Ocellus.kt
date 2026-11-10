@@ -690,8 +690,8 @@ object Ocellus {
      * him [SOUL_SPLIT_SHARE]-th of what the blast deals, the void's tiles. Guessed: the blast landing [BLAST_LANDS]
      * ticks after its pattern, the arena graphics' turn for each quadrant ([arenaTurn]), deflected hits doing nothing
      * rather than turning back on the attacker (the capture notes' word; not in yet), no void bombs, flares but the
-     * Rifts, or specials in it. Not in yet (step 27b): the lifeforce orbs, the void bursts and the slower weapons'
-     * reduced damage; his death and the Blade (step 27c).
+     * Rifts, or specials in it. His lifeforce orbs and void bursts: see [SOUL_AT]. Not in yet (step 27c): his death and
+     * the Blade.
      */
     const val FINAL_AFTER = 3
     const val FINAL_LOOP = 60
@@ -714,6 +714,51 @@ object Ocellus {
     const val ANIM_DEFLECT_LOOP = 14864
     const val ANIM_DEFLECT_OUT = 14865
     const val ANIM_BLAST = 14844
+
+    /**
+     * His lifeforce orbs and void bursts in the final stand (raid step 27b; OSRS Wiki, Strategies; tsps capture notes), at
+     * each of [SOUL_AT] in its loop ([soulFragment]). A wind takes half of each player's hitpoints, rounded down, into an
+     * orb on a safe tile a few tiles off ([ORB_NEAR_MIN] to [ORB_NEAR_MAX]), shown to that player alone. Grown after
+     * [ORB_GROWN] ticks, walking onto it gives the hitpoints back; not taken by the matching one of [SOUL_ENDS], it heals
+     * him that much. Meanwhile a void burst marks each player's tile, for them alone, every [BURST_EVERY] ticks,
+     * [BURSTS] times, and [BURST_LANDS] ticks on hits anyone still on it for [BURST_MIN] to [BURST_MAX]. A player who
+     * left it for a tile beside it ([DODGE_REACH]) dodged it perfectly: [DODGE_TICKS] off their attack's cooldown. While
+     * the bursts run, the hits of weapons slower than two ticks on him are cut ([slowed]: [SLOW_KEEP]). Captured: the
+     * ticks, the orb's growing, the bursts' spacing and landing, [ANIM_SOUL_START] and [ANIM_SOUL_END], his fragment
+     * graphics. Estimates (capture notes): the bursts' damage. Guessed: the orb's distance and when it is too late (his
+     * landing, then the arena's end), the wind's graphic, attacks of six ticks and slower kept as five, the dodge
+     * taken off the cooldown already running.
+     */
+    val SOUL_AT = listOf(3, 34)
+    val SOUL_ENDS = listOf(21, 50)
+    const val ORB_GROWN = 12
+    const val ORB_NEAR_MIN = 2
+    const val ORB_NEAR_MAX = 5
+    const val BURSTS = 6
+    const val BURST_EVERY = 2
+    const val BURST_LANDS = 2
+    const val BURST_MIN = 15
+    const val BURST_MAX = 16
+    const val DODGE_REACH = 1
+    const val DODGE_TICKS = 3
+
+    /** The share of a hit on him kept while the bursts run, by the weapon's attack speed (OSRS Wiki: 33, 50, 60% off). */
+    val SLOW_KEEP = mapOf(3 to 67, 4 to 50, 5 to 40)
+
+    const val ANIM_SOUL_START = 14855
+    const val ANIM_SOUL_END = 14856
+    const val SPOT_ORB_SPAWN = 4311
+    const val SPOT_ORB_IDLE = 4310
+    const val SPOT_ORB_DESPAWN = 4312
+    const val SPOT_ORB_REGAIN = 4314
+    const val SPOT_WIND = 4322
+    const val SPOT_FRAGMENT_GROUND = 4315
+    const val SPOT_FRAGMENT_RISEN = 4316
+    const val SPOT_BURST_MARK = 4340
+    const val SPOT_BURST = 4339
+
+    /** The slot his fragment graphic shows in (capture notes), beside his others. */
+    const val FRAGMENT_SLOT = 2
 
     /** headicons_prayer (sprite group 440): the curses' icons, by the capture notes. */
     const val HEAD_ICON_SOUL_SPLIT = 11
@@ -850,7 +895,14 @@ object Ocellus {
         var finalLoops = 0
         var deflect: Blast? = null
         var soulSplit = false
+
+        /** The lifeforce orbs out, by their player, and the world tick the bursts run until (slower weapons cut). */
+        val orbs = WeakHashMap<Player, Orb>()
+        var burstsUntil = -1L
     }
+
+    /** A lifeforce orb: its tile, the hitpoints in it, the phase tick it has grown and the one it is too late. */
+    class Orb(val tile: Tile, val stolen: Int, val grown: Long, val until: Long)
 
     /** Void on a tile: its loc (none on a bomb's outer tiles), the phase tick it crumbles, and its quadrant. */
     private class VoidPatch(var loc: ZoneLoc?, val until: Long, val quadrant: Quadrant?)
@@ -2291,11 +2343,18 @@ object Ocellus {
             }
             FINAL_ARENA_END -> {
                 arena(SPOT_ARENA_MELEE_START, 2)
+                boss.effects.anim(ANIM_SOUL_END)
                 log("final: the arena ends")
             }
             FINAL_RIFTS -> spawnFlares(Flare.RIFT, minOf(RIFTS_MAX, RIFTS_FIRST + state.finalLoops - 1))
             in FINAL_BLASTS -> blast()
+            in SOUL_AT -> soulFragment(t)
         }
+        // His fragment graphic, sent again every two ticks as live loops it: risen, then on the ground.
+        if (t in SOUL_AT[0] until FINAL_LAND && (t - SOUL_AT[0]) % BURST_EVERY == 0) boss.effects.spotanim(FRAGMENT_SLOT, SPOT_FRAGMENT_RISEN, 0)
+        if (t in SOUL_AT[1] until FINAL_ARENA_END && (t - SOUL_AT[1]) % BURST_EVERY == 0) boss.effects.spotanim(FRAGMENT_SLOT, SPOT_FRAGMENT_GROUND, 0)
+        if (t == FINAL_LAND || t == FINAL_ARENA_END) boss.effects.spotanim(FRAGMENT_SLOT, -1, 0)
+        orbs()
         // The arena's loop again while it shows.
         if (t in 1 until FINAL_LAND && t % ARENA_EVERY == 0) arena(SPOT_ARENA_RANGE_START, 1)
         if (t in FINAL_DEFLECT_RANGE + 1 until FINAL_ARENA_END && (t - FINAL_DEFLECT_RANGE) % ARENA_EVERY == 0) arena(SPOT_ARENA_MELEE_START, 1)
@@ -2346,13 +2405,8 @@ object Ocellus {
                 if (boss.dead) return@after
             }
             if (state.soulSplit && dealtAll >= SOUL_SPLIT_SHARE) {
-                val healed = minOf(dealtAll / SOUL_SPLIT_SHARE, boss.maxHitpoints - boss.hitpoints)
-                if (healed > 0) {
-                    boss.hitpoints += healed
-                    boss.effects.hit(-1, HitsplatType.HEAL, HitsplatType.HEAL, healed)
-                    boss.effects.headBar(-1, MeleeCombat.HEALTH_BAR, MeleeCombat.healthBarFill(boss.hitpoints, boss.maxHitpoints))
-                    log("soul split heals him $healed")
-                }
+                val healed = healBoss(dealtAll / SOUL_SPLIT_SHARE)
+                if (healed > 0) log("soul split heals him $healed")
             }
         }
     }
@@ -2367,6 +2421,134 @@ object Ocellus {
 
     /** What he deflects and whether Soul Split is on, and the loops of his final stand begun, for tests. */
     fun finalState(boss: Npc): Triple<Blast?, Boolean, Int>? = states[boss]?.takeIf { it.finalSince >= 0 }?.let { Triple(it.deflect, it.soulSplit, it.finalLoops) }
+
+    /**
+     * His lifeforce orbs and void bursts (see [SOUL_AT]), [t] ticks into a loop of his final stand: half of everyone's
+     * hitpoints into their orbs, and the bursts begun.
+     */
+    private fun EncounterContext.soulFragment(t: Int) {
+        val centre = centre(boss.spawn.x, boss.spawn.z)
+        val ends = SOUL_ENDS[SOUL_AT.indexOf(t)] - t
+        // Risen, his animation; on the ground only his fragment graphic (capture notes).
+        if (t < FINAL_LAND) boss.effects.anim(ANIM_SOUL_START)
+        state.burstsUntil = world.tick + (BURSTS - 1) * BURST_EVERY + BURST_LANDS
+        log("final: lifeforce and void bursts")
+        val taken = HashSet<Tile>()
+        for (player in players) {
+            if (player.dead || !inArena(centre, player.x, player.z)) continue
+            val stolen = player.hitpoints / 2
+            if (stolen <= 0) continue
+            player.effects.spotanim(0, SPOT_WIND, 0, 0)
+            val dealt = strike(player, stolen)
+            log("lifeforce: ${player.username} loses $dealt")
+            if (dealt <= 0 || player.dead) continue
+            val tile = orbTile(centre, player, taken) ?: continue
+            taken += tile
+            state.orbs[player] = Orb(tile, dealt, phaseTick + ORB_GROWN, phaseTick + ends)
+            world.zones.mapAnim(tile.x, tile.z, boss.level, SPOT_ORB_SPAWN, onlyFor = player.saveKey)
+        }
+        for (burst in 0 until BURSTS) {
+            val run = state.run
+            val mark: EncounterContext.() -> Unit = mark@{
+                if (boss.dead || state.run != run) return@mark
+                for (player in players) {
+                    if (player.dead || !inArena(centre, player.x, player.z)) continue
+                    val tile = Tile(player.x, player.z)
+                    world.zones.mapAnim(tile.x, tile.z, boss.level, SPOT_BURST_MARK, onlyFor = player.saveKey)
+                    after(BURST_LANDS) { burst(player, tile, run) }
+                }
+            }
+            if (burst == 0) mark() else after(burst * BURST_EVERY, mark)
+        }
+    }
+
+    /** A void burst marked on [tile] for [player] lands: hit if still on it, a perfect dodge from beside it. */
+    private fun EncounterContext.burst(player: Player, tile: Tile, run: Int) {
+        if (boss.dead || state.run != run || player.dead) return
+        world.zones.mapAnim(tile.x, tile.z, boss.level, SPOT_BURST, onlyFor = player.saveKey)
+        val away = maxOf(kotlin.math.abs(player.x - tile.x), kotlin.math.abs(player.z - tile.z))
+        if (away == 0) {
+            val dealt = fromTheRoom(player, roll(BURST_MIN, BURST_MAX))
+            log("burst hits ${player.username} for $dealt")
+        } else if (away <= DODGE_REACH && player.nextAttackTick > world.tick) {
+            player.nextAttackTick = maxOf(world.tick, player.nextAttackTick - DODGE_TICKS)
+            log("${player.username} dodges a burst")
+        }
+    }
+
+    /** A safe tile in his quadrant for [player]'s orb: off the void and him, [ORB_NEAR_MIN] to [ORB_NEAR_MAX] off them if it can be. */
+    private fun EncounterContext.orbTile(centre: Tile, player: Player, taken: Set<Tile>): Tile? {
+        val size = boss.type.size
+        val under = { tile: Tile -> tile.x in boss.x until boss.x + size && tile.z in boss.z until boss.z + size }
+        val safe = (1..STRIP_LENGTH).flatMap { x -> (1..STRIP_LENGTH).map { z -> quadrantTile(centre, state.held, x, z) } }
+            .filter { tile -> tile !in state.voids && tile !in taken && !under(tile) && state.censers.values.none { it.x == tile.x && it.z == tile.z } }
+            .filter { (it.x != player.x || it.z != player.z) && !onCross(centre, it.x, it.z) }
+        if (safe.isEmpty()) return null
+        val near = safe.filter { maxOf(kotlin.math.abs(it.x - player.x), kotlin.math.abs(it.z - player.z)) in ORB_NEAR_MIN..ORB_NEAR_MAX }
+        val from = near.ifEmpty { safe }
+        return from[roll(0, from.size - 1)]
+    }
+
+    /** The orbs out: taken back by a player on theirs once grown, or healing him once too late. */
+    private fun EncounterContext.orbs() {
+        if (state.orbs.isEmpty()) return
+        for ((player, orb) in state.orbs.entries.toList()) {
+            val gone = player.dead || player.loggedOut
+            if (!gone && phaseTick >= orb.grown && player.x == orb.tile.x && player.z == orb.tile.z) {
+                state.orbs.remove(player)
+                val healed = heal(player, orb.stolen)
+                player.effects.spotanim(0, SPOT_ORB_REGAIN, 0, 0)
+                world.zones.mapAnim(orb.tile.x, orb.tile.z, boss.level, SPOT_ORB_DESPAWN, onlyFor = player.saveKey)
+                log("lifeforce: ${player.username} takes back $healed")
+                continue
+            }
+            if (gone || phaseTick >= orb.until) {
+                state.orbs.remove(player)
+                if (!gone) world.zones.mapAnim(orb.tile.x, orb.tile.z, boss.level, SPOT_ORB_DESPAWN, onlyFor = player.saveKey)
+                // Guessed: an orb whose player died or left heals him too.
+                val healed = healBoss(orb.stolen)
+                log("lifeforce: ${player.username}'s orb heals him $healed")
+                if (boss.dead) return
+                continue
+            }
+            if (phaseTick >= orb.grown && (phaseTick - orb.grown) % BURST_EVERY == 0L) {
+                world.zones.mapAnim(orb.tile.x, orb.tile.z, boss.level, SPOT_ORB_IDLE, onlyFor = player.saveKey)
+            }
+        }
+    }
+
+    /** Heals him by [amount], with the heal hitsplat, up to his bar; what he healed. */
+    private fun EncounterContext.healBoss(amount: Int): Int {
+        val healed = minOf(amount, boss.maxHitpoints - boss.hitpoints)
+        if (healed <= 0 || boss.dead) return 0
+        boss.hitpoints += healed
+        boss.effects.hit(-1, HitsplatType.HEAL, HitsplatType.HEAL, healed)
+        boss.effects.headBar(-1, MeleeCombat.HEALTH_BAR, MeleeCombat.healthBarFill(boss.hitpoints, boss.maxHitpoints))
+        return healed
+    }
+
+    /**
+     * What of [rolled] by [player] he takes while his void bursts run: cut for attacks slower than two ticks
+     * ([SLOW_KEEP]). Asked as the attack is made, so its interval is the cooldown it has just set: rapid's tick and a
+     * manual cast's own speed counted, weariness's tick not (Codex, PR 586).
+     */
+    fun slowed(world: World, player: Player, npc: Npc, rolled: Int): Int {
+        if (npc.type.id != P3 || rolled <= 0) return rolled
+        val until = states[npc]?.burstsUntil ?: return rolled
+        if (world.tick > until) return rolled
+        val interval = (player.nextAttackTick - world.tick).toInt() - world.combat.wearyDelay(player)
+        return slowedBy(interval, rolled)
+    }
+
+    /** What of [rolled] is kept for an attack every [interval] ticks while the bursts run (see [SLOW_KEEP]). */
+    fun slowedBy(interval: Int, rolled: Int): Int {
+        if (interval <= 2) return rolled
+        val keep = SLOW_KEEP[interval] ?: SLOW_KEEP.getValue(5)
+        return rolled * keep / 100
+    }
+
+    /** The lifeforce orbs out, by player, for tests. */
+    fun orbs(boss: Npc): Map<Player, Orb> = states[boss]?.orbs?.toMap().orEmpty()
 
     /** His bar reached the next of [FALLS_AT]: his line, and the barriers drop (tsps). */
     private fun EncounterContext.startFall() {
@@ -2537,7 +2719,7 @@ object Ocellus {
         val sureHit = world.combat.sureHit
         world.combat.sureHit = { player, npc, type -> flareHit(npc.type.id, type) ?: censerHit(player, npc, type) ?: sureHit(player, npc, type) }
         val rolledOn = world.combat.rolledOn
-        world.combat.rolledOn = { player, npc, type, rolled -> rolledOn(player, npc, type, deflected(npc, type, rolled)) }
+        world.combat.rolledOn = { player, npc, type, rolled -> rolledOn(player, npc, type, slowed(world, player, npc, deflected(npc, type, rolled))) }
     }
 
     /** What each player has dealt each Siphon standing, for the heal as it is destroyed. */

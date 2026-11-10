@@ -1,5 +1,5 @@
 {
- "name": "Raid steps 24a to 27a: Ocellus solo, his arena upstairs, the hooded figure waiting until the party readies up, then his first phase walking between his corners under Protect from Melee, at each corner his cracks, line and explosion, at two thirds the middle with its four sides and his charge expended, the hold at the end of his blue bar, and his second phase: the portals on the cross, the Blade passing damage to his bar, the quadrants' volleys, and the rest of a quadrant's turn: pools, every portal purple, the floor portal and the last volley, and his third phase: the cross falling to stepping stones, his quadrant, and the quadrants falling at 75, 50 and 25%, with the void bombs and his specials: the cog, the void and Untether, and Insolence first in the next quadrant, and his void flares: Siphons, Augmenters and Rifts, and the censers, and his final stand: Deflect Melee, a blast and Deflect Range",
+ "name": "Raid steps 24a to 27b: Ocellus solo, his arena upstairs, the hooded figure waiting until the party readies up, then his first phase walking between his corners under Protect from Melee, at each corner his cracks, line and explosion, at two thirds the middle with its four sides and his charge expended, the hold at the end of his blue bar, and his second phase: the portals on the cross, the Blade passing damage to his bar, the quadrants' volleys, and the rest of a quadrant's turn: pools, every portal purple, the floor portal and the last volley, and his third phase: the cross falling to stepping stones, his quadrant, and the quadrants falling at 75, 50 and 25%, with the void bombs and his specials: the cog, the void and Untether, and Insolence first in the next quadrant, and his void flares: Siphons, Augmenters and Rifts, and the censers, and his final stand: Deflect Melee, the lifeforce and void bursts, a blast and Deflect Range",
  "account": "test",
  "steps": [
   {
@@ -552,6 +552,18 @@
    "step": "command",
    "text": "::raid log 80",
    "expectMessage": "third: final: lands"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: final: lifeforce and void bursts",
+   "comment": "3 ticks after his rise the wind for the lifeforce orbs, and the void bursts (step 27b)"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": " burst hits ",
+   "comment": "a void burst landing on the player, who stands still (under ::god)"
   },
   {
    "step": "command",
