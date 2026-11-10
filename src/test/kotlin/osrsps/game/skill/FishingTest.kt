@@ -164,4 +164,44 @@ class FishingTest {
         }
         assertTrue(several > 0, "some rolls bring up more than one catch")
     }
+
+    @Test
+    fun `karambwanji net level over 5 plus one at a time before shrimps, and the vessel catches karambwan from 65`() {
+        val net = Fishing.KARAMBWANJI_NET
+        assertEquals(listOf(Fishing.KARAMBWANJI, Fishing.SHRIMPS), net.fish)
+        assertEquals(listOf(5, 50, 100, 250), Fishing.KARAMBWANJI.let { listOf(it.level, it.xpTenths, it.low, it.high) })
+        // The Wiki's table: 2 from 5 to 9, 3 from 10, 20 from 95, 21 boosted past 99; one of anything else.
+        assertEquals(listOf(2, 2, 3, 13, 20, 21), listOf(5, 9, 10, 64, 99, 100).map { Fishing.KARAMBWANJI.amount(it) })
+        assertEquals(1, Fishing.SHRIMPS.amount(99))
+        // Its chart: karambwanji tried first, then shrimps.
+        assertEquals(SuccessRoll.chance(100, 250, 50) / 256.0, chance(net, Fishing.KARAMBWANJI, 50), 1e-9)
+        assertEquals((1 - SuccessRoll.chance(100, 250, 50) / 256.0) * SuccessRoll.chance(48, 256, 50) / 256.0, chance(net, Fishing.SHRIMPS, 50), 1e-9)
+
+        val vessel = Fishing.KARAMBWAN_FISHING
+        assertEquals(listOf(Fishing.KARAMBWAN), vessel.fish)
+        assertEquals(listOf(65, 500, 5, 160), Fishing.KARAMBWAN.let { listOf(it.level, it.xpTenths, it.low, it.high) })
+        assertEquals(Fishing.BAITED_VESSEL, vessel.tool)
+        assertEquals(listOf(Fishing.BAITED_VESSEL, Fishing.KARAMBWAN_VESSEL), vessel.tools)
+        assertEquals(Fishing.RAW_KARAMBWANJI, vessel.vessel!!.bait)
+        assertEquals("Fish", vessel.name)
+
+        fun methods(npc: Int) = Fishing.SPOTS.single { it.npc == npc }.methods
+        assertEquals(listOf(net), methods(Fishing.KARAMBWANJI_SPOT))
+        assertEquals(listOf(vessel), methods(Fishing.KARAMBWAN_SPOT))
+        assertEquals(listOf(vessel), methods(Fishing.KARAMBWAN_SPOT_EAST))
+    }
+
+    @Test
+    fun `seeded vessel rolls catch karambwan as often as the chart says, and the rest lose the bait`() {
+        val random = GameRandom(65)
+        val rolls = 100_000
+        for (level in listOf(65, 80, 99)) {
+            val caught = (1..rolls).count { SuccessRoll.roll(random, Fishing.KARAMBWAN.low, Fishing.KARAMBWAN.high, level) }
+            val expected = SuccessRoll.chance(Fishing.KARAMBWAN.low, Fishing.KARAMBWAN.high, level) / 256.0
+            assertTrue(abs(caught.toDouble() / rolls - expected) < 0.006, "level $level: ${caught.toDouble() / rolls}, chart $expected")
+        }
+        // About 107 in 256 at 65, 161 at 99 (the Wiki's chart).
+        assertEquals(107, SuccessRoll.chance(5, 160, 65))
+        assertEquals(161, SuccessRoll.chance(5, 160, 99))
+    }
 }

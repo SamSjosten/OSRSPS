@@ -729,9 +729,10 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `the fishing spots outside Misthalin are Catherby's seven and Musa Point's six, each on a tile of its area`() {
+    fun `the fishing spots outside Misthalin are Catherby's seven, Musa Point's six and Karamja's five, each on a tile of its area or staying put`() {
         val names = mapOf(
             1518 to "0_44_53_saltfish", 1519 to "0_44_53_rarefish", 1520 to "0_44_53_memberfish", 1521 to "0_45_49_saltfish", 1522 to "0_45_49_rarefish",
+            4710 to "0_43_47_karambwanji", 4712 to "0_45_48_karambwan", 4713 to "general_karambwan",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, "Fishing spot", internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("fishing-spots.json"), types, "fishing-spots.json")
@@ -739,9 +740,11 @@ class NpcSpawnFileTest {
         val spawns = result.spawns
         // The OSRS Wiki's spot pages (read 2026-11-10): Catherby has two Cage/Harpoon and three Big Net/Harpoon spots,
         // Musa Point three Cage/Harpoon; mejrs's live list adds two Net/Bait at Catherby and three at Musa Point.
-        assertEquals(listOf(2, 2, 3, 3, 3), names.keys.map { id -> spawns.count { it.type.id == id } })
+        // Karamja (step FC3): the Wiki's three karambwanji spots in the Holy Lake and two karambwan spots by DKP.
+        assertEquals(listOf(2, 2, 3, 3, 3, 3, 1, 1), names.keys.map { id -> spawns.count { it.type.id == id } })
         for (spot in spawns) {
-            assertTrue(Fishing.AREAS.any { Tile(spot.x, spot.z) in it }, "a spot at ${spot.x}, ${spot.z}")
+            val staysPut = spot.type.id in setOf(Fishing.KARAMBWANJI_SPOT, Fishing.KARAMBWAN_SPOT, Fishing.KARAMBWAN_SPOT_EAST)
+            assertEquals(!staysPut, Fishing.AREAS.any { Tile(spot.x, spot.z) in it }, "a spot at ${spot.x}, ${spot.z}")
             assertTrue(spot.wander == 0 && spot.source.isNotBlank())
         }
     }

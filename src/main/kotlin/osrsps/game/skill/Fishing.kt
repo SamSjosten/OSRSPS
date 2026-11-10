@@ -1,5 +1,6 @@
 package osrsps.game.skill
 
+import osrsps.game.InvObj
 import osrsps.game.Skill
 import osrsps.game.WearPos
 import osrsps.game.World
@@ -55,10 +56,31 @@ object FishingLines : Lines("fishing", "Fishing") {
     val CATCH_CASKET = line("catch_casket", "Casket: the message when the big net brings one up")
     val LEVEL_BIG_NET = line("level_big_net", "the message when big net fishing needs a higher level (16)", "level")
     val NO_BIG_NET = line("no_big_net", "Big fishing net: the message on Big Net without one")
+    val CATCH_KARAMBWANJI = line("catch_karambwanji", "Raw karambwanji: the message for each net of them")
+    val CAST_VESSEL = line("cast_vessel", "the message on starting to fish with a karambwan vessel")
+    val CATCH_KARAMBWAN = line("catch_karambwan", "Raw karambwan: the message for each catch")
+    val SNATCHED = line("snatched", "the message when a karambwan takes the vessel's bait without being caught (the Raw karambwan page)")
+    val LEVEL_KARAMBWAN = line("level_karambwan", "the message when karambwan fishing needs a higher level (65)", "level")
+    val NO_VESSEL = line("no_vessel", "Karambwan vessel: the message on Fish without one")
+    val NO_KARAMBWANJI = line("no_karambwanji", "Raw karambwanji: the message on Fish with an empty vessel and none left")
 }
 
-/** One fish: the obj caught, the level and XP in tenths, its success pair (out of 256) and its catch message. */
-class Fish(val obj: Int, val level: Int, val xpTenths: Int, val low: Int, val high: Int, val line: Line)
+/**
+ * One fish: the obj caught, the level and XP in tenths, its success pair (out of 256) and its catch message. A
+ * [perFiveLevels] fish comes up level / 5 + 1 at a time (karambwanji), for the one catch's XP.
+ */
+class Fish(
+    val obj: Int,
+    val level: Int,
+    val xpTenths: Int,
+    val low: Int,
+    val high: Int,
+    val line: Line,
+    val perFiveLevels: Boolean = false,
+) {
+    /** How many one catch brings up at [level]. */
+    fun amount(level: Int): Int = if (perFiveLevels) level / 5 + 1 else 1
+}
 
 /**
  * A tool that fishes as well as, or better than, a method's own: the wieldable harpoons. It is used from the backpack or
@@ -69,6 +91,12 @@ class FishingTool(val obj: Int, val level: Int, val percent: Int, val anim: Int)
 
 /** Bait a method uses up, one per catch, and what the player is told when it runs out. */
 class Bait(val obj: Int, val none: Line)
+
+/**
+ * A karambwan vessel's way: the [baited] vessel is the tool, and every roll empties it, a karambwan caught or the bait
+ * [snatched]; an [empty] vessel is baited again from the backpack's [bait] before each roll, one piece a vessel.
+ */
+class Vessel(val empty: Int, val baited: Int, val bait: Int, val snatched: Line, val noBait: Line)
 
 /**
  * One way of fishing a spot: its option ([name] as the cache spells it), the tool, the bait, the animations, the fish
@@ -95,11 +123,13 @@ class FishingMethod(
      * Wiki's Fishing spot (big net, harpoon) page and Mod Ash's 9 rolls); otherwise the first success is the catch.
      */
     val rollsEach: Boolean = false,
+    /** The karambwan vessel's bait and emptying; [tool] is then the baited vessel. */
+    val vessel: Vessel? = null,
 ) {
     val level: Int get() = fish.minOf { it.level }
 
     /** Every obj that fishes this way, used on a spot or held. */
-    val tools: List<Int> get() = otherTools.map { it.obj } + tool
+    val tools: List<Int> get() = otherTools.map { it.obj } + tool + listOfNotNull(vessel?.empty)
 }
 
 /** A kind of fishing spot (an NPC) and the methods its options use. */
@@ -128,7 +158,12 @@ class SpotType(val npc: Int, val methods: List<FishingMethod>)
  * The big net (step FC2) fishes Catherby's Big Net/Harpoon spots: each of its nine rolls is made on its own, so one
  * roll can bring up mackerel, cod, bass and junk together.
  *
- * Out: pearl and barbarian rods, stripy feathers (rainbow fish), karambwanji, big bass, big swordfish and big shark,
+ * Karambwanji and karambwan (step FC3) are fished on Karamja, built in place: the karambwanji come up several at a
+ * time and stack, so a full backpack holding some still nets them; the karambwan vessel loses its bait on every roll,
+ * caught or not, and is baited again from the backpack's karambwanji before the next. Guessed: the vessel's cast
+ * message and animation (human_octopus_pot) and the first roll's timing being the other methods'.
+ *
+ * Out: pearl and barbarian rods, stripy feathers (rainbow fish), big bass, big swordfish and big shark,
  * barehanded fishing, the infernal and crystal harpoons, the skills necklace's casket boost, fishing outfits and other
  * catch boosts, heron pets, the random fishing spot whirlpools. No sounds: the 241 synth ids have no names.
  */
@@ -190,6 +225,12 @@ class Fishing(private val world: World) {
             method.levelLine?.let { player.message(text[it, "level" to method.level]) }
             return stop()
         }
+        method.vessel?.let { vessel ->
+            if (!baitVessel(vessel)) {
+                player.message(text[if (player.inventory.count(vessel.empty) > 0) vessel.noBait else method.noTool])
+                return stop()
+            }
+        }
         val tool = toolFor(method, level)
         if (tool == null) {
             player.message(text[method.noTool])
@@ -203,8 +244,8 @@ class Fishing(private val world: World) {
             player.message(text[bait.none])
             return stop()
         }
-        // The last piece of bait frees its own slot for the fish (2004Scape).
-        if (player.inventory.freeSlots == 0 && !(bait != null && baitLeft == 1L)) {
+        // The last piece of bait frees its own slot for the fish (2004Scape); a stack already held takes more of its fish.
+        if (player.inventory.freeSlots == 0 && !(bait != null && baitLeft == 1L) && method.fish.none { stacksOnto(it) }) {
             player.message(text[FishingLines.INVENTORY_FULL])
             return stop()
         }
@@ -240,18 +281,39 @@ class Fishing(private val world: World) {
         return method.otherTools.firstOrNull { level >= it.level && held(it.obj) } ?: PLAIN.takeIf { held(method.tool) }
     }
 
+    /**
+     * An empty vessel baited if there is no baited one: true when one is baited now. Guessed: no message and no
+     * animation for the baiting, as the Wiki's change of 27 October 2016 says it happens on its own.
+     */
+    private fun ScriptContext.baitVessel(vessel: Vessel): Boolean {
+        if (player.inventory.count(vessel.baited) > 0) return true
+        val empty = player.inventory.contents().firstOrNull { it.second.id == vessel.empty }?.first ?: return false
+        val bait = player.inventory.contents().firstOrNull { it.second.id == vessel.bait }?.first ?: return false
+        player.inventory.remove(bait, 1)
+        player.inventory[empty] = InvObj(vessel.baited, 1)
+        return true
+    }
+
+    /** Whether [fish] stacks onto a stack the backpack already holds, so it needs no free slot. */
+    private fun ScriptContext.stacksOnto(fish: Fish): Boolean =
+        world.objTypes[fish.obj]?.stackable == true && player.inventory.count(fish.obj) > 0
+
     /** Tries each fish the player can catch, best first, with pairs scaled by the tool's [percent]; the first success is caught. */
     private fun ScriptContext.roll(method: FishingMethod, level: Int, percent: Int) {
         if (method.rollsEach) return rollEach(method, level)
+        method.vessel?.let { return rollVessel(method, it, level) }
         for (fish in method.fish) {
             if (level < fish.level) continue
+            // With the backpack full only a fish that stacks onto one held can come up: the Wiki's karambwanji spot
+            // gives no more shrimps then.
+            if (player.inventory.freeSlots == 0 && !stacksOnto(fish) && method.bait == null) continue
             if (!SuccessRoll.roll(world.random, fish.low * percent / 100, fish.high * percent / 100, level)) continue
             val type = world.objTypes[fish.obj] ?: error("No obj type ${fish.obj} for a caught fish")
             method.bait?.let { bait ->
                 val slot = player.inventory.contents().firstOrNull { it.second.id == bait.obj }?.first
                 if (slot != null) player.inventory.remove(slot, 1)
             }
-            player.inventory.add(type, 1)
+            player.inventory.add(type, fish.amount(level))
             player.skills.addTenths(Skill.FISHING, fish.xpTenths)
             player.message(world.textFor(player)[fish.line])
             return
@@ -273,6 +335,25 @@ class Fishing(private val world: World) {
             player.skills.addTenths(Skill.FISHING, fish.xpTenths)
             player.message(text[fish.line])
         }
+    }
+
+    /**
+     * The karambwan vessel: a roll empties the baited vessel either way, with the karambwan or with the bait snatched
+     * (the Wiki's Raw karambwan page: bait is used up even without a catch).
+     */
+    private fun ScriptContext.rollVessel(method: FishingMethod, vessel: Vessel, level: Int) {
+        val slot = player.inventory.contents().firstOrNull { it.second.id == vessel.baited }?.first ?: return
+        player.inventory[slot] = InvObj(vessel.empty, 1)
+        val text = world.textFor(player)
+        val fish = method.fish.firstOrNull { level >= it.level && SuccessRoll.roll(world.random, it.low, it.high, level) }
+        if (fish == null) {
+            player.message(text[vessel.snatched])
+            return
+        }
+        val type = world.objTypes[fish.obj] ?: error("No obj type ${fish.obj} for a caught fish")
+        player.inventory.add(type, 1)
+        player.skills.addTenths(Skill.FISHING, fish.xpTenths)
+        player.message(text[fish.line])
     }
 
     private fun ScriptContext.stop() {
@@ -303,6 +384,9 @@ class Fishing(private val world: World) {
         const val BARB_TAIL_HARPOON = 10129 // hunting_barbed_harpoon
         const val DRAGON_HARPOON = 21028 // dragon_harpoon
         const val BIG_NET = 305 // big_net
+        const val KARAMBWAN_VESSEL = 3157 // tbwt_karambwan_vessel
+        const val BAITED_VESSEL = 3159 // tbwt_karambwan_vessel_loaded_with_karambwanji
+        const val RAW_KARAMBWANJI = 3150 // tbwt_raw_karambwanji
 
         /** Stands for a method's own tool in [toolFor]: its pairs as they are, and the method's animations. */
         private val PLAIN = FishingTool(-1, 1, 100, -1)
@@ -320,6 +404,9 @@ class Fishing(private val world: World) {
 
         /** human_largenet. */
         const val BIG_NET_ANIM = 620
+
+        /** human_octopus_pot: fishing with a karambwan vessel (guessed from the name: no page names it). */
+        const val VESSEL_ANIM = 1193
 
         /** Levels and XP from the Wiki's fish pages; pairs fitted to their charts. Obj ids by gameval name. */
         val SHRIMPS = Fish(317, 1, 100, 48, 256, FishingLines.CATCH_SHRIMPS) // raw_shrimp
@@ -403,6 +490,23 @@ class Fishing(private val world: World) {
             FishingLines.LEVEL_BIG_NET, rollsEach = true,
         )
 
+        /**
+         * Karambwanji and karambwan (step FC3), from the Wiki's Raw karambwanji, Raw karambwan and fishing spot pages
+         * (read 2026-11-10): a small net nets karambwanji from 5, level / 5 + 1 at a time for 5 XP, tried before shrimps
+         * (its chart: 100/250 and the shrimps' 48/256); a baited vessel catches karambwan from 65 for 50 XP (5/160).
+         */
+        val KARAMBWANJI = Fish(RAW_KARAMBWANJI, 5, 50, 100, 250, FishingLines.CATCH_KARAMBWANJI, perFiveLevels = true)
+        val KARAMBWAN = Fish(3142, 65, 500, 5, 160, FishingLines.CATCH_KARAMBWAN) // tbwt_raw_karambwan
+
+        val KARAMBWANJI_NET = FishingMethod(
+            "Net", NET, FishingLines.NO_NET, null, FishingLines.CAST_NET, NET_ANIM, NET_ANIM, listOf(KARAMBWANJI, SHRIMPS), null,
+        )
+        val KARAMBWAN_FISHING = FishingMethod(
+            "Fish", BAITED_VESSEL, FishingLines.NO_VESSEL, null, FishingLines.CAST_VESSEL, VESSEL_ANIM, VESSEL_ANIM,
+            listOf(KARAMBWAN), FishingLines.LEVEL_KARAMBWAN,
+            vessel = Vessel(KARAMBWAN_VESSEL, BAITED_VESSEL, RAW_KARAMBWANJI, FishingLines.SNATCHED, FishingLines.NO_KARAMBWANJI),
+        )
+
         val CAGE = FishingMethod(
             "Cage", LOBSTER_POT, FishingLines.NO_CAGE, null, FishingLines.CAST_CAGE, CAGE_ANIM, CAGE_ANIM, listOf(LOBSTER),
             FishingLines.LEVEL_CAGE,
@@ -456,6 +560,16 @@ class Fishing(private val world: World) {
         const val MUSA_POINT_NET_SPOT = 1521
         const val MUSA_POINT_CAGE_SPOT = 1522
 
+        /**
+         * Karamja's karambwanji spots in the Holy Lake south of Tai Bwo Wannai (`0_43_47_karambwanji`) and karambwan
+         * spots by the fairy ring DKP (`0_45_48_karambwan` and `general_karambwan`), built in place and reached by ::tele.
+         * Neither has an area, so they stay put: the Wiki says the karambwan spots in practice never move; the
+         * karambwanji spots' staying put is guessed.
+         */
+        const val KARAMBWANJI_SPOT = 4710
+        const val KARAMBWAN_SPOT = 4712
+        const val KARAMBWAN_SPOT_EAST = 4713
+
         val SPOTS = listOf(
             SpotType(SWAMP_SPOT, listOf(SMALL_NET, SEA_BAIT)),
             SpotType(RIVER_SPOT, listOf(LURE, RIVER_BAIT)),
@@ -469,6 +583,9 @@ class Fishing(private val world: World) {
             SpotType(CATHERBY_SHARK_SPOT, listOf(BIG_NET_FISHING, HARPOON_SHARK)),
             SpotType(MUSA_POINT_NET_SPOT, listOf(SMALL_NET, SEA_BAIT)),
             SpotType(MUSA_POINT_CAGE_SPOT, listOf(CAGE, HARPOON_TUNA)),
+            SpotType(KARAMBWANJI_SPOT, listOf(KARAMBWANJI_NET)),
+            SpotType(KARAMBWAN_SPOT, listOf(KARAMBWAN_FISHING)),
+            SpotType(KARAMBWAN_SPOT_EAST, listOf(KARAMBWAN_FISHING)),
         )
         private val SPOT_IDS = SPOTS.map { it.npc }.toSet()
 
