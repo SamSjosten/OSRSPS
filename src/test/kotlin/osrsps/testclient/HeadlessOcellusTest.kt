@@ -948,9 +948,14 @@ class HeadlessOcellusTest {
                 alice.commandReply("hit 44 ${siphon.index}") { it.startsWith("Hit ") }
                 alice.awaitLine(run, "her empowerment") { it.endsWith("third: siphon destroyed: alice empowered") }
                 alice.tele(stand.x, stand.z, level)
+                // The other Siphon destroyed too, so no heal lands between her hit and his fall (a heal the same tick put
+                // him back over 75%, by the random draws).
+                for (other in Ocellus.flares(boss)) alice.commandReply("hit 44 ${other.index}") { it.startsWith("Hit ") }
+                alice.await("no Siphon left") { Unit.takeIf { Ocellus.flares(boss).isEmpty() } }
                 // At 75% the north-west falls with its void; she goes on to the north-east, and there Insolence is first:
-                // three superior slashes towards her, five ticks apart, leaving void.
-                alice.commandReply("hit ${boss.hitpoints - 5250 * 75 / 100} ${boss.index}") { it.startsWith("Hit ") }
+                // three superior slashes towards her, five ticks apart, leaving void. However hard the hit, his bar holds
+                // at 75% (exploit review R23B-2).
+                alice.commandReply("hit 5000 ${boss.index}") { it.startsWith("Hit ") }
                 alice.awaitLine(run, "the north-west to fall") { it.contains("third: NW to fall at ") }
                 val ne = Ocellus.quadrantTile(centre, Ocellus.Quadrant.NE, 3, 3)
                 alice.tele(ne.x, ne.z, level)

@@ -66,6 +66,8 @@ object NpcSpawnFile {
         "ham-hideout.json",
         "ham-storerooms.json",
         "fishing-spots.json",
+        "thieving-kandarin.json",
+        "rogues-castle.json",
     )
 
     /** What a file gave: the spawns, and the NPC names the cache doesn't know (skipped). */

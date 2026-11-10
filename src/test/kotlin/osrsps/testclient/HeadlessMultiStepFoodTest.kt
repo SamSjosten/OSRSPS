@@ -180,7 +180,8 @@ class HeadlessMultiStepFoodTest {
                 assertEquals(start, client.xp(), "the tomato and cheese give no XP")
                 client.bake(CookingMixes.UNCOOKED_PIZZA, CookingMixes.PLAIN_PIZZA)
                 client.seen("[cooking.cooked_pizza]")
-                val beforeTopping = client.xp()
+                // The bake's 143 XP can reach the client after the pizza and its message; wait for it before the topping.
+                val beforeTopping = client.await("the bake's XP") { client.xp().takeIf { it == start + 143 } }
                 client.make(ANCHOVIES, CookingMixes.PLAIN_PIZZA, ANCHOVY_PIZZA)
                 client.seen("[cooking_mix.anchovy_pizza]")
                 assertEquals(39, client.await("topping XP") { client.xp().takeIf { it > beforeTopping } } - beforeTopping)

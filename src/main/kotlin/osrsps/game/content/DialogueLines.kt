@@ -19,6 +19,7 @@ import osrsps.game.ge.GrandExchangeLines
 import osrsps.game.ge.PriceCheckerLines
 import osrsps.game.raid.ArchiveGuardianLines
 import osrsps.game.raid.ArchiveNavigatorLines
+import osrsps.game.raid.ArchiveVaultLines
 import osrsps.game.raid.BorkLines
 import osrsps.game.raid.DreadnothLines
 import osrsps.game.raid.OcellusLines
@@ -26,6 +27,7 @@ import osrsps.game.raid.XarthLines
 import osrsps.game.shop.ShopLines
 import osrsps.game.skill.AgilityLines
 import osrsps.game.skill.BirdNestLines
+import osrsps.game.skill.BobBarterLines
 import osrsps.game.skill.CookingLines
 import osrsps.game.skill.CookingMixLines
 import osrsps.game.skill.CraftingLines
@@ -91,6 +93,7 @@ object DialogueLines {
         BorkLines,
         DreadnothLines,
         OcellusLines,
+        ArchiveVaultLines,
         XarthLines,
         CadmusLines,
         FeorasLines,
@@ -99,6 +102,7 @@ object DialogueLines {
         WebLines,
         BlueMoonBartenderLines,
         BlueMoonCookLines,
+        BobBarterLines,
         BobLines,
         BonesLines,
         BorderGuardLines,

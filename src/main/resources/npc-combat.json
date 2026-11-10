@@ -86,6 +86,70 @@
       "source": "OSRS Wiki, Farmer (ids 3114, 3243, 3244, 11918 to 11921 share the infobox), read 2026-11-10 (Thieving 2 step T1a). The animations are GUESSED: the man's, as the farmer holds nothing the cache names"
     },
     {
+      "npcs": ["rogue"],
+      "attackSpeed": 4, "maxHit": 2, "attackType": "stab", "attackBonus": 5, "strengthBonus": 5,
+      "defence": { "stab": 6, "slash": 9, "crush": 11, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "human_sword_stab", "defend": "human_sword_block", "death": "human_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Rogue (Level 15, id 526), read 2026-11-10 (Thieving 2 step T1b): speed 4, max hit 2, stab, the bonuses, respawn 50, not aggressive. The animations are GUESSED (the sword's stab and block); the level 135 Rogues' Castle rogue (6603) waits for the castle's chests"
+    },
+    {
+      "npcs": ["knight_of_ardougne"],
+      "attackSpeed": 5, "maxHit": 6, "attackType": "slash", "attackBonus": 8, "strengthBonus": 10,
+      "defence": { "stab": 39, "slash": 40, "crush": 36, "magic": -11, "light": 36, "standard": 36, "heavy": 36 },
+      "anims": { "attack": "human_sword_slash", "defend": "human_sword_block", "death": "human_death" },
+      "respawnTicks": 25,
+      "source": "OSRS Wiki, Knight of Ardougne (id 3297, East Ardougne), read 2026-11-10 (Thieving 2 step T1b): speed 5, max hit 6, slash, the bonuses, respawn 25, not aggressive. The animations are GUESSED (the sword's)"
+    },
+    {
+      "npcs": ["paladin", "paladin2"],
+      "attackSpeed": 5, "maxHit": 8, "attackType": "slash", "attackBonus": 20, "strengthBonus": 22,
+      "defence": { "stab": 87, "slash": 84, "crush": 76, "magic": -10, "light": 79, "standard": 79, "heavy": 79 },
+      "anims": { "attack": "human_sword_slash", "defend": "human_sword_block", "death": "human_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Paladin (ids 3293 and 3294, East Ardougne), read 2026-11-10 (Thieving 2 step T1b): speed 5, max hit 8, slash, the bonuses, respawn 50; aggressive only after a caught stall theft (T3). The animations are GUESSED (the sword's)"
+    },
+    {
+      "npcs": ["hero"],
+      "attackSpeed": 5, "maxHit": 9, "attackType": "slash", "attackBonus": 20, "strengthBonus": 22,
+      "defence": { "stab": 87, "slash": 84, "crush": 76, "magic": -10, "light": 79, "standard": 79, "heavy": 79 },
+      "anims": { "attack": "human_sword_slash", "defend": "human_sword_block", "death": "human_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Hero (id 3295, Ardougne Market), read 2026-11-10 (Thieving 2 step T1b): speed 5, max hit 9, slash, the bonuses, respawn 50; aggressive only after a caught gem stall theft (T3). The animations are GUESSED (the sword's)"
+    },
+    {
+      "npcs": ["yanille_watchman"],
+      "attackSpeed": 4, "maxHit": 4, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 24, "slash": 14, "crush": 19, "magic": -4, "light": 16, "standard": 16, "heavy": 16 },
+      "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Watchman (id 5420, the Watchtower), read 2026-11-10 (Thieving 2 step T1b): speed 4, max hit 4, crush, no attack bonuses, the defences, respawn 50, not aggressive. The animations are GUESSED (the man's punch)"
+    },
+    {
+      "npcs": ["gnome", "browclothedgnome", "darkskinned_gnome"],
+      "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": -42, "strengthBonus": -42,
+      "defence": { "stab": -42, "slash": -42, "crush": -42, "magic": -42, "light": -42, "standard": -42, "heavy": -42 },
+      "anims": { "attack": "gnome_attackunarmed", "defend": "gnome_block", "death": "gnome_death" },
+      "respawnTicks": 60,
+      "source": "OSRS Wiki, Gnome (Level 1: ids 6094 to 6096), read 2026-11-10 (Thieving 2 step T1b): speed 4, max hit 1, crush, every bonus -42, respawn 60, not aggressive. Its ranged attack is left out; gnome_attackunarmed is GUESSED for its punch"
+    },
+    {
+      "npcs": ["gnomefemale", "gnomefemale_dskinned"],
+      "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": -42, "strengthBonus": -42,
+      "defence": { "stab": -42, "slash": -42, "crush": -42, "magic": -42, "light": -42, "standard": -42, "heavy": -42 },
+      "anims": { "attack": "gnome_attackunarmed", "defend": "gnome_block", "death": "gnome_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Gnome woman (ids 6086 and 6087), read 2026-11-10 (Thieving 2 step T1b): speed 4, max hit 1, crush, every bonus -42, respawn 50, not aggressive. The animations are GUESSED (the gnome's)"
+    },
+    {
+      "npcs": ["gnomechild", "gnomechildblue", "gnomechildgreen"],
+      "attackSpeed": 4, "maxHit": 0, "attackType": "crush", "attackBonus": -42, "strengthBonus": -42,
+      "defence": { "stab": -42, "slash": -42, "crush": -42, "magic": -42, "light": -42, "standard": -42, "heavy": -42 },
+      "anims": { "attack": "gnome_attackunarmed", "defend": "gnome_block", "death": "gnome_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Gnome child (ids 6077 to 6079), read 2026-11-10 (Thieving 2 step T1b): speed 4, max hit 0, crush, every bonus -42, respawn 50, not aggressive. The animations are GUESSED (the gnome's)"
+    },
+    {
       "npcs": ["al_kharid_warrior"],
       "attackSpeed": 4, "maxHit": 2, "attackType": "slash", "attackBonus": 10, "strengthBonus": 9,
       "defence": { "stab": 12, "slash": 15, "crush": 10, "magic": -1, "light": 12, "standard": 12, "heavy": 12 },

@@ -160,6 +160,42 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `Thieving 2's Kandarin file has East Ardougne's knights, paladins, heroes and warriors, the watchmen and the Stronghold's gnomes`() {
+        val names = mapOf(
+            3297 to "knight_of_ardougne", 3293 to "paladin", 3294 to "paladin2", 3295 to "hero", 3260 to "warrior_woman", 5420 to "yanille_watchman",
+            6094 to "gnome", 6095 to "browclothedgnome", 6096 to "darkskinned_gnome", 6086 to "gnomefemale", 6087 to "gnomefemale_dskinned",
+            6077 to "gnomechildgreen", 6078 to "gnomechildblue", 6079 to "gnomechild",
+        )
+        val kandarinTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("thieving-kandarin.json"), kandarinTypes, "thieving-kandarin.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        fun of(vararg ids: Int) = spawns.filter { it.type.id in ids }
+        assertEquals(listOf(5, 22, 3, 10, 4), listOf(of(3297).size, of(3293, 3294).size, of(3295).size, of(3260).size, of(5420).size))
+        // East Ardougne, its castle's two floors among them; the Watchtower's first floor; the Tree Gnome Stronghold.
+        assertTrue(of(3297, 3293, 3294, 3295, 3260).all { it.x in 2560..2687 && it.z in 3264..3391 })
+        assertEquals(setOf(0, 1), of(3293).map { it.level }.toSet())
+        assertTrue(of(5420).all { it.level == 1 && it.x in 2496..2559 && it.z in 3072..3135 })
+        val gnomes = of(6094, 6095, 6096, 6086, 6087, 6077, 6078, 6079)
+        assertEquals(153, gnomes.size)
+        assertTrue(gnomes.all { it.x in 2368..2495 && it.z in 3328..3519 })
+        assertTrue(spawns.all { it.source.isNotBlank() && it.wander == 5 })
+    }
+
+    @Test
+    fun `the rogues are on Rogues' Castle's four floors and south-west of the Mage Arena`() {
+        val rogueTypes = NpcTypes.of(NpcType(526, "rogue", internalName = "rogue"))
+        val result = NpcSpawnFile.parse(file("rogues-castle.json"), rogueTypes, "rogues-castle.json")
+        assertEquals(emptyList(), result.unknown)
+        val rogues = result.spawns
+        assertEquals(22, rogues.size)
+        val castle = rogues.filter { it.x in 3264..3327 }
+        assertEquals(20, castle.size)
+        assertEquals(setOf(0, 1, 2, 3), castle.map { it.level }.toSet())
+        assertTrue(rogues.all { it.z in 3904..3967 })
+    }
+
+    @Test
     fun `east of the river are 50 level 2 goblins and 6 giant spiders, and Barfy Bill at the canoe station`() {
         val names = (1..8).associate { 3028 + it to "goblin_unarmed_melee_$it" } + mapOf(3017 to "giantspider1", 1326 to "canoeing_bill")
         val eastTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
@@ -673,7 +709,7 @@ class NpcSpawnFileTest {
             513 to "mugger", 5086 to "qip_ds_young_dark_wizard1", 5087 to "qip_ds_young_dark_wizard2", 5088 to "qip_ds_young_dark_wizard3", 5089 to "qip_ds_young_dark_wizard4", 3252 to "thief1", 5217 to "qip_soa_thief_male01", 5219 to "qip_soa_thief_female01",
             5220 to "qip_soa_thief_female02", 2862 to "giantrat1", 2864 to "giantrat1_3", 3262 to "barbarianwoman_varrock",
             3260 to "warrior_woman", 2838 to "brownbear", 516 to "black_knight", 3019 to "spider",
-            16812 to "deadman_nigel_varrock", 16811 to "clue_hunter_arthur",
+            16812 to "deadman_nigel_varrock", 16811 to "clue_hunter_arthur", 5449 to "ge_expert_herbs",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("varrock.json"), types, "varrock.json")

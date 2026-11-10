@@ -53,6 +53,7 @@ class NpcCombatTest {
             "slice_surface_goblin_squat_attack_spear" to 6188, "slice_surface_goblin_defend_spear" to 6189, "slice_surface_goblin_death_spear" to 6190,
             "unicorn_rework_attack" to 6376, "unicorn_rework_defend" to 6375, "unicorn_rework_death" to 6377,
             "human_sword_slash" to 390, "human_sword_block" to 387, "human_sword_stab" to 386,
+            "gnome_attackunarmed" to 12044, "gnome_block" to 12046, "gnome_death" to 12048,
             "human_blunt_pound" to 401, "human_shield_defence" to 1156,
             "scorpion_update_attack_tail" to 6254, "scorpion_update_defend" to 6255, "scorpion_update_death" to 6256,
             "zombie_update_attack_normal" to 5568, "zombie_update_defend_normal" to 5567, "zombie_update_death_normal" to 5569,
@@ -790,6 +791,37 @@ class NpcCombatTest {
             assertEquals(CombatMath.npcMaxHit(4, def.strengthBonus), def.maxHit, name)
             assertTrue(def.aggression == null, name)
         }
+    }
+
+    @Test
+    fun `Thieving 2's Kandarin and Wilderness NPCs fight as the Wiki has them, the humans' max hits the formula's`() {
+        // The 242 cache's Strength levels; the gnomes have none (1).
+        val strength = mapOf(
+            "rogue" to 13, "knight_of_ardougne" to 40, "paladin" to 54, "paladin2" to 54, "hero" to 55, "yanille_watchman" to 31,
+            "gnome" to 1, "browclothedgnome" to 1, "darkskinned_gnome" to 1, "gnomefemale" to 1, "gnomefemale_dskinned" to 1,
+            "gnomechild" to 1, "gnomechildblue" to 1, "gnomechildgreen" to 1,
+        )
+        val npcTypes = NpcTypes.of(*strength.entries.mapIndexed { i, (name, str) -> NpcType(5000 + i, name, internalName = name, stats = NpcStats(strength = str)) }.toTypedArray())
+        val combat = NpcCombat.load(npcTypes, seqs)
+        assertEquals(strength.size, combat.size)
+        fun def(name: String) = combat[npcTypes.find(name)!!]!!
+        // speed, max hit, attack bonus, strength bonus, respawn
+        val wiki = mapOf(
+            "rogue" to listOf(4, 2, 5, 5, 50), "knight_of_ardougne" to listOf(5, 6, 8, 10, 25), "paladin" to listOf(5, 8, 20, 22, 50),
+            "paladin2" to listOf(5, 8, 20, 22, 50), "hero" to listOf(5, 9, 20, 22, 50), "yanille_watchman" to listOf(4, 4, 0, 0, 50),
+            "gnome" to listOf(4, 1, -42, -42, 60), "gnomefemale" to listOf(4, 1, -42, -42, 50), "gnomechild" to listOf(4, 0, -42, -42, 50),
+        )
+        for ((name, row) in wiki) {
+            val d = def(name)
+            assertEquals(row, listOf(d.attackSpeed, d.maxHit, d.attackBonus, d.strengthBonus, d.respawnTicks), name)
+            assertTrue(d.aggression == null, name)
+        }
+        // The humans' max hits are the formula's; the gnomes' -42 gives 0, and the Wiki's 1 stands for the men and women.
+        for (name in listOf("rogue", "knight_of_ardougne", "paladin", "paladin2", "hero", "yanille_watchman")) {
+            assertEquals(CombatMath.npcMaxHit(strength.getValue(name), def(name).strengthBonus), def(name).maxHit, name)
+        }
+        assertEquals(87, def("paladin").defence.stab)
+        assertEquals(-11, def("knight_of_ardougne").defence.magic)
     }
 
     @Test
