@@ -195,6 +195,52 @@ class HeadlessArchiveGuardianTest {
     }
 
     @Test
+    fun `grounded, it lifts off behind a whole shield after 35 ticks, then 41, its hitpoints carried over each time`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                alice.await("the login rebuild") { alice.position }
+                alice.commandReply("god on") { it.startsWith("You can't be hurt") }
+                alice.tele(3222, 3218)
+                alice.commandReply("raid guardian") { it.startsWith("Started") }
+                val fight = server.world.encounters.all.single()
+                val boss = fight.boss
+                fun starts(phase: String) = fight.lines.filter { it.endsWith(" $phase: phase starts") }.map { it.substringBefore(' ').toLong() }
+                fun tickOf(end: String) = fight.lines.last { it.endsWith(end) }.substringBefore(' ').toLong()
+
+                // The shield broken, it holds at 0 for 2 ticks, then drops with its hitpoints full.
+                alice.commandReply("hit 550 ${boss.index}") { it.startsWith("Hit ") }
+                assertTrue(alice.awaitFight("its first time down") { it.contains("(grounded)") }.contains("Archive Guardian 1100/1100 hp"))
+                assertEquals(ArchiveGuardian.SHIELD_DOWN_TICKS.toLong(), starts("grounded").single() - tickOf("shield: shield broken"))
+                alice.commandReply("hit 100 ${boss.index}") { it.contains("1000/1100 hp") }
+
+                // 35 ticks on it is up again, its shield whole, with nothing yet at 30%.
+                val up = alice.awaitFight("its shield again") { it.contains("(shield)") }
+                assertTrue(up.contains("Archive Guardian 550/550 hp"), up)
+                assertEquals(ArchiveGuardian.FLYING, boss.type.id)
+                assertEquals(ArchiveGuardian.GROUNDED_FIRST.toLong(), starts("shield").last() - starts("grounded").single())
+                assertTrue(fight.lines.any { it.endsWith("shield: lifts off with 1000 hp left, its shield whole: 550") }, fight.lines.toString())
+
+                // Down again: what it had left, not its full hitpoints. This time for 41 ticks.
+                alice.commandReply("hit 550 ${boss.index}") { it.startsWith("Hit ") }
+                val down = alice.awaitFight("its second time down") { it.contains("(grounded)") }
+                assertTrue(down.contains("Archive Guardian 1000/1100 hp"), down)
+                assertEquals(ArchiveGuardian.GROUNDED, boss.type.id)
+                alice.awaitFight("its shield a third time") { it.contains("(shield)") }
+                assertEquals(ArchiveGuardian.GROUNDED_LATER.toLong(), starts("shield").last() - starts("grounded").last())
+
+                // Down a third time and taken to 30%: 4 ticks later it is in the air for good, with no shield.
+                alice.commandReply("hit 550 ${boss.index}") { it.startsWith("Hit ") }
+                alice.awaitFight("its third time down") { it.contains("(grounded)") }
+                alice.commandReply("hit 670 ${boss.index}") { it.contains("330/1100 hp") }
+                val low = fight.ticks
+                val air = alice.awaitFight("the airborne phase") { it.contains("(airborne)") }
+                assertTrue(air.contains("Archive Guardian 330/1100 hp"), air)
+                assertTrue(starts("airborne").single() - low in ArchiveGuardian.AIRBORNE_DELAY - 1L..ArchiveGuardian.AIRBORNE_DELAY + 1L, "${starts("airborne")} after $low")
+            }
+        }
+    }
+
+    @Test
     fun `raid clear on the Guardian before it is touched gives its room's points to whoever stands in its hall`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->

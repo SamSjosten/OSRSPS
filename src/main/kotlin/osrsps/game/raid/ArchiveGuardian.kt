@@ -1,5 +1,6 @@
 package osrsps.game.raid
 
+import java.util.WeakHashMap
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -20,16 +21,26 @@ import osrsps.game.npc.Npcs
 import osrsps.map.Tile
 
 /**
- * The Archive Guardian (raid steps 16a to 16c), the first boss of every Archive run: three phases on the cache's two forms.
+ * The Archive Guardian (raid steps 16a to 16c), the first boss of every Archive run: three phases on the cache's two
+ * forms, the first two by turns.
  *
  * - **Shield**: levitating (`tfa_guardian`, 16659), its hitpoints the shield's (the Wiki's "Flying" row, 550 to 1,950).
  *   It shoots its tank, the first player it took on, every 5 ticks (ranged, max hit 25), and slams whoever stands under
  *   it instead. Only ranged, magic and halberds reach it ([osrsps.game.combat.NpcCombatDef.flying]). When the shield is
- *   gone it drops.
- * - **Grounded**: `tfa_guardian_unshielded` (16660) with the Wiki's "Grounded" hitpoints, 1,100 to 3,910, full; its
- *   fall blasts whoever is under or beside it. It swings at a player beside it every 5 ticks (crush, max hit 25).
- * - **Airborne**: at 30% it lifts off again, without its shield, for the rest of the fight: a laser at a random
- *   player every [LASER_EVERY] ticks, its damage shared by everyone standing on its line.
+ *   gone it holds at 0 for [SHIELD_DOWN_TICKS] ticks, then drops.
+ * - **Grounded**: `tfa_guardian_unshielded` (16660) with the Wiki's "Grounded" hitpoints, 1,100 to 3,910: full the
+ *   first time, and after that what it had left as it last lifted off. Its fall blasts whoever is under or beside it.
+ *   It swings at a player beside it every 5 ticks (crush, max hit 25). After [GROUNDED_FIRST] ticks, and
+ *   [GROUNDED_LATER] each time after its first, it lifts off again behind a whole shield: the shield phase once more.
+ * - **Airborne**: [AIRBORNE_DELAY] ticks after its hitpoints fall to 30% it lifts off, without its shield, for the
+ *   rest of the fight: a laser at a random player every [LASER_EVERY] ticks, its damage shared by everyone standing
+ *   on its line.
+ *
+ * From Sam's recordings of three live fights (2026-11-09, parties of four and five, the bars read tick by tick): the
+ * shield and the hitpoints by turns, the shield whole again each time and the hitpoints carried over; the broken
+ * shield's 2 to 3 ticks at 0; its first time down lasting 34 to 36 ticks whatever its hitpoints (55%, 76% and 64%
+ * left), its second 40 to 41; and a time down ending about 4 ticks after its hitpoints went under 30%. They also show
+ * a shield in the last phase, cut off after a beam at a player, which isn't in yet.
  *
  * From the OSRS Wiki (Archive Guardian, read 2026-11-03): its stats, bonuses, both forms' hitpoints by party size, the
  * 5-tick attack speed, max hits 25 and 99+ (the laser), the 80% fire weakness, the poison and venom immunity, and the
@@ -94,6 +105,19 @@ object ArchiveGuardian {
 
     /** At this share of its grounded hitpoints, in percent, it takes off for good (a guide's 30%). */
     const val AIRBORNE_AT = 30
+
+    /** How long after its hitpoints fall that far (Sam's recordings: about 4 ticks, seen once). */
+    const val AIRBORNE_DELAY = 4
+
+    /** A broken shield holds at 0 this long before it drops (Sam's recordings: 2 to 3 ticks, four times). */
+    const val SHIELD_DOWN_TICKS = 2
+
+    /**
+     * Grounded, it lifts off again behind a whole shield after this long: its first time down (Sam's recordings: 34, 36
+     * and 35 ticks, with 55%, 76% and 64% of its hitpoints left) and each time after (41 and 40 to 41).
+     */
+    const val GROUNDED_FIRST = 35
+    const val GROUNDED_LATER = 41
 
     /** The slam on whoever stands under it as a shot is due: up to this, Protect from Melee blocking it. Guessed. */
     const val SLAM_MAX = 25
@@ -208,18 +232,33 @@ object ArchiveGuardian {
                     "shield",
                     cycle = listOf(
                         CycleStep(1) {
-                            if (phaseTick % ATTACK_SPEED == 0L) shoot()
-                            if (phaseTick % MUSHROOMS_EVERY == 0L) mushrooms()
-                            if (batteries != null) charge(batteries)
+                            // Its shield broken, it does nothing more till it drops.
+                            if (state.shieldDown < 0) {
+                                if (phaseTick % ATTACK_SPEED == 0L) shoot()
+                                if (phaseTick % MUSHROOMS_EVERY == 0L) mushrooms()
+                                if (batteries != null) charge(batteries)
+                            }
                         },
                     ),
                     onStart = {
+                        val state = state
+                        state.shieldDown = -1
+                        // Up from the ground: what it has left is kept for its next time down, and its shield is whole.
+                        if (boss.type.id == grounded.id) {
+                            state.health = boss.hitpoints
+                            form(flying)
+                            pool(flying)
+                            boss.hitpoints = boss.maxHitpoints
+                            boss.effects.anim(ANIM_TO_FLYING)
+                            boss.effects.spotanim(0, SPOT_TO_FLYING, 0)
+                            log("lifts off with ${state.health} hp left, its shield whole: ${boss.hitpoints}")
+                        }
                         boss.holdsAtZero = true
                         form(flying)
                         if (batteries != null) placeBatteries(batteries, awake = true)
                         tank()
                     },
-                    endsWhen = { boss.hitpoints <= 0 },
+                    endsWhen = { shieldBroken() },
                 ),
                 PhaseDef(
                     "grounded",
@@ -229,12 +268,18 @@ object ArchiveGuardian {
                             if (vine != null && phaseTick >= VINES_FROM && (phaseTick - VINES_FROM) % VINES_EVERY == 0L) vines(vine)
                         },
                     ),
-                    endsAtPercent = AIRBORNE_AT,
+                    endsWhen = { liftsOff() },
+                    // To its shield again, or with its hitpoints down to the last phase's, into the air for good.
+                    next = { if (low()) "airborne" else "shield" },
                     onStart = {
+                        val state = state
+                        state.groundings++
+                        state.low = -1
                         boss.holdsAtZero = false
                         form(grounded)
-                        groundedHitpoints(grounded)
-                        boss.hitpoints = boss.maxHitpoints
+                        pool(grounded)
+                        // Full the first time down; after that, what it had left as it last lifted off.
+                        boss.hitpoints = state.health.takeIf { it > 0 }?.coerceAtMost(boss.maxHitpoints) ?: boss.maxHitpoints
                         boss.effects.anim(ANIM_TO_GROUND)
                         boss.effects.spotanim(0, SPOT_TO_GROUND, 0)
                         // No shield to charge now: those not charged fall asleep again, for the laser. Guessed.
@@ -253,7 +298,7 @@ object ArchiveGuardian {
                         boss.holdsAtZero = false
                         // Jumped straight here with ::raid: the grounded hitpoints, down to where this phase begins.
                         val fromGround = boss.type.id == grounded.id
-                        groundedHitpoints(grounded)
+                        pool(grounded)
                         if (!fromGround) boss.hitpoints = boss.maxHitpoints * AIRBORNE_AT / 100
                         form(flying)
                         if (batteries != null) placeBatteries(batteries, awake = false)
@@ -273,12 +318,58 @@ object ArchiveGuardian {
     }
 
     /**
-     * Its most hitpoints from here on: the grounded form's for its party size ([PartyScaling]), or the form's own when
-     * it isn't scaled. They stay its most through the last phase, back in the levitating form.
+     * Its most hitpoints from here on: [form]'s for its party size ([PartyScaling]), or the form's own when it isn't
+     * scaled. The grounded form's stay its most through the last phase, back in the levitating form.
      */
-    private fun EncounterContext.groundedHitpoints(grounded: NpcType) {
+    private fun EncounterContext.pool(form: NpcType) {
         val party = boss.scaledFor
-        boss.scaledHitpoints = (if (party > 0) world.partyScaling.hitpoints(grounded, party) else null) ?: grounded.stats.hitpoints
+        boss.scaledHitpoints = (if (party > 0) world.partyScaling.hitpoints(form, party) else null) ?: form.stats.hitpoints
+    }
+
+    /** What the fight keeps between its phases. */
+    private class State {
+        /** The tick its shield reached 0 this time up; -1 while it holds. */
+        var shieldDown = -1L
+
+        /** What it had left as it last lifted off behind its shield; -1 before that. */
+        var health = -1
+
+        /** How many times it has come down. */
+        var groundings = 0
+
+        /** The tick its hitpoints were first seen at the last phase's this time down; -1 before. */
+        var low = -1L
+    }
+
+    private val states = WeakHashMap<Npc, State>()
+
+    private val EncounterContext.state: State get() = states.getOrPut(boss) { State() }
+
+    /** Whether its shield has been at 0 for [SHIELD_DOWN_TICKS] ticks: broken the tick it is first seen there. */
+    private fun EncounterContext.shieldBroken(): Boolean {
+        val state = state
+        if (state.shieldDown < 0) {
+            if (boss.hitpoints > 0) return false
+            state.shieldDown = world.tick
+            log("shield broken")
+        }
+        return world.tick - state.shieldDown >= SHIELD_DOWN_TICKS
+    }
+
+    /** Whether its hitpoints are down to the last phase's. */
+    private fun EncounterContext.low(): Boolean = boss.hitpoints * 100 <= boss.maxHitpoints * AIRBORNE_AT
+
+    /**
+     * Whether its time on the ground is up: [GROUNDED_FIRST] ticks the first time and [GROUNDED_LATER] after, or
+     * [AIRBORNE_DELAY] ticks after its hitpoints fell to the last phase's.
+     */
+    private fun EncounterContext.liftsOff(): Boolean {
+        val state = state
+        if (low()) {
+            if (state.low < 0) state.low = world.tick
+            if (world.tick - state.low >= AIRBORNE_DELAY) return true
+        }
+        return phaseTick >= if (state.groundings <= 1) GROUNDED_FIRST else GROUNDED_LATER
     }
 
     /** Its tank: the player it fights while they're in the fight, or one picked at random and taken on now. */
