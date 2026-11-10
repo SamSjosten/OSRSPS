@@ -2,7 +2,9 @@ package osrsps.game.raid
 
 import java.lang.ref.WeakReference
 import java.util.WeakHashMap
+import kotlin.math.abs
 import kotlin.math.max
+import kotlin.math.sign
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.Player
@@ -10,6 +12,9 @@ import osrsps.game.Skill
 import osrsps.game.combat.AttackType
 import osrsps.game.combat.CombatMath
 import osrsps.game.combat.DinhsBulwark
+import osrsps.game.combat.MeleeCombat
+import osrsps.game.dialogue.Line
+import osrsps.game.dialogue.Lines
 import osrsps.game.encounter.CycleStep
 import osrsps.game.encounter.EncounterContext
 import osrsps.game.encounter.EncounterDef
@@ -20,7 +25,15 @@ import osrsps.game.zone.ZoneLoc
 import osrsps.map.Tile
 
 /**
- * Dreadnoth the Jellied (raid step 20a), the third row's east boss, in his own room: a 5 by 5 demon in a shell of jelly
+ * What Dreadnoth says over his head. The words are those the tsps capture notes and the Wiki quote from live fights,
+ * typed into the dialogue file like every other line.
+ */
+object DreadnothLines : Lines("tfa_dreadnoth", "The_Fractured_Archive/Strategies") {
+    val GLUB = line("glub", "Dreadnoth as his enrage begins, at 25% of his hitpoints")
+}
+
+/**
+ * Dreadnoth the Jellied (raid steps 20a and 20b), the third row's east boss, in his own room: a 5 by 5 demon in a shell of jelly
  * who crawls after his target and hits everyone round him, and his jellies.
  *
  * - He crawls a tile every [CRAWL_EVERY] ticks after his target, the first player onto his arena ([crawl]).
@@ -34,6 +47,12 @@ import osrsps.map.Tile
  *   [JELLY_SPEED] ticks hit whoever they are beside, draining their prayer ([jellyHit]). A jelly that dies leaves jelly on
  *   its tile.
  * - Jelly on the floor ([floor]) hurts whoever stands in it [FLOOR_MIN] to [FLOOR_MAX] a tick, for the rest of the fight.
+ * - At [ENRAGE_PERCENT] of his hitpoints, his enrage (20b, [enrage]): his line, no more swings or crawl, and [FIRST_JUMP]
+ *   ticks on and every [JUMP_EVERY] after, a jump at a random player ([jump]), landing [JUMP_LANDS] ticks later where
+ *   [landingFor] says. A player under him as he lands is slammed ([land]) and he heals by the damage; one not under him
+ *   without Protect from Melee is hurt all the same; jellies under him are absorbed, healing him by what they had left.
+ *   As he lands, jelly in his footprint, and at each player a shot and a splatter of jelly that lands on their tile
+ *   [SPLATTER_LANDS] ticks on and lies there.
  *
  * From the OSRS Wiki (Dreadnoth the Jellied and Jelly (Dreadnoth), read 2026-11-10): his stats and bonuses, 5 by 5,
  * the 4-tick attack speed, max hit 45, the 85% fire weakness, poison immunity, the 50% cap on his offensive stats'
@@ -53,6 +72,15 @@ import osrsps.map.Tile
  * hitpoints for a party of four and 4,810 for five, as the Wiki has them; a 38 and a 28 on Sam as the first wave
  * landed; mostly 8 to 10 later, beside jellies.
  *
+ * For the enrage (20b): from the Wiki's Strategies, the "*glub glub*" at 25%, jumping towards and slamming a random
+ * player, large damage and a heal of about 30 to 40 for one underneath, damage regardless of place without Protect
+ * from Melee, a ranged shot and a jelly splatter at the player after, jellies landed on absorbed and healing him, no
+ * more melee; from the tsps captures, the first jump 5 ticks after the line and one every 8 after, `jump02`, the
+ * 90-cycle move with `tfa_boss_jelly_5x5_jump` (the shadow) where he lands, landing centred on the player within 5
+ * tiles, else 5 tiles the nearest of eight ways towards them, never west of x 4184, one to three damage tiles in his
+ * footprint as he lands, and at each player a `ranged_proj01` (90 cycles) and a `ranged_proj02` (180, sound 12362) at
+ * their tile, which becomes a damage tile 6 ticks later.
+ *
  * Guessed, until a recording shows more (each also in the README): every damage figure ([SLAM_MAX], [SHOT_MAX], his
  * melee's type, crush) and both protection prayers blocking all of theirs; his target being the first player in, then
  * whoever he fights; his first swing [ATTACK_SPEED] ticks in, and the swing waiting for someone to be round him; his
@@ -61,7 +89,11 @@ import osrsps.map.Tile
  * the last volley's shots; the three damage tiles' places; the jellies' walk at a tile a tick, their first hit a
  * [JELLY_SPEED] after they rise, the drain being the hit's roll, at least 1, through Protect from Melee too (which
  * blocks the hit itself); jelly on the floor lasting till the fight ends, and none from his crawl. The jellies' count
- * growing with the party comes only from the shots: three a player each volley.
+ * growing with the party comes only from the shots: three a player each volley. For the enrage: the jump's target
+ * picked at random each time (the Wiki's; tsps say "its target"), its damage under him ([CRUSH_MIN] to [CRUSH_MAX], no
+ * prayer helping) and off him ([STRAY_MAX]), the shot's as a wave's, the absorbed jellies' heal being their hitpoints
+ * left, his landing kept wholly on his arena, the splatter hurting nobody as it lands, and the jump itself a teleport
+ * as it lands (the 90-cycle exact move isn't sent: NPC exact moves aren't built), the shadow shown as he jumps.
  */
 object Dreadnoth {
     /** What `::raid` and the raid flow know the fight by. */
@@ -149,6 +181,44 @@ object Dreadnoth {
     const val FLOOR_MIN = 6
     const val FLOOR_MAX = 8
 
+    /** dreadnoth_jump02, an enrage jump. */
+    const val ANIM_JUMP = 14780
+
+    /** tfa_boss_jelly_5x5_jump, his shadow where he'll land; vfx_dreadnoth_ranged_proj02, the splatter. */
+    const val SPOT_SHADOW = 4209
+    const val SPOT_SPLATTER = 4212
+
+    /** The splatter's sound (tsps). */
+    const val SOUND_SPLATTER = 12362
+
+    /** His enrage begins at this share of his hitpoints, in percent (the Wiki's 25%). */
+    const val ENRAGE_PERCENT = 25
+
+    /** His first jump this many ticks after his line, and one every this many after (tsps). */
+    const val FIRST_JUMP = 5
+    const val JUMP_EVERY = 8
+
+    /** A jump lands this many ticks after it begins (tsps: a 90-cycle move). */
+    const val JUMP_LANDS = 3
+
+    /** He lands on a player this near his middle, else this far towards them (tsps). */
+    const val JUMP_REACH = 5
+
+    /** The slam on a player under him as he lands, no prayer helping. Guessed (the Wiki's "large amounts"). */
+    const val CRUSH_MIN = 30
+    const val CRUSH_MAX = 50
+
+    /** The slam on a player not under him without Protect from Melee (the Wiki's "regardless of location"). Guessed. */
+    const val STRAY_MAX = 20
+
+    /** Tiles of jelly in his footprint as he lands: one to three (tsps). */
+    const val LANDING_TILES_MIN = 1
+    const val LANDING_TILES_MAX = 3
+
+    /** The shot after a landing lands this many ticks on (tsps: 90 cycles), the splatter this many (180). */
+    const val LANDING_SHOT_LANDS = 3
+    const val SPLATTER_LANDS = 6
+
     /** The fight, or null when the cache hasn't Dreadnoth (a test world's). Without the jelly's type, no jellies rise. */
     fun def(types: NpcTypes): EncounterDef? {
         val type = types[BOSS] ?: return null
@@ -169,6 +239,12 @@ object Dreadnoth {
                         state.nextMelee = ATTACK_SPEED.toLong()
                         target()
                     },
+                    endsAtPercent = ENRAGE_PERCENT,
+                ),
+                PhaseDef(
+                    "enrage",
+                    cycle = listOf(CycleStep(1) { enrageTick(jelly) }),
+                    onStart = { enrage() },
                 ),
             ),
             scriptedAttacks = true,
@@ -185,14 +261,17 @@ object Dreadnoth {
         var nextMelee = 0L
         var boundUntil = 0L
 
+        /** The enrage's phase tick of his next jump. */
+        var nextJump = Long.MAX_VALUE
+
         /** How many of [WAVES] have begun. */
         var waves = 0
 
-        /** The tiles where jelly gathers for the next jellies, and the phase tick they rise on. */
+        /** The tiles where jelly gathers for the next jellies, and the world tick they rise on (it can be in the enrage). */
         val gathering = LinkedHashSet<Tile>()
         var riseAt = Long.MAX_VALUE
 
-        /** The jellies standing, each with the phase tick of its next hit; one is let go of once its death is seen. */
+        /** The jellies standing, each with the world tick of its next hit; one is let go of once its death is seen. */
         val jellies = WeakHashMap<Npc, Long>()
 
         /** Jelly on the floor, by tile. */
@@ -217,8 +296,13 @@ object Dreadnoth {
             if (target != null) crawl(target)
             if (phaseTick >= state.nextMelee) melee()
         }
+        jelliesAndFloor(jelly)
+    }
+
+    /** What goes on in either phase: the jelly gathering and rising, the jellies, and jelly on the floor. */
+    private fun EncounterContext.jelliesAndFloor(jelly: NpcType?) {
         gather()
-        if (phaseTick >= state.riseAt && jelly != null) rise(jelly)
+        if (world.tick >= state.riseAt && jelly != null) rise(jelly)
         jellies()
         floor()
     }
@@ -298,7 +382,7 @@ object Dreadnoth {
             volleyTiles()
             for (player in players) shoot(player)
             // The jellies rise this long after the last volley's shots are thrown.
-            if (last) state.riseAt = phaseTick + JELLIES_AFTER
+            if (last) state.riseAt = world.tick + JELLIES_AFTER
         }
     }
 
@@ -383,7 +467,7 @@ object Dreadnoth {
             npc.unleashed = true
             npc.passesNpcs = true
             npc.effects.anim(ANIM_JELLY_RISE)
-            state.jellies[npc] = phaseTick + JELLY_SPEED
+            state.jellies[npc] = world.tick + JELLY_SPEED
             risen++
         }
         log("$risen jellies rise")
@@ -409,8 +493,8 @@ object Dreadnoth {
             }
             if (Bork.beside(npc.x, npc.z, npc.type.size, near.x, near.z)) {
                 npc.face(near)
-                if (phaseTick >= next) {
-                    state.jellies[npc] = phaseTick + JELLY_SPEED
+                if (world.tick >= next) {
+                    state.jellies[npc] = world.tick + JELLY_SPEED
                     jellyHit(npc, near)
                 }
             }
@@ -455,6 +539,151 @@ object Dreadnoth {
             // In combat all the same, as a boss's hazard holds them (osrsps.game.encounter.Hazard).
             if (!player.dead) player.attackedTick = world.tick
             log("jelly burns ${player.username} for $dealt")
+        }
+    }
+
+    private fun EncounterContext.text(line: Line): String = world.dialogueText.get(line)
+
+    /** His enrage begins: his line, and he stands, swinging no more, till his first jump [FIRST_JUMP] ticks on. */
+    private fun EncounterContext.enrage() {
+        hold()
+        boss.effects.say(text(DreadnothLines.GLUB))
+        state.nextJump = FIRST_JUMP.toLong()
+        log("enrage at ${boss.hitpoints} hp")
+    }
+
+    /** The enrage's tick: his jumps, and the jellies and jelly on the floor as before. */
+    private fun EncounterContext.enrageTick(jelly: NpcType?) {
+        hold()
+        state.target?.get()?.let { boss.face(it) }
+        if (phaseTick >= state.nextJump) {
+            state.nextJump = phaseTick + JUMP_EVERY
+            jump()
+        }
+        jelliesAndFloor(jelly)
+    }
+
+    /**
+     * Where a [size] by [size] Dreadnoth at ([x], [z]) jumping at a player on ([toX], [toZ]) lands, his south-west tile:
+     * centred on them when they are within [JUMP_REACH] tiles of his middle, else [JUMP_REACH] tiles the nearest of
+     * eight ways towards them (tsps), kept wholly on the arena of a Dreadnoth who began at ([spawnX], [spawnZ]), which
+     * keeps him from west of x 4184 (tsps). Guessed: kept on the rest of the arena too.
+     */
+    fun landingFor(x: Int, z: Int, size: Int, toX: Int, toZ: Int, spawnX: Int, spawnZ: Int): Tile {
+        val half = size / 2
+        val cx = x + half
+        val cz = z + half
+        val dx = toX - cx
+        val dz = toZ - cz
+        val (mx, mz) = if (max(abs(dx), abs(dz)) <= JUMP_REACH) {
+            toX to toZ
+        } else {
+            // The nearest of the eight ways: a diagonal when the lesser leg is past tan 22.5 degrees of the greater.
+            val diagonal = 5 * minOf(abs(dx), abs(dz)) >= 2 * max(abs(dx), abs(dz))
+            val sx = if (abs(dx) >= abs(dz) || diagonal) dx.sign else 0
+            val sz = if (abs(dz) >= abs(dx) || diagonal) dz.sign else 0
+            (cx + JUMP_REACH * sx) to (cz + JUMP_REACH * sz)
+        }
+        val minX = spawnX + (ARENA_ENTRY_X - X)
+        val maxX = spawnX + (ARENA_MAX_X - X) - (size - 1)
+        val minZ = spawnZ + (ARENA_MIN_Z - Z)
+        val maxZ = spawnZ + (ARENA_MAX_Z - Z) - (size - 1)
+        return Tile((mx - half).coerceIn(minX, maxX), (mz - half).coerceIn(minZ, maxZ))
+    }
+
+    /** A jump at a random player: his shadow where he'll land now, and the landing [JUMP_LANDS] ticks on. */
+    private fun EncounterContext.jump() {
+        val at = randomPlayer() ?: return
+        val size = boss.type.size
+        val to = landingFor(boss.x, boss.z, size, at.x, at.z, boss.spawn.x, boss.spawn.z)
+        boss.face(at)
+        boss.effects.anim(ANIM_JUMP)
+        world.zones.mapAnim(to.x + size / 2, to.z + size / 2, boss.level, SPOT_SHADOW)
+        log("jumps at ${at.username}, landing on ${to.x},${to.z}")
+        after(JUMP_LANDS) { land(to) }
+    }
+
+    /**
+     * He lands with his south-west tile on [to]: jellies under him absorbed, the slam on whoever is under him (healing
+     * him by it) and on everyone else without Protect from Melee, jelly in his footprint, and a shot and a splatter at
+     * each player.
+     */
+    private fun EncounterContext.land(to: Tile) {
+        world.npcs.teleport(boss, to.x, to.z)
+        log("lands on ${to.x},${to.z}")
+        for (npc in adds.filter { it.type.id == JELLY && boss.covers(it.x, it.z) }) {
+            val left = npc.hitpoints
+            state.jellies.remove(npc)
+            world.removeNpc(npc)
+            heal(left, "absorbs a jelly")
+        }
+        for (player in players) {
+            if (gone()) return
+            if (boss.covers(player.x, player.z)) {
+                val damage = roll(CRUSH_MIN, CRUSH_MAX)
+                val dealt = world.meleeCombat.hitPlayer(player, boss, damage, world.tick)
+                log("lands on ${player.username} for $damage" + if (dealt != damage) ", $dealt dealt" else "")
+                heal(dealt, "heals off ${player.username}")
+            } else if (!world.prayers.protects(player, AttackType.CRUSH)) {
+                val damage = roll(0, STRAY_MAX)
+                val dealt = world.meleeCombat.hitPlayer(player, boss, damage, world.tick)
+                log("slam hits ${player.username} for $damage" + if (dealt != damage) ", $dealt dealt" else "")
+            }
+        }
+        if (gone()) return
+        val size = boss.type.size
+        val footprint = (0 until size).flatMap { dx -> (0 until size).map { dz -> Tile(boss.x + dx, boss.z + dz) } }
+            .filter { it !in state.floor }.toMutableList()
+        val placed = ArrayList<Tile>()
+        repeat(minOf(roll(LANDING_TILES_MIN, LANDING_TILES_MAX), footprint.size)) { placed += footprint.removeAt(roll(0, footprint.size - 1)) }
+        for (tile in placed) addFloor(tile)
+        if (placed.isNotEmpty()) log("jelly under him on ${placed.joinToString(" ") { "${it.x},${it.z}" }}")
+        for (player in players) splatter(player)
+    }
+
+    /** He heals by [amount], his health bar showing it. */
+    private fun EncounterContext.heal(amount: Int, why: String) {
+        if (amount <= 0) return
+        val before = boss.hitpoints
+        boss.hitpoints = minOf(boss.maxHitpoints, before + amount)
+        // His health bar shows it: bars go out only as they are queued, as a hit queues one.
+        boss.effects.headBar(-1, MeleeCombat.HEALTH_BAR, MeleeCombat.healthBarFill(boss.hitpoints, boss.maxHitpoints))
+        log("$why: heals ${boss.hitpoints - before}")
+    }
+
+    /**
+     * After a landing, at [player]: a shot landing on them [LANDING_SHOT_LANDS] ticks on, Protect from Missiles blocking
+     * it, and a splatter at their tile now that lies there as jelly [SPLATTER_LANDS] ticks on.
+     */
+    private fun EncounterContext.splatter(player: Player) {
+        val at = Tile(player.x, player.z)
+        val middle = boss.type.size / 2
+        val fromX = boss.x + middle
+        val fromZ = boss.z + middle
+        world.zones.projectile(
+            Projectile(
+                id = SPOT_SHOT, fromX = fromX, fromZ = fromZ, level = boss.level, toX = at.x, toZ = at.z,
+                startHeight = 100, endHeight = 0, startTime = SHOT_START[0], endTime = LANDING_SHOT_LANDS * 30, angle = 16, progress = 64,
+            ),
+        )
+        world.zones.projectile(
+            Projectile(
+                id = SPOT_SPLATTER, fromX = fromX, fromZ = fromZ, level = boss.level, toX = at.x, toZ = at.z,
+                startHeight = 100, endHeight = 0, startTime = SHOT_START[0], endTime = SPLATTER_LANDS * 30, angle = 16, progress = 64,
+            ),
+        )
+        world.zones.soundArea(fromX, fromZ, boss.level, SOUND_SPLATTER, radius = 15)
+        log("shoots and splatters at ${player.username} on ${at.x},${at.z}")
+        after(LANDING_SHOT_LANDS) {
+            if (player.dead || players.none { it === player }) return@after
+            val damage = if (world.prayers.protects(player, AttackType.RANGED)) 0 else roll(0, SHOT_MAX)
+            val dealt = world.meleeCombat.hitPlayer(player, boss, damage, world.tick)
+            log("shot hits ${player.username} for $damage" + if (dealt != damage) ", $dealt dealt" else "")
+        }
+        after(SPLATTER_LANDS) {
+            if (!inArena(boss.spawn.x, boss.spawn.z, at.x, at.z)) return@after
+            addFloor(at)
+            log("splatter lands on ${at.x},${at.z}")
         }
     }
 
