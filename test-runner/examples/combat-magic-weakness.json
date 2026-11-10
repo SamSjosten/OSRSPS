@@ -26,8 +26,7 @@
   {"step": "assertAnimation", "id": 1162, "timeoutMs": 40000, "comment": "human_caststrike_staff, which bolts share with strikes"},
   {"step": "assertSpotanim", "id": 120, "timeoutMs": 20000, "comment": "waterbolt_casting on the player"},
   {"step": "assertSpotanim", "npc": "Imp", "ids": [122, 85], "timeoutMs": 20000, "comment": "waterbolt_impact if it hit, failedspell_impact if it splashed"},
-  {"step": "command", "text": "::kill imp", "expectMessage": "Killed Imp #", "comment": "so the next script finds no fight going on"},
   {"step": "command", "text": "::buttons off", "expectMessage": "Interface clicks are not echoed"},
-  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were", "comment": "also ends the fight, so the next script finds none going on (no ::kill: a bolt can kill the 8-hitpoint imp, leaving none in reach to kill)"}
  ]
 }
