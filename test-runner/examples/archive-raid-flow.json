@@ -318,14 +318,26 @@
   {
    "step": "command",
    "text": "::raid run",
-   "expectMessage": "You're in the nexus's hall"
+   "expectMessage": "You're in the nexus's hall, at 4140, 558",
+   "comment": "back on the tile the door was gone through from: the column beside the east doors, x 4140, on one of its five tiles, 5584 to 5588 (Sam's recording of 2026-11-09 has 4140, 5585)"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp 4140 5598",
+   "expectMessage": "To 4140, 5598 of the raid",
+   "comment": "beside Dreadnoth's door, the tile Sam went through it from in his recording of 2026-11-09"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "the client redraws before the click"
   },
   {
    "step": "locOption",
    "locId": 63099,
    "option": "Enter",
    "timeoutMs": 20000,
-   "comment": "the door into Dreadnoth the Jellied's room"
+   "comment": "the door into Dreadnoth the Jellied's room, from the tile beside it"
   },
   {
    "step": "waitTicks",
@@ -364,7 +376,8 @@
   {
    "step": "command",
    "text": "::raid run",
-   "expectMessage": "You're in the nexus's hall"
+   "expectMessage": "You're in the nexus's hall, at 4140, 5598 of the raid",
+   "comment": "back on the very tile the door was gone through from, as in the recording"
   },
   {
    "step": "locOption",
@@ -410,7 +423,8 @@
   {
    "step": "command",
    "text": "::raid run",
-   "expectMessage": "You're in the nexus's hall"
+   "expectMessage": "You're in the nexus's hall, at 4140, 561",
+   "comment": "back on the column beside the east doors, on one of this door's five tiles, 5610 to 5614 (the recording has 4140, 5612)"
   },
   {
    "step": "locOption",
