@@ -113,6 +113,12 @@ class HeadlessOcellusTest {
             id to LocType(id, "Void", collision = LocCollisionType(interactType = 0, blocksProjectile = false))
         } + Ocellus.GAPS.map { id ->
             id to LocType(id, "Gap", ops = listOf("Jump", null, null, null, null), collision = LocCollisionType(interactType = 1, blocksProjectile = false))
+        } + Ocellus.Censer.entries.flatMap { censer ->
+            // The 242 cache's: 1 by 1, blocking shots, Interact while lit; the inactive form without it.
+            listOf(
+                censer.id to LocType(censer.id, "Censer", ops = listOf("Interact", null, null, null, null), collision = LocCollisionType(interactType = 1, blocksProjectile = true)),
+                censer.inactive to LocType(censer.inactive, "Censer", collision = LocCollisionType(interactType = 1, blocksProjectile = true)),
+            )
         },
     )
     private val staticLocs = StaticLocs().apply { add(ZoneLoc(ArchiveRaids.ARCHIVE_DOOR, LocShape.CENTREPIECE_STRAIGHT, 0, 4123, 5562, 0)) }
@@ -1039,6 +1045,79 @@ class HeadlessOcellusTest {
                 assertEquals(99 - nick, player.hitpoints)
                 // Caught, it charged him nothing.
                 assertFalse(lines(run).any { it.contains("uncaught") && tickOf(it) == tickOf(caught) })
+            }
+        }
+    }
+
+    @Test
+    fun `from his third phase a censer stands in each quadrant, and each is lit once for the party`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.commandReply("setlevel hitpoints 99") { it.contains("set to level 99") }
+                alice.commandReply("setlevel prayer 99") { it.contains("set to level 99") }
+                alice.commandReply("heal") { it.startsWith("Healed") }
+                alice.throughTheRest(run)
+                alice.toOcellus(server, run)
+                alice.npcOp(assertNotNull(run.ocellusFigure).index, 1)
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ocellus #") } }
+                val boss = boss(run)
+                val world = server.world
+                val level = ArchiveRoom.OCELLUS.level
+                val centre = Ocellus.centre(boss.spawn.x, boss.spawn.z)
+                alice.command("varp ${EquipmentTab.VARP_AUTO_RETALIATE_OFF} 1")
+                // None before his third phase.
+                for (censer in Ocellus.Censer.entries) {
+                    val tile = Ocellus.censerTile(centre, censer)
+                    assertNull(world.locs[tile.x, tile.z, level, 2], censer.name)
+                }
+                alice.toHisThird(run)
+                alice.awaitLine(run, "the censers") { it.endsWith("third: censers stand") }
+                for (censer in Ocellus.Censer.entries) {
+                    val tile = Ocellus.censerTile(centre, censer)
+                    assertEquals(censer.id, world.locs[tile.x, tile.z, level, 2]?.id, censer.name)
+                }
+                val player = world.playerNamed("alice")!!
+
+                /** Beside [censer], on the middle's side, and its Interact. */
+                fun light(censer: Ocellus.Censer) {
+                    val tile = Ocellus.censerTile(centre, censer)
+                    val beside = Tile(tile.x + if (tile.x > centre.x) -1 else 1, tile.z)
+                    alice.tele(beside.x, beside.z, level)
+                    alice.locOp(censer.id, tile.x, tile.z, 1)
+                    alice.awaitLine(run, "the ${censer.name.lowercase()} censer lit") { it.endsWith("alice lights the ${censer.name.lowercase()} censer") }
+                    assertEquals(censer.inactive, world.locs[tile.x, tile.z, level, 2]?.id, censer.name)
+                    assertTrue(censer in Ocellus.lit(boss))
+                }
+
+                // Saradomin's: 40 hitpoints and 40 prayer points back.
+                alice.commandReply("god off") { it.startsWith("You can be hurt") }
+                alice.commandReply("hit 50 me") { it.startsWith("Hit ") }
+                alice.commandReply("god on") { it.startsWith("You can't be hurt") }
+                alice.commandReply("boost prayer 10") { it.startsWith("Prayer is now 10") }
+                val hurt = player.hitpoints
+                light(Ocellus.Censer.SARADOMIN)
+                assertTrue(player.hitpoints >= minOf(99, hurt + Ocellus.SARADOMIN_RESTORE - 1), "${player.hitpoints} from $hurt")
+                assertEquals(10 + Ocellus.SARADOMIN_RESTORE, player.skills.currentLevel(Skill.PRAYER))
+                // The Zarosian: half a bar of special attack energy.
+                alice.commandReply("spec 10") { it.isNotEmpty() }
+                light(Ocellus.Censer.ZAROSIAN)
+                assertTrue(world.specialAttacks.energy(player) in 600..700, "${world.specialAttacks.energy(player)}")
+                // The Armadylean and Bandosian: her next ranged and next melee attack on him a sure max, once each.
+                light(Ocellus.Censer.ARMADYLEAN)
+                light(Ocellus.Censer.BANDOSIAN)
+                assertEquals(SureHit.MAX, Ocellus.censerHit(player, boss, AttackType.RANGED))
+                assertNull(Ocellus.censerHit(player, boss, AttackType.RANGED), "once")
+                assertNull(Ocellus.censerHit(player, boss, AttackType.MAGIC), "not magic")
+                assertEquals(SureHit.MAX, Ocellus.censerHit(player, boss, AttackType.SLASH))
+                assertNull(Ocellus.censerHit(player, boss, AttackType.CRUSH), "once")
+                // Each once: the inactive form has no Interact, and nothing more is logged.
+                val tile = Ocellus.censerTile(centre, Ocellus.Censer.SARADOMIN)
+                alice.tele(tile.x - 1, tile.z, level)
+                alice.locOp(Ocellus.Censer.SARADOMIN.inactive, tile.x, tile.z, 1)
+                alice.awaitTicks(3)
+                assertEquals(1, lines(run).count { it.endsWith("lights the saradomin censer") })
+                assertEquals(Ocellus.Censer.entries.toSet(), Ocellus.lit(boss))
             }
         }
     }

@@ -17,6 +17,7 @@ import osrsps.game.combat.MeleeCombat
 import osrsps.game.combat.MeleeInteraction
 import osrsps.game.combat.NpcRangedAttack
 import osrsps.game.combat.RangedInteraction
+import osrsps.game.combat.SpecialAttacks
 import osrsps.game.combat.SureHit
 import osrsps.game.dialogue.Lines
 import osrsps.game.encounter.CycleStep
@@ -131,7 +132,9 @@ object OcellusLines : Lines("tfa_ocellus", "The_Fractured_Archive/Strategies") {
  * - His void flares (raid step 26c; [Flare]): Siphons as each Untether ends in his first quadrant, Augmenters in the
  *   second and Rifts in the third with his first attack there, charging and detonating on everyone unless destroyed
  *   ([spawnFlares], [flares]); a Siphon heals him while it stands; whoever destroys one is empowered ([empower]); each
- *   is maxed by a style ([flareHit], through [osrsps.game.combat.Combat.sureHit]). Not in yet (step 26d): the censers.
+ *   is maxed by a style ([flareHit], through [osrsps.game.combat.Combat.sureHit]).
+ * - The censers (raid step 26d; [Censer]): from his third phase, one in each quadrant, each lit once for the party
+ *   ([light], [censerHit]).
  *
  * From the OSRS Wiki (Ocellus, read 2026-11-10): his first phase's stats and bonuses (npc-combat.json), 3 by 3, the
  * 5-tick attack speed, magic and ranged, the max hit 36, the 60% Defence drain cap, poison and venom immunity, his
@@ -643,6 +646,33 @@ object Ocellus {
         AUGMENTER(16680, 14904, 14906, 4308),
     }
 
+    /**
+     * The four censers (tsps: which in which quadrant; OSRS Wiki, each censer, read 2026-11-10): "Interact", once in
+     * the fight each, for the whole party. Saradomin's restores [SARADOMIN_RESTORE] hitpoints and prayer points
+     * ("to all teammates"), the Zarosian [ZAROSIAN_SPEC]% special attack energy, the Armadylean makes each one's next
+     * ranged attack on him a sure max hit and the Bandosian their next melee attack. Each turns to its inactive form,
+     * the id after it (cache). Guessed: where each stands (its quadrant's outer corner tile; none is in the map), that
+     * they stand from his third phase's start and go with their quadrant, the whole party for the Zarosian,
+     * Armadylean and Bandosian (the capture notes; the Wiki's pages say "a player's next"), the next attack being one
+     * on him, and the shorter attack delay the Wiki's Strategies gives the Armadylean and Bandosian, not built.
+     */
+    enum class Censer(val id: Int, val quadrant: Quadrant) {
+        BANDOSIAN(62693, Quadrant.NE),
+        ARMADYLEAN(62695, Quadrant.SW),
+        ZAROSIAN(62697, Quadrant.NW),
+        SARADOMIN(62699, Quadrant.SE),
+        ;
+
+        val inactive: Int get() = id + 1
+    }
+
+    val CENSERS: Set<Int> = Censer.entries.map { it.id }.toSet()
+    const val SARADOMIN_RESTORE = 40
+    const val ZAROSIAN_SPEC = 50
+
+    /** Where [censer] stands: its quadrant's outer corner tile (guessed). */
+    fun censerTile(centre: Tile, censer: Censer): Tile = quadrantTile(centre, censer.quadrant, STRIP_LENGTH, STRIP_LENGTH)
+
     /** The quadrants, clockwise from the north-west, and the arms of the cross, clockwise from the north. */
     enum class Quadrant { NW, NE, SE, SW }
     enum class Arm { N, E, S, W }
@@ -750,6 +780,11 @@ object Ocellus {
         /** The void flares standing, with the phase tick each came, and the phase tick the next come (-1 for none). */
         val flares = LinkedHashMap<Npc, Long>()
         var flaresAt = -1L
+
+        /** The censers standing, lit or not, and who has a sure max hit on him to come from the Armadylean or Bandosian. */
+        val censers = HashMap<Censer, ZoneLoc>()
+        val lit = HashSet<Censer>()
+        val sureNext = WeakHashMap<Player, HashSet<Censer>>()
     }
 
     /** Void on a tile: its loc (none on a bomb's outer tiles), the phase tick it crumbles, and its quadrant. */
@@ -1527,6 +1562,12 @@ object Ocellus {
                     }
                 }
                 log("stepping stones stand")
+                for (censer in Censer.entries) {
+                    if (censer.quadrant in state.fallen) continue
+                    val tile = censerTile(centre, censer)
+                    state.censers[censer] = placeLoc(censer.id, tile.x, tile.z)
+                }
+                log("censers stand")
                 take(state.held)
             }
         }
@@ -1586,11 +1627,13 @@ object Ocellus {
     }
 
     /** Void on [tile] until [until] (a phase tick), shown as [locId] (-1 for none), replacing any there. */
-    private fun EncounterContext.voidOn(tile: Tile, until: Long, locId: Int) {
+    private fun EncounterContext.voidOn(tile: Tile, until: Long, shown: Int) {
         val centre = centre(boss.spawn.x, boss.spawn.z)
         val quadrant = quadrant(centre, tile.x, tile.z) ?: return
         // Never on the cross, whose arms and stepping stones are the fight's locs (Codex, PR 581).
         if (quadrant in state.fallen || !inArena(centre, tile.x, tile.z) || onCross(centre, tile.x, tile.z)) return
+        // On a censer, void without its loc, which would replace the censer.
+        val locId = if (state.censers.values.any { it.x == tile.x && it.z == tile.z }) -1 else shown
         // A bomb's void, there until its quadrant falls, outlasts what lands on it (Codex, PR 581).
         val there = state.voids[tile]
         if (there != null && there.until >= until) {
@@ -1829,6 +1872,7 @@ object Ocellus {
         repeat(FLARES) {
             val tile = (1..20).asSequence().map { quadrantTile(centre, state.held, roll(2, STRIP_LENGTH), roll(2, STRIP_LENGTH)) }.firstOrNull { tile ->
                 tile !in taken && tile !in state.voids && !onCross(centre, tile.x, tile.z) && inArena(centre, tile.x, tile.z) &&
+                    state.censers.values.none { it.x == tile.x && it.z == tile.z } &&
                     (tile.x !in boss.x - FLARE_CLEAR until boss.x + size + FLARE_CLEAR || tile.z !in boss.z - FLARE_CLEAR until boss.z + size + FLARE_CLEAR)
             } ?: return@repeat
             val flare = spawnAdd(type, tile.x, tile.z) ?: return@repeat
@@ -1858,6 +1902,7 @@ object Ocellus {
             val age = (phaseTick - since).toInt()
             if (age >= FLARE_CHARGE) {
                 iterator.remove()
+                flareDamage.remove(flare)
                 flare.effects.anim(kind.detonate)
                 // Gone a tick later, so its detonation is sent first (Codex, PR 583); nothing it takes now counts.
                 after(1) { if (!flare.dead && world.npcs[flare.index] === flare) world.removeNpc(flare) }
@@ -2183,6 +2228,7 @@ object Ocellus {
                 state.fallen += quadrant
                 val (ns, ew) = arms(quadrant)
                 for (arm in listOf(ns, ew)) state.stones.remove(arm)?.forEach { clearLoc(it) }
+                Censer.entries.filter { it.quadrant == quadrant }.forEach { censer -> state.censers.remove(censer)?.let { clearLoc(it) } }
                 log("quadrant ${quadrant.name} falls")
                 for (player in players) {
                     if (!inArena(centre, player.x, player.z) || quadrant(centre, player.x, player.z) != quadrant) continue
@@ -2205,6 +2251,54 @@ object Ocellus {
             }
         }
     }
+
+    /** A censer's Interact (see [Censer]): its effect on the party, once, and its inactive form. */
+    private fun ScriptContext.light(world: World, op: Op) {
+        val loc = op.loc ?: return
+        val fight = world.encounters.all.firstOrNull { it.def.name == NAME && !it.ended && it.covers(loc.x, loc.z) } ?: return
+        val state = states[fight.boss] ?: return
+        val (censer, standing) = state.censers.entries.firstOrNull { (_, at) -> at.x == loc.x && at.z == loc.z } ?: return
+        if (censer in state.lit) return
+        state.lit += censer
+        fight.clearLoc(standing)
+        state.censers[censer] = fight.placeLoc(censer.inactive, loc.x, loc.z)
+        fight.log("${player.username} lights the ${censer.name.lowercase()} censer")
+        for (member in fight.players) {
+            if (member.dead) continue
+            when (censer) {
+                Censer.SARADOMIN -> {
+                    with(fight) { heal(member, SARADOMIN_RESTORE) }
+                    val prayer = member.skills.baseLevel(Skill.PRAYER)
+                    val now = member.skills.currentLevel(Skill.PRAYER)
+                    if (now < prayer) member.skills.setCurrentLevel(Skill.PRAYER, minOf(prayer, now + SARADOMIN_RESTORE))
+                }
+                Censer.ZAROSIAN -> {
+                    val energy = world.specialAttacks.energy(member)
+                    world.specialAttacks.setEnergy(member, minOf(SpecialAttacks.FULL, energy + SpecialAttacks.FULL * ZAROSIAN_SPEC / 100))
+                }
+                Censer.ARMADYLEAN, Censer.BANDOSIAN -> state.sureNext.getOrPut(member, ::HashSet) += censer
+            }
+        }
+    }
+
+    /**
+     * How [player]'s attack of [type] on [npc] is rolled after the Armadylean or Bandosian censer: a sure max hit, once,
+     * on his third phase (see [Censer]); null otherwise.
+     */
+    fun censerHit(player: Player, npc: Npc, type: AttackType): SureHit? {
+        if (npc.type.id != P3) return null
+        val next = states[npc]?.sureNext?.get(player) ?: return null
+        val censer = when (type) {
+            AttackType.RANGED -> Censer.ARMADYLEAN
+            AttackType.STAB, AttackType.SLASH, AttackType.CRUSH -> Censer.BANDOSIAN
+            else -> return null
+        }
+        if (!next.remove(censer)) return null
+        return SureHit.MAX
+    }
+
+    /** The censers lit in [boss]'s fight, for tests. */
+    fun lit(boss: Npc): Set<Censer> = states[boss]?.lit?.toSet().orEmpty()
 
     /**
      * The Jump option on a stepping stone (tsps): from the quadrant before its arm, clockwise, while his barriers are
@@ -2246,12 +2340,13 @@ object Ocellus {
 
     fun register(world: World) {
         for (gap in GAPS) world.handlers.onLoc(gap, 1) { op -> jump(world, op) }
+        for (censer in CENSERS) world.handlers.onLoc(censer, 1) { op -> light(world, op) }
         // His second phase is fought only through the Blade on his tiles: no splash of a barrage or chinchompa reaches
         // him as well, in full (exploit review round 22, R22B-3). He has no Attack then, so nobody is told why.
         val shutOut = world.combat.shutOut
         world.combat.shutOut = { player, npc -> npc.type.id == P2 || rootedBy(npc) === player || shutOut(player, npc) }
         val sureHit = world.combat.sureHit
-        world.combat.sureHit = { player, npc, type -> flareHit(npc.type.id, type) ?: sureHit(player, npc, type) }
+        world.combat.sureHit = { player, npc, type -> flareHit(npc.type.id, type) ?: censerHit(player, npc, type) ?: sureHit(player, npc, type) }
     }
 
     /** What each player has dealt each Siphon standing, for the heal as it is destroyed. */

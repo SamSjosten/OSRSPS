@@ -1,5 +1,5 @@
 {
- "name": "Raid steps 24a to 26c: Ocellus solo, his arena upstairs, the hooded figure waiting until the party readies up, then his first phase walking between his corners under Protect from Melee, at each corner his cracks, line and explosion, at two thirds the middle with its four sides and his charge expended, the hold at the end of his blue bar, and his second phase: the portals on the cross, the Blade passing damage to his bar, the quadrants' volleys, and the rest of a quadrant's turn: pools, every portal purple, the floor portal and the last volley, and his third phase: the cross falling to stepping stones, his quadrant, and the quadrants falling at 75, 50 and 25%, with the void bombs and his specials: the cog, the void and Untether, and Insolence first in the next quadrant, and his void flares: Siphons, Augmenters and Rifts",
+ "name": "Raid steps 24a to 26d: Ocellus solo, his arena upstairs, the hooded figure waiting until the party readies up, then his first phase walking between his corners under Protect from Melee, at each corner his cracks, line and explosion, at two thirds the middle with its four sides and his charge expended, the hold at the end of his blue bar, and his second phase: the portals on the cross, the Blade passing damage to his bar, the quadrants' volleys, and the rest of a quadrant's turn: pools, every portal purple, the floor portal and the last volley, and his third phase: the cross falling to stepping stones, his quadrant, and the quadrants falling at 75, 50 and 25%, with the void bombs and his specials: the cog, the void and Untether, and Insolence first in the next quadrant, and his void flares: Siphons, Augmenters and Rifts, and the censers",
  "account": "test",
  "steps": [
   {
@@ -342,6 +342,12 @@
   },
   {
    "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: censers stand",
+   "comment": "and a censer in each quadrant (step 26d), each lit once by Interact (the headless test lights them)"
+  },
+  {
+   "step": "command",
    "text": "::raid",
    "expectMessage": "third phase, quadrant ",
    "comment": "on the same bar as his second phase"
@@ -435,6 +441,61 @@
    "text": "::raid log 80",
    "expectMessage": "third: augmenter flares at ",
    "comment": "with his first attack in the second quadrant, two Void Augmenters"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel prayer 99",
+   "expectMessage": "Prayer set to level 99"
+  },
+  {
+   "step": "command",
+   "text": "::boost prayer 1",
+   "expectMessage": "Prayer is now 1/99",
+   "comment": "the censers (step 26d): Saradomin's, in the south-east still standing, lit for its 40 prayer back"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp 4138 5661",
+   "expectMessage": "To ",
+   "comment": "beside the south-east censer, on the quadrant's outer corner (guessed)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::locs 1",
+   "expectMessage": "62699 ",
+   "comment": "the censer beside the player, as the server has it"
+  },
+  {
+   "step": "locOption",
+   "locId": 62699,
+   "option": "Interact",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "lights the saradomin censer"
+  },
+  {
+   "step": "command",
+   "text": "::stats",
+   "expectMessage": "Prayer 41/",
+   "comment": "40 prayer points back"
+  },
+  {
+   "step": "locOption",
+   "locId": 62700,
+   "option": "Examine",
+   "timeoutMs": 10000,
+   "comment": "its inactive form in its place, with no Interact"
   },
   {
    "step": "command",
