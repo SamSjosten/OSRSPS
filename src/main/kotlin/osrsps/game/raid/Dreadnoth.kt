@@ -731,9 +731,12 @@ object Dreadnoth {
         }
     }
 
-    /** [action] in [ticks] ticks, unless he has split by then: nothing of his lands after. */
+    /**
+     * [action] in [ticks] ticks, unless he has split or is [gone] by then: nothing of his lands after, nor after the
+     * hit that brings him to 0 (a Retribution on an earlier callback of the same tick).
+     */
     private fun EncounterContext.unlessSplit(ticks: Int, action: EncounterContext.() -> Unit) {
-        after(ticks) { if (!state.split) action() }
+        after(ticks) { if (!state.split && !gone()) action() }
     }
 
     /**
