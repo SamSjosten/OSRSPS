@@ -90,6 +90,11 @@
    "comment": "in at the room's way in, west of the arena"
   },
   {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "the client redraws the scene after the teleport before it can reach the transporter (VM 215)"
+  },
+  {
    "step": "locOption",
    "locId": 63134,
    "option": "Use",
@@ -98,7 +103,8 @@
   },
   {
    "step": "waitTicks",
-   "ticks": 3
+   "ticks": 10,
+   "comment": "the walk to the transporter and through it: in the arena 7 to 8 ticks after the Use (VM 215)"
   },
   {
    "step": "command",
