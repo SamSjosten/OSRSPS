@@ -417,8 +417,11 @@ The shared clock is the 2004Scape project's `%action_delay` model, inferred to h
 ### Woodcutting
 
 Chop down on a tree, or an axe used on one, chops it (`game/skill/Woodcutting.kt`, data in
-`src/main/resources/skills/woodcutting.json`): every regular, dead, evergreen, oak, willow, maple, yew and magic tree in
-the world, with the bronze to crystal axes. Words are under `woodcutting.*` in the dialogue file.
+`src/main/resources/skills/woodcutting.json`): every regular, dead, evergreen, oak, willow, teak, maple, mahogany, arctic
+pine, yew, magic and redwood tree in the world, with the bronze to crystal axes. Words are under `woodcutting.*` in the
+dialogue file. Trees outside Misthalin are where live has them and reached by ::tele: Chompy Marsh's teak
+(`::tele 2334 3048`), the Hardwood Grove's teaks and mahoganies (`::tele 2821 3083`), Neitiznot's arctic pines
+(`::tele 2318 3815`), and the Woodcutting Guild's redwood sections on its scaffolds (`::tele 1567 3493 1`, and level 2).
 
 | Woodcutting behaviour | Source |
 |-----------------------|--------|
@@ -431,6 +434,10 @@ the world, with the bronze to crystal axes. Words are under `woodcutting.*` in t
 | The timer runs down one a tick while anyone chops and back up one a tick while nobody does; the tree falls at the first log after it runs out | guessed (the Wiki gives only totals) |
 | No chopping sound | the 241 synth ids have no names to find it by |
 | A level-up box ends the action | 2004Scape engine's busy() check; guessed that live ends rather than waits |
+| Teak (35, 85 XP, timer 50, back in 15), mahogany (50, 125 XP, 100, 14), arctic pine (54, 40 XP, 140, 14), redwood sections (90, 380 XP, 440, 199), with each chart's pair per axe (`WoodcuttingG2Test`) | OSRS Wiki tree pages (read 2026-11-10) |
+| Their stumps: teaktree to teak_stump and the like, redwoodtree_l/_r to their _cut sections | 242 gamevals, by name |
+| Redwoods give no seed, ring or egg nests (only clue nests, which are out) | OSRS Wiki, Redwood tree |
+| Out: the Woodcutting Guild (its +7, doors and the redwoods' ladders), the Hardwood Grove's trading sticks, Etceteria's trees giving no logs, Farming's patch trees | out of scope; later pieces |
 
 Each log has a 1/256 chance of a bird nest (`game/skill/BirdNests.kt`, words under `birdnest.*`), 11/2560 with a
 Woodcutting cape worn; `::nest [seeds|ring|red|green|blue]` drops one as a tree does. Search on a nest leaves an empty
@@ -499,6 +506,7 @@ Rocks outside Misthalin are where live has them and reached by ::tele: the Minin
 | Runite rocks: 85, 125 XP, pair 1/18 (17/256 at 85, 19/256 from 97), 12 minutes back, 6 in the Mining Guild and the Wilderness | OSRS Wiki, Runite rocks |
 | Amethyst crystals: 92, 240 XP, pair -18/10, 2 to 3 amethysts from one swing before an empty wall (`amethystrock_empty`) for 75 seconds | OSRS Wiki, Amethyst crystals |
 | Gem rocks: 40, 65 XP, pair 28/70 (84/210 with a charged glory), one gem out of 128 (opal 60, jade 30, red topaz 15, sapphire 9, emerald 5, ruby 5, diamond 4), 99 ticks back, no mining gem table | OSRS Wiki, Gem rocks |
+| Granite rocks: 45; 5kg (75 XP, pair 6/64), 2kg (60, 8/75), 500g (50, 16/100) rolled largest first, the first success given (42.0% any at 45, 68.2% at 99); sandstone rocks: 35; 10kg (60, 4/50), 5kg (50, 8/75), 2kg (40, 16/100), 1kg (30, 25/200) (56.5% to 92.7%). Each success empties the rock for 9 ticks; no gem table. Desert heat is not in yet | OSRS Wiki, Granite rocks, Sandstone rocks |
 | A charged amulet of glory (any, trimmed or eternal) adds a second 3/256 roll at the mining gem table | OSRS Wiki, mining gem table template |
 | The Mining Guild's members' area: an invisible +7 on the roll (not on the level needed) and every respawn halved | OSRS Wiki, Mining Guild |
 | The members' area's bounds (x 2998-3059, z 9695-9729), drawn around the Wiki's rock tiles; amethyst's 75 seconds not halved again | inferred |
@@ -573,7 +581,9 @@ sets that, keeps the quantity buttons' choice in varp `makexcrafting`, and answe
 | Lumbridge's rusted anvil smiths only bronze | OSRS Wiki, Anvil |
 | Each bar's anvil items, levels, bars and counts | client scripts and enums 844 to 846 (cache 241), checked against the Wiki's bronze and iron tables (`SmithingTest`) |
 | The furnace box showing every free-to-play bar and suggesting All; Smith opening the best bar the level can use; a cancelled X smithing one; the rusted anvil's message for other bars; the messages' arguments | guessed |
-| Out: the ring of forging, goldsmith gauntlets, the imcando hammer, smiths' uniform, Blast Furnace, cannonballs, jewellery, blurite and lovakite | out of scope |
+| Cannonballs (`Cannonballs.kt`): a bar or the ammo mould used on a furnace with the mould held casts one bar into 4, 8 ticks then 10; bronze 5 (8.8 XP a bar), iron 20 (17.2), steel 35 (25.6), mithril 55 (34), adamant 75 (42.4), rune 90 (50.8); the double ammo mould casts two bars into 8 for twice the XP | OSRS Wiki, Steel cannonball and the other cannonball pages, Double ammo mould |
+| Cannonballs: Dwarf Cannon and Sleeping Giants count as done; a double mould casting a last odd bar into 4; one message a cast; the animation | guessed |
+| Out: the ring of forging, goldsmith gauntlets, the imcando hammer, smiths' uniform, Blast Furnace, granite cannonballs, the ancient furnace, jewellery, blurite and lovakite | out of scope |
 
 ### Fletching
 
@@ -1977,6 +1987,7 @@ loses goes in a grave there. The party lasts through the wipe.
 | Any member opening the run, a player in no party as a party of one; others following until the Guardian's fight begins, nobody after | guessed; the Wiki says supplies can't be banked mid-raid |
 | A row's other door shut once one is gone through; a row opening once the room before is done; Enter and Quick-enter, Use and Quick-use, the same | guessed, until a recording shows a run |
 | Passageway out at any time; the transporter once the room is done; both to the nexus in front of the room's door | guessed |
+| Coming back out of a room onto the nexus tile the player went through its door from; otherwise beside the door, on x 4140 east and x 4114 west, a row north of the door's south end | Sam's recording of 2026-11-09 for the east column (4140,5585 back from Bork, 4140,5598 and 4140,5612 left from and come back to for Dreadnoth and Xarth); inferred: the same tile back, and the west column mirrored; guessed: the row where the tile isn't known |
 | The Alliance Navigator (16700, Follow and Quick-follow) coming to a won room's arena three ticks after, and following him leading back to the nexus beside the door taken, the move four ticks after the option or his line ("a fade, then the move four ticks later") | tsps capture notes (RSPSApp/tsps docs/fractured-archive.md); his two lines, one after the second room and one after the fourth, seen in Sam's recordings of 2026-11-09 (keys `tfa_navigator.onward` and `tfa_navigator.vault`, their words on the server, not in git) |
 | The Navigator standing where the room's transporter puts a player; his line coming with Follow and Quick-follow skipping it; only the one who follows going; the player not held during the four ticks before the move, and one who has left the room by then not moved; his fade-in and the move's fade not sent; the first line after the third room too; with no Navigator in the cache or no NPC slot for him, whoever is on the arena sent out instead (exploit review round 21, R21A-1: a won arena had no way out) | guessed |
 | Nobody attacking an NPC in a room with an arena (Ezekiel's, Bork and the Smorks', Dreadnoth's, Xarth's) from off that arena: a click, a spell, a shot, a hit spreading from another NPC and auto retaliate are all refused, a click with the line for a target that can't be reached (exploit review round 21, R21A-2: from the way in, out of the fight or out of its reach, a boss could be shot) | guessed: live's walls presumably stop it; whether the cache's stop a bow or a spell isn't known |
@@ -2030,11 +2041,15 @@ loses goes in a grave there. The party lasts through the wipe.
 | His blue bar run out, held at it with nothing hurting him; 3 ticks in his line (key `tfa_ocellus.will_disappear`) and his teleport to the middle if he isn't there, his transformation 3 ticks after the line, and his second phase 10 after it | tsps capture notes; Sam's recordings (the bar held 13 ticks) |
 | At the middle: his first side a tick after he is in, on each side first the end a clockwise sweep round him reaches first (north: the north-west end, then the north-east), no shots and Protect from Melee down there, the annihilation landing as he expends the charge, walking on to the corner he was going to (or the next if he was at one), a second middle owed coming right after the first; held: Protect from Melee down, no cracks or shots, the teleport at once with the line | guessed |
 | His teleports' fades and the middle's walk-block loc | not sent: the engine has no NPC fades yet, and the loc's id isn't in the capture notes |
-| Until step 25, he dies as his second phase would begin and the room is done; his second and third phases and his final stand; his charge bar and health bars on screen | stand-in / not in yet: steps 25 to 27 |
+| His second phase (step 25a): `tfa_ocellus_p2` (16675), with no Attack, on a bar of the remainder of his hitpoints (5,250 to 18,640 by party size); 2 ticks in, six orange portals on each arm of the cross every two tiles (E 4128-4138 and W 4115-4125 at 5673, N 5674-5684 and S 5661-5671 at 4127), blocking the way across; 7 ticks in his line (key `tfa_ocellus.your_time`) and the Blade (`tfa_ocellus_p2_sword_hitbox`, 16676, 1,000 hitpoints, its Defence drained to 0) on his tiles, 43% of whose damage comes off his bar; from then 42-tick turns, from the quadrant most of the party stands in, clockwise; in each, six volleys 5 ticks apart: on the two arms beside it every portal purple but one an arm (the capture notes' fixed pattern), firing 4 ticks later across the quadrant along its 2-tile strip, 12 tiles at 6 client cycles a tile, 20 to 25 on whoever it reaches, once a volley from each arm at most; the phase 123 ticks long | tsps capture notes; OSRS Wiki, Ocellus (2026-11-10: the remainder hitpoints, the stats and bonuses, the portal's max hit, one hit an axis); 242 cache (the Blade, the portals' size and collision) |
+| Which portal id is orange (62684) and which purple (62685), and which way round the north and south arms' are turned; the first quadrant on a tie or with nobody in one (the first clockwise from the north-west); a quadrant's first volley as its turn begins; the shots' height, and their hit landing the tick they reach a player; no prayer against them; every portal orange again after a quadrant's last volley; the Blade never hitting back, whole again each tick, its bar shown full; no diminishing returns on the Blade's damage within a quadrant (the Wiki says there are, not how much) | guessed |
+| The portals' spawn and idle animations, the Blade's discharge | not sent yet |
+| The pools at 28 ticks into a quadrant's turn, every portal purple at 31, the floor portal on to the next quadrant at 33 and the last volley at 40 that kills whoever is left; the party isn't moved on until then, so a turn in a quadrant nobody stands in hits nobody | not in yet: step 25b |
+| Until step 26, he dies 123 ticks into his second phase, as his third would begin, and the room is done; his third phase and his final stand; his charge bar and health bars on screen | stand-in / not in yet: steps 26 and 27 |
 | Once the run is done, a Passageway (`tfa_exit`) at the south edge of Ocellus's room, just south of where the party comes in, whose Exit leaves to the lobby in front of the Archive Door | stand-in until the reward room (step 28): the cache has no way out of that room (Sam's decision, 8 November 2026, exploit review RAID-3); where it stands guessed |
 | The bosses after the Guardian, the Quartermaster and Supply Credits, the party's orbs, the reward room, deaths' item costs | not in yet: steps 18 to 31 |
 
-`::raid run` shows the run you're in, `::raid tp nexus` or `::raid tp ezekiel` goes to its nexus or a room, `::raid tp x z`
+`::raid run` shows the run you're in and where you stand in it (the room, and the cache's tile as `::raid tp x z` takes it), `::raid tp nexus` or `::raid tp ezekiel` goes to its nexus or a room, `::raid tp x z`
 goes to a cache tile of the raid mapped into the run (on its room's level; for scripts, which can't know where the
 instance lies), and
 `::raid clear` marks the room you're in done, as if its boss died; a room whose fight never began (the Guardian before it is touched) gives its points to whoever of the party stands in it. Check: `./gradlew test --tests 'osrsps.game.instance.*'
@@ -2045,7 +2060,8 @@ leaves the party or logs out dying of it), and in RuneLite
 `test-runner/examples/archive-raid-flow.json` (both runs, solo) and `archive-raid-wipe.json` (a death in the raid back to
 the lobby, with a grave). Ocellus: `./gradlew test --tests 'osrsps.testclient.HeadlessOcellusTest'` (the figure and the
 ready check, alone, with two, and the 2 minutes; his walk, corners, cracks, charge and explosion; a crack caught; the middle at two thirds and a quarter; the hold and the
-transformation) and
+transformation; the second phase's portals, the Blade's damage reaching his bar, the quadrants' turns and volleys, a
+shot reaching a player and the safe crossing) and
 `test-runner/examples/archive-ocellus.json`.
 
 ## Encounters
@@ -2067,6 +2083,7 @@ a fight started on a seed plays the same way each time.
 | Hazards hurting from no one, so standing in one doesn't start a fight or make the player hit back | guessed |
 | A hazard's hit still counting as combat: it cuts a Home Teleport or lodestone cast short and holds a logout, as the boss's own hit would (exploit review round 11, ENC-1) | guessed |
 | Adds and hazards going when the boss dies or leaves | guessed; each boss's step changes it if live keeps them |
+| A loc a fight places (a mushroom, a portal) standing until the fight takes it away or ends, which puts the tile back as the cache has it, its own loc and turn included; turned a quarter or more (Ocellus's portals, step 25a) it blocks its turned footprint | ours: the cache's loc must come back; turning as the cache's own locs turn |
 | A phase also ending when its own test says so (a shield broken); steps put off a few ticks (a beam aimed now, landing later) running after the cycle and before the hazards, never once the fight is over | guessed |
 | A phase naming the one that follows it, an earlier one too; a name the fight hasn't ending the fight, said in its log | ours: a mistake in a fight's own code, kept from throwing in the game tick |
 | A boss whose fight picks its attacks (the Guardian) never swinging, shooting, walking after anyone or retreating by itself, and keeping the first player it took on while they last | guessed |
@@ -2077,7 +2094,8 @@ a fight started on a seed plays the same way each time.
 ticks. Check: `./gradlew test --tests 'osrsps.game.encounter.*' --tests 'osrsps.game.command.RaidCommandsTest'
 --tests 'osrsps.testclient.HeadlessEncounterTest'` (a test boss plays the same 100 ticks on two runs with the same seed
 and differently on another; its phases change at half hitpoints and on time, with an add and a hazard, and the fight
-ends when the boss leaves; a phase goes back to the one it names, three times round, then on).
+ends when the boss leaves; a phase goes back to the one it names, three times round, then on; a turned placed loc
+blocking its turned footprint and the cache's loc back when the fight ends).
 
 ## The Archive Guardian
 

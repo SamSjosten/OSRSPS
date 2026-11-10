@@ -1,5 +1,6 @@
 package osrsps.game.skill
 
+import osrsps.game.GameRandom
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.WearPos
@@ -32,6 +33,7 @@ object MiningLines : Lines("mining", "Mining") {
     val GEM_ROCK_RUBY = line("gem_rock_ruby", "the message on mining an uncut ruby from a gem rock")
     val GEM_ROCK_DIAMOND = line("gem_rock_diamond", "the message on mining an uncut diamond from a gem rock")
     val GEM_ROCK_FULL = line("gem_rock_full", "the message on Mine on a gem rock with a full backpack")
+    val QUARRY = line("quarry", "the message for each piece of granite or sandstone; {ore} is granite or sandstone", "ore")
 }
 
 /** A pickaxe: its tool for [SkillTools], its ticks between rolls, and a chance of one tick fewer (dragon, crystal). */
@@ -40,7 +42,8 @@ class Pickaxe(val tool: SkillTool, val ticks: Int, val fastNumerator: Int = 0, v
 /**
  * One kind of rock: level, XP in tenths, the ore, its success pair (out of 256) and ticks to come back. Most rocks empty
  * on their first ore; [minYield] to [maxYield] ores for those that last longer (amethyst). A [gemRock] gives a gem from
- * [Mining.GEM_ROCK_TABLE] in place of [ore] and has no pre-roll at the mining gem table.
+ * [Mining.GEM_ROCK_TABLE] in place of [ore] and has no pre-roll at the mining gem table. A quarry rock (granite,
+ * sandstone) has [sizes] in place of one ore and pair, and no gem table either.
  */
 class RockType(
     val key: String,
@@ -53,7 +56,12 @@ class RockType(
     val minYield: Int = 1,
     val maxYield: Int = 1,
     val gemRock: Boolean = false,
+    /** A quarry rock's sizes, largest first: each roll tries them in turn and gives the first that succeeds. */
+    val sizes: List<RockSize> = emptyList(),
 )
+
+/** One size a quarry rock gives: the obj, its XP in tenths and its own success pair. */
+class RockSize(val obj: Int, val xpTenths: Int, val low: Int, val high: Int)
 
 /**
  * Mining: Mine on a rock with ore checks the backpack, level and pickaxe, then rolls every few ticks (the pickaxe's
@@ -82,6 +90,13 @@ class RockType(
  * - The Mining Guild's members' area gives an invisible +7 to the success roll (not to the level a rock needs) and
  *   halves every rock's respawn but amethyst's (inferred: amethyst grows nowhere else, so its 75 seconds is the
  *   guild's). Inferred: the area's bounds, drawn around every members' rock tile the Wiki lists.
+ *
+ * Gathering 2, step G4 (OSRS Wiki, Granite rocks and Sandstone rocks, read 2026-11-10): granite (45) and sandstone
+ * (35) rocks in the Desert Quarry, the Necropolis mine and (granite) the Cape Conch mine. Each size has its own pair;
+ * a roll tries them largest first and gives the first that succeeds (the Wiki's cascade chart and its P(any) formula:
+ * 42.0% to 68.2% for granite, 56.5% to 92.7% for sandstone). Every success empties the rock for 5.4 seconds; no gem
+ * table. Out: desert heat and waterskins (the desert piece), chiselling sandstone (Crafting), Varrock armour, the
+ * celestial ring and the Mining cape's extra pieces.
  *
  * The Rune Essence rock (`blankrunestone` 34773, in the rune essence mine) is its own kind: every roll succeeds, at the
  * pickaxe's interval, it never empties and has no gem table, and it gives pure essence from Mining 30 (the world counts
@@ -160,6 +175,16 @@ class Mining(private val world: World) {
                     player.inventory.add(gemType, 1)
                     player.skills.addTenths(Skill.MINING, type.xpTenths)
                     GEM_ROCK_LINES[gem]?.let { player.message(text[it]) }
+                    return stop()
+                }
+            } else if (type.sizes.isNotEmpty()) {
+                val size = quarrySize(world.random, type.sizes, level)
+                if (size != null) {
+                    val piece = world.objTypes[size.obj] ?: error("No obj type ${size.obj} for ${type.key}")
+                    world.locs.replace(loc, rock.empty, revertAfter = respawn(type, loc.x, loc.z, loc.level))
+                    player.inventory.add(piece, 1)
+                    player.skills.addTenths(Skill.MINING, size.xpTenths)
+                    player.message(text[MiningLines.QUARRY, "ore" to oreName])
                     return stop()
                 }
             } else if (gemTableRoll(glory)) {
@@ -278,6 +303,23 @@ class Mining(private val world: World) {
         private val RUNITE = RockType("runite", 85, 1250, 451, 1, 18, 1200)
         private val AMETHYST = RockType("amethyst", 92, 2400, 21347, -18, 10, 125, minYield = 2, maxYield = 3)
         private val GEM_ROCK = RockType("gem", 40, 650, NOTHING, 28, 70, 99, gemRock = true)
+        private val GRANITE = RockType(
+            "granite", 45, 0, NOTHING, 0, 0, 9,
+            sizes = listOf(
+                RockSize(6983, 750, 6, 64), // enakh_granite_medium, 5kg
+                RockSize(6981, 600, 8, 75), // enakh_granite_small, 2kg
+                RockSize(6979, 500, 16, 100), // enakh_granite_tiny, 500g
+            ),
+        )
+        private val SANDSTONE = RockType(
+            "sandstone", 35, 0, NOTHING, 0, 0, 9,
+            sizes = listOf(
+                RockSize(6977, 600, 4, 50), // enakh_sandstone_large, 10kg
+                RockSize(6975, 500, 8, 75), // enakh_sandstone_medium, 5kg
+                RockSize(6973, 400, 16, 100), // enakh_sandstone_small, 2kg
+                RockSize(6971, 300, 25, 200), // enakh_sandstone_tiny, 1kg
+            ),
+        )
 
         /** Runite's respawn in the Wilderness (OSRS Wiki, Runite rocks); the Wiki gives no Wilderness time for others. */
         const val RUNITE_WILDERNESS_RESPAWN = 600
@@ -300,6 +342,10 @@ class Mining(private val world: World) {
             type === RUNITE && Wilderness.level(x, z) > 0 -> RUNITE_WILDERNESS_RESPAWN
             else -> type.respawn
         }
+
+        /** A quarry rock's roll: each size in turn, largest first; the first that succeeds, or null when all miss. */
+        fun quarrySize(random: GameRandom, sizes: List<RockSize>, level: Int): RockSize? =
+            sizes.firstOrNull { SuccessRoll.roll(random, it.low, it.high, level) }
 
         /** Every charged amulet of glory, the trimmed and eternal ones too (OSRS Wiki, mining gem table). */
         val CHARGED_GLORIES = setOf(
@@ -357,6 +403,8 @@ class Mining(private val world: World) {
             11389 to Rock(AMETHYST, AMETHYST_EMPTY), // amethystrock2
             11380 to Rock(GEM_ROCK, ROCKS1), // gemrock1
             11381 to Rock(GEM_ROCK, ROCKS2), // gemrock
+            11387 to Rock(GRANITE, ROCKS2), // enakh_granite_rocks (model 1391, as rocks2's)
+            11386 to Rock(SANDSTONE, ROCKS1), // enakh_sandstone_rocks (model 1390, as rocks1's)
         )
 
         /** The mining gem table: 128 in 32,768 a roll (1/256), most of it gems. */

@@ -130,6 +130,8 @@ class HeadlessArchiveRaidTest {
         val door = raids.tile(run, doorX(room), ArchiveRaids.doorZ(room.stage))
         locOp(room.door, door.x, door.z, ArchiveRaids.ENTER)
         awaitAt(raids.tile(run, room.entryX, room.entryZ), "${room.boss}'s room")
+        // Back onto the tile the door was gone through from when that is beside it, on its column; else the door's own.
+        val back = run.leftFrom.entries.firstOrNull { it.key.second == room }?.value ?: room.doorFront
         awaitRun("${room.boss}'s room done") { "${room.boss}'s".isNotEmpty() && it.contains(room.boss) && room in run.cleared }
         val (passage, transporter) = roomLocs.getValue(room)
         if (passageway) {
@@ -139,7 +141,7 @@ class HeadlessArchiveRaidTest {
             val at = raids.tile(run, transporter.x, transporter.z)
             locOp(room.transporter, at.x, at.z, ArchiveRaids.USE)
         }
-        awaitAt(raids.tile(run, room.doorFront.x, room.doorFront.z), "out in front of ${room.boss}'s door")
+        awaitAt(raids.tile(run, back.x, back.z), "out beside ${room.boss}'s door")
     }
 
     /** The level of the cache's nexus the client draws the instance's nexus from. */
@@ -189,6 +191,44 @@ class HeadlessArchiveRaidTest {
                 client.await("the login rebuild") { client.position }
                 client.goThrough(server, "alice", listOf(ArchiveRoom.EZEKIEL, ArchiveRoom.MOIA, ArchiveRoom.DAGONHAI))
                 client.goThrough(server, "alice", listOf(ArchiveRoom.BORK, ArchiveRoom.DREADNOTH, ArchiveRoom.XARTH), passagewayIn = ArchiveRoom.DREADNOTH, outByExit = true)
+            }
+        }
+    }
+
+    @Test
+    fun `a player comes back out of a room onto the tile they went through its door from, or beside the door`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                client.await("the login rebuild") { client.position }
+                val run = client.enter(server, "carol")
+                val raids = server.world.archiveRaids
+                val key = server.world.playerNamed("carol")!!.saveKey
+                client.command("raid tp guardian")
+                client.awaitRun("the Guardian's room done") { ArchiveRoom.GUARDIAN in run.cleared }
+                // The east column of Sam's recording, and the west one mirrored about the hall's middle.
+                val room = ArchiveRoom.BORK
+                assertEquals(Tile(4140, 5585), room.doorFront)
+                assertEquals(Tile(4114, 5585), ArchiveRoom.EZEKIEL.doorFront)
+                assertEquals(Tile(4140, 5598), ArchiveRoom.DREADNOTH.doorFront)
+                // Through Bork's door from beside it, a tile south of the one the door gives by itself.
+                val beside = Tile(ArchiveRaids.DOOR_FRONT_EAST_X, ArchiveRaids.doorZ(room.stage))
+                val from = raids.tile(run, beside.x, beside.z)
+                client.tele(from.x, from.z)
+                val door = raids.tile(run, doorX(room), ArchiveRaids.doorZ(room.stage))
+                client.locOp(room.door, door.x, door.z, ArchiveRaids.ENTER)
+                client.awaitAt(raids.tile(run, room.entryX, room.entryZ), "Bork's room")
+                assertEquals(beside, run.leftFrom[key to room], "the tile gone in from is kept")
+                client.awaitRun("Bork's room done") { room in run.cleared }
+                val transporter = roomLocs.getValue(room).second.let { raids.tile(run, it.x, it.z) }
+                client.locOp(room.transporter, transporter.x, transporter.z, ArchiveRaids.USE)
+                client.awaitAt(from, "back on the tile gone in from")
+                assertTrue(client.runSays().endsWith("You're in the nexus's hall, at ${beside.x}, ${beside.z} of the raid."), "::raid run gives the cache's tile")
+                assertEquals(null, run.leftFrom[key to room])
+                // In again with no door gone through: out beside the door, on its own tile.
+                client.commandReply("raid tp bork") { it.startsWith("To ") }
+                client.awaitAt(raids.tile(run, room.entryX, room.entryZ), "Bork's room again")
+                client.locOp(room.transporter, transporter.x, transporter.z, ArchiveRaids.USE)
+                client.awaitAt(raids.tile(run, room.doorFront.x, room.doorFront.z), "out beside Bork's door")
             }
         }
     }
