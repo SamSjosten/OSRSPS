@@ -562,7 +562,11 @@ a sandworm a catch. The `fishing-cooking` scenario starts there with everything 
 
 Raw food used on a fire or range, or Cook on a range, cooks it (`game/skill/Cooking.kt`, words under `cooking.*`):
 shrimps, anchovies, sardines, herring, trout, pike, salmon, beef, rat and bear meat, chicken, and bread dough (range
-only); lobster, tuna, swordfish and shark came with Fishing and Cooking 2's step FC1, mackerel, cod and bass with FC2, karambwan with FC3, monkfish and anglerfish with FC4. With more than one to cook, the chatbox's Make-X box (`skillmulti`, interface 270, set up by client script
+only); lobster, tuna, swordfish and shark came with Fishing and Cooking 2's step FC1, mackerel, cod and bass with FC2, karambwan with FC3, monkfish and anglerfish with FC4. Step FC5a adds
+multi-step food (`game/skill/CookingMixes.kt`, words under `cooking_mix.*`): flour and water into bread, pastry, pizza or
+pitta dough, pie shells and every pie's fillings (three at a time for mud, garden, fish, admiral, wild and summer pies),
+a pizza's tomato, cheese and topping, and a cake's egg, flour and milk, each pair through the Make-X box, then baked on a
+range. With more than one to cook, the chatbox's Make-X box (`skillmulti`, interface 270, set up by client script
 2046) asks which and how many; a resume_pausebutton from one of its items starts the job. Lumbridge Castle's kitchen
 range (114) burns less. The cooking re-runs every tick on the loc (`World.repeatOp`).
 
@@ -575,8 +579,12 @@ range (114) burns less. The cooking re-runs every tick on the loc (`World.repeat
 | The Make-X box: its components, client script 2046's arguments and the pause button carrying the quantity | decompiled client scripts (osrs-dumps) |
 | Karambwan: cooked from 30 for 190 XP or poison from 1 for 80, one burn chart for both (stops at 99), the box always asking with the cooked one first; a poison karambwan hitting for 5 from 6 hitpoints with its two messages | OSRS Wiki, Raw karambwan, Cooked karambwan, Poison karambwan |
 | Monkfish: from 62 for 150 XP, 11/275 on a fire and 13/280 on a range (stops burning at 92 and 90); anglerfish: from 84 for 230 XP, 1/200 and 1/220 (never stops burning); the Lumbridge range cooking both as any range | OSRS Wiki, Raw monkfish, Monkfish, Raw anglerfish, Anglerfish |
+| Pies, pizza, cake and pitta: levels, XP and each range pair (the Lumbridge range helping redberry, meat, botanical and mushroom pies), every pie burning to a burnt pie, the cake tin coming back | OSRS Wiki food pages; Cooking range (Lumbridge Castle) |
+| The mixes: each step's level, materials, XP (only pizza toppings and chocolate cake give any), the pot, bucket, bowl or jug coming back, 1 tick a dough and 2 for the rest | OSRS Wiki item pages (Pastry dough, Pie shell, Part garden pie and the rest) |
+| Meat pie and mushroom pie stopping burning at 53 and 88, where their charts reach 256, a level before the pages' text | the charts over the text |
+| The first mix a tick after the choice; one pair with one to make skipping the box; the doughs' box order; no animation for mixing; a cake not baked when there is no slot for its tin; the level message as a chat line (2004Scape shows it in a box) | guessed |
 | Cook with nothing raw saying Nothing interesting happens; one piece cooking with no box; the box closing as the first piece starts; the level-up box ending the job as for the other skills | guessed |
-| Out: cooking gauntlets, the cooking cape, Hosidius ranges, pies, stews, pizzas, wines and every other recipe | out of scope |
+| Out: cooking gauntlets, the cooking cape, Hosidius ranges, the pies' 1-tick bake without the box, Bake Pie; stews, curries, wine, dairy, potatoes with toppings and kebabs (step FC5b) | out of scope |
 
 ### Smithing
 
@@ -2628,7 +2636,8 @@ tinderbox and three logs, and the
 dragon and barb-tail harpoons in the bank: every fish Fishing and Cooking 2 has built so far, caught and cooked on a fire.
 Musa Point's spots are at `::tele 2924 3178`, Karamja's karambwanji spots at `::tele 2791 3018`, karambwan spots at
 `::tele 2899 3118`, the Piscatoris monkfish spots at `::tele 2326 3699` and Port Piscarilius's anglerfish spots at
-`::tele 1827 3769`.
+`::tele 1827 3769`. The bank holds flour, water, pie dishes, cooking apples, tomatoes, cheese, cake tins, eggs, milk and
+chocolate for pies, pizzas and cakes.
 
 `lumbridge-cows` stands you in the Lumbridge cow field (3259, 3263, a tile picked from the cow spawns) with 20 Attack,
 Strength, Defence and Hitpoints, iron armour, an iron scimitar, an amulet of strength, five lobsters, a bronze axe, a
