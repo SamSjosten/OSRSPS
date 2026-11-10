@@ -1,0 +1,18 @@
+{
+  "about": "Fishing spots outside Misthalin, built where live has them and reached by ::tele until their regions are built (Sam, 9 Nov 2026). Fishing and Cooking 2 step FC1: Catherby's beach (::tele 2850 3430; two Net/Bait, two Cage/Harpoon and three Big Net/Harpoon spots) and Musa Point on Karamja (::tele 2924 3178; three Small Net/Bait and three Cage/Harpoon spots). Types and tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live); the counts and tiles agree with the OSRS Wiki's Fishing spot (cage, harpoon) and (big net, harpoon) pages (read 2026-11-10). Each spot moves between its area's tiles (Fishing.AREAS). Later steps add the other ::tele fishing spots here.",
+  "spawns": [
+    {"npc": "0_44_53_saltfish", "x": 2836, "z": 3431, "source": "Net/Bait fishing spot, Catherby beach. mejrs NPCList_OSRS; moves between its area's tiles, see Fishing.AREAS"},
+    {"npc": "0_44_53_saltfish", "x": 2838, "z": 3431, "source": "Net/Bait fishing spot, Catherby beach. mejrs NPCList_OSRS; moves between its area's tiles, see Fishing.AREAS"},
+    {"npc": "0_44_53_rarefish", "x": 2844, "z": 3429, "source": "Cage/Harpoon fishing spot, Catherby beach. mejrs NPCList_OSRS; the OSRS Wiki's spot page lists this tile; moves between its area's tiles, see Fishing.AREAS"},
+    {"npc": "0_44_53_rarefish", "x": 2853, "z": 3423, "source": "Cage/Harpoon fishing spot, Catherby beach. mejrs NPCList_OSRS; the OSRS Wiki's spot page lists this tile; moves between its area's tiles, see Fishing.AREAS"},
+    {"npc": "0_44_53_memberfish", "x": 2846, "z": 3429, "source": "Big Net/Harpoon fishing spot, Catherby beach. mejrs NPCList_OSRS; the OSRS Wiki's spot page lists this tile; moves between its area's tiles, see Fishing.AREAS"},
+    {"npc": "0_44_53_memberfish", "x": 2855, "z": 3423, "source": "Big Net/Harpoon fishing spot, Catherby beach. mejrs NPCList_OSRS; the OSRS Wiki's spot page lists this tile; moves between its area's tiles, see Fishing.AREAS"},
+    {"npc": "0_44_53_memberfish", "x": 2859, "z": 3426, "source": "Big Net/Harpoon fishing spot, Catherby beach. mejrs NPCList_OSRS; the OSRS Wiki's spot page lists this tile; moves between its area's tiles, see Fishing.AREAS"},
+    {"npc": "0_45_49_saltfish", "x": 2923, "z": 3179, "source": "Small Net/Bait fishing spot, Musa Point. mejrs NPCList_OSRS; moves between its area's tiles, see Fishing.AREAS"},
+    {"npc": "0_45_49_saltfish", "x": 2924, "z": 3181, "source": "Small Net/Bait fishing spot, Musa Point. mejrs NPCList_OSRS; moves between its area's tiles, see Fishing.AREAS"},
+    {"npc": "0_45_49_saltfish", "x": 2926, "z": 3180, "source": "Small Net/Bait fishing spot, Musa Point. mejrs NPCList_OSRS; moves between its area's tiles, see Fishing.AREAS"},
+    {"npc": "0_45_49_rarefish", "x": 2923, "z": 3180, "source": "Cage/Harpoon fishing spot, Musa Point. mejrs NPCList_OSRS; the OSRS Wiki's spot page lists this tile; moves between its area's tiles, see Fishing.AREAS"},
+    {"npc": "0_45_49_rarefish", "x": 2925, "z": 3181, "source": "Cage/Harpoon fishing spot, Musa Point. mejrs NPCList_OSRS; the OSRS Wiki's spot page lists this tile; moves between its area's tiles, see Fishing.AREAS"},
+    {"npc": "0_45_49_rarefish", "x": 2926, "z": 3179, "source": "Cage/Harpoon fishing spot, Musa Point. mejrs NPCList_OSRS; the OSRS Wiki's spot page lists this tile; moves between its area's tiles, see Fishing.AREAS"}
+  ]
+}

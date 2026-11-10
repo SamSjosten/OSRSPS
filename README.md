@@ -417,8 +417,11 @@ The shared clock is the 2004Scape project's `%action_delay` model, inferred to h
 ### Woodcutting
 
 Chop down on a tree, or an axe used on one, chops it (`game/skill/Woodcutting.kt`, data in
-`src/main/resources/skills/woodcutting.json`): every regular, dead, evergreen, oak, willow, maple, yew and magic tree in
-the world, with the bronze to crystal axes. Words are under `woodcutting.*` in the dialogue file.
+`src/main/resources/skills/woodcutting.json`): every regular, dead, evergreen, oak, willow, teak, maple, mahogany, arctic
+pine, yew, magic and redwood tree in the world, with the bronze to crystal axes. Words are under `woodcutting.*` in the
+dialogue file. Trees outside Misthalin are where live has them and reached by ::tele: Chompy Marsh's teak
+(`::tele 2334 3048`), the Hardwood Grove's teaks and mahoganies (`::tele 2821 3083`), Neitiznot's arctic pines
+(`::tele 2318 3815`), and the Woodcutting Guild's redwood sections on its scaffolds (`::tele 1567 3493 1`, and level 2).
 
 | Woodcutting behaviour | Source |
 |-----------------------|--------|
@@ -431,6 +434,10 @@ the world, with the bronze to crystal axes. Words are under `woodcutting.*` in t
 | The timer runs down one a tick while anyone chops and back up one a tick while nobody does; the tree falls at the first log after it runs out | guessed (the Wiki gives only totals) |
 | No chopping sound | the 241 synth ids have no names to find it by |
 | A level-up box ends the action | 2004Scape engine's busy() check; guessed that live ends rather than waits |
+| Teak (35, 85 XP, timer 50, back in 15), mahogany (50, 125 XP, 100, 14), arctic pine (54, 40 XP, 140, 14), redwood sections (90, 380 XP, 440, 199), with each chart's pair per axe (`WoodcuttingG2Test`) | OSRS Wiki tree pages (read 2026-11-10) |
+| Their stumps: teaktree to teak_stump and the like, redwoodtree_l/_r to their _cut sections | 242 gamevals, by name |
+| Redwoods give no seed, ring or egg nests (only clue nests, which are out) | OSRS Wiki, Redwood tree |
+| Out: the Woodcutting Guild (its +7, doors and the redwoods' ladders), the Hardwood Grove's trading sticks, Etceteria's trees giving no logs, Farming's patch trees | out of scope; later pieces |
 
 Each log has a 1/256 chance of a bird nest (`game/skill/BirdNests.kt`, words under `birdnest.*`), 11/2560 with a
 Woodcutting cape worn; `::nest [seeds|ring|red|green|blue]` drops one as a tree does. Search on a nest leaves an empty
@@ -512,6 +519,13 @@ Fishing spots are NPCs (`game/skill/Fishing.kt`, words under `fishing.*`): the L
 (trout and salmon with a fly fishing rod and feathers, pike with a rod and bait). Their spawns are in
 `npc-spawns/lumbridge.json`. The option re-runs every tick on the NPC (`World.repeatOp`, as RS2's `p_opnpc`).
 
+Cages and harpoons (Fishing and Cooking 2, step FC1) fish Catherby's beach (`::tele 2850 3430`: Net/Bait 1518,
+Cage/Harpoon 1519, Big Net/Harpoon 1520, whose Big Net comes later) and Musa Point on Karamja (`::tele 2924 3178`:
+Small Net/Bait 1521, Cage/Harpoon 1522), built in place outside Misthalin; their spawns are in
+`npc-spawns/fishing-spots.json`. A lobster pot cages lobsters from 40; a harpoon catches tuna from 35 and swordfish from
+50 at Cage/Harpoon spots, sharks from 76 at Big Net/Harpoon spots. The barb-tail harpoon fishes as the harpoon does, the
+dragon harpoon 20% better from 61; both work wielded. The `fishing-cooking` scenario starts there with everything built.
+
 | Fishing behaviour | Source |
 |-------------------|--------|
 | Levels, XP, tools and bait (one bait or feather a catch) | OSRS Wiki fish pages, Fishing |
@@ -521,13 +535,18 @@ Fishing spots are NPCs (`game/skill/Fishing.kt`, words under `fishing.*`): the L
 | The river spots' tiles; the cast message and animation on the click, the first roll 4 ticks later, the last bait freeing its slot | 2004Scape fishing scripts |
 | Spawn tiles | RSMod rev 233 Lumbridge spawns |
 | The swamp spots' area (their spawn tiles, so they stay put); the player stopping when the spot moves | guessed |
-| Out: pearl and barbarian rods, stripy feathers, big nets, harpoons, cages, outfits and other catch boosts, whirlpools | out of scope |
+| Lobster, tuna, swordfish and shark: levels, XP and success pairs, swordfish tried before tuna | OSRS Wiki fish pages (their charts give the pairs) |
+| The dragon harpoon's 20% (each pair times 1.2, rounded down, which gives the Wiki's dragon harpoon charts) and its level 61; the barb-tail fishing as a harpoon | OSRS Wiki, Harpoon, Dragon harpoon, Barb-tail harpoon |
+| Catherby's and Musa Point's spawn tiles; the tiles their spots move between | mejrs NPCList_OSRS and the Wiki's spot pages; 2004Scape's movement enums |
+| The cage and harpoon cast messages and checks | 2004Scape rarefish and memberfish scripts |
+| The harpoon's first roll as the other methods' (2004Scape has it a tick later); a dragon harpoon below 61 counting as no harpoon | guessed |
+| Out: pearl and barbarian rods, stripy feathers, big nets, karambwanji, barehanded fishing, infernal and crystal harpoons, the dragon harpoon's special, outfits and other catch boosts, whirlpools | out of scope |
 
 ### Cooking
 
 Raw food used on a fire or range, or Cook on a range, cooks it (`game/skill/Cooking.kt`, words under `cooking.*`):
 shrimps, anchovies, sardines, herring, trout, pike, salmon, beef, rat and bear meat, chicken, and bread dough (range
-only). With more than one to cook, the chatbox's Make-X box (`skillmulti`, interface 270, set up by client script
+only); lobster, tuna, swordfish and shark came with Fishing and Cooking 2's step FC1. With more than one to cook, the chatbox's Make-X box (`skillmulti`, interface 270, set up by client script
 2046) asks which and how many; a resume_pausebutton from one of its items starts the job. Lumbridge Castle's kitchen
 range (114) burns less. The cooking re-runs every tick on the loc (`World.repeatOp`).
 
@@ -536,6 +555,7 @@ range (114) burns less. The cooking re-runs every tick on the loc (`World.repeat
 | Levels and XP | OSRS Wiki food pages |
 | 4 ticks a piece | OSRS Wiki, Raw shrimps |
 | Each food's burn pair on a fire or range and on the Lumbridge range, fitted to and checked against the Wiki's charts (`CookingTest`) | OSRS Wiki food pages |
+| Swordfish and shark burning less on a range than on a fire; lobster, tuna, swordfish and shark getting no Lumbridge range bonus | OSRS Wiki food pages; Cooking range (Lumbridge Castle) |
 | The Make-X box: its components, client script 2046's arguments and the pause button carrying the quantity | decompiled client scripts (osrs-dumps) |
 | Cook with nothing raw saying Nothing interesting happens; one piece cooking with no box; the box closing as the first piece starts; the level-up box ending the job as for the other skills | guessed |
 | Out: cooking gauntlets, the cooking cape, Hosidius ranges, pies, stews, pizzas, wines and every other recipe | out of scope |
@@ -2485,6 +2505,10 @@ warns at startup about any scenario naming an item the cache lacks.
 `agility` stands you at the Draynor Village Rooftop Course's rough wall (3103, 3279) with 52 Agility, the most anything
 built needs, so every course and shortcut is open; run on and full, and a graceful set in the bank to try its run energy
 bonus. Hitpoints stay a new account's 10, so a fall's damage shows.
+
+`fishing-cooking` stands you on Catherby's beach (2850, 3430) with 99 Fishing, Cooking and Firemaking, a harpoon, a
+lobster pot, a tinderbox and three logs, and the dragon and barb-tail harpoons in the bank: every fish Fishing and
+Cooking 2 has built so far, caught and cooked on a fire. Musa Point's spots are at `::tele 2924 3178`.
 
 `lumbridge-cows` stands you in the Lumbridge cow field (3259, 3263, a tile picked from the cow spawns) with 20 Attack,
 Strength, Defence and Hitpoints, iron armour, an iron scimitar, an amulet of strength, five lobsters, a bronze axe, a

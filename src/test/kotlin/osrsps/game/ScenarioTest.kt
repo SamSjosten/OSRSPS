@@ -170,6 +170,10 @@ class ScenarioTest {
         assertEquals(Triple(roughWall.x, roughWall.z, roughWall.level), Triple(agility.x, agility.z, agility.level))
         assertEquals(AgilityData.load().obstacles.maxOf { it.level }, agility.skills.getValue(Skill.AGILITY).level)
         assertEquals(6, agility.bank.size)
+        val fishing = scenarios["fishing-cooking"]!!
+        // On Catherby's beach, by its spots in npc-spawns/fishing-spots.json, at the highest level anything built needs.
+        assertTrue(fishing.x in 2836..2860 && fishing.z in 3423..3431 && fishing.level == 0)
+        assertEquals(99, fishing.skills.getValue(Skill.FISHING).level)
         val gathering = scenarios["gathering"]!!
         // Beside the guild's runite, inside its members' area, at the level amethyst needs.
         assertEquals(true, Mining.inGuild(gathering.x, gathering.z, gathering.level))

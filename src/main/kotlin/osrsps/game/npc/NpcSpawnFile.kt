@@ -63,6 +63,7 @@ object NpcSpawnFile {
         "lumbridge-swamp-quest.json",
         "lumbridge-west.json",
         "lumbridge-swamp-caves.json",
+        "fishing-spots.json",
     )
 
     /** What a file gave: the spawns, and the NPC names the cache doesn't know (skipped). */
