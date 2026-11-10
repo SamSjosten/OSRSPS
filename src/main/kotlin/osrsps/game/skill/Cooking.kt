@@ -45,6 +45,12 @@ object CookingLines : Lines("cooking", "Cooking") {
     val BURNT_SWORDFISH = line("burnt_swordfish", "Swordfish: the message on burning one")
     val COOKED_SHARK = line("cooked_shark", "Shark: the message on cooking one")
     val BURNT_SHARK = line("burnt_shark", "Shark: the message on burning one")
+    val COOKED_MACKEREL = line("cooked_mackerel", "Mackerel: the message on cooking one")
+    val BURNT_MACKEREL = line("burnt_mackerel", "Mackerel: the message on burning one")
+    val COOKED_COD = line("cooked_cod", "Cod: the message on cooking one")
+    val BURNT_COD = line("burnt_cod", "Cod: the message on burning one")
+    val COOKED_BASS = line("cooked_bass", "Bass: the message on cooking one")
+    val BURNT_BASS = line("burnt_bass", "Bass: the message on burning one")
 }
 
 /**
@@ -82,7 +88,7 @@ class Food(
  * starting on all of it, cooking straight away with only one, the first piece 3 ticks after the choice (as the other
  * gathering skills' first roll), and the burnt items (by the Wiki's Burnt fish pages). Out: cooking gauntlets, the
  * cooking cape, the Hosidius range, wines and other multi-step food, and the sounds (the 241 synth ids have no names).
- * Lobster, tuna, swordfish and shark came with Fishing and Cooking 2's step FC1.
+ * Lobster, tuna, swordfish and shark came with Fishing and Cooking 2's step FC1; mackerel, cod and bass with FC2.
  */
 class Cooking(private val world: World) {
     /** What each player is cooking, by the fire or range they chose it at. */
@@ -301,9 +307,21 @@ class Cooking(private val world: World) {
             rangeLow = 1, rangeHigh = 232,
         )
 
+        /**
+         * The big net's fish (step FC2), from the Wiki's Mackerel, Cod and Bass pages (read 2026-11-10): mackerel and
+         * cod are on the Lumbridge range's list and burn less there; cod burns less on a range than a fire. Mackerel
+         * burns to burntfish3 (Burnt fish (herring)), cod to burntfish2 (Burnt fish (trout)), bass to burntfish4 (Burnt
+         * fish (tuna), where the Wiki's Burnt fish (bass) redirects).
+         */
+        val MACKEREL = Food(353, 355, 357, 10, 600, 98, 452, 108, 472, CookingLines.COOKED_MACKEREL, CookingLines.BURNT_MACKEREL)
+        val COD = Food(
+            341, 339, 343, 18, 750, 83, 422, 93, 442, CookingLines.COOKED_COD, CookingLines.BURNT_COD, rangeLow = 88, rangeHigh = 432,
+        )
+        val BASS = Food(363, 365, 367, 43, 1300, 33, 312, 33, 312, CookingLines.COOKED_BASS, CookingLines.BURNT_BASS)
+
         val FOODS = listOf(
             SHRIMPS, ANCHOVIES, SARDINE, HERRING, TROUT, PIKE, SALMON, BEEF, RAT_MEAT, BEAR_MEAT, CHICKEN, BREAD,
-            LOBSTER, TUNA, SWORDFISH, SHARK,
+            LOBSTER, TUNA, SWORDFISH, SHARK, MACKEREL, COD, BASS,
         )
     }
 }

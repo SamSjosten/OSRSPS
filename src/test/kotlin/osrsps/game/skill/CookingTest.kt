@@ -70,4 +70,22 @@ class CookingTest {
             assertTrue(kotlin.math.abs(cooked.toDouble() / rolls - expected) < 0.006, "$low/$high at $level: ${cooked.toDouble() / rolls}, the chart's $expected")
         }
     }
+
+    @Test
+    fun `mackerel, cod and bass have the Wiki's levels, XP and burn pairs, mackerel and cod helped by the Lumbridge range`() {
+        val foods = listOf(Cooking.MACKEREL, Cooking.COD, Cooking.BASS)
+        assertEquals(listOf(10, 18, 43), foods.map { it.level })
+        assertEquals(listOf(600, 750, 1300), foods.map { it.xpTenths })
+        assertEquals(listOf(98 to 452, 83 to 422, 33 to 312), foods.map { it.low to it.high })
+        assertEquals(listOf(98 to 452, 88 to 432, 33 to 312), foods.map { it.rangeLow to it.rangeHigh })
+        assertEquals(listOf(108 to 472, 93 to 442, 33 to 312), foods.map { it.lumbridgeLow to it.lumbridgeHigh })
+        assertEquals(listOf(357, 343, 367), foods.map { it.burnt })
+        // The Wiki's stop-burn levels: mackerel 45 (41 at Lumbridge), cod 51 on a fire and 49 on a range. Its text says
+        // bass 80 and cod 46 at Lumbridge, a level off from where its own charts' pairs reach 256 (79 and 47): the
+        // pairs are what the charts plot, so they win, as for the Lumbridge range's other foods.
+        fun stops(low: Int, high: Int) = (1..99).first { SuccessRoll.chance(low, high, it) >= 256 }
+        assertEquals(listOf(45, 51, 79), foods.map { stops(it.low, it.high) })
+        assertEquals(49, stops(Cooking.COD.rangeLow, Cooking.COD.rangeHigh))
+        assertEquals(listOf(41, 47), listOf(Cooking.MACKEREL, Cooking.COD).map { stops(it.lumbridgeLow, it.lumbridgeHigh) })
+    }
 }
