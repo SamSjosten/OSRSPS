@@ -183,11 +183,17 @@
    "expectMessage": "You're in the nexus's hall"
   },
   {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "nexus level 2;",
+   "comment": "the nexus stays on the cache's level 2, the camp's, after the fourth room too, as Sam's recording of 2026-11-09 has it"
+  },
+  {
    "step": "locOption",
-   "locId": 62766,
-   "option": "Exit",
+   "locId": 63111,
+   "option": "Enter",
    "timeoutMs": 20000,
-   "comment": "tfa_exit_large, the nexus's Passageway north, there on its level 3 once the fourth room is done"
+   "comment": "tfa_nexus_ocellus_door_open, the nexus's Archive Door north (4124,5621), which the server puts there shut (63110) and opens once the fourth room is done"
   },
   {
    "step": "waitTicks",
@@ -427,11 +433,17 @@
    "comment": "back on the column beside the east doors, on one of this door's five tiles, 5610 to 5614 (the recording has 4140, 5612)"
   },
   {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "nexus level 2;",
+   "comment": "the nexus stays on the cache's level 2, the camp's, after the fourth room too, as Sam's recording of 2026-11-09 has it"
+  },
+  {
    "step": "locOption",
-   "locId": 62766,
-   "option": "Exit",
+   "locId": 63111,
+   "option": "Quick-enter",
    "timeoutMs": 20000,
-   "comment": "tfa_exit_large, the nexus's Passageway north, there on its level 3 once the fourth room is done"
+   "comment": "tfa_nexus_ocellus_door_open, the nexus's Archive Door north (4124,5621), which the server puts there shut (63110) and opens once the fourth room is done"
   },
   {
    "step": "waitTicks",
