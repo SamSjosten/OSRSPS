@@ -1,5 +1,5 @@
 {
- "name": "Raid steps 24a to 26c: Ocellus solo, his arena upstairs, the hooded figure waiting until the party readies up, then his first phase walking between his corners under Protect from Melee, at each corner his cracks, line and explosion, at two thirds the middle with its four sides and his charge expended, the hold at the end of his blue bar, and his second phase: the portals on the cross, the Blade passing damage to his bar, the quadrants' volleys, and the rest of a quadrant's turn: pools, every portal purple, the floor portal and the last volley, and his third phase: the cross falling to stepping stones, his quadrant, and the quadrants falling at 75, 50 and 25%, with the void bombs and his specials: the cog, the void and Untether, and Insolence first in the next quadrant, and his void flares: Siphons, Augmenters and Rifts",
+ "name": "Raid steps 24a to 26d: Ocellus solo, his arena upstairs, the hooded figure waiting until the party readies up, then his first phase walking between his corners under Protect from Melee, at each corner his cracks, line and explosion, at two thirds the middle with its four sides and his charge expended, the hold at the end of his blue bar, and his second phase: the portals on the cross, the Blade passing damage to his bar, the quadrants' volleys, and the rest of a quadrant's turn: pools, every portal purple, the floor portal and the last volley, and his third phase: the cross falling to stepping stones, his quadrant, and the quadrants falling at 75, 50 and 25%, with the void bombs and his specials: the cog, the void and Untether, and Insolence first in the next quadrant, and his void flares: Siphons, Augmenters and Rifts, and the censers",
  "account": "test",
  "steps": [
   {
@@ -339,6 +339,12 @@
    "step": "command",
    "text": "::raid log 80",
    "expectMessage": "third: stepping stones stand"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: censers stand",
+   "comment": "and a censer in each quadrant (step 26d), each lit once by Interact (the headless test lights them)"
   },
   {
    "step": "command",
