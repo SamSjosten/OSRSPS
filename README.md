@@ -849,6 +849,25 @@ and heroes (reached by `::tele`). Gloves of silence and the dodgy necklace work 
 `::scenario thieving` stands you beside a farmer on the farm south of Varrock with 99 Thieving and Hitpoints, 54
 Hunter, gloves of silence and a dodgy necklace worn, a spare necklace and food.
 
+### Magic: Enchant Crossbow Bolt
+
+Cast on the magic tab's Enchant Crossbow Bolt (`game/skill/magic/BoltEnchant.kt`, the enchantments in
+`skills/bolt-enchant.json`) opens the Make-X box over the enchantments whose bolts the player holds, each shown as the
+bolt it makes. The choice casts that enchantment the picked number of times: each cast checks the level and runes (a
+staff stands in for its runes), takes them and up to 10 bolts, and gives as many enchanted bolts and the spell's XP.
+Walking off stops it, as making does, but it doesn't stop mining, fishing or the like: the Wiki gives it as zero-time
+Magic. One cast a tick at most, however fast the clicks come. What the enchanted bolts do in combat is the next step.
+
+| Bolt enchanting behaviour | Source |
+|---------------------------|--------|
+| The ten enchantments, opal to onyx: levels 4, 7, 14, 24, 27, 29, 49, 57, 68 and 87, XP 9, 17.5, 19, 29.5, 37, 33, 59, 67, 78 and 97; 10 bolts a cast; each also enchanting its dragon bolts, and diamond and onyx their ascension bolts; a box of spells | OSRS Wiki, Enchant Crossbow Bolt and each spell's page (read 2026-11-10) |
+| The runes (the sub-spell objs `04_enchant_bolt_opal` on, params 365 to 370); the button `magic_spellbook:xbows_enchant` (218:13); the animation `human_xbow_enchant_arrowtip` (4462) and graphic `xbows_enchanting_tips_spot` (759) | 242 cache |
+| Casting leaves gathering going, and clicks can cast faster than the pace | OSRS Wiki, Enchant Crossbow Bolt |
+| A cast every 3 ticks, the first on the choice; gathering still stops if the Make-X box is open at its next roll, as for a level-up box (live's spell interface may not); the ordinary bolts before the dragon or ascension ones; fewer than 10 enchanted when fewer are held; only the held bolts' spells in the box; the box's title and the no-bolts message (`bolt_enchant.title`, `bolt_enchant.no_bolts`, words on the server) | guessed |
+
+Check: `./gradlew test --tests 'osrsps.game.skill.magic.BoltEnchantDataTest' --tests 'osrsps.testclient.HeadlessBoltEnchantTest'`,
+and in RuneLite `test-runner/examples/magic-bolt-enchant.json`.
+
 ## Items and inventory
 
 Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for
@@ -1223,7 +1242,33 @@ steps to 27% to 123%, or 47% to 141%; each fail 0.5 XP). A trapdoor pick takes 9
 | Members: level 15, 22.2 XP, 136/256 to 240/256, 1 to 3 damage, the 4-second stun, Agility's 1/256 to 255/256 share of blows, the loot and pouch, concussions, the three quoted messages, 4% a clothing piece | OSRS Wiki, H.A.M. Member, read 2026-11-10 |
 | Guards: stats, speeds, max hits, defences, drops (one table for the three) | OSRS Wiki, H.A.M. Guard, read 2026-11-10 |
 | Linear chances between the Wiki's ends, the cell door's 9 ticks a try and no numbing there, the stun's 7 ticks, the even surface or cell, the tiles, the guards' animations, the other messages | guessed |
-| Out: the trapdoor's occasional 1 XP on a fail, the easy clue, Talk-to on guards, seated members, Johanhus and Jimmy, the quest-only archers and mages, the storerooms (step 4b) | out of scope |
+| Out: the trapdoor's occasional 1 XP on a fail, the easy clue, Talk-to on guards, seated members, Johanhus and Jimmy, the quest-only archers and mages, the storerooms (step 4b, below) | out of scope |
+
+#### The H.A.M. Storerooms
+
+Misthalin piece 7 step 4b (`game/content/HamStorerooms.kt`, `npc-spawns/ham-storerooms.json`, words under
+`ham_storerooms.*`): every account counts as having done Death to the Dorgeshuun, so the hidden trapdoor south of the
+Deacon's podium shows open (varbit `dttd_ham_trapdoor_state` 2) and Climb-down leads to the storerooms' ladder, which
+climbs back up. Four storerooms have locked doors: Pick-lock needs Thieving 23 and works at the Wiki's 10 to 254 out of
+256 (60 to 300 with a lockpick), 3.8 XP, or 0.5 XP on a fail; from inside, Open lets the player out. Two cracks lead into
+the south-west room without a pick, and the large room to the north has an unlocked double door. Each small chest takes
+its own key (bronze south-west, iron north-east, silver north-west, steel south-east and the large room's two), which
+breaks, and rolls the Wiki's 150-slot table of coins and jewellery. Five level 22 guards patrol the corridors; one who
+sees a door being picked attacks, unless a failed pickpocket has sent it back to its post, after which it stays there
+and leaves the player be. Pickpocketing a guard (Thieving 20, 22.2 XP, 1 to 3 damage, no concussions) gives a key of
+each colour at 1/10 each, the H.A.M. coin pouch, or the rest of the Wiki's table.
+
+| The H.A.M. Storerooms | Source |
+|-----------------------|--------|
+| Guards' tiles and types | mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022); OSRS Wiki, Guard (H.A.M. Storerooms) |
+| The trapdoor's forms and varbit 2270, the ladder, doors, cracks, chests, double door, keys, ids and tiles | 242 cache |
+| Open after the quest (its later steps climb down without a pick) | inferred from OSRS Wiki, Death to the Dorgeshuun/Quick guide, read 2026-11-10 |
+| Doors: Thieving 23, 3.8 XP, 0.5 a fail, the chart's 10 to 254 and 60 to 300 | OSRS Wiki, Door (H.A.M. Storerooms), read 2026-11-10 |
+| Which key opens which chest; the key used up and its message | OSRS Wiki, H.A.M. Storerooms, Small chest and Steel key (H.A.M.), read 2026-11-10 |
+| The chest table, 20 outcomes out of 150 | OSRS Wiki, Small chest, read 2026-11-10 |
+| Guards: level 22, stats, speed 5, max hit 3, defences, respawn; pickpocket level 20, 22.2 XP, up to 3 damage, the table; attacking a door picker in sight unless a failed pickpocket has sent them back | OSRS Wiki, Guard (H.A.M. Storerooms) and H.A.M. Storerooms, read 2026-11-10 |
+| The guards' patrols, sight range and pickpocket chance (the members' 135 to 239), the usual stun, a settled guard staying settled, the 9-tick door pick and one try a click, Open from inside, the landing tiles, the 4 free slots a chest needs, 0 coins giving nothing, the messages but the key's | guessed |
+| Out: the easy clue, the chests' open look, the crack's animation, Talk-to on the guards, aggression when spoken to without the robes | out of scope |
 
 ## Draynor Village
 
