@@ -210,6 +210,9 @@ class Player(
     /** The items in the Grand Exchange guide prices screen, out of the inventory while it is open; see [osrsps.game.ge.PriceChecker]. */
     val priceChecker = Inventory(osrsps.game.ge.PriceChecker.INV, Inventory.INV_CAPACITY)
 
+    /** The Fractured Archive's loot not yet claimed: the vault's chest, and the lobby's Loot Wheelbarrow after. Saved. */
+    val archiveChest = Inventory(osrsps.game.raid.ArchiveChestWindow.INV, osrsps.game.raid.ArchiveChestWindow.SLOTS)
+
     /** Whether the guide prices screen's item search is open, waiting on resume_p_objdialog. */
     var priceCheckSearching = false
 

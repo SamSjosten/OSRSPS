@@ -6,6 +6,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.InvObj
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.ObjType
@@ -24,7 +25,9 @@ import osrsps.game.content.Lodestones
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
+import osrsps.game.raid.ArchiveChestWindow
 import osrsps.game.raid.ArchiveChests
+import osrsps.game.raid.ArchiveVaultLines
 import osrsps.game.raid.ArchiveLoot
 import osrsps.game.raid.ArchiveRaids
 import osrsps.game.raid.ArchiveRoom
@@ -57,6 +60,13 @@ class HeadlessArchiveRaidTest {
                 type(ArchiveRaids.OCELLUS_DOOR_OPEN, "Archive Door", 7, 2, "Enter", "Quick-enter"),
                 type(ArchiveRaids.REWARD_RIFT, "Rift", 1, 1),
                 type(ArchiveRaids.MERIT_SCROLL, "Merit scroll", 2, 1, "Read"),
+                // The lobby's Loot Wheelbarrow as the 241.4 cache has it: closed, or open (Search) with loot to claim.
+                LocType(
+                    ArchiveChestWindow.WHEELBARROW, multiloc = true, multiVarbit = ArchiveChestWindow.CLAIMABLE,
+                    multiLocs = listOf(WHEELBARROW_CLOSED, ArchiveChestWindow.WHEELBARROW_OPEN, -1),
+                ),
+                type(WHEELBARROW_CLOSED, "Loot Wheelbarrow", 2, 2),
+                type(ArchiveChestWindow.WHEELBARROW_OPEN, "Loot Wheelbarrow", 2, 2, "Search"),
             ) + ArchiveRaids.DOORS.map { type(it, "Door", 5, 1, "Enter", "Quick-enter") } +
                 ArchiveRaids.TRANSPORTERS.map { type(it, "Archive transporter", 1, 1, "Use", "Quick-use") }
             ).associateBy { it.id },
@@ -76,6 +86,7 @@ class HeadlessArchiveRaidTest {
 
     private val staticLocs = StaticLocs().apply {
         add(ZoneLoc(ArchiveRaids.ARCHIVE_DOOR, LocShape.CENTREPIECE_STRAIGHT, 0, 4123, 5562, 0))
+        add(ZoneLoc(ArchiveChestWindow.WHEELBARROW, LocShape.CENTREPIECE_DIAGONAL, 0, WHEELBARROW_X, WHEELBARROW_Z, 0))
         for (level in listOf(0, 2)) {
             for (room in ArchiveRoom.entries.filter { it.door >= 0 }) {
                 add(ZoneLoc(room.door, LocShape.CENTREPIECE_STRAIGHT, if (room.side == osrsps.game.raid.DoorSide.WEST) 3 else 1, doorX(room), ArchiveRaids.doorZ(room.stage), level))
@@ -130,7 +141,11 @@ class HeadlessArchiveRaidTest {
                 *chestTypes.toTypedArray(),
             ),
             // tfa_vault_own_chest, where the 241.4 cache has it.
-            varTypes = VarTypes(6_000, mapOf(ArchiveChests.OWN_CHEST to VarbitType(OWN_CHEST_VARP, 0, 3))),
+            // And tfa_has_claimable_loot.
+            varTypes = VarTypes(
+                6_000,
+                mapOf(ArchiveChests.OWN_CHEST to VarbitType(OWN_CHEST_VARP, 0, 3), ArchiveChestWindow.CLAIMABLE to VarbitType(CLAIMABLE_VARP, 10, 10)),
+            ),
             cycleMillis = millis,
         )
     }
@@ -254,7 +269,7 @@ class HeadlessArchiveRaidTest {
         val key = server.world.playerNamed(username)!!.saveKey
         assertEquals(listOf(key), run.loot?.chests?.keys?.toList())
         assertEquals(mapOf(key to 0), run.chestSlots.toMap())
-        assertEquals("Loot for 1, no unique. Your chest is 1, closed: nothing.", commandReply("raid loot") { it.contains("oot") })
+        assertEquals("Loot for 1, no unique. Your chest is 1, closed: nothing. Unclaimed: nothing.", commandReply("raid loot") { it.contains("oot") })
         assertTrue(server.world.locs.exists(exit), "the vault's Passageway is still there, on the camp's upper level")
         if (outByExit) {
             // Out by the vault's Passageway, down the corridor: to the lobby in front of the Archive Door.
@@ -554,7 +569,10 @@ class HeadlessArchiveRaidTest {
                         carol.commandReply("resume") { it.startsWith("Resumed") }
                         val uniqueIn = if (finder == carolKey) 1 else 3
                         val carols = if (finder == carolKey) "Bronze pickaxe x1" else "Bronze axe x30"
-                        assertEquals("Loot for 2, a unique in chest $uniqueIn. Your chest is 1, closed: $carols.", carol.commandReply("raid loot") { it.contains("oot") })
+                        assertEquals(
+                            "Loot for 2, a unique in chest $uniqueIn. Your chest is 1, closed: $carols. Unclaimed: $carols.",
+                            carol.commandReply("raid loot") { it.contains("oot") },
+                        )
                         assertEquals("Loot for 2, a unique in chest $uniqueIn. You have no chest.", erin.commandReply("raid loot") { it.contains("oot") })
 
                         // In the vault each one's own chest shows as theirs, by the varbit at its number.
@@ -603,6 +621,77 @@ class HeadlessArchiveRaidTest {
                         dave.npcOp(seen.index, ArchiveChests.OPEN)
                         dave.await("his chest open") { if (run.opened == setOf(0, 2)) Unit else null }
                         assertEquals(ArchiveChests.chestType(2, open = true), run.chests.getValue(2).type.id)
+
+                        // Raid step 29b. Each one's loot waits as theirs, the Wheelbarrow's varbit set; the one without
+                        // the unique has the thirty axes, and takes them from the window their Rift's Search opens.
+                        fun claimable(client: HeadlessClient) = client.varp(CLAIMABLE_VARP) shr 10 and 1
+                        for (client in listOf(carol, dave)) client.await("loot to claim") { claimable(client).takeIf { it == 1 } }
+                        val (taker, takerSlot) = if (finder == carolKey) dave to 2 else carol to 0
+                        val (finding, findingSlot) = if (finder == carolKey) carol to 0 else dave to 2
+                        // The other's Rift isn't theirs to search.
+                        val others = taker.await("the other's Rift in view") { taker.npcs().firstOrNull { it.id == ArchiveChests.chestType(findingSlot, true) } }
+                        taker.npcOp(others.index, ArchiveChests.SEARCH)
+                        taker.awaitMessage("the refusal at another's Rift") { it.contains("chest_not_yours") }
+                        assertTrue(ArchiveChestWindow.ID !in taker.openInterfaces())
+                        val theirs = taker.await("their own Rift in view") { taker.npcs().firstOrNull { it.id == ArchiveChests.chestType(takerSlot, true) } }
+                        taker.npcOp(theirs.index, ArchiveChests.SEARCH)
+                        taker.await("the chest's window") { (ArchiveChestWindow.ID in taker.openInterfaces()).takeIf { it } }
+                        fun chest(client: HeadlessClient) = client.inventory(ArchiveChestWindow.INV).filterNotNull().map { it.id to it.count }
+                        fun axes(client: HeadlessClient) = client.inventory(INVENTORY).count { it?.id == axe.id }
+                        taker.await("the thirty axes in the window") { chest(taker).takeIf { it == listOf(axe.id to 30) } }
+                        assertTrue((1..4).all { taker.opEnabled(ArchiveChestWindow.ID, ArchiveChestWindow.ITEMS, 0, it) }, "Take to Take-All on the item")
+                        assertTrue(taker.opEnabled(ArchiveChestWindow.ID, ArchiveChestWindow.BANK, -1, ArchiveChestWindow.BANK_OP), "Bank-all")
+                        assertTrue(taker.opEnabled(ArchiveChestWindow.ID, ArchiveChestWindow.INVENTORY, -1, ArchiveChestWindow.INVENTORY_OP), "Take-all")
+                        assertTrue(taker.opEnabled(ArchiveChestWindow.ID, ArchiveChestWindow.DISCARD, -1, ArchiveChestWindow.DISCARD_OP), "Discard-all")
+                        // Take, then Take-5: one axe a slot, as this world has no note for them (an item with one comes noted).
+                        taker.ifButton(ArchiveChestWindow.ID, ArchiveChestWindow.ITEMS, 1, sub = 0, obj = axe.id)
+                        taker.await("one taken") { chest(taker).takeIf { it == listOf(axe.id to 29) && axes(taker) == 1 } }
+                        taker.ifButton(ArchiveChestWindow.ID, ArchiveChestWindow.ITEMS, 2, sub = 0, obj = axe.id)
+                        taker.await("five more taken") { chest(taker).takeIf { it == listOf(axe.id to 24) && axes(taker) == 6 } }
+                        // Take-all fills the inventory's other 22 slots and says the rest has no room.
+                        taker.ifButton(ArchiveChestWindow.ID, ArchiveChestWindow.INVENTORY, ArchiveChestWindow.INVENTORY_OP)
+                        taker.awaitMessage("no room for the rest") { it.contains(ArchiveVaultLines.NO_ROOM.key) }
+                        taker.await("the inventory full of axes") { chest(taker).takeIf { it == listOf(axe.id to 2) && axes(taker) == 28 } }
+                        // Bank-all: the last two to the bank, and nothing left to claim.
+                        taker.ifButton(ArchiveChestWindow.ID, ArchiveChestWindow.BANK, ArchiveChestWindow.BANK_OP)
+                        taker.await("the chest empty") { chest(taker).takeIf { it.isEmpty() } }
+                        val takerPlayer = world.playerNamed(if (taker === carol) "carol" else "dave")!!
+                        assertEquals(2L, takerPlayer.bank.count(axe.id))
+                        assertTrue(takerPlayer.archiveChest.isEmpty())
+                        taker.await("nothing to claim") { claimable(taker).takeIf { it == 0 } }
+
+                        // Whoever found the unique leaves by the Rift out without claiming it: it waits in the lobby's
+                        // Loot Wheelbarrow, and the Archive Door lets them into no new run before it is claimed.
+                        val lobby = Tile(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z)
+                        finding.command("raid tp 4127 5790")
+                        finding.awaitAt(raids.tile(run, 4127, 5790), "the north end of the vault's walk", ArchiveRaids.REWARD_LEVEL)
+                        val out = finding.await("the Rift out in view") { finding.npcs().firstOrNull { it.id == ArchiveRaids.RIFT_OUT } }
+                        finding.npcOp(out.index, 3)
+                        finding.awaitAt(lobby, "out to the lobby with the loot unclaimed")
+                        finding.commandReply("raidparty leave") { it.contains("left") || it.contains("Left") }
+                        finding.locOp(ArchiveRaids.ARCHIVE_DOOR, 4123, 5562, ArchiveRaids.ENTER)
+                        finding.awaitMessage("the Archive Door's refusal") { it.contains(ArchiveVaultLines.CLAIM_FIRST.key) }
+                        assertTrue(!world.instances.inDynamicArea(finding.position!!.x, finding.position!!.z), "still in the lobby")
+                        assertEquals(1, claimable(finding))
+                        finding.locOp(ArchiveChestWindow.WHEELBARROW, WHEELBARROW_X, WHEELBARROW_Z, ArchiveChestWindow.SEARCH)
+                        finding.await("the Wheelbarrow's window") { (ArchiveChestWindow.ID in finding.openInterfaces()).takeIf { it } }
+                        finding.await("the unique in it") { chest(finding).takeIf { it == listOf(pickaxe.id to 1) } }
+                        // Discard-all asks first: No keeps it, Yes destroys it, and the Wheelbarrow has nothing more.
+                        finding.ifButton(ArchiveChestWindow.ID, ArchiveChestWindow.DISCARD, ArchiveChestWindow.DISCARD_OP)
+                        finding.awaitDialogue("the question before discarding") { it is DialogueView.Menu }
+                        finding.chooseOption(2)
+                        finding.awaitTicks(2)
+                        val findingPlayer = world.playerNamed(if (finding === carol) "carol" else "dave")!!
+                        assertEquals(listOf(0 to InvObj(pickaxe.id, 1)), findingPlayer.archiveChest.contents())
+                        assertTrue(world.archiveChestWindow.isOpen(findingPlayer), "the window still open after No")
+                        finding.ifButton(ArchiveChestWindow.ID, ArchiveChestWindow.DISCARD, ArchiveChestWindow.DISCARD_OP)
+                        finding.awaitDialogue("the question again") { it is DialogueView.Menu }
+                        finding.chooseOption(1)
+                        finding.await("nothing left to claim") { claimable(finding).takeIf { it == 0 } }
+                        assertTrue(findingPlayer.archiveChest.isEmpty() && findingPlayer.inventory.count(pickaxe.id) == 0L && findingPlayer.bank.count(pickaxe.id) == 0L)
+                        // With nothing waiting the door lets them in again.
+                        finding.locOp(ArchiveRaids.ARCHIVE_DOOR, 4123, 5562, ArchiveRaids.ENTER)
+                        finding.await("into a new run") { finding.position?.takeIf { world.instances.inDynamicArea(it.x, it.z) } }
                     }
                 }
             }
@@ -848,6 +937,32 @@ class HeadlessArchiveRaidTest {
         val grave = assertNotNull(world.deaths.all.singleOrNull { it.owner == saveKey }, "$username's grave")
         assertEquals(Triple(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z, 0), Triple(grave.npc.x, grave.npc.z, grave.npc.level), "$username's grave in the lobby")
         assertEquals(lost, grave.items.contents().sumOf { it.second.count }, "$username's grave")
+    }
+
+    @Test
+    fun `the chest's window shows its loot again after a reconnect`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            val world = server.world
+            val alice = server.login("alice")
+            alice.tele(WHEELBARROW_X + 2, WHEELBARROW_Z)
+            val player = world.playerNamed("alice")!!
+            // Loot left unclaimed, as leaving the vault leaves it, put in while the world is paused.
+            alice.commandReply("pause") { it.contains("aused after tick") }
+            player.archiveChest[0] = InvObj(axe.id, 3)
+            world.archiveChestWindow.showClaimable(player)
+            alice.commandReply("resume") { it.startsWith("Resumed") }
+            alice.locOp(ArchiveChestWindow.WHEELBARROW, WHEELBARROW_X, WHEELBARROW_Z, ArchiveChestWindow.SEARCH)
+            alice.await("the Wheelbarrow's window") { (ArchiveChestWindow.ID in alice.openInterfaces()).takeIf { it } }
+            alice.await("the axes in it") { alice.inventory(ArchiveChestWindow.INV).filterNotNull().takeIf { it.size == 1 } }
+            // A new connection comes back while the old one is still open: the window stays, and its loot comes again.
+            server.reconnect("alice", alice).use { back ->
+                back.await("the axes in the window again") {
+                    back.inventory(ArchiveChestWindow.INV).filterNotNull().map { it.id to it.count }.takeIf { it == listOf(axe.id to 3) }
+                }
+                assertTrue(world.archiveChestWindow.isOpen(world.playerNamed("alice")!!))
+            }
+            alice.close()
+        }
     }
 
     @Test
@@ -1208,6 +1323,13 @@ class HeadlessArchiveRaidTest {
     private companion object {
         /** The varp tfa_vault_own_chest is the low four bits of (241.4 cache). */
         const val OWN_CHEST_VARP = 5922
+
+        /** The varp tfa_has_claimable_loot is bit 10 of; the Loot Wheelbarrow closed, and where the lobby has it (241.4 cache). */
+        const val CLAIMABLE_VARP = 5912
+        const val WHEELBARROW_CLOSED = 63300
+        const val WHEELBARROW_X = 4136
+        const val WHEELBARROW_Z = 5551
+        const val BANK = 95
         const val INVENTORY = 93
         const val INVENTORY_IF = 149
         const val INVENTORY_ITEMS = 0
