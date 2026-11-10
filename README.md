@@ -2377,8 +2377,9 @@ Bows and crossbows fire at NPCs (`game/combat/RangedCombat.kt`). Attack with a r
 NPC is in range and in sight, then you shoot every weapon-speed ticks. Which weapons fire which ammunition, their ranges
 and graphics are in `src/main/resources/ranged-weapons.json` (items, animations and spotanims by gameval name; every
 name there is in both 241 caches). `::combat` shows your ranged numbers with a bow; `::fight` covers ranged fights.
-Not in yet: thrown weapons, crystal bows, the twisted bow, the dragon hunter crossbow, ballistas, enchanted bolts, Ava's
-devices and special attacks.
+Thrown weapons (darts, knives and thrownaxes, every metal and poison) throw from the weapon slot, and the light and
+heavy ballistas fire javelins from the ammo slot. Not in yet: crystal bows, the dragon hunter crossbow, enchanted
+bolts and the thrown weapons' and ballistas' special attacks.
 
 | Ranged behaviour | Source |
 |------------------|--------|
@@ -2395,9 +2396,14 @@ devices and special attacks.
 | "You can't use that ammo with your bow." / "... crossbow." | guessed wording |
 | Projectile heights, start, arc and the second dark bow arrow leaving 10 cycles later; the crossbow animation (xbows_human_fire_and_reload_pvn) | guessed |
 | No or wrong ammunition ends the fight when you would fire, not on the click | guessed |
+| Darts range 3, knives and thrownaxes 4, ballistas 9; ballistas fire bronze to dragon javelins every 7 ticks, the hit landing 1 + (7 + d) / 6 ticks later (`HitDelay.BALLISTA`) | OSRS Wiki, Attack range, Light ballista, Heavy ballista and Hit delay |
+| Thrown weapons fire from the weapon slot, one a throw; their launch and travel graphics and the dart, dragon knife and ballista animations by their 242 cache names | OSRS Wiki, Thrown weapons; 242 cache |
+| A thrown weapon that doesn't break falls under the target, as arrows do, unless an Ava's device brings it back | inferred from arrows |
+| The knife and thrownaxe throw animation (`human_stake2_pvn`); the ballista's wrong-ammunition message (`combat.wrong_javelins`, words on the server) | guessed |
 
 Check: `./gradlew test --tests 'osrsps.game.combat.Ranged*' --tests 'osrsps.testclient.HeadlessRangedTest'`, and in
-RuneLite `test-runner/examples/combat-ranged-shortbow.json`.
+RuneLite `test-runner/examples/combat-ranged-shortbow.json` and `combat-thrown.json`; thrown weapons and ballistas
+also in `HeadlessThrownTest`.
 
 ## Home teleport
 

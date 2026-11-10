@@ -13,6 +13,8 @@ class HitDelayTest {
         assertEquals(listOf(1, 1, 2, 2, 2, 2, 2, 2, 3, 3), delays(HitDelay.BOW))
         // 1 + d / 6: 1 up to 5 tiles, 2 from 6.
         assertEquals(listOf(1, 1, 1, 1, 1, 2, 2, 2, 2, 2), delays(HitDelay.THROWN))
+        // Ballistae: 2 up to 4 tiles, 3 from 5 to 10.
+        assertEquals(listOf(2, 2, 2, 2, 3, 3, 3, 3, 3, 3), delays(HitDelay.BALLISTA))
         // 1 + (1 + d) / 3: 1 at 1 tile, 2 from 2 to 4, 3 from 5 to 7, 4 from 8.
         assertEquals(listOf(1, 2, 2, 2, 3, 3, 3, 4, 4, 4), delays(HitDelay.MAGIC))
     }
