@@ -1930,7 +1930,7 @@ loses goes in a grave there. The party lasts through the wipe.
 | A member down who gets out (a teleport such as Home Teleport or a lodestone, leaving the party, or a logout once out of combat) dying of it, with a grave in the lobby, as if they had been the last standing; a reconnect within the linger no escape | Sam's decision, 8 November 2026 (exploit review RAID-2); the death's place guessed |
 | A member down can't trade or be traded with, and what they drop stays theirs alone (never turning public), so a standing friend can't be handed their items before they get out (exploit review round 18, R18A-1) | guessed: live's raid rules aren't known; nothing is said on a refused request |
 | With no NPC slot free as the first of the party comes into Ezekiel's room, his room isn't started: each tick with one of the party in it tries again, rather than the run being stuck for good (exploit review round 18, R18A-3) | guessed |
-| Every room done as it begins, until its boss's step | stand-in (all but the Guardian's, Ezekiel's, Bork and the Smorks', Dreadnoth's and Xarth's) |
+| Every room done as it begins, until its boss's step | stand-in (all but the Guardian's, Ezekiel's, Bork and the Smorks', Dreadnoth's, Xarth's and Ocellus's) |
 | Ezekiel (step 17a): his fight beginning with the first of the party into his arena, that player his tank; his stats, 3,000 to 10,650 hitpoints by party size, the 25% earth weakness, poison and venom immunity and the 60% Defence drain floor | OSRS Wiki, Ezekiel (2026-11-09) |
 | Where he waits (4062,5537) and his arena (4056-4068 x 5528-5540); his room's transporter, between the way in and the arena, putting the player in it (4067,5535); where a player lands coming into his, Bork's, Dreadnoth's and Xarth's rooms (4079,5536, 4173,5599, 4174,5664, 4175,5535) | tsps capture notes (RSPSApp/tsps docs/fractured-archive.md; 2026-11-09) |
 | Ezekiel walking after his tank, a melee swing every 5 ticks cleaving everyone round him but those on his side opposite the tank; lightning on everyone when his tank is out of reach; a cross of lightning centred on him after every second swing, bursting twice, and 3% special attack energy for a perfect dodge of a burst | guides (osrstoolkit, osrsbestinslot, runescapeguides, bald.gg; 2026-11-09) |
@@ -1953,29 +1953,41 @@ loses goes in a grave there. The party lasts through the wipe.
 | Dreadnoth's enrage at 25% (step 20b): his line (key `tfa_dreadnoth.glub`, its words on the server, not in git), no more melee or crawl; his jumps at a random player, slamming them for a lot and healing about as much if they're under him, hurting everyone else without Protect from Melee wherever they stand; a ranged shot and a jelly splatter at each player after; jellies he lands on absorbed, healing him | OSRS Wiki, The Fractured Archive/Strategies (2026-11-10) |
 | The enrage's first jump 5 ticks after his line, then one every 8; landing centred on the player if within 5 tiles, else 5 tiles the nearest of eight ways towards them, never west of x 4184; the shadow where he lands, 3 ticks on (a 90-cycle move); one to three tiles of jelly in his footprint as he lands; the two projectiles at each player's tile, which becomes jelly 6 ticks later | tsps capture notes (2026-11-10) |
 | The enrage's damage: 30 to 50 under him with no prayer helping, up to 20 off him; the shot's as a wave's; an absorbed jelly's heal being its hitpoints left; his landings kept on his arena; the splatter hurting nobody as it lands; the jump shown as a teleport as he lands (NPC exact moves aren't built) | guessed |
-| His death splitting into seven jellies (step 20c); the Wiki's freeze and demonbane resistances | not in yet |
+| His death (step 20c): splitting into seven jellies of 37 hitpoints, the room won when the last one dies, the jelly on the floor cleared then | tsps capture notes (2026-11-10); the Wiki's Strategies say about ten at half their hitpoints, the captures taken over it |
+| The split jellies rising on his footprint at once, past the twelve; nothing of his still in the air landing once he splits, and no more jellies from gathered jelly; every jelly, the waves' too, having to go before the room is won, and not before 6 ticks (his death animation) | guessed |
+| Dreadnoth going from sight as he splits (he stands at 0 till the room is won: the engine can't yet hide an NPC still in a fight); the Wiki's freeze and demonbane resistances | not in yet |
 | Xarth (step 19a): 3 by 3, never moving; his stats, 2,600 to 9,230 hitpoints by party size, magic only in phase one at the player closest to him (max hit 36 with no prayer), the 85% water weakness, poison and venom immunity and the 60% Defence drain floor; a fireball that hits setting the player alight, the burn starting again a stack hotter with each that hits while it runs; the bind on everyone before the blast; the wave's ~45 on whoever has no cover, and a player in front taking that for one behind, who takes ~7 | OSRS Wiki, Xarth and The Fractured Archive/Strategies (2026-11-10) |
 | Where he (4190,5534) and his three 2 by 2 rubble heaps (4193,5530, 4196,5536, 4193,5540) stand, his footprint's nine blocking tiles; the room's transporter putting the player on his arena (4184,5535), which begins his fight; phase one's three 31-tick cycles of five fireballs 4 ticks apart, the AoE with a projectile at each player's tile, the flame blast 3 ticks after it and the wave 3 after that, rolling out a client cycle per tile; the wave's 90 degree wedge towards the heap that falls (a row out his width and a tile each side, a tile wider each row), all round the third time; the heaps falling south or north first, then east, then the other; the falling heap sheltering the tiles it hides from his middle tile (no wave) or only from his nearest footprint tile (the smaller explosion); its collapse for 3 ticks; his body gone 6 ticks after he falls; the animations and spotanims by name | tsps capture notes (RSPSApp/tsps docs/fractured-archive.md: five spectator captures of live fights, rev 241.1; 2026-11-10) |
 | The set-alight chat message (`tfa_xarth.set_alight`, a key in code, the words in the dialogue file); his bar's 4,860 for four and 5,950 for five; the burn after it, 7 or 8 every 4 ticks, at least 6 of them; a wave's 100 on a player in the open (twice) and a 60 on another, and a player just south of a heap taking none; a fireball never missing through Protect from Missiles and doing 1 to 6, and landing 3 ticks after the wind-up from 6 or 7 tiles; the AoE's flames reaching the party 2 ticks on, 23 on Sam | Sam's recordings of live parties of four and five (2026-11-09), read by the Review thread's dense pass (2026-11-10) |
 | The first cycle 2 ticks in; the AoE 4 ticks after the last fireball; the bind lasting till the flame blast (3 ticks), as a stun; the AoE's projectile hurting whoever is on its tile for 15 to 30, no prayer helping; the nearest player's tie broken by the lowest index; a fireball needing no line of sight; Protect from Magic cutting a fireball as Protect from Missiles does, and a prayed one setting no burn; the burn stopping after 6 and its stacks (3 more a stack, up to 3); the wave's 40 to 100 with no prayer helping, on the wave's own tick, 5 to 9 when screened, and nothing from the smaller explosion; his arena (4184-4198 x 5527-5543 bar its corners, as Bork's round its room's middle); the heaps blocking the way until they fall | guessed |
 | Phase two (the arena fires that spread, the burning corpse piles, his ranged and melee, the Corpses that walk to him and heal him twice what they have left, the blast after two absorbed); the "shield" the Wiki says the first explosion takes off; the blast on everyone when all hide too soon; the AoE's shadow; the fallen heap's blockrange; his death spotanim | not in yet: steps 19b and 19c (phase two is a stand-in in which he stands and does nothing) |
+| Ocellus (step 24a): his arena upstairs, on level 1 of the cache's square 64,88, the party landing at 4128,5637 from the nexus's Passageway; the hooded figure (`tfa_ocellus_intro`, 16671, shown met or not met) waiting at 4126,5669 from the run's start; his first phase's stats, 2,500 to 8,880 hitpoints by party size, magic and ranged, poison and venom immunity and the 60% Defence drain floor | Sam's recording of 2026-11-09 (the landing: Grid Info); tsps capture notes (the level, the figure and its tile); OSRS Wiki, Ocellus (2026-11-10) |
+| The fight beginning once everyone else in the party has come into his arena and readied at the figure, or 2 minutes after the first ready, with whoever is in the arena then; each ready telling the player how many of the party are ready and the rule (both the game's own chat from Sam's clip, the words kept in the dialogue file under keys); him taking the figure's place as his first phase with his line (key `tfa_ocellus.ascension`, its words on the server, not in git) | Sam's recordings of 2026-11-09; tsps capture notes |
+| His first phase (the shield phase): walking from corner to corner of the arena anticlockwise, from a random first one, a tile a tick, under Protect from Melee (his head icon), a fireball or water ball at everyone every 5 ticks as he walks; at a corner, the prayer down and seven cracks 2 ticks apart from the tick after, each laid towards the middle as a start, then shown 2 ticks on, its energy flowing 5 ticks after it was laid; nobody on a crack charging him 2 of 96 (shown in `::raid` and his log), a player on it healed what they lost since it was laid and then hit for 2 to 6; one of his three lines 3 ticks after the last crack, his explosion 3 after that (two rings round him, the inner at once and the outer a tick later, 15 to 35), and on to the next corner 3 after it | tsps capture notes (RSPSApp/tsps docs/fractured-archive.md; 2026-11-09) and Sam's recordings (the charge bar's steps, the lines) |
+| The arena's corners 6 tiles from its middle (3 north of the figure); the cracks' 7 lines (2 rows, 2 columns, 3 diagonals) 8 tiles long; Talk-to readying up as well as Proceed (Talk-to, and Proceed for a player who has met him, are the 242 cache's "Hooded Figure" and "Ocellus" options); the first shot 5 ticks after he begins walking; the heal being up to what was lost since the crack was laid; melee doing nothing through his prayer | guessed |
+| Until step 24b, his first phase run out kills him and does the room; his middle at 2/3 and 1/4, the sides' cracks, his attack on everyone that resets the charge, the hold at 1 and his health phase; his charge bar and health bars on screen | stand-in / not in yet: steps 24b to 27 |
 | Once the run is done, a Passageway (`tfa_exit`) at the south edge of Ocellus's room, just south of where the party comes in, whose Exit leaves to the lobby in front of the Archive Door | stand-in until the reward room (step 28): the cache has no way out of that room (Sam's decision, 8 November 2026, exploit review RAID-3); where it stands guessed |
 | The bosses after the Guardian, the Quartermaster and Supply Credits, the party's orbs, the reward room, deaths' item costs | not in yet: steps 18 to 31 |
 
-`::raid run` shows the run you're in, `::raid tp nexus` or `::raid tp ezekiel` goes to its nexus or a room, and
+`::raid run` shows the run you're in, `::raid tp nexus` or `::raid tp ezekiel` goes to its nexus or a room, `::raid tp x z`
+goes to a cache tile of the raid mapped into the run (on its room's level; for scripts, which can't know where the
+instance lies), and
 `::raid clear` marks the room you're in done, as if its boss died; a room whose fight never began (the Guardian before it is touched) gives its points to whoever of the party stands in it. Check: `./gradlew test --tests 'osrsps.game.instance.*'
 --tests 'osrsps.game.combat.DeathsTest' --tests 'osrsps.testclient.HeadlessArchiveRaidTest'` (a run through the empty
 rooms by the west doors and one by the east; rows opening in order and a row's other door shut; a death that leaves the
 party standing, a player too late to come in, the wipe to the lobby with graves, and a member down who teleports out,
 leaves the party or logs out dying of it), and in RuneLite
 `test-runner/examples/archive-raid-flow.json` (both runs, solo) and `archive-raid-wipe.json` (a death in the raid back to
-the lobby, with a grave).
+the lobby, with a grave). Ocellus: `./gradlew test --tests 'osrsps.testclient.HeadlessOcellusTest'` (the figure and the
+ready check, alone, with two, and the 2 minutes; his walk, corners, cracks, charge and explosion; a crack caught) and
+`test-runner/examples/archive-ocellus.json`.
 
 ## Encounters
 
 A boss fight is written as an encounter (raid step 12): `game/encounter/Encounter.kt` has the boss, its phases, and each
 phase's attack cycle, steps a set number of ticks apart that repeat. A phase ends when the boss's hitpoints fall to a
-share of its maximum, or after so many ticks, and the next begins. A step can hit a player, put down tile hazards (a
+share of its maximum, or after so many ticks, and the next begins, or the one the phase names (a fight that goes
+round: a shield that comes back). A step can hit a player, put down tile hazards (a
 warning graphic now, then damage each tick to whoever stands on the tiles), or put in adds.
 `game/encounter/Encounters.kt` runs every fight once a tick. A fight ends when its boss dies or leaves the world, and its
 adds and hazards go with it. Each fight keeps a log of what it did, by tick. Every roll comes from the world's random, so
@@ -1990,6 +2002,7 @@ a fight started on a seed plays the same way each time.
 | A hazard's hit still counting as combat: it cuts a Home Teleport or lodestone cast short and holds a logout, as the boss's own hit would (exploit review round 11, ENC-1) | guessed |
 | Adds and hazards going when the boss dies or leaves | guessed; each boss's step changes it if live keeps them |
 | A phase also ending when its own test says so (a shield broken); steps put off a few ticks (a laser aimed now, landing later) running after the cycle and before the hazards, never once the fight is over | guessed |
+| A phase naming the one that follows it, an earlier one too; a name the fight hasn't ending the fight, said in its log | ours: a mistake in a fight's own code, kept from throwing in the game tick |
 | A boss whose fight picks its attacks (the Guardian) never swinging, shooting, walking after anyone or retreating by itself, and keeping the first player it took on while they last | guessed |
 | A fight outside an instance covering 32 tiles round the boss's spawn, for the starter and their raid party only (so another test account standing in Lumbridge isn't drawn in), ending if the starter dies or logs out (else a script stopped mid-fight leaves them dying again and again at Lumbridge's spawn) | testing only: the raid's rooms are instances |
 | The Archive Guardian (step 16); the others each come with their own step, from 17 on, with its room and gear sets for `::raid` | not in yet: steps 17 to 27 |
@@ -1998,15 +2011,17 @@ a fight started on a seed plays the same way each time.
 ticks. Check: `./gradlew test --tests 'osrsps.game.encounter.*' --tests 'osrsps.game.command.RaidCommandsTest'
 --tests 'osrsps.testclient.HeadlessEncounterTest'` (a test boss plays the same 100 ticks on two runs with the same seed
 and differently on another; its phases change at half hitpoints and on time, with an add and a hazard, and the fight
-ends when the boss leaves).
+ends when the boss leaves; a phase goes back to the one it names, three times round, then on).
 
 ## The Archive Guardian
 
 The raid's first boss (raid step 16a) is `game/raid/ArchiveGuardian.kt`, an encounter on the cache's two forms. It
 waits in the nexus's hall as the "Inert Guardian" until a member touches it. It wakes levitating, with its shield's
 hitpoints, shooting the player it took on every 5 ticks and slamming anyone who stands under it instead; only ranged,
-magic and halberds reach it. With the shield gone it falls to the ground, blasting whoever is under or beside it, with
-its grounded hitpoints, and swings at a player beside it. At 30% it takes off again for good, with no shield, and fires
+magic and halberds reach it. With the shield gone it holds at 0 for 2 ticks and falls to the ground, blasting whoever is
+under or beside it, with its grounded hitpoints, and swings at a player beside it. After 35 ticks on the ground it lifts
+off behind a whole shield, and when that is gone it comes down again with the hitpoints it had left, for 41 ticks each
+time from then on. Once its hitpoints are at 30%, 4 ticks later it takes off for good, with no shield, and fires
 a laser at a random player every 10 ticks, its damage shared by everyone on the laser's line. Its death does the room.
 While its shield is up, and between lasers at the end, it grows a mushroom two tiles from each player; stepping beside one
 bursts it, poisoning and wearying (no running, attacks a tick slower), and the burst splashes anyone two tiles off.
@@ -2020,6 +2035,8 @@ standing behind its target, halving the laser and hurting the Guardian, but neve
 | Stats, bonuses, both forms' hitpoints by party size (shield 550 to 1,950, grounded 1,100 to 3,910), 5-tick attacks, max hits 25 and 99+, 80% fire weakness, poison and venom immunity, Defence drained to 60% at most | Wiki, Archive Guardian (read 2026-11-03) |
 | Two forms: `tfa_guardian` (16659) levitating, `tfa_guardian_unshielded` (16660) grounded with slash defence 90 not 110; the animations and spotanims by name | 241.4 cache |
 | Levitating, only ranged, magic and halberds hitting it; shots at the player it chose; a slam on whoever stands under it; the shield's break grounding it; a blast on those under or next to it; the last phase at 30% with no shield; the laser "fatal if more than two players are alive and it isn't reduced", shared by standing in line, "slightly" cut by Protect from Magic | Wiki, The Fractured Archive/Strategies, as a guide site quotes it (the Wiki's own page is too long to read past its equipment) |
+| The shield and the hitpoints by turns: the shield whole again each time it lifts off, the hitpoints carried over; a broken shield's 2 ticks at 0 (2 to 3 seen); its first time down 35 ticks (34, 36 and 35 seen, with 55%, 76% and 64% of its hitpoints left) and 41 each time after (41 and 40 to 41 seen); a time down ending 4 ticks after its hitpoints go under 30% (seen once, 33 ticks in; guessed: the 4 ticks run their course even when its time on the ground would be up sooner) | Sam's recordings of three live fights (2026-11-09, parties of four and five), the bars read tick by tick |
+| A shield in the last phase too, a beam at a player spending the inert guardian behind them for 40% of it, and the beams going on after | Sam's recordings; not in yet (the last phase here is still the Wiki's, with no shield) |
 | The grounded form's 40% fire weakness | a guide (osrsbestinslot); the Wiki lists 80% and 40% without saying which form has which |
 | Ranged shots (Protect from Missiles), a crush swing grounded (Protect from Melee), the slam blocked by Protect from Melee | guessed for the slam; the prayers for the others from the attack styles |
 | The first attack 5 ticks into each phase; the laser every 10 ticks, landing 3 after it is aimed; its line from the boss's middle through its target, 32 tiles on | guessed |
@@ -2037,12 +2054,13 @@ standing behind its target, halving the laser and hurting the Guardian, but neve
 
 `::raid guardian party=3` starts it where you stand, `phase=grounded` or `phase=airborne` from a later phase. Check:
 `./gradlew test --tests 'osrsps.testclient.HeadlessArchiveGuardianTest' --tests 'osrsps.game.combat.NpcCombatTest' --tests 'osrsps.game.MovementTest'`
-(touched awake in its hall, through its three phases to its death doing the room, the instance multi-way; the laser
+(touched awake in its hall, through its three phases to its death doing the room, the instance multi-way; its shield
+back after 35 ticks on the ground and after 41 the next time, its hitpoints carried over; the laser
 shared by two on its line; melee refused while it levitates but for a halberd; the laser's line and damage; a mushroom
 bursting with poison and weariness, then splashing; a vine's swipes held to 11 by Protect from Melee; a weary player
 walking with run on; the inert guardians charged into the shield, three grounding it, and broken by the laser, which
 they halve, never into kill range), and in RuneLite `test-runner/examples/archive-guardian.json` (the whole fight solo
-with the right prayers, moved on with `::hit`), `test-runner/examples/archive-guardian-hazards.json` (a vine and a
+with the right prayers, one round of its shield coming back, moved on with `::hit`), `test-runner/examples/archive-guardian-hazards.json` (a vine and a
 mushroom) and `test-runner/examples/archive-guardian-batteries.json` (an inert guardian charged).
 
 ## The Fractured Archive lobby

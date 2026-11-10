@@ -1,5 +1,5 @@
 {
- "name": "Raid step 16a: the Archive Guardian solo, from Touch in the nexus's hall through its shield (shots blocked by Protect from Missiles), its fall to the ground (Protect from Melee) and its lift-off at 30% with the laser (Protect from Magic), to its death doing the room; phases moved on with ::hit",
+ "name": "Raid step 16a: the Archive Guardian solo, from Touch in the nexus's hall through its shield (shots blocked by Protect from Missiles), its fall to the ground (Protect from Melee), its lift-off behind a whole shield 35 ticks later and its second fall with the hitpoints it had left, and its lift-off at 30% with the laser (Protect from Magic), to its death doing the room; phases moved on with ::hit",
  "account": "test",
  "steps": [
   {
@@ -148,6 +148,69 @@
    "comment": "the grounded hitpoints for a player alone, full"
   },
   {
+   "step": "command",
+   "text": "::god on",
+   "expectMessage": "You can't be hurt now",
+   "comment": "till it is in the air for good: the vines' swipes every 3 ticks would kill a player who stands still through its time on the ground"
+  },
+  {
+   "step": "command",
+   "text": "::varp 172 1",
+   "expectMessage": "Varp 172:",
+   "comment": "auto retaliate off, or punches back at it on the ground take a hitpoint here and there; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::hit 100",
+   "expectMessage": "1000/1100 hp",
+   "comment": "some of its hitpoints gone, to see them kept"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 38,
+   "comment": "35 ticks after it came down it lifts off again (Sam's recordings: 34 to 36 ticks, three fights)"
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "phase 1 (shield)",
+   "comment": "the shield phase again"
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "Archive Guardian 550/550 hp",
+   "comment": "its shield whole"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 30",
+   "expectMessage": "shield: lifts off with 100",
+   "comment": "1000 left, or 1001: a hitpoint comes back to it now and then (its regeneration)"
+  },
+  {
+   "step": "command",
+   "text": "::hit 550",
+   "expectMessage": "0/550 hp",
+   "comment": "the second shield gone"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4,
+   "comment": "2 ticks at 0, then down"
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "phase 2 (grounded)"
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "Archive Guardian 100",
+   "comment": "what it had left (1000, or a point or two more by its regeneration), not full again"
+  },
+  {
    "step": "clickWidget",
    "interfaceId": 541,
    "component": 21,
@@ -155,19 +218,26 @@
   },
   {
    "step": "command",
-   "text": "::hit 770",
-   "expectMessage": "330/1100 hp",
-   "comment": "down to 30%"
+   "text": "::hit 700",
+   "expectMessage": "/1100 hp",
+   "comment": "down under 30% (330), whatever came back by its regeneration"
   },
   {
    "step": "waitTicks",
-   "ticks": 2
+   "ticks": 7,
+   "comment": "it lifts off 4 ticks after its hitpoints are seen there"
   },
   {
    "step": "command",
    "text": "::raid",
    "expectMessage": "phase 3 (airborne)",
    "comment": "in the air again for good, with no shield"
+  },
+  {
+   "step": "command",
+   "text": "::god off",
+   "expectMessage": "You can be hurt again.",
+   "comment": "before its laser, whose damage is read below"
   },
   {
    "step": "command",

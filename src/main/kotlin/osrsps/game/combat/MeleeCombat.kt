@@ -347,8 +347,10 @@ class MeleeCombat(
             0
         }
         // XP for what the swing can still deal: what the NPC has left after the swings and shots already on their way,
-        // down to its floor (a rockslug's 1 hitpoint pays nothing more).
-        val damage = minOf(armoured(npc, rolled, magic = false), (npc.hitpoints - combat.floor(npc, player) - npc.incoming).coerceAtLeast(0))
+        // down to its floor (a rockslug's 1 hitpoint pays nothing more). Nothing through its Protect from Melee
+        // (Npc.protectsFromMelee), rolled as the prayer's flag stood at the swing.
+        val landed = if (npc.protectsFromMelee) 0 else rolled
+        val damage = minOf(armoured(npc, landed, magic = false), (npc.hitpoints - combat.floor(npc, player) - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage
         val bonus = combat.npcCombat[npc.type]?.xpBonusTenths ?: 0
         for (skill in style.xp) player.skills.addTenths(skill, CombatMath.withXpBonus(CombatMath.styleXpTenths(damage, style.xp.size), bonus))
@@ -1140,6 +1142,8 @@ class MeleeCombat(
 
 /** The client's hitsplat ids (RuneLite's HitsplatID): the red damage splat and the blue block, each for the fighters and for onlookers. */
 object HitsplatType {
+    /** heal: a heal's hitsplat, as live shows on a player catching Ocellus's crack (tsps capture notes: hitsplat 6). */
+    const val HEAL = 6
     const val BLOCK_ME = 12
     const val BLOCK_OTHER = 13
     const val DAMAGE_ME = 16

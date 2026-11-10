@@ -98,10 +98,21 @@ class HeadlessEncounterTest {
         ),
     )
 
+    /** Goes round: up and down three times, then on to the one after, whose own next names a phase the fight hasn't. */
+    private var rounds = 0
+    private val round = EncounterDef(
+        "round", guardian,
+        listOf(
+            PhaseDef("up", endsAfter = 2),
+            PhaseDef("down", endsAfter = 3, onStart = { rounds++ }, next = { if (rounds < 3) "up" else null }),
+            PhaseDef("last", endsAfter = 4, next = { "nowhere" }),
+        ),
+    )
+
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, npcTypes = types, partyScaling = PartyScaling.load(types),
-            encounterDefs = listOf(drill, steps, vanish, zap), cycleMillis = millis,
+            encounterDefs = listOf(drill, round, steps, vanish, zap), cycleMillis = millis,
         ).also { running = it }
     }
 
@@ -170,8 +181,29 @@ class HeadlessEncounterTest {
                 // The boss leaving ends the fight and takes its add.
                 alice.commandReply("delnpc 1") { it.startsWith("Removed") }
                 alice.awaitTicks(2)
-                assertEquals("You're not in a fight. Bosses: drill, steps, vanish, zap", alice.commandReply("raid") { it.startsWith("You're not") })
+                assertEquals("You're not in a fight. Bosses: drill, round, steps, vanish, zap", alice.commandReply("raid") { it.startsWith("You're not") })
                 assertEquals("No NPCs within 15 tiles.", alice.commandReply("npcs") { it.startsWith("No NPCs") || it.contains("NPC") })
+            }
+        }
+    }
+
+    @Test
+    fun `a phase goes on to the one it names, an earlier one too, or to the one after it, and a name it hasn't ends the fight`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                alice.await("the login rebuild") { alice.position }
+                alice.commandReply("raid round") { it.startsWith("Started") }
+                val fight = server.world.encounters.all.single()
+                alice.await("the fight ended", timeoutMillis = 10_000) { fight.ended.takeIf { it } }
+                val first = fight.lines.first().substringBefore(' ').toLong()
+                val told = fight.lines.map { line -> "${line.substringBefore(' ').toLong() - first} ${line.substringAfter(' ')}" }
+                assertEquals(
+                    listOf(
+                        "0 up: phase starts", "2 down: phase starts", "5 up: phase starts", "7 down: phase starts", "10 up: phase starts",
+                        "12 down: phase starts", "15 last: phase starts", "19 last: ends: no phase 'nowhere' to go on to",
+                    ),
+                    told,
+                )
             }
         }
     }
@@ -183,7 +215,7 @@ class HeadlessEncounterTest {
                 alice.await("the login rebuild") { alice.position }
                 alice.commandReply("raid vanish") { it.startsWith("Started") }
                 alice.awaitTicks(6)
-                assertEquals("You're not in a fight. Bosses: drill, steps, vanish, zap", alice.commandReply("raid") { it.startsWith("You're not") })
+                assertEquals("You're not in a fight. Bosses: drill, round, steps, vanish, zap", alice.commandReply("raid") { it.startsWith("You're not") })
                 assertEquals("You have 10/10 hitpoints.", alice.commandReply("hp") { it.startsWith("You have") })
             }
         }

@@ -63,6 +63,7 @@ import osrsps.game.raid.ArchiveGuardian
 import osrsps.game.raid.Bork
 import osrsps.game.raid.Dreadnoth
 import osrsps.game.raid.Ezekiel
+import osrsps.game.raid.Ocellus
 import osrsps.game.raid.PartyScaling
 import osrsps.game.raid.Xarth
 import osrsps.game.shop.ShopTypes
@@ -260,7 +261,7 @@ class GameServer(
             attackStyles = attackStyles, npcCombat = npcCombat, npcDrops = npcDrops, partyScaling = partyScaling, rangedWeapons = rangedWeapons,
             spells = spells, prayerList = prayers, foodList = Foods.load(objTypes), potionData = Potions.load(objTypes), shopTypes = shopTypes, skillUnlocks = skillUnlocks, ipBans = ipBans, xpRate = xpRate,
             wearRequirements = wearRequirements, itemPrices = itemPrices, itemPricesFile = itemPricesFile, settings = settings,
-            specialAttackCosts = specialAttackCosts, encounterDefs = listOfNotNull(ArchiveGuardian.def(npcTypes), Ezekiel.def(npcTypes), Bork.def(npcTypes), Dreadnoth.def(npcTypes), Xarth.def(npcTypes)),
+            specialAttackCosts = specialAttackCosts, encounterDefs = listOfNotNull(ArchiveGuardian.def(npcTypes), Ezekiel.def(npcTypes), Bork.def(npcTypes), Dreadnoth.def(npcTypes), Xarth.def(npcTypes), Ocellus.def(npcTypes)),
             cycleMillis = cycleMillis,
         )
         loadObjSpawns(objTypes)

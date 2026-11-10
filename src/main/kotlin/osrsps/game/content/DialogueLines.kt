@@ -19,6 +19,7 @@ import osrsps.game.ge.GrandExchangeLines
 import osrsps.game.ge.PriceCheckerLines
 import osrsps.game.raid.BorkLines
 import osrsps.game.raid.DreadnothLines
+import osrsps.game.raid.OcellusLines
 import osrsps.game.raid.XarthLines
 import osrsps.game.shop.ShopLines
 import osrsps.game.skill.AgilityLines
@@ -83,6 +84,7 @@ object DialogueLines {
         BlueMoonBarbarianLines,
         BorkLines,
         DreadnothLines,
+        OcellusLines,
         XarthLines,
         CadmusLines,
         FeorasLines,

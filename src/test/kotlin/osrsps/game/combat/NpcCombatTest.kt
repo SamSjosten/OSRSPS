@@ -73,6 +73,7 @@ class NpcCombatTest {
             "npc_archive_guardian_range_attack01" to 14751, "npc_archive_guardian_melee_attack01" to 14752, "npc_archive_guardian_death01" to 14749,
             "npc_ezekiel_melee01" to 14685, "npc_ezekiel_death01" to 14689,
             "npc_bork_gong_melee01" to 14542, "npc_bork_death01" to 14541, "npc_smork_cannon_attack01" to 14554,
+            "npc_ocellus_phase1_basic_projectile_start" to 14806,
             "dreadnoth_melee01" to 14779, "dreadnoth_death01" to 14782, "jelly_attack" to 1586, "jelly_death" to 1587,
             "xarth_attack_magic_01" to 14984, "xarth_death_01" to 14995,
             "demon_attack" to 64, "demon_block" to 65, "demon_death" to 67,
@@ -599,6 +600,19 @@ class NpcCombatTest {
         assertEquals(listOf(7, 9), listOf(him.deathTicks, them.deathTicks))
         assertEquals(listOf(140, 130, 10, 300), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { him.defence.against(it) })
         assertEquals(listOf(220, 170, 160, 400), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { them.defence.against(it) })
+    }
+
+    @Test
+    fun `Ocellus's first phase fights as the Wiki has it, both his shots at the +150`() {
+        val ocellus = NpcType(16674, "Ocellus", size = 3, internalName = "tfa_ocellus_p1", stats = NpcStats(attack = 1, defence = 215, strength = 1, hitpoints = 2500, ranged = 250, magic = 350))
+        val him = NpcCombat.load(NpcTypes.of(ocellus), seqs)[ocellus]!!
+        assertEquals(listOf(5, 36), listOf(him.attackSpeed, him.maxHit))
+        // His fireball rolls ranged and his water ball magic: ranged is the primary style, so each finds its +150.
+        assertEquals(AttackType.RANGED, him.attackType)
+        assertEquals(listOf(150, 150), listOf(him.attackBonus, him.magicAttack))
+        assertEquals(listOf(150, 95, 60, 100), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { him.defence.against(it) })
+        assertEquals(mapOf(NpcStat.DEFENCE to 60), him.drainCaps)
+        assertTrue(him.poisonImmune && him.venomImmune)
     }
 
     @Test

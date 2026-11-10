@@ -90,6 +90,11 @@
    "comment": "in at the room's way in, west of the arena"
   },
   {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "the client redraws the scene after the teleport before it can reach the transporter (VM 215)"
+  },
+  {
    "step": "locOption",
    "locId": 63134,
    "option": "Use",
@@ -98,7 +103,8 @@
   },
   {
    "step": "waitTicks",
-   "ticks": 3
+   "ticks": 10,
+   "comment": "the walk to the transporter and through it: in the arena 7 to 8 ticks after the Use (VM 215)"
   },
   {
    "step": "command",
@@ -255,12 +261,82 @@
    "step": "command",
    "text": "::kill tfa_jelly_boss",
    "expectMessage": "Killed Dreadnoth the Jellied",
-   "comment": "whatever he healed, down he goes"
+   "comment": "down to 0, whatever he healed: he doesn't die but splits (20c)"
+  },
+  {
+   "step": "assertAnimation",
+   "npc": "Dreadnoth the Jellied",
+   "id": 14782,
+   "timeoutMs": 5000,
+   "comment": "dreadnoth_death01 as he splits"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 30",
+   "expectMessage": "split: splits into 7 jellies"
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "Dreadnoth the Jellied 0/2100 hp, 7 jellies",
+   "comment": "seven jellies of 37 from his footprint"
   },
   {
    "step": "waitTicks",
-   "ticks": 8,
-   "comment": "his death animation; the room is done as he dies"
+   "ticks": 7,
+   "comment": "his death animation, six ticks"
+  },
+  {
+   "step": "command",
+   "text": "::hit 37 tfa_jelly_minion",
+   "expectMessage": "0/37 hp, dead",
+   "comment": "jelly 1 of 7"
+  },
+  {
+   "step": "command",
+   "text": "::hit 37 tfa_jelly_minion",
+   "expectMessage": "0/37 hp, dead",
+   "comment": "jelly 2 of 7"
+  },
+  {
+   "step": "command",
+   "text": "::hit 37 tfa_jelly_minion",
+   "expectMessage": "0/37 hp, dead",
+   "comment": "jelly 3 of 7"
+  },
+  {
+   "step": "command",
+   "text": "::hit 37 tfa_jelly_minion",
+   "expectMessage": "0/37 hp, dead",
+   "comment": "jelly 4 of 7"
+  },
+  {
+   "step": "command",
+   "text": "::hit 37 tfa_jelly_minion",
+   "expectMessage": "0/37 hp, dead",
+   "comment": "jelly 5 of 7"
+  },
+  {
+   "step": "command",
+   "text": "::hit 37 tfa_jelly_minion",
+   "expectMessage": "0/37 hp, dead",
+   "comment": "jelly 6 of 7"
+  },
+  {
+   "step": "command",
+   "text": "::hit 37 tfa_jelly_minion",
+   "expectMessage": "0/37 hp, dead",
+   "comment": "jelly 7 of 7"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 6,
+   "comment": "the last jelly's death animation; the room is won once it's gone"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 30",
+   "expectMessage": "split: the last jelly gone"
   },
   {
    "step": "command",
