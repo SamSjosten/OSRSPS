@@ -44,6 +44,17 @@ object CookingMixLines : Lines("cooking_mix", "Cooking") {
     val PINEAPPLE_PIZZA = line("pineapple_pizza", "Pineapple pizza: the message on adding pineapple to a plain pizza")
     val UNCOOKED_CAKE = line("uncooked_cake", "Uncooked cake: the message on mixing an egg, milk and flour in a cake tin")
     val CHOCOLATE_CAKE = line("chocolate_cake", "Chocolate cake: the message on adding chocolate to a cake")
+    val STEW_MEAT = line("stew_meat", "Incomplete stew: the message on putting cooked meat or chicken in a bowl of water")
+    val STEW_POTATO = line("stew_potato", "Incomplete stew: the message on putting a potato in a bowl of water")
+    val STEW_ADD_MEAT = line("stew_add_meat", "Uncooked stew: the message on adding cooked meat or chicken to the potato stew")
+    val STEW_ADD_POTATO = line("stew_add_potato", "Uncooked stew: the message on adding a potato to the meat stew")
+    val CURRY_SPICE = line("curry_spice", "Uncooked curry: the message on adding spice to an uncooked stew")
+    val CURRY_LEAVES = line("curry_leaves", "Uncooked curry: the message on adding three curry leaves to an uncooked stew")
+    val WINE = line("wine", "Unfermented wine: the message on squeezing grapes into a jug of water")
+    val CHURN_CREAM = line("churn_cream", "Pot of cream: the message on churning one")
+    val CHURN_BUTTER = line("churn_butter", "Pat of butter: the message on churning one")
+    val CHURN_CHEESE = line("churn_cheese", "Cheese: the message on churning one")
+    val CHURN_NOTHING = line("churn_nothing", "Dairy churn: the message on Churn with no milk, cream or butter (guessed)")
 }
 
 /**
@@ -57,7 +68,9 @@ object CookingMixLines : Lines("cooking_mix", "Cooking") {
  * pie's compost and water, the pot and bucket from the cake mix) and its ticks (1 for a dough, 2 for the rest).
  * Guessed: the first product a tick after the choice, a single recipe with one to make skipping the box, the words, the
  * flour and water's box listing the doughs in the Wiki's order (bread, pastry, pizza, pitta), and no animation.
- * Out: stews, curries, wine, dairy, potatoes with toppings and kebabs (step FC5b), the Hosidius range.
+ * Stews, curry and wine (step FC5b) came later, from the same pages and 2004Scape's stew and wine scripts (which give
+ * their words); the curry leaves' three at a time is the Wiki's Uncooked curry. Out: potatoes with toppings, kebabs,
+ * the Hosidius range.
  */
 object CookingMixes {
     private const val POT_OF_FLOUR = 1933
@@ -90,12 +103,12 @@ object CookingMixes {
     private const val COOKING_APPLE = 1955
     private const val POTATO = 1942
 
-    /** One thing a pair of items makes, at [level] for [xpTenths], [ticks] apart. */
+    /** One thing a pair of items makes, at [level] for [xpTenths], [ticks] apart ([first] to the first). */
     private fun mix(
         key: String, product: Int, level: Int, xpTenths: Int, inputs: List<Int>, made: Line,
-        byproducts: List<Int> = emptyList(), ticks: Int = 2,
+        byproducts: List<Int> = emptyList(), ticks: Int = 2, first: Int = 1, counts: Map<Int, Int> = emptyMap(),
     ) = MakeRecipe(
-        key, Skill.COOKING, product, 1, level, xpTenths, inputs.map { ObjCount(it, 1) }, emptyList(), -1, 1, ticks, made,
+        key, Skill.COOKING, product, 1, level, xpTenths, inputs.map { ObjCount(it, counts[it] ?: 1) }, emptyList(), -1, first, ticks, made,
         CookingMixLines.LEVEL, byproducts = byproducts.map { ObjCount(it, 1) },
     )
 
@@ -115,6 +128,15 @@ object CookingMixes {
         "uncooked_cake", UNCOOKED_CAKE, 40, 0, listOf(Cooking.CAKE_TIN, EGG, POT_OF_FLOUR, BUCKET_OF_MILK),
         CookingMixLines.UNCOOKED_CAKE, listOf(POT, BUCKET),
     )
+
+    const val INCOMPLETE_STEW_POTATO = 1997
+    const val INCOMPLETE_STEW_MEAT = 1999
+    const val UNCOOKED_STEW = 2001
+    const val UNCOOKED_CURRY = 2009
+    const val SPICE = 2007
+    const val CURRY_LEAF = 5970
+    const val GRAPES = 1987
+    const val UNFERMENTED_WINE = 1995
 
     /** Each pair of items and what it makes, in the box's order. */
     val PAIRS: List<Triple<Int, Int, List<MakeRecipe>>> = listOf(
@@ -163,10 +185,30 @@ object CookingMixes {
         Triple(Cooking.CAKE_TIN, BUCKET_OF_MILK, listOf(CAKE_MIX)),
         Triple(CAKE, 1973, listOf(mix("chocolate_cake", 1897, 50, 300, listOf(CAKE, 1973), CookingMixLines.CHOCOLATE_CAKE))),
         Triple(CAKE, 1975, listOf(mix("chocolate_cake_dust", 1897, 50, 300, listOf(CAKE, 1975), CookingMixLines.CHOCOLATE_CAKE))),
+        // Stew (step FC5b): a potato or cooked meat in a bowl of water, then the other; curry adds spice or three curry leaves.
+        Triple(BOWL_OF_WATER, POTATO, listOf(mix("stew_potato", INCOMPLETE_STEW_POTATO, 25, 0, listOf(BOWL_OF_WATER, POTATO), CookingMixLines.STEW_POTATO))),
+        Triple(BOWL_OF_WATER, COOKED_MEAT, listOf(mix("stew_meat", INCOMPLETE_STEW_MEAT, 25, 0, listOf(BOWL_OF_WATER, COOKED_MEAT), CookingMixLines.STEW_MEAT))),
+        Triple(BOWL_OF_WATER, COOKED_CHICKEN, listOf(mix("stew_chicken", INCOMPLETE_STEW_MEAT, 25, 0, listOf(BOWL_OF_WATER, COOKED_CHICKEN), CookingMixLines.STEW_MEAT))),
+        Triple(INCOMPLETE_STEW_POTATO, COOKED_MEAT, listOf(mix("stew_add_meat", UNCOOKED_STEW, 25, 0, listOf(INCOMPLETE_STEW_POTATO, COOKED_MEAT), CookingMixLines.STEW_ADD_MEAT))),
+        Triple(INCOMPLETE_STEW_POTATO, COOKED_CHICKEN, listOf(mix("stew_add_chicken", UNCOOKED_STEW, 25, 0, listOf(INCOMPLETE_STEW_POTATO, COOKED_CHICKEN), CookingMixLines.STEW_ADD_MEAT))),
+        Triple(INCOMPLETE_STEW_MEAT, POTATO, listOf(mix("stew_add_potato", UNCOOKED_STEW, 25, 0, listOf(INCOMPLETE_STEW_MEAT, POTATO), CookingMixLines.STEW_ADD_POTATO))),
+        Triple(UNCOOKED_STEW, SPICE, listOf(mix("curry_spice", UNCOOKED_CURRY, 60, 0, listOf(UNCOOKED_STEW, SPICE), CookingMixLines.CURRY_SPICE))),
+        Triple(UNCOOKED_STEW, CURRY_LEAF, listOf(
+            mix("curry_leaves", UNCOOKED_CURRY, 60, 0, listOf(UNCOOKED_STEW, CURRY_LEAF), CookingMixLines.CURRY_LEAVES, counts = mapOf(CURRY_LEAF to 3)),
+        )),
+        // Wine: grapes in a jug of water, 3 ticks then 2 (the Wiki's Unfermented wine); [Wine] ferments it.
+        Triple(GRAPES, JUG_OF_WATER, listOf(mix("wine", UNFERMENTED_WINE, 35, 0, listOf(GRAPES, JUG_OF_WATER), CookingMixLines.WINE, first = 3))),
     )
 
-    fun register(world: World) {
+    fun register(world: World, wine: Wine) {
         for ((a, b, recipes) in PAIRS) {
+            if (a == GRAPES) {
+                world.handlers.onObjOnObj(a, b) {
+                    wine.watch(player)
+                    world.making.choose(this, recipes, alwaysAsk = recipes.size > 1)
+                }
+                continue
+            }
             world.handlers.onObjOnObj(a, b) { world.making.choose(this, recipes, alwaysAsk = recipes.size > 1) }
         }
     }

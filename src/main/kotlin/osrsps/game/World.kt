@@ -1880,6 +1880,7 @@ class World(
         quests.completeAll(player.vars)
         lodestones.login(player)
         prayers.login(player)
+        cooking.wine.login(player)
         if (player.newAccount) allSettings.newAccount(player)
         player.message(textFor(player)[GameLines.WELCOME])
 

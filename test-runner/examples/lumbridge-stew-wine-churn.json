@@ -1,0 +1,46 @@
+{
+ "name": "Fishing and Cooking 2 step FC5b: a stew and a curry from a bowl of water, cooked on the Lumbridge kitchen range; a jug of wine that ferments 20 ticks after it is made; cheese from milk at the Lumbridge east farm's dairy churn (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario fishing-cooking", "expectMessage": "Started scenario fishing-cooking.", "comment": "99 Cooking; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::tele 3211 3215 0", "comment": "beside the Lumbridge Castle kitchen's Cooking range"},
+  {"step": "assertLocation", "x": 3211, "y": 3215, "plane": 0},
+  {"step": "command", "text": "::empty"},
+
+  {"step": "command", "text": "::item 1921 1", "comment": "a bowl of water"},
+  {"step": "command", "text": "::item 1942 1", "comment": "a potato"},
+  {"step": "command", "text": "::item 2142 1", "comment": "cooked meat"},
+  {"step": "command", "text": "::item 2007 1", "comment": "spice"},
+  {"step": "useItemOnItem", "itemId": 1942, "onItemId": 1921, "comment": "one of each: no box"},
+  {"step": "assertMessage", "contains": "cooking_mix.stew_potato", "timeoutMs": 10000},
+  {"step": "useItemOnItem", "itemId": 2142, "onItemId": 1997},
+  {"step": "assertMessage", "contains": "cooking_mix.stew_add_meat", "timeoutMs": 10000},
+  {"step": "assertInventory", "itemId": 2001, "count": 1, "comment": "uncooked stew"},
+  {"step": "useItemOnItem", "itemId": 2007, "onItemId": 2001},
+  {"step": "assertMessage", "contains": "cooking_mix.curry_spice", "timeoutMs": 10000},
+  {"step": "useItemOnLoc", "itemId": 2009, "locId": 114, "x": 3212, "y": 3215},
+  {"step": "assertMessage", "contains": "cooking.cooked_curry", "timeoutMs": 20000, "comment": "no burns from 74"},
+  {"step": "assertInventory", "itemId": 2011, "count": 1, "comment": "curry"},
+
+  {"step": "command", "text": "::item 1987 1", "comment": "grapes"},
+  {"step": "command", "text": "::item 1937 1", "comment": "a jug of water"},
+  {"step": "useItemOnItem", "itemId": 1987, "onItemId": 1937},
+  {"step": "assertMessage", "contains": "cooking_mix.wine", "timeoutMs": 10000},
+  {"step": "assertInventory", "itemId": 1995, "count": 1, "comment": "unfermented wine"},
+  {"step": "assertInventory", "itemId": 1993, "count": 1, "timeoutMs": 30000, "comment": "a jug of wine 20 ticks (12 s) later; no fails from 68"},
+
+  {"step": "command", "text": "::tele 3226 3293 0", "comment": "beside the Lumbridge east farm's dairy churn (the Wiki's Dairy churn map, 3226 3294)"},
+  {"step": "command", "text": "::item 1927 1", "comment": "a bucket of milk"},
+  {"step": "useItemOnLoc", "itemId": 1927, "locId": 11695, "x": 3226, "y": 3294},
+  {"step": "assertInterface", "interfaceId": 270, "comment": "skillmulti: cream, butter, cheese"},
+  {"step": "clickWidget", "interfaceId": 270, "component": 17, "comment": "the third, cheese"},
+  {"step": "assertMessage", "contains": "cooking_mix.churn_cheese", "timeoutMs": 30000},
+  {"step": "assertInventory", "itemId": 1985, "count": 1, "comment": "cheese"},
+  {"step": "assertInventory", "itemId": 1925, "count": 1, "comment": "the bucket back"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

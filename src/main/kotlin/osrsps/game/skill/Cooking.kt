@@ -66,6 +66,10 @@ object CookingLines : Lines("cooking", "Cooking") {
     val BURNT_CAKE = line("burnt_cake", "Burnt cake: the message on burning one")
     val COOKED_PITTA = line("cooked_pitta", "Pitta bread: the message on baking one")
     val BURNT_PITTA = line("burnt_pitta", "Burnt pitta bread: the message on burning one")
+    val COOKED_STEW = line("cooked_stew", "Stew: the message on cooking one")
+    val BURNT_STEW = line("burnt_stew", "Burnt stew: the message on burning one")
+    val COOKED_CURRY = line("cooked_curry", "Curry: the message on cooking one")
+    val BURNT_CURRY = line("burnt_curry", "Burnt curry: the message on burning one")
     val NO_ROOM = line("no_room", "Cake: the message when there is no room for the cake tin back (guessed)")
 }
 
@@ -104,11 +108,11 @@ class Food(
  * chart for these foods, the Lumbridge range has its own. Guessed: the Make-X box showing the raw food, its quantity
  * starting on all of it, cooking straight away with only one, the first piece 3 ticks after the choice (as the other
  * gathering skills' first roll), and the burnt items (by the Wiki's Burnt fish pages). Out: cooking gauntlets, the
- * cooking cape, the Hosidius range, wines, stews and dairy, and the sounds (the 241 synth ids have no names).
+ * cooking cape, the Hosidius range, and the sounds (the 241 synth ids have no names).
  * Lobster, tuna, swordfish and shark came with Fishing and Cooking 2's step FC1; mackerel, cod and bass with FC2.
  *
  * Monkfish and anglerfish came with step FC4; pies, pizza, cake and pitta bread with FC5a, whose mixing is
- * [CookingMixes].
+ * [CookingMixes]. Stew, curry, wine ([Wine]) and the dairy churn ([Churn]) came with FC5b.
  *
  * Karambwan (step FC3) cooks two ways from the one raw fish, so the box always asks, showing the cooked karambwan first
  * (the Wiki's change of 28 February 2024 made it the default) and the poison karambwan second. Out: the poison
@@ -134,8 +138,12 @@ class Cooking(private val world: World) {
                 world.handlers.onObjOnLoc(loc, food.raw) { op -> chooseFood(op.loc ?: return@onObjOnLoc, option, food.raw) }
             }
         }
-        CookingMixes.register(world)
+        CookingMixes.register(world, wine)
+        Churn(world).register()
     }
+
+    /** Wine fermenting after grapes go into a jug of water (step FC5b). */
+    val wine = Wine(world)
 
     /** The range's Cook option, 1 to 5; 1 for a fire, or when the cache doesn't say (tests). */
     private fun cookOption(locId: Int): Int {
@@ -422,11 +430,21 @@ class Cooking(private val world: World) {
         val CAKE = bake(1889, 1891, 1903, 40, 1800, 38, 332, CookingLines.COOKED_CAKE, CookingLines.BURNT_CAKE, returns = CAKE_TIN)
         val PITTA = bake(1863, 1865, 1867, 58, 400, 118, 492, CookingLines.COOKED_PITTA, CookingLines.BURNT_PITTA)
 
+        /**
+         * Stew and curry (step FC5b), on a fire or range, from the Wiki's Stew and Curry pages (read 2026-11-10) and their
+         * charts' pairs: stew from 25 for 117 XP, 68/392 (it stops burning at 58) and 78/412 on the Lumbridge range (53 by
+         * the chart, a level before the text's 54); curry from 60 for 280 XP, 38/332 anywhere (74). Both burn to their own
+         * burnt bowl.
+         */
+        val STEW = Food(2001, 2003, 2005, 25, 1170, 68, 392, 78, 412, CookingLines.COOKED_STEW, CookingLines.BURNT_STEW)
+        val CURRY = Food(2009, 2011, 2013, 60, 2800, 38, 332, 38, 332, CookingLines.COOKED_CURRY, CookingLines.BURNT_CURRY)
+
         val FOODS = listOf(
             SHRIMPS, ANCHOVIES, SARDINE, HERRING, TROUT, PIKE, SALMON, BEEF, RAT_MEAT, BEAR_MEAT, CHICKEN, BREAD,
             LOBSTER, TUNA, SWORDFISH, SHARK, MACKEREL, COD, BASS, KARAMBWAN, POISON_KARAMBWAN, MONKFISH, ANGLERFISH,
             REDBERRY_PIE, MEAT_PIE, MUD_PIE, APPLE_PIE, GARDEN_PIE, FISH_PIE, BOTANICAL_PIE, MUSHROOM_PIE, ADMIRAL_PIE,
             DRAGONFRUIT_PIE, WILD_PIE, SUMMER_PIE, PIZZA, CAKE, PITTA,
+            STEW, CURRY,
         )
     }
 }
