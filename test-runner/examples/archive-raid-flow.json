@@ -1,5 +1,5 @@
 {
- "name": "Raid step 15: two solo runs of The Fractured Archive through its empty rooms, one by the west doors (Ezekiel, Moia, the Dagon'hai Elder) and one by the east (Bork, Dreadnoth, Xarth), each from the Archive Door through the Guardian's hall to Ocellus's room; the transporters and a Passageway back out. The Guardian's, Ezekiel's and Bork and the Smorks' rooms are marked done with ::raid clear (their fights are their own scripts); no other boss is built yet, so each other room is done as it begins",
+ "name": "Raid step 15: two solo runs of The Fractured Archive through its empty rooms, one by the west doors (Ezekiel, Moia, the Dagon'hai Elder) and one by the east (Bork, Dreadnoth, Xarth), each from the Archive Door through the Guardian's hall to Ocellus's room; the transporters and a Passageway back out. The Guardian's, Ezekiel's, Bork and the Smorks' and Dreadnoth's rooms are marked done with ::raid clear (their fights are their own scripts); no other boss is built yet, so each other room is done as it begins",
  "account": "test",
  "steps": [
   {
@@ -328,9 +328,15 @@
   },
   {
    "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Dreadnoth the Jellied's room.",
+   "comment": "his fight begins only once the room's transporter takes us onto his arena (raid step 20a); it is its own script (archive-dreadnoth.json): here his room is just marked done"
+  },
+  {
+   "step": "command",
    "text": "::raid run",
    "expectMessage": "done Archive Guardian, Bork and the Smorks, Dreadnoth the Jellied;",
-   "comment": "in Dreadnoth the Jellied's room, done as soon as it begins, no boss being built yet"
+   "comment": "his room done"
   },
   {
    "step": "command",
