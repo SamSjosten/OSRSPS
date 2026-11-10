@@ -612,6 +612,8 @@ object Ocellus {
         val start = if (diagonal) SPOT_CRACK_DIAGONAL_START else SPOT_CRACK_STRAIGHT_START
         for (tile in tiles) world.zones.mapAnim(tile.x, tile.z, boss.level, start)
         after(TENDRIL_SHOWS) {
+            // Not once his bar is out: the hold keeps the fight's queue, and the crack went with his first phase.
+            if (shieldOut) return@after
             val shown = if (diagonal) SPOT_CRACK_DIAGONAL else SPOT_CRACK_STRAIGHT
             for (tile in tiles) world.zones.mapAnim(tile.x, tile.z, boss.level, shown)
         }
