@@ -1,5 +1,5 @@
 {
- "name": "Raid steps 24a to 26b: Ocellus solo, his arena upstairs, the hooded figure waiting until the party readies up, then his first phase walking between his corners under Protect from Melee, at each corner his cracks, line and explosion, at two thirds the middle with its four sides and his charge expended, the hold at the end of his blue bar, and his second phase: the portals on the cross, the Blade passing damage to his bar, the quadrants' volleys, and the rest of a quadrant's turn: pools, every portal purple, the floor portal and the last volley, and his third phase: the cross falling to stepping stones, his quadrant, and the quadrants falling at 75, 50 and 25%, with the void bombs and his specials: the cog, the void and Untether, and Insolence first in the next quadrant",
+ "name": "Raid steps 24a to 26c: Ocellus solo, his arena upstairs, the hooded figure waiting until the party readies up, then his first phase walking between his corners under Protect from Melee, at each corner his cracks, line and explosion, at two thirds the middle with its four sides and his charge expended, the hold at the end of his blue bar, and his second phase: the portals on the cross, the Blade passing damage to his bar, the quadrants' volleys, and the rest of a quadrant's turn: pools, every portal purple, the floor portal and the last volley, and his third phase: the cross falling to stepping stones, his quadrant, and the quadrants falling at 75, 50 and 25%, with the void bombs and his specials: the cog, the void and Untether, and Insolence first in the next quadrant, and his void flares: Siphons, Augmenters and Rifts",
  "account": "test",
  "steps": [
   {
@@ -383,10 +383,25 @@
    "expectMessage": "third: untether"
   },
   {
+   "step": "waitTicks",
+   "ticks": 36,
+   "comment": "as Untether ends (30 ticks after his line), two Void Siphons in his quadrant (step 26c), each healing him every 4 ticks"
+  },
+  {
    "step": "command",
-   "text": "::hit 1000 tfa_ocellus_p3",
+   "text": "::raid log 80",
+   "expectMessage": "third: siphon flares at "
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: siphon heals him "
+  },
+  {
+   "step": "command",
+   "text": "::hit 1400 tfa_ocellus_p3",
    "expectMessage": "Hit Ocellus",
-   "comment": "to 75% of his bar"
+   "comment": "to 75% of his bar, past what the Siphons have healed"
   },
   {
    "step": "waitTicks",
@@ -396,8 +411,8 @@
   {
    "step": "command",
    "text": "::raid log 80",
-   "expectMessage": " falls",
-   "comment": "the first quadrant fallen, with the stones of its arms"
+   "expectMessage": "third: quadrant ",
+   "comment": "the first quadrant fallen, with the stones of its arms (its own line: a debris line also ends in \"falls\")"
   },
   {
    "step": "command",
@@ -417,6 +432,12 @@
   },
   {
    "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: augmenter flares at ",
+   "comment": "with his first attack in the second quadrant, two Void Augmenters"
+  },
+  {
+   "step": "command",
    "text": "::hit 1300 tfa_ocellus_p3",
    "expectMessage": "Hit Ocellus",
    "comment": "to 50%"
@@ -424,6 +445,16 @@
   {
    "step": "waitTicks",
    "ticks": 19
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4,
+   "comment": "with his first attack in the third quadrant, two Void Rifts"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: rift flares at "
   },
   {
    "step": "command",

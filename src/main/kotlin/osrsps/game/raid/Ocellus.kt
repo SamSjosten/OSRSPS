@@ -17,6 +17,7 @@ import osrsps.game.combat.MeleeCombat
 import osrsps.game.combat.MeleeInteraction
 import osrsps.game.combat.NpcRangedAttack
 import osrsps.game.combat.RangedInteraction
+import osrsps.game.combat.SureHit
 import osrsps.game.dialogue.Lines
 import osrsps.game.encounter.CycleStep
 import osrsps.game.encounter.EncounterContext
@@ -58,6 +59,9 @@ object OcellusLines : Lines("tfa_ocellus", "The_Fractured_Archive/Strategies") {
     val AWAIT_VOID = line("await_void", "Ocellus in his third phase before his void shot and the Void Vine: the first of the three he picks from")
     val PANIC_FUTILE = line("panic_futile", "Ocellus in his third phase before his void shot and the Void Vine: the second of the three")
     val VOID_TAKE_YOU = line("void_take_you", "Ocellus in his third phase before his void shot and the Void Vine: the third of the three")
+    val EMPOWERED_SIPHON = line("empowered_siphon", "chat, to the player whose hit destroys a Void Siphon in his third phase")
+    val EMPOWERED_AUGMENTER = line("empowered_augmenter", "chat, to the player whose hit destroys a Void Augmenter in his third phase")
+    val EMPOWERED_RIFT = line("empowered_rift", "chat, to the player whose hit destroys a Void Rift in his third phase")
 
     private fun ordinal(n: Int) = listOf("first", "second", "third")[n - 1]
 }
@@ -123,8 +127,11 @@ object OcellusLines : Lines("tfa_ocellus", "The_Fractured_Archive/Strategies") {
  *   leaving void ([insolence]); the cog: strikes on everyone that Protect from Melee blocks unless an overhead prayer
  *   was on as it formed, and debris leaving void ([cog]); the void: a void shot at everyone and the Void Vine rooting
  *   someone other than the tank until another player breaks it, or it crushes them ([voidSpecial], [vine]); Untether:
- *   eruptions over his quadrant, then his coming down on it but for the square round him ([untether]). Not in yet
- *   (step 26c): the void flares and the censers.
+ *   eruptions over his quadrant, then his coming down on it but for the square round him ([untether]).
+ * - His void flares (raid step 26c; [Flare]): Siphons as each Untether ends in his first quadrant, Augmenters in the
+ *   second and Rifts in the third with his first attack there, charging and detonating on everyone unless destroyed
+ *   ([spawnFlares], [flares]); a Siphon heals him while it stands; whoever destroys one is empowered ([empower]); each
+ *   is maxed by a style ([flareHit], through [osrsps.game.combat.Combat.sureHit]). Not in yet (step 26d): the censers.
  *
  * From the OSRS Wiki (Ocellus, read 2026-11-10): his first phase's stats and bonuses (npc-combat.json), 3 by 3, the
  * 5-tick attack speed, magic and ranged, the max hit 36, the 60% Defence drain cap, poison and venom immunity, his
@@ -595,6 +602,43 @@ object Ocellus {
     const val SPOT_ERUPTION = 4321
     const val SPOT_SQUARE = 4317
 
+    /**
+     * His void flares (tsps; OSRS Wiki, Void Siphon, Void Augmenter, Void Rift): [FLARES] at a time, 44 hitpoints each
+     * (cache), with a charge bar ([HEADBAR_FLARE_CHARGE], filling over [FLARE_CHARGE] ticks) under their health. One not
+     * destroyed by then detonates on everyone in the arena for [FLARE_MIN] to [FLARE_MAX]. In his first quadrant they are
+     * Siphons, as each Untether ends; in the second Augmenters and in the third Rifts, with his first attack there
+     * (Wiki, Strategies) and every [FLARE_EVERY] ticks after. A Siphon heals him [SIPHON_HEAL_PERCENT]% every
+     * [SIPHON_HEAL_EVERY] ticks while it stands. Whoever destroys one is empowered ([Flare]). Guessed: where they
+     * stand (in his quadrant, off the void, at least [FLARE_CLEAR] tiles from him), that the Siphon's heal lands as it
+     * is sent, that a quadrant's flares go as it begins to fall, the detonation coming from no one, and the graphics.
+     */
+    const val FLARES = 2
+    const val FLARE_CHARGE = 28
+    const val FLARE_MIN = 15
+    const val FLARE_MAX = 30
+    const val FLARE_EVERY = 48
+    const val FLARE_CLEAR = 2
+    const val SIPHON_HEAL_PERCENT = 1
+    const val SIPHON_HEAL_EVERY = 4
+    const val HEADBAR_FLARE_CHARGE = 75
+    const val FLARE_BAR_WIDTH = 30
+    const val SPOT_SIPHON_HEAL = 4303
+
+    /** Whoever destroys a Siphon is healed this much (OSRS Wiki, Void Siphon). */
+    const val SIPHON_EMPOWER = 22
+
+    /**
+     * The three flares: the NPC, its spawn, idle and detonation animations (cache), the graphic on whoever destroys
+     * one (cache `vfx_human_ocellus_voidflare_*`; guessed that it shows then), the styles that max hit it, and the line.
+     * Maxed (OSRS Wiki): the Siphon by ranged, the Augmenter by magic, the Rift by melee always and by ranged or magic
+     * when they land. Guessed: that a ranged hit on the Siphon and a magic hit on the Augmenter must still land.
+     */
+    enum class Flare(val id: Int, val spawn: Int, val detonate: Int, val empowered: Int) {
+        RIFT(16678, 14896, 14898, 4306),
+        SIPHON(16679, 14900, 14902, 4307),
+        AUGMENTER(16680, 14904, 14906, 4308),
+    }
+
     /** The quadrants, clockwise from the north-west, and the arms of the cross, clockwise from the north. */
     enum class Quadrant { NW, NE, SE, SW }
     enum class Arm { N, E, S, W }
@@ -698,6 +742,10 @@ object Ocellus {
         var rooted: Player? = null
         var rootTile: Tile? = null
         var vineDue = 0L
+
+        /** The void flares standing, with the phase tick each came, and the phase tick the next come (-1 for none). */
+        val flares = LinkedHashMap<Npc, Long>()
+        var flaresAt = -1L
     }
 
     /** Void on a tile: its loc (none on a bomb's outer tiles), the phase tick it crumbles, and its quadrant. */
@@ -731,6 +779,9 @@ object Ocellus {
     /** The tiles with void on them in his third phase, and the player the Void Vine roots; for tests. */
     fun voids(boss: Npc): Set<Tile> = states[boss]?.voids?.keys?.toSet().orEmpty()
     fun rooted(boss: Npc): Player? = states[boss]?.rooted
+
+    /** The void flares standing in his third phase; for tests. */
+    fun flares(boss: Npc): List<Npc> = states[boss]?.flares?.keys?.toList().orEmpty()
 
     /** His tank in his third phase; for tests. */
     fun tank(boss: Npc): Player? = states[boss]?.tank
@@ -1478,6 +1529,7 @@ object Ocellus {
         if (state.heldSince < 0) return
         voidFloor()
         vine()
+        flares()
         val fall = state.fallStart
         if (fall >= 0) {
             falling((phaseTick - fall).toInt())
@@ -1490,6 +1542,11 @@ object Ocellus {
         }
         pickTank()
         if (phaseTick == state.heldSince + BOMBS_AT) bombs()
+        val flaresAt = state.flaresAt
+        if (flaresAt in 0..phaseTick) {
+            spawnFlares(if (state.fallen.size >= 2) Flare.RIFT else Flare.AUGMENTER)
+            state.flaresAt = phaseTick + FLARE_EVERY
+        }
         if (phaseTick < state.busyUntil || phaseTick < state.nextAttack) return
         if (state.rotation >= ROTATION) {
             state.rotation = 0
@@ -1586,6 +1643,8 @@ object Ocellus {
         }
         state.busyUntil = phaseTick + length
         state.nextAttack = phaseTick + length + ATTACK_EVERY
+        // In his first quadrant, Siphons as each Untether ends (tsps).
+        if (kind == Special.UNTETHER && state.fallen.isEmpty()) during(run, length) { spawnFlares(Flare.SIPHON) }
     }
 
     /** Insolence: his line and his three superior slashes; the ticks it takes. */
@@ -1756,6 +1815,120 @@ object Ocellus {
         state.rootTile = null
     }
 
+    /** [FLARES] void flares of [kind] in his quadrant, if the cache has them and none stand already. */
+    private fun EncounterContext.spawnFlares(kind: Flare) {
+        val type = world.npcTypes[kind.id] ?: return
+        if (state.flares.isNotEmpty()) return
+        val centre = centre(boss.spawn.x, boss.spawn.z)
+        val size = boss.type.size
+        val taken = HashSet<Tile>()
+        repeat(FLARES) {
+            val tile = (1..20).asSequence().map { quadrantTile(centre, state.held, roll(2, STRIP_LENGTH), roll(2, STRIP_LENGTH)) }.firstOrNull { tile ->
+                tile !in taken && tile !in state.voids && !onCross(centre, tile.x, tile.z) && inArena(centre, tile.x, tile.z) &&
+                    (tile.x !in boss.x - FLARE_CLEAR until boss.x + size + FLARE_CLEAR || tile.z !in boss.z - FLARE_CLEAR until boss.z + size + FLARE_CLEAR)
+            } ?: return@repeat
+            val flare = spawnAdd(type, tile.x, tile.z) ?: return@repeat
+            // It never hits back, nor wins hitpoints back by itself.
+            flare.scriptedAttacks = true
+            flare.hitpointsRegenTicks = Int.MAX_VALUE
+            flare.effects.anim(kind.spawn)
+            flare.effects.headBar(-1, HEADBAR_FLARE_CHARGE, 0)
+            taken += tile
+            state.flares[flare] = phaseTick
+        }
+        log("${kind.name.lowercase()} flares at ${taken.joinToString(" ") { "${it.x},${it.z}" }}")
+    }
+
+    /** Each tick: flares destroyed empower whoever destroyed them; the rest charge, a Siphon heals him, and when full they detonate. */
+    private fun EncounterContext.flares() {
+        val centre = centre(boss.spawn.x, boss.spawn.z)
+        val iterator = state.flares.entries.iterator()
+        while (iterator.hasNext()) {
+            val (flare, since) = iterator.next()
+            val kind = Flare.entries.first { it.id == flare.type.id }
+            if (flare.dead || world.npcs[flare.index] !== flare) {
+                iterator.remove()
+                if (flare.dead) empower(flare.attacker, kind)
+                continue
+            }
+            val age = (phaseTick - since).toInt()
+            if (age >= FLARE_CHARGE) {
+                iterator.remove()
+                flare.effects.anim(kind.detonate)
+                world.removeNpc(flare)
+                log("${kind.name.lowercase()} flare detonates")
+                for (player in players) {
+                    if (!inArena(centre, player.x, player.z)) continue
+                    val dealt = fromTheRoom(player, roll(FLARE_MIN, FLARE_MAX))
+                    log("flare hits ${player.username} for $dealt")
+                }
+                continue
+            }
+            flare.effects.headBar(-1, HEADBAR_FLARE_CHARGE, age * FLARE_BAR_WIDTH / FLARE_CHARGE)
+            if (kind == Flare.SIPHON && age > 0 && age % SIPHON_HEAL_EVERY == 0) siphon(flare)
+        }
+    }
+
+    /** A Siphon's heal: its graphic to him and [SIPHON_HEAL_PERCENT]% of his hitpoints back. */
+    private fun EncounterContext.siphon(flare: Npc) {
+        val half = boss.type.size / 2
+        world.zones.projectile(
+            Projectile(
+                id = SPOT_SIPHON_HEAL, fromX = flare.x, fromZ = flare.z, level = boss.level, toX = boss.x + half, toZ = boss.z + half,
+                startHeight = 40, endHeight = 60, startTime = 0, endTime = CYCLES_PER_TICK, angle = 0, progress = 0,
+                sourceIndex = flare.index + 1, targetIndex = boss.index + 1,
+            ),
+        )
+        val before = boss.hitpoints
+        boss.hitpoints = minOf(boss.maxHitpoints, before + maxOf(1, boss.maxHitpoints * SIPHON_HEAL_PERCENT / 100))
+        val healed = boss.hitpoints - before
+        if (healed <= 0) return
+        boss.effects.hit(-1, HitsplatType.HEAL, HitsplatType.HEAL, healed)
+        boss.effects.headBar(-1, MeleeCombat.HEALTH_BAR, MeleeCombat.healthBarFill(boss.hitpoints, boss.maxHitpoints))
+        log("siphon heals him $healed")
+    }
+
+    /**
+     * Whoever destroyed a flare of [kind] is empowered (OSRS Wiki): a Siphon heals them [SIPHON_EMPOWER]; an Augmenter
+     * boosts their Attack and Strength as a super combat potion does and their Magic and Ranged as a ranging potion
+     * does (the Wiki gives 118 and 112 from 99); a Rift resets their attack's cooldown. Guessed: the whole heal to the
+     * one whose hit destroyed it (the Wiki splits it when several hit it), and the boosts as a potion's, from the base
+     * level.
+     */
+    private fun EncounterContext.empower(player: Player?, kind: Flare) {
+        if (player == null || player.dead || players.none { it === player }) return
+        when (kind) {
+            Flare.SIPHON -> heal(player, SIPHON_EMPOWER)
+            Flare.AUGMENTER -> {
+                for (skill in listOf(Skill.ATTACK, Skill.STRENGTH)) boost(player, skill, 15, 5)
+                for (skill in listOf(Skill.MAGIC, Skill.RANGED)) boost(player, skill, 10, 4)
+            }
+            Flare.RIFT -> player.nextAttackTick = minOf(player.nextAttackTick, world.tick)
+        }
+        player.effects.spotanim(0, kind.empowered, 0, 0)
+        val line = when (kind) {
+            Flare.SIPHON -> OcellusLines.EMPOWERED_SIPHON
+            Flare.AUGMENTER -> OcellusLines.EMPOWERED_AUGMENTER
+            Flare.RIFT -> OcellusLines.EMPOWERED_RIFT
+        }
+        player.message(world.textFor(player)[line])
+        log("${kind.name.lowercase()} destroyed: ${player.username} empowered")
+    }
+
+    /** [skill] boosted [percent]% of its base plus [constant], as a potion's boost: never lowering it. */
+    private fun boost(player: Player, skill: Skill, percent: Int, constant: Int) {
+        val base = player.skills.baseLevel(skill)
+        val boosted = base + base * percent / 100 + constant
+        if (boosted > player.skills.currentLevel(skill)) player.skills.setCurrentLevel(skill, boosted)
+    }
+
+    /** The flares go, as his quadrant begins to fall (guessed). */
+    private fun EncounterContext.clearFlares() {
+        for (flare in state.flares.keys) if (!flare.dead && world.npcs[flare.index] === flare) world.removeNpc(flare)
+        state.flares.clear()
+        state.flaresAt = -1
+    }
+
     /** Untether: his line and rise, the eruptions, the square and his coming down; the ticks it takes. */
     private fun EncounterContext.untether(run: Int): Int {
         val centre = centre(boss.spawn.x, boss.spawn.z)
@@ -1844,6 +2017,8 @@ object Ocellus {
         state.insolenceDue = state.fallen.isNotEmpty()
         // Each quadrant's specials begin again from the cog (Codex, PR 581).
         state.specials = 0
+        // From the second quadrant on, flares with his first attack there (OSRS Wiki, Strategies).
+        state.flaresAt = if (state.fallen.isEmpty()) -1 else state.nextAttack
         log("takes quadrant ${quadrant.name} from ${corner.x},${corner.z}; barriers up")
     }
 
@@ -1945,6 +2120,7 @@ object Ocellus {
         state.run++
         state.busyUntil = -1
         unroot()
+        clearFlares()
         val line = if (roll(0, 1) == 0) OcellusLines.OBLITERATION else OcellusLines.RUN
         boss.effects.say(world.dialogueText.get(line))
         log("${state.held.name} to fall at ${boss.hitpoints}/${boss.maxHitpoints}; barriers down")
@@ -2039,6 +2215,21 @@ object Ocellus {
         // him as well, in full (exploit review round 22, R22B-3). He has no Attack then, so nobody is told why.
         val shutOut = world.combat.shutOut
         world.combat.shutOut = { player, npc -> npc.type.id == P2 || rootedBy(npc) === player || shutOut(player, npc) }
+        val sureHit = world.combat.sureHit
+        world.combat.sureHit = { player, npc, type -> flareHit(npc.type.id, type) ?: sureHit(player, npc, type) }
+    }
+
+    /** How a hit of [type] on a void flare of NPC type [id] is rolled ([Flare]); null for any other NPC. */
+    fun flareHit(id: Int, type: AttackType): SureHit? {
+        val kind = Flare.entries.firstOrNull { it.id == id } ?: return null
+        val melee = type == AttackType.STAB || type == AttackType.SLASH || type == AttackType.CRUSH
+        return when {
+            kind == Flare.RIFT && melee -> SureHit.MAX
+            kind == Flare.RIFT && (type == AttackType.RANGED || type == AttackType.MAGIC) -> SureHit.MAX_IF_HIT
+            kind == Flare.SIPHON && type == AttackType.RANGED -> SureHit.MAX_IF_HIT
+            kind == Flare.AUGMENTER && type == AttackType.MAGIC -> SureHit.MAX_IF_HIT
+            else -> SureHit.ROLLED
+        }
     }
 
     /** Walking to his corner: a step a tick, a shot every [SHOT_EVERY], and the corner's cracks the tick after he's there. */

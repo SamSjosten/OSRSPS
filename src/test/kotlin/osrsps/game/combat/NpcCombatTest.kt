@@ -631,6 +631,27 @@ class NpcCombatTest {
     }
 
     @Test
+    fun `Ocellus's void flares have the Wiki's defences, the Rift and Augmenter weak to earth`() {
+        fun flare(id: Int, name: String) = NpcType(id, name, internalName = name, stats = NpcStats(attack = 1, defence = 175, strength = 1, hitpoints = 44, ranged = 1, magic = 300))
+        val rift = flare(16678, "tfa_ocellus_p3_bombportal_basic")
+        val siphon = flare(16679, "tfa_ocellus_p3_bombportal_heal")
+        val augmenter = flare(16680, "tfa_ocellus_p3_bombportal_buff")
+        val combat = NpcCombat.load(NpcTypes.of(rift, siphon, augmenter), seqs)
+        val types = listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC)
+        assertEquals(listOf(0, 0, 0, 0), types.map { combat[rift]!!.defence.against(it) })
+        assertEquals(listOf(50, 50, 50, 0), types.map { combat[siphon]!!.defence.against(it) })
+        assertEquals(listOf(50, 50, 50, 0), types.map { combat[augmenter]!!.defence.against(it) })
+        assertEquals(listOf(0, 50, 50), with(combat[augmenter]!!.defence) { listOf(light, standard, heavy) })
+        assertEquals(ElementalWeakness(Element.EARTH, 75), combat[rift]!!.weakness)
+        assertEquals(ElementalWeakness(Element.EARTH, 75), combat[augmenter]!!.weakness)
+        assertNull(combat[siphon]!!.weakness)
+        assertTrue(combat[rift]!!.poisonImmune && combat[siphon]!!.venomImmune)
+        // The Augmenter's 0% resistance: it can be poisoned.
+        assertTrue(!combat[augmenter]!!.poisonImmune && !combat[augmenter]!!.venomImmune)
+        assertTrue(listOf(rift, siphon, augmenter).all { combat[it]!!.freezeImmune })
+    }
+
+    @Test
     fun `Dreadnoth and his jellies fight as the Wiki has them, each max hit the formula's`() {
         val dreadnoth = NpcType(16665, "Dreadnoth the Jellied", size = 5, internalName = "tfa_jelly_boss", stats = NpcStats(attack = 280, defence = 125, strength = 285, hitpoints = 2100, ranged = 250, magic = 220))
         val jelly = NpcType(16666, "Jelly", internalName = "tfa_jelly_minion", stats = NpcStats(attack = 200, defence = 100, strength = 160, hitpoints = 75, ranged = 1, magic = 100))
