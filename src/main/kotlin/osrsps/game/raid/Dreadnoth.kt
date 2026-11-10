@@ -394,13 +394,15 @@ object Dreadnoth {
         val fighting = players
         // By index, so a seeded fight rolls the same for each jelly every time.
         for ((npc, next) in state.jellies.entries.sortedBy { it.key.index }) {
+            if (gone()) return
             if (npc.dead || world.npcs[npc.index] !== npc) {
                 state.jellies.remove(npc)
                 if (inArena(boss.spawn.x, boss.spawn.z, npc.x, npc.z)) addFloor(Tile(npc.x, npc.z))
                 log("a jelly falls at ${npc.x},${npc.z}")
                 continue
             }
-            val near = nearest(npc, fighting) ?: continue
+            // One a jelly killed this tick isn't the next one's.
+            val near = nearest(npc, fighting.filter { !it.dead }) ?: continue
             if (npc.following !== near) {
                 npc.target = near
                 world.npcs.follow(npc, near)
