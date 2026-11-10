@@ -27,9 +27,13 @@ class Wine(private val world: World) {
 
     private val watching = WeakHashMap<Player, Watch>()
 
-    /** Starts (or keeps) watching [player]'s unfermented wine: the grapes were used on a jug, or they logged in. */
+    /**
+     * Starts watching [player]'s unfermented wine (the grapes were used on a jug, or they logged in), or keeps an
+     * existing watch as it is: only a new jug, seen as the count going up, restarts the wait.
+     */
     fun watch(player: Player) {
-        watching.getOrPut(player) { Watch(held(player), world.tick) }.since = world.tick
+        if (player in watching) return
+        watching[player] = Watch(held(player), world.tick)
         world.scripts.setTimer(player, TIMER, 1, TimerType.SOFT) { check(player) }
     }
 
@@ -45,16 +49,14 @@ class Wine(private val world: World) {
         val held = held(player)
         if (held > watch.held) watch.since = world.tick
         watch.held = held
-        val waited = world.tick - watch.since >= FERMENT_TICKS
-        // Grapes and a jug still held may yet make wine (the first one comes ticks after the grapes are used), so the
-        // watch goes on; with neither, it ends once the wait is over.
-        if (held <= 0L) {
-            if (waited && !canMake(player)) stop(player)
-            return
+        if (world.tick - watch.since < FERMENT_TICKS) return
+        if (held > 0L) {
+            ferment(player)
+            // Banked wine a full bank left unfermented keeps the watch, and ferments once there is room.
+            watch.held = held(player)
+            if (watch.held > 0L) return
         }
-        if (!waited) return
-        ferment(player)
-        watch.held = 0
+        // Grapes and a jug still held may yet make wine (the first one comes ticks after the grapes are used).
         if (!canMake(player)) stop(player)
     }
 
