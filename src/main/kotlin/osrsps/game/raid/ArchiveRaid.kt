@@ -360,7 +360,8 @@ class ArchiveRaids(private val world: World) {
         }
         val standing = standing(run)
         world.partyScaling.scale(boss, standing.size.coerceIn(1, PartyScaling.MAX_PARTY))
-        val fight = world.encounters.start(def, boss, { x, z -> inRoom(run, room, x, z) })
+        // Only those on his arena are in the fight: not one still at the room's arrival, behind the wall.
+        val fight = world.encounters.start(def, boss, { x, z -> Xarth.inArena(at.x, at.z, x, z) })
         if (fight.adds.count { it.type.id == Xarth.HEAP } < Xarth.Heap.entries.size) {
             world.encounters.stop(fight)
             world.removeNpc(boss)

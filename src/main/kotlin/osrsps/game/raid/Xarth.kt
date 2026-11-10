@@ -468,6 +468,8 @@ object Xarth {
             after(flight) {
                 world.zones.mapAnim(at.x, at.z, boss.level, SPOT_AOE_LANDS)
                 for (struck in players.filter { it.x == at.x && it.z == at.z }) {
+                    // A Retribution from the one before may have killed him.
+                    if (boss.dead) break
                     val dealt = world.meleeCombat.hitPlayer(struck, boss, roll(AOE_MIN, AOE_MAX), world.tick)
                     log("AoE hits ${struck.username} for $dealt")
                 }

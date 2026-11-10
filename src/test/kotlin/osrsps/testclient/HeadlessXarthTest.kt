@@ -270,6 +270,33 @@ class HeadlessXarthTest {
     }
 
     @Test
+    fun `one of the party still at the room's arrival, behind the wall, is not in his fight`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    val clients = listOf(alice to "alice", bob to "bob")
+                    for ((client, _) in clients) client.await("the login rebuild") { client.position }
+                    party(clients)
+                    val run = alice.intoRun(server, "alice")
+                    assertEquals(run, bob.intoRun(server, "bob"))
+                    alice.toXarthRoom(run)
+                    bob.commandReply("raid tp xarth") { it.startsWith("To ") }
+                    alice.ontoArena(server, run)
+                    alice.await("his fight") { alice.fight().takeIf { it.startsWith("xarth #") } }
+                    val him = boss(run)
+                    val where = assertNotNull(bob.position)
+                    assertFalse(Xarth.inArena(him.x, him.z, where.x, where.z), "bob at $where")
+                    alice.awaitLine(run, "the AoE") { it.contains(": AoE binds ") }
+                    // Only alice bound, and every fireball at her: bob is in the room but not on the arena.
+                    assertTrue(lines(run).any { it.endsWith(": AoE binds alice") }, lines(run).toString())
+                    assertTrue(lines(run).none { it.contains("bob") }, lines(run).toString())
+                    assertFalse(server.world.playerNamed("bob")!!.stunnedUntil > 0, "bob bound")
+                }
+            }
+        }
+    }
+
+    @Test
     fun `with too few NPC slots for his heaps his room isn't started, and his fight begins once there are`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->
