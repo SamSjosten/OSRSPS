@@ -62,6 +62,7 @@ object FishingLines : Lines("fishing", "Fishing") {
     val SNATCHED = line("snatched", "the message when a karambwan takes the vessel's bait without being caught (the Raw karambwan page)")
     val LEVEL_KARAMBWAN = line("level_karambwan", "the message when karambwan fishing needs a higher level (65)", "level")
     val NO_VESSEL = line("no_vessel", "Karambwan vessel: the message on Fish without one")
+    val LEVEL_KARAMBWANJI = line("level_karambwanji", "the message when netting the karambwanji spots needs a higher level (5)", "level")
     val NO_KARAMBWANJI = line("no_karambwanji", "Raw karambwanji: the message on Fish with an empty vessel and none left")
 }
 
@@ -498,8 +499,12 @@ class Fishing(private val world: World) {
         val KARAMBWANJI = Fish(RAW_KARAMBWANJI, 5, 50, 100, 250, FishingLines.CATCH_KARAMBWANJI, perFiveLevels = true)
         val KARAMBWAN = Fish(3142, 65, 500, 5, 160, FishingLines.CATCH_KARAMBWAN) // tbwt_raw_karambwan
 
+        /** The karambwanji spots' shrimps: the shrimps' pair and XP, but the spot's level 5 (the Wiki's Raw shrimp sources). */
+        val KARAMBWANJI_SHRIMPS = Fish(SHRIMPS.obj, 5, SHRIMPS.xpTenths, SHRIMPS.low, SHRIMPS.high, FishingLines.CATCH_SHRIMPS)
+
         val KARAMBWANJI_NET = FishingMethod(
-            "Net", NET, FishingLines.NO_NET, null, FishingLines.CAST_NET, NET_ANIM, NET_ANIM, listOf(KARAMBWANJI, SHRIMPS), null,
+            "Net", NET, FishingLines.NO_NET, null, FishingLines.CAST_NET, NET_ANIM, NET_ANIM, listOf(KARAMBWANJI, KARAMBWANJI_SHRIMPS),
+            FishingLines.LEVEL_KARAMBWANJI,
         )
         val KARAMBWAN_FISHING = FishingMethod(
             "Fish", BAITED_VESSEL, FishingLines.NO_VESSEL, null, FishingLines.CAST_VESSEL, VESSEL_ANIM, VESSEL_ANIM,

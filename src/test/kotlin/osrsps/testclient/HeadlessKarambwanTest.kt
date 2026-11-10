@@ -104,6 +104,10 @@ class HeadlessKarambwanTest {
                 client.teleport(KARAMBWANJI_X, KARAMBWANJI_Z - 1)
                 val spot = client.spot(Fishing.KARAMBWANJI_SPOT)
                 client.give(Fishing.NET)
+                // Below 5 the spot gives nothing, shrimps included.
+                client.level("fishing", FISHING, 4)
+                client.npcOp(spot.index, NET_OP)
+                client.seen("[fishing.level_karambwanji level=5]")
                 // At 20: five at a time, for 5 XP a catch.
                 client.level("fishing", FISHING, 20)
                 val before = client.stat(FISHING)!!.xp

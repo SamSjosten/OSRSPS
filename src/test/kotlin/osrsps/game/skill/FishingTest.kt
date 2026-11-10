@@ -168,14 +168,17 @@ class FishingTest {
     @Test
     fun `karambwanji net level over 5 plus one at a time before shrimps, and the vessel catches karambwan from 65`() {
         val net = Fishing.KARAMBWANJI_NET
-        assertEquals(listOf(Fishing.KARAMBWANJI, Fishing.SHRIMPS), net.fish)
+        assertEquals(listOf(Fishing.KARAMBWANJI, Fishing.KARAMBWANJI_SHRIMPS), net.fish)
+        // The spot needs 5, shrimps too (the Wiki's Raw shrimp sources), though shrimps elsewhere need 1.
+        assertEquals(5, net.level)
+        assertEquals(Fishing.SHRIMPS.obj to (48 to 256), Fishing.KARAMBWANJI_SHRIMPS.obj to (Fishing.KARAMBWANJI_SHRIMPS.low to Fishing.KARAMBWANJI_SHRIMPS.high))
         assertEquals(listOf(5, 50, 100, 250), Fishing.KARAMBWANJI.let { listOf(it.level, it.xpTenths, it.low, it.high) })
         // The Wiki's table: 2 from 5 to 9, 3 from 10, 20 from 95, 21 boosted past 99; one of anything else.
         assertEquals(listOf(2, 2, 3, 13, 20, 21), listOf(5, 9, 10, 64, 99, 100).map { Fishing.KARAMBWANJI.amount(it) })
         assertEquals(1, Fishing.SHRIMPS.amount(99))
         // Its chart: karambwanji tried first, then shrimps.
         assertEquals(SuccessRoll.chance(100, 250, 50) / 256.0, chance(net, Fishing.KARAMBWANJI, 50), 1e-9)
-        assertEquals((1 - SuccessRoll.chance(100, 250, 50) / 256.0) * SuccessRoll.chance(48, 256, 50) / 256.0, chance(net, Fishing.SHRIMPS, 50), 1e-9)
+        assertEquals((1 - SuccessRoll.chance(100, 250, 50) / 256.0) * SuccessRoll.chance(48, 256, 50) / 256.0, chance(net, Fishing.KARAMBWANJI_SHRIMPS, 50), 1e-9)
 
         val vessel = Fishing.KARAMBWAN_FISHING
         assertEquals(listOf(Fishing.KARAMBWAN), vessel.fish)
