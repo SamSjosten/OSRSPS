@@ -13,6 +13,11 @@ private val logger = KotlinLogging.logger {}
 /** The reward vault's own lines. Their words on live aren't known yet: no source has them. */
 object ArchiveVaultLines : Lines("tfa_vault", "Chest_(The_Fractured_Archive)") {
     val NOT_YOURS = line("chest_not_yours", "chat, to a player who clicks Open on a chest of the reward vault that isn't their own")
+    val NO_ROOM = line("no_room", "chat, taking loot from the chest's window with no room in the inventory for all of it")
+    val DISCARD_ASK = line("discard_ask", "the title of the Yes/No menu on the chest window's Discard-all")
+    val DISCARD_YES = line("discard_yes", "that menu, option 1: everything in the chest is destroyed")
+    val DISCARD_NO = line("discard_no", "that menu, option 2")
+    val CLAIM_FIRST = line("claim_first", "chat, at the lobby's Archive Door with loot of an earlier run still unclaimed in the Loot Wheelbarrow")
 }
 
 /**
@@ -32,10 +37,15 @@ object ArchiveVaultLines : Lines("tfa_vault", "Chest_(The_Fractured_Archive)") {
  *   can only open their own chest" (the Wiki): another's refuses with [ArchiveVaultLines.NOT_YOURS]. Guessed: that it
  *   says anything.
  *
- * Not in yet (raid steps 29b and on): Search and the chest's window (`tfa_chests`, 973), so nothing is taken from a
- * chest yet; the lobby's Loot Wheelbarrow for what is left behind; the unique's own chest on the northern platform
- * (16730) and the purple braziers that show one was found, so the one who finds it has it in their own chest here;
- * the loot's graphics; the collection log.
+ * - **Search** on the Rift one's own chest leaves opens the chest's window over the loot ([ArchiveChestWindow], raid
+ *   step 29b); another's refuses as its Open does (live took Search off others' Rifts on 3 November 2026, the Wiki;
+ *   the 241 cache still has it). What isn't claimed there waits in the lobby's Loot Wheelbarrow, and the Archive Door
+ *   lets nobody into a new run with loot waiting ([ArchiveVaultLines.CLAIM_FIRST]). Guessed: that refusal, as the
+ *   Theatre of Blood's chest outside holds a player to their last loot; and that a chest never opened pays into the
+ *   Wheelbarrow all the same.
+ *
+ * Not in yet: the unique's own chest on the northern platform (16730) and the purple braziers that show one was
+ * found, so the one who finds it has it in their own chest here; the loot's graphics; the collection log.
  */
 class ArchiveChests(private val world: World, private val raids: ArchiveRaids) {
     private var loaded: ArchiveLoot? = null
@@ -52,6 +62,12 @@ class ArchiveChests(private val world: World, private val raids: ArchiveRaids) {
         table
         // A chest's option names the type the player is shown, their own or not; which it is, is the run's to say.
         for (type in listOf(CLOSED_OTHERS, CLOSED_OWN)) world.handlers.onNpc(type, OPEN) { op -> open(player, op.npc!!) }
+        for (type in listOf(OPEN_OTHERS, OPEN_OWN)) world.handlers.onNpc(type, SEARCH) { op -> search(player, op.npc!!) }
+        // The Loot Wheelbarrow is a multiloc: the client names the loc on the map, whichever it shows, and only the
+        // open one, shown with loot waiting, has Search.
+        world.handlers.onLoc(ArchiveChestWindow.WHEELBARROW, ArchiveChestWindow.SEARCH) {
+            if (world.archiveChestWindow.waiting(player)) world.archiveChestWindow.open(player)
+        }
     }
 
     /**
@@ -78,6 +94,7 @@ class ArchiveChests(private val world: World, private val raids: ArchiveRaids) {
             run.chestSlots[member.saveKey] = slot
             placeChest(run, slot, open = false)
             showOwn(run, member)
+            world.archiveChestWindow.fill(member, result.chests[member.saveKey].orEmpty())
         }
         logger.info { "$run paid ${members.joinToString { "${it.key} (${it.contribution})" }}; unique: ${result.unique ?: "none"}" }
     }
@@ -115,6 +132,17 @@ class ArchiveChests(private val world: World, private val raids: ArchiveRaids) {
         run.opening[slot] = world.tick + OPEN_TICKS
     }
 
+    /** Search on the Rift a chest leaves: [player]'s own opens its window over their loot; another's refuses. */
+    fun search(player: Player, npc: Npc) {
+        val run = raids.at(player.x, player.z) ?: return
+        val slot = run.chests.entries.firstOrNull { it.value === npc }?.key ?: return
+        if (run.chestSlots[player.saveKey] != slot) {
+            player.message(world.textFor(player)[ArchiveVaultLines.NOT_YOURS])
+            return
+        }
+        if (slot in run.opened) world.archiveChestWindow.open(player)
+    }
+
     /** Each tick: a chest whose opening is over is the Rift it leaves. */
     fun process(run: ArchiveRun) {
         if (run.opening.isEmpty()) return
@@ -136,7 +164,8 @@ class ArchiveChests(private val world: World, private val raids: ArchiveRaids) {
             in run.opening -> "opening"
             else -> "closed"
         }
-        return "Loot for ${loot.chests.size}, $unique. Your chest is ${slot + 1}, $state: ${describe(loot.chests[player.saveKey].orEmpty())}."
+        val left = player.archiveChest.contents().joinToString { (_, obj) -> "${world.objTypes[obj.id]?.name ?: obj.id} x${obj.count}" }.ifEmpty { "nothing" }
+        return "Loot for ${loot.chests.size}, $unique. Your chest is ${slot + 1}, $state: ${describe(loot.chests[player.saveKey].orEmpty())}. Unclaimed: $left."
     }
 
     private fun describe(drops: List<Drop>): String = drops.joinToString { "${it.type.name} x${it.count}" }.ifEmpty { "nothing" }
@@ -156,6 +185,7 @@ class ArchiveChests(private val world: World, private val raids: ArchiveRaids) {
         /** tfa_rewards_chest_vault_1_closed: chest N closed is this and 2 (N - 1) more, open one more again. */
         const val FIRST_CHEST = 16736
         const val OPEN = 1
+        const val SEARCH = 1
 
         /** chest_guthixian02_open01, and its length in ticks (30 client cycles). */
         const val OPEN_ANIM = 15101

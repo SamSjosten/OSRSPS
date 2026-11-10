@@ -219,6 +219,22 @@ class PlayerSaveTest {
     }
 
     @Test
+    fun `unclaimed loot of The Fractured Archive is saved, and a save without any loads with none`() {
+        val player = world.loadPlayer(1, "Test")
+        player.archiveChest[0] = InvObj(1391, 35)
+        player.archiveChest[5] = InvObj(12073, 1)
+        assertTrue(world.save(player))
+        assertEquals(listOf(0 to InvObj(1391, 35), 5 to InvObj(12073, 1)), world.loadPlayer(2, "test").archiveChest.contents())
+
+        val none = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap()).toJson("none")
+        assertTrue("archiveChest" !in none)
+        saves.write("none", none)
+        assertTrue(world.loadPlayer(3, "none").archiveChest.isEmpty())
+        val past = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap(), archiveChest = mapOf(6 to InvObj(995, 1))).toJson("test")
+        assertFailsWith<IllegalArgumentException> { PlayerSave.fromJson(past) }
+    }
+
+    @Test
     fun `a save from before equipment loads with nothing worn`() {
         val text = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap()).toJson("test")
         saves.write("test", text.replace(Regex(",\\s*\"equipment\": \\[\\s*]"), ""))

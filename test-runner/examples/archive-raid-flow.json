@@ -296,10 +296,10 @@
   },
   {
    "step": "npcOption",
-   "npcId": 16736,
+   "npcId": 16733,
    "option": "Open",
    "timeoutMs": 20000,
-   "comment": "Open on one's own chest: its opening animation, then the Rift it leaves a tick later (a tick: the animation's length)"
+   "comment": "Open on one's own chest: its opening animation, then the Rift it leaves a tick later (a tick: the animation's length). The client sees chest 1 as what it turns into by tfa_vault_own_chest, tfa_rewards_chest_vault_closed_mine (16733)"
   },
   {
    "step": "waitTicks",
@@ -309,13 +309,48 @@
    "step": "command",
    "text": "::raid loot",
    "expectMessage": "Your chest is 1, open: ",
-   "comment": "open; Search and the chest's window are raid step 29b"
+   "comment": "open, the Rift it leaves there"
   },
   {
    "step": "command",
    "text": "::npcs 2",
    "expectMessage": "(16737)",
    "comment": "tfa_rewards_chest_vault_1_open, the Rift (Search) the chest leaves"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 16735,
+   "option": "Search",
+   "timeoutMs": 20000,
+   "comment": "raid step 29b: Search on the Rift one's own chest leaves, which the client sees as tfa_rewards_chest_vault_open_mine (16735)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 973,
+   "comment": "tfa_chests, the chest's window over the loot (241 cache)"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 973,
+   "component": 5,
+   "op": 6,
+   "comment": "Bank-all (tfa_chests:bank): everything to the bank, as the items they are"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::raid loot",
+   "expectMessage": "Unclaimed: nothing.",
+   "comment": "nothing left to claim, so the lobby's Loot Wheelbarrow stays shut and the Archive Door lets the second run in"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 16416,
+   "value": 0,
+   "comment": "tfa_has_claimable_loot: 0, the Wheelbarrow shown closed"
   },
   {
    "step": "command",
