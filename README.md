@@ -2190,8 +2190,9 @@ player, its charge taking 40% of the shield 4 ticks on or breaking it at once; a
 its hitpoints, never into kill range), and in RuneLite `test-runner/examples/archive-guardian.json` (the whole fight
 solo, Touch with No then Yes, one round of its shield coming back, the beams' shield with its chat line and beam, and
 its last time down, moved on with `::hit`), `test-runner/examples/archive-guardian-hazards.json` (a vine and a
-mushroom) and `test-runner/examples/archive-guardian-batteries.json` (an inert guardian charged, and one spent by a
-beam for 40% of the shield).
+mushroom), `test-runner/examples/archive-guardian-batteries.json` (an inert guardian charged, and one spent by a
+beam for 40% of the shield) and `test-runner/examples/archive-guardian-entrance.json` (a bow's Attack on an inert
+guardian refused from the nexus's entrance and taken from the hall).
 
 ## The Fractured Archive lobby
 
