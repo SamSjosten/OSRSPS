@@ -920,6 +920,7 @@ class HeadlessClient private constructor(
                     packet.payload,
                     large = packet.prot == GameServerProt.NPC_INFO_LARGE_V6,
                     local = playerInfo.coord(index) ?: error("NPC info before the login rebuild"),
+                    ticks = ticks,
                 )
                 for ((npc, text) in npcInfo.said) npcSaid += NpcSaid(npc, text, ticks)
                 for ((npc, type, value) in npcInfo.hits) npcHits += NpcHit(npc, type, value, ticks)

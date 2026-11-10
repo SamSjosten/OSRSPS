@@ -57,13 +57,13 @@ internal class HeadlessGame(
         val staticLoc: (x: Int, z: Int, level: Int, layer: Int) -> ZoneLoc?,
         /** The map elements (minimap icons) our cache overlay adds, by id: the cache's own aren't decoded here. */
         val mapElements: Map<Int, MapElementCodec.Definition> = emptyMap(),
-        /** Each head bar type's width ([HeadbarWidths]); a type not in it has the default. */
-        val headbarWidths: Map<Int, Int> = emptyMap(),
+        /** The head bar types ([HeadbarTypes]); a type not in it has the defaults. */
+        val headbars: Map<Int, HeadbarTypes.Type> = emptyMap(),
     ) {
         companion object {
             /** What [world] loaded from the cache, the overlay's map elements, and the head bar widths read from the cache. */
-            fun of(world: World, headbarWidths: Map<Int, Int> = emptyMap()) =
-                Types(world.npcTypes, world.objTypes, world.locs.types, world.varTypes, world.locs::cached, CustomLocs(world.customVars).mapElements, headbarWidths)
+            fun of(world: World, headbars: Map<Int, HeadbarTypes.Type> = emptyMap()) =
+                Types(world.npcTypes, world.objTypes, world.locs.types, world.varTypes, world.locs::cached, CustomLocs(world.customVars).mapElements, headbars)
         }
     }
 
@@ -336,7 +336,11 @@ internal class HeadlessGame(
         val index = npcIndex(name, id)
         if (index < 0) return null
         val bar = client.npcHealth(index) ?: return Game.Health(-1, 0)
-        return Game.Health(bar.fill, types.headbarWidths[bar.type] ?: HeadbarWidths.DEFAULT)
+        val type = types.headbars[bar.type] ?: HeadbarTypes.Type()
+        // As the client: a bar not updated for its type's stick time (counted from when it settled) is gone.
+        // Inferred: the client counts the stick time from the update's start delay plus its end time.
+        if ((client.ticksSeen - bar.ticks) * CYCLES_PER_TICK >= bar.settleCycles + type.stickCycles) return Game.Health(-1, 0)
+        return Game.Health(bar.fill, type.width)
     }
 
     /** The server's copy only: the headless client runs no client scripts that could change its own. */
@@ -727,6 +731,9 @@ internal class HeadlessGame(
         const val TAKE_OP = 3
 
         const val LAYERS = 4
+
+        /** Client cycles (20 ms) in a game tick (600 ms). */
+        const val CYCLES_PER_TICK = 30
 
         /** Client scripts that change only what the client shows: toplevel_sidebutton_switch. */
         val CLIENT_ONLY_SCRIPTS = setOf(915)

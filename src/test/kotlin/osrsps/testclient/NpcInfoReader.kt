@@ -9,8 +9,12 @@ data class NpcSaid(val index: Int, val text: String, val ticks: Int)
 /** A hitsplat on an NPC as this client was sent it (its own type when it dealt the hit), and the ticks seen then. */
 data class NpcHit(val index: Int, val type: Int, val value: Int, val ticks: Int)
 
-/** An NPC's head bar as the client was last told it: its type, and how much of the type's width is filled. */
-data class HeadbarView(val type: Int, val fill: Int)
+/**
+ * An NPC's head bar as the client was last told it: its type, how much of the type's width is filled, the tick count
+ * the client had seen when it came, and the client cycles (20 ms) after that until it settles: its start delay and,
+ * for a bar that slides, its end time. The bar stays up for the type's stick time after that.
+ */
+data class HeadbarView(val type: Int, val fill: Int, val ticks: Int = 0, val settleCycles: Int = 0)
 
 /** An NPC the client can see: its index in the world, its type id and its tile. */
 data class NpcView(val index: Int, val id: Int, val coord: Coord)
@@ -48,13 +52,16 @@ class NpcInfoReader {
     /** Each NPC's head bar as the client was last told it, by index; gone when the bar was removed. */
     private val fills = HashMap<Int, HeadbarView>()
 
+    /** Each NPC's spotanims by slot, as the client keeps them until a slot is cleared or the NPC leaves view. */
+    private val spotanims = HashMap<Int, HashMap<Int, Int>>()
+
     fun npcs(): List<NpcView> = inView.toList()
 
     /** An NPC's health bar; null while it shows none. */
     fun health(index: Int): HeadbarView? = fills[index]
 
-    /** Applies one packet; [local] is the local player's tile after this tick's player info. */
-    fun read(payload: ByteArray, large: Boolean, local: Coord) {
+    /** Applies one packet; [local] is the local player's tile after this tick's player info, [ticks] the ticks seen. */
+    fun read(payload: ByteArray, large: Boolean, local: Coord, ticks: Int = 0) {
         val bits = BitReader(payload)
         val extended = ArrayList<Int>()
         val count = bits.read(8)
@@ -104,9 +111,11 @@ class NpcInfoReader {
         }
         inView.clear()
         inView += kept
-        fills.keys.retainAll(kept.mapTo(HashSet()) { it.index })
+        val keptIndices = kept.mapTo(HashSet()) { it.index }
+        fills.keys.retainAll(keptIndices)
+        spotanims.keys.retainAll(keptIndices)
         extendedInfo = extended
-        readBlocks(payload, bits.alignedBytes(), extended)
+        readBlocks(payload, bits.alignedBytes(), extended, ticks)
     }
 
     /**
@@ -114,7 +123,7 @@ class NpcInfoReader {
      * NpcAvatarExtendedInfoDesktopWriter writes them: a flag byte, a second, third and fourth when the one before has its
      * marker bit (0x4, 0x400, 0x200000), then the blocks in the writer's order, each read as its RSProt encoder writes it.
      */
-    private fun readBlocks(payload: ByteArray, start: Int, extended: List<Int>) {
+    private fun readBlocks(payload: ByteArray, start: Int, extended: List<Int>, ticks: Int) {
         val said = ArrayList<Pair<Int, String>>()
         val hits = ArrayList<Triple<Int, Int, Int>>()
         val events = ArrayList<ActorEvent>()
@@ -127,13 +136,16 @@ class NpcInfoReader {
             if (flags and EXTENDED_INT != 0) flags = flags or (buf.g1() shl 24)
             if (flags and KNOWN_FLAGS.inv() != 0) break
             if (flags and SPOTANIM != 0) {
+                val slots = spotanims.getOrPut(index) { HashMap() }
                 repeat(buf.g1Alt3()) {
-                    buf.g1Alt3() // slot
+                    val slot = buf.g1Alt3()
                     val id = buf.g2Alt3()
                     buf.skipRead(4) // delay and height
                     buf.g1Alt2() // loop
-                    if (id != NONE) events += ActorEvent(ActorEventKind.SPOTANIM, true, index, id)
+                    if (id == NONE) slots.remove(slot) else slots[slot] = id
                 }
+                // Every spotanim the NPC has now, as the plugin reports them on GraphicChanged (see PlayerInfoReader).
+                for (id in slots.values) events += ActorEvent(ActorEventKind.SPOTANIM, true, index, id)
             }
             if (flags and HITMARKS != 0) {
                 repeat(buf.g1Alt3()) {
@@ -164,10 +176,11 @@ class NpcInfoReader {
                     if (end == HEADBAR_REMOVED) {
                         fills.remove(index)
                     } else {
-                        buf.gSmart1or2() // start time
+                        val start = buf.gSmart1or2()
                         val startFill = buf.g1Alt1()
                         // A bar that slides (an end time) ends at its end fill, which is what it shows once it settles.
-                        fills[index] = HeadbarView(type, if (end > 0) buf.g1Alt3() else startFill)
+                        val fill = if (end > 0) buf.g1Alt3() else startFill
+                        fills[index] = HeadbarView(type, fill, ticks, start + maxOf(end, 0))
                     }
                 }
             }

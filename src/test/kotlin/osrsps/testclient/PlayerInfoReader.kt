@@ -68,6 +68,9 @@ class PlayerInfoReader(val localIndex: Int) {
 
     private val appearances = HashMap<Int, AppearanceView>()
 
+    /** Each player's spotanims by slot, as the client keeps them until a slot is cleared or the player leaves view. */
+    private val spotanims = HashMap<Int, HashMap<Int, Int>>()
+
     /** A player's last appearance block, or null when none has come since they came into view. */
     fun appearance(index: Int): AppearanceView? = appearances[index]
 
@@ -196,13 +199,18 @@ class PlayerInfoReader(val localIndex: Int) {
                 }
             }
             if (flags and SPOTANIM != 0) {
+                val slots = spotanims.getOrPut(index) { HashMap() }
                 repeat(buf.g1()) {
-                    buf.g1Alt1() // slot
+                    val slot = buf.g1Alt1()
                     val id = buf.g2Alt3()
                     buf.skipRead(4) // delay and height
                     buf.g1() // loop
-                    if (id != NONE) events += ActorEvent(ActorEventKind.SPOTANIM, false, index, id)
+                    if (id == NONE) slots.remove(slot) else slots[slot] = id
                 }
+                // As RuneLite's GraphicChanged, which says nothing of the slot: the plugin reports every spotanim the
+                // player has now, those from earlier blocks again too. Inferred: one kept here may have ended in the
+                // client, whose animation length isn't read.
+                for (id in slots.values) events += ActorEvent(ActorEventKind.SPOTANIM, false, index, id)
             }
             if (flags and HEADBARS != 0) {
                 repeat(buf.g1Alt2()) {
@@ -288,6 +296,7 @@ class PlayerInfoReader(val localIndex: Int) {
             0 -> if (!hasExtended) {
                 // Out of view: back to low resolution.
                 highRes[index] = false
+                spotanims.remove(index)
                 if (bits.read(1) == 1) readLowResMove(bits, index, bits.read(2))
             }
             1 -> {

@@ -170,6 +170,14 @@ class HeadlessScriptsTest {
     }
 
     @Test
+    fun `a head bar type's width and stick time read from its config, with the defaults when absent`() {
+        // osrs-dumps' headbar_2: showpriority 250, hidepriority 250, sticktime 300, fadeout 280, segments 40.
+        val standard40 = byteArrayOf(2, 250.toByte(), 3, 250.toByte(), 5, 1, 44, 11, 1, 24, 14, 40, 0)
+        assertEquals(HeadbarTypes.Type(40, 300), HeadbarTypes.decode(standard40))
+        assertEquals(HeadbarTypes.Type(HeadbarTypes.DEFAULT_WIDTH, HeadbarTypes.DEFAULT_STICK_CYCLES), HeadbarTypes.decode(byteArrayOf(0)))
+    }
+
+    @Test
     fun `every example script reads`() {
         val examples = Path.of("test-runner/examples").listDirectoryEntries("*.json")
         assertTrue(examples.size > 100, "found ${examples.size} examples")
