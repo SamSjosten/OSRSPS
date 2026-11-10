@@ -156,7 +156,7 @@ class WallBeasts(private val world: World) {
     fun keepFighting() {
         val players = world.onlinePlayers
         lastFought.keys.removeIf { it.transformedTo?.id != BEAST || it.dead || world.npcs[it.index] !== it }
-        for (npc in world.npcs.all) {
+        for (npc in world.npcs.inPlay) {
             if (npc.spawn.type.id != HOLE || npc.transformedTo?.id != BEAST || npc.outOfPlay) continue
             if (npc.target != null) {
                 lastFought[npc] = world.tick

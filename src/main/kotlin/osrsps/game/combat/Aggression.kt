@@ -100,7 +100,7 @@ class Aggression(
     fun process() {
         for (player in players()) count(player)
         val tick = currentTick()
-        for (npc in npcs.all) hunt(npc, tick)
+        for (npc in npcs.inPlay) hunt(npc, tick)
     }
 
     /** One tick of [player]'s [Tolerance]: a tick more in the areas, or new ones. */

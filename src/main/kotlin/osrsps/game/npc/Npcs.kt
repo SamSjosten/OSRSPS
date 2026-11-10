@@ -38,8 +38,17 @@ class Npcs(
 
     val count: Int get() = npcs.count { it != null }
 
-    /** Every NPC, in index order. */
+    /**
+     * Every NPC, in index order, hidden ones too ([Npc.hidden]): for the engine's own loops (timers, effects, removal)
+     * and admin commands. Anything that looks for an NPC to do something with asks [inPlay] or [near].
+     */
     val all: Sequence<Npc> get() = npcs.asSequence().filterNotNull()
+
+    /**
+     * The NPCs in play, in index order: every one that isn't hidden. What content asks when it looks an NPC up by type
+     * or place (a gate's guard, a stall's owner), so a hidden one is out of that too.
+     */
+    val inPlay: Sequence<Npc> get() = all.filter { !it.hidden }
 
     operator fun get(index: Int): Npc? = npcs.getOrNull(index)
 
@@ -190,9 +199,12 @@ class Npcs(
         npc.avatar?.teleport(npc.level, x, z, true)
     }
 
-    /** The NPCs on [level] whose south-west tile is within [radius] tiles of [x], [z] on both axes. */
-    fun near(x: Int, z: Int, level: Int, radius: Int): List<Npc> =
-        all.filter { it.level == level && abs(it.x - x) <= radius && abs(it.z - z) <= radius }.toList()
+    /**
+     * The NPCs on [level] whose south-west tile is within [radius] tiles of [x], [z] on both axes: those in play
+     * ([inPlay]), or with [hidden] the hidden ones too (::npcs lists them).
+     */
+    fun near(x: Int, z: Int, level: Int, radius: Int, hidden: Boolean = false): List<Npc> =
+        (if (hidden) all else inPlay).filter { it.level == level && abs(it.x - x) <= radius && abs(it.z - z) <= radius }.toList()
 
     /**
      * Counts every NPC's freeze and freeze immunity down a tick. The world calls it at the start of the NPC phase, before

@@ -327,7 +327,7 @@ class RangedCombat(
         val from = shot.npc
         if (!multi.at(from.level, from.x, from.z)) return null
         val size = from.type.size
-        val targets = npcs.all.filter { npc ->
+        val targets = npcs.inPlay.filter { npc ->
             npc !== from && !npc.outOfPlay && npc.level == from.level && combat.npcCombat[npc.type] != null &&
                 multi.at(npc.level, npc.x, npc.z) && combat.barred(shot.player, npc) == null &&
                 LineOfSight.distance(from.x, from.z, size, npc.x, npc.z, npc.type.size, npc.type.size) <= BOUNCE_RANGE
@@ -357,7 +357,7 @@ class RangedCombat(
         val from = shot.npc
         if (!multi.at(from.level, from.x, from.z)) return
         val style = shot.style ?: return
-        val around = npcs.all.filter { npc ->
+        val around = npcs.inPlay.filter { npc ->
             npc !== from && !npc.outOfPlay && npc.level == from.level && combat.npcCombat[npc.type] != null &&
                 combat.barred(shot.player, npc) == null && abs(npc.x - from.x) <= SPLASH_RADIUS && abs(npc.z - from.z) <= SPLASH_RADIUS && multi.at(npc.level, npc.x, npc.z)
         }.take(shot.targets - 1).toList()

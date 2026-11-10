@@ -323,7 +323,7 @@ object EdgevilleMonastery {
         val abbotLadder = loc.x == SOUTH_EAST_LADDER_X
         val typeId = if (abbotLadder) ABBOT_LANGLEY else MONK
         val line = if (abbotLadder) AbbotLangleyLines.MEMBERS_ONLY else EdgevilleMonkLines.LADDER
-        val npc = world.npcs.all.filter { it.type.id == typeId && it.level == loc.level && abs(it.x - loc.x) <= NEAR && abs(it.z - loc.z) <= NEAR }
+        val npc = world.npcs.inPlay.filter { it.type.id == typeId && it.level == loc.level && abs(it.x - loc.x) <= NEAR && abs(it.z - loc.z) <= NEAR }
             .minByOrNull { abs(it.x - loc.x) + abs(it.z - loc.z) }
         if (npc != null) {
             world.dialogues.start(this, npc) {

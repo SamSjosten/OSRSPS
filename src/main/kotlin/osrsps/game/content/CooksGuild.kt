@@ -210,7 +210,7 @@ private suspend fun ScriptContext.frontDoor(world: World, door: ZoneLoc) = with(
         val refusal = refusal(player)
         if (refusal != null) {
             // The Head chef says it; with him gone from the guild, the line shows as a message.
-            val chef = world.npcs.all.firstOrNull { it.spawn.type.id == HEAD_CHEF && !it.outOfPlay }
+            val chef = world.npcs.inPlay.firstOrNull { it.spawn.type.id == HEAD_CHEF && !it.outOfPlay }
             if (chef != null) world.dialogues.start(this@frontDoor, chef) { chatNpc(ChatAnim.NEUTRAL, refusal) } else world.message(player, refusal)
             return@with
         }

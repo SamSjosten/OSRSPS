@@ -129,7 +129,7 @@ object VarrockChampionsGuild {
         arriveDelay()
         val comingIn = !inside(player.z)
         if (comingIn) {
-            val guildmaster = world.npcs.all.firstOrNull {
+            val guildmaster = world.npcs.inPlay.firstOrNull {
                 it.type.id == GUILDMASTER && it.level == 0 && it.x in DOOR_X - 6..DOOR_X + 6 && it.z in DOOR_Z - 8..DOOR_Z
             }
             if (guildmaster != null) world.dialogues.start(this, guildmaster) { chatNpc(ChatAnim.HAPPY, GuildmasterLines.WELCOME) }

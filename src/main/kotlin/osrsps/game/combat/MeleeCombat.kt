@@ -977,7 +977,7 @@ class MeleeCombat(
         player.spotanim(RETRIBUTION_SPOTANIM)
         val max = player.skills.baseLevel(Skill.PRAYER) / 4
         val targets = if (multi.at(player.level, player.x, player.z)) {
-            npcs.all.filter {
+            npcs.inPlay.filter {
                 !it.outOfPlay && it.level == player.level && combat.npcCombat[it.type] != null && withinATile(player, it) &&
                     combat.barred(player, it) == null
             }.toList()

@@ -2080,7 +2080,8 @@ A boss that goes from sight in the middle of its fight and comes back (Dreadnoth
 removed: `World.hide(npc)` keeps it in the world under its index, with its fight, timers and hitpoints going on, while no
 client is shown it (RSProt's inaccessible avatar), its tiles are free, it stands still (a fight's own steps and swings
 for it do nothing), and nothing clicks, attacks or hurts it and it fights no one, so a player who was fighting it is
-free for other monsters; `World.show(npc)` brings it back where it stands (moved meanwhile with
+free for other monsters, and content that looks NPCs up (`Npcs.inPlay`, `Npcs.near`: a gate's guard, a stall's owner)
+doesn't find it, while the engine's own loops (`Npcs.all`) still do; `World.show(npc)` brings it back where it stands (moved meanwhile with
 `Npcs.teleport`, there). By hand: `::hidenpc`.
 
 Check: `./gradlew test --tests 'osrsps.game.npc.NpcsTest' --tests 'osrsps.testclient.HeadlessHiddenNpcTest'`, and in

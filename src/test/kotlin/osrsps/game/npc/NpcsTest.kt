@@ -44,6 +44,11 @@ class NpcsTest {
         assertFalse(npcs.hide(hidden), "hidden twice is hidden once")
         assertTrue(hidden.hidden && npcs[hidden.index] === hidden, "it keeps its place in the world")
         assertTrue(npcs.canStep(other, 1, 0), "its tiles are free")
+        // Content that looks NPCs up doesn't find it; the engine's own loops and ::npcs do.
+        assertEquals(listOf(other), npcs.inPlay.toList())
+        assertEquals(listOf(other), npcs.near(3230, 3230, 0, 5))
+        assertEquals(listOf(hidden, other), npcs.near(3230, 3230, 0, 5, hidden = true))
+        assertEquals(listOf(hidden, other), npcs.all.toList())
         repeat(200) { npcs.process() }
         assertEquals(Tile(3230, 3230), Tile(hidden.x, hidden.z), "it doesn't wander")
         // A boss fight's own steps don't move it either, nor set it following anyone.
