@@ -40,8 +40,10 @@ import osrsps.map.Tile
  * first ready; his walk to a corner with Protect from Melee up and a shot every five ticks; the seven cracks at a
  * corner, uncaught ones charging him and a caught one healing the player's chip damage; his line and explosion; his walk
  * on to the next corner anticlockwise; his move to the middle at two thirds and a quarter, its four sides of cracks, his
- * line and his charge expended (raid step 24b); and the hold at the end of his blue bar, his line, his transformation
- * and, until step 25, his death as his second phase would begin, doing the room. The rl-client script
+ * line and his charge expended (raid step 24b); the hold at the end of his blue bar, his line and his transformation;
+ * and his second phase (raid step 25a): the portals on the arms of the cross, the Blade passing its damage to his bar,
+ * the quadrants' turns and their volleys, and, until step 26, his death as his third phase would begin, doing the room.
+ * The rl-client script
  * test-runner/examples/archive-ocellus.json fights him in the real client.
  */
 class HeadlessOcellusTest {
@@ -59,11 +61,25 @@ class HeadlessOcellusTest {
         Ocellus.P1, "Ocellus", size = 3, ops = listOf(null, "Attack", null, null, null), internalName = "tfa_ocellus_p1",
         stats = NpcStats(attack = 1, defence = 215, strength = 1, hitpoints = 2500, ranged = 250, magic = 350),
     )
+    /** His second phase, nameless and with no options, and the Blade beside him, as the 242 cache has them. */
+    private val second = NpcType(
+        Ocellus.P2, size = 3, internalName = "tfa_ocellus_p2",
+        stats = NpcStats(attack = 325, defence = 250, strength = 250, hitpoints = 5250, ranged = 300, magic = 300),
+    )
+    private val blade = NpcType(
+        Ocellus.BLADE, "<col=00ffff>The Blade</col>", size = 3, ops = listOf(null, "Attack", null, null, null), internalName = "tfa_ocellus_p2_sword_hitbox",
+        stats = NpcStats(attack = 1, defence = 250, strength = 1, hitpoints = 1000, ranged = 1, magic = 220),
+    )
     private val grave = NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null))
-    private val types = NpcTypes.of(figure, notMet, met, first, grave)
+    private val types = NpcTypes.of(figure, notMet, met, first, second, blade, grave)
 
+    private val portal = LocCollisionType(width = 2, length = 1, interactType = 1, blocksProjectile = false)
     private val locTypes = LocTypes(
-        mapOf(ArchiveRaids.ARCHIVE_DOOR to LocType(ArchiveRaids.ARCHIVE_DOOR, "Archive Door", ops = listOf("Enter", null, null, null, null), collision = LocCollisionType(width = 9, length = 1))),
+        mapOf(
+            ArchiveRaids.ARCHIVE_DOOR to LocType(ArchiveRaids.ARCHIVE_DOOR, "Archive Door", ops = listOf("Enter", null, null, null, null), collision = LocCollisionType(width = 9, length = 1)),
+            Ocellus.LOC_PORTAL to LocType(Ocellus.LOC_PORTAL, "Portal", collision = portal),
+            Ocellus.LOC_PORTAL_ACTIVE to LocType(Ocellus.LOC_PORTAL_ACTIVE, "Portal", collision = portal),
+        ),
     )
     private val staticLocs = StaticLocs().apply { add(ZoneLoc(ArchiveRaids.ARCHIVE_DOOR, LocShape.CENTREPIECE_STRAIGHT, 0, 4123, 5562, 0)) }
 
@@ -126,9 +142,9 @@ class HeadlessOcellusTest {
 
     private fun lines(run: ArchiveRun): List<String> = run.fights[ArchiveRoom.OCELLUS]?.lines?.toList().orEmpty()
 
-    private fun HeadlessClient.awaitLine(run: ArchiveRun, what: String, predicate: (String) -> Boolean): String =
+    private fun HeadlessClient.awaitLine(run: ArchiveRun, what: String, timeoutMillis: Long = 10_000, predicate: (String) -> Boolean): String =
         try {
-            await(what) { lines(run).lastOrNull(predicate) }
+            await(what, timeoutMillis) { lines(run).lastOrNull(predicate) }
         } catch (e: AssertionError) {
             throw AssertionError("${e.message}; the fight's last lines: ${lines(run).takeLast(12)}", e)
         }
@@ -335,12 +351,124 @@ class HeadlessOcellusTest {
                 val transformation = alice.awaitLine(run, "his transformation") { it.endsWith("held: transformation") }
                 assertEquals(tickOf(disappear) + Ocellus.TRANSFORM_ANIM_AFTER, tickOf(transformation))
                 assertFalse(boss.dead)
-                // Until step 25, he dies as his second phase would begin, ten ticks after his line, and the room is done.
+                // His second phase ten ticks after his line, on the remainder of his hitpoints.
+                val second = alice.awaitLine(run, "his second phase") { it.endsWith("second: phase starts") }
+                assertEquals(tickOf(disappear) + Ocellus.SECOND_PHASE_AFTER, tickOf(second))
+                assertEquals(Ocellus.P2, boss.type.id)
+                assertEquals(5250, boss.hitpoints)
+                assertFalse(boss.dead)
+            }
+        }
+    }
+
+    @Test
+    fun `his portals stand on the arms of the cross, every two tiles`() {
+        val centre = Ocellus.centre(Ocellus.FIGURE_X, Ocellus.FIGURE_Z)
+        assertEquals(Tile(4127, 5673), centre)
+        // The capture notes' tiles: E 4128-4138 and W 4115-4125 at y 5673, N 5674-5684 and S 5661-5671 at x 4127.
+        assertEquals((0..5).map { Tile(4128 + 2 * it, 5673) }, (0..5).map { Ocellus.portalTiles(centre, Ocellus.Arm.E, it).first() })
+        assertEquals((0..5).map { Tile(4125 - 2 * it, 5673) }, (0..5).map { Ocellus.portalTiles(centre, Ocellus.Arm.W, it).first() })
+        assertEquals((0..5).map { Tile(4127, 5674 + 2 * it) }, (0..5).map { Ocellus.portalTiles(centre, Ocellus.Arm.N, it).first() })
+        assertEquals((0..5).map { Tile(4127, 5671 - 2 * it) }, (0..5).map { Ocellus.portalTiles(centre, Ocellus.Arm.S, it).first() })
+        // Every tile of each arm but the middle's, once.
+        val all = Ocellus.Arm.entries.flatMap { arm -> (0..5).flatMap { Ocellus.portalTiles(centre, arm, it) } }
+        assertEquals(48, all.toSet().size)
+        assertTrue(all.none { it == centre })
+        assertTrue(all.all { Ocellus.quadrant(centre, it.x, it.z) == null })
+        // The north arm's second portal (5676-5677) shoots west across the north-west quadrant, its strip 12 tiles long.
+        assertEquals(listOf(Tile(4126, 5676), Tile(4126, 5677)), Ocellus.strip(centre, Ocellus.Arm.N, 1, Ocellus.Quadrant.NW, 1))
+        assertEquals(listOf(Tile(4115, 5676), Tile(4115, 5677)), Ocellus.strip(centre, Ocellus.Arm.N, 1, Ocellus.Quadrant.NW, 12))
+        // The east arm's first (4128-4129) south across the south-east one.
+        assertEquals(listOf(Tile(4128, 5672), Tile(4129, 5672)), Ocellus.strip(centre, Ocellus.Arm.E, 0, Ocellus.Quadrant.SE, 1))
+        // Each quadrant's strips stay in it.
+        for (quadrant in Ocellus.Quadrant.entries) {
+            val (ns, ew) = Ocellus.arms(quadrant)
+            val tiles = listOf(ns, ew).flatMap { arm -> (0..5).flatMap { i -> (1..Ocellus.STRIP_LENGTH).flatMap { Ocellus.strip(centre, arm, i, quadrant, it) } } }
+            assertTrue(tiles.all { Ocellus.quadrant(centre, it.x, it.z) == quadrant }, quadrant.name)
+            assertEquals(144, tiles.toSet().size, "${quadrant.name}: 12 by 12, every tile covered by each arm's strips")
+        }
+    }
+
+    @Test
+    fun `his second phase puts up the portals and the Blade, whose damage reaches his bar, and the quadrants' volleys fire`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.command("varp ${EquipmentTab.VARP_AUTO_RETALIATE_OFF} 1")
+                alice.commandReply("setlevel hitpoints 99") { it.contains("set to level 99") }
+                alice.commandReply("heal") { it.startsWith("Healed") }
+                alice.throughTheRest(run)
+                alice.toOcellus(server, run)
+                alice.npcOp(assertNotNull(run.ocellusFigure).index, 1)
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ocellus #") } }
+                val boss = boss(run)
                 val fight = assertNotNull(run.fights[ArchiveRoom.OCELLUS])
-                alice.await("his room done") { ArchiveRoom.OCELLUS.takeIf { it in run.cleared } }
+                val world = server.world
+                val centre = Ocellus.centre(boss.spawn.x, boss.spawn.z)
+                // His blue bar out at once; then into the south-east quadrant, on the south arm's second strip (two tiles
+                // south of the middle row, three east of the cross): the first volley's safe crossing there.
+                alice.commandReply("hit 2500 ${boss.index}") { it.startsWith("Hit ") }
+                alice.tele(centre.x + 3, centre.z - 3, ArchiveRoom.OCELLUS.level)
+                alice.commandReply("god off") { it.startsWith("You can be hurt") }
+                val second = tickOf(alice.awaitLine(run, "his second phase") { it.endsWith("second: phase starts") })
+                val portals = alice.awaitLine(run, "the portals") { it.endsWith("second: portals stand") }
+                assertEquals(second + Ocellus.PORTALS_AT, tickOf(portals))
+                assertEquals(24, Ocellus.portals(boss).size)
+                assertTrue(Ocellus.portals(boss).values.none { it }, "all orange")
+                val east = Ocellus.portalTiles(centre, Ocellus.Arm.E, 0).first()
+                val placedEast = assertNotNull(world.locs[east.x, east.z, boss.level, 2])
+                assertEquals(Ocellus.LOC_PORTAL to 0, placedEast.id to placedEast.angle)
+                val north = Ocellus.portalTiles(centre, Ocellus.Arm.N, 0).first()
+                assertEquals(1, assertNotNull(world.locs[north.x, north.z, boss.level, 2]).angle, "turned along the north arm")
+                // Seven ticks in his line, the Blade on his tiles, and the quadrant she stands in first.
+                val blade = alice.awaitLine(run, "the Blade") { it.contains("second: your time; the Blade; first quadrant ") }
+                assertEquals(second + Ocellus.BLADE_AT, tickOf(blade))
+                assertTrue(blade.endsWith("SE"), blade)
+                val sword = assertNotNull(Ocellus.blade(boss))
+                assertEquals(Tile(boss.x, boss.z), Tile(sword.x, sword.z))
+                assertTrue(alice.fight().contains("second phase, quadrant SE"), alice.fight())
+                // The first volley: all but the south arm's and the east arm's second portals purple, firing four ticks on;
+                // she stands where the two orange strips cross, and nothing hits her.
+                val volley = alice.awaitLine(run, "the first volley") { it.endsWith("second: volley 1: orange S 1, E 1") }
+                assertEquals(tickOf(blade), tickOf(volley))
+                val purple = Ocellus.portals(boss).filterValues { it }.keys
+                assertEquals((0..5).filter { it != 1 }.flatMap { listOf(Ocellus.Arm.S to it, Ocellus.Arm.E to it) }.toSet(), purple)
+                val fired = alice.awaitLine(run, "the first volley firing") { it.endsWith("second: volley 1 fires from 10 portals") }
+                assertEquals(tickOf(volley) + Ocellus.VOLLEY_FIRES, tickOf(fired))
+                // The second keeps the south arm's fourth orange, so the second's strip, hers, fires: its shot reaches her,
+                // three tiles out, the tick after it fires (18 client cycles).
+                alice.awaitLine(run, "the second volley") { it.endsWith("second: volley 2: orange S 3, E 1") }
+                val hit = alice.awaitLine(run, "the shot hitting her") { it.contains("second: portal shot from ") }
+                assertTrue(hit.contains("portal shot from S 1 hits alice for "), hit)
+                assertEquals(tickOf(volley) + Ocellus.VOLLEY_GAP + Ocellus.VOLLEY_FIRES + 1, tickOf(hit))
+                assertTrue(hit.substringAfter(" for ").toInt() in Ocellus.PORTAL_MIN..Ocellus.PORTAL_MAX, hit)
+                assertEquals(1, fight.lines.count { it.contains("portal shot") }, "once, and not in the first volley")
+                alice.commandReply("god on") { it.startsWith("You can't be hurt") }
+                // 1,000 on the Blade: 430 off his bar, and the Blade whole again.
+                alice.commandReply("hit 1000 ${sword.index}") { it.startsWith("Hit ") }
+                alice.awaitLine(run, "the Blade's damage") { it.endsWith("second: the Blade takes 1000: 430 to his bar") }
+                assertEquals(5250 - 430, boss.hitpoints)
+                assertEquals(1000, sword.hitpoints)
+                assertFalse(sword.dead)
+                // It never regains hitpoints by itself, so no point of damage is lost to a regeneration tick.
+                assertTrue(sword.hitpointsRegenTicks > 1_000_000)
+                // Each quadrant 42 ticks, clockwise; until step 26, he dies 123 ticks in, in the third, and the room is done.
+                for (next in listOf("SW", "NW")) {
+                    alice.keepAlive()
+                    alice.awaitLine(run, "the $next quadrant's turn", 30_000) { it.endsWith("second: quadrant $next") }
+                }
+                alice.keepAlive()
+                alice.await("his room done", 30_000) { ArchiveRoom.OCELLUS.takeIf { it in run.cleared } }
                 assertTrue(run.completed)
                 assertTrue(boss.dead)
-                assertEquals(tickOf(disappear) + Ocellus.SECOND_PHASE_AFTER, tickOf(fight.lines.single { it.endsWith("held: second phase: stand-in, he dies") }))
+                val turns = fight.lines.filter { it.contains("second: quadrant ") }
+                assertEquals(listOf("SE", "SW", "NW"), turns.map { it.substringAfter("quadrant ") })
+                assertEquals((0..2).map { second + Ocellus.BLADE_AT + Ocellus.QUADRANT_TICKS * it }, turns.map(::tickOf))
+                assertEquals(second + Ocellus.SECOND_PHASE_TICKS, tickOf(fight.lines.single { it.endsWith("second: end of the second phase: stand-in, he dies") }))
+                assertEquals(18, fight.lines.count { it.contains("second: volley ") && it.contains(" fires from ") }, "six a quadrant, three quadrants")
+                // The portals and the Blade go with the fight.
+                assertTrue(world.locs[east.x, east.z, boss.level, 2]?.id != Ocellus.LOC_PORTAL)
+                assertTrue(sword.dead || world.npcs[sword.index] !== sword)
             }
         }
     }
