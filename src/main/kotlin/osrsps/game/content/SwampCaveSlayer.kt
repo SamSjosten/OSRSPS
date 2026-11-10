@@ -80,8 +80,8 @@ class WallBeasts(private val world: World) {
         const val SPINY_HELMET = 4551
     }
 
-    /** By hole, the player it last reached for, until they step off its tile. */
-    private val reached = HashMap<Npc, Player>()
+    /** By hole, the players it has reached for, each until they step off its tile. */
+    private val reached = HashMap<Npc, MutableSet<Player>>()
 
     /** Whether [player] wears a helmet that repels a wall beast: a spiny helmet, or any slayer helmet by its name. */
     fun helmeted(player: Player): Boolean {
@@ -101,11 +101,13 @@ class WallBeasts(private val world: World) {
 
     /** One tick for [player], after their step: a hole in front of them reaches for them. */
     fun process(player: Player) {
-        reached.entries.removeIf { (hole, who) -> who === player && holeFacing(player) !== hole }
+        val facing = holeFacing(player)
+        for ((hole, players) in reached) if (hole !== facing) players.remove(player)
+        reached.values.removeIf { it.isEmpty() }
         if (player.dead || player.loggedOut) return
-        val hole = holeFacing(player) ?: return
-        if (hole.transformedTo != null || reached[hole] === player) return
-        reached[hole] = player
+        val hole = facing ?: return
+        if (hole.transformedTo != null) return
+        if (!reached.getOrPut(hole) { HashSet() }.add(player)) return
         if (helmeted(player)) {
             world.message(player, SwampCaveSlayerLines.HELMET_REPELS)
             val beast = world.npcTypes[BEAST] ?: return
@@ -116,22 +118,33 @@ class WallBeasts(private val world: World) {
             hole.effects.anim(ANIM_GRAB)
             player.anim(ANIM_PLAYER_GRABBED)
             world.message(player, SwampCaveSlayerLines.GRABBED)
-            world.statusEffects.stun(player, GRAB_TICKS, world.random.nextInt(GRAB_MAX_HIT + 1), spotanim = -1)
+            // From the hole, so the hit puts them in combat (no logging out); the stun keeps them from hitting back.
+            world.statusEffects.stun(player, GRAB_TICKS, world.random.nextInt(GRAB_MAX_HIT + 1), source = hole, spotanim = -1)
         }
     }
 
-    /** Once a tick: a beast still fighting, or hit lately, stays out of its hole. */
+    /**
+     * Once a tick: a beast goes back in [BACK_TICKS] after its fight's last tick, counting from whichever came last:
+     * it fighting someone, being hit, or a player's attack at it setting off (so a shot or spell still in the air
+     * never lands on the hole, which can't be fought).
+     */
     fun keepFighting() {
+        val players = world.onlinePlayers
         for (npc in world.npcs.all) {
             if (npc.spawn.type.id != HOLE || npc.transformedTo?.id != BEAST || npc.dead) continue
-            if (npc.target != null || world.tick - npc.attackedTick < BACK_TICKS) npc.transformTicks = BACK_TICKS
+            if (npc.target != null) {
+                npc.transformTicks = BACK_TICKS
+                continue
+            }
+            var last = npc.attackedTick
+            for (player in players) if (player.attackedNpc === npc) last = maxOf(last, player.attackedNpcTick)
+            npc.transformTicks = (BACK_TICKS - (world.tick - last)).toInt().coerceIn(1, BACK_TICKS)
         }
     }
 
     /** Forgets [player] as they leave the world. */
     fun forget(player: Player) {
-        reached.entries.removeIf { it.value === player }
+        reached.values.forEach { it.remove(player) }
+        reached.values.removeIf { it.isEmpty() }
     }
-
-    internal fun reaching(hole: Npc): Player? = reached[hole]
 }

@@ -346,8 +346,9 @@ class MeleeCombat(
         } else {
             0
         }
-        // XP for what the swing can still deal: what the NPC has left after the swings and shots already on their way.
-        val damage = minOf(armoured(npc, rolled, magic = false), (npc.hitpoints - npc.incoming).coerceAtLeast(0))
+        // XP for what the swing can still deal: what the NPC has left after the swings and shots already on their way,
+        // down to its floor (a rockslug's 1 hitpoint pays nothing more).
+        val damage = minOf(armoured(npc, rolled, magic = false), (npc.hitpoints - combat.floor(npc, player) - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage
         val bonus = combat.npcCombat[npc.type]?.xpBonusTenths ?: 0
         for (skill in style.xp) player.skills.addTenths(skill, CombatMath.withXpBonus(CombatMath.styleXpTenths(damage, style.xp.size), bonus))
@@ -984,7 +985,8 @@ class MeleeCombat(
      */
     private fun retaliate(player: Player, npc: Npc, tick: Long) {
         // Below its Slayer level they can't fight back (guessed: silently, as live shows nothing on a hit).
-        if (foughtByAnother(player, npc) || combat.slayerGated(player, npc)) return
+        // Nor at what can't be fought, as a wall beast's hole that grabbed them.
+        if (combat.npcCombat[npc.type] == null || foughtByAnother(player, npc) || combat.slayerGated(player, npc)) return
         player.interaction = fight(player, npc) ?: return
         player.nextAttackTick = maxOf(tick + (combat.attackSpeed(player) + 1) / 2, player.attackLockedUntil)
     }

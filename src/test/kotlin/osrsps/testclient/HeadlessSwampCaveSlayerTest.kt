@@ -109,8 +109,11 @@ class HeadlessSwampCaveSlayerTest {
 
                 client.npcOp(view.index, 2)
                 client.await("the rockslug at 1", timeoutMillis = 60_000) { if (npc.hitpoints == 1) Unit else null }
+                client.awaitTicks(2)
+                val xp = client.stat(ATTACK)!!.xp
                 client.awaitTicks(8)
                 assertEquals(1, npc.hitpoints, "no hit takes it below 1")
+                assertEquals(xp, client.stat(ATTACK)!!.xp, "and no XP for hits it can't take")
                 assertFalse(npc.dead)
                 assertNull(npc.target, "it stops fighting")
 
@@ -152,9 +155,22 @@ class HeadlessSwampCaveSlayerTest {
 
                 client.tele(3164, 9555)
                 client.seen("[swamp_slayer.grabbed]")
-                assertTrue(server.world.statusEffects.isStunned(player) || client.messages().count { it.text == "[swamp_slayer.grabbed]" } == 1)
-                client.awaitTicks(WallBeasts.GRAB_TICKS + 2)
-                assertEquals(1, client.messages().count { it.text == "[swamp_slayer.grabbed]" }, "once while they stay")
+                assertTrue(player.stunnedUntil > 0, "held")
+                // Held: a step away goes nowhere.
+                client.walk(3164, 9551)
+                client.awaitTicks(1)
+                assertEquals(Coord(3164, 9555, 0), client.position)
+                assertEquals(npc, player.attackedBy, "in combat with the hole, so no logging out")
+
+                // A second player in front of it is grabbed once too, and neither is grabbed again while they stay.
+                server.login("dave").use { dave ->
+                    dave.await("dave's login rebuild") { dave.position }
+                    dave.tele(3164, 9555)
+                    dave.seen("[swamp_slayer.grabbed]")
+                    dave.awaitTicks(WallBeasts.GRAB_TICKS + 4)
+                    assertEquals(1, dave.messages().count { it.text == "[swamp_slayer.grabbed]" }, "dave, once while staying")
+                    assertEquals(1, client.messages().count { it.text == "[swamp_slayer.grabbed]" }, "carol, once while staying")
+                }
                 assertEquals(WallBeasts.HOLE, npc.type.id)
 
                 client.tele(3164, 9553)
@@ -182,6 +198,7 @@ class HeadlessSwampCaveSlayerTest {
         const val INVENTORY_ITEMS = 0
         const val WORN = 94
         const val WEAR_BUTTON = 3
+        const val ATTACK = 0
         const val STRENGTH = 2
         const val HITPOINTS = 3
     }
