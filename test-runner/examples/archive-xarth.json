@@ -110,6 +110,11 @@
    "expectMessage": "You're in Xarth's room"
   },
   {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "the client redraws the scene after the teleport; a Use sent at once gets 'I can't reach that!' on the VMs (Raid thread, 2026-11-10)"
+  },
+  {
    "step": "locOption",
    "locId": 63087,
    "option": "Use",
@@ -118,7 +123,8 @@
   },
   {
    "step": "waitTicks",
-   "ticks": 3
+   "ticks": 10,
+   "comment": "the walk to the transporter and onto the arena; 3 ticks was too soon on the VMs (Raid thread, 2026-11-10)"
   },
   {
    "step": "command",
