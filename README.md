@@ -482,8 +482,11 @@ candle lantern, and an unlit torch lights on a fire or range. Dark areas ask `Li
 ### Mining
 
 Mine on a rock mines it with the best pickaxe the player can use (`game/skill/Mining.kt`, words under `mining.*`):
-clay, copper, tin, iron, coal, mithril and adamantite rocks, with the bronze to crystal pickaxes. A mined rock turns into
-an empty rock (`rocks1`/`rocks2`) until it respawns.
+clay, copper, tin, iron, coal, mithril, adamantite and runite rocks, amethyst crystals and gem rocks, with the bronze to
+crystal pickaxes. A mined rock turns into an empty rock (`rocks1`/`rocks2`, amethyst an empty wall) until it respawns.
+Rocks outside Misthalin are where live has them and reached by ::tele: the Mining Guild's runite and amethyst
+(`::tele 3055 9721`, or `::scenario gathering`), Shilo Village's gem rocks (`::tele 2824 3001`), the Lava Maze's runite
+(`::tele 3058 3885`).
 
 | Mining behaviour | Source |
 |------------------|--------|
@@ -493,7 +496,14 @@ an empty rock (`rocks1`/`rocks2`) until it respawns.
 | The mining gem table, 1/256 a roll: a gem (or nothing) in place of ore, no XP, the rock stays | OSRS Wiki, Mining |
 | The click starts the clock and the first roll comes a whole interval later; the swing message and animation | 2004Scape mining script |
 | Which empty rock each rock becomes (rockN to rocksN); swinging on the click's own tick | guessed |
-| Out: the glory's gem chance, mining gloves and other extra-ore items, the prospector kit, gem rocks, essence | out of scope |
+| Runite rocks: 85, 125 XP, pair 1/18 (17/256 at 85, 19/256 from 97), 12 minutes back, 6 in the Mining Guild and the Wilderness | OSRS Wiki, Runite rocks |
+| Amethyst crystals: 92, 240 XP, pair -18/10, 2 to 3 amethysts from one swing before an empty wall (`amethystrock_empty`) for 75 seconds | OSRS Wiki, Amethyst crystals |
+| Gem rocks: 40, 65 XP, pair 28/70 (84/210 with a charged glory), one gem out of 128 (opal 60, jade 30, red topaz 15, sapphire 9, emerald 5, ruby 5, diamond 4), 99 ticks back, no mining gem table | OSRS Wiki, Gem rocks |
+| A charged amulet of glory (any, trimmed or eternal) adds a second 3/256 roll at the mining gem table | OSRS Wiki, mining gem table template |
+| The Mining Guild's members' area: an invisible +7 on the roll (not on the level needed) and every respawn halved | OSRS Wiki, Mining Guild |
+| The members' area's bounds (x 2998-3059, z 9695-9729), drawn around the Wiki's rock tiles; amethyst's 75 seconds not halved again | inferred |
+| How the amethyst count is drawn (evenly, 2 or 3, on the first amethyst, kept until the wall empties); runite and gem rocks' empty rocks (by their shared models) | guessed |
+| Out: mining gloves and other extra-ore items, the prospector kit, unidentified minerals, the guild's doors and level 60, essence (Runecraft), the visible-boost cap at 99 | out of scope |
 
 ### Fishing
 
@@ -691,6 +701,31 @@ the trapdoor behind the bar, the den's door, and the passageway back up; the maz
 | Not built: marks pausing on the ground while the player is logged out (ours keep counting down), the Achievement Diary rerolls | |
 | Grace (`rooftops_grace`) at 3050,4962 in the den; her shop's stock, prices and 80% buy-back | mejrs NPCList_OSRS; OSRS Wiki, Grace's Graceful Clothing |
 | Grace's shop inv, roguesden_shop (279); the tiles the trapdoor, door and passageway take the player to; the passageway being the way out | guessed (the 241 map shows no other exit) |
+
+### Magic: teleports
+
+The standard spellbook's teleports to places, Varrock Teleport to Ape Atoll Teleport, and the teleport tablets for the
+same places (`game/skill/magic/Teleports.kt`, landing areas and XP in `skills/magic-teleports.json`). Cast on a spell
+checks the level and runes (a staff stands in for its runes, as for combat spells), takes them, gives the XP and lands
+the player on a free tile of the spell's area 3 ticks later; Break on a tablet uses it up and lands 4 ticks later, with
+no level needed and no XP. Above level 20 Wilderness both are refused with the two lines Home Teleport shows there,
+and nothing is taken. Destinations whose towns aren't built land on live's tiles all the same; where the map isn't
+loaded the player lands on the area's centre. The quests that unlock some of these on live count as done.
+
+| Teleport behaviour | Source |
+|--------------------|--------|
+| The ten spells' levels, runes and magic tab components; Ape Atoll's banana (params 606 and 607); the eight `poh_tablet_*` tablets, Break as iop1 | cache 242 (osrs-dumps 2026-11-03-rev242) |
+| Base XP; tablets needing no level and giving no XP; no teleport above level 20 Wilderness | OSRS Wiki, each spell's page, Magic tablet, Wilderness level |
+| Landing areas for Lumbridge, Falador, Ardougne, Trollheim, Ape Atoll, Kourend Castle and Civitas illa Fortis | OSRS Wiki, each spell's map |
+| Animation 714 with graphic 111 at height 92, the landing 3 ticks after the cast with the animation stopped, the player held meanwhile (being attacked doesn't stop it), runes and XP taken at the cast, Varrock and Camelot landing within 2 tiles of the Wiki's tile | inferred from 2004Scape's teleport script |
+| Watchtower landing on its Wiki tile only, on level 2; the tablet's animations 4069 then 4071 with graphic 678 two ticks in, landing 4 ticks after the break | guessed |
+| Not built: the Achievement Diary destinations and Configure (Grand Exchange, Seers' Village, Yanille), Teleport to House, Tele Other, Teleport Block, Ancient and other books' teleports | next steps |
+
+`::scenario magic` stands you on the Lumbridge spawn with 99 Magic, a staff of air, runes for ten of every teleport
+and two of each tablet.
+
+Check: `./gradlew test --tests 'osrsps.game.skill.magic.*' --tests 'osrsps.testclient.HeadlessTeleportsTest'`, and in
+RuneLite `test-runner/examples/magic-teleports.json`.
 
 ## Items and inventory
 
@@ -1960,7 +1995,10 @@ loses goes in a grave there. The party lasts through the wipe.
 | Where he (4190,5534) and his three 2 by 2 rubble heaps (4193,5530, 4196,5536, 4193,5540) stand, his footprint's nine blocking tiles; the room's transporter putting the player on his arena (4184,5535), which begins his fight; phase one's three 31-tick cycles of five fireballs 4 ticks apart, the AoE with a projectile at each player's tile, the flame blast 3 ticks after it and the wave 3 after that, rolling out a client cycle per tile; the wave's 90 degree wedge towards the heap that falls (a row out his width and a tile each side, a tile wider each row), all round the third time; the heaps falling south or north first, then east, then the other; the falling heap sheltering the tiles it hides from his middle tile (no wave) or only from his nearest footprint tile (the smaller explosion); its collapse for 3 ticks; his body gone 6 ticks after he falls; the animations and spotanims by name | tsps capture notes (RSPSApp/tsps docs/fractured-archive.md: five spectator captures of live fights, rev 241.1; 2026-11-10) |
 | The set-alight chat message (`tfa_xarth.set_alight`, a key in code, the words in the dialogue file); his bar's 4,860 for four and 5,950 for five; the burn after it, 7 or 8 every 4 ticks, at least 6 of them; a wave's 100 on a player in the open (twice) and a 60 on another, and a player just south of a heap taking none; a fireball never missing through Protect from Missiles and doing 1 to 6, and landing 3 ticks after the wind-up from 6 or 7 tiles; the AoE's flames reaching the party 2 ticks on, 23 on Sam | Sam's recordings of live parties of four and five (2026-11-09), read by the Review thread's dense pass (2026-11-10) |
 | The first cycle 2 ticks in; the AoE 4 ticks after the last fireball; the bind lasting till the flame blast (3 ticks), as a stun; the AoE's projectile hurting whoever is on its tile for 15 to 30, no prayer helping; the nearest player's tie broken by the lowest index; a fireball needing no line of sight; Protect from Magic cutting a fireball as Protect from Missiles does, and a prayed one setting no burn; the burn stopping after 6 and its stacks (3 more a stack, up to 3); the wave's 40 to 100 with no prayer helping, on the wave's own tick, 5 to 9 when screened, and nothing from the smaller explosion; his arena (4184-4198 x 5527-5543 bar its corners, as Bork's round its room's middle); the heaps blocking the way until they fall | guessed |
-| Phase two (the arena fires that spread, the burning corpse piles, his ranged and melee, the Corpses that walk to him and heal him twice what they have left, the blast after two absorbed); the "shield" the Wiki says the first explosion takes off; the blast on everyone when all hide too soon; the AoE's shadow; the fallen heap's blockrange; his death spotanim | not in yet: steps 19b and 19c (phase two is a stand-in in which he stands and does nothing) |
+| Xarth's phase two (step 19b): fires on the floor that hurt and set alight whoever stands on one, spreading to the tiles next to them; no more magic, but ranged (+250, up to 34) that Protect from Missiles blocks, landing as it hits, and melee (+150 slash, up to 34); Corpses raised with his magic attack animation at the arena's edge, walking to him and healing him twice what they have left if they reach him, a second absorbed setting off the blast all round that sets those it hits alight, a player in front shielding one behind; the Corpse's 62 hitpoints, defence bonuses and 40% water weakness, and its freeze | OSRS Wiki, Xarth, Corpse (Xarth) and The Fractured Archive/Strategies (2026-11-10) |
+| Phase two from the third wave: seven fires 1 to 7 tiles from his footprint, mostly 2 to 5; his shots 7 and 11 ticks in, then a 21-tick cycle from 15 of two Corpses raised 2 ticks apart (three for five players), four shots 4 ticks apart from 5, and three more fires at 12; a Corpse rising 3 ticks after it is raised and walking a tile a tick; one absorbed going 2 ticks on with its heal's hitsplat (124 for an unhurt one), one killed going 4 ticks on; the animations and spotanims by name | tsps capture notes (2026-11-10) |
+| A fire's 5 to 10, at most every 4 ticks, and its burn as a fireball's; where a new fire goes (next to a burning one); where on the edge a Corpse rises; his shot at a random player with a bow's flight, and a swing in place of a shot at a player beside him, Protect from Melee blocking it; a Corpse heading for the tile beside his nearest side; the blast after every second absorbed, the flame blast and 3 ticks on the wave all round, with the wave's damage; three Corpses for a party of five or more in the fight; a fire not blocking the way | guessed |
+| The burning corpse piles; a Corpse doused by water spells; fire spells raising more; the "shield" the Wiki says the first explosion takes off; the blast on everyone when all hide too soon; the AoE's shadow; the fallen heap's blockrange; his death spotanim, and him and the Corpses lingering 6 ticks after he dies; the damage figures Sam's recordings don't show yet | not in yet: step 19c and later |
 | Ocellus (step 24a): his arena upstairs, on level 1 of the cache's square 64,88, the party landing at 4128,5637 from the nexus's Passageway; the hooded figure (`tfa_ocellus_intro`, 16671, shown met or not met) waiting at 4126,5669 from the run's start; his first phase's stats, 2,500 to 8,880 hitpoints by party size, magic and ranged, poison and venom immunity and the 60% Defence drain floor | Sam's recording of 2026-11-09 (the landing: Grid Info); tsps capture notes (the level, the figure and its tile); OSRS Wiki, Ocellus (2026-11-10) |
 | The fight beginning once everyone else in the party has come into his arena and readied at the figure, or 2 minutes after the first ready, with whoever is in the arena then; each ready telling the player how many of the party are ready and the rule (both the game's own chat from Sam's clip, the words kept in the dialogue file under keys); him taking the figure's place as his first phase with his line (key `tfa_ocellus.ascension`, its words on the server, not in git) | Sam's recordings of 2026-11-09; tsps capture notes |
 | His first phase (the shield phase): walking from corner to corner of the arena anticlockwise, from a random first one, a tile a tick, under Protect from Melee (his head icon), a fireball or water ball at everyone every 5 ticks as he walks; at a corner, the prayer down and seven cracks 2 ticks apart from the tick after, each laid towards the middle as a start, then shown 2 ticks on, its energy flowing 5 ticks after it was laid; nobody on a crack charging him 2 of 96 (shown in `::raid` and his log), a player on it healed what they lost since it was laid and then hit for 2 to 6; one of his three lines 3 ticks after the last crack, his explosion 3 after that (two rings round him, the inner at once and the outer a tick later, 15 to 35), and on to the next corner 3 after it | tsps capture notes (RSPSApp/tsps docs/fractured-archive.md; 2026-11-09) and Sam's recordings (the charge bar's steps, the lines) |
@@ -2445,6 +2483,9 @@ a bronze axe in bank tab 1 and 1,000 coins in the main tab: for the tab script, 
 `lumbridge-run-low` stands you on the Lumbridge spawn with run on and no run energy, the energy threshold to re-enable
 running at 5% and Ctrl+click to invert run mode on Run -> Walk only: for the run settings script, as nothing else sets
 run energy.
+
+`magic` stands you on the Lumbridge spawn with 99 Magic and a staff of air, the runes for ten casts of every standard
+teleport built (and a banana for Ape Atoll), and two of each teleport tablet: for the Magic steps.
 
 Check: `::scenario lumbridge-cows` puts you by the cows in iron with the loadout above; `::reset` puts you back where
 you were with your own stats and items.
