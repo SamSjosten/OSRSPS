@@ -62,8 +62,14 @@ fun CommandRegistry.registerRaidCommands(world: World) {
                 val raids = world.archiveRaids
                 val where = when {
                     !run.instance.contains(player.x, player.z) -> "outside it"
-                    else -> raids.roomAt(run, player.x, player.z)?.let { if (it == ArchiveRoom.GUARDIAN) "in the nexus's hall" else "in ${it.boss}'s room" }
-                        ?: "in the nexus's entrance"
+                    else -> {
+                        val room = raids.roomAt(run, player.x, player.z)?.let { if (it == ArchiveRoom.GUARDIAN) "in the nexus's hall" else "in ${it.boss}'s room" }
+                            ?: "in the nexus's entrance"
+                        // The cache's tile, as ::raid tp x z takes it: scripts can't know where the instance lies.
+                        val x = player.x - run.instance.baseX + ArchiveRaids.FROM_X
+                        val z = player.z - run.instance.baseZ + ArchiveRaids.FROM_Z
+                        "$room, at $x, $z of the raid"
+                    }
                 }
                 reply("${raids.describe(run)}. You're $where.")
             }
