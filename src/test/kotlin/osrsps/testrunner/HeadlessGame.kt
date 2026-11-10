@@ -15,13 +15,16 @@ import osrsps.game.bank.BankScreen
 import osrsps.game.content.CustomLocs
 import osrsps.game.bank.DepositBox
 import osrsps.game.ge.GrandExchangeScreen
+import osrsps.game.ge.PriceChecker
 import osrsps.game.shop.ShopScreen
 import osrsps.game.trade.Trades
 import osrsps.game.dialogue.Chatbox
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
+import osrsps.game.script.ScriptContext
 import osrsps.game.skill.LevelUps
 import osrsps.game.zone.ZoneLoc
+import osrsps.testclient.ClientScript
 import osrsps.testclient.Coord
 import osrsps.testclient.CopiedZone
 import osrsps.testclient.DialogueView
@@ -68,6 +71,9 @@ internal class HeadlessGame(
     /** A component listing [inv]'s items, slot 0 at sub [firstSub] (the shop's sub 0 is its highlight). */
     data class InvBinding(val inv: Int, val firstSub: Int = 0)
     private var scriptsSeen = 0
+
+    /** The first client script [promptMode] reads: the one after the last prompt answered from here. */
+    private var promptsFrom = 0
 
     private fun c(): HeadlessClient? = client()?.takeUnless { it.isClosed }
 
@@ -168,14 +174,18 @@ internal class HeadlessGame(
         if (!inScene(client, at.x, at.y)) return "tile ${at.x}, ${at.y} is not in the loaded scene"
         val what = (if (name != null) "\"$name\"" else "id $id") + " at ${at.x}, ${at.y}"
         var seen = false
-        for (loc in sceneLocs(client, here)) {
+        val locs = sceneLocs(client, here)
+        for (loc in locs) {
             if (!loc.covers(at.x, at.y) || !locMatches(loc, name, id)) continue
             // A hidden loc (no current form) matches by its id but isn't there to see.
             val anyForm = option == null || option.equals(EXAMINE, ignoreCase = true)
             if (if (anyForm) loc.shown != null else loc.shown?.let { opSlot(it.ops, option!!) >= 0 } == true) return null
             seen = true
         }
-        if (!seen) return "no loc $what"
+        if (!seen) {
+            val there = locs.filter { it.covers(at.x, at.y) }.map { "${it.shown?.name ?: "hidden"} (${it.loc.id})" }
+            return "no loc $what" + if (there.isEmpty()) "" else "; there: ${there.joinToString()}"
+        }
         return if (option == null) "loc $what is hidden" else "loc $what has no option \"$option\""
     }
 
@@ -343,11 +353,31 @@ internal class HeadlessGame(
     override fun weight(): Int = c()?.weightKg ?: Int.MIN_VALUE
 
     /** The prompt's mode is set by the client's own scripts, which don't run here. */
-    override fun promptMode(): Int = 0
+    /**
+     * Stand-in for varc meslayermode, which the prompts' own client scripts set: the mode of the last prompt script the
+     * server ran (meslayer_mode7, mode9 or mode14), until a meslayer_close for it or any mode, or an answer sent from
+     * here (the client closes its prompt on Enter).
+     */
+    override fun promptMode(): Int {
+        val scripts = c()?.clientScripts() ?: return 0
+        var mode = 0
+        for (i in promptsFrom.coerceAtMost(scripts.size) until scripts.size) {
+            val script = scripts[i]
+            when (script.id) {
+                ScriptContext.MESLAYER_CLOSE -> {
+                    val closes = script.args.firstOrNull() as? Int ?: 0
+                    if (closes == 0 || closes == mode) mode = 0
+                }
+                else -> PROMPT_SCRIPTS[script.id]?.let { mode = it }
+            }
+        }
+        return mode
+    }
 
     override fun enterAmount(amount: Int): String? {
         val client = c() ?: return "not logged in"
         client.resumeCount(amount)
+        promptsFrom = client.clientScripts().size
         return null
     }
 
@@ -427,6 +457,27 @@ internal class HeadlessGame(
     override fun clickWidget(interfaceId: Int, component: Int, sub: Int, op: Int): String? {
         val client = c() ?: return "not logged in"
         if (!interfaceOpen(interfaceId)) return "interface $interfaceId:$component is not open (open: ${client.openInterfaces().sorted()})"
+        if (interfaceId == Chatbox.SKILLMULTI && component - Chatbox.SKILLMULTI_FIRST_ITEM in 0 until Chatbox.SKILLMULTI_MAX_ITEMS) {
+            // Stand-in for the Make-X box's own click script: an item button resumes with the quantity the box shows,
+            // which is the one its setup script started on (its last argument), as no quantity button is clicked here.
+            val setup = client.clientScripts().lastOrNull { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT }
+            val quantity = setup?.args?.lastOrNull() as? Int ?: return "the Make-X box's setup script hasn't come"
+            client.resumePause(interfaceId, component, quantity)
+            return null
+        }
+        if (sub == FRAME_CLOSE_CHILD && (interfaceId shl 16 or component) in FRAME_CLOSE_BUTTONS) {
+            // Inferred: steelborder's close button closes the screen in the client (if_close), which tells the server
+            // with CLOSE_MODAL; the button's own op isn't the server's to handle.
+            client.closeModal()
+            return null
+        }
+        if (interfaceId == BankScreen.POPUPOVERLAY && component == POPUP_CONFIRM &&
+            client.clientScripts().lastOrNull()?.id == BankScreen.CONFIRM_OVERLAY_SCRIPT
+        ) {
+            // Stand-in for the confirm overlay's own click script: its buttons answer resume_p_countdialog, 1 to confirm.
+            client.resumeCount(1)
+            return null
+        }
         client.ifButton(interfaceId, component, op, sub, objAt(client, interfaceId, component, sub))
         return null
     }
@@ -434,8 +485,13 @@ internal class HeadlessGame(
     override fun clickWidgetNamed(interfaceId: Int, component: Int, name: String, op: Int): String =
         "slots built by the client's own scripts aren't known to the headless client"
 
-    override fun runClientScript(id: Int, args: Array<Any>): String =
-        "client script $id runs in the client, which the headless client doesn't have"
+    /**
+     * Only the scripts whose whole effect stays in the client are stood in for, as doing nothing: the side tab switch
+     * (915, toplevel_sidebutton_switch) shows another tab and tells the server nothing (inferred from its name and
+     * from the server never seeing it). Any other script fails, saying it needs the client.
+     */
+    override fun runClientScript(id: Int, args: Array<Any>): String? =
+        if (id in CLIENT_ONLY_SCRIPTS) null else "client script $id runs in the client, which the headless client doesn't have"
 
     override fun mouseClickWidget(interfaceId: Int, component: Int, sub: Int): String =
         "a mouse click on $interfaceId:$component runs the client's own scripts, which the headless client doesn't have"
@@ -484,6 +540,7 @@ internal class HeadlessGame(
     override fun enterText(text: String): String? {
         val client = c() ?: return "not logged in"
         client.resumeString(text)
+        promptsFrom = client.clientScripts().size
         return null
     }
 
@@ -508,9 +565,17 @@ internal class HeadlessGame(
         scriptsSeen = scripts.size
     }
 
+    /**
+     * Stand-in for a chat line a client script prints: the item examine script (6003) puts the item's description in
+     * the chatbox. Inferred: only the description is given, not the price lines the script adds after it.
+     */
+    fun scriptMessage(script: ClientScript): String? =
+        if (script.id == InventoryTab.EXAMINE_SCRIPT) script.args.getOrNull(EXAMINE_DESC_ARG) as? String else null
+
     /** A new login starts from a new client, whose scripts are counted from 0. */
     fun newLogin() {
         scriptsSeen = 0
+        promptsFrom = 0
     }
 
     private fun objAt(client: HeadlessClient, interfaceId: Int, component: Int, sub: Int): Int {
@@ -654,6 +719,27 @@ internal class HeadlessGame(
 
         /** What [modelWornId] gives until the player's appearance is read: no item has this id. */
         const val MODEL_NOT_READ = Int.MAX_VALUE
+
+        /** Client scripts that change only what the client shows: toplevel_sidebutton_switch. */
+        val CLIENT_ONLY_SCRIPTS = setOf(915)
+
+        /** The examine script's argument holding the item's description. */
+        const val EXAMINE_DESC_ARG = 2
+
+        /** The prompts' client scripts and the meslayer mode each sets: a number, a line of text, the item search. */
+        val PROMPT_SCRIPTS = mapOf(
+            ScriptContext.MESLAYER_MODE7 to ScriptContext.MESLAYER_COUNT,
+            ScriptContext.MESLAYER_MODE9 to ScriptContext.MESLAYER_STRING,
+            GrandExchangeScreen.MESLAYER_MODE14 to ITEM_SEARCH_MODE,
+        )
+        const val ITEM_SEARCH_MODE = 14
+
+        /** Screens whose frame (steelborder) draws a close button as child [FRAME_CLOSE_CHILD]: shopmain, ge_pricechecker, ge_offers. */
+        val FRAME_CLOSE_BUTTONS = setOf((ShopScreen.MAIN shl 16) or 1, (PriceChecker.MAIN shl 16) or 1, (GrandExchangeScreen.MAIN shl 16) or 2)
+        const val FRAME_CLOSE_CHILD = 11
+
+        /** popupoverlay's confirm button, as the scripts click it. */
+        const val POPUP_CONFIRM = 8
         const val GROUND_LOC_LAYER = 2
         const val PLAYER_OPTION_SLOTS = 8
 
@@ -675,15 +761,18 @@ internal class HeadlessGame(
         const val SHOP_MAIN_INIT = 1074
         const val SHOP_MAIN_ITEMS = (300 shl 16) or 16
 
-        /** Components that always list one inventory: the inventory tab, the bank's items and the screens' inventory sides. */
+        /** Components that always list one inventory: the inventory tab, the bank's and price checker's items and the screens' inventory sides. */
         val STATIC_INVENTORY_COMPONENTS = mapOf(
             (InventoryTab.INTERFACE shl 16) or InventoryTab.ITEMS to InvBinding(Inventory.INV),
             (BankScreen.MAIN shl 16) or BankScreen.MAIN_ITEMS to InvBinding(Inventory.BANK),
             (BankScreen.SIDE shl 16) or BankScreen.SIDE_ITEMS to InvBinding(Inventory.INV),
+            (BankScreen.SIDE shl 16) or BankScreen.SIDE_WORNOPS to InvBinding(Inventory.INV),
             (DepositBox.INTERFACE shl 16) or DepositBox.ITEMS to InvBinding(Inventory.INV),
             (ShopScreen.SIDE shl 16) or ShopScreen.SIDE_ITEMS to InvBinding(Inventory.INV),
             (Trades.SIDE shl 16) or Trades.SIDE_ITEMS to InvBinding(Inventory.INV),
             (GrandExchangeScreen.SIDE shl 16) or GrandExchangeScreen.SIDE_ITEMS to InvBinding(Inventory.INV),
+            (PriceChecker.MAIN shl 16) or PriceChecker.ITEMS to InvBinding(PriceChecker.INV),
+            (PriceChecker.SIDE shl 16) or PriceChecker.SIDE_ITEMS to InvBinding(Inventory.INV),
         )
 
         /** RuneLite's WorldPoint.distanceTo on one plane: the larger of the two axes. */
