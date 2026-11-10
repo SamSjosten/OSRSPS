@@ -2037,7 +2037,11 @@ loses goes in a grave there. The party lasts through the wipe.
 | His blue bar run out, held at it with nothing hurting him; 3 ticks in his line (key `tfa_ocellus.will_disappear`) and his teleport to the middle if he isn't there, his transformation 3 ticks after the line, and his second phase 10 after it | tsps capture notes; Sam's recordings (the bar held 13 ticks) |
 | At the middle: his first side a tick after he is in, on each side first the end a clockwise sweep round him reaches first (north: the north-west end, then the north-east), no shots and Protect from Melee down there, the annihilation landing as he expends the charge, walking on to the corner he was going to (or the next if he was at one), a second middle owed coming right after the first; held: Protect from Melee down, no cracks or shots, the teleport at once with the line | guessed |
 | His teleports' fades and the middle's walk-block loc | not sent: the engine has no NPC fades yet, and the loc's id isn't in the capture notes |
-| Until step 25, he dies as his second phase would begin and the room is done; his second and third phases and his final stand; his charge bar and health bars on screen | stand-in / not in yet: steps 25 to 27 |
+| His second phase (step 25a): `tfa_ocellus_p2` (16675), with no Attack, on a bar of the remainder of his hitpoints (5,250 to 18,640 by party size); 2 ticks in, six orange portals on each arm of the cross every two tiles (E 4128-4138 and W 4115-4125 at 5673, N 5674-5684 and S 5661-5671 at 4127), blocking the way across; 7 ticks in his line (key `tfa_ocellus.your_time`) and the Blade (`tfa_ocellus_p2_sword_hitbox`, 16676, 1,000 hitpoints, its Defence drained to 0) on his tiles, 43% of whose damage comes off his bar; from then 42-tick turns, from the quadrant most of the party stands in, clockwise; in each, six volleys 5 ticks apart: on the two arms beside it every portal purple but one an arm (the capture notes' fixed pattern), firing 4 ticks later across the quadrant along its 2-tile strip, 12 tiles at 6 client cycles a tile, 20 to 25 on whoever it reaches, once a volley from each arm at most; the phase 123 ticks long | tsps capture notes; OSRS Wiki, Ocellus (2026-11-10: the remainder hitpoints, the stats and bonuses, the portal's max hit, one hit an axis); 242 cache (the Blade, the portals' size and collision) |
+| Which portal id is orange (62684) and which purple (62685), and which way round the north and south arms' are turned; the first quadrant on a tie or with nobody in one (the first clockwise from the north-west); a quadrant's first volley as its turn begins; the shots' height, and their hit landing the tick they reach a player; no prayer against them; every portal orange again after a quadrant's last volley; the Blade never hitting back, whole again each tick, its bar shown full; no diminishing returns on the Blade's damage within a quadrant (the Wiki says there are, not how much) | guessed |
+| The portals' spawn and idle animations, the Blade's discharge | not sent yet |
+| The pools at 28 ticks into a quadrant's turn, every portal purple at 31, the floor portal on to the next quadrant at 33 and the last volley at 40 that kills whoever is left; the party isn't moved on until then, so a turn in a quadrant nobody stands in hits nobody | not in yet: step 25b |
+| Until step 26, he dies 123 ticks into his second phase, as his third would begin, and the room is done; his third phase and his final stand; his charge bar and health bars on screen | stand-in / not in yet: steps 26 and 27 |
 | Once the run is done, a Passageway (`tfa_exit`) at the south edge of Ocellus's room, just south of where the party comes in, whose Exit leaves to the lobby in front of the Archive Door | stand-in until the reward room (step 28): the cache has no way out of that room (Sam's decision, 8 November 2026, exploit review RAID-3); where it stands guessed |
 | The bosses after the Guardian, the Quartermaster and Supply Credits, the party's orbs, the reward room, deaths' item costs | not in yet: steps 18 to 31 |
 
@@ -2052,7 +2056,8 @@ leaves the party or logs out dying of it), and in RuneLite
 `test-runner/examples/archive-raid-flow.json` (both runs, solo) and `archive-raid-wipe.json` (a death in the raid back to
 the lobby, with a grave). Ocellus: `./gradlew test --tests 'osrsps.testclient.HeadlessOcellusTest'` (the figure and the
 ready check, alone, with two, and the 2 minutes; his walk, corners, cracks, charge and explosion; a crack caught; the middle at two thirds and a quarter; the hold and the
-transformation) and
+transformation; the second phase's portals, the Blade's damage reaching his bar, the quadrants' turns and volleys, a
+shot reaching a player and the safe crossing) and
 `test-runner/examples/archive-ocellus.json`.
 
 ## Encounters
@@ -2074,6 +2079,7 @@ a fight started on a seed plays the same way each time.
 | Hazards hurting from no one, so standing in one doesn't start a fight or make the player hit back | guessed |
 | A hazard's hit still counting as combat: it cuts a Home Teleport or lodestone cast short and holds a logout, as the boss's own hit would (exploit review round 11, ENC-1) | guessed |
 | Adds and hazards going when the boss dies or leaves | guessed; each boss's step changes it if live keeps them |
+| A loc a fight places (a mushroom, a portal) standing until the fight takes it away or ends, which puts the tile back as the cache has it, its own loc and turn included; turned a quarter or more (Ocellus's portals, step 25a) it blocks its turned footprint | ours: the cache's loc must come back; turning as the cache's own locs turn |
 | A phase also ending when its own test says so (a shield broken); steps put off a few ticks (a beam aimed now, landing later) running after the cycle and before the hazards, never once the fight is over | guessed |
 | A phase naming the one that follows it, an earlier one too; a name the fight hasn't ending the fight, said in its log | ours: a mistake in a fight's own code, kept from throwing in the game tick |
 | A boss whose fight picks its attacks (the Guardian) never swinging, shooting, walking after anyone or retreating by itself, and keeping the first player it took on while they last | guessed |
@@ -2084,7 +2090,8 @@ a fight started on a seed plays the same way each time.
 ticks. Check: `./gradlew test --tests 'osrsps.game.encounter.*' --tests 'osrsps.game.command.RaidCommandsTest'
 --tests 'osrsps.testclient.HeadlessEncounterTest'` (a test boss plays the same 100 ticks on two runs with the same seed
 and differently on another; its phases change at half hitpoints and on time, with an add and a hazard, and the fight
-ends when the boss leaves; a phase goes back to the one it names, three times round, then on).
+ends when the boss leaves; a phase goes back to the one it names, three times round, then on; a turned placed loc
+blocking its turned footprint and the cache's loc back when the fight ends).
 
 ## The Archive Guardian
 

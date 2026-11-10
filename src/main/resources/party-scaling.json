@@ -45,6 +45,11 @@
       "npcs": ["tfa_ocellus_p1"],
       "hitpoints": [2500, 2500, 3630, 4680, 5730, 6780, 7830, 8880],
       "source": "OSRS Wiki, Ocellus's Hitpoints table, phase 1, read 2026-11-10; 4680 and 5730 seen on the live bar in Sam's recordings of 2026-11-09"
+    },
+    {
+      "npcs": ["tfa_ocellus_p2"],
+      "hitpoints": [5250, 5250, 7610, 9820, 12020, 14230, 16430, 18640],
+      "source": "OSRS Wiki, Ocellus's Hitpoints table, remainder (his second and third phases' bar), read 2026-11-10; 5250 for one is the 242 cache's own"
     }
   ]
 }
