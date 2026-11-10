@@ -13,6 +13,7 @@ import kotlin.test.assertTrue
 import kotlin.test.fail
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.EquipmentTab
+import osrsps.game.GameLines
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
@@ -517,6 +518,67 @@ class HeadlessArchiveGuardianTest {
                     }
                     assertEquals(other, boss.target?.username)
                     assertEquals(1, stays.fightLog().count { it.endsWith("shield: takes on $other") }, "taken on once, then kept")
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `nobody attacks an inert guardian from the nexus's entrance, which is out of the fight`(@TempDir dir: Path) {
+        server(dir, batteries = true).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    for (client in listOf(alice, bob)) {
+                        client.await("the login rebuild") { client.position }
+                        client.commandReply("god on") { it.startsWith("You can't be hurt") }
+                    }
+                    party(alice, bob)
+                    for (client in listOf(alice, bob)) {
+                        client.tele(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z)
+                        client.locOp(ArchiveRaids.ARCHIVE_DOOR, 4123, 5562, ArchiveRaids.ENTER)
+                        client.await("into the instance") { client.position?.takeIf { server.world.instances.inDynamicArea(it.x, it.z) } }
+                    }
+                    val world = server.world
+                    val raids = world.archiveRaids
+                    val run: ArchiveRun = assertNotNull(world.parties.of(world.playerNamed("alice")!!)?.let(raids::of))
+                    // Alice wakes it; Bob stays in the entrance, in the row south of the hall's first.
+                    alice.commandReply("raid tp guardian") { it.startsWith("To ") }
+                    val waiting = alice.await("the waiting Guardian in view") { alice.npcs().firstOrNull { it.id == ArchiveGuardian.DORMANT } }
+                    alice.npcOp(waiting.index, ArchiveGuardian.TOUCH)
+                    alice.awaitDialogue("the Guardian's menu") { it is DialogueView.Menu }
+                    alice.chooseOption(1)
+                    alice.await("its fight") { run.fights[ArchiveRoom.GUARDIAN] }
+                    val fight = world.encounters.all.single()
+                    // The south-west inert guardian, awake under the shield: eight tiles north of the entrance's last row.
+                    val sw = alice.await("the inert guardians") {
+                        fight.adds.filter { it.spawn.type.id == ArchiveGuardian.BATTERY_INACTIVE }.takeIf { it.size == 4 }?.get(2)
+                    }
+                    assertEquals(ArchiveGuardian.BATTERY_ACTIVE, sw.type.id)
+                    val hallRow = raids.tile(run, 0, ArchiveRaids.HALL_Z).z
+                    assertEquals(8, sw.z - (hallRow - 1), "within a bow's reach of the entrance")
+                    val bobP = world.playerNamed("bob")!!
+                    val hitpoints = sw.hitpoints
+                    bob.tele(sw.x, hallRow - 1)
+                    assertFalse(raids.inRoom(run, ArchiveRoom.GUARDIAN, bobP.x, bobP.z))
+                    // What a bow or a spell asks before it lets fly from there.
+                    assertSame(GameLines.CANT_REACH, world.combat.barred(bobP, sw), "from the entrance")
+                    // It on the hall's first row, him beside it a tile south, in the entrance: still shut out, and his
+                    // Attack is refused.
+                    world.npcs.teleport(sw, sw.x, hallRow)
+                    assertSame(GameLines.CANT_REACH, world.combat.barred(bobP, sw))
+                    bob.await("the inert guardian beside him") { bob.npcs().firstOrNull { it.index == sw.index && it.coord == Coord(sw.x, hallRow, 0) } }
+                    bob.npcOp(sw.index, ATTACK)
+                    bob.await("the refusal") { bob.messages().firstOrNull { it.text == "[game.cant_reach]" } }
+                    bob.awaitTicks(4)
+                    assertNull(bobP.attackedNpc)
+                    assertEquals(hitpoints, sw.hitpoints)
+                    // A step into the hall, west of it, and so into its fight: his punch goes.
+                    bob.tele(sw.x - 1, hallRow)
+                    assertNull(world.combat.barred(bobP, sw), "from the hall")
+                    bob.npcOp(sw.index, ATTACK)
+                    bob.await("his punch") { bobP.attackedNpc?.takeIf { it === sw } }
+                    // Alice, in the hall all along, was never shut out.
+                    assertNull(world.combat.barred(world.playerNamed("alice")!!, sw))
                 }
             }
         }
