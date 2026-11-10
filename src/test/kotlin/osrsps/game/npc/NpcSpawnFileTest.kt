@@ -183,6 +183,32 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `Thieving 2's far file has the cave goblins, Fremennik citizens, bandits, wealthy citizens, vyres, elves and TzHaar-Hur`() {
+        val file = file("thieving-far.json")
+        val names = Regex("\"npc\": \"([a-z0-9_]+)\"").findAll(file).map { it.groupValues[1] }.toSet().toList()
+        val farTypes = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(20000 + i, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file, farTypes, "thieving-far.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        fun named(prefix: String) = spawns.filter { it.type.internalName!!.startsWith(prefix) }
+        assertEquals(
+            listOf(23, 9, 21, 9, 52, 30),
+            listOf(named("dorgesh_").size, named("viking_").size, named("fourdiamonds_").size, named("varlamore_wealthy").size,
+                named("mourning_town_elf").size + named("prif_citizen").size, named("tzhaar_hur").size),
+        )
+        // Dorgesh-Kaan under Lumbridge, Rellekka, the Bandit Camp, Civitas illa Fortis, Lletya, Prifddinas, Mor Ul Rek.
+        assertTrue(named("dorgesh_").all { it.x in 2688..2751 && it.z in 5248..5375 })
+        assertTrue(named("viking_").all { it.x in 2624..2687 && it.z in 3648..3711 })
+        assertTrue(named("fourdiamonds_").all { it.x in 3136..3199 && it.z in 2944..3007 })
+        assertTrue(named("varlamore_wealthy").all { it.x in 1670..1720 && it.z in 3080..3110 })
+        assertTrue(named("mourning_town_elf").all { it.x in 2304..2367 && it.z in 3136..3199 })
+        assertTrue(named("prif_citizen").all { it.x in 3200..3327 && it.z in 6016..6143 })
+        assertTrue(named("tzhaar_hur").all { it.x in 2432..2559 && it.z in 5056..5183 })
+        assertEquals(30, named("").count { it.type.internalName!! in VYRE_NAMES })
+        assertTrue(spawns.all { it.source.isNotBlank() && it.wander == 5 })
+    }
+
+    @Test
     fun `the rogues are on Rogues' Castle's four floors and south-west of the Mage Arena`() {
         val rogueTypes = NpcTypes.of(NpcType(526, "rogue", internalName = "rogue"))
         val result = NpcSpawnFile.parse(file("rogues-castle.json"), rogueTypes, "rogues-castle.json")
@@ -825,5 +851,16 @@ class NpcSpawnFileTest {
             assertEquals(!staysPut, Fishing.AREAS.any { Tile(spot.x, spot.z) in it }, "a spot at ${spot.x}, ${spot.z}")
             assertTrue(spot.wander == 0 && spot.source.isNotBlank())
         }
+    }
+
+    private companion object {
+        val VYRE_NAMES = setOf(
+            "alek_constantine", "caninelle_draynar", "carnivus_belamorta", "crimsonette_van_marr", "diphylla_bechstein",
+            "draconis_sanguine", "episcula_helsing", "grigor_rasputin", "haemas_lamescus", "lasenna_rasputin",
+            "misdrievus_shadum", "mort_nightshade", "mortina_daubenton", "nakasa_jovkai", "natalidae_shadum",
+            "noctillion_lugosi", "pipistrelle_draynar", "remus_kaninus", "valentin_rasputin", "valentina_diaemus",
+            "vallessia_dracyula", "vallessia_von_pitt", "vampyressa_van_von", "vampyrus_diaemus", "violetta_sanguine",
+            "vlad_bechstein", "vlad_diaemus", "von_van_von", "vonnetta_varnis", "vormar_vakan",
+        )
     }
 }

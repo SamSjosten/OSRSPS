@@ -166,9 +166,10 @@ class Combat(
 
     private fun baseAttackSpeed(player: Player): Int {
         val style = style(player)
-        if (style.type != AttackType.MAGIC) return bonuses(player).attackSpeed
-        // A powered staff's own speed is its weapon's (5 for Tumeken's shadow).
-        if (Weapons.category(equipment.weapon(player)) == Weapons.POWERED_STAFF) return bonuses(player).attackSpeed
+        val category = Weapons.category(equipment.weapon(player))
+        if (style.type != AttackType.MAGIC) return Weapons.styleSpeed(category, style.button, bonuses(player).attackSpeed)
+        // A powered staff's own speed is its weapon's (5 for Tumeken's shadow, 3 for Zorya's tome).
+        if (Weapons.selfPowered(category)) return bonuses(player).attackSpeed
         return if (harmonisedAutocast(player, style)) MagicCombat.HARMONISED_SPEED else MagicCombat.SPEED
     }
 
