@@ -28,7 +28,8 @@ import osrsps.map.LocShape
 /**
  * Fishing and Cooking 2 step FC1 through the headless client, on Catherby's beach as npc-spawns/fishing-spots.json has
  * it: a harpoon catches a tuna from 35 and the tuna cooks on a range; a lobster pot cages a lobster from 40; a wielded
- * dragon harpoon fishes only from 61; the Big Net/Harpoon spot harpoons sharks from 76.
+ * dragon harpoon fishes only from 61; the Big Net/Harpoon spot harpoons sharks from 76. The rl-client script
+ * test-runner/examples/catherby-harpoon-cage.json does the same in the real client against the real cache.
  */
 class HeadlessHarpoonFishingTest {
     private val cageSpot = NpcType(Fishing.CATHERBY_CAGE_SPOT, "Fishing spot", ops = listOf("Cage", null, "Harpoon", null, null))
@@ -104,7 +105,9 @@ class HeadlessHarpoonFishingTest {
                 client.seen("[fishing.catch_tuna]")
                 client.await("the tuna") { if (client.count(Cooking.TUNA.raw) >= 1) Unit else null }
                 assertEquals(0, client.count(Cooking.SWORDFISH.raw))
-                assertEquals(80, client.await("Fishing XP") { client.xp(FISHING).takeIf { it > before } } - before)
+                // Fishing goes on while the test reads, so more tuna can come in: 80 XP each.
+                val gained = client.await("Fishing XP") { client.xp(FISHING).takeIf { it > before } } - before
+                assertTrue(gained % 80 == 0, "80 XP a tuna, got $gained")
 
                 client.level("cooking", COOKING, 99)
                 val cookingBefore = client.xp(COOKING)
