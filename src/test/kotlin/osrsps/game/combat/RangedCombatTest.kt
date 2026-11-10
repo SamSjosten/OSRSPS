@@ -322,6 +322,7 @@ class RangedCombatTest {
         assertEquals(3212, alice.x)
         val firstShot = projectiles.first().first
         assertEquals(firstShot + 3, alice.nextAttackTick)
+        assertEquals(3, combat.weaponInterval(alice), "the interval as it falls, rapid's tick off")
 
         alice.interaction = null
         alice.vars[EquipmentTab.VARP_COM_MODE] = 3
@@ -336,6 +337,7 @@ class RangedCombatTest {
         assertEquals(3210, alice.x)
         assertEquals(tick, projectiles.single().first)
         assertEquals(tick + 4, alice.nextAttackTick)
+        assertEquals(4, combat.weaponInterval(alice))
         // 2 XP a point each; with a max hit of 1 the shot is worth 0 or 2.
         val ranged = alice.skills.tenths(Skill.RANGED) - rangedBefore
         assertEquals(ranged, alice.skills.tenths(Skill.DEFENCE) - defenceBefore)

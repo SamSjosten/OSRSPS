@@ -161,6 +161,13 @@ class Combat(
      */
     fun attackSpeed(player: Player): Int = baseAttackSpeed(player) + wearyDelay(player)
 
+    /** Ticks between the player's attacks as they fall: [attackSpeed] less weariness's tick, and a tick less on rapid. */
+    fun weaponInterval(player: Player): Int {
+        val base = baseAttackSpeed(player)
+        val style = style(player)
+        return if (style.type == AttackType.RANGED && style.stance == AttackStance.RAPID) base - 1 else base
+    }
+
     /** The tick weariness adds to every attack, a manual cast's included. */
     fun wearyDelay(player: Player): Int = if (player.wearyTicks > 0) 1 else 0
 

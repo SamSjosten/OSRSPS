@@ -2482,7 +2482,7 @@ object Ocellus {
         val under = { tile: Tile -> tile.x in boss.x until boss.x + size && tile.z in boss.z until boss.z + size }
         val safe = (1..STRIP_LENGTH).flatMap { x -> (1..STRIP_LENGTH).map { z -> quadrantTile(centre, state.held, x, z) } }
             .filter { tile -> tile !in state.voids && tile !in taken && !under(tile) && state.censers.values.none { it.x == tile.x && it.z == tile.z } }
-            .filter { it.x != player.x || it.z != player.z }
+            .filter { (it.x != player.x || it.z != player.z) && !onCross(centre, it.x, it.z) }
         if (safe.isEmpty()) return null
         val near = safe.filter { maxOf(kotlin.math.abs(it.x - player.x), kotlin.math.abs(it.z - player.z)) in ORB_NEAR_MIN..ORB_NEAR_MAX }
         val from = near.ifEmpty { safe }
@@ -2532,7 +2532,8 @@ object Ocellus {
         if (npc.type.id != P3 || rolled <= 0) return rolled
         val until = states[npc]?.burstsUntil ?: return rolled
         if (world.tick > until) return rolled
-        val speed = world.combat.attackSpeed(player) - world.combat.wearyDelay(player)
+        // The weapon's own interval, rapid's tick off, not weariness's (Codex, PR 586).
+        val speed = world.combat.weaponInterval(player)
         if (speed <= 2) return rolled
         val keep = SLOW_KEEP[speed] ?: SLOW_KEEP.getValue(5)
         return rolled * keep / 100

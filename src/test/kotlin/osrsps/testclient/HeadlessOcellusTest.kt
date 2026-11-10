@@ -1251,9 +1251,10 @@ class HeadlessOcellusTest {
                 assertEquals(stolen, orb.stolen)
                 assertEquals(Ocellus.quadrant(centre, orb.tile.x, orb.tile.z), Ocellus.Quadrant.SW)
                 assertTrue(orb.tile !in Ocellus.voids(boss))
+                assertFalse(Ocellus.onCross(centre, orb.tile.x, orb.tile.z), "not on the fallen cross")
                 assertTrue(maxOf(kotlin.math.abs(orb.tile.x - clear.x), kotlin.math.abs(orb.tile.z - clear.z)) in Ocellus.ORB_NEAR_MIN..Ocellus.ORB_NEAR_MAX, "${orb.tile}")
                 // Slower weapons are cut while the bursts run.
-                val speed = world.combat.attackSpeed(player) - world.combat.wearyDelay(player)
+                val speed = world.combat.weaponInterval(player)
                 assertEquals(if (speed <= 2) 30 else 30 * (Ocellus.SLOW_KEEP[speed] ?: 40) / 100, Ocellus.slowed(world, player, boss, 30))
                 assertTrue(speed <= 2 || Ocellus.slowed(world, player, boss, 30) < 30)
                 // Standing still, the first burst lands on her.
