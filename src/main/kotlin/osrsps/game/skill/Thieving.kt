@@ -39,7 +39,12 @@ class Stall(
     val owner: Int,
     val refuseTicks: Int,
     val guards: Set<Int>,
-)
+    /** More NPC types who keep a stall of this type, as East Ardougne's two bakers. */
+    val otherOwners: Set<Int> = emptySet(),
+) {
+    /** Every NPC type who keeps it: [owner] and [otherOwners]. */
+    val owners: Set<Int> get() = setOf(owner) + otherOwners
+}
 
 /**
  * Stealing from stalls (Draynor piece step 7), the way 2004Scape's stealing scripts have it, with the OSRS Wiki's levels,
@@ -69,7 +74,7 @@ class Thieving(private val world: World, private val collision: CollisionMap) {
     @Volatile
     internal var ownerSays: (Npc, String) -> Unit = { npc, text -> npc.effects.say(text) }
 
-    private val owners: Set<Int> get() = STALLS.values.mapTo(mutableSetOf()) { it.owner }
+    private val owners: Set<Int> get() = STALLS.values.flatMapTo(mutableSetOf()) { it.owners }
 
     fun register() {
         for (stall in STALLS.values) {
@@ -109,7 +114,7 @@ class Thieving(private val world: World, private val collision: CollisionMap) {
             world.meleeCombat.provoke(guard, player, tick)
             return
         }
-        val owner = watching(player, setOf(stall.owner))
+        val owner = watching(player, stall.owners)
         if (owner != null) {
             owner.effects.say(text[ThievingLines.CAUGHT])
             return
@@ -121,7 +126,7 @@ class Thieving(private val world: World, private val collision: CollisionMap) {
         player.inventory.add(type, 1)
         player.skills.addTenths(Skill.THIEVING, stall.xpTenths)
         player.message(text[ThievingLines.STOLEN, "item" to type.name])
-        refusedUntil[player.username to stall.owner] = tick + stall.refuseTicks
+        for (keeper in stall.owners) refusedUntil[player.username to keeper] = tick + stall.refuseTicks
     }
 
     /** One item from [stall]'s table, by weight. */
@@ -156,7 +161,7 @@ class Thieving(private val world: World, private val collision: CollisionMap) {
         ownerSays(owner, text[ThievingLines.OWNER_ANGRY])
         // The call for the guards comes on the next tick (2004Scape's stall_owner_alert_guards); they attack at once.
         shouts += Shout(owner, text[ThievingLines.GUARDS], tick + 1)
-        val guards = STALLS.values.filter { it.owner == owner.spawn.type.id }.flatMapTo(mutableSetOf()) { it.guards }
+        val guards = STALLS.values.filter { owner.spawn.type.id in it.owners }.flatMapTo(mutableSetOf()) { it.guards }
         for (guard in world.npcs.near(owner.x, owner.z, owner.level, SIGHT)) {
             if (guard.spawn.type.id !in guards || guard.outOfPlay || guard.target === player) continue
             if (!LineOfSight.clear(collision, owner.level, guard.x, guard.z, guard.type.size, player.x, player.z)) continue
@@ -243,10 +248,64 @@ class Thieving(private val world: World, private val collision: CollisionMap) {
          * cup of tea each time; no guards (the Wiki: Varrock's are too far off to come). Guessed: it empties to `market`
          * as the seed stall does, and its owner's ban is the Stalls page's 20 minutes.
          */
-        val STALLS: Map<Int, Stall> = listOf(
-            Stall(7053, 634, 27, 100, 4, SEED_LOOT, OLIVIA, OLIVIA_REFUSE_TICKS, setOf(MARKET_GUARD)),
-            Stall(14011, 14012, 22, 270, 8, WINE_LOOT, FORTUNATO, STALL_REFUSE_TICKS, setOf(MARKET_GUARD)),
-            Stall(635, 634, 5, 160, 4, TEA_LOOT, TEA_SELLER, STALL_REFUSE_TICKS, emptySet()),
-        ).associateBy { it.loc }
+        /** `market`, the empty stall the seed and tea stalls show, and (GUESSED) East Ardougne's. */
+        const val EMPTY_STALL = 634
+
+        /** East Ardougne's stalls (Thieving 2 step T3): `bakers_stall_stealing` and the rest, as the cache names them. */
+        const val BAKERY_STALL = 11730
+        const val SILK_STALL = 11729
+        const val GEM_STALL = 11731
+        const val FUR_STALL = 11732
+        const val SPICE_STALL = 11733
+        const val SILVER_STALL = 11734
+
+        /** Their keepers: `baker_merchant_ardougne` and `_ardougne2`, and the `*_merchant_ardougne` types. */
+        const val ARDOUGNE_BAKER = 8724
+        const val ARDOUGNE_BAKER_2 = 8725
+        const val ARDOUGNE_SILVER_MERCHANT = 8722
+        const val ARDOUGNE_GEM_MERCHANT = 8723
+        const val ARDOUGNE_SPICE_SELLER = 8726
+        const val ARDOUGNE_FUR_TRADER = 8727
+        const val ARDOUGNE_SILK_MERCHANT = 8728
+
+        /** Who watches East Ardougne's stalls (2004Scape's stealing.dbrow): the guards, then knights, then paladins. */
+        val ARDOUGNE_GUARDS = setOf(Pickpocketing.ARDOUGNE_GUARD)
+        val ARDOUGNE_GUARDS_AND_KNIGHTS = ARDOUGNE_GUARDS + Pickpocketing.KNIGHTS_OF_ARDOUGNE
+        val ARDOUGNE_WATCH = ARDOUGNE_GUARDS_AND_KNIGHTS + Pickpocketing.PALADINS
+
+        /** The Wiki's Bakery stall: a cake 13/20, bread 5/20, a chocolate slice 2/20. */
+        val BAKERY_LOOT = listOf(StallLoot(1891, 13), StallLoot(2309, 5), StallLoot(1901, 2))
+        val SILK_LOOT = listOf(StallLoot(950, 1))
+        val FUR_LOOT = listOf(StallLoot(958, 1)) // grey_wolf_fur
+        /** The Wiki's Silver stall: silver ore 16/20, a silver bar 3/20, a tiara 1/20. */
+        val SILVER_LOOT = listOf(StallLoot(442, 16), StallLoot(2355, 3), StallLoot(5525, 1))
+        val SPICE_LOOT = listOf(StallLoot(2007, 1)) // spicespot
+        /** The Wiki's Gem stall: uncut sapphire 105/128, emerald 17, ruby 5, diamond 1. */
+        val GEM_LOOT = listOf(StallLoot(1623, 105), StallLoot(1621, 17), StallLoot(1619, 5), StallLoot(1617, 1))
+
+        /**
+         * East Ardougne's market (Thieving 2 step T3; the Wiki's Stall (Thievable), Bakery, Silk, Fur, Silver, Spice and Gem
+         * stall pages, read 2026-11-10). Level, XP and respawn: bakery 5, 16, 2.4 s (4 ticks); silk 20, 24, 4.8 s (8); fur
+         * 35, 45, 7.2 s (12); silver 50, 205, 19.2 s (32); spice 65, 92, 6 s (10); gem 75, 408, 60 s (100). Their keepers
+         * as mejrs's live NPC list puts them. Guessed: which guards watch which stall (2004Scape's), the empty stall
+         * (`market`), and the keepers' ban (the Stalls page's 20 minutes). Left out: Keldagrim's, Kourend's, Prifddinas's,
+         * Civitas illa Fortis's, Port Roberts's, Rellekka's and Ape Atoll's stalls, and the Ardougne diary.
+         */
+        val ARDOUGNE_STALLS = listOf(
+            Stall(BAKERY_STALL, EMPTY_STALL, 5, 160, 4, BAKERY_LOOT, ARDOUGNE_BAKER, STALL_REFUSE_TICKS, ARDOUGNE_GUARDS, setOf(ARDOUGNE_BAKER_2)),
+            Stall(SILK_STALL, EMPTY_STALL, 20, 240, 8, SILK_LOOT, ARDOUGNE_SILK_MERCHANT, STALL_REFUSE_TICKS, ARDOUGNE_GUARDS_AND_KNIGHTS),
+            Stall(FUR_STALL, EMPTY_STALL, 35, 450, 12, FUR_LOOT, ARDOUGNE_FUR_TRADER, STALL_REFUSE_TICKS, ARDOUGNE_GUARDS_AND_KNIGHTS),
+            Stall(SILVER_STALL, EMPTY_STALL, 50, 2050, 32, SILVER_LOOT, ARDOUGNE_SILVER_MERCHANT, STALL_REFUSE_TICKS, ARDOUGNE_WATCH),
+            Stall(SPICE_STALL, EMPTY_STALL, 65, 920, 10, SPICE_LOOT, ARDOUGNE_SPICE_SELLER, STALL_REFUSE_TICKS, ARDOUGNE_WATCH),
+            Stall(GEM_STALL, EMPTY_STALL, 75, 4080, 100, GEM_LOOT, ARDOUGNE_GEM_MERCHANT, STALL_REFUSE_TICKS, ARDOUGNE_WATCH),
+        )
+
+        val STALLS: Map<Int, Stall> = (
+            listOf(
+                Stall(7053, EMPTY_STALL, 27, 100, 4, SEED_LOOT, OLIVIA, OLIVIA_REFUSE_TICKS, setOf(MARKET_GUARD)),
+                Stall(14011, 14012, 22, 270, 8, WINE_LOOT, FORTUNATO, STALL_REFUSE_TICKS, setOf(MARKET_GUARD)),
+                Stall(635, EMPTY_STALL, 5, 160, 4, TEA_LOOT, TEA_SELLER, STALL_REFUSE_TICKS, emptySet()),
+            ) + ARDOUGNE_STALLS
+            ).associateBy { it.loc }
     }
 }
