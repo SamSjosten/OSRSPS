@@ -807,6 +807,37 @@ class HeadlessOcellusTest {
         }
     }
 
+    @Test
+    fun `in his third phase a burst stops at his next fall, nothing hurts him while it falls, and his corridor is no shelter`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.throughTheRest(run)
+                alice.toOcellus(server, run)
+                alice.npcOp(assertNotNull(run.ocellusFigure).index, 1)
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ocellus #") } }
+                val boss = boss(run)
+                val level = ArchiveRoom.OCELLUS.level
+                val centre = Ocellus.centre(boss.spawn.x, boss.spawn.z)
+                alice.toHisThird(run)
+                alice.awaitLine(run, "his quadrant", 30_000) { it.contains("third: takes quadrant NW") }
+                // Exploit review R23B-2: one hit from full to nearly nothing stops at 75%, and he falls there.
+                alice.commandReply("hit 5000 ${boss.index}") { it.startsWith("Hit ") }
+                assertEquals(5250 * 75 / 100, boss.hitpoints)
+                // R23B-1: she waits it out in his room's corridor, south of the arena.
+                alice.tele(centre.x, centre.z - Ocellus.STRIP_LENGTH - 3, level)
+                assertFalse(Ocellus.inArena(centre, centre.x, centre.z - Ocellus.STRIP_LENGTH - 3))
+                alice.awaitLine(run, "the north-west to fall") { it.contains("third: NW to fall at ${5250 * 75 / 100}/5250") }
+                // While it falls nothing hurts him.
+                alice.commandReply("hit 1000 ${boss.index}") { it.startsWith("Hit ") }
+                assertEquals(5250 * 75 / 100, boss.hitpoints)
+                // The corridor is no shelter: she goes with the quadrant.
+                alice.awaitLine(run, "her lost from the corridor") { it.contains("third: alice lost with it for ") }
+                assertEquals(5250 * 75 / 100, boss.hitpoints)
+            }
+        }
+    }
+
     /** Through his first two phases to his third, the second ending in the north-west's turn; the tick it began. */
     private fun HeadlessClient.toHisThird(run: ArchiveRun, vararg others: HeadlessClient): Long {
         val boss = boss(run)

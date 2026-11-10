@@ -210,6 +210,12 @@ class Npc(
     var holdsAtZero: Boolean = false
 
     /**
+     * What no hit takes it below for now, as a boss fight sets it: Ocellus held at each of his quadrants' falls (exploit
+     * review R23B-2), so a burst can't run past a fall. 0, none, for most; a finishing hit ([osrsps.game.combat.MeleeCombat.hit]) still goes past it.
+     */
+    var holdsAt: Int = 0
+
+    /**
      * Its flat armour, asked as each player hit is rolled ([osrsps.game.combat.MeleeCombat.armoured]): what a melee or
      * ranged hit loses, or a spell's when given true. Null, none, for most; a boss fight sets it (Bork's, raid step 18a,
      * worked out from the Smorks' hitpoints as each hit is rolled). The OSRS Wiki's infobox lists both ("Flat armour",
