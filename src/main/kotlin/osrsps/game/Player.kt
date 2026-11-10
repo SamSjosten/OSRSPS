@@ -297,6 +297,12 @@ class Player(
      */
     var wearyTicks: Int = 0
 
+    /**
+     * Ticks left of being rooted to their tile (Ocellus's Void Vine, [osrsps.game.raid.Ocellus]): they take no steps
+     * of a route, whatever asked for it; [osrsps.game.Movement] reads it and the world counts it down. Not saved.
+     */
+    var rootedTicks: Int = 0
+
     /** Ticks since special attack energy last came back; see [osrsps.game.combat.SpecialAttacks]. Not saved: a login starts it again. */
     var specRegenTicks: Int = 0
 

@@ -1,5 +1,5 @@
 {
- "name": "Raid steps 24a to 26a: Ocellus solo, his arena upstairs, the hooded figure waiting until the party readies up, then his first phase walking between his corners under Protect from Melee, at each corner his cracks, line and explosion, at two thirds the middle with its four sides and his charge expended, the hold at the end of his blue bar, and his second phase: the portals on the cross, the Blade passing damage to his bar, the quadrants' volleys, and the rest of a quadrant's turn: pools, every portal purple, the floor portal and the last volley, and his third phase: the cross falling to stepping stones, his quadrant, and the quadrants falling at 75, 50 and 25%",
+ "name": "Raid steps 24a to 26b: Ocellus solo, his arena upstairs, the hooded figure waiting until the party readies up, then his first phase walking between his corners under Protect from Melee, at each corner his cracks, line and explosion, at two thirds the middle with its four sides and his charge expended, the hold at the end of his blue bar, and his second phase: the portals on the cross, the Blade passing damage to his bar, the quadrants' volleys, and the rest of a quadrant's turn: pools, every portal purple, the floor portal and the last volley, and his third phase: the cross falling to stepping stones, his quadrant, and the quadrants falling at 75, 50 and 25%, with the void bombs and his specials: the cog, the void and Untether, and Insolence first in the next quadrant",
  "account": "test",
  "steps": [
   {
@@ -347,6 +347,42 @@
    "comment": "on the same bar as his second phase"
   },
   {
+   "step": "waitTicks",
+   "ticks": 30,
+   "comment": "three ticks into his quadrant two void bombs fall in each quadrant (step 26b); after six attacks his first special, the cog: a circle, then two strikes three ticks apart (the player under ::god)"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: void bombs at "
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: cog strike 2 hits ",
+   "comment": "the cog's second strike, on everyone in the arena"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 30,
+   "comment": "six attacks on, his second special, the void (alone she is his tank, so no vine: the two-player headless test covers the vine)"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: the void"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 30,
+   "comment": "six more, Untether: eruptions, then the square and his coming down"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: untether"
+  },
+  {
    "step": "command",
    "text": "::hit 1000 tfa_ocellus_p3",
    "expectMessage": "Hit Ocellus",
@@ -368,6 +404,16 @@
    "text": "::raid",
    "expectMessage": ", quadrant ",
    "comment": "the next quadrant clockwise"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 25,
+   "comment": "in a new quadrant his first special is Insolence: three superior slashes, each leaving void"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: insolence"
   },
   {
    "step": "command",
