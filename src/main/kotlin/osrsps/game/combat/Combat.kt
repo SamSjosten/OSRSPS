@@ -30,6 +30,12 @@ data class MeleeMatchup(
 /** A player's ranged numbers against one NPC with the ammunition they have; see [Combat.rangedMatchup]. */
 data class RangedMatchup(val style: AttackStyle, val attackRoll: Int, val defenceRoll: Int, val maxHit: Int, val hitChance: Double)
 
+/**
+ * How a player's attack on an NPC is rolled ([Combat.sureHit]): as usual; at its max hit when its accuracy roll lands;
+ * or landing at its max hit whatever the roll. The two rolls are drawn either way.
+ */
+enum class SureHit { ROLLED, MAX_IF_HIT, MAX }
+
 /** A player's numbers against one NPC with a spell; see [Combat.magicMatchup]. */
 data class MagicMatchup(val attackRoll: Int, val defenceRoll: Int, val maxHit: Int, val hitChance: Double)
 
@@ -106,6 +112,21 @@ class Combat(
      * shuts out whoever isn't on it ([osrsps.game.raid.ArchiveRaids.shutOut]).
      */
     var shutOut: (Player, Npc) -> Boolean = { _, _ -> false }
+
+    /**
+     * Set by content: how [Player]'s attack of [AttackType] on [Npc] is rolled ([SureHit]), asked once as each attack on
+     * it is rolled (a hit that bounces or splashes on to another is rolled as usual): Ocellus's void flares, each maxed
+     * by a style ([osrsps.game.raid.Ocellus]; OSRS Wiki, Void Siphon, Void Augmenter, Void Rift).
+     */
+    var sureHit: (Player, Npc, AttackType) -> SureHit = { _, _, _ -> SureHit.ROLLED }
+
+    /**
+     * Set by content: what of [Player]'s rolled damage of [AttackType] on [Npc] it takes, before its armour, asked once
+     * as each attack on it is rolled (a hit that bounces or splashes on to another is rolled as usual): Ocellus's
+     * Deflect Melee and Deflect Range in his final stand ([osrsps.game.raid.Ocellus]; tsps capture notes; OSRS Wiki,
+     * The Fractured Archive/Strategies).
+     */
+    var rolledOn: (Player, Npc, AttackType, Int) -> Int = { _, _, _, rolled -> rolled }
 
     /**
      * Why no attack of [player]'s reaches [npc], as the line that tells them, null when one can: its Slayer level

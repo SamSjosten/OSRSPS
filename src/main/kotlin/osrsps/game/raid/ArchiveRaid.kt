@@ -112,6 +112,15 @@ enum class ArchiveRoom(
 }
 
 /**
+ * A member on their way into [room] from the nexus ([into]) or out of it, moved on tick [due] ([ArchiveRaids.MOVE_DELAY]).
+ * With no [room], on their way from Ocellus's room to the reward vault, by the Blade ([ArchiveRaids.travel]).
+ */
+internal data class RoomMove(val room: ArchiveRoom?, val into: Boolean, val due: Long)
+
+/** One of the reward vault's own locs: [id] at the cache's tile [x], [z], turned [angle] ([ArchiveRaids.REWARD_LOCS]). */
+data class RewardLoc(val id: Int, val x: Int, val z: Int, val angle: Int)
+
+/**
  * One party's run of The Fractured Archive, in its own [instance]. See [ArchiveRaids].
  */
 class ArchiveRun internal constructor(val id: Int, val party: Party, val instance: Instance) {
@@ -169,8 +178,11 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
     /** Rooms won whose Alliance Navigator is still to come, by the tick he does ([ArchiveRaids.NAVIGATOR_DELAY]). */
     internal val navigatorDue = HashMap<ArchiveRoom, Long>()
 
-    /** Members following an Alliance Navigator out, by save key: the room they leave and the tick they do ([ArchiveRaids.FOLLOW_DELAY]). */
-    internal val following = HashMap<String, Pair<ArchiveRoom, Long>>()
+    /**
+     * Members on their way between the nexus and a room, by save key: the room, whether they go into it or out of it,
+     * and the tick they are moved ([ArchiveRaids.MOVE_DELAY] after the door, Passageway, transporter or Navigator).
+     */
+    internal val moving = HashMap<String, RoomMove>()
 
     /** The tick the last room was done on; a member who fell before it gets up standing. -1 before any. */
     var clearedTick: Long = -1
@@ -180,8 +192,16 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
     var wiped: Boolean = false
         internal set
 
-    /** Ocellus's room is done. The reward room is raid step 28. */
+    /** Ocellus's room is done: the reward vault is open to the party ([ArchiveRaids.travel]). */
     val completed: Boolean get() = ArchiveRoom.OCELLUS in cleared
+
+    /** The tick the first member came into the reward vault; -1 before anyone has. */
+    var rewardTick: Long = -1
+        internal set
+
+    /** The reward vault's Rift out, once it has come ([ArchiveRaids.RIFT_OUT_DELAY] ticks after [rewardTick]). */
+    var riftOut: Npc? = null
+        internal set
 
     /** The stage the party is at: the first not done. */
     val stage: Int get() = (1..ArchiveRaids.STAGES).firstOrNull { s -> ArchiveRoom.atStage(s).none { it in cleared } } ?: (ArchiveRaids.STAGES + 1)
@@ -208,15 +228,23 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
  * - Any party member opens the run through the Archive Door, a player in no party as a party of one, and the others
  *   can follow until the Guardian's fight begins; nobody comes in after, or back after leaving.
  * - Going through one door of a row chooses it for the party: the other stays shut for the run. A row's doors open
- *   once the room before is done. Enter and Quick-enter both go straight in, as do the transporter's Use and
- *   Quick-use: their difference, likely a warning first, isn't known.
+ *   once the room before is done. Enter and Quick-enter both go in, as do the transporter's Use and
+ *   Quick-use: their difference, likely a warning first, isn't known. A move between the nexus and a room comes
+ *   [ArchiveRaids.MOVE_DELAY] ticks after its door, Passageway, transporter or Navigator (tsps capture notes); the
+ *   transporter's move onto the arena is at once (their estimate).
  * - The Passageway goes back to the nexus at any time, in front of the room's door; the transporter, once the room is
  *   done. Before then Bork's room's transporter puts the player on the arena's floor (tsps capture notes: 4184,5599),
  *   past a gap in its west wall too narrow for him. Ocellus's room is past the nexus's Archive Door north (`tfa_nexus_ocellus_door_open`), open once the fourth room is done.
- * - STAND-IN until the reward room (step 28): once Ocellus's room is done, a Passageway at its south edge leaves to the
- *   lobby; the vault's own Passageway (`tfa_exit_large`, on the nexus's square's levels 1 and 3) isn't shown yet.
+ * - Once Ocellus's room is done, the inner vault's own Passageway (`tfa_exit_large`, at the south end of its
+ *   corridor) leaves to the lobby; before then it does nothing.
+ * - The reward vault (raid step 28) is the cache's map square 64,90, two squares north of Ocellus's as on the map, on
+ *   its own levels, the party on level 2 (tsps capture notes). [ArchiveRaids.travel] takes a member there from
+ *   Ocellus's room once it is done (the Blade's Travel); its Rift out comes [ArchiveRaids.RIFT_OUT_DELAY] ticks after
+ *   the first of them and leaves to the lobby. Its chests and the loot aren't built (raid step 29), nor its Merit
+ *   scroll's records.
  * - The nexus is the cache's map square 64,87 on its level 0 at the start and its level 2 (the Guardian's corpse and a
- *   camp of crates and barricades) once the Guardian is done. The Guardian is fought in the nexus's hall, from its
+ *   camp of crates and barricades) once the Guardian is done, with the level above each on the instance's level 1 (the
+ *   hall again a storey and a half up, and the south end of the vault's corridor). The Guardian is fought in the nexus's hall, from its
  *   first row of doors north; the Archive Door lands in the entrance south of it, where the party gathers.
  * - A room's fight begins as the first party member stands in it. A room whose boss isn't built yet is done as soon
  *   as it begins: that is what lets a run go through empty rooms. The Guardian's begins instead as a member touches
@@ -266,6 +294,7 @@ class ArchiveRaids(private val world: World) {
             world.handlers.onLoc(door, QUICK_ENTER) { door(player, door) }
         }
         world.handlers.onLoc(PASSAGEWAY, EXIT) { passageway(player) }
+        world.handlers.onLoc(VAULT_PASSAGEWAY, EXIT) { passageway(player) }
         world.handlers.onLoc(OCELLUS_DOOR_OPEN, ENTER) { ocellusDoor(player) }
         world.handlers.onLoc(OCELLUS_DOOR_OPEN, QUICK_ENTER) { ocellusDoor(player) }
         for (transporter in TRANSPORTERS) {
@@ -278,7 +307,15 @@ class ArchiveRaids(private val world: World) {
         val quick = ops.indexOf(QUICK_FOLLOW).takeIf { it >= 0 }?.plus(1) ?: 2
         world.handlers.onNpc(NAVIGATOR, follow) { op -> follow(this, op.npc!!, quick = false) }
         world.handlers.onNpc(NAVIGATOR, quick) { op -> follow(this, op.npc!!, quick = true) }
+        val riftOps = world.npcTypes[RIFT_OUT]?.ops.orEmpty()
+        for (name in listOf(LEAVE, QUICK_LEAVE)) {
+            val op = riftOps.indexOf(name).takeIf { it >= 0 }?.plus(1) ?: if (name == LEAVE) 1 else 3
+            world.handlers.onNpc(RIFT_OUT, op) { leave(player) }
+        }
         world.combat.shutOut = ::shutOut
+        // His stepping stones' Jump, in his third phase, and his second phase barred to splash: after the shutOut
+        // above, which Ocellus adds to.
+        Ocellus.register(world)
     }
 
     /** The cache's tile [x], [z] in [run]'s instance. */
@@ -286,22 +323,39 @@ class ArchiveRaids(private val world: World) {
 
     /**
      * Whether tile [x], [z] of [run]'s instance is in [room]: its map square, but for the Guardian's, the nexus's hall
-     * from its first row of doors north, which leaves out the entrance the Archive Door lands in.
+     * from its first row of doors north to its Archive Door, which leaves out the entrance the Archive Door from the
+     * lobby lands in; and for Ocellus's, his square and the nexus's square north of that door ([VAULT_Z]), where the
+     * vault's corridor ends on the level above.
      */
     fun inRoom(run: ArchiveRun, room: ArchiveRoom, x: Int, z: Int): Boolean {
         val base = tile(run, room.squareX shl 6, room.squareZ shl 6)
-        val minZ = if (room == ArchiveRoom.GUARDIAN) HALL_Z - (room.squareZ shl 6) else 0
-        return x - base.x in 0 until 64 && z - base.z in minZ until 64
+        val squareZ = room.squareZ shl 6
+        val rows = when (room) {
+            ArchiveRoom.GUARDIAN -> HALL_Z - squareZ until VAULT_Z - squareZ
+            ArchiveRoom.OCELLUS -> VAULT_Z - squareZ until 64
+            else -> 0 until 64
+        }
+        return x - base.x in 0 until 64 && z - base.z in rows
     }
 
     /** The room of [run] tile [x], [z] is in; null for the nexus's entrance, and outside the rooms. */
     fun roomAt(run: ArchiveRun, x: Int, z: Int): ArchiveRoom? = ArchiveRoom.entries.firstOrNull { inRoom(run, it, x, z) }
 
-    /** Whether tile [x], [z] of [run]'s instance is in the nexus, its entrance or its hall. */
+    /** Whether tile [x], [z] of [run]'s instance is in the nexus, its entrance or its hall: its square south of [VAULT_Z]. */
     fun inNexus(run: ArchiveRun, x: Int, z: Int): Boolean {
         val base = tile(run, NEXUS_SQUARE_X shl 6, NEXUS_SQUARE_Z shl 6)
+        return x - base.x in 0 until 64 && z - base.z in 0 until VAULT_Z - (NEXUS_SQUARE_Z shl 6)
+    }
+
+    /** Whether tile [x], [z] of [run]'s instance is in the reward vault's square. */
+    fun inRewardRoom(run: ArchiveRun, x: Int, z: Int): Boolean {
+        val base = tile(run, REWARD_SQUARE_X shl 6, REWARD_SQUARE_Z shl 6)
         return x - base.x in 0 until 64 && z - base.z in 0 until 64
     }
+
+    /** The level a player stands on at tile [x], [z] of [run]'s instance: its room's, the reward vault's, or the nexus's. */
+    fun levelAt(run: ArchiveRun, x: Int, z: Int): Int =
+        if (inRewardRoom(run, x, z)) REWARD_LEVEL else roomAt(run, x, z)?.level ?: NEXUS_PLANE
 
     /** The players of [run]'s party in its instance now, dead or alive. */
     fun present(run: ArchiveRun): List<Player> =
@@ -337,6 +391,7 @@ class ArchiveRaids(private val world: World) {
         }
         placeOcellusFigure(run)
         placeOcellusDoor(run)
+        placeRewardLocs(run)
         logger.info { "$run opened by ${player.username} in $instance" }
         return run
     }
@@ -588,7 +643,20 @@ class ArchiveRaids(private val world: World) {
         val from = Tile(player.x - run.instance.baseX + FROM_X, player.z - run.instance.baseZ + FROM_Z)
         if (from.x == room.doorFront.x && from.z in doorZ(room.stage) until doorZ(room.stage) + DOOR_LENGTH) run.leftFrom[player.saveKey to room] = from
         else run.leftFrom -= player.saveKey to room
-        go(player, run, room)
+        move(run, player, room, into = true)
+    }
+
+    /**
+     * [player] sets off between the nexus and [room]: moved [MOVE_DELAY] ticks on (tsps capture notes, moving between
+     * rooms: "a fade, then the move four ticks later"; Sam's recording of 2026-11-09 has the screen black for 1.5 to
+     * 2 seconds at each door and each Navigator). The fade itself isn't sent. A second click on the way doesn't start
+     * the count again. Guessed: the player isn't held meanwhile, and one who isn't where they set off from by then (the
+     * nexus for a door, the room for the way out), or has fallen, isn't moved.
+     */
+    private fun move(run: ArchiveRun, player: Player, room: ArchiveRoom?, into: Boolean) {
+        val pending = run.moving[player.saveKey]
+        if (pending != null && pending.room == room && pending.into == into) return
+        run.moving[player.saveKey] = RoomMove(room, into, world.tick + MOVE_DELAY)
     }
 
     private fun mayEnter(run: ArchiveRun, player: Player, room: ArchiveRoom): Boolean {
@@ -605,8 +673,10 @@ class ArchiveRaids(private val world: World) {
     }
 
     /**
-     * A boss room's Passageway: back out to the nexus. In Ocellus's room, once the run is done, the stand-in one
-     * ([placeOcellusExit]) leaves to the lobby.
+     * A boss room's Passageway: back out to the nexus. The vault's own ([VAULT_PASSAGEWAY], at the south end of its
+     * corridor) leaves to the lobby, in front of the Archive Door, the instance's exit, once the run is done, and does
+     * nothing before. Guessed, until the reward room (raid step 28) and a recording of the end of a run: Sam's decision
+     * of 8 November 2026 on exploit review RAID-3 was for a way out of Ocellus's room once the run is done.
      */
     fun passageway(player: Player) {
         val run = at(player.x, player.z) ?: return
@@ -616,7 +686,7 @@ class ArchiveRaids(private val world: World) {
             return
         }
         if (room.door < 0) return
-        out(player, run, room)
+        move(run, player, room, into = false)
     }
 
     /**
@@ -632,18 +702,6 @@ class ArchiveRaids(private val world: World) {
         val id = if (run.stage > LAST_DOORS) OCELLUS_DOOR_OPEN else OCELLUS_DOOR_SHUT
         // Inferred: angle 0, as the cache's own 7 by 2 Passageway four tiles north on the level above has.
         world.locs.add(ZoneLoc(id, LocShape.CENTREPIECE_STRAIGHT, 0, at.x, at.z, NEXUS_PLANE))
-    }
-
-    /**
-     * STAND-IN until the reward room (raid step 28): a way out of Ocellus's room once the run is done. A room's
-     * Passageway (`tfa_exit`, [PASSAGEWAY]) is put at its south edge, in front of where the party comes in (the cache's
-     * own, `tfa_exit_large`, is ten tiles south, on a level of the nexus's square the instance doesn't show yet); its
-     * Exit goes to the lobby, in front of the Archive Door, the
-     * instance's exit. Sam's decision of 8 November 2026 on exploit review RAID-3; where it stands is guessed.
-     */
-    private fun placeOcellusExit(run: ArchiveRun) {
-        val at = tile(run, OCELLUS_EXIT_X, OCELLUS_EXIT_Z)
-        world.locs.add(ZoneLoc(PASSAGEWAY, LocShape.CENTREPIECE_STRAIGHT, 0, at.x, at.z, ArchiveRoom.OCELLUS.level))
     }
 
     /**
@@ -675,7 +733,7 @@ class ArchiveRaids(private val world: World) {
             return
         }
         if (room !in run.cleared) return
-        out(player, run, room)
+        move(run, player, room, into = false)
     }
 
     /** Whether [player] stands on the floor of Xarth's arena in [run]. */
@@ -709,8 +767,12 @@ class ArchiveRaids(private val world: World) {
         else -> null
     }
 
-    /** Whether tile [x], [z] is on [room]'s arena in [run]; null for a room with no arena built. */
+    /**
+     * Whether tile [x], [z] is on [room]'s arena in [run]; null for a room with no arena built. The Guardian's is its
+     * hall, all of its room: the fight is in the open there, and the nexus's entrance south of it is outside.
+     */
     private fun onArena(run: ArchiveRun, room: ArchiveRoom, x: Int, z: Int): Boolean? = when (room) {
+        ArchiveRoom.GUARDIAN -> inRoom(run, room, x, z)
         ArchiveRoom.EZEKIEL -> tile(run, EZEKIEL_X, EZEKIEL_Z).let { Ezekiel.inArena(it.x, it.z, x, z) }
         ArchiveRoom.BORK -> tile(run, BORK_CART_X, BORK_CART_Z).let { Bork.inArena(it.x, it.z, x, z) }
         ArchiveRoom.DREADNOTH -> tile(run, Dreadnoth.X, Dreadnoth.Z).let { Dreadnoth.inArena(it.x, it.z, x, z) }
@@ -724,6 +786,11 @@ class ArchiveRaids(private val world: World) {
      * here the walls are the cache's, and whether they stop a bow or a spell isn't known, so the rule is kept outright
      * (exploit review round 21, R21A-2: the way in was out of Dreadnoth's and Xarth's fights, and out of Ezekiel's and
      * Bork's reach, yet their bosses could be shot from it). Guessed: that live refuses it, and with what words.
+     *
+     * The Guardian's hall has no wall to its south: the nexus's entrance is open to it, and out of its fight ([inRoom]),
+     * so nothing of the fight reaches a player there, while an inert guardian in the hall's south was within a bow's
+     * reach of them (exploit review round 22, R22A-1). Guessed: that live refuses an attack from the entrance; where
+     * its fight ends to the south isn't known ([HALL_Z] is inferred).
      */
     fun shutOut(player: Player, npc: Npc): Boolean {
         val run = at(npc.x, npc.z) ?: return false
@@ -757,9 +824,7 @@ class ArchiveRaids(private val world: World) {
      * Follow on the Alliance Navigator in a room that is won: back to the nexus, in front of the room's door (tsps
      * capture notes: "beside the door the party took"), after his one line. Quick-follow goes at once. Guessed: that his
      * line comes with Follow and not as he appears, that Quick-follow skips it, and that only the one who follows goes.
-     * The move is [FOLLOW_DELAY] ticks after the option, or after his line is clicked on (tsps capture notes, moving
-     * between rooms: "a fade, then the move four ticks later"). The fade itself isn't sent. Guessed: the player isn't
-     * held meanwhile, and one who has left the room by then, or fallen, isn't moved.
+     * The move is [MOVE_DELAY] ticks after the option, or after his line is clicked on ([move]).
      */
     suspend fun follow(context: ScriptContext, npc: Npc, quick: Boolean) {
         val player = context.player
@@ -767,27 +832,103 @@ class ArchiveRaids(private val world: World) {
         val room = roomAt(run, npc.x, npc.z) ?: return
         if (room !in run.cleared || player.saveKey !in run.entered || world.parties.of(player) !== run.party) return
         if (quick) {
-            run.following[player.saveKey] = room to world.tick + FOLLOW_DELAY
+            move(run, player, room, into = false)
             return
         }
         val line = if (room.stage >= LAST_DOORS) ArchiveNavigatorLines.VAULT else ArchiveNavigatorLines.ONWARD
         world.dialogues.start(context, npc) {
             chatNpc(ChatAnim.NEUTRAL, line, "name" to player.username)
             // Still in the room: a teleport or a death while he spoke took them elsewhere already.
-            if (at(player.x, player.z) === run && roomAt(run, player.x, player.z) == room) run.following[player.saveKey] = room to world.tick + FOLLOW_DELAY
+            if (at(player.x, player.z) === run && roomAt(run, player.x, player.z) == room) move(run, player, room, into = false)
         }
     }
 
-    /** Those following a Navigator whose [FOLLOW_DELAY] ticks are up go out to the nexus, if they still stand in the room they were leaving. */
-    private fun followers(run: ArchiveRun) {
-        for ((key, leaving) in run.following.entries.toList()) {
-            val (room, due) = leaving
-            if (world.tick < due) continue
-            run.following -= key
+    /**
+     * Those on their way between the nexus and a room whose [MOVE_DELAY] ticks are up are moved ([move]): out to the
+     * nexus if they still stand in the room they were leaving, into the room if they still stand in the nexus and its
+     * door is still theirs to take; and on to the reward vault ([travel]) if they still stand in Ocellus's room.
+     */
+    private fun movers(run: ArchiveRun) {
+        for ((key, pending) in run.moving.entries.toList()) {
+            if (world.tick < pending.due) continue
+            run.moving -= key
             val player = world.onlinePlayers.firstOrNull { it.saveKey == key } ?: continue
-            if (player.dead || world.parties.of(player) !== run.party) continue
-            if (at(player.x, player.z) === run && roomAt(run, player.x, player.z) == room) out(player, run, room)
+            if (player.dead || world.parties.of(player) !== run.party || at(player.x, player.z) !== run) continue
+            val room = pending.room
+            if (room == null) {
+                if (run.completed && roomAt(run, player.x, player.z) == ArchiveRoom.OCELLUS) arrive(run, player)
+            } else if (pending.into) {
+                if (inNexus(run, player.x, player.z) && mayEnter(run, player, room)) go(player, run, room)
+            } else if (roomAt(run, player.x, player.z) == room) {
+                out(player, run, room)
+            }
         }
+    }
+
+    /**
+     * The Blade's Travel, where Ocellus fell: [player] to the reward vault, [MOVE_DELAY] ticks on as any move between
+     * rooms (tsps capture notes: the Blade "takes the party to the vault"). Only once his room is done, and from it.
+     * Guessed: that each member travels by their own click, and the four ticks. Returns whether they set off.
+     */
+    fun travel(player: Player): Boolean {
+        val run = at(player.x, player.z) ?: return false
+        if (!run.completed || run.wiped || player.saveKey !in run.entered) return false
+        if (roomAt(run, player.x, player.z) != ArchiveRoom.OCELLUS) return false
+        move(run, player, null, into = true)
+        return true
+    }
+
+    /**
+     * [player] comes into [run]'s reward vault, at the south end of its walk (tsps capture notes: 4127,5779 on level
+     * 2 of map square 64,90). The first to come starts the count to its Rift out ([riftOut]).
+     */
+    fun arrive(run: ArchiveRun, player: Player) {
+        val to = tile(run, REWARD_X, REWARD_Z)
+        world.teleport(player, to.x, to.z, REWARD_LEVEL)
+        if (run.rewardTick < 0) {
+            run.rewardTick = world.tick
+            logger.info { "$run: ${player.username} is the first into the reward vault" }
+        }
+    }
+
+    /**
+     * The reward vault's own locs, which the cache's map doesn't hold (241.4 cache: neither is on map square 64,90):
+     * the Rift the party comes in by, `tfa_vault_exit`, with no options, and the Merit scroll, `tfa_vault_scoreboard`
+     * (Read), both where the tsps capture notes have them. The scroll's records aren't built, as the lobby's Alliance
+     * records aren't. Guessed: each one's shape and the way it faces.
+     */
+    private fun placeRewardLocs(run: ArchiveRun) {
+        for ((id, x, z, angle) in REWARD_LOCS) {
+            val at = tile(run, x, z)
+            // Not on the map (a world without the vault's square): nothing to put it on.
+            if (world.instances.referenceZone(at.x shr 3, at.z shr 3, REWARD_LEVEL) == null) continue
+            world.locs.add(ZoneLoc(id, LocShape.CENTREPIECE_STRAIGHT, angle, at.x, at.z, REWARD_LEVEL))
+        }
+    }
+
+    /**
+     * The reward vault's Rift out comes [RIFT_OUT_DELAY] ticks after the first member does (tsps capture notes: it
+     * "fades in at 4126,5796 about 15 ticks after the party arrives"). Its fade-in isn't sent.
+     */
+    private fun riftOut(run: ArchiveRun) {
+        val due = run.rewardTick + RIFT_OUT_DELAY
+        if (run.rewardTick < 0 || run.riftOut != null || world.tick < due) return
+        val type = world.npcTypes[RIFT_OUT] ?: return
+        val at = tile(run, RIFT_OUT_X, RIFT_OUT_Z)
+        run.riftOut = world.spawnNpc(NpcSpawn(type, at.x, at.z, REWARD_LEVEL, source = "$run", respawns = false))
+        // With no NPC slot for it, it is asked for again each tick; till then the way out is a teleport or logging out.
+        if (run.riftOut == null && world.tick == due) logger.warn { "$run: no NPC slot for the reward vault's Rift out" }
+    }
+
+    /**
+     * Leave or Quick-leave on the reward vault's Rift out: to the lobby, in front of the Archive Door (tsps capture
+     * notes: it "goes back to the lobby"). Guessed: that it is at once, that the two do the same (Leave likely asks
+     * first), and the tile, the instance's exit.
+     */
+    fun leave(player: Player) {
+        val run = at(player.x, player.z) ?: return
+        if (!inRewardRoom(run, player.x, player.z)) return
+        world.teleport(player, run.instance.exitX, run.instance.exitZ, run.instance.exitLevel)
     }
 
     /** The nexus's Archive Door, north: on to Ocellus, once the fourth room is done and it stands open ([placeOcellusDoor]). */
@@ -795,12 +936,12 @@ class ArchiveRaids(private val world: World) {
         val run = at(player.x, player.z) ?: return
         if (!inNexus(run, player.x, player.z)) return
         if (!mayEnter(run, player, ArchiveRoom.OCELLUS)) return
-        go(player, run, ArchiveRoom.OCELLUS)
+        move(run, player, ArchiveRoom.OCELLUS, into = true)
     }
 
     /**
-     * Each tick, after deaths: runs whose instance has ended go; members who left the party are sent out; a room's fight
-     * begins as the first member stands in it; a member who is down and walks back into a room is sent out; and a party
+     * Each tick, after deaths: runs whose instance has ended go; those due a move between the nexus and a room are moved
+     * ([movers]); members who left the party are sent out; a room's fight begins as the first member stands in it; a member who is down and walks back into a room is sent out; and a party
      * with nobody left standing (the last standing one logged out) wipes.
      */
     fun process() {
@@ -819,6 +960,9 @@ class ArchiveRaids(private val world: World) {
                 run.fights -= room
                 if (fight.boss.dead) clear(run, room)
             }
+            // Before the look at who stands where: a room begins on the tick its first member arrives, as it did when
+            // a door moved them at once.
+            movers(run)
             for (player in world.onlinePlayers) {
                 if (!run.instance.contains(player.x, player.z) || player.saveKey !in run.entered || player.dead) continue
                 if (world.parties.of(player) !== run.party) {
@@ -845,7 +989,7 @@ class ArchiveRaids(private val world: World) {
             placeOcellusFigure(run)
             if (ArchiveRoom.OCELLUS !in run.started && ArchiveRoom.OCELLUS.stage == run.stage && run.ocellusFigure != null && ocellusReady(run)) beginOcellus(run)
             navigators(run)
-            followers(run)
+            riftOut(run)
             settleEscapes(run, ended = false)
             val present = present(run)
             if (present.isNotEmpty() && present.none { it.dead } && standing(run).isEmpty()) wipe(run, null)
@@ -934,7 +1078,6 @@ class ArchiveRaids(private val world: World) {
         // Whoever got out while down (a Home Teleport landing last tick) dies of it before the room's end gets them up.
         settleEscapes(run, ended = false)
         share(run, room)
-        if (room == ArchiveRoom.OCELLUS) placeOcellusExit(run)
         run.downed.clear()
         run.clearedTick = world.tick
         if (arenaEntry(room) != null && built(room)) run.navigatorDue[room] = world.tick + NAVIGATOR_DELAY
@@ -942,6 +1085,7 @@ class ArchiveRaids(private val world: World) {
         if (level != run.nexusLevel) {
             run.nexusLevel = level
             world.instances.replace(run.instance, nexusPart(level))
+            world.instances.replace(run.instance, nexusUpperPart(level))
             placeOcellusDoor(run)
             world.redrawInstance(run.instance)
         } else if (room.stage == LAST_DOORS) {
@@ -964,6 +1108,8 @@ class ArchiveRaids(private val world: World) {
 
     /** A party member's hit on [npc] in a room of a run counts towards their share of its points. */
     fun damaged(npc: Npc, player: Player, dealt: Int) {
+        // Ocellus's Siphons heal whoever hurt them by what they dealt (raid step 26c).
+        Ocellus.damaged(npc, player, dealt)
         val run = at(npc.x, npc.z) ?: return
         if (player.saveKey !in run.entered) return
         val room = roomAt(run, npc.x, npc.z) ?: return
@@ -1055,8 +1201,12 @@ class ArchiveRaids(private val world: World) {
         const val DOOR_3_EAST = 63105
         val DOORS = listOf(DOOR_1_WEST, DOOR_1_EAST, DOOR_2_WEST, DOOR_2_EAST, DOOR_3_WEST, DOOR_3_EAST)
 
-        /** tfa_exit, a boss room's Passageway: Exit. */
+        /**
+         * tfa_exit, a boss room's Passageway, and tfa_exit_large, the vault's, 7 by 2 across the south end of its
+         * corridor at 4124,5625 on the nexus's square's upper levels (241.4 cache): Exit.
+         */
         const val PASSAGEWAY = 62765
+        const val VAULT_PASSAGEWAY = 62766
         const val EXIT = 1
 
         /**
@@ -1086,8 +1236,44 @@ class ArchiveRaids(private val world: World) {
         const val QUICK_FOLLOW = "Quick-follow"
         const val NAVIGATOR_DELAY = 3
 
-        /** Ticks from following the Navigator to the move to the nexus (tsps capture notes: "a fade, then the move four ticks later"). */
-        const val FOLLOW_DELAY = 4
+        /**
+         * Ticks from a door, a Passageway, the transporter back out or the Navigator to the move between the nexus and
+         * a room (tsps capture notes: "a fade, then the move four ticks later").
+         */
+        const val MOVE_DELAY = 4
+
+        /**
+         * The reward vault: level 2 of map square 64,90, and where the party comes in, at the south end of its walk
+         * (tsps capture notes; 241.4 cache: the walk is x 4126 to 4128 from z 5774, one tile wide at its south end, up
+         * to the island from z 5792, all shut in by blocked floor).
+         */
+        const val REWARD_SQUARE_X = 64
+        const val REWARD_SQUARE_Z = 90
+        const val REWARD_LEVEL = 2
+        const val REWARD_X = 4127
+        const val REWARD_Z = 5779
+
+        /** tfa_vault_exit, the Rift at the walk's south end (no options), and tfa_vault_scoreboard, the Merit scroll (Read). */
+        const val REWARD_RIFT = 63297
+        const val MERIT_SCROLL = 62775
+
+        /**
+         * The reward vault's own locs: id, tile and angle (tsps capture notes for the tiles). Guessed: the angles, the
+         * scroll's 1 to lie along the walk's east wall, which it is on.
+         */
+        val REWARD_LOCS = listOf(RewardLoc(REWARD_RIFT, 4127, 5773, 0), RewardLoc(MERIT_SCROLL, 4129, 5778, 1))
+
+        /**
+         * The reward vault's Rift out, 3 by 3 in the island's middle from its south-west tile: Leave, Quick-leave
+         * (tsps capture notes; 241.4 cache for its options and size), and the ticks from the first member's arrival to
+         * its coming.
+         */
+        const val RIFT_OUT = 16690
+        const val RIFT_OUT_X = 4126
+        const val RIFT_OUT_Z = 5796
+        const val RIFT_OUT_DELAY = 15
+        const val LEAVE = "Leave"
+        const val QUICK_LEAVE = "Quick-leave"
 
         const val STAGES = 5
 
@@ -1095,7 +1281,7 @@ class ArchiveRaids(private val world: World) {
         const val LAST_DOORS = 4
 
         /** The locs in a run's instance whose options are handled here, on their copies. */
-        val INSTANCE_LOCS: Set<Int> get() = (DOORS + TRANSPORTERS + PASSAGEWAY + OCELLUS_DOOR_OPEN).toSet()
+        val INSTANCE_LOCS: Set<Int> get() = (DOORS + TRANSPORTERS + PASSAGEWAY + VAULT_PASSAGEWAY + OCELLUS_DOOR_OPEN).toSet() + Ocellus.GAPS + Ocellus.CENSERS
 
         /** The z of the nexus's row of doors for [stage] 2 to 4 (each door covers it and the 4 tiles north). */
         fun doorZ(stage: Int): Int = 5584 + (stage - 2) * 13
@@ -1108,13 +1294,6 @@ class ArchiveRaids(private val world: World) {
         /** The nexus tile the Archive Door lands on, just inside its south end. Guessed. */
         const val NEXUS_X = 4127
         const val NEXUS_Z = 5573
-
-        /**
-         * The stand-in exit's south-west tile in Ocellus's room, on its level: its 5 by 2 just south of where the party
-         * comes in. Guessed.
-         */
-        const val OCELLUS_EXIT_X = 4126
-        const val OCELLUS_EXIT_Z = 5635
 
         /**
          * The level of a run's instance the nexus is on, where a player leaving a room or down in one goes. The cache's
@@ -1164,6 +1343,14 @@ class ArchiveRaids(private val world: World) {
         const val HALL_Z = 5583
 
         /**
+         * The z the vault starts at in the nexus's square: the row north of the Archive Door to Ocellus (its z 5621 and
+         * 5622). On the nexus's own level nobody gets there, the door and the floor under it being shut; on the level
+         * above it is the south end of the vault's corridor (241.4 cache: walkable from 5627 north, the Passageway
+         * across 5625 and 5626).
+         */
+        const val VAULT_Z = 5623
+
+        /**
          * Where the Guardian waits and is fought, its south-west tile: where its corpse (`tfa_corpse_guardian01`, 5 by
          * 5) lies on the nexus's later levels, the middle of the hall. Inferred from the corpse.
          */
@@ -1177,10 +1364,10 @@ class ArchiveRaids(private val world: World) {
         /**
          * The cache's levels of the nexus the instance's level 0 shows: at the start, and with the Guardian's corpse and
          * the camp of crates and barricades. Sam's recording of 2026-11-09 has all three of a run's visits on the
-         * cache's level 2, the one after the fourth room too. Levels 1 and 3 are the same hall a storey and a half up,
-         * but for their north end, which is level with the hall's floor: the south end of the vault's corridor, with its
-         * own Passageway (`tfa_exit_large`). Live copies them onto the instance's level 1 (tsps capture notes); here
-         * they aren't shown yet.
+         * cache's level 2, the one after the fourth room too. The level above each (1 and 3) is the same hall a storey
+         * and a half up (392 height units), but for its north end, which is level with the hall's floor: the south end
+         * of the vault's corridor, with its own Passageway (`tfa_exit_large`). Live copies levels 2 and 3 onto the
+         * instance's levels 0 and 1 (tsps capture notes: a captured build area), and so does [nexusUpperPart].
          */
         const val NEXUS_START = 0
         const val NEXUS_CAMP = 2
@@ -1193,20 +1380,38 @@ class ArchiveRaids(private val world: World) {
 
         /**
          * The instance: the cache's map squares 63 to 65 by 86 to 88, level 0, laid out as they are, but for the
-         * lobby's square (64,86), left out, and the nexus (64,87), copied from the level [nexusLevel] gives; and
-         * Ocellus's arena, his square's level 1, on level 1 ([ocellusArena]).
+         * lobby's square (64,86), left out, and the nexus (64,87), copied from the level [nexusLevel] gives, with the
+         * level above it on level 1 ([nexusUpperPart]); and Ocellus's arena, his square's level 1, on level 1
+         * ([ocellusArena]); and the reward vault's square (64,90) on all four of its levels, two squares north of
+         * Ocellus's as on the map, the row between left empty ([rewardRoom]).
          */
         const val FROM_X = 63 shl 6
         const val FROM_Z = 86 shl 6
         const val WIDTH_ZONES = 24
-        const val HEIGHT_ZONES = 24
+        const val HEIGHT_ZONES = 40
 
-        fun nexusPart(level: Int) = InstancePart(NEXUS_SQUARE_X shl 6, NEXUS_SQUARE_Z shl 6, level, 8, 8, 8, 8, 0)
+        fun nexusPart(level: Int) = InstancePart(NEXUS_SQUARE_X shl 6, NEXUS_SQUARE_Z shl 6, level, 8, 8, 8, 8, NEXUS_PLANE)
+
+        /**
+         * The level above the nexus's [level], on the instance's level 1, the vault's: the cache's 3 over its 2 (tsps
+         * capture notes), and its 1 over its 0 before the Guardian is done. Inferred for the first pair: the two hold
+         * the same but for the corpse and the camp.
+         */
+        fun nexusUpperPart(level: Int) = InstancePart(NEXUS_SQUARE_X shl 6, NEXUS_SQUARE_Z shl 6, level + 1, 8, 8, 8, 8, ArchiveRoom.OCELLUS.level)
 
         fun parts(nexusLevel: Int): List<InstancePart> =
             ArchiveRoom.entries.filter { it != ArchiveRoom.GUARDIAN }.map { room ->
                 InstancePart(room.squareX shl 6, room.squareZ shl 6, 0, 8, 8, (room.squareX - 63) * 8, (room.squareZ - 86) * 8, 0)
-            } + ocellusArena() + nexusPart(nexusLevel)
+            } + ocellusArena() + nexusPart(nexusLevel) + nexusUpperPart(nexusLevel) + rewardRoom()
+
+        /**
+         * The reward vault: each level of its square as the map has it, the party's on [REWARD_LEVEL] with the walkways
+         * and braziers a level down and stars above and below. Inferred: that live shows it on its own levels (the tsps
+         * capture notes give "level 2", and one room to an instance, where this keeps every room in one).
+         */
+        private fun rewardRoom(): List<InstancePart> = (0..3).map { level ->
+            InstancePart(REWARD_SQUARE_X shl 6, REWARD_SQUARE_Z shl 6, level, 8, 8, (REWARD_SQUARE_X - 63) * 8, (REWARD_SQUARE_Z - 86) * 8, level)
+        }
 
         /** Ocellus's arena: his square's level 1, copied onto the instance's level 1 as live shows it ([ArchiveRoom.level]). */
         private fun ocellusArena(): InstancePart = ArchiveRoom.OCELLUS.let { room ->

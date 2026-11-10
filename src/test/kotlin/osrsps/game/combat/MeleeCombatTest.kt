@@ -206,6 +206,60 @@ class MeleeCombatTest {
     }
 
     @Test
+    fun `content can make a swing that lands land at its max hit, its two rolls still drawn as ever`() {
+        combat.sureHit = { _, _, _ -> SureHit.MAX_IF_HIT }
+        val npc = spawn()
+        attack(alice, npc)
+        val hits = ArrayList<Int>()
+        repeat(10) {
+            tick()
+            npc.effects.pendingHits.singleOrNull()?.let { hits += it.value }
+            npc.effects.flush({}, {}, {})
+        }
+        // As the plain punches above, the man's swings taking their draws in between: a punch that lands deals the max, 1.
+        val roll = combat.npcAttack(npc, alice)!!
+        val replay = GameRandom(SEED)
+        val landed = (0 until 6).map {
+            val rolls = if (it % 2 == 0) Rolls(768, 430, 1) else Rolls(roll.attackRoll, roll.defenceRoll, roll.maxHit)
+            CombatMath.rollHits(replay, rolls.attackRoll, rolls.defenceRoll).also { hit -> if (hit) CombatMath.rollDamage(replay, rolls.maxHit) }
+        }
+        assertEquals(listOf(landed[0], landed[2], landed[4]).map { if (it) 1 else 0 }, hits)
+    }
+
+    @Test
+    fun `content can make every swing land at its max hit`() {
+        combat.sureHit = { _, _, _ -> SureHit.MAX }
+        val npc = spawn()
+        attack(alice, npc)
+        val hits = ArrayList<Int>()
+        repeat(10) {
+            tick()
+            npc.effects.pendingHits.singleOrNull()?.let { hits += it.value }
+            npc.effects.flush({}, {}, {})
+        }
+        assertEquals(listOf(1, 1, 1), hits)
+    }
+
+    @Test
+    fun `content can take what a swing rolled before it lands, by its style`() {
+        combat.sureHit = { _, _, _ -> SureHit.MAX }
+        val seen = ArrayList<AttackType>()
+        combat.rolledOn = { _, _, type, _ -> seen += type; 0 }
+        val npc = spawn()
+        attack(alice, npc)
+        val hits = ArrayList<Int>()
+        repeat(10) {
+            tick()
+            npc.effects.pendingHits.singleOrNull()?.let { hits += it.value }
+            npc.effects.flush({}, {}, {})
+        }
+        // Every punch maxed, then taken to nothing: three blocked hitsplats, each asked once, as a crush.
+        assertEquals(listOf(0, 0, 0), hits)
+        assertEquals(List(3) { AttackType.CRUSH }, seen)
+        assertEquals(npc.maxHitpoints, npc.hitpoints)
+    }
+
+    @Test
     fun `a swing animates the player, shows the splat and health bar, holds the NPC and gives XP`() {
         val npc = spawn(wander = 5)
         attack(alice, npc)

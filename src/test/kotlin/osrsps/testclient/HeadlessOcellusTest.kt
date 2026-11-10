@@ -13,11 +13,14 @@ import osrsps.game.NpcStats
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.SeqNames
+import osrsps.game.Skill
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.World
+import osrsps.game.combat.AttackType
 import osrsps.game.combat.Deaths
 import osrsps.game.combat.NpcCombat
+import osrsps.game.combat.SureHit
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
@@ -42,7 +45,9 @@ import osrsps.map.Tile
  * on to the next corner anticlockwise; his move to the middle at two thirds and a quarter, its four sides of cracks, his
  * line and his charge expended (raid step 24b); the hold at the end of his blue bar, his line and his transformation;
  * and his second phase (raid step 25a): the portals on the arms of the cross, the Blade passing its damage to his bar,
- * the quadrants' turns and their volleys, and, until step 26, his death as his third phase would begin, doing the room.
+ * the quadrants' turns and their volleys, the rest of a quadrant's turn (step 25b); and his third phase (step 26a): the
+ * cross falling to stepping stones, his quadrant and tank, a jump over an arm, and the quadrants falling, his final
+ * stand (step 27a), and his death doing the room.
  * The rl-client script
  * test-runner/examples/archive-ocellus.json fights him in the real client.
  */
@@ -70,8 +75,26 @@ class HeadlessOcellusTest {
         Ocellus.BLADE, "<col=00ffff>The Blade</col>", size = 3, ops = listOf(null, "Attack", null, null, null), internalName = "tfa_ocellus_p2_sword_hitbox",
         stats = NpcStats(attack = 1, defence = 250, strength = 1, hitpoints = 1000, ranged = 1, magic = 220),
     )
+    /** His third phase, with Attack, as the 242 cache has it. */
+    private val third = NpcType(
+        Ocellus.P3, "Ocellus", size = 3, ops = listOf(null, "Attack", null, null, null), internalName = "tfa_ocellus_p3",
+        stats = NpcStats(attack = 325, defence = 250, strength = 250, hitpoints = 5250, ranged = 300, magic = 300),
+    )
+    /** The Void Vine, as the 242 cache has it: 44 hitpoints and Attack. */
+    private val vine = NpcType(
+        Ocellus.VINE, "<col=00ffff>Void Vine</col>", ops = listOf(null, "Attack", null, null, null), internalName = "tfa_ocellus_p3_void_vine",
+        stats = NpcStats(attack = 1, defence = 1, strength = 1, hitpoints = 44, ranged = 1, magic = 1),
+    )
+    /** His void flares, as the 242 cache has them: 44 hitpoints, Defence 175, Magic 300 and Attack. */
+    private val flares = Ocellus.Flare.entries.map { kind ->
+        NpcType(
+            kind.id, "Void ${kind.name.lowercase().replaceFirstChar { it.uppercase() }}", ops = listOf(null, "Attack", null, null, null),
+            internalName = listOf("tfa_ocellus_p3_bombportal_basic", "tfa_ocellus_p3_bombportal_heal", "tfa_ocellus_p3_bombportal_buff")[kind.ordinal],
+            stats = NpcStats(attack = 1, defence = 175, strength = 1, hitpoints = 44, ranged = 1, magic = 300),
+        )
+    }
     private val grave = NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null))
-    private val types = NpcTypes.of(figure, notMet, met, first, second, blade, grave)
+    private val types = NpcTypes.of(figure, notMet, met, first, second, blade, third, vine, grave, *flares.toTypedArray())
 
     private val portal = LocCollisionType(width = 2, length = 1, interactType = 1, blocksProjectile = false)
     private val locTypes = LocTypes(
@@ -79,7 +102,24 @@ class HeadlessOcellusTest {
             ArchiveRaids.ARCHIVE_DOOR to LocType(ArchiveRaids.ARCHIVE_DOOR, "Archive Door", ops = listOf("Enter", null, null, null, null), collision = LocCollisionType(width = 9, length = 1)),
             Ocellus.LOC_PORTAL to LocType(Ocellus.LOC_PORTAL, "Portal", collision = portal),
             Ocellus.LOC_PORTAL_ACTIVE to LocType(Ocellus.LOC_PORTAL_ACTIVE, "Portal", collision = portal),
-        ),
+            Ocellus.LOC_VOID to LocType(Ocellus.LOC_VOID, collision = LocCollisionType(interactType = 1, blocksProjectile = false)),
+        ) + Ocellus.LOC_ARMS.mapIndexed { i, id ->
+            // The 242 cache's: the north and south arms 3 by 11, the east and west 11 by 3; the falling ones block shots too.
+            id to LocType(id, collision = if (i % 2 == 0) LocCollisionType(3, 11, 1, true) else LocCollisionType(11, 3, 1, true))
+        } + Ocellus.LOC_ARMS_EMPTY.mapIndexed { i, id ->
+            id to LocType(id, collision = if (i % 2 == 0) LocCollisionType(3, 11, 1, false) else LocCollisionType(11, 3, 1, false))
+        } + (listOf(Ocellus.LOC_BOMB, Ocellus.LOC_DEBRIS) + Ocellus.LOC_INSOLENCE).map { id ->
+            // The 242 cache's void, debris and cracks: walkable.
+            id to LocType(id, "Void", collision = LocCollisionType(interactType = 0, blocksProjectile = false))
+        } + Ocellus.GAPS.map { id ->
+            id to LocType(id, "Gap", ops = listOf("Jump", null, null, null, null), collision = LocCollisionType(interactType = 1, blocksProjectile = false))
+        } + Ocellus.Censer.entries.flatMap { censer ->
+            // The 242 cache's: 1 by 1, blocking shots, Interact while lit; the inactive form without it.
+            listOf(
+                censer.id to LocType(censer.id, "Censer", ops = listOf("Interact", null, null, null, null), collision = LocCollisionType(interactType = 1, blocksProjectile = true)),
+                censer.inactive to LocType(censer.inactive, "Censer", collision = LocCollisionType(interactType = 1, blocksProjectile = true)),
+            )
+        },
     )
     private val staticLocs = StaticLocs().apply { add(ZoneLoc(ArchiveRaids.ARCHIVE_DOOR, LocShape.CENTREPIECE_STRAIGHT, 0, 4123, 5562, 0)) }
 
@@ -457,23 +497,62 @@ class HeadlessOcellusTest {
                 assertFalse(sword.dead)
                 // It never regains hitpoints by itself, so no point of damage is lost to a regeneration tick.
                 assertTrue(sword.hitpointsRegenTicks > 1_000_000)
-                // Each quadrant 42 ticks, clockwise; until step 26, he dies 123 ticks in, in the third, and the room is done.
+                // Each quadrant 42 ticks, clockwise; 123 ticks in, in the third, his line, and his third phase a tick on.
                 for (next in listOf("SW", "NW")) {
                     alice.keepAlive()
                     alice.awaitLine(run, "the $next quadrant's turn", 30_000) { it.endsWith("second: quadrant $next") }
                 }
                 alice.keepAlive()
-                alice.await("his room done", 30_000) { ArchiveRoom.OCELLUS.takeIf { it in run.cleared } }
-                assertTrue(run.completed)
-                assertTrue(boss.dead)
+                val third = tickOf(alice.awaitLine(run, "his third phase", 30_000) { it.endsWith("third: phase starts") })
                 val turns = fight.lines.filter { it.contains("second: quadrant ") }
                 assertEquals(listOf("SE", "SW", "NW"), turns.map { it.substringAfter("quadrant ") })
                 assertEquals((0..2).map { second + Ocellus.BLADE_AT + Ocellus.QUADRANT_TICKS * it }, turns.map(::tickOf))
-                assertEquals(second + Ocellus.SECOND_PHASE_TICKS, tickOf(fight.lines.single { it.endsWith("second: end of the second phase: stand-in, he dies") }))
+                assertEquals(second + Ocellus.SECOND_PHASE_TICKS, tickOf(fight.lines.single { it.endsWith("second: this is enough") }))
+                assertEquals(second + Ocellus.SECOND_PHASE_TICKS + Ocellus.THIRD_PHASE_AFTER, third)
                 assertEquals(18, fight.lines.count { it.contains("second: volley ") && it.contains(" fires from ") }, "six a quadrant, three quadrants")
-                // The portals and the Blade go with the fight.
+                // The Blade drops a tick in and the portals go a tick later.
+                alice.awaitLine(run, "the portals going") { it.endsWith("third: portals go") }
                 assertTrue(world.locs[east.x, east.z, boss.level, 2]?.id != Ocellus.LOC_PORTAL)
                 assertTrue(sword.dead || world.npcs[sword.index] !== sword)
+                assertNull(Ocellus.blade(boss))
+            }
+        }
+    }
+
+    @Test
+    fun `nobody shelters from his second phase on the cross, and no splash reaches him past the Blade`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.throughTheRest(run)
+                alice.toOcellus(server, run)
+                alice.npcOp(assertNotNull(run.ocellusFigure).index, 1)
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ocellus #") } }
+                val boss = boss(run)
+                val fight = assertNotNull(run.fights[ArchiveRoom.OCELLUS])
+                val world = server.world
+                val centre = Ocellus.centre(boss.spawn.x, boss.spawn.z)
+                // On the north arm as the portals come: moved a tile off it, into the north-west (nobody's quadrant, so
+                // the first clockwise from there), not left under a portal (exploit review round 22, R22B-1).
+                alice.commandReply("hit 2500 ${boss.index}") { it.startsWith("Hit ") }
+                alice.tele(centre.x, centre.z + 4, ArchiveRoom.OCELLUS.level)
+                val second = tickOf(alice.awaitLine(run, "his second phase") { it.endsWith("second: phase starts") })
+                val moved = alice.awaitLine(run, "her moved off the arm") { it.contains("second: alice moved off the cross to ") }
+                assertEquals(second + Ocellus.PORTALS_AT, tickOf(moved))
+                assertTrue(moved.endsWith("${centre.x - 1},${centre.z + 4}"), moved)
+                alice.await("in the north-west") { alice.position?.takeIf { it == Coord(centre.x - 1, centre.z + 4, ArchiveRoom.OCELLUS.level) } }
+                // His second phase is barred to her: an area spell or a chinchompa's splash finds only the Blade.
+                val player = world.playerNamed("alice")!!
+                assertTrue(world.combat.barred(player, boss) != null, "his second phase can't be hit")
+                alice.awaitLine(run, "the Blade") { it.contains("second: your time; the Blade; first quadrant NW") }
+                assertNull(world.combat.barred(player, assertNotNull(Ocellus.blade(boss))), "the Blade can be")
+                // Then on the middle of the cross, which no portal covers: the north-west's last volley takes her there,
+                // outside the north-east, where its floor portal leads.
+                alice.tele(centre.x, centre.z, ArchiveRoom.OCELLUS.level)
+                alice.keepAlive()
+                val taken = alice.awaitLine(run, "the last volley taking her", 30_000) { it.contains("second: last volley takes alice outside NE for ") }
+                val last = fight.lines.single { it.contains("second: last volley fires from ") }
+                assertTrue(tickOf(taken) in tickOf(last) + 1..tickOf(last) + 3, taken)
             }
         }
     }
@@ -537,9 +616,394 @@ class HeadlessOcellusTest {
                 assertTrue(tickOf(hit) in turn + Ocellus.QUADRANT_TICKS + Ocellus.LAST_VOLLEY_AT + 1..turn + Ocellus.QUADRANT_TICKS + Ocellus.LAST_VOLLEY_AT + 3, hit)
                 // His line as the phase ends, in the third quadrant's turn.
                 alice.keepAlive()
-                alice.await("his room done", 30_000) { ArchiveRoom.OCELLUS.takeIf { it in run.cleared } }
+                alice.awaitLine(run, "his third phase", 30_000) { it.endsWith("third: phase starts") }
                 val enough = fight.lines.single { it.endsWith("second: this is enough") }
                 assertEquals(second + Ocellus.SECOND_PHASE_TICKS, tickOf(enough))
+            }
+        }
+    }
+
+    @Test
+    fun `once the cross falls each arm has three stones over it, from a quadrant to the next clockwise`() {
+        val centre = Ocellus.centre(Ocellus.FIGURE_X, Ocellus.FIGURE_Z)
+        // The capture notes' crossings: SE 4129,5663 to SW 4125,5669; SW 4117,5671 to NW 4123,5675; NW 4125,5683 to NE
+        // 4129,5677; NE 4137,5675 to SE 4131,5671.
+        val ways = Ocellus.Arm.entries.associateWith { Ocellus.crossing(centre, it) }
+        assertEquals(listOf(Tile(4129, 5663), Tile(4125, 5669)), ways.getValue(Ocellus.Arm.S).let { listOf(it.start, it.land) })
+        assertEquals(listOf(Tile(4117, 5671), Tile(4123, 5675)), ways.getValue(Ocellus.Arm.W).let { listOf(it.start, it.land) })
+        assertEquals(listOf(Tile(4125, 5683), Tile(4129, 5677)), ways.getValue(Ocellus.Arm.N).let { listOf(it.start, it.land) })
+        assertEquals(listOf(Tile(4137, 5675), Tile(4131, 5671)), ways.getValue(Ocellus.Arm.E).let { listOf(it.start, it.land) })
+        for ((arm, way) in ways) {
+            assertEquals(arm, Ocellus.armOut(way.from))
+            assertEquals(Ocellus.Quadrant.entries[(way.from.ordinal + 1) % 4], way.to, "clockwise")
+            assertEquals(way.from, Ocellus.quadrant(centre, way.start.x, way.start.z))
+            assertEquals(way.to, Ocellus.quadrant(centre, way.land.x, way.land.z))
+            // Its stones on its arm, each a hop (at most two tiles) from the last.
+            assertTrue(way.stones.all { Ocellus.onCross(centre, it.x, it.z) }, arm.name)
+            assertTrue(!Ocellus.onCross(centre, way.start.x, way.start.z) && !Ocellus.onCross(centre, way.land.x, way.land.z), arm.name)
+            (listOf(way.start) + way.stones + way.land).zipWithNext { a, b -> assertTrue(maxOf(kotlin.math.abs(a.x - b.x), kotlin.math.abs(a.z - b.z)) <= 2, "$arm $a $b") }
+            // On the arm's fallen loc, 3 wide and 11 long.
+            val sw = Ocellus.armTile(centre, arm)
+            val (width, length) = if (arm == Ocellus.Arm.N || arm == Ocellus.Arm.S) 3 to 11 else 11 to 3
+            assertTrue(way.stones.all { it.x in sw.x until sw.x + width && it.z in sw.z until sw.z + length }, arm.name)
+        }
+        // His room's corridor south of the arena is no part of it: nobody there is moved off the cross or lost.
+        assertTrue(Ocellus.inArena(centre, 4127, 5661))
+        assertFalse(Ocellus.inArena(centre, 4127, 5629))
+        // The arms: the north 5675-5685 and the south 5661-5671 at x 4126-4128, the east 4129-4139 and west 4115-4125.
+        assertEquals(Tile(4126, 5675), Ocellus.armTile(centre, Ocellus.Arm.N))
+        assertEquals(Tile(4126, 5661), Ocellus.armTile(centre, Ocellus.Arm.S))
+        assertEquals(Tile(4129, 5672), Ocellus.armTile(centre, Ocellus.Arm.E))
+        assertEquals(Tile(4115, 5672), Ocellus.armTile(centre, Ocellus.Arm.W))
+        // His corner in each quadrant is his first phase's there, inside it.
+        val middle = Ocellus.middle(Ocellus.FIGURE_X, Ocellus.FIGURE_Z)
+        for (quadrant in Ocellus.Quadrant.entries) {
+            val corner = Ocellus.quadrantCorner(middle, quadrant)
+            assertTrue((0..2).all { dx -> (0..2).all { dz -> Ocellus.quadrant(centre, corner.x + dx, corner.z + dz) == quadrant } }, quadrant.name)
+        }
+    }
+
+    @Test
+    fun `in his third phase the cross falls, he holds a quadrant and fights his tank, and each quadrant falls in turn`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.throughTheRest(run)
+                alice.toOcellus(server, run)
+                alice.npcOp(assertNotNull(run.ocellusFigure).index, 1)
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ocellus #") } }
+                val boss = boss(run)
+                val fight = assertNotNull(run.fights[ArchiveRoom.OCELLUS])
+                val world = server.world
+                val level = ArchiveRoom.OCELLUS.level
+                val centre = Ocellus.centre(boss.spawn.x, boss.spawn.z)
+                alice.commandReply("hit 2500 ${boss.index}") { it.startsWith("Hit ") }
+                // The south-east first, so the second phase ends in the north-west's turn, which he holds.
+                alice.tele(centre.x + 3, centre.z - 3, level)
+                alice.awaitLine(run, "his second phase") { it.endsWith("second: phase starts") }
+                alice.keepAlive()
+                alice.awaitLine(run, "the south-west's turn", 30_000) { it.endsWith("second: quadrant SW") }
+                alice.keepAlive()
+                val started = alice.awaitLine(run, "his third phase", 30_000) { it.contains("third: third phase: ") }
+                val third = tickOf(started)
+                assertTrue(started.endsWith("5250 hitpoints; his quadrant NW"), started)
+                assertEquals(Ocellus.P3, boss.type.id)
+                assertEquals(5250, boss.maxHitpoints, "the same bar")
+                // On the south arm as it cracks: moved off it, west, the side of his quadrant.
+                alice.tele(centre.x, centre.z - 5, level)
+                val moved = alice.awaitLine(run, "her moved off the cross") { it.contains("third: alice moved off the cross to ") }
+                assertEquals(third + Ocellus.ARMS_CRACK_AT, tickOf(moved))
+                assertTrue(moved.endsWith("${centre.x - 2},${centre.z - 5}"), moved)
+                alice.await("off the arm") { alice.position?.takeIf { it == Coord(centre.x - 2, centre.z - 5, level) } }
+                // Twelve in, the arms' empty forms and their stones, and he takes the north-west from its corner.
+                val took = alice.awaitLine(run, "his quadrant") { it.contains("third: takes quadrant NW") }
+                assertEquals(third + Ocellus.ARMS_EMPTY_AT, tickOf(took))
+                val corner = Ocellus.quadrantCorner(Ocellus.middle(boss.spawn.x, boss.spawn.z), Ocellus.Quadrant.NW)
+                assertEquals(Tile(corner.x, corner.z), Tile(boss.x, boss.z))
+                assertEquals(Ocellus.Quadrant.NW, Ocellus.held(boss))
+                for (arm in Ocellus.Arm.entries) {
+                    val sw = Ocellus.armTile(centre, arm)
+                    assertEquals(Ocellus.LOC_ARMS_EMPTY[arm.ordinal], world.locs[sw.x, sw.z, level, 2]?.id, arm.name)
+                    val stones = Ocellus.crossing(centre, arm).stones
+                    assertEquals(listOf(Ocellus.LOC_STONES_OUTER[arm.ordinal], Ocellus.LOC_STONE_MIDDLE, Ocellus.LOC_STONES_OUTER[arm.ordinal]), stones.map { world.locs[it.x, it.z, level, 2]?.id })
+                }
+                assertTrue(alice.fight().contains("third phase, quadrant NW"), alice.fight())
+                // From the south-west, the south arm's stone beside her is the way back: closed.
+                val back = Ocellus.crossing(centre, Ocellus.Arm.S).stones.last()
+                alice.locOp(Ocellus.LOC_STONES_OUTER[Ocellus.Arm.S.ordinal], back.x, back.z, 1)
+                alice.awaitLine(run, "the way back closed") { it.endsWith("third: alice can't jump the S arm back") }
+                // Beside him, east, she hits him and is his tank: his melee, then his slash, towards her.
+                val beside = Tile(corner.x + 3, corner.z + 1)
+                alice.tele(beside.x, beside.z, level)
+                alice.commandReply("hit 10 ${boss.index}") { it.startsWith("Hit ") }
+                alice.awaitLine(run, "his tank") { it.endsWith("third: turns to alice") }
+                assertEquals("alice", Ocellus.tank(boss)?.username)
+                alice.awaitLine(run, "his melee") { it.endsWith("third: melee at alice") }
+                alice.awaitLine(run, "his slash") { it.endsWith("third: slash towards alice") }
+                alice.awaitLine(run, "his slash landing") { it.contains("third: slash hits alice for ") }
+                // Out of his reach, still in his quadrant: a void shot at everyone.
+                alice.tele(beside.x + 2, beside.z, level)
+                alice.awaitLine(run, "his void shot") { it.endsWith("third: void shot at alice") }
+                // The north arm's barriers stand: no jumping yet.
+                val north = Ocellus.crossing(centre, Ocellus.Arm.N)
+                alice.locOp(Ocellus.LOC_STONES_OUTER[Ocellus.Arm.N.ordinal], north.stones.first().x, north.stones.first().z, 1)
+                alice.awaitLine(run, "the barriers") { it.endsWith("third: alice can't jump the N arm: barriers up") }
+                // At 75% the north-west is to fall and its barriers drop: over the north arm to the north-east.
+                alice.commandReply("hit ${boss.hitpoints - 5250 * 75 / 100} ${boss.index}") { it.startsWith("Hit ") }
+                val fall = tickOf(alice.awaitLine(run, "the north-west to fall") { it.contains("third: NW to fall at ") })
+                alice.locOp(Ocellus.LOC_STONES_OUTER[Ocellus.Arm.N.ordinal], north.stones.first().x, north.stones.first().z, 1)
+                alice.awaitLine(run, "her jump") { it.endsWith("third: alice jumps the N arm") }
+                alice.awaitLine(run, "her over") { it.endsWith("third: alice over to NE at ${north.land.x},${north.land.z}") }
+                alice.await("in the north-east") { alice.position?.takeIf { it == Coord(north.land.x, north.land.z, level) } }
+                // It falls, with its arms' stones; she isn't lost with it; he takes the north-east.
+                val fell = alice.awaitLine(run, "the north-west falling") { it.endsWith("third: quadrant NW falls") }
+                assertEquals(fall + Ocellus.FALL_FALLS, tickOf(fell))
+                assertTrue(fight.lines.none { it.contains("lost with it") })
+                for (arm in listOf(Ocellus.Arm.N, Ocellus.Arm.W)) {
+                    val stone = Ocellus.crossing(centre, arm).stones.first()
+                    assertTrue(world.locs[stone.x, stone.z, level, 2]?.id !in Ocellus.GAPS, arm.name)
+                }
+                val next = alice.awaitLine(run, "the north-east") { it.contains("third: takes quadrant NE") }
+                assertEquals(fall + Ocellus.FALL_NEXT, tickOf(next))
+                assertEquals(listOf(Ocellus.Quadrant.NW), Ocellus.fallen(boss))
+                // At 50% she stays: lost with the north-east. At 25% the south-east falls, and his final stand begins in
+                // the south-west, the last; he dies at the end of his bar.
+                alice.commandReply("hit ${boss.hitpoints - 5250 / 2} ${boss.index}") { it.startsWith("Hit ") }
+                alice.awaitLine(run, "her lost") { it.contains("third: alice lost with it for ") }
+                alice.awaitLine(run, "the south-east") { it.contains("third: takes quadrant SE") }
+                alice.commandReply("hit ${boss.hitpoints - 5250 / 4} ${boss.index}") { it.startsWith("Hit ") }
+                alice.keepAlive()
+                alice.awaitLine(run, "his final stand", 30_000) { it.endsWith("third: final stand in SW") }
+                assertEquals(listOf(Ocellus.Quadrant.NW, Ocellus.Quadrant.NE, Ocellus.Quadrant.SE), Ocellus.fallen(boss))
+                assertFalse(boss.dead)
+                alice.commandReply("hit ${boss.hitpoints} ${boss.index}") { it.startsWith("Hit ") }
+                alice.await("his room done", 30_000) { ArchiveRoom.OCELLUS.takeIf { it in run.cleared } }
+                assertTrue(boss.dead)
+            }
+        }
+    }
+
+    /** Through his first two phases to his third, the second ending in the north-west's turn; the tick it began. */
+    private fun HeadlessClient.toHisThird(run: ArchiveRun, vararg others: HeadlessClient): Long {
+        val boss = boss(run)
+        val centre = Ocellus.centre(boss.spawn.x, boss.spawn.z)
+        commandReply("hit 2500 ${boss.index}") { it.startsWith("Hit ") }
+        tele(centre.x + 3, centre.z - 3, ArchiveRoom.OCELLUS.level)
+        awaitLine(run, "his second phase") { it.endsWith("second: phase starts") }
+        keepAlive()
+        for (other in others) other.keepAlive()
+        awaitLine(run, "the south-west's turn", 30_000) { it.endsWith("second: quadrant SW") }
+        keepAlive()
+        for (other in others) other.keepAlive()
+        return tickOf(awaitLine(run, "his third phase", 30_000) { it.contains("third: third phase: ") })
+    }
+
+    @Test
+    fun `in his third phase void bombs fall, and after each six attacks a special, the cog, the void and Untether, and Insolence first in the next quadrant`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.throughTheRest(run)
+                alice.toOcellus(server, run)
+                alice.npcOp(assertNotNull(run.ocellusFigure).index, 1)
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ocellus #") } }
+                val boss = boss(run)
+                val fight = assertNotNull(run.fights[ArchiveRoom.OCELLUS])
+                val world = server.world
+                val level = ArchiveRoom.OCELLUS.level
+                val centre = Ocellus.centre(boss.spawn.x, boss.spawn.z)
+                // She stays where she is put: his hits don't send her at him.
+                alice.command("varp ${EquipmentTab.VARP_AUTO_RETALIATE_OFF} 1")
+                alice.toHisThird(run)
+                val took = tickOf(alice.awaitLine(run, "his quadrant") { it.contains("third: takes quadrant NW") })
+                // Beside him, east, she is his tank.
+                val corner = Ocellus.quadrantCorner(Ocellus.middle(boss.spawn.x, boss.spawn.z), Ocellus.Quadrant.NW)
+                val beside = Tile(corner.x + 3, corner.z + 1)
+                alice.tele(beside.x, beside.z, level)
+                alice.commandReply("hit 10 ${boss.index}") { it.startsWith("Hit ") }
+                // Three ticks in, two void bombs in each quadrant, leaving void round them: their locs on their tiles.
+                val bombs = alice.awaitLine(run, "the void bombs") { it.contains("third: void bombs at ") }
+                assertEquals(took + Ocellus.BOMBS_AT, tickOf(bombs))
+                val dropped = bombs.substringAfter("void bombs at ").split(' ').map { it.split(',').let { (x, z) -> Tile(x.toInt(), z.toInt()) } }
+                assertEquals(Ocellus.BOMBS * 4, dropped.size)
+                assertEquals(Ocellus.Quadrant.entries.flatMap { q -> List(Ocellus.BOMBS) { q } }, dropped.map { Ocellus.quadrant(centre, it.x, it.z) })
+                val voids = Ocellus.voids(boss)
+                for (bomb in dropped) {
+                    assertTrue((-1..1).all { dx -> (-1..1).all { dz -> Tile(bomb.x + dx, bomb.z + dz) in voids } }, "void round $bomb")
+                }
+                assertEquals(Ocellus.LOC_BOMB, world.locs[dropped.last().x, dropped.last().z, level, 2]?.id)
+                assertTrue(voids.none { Ocellus.onCross(centre, it.x, it.z) }, "none on the cross, its arms and stones")
+                // Where she stands for the cog: beside him, on a tile no bomb's void has taken, whose void would
+                // outlast the debris's (Codex, PR 581).
+                val size = boss.type.size
+                val stand = if (beside !in voids) beside else ((boss.x - 1)..(boss.x + size)).flatMap { x -> ((boss.z - 1)..(boss.z + size)).map { z -> Tile(x, z) } }
+                    .first { (it.x !in boss.x until boss.x + size || it.z !in boss.z until boss.z + size) && it !in voids &&
+                        Ocellus.quadrant(centre, it.x, it.z) == Ocellus.Quadrant.NW && !Ocellus.onCross(centre, it.x, it.z) }
+                // On one, the void hurts her each tick.
+                // One clear of his footprint, so she can stand on it.
+                val onBomb = dropped.first { it.x !in boss.x - 1..boss.x + 3 || it.z !in boss.z - 1..boss.z + 3 }
+                alice.tele(onBomb.x, onBomb.z, level)
+                alice.awaitLine(run, "the void on her") { it.contains("third: void on alice for ") }
+                alice.tele(stand.x, stand.z, level)
+                // Six attacks on, the cog: two strikes in the first quadrant, three ticks apart, and debris where she stood
+                // on the first of them, void five ticks later.
+                val cog = alice.awaitLine(run, "the cog", 30_000) { it.endsWith("third: cog: 2 strikes") }
+                assertEquals(6, fight.lines.count { it.contains("third: melee at ") || it.contains("third: slash towards ") || it.contains("third: void shot at ") })
+                val first = alice.awaitLine(run, "the cog's first strike") { it.contains("third: cog strike 1 hits alice for ") }
+                assertEquals(tickOf(cog) + Ocellus.COG_GAP, tickOf(first))
+                val debris = alice.awaitLine(run, "the debris") { it.contains("third: debris falls on ") }
+                assertTrue(debris.endsWith("${stand.x},${stand.z}"), debris)
+                alice.awaitLine(run, "the cog's second strike") { it.contains("third: cog strike 2 hits alice for ") }
+                val void = alice.awaitLine(run, "the debris's void") { it.endsWith("third: debris void") }
+                assertEquals(tickOf(debris) + Ocellus.DEBRIS_AFTER, tickOf(void))
+                assertTrue(stand in Ocellus.voids(boss))
+                assertEquals(Ocellus.LOC_DEBRIS, world.locs[stand.x, stand.z, level, 2]?.id)
+                // Six more, the void: his line, then three ticks later his void shot; alone, she is his tank, so no vine.
+                alice.keepAlive()
+                val voidLine = alice.awaitLine(run, "the void", 30_000) { it.endsWith("third: the void") }
+                val shot = alice.awaitLine(run, "the void's shot") { it.endsWith("third: void shot at alice") && tickOf(it) > tickOf(voidLine) }
+                assertEquals(tickOf(voidLine) + Ocellus.VOID_AFTER, tickOf(shot))
+                assertNull(Ocellus.rooted(boss))
+                // Six more, Untether: four eruptions, on her tile among them; the square; and his coming down, which spares
+                // her beside him.
+                alice.keepAlive()
+                val untether = tickOf(alice.awaitLine(run, "untether", 30_000) { it.endsWith("third: untether") })
+                alice.awaitLine(run, "the first eruption") { it.contains("third: eruption 1 on ") }
+                alice.awaitLine(run, "an eruption on her") { it.contains("third: eruption hits alice for ") }
+                alice.keepAlive()
+                val square = alice.awaitLine(run, "the square", 30_000) { it.endsWith("third: the square shows") }
+                assertEquals(untether + Ocellus.SQUARE_AT, tickOf(square))
+                val down = alice.awaitLine(run, "his coming down") { it.endsWith("third: he comes down") }
+                assertEquals(untether + Ocellus.SLAM_AT, tickOf(down))
+                assertEquals(4, fight.lines.count { it.contains("third: eruption ") && it.contains(" on ") })
+                assertTrue(fight.lines.none { it.contains("he comes down on alice") }, "safe in the square")
+                // As Untether ends, in his first quadrant, two Siphons: each heals him every four ticks.
+                val siphons = alice.awaitLine(run, "the siphons") { it.contains("third: siphon flares at ") }
+                assertEquals(2, Ocellus.flares(boss).size)
+                assertTrue(Ocellus.flares(boss).all { it.type.id == Ocellus.Flare.SIPHON.id && Ocellus.quadrant(centre, it.x, it.z) == Ocellus.Quadrant.NW })
+                val heal = alice.awaitLine(run, "a siphon's heal") { it.contains("third: siphon heals him ") }
+                assertEquals(tickOf(siphons) + Ocellus.SIPHON_HEAL_EVERY, tickOf(heal))
+                // Standing between one and him, she blocks its next heal; destroying it, she is empowered.
+                val siphon = Ocellus.flares(boss).first()
+                val (midX, midZ) = boss.x + 1 to boss.z + 1
+                val steps = maxOf(kotlin.math.abs(midX - siphon.x), kotlin.math.abs(midZ - siphon.z))
+                val block = Tile(siphon.x + Math.round((midX - siphon.x) / steps.toDouble()).toInt(), siphon.z + Math.round((midZ - siphon.z) / steps.toDouble()).toInt())
+                alice.tele(block.x, block.z, level)
+                alice.awaitLine(run, "her block") { it.contains("third: alice blocks a siphon's heal, healed ") }
+                alice.commandReply("hit 44 ${siphon.index}") { it.startsWith("Hit ") }
+                alice.awaitLine(run, "her empowerment") { it.endsWith("third: siphon destroyed: alice empowered") }
+                alice.tele(stand.x, stand.z, level)
+                // At 75% the north-west falls with its void; she goes on to the north-east, and there Insolence is first:
+                // three superior slashes towards her, five ticks apart, leaving void.
+                alice.commandReply("hit ${boss.hitpoints - 5250 * 75 / 100} ${boss.index}") { it.startsWith("Hit ") }
+                alice.awaitLine(run, "the north-west to fall") { it.contains("third: NW to fall at ") }
+                val ne = Ocellus.quadrantTile(centre, Ocellus.Quadrant.NE, 3, 3)
+                alice.tele(ne.x, ne.z, level)
+                alice.awaitLine(run, "the north-east") { it.contains("third: takes quadrant NE") }
+                assertTrue(Ocellus.voids(boss).none { Ocellus.quadrant(centre, it.x, it.z) == Ocellus.Quadrant.NW }, "gone with it")
+                alice.keepAlive()
+                val insolence = tickOf(alice.awaitLine(run, "insolence", 30_000) { it.endsWith("third: insolence") })
+                val slashes = (1..3).map { n -> tickOf(alice.awaitLine(run, "superior slash $n") { it.endsWith("third: superior slash towards alice") && fight.lines.count { l -> l.endsWith("superior slash towards alice") } >= n }) }
+                assertEquals((0..2).map { insolence + Ocellus.INSOLENCE_GAP * it }, slashes)
+                alice.awaitTicks(2)
+                assertTrue(Ocellus.voids(boss).any { world.locs[it.x, it.z, level, 2]?.id in Ocellus.LOC_INSOLENCE }, "its bands")
+            }
+        }
+    }
+
+    @Test
+    fun `from his second quadrant void flares come with his first attack, Augmenters then Rifts, empowering whoever destroys one, and one left detonates`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.throughTheRest(run)
+                alice.toOcellus(server, run)
+                alice.npcOp(assertNotNull(run.ocellusFigure).index, 1)
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ocellus #") } }
+                val boss = boss(run)
+                val world = server.world
+                val level = ArchiveRoom.OCELLUS.level
+                val centre = Ocellus.centre(boss.spawn.x, boss.spawn.z)
+                alice.command("varp ${EquipmentTab.VARP_AUTO_RETALIATE_OFF} 1")
+                alice.toHisThird(run)
+                alice.awaitLine(run, "his quadrant") { it.contains("third: takes quadrant NW") }
+                val player = world.playerNamed("alice")!!
+                // Straight to 75%: no Untether in the north-west, so no Siphons.
+                alice.commandReply("hit ${boss.hitpoints - 5250 * 75 / 100} ${boss.index}") { it.startsWith("Hit ") }
+                alice.awaitLine(run, "the north-west to fall") { it.contains("third: NW to fall at ") }
+                val ne = Ocellus.quadrantTile(centre, Ocellus.Quadrant.NE, 3, 3)
+                alice.tele(ne.x, ne.z, level)
+                val took = tickOf(alice.awaitLine(run, "the north-east") { it.contains("third: takes quadrant NE") })
+                // With his first attack there, two Augmenters in his quadrant, off the void and the cross.
+                val augmenters = alice.awaitLine(run, "the augmenters") { it.contains("third: augmenter flares at ") }
+                assertEquals(took + Ocellus.FIRST_ATTACK_AFTER, tickOf(augmenters))
+                assertTrue(lines(run).none { it.contains("siphon flares") })
+                val two = Ocellus.flares(boss)
+                assertEquals(2, two.size)
+                assertTrue(two.all { it.type.id == Ocellus.Flare.AUGMENTER.id && Ocellus.quadrant(centre, it.x, it.z) == Ocellus.Quadrant.NE }, "$two")
+                assertTrue(two.none { Tile(it.x, it.z) in Ocellus.voids(boss) || Ocellus.onCross(centre, it.x, it.z) })
+                // Destroying one boosts her Attack and Strength as a super combat potion, Magic and Ranged as a ranging potion.
+                alice.commandReply("hit 44 ${two[0].index}") { it.startsWith("Hit ") }
+                alice.awaitLine(run, "her empowerment") { it.endsWith("third: augmenter destroyed: alice empowered") }
+                for ((skill, percent, constant) in listOf(Triple(Skill.ATTACK, 15, 5), Triple(Skill.STRENGTH, 15, 5), Triple(Skill.MAGIC, 10, 4), Triple(Skill.RANGED, 10, 4))) {
+                    val base = player.skills.baseLevel(skill)
+                    assertEquals(base + base * percent / 100 + constant, player.skills.currentLevel(skill), skill.name)
+                }
+                // The other, left, detonates as its bar fills, on everyone.
+                alice.keepAlive()
+                val detonates = alice.awaitLine(run, "the detonation", 30_000) { it.endsWith("third: augmenter flare detonates") }
+                assertEquals(tickOf(augmenters) + Ocellus.FLARE_CHARGE, tickOf(detonates))
+                alice.awaitLine(run, "its hit on her") { it.contains("third: flare hits alice for ") }
+                assertTrue(Ocellus.flares(boss).isEmpty())
+                // At 50% on to the south-east, where they are Rifts, maxed by melee.
+                alice.commandReply("hit ${boss.hitpoints - 5250 * 50 / 100} ${boss.index}") { it.startsWith("Hit ") }
+                alice.awaitLine(run, "the north-east to fall") { it.contains("third: NE to fall at ") }
+                val se = Ocellus.quadrantTile(centre, Ocellus.Quadrant.SE, 3, 3)
+                alice.tele(se.x, se.z, level)
+                alice.keepAlive()
+                alice.awaitLine(run, "the south-east", 30_000) { it.contains("third: takes quadrant SE") }
+                alice.awaitLine(run, "the rifts") { it.contains("third: rift flares at ") }
+                val rifts = Ocellus.flares(boss)
+                assertTrue(rifts.size == 2 && rifts.all { it.type.id == Ocellus.Flare.RIFT.id }, "$rifts")
+                assertEquals(SureHit.MAX, world.combat.sureHit(player, rifts[0], AttackType.SLASH))
+                assertEquals(SureHit.ROLLED, world.combat.sureHit(player, boss, AttackType.SLASH))
+                alice.commandReply("hit 44 ${rifts[0].index}") { it.startsWith("Hit ") }
+                alice.awaitLine(run, "her empowerment by the rift") { it.endsWith("third: rift destroyed: alice empowered") }
+            }
+        }
+    }
+
+    @Test
+    fun `his void roots someone other than his tank in a vine, which only another can break`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    val run = twoIn(server, alice, bob)
+                    bob.toOcellus(server, run)
+                    val hooded = assertNotNull(run.ocellusFigure)
+                    alice.npcOp(hooded.index, 1)
+                    bob.npcOp(hooded.index, 1)
+                    alice.await("his fight") { alice.fight().takeIf { it.startsWith("ocellus #") } }
+                    val boss = boss(run)
+                    val world = server.world
+                    val level = ArchiveRoom.OCELLUS.level
+                    val centre = Ocellus.centre(boss.spawn.x, boss.spawn.z)
+                    bob.tele(centre.x + 4, centre.z - 4, level)
+                    // They stay where they are put: his hits don't send them at him.
+                    for (client in listOf(alice, bob)) client.command("varp ${EquipmentTab.VARP_AUTO_RETALIATE_OFF} 1")
+                    alice.toHisThird(run, bob)
+                    alice.awaitLine(run, "his quadrant") { it.contains("third: takes quadrant NW") }
+                    val corner = Ocellus.quadrantCorner(Ocellus.middle(boss.spawn.x, boss.spawn.z), Ocellus.Quadrant.NW)
+                    alice.tele(corner.x + 3, corner.z + 1, level)
+                    val spot = Ocellus.quadrantTile(centre, Ocellus.Quadrant.NW, 2, 2)
+                    bob.tele(spot.x, spot.z, level)
+                    alice.commandReply("hit 10 ${boss.index}") { it.startsWith("Hit ") }
+                    alice.awaitLine(run, "her his tank") { it.endsWith("third: turns to alice") }
+                    // The void after the cog: bob, not his tank, rooted where he stands.
+                    alice.keepAlive()
+                    bob.keepAlive()
+                    alice.awaitLine(run, "the cog", 30_000) { it.contains("third: cog: ") }
+                    alice.keepAlive()
+                    bob.keepAlive()
+                    alice.awaitLine(run, "the vine", 30_000) { it.endsWith("third: void vine roots bob") }
+                    val bobPlayer = world.playerNamed("bob")!!
+                    assertEquals(bobPlayer, Ocellus.rooted(boss))
+                    val vineNpc = assertNotNull(world.npcs.inPlay.firstOrNull { it.type.id == Ocellus.VINE })
+                    assertEquals(Tile(spot.x, spot.z), Tile(vineNpc.x, vineNpc.z))
+                    // He can't go, nor break it himself.
+                    bob.command("tele ${spot.x + 3} ${spot.z} $level")
+                    bob.await("back where it holds him") { bob.position?.takeIf { it == Coord(spot.x, spot.z, level) } }
+                    assertTrue(bobPlayer.rootedTicks > 0, "held in the movement phase too")
+                    assertTrue(world.combat.barred(bobPlayer, vineNpc) != null)
+                    val alicePlayer = world.playerNamed("alice")!!
+                    assertNull(world.combat.barred(alicePlayer, vineNpc))
+                    // Alice breaks it: he is free.
+                    alice.commandReply("hit 44 ${vineNpc.index}") { it.startsWith("Hit ") }
+                    alice.awaitLine(run, "his freeing") { it.endsWith("third: bob breaks free of the void vine") }
+                    assertNull(Ocellus.rooted(boss))
+                    assertEquals(0, bobPlayer.rootedTicks)
+                    assertTrue(run.fights[ArchiveRoom.OCELLUS]!!.lines.none { it.contains("void vine crushes") })
+                }
             }
         }
     }
@@ -583,6 +1047,260 @@ class HeadlessOcellusTest {
                 assertEquals(99 - nick, player.hitpoints)
                 // Caught, it charged him nothing.
                 assertFalse(lines(run).any { it.contains("uncaught") && tickOf(it) == tickOf(caught) })
+            }
+        }
+    }
+
+    @Test
+    fun `from his third phase a censer stands in each quadrant, and each is lit once for the party`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.commandReply("setlevel hitpoints 99") { it.contains("set to level 99") }
+                alice.commandReply("setlevel prayer 99") { it.contains("set to level 99") }
+                alice.commandReply("heal") { it.startsWith("Healed") }
+                alice.throughTheRest(run)
+                alice.toOcellus(server, run)
+                alice.npcOp(assertNotNull(run.ocellusFigure).index, 1)
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ocellus #") } }
+                val boss = boss(run)
+                val world = server.world
+                val level = ArchiveRoom.OCELLUS.level
+                val centre = Ocellus.centre(boss.spawn.x, boss.spawn.z)
+                alice.command("varp ${EquipmentTab.VARP_AUTO_RETALIATE_OFF} 1")
+                // None before his third phase.
+                for (censer in Ocellus.Censer.entries) {
+                    val tile = Ocellus.censerTile(centre, censer)
+                    assertNull(world.locs[tile.x, tile.z, level, 2], censer.name)
+                }
+                alice.toHisThird(run)
+                alice.awaitLine(run, "the censers") { it.endsWith("third: censers stand") }
+                for (censer in Ocellus.Censer.entries) {
+                    val tile = Ocellus.censerTile(centre, censer)
+                    assertEquals(censer.id, world.locs[tile.x, tile.z, level, 2]?.id, censer.name)
+                }
+                val player = world.playerNamed("alice")!!
+
+                /** Beside [censer], on the middle's side, and its Interact. */
+                fun light(censer: Ocellus.Censer) {
+                    val tile = Ocellus.censerTile(centre, censer)
+                    val beside = Tile(tile.x + if (tile.x > centre.x) -1 else 1, tile.z)
+                    alice.tele(beside.x, beside.z, level)
+                    alice.locOp(censer.id, tile.x, tile.z, 1)
+                    alice.awaitLine(run, "the ${censer.name.lowercase()} censer lit") { it.endsWith("alice lights the ${censer.name.lowercase()} censer") }
+                    assertEquals(censer.inactive, world.locs[tile.x, tile.z, level, 2]?.id, censer.name)
+                    assertTrue(censer in Ocellus.lit(boss))
+                }
+
+                // Saradomin's: 40 hitpoints and 40 prayer points back.
+                alice.commandReply("god off") { it.startsWith("You can be hurt") }
+                alice.commandReply("hit 50 me") { it.startsWith("Hit ") }
+                alice.commandReply("god on") { it.startsWith("You can't be hurt") }
+                alice.commandReply("boost prayer 10") { it.startsWith("Prayer is now 10") }
+                val hurt = player.hitpoints
+                light(Ocellus.Censer.SARADOMIN)
+                assertTrue(player.hitpoints >= minOf(99, hurt + Ocellus.SARADOMIN_RESTORE - 1), "${player.hitpoints} from $hurt")
+                assertEquals(10 + Ocellus.SARADOMIN_RESTORE, player.skills.currentLevel(Skill.PRAYER))
+                // The Zarosian: half a bar of special attack energy.
+                alice.commandReply("spec 10") { it.isNotEmpty() }
+                light(Ocellus.Censer.ZAROSIAN)
+                assertTrue(world.specialAttacks.energy(player) in 600..700, "${world.specialAttacks.energy(player)}")
+                // The Armadylean and Bandosian: her next ranged and next melee attack on him a sure max, once each.
+                light(Ocellus.Censer.ARMADYLEAN)
+                light(Ocellus.Censer.BANDOSIAN)
+                assertEquals(SureHit.MAX, Ocellus.censerHit(player, boss, AttackType.RANGED))
+                assertNull(Ocellus.censerHit(player, boss, AttackType.RANGED), "once")
+                assertNull(Ocellus.censerHit(player, boss, AttackType.MAGIC), "not magic")
+                assertEquals(SureHit.MAX, Ocellus.censerHit(player, boss, AttackType.SLASH))
+                assertNull(Ocellus.censerHit(player, boss, AttackType.CRUSH), "once")
+                // Each once: the inactive form has no Interact, and nothing more is logged.
+                val tile = Ocellus.censerTile(centre, Ocellus.Censer.SARADOMIN)
+                alice.tele(tile.x - 1, tile.z, level)
+                alice.locOp(Ocellus.Censer.SARADOMIN.inactive, tile.x, tile.z, 1)
+                alice.awaitTicks(3)
+                assertEquals(1, lines(run).count { it.endsWith("lights the saradomin censer") })
+                assertEquals(Ocellus.Censer.entries.toSet(), Ocellus.lit(boss))
+            }
+        }
+    }
+
+    @Test
+    fun `with one quadrant left his final stand loops through deflects, void, his blasts with Soul Split, and Rifts`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.commandReply("setlevel hitpoints 99") { it.contains("set to level 99") }
+                alice.commandReply("heal") { it.startsWith("Healed") }
+                alice.throughTheRest(run)
+                alice.toOcellus(server, run)
+                alice.npcOp(assertNotNull(run.ocellusFigure).index, 1)
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ocellus #") } }
+                val boss = boss(run)
+                val level = ArchiveRoom.OCELLUS.level
+                val centre = Ocellus.centre(boss.spawn.x, boss.spawn.z)
+                alice.command("varp ${EquipmentTab.VARP_AUTO_RETALIATE_OFF} 1")
+                alice.toHisThird(run)
+                alice.awaitLine(run, "his quadrant") { it.contains("third: takes quadrant NW") }
+                // In the south-west, the last to fall, through the three falls.
+                val safe = Ocellus.quadrantTile(centre, Ocellus.Quadrant.SW, 8, 8)
+                alice.tele(safe.x, safe.z, level)
+                for ((percent, next) in listOf(75 to "NE", 50 to "SE")) {
+                    alice.commandReply("hit ${boss.hitpoints - 5250 * percent / 100} ${boss.index}") { it.startsWith("Hit ") }
+                    alice.keepAlive()
+                    alice.awaitLine(run, "his quadrant $next", 30_000) { it.contains("third: takes quadrant $next") }
+                }
+                alice.commandReply("hit ${boss.hitpoints - 5250 / 4} ${boss.index}") { it.startsWith("Hit ") }
+                alice.keepAlive()
+                val began = tickOf(alice.awaitLine(run, "his final stand", 30_000) { it.endsWith("third: final stand in SW") })
+                assertEquals(Ocellus.Quadrant.SW, Ocellus.held(boss))
+                // Its loop: risen with Deflect Melee, the tiles round him void.
+                val risen = tickOf(alice.awaitLine(run, "his rise") { it.endsWith("third: final: rises, Deflect Melee, void round him") })
+                assertEquals(began + Ocellus.FINAL_AFTER, risen)
+                assertEquals(Triple(Ocellus.Blast.MELEE, false, 1), Ocellus.finalState(boss))
+                assertTrue(Tile(boss.x - 1, boss.z - 1) in Ocellus.voids(boss))
+                assertEquals(0, Ocellus.deflected(boss, AttackType.SLASH, 30))
+                assertEquals(30, Ocellus.deflected(boss, AttackType.RANGED, 30))
+                // Out of the way of the void, and hurt by the blast.
+                val clear = Ocellus.quadrantTile(centre, Ocellus.Quadrant.SW, 3, 10)
+                alice.tele(clear.x, clear.z, level)
+                alice.keepAlive()
+                assertEquals(risen + Ocellus.FINAL_LAND, tickOf(alice.awaitLine(run, "his landing", 30_000) { it.endsWith("third: final: lands") }))
+                assertFalse(Tile(boss.x - 1, boss.z - 1) in Ocellus.voids(boss), "the void round him gone")
+                // The bombs' void in his last quadrant went as his final stand began.
+                assertTrue(Ocellus.voids(boss).none { Ocellus.quadrant(centre, it.x, it.z) == Ocellus.Quadrant.SW }, "${Ocellus.voids(boss)}")
+                alice.commandReply("god off") { it.startsWith("You can be hurt") }
+                val blast = alice.awaitLine(run, "his blast") { it.endsWith(" blast") && it.contains("third: final: ") }
+                assertEquals(risen + Ocellus.FINAL_BLASTS[0], tickOf(blast))
+                val hit = alice.awaitLine(run, "his blast landing") { it.contains(" blast hits alice for ") }
+                alice.commandReply("god on") { it.startsWith("You can't be hurt") }
+                assertEquals(tickOf(blast) + Ocellus.BLAST_LANDS, tickOf(hit))
+                val dealt = hit.substringAfter(" for ").toInt()
+                assertTrue(dealt in Ocellus.BLAST_MIN..Ocellus.BLAST_MAX, hit)
+                assertEquals(Triple(null, true, 1), Ocellus.finalState(boss))
+                val healed = alice.awaitLine(run, "Soul Split's heal") { it.contains("third: soul split heals him ") }
+                assertEquals(dealt / Ocellus.SOUL_SPLIT_SHARE, healed.substringAfter("heals him ").toInt())
+                // Deflect Range, and his quadrant void but round him.
+                alice.keepAlive()
+                assertEquals(risen + Ocellus.FINAL_DEFLECT_RANGE, tickOf(alice.awaitLine(run, "Deflect Range", 30_000) { it.endsWith("third: final: Deflect Range, his quadrant void") }))
+                assertEquals(Triple(Ocellus.Blast.RANGED, false, 1), Ocellus.finalState(boss))
+                assertTrue(Tile(clear.x, clear.z) in Ocellus.voids(boss))
+                assertFalse(Tile(boss.x - 1, boss.z - 1) in Ocellus.voids(boss))
+                assertEquals(0, Ocellus.deflected(boss, AttackType.RANGED, 30))
+                assertEquals(30, Ocellus.deflected(boss, AttackType.CRUSH, 30))
+                // Then his second blast, the Rifts, and round again.
+                alice.keepAlive()
+                alice.awaitLine(run, "the arena's end", 30_000) { it.endsWith("third: final: the arena ends") }
+                alice.keepAlive()
+                val rifts = alice.awaitLine(run, "the Rifts", 30_000) { it.contains("third: rift flares at ") }
+                assertEquals(risen + Ocellus.FINAL_RIFTS, tickOf(rifts))
+                assertEquals(Ocellus.RIFTS_FIRST, rifts.substringAfter("rift flares at ").split(' ').size)
+                alice.keepAlive()
+                val again = alice.awaitLine(run, "his second rise", 30_000) { it.endsWith("rises, Deflect Melee, void round him") && tickOf(it) > risen }
+                assertEquals(risen + Ocellus.FINAL_LOOP, tickOf(again))
+                assertEquals(2, Ocellus.finalState(boss)?.third)
+                // To the end of his bar: he dies, and the room is done.
+                alice.commandReply("hit ${boss.hitpoints} ${boss.index}") { it.startsWith("Hit ") }
+                alice.await("his room done", 30_000) { ArchiveRoom.OCELLUS.takeIf { it in run.cleared } }
+                assertTrue(boss.dead)
+            }
+        }
+    }
+
+    @Test
+    fun `in his final stand his lifeforce orbs give back what they took, or heal him, and his void bursts hit or are dodged`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.commandReply("setlevel hitpoints 99") { it.contains("set to level 99") }
+                alice.commandReply("heal") { it.startsWith("Healed") }
+                alice.throughTheRest(run)
+                alice.toOcellus(server, run)
+                alice.npcOp(assertNotNull(run.ocellusFigure).index, 1)
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ocellus #") } }
+                val boss = boss(run)
+                val world = server.world
+                val player = world.playerNamed("alice")!!
+                val level = ArchiveRoom.OCELLUS.level
+                val centre = Ocellus.centre(boss.spawn.x, boss.spawn.z)
+                alice.command("varp ${EquipmentTab.VARP_AUTO_RETALIATE_OFF} 1")
+                alice.toHisThird(run)
+                alice.awaitLine(run, "his quadrant") { it.contains("third: takes quadrant NW") }
+                val safe = Ocellus.quadrantTile(centre, Ocellus.Quadrant.SW, 8, 8)
+                alice.tele(safe.x, safe.z, level)
+                for ((percent, next) in listOf(75 to "NE", 50 to "SE")) {
+                    alice.commandReply("hit ${boss.hitpoints - 5250 * percent / 100} ${boss.index}") { it.startsWith("Hit ") }
+                    alice.keepAlive()
+                    alice.awaitLine(run, "his quadrant $next", 30_000) { it.contains("third: takes quadrant $next") }
+                }
+                alice.commandReply("hit ${boss.hitpoints - 5250 / 4} ${boss.index}") { it.startsWith("Hit ") }
+                alice.keepAlive()
+                alice.awaitLine(run, "his final stand", 30_000) { it.endsWith("third: final stand in SW") }
+                val clear = Ocellus.quadrantTile(centre, Ocellus.Quadrant.SW, 3, 10)
+                alice.tele(clear.x, clear.z, level)
+                alice.commandReply("heal") { it.startsWith("Healed") }
+                alice.commandReply("god off") { it.startsWith("You can be hurt") }
+                val risen = tickOf(alice.awaitLine(run, "his rise", 30_000) { it.endsWith("third: final: rises, Deflect Melee, void round him") })
+                // The wind takes half her hitpoints into her orb, a few tiles off.
+                val soul = alice.awaitLine(run, "the lifeforce") { it.endsWith("third: final: lifeforce and void bursts") }
+                assertEquals(risen + Ocellus.SOUL_AT[0], tickOf(soul))
+                val lost = alice.awaitLine(run, "her lifeforce taken") { it.contains("third: lifeforce: alice loses ") }
+                alice.commandReply("god on") { it.startsWith("You can't be hurt") }
+                val stolen = lost.substringAfter("loses ").toInt()
+                assertTrue(stolen in 45..49, lost)
+                val orb = assertNotNull(Ocellus.orbs(boss)[player])
+                assertEquals(stolen, orb.stolen)
+                assertEquals(Ocellus.quadrant(centre, orb.tile.x, orb.tile.z), Ocellus.Quadrant.SW)
+                assertTrue(orb.tile !in Ocellus.voids(boss))
+                assertFalse(Ocellus.onCross(centre, orb.tile.x, orb.tile.z), "not on the fallen cross")
+                assertTrue(maxOf(kotlin.math.abs(orb.tile.x - clear.x), kotlin.math.abs(orb.tile.z - clear.z)) in Ocellus.ORB_NEAR_MIN..Ocellus.ORB_NEAR_MAX, "${orb.tile}")
+                // Slower attacks are cut while the bursts run, by the cooldown the attack sets.
+                assertEquals(listOf(30, 30, 20, 15, 12, 12), (1..6).map { Ocellus.slowedBy(it, 30) })
+                player.nextAttackTick = world.tick + 100
+                assertEquals(12, Ocellus.slowed(world, player, boss, 30))
+                // Standing still, the first burst lands on her.
+                val hit = alice.awaitLine(run, "a burst on her") { it.contains("third: burst hits alice for ") }
+                assertEquals(tickOf(soul) + Ocellus.BURST_LANDS, tickOf(hit))
+                // A step off the next one's tile, with her attack waiting: a perfect dodge, three ticks off it.
+                player.nextAttackTick = world.tick + 50
+                val waited = player.nextAttackTick
+                alice.tele(clear.x + 1, clear.z, level)
+                alice.awaitLine(run, "her dodge") { it.contains("third: alice dodges a burst") }
+                assertTrue(player.nextAttackTick <= waited - Ocellus.DODGE_TICKS, "${player.nextAttackTick} from $waited")
+                // On her orb before it has grown, nothing; once grown, her hitpoints back.
+                alice.tele(orb.tile.x, orb.tile.z, level)
+                alice.awaitTicks(2)
+                if (world.tick < orb.grown) assertTrue(Ocellus.orbs(boss).containsKey(player))
+                val back = alice.awaitLine(run, "her lifeforce back", 30_000) { it.contains("third: lifeforce: alice takes back ") }
+                assertTrue(tickOf(back) >= tickOf(soul) + Ocellus.ORB_GROWN, back)
+                assertEquals(stolen, back.substringAfter("takes back ").toInt())
+                assertFalse(Ocellus.orbs(boss).containsKey(player))
+                alice.awaitTicks(4)
+                assertEquals(30, Ocellus.slowed(world, player, boss, 30), "not once the bursts are over")
+                // Landed, beside him, out of the coming void; the second orb left alone heals him at the arena's end.
+                alice.keepAlive()
+                alice.awaitLine(run, "his landing", 30_000) { it.endsWith("third: final: lands") }
+                val beside = Tile(boss.x - 1, boss.z + boss.type.size / 2)
+                alice.tele(beside.x, beside.z, level)
+                alice.commandReply("heal") { it.startsWith("Healed") }
+                alice.keepAlive()
+                alice.awaitLine(run, "Deflect Range", 30_000) { it.endsWith("third: final: Deflect Range, his quadrant void") }
+                alice.commandReply("god off") { it.startsWith("You can be hurt") }
+                val second = tickOf(alice.awaitLine(run, "the second lifeforce", 30_000) { it.endsWith("lifeforce and void bursts") && tickOf(it) > tickOf(soul) })
+                assertEquals(risen + Ocellus.SOUL_AT[1], second)
+                val lostAgain = alice.awaitLine(run, "her lifeforce taken again") { it.contains("lifeforce: alice loses ") && tickOf(it) == second }
+                alice.commandReply("god on") { it.startsWith("You can't be hurt") }
+                val again = assertNotNull(Ocellus.orbs(boss)[player])
+                assertEquals(lostAgain.substringAfter("loses ").toInt(), again.stolen)
+                assertTrue(again.tile !in Ocellus.voids(boss), "on the safe tiles beside him")
+                val before = boss.hitpoints
+                alice.keepAlive()
+                val heals = alice.awaitLine(run, "her orb healing him", 30_000) { it.contains("third: lifeforce: alice's orb heals him ") }
+                assertEquals(risen + Ocellus.SOUL_ENDS[1], tickOf(heals))
+                assertEquals(again.stolen, heals.substringAfter("heals him ").toInt())
+                assertEquals(before + again.stolen, boss.hitpoints)
+                assertTrue(Ocellus.orbs(boss).isEmpty())
+                alice.commandReply("hit ${boss.hitpoints} ${boss.index}") { it.startsWith("Hit ") }
+                alice.await("his room done", 30_000) { ArchiveRoom.OCELLUS.takeIf { it in run.cleared } }
             }
         }
     }

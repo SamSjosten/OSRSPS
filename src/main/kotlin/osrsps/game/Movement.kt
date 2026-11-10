@@ -67,7 +67,8 @@ class Movement(private val collision: CollisionMap) {
         val wantsRun = player.runEnabled != (player.invertRun && ctrlInverts(player))
         // Inferred: a delayed player keeps their route but doesn't walk it until the delay ends. Energy still changes.
         // Weary, they walk whatever the run setting says.
-        val steps = if (player.scripts.delayed) 0 else if (wantsRun && player.runEnergy > 0 && !weary) 2 else 1
+        // Rooted, they keep their route but take no step of it (a follow or a click made after the fight's part).
+        val steps = if (player.scripts.delayed || player.rootedTicks > 0) 0 else if (wantsRun && player.runEnergy > 0 && !weary) 2 else 1
         var taken = 0
         while (taken < steps && step(player)) taken++
         val result = when (taken) {

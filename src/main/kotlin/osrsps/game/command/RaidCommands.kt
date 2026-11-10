@@ -23,9 +23,9 @@ import osrsps.game.raid.PartyScaling
 fun CommandRegistry.registerRaidCommands(world: World) {
     val encounters = world.encounters
     val usage = "Usage: ::raid [boss [phase=name|n] [party=n] [seed=n]] | ::raid log [lines] | ::raid digest [ticks] | ::raid stop | " +
-        "::raid run | ::raid tp <nexus|room|x z> | ::raid clear | ::raid hold [ticks]"
+        "::raid run | ::raid tp <nexus|vault|room|x z> | ::raid travel | ::raid clear | ::raid hold [ticks]"
 
-    register("raid", "::raid [boss [phase=] [party=] [seed=]] | log | digest | stop | run | tp | clear | hold", admin = true) {
+    register("raid", "::raid [boss [phase=] [party=] [seed=]] | log | digest | stop | run | tp | travel | clear | hold", admin = true) {
         fun here(): Encounter? = encounters.all.firstOrNull { !it.ended && it.boss.level == player.level && it.covers(player.x, player.z) }
         fun mine(): Encounter = here() ?: fail("You're not in a fight.")
         when (args.firstOrNull()?.lowercase()) {
@@ -64,7 +64,7 @@ fun CommandRegistry.registerRaidCommands(world: World) {
                     !run.instance.contains(player.x, player.z) -> "outside it"
                     else -> {
                         val room = raids.roomAt(run, player.x, player.z)?.let { if (it == ArchiveRoom.GUARDIAN) "in the nexus's hall" else "in ${it.boss}'s room" }
-                            ?: "in the nexus's entrance"
+                            ?: if (raids.inRewardRoom(run, player.x, player.z)) "in the reward vault" else "in the nexus's entrance"
                         // The cache's tile, as ::raid tp x z takes it: scripts can't know where the instance lies.
                         val x = player.x - run.instance.baseX + ArchiveRaids.FROM_X
                         val z = player.z - run.instance.baseZ + ArchiveRaids.FROM_Z
@@ -86,20 +86,33 @@ fun CommandRegistry.registerRaidCommands(world: World) {
                     val z = args[2].toIntOrNull() ?: fail(usage)
                     val tile = raids.tile(run, x, z)
                     if (!run.instance.contains(tile.x, tile.z)) fail("$x, $z isn't in the raid.")
-                    val level = raids.roomAt(run, tile.x, tile.z)?.level ?: ArchiveRaids.NEXUS_PLANE
+                    val level = raids.levelAt(run, tile.x, tile.z)
                     world.teleport(player, tile.x, tile.z, level)
                     reply("To $x, $z of the raid at ${tile.x}, ${tile.z}, $level.")
                     return@register
                 }
                 val name = args[1].lowercase()
+                if (name == "vault") {
+                    // As the Blade's Travel lands a player, the count to its Rift out starting with the first.
+                    raids.arrive(run, player)
+                    val tile = raids.tile(run, ArchiveRaids.REWARD_X, ArchiveRaids.REWARD_Z)
+                    reply("To the reward vault at ${tile.x}, ${tile.z}, ${ArchiveRaids.REWARD_LEVEL}.")
+                    return@register
+                }
                 val (tile, room) = if (name == "nexus") {
                     raids.tile(run, ArchiveRaids.NEXUS_X, ArchiveRaids.NEXUS_Z) to null
                 } else {
-                    val room = ArchiveRoom.named(name) ?: fail("Rooms: nexus, ${ArchiveRoom.entries.joinToString { it.name.lowercase() }}")
+                    val room = ArchiveRoom.named(name) ?: fail("Rooms: nexus, vault, ${ArchiveRoom.entries.joinToString { it.name.lowercase() }}")
                     raids.tile(run, room.entryX, room.entryZ) to room
                 }
                 world.teleport(player, tile.x, tile.z, room?.level ?: ArchiveRaids.NEXUS_PLANE)
                 reply("To ${room?.boss?.let { "$it's room" } ?: "the nexus"} at ${tile.x}, ${tile.z}.")
+            }
+            "travel" -> {
+                // Testing only: as the Blade's Travel where Ocellus fell, to the reward vault four ticks on.
+                if (args.size != 1) fail(usage)
+                if (!world.archiveRaids.travel(player)) fail("You can't travel to the reward vault: only from Ocellus's room, once it is done.")
+                reply("Travelling to the reward vault.")
             }
             "clear" -> {
                 // Testing only: the room you're in counts as done, as if its boss died.

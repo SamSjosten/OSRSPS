@@ -1,5 +1,5 @@
 {
- "name": "Raid step 15: two solo runs of The Fractured Archive through its empty rooms, one by the west doors (Ezekiel, Moia, the Dagon'hai Elder) and one by the east (Bork, Dreadnoth, Xarth), each from the Archive Door through the Guardian's hall to Ocellus's room; the transporters and a Passageway back out. The Guardian's, Ezekiel's, Bork and the Smorks', Dreadnoth's, Xarth's and Ocellus's rooms are marked done with ::raid clear (their fights are their own scripts); no other boss is built yet, so each other room is done as it begins",
+ "name": "Raid step 15: two solo runs of The Fractured Archive through its empty rooms, one by the west doors (Ezekiel, Moia, the Dagon'hai Elder) and one by the east (Bork, Dreadnoth, Xarth), each from the Archive Door through the Guardian's hall to Ocellus's room; the transporters and a Passageway back out; the first run out by the reward vault (raid step 28: Travel, its Merit scroll and Rift, the Rift out's Leave), the second by the inner vault's Passageway. The Guardian's, Ezekiel's, Bork and the Smorks', Dreadnoth's, Xarth's and Ocellus's rooms are marked done with ::raid clear (their fights are their own scripts); no other boss is built yet, so each other room is done as it begins",
  "account": "test",
  "steps": [
   {
@@ -66,7 +66,7 @@
   {
    "step": "waitTicks",
    "ticks": 40,
-   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26) and the move comes four ticks after the door is reached, so room to spare"
   },
   {
    "step": "command",
@@ -95,7 +95,7 @@
   {
    "step": "waitTicks",
    "ticks": 30,
-   "comment": "the walk to the transporter and its teleport, with room to spare"
+   "comment": "the walk to the transporter and its move four ticks on, with room to spare"
   },
   {
    "step": "command",
@@ -112,7 +112,7 @@
   {
    "step": "waitTicks",
    "ticks": 40,
-   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26) and the move comes four ticks after the door is reached, so room to spare"
   },
   {
    "step": "command",
@@ -135,7 +135,7 @@
   {
    "step": "waitTicks",
    "ticks": 30,
-   "comment": "the walk to the transporter and its teleport, with room to spare"
+   "comment": "the walk to the transporter and its move four ticks on, with room to spare"
   },
   {
    "step": "command",
@@ -152,7 +152,7 @@
   {
    "step": "waitTicks",
    "ticks": 40,
-   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26) and the move comes four ticks after the door is reached, so room to spare"
   },
   {
    "step": "command",
@@ -175,7 +175,7 @@
   {
    "step": "waitTicks",
    "ticks": 30,
-   "comment": "the walk to the transporter and its teleport, with room to spare"
+   "comment": "the walk to the transporter and its move four ticks on, with room to spare"
   },
   {
    "step": "command",
@@ -198,7 +198,7 @@
   {
    "step": "waitTicks",
    "ticks": 40,
-   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26) and the move comes four ticks after the door is reached, so room to spare"
   },
   {
    "step": "command",
@@ -210,7 +210,7 @@
    "step": "command",
    "text": "::raid run",
    "expectMessage": "; complete;",
-   "comment": "the run is complete (the reward room is step 28)"
+   "comment": "the run is complete: the reward vault is open to the party"
   },
   {
    "step": "command",
@@ -226,9 +226,67 @@
   },
   {
    "step": "command",
-   "text": "::tele 4127 5560 0",
-   "expectMessage": "Teleported to 4127, 5560, 0",
-   "comment": "out of the instance, which ends behind us"
+   "text": "::raid travel",
+   "expectMessage": "Travelling to the reward vault.",
+   "comment": "raid step 28: as the Blade's Travel where Ocellus fell (the Blade itself is step 27c), to the reward vault four ticks on"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 7,
+   "comment": "the four ticks and the client's redraw"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "You're in the reward vault, at 4127, 5779 of the raid",
+   "comment": "where the party comes in, at the south end of the vault's walk (tsps capture notes)"
+  },
+  {
+   "step": "command",
+   "text": "::pos",
+   "expectMessage": ", 2 (region",
+   "comment": "on level 2, the vault's own, as the map has it"
+  },
+  {
+   "step": "command",
+   "text": "::locs 2",
+   "expectMessage": "62775 ",
+   "comment": "tfa_vault_scoreboard, the Merit scroll, which the server puts on the walk's east wall (4129,5778); its angle is a guess"
+  },
+  {
+   "step": "command",
+   "text": "::locs 6",
+   "expectMessage": "63297 ",
+   "comment": "tfa_vault_exit, the Rift at the walk's south end (4127,5773), put there by the server too"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp 4127 5790",
+   "expectMessage": "To 4127, 5790 of the raid",
+   "comment": "up the walk to the island: the Rift out is out of view from the south end"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 12,
+   "comment": "the Rift out comes 15 ticks after the first of the party does"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 16690,
+   "option": "Leave",
+   "timeoutMs": 20000,
+   "comment": "the Rift out, 3 by 3 in the island's middle (4126,5796): Leave, back to the lobby"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 14,
+   "comment": "the walk to the Rift and the move"
+  },
+  {
+   "step": "command",
+   "text": "::pos",
+   "expectMessage": "4127, 5560, 0",
+   "comment": "in the lobby, in front of the Archive Door; the instance ends behind us"
   },
   {
    "step": "waitTicks",
@@ -290,7 +348,7 @@
   {
    "step": "waitTicks",
    "ticks": 40,
-   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26) and the move comes four ticks after the door is reached, so room to spare"
   },
   {
    "step": "command",
@@ -319,7 +377,7 @@
   {
    "step": "waitTicks",
    "ticks": 30,
-   "comment": "the walk to the transporter and its teleport, with room to spare"
+   "comment": "the walk to the transporter and its move four ticks on, with room to spare"
   },
   {
    "step": "command",
@@ -348,7 +406,7 @@
   {
    "step": "waitTicks",
    "ticks": 40,
-   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26) and the move comes four ticks after the door is reached, so room to spare"
   },
   {
    "step": "command",
@@ -377,7 +435,7 @@
   {
    "step": "waitTicks",
    "ticks": 40,
-   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26) and the move comes four ticks after the door is reached, so room to spare"
   },
   {
    "step": "command",
@@ -395,7 +453,7 @@
   {
    "step": "waitTicks",
    "ticks": 40,
-   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26) and the move comes four ticks after the door is reached, so room to spare"
   },
   {
    "step": "command",
@@ -424,7 +482,7 @@
   {
    "step": "waitTicks",
    "ticks": 30,
-   "comment": "the walk to the transporter and its teleport, with room to spare"
+   "comment": "the walk to the transporter and its move four ticks on, with room to spare"
   },
   {
    "step": "command",
@@ -448,7 +506,7 @@
   {
    "step": "waitTicks",
    "ticks": 40,
-   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26), so room to spare"
+   "comment": "the walk round the hall to a far door takes up to 26 ticks (VM 2026-11-03: Moia's door teleported at tick 26) and the move comes four ticks after the door is reached, so room to spare"
   },
   {
    "step": "command",
@@ -460,7 +518,7 @@
    "step": "command",
    "text": "::raid run",
    "expectMessage": "; complete;",
-   "comment": "the run is complete (the reward room is step 28)"
+   "comment": "the run is complete: the reward vault is open to the party"
   },
   {
    "step": "command",
@@ -476,15 +534,15 @@
   },
   {
    "step": "locOption",
-   "locId": 62765,
+   "locId": 62766,
    "option": "Exit",
    "timeoutMs": 20000,
-   "comment": "STAND-IN until the reward room (step 28): the Passageway put at the south edge of Ocellus's room once the run is done, out to the lobby"
+   "comment": "tfa_exit_large, the vault's own Passageway across the south end of its corridor (4124,5625 on the level above the nexus's): out to the lobby once the run is done (a guess); the first run left by the reward vault's Rift out"
   },
   {
    "step": "waitTicks",
-   "ticks": 15,
-   "comment": "the walk to the Passageway, a few tiles south, and its teleport"
+   "ticks": 20,
+   "comment": "the walk down the corridor to the Passageway, ten tiles south of the landing, and its teleport"
   },
   {
    "step": "command",

@@ -45,8 +45,11 @@ class HeadlessArchiveRaidTest {
             listOf(
                 type(ArchiveRaids.ARCHIVE_DOOR, "Archive Door", 9, 1, "Enter"),
                 type(ArchiveRaids.PASSAGEWAY, "Passageway", 5, 2, "Exit"),
+                type(ArchiveRaids.VAULT_PASSAGEWAY, "Passageway", 7, 2, "Exit"),
                 type(ArchiveRaids.OCELLUS_DOOR_SHUT, "Archive Door", 7, 2),
                 type(ArchiveRaids.OCELLUS_DOOR_OPEN, "Archive Door", 7, 2, "Enter", "Quick-enter"),
+                type(ArchiveRaids.REWARD_RIFT, "Rift", 1, 1),
+                type(ArchiveRaids.MERIT_SCROLL, "Merit scroll", 2, 1, "Read"),
             ) + ArchiveRaids.DOORS.map { type(it, "Door", 5, 1, "Enter", "Quick-enter") } +
                 ArchiveRaids.TRANSPORTERS.map { type(it, "Archive transporter", 1, 1, "Use", "Quick-use") }
             ).associateBy { it.id },
@@ -71,6 +74,8 @@ class HeadlessArchiveRaidTest {
                 add(ZoneLoc(room.door, LocShape.CENTREPIECE_STRAIGHT, if (room.side == osrsps.game.raid.DoorSide.WEST) 3 else 1, doorX(room), ArchiveRaids.doorZ(room.stage), level))
             }
         }
+        // The vault's Passageway, across the south end of its corridor on the level above each of the nexus's.
+        for (level in listOf(1, 3)) add(ZoneLoc(ArchiveRaids.VAULT_PASSAGEWAY, LocShape.CENTREPIECE_STRAIGHT, 0, 4124, 5625, level))
         for ((room, locs) in roomLocs) {
             val (passage, transporter) = locs
             add(ZoneLoc(ArchiveRaids.PASSAGEWAY, LocShape.CENTREPIECE_STRAIGHT, passage.third, passage.first, passage.second, 0))
@@ -87,12 +92,18 @@ class HeadlessArchiveRaidTest {
             // Lumbridge's square too, for Home Teleport's landing.
             CollisionMap().apply {
                 for (x in 63..65) for (z in 86..88) markLoaded(x, z)
+                // The reward vault's square, two north of Ocellus's.
+                markLoaded(ArchiveRaids.REWARD_SQUARE_X, ArchiveRaids.REWARD_SQUARE_Z)
                 markLoaded(Lodestones.LUMBRIDGE.x shr 6, Lodestones.LUMBRIDGE.z shr 6)
             },
             locTypes = locTypes,
             staticLocs = staticLocs,
             objTypes = ObjTypes.of(axe, pickaxe),
-            npcTypes = NpcTypes.of(NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null))),
+            npcTypes = NpcTypes.of(
+                NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null)),
+                // The reward vault's Rift out, as the 241.4 cache has it.
+                NpcType(ArchiveRaids.RIFT_OUT, "Rift", size = 3, ops = listOf(ArchiveRaids.LEAVE, null, ArchiveRaids.QUICK_LEAVE, null, null)),
+            ),
             cycleMillis = millis,
         )
     }
@@ -144,20 +155,22 @@ class HeadlessArchiveRaidTest {
         awaitAt(raids.tile(run, back.x, back.z), "out beside ${room.boss}'s door")
     }
 
-    /** The level of the cache's nexus the client draws the instance's nexus from. */
-    private fun HeadlessClient.nexusLevel(server: TestServer, run: ArchiveRun): Int? {
+    /** The level of the cache's nexus the client draws the instance's nexus from, on the instance's [level]. */
+    private fun HeadlessClient.nexusLevel(server: TestServer, run: ArchiveRun, level: Int = 0): Int? {
         val hall = server.world.archiveRaids.tile(run, 4127, 5590)
-        return regionZones()?.get(Triple(hall.x shr 3, hall.z shr 3, 0))?.level
+        return regionZones()?.get(Triple(hall.x shr 3, hall.z shr 3, level))?.level
     }
 
     private fun HeadlessClient.goThrough(server: TestServer, username: String, rooms: List<ArchiveRoom>, passagewayIn: ArchiveRoom? = null, outByExit: Boolean = false) {
         val run = enter(server, username)
         assertTrue(runSays().contains("next Archive Guardian"))
         assertEquals(ArchiveRaids.NEXUS_START, nexusLevel(server, run))
+        assertEquals(ArchiveRaids.NEXUS_START + 1, nexusLevel(server, run, level = 1), "the level above it on the instance's level 1")
         // Into the hall: the Guardian's fight, done at once with no Guardian yet.
         command("raid tp guardian")
         awaitRun("the Guardian's room done") { ArchiveRoom.GUARDIAN in run.cleared }
         await("the nexus with the Guardian's corpse") { nexusLevel(server, run)?.takeIf { it == ArchiveRaids.NEXUS_CAMP } }
+        assertEquals(ArchiveRaids.NEXUS_CAMP + 1, nexusLevel(server, run, level = 1), "the level above the camp's on the instance's level 1, as live copies it")
         // The Archive Door north is shut, and still blocks its tiles on the level laid over the nexus.
         val door = server.world.archiveRaids.tile(run, ArchiveRaids.OCELLUS_DOOR_X, ArchiveRaids.OCELLUS_DOOR_Z)
         fun doorOf(id: Int) = ZoneLoc(id, LocShape.CENTREPIECE_STRAIGHT, 0, door.x, door.z, ArchiveRaids.NEXUS_PLANE)
@@ -174,30 +187,59 @@ class HeadlessArchiveRaidTest {
         awaitTicks(4)
         assertEquals(ArchiveRaids.NEXUS_PLANE, position?.level, "still in the nexus")
         assertTrue(ArchiveRoom.OCELLUS !in run.started)
+        // North of the door the nexus's square is the vault's: the south end of its corridor, on the level above, shut
+        // by the vault's own Passageway, which does nothing until the run is done.
+        val raids = server.world.archiveRaids
+        val corridor = raids.tile(run, 4127, 5628)
+        assertEquals(ArchiveRoom.OCELLUS, raids.roomAt(run, corridor.x, corridor.z))
+        assertTrue(!raids.inNexus(run, corridor.x, corridor.z))
+        assertEquals(ArchiveRoom.GUARDIAN, raids.roomAt(run, door.x + 3, door.z - 1))
+        assertTrue(raids.inNexus(run, door.x + 3, door.z - 1))
+        val exitTile = raids.tile(run, 4124, 5625)
+        val exit = ZoneLoc(ArchiveRaids.VAULT_PASSAGEWAY, LocShape.CENTREPIECE_STRAIGHT, 0, exitTile.x, exitTile.z, ArchiveRoom.OCELLUS.level)
+        assertTrue(server.world.locs.exists(exit), "the vault's Passageway, from the cache's level above the nexus's")
+        for (dx in 0 until 7) for (dz in 0 until 2) {
+            assertTrue(!server.world.canStand(exitTile.x + dx, exitTile.z + dz, ArchiveRoom.OCELLUS.level), "the Passageway blocks +$dx, +$dz")
+        }
+        command("raid tp 4127 5628")
+        awaitAt(corridor, "the south end of the vault's corridor", ArchiveRoom.OCELLUS.level)
+        assertTrue(runSays().contains("You're in Ocellus's room, at 4127, 5628"), runSays())
+        locOp(ArchiveRaids.VAULT_PASSAGEWAY, exitTile.x, exitTile.z, ArchiveRaids.EXIT)
+        awaitTicks(4)
+        // Walked to, a tile south, and no further.
+        assertEquals(Coord(corridor.x, corridor.z - 1, ArchiveRoom.OCELLUS.level), position, "the vault's Passageway does nothing before the run is done")
+        assertTrue(ArchiveRoom.OCELLUS !in run.started, "nor does standing in the vault begin Ocellus's room before its turn")
+        command("raid tp ${ArchiveRaids.OCELLUS_DOOR_FRONT_X} ${ArchiveRaids.OCELLUS_DOOR_FRONT_Z}")
+        awaitAt(server.world.archiveRaids.tile(run, ArchiveRaids.OCELLUS_DOOR_FRONT_X, ArchiveRaids.OCELLUS_DOOR_FRONT_Z), "back in front of the Archive Door north")
         for (room in rooms) through(server, run, room, passageway = room == passagewayIn)
         // Live stays on the camp's level for the visit after the fourth room too (Sam's recording); the door opens.
         assertEquals(ArchiveRaids.NEXUS_CAMP, nexusLevel(server, run))
         assertTrue(server.world.locs.exists(doorOf(ArchiveRaids.OCELLUS_DOOR_OPEN)), "the Archive Door north, open")
         assertTrue(!server.world.locs.exists(doorOf(ArchiveRaids.OCELLUS_DOOR_SHUT)))
         await("the open Archive Door in view") { (shown(ArchiveRaids.OCELLUS_DOOR_OPEN) && !shown(ArchiveRaids.OCELLUS_DOOR_SHUT)).takeIf { it } }
-        // Ocellus's room's stand-in exit isn't there until the run is done.
-        val exitTile = server.world.archiveRaids.tile(run, ArchiveRaids.OCELLUS_EXIT_X, ArchiveRaids.OCELLUS_EXIT_Z)
-        val exit = ZoneLoc(ArchiveRaids.PASSAGEWAY, LocShape.CENTREPIECE_STRAIGHT, 0, exitTile.x, exitTile.z, ArchiveRoom.OCELLUS.level)
-        assertTrue(!server.world.locs.exists(exit), "no exit from Ocellus's room before it is done")
         locOp(ArchiveRaids.OCELLUS_DOOR_OPEN, door.x, door.z, if (outByExit) ArchiveRaids.QUICK_ENTER else ArchiveRaids.ENTER)
         // His arena is on the vault's upper floor, as live has it.
         awaitAt(server.world.archiveRaids.tile(run, ArchiveRoom.OCELLUS.entryX, ArchiveRoom.OCELLUS.entryZ), "Ocellus's room", ArchiveRoom.OCELLUS.level)
         awaitRun("the run complete") { it.contains("; complete;") }
         // Solo, every room's points are the one player's.
         assertTrue(runSays().contains("points $username ${ArchiveRaids.ROOM_POINTS * 5}"), runSays())
-        assertTrue(server.world.locs.exists(exit), "the stand-in exit from Ocellus's room once the run is done")
+        assertTrue(server.world.locs.exists(exit), "the vault's Passageway is still there, on the camp's upper level")
         if (outByExit) {
-            // Out by the stand-in Passageway, to the lobby in front of the Archive Door.
-            locOp(ArchiveRaids.PASSAGEWAY, exit.x, exit.z, ArchiveRaids.EXIT)
-            awaitAt(Tile(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z), "out to the lobby by Ocellus's room's exit")
+            // Out by the vault's Passageway, down the corridor: to the lobby in front of the Archive Door.
+            locOp(ArchiveRaids.VAULT_PASSAGEWAY, exit.x, exit.z, ArchiveRaids.EXIT)
+            awaitAt(Tile(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z), "out to the lobby by the vault's Passageway")
         } else {
-            // Out by teleport.
-            tele(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z)
+            // Out by the reward vault: the Blade's Travel (::raid travel stands in for the click), then its Rift out.
+            assertEquals("Travelling to the reward vault.", commandReply("raid travel") { it.contains("ravel") })
+            val vault = raids.tile(run, ArchiveRaids.REWARD_X, ArchiveRaids.REWARD_Z)
+            awaitAt(vault, "the reward vault", ArchiveRaids.REWARD_LEVEL)
+            assertTrue(runSays().contains("You're in the reward vault, at ${ArchiveRaids.REWARD_X}, ${ArchiveRaids.REWARD_Z} of the raid"), runSays())
+            // Up the walk to the island: the Rift out is out of view from where the vault is come into.
+            command("raid tp 4127 5790")
+            awaitAt(raids.tile(run, 4127, 5790), "the north end of the vault's walk", ArchiveRaids.REWARD_LEVEL)
+            val rift = await("the Rift out") { npcs().firstOrNull { it.id == ArchiveRaids.RIFT_OUT } }
+            npcOp(rift.index, 3)
+            awaitAt(Tile(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z), "out to the lobby by the Rift's Quick-leave")
         }
         // The instance ends behind them.
         await("the instance ended") { if (server.world.instances.all.none { it === run.instance }) Unit else null }
@@ -248,6 +290,168 @@ class HeadlessArchiveRaidTest {
                 client.awaitAt(raids.tile(run, room.entryX, room.entryZ), "Bork's room again")
                 client.locOp(room.transporter, transporter.x, transporter.z, ArchiveRaids.USE)
                 client.awaitAt(raids.tile(run, room.doorFront.x, room.doorFront.z), "out beside Bork's door")
+            }
+        }
+    }
+
+    @Test
+    fun `a door, a Passageway and the transporter back out each move the player four ticks on, and not one who has gone elsewhere by then`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                client.await("the login rebuild") { client.position }
+                val run = client.enter(server, "carol")
+                val world = server.world
+                val raids = world.archiveRaids
+                val player = world.playerNamed("carol")!!
+                val key = player.saveKey
+                client.command("raid tp guardian")
+                client.awaitRun("the Guardian's room done") { ArchiveRoom.GUARDIAN in run.cleared }
+                val room = ArchiveRoom.BORK
+                val front = raids.tile(run, room.doorFront.x, room.doorFront.z)
+                val entry = raids.tile(run, room.entryX, room.entryZ)
+                val door = raids.tile(run, doorX(room), ArchiveRaids.doorZ(room.stage))
+                val (passage, transporter) = roomLocs.getValue(room).let { (p, t) -> raids.tile(run, p.first, p.second) to raids.tile(run, t.x, t.z) }
+
+                /** Steps the paused world until her move is set down, and returns it. */
+                fun setOff(what: String): osrsps.game.raid.RoomMove {
+                    var waited = 0
+                    while (key !in run.moving) {
+                        check(++waited <= 30) { "$what not taken within 30 ticks" }
+                        client.stepTicks(1)
+                    }
+                    return run.moving.getValue(key)
+                }
+
+                // The door, from beside it: still in the nexus for three ticks, in the room on the fourth. A second
+                // click on the way doesn't start the count again.
+                client.tele(front.x, front.z)
+                client.commandReply("pause") { it.contains("aused after tick") }
+                client.locOp(room.door, door.x, door.z, ArchiveRaids.ENTER)
+                val into = setOff("the door")
+                assertEquals(osrsps.game.raid.RoomMove(room, true, world.tick + ArchiveRaids.MOVE_DELAY), into, "four ticks from the door")
+                client.locOp(room.door, door.x, door.z, ArchiveRaids.ENTER)
+                client.stepTicks(ArchiveRaids.MOVE_DELAY - 1)
+                assertEquals(into, run.moving[key], "the count not started again")
+                assertEquals(Tile(front.x, front.z), Tile(player.x, player.z), "in a tick early")
+                client.stepTicks(1)
+                assertEquals(Tile(entry.x, entry.z), Tile(player.x, player.z))
+                assertTrue(run.moving.isEmpty())
+                assertTrue(room in run.started, "the room begun on the tick she arrived, not the one after")
+                client.commandReply("resume") { it.startsWith("Resumed") }
+                client.awaitRun("Bork's room done") { room in run.cleared }
+
+                // The Passageway, after the walk to it: the same four ticks, then out in front of the door.
+                client.commandReply("pause") { it.contains("aused after tick") }
+                client.locOp(ArchiveRaids.PASSAGEWAY, passage.x, passage.z, ArchiveRaids.EXIT)
+                val out = setOff("the Passageway")
+                assertEquals(osrsps.game.raid.RoomMove(room, false, world.tick + ArchiveRaids.MOVE_DELAY), out)
+                client.stepTicks(ArchiveRaids.MOVE_DELAY - 1)
+                assertEquals(room, raids.roomAt(run, player.x, player.z), "out a tick early")
+                client.stepTicks(1)
+                assertEquals(Tile(front.x, front.z), Tile(player.x, player.z))
+
+                // The transporter back out, and somewhere else before the four ticks are up: not moved from there.
+                client.command("raid tp bork")
+                client.stepTicks(1)
+                assertEquals(Tile(entry.x, entry.z), Tile(player.x, player.z))
+                client.locOp(room.transporter, transporter.x, transporter.z, ArchiveRaids.USE)
+                val back = setOff("the transporter")
+                assertEquals(osrsps.game.raid.RoomMove(room, false, world.tick + ArchiveRaids.MOVE_DELAY), back)
+                client.command("raid tp guardian")
+                client.stepTicks(1)
+                val hall = Tile(player.x, player.z)
+                assertEquals(ArchiveRoom.GUARDIAN, raids.roomAt(run, hall.x, hall.z))
+                client.stepTicks(ArchiveRaids.MOVE_DELAY)
+                assertEquals(hall, Tile(player.x, player.z), "moved from where she had gone")
+                assertTrue(run.moving.isEmpty(), "her move done with all the same")
+                client.commandReply("resume") { it.startsWith("Resumed") }
+            }
+        }
+    }
+
+    @Test
+    fun `the Blade's Travel lands in the reward vault four ticks on, its Rift out comes fifteen ticks after the first in, and Leave goes to the lobby`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dana").use { client ->
+                client.await("the login rebuild") { client.position }
+                val run = client.enter(server, "dana")
+                val world = server.world
+                val raids = world.archiveRaids
+                val player = world.playerNamed("dana")!!
+                val key = player.saveKey
+                val vault = raids.tile(run, ArchiveRaids.REWARD_X, ArchiveRaids.REWARD_Z)
+                // The vault is two squares north of Ocellus's, on its own levels, with its Rift and Merit scroll put in.
+                assertEquals(Tile(run.instance.baseX + 64 + 31, run.instance.baseZ + 4 * 64 + 19), vault)
+                assertTrue(raids.inRewardRoom(run, vault.x, vault.z))
+                assertEquals(null, raids.roomAt(run, vault.x, vault.z))
+                assertEquals(ArchiveRaids.REWARD_LEVEL, raids.levelAt(run, vault.x, vault.z))
+                for (level in 0..3) {
+                    assertEquals(level, world.instances.referenceZone(vault.x shr 3, vault.z shr 3, level)?.level, "the vault's level $level, as the map has it")
+                }
+                for (loc in ArchiveRaids.REWARD_LOCS) {
+                    val at = raids.tile(run, loc.x, loc.z)
+                    assertTrue(world.locs.exists(ZoneLoc(loc.id, LocShape.CENTREPIECE_STRAIGHT, loc.angle, at.x, at.z, ArchiveRaids.REWARD_LEVEL)), "loc ${loc.id}")
+                }
+                // No Travel before Ocellus's room is done, nor from anywhere but his room.
+                client.command("raid tp guardian")
+                client.awaitRun("the Guardian's room done") { ArchiveRoom.GUARDIAN in run.cleared }
+                assertTrue(client.commandReply("raid travel") { it.contains("ravel") }.startsWith("You can't travel"))
+                for (room in listOf(ArchiveRoom.BORK, ArchiveRoom.DREADNOTH, ArchiveRoom.XARTH, ArchiveRoom.OCELLUS)) {
+                    client.command("raid tp ${room.name.lowercase()}")
+                    client.awaitRun("${room.boss}'s room done") { room in run.cleared }
+                }
+                assertTrue(run.completed)
+                client.command("raid tp nexus")
+                client.awaitAt(raids.tile(run, ArchiveRaids.NEXUS_X, ArchiveRaids.NEXUS_Z), "the nexus's entrance")
+                assertTrue(client.commandReply("raid travel") { it.contains("ravel") }.startsWith("You can't travel"), "not from the nexus")
+                client.command("raid tp ocellus")
+                val arena = raids.tile(run, ArchiveRoom.OCELLUS.entryX, ArchiveRoom.OCELLUS.entryZ)
+                client.awaitAt(arena, "Ocellus's room", ArchiveRoom.OCELLUS.level)
+
+                // Travel: in his room for three ticks more, in the vault on the fourth; a second click leaves the count.
+                client.commandReply("pause") { it.contains("aused after tick") }
+                // A command runs at once on a paused world, so the count is from the tick it stands at.
+                assertEquals("Travelling to the reward vault.", client.commandReply("raid travel") { it.contains("ravel") })
+                val travel = run.moving.getValue(key)
+                assertEquals(osrsps.game.raid.RoomMove(null, true, world.tick + ArchiveRaids.MOVE_DELAY), travel)
+                client.commandReply("raid travel") { it.contains("ravel") }
+                client.stepTicks(ArchiveRaids.MOVE_DELAY - 1)
+                assertEquals(travel, run.moving[key], "the count not started again")
+                assertEquals(Tile(arena.x, arena.z), Tile(player.x, player.z), "in a tick early")
+                assertEquals(-1L, run.rewardTick)
+                client.stepTicks(1)
+                assertEquals(Triple(vault.x, vault.z, ArchiveRaids.REWARD_LEVEL), Triple(player.x, player.z, player.level))
+                assertEquals(world.tick, run.rewardTick, "the first in starts the count to the Rift out")
+                assertTrue(run.moving.isEmpty())
+
+                // The Rift out: not for fourteen ticks, there on the fifteenth; a second arrival doesn't start it again.
+                val since = run.rewardTick
+                client.commandReply("raid tp vault") { it.startsWith("To the reward vault") }
+                client.stepTicks(ArchiveRaids.RIFT_OUT_DELAY - 1)
+                assertEquals(since, run.rewardTick)
+                assertEquals(null, run.riftOut, "the Rift out a tick early")
+                client.stepTicks(1)
+                val rift = assertNotNull(run.riftOut, "the Rift out")
+                val riftAt = raids.tile(run, ArchiveRaids.RIFT_OUT_X, ArchiveRaids.RIFT_OUT_Z)
+                assertEquals(Triple(riftAt.x, riftAt.z, ArchiveRaids.REWARD_LEVEL), Triple(rift.x, rift.z, rift.level))
+                client.stepTicks(3)
+                assertTrue(run.riftOut === rift, "one Rift out only")
+                client.commandReply("resume") { it.startsWith("Resumed") }
+
+                // The client draws the vault from the map's own level 2, and sees its Rift and scroll.
+                client.awaitAt(vault, "the reward vault", ArchiveRaids.REWARD_LEVEL)
+                assertEquals(ArchiveRaids.REWARD_LEVEL, client.await("the vault's zones") { client.regionZones()?.get(Triple(vault.x shr 3, vault.z shr 3, ArchiveRaids.REWARD_LEVEL)) }.level)
+                client.await("the vault's own locs in view") {
+                    ArchiveRaids.REWARD_LOCS.all { loc -> client.locChanges().any { it.id == loc.id && it.coord.level == ArchiveRaids.REWARD_LEVEL } }.takeIf { it }
+                }
+                // Leave on the Rift out, from the island end of the walk (it is out of view from the south end): the
+                // lobby, and the instance ends behind her.
+                client.command("raid tp 4127 5790")
+                client.awaitAt(raids.tile(run, 4127, 5790), "the north end of the vault's walk", ArchiveRaids.REWARD_LEVEL)
+                val seen = client.await("the Rift out in view") { client.npcs().firstOrNull { it.id == ArchiveRaids.RIFT_OUT } }
+                client.npcOp(seen.index, 1)
+                client.awaitAt(Tile(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z), "out to the lobby by the Rift's Leave")
+                client.await("the instance ended") { if (world.instances.all.none { it === run.instance }) Unit else null }
             }
         }
     }

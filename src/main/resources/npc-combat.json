@@ -1112,9 +1112,79 @@
       "defence": { "stab": 150, "slash": 95, "crush": 60, "magic": 100, "light": 50, "standard": 135, "heavy": 50 },
       "anims": { "attack": "npc_ocellus_phase1_basic_projectile_start", "defend": null, "death": null },
       "respawnTicks": 50,
-      "immune": ["poison", "venom"],
+      "immune": ["poison", "venom", "freeze"],
       "drainCap": { "defence": 60 },
-      "source": "OSRS Wiki, Ocellus (phase 1, id 16674), read 2026-11-10: speed 5, magic and ranged, max hit 36, magic and ranged attack +150, the defence bonuses, immune to poison and venom, Defence drained to 129 at most (60% of 215). His shots come from his fight (Ocellus): a fireball (ranged, vfx_ocellus_fire_attack01_*, 4231-4233) or a water ball (magic, 4228-4230) at everyone as he walks (tsps capture notes, RSPSApp/tsps docs/fractured-archive.md). Ranged is the file's primary style so his fireballs roll with the +150 (attackBonus) and his water balls with magicAttack's +150 (Codex, PR 552). Guessed: the 10-tile range (the file's most; his fight fires at players anywhere in his arena), no block or death animation in this phase (he changes form rather than dying; step 24b), the respawn, which never comes"
+      "source": "OSRS Wiki, Ocellus (phase 1, id 16674), read 2026-11-10: speed 5, magic and ranged, max hit 36, magic and ranged attack +150, the defence bonuses, immune to poison and venom, Defence drained to 129 at most (60% of 215). Immune to freeze, guessed as raid bosses are (exploit review round 22, R22B-2: a barrage held his walk to his corners). His shots come from his fight (Ocellus): a fireball (ranged, vfx_ocellus_fire_attack01_*, 4231-4233) or a water ball (magic, 4228-4230) at everyone as he walks (tsps capture notes, RSPSApp/tsps docs/fractured-archive.md). Ranged is the file's primary style so his fireballs roll with the +150 (attackBonus) and his water balls with magicAttack's +150 (Codex, PR 552). Guessed: the 10-tile range (the file's most; his fight fires at players anywhere in his arena), no block or death animation in this phase (he changes form rather than dying; step 24b), the respawn, which never comes"
+    },
+    {
+      "npcs": ["tfa_ocellus_p3"],
+      "attackSpeed": 3,
+      "maxHit": 30,
+      "attackType": "slash",
+      "attackBonus": 0,
+      "strengthBonus": 0,
+      "magicAttack": 0,
+      "range": 10,
+      "defence": { "stab": 350, "slash": 100, "crush": 30, "magic": 200, "light": 250, "standard": 250, "heavy": 250 },
+      "anims": { "attack": "npc_ocellus_phase3_melee_basic", "defend": null, "death": "npc_ocellus_phase3_death" },
+      "respawnTicks": 50,
+      "immune": ["poison", "venom", "freeze"],
+      "drainCap": { "defence": 60 },
+      "source": "OSRS Wiki, Ocellus (phase 3, id 16677), read 2026-11-10: speed 3, melee max hit 30 and magic 36, the defence bonuses, immune to poison and venom, Defence drained to 150 at most (60% of 250). Immune to freeze, guessed as in his first phase. His attacks come from his fight (Ocellus): melee on his tank, his slash, a void shot at everyone when he can't reach the tank (tsps capture notes; Wiki). Guessed: slash as his melee style, no attack bonuses (the Wiki's are unreadable), no block animation, the 10-tile range, the respawn, which never comes"
+    },
+    {
+      "npcs": ["tfa_ocellus_p3_void_vine"],
+      "attackSpeed": 5,
+      "maxHit": 1,
+      "attackType": "magic",
+      "attackBonus": 0,
+      "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": null, "defend": null, "death": null },
+      "respawnTicks": 50,
+      "immune": ["poison", "venom", "freeze"],
+      "source": "242 cache, tfa_ocellus_p3_void_vine (16681, \"Void Vine\"): 44 hitpoints and Defence 1 (Sam's recording of 2026-11-09 shows its target box at 0/44). It never attacks: it roots a player for Ocellus's fight (Ocellus), which takes it away when it is broken or its time is up. Guessed: no defence bonuses, the immunities, the speed and max hit (never used), no animations (it has no model), the respawn, which never comes"
+    },
+    {
+      "npcs": ["tfa_ocellus_p3_bombportal_basic"],
+      "attackSpeed": 4,
+      "maxHit": 1,
+      "attackType": "crush",
+      "attackBonus": 0,
+      "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "weakness": { "element": "earth", "percent": 75 },
+      "anims": { "attack": null, "defend": null, "death": null },
+      "respawnTicks": 50,
+      "immune": ["poison", "venom", "freeze"],
+      "source": "OSRS Wiki, Void Rift (16678), read 2026-11-10: 44 hitpoints, no defence bonuses, a 75% earth weakness, poison and venom immunity. It never attacks: it charges for Ocellus's fight (Ocellus), which takes it away when it detonates. Guessed: freeze immunity, as the rest of his fight, no animations (its own come from his fight), the respawn, which never comes; the speed, crush and max hit 1 (as the Void Augmenter's, never used)"
+    },
+    {
+      "npcs": ["tfa_ocellus_p3_bombportal_heal"],
+      "attackSpeed": 4,
+      "maxHit": 1,
+      "attackType": "crush",
+      "attackBonus": 0,
+      "strengthBonus": 0,
+      "defence": { "stab": 50, "slash": 50, "crush": 50, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": null, "defend": null, "death": null },
+      "respawnTicks": 50,
+      "immune": ["poison", "venom", "freeze"],
+      "source": "OSRS Wiki, Void Siphon (16679), read 2026-11-10: 44 hitpoints, +50 stab, slash and crush, +0 magic, no elemental weakness, poison and venom immunity. It never attacks: it charges for Ocellus's fight (Ocellus), which takes it away when it detonates. Guessed: freeze immunity, as the rest of his fight, no animations (its own come from his fight), the respawn, which never comes; its ranged defence (the Wiki's is blank; +0, as it is the style that kills it), the speed, crush and max hit 1 (as the Void Augmenter's, never used)"
+    },
+    {
+      "npcs": ["tfa_ocellus_p3_bombportal_buff"],
+      "attackSpeed": 4,
+      "maxHit": 1,
+      "attackType": "crush",
+      "attackBonus": 0,
+      "strengthBonus": 0,
+      "defence": { "stab": 50, "slash": 50, "crush": 50, "magic": 0, "light": 0, "standard": 50, "heavy": 50 },
+      "weakness": { "element": "earth", "percent": 75 },
+      "anims": { "attack": null, "defend": null, "death": null },
+      "respawnTicks": 50,
+      "immune": ["freeze"],
+      "source": "OSRS Wiki, Void Augmenter (16680), read 2026-11-10: 44 hitpoints, +50 stab, slash and crush, +0 magic with a 75% earth weakness, ranged +0 light and +50 standard and heavy, 0% poison and venom resistance, crush, max hit 1, speed 4. It never attacks: it charges for Ocellus's fight (Ocellus), which takes it away when it detonates. Guessed: freeze immunity, as the rest of his fight, no animations (its own come from his fight), the respawn, which never comes"
     },
     {
       "npcs": ["tfa_ocellus_p2", "tfa_ocellus_p2_sword_hitbox"],
@@ -1126,9 +1196,9 @@
       "defence": { "stab": 150, "slash": 120, "crush": 10, "magic": 100, "light": 100, "standard": 110, "heavy": 80 },
       "anims": { "attack": null, "defend": null, "death": null },
       "respawnTicks": 50,
-      "immune": ["poison", "venom"],
+      "immune": ["poison", "venom", "freeze"],
       "xpBonus": 12.5,
-      "source": "OSRS Wiki, Ocellus (phase 2, ids 16675 and 16676), read 2026-11-10: magic, the portal's max hit 25, the defence bonuses, the 12.5% XP bonus, the Blade's Defence drained to 0 (no cap). Neither attacks by itself: his second phase has no Attack and the Blade only takes the party's (his fight, Ocellus; tsps capture notes). The portals' shots come from his fight. Guessed: the 5-tick speed (the Wiki gives 0, never used), no block or death animation, poison and venom immunity as in his first phase, the respawn, which never comes"
+      "source": "OSRS Wiki, Ocellus (phase 2, ids 16675 and 16676), read 2026-11-10: magic, the portal's max hit 25, the defence bonuses, the 12.5% XP bonus, the Blade's Defence drained to 0 (no cap). Neither attacks by itself: his second phase has no Attack and the Blade only takes the party's (his fight, Ocellus; tsps capture notes). The portals' shots come from his fight. Guessed: the 5-tick speed (the Wiki gives 0, never used), no block or death animation, poison, venom and freeze immunity as in his first phase, the respawn, which never comes"
     }
   ]
 }

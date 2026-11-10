@@ -74,6 +74,8 @@ class NpcCombatTest {
             "npc_ezekiel_melee01" to 14685, "npc_ezekiel_death01" to 14689,
             "npc_bork_gong_melee01" to 14542, "npc_bork_death01" to 14541, "npc_smork_cannon_attack01" to 14554,
             "npc_ocellus_phase1_basic_projectile_start" to 14806,
+            "npc_ocellus_phase3_melee_basic" to 14842,
+            "npc_ocellus_phase3_death" to 14872,
             "dreadnoth_melee01" to 14779, "dreadnoth_death01" to 14782, "jelly_attack" to 1586, "jelly_death" to 1587,
             "xarth_attack_magic_01" to 14984, "xarth_death_01" to 14995, "xarth_corpse_death_01" to 15003,
             "demon_attack" to 64, "demon_block" to 65, "demon_death" to 67,
@@ -612,7 +614,41 @@ class NpcCombatTest {
         assertEquals(listOf(150, 150), listOf(him.attackBonus, him.magicAttack))
         assertEquals(listOf(150, 95, 60, 100), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { him.defence.against(it) })
         assertEquals(mapOf(NpcStat.DEFENCE to 60), him.drainCaps)
-        assertTrue(him.poisonImmune && him.venomImmune)
+        // Nor does a barrage hold him from his corners (exploit review round 22, R22B-2).
+        assertTrue(him.poisonImmune && him.venomImmune && him.freezeImmune)
+    }
+
+    @Test
+    fun `Ocellus's third phase fights as the Wiki has it, speed 3 and melee max 30`() {
+        val ocellus = NpcType(16677, "Ocellus", size = 3, internalName = "tfa_ocellus_p3", stats = NpcStats(attack = 325, defence = 250, strength = 250, hitpoints = 5250, ranged = 300, magic = 300))
+        val him = NpcCombat.load(NpcTypes.of(ocellus), seqs)[ocellus]!!
+        assertEquals(listOf(3, 30), listOf(him.attackSpeed, him.maxHit))
+        assertEquals(AttackType.SLASH, him.attackType)
+        assertEquals(NpcCombatAnims(14842, -1, 14872), him.anims)
+        assertEquals(listOf(350, 100, 30, 200), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { him.defence.against(it) })
+        assertEquals(mapOf(NpcStat.DEFENCE to 60), him.drainCaps)
+        assertTrue(him.poisonImmune && him.venomImmune && him.freezeImmune)
+    }
+
+    @Test
+    fun `Ocellus's void flares have the Wiki's defences, the Rift and Augmenter weak to earth`() {
+        fun flare(id: Int, name: String) = NpcType(id, name, internalName = name, stats = NpcStats(attack = 1, defence = 175, strength = 1, hitpoints = 44, ranged = 1, magic = 300))
+        val rift = flare(16678, "tfa_ocellus_p3_bombportal_basic")
+        val siphon = flare(16679, "tfa_ocellus_p3_bombportal_heal")
+        val augmenter = flare(16680, "tfa_ocellus_p3_bombportal_buff")
+        val combat = NpcCombat.load(NpcTypes.of(rift, siphon, augmenter), seqs)
+        val types = listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC)
+        assertEquals(listOf(0, 0, 0, 0), types.map { combat[rift]!!.defence.against(it) })
+        assertEquals(listOf(50, 50, 50, 0), types.map { combat[siphon]!!.defence.against(it) })
+        assertEquals(listOf(50, 50, 50, 0), types.map { combat[augmenter]!!.defence.against(it) })
+        assertEquals(listOf(0, 50, 50), with(combat[augmenter]!!.defence) { listOf(light, standard, heavy) })
+        assertEquals(ElementalWeakness(Element.EARTH, 75), combat[rift]!!.weakness)
+        assertEquals(ElementalWeakness(Element.EARTH, 75), combat[augmenter]!!.weakness)
+        assertNull(combat[siphon]!!.weakness)
+        assertTrue(combat[rift]!!.poisonImmune && combat[siphon]!!.venomImmune)
+        // The Augmenter's 0% resistance: it can be poisoned.
+        assertTrue(!combat[augmenter]!!.poisonImmune && !combat[augmenter]!!.venomImmune)
+        assertTrue(listOf(rift, siphon, augmenter).all { combat[it]!!.freezeImmune })
     }
 
     @Test

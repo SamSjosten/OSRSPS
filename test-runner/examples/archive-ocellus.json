@@ -1,5 +1,5 @@
 {
- "name": "Raid steps 24a to 25b: Ocellus solo, his arena upstairs, the hooded figure waiting until the party readies up, then his first phase walking between his corners under Protect from Melee, at each corner his cracks, line and explosion, at two thirds the middle with its four sides and his charge expended, the hold at the end of his blue bar, and his second phase: the portals on the cross, the Blade passing damage to his bar, the quadrants' volleys, and the rest of a quadrant's turn: pools, every portal purple, the floor portal and the last volley",
+ "name": "Raid steps 24a to 27b: Ocellus solo, his arena upstairs, the hooded figure waiting until the party readies up, then his first phase walking between his corners under Protect from Melee, at each corner his cracks, line and explosion, at two thirds the middle with its four sides and his charge expended, the hold at the end of his blue bar, and his second phase: the portals on the cross, the Blade passing damage to his bar, the quadrants' volleys, and the rest of a quadrant's turn: pools, every portal purple, the floor portal and the last volley, and his third phase: the cross falling to stepping stones, his quadrant, and the quadrants falling at 75, 50 and 25%, with the void bombs and his specials: the cog, the void and Untether, and Insolence first in the next quadrant, and his void flares: Siphons, Augmenters and Rifts, and the censers, and his final stand: Deflect Melee, the lifeforce and void bursts, a blast and Deflect Range",
  "account": "test",
  "steps": [
   {
@@ -328,7 +328,263 @@
   {
    "step": "waitTicks",
    "ticks": 84,
-   "comment": "two more quadrants, clockwise, 42 ticks each; 123 ticks into the phase his line (tfa_ocellus.this_is_enough), and until step 26 he dies, as his third phase would begin"
+   "comment": "two more quadrants, clockwise, 42 ticks each; 123 ticks into the phase his line (tfa_ocellus.this_is_enough), and a tick later his third phase (step 26a)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 14,
+   "comment": "the cross falls: the arms crack 4 ticks in (anyone on them moved off), fall in at 9, and at 12 their empty forms stand with three stepping stones each, and he takes the quadrant the second phase ended in"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: stepping stones stand"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: censers stand",
+   "comment": "and a censer in each quadrant (step 26d), each lit once by Interact (the headless test lights them)"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel prayer 99",
+   "expectMessage": "Prayer set to level 99"
+  },
+  {
+   "step": "command",
+   "text": "::boost prayer 1",
+   "expectMessage": "Prayer is now 1/99",
+   "comment": "the censers (step 26d), all four standing before any quadrant falls: Saradomin's, in the south-east, lit for its 40 prayer back"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp 4138 5661",
+   "expectMessage": "To ",
+   "comment": "beside the south-east censer, on the quadrant's outer corner (guessed)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::locs 1",
+   "expectMessage": "62699 ",
+   "comment": "the censer beside the player, as the server has it"
+  },
+  {
+   "step": "locOption",
+   "locId": 62699,
+   "option": "Interact",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "lights the saradomin censer"
+  },
+  {
+   "step": "command",
+   "text": "::stats",
+   "expectMessage": "Prayer 41/",
+   "comment": "40 prayer points back"
+  },
+  {
+   "step": "locOption",
+   "locId": 62700,
+   "option": "Examine",
+   "timeoutMs": 10000,
+   "comment": "its inactive form in its place, with no Interact"
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "third phase, quadrant ",
+   "comment": "on the same bar as his second phase"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 30,
+   "comment": "three ticks into his quadrant two void bombs fall in each quadrant (step 26b); after six attacks his first special, the cog: a circle, then two strikes three ticks apart (the player under ::god)"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: void bombs at "
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: cog strike 2 hits ",
+   "comment": "the cog's second strike, on everyone in the arena"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 30,
+   "comment": "six attacks on, his second special, the void (alone she is his tank, so no vine: the two-player headless test covers the vine)"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: the void"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 30,
+   "comment": "six more, Untether: eruptions, then the square and his coming down"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: untether"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 36,
+   "comment": "as Untether ends (30 ticks after his line), two Void Siphons in his quadrant (step 26c), each healing him every 4 ticks"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: siphon flares at "
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: siphon heals him "
+  },
+  {
+   "step": "command",
+   "text": "::hit 1400 tfa_ocellus_p3",
+   "expectMessage": "Hit Ocellus",
+   "comment": "to 75% of his bar, past what the Siphons have healed"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 19,
+   "comment": "his line and the barriers down, 11 ticks later his second line, the quadrant falling at 13 and the next taken at 17"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: quadrant ",
+   "comment": "the first quadrant fallen, with the stones of its arms (its own line: a debris line also ends in \"falls\")"
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": ", quadrant ",
+   "comment": "the next quadrant clockwise"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 25,
+   "comment": "in a new quadrant his first special is Insolence: three superior slashes, each leaving void"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: insolence"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: augmenter flares at ",
+   "comment": "with his first attack in the second quadrant, two Void Augmenters"
+  },
+  {
+   "step": "command",
+   "text": "::hit 1300 tfa_ocellus_p3",
+   "expectMessage": "Hit Ocellus",
+   "comment": "to 50%"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 19
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4,
+   "comment": "with his first attack in the third quadrant, two Void Rifts"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: rift flares at "
+  },
+  {
+   "step": "command",
+   "text": "::hit 1300 tfa_ocellus_p3",
+   "expectMessage": "Hit Ocellus",
+   "comment": "to 25%: the third quadrant falls, and he takes the last for his final stand (step 27a)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 20,
+   "comment": "the fall's 17 ticks, then 3 more to his rise"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: final stand in "
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: final: rises, Deflect Melee, void round him",
+   "comment": "risen with Deflect Melee, the tiles round him void"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 33,
+   "comment": "at 21 he lands, at 24 his charged attack landing 2 ticks later, then Soul Split, and at 31 Deflect Range"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: final: lands"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: final: lifeforce and void bursts",
+   "comment": "3 ticks after his rise the wind for the lifeforce orbs, and the void bursts (step 27b)"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": " burst hits ",
+   "comment": "a void burst landing on the player, who stands still (under ::god)"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": " blast hits ",
+   "comment": "his blast on everyone in the arena (the player is under ::god)"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: final: Deflect Range, his quadrant void"
+  },
+  {
+   "step": "command",
+   "text": "::hit 2000 tfa_ocellus_p3",
+   "expectMessage": "Hit Ocellus",
+   "comment": "to the end of his bar: he dies, and the room is done"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 5
   },
   {
    "step": "command",
