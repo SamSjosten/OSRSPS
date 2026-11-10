@@ -855,6 +855,16 @@ class HeadlessOcellusTest {
                 assertTrue(Ocellus.flares(boss).all { it.type.id == Ocellus.Flare.SIPHON.id && Ocellus.quadrant(centre, it.x, it.z) == Ocellus.Quadrant.NW })
                 val heal = alice.awaitLine(run, "a siphon's heal") { it.contains("third: siphon heals him ") }
                 assertEquals(tickOf(siphons) + Ocellus.SIPHON_HEAL_EVERY, tickOf(heal))
+                // Standing between one and him, she blocks its next heal; destroying it, she is empowered.
+                val siphon = Ocellus.flares(boss).first()
+                val (midX, midZ) = boss.x + 1 to boss.z + 1
+                val steps = maxOf(kotlin.math.abs(midX - siphon.x), kotlin.math.abs(midZ - siphon.z))
+                val block = Tile(siphon.x + Math.round((midX - siphon.x) / steps.toDouble()).toInt(), siphon.z + Math.round((midZ - siphon.z) / steps.toDouble()).toInt())
+                alice.tele(block.x, block.z, level)
+                alice.awaitLine(run, "her block") { it.contains("third: alice blocks a siphon's heal, healed ") }
+                alice.commandReply("hit 44 ${siphon.index}") { it.startsWith("Hit ") }
+                alice.awaitLine(run, "her empowerment") { it.endsWith("third: siphon destroyed: alice empowered") }
+                alice.tele(stand.x, stand.z, level)
                 // At 75% the north-west falls with its void; she goes on to the north-east, and there Insolence is first:
                 // three superior slashes towards her, five ticks apart, leaving void.
                 alice.commandReply("hit ${boss.hitpoints - 5250 * 75 / 100} ${boss.index}") { it.startsWith("Hit ") }

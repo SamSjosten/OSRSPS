@@ -975,6 +975,8 @@ class ArchiveRaids(private val world: World) {
 
     /** A party member's hit on [npc] in a room of a run counts towards their share of its points. */
     fun damaged(npc: Npc, player: Player, dealt: Int) {
+        // Ocellus's Siphons heal whoever hurt them by what they dealt (raid step 26c).
+        Ocellus.damaged(npc, player, dealt)
         val run = at(npc.x, npc.z) ?: return
         if (player.saveKey !in run.entered) return
         val room = roomAt(run, npc.x, npc.z) ?: return

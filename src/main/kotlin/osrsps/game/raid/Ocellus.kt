@@ -624,8 +624,12 @@ object Ocellus {
     const val FLARE_BAR_WIDTH = 30
     const val SPOT_SIPHON_HEAL = 4303
 
-    /** Whoever destroys a Siphon is healed this much (OSRS Wiki, Void Siphon). */
-    const val SIPHON_EMPOWER = 22
+    /**
+     * As a Siphon is destroyed, each player who hurt it is healed half the damage they dealt it: 22, its 44 halved, for
+     * one alone (OSRS Wiki, Void Siphon). A player standing between it and him blocks its heal and is healed
+     * [SIPHON_BLOCK_HEAL] instead (OSRS Wiki, The Fractured Archive/Strategies).
+     */
+    const val SIPHON_BLOCK_HEAL = 6
 
     /**
      * The three flares: the NPC, its spawn, idle and detonation animations (cache), the graphic on whoever destroys
@@ -1848,14 +1852,15 @@ object Ocellus {
             val kind = Flare.entries.first { it.id == flare.type.id }
             if (flare.dead || world.npcs[flare.index] !== flare) {
                 iterator.remove()
-                if (flare.dead) empower(flare.attacker, kind)
+                if (flare.dead) empower(flare, kind) else flareDamage.remove(flare)
                 continue
             }
             val age = (phaseTick - since).toInt()
             if (age >= FLARE_CHARGE) {
                 iterator.remove()
                 flare.effects.anim(kind.detonate)
-                world.removeNpc(flare)
+                // Gone a tick later, so its detonation is sent first (Codex, PR 583); nothing it takes now counts.
+                after(1) { if (!flare.dead && world.npcs[flare.index] === flare) world.removeNpc(flare) }
                 log("${kind.name.lowercase()} flare detonates")
                 for (player in players) {
                     if (!inArena(centre, player.x, player.z)) continue
@@ -1869,16 +1874,29 @@ object Ocellus {
         }
     }
 
-    /** A Siphon's heal: its graphic to him and [SIPHON_HEAL_PERCENT]% of his hitpoints back. */
+    /**
+     * A Siphon's heal: its graphic to him and [SIPHON_HEAL_PERCENT]% of his hitpoints back, unless a player stands
+     * between them, who blocks it and is healed [SIPHON_BLOCK_HEAL] (OSRS Wiki, Strategies). Guessed: between as the
+     * tiles of a straight line from the Siphon to his middle, short of his footprint, the nearest to the Siphon blocking.
+     */
     private fun EncounterContext.siphon(flare: Npc) {
         val half = boss.type.size / 2
+        val blocker = between(Tile(flare.x, flare.z), Tile(boss.x + half, boss.z + half)).firstNotNullOfOrNull { tile ->
+            players.firstOrNull { !it.dead && it.x == tile.x && it.z == tile.z }
+        }
         world.zones.projectile(
             Projectile(
-                id = SPOT_SIPHON_HEAL, fromX = flare.x, fromZ = flare.z, level = boss.level, toX = boss.x + half, toZ = boss.z + half,
+                id = SPOT_SIPHON_HEAL, fromX = flare.x, fromZ = flare.z, level = boss.level,
+                toX = blocker?.x ?: (boss.x + half), toZ = blocker?.z ?: (boss.z + half),
                 startHeight = 40, endHeight = 60, startTime = 0, endTime = CYCLES_PER_TICK, angle = 0, progress = 0,
-                sourceIndex = flare.index + 1, targetIndex = boss.index + 1,
+                sourceIndex = flare.index + 1, targetIndex = if (blocker != null) -(blocker.index + 1) else boss.index + 1,
             ),
         )
+        if (blocker != null) {
+            val healed = heal(blocker, SIPHON_BLOCK_HEAL)
+            log("${blocker.username} blocks a siphon's heal, healed $healed")
+            return
+        }
         val before = boss.hitpoints
         boss.hitpoints = minOf(boss.maxHitpoints, before + maxOf(1, boss.maxHitpoints * SIPHON_HEAL_PERCENT / 100))
         val healed = boss.hitpoints - before
@@ -1888,17 +1906,31 @@ object Ocellus {
         log("siphon heals him $healed")
     }
 
+    /** The tiles of a straight line from [from] to [to], both left out, and short of his footprint. */
+    private fun EncounterContext.between(from: Tile, to: Tile): List<Tile> {
+        val size = boss.type.size
+        val steps = maxOf(kotlin.math.abs(to.x - from.x), kotlin.math.abs(to.z - from.z))
+        return (1 until steps).map { i ->
+            Tile(from.x + Math.round((to.x - from.x) * i.toDouble() / steps).toInt(), from.z + Math.round((to.z - from.z) * i.toDouble() / steps).toInt())
+        }.takeWhile { it.x !in boss.x until boss.x + size || it.z !in boss.z until boss.z + size }
+    }
+
     /**
-     * Whoever destroyed a flare of [kind] is empowered (OSRS Wiki): a Siphon heals them [SIPHON_EMPOWER]; an Augmenter
+     * Whoever destroyed a flare of [kind] is empowered (OSRS Wiki): a Siphon heals everyone who hurt it half what they
+     * dealt it ([SIPHON_BLOCK_HEAL]'s note); an Augmenter
      * boosts their Attack and Strength as a super combat potion does and their Magic and Ranged as a ranging potion
-     * does (the Wiki gives 118 and 112 from 99); a Rift resets their attack's cooldown. Guessed: the whole heal to the
-     * one whose hit destroyed it (the Wiki splits it when several hit it), and the boosts as a potion's, from the base
-     * level.
+     * does (the Wiki gives 118 and 112 from 99); a Rift resets their attack's cooldown. Guessed: the boosts as a
+     * potion's, from the base level, and the line and graphic to the one whose hit destroyed it alone.
      */
-    private fun EncounterContext.empower(player: Player?, kind: Flare) {
+    private fun EncounterContext.empower(flare: Npc, kind: Flare) {
+        val hurt = flareDamage.remove(flare).orEmpty()
+        if (kind == Flare.SIPHON) {
+            for ((by, dealt) in hurt) if (!by.dead && players.any { it === by }) heal(by, dealt / 2)
+        }
+        val player = flare.attacker
         if (player == null || player.dead || players.none { it === player }) return
         when (kind) {
-            Flare.SIPHON -> heal(player, SIPHON_EMPOWER)
+            Flare.SIPHON -> {}
             Flare.AUGMENTER -> {
                 for (skill in listOf(Skill.ATTACK, Skill.STRENGTH)) boost(player, skill, 15, 5)
                 for (skill in listOf(Skill.MAGIC, Skill.RANGED)) boost(player, skill, 10, 4)
@@ -1924,7 +1956,10 @@ object Ocellus {
 
     /** The flares go, as his quadrant begins to fall (guessed). */
     private fun EncounterContext.clearFlares() {
-        for (flare in state.flares.keys) if (!flare.dead && world.npcs[flare.index] === flare) world.removeNpc(flare)
+        for (flare in state.flares.keys) {
+            flareDamage.remove(flare)
+            if (!flare.dead && world.npcs[flare.index] === flare) world.removeNpc(flare)
+        }
         state.flares.clear()
         state.flaresAt = -1
     }
@@ -2217,6 +2252,15 @@ object Ocellus {
         world.combat.shutOut = { player, npc -> npc.type.id == P2 || rootedBy(npc) === player || shutOut(player, npc) }
         val sureHit = world.combat.sureHit
         world.combat.sureHit = { player, npc, type -> flareHit(npc.type.id, type) ?: sureHit(player, npc, type) }
+    }
+
+    /** What each player has dealt each Siphon standing, for the heal as it is destroyed. */
+    private val flareDamage = WeakHashMap<Npc, HashMap<Player, Int>>()
+
+    /** [player] dealt [npc] [dealt] ([ArchiveRaids.damaged]): counted when it is a Siphon. */
+    fun damaged(npc: Npc, player: Player, dealt: Int) {
+        if (npc.type.id != Flare.SIPHON.id || dealt <= 0) return
+        flareDamage.getOrPut(npc, ::HashMap).merge(player, dealt, Int::plus)
     }
 
     /** How a hit of [type] on a void flare of NPC type [id] is rolled ([Flare]); null for any other NPC. */
