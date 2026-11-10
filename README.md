@@ -788,6 +788,26 @@ and two of each tablet.
 Check: `./gradlew test --tests 'osrsps.game.skill.magic.*' --tests 'osrsps.testclient.HeadlessTeleportsTest'`, and in
 RuneLite `test-runner/examples/magic-teleports.json`.
 
+### Thieving: more pickpockets and their gear
+
+Thieving 2 step T1a (`game/skill/Pickpocketing.kt`, `game/skill/PickpocketGear.kt`). Pickpocket now works on the
+farmers (nine on Misthalin's farms, `npc-spawns/lumbridge-farms.json`, with their combat and drops), Al Kharid's man and
+warriors, and Edgeville's guards. Gloves of silence and the dodgy necklace work when worn.
+
+| Pickpocketing behaviour | Source |
+|-------------------------|--------|
+| Farmers: level 10, 14.5 XP, 150 to 240 out of 256, 1 damage; a farmer's coin pouch (9 coins) 123/128 or a potato seed 5/128; level 7, speed 6, max hit 1, stab, respawn 25, the members' drop table | OSRS Wiki, Farmer, Coin pouch (read 2026-11-10) |
+| The farmers' nine tiles and which look stands on each (farmer1 to farmer3, farmer1_f to farmer3_f, farmer4) | OSRS Wiki, Farmer (its map) |
+| Al Kharid warriors: the warrior woman's level, XP, 100 to 240, damage and warrior's pouch; Al Kharid's man (3261) as a man; Edgeville's guards (3254) as guards, whose 50 to 240 the Guard page's chart now confirms | OSRS Wiki, Al Kharid warrior (Mod Ash: the same code), Guard, Thieving |
+| Gloves of silence: the NPC's low and high times 1.05, rounded down; worn out by 62 failed pickpockets, with the Wiki's warning one before the end and its six Check messages | OSRS Wiki, Gloves of silence, each NPC's chart |
+| Dodgy necklace: one failure in four costs no stun and no damage and uses a charge; the tenth crumbles it; Check gives the charges left | OSRS Wiki, Dodgy necklace |
+| Both items' counts belong to the player, not the item (`player.charges`) | OSRS Wiki, both pages |
+| The bands between the gloves' Check messages; after a saved failure the next pickpocket comes 2 ticks later; the gloves wear even when the necklace saves; the necklace's and the gloves' last messages; "farmer" and "Al Kharid warrior" in the messages and their caught line; the farmers' animations and wander | guessed |
+| Not built: repairing the gloves, the necklace's Break, the Ardougne diary, Shadow Veil, Rocky; the pickpockets outside Misthalin (steps T1b and T1c) | next steps |
+
+`::scenario thieving` stands you beside a farmer on the farm south of Varrock with 99 Thieving and Hitpoints, 54
+Hunter, gloves of silence and a dodgy necklace worn, a spare necklace and food.
+
 ## Items and inventory
 
 Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for

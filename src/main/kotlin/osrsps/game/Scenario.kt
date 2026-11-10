@@ -206,6 +206,7 @@ class Scenarios(scenarios: Collection<Scenario>) {
             "lumbridge-cows",
             "lumbridge-run-low",
             "magic",
+            "thieving",
         )
 
         /** Reads every file in [FILES] from the resources. A file that is missing or malformed stops the server. */

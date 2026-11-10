@@ -779,6 +779,20 @@ class NpcCombatTest {
     }
 
     @Test
+    fun `farmers stab at speed 6 for at most 1, with no defence bonuses`() {
+        val names = listOf("farmer1", "farmer2", "farmer3", "farmer1_f", "farmer2_f", "farmer3_f", "farmer4")
+        val farmerTypes = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(3114 + i, name, internalName = name, stats = NpcStats(strength = 4)) }.toTypedArray())
+        val combat = NpcCombat.load(farmerTypes, seqs)
+        assertEquals(names.size, combat.size)
+        for (name in names) {
+            val def = combat[farmerTypes.find(name)!!]!!
+            assertEquals(listOf(6, 1, 5, 6, 25), listOf(def.attackSpeed, def.maxHit, def.attackBonus, def.strengthBonus, def.respawnTicks), name)
+            assertEquals(CombatMath.npcMaxHit(4, def.strengthBonus), def.maxHit, name)
+            assertTrue(def.aggression == null, name)
+        }
+    }
+
+    @Test
     fun `the HAM guards hit with crush at the Wiki's speeds and max hits, unarmed`() {
         // The 242 cache's Strength levels.
         val names = mapOf("favour_guard_male_no_beard" to 12, "favour_guard_male_bearded" to 18, "favour_guard_long_beard" to 20)

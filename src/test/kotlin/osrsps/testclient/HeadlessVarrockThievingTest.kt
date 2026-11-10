@@ -203,7 +203,7 @@ class HeadlessVarrockThievingTest {
         // The guard reaches 256 with the Ardougne diary's 10% at 95, the Pickpocketing page's 100% level, not at 94.
         assertTrue(SuccessRoll.chance(guard.low, guard.high, 95) * 1.1 >= 256)
         assertTrue(SuccessRoll.chance(guard.low, guard.high, 94) * 1.1 < 256)
-        assertEquals(Pickpocketing.VARROCK_GUARDS.toSet(), guard.npcs.toSet())
+        assertEquals((Pickpocketing.VARROCK_GUARDS + Pickpocketing.EDGEVILLE_GUARD).toSet(), guard.npcs.toSet())
         // Both say the townsfolk's line when they catch a thief.
         assertEquals(PickpocketLines.CAUGHT_CITIZEN, guard.caught)
         assertEquals(PickpocketLines.CAUGHT_CITIZEN, warrior.caught)
