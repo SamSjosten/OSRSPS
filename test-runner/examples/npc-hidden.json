@@ -1,0 +1,24 @@
+{
+ "name": "A hidden NPC: a unicorn spawned east of the castle hidden with ::hidenpc, read off ::npcs, out of ::hit's reach, then shown again and fought",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "::reset at the end puts the account back"},
+  {"step": "command", "text": "::delnpc mine", "expectMessage": "you put in.", "comment": "anything an earlier run left behind"},
+  {"step": "command", "text": "::tele 3236 3220 0", "expectMessage": "Teleported to 3236, 3220, 0", "comment": "the grass east of the castle; no other unicorn is in view there"},
+  {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now"},
+  {"step": "command", "text": "::npc unicorn", "expectMessage": "Spawned Unicorn"},
+  {"step": "command", "text": "::hit 3 unicorn", "expectMessage": "Hit Unicorn", "comment": "shown, it can be hurt"},
+  {"step": "command", "text": "::npcs 3 mine", "expectMessage": "; 16/19 hp", "comment": "19 hitpoints less 3"},
+  {"step": "command", "text": "::hidenpc mine", "expectMessage": "Hid 1 NPC you put in."},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "command", "text": "::npcs 3 mine", "expectMessage": "; hidden", "comment": "still in the world, under its index"},
+  {"step": "command", "text": "::hit 3 unicorn", "expectMessage": "No NPC called 'unicorn'", "comment": "by name, a hidden NPC isn't found"},
+  {"step": "command", "text": "::hidenpc mine", "expectMessage": "1 NPC you put in is back."},
+  {"step": "npcOption", "npc": "Unicorn", "option": "Attack", "timeoutMs": 10000, "comment": "back in view with its menu"},
+  {"step": "assertHitsplat", "npc": "Unicorn", "timeoutMs": 15000, "comment": "and the punch lands"},
+  {"step": "command", "text": "::delnpc mine", "expectMessage": "Removed 1 NPC you put in."},
+  {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

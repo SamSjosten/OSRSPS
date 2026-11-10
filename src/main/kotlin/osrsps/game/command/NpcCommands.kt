@@ -47,6 +47,7 @@ fun CommandRegistry.registerNpcCommands(world: World) {
             }
             val max = npc.maxHitpoints
             val scaled = if (npc.scaledFor > 0) "; scaled for ${npc.scaledFor} players, $max hp" else ""
+            val hidden = if (npc.hidden) "; hidden" else ""
             val hurt = if (npc.hitpoints < max) "; ${npc.hitpoints}/$max hp" else ""
             val poison = world.poison.describe(npc)?.let { "; $it" }.orEmpty()
             val drained = world.npcDrains.describe(npc)?.let { "; $it" }.orEmpty()
@@ -54,7 +55,7 @@ fun CommandRegistry.registerNpcCommands(world: World) {
             val fighting = npc.target?.let { "; fighting ${it.username}" }
                 ?: npc.retreatingFrom?.let { "; retreating from ${it.username}" }
                 ?: if (world.combat.npcCombat[npc.type] != null) "; fighting no one" else ""
-            reply("#${npc.index} ${npc.type.name} (${npc.type.id}) at ${npc.x}, ${npc.z}; spawn ${spawn.x}, ${spawn.z}, wander ${spawn.wander}$scaled$freeze$hurt$poison$drained$fighting")
+            reply("#${npc.index} ${npc.type.name} (${npc.type.id}) at ${npc.x}, ${npc.z}; spawn ${spawn.x}, ${spawn.z}, wander ${spawn.wander}$hidden$scaled$freeze$hurt$poison$drained$fighting")
         }
         if (near.size > MAX_LISTED) reply("...and ${near.size - MAX_LISTED} more.")
     }
@@ -111,6 +112,28 @@ fun CommandRegistry.registerNpcCommands(world: World) {
         }
         for (npc in chosen) npc.hitpoints = hitpoints
         reply("${chosen.size} NPC${if (chosen.size == 1) "" else "s"} now on $hitpoints hitpoints until they respawn.")
+    }
+
+    register("hidenpc", "::hidenpc index|mine", admin = true) {
+        // World.hide and World.show by hand, for tests: a boss fight calls them itself.
+        if (args.singleOrNull() == "mine") {
+            // Every NPC you put in with ::npc: hidden if any of them shows, else all shown again.
+            val mine = world.npcs.all.filter { it.spawn.source == spawnSource(player.username) }.toList()
+            val hide = mine.any { !it.hidden }
+            val changed = mine.count { if (hide) world.hide(it) else world.show(it) }
+            val count = "$changed NPC${if (changed == 1) "" else "s"} you put in"
+            reply(if (hide) "Hid $count." else "$count ${if (changed == 1) "is" else "are"} back.")
+            return@register
+        }
+        val index = args.singleOrNull()?.toIntOrNull() ?: fail("Usage: ::hidenpc index|mine (from ::npcs); again to show it")
+        val npc = world.npcs[index] ?: fail("No NPC #$index")
+        if (npc.hidden) {
+            world.show(npc)
+            reply("${npc.type.name} #$index is back at ${npc.x}, ${npc.z}.")
+        } else {
+            world.hide(npc)
+            reply("Hid ${npc.type.name} #$index.")
+        }
     }
 
     register("delnpc", "::delnpc index|mine", admin = true) {

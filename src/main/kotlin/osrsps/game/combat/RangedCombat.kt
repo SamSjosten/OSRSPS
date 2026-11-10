@@ -142,7 +142,7 @@ class RangedCombat(
 
     internal fun tryInteract(player: Player, interaction: RangedInteraction): Boolean {
         val npc = interaction.npc
-        if (npcs[npc.index] !== npc || npc.level != player.level || npc.dead) {
+        if (npcs[npc.index] !== npc || npc.level != player.level || npc.outOfPlay) {
             stopFacing(player)
             return true
         }
@@ -328,7 +328,7 @@ class RangedCombat(
         if (!multi.at(from.level, from.x, from.z)) return null
         val size = from.type.size
         val targets = npcs.all.filter { npc ->
-            npc !== from && !npc.dead && npc.level == from.level && combat.npcCombat[npc.type] != null &&
+            npc !== from && !npc.outOfPlay && npc.level == from.level && combat.npcCombat[npc.type] != null &&
                 multi.at(npc.level, npc.x, npc.z) && combat.barred(shot.player, npc) == null &&
                 LineOfSight.distance(from.x, from.z, size, npc.x, npc.z, npc.type.size, npc.type.size) <= BOUNCE_RANGE
         }.toList()
@@ -358,7 +358,7 @@ class RangedCombat(
         if (!multi.at(from.level, from.x, from.z)) return
         val style = shot.style ?: return
         val around = npcs.all.filter { npc ->
-            npc !== from && !npc.dead && npc.level == from.level && combat.npcCombat[npc.type] != null &&
+            npc !== from && !npc.outOfPlay && npc.level == from.level && combat.npcCombat[npc.type] != null &&
                 combat.barred(shot.player, npc) == null && abs(npc.x - from.x) <= SPLASH_RADIUS && abs(npc.z - from.z) <= SPLASH_RADIUS && multi.at(npc.level, npc.x, npc.z)
         }.take(shot.targets - 1).toList()
         for (npc in around) {
@@ -385,7 +385,7 @@ class RangedCombat(
             val npc = shot.npc
             npc.incoming -= shot.damage
             // A shot whose NPC is still there hits it, and bounces on even if that hit kills it.
-            val landed = npcs[npc.index] === npc && !npc.dead
+            val landed = npcs[npc.index] === npc && !npc.outOfPlay
             if (landed) melee.weaponPoison(npc, melee.hit(npc, shot.player, shot.damage, tick, shot.rolledMax, shot.from), shot.poison, shot.venom, ranged = true)
             land(shot, npc)
             if (landed && shot.bounces > 0) bounce(shot, tick)?.let { bounced += it }

@@ -189,7 +189,7 @@ class MagicCombat(
 
     internal fun tryInteract(player: Player, interaction: MagicInteraction): Boolean {
         val npc = interaction.npc
-        if (npcs[npc.index] !== npc || npc.level != player.level || npc.dead) {
+        if (npcs[npc.index] !== npc || npc.level != player.level || npc.outOfPlay) {
             stopFacing(player)
             return true
         }
@@ -337,7 +337,7 @@ class MagicCombat(
      */
     private fun around(target: Npc): List<Npc> =
         npcs.near(target.x, target.z, target.level, AREA_REACH).asSequence()
-            .filter { it !== target && !it.dead && combat.npcCombat[it.type] != null && multi.at(it.level, it.x, it.z) }
+            .filter { it !== target && !it.outOfPlay && combat.npcCombat[it.type] != null && multi.at(it.level, it.x, it.z) }
             .filter { other ->
                 val size = other.type.size
                 other.x <= target.x + 1 && other.x + size - 1 >= target.x - 1 && other.z <= target.z + 1 && other.z + size - 1 >= target.z - 1
@@ -376,12 +376,12 @@ class MagicCombat(
             iterator.remove()
             val npc = cast.npc
             npc.incoming -= cast.damage
-            if (npcs[npc.index] !== npc || npc.dead) continue
+            if (npcs[npc.index] !== npc || npc.outOfPlay) continue
             if (cast.hit) {
                 if (cast.spell.impact >= 0) npc.effects.spotanim(0, cast.spell.impact, IMPACT_HEIGHT)
                 // Guessed: Bind, which can't do damage, shows no hitsplat, as a splash shows none.
                 if (cast.spell.maxHit == 0) melee.splashed(npc, cast.player, tick, cast.from) else melee.hit(npc, cast.player, cast.damage, tick, cast.maxHit, cast.from)
-                if (cast.spell.freezeTicks > 0 && !npc.dead && combat.npcCombat[npc.type]?.freezeImmune != true) npcs.freeze(npc, cast.spell.freezeTicks)
+                if (cast.spell.freezeTicks > 0 && !npc.outOfPlay && combat.npcCombat[npc.type]?.freezeImmune != true) npcs.freeze(npc, cast.spell.freezeTicks)
             } else {
                 if (spells.splash >= 0) npc.effects.spotanim(0, spells.splash, IMPACT_HEIGHT)
                 melee.splashed(npc, cast.player, tick, cast.from)

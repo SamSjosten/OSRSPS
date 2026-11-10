@@ -127,7 +127,7 @@ class Aggression(
     private fun hunt(npc: Npc, tick: Long) {
         val def = npcCombat(npc) ?: return
         val aggression = def.aggression ?: return
-        if (npc.dead || npc.target != null || npc.engagedWith != null || npc.retreatingFrom != null) return
+        if (npc.outOfPlay || npc.target != null || npc.engagedWith != null || npc.retreatingFrom != null) return
         var nearest = Int.MAX_VALUE
         val chosen = ArrayList<Player>(1)
         for (player in players()) {

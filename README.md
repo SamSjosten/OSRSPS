@@ -369,8 +369,9 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::delloc` | Removes every loc on your tile |
 | `::resetlocs [radius]` | Puts the locs within radius tiles of you (default 0, your tile) back as the cache has them; a loc the server itself placed for good (a lodestone) stays |
 | `::npc id\|name [wander]` | Spawns an NPC on your tile, by id, menu name or gameval name: `::npc hans`, `::npc cow2_calf 3`. With a wander range it wanders that far from the tile, otherwise it stands still. Gone on restart |
-| `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range, the party size and hitpoints of a raid NPC, and whether each is frozen, hurt (its hitpoints left), poisoned, envenomed or drained, and who it is fighting ("no one" for an idle one that can fight) or retreating from |
+| `::npcs [radius]` | **everyone.** Lists the NPCs within radius tiles (default 15) with their index, tile, spawn tile and wander range, the party size and hitpoints of a raid NPC, and whether each is frozen, hidden, hurt (its hitpoints left), poisoned, envenomed or drained, and who it is fighting ("no one" for an idle one that can fight) or retreating from |
 | `::delnpc index` | Removes NPC `index` (from `::npcs`) |
+| `::hidenpc index\|mine` | Hides NPC `index` (from `::npcs`) where it stands, or shows it again if it is hidden: still in the world, but shown to no client, covering no tile, and neither clicked, hurt nor fighting. `mine` does it to every NPC you put in with `::npc`. What a boss fight does to a boss that is gone for a while |
 | `::respawns` | **everyone.** Lists the killed NPCs waiting to come back: type, spawn tile and ticks left (each type's Wiki respawn time from the killing blow, at least the 4 ticks the body lies) |
 | `::follow index` | NPC `index` (from `::npcs`) follows you and stops beside you, as an NPC chasing its target does; again to stop |
 | `::scenario [name]` | Starts a testing scenario: position, stats, inventory, equipment and vars in one go. Alone, lists the scenarios. `::scenario lumbridge-cows` |
@@ -2069,8 +2070,18 @@ warning graphic now, then damage each tick to whoever stands on the tiles), or p
 adds and hazards go with it. Each fight keeps a log of what it did, by tick. Every roll comes from the world's random, so
 a fight started on a seed plays the same way each time.
 
+A boss that goes from sight in the middle of its fight and comes back (Dreadnoth, split into jellies) is hidden, not
+removed: `World.hide(npc)` keeps it in the world under its index, with its fight, timers and hitpoints going on, while no
+client is shown it (RSProt's inaccessible avatar), its tiles are free, it stands still, and nothing clicks, attacks or
+hurts it and it fights no one; `World.show(npc)` brings it back where it stands (moved meanwhile with
+`Npcs.teleport`, there). By hand: `::hidenpc`.
+
+Check: `./gradlew test --tests 'osrsps.game.npc.NpcsTest' --tests 'osrsps.testclient.HeadlessHiddenNpcTest'`, and in
+RuneLite `test-runner/examples/npc-hidden.json`.
+
 | Encounter behaviour | Source |
 |---------------------|--------|
+| A hidden boss's poison waiting till it is shown, and hits already on their way to it when it is hidden doing nothing | guessed |
 | Fights running in the NPC phase, after NPC scripts | guessed, until a recording shows a boss |
 | A phase changing at the start of the tick its threshold or time is reached, before that tick's steps | guessed |
 | A fight's first tick running as it starts (steps with no delay, hazards due at once), paused or not | guessed |
