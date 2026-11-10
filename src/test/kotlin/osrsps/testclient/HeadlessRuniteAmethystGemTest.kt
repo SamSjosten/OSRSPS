@@ -22,7 +22,8 @@ import osrsps.map.LocShape
 
 /**
  * Gathering 2, step G1 through the headless client: the Mining Guild's runite and amethyst and Shilo Village's gem rocks,
- * each reached by ::tele as live has them, on open ground (no cache collision in tests).
+ * each reached by ::tele as live has them, on open ground (no cache collision in tests). The rl-client script
+ * test-runner/examples/mining-g1.json does the same in the real client from ::scenario gathering.
  */
 class HeadlessRuniteAmethystGemTest {
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 40) { crcs, millis ->

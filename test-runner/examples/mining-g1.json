@@ -1,0 +1,30 @@
+{
+ "name": "Gathering 2 step G1: the Mining Guild's runite and amethyst crystals (2 to 3 amethysts, then the empty wall) and Shilo Village's gem rocks, from ::scenario gathering (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario gathering", "expectMessage": "Started scenario gathering.", "comment": "Mining 99, a rune pickaxe, a worn charged glory, beside the guild's runite; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "assertLocation", "x": 3055, "y": 9721, "plane": 0},
+
+  {"step": "locOption", "locId": 11376, "option": "Mine", "x": 3056, "y": 9721},
+  {"step": "assertMessage", "contains": "mining.swing"},
+  {"step": "assertAnimation", "id": 624, "comment": "human_mining_rune_pickaxe"},
+  {"step": "assertInventory", "item": "Runite ore", "count": 1, "timeoutMs": 180000, "comment": "about 20/256 a roll at 99 with the guild's +7, a roll every 3 ticks"},
+  {"step": "assertMessage", "contains": "mining.get_ore ore=runite"},
+  {"step": "assertLoc", "locId": 11390, "x": 3056, "y": 9721, "comment": "rocks1 for 6 minutes in the guild"},
+
+  {"step": "command", "text": "::tele 3018 9702 0", "comment": "east of the crystals at 3017, 9701 to 9704; the standing tile is not yet checked on the VM"},
+  {"step": "locOption", "loc": "Amethyst crystals", "option": "Mine", "x": 3017, "y": 9702},
+  {"step": "assertMessage", "contains": "mining.swing"},
+  {"step": "assertLoc", "locId": 11393, "x": 3017, "y": 9702, "timeoutMs": 300000, "comment": "amethystrock_empty after 2 or 3 amethysts from the one click (either crystal variant empties to it)"},
+  {"step": "assertMessage", "contains": "mining.get_ore ore=amethyst"},
+
+  {"step": "command", "text": "::tele 2824 3001 0", "comment": "Shilo Village's surface gem rocks; the standing tile is not yet checked on the VM"},
+  {"step": "locOption", "locId": 11380, "option": "Mine", "x": 2825, "y": 3001},
+  {"step": "assertMessage", "contains": "mining.gem_rock_", "timeoutMs": 60000, "comment": "84/210 with the worn glory: about 82% a roll at 99"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
