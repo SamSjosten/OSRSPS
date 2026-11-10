@@ -207,8 +207,8 @@ class HeadlessVarrockThievingTest {
         // Both say the townsfolk's line when they catch a thief.
         assertEquals(PickpocketLines.CAUGHT_CITIZEN, guard.caught)
         assertEquals(PickpocketLines.CAUGHT_CITIZEN, warrior.caught)
-        assertEquals(30, Pickpocketing.POUCH_COINS[Pickpocketing.GUARD_POUCH])
-        assertEquals(18, Pickpocketing.POUCH_COINS[Pickpocketing.WARRIOR_POUCH])
+        assertEquals(30..30, Pickpocketing.POUCH_COINS[Pickpocketing.GUARD_POUCH])
+        assertEquals(18..18, Pickpocketing.POUCH_COINS[Pickpocketing.WARRIOR_POUCH])
     }
 
     private fun slotOf(client: HeadlessClient, id: Int) =
