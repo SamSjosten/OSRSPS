@@ -162,7 +162,7 @@ class Aggression(
      * that every aggressive NPC hunts by sight (RS2's hunt modes have a check_vis, set per NPC, which the Wiki doesn't
      * give), so a wall or a shut door keeps a player safe.
      */
-    private fun sees(npc: Npc, player: Player): Boolean =
+    internal fun sees(npc: Npc, player: Player): Boolean =
         npc.covers(player.x, player.z) || LineOfSight.clear(collision, npc.level, npc.x, npc.z, npc.type.size, player.x, player.z)
 
     /** What `::aggro` says of [player]'s tolerance. */

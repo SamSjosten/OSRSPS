@@ -238,6 +238,19 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `the HAM Storerooms have their five guards, each on its live tile and patrolling a corridor`() {
+        val names = (1..5).associate { (4521 + it) to "dttd_ham_guard_${it}_postquest" }
+        val result = NpcSpawnFile.parse(file("ham-storerooms.json"), NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray()), "ham-storerooms.json")
+        val spawns = result.spawns
+        assertEquals(emptyList(), result.unknown)
+        assertEquals(
+            setOf(4522 to (2566 to 5189), 4523 to (2566 to 5201), 4524 to (2567 to 5195), 4525 to (2577 to 5201), 4526 to (2567 to 5202)),
+            spawns.map { it.type.id to (it.x to it.z) }.toSet(),
+        )
+        assertTrue(spawns.all { it.patrol.size == 2 && it.patrol.all { stop -> stop.x in 2566..2577 && stop.z in 5189..5202 } && it.source.isNotBlank() })
+    }
+
+    @Test
     fun `the swamp has its 23 giant rats, 82 frogs, the level 5 goblin, the unicorn, its talking NPCs and tutors, and rats west of the castle`() {
         val names = mapOf(
             2856 to "giantrat", 2859 to "giantrat_grey", 2860 to "giantrat_grey2", 2861 to "giantrat_grey3", 2863 to "giantrat1_2",

@@ -1,0 +1,10 @@
+{
+  "about": "The H.A.M. Storerooms' five guards (Misthalin piece 7 step 4b; pickpocketed, Pickpocketing.kt and HamStorerooms.kt). Each tile and type is mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live, pre-Nov 2022) and the OSRS Wiki's Guard (H.A.M. Storerooms) page, which agree. The Wiki says they patrol; the routes are guessed: each walks its corridor end to end, waiting 3 ticks at each end.",
+  "spawns": [
+    {"npc": "dttd_ham_guard_1_postquest", "x": 2566, "z": 5189, "patrol": [[2577, 5189, 3], [2566, 5189, 3]], "source": "Guard, the south corridor, H.A.M. Storerooms. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022); patrol guessed"},
+    {"npc": "dttd_ham_guard_2_postquest", "x": 2566, "z": 5201, "patrol": [[2566, 5190, 3], [2566, 5201, 3]], "source": "Guard, the west corridor, H.A.M. Storerooms. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022); patrol guessed"},
+    {"npc": "dttd_ham_guard_3_postquest", "x": 2567, "z": 5195, "patrol": [[2576, 5195, 3], [2567, 5195, 3]], "source": "Guard, the middle corridor, H.A.M. Storerooms. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022); patrol guessed"},
+    {"npc": "dttd_ham_guard_4_postquest", "x": 2577, "z": 5201, "patrol": [[2577, 5190, 3], [2577, 5201, 3]], "source": "Guard, the east corridor, H.A.M. Storerooms. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022); patrol guessed"},
+    {"npc": "dttd_ham_guard_5_postquest", "x": 2567, "z": 5202, "patrol": [[2573, 5201, 3], [2567, 5202, 3]], "source": "Guard, the north corridor, H.A.M. Storerooms. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022); patrol guessed"}
+  ]
+}

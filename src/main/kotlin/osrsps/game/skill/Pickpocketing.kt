@@ -5,6 +5,7 @@ import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.combat.StatusEffects
 import osrsps.game.content.HamHideout
+import osrsps.game.content.HamStorerooms
 import osrsps.game.content.Townsfolk
 import osrsps.game.content.arriveDelay
 import osrsps.game.dialogue.Lines
@@ -151,6 +152,7 @@ class Pickpocketing(private val world: World) {
         val text = world.textFor(player)
         npc.effects.say(text[pocket.caught])
         npc.face(player)
+        HamStorerooms.settle(npc)
         world.combat.npcCombat[npc.type]?.anims?.attack?.takeIf { it >= 0 }?.let { npc.effects.anim(it) }
         player.message(text[PickpocketLines.FAIL, "who" to pocket.who])
         gear.glovesFailed(player)
@@ -413,6 +415,12 @@ class Pickpocketing(private val world: World) {
             Pocket(
                 HAM_MEMBERS, "H.A.M. member", 15, 222, 135, 239, 3, PickpocketLines.CAUGHT_HAM, loot = HAM_LOOT, op = HAM_PICKPOCKET,
                 damageMin = 1, lootPouch = HAM_POUCH, concussions = true, stunTicks = HAM_STUN_TICKS,
+            ),
+            // The H.A.M. Storerooms' guards (Misthalin piece 7 step 4b, [HamStorerooms]): level 20, 22.2 XP, 1 to 3
+            // damage, their own table; the members' 135 to 239 and the usual stun are guessed (the Wiki has no chart).
+            Pocket(
+                HamStorerooms.GUARDS, "guard", 20, 222, 135, 239, 3, PickpocketLines.CAUGHT_HAM, loot = HamStorerooms.GUARD_LOOT,
+                op = HamStorerooms.GUARD_PICKPOCKET, damageMin = 1, lootPouch = HAM_POUCH,
             ),
         )
 

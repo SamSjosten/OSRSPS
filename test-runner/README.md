@@ -182,6 +182,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `thieving-t1a.json`: Thieving 2 step T1a: a farmer pickpocketed at 99 with the gloves of silence and its coin
   pouches opened, Check on carried gloves and a dodgy necklace, and an Al Kharid warrior and an Edgeville guard
   pickpocketed (with `::keys on` and `::god on`; the gloves' wear and the necklace's saves are in the headless test).
+- `ham-storerooms.json`: Misthalin piece 7 step 4b: the H.A.M. Storerooms' hidden trapdoor climbed down, the
+  south-east room's door locked and picked, its chest opened with a steel key, the door opened from inside, a crack
+  squeezed through both ways, a guard pickpocketed and the ladder back up (with `::keys on` and `::god on`; the guards
+  attacking a picker and settling are in the headless test).
 - `al-kharid-toll-gate.json`: Al Kharid step 1: Open on the toll gate from both sides with no coins, a Border
   Guard's talk (with `::keys on`) that ends with the player through the gate, and the palace's west large doors
   opened together and shut again, and the curtain upstairs in the palace opened and shut.
