@@ -97,6 +97,13 @@ class WoodcuttingData(val axes: List<Axe>, val trees: Map<Int, TreeType>, val st
  * run-down a tick however many chop, and falling on the first log after it runs out (the Wiki gives only the totals);
  * the animation starting on the click's own tick (2004Scape waits a tick). No chopping sound is sent: the 241 synth ids
  * have no names to find it by.
+ *
+ * Gathering 2, step G2 (OSRS Wiki, Teak tree, Mahogany tree, Arctic pine tree and Redwood tree, read 2026-11-10): teak
+ * (35, timer 50, back in 15), mahogany (50, 100, 14), arctic pine (54, 140, 14) and redwood sections (90, 440, 199), each
+ * with the Wiki chart's pair per axe; stumps by gameval name (teaktree to teak_stump, redwoodtree_l to
+ * redwoodtree_l_cut). Out, for their own pieces: the Woodcutting Guild (its +7, its doors and the redwoods' ladders: the
+ * sections are reached by ::tele to levels 1 and 2), the Hardwood Grove's trading sticks, Etceteria's trees giving no
+ * logs (the kingdom of Miscellania) and Farming's patch trees.
  */
 class Woodcutting(private val world: World, val data: WoodcuttingData, private val nests: BirdNests) {
     private class TreeTimer(var left: Int, var lastTick: Long)
@@ -117,10 +124,13 @@ class Woodcutting(private val world: World, val data: WoodcuttingData, private v
         }
     }
 
-    /** The tree's chop option (Chop down, or Chop on a few), 1 to 5; 1 when the cache doesn't say (tests). */
+    /**
+     * The tree's chop option (Chop down, Chop on a few, Cut down on arctic pines, Cut on redwoods), 1 to 5; 1 when the
+     * cache doesn't say (tests).
+     */
     private fun chopOption(locId: Int): Int {
         val ops = world.locs.types[locId]?.ops ?: return 1
-        val index = ops.indexOfFirst { it != null && it.startsWith("Chop") }
+        val index = ops.indexOfFirst { it != null && (it.startsWith("Chop") || it.startsWith("Cut")) }
         return if (index >= 0) index + 1 else 1
     }
 

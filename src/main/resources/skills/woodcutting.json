@@ -262,6 +262,111 @@
       "locs": [
         {"tree": 10834, "stump": 9713, "name": "magictree"}
       ]
+    },
+    {
+      "key": "teak",
+      "name": "Teak tree",
+      "page": "Teak tree",
+      "level": 35,
+      "xpTenths": 850,
+      "logs": 6333,
+      "logsName": "teak_logs",
+      "respawn": [15, 15],
+      "despawn": 50,
+      "rates": {
+        "bronze": [15, 46],
+        "iron": [23, 70],
+        "steel": [31, 93],
+        "black": [35, 102],
+        "mithril": [39, 117],
+        "adamant": [47, 140],
+        "rune": [55, 164],
+        "dragon": [60, 190],
+        "crystal": [60, 200]
+      },
+      "locs": [
+        {"tree": 9036, "stump": 9037, "name": "teaktree"},
+        {"tree": 36686, "stump": 36687, "name": "prif_teaktree"},
+        {"tree": 40758, "stump": 40759, "name": "teaktree_update"}
+      ]
+    },
+    {
+      "key": "mahogany",
+      "name": "Mahogany tree",
+      "page": "Mahogany tree",
+      "level": 50,
+      "xpTenths": 1250,
+      "logs": 6332,
+      "logsName": "mahogany_logs",
+      "respawn": [14, 14],
+      "despawn": 100,
+      "rates": {
+        "bronze": [8, 25],
+        "iron": [12, 38],
+        "steel": [16, 50],
+        "black": [18, 54],
+        "mithril": [20, 63],
+        "adamant": [25, 75],
+        "rune": [29, 88],
+        "dragon": [34, 94],
+        "crystal": [36, 97]
+      },
+      "locs": [
+        {"tree": 9034, "stump": 9035, "name": "mahoganytree"},
+        {"tree": 36688, "stump": 36689, "name": "prif_mahoganytree"},
+        {"tree": 40760, "stump": 40761, "name": "mahoganytree_update"}
+      ]
+    },
+    {
+      "key": "arctic_pine",
+      "name": "Arctic pine tree",
+      "page": "Arctic pine tree",
+      "level": 54,
+      "xpTenths": 400,
+      "logs": 10810,
+      "logsName": "arctic_pine_log",
+      "respawn": [14, 14],
+      "despawn": 140,
+      "rates": {
+        "bronze": [8, 25],
+        "iron": [12, 37],
+        "steel": [16, 50],
+        "black": [18, 56],
+        "mithril": [20, 62],
+        "adamant": [24, 75],
+        "rune": [28, 87],
+        "dragon": [30, 93],
+        "crystal": [32, 100]
+      },
+      "locs": [
+        {"tree": 3037, "stump": 21274, "name": "arctic_pine"}
+      ]
+    },
+    {
+      "key": "redwood",
+      "name": "Redwood tree",
+      "page": "Redwood tree",
+      "level": 90,
+      "xpTenths": 3800,
+      "logs": 19669,
+      "logsName": "redwood_logs",
+      "respawn": [199, 199],
+      "despawn": 440,
+      "rates": {
+        "bronze": [2, 6],
+        "iron": [3, 9],
+        "steel": [4, 12],
+        "black": [4, 14],
+        "mithril": [5, 15],
+        "adamant": [6, 18],
+        "rune": [7, 21],
+        "dragon": [7, 30],
+        "crystal": [8, 35]
+      },
+      "locs": [
+        {"tree": 29668, "stump": 29669, "name": "redwoodtree_l"},
+        {"tree": 29670, "stump": 29671, "name": "redwoodtree_r"}
+      ]
     }
   ]
 }

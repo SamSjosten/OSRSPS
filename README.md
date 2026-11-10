@@ -417,8 +417,11 @@ The shared clock is the 2004Scape project's `%action_delay` model, inferred to h
 ### Woodcutting
 
 Chop down on a tree, or an axe used on one, chops it (`game/skill/Woodcutting.kt`, data in
-`src/main/resources/skills/woodcutting.json`): every regular, dead, evergreen, oak, willow, maple, yew and magic tree in
-the world, with the bronze to crystal axes. Words are under `woodcutting.*` in the dialogue file.
+`src/main/resources/skills/woodcutting.json`): every regular, dead, evergreen, oak, willow, teak, maple, mahogany, arctic
+pine, yew, magic and redwood tree in the world, with the bronze to crystal axes. Words are under `woodcutting.*` in the
+dialogue file. Trees outside Misthalin are where live has them and reached by ::tele: Chompy Marsh's teak
+(`::tele 2334 3048`), the Hardwood Grove's teaks and mahoganies (`::tele 2821 3083`), Neitiznot's arctic pines
+(`::tele 2318 3815`), and the Woodcutting Guild's redwood sections on its scaffolds (`::tele 1567 3493 1`, and level 2).
 
 | Woodcutting behaviour | Source |
 |-----------------------|--------|
@@ -431,6 +434,9 @@ the world, with the bronze to crystal axes. Words are under `woodcutting.*` in t
 | The timer runs down one a tick while anyone chops and back up one a tick while nobody does; the tree falls at the first log after it runs out | guessed (the Wiki gives only totals) |
 | No chopping sound | the 241 synth ids have no names to find it by |
 | A level-up box ends the action | 2004Scape engine's busy() check; guessed that live ends rather than waits |
+| Teak (35, 85 XP, timer 50, back in 15), mahogany (50, 125 XP, 100, 14), arctic pine (54, 40 XP, 140, 14), redwood sections (90, 380 XP, 440, 199), with each chart's pair per axe (`WoodcuttingG2Test`) | OSRS Wiki tree pages (read 2026-11-10) |
+| Their stumps: teaktree to teak_stump and the like, redwoodtree_l/_r to their _cut sections | 242 gamevals, by name |
+| Out: the Woodcutting Guild (its +7, doors and the redwoods' ladders), the Hardwood Grove's trading sticks, Etceteria's trees giving no logs, Farming's patch trees | out of scope; later pieces |
 
 Each log has a 1/256 chance of a bird nest (`game/skill/BirdNests.kt`, words under `birdnest.*`), 11/2560 with a
 Woodcutting cape worn; `::nest [seeds|ring|red|green|blue]` drops one as a tree does. Search on a nest leaves an empty
