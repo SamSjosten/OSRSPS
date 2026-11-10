@@ -354,7 +354,7 @@ class MeleeCombat(
         // XP for what the swing can still deal: what the NPC has left after the swings and shots already on their way,
         // down to its floor (a rockslug's 1 hitpoint pays nothing more). Nothing through its Protect from Melee
         // (Npc.protectsFromMelee), rolled as the prayer's flag stood at the swing.
-        val landed = if (npc.protectsFromMelee) 0 else rolled
+        val landed = if (npc.protectsFromMelee) 0 else combat.rolledOn(player, npc, style.type, rolled)
         val damage = minOf(armoured(npc, landed, magic = false), (npc.hitpoints - combat.floor(npc, player) - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage
         val bonus = combat.npcCombat[npc.type]?.xpBonusTenths ?: 0

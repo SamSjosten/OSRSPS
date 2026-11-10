@@ -121,6 +121,14 @@ class Combat(
     var sureHit: (Player, Npc, AttackType) -> SureHit = { _, _, _ -> SureHit.ROLLED }
 
     /**
+     * Set by content: what of [Player]'s rolled damage of [AttackType] on [Npc] it takes, before its armour, asked once
+     * as each attack on it is rolled (a hit that bounces or splashes on to another is rolled as usual): Ocellus's
+     * Deflect Melee and Deflect Range in his final stand ([osrsps.game.raid.Ocellus]; tsps capture notes; OSRS Wiki,
+     * The Fractured Archive/Strategies).
+     */
+    var rolledOn: (Player, Npc, AttackType, Int) -> Int = { _, _, _, rolled -> rolled }
+
+    /**
      * Why no attack of [player]'s reaches [npc], as the line that tells them, null when one can: its Slayer level
      * ([slayerGated]), or being shut out of where it is fought ([shutOut]). Asked wherever an attack begins, goes on,
      * or spreads to another NPC.

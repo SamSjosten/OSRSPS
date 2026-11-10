@@ -63,6 +63,7 @@ object OcellusLines : Lines("tfa_ocellus", "The_Fractured_Archive/Strategies") {
     val EMPOWERED_SIPHON = line("empowered_siphon", "chat, to the player whose hit destroys a Void Siphon in his third phase")
     val EMPOWERED_AUGMENTER = line("empowered_augmenter", "chat, to the player whose hit destroys a Void Augmenter in his third phase")
     val EMPOWERED_RIFT = line("empowered_rift", "chat, to the player whose hit destroys a Void Rift in his third phase")
+    val END = line("end", "Ocellus as his final stand begins, taking the last quadrant")
 
     private fun ordinal(n: Int) = listOf("first", "second", "third")[n - 1]
 }
@@ -119,8 +120,8 @@ object OcellusLines : Lines("tfa_ocellus", "The_Fractured_Archive/Strategies") {
  *   melee, melee and his slash on the tank, twice ([attack], [slash]), or a void shot at everyone with no tank in reach.
  *   At each of [FALLS_AT]% of his bar his quadrant falls ([startFall], [falling]): his line and the barriers down, so
  *   the party can Jump the stones clockwise to the next ([jump]); his second line; the fall, losing whoever is still on
- *   it; and he takes the next. STAND-IN until step 27: after the third fall, as his final stand would begin, he dies,
- *   and the room is done.
+ *   it; and he takes the next. After the third fall he takes the last for his final stand (raid step 27a; [Blast],
+ *   [finalStand]), dying at the end of his bar.
  * - In each quadrant (raid step 26b), [BOMBS_AT] ticks in, void bombs in every quadrant still standing ([bombs]),
  *   leaving void ([voidFloor]: [VOID_MIN] to [VOID_MAX] a tick on whoever stands on it) until it falls; and after each
  *   [ROTATION] attacks a special ([special]): from the second quadrant on [Special.INSOLENCE] first, then the cog, the
@@ -673,6 +674,64 @@ object Ocellus {
     /** Where [censer] stands: its quadrant's outer corner tile (guessed). */
     fun censerTile(centre: Tile, censer: Censer): Tile = quadrantTile(centre, censer.quadrant, STRIP_LENGTH, STRIP_LENGTH)
 
+    /**
+     * His final stand (raid step 27a; tsps capture notes, OSRS Wiki, The Fractured Archive/Strategies): with one
+     * quadrant left he takes it ([OcellusLines.END]), and [FINAL_AFTER] ticks later begins a [FINAL_LOOP]-tick loop
+     * ([finalStand]). At 0 he rises ([ANIM_DEFLECT_IN], [ANIM_DEFLECT_LOOP] at [FINAL_RISEN]) with Deflect Melee
+     * ([HEAD_ICON_DEFLECT_MELEE]): melee on him does nothing. The "range" arena graphic shows round him, again every
+     * [ARENA_EVERY] ticks, and his footprint and the tiles next to it are void. At [FINAL_LAND] he lands
+     * ([ANIM_DEFLECT_OUT]), the arena ends and the void with it. At each of [FINAL_BLASTS] his charged attack, a style at
+     * random shown by its pattern under him ([Blast]): [BLAST_MIN] to [BLAST_MAX] on everyone in the arena, or
+     * [BLAST_PRAYED_MIN] to [BLAST_PRAYED_MAX] through the protection prayer against it. A tick on, Soul Split
+     * ([HEAD_ICON_SOUL_SPLIT]) until his next deflect. At [FINAL_DEFLECT_RANGE] Deflect Range ([HEAD_ICON_DEFLECT_RANGE],
+     * ranged on him does nothing) with the "melee" arena graphic, and his quadrant void but for him and the tiles next to
+     * him, until [FINAL_ARENA_END]. At [FINAL_RIFTS] Void Rifts ([RIFTS_FIRST], one more each loop up to [RIFTS_MAX]).
+     * Then round again. He dies at the end of his bar. Estimates (capture notes): the blast's damage, Soul Split healing
+     * him [SOUL_SPLIT_SHARE]-th of what the blast deals, the void's tiles. Guessed: the blast landing [BLAST_LANDS]
+     * ticks after its pattern, the arena graphics' turn for each quadrant ([arenaTurn]), deflected hits doing nothing
+     * rather than turning back on the attacker (the capture notes' word; not in yet), no void bombs, flares but the
+     * Rifts, or specials in it. Not in yet (step 27b): the lifeforce orbs, the void bursts and the slower weapons'
+     * reduced damage; his death and the Blade (step 27c).
+     */
+    const val FINAL_AFTER = 3
+    const val FINAL_LOOP = 60
+    const val FINAL_RISEN = 2
+    const val FINAL_LAND = 21
+    val FINAL_BLASTS = listOf(24, 52)
+    const val FINAL_DEFLECT_RANGE = 31
+    const val FINAL_ARENA_END = 50
+    const val FINAL_RIFTS = 59
+    const val BLAST_LANDS = 2
+    const val BLAST_MIN = 40
+    const val BLAST_MAX = 50
+    const val BLAST_PRAYED_MIN = 6
+    const val BLAST_PRAYED_MAX = 7
+    const val SOUL_SPLIT_SHARE = 5
+    const val RIFTS_FIRST = 2
+    const val RIFTS_MAX = 5
+    const val ARENA_EVERY = 3
+    const val ANIM_DEFLECT_IN = 14863
+    const val ANIM_DEFLECT_LOOP = 14864
+    const val ANIM_DEFLECT_OUT = 14865
+    const val ANIM_BLAST = 14844
+
+    /** headicons_prayer (sprite group 440): the curses' icons, by the capture notes. */
+    const val HEAD_ICON_SOUL_SPLIT = 11
+    const val HEAD_ICON_DEFLECT_MELEE = 15
+    const val HEAD_ICON_DEFLECT_RANGE = 16
+
+    /** The deflect arenas' start, loop and end graphics, unturned (cache); each turn of 90 degrees is [ARENA_TURN] on. */
+    const val SPOT_ARENA_RANGE_START = 4349
+    const val SPOT_ARENA_MELEE_START = 4352
+    const val ARENA_TURN = 6
+
+    /** His charged attack's styles (tsps; OSRS Wiki, Strategies), each with its pattern under him (cache). */
+    enum class Blast(val type: AttackType, val spot: Int) {
+        MELEE(AttackType.CRUSH, 4328),
+        MAGIC(AttackType.MAGIC, 4329),
+        RANGED(AttackType.RANGED, 4330),
+    }
+
     /** The quadrants, clockwise from the north-west, and the arms of the cross, clockwise from the north. */
     enum class Quadrant { NW, NE, SE, SW }
     enum class Arm { N, E, S, W }
@@ -785,6 +844,12 @@ object Ocellus {
         val censers = HashMap<Censer, ZoneLoc>()
         val lit = HashSet<Censer>()
         val sureNext = WeakHashMap<Player, HashSet<Censer>>()
+
+        /** His final stand: the phase tick its loop began (-1 before), the loops begun, what he deflects, Soul Split. */
+        var finalSince = -1L
+        var finalLoops = 0
+        var deflect: Blast? = null
+        var soulSplit = false
     }
 
     /** Void on a tile: its loc (none on a bomb's outer tiles), the phase tick it crumbles, and its quadrant. */
@@ -1580,6 +1645,10 @@ object Ocellus {
             falling((phaseTick - fall).toInt())
             return
         }
+        if (state.fallen.size >= FALLS_AT.size) {
+            if (state.finalSince >= 0 && phaseTick >= state.finalSince) finalStand(((phaseTick - state.finalSince) % FINAL_LOOP).toInt())
+            return
+        }
         val due = FALLS_AT.getOrNull(state.fallen.size)
         if (due != null && boss.hitpoints * 100 <= boss.maxHitpoints * due) {
             startFall()
@@ -1863,13 +1932,13 @@ object Ocellus {
     }
 
     /** [FLARES] void flares of [kind] in his quadrant, if the cache has them and none stand already. */
-    private fun EncounterContext.spawnFlares(kind: Flare) {
+    private fun EncounterContext.spawnFlares(kind: Flare, count: Int = FLARES) {
         val type = world.npcTypes[kind.id] ?: return
         if (state.flares.isNotEmpty()) return
         val centre = centre(boss.spawn.x, boss.spawn.z)
         val size = boss.type.size
         val taken = HashSet<Tile>()
-        repeat(FLARES) {
+        repeat(count) {
             val tile = (1..20).asSequence().map { quadrantTile(centre, state.held, roll(2, STRIP_LENGTH), roll(2, STRIP_LENGTH)) }.firstOrNull { tile ->
                 tile !in taken && tile !in state.voids && !onCross(centre, tile.x, tile.z) && inArena(centre, tile.x, tile.z) &&
                     state.censers.values.none { it.x == tile.x && it.z == tile.z } &&
@@ -2192,6 +2261,111 @@ object Ocellus {
         }
     }
 
+    /** [t] ticks into a loop of his final stand (see [FINAL_LOOP]). */
+    private fun EncounterContext.finalStand(t: Int) {
+        val centre = centre(boss.spawn.x, boss.spawn.z)
+        val size = boss.type.size
+        val base = phaseTick - t
+        val near = (boss.x - 1..boss.x + size).flatMap { x -> (boss.z - 1..boss.z + size).map { z -> Tile(x, z) } }.toSet()
+        when (t) {
+            0 -> {
+                state.finalLoops++
+                deflect(Blast.MELEE)
+                boss.effects.anim(ANIM_DEFLECT_IN)
+                arena(SPOT_ARENA_RANGE_START, 0)
+                for (tile in near) voidOn(tile, base + FINAL_LAND - 1, -1)
+                log("final: rises, Deflect Melee, void round him")
+            }
+            FINAL_RISEN -> boss.effects.anim(ANIM_DEFLECT_LOOP)
+            FINAL_LAND -> {
+                boss.effects.anim(ANIM_DEFLECT_OUT)
+                arena(SPOT_ARENA_RANGE_START, 2)
+                log("final: lands")
+            }
+            FINAL_DEFLECT_RANGE -> {
+                deflect(Blast.RANGED)
+                arena(SPOT_ARENA_MELEE_START, 0)
+                val all = (1..STRIP_LENGTH).flatMap { x -> (1..STRIP_LENGTH).map { z -> quadrantTile(centre, state.held, x, z) } }
+                for (tile in all) if (tile !in near) voidOn(tile, base + FINAL_ARENA_END - 1, -1)
+                log("final: Deflect Range, his quadrant void")
+            }
+            FINAL_ARENA_END -> {
+                arena(SPOT_ARENA_MELEE_START, 2)
+                log("final: the arena ends")
+            }
+            FINAL_RIFTS -> spawnFlares(Flare.RIFT, minOf(RIFTS_MAX, RIFTS_FIRST + state.finalLoops - 1))
+            in FINAL_BLASTS -> blast()
+        }
+        // The arena's loop again while it shows.
+        if (t in 1 until FINAL_LAND && t % ARENA_EVERY == 0) arena(SPOT_ARENA_RANGE_START, 1)
+        if (t in FINAL_DEFLECT_RANGE + 1 until FINAL_ARENA_END && (t - FINAL_DEFLECT_RANGE) % ARENA_EVERY == 0) arena(SPOT_ARENA_MELEE_START, 1)
+    }
+
+    /** His deflect against [style]'s attacks, which takes Soul Split's place over his head. */
+    private fun EncounterContext.deflect(style: Blast) {
+        state.deflect = style
+        state.soulSplit = false
+        boss.avatar?.extendedInfo?.setHeadIconChange(0, HEAD_ICON_GROUP, if (style == Blast.RANGED) HEAD_ICON_DEFLECT_RANGE else HEAD_ICON_DEFLECT_MELEE)
+    }
+
+    /** The arena graphic from [start] at his middle, turned for his quadrant: [part] 0 its start, 1 its loop, 2 its end. */
+    private fun EncounterContext.arena(start: Int, part: Int) {
+        val size = boss.type.size
+        world.zones.mapAnim(boss.x + size / 2, boss.z + size / 2, boss.level, start + part + ARENA_TURN * arenaTurn(state.held))
+    }
+
+    /** Turns of 90 degrees for the arena graphics in [quadrant] (guessed). */
+    fun arenaTurn(quadrant: Quadrant): Int = quadrant.ordinal
+
+    /** His charged attack (see [Blast]): its pattern now, landing [BLAST_LANDS] ticks on; Soul Split a tick on. */
+    private fun EncounterContext.blast() {
+        val centre = centre(boss.spawn.x, boss.spawn.z)
+        val blast = Blast.entries[roll(0, Blast.entries.size - 1)]
+        val size = boss.type.size
+        state.deflect = null
+        boss.avatar?.extendedInfo?.resetHeadIcon(0)
+        boss.effects.anim(ANIM_BLAST)
+        world.zones.mapAnim(boss.x + size / 2, boss.z + size / 2, boss.level, blast.spot)
+        log("final: ${blast.name.lowercase()} blast")
+        val run = state.run
+        after(1) {
+            if (boss.dead || state.run != run) return@after
+            state.soulSplit = true
+            boss.avatar?.extendedInfo?.setHeadIconChange(0, HEAD_ICON_GROUP, HEAD_ICON_SOUL_SPLIT)
+        }
+        after(BLAST_LANDS) {
+            if (boss.dead || state.run != run) return@after
+            var dealtAll = 0
+            for (player in players) {
+                if (player.dead || !inArena(centre, player.x, player.z)) continue
+                val prayed = world.prayers.protects(player, blast.type)
+                val dealt = strike(player, if (prayed) roll(BLAST_PRAYED_MIN, BLAST_PRAYED_MAX) else roll(BLAST_MIN, BLAST_MAX))
+                dealtAll += dealt
+                log("${blast.name.lowercase()} blast hits ${player.username} for $dealt" + if (prayed) ", prayed against" else "")
+            }
+            if (state.soulSplit && dealtAll >= SOUL_SPLIT_SHARE) {
+                val healed = minOf(dealtAll / SOUL_SPLIT_SHARE, boss.maxHitpoints - boss.hitpoints)
+                if (healed > 0) {
+                    boss.hitpoints += healed
+                    boss.effects.hit(-1, HitsplatType.HEAL, HitsplatType.HEAL, healed)
+                    boss.effects.headBar(-1, MeleeCombat.HEALTH_BAR, MeleeCombat.healthBarFill(boss.hitpoints, boss.maxHitpoints))
+                    log("soul split heals him $healed")
+                }
+            }
+        }
+    }
+
+    /** Whether [npc], in his final stand, deflects [type]: what of [rolled] he takes. */
+    fun deflected(npc: Npc, type: AttackType, rolled: Int): Int {
+        if (npc.type.id != P3) return rolled
+        val deflect = states[npc]?.deflect ?: return rolled
+        val melee = type == AttackType.STAB || type == AttackType.SLASH || type == AttackType.CRUSH
+        return if ((deflect == Blast.MELEE && melee) || (deflect == Blast.RANGED && type == AttackType.RANGED)) 0 else rolled
+    }
+
+    /** What he deflects and whether Soul Split is on, and the loops of his final stand begun, for tests. */
+    fun finalState(boss: Npc): Triple<Blast?, Boolean, Int>? = states[boss]?.takeIf { it.finalSince >= 0 }?.let { Triple(it.deflect, it.soulSplit, it.finalLoops) }
+
     /** His bar reached the next of [FALLS_AT]: his line, and the barriers drop (tsps). */
     private fun EncounterContext.startFall() {
         state.fallStart = phaseTick
@@ -2208,8 +2382,8 @@ object Ocellus {
 
     /**
      * [t] ticks into his quadrant's fall (tsps): his second line, his fade out, the quadrant's fall with whoever is still
-     * on it and the stones of the arms beside it, and then the next quadrant. STAND-IN until step 27: after the third
-     * fall, when his final stand would begin, he dies, and the room is done. Guessed: no attacks while it falls.
+     * on it and the stones of the arms beside it, and then the next quadrant, after the third fall for his final stand
+     * ([FINAL_AFTER]). Guessed: no attacks while it falls.
      */
     private fun EncounterContext.falling(t: Int) {
         when (t) {
@@ -2239,15 +2413,15 @@ object Ocellus {
                 }
             }
             FALL_NEXT -> {
-                if (state.fallen.size >= FALLS_AT.size) {
-                    // STAND-IN until step 27: his final stand isn't built, so he dies as it would begin.
-                    log("final stand: stand-in, he dies")
-                    boss.holdsAtZero = false
-                    boss.hitpoints = 0
-                    world.meleeCombat.hit(boss, null, 0, world.tick)
-                    return
-                }
                 take(Quadrant.entries[(state.held.ordinal + 1) % Quadrant.entries.size])
+                if (state.fallen.size >= FALLS_AT.size) {
+                    // The last quadrant: his final stand, to the end of his bar.
+                    boss.holdsAtZero = false
+                    state.barriers = false
+                    state.finalSince = phaseTick + FINAL_AFTER
+                    boss.effects.say(world.dialogueText.get(OcellusLines.END))
+                    log("final stand in ${state.held.name}")
+                }
             }
         }
     }
@@ -2347,6 +2521,8 @@ object Ocellus {
         world.combat.shutOut = { player, npc -> npc.type.id == P2 || rootedBy(npc) === player || shutOut(player, npc) }
         val sureHit = world.combat.sureHit
         world.combat.sureHit = { player, npc, type -> flareHit(npc.type.id, type) ?: censerHit(player, npc, type) ?: sureHit(player, npc, type) }
+        val rolledOn = world.combat.rolledOn
+        world.combat.rolledOn = { player, npc, type, rolled -> rolledOn(player, npc, type, deflected(npc, type, rolled)) }
     }
 
     /** What each player has dealt each Siphon standing, for the heal as it is destroyed. */
