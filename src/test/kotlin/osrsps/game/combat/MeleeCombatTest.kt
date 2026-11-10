@@ -877,6 +877,16 @@ class MeleeCombatTest {
     }
 
     @Test
+    fun `Retribution passes over what can't be fought, as a wall beast's hole, and the death still goes ahead`() {
+        alice.skills.setLevel(Skill.PRAYER, 4)
+        prayerEffects += Prayers.RETRIBUTION
+        val shopkeeper = spawn(hans, x = 3213)
+        melee.hitPlayer(alice, shopkeeper, 10, tick)
+        assertEquals(listOf(alice), deadPlayers)
+        assertTrue(shopkeeper.effects.pendingHits.isEmpty())
+    }
+
+    @Test
     fun `god takes no damage and still shows the block`() {
         val npc = spawn()
         alice.god = true

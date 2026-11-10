@@ -83,6 +83,9 @@ class WallBeasts(private val world: World) {
     /** By hole, the players it has reached for, each until they step off its tile. */
     private val reached = HashMap<Npc, MutableSet<Player>>()
 
+    /** By beast, the last tick it had someone to fight. */
+    private val lastFought = HashMap<Npc, Long>()
+
     /** Whether [player] wears a helmet that repels a wall beast: a spiny helmet, or any slayer helmet by its name. */
     fun helmeted(player: Player): Boolean {
         val worn = player.equipment[WearPos.HEAD] ?: return false
@@ -125,18 +128,20 @@ class WallBeasts(private val world: World) {
 
     /**
      * Once a tick: a beast goes back in [BACK_TICKS] after its fight's last tick, counting from whichever came last:
-     * it fighting someone, being hit, or a player's attack at it setting off (so a shot or spell still in the air
-     * never lands on the hole, which can't be fought).
+     * it fighting someone (even one who never hit back), being hit, or a player's attack at it setting off (so a shot
+     * or spell still in the air never lands on the hole, which can't be fought).
      */
     fun keepFighting() {
         val players = world.onlinePlayers
+        lastFought.keys.removeIf { it.transformedTo?.id != BEAST || it.dead || world.npcs[it.index] !== it }
         for (npc in world.npcs.all) {
             if (npc.spawn.type.id != HOLE || npc.transformedTo?.id != BEAST || npc.dead) continue
             if (npc.target != null) {
+                lastFought[npc] = world.tick
                 npc.transformTicks = BACK_TICKS
                 continue
             }
-            var last = npc.attackedTick
+            var last = maxOf(npc.attackedTick, lastFought[npc] ?: Long.MIN_VALUE)
             for (player in players) if (player.attackedNpc === npc) last = maxOf(last, player.attackedNpcTick)
             npc.transformTicks = (BACK_TICKS - (world.tick - last)).toInt().coerceIn(1, BACK_TICKS)
         }

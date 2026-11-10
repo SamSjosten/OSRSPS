@@ -179,6 +179,8 @@ class HeadlessSwampCaveSlayerTest {
 
                 client.tele(3164, 9553)
                 client.wear(WallBeasts.SPINY_HELMET)
+                // Auto retaliate off, so only the beast fights: it still stays out once it gives up on them.
+                client.commandReply("varp 172 1") { it.startsWith("Varp 172") }
                 client.tele(3164, 9555)
                 client.seen("[swamp_slayer.helmet_repels]")
                 client.await("the beast out") { if (npc.type.id == WallBeasts.BEAST) Unit else null }
@@ -186,8 +188,11 @@ class HeadlessSwampCaveSlayerTest {
                 assertEquals(2, client.messages().count { it.text == "[swamp_slayer.grabbed]" })
                 assertEquals(3164 to 9556, npc.x to npc.z, "it never leaves its hole")
 
-                // Away from it and out of a fight, it goes back in.
+                // Away from it and out of a fight, it goes back in, though not as soon as it gives up on them.
                 client.tele(3164, 9545)
+                client.await("the beast giving up") { if (npc.target == null) Unit else null }
+                client.awaitTicks(5)
+                assertEquals(WallBeasts.BEAST, npc.type.id, "out for a while after its fight")
                 client.await("back in its hole", timeoutMillis = 30_000) { if (npc.type.id == WallBeasts.HOLE) Unit else null }
             }
         }
