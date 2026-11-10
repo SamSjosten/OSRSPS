@@ -1127,10 +1127,11 @@
       "range": 10,
       "defence": { "stab": 350, "slash": 100, "crush": 30, "magic": 200, "light": 250, "standard": 250, "heavy": 250 },
       "anims": { "attack": "npc_ocellus_phase3_melee_basic", "defend": null, "death": "npc_ocellus_phase3_death" },
+      "deathTicks": 14,
       "respawnTicks": 50,
       "immune": ["poison", "venom", "freeze"],
       "drainCap": { "defence": 60 },
-      "source": "OSRS Wiki, Ocellus (phase 3, id 16677), read 2026-11-10: speed 3, melee max hit 30 and magic 36, the defence bonuses, immune to poison and venom, Defence drained to 150 at most (60% of 250). Immune to freeze, guessed as in his first phase. His attacks come from his fight (Ocellus): melee on his tank, his slash, a void shot at everyone when he can't reach the tank (tsps capture notes; Wiki). Guessed: slash as his melee style, no attack bonuses (the Wiki's are unreadable), no block animation, the 10-tile range, the respawn, which never comes"
+      "source": "OSRS Wiki, Ocellus (phase 3, id 16677), read 2026-11-10: speed 3, melee max hit 30 and magic 36, the defence bonuses, immune to poison and venom, Defence drained to 150 at most (60% of 250). Immune to freeze, guessed as in his first phase. His attacks come from his fight (Ocellus): melee on his tank, his slash, a void shot at everyone when he can't reach the tank (tsps capture notes; Wiki). Guessed: slash as his melee style, no attack bonuses (the Wiki's are unreadable), no block animation, the 10-tile range, his body going 14 ticks after his death, as the Blade appears where he fell (step 27c; the capture notes' 14 ticks to the Blade), the respawn, which never comes"
     },
     {
       "npcs": ["tfa_ocellus_p3_void_vine"],
