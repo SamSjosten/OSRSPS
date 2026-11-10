@@ -18,7 +18,8 @@ import osrsps.map.CollisionMap
  * as the cache has them ([TeleportObjs]): Varrock Teleport takes its runes, gives 35 XP and lands in Varrock's square
  * [Teleports.CAST_TICKS] ticks after the click; too low a level or too few runes casts nothing; a staff of air stands
  * in for the air runes; Ape Atoll Teleport takes its banana; a Lumbridge tablet lands in Lumbridge's plus with no XP
- * and is used up; and above level 20 Wilderness neither a spell nor a tablet works, and nothing is taken.
+ * and is used up; and above level 20 Wilderness neither a spell nor a tablet works, and nothing is taken. The rl-client
+ * script test-runner/examples/magic-teleports.json casts and breaks them in the real client.
  */
 class HeadlessTeleportsTest {
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->

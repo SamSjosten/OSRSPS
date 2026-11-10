@@ -714,7 +714,8 @@ loaded the player lands on the area's centre. The quests that unlock some of the
 `::scenario magic` stands you on the Lumbridge spawn with 99 Magic, a staff of air, runes for ten of every teleport
 and two of each tablet.
 
-Check: `./gradlew test --tests 'osrsps.game.skill.magic.*' --tests 'osrsps.testclient.HeadlessTeleportsTest'`.
+Check: `./gradlew test --tests 'osrsps.game.skill.magic.*' --tests 'osrsps.testclient.HeadlessTeleportsTest'`, and in
+RuneLite `test-runner/examples/magic-teleports.json`.
 
 ## Items and inventory
 
