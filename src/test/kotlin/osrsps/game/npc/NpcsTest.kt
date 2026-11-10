@@ -35,6 +35,54 @@ class NpcsTest {
     }
 
     @Test
+    fun `a hidden NPC covers no tile and stands still till it is shown, then covers the tiles it was moved to`() {
+        val npcs = Npcs(map(), GameRandom(1))
+        val hidden = npcs.add(spawn(cow, x = 3230, wander = 5))!!
+        val other = npcs.add(spawn(x = 3229, wander = 0))!!
+        assertFalse(npcs.canStep(other, 1, 0), "the cow's tiles are its own")
+        assertTrue(npcs.hide(hidden))
+        assertFalse(npcs.hide(hidden), "hidden twice is hidden once")
+        assertTrue(hidden.hidden && npcs[hidden.index] === hidden, "it keeps its place in the world")
+        assertTrue(npcs.canStep(other, 1, 0), "its tiles are free")
+        // Content that looks NPCs up doesn't find it; the engine's own loops and ::npcs do.
+        assertEquals(listOf(other), npcs.inPlay.toList())
+        assertEquals(listOf(other), npcs.near(3230, 3230, 0, 5))
+        assertEquals(listOf(hidden, other), npcs.near(3230, 3230, 0, 5, hidden = true))
+        assertEquals(listOf(hidden, other), npcs.all.toList())
+        repeat(200) { npcs.process() }
+        assertEquals(Tile(3230, 3230), Tile(hidden.x, hidden.z), "it doesn't wander")
+        // A boss fight's own steps don't move it either, nor set it following anyone.
+        val player = Player(1, "test", 3240, 3230, 0)
+        npcs.stepTowards(hidden, player)
+        npcs.stepToward(hidden, 3240, 3230)
+        assertFalse(npcs.stepTo(hidden, 3240, 3230))
+        npcs.follow(hidden, player)
+        npcs.followNpc(hidden, other)
+        repeat(5) { npcs.process() }
+        assertEquals(Tile(3230, 3230), Tile(hidden.x, hidden.z), "nor do a fight's steps move it")
+        assertTrue(hidden.following == null && hidden.leader == null && hidden.destination == null)
+        // Moved while hidden, it blocks neither the tiles it left nor the ones it is on.
+        npcs.teleport(hidden, 3227, 3230)
+        assertTrue(npcs.canStep(other, 1, 0))
+        assertTrue(npcs.canStep(other, -1, 0))
+        assertTrue(npcs.show(hidden))
+        assertFalse(npcs.show(hidden), "shown twice is shown once")
+        assertFalse(npcs.canStep(other, -1, 0), "shown, it covers the tiles it was moved to")
+        assertTrue(npcs.canStep(other, 1, 0), "and not the ones it left")
+        npcs.remove(hidden)
+        assertTrue(npcs.canStep(other, -1, 0), "removed, it covers nothing: its tiles were counted once")
+        // One removed while hidden leaves nothing behind either.
+        val again = npcs.add(spawn(cow, x = 3227, wander = 0))!!
+        npcs.hide(again)
+        npcs.remove(again)
+        assertTrue(npcs.canStep(other, -1, 0))
+        val third = npcs.add(spawn(cow, x = 3227, wander = 0))!!
+        assertFalse(npcs.canStep(other, -1, 0))
+        npcs.remove(third)
+        assertTrue(npcs.canStep(other, -1, 0), "the tile count didn't go below nothing while it was hidden")
+    }
+
+    @Test
     fun `the same seed gives the same paths`() {
         val spawns = arrayOf(spawn(x = 3220), spawn(x = 3240), spawn(cow, x = 3230, z = 3245))
         val first = paths(42, 500, map(), *spawns)

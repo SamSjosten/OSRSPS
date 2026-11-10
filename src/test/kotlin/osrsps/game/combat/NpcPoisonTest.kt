@@ -131,6 +131,24 @@ class NpcPoisonTest {
     }
 
     @Test
+    fun `a hidden NPC's poison waits where its timer was, and takes no new poison`() {
+        val npc = npc(man)
+        poison.poison(npc, 6)
+        run(npc, Poison.TICKS - 1)
+        npc.hidden = true
+        run(npc, Poison.TICKS * 3)
+        assertTrue(hits.isEmpty(), "hidden, it isn't hit")
+        assertEquals("poisoned, hitting 2 in 2 ticks", poison.describe(npc))
+        assertFalse(poison.poison(npc, 20), "nor poisoned more strongly")
+        assertFalse(poison.envenom(npc))
+        npc.hidden = false
+        run(npc, 1)
+        assertTrue(hits.isEmpty())
+        run(npc, 1)
+        assertEquals(listOf(2 to Poison.POISON_HITSPLAT), hits, "shown, the hit comes after the ticks that were left")
+    }
+
+    @Test
     fun `a dead NPC takes no poison, and its timer stops`() {
         val npc = npc(man)
         poison.poison(npc, 20)

@@ -264,7 +264,7 @@ fun registerVarrockMuseum(world: World) {
                 throughGate(world)
                 return@onLoc
             }
-            val guard = world.npcs.all.firstOrNull { it.type.id == GATE_GUARD && it.level == 0 && it.x in GATE_X - 4..GATE_X + 4 && it.z in GATE_Z - 4..GATE_Z + 4 }
+            val guard = world.npcs.inPlay.firstOrNull { it.type.id == GATE_GUARD && it.level == 0 && it.x in GATE_X - 4..GATE_X + 4 && it.z in GATE_Z - 4..GATE_Z + 4 }
             var goIn = guard == null
             if (guard != null) {
                 asked += player

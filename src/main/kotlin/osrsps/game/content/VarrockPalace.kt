@@ -233,7 +233,7 @@ object VarrockPalace {
     /** Aeonisig speaks up in the King's talk: the one nearest the King, or his chathead if none is close. */
     private suspend fun Dialogue.advisor(world: World, anim: ChatAnim, line: Line) {
         val king = npc
-        val near: Npc? = world.npcs.all.firstOrNull {
+        val near: Npc? = world.npcs.inPlay.firstOrNull {
             it.type.id == AEONISIG && king != null && it.level == king.level && abs(it.x - king.x) <= ADVISOR_RANGE && abs(it.z - king.z) <= ADVISOR_RANGE
         }
         if (near != null) {

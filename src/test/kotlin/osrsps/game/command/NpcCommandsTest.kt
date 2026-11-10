@@ -53,6 +53,40 @@ class NpcCommandsTest {
     }
 
     @Test
+    fun `hidenpc hides an NPC and shows it again, by index or every one the player put in`() {
+        run("npc hans")
+        run("npc cow calf")
+        replies.clear()
+        run("hidenpc 1")
+        run("npcs")
+        run("hidenpc 1")
+        run("hidenpc mine")
+        run("hidenpc 2")
+        run("hidenpc mine")
+        run("hidenpc mine")
+        run("hidenpc 9")
+        run("hidenpc")
+        assertEquals(
+            listOf(
+                "Hid Hans #1.",
+                "2 NPCs within 15 tiles:",
+                "#1 Hans (3105) at 3222, 3218; spawn 3222, 3218, wander 0; hidden",
+                "#2 Cow calf (2792) at 3222, 3218; spawn 3222, 3218, wander 0",
+                "Hans #1 is back at 3222, 3218.",
+                "Hid 2 NPCs you put in.",
+                "Cow calf #2 is back at 3222, 3218.",
+                // One of the two shows, so both are hidden: only the calf changes.
+                "Hid 1 NPC you put in.",
+                "2 NPCs you put in are back.",
+                "No NPC #9",
+                "Usage: ::hidenpc index|mine (from ::npcs); again to show it",
+            ),
+            replies,
+        )
+        assertEquals(listOf(false, false), listOf(world.npcs[1]!!.hidden, world.npcs[2]!!.hidden))
+    }
+
+    @Test
     fun `npcs lists the NPCs nearby and delnpc removes one`() {
         run("npcs")
         run("npc hans 2")

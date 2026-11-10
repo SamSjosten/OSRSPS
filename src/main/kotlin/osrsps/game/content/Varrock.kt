@@ -161,7 +161,7 @@ fun registerVarrock(world: World) {
         // The banker answers from behind the door; one line, and its chathead expression, guessed.
         world.handlers.onLoc(WEST_BANK_LOCKED_DOOR, KNOCK_AT) { op ->
             val door = op.loc!!
-            val banker = world.npcs.all.firstOrNull { it.type.id == WEST_BANK_DOORGUARD && it.level == door.level && abs(it.x - door.x) <= 3 && abs(it.z - door.z) <= 3 }
+            val banker = world.npcs.inPlay.firstOrNull { it.type.id == WEST_BANK_DOORGUARD && it.level == door.level && abs(it.x - door.x) <= 3 && abs(it.z - door.z) <= 3 }
             if (banker == null) {
                 world.message(player, WestBankDoorLines.KNOCK)
             } else {

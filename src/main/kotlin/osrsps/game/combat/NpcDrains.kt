@@ -27,7 +27,7 @@ class NpcDrains(
     fun drain(npc: Npc, stat: NpcStat, levels: Int): Int {
         require(levels >= 0) { "A drain of $levels levels" }
         val def = npcCombat(npc) ?: return 0
-        if (npc.dead) return 0
+        if (npc.outOfPlay) return 0
         val base = npc.type.stats[stat]
         val cap = def.drainCaps[stat] ?: 100
         // The levels the cap keeps: 40% of 75 is 30, and of 76 is 31 (rounded up, guessed).
@@ -51,6 +51,8 @@ class NpcDrains(
      * first level comes back a full minute after the drain.
      */
     fun process(npc: Npc) {
+        // Guessed: a hidden NPC's stats come back as its other timers go on (Npc.hidden); only a dead one's stop. No
+        // recording shows a drained boss going from sight.
         if (npc.dead) return
         if (npc.drainRestoreTicks < 0) {
             if (npc.drained.any { it > 0 }) npc.drainRestoreTicks = RESTORE_TICKS

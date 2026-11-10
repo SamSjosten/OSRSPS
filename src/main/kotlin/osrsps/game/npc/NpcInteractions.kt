@@ -160,7 +160,7 @@ class NpcInteractions(
     private fun clickable(player: Player, index: Int): Npc? {
         val npc = npcs[index]
         // The client only sends NPCs it shows, so a miss is one that left before the click arrived, or a forged packet.
-        if (npc == null || npc.level != player.level || abs(npc.x - player.x) > VIEW_RANGE || abs(npc.z - player.z) > VIEW_RANGE) {
+        if (npc == null || npc.hidden || npc.level != player.level || abs(npc.x - player.x) > VIEW_RANGE || abs(npc.z - player.z) > VIEW_RANGE) {
             logger.debug { "${player.username} clicked NPC $index, which isn't in view" }
             return null
         }
@@ -238,8 +238,9 @@ class NpcInteractions(
      */
     internal fun tryInteract(player: Player, interaction: NpcInteraction): Boolean {
         val npc = interaction.npc
-        if (npcs[npc.index] !== npc || npc.level != player.level) {
-            // Guessed: the NPC went away (or up a ladder); the player stops turning to it and finishes their walk.
+        if (npcs[npc.index] !== npc || npc.hidden || npc.level != player.level) {
+            // Guessed: the NPC went away (or up a ladder, or out of sight); the player stops turning to it and finishes
+            // their walk.
             player.interaction = null
             stopFacing(player)
             if (interaction.repeat) player.anim(-1)

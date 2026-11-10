@@ -272,6 +272,7 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         }
         val target = target(world, player, args.drop(1), "::hit $damage")
         if (target.dead) fail("${target.type.name} #${target.index} is already dead")
+        if (target.hidden) fail("${target.type.name} #${target.index} is hidden")
         if (world.combat.npcCombat[target.type] == null) fail("${target.type.name} #${target.index} can't be fought")
         val dealt = world.meleeCombat.hit(target, player, damage, world.tick)
         reply("Hit ${target.type.name} #${target.index} for $dealt: ${target.hitpoints}/${target.maxHitpoints} hp" + if (target.dead) ", dead" else "")
@@ -297,6 +298,7 @@ fun CommandRegistry.registerCombatCommands(world: World) {
     register("kill", "::kill [index|name]", admin = true) {
         val target = target(world, player, args, "::kill")
         if (target.dead) fail("${target.type.name} #${target.index} is already dead")
+        if (target.hidden) fail("${target.type.name} #${target.index} is hidden")
         if (world.combat.npcCombat[target.type] == null) fail("${target.type.name} #${target.index} can't be fought")
         world.meleeCombat.hit(target, player, target.hitpoints, world.tick, finishing = true)
         reply("Killed ${target.type.name} #${target.index}.")
@@ -316,8 +318,8 @@ private fun target(world: World, player: Player, args: List<String>, usage: Stri
             else -> null
         }
         val attacker = player.attackedBy?.takeIf { it.target === player }
-        return listOfNotNull(fought, attacker).firstOrNull { !it.dead && filter(it) }
-            ?: nearest(world, player.x, player.z, player.level) { !it.dead && filter(it) }
+        return listOfNotNull(fought, attacker).firstOrNull { !it.outOfPlay && filter(it) }
+            ?: nearest(world, player.x, player.z, player.level) { !it.outOfPlay && filter(it) }
     }
     return when {
         args.isEmpty() -> pick { world.combat.npcCombat[it.type] != null }
@@ -330,7 +332,7 @@ private fun target(world: World, player: Player, args: List<String>, usage: Stri
                 // Else one of the boss fight's NPCs, anywhere in it: the Smorks' cart stands further off in their room
                 // than the search reaches from its way in (raid step 18a).
                 ?: world.encounters.all.firstOrNull { !it.ended && it.boss.level == player.level && it.covers(player.x, player.z) }
-                    ?.let { fight -> (listOf(fight.boss) + fight.adds).firstOrNull { !it.dead && named(it) } }
+                    ?.let { fight -> (listOf(fight.boss) + fight.adds).firstOrNull { !it.outOfPlay && named(it) } }
                 ?: throw CommandFailure("No NPC called '$text' within $SEARCH_RADIUS tiles")
         }
     }

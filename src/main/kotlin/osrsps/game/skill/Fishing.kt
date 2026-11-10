@@ -156,7 +156,7 @@ class Fishing(private val world: World) {
     /** Moves the fishing spots whose time is up. Call once a tick, in the NPC phase. */
     fun process() {
         val tick = world.tick
-        for (npc in world.npcs.all) {
+        for (npc in world.npcs.inPlay) {
             if (npc.spawn.type.id !in SPOT_IDS) continue
             val due = nextMove.getOrPut(npc) { tick + moveDelay() }
             if (due > tick) continue

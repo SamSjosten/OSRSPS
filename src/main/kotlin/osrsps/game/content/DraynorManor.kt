@@ -213,8 +213,8 @@ private suspend fun ScriptContext.takeRubberTube(world: World, obj: ZoneObj) {
         player.anim(DraynorManor.ANIM_PICKUP_TABLE)
     }
     if (!world.groundObjs.take(player, obj)) return
-    val skeleton = world.npcs.all.firstOrNull {
-        it.type.id == DraynorManor.SKELETON && !it.dead && it.level == obj.level && abs(it.x - obj.x) <= 4 && abs(it.z - obj.z) <= 4
+    val skeleton = world.npcs.inPlay.firstOrNull {
+        it.type.id == DraynorManor.SKELETON && !it.outOfPlay && it.level == obj.level && abs(it.x - obj.x) <= 4 && abs(it.z - obj.z) <= 4
     } ?: return
     DraynorManor.setOn(world, skeleton, player)
 }

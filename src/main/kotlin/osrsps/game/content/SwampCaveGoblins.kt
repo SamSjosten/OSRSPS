@@ -98,7 +98,7 @@ class SwampCaveGoblins(private val world: World) {
                 chatPlayer(ChatAnim.ANGRY, SLAY_YOU_ALL)
                 val cries = listOf(FLEE_1, FLEE_2, FLEE_3, FLEE_4)
                 for (goblin in world.npcs.near(player.x, player.z, player.level, CRY_RADIUS)) {
-                    if (goblin.type.id in GOBLINS && !goblin.dead) goblin.effects.say(text(cries[roll(cries.size)]))
+                    if (goblin.type.id in GOBLINS && !goblin.outOfPlay) goblin.effects.say(text(cries[roll(cries.size)]))
                 }
             }
             return
