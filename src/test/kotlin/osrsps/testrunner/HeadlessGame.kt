@@ -339,7 +339,9 @@ internal class HeadlessGame(
         val type = types.headbars[bar.type] ?: HeadbarTypes.Type()
         // As the client: a bar not updated for its type's stick time (counted from when it settled) is gone.
         // Inferred: the client counts the stick time from the update's start delay plus its end time.
-        if ((client.ticksSeen - bar.ticks) * CYCLES_PER_TICK >= bar.settleCycles + type.stickCycles) return Game.Health(-1, 0)
+        // The bar came before its own tick's end, which counted one more tick: that tick is not time it has been up.
+        val upTicks = client.ticksSeen - bar.ticks - 1
+        if (upTicks * CYCLES_PER_TICK >= bar.settleCycles + type.stickCycles) return Game.Health(-1, 0)
         return Game.Health(bar.fill, type.width)
     }
 
