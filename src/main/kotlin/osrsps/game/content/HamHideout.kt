@@ -4,6 +4,7 @@ import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.dialogue.Lines
+import osrsps.game.script.Op
 import osrsps.game.script.ScriptContext
 
 /** The H.A.M. Hideout's words, in the dialogue file. */
@@ -86,6 +87,10 @@ object HamHideout {
     const val OPEN = "ham_trapdoor_open"
     const val CONCUSSIONS = "ham_concussions"
 
+    /** [Player.charges] names for a pick in progress: ticks left of this try, and the cell door's fails so far. */
+    const val PICK_WAIT = "ham_pick_wait"
+    const val CELL_FAILS = "ham_cell_fails"
+
     /** A Pick-lock's chance in hundredths at Thieving [level]: 4 to 98, or 24 to 99 [withLockpick]. */
     fun pickChance(level: Int, withLockpick: Boolean): Int {
         val (low, high) = if (withLockpick) 24 to 99 else 4 to 98
@@ -139,12 +144,18 @@ object HamHideout {
         world.teleport(player, x, z, level)
     }
 
-    /** One Pick-Lock try on the trapdoor; a fail numbs the fingers, Thieving down 1. */
-    internal suspend fun ScriptContext.pickTrapdoor(world: World) {
-        arriveDelay()
-        if (trapdoorOpen(player)) return
-        world.message(player, HamHideoutLines.PICK)
-        delay(PICK_TICKS)
+    /**
+     * One Pick-Lock try on the trapdoor; a fail numbs the fingers, Thieving down 1. Like the cell door's, the try ticks
+     * on through [World.repeatOp], so a click or a walk abandons it.
+     */
+    internal suspend fun ScriptContext.pickTrapdoor(world: World, op: Op) {
+        if (!op.repeat) {
+            arriveDelay()
+            if (trapdoorOpen(player)) return
+            world.message(player, HamHideoutLines.PICK)
+            player.charges[PICK_WAIT] = PICK_TICKS
+        }
+        if (!waited(world, op)) return
         val thieving = player.skills.currentLevel(Skill.THIEVING)
         if (world.random.nextInt(100) < pickChance(thieving, hasLockpick(player))) {
             picked(world)
@@ -155,22 +166,42 @@ object HamHideout {
         player.skills.setCurrentLevel(Skill.THIEVING, (thieving - 1).coerceAtLeast(0))
     }
 
-    /** Pick-lock on the cell door from inside: tries until it works, each fail raising the next try's chance. */
-    internal suspend fun ScriptContext.pickCell(world: World) {
-        arriveDelay()
-        if (!inCell(player)) return world.message(player, HamHideoutLines.CELL_LOCKED)
-        world.message(player, HamHideoutLines.PICK)
-        var fails = 0
-        while (true) {
-            delay(PICK_TICKS)
-            val chance = cellChance(player.skills.currentLevel(Skill.THIEVING), hasLockpick(player), fails)
-            if (world.random.nextInt(100) < chance) break
-            world.message(player, HamHideoutLines.PICK_FAIL)
-            player.skills.addTenths(Skill.THIEVING, CELL_FAIL_XP_TENTHS)
-            fails++
+    /** Counts down this try's ticks: true once they are up, otherwise runs [op] again next tick. */
+    private fun ScriptContext.waited(world: World, op: Op): Boolean {
+        val wait = player.charges[PICK_WAIT] - 1
+        player.charges[PICK_WAIT] = wait
+        if (wait <= 0) return true
+        world.repeatOp(player, op)
+        return false
+    }
+
+    /**
+     * Pick-lock on the cell door from inside: tries until it works, each fail raising the next try's chance. The op runs
+     * again each tick ([World.repeatOp], as a gathering action does) rather than holding the player in a delay, so a
+     * click or a walk stops it, and clicking again starts the count afresh.
+     */
+    internal suspend fun ScriptContext.pickCell(world: World, op: Op) {
+        if (!op.repeat) {
+            arriveDelay()
+            if (!inCell(player)) return world.message(player, HamHideoutLines.CELL_LOCKED)
+            world.message(player, HamHideoutLines.PICK)
+            player.charges[CELL_FAILS] = 0
+            player.charges[PICK_WAIT] = PICK_TICKS
         }
-        picked(world)
-        world.teleport(player, OUTSIDE_CELL.first, OUTSIDE_CELL.second, OUTSIDE_CELL.third)
+        if (!waited(world, op)) return
+        val fails = player.charges[CELL_FAILS]
+        val chance = cellChance(player.skills.currentLevel(Skill.THIEVING), hasLockpick(player), fails)
+        if (world.random.nextInt(100) < chance) {
+            player.charges[CELL_FAILS] = 0
+            picked(world)
+            world.teleport(player, OUTSIDE_CELL.first, OUTSIDE_CELL.second, OUTSIDE_CELL.third)
+            return
+        }
+        world.message(player, HamHideoutLines.PICK_FAIL)
+        player.skills.addTenths(Skill.THIEVING, CELL_FAIL_XP_TENTHS)
+        player.charges[CELL_FAILS] = fails + 1
+        player.charges[PICK_WAIT] = PICK_TICKS
+        world.repeatOp(player, op)
     }
 
     private fun hasLockpick(player: Player) = player.inventory.count(LOCKPICK) > 0
@@ -194,7 +225,7 @@ fun registerHamHideout(world: World) = with(HamHideout) {
         arriveDelay()
         if (trapdoorOpen(player)) setTrapdoor(player, false)
     }
-    world.handlers.onLoc(TRAPDOOR, OP_PICK) { pickTrapdoor(world) }
+    world.handlers.onLoc(TRAPDOOR, OP_PICK) { op -> pickTrapdoor(world, op) }
     world.handlers.onLoc(LADDER, 1) {
         arriveDelay()
         player.anim(Climbing.ANIM_REACH_FOR_LADDER)
@@ -203,5 +234,5 @@ fun registerHamHideout(world: World) = with(HamHideout) {
         world.teleport(player, SURFACE.first, SURFACE.second, SURFACE.third)
     }
     world.handlers.onLoc(CELL_DOOR, 1) { world.message(player, HamHideoutLines.CELL_LOCKED) }
-    world.handlers.onLoc(CELL_DOOR, OP_PICK) { pickCell(world) }
+    world.handlers.onLoc(CELL_DOOR, OP_PICK) { op -> pickCell(world, op) }
 }

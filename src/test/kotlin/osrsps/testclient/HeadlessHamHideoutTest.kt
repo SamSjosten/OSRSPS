@@ -222,6 +222,7 @@ class HeadlessHamHideoutTest {
         server(dir).use { server ->
             server.login("carol").use { client ->
                 client.await("the login rebuild") { client.position }
+                val carol = server.world.playerNamed("carol")!!
                 client.tele(HamHideout.OUTSIDE_CELL.first, HamHideout.OUTSIDE_CELL.second)
                 client.locOp(cellDoor.id, cellDoor.x, cellDoor.z, 1)
                 client.awaitSeen("[ham_hideout.cell_locked]")
@@ -230,15 +231,29 @@ class HeadlessHamHideoutTest {
                 client.awaitSeen("[ham_hideout.cell_locked]", 2)
                 assertEquals(0, client.seen("[ham_hideout.pick]"))
 
-                // Thieving 1, no lockpick: one Pick-lock keeps trying, each fail worth 0.5 XP and raising the chance, until out.
+                // A walk stops a pick in progress, and the player can log out meanwhile (no delay holds them).
                 client.tele(HamHideout.CELL.first, HamHideout.CELL.second)
                 client.setLevel("thieving", THIEVING, 1)
+                client.locOp(cellDoor.id, cellDoor.x, cellDoor.z, HamHideout.OP_PICK)
+                client.awaitSeen("[ham_hideout.pick]")
+                client.awaitTicks(2)
+                assertTrue(!carol.scripts.delayed, "not held while picking")
+                client.walk(3185, 9609)
+                client.awaitAt(3185, 9609)
+                val stopped = client.seen(FAIL) + client.seen(DONE)
+                client.awaitTicks(HamHideout.PICK_TICKS + 2)
+                assertEquals(stopped, client.seen(FAIL) + client.seen(DONE), "no more tries after the walk")
+
+                // Thieving 1, no lockpick: one Pick-lock keeps trying, each fail worth 0.5 XP and raising the chance, until out.
+                client.tele(HamHideout.CELL.first, HamHideout.CELL.second)
                 val xp = client.stat(THIEVING)!!.xp
+                val picks = client.seen("[ham_hideout.pick]")
+                val failsBefore = client.seen(FAIL)
                 client.locOp(cellDoor.id, cellDoor.x, cellDoor.z, HamHideout.OP_PICK)
                 client.await("out of the cell", 60_000) { client.position?.takeIf { it == Coord(HamHideout.OUTSIDE_CELL.first, HamHideout.OUTSIDE_CELL.second, 0) } }
-                assertEquals(1, client.seen("[ham_hideout.pick]"), "one Pick-lock")
+                assertEquals(picks + 1, client.seen("[ham_hideout.pick]"), "one Pick-lock")
                 assertEquals(1, client.seen(DONE))
-                val fails = client.seen(FAIL)
+                val fails = client.seen(FAIL) - failsBefore
                 client.await("3.8 XP and 0.5 a fail") { client.stat(THIEVING)?.takeIf { it.xp >= xp + 3 + fails / 2 } }
                 assertEquals(1, client.stat(THIEVING)!!.level, "no numbing on the cell door")
             }
