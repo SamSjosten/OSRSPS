@@ -2342,6 +2342,8 @@ object Ocellus {
                 val dealt = strike(player, if (prayed) roll(BLAST_PRAYED_MIN, BLAST_PRAYED_MAX) else roll(BLAST_MIN, BLAST_MAX))
                 dealtAll += dealt
                 log("${blast.name.lowercase()} blast hits ${player.username} for $dealt" + if (prayed) ", prayed against" else "")
+                // A player's Retribution as they die can kill him: nothing more (Codex, PR 585).
+                if (boss.dead) return@after
             }
             if (state.soulSplit && dealtAll >= SOUL_SPLIT_SHARE) {
                 val healed = minOf(dealtAll / SOUL_SPLIT_SHARE, boss.maxHitpoints - boss.hitpoints)
@@ -2417,7 +2419,20 @@ object Ocellus {
                 if (state.fallen.size >= FALLS_AT.size) {
                     // The last quadrant: his final stand, to the end of his bar.
                     boss.holdsAtZero = false
+                    if (boss.hitpoints <= 0) {
+                        // His bar ran out while it fell, held at it: he dies now (Codex, PR 585).
+                        world.meleeCombat.hit(boss, null, 0, world.tick)
+                        return
+                    }
                     state.barriers = false
+                    // Its bombs' void goes, so the loop's own void and its safe tiles are as they should be (Codex, PR 585).
+                    val iterator = state.voids.entries.iterator()
+                    while (iterator.hasNext()) {
+                        val (_, patch) = iterator.next()
+                        if (patch.quadrant != state.held) continue
+                        patch.loc?.let { clearLoc(it) }
+                        iterator.remove()
+                    }
                     state.finalSince = phaseTick + FINAL_AFTER
                     boss.effects.say(world.dialogueText.get(OcellusLines.END))
                     log("final stand in ${state.held.name}")

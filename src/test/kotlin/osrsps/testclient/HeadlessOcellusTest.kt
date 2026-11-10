@@ -1166,6 +1166,8 @@ class HeadlessOcellusTest {
                 alice.keepAlive()
                 assertEquals(risen + Ocellus.FINAL_LAND, tickOf(alice.awaitLine(run, "his landing", 30_000) { it.endsWith("third: final: lands") }))
                 assertFalse(Tile(boss.x - 1, boss.z - 1) in Ocellus.voids(boss), "the void round him gone")
+                // The bombs' void in his last quadrant went as his final stand began.
+                assertTrue(Ocellus.voids(boss).none { Ocellus.quadrant(centre, it.x, it.z) == Ocellus.Quadrant.SW }, "${Ocellus.voids(boss)}")
                 alice.commandReply("god off") { it.startsWith("You can be hurt") }
                 val blast = alice.awaitLine(run, "his blast") { it.endsWith(" blast") && it.contains("third: final: ") }
                 assertEquals(risen + Ocellus.FINAL_BLASTS[0], tickOf(blast))
