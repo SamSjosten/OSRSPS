@@ -183,6 +183,10 @@ class HeadlessXarthTest {
         assertEquals(10..11, Xarth.burnRange(2))
         assertEquals(13..14, Xarth.burnRange(3))
         assertEquals(13..14, Xarth.burnRange(9))
+        // His melee and ranged max hits drop with his Strength or Ranged drained, as a drained NPC's max hit does.
+        assertEquals(34, Xarth.drainedMax(34, 225, 225))
+        assertEquals(20, Xarth.drainedMax(34, 225, 125))
+        assertEquals(1, Xarth.drainedMax(34, 225, 0))
         // A Corpse heads for the tile beside him along his nearest side, never one off a corner.
         assertEquals(Tile(99, 101), Xarth.besideTile(100, 100, 95, 101))
         assertEquals(Tile(101, 103), Xarth.besideTile(100, 100, 101, 108))
@@ -256,6 +260,9 @@ class HeadlessXarthTest {
             server.login("alice").use { alice ->
                 alice.await("the login rebuild") { alice.position }
                 alice.commandReply("god on") { it.startsWith("You can't be hurt") }
+                // Auto retaliate off, or a shot hitting her walks her off the fire she stands on.
+                alice.command("varp ${EquipmentTab.VARP_AUTO_RETALIATE_OFF} 1")
+                alice.await("auto retaliate off") { if (alice.varp(EquipmentTab.VARP_AUTO_RETALIATE_OFF) == 1) Unit else null }
                 val start = assertNotNull(alice.position)
                 alice.commandReply("raid xarth phase=two seed=19") { it.startsWith("Started") }
                 val world = server.world
@@ -310,7 +317,11 @@ class HeadlessXarthTest {
                 // On a fire she's hurt and set alight.
                 val fire = fires.first()
                 alice.tele(fire.x, fire.z)
-                awaitLine("the fire under her") { it.contains(": fire under alice for 0") }
+                val under = awaitLine("the fire under her") { it.contains(": fire under alice for 0") }
+                // Still on it, the fire sets her alight again just as the burn's first tick is due: that tick still lands.
+                val again = awaitLine("the fire under her again") { it.contains(": fire under alice for 0") && tickOf(it) > tickOf(under) }
+                assertEquals(Xarth.FIRE_EVERY.toLong(), tickOf(again) - tickOf(under))
+                assertTrue(lines().any { it.contains(": burn on alice for 0") && tickOf(it) == tickOf(again) }, lines().takeLast(8).toString())
                 // Beside him he swings instead of shooting.
                 alice.tele(him.x - 1, him.z + 1)
                 awaitLine("his swing") { it.contains(": swings at alice for 0") }

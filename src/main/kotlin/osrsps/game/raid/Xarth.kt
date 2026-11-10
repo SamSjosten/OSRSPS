@@ -267,6 +267,16 @@ object Xarth {
     const val RANGED_MAX = 34
     const val MELEE_MAX = 34
 
+    /** His melee and ranged strength bonuses (Wiki: +30 each), for how much a drain to Strength or Ranged takes off [MELEE_MAX] and [RANGED_MAX]. */
+    const val STRENGTH_BONUS = 30
+
+    /**
+     * [max] less what a drain to [stat] takes off, the way [osrsps.game.combat.Combat] lowers a drained NPC's max hit:
+     * the drop in the max hit his [STRENGTH_BONUS] gives at his level now against at full.
+     */
+    fun drainedMax(max: Int, full: Int, now: Int): Int =
+        if (now >= full) max else (max - (CombatMath.npcMaxHit(full, STRENGTH_BONUS) - CombatMath.npcMaxHit(now, STRENGTH_BONUS))).coerceAtLeast(0)
+
     /** A fire under a player: this much, and set alight, at most once every [FIRE_EVERY] ticks. Guessed. */
     const val FIRE_MIN = 5
     const val FIRE_MAX = 10
@@ -540,7 +550,14 @@ object Xarth {
     /** [player] set alight, or a stack hotter if they burn already: the burn starts again from now. */
     private fun EncounterContext.burn(player: Player) {
         // By the world's tick: a burn set in phase one runs on into phase two.
-        val burn = state.burns[player]?.takeIf { world.tick - it.since < BURN_EVERY * BURN_HITS }
+        val running = state.burns[player]
+        // The running burn's hit due this very tick still lands: set again on that tick, its callback would skip it,
+        // and a fire under the player every [FIRE_EVERY] ticks would stop the burn ever hurting.
+        if (running != null) {
+            val since = world.tick - running.since
+            if (since in 1..BURN_EVERY.toLong() * BURN_HITS && since % BURN_EVERY == 0L) burnHit(player, running)
+        }
+        val burn = running?.takeIf { world.tick - it.since < BURN_EVERY * BURN_HITS }
         val stacks = minOf(BURN_MAX_STACKS, (burn?.stacks ?: 0) + 1)
         val now = Burn(stacks, world.tick)
         state.burns[player] = now
@@ -550,12 +567,18 @@ object Xarth {
             after(BURN_EVERY * i) {
                 // A later fireball has set it again: that burn's ticks run instead.
                 if (state.burns[player] !== now || players.none { it === player }) return@after
-                val range = burnRange(now.stacks)
-                val dealt = world.meleeCombat.hitPlayer(player, null, roll(range.first, range.last), world.tick)
-                if (!player.dead) player.attackedTick = world.tick
-                log("burn on ${player.username} for $dealt")
+                burnHit(player, now)
             }
         }
+    }
+
+    /** One tick of [burn] on [player]. */
+    private fun EncounterContext.burnHit(player: Player, burn: Burn) {
+        if (player.dead) return
+        val range = burnRange(burn.stacks)
+        val dealt = world.meleeCombat.hitPlayer(player, null, roll(range.first, range.last), world.tick)
+        if (!player.dead) player.attackedTick = world.tick
+        log("burn on ${player.username} for $dealt")
     }
 
     /**
@@ -776,7 +799,7 @@ object Xarth {
             player.effects.spotanim(0, SPOT_RANGED_LANDS, MeleeCombat.IMPACT_HEIGHT, 0)
             // On impact, so the prayer counts as the shot lands (Wiki).
             val prayed = world.prayers.protects(player, AttackType.RANGED)
-            val rolled = if (prayed) 0 else rolled(player, AttackType.RANGED, boss.level(NpcStat.RANGED), RANGED_BONUS, RANGED_MAX)
+            val rolled = if (prayed) 0 else rolled(player, AttackType.RANGED, boss.level(NpcStat.RANGED), RANGED_BONUS, drainedMax(RANGED_MAX, boss.type.stats.ranged, boss.level(NpcStat.RANGED)))
             val damage = if (world.combat.bulwarkBlocking(player, world.tick)) DinhsBulwark.blocked(rolled) else rolled
             val dealt = world.meleeCombat.hitPlayer(player, boss, damage, world.tick)
             if (!player.dead) player.attackedTick = world.tick
@@ -789,7 +812,7 @@ object Xarth {
         boss.face(player)
         boss.effects.anim(ANIM_MELEE)
         val prayed = world.prayers.protects(player, AttackType.SLASH)
-        val rolled = if (prayed) 0 else rolled(player, AttackType.SLASH, boss.level(NpcStat.ATTACK), MELEE_BONUS, MELEE_MAX)
+        val rolled = if (prayed) 0 else rolled(player, AttackType.SLASH, boss.level(NpcStat.ATTACK), MELEE_BONUS, drainedMax(MELEE_MAX, boss.type.stats.strength, boss.level(NpcStat.STRENGTH)))
         val damage = if (world.combat.bulwarkBlocking(player, world.tick)) DinhsBulwark.blocked(rolled) else rolled
         val dealt = world.meleeCombat.hitPlayer(player, boss, damage, world.tick)
         if (!player.dead) player.attackedTick = world.tick
