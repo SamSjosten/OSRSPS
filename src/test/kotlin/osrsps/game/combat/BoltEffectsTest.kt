@@ -81,6 +81,16 @@ class BoltEffectsTest {
     }
 
     @Test
+    fun `ruby doesn't fire for a shooter who can't spare a hitpoint`() {
+        val low = Player(2, "bob", 3210, 3210, 0).apply { skills.setLevel(Skill.RANGED, 99); hitpoints = 9 }
+        val random = GameRandom(3)
+        val target = npc()
+        assertEquals(0, (1..5_000).count { BoltEffects.roll(BoltEffect.RUBY, random, low, target, true, 30) { 0 }.fired })
+        low.hitpoints = 10
+        assertTrue((1..5_000).count { BoltEffects.roll(BoltEffect.RUBY, random, low, target, true, 30) { 0 }.fired } > 0)
+    }
+
+    @Test
     fun `sapphire gives an eighth of a tenth of the monster's Ranged as prayer, and onyx heals a quarter of the damage`() {
         player.skills.setLevel(Skill.PRAYER, 70)
         player.skills.setCurrentLevel(Skill.PRAYER, 50)

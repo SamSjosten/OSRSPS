@@ -15,7 +15,7 @@ import osrsps.game.npc.Npc
  * - Sapphire, Clear Mind: 25% on a hit; you gain an eighth of a tenth of the monster's Ranged level as prayer points.
  * - Emerald, Magical Poison: 55% on a hit; the monster is poisoned, 5 a hit at first, 75 in all.
  * - Ruby, Blood Forfeit: 6%, hit or miss; the hit is a fifth of the monster's hitpoints now, at most 100, and you lose
- *   a tenth of yours.
+ *   a tenth of yours; not when you can't spare a hitpoint (under 10).
  * - Diamond, Armour Piercing: 10%, hit or miss; a sure hit with the max hit 15% higher.
  * - Dragonstone, Dragon's Breath: 6% on a hit; a fifth of your visible Ranged extra.
  * - Onyx, Life Leech: 11% on a hit; 20% more damage, and you heal a quarter of the damage.
@@ -67,7 +67,8 @@ object BoltEffects {
      */
     fun roll(effect: BoltEffect, random: GameRandom, player: Player, npc: Npc, hit: Boolean, maxHit: Int, roll: (Int) -> Int): Rolled {
         val spec = specs[effect] ?: return Rolled(hit, if (hit) roll(maxHit) else 0, false)
-        val fires = (random.nextInt(1000) < spec.perMille) && (hit || !spec.onHit)
+        // Blood Forfeit doesn't activate when the shooter can't spare a hitpoint (OSRS Wiki, Ruby bolts (e)).
+        val fires = (random.nextInt(1000) < spec.perMille) && (hit || !spec.onHit) && (effect != BoltEffect.RUBY || rubyCost(player) >= 1)
         if (!fires) return Rolled(hit, if (hit) roll(maxHit) else 0, false)
         val ranged = player.skills.currentLevel(Skill.RANGED)
         val base = if (hit) roll(maxHit) else 0

@@ -73,6 +73,11 @@ class RangedWeaponsTest {
         assertFalse(fires("xbows_crossbow_iron", "xbows_crossbow_bolts_steel"))
         assertFalse(fires("xbows_crossbow_runite", "dragon_bolts"))
         assertTrue(fires("acb", "dragon_bolts"))
+        // Gem-tipped dragon bolts are dragon bolts, enchanted or not.
+        assertFalse(fires("xbows_crossbow_runite", "dragon_bolts_unenchanted_opal"))
+        assertFalse(fires("xbows_crossbow_runite", "dragon_bolts_unenchanted_onyx"))
+        assertTrue(fires("acb", "dragon_bolts_unenchanted_opal"))
+        assertTrue(fires("xbows_crossbow_runite", "xbows_crossbow_bolts_runite_tipped_onyx"))
         assertFalse(fires("xbows_crossbow_dragon", "dragon_arrow"))
         assertFalse(fires("darkbow", "bolt"))
     }
