@@ -5,6 +5,7 @@ import kotlin.math.abs
 import net.rsprot.protocol.common.game.outgoing.inv.InventoryObject
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetEventsV2
 import net.rsprot.protocol.game.outgoing.inv.UpdateInvFull
+import net.rsprot.protocol.game.outgoing.misc.player.RunClientScript
 import net.rsprot.protocol.message.OutgoingGameMessage
 import osrsps.game.FrameSlot
 import osrsps.game.InvObj
@@ -14,6 +15,7 @@ import osrsps.game.NpcType
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.Player
+import osrsps.game.SettingsSide
 import osrsps.game.Skill
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.npc.Npc
@@ -26,7 +28,9 @@ private val logger = KotlinLogging.logger {}
 /**
  * Where a player who died comes back ([toX], [toZ], [toLevel]) and where their grave goes ([graveX], [graveZ],
  * [graveLevel]), when not at the spawn and on the tile they died on: a death in an instance, whose tile they can't get
- * back to, or in a raid. With [keepItems] they lose nothing: a raid death while the party still stands.
+ * back to, or in a raid. With [keepItems] they lose nothing: a raid death while the party still stands. [coord] is where
+ * the grave counts as made, for its fee ([GraveFees]): a raid's death counts where it was in the cache's map, not in
+ * the run's copy of it; -1 for where they fell.
  */
 data class DeathPlace(
     val keepItems: Boolean,
@@ -36,6 +40,7 @@ data class DeathPlace(
     val toX: Int,
     val toZ: Int,
     val toLevel: Int,
+    val coord: Int = -1,
 )
 
 /** A player's gravestone: the [npc] standing where they died, holding what they lost in [items]. */
@@ -44,9 +49,19 @@ class Grave(
     val owner: String,
     val npc: Npc,
     val items: Inventory = Inventory(Deaths.GRAVE_INV, Deaths.GRAVE_CAPACITY),
+    /** Where it counts as made, for its fee: `gravestone_creation_death_coord` (level shl 28 or x shl 14 or z). */
+    val coord: Int = -1,
 ) {
     /** Ticks until it collapses; counts down only while the owner is logged in and nobody has it open. */
     var ticksLeft: Int = Deaths.GRAVE_TICKS
+        internal set
+
+    /** Whether a later death added to it (`gravestone_has_merged`), which loses a content's discount. */
+    var merged: Boolean = false
+        internal set
+
+    /** Whether its fee is paid, so its paid items can be taken. A later death's items lock it again. */
+    var paid: Boolean = false
         internal set
 }
 
@@ -67,9 +82,22 @@ class Grave(
  * the Grand Exchange price or the alchemy value, 15 minutes that pause while logged out or with the interface open,
  * a second death adding to the grave, and death restoring stats and run energy. Guessed and marked below: the ticks
  * the body lies before the respawn, ties in the value order ([value]) going by worn then inventory slot, that each
- * unit of a stack counts as an item, and what Check says. The free list is the interface's: its client script puts
- * slots from varbit [VARBIT_FREE_FROM] minus one in the free list and the rest in the paid one
- * (gravestone_generic_window_set); every item here is free.
+ * unit of a stack counts as an item, and what Check says.
+ *
+ * Fees (raid step 31): a grave's items are kept in value order, most valuable first, and those worth 100,000 or more
+ * a unit are in its paid list until the fee ([GraveFees]) is paid with Unlock, from the bank (Death's Coffer isn't
+ * built). The interface's client script splits the lists and shows each item's fee from three varbits, the slots where
+ * the items under 100,000, 1,000,000 and 10,000,000 start, plus one ([VARBIT_FREE_FROM], [VARBIT_UNDER_1M],
+ * [VARBIT_UNDER_10M]), and the grave's own discount from where it was made ([VARP_DEATH_COORD]) and whether it was
+ * merged ([VARBIT_MERGED]); clientscript gravestone_transmit_data ([TRANSMIT_DATA]) gives it the fee and the coffer,
+ * and a fee turns the paid list's button into Unlock (gravestone_generic_resynchdata). All from the 241 cache's
+ * scripts (osrs-dumps). Guessed: every message's words; that a merged grave must be unlocked again; that Unlock with
+ * too few coins in the bank takes nothing. Not in: Death's Coffer, Death's Office, the incinerator ("Discard items to
+ * reduce a fee").
+ *
+ * Every death here is a dangerous one, as no safe-death content is built: a Hardcore Ironman's death makes them an
+ * Ironman (the Wiki's Hardcore Ironman page; for The Fractured Archive its page: "always a dangerous death"). Not in:
+ * a Hardcore Group Ironman's lives, as groups aren't built; the death's broadcast.
  */
 class Deaths(
     private val objTypes: ObjTypes,
@@ -108,6 +136,8 @@ class Deaths(
     private val teleport: (Player, Int, Int, Int) -> Unit = { _, _, _, _ -> },
     /** Drops a count of an item under the player, seen by them alone at first, as a drop from the backpack is. */
     private val drop: (Player, ObjType, Int) -> Unit = { _, _, _ -> },
+    /** Sets a varp and sends it ahead of the queue, as [setVarbitNow] does a varbit. */
+    private val setVarpNow: (Player, Int, Int) -> Unit = { player, varp, value -> if (varp < player.vars.types.varpCount) player.vars[varp] = value },
 ) {
     private val graves = LinkedHashMap<Npc, Grave>()
 
@@ -125,6 +155,9 @@ class Deaths(
         handlers.onButton(GRAVESTONE, FREEITEMS, EXAMINE_OP) { op -> examineItem(player, op.sub) }
         handlers.onButton(GRAVESTONE, FREEITEMS) { op -> take(player, op.sub) }
         handlers.onButton(GRAVESTONE, FREEBUTTON) { takeAll(player) }
+        handlers.onButton(GRAVESTONE, PAYITEMS, EXAMINE_OP) { op -> examineItem(player, op.sub) }
+        handlers.onButton(GRAVESTONE, PAYITEMS) { op -> takePaid(player, op.sub) }
+        handlers.onButton(GRAVESTONE, PAYBUTTON) { payButton(player) }
     }
 
     /** [player] has no hitpoints left: they fall where they stand and lie there until [process] respawns them. */
@@ -167,6 +200,7 @@ class Deaths(
         // offers back, the price checker keeps its items for the sorting below, and Protect Item counts as they fall.
         if (!player.dead) die(player)
         player.deathTick = -1
+        loseHardcore(player)
         val keep = place?.keepItems == true
         // The kept items are sorted with the price checker's among them, before it is emptied, so a valuable one being
         // checked can still be kept.
@@ -273,7 +307,13 @@ class Deaths(
      * grave starts its timer again.
      */
     private fun bury(player: Player, lost: List<InvObj>, place: DeathPlace?) {
-        val grave = graveOf(player) ?: if (place == null) raise(player, player.x, player.z, player.level) else raise(player, place.graveX, place.graveZ, place.graveLevel)
+        val coord = place?.coord?.takeIf { it >= 0 } ?: GraveFees.coord(player.x, player.z, player.level)
+        val existing = graveOf(player)
+        val grave = existing ?: if (place == null) raise(player, player.x, player.z, player.level, coord) else raise(player, place.graveX, place.graveZ, place.graveLevel, coord)
+        if (existing != null) {
+            grave!!.merged = true
+            grave.paid = false
+        }
         if (grave == null) {
             logger.warn { "${player.username} lost ${lost.size} items with no grave to put them in" }
             return
@@ -284,14 +324,40 @@ class Deaths(
             // Guessed: a grave holds 120 slots; anything past that is lost.
             if (added < obj.count) logger.warn { "${player.username}'s grave is full: ${obj.count - added} of ${type.name} lost" }
         }
+        sort(grave)
         grave.ticksLeft = GRAVE_TICKS
-        for (viewer in players()) if (viewing[viewer.saveKey] === grave && hasOpen(viewer)) sendItems(viewer, grave)
+        for (viewer in players()) if (viewing[viewer.saveKey] === grave && hasOpen(viewer)) sendGrave(viewer, grave)
     }
 
-    private fun raise(player: Player, x: Int, z: Int, level: Int): Grave? {
+    /** Puts [grave]'s items in value order, most valuable a unit first; ties keep their order. */
+    private fun sort(grave: Grave) {
+        val items = grave.items.contents().map { it.second }.sortedByDescending { unitValue(it.id) }
+        grave.items.clear()
+        for (obj in items) grave.items.add(objTypes[obj.id] ?: ObjType(obj.id), obj.count)
+    }
+
+    private fun unitValue(id: Int): Long = objTypes[id]?.let(value) ?: 0
+
+    /** The first slot of [grave] whose unit is worth under [limit]; the items before it are worth that or more. */
+    private fun firstUnder(grave: Grave, limit: Long): Int {
+        val items = grave.items.contents()
+        return items.firstOrNull { (_, obj) -> unitValue(obj.id) < limit }?.first ?: ((items.maxOfOrNull { it.first } ?: -1) + 1)
+    }
+
+    /** Where [grave]'s free list starts: its first item worth under 100,000 a unit. */
+    private fun freeFrom(grave: Grave): Int = firstUnder(grave, FREE_UNDER)
+
+    /** What [player] owes to unlock [grave]'s paid list: 0 once paid, or with nothing in it. */
+    fun fee(player: Player, grave: Grave): Long {
+        if (grave.paid) return 0
+        val paid = grave.items.contents().filter { (slot, _) -> slot < freeFrom(grave) }.map { (_, obj) -> unitValue(obj.id) to obj.count }
+        return GraveFees.total(player, paid, grave.coord, grave.merged)
+    }
+
+    private fun raise(player: Player, x: Int, z: Int, level: Int, coord: Int): Grave? {
         val type = graveType ?: return null
         val npc = spawnNpc(NpcSpawn(type, x, z, level, source = "${player.username}'s death")) ?: return null
-        val grave = Grave(player.saveKey, npc)
+        val grave = Grave(player.saveKey, npc, coord = coord)
         graves[npc] = grave
         return grave
     }
@@ -310,7 +376,11 @@ class Deaths(
                 logger.warn { "No room to move ${grave.owner}'s grave to $x, $z, $level: ${grave.items.contents().size} slots lost" }
                 continue
             }
-            graves[npc] = Grave(grave.owner, npc, grave.items).also { it.ticksLeft = grave.ticksLeft }
+            graves[npc] = Grave(grave.owner, npc, grave.items, grave.coord).also {
+                it.ticksLeft = grave.ticksLeft
+                it.merged = grave.merged
+                it.paid = grave.paid
+            }
         }
     }
 
@@ -346,12 +416,26 @@ class Deaths(
         }
         viewing[player.saveKey] = grave
         openModal(player, GRAVESTONE)
-        setVarbitNow(player, VARBIT_FREE_FROM, 1)
+        sendGrave(player, grave)
+        // The item slots' Take (op 1) and Examine (op 10), and the Take-All and Unlock buttons, in the second event
+        // word, where op n is bit n - 1 (see Interfaces.IF_EVENT_OP1).
+        for (items in listOf(FREEITEMS, PAYITEMS)) send(player, IfSetEventsV2(GRAVESTONE, items, 0, GRAVE_CAPACITY - 1, 0, (1 shl 0) or (1 shl 9)))
+        for (button in listOf(FREEBUTTON, PAYBUTTON)) send(player, IfSetEventsV2(GRAVESTONE, button, -1, -1, 0, 1 shl 0))
+    }
+
+    /**
+     * What the gravestone shows of [grave]: where its value bands start, where it was made and whether merged, which
+     * the client works each paid item's fee out from, its items, and the fee to unlock them.
+     */
+    private fun sendGrave(player: Player, grave: Grave) {
+        setVarbitNow(player, VARBIT_UNDER_10M, firstUnder(grave, 10_000_000) + 1)
+        setVarbitNow(player, VARBIT_UNDER_1M, firstUnder(grave, 1_000_000) + 1)
+        setVarbitNow(player, VARBIT_FREE_FROM, freeFrom(grave) + 1)
+        setVarbitNow(player, VARBIT_MERGED, if (grave.merged) 1 else 0)
+        setVarpNow(player, VARP_DEATH_COORD, grave.coord)
         sendItems(player, grave)
-        // The item slots' Take (op 1) and Examine (op 10), and the Take-All button, in the second event word, where op n
-        // is bit n - 1 (see Interfaces.IF_EVENT_OP1).
-        send(player, IfSetEventsV2(GRAVESTONE, FREEITEMS, 0, GRAVE_CAPACITY - 1, 0, (1 shl 0) or (1 shl 9)))
-        send(player, IfSetEventsV2(GRAVESTONE, FREEBUTTON, -1, -1, 0, 1 shl 0))
+        // The coffer is empty: Death's Coffer isn't built.
+        send(player, RunClientScript(TRANSMIT_DATA, listOf(fee(player, grave).toInt(), 0)))
     }
 
     private fun sendItems(player: Player, grave: Grave) {
@@ -383,22 +467,75 @@ class Deaths(
         examine(player, type, obj.count)
     }
 
+    /** Take on the free list: only its own items, those worth under 100,000 a unit. */
     private fun take(player: Player, slot: Int) {
         val grave = opened(player) ?: return
-        if (slot !in 0 until GRAVE_CAPACITY) return
+        if (slot !in freeFrom(grave) until GRAVE_CAPACITY) return
         if (!takeSlot(player, grave, slot)) message(player, words(player)[CombatLines.GRAVE_NO_SPACE])
         finishTaking(player, grave)
     }
 
+    /** Take-All on the free list. */
     private fun takeAll(player: Player) {
         val grave = opened(player) ?: return
-        for ((slot, _) in grave.items.contents()) {
+        takeEach(player, grave, grave.items.contents().map { it.first }.filter { it >= freeFrom(grave) })
+    }
+
+    /** Take on the paid list: only once its fee is paid (or there is none). */
+    private fun takePaid(player: Player, slot: Int) {
+        val grave = opened(player) ?: return
+        if (slot !in 0 until freeFrom(grave)) return
+        if (fee(player, grave) > 0) {
+            message(player, words(player)[CombatLines.GRAVE_LOCKED])
+            return
+        }
+        if (!takeSlot(player, grave, slot)) message(player, words(player)[CombatLines.GRAVE_NO_SPACE])
+        finishTaking(player, grave)
+    }
+
+    /** The paid list's button: Unlock while a fee is owed, then Take-All. */
+    private fun payButton(player: Player) {
+        val grave = opened(player) ?: return
+        val fee = fee(player, grave)
+        if (fee == 0L) {
+            takeEach(player, grave, grave.items.contents().map { it.first }.filter { it < freeFrom(grave) })
+            return
+        }
+        // From the bank, Death's Coffer not being built (the Wiki: "deducted from Death's Coffer, if available, or else
+        // from the bank"). Guessed: too few coins takes none.
+        if (player.bank.count(COINS) < fee) {
+            message(player, words(player)[CombatLines.GRAVE_CANT_PAY, "fee" to String.format(java.util.Locale.ROOT, "%,d", fee)])
+            return
+        }
+        var left = fee
+        for ((slot, obj) in player.bank.contents()) {
+            if (left == 0L) break
+            if (obj.id == COINS) left -= player.bank.remove(slot, minOf(left, obj.count.toLong()).toInt())
+        }
+        grave.paid = true
+        message(player, words(player)[CombatLines.GRAVE_PAID, "fee" to String.format(java.util.Locale.ROOT, "%,d", fee)])
+        sendGrave(player, grave)
+    }
+
+    private fun takeEach(player: Player, grave: Grave, slots: List<Int>) {
+        for (slot in slots) {
             if (!takeSlot(player, grave, slot)) {
                 message(player, words(player)[CombatLines.GRAVE_NO_SPACE])
                 break
             }
         }
         finishTaking(player, grave)
+    }
+
+    /**
+     * A Hardcore Ironman's death makes them an Ironman: every death here is a dangerous one. Guessed: that they are told
+     * so in a game message, whose words aren't known.
+     */
+    private fun loseHardcore(player: Player) {
+        val types = player.vars.types
+        if (types.varbit(SettingsSide.VARBIT_IRONMAN) == null || player.vars.getVarbit(SettingsSide.VARBIT_IRONMAN) != HARDCORE_IRONMAN) return
+        setVarbitNow(player, SettingsSide.VARBIT_IRONMAN, IRONMAN)
+        message(player, words(player)[CombatLines.HARDCORE_LOST])
     }
 
     /** Moves what fits of [slot] into the inventory; false when none of it fit. */
@@ -419,7 +556,7 @@ class Deaths(
             removeNpc(grave.npc)
             viewing.values.removeIf { it === grave }
         } else {
-            sendItems(player, grave)
+            sendGrave(player, grave)
         }
     }
 
@@ -427,7 +564,7 @@ class Deaths(
         /** Every interface and component id above with its gameval name in the rev 242 cache, for [osrsps.cache.GameFrameCheck]. */
         val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>>
             get() = mapOf(
-                GRAVESTONE to ("gravestone_generic" to mapOf(FREEITEMS to "freeitems", FREEBUTTON to "freebutton")),
+                GRAVESTONE to ("gravestone_generic" to mapOf(FREEITEMS to "freeitems", FREEBUTTON to "freebutton", PAYITEMS to "payitems", PAYBUTTON to "paybutton")),
             )
 
         /** NPC "Grave" (cache rev 241): op1 Check, op3 Loot. 9857 is the same with an angel. */
@@ -435,10 +572,32 @@ class Deaths(
         const val CHECK = 1
         const val LOOT = 3
 
-        /** Interface gravestone_generic: the free items' layer, their Take-All button. */
+        /** Interface gravestone_generic: the free items' layer, their Take-All button; the paid items', and Unlock. */
         const val GRAVESTONE = 672
         const val FREEITEMS = 6
         const val FREEBUTTON = 8
+        const val PAYITEMS = 13
+        const val PAYBUTTON = 15
+
+        /** Clientscript gravestone_transmit_data (fee, coffer). */
+        const val TRANSMIT_DATA = 3478
+
+        /** gravestone_feethreshold_under1m and _under10m; [VARBIT_FREE_FROM] is _under100k. */
+        const val VARBIT_UNDER_1M = 10473
+        const val VARBIT_UNDER_10M = 10474
+
+        /** gravestone_has_merged; gravestone_creation_death_coord. */
+        const val VARBIT_MERGED = 15023
+        const val VARP_DEATH_COORD = 3916
+
+        /** What a unit must be worth to be in the paid list. */
+        const val FREE_UNDER = 100_000L
+
+        const val COINS = 995
+
+        /** The `ironman` varbit's Hardcore Ironman, and the Ironman it becomes. */
+        const val HARDCORE_IRONMAN = 3
+        const val IRONMAN = 1
 
         /** How far from the grave, in tiles either way, its gravestone's buttons still work. A guard, not from live. */
         const val GRAVE_REACH = 2
@@ -447,7 +606,7 @@ class Deaths(
         const val GRAVE_INV = 525
         const val GRAVE_CAPACITY = 120
 
-        /** The interface's free list starts at this varbit's value minus one; 1 makes every slot free. */
+        /** gravestone_feethreshold_under100k: the interface's free list starts at this varbit's value minus one. */
         const val VARBIT_FREE_FROM = 10472
 
         /** Examine on an item slot, as the inventory's. */
