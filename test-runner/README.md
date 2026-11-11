@@ -124,6 +124,7 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   whip still worn after a logout, and Remove.
 - `ground-drop-take.json`: drop an axe, see it on the ground, take it back.
 - `lumbridge-bury-bones.json`: bury two bones, 4.5 Prayer XP each.
+- `scatter-ashes.json`: scatter vile and infernal ashes, 25 and 110 Prayer XP.
 - `rotten-potato-eat.json`: the rotten potato's Eat menu: Set all stats to 50 one skill a tick, Heal me after a `::hit`, and Wipe inventory keeping the potato. Teleport to player needs a second player and Spawn NPC would leave an NPC in Lumbridge, so the headless tests cover them.
 - `rotten-potato-peel.json` (needs 0.24.0): the rotten potato's Peel, Teleport to a tile and Spawn an item through the text prompt (`enterText`), then Bank menu opening the bank on the Lumbridge spawn.
 - `rotten-potato-slice.json`: the rotten potato's Slice, God mode and Sure hits on and off, then Reset ending the scenario. The XP rate and scenario prompts are text, covered headless.
