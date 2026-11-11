@@ -249,6 +249,23 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
     }
 
     /**
+     * [player], in a run, made [outputs] from [inputs] (objs and counts): what it makes of the supplies' kinds, beyond
+     * what it used of them, joins their allowance, so a Saradomin brew made from their own toadflax potion (unf) and
+     * crushed nest isn't taken as bought (Codex review on #636). Supplies can't be made into another kind
+     * ([keepsFromMaking]), so this never turns bought ones into brought ones.
+     */
+    fun made(player: Player, inputs: List<Pair<Int, Int>>, outputs: List<Pair<Int, Int>>) {
+        val run = raids.runs().firstOrNull { player.saveKey in it.suppliesBrought } ?: return
+        val delta = HashMap<Int, Int>()
+        for ((id, count) in outputs) unitsOf(id)?.let { (kind, each) -> delta.merge(kind, each * count, Int::plus) }
+        for ((id, count) in inputs) unitsOf(id)?.let { (kind, each) -> delta.merge(kind, -each * count, Int::plus) }
+        val grown = delta.filterValues { it > 0 }
+        if (grown.isEmpty()) return
+        val allowance = run.suppliesBrought.getValue(player.saveKey)
+        run.suppliesBrought[player.saveKey] = allowance + grown.mapValues { (kind, units) -> (allowance[kind] ?: 0) + units }
+    }
+
+    /**
      * Whether [player], in a run, may not make [product] from [inputs]: any of the supplies' kinds made into another
      * kind (a Super restore into a Sanfew mixture), which would leave the run as an item [settle] doesn't know (Codex
      * review on #636). Guessed: live's answer isn't known; this gives "Nothing interesting happens".

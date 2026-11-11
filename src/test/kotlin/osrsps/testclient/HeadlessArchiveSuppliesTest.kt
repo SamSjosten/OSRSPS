@@ -526,7 +526,7 @@ class HeadlessArchiveSuppliesTest {
     }
 
     @Test
-    fun `supplies a member brought in, dropped and picked up by another, leave with the one who picked them up, and none is made into another kind`(@TempDir dir: Path) {
+    fun `supplies a member brought in, dropped and picked up by another, leave with the one who picked them up, none is made into another kind, and what is made from one's own counts`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->
                 server.login("bob").use { bob ->
@@ -569,9 +569,18 @@ class HeadlessArchiveSuppliesTest {
                     val bobPlayer = server.world.playerNamed("bob")!!
                     assertTrue(supplies.keepsFromMaking(bobPlayer, listOf(UNICORN_DUST, RESTORE), SANFEW_MIX))
                     assertFalse(supplies.keepsFromMaking(bobPlayer, listOf(UNICORN_DUST, AXE), SANFEW_MIX))
-                    // Out of the run, each keeps theirs: Bob both of Alice's.
+                    // What he makes of the supplies' kinds from his own herbs counts as brought (Codex review on #636): a
+                    // Saradomin brew(3) from a toadflax potion (unf) and a crushed nest, as Making reports it.
+                    bob.command("item $BREW_3 1")
+                    bob.awaitHeld(BREW_3, 1)
+                    bob.commandReply("pause") { it.startsWith("Paused after tick") }
+                    supplies.made(bobPlayer, listOf(TOADFLAX_UNF to 1, CRUSHED_NEST to 1), listOf(BREW_3 to 1))
+                    bob.commandReply("resume") { it.startsWith("Resumed") }
+                    assertEquals(3, run.suppliesBrought.getValue("bob")[BREW])
+                    // Out of the run, each keeps theirs: Bob both of Alice's, and his brew.
                     bob.tele(3222, 3218)
                     bob.awaitTicks(2)
+                    assertEquals(1, bob.held(BREW_3))
                     assertEquals(2, bob.held(MANTA))
                     assertEquals(0, alice.held(MANTA))
                     assertFalse(supplies.keepsFromMaking(bobPlayer, listOf(UNICORN_DUST, RESTORE), SANFEW_MIX))
@@ -717,5 +726,7 @@ class HeadlessArchiveSuppliesTest {
         const val TAKE = 3
         const val UNICORN_DUST = 235
         const val SANFEW_MIX = 10909
+        const val TOADFLAX_UNF = 3002
+        const val CRUSHED_NEST = 6693
     }
 }
