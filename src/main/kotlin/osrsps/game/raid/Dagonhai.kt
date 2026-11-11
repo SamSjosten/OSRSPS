@@ -279,7 +279,8 @@ object Dagonhai {
                     (if (state.empowered) " (empowered)" else "") + ", ${adds.count { it.type.id == IMP }} imps, ${adds.count { it.type.id == RIFT }} rifts"
             },
             held = { state.members.mapNotNull { alive(it) } },
-            minions = setOf(IMP, RIFT),
+            // The three on the pool, either form; the cauldron is the boss, the imps and rifts its adds.
+            bosses = MEMBERS.flatMap { listOf(it.type, it.weakened) }.toSet(),
         )
     }
 

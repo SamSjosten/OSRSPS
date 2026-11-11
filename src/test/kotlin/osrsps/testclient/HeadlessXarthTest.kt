@@ -433,6 +433,59 @@ class HeadlessXarthTest {
     }
 
     @Test
+    fun `damage to his Corpses counts for his room's points as an add's, under the cap, not as damage to him`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    val clients = listOf(alice to "alice", bob to "bob")
+                    for ((client, _) in clients) client.await("the login rebuild") { client.position }
+                    party(clients)
+                    val run = alice.intoRun(server, "alice")
+                    assertEquals(run, bob.intoRun(server, "bob"))
+                    alice.toXarthRoom(run)
+                    bob.commandReply("raid tp xarth") { it.startsWith("To ") }
+                    alice.ontoArena(server, run)
+                    bob.ontoArena(server, run)
+                    alice.await("his fight") { alice.fight().takeIf { it.startsWith("xarth #") } }
+                    val fight = assertNotNull(run.fights[ArchiveRoom.XARTH])
+                    // Alice only ever hits Corpses (exploit review round 27, R27A-1: they never hit back, and counted
+                    // in full they farmed points). Both keep talking to the server through phase one's three waves.
+                    var killed = 0
+                    var dealt = 0
+                    while (killed < 4) {
+                        val corpse = fight.adds.firstOrNull { it.type.id == Xarth.CORPSE && !it.dead }
+                        if (corpse == null) {
+                            alice.fight()
+                            bob.fight()
+                            alice.awaitTicks(1)
+                            continue
+                        }
+                        val left = corpse.hitpoints
+                        alice.commandReply("hit $left ${corpse.index}") { it.startsWith("Hit ") }
+                        dealt += left
+                        killed++
+                    }
+                    // Bob does all of Xarth.
+                    val him = boss(run)
+                    while (!him.dead) {
+                        bob.commandReply("hit 500 ${him.index}") { it.startsWith("Hit ") || it.contains("already dead") }
+                        bob.awaitTicks(1)
+                    }
+                    alice.await("his room done", 20_000) { ArchiveRoom.XARTH.takeIf { it in run.cleared } }
+                    val a = server.world.playerNamed("alice")!!.saveKey
+                    val b = server.world.playerNamed("bob")!!.saveKey
+                    assertNull(run.damage[ArchiveRoom.XARTH]?.get(a), "alice's damage counted as his")
+                    assertEquals(dealt, run.minionDamage[ArchiveRoom.XARTH]?.get(a))
+                    // Under a quarter of Bob's damage to him, so all of it counts.
+                    val onHim = assertNotNull(run.damage[ArchiveRoom.XARTH]?.get(b))
+                    assertTrue(dealt <= onHim * ArchiveRaids.MINION_CAP_PERCENT / 100, "bob did $onHim to him, alice $dealt to Corpses")
+                    assertEquals(mapOf(b to onHim, a to dealt), server.world.archiveRaids.credited(run, ArchiveRoom.XARTH))
+                }
+            }
+        }
+    }
+
+    @Test
     fun `one of the party still at the room's arrival, behind the wall, is not in his fight`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->
