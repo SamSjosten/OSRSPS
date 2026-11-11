@@ -555,6 +555,10 @@ class HeadlessArchiveSuppliesTest {
                     alice.awaitHeld(MANTA, 0)
                     alice.tele(3222, 3218)
                     bob.await("her allowance kept for the floor") { run.suppliesLeft["alice"]?.get(MANTA)?.takeIf { it == 1 } }
+                    // And she comes back in, with nothing, before he takes it: her new, empty allowance doesn't hide it
+                    // (Codex review on #636).
+                    assertEquals(run, alice.intoRun(server, "alice"))
+                    assertEquals(emptyMap(), run.suppliesBrought.getValue("alice"))
                     bob.await("the second ray turning public", timeoutMillis = 10_000) { bob.groundObjs().firstOrNull { it.id == MANTA } }
                     bob.objOp(MANTA, at.x, at.z, TAKE)
                     bob.awaitHeld(MANTA, 2)

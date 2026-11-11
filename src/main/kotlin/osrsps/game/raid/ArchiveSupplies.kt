@@ -96,7 +96,7 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
         // What they brought in and don't leave with, kept for their drops another member may yet pick up.
         val holding = held(player)
         val spare = brought.mapValues { (kind, units) -> units - (holding[kind] ?: 0) }.filterValues { it > 0 }
-        if (spare.isNotEmpty()) run.suppliesLeft[player.saveKey] = spare
+        if (spare.isNotEmpty()) run.suppliesLeft.merge(player.saveKey, spare) { a, b -> (a.keys + b.keys).associateWith { (a[it] ?: 0) + (b[it] ?: 0) } }
         val entries = listOf(player.inventory, player.priceChecker).flatMap { inv -> inv.contents().map { (slot, obj) -> Held(inv, slot, obj) } }
         val changes = excess(entries, brought)
         for ((held, obj) in changes) (held.where as Inventory)[held.slot] = obj
@@ -223,16 +223,27 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
     fun pickedUp(taker: Player, ownerKey: String, owner: Player?, id: Int, count: Int) {
         val (kind, each) = unitsOf(id) ?: return
         val run = raids.runs().firstOrNull { taker.saveKey in it.suppliesBrought } ?: return
+        var wanted = each * count
+        var moved = 0
+        // First what they left on the floor as they got out, should they have come back in since (Codex review on #636).
+        run.suppliesLeft[ownerKey]?.let { left ->
+            val take = minOf(wanted, left[kind] ?: 0)
+            if (take > 0) run.suppliesLeft[ownerKey] = left + (kind to (left[kind] ?: 0) - take)
+            moved += take
+            wanted -= take
+        }
+        // Then their allowance in the run, beyond what they still hold.
         val inRun = run.suppliesBrought[ownerKey]
-        val from = (inRun ?: run.suppliesLeft[ownerKey])?.toMutableMap() ?: return
-        val stillHeld = if (inRun != null && owner != null) held(owner)[kind] ?: 0 else 0
-        val moved = minOf(each * count, (from[kind] ?: 0) - stillHeld)
+        if (wanted > 0 && inRun != null && owner != null) {
+            val take = minOf(wanted, (inRun[kind] ?: 0) - (held(owner)[kind] ?: 0))
+            if (take > 0) {
+                run.suppliesBrought[ownerKey] = inRun + (kind to (inRun[kind] ?: 0) - take)
+                moved += take
+            }
+        }
         if (moved <= 0) return
-        from[kind] = (from[kind] ?: 0) - moved
-        if (inRun != null) run.suppliesBrought[ownerKey] = from else run.suppliesLeft[ownerKey] = from
-        val allowTaker = run.suppliesBrought.getValue(taker.saveKey).toMutableMap()
-        allowTaker[kind] = (allowTaker[kind] ?: 0) + moved
-        run.suppliesBrought[taker.saveKey] = allowTaker
+        val allowTaker = run.suppliesBrought.getValue(taker.saveKey)
+        run.suppliesBrought[taker.saveKey] = allowTaker + (kind to (allowTaker[kind] ?: 0) + moved)
     }
 
     /**
