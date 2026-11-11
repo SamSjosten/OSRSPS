@@ -402,14 +402,14 @@ class World(
         // Both sides of a hand-over are saved at once, so a crash can't give the item back to one and leave it with
         // the other. The one who let it go first: a crash between the two writes then loses the item rather than
         // doubling it. Live's saves are its own business; this is ours.
-        handedOver = { taker, owner, obj ->
-            // A raid member's supplies picked up by another member: the allowance first, so both saves have it (R26A-1).
-            archiveRaids.supplies.pickedUp(taker, owner, findPlayer(owner), obj.id, obj.count)
+        handedOver = { taker, owner ->
             findPlayer(owner)?.let(::save)
             save(taker)
         },
         words = ::textFor,
         dropsStayPrivate = { archiveRaids.isDown(it) },
+        // A raid member's supplies picked up, their own or another's: the allowance first, so the saves have it (R26A-1).
+        taken = { taker, owner, obj -> archiveRaids.supplies.pickedUp(taker, owner, findPlayer(owner), obj.id, obj.count) },
     )
 
     private val equipment = Equipment(objTypes, wearRequirements)

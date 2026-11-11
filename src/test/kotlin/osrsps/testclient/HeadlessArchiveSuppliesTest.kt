@@ -581,6 +581,40 @@ class HeadlessArchiveSuppliesTest {
     }
 
     @Test
+    fun `a member's own drop, left as they got out and picked up as they came back in, stays theirs`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    for (c in listOf(alice, bob)) c.await("the login rebuild") { c.position }
+                    alice.commandReply("raidparty invite bob") { it.startsWith("Invited") }
+                    bob.commandReply("raidparty accept alice") { it.startsWith("You joined") }
+                    alice.command("item $MANTA 1")
+                    alice.awaitHeld(MANTA, 1)
+                    val run = alice.intoRun(server, "alice")
+                    bob.intoRun(server, "bob")
+                    // She drops her ray and gets out; Bob keeps the instance. She comes back in with nothing and takes
+                    // it up again (Codex review on #636): what she left on the floor is hers again.
+                    val at = alice.position!!
+                    val slot = alice.inventory(Inventory.INV).indexOfFirst { it?.id == MANTA }
+                    alice.ifButton(INVENTORY, INVENTORY_ITEMS, DROP, slot, MANTA)
+                    alice.awaitHeld(MANTA, 0)
+                    alice.tele(3222, 3218)
+                    alice.await("her allowance kept for the floor") { run.suppliesLeft["alice"]?.get(MANTA)?.takeIf { it == 1 } }
+                    assertEquals(run, alice.intoRun(server, "alice"))
+                    // The Archive Door lands her where she dropped it.
+                    alice.await("back at her ray") { alice.position?.takeIf { it == at } }
+                    alice.objOp(MANTA, at.x, at.z, TAKE)
+                    alice.awaitHeld(MANTA, 1)
+                    assertEquals(1, run.suppliesBrought.getValue("alice")[MANTA])
+                    alice.tele(3222, 3218)
+                    alice.awaitTicks(2)
+                    assertEquals(1, alice.held(MANTA))
+                }
+            }
+        }
+    }
+
+    @Test
     fun `a member put out of the party with bought supplies on offer has the trade declined and loses them`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->

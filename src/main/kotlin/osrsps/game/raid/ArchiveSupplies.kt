@@ -218,7 +218,8 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
      * [taker], in a run, picked up [count] of [id] that the player saved as [ownerKey] ([owner] if still in the world)
      * dropped: as in a trade, what the owner brought in of it (beyond what they still hold) goes over to [taker]'s
      * allowance, so supplies a member brought in and handed on by the floor aren't taken from the one who leaves with
-     * them. From [ArchiveRun.suppliesLeft] once the owner has got out. What was bought stays bought (Codex review on #636).
+     * them. From [ArchiveRun.suppliesLeft] once the owner has got out, the owner's own pick-up after coming back in too.
+     * What was bought stays bought (Codex review on #636).
      */
     fun pickedUp(taker: Player, ownerKey: String, owner: Player?, id: Int, count: Int) {
         val (kind, each) = unitsOf(id) ?: return
@@ -232,9 +233,9 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
             moved += take
             wanted -= take
         }
-        // Then their allowance in the run, beyond what they still hold.
+        // Then their allowance in the run, beyond what they still hold: another's, as their own is theirs already.
         val inRun = run.suppliesBrought[ownerKey]
-        if (wanted > 0 && inRun != null && owner != null) {
+        if (wanted > 0 && inRun != null && owner != null && ownerKey != taker.saveKey) {
             val take = minOf(wanted, (inRun[kind] ?: 0) - (held(owner)[kind] ?: 0))
             if (take > 0) {
                 run.suppliesBrought[ownerKey] = inRun + (kind to (inRun[kind] ?: 0) - take)
