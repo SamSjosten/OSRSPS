@@ -955,31 +955,35 @@ class HeadlessArchiveGuardianTest {
                     alice.tele(3222, 3218)
                     bob.tele(3222, 3218)
                     alice.commandReply("pause") { it.startsWith("Paused") }
-                    alice.commandReply("raid guardian phase=final") { it.startsWith("Started") }
+                    // Seeded so the beam goes at Bob: outside an instance a ::raid fight is called off when its starter,
+                    // Alice, dies (CI 2026-11-11 caught the unseeded test failing whenever the beam went at her).
+                    alice.commandReply("raid guardian phase=final seed=$BEAM_AT_BOB_SEED") { it.startsWith("Started") }
                     alice.command("tele 3229 3220 0")
                     bob.command("tele 3219 3220 0")
+                    // Both where they're meant to be before the first tick, so every roll after the seed is the same each run.
+                    alice.await("both teleports") {
+                        Unit.takeIf { server.world.playerNamed("alice")!!.x == 3229 && server.world.playerNamed("bob")!!.x == 3219 }
+                    }
                     val fight = server.world.encounters.all.single()
                     var ticks = 0
                     while (fight.lines.none { it.contains("beam fires at") }) {
                         check(++ticks <= ArchiveGuardian.BEAM_EVERY + 2) { "no beam: ${fight.lines.toList()}" }
                         alice.stepTicks(1)
                     }
-                    // The one it aimed at dies in the tick before it lands.
-                    // The other holds the clock: a dead player's commands wait for them to get up.
-                    val atAlice = fight.lines.any { it.endsWith("beam fires at alice") }
-                    val (target, name) = if (atAlice) alice to "alice" else bob to "bob"
-                    val other = if (atAlice) bob else alice
-                    target.commandReply("god off") { it.startsWith("You can be hurt") }
-                    target.commandReply("hit 99 me") { it.startsWith("Hit yourself") }
-                    other.stepTicks(ArchiveGuardian.BEAM_TRAVEL)
-                    assertTrue(server.world.playerNamed(name)!!.dead, "$name dead as it lands")
+                    assertTrue(fight.lines.any { it.endsWith("beam fires at bob") }, fight.lines.toList().takeLast(4).toString())
+                    // Bob dies in the tick before it lands. Alice holds the clock: a dead player's commands wait for them
+                    // to get up.
+                    bob.commandReply("god off") { it.startsWith("You can be hurt") }
+                    bob.commandReply("hit 99 me") { it.startsWith("Hit yourself") }
+                    alice.stepTicks(ArchiveGuardian.BEAM_TRAVEL)
+                    assertTrue(server.world.playerNamed("bob")!!.dead, "bob dead as it lands")
                     assertTrue(fight.lines.any { it.endsWith("final: beam lands on nobody") }, fight.lines.toList().takeLast(8).toString())
                     assertTrue(fight.lines.none { it.contains("beam hits") }, fight.lines.toString())
                     // The world goes on ticking, the fight with it.
                     val before = fight.ticks
-                    other.stepTicks(2)
+                    alice.stepTicks(2)
                     assertTrue(fight.ticks > before && !fight.ended, "the fight stopped")
-                    other.commandReply("resume") { it.isNotEmpty() }
+                    alice.commandReply("resume") { it.isNotEmpty() }
                 }
             }
         }
@@ -1157,6 +1161,8 @@ class HeadlessArchiveGuardianTest {
     }
 
     private companion object {
+        /** A `::raid guardian` seed whose first final-phase beam goes at Bob, Alice being the fight's starter. */
+        const val BEAM_AT_BOB_SEED = 4L
         val MUSHROOM_AT = Regex("mushroom at (\\d+),(\\d+) by alice")
         val BEAM_HIT = Regex("beam hits alice for (\\d+)")
         val BURST = Regex("mushroom bursts on alice for (\\d+)")
