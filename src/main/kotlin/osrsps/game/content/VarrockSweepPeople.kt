@@ -219,7 +219,7 @@ object VarrockSweepPeople {
 
     internal suspend fun Dialogue.annaJones(world: World) = with(AnnaJonesLines) {
         chatNpc(ChatAnim.HAPPY, GREETING, "name" to player.username)
-        if (player.inventory.count(BRONZE_PICKAXE) == 0L) world.objTypes[BRONZE_PICKAXE]?.let { world.groundObjs.give(player, it, 1) }
+        giveOne(world, BRONZE_PICKAXE)
         chatPlayer(ChatAnim.HAPPY, THANKS)
         chatNpc(ChatAnim.NEUTRAL, SUROK)
         chatPlayer(ChatAnim.NEUTRAL, OK)
@@ -266,6 +266,16 @@ object VarrockSweepPeople {
         }
     }
 
+    /**
+     * One [item] into the backpack if the player has none. A full backpack is refused, as ExamCentre's trowel is,
+     * rather than one dropped on the floor each talk.
+     */
+    private fun Dialogue.giveOne(world: World, item: Int) {
+        if (player.inventory.count(item) > 0) return
+        if (player.inventory.freeSlots == 0) return world.message(player, osrsps.game.GameLines.NO_SPACE)
+        world.objTypes[item]?.let { player.inventory.add(it, 1) }
+    }
+
     internal suspend fun Dialogue.masterSmithingTutor(world: World) = with(MasterSmithingTutorLines) {
         chatPlayer(ChatAnim.HAPPY, HELLO)
         chatNpc(ChatAnim.HAPPY, GREETING)
@@ -275,7 +285,7 @@ object VarrockSweepPeople {
                     chatPlayer(ChatAnim.QUIZ, TRAIN)
                     if (player.inventory.count(HAMMER) == 0L) {
                         chatNpc(ChatAnim.NEUTRAL, NO_HAMMER)
-                        world.objTypes[HAMMER]?.let { world.groundObjs.give(player, it, 1) }
+                        giveOne(world, HAMMER)
                     } else {
                         chatNpc(ChatAnim.NEUTRAL, HAS_HAMMER)
                     }

@@ -137,4 +137,49 @@ class HeadlessVarrockSweepPeopleTest {
             }
         }
     }
+
+    @Test
+    fun `with a full backpack the tutor and Anna Jones give nothing, and nothing lands on the floor`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                val erin = server.world.playerNamed("erin")!!
+                // A full pack with no hammer or pickaxe in it.
+                val rock = osrsps.game.ObjType(FILLER, "Rock")
+                repeat(erin.inventory.freeSlots) { erin.inventory.add(rock, 1) }
+                client.talk(VarrockSweepPeople.MASTER_SMITHING_TUTOR)
+                client.chat("[master_smithing_tutor.hello]")
+                client.chat("[master_smithing_tutor.greeting]")
+                // Asked twice in one talk: each refused, never one dropped.
+                repeat(2) {
+                    client.awaitDialogue("the menu") { it is DialogueView.Menu }
+                    client.chooseOption(1)
+                    client.chat("[master_smithing_tutor.train]")
+                    client.chat("[master_smithing_tutor.no_hammer]")
+                    for (n in 1..6) client.chat("[master_smithing_tutor.low_$n]")
+                    client.chat("[master_smithing_tutor.low_thanks]")
+                    client.chat("[master_smithing_tutor.anything_else]")
+                }
+                client.awaitDialogue("the menu") { it is DialogueView.Menu }
+                client.chooseOption(3)
+                client.chat("[master_smithing_tutor.not_now]")
+                client.chat("[master_smithing_tutor.come_back]")
+
+                client.talk(VarrockSweepPeople.ANNA_JONES)
+                client.awaitDialogue("her greeting") { it is DialogueView.Chat && it.text.startsWith("[anna_jones.greeting") }
+                client.continueDialogue()
+                client.chat("[anna_jones.thanks]")
+                client.closeModal()
+                client.await("the refusals") { if (client.messages().count { it.text == "[game.no_space]" } >= 3) Unit else null }
+                client.awaitTicks(2)
+                assertEquals(0, erin.inventory.count(VarrockSweepPeople.HAMMER) + erin.inventory.count(VarrockSweepPeople.BRONZE_PICKAXE))
+                val floor = server.world.groundObjs.visibleAt(erin, erin.x, erin.z, 0).map { it.id }
+                assertEquals(emptyList(), floor.filter { it == VarrockSweepPeople.HAMMER || it == VarrockSweepPeople.BRONZE_PICKAXE }, "nothing on the floor")
+            }
+        }
+    }
+
+    private companion object {
+        const val FILLER = 436
+    }
 }
