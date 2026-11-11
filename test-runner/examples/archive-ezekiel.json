@@ -230,15 +230,20 @@
    "step": "assertDialogue",
    "contains": "[tfa_navigator.onward name=",
    "speaker": "Alliance Navigator",
-   "comment": "his one line, with the player's name: its key and the name, with ::keys on (the account may be test or test2, so the name is left open)"
+   "comment": "his line, with the player's name: its key and the name, with ::keys on (the account may be test or test2, so the name is left open)"
   },
   {
    "step": "continueDialogue"
   },
   {
+   "step": "chooseOption",
+   "text": "[tfa_navigator.proceed]",
+   "comment": "his menu, titled [tfa_navigator.ready] (Sam's recording of 2026-11-10): the first option, back to the nexus; the second is [tfa_navigator.no]"
+  },
+  {
    "step": "waitTicks",
    "ticks": 6,
-   "comment": "the move comes 4 ticks after his line is clicked on"
+   "comment": "the move comes 4 ticks after the option is clicked on"
   },
   {
    "step": "command",

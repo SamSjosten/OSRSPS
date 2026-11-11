@@ -207,6 +207,17 @@
    "expectMessage": "fight: the Smorks' frenzy"
   },
   {
+   "step": "waitTicks",
+   "ticks": 10,
+   "comment": "the frenzy's two or three volleys, 2 ticks apart, then napalm, cast a tick after its call: by 7 ticks in"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 30",
+   "expectMessage": "fight: the Smorks call napalm on test",
+   "comment": "in the frenzy the call names who it goes at (tfa_bork.mine over the tower; Sam's clip of 10 November 2026); alone, the player is the one named and the cast goes at them (the tie to the one named is checked headless); the account may be test or test2, so the line is matched up to the name"
+  },
+  {
    "step": "command",
    "text": "::raid run",
    "expectMessage": "done Archive Guardian;",

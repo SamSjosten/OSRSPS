@@ -49,9 +49,9 @@ object ArchiveGuardianLines : Lines("tfa_guardian", "The_Fractured_Archive/Strat
  *   [GROUNDED_LATER] each time after its first, it lifts off again behind a whole shield: the shield phase once more.
  * - **Beams**: [LOW_DELAY] ticks after its hitpoints fall to [LOW_PERCENT]% it lifts off behind one more whole shield,
  *   and from then to its death it sends a beam (the game's word is its "breath") at a player every [BEAM_EVERY] ticks:
- *   a chat line names them ([ArchiveGuardianLines.FOCUS]) [BEAM_WARNING] ticks before. The beam runs from its middle
- *   through that player and on. With an inert guardian behind them it spends that one, which takes [STATUE_SPLAT] and
- *   goes dark, and those on its line take [BEAM_BLOCKED_MIN] to [BEAM_BLOCKED_MAX]; [BEAM_CHARGE_DELAY] ticks later
+ *   a chat line names them ([ArchiveGuardianLines.FOCUS]) [BEAM_WARNING] ticks before it shows, and it reaches its
+ *   line [BEAM_TRAVEL] tick after. The beam runs from its middle through that player and on. With an inert guardian
+ *   behind them it spends that one, which takes all it has ([statueSplat], by party size) and goes dark, and those on its line take [BEAM_BLOCKED_MIN] to [BEAM_BLOCKED_MAX]; [BEAM_CHARGE_DELAY] ticks later
  *   the shield loses [BATTERY_SHIELD_PERCENT]% of its most, or with no more than that left breaks at once, with no
  *   ticks at 0. With none behind them the beam's whole damage ([beamDamage]) is shared by those on its line, and the
  *   shield is untouched. There is no timer on this shield.
@@ -64,16 +64,21 @@ object ArchiveGuardianLines : Lines("tfa_guardian", "The_Fractured_Archive/Strat
  * ticks whatever its hitpoints (55%, 76% and 64% left), its second 40 to 41; a time down ending about 4 ticks after its
  * hitpoints went under 30% (three fights); beams only in the shield after that and in the time down that follows, none
  * before; a beam 19 to 21 ticks into that shield and each 20 ticks after it (seven beams), the same count carrying on
- * once it is down; the inert guardian behind a beam's target taking 400 and going dark (three times); 40% of the
+ * once it is down; the inert guardian behind a beam's target taking 400 (five players, three times) or 330 (four,
+ * twice) and going dark; 40% of the
  * shield's most gone in one tick 4 to 6 ticks after such a beam (504 of 1,260 and 412 of 1,030), and the three last
  * shields ending 4 to 5 ticks after one with less than that left (103, 123 and 66), the hitpoints back on that tick;
- * 8, 8 and 10 on players on such a beam's line; a beam with no inert guardian behind its target killing him, the
+ * 8, 8 and 10 on players on such a beam's line, and 10 on each of three players on one; a beam with no inert guardian behind its target killing him, the
  * shield untouched; the last time down lasting to the death or the wipe (22, about 29 and 63 ticks), with no shield
  * after it; and "Begin the challenge?", Yes or No, on Touch.
  *
- * Inferred from them: the chat line [BEAM_WARNING] ticks before its beam (the one clip read at 10 frames a second has
- * it 5.3 s before each of two beams, and a fight's first line 11 ticks into the shield; the chat read once a second
- * elsewhere puts it at 2 to 7); that the beams begin with the shield that follows 30%, not with a count of shields.
+ * Read again by eye on 10 November 2026 at 10 frames a second with the tick metronome in frame (three beams, the
+ * same each time): the chat line, 9 ticks to the beam showing, 1 tick to its reaching the players and the inert
+ * guardian, 4 ticks to the 40% coming off the shield, 14 in all, and the lines 20 ticks apart; a charge with less
+ * than 40% left taking just what was left (a 348 splat) and the bar going straight to the hitpoints.
+ *
+ * Inferred from them: that the beams begin with the shield that follows 30%, not with a count of shields; that the
+ * inert guardian's splat grows with the party as the shield does.
  *
  * From the OSRS Wiki (Archive Guardian, read 2026-11-03): its stats, bonuses, both forms' hitpoints by party size, the
  * 5-tick attack speed, max hits 25 and 99+ (the beam), the 80% fire weakness, the poison and venom immunity, and the
@@ -88,8 +93,8 @@ object ArchiveGuardianLines : Lines("tfa_guardian", "The_Fractured_Archive/Strat
  *
  * Guessed, until a recording shows it (each also in the README): the first attack 5 ticks into each phase; the slam's
  * and the blast's damage ([SLAM_MAX], [BLAST_MIN] to [BLAST_MAX]); the whole beam's ([beamDamage]) and its line, from
- * the Guardian's middle through its target to [BEAM_LENGTH] tiles; Protect from Magic taking a tenth off it; that
- * everyone on a blocked beam's line takes the 8 to 10; what a spent inert guardian does once the Guardian is down for
+ * the Guardian's middle through its target to [BEAM_LENGTH] tiles, aimed where they stood as it showed; Protect from
+ * Magic taking a tenth off it; the inert guardian's splat for parties other than four and five; what a spent inert guardian does once the Guardian is down for
  * the last time ([BATTERY_BEAM_PERCENT] of its hitpoints, never into kill range, [KILL_RANGE_PERCENT]: a guide's "the
  * beam damages the boss's health", its figures guessed); that its shots, mushrooms and the inert guardians awake go on
  * under the beams' shield as under the others; the grounded form's 40% fire weakness (a guide's); that it never moves,
@@ -166,21 +171,41 @@ object ArchiveGuardian {
      */
     const val BEAM_EVERY = 20
 
-    /** Ticks from the chat line naming a beam's target to the beam. Inferred (5.3 s twice in one clip; 2 to 7 ticks by coarser reads). */
+    /**
+     * Ticks from the chat line naming a beam's target to the beam showing. Sam's recordings of 10 November 2026, read
+     * by eye at 10 frames a second with the tick metronome in frame: 9 ticks, the same in three beams.
+     */
     const val BEAM_WARNING = 9
 
     /**
+     * Ticks from the beam showing to its reaching those on its line and the inert guardian behind them (the same three
+     * beams: 1, the statue's splat on that tick).
+     */
+    const val BEAM_TRAVEL = 1
+
+    /**
      * Ticks from a beam spending an inert guardian to that one's charge reaching the Guardian (Sam's recordings: 4, 4,
-     * 4 to 5, 4 to 5 and 5 to 6).
+     * 4 to 5, 4 to 5 and 5 to 6; read again by the metronome on 10 November, 4 in two beams: 14 ticks from the chat line).
      */
     const val BEAM_CHARGE_DELAY = 4
 
-    /** What a beam leaves for each player on its line when an inert guardian behind its target takes it (Sam's recordings: 8, 8 and 10). */
+    /**
+     * What a beam leaves for each player on its line when an inert guardian behind its target takes it (Sam's
+     * recordings: 8, 8 and 10 on 9 November; 10 on each of three players on one line and 10 on one on another on 10 November).
+     */
     const val BEAM_BLOCKED_MIN = 8
     const val BEAM_BLOCKED_MAX = 10
 
-    /** The hitsplat on an inert guardian a beam spends (Sam's recordings, twice legible). */
-    const val STATUE_SPLAT = 400
+    /**
+     * The hitsplat on an inert guardian a beam spends, by party size from 1: what it has, all taken. Sam's recordings:
+     * 400 with five players (9 November, twice legible), 330 with four (10 November, both statues, read at full size).
+     * Inferred: that it grows with the party as the Guardian's shield does (400 / 330 is the shield's 1,260 / 1,030).
+     * Guessed: the other sizes, as the same share of the shield (32%).
+     */
+    val STATUE_SPLATS: List<Int> = listOf(176, 176, 256, 330, 400, 477, 550, 624)
+
+    /** [STATUE_SPLATS] for a party of [party]; the most for a bigger one, the least for none. */
+    fun statueSplat(party: Int): Int = STATUE_SPLATS[(party - 1).coerceIn(0, STATUE_SPLATS.size - 1)]
 
     /** How far its beam reaches past its middle, in tiles. Guessed: across the hall. */
     const val BEAM_LENGTH = 32
@@ -391,6 +416,9 @@ object ArchiveGuardian {
         form(grounded)
         pool(grounded)
         boss.hitpoints = state.health.takeIf { it > 0 }?.coerceAtMost(boss.maxHitpoints) ?: boss.maxHitpoints
+        // The bar shows the hitpoints at once: the shield's last hit left it empty (Codex on #641; Sam's recording of
+        // 10 November 2026 has the bar go from the shield straight to the hitpoints).
+        boss.effects.headBar(-1, MeleeCombat.HEALTH_BAR, MeleeCombat.healthBarFill(boss.hitpoints, boss.maxHitpoints))
         boss.effects.anim(ANIM_TO_GROUND)
         boss.effects.spotanim(0, SPOT_TO_GROUND, 0)
         // No shield to charge now: those not charged fall asleep again, till a shield or a beam. Guessed.
@@ -652,13 +680,9 @@ object ArchiveGuardian {
         after(BEAM_WARNING) { beam(batteries, target) }
     }
 
-    /**
-     * Its beam, from its middle through [target] and on. An inert guardian behind them takes it and is spent, its charge
-     * on its way to the Guardian, and those on the line take little; with none there they share the whole of it.
-     */
+    /** Its beam showing, aimed through [target] where they stand, reaching that line [BEAM_TRAVEL] ticks later ([beamLands]). */
     private fun EncounterContext.beam(batteries: Batteries?, target: Player) {
-        val fighting = players
-        if (fighting.none { it === target }) {
+        if (players.none { it === target }) {
             log("beam has nobody to land on")
             return
         }
@@ -666,6 +690,18 @@ object ArchiveGuardian {
         boss.effects.spotanim(0, SPOT_LASER, 0)
         boss.face(target)
         val at = Tile(target.x, target.z)
+        log("beam fires at ${target.username}")
+        after(BEAM_TRAVEL) { beamLands(batteries, target, at) }
+    }
+
+    /**
+     * Its beam reaching its line, from its middle through [at], where [target] stood as it showed, and on: those on the
+     * line now, and [target] wherever they are. An inert guardian behind it takes it and is spent, its charge on its way
+     * to the Guardian, and those on the line take little; with none there they share the whole of it.
+     */
+    private fun EncounterContext.beamLands(batteries: Batteries?, target: Player, at: Tile) {
+        if (gone()) return
+        val fighting = players
         val line = line(boss.x, boss.z, boss.type.size, at)
         val struck = fighting.filter { it === target || Tile(it.x, it.z) in line }
         val statue = batteries?.let { behind(it, line, at) }
@@ -681,6 +717,12 @@ object ArchiveGuardian {
             }
             return
         }
+        // Its target fell or left in the tick it took, with nobody else on the line: the whole beam has nobody to share
+        // it (Codex on #641). An inert guardian behind still takes it, above.
+        if (struck.isEmpty()) {
+            log("beam lands on nobody")
+            return
+        }
         val total = beamDamage(fighting.size)
         val share = (total + struck.size - 1) / struck.size
         for (player in struck) {
@@ -691,10 +733,10 @@ object ArchiveGuardian {
         }
     }
 
-    /** [statue] takes a beam: [STATUE_SPLAT] on it over an empty bar, and it is spent, whatever it had left and awake or not. */
+    /** [statue] takes a beam: [statueSplat] for the party on it over an empty bar, and it is spent, whatever it had left and awake or not. */
     private fun EncounterContext.spend(batteries: Batteries, statue: Npc) {
         statue.hitpoints = 0
-        statue.effects.hit(-1, HitsplatType.DAMAGE_OTHER, HitsplatType.DAMAGE_OTHER, STATUE_SPLAT)
+        statue.effects.hit(-1, HitsplatType.DAMAGE_OTHER, HitsplatType.DAMAGE_OTHER, statueSplat(boss.scaledFor))
         statue.effects.headBar(-1, MeleeCombat.HEALTH_BAR, MeleeCombat.healthBarFill(0, statue.maxHitpoints))
         world.npcs.transform(statue, batteries.spent, Npcs.FOREVER)
         untarget(statue)
@@ -703,7 +745,8 @@ object ArchiveGuardian {
     /**
      * Behind the beams' shield, a spent inert guardian's charge reaching the Guardian: [BATTERY_SHIELD_PERCENT] of the
      * shield's most hitpoints off it. Whether that breaks it: with no more than that left it does, at once, the
-     * Guardian down on this tick with no hold at 0.
+     * Guardian down on this tick with no hold at 0, its splat what was left (Sam's recording of 10 November 2026: a
+     * 348 splat with 348 of 1,030 left, then the bar straight to the health).
      */
     private fun EncounterContext.chargeBreaks(): Boolean {
         val state = state
@@ -711,7 +754,9 @@ object ArchiveGuardian {
         state.chargeDue = -1
         val share = boss.maxHitpoints * BATTERY_SHIELD_PERCENT / 100
         if (boss.hitpoints <= share) {
-            log("the spent inert guardian's charge breaks its shield, ${boss.hitpoints} left")
+            val left = boss.hitpoints
+            if (left > 0) world.meleeCombat.hit(boss, null, left, world.tick)
+            log("the spent inert guardian's charge breaks its shield, $left left")
             return true
         }
         val dealt = world.meleeCombat.hit(boss, null, share, world.tick)
