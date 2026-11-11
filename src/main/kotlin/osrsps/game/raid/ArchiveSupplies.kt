@@ -82,7 +82,9 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
 
     /**
      * [player] is out of [run], or losing what they hold to it: what they hold of the supplies beyond what they brought
-     * in is taken, the fewest doses first, a potion with more doses than is owed left with the rest. Once a player.
+     * in is taken, the fewest doses first, a potion with more doses than is owed left with the rest: from the backpack
+     * and from Guide prices' checker, whose items go back to the backpack as it closes but are left in it by a death
+     * or a disconnect (Codex review on #636). Once a player.
      */
     fun settle(run: ArchiveRun, player: Player) {
         val brought = run.suppliesBrought.remove(player.saveKey) ?: return
@@ -90,17 +92,17 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
         for ((kind, have) in held(player)) {
             var over = have - (brought[kind] ?: 0)
             if (over <= 0) continue
-            val slots = player.inventory.contents()
-                .mapNotNull { (slot, obj) -> unitsOf(obj.id)?.takeIf { it.first == kind }?.let { Triple(slot, obj, it.second) } }
-                .sortedBy { it.third }
-            for ((slot, obj, each) in slots) {
+            val slots = listOf(player.inventory, player.priceChecker).flatMap { inv ->
+                inv.contents().mapNotNull { (slot, obj) -> unitsOf(obj.id)?.takeIf { it.first == kind }?.let { Held(inv, slot, obj, it.second) } }
+            }.sortedBy { it.each }
+            for ((inv, slot, obj, each) in slots) {
                 if (over <= 0) break
                 val units = each.toLong() * obj.count
                 when {
-                    units <= over -> player.inventory.remove(slot).also { over -= units.toInt() }
-                    each == 1 -> player.inventory.remove(slot, over).also { over = 0 }
+                    units <= over -> inv.remove(slot).also { over -= units.toInt() }
+                    each == 1 -> inv.remove(slot, over).also { over = 0 }
                     else -> {
-                        player.inventory[slot] = doseOf(obj.id, each - over)?.let { InvObj(it, 1) }
+                        inv[slot] = doseOf(obj.id, each - over)?.let { InvObj(it, 1) }
                         over = 0
                     }
                 }
@@ -110,7 +112,13 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
         if (taken > 0) logger.info { "$run: took back ${player.username}'s supplies, $taken doses or items" }
     }
 
-    /** Each tick: the supplies of members out of [run], by a teleport, the Rift out or leaving the party, are taken back. */
+    private data class Held(val inv: Inventory, val slot: Int, val obj: InvObj, val each: Int)
+
+    /**
+     * Each tick, before the players' input and again after the NPCs: the supplies of members out of [run], by a
+     * teleport, the Rift out or leaving the party, are taken back. Before the input, so one who left in the last
+     * tick's script or movement can't drop them first and pick them up after (Codex review on #636).
+     */
     fun settleOut(run: ArchiveRun, ended: Boolean) {
         for (key in run.suppliesBrought.keys.toList()) {
             val player = world.onlinePlayers.firstOrNull { it.saveKey == key } ?: continue
@@ -149,11 +157,11 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
 
     /**
      * What [player] holds of the supplies' kinds: doses of each potion by its first dose obj, and items of the rest; with
-     * [offered] (their trade offer) too.
+     * what they have in Guide prices' checker, and [offered] (their trade offer) too.
      */
     internal fun held(player: Player, offered: Inventory? = null): Map<Int, Int> {
         val out = HashMap<Int, Int>()
-        for ((_, obj) in player.inventory.contents() + offered?.contents().orEmpty()) {
+        for ((_, obj) in player.inventory.contents() + player.priceChecker.contents() + offered?.contents().orEmpty()) {
             val (kind, each) = unitsOf(obj.id) ?: continue
             out.merge(kind, each * obj.count, Int::plus)
         }

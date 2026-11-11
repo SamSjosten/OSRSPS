@@ -1248,6 +1248,7 @@ class World(
         }
         endEmptyInstances()
         groundObjs.process()
+        archiveRaids.settleDepartures()
         phase = TickPhase.INPUT
         readInput(ticking = true)
         phase = TickPhase.NPCS

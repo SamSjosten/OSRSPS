@@ -1165,6 +1165,11 @@ class ArchiveRaids(private val world: World) {
         escaped(run, player)
     }
 
+    /** At each tick's start, before the players' input: the supplies of whoever got out of a run since are taken back (R26A-1). */
+    fun settleDepartures() {
+        for (run in runs.values) supplies.settleOut(run, ended = world.instances.all.none { it === run.instance })
+    }
+
     /** [player] is leaving the world, any trade's offer back with them: what they hold of a run's supplies stays in it (R26A-1). */
     fun settleSupplies(player: Player) {
         for (run in runs.values) supplies.settle(run, player)

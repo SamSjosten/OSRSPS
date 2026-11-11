@@ -390,7 +390,7 @@ class HeadlessArchiveSuppliesTest {
     }
 
     @Test
-    fun `logging out in the run leaves the supplies in it`(@TempDir dir: Path) {
+    fun `logging out in the run leaves the supplies in it, even one left in Guide prices`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bob").use { client ->
                 client.await("the login rebuild") { client.position }
@@ -400,7 +400,15 @@ class HeadlessArchiveSuppliesTest {
                 client.clear(run, ArchiveRoom.DREADNOTH)
                 client.toNexus(server, run)
                 client.resupply()
-                client.entry(4, 2)
+                client.entry(4, 3)
+                client.awaitHeld(MANTA, 2)
+                // One of them in Guide prices' checker, as a disconnect would leave it (Codex review on #636).
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
+                val bob = server.world.playerNamed("bob")!!
+                val slot = bob.inventory.contents().first { it.second.id == MANTA }.first
+                bob.inventory.remove(slot, 1)
+                bob.priceChecker[0] = osrsps.game.InvObj(MANTA, 1)
+                client.commandReply("resume") { it.startsWith("Resumed") }
                 client.awaitHeld(MANTA, 1)
                 client.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
                 client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
