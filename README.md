@@ -1530,6 +1530,25 @@ an egg each search; the Digsite barge's crates, the hideout's boxes and crates a
 | Left out, with why: Nigel and Gelin by the church (Deadman forms only), Twiggy O'Korn (diaries aren't built), Spria (a Slayer master), the Draynor gulls (the 242 cache gave their old ids to Sailing NPCs), the General's Shadow scout; the highwayman's overhead shout (no NPC shouts yet); the swamp bubbles (Big Chompy Bird Hunting's ogre bellows), the swamp caves' symbols, the Digsite's bushes, barrel and chest (The Lost Tribe's and The Dig Site's) | out of scope |
 | Found for other threads: the Varrock and Grand Exchange people and options, Draynor's and Edgeville's, the canoe stations, farming patches, STASH units, the Mage Training Arena and Al Kharid's arena | handed to those threads |
 
+#### Walking Misthalin's roads
+
+Misthalin piece 7 step 12b (`test-runner/examples/misthalin-walk.json`, checked by `WalkScriptsTest`): one runner
+script walks the piece's roads in stages of at most 4 tiles on the server's own pathing, as `lumbridge-walk.json` does
+for Lumbridge's. Leg 1 goes from Lumbridge Castle north past the farms into Varrock from the south; leg 2 from the castle
+to the H.A.M. Hideout's trapdoor; leg 3 from outside Varrock's east gate north to the Lumber Yard, through the members'
+gate and Silvarea to Paterdomus's front doors; leg 4 from the east gate again south through the members' gate in the
+Digsite's west fence to the Exam Centre, then north through the digs to the canal barge's quay. The Lumbridge Swamp is
+`lumbridge-walk.json`'s, and the River Lum's canoes wait for Gathering.
+
+The script sets combat level 126 and `::god on` first, since a new player died by the dark wizards' circle south of
+Varrock on the first headless run (the wizards taken to be the killers, inferred), and `::reset` puts the account
+back at the end. It takes about four and a half minutes headless.
+
+| Walking Misthalin's roads | Source |
+|---------------------------|--------|
+| The stages | the server's route finder on the real map between points picked on each road, the two gates opened on the way; every stage reached by `headlessScripts` |
+| Where each road runs | the Wiki's maps; where the route finder cuts a corner off a road it is the shortest walkable way, not the road's own tiles (inferred) |
+
 ## Draynor Village
 
 The village west of Lumbridge (the Draynor piece, plan in the project's Draynor Village 1:1 plan doc). Step 1 is the
