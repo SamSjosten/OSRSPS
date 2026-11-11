@@ -190,7 +190,7 @@ class HeadlessMisthalinSweepTest {
     }
 
     @Test
-    fun `a coop's wait outlasts a logout, but not a restart's new ticks`(@TempDir dir: Path) {
+    fun `a coop's wait outlasts a logout, but not a restart`(@TempDir dir: Path) {
         // Exploit review round 27, R27B-2: the wait was unsaved, so logging out and back in gave another egg at once.
         server(dir, emptyList()).use { server ->
             server.login("bob").use { client ->
@@ -206,9 +206,10 @@ class HeadlessMisthalinSweepTest {
                 client.locOp(coop.id, coop.x, coop.z, MisthalinSweep.SEARCH)
                 client.awaitSeen("[game.nothing_interesting]")
                 assertEquals(1, client.count(MisthalinSweep.EGG))
-                // A due tick further off than the wait is from before a restart, whose ticks start again from 0.
+                // A wait from before a restart, whose ticks start again from 0, counts for nothing however near its tick.
                 val bob = server.world.playerNamed("bob")!!
-                bob.charges[MisthalinSweep.COOP_DUE] = (server.world.tick + MisthalinSweep.COOP_WAIT_TICKS + 50).toInt()
+                assertEquals(server.world.run, bob.charges[MisthalinSweep.COOP_RUN])
+                bob.charges[MisthalinSweep.COOP_RUN] = server.world.run - 1
                 client.locOp(coop.id, coop.x, coop.z, MisthalinSweep.SEARCH)
                 client.awaitCount(MisthalinSweep.EGG, 2)
             }

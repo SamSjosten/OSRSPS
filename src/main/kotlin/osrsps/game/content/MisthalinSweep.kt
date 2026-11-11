@@ -101,12 +101,13 @@ object MisthalinSweep {
     const val COOP_WAIT_TICKS = 100
 
     /**
-     * [osrsps.game.Player.charges] name, saved: the tick this player's coops have an egg again. Saved so a logout and
-     * back in doesn't start the wait over (exploit review round 27, R27B-2: unsaved, a relog gave another egg about 8
-     * ticks on). A tick more than [COOP_WAIT_TICKS] away is from before a restart, whose ticks start again from 0, and
-     * counts for nothing.
+     * [osrsps.game.Player.charges] names, saved: the tick this player's coops have an egg again, and the [World.run]
+     * that tick is of. Saved so a logout and back in doesn't start the wait over (exploit review round 27, R27B-2:
+     * unsaved, a relog gave another egg about 8 ticks on); with its run, as ticks start again from 0 on a restart, so a
+     * wait from an earlier run counts for nothing.
      */
     const val COOP_DUE = "coop_egg_due"
+    const val COOP_RUN = "coop_egg_run"
     const val EGG = 1944
     const val SEARCH = 1
 
@@ -195,10 +196,12 @@ object MisthalinSweep {
 
     internal suspend fun ScriptContext.searchCoop(world: World) {
         arriveDelay()
-        val due = player.charges[COOP_DUE]
-        if (tick < due && due - tick <= COOP_WAIT_TICKS) return world.message(player, osrsps.game.GameLines.NOTHING_INTERESTING)
+        if (player.charges[COOP_RUN] == world.run && tick < player.charges[COOP_DUE]) {
+            return world.message(player, osrsps.game.GameLines.NOTHING_INTERESTING)
+        }
         if (player.inventory.freeSlots == 0) return world.message(player, MisthalinSweepLines.EGG_NO_ROOM)
         player.charges[COOP_DUE] = (tick + COOP_WAIT_TICKS).toInt()
+        player.charges[COOP_RUN] = world.run
         world.objTypes[EGG]?.let { player.inventory.add(it, 1) }
         world.message(player, MisthalinSweepLines.EGG_FOUND)
     }
