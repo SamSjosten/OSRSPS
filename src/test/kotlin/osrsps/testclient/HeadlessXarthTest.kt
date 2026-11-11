@@ -303,10 +303,11 @@ class HeadlessXarthTest {
                 assertTrue(lines().any { it.endsWith(": heals 124") && tickOf(it) == tickOf(first) }, lines().takeLast(8).toString())
                 assertTrue(him.hitpoints >= 1600 + 124, "${him.hitpoints}")
                 val second = awaitLine("the second absorbed") { it.contains(", 2 absorbed") }
+                // Its tell 6 ticks after the second heal and the blast 1 after that (Sam's clip).
                 val blast = awaitLine("the flame blast") { it.endsWith(": flame blast") && tickOf(it) >= tickOf(second) }
-                assertEquals(tickOf(second), tickOf(blast))
+                assertEquals(Xarth.BLAST_TELL_AFTER.toLong(), tickOf(blast) - tickOf(second))
                 val all = awaitLine("the blast") { it.endsWith(": the blast all round") }
-                assertEquals(Xarth.WAVE_AFTER_BLAST.toLong(), tickOf(all) - tickOf(blast))
+                assertEquals(Xarth.BLAST_AFTER_TELL.toLong(), tickOf(all) - tickOf(blast))
                 assertTrue(lines().any { it.contains(": blast hits alice for 0") }, lines().takeLast(8).toString())
                 assertTrue(lines().any { it.contains(": alice burns, ") && tickOf(it) == tickOf(all) }, "set alight")
                 // The fires spread: 3 more, each next to one burning.
@@ -314,15 +315,6 @@ class HeadlessXarthTest {
                 val more = spread.substringAfter(" spread to ").split(' ').map { s -> s.split(',').let { Tile(it[0].toInt(), it[1].toInt()) } }
                 assertEquals(Xarth.SPREAD_FIRES, more.size)
                 assertTrue(alice.commandReply("raid") { it.startsWith("xarth #") }.contains("${Xarth.TWO_FIRES + Xarth.SPREAD_FIRES} fires"))
-                // On a fire she's hurt and set alight.
-                val fire = fires.first()
-                alice.tele(fire.x, fire.z)
-                val under = awaitLine("the fire under her") { it.contains(": fire under alice for 0") }
-                // Still on it, the fire sets her alight again just as the burn's first tick is due: that tick still lands.
-                val again = awaitLine("the fire under her again") { it.contains(": fire under alice for 0") && tickOf(it) > tickOf(under) }
-                assertEquals(Xarth.FIRE_EVERY.toLong(), tickOf(again) - tickOf(under))
-                // Once, never twice.
-                assertEquals(1, lines().count { it.contains(": burn on alice for ") && tickOf(it) == tickOf(again) }, lines().takeLast(8).toString())
                 // Beside him he swings instead of shooting.
                 alice.tele(him.x - 1, him.z + 1)
                 awaitLine("his swing") { it.contains(": swings at alice for 0") }
@@ -331,6 +323,38 @@ class HeadlessXarthTest {
                 alice.await("his fight over") { world.encounters.all.isEmpty().takeIf { it } }
                 assertTrue(world.npcs.all.none { it.type.id == Xarth.CORPSE })
                 assertTrue(fires.none { world.locs.at(it.x, it.z, him.level).any { l -> l.id == Xarth.LOC_ARENA_FIRE } })
+            }
+        }
+    }
+
+    @Test
+    fun `a fire sets whoever stands on it alight, and the burn is all it does`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                alice.await("the login rebuild") { alice.position }
+                alice.commandReply("god on") { it.startsWith("You can't be hurt") }
+                val start = assertNotNull(alice.position)
+                // Out of his way before phase two's first fires land.
+                alice.tele(start.x - 5, start.z + 1)
+                alice.commandReply("raid xarth phase=two seed=19") { it.startsWith("Started") }
+                val fight = server.world.encounters.all.single()
+                val lines = { fight.lines.toList() }
+                fun awaitLine(what: String, predicate: (String) -> Boolean): String = try {
+                    alice.await(what, timeoutMillis = 30_000) { lines().lastOrNull(predicate) }
+                } catch (e: AssertionError) {
+                    throw AssertionError("${e.message}; the fight's last lines: ${lines().takeLast(12)}", e)
+                }
+                val opened = awaitLine("phase two") { it.contains(": phase two: ") }
+                val fire = opened.substringAfter(" fires, on ").substringBefore(' ').split(',').let { Tile(it[0].toInt(), it[1].toInt()) }
+                alice.tele(fire.x, fire.z)
+                // Set alight on it, its burn hitting 4 ticks on, and nothing more from the fire while she burns (Sam's
+                // clip: only burn splats in the fires).
+                val under = awaitLine("the fire under her") { it.endsWith(": fire under alice") }
+                val quiet = Xarth.BURN_EVERY.toLong() * (Xarth.BURN_HITS - 1)
+                awaitLine("${quiet} ticks on") { tickOf(it) >= tickOf(under) + quiet }
+                assertTrue(lines().any { it.contains(": burn on alice for ") && tickOf(it) == tickOf(under) + Xarth.BURN_EVERY }, lines().takeLast(12).toString())
+                assertTrue(lines().none { it.endsWith(": fire under alice") && tickOf(it) in tickOf(under) + 1..tickOf(under) + quiet }, lines().takeLast(12).toString())
+                assertTrue(lines().none { it.contains(": fire under alice for ") }, "no hit of its own")
             }
         }
     }
