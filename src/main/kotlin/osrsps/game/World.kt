@@ -326,6 +326,8 @@ class World(
     val shopTypes: ShopTypes = ShopTypes.NONE,
     /** The cache's omnishops (the shared reward-shop interface); tests that use one pass their own. */
     val omnishops: Omnishops = Omnishops.NONE,
+    /** The cache's Grand Exchange item sets; tests that use them pass their own. */
+    val itemSets: osrsps.game.ge.ItemSets = osrsps.game.ge.ItemSets.NONE,
     /** The levels whose level-up plays a skill's unlock jingle; see [LevelUps]. */
     skillUnlocks: SkillUnlocks = SkillUnlocks.NONE,
     /** The levels needed to wear items; tests that check levels pass their own. */
@@ -484,6 +486,19 @@ class World(
         examine = { player, id, count -> objTypes[id]?.let { inventoryTab.examine(player, it, count) } },
         words = ::textFor,
         drop = { player, type, count -> dropUnder(player, type, count) },
+    )
+
+    /** The Grand Exchange clerks' item sets window; see [ItemSetsScreen]. */
+    val itemSetsScreen = osrsps.game.ge.ItemSetsScreen(
+        itemSets, objTypes, interfaces::openModal, interfaces::closeModals,
+        toggleFilter = { player ->
+            if (player.vars.types.varbit(osrsps.game.ge.ItemSetsScreen.FILTER_VARBIT) != null) {
+                val now = player.vars.getVarbit(osrsps.game.ge.ItemSetsScreen.FILTER_VARBIT)
+                interfaces.setVarbitNow(player, osrsps.game.ge.ItemSetsScreen.FILTER_VARBIT, 1 - now)
+            }
+        },
+        examine = { player, id, count -> objTypes[id]?.let { inventoryTab.examine(player, it, count) } },
+        words = ::textFor,
     )
 
     /** The window over a player's unclaimed loot of The Fractured Archive: the vault's chests and the lobby's Loot Wheelbarrow. */
@@ -2334,6 +2349,7 @@ class World(
         if (omnishopScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (grandExchangeScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (priceChecker.click(player, interfaceId, componentId, sub, op, obj)) return@act
+        if (itemSetsScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (archiveChestWindow.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (interfaceId == EquipmentTab.WORNITEMS && componentId == PriceChecker.WORNITEMS_BUTTON) {
             priceChecker.open(player)

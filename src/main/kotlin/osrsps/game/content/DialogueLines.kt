@@ -295,6 +295,7 @@ object DialogueLines {
         PotionLines,
         PrayerLines,
         PriceCheckerLines,
+        osrsps.game.ge.ItemSetsLines,
         PrinceAliLines,
         PrysinLines,
         RamBartenderLines,
