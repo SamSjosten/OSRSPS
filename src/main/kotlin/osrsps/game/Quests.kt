@@ -103,6 +103,9 @@ class Quests(val all: List<Quest>) {
             // captain_harlan_intro: Mudfoot's Big Adventure starts with Captain Harlan, so after it he greets the player
             // as one he has met (inferred; [osrsps.game.content.Harlan]).
             16780 to 1,
+            // burgh_temple_trapdoor: In Aid of the Myreque opens the trapdoor down to Paterdomus's secret library with the
+            // temple library key, and it stays open (Wiki, Temple library key; [osrsps.game.content.Paterdomus]).
+            1982 to 1,
             // dttd_ham_trapdoor_state: Death to the Dorgeshuun leaves the hidden trapdoor below the H.A.M. Hideout open,
             // Climb-down, as the quest's later steps climb down it without a pick (inferred from the Wiki's quick guide;
             // [osrsps.game.content.HamStorerooms]).

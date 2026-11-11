@@ -51,4 +51,33 @@ class EdgevilleDungeonTest {
         assertFalse(EdgevilleDungeon.inMiddle(ZoneLoc(EdgevilleDungeon.GATE_LEFT, LocShape.WALL_STRAIGHT, 1, 3105, 9944, 0)))
         assertFalse(EdgevilleDungeon.inMiddle(ZoneLoc(EdgevilleDungeon.GATE_LEFT, LocShape.WALL_STRAIGHT, 0, 2910, 9910, 0)))
     }
+
+    @Test
+    fun `the trapdoors that go somewhere are Edgeville's and Paterdomus's, on the ground only`() {
+        fun trapdoor(x: Int, z: Int, level: Int = 0) = ZoneLoc(EdgevilleDungeon.TRAPDOOR_OPEN, LocShape.GROUND_DECOR, 2, x, z, level)
+        assertEquals(EdgevilleDungeon.LANDING, EdgevilleDungeon.landing(trapdoor(3097, 3468)))
+        assertEquals(Paterdomus.TRAPDOOR_LANDING, EdgevilleDungeon.landing(trapdoor(3405, 3507)))
+        assertEquals(null, EdgevilleDungeon.landing(trapdoor(3405, 3507, 1)))
+        assertEquals(null, EdgevilleDungeon.landing(trapdoor(3200, 3200)))
+    }
+
+    @Test
+    fun `a door with no open type takes the player across its wall, whichever side they stand`() {
+        val west = ZoneLoc(Paterdomus.DOOR_LEFT, LocShape.WALL_STRAIGHT, 2, 3408, 3489, 0)
+        assertEquals(Tile(3409, 3489), Paterdomus.across(west, 3408, 3489))
+        assertEquals(Tile(3408, 3489), Paterdomus.across(west, 3409, 3489))
+        val south = ZoneLoc(Paterdomus.GATE_WEST, LocShape.WALL_STRAIGHT, 3, 3405, 9895, 0)
+        assertEquals(Tile(3405, 9894), Paterdomus.across(south, 3405, 9895))
+        assertEquals(Tile(3405, 9895), Paterdomus.across(south, 3405, 9894))
+    }
+
+    @Test
+    fun `a door clicked from a tile beside its doorway still takes the player through the doorway`() {
+        val west = ZoneLoc(Paterdomus.DOOR_LEFT, LocShape.WALL_STRAIGHT, 2, 3408, 3489, 0)
+        assertEquals(Tile(3409, 3489), Paterdomus.across(west, 3408, 3490))
+        assertEquals(Tile(3408, 3489), Paterdomus.across(west, 3409, 3488))
+        val south = ZoneLoc(Paterdomus.GATE_WEST, LocShape.WALL_STRAIGHT, 3, 3405, 9895, 0)
+        assertEquals(Tile(3405, 9894), Paterdomus.across(south, 3406, 9895))
+        assertEquals(Tile(3405, 9895), Paterdomus.across(south, 3404, 9894))
+    }
 }

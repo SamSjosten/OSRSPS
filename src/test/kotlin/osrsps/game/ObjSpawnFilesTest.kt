@@ -135,6 +135,14 @@ class ObjSpawnFilesTest {
     }
 
     @Test
+    fun `Paterdomus has the Wiki's bucket on the temple's top floor`() {
+        val types = ObjTypes.of(ObjType(1925, "Bucket", internalName = "bucket_empty"))
+        val text = ObjSpawnFiles.resources().toMap().getValue("paterdomus.tsv")
+        val spawn = ObjSpawnFiles.parse(text, types, "paterdomus.tsv").single()
+        assertEquals(listOf(1925, 3414, 3493, 2), listOf(spawn.id, spawn.x, spawn.z, spawn.level))
+    }
+
+    @Test
     fun `Draynor's spawns are the Wiki's cheese and tomato in Aggie's house and two logs in Spria's`() {
         val village = ObjTypes.of(
             ObjType(1511, "Logs", internalName = "logs"),

@@ -136,7 +136,17 @@ object EdgevilleDungeon {
     /** Whether [loc] is in the dungeon's north and middle, south of the north gate (map squares 48,154 and 49,154). */
     fun inMiddle(loc: ZoneLoc) = loc.level == 0 && loc.x in 3072..3199 && loc.z in 9856..9919
 
+    /**
+     * Each `trapdoor` (1579) that goes somewhere, by its tile on the ground, and where climbing down it puts the player:
+     * this one, and Paterdomus's north of the temple ([Paterdomus]). The others in the map stay shut to everything but
+     * Open and Close.
+     */
+    val LANDINGS: Map<Tile, Tile> = mapOf(TRAPDOOR_TILE to LANDING, Paterdomus.TRAPDOOR_TILE to Paterdomus.TRAPDOOR_LANDING)
+
     fun isTrapdoor(loc: ZoneLoc) = loc.x == TRAPDOOR_TILE.x && loc.z == TRAPDOOR_TILE.z && loc.level == 0
+
+    /** Where climbing down trapdoor [loc] puts the player, or null for one that goes nowhere yet. */
+    fun landing(loc: ZoneLoc): Tile? = if (loc.level == 0) LANDINGS[Tile(loc.x, loc.z)] else null
 
     fun isWall(loc: ZoneLoc) = loc.level == 0 && WALL_TILES.any { it.x == loc.x && it.z == loc.z }
 
@@ -163,12 +173,11 @@ fun registerEdgevilleDungeon(world: World) {
         world.handlers.onLoc(TRAPDOOR, OPEN) { op -> swapFurniture(world, op.loc!!, TRAPDOOR_OPEN, Searching.ANIM_OPEN) }
         world.handlers.onLoc(TRAPDOOR_OPEN, CLOSE) { op -> swapFurniture(world, op.loc!!, TRAPDOOR, Searching.ANIM_SHUT) }
         world.handlers.onLoc(TRAPDOOR_OPEN, CLIMB_DOWN) { op ->
-            val loc = op.loc!!
-            if (!isTrapdoor(loc)) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
+            val landing = landing(op.loc!!) ?: return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
             arriveDelay()
             player.anim(Climbing.ANIM_PICKUP_FLOOR)
             delay(1)
-            world.teleport(player, LANDING.x, LANDING.z, 0)
+            world.teleport(player, landing.x, landing.z, 0)
         }
 
         // Paired as double doors, but they swing only here: the 241 map has these gates in a dozen other places (the

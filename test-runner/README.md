@@ -195,6 +195,12 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   the Sawmill by talk (with too few coins for all, so he names his fee), Buy-plank refused without teak logs, his shop on
   Trade, a mewing crate, a crate and a barrel searched, an earth talisman used on the Earth Altar's ruins, Tolna talked to
   and his rift's rope and a warning sign used (with `::keys on`; the spawns are in the unit test).
+- `paterdomus.json`: Misthalin piece 7 step 8: Paterdomus's front doors opened through, the north spiral stairs and
+  the ladder up to the top floor's bucket and back down the south stairs, the trapdoor north of the temple into the
+  mausoleum and its west gate, Drezel handing back the wolfbane dagger and the library key and then talking, Ivan
+  Strom handing over Drakan's medallion and saying goodbye, the Holy barrier and the ornate railing refused, and the
+  secret library's trapdoor and ladder (with `::keys on`; the full backpack, Ivan's long talk and the stairs' tiles are
+  in the headless test).
 - `silvarea.json`: Misthalin piece 7 step 7: Varrock's members' gate opened (both leaves) and walked through, a
   limestone rock mined at 99 through its three stages and back whole, a bat killed for its bones, the Odd Old Man
   handing back a ram skull helm then a bonesack and then talking about his sorting, his wish-list read, and the
