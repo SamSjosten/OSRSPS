@@ -1,0 +1,19 @@
+{
+  "about": "Misthalin piece 7 step 7: Silvarea, the valley between Varrock's east fence and the Salve (Silvarea.kt). Its thirteen bats and the Odd Old Man by his pot-boiler, on the tiles mejrs's list saw them. Elias White isn't here: the Wiki puts him at the Jolly Boar Inn or Uzer once his quests are done.",
+  "spawns": [
+    {"npc": "small_bat", "x": 3341, "z": 3478, "wander": 5, "source": "Bat, Silvarea. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the Wiki's Bat page lists Silvarea; the wander range guessed"},
+    {"npc": "small_bat", "x": 3343, "z": 3484, "wander": 5, "source": "Bat, Silvarea. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the Wiki's Bat page lists Silvarea; the wander range guessed"},
+    {"npc": "small_bat", "x": 3345, "z": 3484, "wander": 5, "source": "Bat, Silvarea. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the Wiki's Bat page lists Silvarea; the wander range guessed"},
+    {"npc": "small_bat", "x": 3350, "z": 3493, "wander": 5, "source": "Bat, Silvarea. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the Wiki's Bat page lists Silvarea; the wander range guessed"},
+    {"npc": "small_bat", "x": 3353, "z": 3494, "wander": 5, "source": "Bat, Silvarea. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the Wiki's Bat page lists Silvarea; the wander range guessed"},
+    {"npc": "small_bat", "x": 3361, "z": 3484, "wander": 5, "source": "Bat, Silvarea. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the Wiki's Bat page lists Silvarea; the wander range guessed"},
+    {"npc": "small_bat", "x": 3364, "z": 3489, "wander": 5, "source": "Bat, Silvarea. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the Wiki's Bat page lists Silvarea; the wander range guessed"},
+    {"npc": "small_bat", "x": 3370, "z": 3497, "wander": 5, "source": "Bat, Silvarea. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the Wiki's Bat page lists Silvarea; the wander range guessed"},
+    {"npc": "small_bat", "x": 3379, "z": 3478, "wander": 5, "source": "Bat, Silvarea. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the Wiki's Bat page lists Silvarea; the wander range guessed"},
+    {"npc": "small_bat", "x": 3379, "z": 3484, "wander": 5, "source": "Bat, Silvarea. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the Wiki's Bat page lists Silvarea; the wander range guessed"},
+    {"npc": "small_bat", "x": 3387, "z": 3483, "wander": 5, "source": "Bat, Silvarea. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the Wiki's Bat page lists Silvarea; the wander range guessed"},
+    {"npc": "small_bat", "x": 3388, "z": 3494, "wander": 5, "source": "Bat, Silvarea. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the Wiki's Bat page lists Silvarea; the wander range guessed"},
+    {"npc": "small_bat", "x": 3389, "z": 3483, "wander": 5, "source": "Bat, Silvarea. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the Wiki's Bat page lists Silvarea; the wander range guessed"},
+    {"npc": "rag_odd_old_man", "x": 3361, "z": 3505, "wander": 0, "source": "Odd Old Man, by his pot-boiler and wish-list. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); standing still guessed"}
+  ]
+}

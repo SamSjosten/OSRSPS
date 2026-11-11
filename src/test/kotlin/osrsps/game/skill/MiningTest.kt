@@ -2,6 +2,7 @@ package osrsps.game.skill
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class MiningTest {
     private fun rock(key: String) = Mining.ROCKS.values.first { it.type.key == key }.type
@@ -44,6 +45,23 @@ class MiningTest {
     @Test
     fun `pickaxes go best first and every rock has an empty rock`() {
         assertEquals(Mining.PICKAXES.sortedByDescending { it.tool.level }.map { it.tool.level }, Mining.PICKAXES.map { it.tool.level })
-        for (rock in Mining.ROCKS.values) assertEquals(true, rock.empty in Mining.EMPTY_ROCKS)
+        // A staged rock (limestone) becomes its next stage, and its last stage the empty rock.
+        for (rock in Mining.ROCKS.values) {
+            var empty = rock.empty
+            while (empty !in Mining.EMPTY_ROCKS) empty = Mining.ROCKS.getValue(empty).empty
+            assertEquals(true, empty in Mining.EMPTY_ROCKS)
+        }
+    }
+
+    @Test
+    fun `limestone gives three in three stages at level 10 for 26 and a half XP, back whole 39, 19 or 9 ticks after its last stage`() {
+        val stages = listOf(11382, 11383, 11384).map { Mining.ROCKS.getValue(it) }
+        assertEquals(listOf(11383, 11384, Mining.LIMESTONE_EMPTY), stages.map { it.empty })
+        assertEquals(listOf(39, 19, 9), stages.map { it.restoreTicks })
+        val type = stages.first().type
+        assertTrue(stages.all { it.type === type })
+        assertEquals(listOf(10, 265, 3211, 95, 350), listOf(type.level, type.xpTenths, type.ore, type.low, type.high))
+        // Every other rock empties at once and respawns on its own clock.
+        assertTrue(Mining.ROCKS.filterKeys { it !in 11382..11384 }.values.all { it.restoreTicks == 0 })
     }
 }

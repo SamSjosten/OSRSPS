@@ -380,6 +380,22 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `Silvarea has its thirteen bats in the valley and the Odd Old Man standing by his pot-boiler`() {
+        val names = mapOf(2827 to "small_bat", 1259 to "rag_odd_old_man")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("silvarea.json"), types, "silvarea.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        assertEquals(listOf(13, 1), listOf(2827, 1259).map { id -> spawns.count { it.type.id == id } })
+        assertEquals(3361 to 3505, spawns.single { it.type.id == 1259 }.let { it.x to it.z })
+        assertEquals(0, spawns.single { it.type.id == 1259 }.wander)
+        // Between Varrock's east fence and the Salve, south of the Wilderness ditch.
+        assertTrue(spawns.filter { it.type.id == 2827 }.all { it.x in 3330..3400 && it.z in 3470..3500 && it.wander > 0 })
+        assertEquals(13, spawns.filter { it.type.id == 2827 }.map { it.x to it.z }.toSet().size)
+        assertTrue(spawns.all { it.source.isNotBlank() && it.level == 0 })
+    }
+
+    @Test
     fun `the swamp has its 23 giant rats, 82 frogs, the level 5 goblin, the unicorn, its talking NPCs and tutors, and rats west of the castle`() {
         val names = mapOf(
             2856 to "giantrat", 2859 to "giantrat_grey", 2860 to "giantrat_grey2", 2861 to "giantrat_grey3", 2863 to "giantrat1_2",

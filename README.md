@@ -508,6 +508,7 @@ Rocks outside Misthalin are where live has them and reached by ::tele: the Minin
 | Amethyst crystals: 92, 240 XP, pair -18/10, 2 to 3 amethysts from one swing before an empty wall (`amethystrock_empty`) for 75 seconds | OSRS Wiki, Amethyst crystals |
 | Gem rocks: 40, 65 XP, pair 28/70 (84/210 with a charged glory), one gem out of 128 (opal 60, jade 30, red topaz 15, sapphire 9, emerald 5, ruby 5, diamond 4), 99 ticks back, no mining gem table | OSRS Wiki, Gem rocks |
 | Granite rocks: 45; 5kg (75 XP, pair 6/64), 2kg (60, 8/75), 500g (50, 16/100) rolled largest first, the first success given (42.0% any at 45, 68.2% at 99); sandstone rocks: 35; 10kg (60, 4/50), 5kg (50, 8/75), 2kg (40, 16/100), 1kg (30, 25/200) (56.5% to 92.7%). Each success empties the rock for 9 ticks; no gem table. Desert heat is not in yet | OSRS Wiki, Granite rocks, Sandstone rocks |
+| Limestone rocks (Silvarea): 10; 26.5 XP, pair 95/350; a rock gives three limestone in three stages (limestone_rock1 to 3, then the pile of rock) and comes back whole 39, 19 or 9 ticks after its latest stage, the Wiki's 23.4, 11.4 and 5.4 seconds read as the time back to a full rock (inferred) | OSRS Wiki, Limestone rock, read 2026-11-11 |
 | A charged amulet of glory (any, trimmed or eternal) adds a second 3/256 roll at the mining gem table | OSRS Wiki, mining gem table template |
 | The Mining Guild's members' area: an invisible +7 on the roll (not on the level needed) and every respawn halved | OSRS Wiki, Mining Guild |
 | The members' area's bounds (x 2998-3059, z 9695-9729), drawn around the Wiki's rock tiles; amethyst's 75 seconds not halved again | inferred |
@@ -1372,6 +1373,30 @@ dungeon; the signs read as the Wiki says.
 | The three varbits after A Soul's Bane, the crates finding nothing, the fence's two tiles | inferred |
 | The fence's animation (the Varrock fence's), the barrels' "Nothing interesting happens", the cost line's words, the chathead expressions, the rift's refusal | guessed |
 | Out: Tolna's rift dungeon (a later step), sawmill vouchers (Forestry), Gertrude's cat and kittens, the clue crate, the shop's top-up of bolts of cloth and bronze nails when opened low | out of scope |
+
+#### Silvarea
+
+Misthalin piece 7 step 7 (`game/content/Silvarea.kt`, `npc-spawns/silvarea.json`, the bat's entries in `npc-combat.json`
+and `npc-drops.json`, the limestone rocks in `game/skill/Mining.kt`, words under `odd_old_man.*` and `silvarea.*`): the
+valley between Varrock's east fence and the River Salve.
+
+The members' gate in Varrock's east fence opens both leaves together. Thirteen bats flap about the valley: level 6, they
+stab for 1 and drop bat bones. The limestone rocks give three limestone each in three stages and come back whole a short
+while after (Mining's table above). Every account has done Rag and Bone Man II, and live lets a player who took one
+reward get the other as well, so the Odd Old Man hands back a lost ram skull helm, then a lost bonesack, one a talk; with
+both owned (carried, worn or banked) he talks about his "sorting" while the sack on his back mumbles. His wish-list reads
+its one wish left. The trapdoor to Zemouregal's base shows Enter after Defender of Varrock and waits for the base.
+
+| Silvarea | Source |
+|----------|--------|
+| The NPCs' types and tiles | mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022); the Wiki's Bat page lists Silvarea |
+| The bat: speed 4, max hit 1, stab, no bonuses, stab and slash +2, crush +5, magic +2, ranged 0, respawn 35, 35% weak to air, not aggressive; bat bones always | OSRS Wiki, Bat, read 2026-11-11 |
+| The Odd Old Man's talk after the quest | OSRS Wiki, Transcript:Odd Old Man, read 2026-11-11 |
+| The wish-list's text | OSRS Wiki, Wish-list, read 2026-11-11 |
+| The gate's two leaves (`fai_varrock_member_gatel` and `_gater`) and the trapdoor's Enter after Defender of Varrock | the 242 cache; checked on the real map by `silvarea.json` |
+| Every account owning both rewards, limestone's restore times, the bats' animations | inferred |
+| The wish-list in a message box, the bats' wander range, the chathead expressions, the base's refusal | guessed |
+| Out: Zemouregal's base and its armoured zombies, the Giantsoul amulet trade-in, the easy STASH, the hunting trail's plants and the pot-boiler (no options after the quests), Elias White (at the Jolly Boar Inn or Uzer once his quests are done, Wiki) | out of scope |
 
 ## Draynor Village
 

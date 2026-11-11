@@ -48,6 +48,7 @@ class NpcCombatTest {
             "sheep_attack" to 250, "sheep_block" to 251, "sheep_death" to 252, "duck_rework_death" to 3468,
             "slice_surface_goblin_squat_unarmed_attack" to 6184, "slice_surface_goblin_defend" to 6183, "slice_surface_goblin_death" to 6182,
             "spider_update_attack" to 5327, "spider_update_defend" to 5328, "spider_update_death" to 5329,
+            "bat_rework_attack" to 4915, "bat_rework_defend" to 4916, "bat_rework_death" to 4917,
             "giant_rat_update_attack" to 4933, "giant_rat_update_defend" to 4934, "giant_rat_update_death" to 4935,
             "giant_frog_attack" to 1793, "giant_frog_block" to 1794, "giant_frog_death" to 1795,
             "slice_surface_goblin_squat_attack_spear" to 6188, "slice_surface_goblin_defend_spear" to 6189, "slice_surface_goblin_death_spear" to 6190,
@@ -861,6 +862,17 @@ class NpcCombatTest {
         assertEquals(ElementalWeakness(Element.FIRE, 30), def.weakness)
         assertNull(def.aggression)
         assertEquals(NpcCombatAnims(4925, 4927, 4929), def.anims)
+    }
+
+    @Test
+    fun `Silvarea's bats stab for 1 at speed 4, weak to air, back after 35 ticks and never attacking first`() {
+        val batTypes = NpcTypes.of(NpcType(2827, "Bat", internalName = "small_bat", stats = NpcStats(strength = 5)))
+        val def = NpcCombat.load(batTypes, seqs)[batTypes.find("small_bat")!!]!!
+        assertEquals(CombatMath.npcMaxHit(5, def.strengthBonus), def.maxHit)
+        assertEquals(listOf(4, 1, 35), listOf(def.attackSpeed, def.maxHit, def.respawnTicks))
+        assertEquals(ElementalWeakness(Element.AIR, 35), def.weakness)
+        assertNull(def.aggression)
+        assertEquals(NpcCombatAnims(4915, 4916, 4917), def.anims)
     }
 
     @Test
