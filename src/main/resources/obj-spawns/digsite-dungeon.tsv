@@ -1,0 +1,24 @@
+# The Digsite Dungeon's item spawns (Misthalin piece 7 step 10), in the copy after The Dig Site (OSRS Wiki, Iron
+# pickaxe, Bucket, Arcenia root and Bones, item spawns, read 2026-11-11). Each page's respawn is 100 ticks.
+obj	count	x	z	level	respawn
+iron_pickaxe	1	3347	9753	0	100	# by Doug Deeping; Wiki, Iron pickaxe
+iron_pickaxe	1	3348	9752	0	100	# by Doug Deeping; Wiki, Iron pickaxe
+iron_pickaxe	1	3350	9751	0	100	# by Doug Deeping; Wiki, Iron pickaxe
+bucket_empty	1	3354	9759	0	100	# Doug Deeping's chamber; Wiki, Bucket
+bucket_empty	1	3355	9754	0	100	# Doug Deeping's chamber; Wiki, Bucket
+bucket_empty	1	3357	9756	0	100	# Doug Deeping's chamber; Wiki, Bucket
+arcenia_root	1	3347	9754	0	100	# Wiki, Arcenia root
+arcenia_root	1	3350	9759	0	100	# Wiki, Arcenia root
+arcenia_root	1	3364	9764	0	100	# Wiki, Arcenia root
+arcenia_root	1	3368	9770	0	100	# Wiki, Arcenia root
+bones	1	3364	9749	0	100	# the south chamber; Wiki, Bones
+bones	1	3366	9748	0	100	# the south chamber; Wiki, Bones
+bones	1	3367	9750	0	100	# the south chamber; Wiki, Bones
+bones	1	3368	9752	0	100	# the south chamber; Wiki, Bones
+bones	1	3371	9752	0	100	# the south chamber; Wiki, Bones
+bones	1	3375	9757	0	100	# the south chamber; Wiki, Bones
+bones	1	3383	9752	0	100	# the south chamber; Wiki, Bones
+bones	1	3383	9755	0	100	# the south chamber; Wiki, Bones
+bones	1	3384	9748	0	100	# the south chamber; Wiki, Bones
+bones	1	3384	9753	0	100	# the south chamber; Wiki, Bones
+bones	1	3385	9747	0	100	# the south chamber; Wiki, Bones

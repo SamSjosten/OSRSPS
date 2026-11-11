@@ -201,6 +201,11 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   searched and a trowel on it, level 3 dug, the tray searched with the jar, and the panning tent's tray taken, used at
   a panning point, refused when full and its mud searched (with `::keys on`; the XP and a missing workman are in the
   headless test, the finds tables and site maps in the unit test).
+- `exam-centre.json`: Misthalin piece 7 step 10: two examiners (a lost trowel given back, then refused with one
+  carried), the Researcher, a bookcase, Terry Balando's Digsite talk, both cupboards, the west winch without a rope,
+  without 10 Agility and then down with the rope kept, a silver rock mined, the rope back up, the private dig's winch
+  down by Doug Deeping, his talk and Steal-from, and his rope back up (with `::keys on`; finds used on Terry are in the
+  headless test, as the runner has no item-on-NPC step).
 - `farms-roads.json`: Misthalin piece 7 step 5: from Lumbridge to Varrock by `::tele`, Fayeth and a Tool Leprechaun
   by the castle, Seth Groats, Vasquen, Dreven, Tarquin at the canoe station, Rat Burgiss on the road and Treznor by the
   palace talked to, and the gardeners' and leprechauns' Farming options refused (with `::keys on`; the spawn counts are
