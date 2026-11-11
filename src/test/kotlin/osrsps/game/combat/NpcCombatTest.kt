@@ -898,6 +898,16 @@ class NpcCombatTest {
     }
 
     @Test
+    fun `the highwayman stabs for 1 at speed 4, aggressive, back after 100 ticks`() {
+        val types = NpcTypes.of(NpcType(518, "Highwayman", internalName = "highwayman", stats = NpcStats(strength = 2)))
+        val def = NpcCombat.load(types, seqs)[types.find("highwayman")!!]!!
+        assertEquals(CombatMath.npcMaxHit(2, def.strengthBonus), def.maxHit)
+        assertEquals(listOf(4, 1, 100), listOf(def.attackSpeed, def.maxHit, def.respawnTicks))
+        assertEquals(listOf(6, 7), listOf(def.attackBonus, def.strengthBonus))
+        assertTrue(def.aggression != null)
+    }
+
+    @Test
     fun `each max hit in the file is what the formula gives from the levels`() {
         val combat = NpcCombat.load(types, seqs)
         for (name in names) {
