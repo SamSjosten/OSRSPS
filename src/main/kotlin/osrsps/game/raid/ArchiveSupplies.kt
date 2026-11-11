@@ -55,6 +55,13 @@ object QuartermasterLines : Lines("tfa_quartermaster", "Transcript:Quartermaster
  * - **Supply Credits**, `tfa_supply_points` (16381, seven bits), shown by the shop itself. Guessed: every member in
  *   the run as he comes has [CREDITS] (guides speak of 50 personal credits; the tsps notes estimate 10 for each room
  *   won), and they are gone with the next run (set to 0 as a player comes through the Archive Door).
+ * - **Only for the raid.** What a member holds of the supplies' kinds as they get out of the run (a teleport, the Rift
+ *   out, leaving the party, logging out, the instance's end) or lose it (a wipe, dying of an escape while down), beyond
+ *   what they brought in through the Archive Door, is taken: doses of each potion, whatever its doses, and items of
+ *   the rest ([settle]); what a member brought in and traded, or dropped, to another goes with its allowance ([traded],
+ *   [pickedUp]), and none is made into another kind in the run ([keepsFromMaking]). Without
+ *   it the stock, the ordinary items, left the raid to be banked or sold (exploit review round 26, R26A-1). Guessed: live's stock is the same items (the cache's rows), and whether live takes them back,
+ *   and how, isn't known; nothing is said.
  * - **Talk-to** (op 3) is the Wiki's transcript ([QuartermasterLines]). Guessed: every chathead expression, and that
  *   "I'll keep that in mind" from his second menu ends the talk (his answer to it isn't written down). Not in: his overhead lines, and the cache's inactive Quartermaster (16762,
  *   Talk-to only), whose use isn't known.
@@ -67,8 +74,241 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
         }
     }
 
-    /** As [player] comes into a run: no credits from an earlier one. */
-    fun entered(player: Player) = setCredits(player, 0)
+    /** As [player] comes into [run]: no credits from an earlier one, and what they bring in of the supplies noted. */
+    fun entered(run: ArchiveRun, player: Player) {
+        setCredits(player, 0)
+        settle(run, player)
+        run.suppliesBrought[player.saveKey] = held(player)
+    }
+
+    /**
+     * [player] is out of [run], or losing what they hold to it: what they hold of the supplies beyond what they brought
+     * in is taken, the fewest doses first, a potion with more doses than is owed left with the rest: from the backpack
+     * and from Guide prices' checker, whose items go back to the backpack as it closes but are left in it by a death
+     * or a disconnect (Codex review on #636). A trade they are in is declined first, so its offer is back in the backpack
+     * and taken with the rest: put out of the party mid-trade, nothing else declines it (Codex review on #636). Once a
+     * player.
+     */
+    fun settle(run: ArchiveRun, player: Player) {
+        if (player.saveKey !in run.suppliesBrought) return
+        if (player.trade != null) world.trades.interrupt(player)
+        val brought = run.suppliesBrought.remove(player.saveKey) ?: return
+        // What they brought in and don't leave with, kept for their drops another member may yet pick up.
+        val holding = held(player)
+        val spare = brought.mapValues { (kind, units) -> units - (holding[kind] ?: 0) }.filterValues { it > 0 }
+        if (spare.isNotEmpty()) run.suppliesLeft.merge(player.saveKey, spare) { a, b -> (a.keys + b.keys).associateWith { (a[it] ?: 0) + (b[it] ?: 0) } }
+        val entries = listOf(player.inventory, player.priceChecker).flatMap { inv -> inv.contents().map { (slot, obj) -> Held(inv, slot, obj) } }
+        val changes = excess(entries, brought)
+        for ((held, obj) in changes) (held.where as Inventory)[held.slot] = obj
+        if (changes.isNotEmpty()) logger.info { "$run: took back ${player.username}'s supplies from ${changes.size} slots" }
+    }
+
+    /**
+     * [inventory] and [checked] (Guide prices' checker) as they are to be saved for [player]: without what a run would
+     * take back from them, should they be saved still in it. A save while in a run, an autosave or the save at a
+     * shutdown or a crash, is at the instance's exit, and the run is gone after a restart (Codex review on #636). So is
+     * one made after they got out but before the next tick's start settles them, wherever they stand. Both
+     * before the checker's items are put back, so none of them overflows into the saved bank.
+     */
+    fun saved(player: Player, inventory: Map<Int, InvObj>, checked: Map<Int, InvObj> = emptyMap()): Pair<Map<Int, InvObj>, Map<Int, InvObj>> {
+        val run = raids.runs().firstOrNull { player.saveKey in it.suppliesBrought } ?: return inventory to checked
+        val entries = inventory.map { (slot, obj) -> Held(INVENTORY, slot, obj) } + checked.map { (slot, obj) -> Held(CHECKED, slot, obj) }
+        val changes = excess(entries, run.suppliesBrought.getValue(player.saveKey))
+        if (changes.isEmpty()) return inventory to checked
+        val outInventory = LinkedHashMap(inventory)
+        val outChecked = LinkedHashMap(checked)
+        for ((held, obj) in changes) {
+            val out = if (held.where == INVENTORY) outInventory else outChecked
+            if (obj == null) out.remove(held.slot) else out[held.slot] = obj
+        }
+        return outInventory to outChecked
+    }
+
+    /**
+     * Before a trade's swap is saved: what [a] and [b] hold of the supplies, offers in, and their allowances now, for
+     * [traded] after the swap and [untraded] if it is undone.
+     */
+    fun beforeTrade(a: Player, b: Player): TradeStart {
+        val run = raids.at(a.x, a.z)
+        return TradeStart(held(a, a.trade?.sideOf(a)?.offer), held(b, b.trade?.sideOf(b)?.offer), run?.suppliesBrought?.get(a.saveKey), run?.suppliesBrought?.get(b.saveKey))
+    }
+
+    class TradeStart internal constructor(val heldA: Map<Int, Int>, val heldB: Map<Int, Int>, val allowA: Map<Int, Int>?, val allowB: Map<Int, Int>?)
+
+    /** A trade's swap undone: [a]'s and [b]'s allowances as they were. */
+    fun untraded(a: Player, b: Player, start: TradeStart) {
+        val run = raids.at(a.x, a.z) ?: return
+        start.allowA?.let { run.suppliesBrought[a.saveKey] = it }
+        start.allowB?.let { run.suppliesBrought[b.saveKey] = it }
+    }
+
+    /** An item in [where] (an [Inventory], or a save's map) at [slot]. */
+    private data class Held(val where: Any, val slot: Int, val obj: InvObj)
+
+    private object INVENTORY
+
+    private object CHECKED
+
+    /**
+     * What [entries] become without what is held beyond [brought]: for each kind, the fewest doses first, a potion with
+     * more doses than is owed left with the rest. Each change is an entry and what replaces it, null for nothing.
+     */
+    private fun excess(entries: List<Held>, brought: Map<Int, Int>): List<Pair<Held, InvObj?>> {
+        val changes = ArrayList<Pair<Held, InvObj?>>()
+        val byKind = entries.mapNotNull { e -> unitsOf(e.obj.id)?.let { (kind, each) -> Triple(kind, each, e) } }.groupBy { it.first }
+        for ((kind, items) in byKind) {
+            var over = items.sumOf { it.second * it.third.obj.count } - (brought[kind] ?: 0)
+            for ((_, each, held) in items.sortedBy { it.second }) {
+                if (over <= 0) break
+                val units = each.toLong() * held.obj.count
+                when {
+                    units <= over -> changes += held to null.also { over -= units.toInt() }
+                    each == 1 -> changes += held to InvObj(held.obj.id, held.obj.count - over).also { over = 0 }
+                    else -> changes += held to doseOf(held.obj.id, each - over)?.let { InvObj(it, 1) }.also { over = 0 }
+                }
+            }
+        }
+        return changes
+    }
+
+    /**
+     * Each tick, before the players' input and again after the NPCs: the supplies of members out of [run], by a
+     * teleport, the Rift out or leaving the party, are taken back. Before the input, so one who left in the last
+     * tick's script or movement can't drop them first and pick them up after (Codex review on #636).
+     */
+    fun settleOut(run: ArchiveRun, ended: Boolean) {
+        for (key in run.suppliesBrought.keys.toList()) {
+            val player = world.onlinePlayers.firstOrNull { it.saveKey == key } ?: continue
+            if (ended || !run.instance.contains(player.x, player.z) || world.parties.of(player) !== run.party) settle(run, player)
+        }
+    }
+
+    /**
+     * [a] and [b], members of one run, have traded, holding [beforeA] and [beforeB] of the supplies before: what each
+     * gave of what they brought in (beyond what they still hold of it) goes over to the other's allowance, so what a
+     * member brought in and handed on isn't taken from the one who leaves with it. What they bought stays bought,
+     * whoever holds it (Codex review on #636). Supplies dropped and picked up by another member: [pickedUp].
+     */
+    fun traded(a: Player, b: Player, start: TradeStart) {
+        val beforeA = start.heldA
+        val beforeB = start.heldB
+        val run = raids.at(a.x, a.z) ?: return
+        val allowA = run.suppliesBrought[a.saveKey]?.toMutableMap() ?: return
+        val allowB = run.suppliesBrought[b.saveKey]?.toMutableMap() ?: return
+        val afterA = held(a)
+        val afterB = held(b)
+        for (kind in beforeA.keys + beforeB.keys) {
+            val gaveA = (beforeA[kind] ?: 0) - (afterA[kind] ?: 0)
+            val gaveB = (beforeB[kind] ?: 0) - (afterB[kind] ?: 0)
+            fun move(gave: Int, from: MutableMap<Int, Int>, after: Int, to: MutableMap<Int, Int>) {
+                val spare = (from[kind] ?: 0) - after
+                val moved = minOf(gave, spare)
+                if (moved <= 0) return
+                from[kind] = (from[kind] ?: 0) - moved
+                to[kind] = (to[kind] ?: 0) + moved
+            }
+            move(gaveA, allowA, afterA[kind] ?: 0, allowB)
+            move(gaveB, allowB, afterB[kind] ?: 0, allowA)
+        }
+        run.suppliesBrought[a.saveKey] = allowA
+        run.suppliesBrought[b.saveKey] = allowB
+    }
+
+    /**
+     * [taker], in a run, picked up [count] of [id] that the player saved as [ownerKey] ([owner] if still in the world)
+     * dropped: as in a trade, what the owner brought in of it (beyond what they still hold) goes over to [taker]'s
+     * allowance, so supplies a member brought in and handed on by the floor aren't taken from the one who leaves with
+     * them. From [ArchiveRun.suppliesLeft] once the owner has got out, the owner's own pick-up after coming back in too.
+     * What was bought stays bought (Codex review on #636).
+     */
+    fun pickedUp(taker: Player, ownerKey: String, owner: Player?, id: Int, count: Int) {
+        val (kind, each) = unitsOf(id) ?: return
+        val run = raids.runs().firstOrNull { taker.saveKey in it.suppliesBrought } ?: return
+        var wanted = each * count
+        var moved = 0
+        // First what they left on the floor as they got out, should they have come back in since (Codex review on #636).
+        run.suppliesLeft[ownerKey]?.let { left ->
+            val take = minOf(wanted, left[kind] ?: 0)
+            if (take > 0) run.suppliesLeft[ownerKey] = left + (kind to (left[kind] ?: 0) - take)
+            moved += take
+            wanted -= take
+        }
+        // Then their allowance in the run, beyond what they still hold: another's, as their own is theirs already.
+        val inRun = run.suppliesBrought[ownerKey]
+        if (wanted > 0 && inRun != null && owner != null && ownerKey != taker.saveKey) {
+            // What they hold counts what they have on offer in a trade, as [beforeTrade] does (Codex review on #636).
+            val take = minOf(wanted, (inRun[kind] ?: 0) - (held(owner, owner.trade?.sideOf(owner)?.offer)[kind] ?: 0))
+            if (take > 0) {
+                run.suppliesBrought[ownerKey] = inRun + (kind to (inRun[kind] ?: 0) - take)
+                moved += take
+            }
+        }
+        if (moved <= 0) return
+        val allowTaker = run.suppliesBrought.getValue(taker.saveKey)
+        run.suppliesBrought[taker.saveKey] = allowTaker + (kind to (allowTaker[kind] ?: 0) + moved)
+    }
+
+    /**
+     * [player], in a run, made [outputs] from [inputs] (objs and counts): what it makes of the supplies' kinds, beyond
+     * what it used of them, joins their allowance, so a Saradomin brew made from their own toadflax potion (unf) and
+     * crushed nest isn't taken as bought (Codex review on #636). Supplies can't be made into another kind
+     * ([keepsFromMaking]), so this never turns bought ones into brought ones.
+     */
+    fun made(player: Player, inputs: List<Pair<Int, Int>>, outputs: List<Pair<Int, Int>>) {
+        val run = raids.runs().firstOrNull { player.saveKey in it.suppliesBrought } ?: return
+        val delta = HashMap<Int, Int>()
+        for ((id, count) in outputs) unitsOf(id)?.let { (kind, each) -> delta.merge(kind, each * count, Int::plus) }
+        for ((id, count) in inputs) unitsOf(id)?.let { (kind, each) -> delta.merge(kind, -each * count, Int::plus) }
+        val grown = delta.filterValues { it > 0 }
+        if (grown.isEmpty()) return
+        val allowance = run.suppliesBrought.getValue(player.saveKey)
+        run.suppliesBrought[player.saveKey] = allowance + grown.mapValues { (kind, units) -> (allowance[kind] ?: 0) + units }
+    }
+
+    /**
+     * Whether [player], in a run, may not make [product] from [inputs]: any of the supplies' kinds made into another
+     * kind (a Super restore into a Sanfew mixture), which would leave the run as an item [settle] doesn't know (Codex
+     * review on #636). Guessed: live's answer isn't known; this gives "Nothing interesting happens".
+     */
+    fun keepsFromMaking(player: Player, inputs: List<Int>, product: Int): Boolean {
+        if (raids.runs().none { player.saveKey in it.suppliesBrought }) return false
+        val into = kindOf(product)
+        return inputs.any { kindOf(it) in kinds && kindOf(it) != into }
+    }
+
+    /**
+     * What [player] holds of the supplies' kinds: doses of each potion by its first dose obj, and items of the rest; with
+     * what they have in Guide prices' checker, and [offered] (their trade offer) too.
+     */
+    internal fun held(player: Player, offered: Inventory? = null): Map<Int, Int> {
+        val out = HashMap<Int, Int>()
+        for ((_, obj) in player.inventory.contents() + player.priceChecker.contents() + offered?.contents().orEmpty()) {
+            val (kind, each) = unitsOf(obj.id) ?: continue
+            out.merge(kind, each * obj.count, Int::plus)
+        }
+        return out
+    }
+
+    /** [id]'s kind and how many doses (or items) one is, if it is of the supplies' kinds. */
+    private fun unitsOf(id: Int): Pair<Int, Int>? {
+        val kind = kindOf(id)
+        if (kind !in kinds) return null
+        return kind to (doses(id) ?: 1)
+    }
+
+    /** A potion's first dose obj, or [id] itself for anything else (or with no potion data, as in a test world). */
+    private fun kindOf(id: Int): Int = world.potions.all[id]?.doses?.firstOrNull() ?: id
+
+    private val kinds: Set<Int> by lazy { (STOCK.keys + LEFTOVERS).map(::kindOf).toSet() }
+
+    /** The doses of potion [id], from its name's "(n)"; null for anything else. */
+    private fun doses(id: Int): Int? {
+        if (world.potions.all[id] == null) return null
+        return world.objTypes[id]?.name?.let { DOSES.find(it) }?.groupValues?.get(1)?.toInt()
+    }
+
+    /** The obj of [id]'s potion with [doses] doses, if there is one. */
+    private fun doseOf(id: Int, doses: Int): Int? = world.potions.all[id]?.doses?.firstOrNull { doses(it) == doses }
 
     /** Each tick: the Quartermaster comes once the third row's room is done, and goes as the fourth row's begins. */
     fun process(run: ArchiveRun) {
@@ -213,6 +453,8 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
         /** Leftovers (tfa_midraid_supplies_leftovers); guessed, how many. */
         const val LEFTOVERS = 34730
         const val LEFTOVERS_STOCK = 5
+
+        private val DOSES = Regex("""\((\d)\)$""")
 
         /** Each member's stock, by item, from the Wiki's Alliance Supplies page (read 2026-11-11). */
         val STOCK: Map<Int, Int> = linkedMapOf(

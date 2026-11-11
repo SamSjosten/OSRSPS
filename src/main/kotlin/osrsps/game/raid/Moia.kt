@@ -222,6 +222,8 @@ object Moia {
             ),
             scriptedAttacks = true,
             status = { "${type.name} ${boss.hitpoints}/${boss.maxHitpoints} hp, ${adds.count { it.type.id == BINDER }} binders, ${state.infected.size} infected" },
+            // Her binders rise again without end: what hitting them earns is capped (exploit review round 26, R26A-3).
+            minions = setOf(BINDER),
         )
     }
 

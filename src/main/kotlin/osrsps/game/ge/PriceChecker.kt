@@ -200,14 +200,18 @@ class PriceChecker(
      * and what doesn't fit there in the bank, unnoted. Closing the screen drops that on the floor instead, which a save
      * can't; the bank only matters if the server stops with the screen open.
      */
-    fun saved(player: Player): Pair<Map<Int, InvObj>, Map<Int, InvObj>> {
+    fun saved(
+        player: Player,
+        inventory: Map<Int, InvObj> = player.inventory.contents().toMap(),
+        checked: Map<Int, InvObj> = player.priceChecker.contents().toMap(),
+    ): Pair<Map<Int, InvObj>, Map<Int, InvObj>> {
         val bank = player.bank.contents().toMap()
-        if (player.priceChecker.contents().isEmpty()) return player.inventory.contents().toMap() to bank
+        if (checked.isEmpty()) return inventory to bank
         val copy = Inventory(Inventory.INV, Inventory.INV_CAPACITY)
-        for ((slot, obj) in player.inventory.contents()) copy[slot] = obj
+        for ((slot, obj) in inventory) copy[slot] = obj
         val bankCopy = Inventory(player.bank.type, player.bank.capacity)
         for ((slot, obj) in bank) bankCopy[slot] = obj
-        for ((_, obj) in player.priceChecker.contents()) {
+        for ((_, obj) in checked) {
             val type = objTypes[obj.id] ?: continue
             val left = obj.count - copy.add(type, obj.count)
             if (left <= 0) continue

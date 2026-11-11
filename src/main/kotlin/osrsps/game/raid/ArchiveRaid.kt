@@ -142,6 +142,9 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
     /** The damage each player has done in each room, by [Player.saveKey]. */
     val damage = HashMap<ArchiveRoom, MutableMap<String, Int>>()
 
+    /** The damage each player has done in each room to its fight's minions ([osrsps.game.encounter.EncounterDef.minions]), counted only up to a cap. */
+    val minionDamage = HashMap<ArchiveRoom, MutableMap<String, Int>>()
+
     /** Contribution points, by [Player.saveKey]. */
     val points = LinkedHashMap<String, Int>()
 
@@ -223,6 +226,15 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
     /** The members whose stock has had the failure shop's Leftovers put in ([ArchiveSupplies.LEFTOVERS]). */
     internal val suppliesLeftovers = HashSet<String>()
 
+    /** What each member brought in of the Quartermaster's supplies, by [Player.saveKey], as doses or items by kind ([ArchiveSupplies.held]). */
+    internal val suppliesBrought = HashMap<String, Map<Int, Int>>()
+
+    /**
+     * What members who got out had brought in beyond what they left with, by [Player.saveKey]: for their drops still on
+     * the floor, picked up by another member ([ArchiveSupplies.pickedUp]).
+     */
+    internal val suppliesLeft = HashMap<String, Map<Int, Int>>()
+
     /** Each paid member's chest in the reward vault, by save key: its slot, from 0 ([ArchiveChests.SLOTS]). */
     val chestSlots = LinkedHashMap<String, Int>()
 
@@ -282,7 +294,8 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
  * - A room's points are [ROOM_POINTS], and Ocellus's [OCELLUS_POINTS] ("Every boss except Ocellus awards 100
  *   contribution points to the team, which is divided between party members based on damage dealt", and his 300: the
  *   Wiki's chest page), shared by damage among those who did any, or evenly among who was there when it began if
- *   nobody did. Guessed: the even share. Not in: the Wiki's soft cap on what damage to a boss's minions counts.
+ *   nobody did. Guessed: the even share. Damage to a fight's minions (Moia's binders, the Dagon'hai's imps and rifts)
+ *   counts only up to a cap ([credited]), for the Wiki's soft cap; the other rooms' adds aren't capped yet.
  * - A party member who dies with someone still standing keeps everything and is down until the room is done: in the
  *   nexus, in front of the room's door (in the entrance, for the Guardian's hall), and sent out again if they walk back
  *   in. Spectating isn't built.
@@ -301,6 +314,9 @@ class ArchiveRaids(private val world: World) {
     private var nextId = 1
 
     fun of(party: Party): ArchiveRun? = runs[party]
+
+    /** The runs going on. */
+    internal fun runs(): Collection<ArchiveRun> = runs.values
 
     /**
      * Whether [player] is down in a run: out of the fight till its room is done, their items at stake. Wherever they
@@ -412,7 +428,7 @@ class ArchiveRaids(private val world: World) {
         // Once the Guardian's fight has begun, nobody comes in, or back in: that would be a way to the bank mid-raid.
         if (run.wiped || run.started.isNotEmpty()) return
         run.entered += player.saveKey
-        supplies.entered(player)
+        supplies.entered(run, player)
         val to = tile(run, NEXUS_X, NEXUS_Z)
         world.teleport(player, to.x, to.z, 0)
     }
@@ -726,8 +742,10 @@ class ArchiveRaids(private val world: World) {
         val standing = standing(run)
         run.presentAtStart[room] = standing.filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
         world.partyScaling.scale(boss, standing.size.coerceIn(1, PartyScaling.MAX_PARTY))
-        // Only those on her arena are in her fight: one still in the way in isn't hurt.
-        run.fights[room] = world.encounters.start(def, boss, { x, z -> Moia.inArena(at.x, at.z, x, z) })
+        // All of her room is in her fight, its way in too: nothing walls it off from her floor, and with only her floor
+        // in it a step east cured her infection and dodged her charge's burst (exploit review round 26, R26A-2).
+        // From the way in she still can't be attacked ([shutOut]). Guessed: that live's fight reaches the way in.
+        run.fights[room] = world.encounters.start(def, boss, { x, z -> inRoom(run, room, x, z) })
         logger.info { "$run began Moia's fight with ${standing.size} standing" }
     }
 
@@ -1077,9 +1095,12 @@ class ArchiveRaids(private val world: World) {
             // Everyone out at once (the last standing with a member down, both by Home Teleport on one tick): the
             // instance ended before this look, and whoever was down got out all the same.
             if (ended && !run.wiped) settleEscapes(run, ended = true)
+            if (ended) supplies.settleOut(run, ended = true)
             ended
         }
         for (run in runs.values.toList()) {
+            // Out of the run: what they bought of the Quartermaster stays in it (R26A-1).
+            supplies.settleOut(run, ended = false)
             if (run.wiped) continue
             // A fight whose boss has died: its room is done.
             for ((room, fight) in run.fights.entries.toList()) {
@@ -1153,6 +1174,16 @@ class ArchiveRaids(private val world: World) {
         escaped(run, player)
     }
 
+    /** At each tick's start, before the players' input: the supplies of whoever got out of a run since are taken back (R26A-1). */
+    fun settleDepartures() {
+        for (run in runs.values) supplies.settleOut(run, ended = world.instances.all.none { it === run.instance })
+    }
+
+    /** [player] is leaving the world, any trade's offer back with them: what they hold of a run's supplies stays in it (R26A-1). */
+    fun settleSupplies(player: Player) {
+        for (run in runs.values) supplies.settle(run, player)
+    }
+
     /**
      * [player], down in [run], got out of it before it was done with them: they die as the last one standing would,
      * losing what a death loses into a grave in the lobby, and come back there. Without this a member down kept
@@ -1164,6 +1195,7 @@ class ArchiveRaids(private val world: World) {
         run.downed -= key
         val before = run.deaths[key] ?: 0
         logger.info { "$run: ${player.username} got out while down, so dies of it" }
+        supplies.settle(run, player)
         player.message(world.textFor(player)[CombatLines.DEAD])
         world.deaths.respawn(player, wipePlace(run, player))
         // One death: their fall in the respawn counted it already if they were still in the run ([fell]).
@@ -1242,7 +1274,7 @@ class ArchiveRaids(private val world: World) {
     }
 
     private fun share(run: ArchiveRun, room: ArchiveRoom) {
-        val dealt = run.damage[room].orEmpty().filterValues { it > 0 }
+        val dealt = credited(run, room).filterValues { it > 0 }
         val total = dealt.values.sum()
         val shares: Map<String, Int> = if (total > 0) {
             dealt.mapValues { (_, damage) -> (points(room).toLong() * damage / total).toInt() }
@@ -1253,6 +1285,19 @@ class ArchiveRaids(private val world: World) {
         for ((key, points) in shares) run.points[key] = (run.points[key] ?: 0) + points
     }
 
+    /**
+     * What each player's damage in [room] counts for its points: all they did to its boss, and what they did to its
+     * minions up to [MINION_CAP_PERCENT] of everyone's damage to the boss. Without the cap, Moia's binders (rising
+     * again without end) gave a player who only killed them more points than the one who killed her (exploit review
+     * round 26, R26A-3). The Wiki has a soft cap on damage to a boss's minions; guessed: that it is a hard cap, its size.
+     */
+    internal fun credited(run: ArchiveRun, room: ArchiveRoom): Map<String, Int> {
+        val boss = run.damage[room].orEmpty()
+        val minions = run.minionDamage[room].orEmpty()
+        val cap = (boss.values.sumOf { it.toLong() } * MINION_CAP_PERCENT / 100).toInt()
+        return (boss.keys + minions.keys).associateWith { (boss[it] ?: 0) + minOf(minions[it] ?: 0, cap) }
+    }
+
     /** A party member's hit on [npc] in a room of a run counts towards their share of its points. */
     fun damaged(npc: Npc, player: Player, dealt: Int) {
         // Ocellus's Siphons heal whoever hurt them by what they dealt (raid step 26c).
@@ -1261,7 +1306,8 @@ class ArchiveRaids(private val world: World) {
         if (player.saveKey !in run.entered) return
         val room = roomAt(run, npc.x, npc.z) ?: return
         if (room !in run.started || room in run.cleared) return
-        val byPlayer = run.damage.getOrPut(room, ::LinkedHashMap)
+        val minion = run.fights[room]?.def?.minions?.contains(npc.type.id) == true
+        val byPlayer = (if (minion) run.minionDamage else run.damage).getOrPut(room, ::LinkedHashMap)
         byPlayer[player.saveKey] = (byPlayer[player.saveKey] ?: 0) + dealt
     }
 
@@ -1300,7 +1346,7 @@ class ArchiveRaids(private val world: World) {
             return DeathPlace(keepItems = true, to.x, to.z, level, to.x, to.z, level)
         }
         if (!counted) run.deaths[player.saveKey] = (run.deaths[player.saveKey] ?: 0) + 1
-        if (run.wiped) return wipePlace(run, player)
+        if (run.wiped) return wipePlace(run, player).also { supplies.settle(run, player) }
         val others = standing(run).filter { it !== player }
         if (others.isEmpty()) {
             wipe(run, player)
@@ -1341,6 +1387,8 @@ class ArchiveRaids(private val world: World) {
         for (room in run.fights.keys.toList()) stopFight(run, room)
         logger.info { "$run wiped${dying?.let { " as ${it.username} died" }.orEmpty()}" }
         for (member in present(run)) {
+            // What they lose goes in a grave: never the supplies (R26A-1).
+            supplies.settle(run, member)
             if (member === dying || member.dead) continue
             world.deaths.respawn(member, wipePlace(run, member))
         }
@@ -1565,6 +1613,9 @@ class ArchiveRaids(private val world: World) {
          */
         const val ROOM_POINTS = 100
         const val OCELLUS_POINTS = 300
+
+        /** What damage to a room's minions counts for its points, at most: this share of everyone's damage to its boss. Guessed. */
+        const val MINION_CAP_PERCENT = 25
 
         /** The team's points for [room]. */
         fun points(room: ArchiveRoom): Int = if (room == ArchiveRoom.OCELLUS) OCELLUS_POINTS else ROOM_POINTS

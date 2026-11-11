@@ -408,6 +408,8 @@ class World(
         },
         words = ::textFor,
         dropsStayPrivate = { archiveRaids.isDown(it) },
+        // A raid member's supplies picked up, their own or another's: the allowance first, so the saves have it (R26A-1).
+        taken = { taker, owner, obj -> archiveRaids.supplies.pickedUp(taker, owner, findPlayer(owner), obj.id, obj.count) },
     )
 
     private val equipment = Equipment(objTypes, wearRequirements)
@@ -651,7 +653,15 @@ class World(
         overflow = { player, obj -> objTypes[obj.id]?.let { groundObjs.give(player, it, obj.count) } },
         setVarbit = { player, id, value -> player.vars.setVarbitIfKnown(id, value) },
         varbit = { player, id -> player.vars.getVarbitIfKnown(id) },
-        commit = { a, b, swap, undo -> commitTrade(a, b, swap, undo) },
+        commit = { a, b, swap, undo ->
+            // Supplies a raid member brought in, traded to another, go with their allowance, in the swap itself so the
+            // trade's saves have it, and back if it is undone (Codex review on #636).
+            val start = archiveRaids.supplies.beforeTrade(a, b)
+            commitTrade(a, b, { swap(); archiveRaids.supplies.traded(a, b, start) }) {
+                archiveRaids.supplies.untraded(a, b, start)
+                undo()
+            }
+        },
         refuses = { archiveRaids.isDown(it) },
     )
 
@@ -1243,6 +1253,7 @@ class World(
         }
         endEmptyInstances()
         groundObjs.process()
+        archiveRaids.settleDepartures()
         phase = TickPhase.INPUT
         readInput(ticking = true)
         phase = TickPhase.NPCS
@@ -1625,8 +1636,13 @@ class World(
 
     /** [player]'s state as a save has it, the items in the guide prices screen counted as in the inventory. */
     fun snapshot(player: Player): PlayerSave {
-        val (inventory, bank) = priceChecker.saved(player)
-        return saveOf(player, inventory, bank)
+        var inventory = player.inventory.contents().toMap()
+        var checked = player.priceChecker.contents().toMap()
+        // In a raid run, or out of one and not yet settled: without its supplies, the checker's too before any overflow to
+        // the bank (R26A-1). Not by where they stand, as one sent out mid-tick is settled only at the next tick's start.
+        archiveRaids.supplies.saved(player, inventory, checked).let { (i, c) -> inventory = i; checked = c }
+        val (saved, bank) = priceChecker.saved(player, inventory, checked)
+        return saveOf(player, saved, bank)
     }
 
     /**
@@ -1638,11 +1654,15 @@ class World(
         inventory: Map<Int, InvObj> = player.inventory.contents().toMap(),
         bank: Map<Int, InvObj> = player.bank.contents().toMap(),
     ): PlayerSave {
-        if (!instances.inDynamicArea(player.x, player.z)) return PlayerSave.of(player, inventory, bank)
+        // Without what a raid run would take back, a trade's offer back in first (R26A-1): in a run, saved at its exit,
+        // or out of one before the next tick settles them.
+        val held = { inventory: Map<Int, InvObj> -> archiveRaids.supplies.saved(player, inventory).first }
+        if (!instances.inDynamicArea(player.x, player.z)) return PlayerSave.of(player, inventory, bank, held = held)
         val instance = instances.at(player.x, player.z)
         return PlayerSave.of(
             player, inventory, bank,
             x = instance?.exitX ?: SPAWN_X, z = instance?.exitZ ?: SPAWN_Z, level = instance?.exitLevel ?: SPAWN_LEVEL,
+            held = held,
         )
     }
 
@@ -3013,6 +3033,9 @@ class World(
             // Down in a raid, leaving counts as a death (RAID-2), also when the death just finished put them down.
             archiveRaids.leaving(player)
             trades.leave(player)
+            // Once a trade's offer is back in the backpack: saved at the instance's exit, out of any raid run, so its
+            // supplies stay in it (R26A-1; Codex review on #636).
+            archiveRaids.settleSupplies(player)
             thieving.forgive(player)
             friendChats.logout(player)
             clans.logout(player)

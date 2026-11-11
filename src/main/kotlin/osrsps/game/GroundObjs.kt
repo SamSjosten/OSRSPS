@@ -47,6 +47,8 @@ class GroundObjs(
     private val population: () -> Int,
     /** Called after a player takes an obj another player (this save key) put down, to save them both. */
     private val handedOver: (Player, String) -> Unit = { _, _ -> },
+    /** Called after a player takes an obj a player (this save key, perhaps their own) put down, before [handedOver]. */
+    private val taken: (Player, String, ZoneObj) -> Unit = { _, _, _ -> },
     /** Each player's words for the game messages ([GameLines]). */
     private val words: (Player) -> DialogueText = { DialogueText.NONE },
     /** Whether what the player drops now stays theirs alone, never turning public: a raid member down. */
@@ -398,6 +400,7 @@ class GroundObjs(
         player.sound(SOUND_PICK)
         // Whose it was, not who can see it: a drop has no owner left once it has turned public.
         val dropper = obj.droppedBy
+        if (dropper != null) taken(player, dropper, obj)
         if (dropper != null && dropper != player.saveKey) handedOver(player, dropper)
         return true
     }

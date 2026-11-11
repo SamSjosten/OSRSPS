@@ -316,4 +316,68 @@ class HeadlessMoiaTest {
             }
         }
     }
+    @Test
+    fun `her room's way in is in her fight, so a step off her floor neither cures the infection nor dodges the charge's burst`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.toThirdRow(run)
+                alice.commandReply("raid tp moia") { it.startsWith("To ") }
+                alice.ontoArena(server, run)
+                alice.await("her fight") { alice.fight().takeIf { it.startsWith("moia #") } }
+                alice.awaitLine(run, "infected", 30_000) { it.endsWith("fight: alice is infected") }
+                // The way in, east of her floor, with no wall between (exploit review round 26, R26A-2).
+                val wayIn = server.world.archiveRaids.tile(run, 4082, 5663)
+                assertFalse(Moia.inArena(Moia.X, Moia.Z, 4082, 5663))
+                alice.tele(wayIn.x, wayIn.z)
+                val hurts = lines(run).count { it.contains("the infection hurts alice") }
+                alice.await("the infection hurting on in the way in", 20_000) { if (lines(run).count { it.contains("the infection hurts alice") } > hurts) Unit else null }
+                val fight = assertNotNull(run.fights[ArchiveRoom.MOIA])
+                assertTrue(fight.def.status!!.invoke(fight).contains("1 infected"), fight.def.status!!.invoke(fight))
+                // Her enrage: the charge bursts on her even there.
+                val her = boss(run)
+                alice.commandReply("hit ${her.hitpoints - her.maxHitpoints * Moia.ENRAGE_PERCENT / 100} ${her.index}") { it.startsWith("Hit ") }
+                alice.awaitLine(run, "the diamond") { it.contains("enrage: 4 binders rise in a diamond") }
+                alice.awaitLine(run, "the burst", 30_000) { it.contains("the charge bursts on alice") }
+            }
+        }
+    }
+
+    @Test
+    fun `damage to her binders counts for her room's points only up to a quarter of everyone's damage to her`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    party(listOf(alice to "alice", bob to "bob"))
+                    val run = alice.intoRun(server, "alice")
+                    bob.intoRun(server, "bob")
+                    alice.toThirdRow(run)
+                    bob.ontoArena(server, run, dz = 1)
+                    alice.ontoArena(server, run)
+                    alice.await("her fight") { alice.fight().takeIf { it.startsWith("moia #") } }
+                    // Alice only ever hits binders: three rounds of the ring, waiting for each to rise again (R26A-3).
+                    repeat(3) {
+                        alice.await("binders up", 40_000) { binders(run).takeIf { it.size == Moia.RING.size - 1 } }
+                        for (b in binders(run)) alice.commandReply("hit 95 ${b.index}") { it.startsWith("Hit ") }
+                    }
+                    // Bob does all of Moia.
+                    val her = boss(run)
+                    while (!her.dead) {
+                        bob.commandReply("hit 500 ${her.index}") { it.startsWith("Hit ") || it.contains("already dead") || it.contains("hidden") }
+                        bob.awaitTicks(1)
+                    }
+                    alice.await("her room done", 20_000) { ArchiveRoom.MOIA.takeIf { it in run.cleared } }
+                    val a = server.world.playerNamed("alice")!!.saveKey
+                    val b = server.world.playerNamed("bob")!!.saveKey
+                    val onBinders = run.minionDamage[ArchiveRoom.MOIA]?.get(a) ?: 0
+                    val onHer = run.damage[ArchiveRoom.MOIA]?.get(b) ?: 0
+                    val cap = onHer * ArchiveRaids.MINION_CAP_PERCENT / 100
+                    assertTrue(onBinders > cap, "alice did $onBinders to binders, bob $onHer to her")
+                    assertEquals(null, run.damage[ArchiveRoom.MOIA]?.get(a), "none of alice's damage was to her")
+                    // Alice's counts only up to a quarter of Bob's: about 20 of the room's 100 points to his 80.
+                    assertEquals(mapOf(b to onHer, a to cap), server.world.archiveRaids.credited(run, ArchiveRoom.MOIA))
+                }
+            }
+        }
+    }
 }

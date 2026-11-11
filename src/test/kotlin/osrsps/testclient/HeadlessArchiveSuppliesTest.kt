@@ -5,6 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.cache.DbRow
@@ -18,6 +19,7 @@ import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.World
 import osrsps.game.combat.Foods
+import osrsps.game.combat.Potions
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
@@ -26,9 +28,11 @@ import osrsps.game.raid.ArchiveRaids
 import osrsps.game.raid.ArchiveRoom
 import osrsps.game.raid.ArchiveRun
 import osrsps.game.raid.ArchiveSupplies
+import osrsps.game.raid.PartyResult
 import osrsps.game.shop.OmnishopScreen
 import osrsps.game.shop.Omnishops
 import osrsps.game.shop.ShopLines
+import osrsps.game.trade.Trades
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
@@ -53,17 +57,22 @@ class HeadlessArchiveSuppliesTest {
     )
     private val staticLocs = StaticLocs().apply { add(ZoneLoc(ArchiveRaids.ARCHIVE_DOOR, LocShape.CENTREPIECE_STRAIGHT, 0, 4123, 5562, 0)) }
 
+    private val DRINK = listOf("Drink", null, null, null, null)
+
     /** The shop's items, as the 241 cache has them (ids, names, and that none stacks). */
     private val objTypes = ObjTypes.of(
-        ObjType(BREW, "Saradomin brew(4)", internalName = "4dosepotionofsaradomin"),
-        ObjType(RESTORE, "Super restore(4)", internalName = "4dose2restore"),
-        ObjType(PRAYER_4, "Prayer potion(4)", internalName = "4doseprayerrestore"),
-        ObjType(MANTA, "Manta ray", internalName = "mantaray"),
+        ObjType(BREW, "Saradomin brew(4)", iops = DRINK, internalName = "4dosepotionofsaradomin"),
+        ObjType(BREW_3, "Saradomin brew(3)", iops = DRINK, internalName = "3dosepotionofsaradomin"),
+        ObjType(BREW_2, "Saradomin brew(2)", iops = DRINK, internalName = "2dosepotionofsaradomin"),
+        ObjType(BREW_1, "Saradomin brew(1)", iops = DRINK, internalName = "1dosepotionofsaradomin"),
+        ObjType(RESTORE, "Super restore(4)", iops = DRINK, internalName = "4dose2restore"),
+        ObjType(PRAYER_4, "Prayer potion(4)", iops = DRINK, internalName = "4doseprayerrestore"),
+        ObjType(MANTA, "Manta ray", tradeable = true, iops = listOf(null, null, null, null, "Drop"), internalName = "mantaray"),
         ObjType(HALIBUT, "Halibut", internalName = "halibut"),
         ObjType(KRILL, "Giant krill", internalName = "giant_krill"),
-        ObjType(PRAYER_2, "Prayer potion(2)", internalName = "2doseprayerrestore"),
-        ObjType(RANGING_2, "Ranging potion(2)", internalName = "2doserangerspotion"),
-        ObjType(COMBAT_2, "Super combat potion(2)", internalName = "2dose2combat"),
+        ObjType(PRAYER_2, "Prayer potion(2)", iops = DRINK, internalName = "2doseprayerrestore"),
+        ObjType(RANGING_2, "Ranging potion(2)", iops = DRINK, internalName = "2doserangerspotion"),
+        ObjType(COMBAT_2, "Super combat potion(2)", iops = DRINK, internalName = "2dose2combat"),
         ObjType(LOG, "Alliance log", internalName = "tfa_midraid_supplies_note"),
         ObjType(ArchiveSupplies.LEFTOVERS, "Leftovers", iops = listOf("Eat", null, null, null, null), internalName = "tfa_midraid_supplies_leftovers"),
         ObjType(AXE, "Bronze axe", internalName = "bronze_axe"),
@@ -105,7 +114,7 @@ class HeadlessArchiveSuppliesTest {
                 for (x in 63..65) for (z in 86..88) markLoaded(x, z)
                 markLoaded(3222 shr 6, 3218 shr 6)
             },
-            locTypes = locTypes, staticLocs = staticLocs, objTypes = objTypes,
+            locTypes = locTypes, staticLocs = staticLocs, objTypes = objTypes, potionData = Potions.load(objTypes),
             npcTypes = NpcTypes.of(quartermaster), omnishops = omnishops,
             // tfa_supply_points: bits 1 to 7 of its varp, as the 241 cache has it (the varp's id here is the test's).
             varTypes = VarTypes(6_000, mapOf(ArchiveSupplies.CREDITS_VARBIT to VarbitType(CREDITS_VARP, 1, 7))),
@@ -210,7 +219,8 @@ class HeadlessArchiveSuppliesTest {
                 client.awaitCredits(ArchiveSupplies.CREDITS)
 
                 client.resupply()
-                assertTrue(OmnishopScreen.SIDE in client.openInterfaces())
+                // The side panel's open comes in the same tick as the shop's, read here a packet or two after it.
+                client.await("the side panel open") { (OmnishopScreen.SIDE in client.openInterfaces()).takeIf { it } }
                 assertEquals(ArchiveSupplies.SHOP, client.varp(OmnishopScreen.LASTSHOP_VARP))
                 assertEquals(-1, client.varp(OmnishopScreen.SELECTED_VARP))
                 val scripts = client.clientScripts()
@@ -349,10 +359,357 @@ class HeadlessArchiveSuppliesTest {
         }
     }
 
+    @Test
+    fun `what was bought stays in the raid, taken back as a member teleports or logs out, what they brought in kept`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bob").use { client ->
+                client.await("the login rebuild") { client.position }
+                // Bob brings in a brew of his own, 3 doses, and an axe.
+                client.command("item $BREW_3 1")
+                client.command("item $AXE 1")
+                client.awaitHeld(BREW_3, 1)
+                client.awaitHeld(AXE, 1)
+                val run = client.intoRun(server, "bob")
+                client.clear(run, ArchiveRoom.GUARDIAN)
+                client.clear(run, ArchiveRoom.BORK)
+                client.clear(run, ArchiveRoom.DREADNOTH)
+                client.toNexus(server, run)
+                client.resupply()
+                client.entry(1, 5)
+                client.entry(1, 3)
+                client.awaitHeld(BREW, 6)
+                client.entry(2, 5)
+                client.awaitHeld(RESTORE, 4)
+                // A save while still in the run (an autosave, or a shutdown's) is at the instance's exit, and has none
+                // of what he bought (Codex review on #636); he still holds it all.
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
+                val saved = server.world.snapshot(server.world.playerNamed("bob")!!).inventory.values
+                client.commandReply("resume") { it.startsWith("Resumed") }
+                assertEquals(mapOf(BREW_3 to 1, AXE to 1), saved.groupingBy { it.id }.eachCount())
+                assertEquals(6, client.held(BREW))
+                // Sent out mid-tick (a Home Teleport landing, the Rift moving him) and saved before the next tick settles
+                // him: that save has none of it either, though he stands outside the instance (Codex review on #636).
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
+                val bob = server.world.playerNamed("bob")!!
+                val (inX, inZ, inLevel) = Triple(bob.x, bob.z, bob.level)
+                server.world.teleport(bob, 3222, 3218, 0)
+                val departed = server.world.snapshot(bob)
+                server.world.teleport(bob, inX, inZ, inLevel)
+                client.commandReply("resume") { it.startsWith("Resumed") }
+                assertEquals(Triple(3222, 3218, 0), Triple(departed.x, departed.z, departed.level))
+                assertEquals(mapOf(BREW_3 to 1, AXE to 1), departed.inventory.values.groupingBy { it.id }.eachCount())
+                // Out of the instance, as a Home Teleport would take him (exploit review round 26, R26A-1): of the 27
+                // brew doses he holds, the 24 bought go, the fewest doses first, so a 4-dose brew is left as his 3.
+                client.tele(3222, 3218)
+                client.awaitHeld(RESTORE, 0)
+                client.awaitHeld(BREW, 0)
+                assertEquals(1, client.held(BREW_3))
+                assertEquals(1, client.held(AXE))
+                assertFalse(server.world.playerNamed("bob")!!.saveKey in run.suppliesBrought)
+            }
+        }
+    }
+
+    @Test
+    fun `logging out in the run leaves the supplies in it, even one left in Guide prices`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bob").use { client ->
+                client.await("the login rebuild") { client.position }
+                val run = client.intoRun(server, "bob")
+                client.clear(run, ArchiveRoom.GUARDIAN)
+                client.clear(run, ArchiveRoom.BORK)
+                client.clear(run, ArchiveRoom.DREADNOTH)
+                client.toNexus(server, run)
+                client.resupply()
+                client.entry(4, 3)
+                client.awaitHeld(MANTA, 2)
+                // One of them in Guide prices' checker, as a disconnect would leave it (Codex review on #636).
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
+                val bob = server.world.playerNamed("bob")!!
+                val slot = bob.inventory.contents().first { it.second.id == MANTA }.first
+                bob.inventory.remove(slot, 1)
+                bob.priceChecker[0] = osrsps.game.InvObj(MANTA, 1)
+                // A save now, at the instance's exit, has neither, in the backpack or the bank.
+                val saved = server.world.snapshot(bob)
+                client.commandReply("resume") { it.startsWith("Resumed") }
+                assertEquals(0, (saved.inventory.values + saved.bank.values).count { it.id == MANTA })
+                client.awaitHeld(MANTA, 1)
+                client.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+                client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+            }
+            server.login("bob").use { again ->
+                again.await("the login rebuild") { again.position }
+                again.awaitTicks(2)
+                assertEquals(0, again.held(MANTA))
+            }
+        }
+    }
+
+    /** Alice offers [count] of [obj], one Offer-1 at a time, and both accept twice. */
+    private fun trade(alice: HeadlessClient, bob: HeadlessClient, obj: Int, count: Int, confirm: Boolean = true) {
+        alice.playerOp(bob.index, 4)
+        bob.await("the request") { bob.messages().firstOrNull { it.type == Trades.CHATTYPE_TRADEREQ } }
+        bob.playerOp(alice.index, 4)
+        for (c in listOf(alice, bob)) c.await("trading") { c.openInterfaces().takeIf { Trades.MAIN in it } }
+        val had = alice.held(obj)
+        for (n in 1..count) {
+            alice.await("offered ${n - 1}") { if (alice.held(obj) == had - (n - 1)) Unit else null }
+            val slot = alice.inventory(Inventory.INV).indexOfFirst { it?.id == obj }
+            alice.ifButton(Trades.SIDE, Trades.SIDE_ITEMS, 1, sub = slot, obj = obj)
+            bob.await("offer $n") { bob.inventory(Trades.TRADEOFFER + HeadlessClient.OTHER_INV).count { o -> o?.id == obj }.takeIf { it == n } }
+        }
+        alice.awaitTicks(Trades.ACCEPT_DELAY_TICKS)
+        alice.ifButton(Trades.MAIN, Trades.MAIN_ACCEPT, 1)
+        bob.await("she accepted") { bob.text(Trades.MAIN, Trades.MAIN_STATUS)?.takeIf { it == "[trade.other_accepted]" } }
+        bob.awaitTicks(Trades.ACCEPT_DELAY_TICKS)
+        bob.ifButton(Trades.MAIN, Trades.MAIN_ACCEPT, 1)
+        for (c in listOf(alice, bob)) c.await("the second screen") { c.openInterfaces().takeIf { Trades.CONFIRM in it } }
+        if (!confirm) return
+        alice.ifButton(Trades.CONFIRM, Trades.CONFIRM_ACCEPT, 1)
+        bob.await("she accepted again") { bob.text(Trades.CONFIRM, Trades.CONFIRM_TITLE)?.takeIf { it == "[trade.other_accepted]" } }
+        bob.ifButton(Trades.CONFIRM, Trades.CONFIRM_ACCEPT, 1)
+        for (c in listOf(alice, bob)) c.await("done") { c.messages().firstOrNull { it.text == "[trade.accepted]" } }
+    }
+
+    @Test
+    fun `supplies a member brought in and traded to another leave with them, and an offer pending at a logout is still taken back`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    for (c in listOf(alice, bob)) c.await("the login rebuild") { c.position }
+                    alice.commandReply("raidparty invite bob") { it.startsWith("Invited") }
+                    bob.commandReply("raidparty accept alice") { it.startsWith("You joined") }
+                    // Alice brings in two Manta rays of her own; Bob brings none.
+                    alice.command("item $MANTA 2")
+                    alice.awaitHeld(MANTA, 2)
+                    val run = alice.intoRun(server, "alice")
+                    bob.intoRun(server, "bob")
+                    alice.clear(run, ArchiveRoom.GUARDIAN)
+                    alice.clear(run, ArchiveRoom.BORK)
+                    alice.clear(run, ArchiveRoom.DREADNOTH)
+                    alice.toNexus(server, run)
+                    bob.toNexus(server, run)
+                    // Hers, traded to Bob (Codex review on #636): her allowance goes with them.
+                    trade(alice, bob, MANTA, 2)
+                    bob.awaitHeld(MANTA, 2)
+                    // A save of Bob has them too: the allowance moved with them, inside the swap the trade saves.
+                    bob.commandReply("pause") { it.startsWith("Paused after tick") }
+                    val bobSaved = server.world.snapshot(server.world.playerNamed("bob")!!)
+                    bob.commandReply("resume") { it.startsWith("Resumed") }
+                    assertEquals(2, bobSaved.inventory.values.count { it.id == MANTA })
+                    // Bob buys one; he offers it to Alice and logs out on the trade's second screen.
+                    bob.resupply()
+                    bob.entry(4, 2)
+                    bob.awaitHeld(MANTA, 3)
+                    bob.closeModal()
+                    bob.await("the shop shut") { (OmnishopScreen.MAIN !in bob.openInterfaces()).takeIf { it } }
+                    trade(bob, alice, MANTA, 1, confirm = false)
+                    // A save now (a shutdown's) puts the offer back in his backpack, less what he bought (Codex review on #636).
+                    bob.commandReply("pause") { it.startsWith("Paused after tick") }
+                    val midTrade = server.world.snapshot(server.world.playerNamed("bob")!!)
+                    bob.commandReply("resume") { it.startsWith("Resumed") }
+                    assertEquals(2, midTrade.inventory.values.count { it.id == MANTA })
+                    bob.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+                    alice.await("Bob gone") { if (server.world.playerNamed("bob") == null) Unit else null }
+                    alice.tele(3222, 3218)
+                    alice.awaitTicks(2)
+                    assertEquals(0, alice.held(MANTA), "Alice's two went with her allowance to Bob")
+                }
+                // Back, Bob has Alice's two and not the one he bought, that was on offer as he left.
+                server.login("bob").use { again ->
+                    again.await("the login rebuild") { again.position }
+                    again.awaitTicks(2)
+                    assertEquals(2, again.held(MANTA))
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `supplies a member brought in, dropped and picked up by another, leave with the one who picked them up, none is made into another kind, and what is made from one's own counts`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    for (c in listOf(alice, bob)) c.await("the login rebuild") { c.position }
+                    alice.commandReply("raidparty invite bob") { it.startsWith("Invited") }
+                    bob.commandReply("raidparty accept alice") { it.startsWith("You joined") }
+                    // Alice brings in two Manta rays of her own; Bob brings none.
+                    alice.command("item $MANTA 2")
+                    alice.awaitHeld(MANTA, 2)
+                    val run = alice.intoRun(server, "alice")
+                    bob.intoRun(server, "bob")
+                    // She drops one; once it turns public (100 ticks, 2 s here) Bob takes it (Codex review on #636).
+                    val at = alice.position!!
+                    val slot = alice.inventory(Inventory.INV).indexOfFirst { it?.id == MANTA }
+                    alice.ifButton(INVENTORY, INVENTORY_ITEMS, DROP, slot, MANTA)
+                    alice.awaitHeld(MANTA, 1)
+                    bob.await("the ray turning public", timeoutMillis = 10_000) { bob.groundObjs().firstOrNull { it.id == MANTA } }
+                    bob.objOp(MANTA, at.x, at.z, TAKE)
+                    bob.awaitHeld(MANTA, 1)
+                    // Her allowance for it went with it.
+                    assertEquals(1, run.suppliesBrought.getValue("bob")[MANTA])
+                    // She drops her second and gets out before Bob takes it: what she brought in and didn't leave with
+                    // is kept for it (Codex review on #636).
+                    val second = alice.inventory(Inventory.INV).indexOfFirst { it?.id == MANTA }
+                    alice.ifButton(INVENTORY, INVENTORY_ITEMS, DROP, second, MANTA)
+                    alice.awaitHeld(MANTA, 0)
+                    alice.tele(3222, 3218)
+                    bob.await("her allowance kept for the floor") { run.suppliesLeft["alice"]?.get(MANTA)?.takeIf { it == 1 } }
+                    // And she comes back in, with nothing, before he takes it: her new, empty allowance doesn't hide it
+                    // (Codex review on #636).
+                    assertEquals(run, alice.intoRun(server, "alice"))
+                    assertEquals(emptyMap(), run.suppliesBrought.getValue("alice"))
+                    bob.await("the second ray turning public", timeoutMillis = 10_000) { bob.groundObjs().firstOrNull { it.id == MANTA } }
+                    bob.objOp(MANTA, at.x, at.z, TAKE)
+                    bob.awaitHeld(MANTA, 2)
+                    assertEquals(2, run.suppliesBrought.getValue("bob")[MANTA])
+                    // Nor can a supply be made into another kind in the run, where settling wouldn't know it (Codex
+                    // review on #636): a Super restore with unicorn horn dust into a Sanfew mixture.
+                    val supplies = server.world.archiveRaids.supplies
+                    val bobPlayer = server.world.playerNamed("bob")!!
+                    assertTrue(supplies.keepsFromMaking(bobPlayer, listOf(UNICORN_DUST, RESTORE), SANFEW_MIX))
+                    assertFalse(supplies.keepsFromMaking(bobPlayer, listOf(UNICORN_DUST, AXE), SANFEW_MIX))
+                    // What he makes of the supplies' kinds from his own herbs counts as brought (Codex review on #636): a
+                    // Saradomin brew(3) from a toadflax potion (unf) and a crushed nest, as Making reports it.
+                    bob.command("item $BREW_3 1")
+                    bob.awaitHeld(BREW_3, 1)
+                    bob.commandReply("pause") { it.startsWith("Paused after tick") }
+                    supplies.made(bobPlayer, listOf(TOADFLAX_UNF to 1, CRUSHED_NEST to 1), listOf(BREW_3 to 1))
+                    bob.commandReply("resume") { it.startsWith("Resumed") }
+                    assertEquals(3, run.suppliesBrought.getValue("bob")[BREW])
+                    // Out of the run, each keeps theirs: Bob both of Alice's, and his brew.
+                    bob.tele(3222, 3218)
+                    bob.awaitTicks(2)
+                    assertEquals(1, bob.held(BREW_3))
+                    assertEquals(2, bob.held(MANTA))
+                    assertEquals(0, alice.held(MANTA))
+                    assertFalse(supplies.keepsFromMaking(bobPlayer, listOf(UNICORN_DUST, RESTORE), SANFEW_MIX))
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a member's own drop, left as they got out and picked up as they came back in, stays theirs`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    for (c in listOf(alice, bob)) c.await("the login rebuild") { c.position }
+                    alice.commandReply("raidparty invite bob") { it.startsWith("Invited") }
+                    bob.commandReply("raidparty accept alice") { it.startsWith("You joined") }
+                    alice.command("item $MANTA 1")
+                    alice.awaitHeld(MANTA, 1)
+                    val run = alice.intoRun(server, "alice")
+                    bob.intoRun(server, "bob")
+                    // She drops her ray and gets out; Bob keeps the instance. She comes back in with nothing and takes
+                    // it up again (Codex review on #636): what she left on the floor is hers again.
+                    val at = alice.position!!
+                    val slot = alice.inventory(Inventory.INV).indexOfFirst { it?.id == MANTA }
+                    alice.ifButton(INVENTORY, INVENTORY_ITEMS, DROP, slot, MANTA)
+                    alice.awaitHeld(MANTA, 0)
+                    alice.tele(3222, 3218)
+                    alice.await("her allowance kept for the floor") { run.suppliesLeft["alice"]?.get(MANTA)?.takeIf { it == 1 } }
+                    assertEquals(run, alice.intoRun(server, "alice"))
+                    // The Archive Door lands her where she dropped it.
+                    alice.await("back at her ray") { alice.position?.takeIf { it == at } }
+                    alice.objOp(MANTA, at.x, at.z, TAKE)
+                    alice.awaitHeld(MANTA, 1)
+                    assertEquals(1, run.suppliesBrought.getValue("alice")[MANTA])
+                    alice.tele(3222, 3218)
+                    alice.awaitTicks(2)
+                    assertEquals(1, alice.held(MANTA))
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a drop picked up while its dropper has supplies on offer moves only what the offer leaves spare`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    server.login("carol").use { carol ->
+                        for (c in listOf(alice, bob, carol)) c.await("the login rebuild") { c.position }
+                        for (name in listOf("bob", "carol")) alice.commandReply("raidparty invite $name") { it.startsWith("Invited") }
+                        bob.commandReply("raidparty accept alice") { it.startsWith("You joined") }
+                        carol.commandReply("raidparty accept alice") { it.startsWith("You joined") }
+                        // Alice brings one Manta ray in and comes by a second there (as bought).
+                        alice.command("item $MANTA 1")
+                        alice.awaitHeld(MANTA, 1)
+                        val run = alice.intoRun(server, "alice")
+                        bob.intoRun(server, "bob")
+                        carol.intoRun(server, "carol")
+                        alice.command("item $MANTA 1")
+                        alice.awaitHeld(MANTA, 2)
+                        // She drops one and offers the other to Carol; Bob takes the drop while the trade is open.
+                        val at = alice.position!!
+                        val slot = alice.inventory(Inventory.INV).indexOfFirst { it?.id == MANTA }
+                        alice.ifButton(INVENTORY, INVENTORY_ITEMS, DROP, slot, MANTA)
+                        alice.awaitHeld(MANTA, 1)
+                        bob.await("the ray turning public", timeoutMillis = 10_000) { bob.groundObjs().firstOrNull { it.id == MANTA } }
+                        trade(alice, carol, MANTA, 1, confirm = false)
+                        bob.objOp(MANTA, at.x, at.z, TAKE)
+                        bob.awaitHeld(MANTA, 1)
+                        // Her one ray brought in is the one on offer (Codex review on #636): nothing to move to Bob.
+                        assertEquals(1, run.suppliesBrought.getValue("alice")[MANTA])
+                        assertEquals(0, run.suppliesBrought.getValue("bob")[MANTA] ?: 0)
+                        // Out, her trade declined, she keeps her one; Bob keeps none.
+                        alice.tele(3222, 3218)
+                        bob.tele(3222, 3218)
+                        bob.awaitTicks(2)
+                        assertEquals(1, alice.held(MANTA))
+                        assertEquals(0, bob.held(MANTA))
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a member put out of the party with bought supplies on offer has the trade declined and loses them`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    for (c in listOf(alice, bob)) c.await("the login rebuild") { c.position }
+                    alice.commandReply("raidparty invite bob") { it.startsWith("Invited") }
+                    bob.commandReply("raidparty accept alice") { it.startsWith("You joined") }
+                    val run = alice.intoRun(server, "alice")
+                    bob.intoRun(server, "bob")
+                    alice.clear(run, ArchiveRoom.GUARDIAN)
+                    alice.clear(run, ArchiveRoom.BORK)
+                    alice.clear(run, ArchiveRoom.DREADNOTH)
+                    alice.toNexus(server, run)
+                    bob.toNexus(server, run)
+                    // Bob buys a Manta ray and offers it to Alice, on the trade's second screen.
+                    bob.resupply()
+                    bob.entry(4, 2)
+                    bob.awaitHeld(MANTA, 1)
+                    bob.closeModal()
+                    bob.await("the shop shut") { (OmnishopScreen.MAIN !in bob.openInterfaces()).takeIf { it } }
+                    trade(bob, alice, MANTA, 1, confirm = false)
+                    // Put out of the party mid-trade, as a third member leading it would (Alice's own ::raidparty would
+                    // decline her trade first): the trade is declined as his supplies are taken back (Codex review on #636).
+                    bob.commandReply("pause") { it.startsWith("Paused after tick") }
+                    assertEquals(PartyResult.DONE, server.world.parties.kick(server.world.playerNamed("alice")!!, server.world.playerNamed("bob")!!))
+                    bob.commandReply("resume") { it.startsWith("Resumed") }
+                    bob.await("the trade gone") { (Trades.CONFIRM !in bob.openInterfaces()).takeIf { it } }
+                    bob.awaitTicks(2)
+                    assertNull(server.world.playerNamed("bob")!!.trade)
+                    assertFalse(server.world.playerNamed("bob")!!.saveKey in run.suppliesBrought)
+                    assertEquals(0, bob.held(MANTA))
+                    assertEquals(0, alice.held(MANTA))
+                }
+            }
+        }
+    }
+
     private companion object {
         const val CREDITS_VARP = 4_500
         const val CURRENCY = 17149
         const val BREW = 6685
+        const val BREW_3 = 6687
+        const val BREW_2 = 6689
+        const val BREW_1 = 6691
         const val RESTORE = 3024
         const val PRAYER_4 = 2434
         const val MANTA = 391
@@ -363,5 +720,13 @@ class HeadlessArchiveSuppliesTest {
         const val COMBAT_2 = 12699
         const val LOG = 34729
         const val AXE = 1351
+        const val INVENTORY = 149
+        const val INVENTORY_ITEMS = 0
+        const val DROP = 7
+        const val TAKE = 3
+        const val UNICORN_DUST = 235
+        const val SANFEW_MIX = 10909
+        const val TOADFLAX_UNF = 3002
+        const val CRUSHED_NEST = 6693
     }
 }

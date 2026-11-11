@@ -279,6 +279,7 @@ object Dagonhai {
                     (if (state.empowered) " (empowered)" else "") + ", ${adds.count { it.type.id == IMP }} imps, ${adds.count { it.type.id == RIFT }} rifts"
             },
             held = { state.members.mapNotNull { alive(it) } },
+            minions = setOf(IMP, RIFT),
         )
     }
 
