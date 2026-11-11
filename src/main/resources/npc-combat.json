@@ -848,6 +848,35 @@
       "source": "OSRS Wiki, Jelly (Dreadnoth) (id 16666), read 2026-11-10: speed 5, crush, max hit 17 (the formula's from its Strength of 160), the defence bonuses, the 60% fire weakness. Its hitpoints are the cache's 75 (the tsps capture notes' too; the Wiki's infobox says 61). It attacks with jelly_attack and dies with jelly_death (tsps capture notes); its hits, which drain prayer (Wiki), come from Dreadnoth's fight. Guessed: no block animation, the respawn, which never comes. Not in: the Wiki's 20% freeze resistance"
     },
     {
+      "npcs": ["tfa_moia"],
+      "attackSpeed": 5,
+      "maxHit": 32,
+      "attackType": "ranged",
+      "attackBonus": 350,
+      "strengthBonus": 35,
+      "magicAttack": 300,
+      "range": 10,
+      "attacks": [ { "anim": "moia_projectile_attack01", "projectile": 4214 } ],
+      "defence": { "stab": 20, "slash": 110, "crush": 15, "magic": 30, "light": 60, "standard": 120, "heavy": 140 },
+      "anims": { "attack": "moia_projectile_attack01", "defend": null, "death": "moia_death01" },
+      "respawnTicks": 50,
+      "weakness": {"element": "air", "percent": 80},
+      "drainCap": { "defence": 40 },
+      "source": "OSRS Wiki, Moia (id 16667), read 2026-11-11: speed 5, ranged max hit 32 (magic max hit 44 is her fight's magic dagger, Moia.MAGIC_MAX), ranged attack +350 and strength +35, magic attack +300, the defence bonuses, the 80% air weakness, Defence drained to 117 of 195 at most (the 21 October 2026 hotfix). Her throw is moia_projectile_attack01 and her death moia_death01, by name from the cache; her dagger is moia_dagger (4214). Her daggers, teleports, cough and binders come from her fight (Moia), at players anywhere on her arena; the range is only the file's most. Guessed: no block animation (tsps capture notes: none of the raid's bosses plays one), the throw's animation for every attack, the respawn, which never comes. Not in: the Wiki's poisonous attacks other than her cough"
+    },
+    {
+      "npcs": ["tfa_moia_minion"],
+      "attackSpeed": 5,
+      "maxHit": 16,
+      "attackType": "crush",
+      "attackBonus": 0,
+      "strengthBonus": 15,
+      "defence": { "stab": 12, "slash": 15, "crush": 10, "magic": -20, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "moia_minion_attack", "defend": null, "death": "moia_minion_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Undead binder (id 16670), read 2026-11-11: speed 5, strength +15, the defence bonuses it lists (stab, slash, crush, magic). Its swing is moia_minion_attack and its death moia_minion_death, by name from the cache; its hits come from Moia's fight, at anyone within two tiles (guides). Guessed: crush, the max hit of 16 (the formula's from a Strength of about 120, the Wiki giving none), no ranged defence (the Wiki lists none), no block animation, the respawn, which never comes (her fight raises it again)"
+    },
+    {
       "npcs": ["tfa_xarth"],
       "attackSpeed": 4,
       "maxHit": 36,

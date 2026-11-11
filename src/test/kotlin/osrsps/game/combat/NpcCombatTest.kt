@@ -79,6 +79,7 @@ class NpcCombatTest {
             "npc_ocellus_phase3_melee_basic" to 14842,
             "npc_ocellus_phase3_death" to 14872,
             "dreadnoth_melee01" to 14779, "dreadnoth_death01" to 14782, "jelly_attack" to 1586, "jelly_death" to 1587,
+            "moia_projectile_attack01" to 14785, "moia_death01" to 14784, "moia_minion_attack" to 14791, "moia_minion_death" to 14792,
             "xarth_attack_magic_01" to 14984, "xarth_death_01" to 14995, "xarth_corpse_death_01" to 15003,
             "demon_attack" to 64, "demon_block" to 65, "demon_death" to 67,
             "shade_attack" to 1283, "shade_block" to 1286, "shade_sink" to 1287,
@@ -674,6 +675,27 @@ class NpcCombatTest {
         assertTrue(him.poisonImmune && !him.venomImmune && !minion.poisonImmune)
         assertEquals(775, him.xpBonusTenths)
         assertEquals(listOf(15, 20, 5, 20), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { him.defence.against(it) })
+    }
+
+    @Test
+    fun `Moia and her binders fight as the Wiki has them, her daggers ranged and her binders' max hit guessed`() {
+        val moia = NpcType(16667, "Moia", size = 3, internalName = "tfa_moia", stats = NpcStats(attack = 1, defence = 195, strength = 1, hitpoints = 1900, ranged = 200, magic = 350))
+        val binder = NpcType(16670, "Undead binder", internalName = "tfa_moia_minion", stats = NpcStats(attack = 120, defence = 225, strength = 120, hitpoints = 95, ranged = 1, magic = 50))
+        val combat = NpcCombat.load(NpcTypes.of(moia, binder), seqs)
+        val her = combat[moia]!!
+        val minion = combat[binder]!!
+        assertEquals(listOf(5, 5), listOf(her.attackSpeed, minion.attackSpeed))
+        assertEquals(listOf(AttackType.RANGED, AttackType.CRUSH), listOf(her.attackType, minion.attackType))
+        // The Wiki's ranged max hit; the binder's is guessed.
+        assertEquals(listOf(32, 16), listOf(her.maxHit, minion.maxHit))
+        assertEquals(listOf(350, 300), listOf(her.attackBonus, her.magicAttack))
+        assertEquals(listOf(14785), her.attacks.map { it.anim })
+        assertEquals(NpcCombatAnims(14785, -1, 14784), her.anims)
+        assertEquals(NpcCombatAnims(14791, -1, 14792), minion.anims)
+        assertEquals(ElementalWeakness(Element.AIR, 80), her.weakness)
+        assertEquals(mapOf(NpcStat.DEFENCE to 40), her.drainCaps)
+        assertEquals(listOf(20, 110, 15, 30), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { her.defence.against(it) })
+        assertEquals(listOf(12, 15, 10, -20), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { minion.defence.against(it) })
     }
 
     @Test

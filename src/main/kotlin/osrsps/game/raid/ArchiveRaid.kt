@@ -430,6 +430,7 @@ class ArchiveRaids(private val world: World) {
         ArchiveRoom.GUARDIAN -> world.encounters.defs[ArchiveGuardian.NAME] != null && world.npcTypes[ArchiveGuardian.DORMANT] != null
         ArchiveRoom.EZEKIEL -> world.encounters.defs[Ezekiel.NAME] != null
         ArchiveRoom.BORK -> world.encounters.defs[Bork.NAME] != null
+        ArchiveRoom.MOIA -> world.encounters.defs[Moia.NAME] != null
         ArchiveRoom.DREADNOTH -> world.encounters.defs[Dreadnoth.NAME] != null
         ArchiveRoom.XARTH -> world.encounters.defs[Xarth.NAME] != null
         ArchiveRoom.OCELLUS -> world.encounters.defs[Ocellus.NAME] != null && world.npcTypes[Ocellus.INTRO] != null
@@ -658,6 +659,31 @@ class ArchiveRaids(private val world: World) {
         logger.info { "$run began Dreadnoth's fight with ${standing.size} standing, ${first.username} first in" }
     }
 
+    /**
+     * The first of the party onto Moia's arena, her room's round floor west of the way in: her fight begins, her where
+     * she stands as it does ([Moia.X], guessed), scaled to everyone standing in the run. Her room has no wall between
+     * the way in and the arena in the cache, so walking in begins it, with no transporter on the way.
+     */
+    private fun beginMoia(run: ArchiveRun) {
+        val room = ArchiveRoom.MOIA
+        val def = world.encounters.defs[Moia.NAME] ?: return
+        val at = tile(run, Moia.X, Moia.Z)
+        val boss = world.spawnNpc(NpcSpawn(def.boss, at.x, at.z, 0, source = "$run", respawns = false))
+        // With no NPC slot free, the room isn't started (as R18A-3 for Ezekiel): the next tick with one of the party in
+        // it tries again.
+        if (boss == null) {
+            logger.warn { "$run: no room for Moia" }
+            return
+        }
+        run.started += room
+        val standing = standing(run)
+        run.presentAtStart[room] = standing.filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
+        world.partyScaling.scale(boss, standing.size.coerceIn(1, PartyScaling.MAX_PARTY))
+        // Only those on her arena are in her fight: one still in the way in isn't hurt.
+        run.fights[room] = world.encounters.start(def, boss, { x, z -> Moia.inArena(at.x, at.z, x, z) })
+        logger.info { "$run began Moia's fight with ${standing.size} standing" }
+    }
+
     /** A nexus door: into its room, if its row is open to the party. */
     fun door(player: Player, door: Int) {
         val run = at(player.x, player.z) ?: return
@@ -774,6 +800,10 @@ class ArchiveRaids(private val world: World) {
     private fun inDreadnothArena(run: ArchiveRun, player: Player): Boolean =
         onArena(run, ArchiveRoom.DREADNOTH, player.x, player.z) == true
 
+    /** Whether [player] stands on the floor of Moia's arena in [run], west of her room's way in. */
+    private fun inMoiaArena(run: ArchiveRun, player: Player): Boolean =
+        onArena(run, ArchiveRoom.MOIA, player.x, player.z) == true
+
     /** Whether [player] stands on the floor of Bork's arena in [run]. */
     private fun inBorkArena(run: ArchiveRun, player: Player): Boolean =
         onArena(run, ArchiveRoom.BORK, player.x, player.z) == true
@@ -790,6 +820,8 @@ class ArchiveRaids(private val world: World) {
         ArchiveRoom.BORK -> Tile(BORK_ARENA_X, BORK_ARENA_Z)
         ArchiveRoom.DREADNOTH -> Tile(Dreadnoth.ARENA_ENTRY_X, Dreadnoth.ARENA_ENTRY_Z)
         ArchiveRoom.XARTH -> Tile(XARTH_ARENA_X, XARTH_ARENA_Z)
+        // Hers has no transporter onto it: the Navigator comes to its east edge, by the way in (guessed).
+        ArchiveRoom.MOIA -> Tile(Moia.NAVIGATOR_X, Moia.NAVIGATOR_Z)
         else -> null
     }
 
@@ -804,6 +836,7 @@ class ArchiveRaids(private val world: World) {
         ArchiveRoom.EZEKIEL -> tile(run, EZEKIEL_X, EZEKIEL_Z).let { Ezekiel.inArena(it.x, it.z, x, z) }
         ArchiveRoom.BORK -> tile(run, BORK_CART_X, BORK_CART_Z).let { Bork.inArena(it.x, it.z, x, z) }
         ArchiveRoom.DREADNOTH -> tile(run, Dreadnoth.X, Dreadnoth.Z).let { Dreadnoth.inArena(it.x, it.z, x, z) }
+        ArchiveRoom.MOIA -> tile(run, Moia.X, Moia.Z).let { Moia.inArena(it.x, it.z, x, z) }
         ArchiveRoom.XARTH -> tile(run, XARTH_X, XARTH_Z).let { Xarth.inArena(it.x, it.z, x, z) }
         ArchiveRoom.OCELLUS -> tile(run, Ocellus.FIGURE_X, Ocellus.FIGURE_Z).let { Ocellus.inArena(Ocellus.centre(it.x, it.z), x, z) }
         else -> null
@@ -1019,6 +1052,8 @@ class ArchiveRaids(private val world: World) {
                         room == ArchiveRoom.BORK -> if (inBorkArena(run, player)) beginBork(run, player)
                         room == ArchiveRoom.DREADNOTH -> if (inDreadnothArena(run, player)) beginDreadnoth(run, player)
                         room == ArchiveRoom.XARTH -> if (inXarthArena(run, player)) beginXarth(run, player)
+                        // Moia's arena is open to her room's way in: walking onto it begins hers.
+                        room == ArchiveRoom.MOIA -> if (inMoiaArena(run, player)) beginMoia(run)
                     }
                 }
             }
