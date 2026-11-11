@@ -333,6 +333,9 @@ class HeadlessXarthTest {
             server.login("alice").use { alice ->
                 alice.await("the login rebuild") { alice.position }
                 alice.commandReply("god on") { it.startsWith("You can't be hurt") }
+                // Auto retaliate off, or his first shot walks her off the fire.
+                alice.command("varp ${EquipmentTab.VARP_AUTO_RETALIATE_OFF} 1")
+                alice.await("auto retaliate off") { if (alice.varp(EquipmentTab.VARP_AUTO_RETALIATE_OFF) == 1) Unit else null }
                 val start = assertNotNull(alice.position)
                 // Out of his way before phase two's first fires land.
                 alice.tele(start.x - 5, start.z + 1)
@@ -352,6 +355,7 @@ class HeadlessXarthTest {
                 val under = awaitLine("the fire under her") { it.endsWith(": fire under alice") }
                 val quiet = Xarth.BURN_EVERY.toLong() * (Xarth.BURN_HITS - 1)
                 awaitLine("${quiet} ticks on") { tickOf(it) >= tickOf(under) + quiet }
+                assertEquals(Coord(fire.x, fire.z, 0), alice.position, "still on the fire")
                 assertTrue(lines().any { it.contains(": burn on alice for ") && tickOf(it) == tickOf(under) + Xarth.BURN_EVERY }, lines().takeLast(12).toString())
                 assertTrue(lines().none { it.endsWith(": fire under alice") && tickOf(it) in tickOf(under) + 1..tickOf(under) + quiet }, lines().takeLast(12).toString())
                 assertTrue(lines().none { it.contains(": fire under alice for ") }, "no hit of its own")
