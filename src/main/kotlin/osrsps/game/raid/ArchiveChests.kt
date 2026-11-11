@@ -115,7 +115,7 @@ class ArchiveChests(private val world: World, private val raids: ArchiveRaids) {
      * not yet done, in their grave, or held by a Grand Exchange offer. Guessed: live's own check isn't known. One given
      * to someone else or dropped is no longer theirs, and that stays so.
      */
-    private fun owns(player: Player, item: Int): Boolean =
+    internal fun owns(player: Player, item: Int): Boolean =
         player.inventory.count(item) > 0 || player.bank.count(item) > 0 || player.equipment.count(item) > 0 ||
             player.priceChecker.count(item) > 0 ||
             player.trade?.let { trade -> !trade.over && trade.sideOf(player).offer.count(item) > 0 } == true ||
