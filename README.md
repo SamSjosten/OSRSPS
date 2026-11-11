@@ -1449,6 +1449,30 @@ signposts read their site's level.
 | The workmen's success chart (the student's), the tiles boarding and leaving put the player on, Embark and Disembark skipping the talk, the patrolling workmen standing still, the chathead expressions, the Fossil Island refusal | guessed; the tiles checked on the real map by `digsite.json` |
 | Out: digging, the trays, panning, the winches, sacks, bushes, barrel, chest and buried skeletons (step 9b and 10); the guard calling out as the player nears the gate; the Digsite pendant; Fossil Island | out of scope |
 
+Misthalin piece 7 step 9b (`game/content/DigsiteDigs.kt`, `obj-spawns/digsite.tsv`, words under `digsite_dig.*`):
+digging, the specimen trays and panning after The Dig Site, which every account has done, so every exam counts as
+passed.
+
+A dig is a tool used on soil, and the site is the one the player stands in, by the Wiki's site maps: the training digs
+take a trowel (5 Mining XP), level 1 a trowel with leather gloves and boots worn (6 XP), level 2 a rock pick (7 XP) and
+level 3 a trowel with a specimen brush and jar carried (8 XP). Each site rolls the Wiki's finds table, one find a dig.
+The wrong tool, a spade or a brush brings the nearest workman's line, or shows it as a message when no workman is
+within 10 tiles. A specimen tray searched with a jar gives 0.5 Mining XP and a find; without one a workman stops the
+player. Pan at a panning point, or an empty panning tray used on it, fills the tray with mud for 2 Fishing and 2 Mining
+XP, and Search on the muddy tray empties it for a find. One empty tray lies in the panning tent. The specimen-jar sacks
+give a jar to a player carrying none; the other sacks and the buried skeletons hold nothing, and a trowel on a skeleton
+brings a workman's line.
+
+| Digsite digs | Source |
+|--------------|--------|
+| The tools for each site, the XP, the finds tables (out of 13, 12, 16 and 20), the specimen tray (out of 11) and the muddy tray (out of 40) | OSRS Wiki, Soil, Specimen tray, Panning tray and Panning, read 2026-11-11 |
+| The site maps | OSRS Wiki, Soil's site maps; 451 of the 242 cache's 475 soil tiles fall inside them; the other 24 (3382-3385, 3416-3421) are on no site map and give no dig |
+| The workmen's lines, the tray without a jar, the sacks, the skeleton and the full tray | OSRS Wiki transcripts (Digsite workman, Sacks (Digsite)) and Buried skeleton (Digsite), read 2026-11-11 |
+| The tent's tray (3369,3378, 100 ticks) | OSRS Wiki, Panning tray, item spawns |
+| Coins (3/20, 10 each) in place of level 3's ancient talisman; the special cup (3/40) as nothing | inferred: both are the quest's items |
+| One find a dig after 3 ticks, the animations, a workman within 10 tiles counting as near, a full backpack refusing first, and the dig, find, pan and search messages | guessed (the Wiki gives no time or messages) |
+| Out: the winches and the Digsite Dungeon (step 10); the bushes, barrel and chest (the quest's); the museum's specimen cleaning; the gold panning tray; Fossil Island's soil | out of scope |
+
 ## Draynor Village
 
 The village west of Lumbridge (the Draynor piece, plan in the project's Draynor Village 1:1 plan doc). Step 1 is the

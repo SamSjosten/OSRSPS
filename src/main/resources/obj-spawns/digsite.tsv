@@ -1,0 +1,4 @@
+# The Digsite's item spawn (Misthalin piece 7 step 9b): the empty panning tray in the panning tent by the River Salve
+# (OSRS Wiki, Panning tray, item spawns, read 2026-11-11: 3369,3378, plane 0). The respawn is the Wiki's 100 ticks.
+obj	count	x	z	level	respawn
+tray_empty	1	3369	3378	0	100	# the panning tent; Wiki, Panning tray
