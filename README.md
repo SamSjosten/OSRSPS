@@ -894,6 +894,19 @@ only their options are new.
 | The 10 and 50 coin and Ardougne Castle chests' trap damage (the Wiki says "substantial" and "high"; the nature rune chest's formula is used); the open door shown while going through (`inactivepoordoor` 1539, 3 ticks); Ross' door, a newer loc than 2004Scape's, opening the same way; refusing a chest whose loot wouldn't fit (2004Scape gives it regardless) | guessed |
 | Not built: the Dorgesh-Kaan and Rogues' Castle chests, the doors that need a lockpick, the Ardougne sewer gates, the Ardougne diary, the gas random event | next steps |
 
+### Thieving: East Ardougne's stalls
+
+Thieving 2 step T3 (`game/skill/Thieving.kt`, `npc-spawns/ardougne-market.json`). The six stalls are the cache's, in the
+market where the cache map puts them; stealing works as at Draynor's (a guard or keeper in sight stops it).
+
+| What | Source |
+|---|---|
+| Bakery (11730): 5, 16 XP, 2.4 s, a cake 13/20, bread 5/20 or a chocolate slice 2/20. Silk (11729): 20, 24 XP, 4.8 s, silk. Fur (11732): 35, 45 XP, 7.2 s, a grey wolf fur. Silver (11734): 50, 205 XP, 19.2 s, silver ore 16/20, a silver bar 3/20 or a tiara 1/20. Spice (11733): 65, 92 XP, 6 s, spice. Gem (11731): 75, 408 XP, 60 s, an uncut sapphire 105/128, emerald 17, ruby 5 or diamond 1 | OSRS Wiki, Stall (Thievable) and each stall's page |
+| The keepers (the two bakers, silk merchant, fur trader, silver merchant, spice seller and gem merchant, the `*_ardougne` types) and the market's ten guards (`ardougne_guard`, also pickpocketed as guards), where they stand | mejrs NPCList_OSRS.json (live, pre-Nov 2022) |
+| The guards' fight | OSRS Wiki, Guard (Ardougne 1) |
+| Who watches which stall (the guards the bakery; knights too the silk and fur; paladins too the silver, spice and gem), the empty stall (`market` 634), the keepers' 20-minute ban, the keepers standing still and the guards wandering 5 | guessed (the watchers 2004Scape's) |
+| Not built: Keldagrim's, Kourend's, Prifddinas's, Civitas illa Fortis's, Port Roberts's, Rellekka's and Ape Atoll's stalls, the keepers' talk and shops, the Ardougne diary | next steps |
+
 ## Items and inventory
 
 Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for
