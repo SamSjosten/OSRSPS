@@ -39,6 +39,7 @@ object BorkLines : Lines("tfa_bork", "The_Fractured_Archive/Strategies") {
     val AVENGE = line("avenge", "Bork as he dies")
     val HUMAN_DIE = line("human_die", "a Smork as Bork's body goes, before their frenzy")
     val UH_OH = line("uh_oh", "a Smork as the Smorks die")
+    val MINE = line("mine", "a Smork in their frenzy, naming who their napalm goes at", "player")
 
     private fun ordinal(n: Int) = listOf("first", "second", "third")[n - 1]
 }
@@ -737,13 +738,23 @@ object Bork {
         }
     }
 
-    /** Napalm: called now, cast at a player's tile a tick on, splashing [NAPALM_FLIGHT] ticks after that. */
+    /**
+     * Napalm: called now, cast at a player's tile a tick on, splashing [NAPALM_FLIGHT] ticks after that. In the frenzy
+     * the call names who it goes at ([BorkLines.MINE]): Sam's recording of 10 November 2026 (clip 16-09-39 at 6:26) has
+     * the Smorks naming two players, one after the other, as Bork died, and both dying within seconds. Guessed: that it
+     * is the frenzy's napalm calling them, and that it goes at the one named while they are still there to hit.
+     */
     private fun EncounterContext.napalm(smorks: Npc) {
-        smorks.effects.say(text(BorkLines.NAPALM[roll(0, BorkLines.NAPALM.size - 1)]))
-        log("the Smorks call napalm")
+        val named = if (state.frenzy) aim() else null
+        if (named != null) {
+            smorks.effects.say(text(BorkLines.MINE, "player" to named.username))
+        } else {
+            smorks.effects.say(text(BorkLines.NAPALM[roll(0, BorkLines.NAPALM.size - 1)]))
+        }
+        log("the Smorks call napalm${named?.let { " on ${it.username}" }.orEmpty()}")
         after(NAPALM_CAST) {
             val tower = liveSmorks ?: return@after
-            val target = aim() ?: return@after
+            val target = named?.takeIf { it in players } ?: aim() ?: return@after
             val at = Tile(target.x, target.z)
             tower.face(target)
             tower.effects.anim(ANIM_SMORKS_ATTACK)

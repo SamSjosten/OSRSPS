@@ -337,7 +337,7 @@ class HeadlessArchiveGuardianTest {
     }
 
     @Test
-    fun `a beam comes 20 ticks after its shield goes up and every 20 after, its target named 9 ticks before, the count going on once it is down`(@TempDir dir: Path) {
+    fun `a beam shows 20 ticks after its shield goes up and every 20 after, its target named 9 ticks before, landing a tick after it shows, the count going on once it is down`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->
                 alice.await("the login rebuild") { alice.position }
@@ -352,7 +352,8 @@ class HeadlessArchiveGuardianTest {
                 alice.await("its first beam") { ticks("beams: beam hits alice for 0").firstOrNull() }
                 val up = ticks("beams: phase starts").single()
                 assertEquals(listOf(up + ArchiveGuardian.BEAM_EVERY - ArchiveGuardian.BEAM_WARNING), ticks("beams: focuses on alice"))
-                assertEquals(listOf(up + ArchiveGuardian.BEAM_EVERY), ticks("beams: beam hits alice for 0"))
+                assertEquals(listOf(up + ArchiveGuardian.BEAM_EVERY), ticks("beams: beam fires at alice"))
+                assertEquals(listOf(up + ArchiveGuardian.BEAM_EVERY + ArchiveGuardian.BEAM_TRAVEL), ticks("beams: beam hits alice for 0"))
                 assertTrue(alice.messages().any { it.text.contains("tfa_guardian.focus_you") }, "told it follows her")
                 // No timer on this shield: broken by her, it comes down with the 30% it lifted off with, and the count goes on.
                 alice.commandReply("hit 550 ${boss.index}") { it.startsWith("Hit ") }
@@ -360,7 +361,7 @@ class HeadlessArchiveGuardianTest {
                 assertTrue(boss.hitpoints in 330..331, "${boss.hitpoints} left")
                 alice.await("its second beam") { ticks("final: beam hits alice for 0").firstOrNull() }
                 assertEquals(listOf(up + 2 * ArchiveGuardian.BEAM_EVERY - ArchiveGuardian.BEAM_WARNING), ticks("final: focuses on alice"))
-                assertEquals(listOf(up + 2 * ArchiveGuardian.BEAM_EVERY), ticks("final: beam hits alice for 0"))
+                assertEquals(listOf(up + 2 * ArchiveGuardian.BEAM_EVERY + ArchiveGuardian.BEAM_TRAVEL), ticks("final: beam hits alice for 0"))
             }
         }
     }
@@ -386,14 +387,24 @@ class HeadlessArchiveGuardianTest {
                 alice.stepTicks(ArchiveGuardian.SHIELD_DOWN_TICKS + 1)
                 assertEquals(listOf(named), ticks("final: phase starts"), "down on the tick the target is named")
                 assertEquals(listOf(named), ticks("final: focuses on alice"))
-                alice.stepTicks(ArchiveGuardian.BEAM_WARNING)
-                assertEquals(listOf(up + ArchiveGuardian.BEAM_EVERY), ticks("final: beam hits alice for 0"))
+                alice.stepTicks(ArchiveGuardian.BEAM_WARNING + ArchiveGuardian.BEAM_TRAVEL)
+                val travel = ArchiveGuardian.BEAM_TRAVEL
+                assertEquals(listOf(up + ArchiveGuardian.BEAM_EVERY + travel), ticks("final: beam hits alice for 0"))
                 // And the one after it, 20 ticks on.
                 alice.stepTicks(ArchiveGuardian.BEAM_EVERY)
-                assertEquals(listOf(up + ArchiveGuardian.BEAM_EVERY, up + 2 * ArchiveGuardian.BEAM_EVERY), ticks("final: beam hits alice for 0"))
+                assertEquals(listOf(up + ArchiveGuardian.BEAM_EVERY + travel, up + 2 * ArchiveGuardian.BEAM_EVERY + travel), ticks("final: beam hits alice for 0"))
                 alice.commandReply("resume") { it.isNotEmpty() }
             }
         }
+    }
+
+    @Test
+    fun `the inert guardian a beam spends shows a splat that grows with the party, 330 for four and 400 for five`() {
+        assertEquals(330, ArchiveGuardian.statueSplat(4))
+        assertEquals(400, ArchiveGuardian.statueSplat(5))
+        assertEquals(ArchiveGuardian.statueSplat(1), ArchiveGuardian.statueSplat(2))
+        assertEquals(ArchiveGuardian.STATUE_SPLATS.last(), ArchiveGuardian.statueSplat(9))
+        assertTrue(ArchiveGuardian.STATUE_SPLATS.zipWithNext().all { (a, b) -> a <= b })
     }
 
     @Test
@@ -462,9 +473,10 @@ class HeadlessArchiveGuardianTest {
                     val boss = server.world.npcs.all.single { it.type.id == ArchiveGuardian.FLYING }
                     val fight = server.world.encounters.all.single { it.boss === boss }
                     alice.commandReply("hit 550 ${boss.index}") { it.startsWith("Hit ") }
-                    alice.stepTicks(ArchiveGuardian.BEAM_EVERY - 1)
+                    // Up to the beam showing: it lands a tick after.
+                    alice.stepTicks(ArchiveGuardian.BEAM_EVERY - 1 + ArchiveGuardian.BEAM_TRAVEL)
                     assertTrue(fight.lines.any { it.endsWith("final: phase starts") }, fight.lines.toString())
-                    assertTrue(fight.lines.any { it.contains("focuses on") } && fight.lines.none { it.contains("beam hits") }, fight.lines.toString())
+                    assertTrue(fight.lines.any { it.contains("beam fires at") } && fight.lines.none { it.contains("beam hits") }, fight.lines.toString())
                     for (client in listOf(alice, bob)) client.commandReply("god off") { it.startsWith("You can be hurt") }
                     bob.commandReply("heal") { it.startsWith("Healed") }
                     alice.commandReply("heal") { it.startsWith("Healed") }
@@ -802,16 +814,18 @@ class HeadlessArchiveGuardianTest {
                 fun tickOf(end: String) = fight.lines.toList().single { it.endsWith(end) }.substringBefore(' ').toLong()
                 // From its middle, 3224,3220, through her at 3228,3221 the line crosses 3232,3222: the north-east one.
                 alice.command("tele 3228 3221 0")
-                alice.stepTicks(ArchiveGuardian.BEAM_EVERY - 1)
-                assertEquals(ArchiveGuardian.BATTERY_ACTIVE, ne.type.id, "not yet")
+                alice.stepTicks(ArchiveGuardian.BEAM_EVERY - 1 + ArchiveGuardian.BEAM_TRAVEL)
+                assertEquals(ArchiveGuardian.BATTERY_ACTIVE, ne.type.id, "not yet: the beam shows, and reaches it a tick later")
                 // She can be hurt for the beam's tick alone: what the inert guardian leaves of it is 8 to 10.
                 alice.commandReply("god off") { it.startsWith("You can be hurt") }
                 alice.commandReply("heal") { it.startsWith("Healed") }
                 alice.stepTicks(1)
                 alice.commandReply("god on") { it.startsWith("You can't be hurt") }
                 val beam = tickOf("beams: beam spends the inert guardian at 3232,3221")
-                assertEquals(tickOf("beams: phase starts") + ArchiveGuardian.BEAM_EVERY, beam)
+                assertEquals(tickOf("beams: phase starts") + ArchiveGuardian.BEAM_EVERY + ArchiveGuardian.BEAM_TRAVEL, beam)
                 assertEquals(ArchiveGuardian.BATTERY_SPENT, ne.type.id)
+                // The splat on it: what it has, for her party of one (counted as two).
+                assertEquals(ArchiveGuardian.STATUE_SPLATS[1], ArchiveGuardian.statueSplat(boss.scaledFor))
                 assertEquals(0, ne.hitpoints)
                 val left = fight.lines.firstNotNullOf { BEAM_HIT.find(it)?.groupValues?.get(1)?.toInt() }
                 assertTrue(left in ArchiveGuardian.BEAM_BLOCKED_MIN..ArchiveGuardian.BEAM_BLOCKED_MAX, "the beam left $left for her")
@@ -835,6 +849,9 @@ class HeadlessArchiveGuardianTest {
                 alice.stepTicks(ArchiveGuardian.BEAM_CHARGE_DELAY)
                 val broke = tickOf("beams: the spent inert guardian's charge breaks its shield, 130 left")
                 assertEquals(beam + ArchiveGuardian.BEAM_EVERY + ArchiveGuardian.BEAM_CHARGE_DELAY, broke)
+                // From the chat line to that: 14 ticks, as Sam's recording of 10 November has it.
+                val named = fight.lines.toList().filter { it.endsWith("beams: focuses on alice") }.map { it.substringBefore(' ').toLong() }.last()
+                assertEquals(14L, broke - named)
                 assertEquals(broke, tickOf("final: phase starts"), "down on that tick")
                 assertTrue(fight.lines.none { it.endsWith("shield broken") }, fight.lines.joinToString("\n"))
                 assertEquals(ArchiveGuardian.GROUNDED, boss.type.id)
@@ -865,7 +882,7 @@ class HeadlessArchiveGuardianTest {
                 assertEquals(330, boss.hitpoints, "30% of a party of one's 1,100")
                 // From its middle, 3224,3220, through her at 3228,3221 the line crosses 3232,3222: the north-east one.
                 alice.command("tele 3228 3221 0")
-                alice.stepTicks(ArchiveGuardian.BEAM_EVERY + ArchiveGuardian.BEAM_CHARGE_DELAY)
+                alice.stepTicks(ArchiveGuardian.BEAM_EVERY + ArchiveGuardian.BEAM_TRAVEL + ArchiveGuardian.BEAM_CHARGE_DELAY)
                 assertTrue(fight.lines.any { it.endsWith("final: beam spends the inert guardian at 3232,3221") }, fight.lines.joinToString("\n"))
                 assertEquals(ArchiveGuardian.BATTERY_SPENT, ne.type.id)
                 assertTrue(fight.lines.any { it.endsWith("final: the spent inert guardian's charge: Guardian takes ${most * ArchiveGuardian.BATTERY_BEAM_PERCENT / 100}") }, fight.lines.joinToString("\n"))
