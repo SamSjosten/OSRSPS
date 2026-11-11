@@ -118,6 +118,19 @@ class NpcScriptsTest {
     }
 
     @Test
+    fun `a later action that throws loses neither the others due that tick nor the tick`() {
+        val ran = ArrayList<String>()
+        scripts.later(1) { ran += "first" }
+        scripts.later(1) { error("a broken action") }
+        scripts.later(1) { ran += "third" }
+        scripts.laterUntil(1) { ran += "until"; true }
+        run(1)
+        assertEquals(listOf("first", "third", "until"), ran)
+        run(2)
+        assertEquals(listOf("first", "third", "until"), ran, "the broken one is gone, not tried again")
+    }
+
+    @Test
     fun `a type gets one timer, and timers and queues are at least a tick`() {
         scripts.onTimer(listOf(duck.id), 1) { 1 }
         assertFailsWith<IllegalArgumentException> { scripts.onTimer(listOf(duck.id), 1) { 1 } }

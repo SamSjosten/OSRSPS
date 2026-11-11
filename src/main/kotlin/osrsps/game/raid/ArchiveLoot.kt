@@ -34,7 +34,8 @@ class LootResult(val chests: Map<String, List<Drop>>, val unique: String?)
  * - **The unique.** One roll for the party at the raid's end: 1 in [uniqueOneIn] (14) alone or as two, and "in trio
  *   and larger sizes, each additional player will increase the drop rate of a unique by a multiplicative 4%". The
  *   Wiki's own figures (1/13.46 for three, 1/90.32 a player for eight, so 1/11.29 for the party) fit 4% of the base
- *   added for each player past two, not 4% compounded: [uniqueChance]. Inferred from those figures.
+ *   added for each player past two, not 4% compounded: [uniqueChance]. Inferred from those figures. Only members with
+ *   a share (above [poorBelow]) count as players here (guessed).
  * - **Who finds it.** "The player's contribution is rolled against the total contribution obtained by the team": one
  *   member, each as likely as their share of the total. Which item, by the unique table's weights (5, 4, 3, 2, 1 of 15).
  * - **Everyone else.** "The standard loot table is rolled three times", each roll with a 1 in [fiveTimesOneIn] (51)
@@ -97,7 +98,10 @@ class ArchiveLoot(
         val total = members.sumOf { share(it) }
         var finder: String? = null
         var found: Drop? = null
-        val (numerator, denominator) = uniqueChance(members.size)
+        // Guessed: only members with a share count towards the party's size here. One who did nothing, or too little
+        // to have a share, made no boss harder, so an alt brought in and left idle raised the party's chance of a
+        // unique for free (exploit review round 24, R24A-2).
+        val (numerator, denominator) = uniqueChance(members.count { share(it) > 0 })
         if (uniques != null && total > 0 && random.chance(numerator, denominator)) {
             var left = random.nextInt(total)
             for (member in members) {

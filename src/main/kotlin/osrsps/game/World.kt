@@ -583,6 +583,7 @@ class World(
             specialAttacks.refill(it)
         },
         placeOf = ::deathPlace,
+        fell = { archiveRaids.fell(it) },
         teleport = { player, x, z, level -> teleport(player, x, z, level) },
         drop = { player, type, count -> dropUnder(player, type, count) },
         setVarpNow = { player, varp, value ->

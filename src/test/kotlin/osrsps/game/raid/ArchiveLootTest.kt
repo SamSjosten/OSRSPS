@@ -221,6 +221,28 @@ class ArchiveLootTest {
     }
 
     @Test
+    fun `a member with no share doesn't count towards the party's size for the unique`() {
+        val random = GameRandom(24)
+        val shield = ObjType(1171, "Wooden shield")
+        val cabbage = ObjType(1965, "Cabbage")
+        // A unique one time in two for one or two, and certain for three: so a third member shows plainly.
+        val table = ArchiveLoot(
+            2, 100, DropTable(1, listOf(DropSlot(1, DropItem(shield, 1, 1)))), 3, 51, null,
+            null, 10, null, 15, emptySet(), emptyList(), 20, cabbage,
+        )
+        val three = listOf(LootMember("ann", 200), LootMember("bob", 200), LootMember("cat", 300))
+        assertEquals(400, (1..400).count { table.roll(random, three).unique != null }, "three who earned: certain")
+        // An alt brought along and left idle, or doing too little for a share (exploit review round 24, R24A-2): the
+        // party is two for the unique.
+        val idle = listOf(LootMember("ann", 0), LootMember("bob", 300), LootMember("cat", 400))
+        val token = listOf(LootMember("ann", 1), LootMember("bob", 300), LootMember("cat", 400))
+        for (party in listOf(idle, token)) {
+            val found = (1..400).count { table.roll(random, party).unique != null }
+            assertTrue(found in 150..250, "$found of 400, about half")
+        }
+    }
+
+    @Test
     fun `a member with no contribution left gets a cabbage and nothing else, never the unique, and a party of them rolls nothing`() {
         val random = GameRandom(3)
         val axe = ObjType(1351, "Bronze axe")
