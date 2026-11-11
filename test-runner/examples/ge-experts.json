@@ -201,11 +201,21 @@
    "timeoutMs": 10000
   },
   {
+   "step": "command",
+   "text": "::tele 3171 3481 0",
+   "expectMessage": "Teleported to 3171, 3481, 0",
+   "comment": "back west of Murky Matt (3173 3481): from Bob Barter's spot he is 16 tiles off, out of view"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
    "step": "npcOption",
    "npcId": 5450,
    "option": "Talk-to",
    "timeoutMs": 20000,
-   "comment": "Murky Matt, still beside him"
+   "comment": "Murky Matt, back beside him"
   },
   {
    "step": "assertDialogue",
