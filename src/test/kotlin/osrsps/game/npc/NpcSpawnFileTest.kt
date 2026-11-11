@@ -396,6 +396,18 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `Paterdomus has Drezel in the mausoleum and Ivan Strom beside him, and no monks or guardian`() {
+        val names = mapOf(9805 to "priestperiltrappedmonk2", 15853 to "myq6_ivan_postquest")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("paterdomus.json"), types, "paterdomus.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        assertEquals(listOf(9805, 15853), spawns.map { it.type.id })
+        assertEquals(3440 to 9895, spawns.first().let { it.x to it.z })
+        assertTrue(spawns.all { it.z in 9880..9910 && it.wander == 0 && it.level == 0 && it.source.isNotBlank() })
+    }
+
+    @Test
     fun `the swamp has its 23 giant rats, 82 frogs, the level 5 goblin, the unicorn, its talking NPCs and tutors, and rats west of the castle`() {
         val names = mapOf(
             2856 to "giantrat", 2859 to "giantrat_grey", 2860 to "giantrat_grey2", 2861 to "giantrat_grey3", 2863 to "giantrat1_2",

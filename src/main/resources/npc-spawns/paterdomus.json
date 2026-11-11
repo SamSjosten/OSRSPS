@@ -1,0 +1,7 @@
+{
+  "about": "Misthalin piece 7 step 8: Paterdomus Temple after The Blood Moon Rises (Paterdomus.kt). Drezel in the mausoleum below the temple, where mejrs's list and the Wiki's map have him, and Ivan Strom, who lives here once the quest is done (Wiki, Ivan Strom). Not here: the monks of Zamorak (cleared for good by The Blood Moon Rises), the Temple Guardian (killed in Priest in Peril, never back), Veliaf Hurtz (at his pub in Burgh de Rott after the quest), and the ghouls north of the temple (Morytania's, the Wiki's Ghoul page).",
+  "spawns": [
+    {"npc": "priestperiltrappedmonk2", "x": 3440, "z": 9895, "wander": 0, "source": "Drezel, in the mausoleum; shows priestperiltrappedmonk_vis after Priest in Peril. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the Wiki's Drezel map (3440,9895) agrees"},
+    {"npc": "myq6_ivan_postquest", "x": 3438, "z": 9896, "wander": 0, "source": "Ivan Strom after The Blood Moon Rises; shows myq6_ivan_postquest_vis. The quest is newer than mejrs's list and the Wiki gives no map, so the tile beside Drezel is guessed"}
+  ]
+}

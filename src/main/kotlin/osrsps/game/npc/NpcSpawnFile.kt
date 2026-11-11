@@ -68,6 +68,7 @@ object NpcSpawnFile {
         "misthalin-farms-roads.json",
         "lumber-yard.json",
         "silvarea.json",
+        "paterdomus.json",
         "fishing-spots.json",
         "thieving-kandarin.json",
         "rogues-castle.json",

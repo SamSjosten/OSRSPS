@@ -1398,6 +1398,30 @@ its one wish left. The trapdoor to Zemouregal's base shows Enter after Defender 
 | The wish-list in a message box, the bats' wander range, the chathead expressions, the base's refusal | guessed |
 | Out: Zemouregal's base and its armoured zombies, the Giantsoul amulet trade-in, the easy STASH, the hunting trail's plants and the pot-boiler (no options after the quests), Elias White (at the Jolly Boar Inn or Uzer once his quests are done, Wiki) | out of scope |
 
+#### Paterdomus
+
+Misthalin piece 7 step 8 (`game/content/Paterdomus.kt`, `npc-spawns/paterdomus.json`, `obj-spawns/paterdomus.tsv`,
+words under `drezel.*`, `ivan_strom.*` and `paterdomus.*`): the temple on the River Salve after The Blood Moon Rises.
+
+The monks of Zamorak are gone for good and the Temple Guardian with them. The front doors and the mausoleum's two gates
+have no open types in the cache, so Open puts the player through to the other side. The spiral stairs climb from the
+ground floor and the castle's ladders reach the top floor, where a bucket lies. The trapdoor north of the temple climbs
+down to the mausoleum. Drezel hands back a lost wolfbane dagger (not into a full backpack), then a lost temple library
+key, and otherwise talks as after The Blood Moon Rises; Ivan Strom talks about the columbarium he is looking for and
+hands over Drakan's medallion. The library's trapdoor, open since In Aid of the Myreque, climbs down to the secret
+library and its ladder back up. The Holy barrier and the 65 Agility ornate railing refuse: Morytania waits for its own
+piece. The ground floor's altar is the church's.
+
+| Paterdomus | Source |
+|------------|--------|
+| No monks (cleared by The Blood Moon Rises), no Temple Guardian (never back after Priest in Peril) | OSRS Wiki, Paterdomus Temple and Temple Guardian, read 2026-11-11; the guardian's multi-NPC hides it after the quest's early stages (242 cache) |
+| Drezel's tile, his talk and the dagger and key he hands back | mejrs data_osrs NPCList_OSRS.json and the Wiki's Drezel map; OSRS Wiki, Transcript:Drezel, read 2026-11-11 |
+| Ivan Strom living here after the quest, his talk | OSRS Wiki, Ivan Strom, The Blood Moon Rises and Transcript:Ivan Strom, read 2026-11-11 |
+| The top floor's bucket at 3414,3493 | OSRS Wiki, Bucket (added 30 June 2026) |
+| The library trapdoor open after In Aid of the Myreque (`burgh_temple_trapdoor`, set at login) | OSRS Wiki, Temple library key; inferred from the varbit's name |
+| Ivan's tile (beside Drezel), the doors and gates moving the player through, the landings below the trapdoors, Drakan's medallion handed over only when none is owned, the chathead expressions, the Morytania refusal | guessed; the tiles checked on the real map by `paterdomus.json` |
+| Out: the monuments, the well, the stained glass, the plinths and bookcases upstairs, the coffin, the cell gate, the organ, the keyhole, the library's bookcases (a quest's books), the east trapdoor, the Temple Trekking sign; Morytania past the Salve | out of scope (12a's sweep, or Morytania's piece) |
+
 ## Draynor Village
 
 The village west of Lumbridge (the Draynor piece, plan in the project's Draynor Village 1:1 plan doc). Step 1 is the
