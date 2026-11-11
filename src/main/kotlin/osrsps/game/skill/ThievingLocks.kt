@@ -95,8 +95,9 @@ class LockedDoor(
  * first roll for a trap (2004Scape's charts; Ross' 32 to 250 gives the Wiki's 77% at 13), whose blow is 6% of full
  * Hitpoints, 10% of full, or 10% of current (none at 10 or less), and a sprung trap ends the try. Then the level, then
  * the pick's chart (the Wiki's 32 to 250 for East Ardougne's doors; 2004Scape's 8 to 75 for the tower's and 4 to 40 for
- * the castle's and Ross'), and a pick that works lets the player through with the XP. Going through swings the door
- * open for [THROUGH_TICKS] ticks as [DOOR_OPEN] (GUESSED: the cache pairs these doors with no open type).
+ * the castle's and Ross'), and a pick that works lets the player through with the XP. Going through moves the player
+ * across and leaves the door shut, so nobody slips in behind (exploit sweep round 25, R25B-1; the cache pairs these
+ * doors with no open type).
  *
  * Guessed too: the room check before a chest's loot. Left out: the Dorgesh-Kaan and Rogues' Castle chests, the doors
  * that need a lockpick (`toollock`), the Ardougne sewer gates, the Ardougne diary, the gas random event.
@@ -128,8 +129,6 @@ object ThievingLocks {
     const val DOOR_ROSS = 40178
 
     /** `inactivepoordoor`: the door shown open while a player goes through (GUESSED type). */
-    const val DOOR_OPEN = 1539
-    const val THROUGH_TICKS = 3
 
     const val OP_OPEN = 1
     const val OP_SECOND = 2
@@ -329,11 +328,13 @@ object ThievingLocks {
         goThrough(world, door)
     }
 
-    /** Swings [door] open for a moment and puts the player on its far side, as 2004Scape's open_and_close_door. */
+    /**
+     * Puts the player on [door]'s far side and leaves it shut. 2004Scape's open_and_close_door swings it open for a
+     * moment, which would let anyone walk through behind them, whatever their level (R25B-1).
+     */
     private suspend fun ScriptContext.goThrough(world: World, door: ZoneLoc) {
         if (!world.locs.exists(door)) return
         val (x, z) = through(door, player.x, player.z)
         world.teleport(player, x, z, door.level)
-        world.doors.openAs(door, DOOR_OPEN, shutAfter = THROUGH_TICKS)
     }
 }
