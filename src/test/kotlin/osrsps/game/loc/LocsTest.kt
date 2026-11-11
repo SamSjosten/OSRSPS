@@ -163,6 +163,30 @@ class LocsTest {
     }
 
     @Test
+    fun `a staged swap shows one type, then the other, then the cache's loc`() {
+        tick = 100
+        assertEquals(STUMP, locs.replaceInStages(wall, STUMP, 4, TABLE, 12)?.id)
+        assertEquals(listOf("add $STUMP"), sent())
+        tick = 103
+        locs.process()
+        assertEquals(STUMP, locs[3210, 3210, 0, 0]?.id)
+        tick = 104
+        locs.process()
+        assertEquals(TABLE, locs[3210, 3210, 0, 0]?.id)
+        assertEquals(listOf("add $TABLE"), sent())
+        assertTrue(locs.reverting(3210, 3210, 0), "the second stage is timed too")
+        tick = 115
+        locs.process()
+        assertEquals(TABLE, locs[3210, 3210, 0, 0]?.id)
+        tick = 116
+        locs.process()
+        assertEquals(wall, locs[3210, 3210, 0, 0])
+        assertEquals(0, locs.changed)
+        assertFalse(locs.reverting(3210, 3210, 0))
+        assertEquals(null, locs.replaceInStages(wall.copy(id = STUMP), TABLE, 1, STUMP, 1), "not there, so nothing")
+    }
+
+    @Test
     fun `a timed change puts the tile back once its time is up`() {
         tick = 100
         locs.replace(wall, STUMP, revertAfter = 3)

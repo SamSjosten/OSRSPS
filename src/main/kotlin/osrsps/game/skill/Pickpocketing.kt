@@ -196,11 +196,17 @@ class Pickpocketing(private val world: World) {
     } ?: 1
 
     private fun stacksFit(player: Player, pocket: Pocket): Boolean {
-        fun fits(obj: Int, count: Int): Boolean {
+        fun fits(obj: Int, count: Long): Boolean {
             if (world.objTypes[obj]?.stackable != true) return true
             return player.inventory.count(obj) + count <= Inventory.MAX_STACK
         }
-        return pocket.extra.all { fits(it.obj, it.min) } && pocket.loot.all { it.obj < 0 || fits(it.obj, it.max) }
+        // An item given both as an extra and by the table counts as both at once: every extra, plus one roll's most.
+        val worst = mutableMapOf<Int, Long>()
+        for (extra in pocket.extra) worst.merge(extra.obj, extra.min.toLong(), Long::plus)
+        for ((obj, lines) in pocket.loot.filter { it.obj >= 0 }.groupBy { it.obj }) {
+            worst.merge(obj, lines.maxOf { it.max }.toLong(), Long::plus)
+        }
+        return worst.all { (obj, count) -> fits(obj, count) }
     }
 
     private fun give(player: Player, pocket: Pocket) {

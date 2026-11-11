@@ -1,0 +1,33 @@
+{
+ "name": "Thieving 2 step T2: East Ardougne's 10-coin chest set off, searched and left empty, and its house's north door gone through from inside, found locked from outside and picked (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario thieving", "expectMessage": "Started scenario thieving.", "comment": "99 Thieving; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::god on", "comment": "the chest's trap would otherwise hurt"},
+  {"step": "command", "text": "::tele 2673 3306 0", "expectMessage": "Teleported to 2673, 3306, 0", "comment": "inside the house east of Ardougne Market, beside the 10-coin chest (GUESSED tile)"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "locOption", "locId": 11735, "option": "Open", "x": 2673, "y": 3307},
+  {"step": "assertMessage", "contains": "[thieving_lock.chest_trap]", "timeoutMs": 10000},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "locOption", "locId": 11735, "option": "Search for traps", "x": 2673, "y": 3307},
+  {"step": "assertMessage", "contains": "[thieving_lock.trap_found]", "timeoutMs": 10000},
+  {"step": "assertMessage", "contains": "[thieving_lock.treasure]", "timeoutMs": 10000},
+  {"step": "waitTicks", "ticks": 4},
+  {"step": "locOption", "locId": 11740, "option": "Open", "x": 2673, "y": 3307, "comment": "the empty chest, for 7 seconds"},
+  {"step": "assertMessage", "contains": "[thieving_lock.looted]", "timeoutMs": 10000},
+  {"step": "locOption", "locId": 11719, "option": "Open", "x": 2674, "y": 3305, "comment": "the north door, from inside"},
+  {"step": "assertMessage", "contains": "[thieving_lock.through]", "timeoutMs": 15000},
+  {"step": "waitTicks", "ticks": 5, "comment": "the door shuts behind"},
+  {"step": "locOption", "locId": 11719, "option": "Open", "x": 2674, "y": 3305, "comment": "from outside now"},
+  {"step": "assertMessage", "contains": "[thieving_lock.door_locked]", "timeoutMs": 10000},
+  {"step": "command", "text": "::boost thieving 105", "expectMessage": "Thieving is now 105/99", "comment": "the chart's 251/256 at 99 passes 256 from 102, so the one pick can't fail"},
+  {"step": "locOption", "locId": 11719, "option": "Pick-lock", "x": 2674, "y": 3305, "comment": "certain at 105"},
+  {"step": "assertMessage", "contains": "[thieving_lock.pick]", "timeoutMs": 10000},
+  {"step": "assertMessage", "contains": "[thieving_lock.pick_done]", "timeoutMs": 10000},
+  {"step": "command", "text": "::god off"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
