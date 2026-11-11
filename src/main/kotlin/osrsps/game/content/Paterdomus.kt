@@ -137,14 +137,15 @@ object Paterdomus {
         player.inventory.count(obj) > 0 || player.equipment.count(obj) > 0 || player.bank.count(obj) > 0
 
     /**
-     * Where Open on a door or gate with no open type takes a player standing at [x], [z]: across [door]'s wall, to the
-     * tile on its other side.
+     * Where Open on a door or gate with no open type takes a player standing at [x], [z]: through [door]'s doorway, to
+     * the tile on its other side. Which side the player is on comes from [x], [z]; the tile along the wall is always
+     * the door's own, so a player who clicked from a tile beside the doorway still goes through it.
      */
     fun across(door: ZoneLoc, x: Int, z: Int): Tile = when (door.angle and 3) {
-        0 -> if (x < door.x) Tile(door.x, z) else Tile(door.x - 1, z)
-        1 -> if (z > door.z) Tile(x, door.z) else Tile(x, door.z + 1)
-        2 -> if (x > door.x) Tile(door.x, z) else Tile(door.x + 1, z)
-        else -> if (z < door.z) Tile(x, door.z) else Tile(x, door.z - 1)
+        0 -> if (x < door.x) Tile(door.x, door.z) else Tile(door.x - 1, door.z)
+        1 -> if (z > door.z) Tile(door.x, door.z) else Tile(door.x, door.z + 1)
+        2 -> if (x > door.x) Tile(door.x, door.z) else Tile(door.x + 1, door.z)
+        else -> if (z < door.z) Tile(door.x, door.z) else Tile(door.x, door.z - 1)
     }
 
     internal suspend fun Dialogue.drezel(give: (Player, Int) -> Unit) = with(DrezelLines) {

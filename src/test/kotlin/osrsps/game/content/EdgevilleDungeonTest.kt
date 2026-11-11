@@ -70,4 +70,14 @@ class EdgevilleDungeonTest {
         assertEquals(Tile(3405, 9894), Paterdomus.across(south, 3405, 9895))
         assertEquals(Tile(3405, 9895), Paterdomus.across(south, 3405, 9894))
     }
+
+    @Test
+    fun `a door clicked from a tile beside its doorway still takes the player through the doorway`() {
+        val west = ZoneLoc(Paterdomus.DOOR_LEFT, LocShape.WALL_STRAIGHT, 2, 3408, 3489, 0)
+        assertEquals(Tile(3409, 3489), Paterdomus.across(west, 3408, 3490))
+        assertEquals(Tile(3408, 3489), Paterdomus.across(west, 3409, 3488))
+        val south = ZoneLoc(Paterdomus.GATE_WEST, LocShape.WALL_STRAIGHT, 3, 3405, 9895, 0)
+        assertEquals(Tile(3405, 9894), Paterdomus.across(south, 3406, 9895))
+        assertEquals(Tile(3405, 9895), Paterdomus.across(south, 3404, 9894))
+    }
 }
