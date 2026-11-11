@@ -889,10 +889,10 @@ only their options are new.
 | 10 coins (11735): 13, 7.8 XP, 7 s. Nature runes (11736): 28, 25 XP, a nature rune and 3 coins, 15 s. 50 coins (11737): 43, 125 XP, 50 s. Blood runes (11738, Chaos Druid Tower dungeon): 59, 250 XP, 2 blood runes and 500 coins, 135 s, then a second trap sends the looter to East Ardougne (2584, 3337). Ardougne Castle (11739): 72, 500 XP, 1,000 coins, a raw shark, an adamantite ore and an uncut sapphire, 500 s, then Witchaven (2696, 3281) | OSRS Wiki, Chest (10 coins), (nature runes), (50 coins), (blood runes), (Ardougne Castle) |
 | Steel arrowtips (11742): 47, 150 XP, 5 steel arrowtips and 20 coins, 90 s, empty as `emptypickchest` 11741. Open says it is locked; Search for traps, or a lockpick used on it, picks it every time with a lockpick held | OSRS Wiki, Chest (steel arrowtips); 2004Scape `attempt_locked_chest` |
 | The traps: the nature rune chest's `floor(HP * 12 / 100) + 3` of current Hitpoints, the blood rune chest's `(9 * HP + 225) / 50` | OSRS Wiki, Chest (nature runes), Chest (blood runes) |
-| Doors: Open from outside says it is locked; from inside, Open or Pick-lock lets the player through. Outside is the door tile's own side of its wall | 2004Scape `locked_door.rs2` (`check_axis_locactive`) |
+| Doors: Open from outside says it is locked; from inside, Open or Pick-lock lets the player through. Outside is the door tile's own side of its wall. Going through moves the player across and the door stays shut, so nobody walks in behind (exploit sweep round 25, R25B-1; 2004Scape swings it open for a moment) | 2004Scape `locked_door.rs2` (`check_axis_locactive`) |
 | East Ardougne's north (11719, 1, 3.8 XP) and south (11720, 16, 15 XP) doors, 32 to 250. Ross' house (40178, 13, 15 XP, 4 to 40). The Chaos Druid Tower (11723, 46, 37.5 XP, 8 to 75). Ardougne Castle (11724, 61, 50 XP, 4 to 40) | OSRS Wiki, each door's page (levels, XP, East Ardougne's chart); 2004Scape's `locked_door.dbrow` (the other charts) |
 | The trap before a pick on Ross', the tower's and the castle's doors (32 to 250, 220 to 280, 200 to 270): its blow is 10% of current Hitpoints (none at 10 or less), 6% of full, or 10% of full, and it ends the try. Ross' 32 to 250 gives the Wiki's 77% at 13 and 2% at 99 | OSRS Wiki, Door (Ross' House), (Chaos Druid Tower), (Ardougne Castle); 2004Scape's charts |
-| The 10 and 50 coin and Ardougne Castle chests' trap damage (the Wiki says "substantial" and "high"; the nature rune chest's formula is used); the open door shown while going through (`inactivepoordoor` 1539, 3 ticks); Ross' door, a newer loc than 2004Scape's, opening the same way; refusing a chest whose loot wouldn't fit (2004Scape gives it regardless) | guessed |
+| The 10 and 50 coin and Ardougne Castle chests' trap damage (the Wiki says "substantial" and "high"; the nature rune chest's formula is used); Ross' door, a newer loc than 2004Scape's, opening the same way; refusing a chest whose loot wouldn't fit (2004Scape gives it regardless) | guessed |
 | Not built: the Dorgesh-Kaan and Rogues' Castle chests, the doors that need a lockpick, the Ardougne sewer gates, the Ardougne diary, the gas random event | next steps |
 
 ### Thieving: East Ardougne's stalls
@@ -1265,7 +1265,7 @@ for 20 ticks it goes back in. Hurting rockslugs needs Slayer 20, wall beasts 35.
 Misthalin piece 7 step 4a (`game/content/HamHideout.kt`, `npc-spawns/ham-hideout.json`, words under `ham_hideout.*`
 and `pickpocket.caught_ham`): the trapdoor west of Lumbridge's general store is locked. Pick-Lock opens it at 4% at
 Thieving 1 to 98% at 99 (24% to 99% with a lockpick in the backpack) for 3.8 XP, and a fail numbs the fingers,
-Thieving down 1. Picked open (varbit `ham_thief` shows it open), Climb-down takes the player to the foot of the ladder
+Thieving down 1 (never below 1). Picked open (varbit `ham_thief` shows it open), Climb-down takes the player to the foot of the ladder
 and Close shuts it; the ladder climbs back up. Inside, 26 members can be pickpocketed (Thieving 15, 22.2 XP, loot or a
 H.A.M. coin pouch), 11 sit, and 22 guards of levels 12, 18 and 22 fight and drop the Wiki's table. A caught thief
 takes 1 to 3 damage and a concussion, unless Agility takes the blow; the third concussion bundles them out to the
@@ -1283,7 +1283,7 @@ steps to 27% to 123%, or 47% to 141%; each fail 0.5 XP). A trapdoor pick takes 9
 | The cell door's rates at 1 and 99, with and without a lockpick, first and after the rise; four equal steps; a restart resetting it; 3.8 XP, 0.5 a fail; no picking from outside | OSRS Wiki, Door (H.A.M. Hideout Jail), read 2026-11-10 |
 | Members: level 15, 22.2 XP, 136/256 to 240/256, 1 to 3 damage, the 4-second stun, Agility's 1/256 to 255/256 share of blows, the loot and pouch, concussions, the three quoted messages, 4% a clothing piece | OSRS Wiki, H.A.M. Member, read 2026-11-10 |
 | Guards: stats, speeds, max hits, defences, drops (one table for the three) | OSRS Wiki, H.A.M. Guard, read 2026-11-10 |
-| Linear chances between the Wiki's ends, the cell door's 9 ticks a try and no numbing there, the stun's 7 ticks, the even surface or cell, the tiles, the guards' animations, the other messages | guessed |
+| Linear chances between the Wiki's ends, the numbing stopping at 1, the cell door's 9 ticks a try and no numbing there, the stun's 7 ticks, the even surface or cell, the tiles, the guards' animations, the other messages | guessed |
 | Out: the trapdoor's occasional 1 XP on a fail, the easy clue, Talk-to on guards, seated members, Johanhus and Jimmy, the quest-only archers and mages, the storerooms (step 4b, below) | out of scope |
 
 #### The H.A.M. Storerooms
@@ -1292,10 +1292,12 @@ Misthalin piece 7 step 4b (`game/content/HamStorerooms.kt`, `npc-spawns/ham-stor
 `ham_storerooms.*`): every account counts as having done Death to the Dorgeshuun, so the hidden trapdoor south of the
 Deacon's podium shows open (varbit `dttd_ham_trapdoor_state` 2) and Climb-down leads to the storerooms' ladder, which
 climbs back up. Four storerooms have locked doors: Pick-lock needs Thieving 23 and works at the Wiki's 10 to 254 out of
-256 (60 to 300 with a lockpick), 3.8 XP, or 0.5 XP on a fail; from inside, Open lets the player out. Two cracks lead into
+256 (60 to 300 with a lockpick), 3.8 XP, or 0.5 XP on a fail; from inside, Open lets the player out. The door stays shut
+while the player steps through, so no one can follow a picker in. Two cracks lead into
 the south-west room without a pick, and the large room to the north has an unlocked double door. Each small chest takes
 its own key (bronze south-west, iron north-east, silver north-west, steel south-east and the large room's two), which
-breaks, and rolls the Wiki's 150-slot table of coins and jewellery. Five level 22 guards patrol the corridors; one who
+breaks, and rolls the Wiki's 150-slot table of coins and jewellery; a coin stack without room for the most a roll gives
+(99) is refused before the roll, key kept. Five level 22 guards patrol the corridors; one who
 sees a door being picked attacks, unless a failed pickpocket has sent it back to its post, after which it stays there
 and leaves the player be. Pickpocketing a guard (Thieving 20, 22.2 XP, 1 to 3 damage, no concussions) gives a key of
 each colour at 1/10 each, the H.A.M. coin pouch, or the rest of the Wiki's table.
@@ -1309,7 +1311,7 @@ each colour at 1/10 each, the H.A.M. coin pouch, or the rest of the Wiki's table
 | Which key opens which chest; the key used up and its message | OSRS Wiki, H.A.M. Storerooms, Small chest and Steel key (H.A.M.), read 2026-11-10 |
 | The chest table, 20 outcomes out of 150 | OSRS Wiki, Small chest, read 2026-11-10 |
 | Guards: level 22, stats, speed 5, max hit 3, defences, respawn; pickpocket level 20, 22.2 XP, up to 3 damage, the table; attacking a door picker in sight unless a failed pickpocket has sent them back | OSRS Wiki, Guard (H.A.M. Storerooms) and H.A.M. Storerooms, read 2026-11-10 |
-| The guards' patrols, sight range and pickpocket chance (the members' 135 to 239), the usual stun, a settled guard staying settled, the 9-tick door pick and one try a click, Open from inside, the landing tiles, the 4 free slots a chest needs, 0 coins giving nothing, the messages but the key's | guessed |
+| The guards' patrols, sight range and pickpocket chance (the members' 135 to 239), the usual stun, a settled guard staying settled, the 9-tick door pick and one try a click, the door staying shut as the player steps through in a tick, Open from inside, the landing tiles, the 4 free slots a chest needs, 0 coins giving nothing, the messages but the key's | guessed |
 | Out: the easy clue, the chests' open look, the crack's animation, Talk-to on the guards, aggression when spoken to without the robes | out of scope |
 
 #### Farms and roads between the towns
@@ -1405,7 +1407,7 @@ words under `drezel.*`, `ivan_strom.*` and `paterdomus.*`): the temple on the Ri
 
 The monks of Zamorak are gone for good and the Temple Guardian with them. The front doors and the mausoleum's two gates
 have no open types in the cache, so Open puts the player through to the other side. The spiral stairs climb from the
-ground floor and the castle's ladders reach the top floor, where a bucket lies. The trapdoor north of the temple climbs
+ground floor (only on the temple's own tiles: the top's type stands in 28 other places) and the castle's ladders reach the top floor, where a bucket lies. The trapdoor north of the temple climbs
 down to the mausoleum. Drezel hands back a lost wolfbane dagger (not into a full backpack), then a lost temple library
 key, and otherwise talks as after The Blood Moon Rises; Ivan Strom talks about the columbarium he is looking for and
 hands over Drakan's medallion. The library's trapdoor, open since In Aid of the Myreque, climbs down to the secret
@@ -1418,6 +1420,7 @@ piece. The ground floor's altar is the church's.
 | Drezel's tile, his talk and the dagger and key he hands back | mejrs data_osrs NPCList_OSRS.json and the Wiki's Drezel map; OSRS Wiki, Transcript:Drezel, read 2026-11-11 |
 | Ivan Strom living here after the quest, his talk | OSRS Wiki, Ivan Strom, The Blood Moon Rises and Transcript:Ivan Strom, read 2026-11-11 |
 | The top floor's bucket at 3414,3493 | OSRS Wiki, Bucket (added 30 June 2026) |
+| The stairs' four types on their own tiles only; 16673 standing in 29 places | the cache's map; the exploit review's rule on types that stand elsewhere |
 | The library trapdoor open after In Aid of the Myreque (`burgh_temple_trapdoor`, set at login) | OSRS Wiki, Temple library key; inferred from the varbit's name |
 | Ivan's tile (beside Drezel), the doors and gates moving the player through, the landings below the trapdoors, Drakan's medallion handed over only when none is owned, the chathead expressions, the Morytania refusal | guessed; the tiles checked on the real map by `paterdomus.json` |
 | Out: the monuments, the well, the stained glass, the plinths and bookcases upstairs, the coffin, the cell gate, the organ, the keyhole, the library's bookcases (a quest's books), the east trapdoor, the Temple Trekking sign; Morytania past the Salve | out of scope (12a's sweep, or Morytania's piece) |
@@ -1502,6 +1505,52 @@ lists. Each rope climbs back up beside its winch. Doug congratulates the player 
 | Terry's Desert Treasure I option always showing; the bookcases' quest-time box after the quest | inferred: every quest counts as done |
 | The chathead expressions, the private winch's messages, the landing tiles, the XP on each way down, a rope every time, the cupboards' line with the tool carried | guessed |
 | Out: the clue chest, the beaten book, Varmen's notes and the book on chemicals (the quests'), the barrel's liquid, Desert Treasure II's winch, the STASH units | out of scope |
+
+#### The Misthalin sweep
+
+Misthalin piece 7 step 12a (`game/content/MisthalinSweep.kt`, `npc-spawns/misthalin-sweep.json`, words under
+`ham_talk.*`, `johanhus.*`, `jimmy_the_chisel.*` and `misthalin_sweep.*`): what a sweep of Misthalin's NPCs and loc
+options found missing that belongs to this piece. The sweep listed every NPC on mejrs's Misthalin tiles with no spawn
+within 2 tiles in any spawn file, and every loc and spawned NPC option that a player who has done every quest sees with
+no handler behind it.
+
+The new spawns are a camp of level 2 goblins north-west of Lumbridge Castle with two giant spiders and the woods'
+butterflies, a goblin south-east of Draynor Village, one south of Draynor Manor and the level 5 goblin at the Digsite's
+west edge, a giant spider between Falador and Draynor Manor, the highwayman south of Draynor Manor (aggressive, with the
+Wiki's stats and drops), the mugger at the South-west Varrock mine, and three Black Knights. The H.A.M. Hideout's guards
+and seated members answer their five-option menu, a guard greeting a player in the whole outfit; Johanhus Ulsbrecht and
+Jimmy the Chisel talk. Nettles sting bare hands for 1 or 2 and are picked with gloves on; the Lumbridge farms' coops give
+an egg each search; the Digsite barge's crates, the hideout's boxes and crates and the Digsite Dungeon's sacks are empty.
+
+| The Misthalin sweep | Source |
+|---------------------|--------|
+| The new spawns' types and tiles | mejrs data_osrs NPCList_OSRS.json, each tile also on the NPC's Wiki location map (butterflies have none) |
+| The highwayman's stats, aggression, respawn 100 and drops | OSRS Wiki, Highwayman (no hood), read 2026-11-11 |
+| The H.A.M. talk, Johanhus's and Jimmy's lines | OSRS Wiki, Transcript:H.A.M. Guard, Transcript:H.A.M. Member (seated), Transcript:Johanhus Ulsbrecht, Transcript:Jimmy the Chisel, read 2026-11-11 |
+| Nettles need gloves (not beekeeper's) and sting for up to 2; coops always give an egg | OSRS Wiki, Nettles (scenery), Nettles and Coop, read 2026-11-11 |
+| The whole outfit taken as all seven pieces; nettles back after 13 ticks (the Nettles item's respawn) | inferred |
+| Every wander range, the highwayman's punch, the nettles' and coops' messages, a sting never 0, every chathead expression | guessed |
+| Left out, with why: Nigel and Gelin by the church (Deadman forms only), Twiggy O'Korn (diaries aren't built), Spria (a Slayer master), the Draynor gulls (the 242 cache gave their old ids to Sailing NPCs), the General's Shadow scout; the highwayman's overhead shout (no NPC shouts yet); the swamp bubbles (Big Chompy Bird Hunting's ogre bellows), the swamp caves' symbols, the Digsite's bushes, barrel and chest (The Lost Tribe's and The Dig Site's) | out of scope |
+| Found for other threads: the Varrock and Grand Exchange people and options, Draynor's and Edgeville's, the canoe stations, farming patches, STASH units, the Mage Training Arena and Al Kharid's arena | handed to those threads |
+
+#### Walking Misthalin's roads
+
+Misthalin piece 7 step 12b (`test-runner/examples/misthalin-walk.json`, checked by `WalkScriptsTest`): one runner
+script walks the piece's roads in stages of at most 4 tiles on the server's own pathing, as `lumbridge-walk.json` does
+for Lumbridge's. Leg 1 goes from Lumbridge Castle north past the farms into Varrock from the south; leg 2 from the castle
+to the H.A.M. Hideout's trapdoor; leg 3 from outside Varrock's east gate north to the Lumber Yard, through the members'
+gate and Silvarea to Paterdomus's front doors; leg 4 from the east gate again south through the members' gate in the
+Digsite's west fence to the Exam Centre, then north through the digs to the canal barge's quay. The Lumbridge Swamp is
+`lumbridge-walk.json`'s, and the River Lum's canoes wait for Gathering.
+
+The script sets combat level 126 and `::god on` first, since a new player died by the dark wizards' circle south of
+Varrock on the first headless run (the wizards taken to be the killers, inferred), and `::reset` puts the account
+back at the end. It takes about four and a half minutes headless.
+
+| Walking Misthalin's roads | Source |
+|---------------------------|--------|
+| The stages | the server's route finder on the real map between points picked on each road, the two gates opened on the way; every stage reached by `headlessScripts` |
+| Where each road runs | the Wiki's maps; where the route finder cuts a corner off a road it is the shortest walkable way, not the road's own tiles (inferred) |
 
 ## Draynor Village
 

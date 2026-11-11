@@ -581,6 +581,17 @@ class NpcDropsTest {
     }
 
     @Test
+    fun `a highwayman always drops his black cape and bones, and iron bolts 5 times in 100`() {
+        val highwayman = NpcType(518, "Highwayman", combatLevel = 5, internalName = "highwayman")
+        val def = NpcDrops.load(NpcTypes.of(highwayman), objTypes)[highwayman]!!
+        assertEquals(listOf("Black cape", "Bones"), def.always.map { it.type.name })
+        val rolls = (0 until 2000).map { def.roll(GameRandom(it.toLong())) }
+        val bolts = rolls.mapNotNull { drop -> drop.firstOrNull { it.type.id == 9140 } }
+        assertTrue(bolts.all { it.count in 2..12 })
+        assertTrue(bolts.size in 60..140, "${bolts.size} of 2000")
+    }
+
+    @Test
     fun `the HAM guards share one table, with bones, out of 660`() {
         val guards = listOf("favour_guard_male_no_beard", "favour_guard_male_bearded", "favour_guard_long_beard")
             .mapIndexed { i, name -> NpcType(2536 + i, "H.A.M. Guard", combatLevel = 12 + 5 * i, internalName = name) }

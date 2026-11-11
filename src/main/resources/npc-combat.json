@@ -672,6 +672,15 @@
       "source": "OSRS Wiki, Mugger (Regular, id 513) and the DPS calculator's 513, read 2026-11-02: speed 4, max hit 1, crush, strength bonus -21, no defence bonuses, aggressive (to players up to twice its level, the aggression engine's rule). It stands with human_ready, so it punches (guessed); the Wiki gives no respawn time, so the thieves' 25 is guessed, as is the default hunt range"
     },
     {
+      "npcs": ["highwayman"],
+      "attackSpeed": 4, "maxHit": 1, "attackType": "stab", "attackBonus": 6, "strengthBonus": 7,
+      "defence": { "stab": 0, "slash": 3, "crush": 2, "magic": 0, "light": 2, "standard": 2, "heavy": 2 },
+      "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 100,
+      "aggressive": true,
+      "source": "OSRS Wiki, Highwayman (No hood, id 518), read 2026-11-11: speed 4, max hit 1, stab, attack bonus 6, strength bonus 7, the defence bonuses, respawn 100, aggressive. He carries no weapon, so he punches (guessed). His overhead shout when he attacks is left out (no NPC shouts yet)"
+    },
+    {
       "npcs": ["black_knight"],
       "attackSpeed": 5, "maxHit": 4, "attackType": "slash", "attackBonus": 18, "strengthBonus": 16,
       "defence": { "stab": 73, "slash": 76, "crush": 70, "magic": -11, "light": 72, "standard": 72, "heavy": 72 },

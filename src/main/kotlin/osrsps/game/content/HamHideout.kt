@@ -89,7 +89,10 @@ object HamHideout {
     const val OPEN = "ham_trapdoor_open"
     const val CONCUSSIONS = "ham_concussions"
 
-    /** [Player.charges] names for a pick in progress: the tick this try ends, and the cell door's fails so far. */
+    /**
+     * [Player.sessionCharges] names (not saved) for a pick in progress: the tick this try ends, and the cell door's fails
+     * so far.
+     */
     const val PICK_DUE = "ham_pick_due"
     const val CELL_FAILS = "ham_cell_fails"
 
@@ -169,17 +172,23 @@ object HamHideout {
             return
         }
         world.message(player, HamHideoutLines.PICK_FAIL)
-        player.skills.setCurrentLevel(Skill.THIEVING, (thieving - 1).coerceAtLeast(0))
+        // Guessed: the drain stops at 1 (the Wiki doesn't say; a level of 0 read oddly in the exploit review).
+        player.skills.setCurrentLevel(Skill.THIEVING, (thieving - 1).coerceAtLeast(1).coerceAtMost(thieving))
     }
 
     /** Starts a try: it ends [PICK_TICKS] ticks from now. */
     private fun ScriptContext.startTry() {
-        player.charges[PICK_DUE] = (tick + PICK_TICKS).toInt()
+        player.sessionCharges[PICK_DUE] = (tick + PICK_TICKS).toInt()
     }
 
-    /** True once this try's ticks are up; otherwise runs [op] again next tick and is false. */
+    /**
+     * True once this try's ticks are up, clearing [PICK_DUE]; otherwise runs [op] again next tick and is false.
+     */
     private fun ScriptContext.waited(world: World, op: Op): Boolean {
-        if (tick >= player.charges[PICK_DUE]) return true
+        if (tick >= player.sessionCharges[PICK_DUE]) {
+            player.sessionCharges[PICK_DUE] = 0
+            return true
+        }
         world.repeatOp(player, op)
         return false
     }
@@ -194,21 +203,21 @@ object HamHideout {
             arriveDelay()
             if (!inCell(player)) return world.message(player, HamHideoutLines.CELL_LOCKED)
             world.message(player, HamHideoutLines.PICK)
-            player.charges[CELL_FAILS] = 0
+            player.sessionCharges[CELL_FAILS] = 0
             startTry()
         }
         if (!waited(world, op)) return
-        val fails = player.charges[CELL_FAILS]
+        val fails = player.sessionCharges[CELL_FAILS]
         val chance = cellChance(player.skills.currentLevel(Skill.THIEVING), hasLockpick(player), fails)
         if (world.random.nextInt(100) < chance) {
-            player.charges[CELL_FAILS] = 0
+            player.sessionCharges[CELL_FAILS] = 0
             picked(world)
             world.teleport(player, OUTSIDE_CELL.first, OUTSIDE_CELL.second, OUTSIDE_CELL.third)
             return
         }
         world.message(player, HamHideoutLines.PICK_FAIL)
         player.skills.addTenths(Skill.THIEVING, CELL_FAIL_XP_TENTHS)
-        player.charges[CELL_FAILS] = fails + 1
+        player.sessionCharges[CELL_FAILS] = fails + 1
         startTry()
         world.repeatOp(player, op)
     }

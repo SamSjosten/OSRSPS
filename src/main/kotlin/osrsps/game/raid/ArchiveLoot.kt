@@ -89,10 +89,11 @@ class ArchiveLoot(
     /**
      * Rolls a run's loot for [members], in the party's order, so a test can replay the draws: the party's unique, who
      * finds it and which; then for each other member the standard rolls (line, count, five times), the clue, the folio
-     * and the fragment (which one, when it hits). A member with no contribution takes no draw.
+     * and the fragment (which one, when it hits). A member with no share takes no draw. [size] is the party's
+     * [sharingSize]: worked out from the contributions when not given, as a run's end gives it with the deaths.
      */
-    fun roll(random: GameRandom, members: List<LootMember>): LootResult {
-        val poor = poorBelow(members.size)
+    fun roll(random: GameRandom, members: List<LootMember>, size: Int = sharingSize(members.map { it.contribution to 0 })): LootResult {
+        val poor = poorBelow(size)
         // A member who performed poorly counts for nothing: a cabbage, and no share of the unique.
         fun share(member: LootMember): Int = member.contribution.takeIf { it > 0 && it >= poor } ?: 0
         val total = members.sumOf { share(it) }
@@ -157,19 +158,42 @@ class ArchiveLoot(
         val NONE = ArchiveLoot(14, 4, null, 3, 51, null, null, 10, null, 15, emptySet(), emptyList(), 20, null)
 
         /**
-         * A member's contribution for the loot: their [points], less a tenth of what one of [size] is expected to earn
-         * for each of their [deaths] ("All deaths penalise the player for 10% of their expected contribution": 35 of a
-         * duo's 350, "8 or 9" of an eight's 87.5). Never below nothing. Guessed: that the tenth is rounded down.
-         */
-        /**
          * The contribution below which one of [size] "performed poorly" and gets a cabbage: a quarter of an even share of
-         * the run's points (175 alone, 87 for two, 21 for eight). Guessed: the Wiki gives no number.
+         * the run's points (175 alone, 87 for two, 21 for eight). Guessed: the Wiki gives no number. [size] is the party's
+         * [sharingSize], not everyone paid.
          */
         fun poorBelow(size: Int): Int = RUN_POINTS / (size.coerceAtLeast(1) * POOR_SHARE_DIVISOR)
 
         /** [poorBelow]'s quarter. Guessed. */
         const val POOR_SHARE_DIVISOR = 4
 
+        /**
+         * The party's size that [poorBelow] and the death penalty ([contribution]) are worked from: those of [scores]
+         * (each member's points to deaths) who earn a share at that size. Everyone paid to start with; then, while some
+         * fall below the line, the size is those left, whose line is higher and whose deaths cost more, until nobody more
+         * drops out. The size only ever shrinks, so it settles. 0 when nobody earns a share.
+         *
+         * Guessed, as the line is. Counting everyone paid let idle alts lower the bar for all: six who did nothing put a
+         * half-active alt's line at 21 rather than 87, and a death of the one carrying them at 8 points rather than 35
+         * (exploit review round 25, R25A-2).
+         */
+        fun sharingSize(scores: List<Pair<Int, Int>>): Int {
+            var size = scores.size
+            while (size > 0) {
+                val earning = scores.count { (points, deaths) ->
+                    contribution(points, deaths, size).let { it > 0 && it >= poorBelow(size) }
+                }
+                if (earning >= size) return size
+                size = earning
+            }
+            return 0
+        }
+
+        /**
+         * A member's contribution for the loot: their [points], less a tenth of what one of [size] is expected to earn
+         * for each of their [deaths] ("All deaths penalise the player for 10% of their expected contribution": 35 of a
+         * duo's 350, "8 or 9" of an eight's 87.5). Never below nothing. Guessed: that the tenth is rounded down.
+         */
         fun contribution(points: Int, deaths: Int, size: Int): Int =
             (points - deaths * (RUN_POINTS / (size.coerceAtLeast(1) * 10))).coerceAtLeast(0)
 

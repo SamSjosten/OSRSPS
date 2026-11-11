@@ -295,4 +295,31 @@ class ArchiveLootTest {
         val paid = table.roll(random, listOf(LootMember("ann", 600), LootMember("bob", 87)))
         assertTrue(paid.chests.values.none { chest -> chest.any { it.type == cabbage } }, "${paid.chests}")
     }
+
+    @Test
+    fun `the poor line and the death penalty go by those who earn a share, so idle alts don't lower the bar`() {
+        // Exploit review round 25, R25A-2. A carry, a half-active alt and six who did nothing: only the carry earns.
+        val idle = List(6) { 0 to 0 }
+        assertEquals(1, ArchiveLoot.sharingSize(listOf(650 to 0, 50 to 0) + idle))
+        // Each step up the line knocks out more: at eight the alt's 50 passes 21, at two it fails 87.
+        assertEquals(2, ArchiveLoot.sharingSize(listOf(600 to 0, 100 to 0) + idle))
+        // An even party keeps its size; a party where nobody earns has none.
+        assertEquals(4, ArchiveLoot.sharingSize(List(4) { 175 to 0 }))
+        assertEquals(0, ArchiveLoot.sharingSize(listOf(0 to 0, 0 to 0)))
+        assertEquals(0, ArchiveLoot.sharingSize(emptyList()))
+        // Deaths count at the shrunk size: alone the line is 175 and a death 70, so 250 with one death (180) passes and
+        // with two (110) doesn't, though a party of eight would charge 8 a death.
+        assertEquals(1, ArchiveLoot.sharingSize(listOf(250 to 1) + idle + listOf(0 to 0)))
+        assertEquals(0, ArchiveLoot.sharingSize(listOf(250 to 2) + idle + listOf(0 to 0)))
+
+        val random = GameRandom(25)
+        val axe = ObjType(1351, "Bronze axe")
+        val cabbage = ObjType(1965, "Cabbage")
+        val table = ArchiveLoot(14, 4, null, 3, 51, DropTable(1, listOf(DropSlot(1, DropItem(axe, 1, 1)))), null, 10, null, 15, emptySet(), emptyList(), 20, cabbage)
+        // Without the size given, roll works it out from the contributions: the half-active alt gets a cabbage.
+        val party = listOf(LootMember("carry", 650), LootMember("alt", 50)) + List(6) { LootMember("idle$it", 0) }
+        val result = table.roll(random, party)
+        assertEquals(listOf(cabbage to 1), result.chests.getValue("alt").map { it.type to it.count })
+        assertTrue(result.chests.getValue("carry").none { it.type == cabbage })
+    }
 }

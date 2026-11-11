@@ -206,6 +206,15 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   without 10 Agility and then down with the rope kept, a silver rock mined, the rope back up, the private dig's winch
   down by Doug Deeping, his talk and Steal-from, and his rope back up (with `::keys on`; finds used on Terry are in the
   headless test, as the runner has no item-on-NPC step).
+- `misthalin-sweep.json`: Misthalin piece 7 step 12a: Johanhus Ulsbrecht's talk, a seated H.A.M. member and a guard
+  answering the menu, the hideout's empty boxes, nettles stinging bare hands and picked with gloves on, a coop's egg, an
+  empty crate by the Digsite barge, and one of the new goblins north-west of Lumbridge Castle to attack (with
+  `::keys on`; Jimmy the Chisel and the random answers are in the headless test).
+- `misthalin-walk.json`: Misthalin piece 7 step 12b: the piece's roads walked in stages of at most 4 tiles on the
+  server's own pathing, teleporting between four legs: Lumbridge Castle north past the farms into Varrock; the castle to
+  the H.A.M. Hideout's trapdoor; Varrock's east gate north to the Lumber Yard, through the members' gate and Silvarea to
+  Paterdomus; the east gate south through the Digsite's gate to the Exam Centre and north through the digs to the barge.
+  Combat level 126 and `::god on` for the dark wizards, `::reset` at the end. Takes about five minutes.
 - `farms-roads.json`: Misthalin piece 7 step 5: from Lumbridge to Varrock by `::tele`, Fayeth and a Tool Leprechaun
   by the castle, Seth Groats, Vasquen, Dreven, Tarquin at the canoe station, Rat Burgiss on the road and Treznor by the
   palace talked to, and the gardeners' and leprechauns' Farming options refused (with `::keys on`; the spawn counts are
