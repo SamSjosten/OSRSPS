@@ -5,6 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.EquipmentTab
 import osrsps.game.Inventory
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
@@ -89,7 +90,7 @@ class HeadlessMuseumCleaningTest {
 
                 client.locOp(MuseumCleaning.TABLE, 3228, 3218, 1)
                 // Carried isn't enough: they have to be worn.
-                client.awaitMessage("no gear") { it == "[museum_cleaning.need_gear]" }
+                client.await("need_gear") { if (client.count("[museum_cleaning.need_gear]") > 0) Unit else null }
                 client.wear(MuseumCleaning.LEATHER_GLOVES)
                 client.wear(MuseumCleaning.LEATHER_BOOTS)
                 client.locOp(MuseumCleaning.TABLE, 3228, 3218, 1)
@@ -101,6 +102,33 @@ class HeadlessMuseumCleaningTest {
                 client.locOp(MuseumCleaning.TOOLS, 3224, 3218, 1)
                 client.await("every tool held") { if (client.count("[museum_cleaning.have_tools]") > 0) Unit else null }
                 assertEquals(0L, client.held(MuseumCleaning.LEATHER_GLOVES) + client.held(MuseumCleaning.LEATHER_BOOTS))
+            }
+        }
+    }
+
+    @Test
+    fun `taking the gloves off while brushing keeps the find`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.locOp(MuseumCleaning.TOOLS, 3224, 3218, 1)
+                for (item in MuseumCleaning.TOOL_IDS + MuseumCleaning.GEAR_IDS) client.awaitHeld(item, 1)
+                client.wear(MuseumCleaning.LEATHER_GLOVES)
+                client.wear(MuseumCleaning.LEATHER_BOOTS)
+                client.command("item ${MuseumCleaning.UNCLEANED_FIND} 2")
+                client.awaitHeld(MuseumCleaning.UNCLEANED_FIND, 2)
+                client.locOp(MuseumCleaning.TABLE, 3228, 3218, 1)
+                // Off once the player is at the table and brushing: inside the first find's 3 ticks.
+                client.await("at the table") { client.position?.takeIf { it.x == 3227 && it.z == 3218 } }
+                client.awaitTicks(1)
+                val hands = EquipmentTab.WORNITEMS_SLOTS[EquipmentTab.SLOT_WEARPOS.indexOf(WearPos.HANDS)]
+                client.await("the gloves off") {
+                    if (client.held(MuseumCleaning.LEATHER_GLOVES) == 1L) Unit else null.also { client.ifButton(EquipmentTab.WORNITEMS, hands, 1) }
+                }
+                client.await("refused") { if (client.count("[museum_cleaning.need_gear]") > 0) Unit else null }
+                client.awaitTicks(MuseumCleaning.CLEAN_TICKS * 2)
+                assertEquals(2L, client.held(MuseumCleaning.UNCLEANED_FIND), "no find taken without the gloves")
+                assertEquals(0, client.count("[museum_cleaning.crumble]") + client.count("[museum_cleaning.cleaned"))
             }
         }
     }
@@ -131,7 +159,7 @@ class HeadlessMuseumCleaningTest {
             server.login("bob").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.locOp(MuseumCleaning.CRATE, 3222, 3220, 1)
-                client.awaitMessage("nothing to add") { it == "[museum_cleaning.no_artefacts]" }
+                client.await("no_artefacts") { if (client.count("[museum_cleaning.no_artefacts]") > 0) Unit else null }
                 client.command("item ${MuseumCleaning.POTTERY} 1")
                 client.awaitHeld(MuseumCleaning.POTTERY, 1)
                 client.locOp(MuseumCleaning.CRATE, 3222, 3220, 1)

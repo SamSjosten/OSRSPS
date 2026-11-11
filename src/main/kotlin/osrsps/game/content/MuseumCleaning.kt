@@ -139,18 +139,29 @@ private suspend fun ScriptContext.cleanFinds(world: World) {
  * weak queue, so walking off or clicking anything else stops the cleaning between finds, as the dairy cows' milking does.
  */
 private fun ScriptContext.startClean(world: World): Unit = with(MuseumCleaning) {
-    when {
-        player.equipment.count(LEATHER_GLOVES) == 0L || player.equipment.count(LEATHER_BOOTS) == 0L -> return@with world.message(player, MuseumCleaningLines.NEED_GEAR)
-        TOOL_IDS.any { player.inventory.count(it) == 0L } -> return@with world.message(player, MuseumCleaningLines.NEED_TOOLS)
-        player.inventory.count(UNCLEANED_FIND) == 0L -> return@with world.message(player, MuseumCleaningLines.NO_FINDS)
-    }
+    if (!readyToClean(world)) return@with
     player.anim(ANIM_BRUSH)
     queue(CLEAN_QUEUE, QueueType.WEAK, CLEAN_TICKS) { cleanOne(world) }
 }
 
+/**
+ * Whether the player wears the gloves and boots and carries the tools and a find, saying what's missing when not. Asked
+ * again as each find ends, since taking off the gloves doesn't stop the queue.
+ */
+private fun ScriptContext.readyToClean(world: World): Boolean = with(MuseumCleaning) {
+    val missing = when {
+        player.equipment.count(LEATHER_GLOVES) == 0L || player.equipment.count(LEATHER_BOOTS) == 0L -> MuseumCleaningLines.NEED_GEAR
+        TOOL_IDS.any { player.inventory.count(it) == 0L } -> MuseumCleaningLines.NEED_TOOLS
+        player.inventory.count(UNCLEANED_FIND) == 0L -> MuseumCleaningLines.NO_FINDS
+        else -> return@with true
+    }
+    world.message(player, missing)
+    false
+}
+
 /** One find cleaned (or crumbled), then the next started while finds are left. */
 private fun ScriptContext.cleanOne(world: World): Unit = with(MuseumCleaning) {
-    if (!removeOne(player, UNCLEANED_FIND)) return@with
+    if (!readyToClean(world) || !removeOne(player, UNCLEANED_FIND)) return@with
     val found = clean(world, player)
     if (found == null) {
         world.message(player, MuseumCleaningLines.CRUMBLE)
