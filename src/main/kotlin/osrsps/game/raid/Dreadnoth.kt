@@ -53,8 +53,9 @@ object DreadnothLines : Lines("tfa_dreadnoth", "The_Fractured_Archive/Strategies
  * - Jelly on the floor ([floor]) hurts whoever stands in it [FLOOR_MIN] to [FLOOR_MAX] a tick, for the rest of the fight.
  * - At [ENRAGE_PERCENT] of his hitpoints, his enrage (20b, [enrage]): his line, no more swings or crawl, and [FIRST_JUMP]
  *   ticks on and every [JUMP_EVERY] after, a jump at a random player ([jump]), landing [JUMP_LANDS] ticks later where
- *   [landingFor] says. A player under him as he lands is slammed ([land]) and he heals by the damage; one not under him
- *   without Protect from Melee is hurt all the same; jellies under him are absorbed, healing him by what they had left.
+ *   [landingFor] says. A player under him as he lands is slammed ([land]); one not under him without Protect from
+ *   Melee is hurt all the same, one with it shown a 0; jellies under him are absorbed, healing him [ABSORB_HEAL_MIN] to
+ *   [ABSORB_HEAL_MAX] each.
  *   As he lands, jelly in his footprint, and at each player a shot and a splatter of jelly that lands on their tile
  *   [SPLATTER_LANDS] ticks on and lies there.
  * - At 0 hitpoints he doesn't die but splits (20c, [split]): his death animation, and [SPLIT_JELLIES] jellies of
@@ -103,8 +104,8 @@ object DreadnothLines : Lines("tfa_dreadnoth", "The_Fractured_Archive/Strategies
  * blocks the hit itself); jelly on the floor lasting till the fight ends, and none from his crawl. The jellies' count
  * growing with the party comes only from the shots: three a player each volley. For the enrage: the jump's target
  * picked at random each time (the Wiki's; tsps say "its target"), its damage under him ([CRUSH_MIN] to [CRUSH_MAX], no
- * prayer helping) and off him ([STRAY_MAX]), the shot's as a wave's, the absorbed jellies' heal being their hitpoints
- * left, his landing kept wholly on his arena, the splatter hurting nobody as it lands, and the jump itself a teleport
+ * prayer helping; seen 36 to 40 in Sam's recording of 2026-11-10, which also has no heal off it and the absorbed
+ * jellies' heals at 85 to 145, see [ABSORB_HEAL_MIN]) and off him ([STRAY_MAX]), the shot's as a wave's, his landing kept wholly on his arena, the splatter hurting nobody as it lands, and the jump itself a teleport
  * as it lands (the 90-cycle exact move isn't sent: NPC exact moves aren't built), the shadow shown as he jumps.
  * For his death: the split jellies rising on tiles of his footprint as his death animation begins, at once and past
  * [MAX_JELLIES]; nothing of his still in the air landing once he splits, and no more jellies rising from gathered jelly;
@@ -220,9 +221,20 @@ object Dreadnoth {
     /** He lands on a player this near his middle, else this far towards them (tsps). */
     const val JUMP_REACH = 5
 
-    /** The slam on a player under him as he lands, no prayer helping. Guessed (the Wiki's "large amounts"). */
-    const val CRUSH_MIN = 30
-    const val CRUSH_MAX = 50
+    /**
+     * The slam on a player under him as he lands, no prayer helping. Seen in Sam's recording of 2026-11-10: 36 and 40,
+     * then 36 and 37, the next landing; the range is inferred from those four.
+     */
+    const val CRUSH_MIN = 36
+    const val CRUSH_MAX = 40
+
+    /**
+     * What an absorbed jelly heals him. Seen in Sam's recording of 2026-11-10: 145 and 85 for two nearly dead jellies
+     * as he landed, then 92 for one, his bar rising by exactly that: not their hitpoints left. The range is inferred
+     * from those three.
+     */
+    const val ABSORB_HEAL_MIN = 85
+    const val ABSORB_HEAL_MAX = 145
 
     /** The slam on a player not under him without Protect from Melee (the Wiki's "regardless of location"). Guessed. */
     const val STRAY_MAX = 20
@@ -648,28 +660,28 @@ object Dreadnoth {
     }
 
     /**
-     * He lands with his south-west tile on [to]: jellies under him absorbed, the slam on whoever is under him (healing
-     * him by it) and on everyone else without Protect from Melee, jelly in his footprint, and a shot and a splatter at
-     * each player.
+     * He lands with his south-west tile on [to]: jellies under him absorbed, healing him, the slam on whoever is under
+     * him and on everyone else (a 0 for those with Protect from Melee), jelly in his footprint, and a shot and a splatter
+     * at each player.
      */
     private fun EncounterContext.land(to: Tile) {
         world.npcs.teleport(boss, to.x, to.z)
         log("lands on ${to.x},${to.z}")
         for (npc in adds.filter { it.type.id == JELLY && boss.covers(it.x, it.z) }) {
-            val left = npc.hitpoints
             state.jellies.remove(npc)
             world.removeNpc(npc)
-            heal(left, "absorbs a jelly")
+            heal(roll(ABSORB_HEAL_MIN, ABSORB_HEAL_MAX), "absorbs a jelly")
         }
         for (player in players) {
             if (gone()) return
             if (boss.covers(player.x, player.z)) {
+                // No heal off it: in Sam's recording of 2026-11-10 his bar rose by the jellies' heals alone.
                 val damage = roll(CRUSH_MIN, CRUSH_MAX)
                 val dealt = world.meleeCombat.hitPlayer(player, boss, damage, world.tick)
                 log("lands on ${player.username} for $damage" + if (dealt != damage) ", $dealt dealt" else "")
-                heal(dealt, "heals off ${player.username}")
-            } else if (!world.prayers.protects(player, AttackType.CRUSH)) {
-                val damage = roll(0, STRAY_MAX)
+            } else {
+                // Protect from Melee shows a blue 0, as the recording has for the players not under him.
+                val damage = if (world.prayers.protects(player, AttackType.CRUSH)) 0 else roll(0, STRAY_MAX)
                 val dealt = world.meleeCombat.hitPlayer(player, boss, damage, world.tick)
                 log("slam of $damage hits ${player.username}" + if (dealt != damage) ", $dealt dealt" else "")
             }

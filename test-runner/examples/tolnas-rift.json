@@ -1,0 +1,43 @@
+{
+ "name": "Misthalin piece 7 step 6b: Tolna's rift dungeon after A Soul's Bane: a hole without the rope refused, the rope down into the lobby, a monster of each of the four rooms fought, with its attack animation and ::fight (the angry giant rat nearest the rope dropping bones), and the rope back up beside Tolna (::keys on, ::god)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::god on", "comment": "the rift's monsters are aggressive and hit up to 7; this script is about the way in and out and the rooms' monsters"},
+  {"step": "command", "text": "::setlevel attack 99", "expectMessage": "99"},
+  {"step": "command", "text": "::setlevel strength 99", "expectMessage": "99"},
+  {"step": "assertVarbit", "id": 2032, "value": 1, "comment": "soulbane_riftrope_pres: the rope hangs in the rift, as after A Soul's Bane"},
+  {"step": "command", "text": "::tele 3305 3450 0", "expectMessage": "Teleported to 3305, 3450, 0", "comment": "west of one of the rift's holes, inside the fence round it"},
+  {"step": "locOption", "locId": 13969, "option": "Enter", "x": 3306, "y": 3450, "timeoutMs": 10000, "comment": "a hole without the rope"},
+  {"step": "assertMessage", "contains": "[tolna_rift.rope_only]", "timeoutMs": 10000},
+  {"step": "assertLocation", "x": 3305, "y": 3450, "plane": 0, "comment": "still at the top"},
+  {"step": "command", "text": "::tele 3309 3452 0", "expectMessage": "Teleported to 3309, 3452, 0", "comment": "beside Tolna, west of the rope"},
+  {"step": "locOption", "locId": 13968, "option": "Enter", "x": 3310, "y": 3452, "timeoutMs": 10000, "comment": "the rope: the multiloc that shows soulbane_falloff2_rope"},
+  {"step": "assertLocation", "x": 3105, "y": 5278, "plane": 0, "timeoutMs": 10000, "comment": "in the lobby, south of the rope (guessed tile)"},
+
+  {"step": "command", "text": "::tele 3094 5288 0", "expectMessage": "Teleported to 3094, 5288, 0", "comment": "the Anger room, north-west: by the angry giant rat nearest the rope"},
+  {"step": "npcOption", "npc": "Angry giant rat", "option": "Attack", "timeoutMs": 20000},
+  {"step": "assertGroundItem", "item": "Bones", "timeoutMs": 60000, "comment": "only the rat nearest the entrance drops bones"},
+  {"step": "command", "text": "::tele 3120 5299 0", "expectMessage": "Teleported to 3120, 5299, 0", "comment": "the Fear room, north-east"},
+  {"step": "npcOption", "npc": "Fear reaper", "option": "Attack", "timeoutMs": 20000},
+  {"step": "assertAnimation", "npc": "Fear reaper", "id": 3812, "timeoutMs": 20000, "comment": "fear_attack: it hits back (guessed animation)"},
+  {"step": "command", "text": "::fight", "expectMessage": "You are fighting Fear reaper"},
+  {"step": "command", "text": "::tele 3120 5265 0", "expectMessage": "Teleported to 3120, 5265, 0", "comment": "the Confusion room, south-east"},
+  {"step": "npcOption", "npc": "Confusion beast", "option": "Attack", "timeoutMs": 20000},
+  {"step": "assertAnimation", "npc": "Confusion beast", "id": 3816, "timeoutMs": 20000, "comment": "confattack, not the quest's poisoning confpoisen: it hits back (guessed animation)"},
+  {"step": "command", "text": "::fight", "expectMessage": "You are fighting Confusion beast"},
+  {"step": "command", "text": "::tele 3088 5261 0", "expectMessage": "Teleported to 3088, 5261, 0", "comment": "the Hopeless room, south-west"},
+  {"step": "npcOption", "npc": "Hopeless creature", "option": "Attack", "timeoutMs": 20000},
+  {"step": "assertAnimation", "npc": "Hopeless creature", "id": 3823, "timeoutMs": 20000, "comment": "lessattack: it hits back (guessed animation)"},
+  {"step": "command", "text": "::fight", "expectMessage": "You are fighting Hopeless creature"},
+
+  {"step": "command", "text": "::tele 3105 5278 0", "expectMessage": "Teleported to 3105, 5278, 0", "comment": "back in the lobby"},
+  {"step": "locOption", "locId": 13999, "option": "Climb-up", "x": 3105, "y": 5279, "timeoutMs": 10000},
+  {"step": "assertLocation", "x": 3309, "y": 3452, "plane": 0, "timeoutMs": 10000, "comment": "at the top beside Tolna (guessed tile)"},
+  {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

@@ -223,7 +223,11 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `lumber-yard.json`: Misthalin piece 7 step 6: the Lumber Yard's broken fence climbed both ways, oak planks made at
   the Sawmill by talk (with too few coins for all, so he names his fee), Buy-plank refused without teak logs, his shop on
   Trade, a mewing crate, a crate and a barrel searched, an earth talisman used on the Earth Altar's ruins, Tolna talked to
-  and his rift's rope and a warning sign used (with `::keys on`; the spawns are in the unit test).
+  and a hole in his rift and a warning sign used (with `::keys on`; the spawns are in the unit test).
+- `tolnas-rift.json`: Misthalin piece 7 step 6b: one of Tolna's rift's holes refused, the rope down into the dungeon's
+  lobby, an angry giant rat, a fear reaper, a confusion beast and a hopeless creature fought in their four rooms (the rat
+  nearest the rope dropping bones; the others' attack animations and `::fight`), and the rope back up beside Tolna (with `::keys on`
+  and `::god`; the spawns are in the unit test).
 - `paterdomus.json`: Misthalin piece 7 step 8: Paterdomus's front doors opened through, the north spiral stairs and
   the ladder up to the top floor's bucket and back down the south stairs, the trapdoor north of the temple into the
   mausoleum and its west gate, Drezel handing back the wolfbane dagger and the library key and then talking, Ivan

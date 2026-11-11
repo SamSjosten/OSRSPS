@@ -1440,6 +1440,70 @@
       "respawnTicks": 35,
       "weakness": { "element": "air", "percent": 35 },
       "source": "OSRS Wiki, Bat (level 6, id 2827, Silvarea among its places), read 2026-11-11: speed 4, max hit 1, stab, no attack or strength bonus, stab and slash +2, crush +5, magic +2, ranged 0, respawn 35, not aggressive, 35% weak to air spells. The bat_rework fight animations are taken as the ones that go with its stand and fly (inferred)"
+    },
+    {
+      "npcs": ["soulbane_bear"],
+      "attackSpeed": 4, "maxHit": 5, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "bear_rework_attack", "defend": "bear_rework_defend", "death": "bear_rework_death" },
+      "respawnTicks": 25,
+      "aggressive": true,
+      "source": "OSRS Wiki, Angry bear (level 47, id 4692, Tolna's rift after A Soul's Bane), read 2026-11-11: speed 4, max hit 5, stab, aggressive; no bonuses (weirdgloop/osrs-dps-calc monsters.json 4692); respawn not given, so 25 as the rift's confusion beasts and hopeless creatures (guessed). It stands and walks with bear_rework_ready and _walk, so the bear_rework fight animations are taken (inferred)"
+    },
+    {
+      "npcs": ["soulbane_unicorn"],
+      "attackSpeed": 4, "maxHit": 5, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "unicorn_rework_attack", "defend": "unicorn_rework_defend", "death": "unicorn_rework_death" },
+      "respawnTicks": 25,
+      "aggressive": true,
+      "source": "OSRS Wiki, Angry unicorn (level 47, id 4688), read 2026-11-11: speed 4, max hit 5, stab, aggressive; no bonuses (weirdgloop/osrs-dps-calc monsters.json 4688); respawn not given, so 25 as the rift's confusion beasts and hopeless creatures (guessed). It stands and walks with unicorn_rework_ready and _walk, so the unicorn_rework fight animations are taken (inferred)"
+    },
+    {
+      "npcs": ["soulbane_rat", "soulbane_rat2"],
+      "attackSpeed": 4, "maxHit": 5, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "giant_rat_update_attack", "defend": "giant_rat_update_defend", "death": "giant_rat_update_death" },
+      "respawnTicks": 25,
+      "aggressive": true,
+      "source": "OSRS Wiki, Angry giant rat (level 47, ids 4689 and 4690), read 2026-11-11: speed 4, max hit 5, stab, aggressive; no bonuses (weirdgloop/osrs-dps-calc monsters.json 4689); respawn not given, so 25 as the rift's confusion beasts and hopeless creatures (guessed). They stand and walk with giant_rat_update_ready and _walk, so the giant_rat_update fight animations are taken (inferred)"
+    },
+    {
+      "npcs": ["soulbane_goblin"],
+      "attackSpeed": 4, "maxHit": 5, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "slice_surface_goblin_squat_unarmed_attack", "defend": "slice_surface_goblin_defend", "death": "slice_surface_goblin_death" },
+      "respawnTicks": 25,
+      "aggressive": true,
+      "source": "OSRS Wiki, Angry goblin (level 47, id 4691), read 2026-11-11: speed 4, max hit 5, stab, aggressive; no bonuses (weirdgloop/osrs-dps-calc monsters.json 4691); respawn not given, so 25 as the rift's confusion beasts and hopeless creatures (guessed). It stands and walks with slice_surface_goblin_squat_ready and _walk, so the unarmed slice_surface_goblin fight animations are taken (inferred)"
+    },
+    {
+      "npcs": ["soulbane_fear_beast"],
+      "attackSpeed": 4, "maxHit": 6, "attackType": "slash", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "fear_attack", "defend": "fear_parry", "death": "fear_death" },
+      "respawnTicks": 25,
+      "aggressive": true,
+      "source": "OSRS Wiki, Fear reaper (level 55, id 4693), read 2026-11-11: speed 4, slash, aggressive, not poisonous; max hit 6 and no bonuses from weirdgloop/osrs-dps-calc monsters.json 4693 (the Wiki's infobox gives 5 only for the quest's level 42); respawn not given, so 25 as the confusion beasts' (guessed). The fear_ fight animations go with its fear_ready and fear_walk (inferred)"
+    },
+    {
+      "npcs": ["soulbane_conf_beast"],
+      "attackSpeed": 4, "maxHit": 6, "attackType": "slash", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "confattack", "defend": "confparry", "death": "confdeath" },
+      "respawnTicks": 25,
+      "aggressive": true,
+      "source": "OSRS Wiki, Confusion beast (level 63, id 4694), read 2026-11-11: speed 4, slash, respawn 25, aggressive, no poison after the quest; max hit 6 and no bonuses from weirdgloop/osrs-dps-calc monsters.json 4694 and the max hit formula from its Strength 55 (the Wiki's infobox says 5). confattack, not confpoisen: it no longer poisons. The fight animations go with its confready and confwalk (inferred)"
+    },
+    {
+      "npcs": ["soulbane_less_beast3"],
+      "attackSpeed": 4, "maxHit": 7, "attackType": "slash", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "lessattack", "defend": "lessparry", "death": "lessdeath" },
+      "respawnTicks": 25,
+      "weakness": { "element": "fire", "percent": 40 },
+      "aggressive": true,
+      "source": "OSRS Wiki, Hopeless creature (level 71, id 4695), read 2026-11-11: speed 4, max hit 7, slash, respawn 25, aggressive, not poisonous; no bonuses and 40% weak to fire from weirdgloop/osrs-dps-calc monsters.json 4695. It dies once: the three forms are the quest's (inferred). lessattack, not lesspoisen; the fight animations go with its lessready and lesswalk (inferred)"
     }
   ]
 }

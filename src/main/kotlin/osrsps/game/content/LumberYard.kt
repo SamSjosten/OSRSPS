@@ -28,10 +28,10 @@ object TolnaLines : Lines("tolna", "Transcript:Tolna") {
     val THANKS = line("thanks", "the player's thanks")
 }
 
-/** Our own line for Tolna's rift, and the warning signs' text (Transcript:Warning sign (Tolna's rift)). */
+/** The rift's other holes' line (the Rift (Tolna's rift) page), and the warning signs' text (Transcript:Warning sign (Tolna's rift)). */
 object TolnaRiftLines : Lines("tolna_rift", "Transcript:Warning sign (Tolna's rift)") {
     val SIGN = line("sign", "Read on a warning sign: the text carved into it")
-    val DUNGEON_LATER = line("dungeon_later", "Enter on the rift: our own line, as the rift's dungeon isn't built yet")
+    val ROPE_ONLY = line("rope_only", "Enter on one of the rift's holes but the rope's: it sends the player to the rope (the Rift (Tolna's rift) page, which marks its wording as maybe wrong)")
 }
 
 /**
@@ -53,9 +53,8 @@ object TolnaRiftLines : Lines("tolna_rift", "Transcript:Warning sign (Tolna's ri
  *   as the Water Altar's do, until the Runecraft skill thread builds the altar.
  * - Tolna (`soulbane_tolna_multi` 2010, which shows `soulbane_tolna_top` 1058 beside the rift after the quest) talks as
  *   the Wiki's transcript after A Soul's Bane has it. Launa isn't spawned: the Wiki's Launa page says she went home with
- *   Brana after the quest, and her multi-NPC shows nothing once it's done. The rift's holes and its rope (13967 to
- *   13978) refuse with [TolnaRiftLines.DUNGEON_LATER] until the dungeon is built; the five warning signs (the multiloc
- *   14001, showing 14002) read as the Wiki says.
+ *   Brana after the quest, and her multi-NPC shows nothing once it's done. The rift's rope and holes, and the dungeon
+ *   below, are [TolnasRift] (step 6b); the five warning signs (the multiloc 14001, showing 14002) read as the Wiki says.
  *
  * Every account has done A Soul's Bane, so [osrsps.game.Quests.AFTER_QUESTS] sets the varbits that show Tolna at the top,
  * the rope in the rift and the warning signs (inferred from their names and the Wiki's post-quest pictures).
@@ -82,8 +81,6 @@ object LumberYard {
     const val EARTH_TIARA = 5535
     const val ENTER = 1
 
-    /** The rift's holes: `soulbane_falloff1` to `_10`, the rope's multiloc and the rope (13967 to 13978). */
-    val RIFTS = (13967..13978).toList()
     /** `soulbane_warning_sign_multi`, on the map, which shows `soulbane_warning_sign` (14002) after the quest. */
     const val WARNING_SIGN = 14001
     const val WARNING_SIGN_SHOWN = 14002
@@ -169,7 +166,6 @@ fun registerLumberYard(world: World) {
             }
         }
         world.handlers.onNpc(TOLNA_SHOWN, TALK_TO) { op -> world.dialogues.start(this, op.npc) { tolna() } }
-        for (rift in RIFTS) world.handlers.onLoc(rift, ENTER) { world.message(player, TolnaRiftLines.DUNGEON_LATER) }
         for (sign in listOf(WARNING_SIGN, WARNING_SIGN_SHOWN)) {
             world.handlers.onLoc(sign, READ) { world.dialogues.start(this) { mesbox(TolnaRiftLines.SIGN) } }
         }
