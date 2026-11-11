@@ -37,8 +37,10 @@ class HeadlessPaterdomusTest {
 
     /** A front door on the east edge of 3224,3218, as the temple's are on the west wall's east edge (angle 2). */
     private val door = ZoneLoc(Paterdomus.DOOR_LEFT, LocShape.WALL_STRAIGHT, 2, 3224, 3218, 0)
-    private val stairs = ZoneLoc(Paterdomus.STAIRS_UP, LocShape.CENTREPIECE_STRAIGHT, 2, 3218, 3222, 0)
-    private val stairsTop = ZoneLoc(Paterdomus.STAIRS_DOWN, LocShape.CENTREPIECE_STRAIGHT, 2, 3218, 3223, 1)
+    /** The temple's stairs on their own tiles, and a plain top of a spiral staircase (16673) somewhere else. */
+    private val stairs = ZoneLoc(Paterdomus.STAIRS_UP, LocShape.CENTREPIECE_STRAIGHT, 2, 3417, 3492, 0)
+    private val stairsTop = ZoneLoc(Paterdomus.STAIRS_DOWN, LocShape.CENTREPIECE_STRAIGHT, 2, 3417, 3493, 1)
+    private val otherTop = ZoneLoc(Paterdomus.STAIRS_DOWN, LocShape.CENTREPIECE_STRAIGHT, 2, 3218, 3223, 1)
     private val trapdoor = ZoneLoc(Paterdomus.LIBRARY_TRAPDOOR, LocShape.GROUND_DECOR, 2, 3226, 3214, 0)
     private val barrier = ZoneLoc(Paterdomus.HOLY_BARRIER, LocShape.CENTREPIECE_STRAIGHT, 1, 3216, 3216, 0)
     private val railing = ZoneLoc(Paterdomus.RAILINGS.first(), LocShape.WALL_STRAIGHT, 0, 3228, 3222, 0)
@@ -53,6 +55,7 @@ class HeadlessPaterdomusTest {
             crcs,
             CollisionMap().apply {
                 markLoaded(3222 shr 6, 3218 shr 6)
+                markLoaded(3417 shr 6, 3492 shr 6)
                 markLoaded(Paterdomus.LIBRARY_LANDING.x shr 6, Paterdomus.LIBRARY_LANDING.z shr 6)
                 markLoaded(Paterdomus.MAUSOLEUM_LANDING.x shr 6, Paterdomus.MAUSOLEUM_LANDING.z shr 6)
             },
@@ -69,7 +72,7 @@ class HeadlessPaterdomusTest {
                     type(Paterdomus.RAILINGS.first(), "Ornate railing", "Squeeze-through"),
                 ).associateBy { it.id },
             ),
-            staticLocs = StaticLocs().apply { listOf(door, stairs, stairsTop, trapdoor, barrier, railing).forEach(::add) },
+            staticLocs = StaticLocs().apply { listOf(door, stairs, stairsTop, otherTop, trapdoor, barrier, railing).forEach(::add) },
             cycleMillis = millis,
         )
     }
@@ -201,10 +204,18 @@ class HeadlessPaterdomusTest {
                 client.locOp(door.id, door.x, door.z, Paterdomus.OPEN)
                 client.awaitAt(3224, 3218, 0)
 
+                client.tele(3418, 3491)
                 client.locOp(stairs.id, stairs.x, stairs.z, 1)
-                client.awaitAt(3217, 3223, 1)
+                client.awaitAt(3416, 3493, 1)
                 client.locOp(stairsTop.id, stairsTop.x, stairsTop.z, 1)
-                client.awaitAt(3218, 3224, 0)
+                client.awaitAt(3417, 3494, 0)
+                // The same type elsewhere is another building's stairs, not the temple's.
+                client.tele(3218, 3224, 1)
+                client.locOp(otherTop.id, otherTop.x, otherTop.z, 1)
+                client.awaitSeen("[game.nothing_interesting]")
+                assertEquals(Coord(3218, 3224, 1), client.position)
+
+                client.tele(3224, 3218)
 
                 client.locOp(trapdoor.id, trapdoor.x, trapdoor.z, 1)
                 client.awaitAt(Paterdomus.LIBRARY_LANDING.x, Paterdomus.LIBRARY_LANDING.z, 0)

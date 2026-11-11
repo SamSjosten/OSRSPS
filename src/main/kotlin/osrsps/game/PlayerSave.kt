@@ -153,6 +153,7 @@ class PlayerSave(
         player.bank.clear()
         player.archiveChest.clear()
         player.charges.clear()
+        player.sessionCharges.clear()
         player.ge.clear()
         applyState(player)
     }
@@ -195,7 +196,8 @@ class PlayerSave(
         for ((slot, obj) in equipment) player.equipment[slot] = obj
         for ((slot, obj) in bank) player.bank[slot] = obj
         for ((slot, obj) in archiveChest) player.archiveChest[slot] = obj
-        for ((name, count) in charges) player.charges[name] = count
+        // Pick timers older saves kept, now in Player.sessionCharges, are left behind.
+        for ((name, count) in charges) if (name !in NO_LONGER_SAVED) player.charges[name] = count
         for ((slot, offer) in geOffers) player.ge[slot] = offer
         for (use in geLimits) player.ge.limits[use.item] = use
         for (use in geSellLimits) player.ge.sellLimits[use.item] = use
@@ -349,6 +351,13 @@ class PlayerSave(
 
         /** The packets carry each filter in a byte. */
         const val MAX_CHAT_FILTER = 255
+
+        /** [Player.charges] names older saves hold that now live in [Player.sessionCharges]: dropped on loading. */
+        val NO_LONGER_SAVED = setOf(
+            osrsps.game.content.HamHideout.PICK_DUE,
+            osrsps.game.content.HamHideout.CELL_FAILS,
+            osrsps.game.content.HamStorerooms.PICK_DUE,
+        )
 
         private val format = Json { prettyPrint = true }
 

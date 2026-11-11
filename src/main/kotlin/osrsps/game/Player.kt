@@ -200,6 +200,12 @@ class Player(
     /** What the player's charged items hold, such as a blowpipe's darts and scales; see [Charges]. */
     val charges = Charges()
 
+    /**
+     * Like [charges], but not saved: counts that end with the session, such as the tick a lock-pick try ends
+     * ([osrsps.game.content.HamHideout.PICK_DUE]).
+     */
+    val sessionCharges = Charges()
+
     /** Grand Exchange offers and buy limits; see [osrsps.game.ge.GrandExchange]. */
     val ge = osrsps.game.ge.GeAccount()
 
