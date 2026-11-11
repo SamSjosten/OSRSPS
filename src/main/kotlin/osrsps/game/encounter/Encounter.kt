@@ -17,7 +17,9 @@ import osrsps.map.Tile
  * of the types in [bosses] counts in full, and damage to every other NPC of the fight (its adds) only up to a cap
  * ([osrsps.game.raid.ArchiveRaids.MINION_CAP_PERCENT]). Hits on NPCs of the types in [passedOn], among [bosses], count
  * only as the fight passes them on to its real hitpoints ([osrsps.game.raid.ArchiveRaids.passOn]): Ocellus's Blade
- * takes a share of what it is dealt off his bar, and the Dagon'hai share one pool.
+ * takes a share of what it is dealt off his bar, and the Dagon'hai share one pool. Hits on adds of the types in
+ * [charged] are kept by player, so what such an add deals the boss counts for who charged it
+ * ([osrsps.game.raid.ArchiveRaids.creditFrom]): the Guardian's inert guardians and Ezekiel's swords.
  */
 class EncounterDef(
     val name: String,
@@ -28,6 +30,7 @@ class EncounterDef(
     val held: (EncounterContext.() -> List<Npc>)? = null,
     val bosses: Set<Int> = emptySet(),
     val passedOn: Set<Int> = emptySet(),
+    val charged: Set<Int> = emptySet(),
 ) {
     init {
         require(name.isNotEmpty() && name.none(Char::isWhitespace)) { "Bad encounter name '$name'" }

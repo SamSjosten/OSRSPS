@@ -238,6 +238,8 @@ object Ezekiel {
                 ),
             ),
             scriptedAttacks = true,
+            // A sword's strike on him counts for whoever charged it (R28A-3).
+            charged = setOf(SWORD),
         )
     }
 

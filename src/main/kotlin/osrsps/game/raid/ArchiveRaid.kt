@@ -1385,7 +1385,12 @@ class ArchiveRaids(private val world: World) {
             (if (boss) run.damage else run.minionDamage).getOrPut(room, ::LinkedHashMap)
         }
         byPlayer[player.saveKey] = (byPlayer[player.saveKey] ?: 0) + dealt
-        if (!boss) run.addHits.getOrPut(npc, ::LinkedHashMap).merge(player.saveKey, dealt, Int::plus)
+        // Kept only for adds whose damage to the boss is counted for who charged them, and only while they're in the
+        // world: a sword gone without striking takes its hits with it (Codex on #649: farmed binders kept for good).
+        if (fight != null && !boss && npc.type.id in fight.def.charged) {
+            run.addHits.keys.removeAll { world.npcs[it.index] !== it }
+            run.addHits.getOrPut(npc, ::LinkedHashMap).merge(player.saveKey, dealt, Int::plus)
+        }
     }
 
     /**
