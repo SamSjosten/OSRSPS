@@ -97,7 +97,8 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
     /**
      * [inventory] and [checked] (Guide prices' checker) as they are to be saved for [player]: without what a run would
      * take back from them, should they be saved still in it. A save while in a run, an autosave or the save at a
-     * shutdown or a crash, is at the instance's exit, and the run is gone after a restart (Codex review on #636). Both
+     * shutdown or a crash, is at the instance's exit, and the run is gone after a restart (Codex review on #636). So is
+     * one made after they got out but before the next tick's start settles them, wherever they stand. Both
      * before the checker's items are put back, so none of them overflows into the saved bank.
      */
     fun saved(player: Player, inventory: Map<Int, InvObj>, checked: Map<Int, InvObj> = emptyMap()): Pair<Map<Int, InvObj>, Map<Int, InvObj>> {

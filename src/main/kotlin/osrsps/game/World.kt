@@ -1636,8 +1636,9 @@ class World(
     fun snapshot(player: Player): PlayerSave {
         var inventory = player.inventory.contents().toMap()
         var checked = player.priceChecker.contents().toMap()
-        // In a raid run, saved at its exit: without its supplies, the checker's too before any overflow to the bank (R26A-1).
-        if (instances.inDynamicArea(player.x, player.z)) archiveRaids.supplies.saved(player, inventory, checked).let { (i, c) -> inventory = i; checked = c }
+        // In a raid run, or out of one and not yet settled: without its supplies, the checker's too before any overflow to
+        // the bank (R26A-1). Not by where they stand, as one sent out mid-tick is settled only at the next tick's start.
+        archiveRaids.supplies.saved(player, inventory, checked).let { (i, c) -> inventory = i; checked = c }
         val (saved, bank) = priceChecker.saved(player, inventory, checked)
         return saveOf(player, saved, bank)
     }
@@ -1651,13 +1652,15 @@ class World(
         inventory: Map<Int, InvObj> = player.inventory.contents().toMap(),
         bank: Map<Int, InvObj> = player.bank.contents().toMap(),
     ): PlayerSave {
-        if (!instances.inDynamicArea(player.x, player.z)) return PlayerSave.of(player, inventory, bank)
+        // Without what a raid run would take back, a trade's offer back in first (R26A-1): in a run, saved at its exit,
+        // or out of one before the next tick settles them.
+        val held = { inventory: Map<Int, InvObj> -> archiveRaids.supplies.saved(player, inventory).first }
+        if (!instances.inDynamicArea(player.x, player.z)) return PlayerSave.of(player, inventory, bank, held = held)
         val instance = instances.at(player.x, player.z)
         return PlayerSave.of(
             player, inventory, bank,
             x = instance?.exitX ?: SPAWN_X, z = instance?.exitZ ?: SPAWN_Z, level = instance?.exitLevel ?: SPAWN_LEVEL,
-            // At the exit, out of any raid run: without its supplies, a trade's offer back in first (R26A-1).
-            held = { archiveRaids.supplies.saved(player, it).first },
+            held = held,
         )
     }
 

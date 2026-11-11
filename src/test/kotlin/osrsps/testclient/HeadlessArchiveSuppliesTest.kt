@@ -384,6 +384,17 @@ class HeadlessArchiveSuppliesTest {
                 client.commandReply("resume") { it.startsWith("Resumed") }
                 assertEquals(mapOf(BREW_3 to 1, AXE to 1), saved.groupingBy { it.id }.eachCount())
                 assertEquals(6, client.held(BREW))
+                // Sent out mid-tick (a Home Teleport landing, the Rift moving him) and saved before the next tick settles
+                // him: that save has none of it either, though he stands outside the instance (Codex review on #636).
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
+                val bob = server.world.playerNamed("bob")!!
+                val (inX, inZ, inLevel) = Triple(bob.x, bob.z, bob.level)
+                server.world.teleport(bob, 3222, 3218, 0)
+                val departed = server.world.snapshot(bob)
+                server.world.teleport(bob, inX, inZ, inLevel)
+                client.commandReply("resume") { it.startsWith("Resumed") }
+                assertEquals(Triple(3222, 3218, 0), Triple(departed.x, departed.z, departed.level))
+                assertEquals(mapOf(BREW_3 to 1, AXE to 1), departed.inventory.values.groupingBy { it.id }.eachCount())
                 // Out of the instance, as a Home Teleport would take him (exploit review round 26, R26A-1): of the 27
                 // brew doses he holds, the 24 bought go, the fewest doses first, so a 4-dose brew is left as his 3.
                 client.tele(3222, 3218)
