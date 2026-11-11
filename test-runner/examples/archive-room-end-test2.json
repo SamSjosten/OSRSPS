@@ -1,0 +1,131 @@
+{
+ "name": "Room end, two players (run with archive-room-end-test.json on the other VM at the same time): test2 joins test's party, goes down in the nexus's entrance with test standing, and once test has won Ezekiel's room stands on his arena again, its hitpoints and prayer whole",
+ "account": "test2",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare",
+   "comment": "nothing carried; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::raidparty leave",
+   "expectMessage": "arty.",
+   "comment": "out of the last run's party, if any"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::heal",
+   "expectMessage": "Healed to "
+  },
+  {
+   "step": "command",
+   "text": "::tele 4127 5560 0",
+   "expectMessage": "Teleported to 4127, 5560, 0",
+   "comment": "the lobby, in front of the Archive Door: test's sign that we're ready"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "test invited you to their party",
+   "timeoutMs": 180000
+  },
+  {
+   "step": "command",
+   "text": "::raidparty accept test",
+   "expectMessage": "You joined test's party"
+  },
+  {
+   "step": "locOption",
+   "locId": 62768,
+   "option": "Enter",
+   "timeoutMs": 20000,
+   "comment": "into the party's run"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 6
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "You're in the nexus's entrance"
+  },
+  {
+   "step": "playerOption",
+   "player": "test",
+   "option": "Trade with",
+   "timeoutMs": 120000,
+   "comment": "once test is in view here: our sign to it that we're about to fall"
+  },
+  {
+   "step": "command",
+   "text": "::hit 99 me",
+   "expectMessage": ", dead",
+   "comment": "with test standing: down, in front of the entrance, till a room is won"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 10,
+   "comment": "the death ticks"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "down: test2"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 150,
+   "comment": "test goes into Ezekiel's arena and kills him; his room is won ten ticks after"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "You're in Ezekiel's room, at 4067, 5535 of the raid",
+   "comment": "his room won: back standing on his arena, where the Alliance Navigator comes (the tile guessed)"
+  },
+  {
+   "step": "command",
+   "text": "::stats",
+   "expectMessage": "Every stat is at its level",
+   "comment": "our hitpoints and prayer whole"
+  },
+  {
+   "step": "playerOption",
+   "player": "test",
+   "option": "Trade with",
+   "timeoutMs": 60000,
+   "comment": "our sign to test that we're done; standing, the request goes"
+  },
+  {
+   "step": "command",
+   "text": "::tele 4127 5560 0",
+   "expectMessage": "Teleported to 4127, 5560, 0",
+   "comment": "out of the instance"
+  },
+  {
+   "step": "command",
+   "text": "::raidparty leave",
+   "expectMessage": "arty."
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
