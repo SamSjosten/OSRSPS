@@ -1138,6 +1138,10 @@
     {
       "npcs": ["soulbane_rat2"], "always": [{"item": 526, "name": "Bones"}],
       "source": "OSRS Wiki, Angry giant rat (level 47), Drops, read 2026-11-11: bones always, but only from the rat nearest the entrance; that is taken to be soulbane_rat2, which mejrs's list saw nearer the rope (guessed). The rift's other monsters drop nothing (the Wiki's Tolna's rift page)"
+      },
+    {
+      "npcs": ["weaponsmaster"], "always": [{"item": 526, "name": "Bones"}],
+      "source": "OSRS Wiki, Weaponsmaster, Drops, read 2026-11-11: bones always, nothing else"
     }
   ]
 }

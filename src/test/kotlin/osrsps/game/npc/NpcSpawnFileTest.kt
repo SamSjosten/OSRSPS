@@ -925,6 +925,7 @@ class NpcSpawnFileTest {
             1110 to "guidor", 1106 to "gambler2", 4574 to "vc_pox", 4588 to "vc_hooknosed_jack", 4162 to "surok_annajones",
             3225 to "aide_tutor_smithing_master", 10415 to "con_contract_client_2", 10414 to "con_contract_client_1",
             10416 to "con_contract_client_3", 5042 to "romeo_juliet_pew_sleeping_man", 5921 to "rooftops_bigredjapan",
+            5525 to "toby_varrock_diary", 5885 to "bond_james_bond", 10733 to "boardgames_barmaid3", 5211 to "weaponsmaster",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("varrock.json"), types, "varrock.json")
@@ -1014,8 +1015,11 @@ class NpcSpawnFileTest {
         assertEquals(mapOf(5086 to 3, 5087 to 3, 5088 to 3, 5089 to 2), wizards.groupingBy { it.type.id }.eachCount())
         assertTrue(wizards.all { it.x in 3220..3235 && it.z in 3360..3376 && it.level == 0 })
         // East of the Edgeville piece's strip (x 3150 and west), south of the Wilderness ditch, but the museum's Natural History
-        // floor, and the Champions' Guild and the stone circle, south of the city.
-        assertTrue((spawns - basement.toSet() - guild.toSet() - wizards.toSet()).all { it.x >= 3150 && it.z in 3375..3520 && it.source.isNotBlank() })
+        // floor, and the Champions' Guild and the stone circle, south of the city, and Meredith in the Games Zone, the
+        // Grand Exchange's south-west corner, a few tiles into the strip.
+        val gamesZone = spawns.filter { it.type.id == 10733 }
+        assertEquals(listOf(3143), gamesZone.map { it.x })
+        assertTrue((spawns - basement.toSet() - guild.toSet() - wizards.toSet() - gamesZone.toSet()).all { it.x >= 3150 && it.z in 3375..3520 && it.source.isNotBlank() })
         // Arthur stands still at the Grand Exchange (his Wiki pin, as he stood still by the Sheared Ram), and so do the
         // sweep's sick Guidor, the sleeping Jeremy Clerksin and BigRedJapan on the rooftops.
         val still = spawns.filter { it.type.id in listOf(16811, 1110, 5042, 5921) }.toSet()

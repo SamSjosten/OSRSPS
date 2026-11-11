@@ -1,0 +1,182 @@
+{
+ "name": "Varrock sweep talkers: Toby's rewards, James's menu and Meredith's drink (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle: a command typed straight away can be lost"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3226 3416 0",
+   "expectMessage": "Teleported to 3226, 3416, 0",
+   "comment": "by Toby's house north of the square (he stands at 3225 3415)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "npcOption",
+   "npcId": 5525,
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[toby.hello]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[toby.question]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[toby.question_said]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[toby.rewards]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[toby.rewards_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[toby.easy]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[toby.easy_ask]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[toby.easy_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[toby.thanks]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3171 3462 0",
+   "expectMessage": "Teleported to 3171, 3462, 0",
+   "comment": "by James at the Grand Exchange's south-west entrance; the client shows him as bond_james_visible (8193)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "npcOption",
+   "npcId": 8193,
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[james_bonds.who]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[james_bonds.who_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[james_bonds.buy]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[james_bonds.buy_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[james_bonds.what]",
+   "comment": "back at his menu"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3145 3472 0",
+   "expectMessage": "Teleported to 3145, 3472, 0",
+   "comment": "the Games Zone, the Grand Exchange's south-west corner"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "npcOption",
+   "npcId": 10733,
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[meredith.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[meredith.drink]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[meredith.drink]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[meredith.drink_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  }
+ ]
+}

@@ -1504,6 +1504,7 @@
       "weakness": { "element": "fire", "percent": 40 },
       "aggressive": true,
       "source": "OSRS Wiki, Hopeless creature (level 71, id 4695), read 2026-11-11: speed 4, max hit 7, slash, respawn 25, aggressive, not poisonous; no bonuses and 40% weak to fire from weirdgloop/osrs-dps-calc monsters.json 4695. It dies once: the three forms are the quest's (inferred). lessattack, not lesspoisen; the fight animations go with its lessready and lesswalk (inferred)"
-    }
+    },
+    {"npcs": ["weaponsmaster"], "attackSpeed": 5, "maxHit": 3, "attackType": "crush", "attackBonus": 8, "strengthBonus": 10, "defence": {"stab": 21, "slash": 23, "crush": 21, "magic": -6, "light": 20, "standard": 20, "heavy": 20}, "anims": {"attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death"}, "respawnTicks": 350, "source": "OSRS Wiki, Weaponsmaster (level 23), read 2026-11-11: speed 5, max hit 3, crush, attack +8 and strength +10, stab +21, slash +23, crush +21, magic -6, ranged +20 each, respawn 350, not aggressive (he is only to Black Arm players who talk to him, and there are no gangs). The punch and block animations are guessed"}
   ]
 }
