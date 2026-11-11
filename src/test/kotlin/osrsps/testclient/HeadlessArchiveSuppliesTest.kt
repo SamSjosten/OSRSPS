@@ -538,12 +538,12 @@ class HeadlessArchiveSuppliesTest {
                     alice.awaitHeld(MANTA, 2)
                     val run = alice.intoRun(server, "alice")
                     bob.intoRun(server, "bob")
-                    // She drops one; once it turns public (100 ticks, 2 s here) Bob takes it (Codex review on #636).
+                    // She drops one; once it turns public (100 ticks, 10 s at this server's 100 ms cycle) Bob takes it (Codex review on #636).
                     val at = alice.position!!
                     val slot = alice.inventory(Inventory.INV).indexOfFirst { it?.id == MANTA }
                     alice.ifButton(INVENTORY, INVENTORY_ITEMS, DROP, slot, MANTA)
                     alice.awaitHeld(MANTA, 1)
-                    bob.await("the ray turning public", timeoutMillis = 10_000) { bob.groundObjs().firstOrNull { it.id == MANTA } }
+                    bob.await("the ray turning public", timeoutMillis = PUBLIC_WAIT_MILLIS) { bob.groundObjs().firstOrNull { it.id == MANTA } }
                     bob.objOp(MANTA, at.x, at.z, TAKE)
                     bob.awaitHeld(MANTA, 1)
                     // Her allowance for it went with it.
@@ -559,7 +559,7 @@ class HeadlessArchiveSuppliesTest {
                     // (Codex review on #636).
                     assertEquals(run, alice.intoRun(server, "alice"))
                     assertEquals(emptyMap(), run.suppliesBrought.getValue("alice"))
-                    bob.await("the second ray turning public", timeoutMillis = 10_000) { bob.groundObjs().firstOrNull { it.id == MANTA } }
+                    bob.await("the second ray turning public", timeoutMillis = PUBLIC_WAIT_MILLIS) { bob.groundObjs().firstOrNull { it.id == MANTA } }
                     bob.objOp(MANTA, at.x, at.z, TAKE)
                     bob.awaitHeld(MANTA, 2)
                     assertEquals(2, run.suppliesBrought.getValue("bob")[MANTA])
@@ -646,7 +646,7 @@ class HeadlessArchiveSuppliesTest {
                         val slot = alice.inventory(Inventory.INV).indexOfFirst { it?.id == MANTA }
                         alice.ifButton(INVENTORY, INVENTORY_ITEMS, DROP, slot, MANTA)
                         alice.awaitHeld(MANTA, 1)
-                        bob.await("the ray turning public", timeoutMillis = 10_000) { bob.groundObjs().firstOrNull { it.id == MANTA } }
+                        bob.await("the ray turning public", timeoutMillis = PUBLIC_WAIT_MILLIS) { bob.groundObjs().firstOrNull { it.id == MANTA } }
                         trade(alice, carol, MANTA, 1, confirm = false)
                         bob.objOp(MANTA, at.x, at.z, TAKE)
                         bob.awaitHeld(MANTA, 1)
@@ -704,6 +704,11 @@ class HeadlessArchiveSuppliesTest {
     }
 
     private companion object {
+        /**
+         * How long to wait for a drop to turn public: its 100 private ticks are 10 s at the test server's 100 ms cycle, so
+         * a 10 s wait timed out on a loaded runner (CI on #640); twice that leaves room.
+         */
+        const val PUBLIC_WAIT_MILLIS = 20_000L
         const val CREDITS_VARP = 4_500
         const val CURRENCY = 17149
         const val BREW = 6685
