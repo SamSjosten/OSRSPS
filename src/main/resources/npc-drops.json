@@ -1124,6 +1124,10 @@
       {"nothing": true, "weight": 12}
     ]},
       "source": "OSRS Wiki, H.A.M. Guard, read 2026-11-10 (one table for all three levels): bones always; the table's 110ths, some fractional, as 660ths (each times 6, the thirds rounded: 1.33 is 8, 2.66 is 16, 0.33 is 2), the general seed table 9.5/110 (57/660), what is left (12/660) nothing. Left out: the easy clue (1/55; no Treasure Trails yet)"
+    },
+    {
+      "npcs": ["small_bat"], "always": [{"item": 530, "name": "Bat bones"}],
+      "source": "OSRS Wiki, Bat, Drops, read 2026-11-11: bat bones always. The bat wing (1/4) drops only during Rag and Bone Man II, which every account has done"
     }
   ]
 }

@@ -571,6 +571,16 @@ class NpcDropsTest {
     }
 
     @Test
+    fun `a bat drops its bones and nothing else`() {
+        val bat = NpcType(2827, "Bat", combatLevel = 6, internalName = "small_bat")
+        val def = NpcDrops.load(NpcTypes.of(bat), objTypes)[bat]!!
+        assertEquals(listOf("Bat bones"), def.always.map { it.type.name })
+        assertEquals(null, def.table)
+        assertEquals(emptyList(), def.tertiary)
+        assertEquals(listOf(530 to 1), def.roll(GameRandom(4)).map { it.type.id to it.count })
+    }
+
+    @Test
     fun `the HAM guards share one table, with bones, out of 660`() {
         val guards = listOf("favour_guard_male_no_beard", "favour_guard_male_bearded", "favour_guard_long_beard")
             .mapIndexed { i, name -> NpcType(2536 + i, "H.A.M. Guard", combatLevel = 12 + 5 * i, internalName = name) }

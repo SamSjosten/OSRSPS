@@ -197,7 +197,7 @@ class Mining(private val world: World) {
             } else if (SuccessRoll.roll(world.random, type.low, type.high, level)) {
                 val ore = world.objTypes[type.ore] ?: error("No obj type ${type.ore} for ${type.key} ore")
                 val emptied = takeYield(type, loc.x, loc.z, loc.level)
-                if (emptied) world.locs.replace(loc, rock.empty, revertAfter = respawn(type, loc.x, loc.z, loc.level))
+                if (emptied) deplete(loc, rock)
                 player.inventory.add(ore, 1)
                 player.skills.addTenths(Skill.MINING, type.xpTenths)
                 player.message(text[MiningLines.GET_ORE, "ore" to oreName])
@@ -271,8 +271,24 @@ class Mining(private val world: World) {
 
     private fun tileKey(x: Int, z: Int, level: Int): Long = (level.toLong() shl 40) or (x.toLong() shl 20) or z.toLong()
 
-    /** A rock loc and the empty rock it becomes. */
-    class Rock(val type: RockType, val empty: Int)
+    /**
+     * Turns [loc] into the rock it becomes once mined. A staged rock ([Rock.restoreTicks]) goes back to the cache's
+     * rock, whatever stage it reached, that many ticks after its latest stage; any other comes back after its respawn.
+     */
+    private fun deplete(loc: osrsps.game.zone.ZoneLoc, rock: Rock) {
+        if (rock.restoreTicks > 0) {
+            world.locs.replace(loc, rock.empty) ?: return
+            world.locs.restoreAfter(loc.x, loc.z, loc.level, loc.layer, rock.restoreTicks)
+        } else {
+            world.locs.replace(loc, rock.empty, revertAfter = respawn(rock.type, loc.x, loc.z, loc.level))
+        }
+    }
+
+    /**
+     * A rock loc and the rock it becomes once mined: the empty rock, or for a rock that gives several ores in stages
+     * (limestone) its next stage, with [restoreTicks] until the whole rock is back.
+     */
+    class Rock(val type: RockType, val empty: Int, val restoreTicks: Int = 0)
 
     companion object {
         /** Best first. Levels, intervals and the fast chances from the Wiki; animations from the 241 gamevals. */
@@ -303,6 +319,9 @@ class Mining(private val world: World) {
         private val RUNITE = RockType("runite", 85, 1250, 451, 1, 18, 1200)
         private val AMETHYST = RockType("amethyst", 92, 2400, 21347, -18, 10, 125, minYield = 2, maxYield = 3)
         private val GEM_ROCK = RockType("gem", 40, 650, NOTHING, 28, 70, 99, gemRock = true)
+
+        /** Limestone rocks (OSRS Wiki, Limestone rock, read 2026-11-11): level 10, 26.5 XP, the chart's 95 to 350. */
+        private val LIMESTONE = RockType("limestone", 10, 265, 3211, 95, 350, 9)
         private val GRANITE = RockType(
             "granite", 45, 0, NOTHING, 0, 0, 9,
             sizes = listOf(
@@ -371,7 +390,8 @@ class Mining(private val world: World) {
         const val ROCKS1 = 11390 // rocks1
         const val ROCKS2 = 11391 // rocks2
         const val AMETHYST_EMPTY = 11393 // amethystrock_empty, "Empty wall"
-        val EMPTY_ROCKS = listOf(ROCKS1, ROCKS2, AMETHYST_EMPTY)
+        const val LIMESTONE_EMPTY = 11385 // limestone_rock_noore, "Pile of rock"
+        val EMPTY_ROCKS = listOf(ROCKS1, ROCKS2, AMETHYST_EMPTY, LIMESTONE_EMPTY)
 
         /**
          * Rock locs by gameval (rockN becomes rocksN). Pairs fitted to the Wiki's charts, respawns from its pages in
@@ -405,6 +425,11 @@ class Mining(private val world: World) {
             11381 to Rock(GEM_ROCK, ROCKS2), // gemrock
             11387 to Rock(GRANITE, ROCKS2), // enakh_granite_rocks (model 1391, as rocks2's)
             11386 to Rock(SANDSTONE, ROCKS1), // enakh_sandstone_rocks (model 1390, as rocks1's)
+            // Limestone: three stages, each giving one limestone; the rock comes back whole 23.4, 11.4 or 5.4 seconds
+            // after one, two or three are mined (the Wiki's times, read as the time back to a full rock: inferred).
+            11382 to Rock(LIMESTONE, 11383, restoreTicks = 39), // limestone_rock1, 3 left
+            11383 to Rock(LIMESTONE, 11384, restoreTicks = 19), // limestone_rock2, 2 left
+            11384 to Rock(LIMESTONE, LIMESTONE_EMPTY, restoreTicks = 9), // limestone_rock3, 1 left
         )
 
         /** The mining gem table: 128 in 32,768 a roll (1/256), most of it gems. */

@@ -236,6 +236,8 @@ object DialogueLines {
         SawmillLines,
         TolnaLines,
         TolnaRiftLines,
+        OddOldManLines,
+        SilvareaLines,
         MageOfZamorakLines,
         MakeLines,
         ManLines,

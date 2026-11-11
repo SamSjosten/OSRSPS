@@ -107,6 +107,7 @@ import osrsps.game.content.registerHamHideout
 import osrsps.game.content.registerHamStorerooms
 import osrsps.game.content.registerFarmsRoads
 import osrsps.game.content.registerLumberYard
+import osrsps.game.content.registerSilvarea
 import osrsps.game.content.registerLumbridgeSwamp
 import osrsps.game.content.registerLumbridgeSwampCaves
 import osrsps.game.content.SwampCavesHazards
@@ -860,6 +861,7 @@ class World(
         registerHamStorerooms(this)
         registerFarmsRoads(this)
         registerLumberYard(this)
+        registerSilvarea(this)
         ThievingLocks.register(this)
         registerChurch(this)
         registerAlKharid(this)

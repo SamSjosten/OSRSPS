@@ -195,6 +195,11 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   the Sawmill by talk (with too few coins for all, so he names his fee), Buy-plank refused without teak logs, his shop on
   Trade, a mewing crate, a crate and a barrel searched, an earth talisman used on the Earth Altar's ruins, Tolna talked to
   and his rift's rope and a warning sign used (with `::keys on`; the spawns are in the unit test).
+- `silvarea.json`: Misthalin piece 7 step 7: Varrock's members' gate opened (both leaves) and walked through, a
+  limestone rock mined at 99 through its three stages and back whole, a bat killed for its bones, the Odd Old Man
+  handing back a ram skull helm then a bonesack and then talking about his sorting, his wish-list read, and the
+  trapdoor to Zemouregal's base refused (with `::keys on`; the restore times and spawns are in the headless and unit
+  tests).
 - `thieving-t1b.json`: Thieving 2 step T1b: a Knight of Ardougne, a hero, a paladin, a warrior, a watchman, a gnome and
   a rogue pickpocketed at 99, each reached by `::tele` (with `::keys on` and `::god on`; the tables, extras, stuns and
   the room check are in the headless and unit tests).
