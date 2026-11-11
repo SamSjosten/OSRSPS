@@ -152,6 +152,12 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
     /** The damage each player has done in each room to its fight's adds (not [osrsps.game.encounter.EncounterDef.bosses]), counted only up to a cap. */
     val minionDamage = HashMap<ArchiveRoom, MutableMap<String, Int>>()
 
+    /**
+     * Hits on NPCs of a fight's [osrsps.game.encounter.EncounterDef.passedOn] types, by [Player.saveKey], not yet
+     * counted: the fight counts them for what they took off its real hitpoints ([ArchiveRaids.passOn]).
+     */
+    val heldHits = HashMap<Npc, LinkedHashMap<String, Int>>()
+
     /** Contribution points, by [Player.saveKey]. */
     val points = LinkedHashMap<String, Int>()
 
@@ -303,7 +309,8 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
  *   Wiki's chest page), shared by damage among those who did any, or evenly among who was there when it began if
  *   nobody did. Guessed: the even share. Damage to a fight's adds (everything but its boss and the NPCs its
  *   [osrsps.game.encounter.EncounterDef.bosses] names: Moia's binders, Xarth's Corpses, the Guardian's inert
- *   guardians and so on) counts only up to a cap shared by the room ([credited]), for the Wiki's soft cap.
+ *   guardians and so on) counts only up to a cap shared by the room ([credited]), for the Wiki's soft cap. A hit on
+ *   Ocellus's Blade or one of the Dagon'hai on their pool counts for what it took off his bar or the pool ([passOn]).
  * - A party member who dies with someone still standing keeps everything and is down until the room is done: in the
  *   nexus, in front of the room's door (in the entrance, for the Guardian's hall), and sent out again if they walk back
  *   in. Spectating isn't built.
@@ -1274,6 +1281,7 @@ class ArchiveRaids(private val world: World) {
         }
         run.started += room
         run.cleared += room
+        run.heldHits.keys.removeAll { roomAt(run, it.x, it.z) == room }
         run.chosen[room.stage] = room
         // Whoever got out while down (a Home Teleport landing last tick) dies of it before the room's end gets them up.
         settleEscapes(run, ended = false)
@@ -1363,8 +1371,42 @@ class ArchiveRaids(private val world: World) {
         // Xarth's harmless Corpses farmed for points). Damage to an NPC of no fight in the room counts as an add too.
         val fight = run.fights[room]
         val boss = fight != null && (npc === fight.boss || npc.type.id in fight.def.bosses)
-        val byPlayer = (if (boss) run.damage else run.minionDamage).getOrPut(room, ::LinkedHashMap)
+        // Held until the fight says what they took off its real hitpoints (exploit review round 28, R28A-1 and -2).
+        val byPlayer = if (boss && npc.type.id in fight!!.def.passedOn) {
+            run.heldHits.getOrPut(npc, ::LinkedHashMap)
+        } else {
+            (if (boss) run.damage else run.minionDamage).getOrPut(room, ::LinkedHashMap)
+        }
         byPlayer[player.saveKey] = (byPlayer[player.saveKey] ?: 0) + dealt
+    }
+
+    /**
+     * The hits held on [npc] since it was last passed on took [taken] off its fight's real hitpoints: that counts for
+     * its room's points, shared among those hitters by what they dealt, the odd hitpoints to whoever dealt most. Without
+     * it, a hit on Ocellus's Blade counted in full though only [Ocellus.BLADE_SHARE]% of it reached his bar, and none
+     * once his bar was at its floor (exploit review round 28, R28A-1); and hits on two of the Dagon'hai in the tick the
+     * pool broke counted twice over (R28A-2).
+     */
+    // Guessed: that live counts such hits by what reached the real hitpoints at all, the share by what each dealt, and
+    // the odd hitpoints going to whoever dealt most; the Wiki says only that a room's points are shared by damage.
+    fun passOn(npc: Npc, taken: Int) {
+        val run = at(npc.x, npc.z) ?: return
+        val hits = run.heldHits.remove(npc) ?: return
+        val room = roomAt(run, npc.x, npc.z) ?: return
+        if (taken <= 0 || room !in run.started || room in run.cleared) return
+        val dealt = hits.values.sumOf { it.toLong() }
+        if (dealt <= 0) return
+        val byPlayer = run.damage.getOrPut(room, ::LinkedHashMap)
+        var left = taken
+        for ((key, own) in hits) {
+            val share = (taken.toLong() * own / dealt).toInt()
+            byPlayer[key] = (byPlayer[key] ?: 0) + share
+            left -= share
+        }
+        if (left > 0) {
+            val most = hits.maxBy { it.value }.key
+            byPlayer[most] = (byPlayer[most] ?: 0) + left
+        }
     }
 
     /**

@@ -15,7 +15,9 @@ import osrsps.map.Tile
  * anchor, as Bork and the Smorks' is, shows its two). [held] says which of the fight's NPCs `::raid hold` freezes;
  * without it, the boss (such a fight names the one that walks). For a raid room's points, damage to [boss] and to NPCs
  * of the types in [bosses] counts in full, and damage to every other NPC of the fight (its adds) only up to a cap
- * ([osrsps.game.raid.ArchiveRaids.MINION_CAP_PERCENT]).
+ * ([osrsps.game.raid.ArchiveRaids.MINION_CAP_PERCENT]). Hits on NPCs of the types in [passedOn], among [bosses], count
+ * only as the fight passes them on to its real hitpoints ([osrsps.game.raid.ArchiveRaids.passOn]): Ocellus's Blade
+ * takes a share of what it is dealt off his bar, and the Dagon'hai share one pool.
  */
 class EncounterDef(
     val name: String,
@@ -25,6 +27,7 @@ class EncounterDef(
     val status: (EncounterContext.() -> String)? = null,
     val held: (EncounterContext.() -> List<Npc>)? = null,
     val bosses: Set<Int> = emptySet(),
+    val passedOn: Set<Int> = emptySet(),
 ) {
     init {
         require(name.isNotEmpty() && name.none(Char::isWhitespace)) { "Bad encounter name '$name'" }

@@ -494,9 +494,13 @@ class HeadlessOcellusTest {
                 assertEquals(1, fight.lines.count { it.contains("portal shot") }, "once, and not in the first volley")
                 alice.commandReply("god on") { it.startsWith("You can't be hurt") }
                 // 1,000 on the Blade: 430 off his bar, and the Blade whole again.
+                val key = server.world.playerNamed("alice")!!.saveKey
+                val creditedBefore = run.damage[ArchiveRoom.OCELLUS]?.get(key) ?: 0
                 alice.commandReply("hit 1000 ${sword.index}") { it.startsWith("Hit ") }
                 alice.awaitLine(run, "the Blade's damage") { it.endsWith("second: the Blade takes 1000: 430 to his bar") }
                 assertEquals(5250 - 430, boss.hitpoints)
+                // The 430 that reached his bar counts for the room's points, not the 1,000 (exploit review R28A-1).
+                assertEquals(creditedBefore + 430, run.damage[ArchiveRoom.OCELLUS]?.get(key))
                 assertEquals(1000, sword.hitpoints)
                 assertFalse(sword.dead)
                 // It never regains hitpoints by itself, so no point of damage is lost to a regeneration tick.
