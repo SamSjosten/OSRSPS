@@ -1041,6 +1041,12 @@ class World(
     @Volatile
     private var running = false
 
+    /**
+     * This run of the world, as the second it was made: a saved tick ([tick] starts again from 0 on a restart) goes with
+     * it to say which run it counts in, as a coop's wait does ([osrsps.game.content.MisthalinSweep.COOP_RUN]).
+     */
+    val run: Int = (System.currentTimeMillis() / 1000).toInt()
+
     /** When the last cycle ended, or when the world started, in epoch millis; read off the game thread by [isUp]. */
     @Volatile
     private var lastCycleMillis = 0L
