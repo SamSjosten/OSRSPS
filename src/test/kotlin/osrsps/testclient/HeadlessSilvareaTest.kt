@@ -49,6 +49,9 @@ class HeadlessSilvareaTest {
         objs[RUNE_PICKAXE] = ObjType(RUNE_PICKAXE, "Rune pickaxe")
         objs[Silvarea.RAM_SKULL_HELM] = ObjType(Silvarea.RAM_SKULL_HELM, "Ram skull helm")
         objs[Silvarea.BONESACK] = ObjType(Silvarea.BONESACK, "Bonesack")
+        // Every swing has Mining's 1/256 gem roll: without the gems' types a gem ended the swing with an error, and
+        // the stage never came (a CI flake).
+        for (gem in Mining.GEMS.map { it.obj }.filter { it >= 0 }) objs[gem] = ObjType(gem, "Gem $gem")
         World(
             crcs,
             CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) },
