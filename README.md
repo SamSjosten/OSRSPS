@@ -894,6 +894,19 @@ only their options are new.
 | The 10 and 50 coin and Ardougne Castle chests' trap damage (the Wiki says "substantial" and "high"; the nature rune chest's formula is used); the open door shown while going through (`inactivepoordoor` 1539, 3 ticks); Ross' door, a newer loc than 2004Scape's, opening the same way; refusing a chest whose loot wouldn't fit (2004Scape gives it regardless) | guessed |
 | Not built: the Dorgesh-Kaan and Rogues' Castle chests, the doors that need a lockpick, the Ardougne sewer gates, the Ardougne diary, the gas random event | next steps |
 
+### Thieving: East Ardougne's stalls
+
+Thieving 2 step T3 (`game/skill/Thieving.kt`, `npc-spawns/ardougne-market.json`). The six stalls are the cache's, in the
+market where the cache map puts them; stealing works as at Draynor's (a guard or keeper in sight stops it).
+
+| What | Source |
+|---|---|
+| Bakery (11730): 5, 16 XP, 2.4 s, a cake 13/20, bread 5/20 or a chocolate slice 2/20. Silk (11729): 20, 24 XP, 4.8 s, silk. Fur (11732): 35, 45 XP, 7.2 s, a grey wolf fur. Silver (11734): 50, 205 XP, 19.2 s, silver ore 16/20, a silver bar 3/20 or a tiara 1/20. Spice (11733): 65, 92 XP, 6 s, spice. Gem (11731): 75, 408 XP, 60 s, an uncut sapphire 105/128, emerald 17, ruby 5 or diamond 1 | OSRS Wiki, Stall (Thievable) and each stall's page |
+| The keepers (the two bakers, silk merchant, fur trader, silver merchant, spice seller and gem merchant, the `*_ardougne` types) and the market's ten guards (`ardougne_guard`, also pickpocketed as guards), where they stand | mejrs NPCList_OSRS.json (live, pre-Nov 2022) |
+| The guards' fight | OSRS Wiki, Guard (Ardougne 1) |
+| Who watches which stall (the guards the bakery; knights too the silk and fur; paladins too the silver, spice and gem), the empty stall (`market` 634), the keepers' 20-minute ban, the keepers standing still and the guards wandering 5 | guessed (the watchers 2004Scape's) |
+| Not built: Keldagrim's, Kourend's, Prifddinas's, Civitas illa Fortis's, Port Roberts's, Rellekka's and Ape Atoll's stalls, the keepers' talk and shops, the Ardougne diary | next steps |
+
 ## Items and inventory
 
 Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for
@@ -911,10 +924,12 @@ as `Op.sub`. The inventory is saved with the player.
 | Dragging swaps two slots; a click on a slot that holds something else is dropped | RSMod / inferred |
 | An option or "Use" nothing handles says live's "nothing interesting" message (`game.nothing_interesting`) | from memory of live |
 | Bury on bones: a message (`bones.dig`), seq 827, the player stops; a tick later the bones go, the Prayer XP comes and a second message (`bones.buried`) (bones, burnt bones 4.5 XP, big bones 15, dragon bones 72) | XP from the Wiki; the steps from the 2004Scape project's script; no sound yet (its 241 synth id isn't known) |
+| Scatter on demonic ashes: fiendish 10 Prayer XP, vile 25, malicious 65, abyssal 85, infernal 110 | XP from the Wiki (Remains, read 2026-11-10); seq 2295 (farming_ingredient_sprinkle), the one-tick delay as a bury, and one message a tick later (`bones.scattered`) guessed |
 | Stacks stop at 2,147,483,647; `::item` adds what fits | client limit; adding part is ours |
 
 Check: `::item 1351` puts a bronze axe in your inventory; drag it to another slot; Examine it. `::item bones 2`, then Bury both: Prayer XP goes to 9
-(`test-runner/examples/lumbridge-bury-bones.json` does it in the real client).
+(`test-runner/examples/lumbridge-bury-bones.json` does it in the real client). `::item 25769`, then Scatter: 25 Prayer XP
+(`scatter-ashes.json`).
 
 ## Bank
 

@@ -311,6 +311,9 @@ class Pickpocketing(private val world: World) {
         /** guard1, Edgeville's six. */
         const val EDGEVILLE_GUARD = 3254
 
+        /** `ardougne_guard`, East Ardougne market's guards (Thieving 2 step T3): guards too, by the Guard page. */
+        const val ARDOUGNE_GUARD = 5418
+
         /** farmer1 to farmer3 and the November 2022 looks, farmer1_f to farmer3_f and farmer4. */
         val FARMERS = listOf(3114, 3243, 3244, 11918, 11919, 11920, 11921)
 
@@ -597,7 +600,7 @@ class Pickpocketing(private val world: World) {
             Pocket(Townsfolk.MEN + AL_KHARID_MAN, "man", 1, 80, 180, 240, 1, PickpocketLines.CAUGHT_CITIZEN, CITIZEN_POUCH, COINS_PER_CITIZEN_POUCH),
             Pocket(Townsfolk.WOMEN, "woman", 1, 80, 180, 240, 1, PickpocketLines.CAUGHT_CITIZEN, CITIZEN_POUCH, COINS_PER_CITIZEN_POUCH),
             Pocket(MASTER_FARMERS, "Master Farmer", 38, 430, 90, 240, 3, PickpocketLines.CAUGHT_FARMER, loot = MASTER_FARMER_LOOT),
-            Pocket(VARROCK_GUARDS + EDGEVILLE_GUARD, "guard", 40, 468, 50, 240, 2, PickpocketLines.CAUGHT_CITIZEN, GUARD_POUCH, COINS_PER_GUARD_POUCH),
+            Pocket(VARROCK_GUARDS + EDGEVILLE_GUARD + ARDOUGNE_GUARD, "guard", 40, 468, 50, 240, 2, PickpocketLines.CAUGHT_CITIZEN, GUARD_POUCH, COINS_PER_GUARD_POUCH),
             Pocket(listOf(WARRIOR_WOMAN) + WARRIORS_2022, "warrior", 25, 260, 100, 240, 2, PickpocketLines.CAUGHT_CITIZEN, WARRIOR_POUCH, COINS_PER_WARRIOR_POUCH),
             Pocket(listOf(AL_KHARID_WARRIOR), "Al Kharid warrior", 25, 260, 100, 240, 2, PickpocketLines.CAUGHT_CITIZEN, WARRIOR_POUCH, COINS_PER_WARRIOR_POUCH),
             Pocket(FARMERS, "farmer", 10, 145, 150, 240, 1, PickpocketLines.CAUGHT_CITIZEN, loot = FARMER_LOOT, coins = COINS_PER_FARMER_POUCH, lootPouch = FARMER_POUCH),
