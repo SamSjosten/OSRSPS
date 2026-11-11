@@ -415,7 +415,10 @@ class HeadlessArchiveSuppliesTest {
                 val slot = bob.inventory.contents().first { it.second.id == MANTA }.first
                 bob.inventory.remove(slot, 1)
                 bob.priceChecker[0] = osrsps.game.InvObj(MANTA, 1)
+                // A save now, at the instance's exit, has neither, in the backpack or the bank.
+                val saved = server.world.snapshot(bob)
                 client.commandReply("resume") { it.startsWith("Resumed") }
+                assertEquals(0, (saved.inventory.values + saved.bank.values).count { it.id == MANTA })
                 client.awaitHeld(MANTA, 1)
                 client.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
                 client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
@@ -475,6 +478,11 @@ class HeadlessArchiveSuppliesTest {
                     // Hers, traded to Bob (Codex review on #636): her allowance goes with them.
                     trade(alice, bob, MANTA, 2)
                     bob.awaitHeld(MANTA, 2)
+                    // A save of Bob has them too: the allowance moved with them, inside the swap the trade saves.
+                    bob.commandReply("pause") { it.startsWith("Paused after tick") }
+                    val bobSaved = server.world.snapshot(server.world.playerNamed("bob")!!)
+                    bob.commandReply("resume") { it.startsWith("Resumed") }
+                    assertEquals(2, bobSaved.inventory.values.count { it.id == MANTA })
                     // Bob buys one; he offers it to Alice and logs out on the trade's second screen.
                     bob.resupply()
                     bob.entry(4, 2)

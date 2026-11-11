@@ -95,21 +95,49 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
     }
 
     /**
-     * [inventory] (a save's, the checker's items in it) as it is to be saved for [player]: without what a run would
+     * [inventory] and [checked] (Guide prices' checker) as they are to be saved for [player]: without what a run would
      * take back from them, should they be saved still in it. A save while in a run, an autosave or the save at a
-     * shutdown or a crash, is at the instance's exit, and the run is gone after a restart (Codex review on #636).
+     * shutdown or a crash, is at the instance's exit, and the run is gone after a restart (Codex review on #636). Both
+     * before the checker's items are put back, so none of them overflows into the saved bank.
      */
-    fun saved(player: Player, inventory: Map<Int, InvObj>): Map<Int, InvObj> {
-        val run = raids.runs().firstOrNull { player.saveKey in it.suppliesBrought } ?: return inventory
-        val changes = excess(inventory.map { (slot, obj) -> Held(inventory, slot, obj) }, run.suppliesBrought.getValue(player.saveKey))
-        if (changes.isEmpty()) return inventory
-        val out = LinkedHashMap(inventory)
-        for ((held, obj) in changes) if (obj == null) out.remove(held.slot) else out[held.slot] = obj
-        return out
+    fun saved(player: Player, inventory: Map<Int, InvObj>, checked: Map<Int, InvObj> = emptyMap()): Pair<Map<Int, InvObj>, Map<Int, InvObj>> {
+        val run = raids.runs().firstOrNull { player.saveKey in it.suppliesBrought } ?: return inventory to checked
+        val entries = inventory.map { (slot, obj) -> Held(INVENTORY, slot, obj) } + checked.map { (slot, obj) -> Held(CHECKED, slot, obj) }
+        val changes = excess(entries, run.suppliesBrought.getValue(player.saveKey))
+        if (changes.isEmpty()) return inventory to checked
+        val outInventory = LinkedHashMap(inventory)
+        val outChecked = LinkedHashMap(checked)
+        for ((held, obj) in changes) {
+            val out = if (held.where == INVENTORY) outInventory else outChecked
+            if (obj == null) out.remove(held.slot) else out[held.slot] = obj
+        }
+        return outInventory to outChecked
+    }
+
+    /**
+     * Before a trade's swap is saved: what [a] and [b] hold of the supplies, offers in, and their allowances now, for
+     * [traded] after the swap and [untraded] if it is undone.
+     */
+    fun beforeTrade(a: Player, b: Player): TradeStart {
+        val run = raids.at(a.x, a.z)
+        return TradeStart(held(a, a.trade?.sideOf(a)?.offer), held(b, b.trade?.sideOf(b)?.offer), run?.suppliesBrought?.get(a.saveKey), run?.suppliesBrought?.get(b.saveKey))
+    }
+
+    class TradeStart internal constructor(val heldA: Map<Int, Int>, val heldB: Map<Int, Int>, val allowA: Map<Int, Int>?, val allowB: Map<Int, Int>?)
+
+    /** A trade's swap undone: [a]'s and [b]'s allowances as they were. */
+    fun untraded(a: Player, b: Player, start: TradeStart) {
+        val run = raids.at(a.x, a.z) ?: return
+        start.allowA?.let { run.suppliesBrought[a.saveKey] = it }
+        start.allowB?.let { run.suppliesBrought[b.saveKey] = it }
     }
 
     /** An item in [where] (an [Inventory], or a save's map) at [slot]. */
     private data class Held(val where: Any, val slot: Int, val obj: InvObj)
+
+    private object INVENTORY
+
+    private object CHECKED
 
     /**
      * What [entries] become without what is held beyond [brought]: for each kind, the fewest doses first, a potion with
@@ -151,7 +179,9 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
      * member brought in and handed on isn't taken from the one who leaves with it. What they bought stays bought,
      * whoever holds it (Codex review on #636). Not followed: supplies dropped and picked up by another member.
      */
-    fun traded(a: Player, b: Player, beforeA: Map<Int, Int>, beforeB: Map<Int, Int>) {
+    fun traded(a: Player, b: Player, start: TradeStart) {
+        val beforeA = start.heldA
+        val beforeB = start.heldB
         val run = raids.at(a.x, a.z) ?: return
         val allowA = run.suppliesBrought[a.saveKey]?.toMutableMap() ?: return
         val allowB = run.suppliesBrought[b.saveKey]?.toMutableMap() ?: return

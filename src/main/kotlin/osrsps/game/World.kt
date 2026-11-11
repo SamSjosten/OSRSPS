@@ -652,10 +652,13 @@ class World(
         setVarbit = { player, id, value -> player.vars.setVarbitIfKnown(id, value) },
         varbit = { player, id -> player.vars.getVarbitIfKnown(id) },
         commit = { a, b, swap, undo ->
-            // Supplies a raid member brought in, traded to another, go with their allowance (Codex review on #636).
-            // Before the swap, what each gives is in their offer, out of the backpack.
-            val before = archiveRaids.supplies.held(a, a.trade?.sideOf(a)?.offer) to archiveRaids.supplies.held(b, b.trade?.sideOf(b)?.offer)
-            commitTrade(a, b, swap, undo).also { if (it) archiveRaids.supplies.traded(a, b, before.first, before.second) }
+            // Supplies a raid member brought in, traded to another, go with their allowance, in the swap itself so the
+            // trade's saves have it, and back if it is undone (Codex review on #636).
+            val start = archiveRaids.supplies.beforeTrade(a, b)
+            commitTrade(a, b, { swap(); archiveRaids.supplies.traded(a, b, start) }) {
+                archiveRaids.supplies.untraded(a, b, start)
+                undo()
+            }
         },
         refuses = { archiveRaids.isDown(it) },
     )
@@ -1631,8 +1634,12 @@ class World(
 
     /** [player]'s state as a save has it, the items in the guide prices screen counted as in the inventory. */
     fun snapshot(player: Player): PlayerSave {
-        val (inventory, bank) = priceChecker.saved(player)
-        return saveOf(player, inventory, bank)
+        var inventory = player.inventory.contents().toMap()
+        var checked = player.priceChecker.contents().toMap()
+        // In a raid run, saved at its exit: without its supplies, the checker's too before any overflow to the bank (R26A-1).
+        if (instances.inDynamicArea(player.x, player.z)) archiveRaids.supplies.saved(player, inventory, checked).let { (i, c) -> inventory = i; checked = c }
+        val (saved, bank) = priceChecker.saved(player, inventory, checked)
+        return saveOf(player, saved, bank)
     }
 
     /**
@@ -1648,7 +1655,7 @@ class World(
         val instance = instances.at(player.x, player.z)
         return PlayerSave.of(
             // At the exit, out of any raid run: without its supplies (R26A-1).
-            player, archiveRaids.supplies.saved(player, inventory), bank,
+            player, archiveRaids.supplies.saved(player, inventory).first, bank,
             x = instance?.exitX ?: SPAWN_X, z = instance?.exitZ ?: SPAWN_Z, level = instance?.exitLevel ?: SPAWN_LEVEL,
         )
     }
