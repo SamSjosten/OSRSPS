@@ -63,7 +63,6 @@ class HeadlessThievingLocksTest {
                     type(ThievingLocks.OPEN_CHEST, "Chest", emptyList()),
                     type(ThievingLocks.DOOR_EAST_ARDOUGNE_NORTH, "Door", doorOps),
                     type(ThievingLocks.DOOR_ARDOUGNE_CASTLE, "Door", doorOps),
-                    type(ThievingLocks.DOOR_OPEN, "Door", emptyList(), interact = 0),
                 ).associateBy { it.id },
             ),
             staticLocs = StaticLocs().apply { listOf(coinChest, bloodChest, tipChest, northDoor, castleDoor).forEach(::add) },
@@ -208,7 +207,10 @@ class HeadlessThievingLocksTest {
                 }
                 client.await("inside") { client.position?.takeIf { it == Coord(3225, 3218, 0) } }
                 assertEquals(tenths + 38, carol.skills.tenths(Skill.THIEVING))
-                client.await("the door shut") { if (server.world.locs.exists(northDoor)) Unit else null }
+                // The door never opens, so nobody can walk in behind the picker (R25B-1).
+                assertTrue(server.world.locs.exists(northDoor), "the door stays shut")
+                client.awaitTicks(3)
+                assertTrue(client.locChanges().none { it.coord.x == northDoor.x && it.coord.z == northDoor.z }, "no door swung")
 
                 client.locOp(northDoor.id, northDoor.x, northDoor.z, ThievingLocks.OP_OPEN)
                 client.awaitSeen("[thieving_lock.through]")
