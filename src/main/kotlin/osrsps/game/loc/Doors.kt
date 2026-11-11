@@ -228,6 +228,6 @@ class Doors(private val locs: Locs) {
         private const val LEFT_TURN = 3
 
         /** By a closed door's angle: the tile its open type goes on. */
-        private val SWING = listOf(-1 to 0, 0 to 1, 1 to 0, 0 to -1)
+        val SWING = listOf(-1 to 0, 0 to 1, 1 to 0, 0 to -1)
     }
 }

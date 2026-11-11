@@ -45,7 +45,7 @@ class Locs(
     private val reverts = HashMap<Long, Revert>()
 
     /** [owner]: whose door or gate it is the respawn clock of ([restoreAfter]), for [restoreOwnedBy]; null for others. */
-    private class Revert(val dueTick: Long, val previous: ZoneLoc?, val owner: String? = null)
+    private class Revert(val dueTick: Long, val previous: ZoneLoc?, val owner: String? = null, val next: Revert? = null)
 
     /** The loc on a tile's [layer] now, if any. */
     operator fun get(x: Int, z: Int, level: Int, layer: Int): ZoneLoc? {
@@ -105,6 +105,23 @@ class Locs(
         return replacement
     }
 
+    /**
+     * Swaps [loc] for type [id] for [firstTicks] ticks, then for type [thenId] for [thenTicks] more, then puts the tile
+     * back as the cache has it: a looted chest standing open, then empty until it relocks. The world runs both steps,
+     * so the stages go on whatever happens to the player who started them. Returns the first loc, or null, changing
+     * nothing, if [loc] isn't there. A later change to the tile drops both steps, as with any timed change.
+     */
+    fun replaceInStages(loc: ZoneLoc, id: Int, firstTicks: Int, thenId: Int, thenTicks: Int): ZoneLoc? {
+        require(firstTicks > 0 && thenTicks > 0) { "Can't stage $firstTicks then $thenTicks ticks" }
+        if (!exists(loc)) return null
+        val first = loc.copy(id = id)
+        change(loc.x, loc.z, loc.level, loc.layer, first, 0)
+        val due = currentTick() + firstTicks
+        val restore = Revert(due + thenTicks, baseline(loc.x, loc.z, loc.level, loc.layer))
+        reverts[slot(loc.x, loc.z, loc.level, loc.layer)] = Revert(due, loc.copy(id = thenId), next = restore)
+        return first
+    }
+
     /** Puts a tile's [layer] back to what the cache has there (or the world for good, [addPermanent]), dropping any timed revert. */
     fun restore(x: Int, z: Int, level: Int, layer: Int) = change(x, z, level, layer, baseline(x, z, level, layer), 0)
 
@@ -144,6 +161,7 @@ class Locs(
         for ((slot, revert) in due) {
             reverts.remove(slot)
             set(slot, revert.previous)
+            revert.next?.let { reverts[slot] = it }
         }
     }
 
