@@ -877,6 +877,23 @@ Magic. One cast a tick at most, however fast the clicks come. What the enchanted
 Check: `./gradlew test --tests 'osrsps.game.skill.magic.BoltEnchantDataTest' --tests 'osrsps.testclient.HeadlessBoltEnchantTest'`,
 and in RuneLite `test-runner/examples/magic-bolt-enchant.json`.
 
+### Thieving: chests and pick-lock doors
+
+Thieving 2 step T2 (`game/skill/ThievingLocks.kt`). The chests and doors are the cache's, where the cache map puts them;
+only their options are new.
+
+| What | Source |
+|---|---|
+| Search for traps on a chest: the trap found, disabled, the chest opened and the loot given, two ticks apart; it stands open 4 ticks, then empty (`emptytrapchest` 11740) until it relocks. Below the level: "nothing". Open instead sets the trap off | OSRS Wiki, each chest's page; 2004Scape `trapped_chest.rs2` and `thieving.rs2` for the steps and words |
+| 10 coins (11735): 13, 7.8 XP, 7 s. Nature runes (11736): 28, 25 XP, a nature rune and 3 coins, 15 s. 50 coins (11737): 43, 125 XP, 50 s. Blood runes (11738, Chaos Druid Tower dungeon): 59, 250 XP, 2 blood runes and 500 coins, 135 s, then a second trap sends the looter to East Ardougne (2584, 3337). Ardougne Castle (11739): 72, 500 XP, 1,000 coins, a raw shark, an adamantite ore and an uncut sapphire, 500 s, then Witchaven (2696, 3281) | OSRS Wiki, Chest (10 coins), (nature runes), (50 coins), (blood runes), (Ardougne Castle) |
+| Steel arrowtips (11742): 47, 150 XP, 5 steel arrowtips and 20 coins, 90 s, empty as `emptypickchest` 11741. Open says it is locked; Search for traps, or a lockpick used on it, picks it every time with a lockpick held | OSRS Wiki, Chest (steel arrowtips); 2004Scape `attempt_locked_chest` |
+| The traps: the nature rune chest's `floor(HP * 12 / 100) + 3` of current Hitpoints, the blood rune chest's `(9 * HP + 225) / 50` | OSRS Wiki, Chest (nature runes), Chest (blood runes) |
+| Doors: Open from outside says it is locked; from inside, Open or Pick-lock lets the player through. Outside is the door tile's own side of its wall | 2004Scape `locked_door.rs2` (`check_axis_locactive`) |
+| East Ardougne's north (11719, 1, 3.8 XP) and south (11720, 16, 15 XP) doors, 32 to 250. Ross' house (40178, 13, 15 XP, 4 to 40). The Chaos Druid Tower (11723, 46, 37.5 XP, 8 to 75). Ardougne Castle (11724, 61, 50 XP, 4 to 40) | OSRS Wiki, each door's page (levels, XP, East Ardougne's chart); 2004Scape's `locked_door.dbrow` (the other charts) |
+| The trap before a pick on Ross', the tower's and the castle's doors (32 to 250, 220 to 280, 200 to 270): its blow is 10% of current Hitpoints (none at 10 or less), 6% of full, or 10% of full, and it ends the try. Ross' 32 to 250 gives the Wiki's 77% at 13 and 2% at 99 | OSRS Wiki, Door (Ross' House), (Chaos Druid Tower), (Ardougne Castle); 2004Scape's charts |
+| The 10 and 50 coin and Ardougne Castle chests' trap damage (the Wiki says "substantial" and "high"; the nature rune chest's formula is used); the open door shown while going through (`inactivepoordoor` 1539, 3 ticks); Ross' door, a newer loc than 2004Scape's, opening the same way; refusing a chest whose loot wouldn't fit (2004Scape gives it regardless) | guessed |
+| Not built: the Dorgesh-Kaan and Rogues' Castle chests, the doors that need a lockpick, the Ardougne sewer gates, the Ardougne diary, the gas random event | next steps |
+
 ## Items and inventory
 
 Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for
