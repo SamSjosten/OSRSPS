@@ -678,7 +678,7 @@
       "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
       "respawnTicks": 100,
       "aggressive": true,
-      "source": "OSRS Wiki, Highwayman (No hood, id 518), read 2026-11-11: speed 4, max hit 1, stab, attack bonus 6, strength bonus 7, the defence bonuses, respawn 100, aggressive. He carries no weapon, so he punches (guessed). His overhead 'Stand and deliver!' when he attacks is left out (no NPC shouts yet)"
+      "source": "OSRS Wiki, Highwayman (No hood, id 518), read 2026-11-11: speed 4, max hit 1, stab, attack bonus 6, strength bonus 7, the defence bonuses, respawn 100, aggressive. He carries no weapon, so he punches (guessed). His overhead shout when he attacks is left out (no NPC shouts yet)"
     },
     {
       "npcs": ["black_knight"],
