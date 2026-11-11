@@ -289,6 +289,7 @@ object DialogueLines {
         PhillipaLines,
         PickpocketLines,
         PickpocketGearLines,
+        PilloryLines,
         PlayingChildLines,
         PoisonLines,
         PortSarimJailLines,

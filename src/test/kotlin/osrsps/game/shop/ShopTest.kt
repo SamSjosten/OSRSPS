@@ -66,6 +66,8 @@ class ShopTest {
         11850 to 35, 11854 to 55, 11856 to 60, 11858 to 30, 11860 to 40, 11852 to 40, 12641 to 10,
         // Construction supplies.
         8794 to 10, 8790 to 500, 4819 to 2, 4820 to 4, 1539 to 3,
+        // The Pelters' Veg Stall's rotten tomato.
+        2518 to 1,
     )
 
     /**
@@ -193,6 +195,8 @@ class ShopTest {
         "graces_graceful_clothing" to listOf(35, 55, 60, 30, 40, 40, 10),
         // The Lumber Yard's Sawmill, read 2026-11-11.
         "construction_supplies" to listOf(13, 650, 2, 5, 3),
+        // The Pelters' Veg Stall, read 2026-11-11.
+        "varrock_pelters_veg_stall" to listOf(1),
     )
 
     @Test

@@ -2686,6 +2686,26 @@
           "restock": 100
         }
       ]
+    },
+    {
+      "key": "varrock_pelters_veg_stall",
+      "title": "Pelters' Veg Stall",
+      "inv": 334,
+      "size": 1,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 0,
+      "changePer": 10,
+      "npcs": [],
+      "source": "OSRS Wiki, Rotten tomato, read 2026-11-11: the Varrock Pelters' Veg Stall sells at 1 coin, buys at 0, stock 2,000, restock 6 seconds, change per 1.0%. Opened by Buy on the pillory's rotten tomato crate (guessed); inv pillory_rottenfruitshop (334)",
+      "stock": [
+        {
+          "item": 2518,
+          "name": "Rotten tomato",
+          "count": 2000,
+          "restock": 10
+        }
+      ]
     }
   ]
 }

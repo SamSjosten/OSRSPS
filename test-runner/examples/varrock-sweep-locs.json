@@ -1,0 +1,161 @@
+{
+ "name": "Varrock sweep locs: the bank cellar stairs, the cellar ladder, a fairy crate, the pillory cage and its tomato crate (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle: a command typed straight away can be lost"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3186 3433 0",
+   "expectMessage": "Teleported to 3186, 3433, 0",
+   "comment": "inside the West Bank's back room, beside its cellar stairs (the room's door stays locked)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb-down",
+   "x": 3187,
+   "y": 3433
+  },
+  {
+   "step": "assertLocation",
+   "x": 3190,
+   "y": 9833,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "the cellar landing is guessed from the map"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "locOption",
+   "loc": "Staircase",
+   "option": "Climb-up",
+   "x": 3187,
+   "y": 9833
+  },
+  {
+   "step": "assertLocation",
+   "x": 3186,
+   "y": 3433,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "back beside the stairs (guessed)"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3231 3402 0",
+   "expectMessage": "Teleported to 3231, 3402, 0",
+   "comment": "west of the cellar ladder south of the square"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "loc": "Ladder",
+   "option": "Climb-down",
+   "x": 3232,
+   "y": 3402
+  },
+  {
+   "step": "assertLocation",
+   "x": 3231,
+   "y": 9802,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "a dungeon ladder keeps the player's tile"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "locOption",
+   "loc": "Ladder",
+   "option": "Climb-up",
+   "x": 3232,
+   "y": 9802
+  },
+  {
+   "step": "assertLocation",
+   "x": 3231,
+   "y": 3402,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "back up"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3200 3386 0",
+   "expectMessage": "Teleported to 3200, 3386, 0",
+   "comment": "beside the fairy crate in the south-west house"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "loc": "Crate",
+   "option": "Search",
+   "x": 3201,
+   "y": 3386
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[search.crate_empty]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3227 3409 0",
+   "expectMessage": "Teleported to 3227, 3409, 0",
+   "comment": "by the pillory"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "loc": "Cage",
+   "option": "Unlock",
+   "x": 3226,
+   "y": 3408
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[pillory.unlock]"
+  },
+  {
+   "step": "locOption",
+   "loc": "Crate",
+   "option": "Buy",
+   "x": 3226,
+   "y": 3413
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "comment": "the Pelters' Veg Stall opens"
+  }
+ ]
+}
