@@ -209,7 +209,8 @@ object DigsiteDigs {
             return
         }
         val type = world.objTypes[obj] ?: return
-        player.inventory.add(type, count)
+        // Whatever a full coin stack can't take lands on the player's tile, so no find is lost.
+        world.groundObjs.give(player, type, count)
         world.message(player, DigsiteDigLines.FIND, "item" to type.name)
     }
 
@@ -291,11 +292,9 @@ object DigsiteDigs {
 
     fun ScriptContext.searchPanningTray(world: World, slot: Int) = with(DigsiteDigLines) {
         if (player.inventory[slot]?.id != PANNING_TRAY_MUD) return@with
+        // Refused before the roll, as the digs and the specimen trays are, so searching again can't pick a find that fits.
+        if (player.inventory.freeSlots == 0) return@with world.message(player, GameLines.NO_SPACE)
         val (obj, count) = roll(world, PANNING_FINDS)
-        val type = if (obj >= 0) world.objTypes[obj] else null
-        if (type != null && player.inventory.freeSlots == 0 && !(type.stackable && player.inventory.count(obj) > 0)) {
-            return@with world.message(player, GameLines.NO_SPACE)
-        }
         player.inventory[slot] = InvObj(PANNING_TRAY, 1)
         world.message(player, SEARCH_PANNING_TRAY)
         give(world, player, obj, count)

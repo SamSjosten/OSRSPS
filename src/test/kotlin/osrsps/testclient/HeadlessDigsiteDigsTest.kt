@@ -253,6 +253,17 @@ class HeadlessDigsiteDigsTest {
                 client.await("an empty tray") { if (client.count(DigsiteDigs.PANNING_TRAY) == 1) Unit else null }
                 client.awaitSeen("[digsite_dig.search_panning_tray]")
                 client.await("a find or nothing") { if (client.finds() == 1) Unit else null }
+
+                // A full backpack refuses the search before anything is rolled, and the tray stays muddy.
+                client.locOp(point.id, point.x, point.z, DigsiteDigs.PAN)
+                client.await("a muddy tray again") { if (client.count(DigsiteDigs.PANNING_TRAY_MUD) == 1) Unit else null }
+                val used = client.inventory(Inventory.INV).count { it != null }
+                client.command("item ${DigsiteDigs.TROWEL} ${Inventory.INV_CAPACITY - used}")
+                client.await("a full backpack") { if (client.inventory(Inventory.INV).all { it != null }) Unit else null }
+                client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, 3, client.slotOf(DigsiteDigs.PANNING_TRAY_MUD), DigsiteDigs.PANNING_TRAY_MUD)
+                client.awaitSeen("[game.no_space]")
+                assertEquals(1, client.count(DigsiteDigs.PANNING_TRAY_MUD))
+                assertEquals(1, client.seen("[digsite_dig.search_panning_tray]"))
             }
         }
     }
