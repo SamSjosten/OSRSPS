@@ -806,6 +806,7 @@ xbows_crossbow_mithril	ranged=36	Mithril crossbow
 xbows_crossbow_adamantite	ranged=46	Adamant crossbow
 xbows_crossbow_runite	ranged=61	Rune crossbow
 xbows_crossbow_bolts_blurite_tipped_jade_enchanted	ranged=16	Jade bolts (e)
+# Inferred: neither Pearl bolts page gives a Ranged level; 26 is their iron bolts' (Wiki, Iron bolts), as every other gem-tipped bolt needs its metal's.
 xbows_crossbow_bolts_iron_tipped_pearl_enchanted	ranged=26	Pearl bolts (e)
 xbows_crossbow_bolts_steel_tipped_redtopaz_enchanted	ranged=31	Topaz bolts (e)
 xbows_crossbow_bolts_mithril_tipped_sapphire_enchanted	ranged=36	Sapphire bolts (e)
@@ -836,6 +837,7 @@ xbows_crossbow_bolts_adamantite_poisoned++	ranged=46	Adamant bolts
 xbows_crossbow_bolts_runite_poisoned++	ranged=61	Runite bolts
 xbows_crossbow_bolts_silver_poisoned++	ranged=26	Silver bolts
 xbows_crossbow_bolts_blurite_tipped_jade	ranged=16	Jade bolts
+# Inferred: neither Pearl bolts page gives a Ranged level; 26 is their iron bolts' (Wiki, Iron bolts), as every other gem-tipped bolt needs its metal's.
 pearl_bolt	ranged=26	Pearl bolts
 xbows_crossbow_bolts_steel_tipped_redtopaz	ranged=31	Topaz bolts
 xbows_crossbow_bolts_mithril_tipped_sapphire	ranged=36	Sapphire bolts
