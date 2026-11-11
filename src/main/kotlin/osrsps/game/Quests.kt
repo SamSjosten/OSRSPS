@@ -107,6 +107,12 @@ class Quests(val all: List<Quest>) {
             // Climb-down, as the quest's later steps climb down it without a pick (inferred from the Wiki's quick guide;
             // [osrsps.game.content.HamStorerooms]).
             2270 to 2,
+            // soulbane_tolna_pres, soulbane_riftrope_pres, soulbane_warning_pres: after A Soul's Bane, Tolna stands at the
+            // top of his rift, the rope hangs in it and the warning signs stand round it (inferred from the names and the
+            // Wiki's post-quest pictures; [osrsps.game.content.LumberYard]).
+            2025 to 1,
+            2032 to 1,
+            2034 to 1,
         )
 
         val NONE = Quests(emptyList())

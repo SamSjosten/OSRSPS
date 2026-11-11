@@ -1,0 +1,13 @@
+{
+  "about": "Misthalin piece 7 step 6: the Lumber Yard north-east of Varrock and Tolna's rift south of it (LumberYard.kt). The Sawmill operator, the six mewing crates (NPCs named Crate, kittens_mew) and Tolna, on the tiles mejrs's list saw them; they stand still (guessed for Tolna). Launa, seen beside Tolna on mejrs's list, isn't here: the Wiki's Launa page says she went home after A Soul's Bane, and her multi-NPC shows nothing once it's done.",
+  "spawns": [
+    {"npc": "poh_sawmill_opp", "x": 3302, "z": 3492, "wander": 0, "source": "Sawmill operator, in his room on the Lumber Yard's south wall. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the Wiki's Sawmill operator map agrees"},
+    {"npc": "kittens_mew", "x": 3298, "z": 3514, "wander": 0, "source": "Crate (a mewing crate, an NPC), Lumber Yard. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022)"},
+    {"npc": "kittens_mew", "x": 3303, "z": 3506, "wander": 0, "source": "Crate (a mewing crate, an NPC), Lumber Yard. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022)"},
+    {"npc": "kittens_mew", "x": 3305, "z": 3500, "wander": 0, "source": "Crate (a mewing crate, an NPC), Lumber Yard. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022)"},
+    {"npc": "kittens_mew", "x": 3307, "z": 3507, "wander": 0, "source": "Crate (a mewing crate, an NPC), Lumber Yard. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022)"},
+    {"npc": "kittens_mew", "x": 3310, "z": 3499, "wander": 0, "source": "Crate (a mewing crate, an NPC), Lumber Yard. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022)"},
+    {"npc": "kittens_mew", "x": 3315, "z": 3515, "wander": 0, "source": "Crate (a mewing crate, an NPC), Lumber Yard. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022)"},
+    {"npc": "soulbane_tolna_multi", "x": 3308, "z": 3452, "wander": 0, "source": "Tolna, beside his rift; shows soulbane_tolna_top after A Soul's Bane. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the Wiki's Tolna map (3308,3452) agrees"}
+  ]
+}

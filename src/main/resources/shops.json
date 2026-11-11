@@ -2640,6 +2640,52 @@
           "restock": 1
         }
       ]
+    },
+    {
+      "key": "construction_supplies",
+      "title": "Construction supplies",
+      "inv": 395,
+      "size": 5,
+      "general": false,
+      "sellAt": 1300,
+      "buyAt": 500,
+      "changePer": 0,
+      "npcs": [
+        "poh_sawmill_opp"
+      ],
+      "source": "OSRS Wiki, Construction supplies, read 2026-11-10: sellmultiplier 1300, buymultiplier 500, delta 0, and the stock table (version 1, the Lumber Yard's Sawmill). Left out: the Wiki's top-up of bolts of cloth and bronze nails when the shop is opened below 50 or 100 stock.",
+      "stock": [
+        {
+          "item": 8794,
+          "name": "Saw",
+          "count": 1000,
+          "restock": 10
+        },
+        {
+          "item": 8790,
+          "name": "Bolt of cloth",
+          "count": 1000,
+          "restock": 100
+        },
+        {
+          "item": 4819,
+          "name": "Bronze nails",
+          "count": 1000,
+          "restock": 100
+        },
+        {
+          "item": 4820,
+          "name": "Iron nails",
+          "count": 1000,
+          "restock": 100
+        },
+        {
+          "item": 1539,
+          "name": "Steel nails",
+          "count": 1000,
+          "restock": 100
+        }
+      ]
     }
   ]
 }

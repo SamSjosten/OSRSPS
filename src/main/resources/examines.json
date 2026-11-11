@@ -755,6 +755,7 @@
     {"loc": 2612, "name": "Cupboard"},
     {"loc": 2616, "name": "Stairs"},
     {"loc": 2617, "name": "Stairs"},
+    {"loc": 2618, "name": "Broken fence", "wiki": "Broken fence (Lumber Yard)"},
     {"loc": 2640, "name": "Altar"},
     {"loc": 2641, "name": "Ladder"},
     {"loc": 2692, "name": "Prison door"},

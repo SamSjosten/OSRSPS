@@ -1341,6 +1341,38 @@ Seth Groats is off to milk his cows.
 | Every wander range, the chathead expressions, the player repeating a gardener's option, the Farming refusal's words | guessed |
 | Out: the Evil Chicken (a random event); the gardeners' payments and shop and the leprechauns' store (the Farming skill thread); canoes (step 11); stray sightings near Lumbridge and Varrock (a dwarf, a H.A.M. Member, Ali the Leaflet Dropper, Avan, Katrine, Sarah, Julie, Guidor: the 12a sweep) | out of scope |
 
+#### The Lumber Yard and Tolna's rift
+
+Misthalin piece 7 step 6 (`game/content/LumberYard.kt`, `npc-spawns/lumber-yard.json`, the `construction_supplies`
+shop, the `shortcut_lumber_yard_fence` obstacle, words under `sawmill_operator.*`, `tolna.*` and `tolna_rift.*`): the
+Lumber Yard north-east of Varrock, the Earth Altar's ruins south of it and the top of Tolna's rift.
+
+The broken fence on the yard's south side is climbed over both ways. The Sawmill operator's talk follows the Wiki's
+transcript: his first option opens the Make-X box of the seven planks, his second his Construction supplies shop (on
+Trade too, his op 4, as his op 3 is Buy-plank), his third says goodbye. Buy-plank opens the box at once. Each plank chosen
+takes one unnoted log of its kind and the Wiki's fee (100, 250, 500, 1500, 2500, 5000, 7500 coins); with none of the logs
+he says so, and with too few coins he makes as many as they pay for and says what each costs. The six mewing crates and
+the yard's crates hold nothing now that Gertrude's Cat is done; its barrels do nothing. The Earth Altar's ruins refuse
+Enter and an earth talisman or tiara, as the Water Altar's do, until Runecraft is built.
+
+Every account has done A Soul's Bane, so login sets the varbits that show Tolna at the top of his rift, the rope in it and
+the five warning signs round it. Tolna talks as the Wiki has him after the quest; the rift's holes and rope wait for its
+dungeon; the signs read as the Wiki says.
+
+| Lumber Yard and Tolna's rift | Source |
+|------------------------------|--------|
+| The NPCs' types and tiles | mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022); the Wiki's Sawmill operator and Tolna maps agree |
+| The sawmill's Make-X box (since 16 April 2020), the planks, their logs and fees | OSRS Wiki, Sawmill, read 2026-11-10 |
+| The operator's talk and his refusals | OSRS Wiki, Transcript:Sawmill operator, read 2026-11-10 (making as many as the coins pay for: inferred from its "for all of them") |
+| Construction supplies: 130%, 50%, no change, the stock | OSRS Wiki, Construction supplies, read 2026-11-10 |
+| The broken fence: Climb-over, no level, no XP | OSRS Wiki, Broken fence (Lumber Yard), read 2026-11-10 |
+| Tolna's talk | OSRS Wiki, Transcript:Tolna (after A Soul's Bane), read 2026-11-10 |
+| The signs' text | OSRS Wiki, Transcript:Warning sign (Tolna's rift), read 2026-11-10 |
+| Launa left out | OSRS Wiki, Launa: she went home with Brana after the quest |
+| The three varbits after A Soul's Bane, the crates finding nothing, the fence's two tiles | inferred |
+| The fence's animation (the Varrock fence's), the barrels' "Nothing interesting happens", the cost line's words, the chathead expressions, the rift's refusal | guessed |
+| Out: Tolna's rift dungeon (a later step), sawmill vouchers (Forestry), Gertrude's cat and kittens, the clue crate, the shop's top-up of bolts of cloth and bronze nails when opened low | out of scope |
+
 ## Draynor Village
 
 The village west of Lumbridge (the Draynor piece, plan in the project's Draynor Village 1:1 plan doc). Step 1 is the
