@@ -18,6 +18,7 @@ import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.World
 import osrsps.game.combat.Foods
+import osrsps.game.combat.Potions
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
@@ -53,17 +54,22 @@ class HeadlessArchiveSuppliesTest {
     )
     private val staticLocs = StaticLocs().apply { add(ZoneLoc(ArchiveRaids.ARCHIVE_DOOR, LocShape.CENTREPIECE_STRAIGHT, 0, 4123, 5562, 0)) }
 
+    private val DRINK = listOf("Drink", null, null, null, null)
+
     /** The shop's items, as the 241 cache has them (ids, names, and that none stacks). */
     private val objTypes = ObjTypes.of(
-        ObjType(BREW, "Saradomin brew(4)", internalName = "4dosepotionofsaradomin"),
-        ObjType(RESTORE, "Super restore(4)", internalName = "4dose2restore"),
-        ObjType(PRAYER_4, "Prayer potion(4)", internalName = "4doseprayerrestore"),
+        ObjType(BREW, "Saradomin brew(4)", iops = DRINK, internalName = "4dosepotionofsaradomin"),
+        ObjType(BREW_3, "Saradomin brew(3)", iops = DRINK, internalName = "3dosepotionofsaradomin"),
+        ObjType(BREW_2, "Saradomin brew(2)", iops = DRINK, internalName = "2dosepotionofsaradomin"),
+        ObjType(BREW_1, "Saradomin brew(1)", iops = DRINK, internalName = "1dosepotionofsaradomin"),
+        ObjType(RESTORE, "Super restore(4)", iops = DRINK, internalName = "4dose2restore"),
+        ObjType(PRAYER_4, "Prayer potion(4)", iops = DRINK, internalName = "4doseprayerrestore"),
         ObjType(MANTA, "Manta ray", internalName = "mantaray"),
         ObjType(HALIBUT, "Halibut", internalName = "halibut"),
         ObjType(KRILL, "Giant krill", internalName = "giant_krill"),
-        ObjType(PRAYER_2, "Prayer potion(2)", internalName = "2doseprayerrestore"),
-        ObjType(RANGING_2, "Ranging potion(2)", internalName = "2doserangerspotion"),
-        ObjType(COMBAT_2, "Super combat potion(2)", internalName = "2dose2combat"),
+        ObjType(PRAYER_2, "Prayer potion(2)", iops = DRINK, internalName = "2doseprayerrestore"),
+        ObjType(RANGING_2, "Ranging potion(2)", iops = DRINK, internalName = "2doserangerspotion"),
+        ObjType(COMBAT_2, "Super combat potion(2)", iops = DRINK, internalName = "2dose2combat"),
         ObjType(LOG, "Alliance log", internalName = "tfa_midraid_supplies_note"),
         ObjType(ArchiveSupplies.LEFTOVERS, "Leftovers", iops = listOf("Eat", null, null, null, null), internalName = "tfa_midraid_supplies_leftovers"),
         ObjType(AXE, "Bronze axe", internalName = "bronze_axe"),
@@ -105,7 +111,7 @@ class HeadlessArchiveSuppliesTest {
                 for (x in 63..65) for (z in 86..88) markLoaded(x, z)
                 markLoaded(3222 shr 6, 3218 shr 6)
             },
-            locTypes = locTypes, staticLocs = staticLocs, objTypes = objTypes,
+            locTypes = locTypes, staticLocs = staticLocs, objTypes = objTypes, potionData = Potions.load(objTypes),
             npcTypes = NpcTypes.of(quartermaster), omnishops = omnishops,
             // tfa_supply_points: bits 1 to 7 of its varp, as the 241 cache has it (the varp's id here is the test's).
             varTypes = VarTypes(6_000, mapOf(ArchiveSupplies.CREDITS_VARBIT to VarbitType(CREDITS_VARP, 1, 7))),
@@ -349,10 +355,70 @@ class HeadlessArchiveSuppliesTest {
         }
     }
 
+    @Test
+    fun `what was bought stays in the raid, taken back as a member teleports or logs out, what they brought in kept`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bob").use { client ->
+                client.await("the login rebuild") { client.position }
+                // Bob brings in a brew of his own, 3 doses, and an axe.
+                client.command("item $BREW_3 1")
+                client.command("item $AXE 1")
+                client.awaitHeld(BREW_3, 1)
+                client.awaitHeld(AXE, 1)
+                val run = client.intoRun(server, "bob")
+                client.clear(run, ArchiveRoom.GUARDIAN)
+                client.clear(run, ArchiveRoom.BORK)
+                client.clear(run, ArchiveRoom.DREADNOTH)
+                client.toNexus(server, run)
+                client.resupply()
+                client.entry(1, 5)
+                client.entry(1, 3)
+                client.awaitHeld(BREW, 6)
+                client.entry(2, 5)
+                client.awaitHeld(RESTORE, 4)
+                // Out of the instance, as a Home Teleport would take him (exploit review round 26, R26A-1): of the 27
+                // brew doses he holds, the 24 bought go, the fewest doses first, so a 4-dose brew is left as his 3.
+                client.tele(3222, 3218)
+                client.awaitHeld(RESTORE, 0)
+                client.awaitHeld(BREW, 0)
+                assertEquals(1, client.held(BREW_3))
+                assertEquals(1, client.held(AXE))
+                assertFalse(server.world.playerNamed("bob")!!.saveKey in run.suppliesBrought)
+            }
+        }
+    }
+
+    @Test
+    fun `logging out in the run leaves the supplies in it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bob").use { client ->
+                client.await("the login rebuild") { client.position }
+                val run = client.intoRun(server, "bob")
+                client.clear(run, ArchiveRoom.GUARDIAN)
+                client.clear(run, ArchiveRoom.BORK)
+                client.clear(run, ArchiveRoom.DREADNOTH)
+                client.toNexus(server, run)
+                client.resupply()
+                client.entry(4, 2)
+                client.awaitHeld(MANTA, 1)
+                client.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+                client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+            }
+            server.login("bob").use { again ->
+                again.await("the login rebuild") { again.position }
+                again.awaitTicks(2)
+                assertEquals(0, again.held(MANTA))
+            }
+        }
+    }
+
     private companion object {
         const val CREDITS_VARP = 4_500
         const val CURRENCY = 17149
         const val BREW = 6685
+        const val BREW_3 = 6687
+        const val BREW_2 = 6689
+        const val BREW_1 = 6691
         const val RESTORE = 3024
         const val PRAYER_4 = 2434
         const val MANTA = 391

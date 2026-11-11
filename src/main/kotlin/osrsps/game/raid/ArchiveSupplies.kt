@@ -55,6 +55,12 @@ object QuartermasterLines : Lines("tfa_quartermaster", "Transcript:Quartermaster
  * - **Supply Credits**, `tfa_supply_points` (16381, seven bits), shown by the shop itself. Guessed: every member in
  *   the run as he comes has [CREDITS] (guides speak of 50 personal credits; the tsps notes estimate 10 for each room
  *   won), and they are gone with the next run (set to 0 as a player comes through the Archive Door).
+ * - **Only for the raid.** What a member holds of the supplies' kinds as they get out of the run (a teleport, the Rift
+ *   out, leaving the party, logging out, the instance's end) or lose it (a wipe, dying of an escape while down), beyond
+ *   what they brought in through the Archive Door, is taken: doses of each potion, whatever its doses, and items of
+ *   the rest ([settle]). Without it the stock, the ordinary items, left the raid to be banked or sold (exploit review
+ *   round 26, R26A-1). Guessed: live's stock is the same items (the cache's rows), and whether live takes them back,
+ *   and how, isn't known; nothing is said.
  * - **Talk-to** (op 3) is the Wiki's transcript ([QuartermasterLines]). Guessed: every chathead expression, and that
  *   "I'll keep that in mind" from his second menu ends the talk (his answer to it isn't written down). Not in: his overhead lines, and the cache's inactive Quartermaster (16762,
  *   Talk-to only), whose use isn't known.
@@ -67,8 +73,81 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
         }
     }
 
-    /** As [player] comes into a run: no credits from an earlier one. */
-    fun entered(player: Player) = setCredits(player, 0)
+    /** As [player] comes into [run]: no credits from an earlier one, and what they bring in of the supplies noted. */
+    fun entered(run: ArchiveRun, player: Player) {
+        setCredits(player, 0)
+        settle(run, player)
+        run.suppliesBrought[player.saveKey] = held(player)
+    }
+
+    /**
+     * [player] is out of [run], or losing what they hold to it: what they hold of the supplies beyond what they brought
+     * in is taken, the fewest doses first, a potion with more doses than is owed left with the rest. Once a player.
+     */
+    fun settle(run: ArchiveRun, player: Player) {
+        val brought = run.suppliesBrought.remove(player.saveKey) ?: return
+        var taken = 0
+        for ((kind, have) in held(player)) {
+            var over = have - (brought[kind] ?: 0)
+            if (over <= 0) continue
+            val slots = player.inventory.contents()
+                .mapNotNull { (slot, obj) -> unitsOf(obj.id)?.takeIf { it.first == kind }?.let { Triple(slot, obj, it.second) } }
+                .sortedBy { it.third }
+            for ((slot, obj, each) in slots) {
+                if (over <= 0) break
+                val units = each.toLong() * obj.count
+                when {
+                    units <= over -> player.inventory.remove(slot).also { over -= units.toInt() }
+                    each == 1 -> player.inventory.remove(slot, over).also { over = 0 }
+                    else -> {
+                        player.inventory[slot] = doseOf(obj.id, each - over)?.let { InvObj(it, 1) }
+                        over = 0
+                    }
+                }
+            }
+            taken += have - (brought[kind] ?: 0) - over
+        }
+        if (taken > 0) logger.info { "$run: took back ${player.username}'s supplies, $taken doses or items" }
+    }
+
+    /** Each tick: the supplies of members out of [run], by a teleport, the Rift out or leaving the party, are taken back. */
+    fun settleOut(run: ArchiveRun, ended: Boolean) {
+        for (key in run.suppliesBrought.keys.toList()) {
+            val player = world.onlinePlayers.firstOrNull { it.saveKey == key } ?: continue
+            if (ended || !run.instance.contains(player.x, player.z) || world.parties.of(player) !== run.party) settle(run, player)
+        }
+    }
+
+    /** What [player] holds of the supplies' kinds: doses of each potion by its first dose obj, and items of the rest. */
+    internal fun held(player: Player): Map<Int, Int> {
+        val out = HashMap<Int, Int>()
+        for ((_, obj) in player.inventory.contents()) {
+            val (kind, each) = unitsOf(obj.id) ?: continue
+            out.merge(kind, each * obj.count, Int::plus)
+        }
+        return out
+    }
+
+    /** [id]'s kind and how many doses (or items) one is, if it is of the supplies' kinds. */
+    private fun unitsOf(id: Int): Pair<Int, Int>? {
+        val kind = kindOf(id)
+        if (kind !in kinds) return null
+        return kind to (doses(id) ?: 1)
+    }
+
+    /** A potion's first dose obj, or [id] itself for anything else (or with no potion data, as in a test world). */
+    private fun kindOf(id: Int): Int = world.potions.all[id]?.doses?.firstOrNull() ?: id
+
+    private val kinds: Set<Int> by lazy { (STOCK.keys + LEFTOVERS).map(::kindOf).toSet() }
+
+    /** The doses of potion [id], from its name's "(n)"; null for anything else. */
+    private fun doses(id: Int): Int? {
+        if (world.potions.all[id] == null) return null
+        return world.objTypes[id]?.name?.let { DOSES.find(it) }?.groupValues?.get(1)?.toInt()
+    }
+
+    /** The obj of [id]'s potion with [doses] doses, if there is one. */
+    private fun doseOf(id: Int, doses: Int): Int? = world.potions.all[id]?.doses?.firstOrNull { doses(it) == doses }
 
     /** Each tick: the Quartermaster comes once the third row's room is done, and goes as the fourth row's begins. */
     fun process(run: ArchiveRun) {
@@ -213,6 +292,8 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
         /** Leftovers (tfa_midraid_supplies_leftovers); guessed, how many. */
         const val LEFTOVERS = 34730
         const val LEFTOVERS_STOCK = 5
+
+        private val DOSES = Regex("""\((\d)\)$""")
 
         /** Each member's stock, by item, from the Wiki's Alliance Supplies page (read 2026-11-11). */
         val STOCK: Map<Int, Int> = linkedMapOf(

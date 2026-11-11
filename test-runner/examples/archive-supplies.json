@@ -296,6 +296,25 @@
   },
   {
    "step": "command",
+   "text": "::tele 3222 3218 0",
+   "expectMessage": "Teleported to 3222, 3218, 0",
+   "comment": "out of the run, as a Home Teleport would take the player (exploit review R26A-1)"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Saradomin brew(4)",
+   "count": 0,
+   "timeoutMs": 5000,
+   "comment": "what was bought stays in the raid"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Manta ray",
+   "count": 0,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "command",
    "text": "::reset",
    "expectMessage": "Back to how you were"
   }

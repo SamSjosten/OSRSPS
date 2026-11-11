@@ -2433,7 +2433,7 @@ loses goes in a grave there. The party lasts through the wipe.
 | The nexus's square north of its Archive Door (z 5623 on) counted as Ocellus's room: nobody gets there on the nexus's level, and on the level above it is the vault's corridor | inferred from the 241.4 cache's collision: from the vault the corridor is walkable south to z 5627 and no further |
 | Contribution: each room a fixed amount, shared by damage, minions included; the two rooms of a pair the same | Wiki, "Everything You Need To Know" |
 | A room's points 100 and Ocellus's 300, 700 a run, shared among the party by damage dealt | OSRS Wiki, Chest (The Fractured Archive), read 10 November 2026 |
-| A room's points shared evenly among who was there at its start when nobody did damage; the Wiki's soft cap on damage to a boss's minions isn't in | guessed |
+| A room's points shared evenly among who was there at its start when nobody did damage; for the Wiki's soft cap on damage to a boss's minions, a hard cap: damage to Moia's binders and the Dagon'hai's imps and rifts counting at most 25% of everyone's damage to the boss (exploit review round 26, R26A-3); the other rooms' adds not capped yet | guessed |
 | A wipe sending the party to the lobby with an ordinary gravestone; the party not breaking up | Wiki, The Fractured Archive (Theatre of Blood's system; 28 October 2026 update) |
 | The wipe's tile and graves in front of the Archive Door (4127,5560); each member's grave on it | guessed |
 | A member dying with the party standing keeping everything, down in front of the room's door until it is done, and sent back out if they walk in | guessed (Theatre of Blood's system); spectating isn't built |
