@@ -5,6 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.cache.DbRow
@@ -27,6 +28,7 @@ import osrsps.game.raid.ArchiveRaids
 import osrsps.game.raid.ArchiveRoom
 import osrsps.game.raid.ArchiveRun
 import osrsps.game.raid.ArchiveSupplies
+import osrsps.game.raid.PartyResult
 import osrsps.game.shop.OmnishopScreen
 import osrsps.game.shop.Omnishops
 import osrsps.game.shop.ShopLines
@@ -217,7 +219,8 @@ class HeadlessArchiveSuppliesTest {
                 client.awaitCredits(ArchiveSupplies.CREDITS)
 
                 client.resupply()
-                assertTrue(OmnishopScreen.SIDE in client.openInterfaces())
+                // The side panel's open comes in the same tick as the shop's, read here a packet or two after it.
+                client.await("the side panel open") { (OmnishopScreen.SIDE in client.openInterfaces()).takeIf { it } }
                 assertEquals(ArchiveSupplies.SHOP, client.varp(OmnishopScreen.LASTSHOP_VARP))
                 assertEquals(-1, client.varp(OmnishopScreen.SELECTED_VARP))
                 val scripts = client.clientScripts()
@@ -517,6 +520,44 @@ class HeadlessArchiveSuppliesTest {
                     again.await("the login rebuild") { again.position }
                     again.awaitTicks(2)
                     assertEquals(2, again.held(MANTA))
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a member put out of the party with bought supplies on offer has the trade declined and loses them`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    for (c in listOf(alice, bob)) c.await("the login rebuild") { c.position }
+                    alice.commandReply("raidparty invite bob") { it.startsWith("Invited") }
+                    bob.commandReply("raidparty accept alice") { it.startsWith("You joined") }
+                    val run = alice.intoRun(server, "alice")
+                    bob.intoRun(server, "bob")
+                    alice.clear(run, ArchiveRoom.GUARDIAN)
+                    alice.clear(run, ArchiveRoom.BORK)
+                    alice.clear(run, ArchiveRoom.DREADNOTH)
+                    alice.toNexus(server, run)
+                    bob.toNexus(server, run)
+                    // Bob buys a Manta ray and offers it to Alice, on the trade's second screen.
+                    bob.resupply()
+                    bob.entry(4, 2)
+                    bob.awaitHeld(MANTA, 1)
+                    bob.closeModal()
+                    bob.await("the shop shut") { (OmnishopScreen.MAIN !in bob.openInterfaces()).takeIf { it } }
+                    trade(bob, alice, MANTA, 1, confirm = false)
+                    // Put out of the party mid-trade, as a third member leading it would (Alice's own ::raidparty would
+                    // decline her trade first): the trade is declined as his supplies are taken back (Codex review on #636).
+                    bob.commandReply("pause") { it.startsWith("Paused after tick") }
+                    assertEquals(PartyResult.DONE, server.world.parties.kick(server.world.playerNamed("alice")!!, server.world.playerNamed("bob")!!))
+                    bob.commandReply("resume") { it.startsWith("Resumed") }
+                    bob.await("the trade gone") { (Trades.CONFIRM !in bob.openInterfaces()).takeIf { it } }
+                    bob.awaitTicks(2)
+                    assertNull(server.world.playerNamed("bob")!!.trade)
+                    assertFalse(server.world.playerNamed("bob")!!.saveKey in run.suppliesBrought)
+                    assertEquals(0, bob.held(MANTA))
+                    assertEquals(0, alice.held(MANTA))
                 }
             }
         }

@@ -84,9 +84,13 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
      * [player] is out of [run], or losing what they hold to it: what they hold of the supplies beyond what they brought
      * in is taken, the fewest doses first, a potion with more doses than is owed left with the rest: from the backpack
      * and from Guide prices' checker, whose items go back to the backpack as it closes but are left in it by a death
-     * or a disconnect (Codex review on #636). Once a player.
+     * or a disconnect (Codex review on #636). A trade they are in is declined first, so its offer is back in the backpack
+     * and taken with the rest: put out of the party mid-trade, nothing else declines it (Codex review on #636). Once a
+     * player.
      */
     fun settle(run: ArchiveRun, player: Player) {
+        if (player.saveKey !in run.suppliesBrought) return
+        if (player.trade != null) world.trades.interrupt(player)
         val brought = run.suppliesBrought.remove(player.saveKey) ?: return
         val entries = listOf(player.inventory, player.priceChecker).flatMap { inv -> inv.contents().map { (slot, obj) -> Held(inv, slot, obj) } }
         val changes = excess(entries, brought)
