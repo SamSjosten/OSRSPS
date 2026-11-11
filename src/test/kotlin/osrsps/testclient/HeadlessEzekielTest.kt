@@ -442,9 +442,13 @@ class HeadlessEzekielTest {
                 }
                 server.world.npcs.teleport(boss, x, z)
                 val before = boss.hitpoints
+                val key = server.world.playerNamed("alice")!!.saveKey
+                val creditedBefore = run.damage[ArchiveRoom.EZEKIEL]?.get(key) ?: 0
                 alice.stepTicks(1)
                 val lines = alice.fightLog()
                 assertTrue(lines.any { it.endsWith("fight: sword hits him for 50") }, lines.joinToString("\n"))
+                // The sword's 50 on him counts for alice, who charged it, as damage to him (exploit review R28A-3).
+                assertEquals(creditedBefore + 50, run.damage[ArchiveRoom.EZEKIEL]?.get(key))
                 assertTrue(lines.any { it.endsWith("fight: stunned for ${Ezekiel.STUN_TICKS} ticks") })
                 assertTrue(lines.none { it.contains("heals") })
                 assertEquals(before - 50, boss.hitpoints)

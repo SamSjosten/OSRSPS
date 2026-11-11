@@ -158,6 +158,12 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
      */
     val heldHits = HashMap<Npc, LinkedHashMap<String, Int>>()
 
+    /**
+     * Hits on each of a fight's adds, by [Player.saveKey]: whoever charged an inert guardian or one of Ezekiel's
+     * swords is who its damage to the boss counts for ([ArchiveRaids.creditFrom]).
+     */
+    val addHits = HashMap<Npc, LinkedHashMap<String, Int>>()
+
     /** Contribution points, by [Player.saveKey]. */
     val points = LinkedHashMap<String, Int>()
 
@@ -1282,6 +1288,7 @@ class ArchiveRaids(private val world: World) {
         run.started += room
         run.cleared += room
         run.heldHits.keys.removeAll { roomAt(run, it.x, it.z) == room }
+        run.addHits.keys.removeAll { roomAt(run, it.x, it.z) == room }
         run.chosen[room.stage] = room
         // Whoever got out while down (a Home Teleport landing last tick) dies of it before the room's end gets them up.
         settleEscapes(run, ended = false)
@@ -1378,6 +1385,48 @@ class ArchiveRaids(private val world: World) {
             (if (boss) run.damage else run.minionDamage).getOrPut(room, ::LinkedHashMap)
         }
         byPlayer[player.saveKey] = (byPlayer[player.saveKey] ?: 0) + dealt
+        if (!boss) run.addHits.getOrPut(npc, ::LinkedHashMap).merge(player.saveKey, dealt, Int::plus)
+    }
+
+    /**
+     * [add], one of a fight's adds charged by the party's hits, has just dealt [dealt] to [boss]: that counts for its
+     * room's points as boss damage, shared among those who hit [add] by what they dealt it. Before, it counted for
+     * nobody while the hits behind it were capped as an add's, so the one doing the mechanic lost twice over (exploit
+     * review round 28, R28A-3). Guessed: that live counts it at all, and for whom.
+     */
+    fun creditFrom(add: Npc, boss: Npc, dealt: Int) {
+        val run = at(boss.x, boss.z) ?: return
+        val hits = run.addHits.remove(add) ?: return
+        credit(run, boss, hits, dealt)
+    }
+
+    /**
+     * [player] drew a fight's mechanic onto [boss] (a beam through them into an inert guardian, napalm called on them
+     * splashing Bork), which dealt [dealt] to it: it counts for [player]'s points as boss damage (R28A-3). Guessed.
+     */
+    fun creditTo(player: Player, boss: Npc, dealt: Int) {
+        val run = at(boss.x, boss.z) ?: return
+        if (player.saveKey !in run.entered) return
+        credit(run, boss, mapOf(player.saveKey to 1), dealt)
+    }
+
+    /** [dealt] to [boss], in its room of [run], counted as boss damage for [hitters], shared by their weights. */
+    private fun credit(run: ArchiveRun, boss: Npc, hitters: Map<String, Int>, dealt: Int) {
+        val room = roomAt(run, boss.x, boss.z) ?: return
+        if (dealt <= 0 || room !in run.started || room in run.cleared) return
+        val weight = hitters.values.sumOf { it.toLong() }
+        if (weight <= 0) return
+        val byPlayer = run.damage.getOrPut(room, ::LinkedHashMap)
+        var left = dealt
+        for ((key, own) in hitters) {
+            val share = (dealt.toLong() * own / weight).toInt()
+            byPlayer[key] = (byPlayer[key] ?: 0) + share
+            left -= share
+        }
+        if (left > 0) {
+            val most = hitters.maxBy { it.value }.key
+            byPlayer[most] = (byPlayer[most] ?: 0) + left
+        }
     }
 
     /**
@@ -1392,21 +1441,7 @@ class ArchiveRaids(private val world: World) {
     fun passOn(npc: Npc, taken: Int) {
         val run = at(npc.x, npc.z) ?: return
         val hits = run.heldHits.remove(npc) ?: return
-        val room = roomAt(run, npc.x, npc.z) ?: return
-        if (taken <= 0 || room !in run.started || room in run.cleared) return
-        val dealt = hits.values.sumOf { it.toLong() }
-        if (dealt <= 0) return
-        val byPlayer = run.damage.getOrPut(room, ::LinkedHashMap)
-        var left = taken
-        for ((key, own) in hits) {
-            val share = (taken.toLong() * own / dealt).toInt()
-            byPlayer[key] = (byPlayer[key] ?: 0) + share
-            left -= share
-        }
-        if (left > 0) {
-            val most = hits.maxBy { it.value }.key
-            byPlayer[most] = (byPlayer[most] ?: 0) + left
-        }
+        credit(run, npc, hits, taken)
     }
 
     /**

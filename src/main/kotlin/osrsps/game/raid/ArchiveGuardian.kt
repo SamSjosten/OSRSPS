@@ -1,5 +1,6 @@
 package osrsps.game.raid
 
+import java.lang.ref.WeakReference
 import java.util.WeakHashMap
 import kotlin.math.abs
 import kotlin.math.max
@@ -462,6 +463,9 @@ object ArchiveGuardian {
 
         /** The tick a spent inert guardian's charge reaches it; -1 with none on its way. */
         var chargeDue = -1L
+
+        /** Whose beam spent the inert guardian whose charge is on its way: its damage counts for them (R28A-3). */
+        var chargeBy: WeakReference<Player>? = null
     }
 
     private val states = WeakHashMap<Npc, State>()
@@ -640,6 +644,8 @@ object ArchiveGuardian {
             world.npcs.transform(battery, batteries.spent, Npcs.FOREVER)
             untarget(battery)
             val dealt = world.meleeCombat.hit(boss, null, boss.maxHitpoints * BATTERY_SHIELD_PERCENT / 100, world.tick)
+            // For whoever beat it to 0 (exploit review R28A-3).
+            world.archiveRaids.creditFrom(battery, boss, dealt)
             log("inert guardian at ${battery.x},${battery.z} charged: shield takes $dealt")
             if (gone()) return
         }
@@ -708,6 +714,7 @@ object ArchiveGuardian {
         if (batteries != null && statue != null) {
             spend(batteries, statue)
             state.chargeDue = world.tick + BEAM_CHARGE_DELAY
+            state.chargeBy = WeakReference(target)
             log("beam spends the inert guardian at ${statue.x},${statue.z}")
             for (player in struck) {
                 // A hit can end the fight (Retribution killing the boss); nothing lands after that.
@@ -755,11 +762,12 @@ object ArchiveGuardian {
         val share = boss.maxHitpoints * BATTERY_SHIELD_PERCENT / 100
         if (boss.hitpoints <= share) {
             val left = boss.hitpoints
-            if (left > 0) world.meleeCombat.hit(boss, null, left, world.tick)
+            if (left > 0) chargedBy(world.meleeCombat.hit(boss, null, left, world.tick))
             log("the spent inert guardian's charge breaks its shield, $left left")
             return true
         }
         val dealt = world.meleeCombat.hit(boss, null, share, world.tick)
+        chargedBy(dealt)
         log("the spent inert guardian's charge: shield takes $dealt")
         return false
     }
@@ -776,7 +784,14 @@ object ArchiveGuardian {
         val floor = boss.maxHitpoints * KILL_RANGE_PERCENT / 100
         val damage = minOf(boss.maxHitpoints * BATTERY_BEAM_PERCENT / 100, boss.hitpoints - floor).coerceAtLeast(0)
         val dealt = if (damage > 0) world.meleeCombat.hit(boss, null, damage, world.tick) else 0
+        chargedBy(dealt)
         log("the spent inert guardian's charge: Guardian takes $dealt")
+    }
+
+    /** A beam-spent inert guardian's charge dealt [dealt]: it counts for whoever the beam went through (R28A-3). */
+    private fun EncounterContext.chargedBy(dealt: Int) {
+        state.chargeBy?.get()?.let { world.archiveRaids.creditTo(it, boss, dealt) }
+        state.chargeBy = null
     }
 
     /**

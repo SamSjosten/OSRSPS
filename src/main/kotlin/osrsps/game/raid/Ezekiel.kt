@@ -523,6 +523,8 @@ object Ezekiel {
             if (inLane(sword.lane, boss.x, boss.z, boss.type.size)) {
                 struck = true
                 val dealt = world.meleeCombat.hit(boss, null, swordDamage(charge), world.tick)
+                // For whoever charged it (exploit review R28A-3).
+                world.archiveRaids.creditFrom(npc, boss, dealt)
                 log("sword hits him for $dealt")
                 if (gone()) return
                 stun()

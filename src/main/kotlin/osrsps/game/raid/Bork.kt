@@ -763,7 +763,7 @@ object Bork {
             world.zones.projectile(towerShot(tower, at, SPOT_NAPALM, NAPALM_FLIGHT))
             world.zones.mapAnim(at.x, at.z, boss.level, SPOT_NAPALM_SHADOW)
             log("napalm at ${at.x},${at.z} (${target.username})")
-            after(NAPALM_FLIGHT) { splashDown(tower.x, tower.z, tower.type.size, at) }
+            after(NAPALM_FLIGHT) { splashDown(tower.x, tower.z, tower.type.size, at, target) }
         }
     }
 
@@ -800,7 +800,7 @@ object Bork {
     }
 
     /** Napalm splashing down round [at]: Bork under it is hurt, and a tick on its tiles lie in oil. */
-    private fun EncounterContext.splashDown(towerX: Int, towerZ: Int, towerSize: Int, at: Tile) {
+    private fun EncounterContext.splashDown(towerX: Int, towerZ: Int, towerSize: Int, at: Tile, target: Player) {
         val away = state.frenzy && distance(towerX, towerZ, towerSize, at.x, at.z) == 1
         val tiles = splash(towerX, towerZ, towerSize, at.x, at.z, away).filter { inArena(boss.x, boss.z, it.x, it.z) }
         world.zones.mapAnim(at.x, at.z, boss.level, SPOT_NAPALM_FIRE)
@@ -808,6 +808,8 @@ object Bork {
         val bork = liveBork
         if (bork != null && tiles.any { near(bork.x, bork.z, bork.type.size, it.x, it.z, 0) }) {
             val dealt = world.meleeCombat.hit(bork, null, roll(OIL_MIN, OIL_MAX), world.tick)
+            // For whoever the napalm was called on, who drew Bork under it (exploit review R28A-3).
+            world.archiveRaids.creditTo(target, bork, dealt)
             log("napalm burns Bork for $dealt")
         }
         after(OIL_AFTER_SPLASH) {
