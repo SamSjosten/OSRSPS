@@ -762,6 +762,139 @@ class HeadlessArchiveRaidTest {
     }
 
     @Test
+    fun `a folio in a grave, the guide prices screen, a trade or a Grand Exchange offer is owned, so the run's end rolls none`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { carol ->
+                server.login("dave").use { dave ->
+                    for (client in listOf(carol, dave)) client.await("the login rebuild") { client.position }
+                    val world = server.world
+                    val raids = world.archiveRaids
+                    val carolPlayer = world.playerNamed("carol")!!
+                    val davePlayer = world.playerNamed("dave")!!
+                    // The pickaxe stands in for the folio. Carol dies in the lobby with three axes and it: the axes are
+                    // kept, and the pickaxe is in her grave alone (exploit review round 24, R24A-4).
+                    carol.tele(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z)
+                    for (command in listOf("item bronze axe 3", "item bronze pickaxe 1")) carol.command(command)
+                    carol.await("her bag filled") { carolPlayer.inventory.count(pickaxe.id).takeIf { it == 1L && carolPlayer.inventory.count(axe.id) == 3L } }
+                    carol.commandReply("hit 99 me") { it.endsWith(", dead") }
+                    carol.await("her grave") { world.deaths.graveOf(carolPlayer)?.takeIf { !carolPlayer.dead } }
+                    assertEquals(0L, carolPlayer.inventory.count(pickaxe.id))
+                    assertEquals(1L, world.deaths.graveOf(carolPlayer)!!.items.count(pickaxe.id))
+                    assertTrue(raids.chests.owns(carolPlayer, pickaxe.id), "in her grave")
+                    assertFalse(raids.chests.owns(davePlayer, pickaxe.id), "Dave has none")
+
+                    carol.commandReply("raidparty invite dave") { it.startsWith("Invited") }
+                    dave.commandReply("raidparty accept carol") { it.startsWith("You joined") }
+                    val run = carol.enter(server, "carol")
+                    assertEquals(run, dave.enter(server, "dave"))
+                    // A folio every run for whoever owns none; nothing else.
+                    raids.chests.table = ArchiveLoot(
+                        1, 4, null, 3, 51, null, null, 10, pickaxe, 1, setOf(pickaxe.id), emptyList(), 20, null,
+                    )
+                    for (room in listOf(ArchiveRoom.GUARDIAN, ArchiveRoom.BORK, ArchiveRoom.DREADNOTH, ArchiveRoom.XARTH)) {
+                        carol.command("raid tp ${room.name.lowercase()}")
+                        carol.awaitRun("${room.boss}'s room done") { room in run.cleared }
+                    }
+                    carol.commandReply("pause") { it.contains("aused after tick") }
+                    carol.commandReply("raid tp ocellus") { it.startsWith("To ") }
+                    dave.commandReply("raid tp ocellus") { it.startsWith("To ") }
+                    carol.stepTicks(1)
+                    val loot = assertNotNull(run.loot, "the loot")
+                    assertEquals(emptyList(), loot.chests.getValue(carolPlayer.saveKey), "Carol's folio is in her grave")
+                    assertEquals(listOf(pickaxe.id to 1), loot.chests.getValue(davePlayer.saveKey).map { it.type.id to it.count })
+
+                    // Dave's places, the world still paused: each one owned, and not once it is out of it.
+                    assertFalse(raids.chests.owns(davePlayer, pickaxe.id))
+                    davePlayer.priceChecker.add(pickaxe, 1)
+                    assertTrue(raids.chests.owns(davePlayer, pickaxe.id), "in the guide prices screen")
+                    davePlayer.priceChecker.remove(0)
+                    val trade = osrsps.game.trade.Trade(davePlayer, carolPlayer)
+                    davePlayer.trade = trade
+                    trade.sideOf(davePlayer).offer.add(pickaxe, 1)
+                    assertTrue(raids.chests.owns(davePlayer, pickaxe.id), "offered in a trade")
+                    trade.over = true
+                    assertFalse(raids.chests.owns(davePlayer, pickaxe.id), "a trade that's over")
+                    davePlayer.trade = null
+                    val selling = osrsps.game.ge.GeOffer(osrsps.game.ge.OfferType.SELL, pickaxe.id, 1, 100)
+                    davePlayer.ge[0] = selling
+                    assertTrue(raids.chests.owns(davePlayer, pickaxe.id), "held by a sell offer")
+                    davePlayer.ge[0] = selling.copy(completed = 1)
+                    assertFalse(raids.chests.owns(davePlayer, pickaxe.id), "sold")
+                    davePlayer.ge[0] = osrsps.game.ge.GeOffer(osrsps.game.ge.OfferType.BUY, pickaxe.id, 1, 100, completed = 1, collectItems = 1)
+                    assertTrue(raids.chests.owns(davePlayer, pickaxe.id), "bought, waiting to be collected")
+                    davePlayer.ge[0] = null
+                    carol.commandReply("resume") { it.startsWith("Resumed") }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a fall before Ocellus dies counts though they get up after the run's end`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { carol ->
+                server.login("dave").use { dave ->
+                    for (client in listOf(carol, dave)) client.await("the login rebuild") { client.position }
+                    carol.commandReply("raidparty invite dave") { it.startsWith("Invited") }
+                    dave.commandReply("raidparty accept carol") { it.startsWith("You joined") }
+                    val run = carol.enter(server, "carol")
+                    assertEquals(run, dave.enter(server, "dave"))
+                    val davePlayer = server.world.playerNamed("dave")!!
+                    val daveKey = davePlayer.saveKey
+                    for (room in listOf(ArchiveRoom.GUARDIAN, ArchiveRoom.BORK, ArchiveRoom.DREADNOTH, ArchiveRoom.XARTH)) {
+                        carol.command("raid tp ${room.name.lowercase()}")
+                        carol.awaitRun("${room.boss}'s room done") { room in run.cleared }
+                    }
+                    // Dave falls in Ocellus's room on the tick before it is done: counted as he falls, so the loot
+                    // rolled at the end sees it, though he is up only after. Counted at his respawn, it was free
+                    // (exploit review round 24, R24A-3).
+                    carol.commandReply("pause") { it.contains("aused after tick") }
+                    carol.commandReply("raid tp ocellus") { it.startsWith("To ") }
+                    dave.commandReply("raid tp ocellus") { it.startsWith("To ") }
+                    dave.commandReply("hit 99 me") { it.endsWith(", dead") }
+                    assertEquals(mapOf(daveKey to 1), run.deaths.toMap())
+                    carol.stepTicks(1)
+                    assertTrue(run.completed && !run.wiped && run.loot != null && davePlayer.dead)
+                    carol.commandReply("resume") { it.startsWith("Resumed") }
+                    dave.await("Dave up") { if (davePlayer.dead) null else Unit }
+                    assertEquals(mapOf(daveKey to 1), run.deaths.toMap(), "one death, counted once")
+                    assertTrue(!run.wiped && run.downed.isEmpty())
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `Ocellus dying with nobody of the party standing is a wipe, not the run's end`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bob").use { client ->
+                // Eve, out of the run, holds the world's clock: a dead player's commands wait for him to get up.
+                server.login("eve").use { eve ->
+                    for (each in listOf(client, eve)) each.await("the login rebuild") { each.position }
+                    val run = client.enter(server, "bob")
+                    val raids = server.world.archiveRaids
+                    val bob = server.world.playerNamed("bob")!!
+                    for (room in listOf(ArchiveRoom.GUARDIAN, ArchiveRoom.BORK, ArchiveRoom.DREADNOTH, ArchiveRoom.XARTH)) {
+                        client.command("raid tp ${room.name.lowercase()}")
+                        client.awaitRun("${room.boss}'s room done") { room in run.cleared }
+                    }
+                    // Bob lies dying in Ocellus's room as Ocellus falls (exploit review round 24, R24A-3): before, the
+                    // run was done and paid, his death free; now the party is wiped, with no loot.
+                    eve.commandReply("pause") { it.contains("aused after tick") }
+                    client.commandReply("raid tp ocellus") { it.startsWith("To ") }
+                    client.commandReply("hit 99 me") { it.endsWith(", dead") }
+                    raids.clearNow(run, ArchiveRoom.OCELLUS)
+                    assertTrue(run.wiped && !run.completed && run.loot == null, "wiped ${run.wiped}, done ${run.completed}, loot ${run.loot}")
+                    eve.commandReply("resume") { it.startsWith("Resumed") }
+                    client.awaitAt(Tile(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z), "Bob back in the lobby")
+                    client.await("Bob up") { if (bob.dead) null else Unit }
+                    assertEquals(mapOf(bob.saveKey to 1), run.deaths.toMap())
+                }
+            }
+        }
+    }
+
+    @Test
     fun `a row opens once the room before is done, and its other door stays shut once one is chosen`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bob").use { client ->

@@ -18,7 +18,13 @@ class DecantingTest {
             add(ObjType(id, "Super energy($dose)", iops = drink, tradeable = true, certlink = id + 1))
             add(ObjType(id + 1, "Super energy($dose)", stackable = true, tradeable = true, certlink = id, certtemplate = 799))
             add(ObjType(RESTORE[dose - 1], "Super restore($dose)", iops = drink, tradeable = true))
+            // Dosed drinks not in vials, and untradeable potions: none of them decant.
+            add(ObjType(GUTHIX[dose - 1], "Guthix rest($dose)", iops = drink, tradeable = true, internalName = "cup_guthix_rest_$dose"))
+            add(ObjType(KEG[dose - 1], "Cider($dose)", iops = drink, tradeable = true, internalName = "keg_cider_$dose"))
+            add(ObjType(RAID[dose - 1], "Overload (+)($dose)", iops = drink, internalName = "raids_vial_overload_strong_$dose"))
         }
+        // An untradeable copy of super energy(4), as Last Man Standing's: not mapped to the tradeable one.
+        add(ObjType(LMS_ENERGY_4, "Super energy(4)", iops = drink, internalName = "br_energy4"))
         add(ObjType(Decanting.VIAL, "Vial", tradeable = true, certlink = Decanting.VIAL_NOTE))
         add(ObjType(Decanting.VIAL_NOTE, "Vial", stackable = true, tradeable = true, certlink = Decanting.VIAL, certtemplate = 799))
         add(ObjType(Decanting.COINS, "Coins", stackable = true, tradeable = true))
@@ -39,6 +45,8 @@ class DecantingTest {
         assertEquals(listOf(-1, -1, -1, -1), decanting.families.getValue(RESTORE[0]).first.notes)
         assertNull(decanting.families[RING_4])
         assertNull(decanting.families[BARB_2])
+        for (id in GUTHIX + KEG + RAID) assertNull(decanting.families[id], "$id isn't a vial")
+        assertNull(decanting.families[LMS_ENERGY_4], "an untradeable copy stays itself")
     }
 
     @Test
@@ -106,6 +114,10 @@ class DecantingTest {
     private companion object {
         val ENERGY = listOf(3022, 3020, 3018, 3016)
         val RESTORE = listOf(3030, 3028, 3026, 3024)
+        val GUTHIX = listOf(4423, 4421, 4419, 4417)
+        val KEG = listOf(5763, 5765, 5767, 5769)
+        val RAID = listOf(20993, 20994, 20995, 20996)
+        const val LMS_ENERGY_4 = 20548
         const val RING_4 = 2552
         const val BARB_2 = 11429
     }

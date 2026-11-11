@@ -62,8 +62,9 @@ data class PotionFamily(val name: String, val doses: List<Int>, val notes: List<
  *
  * Sources: OSRS Wiki, Bob Barter (herbs) and Decanting, Transcript:Bob Barter (herbs), read 2026-11-10; the cache for his
  * options and the interface. Guessed: a potion is any item with a Drink option named "Name(n)" for each n from 1 to 4
- * (that leaves out cups, barbarian mixes, Guthix rests, oils and moth mixes, which the Wiki says he also decants); the
- * lowest id of each name is the one made; out of cash part way, potions are decanted in backpack order while the vials
+ * and tradeable, and not in a cup or keg (that leaves out barbarian mixes, Guthix rests, oils and moth mixes, which the
+ * Wiki says he also decants, and the raids' potions); the lowest id of each name is the one made, and another id of
+ * the name decants with it only when it is as tradeable (an untradeable copy is left alone); out of cash part way, potions are decanted in backpack order while the vials
  * last; "short of inventory space" when even notes won't fit; each chathead's expression. Out: Prices and the herb and
  * potion price guide (the Talk-to option for it ends the talk), the free-to-play lines (every world here is members),
  * cups of tea.
@@ -240,6 +241,9 @@ class Decanting(private val world: World) {
         const val COINS = 995
         private const val BACKPACK = 93
 
+        /** Gameval prefixes of dosed drinks that aren't in vials. */
+        private val NOT_VIALS = listOf("cup_", "keg_")
+
         private val DOSED = Regex("""^(.+)\(([1-4])\)$""")
 
         /** Every family of potions in [types]: items with a Drink option named "Name(n)" for each n from 1 to 4. */
@@ -256,6 +260,9 @@ class Decanting(private val world: World) {
             val families = HashMap<Int, Pair<PotionFamily, Int>>()
             for ((name, doses) in byName) {
                 if (doses.any { it == null }) continue
+                // Only vials: Guthix rest's cups and the kegs drink by the dose too, and the raids' and other untradeable
+                // potions never reach him on live.
+                if (doses.any { !it!!.tradeable || NOT_VIALS.any { prefix -> it.internalName?.startsWith(prefix) == true } }) continue
                 val family = PotionFamily(name, doses.map { it!!.id }, doses.map { type -> type!!.certlink.takeIf { it >= 0 && types[it]?.isCert == true } ?: -1 })
                 for (i in 0..3) {
                     families[family.doses[i]] = family to i
@@ -270,7 +277,10 @@ class Decanting(private val world: World) {
                 val match = DOSED.matchEntire(base.name) ?: continue
                 val family = byName[match.groupValues[1].lowercase()]?.takeIf { d -> d.none { it == null } } ?: continue
                 val first = families[family[0]!!.id]?.first ?: continue
-                families[id] = first to match.groupValues[2].toInt() - 1
+                val index = match.groupValues[2].toInt() - 1
+                // An untradeable copy (Last Man Standing's, say) mustn't come out as the tradeable potion.
+                if (base.tradeable != types[first.doses[index]]?.tradeable) continue
+                families[id] = first to index
             }
             return families
         }

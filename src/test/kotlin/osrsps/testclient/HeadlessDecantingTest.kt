@@ -21,8 +21,8 @@ import osrsps.map.CollisionMap
  */
 class HeadlessDecantingTest {
     private val drink = listOf("Drink", null, null, null, "Drop")
-    private fun energy(dose: Int) = ObjType(ENERGY[dose - 1], "Super energy($dose)", iops = drink, certlink = ENERGY[dose - 1] + 1)
-    private fun energyNote(dose: Int) = ObjType(ENERGY[dose - 1] + 1, "Super energy($dose)", stackable = true, certlink = ENERGY[dose - 1], certtemplate = 799)
+    private fun energy(dose: Int) = ObjType(ENERGY[dose - 1], "Super energy($dose)", iops = drink, tradeable = true, certlink = ENERGY[dose - 1] + 1)
+    private fun energyNote(dose: Int) = ObjType(ENERGY[dose - 1] + 1, "Super energy($dose)", stackable = true, tradeable = true, certlink = ENERGY[dose - 1], certtemplate = 799)
     private val objs = ObjTypes.of(
         *(1..4).map { energy(it) }.toTypedArray(), *(1..4).map { energyNote(it) }.toTypedArray(),
         ObjType(Decanting.VIAL, "Vial", certlink = Decanting.VIAL_NOTE),
