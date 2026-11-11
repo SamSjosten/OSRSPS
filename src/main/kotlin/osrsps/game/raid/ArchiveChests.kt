@@ -26,7 +26,7 @@ object ArchiveVaultLines : Lines("tfa_vault", "Chest_(The_Fractured_Archive)") {
  * - **The pay.** As Ocellus's room is done ("at the end of the raid", the Wiki's chest page) the loot is rolled once
  *   for the party ([ArchiveLoot.roll]) and kept on the run ([ArchiveRun.loot]). Guessed: that it pays the party's
  *   members who are in the run then, and nobody who left before; that the size a death's penalty is worked from is
- *   theirs; that the folio and the fragments a member "owns" are those in their inventory, bank or worn, or broken
+ *   those of theirs who earn a share ([ArchiveLoot.sharingSize]); that the folio and the fragments a member "owns" are those in their inventory, bank or worn, or broken
  *   already (the fragment's varbit).
  * - **The chests.** Eight tiles round the vault's island, "one per party slot" (tsps capture notes), each chest a
  *   multi-NPC on `tfa_vault_own_chest` (241 cache: `tfa_rewards_chest_vault_N_closed` and `_open`, 16736 to 16751; the
@@ -73,31 +73,45 @@ class ArchiveChests(private val world: World, private val raids: ArchiveRaids) {
     /**
      * [run] is over: its loot is rolled for the party's members in it, in the party's order, and each one's chest is
      * put in the vault. Once only.
+     *
+     * The party's size for the poor line and the death penalty is its [ArchiveLoot.sharingSize], not everyone paid:
+     * idle alts don't lower the bar (exploit review round 25, R25A-2). The run is marked paid before anything else, so
+     * nothing pays twice, and every member's loot is in their chest before any chest is placed or shown: a chest that
+     * fails to place, or a varbit that fails to send, can't keep the loot from those after it (R25A-4).
      */
     fun pay(run: ArchiveRun) {
         if (run.loot != null) return
         val present = raids.present(run).associateBy { it.saveKey }
         val paid = run.party.members.withIndex().filter { (slot, member) -> slot < SLOTS.size && member.saveKey in present }
         val rules = table
-        val members = paid.map { (_, member) ->
-            val key = member.saveKey
+        val scores = paid.map { (_, member) -> (run.points[member.saveKey] ?: 0) to (run.deaths[member.saveKey] ?: 0) }
+        val size = ArchiveLoot.sharingSize(scores)
+        val members = paid.mapIndexed { index, (_, member) ->
+            val (points, deaths) = scores[index]
             LootMember(
-                key,
-                ArchiveLoot.contribution(run.points[key] ?: 0, run.deaths[key] ?: 0, paid.size),
+                member.saveKey,
+                ArchiveLoot.contribution(points, deaths, size),
                 ownsFolio = rules.folioForms.any { owns(member, it) },
                 fragments = rules.fragments.filter { owns(member, it.type.id) || varbit(member, it.unlocked) != 0 }.map { it.type.id }.toSet(),
             )
         }
-        val result = rules.roll(world.random, members)
+        val result = rules.roll(world.random, members, size)
         run.loot = result
         for ((slot, member) in paid) {
-            countClear(member)
             run.chestSlots[member.saveKey] = slot
-            placeChest(run, slot, open = false)
-            showOwn(run, member)
-            world.archiveChestWindow.fill(member, result.chests[member.saveKey].orEmpty())
+            world.archiveChestWindow.store(member, result.chests[member.saveKey].orEmpty())
+            countClear(member)
         }
-        logger.info { "$run paid ${members.joinToString { "${it.key} (${it.contribution})" }}; unique: ${result.unique ?: "none"}" }
+        for ((slot, member) in paid) {
+            try {
+                placeChest(run, slot, open = false)
+                showOwn(run, member)
+                world.archiveChestWindow.showClaimable(member)
+            } catch (e: Exception) {
+                logger.error(e) { "$run: chest ${slot + 1} of the reward vault, ${member.username}'s, wasn't shown; their loot waits all the same" }
+            }
+        }
+        logger.info { "$run paid ${members.joinToString { "${it.key} (${it.contribution})" }} as a party of $size; unique: ${result.unique ?: "none"}" }
     }
 
     /**
