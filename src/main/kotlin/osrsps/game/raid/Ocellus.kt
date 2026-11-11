@@ -1183,6 +1183,8 @@ object Ocellus {
                     "Ocellus ${boss.hitpoints}/${boss.maxHitpoints} hp, charge ${state.charge}/$CHARGE_MAX, $doing"
                 }
             },
+            // The Blade takes the party's attacks for him in his second phase, its damage going to his bar.
+            bosses = setOf(BLADE),
         )
     }
 
