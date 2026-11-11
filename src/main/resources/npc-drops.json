@@ -787,6 +787,12 @@
       "source": "OSRS Wiki, Thief, drops (Standard), read 2026-11-02; the Varrock gang's thieves (5217 to 5220) are taken to drop the same (guessed: the Wiki lists only the standard table). Left out: the free-to-play-only Coins x10 (23/128) and the energy potion, whose rate the Wiki gives as unknown"
     },
     {
+      "npcs": ["highwayman"],
+      "always": [{"item": 1019, "name": "Black cape"}, {"item": 526, "name": "Bones"}],
+      "table": {"slots": 100, "lines": [{"item": 9140, "name": "Iron bolts", "min": 2, "max": 12, "weight": 5}, {"nothing": true, "weight": 95}]},
+      "source": "OSRS Wiki, Highwayman, Drops (no hood), read 2026-11-11: the black cape and bones always, iron bolts 2 to 12 at 5/100 (members)"
+    },
+    {
       "npcs": ["black_knight"],
       "always": [{"item": 526, "name": "Bones"}],
       "table": {"slots": 128, "lines": [{"item": 1279, "name": "Iron shortsword", "weight": 4}, {"item": 1153, "name": "Iron full helm", "weight": 2}, {"item": 1424, "name": "Steel mace", "weight": 1}, {"item": 888, "name": "Mithril arrow", "count": 3, "weight": 4}, {"item": 559, "name": "Body rune", "count": 9, "weight": 3}, {"item": 562, "name": "Chaos rune", "count": 6, "weight": 3}, {"item": 557, "name": "Earth rune", "count": 10, "weight": 3}, {"item": 560, "name": "Death rune", "count": 2, "weight": 2}, {"item": 563, "name": "Law rune", "count": 3, "weight": 2}, {"item": 564, "name": "Cosmic rune", "count": 7, "weight": 1}, {"item": 558, "name": "Mind rune", "count": 2, "weight": 1}, {"table": "herbs", "weight": 3}, {"table": "general_seeds", "weight": 18}, {"item": 2353, "name": "Steel bar", "weight": 6}, {"item": 438, "name": "Tin ore", "weight": 1}, {"item": 1933, "name": "Pot of flour", "weight": 1}, {"item": 995, "name": "Coins", "count": 35, "weight": 21}, {"item": 995, "name": "Coins", "count": 6, "weight": 11}, {"item": 995, "name": "Coins", "count": 58, "weight": 10}, {"item": 995, "name": "Coins", "count": 12, "weight": 9}, {"item": 995, "name": "Coins", "count": 80, "weight": 2}, {"item": 995, "name": "Coins", "count": 1, "weight": 14}, {"nothing": true, "weight": 2}, {"item": 2309, "name": "Bread", "weight": 1}, {"table": "gems_surface", "weight": 3}]},

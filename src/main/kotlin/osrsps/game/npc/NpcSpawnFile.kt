@@ -72,6 +72,7 @@ object NpcSpawnFile {
         "digsite.json",
         "exam-centre.json",
         "digsite-dungeon.json",
+        "misthalin-sweep.json",
         "fishing-spots.json",
         "thieving-kandarin.json",
         "rogues-castle.json",

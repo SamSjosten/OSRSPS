@@ -1503,6 +1503,33 @@ lists. Each rope climbs back up beside its winch. Doug congratulates the player 
 | The chathead expressions, the private winch's messages, the landing tiles, the XP on each way down, a rope every time, the cupboards' line with the tool carried | guessed |
 | Out: the clue chest, the beaten book, Varmen's notes and the book on chemicals (the quests'), the barrel's liquid, Desert Treasure II's winch, the STASH units | out of scope |
 
+#### The Misthalin sweep
+
+Misthalin piece 7 step 12a (`game/content/MisthalinSweep.kt`, `npc-spawns/misthalin-sweep.json`, words under
+`ham_talk.*`, `johanhus.*`, `jimmy_the_chisel.*` and `misthalin_sweep.*`): what a sweep of Misthalin's NPCs and loc
+options found missing that belongs to this piece. The sweep listed every NPC on mejrs's Misthalin tiles with no spawn
+within 2 tiles in any spawn file, and every loc and spawned NPC option that a player who has done every quest sees with
+no handler behind it.
+
+The new spawns are a camp of level 2 goblins north-west of Lumbridge Castle with two giant spiders and the woods'
+butterflies, a goblin south-east of Draynor Village, one south of Draynor Manor and the level 5 goblin at the Digsite's
+west edge, a giant spider between Falador and Draynor Manor, the highwayman south of Draynor Manor (aggressive, with the
+Wiki's stats and drops), the mugger at the South-west Varrock mine, and three Black Knights. The H.A.M. Hideout's guards
+and seated members answer their five-option menu, a guard greeting a player in the whole outfit; Johanhus Ulsbrecht and
+Jimmy the Chisel talk. Nettles sting bare hands for 1 or 2 and are picked with gloves on; the Lumbridge farms' coops give
+an egg each search; the Digsite barge's crates, the hideout's boxes and crates and the Digsite Dungeon's sacks are empty.
+
+| The Misthalin sweep | Source |
+|---------------------|--------|
+| The new spawns' types and tiles | mejrs data_osrs NPCList_OSRS.json, each tile also on the NPC's Wiki location map (butterflies have none) |
+| The highwayman's stats, aggression, respawn 100 and drops | OSRS Wiki, Highwayman (no hood), read 2026-11-11 |
+| The H.A.M. talk, Johanhus's and Jimmy's lines | OSRS Wiki, Transcript:H.A.M. Guard, Transcript:H.A.M. Member (seated), Transcript:Johanhus Ulsbrecht, Transcript:Jimmy the Chisel, read 2026-11-11 |
+| Nettles need gloves (not beekeeper's) and sting for up to 2; coops always give an egg | OSRS Wiki, Nettles (scenery), Nettles and Coop, read 2026-11-11 |
+| The whole outfit taken as all seven pieces; nettles back after 13 ticks (the Nettles item's respawn) | inferred |
+| Every wander range, the highwayman's punch, the nettles' and coops' messages, a sting never 0, every chathead expression | guessed |
+| Left out, with why: Nigel and Gelin by the church (Deadman forms only), Twiggy O'Korn (diaries aren't built), Spria (a Slayer master), the Draynor gulls (the 242 cache gave their old ids to Sailing NPCs), the General's Shadow scout; the highwayman's "Stand and deliver!" (no NPC shouts yet); the swamp bubbles (Big Chompy Bird Hunting's ogre bellows), the swamp caves' symbols, the Digsite's bushes, barrel and chest (The Lost Tribe's and The Dig Site's) | out of scope |
+| Found for other threads: the Varrock and Grand Exchange people and options, Draynor's and Edgeville's, the canoe stations, farming patches, STASH units, the Mage Training Arena and Al Kharid's arena | handed to those threads |
+
 ## Draynor Village
 
 The village west of Lumbridge (the Draynor piece, plan in the project's Draynor Village 1:1 plan doc). Step 1 is the
