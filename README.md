@@ -1311,6 +1311,36 @@ each colour at 1/10 each, the H.A.M. coin pouch, or the rest of the Wiki's table
 | The guards' patrols, sight range and pickpocket chance (the members' 135 to 239), the usual stun, a settled guard staying settled, the 9-tick door pick and one try a click, Open from inside, the landing tiles, the 4 free slots a chest needs, 0 coins giving nothing, the messages but the key's | guessed |
 | Out: the easy clue, the chests' open look, the crack's animation, Talk-to on the guards, aggression when spoken to without the robes | out of scope |
 
+#### Farms and roads between the towns
+
+Misthalin piece 7 step 5 (`game/content/FarmsRoads.kt`, `npc-spawns/misthalin-farms-roads.json`, words under
+`farms_roads.*`, `gardener.*`, `tool_leprechaun.*`, `tarquin.*`, `rat_burgiss.*` and `seth_groats.*`): the NPCs live has
+between Lumbridge, Draynor and Varrock that no other file spawned. The cow fields north-west of Lumbridge and north of
+Fred's farm (53 cows, 16 calves), 41 ducks and drakes swimming on the River Lum north of them, 19 chickens south of the
+Champions' Guild and north of Groats' farm, 53 level 2 goblins in the fields between Lumbridge and Draynor and a giant
+spider, two Farmers tending the fields, the Master Farmer south of Varrock (pickpocketed as Draynor's is), three crows,
+two swans, three imps, and the sheep pen south of Varrock (10 sheep to shear, 3 rams). On the Lumbridge to Varrock road:
+Rat Burgiss, two unicorns, a black bear (level 19, which fights and drops as the Wiki has it) and a level 5 goblin.
+
+The patch gardeners Dreven, Vasquen, Fayeth and Treznor show their four options; looking after crops, advice, the
+Farming Supplies shop, Pay and Trade wait for the Farming skill thread and say so. A Tool Leprechaun by each of their
+patches and by Draynor Manor's belladonna patch answers what he stores and where it goes, and asks again; his store,
+Exchange and Deposit-all wait for Farming too. Tarquin at the Champions' Guild's canoe station talks about canoes by
+Woodcutting level, as Barfy Bill does; his Store-axe and the canoes wait for step 11. Rat Burgiss is too busy to chat and
+Seth Groats is off to milk his cows.
+
+| Farms and roads | Source |
+|-----------------|--------|
+| Every NPC's type and tile | mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022), checked against every other spawn file (none within 4 tiles of the same NPC) and the 242 map (swimmers on water, the rest on land) |
+| The three sheep mejrs saw shorn spawned unshorn | inferred: a shorn sheep regrows its wool |
+| The gardeners' menu | OSRS Wiki, Transcript:Dreven, read 2026-11-10 (taken to be every gardener's: inferred) |
+| The Tool Leprechaun's talk | OSRS Wiki, Transcript:Tool Leprechaun, read 2026-11-10 |
+| Tarquin's talk and its Woodcutting bands | OSRS Wiki, Transcript:Tarquin, read 2026-11-10 |
+| Rat Burgiss's and Seth Groats's lines | OSRS Wiki, Transcript:Rat Burgiss (its members' version) and Transcript:Seth Groats, read 2026-11-10 |
+| The black bear: speed 4, max hit 3, slash, no bonuses, respawn 50, weak to fire 30%, not aggressive; bones, bear fur, raw bear meat, the ensouled head and the beginner clue | OSRS Wiki, Black bear, read 2026-11-10 |
+| Every wander range, the chathead expressions, the player repeating a gardener's option, the Farming refusal's words | guessed |
+| Out: the Evil Chicken (a random event); the gardeners' payments and shop and the leprechauns' store (the Farming skill thread); canoes (step 11); stray sightings near Lumbridge and Varrock (a dwarf, a H.A.M. Member, Ali the Leaflet Dropper, Avan, Katrine, Sarah, Julie, Guidor: the 12a sweep) | out of scope |
+
 ## Draynor Village
 
 The village west of Lumbridge (the Draynor piece, plan in the project's Draynor Village 1:1 plan doc). Step 1 is the

@@ -187,6 +187,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   south-east room's door locked and picked, its chest opened with a steel key, the door opened from inside, a crack
   squeezed through both ways, a guard pickpocketed and the ladder back up (with `::keys on` and `::god on`; the guards
   attacking a picker and settling are in the headless test).
+- `farms-roads.json`: Misthalin piece 7 step 5: from Lumbridge to Varrock by `::tele`, Fayeth and a Tool Leprechaun
+  by the castle, Seth Groats, Vasquen, Dreven, Tarquin at the canoe station, Rat Burgiss on the road and Treznor by the
+  palace talked to, and the gardeners' and leprechauns' Farming options refused (with `::keys on`; the spawn counts are
+  in the unit test, Tarquin's higher-level talk in the headless test).
 - `thieving-t1b.json`: Thieving 2 step T1b: a Knight of Ardougne, a hero, a paladin, a warrior, a watchman, a gnome and
   a rogue pickpocketed at 99, each reached by `::tele` (with `::keys on` and `::god on`; the tables, extras, stuns and
   the room check are in the headless and unit tests).

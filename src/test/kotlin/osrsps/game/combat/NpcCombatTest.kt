@@ -853,6 +853,17 @@ class NpcCombatTest {
     }
 
     @Test
+    fun `the black bear on the Varrock road slashes for 3 at speed 4, weak to fire, and waits to be attacked`() {
+        val bearTypes = NpcTypes.of(NpcType(2839, "darkbear", internalName = "darkbear", stats = NpcStats(strength = 16)))
+        val def = NpcCombat.load(bearTypes, seqs)[bearTypes.find("darkbear")!!]!!
+        assertEquals(CombatMath.npcMaxHit(16, def.strengthBonus), def.maxHit)
+        assertEquals(listOf(4, 3, 50), listOf(def.attackSpeed, def.maxHit, def.respawnTicks))
+        assertEquals(ElementalWeakness(Element.FIRE, 30), def.weakness)
+        assertNull(def.aggression)
+        assertEquals(NpcCombatAnims(4925, 4927, 4929), def.anims)
+    }
+
+    @Test
     fun `each max hit in the file is what the formula gives from the levels`() {
         val combat = NpcCombat.load(types, seqs)
         for (name in names) {
