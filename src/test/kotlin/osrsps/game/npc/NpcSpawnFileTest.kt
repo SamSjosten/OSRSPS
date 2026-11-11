@@ -408,6 +408,29 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `the Digsite has its nine workmen, three students, the barge's people with the navigators on deck, and the gate's guard`() {
+        val names = mapOf(
+            3628 to "digworkman1", 3630 to "qip_digsite_digworkman_03", 3631 to "qip_digsite_digworkman_04", 1933 to "vm_digworkman_loader",
+            3632 to "student1", 3633 to "student3", 3634 to "student2", 5138 to "golem_elissa", 3640 to "panning_guide",
+            3641 to "qip_digsite_panning_man_01", 3642 to "qip_digsite_panning_woman_01", 1939 to "vm_woodcutter",
+            1927 to "vm_patrol_route_workmen_1", 1930 to "vm_patrol_route_wheelbarrow_empty", 6088 to "pilot_digsite",
+            1938 to "vm_canal_barge_foremen_talking", 1937 to "vm_canal_barge_workman_painting_tar", 7767 to "fossilquest_barge_guard_port",
+            7768 to "fossilquest_barge_guard_barge", 7819 to "fossilquest_lead_navigator", 7820 to "fossilquest_jr_navigator",
+            1911 to "vm_museum_guard2",
+        )
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("digsite.json"), types, "digsite.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        assertEquals(9, spawns.count { it.type.id in listOf(3628, 3630, 3631) })
+        assertEquals(listOf(3632, 3633, 3634), spawns.filter { it.type.id in 3632..3634 }.map { it.type.id })
+        assertEquals(setOf(7768, 7819, 7820), spawns.filter { it.level == 1 }.map { it.type.id }.toSet())
+        assertEquals(3295 to 3427, spawns.single { it.type.id == 1911 }.let { it.x to it.z })
+        assertEquals(names.keys, spawns.map { it.type.id }.toSet())
+        assertTrue(spawns.all { it.x in 3290..3390 && it.z in 3370..3460 && it.source.isNotBlank() })
+    }
+
+    @Test
     fun `the swamp has its 23 giant rats, 82 frogs, the level 5 goblin, the unicorn, its talking NPCs and tutors, and rats west of the castle`() {
         val names = mapOf(
             2856 to "giantrat", 2859 to "giantrat_grey", 2860 to "giantrat_grey2", 2861 to "giantrat_grey3", 2863 to "giantrat1_2",

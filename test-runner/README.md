@@ -187,6 +187,20 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   south-east room's door locked and picked, its chest opened with a steel key, the door opened from inside, a crack
   squeezed through both ways, a guard pickpocketed and the ladder back up (with `::keys on` and `::god on`; the guards
   attacking a picker and settling are in the headless test).
+- `digsite.json`: Misthalin piece 7 step 9a: a Digsite workman, the three students, Elissa and the Panning guide talked
+  to as after The Dig Site, two signposts read, Captain Errdo by his crashed glider, Ed Wood, the barge foreman, the
+  canal's barge guard refusing Quick-Travel and helping the player aboard, the Lead Navigator refusing Fossil Island by
+  Travel and by talk, the Junior Navigator, Disembark, Embark and leaving by talk, the workers' gate east of Varrock
+  turned away without Kudos (by the gate and by its guard), and the teddy student and a workman pickpocketed (with
+  `::keys on`; the menus' other paths, the busy overhead lines and the pickpocket loot are in the headless test, the
+  tables and spawns in the unit tests).
+- `digsite-digs.json`: Misthalin piece 7 step 9b: a specimen tray searched with no jar and a trowel used in it, soil dug
+  at a training site and a workman stopping a spade and a brush there, level 1 refused without gloves and then without
+  boots and dug once both are worn, a rock pick refused there, level 2 refusing a trowel and dug with the rock pick, level
+  3 refused without a jar, the specimen-jar sacks giving a jar and then nothing, the other sacks, a buried skeleton
+  searched and a trowel on it, level 3 dug, the tray searched with the jar, and the panning tent's tray taken, used at
+  a panning point, refused when full and its mud searched (with `::keys on`; the XP and a missing workman are in the
+  headless test, the finds tables and site maps in the unit test).
 - `farms-roads.json`: Misthalin piece 7 step 5: from Lumbridge to Varrock by `::tele`, Fayeth and a Tool Leprechaun
   by the castle, Seth Groats, Vasquen, Dreven, Tarquin at the canoe station, Rat Burgiss on the road and Treznor by the
   palace talked to, and the gardeners' and leprechauns' Farming options refused (with `::keys on`; the spawn counts are

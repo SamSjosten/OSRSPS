@@ -1422,6 +1422,57 @@ piece. The ground floor's altar is the church's.
 | Ivan's tile (beside Drezel), the doors and gates moving the player through, the landings below the trapdoors, Drakan's medallion handed over only when none is owned, the chathead expressions, the Morytania refusal | guessed; the tiles checked on the real map by `paterdomus.json` |
 | Out: the monuments, the well, the stained glass, the plinths and bookcases upstairs, the coffin, the cell gate, the organ, the keyhole, the library's bookcases (a quest's books), the east trapdoor, the Temple Trekking sign; Morytania past the Salve | out of scope (12a's sweep, or Morytania's piece) |
 
+#### Digsite
+
+Misthalin piece 7 step 9a (`game/content/Digsite.kt`, `npc-spawns/digsite.json`, words under `digsite_people.*`,
+`elissa.*`, `panning_guide.*`, `digsite_barge.*` and `digsite_sign.*`): the Digsite's people and the canal barge after
+The Dig Site and Bone Voyage. Digging, the specimen trays and panning are step 9b.
+
+The Digsite workmen greet the player as the great archaeologist, and each of the three students thanks them for the
+item the quest found. Elissa and the Panning guide talk as their transcripts have them. The workmen's Steal-from and the
+teddy student's Pickpocket are `Pickpocketing`'s (level 25; the workmen 10.4 XP and their table out of 11, the student
+her teddy). At the barge, the canal's guard helps the player aboard by talk or Embark and the barge's guard helps them
+off by talk or Disembark; Quick-Travel, the guard's Fossil Island option and the Lead Navigator refuse, since Fossil
+Island is its own region, and the Junior Navigator sends the player to the Lead Navigator. The foreman thanks the player,
+the barge workman and Ed Wood are too busy to talk, and Captain Errdo's glider east of Varrock has crashed. The workers'
+gate east of Varrock wants 153 Kudos, which the museum doesn't count yet, so its guard turns everyone away. The
+signposts read their site's level.
+
+| Digsite | Source |
+|---------|--------|
+| The NPCs and their tiles; the barge's guard and the navigators on its deck (plane 1) | mejrs data_osrs NPCList_OSRS.json; the Wiki's Student map for which student is which |
+| The talks, the busy lines, the guard's Kudos refusal and the signposts' text | OSRS Wiki transcripts (Digsite workman, Student, Elissa, Panning guide, Barge guard, Barge foreman, Barge workman, Ed Wood, Lead Navigator, Junior Navigator, Captain Errdo, Museum guard) and Signpost (Digsite), read 2026-11-11 |
+| The barge's post-quest types (`fossilquest_progress` 50 shows them; John and David hidden) | the 242 cache's multi-NPCs; checked on the real map by `digsite.json` |
+| The workmen's Steal-from (25, 10.4 XP, 1 damage, 4-second stun, coins 4/11, brush 3/11, rope, bucket, gloves, spade 1/11) and the student's Pickpocket (25, no XP, 100 to 240, a teddy) | OSRS Wiki, Digsite workman and Student, read 2026-11-11 |
+| Nobody having 153 Kudos | inferred: the museum counts no Kudos yet (`VarrockMuseum`) |
+| The workmen's pickpocket taking 4 ticks, twice the usual 2 | inferred from the Wiki's "roughly twice as long" (Digsite workman) |
+| The workmen's success chart (the student's), the tiles boarding and leaving put the player on, Embark and Disembark skipping the talk, the patrolling workmen standing still, the chathead expressions, the Fossil Island refusal | guessed; the tiles checked on the real map by `digsite.json` |
+| Out: digging, the trays, panning, the winches, sacks, bushes, barrel, chest and buried skeletons (step 9b and 10); the guard calling out as the player nears the gate; the Digsite pendant; Fossil Island | out of scope |
+
+Misthalin piece 7 step 9b (`game/content/DigsiteDigs.kt`, `obj-spawns/digsite.tsv`, words under `digsite_dig.*`):
+digging, the specimen trays and panning after The Dig Site, which every account has done, so every exam counts as
+passed.
+
+A dig is a tool used on soil, and the site is the one the player stands in, by the Wiki's site maps: the training digs
+take a trowel (5 Mining XP), level 1 a trowel with leather gloves and boots worn (6 XP), level 2 a rock pick (7 XP) and
+level 3 a trowel with a specimen brush and jar carried (8 XP). Each site rolls the Wiki's finds table, one find a dig.
+The wrong tool, a spade or a brush brings the nearest workman's line, or shows it as a message when no workman is
+within 10 tiles. A specimen tray searched with a jar gives 0.5 Mining XP and a find; without one a workman stops the
+player. Pan at a panning point, or an empty panning tray used on it, fills the tray with mud for 2 Fishing and 2 Mining
+XP, and Search on the muddy tray empties it for a find. One empty tray lies in the panning tent. The specimen-jar sacks
+give a jar to a player carrying none; the other sacks and the buried skeletons hold nothing, and a trowel on a skeleton
+brings a workman's line.
+
+| Digsite digs | Source |
+|--------------|--------|
+| The tools for each site, the XP, the finds tables (out of 13, 12, 16 and 20), the specimen tray (out of 11) and the muddy tray (out of 40) | OSRS Wiki, Soil, Specimen tray, Panning tray and Panning, read 2026-11-11 |
+| The site maps | OSRS Wiki, Soil's site maps; 451 of the 242 cache's 475 soil tiles fall inside them; the other 24 (3382-3385, 3416-3421) are on no site map and give no dig |
+| The workmen's lines, the tray without a jar, the sacks, the skeleton and the full tray | OSRS Wiki transcripts (Digsite workman, Sacks (Digsite)) and Buried skeleton (Digsite), read 2026-11-11 |
+| The tent's tray (3369,3378, 100 ticks) | OSRS Wiki, Panning tray, item spawns |
+| Coins (3/20, 10 each) in place of level 3's ancient talisman; the special cup (3/40) as nothing | inferred: both are the quest's items |
+| One find a dig after 3 ticks, the animations, a workman within 10 tiles counting as near, a full backpack refusing first, and the dig, find, pan and search messages | guessed (the Wiki gives no time or messages) |
+| Out: the winches and the Digsite Dungeon (step 10); the bushes, barrel and chest (the quest's); the museum's specimen cleaning; the gold panning tray; Fossil Island's soil | out of scope |
+
 ## Draynor Village
 
 The village west of Lumbridge (the Draynor piece, plan in the project's Draynor Village 1:1 plan doc). Step 1 is the

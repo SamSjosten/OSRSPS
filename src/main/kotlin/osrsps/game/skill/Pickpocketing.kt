@@ -6,6 +6,8 @@ import osrsps.game.Skill
 import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.combat.StatusEffects
+import osrsps.game.content.Digsite
+import osrsps.game.content.DigsitePeopleLines
 import osrsps.game.content.HamHideout
 import osrsps.game.content.HamStorerooms
 import osrsps.game.content.Townsfolk
@@ -64,6 +66,8 @@ class Pocket(
     val stunTicks: Int = StatusEffects.PICKPOCKET_TICKS,
     val extra: List<PocketLoot> = emptyList(),
     val heatDamage: Int = 0,
+    /** Ticks from the attempt's message to its outcome, and to the next attempt after one that works. */
+    val attemptTicks: Int = Pickpocketing.ATTEMPT_TICKS,
 ) {
     /** The coin pouch it gives, from its own pouch or its table. */
     val anyPouch: Int? get() = pouch ?: lootPouch
@@ -135,9 +139,9 @@ class Pickpocketing(private val world: World) {
             player.message(text[PickpocketLines.INVENTORY_FULL])
             return
         }
-        player.nextPickpocketTick = tick + ATTEMPT_TICKS
+        player.nextPickpocketTick = tick + pocket.attemptTicks
         player.message(text[PickpocketLines.ATTEMPT, "who" to pocket.who])
-        delay(1)
+        delay(pocket.attemptTicks - 1)
         // Hidden in that tick (World.hide), it is out of reach; nothing comes of the attempt.
         if (npc.hidden) return
         if (npc.dead) {
@@ -276,6 +280,9 @@ class Pickpocketing(private val world: World) {
 
         const val COMBAT_TICKS = 8
         const val ATTEMPT_TICKS = 2
+
+        /** The Digsite workmen's longer pickpocket: twice [ATTEMPT_TICKS] (inferred from the Wiki's "roughly twice as long"). */
+        const val WORKMAN_ATTEMPT_TICKS = 4
 
         /**
          * A failed pickpocket's next one waits this much longer than [ATTEMPT_TICKS]: the Wiki's eight ticks, its average
@@ -425,6 +432,23 @@ class Pickpocketing(private val world: World) {
         )
 
         private fun line(obj: Int, weight: Int, max: Int = 1, min: Int = 1) = PocketLoot(obj, min, max) { weight }
+
+        /**
+         * The Digsite workmen's Steal-from table after The Dig Site (the Wiki's Digsite workman page, read 2026-11-11), out
+         * of 11: 10 coins 4/11 (the quest's animal skull turns into coins), a specimen brush 3/11, and a rope, bucket,
+         * leather gloves or spade 1/11 each. Coins, not a pouch, as the Wiki says.
+         */
+        val DIGSITE_WORKMAN_LOOT = listOf(
+            line(COINS, 4, 10, 10),
+            line(670, 3),
+            line(954, 1),
+            line(1925, 1),
+            line(1059, 1),
+            line(952, 1),
+        )
+
+        /** The teddy student's one item after The Dig Site: her teddy, always (the Wiki's Student page). */
+        val STUDENT_LOOT = listOf(line(673, 1))
 
         /** The Wiki's Rogue table, out of 144. Rocky left out. */
         val ROGUE_LOOT = listOf(
@@ -651,6 +675,20 @@ class Pickpocketing(private val world: World) {
             Pocket(
                 HAM_MEMBERS, "H.A.M. member", 15, 222, 135, 239, 3, PickpocketLines.CAUGHT_HAM, loot = HAM_LOOT, op = HAM_PICKPOCKET,
                 damageMin = 1, lootPouch = HAM_POUCH, concussions = true, stunTicks = HAM_STUN_TICKS,
+            ),
+            // The Digsite's workmen (Steal-from) and its teddy student (Misthalin piece 7 step 9a, [Digsite]).
+            // Workmen: level 25, 10.4 XP, 1 damage, a 4-second stun (the Wiki's Digsite workman page); students: level 25,
+            // no XP, 100 to 240 (the Wiki's Student chart). Guessed: the workmen's chart (the Wiki has none; the
+            // student's, the same level's), the student's 1 damage and stun, her caught line, "workman" and "student" in
+            // the messages. The workmen's pickpocket takes twice the usual 2 ticks (inferred from the Wiki's "roughly
+            // twice as long"): the outcome 3 ticks after the attempt, the next attempt 4 ticks on.
+            Pocket(
+                Digsite.WORKMEN, "workman", 25, 104, 100, 240, 1, DigsitePeopleLines.CAUGHT,
+                loot = DIGSITE_WORKMAN_LOOT, stunTicks = STUN_4_SECONDS, attemptTicks = WORKMAN_ATTEMPT_TICKS,
+            ),
+            Pocket(
+                listOf(Digsite.STUDENT_TEDDY), "student", 25, 0, 100, 240, 1, PickpocketLines.CAUGHT_CITIZEN,
+                loot = STUDENT_LOOT,
             ),
             // The H.A.M. Storerooms' guards (Misthalin piece 7 step 4b, [HamStorerooms]): level 20, 22.2 XP, 1 to 3
             // damage, their own table; the members' 135 to 239 and the usual stun are guessed (the Wiki has no chart).
