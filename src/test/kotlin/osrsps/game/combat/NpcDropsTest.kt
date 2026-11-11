@@ -581,6 +581,15 @@ class NpcDropsTest {
     }
 
     @Test
+    fun `only the angry giant rat nearest the rift's rope drops bones`() {
+        val near = NpcType(4690, "Angry giant rat", combatLevel = 47, internalName = "soulbane_rat2")
+        val far = NpcType(4689, "Angry giant rat", combatLevel = 47, internalName = "soulbane_rat")
+        val defs = NpcDrops.load(NpcTypes.of(near, far), objTypes)
+        assertEquals(listOf(526 to 1), defs[near]!!.roll(GameRandom(4)).map { it.type.id to it.count })
+        assertEquals(null, defs[far])
+    }
+
+    @Test
     fun `a highwayman always drops his black cape and bones, and iron bolts 5 times in 100`() {
         val highwayman = NpcType(518, "Highwayman", combatLevel = 5, internalName = "highwayman")
         val def = NpcDrops.load(NpcTypes.of(highwayman), objTypes)[highwayman]!!

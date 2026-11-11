@@ -49,6 +49,10 @@ class NpcCombatTest {
             "slice_surface_goblin_squat_unarmed_attack" to 6184, "slice_surface_goblin_defend" to 6183, "slice_surface_goblin_death" to 6182,
             "spider_update_attack" to 5327, "spider_update_defend" to 5328, "spider_update_death" to 5329,
             "bat_rework_attack" to 4915, "bat_rework_defend" to 4916, "bat_rework_death" to 4917,
+            "bear_rework_attack" to 4925, "bear_rework_defend" to 4927, "bear_rework_death" to 4929,
+            "fear_attack" to 3812, "fear_parry" to 3811, "fear_death" to 3813,
+            "confattack" to 3816, "confparry" to 3820, "confdeath" to 3821,
+            "lessattack" to 3823, "lessparry" to 3826, "lessdeath" to 3827,
             "giant_rat_update_attack" to 4933, "giant_rat_update_defend" to 4934, "giant_rat_update_death" to 4935,
             "giant_frog_attack" to 1793, "giant_frog_block" to 1794, "giant_frog_death" to 1795,
             "slice_surface_goblin_squat_attack_spear" to 6188, "slice_surface_goblin_defend_spear" to 6189, "slice_surface_goblin_death_spear" to 6190,
@@ -925,6 +929,30 @@ class NpcCombatTest {
         assertEquals(ElementalWeakness(Element.AIR, 35), def.weakness)
         assertNull(def.aggression)
         assertEquals(NpcCombatAnims(4915, 4916, 4917), def.anims)
+    }
+
+    @Test
+    fun `Tolna's rift's monsters hit as their levels give at speed 4, attack first and are back after 25 ticks`() {
+        // Strength 41 for the Anger room's, 48, 55 and 62 for the fear reaper, confusion beast and hopeless creature.
+        val rift = mapOf(
+            "soulbane_bear" to 41, "soulbane_unicorn" to 41, "soulbane_rat" to 41, "soulbane_rat2" to 41, "soulbane_goblin" to 41,
+            "soulbane_fear_beast" to 48, "soulbane_conf_beast" to 55, "soulbane_less_beast3" to 62,
+        )
+        val riftTypes = NpcTypes.of(*rift.entries.mapIndexed { i, (name, str) -> NpcType(4688 + i, name, internalName = name, stats = NpcStats(strength = str)) }.toTypedArray())
+        val combat = NpcCombat.load(riftTypes, seqs)
+        val maxHits = mutableListOf<Int>()
+        for ((name, str) in rift) {
+            val def = combat[riftTypes.find(name)!!]!!
+            assertEquals(CombatMath.npcMaxHit(str, def.strengthBonus), def.maxHit, name)
+            assertEquals(listOf(4, 25), listOf(def.attackSpeed, def.respawnTicks), name)
+            assertTrue(def.aggression != null, name)
+            maxHits += def.maxHit
+        }
+        assertEquals(listOf(5, 5, 5, 5, 5, 6, 6, 7), maxHits)
+        assertEquals(NpcCombatAnims(4925, 4927, 4929), combat[riftTypes.find("soulbane_bear")!!]!!.anims)
+        assertEquals(NpcCombatAnims(3816, 3820, 3821), combat[riftTypes.find("soulbane_conf_beast")!!]!!.anims)
+        assertEquals(ElementalWeakness(Element.FIRE, 40), combat[riftTypes.find("soulbane_less_beast3")!!]!!.weakness)
+        assertNull(combat[riftTypes.find("soulbane_fear_beast")!!]!!.weakness)
     }
 
     @Test
