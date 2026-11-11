@@ -176,8 +176,8 @@ class HeadlessMisthalinSweepTest {
                 client.awaitSeen("[game.nothing_interesting]")
                 assertEquals(1, client.count(MisthalinSweep.EGG))
                 val searcher = server.world.playerNamed("bob")!!
-                assertTrue(searcher.sessionCharges[MisthalinSweep.COOP_DUE] > 0)
-                searcher.sessionCharges[MisthalinSweep.COOP_DUE] = 0
+                assertTrue(searcher.charges[MisthalinSweep.COOP_DUE] > 0)
+                searcher.charges[MisthalinSweep.COOP_DUE] = 0
                 client.locOp(coop.id, coop.x, coop.z, MisthalinSweep.SEARCH)
                 client.awaitSeen("[misthalin_sweep.egg_found]", 2)
                 client.awaitCount(MisthalinSweep.EGG, 2)
@@ -185,6 +185,33 @@ class HeadlessMisthalinSweepTest {
                 client.tele(crate.x, crate.z - 1)
                 client.locOp(crate.id, crate.x, crate.z, MisthalinSweep.SEARCH)
                 client.awaitSeen("[search.crate_empty]")
+            }
+        }
+    }
+
+    @Test
+    fun `a coop's wait outlasts a logout, but not a restart`(@TempDir dir: Path) {
+        // Exploit review round 27, R27B-2: the wait was unsaved, so logging out and back in gave another egg at once.
+        server(dir, emptyList()).use { server ->
+            server.login("bob").use { client ->
+                client.ready()
+                client.tele(coop.x, coop.z - 1)
+                client.locOp(coop.id, coop.x, coop.z, MisthalinSweep.SEARCH)
+                client.awaitCount(MisthalinSweep.EGG, 1)
+                client.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+                client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+            }
+            server.login("bob").use { client ->
+                client.ready()
+                client.locOp(coop.id, coop.x, coop.z, MisthalinSweep.SEARCH)
+                client.awaitSeen("[game.nothing_interesting]")
+                assertEquals(1, client.count(MisthalinSweep.EGG))
+                // A wait from before a restart, whose ticks start again from 0, counts for nothing however near its tick.
+                val bob = server.world.playerNamed("bob")!!
+                assertEquals(server.world.run, bob.charges[MisthalinSweep.COOP_RUN])
+                bob.charges[MisthalinSweep.COOP_RUN] = server.world.run - 1
+                client.locOp(coop.id, coop.x, coop.z, MisthalinSweep.SEARCH)
+                client.awaitCount(MisthalinSweep.EGG, 2)
             }
         }
     }

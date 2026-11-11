@@ -121,6 +121,41 @@ class HeadlessItemSetsTest {
     }
 
     @Test
+    fun `a set whose cache data would make more of it, or nothing, is neither packed nor unpacked`(@TempDir dir: Path) {
+        // Exploit review round 27, R27B-1: the window's data comes from the cache unchecked. Index 0 lists its own noted
+        // form, index 1 itself, index 2 nothing; indexes 3 and 4 share one item with different pieces.
+        val bad = types + obj(LOOP, "Loop set") + obj(SELF, "Self set") + obj(EMPTY, "Empty set") + obj(TWICE, "Twice set")
+        val sets = ItemSets(
+            listOf(
+                ItemSet(0, LOOP, listOf(LOOP + 1, HELM)), ItemSet(1, SELF, listOf(SELF, BODY)), ItemSet(2, EMPTY, emptyList()),
+                ItemSet(3, TWICE, listOf(HELM)), ItemSet(4, TWICE, listOf(HELM, BODY, LEGS)),
+            ),
+        )
+        // The noted form needs the items to see; the rest the data alone shows.
+        assertEquals(listOf(true, false, false, false, false), sets.all.map { sets.usable(it) })
+        TestServer(dir) { crcs, millis ->
+            World(
+                crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes.of(*bad.toTypedArray()),
+                npcTypes = NpcTypes.of(clerk), npcSpawns = listOf(NpcSpawn(clerk, 3224, 3218, source = "test")),
+                itemSets = sets, cycleMillis = millis,
+            )
+        }.use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                for (id in listOf(LOOP, SELF, EMPTY, TWICE, HELM)) client.command("item $id 1")
+                client.await("the sets") { if (client.held(HELM) == 1L) Unit else null }
+                client.openSets()
+                for (id in listOf(LOOP, SELF, EMPTY, TWICE)) client.ifButton(ItemSetsScreen.SIDE, ItemSetsScreen.SIDE_ITEMS, 1, client.slotOf(id), id)
+                // Pack on the set of one helm, whose item another set shares.
+                client.ifButton(ItemSetsScreen.MAIN, ItemSetsScreen.ITEMLIST, 1, 3)
+                client.awaitTicks(3)
+                assertEquals(listOf(1L, 1L, 1L, 1L, 1L), listOf(LOOP, SELF, EMPTY, TWICE, HELM).map { client.held(it) })
+                assertEquals(0L, client.held(LOOP + 1) + client.held(BODY) + client.held(LEGS))
+            }
+        }
+    }
+
+    @Test
     fun `Item sets in a clerk's talk opens the window`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { client ->
@@ -146,5 +181,9 @@ class HeadlessItemSetsTest {
         const val PAGE_SET = 150
         const val PAGE_1 = 160
         const val PAGE_2 = 170
+        const val LOOP = 180
+        const val SELF = 190
+        const val EMPTY = 200
+        const val TWICE = 210
     }
 }

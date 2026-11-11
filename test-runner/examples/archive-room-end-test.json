@@ -1,0 +1,227 @@
+{
+ "name": "Room end, two players (run with archive-room-end-test2.json on the other VM at the same time): test leads a party of test and test2 into The Fractured Archive; test2 goes down in the nexus's entrance with test standing; test, hurt and its prayer low, kills Ezekiel alone; his room won brings test2 back standing on his arena and gives both their hitpoints and prayer back (Sam's recording of 2026-11-10, after Bork)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare",
+   "comment": "nothing carried; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::raidparty leave",
+   "expectMessage": "arty.",
+   "comment": "out of the last run's party, if any: 'You left the party.' or 'You're not in a party.'"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys",
+   "comment": "test2's trade requests, its signs, are matched by their key"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel prayer 99",
+   "expectMessage": "Prayer set to level 99"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel hitpoints 99",
+   "expectMessage": "Hitpoints set to level 99"
+  },
+  {
+   "step": "command",
+   "text": "::heal",
+   "expectMessage": "Healed to 99 hitpoints."
+  },
+  {
+   "step": "command",
+   "text": "::god on",
+   "expectMessage": "You can't be hurt now",
+   "comment": "his swings land but do nothing; ::god off at the end"
+  },
+  {
+   "step": "command",
+   "text": "::varp 172 1",
+   "expectMessage": "Varp 172:",
+   "comment": "auto retaliate off; ::reset puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::tele 4127 5560 0",
+   "expectMessage": "Teleported to 4127, 5560, 0",
+   "comment": "the lobby, in front of the Archive Door"
+  },
+  {
+   "step": "playerOption",
+   "player": "test2",
+   "option": "Follow",
+   "x": 4127,
+   "y": 5560,
+   "timeoutMs": 180000,
+   "comment": "once test2 stands on this tile too, its sign that it's ready; the door below ends the follow"
+  },
+  {
+   "step": "command",
+   "text": "::raidparty invite test2",
+   "expectMessage": "Invited test2 to your party"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "test2 joined the party.",
+   "timeoutMs": 60000
+  },
+  {
+   "step": "locOption",
+   "locId": 62768,
+   "option": "Enter",
+   "timeoutMs": 20000,
+   "comment": "tfa_lobby_raid_entry: into the party's run"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 6
+  },
+  {
+   "step": "playerOption",
+   "player": "test2",
+   "option": "Follow",
+   "timeoutMs": 120000,
+   "comment": "once test2 is in view here in the entrance, its sign that it is in the run (nobody comes in once the Guardian's room is begun); the teleport below ends the follow"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp guardian",
+   "expectMessage": "To Archive Guardian's room"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Archive Guardian's room.",
+   "comment": "the first row done, so the second's doors open"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp nexus",
+   "expectMessage": "To the nexus",
+   "comment": "back to the entrance, where test2 waits: the Guardian's room done before test2 falls, or its end would get test2 up"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "the client redraws the scene after the teleport"
+  },
+  {
+   "step": "playerOption",
+   "player": "test2",
+   "option": "Trade with",
+   "timeoutMs": 60000,
+   "comment": "our sign to test2 that the Guardian's room is done and it may fall (a room won with it down would get it up); the request stays, for its sign back below"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[trade.sending]",
+   "timeoutMs": 20000,
+   "comment": "the request sent: Trade with only sets off the walk to test2, and a teleport before it reaches test2 would drop it"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp ezekiel",
+   "expectMessage": "To Ezekiel's room",
+   "comment": "in at the way into his room, east of his arena"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "the client redraws the scene after the teleport before the click"
+  },
+  {
+   "step": "locOption",
+   "locId": 63087,
+   "option": "Use",
+   "timeoutMs": 20000,
+   "comment": "tfa_boss_teleporter: into his arena at its east edge (4067,5535), and his fight begins"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 10
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "down: test2",
+   "comment": "test2 fell in the entrance with us standing: down until his room is won"
+  },
+  {
+   "step": "command",
+   "text": "::boost hitpoints 5",
+   "expectMessage": "Hitpoints is now 5/99",
+   "comment": "hurt"
+  },
+  {
+   "step": "command",
+   "text": "::boost prayer 3",
+   "expectMessage": "Prayer is now 3/99",
+   "comment": "and our prayer low"
+  },
+  {
+   "step": "command",
+   "text": "::hit 3000",
+   "expectMessage": "0/3000 hp, dead",
+   "comment": "his hitpoints for a party of two"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 14,
+   "comment": "his room is won ten ticks after his death"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "done Archive Guardian, Ezekiel;",
+   "comment": "his death did his room; nobody down any more"
+  },
+  {
+   "step": "command",
+   "text": "::stats",
+   "expectMessage": "Every stat is at its level",
+   "comment": "his room won gave our hitpoints and prayer back (Sam's recording of 2026-11-10: 99/99 after Bork)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 335,
+   "timeoutMs": 180000,
+   "comment": "test2's sign that it is done, back on his arena and whole: its Trade with answers our request, which opens the trade"
+  },
+  {
+   "step": "command",
+   "text": "::tele 4127 5560 0",
+   "expectMessage": "Teleported to 4127, 5560, 0",
+   "comment": "out of the instance"
+  },
+  {
+   "step": "command",
+   "text": "::raidparty leave",
+   "expectMessage": "arty."
+  },
+  {
+   "step": "command",
+   "text": "::god off",
+   "expectMessage": "You can be hurt again"
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

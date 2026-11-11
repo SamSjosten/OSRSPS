@@ -427,7 +427,14 @@ class HeadlessBorkTest {
                     val down = alice.awaitLine(run, "Bork down") { it.endsWith("fight: Bork down") }
                     val frenzy = alice.awaitLine(run, "their frenzy") { it.endsWith("fight: the Smorks' frenzy") }
                     assertEquals((Bork.BORK_GONE + Bork.FRENZY_AFTER).toLong(), tickOf(frenzy) - tickOf(down))
-                    alice.awaitLine(run, "napalm in the frenzy") { it.endsWith("fight: the Smorks call napalm") && tickOf(it) > tickOf(frenzy) }
+                    // Their napalm in the frenzy names who it goes at (Sam's recording of 2026-11-10), and goes at them.
+                    val call = alice.awaitLine(run, "napalm in the frenzy") { it.contains("fight: the Smorks call napalm on ") && tickOf(it) > tickOf(frenzy) }
+                    val named = call.substringAfterLast(' ')
+                    assertTrue(named == "alice" || named == "bob", call)
+                    val aimed = alice.awaitLine(run, "the frenzy's napalm cast") { it.contains("fight: napalm at ") && tickOf(it) > tickOf(call) }
+                    assertEquals(tickOf(call) + Bork.NAPALM_CAST, tickOf(aimed))
+                    assertTrue(aimed.endsWith("($named)"), aimed)
+                    assertTrue(lines(run).none { it.endsWith("fight: the Smorks call napalm") && tickOf(it) > tickOf(frenzy) }, "a usual call in the frenzy")
                     val volleys = lines(run).filter { it.contains("the Smorks fire") && tickOf(it) >= tickOf(frenzy) }
                     assertTrue(volleys.size in 2..3, volleys.toString())
                     assertTrue(volleys.all { it.endsWith(" at alice, bob") }, volleys.toString())

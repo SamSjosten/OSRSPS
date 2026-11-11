@@ -118,7 +118,12 @@ object DigsiteDigs {
      * 1 with free tools (the exploit review's R26C-2); 8 gives about a third of that.
      */
     const val DIG_TICKS = 8
-    const val PAN_TICKS = 3
+
+    /**
+     * Guessed, slow on purpose as [DIG_TICKS] is until live is recorded: at 3 ticks panning gave about 4k Mining and 4k
+     * Fishing XP an hour from level 1, more than the slowed digs (the exploit review's R27B-3).
+     */
+    const val PAN_TICKS = 8
 
     /** farming_trowel_digging, qip_digisite_rockpick_anim, qip_digsite_panning_01 (guessed). */
     const val ANIM_TROWEL = 2272
