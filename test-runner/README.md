@@ -27,8 +27,9 @@ go to `build/headless/results`. `-Pscripts=hans-demo.json,lumbridge-bank.json` p
 faster than live's 600 ms ticks. Fresh accounts start in the fixed frame there, as the VMs' clients were.
 
 What only the real client does isn't there yet, and a step that needs it fails saying so: client scripts
-(`runClientScript`, `mouseClick`, `typeText`, text an interface has in the cache), the two-player pairs, other players'
-names, and animations, graphics, hitsplats, health bars and the player's model.
+(`runClientScript`, `mouseClick`, `typeText`, text an interface has in the cache), the two-player pairs and other players'
+names. Animations, graphics, hitsplats, health bars and the player's model are read from the server's player and NPC
+info, as the client reads them.
 
 ## Installing
 

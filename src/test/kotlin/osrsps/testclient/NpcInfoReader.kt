@@ -1,19 +1,29 @@
 package osrsps.testclient
 
+import io.netty.buffer.Unpooled
+import net.rsprot.buffer.extensions.toJagByteBuf
+
 /** Overhead text an NPC was shown saying, and the tick count the client had seen when it came. */
 data class NpcSaid(val index: Int, val text: String, val ticks: Int)
 
 /** A hitsplat on an NPC as this client was sent it (its own type when it dealt the hit), and the ticks seen then. */
 data class NpcHit(val index: Int, val type: Int, val value: Int, val ticks: Int)
 
+/**
+ * An NPC's head bar as the client was last told it: its type, how much of the type's width is filled, the server cycles
+ * the client had seen when it came (its own counted), and the client cycles (20 ms) after that until it settles: its
+ * start delay and, for a bar that slides, its end time. The bar stays up for the type's stick time after that.
+ */
+data class HeadbarView(val type: Int, val fill: Int, val cycle: Int = 0, val settleCycles: Int = 0)
+
 /** An NPC the client can see: its index in the world, its type id and its tile. */
 data class NpcView(val index: Int, val id: Int, val coord: Coord)
 
 /**
  * The client's side of NPC info: the list of NPCs in view, kept from NPC_INFO_SMALL_V6 and NPC_INFO_LARGE_V6 as the
- * real client keeps it. Of the extended info blocks overhead text ([said]) and hitsplats ([hits]) are read, and only
- * while every NPC's blocks before them in the packet are ones this reader knows the size of: head bars, an animation,
- * facing another entity, overhead text and hitsplats. An NPC with any other block stops the reading there.
+ * real client keeps it. Of the extended info blocks overhead text ([said]), hitsplats ([hits]), animations and spotanims
+ * ([events]), head bars ([health]) and a change of type are kept. Every block RSProt's desktop writer sends is read but
+ * the head, body and head icon customisations; an NPC with one of those stops the reading there.
  *
  * Built against RSProt's NpcInfo and DesktopLowResolutionChangeEncoder: a count of the NPCs still in view, a bit-packed
  * update for each of them in order (no change, extended info only, walk, run or crawl, or removal), then the NPCs new to
@@ -35,10 +45,23 @@ class NpcInfoReader {
     var hits: List<Triple<Int, Int, Int>> = emptyList()
         private set
 
+    /** The animations, spotanims and hitsplats in the last packet's blocks, in order. */
+    var events: List<ActorEvent> = emptyList()
+        private set
+
+    /** Each NPC's head bar as the client was last told it, by index; gone when the bar was removed. */
+    private val fills = HashMap<Int, HeadbarView>()
+
+    /** Each NPC's spotanims by slot, as the client keeps them until a slot is cleared or the NPC leaves view. */
+    private val spotanims = HashMap<Int, HashMap<Int, Int>>()
+
     fun npcs(): List<NpcView> = inView.toList()
 
-    /** Applies one packet; [local] is the local player's tile after this tick's player info. */
-    fun read(payload: ByteArray, large: Boolean, local: Coord) {
+    /** An NPC's health bar; null while it shows none. */
+    fun health(index: Int): HeadbarView? = fills[index]
+
+    /** Applies one packet; [local] is the local player's tile after this cycle's player info, [cycles] the cycles seen. */
+    fun read(payload: ByteArray, large: Boolean, local: Coord, cycles: Int = 0) {
         val bits = BitReader(payload)
         val extended = ArrayList<Int>()
         val count = bits.read(8)
@@ -88,67 +111,129 @@ class NpcInfoReader {
         }
         inView.clear()
         inView += kept
+        val keptIndices = kept.mapTo(HashSet()) { it.index }
+        fills.keys.retainAll(keptIndices)
+        spotanims.keys.retainAll(keptIndices)
         extendedInfo = extended
-        readBlocks(payload, bits.alignedBytes(), extended)
+        readBlocks(payload, bits.alignedBytes(), extended, cycles)
     }
 
     /**
-     * The extended info after the bits, one block set per index in [extended], as RSProt's
+     * The extended info after the bits, one block set per index in [extended], as RSProt 242's
      * NpcAvatarExtendedInfoDesktopWriter writes them: a flag byte, a second, third and fourth when the one before has its
-     * marker bit (0x4, 0x400, 0x200000), then the blocks in the writer's order. Of those, hitsplats, the animation, head
-     * bars, overhead text and a face at an entity are read, from RSProt's NpcHeadbarEncoder, NpcSequenceEncoder,
-     * NpcFaceEncoder, NpcSayEncoder and NpcHitmarkEncoder; any other flag or face kind stops the reading.
+     * marker bit (0x4, 0x400, 0x200000), then the blocks in the writer's order, each read as its RSProt encoder writes it.
      */
-    private fun readBlocks(payload: ByteArray, start: Int, extended: List<Int>) {
+    private fun readBlocks(payload: ByteArray, start: Int, extended: List<Int>, cycles: Int) {
         val said = ArrayList<Pair<Int, String>>()
         val hits = ArrayList<Triple<Int, Int, Int>>()
-        var position = start
-        fun u1(): Int = payload[position++].toInt() and 0xFF
-        fun smart(): Int = if ((payload[position].toInt() and 0xFF) < 128) u1() else ((u1() shl 8) or u1()) - 32768
+        val events = ArrayList<ActorEvent>()
+        val buf = Unpooled.wrappedBuffer(payload, start, payload.size - start).toJagByteBuf()
         for (index in extended) {
-            if (position >= payload.size) break
-            var flags = u1()
-            if (flags and EXTENDED_SHORT != 0) flags = flags or (u1() shl 8)
-            if (flags and EXTENDED_MEDIUM != 0) flags = flags or (u1() shl 16)
-            if (flags and EXTENDED_INT != 0) flags = flags or (u1() shl 24)
-            if (flags and (EXTENDED_SHORT or EXTENDED_MEDIUM or EXTENDED_INT or HEADBAR or SEQUENCE or FACE or SAY or HIT).inv() != 0) break
-            if (flags and HIT != 0) {
-                repeat((128 - u1()) and 0xFF) {
-                    val type = smart()
-                    val value = smart()
-                    smart() // delay
-                    smart() // limit (RSProt's NpcHitmarkEncoder writes four smarts a hit)
+            if (!buf.isReadable) break
+            var flags = buf.g1()
+            if (flags and EXTENDED_SHORT != 0) flags = flags or (buf.g1() shl 8)
+            if (flags and EXTENDED_MEDIUM != 0) flags = flags or (buf.g1() shl 16)
+            if (flags and EXTENDED_INT != 0) flags = flags or (buf.g1() shl 24)
+            if (flags and KNOWN_FLAGS.inv() != 0) break
+            if (flags and SPOTANIM != 0) {
+                val slots = spotanims.getOrPut(index) { HashMap() }
+                repeat(buf.g1Alt3()) {
+                    val slot = buf.g1Alt3()
+                    val id = buf.g2Alt3()
+                    buf.skipRead(4) // delay and height
+                    buf.g1Alt2() // loop
+                    if (id == NONE) slots.remove(slot) else slots[slot] = id
+                }
+                // Every spotanim the NPC has now, as the plugin reports them on GraphicChanged (see PlayerInfoReader).
+                for (id in slots.values) events += ActorEvent(ActorEventKind.SPOTANIM, true, index, id)
+            }
+            if (flags and HITMARKS != 0) {
+                repeat(buf.g1Alt3()) {
+                    val type = buf.gSmart1or2()
+                    val value = buf.gSmart1or2()
+                    buf.gSmart1or2() // delay
+                    buf.gSmart1or2() // limit
                     hits += Triple(index, type, value)
+                    events += ActorEvent(ActorEventKind.HITSPLAT, true, index, type, value)
                 }
             }
-            if (flags and SEQUENCE != 0) position += 3 // id, delay
-            if (flags and HEADBAR != 0) {
-                repeat(u1()) {
-                    smart() // type
-                    val end = smart()
-                    if (end != HEADBAR_REMOVED) {
-                        smart() // start time
-                        u1() // start fill
-                        if (end > 0) u1() // end fill
+            if (flags and SEQUENCE != 0) {
+                val id = buf.g2()
+                buf.g1() // delay
+                events += ActorEvent(ActorEventKind.ANIMATION, true, index, if (id == NONE) -1 else id)
+            }
+            if (flags and TRANSPARENCY != 0) {
+                buf.g2Alt2()
+                buf.g2Alt2()
+                buf.g1Alt1()
+                buf.g1Alt1()
+                buf.g1Alt2()
+            }
+            if (flags and HEADBARS != 0) {
+                repeat(buf.g1()) {
+                    val type = buf.gSmart1or2()
+                    val end = buf.gSmart1or2()
+                    if (end == HEADBAR_REMOVED) {
+                        fills.remove(index)
+                    } else {
+                        val start = buf.gSmart1or2()
+                        val startFill = buf.g1Alt1()
+                        // A bar that slides (an end time) ends at its end fill, which is what it shows once it settles.
+                        val fill = if (end > 0) buf.g1Alt3() else startFill
+                        fills[index] = HeadbarView(type, fill, cycles, start + maxOf(end, 0))
                     }
                 }
             }
-            if (flags and SAY != 0) {
-                val end = (position until payload.size).firstOrNull { payload[it].toInt() == 0 } ?: break
-                said += index to String(payload, position, end - position, Charsets.ISO_8859_1)
-                position = end + 1
-            }
+            if (flags and SAY != 0) said += index to buf.gjstr()
+            if (flags and NAME_CHANGE != 0) buf.gjstr()
             if (flags and FACE != 0) {
-                // A flag byte (plus 128) with the kind in bits 3-5. Only kind 0, facing an entity, is read: its type, its
-                // index (2 bytes, or 4 with the top bit set) and one more smart, as Face.encode writes them.
-                if ((((u1() - 128) and 0xFF) shr 3) and 7 != 0) break
-                smart()
-                position += if ((payload[position].toInt() and 0x80) == 0) 2 else 4
-                smart()
+                when ((buf.g1Alt1() shr 3) and 7) {
+                    FACE_ENTITY -> {
+                        buf.gSmart1or2()
+                        buf.gSmart2or4null()
+                        buf.gSmart1or2()
+                    }
+                    FACE_LOC -> repeat(3) { buf.gSmart1or2() }
+                    FACE_ANGLE -> buf.gSmart1or2()
+                }
             }
+            if (flags and TINTING != 0) {
+                buf.g2Alt2()
+                buf.g2()
+                buf.g1Alt2()
+                buf.g1Alt3()
+                buf.g1Alt2()
+                buf.g1Alt3()
+            }
+            if (flags and FREEZE != 0) {
+                buf.g2Alt3()
+                buf.g2Alt1()
+                buf.g1()
+            }
+            if (flags and OPS != 0) buf.g1Alt1()
+            if (flags and TRANSFORMATION != 0) {
+                val id = buf.g2Alt2()
+                val at = inView.indexOfFirst { it.index == index }
+                if (at >= 0) inView[at] = inView[at].copy(id = id)
+            }
+            if (flags and EXACT_MOVE != 0) {
+                buf.g1Alt3()
+                buf.g1()
+                buf.g1Alt2()
+                buf.g1Alt3()
+                buf.g2Alt1()
+                buf.g2()
+                buf.g2()
+            }
+            if (flags and BAS_CHANGE != 0) {
+                // A flag of the stance animations that follow, two bytes each.
+                buf.skipRead(Integer.bitCount(buf.g4()) * 2)
+            }
+            if (flags and LEVEL_CHANGE != 0) buf.skipRead(4)
         }
         this.said = said
         this.hits = hits
+        this.events = events
     }
 
     private fun step(from: Coord, direction: Int): Coord {
@@ -164,15 +249,36 @@ class NpcInfoReader {
         val SPAWN_CLOCK_BITS = intArrayOf(18, 19, 20, 32)
         val TYPE_BITS = intArrayOf(12, 14, 17, 24)
 
-        /** Block flags on the wire (RSProt 242's desktop writer), and the markers for a second, third and fourth flag byte. */
+        /** Block flags on the wire (RSProt 242's desktop writer). */
         const val EXTENDED_SHORT = 0x4
         const val EXTENDED_MEDIUM = 0x400
         const val EXTENDED_INT = 0x200000
+        const val SPOTANIM = 0x1
         const val SEQUENCE = 0x2
-        const val FACE = 0x20
+        const val FREEZE = 0x8
         const val SAY = 0x10
-        const val HIT = 0x400000
-        const val HEADBAR = 0x1000000
+        const val FACE = 0x20
+        const val TRANSFORMATION = 0x80
+        const val TINTING = 0x100
+        const val NAME_CHANGE = 0x200
+        const val EXACT_MOVE = 0x800
+        const val TRANSPARENCY = 0x1000
+        const val LEVEL_CHANGE = 0x4000
+        const val OPS = 0x8000
+        const val HITMARKS = 0x400000
+        const val BAS_CHANGE = 0x800000
+        const val HEADBARS = 0x1000000
+        const val KNOWN_FLAGS = EXTENDED_SHORT or EXTENDED_MEDIUM or EXTENDED_INT or TRANSFORMATION or SPOTANIM or SEQUENCE or
+            FACE or SAY or FREEZE or OPS or EXACT_MOVE or NAME_CHANGE or LEVEL_CHANGE or TINTING or TRANSPARENCY or HITMARKS or
+            BAS_CHANGE or HEADBARS
+
+        /** Face kinds (RSProt's Face.Kind); a reset (3) has no more fields. */
+        const val FACE_ENTITY = 0
+        const val FACE_LOC = 1
+        const val FACE_ANGLE = 2
+
+        /** An id field's "none". */
+        const val NONE = 0xFFFF
 
         /** A head bar's end time that removes it, with no more fields. */
         const val HEADBAR_REMOVED = 32767
