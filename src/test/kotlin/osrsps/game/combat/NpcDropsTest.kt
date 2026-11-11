@@ -341,6 +341,15 @@ class NpcDropsTest {
     }
 
     @Test
+    fun `the black bear on the Varrock road drops what the grizzly does`() {
+        val bear = NpcType(2839, "Black bear", combatLevel = 19, internalName = "darkbear")
+        val def = NpcDrops.load(NpcTypes.of(bear), objTypes)[bear]!!
+        assertEquals(listOf("Bones", "Bear fur", "Raw bear meat"), def.always.map { it.type.name })
+        assertNull(def.table)
+        assertEquals(listOf("Ensouled bear head" to 25, "Clue scroll (beginner)" to 90), def.tertiary.map { it.item.type.name to it.denominator })
+    }
+
+    @Test
     fun `Varrock's muggers, thieves, Black Knight and grizzly bear drop as the Wiki's tables say`() {
         fun counts(def: NpcDropsDef, seed: Long): Map<String, Int> {
             val random = GameRandom(seed)

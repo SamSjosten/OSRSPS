@@ -331,6 +331,40 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `the farms and roads between the towns have their cows, river ducks, goblins, Varrock's sheep pen, gardeners, leprechauns and road NPCs`() {
+        val names = mapOf(
+            1323 to "canoeing_tarquin", 1173 to "chicken", 1174 to "chicken_brown", 2790 to "cow", 2791 to "cow2", 2792 to "cow2_calf", 2793 to "cow3",
+            2794 to "cow3_calf", 2069 to "crow", 2070 to "crow2", 2071 to "crow3", 2839 to "darkbear", 1838 to "duck", 1839 to "duck_female",
+            3073 to "fai_barbarian_goblin_armed_1", 3245 to "farmer_farming", 3250 to "farmer_farming_on_49_51", 2674 to "farming_gardener_bush_1",
+            2672 to "farming_gardener_hops_3", 2680 to "farming_gardener_tree_3", 2681 to "farming_gardener_tree_4", 0 to "farming_tools_leprechaun",
+            1351 to "favour_seth_groats", 3017 to "giantspider1", 5007 to "imp", 5731 to "master_farmer_2", 1262 to "ramunsheered", 1263 to "ramunsheered2",
+            1264 to "ramunsheered3", 2693 to "sheepunsheered", 2786 to "sheepunsheered3g", 2787 to "sheepunsheered3w", 2694 to "sheepunsheeredg",
+            2695 to "sheepunsheeredw", 4158 to "surok_rat", 1831 to "swan", 2837 to "unicorn",
+        ) + listOf(3029, 3030, 3031, 3033, 3034, 3035, 3036).associateWith { "goblin_unarmed_melee_${it - 3028}" }
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("misthalin-farms-roads.json"), types, "misthalin-farms-roads.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        fun count(vararg ids: Int) = spawns.count { it.type.id in ids }
+        assertEquals(53, count(2790, 2791, 2793))
+        assertEquals(16, count(2792, 2794))
+        assertEquals(41, count(1838, 1839))
+        assertEquals(19, count(1173, 1174))
+        assertEquals(53, count(3029, 3030, 3031, 3033, 3034, 3035, 3036))
+        // The sheep pen south of Varrock: ten sheep, all shearable, and three rams.
+        val pen = spawns.filter { it.x in 3228..3265 && it.z in 3340..3357 }
+        assertEquals(10, pen.count { it.type.internalName?.startsWith("sheepunsheered") == true })
+        assertEquals(3, pen.count { it.type.internalName?.startsWith("ramunsheered") == true })
+        assertEquals(listOf(4, 5, 1, 1, 2, 2, 3, 3), listOf(intArrayOf(2674, 2672, 2681, 2680), intArrayOf(0), intArrayOf(1323), intArrayOf(5731), intArrayOf(2837), intArrayOf(3245, 3250), intArrayOf(5007), intArrayOf(2069, 2070, 2071)).map { count(*it) })
+        assertEquals(listOf(1, 1, 1, 1, 2), listOf(4158, 1351, 2839, 3073, 1831).map { count(it) })
+        // Ducks and swans swim; every other NPC walks.
+        assertTrue(spawns.all { (it.restrict == MoveRestrict.BLOCKED) == (it.type.id in setOf(1838, 1839, 1831)) })
+        // The cows and goblins keep to the land between the three towns, west of the Varrock road.
+        assertTrue(spawns.filter { it.type.id in setOf(2790, 2791, 2793, 3029) }.all { it.x in 3135..3220 && it.z in 3275..3345 })
+        assertTrue(spawns.all { it.source.isNotBlank() && it.level == 0 })
+    }
+
+    @Test
     fun `the swamp has its 23 giant rats, 82 frogs, the level 5 goblin, the unicorn, its talking NPCs and tutors, and rats west of the castle`() {
         val names = mapOf(
             2856 to "giantrat", 2859 to "giantrat_grey", 2860 to "giantrat_grey2", 2861 to "giantrat_grey3", 2863 to "giantrat1_2",

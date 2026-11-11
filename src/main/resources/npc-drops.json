@@ -799,6 +799,12 @@
       "source": "OSRS Wiki, Grizzly bear (Level 21), drops, read 2026-11-02: bear ribs drop only during Rag and Bone Man I, which every account has done; the looting bag and Wilderness slayer drops only in the Wilderness"
     },
     {
+      "npcs": ["darkbear"],
+      "always": [{"item": 526, "name": "Bones"}, {"item": 948, "name": "Bear fur"}, {"item": 2136, "name": "Raw bear meat"}],
+      "tertiary": [{"item": 13462, "name": "Ensouled bear head", "chance": "1/25"}, {"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/90"}],
+      "source": "OSRS Wiki, Black bear, drops, read 2026-11-10: bear ribs drop only during Rag and Bone Man I, which every account has done (Misthalin piece 7 step 5)"
+    },
+    {
       "npcs": ["warrior_woman"],
       "always": [{"item": 526, "name": "Bones"}],
       "source": "OSRS Wiki, Warrior woman, drops, read 2026-11-02: bones alone (the coins are her pickpocket loot; Rocky is a Thieving pet)"
