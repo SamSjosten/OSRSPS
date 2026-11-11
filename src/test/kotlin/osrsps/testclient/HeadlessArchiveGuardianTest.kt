@@ -796,6 +796,42 @@ class HeadlessArchiveGuardianTest {
     }
 
     @Test
+    fun `in a run, what an inert guardian's charge takes off its shield counts for whoever beat it to 0, as damage to the boss`(@TempDir dir: Path) {
+        server(dir, batteries = true).use { server ->
+            server.login("alice").use { alice ->
+                alice.await("the login rebuild") { alice.position }
+                alice.commandReply("god on") { it.startsWith("You can't be hurt") }
+                alice.tele(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z)
+                alice.locOp(ArchiveRaids.ARCHIVE_DOOR, 4123, 5562, ArchiveRaids.ENTER)
+                alice.await("into the instance") { alice.position?.takeIf { server.world.instances.inDynamicArea(it.x, it.z) } }
+                val world = server.world
+                val run: ArchiveRun = assertNotNull(world.parties.of(world.playerNamed("alice")!!)?.let(world.archiveRaids::of))
+                alice.commandReply("raid tp guardian") { it.startsWith("To ") }
+                val waiting = alice.await("the waiting Guardian in view") { alice.npcs().firstOrNull { it.id == ArchiveGuardian.DORMANT } }
+                alice.npcOp(waiting.index, ArchiveGuardian.TOUCH)
+                alice.awaitDialogue("the Guardian's menu") { it is DialogueView.Menu }
+                alice.chooseOption(1)
+                alice.await("its fight") { run.fights[ArchiveRoom.GUARDIAN] }
+                val fight = world.encounters.all.single()
+                val nw = alice.await("the inert guardians") {
+                    fight.adds.filter { it.spawn.type.id == ArchiveGuardian.BATTERY_INACTIVE }.takeIf { it.size == 4 }?.first()
+                }
+                assertEquals(ArchiveGuardian.BATTERY_ACTIVE, nw.type.id)
+                val boss = fight.boss
+                val share = boss.maxHitpoints * ArchiveGuardian.BATTERY_SHIELD_PERCENT / 100
+                val key = world.playerNamed("alice")!!.saveKey
+                alice.commandReply("hit ${nw.hitpoints} ${nw.index}") { it.startsWith("Hit ") }
+                alice.await("it charged") { if (nw.type.id == ArchiveGuardian.BATTERY_SPENT) Unit else null }
+                assertEquals(boss.maxHitpoints - share, boss.hitpoints)
+                // The shield's 220 counts as hers, in full, as damage to the boss (exploit review R28A-3); the 180 on
+                // the inert guardian itself is an add's.
+                assertEquals(share, run.damage[ArchiveRoom.GUARDIAN]?.get(key))
+                assertEquals(180, run.minionDamage[ArchiveRoom.GUARDIAN]?.get(key))
+            }
+        }
+    }
+
+    @Test
     fun `behind the beams' shield a beam spends the inert guardian behind its target, whose charge takes 40% of the shield 4 ticks on, or breaks it at once with no more left`(@TempDir dir: Path) {
         server(dir, batteries = true).use { server ->
             server.login("alice").use { alice ->
