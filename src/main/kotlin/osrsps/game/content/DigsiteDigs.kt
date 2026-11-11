@@ -113,7 +113,11 @@ object DigsiteDigs {
     val WORKMEN = Digsite.WORKMEN
 
     const val WORKMAN_RANGE = 10
-    const val DIG_TICKS = 3
+    /**
+     * Guessed, and slow on purpose until live is recorded: at 3 ticks a dig gave about 13.7k Mining XP an hour from level
+     * 1 with free tools (the exploit review's R26C-2); 8 gives about a third of that.
+     */
+    const val DIG_TICKS = 8
     const val PAN_TICKS = 3
 
     /** farming_trowel_digging, qip_digisite_rockpick_anim, qip_digsite_panning_01 (guessed). */

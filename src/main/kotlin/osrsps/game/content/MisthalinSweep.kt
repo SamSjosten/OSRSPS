@@ -71,7 +71,8 @@ object MisthalinSweepLines : Lines("misthalin_sweep", "Nettles (scenery)") {
  *   but beekeeper's gloves they give nettles and go for 13 ticks (the Nettles item's respawn on the Wiki; inferred to be
  *   the plant's); with bare hands they sting for 1 or 2 in a poison-green hitsplat, poisoning no one (Wiki, Nettles
  *   (scenery), read 2026-11-11: "up to 2"; that a sting never does 0 is guessed).
- * - The Lumbridge farms' coops (5571 to 5573) give an egg each search (Wiki, Coop, read 2026-11-11: "Always").
+ * - The Lumbridge farms' coops (5571 to 5573) give an egg each search (Wiki, Coop, read 2026-11-11: "Always"), then
+ *   nothing to that player for [COOP_WAIT_TICKS] (guessed).
  * - Searching finds nothing in the Digsite barge's crates (9534), the hideout's boxes and crates (3685 to 3687, 4300,
  *   4301, 6911) and the Digsite Dungeon's sacks (2355), with the shared furniture lines.
  *
@@ -92,6 +93,15 @@ object MisthalinSweep {
     const val STING_MAX = 2
 
     val COOPS = listOf(5571, 5572, 5573)
+
+    /**
+     * After an egg, a player's next search of any coop finds nothing for this many ticks (one minute). Guessed: the Wiki
+     * gives an egg "Always" and no wait, but an egg every tick was free money (the exploit review's R26B-1).
+     */
+    const val COOP_WAIT_TICKS = 100
+
+    /** [osrsps.game.Player.sessionCharges] name (not saved): the tick this player's coops have an egg again. */
+    const val COOP_DUE = "coop_egg_due"
     const val EGG = 1944
     const val SEARCH = 1
 
@@ -180,7 +190,9 @@ object MisthalinSweep {
 
     internal suspend fun ScriptContext.searchCoop(world: World) {
         arriveDelay()
+        if (tick < player.sessionCharges[COOP_DUE]) return world.message(player, osrsps.game.GameLines.NOTHING_INTERESTING)
         if (player.inventory.freeSlots == 0) return world.message(player, MisthalinSweepLines.EGG_NO_ROOM)
+        player.sessionCharges[COOP_DUE] = (tick + COOP_WAIT_TICKS).toInt()
         world.objTypes[EGG]?.let { player.inventory.add(it, 1) }
         world.message(player, MisthalinSweepLines.EGG_FOUND)
     }
