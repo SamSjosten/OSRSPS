@@ -149,6 +149,8 @@ class Deaths(
             if (obj.id == id) left -= player.bank.remove(slot, minOf(left, obj.count))
         }
     },
+    /** The player has just fallen, before their death animation: a raid counts the death then ([osrsps.game.raid.ArchiveRaids.fell]). */
+    private val fell: (Player) -> Unit = {},
 ) {
     private val graves = LinkedHashMap<Npc, Grave>()
 
@@ -184,6 +186,7 @@ class Deaths(
         player.interaction = null
         player.waypoints.clear()
         player.anim(DEATH_ANIM)
+        fell(player)
     }
 
     /** Counts the graves down (a grave raised this tick starts next tick), and respawns the players whose death animation is over. */

@@ -105,6 +105,7 @@ import osrsps.game.content.registerEssenceMine
 import osrsps.game.content.registerFatherUrhney
 import osrsps.game.content.registerHamHideout
 import osrsps.game.content.registerHamStorerooms
+import osrsps.game.content.registerFarmsRoads
 import osrsps.game.content.registerLumbridgeSwamp
 import osrsps.game.content.registerLumbridgeSwampCaves
 import osrsps.game.content.SwampCavesHazards
@@ -582,6 +583,7 @@ class World(
             specialAttacks.refill(it)
         },
         placeOf = ::deathPlace,
+        fell = { archiveRaids.fell(it) },
         teleport = { player, x, z, level -> teleport(player, x, z, level) },
         drop = { player, type, count -> dropUnder(player, type, count) },
         setVarpNow = { player, varp, value ->
@@ -855,6 +857,7 @@ class World(
         registerRockslugs(this)
         registerHamHideout(this)
         registerHamStorerooms(this)
+        registerFarmsRoads(this)
         ThievingLocks.register(this)
         registerChurch(this)
         registerAlKharid(this)

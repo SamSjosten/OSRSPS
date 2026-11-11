@@ -150,6 +150,9 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
     /** Who is down now, by [Player.saveKey]: dead in this room, with the party still standing. Up again once it is done. */
     val downed = LinkedHashSet<String>()
 
+    /** Who lies dying with their death counted already ([ArchiveRaids.fell]), by [Player.saveKey], till they get up. */
+    internal val fallen = HashSet<String>()
+
     /**
      * The nexus tile each member went through a room's door from, by [Player.saveKey] and room, in the cache's
      * coordinates: where they come back out ([ArchiveRoom.doorFront] has the recording).
@@ -1062,11 +1065,15 @@ class ArchiveRaids(private val world: World) {
      * review round 12, RAID-2, and its round 13 addendum). Sam's decision of 8 November 2026; the death's place is guessed.
      */
     private fun escaped(run: ArchiveRun, player: Player) {
-        run.downed -= player.saveKey
-        run.deaths[player.saveKey] = (run.deaths[player.saveKey] ?: 0) + 1
+        val key = player.saveKey
+        run.downed -= key
+        val before = run.deaths[key] ?: 0
         logger.info { "$run: ${player.username} got out while down, so dies of it" }
         player.message(world.textFor(player)[CombatLines.DEAD])
         world.deaths.respawn(player, wipePlace(run, player))
+        // One death: their fall in the respawn counted it already if they were still in the run ([fell]).
+        run.fallen -= key
+        run.deaths[key] = before + 1
     }
 
     /** [room]'s fight begins, with whoever of the party stands in it. Its boss isn't built yet, so it is done at once. */
@@ -1094,7 +1101,16 @@ class ArchiveRaids(private val world: World) {
      * Guardian's the nexus changes ([nexusLevel]); after the fourth room its Archive Door north opens ([placeOcellusDoor]).
      */
     fun clear(run: ArchiveRun, room: ArchiveRoom) {
-        if (room in run.cleared) return
+        if (room in run.cleared || run.wiped) return
+        // Ocellus dying with nobody of the party left on their feet (the last of them lying dying as he falls) is a
+        // wipe, as it would have been had he lived a few ticks more, not the raid's end with its loot. The earlier
+        // rooms get the same at the respawn, where the first of them up finds nobody standing ([deathPlace]); the
+        // raid's end pays before then (exploit review round 24, R24A-3). Guessed: what live does then isn't known.
+        if (room == ArchiveRoom.OCELLUS && standing(run).isEmpty() && present(run).isNotEmpty()) {
+            logger.info { "$run: Ocellus died with nobody of the party standing" }
+            wipe(run, null)
+            return
+        }
         // Done with its boss still up (::raid clear): the fight stops, and the boss goes.
         stopFight(run, room)
         if (room == ArchiveRoom.GUARDIAN) {
@@ -1155,6 +1171,19 @@ class ArchiveRaids(private val world: World) {
     }
 
     /**
+     * [player] has just fallen ([osrsps.game.combat.Deaths.die]): a death in a run still going counts now, as they
+     * fall, not when they get up. Counted at the respawn, a death in the ticks before Ocellus died was counted after
+     * the loot was rolled, or by the run-is-done rule not at all, so it cost nothing (exploit review round 24,
+     * R24A-3). Not counted: a fall once the run is done or lost.
+     */
+    fun fell(player: Player) {
+        val run = at(player.x, player.z) ?: return
+        if (player.saveKey !in run.entered || run.wiped || run.completed) return
+        run.deaths[player.saveKey] = (run.deaths[player.saveKey] ?: 0) + 1
+        run.fallen += player.saveKey
+    }
+
+    /**
      * Where [player], dying in a run, comes back: down in the nexus with everything kept while someone still stands, or
      * the lobby with a grave there when they were the last, which wipes the party. Null outside a run.
      *
@@ -1165,6 +1194,8 @@ class ArchiveRaids(private val world: World) {
     fun deathPlace(player: Player): DeathPlace? {
         val run = at(player.x, player.z) ?: return null
         if (player.saveKey !in run.entered) return null
+        // Counted as they fell ([fell]), so a fall before the run's end counts even if they get up after it.
+        val counted = run.fallen.remove(player.saveKey)
         // Once the run is done there is no fight to be out of and no room left whose end would get anyone up: a death
         // then (poison, a late hit) kept its victim down for good, where leaving or logging out was a death with a
         // grave, and wiped a lone player out of a finished run (exploit review round 23, R23A-1).
@@ -1173,7 +1204,7 @@ class ArchiveRaids(private val world: World) {
             val (to, level) = if (inRewardRoom(run, player.x, player.z)) tile(run, REWARD_X, REWARD_Z) to REWARD_LEVEL else tile(run, NEXUS_X, NEXUS_Z) to NEXUS_PLANE
             return DeathPlace(keepItems = true, to.x, to.z, level, to.x, to.z, level)
         }
-        run.deaths[player.saveKey] = (run.deaths[player.saveKey] ?: 0) + 1
+        if (!counted) run.deaths[player.saveKey] = (run.deaths[player.saveKey] ?: 0) + 1
         if (run.wiped) return wipePlace(run, player)
         val others = standing(run).filter { it !== player }
         if (others.isEmpty()) {
