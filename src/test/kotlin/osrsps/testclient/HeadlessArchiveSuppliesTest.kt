@@ -67,7 +67,7 @@ class HeadlessArchiveSuppliesTest {
         ObjType(BREW_1, "Saradomin brew(1)", iops = DRINK, internalName = "1dosepotionofsaradomin"),
         ObjType(RESTORE, "Super restore(4)", iops = DRINK, internalName = "4dose2restore"),
         ObjType(PRAYER_4, "Prayer potion(4)", iops = DRINK, internalName = "4doseprayerrestore"),
-        ObjType(MANTA, "Manta ray", tradeable = true, internalName = "mantaray"),
+        ObjType(MANTA, "Manta ray", tradeable = true, iops = listOf(null, null, null, null, "Drop"), internalName = "mantaray"),
         ObjType(HALIBUT, "Halibut", internalName = "halibut"),
         ObjType(KRILL, "Giant krill", internalName = "giant_krill"),
         ObjType(PRAYER_2, "Prayer potion(2)", iops = DRINK, internalName = "2doseprayerrestore"),
@@ -526,6 +526,39 @@ class HeadlessArchiveSuppliesTest {
     }
 
     @Test
+    fun `supplies a member brought in, dropped and picked up by another, leave with the one who picked them up`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    for (c in listOf(alice, bob)) c.await("the login rebuild") { c.position }
+                    alice.commandReply("raidparty invite bob") { it.startsWith("Invited") }
+                    bob.commandReply("raidparty accept alice") { it.startsWith("You joined") }
+                    // Alice brings in two Manta rays of her own; Bob brings none.
+                    alice.command("item $MANTA 2")
+                    alice.awaitHeld(MANTA, 2)
+                    val run = alice.intoRun(server, "alice")
+                    bob.intoRun(server, "bob")
+                    // She drops one; once it turns public (100 ticks, 2 s here) Bob takes it (Codex review on #636).
+                    val at = alice.position!!
+                    val slot = alice.inventory(Inventory.INV).indexOfFirst { it?.id == MANTA }
+                    alice.ifButton(INVENTORY, INVENTORY_ITEMS, DROP, slot, MANTA)
+                    alice.awaitHeld(MANTA, 1)
+                    bob.await("the ray turning public", timeoutMillis = 10_000) { bob.groundObjs().firstOrNull { it.id == MANTA } }
+                    bob.objOp(MANTA, at.x, at.z, TAKE)
+                    bob.awaitHeld(MANTA, 1)
+                    // Her allowance for it went with it: out of the run, each keeps theirs.
+                    assertEquals(1, run.suppliesBrought.getValue("bob")[MANTA])
+                    bob.tele(3222, 3218)
+                    alice.tele(3222, 3218)
+                    bob.awaitTicks(2)
+                    assertEquals(1, bob.held(MANTA))
+                    assertEquals(1, alice.held(MANTA))
+                }
+            }
+        }
+    }
+
+    @Test
     fun `a member put out of the party with bought supplies on offer has the trade declined and loses them`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->
@@ -580,5 +613,9 @@ class HeadlessArchiveSuppliesTest {
         const val COMBAT_2 = 12699
         const val LOG = 34729
         const val AXE = 1351
+        const val INVENTORY = 149
+        const val INVENTORY_ITEMS = 0
+        const val DROP = 7
+        const val TAKE = 3
     }
 }

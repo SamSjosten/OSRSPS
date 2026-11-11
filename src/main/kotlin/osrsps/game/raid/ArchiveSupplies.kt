@@ -182,7 +182,7 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
      * [a] and [b], members of one run, have traded, holding [beforeA] and [beforeB] of the supplies before: what each
      * gave of what they brought in (beyond what they still hold of it) goes over to the other's allowance, so what a
      * member brought in and handed on isn't taken from the one who leaves with it. What they bought stays bought,
-     * whoever holds it (Codex review on #636). Not followed: supplies dropped and picked up by another member.
+     * whoever holds it (Codex review on #636). Supplies dropped and picked up by another member: [pickedUp].
      */
     fun traded(a: Player, b: Player, start: TradeStart) {
         val beforeA = start.heldA
@@ -207,6 +207,26 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
         }
         run.suppliesBrought[a.saveKey] = allowA
         run.suppliesBrought[b.saveKey] = allowB
+    }
+
+    /**
+     * [taker] picked up [count] of [id] that [owner] dropped, both members of one run: as in a trade, what [owner] brought
+     * in of it (beyond what they still hold) goes over to [taker]'s allowance, so supplies a member brought in and
+     * handed on by the floor aren't taken from the one who leaves with them. What was bought stays bought (Codex
+     * review on #636).
+     */
+    fun pickedUp(taker: Player, owner: Player, id: Int, count: Int) {
+        val (kind, each) = unitsOf(id) ?: return
+        val run = raids.runs().firstOrNull { taker.saveKey in it.suppliesBrought && owner.saveKey in it.suppliesBrought } ?: return
+        val allowOwner = run.suppliesBrought.getValue(owner.saveKey).toMutableMap()
+        val allowTaker = run.suppliesBrought.getValue(taker.saveKey).toMutableMap()
+        val spare = (allowOwner[kind] ?: 0) - (held(owner)[kind] ?: 0)
+        val moved = minOf(each * count, spare)
+        if (moved <= 0) return
+        allowOwner[kind] = (allowOwner[kind] ?: 0) - moved
+        allowTaker[kind] = (allowTaker[kind] ?: 0) + moved
+        run.suppliesBrought[owner.saveKey] = allowOwner
+        run.suppliesBrought[taker.saveKey] = allowTaker
     }
 
     /**
