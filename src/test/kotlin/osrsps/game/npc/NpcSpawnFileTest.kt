@@ -897,6 +897,7 @@ class NpcSpawnFileTest {
             5220 to "qip_soa_thief_female02", 2862 to "giantrat1", 2864 to "giantrat1_3", 3262 to "barbarianwoman_varrock",
             3260 to "warrior_woman", 2838 to "brownbear", 516 to "black_knight", 3019 to "spider",
             16812 to "deadman_nigel_varrock", 16811 to "clue_hunter_arthur", 5449 to "ge_expert_herbs",
+            2152 to "ge_boss", 5450 to "ge_expert_runes", 5451 to "ge_expert_logs", 5452 to "ge_expert_combat", 3115 to "ge_expert_ores",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("varrock.json"), types, "varrock.json")
@@ -918,6 +919,10 @@ class NpcSpawnFileTest {
         assertEquals(4, exchange.count { it.type.id in 2148..2151 && it.x in 3164..3165 && it.z in listOf(3488, 3491) })
         assertEquals(4, exchange.count { it.type.id !in 2148..2151 && it.x in listOf(3163, 3166) && it.z in 3489..3490 })
         assertTrue(exchange.all { it.wander == 0 })
+        // Its market experts (the Misthalin sweep): Brugsen Bursen and four price guides, one of each, inside it.
+        val experts = spawns.filter { it.type.id in listOf(2152, 5450, 5451, 5452, 3115) }
+        assertEquals(listOf(2152, 3115, 5450, 5451, 5452), experts.map { it.type.id }.sorted())
+        assertTrue(experts.all { it.x in 3150..3175 && it.z in 3475..3500 })
         // One of each weapon and armour keeper (the Swordshop has two), kept indoors.
         val keepers = spawns.filter { it.type.id in listOf(2880, 2882, 2883, 2884, 2885) }
         assertEquals(listOf(2880, 2882, 2883, 2884, 2885), keepers.map { it.type.id }.sorted())

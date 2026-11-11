@@ -1,0 +1,274 @@
+{
+ "name": "GE experts: each price guide's Prices opens its list, Murky Matt's talk opens his, Brugsen Bursen's Prices opens the guide prices window (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle: a command typed straight away can be lost"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3154 3489 0",
+   "expectMessage": "Teleported to 3154, 3489, 0",
+   "comment": "Relobo Blinyo (logs)'s spot in the Grand Exchange, east of him"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "the experts come into view after the teleport"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 5451,
+   "option": "Prices",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 237,
+   "timeoutMs": 10000,
+   "comment": "ge_pricelist"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 237,
+   "component": 1,
+   "slot": 11,
+   "op": 1,
+   "comment": "ge_pricelist:frame's close button (steelborder's child 11, as ge_offers' is)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 237,
+   "absent": true,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3158 3498 0",
+   "expectMessage": "Teleported to 3158, 3498, 0",
+   "comment": "Hofuthand's spot in the Grand Exchange, east of him"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "the experts come into view after the teleport"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 5452,
+   "option": "Prices",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 237,
+   "timeoutMs": 10000,
+   "comment": "ge_pricelist"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 237,
+   "component": 1,
+   "slot": 11,
+   "op": 1,
+   "comment": "ge_pricelist:frame's close button (steelborder's child 11, as ge_offers' is)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 237,
+   "absent": true,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3171 3498 0",
+   "expectMessage": "Teleported to 3171, 3498, 0",
+   "comment": "Farid Morrisane's spot in the Grand Exchange, west of him"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "the experts come into view after the teleport"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 3115,
+   "option": "Prices",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 237,
+   "timeoutMs": 10000,
+   "comment": "ge_pricelist"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 237,
+   "component": 1,
+   "slot": 11,
+   "op": 1,
+   "comment": "ge_pricelist:frame's close button (steelborder's child 11, as ge_offers' is)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 237,
+   "absent": true,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3171 3481 0",
+   "expectMessage": "Teleported to 3171, 3481, 0",
+   "comment": "Murky Matt's spot in the Grand Exchange, west of him"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "the experts come into view after the teleport"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 5450,
+   "option": "Prices",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 237,
+   "timeoutMs": 10000,
+   "comment": "ge_pricelist"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 237,
+   "component": 1,
+   "slot": 11,
+   "op": 1,
+   "comment": "ge_pricelist:frame's close button (steelborder's child 11, as ge_offers' is)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 237,
+   "absent": true,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3157 3480 0",
+   "expectMessage": "Teleported to 3157, 3480, 0",
+   "comment": "Bob Barter's spot in the Grand Exchange, east of him"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "the experts come into view after the teleport"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 5449,
+   "option": "Prices",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 237,
+   "timeoutMs": 10000,
+   "comment": "ge_pricelist"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 237,
+   "component": 1,
+   "slot": 11,
+   "op": 1,
+   "comment": "ge_pricelist:frame's close button (steelborder's child 11, as ge_offers' is)"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 237,
+   "absent": true,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "npcOption",
+   "npcId": 5450,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "Murky Matt, still beside him"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[murky_matt.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[murky_matt.prices]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[murky_matt.prices]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 237,
+   "timeoutMs": 10000,
+   "comment": "the runes list from the talk"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 237,
+   "component": 1,
+   "slot": 11,
+   "op": 1
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 237,
+   "absent": true,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "command",
+   "text": "::tele 3165 3475 0",
+   "expectMessage": "Teleported to 3165, 3475, 0",
+   "comment": "south of Brugsen Bursen (3165 3477)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "npcOption",
+   "npcId": 2152,
+   "option": "Prices",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 464,
+   "timeoutMs": 10000,
+   "comment": "ge_pricechecker"
+  },
+  {
+   "step": "logout",
+   "comment": "closes the window"
+  }
+ ]
+}
