@@ -365,6 +365,21 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `the Lumber Yard has the Sawmill operator, six mewing crates and Tolna by his rift, all standing still`() {
+        val names = mapOf(3101 to "poh_sawmill_opp", 3499 to "kittens_mew", 2010 to "soulbane_tolna_multi")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("lumber-yard.json"), types, "lumber-yard.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        assertEquals(listOf(1, 6, 1), listOf(3101, 3499, 2010).map { id -> spawns.count { it.type.id == id } })
+        assertEquals(3302 to 3492, spawns.single { it.type.id == 3101 }.let { it.x to it.z })
+        assertEquals(3308 to 3452, spawns.single { it.type.id == 2010 }.let { it.x to it.z })
+        // The crates are inside the yard's fence.
+        assertTrue(spawns.filter { it.type.id == 3499 }.all { it.x in 3295..3320 && it.z in 3495..3520 })
+        assertTrue(spawns.all { it.wander == 0 && it.source.isNotBlank() && it.level == 0 })
+    }
+
+    @Test
     fun `the swamp has its 23 giant rats, 82 frogs, the level 5 goblin, the unicorn, its talking NPCs and tutors, and rats west of the castle`() {
         val names = mapOf(
             2856 to "giantrat", 2859 to "giantrat_grey", 2860 to "giantrat_grey2", 2861 to "giantrat_grey3", 2863 to "giantrat1_2",
