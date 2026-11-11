@@ -1445,8 +1445,9 @@ signposts read their site's level.
 | The barge's post-quest types (`fossilquest_progress` 50 shows them; John and David hidden) | the 242 cache's multi-NPCs; checked on the real map by `digsite.json` |
 | The workmen's Steal-from (25, 10.4 XP, 1 damage, 4-second stun, coins 4/11, brush 3/11, rope, bucket, gloves, spade 1/11) and the student's Pickpocket (25, no XP, 100 to 240, a teddy) | OSRS Wiki, Digsite workman and Student, read 2026-11-11 |
 | Nobody having 153 Kudos | inferred: the museum counts no Kudos yet (`VarrockMuseum`) |
+| The workmen's pickpocket taking 4 ticks, twice the usual 2 | inferred from the Wiki's "roughly twice as long" (Digsite workman) |
 | The workmen's success chart (the student's), the tiles boarding and leaving put the player on, Embark and Disembark skipping the talk, the patrolling workmen standing still, the chathead expressions, the Fossil Island refusal | guessed; the tiles checked on the real map by `digsite.json` |
-| Out: digging, the trays, panning, the winches, sacks, bushes, barrel, chest and buried skeletons (step 9b and 10); the workmen's longer pickpocket; the guard calling out as the player nears the gate; the Digsite pendant; Fossil Island | out of scope |
+| Out: digging, the trays, panning, the winches, sacks, bushes, barrel, chest and buried skeletons (step 9b and 10); the guard calling out as the player nears the gate; the Digsite pendant; Fossil Island | out of scope |
 
 ## Draynor Village
 

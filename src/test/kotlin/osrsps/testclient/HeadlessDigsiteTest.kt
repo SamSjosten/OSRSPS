@@ -16,6 +16,7 @@ import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
 import osrsps.game.npc.NpcSpawn
+import osrsps.game.skill.Pickpocketing
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
@@ -276,6 +277,20 @@ class HeadlessDigsiteTest {
         }
     }
 
+    /** Tries [who]'s pocket until one works, waiting out each try (and a failed one's stun) in server ticks. */
+    private fun HeadlessClient.pickUntilSuccess(id: Int, who: String) {
+        val success = "[pickpocket.success who=$who]"
+        val fail = "[pickpocket.fail who=$who]"
+        await("a pickpocket on the $who that works", timeoutMillis = 60_000) {
+            if (seen(success) > 0) return@await Unit
+            val failed = seen(fail)
+            op(id, 3)
+            await("the try's outcome") { if (seen(success) > 0 || seen(fail) > failed) Unit else null }
+            if (seen(fail) > failed) awaitTicks(Pickpocketing.ATTEMPT_TICKS + Pickpocketing.FAIL_TICKS + 1)
+            null
+        }
+    }
+
     @Test
     fun `a workman's pocket gives something from his table and the teddy student her teddy`(@TempDir dir: Path) {
         server(dir, listOf(Triple(workman, 3220, 3214), Triple(teddy, 3224, 3214))).use { server ->
@@ -283,20 +298,45 @@ class HeadlessDigsiteTest {
                 client.ready()
                 client.command("setlevel thieving 99")
                 client.await("level 99") { client.stat(THIEVING)?.takeIf { it.level == 99 } }
+                client.pickUntilSuccess(workman.id, "workman")
                 val table = listOf(995, 670, 954, 1925, 1059, 952)
-                client.await("a workman's item", timeoutMillis = 60_000) {
-                    if (table.any { client.count(it) > 0 }) return@await Unit
-                    client.op(workman.id, 3)
-                    Thread.sleep(600)
-                    null
+                client.await("a workman's item") { if (table.any { client.count(it) > 0 }) Unit else null }
+                client.awaitTicks(Pickpocketing.WORKMAN_ATTEMPT_TICKS)
+                client.pickUntilSuccess(teddy.id, "student")
+                client.await("the teddy") { if (client.count(673) > 0) Unit else null }
+            }
+        }
+    }
+
+    @Test
+    fun `a workman's pickpocket takes twice as long as the student's`(@TempDir dir: Path) {
+        server(dir, listOf(Triple(workman, 3220, 3214), Triple(teddy, 3224, 3214))).use { server ->
+            server.login("fred").use { client ->
+                client.ready()
+                client.command("setlevel thieving 99")
+                client.await("level 99") { client.stat(THIEVING)?.takeIf { it.level == 99 } }
+                // Paused and stepped, so the wait from the attempt to its outcome is counted in game ticks.
+                fun outcomes(who: String) = client.seen("[pickpocket.success who=$who]") + client.seen("[pickpocket.fail who=$who]")
+                fun ticksToOutcome(id: Int, who: String): Int {
+                    client.commandReply("pause") { it.startsWith("Paused after tick") }
+                    val before = outcomes(who)
+                    client.op(id, 3)
+                    var steps = 0
+                    while (client.seen("[pickpocket.attempt who=$who]") == 0) {
+                        client.stepTicks(1)
+                        assertTrue(++steps < 20, "no attempt on the $who")
+                    }
+                    var ticks = 0
+                    while (outcomes(who) == before) {
+                        client.stepTicks(1)
+                        assertTrue(++ticks < 20, "no outcome on the $who")
+                    }
+                    client.commandReply("resume") { it.startsWith("Resumed") }
+                    return ticks
                 }
-                client.await("the teddy", timeoutMillis = 60_000) {
-                    if (client.count(673) > 0) return@await Unit
-                    client.op(teddy.id, 3)
-                    Thread.sleep(600)
-                    null
-                }
-                assertTrue(client.messages().any { it.text == "[pickpocket.success who=student]" })
+                assertEquals(Pickpocketing.WORKMAN_ATTEMPT_TICKS - 1, ticksToOutcome(workman.id, "workman"))
+                client.awaitTicks(Pickpocketing.ATTEMPT_TICKS + Pickpocketing.FAIL_TICKS + 1)
+                assertEquals(Pickpocketing.ATTEMPT_TICKS - 1, ticksToOutcome(teddy.id, "student"))
             }
         }
     }
