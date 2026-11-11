@@ -345,7 +345,7 @@ class HeadlessDreadnothTest {
     }
 
     @Test
-    fun `at 25 percent he enrages, jumps at her 5 ticks on and every 8 after, absorbs the jelly he lands on and heals off her`(@TempDir dir: Path) {
+    fun `at 25 percent he enrages, jumps at her 5 ticks on and every 8 after, absorbs the jelly he lands on, and heals by that alone`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->
                 val run = alice.intoRun(server, "alice")
@@ -368,16 +368,19 @@ class HeadlessDreadnothTest {
                 assertEquals(Dreadnoth.FIRST_JUMP.toLong(), tickOf(jump) - tickOf(enrage))
                 val her = assertNotNull(alice.position)
                 assertTrue(jump.endsWith("landing on ${her.x - 2},${her.z - 2}"), "$jump; alice at $her")
-                // She steps out of ::god just before he lands: the slam is dealt, and he heals by it.
+                // She steps out of ::god just before he lands: the slam is dealt, and he doesn't heal by it.
                 alice.commandReply("god off") { it.startsWith("You can be hurt") }
                 val crushed = alice.awaitLine(run, "his landing on her") { it.contains("enrage: lands on alice for ") }
                 alice.commandReply("god on") { it.startsWith("You can't be hurt") }
                 assertEquals(Dreadnoth.JUMP_LANDS.toLong(), tickOf(crushed) - tickOf(jump))
                 val dealt = crushed.substringAfter(" for ").substringBefore(',').toInt()
                 assertTrue(dealt in Dreadnoth.CRUSH_MIN..Dreadnoth.CRUSH_MAX, crushed)
-                assertTrue(lines(run).any { it.contains("enrage: heals off alice: heals $dealt") }, lines(run).toString())
-                // The jelly beside her was under him: absorbed, healing him by what it had left.
-                assertTrue(lines(run).any { it.contains("enrage: absorbs a jelly: heals ${theJelly.maxHitpoints}") }, lines(run).toString())
+                assertTrue(lines(run).none { it.contains("heals off alice") }, lines(run).toString())
+                // The jelly beside her was under him: absorbed, healing him 85 to 145 (Sam's recording of 2026-11-10),
+                // not its 75 hitpoints left. At 25% his bar can't cap it.
+                assertNotNull(theJelly)
+                val absorbed = lines(run).single { it.contains("enrage: absorbs a jelly: heals ") }
+                assertTrue(absorbed.substringAfterLast("heals ").toInt() in Dreadnoth.ABSORB_HEAL_MIN..Dreadnoth.ABSORB_HEAL_MAX, absorbed)
                 assertTrue(jellies(run).isEmpty())
                 // The shot and the splatter at her; the splatter lies as jelly on her tile 6 ticks on.
                 val splatter = alice.awaitLine(run, "the splatter") { it.contains("enrage: splatter lands on ${her.x},${her.z}") }
