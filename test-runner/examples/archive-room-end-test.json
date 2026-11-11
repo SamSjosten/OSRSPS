@@ -123,6 +123,12 @@
    "comment": "our sign to test2 that the Guardian's room is done and it may fall (a room won with it down would get it up); the request stays, for its sign back below"
   },
   {
+   "step": "assertMessage",
+   "contains": "[trade.sending]",
+   "timeoutMs": 20000,
+   "comment": "the request sent: Trade with only sets off the walk to test2, and a teleport before it reaches test2 would drop it"
+  },
+  {
    "step": "command",
    "text": "::raid tp ezekiel",
    "expectMessage": "To Ezekiel's room",
