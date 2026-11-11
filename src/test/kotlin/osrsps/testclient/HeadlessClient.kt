@@ -163,6 +163,7 @@ class HeadlessClient private constructor(
     private val exactMoveTicks = ArrayList<Int>()
     private val npcSaid = ArrayList<NpcSaid>()
     private val npcHits = ArrayList<NpcHit>()
+    private val actorEvents = ArrayList<ActorEvent>()
     private val playerOps = HashMap<Int, String?>()
     private val moves = ArrayList<TickMove>()
     private var ticks = 0
@@ -181,6 +182,9 @@ class HeadlessClient private constructor(
     /** How many SERVER_TICK_END packets have arrived: one per server tick since login. */
     val ticksSeen: Int get() = lock.withLock { ticks }
 
+    /** How many server cycles' PLAYER_INFO have arrived: one per cycle, ticking or paused, as the client's time runs on. */
+    val cyclesSeen: Int get() = lock.withLock { cycles }
+
     fun packets(): List<ServerPacket> = lock.withLock { packets.toList() }
 
     /** Drops the packets kept so far, so a headless script run that plays for hours doesn't keep every one of them. */
@@ -197,9 +201,18 @@ class HeadlessClient private constructor(
 
     fun messages(): List<GameMessage> = lock.withLock { messages.toList() }
 
+    /** The animations, spotanims and hitsplats players' and NPCs' extended info has started, from the [from]th on. */
+    fun actorEvents(from: Int = 0): List<ActorEvent> = lock.withLock { actorEvents.subList(from.coerceAtMost(actorEvents.size), actorEvents.size).toList() }
+
+    /** A player's appearance as their last appearance block gave it (the local player's by default), or null. */
+    fun appearance(player: Int = index): AppearanceView? = lock.withLock { playerInfo.appearance(player) }
+
+    /** An NPC's health bar as its last head bar block gave it; null while it shows none. */
+    fun npcHealth(npc: Int): HeadbarView? = lock.withLock { npcInfo.health(npc) }
+
     /**
-     * The ticks (as [GameMessage.tick] counts them) whose PLAYER_INFO started an animation on the local player. Only
-     * seen with no other player in view; see [PlayerInfoReader.localAnimated].
+     * The ticks (as [GameMessage.tick] counts them) whose PLAYER_INFO started an animation on the local player; see
+     * [PlayerInfoReader.localAnimated].
      */
     fun animationTicks(): List<Int> = lock.withLock { animTicks.toList() }
 
@@ -898,6 +911,7 @@ class HeadlessClient private constructor(
                 }
                 if (playerInfo.localAnimated) animTicks += ticks
                 if (playerInfo.localExactMoved) exactMoveTicks += ticks
+                for (event in playerInfo.events) actorEvents += event.copy(ticks = ticks)
             }
             GameServerProt.MESSAGE_GAME -> {
                 val type = buf.gSmart1or2()
@@ -909,9 +923,11 @@ class HeadlessClient private constructor(
                     packet.payload,
                     large = packet.prot == GameServerProt.NPC_INFO_LARGE_V6,
                     local = playerInfo.coord(index) ?: error("NPC info before the login rebuild"),
+                    cycles = cycles,
                 )
                 for ((npc, text) in npcInfo.said) npcSaid += NpcSaid(npc, text, ticks)
                 for ((npc, type, value) in npcInfo.hits) npcHits += NpcHit(npc, type, value, ticks)
+                for (event in npcInfo.events) actorEvents += event.copy(ticks = ticks)
             }
             GameServerProt.SET_PLAYER_OP -> {
                 // RSProt's SetPlayerOpEncoder: the priority flag, the slot and the text ("null" clears it).

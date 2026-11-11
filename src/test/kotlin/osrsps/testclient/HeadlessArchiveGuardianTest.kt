@@ -1063,7 +1063,8 @@ class HeadlessArchiveGuardianTest {
                     bob.await("the login rebuild") { bob.position }
                     bob.commandReply("god on") { it.startsWith("You can't be hurt") }
                     bob.tele(3221, 3220)
-                    val down = bob.await("the grounded Guardian in view") { bob.npcs().firstOrNull { it.id == ArchiveGuardian.FLYING } }
+                    // Spawned flying and changed since: the client is shown it as its grounded type (the transformation block).
+                    val down = bob.await("the grounded Guardian in view") { bob.npcs().firstOrNull { it.id == ArchiveGuardian.GROUNDED } }
                     assertEquals(ArchiveGuardian.GROUNDED, server.world.npcs[down.index]!!.type.id)
                     val third = bob.messages().size
                     bob.npcOp(down.index, ATTACK)

@@ -57,11 +57,13 @@ internal class HeadlessGame(
         val staticLoc: (x: Int, z: Int, level: Int, layer: Int) -> ZoneLoc?,
         /** The map elements (minimap icons) our cache overlay adds, by id: the cache's own aren't decoded here. */
         val mapElements: Map<Int, MapElementCodec.Definition> = emptyMap(),
+        /** The head bar types ([HeadbarTypes]); a type not in it has the defaults. */
+        val headbars: Map<Int, HeadbarTypes.Type> = emptyMap(),
     ) {
         companion object {
-            /** What [world] loaded from the cache, and the overlay's map elements. */
-            fun of(world: World) =
-                Types(world.npcTypes, world.objTypes, world.locs.types, world.varTypes, world.locs::cached, CustomLocs(world.customVars).mapElements)
+            /** What [world] loaded from the cache, the overlay's map elements, and the head bar widths read from the cache. */
+            fun of(world: World, headbars: Map<Int, HeadbarTypes.Type> = emptyMap()) =
+                Types(world.npcTypes, world.objTypes, world.locs.types, world.varTypes, world.locs::cached, CustomLocs(world.customVars).mapElements, headbars)
         }
     }
 
@@ -328,8 +330,20 @@ internal class HeadlessGame(
             .minByOrNull { distance(it.coord, here) }?.index ?: -1
     }
 
-    /** Health bars aren't read yet. */
-    override fun npcHealth(name: String?, id: Int): Game.Health? = if (npcIndex(name, id) < 0) null else Game.Health(-1, 0)
+    /** The bar's fill out of its type's width, as RuneLite's health ratio and scale; -1 while the NPC shows no bar. */
+    override fun npcHealth(name: String?, id: Int): Game.Health? {
+        val client = c() ?: return null
+        val index = npcIndex(name, id)
+        if (index < 0) return null
+        val bar = client.npcHealth(index) ?: return Game.Health(-1, 0)
+        val type = types.headbars[bar.type] ?: HeadbarTypes.Type()
+        // As the client: a bar not updated for its type's stick time (counted from when it settled) is gone.
+        // Inferred: the client counts the stick time from the update's start delay plus its end time.
+        // Counted in server cycles, which a paused world still sends, as the client's own time runs on while paused.
+        val upCycles = client.cyclesSeen - bar.cycle
+        if (upCycles * CYCLES_PER_TICK >= bar.settleCycles + type.stickCycles) return Game.Health(-1, 0)
+        return Game.Health(bar.fill, type.width)
+    }
 
     /** The server's copy only: the headless client runs no client scripts that could change its own. */
     override fun varp(id: Int): IntArray? {
@@ -426,17 +440,13 @@ internal class HeadlessGame(
         return if (item == null || item.count <= 0) -1 else item.id
     }
 
-    /**
-     * The player's appearance isn't read yet, so this is an id no item has: an equipment check then fails, naming why,
-     * rather than passing as [Game.NOT_ON_MODEL] would for a slot the model doesn't show.
-     */
-    override fun modelWornId(wearpos: Int): Int = MODEL_NOT_READ
-
-    override fun itemName(id: Int): String? = when {
-        id == MODEL_NOT_READ -> "an appearance the headless client doesn't read yet"
-        id < 0 -> null
-        else -> types.objs[id]?.let { Dialogue.clean(it.name) }
+    /** What the local player's last appearance block draws in a wearpos; ring and ammo aren't drawn. */
+    override fun modelWornId(wearpos: Int): Int {
+        val appearance = c()?.appearance() ?: return -1
+        return appearance.worn.getOrNull(wearpos) ?: Game.NOT_ON_MODEL
     }
+
+    override fun itemName(id: Int): String? = if (id < 0) null else types.objs[id]?.let { Dialogue.clean(it.name) }
 
     override fun wornOption(wearpos: Int, option: String): String? {
         val client = c() ?: return "not logged in"
@@ -516,8 +526,8 @@ internal class HeadlessGame(
         return texts.map(Dialogue::clean).filter { it.isNotEmpty() }.joinToString(" / ")
     }
 
-    /** The player's appearance isn't read yet. */
-    override fun idlePose(): Int = -1
+    /** The ready pose in the local player's last appearance block. */
+    override fun idlePose(): Int = c()?.appearance()?.readyAnim ?: -1
 
     override fun logout(): String? {
         val client = c() ?: return "not logged in"
@@ -669,6 +679,13 @@ internal class HeadlessGame(
     }
 
     /** An NPC's type as the client shows it: a multi-NPC's current form. Null for one that shows nothing. */
+    /** The name an NPC in view shows (its current form's), cleaned as the plugin cleans it; null when it isn't in view. */
+    fun npcName(index: Int): String? {
+        val client = c() ?: return null
+        val npc = client.npcs().firstOrNull { it.index == index } ?: return null
+        return npcType(client, npc.id)?.let { Dialogue.clean(it.name) }
+    }
+
     private fun npcType(client: HeadlessClient, id: Int): NpcType? {
         val type = types.npcs[id] ?: return null
         if (type.multiNpcs.isEmpty()) return type
@@ -717,8 +734,8 @@ internal class HeadlessGame(
 
         const val LAYERS = 4
 
-        /** What [modelWornId] gives until the player's appearance is read: no item has this id. */
-        const val MODEL_NOT_READ = Int.MAX_VALUE
+        /** Client cycles (20 ms) in a server cycle (600 ms, a tick or a paused cycle). */
+        const val CYCLES_PER_TICK = 30
 
         /** Client scripts that change only what the client shows: toplevel_sidebutton_switch. */
         val CLIENT_ONLY_SCRIPTS = setOf(915)

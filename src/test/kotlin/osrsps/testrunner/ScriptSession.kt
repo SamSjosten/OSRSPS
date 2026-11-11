@@ -1,5 +1,6 @@
 package osrsps.testrunner
 
+import osrsps.testclient.ActorEventKind
 import osrsps.testclient.HeadlessClient
 
 /**
@@ -21,6 +22,7 @@ internal class ScriptSession(
     private var ticksSeen = 0
     private var messagesSeen = 0
     private var scriptsSeen = 0
+    private var eventsSeen = 0
     private var loginAnnounced = false
     private var nextLoginAt = 0L
     private var nextKeepAliveAt = 0L
@@ -72,6 +74,7 @@ internal class ScriptSession(
                     ticksSeen = 0
                     messagesSeen = 0
                     scriptsSeen = 0
+                    eventsSeen = 0
                     loginAnnounced = false
                 } catch (e: Exception) {
                     // Logged, not thrown: a step that needs the login fails at its own timeout, with this in the log.
@@ -97,6 +100,18 @@ internal class ScriptSession(
         val scripts = current.clientScripts()
         for (i in scriptsSeen until scripts.size) game.scriptMessage(scripts[i])?.let(runner::message)
         scriptsSeen = scripts.size
+        // As the plugin's AnimationChanged, GraphicChanged and HitsplatApplied: the player as SELF, another player as -2.
+        val events = current.actorEvents(eventsSeen)
+        eventsSeen += events.size
+        for (event in events) {
+            val index = if (event.npc) event.index else if (event.index == current.index) Run.SELF else OTHER_PLAYER
+            val npc = if (event.npc) game.npcName(event.index) else null
+            when (event.kind) {
+                ActorEventKind.ANIMATION -> runner.animation(index, npc, event.id)
+                ActorEventKind.SPOTANIM -> runner.spotanim(index, npc, event.id)
+                ActorEventKind.HITSPLAT -> runner.hitsplat(index, npc, event.id, event.amount)
+            }
+        }
         val ticks = current.ticksSeen
         repeat(ticks - ticksSeen) { runner.gameTick() }
         ticksSeen = ticks
@@ -112,6 +127,9 @@ internal class ScriptSession(
     companion object {
         /** The plugin's default Test accounts: the only names a script may play. */
         val ACCOUNTS = listOf("test", "test2")
+
+        /** The plugin's index for an event on a player other than the local one, which no step asks about. */
+        private const val OTHER_PLAYER = -2
 
         /** The plugin polls every client cycle, 20 ms. */
         private const val POLL_MILLIS = 20L
