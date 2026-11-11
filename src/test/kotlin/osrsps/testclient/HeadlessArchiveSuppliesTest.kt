@@ -377,6 +377,13 @@ class HeadlessArchiveSuppliesTest {
                 client.awaitHeld(BREW, 6)
                 client.entry(2, 5)
                 client.awaitHeld(RESTORE, 4)
+                // A save while still in the run (an autosave, or a shutdown's) is at the instance's exit, and has none
+                // of what he bought (Codex review on #636); he still holds it all.
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
+                val saved = server.world.snapshot(server.world.playerNamed("bob")!!).inventory.values
+                client.commandReply("resume") { it.startsWith("Resumed") }
+                assertEquals(mapOf(BREW_3 to 1, AXE to 1), saved.groupingBy { it.id }.eachCount())
+                assertEquals(6, client.held(BREW))
                 // Out of the instance, as a Home Teleport would take him (exploit review round 26, R26A-1): of the 27
                 // brew doses he holds, the 24 bought go, the fewest doses first, so a 4-dose brew is left as his 3.
                 client.tele(3222, 3218)

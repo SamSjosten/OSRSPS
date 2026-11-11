@@ -309,6 +309,9 @@ class ArchiveRaids(private val world: World) {
 
     fun of(party: Party): ArchiveRun? = runs[party]
 
+    /** The runs going on. */
+    internal fun runs(): Collection<ArchiveRun> = runs.values
+
     /**
      * Whether [player] is down in a run: out of the fight till its room is done, their items at stake. Wherever they
      * stand, as [leaving] looks: a Home Teleport lands them outside a tick before the escape is settled.

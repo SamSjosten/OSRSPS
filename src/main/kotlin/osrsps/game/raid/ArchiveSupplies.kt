@@ -88,31 +88,50 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
      */
     fun settle(run: ArchiveRun, player: Player) {
         val brought = run.suppliesBrought.remove(player.saveKey) ?: return
-        var taken = 0
-        for ((kind, have) in held(player)) {
-            var over = have - (brought[kind] ?: 0)
-            if (over <= 0) continue
-            val slots = listOf(player.inventory, player.priceChecker).flatMap { inv ->
-                inv.contents().mapNotNull { (slot, obj) -> unitsOf(obj.id)?.takeIf { it.first == kind }?.let { Held(inv, slot, obj, it.second) } }
-            }.sortedBy { it.each }
-            for ((inv, slot, obj, each) in slots) {
-                if (over <= 0) break
-                val units = each.toLong() * obj.count
-                when {
-                    units <= over -> inv.remove(slot).also { over -= units.toInt() }
-                    each == 1 -> inv.remove(slot, over).also { over = 0 }
-                    else -> {
-                        inv[slot] = doseOf(obj.id, each - over)?.let { InvObj(it, 1) }
-                        over = 0
-                    }
-                }
-            }
-            taken += have - (brought[kind] ?: 0) - over
-        }
-        if (taken > 0) logger.info { "$run: took back ${player.username}'s supplies, $taken doses or items" }
+        val entries = listOf(player.inventory, player.priceChecker).flatMap { inv -> inv.contents().map { (slot, obj) -> Held(inv, slot, obj) } }
+        val changes = excess(entries, brought)
+        for ((held, obj) in changes) (held.where as Inventory)[held.slot] = obj
+        if (changes.isNotEmpty()) logger.info { "$run: took back ${player.username}'s supplies from ${changes.size} slots" }
     }
 
-    private data class Held(val inv: Inventory, val slot: Int, val obj: InvObj, val each: Int)
+    /**
+     * [inventory] (a save's, the checker's items in it) as it is to be saved for [player]: without what a run would
+     * take back from them, should they be saved still in it. A save while in a run, an autosave or the save at a
+     * shutdown or a crash, is at the instance's exit, and the run is gone after a restart (Codex review on #636).
+     */
+    fun saved(player: Player, inventory: Map<Int, InvObj>): Map<Int, InvObj> {
+        val run = raids.runs().firstOrNull { player.saveKey in it.suppliesBrought } ?: return inventory
+        val changes = excess(inventory.map { (slot, obj) -> Held(inventory, slot, obj) }, run.suppliesBrought.getValue(player.saveKey))
+        if (changes.isEmpty()) return inventory
+        val out = LinkedHashMap(inventory)
+        for ((held, obj) in changes) if (obj == null) out.remove(held.slot) else out[held.slot] = obj
+        return out
+    }
+
+    /** An item in [where] (an [Inventory], or a save's map) at [slot]. */
+    private data class Held(val where: Any, val slot: Int, val obj: InvObj)
+
+    /**
+     * What [entries] become without what is held beyond [brought]: for each kind, the fewest doses first, a potion with
+     * more doses than is owed left with the rest. Each change is an entry and what replaces it, null for nothing.
+     */
+    private fun excess(entries: List<Held>, brought: Map<Int, Int>): List<Pair<Held, InvObj?>> {
+        val changes = ArrayList<Pair<Held, InvObj?>>()
+        val byKind = entries.mapNotNull { e -> unitsOf(e.obj.id)?.let { (kind, each) -> Triple(kind, each, e) } }.groupBy { it.first }
+        for ((kind, items) in byKind) {
+            var over = items.sumOf { it.second * it.third.obj.count } - (brought[kind] ?: 0)
+            for ((_, each, held) in items.sortedBy { it.second }) {
+                if (over <= 0) break
+                val units = each.toLong() * held.obj.count
+                when {
+                    units <= over -> changes += held to null.also { over -= units.toInt() }
+                    each == 1 -> changes += held to InvObj(held.obj.id, held.obj.count - over).also { over = 0 }
+                    else -> changes += held to doseOf(held.obj.id, each - over)?.let { InvObj(it, 1) }.also { over = 0 }
+                }
+            }
+        }
+        return changes
+    }
 
     /**
      * Each tick, before the players' input and again after the NPCs: the supplies of members out of [run], by a
