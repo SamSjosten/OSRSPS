@@ -15,6 +15,7 @@ import osrsps.game.NpcStats
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.SeqNames
+import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.combat.Deaths
 import osrsps.game.combat.NpcCombat
@@ -552,7 +553,7 @@ class HeadlessEzekielTest {
     }
 
     @Test
-    fun `his death brings the Alliance Navigator to his arena three ticks on, and following him leads back to the nexus four ticks later`(@TempDir dir: Path) {
+    fun `his death brings the Alliance Navigator to his arena three ticks on, and following him leads back to the nexus four ticks after the menu's first option`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->
                 val run = alice.intoRun(server, "alice")
@@ -580,13 +581,24 @@ class HeadlessEzekielTest {
                 assertEquals(entry, Tile(navigator.x, navigator.z))
                 alice.commandReply("resume") { it.startsWith("Resumed") }
                 val front = raids.tile(run, ArchiveRoom.EZEKIEL.doorFront.x, ArchiveRoom.EZEKIEL.doorFront.z)
-                // Follow: his one line, with her name, then out in front of the room's door, four ticks after it is clicked on.
+                // Follow: his line, with her name, then whether she is ready. No keeps her there; the first option takes
+                // her out in front of the room's door, four ticks after it is clicked on.
                 alice.npcOp(navigator.index, 1)
                 val said = alice.await("his line") { alice.dialogueView as? DialogueView.Chat }
                 assertEquals("Alliance Navigator", said.name)
                 assertTrue(said.text.contains("tfa_navigator.onward"), said.text)
-                assertTrue(raids.roomAt(run, alice.position!!.x, alice.position!!.z) == ArchiveRoom.EZEKIEL, "out before his line is done")
                 alice.continueDialogue()
+                val menu = alice.awaitDialogue("his menu") { it is DialogueView.Menu } as DialogueView.Menu
+                assertEquals(DialogueView.Menu("[tfa_navigator.ready]", listOf("[tfa_navigator.proceed]", "[tfa_navigator.no]")), menu)
+                alice.chooseOption(2)
+                alice.awaitTicks(ArchiveRaids.MOVE_DELAY + 1)
+                assertTrue(raids.roomAt(run, alice.position!!.x, alice.position!!.z) == ArchiveRoom.EZEKIEL, "out after No")
+                assertTrue(run.moving.isEmpty(), "No left her on her way out")
+                alice.npcOp(navigator.index, 1)
+                alice.await("his line again") { alice.dialogueView as? DialogueView.Chat }
+                alice.continueDialogue()
+                alice.awaitDialogue("his menu again") { it is DialogueView.Menu }
+                alice.chooseOption(1)
                 alice.await("the nexus, in front of his room's door") { alice.position?.takeIf { it == Coord(front.x, front.z, 0) } }
                 assertTrue(run.moving.isEmpty(), "her follow done with")
                 // Quick-follow, back on his arena: no line, and out four ticks after the option, counted in game ticks.
@@ -606,6 +618,52 @@ class HeadlessEzekielTest {
                 assertEquals(Tile(front.x, front.z), Tile(player.x, player.z))
                 assertNull(alice.dialogueView as? DialogueView.Chat)
                 alice.commandReply("resume") { it.startsWith("Resumed") }
+            }
+        }
+    }
+
+    @Test
+    fun `his room won brings the one down back onto his arena with everyone's hitpoints and prayer whole, and going with the Navigator tells the rest`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    bob.await("the login rebuild") { bob.position }
+                    party(listOf(alice to "alice", bob to "bob"))
+                    val run = alice.intoRun(server, "alice")
+                    assertSame(run, bob.intoRun(server, "bob"))
+                    alice.commandReply("raid tp guardian") { it.startsWith("To ") }
+                    alice.await("the Guardian's room done") { ArchiveRoom.GUARDIAN.takeIf { it in run.cleared } }
+                    alice.intoArena(server, run)
+                    alice.await("his fight") { alice.fight().takeIf { it.startsWith("ezekiel #") } }
+                    val world = server.world
+                    val raids = world.archiveRaids
+                    val alicePlayer = world.playerNamed("alice")!!
+                    val bobPlayer = world.playerNamed("bob")!!
+                    // Bob falls with Alice standing: down, in the nexus.
+                    bob.commandReply("god off") { it.isNotEmpty() }
+                    bob.commandReply("hit 99 me") { it.startsWith("Hit yourself") }
+                    bob.await("Bob down") { if (bobPlayer.saveKey in run.downed && !bobPlayer.dead) Unit else null }
+                    assertTrue(raids.roomAt(run, bobPlayer.x, bobPlayer.z) != ArchiveRoom.EZEKIEL, "Bob down in his room")
+                    // Alice hurt, her prayer low.
+                    alice.commandReply("setlevel prayer 70") { it.isNotEmpty() }
+                    alice.commandReply("boost prayer 5") { it.startsWith("Prayer is now 5") }
+                    alice.commandReply("boost hitpoints 4") { it.startsWith("Hitpoints is now 4") }
+                    alice.commandReply("hit 3000 ${bossOf(run).index}") { it.startsWith("Hit ") }
+                    alice.await("his room won") { ArchiveRoom.EZEKIEL.takeIf { it in run.cleared } }
+                    // Bob stands on the arena again, where the Navigator comes; both whole.
+                    val entry = raids.tile(run, ArchiveRaids.EZEKIEL_ARENA_X, ArchiveRaids.EZEKIEL_ARENA_Z)
+                    bob.await("Bob back on his arena") { bob.position?.takeIf { it == Coord(entry.x, entry.z, 0) } }
+                    assertTrue(run.downed.isEmpty(), run.downed.toString())
+                    for (player in listOf(alicePlayer, bobPlayer)) {
+                        assertEquals(player.skills.baseLevel(Skill.HITPOINTS), player.hitpoints, "${player.username}'s hitpoints")
+                        assertEquals(player.skills.baseLevel(Skill.PRAYER), player.skills.currentLevel(Skill.PRAYER), "${player.username}'s prayer")
+                    }
+                    // Bob goes with the Navigator by Quick-follow: Alice is told he went.
+                    val navigator = bob.await("the Navigator") { world.npcs.all.firstOrNull { it.type.id == ArchiveRaids.NAVIGATOR } }
+                    bob.npcOp(navigator.index, 3)
+                    alice.awaitMessage("the line that Bob went") { it.contains("tfa_navigator.returned") }
+                    assertTrue(bob.messages().none { it.text.contains("tfa_navigator.returned") }, "Bob told of himself")
+                }
             }
         }
     }

@@ -3,6 +3,7 @@ package osrsps.game.raid
 import io.github.oshai.kotlinlogging.KotlinLogging
 import osrsps.game.Inventory
 import osrsps.game.Player
+import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.combat.CombatLines
 import osrsps.game.combat.DeathPlace
@@ -24,11 +25,17 @@ private val logger = KotlinLogging.logger {}
 /**
  * The Alliance Navigator's lines to whoever follows him out of a room that is won, each with the player's name. Seen in
  * Sam's recordings of 9 November 2026 (clip notes): [ONWARD] after Bork and the Smorks, [VAULT] after Xarth, the fourth
- * room. Guessed: [ONWARD] after the third room too.
+ * room. Guessed: [ONWARD] after the third room too. Seen in Sam's recording of 10 November 2026 (clip 16-09-39 at
+ * 6:46, after Bork): [ONWARD], then a menu asking [READY] with [PROCEED] and [NO], and the [RETURNED] line in the chat
+ * for a teammate who went. Guessed: the menu after [VAULT] too.
  */
 object ArchiveNavigatorLines : Lines("tfa_navigator", "The_Fractured_Archive") {
-    val ONWARD = line("onward", "followed out of the second or third room: his one line, with the player's name", "name")
-    val VAULT = line("vault", "followed out of the fourth room: his one line, with the player's name", "name")
+    val ONWARD = line("onward", "followed out of the second or third room: his line, with the player's name", "name")
+    val VAULT = line("vault", "followed out of the fourth room: his line, with the player's name", "name")
+    val READY = line("ready", "the menu's question after his line, asking whether the player is ready to proceed")
+    val PROCEED = line("proceed", "the menu's first option, back to the nexus (its words not read in the recording)")
+    val NO = line("no", "the menu's second option, staying")
+    val RETURNED = line("returned", "the chat line to the rest of the party in the run when one follows him out", "name")
 }
 
 /** Which of a row's two doors a room is behind, as the nexus faces north: west is the Wiki's left. */
@@ -976,14 +983,29 @@ class ArchiveRaids(private val world: World) {
         val room = roomAt(run, npc.x, npc.z) ?: return
         if (room !in run.cleared || player.saveKey !in run.entered || world.parties.of(player) !== run.party) return
         if (quick) {
-            move(run, player, room, into = false)
+            followed(run, player, room)
             return
         }
         val line = if (room.stage >= LAST_DOORS) ArchiveNavigatorLines.VAULT else ArchiveNavigatorLines.ONWARD
         world.dialogues.start(context, npc) {
             chatNpc(ChatAnim.NEUTRAL, line, "name" to player.username)
+            val go = choice(ArchiveNavigatorLines.PROCEED, ArchiveNavigatorLines.NO, title = text(ArchiveNavigatorLines.READY)) == 1
             // Still in the room: a teleport or a death while he spoke took them elsewhere already.
-            if (at(player.x, player.z) === run && roomAt(run, player.x, player.z) == room) move(run, player, room, into = false)
+            if (go && at(player.x, player.z) === run && roomAt(run, player.x, player.z) == room) followed(run, player, room)
+        }
+    }
+
+    /**
+     * [player] goes with the Navigator out of [room]: back to the nexus, and the rest of the party in the run are told
+     * ([ArchiveNavigatorLines.RETURNED]; Sam's recordings of 9 and 10 November 2026 show the line for a teammate).
+     * Inferred: that it is going with him that says it, and that it goes to the party in the run. Guessed: as the
+     * option is taken, not as they land.
+     */
+    private fun followed(run: ArchiveRun, player: Player, room: ArchiveRoom) {
+        if (run.moving[player.saveKey]?.let { it.room == room && !it.into } == true) return
+        move(run, player, room, into = false)
+        for (member in present(run)) {
+            if (member !== player) member.message(world.textFor(member)[ArchiveNavigatorLines.RETURNED, "name" to player.username])
         }
     }
 
@@ -1257,6 +1279,7 @@ class ArchiveRaids(private val world: World) {
         share(run, room)
         // The raid's end: the loot is rolled, for whoever of the party is in the run now.
         if (room == ArchiveRoom.OCELLUS) chests.pay(run)
+        upAgain(run, room)
         run.downed.clear()
         run.clearedTick = world.tick
         if (arenaEntry(room) != null && built(room)) run.navigatorDue[room] = world.tick + NAVIGATOR_DELAY
@@ -1272,6 +1295,30 @@ class ArchiveRaids(private val world: World) {
         }
         logger.info { "$run cleared ${room.boss}'s room; points ${run.points}" }
     }
+
+    /**
+     * [room] is won: whoever of the party was down stands in it again, where the Navigator comes ([backInRoom]), and
+     * everyone in the run has their hitpoints and prayer back. Sam's recording of 10 November 2026 (clip 16-09-39, after
+     * Bork): the two who died in the fight stood in the room north-east of the arena 6 seconds after, and Sam read 99/99
+     * hitpoints and prayer. The tsps capture notes had the first as an estimate ("a won challenge brings the dead back at
+     * the room's entrance"). Inferred: that every room's end does it, for the whole party, and that boosts are kept.
+     * Guessed: the tile.
+     */
+    private fun upAgain(run: ArchiveRun, room: ArchiveRoom) {
+        val back = backInRoom(run, room)
+        for (player in present(run)) {
+            if (player.dead) continue
+            if (back != null && player.saveKey in run.downed) world.teleport(player, back.x, back.z, room.level)
+            for (skill in listOf(Skill.HITPOINTS, Skill.PRAYER)) {
+                val base = player.skills.baseLevel(skill)
+                if (player.skills.currentLevel(skill) < base) player.skills.setCurrentLevel(skill, base)
+            }
+        }
+    }
+
+    /** Where those down come back in [room] once it is won ([upAgain]): its arena's way in, where the Navigator comes; null for none built. */
+    private fun backInRoom(run: ArchiveRun, room: ArchiveRoom): Tile? =
+        arenaEntry(room)?.takeIf { built(room) }?.let { tile(run, it.x, it.z) }
 
     private fun share(run: ArchiveRun, room: ArchiveRoom) {
         val dealt = credited(run, room).filterValues { it > 0 }
@@ -1356,6 +1403,10 @@ class ArchiveRaids(private val world: World) {
         val fell = player.deathTick
         if (fell < 0 || run.clearedTick < fell) run.downed += player.saveKey
         val room = roomAt(run, player.x, player.z)
+        // One lying dying as their room was won gets up in it, as those down do ([upAgain]).
+        if (room != null && room in run.cleared && run.clearedTick >= fell && fell >= 0) {
+            backInRoom(run, room)?.let { return DeathPlace(keepItems = true, it.x, it.z, room.level, it.x, it.z, room.level) }
+        }
         // A death in the hall once the Guardian is done (a stray hit) has no fight to be out of.
         val front = room?.takeIf { it !in run.cleared }?.doorFront ?: Tile(NEXUS_X, NEXUS_Z)
         val to = tile(run, front.x, front.z)
