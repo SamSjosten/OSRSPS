@@ -380,4 +380,51 @@ class HeadlessMoiaTest {
             }
         }
     }
+
+    @Test
+    fun `the cap on damage to her binders is the room's, shared by all who hit them, not a quarter each`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    server.login("carol").use { carol ->
+                        party(listOf(alice to "alice", bob to "bob", carol to "carol"))
+                        val run = alice.intoRun(server, "alice")
+                        bob.intoRun(server, "bob")
+                        carol.intoRun(server, "carol")
+                        alice.toThirdRow(run)
+                        bob.ontoArena(server, run, dz = 1)
+                        carol.ontoArena(server, run, dz = -1)
+                        alice.ontoArena(server, run)
+                        alice.await("her fight") { alice.fight().takeIf { it.startsWith("moia #") } }
+                        // Alice and Carol only ever hit binders, half each, three rounds of the ring (R27A-2: a cap each
+                        // let every farmer take a quarter).
+                        repeat(3) {
+                            alice.await("binders up", 40_000) { binders(run).takeIf { it.size == Moia.RING.size - 1 } }
+                            for ((i, b) in binders(run).withIndex()) {
+                                (if (i % 2 == 0) alice else carol).commandReply("hit 95 ${b.index}") { it.startsWith("Hit ") }
+                            }
+                        }
+                        val her = boss(run)
+                        while (!her.dead) {
+                            bob.commandReply("hit 500 ${her.index}") { it.startsWith("Hit ") || it.contains("already dead") || it.contains("hidden") }
+                            bob.awaitTicks(1)
+                        }
+                        alice.await("her room done", 20_000) { ArchiveRoom.MOIA.takeIf { it in run.cleared } }
+                        val (a, b, c) = listOf("alice", "bob", "carol").map { server.world.playerNamed(it)!!.saveKey }
+                        val onBinders = run.minionDamage[ArchiveRoom.MOIA].orEmpty()
+                        val onHer = assertNotNull(run.damage[ArchiveRoom.MOIA]?.get(b))
+                        val cap = onHer * ArchiveRaids.MINION_CAP_PERCENT / 100
+                        val farmed = onBinders.getValue(a) + onBinders.getValue(c)
+                        assertTrue(farmed > cap && onBinders.getValue(a) > 0 && onBinders.getValue(c) > 0, "binders $onBinders, bob $onHer to her")
+                        // Between them, no more than the one cap, split as they did the binders.
+                        val credited = server.world.archiveRaids.credited(run, ArchiveRoom.MOIA)
+                        assertEquals(onHer, credited[b])
+                        val shared = credited.getValue(a) + credited.getValue(c)
+                        assertTrue(shared in cap - 1..cap, "alice and carol credited $credited, the cap $cap")
+                        assertEquals(onBinders.getValue(a).toLong() * cap / farmed, credited.getValue(a).toLong())
+                    }
+                }
+            }
+        }
+    }
 }

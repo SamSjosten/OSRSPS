@@ -355,6 +355,8 @@ object Bork {
             },
             // The anchor never moves and the Smorks' tower stands: Bork is the one a hold keeps off.
             held = { listOfNotNull(liveBork) },
+            // The boss NPC is only the anchor: Bork and the Smorks are what the party fights.
+            bosses = setOf(BORK, SMORKS),
         )
     }
 

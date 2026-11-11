@@ -149,7 +149,7 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
     /** The damage each player has done in each room, by [Player.saveKey]. */
     val damage = HashMap<ArchiveRoom, MutableMap<String, Int>>()
 
-    /** The damage each player has done in each room to its fight's minions ([osrsps.game.encounter.EncounterDef.minions]), counted only up to a cap. */
+    /** The damage each player has done in each room to its fight's adds (not [osrsps.game.encounter.EncounterDef.bosses]), counted only up to a cap. */
     val minionDamage = HashMap<ArchiveRoom, MutableMap<String, Int>>()
 
     /** Contribution points, by [Player.saveKey]. */
@@ -301,8 +301,9 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
  * - A room's points are [ROOM_POINTS], and Ocellus's [OCELLUS_POINTS] ("Every boss except Ocellus awards 100
  *   contribution points to the team, which is divided between party members based on damage dealt", and his 300: the
  *   Wiki's chest page), shared by damage among those who did any, or evenly among who was there when it began if
- *   nobody did. Guessed: the even share. Damage to a fight's minions (Moia's binders, the Dagon'hai's imps and rifts)
- *   counts only up to a cap ([credited]), for the Wiki's soft cap; the other rooms' adds aren't capped yet.
+ *   nobody did. Guessed: the even share. Damage to a fight's adds (everything but its boss and the NPCs its
+ *   [osrsps.game.encounter.EncounterDef.bosses] names: Moia's binders, Xarth's Corpses, the Guardian's inert
+ *   guardians and so on) counts only up to a cap shared by the room ([credited]), for the Wiki's soft cap.
  * - A party member who dies with someone still standing keeps everything and is down until the room is done: in the
  *   nexus, in front of the room's door (in the entrance, for the Guardian's hall), and sent out again if they walk back
  *   in. Spectating isn't built.
@@ -1333,16 +1334,21 @@ class ArchiveRaids(private val world: World) {
     }
 
     /**
-     * What each player's damage in [room] counts for its points: all they did to its boss, and what they did to its
-     * minions up to [MINION_CAP_PERCENT] of everyone's damage to the boss. Without the cap, Moia's binders (rising
+     * What each player's damage in [room] counts for its points: all they did to its bosses, and what they did to its
+     * adds, all of it while the party's damage to adds is within [MINION_CAP_PERCENT] of everyone's damage to the
+     * bosses, and scaled down to that cap, the same for all, once it's more. Without the cap, Moia's binders (rising
      * again without end) gave a player who only killed them more points than the one who killed her (exploit review
-     * round 26, R26A-3). The Wiki has a soft cap on damage to a boss's minions; guessed: that it is a hard cap, its size.
+     * round 26, R26A-3). The cap is the room's, not each player's: one each let a main and three alts farming adds
+     * take a quarter apiece (round 27, R27A-2). The Wiki has a soft cap on damage to a boss's minions; guessed: that it
+     * is a hard cap, its size, and that it is shared.
      */
     internal fun credited(run: ArchiveRun, room: ArchiveRoom): Map<String, Int> {
         val boss = run.damage[room].orEmpty()
         val minions = run.minionDamage[room].orEmpty()
-        val cap = (boss.values.sumOf { it.toLong() } * MINION_CAP_PERCENT / 100).toInt()
-        return (boss.keys + minions.keys).associateWith { (boss[it] ?: 0) + minOf(minions[it] ?: 0, cap) }
+        val cap = boss.values.sumOf { it.toLong() } * MINION_CAP_PERCENT / 100
+        val onAdds = minions.values.sumOf { it.toLong() }
+        fun counted(damage: Int): Int = if (onAdds <= cap) damage else (damage * cap / onAdds).toInt()
+        return (boss.keys + minions.keys).associateWith { (boss[it] ?: 0) + counted(minions[it] ?: 0) }
     }
 
     /** A party member's hit on [npc] in a room of a run counts towards their share of its points. */
@@ -1353,8 +1359,11 @@ class ArchiveRaids(private val world: World) {
         if (player.saveKey !in run.entered) return
         val room = roomAt(run, npc.x, npc.z) ?: return
         if (room !in run.started || room in run.cleared) return
-        val minion = run.fights[room]?.def?.minions?.contains(npc.type.id) == true
-        val byPlayer = (if (minion) run.minionDamage else run.damage).getOrPut(room, ::LinkedHashMap)
+        // Only the fight's bosses count in full; any other NPC of it is an add (exploit review round 27, R27A-1:
+        // Xarth's harmless Corpses farmed for points). Damage to an NPC of no fight in the room counts as an add too.
+        val fight = run.fights[room]
+        val boss = fight != null && (npc === fight.boss || npc.type.id in fight.def.bosses)
+        val byPlayer = (if (boss) run.damage else run.minionDamage).getOrPut(room, ::LinkedHashMap)
         byPlayer[player.saveKey] = (byPlayer[player.saveKey] ?: 0) + dealt
     }
 
