@@ -162,6 +162,8 @@ object MisthalinSweep {
 
     internal suspend fun ScriptContext.pickNettles(world: World, loc: ZoneLoc) {
         arriveDelay()
+        // Picked by someone else while this player walked up: nothing left to sting them.
+        if (!world.locs.exists(loc)) return
         if (!glovesOn(player)) {
             world.message(player, MisthalinSweepLines.STUNG)
             world.meleeCombat.statusHit(player, 1 + world.random.nextInt(STING_MAX), Poison.POISON_HITSPLAT)
