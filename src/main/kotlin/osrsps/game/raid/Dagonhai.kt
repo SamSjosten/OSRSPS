@@ -463,6 +463,9 @@ object Dagonhai {
             state.pool = (state.pool - lost).coerceAtLeast(0)
             log("the pool takes $lost, ${state.pool} left")
         }
+        // Hits that took nothing off the pool (a point given back by a regeneration tick) count for nothing, and aren't
+        // carried into the next tick's share (Codex on #648).
+        for (npc in state.members) if (npc !in each) world.archiveRaids.passOn(npc, 0)
         setPool()
     }
 

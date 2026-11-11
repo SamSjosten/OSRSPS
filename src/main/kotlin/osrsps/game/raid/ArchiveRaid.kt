@@ -1387,6 +1387,8 @@ class ArchiveRaids(private val world: World) {
      * once his bar was at its floor (exploit review round 28, R28A-1); and hits on two of the Dagon'hai in the tick the
      * pool broke counted twice over (R28A-2).
      */
+    // Guessed: that live counts such hits by what reached the real hitpoints at all, the share by what each dealt, and
+    // the odd hitpoints going to whoever dealt most; the Wiki says only that a room's points are shared by damage.
     fun passOn(npc: Npc, taken: Int) {
         val run = at(npc.x, npc.z) ?: return
         val hits = run.heldHits.remove(npc) ?: return

@@ -1459,7 +1459,11 @@ object Ocellus {
         val blade = state.blade ?: return
         if (blade.dead || world.npcs[blade.index] !== blade) return
         val lost = blade.maxHitpoints - blade.hitpoints
-        if (lost <= 0) return
+        if (lost <= 0) {
+            // Hits for nothing count for nothing, and aren't carried into a later share (Codex on #648).
+            world.archiveRaids.passOn(blade, 0)
+            return
+        }
         blade.hitpoints = blade.maxHitpoints
         blade.effects.headBar(-1, MeleeCombat.HEALTH_BAR, MeleeCombat.healthBarFill(blade.hitpoints, blade.maxHitpoints))
         val total = lost * BLADE_SHARE + state.bladeCarry

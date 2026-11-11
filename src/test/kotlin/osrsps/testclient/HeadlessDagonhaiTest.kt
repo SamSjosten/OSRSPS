@@ -259,6 +259,33 @@ class HeadlessDagonhaiTest {
     }
 
     @Test
+    fun `a hit given back before the pool takes it counts for nothing, and not towards a later one`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    alice.commandReply("raidparty invite bob") { it.startsWith("Invited") }
+                    bob.commandReply("raidparty accept alice") { it.startsWith("You joined") }
+                    val run = alice.intoRun(server, "alice")
+                    assertEquals(run, bob.intoRun(server, "bob"))
+                    alice.begin(server, run)
+                    bob.ontoFloor(server, run)
+                    val trio = members(run)
+                    alice.commandReply("pause") { it.contains("aused after tick") }
+                    // Alice's point given back before the pool sees it, as a regeneration tick does (Codex on #648).
+                    alice.commandReply("hit 1 ${trio[0].index}") { it.startsWith("Hit ") }
+                    trio[0].hitpoints = Dagonhai.POOL
+                    alice.stepTicks(1)
+                    bob.commandReply("hit 1 ${trio[0].index}") { it.startsWith("Hit ") }
+                    alice.stepTicks(1)
+                    alice.commandReply("resume") { it.startsWith("Resumed") }
+                    val b = server.world.playerNamed("bob")!!.saveKey
+                    assertEquals(mapOf(b to 1), run.damage[ArchiveRoom.DAGONHAI]?.toMap(), lines(run).takeLast(6).toString())
+                }
+            }
+        }
+    }
+
+    @Test
     fun `a tome blocked on the gust hits the blocker, one left alone reaches the cauldron`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->
