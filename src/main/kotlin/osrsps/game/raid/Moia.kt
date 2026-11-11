@@ -319,7 +319,9 @@ object Moia {
         val others = SPOTS.indices.filter { it != state.spot }
         val to = others[roll(0, others.size - 1)]
         log("teleports")
-        after(1) { if (!gone()) world.hide(boss) }
+        // Enraged by the time it's due (her enrage begins before the tick's waiting actions), she stays in sight in
+        // the middle: hidden then, she'd never be shown again (Codex on #625).
+        after(1) { if (!gone() && !state.enraged) world.hide(boss) }
         after(TELEPORT_LANDS) {
             // Enraged meanwhile, she's back in the middle already.
             if (gone() || state.enraged) return@after

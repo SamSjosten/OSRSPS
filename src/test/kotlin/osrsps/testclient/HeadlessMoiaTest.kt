@@ -252,6 +252,35 @@ class HeadlessMoiaTest {
     }
 
     @Test
+    fun `an enrage on the tick after a teleport began leaves her in sight and back in the middle`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.toThirdRow(run)
+                alice.commandReply("raid tp moia") { it.startsWith("To ") }
+                alice.ontoArena(server, run)
+                alice.await("her fight") { alice.fight().takeIf { it.startsWith("moia #") } }
+                val her = boss(run)
+                // Stepped a tick at a time to the tick her teleport begins.
+                alice.commandReply("pause") { it.contains("aused after tick") }
+                var steps = 0
+                while (lines(run).none { it.endsWith("fight: teleports") }) {
+                    assertTrue(++steps < 60, "no teleport in 60 ticks: ${lines(run).takeLast(8)}")
+                    alice.stepTicks(1)
+                }
+                // Down to a third on the next tick, the one she would go from sight on (Codex on #625).
+                alice.command("hit ${her.hitpoints - her.maxHitpoints * Moia.ENRAGE_PERCENT / 100} ${her.index}")
+                alice.stepTicks(1)
+                alice.stepTicks(Moia.TELEPORT_LANDS + 2)
+                assertTrue(lines(run).any { it.contains("enrage: enrage at ") }, lines(run).takeLast(8).toString())
+                assertFalse(her.hidden, "hidden for good in her enrage")
+                assertEquals(her.spawn.x to her.spawn.z, her.x to her.z)
+                alice.commandReply("resume") { it.startsWith("Resumed") }
+            }
+        }
+    }
+
+    @Test
     fun `at a third she enrages, with a diamond of binders whose charge breaks when they die and bursts on everyone when they live`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->
