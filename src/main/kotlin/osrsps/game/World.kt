@@ -109,6 +109,7 @@ import osrsps.game.content.registerFarmsRoads
 import osrsps.game.content.registerLumberYard
 import osrsps.game.content.registerDigsite
 import osrsps.game.content.registerDigsiteDigs
+import osrsps.game.content.registerExamCentre
 import osrsps.game.content.registerPaterdomus
 import osrsps.game.content.registerSilvarea
 import osrsps.game.content.registerLumbridgeSwamp
@@ -868,6 +869,7 @@ class World(
         registerPaterdomus(this)
         registerDigsite(this)
         registerDigsiteDigs(this)
+        registerExamCentre(this)
         ThievingLocks.register(this)
         registerChurch(this)
         registerAlKharid(this)

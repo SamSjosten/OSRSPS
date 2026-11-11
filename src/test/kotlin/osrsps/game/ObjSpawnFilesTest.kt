@@ -144,10 +144,24 @@ class ObjSpawnFilesTest {
 
     @Test
     fun `the Digsite has the Wiki's empty panning tray in the panning tent`() {
-        val types = ObjTypes.of(ObjType(677, "Panning tray", internalName = "tray_empty"))
+        val types = ObjTypes.of(ObjType(677, "Panning tray", internalName = "tray_empty"), ObjType(526, "Bones", internalName = "bones"))
         val text = ObjSpawnFiles.resources().toMap().getValue("digsite.tsv")
-        val spawn = ObjSpawnFiles.parse(text, types, "digsite.tsv").single()
+        val spawn = ObjSpawnFiles.parse(text, types, "digsite.tsv").single { it.id == 677 }
         assertEquals(listOf(677, 3369, 3378, 0, 100), listOf(spawn.id, spawn.x, spawn.z, spawn.level, spawn.respawnTicks))
+    }
+
+    @Test
+    fun `the Digsite Dungeon has the Wiki's pickaxes, buckets, arcenia roots and bones, and the digs their bones`() {
+        val types = ObjTypes.of(
+            ObjType(1267, "Iron pickaxe", internalName = "iron_pickaxe"), ObjType(1925, "Bucket", internalName = "bucket_empty"),
+            ObjType(708, "Arcenia root", internalName = "arcenia_root"), ObjType(526, "Bones", internalName = "bones"),
+            ObjType(677, "Panning tray", internalName = "tray_empty"),
+        )
+        val dungeon = ObjSpawnFiles.parse(ObjSpawnFiles.resources().toMap().getValue("digsite-dungeon.tsv"), types, "digsite-dungeon.tsv")
+        assertEquals(mapOf(1267 to 3, 1925 to 3, 708 to 4, 526 to 11), dungeon.groupingBy { it.id }.eachCount())
+        assertTrue(dungeon.all { it.z in 9740..9775 && it.level == 0 && it.respawnTicks == 100 })
+        val digs = ObjSpawnFiles.parse(ObjSpawnFiles.resources().toMap().getValue("digsite.tsv"), types, "digsite.tsv")
+        assertEquals(5, digs.count { it.id == 526 })
     }
 
     @Test

@@ -431,6 +431,26 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `the Exam Centre has its three examiners, the Researcher and Terry, and the dungeon Doug and ten level 22 skeletons`() {
+        val names = mapOf(
+            3635 to "examiner", 3636 to "qip_digsite_examiner_02", 3637 to "qip_digsite_examiner_03", 3638 to "qip_digsite_researcher",
+            3639 to "archaeological_expert", 3629 to "digworkman2", 70 to "skeleton_unarmed", 71 to "skeleton_unarmed2",
+            72 to "skeleton_unarmed3", 73 to "skeleton_unarmed4",
+        )
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val centre = NpcSpawnFile.parse(file("exam-centre.json"), types, "exam-centre.json")
+        assertEquals(emptyList(), centre.unknown)
+        assertEquals(listOf(3635, 3636, 3637, 3638, 3639), centre.spawns.map { it.type.id })
+        assertTrue(centre.spawns.all { it.x in 3350..3370 && it.z in 3330..3345 && it.source.isNotBlank() })
+        val dungeon = NpcSpawnFile.parse(file("digsite-dungeon.json"), types, "digsite-dungeon.json")
+        assertEquals(emptyList(), dungeon.unknown)
+        assertEquals(3351 to 9756, dungeon.spawns.single { it.type.id == 3629 }.let { it.x to it.z })
+        assertEquals(10, dungeon.spawns.count { it.type.id in 70..73 })
+        // The copy after the quest: none in the quest's copy 64 tiles north.
+        assertTrue(dungeon.spawns.all { it.z in 9740..9760 && it.source.isNotBlank() })
+    }
+
+    @Test
     fun `the swamp has its 23 giant rats, 82 frogs, the level 5 goblin, the unicorn, its talking NPCs and tutors, and rats west of the castle`() {
         val names = mapOf(
             2856 to "giantrat", 2859 to "giantrat_grey", 2860 to "giantrat_grey2", 2861 to "giantrat_grey3", 2863 to "giantrat1_2",
