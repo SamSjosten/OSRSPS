@@ -58,7 +58,8 @@ object QuartermasterLines : Lines("tfa_quartermaster", "Transcript:Quartermaster
  * - **Only for the raid.** What a member holds of the supplies' kinds as they get out of the run (a teleport, the Rift
  *   out, leaving the party, logging out, the instance's end) or lose it (a wipe, dying of an escape while down), beyond
  *   what they brought in through the Archive Door, is taken: doses of each potion, whatever its doses, and items of
- *   the rest ([settle]); what a member brought in and traded to another goes with its allowance ([traded]). Without
+ *   the rest ([settle]); what a member brought in and traded, or dropped, to another goes with its allowance ([traded],
+ *   [pickedUp]), and none is made into another kind in the run ([keepsFromMaking]). Without
  *   it the stock, the ordinary items, left the raid to be banked or sold (exploit review round 26, R26A-1). Guessed: live's stock is the same items (the cache's rows), and whether live takes them back,
  *   and how, isn't known; nothing is said.
  * - **Talk-to** (op 3) is the Wiki's transcript ([QuartermasterLines]). Guessed: every chathead expression, and that
@@ -92,6 +93,10 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
         if (player.saveKey !in run.suppliesBrought) return
         if (player.trade != null) world.trades.interrupt(player)
         val brought = run.suppliesBrought.remove(player.saveKey) ?: return
+        // What they brought in and don't leave with, kept for their drops another member may yet pick up.
+        val holding = held(player)
+        val spare = brought.mapValues { (kind, units) -> units - (holding[kind] ?: 0) }.filterValues { it > 0 }
+        if (spare.isNotEmpty()) run.suppliesLeft[player.saveKey] = spare
         val entries = listOf(player.inventory, player.priceChecker).flatMap { inv -> inv.contents().map { (slot, obj) -> Held(inv, slot, obj) } }
         val changes = excess(entries, brought)
         for ((held, obj) in changes) (held.where as Inventory)[held.slot] = obj
@@ -210,23 +215,35 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
     }
 
     /**
-     * [taker] picked up [count] of [id] that [owner] dropped, both members of one run: as in a trade, what [owner] brought
-     * in of it (beyond what they still hold) goes over to [taker]'s allowance, so supplies a member brought in and
-     * handed on by the floor aren't taken from the one who leaves with them. What was bought stays bought (Codex
-     * review on #636).
+     * [taker], in a run, picked up [count] of [id] that the player saved as [ownerKey] ([owner] if still in the world)
+     * dropped: as in a trade, what the owner brought in of it (beyond what they still hold) goes over to [taker]'s
+     * allowance, so supplies a member brought in and handed on by the floor aren't taken from the one who leaves with
+     * them. From [ArchiveRun.suppliesLeft] once the owner has got out. What was bought stays bought (Codex review on #636).
      */
-    fun pickedUp(taker: Player, owner: Player, id: Int, count: Int) {
+    fun pickedUp(taker: Player, ownerKey: String, owner: Player?, id: Int, count: Int) {
         val (kind, each) = unitsOf(id) ?: return
-        val run = raids.runs().firstOrNull { taker.saveKey in it.suppliesBrought && owner.saveKey in it.suppliesBrought } ?: return
-        val allowOwner = run.suppliesBrought.getValue(owner.saveKey).toMutableMap()
-        val allowTaker = run.suppliesBrought.getValue(taker.saveKey).toMutableMap()
-        val spare = (allowOwner[kind] ?: 0) - (held(owner)[kind] ?: 0)
-        val moved = minOf(each * count, spare)
+        val run = raids.runs().firstOrNull { taker.saveKey in it.suppliesBrought } ?: return
+        val inRun = run.suppliesBrought[ownerKey]
+        val from = (inRun ?: run.suppliesLeft[ownerKey])?.toMutableMap() ?: return
+        val stillHeld = if (inRun != null && owner != null) held(owner)[kind] ?: 0 else 0
+        val moved = minOf(each * count, (from[kind] ?: 0) - stillHeld)
         if (moved <= 0) return
-        allowOwner[kind] = (allowOwner[kind] ?: 0) - moved
+        from[kind] = (from[kind] ?: 0) - moved
+        if (inRun != null) run.suppliesBrought[ownerKey] = from else run.suppliesLeft[ownerKey] = from
+        val allowTaker = run.suppliesBrought.getValue(taker.saveKey).toMutableMap()
         allowTaker[kind] = (allowTaker[kind] ?: 0) + moved
-        run.suppliesBrought[owner.saveKey] = allowOwner
         run.suppliesBrought[taker.saveKey] = allowTaker
+    }
+
+    /**
+     * Whether [player], in a run, may not make [product] from [inputs]: any of the supplies' kinds made into another
+     * kind (a Super restore into a Sanfew mixture), which would leave the run as an item [settle] doesn't know (Codex
+     * review on #636). Guessed: live's answer isn't known; this gives "Nothing interesting happens".
+     */
+    fun keepsFromMaking(player: Player, inputs: List<Int>, product: Int): Boolean {
+        if (raids.runs().none { player.saveKey in it.suppliesBrought }) return false
+        val into = kindOf(product)
+        return inputs.any { kindOf(it) in kinds && kindOf(it) != into }
     }
 
     /**

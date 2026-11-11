@@ -404,7 +404,7 @@ class World(
         // doubling it. Live's saves are its own business; this is ours.
         handedOver = { taker, owner, obj ->
             // A raid member's supplies picked up by another member: the allowance first, so both saves have it (R26A-1).
-            findPlayer(owner)?.let { archiveRaids.supplies.pickedUp(taker, it, obj.id, obj.count) }
+            archiveRaids.supplies.pickedUp(taker, owner, findPlayer(owner), obj.id, obj.count)
             findPlayer(owner)?.let(::save)
             save(taker)
         },

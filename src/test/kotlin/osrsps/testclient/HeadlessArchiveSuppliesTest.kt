@@ -526,7 +526,7 @@ class HeadlessArchiveSuppliesTest {
     }
 
     @Test
-    fun `supplies a member brought in, dropped and picked up by another, leave with the one who picked them up`(@TempDir dir: Path) {
+    fun `supplies a member brought in, dropped and picked up by another, leave with the one who picked them up, and none is made into another kind`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->
                 server.login("bob").use { bob ->
@@ -546,13 +546,31 @@ class HeadlessArchiveSuppliesTest {
                     bob.await("the ray turning public", timeoutMillis = 10_000) { bob.groundObjs().firstOrNull { it.id == MANTA } }
                     bob.objOp(MANTA, at.x, at.z, TAKE)
                     bob.awaitHeld(MANTA, 1)
-                    // Her allowance for it went with it: out of the run, each keeps theirs.
+                    // Her allowance for it went with it.
                     assertEquals(1, run.suppliesBrought.getValue("bob")[MANTA])
-                    bob.tele(3222, 3218)
+                    // She drops her second and gets out before Bob takes it: what she brought in and didn't leave with
+                    // is kept for it (Codex review on #636).
+                    val second = alice.inventory(Inventory.INV).indexOfFirst { it?.id == MANTA }
+                    alice.ifButton(INVENTORY, INVENTORY_ITEMS, DROP, second, MANTA)
+                    alice.awaitHeld(MANTA, 0)
                     alice.tele(3222, 3218)
+                    bob.await("her allowance kept for the floor") { run.suppliesLeft["alice"]?.get(MANTA)?.takeIf { it == 1 } }
+                    bob.await("the second ray turning public", timeoutMillis = 10_000) { bob.groundObjs().firstOrNull { it.id == MANTA } }
+                    bob.objOp(MANTA, at.x, at.z, TAKE)
+                    bob.awaitHeld(MANTA, 2)
+                    assertEquals(2, run.suppliesBrought.getValue("bob")[MANTA])
+                    // Nor can a supply be made into another kind in the run, where settling wouldn't know it (Codex
+                    // review on #636): a Super restore with unicorn horn dust into a Sanfew mixture.
+                    val supplies = server.world.archiveRaids.supplies
+                    val bobPlayer = server.world.playerNamed("bob")!!
+                    assertTrue(supplies.keepsFromMaking(bobPlayer, listOf(UNICORN_DUST, RESTORE), SANFEW_MIX))
+                    assertFalse(supplies.keepsFromMaking(bobPlayer, listOf(UNICORN_DUST, AXE), SANFEW_MIX))
+                    // Out of the run, each keeps theirs: Bob both of Alice's.
+                    bob.tele(3222, 3218)
                     bob.awaitTicks(2)
-                    assertEquals(1, bob.held(MANTA))
-                    assertEquals(1, alice.held(MANTA))
+                    assertEquals(2, bob.held(MANTA))
+                    assertEquals(0, alice.held(MANTA))
+                    assertFalse(supplies.keepsFromMaking(bobPlayer, listOf(UNICORN_DUST, RESTORE), SANFEW_MIX))
                 }
             }
         }
@@ -617,5 +635,7 @@ class HeadlessArchiveSuppliesTest {
         const val INVENTORY_ITEMS = 0
         const val DROP = 7
         const val TAKE = 3
+        const val UNICORN_DUST = 235
+        const val SANFEW_MIX = 10909
     }
 }

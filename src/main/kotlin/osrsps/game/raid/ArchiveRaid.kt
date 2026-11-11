@@ -229,6 +229,12 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
     /** What each member brought in of the Quartermaster's supplies, by [Player.saveKey], as doses or items by kind ([ArchiveSupplies.held]). */
     internal val suppliesBrought = HashMap<String, Map<Int, Int>>()
 
+    /**
+     * What members who got out had brought in beyond what they left with, by [Player.saveKey]: for their drops still on
+     * the floor, picked up by another member ([ArchiveSupplies.pickedUp]).
+     */
+    internal val suppliesLeft = HashMap<String, Map<Int, Int>>()
+
     /** Each paid member's chest in the reward vault, by save key: its slot, from 0 ([ArchiveChests.SLOTS]). */
     val chestSlots = LinkedHashMap<String, Int>()
 
