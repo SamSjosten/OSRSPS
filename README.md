@@ -1422,6 +1422,32 @@ piece. The ground floor's altar is the church's.
 | Ivan's tile (beside Drezel), the doors and gates moving the player through, the landings below the trapdoors, Drakan's medallion handed over only when none is owned, the chathead expressions, the Morytania refusal | guessed; the tiles checked on the real map by `paterdomus.json` |
 | Out: the monuments, the well, the stained glass, the plinths and bookcases upstairs, the coffin, the cell gate, the organ, the keyhole, the library's bookcases (a quest's books), the east trapdoor, the Temple Trekking sign; Morytania past the Salve | out of scope (12a's sweep, or Morytania's piece) |
 
+#### Digsite
+
+Misthalin piece 7 step 9a (`game/content/Digsite.kt`, `npc-spawns/digsite.json`, words under `digsite_people.*`,
+`elissa.*`, `panning_guide.*`, `digsite_barge.*` and `digsite_sign.*`): the Digsite's people and the canal barge after
+The Dig Site and Bone Voyage. Digging, the specimen trays and panning are step 9b.
+
+The Digsite workmen greet the player as the great archaeologist, and each of the three students thanks them for the
+item the quest found. Elissa and the Panning guide talk as their transcripts have them. The workmen's Steal-from and the
+teddy student's Pickpocket are `Pickpocketing`'s (level 25; the workmen 10.4 XP and their table out of 11, the student
+her teddy). At the barge, the canal's guard helps the player aboard by talk or Embark and the barge's guard helps them
+off by talk or Disembark; Quick-Travel, the guard's Fossil Island option and the Lead Navigator refuse, since Fossil
+Island is its own region, and the Junior Navigator sends the player to the Lead Navigator. The foreman thanks the player,
+the barge workman and Ed Wood are too busy to talk, and Captain Errdo's glider east of Varrock has crashed. The workers'
+gate east of Varrock wants 153 Kudos, which the museum doesn't count yet, so its guard turns everyone away. The
+signposts read their site's level.
+
+| Digsite | Source |
+|---------|--------|
+| The NPCs and their tiles; the barge's guard and the navigators on its deck (plane 1) | mejrs data_osrs NPCList_OSRS.json; the Wiki's Student map for which student is which |
+| The talks, the busy lines, the guard's Kudos refusal and the signposts' text | OSRS Wiki transcripts (Digsite workman, Student, Elissa, Panning guide, Barge guard, Barge foreman, Barge workman, Ed Wood, Lead Navigator, Junior Navigator, Captain Errdo, Museum guard) and Signpost (Digsite), read 2026-11-11 |
+| The barge's post-quest types (`fossilquest_progress` 50 shows them; John and David hidden) | the 242 cache's multi-NPCs; checked on the real map by `digsite.json` |
+| The workmen's Steal-from (25, 10.4 XP, 1 damage, 4-second stun, coins 4/11, brush 3/11, rope, bucket, gloves, spade 1/11) and the student's Pickpocket (25, no XP, 100 to 240, a teddy) | OSRS Wiki, Digsite workman and Student, read 2026-11-11 |
+| Nobody having 153 Kudos | inferred: the museum counts no Kudos yet (`VarrockMuseum`) |
+| The workmen's success chart (the student's), the tiles boarding and leaving put the player on, Embark and Disembark skipping the talk, the patrolling workmen standing still, the chathead expressions, the Fossil Island refusal | guessed; the tiles checked on the real map by `digsite.json` |
+| Out: digging, the trays, panning, the winches, sacks, bushes, barrel, chest and buried skeletons (step 9b and 10); the workmen's longer pickpocket; the guard calling out as the player nears the gate; the Digsite pendant; Fossil Island | out of scope |
+
 ## Draynor Village
 
 The village west of Lumbridge (the Draynor piece, plan in the project's Draynor Village 1:1 plan doc). Step 1 is the
