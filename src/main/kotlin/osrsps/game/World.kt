@@ -207,6 +207,7 @@ import osrsps.game.skill.Pickpocketing
 import osrsps.game.skill.Agility
 import osrsps.game.skill.AgilityData
 import osrsps.game.skill.Thieving
+import osrsps.game.skill.ThievingLocks
 import osrsps.game.skill.SkillUnlocks
 import osrsps.game.skill.Smithing
 import osrsps.game.skill.Woodcutting
@@ -854,6 +855,7 @@ class World(
         registerRockslugs(this)
         registerHamHideout(this)
         registerHamStorerooms(this)
+        ThievingLocks.register(this)
         registerChurch(this)
         registerAlKharid(this)
         registerEdgeville(this)

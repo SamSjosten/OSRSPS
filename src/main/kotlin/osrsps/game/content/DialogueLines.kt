@@ -44,6 +44,7 @@ import osrsps.game.skill.PickpocketGearLines
 import osrsps.game.skill.PickpocketLines
 import osrsps.game.skill.SmithingLines
 import osrsps.game.skill.ThievingLines
+import osrsps.game.skill.ThievingLockLines
 import osrsps.game.skill.WoodcuttingLines
 import osrsps.game.social.ClanLines
 import osrsps.game.social.FriendsChatLines
@@ -300,6 +301,7 @@ object DialogueLines {
         TeaSellerLines,
         ThessaliaLines,
         ThievingLines,
+        ThievingLockLines,
         TournamentGuideLines,
         TownCrierLines,
         TradeLines,

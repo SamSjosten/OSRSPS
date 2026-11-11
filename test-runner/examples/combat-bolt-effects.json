@@ -1,0 +1,28 @@
+{
+ "name": "Artisan 2 step A4c: emerald bolts (e) from a rune crossbow at a giant frog spawned east of the castle and put on 1000 hitpoints, Magical Poison's green cloud on it (about one hit in two) and the frog poisoned at 5, read off ::npcs",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "nothing worn; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::delnpc mine", "expectMessage": "you put in.", "comment": "anything an earlier run left behind"},
+  {"step": "command", "text": "::setlevel ranged 99", "expectMessage": "99", "comment": "the rune crossbow needs 61; 99 so no level-up box comes up mid-script"},
+  {"step": "command", "text": "::setlevel defence 99", "expectMessage": "99"},
+  {"step": "command", "text": "::setlevel hitpoints 99", "expectMessage": "99"},
+  {"step": "command", "text": "::item 9185", "expectMessage": "Added 1 x Rune crossbow"},
+  {"step": "itemOption", "item": "Rune crossbow", "option": "Wield"},
+  {"step": "command", "text": "::item 9241 40", "expectMessage": "Added 40 x Emerald bolts (e)"},
+  {"step": "itemOption", "item": "Emerald bolts (e)", "option": "Wield"},
+  {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now"},
+  {"step": "command", "text": "::sure on", "expectMessage": "Your attacks can't miss", "comment": "Magical Poison needs a hit"},
+  {"step": "command", "text": "::tele 3236 3220 0", "expectMessage": "Teleported to 3236, 3220, 0", "comment": "the grass east of the castle, away from the courtyard's men"},
+  {"step": "command", "text": "::npc giant_frog_nodrops", "expectMessage": "Spawned Giant frog"},
+  {"step": "command", "text": "::npchp 1000 mine", "expectMessage": "1 NPC now on 1000 hitpoints", "comment": "so it lives through the bolts"},
+  {"step": "npcOption", "npc": "Giant frog", "option": "Attack", "timeoutMs": 20000},
+  {"step": "assertSpotanim", "id": 752, "npc": "Giant frog", "timeoutMs": 60000, "comment": "xbows_magical_poison_spot_anim: 55% of hits; one in the first 15 or so bolts all but always"},
+  {"step": "command", "text": "::npcs 5", "expectMessage": "poisoned, hitting 5 in ", "comment": "Magical Poison, severity 25: 5 at first"},
+  {"step": "command", "text": "::delnpc mine", "expectMessage": "you put in."},
+  {"step": "command", "text": "::sure off", "expectMessage": "Your attacks can miss again."},
+  {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

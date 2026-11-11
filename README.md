@@ -877,6 +877,23 @@ Magic. One cast a tick at most, however fast the clicks come. What the enchanted
 Check: `./gradlew test --tests 'osrsps.game.skill.magic.BoltEnchantDataTest' --tests 'osrsps.testclient.HeadlessBoltEnchantTest'`,
 and in RuneLite `test-runner/examples/magic-bolt-enchant.json`.
 
+### Thieving: chests and pick-lock doors
+
+Thieving 2 step T2 (`game/skill/ThievingLocks.kt`). The chests and doors are the cache's, where the cache map puts them;
+only their options are new.
+
+| What | Source |
+|---|---|
+| Search for traps on a chest: the trap found, disabled, the chest opened and the loot given, two ticks apart; it stands open 4 ticks, then empty (`emptytrapchest` 11740) until it relocks. Below the level: "nothing". Open instead sets the trap off | OSRS Wiki, each chest's page; 2004Scape `trapped_chest.rs2` and `thieving.rs2` for the steps and words |
+| 10 coins (11735): 13, 7.8 XP, 7 s. Nature runes (11736): 28, 25 XP, a nature rune and 3 coins, 15 s. 50 coins (11737): 43, 125 XP, 50 s. Blood runes (11738, Chaos Druid Tower dungeon): 59, 250 XP, 2 blood runes and 500 coins, 135 s, then a second trap sends the looter to East Ardougne (2584, 3337). Ardougne Castle (11739): 72, 500 XP, 1,000 coins, a raw shark, an adamantite ore and an uncut sapphire, 500 s, then Witchaven (2696, 3281) | OSRS Wiki, Chest (10 coins), (nature runes), (50 coins), (blood runes), (Ardougne Castle) |
+| Steel arrowtips (11742): 47, 150 XP, 5 steel arrowtips and 20 coins, 90 s, empty as `emptypickchest` 11741. Open says it is locked; Search for traps, or a lockpick used on it, picks it every time with a lockpick held | OSRS Wiki, Chest (steel arrowtips); 2004Scape `attempt_locked_chest` |
+| The traps: the nature rune chest's `floor(HP * 12 / 100) + 3` of current Hitpoints, the blood rune chest's `(9 * HP + 225) / 50` | OSRS Wiki, Chest (nature runes), Chest (blood runes) |
+| Doors: Open from outside says it is locked; from inside, Open or Pick-lock lets the player through. Outside is the door tile's own side of its wall | 2004Scape `locked_door.rs2` (`check_axis_locactive`) |
+| East Ardougne's north (11719, 1, 3.8 XP) and south (11720, 16, 15 XP) doors, 32 to 250. Ross' house (40178, 13, 15 XP, 4 to 40). The Chaos Druid Tower (11723, 46, 37.5 XP, 8 to 75). Ardougne Castle (11724, 61, 50 XP, 4 to 40) | OSRS Wiki, each door's page (levels, XP, East Ardougne's chart); 2004Scape's `locked_door.dbrow` (the other charts) |
+| The trap before a pick on Ross', the tower's and the castle's doors (32 to 250, 220 to 280, 200 to 270): its blow is 10% of current Hitpoints (none at 10 or less), 6% of full, or 10% of full, and it ends the try. Ross' 32 to 250 gives the Wiki's 77% at 13 and 2% at 99 | OSRS Wiki, Door (Ross' House), (Chaos Druid Tower), (Ardougne Castle); 2004Scape's charts |
+| The 10 and 50 coin and Ardougne Castle chests' trap damage (the Wiki says "substantial" and "high"; the nature rune chest's formula is used); the open door shown while going through (`inactivepoordoor` 1539, 3 ticks); Ross' door, a newer loc than 2004Scape's, opening the same way; refusing a chest whose loot wouldn't fit (2004Scape gives it regardless) | guessed |
+| Not built: the Dorgesh-Kaan and Rogues' Castle chests, the doors that need a lockpick, the Ardougne sewer gates, the Ardougne diary, the gas random event | next steps |
+
 ## Items and inventory
 
 Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for
@@ -2461,8 +2478,9 @@ NPC is in range and in sight, then you shoot every weapon-speed ticks. Which wea
 and graphics are in `src/main/resources/ranged-weapons.json` (items, animations and spotanims by gameval name; every
 name there is in both 241 caches). `::combat` shows your ranged numbers with a bow; `::fight` covers ranged fights.
 Thrown weapons (darts, knives and thrownaxes, every metal and poison) throw from the weapon slot, and the light and
-heavy ballistas fire javelins from the ammo slot. Not in yet: crystal bows, the dragon hunter crossbow, enchanted
-bolts and the thrown weapons' and ballistas' special attacks.
+heavy ballistas fire javelins from the ammo slot. Gem-tipped bolts fire from the crossbow of their metal, and
+enchanted ones roll their effect on monsters (`game/combat/BoltEffects.kt`). Not in yet: crystal bows, the dragon
+hunter crossbow, the thrown weapons' and ballistas' special attacks, and enchanted bolts against players.
 
 | Ranged behaviour | Source |
 |------------------|--------|
@@ -2483,10 +2501,15 @@ bolts and the thrown weapons' and ballistas' special attacks.
 | Thrown weapons fire from the weapon slot, one a throw; their launch and travel graphics and the dart, dragon knife and ballista animations by their 242 cache names | OSRS Wiki, Thrown weapons; 242 cache |
 | A thrown weapon that doesn't break falls under the target, as arrows do, unless an Ava's device brings it back | inferred from arrows |
 | The knife and thrownaxe throw animation (`human_stake2_pvn`); the ballista's wrong-ammunition message (`combat.wrong_javelins`, words on the server) | guessed |
+| Gem-tipped bolts (opal to onyx) and the same enchanted, each at its metal's tier; their dragon bolts, enchanted or not, at the dragon bolts' tier | OSRS Wiki, each bolt's page |
+| Enchanted bolts on monsters: opal 5% (Ranged / 10 more) and pearl 6% (Ranged / 20) hit or miss; sapphire 25% on a hit (an eighth of a tenth of the monster's Ranged as prayer); emerald 55% on a hit (poisoned, 5 at first, 75 in all); ruby 6% hit or miss (a fifth of its hitpoints, at most 100, for a tenth of yours, and not when you can't spare a hitpoint); diamond 10% hit or miss (a sure hit on a max hit 15% higher); dragonstone 6% on a hit (Ranged / 5 more); onyx 11% on a hit (20% more, healing a quarter); topaz only on players; each one's graphic (749 to 758) on the monster | OSRS Wiki, each (e) bolt's page (read 2026-11-10); 242 cache |
+| The Zaryte crossbow's passive: each effect 10% stronger (opal Ranged / 9, pearl / 18, dragonstone 22%, onyx 132%, diamond 126%, ruby 22% to 110, emerald 6 at first; sapphire unchanged) | OSRS Wiki, Zaryte crossbow |
+| The effect rolled after accuracy, a draw only for an enchanted bolt; onyx's 20% on the rolled damage; heal, prayer and ruby's cost as the bolt lands; jade's knockdown not on monsters; dragonfire-immune and undead monsters not told apart yet; the pearl's fiery bonus and the hard Kandarin Diary's 10% not counted | guessed, or not built |
 
 Check: `./gradlew test --tests 'osrsps.game.combat.Ranged*' --tests 'osrsps.testclient.HeadlessRangedTest'`, and in
-RuneLite `test-runner/examples/combat-ranged-shortbow.json` and `combat-thrown.json`; thrown weapons and ballistas
-also in `HeadlessThrownTest`.
+RuneLite `test-runner/examples/combat-ranged-shortbow.json`, `combat-thrown.json` and `combat-bolt-effects.json`;
+thrown weapons and ballistas also in `HeadlessThrownTest`, the bolt effects in `BoltEffectsTest` and
+`HeadlessBoltEffectsTest` (ruby's cost to the shooter as the client sees it).
 
 ## Home teleport
 
