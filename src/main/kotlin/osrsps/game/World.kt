@@ -114,6 +114,7 @@ import osrsps.game.content.registerDigsite
 import osrsps.game.content.registerDigsiteDigs
 import osrsps.game.content.registerExamCentre
 import osrsps.game.content.registerMisthalinSweep
+import osrsps.game.content.registerMisthalinTownGaps
 import osrsps.game.content.registerPaterdomus
 import osrsps.game.content.registerSilvarea
 import osrsps.game.content.registerLumbridgeSwamp
@@ -920,6 +921,7 @@ class World(
         registerDigsiteDigs(this)
         registerExamCentre(this)
         registerMisthalinSweep(this)
+        registerMisthalinTownGaps(this)
         ThievingLocks.register(this)
         registerChurch(this)
         registerAlKharid(this)
