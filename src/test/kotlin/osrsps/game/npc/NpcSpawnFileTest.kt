@@ -922,6 +922,9 @@ class NpcSpawnFileTest {
             3260 to "warrior_woman", 2838 to "brownbear", 516 to "black_knight", 3019 to "spider",
             16812 to "deadman_nigel_varrock", 16811 to "clue_hunter_arthur", 5449 to "ge_expert_herbs",
             2152 to "ge_boss", 5450 to "ge_expert_runes", 5451 to "ge_expert_logs", 5452 to "ge_expert_combat", 3115 to "ge_expert_ores",
+            1110 to "guidor", 1106 to "gambler2", 4574 to "vc_pox", 4588 to "vc_hooknosed_jack", 4162 to "surok_annajones",
+            3225 to "aide_tutor_smithing_master", 10415 to "con_contract_client_2", 10414 to "con_contract_client_1",
+            10416 to "con_contract_client_3", 5042 to "romeo_juliet_pew_sleeping_man", 5921 to "rooftops_bigredjapan",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("varrock.json"), types, "varrock.json")
@@ -1013,8 +1016,11 @@ class NpcSpawnFileTest {
         // East of the Edgeville piece's strip (x 3150 and west), south of the Wilderness ditch, but the museum's Natural History
         // floor, and the Champions' Guild and the stone circle, south of the city.
         assertTrue((spawns - basement.toSet() - guild.toSet() - wizards.toSet()).all { it.x >= 3150 && it.z in 3375..3520 && it.source.isNotBlank() })
-        // Arthur stands still at the Grand Exchange (his Wiki pin, as he stood still by the Sheared Ram).
-        assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - museumStill.toSet() - displays.toSet() - elsie - iffie - spawns.filter { it.type.id == 16811 }.toSet()).all { it.wander > 0 })
+        // Arthur stands still at the Grand Exchange (his Wiki pin, as he stood still by the Sheared Ram), and so do the
+        // sweep's sick Guidor, the sleeping Jeremy Clerksin and BigRedJapan on the rooftops.
+        val still = spawns.filter { it.type.id in listOf(16811, 1110, 5042, 5921) }.toSet()
+        assertEquals(4, still.size)
+        assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - museumStill.toSet() - displays.toSet() - elsie - iffie - still).all { it.wander > 0 })
     }
 
     @Test

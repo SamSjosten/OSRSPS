@@ -1,0 +1,193 @@
+{
+ "name": "Varrock sweep people: Hooknosed Jack, Pox, Anna Jones and the Master smithing tutor talk (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle: a command typed straight away can be lost"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3270 3400 0",
+   "expectMessage": "Teleported to 3270, 3400, 0",
+   "comment": "east of Hooknosed Jack (3268 3400) and Pox, by the rat pits' manhole"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "npcOption",
+   "npcId": 4588,
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "chooseOption",
+   "text": "[hooknosed_jack.show]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[hooknosed_jack.show]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[hooknosed_jack.manhole]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 4574,
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[pox.hello]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[pox.meow]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3285 3466 0",
+   "expectMessage": "Teleported to 3285, 3466, 0",
+   "comment": "south of Anna Jones (3285 3468), at the Saradomin statue"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "npcOption",
+   "npcId": 4162,
+   "option": "Talk-To",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[anna_jones.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[anna_jones.thanks]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[anna_jones.surok]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[anna_jones.ok]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[anna_jones.awaits]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[anna_jones.go]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[anna_jones.go]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[anna_jones.farewell]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3188 3423 0",
+   "expectMessage": "Teleported to 3188, 3423, 0",
+   "comment": "beside the Master smithing tutor (3187 3423)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "npcOption",
+   "npcId": 3225,
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[master_smithing_tutor.hello]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[master_smithing_tutor.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[master_smithing_tutor.not_now]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[master_smithing_tutor.not_now]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[master_smithing_tutor.come_back]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  }
+ ]
+}
