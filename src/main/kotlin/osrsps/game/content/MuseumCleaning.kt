@@ -34,9 +34,10 @@ object MuseumCleaningLines : Lines("museum_cleaning", "Uncleaned find") {
  * in 51 a common artefact (pottery, jewellery, old chipped vase or arrowheads, evenly), and 13 in 51 a unique one (the
  * four symbols and coins 3 each, the clean necklace 1), which is an unremarkable find instead when the player already
  * holds or banks it; the crate's 195-weight table, its rare antique lamp included. Guessed: every message but the
- * crumble, the brushing animation's 3 ticks a find, one artefact per Add finds, the tool rack giving all missing tools
- * at once, and which antique lamp (`vm_reward_digsite`). Left out: Kudos and the display cases (nothing counts Kudos
- * yet), showing finds to the archaeologists, and rubbing the lamp (no lamp interface yet).
+ * crumble, the brushing animation's 3 ticks a find, one find per Take on the rocks (no repeating pickup), one artefact
+ * per Add finds, the tool rack giving all missing items at once, and which antique lamp (`vm_reward_digsite`). Left
+ * out: Kudos and the display cases (nothing counts Kudos yet), showing finds to the archaeologists, and rubbing the
+ * lamp (no lamp interface yet).
  */
 object MuseumCleaning {
     const val TOOLS = 24535
