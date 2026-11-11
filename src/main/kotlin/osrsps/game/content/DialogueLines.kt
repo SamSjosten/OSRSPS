@@ -246,6 +246,7 @@ object DialogueLines {
         PanningGuideLines,
         BargeLines,
         DigsiteSignLines,
+        DigsiteDigLines,
         MageOfZamorakLines,
         MakeLines,
         ManLines,

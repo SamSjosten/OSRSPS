@@ -143,6 +143,14 @@ class ObjSpawnFilesTest {
     }
 
     @Test
+    fun `the Digsite has the Wiki's empty panning tray in the panning tent`() {
+        val types = ObjTypes.of(ObjType(677, "Panning tray", internalName = "tray_empty"))
+        val text = ObjSpawnFiles.resources().toMap().getValue("digsite.tsv")
+        val spawn = ObjSpawnFiles.parse(text, types, "digsite.tsv").single()
+        assertEquals(listOf(677, 3369, 3378, 0, 100), listOf(spawn.id, spawn.x, spawn.z, spawn.level, spawn.respawnTicks))
+    }
+
+    @Test
     fun `Draynor's spawns are the Wiki's cheese and tomato in Aggie's house and two logs in Spria's`() {
         val village = ObjTypes.of(
             ObjType(1511, "Logs", internalName = "logs"),
