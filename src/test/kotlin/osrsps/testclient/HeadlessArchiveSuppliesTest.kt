@@ -615,6 +615,48 @@ class HeadlessArchiveSuppliesTest {
     }
 
     @Test
+    fun `a drop picked up while its dropper has supplies on offer moves only what the offer leaves spare`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    server.login("carol").use { carol ->
+                        for (c in listOf(alice, bob, carol)) c.await("the login rebuild") { c.position }
+                        for (name in listOf("bob", "carol")) alice.commandReply("raidparty invite $name") { it.startsWith("Invited") }
+                        bob.commandReply("raidparty accept alice") { it.startsWith("You joined") }
+                        carol.commandReply("raidparty accept alice") { it.startsWith("You joined") }
+                        // Alice brings one Manta ray in and comes by a second there (as bought).
+                        alice.command("item $MANTA 1")
+                        alice.awaitHeld(MANTA, 1)
+                        val run = alice.intoRun(server, "alice")
+                        bob.intoRun(server, "bob")
+                        carol.intoRun(server, "carol")
+                        alice.command("item $MANTA 1")
+                        alice.awaitHeld(MANTA, 2)
+                        // She drops one and offers the other to Carol; Bob takes the drop while the trade is open.
+                        val at = alice.position!!
+                        val slot = alice.inventory(Inventory.INV).indexOfFirst { it?.id == MANTA }
+                        alice.ifButton(INVENTORY, INVENTORY_ITEMS, DROP, slot, MANTA)
+                        alice.awaitHeld(MANTA, 1)
+                        bob.await("the ray turning public", timeoutMillis = 10_000) { bob.groundObjs().firstOrNull { it.id == MANTA } }
+                        trade(alice, carol, MANTA, 1, confirm = false)
+                        bob.objOp(MANTA, at.x, at.z, TAKE)
+                        bob.awaitHeld(MANTA, 1)
+                        // Her one ray brought in is the one on offer (Codex review on #636): nothing to move to Bob.
+                        assertEquals(1, run.suppliesBrought.getValue("alice")[MANTA])
+                        assertEquals(0, run.suppliesBrought.getValue("bob")[MANTA] ?: 0)
+                        // Out, her trade declined, she keeps her one; Bob keeps none.
+                        alice.tele(3222, 3218)
+                        bob.tele(3222, 3218)
+                        bob.awaitTicks(2)
+                        assertEquals(1, alice.held(MANTA))
+                        assertEquals(0, bob.held(MANTA))
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
     fun `a member put out of the party with bought supplies on offer has the trade declined and loses them`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->

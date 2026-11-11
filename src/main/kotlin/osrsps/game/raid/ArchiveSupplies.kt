@@ -236,7 +236,8 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
         // Then their allowance in the run, beyond what they still hold: another's, as their own is theirs already.
         val inRun = run.suppliesBrought[ownerKey]
         if (wanted > 0 && inRun != null && owner != null && ownerKey != taker.saveKey) {
-            val take = minOf(wanted, (inRun[kind] ?: 0) - (held(owner)[kind] ?: 0))
+            // What they hold counts what they have on offer in a trade, as [beforeTrade] does (Codex review on #636).
+            val take = minOf(wanted, (inRun[kind] ?: 0) - (held(owner, owner.trade?.sideOf(owner)?.offer)[kind] ?: 0))
             if (take > 0) {
                 run.suppliesBrought[ownerKey] = inRun + (kind to (inRun[kind] ?: 0) - take)
                 moved += take
