@@ -1,5 +1,6 @@
 package osrsps.game.ge
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetEventsV2
 import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
 import net.rsprot.protocol.message.OutgoingGameMessage
@@ -14,6 +15,9 @@ import osrsps.game.dialogue.DialogueText
 import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
 
+
+private val logger = KotlinLogging.logger {}
+
 /** The item sets window's messages. The Wiki quotes none, so every one's words are guessed. */
 object ItemSetsLines : Lines("itemsets", "Item sets") {
     val NO_ROOM = line("no_room", "Pack or Unpack with too little room in the backpack for what comes out")
@@ -23,12 +27,28 @@ object ItemSetsLines : Lines("itemsets", "Item sets") {
 /** One item set: [set] the set's item (-1 where the cache has none), [pieces] what it packs, in the cache's order. */
 data class ItemSet(val index: Int, val set: Int, val pieces: List<Int>)
 
-/** The cache's item sets, in the window's order. */
+/**
+ * The cache's item sets, in the window's order. Only a set whose data can be trusted can be packed or unpacked
+ * ([usable]): one with pieces, none of them the set itself, and the only set with its item. The window's data comes from
+ * the cache unchecked, and a set listing itself would come apart into itself and more, one with no pieces into nothing,
+ * and two with the same item would pack from one list and unpack into the other (exploit review round 27, R27B-1).
+ */
 class ItemSets(val all: List<ItemSet>) {
-    private val bySet = all.filter { it.set >= 0 }.associateBy { it.set }
+    private val bySet: Map<Int, ItemSet> = all.filter { it.set >= 0 }.groupBy { it.set }.mapNotNull { (set, entries) ->
+        val only = entries.singleOrNull()
+        when {
+            only == null -> null.also { logger.warn { "Item set $set is listed ${entries.size} times; it can't be packed or unpacked" } }
+            only.pieces.isEmpty() -> null.also { logger.warn { "Item set $set has no pieces; it can't be packed or unpacked" } }
+            set in only.pieces -> null.also { logger.warn { "Item set $set lists itself as a piece; it can't be packed or unpacked" } }
+            else -> set to only
+        }
+    }.toMap()
 
-    /** The set whose item is [obj], unnoted; null when [obj] isn't a set. */
+    /** The set whose item is [obj], unnoted; null when [obj] isn't a set, or isn't [usable]. */
     fun ofSet(obj: Int): ItemSet? = bySet[obj]
+
+    /** Whether [set] can be packed and unpacked: see the class's notes. */
+    fun usable(set: ItemSet): Boolean = bySet[set.set] === set
 
     val size: Int get() = all.size
 
@@ -83,6 +103,7 @@ class ItemSetsScreen(
             interfaceId == MAIN && component == FILTER && op == 1 -> toggleFilter(player)
             interfaceId == MAIN && component == ITEMLIST -> {
                 val set = sets.all.getOrNull(sub)?.takeIf { it.set >= 0 } ?: return true
+                if (op == 1 && !sets.usable(set)) return true
                 when (op) {
                     1 -> pack(player, set)
                     10 -> examine(player, set.set, 1)
@@ -105,7 +126,7 @@ class ItemSetsScreen(
         val inv = player.inventory
         val pieces = set.pieces.mapNotNull { objTypes[it] }
         val setType = objTypes[set.set] ?: return
-        if (pieces.size != set.pieces.size || pieces.isEmpty()) return
+        if (pieces.size != set.pieces.size || pieces.isEmpty() || pieces.any { holdsSet(it, setType) }) return
         val noted = when {
             pieces.all { inv.count(it.id) > 0 } -> false
             pieces.all { it.certlink >= 0 && inv.count(it.certlink) > 0 } -> true
@@ -124,10 +145,16 @@ class ItemSetsScreen(
         val heldType = objTypes[held.id] ?: return
         val noted = heldType.isCert
         val set = sets.ofSet(if (noted) heldType.certlink else held.id) ?: return
+        val setType = objTypes[set.set] ?: return
         val pieces = set.pieces.map { objTypes[it] ?: return }
+        if (pieces.isEmpty() || pieces.any { holdsSet(it, setType) }) return
         val give = if (noted) pieces.map { objTypes[it.certlink] ?: return } else pieces
         exchange(player, listOf(held.id), give, fromSlot = slot)
     }
+
+    /** Whether [piece] is [set] itself, noted or not: a set like that would come apart into itself (R27B-1). */
+    private fun holdsSet(piece: ObjType, set: ObjType): Boolean =
+        piece.id == set.id || (set.certlink >= 0 && piece.id == set.certlink) || (piece.certlink >= 0 && piece.certlink == set.id)
 
     /**
      * Takes one of each of [take] (the first from [fromSlot] when given) and gives one of each of [give]; when what's
