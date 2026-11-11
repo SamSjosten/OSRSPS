@@ -244,7 +244,10 @@ object ExamCentre {
                 give = true
             }
         }
-        if (give && player.inventory.count(TROWEL) == 0L) world.objTypes[TROWEL]?.let { world.groundObjs.give(player, it, 1) }
+        if (!give || player.inventory.count(TROWEL) > 0) return@with
+        // A full backpack is refused, as the cupboards do, rather than a trowel dropped on the floor each talk.
+        if (player.inventory.freeSlots == 0) return@with world.message(player, osrsps.game.GameLines.NO_SPACE)
+        world.objTypes[TROWEL]?.let { player.inventory.add(it, 1) }
     }
 
     internal suspend fun Dialogue.researcher() {

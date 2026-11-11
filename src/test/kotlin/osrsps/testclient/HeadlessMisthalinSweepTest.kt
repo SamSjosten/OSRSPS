@@ -171,6 +171,16 @@ class HeadlessMisthalinSweepTest {
                 client.locOp(coop.id, coop.x, coop.z, MisthalinSweep.SEARCH)
                 client.awaitSeen("[misthalin_sweep.egg_found]")
                 client.awaitCount(MisthalinSweep.EGG, 1)
+                // Searched again straight away, the coops have nothing for this player until their wait is up.
+                client.locOp(coop.id, coop.x, coop.z, MisthalinSweep.SEARCH)
+                client.awaitSeen("[game.nothing_interesting]")
+                assertEquals(1, client.count(MisthalinSweep.EGG))
+                val searcher = server.world.playerNamed("bob")!!
+                assertTrue(searcher.sessionCharges[MisthalinSweep.COOP_DUE] > 0)
+                searcher.sessionCharges[MisthalinSweep.COOP_DUE] = 0
+                client.locOp(coop.id, coop.x, coop.z, MisthalinSweep.SEARCH)
+                client.awaitSeen("[misthalin_sweep.egg_found]", 2)
+                client.awaitCount(MisthalinSweep.EGG, 2)
 
                 client.tele(crate.x, crate.z - 1)
                 client.locOp(crate.id, crate.x, crate.z, MisthalinSweep.SEARCH)

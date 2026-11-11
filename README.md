@@ -1473,7 +1473,7 @@ brings a workman's line.
 | The workmen's lines, the tray without a jar, the sacks, the skeleton and the full tray | OSRS Wiki transcripts (Digsite workman, Sacks (Digsite)) and Buried skeleton (Digsite), read 2026-11-11 |
 | The tent's tray (3369,3378, 100 ticks) | OSRS Wiki, Panning tray, item spawns |
 | Coins (3/20, 10 each) in place of level 3's ancient talisman; the special cup (3/40) as nothing | inferred: both are the quest's items |
-| One find a dig after 3 ticks, the animations, a workman within 10 tiles counting as near, a full backpack refusing first, and the dig, find, pan and search messages | guessed (the Wiki gives no time or messages) |
+| One find a dig after 8 ticks (slow on purpose until live is recorded: 3 gave about 13.7k Mining XP an hour from level 1), the animations, a workman within 10 tiles counting as near, a full backpack refusing first, and the dig, find, pan and search messages | guessed (the Wiki gives no time or messages) |
 | Out: the winches and the Digsite Dungeon (step 10); the bushes, barrel and chest (the quest's); the museum's specimen cleaning; the gold panning tray; Fossil Island's soil | out of scope |
 
 #### Exam Centre and Digsite Dungeon
@@ -1482,7 +1482,7 @@ Misthalin piece 7 step 10 (`game/content/ExamCentre.kt`, `npc-spawns/exam-centre
 `obj-spawns/digsite-dungeon.tsv`, words under `exam_centre.*`, `terry.*` and `digsite_dungeon.*`): the Exam Centre south
 of the Digsite and the dungeon under the digs, after The Dig Site.
 
-The three examiners congratulate the player and give a lost trowel back to one carrying none. The Researcher talks about
+The three examiners congratulate the player and give a lost trowel back to one carrying none (not into a full backpack). The Researcher talks about
 the tools as the Panning guide does. Terry Balando, the archaeological expert, asks about Desert Treasure I or talks about
 the Zaros altar, admires a wielded ancient staff, and has a line for every Digsite find used on him: three nuggets become a
 gold ore, unidentified liquid becomes nitroglycerin, and a muddy panning tray comes back unsearched. The north cupboard
@@ -1520,7 +1520,7 @@ west edge, a giant spider between Falador and Draynor Manor, the highwayman sout
 Wiki's stats and drops), the mugger at the South-west Varrock mine, and three Black Knights. The H.A.M. Hideout's guards
 and seated members answer their five-option menu, a guard greeting a player in the whole outfit; Johanhus Ulsbrecht and
 Jimmy the Chisel talk. Nettles sting bare hands for 1 or 2 and are picked with gloves on; the Lumbridge farms' coops give
-an egg each search; the Digsite barge's crates, the hideout's boxes and crates and the Digsite Dungeon's sacks are empty.
+an egg each search, then nothing to that player for a minute; the Digsite barge's crates, the hideout's boxes and crates and the Digsite Dungeon's sacks are empty.
 
 | The Misthalin sweep | Source |
 |---------------------|--------|
@@ -1529,7 +1529,7 @@ an egg each search; the Digsite barge's crates, the hideout's boxes and crates a
 | The H.A.M. talk, Johanhus's and Jimmy's lines | OSRS Wiki, Transcript:H.A.M. Guard, Transcript:H.A.M. Member (seated), Transcript:Johanhus Ulsbrecht, Transcript:Jimmy the Chisel, read 2026-11-11 |
 | Nettles need gloves (not beekeeper's) and sting for up to 2; coops always give an egg | OSRS Wiki, Nettles (scenery), Nettles and Coop, read 2026-11-11 |
 | The whole outfit taken as all seven pieces; nettles back after 13 ticks (the Nettles item's respawn) | inferred |
-| Every wander range, the highwayman's punch, the nettles' and coops' messages, a sting never 0, every chathead expression | guessed |
+| Every wander range, the highwayman's punch, the nettles' and coops' messages, a sting never 0, the coops' one-minute wait after an egg, every chathead expression | guessed |
 | Left out, with why: Nigel and Gelin by the church (Deadman forms only), Twiggy O'Korn (diaries aren't built), Spria (a Slayer master), the Draynor gulls (the 242 cache gave their old ids to Sailing NPCs), the General's Shadow scout; the highwayman's overhead shout (no NPC shouts yet); the swamp bubbles (Big Chompy Bird Hunting's ogre bellows), the swamp caves' symbols, the Digsite's bushes, barrel and chest (The Lost Tribe's and The Dig Site's) | out of scope |
 | Found for other threads: the Varrock and Grand Exchange people and options, Draynor's and Edgeville's, the canoe stations, farming patches, STASH units, the Mage Training Arena and Al Kharid's arena | handed to those threads |
 
