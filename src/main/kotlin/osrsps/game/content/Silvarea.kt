@@ -82,6 +82,7 @@ object Silvarea {
         else -> null
     }
 
+    // Guessed: every chathead expression here (the transcript gives the words, not the expressions).
     internal suspend fun Dialogue.oddOldMan(world: World, give: (Player, Int) -> Unit) = with(OddOldManLines) {
         val owed = owed(player)
         if (owed != null) {

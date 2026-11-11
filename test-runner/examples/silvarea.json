@@ -75,6 +75,7 @@
   {"step": "command", "text": "::tele 3343 3513 0", "expectMessage": "Teleported to 3343, 3513, 0", "comment": "by the trapdoor to Zemouregal's base"},
   {"step": "locOption", "locId": 50689, "option": "Enter", "x": 3343, "y": 3515, "timeoutMs": 10000, "comment": "dov_base_entry shows Enter after Defender of Varrock"},
   {"step": "assertMessage", "contains": "[silvarea.base_later]", "timeoutMs": 10000, "comment": "the base isn't built yet"},
-  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"}
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
  ]
 }
