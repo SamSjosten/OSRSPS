@@ -451,6 +451,31 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `the sweep spawns the goblins, spiders and butterflies by Lumbridge, the highwayman, the mugger and three Black Knights`() {
+        val names = mapOf(
+            3029 to "goblin_unarmed_melee_1", 3030 to "goblin_unarmed_melee_2", 3031 to "goblin_unarmed_melee_3", 3032 to "goblin_unarmed_melee_4",
+            3033 to "goblin_unarmed_melee_5", 3034 to "goblin_unarmed_melee_6", 3035 to "goblin_unarmed_melee_7", 3036 to "goblin_unarmed_melee_8",
+            3073 to "fai_barbarian_goblin_armed_1", 234 to "butterfly", 238 to "butterfly_viceroy", 3017 to "giantspider1",
+            518 to "highwayman", 513 to "mugger", 516 to "black_knight",
+        )
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("misthalin-sweep.json"), types, "misthalin-sweep.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        fun count(vararg ids: Int) = spawns.count { it.type.id in ids }
+        assertEquals(32, spawns.size)
+        // The camp north-west of Lumbridge Castle, one north of it by the river, and the three further off.
+        assertEquals(12, spawns.count { it.type.id in 3029..3036 && it.x in 3180..3210 && it.z in 3240..3256 })
+        assertEquals(16, count(*(3029..3036).toList().toIntArray(), 3073))
+        assertEquals(8, count(234, 238))
+        assertEquals(3, count(3017))
+        assertEquals(3110 to 3295, spawns.single { it.type.id == 518 }.let { it.x to it.z })
+        assertEquals(3175 to 3361, spawns.single { it.type.id == 513 }.let { it.x to it.z })
+        assertEquals(setOf(3101 to 3220, 3226 to 3515, 3234 to 3518), spawns.filter { it.type.id == 516 }.map { it.x to it.z }.toSet())
+        assertTrue(spawns.all { it.level == 0 && it.source.isNotBlank() })
+    }
+
+    @Test
     fun `the swamp has its 23 giant rats, 82 frogs, the level 5 goblin, the unicorn, its talking NPCs and tutors, and rats west of the castle`() {
         val names = mapOf(
             2856 to "giantrat", 2859 to "giantrat_grey", 2860 to "giantrat_grey2", 2861 to "giantrat_grey3", 2863 to "giantrat1_2",

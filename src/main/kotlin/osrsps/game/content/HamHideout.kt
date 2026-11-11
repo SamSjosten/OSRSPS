@@ -177,9 +177,15 @@ object HamHideout {
         player.charges[PICK_DUE] = (tick + PICK_TICKS).toInt()
     }
 
-    /** True once this try's ticks are up; otherwise runs [op] again next tick and is false. */
+    /**
+     * True once this try's ticks are up, clearing [PICK_DUE] so a finished try leaves nothing in the save; otherwise runs
+     * [op] again next tick and is false.
+     */
     private fun ScriptContext.waited(world: World, op: Op): Boolean {
-        if (tick >= player.charges[PICK_DUE]) return true
+        if (tick >= player.charges[PICK_DUE]) {
+            player.charges[PICK_DUE] = 0
+            return true
+        }
         world.repeatOp(player, op)
         return false
     }

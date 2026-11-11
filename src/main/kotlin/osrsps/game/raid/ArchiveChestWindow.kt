@@ -54,11 +54,13 @@ class ArchiveChestWindow(
     /** Whether [player] has loot of an earlier run still to claim. */
     fun waiting(player: Player): Boolean = !player.archiveChest.isEmpty()
 
-    /** A run's end: [drops] are [player]'s loot to claim, each a stack of its own whatever the item. */
-    fun fill(player: Player, drops: List<Drop>) {
+    /**
+     * A run's end: [drops] are [player]'s loot to claim, each a stack of its own whatever the item. Nothing is sent: the
+     * pay puts every member's loot in before it shows anyone theirs ([showClaimable]).
+     */
+    fun store(player: Player, drops: List<Drop>) {
         player.archiveChest.clear()
         for ((slot, drop) in drops.take(SLOTS).withIndex()) player.archiveChest[slot] = InvObj(drop.type.id, drop.count)
-        showClaimable(player)
     }
 
     /** `tfa_has_claimable_loot`, which shows the lobby's Loot Wheelbarrow open: 1 while any loot waits. */
