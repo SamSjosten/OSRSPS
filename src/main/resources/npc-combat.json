@@ -431,6 +431,18 @@
       "source": "OSRS Wiki, Market Guard (Draynor), read 2026-10-30. The animations are guessed, as the jail guards' are"
     },
     {
+      "npcs": ["ardougne_guard"],
+      "attackSpeed": 5,
+      "maxHit": 3,
+      "attackType": "crush",
+      "attackBonus": 9,
+      "strengthBonus": 7,
+      "defence": {"stab": 24, "slash": 14, "crush": 19, "magic": 4, "light": 16, "standard": 16, "heavy": 16},
+      "anims": {"attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death"},
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Guard (Ardougne 1, id 5418), read 2026-11-10: the Draynor Market Guard's numbers. The animations are guessed, as the market guards' are"
+    },
+    {
       "npcs": ["surok_outlaw1", "surok_outlaw2", "surok_outlaw3", "surok_outlaw4", "surok_outlaw5", "surok_outlaw6", "surok_outlaw7", "surok_outlaw8", "surok_outlaw9", "surok_outlaw10"],
       "attackSpeed": 4,
       "maxHit": 3,

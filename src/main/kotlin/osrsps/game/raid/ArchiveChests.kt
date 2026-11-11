@@ -91,12 +91,22 @@ class ArchiveChests(private val world: World, private val raids: ArchiveRaids) {
         val result = rules.roll(world.random, members)
         run.loot = result
         for ((slot, member) in paid) {
+            countClear(member)
             run.chestSlots[member.saveKey] = slot
             placeChest(run, slot, open = false)
             showOwn(run, member)
             world.archiveChestWindow.fill(member, result.chests[member.saveKey].orEmpty())
         }
         logger.info { "$run paid ${members.joinToString { "${it.key} (${it.contribution})" }}; unique: ${result.unique ?: "none"}" }
+    }
+
+    /**
+     * One more clear of the raid for [player]: `total_completed_thefracturedarchive`, which their first 5 clears' cheaper
+     * graves go by ([osrsps.game.combat.GraveFees]). Guessed: that a clear is a run whose end paid them.
+     */
+    private fun countClear(player: Player) {
+        val varp = osrsps.game.combat.GraveFees.VARP_ARCHIVE_CLEARS
+        if (varp < player.vars.types.varpCount) player.vars[varp] = player.vars[varp] + 1
     }
 
     private fun owns(player: Player, item: Int): Boolean =

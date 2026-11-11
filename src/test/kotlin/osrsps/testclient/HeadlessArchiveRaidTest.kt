@@ -3,6 +3,7 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
@@ -18,6 +19,7 @@ import osrsps.game.combat.Deaths
 import osrsps.game.combat.DropItem
 import osrsps.game.combat.DropSlot
 import osrsps.game.combat.DropTable
+import osrsps.game.combat.GraveFees
 import osrsps.game.combat.Spells
 import osrsps.game.content.HomeTeleport
 import osrsps.game.content.LodestoneMap
@@ -553,6 +555,8 @@ class HeadlessArchiveRaidTest {
                         assertEquals(listOf(carolKey, daveKey), loot.chests.keys.toList())
                         assertEquals(mapOf(carolKey to 0, daveKey to 2), run.chestSlots.toMap())
                         assertEquals(setOf(0, 2), run.chests.keys)
+                        // A clear each for the two paid (step 31: their first 5 clears' graves cost a quarter); none for Erin.
+                        assertEquals(listOf(1, 1, 0), listOf("carol", "dave", "erin").map { world.playerNamed(it)!!.vars[GraveFees.VARP_ARCHIVE_CLEARS] })
                         for (slot in listOf(0, 2)) {
                             val chest = run.chests.getValue(slot)
                             val at = raids.tile(run, ArchiveChests.SLOTS[slot].first, ArchiveChests.SLOTS[slot].second)
@@ -830,6 +834,9 @@ class HeadlessArchiveRaidTest {
                             val grave = assertNotNull(server.world.deaths.graveOf(server.world.playerNamed(name)!!))
                             assertEquals(Triple(lobby.x, lobby.z, 0), Triple(grave.npc.x, grave.npc.z, grave.npc.level), "$name's grave")
                             assertEquals(2, grave.items.contents().sumOf { it.second.count })
+                            // Made where they fell in the raid, for the quarter fee of a first 5 clears (step 31).
+                            assertTrue(GraveFees.inArchive(grave.coord), "$name's grave counts as made in the raid: ${grave.coord}")
+                            assertFalse(grave.merged)
                         }
                         // The party lasts through the wipe, and its next run starts afresh.
                         assertEquals(3, server.world.parties.of(server.world.playerNamed("carol")!!)?.size)

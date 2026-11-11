@@ -585,6 +585,13 @@ class World(
         placeOf = ::deathPlace,
         teleport = { player, x, z, level -> teleport(player, x, z, level) },
         drop = { player, type, count -> dropUnder(player, type, count) },
+        setVarpNow = { player, varp, value ->
+            if (varp < player.vars.types.varpCount) {
+                player.vars[varp] = value
+                interfaces.sendVarpNow(player, varp)
+            }
+        },
+        takeFromBank = { player, id, count -> bank.take(player.bank, bankScreen.tabs(player), id, count) },
     )
 
     /**

@@ -209,6 +209,22 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `East Ardougne market's seven stall keepers stand still and its ten guards wander`() {
+        val file = file("ardougne-market.json")
+        val names = Regex("\"npc\": \"([a-z0-9_]+)\"").findAll(file).map { it.groupValues[1] }.toSet().toList()
+        val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(20000 + i, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file, types, "ardougne-market.json")
+        assertEquals(emptyList(), result.unknown)
+        val keepers = result.spawns.filter { it.type.internalName!!.endsWith("_ardougne") || it.type.internalName!!.endsWith("_ardougne2") }
+        val guards = result.spawns.filter { it.type.internalName == "ardougne_guard" }
+        assertEquals(7, keepers.size)
+        assertEquals(10, guards.size)
+        assertEquals(result.spawns.size, keepers.size + guards.size)
+        assertTrue(keepers.all { it.wander == 0 && it.x in 2650..2670 && it.z in 3290..3320 })
+        assertTrue(guards.all { it.wander == 5 })
+    }
+
+    @Test
     fun `the rogues are on Rogues' Castle's four floors and south-west of the Mage Arena`() {
         val rogueTypes = NpcTypes.of(NpcType(526, "rogue", internalName = "rogue"))
         val result = NpcSpawnFile.parse(file("rogues-castle.json"), rogueTypes, "rogues-castle.json")

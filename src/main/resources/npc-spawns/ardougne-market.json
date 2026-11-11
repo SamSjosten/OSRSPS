@@ -1,0 +1,22 @@
+{
+  "about": "East Ardougne market's stall keepers and guards (Thieving 2 step T3): the baker (two), silk merchant, fur trader, silver merchant, spice seller and gem merchant who keep the six stalls, and the ardougne_guard type who watch them. Each tile and type is mejrs's; the keepers stand still and the guards wander 5 (both GUESSED, as the other markets').",
+  "spawns": [
+    {"npc": "ardougne_guard", "x": 2635, "z": 3339, "wander": 5, "source": "Guard, East Ardougne. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "ardougne_guard", "x": 2636, "z": 3340, "wander": 5, "source": "Guard, East Ardougne. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "ardougne_guard", "x": 2637, "z": 3339, "wander": 5, "source": "Guard, East Ardougne. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "ardougne_guard", "x": 2651, "z": 3307, "wander": 5, "source": "Guard, East Ardougne. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "ardougne_guard", "x": 2659, "z": 3309, "wander": 5, "source": "Guard, East Ardougne. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "ardougne_guard", "x": 2660, "z": 3309, "wander": 5, "source": "Guard, East Ardougne. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "ardougne_guard", "x": 2661, "z": 3309, "wander": 5, "source": "Guard, East Ardougne. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "ardougne_guard", "x": 2663, "z": 3301, "wander": 5, "source": "Guard, East Ardougne. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "ardougne_guard", "x": 2664, "z": 3318, "wander": 5, "source": "Guard, East Ardougne. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "ardougne_guard", "x": 2665, "z": 3300, "wander": 5, "source": "Guard, East Ardougne. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "silver_merchant_ardougne", "x": 2658, "z": 3316, "wander": 0, "source": "Silver merchant, East Ardougne. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "gem_merchant_ardougne", "x": 2669, "z": 3303, "wander": 0, "source": "Gem merchant, East Ardougne. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "baker_merchant_ardougne", "x": 2654, "z": 3311, "wander": 0, "source": "Baker, East Ardougne. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "baker_merchant_ardougne2", "x": 2669, "z": 3310, "wander": 0, "source": "Baker, East Ardougne. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "spice_merchant_ardougne", "x": 2658, "z": 3296, "wander": 0, "source": "Spice seller, East Ardougne. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "fur_merchant_ardougne", "x": 2666, "z": 3295, "wander": 0, "source": "Fur trader, East Ardougne. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"},
+    {"npc": "silk_merchant_ardougne", "x": 2656, "z": 3301, "wander": 0, "source": "Silk merchant, East Ardougne. mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022)"}
+  ]
+}

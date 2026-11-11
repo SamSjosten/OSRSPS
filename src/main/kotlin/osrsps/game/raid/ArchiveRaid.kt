@@ -5,6 +5,7 @@ import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.combat.CombatLines
 import osrsps.game.combat.DeathPlace
+import osrsps.game.combat.GraveFees
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Lines
 import osrsps.game.encounter.Encounter
@@ -1065,7 +1066,7 @@ class ArchiveRaids(private val world: World) {
         run.deaths[player.saveKey] = (run.deaths[player.saveKey] ?: 0) + 1
         logger.info { "$run: ${player.username} got out while down, so dies of it" }
         player.message(world.textFor(player)[CombatLines.DEAD])
-        world.deaths.respawn(player, wipePlace(run))
+        world.deaths.respawn(player, wipePlace(run, player))
     }
 
     /** [room]'s fight begins, with whoever of the party stands in it. Its boss isn't built yet, so it is done at once. */
@@ -1173,11 +1174,11 @@ class ArchiveRaids(private val world: World) {
             return DeathPlace(keepItems = true, to.x, to.z, level, to.x, to.z, level)
         }
         run.deaths[player.saveKey] = (run.deaths[player.saveKey] ?: 0) + 1
-        if (run.wiped) return wipePlace(run)
+        if (run.wiped) return wipePlace(run, player)
         val others = standing(run).filter { it !== player }
         if (others.isEmpty()) {
             wipe(run, player)
-            return wipePlace(run)
+            return wipePlace(run, player)
         }
         // A room done while they lay dying is a fight they're no longer out of: they get up standing.
         val fell = player.deathTick
@@ -1189,8 +1190,18 @@ class ArchiveRaids(private val world: World) {
         return DeathPlace(keepItems = true, to.x, to.z, NEXUS_PLANE, to.x, to.z, NEXUS_PLANE)
     }
 
-    private fun wipePlace(run: ArchiveRun) = DeathPlace(
+    /**
+     * Where [player]'s grave goes when [run] is lost for them: the lobby, outside the Archive Door. It counts as made
+     * where they fell in the cache's map (for its fee, [GraveFees]), or at the nexus's entrance for one who got out of
+     * the run while down.
+     */
+    private fun wipePlace(run: ArchiveRun, player: Player) = DeathPlace(
         keepItems = false, run.instance.exitX, run.instance.exitZ, run.instance.exitLevel, run.instance.exitX, run.instance.exitZ, run.instance.exitLevel,
+        coord = if (run.instance.contains(player.x, player.z)) {
+            GraveFees.coord(player.x - run.instance.baseX + FROM_X, player.z - run.instance.baseZ + FROM_Z, player.level)
+        } else {
+            GraveFees.coord(NEXUS_X, NEXUS_Z, NEXUS_PLANE)
+        },
     )
 
     /**
@@ -1205,7 +1216,7 @@ class ArchiveRaids(private val world: World) {
         logger.info { "$run wiped${dying?.let { " as ${it.username} died" }.orEmpty()}" }
         for (member in present(run)) {
             if (member === dying || member.dead) continue
-            world.deaths.respawn(member, wipePlace(run))
+            world.deaths.respawn(member, wipePlace(run, member))
         }
     }
 

@@ -894,6 +894,19 @@ only their options are new.
 | The 10 and 50 coin and Ardougne Castle chests' trap damage (the Wiki says "substantial" and "high"; the nature rune chest's formula is used); the open door shown while going through (`inactivepoordoor` 1539, 3 ticks); Ross' door, a newer loc than 2004Scape's, opening the same way; refusing a chest whose loot wouldn't fit (2004Scape gives it regardless) | guessed |
 | Not built: the Dorgesh-Kaan and Rogues' Castle chests, the doors that need a lockpick, the Ardougne sewer gates, the Ardougne diary, the gas random event | next steps |
 
+### Thieving: East Ardougne's stalls
+
+Thieving 2 step T3 (`game/skill/Thieving.kt`, `npc-spawns/ardougne-market.json`). The six stalls are the cache's, in the
+market where the cache map puts them; stealing works as at Draynor's (a guard or keeper in sight stops it).
+
+| What | Source |
+|---|---|
+| Bakery (11730): 5, 16 XP, 2.4 s, a cake 13/20, bread 5/20 or a chocolate slice 2/20. Silk (11729): 20, 24 XP, 4.8 s, silk. Fur (11732): 35, 45 XP, 7.2 s, a grey wolf fur. Silver (11734): 50, 205 XP, 19.2 s, silver ore 16/20, a silver bar 3/20 or a tiara 1/20. Spice (11733): 65, 92 XP, 6 s, spice. Gem (11731): 75, 408 XP, 60 s, an uncut sapphire 105/128, emerald 17, ruby 5 or diamond 1 | OSRS Wiki, Stall (Thievable) and each stall's page |
+| The keepers (the two bakers, silk merchant, fur trader, silver merchant, spice seller and gem merchant, the `*_ardougne` types) and the market's ten guards (`ardougne_guard`, also pickpocketed as guards), where they stand | mejrs NPCList_OSRS.json (live, pre-Nov 2022) |
+| The guards' fight | OSRS Wiki, Guard (Ardougne 1) |
+| Who watches which stall (the guards the bakery; knights too the silk and fur; paladins too the silver, spice and gem), the empty stall (`market` 634), the keepers' 20-minute ban, the keepers standing still and the guards wandering 5 | guessed (the watchers 2004Scape's) |
+| Not built: Keldagrim's, Kourend's, Prifddinas's, Civitas illa Fortis's, Port Roberts's, Rellekka's and Ape Atoll's stalls, the keepers' talk and shops, the Ardougne diary | next steps |
+
 ## Items and inventory
 
 Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for
@@ -911,10 +924,12 @@ as `Op.sub`. The inventory is saved with the player.
 | Dragging swaps two slots; a click on a slot that holds something else is dropped | RSMod / inferred |
 | An option or "Use" nothing handles says live's "nothing interesting" message (`game.nothing_interesting`) | from memory of live |
 | Bury on bones: a message (`bones.dig`), seq 827, the player stops; a tick later the bones go, the Prayer XP comes and a second message (`bones.buried`) (bones, burnt bones 4.5 XP, big bones 15, dragon bones 72) | XP from the Wiki; the steps from the 2004Scape project's script; no sound yet (its 241 synth id isn't known) |
+| Scatter on demonic ashes: fiendish 10 Prayer XP, vile 25, malicious 65, abyssal 85, infernal 110 | XP from the Wiki (Remains, read 2026-11-10); seq 2295 (farming_ingredient_sprinkle), the one-tick delay as a bury, and one message a tick later (`bones.scattered`) guessed |
 | Stacks stop at 2,147,483,647; `::item` adds what fits | client limit; adding part is ours |
 
 Check: `::item 1351` puts a bronze axe in your inventory; drag it to another slot; Examine it. `::item bones 2`, then Bury both: Prayer XP goes to 9
-(`test-runner/examples/lumbridge-bury-bones.json` does it in the real client).
+(`test-runner/examples/lumbridge-bury-bones.json` does it in the real client). `::item 25769`, then Scatter: 25 Prayer XP
+(`scatter-ashes.json`).
 
 ## Bank
 
@@ -2313,6 +2328,9 @@ loses goes in a grave there. The party lasts through the wipe.
 | The uniques worn (step 30): their bonuses, slots and speeds the cache's, which are the Wiki's infoboxes (Ascension crossbows, Obligator and Zorya's tome two-handed; the Rondache a shield; the Horn of Bran not worn); their requirements 80 Ranged, 85 Attack, 80 Defence and 85 Magic (`item-requirements.tsv`); the Obligator's combat tab (dbtable 78's row 36: Thrust, Thrust and Smash, all crush) and Smash every 3 ticks where Thrust is 5; the tome's (row 37: Accurate, Accurate and Longrange) and its own spell as a powered staff's, a charge a cast of 3 astral and 2 nature runes, up to 20,000, 7 tiles and 9 on longrange; the crossbows firing ascension bolts and their gem-tipped forms only, which no other crossbow fires, 6 tiles and 8 on longrange; their animations and the bolts' and tome's graphics the cache's (`ArchiveUniquesAuditTest` checks the cache's numbers against the Wiki's) | OSRS Wiki, Ascension crossbows, Obligator, Rondache, Zorya's tome, Horn of Bran, Weapons/Types, read 10 November 2026; 241 cache |
 | The tome's max hit, a third of the Magic level rounded down less 9 before its +15% (the Wiki's formula renders garbled); which of the Obligator's two attack animations is Thrust and which Smash; which tome graphic is the cast and which the travel; the uniques' turning and side-step animations (the cache has none of their own); the crossbows firing from one hand, where live alternates them; the uncharged tome's prayer bonus, 0 in the cache where the Wiki gives +2 (the cache's kept) | inferred or guessed |
 | The uniques' effects: the Obligator's charges and its second hit and reach, the Rondache's armour and Shield Slam, Zorya's flow, the crossbows' halved bolt effects, the Horn of Bran's Zeal prayer; the female animations; the tome's Configure-Charges | not in yet |
+| Death costs (step 31), for every grave: an item worth 100,000 coins a unit or more waits in the gravestone's paid list, most valuable first, until Unlock pays its fee: 1,000 a unit from 100,000, 10,000 from 1,000,000 and 100,000 from 10,000,000, the total capped at 500,000; an Ironman pays half; the fee is taken from the bank, Death's Coffer not being built; once paid, the button takes the paid list | OSRS Wiki, Gravestone, read 10 November 2026; the 241 cache's gravestone scripts (gravestone_generic_window_set, script1797) for the list's split, the bands and the halving |
+| A grave made in the raid's map squares (proc script10182: the rooms, not the lobby or the reward vault) and not merged with an earlier one costing a quarter of that while the player has fewer than 5 clears (`total_completed_thefracturedarchive`, varp 5894, counted for each member paid at the vault's chests); every death in the raid losing a Hardcore Ironman their status | OSRS Wiki, The Fractured Archive ("reduced by 75% until the player has cleared the raid 5 times"; "always a dangerous death"); 241 cache, script1797 and script10182 |
+| The quarter's cap a quarter of 500,000 too, and each item's fee capped at it; the clear counted when the chests pay out; the words of the Unlock refusal, the paid message and the Hardcore loss (keys here); too few coins in the bank taking none | inferred or guessed |
 | The bosses after the Guardian, the Quartermaster and Supply Credits, the party's orbs, taking the loot out of the reward vault's chests, deaths' item costs | not in yet: steps 18 to 31 |
 
 `::raid run` shows the run you're in and where you stand in it (the room, and the cache's tile as `::raid tp x z` takes it), `::raid tp nexus` or `::raid tp ezekiel` goes to its nexus or a room, `::raid tp x z`
@@ -2336,7 +2354,7 @@ the lobby, with a grave). The uniques: `./gradlew test --tests 'osrsps.testclien
 Obligator taking the Rondache off, its combat tab and Smash's 3 ticks; the crossbows refusing rune bolts and shooting
 ascension bolts, 2 ticks on Rapid; the tome charged with astral and nature runes killing a man with its own spell),
 `ArchiveUniquesAuditTest` with `OSRSPS_FLATCACHE` set (the cache's numbers against the Wiki's), and
-`test-runner/examples/archive-uniques.json`. Ocellus: `./gradlew test --tests 'osrsps.testclient.HeadlessOcellusTest'` (the figure and the
+`test-runner/examples/archive-uniques.json`. Death costs: `./gradlew test --tests 'osrsps.game.combat.GraveFeesTest' --tests 'osrsps.game.combat.DeathsTest'` (the bands, the cap, the halving and the raid's quarter; the paid list, Unlock refused and paid; the Hardcore loss) and `test-runner/examples/archive-raid-death-costs.json`. Ocellus: `./gradlew test --tests 'osrsps.testclient.HeadlessOcellusTest'` (the figure and the
 ready check, alone, with two, and the 2 minutes; his walk, corners, cracks, charge and explosion; a crack caught; the middle at two thirds and a quarter; the hold and the
 transformation; the second phase's portals, the Blade's damage reaching his bar, the quadrants' turns and volleys, a
 shot reaching a player and the safe crossing; the pools, every portal purple, the floor portal taking her on and the
