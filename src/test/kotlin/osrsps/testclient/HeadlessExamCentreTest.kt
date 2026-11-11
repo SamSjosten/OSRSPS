@@ -3,6 +3,7 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.Inventory
 import osrsps.game.InventoryTab
@@ -137,6 +138,20 @@ class HeadlessExamCentreTest {
             server.login("alice").use { client ->
                 client.ready()
                 client.tele(3364, 3341)
+                // A full backpack is refused, and nothing lands on the floor.
+                val alice = server.world.playerNamed("alice")!!
+                val rope = server.world.objTypes[ExamCentre.ROPE]!!
+                repeat(alice.inventory.freeSlots) { alice.inventory.add(rope, 1) }
+                client.talk(examiner.id)
+                client.chats("exam_centre.zaros_altar", "exam_centre.great_scholar")
+                client.pick(2, "exam_centre.thanks", "exam_centre.lost_trowel")
+                client.chats("exam_centre.lost_trowel", "exam_centre.another_trowel")
+                client.awaitClosed()
+                client.awaitSeen("[game.no_space]")
+                assertEquals(0, client.count(ExamCentre.TROWEL))
+                assertTrue(server.world.groundObjs.visibleAt(alice, 3364, 3341, 0).none { it.id == ExamCentre.TROWEL }, "no trowel on the floor")
+                alice.inventory.contents().forEach { alice.inventory.remove(it.first) }
+
                 client.talk(examiner.id)
                 client.chats("exam_centre.zaros_altar", "exam_centre.great_scholar")
                 client.pick(2, "exam_centre.thanks", "exam_centre.lost_trowel")
