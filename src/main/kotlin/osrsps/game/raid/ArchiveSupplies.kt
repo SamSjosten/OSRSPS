@@ -88,7 +88,8 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
         world.locs.add(ZoneLoc(WHEELBARROW, LocShape.CENTREPIECE_STRAIGHT, 0, barrow.x, barrow.z, ArchiveRaids.NEXUS_PLANE))
         for (player in raids.present(run)) {
             setCredits(player, CREDITS)
-            stockFor(run, player.saveKey).let { fill(it, run) }
+            run.supplies.remove(player.saveKey)
+            stockFor(run, player.saveKey)
         }
         logger.info { "$run: the Quartermaster came, ${raids.present(run).size} with $CREDITS credits" }
     }
@@ -149,13 +150,21 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
     private fun credits(player: Player): Int =
         if (player.vars.types.varbit(CREDITS_VARBIT) == null) 0 else player.vars.getVarbit(CREDITS_VARBIT)
 
-    private fun stockFor(run: ArchiveRun, key: String): Inventory = run.supplies.getOrPut(key) { Inventory(STOCK_INV, STOCK_SLOTS).also { fill(it, run) } }
+    /**
+     * [key]'s stock in [run]. Once the party has died enough for the failure shop, its Leftovers join the stock, once
+     * per member, so a member whose stock was filled before the deaths gets them too, and nothing already bought is
+     * refilled (Codex review on #631).
+     */
+    private fun stockFor(run: ArchiveRun, key: String): Inventory {
+        val inv = run.supplies.getOrPut(key) { Inventory(STOCK_INV, STOCK_SLOTS).also { fill(it, run, key) } }
+        if (shopFor(run)?.row == FAILURE_SHOP && run.suppliesLeftovers.add(key)) inv[STOCK.size] = InvObj(LEFTOVERS, LEFTOVERS_STOCK)
+        return inv
+    }
 
-    private fun fill(inv: Inventory, run: ArchiveRun) {
+    private fun fill(inv: Inventory, run: ArchiveRun, key: String) {
         inv.clear()
-        val failure = shopFor(run)?.row == FAILURE_SHOP
-        val counts = if (failure) STOCK + (LEFTOVERS to LEFTOVERS_STOCK) else STOCK
-        for ((slot, entry) in counts.entries.withIndex()) inv[slot] = InvObj(entry.key, entry.value)
+        run.suppliesLeftovers.remove(key)
+        for ((slot, entry) in STOCK.entries.withIndex()) inv[slot] = InvObj(entry.key, entry.value)
     }
 
     /** The shop's balance and stock for [run]'s members. */

@@ -220,6 +220,9 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
     /** Each member's stock of the Quartermaster's shop, by [Player.saveKey] ([ArchiveSupplies.STOCK]). */
     internal val supplies = HashMap<String, Inventory>()
 
+    /** The members whose stock has had the failure shop's Leftovers put in ([ArchiveSupplies.LEFTOVERS]). */
+    internal val suppliesLeftovers = HashSet<String>()
+
     /** Each paid member's chest in the reward vault, by save key: its slot, from 0 ([ArchiveChests.SLOTS]). */
     val chestSlots = LinkedHashMap<String, Int>()
 

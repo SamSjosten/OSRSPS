@@ -88,6 +88,11 @@ class OmnishopScreen(
         send(player, IfSetEventsV2(SIDE, SIDE_ITEMS, 0, Inventory.INV_CAPACITY - 1, 0, BankScreen.opMask(10..10)))
     }
 
+    /** A reconnect: the open shop's stock goes again in full with the next [flush], as an update may have been lost. */
+    fun resync(player: Player) {
+        open[player]?.let { it.owner.stock(player).resendAll() }
+    }
+
     /** The window closed. */
     fun closed(player: Player) {
         open.remove(player)
@@ -109,7 +114,7 @@ class OmnishopScreen(
         val shop = open[player]?.takeIf { isOpen(player) } ?: return true
         if (player.scripts.delayed) return true
         if (interfaceId == SIDE) {
-            if (component == SIDE_ITEMS && op == 10) player.inventory[sub]?.takeIf { it.id == obj }?.let { examine(player, it.id, it.count) }
+            if (component == SIDE_ITEMS && op == 10 && sub in 0 until Inventory.INV_CAPACITY) player.inventory[sub]?.takeIf { it.id == obj }?.let { examine(player, it.id, it.count) }
             return true
         }
         when (component) {

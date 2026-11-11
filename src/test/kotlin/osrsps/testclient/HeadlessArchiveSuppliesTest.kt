@@ -268,6 +268,12 @@ class HeadlessArchiveSuppliesTest {
                 client.awaitMessage("no room") { it == DialogueText.NONE[ShopLines.NOT_ENOUGH_SPACE] }
                 assertEquals(1, client.credits())
                 assertEquals(1, client.stock(PRAYER_2))
+                // The party's second death after he came: the failure shop's Leftovers join the stock, once, and
+                // nothing already bought comes back (Codex review on #631).
+                run.deaths[server.world.playerNamed("bob")!!.saveKey] = ArchiveSupplies.FAILURE_DEATHS
+                client.awaitStock(ArchiveSupplies.LEFTOVERS, ArchiveSupplies.LEFTOVERS_STOCK)
+                assertEquals(0, client.stock(BREW))
+                assertEquals(5, client.stock(MANTA))
             }
         }
     }

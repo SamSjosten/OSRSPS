@@ -1900,6 +1900,8 @@ class World(
         player.geSent.resendAll()
         // The Fractured Archive's chest window stays open over a reconnect: its loot goes again with the next flush.
         player.archiveChest.resendAll()
+        // So does an open omnishop's stock.
+        omnishopScreen.resync(player)
         player.sentRunEnabled = null
         player.sentRunEnergy = -1
         player.sentWeight = Int.MIN_VALUE

@@ -40,8 +40,6 @@ class Omnishops(private val byRow: Map<Int, OmnishopType>) {
     companion object {
         val NONE = Omnishops(emptyMap())
 
-        fun of(vararg shops: OmnishopType) = Omnishops(shops.associateBy { it.row })
-
         /**
          * `enum_5844` (241 cache): a row's `omnishop_buy_q` code to the amount it buys. The client shows an option only
          * for a code with an amount above 0.
