@@ -60,11 +60,10 @@
    "expectMessage": "You're in the nexus's entrance"
   },
   {
-   "step": "playerOption",
-   "player": "test",
-   "option": "Trade with",
-   "timeoutMs": 120000,
-   "comment": "once test is in view here: our sign to it that we're about to fall"
+   "step": "assertMessage",
+   "contains": "[trade.request name=test]",
+   "timeoutMs": 180000,
+   "comment": "test's request: its sign that the Guardian's room is done, so its end won't get us up again"
   },
   {
    "step": "command",
@@ -104,7 +103,13 @@
    "player": "test",
    "option": "Trade with",
    "timeoutMs": 60000,
-   "comment": "our sign to test that we're done; standing, the request goes"
+   "comment": "answering test's request from before our fall: the trade opens, our sign to test that we're done"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 335,
+   "timeoutMs": 20000,
+   "comment": "standing, so the trade opens (a member down couldn't)"
   },
   {
    "step": "command",

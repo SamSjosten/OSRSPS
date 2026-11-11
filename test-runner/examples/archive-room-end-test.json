@@ -87,10 +87,11 @@
    "ticks": 6
   },
   {
-   "step": "assertMessage",
-   "contains": "[trade.request name=test2]",
+   "step": "playerOption",
+   "player": "test2",
+   "option": "Follow",
    "timeoutMs": 120000,
-   "comment": "test2's sign that it is in the run and about to fall, with us standing in the entrance"
+   "comment": "once test2 is in view here in the entrance, its sign that it is in the run (nobody comes in once the Guardian's room is begun); the teleport below ends the follow"
   },
   {
    "step": "command",
@@ -102,6 +103,24 @@
    "text": "::raid clear",
    "expectMessage": "Cleared Archive Guardian's room.",
    "comment": "the first row done, so the second's doors open"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp nexus",
+   "expectMessage": "To the nexus",
+   "comment": "back to the entrance, where test2 waits: the Guardian's room done before test2 falls, or its end would get test2 up"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "the client redraws the scene after the teleport"
+  },
+  {
+   "step": "playerOption",
+   "player": "test2",
+   "option": "Trade with",
+   "timeoutMs": 60000,
+   "comment": "our sign to test2 that the Guardian's room is done and it may fall (a room won with it down would get it up); the request stays, for its sign back below"
   },
   {
    "step": "command",
@@ -167,10 +186,10 @@
    "comment": "his room won gave our hitpoints and prayer back (Sam's recording of 2026-11-10: 99/99 after Bork)"
   },
   {
-   "step": "assertMessage",
-   "contains": "[trade.request name=test2]",
+   "step": "assertInterface",
+   "interfaceId": 335,
    "timeoutMs": 180000,
-   "comment": "test2's sign that it is done: back on his arena, standing, and whole"
+   "comment": "test2's sign that it is done, back on his arena and whole: its Trade with answers our request, which opens the trade"
   },
   {
    "step": "command",
