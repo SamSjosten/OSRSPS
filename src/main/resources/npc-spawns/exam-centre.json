@@ -1,0 +1,10 @@
+{
+  "about": "Misthalin piece 7 step 10: the Exam Centre's people after The Dig Site (ExamCentre.kt), on the tiles mejrs's list saw them.",
+  "spawns": [
+    {"npc": "examiner", "x": 3364, "z": 3342, "wander": 3, "restrict": "indoors", "source": "Examiner (bun). mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the Wiki's Examiner map agrees; the wander range guessed"},
+    {"npc": "qip_digsite_examiner_02", "x": 3360, "z": 3343, "wander": 3, "restrict": "indoors", "source": "Examiner (long hair). mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the Wiki's Examiner map agrees; the wander range guessed"},
+    {"npc": "qip_digsite_examiner_03", "x": 3364, "z": 3339, "wander": 3, "restrict": "indoors", "source": "Examiner (pigtails). mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the Wiki's Examiner map agrees; the wander range guessed"},
+    {"npc": "qip_digsite_researcher", "x": 3365, "z": 3333, "wander": 3, "restrict": "indoors", "source": "Researcher, in the library. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the Wiki's map has 3362,3337; the wander range guessed"},
+    {"npc": "archaeological_expert", "x": 3355, "z": 3333, "wander": 2, "restrict": "indoors", "source": "Terry Balando, the archaeological expert. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the Wiki's map has 3353,3335; the wander range guessed"}
+  ]
+}
