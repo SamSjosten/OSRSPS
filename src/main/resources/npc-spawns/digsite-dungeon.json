@@ -1,0 +1,16 @@
+{
+  "about": "Misthalin piece 7 step 10: the Digsite Dungeon after The Dig Site (ExamCentre.kt). The map has the dungeon twice; mejrs saw the same NPCs in both (z 9743 to 9757 and 64 tiles north). These are the south copy's, the one without the quest's bricks. The skeletons' combat and drops are the level 22 skeletons' already in npc-combat.json and npc-drops.json.",
+  "spawns": [
+    {"npc": "digworkman2", "x": 3351, "z": 9756, "wander": 3, "source": "Doug Deeping, in the chamber below the private dig's winch. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the Wiki's map agrees; the wander range guessed"},
+    {"npc": "skeleton_unarmed2", "x": 3368, "z": 9748, "wander": 5, "source": "Skeleton (level 22), the south chamber. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the wander range guessed"},
+    {"npc": "skeleton_unarmed", "x": 3373, "z": 9748, "wander": 5, "source": "Skeleton (level 22), the south chamber. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the wander range guessed"},
+    {"npc": "skeleton_unarmed3", "x": 3376, "z": 9751, "wander": 5, "source": "Skeleton (level 22), the south chamber. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the wander range guessed"},
+    {"npc": "skeleton_unarmed4", "x": 3377, "z": 9743, "wander": 5, "source": "Skeleton (level 22), the south chamber. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the wander range guessed"},
+    {"npc": "skeleton_unarmed4", "x": 3377, "z": 9754, "wander": 5, "source": "Skeleton (level 22), the south chamber. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the wander range guessed"},
+    {"npc": "skeleton_unarmed", "x": 3378, "z": 9748, "wander": 5, "source": "Skeleton (level 22), the south chamber. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the wander range guessed"},
+    {"npc": "skeleton_unarmed2", "x": 3378, "z": 9757, "wander": 5, "source": "Skeleton (level 22), the south chamber. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the wander range guessed"},
+    {"npc": "skeleton_unarmed3", "x": 3380, "z": 9756, "wander": 5, "source": "Skeleton (level 22), the south chamber. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the wander range guessed"},
+    {"npc": "skeleton_unarmed", "x": 3382, "z": 9753, "wander": 5, "source": "Skeleton (level 22), the south chamber. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the wander range guessed"},
+    {"npc": "skeleton_unarmed2", "x": 3383, "z": 9746, "wander": 5, "source": "Skeleton (level 22), the south chamber. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the wander range guessed"}
+  ]
+}

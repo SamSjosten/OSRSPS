@@ -1473,6 +1473,36 @@ brings a workman's line.
 | One find a dig after 3 ticks, the animations, a workman within 10 tiles counting as near, a full backpack refusing first, and the dig, find, pan and search messages | guessed (the Wiki gives no time or messages) |
 | Out: the winches and the Digsite Dungeon (step 10); the bushes, barrel and chest (the quest's); the museum's specimen cleaning; the gold panning tray; Fossil Island's soil | out of scope |
 
+#### Exam Centre and Digsite Dungeon
+
+Misthalin piece 7 step 10 (`game/content/ExamCentre.kt`, `npc-spawns/exam-centre.json`, `npc-spawns/digsite-dungeon.json`,
+`obj-spawns/digsite-dungeon.tsv`, words under `exam_centre.*`, `terry.*` and `digsite_dungeon.*`): the Exam Centre south
+of the Digsite and the dungeon under the digs, after The Dig Site.
+
+The three examiners congratulate the player and give a lost trowel back to one carrying none. The Researcher talks about
+the tools as the Panning guide does. Terry Balando, the archaeological expert, asks about Desert Treasure I or talks about
+the Zaros altar, admires a wielded ancient staff, and has a line for every Digsite find used on him: three nuggets become a
+gold ore, unidentified liquid becomes nitroglycerin, and a muddy panning tray comes back unsearched. The north cupboard
+gives a rock pick and the south one a specimen jar, each to a player carrying none, and the bookcases' helpful books are
+gone. The potter's wheel is Crafting's.
+
+The west winch in the level 2 digs wants a rope used on it, which stays in the backpack; the private dig's winch needs
+none. Both need 10 Agility and give 2 Agility XP. The map holds the dungeon twice: the copy without the quest's bricks is
+the one after the quest. The private winch lands in Doug Deeping's chamber and the west winch by the way to the south
+chamber, with its ten level 22 skeletons, five silver rocks and the bones, pickaxes, buckets and arcenia roots the Wiki
+lists. Each rope climbs back up beside its winch. Doug congratulates the player and catches anyone stealing from him.
+
+| Exam Centre and Digsite Dungeon | Source |
+|---------------------------------|--------|
+| The people and their tiles, the skeletons (ten, in the copy after the quest) and Doug | mejrs data_osrs NPCList_OSRS.json; the Wiki's maps |
+| The talks, Terry's lines for each find, the nuggets exchange, the cupboards' and bookcases' boxes, the winches' messages and Doug's lines | OSRS Wiki transcripts (Examiner, Researcher, Terry Balando, Doug Deeping, The Dig Site), read 2026-11-11 |
+| A rope for the west winch only, kept; 10 Agility and 2 XP for both; which winch lands where | OSRS Wiki, Winch and Digsite Dungeon; the landings checked on the real map by `exam-centre.json` |
+| The cupboards' tools, one each for a player carrying none | OSRS Wiki, Cupboard (rock pick) and Cupboard (specimen jar) |
+| The dungeon's and the digs' item spawns (100 ticks) | OSRS Wiki, Iron pickaxe, Bucket, Arcenia root and Bones |
+| Terry's Desert Treasure I option always showing; the bookcases' quest-time box after the quest | inferred: every quest counts as done |
+| The chathead expressions, the private winch's messages, the landing tiles, the XP on each way down, a rope every time, the cupboards' line with the tool carried | guessed |
+| Out: the clue chest, the beaten book, Varmen's notes and the book on chemicals (the quests'), the barrel's liquid, Desert Treasure II's winch, the STASH units | out of scope |
+
 ## Draynor Village
 
 The village west of Lumbridge (the Draynor piece, plan in the project's Draynor Village 1:1 plan doc). Step 1 is the
