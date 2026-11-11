@@ -490,6 +490,11 @@ class HeadlessArchiveSuppliesTest {
                     bob.closeModal()
                     bob.await("the shop shut") { (OmnishopScreen.MAIN !in bob.openInterfaces()).takeIf { it } }
                     trade(bob, alice, MANTA, 1, confirm = false)
+                    // A save now (a shutdown's) puts the offer back in his backpack, less what he bought (Codex review on #636).
+                    bob.commandReply("pause") { it.startsWith("Paused after tick") }
+                    val midTrade = server.world.snapshot(server.world.playerNamed("bob")!!)
+                    bob.commandReply("resume") { it.startsWith("Resumed") }
+                    assertEquals(2, midTrade.inventory.values.count { it.id == MANTA })
                     bob.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
                     alice.await("Bob gone") { if (server.world.playerNamed("bob") == null) Unit else null }
                     alice.tele(3222, 3218)

@@ -1654,9 +1654,10 @@ class World(
         if (!instances.inDynamicArea(player.x, player.z)) return PlayerSave.of(player, inventory, bank)
         val instance = instances.at(player.x, player.z)
         return PlayerSave.of(
-            // At the exit, out of any raid run: without its supplies (R26A-1).
-            player, archiveRaids.supplies.saved(player, inventory).first, bank,
+            player, inventory, bank,
             x = instance?.exitX ?: SPAWN_X, z = instance?.exitZ ?: SPAWN_Z, level = instance?.exitLevel ?: SPAWN_LEVEL,
+            // At the exit, out of any raid run: without its supplies, a trade's offer back in first (R26A-1).
+            held = { archiveRaids.supplies.saved(player, it).first },
         )
     }
 
