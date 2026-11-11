@@ -1,0 +1,128 @@
+{
+ "name": "GE item sets: a clerk's Sets opens the window, Pack makes the green d'hide set and Unpack takes it apart",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle: a command typed straight away can be lost"
+  },
+  {
+   "step": "command",
+   "text": "::empty",
+   "expectMessage": "Inventory emptied."
+  },
+  {
+   "step": "command",
+   "text": "::item 1135 1",
+   "expectMessage": "Added 1 x Green d'hide body"
+  },
+  {
+   "step": "command",
+   "text": "::item 1099 1",
+   "expectMessage": "Added 1 x Green d'hide chaps"
+  },
+  {
+   "step": "command",
+   "text": "::item 1065 1",
+   "expectMessage": "Added 1 x Green d'hide vambraces"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3164 3486 0",
+   "expectMessage": "Teleported to 3164, 3486, 0",
+   "comment": "south of the Grand Exchange's south booths (z 3487), with ge_clerk_1 and _2 behind them"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "the clerks come into view after the teleport"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 2148,
+   "option": "Sets",
+   "timeoutMs": 20000,
+   "comment": "a clerk's Sets"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 451,
+   "timeoutMs": 10000,
+   "comment": "itemsets"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 430,
+   "timeoutMs": 10000,
+   "comment": "itemsets_side"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 451,
+   "component": 2,
+   "slot": 1,
+   "op": 1,
+   "comment": "Pack on the green d'hide set, index 1 in enum 1033 (12865: body, chaps, vambraces)"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 12865,
+   "count": 1,
+   "timeoutMs": 5000,
+   "comment": "Green dragonhide set"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1135,
+   "count": 0
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1065,
+   "count": 0
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 430,
+   "component": 0,
+   "slot": 0,
+   "op": 1,
+   "comment": "Unpack on the set, in the backpack's first slot"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 12865,
+   "count": 0,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1135,
+   "count": 1
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1099,
+   "count": 1
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 1065,
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::empty",
+   "expectMessage": "Inventory emptied.",
+   "comment": "leaves the backpack clean for the next script"
+  },
+  {
+   "step": "logout",
+   "comment": "closes the window"
+  }
+ ]
+}
