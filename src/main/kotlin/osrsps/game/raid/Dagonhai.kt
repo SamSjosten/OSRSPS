@@ -281,6 +281,8 @@ object Dagonhai {
             held = { state.members.mapNotNull { alive(it) } },
             // The three on the pool, either form; the cauldron is the boss, the imps and rifts its adds.
             bosses = MEMBERS.flatMap { listOf(it.type, it.weakened) }.toSet(),
+            // On the pool, what the pool lost counts; weakened, each on their own hitpoints, a hit counts as dealt.
+            passedOn = MEMBERS.map { it.type }.toSet(),
         )
     }
 
@@ -442,12 +444,22 @@ object Dagonhai {
      */
     private fun EncounterContext.pool() {
         var lost = 0
+        val each = LinkedHashMap<Npc, Int>()
         for (npc in state.members) {
             val before = state.seen[npc] ?: continue
             val now = if (npc.dead) 0 else npc.hitpoints
-            if (now < before) lost += poolLoss(before - now, stunned(npc))
+            if (now < before) poolLoss(before - now, stunned(npc)).also { each[npc] = it; lost += it }
         }
         if (lost > 0) {
+            // What the pool really lost, shared over the three by what each took: each was hit as if it had the
+            // whole pool, so in the tick it breaks their losses add up to more than it had (exploit review R28A-2).
+            val taken = minOf(lost, state.pool)
+            var left = taken
+            for ((npc, loss) in each) {
+                val share = if (npc === each.keys.last()) left else (taken.toLong() * loss / lost).toInt()
+                world.archiveRaids.passOn(npc, share)
+                left -= share
+            }
             state.pool = (state.pool - lost).coerceAtLeast(0)
             log("the pool takes $lost, ${state.pool} left")
         }

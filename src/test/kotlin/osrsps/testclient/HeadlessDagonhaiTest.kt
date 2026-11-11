@@ -231,6 +231,34 @@ class HeadlessDagonhaiTest {
     }
 
     @Test
+    fun `hits on two of them in the tick the pool breaks count for what the pool had, not twice over`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    alice.commandReply("raidparty invite bob") { it.startsWith("Invited") }
+                    bob.commandReply("raidparty accept alice") { it.startsWith("You joined") }
+                    val run = alice.intoRun(server, "alice")
+                    assertEquals(run, bob.intoRun(server, "bob"))
+                    alice.begin(server, run)
+                    bob.ontoFloor(server, run)
+                    val trio = members(run)
+                    alice.commandReply("hit 140 ${trio[0].index}") { it.startsWith("Hit ") }
+                    alice.await("the pool at 500") { if (trio.all { it.hitpoints == 500 }) Unit else null }
+                    // In one tick each hits a different one for all the pool has left: each of them has the whole pool,
+                    // so both hits land in full, but the pool has only 500 to lose (exploit review R28A-2).
+                    alice.commandReply("pause") { it.contains("aused after tick") }
+                    alice.commandReply("hit 500 ${trio[1].index}") { it.startsWith("Hit ") }
+                    bob.commandReply("hit 500 ${trio[2].index}") { it.startsWith("Hit ") }
+                    alice.stepTicks(1)
+                    alice.commandReply("resume") { it.startsWith("Resumed") }
+                    val (a, b) = listOf("alice", "bob").map { server.world.playerNamed(it)!!.saveKey }
+                    assertEquals(mapOf(a to 140 + 250, b to 250), run.damage[ArchiveRoom.DAGONHAI]?.toMap(), lines(run).takeLast(6).toString())
+                }
+            }
+        }
+    }
+
+    @Test
     fun `a tome blocked on the gust hits the blocker, one left alone reaches the cauldron`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->

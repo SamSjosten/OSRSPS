@@ -1183,8 +1183,9 @@ object Ocellus {
                     "Ocellus ${boss.hitpoints}/${boss.maxHitpoints} hp, charge ${state.charge}/$CHARGE_MAX, $doing"
                 }
             },
-            // The Blade takes the party's attacks for him in his second phase, its damage going to his bar.
+            // The Blade takes the party's attacks for him in his second phase, what reaches his bar counting.
             bosses = setOf(BLADE),
+            passedOn = setOf(BLADE),
         )
     }
 
@@ -1467,6 +1468,8 @@ object Ocellus {
         val share = minOf(total / 100, (boss.hitpoints - world.combat.floor(boss, null)).coerceAtLeast(0))
         boss.hitpoints -= share
         boss.effects.headBar(-1, MeleeCombat.HEALTH_BAR, MeleeCombat.healthBarFill(boss.hitpoints, boss.maxHitpoints))
+        // What reached his bar counts for the room's points, not what the Blade was dealt (exploit review R28A-1).
+        world.archiveRaids.passOn(blade, share)
         log("the Blade takes $lost: $share to his bar")
     }
 
