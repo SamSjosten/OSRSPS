@@ -53,15 +53,15 @@ object XarthLines : Lines("tfa_xarth", "The_Fractured_Archive/Strategies") {
  * Phase two (19b), from the tick after the third wave:
  * - [TWO_FIRES] arena fires ([LOC_ARENA_FIRE]) [FIRE_OUT_MIN] to [FIRE_OUT_MAX] tiles from his footprint, and
  *   [SPREAD_FIRES] more next to those already burning every cycle ([spread]). They never go out. A player on one is
- *   hurt for [FIRE_MIN] to [FIRE_MAX] and set alight, at most once every [FIRE_EVERY] ticks ([fires]).
+ *   set alight when not burning already ([fires]): the burn is all a fire does (19c).
  * - No more magic: his ranged ([shoot]) at [TWO_SHOTS_AT] ticks in, then in each [TWO_CYCLE]-tick cycle from
  *   [TWO_CYCLE_FROM] [TWO_SHOTS] shots [TWO_SHOT_GAP] ticks apart from [TWO_SHOT_FROM], Protect from Missiles
  *   blocking them all; a melee swing instead at a player beside him.
  * - At the start of each cycle he raises [SUMMONS] Corpses ([SUMMONS_BIG] for a party of five or more) [SUMMON_GAP]
  *   ticks apart ([summon]): each rises at an edge tile of the arena [CORPSE_AFTER] ticks on and walks a tile a tick to
  *   him ([corpses]). One that gets beside him is absorbed ([absorb]), healing him twice the hitpoints it has left, and
- *   every second absorbed sets off the blast ([blast]): the flame blast, then a wave all round him that sets those it
- *   hits alight.
+ *   every second absorbed sets off the blast ([blast]): [BLAST_TELL_AFTER] ticks on the flame blast, and
+ *   [BLAST_AFTER_TELL] after that a wave all round him that sets those it hits alight (19c).
  *
  * From the tsps capture notes (RSPSApp/tsps docs/fractured-archive.md, read 2026-11-10: five spectator captures of live
  * fights on rev 241.1, so they show no damage on players): where he and the heaps stand, the three 31-tick cycles of
@@ -85,10 +85,10 @@ object XarthLines : Lines("tfa_xarth", "The_Fractured_Archive/Strategies") {
  * wave's damage ([WAVE_MIN] to [WAVE_MAX]: the Wiki's ~45, a 100 twice and a 60 in Sam's clip), no prayer helping and its landing on the wave's own tick; the smaller explosion doing no
  * damage (the tsps notes' reading); the screened damage; the arena's floor, his room's as Bork's is round its middle;
  * the heaps blocking the way until they fall. In phase two (19b): every damage figure but the Wiki's 34s; where on the
- * edge a Corpse rises and the summon's projectile there; the fires' damage, how often they hurt, and where the new
+ * edge a Corpse rises and the summon's projectile there; a fire setting a burn only on a player not burning, and where the new
  * ones go (next to burning ones, as Sam's clips show the field filling); his shot's target (a random player) and its
  * flight; a melee swing only at a player beside him, in place of a shot; the blast after every second Corpse absorbed
- * (the Wiki: "within a short period of time", unclarified), with the wave's damage. Not built: the "shield" the Wiki
+ * (the Wiki: "within a short period of time"; Sam's clip: two heals 10 ticks apart, a lone third none), the flame blast as its tell, with the wave's damage. Not built: the "shield" the Wiki
  * says the first explosion takes off, the blast on everyone when all hide too soon, the AoE's shadow, the blockrange
  * the fallen heap's tiles get, the eight corpse piles catching fire, a Corpse doused by water spells, fire spells
  * raising more, his death's graphic, and him and the Corpses lingering six ticks after he dies.
@@ -277,10 +277,13 @@ object Xarth {
     fun drainedMax(max: Int, full: Int, now: Int): Int =
         if (now >= full) max else (max - (CombatMath.npcMaxHit(full, STRENGTH_BONUS) - CombatMath.npcMaxHit(now, STRENGTH_BONUS))).coerceAtLeast(0)
 
-    /** A fire under a player: this much, and set alight, at most once every [FIRE_EVERY] ticks. Guessed. */
-    const val FIRE_MIN = 5
-    const val FIRE_MAX = 10
-    const val FIRE_EVERY = 4
+    /**
+     * The blast after a second Corpse absorbed: its tell (the flame blast) this many ticks after the second heal, and
+     * the blast this many after the tell. Sam's clip 17-08-43 (the Review thread, 2026-11-11): heals 10 ticks apart,
+     * the dome 6 ticks after the second, the whole floor 1 tick after that.
+     */
+    const val BLAST_TELL_AFTER = 6
+    const val BLAST_AFTER_TELL = 1
 
     /** A Corpse absorbed heals him this many times what it has left, and is gone this many ticks later (tsps). */
     const val CORPSE_HEALS = 2
@@ -458,9 +461,6 @@ object Xarth {
         /** Phase two's fires, by tile. */
         val fires = LinkedHashMap<Tile, ZoneLoc>()
 
-        /** The tick each player may next be hurt by a fire under them. */
-        val nextFireHurt = WeakHashMap<Player, Long>()
-
         /** The Corpses walking to him, in the order they rose. */
         val corpses = ArrayList<WeakReference<Npc>>()
 
@@ -555,7 +555,7 @@ object Xarth {
         // By the world's tick: a burn set in phase one runs on into phase two.
         val running = state.burns[player]
         // The running burn's hit due this very tick still lands: set again on that tick, its callback would skip it,
-        // and a fire under the player every [FIRE_EVERY] ticks would stop the burn ever hurting.
+        // and burns set again on their due ticks would stop ever hurting.
         if (running != null) {
             val since = world.tick - running.since
             if (since in 1..BURN_EVERY.toLong() * BURN_HITS && since % BURN_EVERY == 0L && running.lastHit != world.tick) burnHit(player, running)
@@ -749,19 +749,24 @@ object Xarth {
         if (placed.isNotEmpty()) log("the fires spread to ${placed.joinToString(" ") { "${it.x},${it.z}" }}")
     }
 
-    /** Whoever stands on a fire is hurt and set alight, at most once every [FIRE_EVERY] ticks. */
+    /**
+     * Whoever stands on a fire and isn't burning is set alight: the burn is all a fire does. Sam's clip 17-08-43 (the
+     * Review thread, 2026-11-11): standing in the fires, only burn splats every 4 ticks, no hit of their own. Guessed:
+     * that a fire sets a burn at all (inferred from that), and only on a player not burning already.
+     */
     private fun EncounterContext.fires() {
         for (player in players) {
             if (boss.dead) return
-            if (Tile(player.x, player.z) !in state.fires) continue
-            if (world.tick < (state.nextFireHurt[player] ?: 0L)) continue
-            state.nextFireHurt[player] = world.tick + FIRE_EVERY
-            val dealt = world.meleeCombat.hitPlayer(player, null, roll(FIRE_MIN, FIRE_MAX), world.tick)
-            if (!player.dead) player.attackedTick = world.tick
-            log("fire under ${player.username} for $dealt")
-            if (!player.dead) burn(player)
+            if (player.dead || Tile(player.x, player.z) !in state.fires) continue
+            if (burning(player)) continue
+            log("fire under ${player.username}")
+            burn(player)
         }
     }
+
+    /** Whether [player]'s burn still has hits to come. */
+    private fun EncounterContext.burning(player: Player): Boolean =
+        state.burns[player]?.let { world.tick - it.since < BURN_EVERY * BURN_HITS } ?: false
 
     /**
      * His attack in phase two: a melee swing at a player beside him if there is one, else a shot at a random player
@@ -917,13 +922,15 @@ object Xarth {
     }
 
     /**
-     * The blast after a second Corpse absorbed (Wiki): the flame blast, then [WAVE_AFTER_BLAST] ticks on a wave all
-     * round him, sheltered by nothing but a player in front, setting those it hits alight. Guessed: its timing, as
-     * phase one's flame blast and wave.
+     * The blast after a second Corpse absorbed (Wiki): [BLAST_TELL_AFTER] ticks on the flame blast as its tell, then
+     * [BLAST_AFTER_TELL] on a wave all round him, sheltered by nothing but a player in front, setting those it hits
+     * alight (timing: Sam's clip 17-08-43). Guessed: the flame blast as the clip's dome, and the wave's damage.
      */
-    private fun EncounterContext.blast() {
+    private fun EncounterContext.blast() = after(BLAST_TELL_AFTER) {
+        if (boss.dead) return@after
         flameBlast()
-        after(WAVE_AFTER_BLAST) {
+        after(BLAST_AFTER_TELL) {
+            if (boss.dead) return@after
             val tiles = waveTiles(boss.x, boss.z, null)
             for (tile in tiles) world.zones.mapAnim(tile.x, tile.z, boss.level, SPOT_WAVE, delay = Bork.distance(boss.x, boss.z, SIZE, tile.x, tile.z))
             log("the blast all round")
