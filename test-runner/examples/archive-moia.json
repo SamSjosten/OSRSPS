@@ -1,0 +1,278 @@
+{
+ "name": "Raid step 19: Moia solo, her fight beginning as the player walks onto her room's round floor, at the Wiki's hitpoints with seven binders round the ring, her daggers under Protect from Missiles, her cough infecting the player and the infection's first hit draining prayer, her teleport and the magic dagger after it, a binder killed, her enrage at a third with its diamond of four binders killed to break the charge, and her death doing the room",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare",
+   "comment": "nothing carried; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel prayer 99",
+   "expectMessage": "Prayer set to level 99"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel hitpoints 99",
+   "expectMessage": "Hitpoints set to level 99"
+  },
+  {
+   "step": "command",
+   "text": "::heal",
+   "expectMessage": "Healed to 99 hitpoints."
+  },
+  {
+   "step": "command",
+   "text": "::god on",
+   "expectMessage": "You can't be hurt now",
+   "comment": "her daggers, cough, binders and burst still land but do nothing, so the waits can't kill the account; ::god off at the end"
+  },
+  {
+   "step": "command",
+   "text": "::tele 4127 5560 0",
+   "expectMessage": "Teleported to 4127, 5560, 0",
+   "comment": "the lobby, in front of the Archive Door"
+  },
+  {
+   "step": "locOption",
+   "locId": 62768,
+   "option": "Enter",
+   "timeoutMs": 20000,
+   "comment": "into a run of one"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 6
+  },
+  {
+   "step": "command",
+   "text": "::raid tp guardian",
+   "expectMessage": "To Archive Guardian's room"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Archive Guardian's room.",
+   "comment": "the first row done, so the second's doors open"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp ezekiel",
+   "expectMessage": "To Ezekiel's room"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Ezekiel's room.",
+   "comment": "the second row done (his fight is archive-ezekiel.json), so the third's doors open"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 548,
+   "component": 69,
+   "comment": "toplevel:stone5, the prayer tab, in the fixed frame the VM's client uses"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 541,
+   "component": 22,
+   "comment": "prayerbook:prayer14, Protect from Missiles, for her daggers"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp moia",
+   "expectMessage": "To Moia's room",
+   "comment": "in at the room's way in, east of her round floor: nothing begins there"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "You're not in a fight",
+   "comment": "her fight not begun at the way in"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp 4080 5663",
+   "expectMessage": "To 4080, 5663 of the raid",
+   "comment": "onto the east edge of her round floor, out of her binders' reach: her fight begins"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "Moia 1900/1900 hp, 7 binders, 0 infected",
+   "comment": "the Wiki's hitpoints for a player alone (counted as two), and every slot of the ring but one taken"
+  },
+  {
+   "step": "assertAnimation",
+   "npc": "Moia",
+   "id": 14785,
+   "timeoutMs": 10000,
+   "comment": "moia_projectile_attack01, her first dagger 5 ticks in"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "fight: a dagger at test",
+   "comment": "the account may be test or test2; the line is matched up to the name"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 18,
+   "comment": "a second dagger, then her cough 15 ticks in, landing 3 later, and the infection's first hit 3 after that"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 40",
+   "expectMessage": "fight: coughs at test"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 40",
+   "expectMessage": "fight: test is infected"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 40",
+   "expectMessage": "fight: the infection hurts test for 2, 0 dealt, draining 2 prayer",
+   "comment": "its first hit: 2, and as much prayer (::god takes the damage)"
+  },
+  {
+   "step": "assertAnimation",
+   "npc": "Moia",
+   "id": 14788,
+   "timeoutMs": 10000,
+   "comment": "moia_teleport01, her teleport as her fifth action, 25 ticks in"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "fight: comes to ",
+   "comment": "back in sight on another of her places, 2 ticks on"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 4
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "fight: a magic dagger at test",
+   "comment": "the magic dagger the tick after, then a ranged one 2 ticks on"
+  },
+  {
+   "step": "command",
+   "text": "::hit 95 tfa_moia_minion",
+   "expectMessage": "0/95 hp, dead",
+   "comment": "an Undead binder"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "fight: a binder falls at ",
+   "comment": "its slot rises again 30 ticks on"
+  },
+  {
+   "step": "command",
+   "text": "::hit 1273 tfa_moia",
+   "expectMessage": "627/1900 hp",
+   "comment": "down to a third: her enrage"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "enrage: enrage at 627 hp"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "enrage: 4 binders rise in a diamond",
+   "comment": "the ring's binders gone, four round her as she stands back in the middle"
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "Moia 627/1900 hp, 4 binders"
+  },
+  {
+   "step": "command",
+   "text": "::hit 95 tfa_moia_minion",
+   "expectMessage": "0/95 hp, dead",
+   "comment": "the diamond's first"
+  },
+  {
+   "step": "command",
+   "text": "::hit 95 tfa_moia_minion",
+   "expectMessage": "0/95 hp, dead",
+   "comment": "second"
+  },
+  {
+   "step": "command",
+   "text": "::hit 95 tfa_moia_minion",
+   "expectMessage": "0/95 hp, dead",
+   "comment": "third"
+  },
+  {
+   "step": "command",
+   "text": "::hit 95 tfa_moia_minion",
+   "expectMessage": "0/95 hp, dead",
+   "comment": "fourth"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "enrage: the charge is broken",
+   "comment": "every one of them dead before the charge filled"
+  },
+  {
+   "step": "command",
+   "text": "::kill tfa_moia",
+   "expectMessage": "Killed Moia"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 6,
+   "comment": "her death animation; her fight ends and the room is done (so no ::raid log)"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "done Archive Guardian, Ezekiel, Moia;",
+   "comment": "her room done"
+  },
+  {
+   "step": "command",
+   "text": "::god off",
+   "expectMessage": "You can be hurt again"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
