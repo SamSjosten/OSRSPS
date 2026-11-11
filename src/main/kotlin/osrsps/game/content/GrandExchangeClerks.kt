@@ -18,25 +18,30 @@ object GeClerkLines : Lines("ge_clerk", "Transcript:Grand Exchange Clerk") {
     val HOW_7 = line("how_7", "how to use it: seventh line")
     val AGAIN = line("again", "after the explanation: the clerk asks again, trade or item sets?")
     val TRADE = line("trade", "menu option 2: set up trade offers (opens the offers screen)")
-    val SETS = line("sets", "menu option 3: item sets (not built: ends the talk)")
+    val SETS = line("sets", "menu option 3: item sets (opens the item sets window)")
     val FINE = line("fine", "menu option 4: the player is fine, which they then say")
 }
 
 /**
  * The Grand Exchange's four clerks (ge_clerk_1 to 4, 2148 to 2151), across their booths: Exchange opens the offers
  * screen, History the trade history, and Talk-to the clerk's menu, which explains the Exchange, opens the offers screen
- * or ends. From the Wiki's transcript; the explanation's seven pages are its count. Left out: Sets and the menu's item
- * sets (there is no item sets screen yet), the combat path voucher and the collection reminders options. Guessed:
- * every chathead expression, and that the player says the options they pick except setting up offers.
+ * or ends; Sets, and Item sets in the talk, open the item sets window ([osrsps.game.ge.ItemSetsScreen]). From the Wiki's
+ * transcript; the explanation's seven pages are its count. Left out: the combat path voucher and the collection
+ * reminders options. Guessed: every chathead expression, and that the player says the options they pick except
+ * setting up offers and item sets.
  */
 object GrandExchangeClerks {
     val CLERKS = listOf(2148, 2149, 2150, 2151)
     const val TALK_TO = 1
     const val EXCHANGE = 3
     const val HISTORY = 4
+    const val SETS = 5
 
-    /** Whether a talk ends at the offers screen. */
-    internal suspend fun Dialogue.clerk(): Boolean = with(GeClerkLines) {
+    /** What a talk ends at. */
+    enum class Outcome { NOTHING, OFFERS, ITEM_SETS }
+
+    /** Where a talk ends: nothing, the offers screen or the item sets window. */
+    internal suspend fun Dialogue.clerk(): Outcome = with(GeClerkLines) {
         chatNpc(ChatAnim.HAPPY, GREETING)
         // The explanation asks again and brings the menu back; every other choice ends the talk.
         var picked = choice(HOW_TO_USE, TRADE, SETS, FINE)
@@ -47,7 +52,11 @@ object GrandExchangeClerks {
             picked = choice(HOW_TO_USE, TRADE, SETS, FINE)
         }
         if (picked == 4) chatPlayer(ChatAnim.HAPPY, FINE)
-        picked == 2
+        when (picked) {
+            2 -> Outcome.OFFERS
+            3 -> Outcome.ITEM_SETS
+            else -> Outcome.NOTHING
+        }
     }
 }
 
@@ -55,11 +64,16 @@ fun registerGrandExchangeClerks(world: World) {
     for (clerk in GrandExchangeClerks.CLERKS) {
         world.npcInteractions.reachOverCounter(clerk)
         world.handlers.onNpc(clerk, GrandExchangeClerks.TALK_TO) { op ->
-            var trade = false
-            world.dialogues.start(this, op.npc) { trade = with(GrandExchangeClerks) { clerk() } }
-            if (trade) world.grandExchangeScreen.open(player)
+            var outcome = GrandExchangeClerks.Outcome.NOTHING
+            world.dialogues.start(this, op.npc) { outcome = with(GrandExchangeClerks) { clerk() } }
+            when (outcome) {
+                GrandExchangeClerks.Outcome.OFFERS -> world.grandExchangeScreen.open(player)
+                GrandExchangeClerks.Outcome.ITEM_SETS -> world.itemSetsScreen.open(player)
+                GrandExchangeClerks.Outcome.NOTHING -> {}
+            }
         }
         world.handlers.onNpc(clerk, GrandExchangeClerks.EXCHANGE) { world.grandExchangeScreen.open(player) }
         world.handlers.onNpc(clerk, GrandExchangeClerks.HISTORY) { world.grandExchangeScreen.openHistory(player) }
+        world.handlers.onNpc(clerk, GrandExchangeClerks.SETS) { world.itemSetsScreen.open(player) }
     }
 }
