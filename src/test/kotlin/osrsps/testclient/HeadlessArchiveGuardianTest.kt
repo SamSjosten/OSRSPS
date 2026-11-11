@@ -827,6 +827,10 @@ class HeadlessArchiveGuardianTest {
                 // the inert guardian itself is an add's.
                 assertEquals(share, run.damage[ArchiveRoom.GUARDIAN]?.get(key))
                 assertEquals(180, run.minionDamage[ArchiveRoom.GUARDIAN]?.get(key))
+                // Hits on one asleep are kept too, as it keeps them when it wakes (Codex on #649).
+                val se = fight.adds.single { it.spawn.type.id == ArchiveGuardian.BATTERY_INACTIVE && it.type.id == ArchiveGuardian.BATTERY_INACTIVE }
+                alice.commandReply("hit 40 ${se.index}") { it.startsWith("Hit ") }
+                assertEquals(40, run.addHits[se]?.get(key))
             }
         }
     }

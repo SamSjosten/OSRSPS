@@ -371,8 +371,9 @@ object ArchiveGuardian {
                     },
                 ),
             ),
-            scriptedAttacks = true,            // Their damage to it counts for whoever beat them to 0 (R28A-3).
-            charged = setOf(BATTERY_ACTIVE),
+            scriptedAttacks = true,            // Their damage to it counts for whoever beat them to 0 (R28A-3), counting hits that land on one while it
+            // sleeps, which it keeps when it wakes (Codex on #649).
+            charged = setOf(BATTERY_ACTIVE, BATTERY_INACTIVE),
         )
     }
 
