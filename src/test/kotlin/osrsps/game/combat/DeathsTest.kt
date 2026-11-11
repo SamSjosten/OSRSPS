@@ -7,6 +7,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import net.rsprot.protocol.game.outgoing.interfaces.IfSetEventsV2
 import net.rsprot.protocol.game.outgoing.inv.UpdateInvFull
+import net.rsprot.protocol.game.outgoing.misc.player.RunClientScript
 import net.rsprot.protocol.message.OutgoingGameMessage
 import osrsps.game.FrameSlot
 import osrsps.game.GameRandom
@@ -239,12 +240,19 @@ class DeathsTest {
         val grave = aliceDies()
         npcOp(alice, grave.npc, Deaths.LOOT)
         assertEquals(Deaths.GRAVESTONE, alice.modals[FrameSlot.MAINMODAL])
-        assertEquals(listOf(Triple(alice, Deaths.VARBIT_FREE_FROM, 1)), varbits)
+        // Nothing worth 100,000 a unit: every band starts at slot 0, so the whole grave is the free list.
+        assertEquals(
+            listOf(Triple(alice, Deaths.VARBIT_UNDER_10M, 1), Triple(alice, Deaths.VARBIT_UNDER_1M, 1), Triple(alice, Deaths.VARBIT_FREE_FROM, 1), Triple(alice, Deaths.VARBIT_MERGED, 0)),
+            varbits,
+        )
+        // gravestone_transmit_data: no fee, an empty coffer.
+        val transmit = sent.map { it.second }.filterIsInstance<RunClientScript>().single()
+        assertEquals(Deaths.TRANSMIT_DATA to listOf<Any>(0, 0), transmit.id to transmit.values.toList())
         val inv = sent.map { it.second }.filterIsInstance<UpdateInvFull>().single()
         assertEquals(Deaths.GRAVE_INV, inv.inventoryId)
         assertEquals(2, inv.capacity)
         val events = sent.map { it.second }.filterIsInstance<IfSetEventsV2>()
-        assertEquals(listOf(Deaths.FREEITEMS, Deaths.FREEBUTTON), events.map { it.componentId })
+        assertEquals(listOf(Deaths.FREEITEMS, Deaths.PAYITEMS, Deaths.FREEBUTTON, Deaths.PAYBUTTON), events.map { it.componentId })
         assertEquals(0 to Deaths.GRAVE_CAPACITY - 1, events[0].start to events[0].end)
 
         button(alice, Deaths.FREEITEMS, sub = 1)
@@ -259,6 +267,99 @@ class DeathsTest {
         assertEquals(listOf(grave.npc), removed)
         assertTrue(deaths.all.isEmpty())
         assertTrue(messages.isEmpty())
+    }
+
+    @Test
+    fun `items worth 100,000 a unit or more wait in the paid list, most valuable first, until Unlock takes the fee from the bank`() {
+        // Three crowns kept, the most valuable; a godsword (100,000 to take back), a dragon dagger (1,000) and bones lost.
+        val crown = ObjType(20_000, "Crown", cost = 50_000_000)
+        val godsword = ObjType(20_001, "Godsword", cost = 20_000_000)
+        val dagger = ObjType(20_002, "Dragon dagger", cost = 150_000)
+        val types = ObjTypes.of(coins, bones, crown, godsword, dagger)
+        // The bank's first tab, as its varbits keep it: the coins the fee is paid from are its only item.
+        val tabs = object : osrsps.game.bank.BankTabs {
+            val sizes = IntArray(osrsps.game.bank.Bank.TABS + 1)
+            override fun get(tab: Int) = sizes[tab]
+            override fun set(tab: Int, size: Int) {
+                sizes[tab] = size
+            }
+            override var current = 1
+        }
+        val bank = osrsps.game.bank.Bank(types)
+        val fees = Deaths(
+            types, graveType, { tick }, { online.asSequence() }, { key -> online.firstOrNull { it.saveKey == key } },
+            spawnNpc = { npcs.add(it) }, removeNpc = { npcs.remove(it); removed += it },
+            teleportToSpawn = { player -> player.x = 3222; player.z = 3218 },
+            openModal = { player, id -> player.modals[FrameSlot.MAINMODAL] = id }, closeModals = { it.modals.clear() },
+            setVarbitNow = { player, id, value -> varbits += Triple(player, id, value) },
+            send = { player, message -> sent += player to message }, message = { player, text -> messages += player to text },
+            takeFromBank = { player, id, count -> bank.take(player.bank, tabs, id, count) },
+        )
+        val feeHandlers = Handlers()
+        fees.register(feeHandlers)
+        val feeScripts = ScriptRunner(feeHandlers, { it.modals.clear() }) { tick }
+        repeat(3) { alice.inventory.add(crown, 1) }
+        alice.inventory.add(bones, 1)
+        alice.inventory.add(dagger, 1)
+        alice.inventory.add(godsword, 1)
+        alice.hitpoints = 0
+        fees.die(alice)
+        repeat(Deaths.DEATH_TICKS) {
+            tick++
+            fees.process()
+        }
+        val grave = fees.graveOf(alice)!!
+        assertEquals(listOf(godsword.id, dagger.id, bones.id), grave.items.contents().map { it.second.id })
+        assertEquals(101_000L, fees.fee(alice, grave))
+
+        alice.x = grave.npc.x + 1
+        alice.z = grave.npc.z
+        feeScripts.trigger(alice, Op(OpTarget.NPC, Deaths.GRAVE, Deaths.LOOT, npc = grave.npc))
+        // The client's bands: under 10m from slot 1, under 1m from 1, free from 2, each plus one.
+        assertEquals(listOf(Deaths.VARBIT_UNDER_10M to 2, Deaths.VARBIT_UNDER_1M to 2, Deaths.VARBIT_FREE_FROM to 3), varbits.take(3).map { it.second to it.third })
+        val transmit = sent.map { it.second }.filterIsInstance<RunClientScript>().last()
+        assertEquals(listOf<Any>(101_000, 0), transmit.values.toList())
+        fun press(component: Int, sub: Int = -1) = feeScripts.trigger(alice, Op.button(Deaths.GRAVESTONE, component, 1, sub))
+
+        // Locked: neither a paid item's Take nor the free list's Take-All reaches it.
+        press(Deaths.PAYITEMS, sub = 0)
+        assertEquals(alice to "[combat.grave_locked]", messages.last())
+        press(Deaths.FREEBUTTON)
+        assertEquals(listOf(godsword.id, dagger.id), grave.items.contents().map { it.second.id })
+        assertEquals(1L, alice.inventory.count(bones.id))
+
+        alice.bank.add(coins, 50_000)
+        tabs[1] = 1
+        press(Deaths.PAYBUTTON)
+        assertEquals(alice to "[combat.grave_cant_pay fee=101,000]", messages.last())
+        assertEquals(50_000L, alice.bank.count(coins.id))
+        alice.bank.add(coins, 51_000)
+        press(Deaths.PAYBUTTON)
+        assertEquals(alice to "[combat.grave_paid fee=101,000]", messages.last())
+        // Every coin taken, through the bank's own take: the tab they were the last of is gone too (Codex, PR 614).
+        assertTrue(alice.bank.isEmpty())
+        assertEquals(0, tabs[1])
+        assertEquals(0L, fees.fee(alice, grave))
+        assertEquals(listOf<Any>(0, 0), sent.map { it.second }.filterIsInstance<RunClientScript>().last().values.toList())
+
+        press(Deaths.PAYITEMS, sub = 0)
+        assertEquals(1L, alice.inventory.count(godsword.id))
+        press(Deaths.PAYBUTTON)
+        assertEquals(1L, alice.inventory.count(dagger.id))
+        assertTrue(fees.all.isEmpty())
+    }
+
+    @Test
+    fun `a Hardcore Ironman's death makes them an Ironman`() {
+        val types = osrsps.game.VarTypes(600, mapOf(osrsps.game.SettingsSide.VARBIT_IRONMAN to osrsps.game.VarbitType(499, 3, 5)))
+        val carol = Player(3, "carol", 3212, 3210, 0, types)
+        online += carol
+        carol.vars.setVarbit(osrsps.game.SettingsSide.VARBIT_IRONMAN, Deaths.HARDCORE_IRONMAN)
+        carol.hitpoints = 0
+        deaths.die(carol)
+        tick(Deaths.DEATH_TICKS)
+        assertEquals(Triple(carol, osrsps.game.SettingsSide.VARBIT_IRONMAN, Deaths.IRONMAN), varbits.last())
+        assertEquals(carol to "[combat.hardcore_lost]", messages.last())
     }
 
     @Test
