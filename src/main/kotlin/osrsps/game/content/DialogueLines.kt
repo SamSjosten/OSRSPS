@@ -23,6 +23,7 @@ import osrsps.game.raid.ArchiveVaultLines
 import osrsps.game.raid.BorkLines
 import osrsps.game.raid.DreadnothLines
 import osrsps.game.raid.OcellusLines
+import osrsps.game.raid.QuartermasterLines
 import osrsps.game.raid.XarthLines
 import osrsps.game.shop.ShopLines
 import osrsps.game.skill.AgilityLines
@@ -97,6 +98,7 @@ object DialogueLines {
         DreadnothLines,
         OcellusLines,
         ArchiveVaultLines,
+        QuartermasterLines,
         XarthLines,
         CadmusLines,
         FeorasLines,

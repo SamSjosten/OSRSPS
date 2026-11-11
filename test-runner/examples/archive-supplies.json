@@ -1,0 +1,303 @@
+{
+ "name": "Raid step 21: the Quartermaster solo, coming to the nexus with his wheelbarrow once the third row's room is done and each member's 50 Supply Credits, his Talk-to, Resupply opening Alliance Supplies on the omnishop window, the list's Buy-2 and Buy-5, a button buying for the entry selected, the credits and stock running down, the refusal for too few credits, and the shop closing as the fourth row begins",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare",
+   "comment": "nothing carried; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys",
+   "comment": "his talk and the shop's refusal are checked by their keys, so it passes with or without the words on the server"
+  },
+  {
+   "step": "command",
+   "text": "::varbit 16381 9",
+   "expectMessage": "-> 9",
+   "comment": "credits left from before, which a new run takes away"
+  },
+  {
+   "step": "command",
+   "text": "::tele 4127 5560 0",
+   "expectMessage": "Teleported to 4127, 5560, 0",
+   "comment": "the lobby, in front of the Archive Door"
+  },
+  {
+   "step": "locOption",
+   "locId": 62768,
+   "option": "Enter",
+   "timeoutMs": 20000,
+   "comment": "into a run of one"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 6
+  },
+  {
+   "step": "assertVarbit",
+   "id": 16381,
+   "value": 0,
+   "timeoutMs": 5000,
+   "comment": "tfa_supply_points: no credits from before"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp guardian",
+   "expectMessage": "To Archive Guardian's room"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Archive Guardian's room."
+  },
+  {
+   "step": "command",
+   "text": "::raid tp bork",
+   "expectMessage": "To Bork and the Smorks's room"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Bork and the Smorks's room."
+  },
+  {
+   "step": "command",
+   "text": "::raid tp 4128 5607",
+   "expectMessage": "To 4128, 5607 of the raid",
+   "comment": "the nexus, by the Quartermaster's tile"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::raid tp dreadnoth",
+   "expectMessage": "To Dreadnoth the Jellied's room"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Dreadnoth the Jellied's room.",
+   "comment": "the third row done: he comes"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 16381,
+   "value": 50,
+   "timeoutMs": 5000,
+   "comment": "guessed: 50 Supply Credits each as he comes"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp 4128 5607",
+   "expectMessage": "To 4128, 5607 of the raid"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "npcOption",
+   "npc": "Quartermaster",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_quartermaster.hello]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_quartermaster.greeting]",
+   "speaker": "Quartermaster"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[tfa_quartermaster.fine]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_quartermaster.fine]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_quartermaster.advice]",
+   "speaker": "Quartermaster"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[tfa_quartermaster.keep_in_mind]",
+   "comment": "the player's last line"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Quartermaster",
+   "option": "Resupply",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 819,
+   "timeoutMs": 10000,
+   "comment": "omnishop_main: Alliance Supplies"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 806,
+   "comment": "omnishop_side"
+  },
+  {
+   "step": "assertVarp",
+   "id": 3874,
+   "value": 17150,
+   "comment": "omnishop_lastshop: tfa_midraid_supplies_shop"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 819,
+   "component": 38,
+   "slot": 12,
+   "op": 3,
+   "comment": "Buy-2 on the second entry, Saradomin brew(4) at 3 credits"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Saradomin brew(4)",
+   "count": 2,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "assertVarbit",
+   "id": 16381,
+   "value": 44,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 819,
+   "component": 38,
+   "slot": 48,
+   "op": 1,
+   "comment": "Select on the fifth entry, Manta ray"
+  },
+  {
+   "step": "assertVarp",
+   "id": 3869,
+   "value": 4,
+   "timeoutMs": 5000,
+   "comment": "omnishop_selected_id"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 819,
+   "component": 29,
+   "op": 1,
+   "comment": "button_4: Buy-5 of the entry selected"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Manta ray",
+   "count": 5,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "assertVarbit",
+   "id": 16381,
+   "value": 34,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 819,
+   "component": 38,
+   "slot": 12,
+   "op": 5,
+   "comment": "Buy-5 on the brews with four left: four"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Saradomin brew(4)",
+   "count": 6,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "assertVarbit",
+   "id": 16381,
+   "value": 22,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "command",
+   "text": "::varbit 16381 1",
+   "expectMessage": "-> 1",
+   "comment": "one credit left"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 819,
+   "component": 38,
+   "slot": 24,
+   "op": 2,
+   "comment": "Buy-1 on Super restore(4) at 3"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[shop.not_enough_currency currency=Supply Credits]",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "command",
+   "text": "::raid tp xarth",
+   "expectMessage": "To Xarth's room",
+   "comment": "into the fourth row's room (his fight on live begins on the arena, so the next line does it)"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Xarth's room.",
+   "comment": "the fourth row's room begun and done: he goes, and his shop closes"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 819,
+   "absent": true,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "done Archive Guardian, Bork and the Smorks, Dreadnoth the Jellied, Xarth;"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
