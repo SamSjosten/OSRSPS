@@ -31,13 +31,14 @@ class HeadlessItemSetsTest {
         ObjType(id + 1, name, stackable = true, tradeable = true, certlink = id, certtemplate = 799),
     )
 
-    private val types = obj(SET, "Test armour set") + obj(HELM, "Test helm") + obj(BODY, "Test body") + obj(LEGS, "Test legs") + obj(JUNK, "Junk")
+    private val types = obj(SET, "Test armour set") + obj(HELM, "Test helm") + obj(BODY, "Test body") + obj(LEGS, "Test legs") + obj(JUNK, "Junk") +
+        obj(PAGE_SET, "Holy book page set") + obj(PAGE_1, "Saradomin page 1") + obj(PAGE_2, "Saradomin page 2")
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes.of(*types.toTypedArray()),
             npcTypes = NpcTypes.of(clerk), npcSpawns = listOf(NpcSpawn(clerk, 3224, 3218, source = "test")),
-            itemSets = ItemSets(listOf(ItemSet(0, SET, listOf(HELM, BODY, LEGS)))),
+            itemSets = ItemSets(listOf(ItemSet(0, SET, listOf(HELM, BODY, LEGS)), ItemSet(1, PAGE_SET, listOf(PAGE_1, PAGE_2)))),
             cycleMillis = millis,
         )
     }
@@ -104,6 +105,22 @@ class HeadlessItemSetsTest {
     }
 
     @Test
+    fun `a god page set comes out noted from unnoted pages`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item $PAGE_1 1")
+                client.command("item $PAGE_2 1")
+                client.await("the pages") { if (client.held(PAGE_2) == 1L) Unit else null }
+                client.openSets()
+                client.ifButton(ItemSetsScreen.MAIN, ItemSetsScreen.ITEMLIST, 1, 1)
+                client.await("the noted page set") { if (client.held(PAGE_SET + 1) == 1L) Unit else null }
+                assertEquals(0L, client.held(PAGE_SET) + client.held(PAGE_1) + client.held(PAGE_2))
+            }
+        }
+    }
+
+    @Test
     fun `Item sets in a clerk's talk opens the window`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { client ->
@@ -126,5 +143,8 @@ class HeadlessItemSetsTest {
         const val BODY = 120
         const val LEGS = 130
         const val JUNK = 140
+        const val PAGE_SET = 150
+        const val PAGE_1 = 160
+        const val PAGE_2 = 170
     }
 }

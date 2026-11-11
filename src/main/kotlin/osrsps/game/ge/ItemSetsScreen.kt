@@ -45,7 +45,7 @@ class ItemSets(val all: List<ItemSet>) {
  *
  * - **Pack** (`itemsets:itemlist`, slot = the set's index, op 1) takes one of each piece and gives the set: unnoted
  *   pieces make an unnoted set and, failing those, noted pieces a noted set (the Wiki's Item sets page: "Noted
- *   components produce a noted set").
+ *   components produce a noted set"). God page sets always come out noted (its changes list).
  * - **Unpack** (`itemsets_side:items`, slot = the backpack slot, op 1) does the reverse for one set, unnoted or noted.
  * - **Contents** (op 1 on a set the client greys) names the pieces in a game message: guessed, as the Wiki doesn't say
  *   what it shows.
@@ -115,7 +115,8 @@ class ItemSetsScreen(
             }
         }
         val take = pieces.map { if (noted) it.certlink else it.id }
-        val give = if (noted) objTypes[setType.certlink] ?: return else setType
+        // God page sets come out noted whichever pieces made them (the Wiki's Item sets page, changes).
+        val give = if (noted || setType.name.endsWith(PAGE_SET_SUFFIX, ignoreCase = true)) objTypes[setType.certlink] ?: setType else setType
         exchange(player, take, listOf(give))
     }
 
@@ -161,6 +162,9 @@ class ItemSetsScreen(
         const val ITEMLIST = 2
         const val FILTER = 7
         const val SIDE_ITEMS = 0
+
+        /** The end of a god page set's name, such as Holy book page set. */
+        const val PAGE_SET_SUFFIX = " page set"
 
         /** itemsets_show_only_craftable. */
         const val FILTER_VARBIT = 17803

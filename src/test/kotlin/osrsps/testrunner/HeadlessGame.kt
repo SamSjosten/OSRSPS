@@ -770,6 +770,7 @@ internal class HeadlessGame(
             (DepositBox.INTERFACE shl 16) or DepositBox.ITEMS to InvBinding(Inventory.INV),
             (ShopScreen.SIDE shl 16) or ShopScreen.SIDE_ITEMS to InvBinding(Inventory.INV),
             (Trades.SIDE shl 16) or Trades.SIDE_ITEMS to InvBinding(Inventory.INV),
+            (osrsps.game.ge.ItemSetsScreen.SIDE shl 16) or osrsps.game.ge.ItemSetsScreen.SIDE_ITEMS to InvBinding(Inventory.INV),
             (GrandExchangeScreen.SIDE shl 16) or GrandExchangeScreen.SIDE_ITEMS to InvBinding(Inventory.INV),
             (PriceChecker.MAIN shl 16) or PriceChecker.ITEMS to InvBinding(PriceChecker.INV),
             (PriceChecker.SIDE shl 16) or PriceChecker.SIDE_ITEMS to InvBinding(Inventory.INV),
