@@ -340,8 +340,21 @@ class Deaths(
         }
         sort(grave)
         grave.ticksLeft = GRAVE_TICKS
+        reshow(grave)
+    }
+
+    /** Sends [grave] again to whoever has it open. */
+    private fun reshow(grave: Grave) {
         for (viewer in players()) if (viewing[viewer.saveKey] === grave && hasOpen(viewer)) sendGrave(viewer, grave)
     }
+
+    /**
+     * Whether [grave]'s items are in value order by today's prices. Which are free, and what the rest cost, go by where
+     * the first item under 100,000 stands, so a grave sorted by older prices could free a valuable item after its first
+     * fell in price (an `::itemprices refresh`; exploit review round 25, R25A-3).
+     */
+    private fun inOrder(grave: Grave): Boolean =
+        grave.items.contents().zipWithNext().all { (a, b) -> unitValue(a.second.id) >= unitValue(b.second.id) }
 
     /** Puts [grave]'s items in value order, most valuable a unit first; ties keep their order. */
     private fun sort(grave: Grave) {
@@ -429,6 +442,7 @@ class Deaths(
             return
         }
         viewing[player.saveKey] = grave
+        if (!inOrder(grave)) sort(grave)
         openModal(player, GRAVESTONE)
         sendGrave(player, grave)
         // The item slots' Take (op 1) and Examine (op 10), and the Take-All and Unlock buttons, in the second event
@@ -468,6 +482,13 @@ class Deaths(
         if (!hasOpen(player) || graves[grave.npc] !== grave) return null
         val npc = grave.npc
         if (npc.level != player.level || maxOf(abs(npc.x - player.x), abs(npc.z - player.z)) > GRAVE_REACH) return null
+        // Prices changed with the gravestone open: the grave is put in order and shown again, and this click, made on
+        // what it showed before, does nothing.
+        if (!inOrder(grave)) {
+            sort(grave)
+            reshow(grave)
+            return null
+        }
         return grave
     }
 
