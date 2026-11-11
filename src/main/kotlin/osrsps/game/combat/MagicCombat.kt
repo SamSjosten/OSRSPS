@@ -107,6 +107,12 @@ class MagicCombat(
     private val inFlight = ArrayList<Cast>()
 
     /**
+     * Told of every spell that lands on an NPC, as it lands: the caster, the NPC, the spell, and whether it hit (false for
+     * a splash). A boss fight listens: the Dagon'hai's channels, stopped by a spell of their element (raid step 23).
+     */
+    val landings = ArrayList<(Player, Npc, CombatSpell, Boolean) -> Unit>()
+
+    /**
      * The player cast the spell at [component] of the magic tab on [npc]. Nothing happens for a spell that isn't a
      * combat spell here, one of a book they don't have open (the client shows only that book's) or an NPC that can't be
      * fought; single-way combat refuses it as an Attack would.
@@ -387,6 +393,7 @@ class MagicCombat(
                 if (spells.splash >= 0) npc.effects.spotanim(0, spells.splash, IMPACT_HEIGHT)
                 melee.splashed(npc, cast.player, tick, cast.from)
             }
+            for (listener in landings) listener(cast.player, npc, cast.spell, cast.hit)
         }
     }
 

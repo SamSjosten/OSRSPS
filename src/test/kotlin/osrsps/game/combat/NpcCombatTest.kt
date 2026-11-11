@@ -81,6 +81,8 @@ class NpcCombatTest {
             "dreadnoth_melee01" to 14779, "dreadnoth_death01" to 14782, "jelly_attack" to 1586, "jelly_death" to 1587,
             "moia_projectile_attack01" to 14785, "moia_death01" to 14784, "moia_minion_attack" to 14791, "moia_minion_death" to 14792,
             "xarth_attack_magic_01" to 14984, "xarth_death_01" to 14995, "xarth_corpse_death_01" to 15003,
+            "npc_dagonhai_attack_ranged_01" to 14593, "npc_dagonhai_death_01" to 14652, "npc_dagonhai_death_02" to 14653,
+            "npc_dagonhai_death_03" to 14654, "leagues_6_thrall_imp_melee_attack" to 13851, "leagues_6_thrall_imp_melee_despawn" to 13856,
             "demon_attack" to 64, "demon_block" to 65, "demon_death" to 67,
             "shade_attack" to 1283, "shade_block" to 1286, "shade_sink" to 1287,
             "monalisk_cave_bug_attack" to 6079, "monalisk_cave_bug_defend" to 6080, "monalisk_mini_cave_bug_death" to 6082,
@@ -696,6 +698,34 @@ class NpcCombatTest {
         assertEquals(mapOf(NpcStat.DEFENCE to 40), her.drainCaps)
         assertEquals(listOf(20, 110, 15, 30), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { her.defence.against(it) })
         assertEquals(listOf(12, 15, 10, -20), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { minion.defence.against(it) })
+    }
+
+    @Test
+    fun `the Dagon'hai trio and their imps fight as the Wiki has them, the trio's weakened forms sharing their entries`() {
+        fun caster(id: Int, internal: String) = NpcType(
+            id, "Dagon'hai", size = 2, internalName = internal,
+            stats = NpcStats(attack = 1, defence = 100, strength = 1, hitpoints = 640, ranged = 260, magic = 290),
+        )
+        val trio = listOf(
+            caster(16643, "tfa_dagonhai_leader"), caster(16644, "tfa_dagonhai_leader_unshielded"),
+            caster(16645, "tfa_dagonhai_minion_1"), caster(16646, "tfa_dagonhai_minion_1_unshielded"),
+            caster(16647, "tfa_dagonhai_minion_2"), caster(16648, "tfa_dagonhai_minion_2_unshielded"),
+        )
+        val imp = NpcType(16650, "Imp", internalName = "tfa_dagonhai_demon", stats = NpcStats(attack = 250, defence = 50, strength = 195, hitpoints = 44, ranged = 66, magic = 125))
+        // The common imp, which the file names `imp`: without it the file's entry would take ours by its name.
+        val commonImp = NpcType(5007, "Imp", internalName = "imp", stats = NpcStats(attack = 4, defence = 4, strength = 5, hitpoints = 8))
+        val combat = NpcCombat.load(NpcTypes.of(*(trio + imp + commonImp).toTypedArray()), seqs)
+        for (type in trio) {
+            val def = combat[type]!!
+            assertEquals(listOf(6, 27, 180, 250), listOf(def.attackSpeed, def.maxHit, def.attackBonus, def.magicAttack), type.internalName)
+            assertEquals(AttackType.RANGED, def.attackType)
+            assertEquals(listOf(50, 50, 50, 100), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { def.defence.against(it) })
+        }
+        assertEquals(listOf(14652, 14652, 14653, 14653, 14654, 14654), trio.map { combat[it]!!.anims.death })
+        val demon = combat[imp]!!
+        assertEquals(listOf(4, 20), listOf(demon.attackSpeed, demon.maxHit))
+        assertEquals(CombatMath.npcMaxHit(imp.stats.strength, demon.strengthBonus), demon.maxHit, "the formula's")
+        assertEquals(NpcCombatAnims(13851, -1, 13856), demon.anims)
     }
 
     @Test

@@ -803,7 +803,10 @@ class HeadlessArchiveRaidTest {
                     assertEquals(emptyList(), loot.chests.getValue(carolPlayer.saveKey), "Carol's folio is in her grave")
                     assertEquals(listOf(pickaxe.id to 1), loot.chests.getValue(davePlayer.saveKey).map { it.type.id to it.count })
 
-                    // Dave's places, the world still paused: each one owned, and not once it is out of it.
+                    // Dave's places, the world still paused: each one owned, and not once it is out of it. First his
+                    // reward chest's window, the run's loot in it not yet taken (exploit review R25A-5).
+                    assertTrue(raids.chests.owns(davePlayer, pickaxe.id), "in the reward chest's window, not yet taken (R25A-5)")
+                    davePlayer.archiveChest.clear()
                     assertFalse(raids.chests.owns(davePlayer, pickaxe.id))
                     davePlayer.priceChecker.add(pickaxe, 1)
                     assertTrue(raids.chests.owns(davePlayer, pickaxe.id), "in the guide prices screen")
