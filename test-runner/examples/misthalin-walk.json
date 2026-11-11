@@ -1,0 +1,1439 @@
+{
+ "name": "Misthalin piece 7 step 12b: a walk along the piece's roads, in stages of at most 4 tiles, on the server's own pathing: Lumbridge north past the farms into Varrock; Lumbridge to the H.A.M. Hideout's trapdoor; Varrock's east gate north to the Lumber Yard, through the members' gate and Silvarea to Paterdomus; Varrock's east gate south through the Digsite's gate to the Exam Centre and north through the digs to the canal barge",
+ "account": "test",
+ "timeoutMs": 30000,
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::god on",
+   "comment": "the dark wizards south of Varrock would otherwise kill a new player on the way"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel attack 99",
+   "comment": "combat level 126, so nothing on the roads is aggressive"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel strength 99"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel defence 99"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel hitpoints 99"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel ranged 99"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel magic 99"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel prayer 99"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3222 3218 0",
+   "expectMessage": "Teleported to 3222, 3218, 0",
+   "comment": "leg 1: Lumbridge Castle's courtyard, north on the road to Varrock"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3222,
+   "y": 3218,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3226,
+   "y": 3218
+  },
+  {
+   "step": "walk",
+   "x": 3230,
+   "y": 3218
+  },
+  {
+   "step": "walk",
+   "x": 3232,
+   "y": 3221
+  },
+  {
+   "step": "walk",
+   "x": 3232,
+   "y": 3225
+  },
+  {
+   "step": "walk",
+   "x": 3232,
+   "y": 3229
+  },
+  {
+   "step": "walk",
+   "x": 3232,
+   "y": 3233
+  },
+  {
+   "step": "walk",
+   "x": 3234,
+   "y": 3237
+  },
+  {
+   "step": "walk",
+   "x": 3235,
+   "y": 3240,
+   "comment": "east of the castle, north to the farms"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3235,
+   "y": 3240,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3233,
+   "y": 3243
+  },
+  {
+   "step": "walk",
+   "x": 3232,
+   "y": 3246
+  },
+  {
+   "step": "walk",
+   "x": 3232,
+   "y": 3250
+  },
+  {
+   "step": "walk",
+   "x": 3232,
+   "y": 3254
+  },
+  {
+   "step": "walk",
+   "x": 3231,
+   "y": 3258
+  },
+  {
+   "step": "walk",
+   "x": 3229,
+   "y": 3261
+  },
+  {
+   "step": "walk",
+   "x": 3233,
+   "y": 3261
+  },
+  {
+   "step": "walk",
+   "x": 3237,
+   "y": 3261
+  },
+  {
+   "step": "walk",
+   "x": 3238,
+   "y": 3261
+  },
+  {
+   "step": "assertLocation",
+   "x": 3238,
+   "y": 3261,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3241,
+   "y": 3263
+  },
+  {
+   "step": "walk",
+   "x": 3240,
+   "y": 3267
+  },
+  {
+   "step": "walk",
+   "x": 3240,
+   "y": 3271
+  },
+  {
+   "step": "walk",
+   "x": 3240,
+   "y": 3275
+  },
+  {
+   "step": "walk",
+   "x": 3240,
+   "y": 3279
+  },
+  {
+   "step": "walk",
+   "x": 3239,
+   "y": 3283
+  },
+  {
+   "step": "walk",
+   "x": 3239,
+   "y": 3287
+  },
+  {
+   "step": "walk",
+   "x": 3241,
+   "y": 3290,
+   "comment": "between the farms north of Lumbridge"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3241,
+   "y": 3290,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3239,
+   "y": 3294
+  },
+  {
+   "step": "walk",
+   "x": 3239,
+   "y": 3298
+  },
+  {
+   "step": "walk",
+   "x": 3239,
+   "y": 3302
+  },
+  {
+   "step": "walk",
+   "x": 3240,
+   "y": 3306
+  },
+  {
+   "step": "walk",
+   "x": 3243,
+   "y": 3310
+  },
+  {
+   "step": "walk",
+   "x": 3247,
+   "y": 3314
+  },
+  {
+   "step": "walk",
+   "x": 3251,
+   "y": 3318
+  },
+  {
+   "step": "walk",
+   "x": 3253,
+   "y": 3320,
+   "comment": "on the road north past the farms"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3253,
+   "y": 3320,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3255,
+   "y": 3322
+  },
+  {
+   "step": "walk",
+   "x": 3259,
+   "y": 3322
+  },
+  {
+   "step": "walk",
+   "x": 3263,
+   "y": 3324
+  },
+  {
+   "step": "walk",
+   "x": 3267,
+   "y": 3328
+  },
+  {
+   "step": "walk",
+   "x": 3267,
+   "y": 3332
+  },
+  {
+   "step": "walk",
+   "x": 3269,
+   "y": 3336
+  },
+  {
+   "step": "walk",
+   "x": 3269,
+   "y": 3340
+  },
+  {
+   "step": "walk",
+   "x": 3270,
+   "y": 3344
+  },
+  {
+   "step": "walk",
+   "x": 3271,
+   "y": 3348
+  },
+  {
+   "step": "walk",
+   "x": 3271,
+   "y": 3352
+  },
+  {
+   "step": "walk",
+   "x": 3268,
+   "y": 3356
+  },
+  {
+   "step": "walk",
+   "x": 3265,
+   "y": 3359
+  },
+  {
+   "step": "walk",
+   "x": 3261,
+   "y": 3359
+  },
+  {
+   "step": "walk",
+   "x": 3257,
+   "y": 3359
+  },
+  {
+   "step": "walk",
+   "x": 3253,
+   "y": 3359
+  },
+  {
+   "step": "walk",
+   "x": 3249,
+   "y": 3357
+  },
+  {
+   "step": "walk",
+   "x": 3245,
+   "y": 3357,
+   "comment": "by Varrock's south-east mine"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3245,
+   "y": 3357,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3242,
+   "y": 3359
+  },
+  {
+   "step": "walk",
+   "x": 3238,
+   "y": 3360
+  },
+  {
+   "step": "walk",
+   "x": 3235,
+   "y": 3364
+  },
+  {
+   "step": "walk",
+   "x": 3232,
+   "y": 3368
+  },
+  {
+   "step": "walk",
+   "x": 3230,
+   "y": 3372
+  },
+  {
+   "step": "walk",
+   "x": 3230,
+   "y": 3375
+  },
+  {
+   "step": "assertLocation",
+   "x": 3230,
+   "y": 3375,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3226,
+   "y": 3374
+  },
+  {
+   "step": "walk",
+   "x": 3222,
+   "y": 3375
+  },
+  {
+   "step": "walk",
+   "x": 3218,
+   "y": 3377
+  },
+  {
+   "step": "walk",
+   "x": 3214,
+   "y": 3379
+  },
+  {
+   "step": "walk",
+   "x": 3213,
+   "y": 3383
+  },
+  {
+   "step": "walk",
+   "x": 3213,
+   "y": 3387
+  },
+  {
+   "step": "walk",
+   "x": 3212,
+   "y": 3390,
+   "comment": "into Varrock from the south"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3212,
+   "y": 3390,
+   "plane": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3222 3218 0",
+   "expectMessage": "Teleported to 3222, 3218, 0",
+   "comment": "leg 2: back to the courtyard, west to the H.A.M. Hideout"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3222,
+   "y": 3218,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3226,
+   "y": 3218
+  },
+  {
+   "step": "walk",
+   "x": 3230,
+   "y": 3218
+  },
+  {
+   "step": "walk",
+   "x": 3232,
+   "y": 3221
+  },
+  {
+   "step": "walk",
+   "x": 3232,
+   "y": 3225
+  },
+  {
+   "step": "walk",
+   "x": 3232,
+   "y": 3229
+  },
+  {
+   "step": "walk",
+   "x": 3229,
+   "y": 3232
+  },
+  {
+   "step": "walk",
+   "x": 3225,
+   "y": 3236
+  },
+  {
+   "step": "walk",
+   "x": 3222,
+   "y": 3240
+  },
+  {
+   "step": "walk",
+   "x": 3218,
+   "y": 3243
+  },
+  {
+   "step": "walk",
+   "x": 3215,
+   "y": 3245,
+   "comment": "past the general store"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3215,
+   "y": 3245,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3214,
+   "y": 3241
+  },
+  {
+   "step": "walk",
+   "x": 3210,
+   "y": 3241
+  },
+  {
+   "step": "walk",
+   "x": 3206,
+   "y": 3242
+  },
+  {
+   "step": "walk",
+   "x": 3202,
+   "y": 3242
+  },
+  {
+   "step": "walk",
+   "x": 3198,
+   "y": 3244
+  },
+  {
+   "step": "walk",
+   "x": 3196,
+   "y": 3248
+  },
+  {
+   "step": "walk",
+   "x": 3192,
+   "y": 3249
+  },
+  {
+   "step": "walk",
+   "x": 3190,
+   "y": 3250
+  },
+  {
+   "step": "assertLocation",
+   "x": 3190,
+   "y": 3250,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3186,
+   "y": 3253
+  },
+  {
+   "step": "walk",
+   "x": 3182,
+   "y": 3253
+  },
+  {
+   "step": "walk",
+   "x": 3179,
+   "y": 3251
+  },
+  {
+   "step": "walk",
+   "x": 3175,
+   "y": 3249
+  },
+  {
+   "step": "walk",
+   "x": 3171,
+   "y": 3247
+  },
+  {
+   "step": "walk",
+   "x": 3167,
+   "y": 3247
+  },
+  {
+   "step": "walk",
+   "x": 3165,
+   "y": 3251,
+   "comment": "by the H.A.M. Hideout's trapdoor"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3165,
+   "y": 3251,
+   "plane": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3275 3428 0",
+   "expectMessage": "Teleported to 3275, 3428, 0",
+   "comment": "leg 3: outside Varrock's east gate, north to the Lumber Yard and east through Silvarea to Paterdomus"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3275,
+   "y": 3428,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3275,
+   "y": 3430
+  },
+  {
+   "step": "walk",
+   "x": 3275,
+   "y": 3434
+  },
+  {
+   "step": "walk",
+   "x": 3275,
+   "y": 3438
+  },
+  {
+   "step": "walk",
+   "x": 3278,
+   "y": 3439
+  },
+  {
+   "step": "walk",
+   "x": 3280,
+   "y": 3443
+  },
+  {
+   "step": "walk",
+   "x": 3282,
+   "y": 3447
+  },
+  {
+   "step": "walk",
+   "x": 3286,
+   "y": 3451
+  },
+  {
+   "step": "walk",
+   "x": 3290,
+   "y": 3455,
+   "comment": "north along Varrock's east fence"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3290,
+   "y": 3455,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3290,
+   "y": 3459
+  },
+  {
+   "step": "walk",
+   "x": 3290,
+   "y": 3463
+  },
+  {
+   "step": "walk",
+   "x": 3294,
+   "y": 3467
+  },
+  {
+   "step": "walk",
+   "x": 3294,
+   "y": 3471
+  },
+  {
+   "step": "walk",
+   "x": 3297,
+   "y": 3475
+  },
+  {
+   "step": "walk",
+   "x": 3299,
+   "y": 3479
+  },
+  {
+   "step": "walk",
+   "x": 3303,
+   "y": 3482
+  },
+  {
+   "step": "walk",
+   "x": 3305,
+   "y": 3480
+  },
+  {
+   "step": "walk",
+   "x": 3306,
+   "y": 3477,
+   "comment": "by the Lumber Yard"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3306,
+   "y": 3477,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3308,
+   "y": 3475
+  },
+  {
+   "step": "walk",
+   "x": 3310,
+   "y": 3473
+  },
+  {
+   "step": "walk",
+   "x": 3312,
+   "y": 3470
+  },
+  {
+   "step": "walk",
+   "x": 3316,
+   "y": 3469
+  },
+  {
+   "step": "walk",
+   "x": 3319,
+   "y": 3468,
+   "comment": "at the members' gate in Varrock's east fence"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3319,
+   "y": 3468,
+   "plane": 0
+  },
+  {
+   "step": "locOption",
+   "locId": 11766,
+   "option": "Open",
+   "x": 3319,
+   "y": 3468,
+   "timeoutMs": 10000,
+   "comment": "fai_varrock_member_gatel: both leaves open"
+  },
+  {
+   "step": "assertLoc",
+   "locId": 11770,
+   "x": 3320,
+   "y": 3468,
+   "option": "Close",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "walk",
+   "x": 3321,
+   "y": 3468,
+   "comment": "through the gate"
+  },
+  {
+   "step": "walk",
+   "x": 3325,
+   "y": 3468
+  },
+  {
+   "step": "walk",
+   "x": 3327,
+   "y": 3471
+  },
+  {
+   "step": "walk",
+   "x": 3328,
+   "y": 3475
+  },
+  {
+   "step": "walk",
+   "x": 3332,
+   "y": 3479
+  },
+  {
+   "step": "walk",
+   "x": 3335,
+   "y": 3482,
+   "comment": "through the gate, east on the road to Paterdomus"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3335,
+   "y": 3482,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3339,
+   "y": 3482
+  },
+  {
+   "step": "walk",
+   "x": 3343,
+   "y": 3482
+  },
+  {
+   "step": "walk",
+   "x": 3347,
+   "y": 3482
+  },
+  {
+   "step": "walk",
+   "x": 3351,
+   "y": 3482
+  },
+  {
+   "step": "walk",
+   "x": 3355,
+   "y": 3482
+  },
+  {
+   "step": "walk",
+   "x": 3359,
+   "y": 3484
+  },
+  {
+   "step": "walk",
+   "x": 3361,
+   "y": 3486,
+   "comment": "in Silvarea"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3361,
+   "y": 3486,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3365,
+   "y": 3486
+  },
+  {
+   "step": "walk",
+   "x": 3369,
+   "y": 3486
+  },
+  {
+   "step": "walk",
+   "x": 3373,
+   "y": 3487
+  },
+  {
+   "step": "walk",
+   "x": 3377,
+   "y": 3486
+  },
+  {
+   "step": "walk",
+   "x": 3381,
+   "y": 3486
+  },
+  {
+   "step": "walk",
+   "x": 3385,
+   "y": 3484,
+   "comment": "east of Silvarea"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3385,
+   "y": 3484,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3389,
+   "y": 3484
+  },
+  {
+   "step": "walk",
+   "x": 3393,
+   "y": 3484
+  },
+  {
+   "step": "walk",
+   "x": 3397,
+   "y": 3484
+  },
+  {
+   "step": "walk",
+   "x": 3401,
+   "y": 3484
+  },
+  {
+   "step": "walk",
+   "x": 3405,
+   "y": 3487
+  },
+  {
+   "step": "walk",
+   "x": 3407,
+   "y": 3489,
+   "comment": "outside Paterdomus's front doors"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3407,
+   "y": 3489,
+   "plane": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3275 3428 0",
+   "expectMessage": "Teleported to 3275, 3428, 0",
+   "comment": "leg 4: outside Varrock's east gate again, south to the Digsite's gate, the Exam Centre and north through the digs to the barge"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3275,
+   "y": 3428,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3277,
+   "y": 3424
+  },
+  {
+   "step": "walk",
+   "x": 3278,
+   "y": 3420
+  },
+  {
+   "step": "walk",
+   "x": 3281,
+   "y": 3417
+  },
+  {
+   "step": "walk",
+   "x": 3283,
+   "y": 3413
+  },
+  {
+   "step": "walk",
+   "x": 3287,
+   "y": 3409
+  },
+  {
+   "step": "walk",
+   "x": 3289,
+   "y": 3405
+  },
+  {
+   "step": "walk",
+   "x": 3290,
+   "y": 3401
+  },
+  {
+   "step": "walk",
+   "x": 3290,
+   "y": 3397
+  },
+  {
+   "step": "walk",
+   "x": 3290,
+   "y": 3393
+  },
+  {
+   "step": "walk",
+   "x": 3290,
+   "y": 3390,
+   "comment": "south along Varrock's east fence"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3290,
+   "y": 3390,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3290,
+   "y": 3386
+  },
+  {
+   "step": "walk",
+   "x": 3290,
+   "y": 3382
+  },
+  {
+   "step": "walk",
+   "x": 3290,
+   "y": 3378
+  },
+  {
+   "step": "walk",
+   "x": 3290,
+   "y": 3374
+  },
+  {
+   "step": "walk",
+   "x": 3292,
+   "y": 3370
+  },
+  {
+   "step": "walk",
+   "x": 3292,
+   "y": 3366
+  },
+  {
+   "step": "walk",
+   "x": 3294,
+   "y": 3362
+  },
+  {
+   "step": "walk",
+   "x": 3295,
+   "y": 3358
+  },
+  {
+   "step": "walk",
+   "x": 3293,
+   "y": 3355
+  },
+  {
+   "step": "walk",
+   "x": 3292,
+   "y": 3355,
+   "comment": "by Varrock's south-east mine"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3292,
+   "y": 3355,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3293,
+   "y": 3351
+  },
+  {
+   "step": "walk",
+   "x": 3296,
+   "y": 3348
+  },
+  {
+   "step": "walk",
+   "x": 3300,
+   "y": 3344
+  },
+  {
+   "step": "walk",
+   "x": 3302,
+   "y": 3340
+  },
+  {
+   "step": "walk",
+   "x": 3306,
+   "y": 3336
+  },
+  {
+   "step": "walk",
+   "x": 3310,
+   "y": 3333
+  },
+  {
+   "step": "walk",
+   "x": 3311,
+   "y": 3332,
+   "comment": "at the gate in the Digsite's west fence"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3311,
+   "y": 3332,
+   "plane": 0
+  },
+  {
+   "step": "locOption",
+   "locId": 11767,
+   "option": "Open",
+   "x": 3312,
+   "y": 3332,
+   "timeoutMs": 10000,
+   "comment": "the same members' gate pair as Varrock's: both leaves open"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "walk",
+   "x": 3313,
+   "y": 3332,
+   "comment": "through the gate"
+  },
+  {
+   "step": "walk",
+   "x": 3316,
+   "y": 3336
+  },
+  {
+   "step": "walk",
+   "x": 3318,
+   "y": 3340
+  },
+  {
+   "step": "walk",
+   "x": 3318,
+   "y": 3344
+  },
+  {
+   "step": "walk",
+   "x": 3321,
+   "y": 3348
+  },
+  {
+   "step": "walk",
+   "x": 3321,
+   "y": 3350,
+   "comment": "through the gate, east to the Exam Centre"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3321,
+   "y": 3350,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3325,
+   "y": 3352
+  },
+  {
+   "step": "walk",
+   "x": 3329,
+   "y": 3352
+  },
+  {
+   "step": "walk",
+   "x": 3333,
+   "y": 3348
+  },
+  {
+   "step": "walk",
+   "x": 3337,
+   "y": 3347
+  },
+  {
+   "step": "walk",
+   "x": 3341,
+   "y": 3347
+  },
+  {
+   "step": "walk",
+   "x": 3345,
+   "y": 3347
+  },
+  {
+   "step": "walk",
+   "x": 3349,
+   "y": 3347
+  },
+  {
+   "step": "walk",
+   "x": 3353,
+   "y": 3347
+  },
+  {
+   "step": "walk",
+   "x": 3356,
+   "y": 3344,
+   "comment": "outside the Exam Centre's west door"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3356,
+   "y": 3344,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3352,
+   "y": 3344
+  },
+  {
+   "step": "walk",
+   "x": 3348,
+   "y": 3344
+  },
+  {
+   "step": "walk",
+   "x": 3344,
+   "y": 3347
+  },
+  {
+   "step": "walk",
+   "x": 3340,
+   "y": 3347
+  },
+  {
+   "step": "walk",
+   "x": 3336,
+   "y": 3347
+  },
+  {
+   "step": "walk",
+   "x": 3334,
+   "y": 3349
+  },
+  {
+   "step": "walk",
+   "x": 3335,
+   "y": 3353
+  },
+  {
+   "step": "walk",
+   "x": 3339,
+   "y": 3357
+  },
+  {
+   "step": "walk",
+   "x": 3343,
+   "y": 3360
+  },
+  {
+   "step": "walk",
+   "x": 3347,
+   "y": 3362
+  },
+  {
+   "step": "walk",
+   "x": 3351,
+   "y": 3365
+  },
+  {
+   "step": "walk",
+   "x": 3353,
+   "y": 3367
+  },
+  {
+   "step": "walk",
+   "x": 3354,
+   "y": 3370
+  },
+  {
+   "step": "walk",
+   "x": 3358,
+   "y": 3370
+  },
+  {
+   "step": "walk",
+   "x": 3362,
+   "y": 3370,
+   "comment": "north from the Exam Centre into the Digsite"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3362,
+   "y": 3370,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3360,
+   "y": 3373
+  },
+  {
+   "step": "walk",
+   "x": 3360,
+   "y": 3377
+  },
+  {
+   "step": "walk",
+   "x": 3361,
+   "y": 3380
+  },
+  {
+   "step": "walk",
+   "x": 3365,
+   "y": 3382
+  },
+  {
+   "step": "walk",
+   "x": 3369,
+   "y": 3386
+  },
+  {
+   "step": "walk",
+   "x": 3370,
+   "y": 3390
+  },
+  {
+   "step": "walk",
+   "x": 3366,
+   "y": 3392
+  },
+  {
+   "step": "walk",
+   "x": 3362,
+   "y": 3396,
+   "comment": "among the digs"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3362,
+   "y": 3396,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3362,
+   "y": 3400
+  },
+  {
+   "step": "walk",
+   "x": 3362,
+   "y": 3404
+  },
+  {
+   "step": "walk",
+   "x": 3362,
+   "y": 3408
+  },
+  {
+   "step": "walk",
+   "x": 3361,
+   "y": 3412
+  },
+  {
+   "step": "walk",
+   "x": 3361,
+   "y": 3414,
+   "comment": "among the digs, further north"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3361,
+   "y": 3414,
+   "plane": 0
+  },
+  {
+   "step": "walk",
+   "x": 3364,
+   "y": 3415
+  },
+  {
+   "step": "walk",
+   "x": 3367,
+   "y": 3417
+  },
+  {
+   "step": "walk",
+   "x": 3366,
+   "y": 3420
+  },
+  {
+   "step": "walk",
+   "x": 3364,
+   "y": 3422
+  },
+  {
+   "step": "walk",
+   "x": 3364,
+   "y": 3426
+  },
+  {
+   "step": "walk",
+   "x": 3364,
+   "y": 3430
+  },
+  {
+   "step": "walk",
+   "x": 3361,
+   "y": 3431
+  },
+  {
+   "step": "walk",
+   "x": 3359,
+   "y": 3434
+  },
+  {
+   "step": "walk",
+   "x": 3355,
+   "y": 3435
+  },
+  {
+   "step": "walk",
+   "x": 3351,
+   "y": 3435
+  },
+  {
+   "step": "walk",
+   "x": 3348,
+   "y": 3438
+  },
+  {
+   "step": "walk",
+   "x": 3344,
+   "y": 3439
+  },
+  {
+   "step": "walk",
+   "x": 3342,
+   "y": 3443
+  },
+  {
+   "step": "walk",
+   "x": 3346,
+   "y": 3443
+  },
+  {
+   "step": "walk",
+   "x": 3350,
+   "y": 3443
+  },
+  {
+   "step": "walk",
+   "x": 3354,
+   "y": 3443
+  },
+  {
+   "step": "walk",
+   "x": 3358,
+   "y": 3443
+  },
+  {
+   "step": "walk",
+   "x": 3361,
+   "y": 3445,
+   "comment": "on the quay by the canal barge"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3361,
+   "y": 3445,
+   "plane": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3222 3218 0",
+   "expectMessage": "Teleported to 3222, 3218, 0",
+   "comment": "back to Lumbridge"
+  },
+  {
+   "step": "command",
+   "text": "::god off"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
