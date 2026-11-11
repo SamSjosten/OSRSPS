@@ -115,12 +115,16 @@ class HeadlessHamHideoutTest {
                 client.locOp(trapdoor.id, trapdoor.x, trapdoor.z, HamHideout.OP_OPEN_OR_CLIMB)
                 client.awaitSeen("[ham_hideout.trapdoor_locked]")
 
-                // Thieving 1 with no lockpick: 4%, so a fail first, and it takes Thieving down 1.
-                client.setLevel("thieving", THIEVING, 1)
+                // Thieving 2 with no lockpick: 4%, so a fail first, and it takes Thieving down 1; at 1 a fail leaves it at 1.
+                client.setLevel("thieving", THIEVING, 2)
                 client.locOp(trapdoor.id, trapdoor.x, trapdoor.z, HamHideout.OP_PICK)
                 client.awaitSeen("[ham_hideout.pick]")
                 client.awaitSeen(FAIL)
-                client.await("Thieving numbed to 0") { client.stat(THIEVING)?.takeIf { it.level == 0 } }
+                client.await("Thieving numbed to 1") { client.stat(THIEVING)?.takeIf { it.level == 1 } }
+                client.locOp(trapdoor.id, trapdoor.x, trapdoor.z, HamHideout.OP_PICK)
+                client.awaitSeen("[ham_hideout.pick]", 2)
+                client.awaitSeen(FAIL, 2)
+                assertEquals(1, alice.skills.currentLevel(osrsps.game.Skill.THIEVING), "never below 1")
 
                 // Thieving 99 and a lockpick: 99%.
                 client.setLevel("thieving", THIEVING, 99)
@@ -259,6 +263,9 @@ class HeadlessHamHideoutTest {
                 client.awaitSeen("[ham_hideout.pick]")
                 client.awaitTicks(2)
                 assertTrue(!carol.scripts.delayed, "not held while picking")
+                // The try's timer and fail count are kept for the session only, never in the save.
+                assertTrue(carol.sessionCharges[HamHideout.PICK_DUE] > 0)
+                assertTrue(carol.charges.contents().keys.none { it == HamHideout.PICK_DUE || it == HamHideout.CELL_FAILS })
                 client.walk(3185, 9609)
                 client.awaitAt(3185, 9609)
                 val stopped = client.seen(FAIL) + client.seen(DONE)

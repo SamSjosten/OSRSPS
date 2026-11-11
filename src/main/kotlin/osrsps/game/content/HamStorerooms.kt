@@ -1,12 +1,14 @@
 package osrsps.game.content
 
 import osrsps.game.Player
+import osrsps.game.PlayerEffects
 import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.dialogue.Lines
 import osrsps.game.npc.Npc
 import osrsps.game.script.Op
 import osrsps.game.script.ScriptContext
+import osrsps.game.skill.Agility
 import osrsps.game.skill.PocketLoot
 import osrsps.game.skill.SuccessRoll
 import osrsps.game.zone.ZoneLoc
@@ -65,9 +67,8 @@ object HamStorerooms {
     /** `dttd_ladder_up_out_of_ham_storerooms`. */
     const val LADDER = 15747
 
-    /** `dttd_ham_door`: op1 Open, op4 Pick-lock; and `poordooropen`, the plain door it shares its models with, open. */
+    /** `dttd_ham_door`: op1 Open, op4 Pick-lock. It never opens: the player steps through it ([DOOR_STEP_TICKS]). */
     const val DOOR = 15759
-    const val DOOR_OPEN = 1536
     const val OP_OPEN = 1
     const val OP_PICK = 4
 
@@ -111,9 +112,9 @@ object HamStorerooms {
     const val DOOR_XP_TENTHS = 38
     const val DOOR_FAIL_XP_TENTHS = 5
 
-    /** A door's Pick-lock takes the hideout trapdoor's [HamHideout.PICK_TICKS]; the door stands open this long. */
+    /** A door's Pick-lock takes the hideout trapdoor's [HamHideout.PICK_TICKS]; stepping through it takes one tick. */
     const val PICK_TICKS = HamHideout.PICK_TICKS
-    const val DOOR_OPEN_TICKS = 2
+    const val DOOR_STEP_TICKS = 1
 
     /** How far a guard sees a door being picked, and its wait at each end of its patrol. */
     const val SIGHT_TILES = 8
@@ -124,7 +125,7 @@ object HamStorerooms {
 
     const val COINS = 995
 
-    /** [Player.charges] name: the tick a door pick's try ends. */
+    /** [Player.sessionCharges] name (not saved): the tick a door pick's try ends. */
     const val PICK_DUE = "ham_store_pick_due"
 
     /**
@@ -189,6 +190,11 @@ object HamStorerooms {
     )
     const val CHEST_SLOTS = 150
 
+    /** The most coins one chest roll gives: a chest needs room for them in the coin stack before it rolls. */
+    val CHEST_MOST_COINS: Int by lazy {
+        CHEST_LOOT.maxOf { outcome -> outcome.items.filter { it.first == COINS }.sumOf { it.second.last } }
+    }
+
     /** Guards a failed pickpocket has sent back to their posts, with the tick each spawned on. */
     private val settled: MutableMap<Npc, Long> = Collections.synchronizedMap(WeakHashMap())
 
@@ -230,7 +236,11 @@ object HamStorerooms {
         }
     }
 
-    /** Through [door] from whichever side: it swings open for [DOOR_OPEN_TICKS] and the player walks across. */
+    /**
+     * Through [door] from whichever side: the player steps across in [DOOR_STEP_TICKS] and the door stays shut, so no one
+     * can follow them in past the level and the guards (the exploit review found a door left open for two ticks let a
+     * Thieving 1 player walk in behind a picker). Guessed: live swings the door open as the player walks through.
+     */
     private suspend fun ScriptContext.throughDoor(world: World, door: ZoneLoc) {
         val comingIn = !inside(door, player)
         val from = if (comingIn) outsideTile(door) else insideTile(door)
@@ -240,9 +250,11 @@ object HamStorerooms {
             delay(1)
         }
         if (!world.locs.exists(door)) return
-        world.doors.openAs(door, DOOR_OPEN, shutAfter = DOOR_OPEN_TICKS)
         player.waypoints.clear()
-        player.waypoints.add(to)
+        val angle = Agility.angle(to.x - from.x, to.z - from.z)
+        player.effects.exactMove(PlayerEffects.ExactMove(from.x, from.z, to.x, to.z, 0, DOOR_STEP_TICKS * 30, angle))
+        delay(DOOR_STEP_TICKS)
+        world.teleport(player, to.x, to.z, door.level)
     }
 
     internal suspend fun ScriptContext.openDoor(world: World, door: ZoneLoc) {
@@ -265,9 +277,9 @@ object HamStorerooms {
             }
             world.message(player, HamStoreroomsLines.DOOR_PICK)
             alertGuards(world)
-            player.charges[PICK_DUE] = (tick + PICK_TICKS).toInt()
+            player.sessionCharges[PICK_DUE] = (tick + PICK_TICKS).toInt()
         }
-        if (tick < player.charges[PICK_DUE]) return world.repeatOp(player, op)
+        if (tick < player.sessionCharges[PICK_DUE]) return world.repeatOp(player, op)
         val lockpick = player.inventory.count(HamHideout.LOCKPICK) > 0
         val (low, high) = if (lockpick) DOOR_LOCKPICK_LOW to DOOR_LOCKPICK_HIGH else DOOR_LOW to DOOR_HIGH
         if (!SuccessRoll.roll(world.random, low, high, player.skills.currentLevel(Skill.THIEVING))) {
@@ -296,10 +308,12 @@ object HamStorerooms {
         val slot = player.inventory.contents().firstOrNull { it.second.id == key }?.first
         if (slot == null) return world.message(player, HamStoreroomsLines.CHEST_LOCKED)
         if (player.inventory.freeSlots < CHEST_ROOM) return world.message(player, HamStoreroomsLines.CHEST_NO_ROOM)
-        // Rolled before the key goes, so a coin stack too full for the coins keeps the key and loses nothing.
+        // A coin stack too full for the most a roll gives is refused before the roll, so no roll can be turned down for
+        // a better one (the exploit review found a full stack kept the key on every coin roll, so every key paid jewels).
+        if (player.inventory.count(COINS).toLong() + CHEST_MOST_COINS > Int.MAX_VALUE) {
+            return world.message(player, HamStoreroomsLines.CHEST_NO_ROOM)
+        }
         val reward = rollChest(world).filter { it.second > 0 }
-        val coins = reward.filter { it.first == COINS }.sumOf { it.second.toLong() }
-        if (player.inventory.count(COINS) + coins > Int.MAX_VALUE) return world.message(player, HamStoreroomsLines.CHEST_NO_ROOM)
         player.anim(Searching.ANIM_OPEN)
         player.inventory.remove(slot, 1)
         world.message(player, HamStoreroomsLines.KEY_BREAKS, "key" to KEY_COLOURS.getValue(key))
@@ -324,8 +338,6 @@ fun registerHamStorerooms(world: World) = with(HamStorerooms) {
         delay(1)
         world.teleport(player, ABOVE.first, ABOVE.second, ABOVE.third)
     }
-    // Closing the opened door by hand puts the locked storeroom door back, not the plain door 1536 shuts into.
-    world.doors.addClosedType(DOOR, DOOR_OPEN)
     world.handlers.onLoc(DOOR, OP_OPEN) { op -> openDoor(world, op.loc!!) }
     world.handlers.onLoc(DOOR, OP_PICK) { op -> pickDoor(world, op) }
     world.handlers.onLoc(CRACK, 1) { op -> squeeze(world, op.loc!!) }

@@ -1,6 +1,7 @@
 package osrsps.game.content
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import osrsps.game.GameLines
 import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.dialogue.ChatAnim
@@ -82,8 +83,8 @@ object PaterdomusLines : Lines("paterdomus", "Paterdomus Temple") {
  *   hands over Drakan's medallion if none is owned (guessed: live opens a reclaim box).
  * - The temple's large front doors (3489, 3490) and the mausoleum's two gates (3444, 3445) have no open types in the
  *   cache: Open moves the player through to the other side (guessed).
- * - The spiral stairs up from the ground floor (61189, 61190) and down from the first (16673, 62173); the ladders to the
- *   second floor are the castle's ([LumbridgeCastle]).
+ * - The spiral stairs up from the ground floor (61189, 61190) and down from the first (16673, 62173), on their own tiles
+ *   only ([STAIRS_AT]); the ladders to the second floor are the castle's ([LumbridgeCastle]).
  * - The trapdoor north of the temple (`trapdoor` 1579, [EdgevilleDungeon.LANDINGS]) climbs down to the mausoleum, and
  *   its ladder (17385) back up. The library's trapdoor (12762, open after In Aid of the Myreque) climbs down to the
  *   secret library, and its ladder (12764) back up.
@@ -118,6 +119,20 @@ object Paterdomus {
     const val STAIRS_UP_M = 61190
     const val STAIRS_DOWN = 16673
     const val STAIRS_DOWN_M = 62173
+
+    /**
+     * Where each of the temple's stairs stands, by type. The map has these four once each except 16673, the plain top of
+     * a spiral staircase, which stands in 29 places (checked against the cache): only the temple's climbs here.
+     */
+    val STAIRS_AT: Map<Int, Destination> = mapOf(
+        STAIRS_UP to Destination(3417, 3492, 0),
+        STAIRS_UP_M to Destination(3417, 3484, 0),
+        STAIRS_DOWN to Destination(3417, 3493, 1),
+        STAIRS_DOWN_M to Destination(3417, 3484, 1),
+    )
+
+    /** Whether [loc] is one of the temple's own stairs, not the same type somewhere else. */
+    fun isTempleStairs(loc: ZoneLoc) = STAIRS_AT[loc.id] == Destination(loc.x, loc.z, loc.level)
 
     /** `trapdoor` north of the temple and where climbing down puts the player, south of the ladder below (guessed). */
     val TRAPDOOR_TILE = Tile(3405, 3507)
@@ -240,8 +255,13 @@ fun registerPaterdomus(world: World) {
         for (door in listOf(DOOR_LEFT, DOOR_RIGHT, GATE_WEST, GATE_EAST)) {
             world.handlers.onLoc(door, OPEN) { op -> throughWall(world, op.loc!!) }
         }
-        for (stairs in listOf(STAIRS_UP, STAIRS_UP_M)) world.handlers.onLoc(stairs, 1) { op -> climbStairs(world, op.loc!!, 1) }
-        for (stairs in listOf(STAIRS_DOWN, STAIRS_DOWN_M)) world.handlers.onLoc(stairs, 1) { op -> climbStairs(world, op.loc!!, -1) }
+        for ((stairs, levels) in listOf(STAIRS_UP to 1, STAIRS_UP_M to 1, STAIRS_DOWN to -1, STAIRS_DOWN_M to -1)) {
+            world.handlers.onLoc(stairs, 1) { op ->
+                val loc = op.loc!!
+                if (!isTempleStairs(loc)) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
+                climbStairs(world, loc, levels)
+            }
+        }
         world.handlers.onLoc(LIBRARY_TRAPDOOR, 1) { climbTo(world, LIBRARY_LANDING, Climbing.ANIM_PICKUP_FLOOR) }
         world.handlers.onLoc(LIBRARY_LADDER, 1) { climbTo(world, MAUSOLEUM_LANDING, Climbing.ANIM_REACH_FOR_LADDER) }
         for (way in listOf(HOLY_BARRIER) + RAILINGS) world.handlers.onLoc(way, 1) { world.message(player, PaterdomusLines.MORYTANIA_LATER) }

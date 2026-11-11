@@ -1265,7 +1265,7 @@ for 20 ticks it goes back in. Hurting rockslugs needs Slayer 20, wall beasts 35.
 Misthalin piece 7 step 4a (`game/content/HamHideout.kt`, `npc-spawns/ham-hideout.json`, words under `ham_hideout.*`
 and `pickpocket.caught_ham`): the trapdoor west of Lumbridge's general store is locked. Pick-Lock opens it at 4% at
 Thieving 1 to 98% at 99 (24% to 99% with a lockpick in the backpack) for 3.8 XP, and a fail numbs the fingers,
-Thieving down 1. Picked open (varbit `ham_thief` shows it open), Climb-down takes the player to the foot of the ladder
+Thieving down 1 (never below 1). Picked open (varbit `ham_thief` shows it open), Climb-down takes the player to the foot of the ladder
 and Close shuts it; the ladder climbs back up. Inside, 26 members can be pickpocketed (Thieving 15, 22.2 XP, loot or a
 H.A.M. coin pouch), 11 sit, and 22 guards of levels 12, 18 and 22 fight and drop the Wiki's table. A caught thief
 takes 1 to 3 damage and a concussion, unless Agility takes the blow; the third concussion bundles them out to the
@@ -1283,7 +1283,7 @@ steps to 27% to 123%, or 47% to 141%; each fail 0.5 XP). A trapdoor pick takes 9
 | The cell door's rates at 1 and 99, with and without a lockpick, first and after the rise; four equal steps; a restart resetting it; 3.8 XP, 0.5 a fail; no picking from outside | OSRS Wiki, Door (H.A.M. Hideout Jail), read 2026-11-10 |
 | Members: level 15, 22.2 XP, 136/256 to 240/256, 1 to 3 damage, the 4-second stun, Agility's 1/256 to 255/256 share of blows, the loot and pouch, concussions, the three quoted messages, 4% a clothing piece | OSRS Wiki, H.A.M. Member, read 2026-11-10 |
 | Guards: stats, speeds, max hits, defences, drops (one table for the three) | OSRS Wiki, H.A.M. Guard, read 2026-11-10 |
-| Linear chances between the Wiki's ends, the cell door's 9 ticks a try and no numbing there, the stun's 7 ticks, the even surface or cell, the tiles, the guards' animations, the other messages | guessed |
+| Linear chances between the Wiki's ends, the numbing stopping at 1, the cell door's 9 ticks a try and no numbing there, the stun's 7 ticks, the even surface or cell, the tiles, the guards' animations, the other messages | guessed |
 | Out: the trapdoor's occasional 1 XP on a fail, the easy clue, Talk-to on guards, seated members, Johanhus and Jimmy, the quest-only archers and mages, the storerooms (step 4b, below) | out of scope |
 
 #### The H.A.M. Storerooms
@@ -1292,10 +1292,12 @@ Misthalin piece 7 step 4b (`game/content/HamStorerooms.kt`, `npc-spawns/ham-stor
 `ham_storerooms.*`): every account counts as having done Death to the Dorgeshuun, so the hidden trapdoor south of the
 Deacon's podium shows open (varbit `dttd_ham_trapdoor_state` 2) and Climb-down leads to the storerooms' ladder, which
 climbs back up. Four storerooms have locked doors: Pick-lock needs Thieving 23 and works at the Wiki's 10 to 254 out of
-256 (60 to 300 with a lockpick), 3.8 XP, or 0.5 XP on a fail; from inside, Open lets the player out. Two cracks lead into
+256 (60 to 300 with a lockpick), 3.8 XP, or 0.5 XP on a fail; from inside, Open lets the player out. The door stays shut
+while the player steps through, so no one can follow a picker in. Two cracks lead into
 the south-west room without a pick, and the large room to the north has an unlocked double door. Each small chest takes
 its own key (bronze south-west, iron north-east, silver north-west, steel south-east and the large room's two), which
-breaks, and rolls the Wiki's 150-slot table of coins and jewellery. Five level 22 guards patrol the corridors; one who
+breaks, and rolls the Wiki's 150-slot table of coins and jewellery; a coin stack without room for the most a roll gives
+(99) is refused before the roll, key kept. Five level 22 guards patrol the corridors; one who
 sees a door being picked attacks, unless a failed pickpocket has sent it back to its post, after which it stays there
 and leaves the player be. Pickpocketing a guard (Thieving 20, 22.2 XP, 1 to 3 damage, no concussions) gives a key of
 each colour at 1/10 each, the H.A.M. coin pouch, or the rest of the Wiki's table.
@@ -1309,7 +1311,7 @@ each colour at 1/10 each, the H.A.M. coin pouch, or the rest of the Wiki's table
 | Which key opens which chest; the key used up and its message | OSRS Wiki, H.A.M. Storerooms, Small chest and Steel key (H.A.M.), read 2026-11-10 |
 | The chest table, 20 outcomes out of 150 | OSRS Wiki, Small chest, read 2026-11-10 |
 | Guards: level 22, stats, speed 5, max hit 3, defences, respawn; pickpocket level 20, 22.2 XP, up to 3 damage, the table; attacking a door picker in sight unless a failed pickpocket has sent them back | OSRS Wiki, Guard (H.A.M. Storerooms) and H.A.M. Storerooms, read 2026-11-10 |
-| The guards' patrols, sight range and pickpocket chance (the members' 135 to 239), the usual stun, a settled guard staying settled, the 9-tick door pick and one try a click, Open from inside, the landing tiles, the 4 free slots a chest needs, 0 coins giving nothing, the messages but the key's | guessed |
+| The guards' patrols, sight range and pickpocket chance (the members' 135 to 239), the usual stun, a settled guard staying settled, the 9-tick door pick and one try a click, the door staying shut as the player steps through in a tick, Open from inside, the landing tiles, the 4 free slots a chest needs, 0 coins giving nothing, the messages but the key's | guessed |
 | Out: the easy clue, the chests' open look, the crack's animation, Talk-to on the guards, aggression when spoken to without the robes | out of scope |
 
 #### Farms and roads between the towns
@@ -1405,7 +1407,7 @@ words under `drezel.*`, `ivan_strom.*` and `paterdomus.*`): the temple on the Ri
 
 The monks of Zamorak are gone for good and the Temple Guardian with them. The front doors and the mausoleum's two gates
 have no open types in the cache, so Open puts the player through to the other side. The spiral stairs climb from the
-ground floor and the castle's ladders reach the top floor, where a bucket lies. The trapdoor north of the temple climbs
+ground floor (only on the temple's own tiles: the top's type stands in 28 other places) and the castle's ladders reach the top floor, where a bucket lies. The trapdoor north of the temple climbs
 down to the mausoleum. Drezel hands back a lost wolfbane dagger (not into a full backpack), then a lost temple library
 key, and otherwise talks as after The Blood Moon Rises; Ivan Strom talks about the columbarium he is looking for and
 hands over Drakan's medallion. The library's trapdoor, open since In Aid of the Myreque, climbs down to the secret
@@ -1418,6 +1420,7 @@ piece. The ground floor's altar is the church's.
 | Drezel's tile, his talk and the dagger and key he hands back | mejrs data_osrs NPCList_OSRS.json and the Wiki's Drezel map; OSRS Wiki, Transcript:Drezel, read 2026-11-11 |
 | Ivan Strom living here after the quest, his talk | OSRS Wiki, Ivan Strom, The Blood Moon Rises and Transcript:Ivan Strom, read 2026-11-11 |
 | The top floor's bucket at 3414,3493 | OSRS Wiki, Bucket (added 30 June 2026) |
+| The stairs' four types on their own tiles only; 16673 standing in 29 places | the cache's map; the exploit review's rule on types that stand elsewhere |
 | The library trapdoor open after In Aid of the Myreque (`burgh_temple_trapdoor`, set at login) | OSRS Wiki, Temple library key; inferred from the varbit's name |
 | Ivan's tile (beside Drezel), the doors and gates moving the player through, the landings below the trapdoors, Drakan's medallion handed over only when none is owned, the chathead expressions, the Morytania refusal | guessed; the tiles checked on the real map by `paterdomus.json` |
 | Out: the monuments, the well, the stained glass, the plinths and bookcases upstairs, the coffin, the cell gate, the organ, the keyhole, the library's bookcases (a quest's books), the east trapdoor, the Temple Trekking sign; Morytania past the Salve | out of scope (12a's sweep, or Morytania's piece) |

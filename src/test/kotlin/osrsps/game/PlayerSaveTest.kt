@@ -122,6 +122,15 @@ class PlayerSaveTest {
     }
 
     @Test
+    fun `pick timers older saves kept in charges are dropped on loading`() {
+        val stale = mapOf(osrsps.game.content.HamHideout.PICK_DUE to 1234, osrsps.game.content.HamStorerooms.PICK_DUE to 99, "blowpipe_scales" to 5)
+        saves.write("test", PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap(), charges = stale).toJson("test"))
+        val player = world.loadPlayer(1, "test")
+        assertEquals(mapOf("blowpipe_scales" to 5), player.charges.contents())
+        assertTrue(player.sessionCharges.contents().isEmpty())
+    }
+
+    @Test
     fun `chat filters are saved, and a save without them loads with every filter on`() {
         val text = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap(), chatFilters = ChatFilters(2, 1, 3)).toJson("test")
         assertEquals(ChatFilters(2, 1, 3), PlayerSave.fromJson(text).chatFilters)

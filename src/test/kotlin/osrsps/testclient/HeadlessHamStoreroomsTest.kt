@@ -71,7 +71,6 @@ class HeadlessHamStoreroomsTest {
                     type(HamStorerooms.TRAPDOOR, "null", listOf(null, null, null, null, null), multiloc = true),
                     type(HamStorerooms.LADDER, "Ladder", listOf("Climb-up", null, null, null, null)),
                     type(HamStorerooms.DOOR, "Door", listOf("Open", null, null, "Pick-lock", null)),
-                    type(HamStorerooms.DOOR_OPEN, "Door", listOf("Close", null, null, null, null)),
                     type(HamStorerooms.CRACK, "Crack", listOf("Squeeze-through", null, null, null, null)),
                     type(15722, "Small chest", listOf("Open", null, null, null, null)),
                     type(HamStorerooms.LARGE_DOOR_LEFT, "Large door", listOf("Open", null, null, null, null)),
@@ -166,8 +165,8 @@ class HeadlessHamStoreroomsTest {
                     } else {
                         wins++
                         client.awaitAt(2567, 5192)
-                        // Picked open, the door stands open for 2 ticks; a pick sent before it shuts finds no door.
-                        client.await("the door shut") { if (server.world.locs.exists(westDoor)) Unit else null }
+                        // The picker steps through and the door stays shut, so no one can follow them in.
+                        assertTrue(server.world.locs.exists(westDoor), "the door never opens")
                         client.tele(2566, 5192)
                     }
                 }
@@ -182,14 +181,8 @@ class HeadlessHamStoreroomsTest {
                 client.awaitAt(2567, 5192)
                 client.await("3.8 XP") { client.stat(THIEVING)?.takeIf { it.xp >= xp + 3 } }
 
-                // Close by hand on the open door puts the locked storeroom door back, not a plain one.
-                val opened = server.world.locs.at(2566, 5192, 0).firstOrNull { it.id == HamStorerooms.DOOR_OPEN }
-                if (opened != null) {
-                    client.locOp(opened.id, opened.x, opened.z, 1)
-                    client.await("shut by hand") { if (server.world.locs.exists(westDoor)) Unit else null }
-                }
-                // From inside, Open lets the player out, no pick. The door has shut again by then.
-                client.await("the door shut") { if (server.world.locs.exists(westDoor)) Unit else null }
+                assertTrue(server.world.locs.exists(westDoor), "the door never opens")
+                // From inside, Open lets the player out, no pick.
                 client.locOp(westDoor.id, westDoor.x, westDoor.z, HamStorerooms.OP_OPEN)
                 client.awaitAt(2566, 5192)
                 // The east-edge door: in from the corridor east of it.
@@ -286,26 +279,24 @@ class HeadlessHamStoreroomsTest {
                 client.awaitSeen("[ham_storerooms.chest_locked]", 2)
                 assertEquals(1, client.count(HamStorerooms.BRONZE_KEY))
 
-                // A coin stack too full for a coin roll keeps the key; rolls with no coins still open the chest.
+                // A coin stack without room for the most a roll gives (99) is refused before the roll: the key stays,
+                // every time, so no roll can be turned down for a better one.
                 val erin = server.world.playerNamed("erin")!!
-                erin.inventory.add(server.world.objTypes[COINS]!!, Int.MAX_VALUE)
-                client.command("item ${HamStorerooms.STEEL_KEY} 6")
-                client.await("six steel keys") { if (client.count(HamStorerooms.STEEL_KEY) == 6) Unit else null }
-                var kept = false
-                repeat(6) {
-                    if (kept || erin.inventory.count(HamStorerooms.STEEL_KEY) == 0L) return@repeat
-                    val keys = erin.inventory.count(HamStorerooms.STEEL_KEY)
-                    val full = client.seen("[ham_storerooms.chest_no_room]")
-                    val broke = client.seen("[ham_storerooms.key_breaks key=steel]")
+                erin.inventory.add(server.world.objTypes[COINS]!!, Int.MAX_VALUE - HamStorerooms.CHEST_MOST_COINS + 1)
+                client.command("item ${HamStorerooms.STEEL_KEY} 3")
+                client.await("three steel keys") { if (client.count(HamStorerooms.STEEL_KEY) == 3) Unit else null }
+                repeat(3) { n ->
                     client.locOp(steelChest.id, steelChest.x, steelChest.z, 1)
-                    client.await("the chest's answer") { if (client.seen("[ham_storerooms.chest_no_room]") > full || client.seen("[ham_storerooms.key_breaks key=steel]") > broke) Unit else null }
-                    if (client.seen("[ham_storerooms.chest_no_room]") > full) {
-                        kept = true
-                        assertEquals(keys, erin.inventory.count(HamStorerooms.STEEL_KEY), "the key kept")
-                    }
+                    client.awaitSeen("[ham_storerooms.chest_no_room]", n + 1)
                 }
-                assertTrue(kept, "a coin roll (1/2 a roll) in six")
-                assertEquals(Int.MAX_VALUE.toLong(), erin.inventory.count(COINS), "no coins lost or added past the cap")
+                assertEquals(0, client.seen("[ham_storerooms.key_breaks key=steel]"), "no roll on a full stack")
+                assertEquals(3L, erin.inventory.count(HamStorerooms.STEEL_KEY), "the keys kept")
+                // One coin fewer leaves room for the largest roll: the chest opens, and the stack can't pass the cap.
+                erin.inventory.remove(erin.inventory.contents().first { it.second.id == COINS }.first, 1)
+                client.locOp(steelChest.id, steelChest.x, steelChest.z, 1)
+                client.awaitSeen("[ham_storerooms.key_breaks key=steel]")
+                assertEquals(2L, erin.inventory.count(HamStorerooms.STEEL_KEY))
+                assertTrue(erin.inventory.count(COINS) <= Int.MAX_VALUE.toLong(), "no coins past the cap")
                 erin.inventory.contents().filter { it.second.id != HamStorerooms.BRONZE_KEY }.forEach { erin.inventory.remove(it.first) }
 
                 val jewels = HamStorerooms.CHEST_LOOT.flatMap { roll -> roll.items.map { it.first } }.toSet()
