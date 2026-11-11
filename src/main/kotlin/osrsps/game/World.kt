@@ -62,6 +62,8 @@ import osrsps.game.bank.BankScreen
 import osrsps.game.bank.DepositBox
 import osrsps.game.bank.getVarbitIfKnown
 import osrsps.game.bank.setVarbitIfKnown
+import osrsps.game.shop.OmnishopScreen
+import osrsps.game.shop.Omnishops
 import osrsps.game.shop.ShopScreen
 import osrsps.game.shop.ShopTypes
 import osrsps.game.combat.Aggression
@@ -321,6 +323,8 @@ class World(
     potionData: Potions.Data = Potions.Data.NONE,
     /** The shops and their stock; tests that shop pass their own. */
     val shopTypes: ShopTypes = ShopTypes.NONE,
+    /** The cache's omnishops (the shared reward-shop interface); tests that use one pass their own. */
+    val omnishops: Omnishops = Omnishops.NONE,
     /** The levels whose level-up plays a skill's unlock jingle; see [LevelUps]. */
     skillUnlocks: SkillUnlocks = SkillUnlocks.NONE,
     /** The levels needed to wear items; tests that check levels pass their own. */
@@ -499,6 +503,17 @@ class World(
 
     /** Shops and their shared stock; see [ShopScreen]. */
     val shopScreen = ShopScreen(shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine, words = ::textFor)
+
+    /** The omnishop interface's shops, as the Quartermaster's Alliance Supplies; see [OmnishopScreen]. */
+    val omnishopScreen = OmnishopScreen(
+        objTypes, interfaces::openModal, interfaces::closeModals,
+        setVarpNow = { player, id, value ->
+            player.vars[id] = value
+            interfaces.sendVarpNow(player, id)
+        },
+        examine = { player, id, count -> objTypes[id]?.let { inventoryTab.examine(player, it, count) } },
+        words = ::textFor,
+    )
 
     private val equipmentTab = EquipmentTab(equipment, objTypes, scripts, inventoryTab, interfaces::openModal, spells = spells, words = ::textFor)
 
@@ -892,6 +907,7 @@ class World(
         ducks.register()
         homeTeleport.register(handlers)
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
+        interfaces.onClose(OmnishopScreen.MAIN, omnishopScreen::closed)
         interfaces.onClose(GrandExchangeScreen.MAIN, grandExchangeScreen::closed)
         interfaces.onClose(Trades.MAIN, trades::mainClosed)
         interfaces.onClose(PriceChecker.MAIN, priceChecker::closed)
@@ -1405,6 +1421,7 @@ class World(
                 equipmentTab.flush(player)
                 bankScreen.flush(player)
                 shopScreen.flush(player)
+                omnishopScreen.flush(player)
                 grandExchangeScreen.flush(player)
                 priceChecker.flush(player)
                 archiveChestWindow.flush(player)
@@ -2287,6 +2304,7 @@ class World(
         if (depositBox.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (bankPinSettings.resume(player, interfaceId, componentId)) return@act
         if (shopScreen.click(player, interfaceId, componentId, sub, obj, op)) return@act
+        if (omnishopScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (grandExchangeScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (priceChecker.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (archiveChestWindow.click(player, interfaceId, componentId, sub, op, obj)) return@act
@@ -2434,6 +2452,8 @@ class World(
         if (player.echoButtons) player.message("Script trigger $interfaceId:$componentId slot $sub args ${args.toList()}")
         if (interfaceId == SettingsSide.INTERFACE && settingsSide.scriptTrigger(player, componentId, args)) return@act
         if (interfaceId == AllSettings.INTERFACE && allSettings.scriptTrigger(player, componentId, sub, args)) return@act
+        // The omnishop's own triggers come with the clicks it acts on.
+        if (interfaceId == OmnishopScreen.MAIN) return@act
         logger.info { "${player.username} triggered a script on $interfaceId:$componentId sub $sub args $args (not handled)" }
     }
 

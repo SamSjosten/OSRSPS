@@ -1,5 +1,5 @@
 {
- "_comment": "Foods by cache internal name. heals: hitpoints a bite heals. next: what is left in the slot after the bite (the next bite, a pie dish, a bowl). eatDelay: ticks before the next food (3 if left out); attackDelay: ticks added to an attack still waiting (3 if left out); combo: eaten on its own timer, after other food in the same tick; message: the line for the bite (eat if left out). painful: the poison hit a bite gives instead of healing (poison karambwan, from 6 hitpoints). Heals and delays from the OSRS Wiki's Food, Food/All food and Combo eating pages, read 2026-10-29.",
+ "_comment": "Foods by cache internal name. heals: hitpoints a bite heals. next: what is left in the slot after the bite (the next bite, a pie dish, a bowl). eatDelay: ticks before the next food (3 if left out); attackDelay: ticks added to an attack still waiting (3 if left out); combo: eaten on its own timer, after other food in the same tick; message: the line for the bite (eat if left out). painful: the poison hit a bite gives instead of healing (poison karambwan, from 6 hitpoints). Heals and delays from the OSRS Wiki's Food, Food/All food and Combo eating pages, read 2026-10-29; Leftovers (tfa_midraid_supplies_leftovers) from its own Wiki page, read 2026-11-11.",
  "foods": [
   {"food": "shrimp", "heals": 3},
   {"food": "anchovies", "heals": 1},
@@ -29,6 +29,7 @@
   {"food": "swordtip_squid", "heals": 15},
   {"food": "jumbo_squid", "heals": 17},
   {"food": "giant_krill", "heals": 17},
+  {"food": "tfa_midraid_supplies_leftovers", "heals": 5},
   {"food": "haddock", "heals": 18},
   {"food": "yellowfin", "heals": 19},
   {"food": "bluefin", "heals": 22},

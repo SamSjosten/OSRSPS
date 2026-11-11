@@ -1,6 +1,7 @@
 package osrsps.game.raid
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import osrsps.game.Inventory
 import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.combat.CombatLines
@@ -211,6 +212,14 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
     var loot: LootResult? = null
         internal set
 
+    /** The Quartermaster in the nexus while he is there ([ArchiveSupplies]), and whether he has come this run. */
+    var quartermaster: Npc? = null
+        internal set
+    internal var suppliesCame = false
+
+    /** Each member's stock of the Quartermaster's shop, by [Player.saveKey] ([ArchiveSupplies.STOCK]). */
+    internal val supplies = HashMap<String, Inventory>()
+
     /** Each paid member's chest in the reward vault, by save key: its slot, from 0 ([ArchiveChests.SLOTS]). */
     val chestSlots = LinkedHashMap<String, Int>()
 
@@ -284,6 +293,7 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
 class ArchiveRaids(private val world: World) {
     /** The reward vault's chests, and what a run's end pays into them (raid step 29a). */
     val chests = ArchiveChests(world, this)
+    val supplies = ArchiveSupplies(world, this)
     private val runs = LinkedHashMap<Party, ArchiveRun>()
     private var nextId = 1
 
@@ -333,6 +343,7 @@ class ArchiveRaids(private val world: World) {
             world.handlers.onNpc(RIFT_OUT, op) { leave(player) }
         }
         chests.register()
+        supplies.register()
         world.combat.shutOut = ::shutOut
         // His stepping stones' Jump, in his third phase, and his second phase barred to splash: after the shutOut
         // above, which Ocellus adds to.
@@ -397,6 +408,7 @@ class ArchiveRaids(private val world: World) {
         // Once the Guardian's fight has begun, nobody comes in, or back in: that would be a way to the bank mid-raid.
         if (run.wiped || run.started.isNotEmpty()) return
         run.entered += player.saveKey
+        supplies.entered(player)
         val to = tile(run, NEXUS_X, NEXUS_Z)
         world.teleport(player, to.x, to.z, 0)
     }
@@ -1060,6 +1072,7 @@ class ArchiveRaids(private val world: World) {
             placeOcellusFigure(run)
             if (ArchiveRoom.OCELLUS !in run.started && ArchiveRoom.OCELLUS.stage == run.stage && run.ocellusFigure != null && ocellusReady(run)) beginOcellus(run)
             navigators(run)
+            supplies.process(run)
             riftOut(run)
             chests.process(run)
             settleEscapes(run, ended = false)

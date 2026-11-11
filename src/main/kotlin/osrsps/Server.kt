@@ -14,6 +14,7 @@ import osrsps.cache.GameFrameCheck
 import osrsps.cache.MapCollisionLoader
 import osrsps.cache.NpcTypeLoader
 import osrsps.cache.ObjTypeLoader
+import osrsps.cache.OmnishopLoader
 import osrsps.cache.QuestLoader
 import osrsps.cache.SettingsLoader
 import osrsps.cache.SkillUnlockLoader
@@ -67,6 +68,7 @@ import osrsps.game.raid.Moia
 import osrsps.game.raid.Ocellus
 import osrsps.game.raid.PartyScaling
 import osrsps.game.raid.Xarth
+import osrsps.game.shop.Omnishops
 import osrsps.game.shop.ShopTypes
 import osrsps.game.skill.SkillUnlocks
 import osrsps.game.social.Reports
@@ -156,6 +158,7 @@ class GameServer(
         val spotanimNames: SpotanimNames
         val specialAttackCosts: Map<Int, Int>
         val skillUnlocks: SkillUnlocks
+        val omnishops: Omnishops
         val settings: SettingsCatalog
         try {
             // Our own vars and locs take ids right after this cache's, so they are built from its var types first:
@@ -180,6 +183,7 @@ class GameServer(
             spotanimNames = CombatLoader.spotanimNames(library)
             specialAttackCosts = CombatLoader.specialAttackCosts(library)
             skillUnlocks = SkillUnlockLoader.load(library)
+            omnishops = OmnishopLoader.load(library)
             settings = SettingsLoader.load(library)
             interfaceIds = library.index(INTERFACE_INDEX)?.archiveIds()?.toSet().orEmpty() + LodestoneMap.INTERFACE
             val fonts = library.index(FONT_INDEX)?.archiveIds()?.toSet().orEmpty()
@@ -260,7 +264,7 @@ class GameServer(
             scenarios = scenarios, chatFont = chatFont, dialogueFile = dataDir.resolve(DialogueFile.NAME),
             reportsFile = dataDir.resolve(Reports.FILE_NAME), clansDir = dataDir, admins = admins,
             attackStyles = attackStyles, npcCombat = npcCombat, npcDrops = npcDrops, partyScaling = partyScaling, rangedWeapons = rangedWeapons,
-            spells = spells, prayerList = prayers, foodList = Foods.load(objTypes), potionData = Potions.load(objTypes), shopTypes = shopTypes, skillUnlocks = skillUnlocks, ipBans = ipBans, xpRate = xpRate,
+            spells = spells, prayerList = prayers, foodList = Foods.load(objTypes), potionData = Potions.load(objTypes), shopTypes = shopTypes, omnishops = omnishops, skillUnlocks = skillUnlocks, ipBans = ipBans, xpRate = xpRate,
             wearRequirements = wearRequirements, itemPrices = itemPrices, itemPricesFile = itemPricesFile, settings = settings,
             specialAttackCosts = specialAttackCosts, encounterDefs = listOfNotNull(ArchiveGuardian.def(npcTypes), Ezekiel.def(npcTypes), Bork.def(npcTypes), Dreadnoth.def(npcTypes), Moia.def(npcTypes), Xarth.def(npcTypes), Ocellus.def(npcTypes)),
             cycleMillis = cycleMillis,
