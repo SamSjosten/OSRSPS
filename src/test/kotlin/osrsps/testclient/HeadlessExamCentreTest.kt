@@ -117,8 +117,9 @@ class HeadlessExamCentreTest {
     private fun HeadlessClient.talk(id: Int, op: Int = 1) = npcOp(npcIndex(id), op)
 
     private fun HeadlessClient.give(id: Int, count: Int = 1) {
+        val before = count(id)
         command("item $id $count")
-        awaitCount(id, count(id) + count)
+        awaitCount(id, before + count)
     }
 
     private fun HeadlessClient.useOn(id: Int, npc: Int) = npcTarget(npcIndex(npc), InventoryTab.INTERFACE, InventoryTab.ITEMS, slotOf(id), id)
