@@ -2221,6 +2221,9 @@ class World(
         return true
     }
 
+    /** Whether a walker of size 1 can step from ([x], [z]) on [level] by ([dx], [dz]): a boss's mark beside a player. */
+    fun canStep(level: Int, x: Int, z: Int, dx: Int, dz: Int): Boolean = movement.canStep(level, x, z, dx, dz)
+
     /** A route from where [player] stands to the tile [x], [z], without walking it (an obstacle's start). */
     fun findRoute(player: Player, x: Int, z: Int): Route = movement.find(player, RouteTarget.tile(x, z))
 

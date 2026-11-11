@@ -1,5 +1,5 @@
 {
- "name": "Raid step 15: two solo runs of The Fractured Archive through its empty rooms, one by the west doors (Ezekiel, Moia, the Dagon'hai Elder) and one by the east (Bork, Dreadnoth, Xarth), each from the Archive Door through the Guardian's hall to Ocellus's room; the transporters and a Passageway back out; the first run out by the reward vault (raid step 28: Travel, its Merit scroll and Rift, the Rift out's Leave; a death there costs nothing, exploit review R23A-1), the second by the inner vault's Passageway. The Guardian's, Ezekiel's, Bork and the Smorks', Moia's, Dreadnoth's, Xarth's and Ocellus's rooms are marked done with ::raid clear (their fights are their own scripts); the Dagon'hai Elder isn't built yet, so his room is done as it begins",
+ "name": "Raid step 15: two solo runs of The Fractured Archive through its empty rooms, one by the west doors (Ezekiel, Moia, the Dagon'hai Elder) and one by the east (Bork, Dreadnoth, Xarth), each from the Archive Door through the Guardian's hall to Ocellus's room; the transporters and a Passageway back out; the first run out by the reward vault (raid step 28: Travel, its Merit scroll and Rift, the Rift out's Leave; a death there costs nothing, exploit review R23A-1), the second by the inner vault's Passageway. The Guardian's, Ezekiel's, Bork and the Smorks', Moia's, Dreadnoth's, Xarth's and Ocellus's rooms are marked done with ::raid clear (their fights are their own scripts); the Dagon'hai Elder's room too since raid step 23",
  "account": "test",
  "steps": [
   {
@@ -162,9 +162,14 @@
   },
   {
    "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Dagon'hai Elder's room.",
+   "comment": "the Dagon'hai's fight begins only on their floor, by the room's transporter (raid step 23); it is its own script (archive-dagonhai.json): here the room is just marked done, so the transporter takes us out"
+  },
+  {
+   "step": "command",
    "text": "::raid run",
-   "expectMessage": "done Archive Guardian, Ezekiel, Moia, Dagon'hai Elder;",
-   "comment": "in Dagon'hai Elder's room, done as soon as it begins, no boss being built yet"
+   "expectMessage": "done Archive Guardian, Ezekiel, Moia, Dagon'hai Elder;"
   },
   {
    "step": "command",

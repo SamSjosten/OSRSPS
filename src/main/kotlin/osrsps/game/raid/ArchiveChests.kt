@@ -126,11 +126,13 @@ class ArchiveChests(private val world: World, private val raids: ArchiveRaids) {
     /**
      * Whether [player] has [item] anywhere of their own: carried, worn or banked; and, since those were each a way to
      * keep it out of sight for a roll (exploit review round 24, R24A-4), in the guide prices screen, offered in a trade
-     * not yet done, in their grave, or held by a Grand Exchange offer. Guessed: live's own check isn't known. One given
-     * to someone else or dropped is no longer theirs, and that stays so.
+     * not yet done, in their grave, or held by a Grand Exchange offer; and in their reward chest's window
+     * ([Player.archiveChest]), not yet taken from an earlier run (exploit review round 25, R25A-5). Guessed: live's own
+     * check isn't known. One given to someone else or dropped is no longer theirs, and that stays so.
      */
     internal fun owns(player: Player, item: Int): Boolean =
         player.inventory.count(item) > 0 || player.bank.count(item) > 0 || player.equipment.count(item) > 0 ||
+            player.archiveChest.count(item) > 0 ||
             player.priceChecker.count(item) > 0 ||
             player.trade?.let { trade -> !trade.over && trade.sideOf(player).offer.count(item) > 0 } == true ||
             world.deaths.graveOf(player)?.items?.let { it.count(item) > 0 } == true ||

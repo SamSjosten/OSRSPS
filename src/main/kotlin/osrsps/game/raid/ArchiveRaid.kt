@@ -316,6 +316,7 @@ class ArchiveRaids(private val world: World) {
 
     fun register() {
         world.multiCombat.dynamic = { _, x, z -> at(x, z) != null }
+        world.magicCombat.landings += Dagonhai::spellLanded
         world.handlers.onNpc(ArchiveGuardian.DORMANT, ArchiveGuardian.TOUCH) { op -> askTouch(this, op.npc!!) }
         // The figure is a multi-NPC: an op names the type the player is shown, met or not (242 cache).
         for (type in listOf(Ocellus.INTRO, Ocellus.INTRO_NOT_MET, Ocellus.INTRO_MET)) {
@@ -448,6 +449,7 @@ class ArchiveRaids(private val world: World) {
         ArchiveRoom.MOIA -> world.encounters.defs[Moia.NAME] != null
         ArchiveRoom.DREADNOTH -> world.encounters.defs[Dreadnoth.NAME] != null
         ArchiveRoom.XARTH -> world.encounters.defs[Xarth.NAME] != null
+        ArchiveRoom.DAGONHAI -> world.encounters.defs[Dagonhai.NAME] != null
         ArchiveRoom.OCELLUS -> world.encounters.defs[Ocellus.NAME] != null && world.npcTypes[Ocellus.INTRO] != null
         else -> false
     }
@@ -551,6 +553,36 @@ class ArchiveRaids(private val world: World) {
         run.presentAtStart[room] = standing.filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
         run.fights[room] = fight
         logger.info { "$run began Xarth's fight with ${standing.size} standing, ${first.username} first in" }
+    }
+
+    /**
+     * The first of the party onto the Dagon'hai's floor (by its transporter, [Dagonhai.ARENA_ENTRY_X]): their fight
+     * begins round the cauldron ([Dagonhai.X], guessed: the middle of the floor), its anchor. Not scaled to the party:
+     * the Wiki gives the trio one figure. With no NPC slot free for the cauldron or the three the room isn't started,
+     * as for Bork: the next tick with one of the party on the floor tries again.
+     */
+    private fun beginDagonhai(run: ArchiveRun, first: Player) {
+        val room = ArchiveRoom.DAGONHAI
+        val def = world.encounters.defs[Dagonhai.NAME] ?: return
+        val at = tile(run, Dagonhai.X, Dagonhai.Z)
+        val cauldron = world.spawnNpc(NpcSpawn(def.boss, at.x, at.z, 0, source = "$run", respawns = false))
+        if (cauldron == null) {
+            logger.warn { "$run: no room for the Dagon'hai's cauldron" }
+            return
+        }
+        val standing = standing(run)
+        // Only those on the floor are in the fight: not one still at the room's way in, behind the wall.
+        val fight = world.encounters.start(def, cauldron, { x, z -> Dagonhai.inArena(at.x, at.z, x, z) })
+        if (fight.adds.size < Dagonhai.MEMBERS.size) {
+            world.encounters.stop(fight)
+            world.removeNpc(cauldron)
+            logger.warn { "$run: no room for the Dagon'hai" }
+            return
+        }
+        run.started += room
+        run.presentAtStart[room] = standing.filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
+        run.fights[room] = fight
+        logger.info { "$run began the Dagon'hai's fight with ${standing.size} standing, ${first.username} first in" }
     }
 
     /**
@@ -799,9 +831,18 @@ class ArchiveRaids(private val world: World) {
             if (!inXarthArena(run, player)) world.teleport(player, to.x, to.z, 0)
             return
         }
+        if (room == ArchiveRoom.DAGONHAI && room !in run.cleared && built(room)) {
+            val to = tile(run, Dagonhai.ARENA_ENTRY_X, Dagonhai.ARENA_ENTRY_Z)
+            if (!inDagonhaiArena(run, player)) world.teleport(player, to.x, to.z, 0)
+            return
+        }
         if (room !in run.cleared) return
         move(run, player, room, into = false)
     }
+
+    /** Whether [player] stands on the floor of the Dagon'hai's room in [run], west of the wall from its way in. */
+    private fun inDagonhaiArena(run: ArchiveRun, player: Player): Boolean =
+        onArena(run, ArchiveRoom.DAGONHAI, player.x, player.z) == true
 
     /** Whether [player] stands on the floor of Xarth's arena in [run]. */
     private fun inXarthArena(run: ArchiveRun, player: Player): Boolean =
@@ -835,6 +876,7 @@ class ArchiveRaids(private val world: World) {
         ArchiveRoom.BORK -> Tile(BORK_ARENA_X, BORK_ARENA_Z)
         ArchiveRoom.DREADNOTH -> Tile(Dreadnoth.ARENA_ENTRY_X, Dreadnoth.ARENA_ENTRY_Z)
         ArchiveRoom.XARTH -> Tile(XARTH_ARENA_X, XARTH_ARENA_Z)
+        ArchiveRoom.DAGONHAI -> Tile(Dagonhai.ARENA_ENTRY_X, Dagonhai.ARENA_ENTRY_Z)
         // Hers has no transporter onto it: the Navigator comes to its east edge, by the way in (guessed).
         ArchiveRoom.MOIA -> Tile(Moia.NAVIGATOR_X, Moia.NAVIGATOR_Z)
         else -> null
@@ -853,6 +895,7 @@ class ArchiveRaids(private val world: World) {
         ArchiveRoom.DREADNOTH -> tile(run, Dreadnoth.X, Dreadnoth.Z).let { Dreadnoth.inArena(it.x, it.z, x, z) }
         ArchiveRoom.MOIA -> tile(run, Moia.X, Moia.Z).let { Moia.inArena(it.x, it.z, x, z) }
         ArchiveRoom.XARTH -> tile(run, XARTH_X, XARTH_Z).let { Xarth.inArena(it.x, it.z, x, z) }
+        ArchiveRoom.DAGONHAI -> tile(run, Dagonhai.X, Dagonhai.Z).let { Dagonhai.inArena(it.x, it.z, x, z) }
         ArchiveRoom.OCELLUS -> tile(run, Ocellus.FIGURE_X, Ocellus.FIGURE_Z).let { Ocellus.inArena(Ocellus.centre(it.x, it.z), x, z) }
         else -> null
     }
@@ -1067,6 +1110,7 @@ class ArchiveRaids(private val world: World) {
                         room == ArchiveRoom.BORK -> if (inBorkArena(run, player)) beginBork(run, player)
                         room == ArchiveRoom.DREADNOTH -> if (inDreadnothArena(run, player)) beginDreadnoth(run, player)
                         room == ArchiveRoom.XARTH -> if (inXarthArena(run, player)) beginXarth(run, player)
+                        room == ArchiveRoom.DAGONHAI -> if (inDagonhaiArena(run, player)) beginDagonhai(run, player)
                         // Moia's arena is open to her room's way in: walking onto it begins hers.
                         room == ArchiveRoom.MOIA -> if (inMoiaArena(run, player)) beginMoia(run)
                     }

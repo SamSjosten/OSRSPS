@@ -21,6 +21,7 @@ import osrsps.game.raid.ArchiveGuardianLines
 import osrsps.game.raid.ArchiveNavigatorLines
 import osrsps.game.raid.ArchiveVaultLines
 import osrsps.game.raid.BorkLines
+import osrsps.game.raid.DagonhaiLines
 import osrsps.game.raid.DreadnothLines
 import osrsps.game.raid.OcellusLines
 import osrsps.game.raid.QuartermasterLines
@@ -95,6 +96,7 @@ object DialogueLines {
         BlueMoonBarbarianLines,
         BoltEnchantLines,
         BorkLines,
+        DagonhaiLines,
         DreadnothLines,
         OcellusLines,
         ArchiveVaultLines,

@@ -62,6 +62,7 @@ import osrsps.game.dialogue.DialogueFile
 import osrsps.game.npc.NpcSpawnFile
 import osrsps.game.raid.ArchiveGuardian
 import osrsps.game.raid.Bork
+import osrsps.game.raid.Dagonhai
 import osrsps.game.raid.Dreadnoth
 import osrsps.game.raid.Ezekiel
 import osrsps.game.raid.Moia
@@ -266,7 +267,7 @@ class GameServer(
             attackStyles = attackStyles, npcCombat = npcCombat, npcDrops = npcDrops, partyScaling = partyScaling, rangedWeapons = rangedWeapons,
             spells = spells, prayerList = prayers, foodList = Foods.load(objTypes), potionData = Potions.load(objTypes), shopTypes = shopTypes, omnishops = omnishops, skillUnlocks = skillUnlocks, ipBans = ipBans, xpRate = xpRate,
             wearRequirements = wearRequirements, itemPrices = itemPrices, itemPricesFile = itemPricesFile, settings = settings,
-            specialAttackCosts = specialAttackCosts, encounterDefs = listOfNotNull(ArchiveGuardian.def(npcTypes), Ezekiel.def(npcTypes), Bork.def(npcTypes), Dreadnoth.def(npcTypes), Moia.def(npcTypes), Xarth.def(npcTypes), Ocellus.def(npcTypes)),
+            specialAttackCosts = specialAttackCosts, encounterDefs = listOfNotNull(ArchiveGuardian.def(npcTypes), Ezekiel.def(npcTypes), Bork.def(npcTypes), Dreadnoth.def(npcTypes), Moia.def(npcTypes), Xarth.def(npcTypes), Dagonhai.def(npcTypes), Ocellus.def(npcTypes)),
             cycleMillis = cycleMillis,
         )
         loadObjSpawns(objTypes)

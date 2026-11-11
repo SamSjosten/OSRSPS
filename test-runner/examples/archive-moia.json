@@ -101,9 +101,9 @@
   },
   {
    "step": "command",
-   "text": "::raid tp 4080 5663",
-   "expectMessage": "To 4080, 5663 of the raid",
-   "comment": "onto the east edge of her round floor, out of her binders' reach: her fight begins"
+   "text": "::raid tp 4072 5663",
+   "expectMessage": "To 4072, 5663 of the raid",
+   "comment": "onto her round floor, out of her binders' reach: her fight begins. Not its east edge: the real client draws the room black from about x 4080 east (VM 215, 2026-11-11, parts 41 to 41d)"
   },
   {
    "step": "waitTicks",
@@ -150,11 +150,14 @@
    "comment": "its first hit: 2, and as much prayer (::god takes the damage)"
   },
   {
-   "step": "assertAnimation",
-   "npc": "Moia",
-   "id": 14788,
-   "timeoutMs": 10000,
-   "comment": "moia_teleport01, her teleport as her fifth action, 25 ticks in"
+   "step": "waitTicks",
+   "ticks": 5,
+   "comment": "to her teleport, her fifth action, 25 ticks in. Read off the log: the real client didn't show moia_teleport01 (14788) on her (VM 215, 2026-11-11, part 41d), as she goes from sight the tick after"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 20",
+   "expectMessage": "fight: teleports"
   },
   {
    "step": "waitTicks",
