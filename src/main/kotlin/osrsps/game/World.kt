@@ -109,6 +109,7 @@ import osrsps.game.content.registerHamHideout
 import osrsps.game.content.registerHamStorerooms
 import osrsps.game.content.registerFarmsRoads
 import osrsps.game.content.registerLumberYard
+import osrsps.game.content.registerTolnasRift
 import osrsps.game.content.registerDigsite
 import osrsps.game.content.registerDigsiteDigs
 import osrsps.game.content.registerExamCentre
@@ -906,6 +907,7 @@ class World(
         registerHamStorerooms(this)
         registerFarmsRoads(this)
         registerLumberYard(this)
+        registerTolnasRift(this)
         registerSilvarea(this)
         registerPaterdomus(this)
         registerDigsite(this)

@@ -1,5 +1,5 @@
 {
- "name": "Misthalin piece 7 step 6: the Lumber Yard and Tolna's rift: over the broken fence, planks at the Sawmill by talk and Buy-plank with his fee for each, his shop on Trade, the crates and barrels, the Earth Altar's ruins with a talisman, Tolna as after A Soul's Bane, his rift and its warning signs (::keys on)",
+ "name": "Misthalin piece 7 step 6: the Lumber Yard and Tolna's rift: over the broken fence, planks at the Sawmill by talk and Buy-plank with his fee for each, his shop on Trade, the crates and barrels, the Earth Altar's ruins with a talisman, Tolna as after A Soul's Bane, a hole in his rift and its warning signs (::keys on)",
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},
@@ -62,8 +62,8 @@
   {"step": "assertDialogue", "contains": "[tolna.thanks]"},
   {"step": "continueDialogue"},
   {"step": "assertNoDialogue"},
-  {"step": "locOption", "locId": 13968, "option": "Enter", "x": 3310, "y": 3452, "timeoutMs": 10000, "comment": "the rift's rope"},
-  {"step": "assertMessage", "contains": "[tolna_rift.dungeon_later]", "timeoutMs": 10000, "comment": "the dungeon isn't built yet"},
+  {"step": "locOption", "locId": 13969, "option": "Enter", "x": 3306, "y": 3450, "timeoutMs": 10000, "comment": "one of the rift's holes, not the rope's (the rope down is tolnas-rift.json's)"},
+  {"step": "assertMessage", "contains": "[tolna_rift.rope_only]", "timeoutMs": 10000},
   {"step": "locOption", "locId": 14001, "option": "Read", "x": 3304, "y": 3451, "timeoutMs": 10000},
   {"step": "assertDialogue", "contains": "[tolna_rift.sign]"},
   {"step": "continueDialogue"},

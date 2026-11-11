@@ -396,6 +396,29 @@ class NpcSpawnFileTest {
     }
 
     @Test
+    fun `Tolna's rift has its four rooms' monsters round the lobby, each in its own corner of the dungeon's square`() {
+        val names = mapOf(
+            4688 to "soulbane_unicorn", 4689 to "soulbane_rat", 4690 to "soulbane_rat2", 4691 to "soulbane_goblin", 4692 to "soulbane_bear",
+            4693 to "soulbane_fear_beast", 4694 to "soulbane_conf_beast", 4695 to "soulbane_less_beast3",
+        )
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("tolnas-rift.json"), types, "tolnas-rift.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        assertEquals(listOf(2, 1, 1, 2, 2, 9, 11, 11), names.keys.map { id -> spawns.count { it.type.id == id } })
+        assertEquals(spawns.size, spawns.map { it.x to it.z }.toSet().size)
+        assertTrue(spawns.all { it.x in 3072..3135 && it.z in 5248..5311 && it.level == 0 && it.wander > 0 && it.source.isNotBlank() })
+        // The lobby's rope is at 3105, 5279: anger north-west, fear north-east, confusion south-east, hopelessness south-west.
+        fun room(vararg ids: Int) = spawns.filter { it.type.id in ids }
+        assertTrue(room(4688, 4689, 4690, 4691, 4692).all { it.x < 3105 && it.z > 5279 })
+        assertTrue(room(4693).all { it.x > 3105 && it.z > 5279 })
+        assertTrue(room(4694).all { it.x > 3105 && it.z < 5279 })
+        assertTrue(room(4695).all { it.x < 3105 && it.z < 5279 })
+        // The rat that drops bones is the one nearest the rope.
+        assertEquals(3094 to 5286, spawns.single { it.type.id == 4690 }.let { it.x to it.z })
+    }
+
+    @Test
     fun `Paterdomus has Drezel in the mausoleum and Ivan Strom beside him, and no monks or guardian`() {
         val names = mapOf(9805 to "priestperiltrappedmonk2", 15853 to "myq6_ivan_postquest")
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())

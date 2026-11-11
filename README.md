@@ -1359,8 +1359,8 @@ the yard's crates hold nothing now that Gertrude's Cat is done; its barrels do n
 Enter and an earth talisman or tiara, as the Water Altar's do, until Runecraft is built.
 
 Every account has done A Soul's Bane, so login sets the varbits that show Tolna at the top of his rift, the rope in it and
-the five warning signs round it. Tolna talks as the Wiki has him after the quest; the rift's holes and rope wait for its
-dungeon; the signs read as the Wiki says.
+the five warning signs round it. Tolna talks as the Wiki has him after the quest; the rift's rope leads down into its
+dungeon (below); the signs read as the Wiki says.
 
 | Lumber Yard and Tolna's rift | Source |
 |------------------------------|--------|
@@ -1373,8 +1373,31 @@ dungeon; the signs read as the Wiki says.
 | The signs' text | OSRS Wiki, Transcript:Warning sign (Tolna's rift), read 2026-11-10 |
 | Launa left out | OSRS Wiki, Launa: she went home with Brana after the quest |
 | The three varbits after A Soul's Bane, the crates finding nothing, the fence's two tiles | inferred |
-| The fence's animation (the Varrock fence's), the barrels' "Nothing interesting happens", the cost line's words, the chathead expressions, the rift's refusal | guessed |
-| Out: Tolna's rift dungeon (a later step), sawmill vouchers (Forestry), Gertrude's cat and kittens, the clue crate, the shop's top-up of bolts of cloth and bronze nails when opened low | out of scope |
+| The fence's animation (the Varrock fence's), the barrels' "Nothing interesting happens", the cost line's words, the chathead expressions | guessed |
+| Out: sawmill vouchers (Forestry), Gertrude's cat and kittens, the clue crate, the shop's top-up of bolts of cloth and bronze nails when opened low | out of scope |
+
+#### Tolna's rift dungeon
+
+Misthalin piece 7 step 6b (`game/content/TolnasRift.kt`, `npc-spawns/tolnas-rift.json`, the rift monsters' entries in
+`npc-combat.json` and `npc-drops.json`, words under `tolna_rift.*`): the dungeon below Tolna's rift as it is after A
+Soul's Bane.
+
+Enter on the rift's rope climbs down into the lobby; the rope there climbs back up to beside Tolna. The rift's other holes
+send the player to the rope. The lobby opens onto four rooms, each with its monsters, all aggressive and at their
+post-quest levels: angry bears, unicorns, giant rats and goblins (level 47) in the Anger room to the north-west, fear
+reapers (55) in the Fear room to the north-east, confusion beasts (63, no poison) in the Confusion room to the south-east
+and hopeless creatures (71, weak to fire) in the Hopeless room to the south-west. None drops anything but the angry giant
+rat nearest the entrance, which drops bones.
+
+| Tolna's rift dungeon | Source |
+|----------------------|--------|
+| The lobby and four rooms, the monsters, no drops but the one rat's bones | OSRS Wiki, Tolna's rift and Angry giant rat, read 2026-11-11 |
+| The other holes' line | OSRS Wiki, Rift (Tolna's rift), read 2026-11-11 (the page marks its wording as maybe wrong) |
+| Speeds, max hits, styles, aggression, poison, respawn 25 for the confusion beasts and hopeless creatures | OSRS Wiki, the seven monsters' pages, read 2026-11-11; bonuses, the fear reaper's and confusion beast's max hit 6 and the fire weakness from the DPS calculator (weirdgloop/osrs-dps-calc) |
+| The monsters' tiles | mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022), moved with the dungeon from its old place (192 tiles east, 4544 north) to the 241 cache's; every one lands on open floor in its room |
+| Which room is which, the post-quest dungeon being the square at x 3072 to 3135, z 5248 to 5311, any weapon hurting the monsters, the hopeless creatures dying once, the fight animations | inferred |
+| The tiles the climbs land on (3105, 5278 and 3309, 3452), the climbs' animations and waits, respawn 25 for the other five, which rat id drops the bones | guessed |
+| Out: the quest's rooms (weapon rack, fire wall, black hole, dark holes, confusing doors) and Tolna's room; the Varrock diary's re-entry task | out of scope |
 
 #### Silvarea
 

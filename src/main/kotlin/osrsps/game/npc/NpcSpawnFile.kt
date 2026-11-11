@@ -67,6 +67,7 @@ object NpcSpawnFile {
         "ham-storerooms.json",
         "misthalin-farms-roads.json",
         "lumber-yard.json",
+        "tolnas-rift.json",
         "silvarea.json",
         "paterdomus.json",
         "digsite.json",

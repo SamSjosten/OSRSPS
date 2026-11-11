@@ -15,6 +15,7 @@ import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.World
 import osrsps.game.content.LumberYard
+import osrsps.game.content.TolnasRift
 import osrsps.game.dialogue.Chatbox
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
@@ -32,8 +33,8 @@ import osrsps.map.LocShape
 /**
  * Misthalin piece 7 step 6 through the headless client: the Sawmill operator's talk, his Make-X box of planks with its
  * fees and refusals, his shop on Trade (his op 4), the Lumber Yard's crates and barrels, the broken fence, the Earth
- * Altar's ruins, Tolna as he shows after A Soul's Bane, his rift and its warning signs. The rl-client script
- * test-runner/examples/lumber-yard.json does the same on the real map.
+ * Altar's ruins, Tolna as he shows after A Soul's Bane, a hole in his rift and its warning signs (the rope down is
+ * HeadlessTolnasRiftTest's). The rl-client script test-runner/examples/lumber-yard.json does the same on the real map.
  */
 class HeadlessLumberYardTest {
     private val operator = NpcType(
@@ -49,7 +50,7 @@ class HeadlessLumberYardTest {
     private val crate = ZoneLoc(LumberYard.CRATE, LocShape.CENTREPIECE_STRAIGHT, 0, 3226, 3222, 0)
     private val barrel = ZoneLoc(LumberYard.BARREL, LocShape.CENTREPIECE_STRAIGHT, 0, 3228, 3222, 0)
     private val ruins = ZoneLoc(LumberYard.EARTH_RUINS, LocShape.CENTREPIECE_STRAIGHT, 0, 3218, 3222, 0)
-    private val rift = ZoneLoc(LumberYard.RIFTS.first(), LocShape.CENTREPIECE_STRAIGHT, 0, 3216, 3216, 0)
+    private val rift = ZoneLoc(TolnasRift.HOLES.first(), LocShape.CENTREPIECE_STRAIGHT, 0, 3216, 3216, 0)
     private val sign = ZoneLoc(LumberYard.WARNING_SIGN, LocShape.CENTREPIECE_STRAIGHT, 0, 3218, 3216, 0)
     private val fence = ZoneLoc(FENCE, LocShape.CENTREPIECE_STRAIGHT, 0, 3308, 3492, 0)
 
@@ -89,7 +90,7 @@ class HeadlessLumberYardTest {
                     type(LumberYard.CRATE, "Crate", "Search"),
                     type(LumberYard.BARREL, "Barrel", "Search"),
                     type(LumberYard.EARTH_RUINS, "Mysterious ruins", "Enter"),
-                    type(LumberYard.RIFTS.first(), "Rift", "Enter"),
+                    type(TolnasRift.HOLES.first(), "Rift", "Enter"),
                     type(LumberYard.WARNING_SIGN, "Warning sign", "Read"),
                     type(FENCE, "Broken fence", "Climb-over"),
                 ).associateBy { it.id },
@@ -248,7 +249,7 @@ class HeadlessLumberYardTest {
     }
 
     @Test
-    fun `Tolna shows as after A Soul's Bane and talks, his rift waits for its dungeon and the signs read`(@TempDir dir: Path) {
+    fun `Tolna shows as after A Soul's Bane and talks, his rift's holes send the player to the rope and the signs read`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("erin").use { client ->
                 client.ready()
@@ -258,7 +259,7 @@ class HeadlessLumberYardTest {
                 client.awaitClosed()
 
                 client.locOp(rift.id, rift.x, rift.z, LumberYard.ENTER)
-                client.awaitSeen("[tolna_rift.dungeon_later]")
+                client.awaitSeen("[tolna_rift.rope_only]")
                 client.locOp(sign.id, sign.x, sign.z, LumberYard.READ)
                 client.awaitDialogue("the sign") { it == DialogueView.Message("[tolna_rift.sign]") }
                 client.continueDialogue()

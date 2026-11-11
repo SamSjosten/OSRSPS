@@ -1134,6 +1134,10 @@
     {
       "npcs": ["small_bat"], "always": [{"item": 530, "name": "Bat bones"}],
       "source": "OSRS Wiki, Bat, Drops, read 2026-11-11: bat bones always. The bat wing (1/4) drops only during Rag and Bone Man II, which every account has done"
+    },
+    {
+      "npcs": ["soulbane_rat2"], "always": [{"item": 526, "name": "Bones"}],
+      "source": "OSRS Wiki, Angry giant rat (level 47), Drops, read 2026-11-11: bones always, but only from the rat nearest the entrance; that is taken to be soulbane_rat2, which mejrs's list saw nearer the rope (guessed). The rift's other monsters drop nothing (the Wiki's Tolna's rift page)"
     }
   ]
 }
