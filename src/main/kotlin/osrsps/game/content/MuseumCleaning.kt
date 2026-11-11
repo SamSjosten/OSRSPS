@@ -4,6 +4,7 @@ import osrsps.game.FrameSlot
 import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.dialogue.Lines
+import osrsps.game.script.QueueType
 import osrsps.game.script.ScriptContext
 
 /**
@@ -23,7 +24,7 @@ object MuseumCleaningLines : Lines("museum_cleaning", "Uncleaned find") {
 
 /**
  * The Varrock Museum's finds cleaning, behind the cleaning area's gate (The Dig Site counts complete): Take on the tool
- * rack (`vm_digsite_tools` 24535) gives the trowel, rock pick and specimen brush the player lacks; Take on the specimen
+ * rack (`vm_digsite_tools` 24535) gives the trowel, rock pick, specimen brush, leather gloves and boots the player lacks; Take on the specimen
  * rocks (24557 to 24559) gives an uncleaned find; Clean on a specimen table (24556), or a find used on it, cleans finds
  * one after another while the player wears leather gloves and boots and carries the three tools; Add finds on the
  * storage crate (`vm_crate` 24534) trades a common artefact for a reward. The wall maps (24390 to 24392) show the
@@ -57,6 +58,7 @@ object MuseumCleaning {
     val TOOL_IDS = listOf(TROWEL, ROCK_PICK, SPECIMEN_BRUSH)
     const val LEATHER_GLOVES = 1059
     const val LEATHER_BOOTS = 1061
+    val GEAR_IDS = listOf(LEATHER_GLOVES, LEATHER_BOOTS)
 
     const val UNCLEANED_FIND = 11175
     const val ARROWHEADS = 11176
@@ -126,32 +128,46 @@ object MuseumCleaning {
     }
 }
 
-private suspend fun ScriptContext.cleanFinds(world: World) = with(MuseumCleaning) {
+private suspend fun ScriptContext.cleanFinds(world: World) {
     arriveDelay()
-    while (true) {
-        when {
-            player.equipment.count(LEATHER_GLOVES) == 0L || player.equipment.count(LEATHER_BOOTS) == 0L -> return@with world.message(player, MuseumCleaningLines.NEED_GEAR)
-            TOOL_IDS.any { player.inventory.count(it) == 0L } -> return@with world.message(player, MuseumCleaningLines.NEED_TOOLS)
-            player.inventory.count(UNCLEANED_FIND) == 0L -> return@with world.message(player, MuseumCleaningLines.NO_FINDS)
-        }
-        player.anim(ANIM_BRUSH)
-        delay(CLEAN_TICKS)
-        if (!removeOne(player, UNCLEANED_FIND)) return@with
-        val found = clean(world, player)
-        if (found == null) {
-            world.message(player, MuseumCleaningLines.CRUMBLE)
-        } else {
-            give(world, player, found.first, found.second)
-            world.objTypes[found.first]?.let { world.message(player, MuseumCleaningLines.CLEANED, "item" to it.name) }
-        }
-        if (player.inventory.count(UNCLEANED_FIND) == 0L) return@with
-    }
+    startClean(world)
 }
+
+/**
+ * Starts brushing the next find when the player is dressed for it and has the tools and a find, and queues its end: a
+ * weak queue, so walking off or clicking anything else stops the cleaning between finds, as the dairy cows' milking does.
+ */
+private fun ScriptContext.startClean(world: World): Unit = with(MuseumCleaning) {
+    when {
+        player.equipment.count(LEATHER_GLOVES) == 0L || player.equipment.count(LEATHER_BOOTS) == 0L -> return@with world.message(player, MuseumCleaningLines.NEED_GEAR)
+        TOOL_IDS.any { player.inventory.count(it) == 0L } -> return@with world.message(player, MuseumCleaningLines.NEED_TOOLS)
+        player.inventory.count(UNCLEANED_FIND) == 0L -> return@with world.message(player, MuseumCleaningLines.NO_FINDS)
+    }
+    player.anim(ANIM_BRUSH)
+    queue(CLEAN_QUEUE, QueueType.WEAK, CLEAN_TICKS) { cleanOne(world) }
+}
+
+/** One find cleaned (or crumbled), then the next started while finds are left. */
+private fun ScriptContext.cleanOne(world: World): Unit = with(MuseumCleaning) {
+    if (!removeOne(player, UNCLEANED_FIND)) return@with
+    val found = clean(world, player)
+    if (found == null) {
+        world.message(player, MuseumCleaningLines.CRUMBLE)
+    } else {
+        give(world, player, found.first, found.second)
+        world.objTypes[found.first]?.let { world.message(player, MuseumCleaningLines.CLEANED, "item" to it.name) }
+    }
+    if (player.inventory.count(UNCLEANED_FIND) > 0L) startClean(world)
+}
+
+private const val CLEAN_QUEUE = "museum_clean"
 
 fun registerMuseumCleaning(world: World) {
     with(MuseumCleaning) {
         world.handlers.onLoc(TOOLS, TAKE) {
-            val missing = TOOL_IDS.filter { player.inventory.count(it) == 0L }
+            // The rack holds the gloves and boots too (the Wiki's Kudos page): those not worn or carried come with the tools.
+            val missing = TOOL_IDS.filter { player.inventory.count(it) == 0L } +
+                GEAR_IDS.filter { player.inventory.count(it) == 0L && player.equipment.count(it) == 0L }
             when {
                 missing.isEmpty() -> world.message(player, MuseumCleaningLines.HAVE_TOOLS)
                 player.inventory.freeSlots < missing.size -> world.message(player, MuseumCleaningLines.NO_ROOM)

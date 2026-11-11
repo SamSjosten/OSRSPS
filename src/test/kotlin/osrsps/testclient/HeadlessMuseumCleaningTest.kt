@@ -67,7 +67,6 @@ class HeadlessMuseumCleaningTest {
     private fun HeadlessClient.awaitHeld(id: Int, count: Long) = await("$count of $id") { if (held(id) == count) Unit else null }
 
     private fun HeadlessClient.wear(id: Int) {
-        command("item $id 1")
         val slot = await("item $id in the backpack") { inventory(Inventory.INV).indexOfFirst { it?.id == id }.takeIf { it >= 0 } }
         ifButton(INVENTORY, INVENTORY_ITEMS, WEAR_BUTTON, slot, id)
         await("item $id worn") { inventory(WORN).firstOrNull { it?.id == id } }
@@ -81,7 +80,7 @@ class HeadlessMuseumCleaningTest {
             server.login("alice").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.locOp(MuseumCleaning.TOOLS, 3224, 3218, 1)
-                for (tool in MuseumCleaning.TOOL_IDS) client.awaitHeld(tool, 1)
+                for (item in MuseumCleaning.TOOL_IDS + MuseumCleaning.GEAR_IDS) client.awaitHeld(item, 1)
                 client.locOp(MuseumCleaning.ROCKS.first(), 3226, 3218, 1)
                 client.awaitHeld(MuseumCleaning.UNCLEANED_FIND, 1)
                 client.awaitTicks(2)
@@ -89,6 +88,7 @@ class HeadlessMuseumCleaningTest {
                 client.awaitHeld(MuseumCleaning.UNCLEANED_FIND, 2)
 
                 client.locOp(MuseumCleaning.TABLE, 3228, 3218, 1)
+                // Carried isn't enough: they have to be worn.
                 client.awaitMessage("no gear") { it == "[museum_cleaning.need_gear]" }
                 client.wear(MuseumCleaning.LEATHER_GLOVES)
                 client.wear(MuseumCleaning.LEATHER_BOOTS)
@@ -97,6 +97,30 @@ class HeadlessMuseumCleaningTest {
                 client.await("two outcomes") {
                     if (client.count("[museum_cleaning.crumble]") + client.count("[museum_cleaning.cleaned") == 2) Unit else null
                 }
+                // Worn gear stays worn: the rack gives only the tools again.
+                client.locOp(MuseumCleaning.TOOLS, 3224, 3218, 1)
+                client.await("every tool held") { if (client.count("[museum_cleaning.have_tools]") > 0) Unit else null }
+                assertEquals(0L, client.held(MuseumCleaning.LEATHER_GLOVES) + client.held(MuseumCleaning.LEATHER_BOOTS))
+            }
+        }
+    }
+
+    @Test
+    fun `walking off stops the cleaning between finds`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.locOp(MuseumCleaning.TOOLS, 3224, 3218, 1)
+                for (item in MuseumCleaning.TOOL_IDS + MuseumCleaning.GEAR_IDS) client.awaitHeld(item, 1)
+                client.wear(MuseumCleaning.LEATHER_GLOVES)
+                client.wear(MuseumCleaning.LEATHER_BOOTS)
+                client.command("item ${MuseumCleaning.UNCLEANED_FIND} 5")
+                client.awaitHeld(MuseumCleaning.UNCLEANED_FIND, 5)
+                client.locOp(MuseumCleaning.TABLE, 3228, 3218, 1)
+                client.awaitHeld(MuseumCleaning.UNCLEANED_FIND, 4)
+                client.walk(3222, 3222)
+                client.awaitTicks(MuseumCleaning.CLEAN_TICKS * 3)
+                assertEquals(4L, client.held(MuseumCleaning.UNCLEANED_FIND), "the cleaning stopped when the player walked off")
             }
         }
     }
