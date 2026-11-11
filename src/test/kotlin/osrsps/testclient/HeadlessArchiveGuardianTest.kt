@@ -23,6 +23,7 @@ import osrsps.game.SeqNames
 import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.combat.Deaths
+import osrsps.game.combat.MeleeCombat
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.Prayers
 import osrsps.game.loc.LocType
@@ -856,6 +857,10 @@ class HeadlessArchiveGuardianTest {
                 assertTrue(fight.lines.none { it.endsWith("shield broken") }, fight.lines.joinToString("\n"))
                 assertEquals(ArchiveGuardian.GROUNDED, boss.type.id)
                 assertEquals(330, boss.hitpoints, "the 30% it lifted off with")
+                // The charge's splat is what was left of the shield, and the bar goes straight to the hitpoints.
+                alice.await("the charge's splat") { alice.npcHits().firstOrNull { it.index == boss.index && it.value == 130 } }
+                val fill = MeleeCombat.healthBarFill(330, boss.maxHitpoints)
+                alice.await("its bar at its hitpoints") { alice.npcHealth(boss.index)?.takeIf { it.fill == fill } }
                 alice.commandReply("resume") { it.isNotEmpty() }
             }
         }
@@ -931,6 +936,50 @@ class HeadlessArchiveGuardianTest {
                     bob.await("it charged") { if (nw.type.id == ArchiveGuardian.BATTERY_SPENT) Unit else null }
                     // Before (Codex on #481): it held at 0 and he kept on at it, as a ranger would with their arrows.
                     bob.await("his attack stopped") { if (bobP.interaction == null) Unit else null }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a beam whose target dies before it lands, nobody else on its line, lands on nobody and the fight goes on`(@TempDir dir: Path) {
+        server(dir, vines = false).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    for (client in listOf(alice, bob)) {
+                        client.await("the login rebuild") { client.position }
+                        client.commandReply("god on") { it.startsWith("You can't be hurt") }
+                    }
+                    party(alice, bob)
+                    // Its middle will be 3224,3220: Alice east of it and Bob west, so neither is on a line through the other.
+                    alice.tele(3222, 3218)
+                    bob.tele(3222, 3218)
+                    alice.commandReply("pause") { it.startsWith("Paused") }
+                    alice.commandReply("raid guardian phase=final") { it.startsWith("Started") }
+                    alice.command("tele 3229 3220 0")
+                    bob.command("tele 3219 3220 0")
+                    val fight = server.world.encounters.all.single()
+                    var ticks = 0
+                    while (fight.lines.none { it.contains("beam fires at") }) {
+                        check(++ticks <= ArchiveGuardian.BEAM_EVERY + 2) { "no beam: ${fight.lines.toList()}" }
+                        alice.stepTicks(1)
+                    }
+                    // The one it aimed at dies in the tick before it lands.
+                    // The other holds the clock: a dead player's commands wait for them to get up.
+                    val atAlice = fight.lines.any { it.endsWith("beam fires at alice") }
+                    val (target, name) = if (atAlice) alice to "alice" else bob to "bob"
+                    val other = if (atAlice) bob else alice
+                    target.commandReply("god off") { it.startsWith("You can be hurt") }
+                    target.commandReply("hit 99 me") { it.startsWith("Hit yourself") }
+                    other.stepTicks(ArchiveGuardian.BEAM_TRAVEL)
+                    assertTrue(server.world.playerNamed(name)!!.dead, "$name dead as it lands")
+                    assertTrue(fight.lines.any { it.endsWith("final: beam lands on nobody") }, fight.lines.toList().takeLast(8).toString())
+                    assertTrue(fight.lines.none { it.contains("beam hits") }, fight.lines.toString())
+                    // The world goes on ticking, the fight with it.
+                    val before = fight.ticks
+                    other.stepTicks(2)
+                    assertTrue(fight.ticks > before && !fight.ended, "the fight stopped")
+                    other.commandReply("resume") { it.isNotEmpty() }
                 }
             }
         }

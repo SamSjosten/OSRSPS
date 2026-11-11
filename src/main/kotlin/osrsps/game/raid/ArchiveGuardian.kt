@@ -416,6 +416,9 @@ object ArchiveGuardian {
         form(grounded)
         pool(grounded)
         boss.hitpoints = state.health.takeIf { it > 0 }?.coerceAtMost(boss.maxHitpoints) ?: boss.maxHitpoints
+        // The bar shows the hitpoints at once: the shield's last hit left it empty (Codex on #641; Sam's recording of
+        // 10 November 2026 has the bar go from the shield straight to the hitpoints).
+        boss.effects.headBar(-1, MeleeCombat.HEALTH_BAR, MeleeCombat.healthBarFill(boss.hitpoints, boss.maxHitpoints))
         boss.effects.anim(ANIM_TO_GROUND)
         boss.effects.spotanim(0, SPOT_TO_GROUND, 0)
         // No shield to charge now: those not charged fall asleep again, till a shield or a beam. Guessed.
@@ -712,6 +715,12 @@ object ArchiveGuardian {
                 val dealt = world.meleeCombat.hitPlayer(player, boss, roll(BEAM_BLOCKED_MIN, BEAM_BLOCKED_MAX), world.tick)
                 log("beam hits ${player.username} for $dealt")
             }
+            return
+        }
+        // Its target fell or left in the tick it took, with nobody else on the line: the whole beam has nobody to share
+        // it (Codex on #641). An inert guardian behind still takes it, above.
+        if (struck.isEmpty()) {
+            log("beam lands on nobody")
             return
         }
         val total = beamDamage(fighting.size)
