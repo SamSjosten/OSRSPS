@@ -1,5 +1,5 @@
 {
- "name": "Varrock sweep talkers: Toby's rewards, James's menu and Meredith's drink (::keys on)",
+ "name": "Varrock sweep talkers: Toby's rewards, James's menu and Meredith's drink and the Weaponsmaster killed for his bones (::keys on)",
  "account": "test",
  "steps": [
   {
@@ -92,7 +92,7 @@
    "step": "command",
    "text": "::tele 3171 3462 0",
    "expectMessage": "Teleported to 3171, 3462, 0",
-   "comment": "by James at the Grand Exchange's south-west entrance; the client shows him as bond_james_visible (8193)"
+   "comment": "by James at the Grand Exchange's south-west entrance; the client shows him as bond_james_visible (8193), but the runner matches the base id 5885"
   },
   {
    "step": "waitTicks",
@@ -100,7 +100,7 @@
   },
   {
    "step": "npcOption",
-   "npcId": 8193,
+   "npcId": 5885,
    "option": "Talk-to",
    "timeoutMs": 20000
   },
@@ -177,6 +177,45 @@
   },
   {
    "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3318 3228 0",
+   "expectMessage": "Teleported to 3318, 3228, 0",
+   "comment": "a quiet tile in Al Kharid's north-east, as varrock-fighters.json uses, so the Weaponsmaster put in is the nearest"
+  },
+  {
+   "step": "command",
+   "text": "::npc weaponsmaster",
+   "expectMessage": "Spawned Weaponsmaster (5211)"
+  },
+  {
+   "step": "command",
+   "text": "::kill weaponsmaster",
+   "expectMessage": "Killed Weaponsmaster #"
+  },
+  {
+   "step": "assertAnimation",
+   "npc": "Weaponsmaster",
+   "id": 836,
+   "timeoutMs": 10000,
+   "comment": "human_death"
+  },
+  {
+   "step": "assertGroundItem",
+   "item": "Bones",
+   "timeoutMs": 15000,
+   "comment": "always, from npc-drops.json"
+  },
+  {
+   "step": "command",
+   "text": "::delnpc mine",
+   "expectMessage": "Removed"
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
   }
  ]
 }
