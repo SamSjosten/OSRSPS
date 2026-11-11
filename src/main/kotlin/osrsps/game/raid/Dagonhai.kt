@@ -624,12 +624,14 @@ object Dagonhai {
     }
 
     /** A Monk not busy searches his books for a tome of a god picked at random; the gust shows where to block it. */
-    private fun EncounterContext.search() {
+    private fun EncounterContext.search(forced: God? = null) {
         state.nextTome = world.tick + TOME_EVERY
-        val free = state.members.filter { m -> MEMBERS.first { it.type == m.spawn.type.id }.monk && alive(m) != null && !busy(m) }
+        val monks = state.members.filter { m -> MEMBERS.first { it.type == m.spawn.type.id }.monk && alive(m) != null }
+        // A search asked for ([searchFor]) takes a busy Monk when none is free.
+        val free = monks.filter { !busy(it) }.ifEmpty { if (forced != null) monks.filter { it !in state.searching } else emptyList() }
         if (free.isEmpty()) return
         val monk = free[roll(0, free.size - 1)]
-        val god = God.entries[roll(0, God.entries.size - 1)]
+        val god = forced ?: God.entries[roll(0, God.entries.size - 1)]
         val number = number(monk)
         state.searching[monk] = god
         monk.effects.anim(animSearch(number))
@@ -652,6 +654,12 @@ object Dagonhai {
             log("member $number throws the ${god.name.lowercase()} tome")
         }
     }
+
+    /**
+     * A Monk of [fight] searches for a tome of [god] now, as the fight's own searches do with a god picked at random:
+     * how the headless tests throw each god's tome in turn. Call it with the world paused.
+     */
+    internal fun searchFor(fight: EncounterContext, god: God) = fight.search(god)
 
     /** Tomes landing: on whoever stands on the gust, or in the cauldron. */
     private fun EncounterContext.tomes() {
@@ -683,7 +691,10 @@ object Dagonhai {
                 log("it hits ${blocker.username} for $dealt and burns them")
                 for (n in 1..BURN_HITS) {
                     after(n * BURN_EVERY) {
-                        if (players.any { it === blocker }) world.meleeCombat.statusHit(blocker, BURN_DAMAGE, Poison.POISON_HITSPLAT)
+                        if (players.any { it === blocker }) {
+                            val burnt = world.meleeCombat.statusHit(blocker, BURN_DAMAGE, Poison.POISON_HITSPLAT)
+                            log("the burn hits ${blocker.username} for $burnt")
+                        }
                     }
                 }
                 fire(Tile(blocker.x, blocker.z), keepClear = true)
@@ -761,7 +772,7 @@ object Dagonhai {
                     player.hitpoints = hitpoints + LIGHTNING_HEAL.coerceAtMost((player.skills.baseLevel(Skill.HITPOINTS) - hitpoints).coerceAtLeast(0))
                     val prayer = player.skills.currentLevel(Skill.PRAYER)
                     player.skills.setCurrentLevel(Skill.PRAYER, prayer + LIGHTNING_HEAL.coerceAtMost((player.skills.baseLevel(Skill.PRAYER) - prayer).coerceAtLeast(0)))
-                    log("the yellow lightning heals ${player.username}")
+                    log("the yellow lightning heals ${player.username}: hitpoints $hitpoints to ${player.hitpoints}, prayer $prayer to ${player.skills.currentLevel(Skill.PRAYER)}")
                 } else if (here in blue) {
                     val dealt = world.meleeCombat.hitPlayer(player, null, LIGHTNING_DAMAGE, world.tick)
                     inCombat(player)

@@ -37,10 +37,13 @@ import osrsps.map.Tile
  * The Dagon'hai Elder and his Monks (raid step 23) through the headless client: their fight beginning with the first
  * of the party onto the room's floor, round the cauldron; the shared pool, a stunned one taking 15% more; the Elder's
  * shots; a channel stopped by a spell of its element and one run into the cauldron's charge; a tome blocked on the gust
- * and one reaching the cauldron; each shield break with its rifts and imps, a rift drained by a player beside it; and
+ * and one reaching the cauldron, then each god's tome thrown on purpose, blocked and not, with what it does; each shield break with its rifts and imps, a rift drained by a player beside it; and
  * after the fifth the cauldron's burst, a Monk dead, the two left on 7 hitpoints, and the room done once both die. The
  * rl-client script test-runner/examples/archive-dagonhai.json fights them in the real client.
  */
+/** Ticks from a search until its tome has landed: the search, the flight and the tick it lands on. */
+private const val TOME_LANDS = Dagonhai.SEARCH_TICKS + Dagonhai.TOME_FLIGHT + 1
+
 class HeadlessDagonhaiTest {
     private fun caster(id: Int, name: String, hitpoints: Int, internal: String) = NpcType(
         id, name, size = 2, ops = listOf(null, "Attack", null, null, null), internalName = internal,
@@ -139,6 +142,14 @@ class HeadlessDagonhaiTest {
 
     private fun tickOf(line: String): Long = line.substringBefore(' ').toLong()
 
+    /** A Monk searches for a tome of [god] now (the world paused); the gust tile its search line names. */
+    private fun HeadlessClient.tome(run: ArchiveRun, god: Dagonhai.God): Tile {
+        Dagonhai.searchFor(assertNotNull(run.fights[ArchiveRoom.DAGONHAI]), god)
+        val line = assertNotNull(lines(run).lastOrNull { it.contains(" searches for a ${god.name.lowercase()} tome") }, lines(run).takeLast(6).toString())
+        val gust = line.substringAfter("the gust at ").split(',').map(String::toInt)
+        return Tile(gust[0], gust[1])
+    }
+
     private fun members(run: ArchiveRun): List<Npc> =
         assertNotNull(run.fights[ArchiveRoom.DAGONHAI]).adds.filter { it.spawn.type.id in Dagonhai.MEMBERS.map { m -> m.type } }
 
@@ -236,6 +247,87 @@ class HeadlessDagonhaiTest {
                 alice.ontoFloor(server, run)
                 alice.awaitLine(run, "a tome reaching the cauldron", 60_000) { it.contains(" tome reaches the cauldron") }
                 alice.awaitLine(run, "its charge") { it.contains("ritual: charge ") }
+            }
+        }
+    }
+
+    @Test
+    fun `each god's tome does its own thing, blocked on the gust and left to reach the cauldron`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.begin(server, run)
+                val trio = members(run)
+                val player = server.world.playerNamed("alice")!!
+                val off = server.world.archiveRaids.tile(run, Dagonhai.ARENA_ENTRY_X, Dagonhai.ARENA_ENTRY_Z)
+                alice.commandReply("pause") { it.contains("aused after tick") }
+                // Hurt for real from here, at full health before each tome (the Elder's shots land too).
+                fun ready(at: Tile, god: Boolean = false) {
+                    player.god = god
+                    player.hitpoints = 99
+                    server.world.teleport(player, at.x, at.z, 0)
+                }
+                fun line(what: String, pattern: Regex): MatchResult =
+                    lines(run).firstNotNullOfOrNull { pattern.find(it) } ?: throw AssertionError("$what; the fight's last lines: ${lines(run).takeLast(16)}")
+
+                // Bandos, blocked: 55 on the blocker.
+                alice.stepTicks(1)
+                ready(alice.tome(run, Dagonhai.God.BANDOS))
+                alice.stepTicks(TOME_LANDS)
+                line("Bandos blocked", Regex("ritual: it hits alice for ${Dagonhai.BANDOS_BLOCKER}$"))
+                // Bandos, left alone: 30 to 40 on everyone in the room.
+                ready(off)
+                alice.tome(run, Dagonhai.God.BANDOS)
+                alice.stepTicks(TOME_LANDS)
+                val shockwave = line("Bandos unblocked", Regex("ritual: the cauldron's shockwave hits alice for (\\d+)$")).groupValues[1].toInt()
+                assertTrue(shockwave in Dagonhai.BANDOS_HIT_MIN..Dagonhai.BANDOS_HIT_MAX, "$shockwave")
+
+                // Zamorak, blocked: 25 and a burn of four hits, fire round the blocker but not under her.
+                ready(alice.tome(run, Dagonhai.God.ZAMORAK))
+                alice.stepTicks(TOME_LANDS)
+                line("Zamorak blocked", Regex("ritual: it hits alice for ${Dagonhai.ZAMORAK_BLOCKER} and burns them$"))
+                player.hitpoints = 99
+                alice.stepTicks(Dagonhai.BURN_HITS * Dagonhai.BURN_EVERY + 1)
+                assertEquals(Dagonhai.BURN_HITS, lines(run).count { it.endsWith("ritual: the burn hits alice for ${Dagonhai.BURN_DAMAGE}") }, lines(run).takeLast(16).toString())
+                assertTrue(lines(run).none { it.contains("hazard hit alice") }, "the blocker's own tile kept clear")
+                // Zamorak, left alone: fire under everyone, 8 to 15.
+                ready(off)
+                alice.tome(run, Dagonhai.God.ZAMORAK)
+                alice.stepTicks(TOME_LANDS + Dagonhai.FIRE_WARN + 1)
+                val burnt = line("Zamorak unblocked", Regex("hazard hit alice for (\\d+)$")).groupValues[1].toInt()
+                assertTrue(burnt in Dagonhai.FIRE_MIN..Dagonhai.FIRE_MAX, "$burnt")
+
+                // Saradomin, left alone: the pool heals 50.
+                ready(off, god = true)
+                // 100 off one of them is 100 off the pool.
+                trio[0].hitpoints = Dagonhai.POOL - 100
+                alice.tome(run, Dagonhai.God.SARADOMIN)
+                alice.stepTicks(TOME_LANDS)
+                line("Saradomin unblocked", Regex("ritual: the pool heals to ${Dagonhai.POOL - 100 + Dagonhai.SARADOMIN_HEAL}$"))
+                assertTrue(trio.all { it.hitpoints == Dagonhai.POOL - 100 + Dagonhai.SARADOMIN_HEAL }, trio.map { it.hitpoints }.toString())
+                // Saradomin, blocked: on the yellow tile beside her, 10 prayer back and no boost taken off her hitpoints.
+                ready(alice.tome(run, Dagonhai.God.SARADOMIN), god = true)
+                player.hitpoints = 115
+                player.skills.setCurrentLevel(Skill.PRAYER, 50)
+                alice.stepTicks(TOME_LANDS)
+                val yellow = line("the marks", Regex("ritual: lightning marked: blue \\S+, yellow (\\d+),(\\d+)$")).groupValues
+                server.world.teleport(player, yellow[1].toInt(), yellow[2].toInt(), 0)
+                alice.stepTicks(Dagonhai.LIGHTNING_WARN + 1)
+                line("the heal", Regex("ritual: the yellow lightning heals alice: hitpoints 115 to 115, prayer 50 to 60$"))
+                // And again, left on the blue tile under her: 20, with the Elder kept off her until it lands.
+                val gust = alice.tome(run, Dagonhai.God.SARADOMIN)
+                ready(gust, god = true)
+                alice.stepTicks(TOME_LANDS)
+                val block = assertNotNull(lines(run).lastOrNull { it.endsWith("ritual: alice blocks the saradomin tome") })
+                val strikes = tickOf(block) + Dagonhai.LIGHTNING_WARN
+                // A tick at a time, unhurt, to the tick before it strikes; then hurt for real until it has.
+                while (server.world.tick < strikes - 1) alice.stepTicks(1)
+                player.god = false
+                player.hitpoints = 99
+                repeat(3) { if (lines(run).none { it.contains("the blue lightning hits alice") }) alice.stepTicks(1) }
+                line("the blue lightning", Regex("ritual: the blue lightning hits alice for ${Dagonhai.LIGHTNING_DAMAGE}$"))
+                player.god = true
+                alice.commandReply("resume") { it.startsWith("Resumed") }
             }
         }
     }
