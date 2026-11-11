@@ -78,14 +78,22 @@ class HeadlessArdougneStallsTest {
                 client.continueDialogue()
                 client.command("setlevel thieving 75")
                 val xp = client.await("level 75") { client.stat(THIEVING)?.takeIf { it.level == 75 } }.xp
+                // Paused and stepped, so the 100 empty ticks are counted in game ticks.
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
                 client.locOp(Thieving.GEM_STALL, 3224, 3218, 2)
+                var stepped = 0
+                while (client.locAt(3224, 3218) != Thieving.EMPTY_STALL) {
+                    client.stepTicks(1)
+                    assertTrue(++stepped < 20, "the theft empties the stall")
+                }
                 val gem = client.await("a gem") { client.items().singleOrNull() }
                 assertTrue(Thieving.GEM_LOOT.any { it.obj == gem.id })
                 assertEquals(xp + 408, client.await("Thieving XP") { client.stat(THIEVING)?.takeIf { it.xp > xp } }.xp)
-                client.await("the empty stall") { if (client.locAt(3224, 3218) == Thieving.EMPTY_STALL) Unit else null }
-                val emptied = server.world.tick
-                client.await("the stall back", timeoutMillis = 20_000) { if (client.locAt(3224, 3218) == Thieving.GEM_STALL) Unit else null }
-                assertTrue(server.world.tick - emptied >= 99, "empty for 100 ticks")
+                client.stepTicks(99)
+                assertEquals(Thieving.EMPTY_STALL, client.locAt(3224, 3218), "still empty after 99 ticks")
+                client.stepTicks(1)
+                assertEquals(Thieving.GEM_STALL, client.locAt(3224, 3218), "back after 100")
+                client.commandReply("resume") { it.startsWith("Resumed") }
             }
         }
     }
