@@ -489,6 +489,12 @@ class World(
         drop = { player, type, count -> dropUnder(player, type, count) },
     )
 
+    /** The Grand Exchange experts' price lists; see [osrsps.game.ge.PriceGuides]. */
+    val priceGuides = osrsps.game.ge.PriceGuides(
+        osrsps.game.ge.PriceGuides.load(objTypes), grandExchange::guidePrice, interfaces::openModal, interfaces::closeModals,
+        words = ::textFor,
+    )
+
     /** The Grand Exchange clerks' item sets window; see [ItemSetsScreen]. */
     val itemSetsScreen = osrsps.game.ge.ItemSetsScreen(
         itemSets, objTypes, interfaces::openModal, interfaces::closeModals,

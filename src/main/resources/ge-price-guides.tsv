@@ -1,0 +1,266 @@
+# The Grand Exchange price guides' lists (Prices on an expert), in the order of each one's "Market guide prices"
+# table on the OSRS Wiki, read 2026-11-11: guide<TAB>item name. A name the cache has no tradeable item for is skipped at load.
+# Ancient brew(4) is in the herb table twice; it is listed once here.
+runes	Rune essence
+runes	Pure essence
+runes	Fire rune
+runes	Water rune
+runes	Air rune
+runes	Earth rune
+runes	Mind rune
+runes	Body rune
+runes	Death rune
+runes	Nature rune
+runes	Chaos rune
+runes	Law rune
+runes	Cosmic rune
+runes	Blood rune
+runes	Soul rune
+runes	Astral rune
+runes	Wrath rune
+runes	Mist rune
+runes	Dust rune
+runes	Smoke rune
+runes	Mud rune
+runes	Steam rune
+runes	Lava rune
+runes	Aether rune
+logs	Logs
+logs	Achey tree logs
+logs	Oak logs
+logs	Willow logs
+logs	Teak logs
+logs	Maple logs
+logs	Mahogany logs
+logs	Arctic pine logs
+logs	Yew logs
+logs	Camphor logs
+logs	Magic logs
+logs	Ironwood logs
+logs	Redwood logs
+logs	Rosewood logs
+weapons_and_armour	Adamant set (lg)
+weapons_and_armour	Adamant set (sk)
+weapons_and_armour	Rune armour set (lg)
+weapons_and_armour	Rune armour set (sk)
+weapons_and_armour	Dragon armour set (lg)
+weapons_and_armour	Dragon armour set (sk)
+weapons_and_armour	Dragon med helm
+weapons_and_armour	Dragon full helm
+weapons_and_armour	Dragon chainbody
+weapons_and_armour	Dragon platebody
+weapons_and_armour	Dragon platelegs
+weapons_and_armour	Dragon plateskirt
+weapons_and_armour	Dragon boots
+weapons_and_armour	Dragon 2h sword
+weapons_and_armour	Dragon sq shield
+weapons_and_armour	Dragon kiteshield
+weapons_and_armour	Green dragonhide set
+weapons_and_armour	Black dragonhide set
+weapons_and_armour	Ahrim's armour set
+weapons_and_armour	Dharok's armour set
+weapons_and_armour	Guthan's armour set
+weapons_and_armour	Karil's armour set
+weapons_and_armour	Torag's armour set
+weapons_and_armour	Verac's armour set
+weapons_and_armour	Abyssal whip
+weapons_and_armour	Kraken tentacle
+weapons_and_armour	Dark bow
+weapons_and_armour	Dragon scimitar
+weapons_and_armour	Dragon axe
+weapons_and_armour	Dragon pickaxe
+weapons_and_armour	Dragon warhammer
+weapons_and_armour	Dragon shortsword
+weapons_and_armour	Dragon claws
+weapons_and_armour	Granite maul
+weapons_and_armour	Uncharged trident
+weapons_and_armour	Uncharged trident (e)
+weapons_and_armour	Uncharged toxic trident
+weapons_and_armour	Uncharged toxic trident (e)
+weapons_and_armour	Odium ward
+weapons_and_armour	Malediction ward
+weapons_and_armour	Armadyl crossbow
+weapons_and_armour	Saradomin sword
+weapons_and_armour	Armadyl godsword
+weapons_and_armour	Bandos godsword
+weapons_and_armour	Saradomin godsword
+weapons_and_armour	Zamorak godsword
+weapons_and_armour	Ancient godsword
+weapons_and_armour	Armadyl helmet
+weapons_and_armour	Bandos chestplate
+weapons_and_armour	Armadyl chestplate
+weapons_and_armour	Bandos tassets
+weapons_and_armour	Armadyl chainskirt
+weapons_and_armour	Bandos boots
+weapons_and_armour	Eternal boots
+weapons_and_armour	Pegasian boots
+weapons_and_armour	Primordial boots
+weapons_and_armour	Avernic treads
+weapons_and_armour	Dragonfire shield
+weapons_and_armour	Dragonfire ward
+weapons_and_armour	Elysian spirit shield
+weapons_and_armour	Spectral spirit shield
+weapons_and_armour	Arcane spirit shield
+weapons_and_armour	Toxic blowpipe (empty)
+weapons_and_armour	Serpentine helm (uncharged)
+weapons_and_armour	Staff of the dead
+weapons_and_armour	Toxic staff (uncharged)
+weapons_and_armour	Dwarf cannon set
+weapons_and_armour	Abyssal dagger
+weapons_and_armour	Abyssal bludgeon
+weapons_and_armour	Tome of fire (empty)
+weapons_and_armour	Imbued heart
+weapons_and_armour	Twisted bow
+weapons_and_armour	Twisted buckler
+weapons_and_armour	Elder maul
+weapons_and_armour	Kodai wand
+weapons_and_armour	Dragon hunter crossbow
+weapons_and_armour	Dinh's bulwark
+weapons_and_armour	Ancestral hat
+weapons_and_armour	Ancestral robe top
+weapons_and_armour	Ancestral robe bottom
+weapons_and_armour	Justiciar armour set
+weapons_and_armour	Sanguinesti staff (uncharged)
+weapons_and_armour	Ghrazi rapier
+weapons_and_armour	Scythe of vitur (uncharged)
+weapons_and_armour	Inquisitor's armour set
+weapons_and_armour	Inquisitor's mace
+weapons_and_armour	Nightmare staff
+weapons_and_armour	Zaryte vambraces
+weapons_and_armour	Zaryte crossbow
+weapons_and_armour	Torva full helm
+weapons_and_armour	Torva platebody
+weapons_and_armour	Torva platelegs
+weapons_and_armour	Masori armour set (f)
+weapons_and_armour	Osmumten's fang
+weapons_and_armour	Tumeken's shadow (uncharged)
+weapons_and_armour	Elidinis' ward
+weapons_and_armour	Tonalztics of ralos (uncharged)
+weapons_and_armour	Sunfire fanatic armour set
+weapons_and_armour	Oathplate armour set
+weapons_and_armour	Ascension crossbows
+ores_and_bars	Copper ore
+ores_and_bars	Tin ore
+ores_and_bars	Iron ore
+ores_and_bars	Silver ore
+ores_and_bars	Lead ore
+ores_and_bars	Gold ore
+ores_and_bars	Mithril ore
+ores_and_bars	Adamantite ore
+ores_and_bars	Nickel ore
+ores_and_bars	Runite ore
+ores_and_bars	Coal
+ores_and_bars	Clay
+ores_and_bars	Bronze bar
+ores_and_bars	Iron bar
+ores_and_bars	Steel bar
+ores_and_bars	Silver bar
+ores_and_bars	Lead bar
+ores_and_bars	Gold bar
+ores_and_bars	Mithril bar
+ores_and_bars	Adamantite bar
+ores_and_bars	Cupronickel bar
+ores_and_bars	Runite bar
+ores_and_bars	Uncut sapphire
+ores_and_bars	Sapphire
+ores_and_bars	Uncut emerald
+ores_and_bars	Emerald
+ores_and_bars	Uncut ruby
+ores_and_bars	Ruby
+ores_and_bars	Uncut diamond
+ores_and_bars	Diamond
+ores_and_bars	Uncut dragonstone
+ores_and_bars	Dragonstone
+ores_and_bars	Uncut onyx
+ores_and_bars	Onyx
+ores_and_bars	Uncut zenyte
+ores_and_bars	Zenyte
+herbs	Vial
+herbs	Vial of water
+herbs	Grimy guam leaf
+herbs	Guam leaf
+herbs	Grimy marrentill
+herbs	Marrentill
+herbs	Grimy tarromin
+herbs	Tarromin
+herbs	Grimy harralander
+herbs	Harralander
+herbs	Grimy ranarr weed
+herbs	Ranarr weed
+herbs	Grimy toadflax
+herbs	Toadflax
+herbs	Grimy irit leaf
+herbs	Irit leaf
+herbs	Grimy avantoe
+herbs	Avantoe
+herbs	Grimy kwuarm
+herbs	Kwuarm
+herbs	Grimy snapdragon
+herbs	Snapdragon
+herbs	Grimy cadantine
+herbs	Cadantine
+herbs	Grimy lantadyme
+herbs	Lantadyme
+herbs	Grimy dwarf weed
+herbs	Dwarf weed
+herbs	Grimy torstol
+herbs	Torstol
+herbs	Grimy huasca
+herbs	Huasca
+herbs	Elkhorn coral
+herbs	Pillar coral
+herbs	Umbral coral
+herbs	Haemostatic poultice
+herbs	Attack potion(4)
+herbs	Super attack(4)
+herbs	Strength potion(4)
+herbs	Super strength(4)
+herbs	Defence potion(4)
+herbs	Super defence(4)
+herbs	Restore potion(4)
+herbs	Super restore(4)
+herbs	Prayer potion(4)
+herbs	Agility potion(4)
+herbs	Combat potion(4)
+herbs	Super combat potion(4)
+herbs	Zamorak brew(4)
+herbs	Saradomin brew(4)
+herbs	Ancient brew(4)
+herbs	Menaphite remedy(4)
+herbs	Antifire potion(4)
+herbs	Extended antifire(4)
+herbs	Super antifire potion(4)
+herbs	Extended super antifire(4)
+herbs	Energy potion(4)
+herbs	Super energy(4)
+herbs	Extreme energy potion(4)
+herbs	Stamina potion(4)
+herbs	Extended stamina potion(4)
+herbs	Weapon poison
+herbs	Weapon poison(+)
+herbs	Weapon poison(++)
+herbs	Antipoison(4)
+herbs	Superantipoison(4)
+herbs	Antidote+(4)
+herbs	Antidote++(4)
+herbs	Anti-venom(4)
+herbs	Anti-venom+(4)
+herbs	Extended anti-venom+(4)
+herbs	Ranging potion(4)
+herbs	Magic potion(4)
+herbs	Hunter potion(4)
+herbs	Super hunter potion(4)
+herbs	Fishing potion(4)
+herbs	Super fishing potion(4)
+herbs	Combat potion set
+herbs	Super potion set
+herbs	Bastion potion(4)
+herbs	Divine bastion potion(4)
+herbs	Battlemage potion(4)
+herbs	Divine battlemage potion(4)
+herbs	Divine super combat potion(4)
+herbs	Divine super attack potion(4)
+herbs	Divine super strength potion(4)
+herbs	Divine super defence potion(4)
+herbs	Divine ranging potion(4)
+herbs	Divine magic potion(4)

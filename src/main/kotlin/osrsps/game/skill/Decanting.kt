@@ -65,8 +65,8 @@ data class PotionFamily(val name: String, val doses: List<Int>, val notes: List<
  * and tradeable, and not in a cup or keg (that leaves out barbarian mixes, Guthix rests, oils and moth mixes, which the
  * Wiki says he also decants, and the raids' potions); the lowest id of each name is the one made, and another id of
  * the name decants with it only when it is as tradeable (an untradeable copy is left alone); out of cash part way, potions are decanted in backpack order while the vials
- * last; "short of inventory space" when even notes won't fit; each chathead's expression. Out: Prices and the herb and
- * potion price guide (the Talk-to option for it ends the talk), the free-to-play lines (every world here is members),
+ * last; "short of inventory space" when even notes won't fit; each chathead's expression. Prices, and the talk's
+ * price option, open his price list ([osrsps.game.ge.PriceGuides]). Out: the free-to-play lines (every world here is members),
  * cups of tea.
  */
 class Decanting(private val world: World) {
@@ -74,38 +74,43 @@ class Decanting(private val world: World) {
     val families: Map<Int, Pair<PotionFamily, Int>> by lazy { families(world.objTypes) }
 
     fun register() {
-        world.handlers.onNpc(ID, TALK_TO) { op -> world.dialogues.start(this, op.npc) { talk() } }
+        world.handlers.onNpc(ID, TALK_TO) { op ->
+            var prices = false
+            world.dialogues.start(this, op.npc) { prices = talk() }
+            if (prices) world.priceGuides.open(player, osrsps.game.ge.PriceGuides.Guide.HERBS)
+        }
         world.handlers.onNpc(ID, DECANT) { op -> world.dialogues.start(this, op.npc) { decantAsked() } }
     }
 
-    private suspend fun Dialogue.talk() = with(BobBarterLines) {
+    /** Whether the talk ends at his price list. */
+    private suspend fun Dialogue.talk(): Boolean = with(BobBarterLines) {
         chatNpc(ChatAnim.HAPPY, HELLO)
         chatPlayer(ChatAnim.NEUTRAL, NO_THANKS)
         chatNpc(ChatAnim.NEUTRAL, WHAT_CAN_I_DO)
-        while (true) {
-            when (choice(WHO_ARE_YOU, PRICES, DECANT, LEAVE)) {
-                1 -> {
-                    chatPlayer(ChatAnim.QUIZ, WHO_ARE_YOU)
-                    chatNpc(ChatAnim.HAPPY, IM_BOB)
-                    chatPlayer(ChatAnim.QUIZ, WHAT_TO_SELL)
-                    chatNpc(ChatAnim.NEUTRAL, NOT_MUCH)
-                    chatPlayer(ChatAnim.NEUTRAL, NOT_SUCCESSFUL)
-                    chatNpc(ChatAnim.ANGRY, PLONKA)
-                    chatPlayer(ChatAnim.NEUTRAL, EVERYTHING)
-                    chatNpc(ChatAnim.HAPPY, ARDOUGNE_WAY)
-                }
-                2 -> {
-                    // The price guide isn't built: the talk ends here.
-                    chatPlayer(ChatAnim.QUIZ, PRICES)
-                    return@with
-                }
-                3 -> {
-                    chatPlayer(ChatAnim.QUIZ, DECANT)
-                    decantAsked()
-                    return@with
-                }
-                else -> return@with
+        // Who he is brings the menu back; the others end the talk.
+        var picked = choice(WHO_ARE_YOU, PRICES, DECANT, LEAVE)
+        while (picked == 1) {
+            chatPlayer(ChatAnim.QUIZ, WHO_ARE_YOU)
+            chatNpc(ChatAnim.HAPPY, IM_BOB)
+            chatPlayer(ChatAnim.QUIZ, WHAT_TO_SELL)
+            chatNpc(ChatAnim.NEUTRAL, NOT_MUCH)
+            chatPlayer(ChatAnim.NEUTRAL, NOT_SUCCESSFUL)
+            chatNpc(ChatAnim.ANGRY, PLONKA)
+            chatPlayer(ChatAnim.NEUTRAL, EVERYTHING)
+            chatNpc(ChatAnim.HAPPY, ARDOUGNE_WAY)
+            picked = choice(WHO_ARE_YOU, PRICES, DECANT, LEAVE)
+        }
+        when (picked) {
+            2 -> {
+                chatPlayer(ChatAnim.QUIZ, PRICES)
+                true
             }
+            3 -> {
+                chatPlayer(ChatAnim.QUIZ, DECANT)
+                decantAsked()
+                false
+            }
+            else -> false
         }
     }
 
