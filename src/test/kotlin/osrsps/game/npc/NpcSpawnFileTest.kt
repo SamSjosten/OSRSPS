@@ -7,6 +7,7 @@ import kotlin.test.assertTrue
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.content.LumbridgeSwampCaves
+import osrsps.game.content.TolnasRift
 import osrsps.game.skill.Fishing
 import osrsps.map.Tile
 
@@ -407,8 +408,8 @@ class NpcSpawnFileTest {
         val spawns = result.spawns
         assertEquals(listOf(2, 1, 1, 2, 2, 9, 11, 11), names.keys.map { id -> spawns.count { it.type.id == id } })
         assertEquals(spawns.size, spawns.map { it.x to it.z }.toSet().size)
-        assertTrue(spawns.all { it.x in 3072..3135 && it.z in 5248..5311 && it.level == 0 && it.wander > 0 && it.source.isNotBlank() })
-        // The lobby's rope is at 3105, 5279: anger north-west, fear north-east, confusion south-east, hopelessness south-west.
+        assertTrue(spawns.all { it.x in TolnasRift.DUNGEON_X && it.z in TolnasRift.DUNGEON_Z && it.level == 0 && it.wander > 0 && it.source.isNotBlank() })
+        // The lobby's rope is at 3105, 5279 (the middle of the square): anger north-west, fear north-east, confusion south-east, hopelessness south-west.
         fun room(vararg ids: Int) = spawns.filter { it.type.id in ids }
         assertTrue(room(4688, 4689, 4690, 4691, 4692).all { it.x < 3105 && it.z > 5279 })
         assertTrue(room(4693).all { it.x > 3105 && it.z > 5279 })
