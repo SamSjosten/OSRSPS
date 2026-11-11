@@ -350,6 +350,69 @@ class DeathsTest {
     }
 
     @Test
+    fun `a grave sorted by older prices is put in order again before a click, so a cheaper first item frees nothing worth more`() {
+        // Exploit review round 25, R25A-3: which items are free goes by where the first under 100,000 stands.
+        val crown = ObjType(20_000, "Crown", cost = 50_000_000)
+        val godsword = ObjType(20_001, "Godsword", cost = 20_000_000)
+        val whip = ObjType(20_003, "Whip", cost = 3_000_000)
+        val types = ObjTypes.of(coins, bones, crown, godsword, whip)
+        val prices = mutableMapOf<Int, Long>()
+        val graves = Deaths(
+            types, graveType, { tick }, { online.asSequence() }, { key -> online.firstOrNull { it.saveKey == key } },
+            spawnNpc = { npcs.add(it) }, removeNpc = { npcs.remove(it); removed += it },
+            teleportToSpawn = { player -> player.x = 3222; player.z = 3218 },
+            openModal = { player, id -> player.modals[FrameSlot.MAINMODAL] = id }, closeModals = { it.modals.clear() },
+            setVarbitNow = { player, id, value -> varbits += Triple(player, id, value) },
+            send = { player, message -> sent += player to message }, message = { player, text -> messages += player to text },
+            value = { prices[it.id] ?: it.cost.toLong() },
+        )
+        val graveHandlers = Handlers()
+        graves.register(graveHandlers)
+        val graveScripts = ScriptRunner(graveHandlers, { it.modals.clear() }) { tick }
+        repeat(3) { alice.inventory.add(crown, 1) }
+        alice.inventory.add(bones, 1)
+        alice.inventory.add(whip, 1)
+        alice.inventory.add(godsword, 1)
+        alice.hitpoints = 0
+        graves.die(alice)
+        repeat(Deaths.DEATH_TICKS) {
+            tick++
+            graves.process()
+        }
+        val grave = graves.graveOf(alice)!!
+        assertEquals(listOf(godsword.id, whip.id, bones.id), grave.items.contents().map { it.second.id })
+        alice.x = grave.npc.x + 1
+        alice.z = grave.npc.z
+        fun loot() = graveScripts.trigger(alice, Op(OpTarget.NPC, Deaths.GRAVE, Deaths.LOOT, npc = grave.npc))
+        fun press(component: Int, sub: Int = -1) = graveScripts.trigger(alice, Op.button(Deaths.GRAVESTONE, component, 1, sub))
+
+        // The godsword falls under 100,000 with the grave shut: opening it puts the whip first, behind the fee.
+        prices[godsword.id] = 50_000
+        loot()
+        assertEquals(listOf(whip.id, godsword.id, bones.id), grave.items.contents().map { it.second.id })
+        assertEquals(1, varbits.last { it.second == Deaths.VARBIT_FREE_FROM }.third - 1, "free from the godsword")
+        assertTrue(graves.fee(alice, grave) > 0)
+        press(Deaths.FREEITEMS, sub = 0)
+        assertEquals(0L, alice.inventory.count(whip.id), "the whip stays behind the fee")
+
+        // Prices change back with the gravestone open: a Take on the godsword where it showed as free does nothing,
+        // and the grave is put in order and sent again.
+        prices[godsword.id] = 20_000_000
+        prices[whip.id] = 10_000
+        val shown = sent.size
+        press(Deaths.FREEITEMS, sub = 1)
+        assertEquals(0L, alice.inventory.count(godsword.id))
+        assertEquals(listOf(godsword.id, whip.id, bones.id), grave.items.contents().map { it.second.id })
+        assertTrue(sent.drop(shown).any { it.first == alice && it.second is UpdateInvFull }, "the grave shown again")
+        // Take-All on the free list now takes the whip and the bones, and the godsword waits for its fee.
+        press(Deaths.FREEBUTTON)
+        assertEquals(1L, alice.inventory.count(whip.id))
+        assertEquals(1L, alice.inventory.count(bones.id))
+        assertEquals(0L, alice.inventory.count(godsword.id))
+        assertEquals(listOf(godsword.id), grave.items.contents().map { it.second.id })
+    }
+
+    @Test
     fun `a Hardcore Ironman's death makes them an Ironman`() {
         val types = osrsps.game.VarTypes(600, mapOf(osrsps.game.SettingsSide.VARBIT_IRONMAN to osrsps.game.VarbitType(499, 3, 5)))
         val carol = Player(3, "carol", 3212, 3210, 0, types)
