@@ -35,8 +35,6 @@ data class OmnishopType(
 class Omnishops(private val byRow: Map<Int, OmnishopType>) {
     operator fun get(row: Int): OmnishopType? = byRow[row]
 
-    val size: Int get() = byRow.size
-
     companion object {
         val NONE = Omnishops(emptyMap())
 

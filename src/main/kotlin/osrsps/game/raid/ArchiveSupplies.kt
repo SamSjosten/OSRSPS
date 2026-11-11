@@ -112,7 +112,7 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
     }
 
     /** The shop [run] is offered: the failure row once the party has died [FAILURE_DEATHS] times. */
-    fun shopFor(run: ArchiveRun): OmnishopType? =
+    private fun shopFor(run: ArchiveRun): OmnishopType? =
         world.omnishops[if (run.deaths.values.sum() >= FAILURE_DEATHS) FAILURE_SHOP else SHOP] ?: world.omnishops[SHOP]
 
     private suspend fun Dialogue.talk() = with(QuartermasterLines) {
