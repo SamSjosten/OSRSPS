@@ -1,0 +1,19 @@
+{
+ "name": "Artisan 2 step A5: scatter vile and infernal ashes for 25 and 110 Prayer XP",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys", "comment": "messages show their keys, as the words aren't in git"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats (no Prayer XP) and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::item 25769 1", "expectMessage": "Added 1 x Vile ashes"},
+  {"step": "command", "text": "::item 25778 1", "expectMessage": "Added 1 x Infernal ashes"},
+  {"step": "itemOption", "item": "Vile ashes", "option": "Scatter"},
+  {"step": "assertMessage", "contains": "[bones.scattered]"},
+  {"step": "assertInventory", "item": "Vile ashes", "count": 0, "timeoutMs": 5000},
+  {"step": "assertStat", "skill": "Prayer", "level": 1, "xp": 25},
+  {"step": "itemOption", "item": "Infernal ashes", "option": "Scatter"},
+  {"step": "assertInventory", "item": "Infernal ashes", "count": 0, "timeoutMs": 5000},
+  {"step": "assertStat", "skill": "Prayer", "level": 2, "xp": 135, "comment": "25 + 110; 83 XP is level 2"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

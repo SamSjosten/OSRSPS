@@ -124,6 +124,7 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   whip still worn after a logout, and Remove.
 - `ground-drop-take.json`: drop an axe, see it on the ground, take it back.
 - `lumbridge-bury-bones.json`: bury two bones, 4.5 Prayer XP each.
+- `scatter-ashes.json`: scatter vile and infernal ashes, 25 and 110 Prayer XP.
 - `rotten-potato-eat.json`: the rotten potato's Eat menu: Set all stats to 50 one skill a tick, Heal me after a `::hit`, and Wipe inventory keeping the potato. Teleport to player needs a second player and Spawn NPC would leave an NPC in Lumbridge, so the headless tests cover them.
 - `rotten-potato-peel.json` (needs 0.24.0): the rotten potato's Peel, Teleport to a tile and Spawn an item through the text prompt (`enterText`), then Bank menu opening the bank on the Lumbridge spawn.
 - `rotten-potato-slice.json`: the rotten potato's Slice, God mode and Sure hits on and off, then Reset ending the scenario. The XP rate and scenario prompts are text, covered headless.
@@ -195,6 +196,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `thieving-t2.json`: Thieving 2 step T2: East Ardougne's 10-coin chest set off, searched and left empty, and its
   house's north door gone through from inside, found locked from outside and picked (with `::keys on` and `::god on`;
   the other chests, the traps' damage and the trapped doors are in the headless and unit tests).
+- `thieving-t3.json`: Thieving 2 step T3: East Ardougne market's six stalls each found and its level asked for at
+  Thieving 1 (with `::keys on`; the loot, the keepers and the guards who see a theft are in the headless and unit tests).
 - `al-kharid-toll-gate.json`: Al Kharid step 1: Open on the toll gate from both sides with no coins, a Border
   Guard's talk (with `::keys on`) that ends with the player through the gate, and the palace's west large doors
   opened together and shut again, and the curtain upstairs in the palace opened and shut.
