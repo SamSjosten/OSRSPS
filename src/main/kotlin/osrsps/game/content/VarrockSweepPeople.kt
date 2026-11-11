@@ -36,13 +36,13 @@ object HooknosedJackLines : Lines("hooknosed_jack", "Transcript:Hooknosed Jack")
     val GRIMESQUIT_1 = line("grimesquit_1", "where, Grimesquit and Phingspet: his answer (the sewers)")
     val JIMMY = line("jimmy", "where: option, Jimmy Dazzler, which the player then says")
     val JIMMY_1 = line("jimmy_1", "where, Jimmy Dazzler: his first answer")
-    val JIMMY_2 = line("jimmy_2", "where, Jimmy Dazzler: his second box")
-    val JIMMY_3 = line("jimmy_3", "where, Jimmy Dazzler: the player's second line")
-    val JIMMY_4 = line("jimmy_4", "where, Jimmy Dazzler: his third answer")
-    val JIMMY_5 = line("jimmy_5", "where, Jimmy Dazzler: the player's third line")
-    val JIMMY_6 = line("jimmy_6", "where, Jimmy Dazzler: his fourth answer")
-    val JIMMY_7 = line("jimmy_7", "where, Jimmy Dazzler: the player's last line")
-    val JIMMY_8 = line("jimmy_8", "where, Jimmy Dazzler: his last answer")
+    val JIMMY_2 = line("jimmy_2", "where, Jimmy Dazzler: the player's second line")
+    val JIMMY_3 = line("jimmy_3", "where, Jimmy Dazzler: his second answer")
+    val JIMMY_4 = line("jimmy_4", "where, Jimmy Dazzler: the player's third line")
+    val JIMMY_5 = line("jimmy_5", "where, Jimmy Dazzler: his third answer")
+    val JIMMY_6 = line("jimmy_6", "where, Jimmy Dazzler: the player's last line")
+    val JIMMY_7 = line("jimmy_7", "where, Jimmy Dazzler: his doubt")
+    val JIMMY_8 = line("jimmy_8", "where, Jimmy Dazzler: where to find him")
     val JOE = line("joe", "where: option, Smokin' Joe, which the player then says")
     val JOE_1 = line("joe_1", "where, Smokin' Joe: his first answer (Keldagrim)")
     val JOE_2 = line("joe_2", "where, Smokin' Joe: his second box (say hello)")
@@ -64,7 +64,9 @@ object AnnaJonesLines : Lines("anna_jones", "Transcript:Anna Jones") {
     val TUNNEL_2 = line("tunnel_2", "what tunnel: the player's second line")
     val TUNNEL_3 = line("tunnel_3", "what tunnel: her second answer")
     val TUNNEL_4 = line("tunnel_4", "what tunnel: the player's third line")
-    val TUNNEL_5 = line("tunnel_5", "what tunnel: her last answer, asking the player to try")
+    val TUNNEL_5 = line("tunnel_5", "what tunnel: her third answer")
+    val TUNNEL_6 = line("tunnel_6", "what tunnel: the player's last line")
+    val TUNNEL_7 = line("tunnel_7", "what tunnel: her last answer, asking the player to try")
     val WHO = line("who", "menu option 2: who are you, which the player then says")
     val WHO_1 = line("who_1", "who are you: her answer")
     val WHO_2 = line("who_2", "who are you: the player's second line")
@@ -77,8 +79,9 @@ object AnnaJonesLines : Lines("anna_jones", "Transcript:Anna Jones") {
     val DOING_1 = line("doing_1", "what she's doing: her first answer")
     val DOING_2 = line("doing_2", "what she's doing: the player's second line")
     val DOING_3 = line("doing_3", "what she's doing: her second answer")
-    val DOING_4 = line("doing_4", "what she's doing: the player's last line (they might)")
+    val DOING_4 = line("doing_4", "what she's doing: the player's third line")
     val DOING_5 = line("doing_5", "what she's doing: her last answer")
+    val DOING_6 = line("doing_6", "what she's doing: the player's last line (they might)")
     val GO = line("go", "menu option 5: the player had better go, which they then say")
     val FAREWELL = line("farewell", "her farewell")
 }
@@ -138,7 +141,7 @@ object MasterSmithingTutorLines : Lines("master_smithing_tutor", "Transcript:Mas
  *
  * Left out: Hooknosed Jack's pit topics (the Rat Pits aren't built: a guessed line ends it) and his Rat Pits manual;
  * Anna Jones's pickaxe (she says she gives one; guessed: only when the player carries none). Guessed: every chathead
- * expression, and Jimmy Dazzler's branch's order (the Wiki has four player boxes and five of his).
+ * expression.
  */
 object VarrockSweepPeople {
     const val GUIDOR = 1110
@@ -181,12 +184,12 @@ object VarrockSweepPeople {
                 2 -> {
                     chatPlayer(ChatAnim.QUIZ, JIMMY)
                     chatNpc(ChatAnim.NEUTRAL, JIMMY_1)
-                    chatNpc(ChatAnim.ANGRY, JIMMY_2)
-                    chatPlayer(ChatAnim.QUIZ, JIMMY_3)
-                    chatNpc(ChatAnim.NEUTRAL, JIMMY_4)
-                    chatPlayer(ChatAnim.QUIZ, JIMMY_5)
-                    chatNpc(ChatAnim.NEUTRAL, JIMMY_6)
-                    chatPlayer(ChatAnim.NEUTRAL, JIMMY_7)
+                    chatPlayer(ChatAnim.QUIZ, JIMMY_2)
+                    chatNpc(ChatAnim.NEUTRAL, JIMMY_3)
+                    chatPlayer(ChatAnim.QUIZ, JIMMY_4)
+                    chatNpc(ChatAnim.NEUTRAL, JIMMY_5)
+                    chatPlayer(ChatAnim.NEUTRAL, JIMMY_6)
+                    chatNpc(ChatAnim.ANGRY, JIMMY_7)
                     chatNpc(ChatAnim.NEUTRAL, JIMMY_8)
                 }
                 3 -> {
@@ -216,7 +219,7 @@ object VarrockSweepPeople {
 
     internal suspend fun Dialogue.annaJones(world: World) = with(AnnaJonesLines) {
         chatNpc(ChatAnim.HAPPY, GREETING, "name" to player.username)
-        if (player.inventory.count(BRONZE_PICKAXE) == 0L) world.objTypes[BRONZE_PICKAXE]?.let { world.groundObjs.give(player, it, 1) }
+        giveOne(world, BRONZE_PICKAXE)
         chatPlayer(ChatAnim.HAPPY, THANKS)
         chatNpc(ChatAnim.NEUTRAL, SUROK)
         chatPlayer(ChatAnim.NEUTRAL, OK)
@@ -230,6 +233,8 @@ object VarrockSweepPeople {
                     chatNpc(ChatAnim.NEUTRAL, TUNNEL_3)
                     chatPlayer(ChatAnim.QUIZ, TUNNEL_4)
                     chatNpc(ChatAnim.NEUTRAL, TUNNEL_5)
+                    chatPlayer(ChatAnim.QUIZ, TUNNEL_6)
+                    chatNpc(ChatAnim.NEUTRAL, TUNNEL_7)
                 }
                 2 -> {
                     chatPlayer(ChatAnim.QUIZ, WHO)
@@ -248,8 +253,9 @@ object VarrockSweepPeople {
                     chatNpc(ChatAnim.NEUTRAL, DOING_1)
                     chatPlayer(ChatAnim.QUIZ, DOING_2)
                     chatNpc(ChatAnim.SAD, DOING_3)
-                    chatPlayer(ChatAnim.NEUTRAL, DOING_4)
+                    chatPlayer(ChatAnim.QUIZ, DOING_4)
                     chatNpc(ChatAnim.HAPPY, DOING_5)
+                    chatPlayer(ChatAnim.NEUTRAL, DOING_6)
                 }
                 else -> {
                     chatPlayer(ChatAnim.NEUTRAL, GO)
@@ -258,6 +264,16 @@ object VarrockSweepPeople {
                 }
             }
         }
+    }
+
+    /**
+     * One [item] into the backpack if the player has none. A full backpack is refused, as ExamCentre's trowel is,
+     * rather than one dropped on the floor each talk.
+     */
+    private fun Dialogue.giveOne(world: World, item: Int) {
+        if (player.inventory.count(item) > 0) return
+        if (player.inventory.freeSlots == 0) return world.message(player, osrsps.game.GameLines.NO_SPACE)
+        world.objTypes[item]?.let { player.inventory.add(it, 1) }
     }
 
     internal suspend fun Dialogue.masterSmithingTutor(world: World) = with(MasterSmithingTutorLines) {
@@ -269,7 +285,7 @@ object VarrockSweepPeople {
                     chatPlayer(ChatAnim.QUIZ, TRAIN)
                     if (player.inventory.count(HAMMER) == 0L) {
                         chatNpc(ChatAnim.NEUTRAL, NO_HAMMER)
-                        world.objTypes[HAMMER]?.let { world.groundObjs.give(player, it, 1) }
+                        giveOne(world, HAMMER)
                     } else {
                         chatNpc(ChatAnim.NEUTRAL, HAS_HAMMER)
                     }
