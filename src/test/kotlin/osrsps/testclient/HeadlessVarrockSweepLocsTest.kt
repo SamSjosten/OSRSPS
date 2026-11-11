@@ -14,13 +14,14 @@ import osrsps.game.loc.StaticLocs
 import osrsps.game.shop.ShopScreen
 import osrsps.game.shop.ShopTypes
 import osrsps.game.zone.ZoneLoc
+import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
 import osrsps.map.LocShape
 
 /**
  * Varrock's locs from the Misthalin sweep through the headless client: the West Bank's cellar stairs down and up, the
- * cellar ladder down and up keeping the player's tile, a fairy crate's Search, the pillory cage's Unlock, and the
+ * cellar ladder down and up keeping the player's side where they can stand there, a fairy crate's Search, the pillory cage's Unlock, and the
  * rotten tomato crate's Buy opening the Pelters' Veg Stall from the real shops.json. Places are the 241 cache's.
  */
 class HeadlessVarrockSweepLocsTest {
@@ -40,6 +41,8 @@ class HeadlessVarrockSweepLocsTest {
                 markLoaded(3187 shr 6, 9833 shr 6)
                 markLoaded(3232 shr 6, 3402 shr 6)
                 markLoaded(3232 shr 6, 9802 shr 6)
+                // The cellar's wall north of the ladder below, where the street above is open.
+                add(3232, 9803, 0, CollisionFlag.LOC)
             },
             objTypes = objs, shopTypes = shops,
             locTypes = LocTypes(
@@ -81,9 +84,17 @@ class HeadlessVarrockSweepLocsTest {
                 client.command("tele 3231 3402 0")
                 client.at(3231, 3402, 0, "beside the ladder")
                 client.locOp(VarrockSweepLocs.LADDER_DOWN, 3232, 3402, 1)
-                client.at(3231, 9802, 0, "down the ladder on the same tile")
+                client.at(3231, 9802, 0, "down the ladder on the same side")
                 client.locOp(VarrockSweepLocs.LADDER_UP, 3232, 9802, 1)
                 client.at(3231, 3402, 0, "back up")
+
+                // From the north, where the cellar has a wall: down on the free tile south of the ladder below instead.
+                client.command("tele 3232 3403 0")
+                client.at(3232, 3403, 0, "north of the ladder")
+                client.locOp(VarrockSweepLocs.LADDER_DOWN, 3232, 3402, 1)
+                client.at(3232, 9801, 0, "down the ladder, south of it, off the wall")
+                client.locOp(VarrockSweepLocs.LADDER_UP, 3232, 9802, 1)
+                client.at(3232, 3401, 0, "back up on the same side")
             }
         }
     }

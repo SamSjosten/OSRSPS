@@ -127,7 +127,7 @@ fun registerDraynorSewers(world: World) {
  * as far from [to] as they stood from [from], when that tile can be stood on, and otherwise on the first of the tiles
  * south, north, west and east of [to] that can ([landing]). As for [climbDungeonLadder], the tile is taken before the wait.
  */
-private suspend fun ScriptContext.climbBetween(world: World, loc: ZoneLoc, from: Tile, to: Tile, anim: Int) {
+internal suspend fun ScriptContext.climbBetween(world: World, loc: ZoneLoc, from: Tile, to: Tile, anim: Int) {
     val land = DraynorSewers.landing(from, to, player.x, player.z) { x, z -> world.canStand(x, z, loc.level) }
     arriveDelay()
     player.anim(anim)

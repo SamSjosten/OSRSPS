@@ -2,6 +2,7 @@ package osrsps.game.content
 
 import osrsps.game.World
 import osrsps.game.dialogue.Lines
+import osrsps.map.Tile
 
 /** The pillory's message, from the Wiki's Pillory page (Trivia), read 2026-11-11. */
 object PilloryLines : Lines("pillory", "Pillory") {
@@ -14,9 +15,11 @@ object PilloryLines : Lines("pillory", "Pillory") {
  * - **The West Bank's cellar**: `fai_varrock_bank_stairs` (11800, 3187,3433) down and `fai_varrock_stairs_from_cellar`
  *   (11805, 3187,9833, the dungeon's 6400 below) up. Like the town's straight stairs, no wait and no animation. Where
  *   each puts the player is guessed: the free tile at the foot of the other staircase (3190,9833 below, 3186,3433
- *   above), from the map's collision.
+ *   above), from the map's collision. The one above is in the bank's back room, behind `fai_varrock_door` (11775),
+ *   which opens like any paired door.
  * - **The cellar south of the square**: `fai_varrock_ladder_deep` (11803, 3232,3402) and `fai_varrock_ladder_from_cellar`
- *   (11804, 3232,9802), a dungeon ladder pair that keeps the player's tile ([climbDungeonLadder]). The crates and
+ *   (11804, 3232,9802), a dungeon ladder pair that keeps the player's side of the ladder where the other side can be
+ *   stood on, else the first free tile beside it ([climbBetween]). The crates and
  *   cabinets down there are the town's, already searchable.
  * - **`fairy_crate` and `fairy_crate_2`** (12105, 12104) in the south-west houses: Search finds nothing, with the
  *   crates' usual message (guessed: the Wiki has no page for them).
@@ -46,8 +49,16 @@ fun registerVarrockSweepLocs(world: World) {
     with(VarrockSweepLocs) {
         world.handlers.onLoc(BANK_STAIRS_DOWN, 1) { world.teleport(player, CELLAR_LANDING.x, CELLAR_LANDING.z, CELLAR_LANDING.level) }
         world.handlers.onLoc(CELLAR_STAIRS_UP, 1) { world.teleport(player, BANK_LANDING.x, BANK_LANDING.z, BANK_LANDING.level) }
-        world.handlers.onLoc(LADDER_DOWN, 1) { op -> climbDungeonLadder(world, op.loc!!, down = true, anim = Climbing.ANIM_PICKUP_FLOOR) }
-        world.handlers.onLoc(LADDER_UP, 1) { op -> climbDungeonLadder(world, op.loc!!, down = false, anim = Climbing.ANIM_REACH_FOR_LADDER) }
+        // The cellar's walls don't line up with the street's: north and east of the ladder above is wall below, so the
+        // player comes out on a tile beside the other ladder they can stand on, as in Draynor's sewers.
+        world.handlers.onLoc(LADDER_DOWN, 1) { op ->
+            val loc = op.loc!!
+            climbBetween(world, loc, Tile(loc.x, loc.z), Tile(loc.x, loc.z + Climbing.DUNGEON_OFFSET), Climbing.ANIM_PICKUP_FLOOR)
+        }
+        world.handlers.onLoc(LADDER_UP, 1) { op ->
+            val loc = op.loc!!
+            climbBetween(world, loc, Tile(loc.x, loc.z), Tile(loc.x, loc.z - Climbing.DUNGEON_OFFSET), Climbing.ANIM_REACH_FOR_LADDER)
+        }
         for (crate in FAIRY_CRATES) registerSearch(world, crate, 1, SearchLines.CRATE_EMPTY)
         registerSearch(world, PILLORY_CAGE, 1, PilloryLines.UNLOCK)
         world.handlers.onLoc(TOMATO_CRATE, 1) { world.shopTypes[PELTERS_STALL]?.let { world.shopScreen.open(player, it) } }
