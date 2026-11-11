@@ -207,4 +207,32 @@ class FishingTest {
         assertEquals(107, SuccessRoll.chance(5, 160, 65))
         assertEquals(161, SuccessRoll.chance(5, 160, 99))
     }
+
+    @Test
+    fun `monkfish net from 62 at Piscatoris and anglerfish bait with sandworms from 82 at Port Piscarilius, by the Wiki's pairs`() {
+        assertEquals(listOf(7944, 62, 1200, 48, 90), Fishing.MONKFISH.let { listOf(it.obj, it.level, it.xpTenths, it.low, it.high) })
+        assertEquals(listOf(13439, 82, 1200, 3, 36), Fishing.ANGLERFISH.let { listOf(it.obj, it.level, it.xpTenths, it.low, it.high) })
+        assertEquals(Fishing.NET, Fishing.MONKFISH_NET.tool)
+        assertEquals(62, Fishing.MONKFISH_NET.level)
+        assertEquals(Fishing.FISHING_ROD, Fishing.ANGLERFISH_BAIT.tool)
+        assertEquals(Fishing.SANDWORMS, Fishing.ANGLERFISH_BAIT.bait!!.obj)
+        assertEquals(82, Fishing.ANGLERFISH_BAIT.level)
+        fun methods(npc: Int) = Fishing.SPOTS.single { it.npc == npc }.methods
+        assertEquals(listOf(Fishing.MONKFISH_NET, Fishing.HARPOON_TUNA), methods(Fishing.PISCATORIS_SPOT))
+        assertEquals(listOf(Fishing.ANGLERFISH_BAIT), methods(Fishing.PISCARILIUS_SPOT))
+        // Mod Ash (13 February 2023, the Raw anglerfish page): about 12% a roll at 82, 14% at 99.
+        assertEquals(31, SuccessRoll.chance(3, 36, 82))
+        assertEquals(37, SuccessRoll.chance(3, 36, 99))
+    }
+
+    @Test
+    fun `seeded rolls catch monkfish and anglerfish as often as the Wiki's charts say`() {
+        val random = GameRandom(62)
+        val rolls = 100_000
+        for ((fish, level) in listOf(Fishing.MONKFISH to 62, Fishing.MONKFISH to 99, Fishing.ANGLERFISH to 82, Fishing.ANGLERFISH to 99)) {
+            val caught = (1..rolls).count { SuccessRoll.roll(random, fish.low, fish.high, level) }
+            val expected = SuccessRoll.chance(fish.low, fish.high, level) / 256.0
+            assertTrue(abs(caught.toDouble() / rolls - expected) < 0.006, "${fish.obj} at $level: ${caught.toDouble() / rolls}, chart $expected")
+        }
+    }
 }

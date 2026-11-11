@@ -42,9 +42,22 @@ class RangedWeaponsTest {
     @Test
     fun `the file lists every bow, crossbow and ammunition it names`() {
         assertEquals(names.size, weapons.weaponCount + weapons.ammoCount)
-        assertEquals(33, weapons.weaponCount)
-        // 25 kinds, and (p), (p+) and (p++) of each arrow and bolt.
-        assertEquals(25 + 16 * 3, weapons.ammoCount)
+        // 33 bows, crossbows, the blowpipe and chinchompas; the ascension crossbows; 9 darts, 8 knives with their
+        // poisons, 7 thrownaxes, 2 ballistae.
+        assertEquals(33 + 1 + 9 * 4 + 8 * 4 + 7 + 2, weapons.weaponCount)
+        // 25 kinds, and (p), (p+) and (p++) of each arrow and bolt; 8 javelins with theirs; the five ascension bolts.
+        // A4c: the ten gem-tipped bolts with their dragon bolts (20), and both enchanted (20).
+        assertEquals(25 + 16 * 3 + 8 * 4 + 5 + 20 + 20, weapons.ammoCount)
+    }
+
+    @Test
+    fun `the ascension crossbows fire ascension bolts and nothing else, and nothing else fires them`() {
+        for (bolts in listOf("ascension_bolts", "ascension_bolts_diamond_enchanted", "ascension_bolts_onyx_unenchanted")) {
+            assertTrue(fires("ascension_crossbows", bolts), bolts)
+            assertFalse(fires("zaryte_xbow", bolts), bolts)
+        }
+        assertFalse(fires("ascension_crossbows", "bolt"))
+        assertFalse(fires("ascension_crossbows", "dragon_bolts"))
     }
 
     @Test
@@ -71,6 +84,11 @@ class RangedWeaponsTest {
         assertFalse(fires("xbows_crossbow_iron", "xbows_crossbow_bolts_steel"))
         assertFalse(fires("xbows_crossbow_runite", "dragon_bolts"))
         assertTrue(fires("acb", "dragon_bolts"))
+        // Gem-tipped dragon bolts are dragon bolts, enchanted or not.
+        assertFalse(fires("xbows_crossbow_runite", "dragon_bolts_unenchanted_opal"))
+        assertFalse(fires("xbows_crossbow_runite", "dragon_bolts_unenchanted_onyx"))
+        assertTrue(fires("acb", "dragon_bolts_unenchanted_opal"))
+        assertTrue(fires("xbows_crossbow_runite", "xbows_crossbow_bolts_runite_tipped_onyx"))
         assertFalse(fires("xbows_crossbow_dragon", "dragon_arrow"))
         assertFalse(fires("darkbow", "bolt"))
     }
@@ -83,6 +101,10 @@ class RangedWeaponsTest {
         assertEquals(7, weapons.weapon(type("xbows_crossbow_runite"))!!.range)
         assertEquals(8, weapons.weapon(type("zaryte_xbow"))!!.range)
         assertEquals(2, weapons.weapon(type("darkbow"))!!.shots)
+        assertEquals(3, weapons.weapon(type("rune_dart_p++"))!!.range)
+        assertEquals(4, weapons.weapon(type("dragon_knife"))!!.range)
+        assertEquals(4, weapons.weapon(type("adamnt_thrownaxe"))!!.range)
+        assertEquals(9, weapons.weapon(type("heavy_ballista"))!!.range)
         assertEquals(1, weapons.weapon(type("shortbow"))!!.shots)
     }
 
@@ -130,6 +152,22 @@ class RangedWeaponsTest {
             )
         }
         assertTrue("targets" in uncapped.message!!, uncapped.message)
+    }
+
+    @Test
+    fun `darts, knives and thrownaxes are thrown at the thrown delay and fall where they land, and ballistae fire every javelin`() {
+        for (name in listOf("bronze_dart", "dragon_dart_p", "black_knife_p+", "dragon_knife", "rune_thrownaxe", "dragon_thrownaxe")) {
+            val weapon = weapons.weapon(type(name))!!
+            assertTrue(weapon.thrown && !weapon.splash && weapon.delay == HitDelay.THROWN, name)
+        }
+        for (ballista in listOf("light_ballista", "heavy_ballista")) {
+            val weapon = weapons.weapon(type(ballista))!!
+            assertEquals(AmmoKind.JAVELINS, weapon.kind)
+            assertEquals(HitDelay.BALLISTA, weapon.delay)
+            for (javelin in listOf("bronze_javelin", "rune_javelin_p++", "amethyst_javelin", "dragon_javelin_p")) assertTrue(fires(ballista, javelin), "$ballista, $javelin")
+            assertFalse(fires(ballista, "dragon_bolts"))
+        }
+        assertFalse(fires("xbows_crossbow_runite", "rune_javelin"))
     }
 
     @Test

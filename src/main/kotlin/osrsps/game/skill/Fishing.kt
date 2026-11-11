@@ -62,6 +62,10 @@ object FishingLines : Lines("fishing", "Fishing") {
     val SNATCHED = line("snatched", "the message when a karambwan takes the vessel's bait without being caught (the Raw karambwan page)")
     val LEVEL_KARAMBWAN = line("level_karambwan", "the message when karambwan fishing needs a higher level (65)", "level")
     val NO_VESSEL = line("no_vessel", "Karambwan vessel: the message on Fish without one")
+    val CATCH_MONKFISH = line("catch_monkfish", "Raw monkfish: the message for each catch")
+    val LEVEL_MONKFISH = line("level_monkfish", "the message when netting monkfish needs a higher level (62)", "level")
+    val CATCH_ANGLERFISH = line("catch_anglerfish", "Raw anglerfish: the message for each catch")
+    val NO_SANDWORMS = line("no_sandworms", "Sandworms: the message on Bait at an anglerfish spot with none left")
     val LEVEL_KARAMBWANJI = line("level_karambwanji", "the message when netting the karambwanji spots needs a higher level (5)", "level")
     val NO_KARAMBWANJI = line("no_karambwanji", "Raw karambwanji: the message on Fish with an empty vessel and none left")
 }
@@ -163,6 +167,9 @@ class SpotType(val npc: Int, val methods: List<FishingMethod>)
  * time and stack, so a full backpack holding some still nets them; the karambwan vessel loses its bait on every roll,
  * caught or not, and is baited again from the backpack's karambwanji before the next. Guessed: the vessel's cast
  * message and animation (human_octopus_pot) and the first roll's timing being the other methods'.
+ *
+ * Monkfish (step FC4) are netted at the Piscatoris Fishing Colony and anglerfish baited with sandworms at Port
+ * Piscarilius, both built in place; their spots stay put.
  *
  * Out: pearl and barbarian rods, stripy feathers (rainbow fish), big bass, big swordfish and big shark,
  * barehanded fishing, the infernal and crystal harpoons, the skills necklace's casket boost, fishing outfits and other
@@ -388,6 +395,7 @@ class Fishing(private val world: World) {
         const val KARAMBWAN_VESSEL = 3157 // tbwt_karambwan_vessel
         const val BAITED_VESSEL = 3159 // tbwt_karambwan_vessel_loaded_with_karambwanji
         const val RAW_KARAMBWANJI = 3150 // tbwt_raw_karambwanji
+        const val SANDWORMS = 13431 // piscarilius_sandworms
 
         /** Stands for a method's own tool in [toolFor]: its pairs as they are, and the method's animations. */
         private val PLAIN = FishingTool(-1, 1, 100, -1)
@@ -512,6 +520,23 @@ class Fishing(private val world: World) {
             vessel = Vessel(KARAMBWAN_VESSEL, BAITED_VESSEL, RAW_KARAMBWANJI, FishingLines.SNATCHED, FishingLines.NO_KARAMBWANJI),
         )
 
+        /**
+         * Monkfish and anglerfish (step FC4), from the Wiki's Raw monkfish and Raw anglerfish pages (read 2026-11-10):
+         * a small net catches monkfish from 62 for 120 XP (48/90); a rod with sandworms catches anglerfish from 82 for
+         * 120 XP (3/36, a sandworm a catch). Out: diabolic worms and the pearl rods.
+         */
+        val MONKFISH = Fish(7944, 62, 1200, 48, 90, FishingLines.CATCH_MONKFISH) // raw_monkfish
+        val ANGLERFISH = Fish(13439, 82, 1200, 3, 36, FishingLines.CATCH_ANGLERFISH) // raw_anglerfish
+        private val SANDWORM_BAIT = Bait(SANDWORMS, FishingLines.NO_SANDWORMS)
+
+        val MONKFISH_NET = FishingMethod(
+            "Net", NET, FishingLines.NO_NET, null, FishingLines.CAST_NET, NET_ANIM, NET_ANIM, listOf(MONKFISH), FishingLines.LEVEL_MONKFISH,
+        )
+        val ANGLERFISH_BAIT = FishingMethod(
+            "Bait", FISHING_ROD, FishingLines.NO_ROD, SANDWORM_BAIT, FishingLines.CAST_LINE, CAST_ANIM, ROD_ANIM, listOf(ANGLERFISH),
+            FishingLines.LEVEL_BAIT,
+        )
+
         val CAGE = FishingMethod(
             "Cage", LOBSTER_POT, FishingLines.NO_CAGE, null, FishingLines.CAST_CAGE, CAGE_ANIM, CAGE_ANIM, listOf(LOBSTER),
             FishingLines.LEVEL_CAGE,
@@ -575,6 +600,15 @@ class Fishing(private val world: World) {
         const val KARAMBWAN_SPOT = 4712
         const val KARAMBWAN_SPOT_EAST = 4713
 
+        /**
+         * The Piscatoris Fishing Colony's Net/Harpoon spots (`swan_fishingspot`: monkfish, or tuna and swordfish as
+         * Catherby's cage spots harpoon them) and Port Piscarilius's Rod Fishing spots (`piscariliusfish`: anglerfish),
+         * built in place and reached by ::tele. Neither has an area, so they stay put: the Wiki gives no tiles beyond
+         * their spawns (guessed), and the anglerfish spots' 8 to 830 tick moves are out until it does.
+         */
+        const val PISCATORIS_SPOT = 4316
+        const val PISCARILIUS_SPOT = 6825
+
         val SPOTS = listOf(
             SpotType(SWAMP_SPOT, listOf(SMALL_NET, SEA_BAIT)),
             SpotType(RIVER_SPOT, listOf(LURE, RIVER_BAIT)),
@@ -591,6 +625,8 @@ class Fishing(private val world: World) {
             SpotType(KARAMBWANJI_SPOT, listOf(KARAMBWANJI_NET)),
             SpotType(KARAMBWAN_SPOT, listOf(KARAMBWAN_FISHING)),
             SpotType(KARAMBWAN_SPOT_EAST, listOf(KARAMBWAN_FISHING)),
+            SpotType(PISCATORIS_SPOT, listOf(MONKFISH_NET, HARPOON_TUNA)),
+            SpotType(PISCARILIUS_SPOT, listOf(ANGLERFISH_BAIT)),
         )
         private val SPOT_IDS = SPOTS.map { it.npc }.toSet()
 

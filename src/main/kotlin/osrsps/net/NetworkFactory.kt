@@ -67,6 +67,7 @@ import osrsps.game.ChatFilters
 import osrsps.game.Player
 import osrsps.game.SettingsSide
 import osrsps.game.World
+import osrsps.game.shop.OmnishopScreen
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicLong
 import java.util.function.Consumer
@@ -145,7 +146,7 @@ class NetworkFactory(
         })
         // The packet doesn't say its arguments' types; a script we don't know is only logged, its buffer released.
         builder.addListener(IfScriptTrigger::class.java, MessageConsumer { player, message ->
-            val types = SettingsSide.SCRIPT_TRIGGERS[message.crc] ?: AllSettings.SCRIPT_TRIGGERS[message.crc]
+            val types = SettingsSide.SCRIPT_TRIGGERS[message.crc] ?: AllSettings.SCRIPT_TRIGGERS[message.crc] ?: OmnishopScreen.SCRIPT_TRIGGERS[message.crc]
             if (types == null) {
                 message.release()
                 world.onUnreadScriptTrigger(player, message.interfaceId, message.componentId, message.sub, message.crc, "is not one we know")

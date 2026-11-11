@@ -1,0 +1,188 @@
+package osrsps.game.skill
+
+import kotlin.math.abs
+import kotlin.math.sqrt
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import osrsps.game.GameRandom
+
+/**
+ * Thieving 2 step T1a against the OSRS Wiki (read 2026-11-10): the farmer's, Al Kharid warrior's and guard's numbers
+ * and success charts, the farmer's table, the NPCs that joined existing pockets, and the gloves of silence's 5%; and step
+ * T1b's rogues, Knights of Ardougne, watchmen, paladins, gnomes and heroes; and step T1c's far pickpockets.
+ */
+class PickpocketNpcsTest {
+    private fun pocketOf(npc: Int) = Pickpocketing.POCKETS.single { npc in it.npcs }
+
+    @Test
+    fun `a farmer is level 10, 14,5 XP, 1 damage, 150 to 240, and gives a farmer's pouch of 9 coins or a potato seed`() {
+        val farmer = pocketOf(Pickpocketing.FARMERS.first())
+        assertTrue(Pickpocketing.FARMERS.all { it in farmer.npcs })
+        assertEquals(listOf(10, 145, 1, 150, 240), listOf(farmer.level, farmer.xpTenths, farmer.damage, farmer.low, farmer.high))
+        assertEquals("farmer", farmer.who)
+        assertEquals(Pickpocketing.FARMER_POUCH, farmer.anyPouch)
+        assertEquals(9..9, Pickpocketing.POUCH_COINS[Pickpocketing.FARMER_POUCH])
+        // 123/128 the pouch, 5/128 a potato seed.
+        assertEquals(128, farmer.loot.sumOf { it.weight(1) })
+        assertEquals(123, farmer.loot.single { it.obj == Pickpocketing.FARMER_POUCH }.weight(1))
+        assertEquals(5, farmer.loot.single { it.obj == Pickpocketing.POTATO_SEED }.weight(99))
+        assertEquals(Pickpocketing.PICKPOCKET, farmer.op)
+    }
+
+    @Test
+    fun `Al Kharid's warriors pickpocket as warrior women do, its man as a man, and Edgeville's guards as guards`() {
+        val alKharid = pocketOf(Pickpocketing.AL_KHARID_WARRIOR)
+        val woman = pocketOf(Pickpocketing.WARRIOR_WOMAN)
+        assertEquals(
+            listOf(woman.level, woman.xpTenths, woman.damage, woman.low, woman.high, woman.pouch, woman.coins),
+            listOf(alKharid.level, alKharid.xpTenths, alKharid.damage, alKharid.low, alKharid.high, alKharid.pouch, alKharid.coins),
+        )
+        assertEquals(Pickpocketing.WARRIOR_POUCH, alKharid.pouch)
+        assertEquals(pocketOf(3106), pocketOf(Pickpocketing.AL_KHARID_MAN))
+        assertEquals(pocketOf(Pickpocketing.VARROCK_GUARDS.first()), pocketOf(Pickpocketing.EDGEVILLE_GUARD))
+        // No NPC is in two pockets.
+        val all = Pickpocketing.POCKETS.flatMap { it.npcs }
+        assertEquals(all.size, all.toSet().size)
+    }
+
+    @Test
+    fun `the gloves of silence raise each chart to the Wiki's gloves line`() {
+        fun gloves(value: Int) = value * PickpocketGear.GLOVES_PERCENT / 100
+        // The Wiki's charts: farmer 150/240 to 157/252, Al Kharid warrior 100/240 to 105/252, guard 50/240 to 52/252.
+        assertEquals(listOf(157, 252), listOf(gloves(150), gloves(240)))
+        assertEquals(105, gloves(100))
+        assertEquals(52, gloves(50))
+        assertEquals(62, PickpocketGear.GLOVES_FAILURES)
+        assertEquals(10, PickpocketGear.NECKLACE_CHARGES)
+    }
+
+    @Test
+    fun `ten thousand seeded tries land on each new pocket's chart`() {
+        val random = GameRandom(2026)
+        for ((npc, level) in listOf(Pickpocketing.FARMERS.first() to 10, Pickpocketing.FARMERS.first() to 60, Pickpocketing.AL_KHARID_WARRIOR to 25, Pickpocketing.EDGEVILLE_GUARD to 40)) {
+            val pocket = pocketOf(npc)
+            for (withGloves in listOf(false, true)) {
+                val low = if (withGloves) pocket.low * PickpocketGear.GLOVES_PERCENT / 100 else pocket.low
+                val high = if (withGloves) pocket.high * PickpocketGear.GLOVES_PERCENT / 100 else pocket.high
+                val p = SuccessRoll.chance(low, high, level) / 256.0
+                val wins = (1..TRIES).count { SuccessRoll.roll(random, low, high, level) }
+                assertTrue(abs(wins - TRIES * p) <= 5 * sqrt(TRIES * p * (1 - p)), "$npc at $level (gloves $withGloves): $wins of $TRIES, expected ${TRIES * p}")
+            }
+        }
+        // The farmer's chart: (1 + 150)/256 at 1, 241/256 at 99.
+        val farmer = pocketOf(Pickpocketing.FARMERS.first())
+        assertEquals(151, SuccessRoll.chance(farmer.low, farmer.high, 1))
+        assertEquals(241, SuccessRoll.chance(farmer.low, farmer.high, 99))
+    }
+
+    @Test
+    fun `Kandarin's and the Wilderness's pockets have the Wiki's levels, XP, charts, damage, pouches and stuns`() {
+        // npc, level, XP tenths, low, high, damage, pouch, coins, stun ticks
+        val rows = listOf(
+            listOf(Pickpocketing.ROGUES.first(), 32, 365, 75, 240, 2, Pickpocketing.ROGUE_POUCH, 25, 40, 9),
+            listOf(Pickpocketing.KNIGHTS_OF_ARDOUGNE.first(), 55, 843, 50, 240, 3, Pickpocketing.KNIGHT_POUCH, 50, 50, 8),
+            listOf(Pickpocketing.WATCHMEN.first(), 65, 1375, 15, 160, 3, Pickpocketing.WATCHMAN_POUCH, 60, 60, 9),
+            listOf(Pickpocketing.PALADINS.first(), 70, 1318, 40, 170, 3, Pickpocketing.PALADIN_POUCH, 80, 80, 8),
+            listOf(Pickpocketing.GNOMES.first(), 75, 1333, 43, 175, 1, Pickpocketing.GNOME_POUCH, 300, 300, 9),
+            listOf(Pickpocketing.HEROES.first(), 80, 1633, 39, 160, 3, Pickpocketing.HERO_POUCH, 200, 300, 10),
+        )
+        for (row in rows) {
+            val pocket = pocketOf(row[0])
+            assertEquals(row.subList(1, 7), listOf(pocket.level, pocket.xpTenths, pocket.low, pocket.high, pocket.damage, pocket.anyPouch), pocket.who)
+            assertEquals(row[7]..row[8], Pickpocketing.POUCH_COINS[pocket.anyPouch], pocket.who)
+            assertEquals(row[9], pocket.stunTicks, pocket.who)
+            assertEquals(Pickpocketing.PICKPOCKET, pocket.op)
+        }
+        // Every version on the Wiki's pages shares its pocket: the knights, paladins and heroes, the gnome men, women and
+        // children, and the 2022 warriors with the warrior women.
+        for (group in listOf(Pickpocketing.KNIGHTS_OF_ARDOUGNE, Pickpocketing.PALADINS, Pickpocketing.HEROES, Pickpocketing.GNOME_MEN, Pickpocketing.GNOME_WOMEN_AND_CHILDREN)) {
+            assertEquals(1, group.map { pocketOf(it) }.toSet().size)
+        }
+        // The gnome women and children differ from the men in their XP alone: 133.5 to 133.3.
+        val men = pocketOf(Pickpocketing.GNOME_MEN.first())
+        val women = pocketOf(Pickpocketing.GNOME_WOMEN_AND_CHILDREN.first())
+        assertEquals(1335, women.xpTenths)
+        assertEquals(
+            listOf(men.level, men.low, men.high, men.damage, men.anyPouch, men.loot, men.stunTicks),
+            listOf(women.level, women.low, women.high, women.damage, women.anyPouch, women.loot, women.stunTicks),
+        )
+        assertTrue(Pickpocketing.WARRIORS_2022.all { pocketOf(it) == pocketOf(Pickpocketing.WARRIOR_WOMAN) })
+        val all = Pickpocketing.POCKETS.flatMap { it.npcs }
+        assertEquals(all.size, all.toSet().size)
+    }
+
+    @Test
+    fun `the rogue's, gnome's and hero's tables add up to the Wiki's, and paladins and watchmen give their extra`() {
+        fun weights(npc: Int) = pocketOf(npc).loot.associate { it.obj to it.weight(1) }
+        assertEquals(144, weights(Pickpocketing.ROGUES.first()).values.sum())
+        assertEquals(123, weights(Pickpocketing.ROGUES.first())[Pickpocketing.ROGUE_POUCH])
+        assertEquals(128, weights(Pickpocketing.GNOMES.first()).values.sum())
+        assertEquals(30, weights(Pickpocketing.GNOMES.first())[Pickpocketing.GNOME_POUCH])
+        assertEquals(128, weights(Pickpocketing.HEROES.first()).values.sum())
+        assertEquals(105, weights(Pickpocketing.HEROES.first())[Pickpocketing.HERO_POUCH])
+        // Air runes come 8 at a time, death runes 2, arrow shafts 2 to 4.
+        val rogueAir = pocketOf(Pickpocketing.ROGUES.first()).loot.single { it.obj == AIR_RUNE }
+        assertEquals(8..8, rogueAir.min..rogueAir.max)
+        val shafts = pocketOf(Pickpocketing.GNOMES.first()).loot.single { it.obj == ARROW_SHAFT }
+        assertEquals(2..4, shafts.min..shafts.max)
+        val paladin = pocketOf(Pickpocketing.PALADINS.first()).extra.single()
+        assertEquals(listOf(CHAOS_RUNE, 2), listOf(paladin.obj, paladin.min))
+        val watchman = pocketOf(Pickpocketing.WATCHMEN.first()).extra.single()
+        assertEquals(listOf(BREAD, 1), listOf(watchman.obj, watchman.min))
+        assertTrue(pocketOf(Pickpocketing.HEROES.first()).extra.isEmpty())
+    }
+
+    @Test
+    fun `the far pockets have the Wiki's levels, XP, charts, damage, pouches and stuns`() {
+        // npc, level, XP tenths, low, high, damage, pouch, coins, stun ticks, op
+        val rows = listOf(
+            listOf(Pickpocketing.CAVE_GOBLINS.first(), 36, 400, 75, 240, 1, Pickpocketing.CAVE_GOBLIN_POUCH, 10, 50, 9, 3),
+            listOf(Pickpocketing.FREMENNIK_CITIZENS.first(), 45, 650, 65, 240, 2, Pickpocketing.FREMENNIK_POUCH, 40, 40, 9, 3),
+            listOf(Pickpocketing.DESERT_BANDITS.first(), 53, 794, 50, 240, 3, Pickpocketing.DESERT_BANDIT_POUCH, 30, 30, 9, 3),
+            listOf(Pickpocketing.WEALTHY_CITIZENS.first(), 50, 960, 35, 200, 3, Pickpocketing.WEALTHY_CITIZEN_POUCH, 85, 85, 7, 1),
+            listOf(Pickpocketing.VYRES.first(), 82, 3069, 8, 128, 5, Pickpocketing.VYRE_POUCH, 230, 315, 10, 3),
+            listOf(Pickpocketing.ELVES.first(), 85, 3533, 6, 100, 5, Pickpocketing.ELF_POUCH, 280, 350, 10, 3),
+        )
+        for (row in rows) {
+            val pocket = pocketOf(row[0])
+            assertEquals(row.subList(1, 7), listOf(pocket.level, pocket.xpTenths, pocket.low, pocket.high, pocket.damage, pocket.anyPouch), pocket.who)
+            assertEquals(row[7]..row[8], Pickpocketing.POUCH_COINS[pocket.anyPouch], pocket.who)
+            assertEquals(listOf(row[9], row[10]), listOf(pocket.stunTicks, pocket.op), pocket.who)
+        }
+        val hur = pocketOf(Pickpocketing.TZHAAR_HURS.first())
+        assertEquals(listOf(90, 1034, -200, 200, 4, 10, 4), listOf(hur.level, hur.xpTenths, hur.low, hur.high, hur.damage, hur.stunTicks, hur.heatDamage))
+        assertEquals(null, hur.anyPouch)
+        // The Wiki's charts: TzHaar-Hur -200/200 to -210/210 with the gloves, vyre 8/128 to 8/134, elf 6/100 to 6/105.
+        fun gloves(value: Int) = value * PickpocketGear.GLOVES_PERCENT / 100
+        assertEquals(listOf(-210, 210, 8, 134, 6, 105), listOf(gloves(-200), gloves(200), gloves(8), gloves(128), gloves(6), gloves(100)))
+        // The rolls the charts give: vyres 9/256 at 1 and 129/256 at 99, elves 101/256 at 99, TzHaar-Hur 164/256 at 90.
+        assertEquals(listOf(9, 129), listOf(SuccessRoll.chance(8, 128, 1), SuccessRoll.chance(8, 128, 99)))
+        assertEquals(101, SuccessRoll.chance(6, 100, 99))
+        assertEquals(164, SuccessRoll.chance(-200, 200, 90))
+        val all = Pickpocketing.POCKETS.flatMap { it.npcs }
+        assertEquals(all.size, all.toSet().size)
+    }
+
+    @Test
+    fun `the far tables add up to the Wiki's`() {
+        fun weights(npc: Int) = pocketOf(npc).loot.sumOf { it.weight(1) }
+        assertEquals(
+            listOf(20, 7, 85, 132, 128, 195),
+            listOf(Pickpocketing.CAVE_GOBLINS, Pickpocketing.DESERT_BANDITS, Pickpocketing.WEALTHY_CITIZENS, Pickpocketing.VYRES, Pickpocketing.ELVES, Pickpocketing.TZHAAR_HURS)
+                .map { weights(it.first()) },
+        )
+        val tokkul = pocketOf(Pickpocketing.TZHAAR_HURS.first()).loot.single { it.obj == Pickpocketing.TOKKUL }
+        assertEquals(listOf(182, 3, 7), listOf(tokkul.weight(1), tokkul.min, tokkul.max))
+        assertEquals(79, pocketOf(Pickpocketing.WEALTHY_CITIZENS.first()).loot.single { it.obj == Pickpocketing.WEALTHY_CITIZEN_POUCH }.weight(1))
+        assertEquals(109, pocketOf(Pickpocketing.VYRES.first()).loot.single { it.obj == Pickpocketing.VYRE_POUCH }.weight(1))
+    }
+
+    private companion object {
+        const val TRIES = 10_000
+        const val AIR_RUNE = 556
+        const val ARROW_SHAFT = 52
+        const val CHAOS_RUNE = 562
+        const val BREAD = 2309
+    }
+}

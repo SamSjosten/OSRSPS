@@ -145,11 +145,11 @@ class Combat(
      */
     val finishers = HashMap<Int, (Player) -> Boolean>()
 
-    /** The hitpoints a hit from [source] (null for none) leaves [npc] at the least. */
+    /** The hitpoints a hit from [source] (null for none) leaves [npc] at the least: its own, or its fight's [Npc.holdsAt]. */
     fun floor(npc: Npc, source: Player?): Int {
         val min = npcCombat[npc.type]?.minHitpoints ?: 0
-        if (min == 0) return 0
-        return if (source != null && finishers[npc.type.id]?.invoke(source) == true) 0 else min
+        val own = if (min == 0 || (source != null && finishers[npc.type.id]?.invoke(source) == true)) 0 else min
+        return maxOf(own, npc.holdsAt)
     }
 
     /** The animations the player swings and blocks with: their weapon's category's. */
@@ -166,9 +166,10 @@ class Combat(
 
     private fun baseAttackSpeed(player: Player): Int {
         val style = style(player)
-        if (style.type != AttackType.MAGIC) return bonuses(player).attackSpeed
-        // A powered staff's own speed is its weapon's (5 for Tumeken's shadow).
-        if (Weapons.category(equipment.weapon(player)) == Weapons.POWERED_STAFF) return bonuses(player).attackSpeed
+        val category = Weapons.category(equipment.weapon(player))
+        if (style.type != AttackType.MAGIC) return Weapons.styleSpeed(category, style.button, bonuses(player).attackSpeed)
+        // A powered staff's own speed is its weapon's (5 for Tumeken's shadow, 3 for Zorya's tome).
+        if (Weapons.selfPowered(category)) return bonuses(player).attackSpeed
         return if (harmonisedAutocast(player, style)) MagicCombat.HARMONISED_SPEED else MagicCombat.SPEED
     }
 

@@ -90,6 +90,47 @@ class NpcScriptsTest {
     }
 
     @Test
+    fun `a later action runs its delay ticks on, after a death, with no NPC to keep it`() {
+        val ran = ArrayList<Long>()
+        val a = add()
+        scripts.onDeath(listOf(duck.id)) { scripts.later(3) { ran += tick } }
+        scripts.died(a)
+        npcs.remove(a)
+        run(2)
+        assertEquals(emptyList(), ran)
+        run(1)
+        assertEquals(listOf(3L), ran)
+        run(3)
+        assertEquals(listOf(3L), ran, "once")
+        assertFailsWith<IllegalArgumentException> { scripts.later(0) {} }
+    }
+
+    @Test
+    fun `a later action that doesn't take yet is tried again each tick until it does`() {
+        val tried = ArrayList<Long>()
+        scripts.laterUntil(2) { tried += tick; tick >= 4 }
+        run(1)
+        assertEquals(emptyList(), tried)
+        run(1)
+        assertEquals(listOf(2L), tried)
+        run(4)
+        assertEquals(listOf(2L, 3L, 4L), tried, "till it took, then no more")
+    }
+
+    @Test
+    fun `a later action that throws loses neither the others due that tick nor the tick`() {
+        val ran = ArrayList<String>()
+        scripts.later(1) { ran += "first" }
+        scripts.later(1) { error("a broken action") }
+        scripts.later(1) { ran += "third" }
+        scripts.laterUntil(1) { ran += "until"; true }
+        run(1)
+        assertEquals(listOf("first", "third", "until"), ran)
+        run(2)
+        assertEquals(listOf("first", "third", "until"), ran, "the broken one is gone, not tried again")
+    }
+
+    @Test
     fun `a type gets one timer, and timers and queues are at least a tick`() {
         scripts.onTimer(listOf(duck.id), 1) { 1 }
         assertFailsWith<IllegalArgumentException> { scripts.onTimer(listOf(duck.id), 1) { 1 } }

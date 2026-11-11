@@ -96,7 +96,9 @@ class HeadlessOcellusTest {
         )
     }
     private val grave = NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null))
-    private val types = NpcTypes.of(figure, notMet, met, first, second, blade, third, vine, grave, *flares.toTypedArray())
+    /** The Blade at the vault's entry, 3 by 3 with Commune and Travel, as the 241.4 cache has it (`tfa_blade_npc_vault_entry`). */
+    private val vaultBlade = NpcType(Ocellus.BLADE_TRAVEL, "The Blade", size = 3, ops = listOf("Commune", null, "Travel", null, null), internalName = "tfa_blade_npc_vault_entry")
+    private val types = NpcTypes.of(figure, notMet, met, first, second, blade, third, vine, grave, vaultBlade, *flares.toTypedArray())
 
     private val portal = LocCollisionType(width = 2, length = 1, interactType = 1, blocksProjectile = false)
     private val locTypes = LocTypes(
@@ -805,6 +807,37 @@ class HeadlessOcellusTest {
         }
     }
 
+    @Test
+    fun `in his third phase a burst stops at his next fall, nothing hurts him while it falls, and his corridor is no shelter`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                val run = alice.intoRun(server, "alice")
+                alice.throughTheRest(run)
+                alice.toOcellus(server, run)
+                alice.npcOp(assertNotNull(run.ocellusFigure).index, 1)
+                alice.await("his fight") { alice.fight().takeIf { it.startsWith("ocellus #") } }
+                val boss = boss(run)
+                val level = ArchiveRoom.OCELLUS.level
+                val centre = Ocellus.centre(boss.spawn.x, boss.spawn.z)
+                alice.toHisThird(run)
+                alice.awaitLine(run, "his quadrant", 30_000) { it.contains("third: takes quadrant NW") }
+                // Exploit review R23B-2: one hit from full to nearly nothing stops at 75%, and he falls there.
+                alice.commandReply("hit 5000 ${boss.index}") { it.startsWith("Hit ") }
+                assertEquals(5250 * 75 / 100, boss.hitpoints)
+                // R23B-1: she waits it out in his room's corridor, south of the arena.
+                alice.tele(centre.x, centre.z - Ocellus.STRIP_LENGTH - 3, level)
+                assertFalse(Ocellus.inArena(centre, centre.x, centre.z - Ocellus.STRIP_LENGTH - 3))
+                alice.awaitLine(run, "the north-west to fall") { it.contains("third: NW to fall at ${5250 * 75 / 100}/5250") }
+                // While it falls nothing hurts him.
+                alice.commandReply("hit 1000 ${boss.index}") { it.startsWith("Hit ") }
+                assertEquals(5250 * 75 / 100, boss.hitpoints)
+                // The corridor is no shelter: she goes with the quadrant.
+                alice.awaitLine(run, "her lost from the corridor") { it.contains("third: alice lost with it for ") }
+                assertEquals(5250 * 75 / 100, boss.hitpoints)
+            }
+        }
+    }
+
     /** Through his first two phases to his third, the second ending in the north-west's turn; the tick it began. */
     private fun HeadlessClient.toHisThird(run: ArchiveRun, vararg others: HeadlessClient): Long {
         val boss = boss(run)
@@ -915,9 +948,14 @@ class HeadlessOcellusTest {
                 alice.commandReply("hit 44 ${siphon.index}") { it.startsWith("Hit ") }
                 alice.awaitLine(run, "her empowerment") { it.endsWith("third: siphon destroyed: alice empowered") }
                 alice.tele(stand.x, stand.z, level)
+                // The other Siphon destroyed too, so no heal lands between her hit and his fall (a heal the same tick put
+                // him back over 75%, by the random draws).
+                for (other in Ocellus.flares(boss)) alice.commandReply("hit 44 ${other.index}") { it.startsWith("Hit ") }
+                alice.await("no Siphon left") { Unit.takeIf { Ocellus.flares(boss).isEmpty() } }
                 // At 75% the north-west falls with its void; she goes on to the north-east, and there Insolence is first:
-                // three superior slashes towards her, five ticks apart, leaving void.
-                alice.commandReply("hit ${boss.hitpoints - 5250 * 75 / 100} ${boss.index}") { it.startsWith("Hit ") }
+                // three superior slashes towards her, five ticks apart, leaving void. However hard the hit, his bar holds
+                // at 75% (exploit review R23B-2).
+                alice.commandReply("hit 5000 ${boss.index}") { it.startsWith("Hit ") }
                 alice.awaitLine(run, "the north-west to fall") { it.contains("third: NW to fall at ") }
                 val ne = Ocellus.quadrantTile(centre, Ocellus.Quadrant.NE, 3, 3)
                 alice.tele(ne.x, ne.z, level)
@@ -1244,6 +1282,17 @@ class HeadlessOcellusTest {
                 alice.commandReply("hit ${boss.hitpoints} ${boss.index}") { it.startsWith("Hit ") }
                 alice.await("his room done", 30_000) { ArchiveRoom.OCELLUS.takeIf { it in run.cleared } }
                 assertTrue(boss.dead)
+                // His body goes and the Blade appears where he fell, with Travel, to the vault.
+                val fell = Tile(boss.x, boss.z)
+                val world = server.world
+                val vaultBlade = alice.await("the Blade", 30_000) { world.npcs.all.singleOrNull { it.type.id == Ocellus.BLADE_TRAVEL } }
+                assertEquals(boss.diedTick + Ocellus.BLADE_AFTER, vaultBlade.spawnTick)
+                assertEquals(fell, Tile(vaultBlade.x, vaultBlade.z))
+                assertEquals(boss.level, vaultBlade.level)
+                alice.await("his body gone") { if (world.npcs.all.none { it === boss }) Unit else null }
+                alice.npcOp(vaultBlade.index, Ocellus.TRAVEL)
+                val to = world.archiveRaids.tile(run, osrsps.game.raid.ArchiveRaids.REWARD_X, osrsps.game.raid.ArchiveRaids.REWARD_Z)
+                alice.await("the reward vault", 30_000) { alice.position?.takeIf { it == Coord(to.x, to.z, osrsps.game.raid.ArchiveRaids.REWARD_LEVEL) } }
             }
         }
     }

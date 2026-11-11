@@ -25,6 +25,7 @@ import osrsps.game.encounter.EncounterContext
 import osrsps.game.encounter.EncounterDef
 import osrsps.game.encounter.PhaseDef
 import osrsps.game.npc.Npc
+import osrsps.game.npc.NpcSpawn
 import osrsps.game.npc.Npcs
 import osrsps.game.script.Op
 import osrsps.game.script.ScriptContext
@@ -760,6 +761,25 @@ object Ocellus {
     /** The slot his fragment graphic shows in (capture notes), beside his others. */
     const val FRAGMENT_SLOT = 2
 
+    /**
+     * His death (raid step 27c; tsps capture notes): `npc_ocellus_phase3_death` (his NPC combat entry's death
+     * animation) with [SPOT_DEATH], [SPOT_DEATH_SKIRT] and [SPOT_DEATH_CRACK] and [SOUND_DEATH], his room done at once.
+     * [BLADE_AFTER] ticks later the Blade ([BLADE_TRAVEL], `tfa_blade_npc_vault_entry`, 3 by 3, Commune and Travel)
+     * appears where he fell, and [TRAVEL] on it takes the party in his room to the vault. Guessed: the graphics' slots, the sound's reach, his body
+     * going as the Blade appears ([BLADE_AFTER] his death ticks), Travel setting off everyone in his room at once
+     * (each by [ArchiveRaids.travel], to the reward vault [ArchiveRaids.MOVE_DELAY] ticks on) with no graphic; Commune
+     * doing nothing yet.
+     * Not in yet: the raid's total time, the Combat Achievements kill.
+     */
+    const val SPOT_DEATH = 4274
+    const val SPOT_DEATH_SKIRT = 4275
+    const val SPOT_DEATH_CRACK = 4276
+    const val SOUND_DEATH = 12826
+    const val SOUND_DEATH_RADIUS = 15
+    const val BLADE_AFTER = 14
+    const val BLADE_TRAVEL = 16683
+    const val TRAVEL = 3
+
     /** headicons_prayer (sprite group 440): the curses' icons, by the capture notes. */
     const val HEAD_ICON_SOUL_SPLIT = 11
     const val HEAD_ICON_DEFLECT_MELEE = 15
@@ -1441,7 +1461,8 @@ object Ocellus {
         blade.effects.headBar(-1, MeleeCombat.HEALTH_BAR, MeleeCombat.healthBarFill(blade.hitpoints, blade.maxHitpoints))
         val total = lost * BLADE_SHARE + state.bladeCarry
         state.bladeCarry = total % 100
-        val share = minOf(total / 100, boss.hitpoints)
+        // Never past where his fight holds his bar (exploit review R23B-2).
+        val share = minOf(total / 100, (boss.hitpoints - world.combat.floor(boss, null)).coerceAtLeast(0))
         boss.hitpoints -= share
         boss.effects.headBar(-1, MeleeCombat.HEALTH_BAR, MeleeCombat.healthBarFill(boss.hitpoints, boss.maxHitpoints))
         log("the Blade takes $lost: $share to his bar")
@@ -1607,8 +1628,9 @@ object Ocellus {
         val centre = centre(boss.spawn.x, boss.spawn.z)
         val safe = Quadrant.entries[(quadrant.ordinal + 1) % Quadrant.entries.size]
         for (player in players) {
-            if (player.dead || immune(player) || !inArena(centre, player.x, player.z)) continue
-            val at = quadrant(centre, player.x, player.z)
+            // His room's corridor is no shelter either (exploit review R23B-1).
+            if (player.dead || immune(player)) continue
+            val at = if (inArena(centre, player.x, player.z)) quadrant(centre, player.x, player.z) else null
             if (at == safe || at == quadrant) continue
             val dealt = fromTheRoom(player, maxOf(1, player.hitpoints))
             log("last volley takes ${player.username} outside ${safe.name} for $dealt")
@@ -1628,7 +1650,22 @@ object Ocellus {
         state.barriers = false
         state.fallStart = -1
         state.tank = null
+        holdAtFall()
         log("third phase: ${boss.hitpoints} hitpoints; his quadrant ${state.held.name}")
+    }
+
+    /**
+     * Where no hit takes his bar for now ([Npc.holdsAt]; exploit review R23B-2): at the next of [FALLS_AT] till that
+     * fall starts, or where it is if a hit before his third phase already took it lower; where it is while a quadrant
+     * falls, so nothing hurts him from [startFall] till he takes the next; and nowhere once his final stand begins.
+     * Guessed: that live holds his bar so (a burst past a fall otherwise skips its quadrant's fight, or the final stand).
+     */
+    private fun EncounterContext.holdAtFall() {
+        boss.holdsAt = when {
+            state.fallStart >= 0 -> boss.hitpoints
+            state.fallen.size >= FALLS_AT.size -> 0
+            else -> minOf(boss.hitpoints, boss.maxHitpoints * FALLS_AT[state.fallen.size] / 100)
+        }
     }
 
     /** One tick of his third phase: the cross falling, then his quadrant, his attacks and its fall. */
@@ -1842,7 +1879,7 @@ object Ocellus {
     /** One superior slash towards one of the party at random, its wave landing a tick later, then its void. */
     private fun EncounterContext.superiorSlash(run: Int) {
         val centre = centre(boss.spawn.x, boss.spawn.z)
-        val target = players.filter { inArena(centre, it.x, it.z) }.let { if (it.isEmpty()) null else it[roll(0, it.size - 1)] } ?: return
+        val target = players.let { if (it.isEmpty()) null else it[roll(0, it.size - 1)] } ?: return
         val half = boss.type.size / 2
         val mid = Tile(boss.x + half, boss.z + half)
         val dx = (target.x - mid.x).sign
@@ -1885,13 +1922,14 @@ object Ocellus {
         boss.effects.anim(ANIM_COG_IN)
         boss.effects.spotanim(0, SPOT_COG_IN, 0)
         // Whoever has an overhead prayer on as the circle forms is hit through Protect from Melee.
-        val praying = players.filter { inArena(centre, it.x, it.z) && it.overheadIcon >= 0 }.toSet()
+        // Everyone in his room, his corridor's too (exploit review R23B-1).
+        val praying = players.filter { it.overheadIcon >= 0 }.toSet()
         log("cog: $strikes strikes" + if (praying.isEmpty()) "" else "; praying as it forms: ${praying.joinToString { it.username }}")
         for (strike in 1..strikes) {
             during(run, COG_GAP * strike) {
                 boss.effects.anim(if (strike == strikes) ANIM_COG_OUT else ANIM_COG_STRIKE)
                 boss.effects.spotanim(0, SPOT_COG, 0)
-                val here = players.filter { inArena(centre, it.x, it.z) }
+                val here = players
                 for (player in here) {
                     val prayed = player !in praying && world.prayers.protects(player, AttackType.CRUSH)
                     val rolled = if (prayed) 0 else COG_DAMAGE
@@ -1920,10 +1958,11 @@ object Ocellus {
         log("the void")
         during(run, VOID_AFTER) {
             val centre = centre(boss.spawn.x, boss.spawn.z)
-            val here = players.filter { inArena(centre, it.x, it.z) }
+            // Everyone in his room, his corridor's too (exploit review R23B-1); the vine only on the arena.
+            val here = players
             log("void shot at ${here.joinToString { it.username }}")
             for (player in here) world.meleeCombat.fireAt(boss, player, world.tick, VOID_SHOT, AttackType.MAGIC)
-            val others = here.filter { it !== state.tank && quadrant(centre, it.x, it.z)?.let { q -> q !in state.fallen } == true }
+            val others = here.filter { it !== state.tank && inArena(centre, it.x, it.z) && quadrant(centre, it.x, it.z)?.let { q -> q !in state.fallen } == true }
             if (vineType == null || others.isEmpty() || state.rooted != null) return@during
             val player = others[roll(0, others.size - 1)]
             val vine = spawnAdd(vineType, player.x, player.z) ?: return@during
@@ -2029,7 +2068,6 @@ object Ocellus {
                 after(1) { if (!flare.dead && world.npcs[flare.index] === flare) world.removeNpc(flare) }
                 log("${kind.name.lowercase()} flare detonates")
                 for (player in players) {
-                    if (!inArena(centre, player.x, player.z)) continue
                     val dealt = fromTheRoom(player, roll(FLARE_MIN, FLARE_MAX))
                     log("flare hits ${player.username} for $dealt")
                 }
@@ -2143,7 +2181,7 @@ object Ocellus {
                 val pool = all.toMutableList()
                 val tiles = LinkedHashSet<Tile>()
                 repeat(ERUPTION_TILES) { tiles += pool.removeAt(roll(0, pool.size - 1)) }
-                for (player in players) if (inArena(centre, player.x, player.z)) tiles += Tile(player.x, player.z)
+                for (player in players) tiles += Tile(player.x, player.z)
                 for (tile in tiles) world.zones.mapAnim(tile.x, tile.z, boss.level, SPOT_ERUPTION)
                 log("eruption $eruption on ${tiles.size} tiles")
                 during(run, ERUPTION_LANDS) {
@@ -2396,7 +2434,7 @@ object Ocellus {
             if (boss.dead || state.run != run) return@after
             var dealtAll = 0
             for (player in players) {
-                if (player.dead || !inArena(centre, player.x, player.z)) continue
+                if (player.dead) continue
                 val prayed = world.prayers.protects(player, blast.type)
                 val dealt = strike(player, if (prayed) roll(BLAST_PRAYED_MIN, BLAST_PRAYED_MAX) else roll(BLAST_MIN, BLAST_MAX))
                 dealtAll += dealt
@@ -2435,7 +2473,7 @@ object Ocellus {
         log("final: lifeforce and void bursts")
         val taken = HashSet<Tile>()
         for (player in players) {
-            if (player.dead || !inArena(centre, player.x, player.z)) continue
+            if (player.dead) continue
             val stolen = player.hitpoints / 2
             if (stolen <= 0) continue
             player.effects.spotanim(0, SPOT_WIND, 0, 0)
@@ -2452,7 +2490,7 @@ object Ocellus {
             val mark: EncounterContext.() -> Unit = mark@{
                 if (boss.dead || state.run != run) return@mark
                 for (player in players) {
-                    if (player.dead || !inArena(centre, player.x, player.z)) continue
+                    if (player.dead) continue
                     val tile = Tile(player.x, player.z)
                     world.zones.mapAnim(tile.x, tile.z, boss.level, SPOT_BURST_MARK, onlyFor = player.saveKey)
                     after(BURST_LANDS) { burst(player, tile, run) }
@@ -2559,6 +2597,7 @@ object Ocellus {
         state.busyUntil = -1
         unroot()
         clearFlares()
+        holdAtFall()
         val line = if (roll(0, 1) == 0) OcellusLines.OBLITERATION else OcellusLines.RUN
         boss.effects.say(world.dialogueText.get(line))
         log("${state.held.name} to fall at ${boss.hitpoints}/${boss.maxHitpoints}; barriers down")
@@ -2589,7 +2628,8 @@ object Ocellus {
                 Censer.entries.filter { it.quadrant == quadrant }.forEach { censer -> state.censers.remove(censer)?.let { clearLoc(it) } }
                 log("quadrant ${quadrant.name} falls")
                 for (player in players) {
-                    if (!inArena(centre, player.x, player.z) || quadrant(centre, player.x, player.z) != quadrant) continue
+                    // Whoever is in his room's corridor goes with it too (exploit review R23B-1; guessed).
+                    if (inArena(centre, player.x, player.z) && quadrant(centre, player.x, player.z) != quadrant) continue
                     val dealt = fromTheRoom(player, maxOf(1, player.hitpoints))
                     // After the hit: a death sets its own animation, which this one replaces (Codex, PR 576).
                     player.anim(ANIM_VOID_DEATH)
@@ -2598,6 +2638,7 @@ object Ocellus {
             }
             FALL_NEXT -> {
                 take(Quadrant.entries[(state.held.ordinal + 1) % Quadrant.entries.size])
+                holdAtFall()
                 if (state.fallen.size >= FALLS_AT.size) {
                     // The last quadrant: his final stand, to the end of his bar.
                     boss.holdsAtZero = false
@@ -2720,6 +2761,44 @@ object Ocellus {
         world.combat.sureHit = { player, npc, type -> flareHit(npc.type.id, type) ?: censerHit(player, npc, type) ?: sureHit(player, npc, type) }
         val rolledOn = world.combat.rolledOn
         world.combat.rolledOn = { player, npc, type, rolled -> rolledOn(player, npc, type, slowed(world, player, npc, deflected(npc, type, rolled))) }
+        // Death scripts go by the type an NPC appeared as: he becomes his third phase from his first.
+        world.npcScripts.onDeath(listOf(P1, P2, P3).distinct()) { boss -> if (boss.type.id == P3) died(world, boss) }
+        world.handlers.onNpc(BLADE_TRAVEL, TRAVEL) { op -> travel(world, op.npc!!) }
+    }
+
+    /** His death (see [SPOT_DEATH]): its graphics and sound now, the Blade [BLADE_AFTER] ticks on where he fell. */
+    private fun died(world: World, boss: Npc) {
+        // His room is done and its fight gone with it this tick, its log too: nothing more is logged.
+        states[boss]?.orbs?.clear()
+        boss.effects.spotanim(0, SPOT_DEATH, 0)
+        boss.effects.spotanim(1, SPOT_DEATH_SKIRT, 0)
+        boss.effects.spotanim(FRAGMENT_SLOT, SPOT_DEATH_CRACK, 0)
+        val size = boss.type.size
+        world.zones.soundArea(boss.x + size / 2, boss.z + size / 2, boss.level, SOUND_DEATH, radius = SOUND_DEATH_RADIUS)
+        val type = world.npcTypes[BLADE_TRAVEL] ?: return
+        val x = boss.x
+        val z = boss.z
+        val level = boss.level
+        // Bound to his run's instance: one ended in the meantime may have its block reused by another (Codex, PR 588).
+        val instance = world.instances.at(x, z)
+        // With no NPC slot free it is tried again each tick, till it stands or his run's instance ends (Codex, PR 588).
+        world.npcScripts.laterUntil(BLADE_AFTER) {
+            world.instances.at(x, z) !== instance ||
+                world.spawnNpc(NpcSpawn(type, x, z, level, source = "ocellus vault entry", respawns = false)) != null
+        }
+    }
+
+    /**
+     * Travel on the Blade at the vault's entry: everyone of the party in his room sets off to the reward vault
+     * ([ArchiveRaids.travel], which holds it to once the run is done and to his room).
+     */
+    private fun travel(world: World, blade: Npc) {
+        val raids = world.archiveRaids
+        val run = raids.at(blade.x, blade.z) ?: return
+        val room = ArchiveRoom.OCELLUS
+        if (room !in run.cleared) return
+        val party = raids.present(run).filter { !it.dead && raids.inRoom(run, room, it.x, it.z) }
+        for (member in party) raids.travel(member)
     }
 
     /** What each player has dealt each Siphon standing, for the heal as it is destroyed. */

@@ -1,0 +1,120 @@
+package osrsps.game.combat
+
+import osrsps.game.GameRandom
+import osrsps.game.Player
+import osrsps.game.Skill
+import osrsps.game.NpcStat
+import osrsps.game.npc.Npc
+
+/**
+ * The enchanted bolts' effects on NPCs ([BoltEffect], an ammo entry's `"effect"`), rolled as a crossbow fires one.
+ *
+ * Verified on the OSRS Wiki, each bolt's (e) page (read 2026-11-10), for monsters:
+ * - Opal, Lucky Lightning: 5%, hit or miss; your visible Ranged / 10 extra damage.
+ * - Pearl, Sea Curse: 6%, hit or miss; your visible Ranged / 20 extra (the fiery 1/15 isn't built).
+ * - Sapphire, Clear Mind: 25% on a hit; you gain an eighth of a tenth of the monster's Ranged level as prayer points.
+ * - Emerald, Magical Poison: 55% on a hit; the monster is poisoned, 5 a hit at first, 75 in all.
+ * - Ruby, Blood Forfeit: 6%, hit or miss; the hit is a fifth of the monster's hitpoints now, at most 100, and you lose
+ *   a tenth of yours; not when you can't spare a hitpoint (under 10).
+ * - Diamond, Armour Piercing: 10%, hit or miss; a sure hit with the max hit 15% higher.
+ * - Dragonstone, Dragon's Breath: 6% on a hit; a fifth of your visible Ranged extra.
+ * - Onyx, Life Leech: 11% on a hit; 20% more damage, and you heal a quarter of the damage.
+ * - Topaz's Down to Earth works only on players, and Jade's Earth's Fury knockdown isn't built for monsters; neither
+ *   rolls here.
+ * Each shows its graphic on the monster as the bolt lands (the 242 cache's `xbows_*_spot_anim`, 749 to 758).
+ *
+ * Guessed: the effect rolled after accuracy and before damage, one draw only for an enchanted bolt (so other shots'
+ * draws are unchanged); onyx's 20% applied to the rolled damage, rounded down; the heal, prayer and ruby's cost given
+ * as the bolt lands; dragonfire-immune and undead monsters (whom dragonstone and onyx don't affect on live) not yet
+ * told apart; the hard Kandarin Diary's 10% more not counted.
+ */
+object BoltEffects {
+    /**
+     * What the effect does to one shot: the [damage] to reserve, a [sure] hit, whether it [fired] (for its graphic), and
+     * the [max] the damage could have reached, for the max-hit hitsplat (diamond's 115%, a flat bonus added, onyx's 20%).
+     */
+    data class Rolled(val hit: Boolean, val damage: Int, val fired: Boolean, val max: Int)
+
+    /** Its chance out of 1000, whether it needs the accuracy roll to pass, and its graphic. */
+    private class Spec(val perMille: Int, val onHit: Boolean, val spotanim: Int)
+
+    private val specs = mapOf(
+        BoltEffect.OPAL to Spec(50, onHit = false, spotanim = 749),
+        BoltEffect.PEARL to Spec(60, onHit = false, spotanim = 750),
+        BoltEffect.SAPPHIRE to Spec(250, onHit = true, spotanim = 751),
+        BoltEffect.EMERALD to Spec(550, onHit = true, spotanim = 752),
+        BoltEffect.ONYX to Spec(110, onHit = true, spotanim = 753),
+        BoltEffect.RUBY to Spec(60, onHit = false, spotanim = 754),
+        BoltEffect.DRAGONSTONE to Spec(60, onHit = true, spotanim = 756),
+        BoltEffect.DIAMOND to Spec(100, onHit = false, spotanim = 758),
+    )
+
+    /**
+     * The poison severity a Magical Poison gives: 25, hitting 5 first and 75 in all ([Poison]'s fifth rounded up, one
+     * less a hit), the Wiki's "5 poison damage" and "75 health points over 7.5 minutes".
+     */
+    const val EMERALD_POISON = 25
+
+    /** The Zaryte crossbow's: 6 first (OSRS Wiki, Zaryte crossbow); guessed severity 30, a fifth rounded up. */
+    const val EMERALD_POISON_ZARYTE = 30
+
+    /** Ruby's cap with the Zaryte crossbow. */
+    const val RUBY_CAP_ZARYTE = 110
+
+    /** The weapon whose passive strengthens enchanted bolts by 10% (OSRS Wiki, Zaryte crossbow). */
+    const val ZARYTE = "zaryte_xbow"
+
+    /** Ruby's cap. */
+    const val RUBY_CAP = 100
+
+    /** The graphic [effect] shows as it lands. */
+    fun spotanim(effect: BoltEffect): Int = specs.getValue(effect).spotanim
+
+    /** Whether [effect] does anything to a monster (and so takes a draw). */
+    fun rolls(effect: BoltEffect): Boolean = effect in specs
+
+    /**
+     * One shot with [effect]: whether it fires ([random]'s one draw, taken only when it [rolls]), then the hit and its
+     * damage, [roll] giving a normal roll for a max hit and [hit] the accuracy roll's result. From the Zaryte crossbow
+     * ([zaryte]) each is 10% stronger, as the Wiki's passive table gives it: opal ranged / 9, pearl / 18, dragonstone
+     * 22%, onyx 132%, diamond 126%, ruby 22% to 110 (sapphire unchanged, its rounding eats the 10%).
+     */
+    fun roll(effect: BoltEffect, random: GameRandom, player: Player, npc: Npc, hit: Boolean, maxHit: Int, zaryte: Boolean = false, roll: (Int) -> Int): Rolled {
+        val spec = specs[effect] ?: return Rolled(hit, if (hit) roll(maxHit) else 0, false, maxHit)
+        // Blood Forfeit doesn't activate when the shooter can't spare a hitpoint (OSRS Wiki, Ruby bolts (e)).
+        val fires = (random.nextInt(1000) < spec.perMille) && (hit || !spec.onHit) && (effect != BoltEffect.RUBY || rubyCost(player) >= 1)
+        if (!fires) return Rolled(hit, if (hit) roll(maxHit) else 0, false, maxHit)
+        val ranged = player.skills.currentLevel(Skill.RANGED)
+        val base = if (hit) roll(maxHit) else 0
+        return when (effect) {
+            BoltEffect.OPAL -> (if (zaryte) ranged / 9 else ranged / 10).let { Rolled(true, base + it, true, maxHit + it) }
+            BoltEffect.PEARL -> (if (zaryte) ranged / 18 else ranged / 20).let { Rolled(true, base + it, true, maxHit + it) }
+            BoltEffect.DRAGONSTONE -> (if (zaryte) ranged * 22 / 100 else ranged / 5).let { Rolled(true, base + it, true, maxHit + it) }
+            BoltEffect.ONYX -> (if (zaryte) 132 else 120).let { Rolled(true, base * it / 100, true, maxHit * it / 100) }
+            // Guessed: ruby's set damage isn't a roll, so it keeps the ordinary max for the hitsplat.
+            BoltEffect.RUBY -> Rolled(true, if (zaryte) minOf(RUBY_CAP_ZARYTE, npc.hitpoints * 22 / 100) else minOf(RUBY_CAP, npc.hitpoints / 5), true, maxHit)
+            BoltEffect.DIAMOND -> (maxHit * (if (zaryte) 126 else 115) / 100).let { Rolled(true, roll(it), true, it) }
+            else -> Rolled(hit, base, true, maxHit)
+        }
+    }
+
+    /** What a fired effect gives back as the bolt lands: prayer for sapphire, the heal for onyx (of [dealt]). */
+    fun landed(effect: BoltEffect, player: Player, npc: Npc, dealt: Int) {
+        when (effect) {
+            BoltEffect.SAPPHIRE -> {
+                val gain = npc.level(NpcStat.RANGED) / 10 / 8
+                val max = player.skills.baseLevel(Skill.PRAYER)
+                val now = player.skills.currentLevel(Skill.PRAYER)
+                if (gain > 0 && now < max) player.skills.setCurrentLevel(Skill.PRAYER, minOf(max, now + gain))
+            }
+            BoltEffect.ONYX -> {
+                val max = player.skills.baseLevel(Skill.HITPOINTS)
+                if (dealt > 0 && player.hitpoints < max) player.hitpoints = minOf(max, player.hitpoints + dealt / 4)
+            }
+            else -> {}
+        }
+    }
+
+    /** Ruby's cost to the shooter: a tenth of their hitpoints now. */
+    fun rubyCost(player: Player): Int = player.hitpoints / 10
+}

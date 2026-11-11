@@ -63,7 +63,21 @@ object NpcSpawnFile {
         "lumbridge-swamp-quest.json",
         "lumbridge-west.json",
         "lumbridge-swamp-caves.json",
+        "ham-hideout.json",
+        "ham-storerooms.json",
+        "misthalin-farms-roads.json",
+        "lumber-yard.json",
+        "silvarea.json",
+        "paterdomus.json",
+        "digsite.json",
+        "exam-centre.json",
+        "digsite-dungeon.json",
+        "misthalin-sweep.json",
         "fishing-spots.json",
+        "thieving-kandarin.json",
+        "rogues-castle.json",
+        "thieving-far.json",
+        "ardougne-market.json",
     )
 
     /** What a file gave: the spawns, and the NPC names the cache doesn't know (skipped). */

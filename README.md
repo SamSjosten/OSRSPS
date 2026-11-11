@@ -508,6 +508,7 @@ Rocks outside Misthalin are where live has them and reached by ::tele: the Minin
 | Amethyst crystals: 92, 240 XP, pair -18/10, 2 to 3 amethysts from one swing before an empty wall (`amethystrock_empty`) for 75 seconds | OSRS Wiki, Amethyst crystals |
 | Gem rocks: 40, 65 XP, pair 28/70 (84/210 with a charged glory), one gem out of 128 (opal 60, jade 30, red topaz 15, sapphire 9, emerald 5, ruby 5, diamond 4), 99 ticks back, no mining gem table | OSRS Wiki, Gem rocks |
 | Granite rocks: 45; 5kg (75 XP, pair 6/64), 2kg (60, 8/75), 500g (50, 16/100) rolled largest first, the first success given (42.0% any at 45, 68.2% at 99); sandstone rocks: 35; 10kg (60, 4/50), 5kg (50, 8/75), 2kg (40, 16/100), 1kg (30, 25/200) (56.5% to 92.7%). Each success empties the rock for 9 ticks; no gem table. Desert heat is not in yet | OSRS Wiki, Granite rocks, Sandstone rocks |
+| Limestone rocks (Silvarea): 10; 26.5 XP, pair 95/350; a rock gives three limestone in three stages (limestone_rock1 to 3, then the pile of rock) and comes back whole 39, 19 or 9 ticks after its latest stage, the Wiki's 23.4, 11.4 and 5.4 seconds read as the time back to a full rock (inferred) | OSRS Wiki, Limestone rock, read 2026-11-11 |
 | A charged amulet of glory (any, trimmed or eternal) adds a second 3/256 roll at the mining gem table | OSRS Wiki, mining gem table template |
 | The Mining Guild's members' area: an invisible +7 on the roll (not on the level needed) and every respawn halved | OSRS Wiki, Mining Guild |
 | The members' area's bounds (x 2998-3059, z 9695-9729), drawn around the Wiki's rock tiles; amethyst's 75 seconds not halved again | inferred |
@@ -531,7 +532,10 @@ each of its nine catches (boots, seaweed, gloves, two mackerel, oyster, casket, 
 its own, so one roll can bring up several. Karamja's karambwanji spots (step FC3, 4710, `::tele 2791 3018`) net
 karambwanji from 5, level / 5 + 1 at a time, before shrimps; a karambwan vessel baited with them catches karambwan from 65
 at the spots by the fairy ring DKP (4712 and 4713, `::tele 2899 3118`), each roll emptying the vessel, caught or not,
-and the next baiting it again from the backpack. The `fishing-cooking` scenario starts there with everything built.
+and the next baiting it again from the backpack. A small net catches monkfish from 62 at the Piscatoris Fishing Colony's
+Net/Harpoon spots (step FC4, 4316, `::tele 2326 3699`, which harpoon tuna and swordfish as Catherby's do), and a fishing
+rod baited with sandworms catches anglerfish from 82 at Port Piscarilius's Rod Fishing spots (6825, `::tele 1827 3769`),
+a sandworm a catch. The `fishing-cooking` scenario starts there with everything built.
 
 | Fishing behaviour | Source |
 |-------------------|--------|
@@ -551,13 +555,23 @@ and the next baiting it again from the backpack. The `fishing-cooking` scenario 
 | The harpoon's first roll as the other methods' (2004Scape has it a tick later); a dragon harpoon below 61 counting as no harpoon; a big net catch lost when the backpack fills mid-roll | guessed |
 | Karambwanji: level 5, 5 XP, the count by level, the 100/250 pair tried before shrimps, no shrimps with the backpack full; karambwan: level 65, 50 XP, the 5/160 pair, the bait lost on every roll, the vessel baited again on its own; the spots' tiles and the karambwan spots staying put | OSRS Wiki, Raw karambwanji, Raw karambwan, Fishing spot (karambwanji) and (karambwan); mejrs NPCList_OSRS |
 | The vessel's cast message and animation (human_octopus_pot); the baiting saying nothing; the karambwanji spots staying put | guessed |
-| Out: pearl and barbarian rods, stripy feathers, big bass, swordfish and shark, the skills necklace casket boost, barehanded fishing, infernal and crystal harpoons, the dragon harpoon's special, outfits and other catch boosts, whirlpools | out of scope |
+| Monkfish: small net, level 62, 120 XP, the 48/90 pair; anglerfish: rod and sandworms, level 82, 120 XP, the 3/36 pair; the spots' tiles | OSRS Wiki, Raw monkfish, Raw anglerfish, Piscatoris Fishing Colony, Port Piscarilius; mejrs NPCList_OSRS |
+| The Piscatoris and anglerfish spots staying put (the anglerfish spots' 8 to 830 tick moves are out); the monkfish and anglerfish messages as the small net's and rod's | guessed |
+| Out: diabolic worms, pearl and barbarian rods, stripy feathers, big bass, swordfish and shark, the skills necklace casket boost, barehanded fishing, infernal and crystal harpoons, the dragon harpoon's special, outfits and other catch boosts, whirlpools | out of scope |
 
 ### Cooking
 
 Raw food used on a fire or range, or Cook on a range, cooks it (`game/skill/Cooking.kt`, words under `cooking.*`):
 shrimps, anchovies, sardines, herring, trout, pike, salmon, beef, rat and bear meat, chicken, and bread dough (range
-only); lobster, tuna, swordfish and shark came with Fishing and Cooking 2's step FC1, mackerel, cod and bass with FC2, karambwan with FC3. With more than one to cook, the chatbox's Make-X box (`skillmulti`, interface 270, set up by client script
+only); lobster, tuna, swordfish and shark came with Fishing and Cooking 2's step FC1, mackerel, cod and bass with FC2, karambwan with FC3, monkfish and anglerfish with FC4. Step FC5a adds
+multi-step food (`game/skill/CookingMixes.kt`, words under `cooking_mix.*`): flour and water into bread, pastry, pizza or
+pitta dough, pie shells and every pie's fillings (three at a time for mud, garden, fish, admiral, wild and summer pies),
+a pizza's tomato, cheese and topping, and a cake's egg, flour and milk, each pair through the Make-X box, then baked on a
+range. Step FC5b adds stew (a potato and cooked meat or chicken in a bowl of water) and curry (spice, or three
+curry leaves, in an uncooked stew), cooked on a fire or range; wine (grapes in a jug of water), which ferments 20 ticks
+after the last jug is made, every unfermented wine in the backpack and the bank at once, a jug of wine for 200 XP or a jug
+of bad wine (`game/skill/Wine.kt`; a login with unfermented wine starts the wait again); and the dairy churn
+(`game/skill/Churn.kt`), whose Make-X box turns milk, cream or butter into cream, butter or cheese. With more than one to cook, the chatbox's Make-X box (`skillmulti`, interface 270, set up by client script
 2046) asks which and how many; a resume_pausebutton from one of its items starts the job. Lumbridge Castle's kitchen
 range (114) burns less. The cooking re-runs every tick on the loc (`World.repeatOp`).
 
@@ -569,8 +583,13 @@ range (114) burns less. The cooking re-runs every tick on the loc (`World.repeat
 | Swordfish, shark and cod burning less on a range than on a fire; mackerel and cod helped by the Lumbridge range, lobster, tuna, swordfish, shark and bass not | OSRS Wiki food pages; Cooking range (Lumbridge Castle) |
 | The Make-X box: its components, client script 2046's arguments and the pause button carrying the quantity | decompiled client scripts (osrs-dumps) |
 | Karambwan: cooked from 30 for 190 XP or poison from 1 for 80, one burn chart for both (stops at 99), the box always asking with the cooked one first; a poison karambwan hitting for 5 from 6 hitpoints with its two messages | OSRS Wiki, Raw karambwan, Cooked karambwan, Poison karambwan |
+| Monkfish: from 62 for 150 XP, 11/275 on a fire and 13/280 on a range (stops burning at 92 and 90); anglerfish: from 84 for 230 XP, 1/200 and 1/220 (never stops burning); the Lumbridge range cooking both as any range | OSRS Wiki, Raw monkfish, Monkfish, Raw anglerfish, Anglerfish |
+| Pies, pizza, cake and pitta: levels, XP and each range pair (the Lumbridge range helping redberry, meat, botanical and mushroom pies), every pie burning to a burnt pie, the cake tin coming back | OSRS Wiki food pages; Cooking range (Lumbridge Castle) |
+| The mixes: each step's level, materials, XP (only pizza toppings and chocolate cake give any), the pot, bucket, bowl or jug coming back, 1 tick a dough and 2 for the rest | OSRS Wiki item pages (Pastry dough, Pie shell, Part garden pie and the rest) |
+| Meat pie and mushroom pie stopping burning at 53 and 88, where their charts reach 256, a level before the pages' text | the charts over the text |
+| The first mix a tick after the choice; one pair with one to make skipping the box; the doughs' box order; no animation for mixing; a cake not baked when there is no slot for its tin; the level message as a chat line (2004Scape shows it in a box) | guessed |
 | Cook with nothing raw saying Nothing interesting happens; one piece cooking with no box; the box closing as the first piece starts; the level-up box ending the job as for the other skills | guessed |
-| Out: cooking gauntlets, the cooking cape, Hosidius ranges, pies, stews, pizzas, wines and every other recipe | out of scope |
+| Out: cooking gauntlets, the cooking cape, Hosidius ranges, the pies' 1-tick bake without the box, Bake Pie; stews, curries, wine, dairy, potatoes with toppings and kebabs (step FC5b) | out of scope |
 
 ### Smithing
 
@@ -600,6 +619,13 @@ logs to magic logs, plus teak and mahogany stocks and redwood shafts. A bow stri
 make headless arrows, and arrowtips on those make arrows, up to 15 at a time (the box counts sets). A feather on dart
 tips makes 10 darts on every click, with no box. The numbers are in `skills/fletching.json`.
 
+Crossbows, bolts and javelins (Artisan 2, A1): crossbow limbs on a stock, with a hammer held, make the unstrung
+crossbow (bronze on a wooden stock up to dragon on a magic stock), and a crossbow string strings it. A feather on
+unfinished bolts makes 10 bolts a click, as darts do; the All Settings toggle "Make-X for darts and bolts" opens the box
+for both. Bolt tips on bolts make tipped bolts, and javelin tips on javelin shafts make javelins, up to 10 and 15 at a
+time. A chisel on a cut gem or oyster pearl cuts bolt tips. `::scenario artisan-2` stands you on the Lumbridge spawn
+with 99 Fletching and the parts.
+
 The making itself is the loop all three artisan skills share (`game/skill/Making.kt`, the box's title under
 `make.title`): each product waits in a weak queue, so walking off, closing an interface or using something else ends
 it, as do running out, the count being done, the level being too low and a level-up.
@@ -612,7 +638,13 @@ it, as do running out, the count being done, the level being too low and a level
 | Animations `human_fletching` (1248) and each bow's `stringing_*` (6678 to 6689) | cache 241 gamevals |
 | No animation for arrows and darts; the first bow strung 2 ticks after the choice | guessed |
 | The box opening even for one log, its order, the quantity starting on as many as can be made, the animation as each product starts, a boost wearing off stopping it without a word | guessed |
-| Out: the redwood shield; the crossbows and javelins that stocks and javelin shafts go into | out of scope |
+| Crossbows: levels, limbs and string XP; 2 ticks each, the first 1 tick after the choice; the hammer | OSRS Wiki, Template:Table/Fletching/Crossbows, Bronze crossbow (u), Bronze crossbow ("Make-X is 1, then 2 ticks") |
+| Bolts: levels, XP per bolt, 10 a click with no wait; tipped bolts: levels, XP per bolt, 10 a set, 2 ticks a set; dragon bolts taking every gem tip | OSRS Wiki, Template:Table/Fletching/Bolts, Tipped bolts, Tipped dragon bolts, Bronze bolts, Opal bolts |
+| Bolt tips: levels, XP per gem, 12 a gem (24 from an onyx or oyster pearls, 6 from an oyster pearl), 5 ticks a gem | OSRS Wiki, Template:Table/Fletching/Bolt tips, each tips page |
+| Javelins: levels, XP per javelin, 15 a set, the first two sets a tick apart, then 2 ticks a set | OSRS Wiki, Template:Table/Fletching/Javelins, Bronze javelin |
+| Animations: `xbows_fletching_*` for limbs, `xbows_stringing_crossbow_*`, `human_fletching_add_bolt_feathers_*` and `human_fletching_add_bolt_tips_*` by metal | cache 242 gamevals |
+| The Make-X box for tipping bolts and for javelins, the bolts' sets-of-10 title; the gem's cutting animation for bolt tips; `human_fletching_add_arrow_tips` for javelins; no animation for broad bolts; the first tipped set and the first bolt tips 2 ticks after the choice, and the first javelins 1; broad bolts' Slayer unlock taken as unlocked | guessed |
+| Out: the redwood shield; kebbit, antler and ascension bolts and the hunters' crossbows; the jeweller's chisel | out of scope |
 
 ### Crafting
 
@@ -627,6 +659,11 @@ the inventory, so the server answers the item buttons and keeps the quantity but
 the anvil. A ball of wool strings an amulet. Soda ash or a bucket of sand on a furnace makes molten glass (the bucket
 comes back), and a glassblowing pipe blows it. Water on clay softens it; soft clay on a potter's wheel shapes pots,
 cups, pie dishes, bowls, plant pots and lids, and a pottery oven fires them, some cracking below level 13. The making is the artisan loop in `Making.kt`.
+
+Artisan 2, A3: an air, water, earth or fire orb on a battlestaff makes that elemental battlestaff. A chisel on a blamish snail
+shell, round or pointed, makes its snelm, and on amethyst opens the box over amethyst bolt tips, arrowtips, javelin tips and
+dart tips. Weave on a loom, or wool, jute or willow branches used on one, opens the box over a strip of cloth, an empty sack, a
+drift net and a basket. Misthalin has no loom: South Falador Farm's (3039, 3287) is where live has it, reached by ::tele.
 
 | Crafting behaviour | Source |
 |--------------------|--------|
@@ -644,7 +681,10 @@ cups, pie dishes, bowls, plant pots and lids, and a pottery oven fires them, som
 | Pottery levels and both XPs; 3 ticks at the wheel, 7 in the oven, firing at any level; the oven's crack chart, which the pair 180/800 gives exactly (`CraftingDataTest`) | OSRS Wiki, Crafting (Pottery), Unfired pie dish, Pie dish and the other pots' pages |
 | A cracked pot lost with no XP; the oven animation; the other glassblowing items' ticks | guessed |
 | Spin with nothing saying Nothing interesting happens; the box opening even for one | guessed |
-| Out: sinew, magic roots, yak hair and the other members' spinning; d'hide shields, snakeskin, the costume needle; the jeweller's chisel, amethyst; the slayer ring, quest silver items, silver bolts, enchanting | out of scope |
+| Battlestaves 54/58/62/66, 100 to 137.5 XP, 'Make-X is 3t, then 2t'; snelms 15, 32.5 XP, 2 ticks; amethyst cuts 83/85/87/89, 60 XP, 15/15/5/8 a piece, 2 ticks; the loom's four at 10/21/26/36, 12/38/55/56 XP, 4 ticks then 3, a drift net 3 | OSRS Wiki, each battlestaff, snelm and amethyst tips page, Loom (read 2026-11-10) |
+| The animations `human_battlestaff_crafting`, `human_snailshellcutting`, `human_amethystcutting` | cache 242 gamevals |
+| The loom's animation (`farming_useloom`, by its name); the first snelm and amethyst cut 2 ticks after the choice; the battlestaff's flash left out | guessed |
+| Out: sinew, magic roots, yak hair and the other members' spinning; d'hide shields, snakeskin, the costume needle; the jeweller's chisel; the slayer ring, quest silver items, silver bolts, enchanting; linen, canvas and cotton (Varlamore's yarns), the Vampyre snelm, combination battlestaves | out of scope |
 
 ### Herblore
 
@@ -654,6 +694,17 @@ unfinished potion. A pestle and mortar on a unicorn horn, chocolate bar, kebbit 
 blue dragon scale opens the box for the ground item; the first is ground as the choice is made. An empty vial used on a
 sink, fountain or water pump fills every vial held, one a tick. A secondary on its unfinished potion opens the box for
 the finished potion (23 of them, attack potion to Saradomin brew), a (3) dose each. Making goes through `Making.kt`.
+
+Potions of more ingredients or made by the dose (Artisan 2, A2a, herblore.json's `mixing`): a torstol or torstol potion
+(unf) on a super attack(4), strength(4) or defence(4), with all four held, makes a super combat potion(4); amylase
+crystals on a super energy and lava scale shards on an antifire potion make stamina and extended antifire, one crystal
+or shard a dose; unicorn horn dust, snake weed and nail beast nails, in that order, take a super restore of any dose to
+sanfew serum.
+
+Bob Barter (herbs) stands at the Grand Exchange (Artisan 2, A2b, `game/skill/Decanting.kt`, words under `bob_barter.*`).
+Decant on him, or "Can you decant things for me?" in his talk, opens the decant interface; a dose button (or its number
+key) decants every potion in the backpack to that many doses, with one potion of fewer for what is left over. Empty
+vials he is short of are bought from the coins held.
 
 | Herblore behaviour | Source |
 |--------------------|--------|
@@ -665,7 +716,13 @@ the finished potion (23 of them, attack potion to Saradomin brew), a (3) dose ea
 | Animations 363 (`human_herbing_vial`) and 364 (`human_herbing_grind`) | cache 241 gamevals |
 | Finished potions' levels, XP, secondaries, 2 ticks, a (3) dose | OSRS Wiki, Herblore (potions table) and each potion's page |
 | Which locs count as water; filling with no box; the filling animation (832); no animation for cleaning; the first potion 2 ticks after the choice | guessed |
-| Out: potions of three or more ingredients (super combat, stamina, sanfew, divine), coconut-milk potions, Varlamore's, herb sacks, tar, barbarian mixes, ashes, other ground items | out of scope |
+| Super combat (90, 150 XP), stamina (77, 25.5 XP a dose), sanfew's three steps (65, 32 x doses + 64 XP in all), extended antifire (84, 27.5 XP a dose); 2 ticks each; sanfew's steps one potion a use with no Make-X box; super combat from a clean torstol giving 2 vials back | OSRS Wiki, Super combat potion, Stamina potion, Sanfew serum, Extended antifire, Money making guide/Making super combat potions |
+| Super combat from a torstol potion (unf) giving 3 vials back (its own vial spare too) | inferred |
+| Which item pairs start a super combat potion (the torstol on any of the three; the three on each other start nothing); Zogre Flesh Eaters counting as done | guessed |
+| Out: divine potions, extended super antifire, coconut-milk potions, Varlamore's, herb sacks, tar, barbarian mixes, ashes, other ground items | out of scope |
+| Bob Barter (herbs) at the Grand Exchange (5449, `ge_expert_herbs`; Talk-to, Prices, Decant), the decant interface (582) and its four dose buttons; any dose 1 to 4, noted potions too, the potions' own vials reused, spare vials back, missing ones bought at the vial's guide price + 2; results noted when any input was or when they won't fit; his lines | OSRS Wiki, Bob Barter (herbs), Decanting and Transcript:Bob Barter (herbs) (read 2026-11-10); cache 242 (NPC, interface 582), osrs-dumps decant.if3 and decant_init |
+| His spot (3155, 3480, the Wiki's map pin, wandering 1); a potion being any tradeable item with Drink and all four "Name(n)" doses, not in a cup or keg (no Guthix rests, kegs or raid potions), and another id of the name decanting with it only when it is as tradeable; out of cash part way, potions decanted in backpack order; "short of inventory space" when even notes won't fit; 3 coins a vial with no guide price; the chatheads' expressions | guessed |
+| Out: the herb and potion price guide (Prices, and its Talk-to option, end there), cups of tea, barbarian mixes, Guthix rests, oils, moth mixes; the free-to-play lines | out of scope |
 
 ### Agility
 
@@ -761,6 +818,96 @@ and two of each tablet.
 Check: `./gradlew test --tests 'osrsps.game.skill.magic.*' --tests 'osrsps.testclient.HeadlessTeleportsTest'`, and in
 RuneLite `test-runner/examples/magic-teleports.json`.
 
+### Thieving: more pickpockets and their gear
+
+Thieving 2 steps T1a to T1c (`game/skill/Pickpocketing.kt`, `game/skill/PickpocketGear.kt`). Pickpocket now works on the
+farmers (nine on Misthalin's farms, `npc-spawns/lumbridge-farms.json`, with their combat and drops), Al Kharid's man and
+warriors, Edgeville's guards, and Kandarin's and the Wilderness's rogues, Knights of Ardougne, watchmen, paladins, gnomes
+and heroes, and the far pickpockets from Dorgesh-Kaan to Mor Ul Rek (all reached by `::tele`). Gloves of silence and the dodgy necklace work when worn.
+
+| Pickpocketing behaviour | Source |
+|-------------------------|--------|
+| Farmers: level 10, 14.5 XP, 150 to 240 out of 256, 1 damage; a farmer's coin pouch (9 coins) 123/128 or a potato seed 5/128; level 7, speed 6, max hit 1, stab, respawn 25, the members' drop table | OSRS Wiki, Farmer, Coin pouch (read 2026-11-10) |
+| The farmers' nine tiles and which look stands on each (farmer1 to farmer3, farmer1_f to farmer3_f, farmer4) | OSRS Wiki, Farmer (its map) |
+| Al Kharid warriors: the warrior woman's level, XP, 100 to 240, damage and warrior's pouch; Al Kharid's man (3261) as a man; Edgeville's guards (3254) as guards, whose 50 to 240 the Guard page's chart now confirms | OSRS Wiki, Al Kharid warrior (Mod Ash: the same code), Guard, Thieving |
+| Gloves of silence: the NPC's low and high times 1.05, rounded down; worn out by 62 failed pickpockets, with the Wiki's warning one before the end and its six Check messages | OSRS Wiki, Gloves of silence, each NPC's chart |
+| Dodgy necklace: one failure in four costs no stun and no damage and uses a charge; the tenth crumbles it; Check gives the charges left | OSRS Wiki, Dodgy necklace |
+| Both items' counts belong to the player, not the item (`player.charges`) | OSRS Wiki, both pages |
+| The bands between the gloves' Check messages; after a saved failure the next pickpocket comes 2 ticks later; the gloves wear even when the necklace saves; the necklace's and the gloves' last messages; "farmer" and "Al Kharid warrior" in the messages and their caught line; the farmers' animations and wander | guessed |
+| Rogues: level 32, 36.5 XP, 75 to 240, 2 damage; a table out of 144 (a pouch of 25 to 40 coins 123, 8 air runes 9, a jug of wine 6, a lockpick 5, a poisoned iron dagger 1); 22 in Rogues' Castle and south-west of the Mage Arena (`npc-spawns/rogues-castle.json`) | OSRS Wiki, Rogue, Coin pouch (read 2026-11-10); mejrs NPCList_OSRS.json |
+| Knights of Ardougne: 55, 84.3 XP, 50 to 240, 3 damage, a pouch of 50, a 4.8-second stun (8 ticks) | OSRS Wiki, Knight of Ardougne |
+| Watchmen: 65, 137.5 XP, 15 to 160, 3 damage, a pouch of 60 and a bread every time | OSRS Wiki, Watchman |
+| Paladins: 70, 131.8 XP, 40 to 170, 3 damage, a pouch of 80 and 2 chaos runes every time, an 8-tick stun | OSRS Wiki, Paladin |
+| Gnomes (the men, women and children alike, but for the women's and children's 133.5 XP): 75, 133.3 XP, 43 to 175, 1 damage; a table out of 128 (2 to 4 arrow shafts 56, a pouch of 300 30, a swamp toad 24, gold ore 8, an earth rune 5, a king worm 3, a fire orb 2) | OSRS Wiki, Gnome, Gnome woman, Gnome child |
+| Heroes: 80, 163.3 XP, 39 to 160, 3 damage; a table out of 128 (a pouch of 200 to 300 105, 2 death runes 8, a jug of wine 6, a blood rune 5, a fire orb 2, a diamond 1, gold ore 1); a 6-second stun (10 ticks) | OSRS Wiki, Hero |
+| Warriors: Ardougne's (the pre-2022 warrior woman type) and the 2022 types join the warrior's pocket | OSRS Wiki, Warrior (Thieving) |
+| No room: a pickpocket needs a slot for a new pouch and one for each extra it gives that isn't a stack already held, and room in every stack a success could add to (an extra, or the most of a table item already held) | guessed (the Wiki gives the extras, not the room they need) |
+| Where they stand: East Ardougne's 5 knights, 22 paladins (the castle's two floors among them), 3 heroes and 10 warriors, the Watchtower's 4 watchmen, the Tree Gnome Stronghold's 153 gnomes (`npc-spawns/thieving-kandarin.json`) | mejrs NPCList_OSRS.json (live, pre-Nov 2022) |
+| Their combat: the Wiki's speeds, max hits, bonuses and respawns | OSRS Wiki, each NPC's infobox |
+| The T1b NPCs' caught line (the townsfolk's), their names in the messages, their animations, their wander; the gnomes' max hit 1 (the Wiki's, where the formula gives 0) | guessed |
+| Cave goblins (Dorgesh-Kaan): 36, 40 XP, 1 damage; a table out of 20 (a pouch of 10 to 50 coins 7, then 1 each: bat shish, coated frogs' legs, fingers, frogburger, frogspawn gumbo, green gloop soup, bullseye lantern, 1 to 2 cave goblin wire, 1 to 4 iron ore, oil lantern, swamp tar, tinderbox, unlit torch) | OSRS Wiki, Cave goblin (Dorgesh-Kaan), Coin pouch (read 2026-11-10) |
+| Fremennik citizens (Rellekka's nine): 45, 65 XP, 2 damage, a pouch of 40 | OSRS Wiki, Fremennik citizen |
+| Desert bandits (the Bandit Camp): 53, 79.4 XP, 50 to 240, 3 damage; a pouch of 30 5/7, an antipoison(1) 1/7, a lockpick 1/7 | OSRS Wiki, Bandit (Bandit Camp) |
+| Wealthy citizens (Civitas illa Fortis): Pickpocket is their first op; 50, 96 XP, 35 to 200, 3 damage, a 4-second stun (7 ticks); a pouch of 85 79/85, house keys 5/85 | OSRS Wiki, Wealthy citizen |
+| Vyres (Darkmeyer's thirty): 82, 306.9 XP, 8 to 128, 5 damage, a 10-tick stun; a table out of 132 (a pouch of 230 to 315 109, 2 death runes 8, a blood pint 6, an uncut ruby 5, 4 blood runes 2, a diamond 1, cooked mystery meat 1) | OSRS Wiki, Vyre |
+| Elves (Lletya's three, Prifddinas's 49): 85, 353.3 XP, 6 to 100, 5 damage, a 10-tick stun; a table out of 128 (a pouch of 280 to 350 105, 2 death runes 8, a jug of wine 6, 3 nature runes 5, a fire orb 2, a diamond 1, gold ore 1) | OSRS Wiki, Elf (Thieving) |
+| TzHaar-Hur (Mor Ul Rek's inner city): 90, 103.4 XP, -200 to 200, 4 damage, a 10-tick stun; 3 to 7 tokkul 182/195 or an uncut sapphire 5, emerald 4, ruby 3, diamond 1; their heat does 4 more on every success unless ice gloves are worn | OSRS Wiki, TzHaar-Hur |
+| Where the far ones stand (`npc-spawns/thieving-far.json`): 174 spawns, the wealthy citizens on the Wiki map's nine tiles | mejrs NPCList_OSRS.json (live, pre-Nov 2022); OSRS Wiki, Wealthy citizen (its map) |
+| The cave goblins' and Fremennik citizens' charts (75 to 240 and 65 to 240: the Wiki has none); which wealthy citizen look stands on each tile; the far NPCs' caught line and names in the messages; a Wiki table's coins read as the pouch the Coin pouch page gives that NPC; the wealthy citizens' last 1/85 (an easy clue, left out) giving nothing | guessed |
+| Not built: repairing the gloves, the necklace's Break, the Ardougne diary, Shadow Veil, Rocky, the clue scrolls from pickpocketing; the T1b and T1c NPCs' drops and fights; West Ardougne, the Mourner Tunnels, Tree Gnome Village and the Battlefield; the urchins' distractions, Prifddinas's crystal shards and seeds, the quests and the fire cape that gate the far areas; Pollnivneach's bandits and the Menaphite thugs (blackjacking), the pirates | next steps |
+
+`::scenario thieving` stands you beside a farmer on the farm south of Varrock with 99 Thieving and Hitpoints, 54
+Hunter, gloves of silence and a dodgy necklace worn, a spare necklace and food.
+
+### Magic: Enchant Crossbow Bolt
+
+Cast on the magic tab's Enchant Crossbow Bolt (`game/skill/magic/BoltEnchant.kt`, the enchantments in
+`skills/bolt-enchant.json`) opens the Make-X box over the enchantments whose bolts the player holds, each shown as the
+bolt it makes. The choice casts that enchantment the picked number of times: each cast checks the level and runes (a
+staff stands in for its runes), takes them and up to 10 bolts, and gives as many enchanted bolts and the spell's XP.
+Walking off stops it, as making does, but it doesn't stop mining, fishing or the like: the Wiki gives it as zero-time
+Magic. One cast a tick at most, however fast the clicks come. What the enchanted bolts do in combat is the next step.
+
+| Bolt enchanting behaviour | Source |
+|---------------------------|--------|
+| The ten enchantments, opal to onyx: levels 4, 7, 14, 24, 27, 29, 49, 57, 68 and 87, XP 9, 17.5, 19, 29.5, 37, 33, 59, 67, 78 and 97; 10 bolts a cast; each also enchanting its dragon bolts, and diamond and onyx their ascension bolts; a box of spells | OSRS Wiki, Enchant Crossbow Bolt and each spell's page (read 2026-11-10) |
+| The runes (the sub-spell objs `04_enchant_bolt_opal` on, params 365 to 370); the button `magic_spellbook:xbows_enchant` (218:13); the animation `human_xbow_enchant_arrowtip` (4462) and graphic `xbows_enchanting_tips_spot` (759) | 242 cache |
+| Casting leaves gathering going, and clicks can cast faster than the pace | OSRS Wiki, Enchant Crossbow Bolt |
+| A cast every 3 ticks, the first on the choice; gathering still stops if the Make-X box is open at its next roll, as for a level-up box (live's spell interface may not); the ordinary bolts before the dragon or ascension ones; fewer than 10 enchanted when fewer are held; only the held bolts' spells in the box; the box's title and the no-bolts message (`bolt_enchant.title`, `bolt_enchant.no_bolts`, words on the server) | guessed |
+
+Check: `./gradlew test --tests 'osrsps.game.skill.magic.BoltEnchantDataTest' --tests 'osrsps.testclient.HeadlessBoltEnchantTest'`,
+and in RuneLite `test-runner/examples/magic-bolt-enchant.json`.
+
+### Thieving: chests and pick-lock doors
+
+Thieving 2 step T2 (`game/skill/ThievingLocks.kt`). The chests and doors are the cache's, where the cache map puts them;
+only their options are new.
+
+| What | Source |
+|---|---|
+| Search for traps on a chest: the trap found, disabled, the chest opened and the loot given, two ticks apart; it stands open 4 ticks, then empty (`emptytrapchest` 11740) until it relocks. Below the level: "nothing". Open instead sets the trap off | OSRS Wiki, each chest's page; 2004Scape `trapped_chest.rs2` and `thieving.rs2` for the steps and words |
+| 10 coins (11735): 13, 7.8 XP, 7 s. Nature runes (11736): 28, 25 XP, a nature rune and 3 coins, 15 s. 50 coins (11737): 43, 125 XP, 50 s. Blood runes (11738, Chaos Druid Tower dungeon): 59, 250 XP, 2 blood runes and 500 coins, 135 s, then a second trap sends the looter to East Ardougne (2584, 3337). Ardougne Castle (11739): 72, 500 XP, 1,000 coins, a raw shark, an adamantite ore and an uncut sapphire, 500 s, then Witchaven (2696, 3281) | OSRS Wiki, Chest (10 coins), (nature runes), (50 coins), (blood runes), (Ardougne Castle) |
+| Steel arrowtips (11742): 47, 150 XP, 5 steel arrowtips and 20 coins, 90 s, empty as `emptypickchest` 11741. Open says it is locked; Search for traps, or a lockpick used on it, picks it every time with a lockpick held | OSRS Wiki, Chest (steel arrowtips); 2004Scape `attempt_locked_chest` |
+| The traps: the nature rune chest's `floor(HP * 12 / 100) + 3` of current Hitpoints, the blood rune chest's `(9 * HP + 225) / 50` | OSRS Wiki, Chest (nature runes), Chest (blood runes) |
+| Doors: Open from outside says it is locked; from inside, Open or Pick-lock lets the player through. Outside is the door tile's own side of its wall. Going through moves the player across and the door stays shut, so nobody walks in behind (exploit sweep round 25, R25B-1; 2004Scape swings it open for a moment) | 2004Scape `locked_door.rs2` (`check_axis_locactive`) |
+| East Ardougne's north (11719, 1, 3.8 XP) and south (11720, 16, 15 XP) doors, 32 to 250. Ross' house (40178, 13, 15 XP, 4 to 40). The Chaos Druid Tower (11723, 46, 37.5 XP, 8 to 75). Ardougne Castle (11724, 61, 50 XP, 4 to 40) | OSRS Wiki, each door's page (levels, XP, East Ardougne's chart); 2004Scape's `locked_door.dbrow` (the other charts) |
+| The trap before a pick on Ross', the tower's and the castle's doors (32 to 250, 220 to 280, 200 to 270): its blow is 10% of current Hitpoints (none at 10 or less), 6% of full, or 10% of full, and it ends the try. Ross' 32 to 250 gives the Wiki's 77% at 13 and 2% at 99 | OSRS Wiki, Door (Ross' House), (Chaos Druid Tower), (Ardougne Castle); 2004Scape's charts |
+| The 10 and 50 coin and Ardougne Castle chests' trap damage (the Wiki says "substantial" and "high"; the nature rune chest's formula is used); Ross' door, a newer loc than 2004Scape's, opening the same way; refusing a chest whose loot wouldn't fit (2004Scape gives it regardless) | guessed |
+| Not built: the Dorgesh-Kaan and Rogues' Castle chests, the doors that need a lockpick, the Ardougne sewer gates, the Ardougne diary, the gas random event | next steps |
+
+### Thieving: East Ardougne's stalls
+
+Thieving 2 step T3 (`game/skill/Thieving.kt`, `npc-spawns/ardougne-market.json`). The six stalls are the cache's, in the
+market where the cache map puts them; stealing works as at Draynor's (a guard or keeper in sight stops it).
+
+| What | Source |
+|---|---|
+| Bakery (11730): 5, 16 XP, 2.4 s, a cake 13/20, bread 5/20 or a chocolate slice 2/20. Silk (11729): 20, 24 XP, 4.8 s, silk. Fur (11732): 35, 45 XP, 7.2 s, a grey wolf fur. Silver (11734): 50, 205 XP, 19.2 s, silver ore 16/20, a silver bar 3/20 or a tiara 1/20. Spice (11733): 65, 92 XP, 6 s, spice. Gem (11731): 75, 408 XP, 60 s, an uncut sapphire 105/128, emerald 17, ruby 5 or diamond 1 | OSRS Wiki, Stall (Thievable) and each stall's page |
+| The keepers (the two bakers, silk merchant, fur trader, silver merchant, spice seller and gem merchant, the `*_ardougne` types) and the market's ten guards (`ardougne_guard`, also pickpocketed as guards), where they stand | mejrs NPCList_OSRS.json (live, pre-Nov 2022) |
+| The guards' fight | OSRS Wiki, Guard (Ardougne 1) |
+| Who watches which stall (the guards the bakery; knights too the silk and fur; paladins too the silver, spice and gem), the empty stall (`market` 634), the keepers' 20-minute ban, the keepers standing still and the guards wandering 5 | guessed (the watchers 2004Scape's) |
+| Not built: Keldagrim's, Kourend's, Prifddinas's, Civitas illa Fortis's, Port Roberts's, Rellekka's and Ape Atoll's stalls, the keepers' talk and shops, the Ardougne diary | next steps |
+
 ## Items and inventory
 
 Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for
@@ -778,10 +925,12 @@ as `Op.sub`. The inventory is saved with the player.
 | Dragging swaps two slots; a click on a slot that holds something else is dropped | RSMod / inferred |
 | An option or "Use" nothing handles says live's "nothing interesting" message (`game.nothing_interesting`) | from memory of live |
 | Bury on bones: a message (`bones.dig`), seq 827, the player stops; a tick later the bones go, the Prayer XP comes and a second message (`bones.buried`) (bones, burnt bones 4.5 XP, big bones 15, dragon bones 72) | XP from the Wiki; the steps from the 2004Scape project's script; no sound yet (its 241 synth id isn't known) |
+| Scatter on demonic ashes: fiendish 10 Prayer XP, vile 25, malicious 65, abyssal 85, infernal 110 | XP from the Wiki (Remains, read 2026-11-10); seq 2295 (farming_ingredient_sprinkle), the one-tick delay as a bury, and one message a tick later (`bones.scattered`) guessed |
 | Stacks stop at 2,147,483,647; `::item` adds what fits | client limit; adding part is ours |
 
 Check: `::item 1351` puts a bronze axe in your inventory; drag it to another slot; Examine it. `::item bones 2`, then Bury both: Prayer XP goes to 9
-(`test-runner/examples/lumbridge-bury-bones.json` does it in the real client).
+(`test-runner/examples/lumbridge-bury-bones.json` does it in the real client). `::item 25769`, then Scatter: 25 Prayer XP
+(`scatter-ashes.json`).
 
 ## Bank
 
@@ -1110,6 +1259,298 @@ for 20 ticks it goes back in. Hurting rockslugs needs Slayer 20, wall beasts 35.
 | Ids, the hole and beast forms, animations | 242 cache |
 | The grab's 4 ticks, its even roll from 0 to 18, one grab per step onto the tile, the 20 ticks before it goes back in, the 10-tick respawn, the salt and grab messages, no salting animation and no XP for the salt's kill | guessed |
 | Out: the Slug salter perk, Slayer XP (no Slayer rewards or tasks yet) | out of scope |
+
+#### The H.A.M. Hideout
+
+Misthalin piece 7 step 4a (`game/content/HamHideout.kt`, `npc-spawns/ham-hideout.json`, words under `ham_hideout.*`
+and `pickpocket.caught_ham`): the trapdoor west of Lumbridge's general store is locked. Pick-Lock opens it at 4% at
+Thieving 1 to 98% at 99 (24% to 99% with a lockpick in the backpack) for 3.8 XP, and a fail numbs the fingers,
+Thieving down 1 (never below 1). Picked open (varbit `ham_thief` shows it open), Climb-down takes the player to the foot of the ladder
+and Close shuts it; the ladder climbs back up. Inside, 26 members can be pickpocketed (Thieving 15, 22.2 XP, loot or a
+H.A.M. coin pouch), 11 sit, and 22 guards of levels 12, 18 and 22 fight and drop the Wiki's table. A caught thief
+takes 1 to 3 damage and a concussion, unless Agility takes the blow; the third concussion bundles them out to the
+surface or into Jimmy the Chisel's cell, 4% less likely for each piece of H.A.M. clothing worn; a catch stuns for 7
+ticks (the Wiki's 4 seconds). The cell door is locked; one Pick-lock from inside keeps trying, 9 ticks a try, until the
+player is out (4% to 99% at Thieving 1 to 99 on the first try, or 24% to 118% with a lockpick, rising in four equal
+steps to 27% to 123%, or 47% to 141%; each fail 0.5 XP). A trapdoor pick takes 9 ticks.
+
+| The H.A.M. Hideout | Source |
+|--------------------|--------|
+| Spawns: tiles and types (Sigmund, quest-only, left out) | mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022) |
+| The trapdoor's two forms and their options, the ladder, the cell door, ids, varbit 235 | 242 cache |
+| Pick-Lock's rates at 1 and 99, the lockpick's, 3.8 XP, the numbing; no rise on repeated fails | OSRS Wiki, Trapdoor (H.A.M. Hideout), read 2026-11-10 (a Jagex moderator's word for the last) |
+| The trapdoor pick's 9 ticks (4-tick manipulation left out) | OSRS Wiki, Tick manipulation, read 2026-11-10 |
+| The cell door's rates at 1 and 99, with and without a lockpick, first and after the rise; four equal steps; a restart resetting it; 3.8 XP, 0.5 a fail; no picking from outside | OSRS Wiki, Door (H.A.M. Hideout Jail), read 2026-11-10 |
+| Members: level 15, 22.2 XP, 136/256 to 240/256, 1 to 3 damage, the 4-second stun, Agility's 1/256 to 255/256 share of blows, the loot and pouch, concussions, the three quoted messages, 4% a clothing piece | OSRS Wiki, H.A.M. Member, read 2026-11-10 |
+| Guards: stats, speeds, max hits, defences, drops (one table for the three) | OSRS Wiki, H.A.M. Guard, read 2026-11-10 |
+| Linear chances between the Wiki's ends, the numbing stopping at 1, the cell door's 9 ticks a try and no numbing there, the stun's 7 ticks, the even surface or cell, the tiles, the guards' animations, the other messages | guessed |
+| Out: the trapdoor's occasional 1 XP on a fail, the easy clue, Talk-to on guards, seated members, Johanhus and Jimmy, the quest-only archers and mages, the storerooms (step 4b, below) | out of scope |
+
+#### The H.A.M. Storerooms
+
+Misthalin piece 7 step 4b (`game/content/HamStorerooms.kt`, `npc-spawns/ham-storerooms.json`, words under
+`ham_storerooms.*`): every account counts as having done Death to the Dorgeshuun, so the hidden trapdoor south of the
+Deacon's podium shows open (varbit `dttd_ham_trapdoor_state` 2) and Climb-down leads to the storerooms' ladder, which
+climbs back up. Four storerooms have locked doors: Pick-lock needs Thieving 23 and works at the Wiki's 10 to 254 out of
+256 (60 to 300 with a lockpick), 3.8 XP, or 0.5 XP on a fail; from inside, Open lets the player out. The door stays shut
+while the player steps through, so no one can follow a picker in. Two cracks lead into
+the south-west room without a pick, and the large room to the north has an unlocked double door. Each small chest takes
+its own key (bronze south-west, iron north-east, silver north-west, steel south-east and the large room's two), which
+breaks, and rolls the Wiki's 150-slot table of coins and jewellery; a coin stack without room for the most a roll gives
+(99) is refused before the roll, key kept. Five level 22 guards patrol the corridors; one who
+sees a door being picked attacks, unless a failed pickpocket has sent it back to its post, after which it stays there
+and leaves the player be. Pickpocketing a guard (Thieving 20, 22.2 XP, 1 to 3 damage, no concussions) gives a key of
+each colour at 1/10 each, the H.A.M. coin pouch, or the rest of the Wiki's table.
+
+| The H.A.M. Storerooms | Source |
+|-----------------------|--------|
+| Guards' tiles and types | mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022); OSRS Wiki, Guard (H.A.M. Storerooms) |
+| The trapdoor's forms and varbit 2270, the ladder, doors, cracks, chests, double door, keys, ids and tiles | 242 cache |
+| Open after the quest (its later steps climb down without a pick) | inferred from OSRS Wiki, Death to the Dorgeshuun/Quick guide, read 2026-11-10 |
+| Doors: Thieving 23, 3.8 XP, 0.5 a fail, the chart's 10 to 254 and 60 to 300 | OSRS Wiki, Door (H.A.M. Storerooms), read 2026-11-10 |
+| Which key opens which chest; the key used up and its message | OSRS Wiki, H.A.M. Storerooms, Small chest and Steel key (H.A.M.), read 2026-11-10 |
+| The chest table, 20 outcomes out of 150 | OSRS Wiki, Small chest, read 2026-11-10 |
+| Guards: level 22, stats, speed 5, max hit 3, defences, respawn; pickpocket level 20, 22.2 XP, up to 3 damage, the table; attacking a door picker in sight unless a failed pickpocket has sent them back | OSRS Wiki, Guard (H.A.M. Storerooms) and H.A.M. Storerooms, read 2026-11-10 |
+| The guards' patrols, sight range and pickpocket chance (the members' 135 to 239), the usual stun, a settled guard staying settled, the 9-tick door pick and one try a click, the door staying shut as the player steps through in a tick, Open from inside, the landing tiles, the 4 free slots a chest needs, 0 coins giving nothing, the messages but the key's | guessed |
+| Out: the easy clue, the chests' open look, the crack's animation, Talk-to on the guards, aggression when spoken to without the robes | out of scope |
+
+#### Farms and roads between the towns
+
+Misthalin piece 7 step 5 (`game/content/FarmsRoads.kt`, `npc-spawns/misthalin-farms-roads.json`, words under
+`farms_roads.*`, `gardener.*`, `tool_leprechaun.*`, `tarquin.*`, `rat_burgiss.*` and `seth_groats.*`): the NPCs live has
+between Lumbridge, Draynor and Varrock that no other file spawned. The cow fields north-west of Lumbridge and north of
+Fred's farm (53 cows, 16 calves), 41 ducks and drakes swimming on the River Lum north of them, 19 chickens south of the
+Champions' Guild and north of Groats' farm, 53 level 2 goblins in the fields between Lumbridge and Draynor and a giant
+spider, two Farmers tending the fields, the Master Farmer south of Varrock (pickpocketed as Draynor's is), three crows,
+two swans, three imps, and the sheep pen south of Varrock (10 sheep to shear, 3 rams). On the Lumbridge to Varrock road:
+Rat Burgiss, two unicorns, a black bear (level 19, which fights and drops as the Wiki has it) and a level 5 goblin.
+
+The patch gardeners Dreven, Vasquen, Fayeth and Treznor show their four options; looking after crops, advice, the
+Farming Supplies shop, Pay and Trade wait for the Farming skill thread and say so. A Tool Leprechaun by each of their
+patches and by Draynor Manor's belladonna patch answers what he stores and where it goes, and asks again; his store,
+Exchange and Deposit-all wait for Farming too. Tarquin at the Champions' Guild's canoe station talks about canoes by
+Woodcutting level, as Barfy Bill does; his Store-axe and the canoes wait for step 11. Rat Burgiss is too busy to chat and
+Seth Groats is off to milk his cows.
+
+| Farms and roads | Source |
+|-----------------|--------|
+| Every NPC's type and tile | mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022), checked against every other spawn file (none within 4 tiles of the same NPC) and the 242 map (swimmers on water, the rest on land) |
+| The three sheep mejrs saw shorn spawned unshorn | inferred: a shorn sheep regrows its wool |
+| The gardeners' menu | OSRS Wiki, Transcript:Dreven, read 2026-11-10 (taken to be every gardener's: inferred) |
+| The Tool Leprechaun's talk | OSRS Wiki, Transcript:Tool Leprechaun, read 2026-11-10 |
+| Tarquin's talk and its Woodcutting bands | OSRS Wiki, Transcript:Tarquin, read 2026-11-10 |
+| Rat Burgiss's and Seth Groats's lines | OSRS Wiki, Transcript:Rat Burgiss (its members' version) and Transcript:Seth Groats, read 2026-11-10 |
+| The black bear: speed 4, max hit 3, slash, no bonuses, respawn 50, weak to fire 30%, not aggressive; bones, bear fur, raw bear meat, the ensouled head and the beginner clue | OSRS Wiki, Black bear, read 2026-11-10 |
+| Every wander range, the chathead expressions, the player repeating a gardener's option, the Farming refusal's words | guessed |
+| Out: the Evil Chicken (a random event); the gardeners' payments and shop and the leprechauns' store (the Farming skill thread); canoes (step 11); stray sightings near Lumbridge and Varrock (a dwarf, a H.A.M. Member, Ali the Leaflet Dropper, Avan, Katrine, Sarah, Julie, Guidor: the 12a sweep) | out of scope |
+
+#### The Lumber Yard and Tolna's rift
+
+Misthalin piece 7 step 6 (`game/content/LumberYard.kt`, `npc-spawns/lumber-yard.json`, the `construction_supplies`
+shop, the `shortcut_lumber_yard_fence` obstacle, words under `sawmill_operator.*`, `tolna.*` and `tolna_rift.*`): the
+Lumber Yard north-east of Varrock, the Earth Altar's ruins south of it and the top of Tolna's rift.
+
+The broken fence on the yard's south side is climbed over both ways. The Sawmill operator's talk follows the Wiki's
+transcript: his first option opens the Make-X box of the seven planks, his second his Construction supplies shop (on
+Trade too, his op 4, as his op 3 is Buy-plank), his third says goodbye. Buy-plank opens the box at once. Each plank chosen
+takes one unnoted log of its kind and the Wiki's fee (100, 250, 500, 1500, 2500, 5000, 7500 coins); with none of the logs
+he says so, and with too few coins he makes as many as they pay for and says what each costs. The six mewing crates and
+the yard's crates hold nothing now that Gertrude's Cat is done; its barrels do nothing. The Earth Altar's ruins refuse
+Enter and an earth talisman or tiara, as the Water Altar's do, until Runecraft is built.
+
+Every account has done A Soul's Bane, so login sets the varbits that show Tolna at the top of his rift, the rope in it and
+the five warning signs round it. Tolna talks as the Wiki has him after the quest; the rift's holes and rope wait for its
+dungeon; the signs read as the Wiki says.
+
+| Lumber Yard and Tolna's rift | Source |
+|------------------------------|--------|
+| The NPCs' types and tiles | mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022); the Wiki's Sawmill operator and Tolna maps agree |
+| The sawmill's Make-X box (since 16 April 2020), the planks, their logs and fees | OSRS Wiki, Sawmill, read 2026-11-10 |
+| The operator's talk and his refusals | OSRS Wiki, Transcript:Sawmill operator, read 2026-11-10 (making as many as the coins pay for: inferred from its "for all of them") |
+| Construction supplies: 130%, 50%, no change, the stock | OSRS Wiki, Construction supplies, read 2026-11-10 |
+| The broken fence: Climb-over, no level, no XP | OSRS Wiki, Broken fence (Lumber Yard), read 2026-11-10 |
+| Tolna's talk | OSRS Wiki, Transcript:Tolna (after A Soul's Bane), read 2026-11-10 |
+| The signs' text | OSRS Wiki, Transcript:Warning sign (Tolna's rift), read 2026-11-10 |
+| Launa left out | OSRS Wiki, Launa: she went home with Brana after the quest |
+| The three varbits after A Soul's Bane, the crates finding nothing, the fence's two tiles | inferred |
+| The fence's animation (the Varrock fence's), the barrels' "Nothing interesting happens", the cost line's words, the chathead expressions, the rift's refusal | guessed |
+| Out: Tolna's rift dungeon (a later step), sawmill vouchers (Forestry), Gertrude's cat and kittens, the clue crate, the shop's top-up of bolts of cloth and bronze nails when opened low | out of scope |
+
+#### Silvarea
+
+Misthalin piece 7 step 7 (`game/content/Silvarea.kt`, `npc-spawns/silvarea.json`, the bat's entries in `npc-combat.json`
+and `npc-drops.json`, the limestone rocks in `game/skill/Mining.kt`, words under `odd_old_man.*` and `silvarea.*`): the
+valley between Varrock's east fence and the River Salve.
+
+The members' gate in Varrock's east fence opens both leaves together. Thirteen bats flap about the valley: level 6, they
+stab for 1 and drop bat bones. The limestone rocks give three limestone each in three stages and come back whole a short
+while after (Mining's table above). Every account has done Rag and Bone Man II, and live lets a player who took one
+reward get the other as well, so the Odd Old Man hands back a lost ram skull helm, then a lost bonesack, one a talk; with
+both owned (carried, worn or banked) he talks about his "sorting" while the sack on his back mumbles. His wish-list reads
+its one wish left. The trapdoor to Zemouregal's base shows Enter after Defender of Varrock and waits for the base.
+
+| Silvarea | Source |
+|----------|--------|
+| The NPCs' types and tiles | mejrs data_osrs NPCList_OSRS.json (live, pre-Nov 2022); the Wiki's Bat page lists Silvarea |
+| The bat: speed 4, max hit 1, stab, no bonuses, stab and slash +2, crush +5, magic +2, ranged 0, respawn 35, 35% weak to air, not aggressive; bat bones always | OSRS Wiki, Bat, read 2026-11-11 |
+| The Odd Old Man's talk after the quest | OSRS Wiki, Transcript:Odd Old Man, read 2026-11-11 |
+| The wish-list's text | OSRS Wiki, Wish-list, read 2026-11-11 |
+| The gate's two leaves (`fai_varrock_member_gatel` and `_gater`) and the trapdoor's Enter after Defender of Varrock | the 242 cache; checked on the real map by `silvarea.json` |
+| Every account owning both rewards, limestone's restore times, the bats' animations | inferred |
+| The wish-list in a message box, the bats' wander range, the chathead expressions, the base's refusal | guessed |
+| Out: Zemouregal's base and its armoured zombies, the Giantsoul amulet trade-in, the easy STASH, the hunting trail's plants and the pot-boiler (no options after the quests), Elias White (at the Jolly Boar Inn or Uzer once his quests are done, Wiki) | out of scope |
+
+#### Paterdomus
+
+Misthalin piece 7 step 8 (`game/content/Paterdomus.kt`, `npc-spawns/paterdomus.json`, `obj-spawns/paterdomus.tsv`,
+words under `drezel.*`, `ivan_strom.*` and `paterdomus.*`): the temple on the River Salve after The Blood Moon Rises.
+
+The monks of Zamorak are gone for good and the Temple Guardian with them. The front doors and the mausoleum's two gates
+have no open types in the cache, so Open puts the player through to the other side. The spiral stairs climb from the
+ground floor (only on the temple's own tiles: the top's type stands in 28 other places) and the castle's ladders reach the top floor, where a bucket lies. The trapdoor north of the temple climbs
+down to the mausoleum. Drezel hands back a lost wolfbane dagger (not into a full backpack), then a lost temple library
+key, and otherwise talks as after The Blood Moon Rises; Ivan Strom talks about the columbarium he is looking for and
+hands over Drakan's medallion. The library's trapdoor, open since In Aid of the Myreque, climbs down to the secret
+library and its ladder back up. The Holy barrier and the 65 Agility ornate railing refuse: Morytania waits for its own
+piece. The ground floor's altar is the church's.
+
+| Paterdomus | Source |
+|------------|--------|
+| No monks (cleared by The Blood Moon Rises), no Temple Guardian (never back after Priest in Peril) | OSRS Wiki, Paterdomus Temple and Temple Guardian, read 2026-11-11; the guardian's multi-NPC hides it after the quest's early stages (242 cache) |
+| Drezel's tile, his talk and the dagger and key he hands back | mejrs data_osrs NPCList_OSRS.json and the Wiki's Drezel map; OSRS Wiki, Transcript:Drezel, read 2026-11-11 |
+| Ivan Strom living here after the quest, his talk | OSRS Wiki, Ivan Strom, The Blood Moon Rises and Transcript:Ivan Strom, read 2026-11-11 |
+| The top floor's bucket at 3414,3493 | OSRS Wiki, Bucket (added 30 June 2026) |
+| The stairs' four types on their own tiles only; 16673 standing in 29 places | the cache's map; the exploit review's rule on types that stand elsewhere |
+| The library trapdoor open after In Aid of the Myreque (`burgh_temple_trapdoor`, set at login) | OSRS Wiki, Temple library key; inferred from the varbit's name |
+| Ivan's tile (beside Drezel), the doors and gates moving the player through, the landings below the trapdoors, Drakan's medallion handed over only when none is owned, the chathead expressions, the Morytania refusal | guessed; the tiles checked on the real map by `paterdomus.json` |
+| Out: the monuments, the well, the stained glass, the plinths and bookcases upstairs, the coffin, the cell gate, the organ, the keyhole, the library's bookcases (a quest's books), the east trapdoor, the Temple Trekking sign; Morytania past the Salve | out of scope (12a's sweep, or Morytania's piece) |
+
+#### Digsite
+
+Misthalin piece 7 step 9a (`game/content/Digsite.kt`, `npc-spawns/digsite.json`, words under `digsite_people.*`,
+`elissa.*`, `panning_guide.*`, `digsite_barge.*` and `digsite_sign.*`): the Digsite's people and the canal barge after
+The Dig Site and Bone Voyage. Digging, the specimen trays and panning are step 9b.
+
+The Digsite workmen greet the player as the great archaeologist, and each of the three students thanks them for the
+item the quest found. Elissa and the Panning guide talk as their transcripts have them. The workmen's Steal-from and the
+teddy student's Pickpocket are `Pickpocketing`'s (level 25; the workmen 10.4 XP and their table out of 11, the student
+her teddy). At the barge, the canal's guard helps the player aboard by talk or Embark and the barge's guard helps them
+off by talk or Disembark; Quick-Travel, the guard's Fossil Island option and the Lead Navigator refuse, since Fossil
+Island is its own region, and the Junior Navigator sends the player to the Lead Navigator. The foreman thanks the player,
+the barge workman and Ed Wood are too busy to talk, and Captain Errdo's glider east of Varrock has crashed. The workers'
+gate east of Varrock wants 153 Kudos, which the museum doesn't count yet, so its guard turns everyone away. The
+signposts read their site's level.
+
+| Digsite | Source |
+|---------|--------|
+| The NPCs and their tiles; the barge's guard and the navigators on its deck (plane 1) | mejrs data_osrs NPCList_OSRS.json; the Wiki's Student map for which student is which |
+| The talks, the busy lines, the guard's Kudos refusal and the signposts' text | OSRS Wiki transcripts (Digsite workman, Student, Elissa, Panning guide, Barge guard, Barge foreman, Barge workman, Ed Wood, Lead Navigator, Junior Navigator, Captain Errdo, Museum guard) and Signpost (Digsite), read 2026-11-11 |
+| The barge's post-quest types (`fossilquest_progress` 50 shows them; John and David hidden) | the 242 cache's multi-NPCs; checked on the real map by `digsite.json` |
+| The workmen's Steal-from (25, 10.4 XP, 1 damage, 4-second stun, coins 4/11, brush 3/11, rope, bucket, gloves, spade 1/11) and the student's Pickpocket (25, no XP, 100 to 240, a teddy) | OSRS Wiki, Digsite workman and Student, read 2026-11-11 |
+| Nobody having 153 Kudos | inferred: the museum counts no Kudos yet (`VarrockMuseum`) |
+| The workmen's pickpocket taking 4 ticks, twice the usual 2 | inferred from the Wiki's "roughly twice as long" (Digsite workman) |
+| The workmen's success chart (the student's), the tiles boarding and leaving put the player on, Embark and Disembark skipping the talk, the patrolling workmen standing still, the chathead expressions, the Fossil Island refusal | guessed; the tiles checked on the real map by `digsite.json` |
+| Out: digging, the trays, panning, the winches, sacks, bushes, barrel, chest and buried skeletons (step 9b and 10); the guard calling out as the player nears the gate; the Digsite pendant; Fossil Island | out of scope |
+
+Misthalin piece 7 step 9b (`game/content/DigsiteDigs.kt`, `obj-spawns/digsite.tsv`, words under `digsite_dig.*`):
+digging, the specimen trays and panning after The Dig Site, which every account has done, so every exam counts as
+passed.
+
+A dig is a tool used on soil, and the site is the one the player stands in, by the Wiki's site maps: the training digs
+take a trowel (5 Mining XP), level 1 a trowel with leather gloves and boots worn (6 XP), level 2 a rock pick (7 XP) and
+level 3 a trowel with a specimen brush and jar carried (8 XP). Each site rolls the Wiki's finds table, one find a dig.
+The wrong tool, a spade or a brush brings the nearest workman's line, or shows it as a message when no workman is
+within 10 tiles. A specimen tray searched with a jar gives 0.5 Mining XP and a find; without one a workman stops the
+player. Pan at a panning point, or an empty panning tray used on it, fills the tray with mud for 2 Fishing and 2 Mining
+XP, and Search on the muddy tray empties it for a find. One empty tray lies in the panning tent. The specimen-jar sacks
+give a jar to a player carrying none; the other sacks and the buried skeletons hold nothing, and a trowel on a skeleton
+brings a workman's line.
+
+| Digsite digs | Source |
+|--------------|--------|
+| The tools for each site, the XP, the finds tables (out of 13, 12, 16 and 20), the specimen tray (out of 11) and the muddy tray (out of 40) | OSRS Wiki, Soil, Specimen tray, Panning tray and Panning, read 2026-11-11 |
+| The site maps | OSRS Wiki, Soil's site maps; 451 of the 242 cache's 475 soil tiles fall inside them; the other 24 (3382-3385, 3416-3421) are on no site map and give no dig |
+| The workmen's lines, the tray without a jar, the sacks, the skeleton and the full tray | OSRS Wiki transcripts (Digsite workman, Sacks (Digsite)) and Buried skeleton (Digsite), read 2026-11-11 |
+| The tent's tray (3369,3378, 100 ticks) | OSRS Wiki, Panning tray, item spawns |
+| Coins (3/20, 10 each) in place of level 3's ancient talisman; the special cup (3/40) as nothing | inferred: both are the quest's items |
+| One find a dig after 8 ticks (slow on purpose until live is recorded: 3 gave about 13.7k Mining XP an hour from level 1), the animations, a workman within 10 tiles counting as near, a full backpack refusing first, and the dig, find, pan and search messages | guessed (the Wiki gives no time or messages) |
+| Out: the winches and the Digsite Dungeon (step 10); the bushes, barrel and chest (the quest's); the museum's specimen cleaning; the gold panning tray; Fossil Island's soil | out of scope |
+
+#### Exam Centre and Digsite Dungeon
+
+Misthalin piece 7 step 10 (`game/content/ExamCentre.kt`, `npc-spawns/exam-centre.json`, `npc-spawns/digsite-dungeon.json`,
+`obj-spawns/digsite-dungeon.tsv`, words under `exam_centre.*`, `terry.*` and `digsite_dungeon.*`): the Exam Centre south
+of the Digsite and the dungeon under the digs, after The Dig Site.
+
+The three examiners congratulate the player and give a lost trowel back to one carrying none (not into a full backpack). The Researcher talks about
+the tools as the Panning guide does. Terry Balando, the archaeological expert, asks about Desert Treasure I or talks about
+the Zaros altar, admires a wielded ancient staff, and has a line for every Digsite find used on him: three nuggets become a
+gold ore, unidentified liquid becomes nitroglycerin, and a muddy panning tray comes back unsearched. The north cupboard
+gives a rock pick and the south one a specimen jar, each to a player carrying none, and the bookcases' helpful books are
+gone. The potter's wheel is Crafting's.
+
+The west winch in the level 2 digs wants a rope used on it, which stays in the backpack; the private dig's winch needs
+none. Both need 10 Agility and give 2 Agility XP. The map holds the dungeon twice: the copy without the quest's bricks is
+the one after the quest. The private winch lands in Doug Deeping's chamber and the west winch by the way to the south
+chamber, with its ten level 22 skeletons, five silver rocks and the bones, pickaxes, buckets and arcenia roots the Wiki
+lists. Each rope climbs back up beside its winch. Doug congratulates the player and catches anyone stealing from him.
+
+| Exam Centre and Digsite Dungeon | Source |
+|---------------------------------|--------|
+| The people and their tiles, the skeletons (ten, in the copy after the quest) and Doug | mejrs data_osrs NPCList_OSRS.json; the Wiki's maps |
+| The talks, Terry's lines for each find, the nuggets exchange, the cupboards' and bookcases' boxes, the winches' messages and Doug's lines | OSRS Wiki transcripts (Examiner, Researcher, Terry Balando, Doug Deeping, The Dig Site), read 2026-11-11 |
+| A rope for the west winch only, kept; 10 Agility and 2 XP for both; which winch lands where | OSRS Wiki, Winch and Digsite Dungeon; the landings checked on the real map by `exam-centre.json` |
+| The cupboards' tools, one each for a player carrying none | OSRS Wiki, Cupboard (rock pick) and Cupboard (specimen jar) |
+| The dungeon's and the digs' item spawns (100 ticks) | OSRS Wiki, Iron pickaxe, Bucket, Arcenia root and Bones |
+| Terry's Desert Treasure I option always showing; the bookcases' quest-time box after the quest | inferred: every quest counts as done |
+| The chathead expressions, the private winch's messages, the landing tiles, the XP on each way down, a rope every time, the cupboards' line with the tool carried | guessed |
+| Out: the clue chest, the beaten book, Varmen's notes and the book on chemicals (the quests'), the barrel's liquid, Desert Treasure II's winch, the STASH units | out of scope |
+
+#### The Misthalin sweep
+
+Misthalin piece 7 step 12a (`game/content/MisthalinSweep.kt`, `npc-spawns/misthalin-sweep.json`, words under
+`ham_talk.*`, `johanhus.*`, `jimmy_the_chisel.*` and `misthalin_sweep.*`): what a sweep of Misthalin's NPCs and loc
+options found missing that belongs to this piece. The sweep listed every NPC on mejrs's Misthalin tiles with no spawn
+within 2 tiles in any spawn file, and every loc and spawned NPC option that a player who has done every quest sees with
+no handler behind it.
+
+The new spawns are a camp of level 2 goblins north-west of Lumbridge Castle with two giant spiders and the woods'
+butterflies, a goblin south-east of Draynor Village, one south of Draynor Manor and the level 5 goblin at the Digsite's
+west edge, a giant spider between Falador and Draynor Manor, the highwayman south of Draynor Manor (aggressive, with the
+Wiki's stats and drops), the mugger at the South-west Varrock mine, and three Black Knights. The H.A.M. Hideout's guards
+and seated members answer their five-option menu, a guard greeting a player in the whole outfit; Johanhus Ulsbrecht and
+Jimmy the Chisel talk. Nettles sting bare hands for 1 or 2 and are picked with gloves on; the Lumbridge farms' coops give
+an egg each search, then nothing to that player for a minute; the Digsite barge's crates, the hideout's boxes and crates and the Digsite Dungeon's sacks are empty.
+
+| The Misthalin sweep | Source |
+|---------------------|--------|
+| The new spawns' types and tiles | mejrs data_osrs NPCList_OSRS.json, each tile also on the NPC's Wiki location map (butterflies have none) |
+| The highwayman's stats, aggression, respawn 100 and drops | OSRS Wiki, Highwayman (no hood), read 2026-11-11 |
+| The H.A.M. talk, Johanhus's and Jimmy's lines | OSRS Wiki, Transcript:H.A.M. Guard, Transcript:H.A.M. Member (seated), Transcript:Johanhus Ulsbrecht, Transcript:Jimmy the Chisel, read 2026-11-11 |
+| Nettles need gloves (not beekeeper's) and sting for up to 2; coops always give an egg | OSRS Wiki, Nettles (scenery), Nettles and Coop, read 2026-11-11 |
+| The whole outfit taken as all seven pieces; nettles back after 13 ticks (the Nettles item's respawn) | inferred |
+| Every wander range, the highwayman's punch, the nettles' and coops' messages, a sting never 0, the coops' one-minute wait after an egg, every chathead expression | guessed |
+| Left out, with why: Nigel and Gelin by the church (Deadman forms only), Twiggy O'Korn (diaries aren't built), Spria (a Slayer master), the Draynor gulls (the 242 cache gave their old ids to Sailing NPCs), the General's Shadow scout; the highwayman's overhead shout (no NPC shouts yet); the swamp bubbles (Big Chompy Bird Hunting's ogre bellows), the swamp caves' symbols, the Digsite's bushes, barrel and chest (The Lost Tribe's and The Dig Site's) | out of scope |
+| Found for other threads: the Varrock and Grand Exchange people and options, Draynor's and Edgeville's, the canoe stations, farming patches, STASH units, the Mage Training Arena and Al Kharid's arena | handed to those threads |
+
+#### Walking Misthalin's roads
+
+Misthalin piece 7 step 12b (`test-runner/examples/misthalin-walk.json`, checked by `WalkScriptsTest`): one runner
+script walks the piece's roads in stages of at most 4 tiles on the server's own pathing, as `lumbridge-walk.json` does
+for Lumbridge's. Leg 1 goes from Lumbridge Castle north past the farms into Varrock from the south; leg 2 from the castle
+to the H.A.M. Hideout's trapdoor; leg 3 from outside Varrock's east gate north to the Lumber Yard, through the members'
+gate and Silvarea to Paterdomus's front doors; leg 4 from the east gate again south through the members' gate in the
+Digsite's west fence to the Exam Centre, then north through the digs to the canal barge's quay. The Lumbridge Swamp is
+`lumbridge-walk.json`'s, and the River Lum's canoes wait for Gathering.
+
+The script sets combat level 126 and `::god on` first, since a new player died by the dark wizards' circle south of
+Varrock on the first headless run (the wizards taken to be the killers, inferred), and `::reset` puts the account
+back at the end. It takes about four and a half minutes headless.
+
+| Walking Misthalin's roads | Source |
+|---------------------------|--------|
+| The stages | the server's route finder on the real map between points picked on each road, the two gates opened on the way; every stage reached by `headlessScripts` |
+| Where each road runs | the Wiki's maps; where the route finder cuts a corner off a road it is the shortest walkable way, not the road's own tiles (inferred) |
 
 ## Draynor Village
 
@@ -1991,7 +2432,8 @@ loses goes in a grave there. The party lasts through the wipe.
 | The level above the nexus's on the instance's level 1 (the cache's 3 over its 2): the hall again 392 height units up, and at its north end, level with the floor, the south end of the vault's corridor, shut by the vault's Passageway (62766, 7 by 2 at 4124,5625) | tsps capture notes (a captured build area with levels 2 and 3 on the instance's 0 and 1); 241.4 cache for what the levels hold and their heights; the cache's 1 over its 0 before the Guardian is done inferred, the two pairs holding the same but for the corpse and camp |
 | The nexus's square north of its Archive Door (z 5623 on) counted as Ocellus's room: nobody gets there on the nexus's level, and on the level above it is the vault's corridor | inferred from the 241.4 cache's collision: from the vault the corridor is walkable south to z 5627 and no further |
 | Contribution: each room a fixed amount, shared by damage, minions included; the two rooms of a pair the same | Wiki, "Everything You Need To Know" |
-| Each room's points 1,000, or shared evenly when nobody did damage | guessed: the Wiki gives no number |
+| A room's points 100 and Ocellus's 300, 700 a run, shared among the party by damage dealt | OSRS Wiki, Chest (The Fractured Archive), read 10 November 2026 |
+| A room's points shared evenly among who was there at its start when nobody did damage; for the Wiki's soft cap on damage to a boss's minions, a hard cap: damage to Moia's binders and the Dagon'hai's imps and rifts counting at most 25% of everyone's damage to the boss (exploit review round 26, R26A-3); the other rooms' adds not capped yet | guessed |
 | A wipe sending the party to the lobby with an ordinary gravestone; the party not breaking up | Wiki, The Fractured Archive (Theatre of Blood's system; 28 October 2026 update) |
 | The wipe's tile and graves in front of the Archive Door (4127,5560); each member's grave on it | guessed |
 | A member dying with the party standing keeping everything, down in front of the room's door until it is done, and sent back out if they walk in | guessed (Theatre of Blood's system); spectating isn't built |
@@ -2003,7 +2445,7 @@ loses goes in a grave there. The party lasts through the wipe.
 | The Navigator standing where the room's transporter puts a player; his line coming with Follow and Quick-follow skipping it; only the one who follows going; the player not held during the four ticks before the move, and one who has left the room by then not moved; his fade-in and the move's fade not sent; the first line after the third room too; with no Navigator in the cache or no NPC slot for him, whoever is on the arena sent out instead (exploit review round 21, R21A-1: a won arena had no way out) | guessed |
 | A move between the nexus and a room coming four ticks after its door (Enter, Quick-enter), the nexus's Archive Door north, a room's Passageway, its transporter once the room is done, or the Navigator: "a fade, then the move four ticks later" | tsps capture notes (moving between rooms); Sam's recording of 2026-11-09 (clip 16-55-42: the screen black for 1.5 to 2 seconds at each of three doors and three Navigators) |
 | The same four ticks for a Passageway and for the transporter back out, which neither source shows; a second click on the way not starting the count again; the player not held meanwhile, and one who isn't where they set off from by then (the nexus for a door, the room for the way out), or has fallen, not moved; a door chosen for the party as it is clicked, not as the move lands; the fade itself not sent (what live sends for it isn't in the notes); the transporter's move onto the arena at once (the notes' estimate); the vault's Passageway out to the lobby at once | guessed / not sent yet |
-| Nobody attacking an NPC in a room with an arena (Ezekiel's, Bork and the Smorks', Dreadnoth's, Xarth's) from off that arena: a click, a spell, a shot, a hit spreading from another NPC and auto retaliate are all refused, a click with the line for a target that can't be reached (exploit review round 21, R21A-2: from the way in, out of the fight or out of its reach, a boss could be shot) | guessed: live's walls presumably stop it; whether the cache's stop a bow or a spell isn't known |
+| Nobody attacking an NPC in a room with an arena (Ezekiel's, Bork and the Smorks', Moia's, Dreadnoth's, Xarth's) from off that arena: a click, a spell, a shot, a hit spreading from another NPC and auto retaliate are all refused, a click with the line for a target that can't be reached (exploit review round 21, R21A-2: from the way in, out of the fight or out of its reach, a boss could be shot) | guessed: live's walls presumably stop it; whether the cache's stop a bow or a spell isn't known |
 | The same for the Guardian's hall, all of which is its arena: nobody attacks the Guardian or an inert guardian from the nexus's entrance south of the hall, which is out of the fight (exploit review round 22, R22A-1: an inert guardian in the hall's south was within a bow's reach of the entrance, where no shot, mushroom, beam or vine comes). A player who walks in to punch is in the fight by then | guessed: where live's fight ends to the south isn't known, nor what it does with an attack from there |
 | The same for Ocellus's arena, the floor within 12 tiles of his cross: nobody attacks him or anything of his from the corridor his room is come into by, south of the doorway at 4126-4128,5660. The corridor is in his room, so his fight goes on with someone there, but none of his attacks that take the whole arena reach it (exploit review round 23, R23B-1: he could be shot from it at no risk) | guessed: on live the entrance closes behind the party as his fight starts (tsps capture notes), which isn't built yet; the refusal stands in for it |
 | A room's fight beginning as the first party member stands in it, and the Guardian's in the hall north of the entrance | guessed |
@@ -2013,7 +2455,7 @@ loses goes in a grave there. The party lasts through the wipe.
 | A member down who gets out (a teleport such as Home Teleport or a lodestone, leaving the party, or a logout once out of combat) dying of it, with a grave in the lobby, as if they had been the last standing; a reconnect within the linger no escape | Sam's decision, 8 November 2026 (exploit review RAID-2); the death's place guessed |
 | A member down can't trade or be traded with, and what they drop stays theirs alone (never turning public), so a standing friend can't be handed their items before they get out (exploit review round 18, R18A-1) | guessed: live's raid rules aren't known; nothing is said on a refused request |
 | With no NPC slot free as the first of the party comes into Ezekiel's room, his room isn't started: each tick with one of the party in it tries again, rather than the run being stuck for good (exploit review round 18, R18A-3) | guessed |
-| Every room done as it begins, until its boss's step | stand-in (all but the Guardian's, Ezekiel's, Bork and the Smorks', Dreadnoth's, Xarth's and Ocellus's) |
+| Every room done as it begins, until its boss's step | stand-in (none left since step 23; a world without a fight's definition, such as a headless test's, still does it) |
 | Ezekiel (step 17a): his fight beginning with the first of the party into his arena, that player his tank; his stats, 3,000 to 10,650 hitpoints by party size, the 25% earth weakness, poison and venom immunity and the 60% Defence drain floor | OSRS Wiki, Ezekiel (2026-11-09) |
 | Where he waits (4062,5537) and his arena (4056-4068 x 5528-5540); his room's transporter, between the way in and the arena, putting the player in it (4067,5535); where a player lands coming into his, Bork's, Dreadnoth's and Xarth's rooms (4079,5536, 4173,5599, 4174,5664, 4175,5535) | tsps capture notes (RSPSApp/tsps docs/fractured-archive.md; 2026-11-09) |
 | Ezekiel walking after his tank, a melee swing every 5 ticks cleaving everyone round him but those on his side opposite the tank; lightning on everyone when his tank is out of reach; a cross of lightning centred on him after every second swing, bursting twice, and 3% special attack energy for a perfect dodge of a burst | guides (osrstoolkit, osrsbestinslot, runescapeguides, bald.gg; 2026-11-09) |
@@ -2040,6 +2482,21 @@ loses goes in a grave there. The party lasts through the wipe.
 | His death (step 20c): splitting into seven jellies of 37 hitpoints, the room won when the last one dies, the jelly on the floor cleared then | tsps capture notes (2026-11-10); the Wiki's Strategies say about ten at half their hitpoints, the captures taken over it |
 | The split jellies rising on his footprint at once, past the twelve; nothing of his still in the air landing once he splits, and no more jellies from gathered jelly; every jelly, the waves' too, having to go before the room is won, and not before 6 ticks (his death animation); his going from sight as that animation ends | guessed |
 | Dreadnoth's Wiki freeze and demonbane resistances | not in yet |
+| Moia (step 19): her stats, 3 by 3, 1,900 to 6,750 hitpoints by party size, the 5-tick attack speed, ranged max hit 32 and magic max hit 44, the 80% air weakness, her Defence drained to 117 at most; an Undead binder's stats, 1 by 1, 95 hitpoints, its 5-tick attack, moving about her arena and attacking nearby players; her cough's rapidly ramping poison damage and prayer drain, which a sanfew serum helps with | OSRS Wiki, Moia, Undead binder and The Fractured Archive/Strategies' contents (2026-11-11; the Strategies' text on her wasn't reachable) |
+| She starts out of reach of melee; her binders evenly spaced with one opening, shuffling, hitting anyone within two tiles; mostly fast ranged attacks; after a teleport a slow magic projectile, then a faster ranged one, to switch prayers between; the cough infecting one player and spreading to those and binders next to them; below a third, binders in a diamond and a charge over the arena that hurts the whole party a lot unless every binder dies first, repeating with fresh ones | guides (osrstoolkit, ironman.guide; 2026-11-11) |
+| Her room: the round floor of square 63,88 (about 4046-4081 x 5646-5680) her arena, the walled floor in its middle (4059-4067 x 5659-5667, open west, north and south), the way in east of it with no wall between, so walking onto the floor begins her fight; the ids of her attacks, teleport, cough, binders and their power by name | 241.4 cache |
+| Every timing, place and damage figure past the Wiki's max hits: her standing in the middle of the walled floor and the four other places she teleports to; an action every 5 ticks in the cycle dagger, dagger, cough, dagger, teleport, at a player picked at random; 2 ticks out of sight in a teleport, the magic dagger the tick after and a ranged one 2 later; the binders' ring of eight slots round the walled floor's middle, 4 tiles out, walking a slot on every 16 ticks, their max hit of 16 crush, rising again 30 ticks after they die; the cough landing 3 ticks on, the infection's six hits 3 ticks apart of 2, 4, 6 and on, draining as much prayer, spreading as it hurts, halved for a player immune to poison; the enrage at a third with her going back to the middle, the diamond 4 tiles out, a 30-tick charge, the burst's 50 to 70 with no prayer helping, a fresh diamond 20 ticks after; her daggers and cough going on through the enrage; the throw's animation for every attack | guessed |
+| Moia's binders pushing out a crowd under one (28 October 2026), her shadow shield (varbit 16418), the Serpentine helm against her cough | not in yet |
+| The Quartermaster (step 21): there after the third boss, Moia or Dreadnoth the Jellied, has been beaten; Resupply and Talk-to; his shop Alliance Supplies and its stock per player: 6 Saradomin brew(4), 4 Super restore(4), 4 Prayer potion(4), 10 Manta rays, 5 Halibut, 10 Giant krill, one each of Prayer potion(2), Ranging potion(2) and Super combat potion(2); Leftovers, free, offered only after a poor showing such as several deaths, healing 5; his Talk-to's menus | OSRS Wiki, Quartermaster (The Fractured Archive), Alliance Supplies, Leftovers and the Quartermaster's transcript (2026-11-11; the transcript is marked incomplete) |
+| Him (`tfa_midraid_supplies_npc`, 16761) at 4129,5609 and his Supplies Wheelbarrow (63302) at 4130,5608, only on the nexus visit after that room | tsps capture notes (seen as a spectator) |
+| The shop is the cache's omnishop row `tfa_midraid_supplies_shop` (17150), or `_failure` (17151) with Leftovers: its prices (brews and restores 3 Supply Credits, Prayer potion(4), Manta ray, Halibut and the two-dose Ranging and Super combat potions 2, krill and Prayer potion(2) 1), the Alliance log shown only, its buttons Buy 1, 2, 3 and 5, no selling, the credits in `tfa_supply_points` (16381, 0 to 127), stock counted from inv 1030; the omnishop window's protocol (varps 3874 and 3869, scripts 917, 7140, 7246 and 501, the list's twelve components an entry) | 241 cache (db tables 39 to 41, read by `OmnishopLoader`) and osrs-dumps' scripts; the open from the tsps notes' rsprox captures of other omnishops |
+| Each member having 50 credits as he comes (guides speak of 50; the tsps notes guess 10 a room), and none left from an earlier run; each member's stock their own; him going as the fourth row's fight begins; the failure shop once the party has died twice in the run; 5 Leftovers; every chathead expression, and his talk ending at "I'll keep that in mind" from his second menu (his answer isn't written down); passing the shop's inv to `omnishop_main_init` (the captures pass -1) so the list redraws as stock runs down | guessed |
+| His overhead lines, the inactive Quartermaster (16762, Talk-to only), the info panel's text sent from the server (the client draws an item's examine itself), and the words of his talk (with the Words thread) | not in yet |
+| The Dagon'hai Elder and his two Monks (step 23): their stats, bonuses and 2 by 2 size, 640 hitpoints, magic max hit 30 and ranged 27, speed 6; the imp's 44 hitpoints; a demonic rift letting out a set number of imps, a player standing next to it stopping them and draining it | OSRS Wiki, Dagon'hai Elder, Dagon'hai Monk, Imp (Dagon'hai Trio) and Demonic rift (2026-11-11) |
+| One pool the three share, each with their own Defence drains, a stunned one taking 15% more; the Elder's ranged shot and magic surge on one player, splashing onto those next to them; channels into the cauldron of 25% each, the matching standard spell landing stopping one and a splash not; at 100% the trio empowered, surges two at a time through prayer; the Monks' tomes of Bandos, Zamorak and Saradomin with their warning and gust tile, what each does blocked and not; each break taking 20% off the stability and opening two rifts of three imps, standing beside one closing it and draining prayer; after the fifth the cauldron bursting, a Monk dying and the other two left on 7 hitpoints | guides (osrsbestinslot, bald.gg, osrstoolkit, ironman.guide; 2026-11-11) |
+| Their room: the floor of square 63,87 (4054-4075 x 5589-5609), walled off from the way in east of it, so the room's transporter puts the player on the floor (4074,5599), which begins their fight; the cauldron (`tfa_dagonhai_focus`, 1,000 hitpoints), the three's weakened forms on 7, the rift's 20; the ids of their attacks, channels, searches, throws, gusts, marks, deaths and the imps' by name | 241 cache |
+| Where the cauldron (4063,5598) and the three stand; the Elder's attack every 6 ticks in a random style, at a player kept for four attacks, the splash a full shot of its own; a channel every 20 ticks from 12 in, 8 ticks long, by any of the three, the stun 5 ticks; a Monk's search every 30 ticks from 22 in, 3 ticks long, the tome landing 3 ticks after the throw, its gust tile two steps out from him towards the cauldron; every tome figure (Bandos 55 on the blocker and 10 to 20 on the rest, unblocked 30 to 40 on everyone; Zamorak 25 and a burn of 4 every 3 ticks three times, its fire 7 by 7 doing 8 to 15; Saradomin's lightning 20, its heal 10, the pool's 50); the charge and empowerment gone at each break; where the rifts open, an imp every 5 ticks, a rift closing after its third, its drain of 2 a tick and 1 prayer; the stability shown as the cauldron's hitpoints; the weakened two still attacking | guessed |
+| The cauldron moving and its knock-back, player attacks on imps always hitting their max, the ritual's progress bar (the charge is in `::raid`), the shared health bar sent to the two not hit, the Book of Life and Death and the Guthix spellbook in the room, and the words of their shouts (with the Words thread) | not in yet |
 | Xarth (step 19a): 3 by 3, never moving; his stats, 2,600 to 9,230 hitpoints by party size, magic only in phase one at the player closest to him (max hit 36 with no prayer), the 85% water weakness, poison and venom immunity and the 60% Defence drain floor; a fireball that hits setting the player alight, the burn starting again a stack hotter with each that hits while it runs; the bind on everyone before the blast; the wave's ~45 on whoever has no cover, and a player in front taking that for one behind, who takes ~7 | OSRS Wiki, Xarth and The Fractured Archive/Strategies (2026-11-10) |
 | Where he (4190,5534) and his three 2 by 2 rubble heaps (4193,5530, 4196,5536, 4193,5540) stand, his footprint's nine blocking tiles; the room's transporter putting the player on his arena (4184,5535), which begins his fight; phase one's three 31-tick cycles of five fireballs 4 ticks apart, the AoE with a projectile at each player's tile, the flame blast 3 ticks after it and the wave 3 after that, rolling out a client cycle per tile; the wave's 90 degree wedge towards the heap that falls (a row out his width and a tile each side, a tile wider each row), all round the third time; the heaps falling south or north first, then east, then the other; the falling heap sheltering the tiles it hides from his middle tile (no wave) or only from his nearest footprint tile (the smaller explosion); its collapse for 3 ticks; his body gone 6 ticks after he falls; the animations and spotanims by name | tsps capture notes (RSPSApp/tsps docs/fractured-archive.md: five spectator captures of live fights, rev 241.1; 2026-11-10) |
 | The set-alight chat message (`tfa_xarth.set_alight`, a key in code, the words in the dialogue file); his bar's 4,860 for four and 5,950 for five; the burn after it, 7 or 8 every 4 ticks, at least 6 of them; a wave's 100 on a player in the open (twice) and a 60 on another, and a player just south of a heap taking none; a fireball never missing through Protect from Missiles and doing 1 to 6, and landing 3 ticks after the wind-up from 6 or 7 tiles; the AoE's flames reaching the party 2 ticks on, 23 on Sam | Sam's recordings of live parties of four and five (2026-11-09), read by the Review thread's dense pass (2026-11-10) |
@@ -2064,6 +2521,7 @@ loses goes in a grave there. The party lasts through the wipe.
 | As the portals stand, whoever is on an arm of the cross or its middle moved a tile into a quadrant beside them (the party's, if one of the two); the last volley also taking whoever in the arena isn't in the next quadrant clockwise, so the middle or a quadrant out of turn is no shelter; his second phase barred to splash (an area spell or a chinchompa reaches only the Blade); freeze immunity in all three phases | guessed, closing exploit review round 22 (R22B-1 to R22B-3): live may never let a player stand there |
 | His third phase (step 26a): a tick after his second phase's line, `tfa_ocellus_p3` (16677, with Attack) on the same bar, holding the quadrant the second phase ended in; a tick in the Blade's drop explodes and goes, 2 in the portals go; 4 in the arms crack (`tfa_wallkit_archive03_straight_collapse_01-04`, 3 by 11, blocking walking and shots), with the middle's 3 by 3 void (`tfa_ocellus_platform_void_noblockrange`), and whoever is on the cross is moved into a quadrant beside it; 9 in the arms fall in with explosions out from the middle every 3 tiles, 15 cycles apart; 12 in their empty forms (blocking walking only) with three stepping stones each ("Gap", Jump), and he takes his quadrant from its corner with its barriers up; the crossings SE to SW, SW to NW, NW to NE and NE to SE, a hop a tick (`human_steppingstonejump`); his tank the first to hit him while they stay in his quadrant, the party told he turns to them; every 3 ticks melee, melee and a slash on the tank, twice, the slash a wave 3 deep across his width on the tank's side, shown the tick after his swing and hitting a tick later; with no tank in reach a void shot at everyone; at 75, 50 and 25% of his bar his line (keys `obliteration`, `run`) and the barriers down, 11 ticks later his second (`this_end`, `everything_ends`, `cant_escape`), at 13 the quadrant falls with whoever is on it and the stones of the arms beside it, and at 17 he takes the next clockwise; stats and bonuses, speed 3, melee max 30 and magic 36 | tsps capture notes; OSRS Wiki, Ocellus (2026-11-10: the stats, bonuses, speed and max hits); 242 cache (the locs, their sizes and collision, the animation and graphic names); Sam's recordings of 2026-11-09 (the chat line naming his tank, key `turns_to`) |
 | Which arm loc is which (north, east, south, west in id order); the stones' tiles, evenly between the captured ends of each crossing; one Jump carrying a player all the way over (live hops a stone a click), only clockwise and only with the barriers down (key `way_back_closed` otherwise: the capture notes' estimate), with nothing said while the barriers stand; where a player on the cross is moved; his corner in each quadrant (his first phase's there); his first attack 3 ticks after he takes a quadrant; no tank counting as none in reach; the slash a melee roll that Protect from Melee blocks; slash as his melee style and no attack bonuses (the Wiki's are unreadable); the void shot's graphics; no attacks while a quadrant falls; which of his lines he says (at random) | guessed |
+| In his third phase no hit taking his bar past his next fall (75, 50 and 25%), or past where it is while a quadrant falls, until his final stand (`Npc.holdsAt`); his room's corridor south of the arena no shelter: the last volley, the cog, the void, the flares, Untether's eruptions, the final stand's blasts, lifeforce and void bursts reach whoever is there, and a quadrant's fall takes them with it | guessed, closing exploit review round 23 (R23B-1, R23B-2); the Raid thread bars attacks from the corridor |
 | The barriers' locs (`tfa_ocellus_quadrant_barrier_01-03`, tiles unknown), his fade out and in (the engine has no NPC transparency yet), the fallen quadrant's floor locs, the stones crumbling, his third-phase head bar | not sent yet |
 | His third phase's specials and void (step 26b): 3 ticks after he takes a quadrant, two void bombs in each quadrant still standing (`tfa_ocellus_void_degen_bomb`), void until it falls; whoever stands on void takes 6 to 7 a tick; after each six attacks a special, from the second quadrant on Insolence first, then the cog, the void and Untether in turn; Insolence (key `insolence`): three superior slashes (`npc_ocellus_phase3_melee_superior_slash`) 5 ticks apart, each a wave 3 wide running 8 tiles out towards a player, 2 client cycles a step, leaving void in three bands (`_aoe_insolence_1`, `_4`, `_7`) that crumbles after 15 ticks; the cog: its circle (`prayer_in`), then strikes 3 ticks apart for 40 on everyone, Protect from Melee blocking it unless an overhead prayer was on as the circle formed, debris where everyone stood on the second-last strike and void there 5 ticks later for 24; the void (keys `await_void`, `panic_futile`, `void_take_you`): 3 ticks after his line a void shot at everyone and the Void Vine (`tfa_ocellus_p3_void_vine`, 44 hitpoints) rooting someone other than the tank, its entangle graphics on them, crushing them for 50 if nobody else breaks it within 15 ticks; Untether (key `untether`): his rise (`unleash_in`), four eruptions 4 ticks apart on every player's tile among others for 40, the safe square under him 25 ticks in and his coming down (`unleash_out`) 4 later for 45 on his quadrant but his footprint and a tile round it | tsps capture notes; 242 cache (the ids by name, the Vine's hitpoints, the void locs walkable); Sam's recording of 2026-11-09 (the Vine's target box out of 44; key `untether`, `panic_futile`) |
 | The bombs' void reaching a tile round them; where they fall (any tile of the quadrant but its edge); the cog's two strikes in the first quadrant, one more each quadrant after; the bulwark blocking the cog and Insolence; the player each superior slash is aimed at (one of the party at random) and its hit (a melee roll as his slash's, a tick after the swing); the bands' rows (1 to 3, 4 to 6, 7 and 8 out); nobody rooted when the tank is alone; the rooted player unable to break the vine themselves and held on its tile; the eruptions' first 3 ticks in, 8 other tiles each and landing 2 ticks after they show; void and its floor damage carrying no attacker; a quadrant's fall ending a special half done and freeing the rooted player; the graphics (`vfx_ocellus_quadrant_bomb_drop_01`, `_p3_shadow_slash_superior_spotanim01`, `_phase3_melee_prayer_in` and `_prayer`, `_falling_debris`, `_spell_entangle01_*`, `_p3_unleash_spotanim`, `_unleash_arena`) | guessed |
@@ -2076,28 +2534,54 @@ loses goes in a grave there. The party lasts through the wipe.
 | The blast landing 2 ticks after its pattern; which turn of the arena graphics is each quadrant's; a deflected hit doing nothing (the capture notes say it turns back on the attacker: not in yet); the Rifts' count past the first; no void bombs, other flares or specials in the final stand | guessed |
 | His lifeforce orbs and void bursts in the final stand (step 27b): at 3 and 34 in its loop a wind takes half of each player's hitpoints, rounded down, into an orb on a safe tile of his quadrant, shown to that player alone (`vfx_ocellus_soul_fragment_spawn_12_ticks`, `_idle`, `_despawn`), which once grown 12 ticks on gives them back to the player who walks onto it (`_player_regain`), and not taken by his landing (21) or the arena's end (50) heals him that much; meanwhile a void burst marks each player's tile for them alone every 2 ticks, 6 times (`vfx_void_chain_player_telegraph`), hitting anyone still on it 2 ticks on for 15 to 16 (`vfx_void_chain_explosion`), and a player who stepped to a tile beside it dodged it perfectly, 3 ticks off their attack's cooldown; while the bursts run, hits on him by weapons slower than 2 ticks cut by 33% (3 ticks), 50% (4) and 60% (5); `npc_ocellus_phase3_soul_fragment_start` risen and `_end` at the arena's end, his fragment graphic (`_ocellus_levitating_idle`, `_ocellus_idle`) every 2 ticks | OSRS Wiki, The Fractured Archive/Strategies, 2026-11-10 (half the hitpoints, the orb on a safe tile seen by its player alone, healing him if not taken, the bursts' six times, the slower weapons' cuts, the dodge's 3 ticks); tsps capture notes (the ticks, the orb's 12 ticks to grow, the bursts' spacing and landing, the animations, the fragment graphic's slot; the bursts' damage as an estimate); 242 cache (the graphics by name) |
 | The orb 2 to 5 tiles off its player, never on their own tile or a censer's; an orb too late at his landing or the arena's end; an orb whose player died or left still healing him; the wind's graphic (`vfx_ocellus_deflect_wind_spotanim_01`) and its hit coming from him; attacks of 6 ticks and slower cut as 5 (an attack's ticks the cooldown it sets, rapid's tick and a manual cast's speed counted); the dodge taken off the cooldown already running | guessed |
-| His death's animation and graphics, the Blade to the vault; his charge bar and health bars on screen | not in yet: step 27c |
+| His death (step 27c): `npc_ocellus_phase3_death` with `vfx_ocellus_death`, `_death_skirt_spotanim01` and `_death_crack_spotanim01` and its sound (`tfa_ocellus_phase3_death_arm_strain_01`), his room done at once; 14 ticks later the Blade (`tfa_blade_npc_vault_entry`, 3 by 3, Commune and Travel) where he fell, and Travel taking the party in his room to the vault | tsps capture notes (the animation, graphics and sound, the Blade 14 ticks on where he fell, Travel to the vault); 242 cache (the ids by name, Travel) |
+| The graphics' slots and the sound's reach; his body going as the Blade appears; Travel setting off everyone in his room at once, each by `ArchiveRaids.travel` to the reward vault four ticks on, with no graphic; Commune doing nothing yet | guessed |
+| The raid's total time and the Combat Achievements kill at his death; his charge bar and health bars on screen | not in yet |
 | The inner vault's Passageway (62766, Exit) leaving to the lobby in front of the Archive Door once the run is done, and doing nothing before | guessed, until a recording of a run's end shows what it does; a way out once the run is done was Sam's decision of 8 November 2026 (exploit review RAID-3), first as a stand-in `tfa_exit` in the corridor, now on the cache's own loc |
 | The reward vault: level 2 of map square 64,90, the party coming in at 4127,5779 at the south end of its walk; its Rift (`tfa_vault_exit`, 63297, no options) at 4127,5773 and its Merit scroll (`tfa_vault_scoreboard`, 62775, Read) at 4129,5778, both put there by the server; the Rift out (16690, Leave and Quick-leave, 3 by 3) coming at 4126,5796 about 15 ticks after the party arrives and going back to the lobby | tsps capture notes; the 241.4 cache for the walk and the island (shut in by blocked floor), for neither loc being on the map, and for the Rift out's options and size |
-| The vault's square on all four of its own levels in the run's instance, two squares north of Ocellus's as on the map (live gives each room an instance of its own); each member travelling by their own click, four ticks on, only from Ocellus's room once it is done (`ArchiveRaids.travel`, for the Blade's Travel of step 27c; `::raid travel` stands in for the click); the count to the Rift out starting with the first member in; the Rift's and the scroll's shape and angle; Leave and Quick-leave both leaving at once, to the lobby tile in front of the Archive Door | guessed, or inferred from the map |
+| The vault's square on all four of its own levels in the run's instance, two squares north of Ocellus's as on the map (live gives each room an instance of its own); each member travelling by their own click, four ticks on, only from Ocellus's room once it is done (`ArchiveRaids.travel`, from the Blade's Travel of step 27c; `::raid travel` stands in for the click); the count to the Rift out starting with the first member in; the Rift's and the scroll's shape and angle; Leave and Quick-leave both leaving at once, to the lobby tile in front of the Archive Door | guessed, or inferred from the map |
 | A death once the run is done (Ocellus's room cleared): nothing lost, nobody down, no wipe even alone, and not counted; the player is up again at the vault's arrival tile if they died in the reward vault, else at the nexus's entrance (exploit review round 23, R23A-1: with no room left to end, such a death left its victim down for good, where leaving or logging out is a death with a grave, and wiped a lone player out of a finished run) | guessed, all of it: what a death after the last room costs on live, and where it puts the player, isn't known |
-| The Merit scroll's records, the eight chests and the loot, the braziers' fires, the vault's music, the Rift out's fade-in | not in yet: step 29 on |
-| The bosses after the Guardian, the Quartermaster and Supply Credits, the party's orbs, the reward vault's chests and loot, deaths' item costs | not in yet: steps 18 to 31 |
+| A death in a run counted as the player falls, not as they get up, so a fall in the ticks before Ocellus dies counts for the loot though they are up after; Ocellus dying with nobody of the party on their feet a wipe, with no loot (exploit review round 24, R24A-3: a death landing after the run's end was free, and a party all lying dying as he fell was paid) | guessed: what live does in either case isn't known |
+| What a run pays (step 29a), rolled once as Ocellus's room is done: one roll for the party for a unique, 1 in 14 alone or as two, found by one member, each as likely as their share of the party's contribution, and which unique by weights of 15 (Rondache 5, Zorya's tome 4, Horn of Bran 3, Ascension crossbows 2, Obligator 1); for everyone else three rolls on the standard table (33 lines, weights of 330), each roll 1 in 51 to give five times as much, then an elite clue 1 in 10, the inert Archivist's folio 1 in 15 (never with one owned) and an elemental fragment 1 in 20 (never one owned, none with all four); a death costing a tenth of what one of the party is expected to earn of the run's 700 (`src/main/resources/archive-loot.json`, `ArchiveLoot`) | OSRS Wiki, Chest (The Fractured Archive), read 10 November 2026; the items' ids from the 241.4 cache |
+| The unique's chance past two players: 4% of the base added for each (104 in 1,400 for three, 124 in 1,400 for eight); only the members with a share of the loot counting as players, so an idle alt adds nothing (exploit review round 24, R24A-2; guessed) | inferred: the Wiki calls it multiplicative, and its own figures (1/13.46 for three, 1/90.32 a player for eight) fit the sum, not 4% compounded |
+| A member with no contribution left getting a cabbage alone, and nobody else one (the Wiki has a poor run give only cabbage, likelier with each death, with no numbers); whoever finds the unique getting nothing else; the fragment being one of those not owned, each as likely; a death's tenth rounded down; the pay going to the party's members who are in the run at its end, the party's size for a death's cost being theirs; owning a folio or fragment meaning in the inventory, the bank or worn, in the guide prices screen, offered in a trade, in the player's grave or held by a Grand Exchange offer (exploit review round 24, R24A-4), or the fragment broken (`tfa_mote_*_unlocked`); one dropped or given away no longer counting | guessed |
+| The vault's chests: `tfa_rewards_chest_vault_1_closed` to `_8_open` (16736 to 16751), each a multi-NPC on `tfa_vault_own_chest` (16433) that shows a player's own apart from the others (Chest, Open; once opened Rift, Search); their eight tiles round the island, one a party slot; Open playing `chest_guthixian02_open01` (15101) and leaving the Rift | 241.4 cache; tsps capture notes for the tiles, the slots and what Open does |
+| A chest's slot being its member's place in the party at the run's end; only the paid members' chests being there, from the run's end on; the Rift coming a tick after Open (the animation is 30 client cycles); Open on another's chest refusing with a line, whose words aren't known (it shows its key, `[tfa_vault.chest_not_yours]`) | guessed, but the tick, which is inferred from the animation, and that a player opens only their own chest, which is the Wiki's |
+| Search on the Rift one's own chest leaves (16737 to 16751, Search) opening the chest's window, `tfa_chests` (973), over the player's loot on inv `tfa_chests` (1029, six slots): Bank-all (973:5, op 6), Take-all (973:7, op 1), Discard-all (973:9, op 6) and the item grid (973:11) drawn by `interface_inv_init`; loot that can be banked, taken or destroyed; loot left unclaimed held in the lobby's Loot Wheelbarrow (`tfa_rewards_chest_lobby`, 63299 at 4136,5551, a multiloc on `tfa_has_claimable_loot` that shows Search only with loot waiting) | 241.4 cache and osrs-dumps (`interface/tfa_chests.if3`) for the ids, ops and layout; OSRS Wiki, Chest (The Fractured Archive), for what the window does and the Wheelbarrow |
+| An item's options Take, Take-5, Take-10 and Take-All; an item that doesn't stack coming out noted, and going into the bank as itself | the tsps capture notes' estimate ("as the Tombs of Amascut's") |
+| The grid as two columns of three; Discard-all asking Yes or No first; the loot saved with the player (so a logout keeps it); the same window for the Wheelbarrow; the varbit set whenever loot waits, in the vault too; the Archive Door turning away a player with loot of an earlier run unclaimed (as the Theatre of Blood's chest holds a player to their last loot); another's Rift refusing Search with the line Open on another's chest gives (live took Search off others' Rifts on 3 November 2026); a chest never opened paying into the Wheelbarrow all the same | guessed |
+| The unique's own chest on the northern platform (16730) and the purple braziers that show one was found; Orion the pet (1 in 750); the clue's better rate with the elite Combat Achievements; scroll boxes; the cabbage's chance by deaths; the loot's graphics; the collection log | not in yet |
+| The Merit scroll's records, the braziers' fires, the vault's music, the Rift out's fade-in | not in yet |
+| The uniques worn (step 30): their bonuses, slots and speeds the cache's, which are the Wiki's infoboxes (Ascension crossbows, Obligator and Zorya's tome two-handed; the Rondache a shield; the Horn of Bran not worn); their requirements 80 Ranged, 85 Attack, 80 Defence and 85 Magic (`item-requirements.tsv`); the Obligator's combat tab (dbtable 78's row 36: Thrust, Thrust and Smash, all crush) and Smash every 3 ticks where Thrust is 5; the tome's (row 37: Accurate, Accurate and Longrange) and its own spell as a powered staff's, a charge a cast of 3 astral and 2 nature runes, up to 20,000, 7 tiles and 9 on longrange; the crossbows firing ascension bolts and their gem-tipped forms only, which no other crossbow fires, 6 tiles and 8 on longrange; their animations and the bolts' and tome's graphics the cache's (`ArchiveUniquesAuditTest` checks the cache's numbers against the Wiki's) | OSRS Wiki, Ascension crossbows, Obligator, Rondache, Zorya's tome, Horn of Bran, Weapons/Types, read 10 November 2026; 241 cache |
+| The tome's max hit, a third of the Magic level rounded down less 9 before its +15% (the Wiki's formula renders garbled); which of the Obligator's two attack animations is Thrust and which Smash; which tome graphic is the cast and which the travel; the uniques' turning and side-step animations (the cache has none of their own); the crossbows firing from one hand, where live alternates them; the uncharged tome's prayer bonus, 0 in the cache where the Wiki gives +2 (the cache's kept) | inferred or guessed |
+| The uniques' effects: the Obligator's charges and its second hit and reach, the Rondache's armour and Shield Slam, Zorya's flow, the crossbows' halved bolt effects, the Horn of Bran's Zeal prayer; the female animations; the tome's Configure-Charges | not in yet |
+| Death costs (step 31), for every grave: an item worth 100,000 coins a unit or more waits in the gravestone's paid list, most valuable first, until Unlock pays its fee: 1,000 a unit from 100,000, 10,000 from 1,000,000 and 100,000 from 10,000,000, the total capped at 500,000; an Ironman pays half; the fee is taken from the bank, Death's Coffer not being built; once paid, the button takes the paid list | OSRS Wiki, Gravestone, read 10 November 2026; the 241 cache's gravestone scripts (gravestone_generic_window_set, script1797) for the list's split, the bands and the halving |
+| A grave made in the raid's map squares (proc script10182: the rooms, not the lobby or the reward vault) and not merged with an earlier one costing a quarter of that while the player has fewer than 5 clears (`total_completed_thefracturedarchive`, varp 5894, counted for each member paid at the vault's chests); every death in the raid losing a Hardcore Ironman their status | OSRS Wiki, The Fractured Archive ("reduced by 75% until the player has cleared the raid 5 times"; "always a dangerous death"); 241 cache, script1797 and script10182 |
+| The quarter's cap a quarter of 500,000 too, and each item's fee capped at it; the clear counted when the chests pay out; the words of the Unlock refusal, the paid message and the Hardcore loss (keys here); too few coins in the bank taking none | inferred or guessed |
+| The bosses after the Guardian, the Quartermaster and Supply Credits, the party's orbs, taking the loot out of the reward vault's chests, deaths' item costs | not in yet: steps 18 to 31 |
 
 `::raid run` shows the run you're in and where you stand in it (the room, and the cache's tile as `::raid tp x z` takes it), `::raid tp nexus` or `::raid tp ezekiel` goes to its nexus or a room, `::raid tp x z`
 goes to a cache tile of the raid mapped into the run (on its room's level; for scripts, which can't know where the
-instance lies), and
+instance lies), `::raid loot` shows what the run's end paid (who found the unique, and what your own chest holds), and
 `::raid clear` marks the room you're in done, as if its boss died; a room whose fight never began (the Guardian before it is touched) gives its points to whoever of the party stands in it. Check: `./gradlew test --tests 'osrsps.game.instance.*'
 --tests 'osrsps.game.combat.DeathsTest' --tests 'osrsps.testclient.HeadlessArchiveRaidTest'` (a run through the empty
 rooms by the west doors and one by the east; rows opening in order and a row's other door shut; a death that leaves the
 party standing, a player too late to come in, the wipe to the lobby with graves, and a member down who teleports out,
 leaves the party or logs out dying of it; the reward vault: Travel landing four ticks on, its Rift and Merit scroll, the
 Rift out fifteen ticks after the first in, Leave and Quick-leave to the lobby; a death once the run is done, in
-Ocellus's room and alone in the vault, leaving them standing with everything), and in RuneLite
-`test-runner/examples/archive-raid-flow.json` (both runs, solo, the first out by the reward vault after a death there
-that costs nothing), `archive-ocellus-corridor.json` (a bow's Attack on Ocellus refused from his corridor and taken
+Ocellus's room and alone in the vault, leaving them standing with everything; the run's end paying the party's two
+members in it by their contribution and not the one who stayed out, each one's own chest shown as theirs, opening a
+tick after Open and refusing the other's click; Search on their own Rift opening the chest's window, Take, Take-5, Take-all with no room for the rest, Bank-all; the loot left behind waiting in the lobby's Loot Wheelbarrow, the Archive Door turning them away until it is claimed, Discard-all's No and Yes) and `osrsps.game.PlayerSaveTest` (unclaimed loot saved) and `--tests 'osrsps.game.raid.ArchiveLootTest'` (the loot's file as
+the Wiki's table; the unique's chance by party size; a death's cost; the rolls' rates over thousands of seeded runs; no
+second folio or fragment; the cabbage), and in RuneLite
+`test-runner/examples/archive-raid-flow.json` (both runs, solo, the first out by the reward vault after opening its
+chest there, Search on the Rift it leaves and Bank-all from the chest's window, and a death that costs nothing), `archive-ocellus-corridor.json` (a bow's Attack on Ocellus refused from his corridor and taken
 from his arena) and `archive-raid-wipe.json` (a death in the raid back to
-the lobby, with a grave). Ocellus: `./gradlew test --tests 'osrsps.testclient.HeadlessOcellusTest'` (the figure and the
+the lobby, with a grave). The uniques: `./gradlew test --tests 'osrsps.testclient.HeadlessArchiveUniquesTest'` (the
+Obligator taking the Rondache off, its combat tab and Smash's 3 ticks; the crossbows refusing rune bolts and shooting
+ascension bolts, 2 ticks on Rapid; the tome charged with astral and nature runes killing a man with its own spell),
+`ArchiveUniquesAuditTest` with `OSRSPS_FLATCACHE` set (the cache's numbers against the Wiki's), and
+`test-runner/examples/archive-uniques.json`. Death costs: `./gradlew test --tests 'osrsps.game.combat.GraveFeesTest' --tests 'osrsps.game.combat.DeathsTest'` (the bands, the cap, the halving and the raid's quarter; the paid list, Unlock refused and paid; the Hardcore loss) and `test-runner/examples/archive-raid-death-costs.json`. Ocellus: `./gradlew test --tests 'osrsps.testclient.HeadlessOcellusTest'` (the figure and the
 ready check, alone, with two, and the 2 minutes; his walk, corners, cracks, charge and explosion; a crack caught; the middle at two thirds and a quarter; the hold and the
 transformation; the second phase's portals, the Blade's damage reaching his bar, the quadrants' turns and volleys, a
 shot reaching a player and the safe crossing; the pools, every portal purple, the floor portal taking her on and the
@@ -2265,8 +2749,10 @@ Bows and crossbows fire at NPCs (`game/combat/RangedCombat.kt`). Attack with a r
 NPC is in range and in sight, then you shoot every weapon-speed ticks. Which weapons fire which ammunition, their ranges
 and graphics are in `src/main/resources/ranged-weapons.json` (items, animations and spotanims by gameval name; every
 name there is in both 241 caches). `::combat` shows your ranged numbers with a bow; `::fight` covers ranged fights.
-Not in yet: thrown weapons, crystal bows, the twisted bow, the dragon hunter crossbow, ballistas, enchanted bolts, Ava's
-devices and special attacks.
+Thrown weapons (darts, knives and thrownaxes, every metal and poison) throw from the weapon slot, and the light and
+heavy ballistas fire javelins from the ammo slot. Gem-tipped bolts fire from the crossbow of their metal, and
+enchanted ones roll their effect on monsters (`game/combat/BoltEffects.kt`). Not in yet: crystal bows, the dragon
+hunter crossbow, the thrown weapons' and ballistas' special attacks, and enchanted bolts against players.
 
 | Ranged behaviour | Source |
 |------------------|--------|
@@ -2283,9 +2769,19 @@ devices and special attacks.
 | "You can't use that ammo with your bow." / "... crossbow." | guessed wording |
 | Projectile heights, start, arc and the second dark bow arrow leaving 10 cycles later; the crossbow animation (xbows_human_fire_and_reload_pvn) | guessed |
 | No or wrong ammunition ends the fight when you would fire, not on the click | guessed |
+| Darts range 3, knives and thrownaxes 4, ballistas 9; ballistas fire bronze to dragon javelins every 7 ticks, the hit landing 1 + (7 + d) / 6 ticks later (`HitDelay.BALLISTA`) | OSRS Wiki, Attack range, Light ballista, Heavy ballista and Hit delay |
+| Thrown weapons fire from the weapon slot, one a throw; their launch and travel graphics and the dart, dragon knife and ballista animations by their 242 cache names | OSRS Wiki, Thrown weapons; 242 cache |
+| A thrown weapon that doesn't break falls under the target, as arrows do, unless an Ava's device brings it back | inferred from arrows |
+| The knife and thrownaxe throw animation (`human_stake2_pvn`); the ballista's wrong-ammunition message (`combat.wrong_javelins`, words on the server) | guessed |
+| Gem-tipped bolts (opal to onyx) and the same enchanted, each at its metal's tier; their dragon bolts, enchanted or not, at the dragon bolts' tier | OSRS Wiki, each bolt's page |
+| Enchanted bolts on monsters: opal 5% (Ranged / 10 more) and pearl 6% (Ranged / 20) hit or miss; sapphire 25% on a hit (an eighth of a tenth of the monster's Ranged as prayer); emerald 55% on a hit (poisoned, 5 at first, 75 in all); ruby 6% hit or miss (a fifth of its hitpoints, at most 100, for a tenth of yours, and not when you can't spare a hitpoint); diamond 10% hit or miss (a sure hit on a max hit 15% higher); dragonstone 6% on a hit (Ranged / 5 more); onyx 11% on a hit (20% more, healing a quarter); topaz only on players; each one's graphic (749 to 758) on the monster | OSRS Wiki, each (e) bolt's page (read 2026-11-10); 242 cache |
+| The Zaryte crossbow's passive: each effect 10% stronger (opal Ranged / 9, pearl / 18, dragonstone 22%, onyx 132%, diamond 126%, ruby 22% to 110, emerald 6 at first; sapphire unchanged) | OSRS Wiki, Zaryte crossbow |
+| The effect rolled after accuracy, a draw only for an enchanted bolt; onyx's 20% on the rolled damage; heal, prayer and ruby's cost as the bolt lands; jade's knockdown not on monsters; dragonfire-immune and undead monsters not told apart yet; the pearl's fiery bonus and the hard Kandarin Diary's 10% not counted | guessed, or not built |
 
 Check: `./gradlew test --tests 'osrsps.game.combat.Ranged*' --tests 'osrsps.testclient.HeadlessRangedTest'`, and in
-RuneLite `test-runner/examples/combat-ranged-shortbow.json`.
+RuneLite `test-runner/examples/combat-ranged-shortbow.json`, `combat-thrown.json` and `combat-bolt-effects.json`;
+thrown weapons and ballistas also in `HeadlessThrownTest`, the bolt effects in `BoltEffectsTest` and
+`HeadlessBoltEffectsTest` (ruby's cost to the shooter as the client sees it).
 
 ## Home teleport
 
@@ -2575,10 +3071,14 @@ built needs, so every course and shortcut is open; run on and full, and a gracef
 bonus. Hitpoints stay a new account's 10, so a fall's damage shows.
 
 `fishing-cooking` stands you on Catherby's beach (2850, 3430) with 99 Fishing, Cooking and Firemaking, a harpoon, a
-lobster pot, a big fishing net, a small fishing net, a karambwan vessel, 50 raw karambwanji, a tinderbox and three logs, and the
+lobster pot, a big fishing net, a small fishing net, a karambwan vessel, 50 raw karambwanji, a fishing rod, 50 sandworms, a
+tinderbox and three logs, and the
 dragon and barb-tail harpoons in the bank: every fish Fishing and Cooking 2 has built so far, caught and cooked on a fire.
-Musa Point's spots are at `::tele 2924 3178`, Karamja's karambwanji spots at `::tele 2791 3018` and karambwan spots at
-`::tele 2899 3118`.
+Musa Point's spots are at `::tele 2924 3178`, Karamja's karambwanji spots at `::tele 2791 3018`, karambwan spots at
+`::tele 2899 3118`, the Piscatoris monkfish spots at `::tele 2326 3699` and Port Piscarilius's anglerfish spots at
+`::tele 1827 3769`. The bank holds flour, water, pie dishes, cooking apples, tomatoes, cheese, cake tins, eggs, milk and
+chocolate for pies, pizzas and cakes, and bowls of water, potatoes, cooked meat, spice, curry leaves, grapes and jugs of
+water for stews, curries and wine; the Lumbridge east farm's dairy churn is at `::tele 3226 3293`.
 
 `lumbridge-cows` stands you in the Lumbridge cow field (3259, 3263, a tile picked from the cow spawns) with 20 Attack,
 Strength, Defence and Hitpoints, iron armour, an iron scimitar, an amulet of strength, five lobsters, a bronze axe, a

@@ -1,5 +1,5 @@
 {
-  "about": "Lumbridge's farms. Fred's farm north-west of the castle: Fred the Farmer, his sheep pen's sheep, rams and lambs, and the chickens of the Wiki's Lumbridge West Farm (33, as on the Wiki's Chicken page), with the two sheep that never regrow their wool west of the castle. Tiles and types are RSMod's rev 233 Lumbridge spawns, which the Wiki's counts agree with; every wander range is guessed (5) until recorded. Groats' farm north of Lumbridge: Gillie Groats in the dairy cows' pen (the cows are locs; the farm's beef cows are in lumbridge.json). Mill Lane Mill: Millie Miller on its ground floor. The ducks are in lumbridge-ducks.json. Left out until their steps: the farmers, and The Thing and the penguin of Cold War.",
+  "about": "Lumbridge's farms. Fred's farm north-west of the castle: Fred the Farmer, his sheep pen's sheep, rams and lambs, and the chickens of the Wiki's Lumbridge West Farm (33, as on the Wiki's Chicken page), with the two sheep that never regrow their wool west of the castle. Tiles and types are RSMod's rev 233 Lumbridge spawns, which the Wiki's counts agree with; every wander range is guessed (5) until recorded. Groats' farm north of Lumbridge: Gillie Groats in the dairy cows' pen (the cows are locs; the farm's beef cows are in lumbridge.json). Mill Lane Mill: Millie Miller on its ground floor. The ducks are in lumbridge-ducks.json. The nine farmers (Thieving 2 step T1a) stand on the OSRS Wiki Farmer page's map tiles with its ids for each (South Varrock farm, Groats' farm, north-west of Lumbridge, north of Lumbridge's east farm), wandering 5 (guessed). Left out until their steps: The Thing and the penguin of Cold War.",
   "spawns": [
     {"npc": "fred_the_farmer", "x": 3189, "z": 3273, "wander": 5, "source": "Fred the Farmer, at his house. RSMod rev 233 Lumbridge spawns"},
     {"npc": "gillie_the_milkmaid", "x": 3254, "z": 3274, "wander": 5, "source": "Gillie Groats, in the Groats' farm dairy cow pen. RSMod rev 233 Lumbridge spawns"},
@@ -60,6 +60,15 @@
     {"npc": "chicken", "x": 3186, "z": 3279, "wander": 5, "source": "Chicken, the pen beside Fred's house. RSMod rev 233 Lumbridge spawns"},
     {"npc": "chicken_brown", "x": 3187, "z": 3278, "wander": 5, "source": "Chicken, the pen beside Fred's house. RSMod rev 233 Lumbridge spawns"},
     {"npc": "chicken", "x": 3189, "z": 3278, "wander": 5, "source": "Chicken, the pen beside Fred's house. RSMod rev 233 Lumbridge spawns"},
-    {"npc": "chicken_brown", "x": 3191, "z": 3277, "wander": 5, "source": "Chicken, the pen beside Fred's house. RSMod rev 233 Lumbridge spawns"}
+    {"npc": "chicken_brown", "x": 3191, "z": 3277, "wander": 5, "source": "Chicken, the pen beside Fred's house. RSMod rev 233 Lumbridge spawns"},
+    {"npc": "farmer1", "x": 3181, "z": 3293, "wander": 5, "source": "Farmer, South Varrock farm. OSRS Wiki, Farmer (map tiles and ids, read 2026-11-10)"},
+    {"npc": "farmer2", "x": 3162, "z": 3338, "wander": 5, "source": "Farmer, South Varrock farm. OSRS Wiki, Farmer (map tiles and ids, read 2026-11-10)"},
+    {"npc": "farmer1", "x": 3165, "z": 3324, "wander": 5, "source": "Farmer, South Varrock farm. OSRS Wiki, Farmer (map tiles and ids, read 2026-11-10)"},
+    {"npc": "farmer1", "x": 3227, "z": 3290, "wander": 5, "source": "Farmer, South Varrock farm. OSRS Wiki, Farmer (map tiles and ids, read 2026-11-10)"},
+    {"npc": "farmer4", "x": 3199, "z": 3289, "wander": 5, "source": "Farmer, South Varrock farm. OSRS Wiki, Farmer (map tiles and ids, read 2026-11-10)"},
+    {"npc": "farmer1_f", "x": 3192, "z": 3330, "wander": 5, "source": "Farmer, South Varrock farm. OSRS Wiki, Farmer (map tiles and ids, read 2026-11-10)"},
+    {"npc": "farmer3", "x": 3262, "z": 3325, "wander": 5, "source": "Farmer, Groats' farm. OSRS Wiki, Farmer (map tiles and ids, read 2026-11-10)"},
+    {"npc": "farmer3_f", "x": 3154, "z": 3293, "wander": 5, "source": "Farmer, north-west of Lumbridge. OSRS Wiki, Farmer (map tiles and ids, read 2026-11-10)"},
+    {"npc": "farmer2_f", "x": 3233, "z": 3308, "wander": 5, "source": "Farmer, north of Lumbridge East Farm. OSRS Wiki, Farmer (map tiles and ids, read 2026-11-10)"}
   ]
 }

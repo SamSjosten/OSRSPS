@@ -1,0 +1,47 @@
+{
+ "name": "Artisan 2 step A3: at 99, a water orb on a battlestaff makes a water battlestaff; a chisel on a blamish myre shell makes a myre snelm; a chisel on amethyst opens the box over its four cuts and makes 15 amethyst bolt tips; at South Falador Farm's loom, Weave turns 4 balls of wool into a strip of cloth (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats and an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::setlevel crafting 99", "expectMessage": "Crafting set to level 99"},
+
+  {"step": "command", "text": "::item 1391", "expectMessage": "Added 1 x Battlestaff"},
+  {"step": "command", "text": "::item 571", "expectMessage": "Added 1 x Water orb"},
+  {"step": "useItemOnItem", "itemId": 571, "onItemId": 1391},
+  {"step": "assertInterface", "interfaceId": 270, "comment": "skillmulti"},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15},
+  {"step": "assertAnimation", "id": 7531, "comment": "human_battlestaff_crafting"},
+  {"step": "assertInventory", "itemId": 1395, "count": 1, "timeoutMs": 10000, "comment": "Water battlestaff"},
+  {"step": "assertMessage", "contains": "crafting.battlestaff item=water battlestaff"},
+
+  {"step": "command", "text": "::item 1755", "expectMessage": "Added 1 x Chisel"},
+  {"step": "command", "text": "::item 3345", "expectMessage": "Added 1 x Blamish myre shell"},
+  {"step": "useItemOnItem", "itemId": 1755, "onItemId": 3345},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15},
+  {"step": "assertAnimation", "id": 1280, "comment": "human_snailshellcutting"},
+  {"step": "assertInventory", "itemId": 3327, "count": 1, "timeoutMs": 10000, "comment": "Myre snelm"},
+
+  {"step": "command", "text": "::item 21347", "expectMessage": "Added 1 x Amethyst"},
+  {"step": "useItemOnItem", "itemId": 1755, "onItemId": 21347},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15, "comment": "the first of the four: bolt tips"},
+  {"step": "assertAnimation", "id": 6295, "comment": "human_amethystcutting"},
+  {"step": "assertInventory", "itemId": 21338, "count": 15, "timeoutMs": 10000, "comment": "Amethyst bolt tips"},
+  {"step": "assertMessage", "contains": "crafting.amethyst amount=15 item=amethyst bolt tips"},
+
+  {"step": "command", "text": "::tele 3039 3285 0", "expectMessage": "Teleported to 3039, 3285, 0", "comment": "South Falador Farm, beside its loom (8717; the Wiki's pin is 3039, 3287): outside Misthalin, reached with ::tele"},
+  {"step": "command", "text": "::item 1759 4", "expectMessage": "Added 4 x Ball of wool"},
+  {"step": "locOption", "locId": 8717, "option": "Weave", "timeoutMs": 20000},
+  {"step": "assertInterface", "interfaceId": 270},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15},
+  {"step": "assertInventory", "itemId": 3224, "count": 1, "timeoutMs": 15000, "comment": "Strip of cloth"},
+  {"step": "assertMessage", "contains": "crafting.weave item=strip of cloth"},
+  {"step": "assertStat", "skill": "Crafting", "level": 99, "xp": 13034635, "comment": "100 + 32.5 + 60 + 12 = 204.5 XP"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

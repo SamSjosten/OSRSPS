@@ -126,12 +126,13 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `the farms file has Fred's sheep, rams, lambs and 33 chickens north-west of the castle, Gillie and Millie`() {
+    fun `the farms file has Fred's sheep, rams, lambs and 33 chickens north-west of the castle, Gillie, Millie and nine farmers`() {
         val names = mapOf(
             732 to "fred_the_farmer", 2693 to "sheepunsheered", 2699 to "sheepunsheered3", 2694 to "sheepunsheeredg", 2695 to "sheepunsheeredw",
             2786 to "sheepunsheered3g", 2787 to "sheepunsheered3w", 1262 to "ramunsheered", 1263 to "ramunsheered2", 1264 to "ramunsheered3",
             1176 to "lamb1", 1177 to "lamb2", 1301 to "sheepsheered2w", 1308 to "sheepsheered3g", 1173 to "chicken", 1174 to "chicken_brown",
             4628 to "gillie_the_milkmaid", 4627 to "millie_the_miller",
+            3114 to "farmer1", 3243 to "farmer2", 3244 to "farmer3", 11918 to "farmer1_f", 11919 to "farmer2_f", 11920 to "farmer3_f", 11921 to "farmer4",
         )
         val farmTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("lumbridge-farms.json"), farmTypes, "lumbridge-farms.json")
@@ -142,7 +143,8 @@ class NpcSpawnFileTest {
         assertEquals(4, spawns.count { it.type.internalName!!.startsWith("ram") })
         assertEquals(33, spawns.count { it.type.internalName!!.startsWith("chicken") })
         // Fred's farm is west of the River Lum and north of the castle; the two shorn sheep are in the pen west of it.
-        val farm = spawns.filter { !it.type.internalName!!.startsWith("sheepsheered") && it.type.id !in setOf(4627, 4628) }
+        val farmers = spawns.filter { it.type.internalName!!.startsWith("farmer") }
+        val farm = spawns.filter { !it.type.internalName!!.startsWith("sheepsheered") && it.type.id !in setOf(4627, 4628) && it !in farmers }
         assertTrue(farm.all { it.x in 3165..3215 && it.z in 3255..3310 && it.level == 0 })
         assertTrue(spawns.filter { it.type.internalName!!.startsWith("sheepsheered") }.all { it.x < 3200 && it.z < 3225 })
         assertTrue(spawns.all { it.source.isNotBlank() && it.wander == 5 })
@@ -151,6 +153,88 @@ class NpcSpawnFileTest {
         assertTrue(gillie.x in 3250..3258 && gillie.z in 3268..3278)
         val millie = spawns.single { it.type.id == 4627 }
         assertTrue(millie.x in 3163..3170 && millie.z in 3303..3310 && millie.restrict == MoveRestrict.INDOORS)
+        // The Wiki's nine Misthalin farmers (Thieving 2): six on the farm south of Varrock, one at the Groats', two by Lumbridge.
+        assertEquals(9, farmers.size)
+        assertEquals(7, farmers.map { it.type.id }.toSet().size)
+        assertTrue(farmers.all { it.x in 3150..3265 && it.z in 3285..3340 && it.level == 0 })
+    }
+
+    @Test
+    fun `Thieving 2's Kandarin file has East Ardougne's knights, paladins, heroes and warriors, the watchmen and the Stronghold's gnomes`() {
+        val names = mapOf(
+            3297 to "knight_of_ardougne", 3293 to "paladin", 3294 to "paladin2", 3295 to "hero", 3260 to "warrior_woman", 5420 to "yanille_watchman",
+            6094 to "gnome", 6095 to "browclothedgnome", 6096 to "darkskinned_gnome", 6086 to "gnomefemale", 6087 to "gnomefemale_dskinned",
+            6077 to "gnomechildgreen", 6078 to "gnomechildblue", 6079 to "gnomechild",
+        )
+        val kandarinTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("thieving-kandarin.json"), kandarinTypes, "thieving-kandarin.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        fun of(vararg ids: Int) = spawns.filter { it.type.id in ids }
+        assertEquals(listOf(5, 22, 3, 10, 4), listOf(of(3297).size, of(3293, 3294).size, of(3295).size, of(3260).size, of(5420).size))
+        // East Ardougne, its castle's two floors among them; the Watchtower's first floor; the Tree Gnome Stronghold.
+        assertTrue(of(3297, 3293, 3294, 3295, 3260).all { it.x in 2560..2687 && it.z in 3264..3391 })
+        assertEquals(setOf(0, 1), of(3293).map { it.level }.toSet())
+        assertTrue(of(5420).all { it.level == 1 && it.x in 2496..2559 && it.z in 3072..3135 })
+        val gnomes = of(6094, 6095, 6096, 6086, 6087, 6077, 6078, 6079)
+        assertEquals(153, gnomes.size)
+        assertTrue(gnomes.all { it.x in 2368..2495 && it.z in 3328..3519 })
+        assertTrue(spawns.all { it.source.isNotBlank() && it.wander == 5 })
+    }
+
+    @Test
+    fun `Thieving 2's far file has the cave goblins, Fremennik citizens, bandits, wealthy citizens, vyres, elves and TzHaar-Hur`() {
+        val file = file("thieving-far.json")
+        val names = Regex("\"npc\": \"([a-z0-9_]+)\"").findAll(file).map { it.groupValues[1] }.toSet().toList()
+        val farTypes = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(20000 + i, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file, farTypes, "thieving-far.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        fun named(prefix: String) = spawns.filter { it.type.internalName!!.startsWith(prefix) }
+        assertEquals(
+            listOf(23, 9, 21, 9, 52, 30),
+            listOf(named("dorgesh_").size, named("viking_").size, named("fourdiamonds_").size, named("varlamore_wealthy").size,
+                named("mourning_town_elf").size + named("prif_citizen").size, named("tzhaar_hur").size),
+        )
+        // Dorgesh-Kaan under Lumbridge, Rellekka, the Bandit Camp, Civitas illa Fortis, Lletya, Prifddinas, Mor Ul Rek.
+        assertTrue(named("dorgesh_").all { it.x in 2688..2751 && it.z in 5248..5375 })
+        assertTrue(named("viking_").all { it.x in 2624..2687 && it.z in 3648..3711 })
+        assertTrue(named("fourdiamonds_").all { it.x in 3136..3199 && it.z in 2944..3007 })
+        assertTrue(named("varlamore_wealthy").all { it.x in 1670..1720 && it.z in 3080..3110 })
+        assertTrue(named("mourning_town_elf").all { it.x in 2304..2367 && it.z in 3136..3199 })
+        assertTrue(named("prif_citizen").all { it.x in 3200..3327 && it.z in 6016..6143 })
+        assertTrue(named("tzhaar_hur").all { it.x in 2432..2559 && it.z in 5056..5183 })
+        assertEquals(30, named("").count { it.type.internalName!! in VYRE_NAMES })
+        assertTrue(spawns.all { it.source.isNotBlank() && it.wander == 5 })
+    }
+
+    @Test
+    fun `East Ardougne market's seven stall keepers stand still and its ten guards wander`() {
+        val file = file("ardougne-market.json")
+        val names = Regex("\"npc\": \"([a-z0-9_]+)\"").findAll(file).map { it.groupValues[1] }.toSet().toList()
+        val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(20000 + i, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file, types, "ardougne-market.json")
+        assertEquals(emptyList(), result.unknown)
+        val keepers = result.spawns.filter { it.type.internalName!!.endsWith("_ardougne") || it.type.internalName!!.endsWith("_ardougne2") }
+        val guards = result.spawns.filter { it.type.internalName == "ardougne_guard" }
+        assertEquals(7, keepers.size)
+        assertEquals(10, guards.size)
+        assertEquals(result.spawns.size, keepers.size + guards.size)
+        assertTrue(keepers.all { it.wander == 0 && it.x in 2650..2670 && it.z in 3290..3320 })
+        assertTrue(guards.all { it.wander == 5 })
+    }
+
+    @Test
+    fun `the rogues are on Rogues' Castle's four floors and south-west of the Mage Arena`() {
+        val rogueTypes = NpcTypes.of(NpcType(526, "rogue", internalName = "rogue"))
+        val result = NpcSpawnFile.parse(file("rogues-castle.json"), rogueTypes, "rogues-castle.json")
+        assertEquals(emptyList(), result.unknown)
+        val rogues = result.spawns
+        assertEquals(22, rogues.size)
+        val castle = rogues.filter { it.x in 3264..3327 }
+        assertEquals(20, castle.size)
+        assertEquals(setOf(0, 1, 2, 3), castle.map { it.level }.toSet())
+        assertTrue(rogues.all { it.z in 3904..3967 })
     }
 
     @Test
@@ -213,6 +297,182 @@ class NpcSpawnFileTest {
         val holes = spawns.filter { it.type.id == 475 }
         assertEquals(7, holes.size)
         assertTrue(holes.all { it.restrict == MoveRestrict.NOMOVE && it.wander == 0 && !LumbridgeSwampCaves.isDark(it.x, it.z, 0) && LumbridgeSwampCaves.isDark(it.x, it.z - 1, 0) })
+    }
+
+    @Test
+    fun `the HAM Hideout has its 26 pickpocketable members, 11 seated, 22 guards, the Deacon, Johanhus and Jimmy in his cell`() {
+        val names = mapOf(
+            2540 to "favour_male_ham_civilian", 2541 to "favour_female_ham_civilian", 2542 to "favour_npc_chair",
+            2543 to "favour_npc_floor", 2536 to "favour_guard_male_no_beard", 2537 to "favour_guard_male_bearded",
+            2538 to "favour_guard_long_beard",
+        )
+        val result = NpcSpawnFile.parse(file("ham-hideout.json"), NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray()), "ham-hideout.json")
+        val spawns = result.spawns
+        fun count(vararg ids: Int) = spawns.count { it.type.id in ids }
+        assertEquals(listOf(26, 11, 22), listOf(count(2540, 2541), count(2542, 2543), count(2536, 2537, 2538)))
+        assertTrue(spawns.all { it.x in 3140..3190 && it.z in 9600..9660 && it.level == 0 && it.source.isNotBlank() })
+        assertTrue(spawns.filter { it.type.id in setOf(2542, 2543) }.all { it.wander == 0 })
+        assertEquals(3, result.unknown.size, "the Deacon, Johanhus and Jimmy: ${result.unknown}")
+    }
+
+    @Test
+    fun `the HAM Storerooms have their five guards, each on its live tile and patrolling a corridor`() {
+        val names = (1..5).associate { (4521 + it) to "dttd_ham_guard_${it}_postquest" }
+        val result = NpcSpawnFile.parse(file("ham-storerooms.json"), NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray()), "ham-storerooms.json")
+        val spawns = result.spawns
+        assertEquals(emptyList(), result.unknown)
+        assertEquals(
+            setOf(4522 to (2566 to 5189), 4523 to (2566 to 5201), 4524 to (2567 to 5195), 4525 to (2577 to 5201), 4526 to (2567 to 5202)),
+            spawns.map { it.type.id to (it.x to it.z) }.toSet(),
+        )
+        // Every stop within the combat leash of the post, so a guard can chase a picker from anywhere on its route.
+        assertTrue(spawns.all { it.patrol.size == 2 && it.patrol.all { stop -> stop.x in 2566..2577 && stop.z in 5189..5202 } && it.source.isNotBlank() })
+        assertTrue(spawns.all { it.patrol.all { stop -> maxOf(kotlin.math.abs(stop.x - it.x), kotlin.math.abs(stop.z - it.z)) <= osrsps.game.npc.Npcs.MAX_RANGE } })
+    }
+
+    @Test
+    fun `the farms and roads between the towns have their cows, river ducks, goblins, Varrock's sheep pen, gardeners, leprechauns and road NPCs`() {
+        val names = mapOf(
+            1323 to "canoeing_tarquin", 1173 to "chicken", 1174 to "chicken_brown", 2790 to "cow", 2791 to "cow2", 2792 to "cow2_calf", 2793 to "cow3",
+            2794 to "cow3_calf", 2069 to "crow", 2070 to "crow2", 2071 to "crow3", 2839 to "darkbear", 1838 to "duck", 1839 to "duck_female",
+            3073 to "fai_barbarian_goblin_armed_1", 3245 to "farmer_farming", 3250 to "farmer_farming_on_49_51", 2674 to "farming_gardener_bush_1",
+            2672 to "farming_gardener_hops_3", 2680 to "farming_gardener_tree_3", 2681 to "farming_gardener_tree_4", 0 to "farming_tools_leprechaun",
+            1351 to "favour_seth_groats", 3017 to "giantspider1", 5007 to "imp", 5731 to "master_farmer_2", 1262 to "ramunsheered", 1263 to "ramunsheered2",
+            1264 to "ramunsheered3", 2693 to "sheepunsheered", 2786 to "sheepunsheered3g", 2787 to "sheepunsheered3w", 2694 to "sheepunsheeredg",
+            2695 to "sheepunsheeredw", 4158 to "surok_rat", 1831 to "swan", 2837 to "unicorn",
+        ) + listOf(3029, 3030, 3031, 3033, 3034, 3035, 3036).associateWith { "goblin_unarmed_melee_${it - 3028}" }
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("misthalin-farms-roads.json"), types, "misthalin-farms-roads.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        fun count(vararg ids: Int) = spawns.count { it.type.id in ids }
+        assertEquals(53, count(2790, 2791, 2793))
+        assertEquals(16, count(2792, 2794))
+        assertEquals(41, count(1838, 1839))
+        assertEquals(19, count(1173, 1174))
+        assertEquals(53, count(3029, 3030, 3031, 3033, 3034, 3035, 3036))
+        // The sheep pen south of Varrock: ten sheep, all shearable, and three rams.
+        val pen = spawns.filter { it.x in 3228..3265 && it.z in 3340..3357 }
+        assertEquals(10, pen.count { it.type.internalName?.startsWith("sheepunsheered") == true })
+        assertEquals(3, pen.count { it.type.internalName?.startsWith("ramunsheered") == true })
+        assertEquals(listOf(4, 5, 1, 1, 2, 2, 3, 3), listOf(intArrayOf(2674, 2672, 2681, 2680), intArrayOf(0), intArrayOf(1323), intArrayOf(5731), intArrayOf(2837), intArrayOf(3245, 3250), intArrayOf(5007), intArrayOf(2069, 2070, 2071)).map { count(*it) })
+        assertEquals(listOf(1, 1, 1, 1, 2), listOf(4158, 1351, 2839, 3073, 1831).map { count(it) })
+        // Ducks and swans swim; every other NPC walks.
+        assertTrue(spawns.all { (it.restrict == MoveRestrict.BLOCKED) == (it.type.id in setOf(1838, 1839, 1831)) })
+        // The cows and goblins keep to the land between the three towns, west of the Varrock road.
+        assertTrue(spawns.filter { it.type.id in setOf(2790, 2791, 2793, 3029) }.all { it.x in 3135..3220 && it.z in 3275..3345 })
+        assertTrue(spawns.all { it.source.isNotBlank() && it.level == 0 })
+    }
+
+    @Test
+    fun `the Lumber Yard has the Sawmill operator, six mewing crates and Tolna by his rift, all standing still`() {
+        val names = mapOf(3101 to "poh_sawmill_opp", 3499 to "kittens_mew", 2010 to "soulbane_tolna_multi")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("lumber-yard.json"), types, "lumber-yard.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        assertEquals(listOf(1, 6, 1), listOf(3101, 3499, 2010).map { id -> spawns.count { it.type.id == id } })
+        assertEquals(3302 to 3492, spawns.single { it.type.id == 3101 }.let { it.x to it.z })
+        assertEquals(3308 to 3452, spawns.single { it.type.id == 2010 }.let { it.x to it.z })
+        // The crates are inside the yard's fence.
+        assertTrue(spawns.filter { it.type.id == 3499 }.all { it.x in 3295..3320 && it.z in 3495..3520 })
+        assertTrue(spawns.all { it.wander == 0 && it.source.isNotBlank() && it.level == 0 })
+    }
+
+    @Test
+    fun `Silvarea has its thirteen bats in the valley and the Odd Old Man standing by his pot-boiler`() {
+        val names = mapOf(2827 to "small_bat", 1259 to "rag_odd_old_man")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("silvarea.json"), types, "silvarea.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        assertEquals(listOf(13, 1), listOf(2827, 1259).map { id -> spawns.count { it.type.id == id } })
+        assertEquals(3361 to 3505, spawns.single { it.type.id == 1259 }.let { it.x to it.z })
+        assertEquals(0, spawns.single { it.type.id == 1259 }.wander)
+        // Between Varrock's east fence and the Salve, south of the Wilderness ditch.
+        assertTrue(spawns.filter { it.type.id == 2827 }.all { it.x in 3330..3400 && it.z in 3470..3500 && it.wander > 0 })
+        assertEquals(13, spawns.filter { it.type.id == 2827 }.map { it.x to it.z }.toSet().size)
+        assertTrue(spawns.all { it.source.isNotBlank() && it.level == 0 })
+    }
+
+    @Test
+    fun `Paterdomus has Drezel in the mausoleum and Ivan Strom beside him, and no monks or guardian`() {
+        val names = mapOf(9805 to "priestperiltrappedmonk2", 15853 to "myq6_ivan_postquest")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("paterdomus.json"), types, "paterdomus.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        assertEquals(listOf(9805, 15853), spawns.map { it.type.id })
+        assertEquals(3440 to 9895, spawns.first().let { it.x to it.z })
+        assertTrue(spawns.all { it.z in 9880..9910 && it.wander == 0 && it.level == 0 && it.source.isNotBlank() })
+    }
+
+    @Test
+    fun `the Digsite has its nine workmen, three students, the barge's people with the navigators on deck, and the gate's guard`() {
+        val names = mapOf(
+            3628 to "digworkman1", 3630 to "qip_digsite_digworkman_03", 3631 to "qip_digsite_digworkman_04", 1933 to "vm_digworkman_loader",
+            3632 to "student1", 3633 to "student3", 3634 to "student2", 5138 to "golem_elissa", 3640 to "panning_guide",
+            3641 to "qip_digsite_panning_man_01", 3642 to "qip_digsite_panning_woman_01", 1939 to "vm_woodcutter",
+            1927 to "vm_patrol_route_workmen_1", 1930 to "vm_patrol_route_wheelbarrow_empty", 6088 to "pilot_digsite",
+            1938 to "vm_canal_barge_foremen_talking", 1937 to "vm_canal_barge_workman_painting_tar", 7767 to "fossilquest_barge_guard_port",
+            7768 to "fossilquest_barge_guard_barge", 7819 to "fossilquest_lead_navigator", 7820 to "fossilquest_jr_navigator",
+            1911 to "vm_museum_guard2",
+        )
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("digsite.json"), types, "digsite.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        assertEquals(9, spawns.count { it.type.id in listOf(3628, 3630, 3631) })
+        assertEquals(listOf(3632, 3633, 3634), spawns.filter { it.type.id in 3632..3634 }.map { it.type.id })
+        assertEquals(setOf(7768, 7819, 7820), spawns.filter { it.level == 1 }.map { it.type.id }.toSet())
+        assertEquals(3295 to 3427, spawns.single { it.type.id == 1911 }.let { it.x to it.z })
+        assertEquals(names.keys, spawns.map { it.type.id }.toSet())
+        assertTrue(spawns.all { it.x in 3290..3390 && it.z in 3370..3460 && it.source.isNotBlank() })
+    }
+
+    @Test
+    fun `the Exam Centre has its three examiners, the Researcher and Terry, and the dungeon Doug and ten level 22 skeletons`() {
+        val names = mapOf(
+            3635 to "examiner", 3636 to "qip_digsite_examiner_02", 3637 to "qip_digsite_examiner_03", 3638 to "qip_digsite_researcher",
+            3639 to "archaeological_expert", 3629 to "digworkman2", 70 to "skeleton_unarmed", 71 to "skeleton_unarmed2",
+            72 to "skeleton_unarmed3", 73 to "skeleton_unarmed4",
+        )
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val centre = NpcSpawnFile.parse(file("exam-centre.json"), types, "exam-centre.json")
+        assertEquals(emptyList(), centre.unknown)
+        assertEquals(listOf(3635, 3636, 3637, 3638, 3639), centre.spawns.map { it.type.id })
+        assertTrue(centre.spawns.all { it.x in 3350..3370 && it.z in 3330..3345 && it.source.isNotBlank() })
+        val dungeon = NpcSpawnFile.parse(file("digsite-dungeon.json"), types, "digsite-dungeon.json")
+        assertEquals(emptyList(), dungeon.unknown)
+        assertEquals(3351 to 9756, dungeon.spawns.single { it.type.id == 3629 }.let { it.x to it.z })
+        assertEquals(10, dungeon.spawns.count { it.type.id in 70..73 })
+        // The copy after the quest: none in the quest's copy 64 tiles north.
+        assertTrue(dungeon.spawns.all { it.z in 9740..9760 && it.source.isNotBlank() })
+    }
+
+    @Test
+    fun `the sweep spawns the goblins, spiders and butterflies by Lumbridge, the highwayman, the mugger and three Black Knights`() {
+        val names = mapOf(
+            3029 to "goblin_unarmed_melee_1", 3030 to "goblin_unarmed_melee_2", 3031 to "goblin_unarmed_melee_3", 3032 to "goblin_unarmed_melee_4",
+            3033 to "goblin_unarmed_melee_5", 3034 to "goblin_unarmed_melee_6", 3035 to "goblin_unarmed_melee_7", 3036 to "goblin_unarmed_melee_8",
+            3073 to "fai_barbarian_goblin_armed_1", 234 to "butterfly", 238 to "butterfly_viceroy", 3017 to "giantspider1",
+            518 to "highwayman", 513 to "mugger", 516 to "black_knight",
+        )
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("misthalin-sweep.json"), types, "misthalin-sweep.json")
+        assertEquals(emptyList(), result.unknown)
+        val spawns = result.spawns
+        fun count(vararg ids: Int) = spawns.count { it.type.id in ids }
+        assertEquals(32, spawns.size)
+        // The camp north-west of Lumbridge Castle, one north of it by the river, and the three further off.
+        assertEquals(12, spawns.count { it.type.id in 3029..3036 && it.x in 3180..3210 && it.z in 3240..3256 })
+        assertEquals(16, count(*(3029..3036).toList().toIntArray(), 3073))
+        assertEquals(8, count(234, 238))
+        assertEquals(3, count(3017))
+        assertEquals(3110 to 3295, spawns.single { it.type.id == 518 }.let { it.x to it.z })
+        assertEquals(3175 to 3361, spawns.single { it.type.id == 513 }.let { it.x to it.z })
+        assertEquals(setOf(3101 to 3220, 3226 to 3515, 3234 to 3518), spawns.filter { it.type.id == 516 }.map { it.x to it.z }.toSet())
+        assertTrue(spawns.all { it.level == 0 && it.source.isNotBlank() })
     }
 
     @Test
@@ -636,7 +896,7 @@ class NpcSpawnFileTest {
             513 to "mugger", 5086 to "qip_ds_young_dark_wizard1", 5087 to "qip_ds_young_dark_wizard2", 5088 to "qip_ds_young_dark_wizard3", 5089 to "qip_ds_young_dark_wizard4", 3252 to "thief1", 5217 to "qip_soa_thief_male01", 5219 to "qip_soa_thief_female01",
             5220 to "qip_soa_thief_female02", 2862 to "giantrat1", 2864 to "giantrat1_3", 3262 to "barbarianwoman_varrock",
             3260 to "warrior_woman", 2838 to "brownbear", 516 to "black_knight", 3019 to "spider",
-            16812 to "deadman_nigel_varrock", 16811 to "clue_hunter_arthur",
+            16812 to "deadman_nigel_varrock", 16811 to "clue_hunter_arthur", 5449 to "ge_expert_herbs",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("varrock.json"), types, "varrock.json")
@@ -729,10 +989,11 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `the fishing spots outside Misthalin are Catherby's seven, Musa Point's six and Karamja's five, each on a tile of its area or staying put`() {
+    fun `the fishing spots outside Misthalin are Catherby's seven, Musa Point's six, Karamja's five, Piscatoris's five and Port Piscarilius's three, each on a tile of its area or staying put`() {
         val names = mapOf(
             1518 to "0_44_53_saltfish", 1519 to "0_44_53_rarefish", 1520 to "0_44_53_memberfish", 1521 to "0_45_49_saltfish", 1522 to "0_45_49_rarefish",
             4710 to "0_43_47_karambwanji", 4712 to "0_45_48_karambwan", 4713 to "general_karambwan",
+            4316 to "swan_fishingspot", 6825 to "piscariliusfish",
         )
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, "Fishing spot", internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("fishing-spots.json"), types, "fishing-spots.json")
@@ -741,11 +1002,26 @@ class NpcSpawnFileTest {
         // The OSRS Wiki's spot pages (read 2026-11-10): Catherby has two Cage/Harpoon and three Big Net/Harpoon spots,
         // Musa Point three Cage/Harpoon; mejrs's live list adds two Net/Bait at Catherby and three at Musa Point.
         // Karamja (step FC3): the Wiki's three karambwanji spots in the Holy Lake and two karambwan spots by DKP.
-        assertEquals(listOf(2, 2, 3, 3, 3, 3, 1, 1), names.keys.map { id -> spawns.count { it.type.id == id } })
+        assertEquals(listOf(2, 2, 3, 3, 3, 3, 1, 1), names.keys.take(8).map { id -> spawns.count { it.type.id == id } })
+        // Step FC4: the Wiki's five Piscatoris spots and three Port Piscarilius anglerfish spots.
+        assertEquals(listOf(5, 3), listOf(4316, 6825).map { id -> spawns.count { it.type.id == id } })
         for (spot in spawns) {
-            val staysPut = spot.type.id in setOf(Fishing.KARAMBWANJI_SPOT, Fishing.KARAMBWAN_SPOT, Fishing.KARAMBWAN_SPOT_EAST)
+            val staysPut = spot.type.id in setOf(
+                Fishing.KARAMBWANJI_SPOT, Fishing.KARAMBWAN_SPOT, Fishing.KARAMBWAN_SPOT_EAST, Fishing.PISCATORIS_SPOT, Fishing.PISCARILIUS_SPOT,
+            )
             assertEquals(!staysPut, Fishing.AREAS.any { Tile(spot.x, spot.z) in it }, "a spot at ${spot.x}, ${spot.z}")
             assertTrue(spot.wander == 0 && spot.source.isNotBlank())
         }
+    }
+
+    private companion object {
+        val VYRE_NAMES = setOf(
+            "alek_constantine", "caninelle_draynar", "carnivus_belamorta", "crimsonette_van_marr", "diphylla_bechstein",
+            "draconis_sanguine", "episcula_helsing", "grigor_rasputin", "haemas_lamescus", "lasenna_rasputin",
+            "misdrievus_shadum", "mort_nightshade", "mortina_daubenton", "nakasa_jovkai", "natalidae_shadum",
+            "noctillion_lugosi", "pipistrelle_draynar", "remus_kaninus", "valentin_rasputin", "valentina_diaemus",
+            "vallessia_dracyula", "vallessia_von_pitt", "vampyressa_van_von", "vampyrus_diaemus", "violetta_sanguine",
+            "vlad_bechstein", "vlad_diaemus", "von_van_von", "vonnetta_varnis", "vormar_vakan",
+        )
     }
 }

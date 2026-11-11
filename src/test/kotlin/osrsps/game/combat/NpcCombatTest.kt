@@ -48,11 +48,13 @@ class NpcCombatTest {
             "sheep_attack" to 250, "sheep_block" to 251, "sheep_death" to 252, "duck_rework_death" to 3468,
             "slice_surface_goblin_squat_unarmed_attack" to 6184, "slice_surface_goblin_defend" to 6183, "slice_surface_goblin_death" to 6182,
             "spider_update_attack" to 5327, "spider_update_defend" to 5328, "spider_update_death" to 5329,
+            "bat_rework_attack" to 4915, "bat_rework_defend" to 4916, "bat_rework_death" to 4917,
             "giant_rat_update_attack" to 4933, "giant_rat_update_defend" to 4934, "giant_rat_update_death" to 4935,
             "giant_frog_attack" to 1793, "giant_frog_block" to 1794, "giant_frog_death" to 1795,
             "slice_surface_goblin_squat_attack_spear" to 6188, "slice_surface_goblin_defend_spear" to 6189, "slice_surface_goblin_death_spear" to 6190,
             "unicorn_rework_attack" to 6376, "unicorn_rework_defend" to 6375, "unicorn_rework_death" to 6377,
             "human_sword_slash" to 390, "human_sword_block" to 387, "human_sword_stab" to 386,
+            "gnome_attackunarmed" to 12044, "gnome_block" to 12046, "gnome_death" to 12048,
             "human_blunt_pound" to 401, "human_shield_defence" to 1156,
             "scorpion_update_attack_tail" to 6254, "scorpion_update_defend" to 6255, "scorpion_update_death" to 6256,
             "zombie_update_attack_normal" to 5568, "zombie_update_defend_normal" to 5567, "zombie_update_death_normal" to 5569,
@@ -77,7 +79,10 @@ class NpcCombatTest {
             "npc_ocellus_phase3_melee_basic" to 14842,
             "npc_ocellus_phase3_death" to 14872,
             "dreadnoth_melee01" to 14779, "dreadnoth_death01" to 14782, "jelly_attack" to 1586, "jelly_death" to 1587,
+            "moia_projectile_attack01" to 14785, "moia_death01" to 14784, "moia_minion_attack" to 14791, "moia_minion_death" to 14792,
             "xarth_attack_magic_01" to 14984, "xarth_death_01" to 14995, "xarth_corpse_death_01" to 15003,
+            "npc_dagonhai_attack_ranged_01" to 14593, "npc_dagonhai_death_01" to 14652, "npc_dagonhai_death_02" to 14653,
+            "npc_dagonhai_death_03" to 14654, "leagues_6_thrall_imp_melee_attack" to 13851, "leagues_6_thrall_imp_melee_despawn" to 13856,
             "demon_attack" to 64, "demon_block" to 65, "demon_death" to 67,
             "shade_attack" to 1283, "shade_block" to 1286, "shade_sink" to 1287,
             "monalisk_cave_bug_attack" to 6079, "monalisk_cave_bug_defend" to 6080, "monalisk_mini_cave_bug_death" to 6082,
@@ -675,6 +680,55 @@ class NpcCombatTest {
     }
 
     @Test
+    fun `Moia and her binders fight as the Wiki has them, her daggers ranged and her binders' max hit guessed`() {
+        val moia = NpcType(16667, "Moia", size = 3, internalName = "tfa_moia", stats = NpcStats(attack = 1, defence = 195, strength = 1, hitpoints = 1900, ranged = 200, magic = 350))
+        val binder = NpcType(16670, "Undead binder", internalName = "tfa_moia_minion", stats = NpcStats(attack = 120, defence = 225, strength = 120, hitpoints = 95, ranged = 1, magic = 50))
+        val combat = NpcCombat.load(NpcTypes.of(moia, binder), seqs)
+        val her = combat[moia]!!
+        val minion = combat[binder]!!
+        assertEquals(listOf(5, 5), listOf(her.attackSpeed, minion.attackSpeed))
+        assertEquals(listOf(AttackType.RANGED, AttackType.CRUSH), listOf(her.attackType, minion.attackType))
+        // The Wiki's ranged max hit; the binder's is guessed.
+        assertEquals(listOf(32, 16), listOf(her.maxHit, minion.maxHit))
+        assertEquals(listOf(350, 300), listOf(her.attackBonus, her.magicAttack))
+        assertEquals(listOf(14785), her.attacks.map { it.anim })
+        assertEquals(NpcCombatAnims(14785, -1, 14784), her.anims)
+        assertEquals(NpcCombatAnims(14791, -1, 14792), minion.anims)
+        assertEquals(ElementalWeakness(Element.AIR, 80), her.weakness)
+        assertEquals(mapOf(NpcStat.DEFENCE to 40), her.drainCaps)
+        assertEquals(listOf(20, 110, 15, 30), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { her.defence.against(it) })
+        assertEquals(listOf(12, 15, 10, -20), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { minion.defence.against(it) })
+    }
+
+    @Test
+    fun `the Dagon'hai trio and their imps fight as the Wiki has them, the trio's weakened forms sharing their entries`() {
+        fun caster(id: Int, internal: String) = NpcType(
+            id, "Dagon'hai", size = 2, internalName = internal,
+            stats = NpcStats(attack = 1, defence = 100, strength = 1, hitpoints = 640, ranged = 260, magic = 290),
+        )
+        val trio = listOf(
+            caster(16643, "tfa_dagonhai_leader"), caster(16644, "tfa_dagonhai_leader_unshielded"),
+            caster(16645, "tfa_dagonhai_minion_1"), caster(16646, "tfa_dagonhai_minion_1_unshielded"),
+            caster(16647, "tfa_dagonhai_minion_2"), caster(16648, "tfa_dagonhai_minion_2_unshielded"),
+        )
+        val imp = NpcType(16650, "Imp", internalName = "tfa_dagonhai_demon", stats = NpcStats(attack = 250, defence = 50, strength = 195, hitpoints = 44, ranged = 66, magic = 125))
+        // The common imp, which the file names `imp`: without it the file's entry would take ours by its name.
+        val commonImp = NpcType(5007, "Imp", internalName = "imp", stats = NpcStats(attack = 4, defence = 4, strength = 5, hitpoints = 8))
+        val combat = NpcCombat.load(NpcTypes.of(*(trio + imp + commonImp).toTypedArray()), seqs)
+        for (type in trio) {
+            val def = combat[type]!!
+            assertEquals(listOf(6, 27, 180, 250), listOf(def.attackSpeed, def.maxHit, def.attackBonus, def.magicAttack), type.internalName)
+            assertEquals(AttackType.RANGED, def.attackType)
+            assertEquals(listOf(50, 50, 50, 100), listOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH, AttackType.MAGIC).map { def.defence.against(it) })
+        }
+        assertEquals(listOf(14652, 14652, 14653, 14653, 14654, 14654), trio.map { combat[it]!!.anims.death })
+        val demon = combat[imp]!!
+        assertEquals(listOf(4, 20), listOf(demon.attackSpeed, demon.maxHit))
+        assertEquals(CombatMath.npcMaxHit(imp.stats.strength, demon.strengthBonus), demon.maxHit, "the formula's")
+        assertEquals(NpcCombatAnims(13851, -1, 13856), demon.anims)
+    }
+
+    @Test
     fun `Xarth fights as the Wiki has him, magic in phase one`() {
         val xarth = NpcType(16684, "Xarth", size = 3, internalName = "tfa_xarth", stats = NpcStats(attack = 250, defence = 170, strength = 225, hitpoints = 2600, ranged = 220, magic = 350))
         val him = NpcCombat.load(NpcTypes.of(xarth), seqs)[xarth]!!
@@ -776,6 +830,111 @@ class NpcCombatTest {
         assertEquals(ElementalWeakness(Element.EARTH, 25), def("slayer_rockslug").weakness)
         assertEquals(NpcCombatAnims(1567, 1565, 1568), def("slayer_rockslug").anims)
         assertEquals(NpcCombatAnims(1802, 1803, 1804), def("swamp_wallbeast_combat").anims)
+    }
+
+    @Test
+    fun `farmers stab at speed 6 for at most 1, with no defence bonuses`() {
+        val names = listOf("farmer1", "farmer2", "farmer3", "farmer1_f", "farmer2_f", "farmer3_f", "farmer4")
+        val farmerTypes = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(3114 + i, name, internalName = name, stats = NpcStats(strength = 4)) }.toTypedArray())
+        val combat = NpcCombat.load(farmerTypes, seqs)
+        assertEquals(names.size, combat.size)
+        for (name in names) {
+            val def = combat[farmerTypes.find(name)!!]!!
+            assertEquals(listOf(6, 1, 5, 6, 25), listOf(def.attackSpeed, def.maxHit, def.attackBonus, def.strengthBonus, def.respawnTicks), name)
+            assertEquals(CombatMath.npcMaxHit(4, def.strengthBonus), def.maxHit, name)
+            assertTrue(def.aggression == null, name)
+        }
+    }
+
+    @Test
+    fun `Thieving 2's Kandarin and Wilderness NPCs fight as the Wiki has them, the humans' max hits the formula's`() {
+        // The 242 cache's Strength levels; the gnomes have none (1).
+        val strength = mapOf(
+            "rogue" to 13, "knight_of_ardougne" to 40, "paladin" to 54, "paladin2" to 54, "hero" to 55, "yanille_watchman" to 31,
+            "gnome" to 1, "browclothedgnome" to 1, "darkskinned_gnome" to 1, "gnomefemale" to 1, "gnomefemale_dskinned" to 1,
+            "gnomechild" to 1, "gnomechildblue" to 1, "gnomechildgreen" to 1,
+        )
+        val npcTypes = NpcTypes.of(*strength.entries.mapIndexed { i, (name, str) -> NpcType(5000 + i, name, internalName = name, stats = NpcStats(strength = str)) }.toTypedArray())
+        val combat = NpcCombat.load(npcTypes, seqs)
+        assertEquals(strength.size, combat.size)
+        fun def(name: String) = combat[npcTypes.find(name)!!]!!
+        // speed, max hit, attack bonus, strength bonus, respawn
+        val wiki = mapOf(
+            "rogue" to listOf(4, 2, 5, 5, 50), "knight_of_ardougne" to listOf(5, 6, 8, 10, 25), "paladin" to listOf(5, 8, 20, 22, 50),
+            "paladin2" to listOf(5, 8, 20, 22, 50), "hero" to listOf(5, 9, 20, 22, 50), "yanille_watchman" to listOf(4, 4, 0, 0, 50),
+            "gnome" to listOf(4, 1, -42, -42, 60), "gnomefemale" to listOf(4, 1, -42, -42, 50), "gnomechild" to listOf(4, 0, -42, -42, 50),
+        )
+        for ((name, row) in wiki) {
+            val d = def(name)
+            assertEquals(row, listOf(d.attackSpeed, d.maxHit, d.attackBonus, d.strengthBonus, d.respawnTicks), name)
+            assertTrue(d.aggression == null, name)
+        }
+        // The humans' max hits are the formula's; the gnomes' -42 gives 0, and the Wiki's 1 stands for the men and women.
+        for (name in listOf("rogue", "knight_of_ardougne", "paladin", "paladin2", "hero", "yanille_watchman")) {
+            assertEquals(CombatMath.npcMaxHit(strength.getValue(name), def(name).strengthBonus), def(name).maxHit, name)
+        }
+        assertEquals(87, def("paladin").defence.stab)
+        assertEquals(-11, def("knight_of_ardougne").defence.magic)
+    }
+
+    @Test
+    fun `the HAM guards hit with crush at the Wiki's speeds and max hits, unarmed`() {
+        // The 242 cache's Strength levels.
+        val names = mapOf("favour_guard_male_no_beard" to 12, "favour_guard_male_bearded" to 18, "favour_guard_long_beard" to 20)
+        val guardTypes = NpcTypes.of(*names.entries.mapIndexed { i, (name, str) -> NpcType(2900 + i, name, internalName = name, stats = NpcStats(strength = str)) }.toTypedArray())
+        val combat = NpcCombat.load(guardTypes, seqs)
+        assertEquals(names.size, combat.size)
+        fun def(name: String) = combat[guardTypes.find(name)!!]!!
+        assertEquals(listOf(7, 6, 5), names.keys.map { def(it).attackSpeed })
+        assertEquals(listOf(2, 3, 3), names.keys.map { def(it).maxHit })
+        for ((name, str) in names) assertEquals(CombatMath.npcMaxHit(str, def(name).strengthBonus), def(name).maxHit, name)
+        assertTrue(names.keys.all { def(it).aggression == null && def(it).respawnTicks == 25 })
+        assertEquals(NpcCombatAnims(422, 424, 836), def("favour_guard_long_beard").anims)
+    }
+
+    @Test
+    fun `the HAM Storerooms' guards hit as the level 22 hideout guards do`() {
+        val names = (1..5).map { "dttd_ham_guard_${it}_postquest" }
+        val guardTypes = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(4522 + i, name, internalName = name, stats = NpcStats(strength = 20)) }.toTypedArray())
+        val combat = NpcCombat.load(guardTypes, seqs)
+        assertEquals(names.size, combat.size)
+        for (name in names) {
+            val def = combat[guardTypes.find(name)!!]!!
+            assertEquals(5 to 3, def.attackSpeed to def.maxHit, name)
+            assertTrue(def.aggression == null && def.respawnTicks == 25, name)
+        }
+    }
+
+    @Test
+    fun `the black bear on the Varrock road slashes for 3 at speed 4, weak to fire, and waits to be attacked`() {
+        val bearTypes = NpcTypes.of(NpcType(2839, "darkbear", internalName = "darkbear", stats = NpcStats(strength = 16)))
+        val def = NpcCombat.load(bearTypes, seqs)[bearTypes.find("darkbear")!!]!!
+        assertEquals(CombatMath.npcMaxHit(16, def.strengthBonus), def.maxHit)
+        assertEquals(listOf(4, 3, 50), listOf(def.attackSpeed, def.maxHit, def.respawnTicks))
+        assertEquals(ElementalWeakness(Element.FIRE, 30), def.weakness)
+        assertNull(def.aggression)
+        assertEquals(NpcCombatAnims(4925, 4927, 4929), def.anims)
+    }
+
+    @Test
+    fun `Silvarea's bats stab for 1 at speed 4, weak to air, back after 35 ticks and never attacking first`() {
+        val batTypes = NpcTypes.of(NpcType(2827, "Bat", internalName = "small_bat", stats = NpcStats(strength = 5)))
+        val def = NpcCombat.load(batTypes, seqs)[batTypes.find("small_bat")!!]!!
+        assertEquals(CombatMath.npcMaxHit(5, def.strengthBonus), def.maxHit)
+        assertEquals(listOf(4, 1, 35), listOf(def.attackSpeed, def.maxHit, def.respawnTicks))
+        assertEquals(ElementalWeakness(Element.AIR, 35), def.weakness)
+        assertNull(def.aggression)
+        assertEquals(NpcCombatAnims(4915, 4916, 4917), def.anims)
+    }
+
+    @Test
+    fun `the highwayman stabs for 1 at speed 4, aggressive, back after 100 ticks`() {
+        val types = NpcTypes.of(NpcType(518, "Highwayman", internalName = "highwayman", stats = NpcStats(strength = 2)))
+        val def = NpcCombat.load(types, seqs)[types.find("highwayman")!!]!!
+        assertEquals(CombatMath.npcMaxHit(2, def.strengthBonus), def.maxHit)
+        assertEquals(listOf(4, 1, 100), listOf(def.attackSpeed, def.maxHit, def.respawnTicks))
+        assertEquals(listOf(6, 7), listOf(def.attackBonus, def.strengthBonus))
+        assertTrue(def.aggression != null)
     }
 
     @Test

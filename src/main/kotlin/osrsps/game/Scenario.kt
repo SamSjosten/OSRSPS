@@ -197,6 +197,7 @@ class Scenarios(scenarios: Collection<Scenario>) {
         /** The scenario files the server loads. Add a new file's name here. */
         val FILES = listOf(
             "agility",
+            "artisan-2",
             "fishing-cooking",
             "gathering",
             "lumbridge-artisan",
@@ -205,6 +206,7 @@ class Scenarios(scenarios: Collection<Scenario>) {
             "lumbridge-cows",
             "lumbridge-run-low",
             "magic",
+            "thieving",
         )
 
         /** Reads every file in [FILES] from the resources. A file that is missing or malformed stops the server. */

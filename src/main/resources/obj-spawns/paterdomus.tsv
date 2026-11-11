@@ -1,0 +1,5 @@
+# Paterdomus Temple's item spawn (Misthalin piece 7 step 8): the bucket on the top floor, added on 30 June 2026 with
+# The Blood Moon Rises (OSRS Wiki, Bucket, item spawns, and Paterdomus Temple, Changes, read 2026-11-11: plane 2,
+# 3414,3493). The respawn is the 100 ticks the other files use; the Wiki gives none.
+obj	count	x	z	level	respawn
+bucket_empty	1	3414	3493	2	100	# top floor; Wiki, Bucket

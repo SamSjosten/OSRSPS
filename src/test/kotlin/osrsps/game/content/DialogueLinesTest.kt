@@ -29,6 +29,7 @@ class DialogueLinesTest {
             "src/main/kotlin/osrsps/game",
             "src/main/kotlin/osrsps/game/content",
             "src/main/kotlin/osrsps/game/skill",
+            "src/main/kotlin/osrsps/game/skill/magic",
             "src/main/kotlin/osrsps/game/combat",
             "src/main/kotlin/osrsps/game/bank",
             "src/main/kotlin/osrsps/game/shop",

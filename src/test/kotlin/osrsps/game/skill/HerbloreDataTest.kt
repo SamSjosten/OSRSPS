@@ -49,4 +49,40 @@ class HerbloreDataTest {
             assertTrue(recipe.first == 2 && recipe.interval == 2 && recipe.anim == 363, recipe.key)
         }
     }
+
+    @Test
+    fun `mixing matches the Wiki, super combat from four, stamina and extended antifire by the dose, sanfew in three steps`() {
+        val recipes = data.mixing.values.flatten().distinct()
+        assertEquals(22, recipes.size)
+        fun named(name: String) = recipes.single { it.key == name }
+        val combat = named("super_combat")
+        assertEquals(Triple(12695, 90, 1500), Triple(combat.product, combat.level, combat.xpTenths))
+        assertEquals(listOf(269, 2436, 2440, 2442), combat.inputs.map { it.obj })
+        assertEquals(listOf(combat), data.mixing.getValue(269 to 2436))
+        assertEquals(listOf(named("super_combat_unf")), data.mixing.getValue(111 to 2440))
+        // Stamina 25.5 and extended antifire 27.5 XP a dose, one crystal or shard a dose.
+        for (dose in 1..4) {
+            val stamina = named("stamina_$dose")
+            assertEquals(255 * dose, stamina.xpTenths)
+            assertEquals(ObjCount(12640, dose), stamina.inputs[0])
+            assertEquals(275 * dose, named("extended_antifire_$dose").xpTenths)
+            assertEquals(ObjCount(11994, dose), named("extended_antifire_$dose").inputs[0])
+        }
+        assertEquals(84, named("extended_antifire_4").level)
+        assertEquals(77, named("stamina_4").level)
+        // Sanfew: 32 x doses + 64 XP over the three steps (Sanfew serum page).
+        for (dose in 1..4) {
+            val total = listOf("sanfew_step_1_$dose", "sanfew_step_2_$dose", "sanfew_$dose").sumOf { named(it).xpTenths }
+            assertEquals((32 * dose + 64) * 10, total, "$dose doses")
+        }
+        assertEquals(10925, named("sanfew_4").product)
+        // Sanfew serum page: each step by hand, one at a time, no Make-X; super combat gives the spare vials back.
+        assertEquals((1..4).flatMap { listOf("sanfew_step_1_$it", "sanfew_step_2_$it", "sanfew_$it") }.toSet(), data.oneAtATime)
+        assertEquals(listOf(ObjCount(229, 2)), named("super_combat").byproducts)
+        assertEquals(listOf(ObjCount(229, 3)), named("super_combat_unf").byproducts)
+        assertTrue(recipes.all { it.first == 2 && it.interval == 2 && it.anim == 363 && it.skill == osrsps.game.Skill.HERBLORE })
+        // No trigger pair is also a two-ingredient potion's.
+        val pairs = data.potions.keys.map { minOf(it.first, it.second) to maxOf(it.first, it.second) }.toSet()
+        assertTrue(data.mixing.keys.none { it in pairs })
+    }
 }

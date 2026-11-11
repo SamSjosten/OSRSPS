@@ -78,6 +78,78 @@
       "source": "OSRS Wiki, Man (ids 3106 to 3109 share the infobox; Al Kharid's man, 3261, is a version of the same page and shares it too, though the DPS calculator gives it 0 defence bonuses)"
     },
     {
+      "npcs": ["farmer1", "farmer2", "farmer3", "farmer1_f", "farmer2_f", "farmer3_f", "farmer4"],
+      "attackSpeed": 6, "maxHit": 1, "attackType": "stab", "attackBonus": 5, "strengthBonus": 6,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 25,
+      "source": "OSRS Wiki, Farmer (ids 3114, 3243, 3244, 11918 to 11921 share the infobox), read 2026-11-10 (Thieving 2 step T1a). The animations are GUESSED: the man's, as the farmer holds nothing the cache names"
+    },
+    {
+      "npcs": ["rogue"],
+      "attackSpeed": 4, "maxHit": 2, "attackType": "stab", "attackBonus": 5, "strengthBonus": 5,
+      "defence": { "stab": 6, "slash": 9, "crush": 11, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "human_sword_stab", "defend": "human_sword_block", "death": "human_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Rogue (Level 15, id 526), read 2026-11-10 (Thieving 2 step T1b): speed 4, max hit 2, stab, the bonuses, respawn 50, not aggressive. The animations are GUESSED (the sword's stab and block); the level 135 Rogues' Castle rogue (6603) waits for the castle's chests"
+    },
+    {
+      "npcs": ["knight_of_ardougne"],
+      "attackSpeed": 5, "maxHit": 6, "attackType": "slash", "attackBonus": 8, "strengthBonus": 10,
+      "defence": { "stab": 39, "slash": 40, "crush": 36, "magic": -11, "light": 36, "standard": 36, "heavy": 36 },
+      "anims": { "attack": "human_sword_slash", "defend": "human_sword_block", "death": "human_death" },
+      "respawnTicks": 25,
+      "source": "OSRS Wiki, Knight of Ardougne (id 3297, East Ardougne), read 2026-11-10 (Thieving 2 step T1b): speed 5, max hit 6, slash, the bonuses, respawn 25, not aggressive. The animations are GUESSED (the sword's)"
+    },
+    {
+      "npcs": ["paladin", "paladin2"],
+      "attackSpeed": 5, "maxHit": 8, "attackType": "slash", "attackBonus": 20, "strengthBonus": 22,
+      "defence": { "stab": 87, "slash": 84, "crush": 76, "magic": -10, "light": 79, "standard": 79, "heavy": 79 },
+      "anims": { "attack": "human_sword_slash", "defend": "human_sword_block", "death": "human_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Paladin (ids 3293 and 3294, East Ardougne), read 2026-11-10 (Thieving 2 step T1b): speed 5, max hit 8, slash, the bonuses, respawn 50; aggressive only after a caught stall theft (T3). The animations are GUESSED (the sword's)"
+    },
+    {
+      "npcs": ["hero"],
+      "attackSpeed": 5, "maxHit": 9, "attackType": "slash", "attackBonus": 20, "strengthBonus": 22,
+      "defence": { "stab": 87, "slash": 84, "crush": 76, "magic": -10, "light": 79, "standard": 79, "heavy": 79 },
+      "anims": { "attack": "human_sword_slash", "defend": "human_sword_block", "death": "human_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Hero (id 3295, Ardougne Market), read 2026-11-10 (Thieving 2 step T1b): speed 5, max hit 9, slash, the bonuses, respawn 50; aggressive only after a caught gem stall theft (T3). The animations are GUESSED (the sword's)"
+    },
+    {
+      "npcs": ["yanille_watchman"],
+      "attackSpeed": 4, "maxHit": 4, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 24, "slash": 14, "crush": 19, "magic": -4, "light": 16, "standard": 16, "heavy": 16 },
+      "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Watchman (id 5420, the Watchtower), read 2026-11-10 (Thieving 2 step T1b): speed 4, max hit 4, crush, no attack bonuses, the defences, respawn 50, not aggressive. The animations are GUESSED (the man's punch)"
+    },
+    {
+      "npcs": ["gnome", "browclothedgnome", "darkskinned_gnome"],
+      "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": -42, "strengthBonus": -42,
+      "defence": { "stab": -42, "slash": -42, "crush": -42, "magic": -42, "light": -42, "standard": -42, "heavy": -42 },
+      "anims": { "attack": "gnome_attackunarmed", "defend": "gnome_block", "death": "gnome_death" },
+      "respawnTicks": 60,
+      "source": "OSRS Wiki, Gnome (Level 1: ids 6094 to 6096), read 2026-11-10 (Thieving 2 step T1b): speed 4, max hit 1, crush, every bonus -42, respawn 60, not aggressive. Its ranged attack is left out; gnome_attackunarmed is GUESSED for its punch"
+    },
+    {
+      "npcs": ["gnomefemale", "gnomefemale_dskinned"],
+      "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": -42, "strengthBonus": -42,
+      "defence": { "stab": -42, "slash": -42, "crush": -42, "magic": -42, "light": -42, "standard": -42, "heavy": -42 },
+      "anims": { "attack": "gnome_attackunarmed", "defend": "gnome_block", "death": "gnome_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Gnome woman (ids 6086 and 6087), read 2026-11-10 (Thieving 2 step T1b): speed 4, max hit 1, crush, every bonus -42, respawn 50, not aggressive. The animations are GUESSED (the gnome's)"
+    },
+    {
+      "npcs": ["gnomechild", "gnomechildblue", "gnomechildgreen"],
+      "attackSpeed": 4, "maxHit": 0, "attackType": "crush", "attackBonus": -42, "strengthBonus": -42,
+      "defence": { "stab": -42, "slash": -42, "crush": -42, "magic": -42, "light": -42, "standard": -42, "heavy": -42 },
+      "anims": { "attack": "gnome_attackunarmed", "defend": "gnome_block", "death": "gnome_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Gnome child (ids 6077 to 6079), read 2026-11-10 (Thieving 2 step T1b): speed 4, max hit 0, crush, every bonus -42, respawn 50, not aggressive. The animations are GUESSED (the gnome's)"
+    },
+    {
       "npcs": ["al_kharid_warrior"],
       "attackSpeed": 4, "maxHit": 2, "attackType": "slash", "attackBonus": 10, "strengthBonus": 9,
       "defence": { "stab": 12, "slash": 15, "crush": 10, "magic": -1, "light": 12, "standard": 12, "heavy": 12 },
@@ -359,6 +431,18 @@
       "source": "OSRS Wiki, Market Guard (Draynor), read 2026-10-30. The animations are guessed, as the jail guards' are"
     },
     {
+      "npcs": ["ardougne_guard"],
+      "attackSpeed": 5,
+      "maxHit": 3,
+      "attackType": "crush",
+      "attackBonus": 9,
+      "strengthBonus": 7,
+      "defence": {"stab": 24, "slash": 14, "crush": 19, "magic": 4, "light": 16, "standard": 16, "heavy": 16},
+      "anims": {"attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death"},
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Guard (Ardougne 1, id 5418), read 2026-11-10: the Draynor Market Guard's numbers. The animations are guessed, as the market guards' are"
+    },
+    {
       "npcs": ["surok_outlaw1", "surok_outlaw2", "surok_outlaw3", "surok_outlaw4", "surok_outlaw5", "surok_outlaw6", "surok_outlaw7", "surok_outlaw8", "surok_outlaw9", "surok_outlaw10"],
       "attackSpeed": 4,
       "maxHit": 3,
@@ -588,6 +672,15 @@
       "source": "OSRS Wiki, Mugger (Regular, id 513) and the DPS calculator's 513, read 2026-11-02: speed 4, max hit 1, crush, strength bonus -21, no defence bonuses, aggressive (to players up to twice its level, the aggression engine's rule). It stands with human_ready, so it punches (guessed); the Wiki gives no respawn time, so the thieves' 25 is guessed, as is the default hunt range"
     },
     {
+      "npcs": ["highwayman"],
+      "attackSpeed": 4, "maxHit": 1, "attackType": "stab", "attackBonus": 6, "strengthBonus": 7,
+      "defence": { "stab": 0, "slash": 3, "crush": 2, "magic": 0, "light": 2, "standard": 2, "heavy": 2 },
+      "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 100,
+      "aggressive": true,
+      "source": "OSRS Wiki, Highwayman (No hood, id 518), read 2026-11-11: speed 4, max hit 1, stab, attack bonus 6, strength bonus 7, the defence bonuses, respawn 100, aggressive. He carries no weapon, so he punches (guessed). His overhead shout when he attacks is left out (no NPC shouts yet)"
+    },
+    {
       "npcs": ["black_knight"],
       "attackSpeed": 5, "maxHit": 4, "attackType": "slash", "attackBonus": 18, "strengthBonus": 16,
       "defence": { "stab": 73, "slash": 76, "crush": 70, "magic": -11, "light": 72, "standard": 72, "heavy": 72 },
@@ -628,6 +721,19 @@
       "weakness": {"element": "fire", "percent": 20},
       "aggressive": true,
       "source": "OSRS Wiki, Grizzly bear (Level 21, id 2838) and the DPS calculator's 2838, read 2026-11-02: speed 4, max hit 3, slash, no bonuses, respawn 50, weak to fire 20%, aggressive. It stands with bear_rework_ready, so the bear_rework fight animations are taken; the default hunt range is guessed"
+    },
+    {
+      "npcs": ["darkbear"],
+      "attackSpeed": 4,
+      "maxHit": 3,
+      "attackType": "slash",
+      "attackBonus": 0,
+      "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "bear_rework_attack", "defend": "bear_rework_defend", "death": "bear_rework_death" },
+      "respawnTicks": 50,
+      "weakness": { "element": "fire", "percent": 30 },
+      "source": "OSRS Wiki, Black bear (Level 19, id 2839), read 2026-11-10: speed 4, max hit 3, slash, no bonuses, respawn 50, weak to fire 30%, not aggressive (Misthalin piece 7 step 5). It stands with bear_rework_ready, so the bear_rework fight animations are taken, as the grizzly's"
     },
     {
       "npcs": ["tfa_guardian"],
@@ -749,6 +855,95 @@
       "respawnTicks": 50,
       "weakness": {"element": "fire", "percent": 60},
       "source": "OSRS Wiki, Jelly (Dreadnoth) (id 16666), read 2026-11-10: speed 5, crush, max hit 17 (the formula's from its Strength of 160), the defence bonuses, the 60% fire weakness. Its hitpoints are the cache's 75 (the tsps capture notes' too; the Wiki's infobox says 61). It attacks with jelly_attack and dies with jelly_death (tsps capture notes); its hits, which drain prayer (Wiki), come from Dreadnoth's fight. Guessed: no block animation, the respawn, which never comes. Not in: the Wiki's 20% freeze resistance"
+    },
+    {
+      "npcs": ["tfa_moia"],
+      "attackSpeed": 5,
+      "maxHit": 32,
+      "attackType": "ranged",
+      "attackBonus": 350,
+      "strengthBonus": 35,
+      "magicAttack": 300,
+      "range": 10,
+      "attacks": [ { "anim": "moia_projectile_attack01", "projectile": 4214 } ],
+      "defence": { "stab": 20, "slash": 110, "crush": 15, "magic": 30, "light": 60, "standard": 120, "heavy": 140 },
+      "anims": { "attack": "moia_projectile_attack01", "defend": null, "death": "moia_death01" },
+      "respawnTicks": 50,
+      "weakness": {"element": "air", "percent": 80},
+      "drainCap": { "defence": 40 },
+      "source": "OSRS Wiki, Moia (id 16667), read 2026-11-11: speed 5, ranged max hit 32 (magic max hit 44 is her fight's magic dagger, Moia.MAGIC_MAX), ranged attack +350 and strength +35, magic attack +300, the defence bonuses, the 80% air weakness, Defence drained to 117 of 195 at most (the 21 October 2026 hotfix). Her throw is moia_projectile_attack01 and her death moia_death01, by name from the cache; her dagger is moia_dagger (4214). Her daggers, teleports, cough and binders come from her fight (Moia), at players anywhere on her arena; the range is only the file's most. Guessed: no block animation (tsps capture notes: none of the raid's bosses plays one), the throw's animation for every attack, the respawn, which never comes. Not in: the Wiki's poisonous attacks other than her cough"
+    },
+    {
+      "npcs": ["tfa_moia_minion"],
+      "attackSpeed": 5,
+      "maxHit": 16,
+      "attackType": "crush",
+      "attackBonus": 0,
+      "strengthBonus": 15,
+      "defence": { "stab": 12, "slash": 15, "crush": 10, "magic": -20, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "moia_minion_attack", "defend": null, "death": "moia_minion_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Undead binder (id 16670), read 2026-11-11: speed 5, strength +15, the defence bonuses it lists (stab, slash, crush, magic). Its swing is moia_minion_attack and its death moia_minion_death, by name from the cache; its hits come from Moia's fight, at anyone within two tiles (guides). Guessed: crush, the max hit of 16 (the formula's from a Strength of about 120, the Wiki giving none), no ranged defence (the Wiki lists none), no block animation, the respawn, which never comes (her fight raises it again)"
+    },
+    {
+      "npcs": ["tfa_dagonhai_leader", "tfa_dagonhai_leader_unshielded"],
+      "attackSpeed": 6,
+      "maxHit": 27,
+      "attackType": "ranged",
+      "attackBonus": 180,
+      "strengthBonus": 0,
+      "magicAttack": 250,
+      "range": 10,
+      "attacks": [ { "anim": "npc_dagonhai_attack_ranged_01", "projectile": 4071 } ],
+      "defence": { "stab": 50, "slash": 50, "crush": 50, "magic": 100, "light": 80, "standard": 80, "heavy": 80 },
+      "anims": { "attack": "npc_dagonhai_attack_ranged_01", "defend": null, "death": "npc_dagonhai_death_01" },
+      "respawnTicks": 50,
+      "immune": ["poison", "venom"],
+      "source": "OSRS Wiki, Dagon'hai Elder and Dagon'hai Monk (ids 16643 to 16648), read 2026-11-11: speed 6, ranged max hit 27 (magic max hit 30 is the Elder's surge, Dagonhai.MAGIC_MAX), magic attack +250, ranged attack +180, defence stab, slash and crush 50, magic 100, ranged 80, immune to poison and venom. The weakened (`_unshielded`) forms share the entry. Animations by name from the cache. Their attacks, channels and tomes come from their fight (Dagonhai), at players anywhere on the floor; the range is only the file's most. Guessed: no block animation (tsps: none of the bosses plays one), the respawn, which never comes. Not in: the Defence drain floor (a bug, fixed 11 November per the guides)"
+    },
+    {
+      "npcs": ["tfa_dagonhai_minion_1", "tfa_dagonhai_minion_1_unshielded"],
+      "attackSpeed": 6,
+      "maxHit": 27,
+      "attackType": "ranged",
+      "attackBonus": 180,
+      "strengthBonus": 0,
+      "magicAttack": 250,
+      "range": 10,
+      "attacks": [ { "anim": "npc_dagonhai_attack_ranged_01", "projectile": 4071 } ],
+      "defence": { "stab": 50, "slash": 50, "crush": 50, "magic": 100, "light": 80, "standard": 80, "heavy": 80 },
+      "anims": { "attack": "npc_dagonhai_attack_ranged_01", "defend": null, "death": "npc_dagonhai_death_02" },
+      "respawnTicks": 50,
+      "immune": ["poison", "venom"],
+      "source": "OSRS Wiki, Dagon'hai Elder and Dagon'hai Monk (ids 16643 to 16648), read 2026-11-11: speed 6, ranged max hit 27 (magic max hit 30 is the Elder's surge, Dagonhai.MAGIC_MAX), magic attack +250, ranged attack +180, defence stab, slash and crush 50, magic 100, ranged 80, immune to poison and venom. The weakened (`_unshielded`) forms share the entry. Animations by name from the cache. Their attacks, channels and tomes come from their fight (Dagonhai), at players anywhere on the floor; the range is only the file's most. Guessed: no block animation (tsps: none of the bosses plays one), the respawn, which never comes. Not in: the Defence drain floor (a bug, fixed 11 November per the guides)"
+    },
+    {
+      "npcs": ["tfa_dagonhai_minion_2", "tfa_dagonhai_minion_2_unshielded"],
+      "attackSpeed": 6,
+      "maxHit": 27,
+      "attackType": "ranged",
+      "attackBonus": 180,
+      "strengthBonus": 0,
+      "magicAttack": 250,
+      "range": 10,
+      "attacks": [ { "anim": "npc_dagonhai_attack_ranged_01", "projectile": 4071 } ],
+      "defence": { "stab": 50, "slash": 50, "crush": 50, "magic": 100, "light": 80, "standard": 80, "heavy": 80 },
+      "anims": { "attack": "npc_dagonhai_attack_ranged_01", "defend": null, "death": "npc_dagonhai_death_03" },
+      "respawnTicks": 50,
+      "immune": ["poison", "venom"],
+      "source": "OSRS Wiki, Dagon'hai Elder and Dagon'hai Monk (ids 16643 to 16648), read 2026-11-11: speed 6, ranged max hit 27 (magic max hit 30 is the Elder's surge, Dagonhai.MAGIC_MAX), magic attack +250, ranged attack +180, defence stab, slash and crush 50, magic 100, ranged 80, immune to poison and venom. The weakened (`_unshielded`) forms share the entry. Animations by name from the cache. Their attacks, channels and tomes come from their fight (Dagonhai), at players anywhere on the floor; the range is only the file's most. Guessed: no block animation (tsps: none of the bosses plays one), the respawn, which never comes. Not in: the Defence drain floor (a bug, fixed 11 November per the guides)"
+    },
+    {
+      "npcs": ["tfa_dagonhai_demon"],
+      "attackSpeed": 4,
+      "maxHit": 20,
+      "attackType": "slash",
+      "attackBonus": 0,
+      "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "leagues_6_thrall_imp_melee_attack", "defend": null, "death": "leagues_6_thrall_imp_melee_despawn" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Imp (Dagon'hai Trio) (id 16650), read 2026-11-11: 44 hitpoints (the cache's too), combat level 168; the cache's stats (attack 250, strength 195, defence 50). Its idle, swing and despawn are the Leagues imp thrall's, by name from the cache. Melee, which Protect from Melee blocks (the guides'). Guessed: slash, speed 4, the max hit of 20 (the formula's from its Strength of 195 with no bonus), no bonuses, no block animation, the respawn, which never comes. Not in: player attacks on imps always hitting their max (the guides')"
     },
     {
       "npcs": ["tfa_xarth"],
@@ -1127,10 +1322,11 @@
       "range": 10,
       "defence": { "stab": 350, "slash": 100, "crush": 30, "magic": 200, "light": 250, "standard": 250, "heavy": 250 },
       "anims": { "attack": "npc_ocellus_phase3_melee_basic", "defend": null, "death": "npc_ocellus_phase3_death" },
+      "deathTicks": 14,
       "respawnTicks": 50,
       "immune": ["poison", "venom", "freeze"],
       "drainCap": { "defence": 60 },
-      "source": "OSRS Wiki, Ocellus (phase 3, id 16677), read 2026-11-10: speed 3, melee max hit 30 and magic 36, the defence bonuses, immune to poison and venom, Defence drained to 150 at most (60% of 250). Immune to freeze, guessed as in his first phase. His attacks come from his fight (Ocellus): melee on his tank, his slash, a void shot at everyone when he can't reach the tank (tsps capture notes; Wiki). Guessed: slash as his melee style, no attack bonuses (the Wiki's are unreadable), no block animation, the 10-tile range, the respawn, which never comes"
+      "source": "OSRS Wiki, Ocellus (phase 3, id 16677), read 2026-11-10: speed 3, melee max hit 30 and magic 36, the defence bonuses, immune to poison and venom, Defence drained to 150 at most (60% of 250). Immune to freeze, guessed as in his first phase. His attacks come from his fight (Ocellus): melee on his tank, his slash, a void shot at everyone when he can't reach the tank (tsps capture notes; Wiki). Guessed: slash as his melee style, no attack bonuses (the Wiki's are unreadable), no block animation, the 10-tile range, his body going 14 ticks after his death, as the Blade appears where he fell (step 27c; the capture notes' 14 ticks to the Blade), the respawn, which never comes"
     },
     {
       "npcs": ["tfa_ocellus_p3_void_vine"],
@@ -1199,6 +1395,51 @@
       "immune": ["poison", "venom", "freeze"],
       "xpBonus": 12.5,
       "source": "OSRS Wiki, Ocellus (phase 2, ids 16675 and 16676), read 2026-11-10: magic, the portal's max hit 25, the defence bonuses, the 12.5% XP bonus, the Blade's Defence drained to 0 (no cap). Neither attacks by itself: his second phase has no Attack and the Blade only takes the party's (his fight, Ocellus; tsps capture notes). The portals' shots come from his fight. Guessed: the 5-tick speed (the Wiki gives 0, never used), no block or death animation, poison, venom and freeze immunity as in his first phase, the respawn, which never comes"
+    },
+    {
+      "npcs": ["favour_guard_male_no_beard"],
+      "attackSpeed": 7, "maxHit": 2, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 5, "slash": 5, "crush": 0, "magic": 0, "light": 5, "standard": 5, "heavy": 5 },
+      "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 25,
+      "source": "OSRS Wiki, H.A.M. Guard (level 12), read 2026-11-10: speed 7, max hit 2, crush, no attack or strength bonus, stab and slash +5, ranged +5, crush and magic 0, respawn 25, not aggressive. The level 18 and 22 rows were read from the page's data where its infobox was garbled. The animations are guessed (unarmed, as the jail guards')"
+    },
+    {
+      "npcs": ["favour_guard_male_bearded"],
+      "attackSpeed": 6, "maxHit": 3, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 6, "slash": 6, "crush": 0, "magic": 0, "light": 6, "standard": 6, "heavy": 6 },
+      "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 25,
+      "source": "OSRS Wiki, H.A.M. Guard (level 18), read 2026-11-10: speed 6, max hit 3, crush, no attack or strength bonus, stab and slash +6, ranged +6, crush and magic 0, respawn 25, not aggressive. The level 18 and 22 rows were read from the page's data where its infobox was garbled. The animations are guessed (unarmed, as the jail guards')"
+    },
+    {
+      "npcs": ["favour_guard_long_beard"],
+      "attackSpeed": 5, "maxHit": 3, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 7, "slash": 7, "crush": 0, "magic": 0, "light": 7, "standard": 7, "heavy": 7 },
+      "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 25,
+      "source": "OSRS Wiki, H.A.M. Guard (level 22), read 2026-11-10: speed 5, max hit 3, crush, no attack or strength bonus, stab and slash +7, ranged +7, crush and magic 0, respawn 25, not aggressive. The level 18 and 22 rows were read from the page's data where its infobox was garbled. The animations are guessed (unarmed, as the jail guards')"
+    },
+    {
+      "npcs": ["dttd_ham_guard_1_postquest", "dttd_ham_guard_2_postquest", "dttd_ham_guard_3_postquest", "dttd_ham_guard_4_postquest", "dttd_ham_guard_5_postquest"],
+      "attackSpeed": 5, "maxHit": 3, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 7, "slash": 7, "crush": 0, "magic": 0, "light": 7, "standard": 7, "heavy": 7 },
+      "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 25,
+      "source": "OSRS Wiki, Guard (H.A.M. Storerooms), read 2026-11-10: speed 5, max hit 3, crush, no attack or strength bonus, stab and slash +7, ranged +7, crush and magic 0, respawn 25, not aggressive (they attack a player picking a door in sight, HamStorerooms.kt). No drops on the page. The animations are guessed (unarmed, as the hideout's guards')"
+    },
+    {
+      "npcs": ["small_bat"],
+      "attackSpeed": 4,
+      "maxHit": 1,
+      "attackType": "stab",
+      "attackBonus": 0,
+      "strengthBonus": 0,
+      "defence": { "stab": 2, "slash": 2, "crush": 5, "magic": 2, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "bat_rework_attack", "defend": "bat_rework_defend", "death": "bat_rework_death" },
+      "respawnTicks": 35,
+      "weakness": { "element": "air", "percent": 35 },
+      "source": "OSRS Wiki, Bat (level 6, id 2827, Silvarea among its places), read 2026-11-11: speed 4, max hit 1, stab, no attack or strength bonus, stab and slash +2, crush +5, magic +2, ranged 0, respawn 35, not aggressive, 35% weak to air spells. The bat_rework fight animations are taken as the ones that go with its stand and fly (inferred)"
     }
   ]
 }

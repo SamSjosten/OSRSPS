@@ -16,11 +16,18 @@ import osrsps.game.Weapons
 
 private val logger = KotlinLogging.logger {}
 
-/** What a ranged weapon fires: arrows from bows, bolts from crossbows, darts from the blowpipe, and chinchompas. */
+/**
+ * What a ranged weapon fires: arrows from bows, bolts from crossbows, darts from the blowpipe (or thrown themselves, as
+ * knives and thrownaxes are), javelins from ballistae, and chinchompas.
+ */
 enum class AmmoKind {
     ARROWS,
     BOLTS,
+
+    /** The ascension crossbows' own, which no other crossbow fires (OSRS Wiki, Ascension crossbows). */
+    ASCENSION_BOLTS,
     DARTS,
+    JAVELINS,
 
     /** Thrown from the weapon slot ([RangedWeapon.thrown]), and blowing up in a 3x3 area ([RangedWeapon.targets]). */
     CHINCHOMPAS,
@@ -71,13 +78,16 @@ data class RangedWeapon(
  * Arrows or bolts: the graphic on the player as one is fired ([launch], [doubleLaunch] when two go at once; -1 for
  * none) and the projectile it flies as ([travel]).
  */
-data class RangedAmmo(val kind: AmmoKind, val tier: Int, val launch: Int, val doubleLaunch: Int, val travel: Int)
+data class RangedAmmo(val kind: AmmoKind, val tier: Int, val launch: Int, val doubleLaunch: Int, val travel: Int, val effect: BoltEffect? = null)
+
+/** What an enchanted bolt can do as it is fired ([BoltEffects]); `"effect"` in an ammo entry, by its lower-case name. */
+enum class BoltEffect { OPAL, JADE, PEARL, TOPAZ, SAPPHIRE, EMERALD, RUBY, DIAMOND, DRAGONSTONE, ONYX }
 
 /**
  * The ranged weapons and the ammunition they fire, by item id. Tiers stand for the Wiki's "up to and including" lists
  * on each weapon's page (an iron crossbow fires bronze, blurite and iron bolts); ranges are the Wiki's Attack range
- * table. Weapons that aren't here (thrown weapons other than chinchompas, crystal bows, the dragon hunter crossbow with
- * its own rules, ballistas) come with later steps.
+ * table. Thrown darts, knives and thrownaxes are `darts` weapons that are `thrown`; ballistae fire `javelins` (Artisan 2,
+ * A4a). Weapons that aren't here (crystal bows, the dragon hunter crossbow with its own rules) come with later steps.
  */
 class RangedWeapons(private val weapons: Map<Int, RangedWeapon>, private val ammo: Map<Int, RangedAmmo>) {
     fun weapon(type: ObjType?): RangedWeapon? = type?.let { weapons[it.id] }
@@ -115,7 +125,7 @@ class RangedWeapons(private val weapons: Map<Int, RangedWeapon>, private val amm
          * Items are gameval names. `shots`, `launch` and `doubleLaunch` may be left out (1, none, none). A weapon may
          * also have `"scaling": "twisted_bow"`, `"bounces"` (0 to 2), its own `launch` and `travel`, `"loaded": true`
          * (the blowpipe), `"thrown": true` (chinchompas, which must be), `"targets"` (chinchompas' cap, which they must have)
-         * and a `"delay"` other than the bow's. Animations and
+         * and a `"delay"` other than the bow's; ammunition may have an enchanted bolt's `"effect"` ([BoltEffect]). Animations and
          * spotanims are gameval names too; one [seqs] or [spotanims] doesn't know fails the file, unless it knows no
          * names at all (a cache with no gameval index), when they are all left out. An item the cache doesn't have is
          * skipped with a warning.
@@ -186,7 +196,10 @@ class RangedWeapons(private val weapons: Map<Int, RangedWeapon>, private val amm
                     launch = spotanim(entry, "launch"),
                     doubleLaunch = spotanim(entry, "doubleLaunch"),
                     travel = entry.required("travel").let { spotanim(entry, "travel") },
-                )
+                    effect = entry["effect"]?.jsonPrimitive?.content?.let { name ->
+                        BoltEffect.entries.firstOrNull { it.name.equals(name, ignoreCase = true) } ?: throw IllegalArgumentException("no bolt effect \"$name\"")
+                    },
+                ).also { require(it.effect == null || it.kind == AmmoKind.BOLTS) { "only bolts have an \"effect\"" } }
             }
             if (unknown.isNotEmpty()) logger.warn { "$fileName: skipped items the cache doesn't have: ${unknown.joinToString()}" }
             return RangedWeapons(weapons, ammo)
@@ -201,8 +214,9 @@ class RangedWeapons(private val weapons: Map<Int, RangedWeapon>, private val amm
             val category = Weapons.category(type)
             val expected = when (value.kind) {
                 AmmoKind.ARROWS -> Weapons.BOW
-                AmmoKind.BOLTS -> Weapons.CROSSBOW
+                AmmoKind.BOLTS, AmmoKind.ASCENSION_BOLTS -> Weapons.CROSSBOW
                 AmmoKind.DARTS -> Weapons.THROWN
+                AmmoKind.JAVELINS -> Weapons.CROSSBOW
                 AmmoKind.CHINCHOMPAS -> Weapons.GRENADE
             }
             if (category != expected) logger.warn { "${type.name} (${type.id}) has weapon category $category, not $expected; it won't fire" }

@@ -124,6 +124,10 @@ class RangedCombat(
         val slot: Int = WearPos.AMMO,
         /** Whether [ammo] that doesn't come back or break falls to the floor (a throw's never does, yet). */
         val floor: Boolean = true,
+        /** The enchanted bolt effect that fired with it, shown and finished as it lands ([BoltEffects]). */
+        val effect: BoltEffect? = null,
+        /** Whether it was fired from the Zaryte crossbow, whose passive strengthens [effect] ([BoltEffects.roll]). */
+        val zaryte: Boolean = false,
     )
 
     private val inFlight = ArrayList<Shot>()
@@ -217,7 +221,12 @@ class RangedCombat(
         val ammoType = objTypes[worn.id]
         val ammo = weapons.ammo(ammoType)
         if (ammoType == null || ammo == null || !weapon.fires(ammo)) {
-            message(player, words(player)[if (weapon.kind == AmmoKind.BOLTS) CombatLines.WRONG_BOLTS else CombatLines.WRONG_ARROWS])
+            val line = when (weapon.kind) {
+                AmmoKind.BOLTS, AmmoKind.ASCENSION_BOLTS -> CombatLines.WRONG_BOLTS
+                AmmoKind.JAVELINS -> CombatLines.WRONG_JAVELINS
+                else -> CombatLines.WRONG_ARROWS
+            }
+            message(player, words(player)[line])
             return false
         }
         val matchup = combat.rangedMatchup(player, npc) ?: return false
@@ -241,19 +250,22 @@ class RangedCombat(
     }
 
     /**
-     * A throw: one from the stack in the weapon slot, the numbers taken while it was still there, and nothing to the
+     * A throw: one from the stack in the weapon slot, the numbers (and the speed) taken while it was still there, and nothing to the
      * floor. Chinchompas can't be picked up again, even when they do no damage (OSRS Wiki, Chinchompa (weapon)), and no
      * Ava's device brings them back (Ava's device); darts, knives, thrownaxes and the rest come back to the weapon slot
-     * as arrows do to the quiver.
+     * as arrows do to the quiver, and without one fall under the target as arrows do (a fifth breaking; inferred from
+     * arrows, as the Wiki's Ammunition page treats them alike).
      */
     private fun fireThrown(player: Player, npc: Npc, weapon: RangedWeapon, tick: Long): Boolean {
         val matchup = combat.rangedMatchup(player, npc) ?: return false
         val thrown = combat.weapon(player)
         val poison = PoisonedWeapons.ranged(thrown)
+        // The speed too: the last one thrown leaves the slot empty, and an empty hand's speed is slower.
+        val speed = speed(player, matchup.style)
         player.equipment.remove(WearPos.WEAPON, 1)
         val recover = if (weapon.targets > 1) 0 else recovery(player)
-        val back = if (recover > 0) thrown else null
-        release(player, npc, weapon, null, back, matchup, 1, tick, poison = poison, recover = recover, slot = WearPos.WEAPON, floor = false)
+        val back = if (recover > 0 || !weapon.splash) thrown else null
+        release(player, npc, weapon, null, back, matchup, 1, tick, poison = poison, recover = recover, slot = WearPos.WEAPON, floor = !weapon.splash, speed = speed)
         return true
     }
 
@@ -272,9 +284,10 @@ class RangedCombat(
         recover: Int = 0,
         slot: Int = WearPos.AMMO,
         floor: Boolean = true,
+        speed: Int = speed(player, matchup.style),
     ) {
         val style = matchup.style
-        player.nextAttackTick = tick + speed(player, style)
+        player.nextAttackTick = tick + speed
         if (weapon.anim >= 0) player.effects.anim(weapon.anim, 0)
         val launch = when {
             weapon.launch >= 0 -> weapon.launch
@@ -288,15 +301,21 @@ class RangedCombat(
         val size = npc.type.size
         val distance = LineOfSight.distance(player.x, player.z, 1, npc.x, npc.z, size, size)
         val landTick = tick + weapon.delay.ticks(distance) + HitDelay.ON_NPC
+        val zaryte = combat.weapon(player)?.internalName == BoltEffects.ZARYTE
         repeat(shots) { shot ->
             if (travel >= 0) projectile(flight(player, npc, travel, landTick - tick, shot))
             // Accuracy first, then damage, as for melee; a shot's random draws are always these two.
             val sure = combat.sureHit(player, npc, style.type)
-            val hit = CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll) || player.sureHits || sure == SureHit.MAX
-            val rolled = if (hit) CombatMath.rollDamage(random, matchup.maxHit).let { if (sure != SureHit.ROLLED) matchup.maxHit else it } else 0
+            val accurate = CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll) || player.sureHits || sure == SureHit.MAX
+            val damageRoll = { max: Int -> CombatMath.rollDamage(random, max).let { if (sure != SureHit.ROLLED) max else it } }
+            // An enchanted bolt's effect takes one more draw, after accuracy and before damage ([BoltEffects]).
+            val effect = ammo?.effect?.takeIf { weapon.kind == AmmoKind.BOLTS && BoltEffects.rolls(it) }
+            val bolt = effect?.let { BoltEffects.roll(it, random, player, npc, accurate, matchup.maxHit, zaryte, damageRoll) }
+            val hit = bolt?.hit ?: accurate
+            val rolled = bolt?.damage ?: if (hit) damageRoll(matchup.maxHit) else 0
             val damage = reserve(player, npc, style, combat.rolledOn(player, npc, style.type, rolled))
             melee.attackMade(player, npc, tick)
-            inFlight += Shot(player, npc, damage, landTick, dropped, weapon.bounces, style, matchup.attackRoll, matchup.maxHit, travel, hit, weapon.targets, poison, venom, from = Tile(player.x, player.z), recover = recover, slot = slot, floor = floor)
+            inFlight += Shot(player, npc, damage, landTick, dropped, weapon.bounces, style, matchup.attackRoll, matchup.maxHit, travel, hit, weapon.targets, poison, venom, from = Tile(player.x, player.z), recover = recover, slot = slot, floor = floor, effect = effect?.takeIf { bolt?.fired == true }, rolledMax = bolt?.max ?: matchup.maxHit, zaryte = zaryte)
         }
     }
 
@@ -388,12 +407,27 @@ class RangedCombat(
             // A shot whose NPC is still there hits it, and bounces on even if that hit kills it. Guessed for a hidden
             // NPC: a shot on its way when it went from sight does nothing, as for one that died.
             val landed = npcs[npc.index] === npc && !npc.outOfPlay
-            if (landed) melee.weaponPoison(npc, melee.hit(npc, shot.player, shot.damage, tick, shot.rolledMax, shot.from), shot.poison, shot.venom, ranged = true)
+            if (landed) {
+                // The graphic goes on first, so a death graphic the killing hit sets in the same slot wins.
+                shot.effect?.let { npc.effects.spotanim(0, BoltEffects.spotanim(it), 0) }
+                val dealt = melee.hit(npc, shot.player, shot.damage, tick, shot.rolledMax, shot.from)
+                melee.weaponPoison(npc, dealt, shot.poison, shot.venom, ranged = true)
+                shot.effect?.let { boltLanded(shot, it, dealt, tick) }
+            }
             land(shot, npc)
             if (landed && shot.bounces > 0) bounce(shot, tick)?.let { bounced += it }
             if (landed && shot.targets > 1) splash(shot, tick)
         }
         inFlight += bounced
+    }
+
+    /** What a fired bolt effect does after its hit ([BoltEffects]); its graphic went on before the hit. */
+    private fun boltLanded(shot: Shot, effect: BoltEffect, dealt: Int, tick: Long) {
+        when (effect) {
+            BoltEffect.EMERALD -> melee.poisonFromBolt(shot.npc, if (shot.zaryte) BoltEffects.EMERALD_POISON_ZARYTE else BoltEffects.EMERALD_POISON)
+            BoltEffect.RUBY -> BoltEffects.rubyCost(shot.player).takeIf { it > 0 }?.let { melee.hitPlayer(shot.player, null, it, tick) }
+            else -> BoltEffects.landed(effect, shot.player, shot.npc, dealt)
+        }
     }
 
     /**

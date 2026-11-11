@@ -75,6 +75,7 @@ class AgilityDataTest {
         assertEquals(
             mapOf(
                 "shortcut_varrock_fence" to (13 to 0),
+                "shortcut_lumber_yard_fence" to (1 to 0),
                 "shortcut_grand_exchange_tunnel" to (21 to 0),
                 "shortcut_champions_guild_stone" to (31 to 30),
                 "shortcut_draynor_tunnel" to (42 to 0),

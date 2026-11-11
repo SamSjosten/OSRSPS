@@ -1,10 +1,12 @@
 package osrsps.game.raid
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import osrsps.game.Inventory
 import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.combat.CombatLines
 import osrsps.game.combat.DeathPlace
+import osrsps.game.combat.GraveFees
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Lines
 import osrsps.game.encounter.Encounter
@@ -140,6 +142,9 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
     /** The damage each player has done in each room, by [Player.saveKey]. */
     val damage = HashMap<ArchiveRoom, MutableMap<String, Int>>()
 
+    /** The damage each player has done in each room to its fight's minions ([osrsps.game.encounter.EncounterDef.minions]), counted only up to a cap. */
+    val minionDamage = HashMap<ArchiveRoom, MutableMap<String, Int>>()
+
     /** Contribution points, by [Player.saveKey]. */
     val points = LinkedHashMap<String, Int>()
 
@@ -148,6 +153,9 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
 
     /** Who is down now, by [Player.saveKey]: dead in this room, with the party still standing. Up again once it is done. */
     val downed = LinkedHashSet<String>()
+
+    /** Who lies dying with their death counted already ([ArchiveRaids.fell]), by [Player.saveKey], till they get up. */
+    internal val fallen = HashSet<String>()
 
     /**
      * The nexus tile each member went through a room's door from, by [Player.saveKey] and room, in the cache's
@@ -203,6 +211,38 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
     var riftOut: Npc? = null
         internal set
 
+    /** What the run's end paid, each member's chest by save key ([ArchiveChests.pay]); null until Ocellus's room is done. */
+    var loot: LootResult? = null
+        internal set
+
+    /** The Quartermaster in the nexus while he is there ([ArchiveSupplies]), and whether he has come this run. */
+    var quartermaster: Npc? = null
+        internal set
+    internal var suppliesCame = false
+
+    /** Each member's stock of the Quartermaster's shop, by [Player.saveKey] ([ArchiveSupplies.STOCK]). */
+    internal val supplies = HashMap<String, Inventory>()
+
+    /** The members whose stock has had the failure shop's Leftovers put in ([ArchiveSupplies.LEFTOVERS]). */
+    internal val suppliesLeftovers = HashSet<String>()
+
+    /** What each member brought in of the Quartermaster's supplies, by [Player.saveKey], as doses or items by kind ([ArchiveSupplies.held]). */
+    internal val suppliesBrought = HashMap<String, Map<Int, Int>>()
+
+    /**
+     * What members who got out had brought in beyond what they left with, by [Player.saveKey]: for their drops still on
+     * the floor, picked up by another member ([ArchiveSupplies.pickedUp]).
+     */
+    internal val suppliesLeft = HashMap<String, Map<Int, Int>>()
+
+    /** Each paid member's chest in the reward vault, by save key: its slot, from 0 ([ArchiveChests.SLOTS]). */
+    val chestSlots = LinkedHashMap<String, Int>()
+
+    /** The vault's chests by slot, the slots opening with the tick each is open on, and the slots open. */
+    internal val chests = HashMap<Int, Npc>()
+    internal val opening = HashMap<Int, Long>()
+    val opened = HashSet<Int>()
+
     /** The stage the party is at: the first not done. */
     val stage: Int get() = (1..ArchiveRaids.STAGES).firstOrNull { s -> ArchiveRoom.atStage(s).none { it in cleared } } ?: (ArchiveRaids.STAGES + 1)
 
@@ -240,8 +280,8 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
  * - The reward vault (raid step 28) is the cache's map square 64,90, two squares north of Ocellus's as on the map, on
  *   its own levels, the party on level 2 (tsps capture notes). [ArchiveRaids.travel] takes a member there from
  *   Ocellus's room once it is done (the Blade's Travel); its Rift out comes [ArchiveRaids.RIFT_OUT_DELAY] ticks after
- *   the first of them and leaves to the lobby. Its chests and the loot aren't built (raid step 29), nor its Merit
- *   scroll's records.
+ *   the first of them and leaves to the lobby. Its chests and what a run pays are [ArchiveChests] (raid step 29a);
+ *   its Merit scroll's records aren't built.
  * - The nexus is the cache's map square 64,87 on its level 0 at the start and its level 2 (the Guardian's corpse and a
  *   camp of crates and barricades) once the Guardian is done, with the level above each on the instance's level 1 (the
  *   hall again a storey and a half up, and the south end of the vault's corridor). The Guardian is fought in the nexus's hall, from its
@@ -251,8 +291,11 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
  *   it and answers Yes to its menu, waiting in the hall as the cache's "Inert Guardian" (`tfa_guardian_start`, Touch)
  *   from the run's start; its party size is everyone standing in the run then ([ArchiveGuardian], raid step 16).
  * - The whole of a run's instance is multi-way, as a raid of up to eight against one boss must be. Inferred.
- * - A room's points are [ROOM_POINTS], shared by damage among those who did any, or evenly among who was there when it
- *   began if nobody did. The number is made up: the Wiki has none.
+ * - A room's points are [ROOM_POINTS], and Ocellus's [OCELLUS_POINTS] ("Every boss except Ocellus awards 100
+ *   contribution points to the team, which is divided between party members based on damage dealt", and his 300: the
+ *   Wiki's chest page), shared by damage among those who did any, or evenly among who was there when it began if
+ *   nobody did. Guessed: the even share. Damage to a fight's minions (Moia's binders, the Dagon'hai's imps and rifts)
+ *   counts only up to a cap ([credited]), for the Wiki's soft cap; the other rooms' adds aren't capped yet.
  * - A party member who dies with someone still standing keeps everything and is down until the room is done: in the
  *   nexus, in front of the room's door (in the entrance, for the Guardian's hall), and sent out again if they walk back
  *   in. Spectating isn't built.
@@ -264,10 +307,16 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
  *   the linger is no escape.
  */
 class ArchiveRaids(private val world: World) {
+    /** The reward vault's chests, and what a run's end pays into them (raid step 29a). */
+    val chests = ArchiveChests(world, this)
+    val supplies = ArchiveSupplies(world, this)
     private val runs = LinkedHashMap<Party, ArchiveRun>()
     private var nextId = 1
 
     fun of(party: Party): ArchiveRun? = runs[party]
+
+    /** The runs going on. */
+    internal fun runs(): Collection<ArchiveRun> = runs.values
 
     /**
      * Whether [player] is down in a run: out of the fight till its room is done, their items at stake. Wherever they
@@ -283,6 +332,7 @@ class ArchiveRaids(private val world: World) {
 
     fun register() {
         world.multiCombat.dynamic = { _, x, z -> at(x, z) != null }
+        world.magicCombat.landings += Dagonhai::spellLanded
         world.handlers.onNpc(ArchiveGuardian.DORMANT, ArchiveGuardian.TOUCH) { op -> askTouch(this, op.npc!!) }
         // The figure is a multi-NPC: an op names the type the player is shown, met or not (242 cache).
         for (type in listOf(Ocellus.INTRO, Ocellus.INTRO_NOT_MET, Ocellus.INTRO_MET)) {
@@ -312,6 +362,8 @@ class ArchiveRaids(private val world: World) {
             val op = riftOps.indexOf(name).takeIf { it >= 0 }?.plus(1) ?: if (name == LEAVE) 1 else 3
             world.handlers.onNpc(RIFT_OUT, op) { leave(player) }
         }
+        chests.register()
+        supplies.register()
         world.combat.shutOut = ::shutOut
         // His stepping stones' Jump, in his third phase, and his second phase barred to splash: after the shutOut
         // above, which Ocellus adds to.
@@ -366,11 +418,17 @@ class ArchiveRaids(private val world: World) {
 
     /** Through the Archive Door: into the party's run, opening one if it has none. */
     fun enter(player: Player) {
+        // Loot of an earlier run still in the Loot Wheelbarrow: claimed first (a guess; see [ArchiveChests]).
+        if (world.archiveChestWindow.waiting(player)) {
+            player.message(world.textFor(player)[ArchiveVaultLines.CLAIM_FIRST])
+            return
+        }
         val party = world.parties.start(player)
         val run = runs[party] ?: open(party, player) ?: return
         // Once the Guardian's fight has begun, nobody comes in, or back in: that would be a way to the bank mid-raid.
         if (run.wiped || run.started.isNotEmpty()) return
         run.entered += player.saveKey
+        supplies.entered(run, player)
         val to = tile(run, NEXUS_X, NEXUS_Z)
         world.teleport(player, to.x, to.z, 0)
     }
@@ -404,8 +462,10 @@ class ArchiveRaids(private val world: World) {
         ArchiveRoom.GUARDIAN -> world.encounters.defs[ArchiveGuardian.NAME] != null && world.npcTypes[ArchiveGuardian.DORMANT] != null
         ArchiveRoom.EZEKIEL -> world.encounters.defs[Ezekiel.NAME] != null
         ArchiveRoom.BORK -> world.encounters.defs[Bork.NAME] != null
+        ArchiveRoom.MOIA -> world.encounters.defs[Moia.NAME] != null
         ArchiveRoom.DREADNOTH -> world.encounters.defs[Dreadnoth.NAME] != null
         ArchiveRoom.XARTH -> world.encounters.defs[Xarth.NAME] != null
+        ArchiveRoom.DAGONHAI -> world.encounters.defs[Dagonhai.NAME] != null
         ArchiveRoom.OCELLUS -> world.encounters.defs[Ocellus.NAME] != null && world.npcTypes[Ocellus.INTRO] != null
         else -> false
     }
@@ -509,6 +569,36 @@ class ArchiveRaids(private val world: World) {
         run.presentAtStart[room] = standing.filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
         run.fights[room] = fight
         logger.info { "$run began Xarth's fight with ${standing.size} standing, ${first.username} first in" }
+    }
+
+    /**
+     * The first of the party onto the Dagon'hai's floor (by its transporter, [Dagonhai.ARENA_ENTRY_X]): their fight
+     * begins round the cauldron ([Dagonhai.X], guessed: the middle of the floor), its anchor. Not scaled to the party:
+     * the Wiki gives the trio one figure. With no NPC slot free for the cauldron or the three the room isn't started,
+     * as for Bork: the next tick with one of the party on the floor tries again.
+     */
+    private fun beginDagonhai(run: ArchiveRun, first: Player) {
+        val room = ArchiveRoom.DAGONHAI
+        val def = world.encounters.defs[Dagonhai.NAME] ?: return
+        val at = tile(run, Dagonhai.X, Dagonhai.Z)
+        val cauldron = world.spawnNpc(NpcSpawn(def.boss, at.x, at.z, 0, source = "$run", respawns = false))
+        if (cauldron == null) {
+            logger.warn { "$run: no room for the Dagon'hai's cauldron" }
+            return
+        }
+        val standing = standing(run)
+        // Only those on the floor are in the fight: not one still at the room's way in, behind the wall.
+        val fight = world.encounters.start(def, cauldron, { x, z -> Dagonhai.inArena(at.x, at.z, x, z) })
+        if (fight.adds.size < Dagonhai.MEMBERS.size) {
+            world.encounters.stop(fight)
+            world.removeNpc(cauldron)
+            logger.warn { "$run: no room for the Dagon'hai" }
+            return
+        }
+        run.started += room
+        run.presentAtStart[room] = standing.filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
+        run.fights[room] = fight
+        logger.info { "$run began the Dagon'hai's fight with ${standing.size} standing, ${first.username} first in" }
     }
 
     /**
@@ -632,6 +722,33 @@ class ArchiveRaids(private val world: World) {
         logger.info { "$run began Dreadnoth's fight with ${standing.size} standing, ${first.username} first in" }
     }
 
+    /**
+     * The first of the party onto Moia's arena, her room's round floor west of the way in: her fight begins, her where
+     * she stands as it does ([Moia.X], guessed), scaled to everyone standing in the run. Her room has no wall between
+     * the way in and the arena in the cache, so walking in begins it, with no transporter on the way.
+     */
+    private fun beginMoia(run: ArchiveRun) {
+        val room = ArchiveRoom.MOIA
+        val def = world.encounters.defs[Moia.NAME] ?: return
+        val at = tile(run, Moia.X, Moia.Z)
+        val boss = world.spawnNpc(NpcSpawn(def.boss, at.x, at.z, 0, source = "$run", respawns = false))
+        // With no NPC slot free, the room isn't started (as R18A-3 for Ezekiel): the next tick with one of the party in
+        // it tries again.
+        if (boss == null) {
+            logger.warn { "$run: no room for Moia" }
+            return
+        }
+        run.started += room
+        val standing = standing(run)
+        run.presentAtStart[room] = standing.filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
+        world.partyScaling.scale(boss, standing.size.coerceIn(1, PartyScaling.MAX_PARTY))
+        // All of her room is in her fight, its way in too: nothing walls it off from her floor, and with only her floor
+        // in it a step east cured her infection and dodged her charge's burst (exploit review round 26, R26A-2).
+        // From the way in she still can't be attacked ([shutOut]). Guessed: that live's fight reaches the way in.
+        run.fights[room] = world.encounters.start(def, boss, { x, z -> inRoom(run, room, x, z) })
+        logger.info { "$run began Moia's fight with ${standing.size} standing" }
+    }
+
     /** A nexus door: into its room, if its row is open to the party. */
     fun door(player: Player, door: Int) {
         val run = at(player.x, player.z) ?: return
@@ -732,9 +849,18 @@ class ArchiveRaids(private val world: World) {
             if (!inXarthArena(run, player)) world.teleport(player, to.x, to.z, 0)
             return
         }
+        if (room == ArchiveRoom.DAGONHAI && room !in run.cleared && built(room)) {
+            val to = tile(run, Dagonhai.ARENA_ENTRY_X, Dagonhai.ARENA_ENTRY_Z)
+            if (!inDagonhaiArena(run, player)) world.teleport(player, to.x, to.z, 0)
+            return
+        }
         if (room !in run.cleared) return
         move(run, player, room, into = false)
     }
+
+    /** Whether [player] stands on the floor of the Dagon'hai's room in [run], west of the wall from its way in. */
+    private fun inDagonhaiArena(run: ArchiveRun, player: Player): Boolean =
+        onArena(run, ArchiveRoom.DAGONHAI, player.x, player.z) == true
 
     /** Whether [player] stands on the floor of Xarth's arena in [run]. */
     private fun inXarthArena(run: ArchiveRun, player: Player): Boolean =
@@ -747,6 +873,10 @@ class ArchiveRaids(private val world: World) {
     /** Whether [player] stands on the floor of Dreadnoth's arena in [run] (tsps capture notes: 4181-4198 x 5656-5670). */
     private fun inDreadnothArena(run: ArchiveRun, player: Player): Boolean =
         onArena(run, ArchiveRoom.DREADNOTH, player.x, player.z) == true
+
+    /** Whether [player] stands on the floor of Moia's arena in [run], west of her room's way in. */
+    private fun inMoiaArena(run: ArchiveRun, player: Player): Boolean =
+        onArena(run, ArchiveRoom.MOIA, player.x, player.z) == true
 
     /** Whether [player] stands on the floor of Bork's arena in [run]. */
     private fun inBorkArena(run: ArchiveRun, player: Player): Boolean =
@@ -764,6 +894,9 @@ class ArchiveRaids(private val world: World) {
         ArchiveRoom.BORK -> Tile(BORK_ARENA_X, BORK_ARENA_Z)
         ArchiveRoom.DREADNOTH -> Tile(Dreadnoth.ARENA_ENTRY_X, Dreadnoth.ARENA_ENTRY_Z)
         ArchiveRoom.XARTH -> Tile(XARTH_ARENA_X, XARTH_ARENA_Z)
+        ArchiveRoom.DAGONHAI -> Tile(Dagonhai.ARENA_ENTRY_X, Dagonhai.ARENA_ENTRY_Z)
+        // Hers has no transporter onto it: the Navigator comes to its east edge, by the way in (guessed).
+        ArchiveRoom.MOIA -> Tile(Moia.NAVIGATOR_X, Moia.NAVIGATOR_Z)
         else -> null
     }
 
@@ -778,7 +911,9 @@ class ArchiveRaids(private val world: World) {
         ArchiveRoom.EZEKIEL -> tile(run, EZEKIEL_X, EZEKIEL_Z).let { Ezekiel.inArena(it.x, it.z, x, z) }
         ArchiveRoom.BORK -> tile(run, BORK_CART_X, BORK_CART_Z).let { Bork.inArena(it.x, it.z, x, z) }
         ArchiveRoom.DREADNOTH -> tile(run, Dreadnoth.X, Dreadnoth.Z).let { Dreadnoth.inArena(it.x, it.z, x, z) }
+        ArchiveRoom.MOIA -> tile(run, Moia.X, Moia.Z).let { Moia.inArena(it.x, it.z, x, z) }
         ArchiveRoom.XARTH -> tile(run, XARTH_X, XARTH_Z).let { Xarth.inArena(it.x, it.z, x, z) }
+        ArchiveRoom.DAGONHAI -> tile(run, Dagonhai.X, Dagonhai.Z).let { Dagonhai.inArena(it.x, it.z, x, z) }
         ArchiveRoom.OCELLUS -> tile(run, Ocellus.FIGURE_X, Ocellus.FIGURE_Z).let { Ocellus.inArena(Ocellus.centre(it.x, it.z), x, z) }
         else -> null
     }
@@ -898,6 +1033,7 @@ class ArchiveRaids(private val world: World) {
             run.rewardTick = world.tick
             logger.info { "$run: ${player.username} is the first into the reward vault" }
         }
+        chests.showOwn(run, player)
     }
 
     /**
@@ -959,9 +1095,12 @@ class ArchiveRaids(private val world: World) {
             // Everyone out at once (the last standing with a member down, both by Home Teleport on one tick): the
             // instance ended before this look, and whoever was down got out all the same.
             if (ended && !run.wiped) settleEscapes(run, ended = true)
+            if (ended) supplies.settleOut(run, ended = true)
             ended
         }
         for (run in runs.values.toList()) {
+            // Out of the run: what they bought of the Quartermaster stays in it (R26A-1).
+            supplies.settleOut(run, ended = false)
             if (run.wiped) continue
             // A fight whose boss has died: its room is done.
             for ((room, fight) in run.fights.entries.toList()) {
@@ -992,13 +1131,18 @@ class ArchiveRaids(private val world: World) {
                         room == ArchiveRoom.BORK -> if (inBorkArena(run, player)) beginBork(run, player)
                         room == ArchiveRoom.DREADNOTH -> if (inDreadnothArena(run, player)) beginDreadnoth(run, player)
                         room == ArchiveRoom.XARTH -> if (inXarthArena(run, player)) beginXarth(run, player)
+                        room == ArchiveRoom.DAGONHAI -> if (inDagonhaiArena(run, player)) beginDagonhai(run, player)
+                        // Moia's arena is open to her room's way in: walking onto it begins hers.
+                        room == ArchiveRoom.MOIA -> if (inMoiaArena(run, player)) beginMoia(run)
                     }
                 }
             }
             placeOcellusFigure(run)
             if (ArchiveRoom.OCELLUS !in run.started && ArchiveRoom.OCELLUS.stage == run.stage && run.ocellusFigure != null && ocellusReady(run)) beginOcellus(run)
             navigators(run)
+            supplies.process(run)
             riftOut(run)
+            chests.process(run)
             settleEscapes(run, ended = false)
             val present = present(run)
             if (present.isNotEmpty() && present.none { it.dead } && standing(run).isEmpty()) wipe(run, null)
@@ -1030,6 +1174,16 @@ class ArchiveRaids(private val world: World) {
         escaped(run, player)
     }
 
+    /** At each tick's start, before the players' input: the supplies of whoever got out of a run since are taken back (R26A-1). */
+    fun settleDepartures() {
+        for (run in runs.values) supplies.settleOut(run, ended = world.instances.all.none { it === run.instance })
+    }
+
+    /** [player] is leaving the world, any trade's offer back with them: what they hold of a run's supplies stays in it (R26A-1). */
+    fun settleSupplies(player: Player) {
+        for (run in runs.values) supplies.settle(run, player)
+    }
+
     /**
      * [player], down in [run], got out of it before it was done with them: they die as the last one standing would,
      * losing what a death loses into a grave in the lobby, and come back there. Without this a member down kept
@@ -1037,11 +1191,16 @@ class ArchiveRaids(private val world: World) {
      * review round 12, RAID-2, and its round 13 addendum). Sam's decision of 8 November 2026; the death's place is guessed.
      */
     private fun escaped(run: ArchiveRun, player: Player) {
-        run.downed -= player.saveKey
-        run.deaths[player.saveKey] = (run.deaths[player.saveKey] ?: 0) + 1
+        val key = player.saveKey
+        run.downed -= key
+        val before = run.deaths[key] ?: 0
         logger.info { "$run: ${player.username} got out while down, so dies of it" }
+        supplies.settle(run, player)
         player.message(world.textFor(player)[CombatLines.DEAD])
-        world.deaths.respawn(player, wipePlace(run))
+        world.deaths.respawn(player, wipePlace(run, player))
+        // One death: their fall in the respawn counted it already if they were still in the run ([fell]).
+        run.fallen -= key
+        run.deaths[key] = before + 1
     }
 
     /** [room]'s fight begins, with whoever of the party stands in it. Its boss isn't built yet, so it is done at once. */
@@ -1069,7 +1228,16 @@ class ArchiveRaids(private val world: World) {
      * Guardian's the nexus changes ([nexusLevel]); after the fourth room its Archive Door north opens ([placeOcellusDoor]).
      */
     fun clear(run: ArchiveRun, room: ArchiveRoom) {
-        if (room in run.cleared) return
+        if (room in run.cleared || run.wiped) return
+        // Ocellus dying with nobody of the party left on their feet (the last of them lying dying as he falls) is a
+        // wipe, as it would have been had he lived a few ticks more, not the raid's end with its loot. The earlier
+        // rooms get the same at the respawn, where the first of them up finds nobody standing ([deathPlace]); the
+        // raid's end pays before then (exploit review round 24, R24A-3). Guessed: what live does then isn't known.
+        if (room == ArchiveRoom.OCELLUS && standing(run).isEmpty() && present(run).isNotEmpty()) {
+            logger.info { "$run: Ocellus died with nobody of the party standing" }
+            wipe(run, null)
+            return
+        }
         // Done with its boss still up (::raid clear): the fight stops, and the boss goes.
         stopFight(run, room)
         if (room == ArchiveRoom.GUARDIAN) {
@@ -1087,6 +1255,8 @@ class ArchiveRaids(private val world: World) {
         // Whoever got out while down (a Home Teleport landing last tick) dies of it before the room's end gets them up.
         settleEscapes(run, ended = false)
         share(run, room)
+        // The raid's end: the loot is rolled, for whoever of the party is in the run now.
+        if (room == ArchiveRoom.OCELLUS) chests.pay(run)
         run.downed.clear()
         run.clearedTick = world.tick
         if (arenaEntry(room) != null && built(room)) run.navigatorDue[room] = world.tick + NAVIGATOR_DELAY
@@ -1104,15 +1274,28 @@ class ArchiveRaids(private val world: World) {
     }
 
     private fun share(run: ArchiveRun, room: ArchiveRoom) {
-        val dealt = run.damage[room].orEmpty().filterValues { it > 0 }
+        val dealt = credited(run, room).filterValues { it > 0 }
         val total = dealt.values.sum()
         val shares: Map<String, Int> = if (total > 0) {
-            dealt.mapValues { (_, damage) -> (ROOM_POINTS.toLong() * damage / total).toInt() }
+            dealt.mapValues { (_, damage) -> (points(room).toLong() * damage / total).toInt() }
         } else {
             val there = run.presentAtStart[room].orEmpty()
-            if (there.isEmpty()) emptyMap() else there.associateWith { ROOM_POINTS / there.size }
+            if (there.isEmpty()) emptyMap() else there.associateWith { points(room) / there.size }
         }
         for ((key, points) in shares) run.points[key] = (run.points[key] ?: 0) + points
+    }
+
+    /**
+     * What each player's damage in [room] counts for its points: all they did to its boss, and what they did to its
+     * minions up to [MINION_CAP_PERCENT] of everyone's damage to the boss. Without the cap, Moia's binders (rising
+     * again without end) gave a player who only killed them more points than the one who killed her (exploit review
+     * round 26, R26A-3). The Wiki has a soft cap on damage to a boss's minions; guessed: that it is a hard cap, its size.
+     */
+    internal fun credited(run: ArchiveRun, room: ArchiveRoom): Map<String, Int> {
+        val boss = run.damage[room].orEmpty()
+        val minions = run.minionDamage[room].orEmpty()
+        val cap = (boss.values.sumOf { it.toLong() } * MINION_CAP_PERCENT / 100).toInt()
+        return (boss.keys + minions.keys).associateWith { (boss[it] ?: 0) + minOf(minions[it] ?: 0, cap) }
     }
 
     /** A party member's hit on [npc] in a room of a run counts towards their share of its points. */
@@ -1123,8 +1306,22 @@ class ArchiveRaids(private val world: World) {
         if (player.saveKey !in run.entered) return
         val room = roomAt(run, npc.x, npc.z) ?: return
         if (room !in run.started || room in run.cleared) return
-        val byPlayer = run.damage.getOrPut(room, ::LinkedHashMap)
+        val minion = run.fights[room]?.def?.minions?.contains(npc.type.id) == true
+        val byPlayer = (if (minion) run.minionDamage else run.damage).getOrPut(room, ::LinkedHashMap)
         byPlayer[player.saveKey] = (byPlayer[player.saveKey] ?: 0) + dealt
+    }
+
+    /**
+     * [player] has just fallen ([osrsps.game.combat.Deaths.die]): a death in a run still going counts now, as they
+     * fall, not when they get up. Counted at the respawn, a death in the ticks before Ocellus died was counted after
+     * the loot was rolled, or by the run-is-done rule not at all, so it cost nothing (exploit review round 24,
+     * R24A-3). Not counted: a fall once the run is done or lost.
+     */
+    fun fell(player: Player) {
+        val run = at(player.x, player.z) ?: return
+        if (player.saveKey !in run.entered || run.wiped || run.completed) return
+        run.deaths[player.saveKey] = (run.deaths[player.saveKey] ?: 0) + 1
+        run.fallen += player.saveKey
     }
 
     /**
@@ -1138,6 +1335,8 @@ class ArchiveRaids(private val world: World) {
     fun deathPlace(player: Player): DeathPlace? {
         val run = at(player.x, player.z) ?: return null
         if (player.saveKey !in run.entered) return null
+        // Counted as they fell ([fell]), so a fall before the run's end counts even if they get up after it.
+        val counted = run.fallen.remove(player.saveKey)
         // Once the run is done there is no fight to be out of and no room left whose end would get anyone up: a death
         // then (poison, a late hit) kept its victim down for good, where leaving or logging out was a death with a
         // grave, and wiped a lone player out of a finished run (exploit review round 23, R23A-1).
@@ -1146,12 +1345,12 @@ class ArchiveRaids(private val world: World) {
             val (to, level) = if (inRewardRoom(run, player.x, player.z)) tile(run, REWARD_X, REWARD_Z) to REWARD_LEVEL else tile(run, NEXUS_X, NEXUS_Z) to NEXUS_PLANE
             return DeathPlace(keepItems = true, to.x, to.z, level, to.x, to.z, level)
         }
-        run.deaths[player.saveKey] = (run.deaths[player.saveKey] ?: 0) + 1
-        if (run.wiped) return wipePlace(run)
+        if (!counted) run.deaths[player.saveKey] = (run.deaths[player.saveKey] ?: 0) + 1
+        if (run.wiped) return wipePlace(run, player).also { supplies.settle(run, player) }
         val others = standing(run).filter { it !== player }
         if (others.isEmpty()) {
             wipe(run, player)
-            return wipePlace(run)
+            return wipePlace(run, player)
         }
         // A room done while they lay dying is a fight they're no longer out of: they get up standing.
         val fell = player.deathTick
@@ -1163,8 +1362,18 @@ class ArchiveRaids(private val world: World) {
         return DeathPlace(keepItems = true, to.x, to.z, NEXUS_PLANE, to.x, to.z, NEXUS_PLANE)
     }
 
-    private fun wipePlace(run: ArchiveRun) = DeathPlace(
+    /**
+     * Where [player]'s grave goes when [run] is lost for them: the lobby, outside the Archive Door. It counts as made
+     * where they fell in the cache's map (for its fee, [GraveFees]), or at the nexus's entrance for one who got out of
+     * the run while down.
+     */
+    private fun wipePlace(run: ArchiveRun, player: Player) = DeathPlace(
         keepItems = false, run.instance.exitX, run.instance.exitZ, run.instance.exitLevel, run.instance.exitX, run.instance.exitZ, run.instance.exitLevel,
+        coord = if (run.instance.contains(player.x, player.z)) {
+            GraveFees.coord(player.x - run.instance.baseX + FROM_X, player.z - run.instance.baseZ + FROM_Z, player.level)
+        } else {
+            GraveFees.coord(NEXUS_X, NEXUS_Z, NEXUS_PLANE)
+        },
     )
 
     /**
@@ -1178,8 +1387,10 @@ class ArchiveRaids(private val world: World) {
         for (room in run.fights.keys.toList()) stopFight(run, room)
         logger.info { "$run wiped${dying?.let { " as ${it.username} died" }.orEmpty()}" }
         for (member in present(run)) {
+            // What they lose goes in a grave: never the supplies (R26A-1).
+            supplies.settle(run, member)
             if (member === dying || member.dead) continue
-            world.deaths.respawn(member, wipePlace(run))
+            world.deaths.respawn(member, wipePlace(run, member))
         }
     }
 
@@ -1396,8 +1607,18 @@ class ArchiveRaids(private val world: World) {
         /** The level of the nexus for a run at [stage]: the corpse and camp once the Guardian is done. */
         fun nexusLevel(stage: Int): Int = if (stage > 1) NEXUS_CAMP else NEXUS_START
 
-        /** Each room's points, shared by damage. Guessed: the Wiki gives no number. */
-        const val ROOM_POINTS = 1000
+        /**
+         * The team's points for a room, shared by damage, and for Ocellus's: 700 a run ([ArchiveLoot.RUN_POINTS]), as
+         * the Wiki's chest page has them.
+         */
+        const val ROOM_POINTS = 100
+        const val OCELLUS_POINTS = 300
+
+        /** What damage to a room's minions counts for its points, at most: this share of everyone's damage to its boss. Guessed. */
+        const val MINION_CAP_PERCENT = 25
+
+        /** The team's points for [room]. */
+        fun points(room: ArchiveRoom): Int = if (room == ArchiveRoom.OCELLUS) OCELLUS_POINTS else ROOM_POINTS
 
         /**
          * The instance: the cache's map squares 63 to 65 by 86 to 88, level 0, laid out as they are, but for the

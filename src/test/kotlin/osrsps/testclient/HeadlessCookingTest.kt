@@ -27,7 +27,7 @@ import osrsps.map.LocShape
  */
 class HeadlessCookingTest {
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
-        val objs = arrayOfNulls<ObjType>(Cooking.SHRIMPS.burnt + 1)
+        val objs = arrayOfNulls<ObjType>(Cooking.FOODS.maxOf { maxOf(it.raw, it.cooked, it.burnt) } + 1)
         for (food in Cooking.FOODS) {
             for (id in listOf(food.raw, food.cooked, food.burnt)) objs[id] = ObjType(id, "Food $id")
         }

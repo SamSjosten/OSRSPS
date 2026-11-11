@@ -1,9 +1,11 @@
 package osrsps.game.skill
 
+import osrsps.game.GameLines
 import osrsps.game.Inventory
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
+import osrsps.game.content.message
 import osrsps.game.dialogue.Chatbox
 import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
@@ -138,6 +140,7 @@ class Making(private val world: World) {
         player.interaction = null
         if (!levelled(player, recipe, tell = true)) return
         if (quantity <= 0 || recipe.times(player.inventory) <= 0) return
+        if (keptInRaid(player, recipe)) return
         val job = Job(recipe, quantity)
         if (recipe.anim >= 0) player.anim(recipe.anim)
         // The movement phase comes after the tick's script phase, which is where this queue's delay first counts down.
@@ -153,8 +156,16 @@ class Making(private val world: World) {
         val player = context.player
         if (!levelled(player, recipe, tell = true)) return
         if (recipe.times(player.inventory) <= 0) return
+        if (keptInRaid(player, recipe)) return
         if (recipe.anim >= 0) player.anim(recipe.anim)
         make(player, recipe)
+    }
+
+    /** Whether [recipe] would make a raid's supplies into something else, refused with a message (R26A-1, Codex review on #636). */
+    private fun keptInRaid(player: Player, recipe: MakeRecipe): Boolean {
+        if (!world.archiveRaids.supplies.keepsFromMaking(player, recipe.inputs.map { it.obj }, recipe.product)) return false
+        world.message(player, GameLines.NOTHING_INTERESTING)
+        return true
     }
 
     private fun ScriptContext.makeOne(job: Job) {
@@ -194,6 +205,8 @@ class Making(private val world: World) {
             player.message(world.textFor(player)[MakeLines.NO_SPACE])
             return false
         }
+        // Supplies made in a raid run from what the player brought count as brought (R26A-1, Codex review on #636).
+        world.archiveRaids.supplies.made(player, recipe.inputs.map { it.obj to it.count * units }, outputs.map { (t, n) -> t.id to n })
         val line = if (failed) chance!!.failedLine else recipe.made
         player.skills.addTenths(recipe.skill, (if (failed) chance!!.failedXpTenths else recipe.xpTenths) * units)
         player.message(world.textFor(player).get(line, *args(recipe, line, made)))

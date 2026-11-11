@@ -62,6 +62,8 @@ import osrsps.game.bank.BankScreen
 import osrsps.game.bank.DepositBox
 import osrsps.game.bank.getVarbitIfKnown
 import osrsps.game.bank.setVarbitIfKnown
+import osrsps.game.shop.OmnishopScreen
+import osrsps.game.shop.Omnishops
 import osrsps.game.shop.ShopScreen
 import osrsps.game.shop.ShopTypes
 import osrsps.game.combat.Aggression
@@ -103,6 +105,16 @@ import osrsps.game.content.registerCandleSeller
 import osrsps.game.content.registerChurch
 import osrsps.game.content.registerEssenceMine
 import osrsps.game.content.registerFatherUrhney
+import osrsps.game.content.registerHamHideout
+import osrsps.game.content.registerHamStorerooms
+import osrsps.game.content.registerFarmsRoads
+import osrsps.game.content.registerLumberYard
+import osrsps.game.content.registerDigsite
+import osrsps.game.content.registerDigsiteDigs
+import osrsps.game.content.registerExamCentre
+import osrsps.game.content.registerMisthalinSweep
+import osrsps.game.content.registerPaterdomus
+import osrsps.game.content.registerSilvarea
 import osrsps.game.content.registerLumbridgeSwamp
 import osrsps.game.content.registerLumbridgeSwampCaves
 import osrsps.game.content.SwampCavesHazards
@@ -180,6 +192,7 @@ import osrsps.game.npc.NpcSpawn
 import osrsps.game.npc.Npcs
 import osrsps.game.encounter.EncounterDef
 import osrsps.game.encounter.Encounters
+import osrsps.game.raid.ArchiveChestWindow
 import osrsps.game.raid.ArchiveRaids
 import osrsps.game.raid.Parties
 import osrsps.game.raid.PartyScaling
@@ -204,10 +217,13 @@ import osrsps.game.skill.Pickpocketing
 import osrsps.game.skill.Agility
 import osrsps.game.skill.AgilityData
 import osrsps.game.skill.Thieving
+import osrsps.game.skill.ThievingLocks
 import osrsps.game.skill.SkillUnlocks
 import osrsps.game.skill.Smithing
 import osrsps.game.skill.Woodcutting
 import osrsps.game.skill.WoodcuttingData
+import osrsps.game.skill.magic.BoltEnchant
+import osrsps.game.skill.magic.BoltEnchantData
 import osrsps.game.skill.magic.TeleportData
 import osrsps.game.skill.magic.Teleports
 import osrsps.game.script.ScriptRunner
@@ -308,6 +324,8 @@ class World(
     potionData: Potions.Data = Potions.Data.NONE,
     /** The shops and their stock; tests that shop pass their own. */
     val shopTypes: ShopTypes = ShopTypes.NONE,
+    /** The cache's omnishops (the shared reward-shop interface); tests that use one pass their own. */
+    val omnishops: Omnishops = Omnishops.NONE,
     /** The levels whose level-up plays a skill's unlock jingle; see [LevelUps]. */
     skillUnlocks: SkillUnlocks = SkillUnlocks.NONE,
     /** The levels needed to wear items; tests that check levels pass their own. */
@@ -390,6 +408,8 @@ class World(
         },
         words = ::textFor,
         dropsStayPrivate = { archiveRaids.isDown(it) },
+        // A raid member's supplies picked up, their own or another's: the allowance first, so the saves have it (R26A-1).
+        taken = { taker, owner, obj -> archiveRaids.supplies.pickedUp(taker, owner, findPlayer(owner), obj.id, obj.count) },
     )
 
     private val equipment = Equipment(objTypes, wearRequirements)
@@ -466,6 +486,13 @@ class World(
         drop = { player, type, count -> dropUnder(player, type, count) },
     )
 
+    /** The window over a player's unclaimed loot of The Fractured Archive: the vault's chests and the lobby's Loot Wheelbarrow. */
+    val archiveChestWindow = ArchiveChestWindow(
+        objTypes, interfaces::openModal, interfaces::closeModals, interfaces::setVarbitNow, bankScreen, scripts, { dialogues },
+        examine = { player, id, count -> objTypes[id]?.let { inventoryTab.examine(player, it, count) } },
+        words = ::textFor,
+    )
+
     /** Puts [count] of [id] into [player]'s bank as a deposit would, a note as its item; returns how many went in. */
     private fun bankItems(player: Player, id: Int, count: Int): Int {
         val from = Inventory(-1, 1)
@@ -479,6 +506,17 @@ class World(
 
     /** Shops and their shared stock; see [ShopScreen]. */
     val shopScreen = ShopScreen(shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine, words = ::textFor)
+
+    /** The omnishop interface's shops, as the Quartermaster's Alliance Supplies; see [OmnishopScreen]. */
+    val omnishopScreen = OmnishopScreen(
+        objTypes, interfaces::openModal, interfaces::closeModals,
+        setVarpNow = { player, id, value ->
+            player.vars[id] = value
+            interfaces.sendVarpNow(player, id)
+        },
+        examine = { player, id, count -> objTypes[id]?.let { inventoryTab.examine(player, it, count) } },
+        words = ::textFor,
+    )
 
     private val equipmentTab = EquipmentTab(equipment, objTypes, scripts, inventoryTab, interfaces::openModal, spells = spells, words = ::textFor)
 
@@ -569,8 +607,16 @@ class World(
             specialAttacks.refill(it)
         },
         placeOf = ::deathPlace,
+        fell = { archiveRaids.fell(it) },
         teleport = { player, x, z, level -> teleport(player, x, z, level) },
         drop = { player, type, count -> dropUnder(player, type, count) },
+        setVarpNow = { player, varp, value ->
+            if (varp < player.vars.types.varpCount) {
+                player.vars[varp] = value
+                interfaces.sendVarpNow(player, varp)
+            }
+        },
+        takeFromBank = { player, id, count -> bank.take(player.bank, bankScreen.tabs(player), id, count) },
     )
 
     /**
@@ -607,7 +653,15 @@ class World(
         overflow = { player, obj -> objTypes[obj.id]?.let { groundObjs.give(player, it, obj.count) } },
         setVarbit = { player, id, value -> player.vars.setVarbitIfKnown(id, value) },
         varbit = { player, id -> player.vars.getVarbitIfKnown(id) },
-        commit = { a, b, swap, undo -> commitTrade(a, b, swap, undo) },
+        commit = { a, b, swap, undo ->
+            // Supplies a raid member brought in, traded to another, go with their allowance, in the swap itself so the
+            // trade's saves have it, and back if it is undone (Codex review on #636).
+            val start = archiveRaids.supplies.beforeTrade(a, b)
+            commitTrade(a, b, { swap(); archiveRaids.supplies.traded(a, b, start) }) {
+                archiveRaids.supplies.untraded(a, b, start)
+                undo()
+            }
+        },
         refuses = { archiveRaids.isDown(it) },
     )
 
@@ -710,9 +764,13 @@ class World(
     val fletching = Fletching(this, FletchingData.load())
     val crafting = Crafting(this, CraftingData.load())
     val herblore = Herblore(this, HerbloreData.load())
+    val decanting = osrsps.game.skill.Decanting(this)
 
     /** The standard spellbook's teleports to places and their tablets; see [Teleports]. */
     val teleports = Teleports(this, TeleportData.load(objTypes))
+
+    /** Enchant Crossbow Bolt; see [BoltEnchant]. */
+    val boltEnchant = BoltEnchant(this, BoltEnchantData.load(objTypes))
 
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
@@ -829,6 +887,17 @@ class World(
         registerLumbridgeSwampCaves(this)
         registerSwampCaveGoblins(this)
         registerRockslugs(this)
+        registerHamHideout(this)
+        registerHamStorerooms(this)
+        registerFarmsRoads(this)
+        registerLumberYard(this)
+        registerSilvarea(this)
+        registerPaterdomus(this)
+        registerDigsite(this)
+        registerDigsiteDigs(this)
+        registerExamCentre(this)
+        registerMisthalinSweep(this)
+        ThievingLocks.register(this)
         registerChurch(this)
         registerAlKharid(this)
         registerEdgeville(this)
@@ -850,6 +919,7 @@ class World(
         ducks.register()
         homeTeleport.register(handlers)
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
+        interfaces.onClose(OmnishopScreen.MAIN, omnishopScreen::closed)
         interfaces.onClose(GrandExchangeScreen.MAIN, grandExchangeScreen::closed)
         interfaces.onClose(Trades.MAIN, trades::mainClosed)
         interfaces.onClose(PriceChecker.MAIN, priceChecker::closed)
@@ -868,7 +938,9 @@ class World(
         fletching.register()
         crafting.register()
         herblore.register()
+        decanting.register()
         teleports.register()
+        boltEnchant.register()
         loadDialogue()
     }
 
@@ -1181,6 +1253,7 @@ class World(
         }
         endEmptyInstances()
         groundObjs.process()
+        archiveRaids.settleDepartures()
         phase = TickPhase.INPUT
         readInput(ticking = true)
         phase = TickPhase.NPCS
@@ -1361,8 +1434,10 @@ class World(
                 equipmentTab.flush(player)
                 bankScreen.flush(player)
                 shopScreen.flush(player)
+                omnishopScreen.flush(player)
                 grandExchangeScreen.flush(player)
                 priceChecker.flush(player)
+                archiveChestWindow.flush(player)
                 trades.flush(player)
             }
         }
@@ -1561,8 +1636,13 @@ class World(
 
     /** [player]'s state as a save has it, the items in the guide prices screen counted as in the inventory. */
     fun snapshot(player: Player): PlayerSave {
-        val (inventory, bank) = priceChecker.saved(player)
-        return saveOf(player, inventory, bank)
+        var inventory = player.inventory.contents().toMap()
+        var checked = player.priceChecker.contents().toMap()
+        // In a raid run, or out of one and not yet settled: without its supplies, the checker's too before any overflow to
+        // the bank (R26A-1). Not by where they stand, as one sent out mid-tick is settled only at the next tick's start.
+        archiveRaids.supplies.saved(player, inventory, checked).let { (i, c) -> inventory = i; checked = c }
+        val (saved, bank) = priceChecker.saved(player, inventory, checked)
+        return saveOf(player, saved, bank)
     }
 
     /**
@@ -1574,11 +1654,15 @@ class World(
         inventory: Map<Int, InvObj> = player.inventory.contents().toMap(),
         bank: Map<Int, InvObj> = player.bank.contents().toMap(),
     ): PlayerSave {
-        if (!instances.inDynamicArea(player.x, player.z)) return PlayerSave.of(player, inventory, bank)
+        // Without what a raid run would take back, a trade's offer back in first (R26A-1): in a run, saved at its exit,
+        // or out of one before the next tick settles them.
+        val held = { inventory: Map<Int, InvObj> -> archiveRaids.supplies.saved(player, inventory).first }
+        if (!instances.inDynamicArea(player.x, player.z)) return PlayerSave.of(player, inventory, bank, held = held)
         val instance = instances.at(player.x, player.z)
         return PlayerSave.of(
             player, inventory, bank,
             x = instance?.exitX ?: SPAWN_X, z = instance?.exitZ ?: SPAWN_Z, level = instance?.exitLevel ?: SPAWN_LEVEL,
+            held = held,
         )
     }
 
@@ -1836,6 +1920,10 @@ class World(
         player.inventory.resendAll()
         player.equipment.resendAll()
         player.geSent.resendAll()
+        // The Fractured Archive's chest window stays open over a reconnect: its loot goes again with the next flush.
+        player.archiveChest.resendAll()
+        // So does an open omnishop's stock.
+        omnishopScreen.resync(player)
         player.sentRunEnabled = null
         player.sentRunEnergy = -1
         player.sentWeight = Int.MIN_VALUE
@@ -1878,6 +1966,7 @@ class World(
         quests.completeAll(player.vars)
         lodestones.login(player)
         prayers.login(player)
+        cooking.wine.login(player)
         if (player.newAccount) allSettings.newAccount(player)
         player.message(textFor(player)[GameLines.WELCOME])
 
@@ -2152,6 +2241,9 @@ class World(
         return true
     }
 
+    /** Whether a walker of size 1 can step from ([x], [z]) on [level] by ([dx], [dz]): a boss's mark beside a player. */
+    fun canStep(level: Int, x: Int, z: Int, dx: Int, dz: Int): Boolean = movement.canStep(level, x, z, dx, dz)
+
     /** A route from where [player] stands to the tile [x], [z], without walking it (an obstacle's start). */
     fun findRoute(player: Player, x: Int, z: Int): Route = movement.find(player, RouteTarget.tile(x, z))
 
@@ -2239,8 +2331,10 @@ class World(
         if (depositBox.click(player, interfaceId, componentId, sub, obj, op)) return@act
         if (bankPinSettings.resume(player, interfaceId, componentId)) return@act
         if (shopScreen.click(player, interfaceId, componentId, sub, obj, op)) return@act
+        if (omnishopScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (grandExchangeScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (priceChecker.click(player, interfaceId, componentId, sub, op, obj)) return@act
+        if (archiveChestWindow.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (interfaceId == EquipmentTab.WORNITEMS && componentId == PriceChecker.WORNITEMS_BUTTON) {
             priceChecker.open(player)
             return@act
@@ -2385,6 +2479,8 @@ class World(
         if (player.echoButtons) player.message("Script trigger $interfaceId:$componentId slot $sub args ${args.toList()}")
         if (interfaceId == SettingsSide.INTERFACE && settingsSide.scriptTrigger(player, componentId, args)) return@act
         if (interfaceId == AllSettings.INTERFACE && allSettings.scriptTrigger(player, componentId, sub, args)) return@act
+        // The omnishop's own triggers come with the clicks it acts on.
+        if (interfaceId == OmnishopScreen.MAIN) return@act
         logger.info { "${player.username} triggered a script on $interfaceId:$componentId sub $sub args $args (not handled)" }
     }
 
@@ -2937,6 +3033,9 @@ class World(
             // Down in a raid, leaving counts as a death (RAID-2), also when the death just finished put them down.
             archiveRaids.leaving(player)
             trades.leave(player)
+            // Once a trade's offer is back in the backpack: saved at the instance's exit, out of any raid run, so its
+            // supplies stay in it (R26A-1; Codex review on #636).
+            archiveRaids.settleSupplies(player)
             thieving.forgive(player)
             friendChats.logout(player)
             clans.logout(player)

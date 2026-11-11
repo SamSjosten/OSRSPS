@@ -433,6 +433,11 @@ class MeleeCombat(
      * ([venom]) envenoms it one time in four ([PoisonedWeapons]). A hit of 0, or one that killed it, does neither, and
      * rolls no dice.
      */
+    /** An emerald bolt's Magical Poison: [npc] poisoned at [severity], no roll ([BoltEffects]). */
+    fun poisonFromBolt(npc: Npc, severity: Int) {
+        if (!npc.outOfPlay) poisonNpc(npc, severity)
+    }
+
     fun weaponPoison(npc: Npc, dealt: Int, poison: Int, venom: Boolean, ranged: Boolean) {
         if (dealt <= 0 || npc.outOfPlay) return
         if (venom) {

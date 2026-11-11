@@ -64,6 +64,8 @@ class ShopTest {
         1021 to 32, 1165 to 1056, 1123 to 16640,
         // Grace's Graceful Clothing: the values are the prices in marks of grace.
         11850 to 35, 11854 to 55, 11856 to 60, 11858 to 30, 11860 to 40, 11852 to 40, 12641 to 10,
+        // Construction supplies.
+        8794 to 10, 8790 to 500, 4819 to 2, 4820 to 4, 1539 to 3,
     )
 
     /**
@@ -123,6 +125,7 @@ class ShopTest {
             NpcType(2872, "Peksa", internalName = "peksa"),
             NpcType(6533, "Romily Weaklax", internalName = "merchant_pies"),
             NpcType(5919, "Grace", internalName = "rooftops_grace"),
+            NpcType(3101, "Sawmill operator", internalName = "poh_sawmill_opp"),
         )
         return ShopTypes.parse(shopFile, npcs, objs)
     }
@@ -188,6 +191,8 @@ class ShopTest {
         "valaines_shop_of_champions" to listOf(41, 1372, 2496, 21632),
         // Grace's Graceful Clothing, read 2026-11-02: in marks of grace.
         "graces_graceful_clothing" to listOf(35, 55, 60, 30, 40, 40, 10),
+        // The Lumber Yard's Sawmill, read 2026-11-11.
+        "construction_supplies" to listOf(13, 650, 2, 5, 3),
     )
 
     @Test
@@ -209,6 +214,10 @@ class ShopTest {
         assertEquals(shops["pie_shop"], shops.ofNpc(6533))
         assertEquals(shops["scavvos_rune_store"], shops.ofNpc(2871))
         assertEquals(shops["valaines_shop_of_champions"], shops.ofNpc(2870))
+        // The Sawmill operator's Construction supplies buys back at 50% with no change per item (the Wiki's 5, 250, 1, 2, 1).
+        val supplies = shops["construction_supplies"]!!
+        assertEquals(supplies, shops.ofNpc(3101))
+        assertEquals(listOf(5, 250, 1, 2, 1), supplies.stock.map { Shop(supplies).sellPrice(it.type.id, it.type.cost, it.count) })
         // Grace is paid in marks of grace and buys back at 80% (the Wiki's 28 for the hood, 8 for the amylase pack).
         val grace = shops["graces_graceful_clothing"]!!
         assertEquals(shops.ofNpc(5919), grace)

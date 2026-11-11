@@ -20,16 +20,21 @@ import osrsps.map.LocCollisionType
 import osrsps.map.LocShape
 
 /**
- * Rest of Lumbridge step 1 through the headless client: burying bones, and an item used on a loc (OPLOCT). The
- * rl-client script test-runner/examples/lumbridge-bury-bones.json buries bones in the real client.
+ * Rest of Lumbridge step 1 through the headless client: burying bones, and an item used on a loc (OPLOCT); and
+ * Artisan 2 step A5, scattering demonic ashes. The rl-client scripts test-runner/examples/lumbridge-bury-bones.json and
+ * scatter-ashes.json do the same in the real client.
  */
 class HeadlessBonesTest {
     private val bones = ObjType(BONES, "Bones", iops = listOf("Bury", null, null, null, "Drop"), internalName = "bones")
+    private val vile = ObjType(VILE, "Vile ashes", iops = listOf("Scatter", null, null, null, "Drop"), internalName = "vile_ashes")
+    private val infernal = ObjType(INFERNAL, "Infernal ashes", iops = listOf("Scatter", null, null, null, "Drop"), internalName = "infernal_ashes")
     private val bucket = ObjType(BUCKET, "Bucket", iops = listOf(null, null, null, null, "Drop"), internalName = "bucket_empty")
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
-        val objs = arrayOfNulls<ObjType>(BUCKET + 1)
+        val objs = arrayOfNulls<ObjType>(INFERNAL + 1)
         objs[BONES] = bones
+        objs[VILE] = vile
+        objs[INFERNAL] = infernal
         objs[BUCKET] = bucket
         val well = LocType(WELL, "Test well", collision = LocCollisionType(width = 1, length = 1))
         val pump = LocType(PUMP, "Pump", collision = LocCollisionType(width = 1, length = 1))
@@ -73,6 +78,27 @@ class HeadlessBonesTest {
     }
 
     @Test
+    fun `Scatter takes demonic ashes for the Wiki's Prayer XP, 25 for vile and 110 for infernal`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item $VILE 2")
+                client.await("two vile ashes") { if (client.inventory(BACKPACK).count { it?.id == VILE } == 2) Unit else null }
+                client.command("item $INFERNAL 1")
+                client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, BURY_BUTTON_OP, client.slotOf(VILE), VILE)
+                client.seen(DialogueText.NONE[BonesLines.SCATTERED])
+                assertEquals(25, client.await("25 Prayer XP") { client.stat(PRAYER)?.takeIf { it.xp > 0 } }.xp)
+                client.await("one vile ashes left") { if (client.inventory(BACKPACK).count { it?.id == VILE } == 1) Unit else null }
+                client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, BURY_BUTTON_OP, client.slotOf(VILE), VILE)
+                assertEquals(50, client.await("50 Prayer XP") { client.stat(PRAYER)?.takeIf { it.xp >= 50 } }.xp)
+                client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, BURY_BUTTON_OP, client.slotOf(INFERNAL), INFERNAL)
+                assertEquals(160, client.await("160 Prayer XP") { client.stat(PRAYER)?.takeIf { it.xp >= 160 } }.xp)
+                assertEquals(0, client.inventory(BACKPACK).count { it != null })
+            }
+        }
+    }
+
+    @Test
     fun `an item used on a loc walks there and runs its handler, or does nothing interesting`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bob").use { client ->
@@ -90,6 +116,8 @@ class HeadlessBonesTest {
     private companion object {
         const val BONES = 526
         const val BUCKET = 1925
+        const val VILE = 25769
+        const val INFERNAL = 25778
         const val WELL = 9010
         const val PUMP = 9011
         const val BACKPACK = 93

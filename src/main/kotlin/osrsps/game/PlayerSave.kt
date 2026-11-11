@@ -95,6 +95,8 @@ class PlayerSave(
      * so a save names them and the server loading it gives each the id it has now.
      */
     val customVars: Map<String, Int> = emptyMap(),
+    /** The Fractured Archive's loot not yet claimed, by slot ([osrsps.game.raid.ArchiveChestWindow]). */
+    val archiveChest: Map<Int, InvObj> = emptyMap(),
 ) {
     class BoostSegments(val combat: Int, val other: Int)
 
@@ -149,7 +151,9 @@ class PlayerSave(
         player.priceChecker.clear()
         player.equipment.clear()
         player.bank.clear()
+        player.archiveChest.clear()
         player.charges.clear()
+        player.sessionCharges.clear()
         player.ge.clear()
         applyState(player)
     }
@@ -191,7 +195,9 @@ class PlayerSave(
         // Not checked against levels either: a save is what the player had, even if something has changed since.
         for ((slot, obj) in equipment) player.equipment[slot] = obj
         for ((slot, obj) in bank) player.bank[slot] = obj
-        for ((name, count) in charges) player.charges[name] = count
+        for ((slot, obj) in archiveChest) player.archiveChest[slot] = obj
+        // Pick timers older saves kept, now in Player.sessionCharges, are left behind.
+        for ((name, count) in charges) if (name !in NO_LONGER_SAVED) player.charges[name] = count
         for ((slot, offer) in geOffers) player.ge[slot] = offer
         for (use in geLimits) player.ge.limits[use.item] = use
         for (use in geSellLimits) player.ge.sellLimits[use.item] = use
@@ -281,6 +287,7 @@ class PlayerSave(
         putJsonArray("inventory") { putObjs(inventory) }
         putJsonArray("equipment") { putObjs(equipment) }
         if (bank.isNotEmpty()) putJsonArray("bank") { putObjs(bank) }
+        if (archiveChest.isNotEmpty()) putJsonArray("archiveChest") { putObjs(archiveChest) }
         if (charges.isNotEmpty()) putJsonObject("charges") { for ((name, count) in charges) put(name, count) }
         if (geOffers.isNotEmpty()) {
             putJsonArray("geOffers") {
@@ -345,6 +352,13 @@ class PlayerSave(
         /** The packets carry each filter in a byte. */
         const val MAX_CHAT_FILTER = 255
 
+        /** [Player.charges] names older saves hold that now live in [Player.sessionCharges]: dropped on loading. */
+        val NO_LONGER_SAVED = setOf(
+            osrsps.game.content.HamHideout.PICK_DUE,
+            osrsps.game.content.HamHideout.CELL_FAILS,
+            osrsps.game.content.HamStorerooms.PICK_DUE,
+        )
+
         private val format = Json { prettyPrint = true }
 
         /** [player]'s state, with [inventory] as what they hold (by default their inventory as it is), plus anything they have on offer in a trade. */
@@ -356,6 +370,8 @@ class PlayerSave(
             x: Int = player.x,
             z: Int = player.z,
             level: Int = player.level,
+            /** What becomes of the inventory once anything on offer is back in it, as saved. */
+            held: (Map<Int, InvObj>) -> Map<Int, InvObj> = { it },
         ): PlayerSave {
             val varps = LinkedHashMap<Int, Int>()
             val customVars = LinkedHashMap<String, Int>()
@@ -368,7 +384,7 @@ class PlayerSave(
             val skills = Skill.entries.associateWith { SkillSave(player.skills.tenths(it), player.skills.currentLevel(it)) }
             val equipment = player.equipment.contents().toMap()
             return PlayerSave(
-                x, z, level, player.runEnergy, varps, skills, withOffer(player, inventory), equipment,
+                x, z, level, player.runEnergy, varps, skills, held(withOffer(player, inventory)), equipment,
                 player.scenario, player.beforeScenario, player.createdAt, player.playedTicks, player.charges.contents(),
                 bank,
                 BoostSegments(StatRestore.segment(player.statTimers.combatBoost), StatRestore.segment(player.statTimers.skillBoost)),
@@ -384,6 +400,7 @@ class PlayerSave(
                 runRanOut = player.runRanOut,
                 geSellLimits = player.ge.sellLimits.values.toList(),
                 customVars = customVars,
+                archiveChest = player.archiveChest.contents().toMap(),
             )
         }
 
@@ -465,6 +482,7 @@ class PlayerSave(
                     runRanOut = state.runRanOut,
                     geSellLimits = state.geSellLimits,
                     customVars = state.customVars,
+                    archiveChest = state.archiveChest,
                 )
             } catch (e: IllegalArgumentException) {
                 throw e
@@ -549,6 +567,8 @@ class PlayerSave(
                 // Optional: saves from before the energy threshold setting, and saves with run not waiting on it, have none.
                 runRanOut = root["runRanOut"]?.jsonPrimitive?.boolean ?: false,
                 customVars = customVars,
+                // Optional: saves from before the Archive's loot, and saves with none waiting, have none.
+                archiveChest = root.objs("archiveChest", "Archive chest", osrsps.game.raid.ArchiveChestWindow.SLOTS),
             )
         }
 

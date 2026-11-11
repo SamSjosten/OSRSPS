@@ -19,14 +19,19 @@ import osrsps.game.ge.GrandExchangeLines
 import osrsps.game.ge.PriceCheckerLines
 import osrsps.game.raid.ArchiveGuardianLines
 import osrsps.game.raid.ArchiveNavigatorLines
+import osrsps.game.raid.ArchiveVaultLines
 import osrsps.game.raid.BorkLines
+import osrsps.game.raid.DagonhaiLines
 import osrsps.game.raid.DreadnothLines
 import osrsps.game.raid.OcellusLines
+import osrsps.game.raid.QuartermasterLines
 import osrsps.game.raid.XarthLines
 import osrsps.game.shop.ShopLines
 import osrsps.game.skill.AgilityLines
 import osrsps.game.skill.BirdNestLines
+import osrsps.game.skill.BobBarterLines
 import osrsps.game.skill.CookingLines
+import osrsps.game.skill.CookingMixLines
 import osrsps.game.skill.CraftingLines
 import osrsps.game.skill.FiremakingLines
 import osrsps.game.skill.LightSourceLines
@@ -35,10 +40,13 @@ import osrsps.game.skill.FletchingLines
 import osrsps.game.skill.HerbloreLines
 import osrsps.game.skill.LevelUpLines
 import osrsps.game.skill.MakeLines
+import osrsps.game.skill.magic.BoltEnchantLines
 import osrsps.game.skill.MiningLines
+import osrsps.game.skill.PickpocketGearLines
 import osrsps.game.skill.PickpocketLines
 import osrsps.game.skill.SmithingLines
 import osrsps.game.skill.ThievingLines
+import osrsps.game.skill.ThievingLockLines
 import osrsps.game.skill.WoodcuttingLines
 import osrsps.game.social.ClanLines
 import osrsps.game.social.FriendsChatLines
@@ -86,9 +94,13 @@ object DialogueLines {
         BennyLines,
         BirdNestLines,
         BlueMoonBarbarianLines,
+        BoltEnchantLines,
         BorkLines,
+        DagonhaiLines,
         DreadnothLines,
         OcellusLines,
+        ArchiveVaultLines,
+        QuartermasterLines,
         XarthLines,
         CadmusLines,
         FeorasLines,
@@ -97,6 +109,7 @@ object DialogueLines {
         WebLines,
         BlueMoonBartenderLines,
         BlueMoonCookLines,
+        BobBarterLines,
         BobLines,
         BonesLines,
         BorderGuardLines,
@@ -115,6 +128,7 @@ object DialogueLines {
         CombatLines,
         CookLines,
         CookingLines,
+        CookingMixLines,
         CooksGuildLines,
         CountCheckLines,
         CraftingLines,
@@ -215,6 +229,35 @@ object DialogueLines {
         SwampCavesLines,
         CaveGoblinLines,
         SwampCaveSlayerLines,
+        HamHideoutLines,
+        HamStoreroomsLines,
+        FarmsRoadsLines,
+        GardenerLines,
+        ToolLeprechaunLines,
+        TarquinLines,
+        RatBurgissLines,
+        SethGroatsLines,
+        SawmillLines,
+        TolnaLines,
+        TolnaRiftLines,
+        OddOldManLines,
+        SilvareaLines,
+        DrezelLines,
+        IvanStromLines,
+        PaterdomusLines,
+        DigsitePeopleLines,
+        ElissaLines,
+        PanningGuideLines,
+        BargeLines,
+        DigsiteSignLines,
+        DigsiteDigLines,
+        ExamCentreLines,
+        TerryLines,
+        DigsiteDungeonLines,
+        HamTalkLines,
+        JohanhusLines,
+        JimmyTheChiselLines,
+        MisthalinSweepLines,
         MageOfZamorakLines,
         MakeLines,
         ManLines,
@@ -245,6 +288,7 @@ object DialogueLines {
         PerduLines,
         PhillipaLines,
         PickpocketLines,
+        PickpocketGearLines,
         PlayingChildLines,
         PoisonLines,
         PortSarimJailLines,
@@ -288,6 +332,7 @@ object DialogueLines {
         TeaSellerLines,
         ThessaliaLines,
         ThievingLines,
+        ThievingLockLines,
         TournamentGuideLines,
         TownCrierLines,
         TradeLines,

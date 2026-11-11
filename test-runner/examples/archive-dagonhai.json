@@ -1,0 +1,308 @@
+{
+ "name": "Raid step 23: the Dagon'hai Elder and his two Monks solo, their fight beginning as the room's transporter puts the player on their floor, round the cauldron on one pool of 640 hitpoints the three share, the Elder firing at the player, a channel and a tome search begun, the pool emptied five times with ::hit (each break taking the cauldron's stability down 200 and opening two rifts with imps coming out), the cauldron bursting after the fifth with a Monk dying and two left on 7 hitpoints, and their deaths doing the room. Stopping a channel by its element and blocking a tome on its gust are HeadlessDagonhaiTest's",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare",
+   "comment": "nothing carried; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel prayer 99",
+   "expectMessage": "Prayer set to level 99",
+   "comment": "for the rift's prayer drain"
+  },
+  {
+   "step": "command",
+   "text": "::setlevel hitpoints 99",
+   "expectMessage": "Hitpoints set to level 99"
+  },
+  {
+   "step": "command",
+   "text": "::heal",
+   "expectMessage": "Healed to 99 hitpoints."
+  },
+  {
+   "step": "command",
+   "text": "::god on",
+   "expectMessage": "You can't be hurt now",
+   "comment": "the Elder's shots and surges, the tomes and the imps still land but do nothing, so the waits can't kill the account; ::god off at the end"
+  },
+  {
+   "step": "command",
+   "text": "::varp 172 1",
+   "expectMessage": "Varp 172:",
+   "comment": "auto retaliate off, or punches back at the Elder or an imp take hitpoints off the pool and the counts below miss; ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
+   "text": "::tele 4127 5560 0",
+   "expectMessage": "Teleported to 4127, 5560, 0",
+   "comment": "the lobby, in front of the Archive Door"
+  },
+  {
+   "step": "locOption",
+   "locId": 62768,
+   "option": "Enter",
+   "timeoutMs": 20000,
+   "comment": "into a run of one"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 6
+  },
+  {
+   "step": "command",
+   "text": "::raid tp guardian",
+   "expectMessage": "To Archive Guardian's room"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Archive Guardian's room.",
+   "comment": "the first row done"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp ezekiel",
+   "expectMessage": "To Ezekiel's room"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Ezekiel's room.",
+   "comment": "the second row done"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp moia",
+   "expectMessage": "To Moia's room"
+  },
+  {
+   "step": "command",
+   "text": "::raid clear",
+   "expectMessage": "Cleared Moia's room.",
+   "comment": "the third row done (her fight is archive-moia.json), so the fourth's doors open"
+  },
+  {
+   "step": "command",
+   "text": "::raid tp dagonhai",
+   "expectMessage": "To Dagon'hai Elder's room",
+   "comment": "in at the room's way in, east of their floor and walled off from it"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "the client redraws the scene after the teleport; a click before that goes to the wrong tile (\"I can't reach that!\" on the VMs, 2026-11-10)"
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "You're not in a fight",
+   "comment": "nothing begun at the way in"
+  },
+  {
+   "step": "locOption",
+   "locId": 63087,
+   "option": "Use",
+   "timeoutMs": 20000,
+   "comment": "tfa_boss_teleporter, the Archive transporter: onto their floor (4074,5599, guessed), which begins their fight"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 10,
+   "comment": "the walk to the transporter, a tile a tick, then onto the floor: 7 to 8 ticks on the VM for the other rooms (2026-11-10)"
+  },
+  {
+   "step": "command",
+   "text": "::raid",
+   "expectMessage": "pool 640/640, Elder 640 hp, Monk 640 hp, Monk 640 hp; stability 1000/1000, charge 0%",
+   "comment": "the cache's 640 hitpoints, one pool shared by the three; the cauldron's 1000 as five breaks of 200 (guessed)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 14,
+   "comment": "the Elder's first shot 6 ticks in, the first channel 12 in"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 40",
+   "expectMessage": "ritual: a s",
+   "comment": "a shot or a surge at the account: the line is matched up to its first word"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 40",
+   "expectMessage": " channels ",
+   "comment": "a member channelling fire, water, air or earth into the cauldron"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 12,
+   "comment": "the first tome search 22 ticks in"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 60",
+   "expectMessage": " searches for a ",
+   "comment": "a member searching the shelves for a Bandos, Zamorak or Saradomin tome, its gust marked on the floor"
+  },
+  {
+   "step": "command",
+   "text": "::hit 100 tfa_dagonhai_leader",
+   "expectMessage": "/640 hp",
+   "comment": "the Elder hit"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::raid log 60",
+   "expectMessage": "ritual: the pool takes 100",
+   "comment": "what any of the three loses comes off the pool all three share"
+  },
+  {
+   "step": "command",
+   "text": "::hit 640 tfa_dagonhai_leader",
+   "expectMessage": "for 540: 0/640 hp",
+   "comment": "the rest of the pool"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::raid log 60",
+   "expectMessage": "ritual: shield break 1; stability 800",
+   "comment": "the first break: the cauldron's stability down 200"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 60",
+   "expectMessage": "ritual: a rift opens at ",
+   "comment": "two rifts open, and the pool fills again"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 6,
+   "comment": "an imp out of each rift 5 ticks on"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 60",
+   "expectMessage": "ritual: an imp out of the rift at "
+  },
+  {
+   "step": "command",
+   "text": "::hit 640 tfa_dagonhai_leader",
+   "expectMessage": "for 640: 0/640 hp",
+   "comment": "the second break"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::raid log 60",
+   "expectMessage": "ritual: shield break 2; stability 600"
+  },
+  {
+   "step": "command",
+   "text": "::hit 640 tfa_dagonhai_leader",
+   "expectMessage": "for 640: 0/640 hp",
+   "comment": "the third"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::raid log 60",
+   "expectMessage": "ritual: shield break 3; stability 400"
+  },
+  {
+   "step": "command",
+   "text": "::hit 640 tfa_dagonhai_leader",
+   "expectMessage": "for 640: 0/640 hp",
+   "comment": "the fourth"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::raid log 60",
+   "expectMessage": "ritual: shield break 4; stability 200"
+  },
+  {
+   "step": "command",
+   "text": "::hit 640 tfa_dagonhai_leader",
+   "expectMessage": "for 640: 0/640 hp",
+   "comment": "the fifth"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::raid log 60",
+   "expectMessage": "ritual: shield break 5; stability 0"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 60",
+   "expectMessage": "ritual: the cauldron bursts: a Monk dies"
+  },
+  {
+   "step": "command",
+   "text": "::raid log 60",
+   "expectMessage": "ritual: 2 left on 7, stunned",
+   "comment": "the Elder and a Monk left, weakened"
+  },
+  {
+   "step": "command",
+   "text": "::hit 7 tfa_dagonhai_leader_unshielded",
+   "expectMessage": "for 7: 0/7 hp, dead",
+   "comment": "the weakened Elder"
+  },
+  {
+   "step": "command",
+   "text": "::hit 7 Dagon'hai Monk",
+   "expectMessage": "for 7: 0/7 hp, dead",
+   "comment": "the Monk left"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 6,
+   "comment": "their deaths; the cauldron goes and the room is done (so no ::raid log)"
+  },
+  {
+   "step": "command",
+   "text": "::raid run",
+   "expectMessage": "done Archive Guardian, Ezekiel, Moia, Dagon'hai Elder;",
+   "comment": "their room done"
+  },
+  {
+   "step": "command",
+   "text": "::god off",
+   "expectMessage": "You can be hurt again"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

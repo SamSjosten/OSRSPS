@@ -54,4 +54,19 @@ class WearRequirementsTest {
             assertTrue("ranged=" in levels && "attack=" !in levels, line)
         }
     }
+
+    @Test
+    fun `gem-tipped bolts need their metal's Ranged level, enchanted or not`() {
+        // Exploit sweep round 25 (R25B-2): pearl bolts had no row once they could be fired. Emerald bolts read 46 and
+        // diamond 61 where their mithril and adamant metal (and their enchanted rows) need 36 and 46; the Wiki's Emerald
+        // bolts page gives 36.
+        val text = WearRequirements::class.java.getResource(WearRequirements.RESOURCE)!!.readText()
+        val levels = text.lines().filter { !it.startsWith("#") && '\t' in it }.associate { it.split('\t').let { (name, level) -> name to level } }
+        val metals = mapOf(
+            "pearl_bolt" to 26, "xbows_crossbow_bolts_iron_tipped_pearl_enchanted" to 26,
+            "xbows_crossbow_bolts_mithril_tipped_emerald" to 36, "xbows_crossbow_bolts_mithril_tipped_emerald_enchanted" to 36,
+            "xbows_crossbow_bolts_adamantite_tipped_diamond" to 46, "xbows_crossbow_bolts_adamantite_tipped_diamond_enchanted" to 46,
+        )
+        for ((name, level) in metals) assertEquals("ranged=$level", levels[name], name)
+    }
 }

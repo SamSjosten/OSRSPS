@@ -1,0 +1,32 @@
+{
+ "name": "Thieving 2 step T3: East Ardougne market's six stalls (bakery, silk, silver, spice, fur, gem) each found and its level asked for at Thieving 1 (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario thieving", "expectMessage": "Started scenario thieving.", "comment": "::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::setlevel thieving 1", "comment": "below every stall's level, so each Steal-from shows its level box"},
+  {"step": "command", "text": "::tele 2661 3305 0", "expectMessage": "Teleported to 2661, 3305, 0", "comment": "East Ardougne market, among the six stalls (tiles from 2004Scape's map m41_51)"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "locOption", "locId": 11730, "option": "Steal-from", "x": 2667, "y": 3310, "timeoutMs": 20000, "comment": "Baker's stall"},
+  {"step": "assertDialogue", "contains": "[thieving.level level=5 stall=baker's stall]", "timeoutMs": 15000},
+  {"step": "continueDialogue"},
+  {"step": "locOption", "locId": 11729, "option": "Steal-from", "x": 2662, "y": 3314, "timeoutMs": 20000, "comment": "Silk stall"},
+  {"step": "assertDialogue", "contains": "[thieving.level level=20 stall=silk stall]", "timeoutMs": 15000},
+  {"step": "continueDialogue"},
+  {"step": "locOption", "locId": 11734, "option": "Steal-from", "x": 2657, "y": 3314, "timeoutMs": 20000, "comment": "Silver stall"},
+  {"step": "assertDialogue", "contains": "[thieving.level level=50 stall=silver stall]", "timeoutMs": 15000},
+  {"step": "continueDialogue"},
+  {"step": "locOption", "locId": 11733, "option": "Steal-from", "x": 2658, "y": 3297, "timeoutMs": 20000, "comment": "Spice stall"},
+  {"step": "assertDialogue", "contains": "[thieving.level level=65 stall=spice stall]", "timeoutMs": 15000},
+  {"step": "continueDialogue"},
+  {"step": "locOption", "locId": 11732, "option": "Steal-from", "x": 2663, "y": 3296, "timeoutMs": 20000, "comment": "Fur stall"},
+  {"step": "assertDialogue", "contains": "[thieving.level level=35 stall=fur stall]", "timeoutMs": 15000},
+  {"step": "continueDialogue"},
+  {"step": "locOption", "locId": 11731, "option": "Steal-from", "x": 2667, "y": 3303, "timeoutMs": 20000, "comment": "Gem stall"},
+  {"step": "assertDialogue", "contains": "[thieving.level level=75 stall=gem stall]", "timeoutMs": 15000},
+  {"step": "continueDialogue"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

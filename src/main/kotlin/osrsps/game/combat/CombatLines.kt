@@ -17,6 +17,7 @@ object CombatLines : Lines("combat", "Combat") {
     val NO_AMMO = line("no_ammo", "a bow or crossbow with no ammunition worn (the Ammunition page)")
     val WRONG_ARROWS = line("wrong_arrows", "a bow with ammunition it can't fire; words guessed, live's aren't on the Wiki")
     val WRONG_BOLTS = line("wrong_bolts", "a crossbow with ammunition it can't fire; words guessed")
+    val WRONG_JAVELINS = line("wrong_javelins", "a ballista with ammunition it can't fire; words guessed")
 
     val ALREADY_HELD = line("already_held", "a hold spell on a frozen target (the Snare page)")
     val IMMUNE = line("immune", "a hold spell on a target in the ticks after a freeze (the Snare page)")
@@ -56,6 +57,10 @@ object CombatLines : Lines("combat", "Combat") {
     val GRAVE_NO_SPACE = line("grave_no_space", "taking an item from a grave with no inventory space")
     val GRAVE_MINUTES = line("grave_minutes", "Check on one's own grave with {minutes} minutes left", "minutes")
     val GRAVE_MINUTE = line("grave_minute", "Check on one's own grave with a minute left")
+    val GRAVE_LOCKED = line("grave_locked", "Take on a grave's paid item before its fee is paid; words guessed")
+    val GRAVE_CANT_PAY = line("grave_cant_pay", "Unlock on one's grave with fewer than its {fee} coins in the bank; words guessed", "fee")
+    val GRAVE_PAID = line("grave_paid", "Unlock on one's grave, its {fee} coins taken from the bank; words guessed", "fee")
+    val HARDCORE_LOST = line("hardcore_lost", "a Hardcore Ironman's death, which makes them an Ironman; words guessed")
 }
 
 /** The prayer book's game messages, in the dialogue file as [CombatLines] are; every one's words guessed. */

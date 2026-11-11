@@ -1,0 +1,33 @@
+{
+  "about": "Misthalin piece 7 step 9a: the Digsite's people and the canal barge after The Dig Site and Bone Voyage (Digsite.kt), on the tiles mejrs's list saw them. Not here: John and David, the barge's two passengers, whose multi-NPCs show nothing once Bone Voyage is done; the Exam Centre's people (step 10).",
+  "spawns": [
+    {"npc": "qip_digsite_digworkman_04", "x": 3350, "z": 3401, "wander": 5, "source": "Digsite workman. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the wander range guessed"},
+    {"npc": "qip_digsite_digworkman_03", "x": 3354, "z": 3408, "wander": 5, "source": "Digsite workman. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the wander range guessed"},
+    {"npc": "qip_digsite_digworkman_03", "x": 3356, "z": 3385, "wander": 5, "source": "Digsite workman. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the wander range guessed"},
+    {"npc": "qip_digsite_digworkman_04", "x": 3362, "z": 3408, "wander": 5, "source": "Digsite workman. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the wander range guessed"},
+    {"npc": "digworkman1", "x": 3362, "z": 3416, "wander": 5, "source": "Digsite workman. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the wander range guessed"},
+    {"npc": "qip_digsite_digworkman_03", "x": 3365, "z": 3429, "wander": 5, "source": "Digsite workman. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the wander range guessed"},
+    {"npc": "qip_digsite_digworkman_04", "x": 3366, "z": 3425, "wander": 5, "source": "Digsite workman. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the wander range guessed"},
+    {"npc": "digworkman1", "x": 3370, "z": 3387, "wander": 5, "source": "Digsite workman. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the wander range guessed"},
+    {"npc": "qip_digsite_digworkman_03", "x": 3373, "z": 3418, "wander": 5, "source": "Digsite workman. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the wander range guessed"},
+    {"npc": "vm_digworkman_loader", "x": 3357, "z": 3415, "wander": 0, "source": "Dig Site workman, loading the wheelbarrow; no options. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022)"},
+    {"npc": "student1", "x": 3363, "z": 3397, "wander": 3, "source": "Student (the animal skull); the Wiki's Student map agrees. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the wander range guessed"},
+    {"npc": "student3", "x": 3370, "z": 3416, "wander": 3, "source": "Student (the special cup); the Wiki's Student map agrees. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the wander range guessed"},
+    {"npc": "student2", "x": 3348, "z": 3424, "wander": 3, "source": "Student (the teddy); the Wiki's Student map agrees. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the wander range guessed"},
+    {"npc": "golem_elissa", "x": 3376, "z": 3429, "wander": 3, "source": "Elissa. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the wander range guessed"},
+    {"npc": "panning_guide", "x": 3376, "z": 3377, "wander": 2, "source": "Panning guide, by the panning points. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the wander range guessed"},
+    {"npc": "qip_digsite_panning_man_01", "x": 3381, "z": 3379, "wander": 0, "source": "Nick, panning; no options. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022)"},
+    {"npc": "qip_digsite_panning_woman_01", "x": 3376, "z": 3373, "wander": 0, "source": "Nisha, panning; no options. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022)"},
+    {"npc": "vm_woodcutter", "x": 3324, "z": 3445, "wander": 0, "source": "Ed Wood. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022)"},
+    {"npc": "vm_patrol_route_workmen_1", "x": 3326, "z": 3443, "wander": 0, "source": "Workman carrying a plank; no options. Live walks him on a route; here he stands (guessed). mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022)"},
+    {"npc": "vm_patrol_route_wheelbarrow_empty", "x": 3310, "z": 3425, "wander": 0, "source": "Workman with a wheelbarrow; no options. Live walks him on a route; here he stands (guessed). mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022)"},
+    {"npc": "pilot_digsite", "x": 3321, "z": 3431, "wander": 0, "source": "Captain Errdo by his crashed glider, Lemanto Andra; the Wiki's Gnome glider map has the glider at 3325,3429. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022)"},
+    {"npc": "vm_canal_barge_foremen_talking", "x": 3364, "z": 3445, "wander": 0, "source": "Barge foreman. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022)"},
+    {"npc": "vm_canal_barge_workman_painting_tar", "x": 3357, "z": 3446, "wander": 0, "source": "Barge workman, tarring the barge. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022)"},
+    {"npc": "fossilquest_barge_guard_port", "x": 3362, "z": 3446, "wander": 0, "source": "Barge guard on the quay; shows fossilquest_barge_guard_port_postquest after Bone Voyage. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022)"},
+    {"npc": "fossilquest_barge_guard_barge", "x": 3362, "z": 3451, "level": 1, "wander": 0, "source": "Barge guard on the barge's deck. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022)"},
+    {"npc": "fossilquest_lead_navigator", "x": 3363, "z": 3454, "level": 1, "wander": 0, "source": "Lead Navigator on the barge; shows fossilquest_lead_navigator_postquest after Bone Voyage. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022)"},
+    {"npc": "fossilquest_jr_navigator", "x": 3363, "z": 3453, "level": 1, "wander": 0, "source": "Junior Navigator on the barge; shows fossilquest_jr_navigator_postquest after Bone Voyage. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022)"},
+    {"npc": "vm_museum_guard2", "x": 3295, "z": 3427, "wander": 0, "source": "Museum guard at the workers' gate east of Varrock. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022)"}
+  ]
+}

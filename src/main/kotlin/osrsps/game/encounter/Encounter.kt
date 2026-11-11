@@ -13,7 +13,8 @@ import osrsps.map.Tile
  * [scriptedAttacks] the boss attacks only as its phases' steps say ([Npc.scriptedAttacks]), never by itself. [status]
  * says what `::raid` shows of the fight's NPCs; without it, the boss's hitpoints (a fight whose [boss] is only its
  * anchor, as Bork and the Smorks' is, shows its two). [held] says which of the fight's NPCs `::raid hold` freezes;
- * without it, the boss (such a fight names the one that walks).
+ * without it, the boss (such a fight names the one that walks). [minions] are the types of its minions, whose damage
+ * counts towards a raid room's points only up to a cap ([osrsps.game.raid.ArchiveRaids.MINION_CAP_PERCENT]).
  */
 class EncounterDef(
     val name: String,
@@ -22,6 +23,7 @@ class EncounterDef(
     val scriptedAttacks: Boolean = false,
     val status: (EncounterContext.() -> String)? = null,
     val held: (EncounterContext.() -> List<Npc>)? = null,
+    val minions: Set<Int> = emptySet(),
 ) {
     init {
         require(name.isNotEmpty() && name.none(Char::isWhitespace)) { "Bad encounter name '$name'" }
