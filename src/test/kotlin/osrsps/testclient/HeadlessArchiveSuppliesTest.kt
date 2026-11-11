@@ -30,6 +30,7 @@ import osrsps.game.raid.ArchiveSupplies
 import osrsps.game.shop.OmnishopScreen
 import osrsps.game.shop.Omnishops
 import osrsps.game.shop.ShopLines
+import osrsps.game.trade.Trades
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
@@ -64,7 +65,7 @@ class HeadlessArchiveSuppliesTest {
         ObjType(BREW_1, "Saradomin brew(1)", iops = DRINK, internalName = "1dosepotionofsaradomin"),
         ObjType(RESTORE, "Super restore(4)", iops = DRINK, internalName = "4dose2restore"),
         ObjType(PRAYER_4, "Prayer potion(4)", iops = DRINK, internalName = "4doseprayerrestore"),
-        ObjType(MANTA, "Manta ray", internalName = "mantaray"),
+        ObjType(MANTA, "Manta ray", tradeable = true, internalName = "mantaray"),
         ObjType(HALIBUT, "Halibut", internalName = "halibut"),
         ObjType(KRILL, "Giant krill", internalName = "giant_krill"),
         ObjType(PRAYER_2, "Prayer potion(2)", iops = DRINK, internalName = "2doseprayerrestore"),
@@ -408,6 +409,76 @@ class HeadlessArchiveSuppliesTest {
                 again.await("the login rebuild") { again.position }
                 again.awaitTicks(2)
                 assertEquals(0, again.held(MANTA))
+            }
+        }
+    }
+
+    /** Alice offers [count] of [obj], one Offer-1 at a time, and both accept twice. */
+    private fun trade(alice: HeadlessClient, bob: HeadlessClient, obj: Int, count: Int, confirm: Boolean = true) {
+        alice.playerOp(bob.index, 4)
+        bob.await("the request") { bob.messages().firstOrNull { it.type == Trades.CHATTYPE_TRADEREQ } }
+        bob.playerOp(alice.index, 4)
+        for (c in listOf(alice, bob)) c.await("trading") { c.openInterfaces().takeIf { Trades.MAIN in it } }
+        val had = alice.held(obj)
+        for (n in 1..count) {
+            alice.await("offered ${n - 1}") { if (alice.held(obj) == had - (n - 1)) Unit else null }
+            val slot = alice.inventory(Inventory.INV).indexOfFirst { it?.id == obj }
+            alice.ifButton(Trades.SIDE, Trades.SIDE_ITEMS, 1, sub = slot, obj = obj)
+            bob.await("offer $n") { bob.inventory(Trades.TRADEOFFER + HeadlessClient.OTHER_INV).count { o -> o?.id == obj }.takeIf { it == n } }
+        }
+        alice.awaitTicks(Trades.ACCEPT_DELAY_TICKS)
+        alice.ifButton(Trades.MAIN, Trades.MAIN_ACCEPT, 1)
+        bob.await("she accepted") { bob.text(Trades.MAIN, Trades.MAIN_STATUS)?.takeIf { it == "[trade.other_accepted]" } }
+        bob.awaitTicks(Trades.ACCEPT_DELAY_TICKS)
+        bob.ifButton(Trades.MAIN, Trades.MAIN_ACCEPT, 1)
+        for (c in listOf(alice, bob)) c.await("the second screen") { c.openInterfaces().takeIf { Trades.CONFIRM in it } }
+        if (!confirm) return
+        alice.ifButton(Trades.CONFIRM, Trades.CONFIRM_ACCEPT, 1)
+        bob.await("she accepted again") { bob.text(Trades.CONFIRM, Trades.CONFIRM_TITLE)?.takeIf { it == "[trade.other_accepted]" } }
+        bob.ifButton(Trades.CONFIRM, Trades.CONFIRM_ACCEPT, 1)
+        for (c in listOf(alice, bob)) c.await("done") { c.messages().firstOrNull { it.text == "[trade.accepted]" } }
+    }
+
+    @Test
+    fun `supplies a member brought in and traded to another leave with them, and an offer pending at a logout is still taken back`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    for (c in listOf(alice, bob)) c.await("the login rebuild") { c.position }
+                    alice.commandReply("raidparty invite bob") { it.startsWith("Invited") }
+                    bob.commandReply("raidparty accept alice") { it.startsWith("You joined") }
+                    // Alice brings in two Manta rays of her own; Bob brings none.
+                    alice.command("item $MANTA 2")
+                    alice.awaitHeld(MANTA, 2)
+                    val run = alice.intoRun(server, "alice")
+                    bob.intoRun(server, "bob")
+                    alice.clear(run, ArchiveRoom.GUARDIAN)
+                    alice.clear(run, ArchiveRoom.BORK)
+                    alice.clear(run, ArchiveRoom.DREADNOTH)
+                    alice.toNexus(server, run)
+                    bob.toNexus(server, run)
+                    // Hers, traded to Bob (Codex review on #636): her allowance goes with them.
+                    trade(alice, bob, MANTA, 2)
+                    bob.awaitHeld(MANTA, 2)
+                    // Bob buys one; he offers it to Alice and logs out on the trade's second screen.
+                    bob.resupply()
+                    bob.entry(4, 2)
+                    bob.awaitHeld(MANTA, 3)
+                    bob.closeModal()
+                    bob.await("the shop shut") { (OmnishopScreen.MAIN !in bob.openInterfaces()).takeIf { it } }
+                    trade(bob, alice, MANTA, 1, confirm = false)
+                    bob.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+                    alice.await("Bob gone") { if (server.world.playerNamed("bob") == null) Unit else null }
+                    alice.tele(3222, 3218)
+                    alice.awaitTicks(2)
+                    assertEquals(0, alice.held(MANTA), "Alice's two went with her allowance to Bob")
+                }
+                // Back, Bob has Alice's two and not the one he bought, that was on offer as he left.
+                server.login("bob").use { again ->
+                    again.await("the login rebuild") { again.position }
+                    again.awaitTicks(2)
+                    assertEquals(2, again.held(MANTA))
+                }
             }
         }
     }

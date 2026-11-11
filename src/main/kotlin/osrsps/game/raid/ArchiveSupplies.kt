@@ -58,8 +58,8 @@ object QuartermasterLines : Lines("tfa_quartermaster", "Transcript:Quartermaster
  * - **Only for the raid.** What a member holds of the supplies' kinds as they get out of the run (a teleport, the Rift
  *   out, leaving the party, logging out, the instance's end) or lose it (a wipe, dying of an escape while down), beyond
  *   what they brought in through the Archive Door, is taken: doses of each potion, whatever its doses, and items of
- *   the rest ([settle]). Without it the stock, the ordinary items, left the raid to be banked or sold (exploit review
- *   round 26, R26A-1). Guessed: live's stock is the same items (the cache's rows), and whether live takes them back,
+ *   the rest ([settle]); what a member brought in and traded to another goes with its allowance ([traded]). Without
+ *   it the stock, the ordinary items, left the raid to be banked or sold (exploit review round 26, R26A-1). Guessed: live's stock is the same items (the cache's rows), and whether live takes them back,
  *   and how, isn't known; nothing is said.
  * - **Talk-to** (op 3) is the Wiki's transcript ([QuartermasterLines]). Guessed: every chathead expression, and that
  *   "I'll keep that in mind" from his second menu ends the talk (his answer to it isn't written down). Not in: his overhead lines, and the cache's inactive Quartermaster (16762,
@@ -118,10 +118,42 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
         }
     }
 
-    /** What [player] holds of the supplies' kinds: doses of each potion by its first dose obj, and items of the rest. */
-    internal fun held(player: Player): Map<Int, Int> {
+    /**
+     * [a] and [b], members of one run, have traded, holding [beforeA] and [beforeB] of the supplies before: what each
+     * gave of what they brought in (beyond what they still hold of it) goes over to the other's allowance, so what a
+     * member brought in and handed on isn't taken from the one who leaves with it. What they bought stays bought,
+     * whoever holds it (Codex review on #636). Not followed: supplies dropped and picked up by another member.
+     */
+    fun traded(a: Player, b: Player, beforeA: Map<Int, Int>, beforeB: Map<Int, Int>) {
+        val run = raids.at(a.x, a.z) ?: return
+        val allowA = run.suppliesBrought[a.saveKey]?.toMutableMap() ?: return
+        val allowB = run.suppliesBrought[b.saveKey]?.toMutableMap() ?: return
+        val afterA = held(a)
+        val afterB = held(b)
+        for (kind in beforeA.keys + beforeB.keys) {
+            val gaveA = (beforeA[kind] ?: 0) - (afterA[kind] ?: 0)
+            val gaveB = (beforeB[kind] ?: 0) - (afterB[kind] ?: 0)
+            fun move(gave: Int, from: MutableMap<Int, Int>, after: Int, to: MutableMap<Int, Int>) {
+                val spare = (from[kind] ?: 0) - after
+                val moved = minOf(gave, spare)
+                if (moved <= 0) return
+                from[kind] = (from[kind] ?: 0) - moved
+                to[kind] = (to[kind] ?: 0) + moved
+            }
+            move(gaveA, allowA, afterA[kind] ?: 0, allowB)
+            move(gaveB, allowB, afterB[kind] ?: 0, allowA)
+        }
+        run.suppliesBrought[a.saveKey] = allowA
+        run.suppliesBrought[b.saveKey] = allowB
+    }
+
+    /**
+     * What [player] holds of the supplies' kinds: doses of each potion by its first dose obj, and items of the rest; with
+     * [offered] (their trade offer) too.
+     */
+    internal fun held(player: Player, offered: Inventory? = null): Map<Int, Int> {
         val out = HashMap<Int, Int>()
-        for ((_, obj) in player.inventory.contents()) {
+        for ((_, obj) in player.inventory.contents() + offered?.contents().orEmpty()) {
             val (kind, each) = unitsOf(obj.id) ?: continue
             out.merge(kind, each * obj.count, Int::plus)
         }

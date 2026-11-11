@@ -1160,11 +1160,14 @@ class ArchiveRaids(private val world: World) {
      * tick, and out of it by the next.
      */
     fun leaving(player: Player) {
-        // Saved at the instance's exit: out of the run, so its supplies stay in it (R26A-1).
-        for (run in runs.values) supplies.settle(run, player)
         if (player.dead) return
         val run = runs.values.firstOrNull { !it.wiped && player.saveKey in it.downed } ?: return
         escaped(run, player)
+    }
+
+    /** [player] is leaving the world, any trade's offer back with them: what they hold of a run's supplies stays in it (R26A-1). */
+    fun settleSupplies(player: Player) {
+        for (run in runs.values) supplies.settle(run, player)
     }
 
     /**

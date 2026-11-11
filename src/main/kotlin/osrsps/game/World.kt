@@ -651,7 +651,12 @@ class World(
         overflow = { player, obj -> objTypes[obj.id]?.let { groundObjs.give(player, it, obj.count) } },
         setVarbit = { player, id, value -> player.vars.setVarbitIfKnown(id, value) },
         varbit = { player, id -> player.vars.getVarbitIfKnown(id) },
-        commit = { a, b, swap, undo -> commitTrade(a, b, swap, undo) },
+        commit = { a, b, swap, undo ->
+            // Supplies a raid member brought in, traded to another, go with their allowance (Codex review on #636).
+            // Before the swap, what each gives is in their offer, out of the backpack.
+            val before = archiveRaids.supplies.held(a, a.trade?.sideOf(a)?.offer) to archiveRaids.supplies.held(b, b.trade?.sideOf(b)?.offer)
+            commitTrade(a, b, swap, undo).also { if (it) archiveRaids.supplies.traded(a, b, before.first, before.second) }
+        },
         refuses = { archiveRaids.isDown(it) },
     )
 
@@ -3013,6 +3018,9 @@ class World(
             // Down in a raid, leaving counts as a death (RAID-2), also when the death just finished put them down.
             archiveRaids.leaving(player)
             trades.leave(player)
+            // Once a trade's offer is back in the backpack: saved at the instance's exit, out of any raid run, so its
+            // supplies stay in it (R26A-1; Codex review on #636).
+            archiveRaids.settleSupplies(player)
             thieving.forgive(player)
             friendChats.logout(player)
             clans.logout(player)
