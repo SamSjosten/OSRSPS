@@ -1,5 +1,6 @@
 package osrsps.game.raid
 
+import java.lang.ref.WeakReference
 import java.util.WeakHashMap
 import kotlin.math.abs
 import kotlin.math.max
@@ -68,7 +69,7 @@ object DagonhaiLines : Lines("tfa_dagonhai", "The_Fractured_Archive/Strategies")
  * bald.gg, osrstoolkit, ironman.guide; read 2026-11-11): the shared pool and per-member drains, 15% more on a stunned
  * one; the Elder's grey ranged shot and magic surge on one player, splashing onto those next to them; the cauldron's
  * channels of 25% each, the matching standard spell stopping one and a splash not; empowered at full, surges through
- * prayer two at a time; the tomes, their warning and gust tiles, "Curse you!" on a block, and what each god's does
+ * prayer two at a time; the tomes, their warning and gust tiles, a Monk's shout on a block, and what each god's does
  * blocked and not; each break dropping stability by 20% and opening two portals of three imps, standing beside one
  * closing it and draining prayer; after the fifth the cauldron exploding, one Monk dying and the other two on 7
  * hitpoints. From the cache (241): every id below by name, the weakened forms' 7 hitpoints, the cauldron's 1,000, the
@@ -231,7 +232,7 @@ object Dagonhai {
     const val SPOT_ZAMORAK_FIRE = 4149
     const val SPOT_BANDOS_WAVE = 4156
     const val SPOT_CAULDRON_BURST = 4161
-    const val SPOT_IMP_SPAWN = 13838
+    const val SPOT_IMP_SPAWN = 3735
 
     /** A channel's spotanim on the channeller, by their number and element; the one as it ends is the next id. */
     fun spotChannel(number: Int, element: Element): Int = 4079 + 8 * (number - 1) + 2 * ELEMENT_ORDER.indexOf(element)
@@ -339,7 +340,8 @@ object Dagonhai {
         var nextTome = 0L
         val tomes = ArrayList<Tome>()
 
-        val rifts = WeakHashMap<Npc, Rift>()
+        /** In the order they opened, so their imps come out (and take their rolls) the same way every run. */
+        val rifts = LinkedHashMap<Npc, Rift>()
 
         /** The fifth break's burst has come; the two left, as its weakened forms. */
         var exploded = false
@@ -348,12 +350,23 @@ object Dagonhai {
 
     private val states = WeakHashMap<Npc, State>()
 
-    /** Each member's fight, so a spell landing on one finds it ([spellLanded]). */
-    private val byMember = WeakHashMap<Npc, State>()
+    /**
+     * Each member's fight, so a spell landing on one finds it ([spellLanded]). Weakly held both ways: a [State] holds
+     * its members, so a strong value would keep each key, and with it every fight, forever (Codex review on #634).
+     */
+    private val byMember = WeakHashMap<Npc, WeakReference<State>>()
 
     private val EncounterContext.state: State get() = states.getOrPut(boss) { State() }
 
     private fun EncounterContext.inWorld(npc: Npc): Boolean = world.npcs[npc.index] === npc
+
+    /**
+     * A hit from the room itself (no NPC) still puts [player] in combat, holding a logout or a teleport cast, as the
+     * encounter's hazards do (Codex review on #634).
+     */
+    private fun EncounterContext.inCombat(player: Player) {
+        if (!player.dead) player.attackedTick = world.tick
+    }
 
     private fun EncounterContext.alive(npc: Npc?): Npc? = npc?.takeIf { !it.dead && inWorld(it) }
 
@@ -374,7 +387,7 @@ object Dagonhai {
      * element is the channel's, and it hit, the channel stops (the fight's next tick says so).
      */
     fun spellLanded(player: Player, npc: Npc, spell: CombatSpell, hit: Boolean) {
-        val state = byMember[npc] ?: return
+        val state = byMember[npc]?.get() ?: return
         val channel = state.channels[npc] ?: return
         if (hit && spell.element == channel.element && channel.stoppedBy == null) channel.stoppedBy = player.username
     }
@@ -393,7 +406,7 @@ object Dagonhai {
             npc.hitpoints = POOL
             state.members += npc
             state.seen[npc] = POOL
-            byMember[npc] = state
+            byMember[npc] = WeakReference(state)
         }
         state.nextAttack = world.tick + ATTACK_SPEED
         state.nextChannel = world.tick + FIRST_CHANNEL
@@ -691,6 +704,7 @@ object Dagonhai {
                 for (player in players) {
                     player.effects.spotanim(0, SPOT_BANDOS_WAVE, 0, 0)
                     val dealt = world.meleeCombat.hitPlayer(player, null, roll(BANDOS_HIT_MIN, BANDOS_HIT_MAX), world.tick)
+                    inCombat(player)
                     log("the cauldron's shockwave hits ${player.username} for $dealt")
                 }
             }
@@ -724,7 +738,13 @@ object Dagonhai {
         val yellow = ArrayList<Tile>()
         for (player in players) {
             blue += Tile(player.x, player.z)
-            val side = DIRECTIONS[roll(0, 3) * 2]
+            // A side the player can step to, on the floor (Codex review on #634); none, and they get no yellow.
+            val sides = (0..3).map { DIRECTIONS[it * 2] }.filter { side ->
+                inArena(boss.spawn.x, boss.spawn.z, player.x + side.x, player.z + side.z) &&
+                    world.canStep(player.level, player.x, player.z, side.x, side.z)
+            }
+            if (sides.isEmpty()) continue
+            val side = sides[roll(0, sides.size - 1)]
             yellow += Tile(player.x + side.x, player.z + side.z)
         }
         for (tile in blue) world.zones.mapAnim(tile.x, tile.z, boss.level, SPOT_SARADOMIN_DAMAGE_MARK)
@@ -736,13 +756,15 @@ object Dagonhai {
             for (player in players) {
                 val here = Tile(player.x, player.z)
                 if (here in yellow) {
-                    val max = player.skills.baseLevel(Skill.HITPOINTS)
-                    player.hitpoints = (player.hitpoints + LIGHTNING_HEAL).coerceAtMost(max)
+                    // Up to the base level, never taking off a boost above it (a brew's).
+                    val hitpoints = player.hitpoints
+                    player.hitpoints = hitpoints + LIGHTNING_HEAL.coerceAtMost((player.skills.baseLevel(Skill.HITPOINTS) - hitpoints).coerceAtLeast(0))
                     val prayer = player.skills.currentLevel(Skill.PRAYER)
-                    player.skills.setCurrentLevel(Skill.PRAYER, (prayer + LIGHTNING_HEAL).coerceAtMost(player.skills.baseLevel(Skill.PRAYER)))
+                    player.skills.setCurrentLevel(Skill.PRAYER, prayer + LIGHTNING_HEAL.coerceAtMost((player.skills.baseLevel(Skill.PRAYER) - prayer).coerceAtLeast(0)))
                     log("the yellow lightning heals ${player.username}")
                 } else if (here in blue) {
                     val dealt = world.meleeCombat.hitPlayer(player, null, LIGHTNING_DAMAGE, world.tick)
+                    inCombat(player)
                     log("the blue lightning hits ${player.username} for $dealt")
                 }
             }
