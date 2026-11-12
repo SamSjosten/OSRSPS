@@ -1,0 +1,127 @@
+{
+ "name": "Misthalin town gaps: Wise Old Man's bookshelf, Lumbridge bookcase, a manor cabbage and the crypt stairs (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle: a command typed straight away can be lost"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3089 3252 0",
+   "expectMessage": "Teleported to 3089, 3252, 0",
+   "comment": "in the Wise Old Man's house, Draynor"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "loc": "Old Bookshelf",
+   "option": "Search",
+   "x": 3090,
+   "y": 3253
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[draynor_search.bookcase_empty]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3233 3207 0",
+   "expectMessage": "Teleported to 3233, 3207, 0",
+   "comment": "in Lumbridge's south house, east of the bookcase (it is approached from the east)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "loc": "Bookcase",
+   "option": "Search",
+   "x": 3232,
+   "y": 3206
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[varrock_search.bookcase_empty]"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3085 3362 0",
+   "expectMessage": "Teleported to 3085, 3362, 0",
+   "comment": "by the cabbages west of Draynor Manor"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "loc": "Cabbage",
+   "option": "Pick",
+   "x": 3084,
+   "y": 3363
+  },
+  {
+   "step": "assertInventory",
+   "item": "Cabbage",
+   "count": 1
+  },
+  {
+   "step": "command",
+   "text": "::tele 3115 3360 0",
+   "expectMessage": "Teleported to 3115, 3360, 0",
+   "comment": "north of the crypt stairs in Draynor Manor"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "loc": "Stairs",
+   "option": "Climb-down",
+   "x": 3115,
+   "y": 3357
+  },
+  {
+   "step": "assertLocation",
+   "x": 3077,
+   "y": 9771,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "the crypt landing is guessed from the map"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "locOption",
+   "loc": "Stairs",
+   "option": "Climb-up",
+   "x": 3077,
+   "y": 9768
+  },
+  {
+   "step": "assertLocation",
+   "x": 3115,
+   "y": 3360,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "back up (guessed)"
+  }
+ ]
+}
