@@ -150,6 +150,74 @@ class HeadlessScriptsTest {
     }
 
     @Test
+    fun `another player is found by the name in their appearance, on the tile asked for, and their menu's option sent`(@TempDir dir: Path) {
+        TestServer(dir).use { server ->
+            val types = HeadlessGame.Types.of(server.world)
+            ScriptSession("test2", { server.login(it) }, types).use { other ->
+                val there = other.run(
+                    script("""{"account": "test2", "steps": [{"step": "waitForLogin"}, {"step": "command", "text": "::tele 3224 3218 0", "expectMessage": "Teleported"}]}"""),
+                    "test",
+                )
+                assertEquals(Result.PASS, there.result, there.failure)
+                ScriptSession("test", { server.login(it) }, types).use { session ->
+                    val result = session.run(
+                        script(
+                            """
+                            {"account": "test", "steps": [
+                              {"step": "waitForLogin"},
+                              {"step": "command", "text": "::tele 3222 3218 0", "expectMessage": "Teleported"},
+                              {"step": "playerOption", "player": "Test2", "option": "Follow", "x": 3224, "y": 3218},
+                              {"step": "playerOption", "player": "test2", "option": "Follow", "x": 3230, "y": 3218, "timeoutMs": 1200},
+                              {"step": "waitTicks", "ticks": 1}
+                            ]}
+                            """.trimIndent(),
+                        ),
+                        "test",
+                    )
+                    assertEquals(Result.PASS, result.steps[2].outcome, result.failure)
+                    assertEquals(Result.FAIL, result.result)
+                    assertTrue("test2 is on 3224, 3218, not 3230, 3218" in result.failure!!, result.failure)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `the client's own prompts are stood in for, and chat lines reach assertMessage`(@TempDir dir: Path) {
+        TestServer(dir).use { server ->
+            val types = HeadlessGame.Types.of(server.world)
+            ScriptSession("test2", { server.login(it) }, types).use { other ->
+                val there = other.run(script("""{"account": "test2", "steps": [{"step": "waitForLogin"}]}"""), "test")
+                assertEquals(Result.PASS, there.result, there.failure)
+                ScriptSession("test", { server.login(it) }, types).use { session ->
+                    val result = session.run(
+                        script(
+                            """
+                            {"account": "test", "steps": [
+                              {"step": "waitForLogin"},
+                              {"step": "addFriend", "name": "test2"},
+                              {"step": "assertFriend", "name": "test2", "world": 301},
+                              {"step": "privateMessage", "name": "test2", "text": "a quiet word"},
+                              {"step": "assertMessage", "contains": "a quiet word"},
+                              {"step": "chat", "text": "said aloud"},
+                              {"step": "assertMessage", "contains": "said aloud"},
+                              {"step": "deleteFriend", "name": "test2"},
+                              {"step": "assertFriend", "name": "test2", "absent": true},
+                              {"step": "runClientScript", "id": 112, "args": []}
+                            ]}
+                            """.trimIndent(),
+                        ),
+                        "test",
+                    )
+                    assertEquals(Result.PASS, result.steps[8].outcome, result.failure)
+                    assertEquals(Result.FAIL, result.result)
+                    assertTrue("client script 112 runs in the client" in result.failure!!, result.failure)
+                }
+            }
+        }
+    }
+
+    @Test
     fun `a script for another account is refused, as the plugin refuses it`(@TempDir dir: Path) {
         TestServer(dir).use { server ->
             ScriptSession("test", { server.login(it) }, HeadlessGame.Types.of(server.world)).use { session ->
@@ -163,10 +231,10 @@ class HeadlessScriptsTest {
     @Test
     fun `the reset between scripts reads, and the pairs are the -test and -test2 files`() {
         for (account in ScriptSession.ACCOUNTS) assertEquals(8, Script.parse("_between.json", HeadlessScripts.resetScript(account)).steps.size)
-        assertTrue(HeadlessScripts.pairReason("social-trade-test.json") != null)
-        assertTrue(HeadlessScripts.pairReason("social-trade-test2.json") != null)
-        assertNull(HeadlessScripts.pairReason("social-ignore-2.json"))
-        assertNull(HeadlessScripts.pairReason("lumbridge-bank.json"))
+        assertEquals("social-trade-test2.json", HeadlessScripts.pairPartner("social-trade-test.json"))
+        assertEquals("social-trade-test.json", HeadlessScripts.pairPartner("social-trade-test2.json"))
+        assertNull(HeadlessScripts.pairPartner("social-ignore-2.json"))
+        assertNull(HeadlessScripts.pairPartner("lumbridge-bank.json"))
     }
 
     @Test

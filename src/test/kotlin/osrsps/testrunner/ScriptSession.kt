@@ -23,6 +23,7 @@ internal class ScriptSession(
     private var messagesSeen = 0
     private var scriptsSeen = 0
     private var eventsSeen = 0
+    private var heardSeen = 0
     private var loginAnnounced = false
     private var nextLoginAt = 0L
     private var nextKeepAliveAt = 0L
@@ -46,6 +47,11 @@ internal class ScriptSession(
             if (clock() > deadline) return runner.abort("the script ran past ${limitMillis / 1000} s")
             Thread.sleep(POLL_MILLIS)
         }
+    }
+
+    /** Keeps the account in the game between scripts: reads what came and sends the keep-alive, with no script running. */
+    fun idle() {
+        if (client?.isClosed == false) pump()
     }
 
     /**
@@ -75,6 +81,7 @@ internal class ScriptSession(
                     messagesSeen = 0
                     scriptsSeen = 0
                     eventsSeen = 0
+                    heardSeen = 0
                     loginAnnounced = false
                 } catch (e: Exception) {
                     // Logged, not thrown: a step that needs the login fails at its own timeout, with this in the log.
@@ -100,6 +107,10 @@ internal class ScriptSession(
         val scripts = current.clientScripts()
         for (i in scriptsSeen until scripts.size) game.scriptMessage(scripts[i])?.let(runner::message)
         scriptsSeen = scripts.size
+        // The plugin hands on every chat line's words, whoever spoke and on whichever channel.
+        val heard = current.heard(heardSeen)
+        heardSeen += heard.size
+        heard.forEach(runner::message)
         // As the plugin's AnimationChanged, GraphicChanged and HitsplatApplied: the player as SELF, another player as -2.
         val events = current.actorEvents(eventsSeen)
         eventsSeen += events.size

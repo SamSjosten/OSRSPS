@@ -164,6 +164,7 @@ class HeadlessClient private constructor(
     private val npcSaid = ArrayList<NpcSaid>()
     private val npcHits = ArrayList<NpcHit>()
     private val actorEvents = ArrayList<ActorEvent>()
+    private val heard = ArrayList<String>()
     private val playerOps = HashMap<Int, String?>()
     private val moves = ArrayList<TickMove>()
     private var ticks = 0
@@ -202,6 +203,12 @@ class HeadlessClient private constructor(
     fun messages(): List<GameMessage> = lock.withLock { messages.toList() }
 
     /** The animations, spotanims and hitsplats players' and NPCs' extended info has started, from the [from]th on. */
+    /**
+     * The words of every chat line since login in the order they came: public chat (the player's own too), private
+     * messages and their echoes, the friends chat and the clan channel.
+     */
+    fun heard(from: Int = 0): List<String> = lock.withLock { heard.subList(from.coerceAtMost(heard.size), heard.size).toList() }
+
     fun actorEvents(from: Int = 0): List<ActorEvent> = lock.withLock { actorEvents.subList(from.coerceAtMost(actorEvents.size), actorEvents.size).toList() }
 
     /** A player's appearance as their last appearance block gave it (the local player's by default), or null. */
@@ -912,6 +919,7 @@ class HeadlessClient private constructor(
                 if (playerInfo.localAnimated) animTicks += ticks
                 if (playerInfo.localExactMoved) exactMoveTicks += ticks
                 for (event in playerInfo.events) actorEvents += event.copy(ticks = ticks)
+                for ((_, packed) in playerInfo.chats) heard += huffman.decode(Unpooled.wrappedBuffer(packed).toJagByteBuf())
             }
             GameServerProt.MESSAGE_GAME -> {
                 val type = buf.gSmart1or2()
@@ -1038,7 +1046,9 @@ class HeadlessClient private constructor(
                 val world = buf.g2()
                 val counter = buf.g3()
                 buf.g1() // chat crown
-                privateMessages += PrivateMessage(from, null, huffman.decode(buf), world, counter)
+                val text = huffman.decode(buf)
+                privateMessages += PrivateMessage(from, null, text, world, counter)
+                heard += text
             }
             GameServerProt.UPDATE_FRIENDCHAT_CHANNEL_FULL_V2 -> {
                 friendsChat = if (!buf.isReadable) {
@@ -1075,7 +1085,9 @@ class HeadlessClient private constructor(
                 buf.g2() // world
                 val counter = buf.g3()
                 buf.g1() // chat crown
-                channelMessages += ChannelMessage(sender, channel, huffman.decode(buf), counter)
+                val text = huffman.decode(buf)
+                channelMessages += ChannelMessage(sender, channel, text, counter)
+                heard += text
             }
             GameServerProt.MESSAGE_CLANCHANNEL -> {
                 // RSProt's MessageClanChannelEncoder: clan type, name, world, counter, crown, then the Huffman text.
@@ -1084,11 +1096,15 @@ class HeadlessClient private constructor(
                 buf.g2()
                 buf.g3()
                 buf.g1()
-                clanMessages += ClanMessage(clanType, sender, huffman.decode(buf))
+                val text = huffman.decode(buf)
+                clanMessages += ClanMessage(clanType, sender, text)
+                heard += text
             }
             GameServerProt.MESSAGE_PRIVATE_ECHO -> {
                 val to = buf.gjstr()
-                privateMessages += PrivateMessage(null, to, huffman.decode(buf))
+                val text = huffman.decode(buf)
+                privateMessages += PrivateMessage(null, to, text)
+                heard += text
             }
             GameServerProt.UPDATE_IGNORELIST -> {
                 while (buf.isReadable) {
