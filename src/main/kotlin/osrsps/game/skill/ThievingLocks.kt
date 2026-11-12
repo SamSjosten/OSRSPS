@@ -128,8 +128,6 @@ object ThievingLocks {
     const val DOOR_ARDOUGNE_CASTLE = 11724
     const val DOOR_ROSS = 40178
 
-    /** `inactivepoordoor`: the door shown open while a player goes through (GUESSED type). */
-
     const val OP_OPEN = 1
     const val OP_SECOND = 2
 
