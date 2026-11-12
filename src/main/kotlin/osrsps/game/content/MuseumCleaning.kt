@@ -181,7 +181,7 @@ fun registerMuseumCleaning(world: World) {
     with(MuseumCleaning) {
         world.handlers.onLoc(TOOLS, TAKE) {
             // The rack holds the gloves and boots too (the Wiki's Kudos page): those not worn or carried come with the tools.
-            // Banked ones count too, so banking each set can't take an endless supply (exploit round 29).
+            // Guessed: banked ones count too (the Wiki doesn't say), so banking each set can't take an endless supply (exploit round 29).
             val missing = (TOOL_IDS + GEAR_IDS).filter { !owned(player, it) }
             when {
                 missing.isEmpty() -> world.message(player, MuseumCleaningLines.HAVE_TOOLS)

@@ -271,7 +271,7 @@ object VarrockSweepPeople {
      * rather than one dropped on the floor each talk.
      */
     private fun Dialogue.giveOne(world: World, item: Int) {
-        // Worn or banked counts as having one, so banking each can't take an endless supply (exploit round 29).
+        // Guessed: worn or banked counts as having one (the Wiki doesn't say), so banking each can't take an endless supply (exploit round 29).
         if (MuseumCleaning.owned(player, item)) return
         if (player.inventory.freeSlots == 0) return world.message(player, osrsps.game.GameLines.NO_SPACE)
         world.objTypes[item]?.let { player.inventory.add(it, 1) }
