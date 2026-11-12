@@ -1,6 +1,9 @@
 package osrsps.game.content
 
+import osrsps.game.GameLines
 import osrsps.game.World
+import osrsps.game.script.ScriptContext
+import osrsps.game.zone.ZoneLoc
 
 /**
  * The small Draynor, Edgeville and Lumbridge lists from the Misthalin sweep (the Varrock thread's follow-up): loc
@@ -38,6 +41,8 @@ object MisthalinTownGaps {
     const val CLIMB = 1
     val CRYPT_LANDING = Destination(3077, 9771, 0)
     val GRAVEYARD_LANDING = Destination(3115, 3360, 0)
+    val CRYPT_STAIRS_DOWN_TILE = 3115 to 3357
+    val CRYPT_STAIRS_UP_TILE = 3077 to 9768
 }
 
 fun registerMisthalinTownGaps(world: World) = with(MisthalinTownGaps) {
@@ -45,6 +50,17 @@ fun registerMisthalinTownGaps(world: World) = with(MisthalinTownGaps) {
     for (shelf in WISE_OLD_MAN_BOOKSHELVES) registerSearch(world, shelf, SEARCH, DraynorSearchLines.BOOKCASE_EMPTY)
     registerSearch(world, LUMBRIDGE_BOOKCASE, SEARCH, VarrockSearchLines.BOOKCASE_EMPTY)
     world.handlers.onLoc(MAGIC_CABBAGE_LOC, PICK) { op -> pick(world, op.loc!!, MANOR_CABBAGES) }
-    world.handlers.onLoc(CRYPT_STAIRS_DOWN, CLIMB) { world.teleport(player, CRYPT_LANDING.x, CRYPT_LANDING.z, CRYPT_LANDING.level) }
-    world.handlers.onLoc(CRYPT_STAIRS_UP, CLIMB) { world.teleport(player, GRAVEYARD_LANDING.x, GRAVEYARD_LANDING.z, GRAVEYARD_LANDING.level) }
+    // The stairs by tile, as Cooks' Guild's are: a copy of either type elsewhere in the cache mustn't lead to Draynor
+    // (exploit review round 29).
+    fun ScriptContext.ours(loc: ZoneLoc, tile: Pair<Int, Int>): Boolean {
+        if (loc.level == 0 && loc.x to loc.z == tile) return true
+        world.message(player, GameLines.NOTHING_INTERESTING)
+        return false
+    }
+    world.handlers.onLoc(CRYPT_STAIRS_DOWN, CLIMB) { op ->
+        if (ours(op.loc!!, CRYPT_STAIRS_DOWN_TILE)) world.teleport(player, CRYPT_LANDING.x, CRYPT_LANDING.z, CRYPT_LANDING.level)
+    }
+    world.handlers.onLoc(CRYPT_STAIRS_UP, CLIMB) { op ->
+        if (ours(op.loc!!, CRYPT_STAIRS_UP_TILE)) world.teleport(player, GRAVEYARD_LANDING.x, GRAVEYARD_LANDING.z, GRAVEYARD_LANDING.level)
+    }
 }

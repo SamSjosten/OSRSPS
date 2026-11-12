@@ -2,6 +2,7 @@ package osrsps.testclient
 
 import java.nio.file.Path
 import kotlin.test.Test
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.Inventory
 import osrsps.game.ObjType
@@ -48,6 +49,8 @@ class HeadlessMisthalinTownGapsTest {
                 add(ZoneLoc(MisthalinTownGaps.MAGIC_CABBAGE_LOC, LocShape.CENTREPIECE_STRAIGHT, 0, 3222, 3220, 0))
                 add(ZoneLoc(MisthalinTownGaps.CRYPT_STAIRS_DOWN, LocShape.CENTREPIECE_STRAIGHT, 2, 3115, 3357, 0))
                 add(ZoneLoc(MisthalinTownGaps.CRYPT_STAIRS_UP, LocShape.CENTREPIECE_STRAIGHT, 2, 3077, 9768, 0))
+                // A copy of the crypt stairs somewhere else, which mustn't lead to the crypt.
+                add(ZoneLoc(MisthalinTownGaps.CRYPT_STAIRS_DOWN, LocShape.CENTREPIECE_STRAIGHT, 0, 3230, 3218, 0))
             },
             cycleMillis = millis,
         )
@@ -69,6 +72,9 @@ class HeadlessMisthalinTownGapsTest {
                 client.searchSays(CRATE, 3224, 3218, "[search.crate_empty]")
                 client.searchSays(SHELF, 3226, 3218, "[draynor_search.bookcase_empty]")
                 client.searchSays(MisthalinTownGaps.LUMBRIDGE_BOOKCASE, 3228, 3218, "[varrock_search.bookcase_empty]")
+                // The crypt stairs by tile: a copy elsewhere does nothing, and the player stays in Lumbridge.
+                client.searchSays(MisthalinTownGaps.CRYPT_STAIRS_DOWN, 3230, 3218, "[game.nothing_interesting]")
+                assertTrue(client.position!!.z < 4000, "a copy of the crypt stairs kept the player out of the crypt")
                 client.locOp(MisthalinTownGaps.MAGIC_CABBAGE_LOC, 3222, 3220, 1)
                 client.await("the manor cabbage") { client.inventory(Inventory.INV).firstOrNull { it?.id == MisthalinTownGaps.MANOR_CABBAGE } }
 
