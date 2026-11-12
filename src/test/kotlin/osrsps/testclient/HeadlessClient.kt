@@ -254,6 +254,37 @@ class HeadlessClient private constructor(
         packets.lastOrNull { it.prot == prot && it.payload.isNotEmpty() && it.payload[0].toInt() == clanType }?.payload?.let(::strings)
     }
 
+    /**
+     * The names on the ban list in the last CLANSETTINGS_FULL of [clanType], read by RSProt's ClanSettingsFullEncoder
+     * (version 6); null when none came, empty after a leave update.
+     */
+    fun bannedClanNames(clanType: Int): List<String>? = lock.withLock {
+        val payload = packets.lastOrNull { it.prot == GameServerProt.CLANSETTINGS_FULL && it.payload.isNotEmpty() && it.payload[0].toInt() == clanType }?.payload
+            ?: return@withLock null
+        if (payload.size == 1) return@withLock emptyList()
+        val buf = Unpooled.wrappedBuffer(payload).toJagByteBuf()
+        buf.skipRead(2) // clan type and version
+        val flags = buf.g1()
+        buf.skipRead(8) // update number and creation time
+        val members = buf.g2()
+        val banned = buf.g1()
+        buf.gjstr() // the clan's name
+        buf.skipRead(9) // an unused int, guests allowed, and the talk, kick, lootshare and coinshare ranks
+        val hashes = flags and 0x1 != 0
+        val names = flags and 0x2 != 0
+        repeat(members) {
+            if (hashes) buf.skipRead(8)
+            if (names) buf.gjstr()
+            buf.skipRead(8) // rank, extra info, join day, muted
+        }
+        val out = ArrayList<String>()
+        repeat(banned) {
+            if (hashes) buf.skipRead(8)
+            if (names) out += buf.gjstr()
+        }
+        out
+    }
+
     private fun strings(payload: ByteArray): List<String> {
         val out = ArrayList<String>()
         val run = StringBuilder()
@@ -919,7 +950,12 @@ class HeadlessClient private constructor(
                 if (playerInfo.localAnimated) animTicks += ticks
                 if (playerInfo.localExactMoved) exactMoveTicks += ticks
                 for (event in playerInfo.events) actorEvents += event.copy(ticks = ticks)
-                for ((_, packed) in playerInfo.chats) heard += huffman.decode(Unpooled.wrappedBuffer(packed).toJagByteBuf())
+                for ((speaker, packed) in playerInfo.chats) {
+                    // The server sends an ignored player's public chat all the same; the client is what drops it.
+                    val name = playerInfo.appearance(speaker)?.name
+                    if (name != null && ignoreList.any { it.equals(name, ignoreCase = true) }) continue
+                    heard += huffman.decode(Unpooled.wrappedBuffer(packed).toJagByteBuf())
+                }
             }
             GameServerProt.MESSAGE_GAME -> {
                 val type = buf.gSmart1or2()

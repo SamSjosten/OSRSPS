@@ -82,6 +82,9 @@ internal class HeadlessGame(
     /** The meslayer mode of the prompt the client itself would have open (see [CLIENT_PROMPT_BUTTONS]), or 0. */
     private var clientPrompt = 0
 
+    /** What the client sends of itself a while after a click: the server cycle each is due in, and the sending. */
+    private val later = ArrayList<Pair<Int, (HeadlessClient) -> Unit>>()
+
     /** Who the open private message prompt writes to. */
     private var promptTarget = ""
 
@@ -557,9 +560,10 @@ internal class HeadlessGame(
             return null
         }
         if (packed == CLAN_BAN_LIST && op == 1) {
-            val names = client.lastClanStrings(GameServerProt.CLANSETTINGS_FULL, Clans.CLAN_TYPE_CLAN).orEmpty()
-            if (names.none { jagexName(it) == wanted }) return "no \"$name\" in the clan's settings ($names)"
-            client.resumeString(name)
+            val names = client.bannedClanNames(Clans.CLAN_TYPE_CLAN).orEmpty()
+            val banned = names.firstOrNull { jagexName(it) == wanted } ?: return "no \"$name\" on the clan's ban list ($names)"
+            // clan_banned_unban sends the name 30 client cycles after the click: a server cycle on.
+            later += (client.cyclesSeen + UNBAN_DELAY_CYCLES) to { it.resumeString(banned) }
             return null
         }
         if (packed == FRIENDS_CHAT_LIST && op == FRIENDS_CHAT_KICK_OP) {
@@ -664,6 +668,11 @@ internal class HeadlessGame(
      */
     fun noteInventoryBindings() {
         val client = c() ?: return
+        if (later.isNotEmpty()) {
+            val due = later.filter { it.first <= client.cyclesSeen }
+            later.removeAll(due)
+            due.forEach { it.second(client) }
+        }
         val scripts = client.clientScripts()
         if (scripts.size < scriptsSeen) scriptsSeen = 0
         for (script in scripts.subList(scriptsSeen, scripts.size)) {
@@ -691,6 +700,7 @@ internal class HeadlessGame(
         scriptsSeen = 0
         promptsFrom = 0
         clientPrompt = 0
+        later.clear()
     }
 
     private fun objAt(client: HeadlessClient, interfaceId: Int, component: Int, sub: Int): Int {
@@ -868,6 +878,7 @@ internal class HeadlessGame(
         const val CLAN_KICK_OP = 7
         const val CLAN_BAN_OP = 8
         const val CLAN_BAN_LIST = (689 shl 16) or 6
+        const val UNBAN_DELAY_CYCLES = 1
         /** The friends chat panel's list of members (7:12) and Kick user on a row. */
         const val FRIENDS_CHAT_LIST = (7 shl 16) or 12
         const val FRIENDS_CHAT_KICK_OP = 6
