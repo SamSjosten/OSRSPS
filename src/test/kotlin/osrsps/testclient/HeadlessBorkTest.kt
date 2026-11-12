@@ -324,6 +324,40 @@ class HeadlessBorkTest {
     }
 
     @Test
+    fun `napalm that splashes Bork counts for whoever it was called on`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    val clients = listOf(alice to "alice", bob to "bob")
+                    for ((client, _) in clients) client.await("the login rebuild") { client.position }
+                    party(clients)
+                    val run = alice.intoRun(server, "alice")
+                    assertEquals(run, bob.intoRun(server, "bob"))
+                    alice.toBork(server, run)
+                    val world = server.world
+                    val cart = world.archiveRaids.tile(run, ArchiveRaids.BORK_CART_X, ArchiveRaids.BORK_CART_Z)
+                    val theBork = npc(run, Bork.BORK)
+                    for (client in listOf(alice, bob)) {
+                        client.command("varp ${EquipmentTab.VARP_AUTO_RETALIATE_OFF} 1")
+                        client.await("auto retaliate off") { if (client.varp(EquipmentTab.VARP_AUTO_RETALIATE_OFF) == 1) Unit else null }
+                    }
+                    alice.tele(cart.x - 4, cart.z + 1)
+                    bob.tele(cart.x - 4, cart.z - 4)
+                    // Napalm at bob; Bork put where it will splash, and held there.
+                    val aimed = alice.awaitLine(run, "napalm at bob") { it.contains("fight: napalm at ") }
+                    assertTrue(aimed.endsWith("(bob)"), aimed)
+                    world.npcs.teleport(theBork, cart.x - 4, cart.z - 4)
+                    world.npcs.freeze(theBork, Bork.NAPALM_FLIGHT + 4)
+                    val burnt = alice.awaitLine(run, "napalm burning Bork") { it.contains("fight: napalm burns Bork for ") }
+                    // Bob drew it onto him, so it counts for bob as damage to Bork (exploit review R28A-3); bob hit nothing.
+                    val key = world.playerNamed("bob")!!.saveKey
+                    assertEquals(burnt.substringAfter("for ").toInt(), run.damage[ArchiveRoom.BORK]?.get(key), lines(run).takeLast(6).toString())
+                }
+            }
+        }
+    }
+
+    @Test
     fun `napalm leaves oil that burns, the heavy cannonball lured onto Bork dazes him, and his stomp spares the tower's shadow`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { alice ->
