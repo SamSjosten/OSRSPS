@@ -53,9 +53,9 @@ class HeadlessThrownTest {
                 3, "Block", "(Defensive)<br>(Crush)<br>(Defence XP)", 0,
             ),
             listOf<Any>(19) to listOf<Any>(
-                0, "Accurate", "(Accurate)<br>(Standard)<br>(Ranged XP)", 0,
-                1, "Rapid", "(Rapid)<br>(Standard)<br>(Ranged XP)", 0,
-                3, "Longrange", "(Longrange)<br>(Standard)<br>(Ranged XP)<br>(Defence XP)", 0,
+                0, "Accurate", "(Accurate)<br>(Light)<br>(Ranged XP)", 0,
+                1, "Rapid", "(Rapid)<br>(Light)<br>(Ranged XP)", 0,
+                3, "Longrange", "(Longrange)<br>(Light)<br>(Ranged XP)<br>(Defence XP)", 0,
             ),
             listOf<Any>(5) to listOf<Any>(
                 0, "Accurate", "(Accurate)<br>(Heavy)<br>(Ranged XP)", 0,
@@ -94,7 +94,7 @@ class HeadlessThrownTest {
             server.login("alice").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.wield(RUNE_KNIFE, KNIVES, WearPos.WEAPON)
-                assertTrue(client.commandReply("combat man") { it.startsWith("Accurate") }.startsWith("Accurate (accurate, ranged standard), speed 3"))
+                assertTrue(client.commandReply("combat man") { it.startsWith("Accurate") }.startsWith("Accurate (accurate, ranged light), speed 3"))
                 client.commandReply("god") { it.startsWith("You can") }
                 client.npcOp(client.theMan().index, 2)
                 client.await("a knife on the floor", timeoutMillis = 30_000) { client.groundObjs().firstOrNull { it.id == RUNE_KNIFE } }

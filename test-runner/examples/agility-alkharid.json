@@ -36,6 +36,12 @@
   },
   {
    "step": "command",
+   "text": "::boost agility 120",
+   "expectMessage": "Agility is now 120/30",
+   "comment": "Tightrope 1 and the zip line never fail from 98 (225 to 255 of 256 in agility.json), so no fall stops the script at random (one run in six at 30); marks of grace go by the unboosted 30, and the boost drops only a level a minute"
+  },
+  {
+   "step": "command",
    "text": "::tele 3273 3196 0",
    "expectMessage": "Teleported to 3273, 3196, 0",
    "comment": "north of Ellis the tanner's building, below the rough wall"
