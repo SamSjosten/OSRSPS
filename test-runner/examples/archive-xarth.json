@@ -34,6 +34,12 @@
   },
   {
    "step": "command",
+   "text": "::varp 172 1",
+   "expectMessage": "Varp 172:",
+   "comment": "auto retaliate off: punching back at his fireballs walks the account up beside him, and beside him in phase two he swings instead of shooting, so the shot below never comes (nightly of 2026-11-11, guessed from the log); ::reset at the end puts it back"
+  },
+  {
+   "step": "command",
    "text": "::tele 4127 5560 0",
    "expectMessage": "Teleported to 4127, 5560, 0",
    "comment": "the lobby, in front of the Archive Door"
