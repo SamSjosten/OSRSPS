@@ -360,6 +360,8 @@ class HeadlessMoiaTest {
                         alice.await("binders up", 40_000) { binders(run).takeIf { it.size == Moia.RING.size - 1 } }
                         for (b in binders(run)) alice.commandReply("hit 95 ${b.index}") { it.startsWith("Hit ") }
                     }
+                    // Her binders charge nothing, so nobody's hits on them are kept by binder (Codex on #649).
+                    assertTrue(run.addHits.isEmpty(), run.addHits.keys.toString())
                     // Bob does all of Moia.
                     val her = boss(run)
                     while (!her.dead) {
