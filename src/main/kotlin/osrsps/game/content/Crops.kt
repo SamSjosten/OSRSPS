@@ -71,7 +71,7 @@ fun registerCrops(world: World) {
     }
 }
 
-private suspend fun ScriptContext.pick(world: World, loc: ZoneLoc, crop: Crops.Crop) {
+internal suspend fun ScriptContext.pick(world: World, loc: ZoneLoc, crop: Crops.Crop) {
     if (player.inventory.freeSlots == 0) {
         world.message(player, crop.noRoom)
         return

@@ -139,6 +139,27 @@ class HeadlessVarrockSweepPeopleTest {
     }
 
     @Test
+    fun `a banked hammer counts, so the tutor gives no second one`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("fred").use { client ->
+                client.await("the login rebuild") { client.position }
+                val fred = server.world.playerNamed("fred")!!
+                fred.bank.add(server.world.objTypes[VarrockSweepPeople.HAMMER]!!, 1)
+                client.talk(VarrockSweepPeople.MASTER_SMITHING_TUTOR)
+                client.chat("[master_smithing_tutor.hello]")
+                client.chat("[master_smithing_tutor.greeting]")
+                client.awaitDialogue("the menu") { it is DialogueView.Menu }
+                client.chooseOption(1)
+                client.chat("[master_smithing_tutor.train]")
+                client.chat("[master_smithing_tutor.no_hammer]")
+                for (n in 1..6) client.chat("[master_smithing_tutor.low_$n]")
+                client.awaitTicks(2)
+                assertEquals(0L, fred.inventory.count(VarrockSweepPeople.HAMMER))
+            }
+        }
+    }
+
+    @Test
     fun `with a full backpack the tutor and Anna Jones give nothing, and nothing lands on the floor`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("erin").use { client ->

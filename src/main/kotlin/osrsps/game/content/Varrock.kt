@@ -127,6 +127,7 @@ fun registerVarrock(world: World) {
     registerVarrockInns(world)
     registerVarrockChampionsGuild(world)
     registerVarrockMuseum(world)
+    registerMuseumCleaning(world)
     VarrockMuseumPeople.register(world)
     registerVarrockPalace(world)
     registerVarrockShopkeepers(world)
