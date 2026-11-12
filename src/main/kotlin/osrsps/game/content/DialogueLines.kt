@@ -309,6 +309,7 @@ object DialogueLines {
         TobyLines,
         JamesLines,
         MeredithLines,
+        MuseumCleaningLines,
         HooknosedJackLines,
         AnnaJonesLines,
         MahoganyClientLines,

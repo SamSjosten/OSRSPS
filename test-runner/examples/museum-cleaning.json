@@ -1,0 +1,167 @@
+{
+ "name": "Museum finds cleaning: tools, a find, the table, the storage crate and a wall map (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle: a command typed straight away can be lost"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::empty",
+   "comment": "an empty backpack for the tools and finds"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::item 1059 1"
+  },
+  {
+   "step": "command",
+   "text": "::item 1061 1"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "itemOption",
+   "item": "Leather gloves",
+   "option": "Wear"
+  },
+  {
+   "step": "itemOption",
+   "item": "Leather boots",
+   "option": "Wear"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3260 3443 0",
+   "expectMessage": "Teleported to 3260, 3443, 0",
+   "comment": "inside the museum's cleaning area"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "loc": "Tools",
+   "option": "Take",
+   "x": 3259,
+   "y": 3442
+  },
+  {
+   "step": "assertInventory",
+   "item": "Trowel",
+   "count": 1
+  },
+  {
+   "step": "assertInventory",
+   "item": "Rock pick",
+   "count": 1
+  },
+  {
+   "step": "assertInventory",
+   "item": "Specimen brush",
+   "count": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Dig Site specimen rocks",
+   "option": "Take",
+   "x": 3263,
+   "y": 3446
+  },
+  {
+   "step": "assertInventory",
+   "item": "Uncleaned find",
+   "count": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Specimen table",
+   "option": "Clean",
+   "x": 3259,
+   "y": 3444
+  },
+  {
+   "step": "assertInventory",
+   "item": "Uncleaned find",
+   "count": 0,
+   "timeoutMs": 15000,
+   "comment": "cleaned or crumbled: the outcome is random"
+  },
+  {
+   "step": "command",
+   "text": "::item 11178 1",
+   "comment": "pottery, a common artefact"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "locOption",
+   "loc": "Storage crate",
+   "option": "Add finds",
+   "x": 3266,
+   "y": 3442
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[museum_cleaning.reward"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Pottery",
+   "count": 0
+  },
+  {
+   "step": "command",
+   "text": "::tele 3254 3452 0",
+   "expectMessage": "Teleported to 3254, 3452, 0",
+   "comment": "by the wall maps beside the stairs down"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "loc": "Map",
+   "option": "Take",
+   "x": 3253,
+   "y": 3452
+  },
+  {
+   "step": "assertInventory",
+   "item": "Museum map",
+   "count": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Map",
+   "option": "Look-at",
+   "x": 3253,
+   "y": 3452
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 527,
+   "comment": "vm_museum_map"
+  }
+ ]
+}
