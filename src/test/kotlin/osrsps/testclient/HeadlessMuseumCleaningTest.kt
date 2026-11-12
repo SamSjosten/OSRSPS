@@ -107,6 +107,21 @@ class HeadlessMuseumCleaningTest {
     }
 
     @Test
+    fun `banked tools and gear count, so the rack gives no second set`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                val dave = server.world.playerNamed("dave")!!
+                for (item in MuseumCleaning.TOOL_IDS + MuseumCleaning.GEAR_IDS) dave.bank.add(server.world.objTypes[item]!!, 1)
+                client.locOp(MuseumCleaning.TOOLS, 3224, 3218, 1)
+                client.await("have_tools") { if (client.count("[museum_cleaning.have_tools]") > 0) Unit else null }
+                client.awaitTicks(2)
+                for (item in MuseumCleaning.TOOL_IDS + MuseumCleaning.GEAR_IDS) assertEquals(0L, client.held(item))
+            }
+        }
+    }
+
+    @Test
     fun `taking the gloves off while brushing keeps the find`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("dave").use { client ->
