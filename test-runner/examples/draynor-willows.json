@@ -28,6 +28,17 @@
    "plane": 0
   },
   {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "the tolerance count takes the teleport first, starting an area round this tile"
+  },
+  {
+   "step": "command",
+   "text": "::aggro 1000",
+   "expectMessage": "aggressive monsters here are tolerant of you.",
+   "comment": "the young dark wizards by the willows are aggressive to a new account, and one attacking pulls the player off their tile on auto retaliate (nightly 2026-11-11: 1 to 6 tiles off); every tile below is within this area's 10"
+  },
+  {
    "step": "locOption",
    "locId": 5581,
    "option": "Take-axe",
