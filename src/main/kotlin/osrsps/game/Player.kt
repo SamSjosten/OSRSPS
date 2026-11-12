@@ -467,6 +467,10 @@ class Player(
         /** [text] split into lines of at most [MAX_MESSAGE] characters, at the last space before the limit if there is one. */
         fun messageLines(text: String): List<String> {
             if (text.length <= MAX_MESSAGE) return listOf(text)
+            // Verified: the packet limit (RSProt sends MESSAGE_GAME with a one-byte size and drops anything longer).
+            // Guessed: breaking at the last space and dropping the spaces that start the next line. Live never sends a
+            // game message this long, so there is nothing to copy; this only keeps our own long replies (admin commands
+            // such as ::scenario) readable.
             val lines = ArrayList<String>()
             var rest = text
             while (rest.length > MAX_MESSAGE) {
