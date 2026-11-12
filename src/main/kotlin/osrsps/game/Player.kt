@@ -446,13 +446,42 @@ class Player(
     /** Plays jingle [id] to this player alone; the client pauses its music for it. */
     fun jingle(id: Int) = effects.jingle(id)
 
-    /** Shows [text] in the chatbox as a game message. */
+    /**
+     * Shows [text] in the chatbox as a game message, over as many lines as it takes: RSProt drops a MESSAGE_GAME longer
+     * than its one-byte size allows, with only a warning in the log (nightly 2026-11-11: `::scenario fishing-cooking`'s
+     * 1,100-character reply never arrived).
+     */
     fun message(text: String) {
-        session.queue(MessageGame(CHATTYPE_GAMEMESSAGE, text))
+        for (line in messageLines(text)) session.queue(MessageGame(CHATTYPE_GAMEMESSAGE, line))
     }
 
-    private companion object {
-        const val CHATTYPE_GAMEMESSAGE = 0
+    companion object {
+        private const val CHATTYPE_GAMEMESSAGE = 0
+
+        /**
+         * The most characters one game message carries: the packet's 255 bytes less the type, the name flag and the
+         * string's terminator, a byte each (the text goes as CP1252, a byte a character).
+         */
+        const val MAX_MESSAGE = 252
+
+        /** [text] split into lines of at most [MAX_MESSAGE] characters, at the last space before the limit if there is one. */
+        fun messageLines(text: String): List<String> {
+            if (text.length <= MAX_MESSAGE) return listOf(text)
+            // Verified: the packet limit (RSProt sends MESSAGE_GAME with a one-byte size and drops anything longer).
+            // Guessed: breaking at the last space and dropping the spaces that start the next line. Live never sends a
+            // game message this long, so there is nothing to copy; this only keeps our own long replies (admin commands
+            // such as ::scenario) readable.
+            val lines = ArrayList<String>()
+            var rest = text
+            while (rest.length > MAX_MESSAGE) {
+                val space = rest.lastIndexOf(' ', MAX_MESSAGE)
+                val cut = if (space > 0) space else MAX_MESSAGE
+                lines += rest.substring(0, cut)
+                rest = rest.substring(cut).trimStart(' ')
+            }
+            if (rest.isNotEmpty()) lines += rest
+            return lines
+        }
     }
 }
 
