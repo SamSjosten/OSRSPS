@@ -108,6 +108,9 @@ object MuseumCleaning {
 
     private fun held(player: Player, obj: Int) = player.inventory.count(obj) > 0 || player.bank.count(obj) > 0
 
+    /** Carried, worn or banked. */
+    internal fun owned(player: Player, obj: Int) = held(player, obj) || player.equipment.count(obj) > 0
+
     /** What one cleaned find turns into: an item and count, or null when it crumbles. */
     fun clean(world: World, player: Player): Pair<Int, Int>? {
         if (world.random.nextInt(100) < CRUMBLE_PERCENT) return null
@@ -178,8 +181,8 @@ fun registerMuseumCleaning(world: World) {
     with(MuseumCleaning) {
         world.handlers.onLoc(TOOLS, TAKE) {
             // The rack holds the gloves and boots too (the Wiki's Kudos page): those not worn or carried come with the tools.
-            val missing = TOOL_IDS.filter { player.inventory.count(it) == 0L } +
-                GEAR_IDS.filter { player.inventory.count(it) == 0L && player.equipment.count(it) == 0L }
+            // Banked ones count too, so banking each set can't take an endless supply (exploit round 29).
+            val missing = (TOOL_IDS + GEAR_IDS).filter { !owned(player, it) }
             when {
                 missing.isEmpty() -> world.message(player, MuseumCleaningLines.HAVE_TOOLS)
                 player.inventory.freeSlots < missing.size -> world.message(player, MuseumCleaningLines.NO_ROOM)

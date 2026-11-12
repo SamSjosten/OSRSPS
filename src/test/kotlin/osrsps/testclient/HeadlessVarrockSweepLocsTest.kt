@@ -43,6 +43,9 @@ class HeadlessVarrockSweepLocsTest {
                 markLoaded(3232 shr 6, 9802 shr 6)
                 // The cellar's wall north of the ladder below, where the street above is open.
                 add(3232, 9803, 0, CollisionFlag.LOC)
+                // A thin wall east of the ladder below: the tile beyond it can be stood on but not stepped to from the ladder.
+                add(3232, 9802, 0, CollisionFlag.WALL_EAST)
+                add(3233, 9802, 0, CollisionFlag.WALL_WEST)
             },
             objTypes = objs, shopTypes = shops,
             locTypes = LocTypes(
@@ -95,6 +98,12 @@ class HeadlessVarrockSweepLocsTest {
                 client.at(3232, 9801, 0, "down the ladder, south of it, off the wall")
                 client.locOp(VarrockSweepLocs.LADDER_UP, 3232, 9802, 1)
                 client.at(3232, 3401, 0, "back up on the same side")
+
+                // From the east, where a thin wall stands east of the ladder below: never behind that wall.
+                client.command("tele 3233 3402 0")
+                client.at(3233, 3402, 0, "east of the ladder")
+                client.locOp(VarrockSweepLocs.LADDER_DOWN, 3232, 3402, 1)
+                client.at(3232, 9801, 0, "down the ladder, south of it, not behind the wall")
             }
         }
     }

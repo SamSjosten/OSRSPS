@@ -267,11 +267,12 @@ object VarrockSweepPeople {
     }
 
     /**
-     * One [item] into the backpack if the player has none. A full backpack is refused, as ExamCentre's trowel is,
+     * One [item] into the backpack if the player has none carried, worn or banked. A full backpack is refused, as ExamCentre's trowel is,
      * rather than one dropped on the floor each talk.
      */
     private fun Dialogue.giveOne(world: World, item: Int) {
-        if (player.inventory.count(item) > 0) return
+        // Worn or banked counts as having one, so banking each can't take an endless supply (exploit round 29).
+        if (MuseumCleaning.owned(player, item)) return
         if (player.inventory.freeSlots == 0) return world.message(player, osrsps.game.GameLines.NO_SPACE)
         world.objTypes[item]?.let { player.inventory.add(it, 1) }
     }
