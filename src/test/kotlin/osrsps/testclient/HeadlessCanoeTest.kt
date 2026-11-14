@@ -95,7 +95,8 @@ class HeadlessCanoeTest {
         state(Canoes.FALLEN)
         locOp(station, LUM_X, LUM_Z, 1)
         await("the shaping box") { if (Canoes.SHAPING in openInterfaces()) Unit else null }
-        assertTrue(opEnabled(Canoes.SHAPING, type.component, 0, 1), "Make on ${type.name} is clickable")
+        // The events come in the packet after the box's own: wait for them rather than race the reader.
+        await("Make on ${type.name} clickable") { if (opEnabled(Canoes.SHAPING, type.component, 0, 1)) Unit else null }
         val xp = stat(WOODCUTTING)!!.xp
         ifButton(Canoes.SHAPING, type.component, 1, sub = 0)
         state(type.number)
@@ -106,7 +107,9 @@ class HeadlessCanoeTest {
         locOp(station, LUM_X, LUM_Z, 1)
         await("the river map") { if (Canoes.MAP in openInterfaces()) Unit else null }
         assertEquals(CanoeStation.LUMBRIDGE.index, varp(STARTFROM_VARP) and 0x1FF)
-        assertTrue(opEnabled(Canoes.MAP, CanoeDestination.CHAMPIONS_GUILD.component, -1, 1), "Travel to the Champions' Guild is clickable")
+        await("Travel to the Champions' Guild clickable") {
+            if (opEnabled(Canoes.MAP, CanoeDestination.CHAMPIONS_GUILD.component, -1, 1)) Unit else null
+        }
     }
 
     @Test
