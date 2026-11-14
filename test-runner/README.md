@@ -217,8 +217,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   Paterdomus; the east gate south through the Digsite's gate to the Exam Centre and north through the digs to the barge.
   Combat level 126 and `::god on` for the dark wizards, `::reset` at the end. Takes about five minutes.
 - `farming-allotment.json`: Farming step 1: with `::scenario farming`, Falador's north-west allotment raked, planted
-  with potatoes, watered, grown with `::farmtick 8` and harvested until it is empty, each stage read off
-  `farming_transmit_a` (varbit 4771), with `::keys on` and `::reset` at the end. Needs 0.8.0 for `assertVarbit`.
+  with potatoes, watered, grown with `::farmtick 8` and harvested until it is empty (the backpack emptied but for a
+  spade and Farming set to 1 first, so the crop fits), each stage read off `farming_transmit_a` (varbit 4771), with
+  `::keys on` and `::reset` at the end. Needs 0.8.0 for `assertVarbit`.
 - `farms-roads.json`: Misthalin piece 7 step 5: from Lumbridge to Varrock by `::tele`, Fayeth and a Tool Leprechaun
   by the castle, Seth Groats, Vasquen, Dreven, Tarquin at the canoe station, Rat Burgiss on the road and Treznor by the
   palace talked to, and the gardeners' and leprechauns' Farming options refused (with `::keys on`; the spawn counts are
