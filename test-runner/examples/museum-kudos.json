@@ -1,5 +1,5 @@
 {
- "name": "Museum Kudos step 1: an archaeologist in the cleaning area (help without the gear, nothing to show, arrowheads, jewellery for 5 coins) and the information booth's Kudos List (::keys on). The display cases aren't here, as a find put on display stays on the account",
+ "name": "Museum Kudos step 1: an archaeologist in the cleaning area (help without the gear, nothing to show, arrowheads, jewellery for 5 coins) and the information booth's Kudos List (::keys on). The display cases and the necklace are in museum-kudos-cases.json, which resets them with the museum-finds scenario",
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},
