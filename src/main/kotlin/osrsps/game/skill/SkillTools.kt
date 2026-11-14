@@ -45,4 +45,10 @@ class SkillTools(private val skill: Skill, tools: List<SkillTool>) {
         }
         return if (lowest == Int.MAX_VALUE) ToolCheck.None else ToolCheck.TooLow(lowest)
     }
+
+    /** The best of these tools [player] holds, whatever their [skill] level: chopping a fruit tree takes any axe. */
+    fun bestHeld(player: Player): SkillTool? {
+        val weapon = player.equipment[WearPos.WEAPON]?.id
+        return tools.firstOrNull { weapon == it.obj || player.inventory.count(it.obj) > 0L }
+    }
 }

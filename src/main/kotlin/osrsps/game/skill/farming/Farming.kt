@@ -60,6 +60,10 @@ object FarmingLines : Lines("farming", "Farming") {
     val PRUNE_LEFT = line("prune_left", "a prune that leaves some diseased leaves")
     val CHOP_FIRST = line("chop_first", "a spade on a standing tree, or the stump grown back while digging it up")
     val STUMP_CLEARED = line("stump_cleared", "a tree stump dug up")
+    val FRUIT_PICKED = line("fruit_picked", "a fruit picked from a fruit tree", "produce")
+    val FRUIT_GONE = line("fruit_gone", "the last fruit picked from a fruit tree")
+    val FRUIT_CHOPPED = line("fruit_chopped", "a fruit tree chopped down to its stump")
+    val PICK_FIRST = line("pick_first", "an axe used on a fruit tree that still has fruit")
 
     /** Inspect's message is made of these: what the patch is, then its soil, then what is in it. */
     val INSPECT = line("inspect", "Inspect: the first sentence", "patch")
@@ -81,6 +85,7 @@ object FarmingLines : Lines("farming", "Farming") {
     val PATCH_HERB = line("patch_herb", "a herb patch's name in messages")
     val PATCH_FLOWER = line("patch_flower", "a flower patch's name in messages")
     val PATCH_TREE = line("patch_tree", "a tree patch's name in messages")
+    val PATCH_FRUIT_TREE = line("patch_fruit_tree", "a fruit tree patch's name in messages")
 }
 
 /**
@@ -125,7 +130,17 @@ object FarmingLines : Lines("farming", "Farming") {
  * stump, 129/256 at level 1 rising to always at 99; the pruning skill roll, the same 129/256 to always at 99; a try at
  * the stump or at pruning every 4 ticks; one leaf a prune; filling a pot and planting a sapling landing 3 ticks after
  * the click, a seedling made and watered at once; Check-health giving its XP at once with no animation; the Lumbridge,
- * Varrock, Falador and Taverley tree patches only (the Gnome Stronghold's waits with the fruit trees).
+ * Varrock, Falador and Taverley tree patches, and from step 5 the Gnome Stronghold's.
+ *
+ * Step 5, fruit trees (the Wiki's Fruit tree patch, Disease and each fruit tree's page, read 2026-11-14): saplings made
+ * and planted as trees' are, in the fruit tree patches of the Gnome Stronghold, the Tree Gnome Village, Brimhaven and
+ * Catherby; six stages of 160 minutes, 18/128 to fall ill in 4 of them; checked once for the check-health and planting XP, then six fruit
+ * to pick, one more growing every 40 minutes up to six; pruned with secateurs for leaves when ill. With no fruit left
+ * the tree can be chopped down (the cache: Chop-down shows only then) and its stump cleared with a spade. Guessed: a
+ * fruit picked every [FRUIT_PICK_CYCLE] ticks with picking_high; chopping taking one swing of [Woodcutting.CYCLE] ticks
+ * with any axe and at any Woodcutting level, for no logs or XP; the stump always cleared at the first dig, for no roots
+ * or XP, and never growing back; an axe on a tree with fruit refused; the fruit coming at the tree's 40-minute ticks
+ * from the check on.
  */
 class Farming(private val world: World, private val clock: () -> Long, private val diseases: Boolean = true) {
     fun register() {
@@ -279,7 +294,11 @@ class Farming(private val world: World, private val clock: () -> Long, private v
             }
             if (patch.dead || patch.stage >= crop.stages) {
                 // A chopped tree grows back from its stump at its next tick. Guessed: the Wiki says only "eventually".
-                if (patch.stump && tick % kind.cycleTicks == 0L) patch.stump = false
+                if (kind == PatchKind.TREE && patch.stump && tick % kind.cycleTicks == 0L) patch.stump = false
+                // A checked fruit tree grows a fruit every 40 minutes, up to six (the Wiki's Fruit tree patch).
+                if (kind == PatchKind.FRUIT_TREE && !patch.dead && patch.checked && !patch.stump && patch.lives < kind.lives &&
+                    tick % PatchKind.FRUIT_REGROW_TICKS == 0L
+                ) patch.lives++
                 continue
             }
             if (patch.diseased) {
@@ -299,14 +318,15 @@ class Farming(private val world: World, private val clock: () -> Long, private v
                 patch.plantedMillis = -1
             }
             if (tick % kind.cycleTicks != 0L) continue
-            if (diseases && !state.noDisease && patch.stage >= 1 && !isProtected(flowers, key, crop) && world.random.nextInt(DISEASE_DENOMINATOR) < Compost.diseaseChance(crop.disease, patch.compost, patch.watered)) {
+            if (diseases && !state.noDisease && patch.stage in 1..crop.lastDiseaseStage && !isProtected(flowers, key, crop) && world.random.nextInt(DISEASE_DENOMINATOR) < Compost.diseaseChance(crop.disease, patch.compost, patch.watered)) {
                 patch.diseased = true
                 patch.watered = false
                 continue
             }
             patch.stage++
             patch.watered = false
-            if (patch.stage >= crop.stages) patch.lives = kind.lives + if (kind.composting) patch.compost else 0
+            // A fruit tree's lives are its fruit, which come when it is checked.
+            if (patch.stage >= crop.stages) patch.lives = if (kind == PatchKind.FRUIT_TREE) 0 else kind.lives + if (kind.composting) patch.compost else 0
         }
     }
 
@@ -352,11 +372,12 @@ class Farming(private val world: World, private val clock: () -> Long, private v
     private suspend fun ScriptContext.action(op: Op) {
         val patch = patchOf(op) ?: return
         val state = player.farming.patch(patch)
-        val tree = patch.kind == PatchKind.TREE
+        val tree = patch.kind.tree
         val next = when {
             state.dead -> DO_CLEAR_DEAD
             state.diseased -> if (tree) DO_PRUNE else DO_CURE
             state.crop == null && state.weeds > 0 -> DO_RAKE
+            state.grown && tree && state.checked && !state.stump && patch.kind == PatchKind.FRUIT_TREE && state.lives > 0 -> DO_PICK_FRUIT
             state.grown && tree -> if (!state.checked) DO_CHECK else if (state.stump) DO_DIG_STUMP else DO_CHOP
             state.grown && patch.kind == PatchKind.FLOWER -> DO_PICK
             state.grown -> DO_HARVEST
@@ -379,6 +400,7 @@ class Farming(private val world: World, private val clock: () -> Long, private v
             DO_DIG_STUMP -> digStump(op, state)
             DO_CHOP -> chop(op, state)
             DO_PICK -> pick(patch, state)
+            DO_PICK_FRUIT -> pickFruit(op, state)
             DO_HARVEST -> harvest(op, patch, state)
             // The client shows op1 only on weeds and grown crops, so anything else is a click from before a change.
             else -> stop()
@@ -515,8 +537,9 @@ class Farming(private val world: World, private val clock: () -> Long, private v
         val patch = patchOf(op) ?: return
         val state = player.farming.patch(patch)
         val obj = op.obj
-        val tree = patch.kind == PatchKind.TREE
+        val tree = patch.kind.tree
         val standing = tree && state.grown && state.checked && !state.stump
+        val fruit = patch.kind == PatchKind.FRUIT_TREE && state.lives > 0
         when {
             obj == RAKE -> if (state.crop == null && state.weeds > 0) rake(op.asAction(), patch, state) else nothing()
             obj == SPADE && state.dead -> clearDead(patch, state)
@@ -524,6 +547,7 @@ class Farming(private val world: World, private val clock: () -> Long, private v
             obj == SPADE && standing -> world.message(player, FarmingLines.CHOP_FIRST)
             obj == SPADE -> if (state.grown && patch.kind.spade && !tree) harvest(op.asAction(), patch, state) else nothing()
             (obj == SECATEURS || obj == MAGIC_SECATEURS) && tree && state.diseased -> prune(op.asAction(), state)
+            obj in world.woodcutting.data.tools && standing && fruit -> world.message(player, FarmingLines.PICK_FIRST)
             obj in world.woodcutting.data.tools && standing -> chop(op.asAction(), state)
             obj == Trees.POT_EMPTY -> fillPot(op, state)
             obj == PLANT_CURE && tree -> nothing()
@@ -549,7 +573,7 @@ class Farming(private val world: World, private val clock: () -> Long, private v
         if (state.weeds > 0) return world.message(player, FarmingLines.NEEDS_WEEDING)
         if (player.skills.currentLevel(Skill.FARMING) < crop.level) return world.message(player, FarmingLines.LEVEL, "level" to crop.level)
         // A sapling goes in with a spade (the Wiki's Tree patch), a seed with a dibber.
-        val sapling = crop.kind == PatchKind.TREE
+        val sapling = crop.kind.tree
         if (sapling && player.inventory.count(SPADE) == 0L) return world.message(player, FarmingLines.NEED_SPADE)
         if (!sapling && player.inventory.count(SEED_DIBBER) == 0L) return world.message(player, FarmingLines.NEED_DIBBER)
         val seeds = patch.kind.seeds
@@ -691,6 +715,8 @@ class Farming(private val world: World, private val clock: () -> Long, private v
         val crop = state.crop ?: return
         if (!state.grown || state.checked) return
         state.checked = true
+        // A fruit tree bears its six fruit once checked (the Wiki's Fruit tree patch: "Fully-grown fruit trees will bear six").
+        if (crop.kind == PatchKind.FRUIT_TREE) state.lives = PatchKind.FRUIT_TREE.lives
         player.skills.addTenths(Skill.FARMING, crop.plantXpTenths + crop.harvestXpTenths)
         world.message(player, FarmingLines.CHECKED)
         refresh(player)
@@ -706,6 +732,7 @@ class Farming(private val world: World, private val clock: () -> Long, private v
         val info = Trees.of(crop) ?: return stop()
         if (!state.grown || !state.checked || state.stump) return stop()
         val data = world.woodcutting.data
+        if (info.woodcutting == null) return chopFruitTree(op, state)
         val tree = data.trees.values.first { it.key == info.woodcutting }
         val text = world.textFor(player)
         if (player.skills.currentLevel(Skill.WOODCUTTING) < tree.level) {
@@ -744,6 +771,52 @@ class Farming(private val world: World, private val clock: () -> Long, private v
         world.repeatOp(player, op)
     }
 
+    /** Chop-down on a fruit tree with no fruit left: one swing with any axe, and it falls to its stump (no logs). */
+    private fun ScriptContext.chopFruitTree(op: Op, state: PatchState) {
+        if (op.repeat && player.modalOpen) return stop()
+        if (state.lives > 0) return stop()
+        val axe = world.woodcutting.data.tools.bestHeld(player) ?: run {
+            player.message(world.textFor(player)[WoodcuttingLines.NO_AXE])
+            return stop()
+        }
+        if (!op.repeat) player.anim(axe.anim)
+        if (SkillClock.step(player, tick, Woodcutting.CYCLE) == ClockStep.DUE) {
+            state.stump = true
+            world.message(player, FarmingLines.FRUIT_CHOPPED)
+            refresh(player)
+            return stop()
+        }
+        state.doing = DO_CHOP
+        world.repeatOp(player, op)
+    }
+
+    /** Pick on a fruit tree: a fruit every [FRUIT_PICK_CYCLE] ticks, with its XP, until none are left or the pack is full. */
+    private fun ScriptContext.pickFruit(op: Op, state: PatchState) {
+        if (op.repeat && player.modalOpen) return stop()
+        val crop = state.crop ?: return stop()
+        if (!state.grown || !state.checked || state.stump || state.lives <= 0) return stop()
+        if (player.inventory.freeSlots == 0) {
+            world.message(player, FarmingLines.INVENTORY_FULL)
+            return stop()
+        }
+        if (!op.repeat) player.anim(ANIM_PICK_HIGH)
+        if (SkillClock.step(player, tick, FRUIT_PICK_CYCLE) == ClockStep.DUE) {
+            player.anim(ANIM_PICK_HIGH)
+            val produce = world.objTypes[crop.produce] ?: error("No obj type ${crop.produce} for ${crop.key}")
+            player.inventory.add(produce, 1)
+            player.skills.addTenths(Skill.FARMING, crop.fruitXpTenths)
+            world.message(player, FarmingLines.FRUIT_PICKED, "produce" to produce.name.lowercase())
+            state.lives--
+            refresh(player)
+            if (state.lives <= 0) {
+                world.message(player, FarmingLines.FRUIT_GONE)
+                return stop()
+            }
+        }
+        state.doing = DO_PICK_FRUIT
+        world.repeatOp(player, op)
+    }
+
     /**
      * Clear on a stump, or a spade used on it: a try every [DIG_CYCLE] ticks that can fail below 99 (Mod Kieren: "At 99
      * you never fail"), and the roots ([Trees.roots]) and bare soil when it works.
@@ -757,7 +830,7 @@ class Farming(private val world: World, private val clock: () -> Long, private v
             world.message(player, FarmingLines.NEED_SPADE)
             return stop()
         }
-        if (player.inventory.freeSlots == 0) {
+        if (info.roots != 0 && player.inventory.freeSlots == 0) {
             world.message(player, FarmingLines.INVENTORY_FULL)
             return stop()
         }
@@ -765,8 +838,9 @@ class Farming(private val world: World, private val clock: () -> Long, private v
         if (SkillClock.step(player, tick, DIG_CYCLE) == ClockStep.DUE) {
             player.anim(ANIM_DIG)
             val level = player.skills.currentLevel(Skill.FARMING)
-            if (SuccessRoll.roll(world.random, STUMP_LOW, STUMP_HIGH, level)) {
-                giveOrDrop(info.roots, Trees.roots(crop, level))
+            // A fruit tree's stump has no roots and always comes up (guessed).
+            if (info.roots == 0 || SuccessRoll.roll(world.random, STUMP_LOW, STUMP_HIGH, level)) {
+                if (info.roots != 0) giveOrDrop(info.roots, Trees.roots(crop, level))
                 world.message(player, FarmingLines.STUMP_CLEARED)
                 state.clear()
                 refresh(player)
@@ -821,7 +895,7 @@ class Farming(private val world: World, private val clock: () -> Long, private v
             state.dead -> text[FarmingLines.STATE_DEAD, "crop" to cropName]
             state.diseased -> text[FarmingLines.STATE_DISEASED, "crop" to cropName]
             state.stump -> text[FarmingLines.STATE_STUMP, "crop" to cropName]
-            state.grown && crop.kind == PatchKind.TREE && !state.checked -> text[FarmingLines.STATE_CHECK, "crop" to cropName]
+            state.grown && crop.kind.tree && !state.checked -> text[FarmingLines.STATE_CHECK, "crop" to cropName]
             state.grown -> text[FarmingLines.STATE_GROWN, "crop" to cropName]
             else -> text[FarmingLines.STATE_GROWING, "crop" to cropName]
         }
@@ -873,6 +947,7 @@ class Farming(private val world: World, private val clock: () -> Long, private v
         const val DO_CURE = 7
         const val DO_CHECK = 8
         const val DO_PICK = 9
+        const val DO_PICK_FRUIT = 10
 
         /** A farmed tree falls at 1 log in 8 (the trees' pages). */
         const val TREE_DEPLETE = 8
@@ -913,6 +988,12 @@ class Farming(private val world: World, private val clock: () -> Long, private v
         /** picking_low: herbs and flowers. */
         const val ANIM_PICK_LOW = 2282
 
+        /** picking_high: fruit from a fruit tree (guessed). */
+        const val ANIM_PICK_HIGH = 2280
+
+        /** Guessed: a fruit picked every 3 ticks. */
+        const val FRUIT_PICK_CYCLE = 3
+
         /** farming_filling_plantpot, farming_trowel_digging (a seed into a pot) and pruning_mid. */
         const val ANIM_FILL_POT = 2287
         const val ANIM_TROWEL = 2272
@@ -938,6 +1019,7 @@ class Farming(private val world: World, private val clock: () -> Long, private v
             PatchKind.HERB -> FarmingLines.PATCH_HERB
             PatchKind.FLOWER -> FarmingLines.PATCH_FLOWER
             PatchKind.TREE -> FarmingLines.PATCH_TREE
+            PatchKind.FRUIT_TREE -> FarmingLines.PATCH_FRUIT_TREE
         }
 
         /** A crop's chance pair, low and high, with magic secateurs' 10% when [secateurs] (rounded down, the Wiki's order). */

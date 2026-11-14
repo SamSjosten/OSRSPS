@@ -17,6 +17,10 @@ package osrsps.game.skill.farming
  * Trees ([TREE], step 4; the Wiki's Tree patch and each tree's page, read 2026-11-14) grow every 40 minutes, are planted
  * as one sapling with a spade, aren't watered and have no harvest lives: once grown they are checked, chopped to a
  * stump and the stump dug up. Their chance to fall ill is each tree's own ([Crop.disease]).
+ *
+ * Fruit trees ([FRUIT_TREE], step 5; the Wiki's Fruit tree patch, Disease and each fruit tree's page, read 2026-11-14)
+ * grow every 160 minutes through six stages and fall ill at 18/128 in 4 of their 6 growths. Once checked they bear up
+ * to [lives] fruit, one more every 40 minutes ([FRUIT_REGROW_TICKS]); [harvestValues] counts the 0 to 6 fruit drawn.
  */
 enum class PatchKind(
     val cycleTicks: Int, val seeds: Int, val lives: Int, val harvestValues: Int, val spade: Boolean, val disease: Int,
@@ -25,9 +29,18 @@ enum class PatchKind(
     ALLOTMENT(cycleTicks = 2, seeds = 3, lives = 3, harvestValues = 3, spade = true, disease = 27, composting = true),
     HERB(cycleTicks = 4, seeds = 1, lives = 3, harvestValues = 3, spade = true, disease = 27, composting = true),
     FLOWER(cycleTicks = 1, seeds = 1, lives = 1, harvestValues = 1, spade = false, disease = 27, composting = false),
-    TREE(cycleTicks = 8, seeds = 1, lives = 1, harvestValues = 1, spade = true, disease = 0, composting = false);
+    TREE(cycleTicks = 8, seeds = 1, lives = 1, harvestValues = 1, spade = true, disease = 0, composting = false),
+    FRUIT_TREE(cycleTicks = 32, seeds = 1, lives = 6, harvestValues = 7, spade = true, disease = 18, composting = false);
 
     val diseaseCycleTicks: Int get() = cycleTicks * 2
+
+    /** Planted as a sapling, checked once grown, chopped down and its stump cleared: trees and fruit trees. */
+    val tree: Boolean get() = this == TREE || this == FRUIT_TREE
+
+    companion object {
+        /** A fruit tree grows one more fruit every 40 minutes, up to six (the Wiki's Fruit tree patch). */
+        const val FRUIT_REGROW_TICKS = 8
+    }
 }
 
 /**
@@ -92,9 +105,13 @@ object Compost {
  * A flower ([PatchKind.FLOWER]) is picked once for [yield] items ([levelBonus]: plus 0 to a tenth of the Farming level
  * more, limpwurt's) and has no chance to keep a life.
  *
- * [disease] is its chance in 128 to fall ill at a growth (its kind's, but each tree has its own),  and its first
+ * [disease] is its chance in 128 to fall ill at a growth (its kind's, but each tree has its own), and its first
  * growth comes on its kind's clock, or [firstStageMillis] after planting when that isn't 0 (a yew's
- * first stage lasts 5 minutes from planting, off the usual clock: the Wiki's Growth timing).
+ * first stage lasts 5 minutes from planting, off the usual clock: the Wiki's Growth timing). It can fall ill at
+ * the growths from stage 1 to [lastDiseaseStage] (every growth but the first, but a fruit tree's 4 of 6).
+ *
+ * A fruit tree draws its Check-health tree at [checkValue], its stump at [stumpValue], and [harvest] + n with n fruit
+ * on it; each fruit picked gives [fruitXpTenths].
  */
 class Crop(
     val key: String,
@@ -115,6 +132,10 @@ class Crop(
     val levelBonus: Boolean = false,
     val disease: Int = kind.disease,
     val firstStageMillis: Long = 0,
+    val lastDiseaseStage: Int = growing.size - 1,
+    val checkValue: Int = -1,
+    val stumpValue: Int = -1,
+    val fruitXpTenths: Int = 0,
 ) {
     val stages: Int get() = growing.size
 
@@ -232,12 +253,37 @@ object Crops {
     val YEW = tree("yew", 5373, 1515, 60, 810, 70699, 10, 35, 100, 164, disease = 11, firstStageMillis = 5 * 60_000L)
     val MAGIC = tree("magic", 5374, 1513, 75, 1455, 137683, 12, 48, 113, 177, disease = 9)
 
+    /**
+     * A fruit tree. Levels, planting, check-health and per-fruit XP from each tree's Wiki page (read 2026-11-14): six
+     * stages of 160 minutes. Values from the cache's fruit tree multiloc (7962 and its siblings, RuneLite's layout):
+     * growing from [first], the tree with 0 to 6 fruit after them, five diseased from [diseasedFirst] and five dead from
+     * [deadFirst], then the stump and the Check-health tree. Guessed: of the 6 growths the 4 that can fall ill (the
+     * Disease page gives the count) are the second to the fifth, not the first and not the last.
+     */
+    private fun fruitTree(
+        key: String, sapling: Int, fruit: Int, level: Int, plant: Int, check: Int, fruitXp: Int, first: Int, diseasedFirst: Int, deadFirst: Int,
+    ) = Crop(
+        key, PatchKind.FRUIT_TREE, sapling, fruit, level, plant, check, 0, 0,
+        run(first, 6), emptyList(), first + 6, run(diseasedFirst, 5), run(deadFirst, 5),
+        lastDiseaseStage = 4, checkValue = deadFirst + 7, stumpValue = deadFirst + 6, fruitXpTenths = fruitXp,
+    )
+
+    val APPLE = fruitTree("apple", 5496, 1955, 27, 220, 11995, 85, 8, 21, 27)
+    val BANANA = fruitTree("banana", 5497, 1963, 33, 280, 17505, 105, 35, 48, 54)
+    val ORANGE = fruitTree("orange", 5498, 2108, 39, 355, 24702, 135, 72, 85, 91)
+    val CURRY = fruitTree("curry", 5499, 5970, 42, 400, 29069, 150, 99, 112, 118)
+    val PINEAPPLE = fruitTree("pineapple", 5500, 2114, 51, 570, 46050, 215, 136, 149, 155)
+    val PAPAYA = fruitTree("papaya", 5501, 5972, 57, 720, 61466, 270, 163, 176, 182)
+    val PALM = fruitTree("palm", 5502, 5974, 68, 1105, 101501, 415, 200, 213, 219)
+    val DRAGONFRUIT = fruitTree("dragonfruit", 22866, 22929, 81, 1400, 173350, 700, 227, 240, 246)
+
     val ALL = listOf(
         POTATO, ONION, CABBAGE, TOMATO, SWEETCORN, STRAWBERRY, WATERMELON, SNAPE_GRASS,
         GUAM, MARRENTILL, TARROMIN, HARRALANDER, RANARR, TOADFLAX, IRIT, AVANTOE, KWUARM, SNAPDRAGON, HUASCA,
         CADANTINE, LANTADYME, DWARF_WEED, TORSTOL,
         MARIGOLD, ROSEMARY, NASTURTIUM, WOAD, LIMPWURT, WHITE_LILY,
         OAK, WILLOW, MAPLE, YEW, MAGIC,
+        APPLE, BANANA, ORANGE, CURRY, PINEAPPLE, PAPAYA, PALM, DRAGONFRUIT,
     )
 
     private val byKey = ALL.associateBy { it.key }
@@ -263,9 +309,9 @@ object Crops {
  * What goes with each tree besides its patch (the Wiki's Seedling, Sapling, Roots and Leaves pages; ids by gameval
  * name): the [seed] planted in a filled plant pot to make the [seedling], the [watered] seedling that grows into the
  * crop's sapling, the [roots] dug from its stump, the [leaves] pruning gives and its Woodcutting tree ([woodcutting],
- * woodcutting.json's key, for the axe rates, logs and XP).
+ * woodcutting.json's key, for the axe rates, logs and XP). A fruit tree has no roots (0) and no Woodcutting tree.
  */
-class TreeInfo(val crop: Crop, val seed: Int, val seedling: Int, val watered: Int, val roots: Int, val leaves: Int, val woodcutting: String) {
+class TreeInfo(val crop: Crop, val seed: Int, val seedling: Int, val watered: Int, val roots: Int, val leaves: Int, val woodcutting: String?) {
     val sapling: Int get() = crop.seed
 }
 
@@ -276,7 +322,21 @@ object Trees {
     val YEW = TreeInfo(Crops.YEW, 5315, 5361, 5367, 6049, 6026, "yew")
     val MAGIC = TreeInfo(Crops.MAGIC, 5316, 5362, 5368, 6051, 6030, "magic")
 
-    val ALL = listOf(OAK, WILLOW, MAPLE, YEW, MAGIC)
+    /** Fruit trees: seeds, seedlings and watered seedlings by gameval name; pruning gives plain leaves (the trees' pages). */
+    private fun fruit(crop: Crop, seed: Int, seedling: Int, watered: Int) = TreeInfo(crop, seed, seedling, watered, 0, LEAVES, null)
+
+    const val LEAVES = 6020
+
+    val APPLE = fruit(Crops.APPLE, 5283, 5480, 5488)
+    val BANANA = fruit(Crops.BANANA, 5284, 5481, 5489)
+    val ORANGE = fruit(Crops.ORANGE, 5285, 5482, 5490)
+    val CURRY = fruit(Crops.CURRY, 5286, 5483, 5491)
+    val PINEAPPLE = fruit(Crops.PINEAPPLE, 5287, 5484, 5492)
+    val PAPAYA = fruit(Crops.PAPAYA, 5288, 5485, 5493)
+    val PALM = fruit(Crops.PALM, 5289, 5486, 5494)
+    val DRAGONFRUIT = fruit(Crops.DRAGONFRUIT, 22877, 22862, 22864)
+
+    val ALL = listOf(OAK, WILLOW, MAPLE, YEW, MAGIC, APPLE, BANANA, ORANGE, CURRY, PINEAPPLE, PAPAYA, PALM, DRAGONFRUIT)
 
     private val byCrop = ALL.associateBy { it.crop }
     private val byWatered = ALL.associateBy { it.watered }
@@ -344,7 +404,23 @@ object FarmingPatches {
     val FALADOR_PARK = FarmingArea("Falador park", setOf(11828, 12084), listOf(FALADOR_TREE))
     val TAVERLEY = FarmingArea("Taverley", setOf(11573, 11829), listOf(TAVERLEY_TREE))
 
-    val AREAS = listOf(FALADOR, LUMBRIDGE, VARROCK, FALADOR_PARK, TAVERLEY)
+    /**
+     * The Gnome Stronghold's tree patch (`tree_patch_5`, 2435, 3414) and fruit tree patch (`fruit_tree_patch_1`, 2475,
+     * 3445, drawn by `farming_transmit_b`), and the fruit tree patches of the Tree Gnome Village (`_2`, 2489, 3179),
+     * Brimhaven (`_3`, 2764, 3212) and Catherby (`_4`, 2860, 3433), with their map squares from RuneLite's FarmingWorld.
+     */
+    val GNOME_STRONGHOLD_TREE = FarmingPatch("gnome_stronghold_tree", 19147, TRANSMIT_A, PatchKind.TREE)
+    val GNOME_STRONGHOLD_FRUIT = FarmingPatch("gnome_stronghold_fruit_tree", 7962, TRANSMIT_B, PatchKind.FRUIT_TREE)
+    val GNOME_VILLAGE_FRUIT = FarmingPatch("gnome_village_fruit_tree", 7963, TRANSMIT_A, PatchKind.FRUIT_TREE)
+    val BRIMHAVEN_FRUIT = FarmingPatch("brimhaven_fruit_tree", 7964, TRANSMIT_A, PatchKind.FRUIT_TREE)
+    val CATHERBY_FRUIT = FarmingPatch("catherby_fruit_tree", 7965, TRANSMIT_A, PatchKind.FRUIT_TREE)
+
+    val GNOME_STRONGHOLD = FarmingArea("Gnome Stronghold", setOf(9781, 9782, 9526, 9525), listOf(GNOME_STRONGHOLD_TREE, GNOME_STRONGHOLD_FRUIT))
+    val GNOME_VILLAGE = FarmingArea("Tree Gnome Village", setOf(9777), listOf(GNOME_VILLAGE_FRUIT))
+    val BRIMHAVEN = FarmingArea("Brimhaven", setOf(11058, 11057), listOf(BRIMHAVEN_FRUIT))
+    val CATHERBY = FarmingArea("Catherby", setOf(11317), listOf(CATHERBY_FRUIT))
+
+    val AREAS = listOf(FALADOR, LUMBRIDGE, VARROCK, FALADOR_PARK, TAVERLEY, GNOME_STRONGHOLD, GNOME_VILLAGE, BRIMHAVEN, CATHERBY)
 
     val ALL: List<FarmingPatch> = AREAS.flatMap { it.patches }
 
