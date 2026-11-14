@@ -30,6 +30,7 @@ import osrsps.testclient.HeadlessClient
  * server runs in this process on the live 242 cache, and each script's account plays through a [HeadlessClient]
  * ([ScriptSession]). As the nightly did on VM 217: a reset before every script, every failure run once more (a pass
  * then is "flaky"), a result file per script and one summary.json for the run.
+ * The two halves of a two-player pair (`x-test.json` and `x-test2.json`) play at once, each through its own client.
  *
  * `./gradlew headlessScripts` runs every example; see the task in build.gradle.kts for its options.
  */
@@ -43,6 +44,9 @@ internal object HeadlessScripts {
 
     /** Every run starts from the same random seed, so a run can be played again roll for roll. */
     const val SEED = 241L
+
+    /** How often a pair's finished half is played while it waits for the other. */
+    const val IDLE_POLL_MILLIS = 50L
 
     data class Options(
         /** Where the cache is kept between runs and the server keeps its saves; the saves are wiped at each start. */
@@ -93,7 +97,7 @@ internal object HeadlessScripts {
     /** One script's outcome in summary.json, as the nightly's rows have it. */
     data class Row(val script: String, val result: String, val steps: String, val seconds: Long, val failure: String?, val rerun: String?)
 
-    /** Runs the scripts; returns 0 when none failed (a flaky pass and a skipped pair don't count), else 1. */
+    /** Runs the scripts; returns 0 when none failed (a flaky pass doesn't count), else 1. */
     fun run(options: Options): Int {
         val started = Instant.now()
         prepareData(options.dataDir)
@@ -116,33 +120,60 @@ internal object HeadlessScripts {
         }
         val writer = ResultWriter(options.outDir.resolve("test-results"), GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create(), "headless ${options.runnerVersion}")
         val rows = LinkedHashMap<String, Row>()
-        val failed = ArrayList<Pair<Path, Script>>()
+        // Each entry is played, and replayed after a failure, as one: a script alone, or the two halves of a pair.
+        val failed = ArrayList<List<Path>>()
+        fun parse(file: Path) = Script.parse(file.name, file.readText())
+        fun playAll(files: List<Path>): List<Result> {
+            // Parsed again each time: a script's steps keep their progress (a command already sent), so a run can't be replayed.
+            val scripts = files.map(::parse)
+            return if (scripts.size == 1) listOf(play(session(scripts[0].account), scripts[0], writer)) else playPair(scripts.map { session(it.account) to it }, writer)
+        }
         try {
+            val byName = options.scripts.associateBy { it.name }
             for (file in options.scripts) {
+                if (file.name in rows) continue // the second half of a pair, played with its first
                 val script = try {
-                    Script.parse(file.name, file.readText())
+                    parse(file)
                 } catch (e: Script.Invalid) {
                     rows[file.name] = Row(file.name, "error", "0/0", 0, "the script doesn't read: ${e.message}", null)
                     continue
                 }
-                val pair = pairReason(file.name)
-                if (pair != null) {
-                    rows[file.name] = Row(file.name, "skipped", "0/${script.steps.size}", 0, pair, null)
-                    continue
+                val partnerName = pairPartner(file.name)
+                val unit = if (partnerName == null) {
+                    listOf(file)
+                } else {
+                    // The other half plays too when it lies beside this one, named in the run or not.
+                    val partner = byName[partnerName] ?: file.resolveSibling(partnerName)
+                    val problem = when {
+                        !partner.exists() -> "its other half, $partnerName, isn't there"
+                        else -> try {
+                            if (parse(partner).account.equals(script.account, ignoreCase = true)) "both halves play ${script.account}" else null
+                        } catch (e: Script.Invalid) {
+                            "its other half, $partnerName, doesn't read: ${e.message}"
+                        }
+                    }
+                    if (problem != null) {
+                        rows[file.name] = Row(file.name, "error", "0/${script.steps.size}", 0, problem, null)
+                        continue
+                    }
+                    listOf(file, partner)
                 }
-                val result = play(session(script.account), script, writer)
-                rows[file.name] = row(file.name, result)
-                if (result.result != Result.PASS) failed += file to script
+                val results = playAll(unit)
+                for ((played, result) in unit.zip(results)) rows[played.name] = row(played.name, result)
+                if (results.any { it.result != Result.PASS }) failed += unit
             }
             if (options.rerunFailures) {
-                for ((file, script) in failed) {
-                    // Parsed again: a script's steps keep their progress (a command already sent), so a run can't be replayed.
-                    val again = play(session(script.account), Script.parse(file.name, file.readText()), writer)
-                    val first = rows.getValue(file.name)
-                    rows[file.name] = if (again.result == Result.PASS) {
-                        first.copy(result = "flaky", rerun = "pass")
-                    } else {
-                        first.copy(rerun = again.failure ?: again.result)
+                for (unit in failed) {
+                    val again = playAll(unit)
+                    for ((played, result) in unit.zip(again)) {
+                        val first = rows.getValue(played.name)
+                        // A half that passed while its other half failed stays a pass.
+                        if (first.result == Result.PASS) continue
+                        rows[played.name] = if (result.result == Result.PASS) {
+                            first.copy(result = "flaky", rerun = "pass")
+                        } else {
+                            first.copy(rerun = result.failure ?: result.result)
+                        }
                     }
                 }
             }
@@ -153,22 +184,26 @@ internal object HeadlessScripts {
         writeSummary(options, started, rows.values.toList())
         val failures = rows.values.count { it.result == Result.FAIL || it.result == "error" }
         println("Headless scripts: ${rows.values.count { it.result == Result.PASS }} passed, ${rows.values.count { it.result == "flaky" }} flaky, " +
-            "$failures failed, ${rows.values.count { it.result == "skipped" }} skipped, of ${rows.size}")
+            "$failures failed, of ${rows.size}")
         rows.values.filter { it.result != Result.PASS }.forEach { println("  ${it.result}: ${it.script}: ${it.failure}") }
         return if (failures == 0) 0 else 1
     }
 
     /** Puts the account back as the nightly did before each script, then plays the script and writes its result. */
     private fun play(session: ScriptSession, script: Script, writer: ResultWriter): Result {
+        reset(session, script)
+        val result = session.run(script, "headless")
+        writer.write(result, null)
+        println("${result.result}: ${script.id} (${result.ms / 1000} s)" + (result.failure?.let { ": $it" } ?: ""))
+        return result
+    }
+
+    private fun reset(session: ScriptSession, script: Script) {
         session.closeInterfaces()
         val reset = session.run(Script.parse("_between.json", resetScript(script.account)), "reset")
         if (reset.result != Result.PASS) {
             println("Reset before ${script.id} failed: ${reset.failure}")
         }
-        val result = session.run(script, "headless")
-        writer.write(result, null)
-        println("${result.result}: ${script.id} (${result.ms / 1000} s)" + (result.failure?.let { ": $it" } ?: ""))
-        return result
     }
 
     /**
@@ -190,11 +225,48 @@ internal object HeadlessScripts {
     """.trimIndent()
 
     /**
-     * Why a script is left out, or null: the two halves of a two-player pair (-test.json and -test2.json) have to play
-     * at the same time, which this runner doesn't do yet.
+     * The two halves of a two-player pair (-test.json and -test2.json), which the nightly started on two VMs at the same
+     * time: both accounts are put back first, then each half plays on its own thread through its own client, and the
+     * scripts keep in step themselves, as they did on the VMs, by waiting for what the other does.
      */
-    fun pairReason(fileName: String): String? =
-        if (fileName.endsWith("-test.json") || fileName.endsWith("-test2.json")) "one half of a two-player pair, which doesn't run headless yet" else null
+    private fun playPair(halves: List<Pair<ScriptSession, Script>>, writer: ResultWriter): List<Result> {
+        // Both resets at once too, and a half that is done first stays played until the other is: a client left
+        // unplayed sends no keep-alive, the server drops it, and its next login is refused until the server has let go.
+        together(halves, "reset") { (session, script) -> reset(session, script) }
+        val results = arrayOfNulls<Result>(halves.size)
+        together(halves, "pair") { half -> results[halves.indexOf(half)] = half.first.run(half.second, "headless") }
+        return halves.indices.map { i ->
+            val result = results[i] ?: error("${halves[i].second.id} ended without a result")
+            writer.write(result, null)
+            println("${result.result}: ${halves[i].second.id} (${result.ms / 1000} s)" + (result.failure?.let { ": $it" } ?: ""))
+            result
+        }
+    }
+
+    /** Does [work] for every half at once, each on its own thread, keeping each half's client alive until all are done. */
+    private fun together(halves: List<Pair<ScriptSession, Script>>, what: String, work: (Pair<ScriptSession, Script>) -> Unit) {
+        val left = java.util.concurrent.atomic.AtomicInteger(halves.size)
+        halves.map { half ->
+            Thread({
+                try {
+                    work(half)
+                } finally {
+                    left.decrementAndGet()
+                }
+                while (left.get() > 0) {
+                    half.first.idle()
+                    Thread.sleep(IDLE_POLL_MILLIS)
+                }
+            }, "$what-${half.second.account}").apply { start() }
+        }.forEach(Thread::join)
+    }
+
+    /** The name of a pair script's other half (-test.json and -test2.json), or null for a script that plays alone. */
+    fun pairPartner(fileName: String): String? = when {
+        fileName.endsWith("-test.json") -> fileName.removeSuffix("-test.json") + "-test2.json"
+        fileName.endsWith("-test2.json") -> fileName.removeSuffix("-test2.json") + "-test.json"
+        else -> null
+    }
 
     private fun row(file: String, r: Result): Row {
         val passed = r.steps.count { it.outcome == Result.PASS }

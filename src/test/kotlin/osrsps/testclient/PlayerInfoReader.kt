@@ -26,10 +26,10 @@ data class ActorEvent(val kind: ActorEventKind, val npc: Boolean, val index: Int
 
 /**
  * A player's appearance block, as much of it as the client's player model shows of their gear: the item drawn in each
- * wearpos 0 to 11 (-1 for none, or for an identity kit such as hair), the NPC they are drawn as (-1 for none) and the
- * animation they stand in.
+ * wearpos 0 to 11 (-1 for none, or for an identity kit such as hair), the NPC they are drawn as (-1 for none), the
+ * animation they stand in, and their name as other players' menus show it.
  */
-data class AppearanceView(val worn: List<Int>, val npc: Int, val readyAnim: Int)
+data class AppearanceView(val worn: List<Int>, val npc: Int, val readyAnim: Int, val name: String = "")
 
 /**
  * The client's side of the player info protocol (GPI): keeps every player's position from REBUILD_LOGIN's init
@@ -95,6 +95,7 @@ class PlayerInfoReader(val localIndex: Int) {
 
     /** Applies one PLAYER_INFO packet; returns who moved. */
     fun read(payload: ByteArray): List<PlayerMove> {
+        chats.clear()
         val bits = BitReader(payload)
         val moves = ArrayList<PlayerMove>()
         val extended = ArrayList<Int>()
@@ -239,7 +240,9 @@ class PlayerInfoReader(val localIndex: Int) {
                 val colour = buf.g2() shr 8
                 buf.g1Alt2() // mod icon
                 buf.g1() // autotyper
-                buf.skipRead(buf.g1Alt2()) // the Huffman text
+                val text = ByteArray(buf.g1Alt2())
+                buf.gdataAlt3(text)
+                chats += index to text
                 if (colour in 13..20) buf.skipRead(colour - 12)
             }
             if (flags and SAY != 0) buf.gjstr()
@@ -248,6 +251,9 @@ class PlayerInfoReader(val localIndex: Int) {
         }
         this.events = events
     }
+
+    /** The public chat in the last packet's blocks: who spoke, and their words still Huffman packed. */
+    val chats = ArrayList<Pair<Int, ByteArray>>()
 
     /** A face block after its flag, whose bits 3 to 5 say the kind, as RSProt's Face.encode writes it. */
     private fun readFace(buf: JagByteBuf, flag: Int) {
@@ -265,7 +271,7 @@ class PlayerInfoReader(val localIndex: Int) {
     /**
      * RSProt's PlayerAppearanceEncoder: body type, skull and prayer icons, then each wearpos 0 to 11 as a byte 0 for
      * nothing or two bytes (an item + 0x800, an identity kit + 0x100), or 0xFFFF and an NPC for a player drawn as one;
-     * then the identity kits in the same form, five colours and the stance's animations, ready pose first.
+     * then the identity kits in the same form, five colours, the stance's animations (ready pose first) and the name.
      */
     private fun readAppearance(data: ByteArray): AppearanceView {
         val buf = Unpooled.wrappedBuffer(data).toJagByteBuf()
@@ -285,7 +291,9 @@ class PlayerInfoReader(val localIndex: Int) {
         for (wearpos in 0 until WORN_SLOTS) if (buf.g1() != 0) buf.g1()
         repeat(COLOURS) { buf.g1() }
         val ready = buf.g2()
-        return AppearanceView(worn, npc, if (ready == NONE) -1 else ready)
+        repeat(OTHER_STANCE_ANIMS) { buf.g2() }
+        val name = buf.gjstr()
+        return AppearanceView(worn, npc, if (ready == NONE) -1 else ready, name)
     }
 
     private fun readHighRes(bits: BitReader, index: Int, moves: MutableList<PlayerMove>, extended: MutableList<Int>) {
@@ -417,6 +425,9 @@ class PlayerInfoReader(val localIndex: Int) {
         const val WORN_SLOTS = 12
         const val ITEM_OFFSET = 0x800
         const val COLOURS = 5
+
+        /** The stance's animations after the ready pose: turn, walk and its three sides, run. */
+        const val OTHER_STANCE_ANIMS = 6
 
         /** Walk opcodes 0-7: SW, S, SE, W, E, NW, N, NE. */
         val WALK = arrayOf(-1 to -1, 0 to -1, 1 to -1, -1 to 0, 1 to 0, -1 to 1, 0 to 1, 1 to 1)

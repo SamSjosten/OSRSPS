@@ -17,6 +17,7 @@ import osrsps.game.bank.DepositBox
 import osrsps.game.ge.GrandExchangeScreen
 import osrsps.game.ge.PriceChecker
 import osrsps.game.shop.ShopScreen
+import osrsps.game.social.Clans
 import osrsps.game.trade.Trades
 import osrsps.game.dialogue.Chatbox
 import osrsps.game.loc.LocType
@@ -29,6 +30,7 @@ import osrsps.testclient.Coord
 import osrsps.testclient.CopiedZone
 import osrsps.testclient.DialogueView
 import osrsps.testclient.HeadlessClient
+import net.rsprot.protocol.game.outgoing.prot.GameServerProt
 import kotlin.math.abs
 import kotlin.math.max
 
@@ -77,6 +79,15 @@ internal class HeadlessGame(
     /** The first client script [promptMode] reads: the one after the last prompt answered from here. */
     private var promptsFrom = 0
 
+    /** The meslayer mode of the prompt the client itself would have open (see [CLIENT_PROMPT_BUTTONS]), or 0. */
+    private var clientPrompt = 0
+
+    /** What the client sends of itself a while after a click: the server cycle each is due in, and the sending. */
+    private val later = ArrayList<Pair<Int, (HeadlessClient) -> Unit>>()
+
+    /** Who the open private message prompt writes to. */
+    private var promptTarget = ""
+
     private fun c(): HeadlessClient? = client()?.takeUnless { it.isClosed }
 
     override fun loggedIn(): Boolean = c()?.position != null
@@ -90,7 +101,14 @@ internal class HeadlessGame(
 
     override fun sendChat(text: String): String? {
         val client = c() ?: return "not logged in"
-        if (text.startsWith("::")) client.command(text.substring(2)) else client.say(text)
+        // As the client's chat input sorts a line: "::" a command, "///" the guest clan, "//" the clan, "/" the friends chat.
+        when {
+            text.startsWith("::") -> client.command(text.substring(2))
+            text.startsWith("///") -> client.guestSay(text.substring(3))
+            text.startsWith("//") -> client.clanSay(text.substring(2))
+            text.startsWith("/") -> client.friendsChatSay(text.substring(1))
+            else -> client.say(text)
+        }
         return null
     }
 
@@ -114,8 +132,24 @@ internal class HeadlessGame(
     /** There is no walk flag to read; the step then only waits for the player to arrive. */
     override fun walkDestination(): Tile? = null
 
-    override fun playerOption(name: String, option: String, at: Tile?): String =
-        "playerOption needs other players' names, which the headless client doesn't read yet"
+    /** As the plugin's: the other player in view by the name in their appearance, the option by the menu's slot. */
+    override fun playerOption(name: String, option: String, at: Tile?): String? {
+        val client = c() ?: return "not logged in"
+        client.position ?: return "no local player"
+        val wanted = jagexName(name)
+        val (index, where) = client.otherPlayers().entries.lastOrNull { (index, _) ->
+            client.appearance(index)?.name?.let { jagexName(it) == wanted } == true
+        } ?: return "no player \"$name\" in view"
+        if (at != null && (where.x != at.x || where.z != at.y)) return "$name is on ${where.x}, ${where.z}, not ${at.x}, ${at.y}"
+        val slot = client.playerOps().entries.firstOrNull { (_, text) -> text != null && Dialogue.clean(text).equals(option, ignoreCase = true) }?.key
+            ?: return "players have no option \"$option\""
+        if (slot !in SENT_PLAYER_OPS) return "the headless client doesn't send player option $slot (\"$option\")"
+        client.playerOp(index, slot)
+        return null
+    }
+
+    /** RuneLite's Text.toJagexName: underscores, hyphens and non-breaking spaces as spaces, trimmed; compared without case. */
+    private fun jagexName(name: String) = name.replace('_', ' ').replace('-', ' ').replace('\u00A0', ' ').trim().lowercase()
 
     override fun npcOption(name: String?, id: Int, option: String): String? {
         val client = c() ?: return "not logged in"
@@ -373,6 +407,7 @@ internal class HeadlessGame(
      * here (the client closes its prompt on Enter).
      */
     override fun promptMode(): Int {
+        if (clientPrompt != 0) return clientPrompt
         val scripts = c()?.clientScripts() ?: return 0
         var mode = 0
         for (i in promptsFrom.coerceAtMost(scripts.size) until scripts.size) {
@@ -475,6 +510,18 @@ internal class HeadlessGame(
             client.resumePause(interfaceId, component, quantity)
             return null
         }
+        if ((interfaceId shl 16 or component) == FRIENDS_CHAT_JOIN_LEAVE) {
+            // Inferred stand-in: the friends chat panel's one button is Leave Chat in a channel, which leaves with no
+            // more asked, and Join Chat out of one, which opens the owner's name prompt.
+            if (client.friendsChat() != null) client.leaveFriendsChat() else clientPrompt = PROMPT_JOIN_CHAT
+            return null
+        }
+        CLIENT_PROMPT_BUTTONS[interfaceId shl 16 or component]?.let { mode ->
+            // Inferred stand-in: the friend and ignore lists' Add and Delete buttons open a chatbox prompt in the
+            // client and tell the server nothing; the name typed there is what goes to the server (see enterText).
+            clientPrompt = mode
+            return null
+        }
         if (sub == FRAME_CLOSE_CHILD && (interfaceId shl 16 or component) in FRAME_CLOSE_BUTTONS) {
             // Inferred: steelborder's close button closes the screen in the client (if_close), which tells the server
             // with CLOSE_MODAL; the button's own op isn't the server's to handle.
@@ -492,16 +539,65 @@ internal class HeadlessGame(
         return null
     }
 
-    override fun clickWidgetNamed(interfaceId: Int, component: Int, name: String, op: Int): String =
-        "slots built by the client's own scripts aren't known to the headless client"
+    /**
+     * Stand-ins for the lists whose rows the client builds itself and whose ops it sends itself: the clan channel's
+     * list (Kick guest and Ban guest, which send the clan type, the row's place in the channel and the name), the
+     * clan's ban list (Unban, which sends the name as typed text), the friends chat's list (Kick user) and its setup's
+     * list (a rank for a friend). Any other list fails, saying why.
+     */
+    override fun clickWidgetNamed(interfaceId: Int, component: Int, name: String, op: Int): String? {
+        val client = c() ?: return "not logged in"
+        if (!interfaceOpen(interfaceId)) return "interface $interfaceId:$component is not open (open: ${client.openInterfaces().sorted()})"
+        val wanted = jagexName(name)
+        val packed = (interfaceId shl 16) or component
+        if (packed == CLAN_CHANNEL_LIST && (op == CLAN_KICK_OP || op == CLAN_BAN_OP)) {
+            // Inferred: the channel packet's first string is the clan's name and the members' names follow in their
+            // order in the channel, so a member's place is one less than their name's.
+            val names = client.lastClanStrings(GameServerProt.CLANCHANNEL_FULL, Clans.CLAN_TYPE_CLAN).orEmpty().drop(1)
+            val slot = names.indexOfFirst { jagexName(it) == wanted }
+            if (slot < 0) return "no \"$name\" in the clan channel's list ($names)"
+            if (op == CLAN_KICK_OP) client.kickFromClanChannel(name, slot) else client.banFromClanChannel(name, slot)
+            return null
+        }
+        if (packed == CLAN_BAN_LIST && op == 1) {
+            val names = client.bannedClanNames(Clans.CLAN_TYPE_CLAN).orEmpty()
+            val banned = names.firstOrNull { jagexName(it) == wanted } ?: return "no \"$name\" on the clan's ban list ($names)"
+            // clan_banned_unban sends the name 30 client cycles after the click: a server cycle on.
+            later += (client.cyclesSeen + UNBAN_DELAY_CYCLES) to { it.resumeString(banned) }
+            return null
+        }
+        if (packed == FRIENDS_CHAT_LIST && op == FRIENDS_CHAT_KICK_OP) {
+            val member = client.friendsChat()?.members?.keys?.firstOrNull { jagexName(it) == wanted } ?: return "no \"$name\" in the friends chat"
+            client.kickFromFriendsChat(member)
+            return null
+        }
+        if (packed == FRIENDS_CHAT_RANK_LIST && op in 1..FRIENDS_CHAT_RANK_OPS) {
+            // The setup list's rows are the friends list; op 1 takes a rank away and 2 to 7 are Recruit to General.
+            val friend = client.friends().keys.firstOrNull { jagexName(it) == wanted } ?: return "no \"$name\" on the friends list"
+            client.setFriendsChatRank(friend, op - 1)
+            return null
+        }
+        return "slots built by the client's own scripts aren't known to the headless client"
+    }
 
     /**
      * Only the scripts whose whole effect stays in the client are stood in for, as doing nothing: the side tab switch
      * (915, toplevel_sidebutton_switch) shows another tab and tells the server nothing (inferred from its name and
      * from the server never seeing it). Any other script fails, saying it needs the client.
      */
-    override fun runClientScript(id: Int, args: Array<Any>): String? =
-        if (id in CLIENT_ONLY_SCRIPTS) null else "client script $id runs in the client, which the headless client doesn't have"
+    override fun runClientScript(id: Int, args: Array<Any>): String? {
+        when (id) {
+            // Inferred stand-ins for the two prompts the runner opens by script: 107 asks for a private message to
+            // the name it is given, 111 for the owner of the friends chat to join.
+            PRIVATE_MESSAGE_SCRIPT -> {
+                promptTarget = args.firstOrNull() as? String ?: return "client script $id needs the name to message"
+                clientPrompt = PROMPT_PRIVATE_MESSAGE
+            }
+            JOIN_CHAT_SCRIPT -> clientPrompt = PROMPT_JOIN_CHAT
+            !in CLIENT_ONLY_SCRIPTS -> return "client script $id runs in the client, which the headless client doesn't have"
+        }
+        return null
+    }
 
     override fun mouseClickWidget(interfaceId: Int, component: Int, sub: Int): String =
         "a mouse click on $interfaceId:$component runs the client's own scripts, which the headless client doesn't have"
@@ -549,8 +645,20 @@ internal class HeadlessGame(
 
     override fun enterText(text: String): String? {
         val client = c() ?: return "not logged in"
-        client.resumeString(text)
-        promptsFrom = client.clientScripts().size
+        val mode = clientPrompt
+        clientPrompt = 0
+        when (mode) {
+            0 -> {
+                client.resumeString(text)
+                promptsFrom = client.clientScripts().size
+            }
+            PROMPT_ADD_FRIEND -> client.addFriend(text)
+            PROMPT_DELETE_FRIEND -> client.deleteFriend(text)
+            PROMPT_ADD_IGNORE -> client.addIgnore(text)
+            PROMPT_DELETE_IGNORE -> client.deleteIgnore(text)
+            PROMPT_PRIVATE_MESSAGE -> client.privateMessage(promptTarget, text)
+            PROMPT_JOIN_CHAT -> client.joinFriendsChat(text)
+        }
         return null
     }
 
@@ -560,6 +668,11 @@ internal class HeadlessGame(
      */
     fun noteInventoryBindings() {
         val client = c() ?: return
+        if (later.isNotEmpty()) {
+            val due = later.filter { it.first <= client.cyclesSeen }
+            later.removeAll(due)
+            due.forEach { it.second(client) }
+        }
         val scripts = client.clientScripts()
         if (scripts.size < scriptsSeen) scriptsSeen = 0
         for (script in scripts.subList(scriptsSeen, scripts.size)) {
@@ -586,6 +699,8 @@ internal class HeadlessGame(
     fun newLogin() {
         scriptsSeen = 0
         promptsFrom = 0
+        clientPrompt = 0
+        later.clear()
     }
 
     private fun objAt(client: HeadlessClient, interfaceId: Int, component: Int, sub: Int): Int {
@@ -734,11 +849,47 @@ internal class HeadlessGame(
 
         const val LAYERS = 4
 
+        /** The player options [HeadlessClient.playerOp] has packets for: Recruit, Follow, Trade with, Report. */
+        val SENT_PLAYER_OPS = setOf(1, 3, 4, 8)
+
         /** Client cycles (20 ms) in a server cycle (600 ms, a tick or a paused cycle). */
         const val CYCLES_PER_TICK = 30
 
         /** Client scripts that change only what the client shows: toplevel_sidebutton_switch. */
         val CLIENT_ONLY_SCRIPTS = setOf(915)
+
+        // The meslayer modes of the prompts the client opens itself, as the runner's steps wait for them.
+        const val PROMPT_ADD_FRIEND = 2
+        const val PROMPT_DELETE_FRIEND = 3
+        const val PROMPT_ADD_IGNORE = 4
+        const val PROMPT_DELETE_IGNORE = 5
+        const val PROMPT_PRIVATE_MESSAGE = 6
+        const val PROMPT_JOIN_CHAT = 10
+
+        /** The friend list's (429) Add and Delete buttons and the ignore list's (432), and the prompt each opens. */
+        val CLIENT_PROMPT_BUTTONS = mapOf(
+            (429 shl 16) or 14 to PROMPT_ADD_FRIEND,
+            (429 shl 16) or 16 to PROMPT_DELETE_FRIEND,
+            (432 shl 16) or 12 to PROMPT_ADD_IGNORE,
+            (432 shl 16) or 14 to PROMPT_DELETE_IGNORE,
+        )
+        /** clans_sidepanel:playerlist with its Kick guest and Ban guest ops, and clans_banned's list. */
+        const val CLAN_CHANNEL_LIST = (701 shl 16) or 6
+        const val CLAN_KICK_OP = 7
+        const val CLAN_BAN_OP = 8
+        const val CLAN_BAN_LIST = (689 shl 16) or 6
+        const val UNBAN_DELAY_CYCLES = 1
+        /** The friends chat panel's list of members (7:12) and Kick user on a row. */
+        const val FRIENDS_CHAT_LIST = (7 shl 16) or 12
+        const val FRIENDS_CHAT_KICK_OP = 6
+
+        /** The friends chat setup's list of friends (94:28) and its ops: no rank, then the six ranks. */
+        const val FRIENDS_CHAT_RANK_LIST = (94 shl 16) or 28
+        const val FRIENDS_CHAT_RANK_OPS = 7
+        /** The friends chat panel's Join Chat / Leave Chat button. */
+        const val FRIENDS_CHAT_JOIN_LEAVE = (7 shl 16) or 18
+        const val PRIVATE_MESSAGE_SCRIPT = 107
+        const val JOIN_CHAT_SCRIPT = 111
 
         /** The examine script's argument holding the item's description. */
         const val EXAMINE_DESC_ARG = 2
@@ -787,6 +938,7 @@ internal class HeadlessGame(
             (DepositBox.INTERFACE shl 16) or DepositBox.ITEMS to InvBinding(Inventory.INV),
             (ShopScreen.SIDE shl 16) or ShopScreen.SIDE_ITEMS to InvBinding(Inventory.INV),
             (Trades.SIDE shl 16) or Trades.SIDE_ITEMS to InvBinding(Inventory.INV),
+            (Trades.MAIN shl 16) or Trades.MAIN_YOUR_OFFER to InvBinding(Trades.TRADEOFFER),
             (osrsps.game.ge.ItemSetsScreen.SIDE shl 16) or osrsps.game.ge.ItemSetsScreen.SIDE_ITEMS to InvBinding(Inventory.INV),
             (GrandExchangeScreen.SIDE shl 16) or GrandExchangeScreen.SIDE_ITEMS to InvBinding(Inventory.INV),
             (PriceChecker.MAIN shl 16) or PriceChecker.ITEMS to InvBinding(PriceChecker.INV),

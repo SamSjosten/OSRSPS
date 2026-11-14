@@ -26,10 +26,15 @@ put back before each script, a failure is played once more (a pass then is flaky
 go to `build/headless/results`. `-Pscripts=hans-demo.json,lumbridge-bank.json` plays some; `-PheadlessTickMs=300` plays
 faster than live's 600 ms ticks. Fresh accounts start in the fixed frame there, as the VMs' clients were.
 
-What only the real client does isn't there yet, and a step that needs it fails saying so: client scripts
-(`runClientScript`, `mouseClick`, `typeText`, text an interface has in the cache), the two-player pairs and other players'
-names. Animations, graphics, hitsplats, health bars and the player's model are read from the server's player and NPC
-info, as the client reads them.
+A two-player pair (`x-test.json` with `x-test2.json`) plays as two headless clients at once, whichever half is asked for,
+each half with its own result; a failed half plays the pair again. Other players are found by the name in their
+appearance, and chat (public, private, friends chat and clan) reaches `assertMessage` as the plugin hands it on.
+
+What only the real client does is stood in for where a script needs it: the friend and ignore lists' Add and Delete
+prompts, the private message and Join Chat prompts (client scripts 107 and 111), and Kick guest, Ban guest and Unban on
+the clan lists. Any other client script, `mouseClick`, `typeText` or text an interface has only in the cache fails saying
+so. Animations, graphics, hitsplats, health bars and the player's model are read from the server's player and NPC info,
+as the client reads them.
 
 ## Installing
 
