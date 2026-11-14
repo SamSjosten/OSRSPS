@@ -10,7 +10,9 @@ import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
+import osrsps.game.VarTypes
 import osrsps.game.World
+import osrsps.game.content.MUSEUM_VARBITS
 import osrsps.game.content.VarrockMuseum
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
@@ -64,6 +66,7 @@ class HeadlessVarrockMuseumTest {
             objTypes = ObjTypes.of(map), locTypes = types,
             staticLocs = StaticLocs().apply { listOf(stairsDown, stairsUp, doorLeft, doorRight, gate).forEach(::add) },
             npcTypes = NpcTypes.of(curator, clerk, gateGuard, doorGuard),
+            varTypes = VarTypes(6_000, MUSEUM_VARBITS),
             npcSpawns = listOf(
                 NpcSpawn(curator, 3257, 3449, wander = 0, source = "test"),
                 NpcSpawn(clerk, 3253, 3454, wander = 0, source = "test"),

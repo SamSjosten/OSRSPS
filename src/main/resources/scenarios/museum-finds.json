@@ -1,0 +1,10 @@
+{
+  "about": "In the Varrock Museum's cleaning area beside Barnabus Hurma, carrying an old symbol and a clean necklace, with no Dig Site find on display and the necklace's secret not yet learnt.",
+  "notes": "For test-runner/examples/museum-kudos-cases.json: the varbits are the 242 cache's vm_kudos (3637), vm_necklace (3639) and vm_digsite_* (3645-3649), set to 0 so a display case run can repeat on one account; ::reset puts them back. The scenario's start clears the saved charges, so the archaeologists forget sending the player to a case too.",
+  "position": { "x": 3254, "z": 3446, "level": 0 },
+  "inventory": [
+    { "item": "vm_symbol_old_inv" },
+    { "item": "necklace_of_digsite" }
+  ],
+  "varbits": { "3637": 0, "3639": 0, "3645": 0, "3646": 0, "3647": 0, "3648": 0, "3649": 0 }
+}
