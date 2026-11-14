@@ -14,7 +14,7 @@ import osrsps.game.zone.ZoneLoc
 
 /** The canoe stations' words, in the dialogue file. */
 object CanoeLines : Lines("canoe", "Canoes") {
-    val LEVEL = line("level", "below the Woodcutting level for canoes, at a station or in the shaping box", "level")
+    val LEVEL = line("level", "below the Woodcutting level for canoes: Chop-down on the tree, or a canoe picked above the level (the box's own level 12 message is the client's)", "level")
     val ARRIVE_LUMBRIDGE = line("arrive_lumbridge", "on landing at Lumbridge")
     val ARRIVE_CHAMPIONS = line("arrive_champions", "on landing at the Champions' Guild")
     val ARRIVE_BARBARIAN = line("arrive_barbarian", "on landing at Barbarian Village")
@@ -92,7 +92,7 @@ enum class CanoeType(val number: Int, val level: Int, val xpTenths: Int, val com
  * only); shaping rolling every 4 ticks, like chopping; the fall taking [FALL_TICKS], the push [PUSH_TICKS] and the trip
  * [TRIP_TICKS]; the player's push animation (canoeing_pushing_into_water) and carving animations by axe (the cache's
  * canoeing_carve seqs); the landing tiles, from the 2009scape project's canoe listener (a reimplementation, not live),
- * and the Ferox Enclave's, which nobody gives; the level check on Shape-Canoe being the server's as well as the client's;
+ * and the Ferox Enclave's, which nobody gives;
  * no message when chopping or shaping starts. Left out: the travel cutscene (its interface and fade), the sinking canoe
  * at the landing (a blocking loc on the landing tile), followers, the Wilderness warning (varbit wildy_canoe_warning),
  * and the Ardougne river's stations (another canoe_river).
@@ -166,10 +166,8 @@ class Canoes(private val world: World, private val woodcutting: WoodcuttingData)
     }
 
     private fun ScriptContext.openShaping(station: CanoeStation, loc: ZoneLoc) {
-        if (level() < CanoeType.LOG.level) {
-            player.message(world.textFor(player)[CanoeLines.LEVEL, "level" to CanoeType.LOG.level])
-            return
-        }
+        // Below level 12 (a drained level, as the tree needs 12) the client's canoe_setup closes the box with its own
+        // message, so the server doesn't check here.
         shaping[player] = Shaping(station, loc)
         world.interfaces.openModal(player, FrameSlot.MAINMODAL, SHAPING)
         for (type in CanoeType.entries) world.interfaces.setEvents(player, SHAPING, type.component, 0, 0, Interfaces.IF_EVENT_OP1)
