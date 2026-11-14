@@ -133,6 +133,12 @@ class Canoes(private val world: World, private val woodcutting: WoodcuttingData)
         when (val state = state(player, station)) {
             TREE -> chop(op, station)
             FALLEN -> if (op.repeat) carve(op, station) else openShaping(station, loc)
+            FALLING -> {
+                // A click lands only once the fall's delay is over, so the script that ends it was dropped (a death
+                // mid-fall, Codex review on #659): the tree is down.
+                setState(player, station, FALLEN)
+                if (!op.repeat) openShaping(station, loc)
+            }
             in 1..4 -> float(station, state)
             in 5..8 -> {
                 // Only a push cut short (a logout mid-push, the state saved) leaves one here.
@@ -193,6 +199,12 @@ class Canoes(private val world: World, private val woodcutting: WoodcuttingData)
         val type = shape?.type
         if (shape == null || type == null || shape.station != station || player.modalOpen) return stop()
         val axe = checks() ?: return stop()
+        // The canoe's own level on every roll, as a tree's is: a boost can run out mid-shaping (Codex review on #659).
+        if (level() < type.level) {
+            player.message(world.textFor(player)[CanoeLines.LEVEL, "level" to type.level])
+            shaping.remove(player)
+            return stop()
+        }
         if (SkillClock.step(player, tick, CYCLE) == ClockStep.DUE) {
             player.anim(CARVE[axe.obj] ?: axe.anim)
             val (low, high) = SHAPE_PAIRS.getValue(woodcutting.tier(axe))

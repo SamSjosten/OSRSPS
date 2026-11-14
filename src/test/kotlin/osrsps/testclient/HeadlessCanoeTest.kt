@@ -195,6 +195,20 @@ class HeadlessCanoeTest {
         }
     }
 
+    @Test
+    fun `a fall cut short (a death mid-fall) leaves a fallen tree to shape`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("gina").use { client ->
+                client.canoeist(99)
+                client.command("varbit ${CanoeStation.LUMBRIDGE.varbit} ${Canoes.FALLING}")
+                client.state(Canoes.FALLING)
+                client.locOp(CanoeStation.LUMBRIDGE.loc, LUM_X, LUM_Z, 1)
+                client.state(Canoes.FALLEN)
+                client.await("the shaping box") { if (Canoes.SHAPING in client.openInterfaces()) Unit else null }
+            }
+        }
+    }
+
     private companion object {
         const val LUM_X = 3241
         const val LUM_Z = 3235
