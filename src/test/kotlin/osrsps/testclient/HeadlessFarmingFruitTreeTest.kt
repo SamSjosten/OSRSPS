@@ -34,7 +34,7 @@ class HeadlessFarmingFruitTreeTest {
         val objs = Array<ObjType?>(OBJS) { ObjType(it, "Obj $it") }
         for ((id, name) in mapOf(
             RAKE to "Rake", SPADE to "Spade", WEEDS to "Weeds", POT_EMPTY to "Plant pot", SAPLING to "Apple sapling",
-            AXE to "Bronze axe", APPLE to "Cooking apple", SECATEURS to "Secateurs", LEAVES to "Leaves",
+            AXE to "Rune axe", APPLE to "Cooking apple", SECATEURS to "Secateurs", LEAVES to "Leaves",
         )) objs[id] = ObjType(id, name)
         World(
             crcs, CollisionMap().apply { markLoaded(X shr 6, Z shr 6) }, objTypes = ObjTypes(objs),
@@ -148,7 +148,7 @@ class HeadlessFarmingFruitTreeTest {
                 client.awaitCount(APPLE, 7)
                 client.awaitPatch(14)
 
-                // With none left, Chop-down: one swing to the stump, no logs; the stump cleared with a spade, no roots.
+                // With none left, Chop-down (a rune axe at Woodcutting 1 is fine): one swing to the stump, no logs; the stump cleared with a spade, no roots.
                 client.op1()
                 client.seen("[farming.fruit_chopped]")
                 client.awaitPatch(33)
@@ -211,7 +211,7 @@ class HeadlessFarmingFruitTreeTest {
         const val WEEDS = 6055
         const val POT_EMPTY = 5350
         const val SAPLING = 5496
-        const val AXE = 1351
+        const val AXE = 1359 // a rune axe: fruit trees take any axe at any Woodcutting level
         const val APPLE = 1955
         const val SECATEURS = 5329
         const val LEAVES = 6020

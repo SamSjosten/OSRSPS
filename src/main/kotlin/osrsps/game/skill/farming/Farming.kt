@@ -775,7 +775,7 @@ class Farming(private val world: World, private val clock: () -> Long, private v
     private fun ScriptContext.chopFruitTree(op: Op, state: PatchState) {
         if (op.repeat && player.modalOpen) return stop()
         if (state.lives > 0) return stop()
-        val axe = (world.woodcutting.data.tools.best(player) as? ToolCheck.Found)?.tool ?: run {
+        val axe = world.woodcutting.data.tools.bestHeld(player) ?: run {
             player.message(world.textFor(player)[WoodcuttingLines.NO_AXE])
             return stop()
         }
