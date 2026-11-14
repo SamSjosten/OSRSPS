@@ -33,7 +33,7 @@ class HeadlessFarmingTest {
     /** The farming clock the world runs on, moved by the tests: 2026-11-14 00:00 UTC to start. */
     private val clock = AtomicLong(1_794_614_400_000L)
 
-    private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
+    private fun server(dir: Path, cycleMillis: Long = 100) = TestServer(dir, cycleMillis = cycleMillis) { crcs, millis ->
         val objs = arrayOfNulls<ObjType>(SNAPE_GRASS_SEED + 1)
         for ((id, name) in mapOf(
             RAKE to "Rake", DIBBER to "Seed dibber", SPADE to "Spade", WEEDS to "Weeds", POTATO_SEED to "Potato seed",
@@ -290,6 +290,48 @@ class HeadlessFarmingTest {
                     val tenths = start * 10 + 120 + 1415 + 120 + 110 + 125 * herbs
                     if (herbs >= 3 && client.xp() == tenths / 10) Unit else null
                 }
+            }
+        }
+    }
+
+    @Test
+    fun `a second click two ticks into a harvest picks two herbs at each roll`(@TempDir dir: Path) {
+        // Real 600 ms ticks, so the second click lands inside the harvest's first two ticks.
+        server(dir, cycleMillis = 600).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("tele ${HERB_X - 1} $HERB_Z")
+                client.await("beside the herb patch") { client.position?.takeIf { it.x == HERB_X - 1 && it.z == HERB_Z } }
+                client.command("setlevel farming 99")
+                client.await("Farming 99") { client.stat(FARMING)?.takeIf { it.level == 99 } }
+                client.give(RAKE)
+                client.give(DIBBER)
+                client.give(SPADE)
+                client.locOp(HERB, HERB_X, HERB_Z, 1)
+                client.awaitValue("herb patch", 3) { herb() }
+                client.give(GUAM_SEED)
+                client.useOn(HERB, HERB_X, HERB_Z, GUAM_SEED)
+                client.awaitValue("herb patch", 4) { herb() }
+                client.command("farmtick 16")
+                client.awaitValue("herb patch", 8) { herb() }
+
+                client.locOp(HERB, HERB_X, HERB_Z, 1)
+                client.seen("[farming.harvest_start patch=[farming.patch_herb]]")
+                // Half a tick after the start's message: the click lands on the harvest's first or second tick.
+                Thread.sleep(300)
+                client.locOp(HERB, HERB_X, HERB_Z, 1)
+                val counts = mutableSetOf<Int>()
+                val end = System.currentTimeMillis() + 60_000
+                while (client.herb() != 3) {
+                    check(System.currentTimeMillis() < end) { "The herb patch never emptied" }
+                    counts += client.count(GRIMY_GUAM)
+                    Thread.sleep(20)
+                }
+                client.seen("[farming.empty patch=[farming.patch_herb]]")
+                counts += client.count(GRIMY_GUAM)
+                // Two herbs at each roll: the pack goes from none to two, never holding just one.
+                assertTrue(1 !in counts && 2 in counts, "herb counts seen: ${counts.sorted()}")
+                assertEquals(1, client.messages().count { it.text == "[farming.harvest_start patch=[farming.patch_herb]]" })
             }
         }
     }

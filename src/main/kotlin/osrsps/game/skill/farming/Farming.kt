@@ -71,7 +71,10 @@ object FarmingLines : Lines("farming", "Farming") {
  * click; a crop every 4 ticks while harvesting; raking and harvesting stopping with a full inventory; that the
  * offset is drawn from the account rather than at random ([offset]); herbs and flowers picked with picking_low; a
  * herb every 4 ticks as a crop is; a flower picked 2 ticks after the click; flower produce that doesn't fit falling
- * to the floor; magic secateurs doing nothing for limpwurt (its page says they help; how isn't known).
+ * to the floor; magic secateurs' 10% on limpwurt as 10% more numbers to draw from (its page gives no formula).
+ * Sourced too: clicking again two ticks into a harvest picks two crops at each roll from then (the Wiki's Herb patch,
+ * "similar to allotments"); guessed that a click on the first or second tick counts (the page: "spam-clicking during
+ * the first two ticks").
  */
 class Farming(private val world: World, private val clock: () -> Long) {
     fun register() {
@@ -217,23 +220,35 @@ class Farming(private val world: World, private val clock: () -> Long) {
         val text = world.textFor(player)
         val anim = if (patch.kind == PatchKind.HERB) ANIM_PICK_LOW else ANIM_DIG
         if (!op.repeat) {
-            world.message(player, FarmingLines.HARVEST_START, "patch" to text[patchName(patch.kind)])
-            player.anim(anim)
+            // A click again 1 or 2 ticks into a harvest still going picks two a time from then (the Wiki's Herb patch).
+            val underway = state.harvestStart >= 0 && state.harvestTick >= tick - 1 && tick - state.harvestStart in 1..FAST_HARVEST_TICKS
+            if (underway) {
+                state.fastHarvest = true
+            } else {
+                state.harvestStart = tick
+                state.fastHarvest = false
+                world.message(player, FarmingLines.HARVEST_START, "patch" to text[patchName(patch.kind)])
+                player.anim(anim)
+            }
         }
+        state.harvestTick = tick
         if (SkillClock.step(player, tick, HARVEST_CYCLE) == ClockStep.DUE) {
             player.anim(anim)
             val produce = world.objTypes[crop.produce] ?: error("No obj type ${crop.produce} for ${crop.key}")
-            player.inventory.add(produce, 1)
-            player.skills.addTenths(Skill.FARMING, crop.harvestXpTenths)
-            world.message(player, FarmingLines.HARVESTED, "produce" to produce.name.lowercase())
-            if (!keepsLife(crop, player)) state.lives--
-            if (state.lives <= 0) {
-                // The planting XP comes now, with the last crop (the Wiki's Allotment and Herb patch: on the final harvest).
-                player.skills.addTenths(Skill.FARMING, crop.plantXpTenths)
-                state.clear()
-                refresh(player)
-                world.message(player, FarmingLines.EMPTY, "patch" to text[patchName(patch.kind)])
-                return stop()
+            repeat(if (state.fastHarvest) 2 else 1) { pick ->
+                if (pick > 0 && player.inventory.freeSlots == 0) return@repeat
+                player.inventory.add(produce, 1)
+                player.skills.addTenths(Skill.FARMING, crop.harvestXpTenths)
+                world.message(player, FarmingLines.HARVESTED, "produce" to produce.name.lowercase())
+                if (!keepsLife(crop, player)) state.lives--
+                if (state.lives <= 0) {
+                    // The planting XP comes now, with the last crop (the Wiki's Allotment and Herb patch: on the final harvest).
+                    player.skills.addTenths(Skill.FARMING, crop.plantXpTenths)
+                    state.clear()
+                    refresh(player)
+                    world.message(player, FarmingLines.EMPTY, "patch" to text[patchName(patch.kind)])
+                    return stop()
+                }
             }
             refresh(player)
         }
@@ -251,7 +266,7 @@ class Farming(private val world: World, private val clock: () -> Long) {
         delay(PICK_DELAY)
         if (state.crop !== crop || !state.grown) return
         val produce = world.objTypes[crop.produce] ?: error("No obj type ${crop.produce} for ${crop.key}")
-        val count = flowerYield(crop, player.skills.currentLevel(Skill.FARMING))
+        val count = flowerYield(crop, player.skills.currentLevel(Skill.FARMING), hasMagicSecateurs(player))
         val added = player.inventory.add(produce, count)
         if (added < count) {
             val stacks = if (produce.stackable) listOf(count - added) else List(count - added) { 1 }
@@ -265,13 +280,22 @@ class Farming(private val world: World, private val clock: () -> Long) {
         refresh(player)
     }
 
-    /** How many of a flower one Pick gives: its [Crop.yield], and limpwurt's 0 to level/10 more. */
-    fun flowerYield(crop: Crop, level: Int): Int = crop.yield + if (crop.levelBonus) world.random.nextInt(level / 10 + 1) else 0
+    /**
+     * How many of a flower one Pick gives: its [Crop.yield], and for limpwurt a random number from 0 to level - 1,
+     * divided by ten, more (Mod Ash on the Limpwurt seed page: "a random number between 0 and (stat - 1) inclusive").
+     * Magic secateurs "increase the chances by 10%" (the same page). Guessed: by drawing from 10% more numbers.
+     */
+    fun flowerYield(crop: Crop, level: Int, secateurs: Boolean): Int {
+        if (!crop.levelBonus) return crop.yield
+        val numbers = if (secateurs) level * 11 / 10 else level
+        return crop.yield + world.random.nextInt(maxOf(numbers, 1)) / 10
+    }
+
+    private fun hasMagicSecateurs(player: Player) = player.inventory.count(MAGIC_SECATEURS) > 0 || player.equipment.count(MAGIC_SECATEURS) > 0
 
     /** Whether a harvest keeps its life: the crop's chance at the player's level, magic secateurs' 10% on both ends. */
     fun keepsLife(crop: Crop, player: Player): Boolean {
-        val secateurs = player.inventory.count(MAGIC_SECATEURS) > 0 || player.equipment.count(MAGIC_SECATEURS) > 0
-        val (low, high) = lifeChances(crop, secateurs)
+        val (low, high) = lifeChances(crop, hasMagicSecateurs(player))
         return SuccessRoll.roll(world.random, low, high, player.skills.currentLevel(Skill.FARMING))
     }
 
@@ -392,6 +416,9 @@ class Farming(private val world: World, private val clock: () -> Long) {
 
         const val RAKE_CYCLE = 4
         const val HARVEST_CYCLE = 4
+
+        /** How many ticks into a harvest a second click makes it pick two a time ("waiting 2 game ticks, then clicking again"). */
+        const val FAST_HARVEST_TICKS = 2
         const val PLANT_DELAY = 3
         const val WATER_DELAY = 3
         const val PICK_DELAY = 2

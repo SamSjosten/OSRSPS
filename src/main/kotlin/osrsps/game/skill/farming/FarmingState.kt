@@ -23,6 +23,14 @@ class PatchState(
     var watered: Boolean = false,
     var lives: Int = 0,
 ) {
+    /**
+     * The game tick the harvest under way started on, the last tick it ran, and whether a second click early in it made
+     * it pick two at a time ([Farming]'s harvest). Not saved.
+     */
+    var harvestStart: Long = -1
+    var harvestTick: Long = -1
+    var fastHarvest: Boolean = false
+
     val grown: Boolean get() = crop.let { it != null && stage >= it.stages }
 
     /** Growing, not yet ready to harvest. */

@@ -82,15 +82,25 @@ class FarmingDataTest {
     }
 
     @Test
-    fun `limpwurt gives three roots and up to a tenth of the Farming level more, woad three leaves`() {
+    fun `limpwurt gives three roots and a tenth of a roll below the Farming level more, woad three leaves`() {
         val farming = Farming(osrsps.game.World(IntArray(0), osrsps.map.CollisionMap(), random = GameRandom(3)), clock = { 0L })
-        val at11 = (1..2_000).map { farming.flowerYield(Crops.LIMPWURT, 11) }.toSet()
-        val at99 = (1..2_000).map { farming.flowerYield(Crops.LIMPWURT, 99) }.toSet()
-        // The Limpwurt seed page: four at most at level 11, twelve at 91 to 99.
-        assertEquals((3..4).toSet(), at11)
-        assertEquals((3..12).toSet(), at99)
-        assertEquals(3, farming.flowerYield(Crops.WOAD, 99))
-        assertEquals(1, farming.flowerYield(Crops.MARIGOLD, 99))
+        fun yields(level: Int, secateurs: Boolean = false) = (1..20_000).map { farming.flowerYield(Crops.LIMPWURT, level, secateurs) }
+        // The Limpwurt seed page: a random number from 0 to level - 1, divided by ten: four at most at level 11, five
+        // at 30 (not six), twelve at 91 to 99.
+        assertEquals((3..3).toSet(), yields(10).toSet())
+        assertEquals((3..4).toSet(), yields(11).toSet())
+        assertEquals((3..5).toSet(), yields(30).toSet())
+        assertEquals((3..12).toSet(), yields(99).toSet())
+        // Evenly: at 30 each of 0, 1 and 2 extra comes a third of the time; at 35 the third extra only 5 times in 35.
+        val at30 = yields(30)
+        for (extra in 0..2) assertEquals(1.0 / 3, at30.count { it == 3 + extra } / 20_000.0, 0.02)
+        assertEquals(5.0 / 35, yields(35).count { it == 6 } / 20_000.0, 0.015)
+        // Magic secateurs draw from 10% more numbers: 108 at 99, so a 13th root is possible and the average higher.
+        val with = yields(99, secateurs = true)
+        assertEquals((3..13).toSet(), with.toSet())
+        assertTrue(with.average() > yields(99).average() + 0.3)
+        assertEquals(3, farming.flowerYield(Crops.WOAD, 99, true))
+        assertEquals(1, farming.flowerYield(Crops.MARIGOLD, 99, false))
     }
 
     @Test
