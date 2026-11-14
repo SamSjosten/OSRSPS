@@ -2,6 +2,7 @@ package osrsps.game.command
 
 import osrsps.game.World
 import osrsps.game.skill.farming.FarmingClock
+import osrsps.game.skill.farming.FarmingPatches
 
 /**
  * `::farmtick [ticks]` moves the player's farming clock on that many 5-minute farming ticks (1 by default) and grows
@@ -11,6 +12,9 @@ import osrsps.game.skill.farming.FarmingClock
  * `::farmclock pause` holds the player's farming clock where it is, so their crops grow only by `::farmtick` (a test
  * that checks each stage can't have a real 5-minute tick land between its steps); `::farmclock run` lets it run
  * again, the crops catching up on the time it was held. A login runs it again too.
+ *
+ * `::farmdisease <patch>` makes the crop in one of the player's patches (by its save key, such as
+ * `falador_allotment_nw`) diseased now, to try curing and dying without waiting on the dice.
  */
 fun CommandRegistry.registerFarmingCommands(world: World) {
     register("farmclock", "::farmclock <pause|run>") {
@@ -33,5 +37,13 @@ fun CommandRegistry.registerFarmingCommands(world: World) {
         if (ticks !in 1..FarmingClock.MAX_CATCH_UP) fail("Ticks are 1 to ${FarmingClock.MAX_CATCH_UP}")
         world.farming.skip(player, ticks)
         reply("Farming clock moved on $ticks tick${if (ticks == 1) "" else "s"} (${ticks * FarmingClock.TICK_MINUTES} minutes)")
+    }
+
+    register("farmdisease", "::farmdisease <patch>") {
+        val keys = FarmingPatches.ALL.joinToString(", ") { it.key }
+        if (args.size != 1) fail("Usage: ::farmdisease <patch>, one of $keys")
+        val patch = FarmingPatches.byKey(args[0]) ?: fail("No patch '${args[0]}': one of $keys")
+        if (!world.farming.makeDiseased(player, patch)) fail("Nothing is growing past its first stage in ${patch.key}")
+        reply("${patch.key} is diseased")
     }
 }

@@ -38,7 +38,8 @@ class HeadlessFarmingTest {
         for ((id, name) in mapOf(
             RAKE to "Rake", DIBBER to "Seed dibber", SPADE to "Spade", WEEDS to "Weeds", POTATO_SEED to "Potato seed",
             POTATO to "Potato", WATERMELON_SEED to "Watermelon seed", SNAPE_GRASS_SEED to "Snape grass seed",
-            GRIMY_GUAM to "Grimy guam leaf", LIMPWURT_ROOT to "Limpwurt root",
+            GRIMY_GUAM to "Grimy guam leaf", LIMPWURT_ROOT to "Limpwurt root", COMPOST to "Compost", BUCKET to "Bucket",
+            PLANT_CURE to "Plant cure", VIAL to "Vial",
         )) objs[id] = ObjType(id, name)
         for ((id, name) in mapOf(
             POTATO_SEED to "Potato seed", WATERMELON_SEED to "Watermelon seed", GUAM_SEED to "Guam seed", LIMPWURT_SEED to "Limpwurt seed",
@@ -68,6 +69,8 @@ class HeadlessFarmingTest {
                 add(ZoneLoc(HERB, LocShape.CENTREPIECE_STRAIGHT, 0, HERB_X, HERB_Z, 0))
             },
             farmingClock = clock::get,
+            // Crops here fall ill only by ::farmdisease; FarmingDataTest checks the dice.
+            farmingDiseases = false,
             cycleMillis = millis,
         )
     }
@@ -339,6 +342,58 @@ class HeadlessFarmingTest {
         }
     }
 
+    @Test
+    fun `compost goes on before planting, a diseased crop is cured, and one left ill dies and is cleared`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.toFalador()
+                client.give(RAKE)
+                client.give(DIBBER)
+                client.give(SPADE)
+                client.locOp(ALLOTMENT, 3052, PATCH_Z, 1)
+                client.awaitPatch(3)
+
+                // A bucket of compost: 18 XP and the bucket back; a second is refused.
+                client.give(COMPOST)
+                client.use(COMPOST)
+                client.seen("[farming.composted compost=compost]")
+                client.await("the bucket back") { if (client.count(BUCKET) == 1 && client.count(COMPOST) == 0) Unit else null }
+                client.await("18 XP for the compost") { if (client.xp() == 12 + 18) Unit else null }
+                client.give(COMPOST)
+                client.use(COMPOST)
+                client.seen("[farming.already_composted]")
+
+                client.give(POTATO_SEED, 3)
+                client.use(POTATO_SEED)
+                client.awaitPatch(6)
+                // Its first growth can't bring disease: stage 1 for sure.
+                client.command("farmtick 2")
+                client.awaitPatch(7)
+
+                client.command("farmdisease falador_allotment_nw")
+                client.awaitPatch(135)
+                client.locOp(ALLOTMENT, 3052, PATCH_Z, 1)
+                client.seen("[farming.need_cure]")
+                client.give(PLANT_CURE)
+                client.locOp(ALLOTMENT, 3052, PATCH_Z, 1)
+                client.seen("[farming.cured crop=potato]")
+                client.awaitPatch(7)
+                client.await("the vial left") { if (client.count(VIAL) == 1 && client.count(PLANT_CURE) == 0) Unit else null }
+
+                // Ill again and left alone: dead by the next 20-minute tick, drawn dead at its stage.
+                client.command("farmdisease falador_allotment_nw")
+                client.awaitPatch(135)
+                client.command("farmtick 4")
+                client.awaitPatch(199)
+                client.locOp(ALLOTMENT, 3052, PATCH_Z, 1)
+                client.seen("[farming.cleared]")
+                client.awaitPatch(3)
+                // The planting's 8 XP comes with the clearing.
+                client.await("the planting XP") { if (client.xp() == 12 + 18 + 8) Unit else null }
+            }
+        }
+    }
+
     private fun <T : Any> waitFor(what: String, timeoutMillis: Long = 10_000, value: () -> T?): T {
         val end = System.currentTimeMillis() + timeoutMillis
         while (System.currentTimeMillis() < end) {
@@ -369,6 +424,10 @@ class HeadlessFarmingTest {
         const val GRIMY_GUAM = 199
         const val LIMPWURT_SEED = 5100
         const val LIMPWURT_ROOT = 225
+        const val COMPOST = 6032
+        const val BUCKET = 1925
+        const val PLANT_CURE = 6036
+        const val VIAL = 229
         const val RAKE = 5341
         const val DIBBER = 5343
         const val SPADE = 952

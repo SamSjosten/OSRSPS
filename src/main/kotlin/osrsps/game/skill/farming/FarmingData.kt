@@ -8,11 +8,65 @@ package osrsps.game.skill.farming
  * many times a full patch can be raked. [lives] is how many harvest lives a crop has when it finishes growing (three;
  * a flower is picked once), and [harvestValues] how many varbit values draw it grown. [spade]: harvested with a spade
  * (allotments and herbs, the Wiki's Herb patch: "a spade to harvest herbs"); flowers are picked by hand.
+ *
+ * [disease] is the chance in 128 that a growing crop falls ill instead of growing, each growth past its first (the
+ * Wiki's Disease page: herbs 27/128). A diseased crop dies at its next tick of the next slower clock ([diseaseCycleTicks],
+ * twice the cycle for these three: the same page, "one tier slower"). [composting]: compost adds harvest lives.
+ * Guessed: allotments and flowers falling ill as often as herbs (the Wiki gives no figure for them).
  */
-enum class PatchKind(val cycleTicks: Int, val seeds: Int, val lives: Int, val harvestValues: Int, val spade: Boolean, val weeds: Int = 3) {
-    ALLOTMENT(cycleTicks = 2, seeds = 3, lives = 3, harvestValues = 3, spade = true),
-    HERB(cycleTicks = 4, seeds = 1, lives = 3, harvestValues = 3, spade = true),
-    FLOWER(cycleTicks = 1, seeds = 1, lives = 1, harvestValues = 1, spade = false),
+enum class PatchKind(
+    val cycleTicks: Int, val seeds: Int, val lives: Int, val harvestValues: Int, val spade: Boolean, val disease: Int,
+    val composting: Boolean, val weeds: Int = 3,
+) {
+    ALLOTMENT(cycleTicks = 2, seeds = 3, lives = 3, harvestValues = 3, spade = true, disease = 27, composting = true),
+    HERB(cycleTicks = 4, seeds = 1, lives = 3, harvestValues = 3, spade = true, disease = 27, composting = true),
+    FLOWER(cycleTicks = 1, seeds = 1, lives = 1, harvestValues = 1, spade = false, disease = 27, composting = false);
+
+    val diseaseCycleTicks: Int get() = cycleTicks * 2
+}
+
+/**
+ * Compost on a patch (OSRS Wiki, Compost, Supercompost, Ultracompost and Disease, read 2026-11-14): each bucket's XP, the
+ * harvest lives it adds to allotments and herbs (Mod Ash: "4 for standard compost, 5 for super compost, 6 for the
+ * ultra one"), and the disease chance it leaves, in tenths: compost halves it, supercompost takes 80% off and
+ * ultracompost 90%, rounded up to a 128th (the Disease page's table: herbs 27, 14, 6, 3).
+ */
+object Compost {
+    const val NONE = 0
+    const val COMPOST = 1
+    const val SUPER = 2
+    const val ULTRA = 3
+
+    const val BUCKET = 6032
+    const val SUPER_BUCKET = 6034
+    const val ULTRA_BUCKET = 21483
+    const val EMPTY_BUCKET = 1925
+
+    /** The compost level each bucket gives. */
+    val BUCKETS = mapOf(BUCKET to COMPOST, SUPER_BUCKET to SUPER, ULTRA_BUCKET to ULTRA)
+
+    /** Farming XP for putting each on a patch, tenths: 18, 26 and 36. */
+    fun xpTenths(level: Int): Int = when (level) {
+        COMPOST -> 180
+        SUPER -> 260
+        ULTRA -> 360
+        else -> 0
+    }
+
+    /** Tenths of the disease chance left: none, compost, supercompost, ultracompost. */
+    private val LEFT_TENTHS = intArrayOf(10, 5, 2, 1)
+
+    /**
+     * The chance in 128 that a crop of [kind] falls ill at a growth, with [compost] in the soil and [watered] since its
+     * last growth. Guessed: watering halving it again (the Wiki: "a modest reduction", no figure).
+     */
+    fun diseaseChance(kind: PatchKind, compost: Int, watered: Boolean): Int {
+        var chance = ceilDiv(kind.disease * LEFT_TENTHS[compost.coerceIn(NONE, ULTRA)], 10)
+        if (watered) chance = ceilDiv(chance, 2)
+        return chance
+    }
+
+    private fun ceilDiv(a: Int, b: Int) = (a + b - 1) / b
 }
 
 /**
@@ -149,6 +203,17 @@ object Crops {
     private val byKey = ALL.associateBy { it.key }
     private val bySeed = ALL.associateBy { it.seed }
 
+    /**
+     * Which flower, fully grown in the flower patch beside them, keeps each allotment crop from falling ill (the Wiki's
+     * Allotment patch seeds table); a white lily keeps every crop well. Sweetcorn's scarecrow isn't built.
+     */
+    val PROTECTED_BY: Map<Crop, Crop> = mapOf(
+        POTATO to MARIGOLD, ONION to MARIGOLD, TOMATO to MARIGOLD, CABBAGE to ROSEMARY, WATERMELON to NASTURTIUM,
+    )
+
+    /** Whether [flower] grown beside [crop] keeps it well. */
+    fun protects(flower: Crop, crop: Crop): Boolean = flower == WHITE_LILY || PROTECTED_BY[crop] == flower
+
     fun byKey(key: String): Crop? = byKey[key]
 
     fun bySeed(seed: Int): Crop? = bySeed[seed]
@@ -197,6 +262,11 @@ object FarmingPatches {
     val LOCS: Set<Int> = ALL.mapTo(HashSet()) { it.loc }
 
     fun byKey(key: String): FarmingPatch? = byKey[key]
+
+    private val areaByPatch: Map<String, FarmingArea> = AREAS.flatMap { area -> area.patches.map { it.key to area } }.toMap()
+
+    /** The area patch [key] is in. */
+    fun areaOf(key: String): FarmingArea? = areaByPatch[key]
 
     /** The patch that loc [loc] standing at [x], [z] is, or null if it isn't one we've built. */
     fun at(loc: Int, x: Int, z: Int): FarmingPatch? = areaAt(x, z)?.patches?.firstOrNull { it.loc == loc }

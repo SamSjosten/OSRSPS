@@ -307,6 +307,8 @@ class World(
     clansClock: () -> java.time.Instant = java.time.Instant::now,
     /** The real time crops grow by, ms since 1970 ([osrsps.game.skill.farming.FarmingClock]); tests move it. */
     farmingClock: () -> Long = System::currentTimeMillis,
+    /** Whether crops fall ill on their own; tests of other farming turn it off and make crops ill with `::farmdisease`. */
+    farmingDiseases: Boolean = true,
     /** Who may run the commands that change the world for everyone. */
     val admins: Admins = Admins.EVERYONE,
     /** The combat tab's attack styles by weapon category, from the cache; tests get unarmed only. */
@@ -770,7 +772,7 @@ class World(
     }
 
     val woodcutting = Woodcutting(this, WoodcuttingData.load(), birdNests)
-    val farming = osrsps.game.skill.farming.Farming(this, farmingClock)
+    val farming = osrsps.game.skill.farming.Farming(this, farmingClock, farmingDiseases)
 
     /** The River Lum's canoe stations; see [Canoes]. */
     val canoes = Canoes(this, woodcutting.data)

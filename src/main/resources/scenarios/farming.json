@@ -1,6 +1,6 @@
 {
   "about": "Beside the Falador farming patches with Farming 99, the farming tools and seeds for every allotment crop, some herbs and some flowers, for the Farming steps.",
-  "notes": "The two allotments are 3050-3054, 3307-3312 and 3055-3059, 3303-3308; the flower patch 3054-3055, 3307-3308 between them and the herb patch 3058-3059, 3311-3312. ::farmtick [n] moves your farming clock on n five-minute ticks: flowers grow every tick, allotments every second, herbs every fourth. Magic secateurs and the other herb and flower seeds are in the bank. The loadout is ours.",
+  "notes": "The two allotments are 3050-3054, 3307-3312 and 3055-3059, 3303-3308; the flower patch 3054-3055, 3307-3308 between them and the herb patch 3058-3059, 3311-3312. ::farmtick [n] moves your farming clock on n five-minute ticks: flowers grow every tick, allotments every second, herbs every fourth. Magic secateurs, compost, supercompost, ultracompost, plant cures and the other herb and flower seeds are in the bank; ::farmdisease <patch> makes a crop ill. The loadout is ours.",
   "position": { "x": 3054, "z": 3305, "level": 0 },
   "skills": { "farming": 99 },
   "inventory": [
@@ -25,6 +25,10 @@
   ],
   "bank": [
     { "item": "fairy_enchanted_secateurs" },
+    { "item": "bucket_compost", "count": 10 },
+    { "item": "bucket_supercompost", "count": 10 },
+    { "item": "bucket_ultracompost", "count": 10 },
+    { "item": "plant_cure", "count": 10 },
     { "item": "marrentill_seed", "count": 30 },
     { "item": "tarromin_seed", "count": 30 },
     { "item": "harralander_seed", "count": 30 },

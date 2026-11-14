@@ -104,6 +104,88 @@ class FarmingDataTest {
     }
 
     @Test
+    fun `compost cuts the disease chance as the Wiki's table does, and a grown flower keeps its allotment crops well`() {
+        // The Disease page's herb row: 27, 14, 6 and 3 in 128.
+        assertEquals(listOf(27, 14, 6, 3), (0..3).map { Compost.diseaseChance(PatchKind.HERB, it, false) })
+        assertEquals(14, Compost.diseaseChance(PatchKind.ALLOTMENT, Compost.NONE, true))
+        assertEquals(listOf(180, 260, 360), (1..3).map { Compost.xpTenths(it) })
+        assertTrue(Crops.protects(Crops.MARIGOLD, Crops.POTATO) && Crops.protects(Crops.ROSEMARY, Crops.CABBAGE))
+        assertTrue(Crops.protects(Crops.WHITE_LILY, Crops.SNAPE_GRASS) && Crops.protects(Crops.NASTURTIUM, Crops.WATERMELON))
+        assertTrue(!Crops.protects(Crops.MARIGOLD, Crops.CABBAGE) && !Crops.protects(Crops.LIMPWURT, Crops.STRAWBERRY))
+
+        val farming = Farming(osrsps.game.World(IntArray(0), osrsps.map.CollisionMap(), random = GameRandom(3)), clock = { 0L })
+        val state = FarmingState()
+        val nw = FarmingPatches.FALADOR_NW.key
+        state.patches[nw] = PatchState(0, Crops.POTATO, 2)
+        assertTrue(!farming.isProtected(state, nw, Crops.POTATO))
+        // A growing marigold isn't enough; a grown one is.
+        state.patches[FarmingPatches.FALADOR_FLOWER.key] = PatchState(0, Crops.MARIGOLD, 3)
+        assertTrue(!farming.isProtected(state, nw, Crops.POTATO))
+        state.patches.getValue(FarmingPatches.FALADOR_FLOWER.key).stage = 4
+        assertTrue(farming.isProtected(state, nw, Crops.POTATO))
+        assertTrue(!farming.isProtected(state, nw, Crops.CABBAGE))
+    }
+
+    @Test
+    fun `herbs fall ill at the Wiki's rate past their first stage, die if left, and composted or protected crops less`() {
+        val farming = Farming(osrsps.game.World(IntArray(0), osrsps.map.CollisionMap(), random = GameRandom(11)), clock = { 0L })
+        fun survivors(crop: Crop, patchKey: String, compost: Int, flower: Crop? = null): Double {
+            val patches = 4_000
+            var grown = 0
+            repeat(patches) {
+                val state = FarmingState()
+                state.patches[patchKey] = PatchState(0, crop, compost = compost)
+                if (flower != null) state.patches[FarmingPatches.FALADOR_FLOWER.key] = PatchState(0, flower, flower.stages, lives = 1)
+                farming.grow(state, 1, 200)
+                val patch = state.patches.getValue(patchKey)
+                if (patch.grown) grown++ else assertTrue(patch.dead, "a crop left ill dies")
+            }
+            return grown.toDouble() / patches
+        }
+        // Three rolls (growths 2 to 4) of 27/128, then of 3/128 with ultracompost (the Disease page's (1 - P)^n).
+        assertEquals(Math.pow(101.0 / 128, 3.0), survivors(Crops.GUAM, FarmingPatches.FALADOR_HERB.key, Compost.NONE), 0.03)
+        assertEquals(Math.pow(125.0 / 128, 3.0), survivors(Crops.GUAM, FarmingPatches.FALADOR_HERB.key, Compost.ULTRA), 0.02)
+        assertEquals(1.0, survivors(Crops.POTATO, FarmingPatches.FALADOR_NW.key, Compost.NONE, flower = Crops.MARIGOLD))
+        // An ultracomposted herb has six lives when it is grown.
+        val state = FarmingState()
+        state.patches[FarmingPatches.FALADOR_HERB.key] = PatchState(0, Crops.GUAM, 3, compost = Compost.ULTRA)
+        Farming(osrsps.game.World(IntArray(0), osrsps.map.CollisionMap()), clock = { 0L }, diseases = false).grow(state, 4, 4)
+        assertEquals(6, state.patches.getValue(FarmingPatches.FALADOR_HERB.key).lives)
+    }
+
+    @Test
+    fun `compost stays on a patch that grows over, and a flower protects from the tick after it grows`() {
+        val farming = Farming(osrsps.game.World(IntArray(0), osrsps.map.CollisionMap(), random = GameRandom(5)), clock = { 0L })
+        val state = FarmingState()
+        state.patches[FarmingPatches.FALADOR_NW.key] = PatchState(0, compost = Compost.SUPER)
+        farming.grow(state, 1, 10)
+        val nw = state.patches.getValue(FarmingPatches.FALADOR_NW.key)
+        assertEquals(PatchKind.ALLOTMENT.weeds, nw.weeds)
+        assertEquals(Compost.SUPER, nw.compost)
+        assertEquals(Compost.SUPER, FarmingSaves.fromJson(FarmingSaves.toJson(state)).patches.getValue(FarmingPatches.FALADOR_NW.key).compost)
+
+        // A marigold one stage from grown and potatoes in both allotments: on the tick it grows, both allotments still
+        // roll unprotected, whichever comes first in the map (both ill on that tick 4% of the time), and afterwards
+        // both are protected.
+        // The marigold can fall ill itself on that tick; those tries are left out.
+        fun flowerTick(): FarmingState? {
+            val s = FarmingState()
+            s.patches[FarmingPatches.FALADOR_FLOWER.key] = PatchState(0, Crops.MARIGOLD, 3)
+            s.patches[FarmingPatches.FALADOR_NW.key] = PatchState(0, Crops.POTATO, 1)
+            s.patches[FarmingPatches.FALADOR_SE.key] = PatchState(0, Crops.POTATO, 1)
+            farming.grow(s, 2, 2)
+            if (!s.patches.getValue(FarmingPatches.FALADOR_FLOWER.key).grown) return null
+            assertTrue(farming.isProtected(s, FarmingPatches.FALADOR_NW.key, Crops.POTATO) && farming.isProtected(s, FarmingPatches.FALADOR_SE.key, Crops.POTATO))
+            return s
+        }
+        val illSeen = (1..300).any {
+            val s = flowerTick() ?: return@any false
+            s.patches.getValue(FarmingPatches.FALADOR_NW.key).diseased && s.patches.getValue(FarmingPatches.FALADOR_SE.key).diseased
+        }
+        assertTrue(illSeen, "both allotments roll unprotected on the flower's own tick")
+    }
+
+    @Test
     fun `a farming tick is five minutes of the clock plus the offset and the skipped ticks`() {
         // 00:04 is in tick 0; a 1-minute offset moves it into tick 1; a skipped tick adds one more.
         val fourPast = 4 * 60_000L
@@ -118,16 +200,18 @@ class FarmingDataTest {
         state.lastTick = 41
         state.skipped = 3
         state.patches[FarmingPatches.FALADOR_NW.key] = PatchState(0, Crops.SNAPE_GRASS, 7, false, 2)
-        state.patches[FarmingPatches.FALADOR_SE.key] = PatchState(1)
+        state.patches[FarmingPatches.FALADOR_SE.key] = PatchState(1, compost = Compost.SUPER)
+        state.patches[FarmingPatches.FALADOR_HERB.key] = PatchState(0, Crops.RANARR, 2, compost = Compost.ULTRA, diseased = true)
+        state.patches[FarmingPatches.FALADOR_FLOWER.key] = PatchState(0, Crops.MARIGOLD, 3, dead = true)
         val json = FarmingSaves.toJson(state)
         val back = FarmingSaves.fromJson(json)
         assertEquals(41, back.lastTick)
         assertEquals(3, back.skipped)
         assertEquals(FarmingSaves.toJson(state), FarmingSaves.toJson(back))
-        assertEquals(
-            listOf(state.value(FarmingPatches.FALADOR_NW), state.value(FarmingPatches.FALADOR_SE)),
-            listOf(back.value(FarmingPatches.FALADOR_NW), back.value(FarmingPatches.FALADOR_SE)),
-        )
+        assertEquals(FarmingPatches.ALL.map { state.value(it) }, FarmingPatches.ALL.map { back.value(it) })
+        assertEquals(listOf(Compost.SUPER, Compost.ULTRA), listOf(back.patches.getValue(FarmingPatches.FALADOR_SE.key).compost, back.patches.getValue(FarmingPatches.FALADOR_HERB.key).compost))
+        assertEquals(141, back.value(FarmingPatches.FALADOR_HERB))
+        assertEquals(203, back.value(FarmingPatches.FALADOR_FLOWER))
         val unknown = Json.parseToJsonElement(
             """{"tick": 1, "patches": {"nowhere": {"weeds": 1}, "falador_allotment_nw": {"crop": "moonflower", "stage": 1}}}""",
         ).jsonObject
@@ -157,5 +241,9 @@ class FarmingDataTest {
         assertEquals(38, herb.value(PatchKind.HERB))
         assertEquals(32, PatchState(0, Crops.LIMPWURT, 4, false, 1).value(PatchKind.FLOWER))
         assertEquals(94, PatchState(0, Crops.LIMPWURT, 2, true).value(PatchKind.FLOWER))
+        // Ill and dead crops draw their stage's value, counted from stage 1.
+        assertEquals(136, PatchState(0, Crops.POTATO, 2, diseased = true).value(PatchKind.ALLOTMENT))
+        assertEquals(200, PatchState(0, Crops.POTATO, 2, dead = true).value(PatchKind.ALLOTMENT))
+        assertEquals(171, PatchState(0, Crops.TORSTOL, 2, dead = true).value(PatchKind.HERB))
     }
 }
