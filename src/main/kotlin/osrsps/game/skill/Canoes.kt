@@ -266,11 +266,7 @@ class Canoes(private val world: World, private val woodcutting: WoodcuttingData)
     private fun ScriptContext.usable(interfaceId: Int, loc: ZoneLoc): Boolean {
         if (player.modals[FrameSlot.MAINMODAL] != interfaceId) return false
         val type = world.locs.types[loc.id]
-        val turned = loc.angle % 2 == 1
-        val width = (if (turned) type?.length else type?.width) ?: 1
-        val length = (if (turned) type?.width else type?.length) ?: 1
-        return player.level == loc.level &&
-            player.x in loc.x - 1..loc.x + width && player.z in loc.z - 1..loc.z + length
+        return beside(player.x, player.z, player.level, loc, type?.width ?: 1, type?.length ?: 1)
     }
 
     /** The level and axe checks for chopping and shaping: the axe, or null after the message. */
@@ -365,6 +361,17 @@ class Canoes(private val world: World, private val woodcutting: WoodcuttingData)
             listOf(listOf(1, 0, 0, 0, 1, 1), listOf(0, 1, 0, 0, 1, 1), listOf(0, 0, 1, 0, 1, 1), listOf(0, 0, 0, 1, 1, 1), listOf(1, 0, 0, 0, 1, 1)),
             listOf(listOf(1, 0, 0, 0, 0, 0), listOf(0, 1, 0, 0, 0, 0), listOf(0, 0, 1, 0, 0, 0), listOf(0, 0, 0, 1, 0, 0), listOf(0, 0, 0, 0, 0, 1)),
         )
+
+        /**
+         * Whether [x], [z] on [level] is on or next to [loc], a [width] by [length] loc before its turn: where a player
+         * can use a station's boxes from.
+         */
+        internal fun beside(x: Int, z: Int, level: Int, loc: ZoneLoc, width: Int, length: Int): Boolean {
+            val turned = loc.angle % 2 == 1
+            val w = if (turned) length else width
+            val l = if (turned) width else length
+            return level == loc.level && x in loc.x - 1..loc.x + w && z in loc.z - 1..loc.z + l
+        }
 
         /** Whether canoe [type] (1 to 4) goes from [from] to [to]. */
         fun reaches(type: Int, from: CanoeStation, to: CanoeDestination): Boolean = REACH[type - 1][from.index - 1][to.ordinal] == 0
