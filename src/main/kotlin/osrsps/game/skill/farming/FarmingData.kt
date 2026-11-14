@@ -2,12 +2,17 @@ package osrsps.game.skill.farming
 
 /**
  * The kinds of farming patch, each with how often its crops grow: every [cycleTicks] of the 5-minute farming ticks
- * ([FarmingClock]). Cycles from the OSRS Wiki, Farming (read 2026-11-14): allotments 10 minutes. [seeds] is how many
- * seeds one planting takes (the Wiki's Allotment patch: three). [weeds] is how many weed stages an empty patch grows
- * back, one each 5-minute tick (the Wiki's Weeds: 5 minutes), and so how many times a full patch can be raked.
+ * ([FarmingClock]). Cycles from the OSRS Wiki, Farming (read 2026-11-14): allotments 10 minutes, herbs 20, flowers 5.
+ * [seeds] is how many seeds one planting takes (the Wiki's Allotment patch: three; herbs and flowers one). [weeds] is
+ * how many weed stages an empty patch grows back, one each 5-minute tick (the Wiki's Weeds: 5 minutes), and so how
+ * many times a full patch can be raked. [lives] is how many harvest lives a crop has when it finishes growing (three;
+ * a flower is picked once), and [harvestValues] how many varbit values draw it grown. [spade]: harvested with a spade
+ * (allotments and herbs, the Wiki's Herb patch: "a spade to harvest herbs"); flowers are picked by hand.
  */
-enum class PatchKind(val cycleTicks: Int, val seeds: Int, val weeds: Int = 3) {
-    ALLOTMENT(cycleTicks = 2, seeds = 3),
+enum class PatchKind(val cycleTicks: Int, val seeds: Int, val lives: Int, val harvestValues: Int, val spade: Boolean, val weeds: Int = 3) {
+    ALLOTMENT(cycleTicks = 2, seeds = 3, lives = 3, harvestValues = 3, spade = true),
+    HERB(cycleTicks = 4, seeds = 1, lives = 3, harvestValues = 3, spade = true),
+    FLOWER(cycleTicks = 1, seeds = 1, lives = 1, harvestValues = 1, spade = false),
 }
 
 /**
@@ -21,6 +26,9 @@ enum class PatchKind(val cycleTicks: Int, val seeds: Int, val weeds: Int = 3) {
  * stage, [watered] the same stages watered, [harvest] the first of the three fully grown values, [diseased] and [dead]
  * the values for stages 1 on (a crop can't fall ill as a seed). [stages] is how many times it grows before it can be
  * harvested.
+ *
+ * A flower ([PatchKind.FLOWER]) is picked once for [yield] items ([levelBonus]: plus 0 to a tenth of the Farming level
+ * more, limpwurt's) and has no chance to keep a life.
  */
 class Crop(
     val key: String,
@@ -37,12 +45,15 @@ class Crop(
     val harvest: Int,
     val diseased: List<Int>,
     val dead: List<Int>,
+    val yield: Int = 1,
+    val levelBonus: Boolean = false,
 ) {
     val stages: Int get() = growing.size
 
     init {
         require(watered.isEmpty() || watered.size == stages) { "$key: ${watered.size} watered values for $stages stages" }
-        require(diseased.size == stages - 1 && dead.size == stages - 1) { "$key: diseased and dead values cover stages 1 on" }
+        // Flowers draw a dead plant for the grown stage too: four dead values to three diseased.
+        require(diseased.size == stages - 1 && dead.size in stages - 1..stages) { "$key: diseased and dead values cover stages 1 on" }
     }
 }
 
@@ -77,7 +88,63 @@ object Crops {
         run(63, 7), run(128, 7), 138, run(196, 3) + run(202, 3), run(193, 3) + run(209, 3),
     )
 
-    val ALL = listOf(POTATO, ONION, CABBAGE, TOMATO, SWEETCORN, STRAWBERRY, WATERMELON, SNAPE_GRASS)
+    /**
+     * A herb. Levels and XP from the Wiki's Herb patch table (read 2026-11-14); the chance to keep a life from each
+     * herb's seed page, low to high 80 for all. Herbs can't be watered. Values from the cache's herb multiloc 8150: four
+     * growing from [first], the three grown after them, three diseased from [diseasedFirst]; every herb dies to the same
+     * three values, 170 to 172.
+     */
+    private fun herb(key: String, seed: Int, grimy: Int, level: Int, plant: Int, harvestXp: Int, low: Int, first: Int, diseasedFirst: Int) = Crop(
+        key, PatchKind.HERB, seed, grimy, level, plant, harvestXp, low, 80,
+        run(first, 4), emptyList(), first + 4, run(diseasedFirst, 3), run(170, 3),
+    )
+
+    val GUAM = herb("guam", 5291, 199, 9, 110, 125, 25, 4, 128)
+    val MARRENTILL = herb("marrentill", 5292, 201, 14, 135, 150, 28, 11, 131)
+    val TARROMIN = herb("tarromin", 5293, 203, 19, 160, 180, 31, 18, 134)
+    val HARRALANDER = herb("harralander", 5294, 205, 26, 215, 240, 36, 25, 137)
+    val RANARR = herb("ranarr", 5295, 207, 32, 270, 305, 39, 32, 140)
+    val TOADFLAX = herb("toadflax", 5296, 3049, 38, 340, 385, 43, 39, 143)
+    val IRIT = herb("irit", 5297, 209, 44, 430, 485, 46, 46, 146)
+    val AVANTOE = herb("avantoe", 5298, 211, 50, 545, 615, 50, 53, 149)
+    val KWUARM = herb("kwuarm", 5299, 213, 56, 690, 780, 54, 68, 152)
+    val SNAPDRAGON = herb("snapdragon", 5300, 3051, 62, 875, 985, 57, 75, 155)
+
+    /** Guessed: the Wiki gives huasca no chance to keep a life; 58 sits between snapdragon's and cadantine's, as its level does. */
+    val HUASCA = herb("huasca", 30088, 30094, 65, 865, 1100, 58, 60, 173)
+    val CADANTINE = herb("cadantine", 5301, 215, 67, 1065, 1200, 60, 82, 158)
+    val LANTADYME = herb("lantadyme", 5302, 2485, 73, 1345, 1515, 64, 89, 161)
+    val DWARF_WEED = herb("dwarf_weed", 5303, 217, 79, 1705, 1920, 67, 96, 164)
+    val TORSTOL = herb("torstol", 5304, 219, 85, 1995, 2245, 71, 103, 167)
+
+    /**
+     * A flower. Levels, XP and yields from the Wiki's Flower patch (read 2026-11-14): picked once, plant and harvest XP
+     * together then. Values from the cache's flower multiloc 7847: four growing from [first] and grown at the fifth,
+     * watered ones from [wateredFirst], three diseased and four dead.
+     */
+    private fun flower(
+        key: String, seed: Int, produce: Int, level: Int, plant: Int, harvestXp: Int,
+        first: Int, wateredFirst: Int, diseasedFirst: Int, deadFirst: Int, yield: Int = 1, levelBonus: Boolean = false,
+    ) = Crop(
+        key, PatchKind.FLOWER, seed, produce, level, plant, harvestXp, 0, 0,
+        run(first, 4), run(wateredFirst, 4), first + 4, run(diseasedFirst, 3), run(deadFirst, 4), yield, levelBonus,
+    )
+
+    val MARIGOLD = flower("marigold", 5096, 6010, 2, 85, 470, 8, 72, 137, 201)
+    val ROSEMARY = flower("rosemary", 5097, 6014, 11, 120, 665, 13, 77, 142, 206)
+    val NASTURTIUM = flower("nasturtium", 5098, 6012, 24, 195, 1110, 18, 82, 147, 211)
+    val WOAD = flower("woad", 5099, 1793, 25, 205, 1155, 23, 87, 152, 216, yield = 3)
+
+    /** Three roots and a random 0 to level/10 more (the Limpwurt seed page, Mod Ash: "between 0 and (stat - 1)"). */
+    val LIMPWURT = flower("limpwurt", 5100, 225, 26, 215, 1200, 28, 92, 157, 221, yield = 3, levelBonus = true)
+    val WHITE_LILY = flower("white_lily", 22887, 22932, 58, 420, 2500, 37, 101, 166, 230)
+
+    val ALL = listOf(
+        POTATO, ONION, CABBAGE, TOMATO, SWEETCORN, STRAWBERRY, WATERMELON, SNAPE_GRASS,
+        GUAM, MARRENTILL, TARROMIN, HARRALANDER, RANARR, TOADFLAX, IRIT, AVANTOE, KWUARM, SNAPDRAGON, HUASCA,
+        CADANTINE, LANTADYME, DWARF_WEED, TORSTOL,
+        MARIGOLD, ROSEMARY, NASTURTIUM, WOAD, LIMPWURT, WHITE_LILY,
+    )
 
     private val byKey = ALL.associateBy { it.key }
     private val bySeed = ALL.associateBy { it.seed }
@@ -113,8 +180,12 @@ object FarmingPatches {
     val FALADOR_NW = FarmingPatch("falador_allotment_nw", 8550, TRANSMIT_A, PatchKind.ALLOTMENT)
     val FALADOR_SE = FarmingPatch("falador_allotment_se", 8551, TRANSMIT_B, PatchKind.ALLOTMENT)
 
+    /** `farming_flower_patch_1` (3054, 3307) and `farming_herb_patch_1` (3058, 3311), between and beside the allotments. */
+    val FALADOR_FLOWER = FarmingPatch("falador_flower", 7847, TRANSMIT_C, PatchKind.FLOWER)
+    val FALADOR_HERB = FarmingPatch("falador_herb", 8150, TRANSMIT_D, PatchKind.HERB)
+
     /** The Falador farming patches: map square 12083 north of z 3272 (Port Sarim's spirit tree patch is south of it). */
-    val FALADOR = FarmingArea("Falador", setOf(12083), listOf(FALADOR_NW, FALADOR_SE)) { _, z -> z >= 3272 }
+    val FALADOR = FarmingArea("Falador", setOf(12083), listOf(FALADOR_NW, FALADOR_SE, FALADOR_FLOWER, FALADOR_HERB)) { _, z -> z >= 3272 }
 
     val AREAS = listOf(FALADOR)
 

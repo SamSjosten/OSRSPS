@@ -926,20 +926,23 @@ market where the cache map puts them; stealing works as at Draynor's (a guard or
 
 ### Farming
 
-Farming step 1 (`game/skill/farming/`): the growth clock, each player's patches, and allotments. Every patch is a
+Farming steps 1 and 2 (`game/skill/farming/`): the growth clock, each player's patches, allotments, herbs and flowers. Every patch is a
 multiloc the map already places, drawn by one of the cache's `farming_transmit_a` to `e` varbits; each tick the
 player's patches grow to the clock and the varbits of the area they stand in are set, the same varbits live sends for
 the same map squares, so RuneLite's Time Tracking farming panel reads them. Crops grow on live's real-time farming
-ticks (every 5 minutes, allotments every second one), shifted by a fixed offset per account, and keep growing while
-the player is logged out. The patches are saved with the player (`farming` in the save); a `::scenario` starts with every patch overgrown,
-and `::reset` puts the player's own back.
+ticks (every 5 minutes: flowers every one, allotments every second, herbs every fourth), shifted by a fixed offset
+per account, and keep growing while the player is logged out. The patches are saved with the player (`farming` in the
+save); a `::scenario` starts with every patch overgrown, and `::reset` puts the player's own back.
 
-Built so far: the two allotments south of Falador (reach them with `::tele 3054 3305`). Rake clears a weed stage at a
+Built so far: the two allotments, the flower patch and the herb patch south of Falador (reach them with `::tele 3054 3305`). Rake clears a weed stage at a
 time for 4 XP a weed; three seeds and a seed dibber plant a raked patch; a watering can waters a growing crop until
 its next stage; a grown crop is harvested with a spade, one crop at a time, until its three lives run out, each crop
 keeping its life at the chance its seed page gives (more with magic secateurs); the planting XP comes with the last
-crop, as on live. Bare soil grows a weed stage every
-farming tick until it is overgrown again.
+crop, as on live. A herb takes one seed, can't be watered, and is picked with a spade a herb at a time the same way.
+A flower takes one seed, can be watered, and is picked once by hand for its produce (woad three leaves, limpwurt three
+roots and a random number below the Farming level, divided by ten, more), with its planting and harvest XP together.
+Clicking a patch again two ticks into a harvest picks two crops at each roll from then, as on live. Bare soil grows a weed
+stage every farming tick until it is overgrown again.
 
 | Farming behaviour | Source |
 |-------------------|--------|
@@ -947,13 +950,15 @@ farming tick until it is overgrown again.
 | Which map squares send which patches' varbits (Falador: square 12083 north of z 3272) | RuneLite's Time Tracking plugin (FarmingWorld), worked out from live's varbits |
 | 5-minute farming ticks, allotments every 10 minutes, crops growing while logged out; the offset of 0 to 31 minutes | OSRS Wiki, Farming (the 2018 update; Mod Ash) |
 | Allotment levels, three seeds, planting and harvest XP (the planting XP on the last harvest), stages; 4 XP a weed and weeds back every 5 minutes; three harvest lives | OSRS Wiki, Allotment patch, Weeds, each seed's page |
+| Herb levels and XP, herbs every 20 minutes, a spade to pick them, the planting XP with the final herb; flower levels, XP, yields and 5-minute growth, both XPs when picked; limpwurt's 3 roots plus a random 0 to level - 1, divided by ten, and magic secateurs helping it; a second click 2 ticks into a harvest picking two at a time (allotments and herbs) | OSRS Wiki, Herb patch, Flower patch, each seed's page, Limpwurt seed (Mod Ash) |
 | The chance to keep a life (`(1 + low)/256` to `(1 + high)/256`, from each seed page's percentages), magic secateurs' 10% | OSRS Wiki, each seed's page, Variable crop yield |
 | Animations farming_raking, farming_seed_dibbing, farming_watering, human_dig | cache 242 seq names |
 | A rake roll every 4 ticks that always takes a weed; planting and watering 3 ticks after the click; a crop every 4 ticks; raking and harvesting stopping on a full inventory; the three grown values counting down the last lives; the offset taken from the account's name | guessed |
-| Not built yet: herbs and flowers, compost, disease, trees, fruit trees, hops, bushes, compost bins, the Tool Leprechauns and the gardeners' payments; Guide (op4) | next steps |
+| Huasca's chance to keep a life (58 of 256 at level 1, 80 at 99; the Wiki gives none); herbs and flowers picked with picking_low, a herb every 4 ticks, a flower 2 ticks after Pick; flower produce that doesn't fit dropping to the floor; magic secateurs' help on limpwurt as 10% more numbers to draw from; a second click on the first or second tick of a harvest counting | guessed |
+| Not built yet: compost, disease, trees, fruit trees, hops, bushes, compost bins, the Tool Leprechauns and the gardeners' payments; Guide (op4) | next steps |
 
-`::scenario farming` stands you beside the Falador allotments with 99 Farming, the tools and 30 of every allotment
-seed. `::farmtick [n]` moves your own farming clock on n five-minute ticks and grows your patches to it.
+`::scenario farming` stands you beside the Falador allotments with 99 Farming, the tools, 30 of every allotment
+seed and some herb and flower seeds (the rest in the bank). `::farmtick [n]` moves your own farming clock on n five-minute ticks and grows your patches to it.
 
 Check: `./gradlew test --tests 'osrsps.game.skill.farming.*' --tests 'osrsps.testclient.HeadlessFarmingTest'`.
 
