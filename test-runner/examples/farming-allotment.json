@@ -1,0 +1,29 @@
+{
+ "name": "Farming step 1: Falador's north-west allotment raked, planted with potatoes, watered, grown with ::farmtick and harvested until it is empty, read off farming_transmit_a (varbit 4771) (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario farming", "expectMessage": "Started scenario farming.", "comment": "beside the Falador allotments with 99 Farming, a rake, a seed dibber, a spade, a full watering can and the allotment seeds; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "assertVarbit", "id": 4771, "value": 0, "timeoutMs": 5000, "comment": "a patch never farmed is overgrown"},
+  {"step": "locOption", "locId": 8550, "option": "Rake", "x": 3052, "y": 3307, "timeoutMs": 20000, "comment": "the multiloc farming_veg_patch_1, drawn as Allotment (8576) while overgrown"},
+  {"step": "assertMessage", "contains": "[farming.raked]", "timeoutMs": 30000, "comment": "three weed stages, a rake roll every 4 ticks"},
+  {"step": "assertVarbit", "id": 4771, "value": 3, "timeoutMs": 5000, "comment": "raked: Allotment (8573) with no Rake"},
+  {"step": "assertInventory", "item": "Weeds", "count": 3, "timeoutMs": 5000},
+  {"step": "useItemOnLoc", "item": "Potato seed", "locId": 8550, "x": 3052, "y": 3307},
+  {"step": "assertMessage", "contains": "[farming.planted count=3", "timeoutMs": 15000},
+  {"step": "assertVarbit", "id": 4771, "value": 6, "timeoutMs": 5000, "comment": "Potato seed (8558)"},
+  {"step": "useItemOnLoc", "item": "Watering can(8)", "locId": 8550, "x": 3052, "y": 3307},
+  {"step": "assertVarbit", "id": 4771, "value": 70, "timeoutMs": 10000, "comment": "the watered seed (8563)"},
+  {"step": "assertInventory", "item": "Watering can(7)", "timeoutMs": 5000},
+  {"step": "command", "text": "::farmtick 8", "expectMessage": "Farming clock moved on 8 ticks (40 minutes)", "comment": "four ten-minute allotment ticks: a potato's four stages"},
+  {"step": "assertVarbit", "id": 4771, "value": 10, "timeoutMs": 5000, "comment": "grown: Potato (8562) with Harvest"},
+  {"step": "locOption", "locId": 8550, "option": "Harvest", "x": 3052, "y": 3307, "timeoutMs": 20000},
+  {"step": "assertMessage", "contains": "[farming.harvest_start patch=[farming.patch_allotment]]", "timeoutMs": 10000},
+  {"step": "assertMessage", "contains": "[farming.empty patch=[farming.patch_allotment]]", "timeoutMs": 120000, "comment": "a potato every 4 ticks until the three lives are gone"},
+  {"step": "assertVarbit", "id": 4771, "value": 3, "timeoutMs": 5000, "comment": "bare soil again"},
+  {"step": "assertInventory", "item": "Potato", "timeoutMs": 5000},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

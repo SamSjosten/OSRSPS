@@ -25,7 +25,8 @@ import osrsps.map.LocShape
  * Farming step 1 through the headless client: Falador's north-west allotment raked, planted, watered, grown with
  * `::farmtick` and on the clock, harvested until it empties and growing weeds again; and a crop that grows while its
  * planter is logged out. The patch's state is read the way the client draws it: the `farming_transmit_a` varbit, bits
- * 0 to 7 of varp 529.
+ * 0 to 7 of varp 529. The rl-client script test-runner/examples/farming-allotment.json does the first in the real client,
+ * at the real patch.
  */
 class HeadlessFarmingTest {
     /** The farming clock the world runs on, moved by the tests: 2026-11-14 00:00 UTC to start. */
