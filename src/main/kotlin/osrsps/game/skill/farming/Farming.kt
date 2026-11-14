@@ -3,6 +3,7 @@ package osrsps.game.skill.farming
 import osrsps.game.GameLines
 import osrsps.game.GroundObjs
 import osrsps.game.InvObj
+import osrsps.game.Inventory
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
@@ -114,14 +115,16 @@ object FarmingLines : Lines("farming", "Farming") {
  * Step 4, trees (the Wiki's Tree patch, Seedling, each tree's page, Disease and Roots, read 2026-11-14): an empty plant
  * pot used on a bare patch is filled (no trowel needed); a tree seed on the filled pot (trowel, the tree's level)
  * makes a seedling, watered it grows into a sapling at the next farming tick, in the pack or the bank; the sapling is
- * planted in a tree patch with a spade (planting XP then, the pot back); the tree grows every 40 minutes (a yew's
- * first stage 5), is checked once for most of its XP, chopped with Woodcutting's rates for logs (1/8 a log to fall,
+ * planted in a tree patch with a spade (the pot back); the tree grows every 40 minutes (a yew's first stage 5 minutes
+ * from planting), is checked once for its check-health XP and the planting XP (the Wiki's Farming info: planting XP
+ * "upon checking the health ... or upon clearing the patch if it died"), chopped with Woodcutting's rates for logs (1/8 a log to fall,
  * the trees' pages), and its stump dug up for roots (one at the tree's level, one more every 8, four at most), a dig
  * that can fail below 99 and never at 99; a diseased tree is pruned with secateurs, 75% a try (the Disease page), for
- * leaves. Guessed: a stump growing back at the tree's next 40-minute tick; the chance to dig up a stump, 129/256 at
- * level 1 rising to always at 99; a try at the stump or at pruning every 4 ticks; one leaf a prune; filling a pot and
- * planting a sapling landing 3 ticks after the click, a seedling made and watered at once; Check-health giving its XP
- * at once with no animation; clearing a dead tree giving no XP (its planting XP came on planting); the Lumbridge,
+ * leaves, each try made only when a Farming skill roll passes (Mod Lenny: "a normal skill roll to just check whether or
+ * not it should do anything"). Guessed: a stump growing back at the tree's next 40-minute tick; the chance to dig up a
+ * stump, 129/256 at level 1 rising to always at 99; the pruning skill roll, the same 129/256 to always at 99; a try at
+ * the stump or at pruning every 4 ticks; one leaf a prune; filling a pot and planting a sapling landing 3 ticks after
+ * the click, a seedling made and watered at once; Check-health giving its XP at once with no animation; the Lumbridge,
  * Varrock, Falador and Taverley tree patches only (the Gnome Stronghold's waits with the fruit trees).
  */
 class Farming(private val world: World, private val clock: () -> Long, private val diseases: Boolean = true) {
@@ -166,6 +169,15 @@ class Farming(private val world: World, private val clock: () -> Long, private v
     private fun realTick(player: Player): Long = FarmingClock.tick(clock(), offset(player), 0)
 
     /**
+     * The minute [player]'s farming clock is on: [tickOf]'s tick in minutes, plus the minutes into it when the clock
+     * runs. A farming tick t starts at minute 5t.
+     */
+    fun minuteOf(player: Player): Long {
+        val into = if (player.farming.pausedAt != null) 0L else Math.floorMod(Math.floorDiv(clock(), 60_000L) + offset(player), FarmingClock.TICK_MINUTES.toLong())
+        return tickOf(player) * FarmingClock.TICK_MINUTES + into
+    }
+
+    /**
      * Holds [player]'s farming clock where it is (`::farmclock pause`), so only `::farmtick` grows their crops, as a
      * test that checks each stage needs; [paused] false runs it again, the crops catching up on the time it was held.
      */
@@ -206,10 +218,14 @@ class Farming(private val world: World, private val clock: () -> Long, private v
             val stack = (0 until bank.capacity).firstOrNull { bank[it]?.id == tree.sapling }
             if (stack == null) {
                 bank[slot] = obj.copy(id = tree.sapling)
-            } else {
-                bank[stack] = bank[stack]!!.let { it.copy(count = it.count + obj.count) }
-                world.bank.discard(bank, tabs, slot, any = true)
+                continue
             }
+            // As many as the stack has room for; any left over stay watered seedlings until there is room.
+            val have = bank[stack]!!
+            val moved = minOf(obj.count.toLong(), Inventory.MAX_STACK.toLong() - have.count).toInt()
+            if (moved <= 0) continue
+            bank[stack] = have.copy(count = have.count + moved)
+            if (moved == obj.count) world.bank.discard(bank, tabs, slot, any = true) else bank[slot] = obj.copy(count = obj.count - moved)
         }
     }
 
@@ -247,7 +263,12 @@ class Farming(private val world: World, private val clock: () -> Long, private v
                 }
                 continue
             }
-            if (tick % crop.cycleAt(patch.stage) != 0L) continue
+            if (patch.stage == 0 && crop.firstStageMinutes > 0) {
+                // A yew's first stage lasts five minutes from planting, off the usual clock (the Wiki's Growth timing).
+                if (patch.plantedMinute >= 0 && tick * FarmingClock.TICK_MINUTES < patch.plantedMinute + crop.firstStageMinutes) continue
+            } else if (tick % kind.cycleTicks != 0L) {
+                continue
+            }
             if (diseases && patch.stage >= 1 && !isProtected(flowers, key, crop) && world.random.nextInt(DISEASE_DENOMINATOR) < Compost.diseaseChance(crop.disease, patch.compost, patch.watered)) {
                 patch.diseased = true
                 patch.watered = false
@@ -513,12 +534,12 @@ class Farming(private val world: World, private val clock: () -> Long, private v
         state.stage = 0
         state.watered = false
         state.lives = 0
+        state.plantedMinute = minuteOf(player)
         val seedName = world.objTypes[crop.seed]?.name?.lowercase() ?: crop.key
         if (sapling) {
-            // The pot comes back where the sapling was, and a tree's planting XP comes now (the Wiki's Tree patch).
+            // The pot comes back where the sapling was; the planting XP waits for Check-health or clearing a dead tree.
             val slot = op.sub.takeIf { player.inventory[it]?.id == crop.seed } ?: player.inventory.contents().first { it.second.id == crop.seed }.first
             player.inventory[slot] = InvObj(Trees.POT_EMPTY, 1)
-            player.skills.addTenths(Skill.FARMING, crop.plantXpTenths)
             world.message(player, FarmingLines.SAPLING_PLANTED, "sapling" to seedName, "patch" to name)
         } else {
             Making.removeObj(player.inventory, crop.seed, seeds)
@@ -568,8 +589,7 @@ class Farming(private val world: World, private val clock: () -> Long, private v
         player.anim(ANIM_DIG)
         delay(CLEAR_DELAY)
         if (state.crop !== crop || !state.dead) return
-        // A tree's planting XP came when it was planted.
-        if (crop.kind != PatchKind.TREE) player.skills.addTenths(Skill.FARMING, crop.plantXpTenths)
+        player.skills.addTenths(Skill.FARMING, crop.plantXpTenths)
         state.clear()
         world.message(player, FarmingLines.CLEARED)
         refresh(player)
@@ -633,12 +653,15 @@ class Farming(private val world: World, private val clock: () -> Long, private v
         world.message(player, FarmingLines.SEEDLING_WATERED)
     }
 
-    /** Check-health on a grown tree: most of its XP, once, and then it can be chopped (the Wiki's Tree patch). */
+    /**
+     * Check-health on a grown tree: its check-health XP and the planting XP (the Wiki's Farming info), once, and then it
+     * can be chopped (the Wiki's Tree patch).
+     */
     private fun ScriptContext.checkHealth(state: PatchState) {
         val crop = state.crop ?: return
         if (!state.grown || state.checked) return
         state.checked = true
-        player.skills.addTenths(Skill.FARMING, crop.harvestXpTenths)
+        player.skills.addTenths(Skill.FARMING, crop.plantXpTenths + crop.harvestXpTenths)
         world.message(player, FarmingLines.CHECKED)
         refresh(player)
     }
@@ -738,7 +761,11 @@ class Farming(private val world: World, private val clock: () -> Long, private v
         if (!op.repeat) player.anim(ANIM_PRUNE)
         if (SkillClock.step(player, tick, PRUNE_CYCLE) == ClockStep.DUE) {
             player.anim(ANIM_PRUNE)
-            // Mod Lenny: "modulo(random(100),4) > 0" fails; 3 in 4 succeed.
+            // Mod Lenny: a skill roll decides whether anything happens; then "modulo(random(100),4) > 0" succeeds, 3 in 4.
+            if (!SuccessRoll.roll(world.random, PRUNE_LOW, PRUNE_HIGH, player.skills.currentLevel(Skill.FARMING))) {
+                state.doing = DO_PRUNE
+                return world.repeatOp(player, op)
+            }
             if (world.random.nextInt(PRUNE_ODDS) > 0) {
                 state.diseased = false
                 giveOrDrop(info.leaves, 1)
@@ -820,6 +847,10 @@ class Farming(private val world: World, private val clock: () -> Long, private v
         /** Guessed: the chance to dig up a stump, 129/256 at level 1 to every time at 99 (the Wiki: it scales, never fails at 99). */
         const val STUMP_LOW = 128
         const val STUMP_HIGH = 255
+
+        /** Guessed: the skill roll before a prune, 129/256 at level 1 to every time at 99 (Mod Lenny gives none). */
+        const val PRUNE_LOW = 128
+        const val PRUNE_HIGH = 255
 
         /** Pruning works 3 times in 4 (the Disease page). */
         const val PRUNE_ODDS = 4

@@ -92,8 +92,9 @@ object Compost {
  * A flower ([PatchKind.FLOWER]) is picked once for [yield] items ([levelBonus]: plus 0 to a tenth of the Farming level
  * more, limpwurt's) and has no chance to keep a life.
  *
- * [disease] is its chance in 128 to fall ill at a growth (its kind's, but each tree has its own), and [firstCycleTicks]
- * how often its first growth comes (its kind's cycle, but a yew's first stage lasts 5 minutes).
+ * [disease] is its chance in 128 to fall ill at a growth (its kind's, but each tree has its own),  and its first
+ * growth comes on its kind's clock, or [firstStageMinutes] after planting when that isn't 0 (a yew's
+ * first stage lasts 5 minutes from planting, off the usual clock: the Wiki's Growth timing).
  */
 class Crop(
     val key: String,
@@ -113,12 +114,9 @@ class Crop(
     val yield: Int = 1,
     val levelBonus: Boolean = false,
     val disease: Int = kind.disease,
-    val firstCycleTicks: Int = kind.cycleTicks,
+    val firstStageMinutes: Int = 0,
 ) {
     val stages: Int get() = growing.size
-
-    /** How often the growth from [stage] comes. */
-    fun cycleAt(stage: Int): Int = if (stage == 0) firstCycleTicks else kind.cycleTicks
 
     init {
         require(watered.isEmpty() || watered.size == stages) { "$key: ${watered.size} watered values for $stages stages" }
@@ -219,11 +217,11 @@ object Crops {
      */
     private fun tree(
         key: String, sapling: Int, logs: Int, level: Int, plant: Int, check: Int, stages: Int,
-        first: Int, diseasedFirst: Int, deadFirst: Int, disease: Int, firstCycle: Int = PatchKind.TREE.cycleTicks,
+        first: Int, diseasedFirst: Int, deadFirst: Int, disease: Int, firstStageMinutes: Int = 0,
     ) = Crop(
         key, PatchKind.TREE, sapling, logs, level, plant, check, 0, 0,
         run(first, stages), emptyList(), first + stages, run(diseasedFirst, stages - 1), run(deadFirst, stages - 1),
-        disease = disease, firstCycleTicks = firstCycle,
+        disease = disease, firstStageMinutes = firstStageMinutes,
     )
 
     val OAK = tree("oak", 5370, 1521, 15, 140, 4673, 4, 8, 73, 137, disease = 17)
@@ -231,7 +229,7 @@ object Crops {
     val MAPLE = tree("maple", 5372, 1517, 45, 450, 34034, 8, 24, 89, 153, disease = 13)
 
     /** "Since the first growth stage of a Yew tree only lasts 5 minutes": 5 + 9 x 40 minutes (its page). */
-    val YEW = tree("yew", 5373, 1515, 60, 810, 70699, 10, 35, 100, 164, disease = 11, firstCycle = 1)
+    val YEW = tree("yew", 5373, 1515, 60, 810, 70699, 10, 35, 100, 164, disease = 11, firstStageMinutes = 5)
     val MAGIC = tree("magic", 5374, 1513, 75, 1455, 137683, 12, 48, 113, 177, disease = 9)
 
     val ALL = listOf(

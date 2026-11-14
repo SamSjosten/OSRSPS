@@ -130,7 +130,7 @@ class HeadlessFarmingTreeTest {
                 client.awaitTree(3)
                 client.await("the weed's XP") { if (client.xp() == beforeWeed + 4) Unit else null }
 
-                // Planted with a spade: the pot back and the planting's 14 XP now.
+                // Planted with a spade: the pot back, and no XP until the tree is checked.
                 val before = client.xp()
                 client.useOnTree(SAPLING)
                 client.seen("[farming.need_spade]")
@@ -139,9 +139,9 @@ class HeadlessFarmingTreeTest {
                 client.seen("[farming.sapling_planted sapling=oak sapling patch=[farming.patch_tree]]")
                 client.awaitTree(8)
                 client.awaitCount(POT_EMPTY, 1)
-                client.await("the planting XP") { if (client.xp() == before + 14) Unit else null }
+                assertEquals(before, client.xp())
 
-                // Four 40-minute growths (any 32 farming ticks hold four), then Check-health for 467.3 XP.
+                // Four 40-minute growths (any 32 farming ticks hold four), then Check-health for 467.3 XP and the planting's 14.
                 client.command("farmtick 32")
                 client.awaitTree(12)
                 client.locOp(TREE, TREE_X, TREE_Z, 1)
@@ -208,7 +208,7 @@ class HeadlessFarmingTreeTest {
                 client.awaitTree(9)
                 client.awaitCount(LEAVES, 1)
 
-                // Ill again and left: dead at the next 80-minute tick, and cleared with a spade for no XP.
+                // Ill again and left: dead at the next 80-minute tick, and cleared with a spade for the planting's 14 XP.
                 client.command("farmdisease lumbridge_tree")
                 client.awaitTree(73)
                 client.command("farmtick 16")
@@ -217,7 +217,7 @@ class HeadlessFarmingTreeTest {
                 client.locOp(TREE, TREE_X, TREE_Z, 1)
                 client.seen("[farming.cleared]")
                 client.awaitTree(3)
-                assertEquals(before, client.xp())
+                client.await("the planting XP") { if (client.xp() == before + 14) Unit else null }
             }
         }
     }

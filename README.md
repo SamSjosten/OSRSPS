@@ -958,12 +958,14 @@ Trees grow in the tree patches west of Lumbridge castle (`::tele 3193 3229`), in
 park and in Taverley. An empty plant pot used on a bare patch is filled with soil (no trowel needed); a tree seed
 used on the filled pot (with the trowel and the tree's Farming level) makes a seedling, and a watered seedling grows
 into a sapling at the next farming tick, in the backpack or the bank. The sapling is planted in a raked tree patch
-with a spade, for the planting XP at once and the pot back. Trees grow every 40 minutes (oak 4 stages, willow 6, maple
-8, yew 10 with a 5-minute first one, magic 12), and a grown tree is checked once (Check-health) for most of its XP. It
+with a spade, the pot coming back. Trees grow every 40 minutes (oak 4 stages, willow 6, maple 8, yew 10 with a first
+one lasting 5 minutes from planting, magic 12), and a grown tree is checked once (Check-health) for its check-health
+and planting XP. It
 is then chopped as a wild tree of its kind is (Woodcutting's level, rates, XP and bird nests) until it falls at 1 log
 in 8, and its stump is dug up with a spade for its roots (one at the tree's level and one more every 8 levels, four at
 most), a dig that can fail below level 99; a stump left alone grows back. A diseased tree is pruned with secateurs, 3
-tries in 4 working, for a leaf; one left ill dies and is cleared with a spade.
+tries in 4 working (each try made when a Farming skill roll passes), for a leaf; one left ill dies and is cleared with a
+spade, for the planting XP.
 
 | Farming behaviour | Source |
 |-------------------|--------|
@@ -978,8 +980,8 @@ tries in 4 working, for a leaf; one left ill dies and is cleared with a spade.
 | Compost's XP and extra lives (Mod Ash: 4, 5, 6), its disease reduction rounded to a 128th, herbs' 27/128, disease only past the first stage and never when grown, dying at the next slower tick, the planting XP on clearing a dead patch; which flower protects which crop | OSRS Wiki, Compost, Supercompost, Ultracompost, Disease, Herb patch, Flower patch, Allotment patch |
 | Allotments and flowers falling ill as often as herbs; watering halving the chance; curing, composting and clearing 3 ticks after the click; compost refused on a grown, diseased or dead crop | guessed |
 | Huasca's chance to keep a life (58 of 256 at level 1, 80 at 99; the Wiki gives none); herbs and flowers picked with picking_low, a herb every 4 ticks, a flower 2 ticks after Pick; flower produce that doesn't fit dropping to the floor; magic secateurs' help on limpwurt as 10% more numbers to draw from; a second click on the first or second tick of a harvest counting | guessed |
-| Tree levels, planting and check-health XP, 40-minute growth and stages (a yew's first in 5 minutes); seedlings in a plant pot with a trowel, growing to saplings within 5 minutes when watered, banked too; saplings planted with a spade; 1 log in 8 felling a farmed tree; roots by Farming level; stumps that can fail to dig below 99 and never at 99; pruning with secateurs at 3 in 4; maple's 13/128 and magic's 9/128 chances to fall ill | OSRS Wiki, Tree patch, Seedling, each tree's page, Disease (Mod Lenny), Roots (Mod Kieren) |
-| Oak 17/128, willow 15 and yew 11 to fall ill; a stump growing back at the tree's next 40-minute tick; digging up a stump 129/256 at level 1; a try at a stump or a prune every 4 ticks; one leaf a prune; a pot filled and a sapling planted 3 ticks after the click; Check-health at once, with no animation; no XP for clearing a dead tree; farming_filling_plantpot, farming_trowel_digging and pruning_mid as the animations | guessed |
+| Tree levels, planting and check-health XP (the planting XP on Check-health or on clearing a dead tree), 40-minute growth and stages (a yew's first 5 minutes from planting); seedlings in a plant pot with a trowel, growing to saplings within 5 minutes when watered, banked too; saplings planted with a spade; 1 log in 8 felling a farmed tree; roots by Farming level; stumps that can fail to dig below 99 and never at 99; pruning with secateurs at 3 in 4 after a skill roll; maple's 13/128 and magic's 9/128 chances to fall ill | OSRS Wiki, Tree patch, Seedling, each tree's page, Disease (Mod Lenny), Roots (Mod Kieren) |
+| Oak 17/128, willow 15 and yew 11 to fall ill; a stump growing back at the tree's next 40-minute tick; digging up a stump 129/256 at level 1, and the pruning skill roll the same; a try at a stump or a prune every 4 ticks; one leaf a prune; a pot filled and a sapling planted 3 ticks after the click; Check-health at once, with no animation; farming_filling_plantpot, farming_trowel_digging and pruning_mid as the animations | guessed |
 | Not built yet: the scarecrow, digging up a healthy crop, the Gnome Stronghold's tree patch, fruit trees, hops, bushes, compost bins, the Tool Leprechauns and the gardeners' payments; Guide (op4) | next steps |
 
 `::scenario farming` stands you beside the Falador allotments with 99 Farming, the tools, 30 of every allotment
