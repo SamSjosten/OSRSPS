@@ -1,0 +1,23 @@
+{
+  "about": "Beside the allotments south of Falador with Farming 99, the farming tools and seeds for every allotment crop, for the Farming steps.",
+  "notes": "The two allotments are 3050-3054, 3307-3312 and 3055-3059, 3303-3308. ::farmtick [n] moves your farming clock on n five-minute ticks: allotments grow every second tick. Magic secateurs are in the bank to compare yields. The loadout is ours.",
+  "position": { "x": 3054, "z": 3305, "level": 0 },
+  "skills": { "farming": 99 },
+  "inventory": [
+    { "item": "rake" },
+    { "item": "dibber" },
+    { "item": "spade" },
+    { "item": "watering_can_8" },
+    { "item": "potato_seed", "count": 30 },
+    { "item": "onion_seed", "count": 30 },
+    { "item": "cabbage_seed", "count": 30 },
+    { "item": "tomato_seed", "count": 30 },
+    { "item": "sweetcorn_seed", "count": 30 },
+    { "item": "strawberry_seed", "count": 30 },
+    { "item": "watermelon_seed", "count": 30 },
+    { "item": "snape_grass_seed", "count": 30 }
+  ],
+  "bank": [
+    { "item": "fairy_enchanted_secateurs" }
+  ]
+}
