@@ -39,6 +39,20 @@ class CanoesTest {
     }
 
     @Test
+    fun `a station's boxes work only on or next to its 5 by 2 footprint, turned or not (exploit review R32C-1)`() {
+        val loc = osrsps.game.zone.ZoneLoc(CanoeStation.LUMBRIDGE.loc, 10, 0, 3241, 3235, 0)
+        assertTrue(Canoes.beside(3243, 3234, 0, loc, 5, 2))
+        assertTrue(Canoes.beside(3246, 3237, 0, loc, 5, 2))
+        assertFalse(Canoes.beside(3247, 3234, 0, loc, 5, 2))
+        assertFalse(Canoes.beside(3243, 3233, 0, loc, 5, 2))
+        assertFalse(Canoes.beside(3243, 3234, 1, loc, 5, 2))
+        assertFalse(Canoes.beside(3222, 3218, 0, loc, 5, 2))
+        val turned = loc.copy(angle = 1)
+        assertTrue(Canoes.beside(3243, 3240, 0, turned, 5, 2))
+        assertFalse(Canoes.beside(3245, 3234, 0, turned, 5, 2))
+    }
+
+    @Test
     fun `levels and XP match the Wiki`() {
         assertEquals(listOf(12, 27, 42, 57), CanoeType.entries.map { it.level })
         assertEquals(listOf(300, 600, 900, 1500), CanoeType.entries.map { it.xpTenths })
