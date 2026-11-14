@@ -29,8 +29,20 @@ object CuratorLines : Lines("curator", "Transcript:Curator Haig Halen") {
     val NO_PENDANT = line("no_pendant", "option 4 before the player has found a digsite pendant: his only line")
 }
 
-/** The information clerk's lines, from the Wiki's Transcript:Information clerk, read 2026-11-02 and (Kudos) 2026-11-14. */
+/** The information clerk's lines, from the Wiki's Transcript:Information clerk, read 2026-11-02 and (her rewards, Kudos) 2026-11-14. */
 object MuseumClerkLines : Lines("museum_clerk", "Transcript:Information clerk") {
+    val REWARD_1 = line("reward_1", "rewards waiting: her greeting, the first of two boxes")
+    val REWARD_2 = line("reward_2", "rewards waiting: the second box")
+    val TEACH_ME = line("teach_me", "rewards waiting: the menu's option 1, which the player then says")
+    val REWARD_NO = line("reward_no", "rewards waiting: the menu's option 2, which the player then says")
+    val COME_BACK = line("come_back", "option 2: the player's second line")
+    val OKAY = line("okay", "option 2: her answer")
+    val REWARD_MINING = line("reward_mining", "option 1 at 51 to 100 Kudos: the message box")
+    val REWARD_MINING_CRAFTING = line("reward_mining_crafting", "option 1 at 101 to 150 Kudos: the message box")
+    val REWARD_FIVE = line("reward_five", "option 1 over 150 Kudos, the earlier rewards claimed: the message box")
+    val REWARD_SIX = line("reward_six", "option 1 over 150 Kudos, the earlier rewards not claimed: the message box")
+    val WOW = line("wow", "after the reward: the player's thanks")
+    val ANYTHING_ELSE = line("anything_else", "after the reward: her answer, before the topic menu")
     val WELCOME = line("welcome", "her welcome, before the topic menu")
     val MAP = line("map", "topic option 1: take a museum map")
     val MAP_TAKEN = line("map_taken", "option 1: the box as the player takes the map")
@@ -56,6 +68,8 @@ object MuseumClerkLines : Lines("museum_clerk", "Transcript:Information clerk") 
     val NATURAL_HISTORY_SAID = line("natural_history_said", "option 4: what the player says")
     val NATURAL_HISTORY_ABOUT = line("natural_history_about", "option 4: her first line")
     val ORLANDO = line("orlando", "option 4, no display corrected: her second line (Orlando's quizzes)")
+    val NATURAL_HISTORY_PARTIAL = line("natural_history_partial", "option 4, some displays corrected: her second line")
+    val NATURAL_HISTORY_DONE = line("natural_history_done", "option 4, every display corrected: her second line")
     val LIVING = line("living", "option 4's first option")
     val LIVING_SAID = line("living_said", "option 4's first option: what the player says")
     val LIVING_ANSWER = line("living_answer", "option 4's first option: her answer")
@@ -68,6 +82,9 @@ object MuseumClerkLines : Lines("museum_clerk", "Transcript:Information clerk") 
     val QUALIFY = line("qualify", "option 5: the player asks if they qualify")
     val NOT_QUALIFIED = line("not_qualified", "option 5, not enough Kudos: her answer")
     val KUDOS_THANKS = line("kudos_thanks", "option 5, not enough Kudos: the player's answer")
+    val QUALIFIED = line("qualified", "option 5, enough Kudos: her answer")
+    val MAX_KUDOS = line("max_kudos", "option 5, the most Kudos there is: her answer")
+    val LOOK_FORWARD = line("look_forward", "option 5, enough Kudos: the player's last line")
     val SOMETHING_ELSE = line("something_else", "the follow-up menu's option 1, back to the topics (no speech)")
     val BYE = line("bye", "the follow-up menu's option 2")
     val BYE_SAID = line("bye_said", "option 2: what the player says")
@@ -91,13 +108,12 @@ object MuseumGuardLines : Lines("museum_guard", "Transcript:Museum guard") {
  * (`vm_barrier_guard_gate` 24536) lets the player in through its guard.
  *
  * Every quest counts complete (Bone Voyage and The Dig Site included), so the curator, the clerk and the guards say what
- * they say to such a player; the clerk's Dig Site answer follows the player's Kudos
+ * they say to such a player; the clerk's Dig Site, Natural History and Kudos answers and her rewards follow the player's Kudos
  * ([Kudos]). From the Wiki's transcripts; the stairs' landing tiles and every
  * expression are guessed (each stair puts the player on the tile in front of the other one, from the 241 map's walls).
  * The gate guard asks on the first talk or Open after login, as the Wiki has it; guessed: after that he lets the
  * player through without a word, and the player walks out of the cleaning area through the gate freely. Left out: the displays' Study (their interfaces), the clerk's
- * rewards and her answers for a player with enough Kudos (nobody can reach 51 yet), her Timeline and Natural History
- * answers past the first (those exhibits give no Kudos yet), the curator's relics,
+ * Timeline answers past the first (its exhibit gives no Kudos yet), the curator's relics,
  * certificates and medallion trade, and his Pickpocket.
  */
 object VarrockMuseum {
@@ -160,9 +176,34 @@ object VarrockMuseum {
         }
     }
 
-    /** The clerk's talk; [giveMap] hands the player a museum map. */
+    /** The Kudos her Would I qualify? asks for. Inferred: Bone Voyage's 100, as the dig she means is Fossil Island's. */
+    const val QUALIFYING_KUDOS = 100
+
+    /**
+     * The clerk's talk; [giveMap] hands the player a museum map. With rewards waiting ([Kudos.pendingRewards]) she offers
+     * them first; taken, they're all given at once and she goes on to her topics.
+     */
     internal suspend fun Dialogue.clerk(giveMap: () -> Unit) = with(MuseumClerkLines) {
-        chatNpc(ChatAnim.HAPPY, WELCOME)
+        val rewards = Kudos.pendingRewards(player)
+        if (rewards.isEmpty()) {
+            chatNpc(ChatAnim.HAPPY, WELCOME)
+        } else {
+            chatNpc(ChatAnim.HAPPY, REWARD_1)
+            chatNpc(ChatAnim.HAPPY, REWARD_2)
+            if (choice(TEACH_ME, REWARD_NO) == 2) {
+                chatPlayer(ChatAnim.NEUTRAL, REWARD_NO)
+                chatPlayer(ChatAnim.NEUTRAL, COME_BACK)
+                chatNpc(ChatAnim.HAPPY, OKAY)
+                return@with
+            }
+            chatPlayer(ChatAnim.HAPPY, TEACH_ME)
+            // Claimed now, so the box below matches what was given even if the talk is walked away from.
+            val given = Kudos.pendingRewards(player)
+            Kudos.claim(player, given)
+            if (given.isNotEmpty()) mesbox(rewardBox(given))
+            chatPlayer(ChatAnim.HAPPY, WOW)
+            chatNpc(ChatAnim.HAPPY, ANYTHING_ELSE)
+        }
         while (true) {
             when (choice(MAP, DIG_SITE, TIMELINE, NATURAL_HISTORY, KUDOS)) {
                 1 -> {
@@ -194,7 +235,12 @@ object VarrockMuseum {
                 4 -> {
                     chatPlayer(ChatAnim.QUIZ, NATURAL_HISTORY_SAID)
                     chatNpc(ChatAnim.HAPPY, NATURAL_HISTORY_ABOUT)
-                    chatNpc(ChatAnim.HAPPY, ORLANDO)
+                    val quiz = when (Kudos.done(player, Kudos.NATURAL_HISTORY)) {
+                        0 -> ORLANDO
+                        Kudos.NATURAL_HISTORY.size -> NATURAL_HISTORY_DONE
+                        else -> NATURAL_HISTORY_PARTIAL
+                    }
+                    chatNpc(ChatAnim.HAPPY, quiz)
                     var pick = choice(LIVING, SOMETHING_ELSE, BYE)
                     if (pick == 1) {
                         chatPlayer(ChatAnim.QUIZ, LIVING_SAID)
@@ -212,6 +258,12 @@ object VarrockMuseum {
                     chatNpc(ChatAnim.NEUTRAL, KUDOS_FOR_1)
                     chatNpc(ChatAnim.NEUTRAL, KUDOS_FOR_2)
                     chatPlayer(ChatAnim.QUIZ, QUALIFY)
+                    val kudos = Kudos.total(player)
+                    if (kudos >= QUALIFYING_KUDOS) {
+                        chatNpc(ChatAnim.HAPPY, if (kudos >= Kudos.MAX) MAX_KUDOS else QUALIFIED)
+                        chatPlayer(ChatAnim.HAPPY, LOOK_FORWARD)
+                        return@with
+                    }
                     chatNpc(ChatAnim.NEUTRAL, NOT_QUALIFIED)
                     chatPlayer(ChatAnim.NEUTRAL, KUDOS_THANKS)
                 }
@@ -219,6 +271,19 @@ object VarrockMuseum {
             if (choice(SOMETHING_ELSE, BYE) == 1) continue
             goodbye()
             return@with
+        }
+    }
+
+    /**
+     * Her box for the rewards just given: the Wiki has one each for the first alone, the second (with or without the
+     * first), the third alone and the third with others. Inferred: the third with only the second waiting gets the six
+     * skills' box too.
+     */
+    private fun rewardBox(given: List<Kudos.Reward>) = with(MuseumClerkLines) {
+        when {
+            Kudos.Reward.AT_151 in given -> if (given.size == 1) REWARD_FIVE else REWARD_SIX
+            Kudos.Reward.AT_101 in given -> REWARD_MINING_CRAFTING
+            else -> REWARD_MINING
         }
     }
 

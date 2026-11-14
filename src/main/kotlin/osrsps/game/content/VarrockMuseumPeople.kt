@@ -98,7 +98,7 @@ object MuseumAdventurerLines : Lines("museum_adventurer", "Transcript:Torrcs") {
     }
 }
 
-/** Orlando Smith's lines, from the Wiki's Transcript:Orlando Smith (before the natural history quiz), read 2026-11-02. */
+/** Orlando Smith's lines, from the Wiki's Transcript:Orlando Smith, read 2026-11-02 and (during and after the quiz) 2026-11-14. */
 object OrlandoSmithLines : Lines("orlando_smith", "Transcript:Orlando Smith") {
     /** The talk before the menu: O for his boxes, P for the player's. */
     const val OPENING = "OPOPOOPOPO"
@@ -110,6 +110,22 @@ object OrlandoSmithLines : Lines("orlando_smith", "Transcript:Orlando Smith") {
     val NO_THANKS = line("no_thanks", "option 2")
     val NO_THANKS_SAID = line("no_thanks_said", "option 2: what the player says (not the option's words)")
     val FAIR_DINKUM = line("fair_dinkum", "option 2: his answer")
+    val HOW_COMING = line("how_coming", "quiz agreed, not done or rewarded: his greeting")
+    val NOT_YET = line("not_yet", "quiz agreed, no display done: the player's answer")
+    val NO_WORRIES = line("no_worries", "quiz agreed, no display done: his answer (then the player's Will do)")
+    val GETTING_THERE = line("getting_there", "some displays done: the player's answer")
+    val DOING_GREAT = line("doing_great", "some displays done: his answer")
+    val RIGHTY_HO = line("righty_ho", "some displays done: the player's next line")
+    val GOOD_LUCK = line("good_luck", "some displays done: his last line")
+    val ALL_DONE = line("all_done", "every display done: the player's answer")
+    val BEAUT = line("beaut", "every display done: his answer")
+    val GLAD = line("glad", "every display done: the player's next line")
+    val CHAT_BOSS = line("chat_boss", "every display done: his next box")
+    val EXPERIENCED = line("experienced", "every display done: his box before the XP")
+    val THANK_YOU = line("thank_you", "every display done: the player's thanks after the XP")
+    val TAKE_CARE = line("take_care", "every display done: his last box")
+    val GOODBYE = line("goodbye", "every display done: the player's last line")
+    val THANKS_HELP = line("thanks_help", "the quiz done and rewarded: his only line")
 }
 
 /** The natural historians' lines, from the Wiki's Transcript:Natural historian, read 2026-11-02. */
@@ -172,7 +188,9 @@ object NaturalHistorianLines : Lines("natural_historian", "Transcript:Natural hi
  * the ground and Natural History floors saying the ground floor pair; a natural historian's first-talk lines once per
  * account (kept in charges as [MET]), then the menu without the later greeting. Left out: Historian Minas's quest
  * information blocks (with their lamps: Kudos isn't built, so he hears no new quests), the lectures' walk to the display
- * and the historian's pose (they're told where he stands), and Orlando's quiz (Kudos), so he asks every time; Marfet's talk about The Dig Site (the Wiki has only its before-quest form).
+ * and the historian's pose (they're told where he stands); Marfet's talk about The Dig Site (the Wiki has only its
+ * before-quest form). Orlando's quiz is [NaturalHistoryQuiz]; guessed there: the quiz taken on as the player says
+ * Sure thing, the during-quiz talk once a display is done (the Wiki's page wonders whether one right answer does it).
  */
 object VarrockMuseumPeople {
     const val HISTORIAN_MINAS = 1902
@@ -309,12 +327,49 @@ object VarrockMuseumPeople {
         }
     }
 
-    internal suspend fun Dialogue.orlando() = with(OrlandoSmithLines) {
+    /**
+     * Orlando Smith: his quiz offer until the player takes it on ([NaturalHistoryQuiz.VARBIT_AGREED]), then how the
+     * displays are coming along, and once all fourteen are done his 1,000 Slayer and Hunter XP, once.
+     */
+    internal suspend fun Dialogue.orlando(world: World) = with(OrlandoSmithLines) {
+        when {
+            NaturalHistoryQuiz.rewardGiven(player) -> return@with chatNpc(ChatAnim.HAPPY, THANKS_HELP)
+            !NaturalHistoryQuiz.agreed(player) -> {}
+            NaturalHistoryQuiz.allDone(player) -> {
+                chatNpc(ChatAnim.HAPPY, HOW_COMING)
+                chatPlayer(ChatAnim.HAPPY, ALL_DONE)
+                chatNpc(ChatAnim.HAPPY, BEAUT)
+                chatPlayer(ChatAnim.HAPPY, GLAD)
+                chatNpc(ChatAnim.HAPPY, CHAT_BOSS)
+                chatNpc(ChatAnim.HAPPY, EXPERIENCED)
+                NaturalHistoryQuiz.reward(world, player)
+                chatPlayer(ChatAnim.HAPPY, THANK_YOU)
+                chatNpc(ChatAnim.HAPPY, TAKE_CARE)
+                chatPlayer(ChatAnim.NEUTRAL, GOODBYE)
+                return@with
+            }
+            NaturalHistoryQuiz.doneCount(player) == 0 -> {
+                chatNpc(ChatAnim.HAPPY, HOW_COMING)
+                chatPlayer(ChatAnim.NEUTRAL, NOT_YET)
+                chatNpc(ChatAnim.HAPPY, NO_WORRIES)
+                chatPlayer(ChatAnim.HAPPY, WILL_DO)
+                return@with
+            }
+            else -> {
+                chatNpc(ChatAnim.HAPPY, HOW_COMING)
+                chatPlayer(ChatAnim.NEUTRAL, GETTING_THERE)
+                chatNpc(ChatAnim.HAPPY, DOING_GREAT)
+                chatPlayer(ChatAnim.HAPPY, RIGHTY_HO)
+                chatNpc(ChatAnim.HAPPY, GOOD_LUCK)
+                return@with
+            }
+        }
         for ((speaker, line) in OPENING.toList().zip(OPENING_LINES)) {
             if (speaker == 'P') chatPlayer(ChatAnim.QUIZ, line) else chatNpc(ChatAnim.HAPPY, line)
         }
         if (choice(SURE, NO_THANKS) == 1) {
             chatPlayer(ChatAnim.HAPPY, SURE)
+            player.vars.setVarbit(NaturalHistoryQuiz.VARBIT_AGREED, 1)
             chatNpc(ChatAnim.HAPPY, SURE_1)
             chatNpc(ChatAnim.HAPPY, SURE_2)
             chatPlayer(ChatAnim.HAPPY, WILL_DO)
@@ -393,7 +448,7 @@ object VarrockMuseumPeople {
                 world.dialogues.start(this, op.npc) { adventurer(talk) }
             }
         }
-        world.handlers.onNpc(ORLANDO_SMITH, TALK_TO) { op -> world.dialogues.start(this, op.npc) { orlando() } }
+        world.handlers.onNpc(ORLANDO_SMITH, TALK_TO) { op -> world.dialogues.start(this, op.npc) { orlando(world) } }
         for (section in LECTURES.keys) {
             world.handlers.onNpc(section, TALK_TO) { op ->
                 val firstTime = !metHistorian(player)

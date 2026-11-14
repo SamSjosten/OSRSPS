@@ -8,7 +8,9 @@ import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
+import osrsps.game.VarTypes
 import osrsps.game.World
+import osrsps.game.content.MUSEUM_VARBITS
 import osrsps.game.content.MuseumAdventurerLines
 import osrsps.game.content.NaturalHistorianLines
 import osrsps.game.content.VarrockMuseumPeople
@@ -52,6 +54,7 @@ class HeadlessVarrockMuseumPeopleTest {
             npcSpawns = upstairs + teachers + basement,
             // A fixed seed, so the random talks come round the same way on every run.
             random = GameRandom(7),
+            varTypes = VarTypes(6_000, MUSEUM_VARBITS),
             cycleMillis = millis,
         )
     }
@@ -153,8 +156,9 @@ class HeadlessVarrockMuseumPeopleTest {
 
                 client.tele(1762, 4956)
                 val opening = (1..10).map { "opening_$it" }.toTypedArray()
-                client.walk(orlando.id, "orlando_smith", *opening, "1:sure,no_thanks", "sure", "sure_1", "sure_2", "will_do")
+                // Turned down he asks again; taken on, his quiz begins (HeadlessNaturalHistoryQuizTest).
                 client.walk(orlando.id, "orlando_smith", *opening, "2:sure,no_thanks", "no_thanks_said", "fair_dinkum")
+                client.walk(orlando.id, "orlando_smith", *opening, "1:sure,no_thanks", "sure", "sure_1", "sure_2", "will_do")
             }
         }
     }
