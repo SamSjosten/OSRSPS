@@ -249,9 +249,13 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   weeds put in, the bin closed, rotted with `::farmtick 16`, opened and emptied into 15 buckets of compost; then 15
   watermelons made into supercompost, turned to ultracompost with 25 volcanic ash, a bucket taken and the rest dumped,
   read off varbit 4775, with `::keys on` and `::reset` at the end. Needs 0.8.0 for `assertVarbit`.
+- `farming-gardeners.json`: Farming step 8: with `::scenario farming` and `::tele` to Lumbridge's tree patch, Fayeth
+  refusing an empty patch, taking a noted basket of tomatoes through Pay to look after an oak, chopping the grown oak
+  down for 200 coins from her menu, and opening Farming Supplies, read off varbit 4771, with `::keys on` and `::reset`
+  at the end. Items used on a gardener or Tool Leprechaun are in the headless test only (no use-item-on-NPC step).
 - `farms-roads.json`: Misthalin piece 7 step 5: from Lumbridge to Varrock by `::tele`, Fayeth and a Tool Leprechaun
   by the castle, Seth Groats, Vasquen, Dreven, Tarquin at the canoe station, Rat Burgiss on the road and Treznor by the
-  palace talked to, and the gardeners' and leprechauns' Farming options refused (with `::keys on`; the spawn counts are
+  palace talked to, the gardeners' empty patches and Farming Supplies, and the leprechauns' store refused (with `::keys on`; the spawn counts are
   in the unit test, Tarquin's higher-level talk in the headless test).
 - `lumber-yard.json`: Misthalin piece 7 step 6: the Lumber Yard's broken fence climbed both ways, oak planks made at
   the Sawmill by talk (with too few coins for all, so he names his fee), Buy-plank refused without teak logs, his shop on

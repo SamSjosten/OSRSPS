@@ -13,9 +13,9 @@ import osrsps.game.npc.NpcSpawn
 import osrsps.map.CollisionMap
 
 /**
- * Misthalin piece 7 step 5 through the headless client: a patch gardener's menu, whose Farming options, Pay and Trade
- * wait for the Farming skill; a Tool Leprechaun's talk, back to his menu after each question, and his store's
- * refusals; Tarquin's canoe talk by Woodcutting level; Rat Burgiss and Seth Groats. The rl-client script
+ * Misthalin piece 7 step 5 through the headless client: a patch gardener's menu (the rest of a gardener is Farming's,
+ * HeadlessFarmingGardenersTest); a Tool Leprechaun's talk, back to his menu after each question, and his store's
+ * refusals until it is built; Tarquin's canoe talk by Woodcutting level; Rat Burgiss and Seth Groats. The rl-client script
  * test-runner/examples/farms-roads.json walks the real fields from Lumbridge to Varrock and talks to each of them.
  */
 class HeadlessFarmsRoadsTest {
@@ -62,15 +62,13 @@ class HeadlessFarmsRoadsTest {
     private fun HeadlessClient.seen(text: String) = messages().count { it.text == text }
 
     @Test
-    fun `a gardener offers his four options, and the Farming ones, Pay and Trade wait for Farming`(@TempDir dir: Path) {
+    fun `a gardener offers his four options, and looks after nothing in an empty patch`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { client ->
                 client.talkTo(FarmsRoads.DREVEN)
                 client.menu("gardener.look_after", "gardener.advice", "gardener.sell", "gardener.another_time")
                 client.chooseOption(1)
-                client.chats("gardener.look_after")
-                client.awaitDialogue("the refusal") { it == DialogueView.Message(LATER) }
-                client.continueDialogue()
+                client.chats("gardener.look_after", "gardener.no_seeds")
                 client.awaitClosed()
 
                 client.talkTo(FarmsRoads.DREVEN)
@@ -80,9 +78,9 @@ class HeadlessFarmsRoadsTest {
                 client.awaitClosed()
 
                 client.talkTo(FarmsRoads.DREVEN, FarmsRoads.PAY)
-                client.await("Pay's refusal") { if (client.seen(LATER) == 1) Unit else null }
-                client.talkTo(FarmsRoads.DREVEN, FarmsRoads.TRADE)
-                client.await("Trade's refusal") { if (client.seen(LATER) == 2) Unit else null }
+                client.chats("gardener.no_seeds")
+                client.awaitClosed()
+                assertEquals(0, client.seen(LATER))
             }
         }
     }

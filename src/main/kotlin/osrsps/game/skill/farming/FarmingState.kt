@@ -17,7 +17,8 @@ import kotlinx.serialization.json.putJsonObject
  * when it finishes growing). [watered]: watered since it last grew. [compost]: the soil's treatment, 0 none, 1 compost,
  * 2 supercompost, 3 ultracompost ([Compost]). [diseased] stops it growing until it is cured or dies; [dead] waits to
  * be cleared. A grown tree is [checked] once (Check-health) before it can be chopped, and is a [stump] once chopped
- * down until it grows back or is dug up. A checked fruit tree's [lives] are the fruit on it, 0 to 6.
+ * down until it grows back or is dug up. A checked fruit tree's [lives] are the fruit on it, 0 to 6. [paid]: a gardener
+ * is paid to look after the crop, so it never falls ill ([Gardeners]); it goes with the crop.
  */
 class PatchState(
     var weeds: Int,
@@ -30,6 +31,7 @@ class PatchState(
     var dead: Boolean = false,
     var checked: Boolean = false,
     var stump: Boolean = false,
+    var paid: Boolean = false,
 ) {
     /**
      * The game tick the harvest under way started on, the last tick it ran, and whether a second click early in it made
@@ -62,6 +64,7 @@ class PatchState(
         dead = false
         checked = false
         stump = false
+        paid = false
         plantedMillis = -1
     }
 
@@ -85,7 +88,7 @@ class PatchState(
         return if (watered && crop.watered.isNotEmpty()) crop.watered[stage] else crop.growing[stage]
     }
 
-    fun copy() = PatchState(weeds, crop, stage, watered, lives, compost, diseased, dead, checked, stump).also { it.plantedMillis = plantedMillis }
+    fun copy() = PatchState(weeds, crop, stage, watered, lives, compost, diseased, dead, checked, stump, paid).also { it.plantedMillis = plantedMillis }
 
     companion object {
         fun overgrown(kind: PatchKind) = PatchState(kind.weeds)
@@ -186,6 +189,7 @@ object FarmingSaves {
                         if (patch.dead) put("dead", true)
                         if (patch.checked) put("checked", true)
                         if (patch.stump) put("stump", true)
+                        if (patch.paid) put("paid", true)
                         if (patch.stage == 0 && patch.plantedMillis >= 0) put("planted", patch.plantedMillis)
                     }
                     if (patch.compost > 0) put("compost", patch.compost)
@@ -246,6 +250,7 @@ object FarmingSaves {
                 diseased = ill && !dead && (entry["diseased"]?.jsonPrimitive?.boolean ?: false), dead = ill && dead,
                 // Only a grown tree or bush is checked, and only a checked tree can be a stump.
                 checked = grownTree && checked, stump = stumps && grownTree && checked && (entry["stump"]?.jsonPrimitive?.boolean ?: false),
+                paid = !dead && (entry["paid"]?.jsonPrimitive?.boolean ?: false),
             ).also { if (stage == 0) it.plantedMillis = entry["planted"]?.jsonPrimitive?.long ?: -1 }
         }
         for ((key, value) in json["bins"]?.jsonObject.orEmpty()) {

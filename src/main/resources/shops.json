@@ -2706,6 +2706,70 @@
           "restock": 10
         }
       ]
+    },
+    {
+      "key": "farming_supplies",
+      "title": "Farming Supplies",
+      "inv": 894,
+      "size": 7,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 0,
+      "changePer": 0,
+      "npcs": ["farming_gardener_bush_1", "farming_gardener_hops_3", "farming_gardener_tree_4", "farming_gardener_tree_3"],
+      "refuses": [6036, 6032, 5341, 5350, 5331, 5325, 5343],
+      "source": "OSRS Wiki, Farming Supplies, read 2026-11-14: opened by any gardener, every item infinite stock at its own price, nothing bought back; inv farmer_supplies (894, size 7 in the 242 cache). the watering can sold empty (the Wiki's Watering can lists the shops under the empty can). Guessed: 1000 in stock restocking every tick for the Wiki's infinite",
+      "stock": [
+        {
+          "item": 6036,
+          "name": "Plant cure",
+          "count": 1000,
+          "restock": 1,
+          "price": 40
+        },
+        {
+          "item": 6032,
+          "name": "Compost",
+          "count": 1000,
+          "restock": 1,
+          "price": 20
+        },
+        {
+          "item": 5341,
+          "name": "Rake",
+          "count": 1000,
+          "restock": 1,
+          "price": 6
+        },
+        {
+          "item": 5350,
+          "name": "Empty plant pot",
+          "count": 1000,
+          "restock": 1,
+          "price": 1
+        },
+        {
+          "item": 5331,
+          "name": "Watering can",
+          "count": 1000,
+          "restock": 1,
+          "price": 8
+        },
+        {
+          "item": 5325,
+          "name": "Gardening trowel",
+          "count": 1000,
+          "restock": 1,
+          "price": 12
+        },
+        {
+          "item": 5343,
+          "name": "Seed dibber",
+          "count": 1000,
+          "restock": 1,
+          "price": 6
+        }
+      ]
     }
   ]
 }

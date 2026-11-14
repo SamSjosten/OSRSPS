@@ -68,6 +68,8 @@ class ShopTest {
         8794 to 10, 8790 to 500, 4819 to 2, 4820 to 4, 1539 to 3,
         // The Pelters' Veg Stall's rotten tomato.
         2518 to 1,
+        // Farming Supplies, which sells at its own prices and buys nothing back: the values only stand in.
+        6036 to 40, 6032 to 20, 5341 to 6, 5350 to 1, 5331 to 8, 5325 to 12, 5343 to 6,
     )
 
     /**
@@ -128,6 +130,10 @@ class ShopTest {
             NpcType(6533, "Romily Weaklax", internalName = "merchant_pies"),
             NpcType(5919, "Grace", internalName = "rooftops_grace"),
             NpcType(3101, "Sawmill operator", internalName = "poh_sawmill_opp"),
+            NpcType(2674, "Dreven", internalName = "farming_gardener_bush_1"),
+            NpcType(2672, "Vasquen", internalName = "farming_gardener_hops_3"),
+            NpcType(2681, "Fayeth", internalName = "farming_gardener_tree_4"),
+            NpcType(2680, "Treznor", internalName = "farming_gardener_tree_3"),
         )
         return ShopTypes.parse(shopFile, npcs, objs)
     }
@@ -197,6 +203,8 @@ class ShopTest {
         "construction_supplies" to listOf(13, 650, 2, 5, 3),
         // The Pelters' Veg Stall, read 2026-11-11.
         "varrock_pelters_veg_stall" to listOf(1),
+        // Farming Supplies, read 2026-11-14.
+        "farming_supplies" to listOf(40, 20, 6, 1, 8, 12, 6),
     )
 
     @Test
@@ -228,8 +236,10 @@ class ShopTest {
         assertEquals(11849, grace.currency)
         assertEquals(listOf(28, 44, 48, 24, 32, 32, 8), grace.stock.map { Shop(grace).sellPrice(it.type.id, it.type.cost, it.count) })
         assertTrue(shops.all.filter { it.key != grace.key }.all { it.currency == ShopScreen.COINS })
-        // The Al Kharid General Store won't buy silk (the Wiki's page); no other shop refuses anything.
-        assertEquals(mapOf("al_kharid_general_store" to setOf(950)), shops.all.filter { it.refuses.isNotEmpty() }.associate { it.key to it.refuses })
+        // The Al Kharid General Store won't buy silk (the Wiki's page), Farming Supplies buys nothing; no other shop refuses anything.
+        val farmingSupplies = shops["farming_supplies"]!!
+        assertEquals(listOf(2674, 2672, 2681, 2680).map { shops.ofNpc(it) }, List(4) { farmingSupplies })
+        assertEquals(mapOf("al_kharid_general_store" to setOf(950), "farming_supplies" to farmingSupplies.stock.map { it.type.id }.toSet()), shops.all.filter { it.refuses.isNotEmpty() }.associate { it.key to it.refuses })
         assertEquals(shops["lumbridge_general_store"], shops.ofNpc(2814))
         assertEquals(shops["bobs_brilliant_axes"], shops.ofNpc(10619))
         assertEquals(shops["lumbridge_blacksmith"], shops.ofNpc(16806))
