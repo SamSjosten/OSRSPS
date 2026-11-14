@@ -39,6 +39,8 @@ class HeadlessCanoeTest {
                 markLoaded(3222 shr 6, 3218 shr 6)
                 markLoaded(LUM_X shr 6, LUM_Z shr 6)
                 markLoaded(CHAMPIONS_X shr 6, CHAMPIONS_Z shr 6)
+                // Every landing the tests paddle to.
+                for (to in CanoeDestination.entries) markLoaded(to.x shr 6, to.z shr 6)
             },
             objTypes = ObjTypes(objs),
             random = GameRandom(5),
@@ -156,6 +158,8 @@ class HeadlessCanoeTest {
                 client.ifButton(Canoes.MAP, CanoeDestination.FEROX_ENCLAVE.component, 1)
                 client.seen("[canoe.wilderness]")
                 assertEquals(CanoeType.WAKA.number + 10, client.lumbridge())
+                // The refusal closed the map: wait for that before opening it again, or the open seen is the old one.
+                client.await("the map closed") { if (Canoes.MAP !in client.openInterfaces()) Unit else null }
                 client.locOp(CanoeStation.LUMBRIDGE.loc, LUM_X, LUM_Z, 1)
                 client.await("the river map again") { if (Canoes.MAP in client.openInterfaces()) Unit else null }
                 client.ifButton(Canoes.MAP, CanoeDestination.EDGEVILLE.component, 1)
@@ -194,6 +198,24 @@ class HeadlessCanoeTest {
                 client.locOp(CanoeStation.CHAMPIONS_GUILD.loc, CHAMPIONS_X, CHAMPIONS_Z, 1)
                 client.state(Canoes.TREE)
                 client.state(Canoes.FALLEN) { champions() }
+            }
+        }
+    }
+
+    @Test
+    fun `a destination clicked after a teleport away does nothing (exploit review R32C-1)`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("hank").use { client ->
+                client.canoeist(99)
+                client.makeAndFloat(CanoeType.LOG)
+                // ::tele closes the map (Home Teleport replaces it with the lodestone map); a click sent anyway, as
+                // from a client that kept it, does nothing. Standing beside the station is CanoesTest's.
+                client.tele(3222, 3218)
+                client.await("the map closed") { if (Canoes.MAP !in client.openInterfaces()) Unit else null }
+                client.ifButton(Canoes.MAP, CanoeDestination.CHAMPIONS_GUILD.component, 1)
+                client.awaitTicks(Canoes.TRIP_TICKS + 3)
+                assertEquals(3222, client.position!!.x)
+                assertEquals(CanoeType.LOG.number + 10, client.lumbridge())
             }
         }
     }
