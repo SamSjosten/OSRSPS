@@ -2,6 +2,7 @@ package osrsps.game.content
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import osrsps.game.GameRandom
 import osrsps.game.InvObj
@@ -135,6 +136,19 @@ class MuseumKudosTest {
     }
 
     @Test
+    fun `What Lies Below takes the book from wherever it is now, and only once`() {
+        val alice = player()
+        val book = ObjType(MuseumTimeline.DAGONHAI_HISTORY, "Dagon'hai history")
+        assertFalse(MuseumTimeline.takeBook(alice), "no book, nothing taken")
+        alice.inventory.add(book, 1)
+        // Moved to another slot between the boxes: still found and taken.
+        alice.inventory.swap(0, 5)
+        assertTrue(MuseumTimeline.takeBook(alice))
+        assertEquals(0, alice.inventory.count(MuseumTimeline.DAGONHAI_HISTORY))
+        assertFalse(MuseumTimeline.takeBook(alice), "gone, so the display can't fill without it")
+    }
+
+    @Test
     fun `each timeline story fills its display for 5 Kudos, Curse of the Empty Lord 10, 80 in all`() {
         val alice = player()
         assertEquals(MuseumTimeline.Story.entries, MuseumTimeline.untold(alice))
@@ -148,7 +162,7 @@ class MuseumKudosTest {
         assertEquals(25, Kudos.total(alice))
         // Told already, a story isn't told or counted again.
         assertEquals(MuseumTimeline.Story.entries - setOf(MuseumTimeline.Story.TEMPLE_OF_IKOV, MuseumTimeline.Story.CURSE_OF_THE_EMPTY_LORD, MuseumTimeline.Story.PRIEST_IN_PERIL, MuseumTimeline.Story.MYREQUE), MuseumTimeline.untold(alice))
-        MuseumTimeline.fill(alice, MuseumTimeline.Story.TEMPLE_OF_IKOV)
+        assertFalse(MuseumTimeline.fill(alice, MuseumTimeline.Story.TEMPLE_OF_IKOV), "filled already, so no second lamp goes with it")
         assertEquals(2, alice.vars.getVarbit(MuseumTimeline.VARBIT_STAFF_OF_ARMADYL))
         assertEquals(0, alice.vars.getVarbit(MuseumTimeline.VARBIT_SHIELD_SHOWN))
         for (story in MuseumTimeline.Story.entries) MuseumTimeline.fill(alice, story)
