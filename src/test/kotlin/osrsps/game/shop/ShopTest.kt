@@ -69,7 +69,7 @@ class ShopTest {
         // The Pelters' Veg Stall's rotten tomato.
         2518 to 1,
         // Farming Supplies, which sells at its own prices and buys nothing back: the values only stand in.
-        6036 to 40, 6032 to 20, 5341 to 6, 5350 to 1, 5340 to 8, 5325 to 12, 5343 to 6,
+        6036 to 40, 6032 to 20, 5341 to 6, 5350 to 1, 5331 to 8, 5325 to 12, 5343 to 6,
     )
 
     /**

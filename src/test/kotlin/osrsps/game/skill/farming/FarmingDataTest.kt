@@ -496,6 +496,7 @@ class FarmingDataTest {
         // The leprechaun notes produce and saplings but not logs.
         assertTrue(1942 in Gardeners.NOTABLE && 249 in Gardeners.NOTABLE && 5370 in Gardeners.NOTABLE)
         assertTrue(1521 !in Gardeners.NOTABLE)
+        assertTrue(6055 in Gardeners.NOTABLE && 6043 in Gardeners.NOTABLE)
 
         // A paid magic tree (9 in 128 a growth) grows up every time with diseases on; unpaid ones don't.
         val farming = Farming(osrsps.game.World(IntArray(0), osrsps.map.CollisionMap(), random = GameRandom(3)), clock = { 0L })

@@ -2717,8 +2717,8 @@
       "buyAt": 0,
       "changePer": 0,
       "npcs": ["farming_gardener_bush_1", "farming_gardener_hops_3", "farming_gardener_tree_4", "farming_gardener_tree_3"],
-      "refuses": [6036, 6032, 5341, 5350, 5340, 5325, 5343],
-      "source": "OSRS Wiki, Farming Supplies, read 2026-11-14: opened by any gardener, every item infinite stock at its own price, nothing bought back; inv farmer_supplies (894, size 7 in the 242 cache). Guessed: the watering can sold full (the Wiki says only 'Watering can'), and 1000 in stock restocking every tick for the Wiki's infinite",
+      "refuses": [6036, 6032, 5341, 5350, 5331, 5325, 5343],
+      "source": "OSRS Wiki, Farming Supplies, read 2026-11-14: opened by any gardener, every item infinite stock at its own price, nothing bought back; inv farmer_supplies (894, size 7 in the 242 cache). the watering can sold empty (the Wiki's Watering can lists the shops under the empty can). Guessed: 1000 in stock restocking every tick for the Wiki's infinite",
       "stock": [
         {
           "item": 6036,
@@ -2749,8 +2749,8 @@
           "price": 1
         },
         {
-          "item": 5340,
-          "name": "Watering can(8)",
+          "item": 5331,
+          "name": "Watering can",
           "count": 1000,
           "restock": 1,
           "price": 8

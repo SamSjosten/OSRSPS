@@ -50,16 +50,16 @@ class HeadlessFarmingGardenersTest {
     private val leprechaun = NpcType(FarmsRoads.TOOL_LEPRECHAUN, "Tool Leprechaun", ops = listOf("Talk-to", null, "Exchange", "Deposit-all", null), internalName = "farming_tools_leprechaun")
 
     private val objs = Array<ObjType?>(OBJS) { ObjType(it, "Obj $it") }.also { objs ->
-        for ((id, name) in mapOf(RAKE to "Rake", SPADE to "Spade", WEEDS to "Weeds", SAPLING to "Oak sapling", WATERMELON to "Watermelon")) {
+        for ((id, name) in mapOf(RAKE to "Rake", SPADE to "Spade", SAPLING to "Oak sapling", WATERMELON to "Watermelon")) {
             objs[id] = ObjType(id, name)
         }
         objs[COINS] = ObjType(COINS, "Coins", stackable = true, tradeable = true)
         // Items with banknotes: the payment, potatoes, logs.
-        for ((id, name) in mapOf(TOMATOES_5 to "Tomatoes(5)", POTATO to "Potato", LOGS to "Logs")) {
+        for ((id, name) in mapOf(TOMATOES_5 to "Tomatoes(5)", POTATO to "Potato", LOGS to "Logs", WEEDS to "Weeds", ROOTS to "Oak roots")) {
             objs[id] = ObjType(id, name, tradeable = true, certlink = id + 1)
             objs[id + 1] = ObjType(id + 1, name, stackable = true, tradeable = true, certlink = id, certtemplate = 799)
         }
-        for ((id, name, price) in listOf(Triple(6036, "Plant cure", 40), Triple(6032, "Compost", 20), Triple(5350, "Empty plant pot", 1), Triple(5340, "Watering can(8)", 8), Triple(5325, "Gardening trowel", 12), Triple(5343, "Seed dibber", 6))) {
+        for ((id, name, price) in listOf(Triple(6036, "Plant cure", 40), Triple(6032, "Compost", 20), Triple(5350, "Empty plant pot", 1), Triple(5331, "Watering can", 8), Triple(5325, "Gardening trowel", 12), Triple(5343, "Seed dibber", 6))) {
             objs[id] = ObjType(id, name, cost = price)
         }
     }.let { ObjTypes(it) }
@@ -302,7 +302,7 @@ class HeadlessFarmingGardenersTest {
     }
 
     @Test
-    fun `a Tool Leprechaun notes every potato in the pack, and refuses banknotes, logs and a spade`(@TempDir dir: Path) {
+    fun `a Tool Leprechaun notes every potato, weed and root in the pack, and refuses banknotes, logs and a spade`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("dave").use { client ->
                 client.setUp()
@@ -310,6 +310,12 @@ class HeadlessFarmingGardenersTest {
                 client.useOnNpc(FarmsRoads.TOOL_LEPRECHAUN, POTATO)
                 client.awaitCount(POTATO + 1, 5)
                 assertEquals(0, client.count(POTATO))
+                // Weeds and roots too (the Wiki's changes to the leprechaun).
+                for (item in listOf(WEEDS, ROOTS)) {
+                    client.give(item, 2)
+                    client.useOnNpc(FarmsRoads.TOOL_LEPRECHAUN, item)
+                    client.awaitCount(item + 1, 2)
+                }
 
                 for ((item, key) in listOf(POTATO + 1 to "is_note", LOGS to "no_notes", SPADE to "no_such_note")) {
                     if (client.count(item) == 0) client.give(item)
@@ -344,5 +350,6 @@ class HeadlessFarmingGardenersTest {
         const val POTATO = 1942
         const val LOGS = 1511
         const val WATERMELON = 5982
+        const val ROOTS = 6043
     }
 }

@@ -139,7 +139,7 @@ class Gardeners(private val world: World) {
         chopDown(patch)
     }
 
-    private suspend fun Dialogue.lookAfter(patch: FarmingPatch, talk: Boolean) = with(GardenerLines) {
+    private suspend fun Dialogue.lookAfter(patch: FarmingPatch, talk: Boolean): Unit = with(GardenerLines) {
         val state = player.farming.patches[patch.key]
         val crop = state?.crop
         when {
@@ -156,8 +156,13 @@ class Gardeners(private val world: World) {
             else -> {
                 val payment = PAYMENTS[crop.key] ?: return@with chatNpc(ChatAnim.NEUTRAL, IMMUNE)
                 val named = text(PAYMENT_NAMES.getValue(crop.key))
+                if (talk) {
+                    chatNpc(ChatAnim.NEUTRAL, WANT, "payment" to named)
+                    // The patch kept growing while she spoke: one that is no longer the same healthy crop is answered afresh.
+                    val now = player.farming.patches[patch.key]
+                    if (now !== state || now.crop !== crop || !now.growing || now.paid) return@with lookAfter(patch, talk = false)
+                }
                 val has = held(world, player, payment) >= payment.count
-                if (talk) chatNpc(ChatAnim.NEUTRAL, WANT, "payment" to named)
                 if (!has) {
                     if (talk) {
                         chatPlayer(ChatAnim.SAD, DONT_HAVE)
@@ -286,13 +291,16 @@ class Gardeners(private val world: World) {
 
         /**
          * What a Tool Leprechaun notes: "any items ... collected from Farming, including clean or grimy herbs as well as
-         * saplings" (the Wiki's Tool Leprechaun), so every crop's produce and sapling and the clean herbs, but not logs
+         * saplings" (the Wiki's Tool Leprechaun), so every crop's produce and sapling, the clean herbs, weeds and roots, but not logs
          * (a tree's produce here) nor baskets and sacks, which his list of exceptions names.
          */
         val NOTABLE: Set<Int> = buildSet {
             for (crop in Crops.ALL) if (crop.kind != PatchKind.TREE) add(crop.produce)
             for (tree in Trees.ALL) add(tree.sapling)
             addAll(CLEAN_HERBS)
+            // Weeds and roots: the page's changes ("can now exchange weeds", "will now bank note tree roots").
+            add(Farming.WEEDS)
+            for (tree in Trees.ALL) if (tree.roots != 0) add(tree.roots)
         }
 
         /** How many of [payment]'s item [player] has, noted or not. */
