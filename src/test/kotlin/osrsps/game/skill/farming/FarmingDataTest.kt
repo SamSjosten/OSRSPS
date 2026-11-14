@@ -483,6 +483,41 @@ class FarmingDataTest {
     }
 
     @Test
+    fun `a gardener has a payment for every crop of the kinds they look after, and a paid crop never falls ill`() {
+        // Every allotment, hop, bush, tree and fruit tree has one but poison ivy, which can't fall ill; herbs and flowers none.
+        val payable = setOf(PatchKind.ALLOTMENT, PatchKind.HOPS, PatchKind.BUSH, PatchKind.TREE, PatchKind.FRUIT_TREE)
+        assertEquals(Crops.ALL.filter { it.kind in payable && it.disease > 0 }.map { it.key }.toSet(), Gardeners.PAYMENTS.keys)
+        assertEquals(Gardeners.PAYMENTS.keys, GardenerLines.PAYMENT_NAMES.keys)
+        // A few of the Wiki's: two compost for potatoes, a basket of tomatoes for an oak, 25 coconuts for a magic tree.
+        assertEquals(listOf(6032, 2), Gardeners.PAYMENTS.getValue("potato").let { listOf(it.obj, it.count) })
+        assertEquals(listOf(5968, 1), Gardeners.PAYMENTS.getValue("oak").let { listOf(it.obj, it.count) })
+        assertEquals(listOf(5974, 25), Gardeners.PAYMENTS.getValue("magic").let { listOf(it.obj, it.count) })
+        assertEquals(17, GardenerLines.ADVICES.size)
+        // The leprechaun notes produce and saplings but not logs.
+        assertTrue(1942 in Gardeners.NOTABLE && 249 in Gardeners.NOTABLE && 5370 in Gardeners.NOTABLE)
+        assertTrue(1521 !in Gardeners.NOTABLE)
+
+        // A paid magic tree (9 in 128 a growth) grows up every time with diseases on; unpaid ones don't.
+        val farming = Farming(osrsps.game.World(IntArray(0), osrsps.map.CollisionMap(), random = GameRandom(3)), clock = { 0L })
+        val key = FarmingPatches.LUMBRIDGE_TREE.key
+        var unpaidIll = 0
+        repeat(40) {
+            val paid = FarmingState().apply { patches[key] = PatchState(0, Crops.MAGIC, paid = true) }
+            farming.grow(paid, 0, 12L * 8 + 7)
+            assertTrue(paid.patches.getValue(key).grown, "a paid tree fell ill")
+            val unpaid = FarmingState().apply { patches[key] = PatchState(0, Crops.MAGIC) }
+            farming.grow(unpaid, 0, 12L * 8 + 7)
+            if (!unpaid.patches.getValue(key).grown) unpaidIll++
+        }
+        assertTrue(unpaidIll > 0, "no unpaid tree ever fell ill")
+        // Paid survives a save, and goes with the crop.
+        val state = FarmingState().apply { patches[key] = PatchState(0, Crops.OAK, 2, paid = true) }
+        assertTrue(FarmingSaves.fromJson(FarmingSaves.toJson(state)).patches.getValue(key).paid)
+        state.patches.getValue(key).clear()
+        assertTrue(!state.patches.getValue(key).paid)
+    }
+
+    @Test
     fun `a farming tick is five minutes of the clock plus the offset and the skipped ticks`() {
         // 00:04 is in tick 0; a 1-minute offset moves it into tick 1; a skipped tick adds one more.
         val fourPast = 4 * 60_000L

@@ -927,8 +927,8 @@ market where the cache map puts them; stealing works as at Draynor's (a guard or
 
 ### Farming
 
-Farming steps 1 to 7 (`game/skill/farming/`): the growth clock, each player's patches, allotments, herbs and flowers,
-compost and disease, trees and fruit trees, hops and bushes, compost bins. Every patch is a
+Farming steps 1 to 8 (`game/skill/farming/`): the growth clock, each player's patches, allotments, herbs and flowers,
+compost and disease, trees and fruit trees, hops and bushes, compost bins, the gardeners and noting produce. Every patch is a
 multiloc the map already places, drawn by one of the cache's `farming_transmit_a` to `e` varbits; each tick the
 player's patches grow to the clock and the varbits of the area they stand in are set, the same varbits live sends for
 the same map squares, so RuneLite's Time Tracking farming panel reads them. Crops grow on live's real-time farming
@@ -992,6 +992,15 @@ on it) fills a bucket every 4 ticks, for 4.5 XP a bucket of compost, 8.5 of supe
 (rotten tomatoes come by hand, for no XP). A dose of compost potion on an opened bin of compost makes it supercompost,
 and 25 volcanic ash on one of supercompost ultracompost. Dump throws away whatever is in it.
 
+Misthalin's gardeners (Dreven by the Champions' Guild bush patch, Vasquen by the Lumbridge hops, Fayeth by the
+Lumbridge tree patch and Treznor by Varrock's) look after the crop growing in their patch for its payment (a basket of
+tomatoes for an oak, two buckets of compost for potatoes and so on, noted or not), through Talk-to or Pay; a paid crop
+never falls ill. A grown tree is chopped down for 200 coins from Talk-to or Pay, which leaves the patch clear. They
+give one of 17 pieces of advice, sell Farming Supplies (Talk-to or Trade), and say whether an item shown to them makes
+compost or supercompost. A Tool Leprechaun changes every one of an item used on him into banknotes, if it was grown
+(produce, herbs clean or grimy, saplings; not logs). His tool store is the next step. The Varrock garden patches
+belong to the Garden of Tranquillity quest and are left out (no quests).
+
 | Farming behaviour | Source |
 |-------------------|--------|
 | Patch locs, which varbit draws each, and which value draws which stage (weeds, growing, watered, grown, diseased, dead) | cache 242 (2026-11-11), the patch multilocs and the names of the locs they show |
@@ -1014,14 +1023,16 @@ and 25 volcanic ash on one of supercompost ultracompost. Dump throws away whatev
 | Hops falling ill at 27/128 and bushes at 18/128; every other bush keeping a berry at whiteberries' chance; a berry every 3 ticks with picking_mid; a bush dug up 3 ticks after Clear, for no XP; the berries regrowing at the bush's own 20-minute ticks; the hops' three grown values counting down the lives as an allotment's | guessed |
 | Compost bins: 15 un-noted items, what is compostable and supercompostable, supercompost only from all supercompostable items and rotten tomatoes from all tomatoes, Take with empty buckets for 4.5, 8.5 and 10 XP, a bucket every 4 ticks, a compost potion dose or 25 volcanic ash upgrading an opened bin, Dump; the bin's varbit values; rotting over two ticks of the 40-minute clock | OSRS Wiki, Compost Bin, Compost, Supercompost, Ultracompost, Rotten tomato; cache 242, the compost bin multiloc 7836; RuneLite's Time Tracking (Produce: 40 minutes, 3 stages) |
 | Huasca supercompostable; items going in one a tick from the used stack with human_pickuptable; buckets filled with human_fillbucket_sandpit; closing, opening and upgrading at once with no animation; Dump without a confirmation; a plain item turning a supercompostable or tomato bin plain with a message rather than live's warning dialogue; no XP for rotten tomatoes | guessed |
-| Not built yet: the scarecrow, digging up a healthy crop, Aldarin's hops and the Farming Guild's bush, the other compost bins (they come with their allotments) and the Big Compost Bin, the Tool Leprechauns and the gardeners' payments; Guide (op4) | next steps |
+| Gardeners' payments (noted accepted, exact form only), no payment for herbs and flowers, a paid crop never falling ill, 200 coins to remove a grown tree or fruit tree, their talk (Fayeth's and Treznor's pages), Farming Supplies' stock and prices; the leprechaun noting grown items and his refusals | OSRS Wiki, Farming, Allotment/Hops/Bush/Tree/Fruit tree patch seeds, Transcript:Fayeth, Transcript:Treznor, Farming Supplies, Tool Leprechaun, Transcript:Tool Leprechaun; cache 242, inv farmer_supplies (894) |
+| Every gardener saying Fayeth's words; the hops and bush gardeners' line for an empty patch and every payment's name but the trees'; their lines for a grown crop that can't be chopped, poison ivy and an item that makes no compost; the patch left raked after a tree is removed; unnoted payment taken first; advice going back to the menu; a full watering can sold; Farming Supplies' 1000 stock for the Wiki's infinite; the leprechaun noting every one of the item at once | guessed |
+| Not built yet: the scarecrow, digging up a healthy crop, Aldarin's hops and the Farming Guild's bush, the other compost bins (they come with their allotments) and the Big Compost Bin, the Tool Leprechauns' store, the gardeners outside Misthalin (none is placed); Guide (op4) | next steps |
 
 `::scenario farming` stands you beside the Falador allotments with 99 Farming, the tools, 30 of every allotment
 seed and some herb and flower seeds (the rest in the bank, with a trowel, secateurs, a rune axe, plant pots, tree seeds
 and oak saplings for the tree patches, fruit tree seeds and apple saplings for the fruit tree patches, hops and bush
 seeds for the hops and bush patches, empty buckets, volcanic ash and a compost potion for the compost bin). `::farmtick [n]` moves your own farming clock on n five-minute ticks and grows your patches to it.
 
-Check: `./gradlew test --tests 'osrsps.game.skill.farming.*' --tests 'osrsps.testclient.HeadlessFarmingTest' --tests 'osrsps.testclient.HeadlessFarmingTreeTest' --tests 'osrsps.testclient.HeadlessFarmingFruitTreeTest' --tests 'osrsps.testclient.HeadlessFarmingHopsBushTest' --tests 'osrsps.testclient.HeadlessFarmingCompostBinTest'`.
+Check: `./gradlew test --tests 'osrsps.game.skill.farming.*' --tests 'osrsps.testclient.HeadlessFarmingTest' --tests 'osrsps.testclient.HeadlessFarmingTreeTest' --tests 'osrsps.testclient.HeadlessFarmingFruitTreeTest' --tests 'osrsps.testclient.HeadlessFarmingHopsBushTest' --tests 'osrsps.testclient.HeadlessFarmingCompostBinTest' --tests 'osrsps.testclient.HeadlessFarmingGardenersTest'`.
 
 ## Items and inventory
 

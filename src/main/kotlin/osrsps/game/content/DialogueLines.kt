@@ -50,6 +50,8 @@ import osrsps.game.skill.ThievingLines
 import osrsps.game.skill.ThievingLockLines
 import osrsps.game.skill.WoodcuttingLines
 import osrsps.game.skill.farming.FarmingLines
+import osrsps.game.skill.farming.GardenerLines
+import osrsps.game.skill.farming.NoteLines
 import osrsps.game.social.ClanLines
 import osrsps.game.social.FriendsChatLines
 import osrsps.game.social.ReportLines
@@ -237,6 +239,7 @@ object DialogueLines {
         FarmsRoadsLines,
         FarmingLines,
         GardenerLines,
+        NoteLines,
         ToolLeprechaunLines,
         TarquinLines,
         RatBurgissLines,

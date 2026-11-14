@@ -199,6 +199,7 @@ class Farming(private val world: World, private val clock: () -> Long, private v
             for (can in WATERING_CANS) world.handlers.onObjOnObj(tree.seedling, can) { op -> waterSeedling(op, tree) }
             world.handlers.onObjOnObj(tree.seedling, WATERING_CAN_EMPTY) { world.message(player, FarmingLines.CAN_EMPTY) }
         }
+        Gardeners(world).register()
     }
 
     /**
@@ -373,7 +374,7 @@ class Farming(private val world: World, private val clock: () -> Long, private v
                 patch.plantedMillis = -1
             }
             if (tick % kind.cycleTicks != 0L) continue
-            if (diseases && !state.noDisease && patch.stage in 1..crop.lastDiseaseStage && !isProtected(flowers, key, crop) && world.random.nextInt(DISEASE_DENOMINATOR) < Compost.diseaseChance(crop.disease, patch.compost, patch.watered)) {
+            if (diseases && !state.noDisease && !patch.paid && patch.stage in 1..crop.lastDiseaseStage && !isProtected(flowers, key, crop) && world.random.nextInt(DISEASE_DENOMINATOR) < Compost.diseaseChance(crop.disease, patch.compost, patch.watered)) {
                 patch.diseased = true
                 patch.watered = false
                 continue
