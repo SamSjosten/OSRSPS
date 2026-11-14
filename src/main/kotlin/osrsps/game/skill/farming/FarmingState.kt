@@ -14,7 +14,9 @@ import kotlinx.serialization.json.putJsonObject
  * One patch as one player has it. With no [crop] the patch holds [weeds] weed stages, from 0 (raked clear) to its
  * kind's [PatchKind.weeds] (overgrown, as every patch starts). With a crop it is at growth [stage], 0 when planted, and
  * fully grown at the crop's [Crop.stages], with [lives] harvests left before the patch is empty again (counted from
- * when it finishes growing). [watered]: watered since it last grew.
+ * when it finishes growing). [watered]: watered since it last grew. [compost]: the soil's treatment, 0 none, 1 compost,
+ * 2 supercompost, 3 ultracompost ([Compost]). [diseased] stops it growing until it is cured or dies; [dead] waits to
+ * be cleared.
  */
 class PatchState(
     var weeds: Int,
@@ -22,6 +24,9 @@ class PatchState(
     var stage: Int = 0,
     var watered: Boolean = false,
     var lives: Int = 0,
+    var compost: Int = 0,
+    var diseased: Boolean = false,
+    var dead: Boolean = false,
 ) {
     /**
      * The game tick the harvest under way started on, the last tick it ran, and whether a second click early in it made
@@ -31,18 +36,21 @@ class PatchState(
     var harvestTick: Long = -1
     var fastHarvest: Boolean = false
 
-    val grown: Boolean get() = crop.let { it != null && stage >= it.stages }
+    val grown: Boolean get() = crop.let { it != null && stage >= it.stages && !dead }
 
-    /** Growing, not yet ready to harvest. */
-    val growing: Boolean get() = crop.let { it != null && stage < it.stages }
+    /** Growing, not yet ready to harvest, and neither diseased nor dead. */
+    val growing: Boolean get() = crop.let { it != null && stage < it.stages && !diseased && !dead }
 
-    /** Back to bare soil, which grows weeds again from the next farming tick. */
+    /** Back to bare soil, which grows weeds again from the next farming tick; the compost goes with the crop. */
     fun clear() {
         crop = null
         stage = 0
         watered = false
         lives = 0
         weeds = 0
+        compost = 0
+        diseased = false
+        dead = false
     }
 
     /**
@@ -53,11 +61,14 @@ class PatchState(
      */
     fun value(kind: PatchKind): Int {
         val crop = crop ?: return kind.weeds - weeds
+        // Disease and death only come after the first stage, so stage 1 is the first of their values.
+        if (dead) return crop.dead[(stage - 1).coerceIn(0, crop.dead.size - 1)]
+        if (diseased) return crop.diseased[(stage - 1).coerceIn(0, crop.diseased.size - 1)]
         if (stage >= crop.stages) return crop.harvest + (kind.harvestValues - lives.coerceIn(1, kind.harvestValues))
         return if (watered && crop.watered.isNotEmpty()) crop.watered[stage] else crop.growing[stage]
     }
 
-    fun copy() = PatchState(weeds, crop, stage, watered, lives)
+    fun copy() = PatchState(weeds, crop, stage, watered, lives, compost, diseased, dead)
 
     companion object {
         fun overgrown(kind: PatchKind) = PatchState(kind.weeds)
@@ -122,7 +133,7 @@ object FarmingClock {
 
 /**
  * A [FarmingState] in a save: `{"tick": 5, "skipped": 0, "patches": {"falador_allotment_nw": {"crop": "potato",
- * "stage": 2, "watered": true}}}`. A patch or crop this server doesn't know (one from a newer build) is dropped with
+ * "stage": 2, "watered": true, "compost": 2}}}`. A patch or crop this server doesn't know (one from a newer build) is dropped with
  * the rest kept, as a lost patch is better than a refused login.
  */
 object FarmingSaves {
@@ -140,7 +151,10 @@ object FarmingSaves {
                         put("stage", patch.stage)
                         if (patch.watered) put("watered", true)
                         if (patch.lives > 0) put("lives", patch.lives)
+                        if (patch.diseased) put("diseased", true)
+                        if (patch.dead) put("dead", true)
                     }
+                    if (patch.compost > 0) put("compost", patch.compost)
                 }
             }
         }
@@ -154,11 +168,13 @@ object FarmingSaves {
         for ((key, value) in json["patches"]?.jsonObject.orEmpty()) {
             val patch = FarmingPatches.byKey(key) ?: continue
             val entry = value.jsonObject
+            val compost = entry["compost"]?.jsonPrimitive?.int ?: 0
+            require(compost in 0..Compost.ULTRA) { "Farming patch $key has compost $compost" }
             val cropKey = entry["crop"]?.jsonPrimitive?.content
             if (cropKey == null) {
                 val weeds = entry["weeds"]?.jsonPrimitive?.int ?: patch.kind.weeds
                 require(weeds in 0..patch.kind.weeds) { "Farming patch $key has $weeds weeds" }
-                state.patches[key] = PatchState(weeds)
+                state.patches[key] = PatchState(weeds, compost = compost)
                 continue
             }
             val crop = Crops.byKey(cropKey)?.takeIf { it.kind == patch.kind } ?: continue
@@ -168,7 +184,13 @@ object FarmingSaves {
             require(lives >= 0) { "Farming patch $key has $lives lives" }
             // A grown crop always has a life left; a save that says otherwise has lost it, so it gets the base back.
             val livesNow = if (stage >= crop.stages && lives == 0) patch.kind.lives else lives
-            state.patches[key] = PatchState(0, crop, stage, entry["watered"]?.jsonPrimitive?.boolean ?: false, livesNow)
+            val dead = entry["dead"]?.jsonPrimitive?.boolean ?: false
+            // A crop is only ill or dead after its first stage and before it is grown; a save that says otherwise is healthy.
+            val ill = stage in 1 until crop.stages
+            state.patches[key] = PatchState(
+                0, crop, stage, entry["watered"]?.jsonPrimitive?.boolean ?: false, livesNow, compost,
+                diseased = ill && !dead && (entry["diseased"]?.jsonPrimitive?.boolean ?: false), dead = ill && dead,
+            )
         }
         return state
     }

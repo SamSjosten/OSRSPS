@@ -2,6 +2,7 @@ package osrsps.game.skill.farming
 
 import osrsps.game.GameLines
 import osrsps.game.GroundObjs
+import osrsps.game.InvObj
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
@@ -36,14 +37,26 @@ object FarmingLines : Lines("farming", "Farming") {
     val EMPTY = line("empty", "the last crop harvested from a patch", "patch")
     val PICKED = line("picked", "a grown flower picked", "produce")
     val INVENTORY_FULL = line("inventory_full", "raking or harvesting with a full inventory")
+    val NEED_CURE = line("need_cure", "Cure on a diseased patch without a plant cure")
+    val NOT_DISEASED = line("not_diseased", "a plant cure used on a patch that isn't diseased")
+    val CURED = line("cured", "a diseased patch cured", "crop")
+    val CLEARED = line("cleared", "a dead patch cleared with a spade")
+    val COMPOSTED = line("composted", "compost put on a patch", "compost")
+    val ALREADY_COMPOSTED = line("already_composted", "compost used on a patch that already has some")
+    val COMPOST_NOT_NOW = line("compost_not_now", "compost used on a grown, diseased or dead crop")
 
     /** Inspect's message is made of these: what the patch is, then its soil, then what is in it. */
     val INSPECT = line("inspect", "Inspect: the first sentence", "patch")
     val SOIL_UNTREATED = line("soil_untreated", "Inspect: the soil sentence, no compost")
+    val SOIL_COMPOST = line("soil_compost", "Inspect: the soil sentence, compost")
+    val SOIL_SUPERCOMPOST = line("soil_supercompost", "Inspect: the soil sentence, supercompost")
+    val SOIL_ULTRACOMPOST = line("soil_ultracompost", "Inspect: the soil sentence, ultracompost")
     val STATE_WEEDS = line("state_weeds", "Inspect: a patch with weeds")
     val STATE_EMPTY = line("state_empty", "Inspect: a raked patch with nothing planted")
     val STATE_GROWING = line("state_growing", "Inspect: a crop growing", "crop")
     val STATE_GROWN = line("state_grown", "Inspect: a crop ready to harvest", "crop")
+    val STATE_DISEASED = line("state_diseased", "Inspect: a diseased crop", "crop")
+    val STATE_DEAD = line("state_dead", "Inspect: a dead crop", "crop")
 
     /** The patch kinds' names, for the lines above. */
     val PATCH_ALLOTMENT = line("patch_allotment", "an allotment's name in messages")
@@ -56,7 +69,9 @@ object FarmingLines : Lines("farming", "Farming") {
  * seed's page, read 2026-11-14): the growth clock ([FarmingClock]), each player's patches ([FarmingState], saved), the
  * patch varbits the client draws them from, and allotments, herbs and flowers: Rake, seeds used on a raked patch with a
  * seed dibber, watering (not herbs), growing on the clock, Harvest (allotments) or Pick (herbs) with a spade until the
- * patch's lives run out, and Pick on a flower, once, by hand.
+ * patch's lives run out, and Pick on a flower, once, by hand. Step 3: compost, supercompost and ultracompost on a
+ * patch (fewer diseases, more harvest lives), crops falling ill as they grow and dying if not cured with a plant cure,
+ * dead crops cleared with a spade, and a grown flower keeping the allotments beside it well.
  *
  * Every patch is a multiloc the map places, drawn by one of the `farming_transmit` varbits ([FarmingPatches]); each tick
  * the player's patches grow to the clock and the varbits of the area they stand in are set (only changes are sent).
@@ -71,12 +86,14 @@ object FarmingLines : Lines("farming", "Farming") {
  * click; a crop every 4 ticks while harvesting; raking and harvesting stopping with a full inventory; that the
  * offset is drawn from the account rather than at random ([offset]); herbs and flowers picked with picking_low; a
  * herb every 4 ticks as a crop is; a flower picked 2 ticks after the click; flower produce that doesn't fit falling
- * to the floor; magic secateurs' 10% on limpwurt as 10% more numbers to draw from (its page gives no formula).
+ * to the floor; magic secateurs' 10% on limpwurt as 10% more numbers to draw from (its page gives no formula);
+ * curing, composting and clearing landing 3 ticks after the click; a diseased crop always dying at its next disease
+ * tick; that compost can't go on a grown, diseased or dead crop.
  * Sourced too: clicking again two ticks into a harvest picks two crops at each roll from then (the Wiki's Herb patch,
  * "similar to allotments"); guessed that a click on the first or second tick counts (the page: "spam-clicking during
  * the first two ticks").
  */
-class Farming(private val world: World, private val clock: () -> Long) {
+class Farming(private val world: World, private val clock: () -> Long, private val diseases: Boolean = true) {
     fun register() {
         for (loc in FarmingPatches.LOCS) {
             world.handlers.onLoc(loc, OP_ACTION) { op -> action(op) }
@@ -132,8 +149,13 @@ class Farming(private val world: World, private val clock: () -> Long) {
         }
         val first = maxOf(state.lastTick + 1, now - FarmingClock.MAX_CATCH_UP + 1)
         state.lastTick = now
+        grow(state, first, now)
+    }
+
+    /** Runs farming ticks [first] to [last] on [state]'s patches. */
+    fun grow(state: FarmingState, first: Long, last: Long) {
         if (state.patches.isEmpty()) return
-        for (tick in first..now) growTick(state, tick)
+        for (tick in first..last) growTick(state, tick)
     }
 
     /** One farming tick for every patch the player has touched. */
@@ -149,11 +171,45 @@ class Farming(private val world: World, private val clock: () -> Long) {
                 if (patch.weeds >= kind.weeds) iterator.remove()
                 continue
             }
-            if (patch.stage >= crop.stages || tick % kind.cycleTicks != 0L) continue
+            if (patch.dead || patch.stage >= crop.stages) continue
+            if (patch.diseased) {
+                if (tick % kind.diseaseCycleTicks == 0L) {
+                    patch.diseased = false
+                    patch.dead = true
+                }
+                continue
+            }
+            if (tick % kind.cycleTicks != 0L) continue
+            if (diseases && patch.stage >= 1 && !isProtected(state, key, crop) && world.random.nextInt(DISEASE_DENOMINATOR) < Compost.diseaseChance(kind, patch.compost, patch.watered)) {
+                patch.diseased = true
+                patch.watered = false
+                continue
+            }
             patch.stage++
             patch.watered = false
-            if (patch.stage >= crop.stages) patch.lives = kind.lives
+            if (patch.stage >= crop.stages) patch.lives = kind.lives + if (kind.composting) patch.compost else 0
         }
+    }
+
+    /**
+     * Whether [crop] in patch [key] is kept well: an allotment crop with its flower fully grown in the flower patch of
+     * the same area ([Crops.protects]).
+     */
+    fun isProtected(state: FarmingState, key: String, crop: Crop): Boolean {
+        if (crop.kind != PatchKind.ALLOTMENT) return false
+        val flowerPatch = FarmingPatches.areaOf(key)?.patches?.firstOrNull { it.kind == PatchKind.FLOWER } ?: return false
+        val flower = state.patches[flowerPatch.key]?.takeIf { it.grown }?.crop ?: return false
+        return Crops.protects(flower, crop)
+    }
+
+    /** Makes the crop in [patch] diseased now (`::farmdisease`), if it is at a stage that can be; false if not. */
+    fun makeDiseased(player: Player, patch: FarmingPatch): Boolean {
+        val state = player.farming.patches[patch.key] ?: return false
+        if (!state.growing || state.stage < 1) return false
+        state.diseased = true
+        state.watered = false
+        refresh(player)
+        return true
     }
 
     /** Sets the varbits of the patches around [player]. */
@@ -171,6 +227,8 @@ class Farming(private val world: World, private val clock: () -> Long) {
         val patch = patchOf(op) ?: return
         val state = player.farming.patch(patch)
         when {
+            state.dead -> clearDead(patch, state)
+            state.diseased -> cure(state, null)
             state.crop == null && state.weeds > 0 -> rake(op, patch, state)
             state.grown && patch.kind == PatchKind.FLOWER -> pick(patch, state)
             state.grown -> harvest(op, patch, state)
@@ -305,7 +363,10 @@ class Farming(private val world: World, private val clock: () -> Long) {
         val obj = op.obj
         when {
             obj == RAKE -> if (state.crop == null && state.weeds > 0) rake(op.asAction(), patch, state) else nothing()
+            obj == SPADE && state.dead -> clearDead(patch, state)
             obj == SPADE -> if (state.grown && patch.kind.spade) harvest(op.asAction(), patch, state) else nothing()
+            obj == PLANT_CURE -> cure(state, op.sub)
+            obj in Compost.BUCKETS -> compost(op, state, Compost.BUCKETS.getValue(obj))
             obj in WATERING_CANS -> water(op, state)
             obj == WATERING_CAN_EMPTY -> world.message(player, FarmingLines.CAN_EMPTY)
             Crops.bySeed(obj) != null -> plant(op, patch, state, Crops.bySeed(obj)!!)
@@ -360,6 +421,52 @@ class Farming(private val world: World, private val clock: () -> Long) {
         refresh(player)
     }
 
+    /** A plant cure on a diseased crop: well again, growing on from where it stopped, and the vial left. */
+    private suspend fun ScriptContext.cure(state: PatchState, slot: Int?) {
+        val crop = state.crop
+        if (crop == null || !state.diseased) return world.message(player, FarmingLines.NOT_DISEASED)
+        if (player.inventory.count(PLANT_CURE) == 0L) return world.message(player, FarmingLines.NEED_CURE)
+        player.anim(ANIM_CURE)
+        delay(CURE_DELAY)
+        val at = slot?.takeIf { player.inventory[it]?.id == PLANT_CURE } ?: player.inventory.contents().firstOrNull { it.second.id == PLANT_CURE }?.first ?: -1
+        if (at < 0 || state.crop !== crop || !state.diseased) return
+        player.inventory[at] = InvObj(VIAL, 1)
+        state.diseased = false
+        world.message(player, FarmingLines.CURED, "crop" to world.objTypes[crop.produce]?.name?.lowercase().orEmpty())
+        refresh(player)
+    }
+
+    /**
+     * A dead crop dug up with a spade: the planting XP after all (the Wiki's Herb patch and Flower patch: given when a
+     * dead patch is cleared) and bare soil.
+     */
+    private suspend fun ScriptContext.clearDead(patch: FarmingPatch, state: PatchState) {
+        val crop = state.crop ?: return
+        if (player.inventory.count(SPADE) == 0L) return world.message(player, FarmingLines.NEED_SPADE)
+        player.anim(ANIM_DIG)
+        delay(CLEAR_DELAY)
+        if (state.crop !== crop || !state.dead) return
+        player.skills.addTenths(Skill.FARMING, crop.plantXpTenths)
+        state.clear()
+        world.message(player, FarmingLines.CLEARED)
+        refresh(player)
+    }
+
+    /** A bucket of compost on a patch with none: before planting or while the crop grows (the Wiki: any growth stage). */
+    private suspend fun ScriptContext.compost(op: Op, state: PatchState, level: Int) {
+        if (state.compost > 0) return world.message(player, FarmingLines.ALREADY_COMPOSTED)
+        if (state.crop == null && state.weeds > 0) return world.message(player, FarmingLines.NEEDS_WEEDING)
+        if (state.crop != null && !state.growing) return world.message(player, FarmingLines.COMPOST_NOT_NOW)
+        val bucket = player.inventory[op.sub]?.id ?: return
+        player.anim(ANIM_COMPOST)
+        delay(COMPOST_DELAY)
+        if (player.inventory[op.sub]?.id != bucket || state.compost > 0 || (state.crop == null && state.weeds > 0) || (state.crop != null && !state.growing)) return
+        player.inventory[op.sub] = InvObj(Compost.EMPTY_BUCKET, 1)
+        state.compost = level
+        player.skills.addTenths(Skill.FARMING, Compost.xpTenths(level))
+        world.message(player, FarmingLines.COMPOSTED, "compost" to world.objTypes[bucket]?.name?.lowercase().orEmpty())
+    }
+
     private fun ScriptContext.inspect(op: Op) {
         val patch = patchOf(op) ?: return
         val state = player.farming.patch(patch)
@@ -369,10 +476,18 @@ class Farming(private val world: World, private val clock: () -> Long) {
         val what = when {
             crop == null && state.weeds > 0 -> text[FarmingLines.STATE_WEEDS]
             crop == null -> text[FarmingLines.STATE_EMPTY]
+            state.dead -> text[FarmingLines.STATE_DEAD, "crop" to cropName]
+            state.diseased -> text[FarmingLines.STATE_DISEASED, "crop" to cropName]
             state.grown -> text[FarmingLines.STATE_GROWN, "crop" to cropName]
             else -> text[FarmingLines.STATE_GROWING, "crop" to cropName]
         }
-        val message = listOf(text[FarmingLines.INSPECT, "patch" to text[patchName(patch.kind)]], text[FarmingLines.SOIL_UNTREATED], what)
+        val soil = when (state.compost) {
+            Compost.COMPOST -> FarmingLines.SOIL_COMPOST
+            Compost.SUPER -> FarmingLines.SOIL_SUPERCOMPOST
+            Compost.ULTRA -> FarmingLines.SOIL_ULTRACOMPOST
+            else -> FarmingLines.SOIL_UNTREATED
+        }
+        val message = listOf(text[FarmingLines.INSPECT, "patch" to text[patchName(patch.kind)]], text[soil], what)
         player.message(message.joinToString(" "))
     }
 
@@ -395,6 +510,11 @@ class Farming(private val world: World, private val clock: () -> Long) {
         const val SPADE = 952
         const val WEEDS = 6055
         const val MAGIC_SECATEURS = 7409
+        const val PLANT_CURE = 6036
+        const val VIAL = 229
+
+        /** Disease chances are in 128ths (the Wiki's Disease page). */
+        const val DISEASE_DENOMINATOR = 128
 
         /** watering_can_0 (empty) and watering_can_1 to _8, by doses left: 5333 to 5340. */
         const val WATERING_CAN_EMPTY = 5331
@@ -411,6 +531,10 @@ class Farming(private val world: World, private val clock: () -> Long) {
         const val ANIM_WATER = 2293
         const val ANIM_DIG = 830
 
+        /** farming_plant_cure and farming_pour_water (the compost bucket's pour). */
+        const val ANIM_CURE = 2288
+        const val ANIM_COMPOST = 2283
+
         /** picking_low: herbs and flowers. */
         const val ANIM_PICK_LOW = 2282
 
@@ -422,6 +546,9 @@ class Farming(private val world: World, private val clock: () -> Long) {
         const val PLANT_DELAY = 3
         const val WATER_DELAY = 3
         const val PICK_DELAY = 2
+        const val CURE_DELAY = 3
+        const val CLEAR_DELAY = 3
+        const val COMPOST_DELAY = 3
 
         fun patchName(kind: PatchKind) = when (kind) {
             PatchKind.ALLOTMENT -> FarmingLines.PATCH_ALLOTMENT
