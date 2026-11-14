@@ -30,7 +30,7 @@ class FarmingDataTest {
         val flowerValues = flowers.flatMap { crop -> crop.growing + crop.watered + crop.harvest + crop.diseased + crop.dead }
         assertEquals(flowerValues.size, flowerValues.toSet().size, "a flower value drawn twice")
         assertTrue(flowerValues.all { it in 8..255 }, "0 to 7 are the weed stages")
-        assertEquals(29, Crops.ALL.size)
+        assertEquals(34, Crops.ALL.size)
         assertEquals(Crops.ALL.size, Crops.ALL.map { it.seed }.toSet().size)
     }
 
@@ -183,6 +183,54 @@ class FarmingDataTest {
             s.patches.getValue(FarmingPatches.FALADOR_NW.key).diseased && s.patches.getValue(FarmingPatches.FALADOR_SE.key).diseased
         }
         assertTrue(illSeen, "both allotments roll unprotected on the flower's own tick")
+    }
+
+    @Test
+    fun `trees draw as the cache numbers them, fall ill at their own rates and dig up as many roots as the Wiki says`() {
+        val trees = Crops.ALL.filter { it.kind == PatchKind.TREE }
+        assertEquals(listOf(4, 6, 8, 10, 12), trees.map { it.stages })
+        val values = trees.flatMap { crop -> crop.growing + (0..2).map { crop.harvest + it } + crop.diseased + crop.dead }
+        assertEquals(values.size, values.toSet().size, "a tree value drawn twice")
+        assertTrue(values.all { it in 8..189 }, "0 to 7 are the weed stages")
+        // Oak: growing 8 to 11, Check-health 12, Chop down 13, stump 14 (the cache's tree multiloc).
+        val oak = PatchState(0, Crops.OAK, 2)
+        assertEquals(10, oak.value(PatchKind.TREE))
+        oak.stage = 4
+        assertEquals(12, oak.value(PatchKind.TREE))
+        oak.checked = true
+        assertEquals(13, oak.value(PatchKind.TREE))
+        oak.stump = true
+        assertEquals(14, oak.value(PatchKind.TREE))
+        assertEquals(62, PatchState(0, Crops.MAGIC, 12, checked = true, stump = true).value(PatchKind.TREE))
+        // The Disease page's maple and magic rows.
+        assertEquals(listOf(13, 7, 3, 2), (0..3).map { Compost.diseaseChance(Crops.MAPLE.disease, it, false) })
+        assertEquals(listOf(9, 5, 2, 1), (0..3).map { Compost.diseaseChance(Crops.MAGIC.disease, it, false) })
+        // Roots: one at the tree's level, one more every 8 levels, four at most (the maple and yew pages).
+        assertEquals(listOf(1, 1, 2, 3, 4, 4), listOf(45, 52, 53, 61, 69, 99).map { Trees.roots(Crops.MAPLE, it) })
+        assertEquals(listOf(1, 2, 3, 4), listOf(60, 68, 76, 84).map { Trees.roots(Crops.YEW, it) })
+        // A yew's first stage comes on any 5-minute tick, the rest every eighth; an oak every eighth from the start.
+        val farming = Farming(osrsps.game.World(IntArray(0), osrsps.map.CollisionMap()), clock = { 0L }, diseases = false)
+        val state = FarmingState()
+        state.patches[FarmingPatches.LUMBRIDGE_TREE.key] = PatchState(0, Crops.YEW)
+        state.patches[FarmingPatches.VARROCK_TREE.key] = PatchState(0, Crops.OAK)
+        farming.grow(state, 1, 1)
+        assertEquals(1, state.patches.getValue(FarmingPatches.LUMBRIDGE_TREE.key).stage)
+        assertEquals(0, state.patches.getValue(FarmingPatches.VARROCK_TREE.key).stage)
+        farming.grow(state, 2, 72)
+        assertEquals(10, state.patches.getValue(FarmingPatches.LUMBRIDGE_TREE.key).stage, "5 + 9 x 40 minutes")
+        assertEquals(4, state.patches.getValue(FarmingPatches.VARROCK_TREE.key).stage)
+        // A stump grows back at the tree's next tick.
+        val varrock = state.patches.getValue(FarmingPatches.VARROCK_TREE.key)
+        varrock.checked = true
+        varrock.stump = true
+        farming.grow(state, 73, 79)
+        assertTrue(varrock.stump)
+        farming.grow(state, 80, 80)
+        assertTrue(!varrock.stump && varrock.checked)
+        // Checked and stump survive a save.
+        varrock.stump = true
+        val back = FarmingSaves.fromJson(FarmingSaves.toJson(state))
+        assertEquals(14, back.value(FarmingPatches.VARROCK_TREE))
     }
 
     @Test

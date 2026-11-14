@@ -229,6 +229,11 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   (the bucket back), potatoes planted and grown a stage, made ill with `::farmdisease` and cured with a plant cure (the
   vial back), made ill again and left to die over `::farmtick 4`, and cleared with a spade, read off varbit 4771, with
   `::keys on` and `::reset` at the end. Needs 0.8.0 for `assertVarbit`.
+- `farming-tree.json`: Farming step 4: with `::scenario farming` and `::tele` to Lumbridge's tree patch, a plant pot
+  filled, an acorn planted in it, watered and grown into a sapling with `::farmtick 1`, the sapling planted with a
+  spade, grown with `::farmtick 32`, checked, chopped to its stump (Woodcutting 99, the backpack emptied first) and the
+  stump dug up for four roots; then another sapling made ill with `::farmdisease` and pruned with secateurs, read off
+  varbit 4771, with `::keys on` and `::reset` at the end. Needs 0.8.0 for `assertVarbit`.
 - `farms-roads.json`: Misthalin piece 7 step 5: from Lumbridge to Varrock by `::tele`, Fayeth and a Tool Leprechaun
   by the castle, Seth Groats, Vasquen, Dreven, Tarquin at the canoe station, Rat Burgiss on the road and Treznor by the
   palace talked to, and the gardeners' and leprechauns' Farming options refused (with `::keys on`; the spawn counts are

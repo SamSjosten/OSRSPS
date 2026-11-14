@@ -16,7 +16,8 @@ import kotlinx.serialization.json.putJsonObject
  * fully grown at the crop's [Crop.stages], with [lives] harvests left before the patch is empty again (counted from
  * when it finishes growing). [watered]: watered since it last grew. [compost]: the soil's treatment, 0 none, 1 compost,
  * 2 supercompost, 3 ultracompost ([Compost]). [diseased] stops it growing until it is cured or dies; [dead] waits to
- * be cleared.
+ * be cleared. A grown tree is [checked] once (Check-health) before it can be chopped, and is a [stump] once chopped
+ * down until it grows back or is dug up.
  */
 class PatchState(
     var weeds: Int,
@@ -27,6 +28,8 @@ class PatchState(
     var compost: Int = 0,
     var diseased: Boolean = false,
     var dead: Boolean = false,
+    var checked: Boolean = false,
+    var stump: Boolean = false,
 ) {
     /**
      * The game tick the harvest under way started on, the last tick it ran, and whether a second click early in it made
@@ -35,6 +38,9 @@ class PatchState(
     var harvestStart: Long = -1
     var harvestTick: Long = -1
     var fastHarvest: Boolean = false
+
+    /** The repeating action under way on the patch ([Farming.DO_RAKE] and on), not saved: one that finds it changed ends. */
+    var doing: Int = 0
 
     val grown: Boolean get() = crop.let { it != null && stage >= it.stages && !dead }
 
@@ -51,6 +57,8 @@ class PatchState(
         compost = 0
         diseased = false
         dead = false
+        checked = false
+        stump = false
     }
 
     /**
@@ -64,11 +72,13 @@ class PatchState(
         // Disease and death only come after the first stage, so stage 1 is the first of their values.
         if (dead) return crop.dead[(stage - 1).coerceIn(0, crop.dead.size - 1)]
         if (diseased) return crop.diseased[(stage - 1).coerceIn(0, crop.diseased.size - 1)]
+        // A grown tree: Check-health, then the tree to chop, then its stump (the cache's tree multiloc).
+        if (stage >= crop.stages && kind == PatchKind.TREE) return crop.harvest + if (stump) 2 else if (checked) 1 else 0
         if (stage >= crop.stages) return crop.harvest + (kind.harvestValues - lives.coerceIn(1, kind.harvestValues))
         return if (watered && crop.watered.isNotEmpty()) crop.watered[stage] else crop.growing[stage]
     }
 
-    fun copy() = PatchState(weeds, crop, stage, watered, lives, compost, diseased, dead)
+    fun copy() = PatchState(weeds, crop, stage, watered, lives, compost, diseased, dead, checked, stump)
 
     companion object {
         fun overgrown(kind: PatchKind) = PatchState(kind.weeds)
@@ -153,6 +163,8 @@ object FarmingSaves {
                         if (patch.lives > 0) put("lives", patch.lives)
                         if (patch.diseased) put("diseased", true)
                         if (patch.dead) put("dead", true)
+                        if (patch.checked) put("checked", true)
+                        if (patch.stump) put("stump", true)
                     }
                     if (patch.compost > 0) put("compost", patch.compost)
                 }
@@ -187,9 +199,13 @@ object FarmingSaves {
             val dead = entry["dead"]?.jsonPrimitive?.boolean ?: false
             // A crop is only ill or dead after its first stage and before it is grown; a save that says otherwise is healthy.
             val ill = stage in 1 until crop.stages
+            val grownTree = crop.kind == PatchKind.TREE && stage >= crop.stages
+            val checked = entry["checked"]?.jsonPrimitive?.boolean ?: false
             state.patches[key] = PatchState(
                 0, crop, stage, entry["watered"]?.jsonPrimitive?.boolean ?: false, livesNow, compost,
                 diseased = ill && !dead && (entry["diseased"]?.jsonPrimitive?.boolean ?: false), dead = ill && dead,
+                // Only a grown tree is checked, and only a checked one can be a stump.
+                checked = grownTree && checked, stump = grownTree && checked && (entry["stump"]?.jsonPrimitive?.boolean ?: false),
             )
         }
         return state

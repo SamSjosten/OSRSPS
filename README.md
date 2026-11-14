@@ -441,7 +441,7 @@ dialogue file. Trees outside Misthalin are where live has them and reached by ::
 | Teak (35, 85 XP, timer 50, back in 15), mahogany (50, 125 XP, 100, 14), arctic pine (54, 40 XP, 140, 14), redwood sections (90, 380 XP, 440, 199), with each chart's pair per axe (`WoodcuttingG2Test`) | OSRS Wiki tree pages (read 2026-11-10) |
 | Their stumps: teaktree to teak_stump and the like, redwoodtree_l/_r to their _cut sections | 242 gamevals, by name |
 | Redwoods give no seed, ring or egg nests (only clue nests, which are out) | OSRS Wiki, Redwood tree |
-| Out: the Woodcutting Guild (its +7, doors and the redwoods' ladders), the Hardwood Grove's trading sticks, Etceteria's trees giving no logs, Farming's patch trees | out of scope; later pieces |
+| Out: the Woodcutting Guild (its +7, doors and the redwoods' ladders), the Hardwood Grove's trading sticks, Etceteria's trees giving no logs (Farming's patch trees are Farming's, with Woodcutting's rates) | out of scope; later pieces |
 
 The River Lum's canoe stations (`game/skill/Canoes.kt`, words under `canoe.*`): Lumbridge, the Champions' Guild,
 Barbarian Village, Edgeville and the Ferox Enclave. Each is a multiloc on a varbit of its own, so every player has their
@@ -927,8 +927,8 @@ market where the cache map puts them; stealing works as at Draynor's (a guard or
 
 ### Farming
 
-Farming steps 1 to 3 (`game/skill/farming/`): the growth clock, each player's patches, allotments, herbs and flowers,
-compost and disease. Every patch is a
+Farming steps 1 to 4 (`game/skill/farming/`): the growth clock, each player's patches, allotments, herbs and flowers,
+compost and disease, and trees. Every patch is a
 multiloc the map already places, drawn by one of the cache's `farming_transmit_a` to `e` varbits; each tick the
 player's patches grow to the clock and the varbits of the area they stand in are set, the same varbits live sends for
 the same map squares, so RuneLite's Time Tracking farming panel reads them. Crops grow on live's real-time farming
@@ -954,6 +954,17 @@ cure used on it) makes it well and leaves the vial, and one left alone dies at i
 A dead crop is cleared with a spade, for the planting XP after all. A fully grown flower keeps the allotments beside it
 well: marigolds potatoes, onions and tomatoes, rosemary cabbages, nasturtiums watermelons, a white lily everything.
 
+Trees grow in the tree patches west of Lumbridge castle (`::tele 3193 3229`), in Varrock palace's garden, in Falador
+park and in Taverley. An empty plant pot used on a bare patch is filled with soil (no trowel needed); a tree seed
+used on the filled pot (with the trowel and the tree's Farming level) makes a seedling, and a watered seedling grows
+into a sapling at the next farming tick, in the backpack or the bank. The sapling is planted in a raked tree patch
+with a spade, for the planting XP at once and the pot back. Trees grow every 40 minutes (oak 4 stages, willow 6, maple
+8, yew 10 with a 5-minute first one, magic 12), and a grown tree is checked once (Check-health) for most of its XP. It
+is then chopped as a wild tree of its kind is (Woodcutting's level, rates, XP and bird nests) until it falls at 1 log
+in 8, and its stump is dug up with a spade for its roots (one at the tree's level and one more every 8 levels, four at
+most), a dig that can fail below level 99; a stump left alone grows back. A diseased tree is pruned with secateurs, 3
+tries in 4 working, for a leaf; one left ill dies and is cleared with a spade.
+
 | Farming behaviour | Source |
 |-------------------|--------|
 | Patch locs, which varbit draws each, and which value draws which stage (weeds, growing, watered, grown, diseased, dead) | cache 242 (2026-11-11), the patch multilocs and the names of the locs they show |
@@ -967,12 +978,15 @@ well: marigolds potatoes, onions and tomatoes, rosemary cabbages, nasturtiums wa
 | Compost's XP and extra lives (Mod Ash: 4, 5, 6), its disease reduction rounded to a 128th, herbs' 27/128, disease only past the first stage and never when grown, dying at the next slower tick, the planting XP on clearing a dead patch; which flower protects which crop | OSRS Wiki, Compost, Supercompost, Ultracompost, Disease, Herb patch, Flower patch, Allotment patch |
 | Allotments and flowers falling ill as often as herbs; watering halving the chance; curing, composting and clearing 3 ticks after the click; compost refused on a grown, diseased or dead crop | guessed |
 | Huasca's chance to keep a life (58 of 256 at level 1, 80 at 99; the Wiki gives none); herbs and flowers picked with picking_low, a herb every 4 ticks, a flower 2 ticks after Pick; flower produce that doesn't fit dropping to the floor; magic secateurs' help on limpwurt as 10% more numbers to draw from; a second click on the first or second tick of a harvest counting | guessed |
-| Not built yet: the scarecrow, digging up a healthy crop, trees, fruit trees, hops, bushes, compost bins, the Tool Leprechauns and the gardeners' payments; Guide (op4) | next steps |
+| Tree levels, planting and check-health XP, 40-minute growth and stages (a yew's first in 5 minutes); seedlings in a plant pot with a trowel, growing to saplings within 5 minutes when watered, banked too; saplings planted with a spade; 1 log in 8 felling a farmed tree; roots by Farming level; stumps that can fail to dig below 99 and never at 99; pruning with secateurs at 3 in 4; maple's 13/128 and magic's 9/128 chances to fall ill | OSRS Wiki, Tree patch, Seedling, each tree's page, Disease (Mod Lenny), Roots (Mod Kieren) |
+| Oak 17/128, willow 15 and yew 11 to fall ill; a stump growing back at the tree's next 40-minute tick; digging up a stump 129/256 at level 1; a try at a stump or a prune every 4 ticks; one leaf a prune; a pot filled and a sapling planted 3 ticks after the click; Check-health at once, with no animation; no XP for clearing a dead tree; farming_filling_plantpot, farming_trowel_digging and pruning_mid as the animations | guessed |
+| Not built yet: the scarecrow, digging up a healthy crop, the Gnome Stronghold's tree patch, fruit trees, hops, bushes, compost bins, the Tool Leprechauns and the gardeners' payments; Guide (op4) | next steps |
 
 `::scenario farming` stands you beside the Falador allotments with 99 Farming, the tools, 30 of every allotment
-seed and some herb and flower seeds (the rest in the bank). `::farmtick [n]` moves your own farming clock on n five-minute ticks and grows your patches to it.
+seed and some herb and flower seeds (the rest in the bank, with a trowel, secateurs, a rune axe, plant pots, tree seeds
+and oak saplings for the tree patches). `::farmtick [n]` moves your own farming clock on n five-minute ticks and grows your patches to it.
 
-Check: `./gradlew test --tests 'osrsps.game.skill.farming.*' --tests 'osrsps.testclient.HeadlessFarmingTest'`.
+Check: `./gradlew test --tests 'osrsps.game.skill.farming.*' --tests 'osrsps.testclient.HeadlessFarmingTest' --tests 'osrsps.testclient.HeadlessFarmingTreeTest'`.
 
 ## Items and inventory
 
