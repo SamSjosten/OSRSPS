@@ -186,6 +186,31 @@ class HeadlessFarmingTest {
         }
     }
 
+    @Test
+    fun `a paused farming clock grows crops only by farmtick, and catches up when it runs again`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.toFalador()
+                client.give(RAKE)
+                client.give(DIBBER)
+                client.locOp(ALLOTMENT, 3052, PATCH_Z, 1)
+                client.awaitPatch(3)
+                client.give(POTATO_SEED, 3)
+                client.use(POTATO_SEED)
+                client.awaitPatch(6)
+                client.command("farmclock pause")
+                client.seen("Farming clock paused: crops grow only by ::farmtick")
+                // An hour of the real clock grows nothing while it is held; ::farmtick still does.
+                clock.addAndGet(60 * 60_000L)
+                client.command("farmtick 2")
+                client.awaitPatch(7)
+                client.command("farmclock run")
+                // Run again, the crop catches up on the hour: grown.
+                client.awaitPatch(10)
+            }
+        }
+    }
+
     private fun <T : Any> waitFor(what: String, timeoutMillis: Long = 10_000, value: () -> T?): T {
         val end = System.currentTimeMillis() + timeoutMillis
         while (System.currentTimeMillis() < end) {

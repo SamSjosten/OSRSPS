@@ -106,6 +106,9 @@ private fun CommandContext.start(world: World, scenario: Scenario) {
     for ((slot, obj) in loadout.bank) player.bank[slot] = obj
     // A scenario starts with no Grand Exchange offers or buy limits used; ::reset puts them back.
     player.ge.clear()
+    // Nor any farming: every patch overgrown and the clock running, so a script finds what it expects; ::reset puts
+    // the player's own patches back.
+    player.farming.replaceWith(osrsps.game.skill.farming.FarmingState())
     val tabs = world.bankScreen.tabs(player)
     loadout.bankTabs.forEachIndexed { i, size -> tabs[i + 1] = size }
     for ((varp, value) in scenario.varps) vars[varp] = value

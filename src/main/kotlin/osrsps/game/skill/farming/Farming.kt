@@ -97,8 +97,20 @@ class Farming(private val world: World, private val clock: () -> Long) {
      */
     fun offset(player: Player): Int = Math.floorMod(player.saveKey.hashCode(), OFFSETS)
 
-    /** The farming tick [player] is on now. */
-    fun tickOf(player: Player): Long = FarmingClock.tick(clock(), offset(player), player.farming.skipped)
+    /** The farming tick [player] is on now: the real one, or where `::farmclock pause` held it, plus `::farmtick`'s. */
+    fun tickOf(player: Player): Long = (player.farming.pausedAt ?: realTick(player)) + player.farming.skipped
+
+    private fun realTick(player: Player): Long = FarmingClock.tick(clock(), offset(player), 0)
+
+    /**
+     * Holds [player]'s farming clock where it is (`::farmclock pause`), so only `::farmtick` grows their crops, as a
+     * test that checks each stage needs; [paused] false runs it again, the crops catching up on the time it was held.
+     */
+    fun pause(player: Player, paused: Boolean) {
+        grow(player)
+        player.farming.pausedAt = if (paused) player.farming.pausedAt ?: realTick(player) else null
+        process(player)
+    }
 
     private fun grow(player: Player) {
         val state = player.farming

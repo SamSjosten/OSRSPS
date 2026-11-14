@@ -333,6 +333,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::addxp skill xp` | Adds XP, one decimal place allowed (`::addxp cooking 17.5`); levelling raises the current level too. Exact: the XP rate doesn't apply |
 | `::xprate [rate\|restore]` | Shows or sets the server-wide XP rate, 0.1 to 1000 in tenths (`::xprate 5`, `::xprate 2.5`); every XP drop is multiplied by it, rounded down to a tenth. Kept in data/xp-rate.txt (outside git), so it lasts across restarts and deploys. `restore` goes back to the rate before the last change. 1 is live's |
 | `::farmtick [ticks]` | Moves your own farming clock on that many five-minute farming ticks (1 by default, up to 4,096) and grows your patches to it: allotments grow every second tick. For good: your crops keep growing from there |
+| `::farmclock <pause\|run>` | Holds your farming clock where it is, so your crops grow only by `::farmtick` (for tests that check each stage), or runs it again, the crops catching up on the time it was held; a login runs it again too |
 | `::boost skill level` | Sets only the current (boosted or drained) level, 0 to 255. `::boost hp 1` for 1 hitpoint |
 | `::stats` | Lists the boosted and drained stats as current/base, and the ticks until each cycle next moves them a level back (boosts on the combat, other and Hitpoints cycles, drains on the restore cycle) |
 | `::statcycles` | Starts the boost and drain cycles again, so the next levels move a minute from now; for tests that read boosts and mustn't have one wear off part way |
@@ -916,7 +917,8 @@ multiloc the map already places, drawn by one of the cache's `farming_transmit_a
 player's patches grow to the clock and the varbits of the area they stand in are set, the same varbits live sends for
 the same map squares, so RuneLite's Time Tracking farming panel reads them. Crops grow on live's real-time farming
 ticks (every 5 minutes, allotments every second one), shifted by a fixed offset per account, and keep growing while
-the player is logged out. The patches are saved with the player (`farming` in the save) and come back with `::reset`.
+the player is logged out. The patches are saved with the player (`farming` in the save); a `::scenario` starts with every patch overgrown,
+and `::reset` puts the player's own back.
 
 Built so far: the two allotments south of Falador (reach them with `::tele 3054 3305`). Rake clears a weed stage at a
 time for 4 XP a weed; three seeds and a seed dibber plant a raked patch; a watering can waters a growing crop until

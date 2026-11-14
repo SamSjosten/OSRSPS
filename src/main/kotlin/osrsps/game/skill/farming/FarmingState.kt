@@ -70,6 +70,12 @@ class FarmingState {
     /** Farming ticks `::farmtick` has added, on top of the clock. */
     var skipped: Long = 0
 
+    /**
+     * The real farming tick `::farmclock pause` held the clock at, or null while it runs. Not saved: a login runs the
+     * clock again, and the crops catch up on the time it was held.
+     */
+    var pausedAt: Long? = null
+
     fun patch(patch: FarmingPatch): PatchState = patches.getOrPut(patch.key) { PatchState.overgrown(patch.kind) }
 
     /** The value [patch]'s varbit shows, without making an entry for an untouched patch. */
@@ -81,6 +87,7 @@ class FarmingState {
         for ((key, state) in other.patches) patches[key] = state.copy()
         lastTick = other.lastTick
         skipped = other.skipped
+        pausedAt = other.pausedAt
     }
 
     /** Whether nothing has happened: nothing worth saving. */
