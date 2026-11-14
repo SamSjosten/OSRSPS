@@ -60,6 +60,10 @@ object MuseumClerkLines : Lines("museum_clerk", "Transcript:Information clerk") 
     val TIMELINE_ABOUT = line("timeline_about", "option 3: her first line")
     val TIMELINE_HELP_1 = line("timeline_help_1", "option 3, not yet contributed: the first of two boxes")
     val TIMELINE_HELP_2 = line("timeline_help_2", "option 3, not yet contributed: the second box")
+    val TIMELINE_PARTIAL_1 = line("timeline_partial_1", "option 3, contributed to the Timeline exhibit: the first of two boxes")
+    val TIMELINE_PARTIAL_2 = line("timeline_partial_2", "option 3, the same: the second box")
+    val TIMELINE_DONE_1 = line("timeline_done_1", "option 3, completed the Timeline exhibit: the first of two boxes")
+    val TIMELINE_DONE_2 = line("timeline_done_2", "option 3, the same: the second box")
     val NUMBERS = line("numbers", "option 3: the player's thanks and question about the display numbers")
     val NUMBERS_1 = line("numbers_1", "option 3: her answer, the first of two boxes")
     val NUMBERS_2 = line("numbers_2", "option 3: the second box")
@@ -108,12 +112,11 @@ object MuseumGuardLines : Lines("museum_guard", "Transcript:Museum guard") {
  * (`vm_barrier_guard_gate` 24536) lets the player in through its guard.
  *
  * Every quest counts complete (Bone Voyage and The Dig Site included), so the curator, the clerk and the guards say what
- * they say to such a player; the clerk's Dig Site, Natural History and Kudos answers and her rewards follow the player's Kudos
+ * they say to such a player; the clerk's Dig Site, Timeline, Natural History and Kudos answers and her rewards follow the player's Kudos
  * ([Kudos]). From the Wiki's transcripts; the stairs' landing tiles and every
  * expression are guessed (each stair puts the player on the tile in front of the other one, from the 241 map's walls).
  * The gate guard asks on the first talk or Open after login, as the Wiki has it; guessed: after that he lets the
- * player through without a word, and the player walks out of the cleaning area through the gate freely. Left out: the displays' Study (their interfaces), the clerk's
- * Timeline answers past the first (its exhibit gives no Kudos yet), the curator's relics,
+ * player through without a word, and the player walks out of the cleaning area through the gate freely. Left out: the displays' Study (their interfaces), the curator's relics,
  * certificates and medallion trade, and his Pickpocket.
  */
 object VarrockMuseum {
@@ -225,8 +228,13 @@ object VarrockMuseum {
                 3 -> {
                     chatPlayer(ChatAnim.QUIZ, TIMELINE_SAID)
                     chatNpc(ChatAnim.HAPPY, TIMELINE_ABOUT)
-                    chatNpc(ChatAnim.HAPPY, TIMELINE_HELP_1)
-                    chatNpc(ChatAnim.HAPPY, TIMELINE_HELP_2)
+                    val (first, second) = when (Kudos.done(player, Kudos.TIMELINE)) {
+                        0 -> TIMELINE_HELP_1 to TIMELINE_HELP_2
+                        Kudos.TIMELINE.size -> TIMELINE_DONE_1 to TIMELINE_DONE_2
+                        else -> TIMELINE_PARTIAL_1 to TIMELINE_PARTIAL_2
+                    }
+                    chatNpc(ChatAnim.HAPPY, first)
+                    chatNpc(ChatAnim.HAPPY, second)
                     chatPlayer(ChatAnim.QUIZ, NUMBERS)
                     chatNpc(ChatAnim.NEUTRAL, NUMBERS_1)
                     chatNpc(ChatAnim.NEUTRAL, NUMBERS_2)

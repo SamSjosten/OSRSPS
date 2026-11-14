@@ -167,6 +167,11 @@ class ScenarioTest {
         // On the Natural History floor, by Orlando (npc-spawns/varrock.json, 1759, 4955).
         assertTrue(quiz.x in 1756..1762 && quiz.z in 4953..4958 && quiz.level == 0)
         assertEquals(setOf(50), quiz.skills.values.map { it.level }.toSet())
+        val timeline = scenarios["museum-timeline"]!!
+        // Every timeline display clear (vm_staff_of_armadyl to vm_runes, vm_dov, vm_soa_vis), the others done at 78 Kudos.
+        assertEquals(((3650..3661) + listOf(9678, 9679)).associateWith { 0 }, timeline.varbits.filterValues { it == 0 })
+        assertEquals(78, timeline.varbits[3637])
+        assertTrue(timeline.inventory.isEmpty() && timeline.level == 1)
         assertTrue(bare.equipment.isEmpty() && bare.inventory.isEmpty() && bare.skills.isEmpty())
         val tabs = scenarios["lumbridge-bank-tabs"]!!
         assertEquals(listOf(0, 1, 1), tabs.bank.map { it.tab })
