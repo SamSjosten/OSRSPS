@@ -1,0 +1,45 @@
+{
+ "name": "Gathering 2 step G3: the Lumbridge canoe station's tree chopped, a stable dugout shaped, floated and paddled to the Champions' Guild; a waka's Ferox Enclave refused (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::setlevel woodcutting 99"},
+  {"step": "command", "text": "::item 1359", "comment": "a rune axe; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::tele 3243 3234 0", "expectMessage": "Teleported to 3243, 3234, 0", "comment": "south of the Lumbridge station (3241, 3235, 5 by 2; approached from the south); the standing tile is not yet checked on the VM"},
+
+  {"step": "locOption", "loc": "Canoe Station", "option": "Chop-down", "x": 3241, "y": 3235},
+  {"step": "assertVarbit", "id": 1839, "value": 10, "timeoutMs": 20000, "comment": "a rune axe always fells it (guessed); 9 while it falls"},
+  {"step": "locOption", "loc": "Canoe Station", "option": "Shape-Canoe", "x": 3241, "y": 3235},
+  {"step": "assertInterface", "interfaceId": 416},
+  {"step": "clickWidget", "interfaceId": 416, "component": 12, "slot": 0, "op": 1, "comment": "Make Stable dugout canoe"},
+  {"step": "assertVarbit", "id": 1839, "value": 3, "timeoutMs": 20000, "comment": "a rune axe at 99 always shapes"},
+  {"step": "locOption", "loc": "Canoe Station", "option": "Float Canoe", "x": 3241, "y": 3235},
+  {"step": "assertVarbit", "id": 1839, "value": 13, "timeoutMs": 10000, "comment": "7 while it is pushed in"},
+  {"step": "locOption", "loc": "Canoe Station", "option": "Paddle Canoe", "x": 3241, "y": 3235},
+  {"step": "assertInterface", "interfaceId": 953},
+  {"step": "clickWidget", "interfaceId": 953, "component": 12, "op": 1, "comment": "Travel to Champions Guild"},
+  {"step": "assertLocation", "x": 3199, "y": 3344, "plane": 0, "timeoutMs": 20000, "comment": "the landing tile is guessed"},
+  {"step": "assertMessage", "contains": "canoe.arrive_champions"},
+  {"step": "assertMessage", "contains": "canoe.sinks"},
+  {"step": "assertVarbit", "id": 1839, "value": 0, "comment": "the Lumbridge station is a tree again"},
+
+  {"step": "command", "text": "::tele 3243 3234 0", "expectMessage": "Teleported to 3243, 3234, 0"},
+  {"step": "locOption", "loc": "Canoe Station", "option": "Chop-down", "x": 3241, "y": 3235},
+  {"step": "assertVarbit", "id": 1839, "value": 10, "timeoutMs": 20000},
+  {"step": "locOption", "loc": "Canoe Station", "option": "Shape-Canoe", "x": 3241, "y": 3235},
+  {"step": "assertInterface", "interfaceId": 416},
+  {"step": "clickWidget", "interfaceId": 416, "component": 11, "slot": 0, "op": 1, "comment": "Make Waka canoe"},
+  {"step": "assertVarbit", "id": 1839, "value": 4, "timeoutMs": 20000},
+  {"step": "locOption", "loc": "Canoe Station", "option": "Float Canoe", "x": 3241, "y": 3235},
+  {"step": "assertVarbit", "id": 1839, "value": 14, "timeoutMs": 10000},
+  {"step": "locOption", "loc": "Canoe Station", "option": "Paddle Canoe", "x": 3241, "y": 3235},
+  {"step": "assertInterface", "interfaceId": 953},
+  {"step": "clickWidget", "interfaceId": 953, "component": 27, "op": 1, "comment": "Travel to Ferox Enclave"},
+  {"step": "assertMessage", "contains": "canoe.wilderness", "comment": "ours, until the Wilderness is built"},
+  {"step": "assertVarbit", "id": 1839, "value": 14, "comment": "the waka still afloat"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

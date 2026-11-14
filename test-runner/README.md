@@ -284,8 +284,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   Richard's talk into his shop for a cape bought and sold back, then a yew chopped, a bronze bar smelted at the furnace
   and two shrimps cooked on Evil Dave's stove.
 - `edgeville-people.json`: Edgeville step 3a (with `::keys on`): Doris's talk, the Basement of Doom's trapdoor opened,
-  shut, opened and gone down, Evil Dave's talk, the cellar stairs back up, Lucien's and Hari's talk, and the refusals
-  on the canoe station, fairy ring, Wilderness lever, Soul Wars portal and Death's Domain.
+  shut, opened and gone down, Evil Dave's talk, the cellar stairs back up, Lucien's and Hari's talk, the canoe station's level check,
+  and the refusals on the fairy ring, Wilderness lever, Soul Wars portal and Death's Domain.
 - `edgeville-outlaws.json`: Edgeville step 3b: an outlaw in the camp attacked (a punch and a hitsplat), killed with
   `::kill` and leaving bones.
 - `edgeville-monastery.json`: Edgeville step 4 (with `::keys on`): the ladder's refusal and the Abbot's join menu at

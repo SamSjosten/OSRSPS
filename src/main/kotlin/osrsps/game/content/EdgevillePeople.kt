@@ -127,7 +127,6 @@ object EdgevilleClosedLines : Lines("edgeville_closed", "Edgeville") {
     val FAIRY_RING = line("fairy_ring", "any option on the fairy ring: ours, the fairy rings aren't built yet")
     val SOUL_WARS = line("soul_wars", "Enter on the Soul Wars portal: ours, Soul Wars isn't built yet")
     val DEATHS_DOMAIN = line("deaths_domain", "Enter on Death's Domain: ours, Death's Domain isn't built yet")
-    val CANOE = line("canoe", "the canoe station: ours, canoes aren't built yet")
 }
 
 /**
@@ -176,7 +175,6 @@ object EdgevillePeople {
     const val FAIRY_RING = 29495
     const val SOUL_WARS_PORTAL = 40474
     const val DEATHS_DOMAIN = 39547
-    const val CANOE_STATION = 12166
 
     internal suspend fun Dialogue.doris() = with(DorisLines) {
         chatNpc(ChatAnim.HAPPY, GREETING)
@@ -421,6 +419,5 @@ fun registerEdgevillePeople(world: World) {
         for (option in 1..4) world.handlers.onLoc(FAIRY_RING, option) { world.message(player, EdgevilleClosedLines.FAIRY_RING) }
         world.handlers.onLoc(SOUL_WARS_PORTAL, 1) { world.message(player, EdgevilleClosedLines.SOUL_WARS) }
         world.handlers.onLoc(DEATHS_DOMAIN, 1) { world.message(player, EdgevilleClosedLines.DEATHS_DOMAIN) }
-        world.handlers.onLoc(CANOE_STATION, 1) { world.message(player, EdgevilleClosedLines.CANOE) }
     }
 }
