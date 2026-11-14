@@ -29,7 +29,7 @@ object CuratorLines : Lines("curator", "Transcript:Curator Haig Halen") {
     val NO_PENDANT = line("no_pendant", "option 4 before the player has found a digsite pendant: his only line")
 }
 
-/** The information clerk's lines, from the Wiki's Transcript:Information clerk (no rewards waiting), read 2026-11-02. */
+/** The information clerk's lines, from the Wiki's Transcript:Information clerk, read 2026-11-02 and (Kudos) 2026-11-14. */
 object MuseumClerkLines : Lines("museum_clerk", "Transcript:Information clerk") {
     val WELCOME = line("welcome", "her welcome, before the topic menu")
     val MAP = line("map", "topic option 1: take a museum map")
@@ -39,6 +39,10 @@ object MuseumClerkLines : Lines("museum_clerk", "Transcript:Information clerk") 
     val DIG_SITE_ABOUT = line("dig_site_about", "option 2: her first line")
     val DIG_SITE_CLEAN_1 = line("dig_site_clean_1", "option 2, The Dig Site done but not helped the exhibit: the first of two boxes")
     val DIG_SITE_CLEAN_2 = line("dig_site_clean_2", "option 2, the same: the second box")
+    val DIG_SITE_PARTIAL_1 = line("dig_site_partial_1", "option 2, some of the exhibit's cases filled: the first of two boxes")
+    val DIG_SITE_PARTIAL_2 = line("dig_site_partial_2", "option 2, the same: the second box")
+    val DIG_SITE_DONE_1 = line("dig_site_done_1", "option 2, every case filled: the first of two boxes")
+    val DIG_SITE_DONE_2 = line("dig_site_done_2", "option 2, the same: the second box")
     val TIMELINE = line("timeline", "topic option 3")
     val TIMELINE_SAID = line("timeline_said", "option 3: what the player says")
     val TIMELINE_ABOUT = line("timeline_about", "option 3: her first line")
@@ -86,12 +90,15 @@ object MuseumGuardLines : Lines("museum_guard", "Transcript:Museum guard") {
  * doors (`fai_varrock_museum_door_closed_l`/`_r` 24565/24567) open as a pair, and the cleaning area's gate
  * (`vm_barrier_guard_gate` 24536) lets the player in through its guard.
  *
- * Every quest counts complete (Bone Voyage and The Dig Site included) and nobody has Kudos, so the curator, the clerk
- * and the guards say what they say to such a player. From the Wiki's transcripts; the stairs' landing tiles and every
+ * Every quest counts complete (Bone Voyage and The Dig Site included), so the curator, the clerk and the guards say what
+ * they say to such a player; the clerk's Dig Site answer follows the player's Kudos
+ * ([Kudos]). From the Wiki's transcripts; the stairs' landing tiles and every
  * expression are guessed (each stair puts the player on the tile in front of the other one, from the 241 map's walls).
  * The gate guard asks on the first talk or Open after login, as the Wiki has it; guessed: after that he lets the
- * player through without a word, and the player walks out of the cleaning area through the gate freely. Left out: the displays' Study (their interfaces), the cleaning
- * activity, Kudos and the clerk's rewards, the curator's relics, certificates and medallion trade, and his Pickpocket.
+ * player through without a word, and the player walks out of the cleaning area through the gate freely. Left out: the displays' Study (their interfaces), the clerk's
+ * rewards and her answers for a player with enough Kudos (nobody can reach 51 yet), her Timeline and Natural History
+ * answers past the first (those exhibits give no Kudos yet), the curator's relics,
+ * certificates and medallion trade, and his Pickpocket.
  */
 object VarrockMuseum {
     const val CURATOR = 5214
@@ -166,8 +173,13 @@ object VarrockMuseum {
                 2 -> {
                     chatPlayer(ChatAnim.QUIZ, DIG_SITE_SAID)
                     chatNpc(ChatAnim.HAPPY, DIG_SITE_ABOUT)
-                    chatNpc(ChatAnim.HAPPY, DIG_SITE_CLEAN_1)
-                    chatNpc(ChatAnim.HAPPY, DIG_SITE_CLEAN_2)
+                    val (first, second) = when (Kudos.done(player, Kudos.DIG_SITE)) {
+                        0 -> DIG_SITE_CLEAN_1 to DIG_SITE_CLEAN_2
+                        Kudos.DIG_SITE.size -> DIG_SITE_DONE_1 to DIG_SITE_DONE_2
+                        else -> DIG_SITE_PARTIAL_1 to DIG_SITE_PARTIAL_2
+                    }
+                    chatNpc(ChatAnim.HAPPY, first)
+                    chatNpc(ChatAnim.HAPPY, second)
                 }
                 3 -> {
                     chatPlayer(ChatAnim.QUIZ, TIMELINE_SAID)

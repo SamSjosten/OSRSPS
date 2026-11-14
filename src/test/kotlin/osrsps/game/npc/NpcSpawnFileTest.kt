@@ -905,6 +905,8 @@ class NpcSpawnFileTest {
             276 to "pmod_town_crier_varrock",
             4984 to "dimintheis", 5445 to "johnathon_fitzharmon_2ops", 10425 to "daddyshome_daddy",
             5214 to "curator", 1909 to "vm_info_booth_lady", 1910 to "vm_museum_guard", 1912 to "vm_museum_guard3",
+            1903 to "vm_archaeologist1_npc_dummy", 1904 to "vm_archaeologist2_npc_dummy", 1905 to "vm_archaeologist3_npc_dummy",
+            1906 to "vm_archaeologist4_npc_dummy", 1907 to "vm_archaeologist5_npc_dummy", 1908 to "vm_archaeologist6_npc_dummy",
             1901 to "vm_art_critic", 1902 to "vm_timeline_historian", 1913 to "vm_school_teacher_male_and_boy",
             1914 to "vm_school_girl_brunette", 1919 to "vm_school_boy_brunnete", 1920 to "vm_school_boy_blonde",
             1921 to "vm_school_girl_blonde", 1922 to "vm_teacher_girl_multi", 6001 to "vm_nathis_apprentice",
@@ -993,6 +995,10 @@ class NpcSpawnFileTest {
         assertTrue(museum.all { it.x in 3252..3267 && it.z in 3441..3456 })
         val museumStill = museum.filter { it.type.id != 5214 }
         assertTrue(museumStill.all { it.wander == 0 })
+        // Kudos step 1: the cleaning area's six archaeologists, standing at their tables.
+        val archaeologists = spawns.filter { it.type.id in 1903..1908 }
+        assertEquals((1903..1908).toList(), archaeologists.map { it.type.id }.sorted())
+        assertTrue(archaeologists.all { it.x in 3252..3267 && it.z in 3441..3446 && it.wander == 0 })
         // Step 9b: the museum's other people; the Natural History floor (map square 27,77) has its four historians, two
         // of each, Orlando Smith and the twelve animal displays, which stand still.
         val basement = spawns.filter { it.x in 1728..1791 && it.z in 4928..4991 }
@@ -1024,7 +1030,7 @@ class NpcSpawnFileTest {
         // sweep's sick Guidor, the sleeping Jeremy Clerksin and BigRedJapan on the rooftops.
         val still = spawns.filter { it.type.id in listOf(16811, 1110, 5042, 5921) }.toSet()
         assertEquals(4, still.size)
-        assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - museumStill.toSet() - displays.toSet() - elsie - iffie - still).all { it.wander > 0 })
+        assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - museumStill.toSet() - archaeologists.toSet() - displays.toSet() - elsie - iffie - still).all { it.wander > 0 })
     }
 
     @Test
