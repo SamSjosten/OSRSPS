@@ -160,6 +160,9 @@ class Farming(private val world: World, private val clock: () -> Long, private v
 
     /** One farming tick for every patch the player has touched. */
     private fun growTick(state: FarmingState, tick: Long) {
+        // The flowers grown at the start of the tick, so a flower growing up this tick protects every allotment beside
+        // it from the next tick on, whichever order the patches come in.
+        val flowers = grownFlowers(state)
         val iterator = state.patches.entries.iterator()
         while (iterator.hasNext()) {
             val (key, patch) = iterator.next()
@@ -167,8 +170,8 @@ class Farming(private val world: World, private val clock: () -> Long, private v
             val crop = patch.crop
             if (crop == null) {
                 if (patch.weeds < kind.weeds) patch.weeds++
-                // An overgrown patch is what an untouched one is: no need to keep it.
-                if (patch.weeds >= kind.weeds) iterator.remove()
+                // An overgrown patch is what an untouched one is: no need to keep it, unless it holds compost.
+                if (patch.weeds >= kind.weeds && patch.compost == 0) iterator.remove()
                 continue
             }
             if (patch.dead || patch.stage >= crop.stages) continue
@@ -180,7 +183,7 @@ class Farming(private val world: World, private val clock: () -> Long, private v
                 continue
             }
             if (tick % kind.cycleTicks != 0L) continue
-            if (diseases && patch.stage >= 1 && !isProtected(state, key, crop) && world.random.nextInt(DISEASE_DENOMINATOR) < Compost.diseaseChance(kind, patch.compost, patch.watered)) {
+            if (diseases && patch.stage >= 1 && !isProtected(flowers, key, crop) && world.random.nextInt(DISEASE_DENOMINATOR) < Compost.diseaseChance(kind, patch.compost, patch.watered)) {
                 patch.diseased = true
                 patch.watered = false
                 continue
@@ -195,12 +198,19 @@ class Farming(private val world: World, private val clock: () -> Long, private v
      * Whether [crop] in patch [key] is kept well: an allotment crop with its flower fully grown in the flower patch of
      * the same area ([Crops.protects]).
      */
-    fun isProtected(state: FarmingState, key: String, crop: Crop): Boolean {
+    fun isProtected(state: FarmingState, key: String, crop: Crop): Boolean = isProtected(grownFlowers(state), key, crop)
+
+    private fun isProtected(flowers: Map<String, Crop>, key: String, crop: Crop): Boolean {
         if (crop.kind != PatchKind.ALLOTMENT) return false
         val flowerPatch = FarmingPatches.areaOf(key)?.patches?.firstOrNull { it.kind == PatchKind.FLOWER } ?: return false
-        val flower = state.patches[flowerPatch.key]?.takeIf { it.grown }?.crop ?: return false
+        val flower = flowers[flowerPatch.key] ?: return false
         return Crops.protects(flower, crop)
     }
+
+    /** The fully grown flowers in [state], by patch key. */
+    private fun grownFlowers(state: FarmingState): Map<String, Crop> = state.patches.entries
+        .filter { (key, patch) -> patch.grown && FarmingPatches.byKey(key)?.kind == PatchKind.FLOWER }
+        .associate { (key, patch) -> key to patch.crop!! }
 
     /** Makes the crop in [patch] diseased now (`::farmdisease`), if it is at a stage that can be; false if not. */
     fun makeDiseased(player: Player, patch: FarmingPatch): Boolean {

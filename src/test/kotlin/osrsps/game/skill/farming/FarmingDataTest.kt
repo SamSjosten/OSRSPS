@@ -154,6 +154,38 @@ class FarmingDataTest {
     }
 
     @Test
+    fun `compost stays on a patch that grows over, and a flower protects from the tick after it grows`() {
+        val farming = Farming(osrsps.game.World(IntArray(0), osrsps.map.CollisionMap(), random = GameRandom(5)), clock = { 0L })
+        val state = FarmingState()
+        state.patches[FarmingPatches.FALADOR_NW.key] = PatchState(0, compost = Compost.SUPER)
+        farming.grow(state, 1, 10)
+        val nw = state.patches.getValue(FarmingPatches.FALADOR_NW.key)
+        assertEquals(PatchKind.ALLOTMENT.weeds, nw.weeds)
+        assertEquals(Compost.SUPER, nw.compost)
+        assertEquals(Compost.SUPER, FarmingSaves.fromJson(FarmingSaves.toJson(state)).patches.getValue(FarmingPatches.FALADOR_NW.key).compost)
+
+        // A marigold one stage from grown and potatoes in both allotments: on the tick it grows, both allotments still
+        // roll unprotected, whichever comes first in the map (both ill on that tick 4% of the time), and afterwards
+        // both are protected.
+        // The marigold can fall ill itself on that tick; those tries are left out.
+        fun flowerTick(): FarmingState? {
+            val s = FarmingState()
+            s.patches[FarmingPatches.FALADOR_FLOWER.key] = PatchState(0, Crops.MARIGOLD, 3)
+            s.patches[FarmingPatches.FALADOR_NW.key] = PatchState(0, Crops.POTATO, 1)
+            s.patches[FarmingPatches.FALADOR_SE.key] = PatchState(0, Crops.POTATO, 1)
+            farming.grow(s, 2, 2)
+            if (!s.patches.getValue(FarmingPatches.FALADOR_FLOWER.key).grown) return null
+            assertTrue(farming.isProtected(s, FarmingPatches.FALADOR_NW.key, Crops.POTATO) && farming.isProtected(s, FarmingPatches.FALADOR_SE.key, Crops.POTATO))
+            return s
+        }
+        val illSeen = (1..300).any {
+            val s = flowerTick() ?: return@any false
+            s.patches.getValue(FarmingPatches.FALADOR_NW.key).diseased && s.patches.getValue(FarmingPatches.FALADOR_SE.key).diseased
+        }
+        assertTrue(illSeen, "both allotments roll unprotected on the flower's own tick")
+    }
+
+    @Test
     fun `a farming tick is five minutes of the clock plus the offset and the skipped ticks`() {
         // 00:04 is in tick 0; a 1-minute offset moves it into tick 1; a skipped tick adds one more.
         val fourPast = 4 * 60_000L
