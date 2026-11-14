@@ -441,6 +441,48 @@ class FarmingDataTest {
     }
 
     @Test
+    fun `a compost bin draws as the cache numbers it, rots on the 40-minute clock and survives a save`() {
+        // Filling, rotting, ready and open values of each kind (cache multiloc 7836; RuneLite's Time Tracking).
+        assertEquals(0, BinState().value())
+        assertEquals(7, BinState(Compostables.COMPOST, 7).value())
+        assertEquals(47, BinState(Compostables.SUPER, 15).value())
+        assertEquals(129, BinState(Compostables.TOMATO, 1).value())
+        assertEquals(32, BinState(Compostables.COMPOST, 15, closed = true, rot = 1).value())
+        assertEquals(94, BinState(Compostables.COMPOST, 15, closed = true, rot = 2).value())
+        assertEquals(95, BinState(Compostables.SUPER, 15, closed = true).value())
+        assertEquals(126, BinState(Compostables.SUPER, 15, closed = true, rot = 2).value())
+        assertEquals(160, BinState(Compostables.TOMATO, 15, closed = true, rot = 1).value())
+        assertEquals(222, BinState(Compostables.TOMATO, 15, closed = true, rot = 2).value())
+        assertEquals(16, BinState(Compostables.COMPOST, 1, open = true).value())
+        assertEquals(62, BinState(Compostables.SUPER, 15, open = true).value())
+        assertEquals(144, BinState(Compostables.TOMATO, 1, open = true).value())
+        assertEquals(190, BinState(Compostables.ULTRA, 15, open = true).value())
+        // A plain item makes a super or tomato bin plain; tomatoes alone stay tomatoes.
+        assertEquals(Compostables.TOMATO, Compostables.mix(Compostables.TOMATO, 3, Compostables.TOMATO_ITEM))
+        assertEquals(Compostables.COMPOST, Compostables.mix(Compostables.SUPER, 3, 1942))
+        assertEquals(Compostables.SUPER, Compostables.mix(Compostables.NONE, 0, 5982))
+        assertEquals(Compostables.COMPOST, Compostables.mix(Compostables.SUPER, 3, Compostables.TOMATO_ITEM))
+        assertTrue(Compostables.COMPOSTABLE.intersect(Compostables.SUPERCOMPOSTABLE).isEmpty())
+        // Two ticks of the 40-minute clock, whenever it was closed.
+        val farming = Farming(osrsps.game.World(IntArray(0), osrsps.map.CollisionMap()), clock = { 0L }, diseases = false)
+        val state = FarmingState()
+        val key = FarmingPatches.FALADOR_BIN.key
+        state.bins[key] = BinState(Compostables.COMPOST, 15, closed = true)
+        farming.grow(state, 1, 7)
+        assertEquals(0, state.bins.getValue(key).rot)
+        farming.grow(state, 8, 15)
+        assertEquals(1, state.bins.getValue(key).rot)
+        farming.grow(state, 16, 100)
+        assertTrue(state.bins.getValue(key).ready)
+        assertEquals(94, state.value(FarmingPatches.FALADOR_BIN))
+        val back = FarmingSaves.fromJson(FarmingSaves.toJson(state))
+        assertEquals(94, back.value(FarmingPatches.FALADOR_BIN))
+        state.bins[key] = BinState(Compostables.ULTRA, 9, open = true)
+        assertEquals(184, FarmingSaves.fromJson(FarmingSaves.toJson(state)).value(FarmingPatches.FALADOR_BIN))
+        assertEquals(FarmingPatches.FALADOR_BIN, FarmingPatches.binAt(7836, 3056, 3312))
+    }
+
+    @Test
     fun `a farming tick is five minutes of the clock plus the offset and the skipped ticks`() {
         // 00:04 is in tick 0; a 1-minute offset moves it into tick 1; a skipped tick adds one more.
         val fourPast = 4 * 60_000L

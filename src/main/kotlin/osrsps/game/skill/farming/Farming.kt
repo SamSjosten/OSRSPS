@@ -89,6 +89,18 @@ object FarmingLines : Lines("farming", "Farming") {
     val PATCH_FLOWER = line("patch_flower", "a flower patch's name in messages")
     val PATCH_TREE = line("patch_tree", "a tree patch's name in messages")
     val PATCH_FRUIT_TREE = line("patch_fruit_tree", "a fruit tree patch's name in messages")
+    val BIN_ADDED = line("bin_added", "an item put in a compost bin", "item")
+    val BIN_FULL = line("bin_full", "an item used on a full or closed compost bin")
+    val BIN_MIXED = line("bin_mixed", "an item that turns a bin of supercompostable items or tomatoes into plain compost")
+    val BIN_CLOSED = line("bin_closed", "a full compost bin closed")
+    val BIN_ROTTING = line("bin_rotting", "Open on a compost bin still rotting")
+    val BIN_OPENED = line("bin_opened", "a ready compost bin opened", "compost")
+    val BIN_NEED_BUCKET = line("bin_need_bucket", "Take on an open compost bin without an empty bucket")
+    val BIN_TAKEN = line("bin_taken", "a bucket filled from a compost bin, or a rotten tomato taken", "compost")
+    val BIN_EMPTIED = line("bin_emptied", "the last of a compost bin taken")
+    val BIN_DUMPED = line("bin_dumped", "Dump on a compost bin")
+    val BIN_UPGRADED = line("bin_upgraded", "a compost potion or volcanic ash turning an open bin's compost up a kind", "compost")
+    val BIN_NEED_ASH = line("bin_need_ash", "volcanic ash on an open bin of supercompost, fewer than 25 held")
     val PATCH_HOPS = line("patch_hops", "a hops patch's name in messages")
     val PATCH_BUSH = line("patch_bush", "a bush patch's name in messages")
 }
@@ -157,6 +169,16 @@ object FarmingLines : Lines("farming", "Farming") {
  * with some) digs the bush up with a spade. Guessed: a berry every [FRUIT_PICK_CYCLE] ticks with picking_mid; the
  * bush dug up 3 ticks after the click, for no XP; the berries regrowing at the bush's own 20-minute ticks from the
  * check on.
+ *
+ * Step 7, compost bins (the Wiki's Compost Bin, Compost, Supercompost, Ultracompost, Rotten tomato, read 2026-11-14):
+ * Falador's bin, filled with 15 un-noted compostable items ([Compostables]), closed, rotting through two growths of the
+ * 40-minute clock, opened and taken a bucket at a time (compost 4.5 XP, supercompost 8.5, ultracompost 10; rotten
+ * tomatoes by hand); a dose of compost potion on an opened bin of compost makes it supercompost, 25 volcanic ash on
+ * one of supercompost ultracompost; Dump empties it. Guessed: an item put in every tick while the stack lasts with
+ * human_pickuptable, one used item's whole stack going in; a bucket filled every 4 ticks (the Wiki's Recipe: 4 ticks)
+ * with human_fillbucket_sandpit; closing, opening and upgrading at once, with no animation; Dump with no confirmation;
+ * a supercompostable or tomato bin that gets a plain item turning plain with a message rather than live's warning
+ * dialogue.
  */
 class Farming(private val world: World, private val clock: () -> Long, private val diseases: Boolean = true) {
     fun register() {
@@ -165,6 +187,11 @@ class Farming(private val world: World, private val clock: () -> Long, private v
             world.handlers.onLoc(loc, OP_INSPECT) { op -> inspect(op) }
             world.handlers.onLoc(loc, OP_CLEAR) { op -> clearBushOp(op) }
             world.handlers.onObjOnLoc(loc) { op -> useObj(op) }
+        }
+        for (loc in FarmingPatches.BIN_LOCS) {
+            world.handlers.onLoc(loc, OP_ACTION) { op -> binAction(op) }
+            world.handlers.onLoc(loc, OP_DUMP) { op -> dumpBin(op) }
+            world.handlers.onObjOnLoc(loc) { op -> useObjOnBin(op) }
         }
         for (tree in Trees.ALL) {
             world.handlers.onObjOnObj(tree.seed, Trees.POT_FILLED) { op -> plantSeedling(op, tree) }
@@ -288,8 +315,17 @@ class Farming(private val world: World, private val clock: () -> Long, private v
 
     /** Runs farming ticks [first] to [last] on [state]'s patches. */
     fun grow(state: FarmingState, first: Long, last: Long) {
-        if (state.patches.isEmpty()) return
-        for (tick in first..last) growTick(state, tick)
+        if (state.patches.isEmpty() && state.bins.isEmpty()) return
+        for (tick in first..last) {
+            growTick(state, tick)
+            rotBins(state, tick)
+        }
+    }
+
+    /** A closed bin rots a stage at each tick of the 40-minute clock until it is ready. */
+    private fun rotBins(state: FarmingState, tick: Long) {
+        if (tick % Compostables.ROT_CYCLE_TICKS != 0L) return
+        for (bin in state.bins.values) if (bin.closed && !bin.ready) bin.rot++
     }
 
     /** One farming tick for every patch the player has touched. */
@@ -380,6 +416,7 @@ class Farming(private val world: World, private val clock: () -> Long, private v
     fun refresh(player: Player) {
         val area = FarmingPatches.areaAt(player.x, player.z) ?: return
         for (patch in area.patches) player.vars.setVarbitIfKnown(patch.varbit, player.farming.value(patch))
+        for (bin in area.bins) player.vars.setVarbitIfKnown(bin.varbit, player.farming.value(bin))
     }
 
     private fun patchOf(op: Op): FarmingPatch? {
@@ -941,6 +978,144 @@ class Farming(private val world: World, private val clock: () -> Long, private v
         player.message(message.joinToString(" "))
     }
 
+    private fun binOf(op: Op): CompostBin? {
+        val loc = op.loc ?: return null
+        return FarmingPatches.binAt(loc.id, loc.x, loc.z)
+    }
+
+    private fun compostName(kind: Int): String = world.objTypes[Compostables.product(kind)]?.name?.lowercase().orEmpty()
+
+    /** Op1 on a compost bin: Close when full, Open when closed, Take when open. An empty or filling bin shows none. */
+    private fun ScriptContext.binAction(op: Op) {
+        val bin = binOf(op) ?: return
+        val state = player.farming.bin(bin)
+        when {
+            state.open -> takeCompost(op, state)
+            op.repeat -> stop()
+            state.closed && !state.ready -> world.message(player, FarmingLines.BIN_ROTTING)
+            state.closed -> {
+                state.closed = false
+                state.rot = 0
+                state.open = true
+                world.message(player, FarmingLines.BIN_OPENED, "compost" to compostName(state.kind))
+                refresh(player)
+            }
+            state.full -> {
+                state.closed = true
+                state.rot = 0
+                world.message(player, FarmingLines.BIN_CLOSED)
+                refresh(player)
+            }
+        }
+    }
+
+    /**
+     * Take on an open bin, or an empty bucket used on it: a bucket filled every [TAKE_CYCLE] ticks for its XP (a rotten
+     * tomato by hand, for none) until the bin is empty or the buckets or the room run out.
+     */
+    private fun ScriptContext.takeCompost(op: Op, state: BinState) {
+        if (op.repeat && player.modalOpen) return stop()
+        if (!state.open || state.count <= 0) return stop()
+        val tomato = state.kind == Compostables.TOMATO
+        if (!tomato && player.inventory.count(Compost.EMPTY_BUCKET) == 0L) {
+            world.message(player, FarmingLines.BIN_NEED_BUCKET)
+            return stop()
+        }
+        if (tomato && player.inventory.freeSlots == 0) {
+            world.message(player, FarmingLines.INVENTORY_FULL)
+            return stop()
+        }
+        if (!op.repeat) player.anim(ANIM_FILL_BUCKET)
+        if (SkillClock.step(player, tick, TAKE_CYCLE) == ClockStep.DUE) {
+            player.anim(ANIM_FILL_BUCKET)
+            val product = Compostables.product(state.kind)
+            if (tomato) {
+                player.inventory.add(world.objTypes[product] ?: error("No obj type $product"), 1)
+            } else {
+                val slot = player.inventory.contents().first { it.second.id == Compost.EMPTY_BUCKET }.first
+                player.inventory[slot] = InvObj(product, 1)
+            }
+            player.skills.addTenths(Skill.FARMING, Compostables.takeXpTenths(state.kind))
+            world.message(player, FarmingLines.BIN_TAKEN, "compost" to compostName(state.kind))
+            state.count--
+            if (state.count <= 0) {
+                state.clear()
+                world.message(player, FarmingLines.BIN_EMPTIED)
+                refresh(player)
+                return stop()
+            }
+            refresh(player)
+        }
+        world.repeatOp(player, op)
+    }
+
+    /** Op5, Dump: whatever is in the bin is thrown away. */
+    private fun ScriptContext.dumpBin(op: Op) {
+        val bin = binOf(op) ?: return
+        val state = player.farming.bin(bin)
+        if (state.empty) return
+        state.clear()
+        world.message(player, FarmingLines.BIN_DUMPED)
+        refresh(player)
+    }
+
+    /**
+     * An item used on a compost bin: a compostable one goes in, its whole stack one a tick until the bin is full; an
+     * empty bucket on an open bin takes from it; a compost potion or volcanic ash on an open bin upgrades it.
+     */
+    private suspend fun ScriptContext.useObjOnBin(op: Op) {
+        val bin = binOf(op) ?: return
+        val state = player.farming.bin(bin)
+        val obj = op.obj
+        when {
+            obj == Compost.EMPTY_BUCKET && state.open -> takeCompost(op.asAction(), state)
+            obj in Compostables.COMPOST_POTIONS && state.open -> upgradeWithPotion(op, state)
+            obj == Compostables.VOLCANIC_ASH && state.open -> upgradeWithAsh(state)
+            obj in Compostables.COMPOSTABLE || obj in Compostables.SUPERCOMPOSTABLE -> fillBin(op, state)
+            else -> nothing()
+        }
+    }
+
+    private suspend fun ScriptContext.fillBin(op: Op, state: BinState) {
+        val obj = op.obj
+        if (state.closed || state.open || state.count >= Compostables.CAPACITY) return world.message(player, FarmingLines.BIN_FULL)
+        val name = world.objTypes[obj]?.name?.lowercase().orEmpty()
+        while (player.inventory.count(obj) > 0 && !state.closed && !state.open && state.count < Compostables.CAPACITY) {
+            val kind = Compostables.mix(state.kind, state.count, obj)
+            if (state.count > 0 && kind != state.kind) world.message(player, FarmingLines.BIN_MIXED)
+            player.anim(ANIM_FILL_BIN)
+            Making.removeObj(player.inventory, obj, 1)
+            state.kind = kind
+            state.count++
+            world.message(player, FarmingLines.BIN_ADDED, "item" to name)
+            refresh(player)
+            if (state.count >= Compostables.CAPACITY) return
+            delay(1)
+        }
+    }
+
+    /** A dose of compost potion on an open bin of compost: supercompost, every bucket of it. */
+    private fun ScriptContext.upgradeWithPotion(op: Op, state: BinState) {
+        if (state.kind != Compostables.COMPOST) return nothing()
+        val slot = op.sub.takeIf { player.inventory[it]?.id in Compostables.COMPOST_POTIONS } ?: return
+        val potion = player.inventory[slot]!!.id
+        val doses = Compostables.COMPOST_POTIONS.size - Compostables.COMPOST_POTIONS.indexOf(potion)
+        player.inventory[slot] = InvObj(if (doses <= 1) Compostables.VIAL else potion + 2, 1)
+        state.kind = Compostables.SUPER
+        world.message(player, FarmingLines.BIN_UPGRADED, "compost" to compostName(state.kind))
+        refresh(player)
+    }
+
+    /** Volcanic ash on an open bin of supercompost: 25 of it, however full the bin, for ultracompost. */
+    private fun ScriptContext.upgradeWithAsh(state: BinState) {
+        if (state.kind != Compostables.SUPER) return nothing()
+        if (player.inventory.count(Compostables.VOLCANIC_ASH) < Compostables.ASH_PER_BIN) return world.message(player, FarmingLines.BIN_NEED_ASH)
+        Making.removeObj(player.inventory, Compostables.VOLCANIC_ASH, Compostables.ASH_PER_BIN)
+        state.kind = Compostables.ULTRA
+        world.message(player, FarmingLines.BIN_UPGRADED, "compost" to compostName(state.kind))
+        refresh(player)
+    }
+
     /** Op5, Clear, on a bush with berries on it: dug up as op1 does once they are gone. */
     private suspend fun ScriptContext.clearBushOp(op: Op) {
         val patch = patchOf(op) ?: return
@@ -972,6 +1147,16 @@ class Farming(private val world: World, private val clock: () -> Long, private v
 
         /** Op5, Clear: a bush with berries on it (the cache's bush locs). */
         const val OP_CLEAR = 5
+
+        /** Op5, Dump, on a compost bin (the cache's bin locs). */
+        const val OP_DUMP = 5
+
+        /** Guessed: a bucket of compost taken every 4 ticks (the Wiki's Recipe box: 4 ticks a bucket). */
+        const val TAKE_CYCLE = 4
+
+        /** Guessed: human_fillbucket_sandpit filling a bucket from a bin, human_pickuptable putting an item in one. */
+        const val ANIM_FILL_BUCKET = 895
+        const val ANIM_FILL_BIN = 832
 
         const val OFFSETS = 32
 

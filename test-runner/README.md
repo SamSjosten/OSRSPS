@@ -245,6 +245,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   `::farmtick 20`, checked, its berries picked, one grown back with `::farmtick 4` and picked, the bare bush cleared;
   then another made ill with `::farmdisease`, pruned with secateurs, grown, checked and dug up with Clear while it
   still has berries, read off varbit 4771, with `::keys on` and `::reset` at the end. Needs 0.8.0 for `assertVarbit`.
+- `farming-compost-bin.json`: Farming step 7: with `::scenario farming` and `::tele` to the Falador compost bin, 15
+  weeds put in, the bin closed, rotted with `::farmtick 16`, opened and emptied into 15 buckets of compost; then 15
+  watermelons made into supercompost, turned to ultracompost with 25 volcanic ash, a bucket taken and the rest dumped,
+  read off varbit 4775, with `::keys on` and `::reset` at the end. Needs 0.8.0 for `assertVarbit`.
 - `farms-roads.json`: Misthalin piece 7 step 5: from Lumbridge to Varrock by `::tele`, Fayeth and a Tool Leprechaun
   by the castle, Seth Groats, Vasquen, Dreven, Tarquin at the canoe station, Rat Burgiss on the road and Treznor by the
   palace talked to, and the gardeners' and leprechauns' Farming options refused (with `::keys on`; the spawn counts are

@@ -437,7 +437,10 @@ class FarmingPatch(val key: String, val loc: Int, val varbit: Int, val kind: Pat
  * server sends their varbits, and [contains] for areas that share a square. Live sends the same few varbits
  * (`farming_transmit_a` to `e`) for whichever patches are near, so the varbits only mean something with the area.
  */
-class FarmingArea(val name: String, val regions: Set<Int>, val patches: List<FarmingPatch>, val contains: (x: Int, z: Int) -> Boolean = { _, _ -> true })
+class FarmingArea(
+    val name: String, val regions: Set<Int>, val patches: List<FarmingPatch>, val bins: List<CompostBin> = emptyList(),
+    val contains: (x: Int, z: Int) -> Boolean = { _, _ -> true },
+)
 
 /**
  * Every patch built so far. The varbits are the cache's `farming_transmit_a` to `e` (4771 to 4775; the patch locs'
@@ -459,8 +462,11 @@ object FarmingPatches {
     val FALADOR_FLOWER = FarmingPatch("falador_flower", 7847, TRANSMIT_C, PatchKind.FLOWER)
     val FALADOR_HERB = FarmingPatch("falador_herb", 8150, TRANSMIT_D, PatchKind.HERB)
 
+    /** `farming_compost_bin_1` (3056, 3312), by the Falador allotments, drawn by `farming_transmit_e`. */
+    val FALADOR_BIN = CompostBin("falador_compost_bin", 7836, TRANSMIT_E)
+
     /** The Falador farming patches: map square 12083 north of z 3272 (Port Sarim's spirit tree patch is south of it). */
-    val FALADOR = FarmingArea("Falador", setOf(12083), listOf(FALADOR_NW, FALADOR_SE, FALADOR_FLOWER, FALADOR_HERB)) { _, z -> z >= 3272 }
+    val FALADOR = FarmingArea("Falador", setOf(12083), listOf(FALADOR_NW, FALADOR_SE, FALADOR_FLOWER, FALADOR_HERB), listOf(FALADOR_BIN)) { _, z -> z >= 3272 }
 
     /**
      * The tree patches (`tree_patch_1` to `_4`, cache placements): Falador park (3003, 3372), Taverley (2935, 3437),
@@ -524,6 +530,19 @@ object FarmingPatches {
     )
 
     val ALL: List<FarmingPatch> = AREAS.flatMap { it.patches }
+
+    /** Every compost bin built: Falador's. The others come with their allotments. */
+    val BINS: List<CompostBin> = AREAS.flatMap { it.bins }
+
+    private val binByKey = BINS.associateBy { it.key }
+
+    /** Every bin loc, for registering handlers. */
+    val BIN_LOCS: Set<Int> = BINS.mapTo(HashSet()) { it.loc }
+
+    fun binByKey(key: String): CompostBin? = binByKey[key]
+
+    /** The bin that loc [loc] standing at [x], [z] is, or null if it isn't one we've built. */
+    fun binAt(loc: Int, x: Int, z: Int): CompostBin? = areaAt(x, z)?.bins?.firstOrNull { it.loc == loc }
 
     private val byKey = ALL.associateBy { it.key }
 

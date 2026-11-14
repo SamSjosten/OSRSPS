@@ -100,6 +100,14 @@ class PatchState(
 class FarmingState {
     val patches = HashMap<String, PatchState>()
 
+    /** The player's compost bins by key ([CompostBin.key]); an empty one has no entry. */
+    val bins = HashMap<String, BinState>()
+
+    fun bin(bin: CompostBin): BinState = bins.getOrPut(bin.key) { BinState() }
+
+    /** The value [bin]'s varbit shows. */
+    fun value(bin: CompostBin): Int = bins[bin.key]?.value() ?: 0
+
     /** The farming tick ([FarmingClock.tick]) the patches have grown to; -1 until the first tick is seen. */
     var lastTick: Long = -1
 
@@ -124,6 +132,8 @@ class FarmingState {
     fun replaceWith(other: FarmingState) {
         patches.clear()
         for ((key, state) in other.patches) patches[key] = state.copy()
+        bins.clear()
+        for ((key, state) in other.bins) bins[key] = state.copy()
         lastTick = other.lastTick
         skipped = other.skipped
         pausedAt = other.pausedAt
@@ -131,7 +141,7 @@ class FarmingState {
     }
 
     /** Whether nothing has happened: nothing worth saving. */
-    val isUntouched: Boolean get() = patches.isEmpty() && lastTick < 0 && skipped == 0L
+    val isUntouched: Boolean get() = patches.isEmpty() && bins.isEmpty() && lastTick < 0 && skipped == 0L
 }
 
 /**
@@ -182,6 +192,18 @@ object FarmingSaves {
                 }
             }
         }
+        val bins = state.bins.filterValues { !it.empty }
+        if (bins.isNotEmpty()) putJsonObject("bins") {
+            for ((key, bin) in bins.toSortedMap()) {
+                putJsonObject(key) {
+                    put("kind", bin.kind)
+                    put("count", bin.count)
+                    if (bin.closed) put("closed", true)
+                    if (bin.rot > 0) put("rot", bin.rot)
+                    if (bin.open) put("open", true)
+                }
+            }
+        }
     }
 
     fun fromJson(json: JsonObject): FarmingState {
@@ -225,6 +247,21 @@ object FarmingSaves {
                 // Only a grown tree or bush is checked, and only a checked tree can be a stump.
                 checked = grownTree && checked, stump = stumps && grownTree && checked && (entry["stump"]?.jsonPrimitive?.boolean ?: false),
             ).also { if (stage == 0) it.plantedMillis = entry["planted"]?.jsonPrimitive?.long ?: -1 }
+        }
+        for ((key, value) in json["bins"]?.jsonObject.orEmpty()) {
+            if (FarmingPatches.binByKey(key) == null) continue
+            val entry = value.jsonObject
+            val kind = entry["kind"]?.jsonPrimitive?.int ?: continue
+            val count = entry["count"]?.jsonPrimitive?.int ?: 0
+            // A bin this build can't draw is dropped, as an unknown patch is.
+            if (kind !in Compostables.COMPOST..Compostables.ULTRA || count !in 0..Compostables.CAPACITY) continue
+            val closed = entry["closed"]?.jsonPrimitive?.boolean ?: false
+            val open = !closed && (entry["open"]?.jsonPrimitive?.boolean ?: false)
+            val rot = (entry["rot"]?.jsonPrimitive?.int ?: 0).coerceIn(0, Compostables.ROT_STAGES)
+            // An open bin has buckets left; only an open one holds ultracompost; a closed one is full.
+            if ((open && count == 0) || (kind == Compostables.ULTRA && !open)) continue
+            val bin = BinState(kind, if (closed) Compostables.CAPACITY else count, closed, if (closed) rot else 0, open)
+            if (!bin.empty) state.bins[key] = bin
         }
         return state
     }
