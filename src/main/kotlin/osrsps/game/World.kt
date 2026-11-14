@@ -204,6 +204,7 @@ import osrsps.game.script.Handlers
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
 import osrsps.game.skill.BirdNests
+import osrsps.game.skill.Canoes
 import osrsps.game.skill.Firemaking
 import osrsps.game.skill.LightSources
 import osrsps.game.skill.LevelUps
@@ -771,6 +772,9 @@ class World(
     val woodcutting = Woodcutting(this, WoodcuttingData.load(), birdNests)
     val farming = osrsps.game.skill.farming.Farming(this, farmingClock)
 
+    /** The River Lum's canoe stations; see [Canoes]. */
+    val canoes = Canoes(this, woodcutting.data)
+
     val firemaking = Firemaking(this, collision)
 
     val mining = Mining(this)
@@ -957,6 +961,7 @@ class World(
         interfaces.onClose(Trades.CONFIRM, trades::decline)
         woodcutting.register()
         farming.register()
+        canoes.register()
         birdNests.register()
         firemaking.register()
         LightSources.register(this)
@@ -1652,6 +1657,9 @@ class World(
             specialAttacks.refill(it)
         }
         PlayerSave.fromJson(text).applyTo(player, inTick = phase != null)
+        // A canoe lasts until logout: a save without one (a restart's or an autosave before a crash) still has it
+        // (Codex review on #659).
+        canoes.forget(player)
         // A save from inside an instance, from before saves moved players to its exit, lands where no map is now.
         if (instances.inDynamicArea(player.x, player.z) && instances.at(player.x, player.z) == null) {
             player.x = SPAWN_X
@@ -3085,6 +3093,7 @@ class World(
             swampCavesHazards.forget(player)
             caveGoblins.forget(player)
             wallBeasts.forget(player)
+            canoes.forget(player)
             npcs.forget(player, scripts::busy)
             save(player)
         } finally {
