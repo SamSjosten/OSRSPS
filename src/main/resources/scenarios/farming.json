@@ -1,6 +1,6 @@
 {
   "about": "Beside the Falador farming patches with Farming 99, the farming tools and seeds for every allotment crop, some herbs and some flowers, for the Farming steps.",
-  "notes": "The two allotments are 3050-3054, 3307-3312 and 3055-3059, 3303-3308; the flower patch 3054-3055, 3307-3308 between them and the herb patch 3058-3059, 3311-3312. ::farmtick [n] moves your farming clock on n five-minute ticks: flowers grow every tick, allotments every second, herbs every fourth. Magic secateurs, compost, supercompost, ultracompost, plant cures and the other herb and flower seeds are in the bank; ::farmdisease <patch> makes a crop ill. A trowel, secateurs, a rune axe, plant pots, tree seeds and oak saplings are in the bank for the tree patches (Lumbridge ::tele 3193 3229, Varrock 3229 3457, Falador park 3004 3371, Taverley 2936 3436, Gnome Stronghold 2436 3413): trees grow every eighth tick. Fruit tree seeds and apple saplings are in the bank for the fruit tree patches (Catherby ::tele 2860 3432, Gnome Stronghold 2475 3444, Tree Gnome Village 2489 3178, Brimhaven 2764 3211): fruit trees grow every 32nd tick and grow a fruit every eighth. Hops and bush seeds are in the bank for the hops patches (Lumbridge ::tele 3228 3312, Yanille 2575 3102, Entrana 2810 3334, Seers' Village 2665 3522), which grow every second tick, and the bush patches (Champions' Guild ::tele 3182 3356, Rimmington 2941 3220, Etceteria 2592 3862, Ardougne 2618 3224), which grow every fourth tick and grow a berry every fourth once checked. The loadout is ours.",
+  "notes": "The two allotments are 3050-3054, 3307-3312 and 3055-3059, 3303-3308; the flower patch 3054-3055, 3307-3308 between them and the herb patch 3058-3059, 3311-3312. ::farmtick [n] moves your farming clock on n five-minute ticks: flowers grow every tick, allotments every second, herbs every fourth. Magic secateurs, compost, supercompost, ultracompost, plant cures and the other herb and flower seeds are in the bank; ::farmdisease <patch> makes a crop ill. A trowel, secateurs, a rune axe, plant pots, tree seeds and oak saplings are in the bank for the tree patches (Lumbridge ::tele 3193 3229, Varrock 3229 3457, Falador park 3004 3371, Taverley 2936 3436, Gnome Stronghold 2436 3413): trees grow every eighth tick. Fruit tree seeds and apple saplings are in the bank for the fruit tree patches (Catherby ::tele 2860 3432, Gnome Stronghold 2475 3444, Tree Gnome Village 2489 3178, Brimhaven 2764 3211): fruit trees grow every 32nd tick and grow a fruit every eighth. Hops and bush seeds are in the bank for the hops patches (Lumbridge ::tele 3228 3312, Yanille 2575 3102, Entrana 2810 3334, Seers' Village 2665 3522), which grow every second tick, and the bush patches (Champions' Guild ::tele 3182 3356, Rimmington 2941 3220, Etceteria 2592 3862, Ardougne 2618 3224), which grow every fourth tick and grow a berry every fourth once checked. Empty buckets, volcanic ash and a compost potion are in the bank for the Falador compost bin (3056, 3312): it rots over two 40-minute ticks (every eighth tick). The loadout is ours.",
   "position": { "x": 3054, "z": 3305, "level": 0 },
   "skills": { "farming": 99 },
   "inventory": [
@@ -75,6 +75,9 @@
     { "item": "dwellberry_bush_seed", "count": 10 },
     { "item": "jangerberry_bush_seed", "count": 10 },
     { "item": "whiteberry_bush_seed", "count": 10 },
-    { "item": "poisonivy_bush_seed", "count": 10 }
+    { "item": "poisonivy_bush_seed", "count": 10 },
+    { "item": "bucket_empty", "count": 15 },
+    { "item": "fossil_volcanic_ash", "count": 25 },
+    { "item": "supercompost_potion_4", "count": 1 }
   ]
 }
