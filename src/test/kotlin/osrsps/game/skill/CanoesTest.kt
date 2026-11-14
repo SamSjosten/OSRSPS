@@ -61,3 +61,25 @@ class CanoesTest {
         assertTrue(SuccessRoll.chance(bLow, bHigh, 12) < SuccessRoll.DENOMINATOR / 5)
     }
 }
+
+class CanoeSaveTest {
+    @Test
+    fun `a canoe in a save (a restart's, an autosave's) is gone at the next login`() {
+        val saves = osrsps.game.MemorySaveStore()
+        val types = osrsps.game.VarTypes(
+            6_000,
+            mapOf(
+                CanoeStation.LUMBRIDGE.varbit to osrsps.game.VarbitType(674, 0, 7),
+                Canoes.VARBIT_CANOE_TYPE to osrsps.game.VarbitType(675, 0, 7),
+            ),
+        )
+        val world = osrsps.game.World(IntArray(0), osrsps.map.CollisionMap(), saves = saves, varTypes = types)
+        val player = world.loadPlayer(1, "Test")
+        player.vars.setVarbit(CanoeStation.LUMBRIDGE.varbit, 14)
+        player.vars.setVarbit(Canoes.VARBIT_CANOE_TYPE, 4)
+        assertTrue(world.save(player))
+        val loaded = world.loadPlayer(2, "test")
+        assertEquals(0, loaded.vars.getVarbit(CanoeStation.LUMBRIDGE.varbit))
+        assertEquals(0, loaded.vars.getVarbit(Canoes.VARBIT_CANOE_TYPE))
+    }
+}

@@ -1649,6 +1649,9 @@ class World(
             specialAttacks.refill(it)
         }
         PlayerSave.fromJson(text).applyTo(player, inTick = phase != null)
+        // A canoe lasts until logout: a save without one (a restart's or an autosave before a crash) still has it
+        // (Codex review on #659).
+        canoes.forget(player)
         // A save from inside an instance, from before saves moved players to its exit, lands where no map is now.
         if (instances.inDynamicArea(player.x, player.z) && instances.at(player.x, player.z) == null) {
             player.x = SPAWN_X
