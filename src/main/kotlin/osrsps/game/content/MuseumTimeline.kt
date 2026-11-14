@@ -135,12 +135,21 @@ object MuseumTimeline {
     /** The stories not yet told, in the order he hears them. */
     fun untold(player: Player): List<Story> = if (!built(player)) emptyList() else Story.entries.filter { !told(player, it) }
 
-    /** Fills [story]'s display, for its Kudos. */
-    fun fill(player: Player, story: Story) {
-        if (told(player, story)) return
+    /** Fills [story]'s display, for its Kudos: false when it was filled already, so nothing that goes with it is given again. */
+    fun fill(player: Player, story: Story): Boolean {
+        if (told(player, story)) return false
         player.vars.setVarbit(story.varbit, story.value)
         if (story == Story.SHIELD_OF_ARRAV) player.vars.setVarbit(VARBIT_SHIELD_SHOWN, 1)
         Kudos.refresh(player)
+        return true
+    }
+
+    private fun bookSlot(player: Player) = (0 until player.inventory.capacity).firstOrNull { player.inventory[it]?.id == DAGONHAI_HISTORY }
+
+    /** Takes one Dagon'hai history from wherever it is in the backpack now: false when there isn't one to take. */
+    internal fun takeBook(player: Player): Boolean {
+        val slot = bookSlot(player) ?: return false
+        return player.inventory.remove(slot, 1) == 1
     }
 
     /** Tells Minas every untold story, each filling its display. False with none to tell. */
@@ -150,22 +159,24 @@ object MuseumTimeline {
             if (told(player, story)) continue
             if (story == Story.WHAT_LIES_BELOW) {
                 say(story.boxes)
-                val slot = (0 until player.inventory.capacity).firstOrNull { player.inventory[it]?.id == DAGONHAI_HISTORY }
-                if (slot == null) {
+                if (bookSlot(player) == null) {
                     say(WHAT_LIES_BELOW_NO_BOOK)
                     continue
                 }
                 say(WHAT_LIES_BELOW_BOOK.dropLast(1))
-                player.inventory.remove(slot, 1)
+                // The book is looked for again after those boxes, and the display fills only once it has really come
+                // off, so a book moved or gone in between can't be counted without being handed over.
+                if (!takeBook(player)) continue
                 fill(player, story)
                 say(WHAT_LIES_BELOW_BOOK.takeLast(1))
                 continue
             }
             say(story.boxes.dropLast(1))
-            fill(player, story)
-            story.lamp?.let { lamp -> world.objTypes[lamp]?.let { world.groundObjs.give(player, it, 1) } }
+            // The lamp goes with filling the display, so a display filled already gives no second lamp.
+            val filled = fill(player, story)
+            if (filled) story.lamp?.let { lamp -> world.objTypes[lamp]?.let { world.groundObjs.give(player, it, 1) } }
             say(story.boxes.takeLast(1))
-            if (story.lamp == null) continue
+            if (!filled || story.lamp == null) continue
             chatNpc(ChatAnim.HAPPY, story.lampLine)
             chatPlayer(ChatAnim.HAPPY, TAT)
             chatNpc(ChatAnim.HAPPY, LAMP_WELCOME)
