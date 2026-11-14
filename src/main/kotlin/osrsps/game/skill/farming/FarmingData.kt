@@ -21,6 +21,13 @@ package osrsps.game.skill.farming
  * Fruit trees ([FRUIT_TREE], step 5; the Wiki's Fruit tree patch, Disease and each fruit tree's page, read 2026-11-14)
  * grow every 160 minutes through six stages and fall ill at 18/128 in 4 of their 6 growths. Once checked they bear up
  * to [lives] fruit, one more every 40 minutes ([FRUIT_REGROW_TICKS]); [harvestValues] counts the 0 to 6 fruit drawn.
+ *
+ * Hops ([HOPS], step 6; the Wiki's Hops patch and Hops seeds, read 2026-11-14) grow as allotments do, every 10 minutes,
+ * watered and composted the same, from four seeds (jute three, [Crop.seeds]), harvested with a spade for their lives.
+ * Bushes ([BUSH], step 6; the Wiki's Bush patch and each bush's page) grow every 20 minutes from one seed, are checked
+ * once grown and then bear up to [lives] berries, one more every 20 minutes ([regrowTicks]), until dug up. Guessed:
+ * hops falling ill at 27/128 as allotments are taken to, bushes at 18/128 as fruit trees do (the Disease page gives
+ * neither).
  */
 enum class PatchKind(
     val cycleTicks: Int, val seeds: Int, val lives: Int, val harvestValues: Int, val spade: Boolean, val disease: Int,
@@ -30,12 +37,23 @@ enum class PatchKind(
     HERB(cycleTicks = 4, seeds = 1, lives = 3, harvestValues = 3, spade = true, disease = 27, composting = true),
     FLOWER(cycleTicks = 1, seeds = 1, lives = 1, harvestValues = 1, spade = false, disease = 27, composting = false),
     TREE(cycleTicks = 8, seeds = 1, lives = 1, harvestValues = 1, spade = true, disease = 0, composting = false),
-    FRUIT_TREE(cycleTicks = 32, seeds = 1, lives = 6, harvestValues = 7, spade = true, disease = 18, composting = false);
+    FRUIT_TREE(cycleTicks = 32, seeds = 1, lives = 6, harvestValues = 7, spade = true, disease = 18, composting = false),
+    HOPS(cycleTicks = 2, seeds = 4, lives = 3, harvestValues = 3, spade = true, disease = 27, composting = true),
+    BUSH(cycleTicks = 4, seeds = 1, lives = 4, harvestValues = 5, spade = true, disease = 18, composting = false);
 
     val diseaseCycleTicks: Int get() = cycleTicks * 2
 
     /** Planted as a sapling, checked once grown, chopped down and its stump cleared: trees and fruit trees. */
     val tree: Boolean get() = this == TREE || this == FRUIT_TREE
+
+    /** Checked once grown for its XP, and pruned with secateurs when ill rather than cured: trees, fruit trees, bushes. */
+    val checks: Boolean get() = tree || this == BUSH
+
+    /** Bears fruit or berries once checked, [lives] at most, one more every [regrowTicks]: fruit trees and bushes. */
+    val bears: Boolean get() = this == FRUIT_TREE || this == BUSH
+
+    /** A fruit every 40 minutes on a fruit tree (the Wiki's Fruit tree patch); a berry every 20 on a bush (Bush patch: all four in "approximately 80 minutes"). */
+    val regrowTicks: Int get() = if (this == BUSH) cycleTicks else FRUIT_REGROW_TICKS
 
     companion object {
         /** A fruit tree grows one more fruit every 40 minutes, up to six (the Wiki's Fruit tree patch). */
@@ -111,7 +129,8 @@ object Compost {
  * the growths from stage 1 to [lastDiseaseStage] (every growth but the first, but a fruit tree's 4 of 6).
  *
  * A fruit tree draws its Check-health tree at [checkValue], its stump at [stumpValue], and [harvest] + n with n fruit
- * on it; each fruit picked gives [fruitXpTenths].
+ * on it; each fruit picked gives [fruitXpTenths]. A bush is drawn the same, with no stump, and each berry gives
+ * [fruitXpTenths]. [seeds]: how many one planting takes, its kind's but for jute.
  */
 class Crop(
     val key: String,
@@ -136,6 +155,7 @@ class Crop(
     val checkValue: Int = -1,
     val stumpValue: Int = -1,
     val fruitXpTenths: Int = 0,
+    val seeds: Int = kind.seeds,
 ) {
     val stages: Int get() = growing.size
 
@@ -277,6 +297,57 @@ object Crops {
     val PALM = fruitTree("palm", 5502, 5974, 68, 1105, 101501, 415, 200, 213, 219)
     val DRAGONFRUIT = fruitTree("dragonfruit", 22866, 22929, 81, 1400, 173350, 700, 227, 240, 246)
 
+    /**
+     * A hop (or barley or jute). Levels, seeds, plant and harvest XP and stages from the Wiki's Hops seeds (read
+     * 2026-11-14); the chance to keep a life from the Wiki's Talk:Farming "Yield rates of various crops" (Mod Easty's
+     * numbers, which each seed's page cites), high 180 for all. Values from the cache's hops multiloc (8175 and its
+     * siblings): growing from [first], the three grown after them, the stages from 1 on diseased from [first] +
+     * [stages] + 3, watered from [wateredFirst], dead from [deadFirst]. The planting XP comes with the last crop, as an
+     * allotment's (the table's footnote: "upon fully harvesting the patch, or if the patch died, upon clearing it").
+     */
+    private fun hops(
+        key: String, seed: Int, produce: Int, level: Int, plant: Int, harvestXp: Int, low: Int, stages: Int,
+        first: Int, wateredFirst: Int, deadFirst: Int, seeds: Int = PatchKind.HOPS.seeds,
+    ) = Crop(
+        key, PatchKind.HOPS, seed, produce, level, plant, harvestXp, low, 180,
+        run(first, stages), run(wateredFirst, stages), first + stages, run(first + stages + 3, stages - 1), run(deadFirst, stages - 1),
+        seeds = seeds,
+    )
+
+    val BARLEY = hops("barley", 5305, 6006, 3, 85, 95, 103, 4, 74, 202, 209)
+    val HAMMERSTONE = hops("hammerstone", 5307, 5994, 4, 90, 100, 104, 4, 4, 132, 139)
+    val ASGARNIAN = hops("asgarnian", 5308, 5996, 8, 109, 120, 108, 5, 14, 142, 150)
+    val JUTE = hops("jute", 5306, 5931, 13, 130, 145, 113, 5, 84, 212, 220, seeds = 3)
+    val YANILLIAN = hops("yanillian", 5309, 5998, 16, 145, 160, 116, 6, 26, 154, 163)
+    val KRANDORIAN = hops("krandorian", 5310, 6000, 21, 175, 195, 121, 7, 40, 168, 178)
+    val WILDBLOOD = hops("wildblood", 5311, 6002, 28, 230, 260, 128, 8, 56, 184, 195)
+
+    /**
+     * A bush. Levels, stages and plant, check-health and per-berry XP from the Wiki's Bush seeds (read 2026-11-14):
+     * the planting XP comes with Check-health. Values from the cache's bush multiloc (7577 and its siblings): growing
+     * from [first], the bush with 0 to 4 berries after them, the stages from 1 on diseased from [diseasedFirst] and
+     * dead from [deadFirst], and the Check-health bush at [checkValue]. Each bush's page marks its last two diseased
+     * models unused, so a bush falls ill at the growths to stage 2 to [stages] - 2, not at the last. A berry picked is
+     * kept with the chance Talk:Farming gives whiteberries, 83 to 85 at level 1 and 193 to 195 at 99 (the middle
+     * taken), which makes the Bush patch's minimum of four and the Farming page's "15-20 berries" at 99. Guessed: every
+     * other bush's chance the same as whiteberries' (no figure for them); poison ivy never falls ill (its page: immune).
+     */
+    private fun bush(
+        key: String, seed: Int, berries: Int, level: Int, plant: Int, check: Int, berryXp: Int, stages: Int,
+        first: Int, diseasedFirst: Int, deadFirst: Int, checkValue: Int, disease: Int = PatchKind.BUSH.disease,
+    ) = Crop(
+        key, PatchKind.BUSH, seed, berries, level, plant, check, 84, 194,
+        run(first, stages), emptyList(), first + stages, run(diseasedFirst, stages - 1), run(deadFirst, stages - 1),
+        disease = disease, lastDiseaseStage = stages - 2, checkValue = checkValue, fruitXpTenths = berryXp,
+    )
+
+    val REDBERRY = bush("redberry", 5101, 1951, 10, 115, 640, 45, 5, 5, 70, 134, 250)
+    val CADAVABERRY = bush("cadavaberry", 5102, 753, 22, 180, 1025, 70, 6, 15, 80, 144, 251)
+    val DWELLBERRY = bush("dwellberry", 5103, 2126, 36, 315, 1775, 120, 7, 26, 91, 155, 252)
+    val JANGERBERRY = bush("jangerberry", 5104, 247, 48, 505, 2845, 190, 8, 38, 103, 167, 253)
+    val WHITEBERRY = bush("whiteberry", 5105, 239, 59, 780, 4375, 290, 8, 51, 116, 180, 254)
+    val POISON_IVY = bush("poison_ivy", 5106, 6018, 70, 1200, 6750, 450, 8, 197, 210, 217, 255, disease = 0)
+
     val ALL = listOf(
         POTATO, ONION, CABBAGE, TOMATO, SWEETCORN, STRAWBERRY, WATERMELON, SNAPE_GRASS,
         GUAM, MARRENTILL, TARROMIN, HARRALANDER, RANARR, TOADFLAX, IRIT, AVANTOE, KWUARM, SNAPDRAGON, HUASCA,
@@ -284,6 +355,8 @@ object Crops {
         MARIGOLD, ROSEMARY, NASTURTIUM, WOAD, LIMPWURT, WHITE_LILY,
         OAK, WILLOW, MAPLE, YEW, MAGIC,
         APPLE, BANANA, ORANGE, CURRY, PINEAPPLE, PAPAYA, PALM, DRAGONFRUIT,
+        BARLEY, HAMMERSTONE, ASGARNIAN, JUTE, YANILLIAN, KRANDORIAN, WILDBLOOD,
+        REDBERRY, CADAVABERRY, DWELLBERRY, JANGERBERRY, WHITEBERRY, POISON_IVY,
     )
 
     private val byKey = ALL.associateBy { it.key }
@@ -420,7 +493,35 @@ object FarmingPatches {
     val BRIMHAVEN = FarmingArea("Brimhaven", setOf(11058, 11057), listOf(BRIMHAVEN_FRUIT))
     val CATHERBY = FarmingArea("Catherby", setOf(11317), listOf(CATHERBY_FRUIT))
 
-    val AREAS = listOf(FALADOR, LUMBRIDGE, VARROCK, FALADOR_PARK, TAVERLEY, GNOME_STRONGHOLD, GNOME_VILLAGE, BRIMHAVEN, CATHERBY)
+    /**
+     * The hops patches (`farming_hops_patch_1` to `_4`, cache placements, each a square of one-tile locs): Yanille
+     * (2574, 3103), Entrana (2809, 3335), north of Lumbridge (3227, 3313) and Seers' Village (2664, 3523); and the bush
+     * patches (`farming_bush_patch_1` to `_4`): west of the Champions' Guild (3181, 3357), Rimmington (2940, 3221),
+     * Etceteria (2591, 3863) and south of Ardougne (2617, 3225). All drawn by `farming_transmit_a`, in the map squares
+     * RuneLite's FarmingWorld gives. Aldarin's hops and the Farming Guild's bush aren't built.
+     */
+    val LUMBRIDGE_HOPS = FarmingPatch("lumbridge_hops", 8175, TRANSMIT_A, PatchKind.HOPS)
+    val YANILLE_HOPS = FarmingPatch("yanille_hops", 8173, TRANSMIT_A, PatchKind.HOPS)
+    val ENTRANA_HOPS = FarmingPatch("entrana_hops", 8174, TRANSMIT_A, PatchKind.HOPS)
+    val SEERS_HOPS = FarmingPatch("seers_hops", 8176, TRANSMIT_A, PatchKind.HOPS)
+    val CHAMPIONS_BUSH = FarmingPatch("champions_guild_bush", 7577, TRANSMIT_A, PatchKind.BUSH)
+    val RIMMINGTON_BUSH = FarmingPatch("rimmington_bush", 7578, TRANSMIT_A, PatchKind.BUSH)
+    val ETCETERIA_BUSH = FarmingPatch("etceteria_bush", 7579, TRANSMIT_A, PatchKind.BUSH)
+    val ARDOUGNE_BUSH = FarmingPatch("ardougne_bush", 7580, TRANSMIT_A, PatchKind.BUSH)
+
+    val LUMBRIDGE_HOPS_AREA = FarmingArea("Lumbridge hops", setOf(12851), listOf(LUMBRIDGE_HOPS))
+    val YANILLE = FarmingArea("Yanille", setOf(10288), listOf(YANILLE_HOPS))
+    val ENTRANA = FarmingArea("Entrana", setOf(11060, 11316), listOf(ENTRANA_HOPS))
+    val SEERS = FarmingArea("Seers' Village", setOf(10551, 10550), listOf(SEERS_HOPS))
+    val CHAMPIONS_GUILD = FarmingArea("Champions' Guild", setOf(12596), listOf(CHAMPIONS_BUSH))
+    val RIMMINGTON = FarmingArea("Rimmington", setOf(11570, 11826), listOf(RIMMINGTON_BUSH))
+    val ETCETERIA = FarmingArea("Etceteria", setOf(10300), listOf(ETCETERIA_BUSH))
+    val ARDOUGNE = FarmingArea("Ardougne", setOf(10290, 10546), listOf(ARDOUGNE_BUSH))
+
+    val AREAS = listOf(
+        FALADOR, LUMBRIDGE, VARROCK, FALADOR_PARK, TAVERLEY, GNOME_STRONGHOLD, GNOME_VILLAGE, BRIMHAVEN, CATHERBY,
+        LUMBRIDGE_HOPS_AREA, YANILLE, ENTRANA, SEERS, CHAMPIONS_GUILD, RIMMINGTON, ETCETERIA, ARDOUGNE,
+    )
 
     val ALL: List<FarmingPatch> = AREAS.flatMap { it.patches }
 

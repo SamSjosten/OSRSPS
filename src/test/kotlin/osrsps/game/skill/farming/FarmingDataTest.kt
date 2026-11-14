@@ -30,7 +30,7 @@ class FarmingDataTest {
         val flowerValues = flowers.flatMap { crop -> crop.growing + crop.watered + crop.harvest + crop.diseased + crop.dead }
         assertEquals(flowerValues.size, flowerValues.toSet().size, "a flower value drawn twice")
         assertTrue(flowerValues.all { it in 8..255 }, "0 to 7 are the weed stages")
-        assertEquals(42, Crops.ALL.size)
+        assertEquals(55, Crops.ALL.size)
         assertEquals(Crops.ALL.size, Crops.ALL.map { it.seed }.toSet().size)
     }
 
@@ -331,6 +331,113 @@ class FarmingDataTest {
         assertEquals(0, illFrom[0])
         assertEquals(0, illFrom[5])
         assertTrue((1..4).all { illFrom[it] in 10..90 }, "about 42 in 300 for each: ${illFrom.toList()}")
+    }
+
+    @Test
+    fun `hops draw as the cache numbers them, take four seeds (jute three) and keep lives at the seed pages' rates`() {
+        val hops = Crops.ALL.filter { it.kind == PatchKind.HOPS }
+        assertEquals(7, hops.size)
+        val values = hops.flatMap { crop -> crop.growing + crop.watered + (0..2).map { crop.harvest + it } + crop.diseased + crop.dead }
+        assertEquals(values.size, values.toSet().size, "a hops value drawn twice")
+        assertTrue(values.all { it in 4..255 }, "0 to 3 are the weed stages")
+        assertTrue(hops.all { it.seeds == if (it == Crops.JUTE) 3 else 4 })
+        // Hammerstone: growing 4 to 7, grown 8 to 10, diseased 11 to 13, watered 132 to 135, dead 139 to 141.
+        assertEquals(6, PatchState(0, Crops.HAMMERSTONE, 2).value(PatchKind.HOPS))
+        assertEquals(134, PatchState(0, Crops.HAMMERSTONE, 2, watered = true).value(PatchKind.HOPS))
+        assertEquals(12, PatchState(0, Crops.HAMMERSTONE, 2, diseased = true).value(PatchKind.HOPS))
+        assertEquals(140, PatchState(0, Crops.HAMMERSTONE, 2, dead = true).value(PatchKind.HOPS))
+        assertEquals(8, PatchState(0, Crops.HAMMERSTONE, 4, lives = 3).value(PatchKind.HOPS))
+        assertEquals(73, PatchState(0, Crops.WILDBLOOD, 7, diseased = true).value(PatchKind.HOPS))
+        // Mod Easty's numbers (Talk:Farming), which the seed pages cite: 70.7% at 99 for all.
+        assertEquals(listOf(103, 104, 108, 113, 116, 121, 128), hops.map { it.ctsLow })
+        for (crop in hops) {
+            val chance = SuccessRoll.chance(crop.ctsLow, crop.ctsHigh, 99) * 100.0 / SuccessRoll.DENOMINATOR
+            assertTrue(abs(chance - 70.7) < 0.05, "${crop.key} at 99: $chance%")
+        }
+        // Every second tick a stage, and compost's lives as an allotment's.
+        val farming = Farming(osrsps.game.World(IntArray(0), osrsps.map.CollisionMap()), clock = { 0L }, diseases = false)
+        val state = FarmingState()
+        val key = FarmingPatches.LUMBRIDGE_HOPS.key
+        state.patches[key] = PatchState(0, Crops.ASGARNIAN, compost = Compost.SUPER)
+        farming.grow(state, 1, 9)
+        assertEquals(4, state.patches.getValue(key).stage)
+        farming.grow(state, 10, 10)
+        assertTrue(state.patches.getValue(key).grown)
+        assertEquals(5, state.patches.getValue(key).lives)
+        assertEquals(FarmingPatches.LUMBRIDGE_HOPS, FarmingPatches.at(8175, 3229, 3315))
+        assertEquals(FarmingPatches.YANILLE_HOPS, FarmingPatches.at(8173, 2576, 3105))
+        assertEquals(FarmingPatches.ENTRANA_HOPS, FarmingPatches.at(8174, 2809, 3335))
+        assertEquals(FarmingPatches.SEERS_HOPS, FarmingPatches.at(8176, 2664, 3523))
+    }
+
+    @Test
+    fun `bushes draw as the cache numbers them, fall ill short of their last growths and grow a berry every 20 minutes`() {
+        val bushes = Crops.ALL.filter { it.kind == PatchKind.BUSH }
+        assertEquals(6, bushes.size)
+        val values = bushes.flatMap { crop -> crop.growing + (0..4).map { crop.harvest + it } + crop.diseased + crop.dead + crop.checkValue }
+        assertEquals(values.size, values.toSet().size, "a bush value drawn twice")
+        assertTrue(values.all { it in 5..255 }, "0 to 4 are the weed values")
+        assertEquals(listOf(250, 251, 252, 253, 254, 255), bushes.map { it.checkValue })
+        assertEquals(0, Crops.POISON_IVY.disease, "poison ivy is immune")
+        // Redberry: growing 5 to 9, 0 to 4 berries 10 to 14, diseased from 70, dead from 134, Check-health 250.
+        val red = PatchState(0, Crops.REDBERRY, 5)
+        assertEquals(250, red.value(PatchKind.BUSH))
+        red.checked = true
+        red.lives = 4
+        assertEquals(14, red.value(PatchKind.BUSH))
+        red.lives = 0
+        assertEquals(10, red.value(PatchKind.BUSH))
+        assertEquals(71, PatchState(0, Crops.REDBERRY, 2, diseased = true).value(PatchKind.BUSH))
+        assertEquals(186, PatchState(0, Crops.WHITEBERRY, 7, dead = true).value(PatchKind.BUSH))
+        // The whiteberry chance Talk:Farming gives (83 to 85 at 1, 193 to 195 at 99), and its yield at 99: the Farming page's 15 to 20.
+        val yield = 4 / (1 - SuccessRoll.chance(Crops.WHITEBERRY.ctsLow, Crops.WHITEBERRY.ctsHigh, 99).toDouble() / SuccessRoll.DENOMINATOR)
+        assertTrue(yield in 15.0..20.0, "$yield")
+        // Every fourth tick a stage; berries from the check, one every fourth tick, four at most; a save keeps them.
+        val farming = Farming(osrsps.game.World(IntArray(0), osrsps.map.CollisionMap()), clock = { 0L }, diseases = false)
+        val state = FarmingState()
+        val key = FarmingPatches.CHAMPIONS_BUSH.key
+        state.patches[key] = PatchState(0, Crops.CADAVABERRY)
+        farming.grow(state, 1, 23)
+        val bush = state.patches.getValue(key)
+        assertEquals(5, bush.stage)
+        farming.grow(state, 24, 40)
+        assertTrue(bush.grown && !bush.checked && bush.lives == 0, "grown at 6 x 20 minutes, no berries before the check")
+        bush.checked = true
+        bush.lives = 1
+        farming.grow(state, 41, 43)
+        assertEquals(1, bush.lives)
+        farming.grow(state, 44, 44)
+        assertEquals(2, bush.lives)
+        farming.grow(state, 45, 100)
+        assertEquals(4, bush.lives)
+        bush.lives = 0
+        val back = FarmingSaves.fromJson(FarmingSaves.toJson(state))
+        assertEquals(21, back.value(FarmingPatches.CHAMPIONS_BUSH), "a checked cadavaberry bush with no berries")
+        assertTrue(!back.patches.getValue(key).stump)
+        // With disease on, a redberry falls ill only at the growths from stages 1 to 3, not 0 or 4; poison ivy never.
+        val ill = Farming(osrsps.game.World(IntArray(0), osrsps.map.CollisionMap()), clock = { 0L })
+        val illFrom = IntArray(5)
+        var ivy = 0
+        repeat(300) {
+            for (stage in 0..4) {
+                val trial = FarmingState()
+                trial.patches[key] = PatchState(0, Crops.REDBERRY, stage)
+                ill.grow(trial, 4, 4)
+                if (trial.patches.getValue(key).diseased) illFrom[stage]++
+            }
+            val trial = FarmingState()
+            trial.patches[key] = PatchState(0, Crops.POISON_IVY, 3)
+            ill.grow(trial, 4, 4)
+            if (trial.patches.getValue(key).diseased) ivy++
+        }
+        assertEquals(0, illFrom[0])
+        assertEquals(0, illFrom[4])
+        assertEquals(0, ivy)
+        assertTrue((1..3).all { illFrom[it] in 10..90 }, "about 42 in 300 for each: ${illFrom.toList()}")
+        assertEquals(FarmingPatches.CHAMPIONS_BUSH, FarmingPatches.at(7577, 3181, 3357))
+        assertEquals(FarmingPatches.RIMMINGTON_BUSH, FarmingPatches.at(7578, 2940, 3221))
+        assertEquals(FarmingPatches.ETCETERIA_BUSH, FarmingPatches.at(7579, 2591, 3863))
+        assertEquals(FarmingPatches.ARDOUGNE_BUSH, FarmingPatches.at(7580, 2617, 3225))
     }
 
     @Test

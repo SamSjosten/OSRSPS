@@ -239,6 +239,12 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   with `::farmtick 8` and picked, the bare tree chopped down and its stump cleared; then another sapling made ill with
   `::farmdisease` and pruned with secateurs, read off varbit 4771, with `::keys on` and `::reset` at the end. Needs
   0.8.0 for `assertVarbit`.
+- `farming-hops-bush.json`: Farming step 6: with `::scenario farming` (and `::farmdisease off`), `::tele` to the
+  Lumbridge hops patch: four hammerstone seeds planted, watered, grown with `::farmtick 8` and harvested to the last
+  hop, then three jute seeds planted; `::tele` to the Champions' Guild bush patch: a redberry bush grown with
+  `::farmtick 20`, checked, its berries picked, one grown back with `::farmtick 4` and picked, the bare bush cleared;
+  then another made ill with `::farmdisease`, pruned with secateurs, grown, checked and dug up with Clear while it
+  still has berries, read off varbit 4771, with `::keys on` and `::reset` at the end. Needs 0.8.0 for `assertVarbit`.
 - `farms-roads.json`: Misthalin piece 7 step 5: from Lumbridge to Varrock by `::tele`, Fayeth and a Tool Leprechaun
   by the castle, Seth Groats, Vasquen, Dreven, Tarquin at the canoe station, Rat Burgiss on the road and Treznor by the
   palace talked to, and the gardeners' and leprechauns' Farming options refused (with `::keys on`; the spawn counts are

@@ -927,8 +927,8 @@ market where the cache map puts them; stealing works as at Draynor's (a guard or
 
 ### Farming
 
-Farming steps 1 to 5 (`game/skill/farming/`): the growth clock, each player's patches, allotments, herbs and flowers,
-compost and disease, trees and fruit trees. Every patch is a
+Farming steps 1 to 6 (`game/skill/farming/`): the growth clock, each player's patches, allotments, herbs and flowers,
+compost and disease, trees and fruit trees, hops and bushes. Every patch is a
 multiloc the map already places, drawn by one of the cache's `farming_transmit_a` to `e` varbits; each tick the
 player's patches grow to the clock and the varbits of the area they stand in are set, the same varbits live sends for
 the same map squares, so RuneLite's Time Tracking farming panel reads them. Crops grow on live's real-time farming
@@ -974,6 +974,16 @@ a grown tree is checked once for its check-health and planting XP. It then bears
 per-fruit XP, and grows one more every 40 minutes up to six. With no fruit left it can be chopped down (one swing,
 no logs) and its stump cleared with a spade. A diseased fruit tree is pruned with secateurs for leaves.
 
+Hops grow in the hops patches north of Lumbridge (`::tele 3228 3312`), in Yanille, on Entrana and at Seers' Village:
+barley, hammerstone, asgarnian, jute, yanillian, krandorian and wildblood, four seeds a planting (jute three), every 10
+minutes, watered, composted, falling ill and cured as allotments are, and harvested with a spade until their lives run
+out, each hop keeping its life at the chance Mod Easty gave, the planting XP with the last. Bushes grow in the bush
+patches west of the Champions' Guild (`::tele 3182 3356`), in Rimmington, Etceteria and south of Ardougne: redberry,
+cadavaberry, dwellberry, jangerberry, whiteberry and poison ivy (never ill), from one seed, every 20 minutes. A grown
+bush is checked for its check-health and planting XP, then has four berries, picked by hand for each bush's per-berry
+XP, a berry sometimes staying on the bush (so four at least, about 17 at level 99), and grows one more every 20
+minutes up to four. Clear digs it up with a spade. A diseased bush is pruned with secateurs for leaves.
+
 | Farming behaviour | Source |
 |-------------------|--------|
 | Patch locs, which varbit draws each, and which value draws which stage (weeds, growing, watered, grown, diseased, dead) | cache 242 (2026-11-11), the patch multilocs and the names of the locs they show |
@@ -991,13 +1001,17 @@ no logs) and its stump cleared with a spade. A diseased fruit tree is pruned wit
 | Oak 17/128, willow 15 and yew 11 to fall ill; a stump growing back at the tree's next 40-minute tick; digging up a stump 129/256 at level 1, and the pruning skill roll the same; a try at a stump or a prune every 4 ticks; one leaf a prune; a pot filled and a sapling planted 3 ticks after the click; Check-health at once, with no animation; farming_filling_plantpot, farming_trowel_digging and pruning_mid as the animations | guessed |
 | Fruit tree levels, planting, check-health and per-fruit XP, six 160-minute stages, six fruit once checked and one more every 40 minutes, 18/128 to fall ill in 4 of 6 growths, pruning with secateurs; Chop-down shown only with no fruit left | OSRS Wiki, Fruit tree patch, Disease, each fruit tree's page; cache 242, the fruit tree multiloc |
 | The 4 risky growths being the second to the fifth; a fruit every 3 ticks with picking_high; chopping a fruit tree in one swing with any axe at any Woodcutting level, for no logs or XP; a fruit tree stump always cleared at the first dig, for no roots or XP, and never growing back; an axe on a tree with fruit refused | guessed |
-| Not built yet: the scarecrow, digging up a healthy crop, hops, bushes, compost bins, the Tool Leprechauns and the gardeners' payments; Guide (op4) | next steps |
+| Hops levels, seeds (four, jute three), planting and harvest XP (the planting XP with the last hop), 10-minute stages, watering; the chance to keep a life (Mod Easty's low and high numbers); bush levels, planting, check-health and per-berry XP, 20-minute stages, four berries once checked and all back in about 80 minutes, Clear with a spade, pruning with secateurs, poison ivy immune; the last two diseased bush models unused | OSRS Wiki, Hops patch, Hops seeds, Bush patch, Bush seeds, each bush's page, Talk:Farming (Mod Easty); cache 242, the hops and bush multilocs and their op5 Clear |
+| A berry kept with whiteberries' chance (Talk:Farming 83-85 and 193-195; the middle taken) | OSRS Wiki, Talk:Farming, Farming (15-20 berries) |
+| Hops falling ill at 27/128 and bushes at 18/128; every other bush keeping a berry at whiteberries' chance; a berry every 3 ticks with picking_mid; a bush dug up 3 ticks after Clear, for no XP; the berries regrowing at the bush's own 20-minute ticks; the hops' three grown values counting down the lives as an allotment's | guessed |
+| Not built yet: the scarecrow, digging up a healthy crop, Aldarin's hops and the Farming Guild's bush, compost bins, the Tool Leprechauns and the gardeners' payments; Guide (op4) | next steps |
 
 `::scenario farming` stands you beside the Falador allotments with 99 Farming, the tools, 30 of every allotment
 seed and some herb and flower seeds (the rest in the bank, with a trowel, secateurs, a rune axe, plant pots, tree seeds
-and oak saplings for the tree patches, fruit tree seeds and apple saplings for the fruit tree patches). `::farmtick [n]` moves your own farming clock on n five-minute ticks and grows your patches to it.
+and oak saplings for the tree patches, fruit tree seeds and apple saplings for the fruit tree patches, hops and bush
+seeds for the hops and bush patches). `::farmtick [n]` moves your own farming clock on n five-minute ticks and grows your patches to it.
 
-Check: `./gradlew test --tests 'osrsps.game.skill.farming.*' --tests 'osrsps.testclient.HeadlessFarmingTest' --tests 'osrsps.testclient.HeadlessFarmingTreeTest' --tests 'osrsps.testclient.HeadlessFarmingFruitTreeTest'`.
+Check: `./gradlew test --tests 'osrsps.game.skill.farming.*' --tests 'osrsps.testclient.HeadlessFarmingTest' --tests 'osrsps.testclient.HeadlessFarmingTreeTest' --tests 'osrsps.testclient.HeadlessFarmingFruitTreeTest' --tests 'osrsps.testclient.HeadlessFarmingHopsBushTest'`.
 
 ## Items and inventory
 

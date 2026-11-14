@@ -78,8 +78,9 @@ class PatchState(
         if (diseased) return crop.diseased[(stage - 1).coerceIn(0, crop.diseased.size - 1)]
         // A grown tree: Check-health, then the tree to chop, then its stump (the cache's tree multiloc).
         if (stage >= crop.stages && kind == PatchKind.TREE) return crop.harvest + if (stump) 2 else if (checked) 1 else 0
-        // A grown fruit tree: Check-health, then the tree with its fruit (0 to 6), or its stump.
-        if (stage >= crop.stages && kind == PatchKind.FRUIT_TREE) return if (stump) crop.stumpValue else if (!checked) crop.checkValue else crop.harvest + lives.coerceIn(0, kind.lives)
+        // A grown fruit tree: Check-health, then the tree with its fruit (0 to 6), or its stump; a bush the same with 0
+        // to 4 berries and no stump.
+        if (stage >= crop.stages && kind.bears) return if (stump) crop.stumpValue else if (!checked) crop.checkValue else crop.harvest + lives.coerceIn(0, kind.lives)
         if (stage >= crop.stages) return crop.harvest + (kind.harvestValues - lives.coerceIn(1, kind.harvestValues))
         return if (watered && crop.watered.isNotEmpty()) crop.watered[stage] else crop.growing[stage]
     }
@@ -206,22 +207,23 @@ object FarmingSaves {
             val lives = entry["lives"]?.jsonPrimitive?.int ?: 0
             require(lives >= 0) { "Farming patch $key has $lives lives" }
             // A grown crop always has a life left; a save that says otherwise has lost it, so it gets the base back. A
-            // fruit tree's lives are its fruit, which can be none.
+            // fruit tree's or bush's lives are its fruit or berries, which can be none.
             val livesNow = when {
-                crop.kind == PatchKind.FRUIT_TREE -> lives.coerceAtMost(patch.kind.lives)
+                crop.kind.bears -> lives.coerceAtMost(patch.kind.lives)
                 stage >= crop.stages && lives == 0 -> patch.kind.lives
                 else -> lives
             }
             val dead = entry["dead"]?.jsonPrimitive?.boolean ?: false
             // A crop is only ill or dead after its first stage and before it is grown; a save that says otherwise is healthy.
             val ill = stage in 1 until crop.stages
-            val grownTree = crop.kind.tree && stage >= crop.stages
+            val grownTree = crop.kind.checks && stage >= crop.stages
+            val stumps = crop.kind.tree
             val checked = entry["checked"]?.jsonPrimitive?.boolean ?: false
             state.patches[key] = PatchState(
                 0, crop, stage, entry["watered"]?.jsonPrimitive?.boolean ?: false, livesNow, compost,
                 diseased = ill && !dead && (entry["diseased"]?.jsonPrimitive?.boolean ?: false), dead = ill && dead,
-                // Only a grown tree is checked, and only a checked one can be a stump.
-                checked = grownTree && checked, stump = grownTree && checked && (entry["stump"]?.jsonPrimitive?.boolean ?: false),
+                // Only a grown tree or bush is checked, and only a checked tree can be a stump.
+                checked = grownTree && checked, stump = stumps && grownTree && checked && (entry["stump"]?.jsonPrimitive?.boolean ?: false),
             ).also { if (stage == 0) it.plantedMillis = entry["planted"]?.jsonPrimitive?.long ?: -1 }
         }
         return state
