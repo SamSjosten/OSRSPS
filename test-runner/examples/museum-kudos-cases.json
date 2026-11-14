@@ -1,5 +1,6 @@
 {
  "name": "Museum Kudos step 1: the necklace's secret and a Dig Site display case (::keys on). The museum-finds scenario clears the museum's varbits and the saved charges, so this repeats on one account, and ::reset puts them back",
+ "account": "test",
  "steps": [
   {"step": "waitForLogin"},
   {"step": "waitTicks", "ticks": 3, "comment": "let the client settle: a command typed straight away can be lost"},
