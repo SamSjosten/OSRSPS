@@ -21,7 +21,7 @@
   {"step": "assertVarbit", "id": 4771, "value": 10, "timeoutMs": 5000, "comment": "grown: Potato (8562) with Harvest"},
   {"step": "command", "text": "::empty", "expectMessage": "Inventory emptied.", "comment": "room for the whole crop: a spade and 27 free slots"},
   {"step": "command", "text": "::item 952 1", "comment": "a spade"},
-  {"step": "command", "text": "::setlevel farming 1", "expectMessage": "1", "comment": "a potato keeps its life 39.8% of the time at level 1, so 27 slots hold the crop all but never short"},
+  {"step": "command", "text": "::setlevel farming 50", "expectMessage": "50", "comment": "a potato keeps its life 55% of the time at level 50, so 27 slots hold the crop all but never short, and level 51 is over 10,000 XP away, so no level-up box stops the harvest"},
   {"step": "locOption", "locId": 8550, "option": "Harvest", "x": 3052, "y": 3307, "timeoutMs": 20000},
   {"step": "assertMessage", "contains": "[farming.harvest_start patch=[farming.patch_allotment]]", "timeoutMs": 10000},
   {"step": "assertMessage", "contains": "[farming.empty patch=[farming.patch_allotment]]", "timeoutMs": 120000, "comment": "a potato every 4 ticks until the three lives are gone"},
