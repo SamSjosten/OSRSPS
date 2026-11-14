@@ -1081,10 +1081,12 @@ class Farming(private val world: World, private val clock: () -> Long, private v
     private fun ScriptContext.fillBin(op: Op, state: BinState) {
         if (state.closed || state.open || state.count >= Compostables.CAPACITY) return world.message(player, FarmingLines.BIN_FULL)
         world.scripts.clearQueue(player, BIN_QUEUE)
-        depositOne(op.obj, state)
+        // The click runs after this tick's queues, so the next item's entry waits 0 to come next tick; an entry queued
+        // while the queues run is counted down in the same pass, so it waits 1.
+        depositOne(op.obj, state, nextDelay = 0)
     }
 
-    private fun ScriptContext.depositOne(obj: Int, state: BinState) {
+    private fun ScriptContext.depositOne(obj: Int, state: BinState, nextDelay: Int = 1) {
         if (player.inventory.count(obj) <= 0 || state.closed || state.open || state.count >= Compostables.CAPACITY) return
         val kind = Compostables.mix(state.kind, state.count, obj)
         if (state.count > 0 && kind != state.kind) world.message(player, FarmingLines.BIN_MIXED)
@@ -1095,7 +1097,7 @@ class Farming(private val world: World, private val clock: () -> Long, private v
         world.message(player, FarmingLines.BIN_ADDED, "item" to world.objTypes[obj]?.name?.lowercase().orEmpty())
         refresh(player)
         if (state.count < Compostables.CAPACITY && player.inventory.count(obj) > 0) {
-            queue(BIN_QUEUE, QueueType.WEAK, 1) { depositOne(obj, state) }
+            queue(BIN_QUEUE, QueueType.WEAK, nextDelay) { depositOne(obj, state) }
         }
     }
 
