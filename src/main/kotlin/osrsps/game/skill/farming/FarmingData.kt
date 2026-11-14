@@ -13,6 +13,10 @@ package osrsps.game.skill.farming
  * Wiki's Disease page: herbs 27/128). A diseased crop dies at its next tick of the next slower clock ([diseaseCycleTicks],
  * twice the cycle for these three: the same page, "one tier slower"). [composting]: compost adds harvest lives.
  * Guessed: allotments and flowers falling ill as often as herbs (the Wiki gives no figure for them).
+ *
+ * Trees ([TREE], step 4; the Wiki's Tree patch and each tree's page, read 2026-11-14) grow every 40 minutes, are planted
+ * as one sapling with a spade, aren't watered and have no harvest lives: once grown they are checked, chopped to a
+ * stump and the stump dug up. Their chance to fall ill is each tree's own ([Crop.disease]).
  */
 enum class PatchKind(
     val cycleTicks: Int, val seeds: Int, val lives: Int, val harvestValues: Int, val spade: Boolean, val disease: Int,
@@ -20,7 +24,8 @@ enum class PatchKind(
 ) {
     ALLOTMENT(cycleTicks = 2, seeds = 3, lives = 3, harvestValues = 3, spade = true, disease = 27, composting = true),
     HERB(cycleTicks = 4, seeds = 1, lives = 3, harvestValues = 3, spade = true, disease = 27, composting = true),
-    FLOWER(cycleTicks = 1, seeds = 1, lives = 1, harvestValues = 1, spade = false, disease = 27, composting = false);
+    FLOWER(cycleTicks = 1, seeds = 1, lives = 1, harvestValues = 1, spade = false, disease = 27, composting = false),
+    TREE(cycleTicks = 8, seeds = 1, lives = 1, harvestValues = 1, spade = true, disease = 0, composting = false);
 
     val diseaseCycleTicks: Int get() = cycleTicks * 2
 }
@@ -60,8 +65,11 @@ object Compost {
      * The chance in 128 that a crop of [kind] falls ill at a growth, with [compost] in the soil and [watered] since its
      * last growth. Guessed: watering halving it again (the Wiki: "a modest reduction", no figure).
      */
-    fun diseaseChance(kind: PatchKind, compost: Int, watered: Boolean): Int {
-        var chance = ceilDiv(kind.disease * LEFT_TENTHS[compost.coerceIn(NONE, ULTRA)], 10)
+    fun diseaseChance(kind: PatchKind, compost: Int, watered: Boolean): Int = diseaseChance(kind.disease, compost, watered)
+
+    /** The same for a crop whose untreated chance is [base] in 128 (the Disease page's table: maple 13, 7, 3, 2). */
+    fun diseaseChance(base: Int, compost: Int, watered: Boolean): Int {
+        var chance = ceilDiv(base * LEFT_TENTHS[compost.coerceIn(NONE, ULTRA)], 10)
         if (watered) chance = ceilDiv(chance, 2)
         return chance
     }
@@ -83,6 +91,10 @@ object Compost {
  *
  * A flower ([PatchKind.FLOWER]) is picked once for [yield] items ([levelBonus]: plus 0 to a tenth of the Farming level
  * more, limpwurt's) and has no chance to keep a life.
+ *
+ * [disease] is its chance in 128 to fall ill at a growth (its kind's, but each tree has its own),  and its first
+ * growth comes on its kind's clock, or [firstStageMillis] after planting when that isn't 0 (a yew's
+ * first stage lasts 5 minutes from planting, off the usual clock: the Wiki's Growth timing).
  */
 class Crop(
     val key: String,
@@ -101,6 +113,8 @@ class Crop(
     val dead: List<Int>,
     val yield: Int = 1,
     val levelBonus: Boolean = false,
+    val disease: Int = kind.disease,
+    val firstStageMillis: Long = 0,
 ) {
     val stages: Int get() = growing.size
 
@@ -193,11 +207,37 @@ object Crops {
     val LIMPWURT = flower("limpwurt", 5100, 225, 26, 215, 1200, 28, 92, 157, 221, yield = 3, levelBonus = true)
     val WHITE_LILY = flower("white_lily", 22887, 22932, 58, 420, 2500, 37, 101, 166, 230)
 
+    /**
+     * A tree. Levels, planting and check-health XP, cycles and stages from each tree's Wiki page (read 2026-11-14): the
+     * sapling is what is planted ([Crop.seed]) and logs what it gives. Values from the cache's tree multiloc (8391 and
+     * its siblings, the layout RuneLite reads): growing from [first], the check-health tree at [first] + stages, then
+     * the tree to chop and its stump; ill and dead values from [diseasedFirst] and [deadFirst]. Chances to fall ill from
+     * the Disease page: maple 13 and magic 9. Guessed: oak 17, willow 15 and yew 11, on the same line by stages (the
+     * Wiki gives none).
+     */
+    private fun tree(
+        key: String, sapling: Int, logs: Int, level: Int, plant: Int, check: Int, stages: Int,
+        first: Int, diseasedFirst: Int, deadFirst: Int, disease: Int, firstStageMillis: Long = 0,
+    ) = Crop(
+        key, PatchKind.TREE, sapling, logs, level, plant, check, 0, 0,
+        run(first, stages), emptyList(), first + stages, run(diseasedFirst, stages - 1), run(deadFirst, stages - 1),
+        disease = disease, firstStageMillis = firstStageMillis,
+    )
+
+    val OAK = tree("oak", 5370, 1521, 15, 140, 4673, 4, 8, 73, 137, disease = 17)
+    val WILLOW = tree("willow", 5371, 1519, 30, 250, 14565, 6, 15, 80, 144, disease = 15)
+    val MAPLE = tree("maple", 5372, 1517, 45, 450, 34034, 8, 24, 89, 153, disease = 13)
+
+    /** "Since the first growth stage of a Yew tree only lasts 5 minutes": 5 + 9 x 40 minutes (its page). */
+    val YEW = tree("yew", 5373, 1515, 60, 810, 70699, 10, 35, 100, 164, disease = 11, firstStageMillis = 5 * 60_000L)
+    val MAGIC = tree("magic", 5374, 1513, 75, 1455, 137683, 12, 48, 113, 177, disease = 9)
+
     val ALL = listOf(
         POTATO, ONION, CABBAGE, TOMATO, SWEETCORN, STRAWBERRY, WATERMELON, SNAPE_GRASS,
         GUAM, MARRENTILL, TARROMIN, HARRALANDER, RANARR, TOADFLAX, IRIT, AVANTOE, KWUARM, SNAPDRAGON, HUASCA,
         CADANTINE, LANTADYME, DWARF_WEED, TORSTOL,
         MARIGOLD, ROSEMARY, NASTURTIUM, WOAD, LIMPWURT, WHITE_LILY,
+        OAK, WILLOW, MAPLE, YEW, MAGIC,
     )
 
     private val byKey = ALL.associateBy { it.key }
@@ -217,6 +257,43 @@ object Crops {
     fun byKey(key: String): Crop? = byKey[key]
 
     fun bySeed(seed: Int): Crop? = bySeed[seed]
+}
+
+/**
+ * What goes with each tree besides its patch (the Wiki's Seedling, Sapling, Roots and Leaves pages; ids by gameval
+ * name): the [seed] planted in a filled plant pot to make the [seedling], the [watered] seedling that grows into the
+ * crop's sapling, the [roots] dug from its stump, the [leaves] pruning gives and its Woodcutting tree ([woodcutting],
+ * woodcutting.json's key, for the axe rates, logs and XP).
+ */
+class TreeInfo(val crop: Crop, val seed: Int, val seedling: Int, val watered: Int, val roots: Int, val leaves: Int, val woodcutting: String) {
+    val sapling: Int get() = crop.seed
+}
+
+object Trees {
+    val OAK = TreeInfo(Crops.OAK, 5312, 5358, 5364, 6043, 6022, "oak")
+    val WILLOW = TreeInfo(Crops.WILLOW, 5313, 5359, 5365, 6045, 6024, "willow")
+    val MAPLE = TreeInfo(Crops.MAPLE, 5314, 5360, 5366, 6047, 6028, "maple")
+    val YEW = TreeInfo(Crops.YEW, 5315, 5361, 5367, 6049, 6026, "yew")
+    val MAGIC = TreeInfo(Crops.MAGIC, 5316, 5362, 5368, 6051, 6030, "magic")
+
+    val ALL = listOf(OAK, WILLOW, MAPLE, YEW, MAGIC)
+
+    private val byCrop = ALL.associateBy { it.crop }
+    private val byWatered = ALL.associateBy { it.watered }
+
+    fun of(crop: Crop): TreeInfo? = byCrop[crop]
+
+    fun byWatered(id: Int): TreeInfo? = byWatered[id]
+
+    /** An empty plant pot, and one filled with soil (plantpot_empty, plantpot_compost). */
+    const val POT_EMPTY = 5350
+    const val POT_FILLED = 5354
+
+    /**
+     * Roots dug from a stump at Farming [level]: one at the tree's level and one more every 8 levels, four at most (the
+     * maple's page: 1 at 45, 2 at 53, 3 at 61, 4 at 69; the yew's the same from 60).
+     */
+    fun roots(crop: Crop, level: Int): Int = (1 + (level - crop.level).coerceAtLeast(0) / 8).coerceAtMost(4)
 }
 
 /** One patch: the loc the map places, the varbit that draws it, and its kind. [key] names it in saves. */
@@ -252,7 +329,22 @@ object FarmingPatches {
     /** The Falador farming patches: map square 12083 north of z 3272 (Port Sarim's spirit tree patch is south of it). */
     val FALADOR = FarmingArea("Falador", setOf(12083), listOf(FALADOR_NW, FALADOR_SE, FALADOR_FLOWER, FALADOR_HERB)) { _, z -> z >= 3272 }
 
-    val AREAS = listOf(FALADOR)
+    /**
+     * The tree patches (`tree_patch_1` to `_4`, cache placements): Falador park (3003, 3372), Taverley (2935, 3437),
+     * Varrock palace (3228, 3458) and Lumbridge castle (3192, 3230), each drawn by `farming_transmit_a` in its two map
+     * squares (RuneLite's FarmingWorld).
+     */
+    val LUMBRIDGE_TREE = FarmingPatch("lumbridge_tree", 8391, TRANSMIT_A, PatchKind.TREE)
+    val VARROCK_TREE = FarmingPatch("varrock_tree", 8390, TRANSMIT_A, PatchKind.TREE)
+    val FALADOR_TREE = FarmingPatch("falador_tree", 8389, TRANSMIT_A, PatchKind.TREE)
+    val TAVERLEY_TREE = FarmingPatch("taverley_tree", 8388, TRANSMIT_A, PatchKind.TREE)
+
+    val LUMBRIDGE = FarmingArea("Lumbridge", setOf(12594, 12850), listOf(LUMBRIDGE_TREE))
+    val VARROCK = FarmingArea("Varrock", setOf(12854, 12853), listOf(VARROCK_TREE))
+    val FALADOR_PARK = FarmingArea("Falador park", setOf(11828, 12084), listOf(FALADOR_TREE))
+    val TAVERLEY = FarmingArea("Taverley", setOf(11573, 11829), listOf(TAVERLEY_TREE))
+
+    val AREAS = listOf(FALADOR, LUMBRIDGE, VARROCK, FALADOR_PARK, TAVERLEY)
 
     val ALL: List<FarmingPatch> = AREAS.flatMap { it.patches }
 
@@ -280,5 +372,6 @@ object FarmingPatches {
     init {
         require(byKey.size == ALL.size) { "Two farming patches share a key" }
         require(AREAS.all { area -> area.patches.distinctBy { it.loc }.size == area.patches.size }) { "An area has two patches on one loc" }
+        require(AREAS.flatMap { it.regions }.let { it.size == it.toSet().size }) { "Two farming areas share a map square" }
     }
 }
