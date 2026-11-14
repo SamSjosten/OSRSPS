@@ -440,6 +440,20 @@ dialogue file. Trees outside Misthalin are where live has them and reached by ::
 | Redwoods give no seed, ring or egg nests (only clue nests, which are out) | OSRS Wiki, Redwood tree |
 | Out: the Woodcutting Guild (its +7, doors and the redwoods' ladders), the Hardwood Grove's trading sticks, Etceteria's trees giving no logs, Farming's patch trees | out of scope; later pieces |
 
+The River Lum's canoe stations (`game/skill/Canoes.kt`, words under `canoe.*`): Lumbridge, the Champions' Guild,
+Barbarian Village, Edgeville and the Ferox Enclave. Each is a multiloc on a varbit of its own, so every player has their
+own tree: Chop-down fells it, Shape-Canoe opens the canoeing box (416) with the canoes the level allows, Float pushes
+the canoe in and Paddle opens the river map (953), where the client offers the stations that canoe reaches. The canoe
+sinks on landing and the station is a tree again. Check: `test-runner/examples/canoes.json`, `HeadlessCanoeTest`.
+
+| Canoe behaviour | Source |
+|-----------------|--------|
+| Log 12 (30 XP), dugout 27 (60), stable dugout 42 (90), waka 57 (150); the XP on shaping; shaping pairs by axe, whatever the canoe (bronze 32/100 to rune, dragon and crystal 112/350); the tree's pairs for bronze to black axes; one trip a canoe; an unused canoe kept until logout, and cleared by starting another station's tree | OSRS Wiki, Canoe and Canoe station (read 2026-11-14) |
+| Which station each canoe reaches from each (log one on, dugout two, stable dugout three; only a waka to the Ferox Enclave or the Wilderness Pond); the box's level 12 check and list; the station states, interfaces and carving animations | 242 cache: client scripts `canoe_setup`, `canoe_paddle_*`, `canoe_location_setup_lum`, the locs, varbits and seqs |
+| The tree always falling for mithril axes and up; shaping rolling every 4 ticks; the fall and push taking 3 ticks and the trip 8; the player's push animation; the landing tiles (from the 2009scape project, not live), the Ferox Enclave's; no message on starting to chop or shape | guessed, to check against a recording |
+| The Ferox Enclave and Wilderness Pond refusing a waka, in our own words, until the Wilderness is built | ours |
+| Out: the travel cutscene, the sinking canoe at the landing, followers, the Wilderness warning, the Ardougne river's stations; the canoe experts' Store-axe | out of scope; later pieces |
+
 Each log has a 1/256 chance of a bird nest (`game/skill/BirdNests.kt`, words under `birdnest.*`), 11/2560 with a
 Woodcutting cape worn; `::nest [seeds|ring|red|green|blue]` drops one as a tree does. Search on a nest leaves an empty
 nest in its slot and puts its seed, ring or egg in the backpack.
@@ -1773,9 +1787,10 @@ Step 3a is the town's people and the places not built yet, `game/content/Edgevil
 | 18 hell-rats and four Hell-Rat Behemoths in the basement, with no options (they wait for cats) | mejrs's NPC list for the tiles; 241 cache (no ops); the Wiki's Basement of Doom page (four behemoths) |
 | Hari (`canoeing_hari` 1325) by the canoe station: who he is, and canoes by the Woodcutting level (Barfy Bill's bands) | OSRS Wiki, Transcript:Hari |
 | Lucien (`ikov_lucien2` 13644, a multi-NPC on varbit 10753 `ikov_lucien_vis`) in the house east of the willows, Talk-to only, as after Temple of Ikov on his side; a new Pendant of Lucien (86) if the player owns none | OSRS Wiki, Transcript:Lucien; that 1 means "after the quest, his side" is inferred, and the side is our pick |
-| Refusals, in our own words: the Wilderness lever (26761), the fairy ring (29495, all four options), the Soul Wars portal (40474), Death's Domain (39547) and the canoe station (12166) | ours: none of those places is built yet |
+| Refusals, in our own words: the Wilderness lever (26761), the fairy ring (29495, all four options), the Soul Wars portal (40474) and Death's Domain (39547) | ours: none of those places is built yet |
 
-The words are in the dialogue file (keys `doris.*`, `evil_dave.*`, `hari.*`, `lucien.*`, `edgeville_closed.*`). Check:
+The words are in the dialogue file (keys `doris.*`, `evil_dave.*`, `hari.*`, `lucien.*`, `edgeville_closed.*`). The
+canoe station is `Canoes.kt`'s (Gathering 2). Check:
 `test-runner/examples/edgeville-people.json` talks to Doris, opens, shuts and goes down the trapdoor, talks to Evil
 Dave, climbs the stairs, talks to Lucien and Hari, and tries each refused place; `EdgevillePeopleTest` does each talk's
 branches and `HeadlessEdgevillePeopleTest` the trapdoor, stairs, refusals, Doris and Lucien through the headless client.

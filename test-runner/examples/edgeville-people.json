@@ -1,5 +1,5 @@
 {
- "name": "Edgeville piece step 3a: Doris's talk, the Basement of Doom's trapdoor (open, close, down) and cellar stairs, Evil Dave's talk, Lucien and Hari, and the refusals on the canoe station, fairy ring, lever, Soul Wars portal and Death's Domain (::keys on)",
+ "name": "Edgeville piece step 3a: Doris's talk, the Basement of Doom's trapdoor (open, close, down) and cellar stairs, Evil Dave's talk, Lucien and Hari, the canoe station's level check, and the refusals on the fairy ring, lever, Soul Wars portal and Death's Domain (::keys on)",
  "account": "test",
  "steps": [
   {
@@ -356,7 +356,7 @@
   },
   {
    "step": "assertMessage",
-   "contains": "[edgeville_closed.canoe]"
+   "contains": "[canoe.level level=12]"
   },
   {
    "step": "command",
