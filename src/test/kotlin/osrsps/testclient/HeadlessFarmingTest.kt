@@ -4,7 +4,6 @@ import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
 import osrsps.game.InventoryTab
@@ -97,10 +96,10 @@ class HeadlessFarmingTest {
                 client.give(RAKE)
                 client.locOp(ALLOTMENT, 3052, PATCH_Z, 1)
                 client.seen("[farming.raked]")
-                // Three weeds, 4 XP each, and the patch drawn raked.
-                assertEquals(3, client.count(WEEDS))
-                assertEquals(12, client.xp())
+                // Three weeds, 4 XP each, and the patch drawn raked (the inventory can land after the message).
                 client.awaitPatch(3)
+                client.await("three weeds") { if (client.count(WEEDS) == 3) Unit else null }
+                client.await("12 XP") { if (client.xp() == 12) Unit else null }
 
                 client.give(POTATO_SEED, 2)
                 client.use(POTATO_SEED)
@@ -112,7 +111,7 @@ class HeadlessFarmingTest {
                 client.use(POTATO_SEED)
                 client.seen("[farming.planted count=3 seeds=potato seed patch=[farming.patch_allotment]]")
                 client.awaitPatch(6)
-                assertEquals(0, client.count(POTATO_SEED))
+                client.await("the seeds used") { if (client.count(POTATO_SEED) == 0) Unit else null }
                 // The planting XP waits for the last crop.
                 assertEquals(12, client.xp())
 
@@ -136,9 +135,10 @@ class HeadlessFarmingTest {
                 client.seen("[farming.harvest_start patch=[farming.patch_allotment]]")
                 client.seen("[farming.empty patch=[farming.patch_allotment]]")
                 client.awaitPatch(3)
-                val potatoes = client.count(POTATO)
-                assertTrue(potatoes >= 3, "at least the three lives, not $potatoes")
-                assertEquals(12 + 8 + 9 * potatoes, client.xp())
+                // Every potato is 9 XP and the planting's 8 comes with the last; wait for the last stat and inventory updates.
+                client.await("the harvest XP (${client.xp()} XP, ${client.count(POTATO)} potatoes)") {
+                    if (client.count(POTATO) >= 3 && client.xp() == 12 + 8 + 9 * client.count(POTATO)) Unit else null
+                }
 
                 // Bare soil grows a weed stage each farming tick until it is overgrown again.
                 client.command("farmtick 1")
