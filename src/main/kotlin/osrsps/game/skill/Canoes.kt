@@ -104,7 +104,7 @@ class Canoes(private val world: World, private val woodcutting: WoodcuttingData)
     private val shaping = ConcurrentHashMap<Player, Shaping>()
 
     /** The station each player paddles from while canoe_map_lum is open. */
-    private val paddling = ConcurrentHashMap<Player, CanoeStation>()
+    private val paddling = ConcurrentHashMap<Player, Pair<CanoeStation, ZoneLoc>>()
 
     fun register() {
         for (station in CanoeStation.entries) {
@@ -143,9 +143,9 @@ class Canoes(private val world: World, private val woodcutting: WoodcuttingData)
             in 5..8 -> {
                 // Only a push cut short (a logout mid-push, the state saved) leaves one here.
                 setState(player, station, state + 6)
-                openMap(station)
+                openMap(station, loc)
             }
-            in 11..14 -> openMap(station)
+            in 11..14 -> openMap(station, loc)
         }
     }
 
@@ -181,6 +181,9 @@ class Canoes(private val world: World, private val woodcutting: WoodcuttingData)
 
     private fun ScriptContext.shape(type: CanoeType) {
         val shape = shaping[player] ?: return
+        // A box left open by a move that doesn't close it (Home Teleport, ::tele) is no use away from the tree
+        // (exploit review R32C-1).
+        if (!usable(SHAPING, shape.loc)) return
         world.interfaces.closeModals(player)
         if (state(player, shape.station) != FALLEN) return
         if (level() < type.level) {
@@ -227,8 +230,8 @@ class Canoes(private val world: World, private val woodcutting: WoodcuttingData)
         setState(player, station, type + 10)
     }
 
-    private fun ScriptContext.openMap(station: CanoeStation) {
-        paddling[player] = station
+    private fun ScriptContext.openMap(station: CanoeStation, loc: ZoneLoc) {
+        paddling[player] = station to loc
         world.interfaces.setVarbitNow(player, VARBIT_STARTFROM, station.index)
         world.interfaces.setVarbitNow(player, VARBIT_RIVER, RIVER_LUM)
         world.interfaces.openModal(player, FrameSlot.MAINMODAL, MAP)
@@ -238,7 +241,10 @@ class Canoes(private val world: World, private val woodcutting: WoodcuttingData)
     }
 
     private suspend fun ScriptContext.paddle(destination: CanoeDestination) {
-        val station = paddling[player] ?: return
+        val (station, loc) = paddling[player] ?: return
+        // The map left open by a move that doesn't close it (Home Teleport, ::tele) would start the trip from
+        // wherever the player went: a way out of a fight (exploit review R32C-1).
+        if (!usable(MAP, loc)) return
         val state = state(player, station)
         // The client offers only these; anything else is a stale or forged click.
         if (state !in 11..14 || !reaches(state - 10, station, destination)) return
@@ -254,6 +260,17 @@ class Canoes(private val world: World, private val woodcutting: WoodcuttingData)
         player.message(text[destination.arrive])
         player.message(text[CanoeLines.SINKS])
         if (destination == CanoeDestination.WILDERNESS_POND) player.message(text[CanoeLines.POND_WALK])
+    }
+
+    /** Whether [interfaceId] is still the player's open box and they still stand beside the station [loc]. */
+    private fun ScriptContext.usable(interfaceId: Int, loc: ZoneLoc): Boolean {
+        if (player.modals[FrameSlot.MAINMODAL] != interfaceId) return false
+        val type = world.locs.types[loc.id]
+        val turned = loc.angle % 2 == 1
+        val width = (if (turned) type?.length else type?.width) ?: 1
+        val length = (if (turned) type?.width else type?.length) ?: 1
+        return player.level == loc.level &&
+            player.x in loc.x - 1..loc.x + width && player.z in loc.z - 1..loc.z + length
     }
 
     /** The level and axe checks for chopping and shaping: the axe, or null after the message. */

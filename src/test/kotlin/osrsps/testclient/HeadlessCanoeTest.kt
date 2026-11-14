@@ -199,6 +199,23 @@ class HeadlessCanoeTest {
     }
 
     @Test
+    fun `the river map left open by a teleport away does nothing (exploit review R32C-1)`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("hank").use { client ->
+                client.canoeist(99)
+                client.makeAndFloat(CanoeType.LOG)
+                // ::tele doesn't close the map, as Home Teleport doesn't.
+                client.tele(3222, 3218)
+                assertTrue(Canoes.MAP in client.openInterfaces())
+                client.ifButton(Canoes.MAP, CanoeDestination.CHAMPIONS_GUILD.component, 1)
+                client.awaitTicks(Canoes.TRIP_TICKS + 3)
+                assertEquals(3222, client.position!!.x)
+                assertEquals(CanoeType.LOG.number + 10, client.lumbridge())
+            }
+        }
+    }
+
+    @Test
     fun `a fall cut short (a death mid-fall) leaves a fallen tree to shape`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("gina").use { client ->
