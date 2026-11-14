@@ -221,7 +221,7 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   spade and Farming set to 50 first, so the crop fits and no level-up box stops it), each stage read off `farming_transmit_a` (varbit 4771), with
   `::keys on` and `::reset` at the end. Needs 0.8.0 for `assertVarbit`.
 - `farming-herb-flower.json`: Farming step 2: with `::scenario farming`, Falador's flower patch planted with
-  limpwurt, watered, grown with `::farmtick 4` and picked once, and its herb patch planted with guam, grown with
+  limpwurt, watered, grown with `::farmtick 4` and picked once, the backpack emptied for a rake, a dibber and a guam seed, and its herb patch planted with guam, grown with
   `::farmtick 16` and picked with a spade until it is empty (the backpack emptied but for a spade and Farming set to 50
   first, so every herb fits and no level-up box stops it), read off varbits 4773 and 4774, with `::keys on` and
   `::reset` at the end. Needs 0.8.0 for `assertVarbit`.
