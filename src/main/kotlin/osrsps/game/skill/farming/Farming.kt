@@ -1,6 +1,7 @@
 package osrsps.game.skill.farming
 
 import osrsps.game.GameLines
+import osrsps.game.GroundObjs
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
@@ -30,9 +31,10 @@ object FarmingLines : Lines("farming", "Farming") {
     val NO_WATER_NEEDED = line("no_water_needed", "a watering can on a patch that can't be watered")
     val CAN_EMPTY = line("can_empty", "an empty watering can used on a patch")
     val NEED_SPADE = line("need_spade", "Harvest without a spade")
-    val HARVEST_START = line("harvest_start", "Harvest clicked on a grown allotment", "patch")
+    val HARVEST_START = line("harvest_start", "Harvest or Pick clicked on a grown allotment or herb patch", "patch")
     val HARVESTED = line("harvested", "each crop harvested", "produce")
     val EMPTY = line("empty", "the last crop harvested from a patch", "patch")
+    val PICKED = line("picked", "a grown flower picked", "produce")
     val INVENTORY_FULL = line("inventory_full", "raking or harvesting with a full inventory")
 
     /** Inspect's message is made of these: what the patch is, then its soil, then what is in it. */
@@ -45,13 +47,16 @@ object FarmingLines : Lines("farming", "Farming") {
 
     /** The patch kinds' names, for the lines above. */
     val PATCH_ALLOTMENT = line("patch_allotment", "an allotment's name in messages")
+    val PATCH_HERB = line("patch_herb", "a herb patch's name in messages")
+    val PATCH_FLOWER = line("patch_flower", "a flower patch's name in messages")
 }
 
 /**
- * The Farming skill, step 1 (OSRS Wiki, Farming, Allotment patch, Weeds and each seed's page, read 2026-11-14): the
- * growth clock ([FarmingClock]), each player's patches ([FarmingState], saved), the patch varbits the client draws
- * them from, and allotments: Rake, seeds used on a raked patch with a seed dibber, watering, growing on the clock, and
- * Harvest with a spade until the patch's lives run out.
+ * The Farming skill, steps 1 and 2 (OSRS Wiki, Farming, Allotment patch, Herb patch, Flower patch, Weeds and each
+ * seed's page, read 2026-11-14): the growth clock ([FarmingClock]), each player's patches ([FarmingState], saved), the
+ * patch varbits the client draws them from, and allotments, herbs and flowers: Rake, seeds used on a raked patch with a
+ * seed dibber, watering (not herbs), growing on the clock, Harvest (allotments) or Pick (herbs) with a spade until the
+ * patch's lives run out, and Pick on a flower, once, by hand.
  *
  * Every patch is a multiloc the map places, drawn by one of the `farming_transmit` varbits ([FarmingPatches]); each tick
  * the player's patches grow to the clock and the varbits of the area they stand in are set (only changes are sent).
@@ -64,7 +69,12 @@ object FarmingLines : Lines("farming", "Farming") {
  * crop yield). The animations are the cache's farming_raking, farming_seed_dibbing, farming_watering and human_dig.
  * Guessed: a rake roll every 4 ticks that always takes one weed; planting and watering landing 3 ticks after the
  * click; a crop every 4 ticks while harvesting; raking and harvesting stopping with a full inventory; that the
- * offset is drawn from the account rather than at random ([offset]).
+ * offset is drawn from the account rather than at random ([offset]); herbs and flowers picked with picking_low; a
+ * herb every 4 ticks as a crop is; a flower picked 2 ticks after the click; flower produce that doesn't fit falling
+ * to the floor; magic secateurs' 10% on limpwurt as 10% more numbers to draw from (its page gives no formula).
+ * Sourced too: clicking again two ticks into a harvest picks two crops at each roll from then (the Wiki's Herb patch,
+ * "similar to allotments"); guessed that a click on the first or second tick counts (the page: "spam-clicking during
+ * the first two ticks").
  */
 class Farming(private val world: World, private val clock: () -> Long) {
     fun register() {
@@ -142,7 +152,7 @@ class Farming(private val world: World, private val clock: () -> Long) {
             if (patch.stage >= crop.stages || tick % kind.cycleTicks != 0L) continue
             patch.stage++
             patch.watered = false
-            if (patch.stage >= crop.stages) patch.lives = BASE_LIVES
+            if (patch.stage >= crop.stages) patch.lives = kind.lives
         }
     }
 
@@ -162,6 +172,7 @@ class Farming(private val world: World, private val clock: () -> Long) {
         val state = player.farming.patch(patch)
         when {
             state.crop == null && state.weeds > 0 -> rake(op, patch, state)
+            state.grown && patch.kind == PatchKind.FLOWER -> pick(patch, state)
             state.grown -> harvest(op, patch, state)
             // The client shows op1 only on weeds and grown crops, so anything else is a click from before a change.
             else -> stop()
@@ -207,34 +218,84 @@ class Farming(private val world: World, private val clock: () -> Long) {
             return stop()
         }
         val text = world.textFor(player)
+        val anim = if (patch.kind == PatchKind.HERB) ANIM_PICK_LOW else ANIM_DIG
         if (!op.repeat) {
-            world.message(player, FarmingLines.HARVEST_START, "patch" to text[patchName(patch.kind)])
-            player.anim(ANIM_DIG)
+            // A click again 1 or 2 ticks into a harvest still going picks two a time from then (the Wiki's Herb patch).
+            val underway = state.harvestStart >= 0 && state.harvestTick >= tick - 1 && tick - state.harvestStart in 1..FAST_HARVEST_TICKS
+            if (underway) {
+                state.fastHarvest = true
+            } else {
+                state.harvestStart = tick
+                state.fastHarvest = false
+                world.message(player, FarmingLines.HARVEST_START, "patch" to text[patchName(patch.kind)])
+                player.anim(anim)
+            }
         }
+        state.harvestTick = tick
         if (SkillClock.step(player, tick, HARVEST_CYCLE) == ClockStep.DUE) {
-            player.anim(ANIM_DIG)
+            player.anim(anim)
             val produce = world.objTypes[crop.produce] ?: error("No obj type ${crop.produce} for ${crop.key}")
-            player.inventory.add(produce, 1)
-            player.skills.addTenths(Skill.FARMING, crop.harvestXpTenths)
-            world.message(player, FarmingLines.HARVESTED, "produce" to produce.name.lowercase())
-            if (!keepsLife(crop, player)) state.lives--
-            if (state.lives <= 0) {
-                // The planting XP comes now, with the last crop (the Wiki's Allotment patch: on fully harvesting it).
-                player.skills.addTenths(Skill.FARMING, crop.plantXpTenths)
-                state.clear()
-                refresh(player)
-                world.message(player, FarmingLines.EMPTY, "patch" to text[patchName(patch.kind)])
-                return stop()
+            repeat(if (state.fastHarvest) 2 else 1) { pick ->
+                if (pick > 0 && player.inventory.freeSlots == 0) return@repeat
+                player.inventory.add(produce, 1)
+                player.skills.addTenths(Skill.FARMING, crop.harvestXpTenths)
+                world.message(player, FarmingLines.HARVESTED, "produce" to produce.name.lowercase())
+                if (!keepsLife(crop, player)) state.lives--
+                if (state.lives <= 0) {
+                    // The planting XP comes now, with the last crop (the Wiki's Allotment and Herb patch: on the final harvest).
+                    player.skills.addTenths(Skill.FARMING, crop.plantXpTenths)
+                    state.clear()
+                    refresh(player)
+                    world.message(player, FarmingLines.EMPTY, "patch" to text[patchName(patch.kind)])
+                    return stop()
+                }
             }
             refresh(player)
         }
         world.repeatOp(player, op)
     }
 
+    /**
+     * Pick on a grown flower: its produce all at once, then both its XPs (the Wiki's Flower patch: "Both plant and
+     * harvest experience is awarded once when the patch is cleared"), and the patch is bare again.
+     */
+    private suspend fun ScriptContext.pick(patch: FarmingPatch, state: PatchState) {
+        val crop = state.crop ?: return
+        if (player.inventory.freeSlots == 0) return world.message(player, FarmingLines.INVENTORY_FULL)
+        player.anim(ANIM_PICK_LOW)
+        delay(PICK_DELAY)
+        if (state.crop !== crop || !state.grown) return
+        val produce = world.objTypes[crop.produce] ?: error("No obj type ${crop.produce} for ${crop.key}")
+        val count = flowerYield(crop, player.skills.currentLevel(Skill.FARMING), hasMagicSecateurs(player))
+        val added = player.inventory.add(produce, count)
+        if (added < count) {
+            val stacks = if (produce.stackable) listOf(count - added) else List(count - added) { 1 }
+            for (n in stacks) {
+                world.groundObjs.addPrivate(produce, n, player.x, player.z, player.level, player.saveKey, GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.DROP_DESPAWN_TICKS)
+            }
+        }
+        player.skills.addTenths(Skill.FARMING, crop.plantXpTenths + crop.harvestXpTenths)
+        world.message(player, FarmingLines.PICKED, "produce" to produce.name.lowercase())
+        state.clear()
+        refresh(player)
+    }
+
+    /**
+     * How many of a flower one Pick gives: its [Crop.yield], and for limpwurt a random number from 0 to level - 1,
+     * divided by ten, more (Mod Ash on the Limpwurt seed page: "a random number between 0 and (stat - 1) inclusive").
+     * Magic secateurs "increase the chances by 10%" (the same page). Guessed: by drawing from 10% more numbers.
+     */
+    fun flowerYield(crop: Crop, level: Int, secateurs: Boolean): Int {
+        if (!crop.levelBonus) return crop.yield
+        val numbers = if (secateurs) level * 11 / 10 else level
+        return crop.yield + world.random.nextInt(maxOf(numbers, 1)) / 10
+    }
+
+    private fun hasMagicSecateurs(player: Player) = player.inventory.count(MAGIC_SECATEURS) > 0 || player.equipment.count(MAGIC_SECATEURS) > 0
+
     /** Whether a harvest keeps its life: the crop's chance at the player's level, magic secateurs' 10% on both ends. */
     fun keepsLife(crop: Crop, player: Player): Boolean {
-        val secateurs = player.inventory.count(MAGIC_SECATEURS) > 0 || player.equipment.count(MAGIC_SECATEURS) > 0
-        val (low, high) = lifeChances(crop, secateurs)
+        val (low, high) = lifeChances(crop, hasMagicSecateurs(player))
         return SuccessRoll.roll(world.random, low, high, player.skills.currentLevel(Skill.FARMING))
     }
 
@@ -244,7 +305,7 @@ class Farming(private val world: World, private val clock: () -> Long) {
         val obj = op.obj
         when {
             obj == RAKE -> if (state.crop == null && state.weeds > 0) rake(op.asAction(), patch, state) else nothing()
-            obj == SPADE -> if (state.grown) harvest(op.asAction(), patch, state) else nothing()
+            obj == SPADE -> if (state.grown && patch.kind.spade) harvest(op.asAction(), patch, state) else nothing()
             obj in WATERING_CANS -> water(op, state)
             obj == WATERING_CAN_EMPTY -> world.message(player, FarmingLines.CAN_EMPTY)
             Crops.bySeed(obj) != null -> plant(op, patch, state, Crops.bySeed(obj)!!)
@@ -350,13 +411,22 @@ class Farming(private val world: World, private val clock: () -> Long) {
         const val ANIM_WATER = 2293
         const val ANIM_DIG = 830
 
+        /** picking_low: herbs and flowers. */
+        const val ANIM_PICK_LOW = 2282
+
         const val RAKE_CYCLE = 4
         const val HARVEST_CYCLE = 4
+
+        /** How many ticks into a harvest a second click makes it pick two a time ("waiting 2 game ticks, then clicking again"). */
+        const val FAST_HARVEST_TICKS = 2
         const val PLANT_DELAY = 3
         const val WATER_DELAY = 3
+        const val PICK_DELAY = 2
 
         fun patchName(kind: PatchKind) = when (kind) {
             PatchKind.ALLOTMENT -> FarmingLines.PATCH_ALLOTMENT
+            PatchKind.HERB -> FarmingLines.PATCH_HERB
+            PatchKind.FLOWER -> FarmingLines.PATCH_FLOWER
         }
 
         /** A crop's chance pair, low and high, with magic secateurs' 10% when [secateurs] (rounded down, the Wiki's order). */

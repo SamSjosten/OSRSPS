@@ -23,6 +23,14 @@ class PatchState(
     var watered: Boolean = false,
     var lives: Int = 0,
 ) {
+    /**
+     * The game tick the harvest under way started on, the last tick it ran, and whether a second click early in it made
+     * it pick two at a time ([Farming]'s harvest). Not saved.
+     */
+    var harvestStart: Long = -1
+    var harvestTick: Long = -1
+    var fastHarvest: Boolean = false
+
     val grown: Boolean get() = crop.let { it != null && stage >= it.stages }
 
     /** Growing, not yet ready to harvest. */
@@ -40,12 +48,12 @@ class PatchState(
     /**
      * The patch's varbit value: what the client draws. In the cache's numbering an overgrown patch is 0 and a raked one
      * 3, so a player who has never farmed (every varbit 0) sees every patch overgrown, as a new account does on live.
-     * Guessed: the three fully grown values are the crop's last three lives counting down (the cache draws all three
-     * the same; RuneLite counts them as one state).
+     * Guessed: the three fully grown values of allotments and herbs are the crop's last three lives counting down (the
+     * cache draws all three the same; RuneLite counts them as one state). A flower has one.
      */
     fun value(kind: PatchKind): Int {
         val crop = crop ?: return kind.weeds - weeds
-        if (stage >= crop.stages) return crop.harvest + (3 - lives.coerceIn(1, 3))
+        if (stage >= crop.stages) return crop.harvest + (kind.harvestValues - lives.coerceIn(1, kind.harvestValues))
         return if (watered && crop.watered.isNotEmpty()) crop.watered[stage] else crop.growing[stage]
     }
 
@@ -159,7 +167,7 @@ object FarmingSaves {
             val lives = entry["lives"]?.jsonPrimitive?.int ?: 0
             require(lives >= 0) { "Farming patch $key has $lives lives" }
             // A grown crop always has a life left; a save that says otherwise has lost it, so it gets the base back.
-            val livesNow = if (stage >= crop.stages && lives == 0) Farming.BASE_LIVES else lives
+            val livesNow = if (stage >= crop.stages && lives == 0) patch.kind.lives else lives
             state.patches[key] = PatchState(0, crop, stage, entry["watered"]?.jsonPrimitive?.boolean ?: false, livesNow)
         }
         return state

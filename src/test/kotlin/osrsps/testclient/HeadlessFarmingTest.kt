@@ -4,6 +4,7 @@ import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
 import osrsps.game.InventoryTab
@@ -37,20 +38,35 @@ class HeadlessFarmingTest {
         for ((id, name) in mapOf(
             RAKE to "Rake", DIBBER to "Seed dibber", SPADE to "Spade", WEEDS to "Weeds", POTATO_SEED to "Potato seed",
             POTATO to "Potato", WATERMELON_SEED to "Watermelon seed", SNAPE_GRASS_SEED to "Snape grass seed",
+            GRIMY_GUAM to "Grimy guam leaf", LIMPWURT_ROOT to "Limpwurt root",
         )) objs[id] = ObjType(id, name)
-        objs[POTATO_SEED] = ObjType(POTATO_SEED, "Potato seed", stackable = true)
-        objs[WATERMELON_SEED] = ObjType(WATERMELON_SEED, "Watermelon seed", stackable = true)
+        for ((id, name) in mapOf(
+            POTATO_SEED to "Potato seed", WATERMELON_SEED to "Watermelon seed", GUAM_SEED to "Guam seed", LIMPWURT_SEED to "Limpwurt seed",
+        )) objs[id] = ObjType(id, name, stackable = true)
         for (id in listOf(5331) + (5333..5340)) objs[id] = ObjType(id, "Watering can")
         World(
             crcs, CollisionMap().apply { markLoaded(X shr 6, Z shr 6) }, objTypes = ObjTypes(objs),
-            varTypes = VarTypes(6_000, mapOf(TRANSMIT_A to VarbitType(529, 0, 7), TRANSMIT_B to VarbitType(529, 8, 15)), 21_000),
+            varTypes = VarTypes(
+                6_000,
+                mapOf(
+                    TRANSMIT_A to VarbitType(529, 0, 7), TRANSMIT_B to VarbitType(529, 8, 15),
+                    TRANSMIT_C to VarbitType(529, 16, 23), TRANSMIT_D to VarbitType(529, 24, 31),
+                ),
+                21_000,
+            ),
             random = GameRandom(1),
             locTypes = LocTypes(
                 mapOf(
                     ALLOTMENT to LocType(ALLOTMENT, "null", List(5) { null }, LocCollisionType(width = 1, length = 1), multiloc = true),
+                    FLOWER to LocType(FLOWER, "null", List(5) { null }, LocCollisionType(width = 2, length = 2), multiloc = true),
+                    HERB to LocType(HERB, "null", List(5) { null }, LocCollisionType(width = 2, length = 2), multiloc = true),
                 ),
             ),
-            staticLocs = StaticLocs().apply { for (x in 3050..3054) add(ZoneLoc(ALLOTMENT, LocShape.CENTREPIECE_STRAIGHT, 0, x, PATCH_Z, 0)) },
+            staticLocs = StaticLocs().apply {
+                for (x in 3050..3053) add(ZoneLoc(ALLOTMENT, LocShape.CENTREPIECE_STRAIGHT, 0, x, PATCH_Z, 0))
+                add(ZoneLoc(FLOWER, LocShape.CENTREPIECE_STRAIGHT, 0, FLOWER_X, FLOWER_Z, 0))
+                add(ZoneLoc(HERB, LocShape.CENTREPIECE_STRAIGHT, 0, HERB_X, HERB_Z, 0))
+            },
             farmingClock = clock::get,
             cycleMillis = millis,
         )
@@ -77,6 +93,16 @@ class HeadlessFarmingTest {
     }
 
     private fun HeadlessClient.use(item: Int) = locTarget(ALLOTMENT, 3052, PATCH_Z, InventoryTab.INTERFACE, InventoryTab.ITEMS, slotOf(item), item)
+
+    private fun HeadlessClient.useOn(loc: Int, x: Int, z: Int, item: Int) = locTarget(loc, x, z, InventoryTab.INTERFACE, InventoryTab.ITEMS, slotOf(item), item)
+
+    /** Bits 16 to 23 of varp 529, `farming_transmit_c`: the flower patch; 24 to 31, `_d`: the herb patch. */
+    private fun HeadlessClient.flower() = (varp(529) ushr 16) and 0xFF
+
+    private fun HeadlessClient.herb() = (varp(529) ushr 24) and 0xFF
+
+    private fun HeadlessClient.awaitValue(what: String, value: Int, read: HeadlessClient.() -> Int) =
+        await("the $what at $value (it is ${read()})") { if (read() == value) Unit else null }
 
     private fun HeadlessClient.toFalador() {
         await("the login rebuild") { position }
@@ -211,6 +237,108 @@ class HeadlessFarmingTest {
         }
     }
 
+    @Test
+    fun `a flower is watered, grown and picked once, and a herb is picked with a spade until it is empty`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                client.toFalador()
+                client.command("setlevel farming 26")
+                client.await("Farming 26") { client.stat(FARMING)?.takeIf { it.level == 26 } }
+                val start = client.xp()
+                client.give(RAKE)
+                client.give(DIBBER)
+
+                // A limpwurt: raked, planted, watered, four 5-minute ticks to grow, then picked by hand for 3 to 5 roots.
+                client.locOp(FLOWER, FLOWER_X, FLOWER_Z, 1)
+                client.awaitValue("flower patch", 3) { flower() }
+                client.give(LIMPWURT_SEED)
+                client.useOn(FLOWER, FLOWER_X, FLOWER_Z, LIMPWURT_SEED)
+                client.awaitValue("flower patch", 28) { flower() }
+                client.give(CAN_8)
+                client.useOn(FLOWER, FLOWER_X, FLOWER_Z, CAN_8)
+                client.awaitValue("flower patch", 92) { flower() }
+                client.command("farmtick 4")
+                client.awaitValue("flower patch", 32) { flower() }
+                client.locOp(FLOWER, FLOWER_X, FLOWER_Z, 1)
+                client.seen("[farming.picked produce=limpwurt root]")
+                client.awaitValue("flower patch", 3) { flower() }
+                // Both XPs at once, 21.5 and 120, on top of the raking's 12.
+                client.await("the limpwurt XP") { if (client.xp() == start + 12 + 141) Unit else null }
+                val roots = client.count(LIMPWURT_ROOT)
+                assertTrue(roots in 3..5, "3 roots and 0 to 2 more at level 26, not $roots")
+
+                // A guam: one seed, four 20-minute growths (16 farming ticks), then Pick with a spade, a herb at a time.
+                val beforeHerb = client.xp()
+                client.locOp(HERB, HERB_X, HERB_Z, 1)
+                client.awaitValue("herb patch", 3) { herb() }
+                client.give(GUAM_SEED)
+                client.useOn(HERB, HERB_X, HERB_Z, GUAM_SEED)
+                client.awaitValue("herb patch", 4) { herb() }
+                // Any 16 farming ticks hold exactly four of a herb's 20-minute ticks.
+                client.command("farmtick 16")
+                client.awaitValue("herb patch", 8) { herb() }
+                client.locOp(HERB, HERB_X, HERB_Z, 1)
+                client.seen("[farming.need_spade]")
+                client.give(SPADE)
+                client.locOp(HERB, HERB_X, HERB_Z, 1)
+                client.seen("[farming.harvest_start patch=[farming.patch_herb]]")
+                client.seen("[farming.empty patch=[farming.patch_herb]]")
+                client.awaitValue("herb patch", 3) { herb() }
+                // 12.5 XP a herb, the planting's 11 with the last, 12 for the weeds; the client sees whole XP, rounded down.
+                client.await("the herb XP (${client.xp() - beforeHerb} XP, ${client.count(GRIMY_GUAM)} herbs)") {
+                    val herbs = client.count(GRIMY_GUAM)
+                    val tenths = start * 10 + 120 + 1415 + 120 + 110 + 125 * herbs
+                    if (herbs >= 3 && client.xp() == tenths / 10) Unit else null
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a second click two ticks into a harvest picks two herbs at each roll`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("tele ${HERB_X - 1} $HERB_Z")
+                client.await("beside the herb patch") { client.position?.takeIf { it.x == HERB_X - 1 && it.z == HERB_Z } }
+                client.command("setlevel farming 99")
+                client.await("Farming 99") { client.stat(FARMING)?.takeIf { it.level == 99 } }
+                client.give(RAKE)
+                client.give(DIBBER)
+                client.give(SPADE)
+                client.locOp(HERB, HERB_X, HERB_Z, 1)
+                client.awaitValue("herb patch", 3) { herb() }
+                client.give(GUAM_SEED)
+                client.useOn(HERB, HERB_X, HERB_Z, GUAM_SEED)
+                client.awaitValue("herb patch", 4) { herb() }
+                client.command("farmtick 16")
+                client.awaitValue("herb patch", 8) { herb() }
+
+                // Paused and stepped: a click while paused is held for the next tick, so each lands on a known tick.
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
+                client.locOp(HERB, HERB_X, HERB_Z, 1)
+                client.stepTicks(1)
+                client.seen("[farming.harvest_start patch=[farming.patch_herb]]")
+                // The second click, on the harvest's next tick.
+                client.locOp(HERB, HERB_X, HERB_Z, 1)
+                val counts = mutableListOf<Int>()
+                repeat(60) {
+                    if (client.herb() == 3) return@repeat
+                    client.stepTicks(1)
+                    counts += client.count(GRIMY_GUAM)
+                }
+                client.commandReply("resume") { it.startsWith("Resumed") }
+                assertEquals(3, client.herb(), "the patch empties; herb counts by tick: $counts")
+                client.seen("[farming.empty patch=[farming.patch_herb]]")
+                // Two herbs at each roll, every 4 ticks from the start: the pack goes from none to two, never one.
+                val changes = counts.zipWithNext().filter { (a, b) -> a != b }.map { (a, b) -> b - a }
+                assertTrue(1 !in counts && changes.first() == 2 && changes.dropLast(1).all { it == 2 }, "herb counts by tick: $counts")
+                assertEquals(2, counts.indexOfFirst { it > 0 }, "the first pair on the third tick after the start: $counts")
+                assertEquals(1, client.messages().count { it.text == "[farming.harvest_start patch=[farming.patch_herb]]" })
+            }
+        }
+    }
+
     private fun <T : Any> waitFor(what: String, timeoutMillis: Long = 10_000, value: () -> T?): T {
         val end = System.currentTimeMillis() + timeoutMillis
         while (System.currentTimeMillis() < end) {
@@ -229,6 +357,18 @@ class HeadlessFarmingTest {
         const val ALLOTMENT = 8550
         const val TRANSMIT_A = 4771
         const val TRANSMIT_B = 4772
+        const val TRANSMIT_C = 4773
+        const val TRANSMIT_D = 4774
+        const val FLOWER = 7847
+        const val FLOWER_X = 3054
+        const val FLOWER_Z = 3307
+        const val HERB = 8150
+        const val HERB_X = 3058
+        const val HERB_Z = 3311
+        const val GUAM_SEED = 5291
+        const val GRIMY_GUAM = 199
+        const val LIMPWURT_SEED = 5100
+        const val LIMPWURT_ROOT = 225
         const val RAKE = 5341
         const val DIBBER = 5343
         const val SPADE = 952

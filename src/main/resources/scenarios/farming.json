@@ -1,6 +1,6 @@
 {
-  "about": "Beside the allotments south of Falador with Farming 99, the farming tools and seeds for every allotment crop, for the Farming steps.",
-  "notes": "The two allotments are 3050-3054, 3307-3312 and 3055-3059, 3303-3308. ::farmtick [n] moves your farming clock on n five-minute ticks: allotments grow every second tick. Magic secateurs are in the bank to compare yields. The loadout is ours.",
+  "about": "Beside the Falador farming patches with Farming 99, the farming tools and seeds for every allotment crop, some herbs and some flowers, for the Farming steps.",
+  "notes": "The two allotments are 3050-3054, 3307-3312 and 3055-3059, 3303-3308; the flower patch 3054-3055, 3307-3308 between them and the herb patch 3058-3059, 3311-3312. ::farmtick [n] moves your farming clock on n five-minute ticks: flowers grow every tick, allotments every second, herbs every fourth. Magic secateurs and the other herb and flower seeds are in the bank. The loadout is ours.",
   "position": { "x": 3054, "z": 3305, "level": 0 },
   "skills": { "farming": 99 },
   "inventory": [
@@ -15,9 +15,30 @@
     { "item": "sweetcorn_seed", "count": 30 },
     { "item": "strawberry_seed", "count": 30 },
     { "item": "watermelon_seed", "count": 30 },
-    { "item": "snape_grass_seed", "count": 30 }
+    { "item": "snape_grass_seed", "count": 30 },
+    { "item": "guam_seed", "count": 30 },
+    { "item": "ranarr_seed", "count": 30 },
+    { "item": "torstol_seed", "count": 30 },
+    { "item": "marigold_seed", "count": 30 },
+    { "item": "limpwurt_seed", "count": 30 },
+    { "item": "white_lily_seed", "count": 30 }
   ],
   "bank": [
-    { "item": "fairy_enchanted_secateurs" }
+    { "item": "fairy_enchanted_secateurs" },
+    { "item": "marrentill_seed", "count": 30 },
+    { "item": "tarromin_seed", "count": 30 },
+    { "item": "harralander_seed", "count": 30 },
+    { "item": "toadflax_seed", "count": 30 },
+    { "item": "irit_seed", "count": 30 },
+    { "item": "avantoe_seed", "count": 30 },
+    { "item": "kwuarm_seed", "count": 30 },
+    { "item": "snapdragon_seed", "count": 30 },
+    { "item": "huasca_seed", "count": 30 },
+    { "item": "cadantine_seed", "count": 30 },
+    { "item": "lantadyme_seed", "count": 30 },
+    { "item": "dwarf_weed_seed", "count": 30 },
+    { "item": "rosemary_seed", "count": 30 },
+    { "item": "nasturtium_seed", "count": 30 },
+    { "item": "woad_seed", "count": 30 }
   ]
 }
