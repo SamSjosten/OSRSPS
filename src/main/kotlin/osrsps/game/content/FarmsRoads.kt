@@ -6,15 +6,10 @@ import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Dialogue
 import osrsps.game.dialogue.Lines
 
-/** Our own line for the Tool Leprechauns' store, which waits for the next Farming step. */
-object FarmsRoadsLines : Lines("farms_roads", "Farming") {
-    val FARMING_LATER = line("farming_later", "a Tool Leprechaun's Exchange or Deposit-all, or Yes please in his talk: our own line, as his store isn't built")
-}
-
 /** The Tool Leprechauns' lines, from the Wiki's Transcript:Tool Leprechaun. */
 object ToolLeprechaunLines : Lines("tool_leprechaun", "Transcript:Tool Leprechaun") {
     val GREETING = line("greeting", "Talk-to, his first line, asking whether to store the player's tools")
-    val YES_PLEASE = line("yes_please", "his menu, option 1 (the store, which waits for Farming)")
+    val YES_PLEASE = line("yes_please", "his menu, option 1, which opens his store")
     val WHAT_STORE = line("what_store", "his menu, option 2, which the player then says")
     val WHAT_DO = line("what_do", "his menu, option 3")
     val NO_THANKS = line("no_thanks", "his menu, option 4, which the player then says")
@@ -101,8 +96,8 @@ object SethGroatsLines : Lines("seth_groats", "Transcript:Seth Groats") {
  *   2672), Fayeth (tree patch west of Lumbridge Castle, 2681) and Treznor (tree patch outside Varrock Palace, 2680).
  *   Their Talk-to, Pay, Trade and items used on them are the Farming skill's ([osrsps.game.skill.farming.Gardeners]).
  * - The Tool Leprechauns (`farming_tools_leprechaun`, 0) by each of those patches and Draynor Manor's belladonna patch:
- *   Talk-to follows Transcript:Tool Leprechaun (read 2026-11-10); an item used on him is noted by Farming; his store,
- *   Exchange and Deposit-all give [FarmsRoadsLines.FARMING_LATER] until it is built.
+ *   Talk-to follows Transcript:Tool Leprechaun (read 2026-11-10). His store, Exchange, Deposit-all and an item used
+ *   on him (noted) are the Farming skill's ([osrsps.game.skill.farming.ToolStore], [osrsps.game.skill.farming.Gardeners]).
  * - Tarquin (1323) at the canoe station by the Champions' Guild: Talk-to follows Transcript:Tarquin (read 2026-11-10),
  *   by Woodcutting level as Barfy Bill's does. Store-axe waits for canoeing (step 11), as Barfy Bill's does.
  * - Rat Burgiss (4158) on the Lumbridge to Varrock road and Seth Groats (1351) north of Groats' farm: their only lines.
@@ -126,27 +121,30 @@ object FarmsRoads {
     const val EXCHANGE = 3
     const val DEPOSIT_ALL = 4
 
-    internal suspend fun Dialogue.leprechaun() = with(ToolLeprechaunLines) {
-        chatNpc(ChatAnim.HAPPY, GREETING)
-        while (true) {
-            when (choice(YES_PLEASE, WHAT_STORE, WHAT_DO, NO_THANKS)) {
-                1 -> return@with mesbox(FarmsRoadsLines.FARMING_LATER)
-                2 -> {
-                    chatPlayer(ChatAnim.QUIZ, WHAT_STORE)
-                    chatNpc(ChatAnim.HAPPY, STORE_TOOLS)
-                    chatNpc(ChatAnim.HAPPY, STORE_BUCKETS)
-                    chatNpc(ChatAnim.HAPPY, STORE_NOTES)
-                    chatNpc(ChatAnim.QUIZ, STORE_ASK)
-                }
-                3 -> {
-                    chatPlayer(ChatAnim.QUIZ, WHAT_DO_ASK)
-                    chatNpc(ChatAnim.HAPPY, SHED)
-                    chatNpc(ChatAnim.QUIZ, STORE_ASK)
-                }
-                else -> {
-                    chatPlayer(ChatAnim.NEUTRAL, NO_THANKS)
-                    chatNpc(ChatAnim.LAUGH, DAFTER)
-                    return@with
+    /** His talk: true when the player picks "Yes please.", which opens his store ([osrsps.game.skill.farming.ToolStore]). */
+    internal suspend fun Dialogue.leprechaun(): Boolean {
+        with(ToolLeprechaunLines) {
+            chatNpc(ChatAnim.HAPPY, GREETING)
+            while (true) {
+                when (choice(YES_PLEASE, WHAT_STORE, WHAT_DO, NO_THANKS)) {
+                    1 -> return true
+                    2 -> {
+                        chatPlayer(ChatAnim.QUIZ, WHAT_STORE)
+                        chatNpc(ChatAnim.HAPPY, STORE_TOOLS)
+                        chatNpc(ChatAnim.HAPPY, STORE_BUCKETS)
+                        chatNpc(ChatAnim.HAPPY, STORE_NOTES)
+                        chatNpc(ChatAnim.QUIZ, STORE_ASK)
+                    }
+                    3 -> {
+                        chatPlayer(ChatAnim.QUIZ, WHAT_DO_ASK)
+                        chatNpc(ChatAnim.HAPPY, SHED)
+                        chatNpc(ChatAnim.QUIZ, STORE_ASK)
+                    }
+                    else -> {
+                        chatPlayer(ChatAnim.NEUTRAL, NO_THANKS)
+                        chatNpc(ChatAnim.LAUGH, DAFTER)
+                        return false
+                    }
                 }
             }
         }
@@ -236,12 +234,9 @@ object FarmsRoads {
     }
 }
 
-/** The farms' and roads' Talk-to, and the Farming refusals. */
+/** The farms' and roads' Talk-to (the leprechauns' is the tool store's). */
 fun registerFarmsRoads(world: World) {
     with(FarmsRoads) {
-        world.handlers.onNpc(TOOL_LEPRECHAUN, TALK_TO) { op -> world.dialogues.start(this, op.npc) { leprechaun() } }
-        world.handlers.onNpc(TOOL_LEPRECHAUN, EXCHANGE) { world.message(player, FarmsRoadsLines.FARMING_LATER) }
-        world.handlers.onNpc(TOOL_LEPRECHAUN, DEPOSIT_ALL) { world.message(player, FarmsRoadsLines.FARMING_LATER) }
         world.handlers.onNpc(TARQUIN, TALK_TO) { op -> world.dialogues.start(this, op.npc) { tarquin() } }
         world.handlers.onNpc(RAT_BURGISS, TALK_TO) { op -> world.dialogues.start(this, op.npc) { ratBurgiss() } }
         world.handlers.onNpc(SETH_GROATS, TALK_TO) { op ->
