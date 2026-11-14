@@ -162,8 +162,8 @@ class ScenarioTest {
         assertEquals((listOf(3637, 3639) + (3645..3649)).associateWith { 0 }, museum.varbits)
         assertEquals(listOf("vm_symbol_old_inv", "necklace_of_digsite"), museum.inventory.map { it.item })
         val quiz = scenarios["museum-quiz"]!!
-        // Orlando's quiz untaken and every display, his reward and the clerk's first clear (the 242 cache's varbits).
-        assertEquals((listOf(3637, 3640, 3671, 3688) + (3672..3685)).associateWith { 0 }, quiz.varbits)
+        // Orlando's quiz untaken, every display (his and the Dig Site's), his reward and the clerk's first clear (the 242 cache's varbits).
+        assertEquals((listOf(3637, 3640, 3671, 3688) + (3645..3649) + (3672..3685)).associateWith { 0 }, quiz.varbits)
         // On the Natural History floor, by Orlando (npc-spawns/varrock.json, 1759, 4955).
         assertTrue(quiz.x in 1756..1762 && quiz.z in 4953..4958 && quiz.level == 0)
         assertEquals(setOf(50), quiz.skills.values.map { it.level }.toSet())

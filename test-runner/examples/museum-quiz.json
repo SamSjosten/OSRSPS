@@ -1,5 +1,5 @@
 {
- "name": "Museum Kudos step 2: Orlando Smith's natural history quiz (::keys on): a plaque before and after taking it on, an answer, the plaque once its display is done, and Orlando's XP once all fourteen are (set with ::varbit). The museum-quiz scenario clears the quiz's varbits, so this repeats on one account, and ::reset puts them back",
+ "name": "Museum Kudos step 2: Orlando Smith's natural history quiz (::keys on): a plaque before and after taking it on, an answer, the plaque once its display is done, Orlando's XP once all fourteen are (set with ::varbit), and the information clerk's first reward and Natural History answer. The museum-quiz scenario clears the quiz's and the Dig Site's varbits, so this repeats on one account, and ::reset puts them back",
  "account": "test",
  "steps": [
   {
@@ -454,6 +454,185 @@
    "step": "assertStat",
    "skill": "Slayer",
    "xp": 102333
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3645 1",
+   "comment": "the Dig Site's five displays too: 50 + 28 = 78 Kudos, enough for the clerk's first reward"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3645,
+   "value": 1
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3646 1"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3646,
+   "value": 1
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3647 1"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3647,
+   "value": 1
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3648 1"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3648,
+   "value": 1
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3649 1"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3649,
+   "value": 1
+  },
+  {
+   "step": "command",
+   "text": "::tele 3255 3449 0",
+   "expectMessage": "Teleported to 3255, 3449, 0",
+   "comment": "on the museum's ground floor, as varrock-museum.json goes to the clerk"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 1909,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "the information clerk, behind her booth"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_clerk.reward_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_clerk.reward_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[museum_clerk.teach_me]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_clerk.teach_me]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_clerk.reward_mining]",
+   "comment": "her box for the first reward alone"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_clerk.wow]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_clerk.anything_else]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Mining",
+   "xp": 102333,
+   "comment": "level 50's 101,333 and her 1,000"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3640,
+   "value": 1,
+   "comment": "vm_reward_50: claimed"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[museum_clerk.natural_history]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_clerk.natural_history_said]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_clerk.natural_history_about]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_clerk.natural_history_done]",
+   "comment": "every display corrected"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[museum_clerk.bye]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_clerk.bye_said]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_clerk.goodbye]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 1909,
+   "option": "Talk-to",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[museum_clerk.welcome",
+   "comment": "claimed, she has no reward left to offer"
+  },
+  {
+   "step": "finishDialogue"
   },
   {
    "step": "command",
