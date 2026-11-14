@@ -39,8 +39,8 @@ class PatchState(
     var harvestTick: Long = -1
     var fastHarvest: Boolean = false
 
-    /** The farming minute ([Farming.minuteOf]) the crop was planted on, or -1 if not known: a yew's first stage counts from it. */
-    var plantedMinute: Long = -1
+    /** The farming clock's time in milliseconds ([Farming.millisOf]) the crop was planted at, or -1 if not known: a yew's first stage counts from it. */
+    var plantedMillis: Long = -1
 
     /** The repeating action under way on the patch ([Farming.DO_RAKE] and on), not saved: one that finds it changed ends. */
     var doing: Int = 0
@@ -62,7 +62,7 @@ class PatchState(
         dead = false
         checked = false
         stump = false
-        plantedMinute = -1
+        plantedMillis = -1
     }
 
     /**
@@ -82,7 +82,7 @@ class PatchState(
         return if (watered && crop.watered.isNotEmpty()) crop.watered[stage] else crop.growing[stage]
     }
 
-    fun copy() = PatchState(weeds, crop, stage, watered, lives, compost, diseased, dead, checked, stump).also { it.plantedMinute = plantedMinute }
+    fun copy() = PatchState(weeds, crop, stage, watered, lives, compost, diseased, dead, checked, stump).also { it.plantedMillis = plantedMillis }
 
     companion object {
         fun overgrown(kind: PatchKind) = PatchState(kind.weeds)
@@ -169,7 +169,7 @@ object FarmingSaves {
                         if (patch.dead) put("dead", true)
                         if (patch.checked) put("checked", true)
                         if (patch.stump) put("stump", true)
-                        if (patch.stage == 0 && patch.plantedMinute >= 0) put("planted", patch.plantedMinute)
+                        if (patch.stage == 0 && patch.plantedMillis >= 0) put("planted", patch.plantedMillis)
                     }
                     if (patch.compost > 0) put("compost", patch.compost)
                 }
@@ -211,7 +211,7 @@ object FarmingSaves {
                 diseased = ill && !dead && (entry["diseased"]?.jsonPrimitive?.boolean ?: false), dead = ill && dead,
                 // Only a grown tree is checked, and only a checked one can be a stump.
                 checked = grownTree && checked, stump = grownTree && checked && (entry["stump"]?.jsonPrimitive?.boolean ?: false),
-            ).also { if (stage == 0) it.plantedMinute = entry["planted"]?.jsonPrimitive?.long ?: -1 }
+            ).also { if (stage == 0) it.plantedMillis = entry["planted"]?.jsonPrimitive?.long ?: -1 }
         }
         return state
     }

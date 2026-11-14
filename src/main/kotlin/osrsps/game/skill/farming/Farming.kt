@@ -147,6 +147,7 @@ class Farming(private val world: World, private val clock: () -> Long, private v
      */
     fun process(player: Player) {
         grow(player)
+        growFirstStages(player)
         refresh(player)
     }
 
@@ -169,12 +170,29 @@ class Farming(private val world: World, private val clock: () -> Long, private v
     private fun realTick(player: Player): Long = FarmingClock.tick(clock(), offset(player), 0)
 
     /**
-     * The minute [player]'s farming clock is on: [tickOf]'s tick in minutes, plus the minutes into it when the clock
-     * runs. A farming tick t starts at minute 5t.
+     * [player]'s farming clock in milliseconds: [tickOf]'s tick, plus the time into it when the clock runs. A farming
+     * tick t starts at t x [TICK_MILLIS].
      */
-    fun minuteOf(player: Player): Long {
-        val into = if (player.farming.pausedAt != null) 0L else Math.floorMod(Math.floorDiv(clock(), 60_000L) + offset(player), FarmingClock.TICK_MINUTES.toLong())
-        return tickOf(player) * FarmingClock.TICK_MINUTES + into
+    fun millisOf(player: Player): Long {
+        val into = if (player.farming.pausedAt != null) 0L else Math.floorMod(clock() + offset(player) * 60_000L, TICK_MILLIS)
+        return tickOf(player) * TICK_MILLIS + into
+    }
+
+    /**
+     * A yew whose first stage has run its five minutes from planting grows, checked every game tick so it doesn't wait
+     * for a farming tick (the Wiki's Growth timing: the first stage "does not follow normal growth timing").
+     */
+    private fun growFirstStages(player: Player) {
+        val now = millisOf(player)
+        for ((key, patch) in player.farming.patches) {
+            val crop = patch.crop ?: continue
+            if (crop.firstStageMillis <= 0 || patch.stage != 0 || !patch.growing || patch.plantedMillis < 0) continue
+            if (now < patch.plantedMillis + crop.firstStageMillis) continue
+            if (FarmingPatches.byKey(key) == null) continue
+            patch.stage = 1
+            patch.watered = false
+            patch.plantedMillis = -1
+        }
     }
 
     /**
@@ -263,9 +281,10 @@ class Farming(private val world: World, private val clock: () -> Long, private v
                 }
                 continue
             }
-            if (patch.stage == 0 && crop.firstStageMinutes > 0) {
+            if (patch.stage == 0 && crop.firstStageMillis > 0) {
                 // A yew's first stage lasts five minutes from planting, off the usual clock (the Wiki's Growth timing).
-                if (patch.plantedMinute >= 0 && tick * FarmingClock.TICK_MINUTES < patch.plantedMinute + crop.firstStageMinutes) continue
+                // Offline, it grows at the first farming tick after its five minutes; online, [growFirstStages] grows it on time.
+                if (patch.plantedMillis >= 0 && tick * TICK_MILLIS < patch.plantedMillis + crop.firstStageMillis) continue
             } else if (tick % kind.cycleTicks != 0L) {
                 continue
             }
@@ -534,7 +553,7 @@ class Farming(private val world: World, private val clock: () -> Long, private v
         state.stage = 0
         state.watered = false
         state.lives = 0
-        state.plantedMinute = minuteOf(player)
+        state.plantedMillis = millisOf(player)
         val seedName = world.objTypes[crop.seed]?.name?.lowercase() ?: crop.key
         if (sapling) {
             // The pot comes back where the sapling was; the planting XP waits for Check-health or clearing a dead tree.
@@ -815,6 +834,9 @@ class Farming(private val world: World, private val clock: () -> Long, private v
         const val OP_INSPECT = 2
 
         const val OFFSETS = 32
+
+        /** A farming tick, 5 minutes, in milliseconds. */
+        const val TICK_MILLIS = FarmingClock.TICK_MINUTES * 60_000L
 
         /** Harvest lives a crop starts with (the Wiki's Farming: three, before compost). */
         const val BASE_LIVES = 3

@@ -35,7 +35,7 @@ class HeadlessFarmingTreeTest {
         val objs = Array<ObjType?>(OBJS) { ObjType(it, "Obj $it") }
         for ((id, name) in mapOf(
             RAKE to "Rake", SPADE to "Spade", WEEDS to "Weeds", TROWEL to "Gardening trowel", POT_EMPTY to "Plant pot",
-            POT_FILLED to "Plant pot", SEEDLING to "Oak seedling", WATERED to "Oak seedling (w)", SAPLING to "Oak sapling",
+            POT_FILLED to "Plant pot", SEEDLING to "Oak seedling", WATERED to "Oak seedling (w)", SAPLING to "Oak sapling", YEW_SAPLING to "Yew sapling",
             AXE to "Bronze axe", LOGS to "Oak logs", ROOTS to "Oak roots", SECATEURS to "Secateurs", LEAVES to "Oak leaves",
         )) objs[id] = ObjType(id, name)
         objs[ACORN] = ObjType(ACORN, "Acorn", stackable = true)
@@ -222,6 +222,30 @@ class HeadlessFarmingTreeTest {
         }
     }
 
+    @Test
+    fun `a yew's first stage ends five minutes after planting, not at a farming tick`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                client.toLumbridge()
+                client.give(RAKE)
+                client.give(SPADE)
+                client.locOp(TREE, TREE_X, TREE_Z, 1)
+                client.awaitTree(3)
+                // The clock runs from here: whatever farming ticks pass in the next five minutes, the yew waits for its five.
+                client.command("farmclock run")
+                client.seen("Farming clock running")
+                client.give(YEW_SAPLING)
+                client.useOnTree(YEW_SAPLING)
+                client.awaitTree(35)
+                clock.addAndGet(5 * 60_000L - 1_000L)
+                Thread.sleep(2_000)
+                assertEquals(35, client.tree(), "a second short of five minutes")
+                clock.addAndGet(1_000L)
+                client.awaitTree(36)
+            }
+        }
+    }
+
     private companion object {
         const val OBJS = 25_000
         const val BACKPACK = 93
@@ -242,6 +266,7 @@ class HeadlessFarmingTreeTest {
         const val SEEDLING = 5358
         const val WATERED = 5364
         const val SAPLING = 5370
+        const val YEW_SAPLING = 5373
         const val CAN_8 = 5340
         const val AXE = 1351
         const val LOGS = 1521

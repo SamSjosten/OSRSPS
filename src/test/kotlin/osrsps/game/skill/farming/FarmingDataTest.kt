@@ -208,14 +208,14 @@ class FarmingDataTest {
         // Roots: one at the tree's level, one more every 8 levels, four at most (the maple and yew pages).
         assertEquals(listOf(1, 1, 2, 3, 4, 4), listOf(45, 52, 53, 61, 69, 99).map { Trees.roots(Crops.MAPLE, it) })
         assertEquals(listOf(1, 2, 3, 4), listOf(60, 68, 76, 84).map { Trees.roots(Crops.YEW, it) })
-        // A yew's first stage ends 5 minutes after planting, off the clock: planted at minute 4 (tick 0), not at tick 1
-        // (minute 5) but at tick 2 (minute 10, the first tick 5 minutes on); planted at minute 0 of a tick, the next tick.
-        // Then every eighth tick; an oak every eighth from the start.
+        // Offline a yew's first stage ends at the first farming tick 5 minutes after planting: planted at minute 4 (tick
+        // 0), not at tick 1 (minute 5) but at tick 2; planted at minute 5, at tick 2. Online it grows on time, every game
+        // tick (the headless tree test). Then every eighth tick; an oak every eighth from the start.
         val farming = Farming(osrsps.game.World(IntArray(0), osrsps.map.CollisionMap()), clock = { 0L }, diseases = false)
         val state = FarmingState()
-        state.patches[FarmingPatches.LUMBRIDGE_TREE.key] = PatchState(0, Crops.YEW).also { it.plantedMinute = 4 }
+        state.patches[FarmingPatches.LUMBRIDGE_TREE.key] = PatchState(0, Crops.YEW).also { it.plantedMillis = 4 * 60_000L }
         state.patches[FarmingPatches.VARROCK_TREE.key] = PatchState(0, Crops.OAK)
-        state.patches[FarmingPatches.FALADOR_TREE.key] = PatchState(0, Crops.YEW).also { it.plantedMinute = 5 }
+        state.patches[FarmingPatches.FALADOR_TREE.key] = PatchState(0, Crops.YEW).also { it.plantedMillis = 5 * 60_000L }
         farming.grow(state, 1, 1)
         assertEquals(0, state.patches.getValue(FarmingPatches.LUMBRIDGE_TREE.key).stage, "one minute after planting")
         assertEquals(0, state.patches.getValue(FarmingPatches.FALADOR_TREE.key).stage)
@@ -224,8 +224,8 @@ class FarmingDataTest {
         assertEquals(1, state.patches.getValue(FarmingPatches.FALADOR_TREE.key).stage, "five minutes after planting")
         assertEquals(0, state.patches.getValue(FarmingPatches.VARROCK_TREE.key).stage)
         // The planting minute survives a save while the yew is in its first stage.
-        val saved = FarmingState().apply { patches["lumbridge_tree"] = PatchState(0, Crops.YEW).also { it.plantedMinute = 123 } }
-        assertEquals(123, FarmingSaves.fromJson(FarmingSaves.toJson(saved)).patches.getValue("lumbridge_tree").plantedMinute)
+        val saved = FarmingState().apply { patches["lumbridge_tree"] = PatchState(0, Crops.YEW).also { it.plantedMillis = 123 } }
+        assertEquals(123, FarmingSaves.fromJson(FarmingSaves.toJson(saved)).patches.getValue("lumbridge_tree").plantedMillis)
         state.patches.remove(FarmingPatches.FALADOR_TREE.key)
         farming.grow(state, 3, 72)
         assertEquals(10, state.patches.getValue(FarmingPatches.LUMBRIDGE_TREE.key).stage, "5 + 9 x 40 minutes")

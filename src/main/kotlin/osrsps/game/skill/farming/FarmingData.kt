@@ -93,7 +93,7 @@ object Compost {
  * more, limpwurt's) and has no chance to keep a life.
  *
  * [disease] is its chance in 128 to fall ill at a growth (its kind's, but each tree has its own),  and its first
- * growth comes on its kind's clock, or [firstStageMinutes] after planting when that isn't 0 (a yew's
+ * growth comes on its kind's clock, or [firstStageMillis] after planting when that isn't 0 (a yew's
  * first stage lasts 5 minutes from planting, off the usual clock: the Wiki's Growth timing).
  */
 class Crop(
@@ -114,7 +114,7 @@ class Crop(
     val yield: Int = 1,
     val levelBonus: Boolean = false,
     val disease: Int = kind.disease,
-    val firstStageMinutes: Int = 0,
+    val firstStageMillis: Long = 0,
 ) {
     val stages: Int get() = growing.size
 
@@ -217,11 +217,11 @@ object Crops {
      */
     private fun tree(
         key: String, sapling: Int, logs: Int, level: Int, plant: Int, check: Int, stages: Int,
-        first: Int, diseasedFirst: Int, deadFirst: Int, disease: Int, firstStageMinutes: Int = 0,
+        first: Int, diseasedFirst: Int, deadFirst: Int, disease: Int, firstStageMillis: Long = 0,
     ) = Crop(
         key, PatchKind.TREE, sapling, logs, level, plant, check, 0, 0,
         run(first, stages), emptyList(), first + stages, run(diseasedFirst, stages - 1), run(deadFirst, stages - 1),
-        disease = disease, firstStageMinutes = firstStageMinutes,
+        disease = disease, firstStageMillis = firstStageMillis,
     )
 
     val OAK = tree("oak", 5370, 1521, 15, 140, 4673, 4, 8, 73, 137, disease = 17)
@@ -229,7 +229,7 @@ object Crops {
     val MAPLE = tree("maple", 5372, 1517, 45, 450, 34034, 8, 24, 89, 153, disease = 13)
 
     /** "Since the first growth stage of a Yew tree only lasts 5 minutes": 5 + 9 x 40 minutes (its page). */
-    val YEW = tree("yew", 5373, 1515, 60, 810, 70699, 10, 35, 100, 164, disease = 11, firstStageMinutes = 5)
+    val YEW = tree("yew", 5373, 1515, 60, 810, 70699, 10, 35, 100, 164, disease = 11, firstStageMillis = 5 * 60_000L)
     val MAGIC = tree("magic", 5374, 1513, 75, 1455, 137683, 12, 48, 113, 177, disease = 9)
 
     val ALL = listOf(
