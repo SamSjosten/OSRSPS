@@ -245,6 +245,14 @@ class FarmingDataTest {
         assertTrue(varrock.stump)
         farming.grow(state, 80, 80)
         assertTrue(!varrock.stump && varrock.checked)
+        // ::farmdisease off: with diseases on in the world, a player's crops still never fall ill on their own.
+        val ill = Farming(osrsps.game.World(IntArray(0), osrsps.map.CollisionMap()), clock = { 0L })
+        repeat(200) {
+            val trial = FarmingState().apply { noDisease = true }
+            trial.patches["varrock_tree"] = PatchState(0, Crops.OAK, 1)
+            ill.grow(trial, 8, 24)
+            assertTrue(!trial.patches.getValue("varrock_tree").diseased && trial.patches.getValue("varrock_tree").stage == 4)
+        }
         // Checked and stump survive a save.
         varrock.stump = true
         val back = FarmingSaves.fromJson(FarmingSaves.toJson(state))

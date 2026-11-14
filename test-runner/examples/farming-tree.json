@@ -5,6 +5,7 @@
   {"step": "waitForLogin"},
   {"step": "command", "text": "::scenario farming", "expectMessage": "Started scenario farming.", "comment": "99 Farming and every patch overgrown; ::reset at the end puts the account back"},
   {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::farmdisease off", "expectMessage": "Farming diseases off", "comment": "the oak can't fall ill on its own through ::farmtick 32; ::farmdisease makes it ill below"},
   {"step": "command", "text": "::farmclock pause", "expectMessage": "Farming clock paused", "comment": "the tree grows only by ::farmtick"},
   {"step": "command", "text": "::tele 3193 3229 0", "expectMessage": "Teleported to 3193, 3229, 0", "comment": "south of the tree patch west of Lumbridge castle (tree_patch_4, 3192-3194, 3230-3232)"},
   {"step": "command", "text": "::setlevel woodcutting 99", "expectMessage": "99"},

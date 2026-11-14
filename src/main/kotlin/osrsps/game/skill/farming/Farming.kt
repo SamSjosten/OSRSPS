@@ -299,7 +299,7 @@ class Farming(private val world: World, private val clock: () -> Long, private v
                 patch.plantedMillis = -1
             }
             if (tick % kind.cycleTicks != 0L) continue
-            if (diseases && patch.stage >= 1 && !isProtected(flowers, key, crop) && world.random.nextInt(DISEASE_DENOMINATOR) < Compost.diseaseChance(crop.disease, patch.compost, patch.watered)) {
+            if (diseases && !state.noDisease && patch.stage >= 1 && !isProtected(flowers, key, crop) && world.random.nextInt(DISEASE_DENOMINATOR) < Compost.diseaseChance(crop.disease, patch.compost, patch.watered)) {
                 patch.diseased = true
                 patch.watered = false
                 continue

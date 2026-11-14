@@ -109,6 +109,9 @@ class FarmingState {
      */
     var pausedAt: Long? = null
 
+    /** `::farmdisease off`: the player's crops don't fall ill on their own. Not saved: a login turns diseases back on. */
+    var noDisease: Boolean = false
+
     fun patch(patch: FarmingPatch): PatchState = patches.getOrPut(patch.key) { PatchState.overgrown(patch.kind) }
 
     /** The value [patch]'s varbit shows, without making an entry for an untouched patch. */
@@ -121,6 +124,7 @@ class FarmingState {
         lastTick = other.lastTick
         skipped = other.skipped
         pausedAt = other.pausedAt
+        noDisease = other.noDisease
     }
 
     /** Whether nothing has happened: nothing worth saving. */

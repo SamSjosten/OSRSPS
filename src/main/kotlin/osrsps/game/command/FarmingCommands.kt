@@ -14,7 +14,9 @@ import osrsps.game.skill.farming.FarmingPatches
  * again, the crops catching up on the time it was held. A login runs it again too.
  *
  * `::farmdisease <patch>` makes the crop in one of the player's patches (by its save key, such as
- * `falador_allotment_nw`) diseased now, to try curing and dying without waiting on the dice.
+ * `falador_allotment_nw`) diseased now, to try curing and dying without waiting on the dice. `::farmdisease off`
+ * stops the player's crops falling ill on their own (a script that grows a crop through many stages can't be left to
+ * the dice), and `::farmdisease on` brings it back; a login brings it back too.
  */
 fun CommandRegistry.registerFarmingCommands(world: World) {
     register("farmclock", "::farmclock <pause|run>") {
@@ -39,9 +41,19 @@ fun CommandRegistry.registerFarmingCommands(world: World) {
         reply("Farming clock moved on $ticks tick${if (ticks == 1) "" else "s"} (${ticks * FarmingClock.TICK_MINUTES} minutes)")
     }
 
-    register("farmdisease", "::farmdisease <patch>") {
+    register("farmdisease", "::farmdisease <patch|off|on>") {
         val keys = FarmingPatches.ALL.joinToString(", ") { it.key }
-        if (args.size != 1) fail("Usage: ::farmdisease <patch>, one of $keys")
+        if (args.size != 1) fail("Usage: ::farmdisease <patch|off|on>, a patch one of $keys")
+        when (args[0]) {
+            "off" -> {
+                player.farming.noDisease = true
+                return@register reply("Farming diseases off: your crops fall ill only by ::farmdisease")
+            }
+            "on" -> {
+                player.farming.noDisease = false
+                return@register reply("Farming diseases on")
+            }
+        }
         val patch = FarmingPatches.byKey(args[0]) ?: fail("No patch '${args[0]}': one of $keys")
         if (!world.farming.makeDiseased(player, patch)) fail("Nothing is growing past its first stage in ${patch.key}")
         reply("${patch.key} is diseased")
