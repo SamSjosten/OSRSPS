@@ -15,9 +15,9 @@ import osrsps.game.World
  * time a source changes and at login. Inferred: live keeps `vm_kudos` as a running count it adds to; working it out from
  * the sources gives the same number, can't count one source twice, and puts right a save made before a source existed.
  *
- * Built so far: the Dig Site exhibit's five display cases (10 each, [MuseumFinds]) and the natural history quiz's
- * fourteen displays (2 each, [NaturalHistoryQuiz]). Not built, so worth nothing here yet: Historian Minas's timeline,
- * Fossil Island's displays, Camdozaal's and Sailing's relics.
+ * Built so far: the Dig Site exhibit's five display cases (10 each, [MuseumFinds]), the natural history quiz's
+ * fourteen displays (2 each, [NaturalHistoryQuiz]) and Historian Minas's timeline (80, [MuseumTimeline]), 158 in all.
+ * Not built, so worth nothing here yet: Fossil Island's displays, Camdozaal's and Sailing's relics.
  */
 object Kudos {
     /** `vm_kudos`: varp `vm` (1010) bits 0 to 10. */
@@ -56,12 +56,43 @@ object Kudos {
     /** The natural history quiz's fourteen displays, in the client's list order (rows 5 to 18), 2 Kudos each once at 3. */
     val NATURAL_HISTORY = NaturalHistoryQuiz.DISPLAYS.map { Source(it.varbit, NaturalHistoryQuiz.KUDOS_EACH, NaturalHistoryQuiz.DONE) }
 
-    val SOURCES: List<Source> = DIG_SITE + NATURAL_HISTORY
+    /**
+     * Historian Minas's timeline displays, in the client's list order (rows 19 to 33, [MuseumTimeline]): 5 Kudos each
+     * but Curse of the Empty Lord's 10; the staff and the River Salve displays count twice, at 1 and at 2.
+     */
+    val TIMELINE = with(MuseumTimeline) {
+        listOf(
+            Source(VARBIT_STAFF_OF_ARMADYL, 5),
+            Source(VARBIT_STAFF_OF_ARMADYL, 10, 2),
+            Source(VARBIT_SHIELD_OF_ARRAV, 5),
+            Source(VARBIT_OBSERVATORY, 5),
+            Source(VARBIT_EXCALIBUR, 5),
+            Source(VARBIT_SILVERLIGHT, 5),
+            Source(VARBIT_GLIDER, 5),
+            Source(VARBIT_ROBERT, 5),
+            Source(VARBIT_LATHAS, 5),
+            Source(VARBIT_SALVE_KNIGHTS, 5),
+            Source(VARBIT_SALVE_KNIGHTS, 5, 2),
+            Source(VARBIT_ARDOUGNE, 5),
+            Source(VARBIT_SUROK, 5),
+            Source(VARBIT_RUNES, 5),
+            Source(VARBIT_DEFENDER, 5),
+        )
+    }
 
-    fun total(player: Player): Int = SOURCES.sumOf { if (player.vars.getVarbit(it.varbit) >= it.atLeast) it.kudos else 0 }
+    val SOURCES: List<Source> = DIG_SITE + NATURAL_HISTORY + TIMELINE
+
+    /** The Kudos the Digsite's workers' gate wants ([Digsite]), from the Wiki's Transcript:Museum guard. */
+    const val DIGSITE_GATE = 153
+
+    fun total(player: Player): Int = SOURCES.sumOf { if (counts(player, it)) it.kudos else 0 }
 
     /** How many of [sources] the player has done. */
-    fun done(player: Player, sources: List<Source>): Int = sources.count { player.vars.getVarbit(it.varbit) >= it.atLeast }
+    fun done(player: Player, sources: List<Source>): Int = sources.count { counts(player, it) }
+
+    /** Whether [source] is done; never in a world whose cache lacks its varbit (headless tests building part of the museum). */
+    private fun counts(player: Player, source: Source): Boolean =
+        player.vars.types.varbit(source.varbit) != null && player.vars.getVarbit(source.varbit) >= source.atLeast
 
     /** Writes [total] to the client's count. Called whenever a source changes. */
     fun refresh(player: Player) {

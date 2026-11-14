@@ -92,19 +92,6 @@ class HeadlessNaturalHistoryQuizTest {
 
     private fun HeadlessClient.awaitSeen(text: String, times: Int = 1) = await("$text x$times") { if (seen(text) >= times) Unit else null }
 
-    /** A varbit's value from the varps the client holds, by [MUSEUM_VARBITS]. */
-    private fun HeadlessClient.varbit(id: Int): Int {
-        val type = MUSEUM_VARBITS.getValue(id)
-        return varp(type.baseVar) shr type.startBit and ((1 shl (type.endBit - type.startBit + 1)) - 1)
-    }
-
-    private fun HeadlessClient.awaitVarbit(id: Int, value: Int) = await("varbit $id = $value") { if (varbit(id) == value) Unit else null }
-
-    private fun HeadlessClient.setVarbit(id: Int, value: Int) {
-        command("varbit $id $value")
-        awaitVarbit(id, value)
-    }
-
     private fun HeadlessClient.study(display: NaturalHistoryQuiz.Display) {
         val loc = plaques.single { it.id == display.plaque }
         locOp(loc.id, loc.x, loc.z, NaturalHistoryQuiz.STUDY)

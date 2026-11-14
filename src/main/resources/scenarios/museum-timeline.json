@@ -1,0 +1,13 @@
+{
+  "about": "On the Varrock Museum's first floor by Historian Minas, with an empty backpack, every Dig Site and natural history display done (78 Kudos) and no quest story told for the Timeline exhibit.",
+  "notes": "For test-runner/examples/museum-timeline.json: the varbits are the 242 cache's vm_kudos (3637, set to the 78 the displays are worth), the Dig Site's vm_digsite_* (3645-3649, done), the fourteen vm_nathis_*_display (3672-3685, done at 3) and the timeline's vm_staff_of_armadyl, vm_salveknights, vm_observatory to vm_runes, vm_dov and vm_soa_vis (3650-3661, 9678, 9679, cleared) so the stories can be told again on one account; ::reset puts them back. The empty backpack takes the five lamps. Minas's tile is from the Varrock piece's runner script.",
+  "position": { "x": 3262, "z": 3455, "level": 1 },
+  "varbits": {
+    "3637": 78,
+    "3645": 1, "3646": 1, "3647": 1, "3648": 1, "3649": 1,
+    "3672": 3, "3673": 3, "3674": 3, "3675": 3, "3676": 3, "3677": 3, "3678": 3,
+    "3679": 3, "3680": 3, "3681": 3, "3682": 3, "3683": 3, "3684": 3, "3685": 3,
+    "3650": 0, "3651": 0, "3652": 0, "3653": 0, "3654": 0, "3655": 0, "3656": 0,
+    "3657": 0, "3658": 0, "3659": 0, "3660": 0, "3661": 0, "9678": 0, "9679": 0
+  }
+}

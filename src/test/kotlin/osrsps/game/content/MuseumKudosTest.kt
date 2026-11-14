@@ -26,7 +26,13 @@ val MUSEUM_VARBITS: Map<Int, VarbitType> = mapOf(
     Kudos.VARBIT_POTTERY to VarbitType(1011, 6, 6),
     NaturalHistoryQuiz.VARBIT_AGREED to VarbitType(1014, 1, 1),
     NaturalHistoryQuiz.VARBIT_REWARD_GIVEN to VarbitType(1014, 31, 31),
-) + (3672..3685).associateWith { VarbitType(1014, 2 + 2 * (it - 3672), 3 + 2 * (it - 3672)) }
+) + (3672..3685).associateWith { VarbitType(1014, 2 + 2 * (it - 3672), 3 + 2 * (it - 3672)) } +
+    mapOf(
+        MuseumTimeline.VARBIT_STAFF_OF_ARMADYL to VarbitType(1011, 7, 8),
+        MuseumTimeline.VARBIT_SALVE_KNIGHTS to VarbitType(1011, 9, 10),
+        MuseumTimeline.VARBIT_DEFENDER to VarbitType(1011, 21, 21),
+        MuseumTimeline.VARBIT_SHIELD_SHOWN to VarbitType(1011, 22, 22),
+    ) + (MuseumTimeline.VARBIT_OBSERVATORY..MuseumTimeline.VARBIT_RUNES).associateWith { VarbitType(1011, 11 + it - 3652, 11 + it - 3652) }
 
 /** Kudos counted from the museum's varbits, the clerk's rewards, and cleaning never turning up a find twice (R29B-2). */
 class MuseumKudosTest {
@@ -126,6 +132,42 @@ class MuseumKudosTest {
             assertTrue(display.right.all { it in 0..2 })
             assertEquals(NaturalHistoryQuizLines.QUESTIONS, display.lines.questions.size)
         }
+    }
+
+    @Test
+    fun `each timeline story fills its display for 5 Kudos, Curse of the Empty Lord 10, 80 in all`() {
+        val alice = player()
+        assertEquals(MuseumTimeline.Story.entries, MuseumTimeline.untold(alice))
+        MuseumTimeline.fill(alice, MuseumTimeline.Story.TEMPLE_OF_IKOV)
+        assertEquals(5, alice.vars.getVarbit(Kudos.VARBIT_KUDOS))
+        MuseumTimeline.fill(alice, MuseumTimeline.Story.CURSE_OF_THE_EMPTY_LORD)
+        assertEquals(2, alice.vars.getVarbit(MuseumTimeline.VARBIT_STAFF_OF_ARMADYL))
+        assertEquals(15, Kudos.total(alice))
+        MuseumTimeline.fill(alice, MuseumTimeline.Story.PRIEST_IN_PERIL)
+        MuseumTimeline.fill(alice, MuseumTimeline.Story.MYREQUE)
+        assertEquals(25, Kudos.total(alice))
+        // Told already, a story isn't told or counted again.
+        assertEquals(MuseumTimeline.Story.entries - setOf(MuseumTimeline.Story.TEMPLE_OF_IKOV, MuseumTimeline.Story.CURSE_OF_THE_EMPTY_LORD, MuseumTimeline.Story.PRIEST_IN_PERIL, MuseumTimeline.Story.MYREQUE), MuseumTimeline.untold(alice))
+        MuseumTimeline.fill(alice, MuseumTimeline.Story.TEMPLE_OF_IKOV)
+        assertEquals(2, alice.vars.getVarbit(MuseumTimeline.VARBIT_STAFF_OF_ARMADYL))
+        assertEquals(0, alice.vars.getVarbit(MuseumTimeline.VARBIT_SHIELD_SHOWN))
+        for (story in MuseumTimeline.Story.entries) MuseumTimeline.fill(alice, story)
+        assertEquals(1, alice.vars.getVarbit(MuseumTimeline.VARBIT_SHIELD_SHOWN))
+        assertEquals(80, Kudos.total(alice))
+        assertEquals(Kudos.TIMELINE.size, Kudos.done(alice, Kudos.TIMELINE))
+        assertTrue(MuseumTimeline.untold(alice).isEmpty())
+    }
+
+    @Test
+    fun `the timeline is the client's fifteen rows, and everything built is 158 Kudos, past the Digsite gate's 153`() {
+        assertEquals(15, Kudos.TIMELINE.size)
+        assertEquals(80, Kudos.TIMELINE.sumOf { it.kudos })
+        assertEquals(158, Kudos.SOURCES.sumOf { it.kudos })
+        assertTrue(Kudos.SOURCES.sumOf { it.kudos } >= Kudos.DIGSITE_GATE)
+        // Five stories give a lamp, each its own of the cache's vm_reward_* lamps.
+        val lamps = MuseumTimeline.Story.entries.mapNotNull { it.lamp }
+        assertEquals(5, lamps.toSet().size)
+        assertEquals(MuseumTimeline.Story.entries.map { it.varbit }.toSet(), Kudos.TIMELINE.map { it.varbit }.toSet())
     }
 
     @Test

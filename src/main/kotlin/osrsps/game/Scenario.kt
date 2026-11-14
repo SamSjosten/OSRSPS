@@ -209,6 +209,7 @@ class Scenarios(scenarios: Collection<Scenario>) {
             "magic",
             "museum-finds",
             "museum-quiz",
+            "museum-timeline",
             "thieving",
         )
 
