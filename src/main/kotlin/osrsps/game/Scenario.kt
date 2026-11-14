@@ -207,6 +207,7 @@ class Scenarios(scenarios: Collection<Scenario>) {
             "lumbridge-run-low",
             "magic",
             "museum-finds",
+            "museum-quiz",
             "thieving",
         )
 

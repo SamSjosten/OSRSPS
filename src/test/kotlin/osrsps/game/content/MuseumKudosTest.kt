@@ -7,6 +7,7 @@ import osrsps.game.GameRandom
 import osrsps.game.InvObj
 import osrsps.game.ObjType
 import osrsps.game.Player
+import osrsps.game.Skill
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.WearPos
@@ -15,14 +16,19 @@ import osrsps.game.WearPos
 val MUSEUM_VARBITS: Map<Int, VarbitType> = mapOf(
     Kudos.VARBIT_KUDOS to VarbitType(1010, 0, 10),
     Kudos.VARBIT_NECKLACE to VarbitType(1010, 12, 12),
+    Kudos.VARBIT_REWARD_50 to VarbitType(1010, 13, 13),
+    Kudos.VARBIT_REWARD_100 to VarbitType(1010, 14, 14),
+    Kudos.VARBIT_REWARD_150 to VarbitType(1010, 15, 15),
     Kudos.VARBIT_ANCIENT_SYMBOL to VarbitType(1011, 2, 2),
     Kudos.VARBIT_OLD_SYMBOL to VarbitType(1011, 3, 3),
     Kudos.VARBIT_ANCIENT_COIN to VarbitType(1011, 4, 4),
     Kudos.VARBIT_OLD_COIN to VarbitType(1011, 5, 5),
     Kudos.VARBIT_POTTERY to VarbitType(1011, 6, 6),
-)
+    NaturalHistoryQuiz.VARBIT_AGREED to VarbitType(1014, 1, 1),
+    NaturalHistoryQuiz.VARBIT_REWARD_GIVEN to VarbitType(1014, 31, 31),
+) + (3672..3685).associateWith { VarbitType(1014, 2 + 2 * (it - 3672), 3 + 2 * (it - 3672)) }
 
-/** Kudos counted from the museum's varbits, and cleaning never turning up a find twice (R29B-2). */
+/** Kudos counted from the museum's varbits, the clerk's rewards, and cleaning never turning up a find twice (R29B-2). */
 class MuseumKudosTest {
     private fun player() = Player(1, "alice", 3260, 3445, 0, VarTypes(6_000, MUSEUM_VARBITS))
 
@@ -41,8 +47,9 @@ class MuseumKudosTest {
         Kudos.refresh(alice)
         assertEquals(20, alice.vars.getVarbit(Kudos.VARBIT_KUDOS))
         assertEquals(2, Kudos.done(alice, Kudos.DIG_SITE))
-        // The necklace is no Kudos.
+        // The necklace and the rewards are no Kudos.
         alice.vars.setVarbit(Kudos.VARBIT_NECKLACE, 1)
+        alice.vars.setVarbit(Kudos.VARBIT_REWARD_50, 1)
         assertEquals(20, Kudos.total(alice))
     }
 
@@ -50,6 +57,7 @@ class MuseumKudosTest {
     fun `a unique turns up until it's held anywhere or on display, and the necklace until its secret is learnt`() {
         val alice = player()
         val symbol = ObjType(MuseumCleaning.OLD_SYMBOL, "Old symbol")
+        val necklace = ObjType(MuseumCleaning.CLEAN_NECKLACE, "Clean necklace")
         assertTrue(found(alice, MuseumCleaning.OLD_SYMBOL) > 0)
         assertTrue(found(alice, MuseumCleaning.CLEAN_NECKLACE) > 0)
 
@@ -73,5 +81,64 @@ class MuseumKudosTest {
         // Pottery's case doesn't stop pottery.
         alice.vars.setVarbit(Kudos.VARBIT_POTTERY, 1)
         assertTrue(found(alice, MuseumCleaning.POTTERY) > 0)
+        alice.inventory.add(necklace, 1)
+    }
+
+    @Test
+    fun `the clerk's rewards wait for their Kudos and are given once`() {
+        val alice = player()
+        assertEquals(emptyList(), Kudos.pendingRewards(alice))
+        for (case in MuseumFinds.CASES) alice.vars.setVarbit(case.varbit, 1)
+        // 50 Kudos is one short of the first reward.
+        assertEquals(50, Kudos.total(alice))
+        assertEquals(emptyList(), Kudos.pendingRewards(alice))
+        // A natural history display done is 2 more, enough for the first.
+        alice.vars.setVarbit(NaturalHistoryQuiz.DISPLAYS.first().varbit, NaturalHistoryQuiz.DONE)
+        assertEquals(listOf(Kudos.Reward.AT_51), Kudos.pendingRewards(alice))
+        Kudos.claim(alice, Kudos.pendingRewards(alice))
+        assertEquals(emptyList(), Kudos.pendingRewards(alice))
+    }
+
+    @Test
+    fun `a natural history display is 2 Kudos at its third right answer, and all fourteen are 28`() {
+        val alice = player()
+        val snail = NaturalHistoryQuiz.DISPLAYS.single { it.animal == "snail" }
+        alice.vars.setVarbit(snail.varbit, 2)
+        assertEquals(0, Kudos.total(alice))
+        alice.vars.setVarbit(snail.varbit, 3)
+        assertEquals(2, Kudos.total(alice))
+        for (display in NaturalHistoryQuiz.DISPLAYS) alice.vars.setVarbit(display.varbit, 3)
+        assertEquals(28, Kudos.total(alice))
+        assertTrue(NaturalHistoryQuiz.allDone(alice))
+        // The client's vm_nathis_display_alldone is the same bits, every display at once (osrs-dumps: bits 2 to 29).
+        assertEquals((1 shl 28) - 1, alice.vars[1014] shr 2 and ((1 shl 28) - 1))
+    }
+
+    @Test
+    fun `the displays are the cache's fourteen plaques and varbits, each question with one right answer of three`() {
+        val displays = NaturalHistoryQuiz.DISPLAYS
+        assertEquals((24605..24618).toSet(), displays.map { it.plaque }.toSet())
+        assertEquals((3672..3685).toSet(), displays.map { it.varbit }.toSet())
+        assertEquals((1..14).toSet(), displays.map { it.number }.toSet())
+        assertEquals(NaturalHistoryQuiz.ANIMALS, displays.map { it.animal })
+        for (display in displays) {
+            assertEquals(NaturalHistoryQuizLines.QUESTIONS, display.right.size)
+            assertTrue(display.right.all { it in 0..2 })
+            assertEquals(NaturalHistoryQuizLines.QUESTIONS, display.lines.questions.size)
+        }
+    }
+
+    @Test
+    fun `claiming gives each reward's XP exactly and marks it claimed`() {
+        val alice = player()
+        Kudos.claim(alice, listOf(Kudos.Reward.AT_51, Kudos.Reward.AT_151))
+        assertEquals(1_000, alice.skills.xp(Skill.MINING))
+        for (skill in listOf(Skill.CRAFTING, Skill.HUNTER, Skill.PRAYER, Skill.SLAYER, Skill.SMITHING)) assertEquals(4_000, alice.skills.xp(skill))
+        assertEquals(1, alice.vars.getVarbit(Kudos.VARBIT_REWARD_50))
+        assertEquals(0, alice.vars.getVarbit(Kudos.VARBIT_REWARD_100))
+        assertEquals(1, alice.vars.getVarbit(Kudos.VARBIT_REWARD_150))
+        // Claimed rewards aren't given again.
+        Kudos.claim(alice, listOf(Kudos.Reward.AT_51))
+        assertEquals(1_000, alice.skills.xp(Skill.MINING))
     }
 }

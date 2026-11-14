@@ -1,0 +1,464 @@
+{
+ "name": "Museum Kudos step 2: Orlando Smith's natural history quiz (::keys on): a plaque before and after taking it on, an answer, the plaque once its display is done, and Orlando's XP once all fourteen are (set with ::varbit). The museum-quiz scenario clears the quiz's varbits, so this repeats on one account, and ::reset puts them back",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle: a command typed straight away can be lost"
+  },
+  {
+   "step": "command",
+   "text": "::scenario museum-quiz",
+   "expectMessage": "Started scenario museum-quiz.",
+   "comment": "beside Orlando Smith, the quiz not yet taken on, every display at 0"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "locOption",
+   "locId": 24613,
+   "option": "Study",
+   "timeoutMs": 20000,
+   "comment": "vm_plaque_snail, before Orlando has asked"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[natural_history_quiz.not_started]"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 6001,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "vm_nathis_apprentice, Orlando Smith"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.opening_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.opening_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.opening_3]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.opening_4]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.opening_5]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.opening_6]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.opening_7]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.opening_8]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.opening_9]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.opening_10]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[orlando_smith.sure]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.sure]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.sure_1]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.sure_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.will_do]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3671,
+   "value": 1,
+   "comment": "vm_nathis_agreed"
+  },
+  {
+   "step": "locOption",
+   "locId": 24613,
+   "option": "Study",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 533,
+   "comment": "vm_natural_history"
+  },
+  {
+   "step": "assertWidgetText",
+   "interfaceId": 533,
+   "component": 25,
+   "contains": "14",
+   "comment": "vm_nathis_display_num: the snail is display 14"
+  },
+  {
+   "step": "assertWidgetText",
+   "interfaceId": 533,
+   "component": 28,
+   "contains": "[natural_history_quiz.snail_q",
+   "comment": "vm_nathis_question: one of the six, at random"
+  },
+  {
+   "step": "assertWidgetText",
+   "interfaceId": 533,
+   "component": 29,
+   "contains": "_a1]"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 533,
+   "component": 29,
+   "comment": "the first answer: right or wrong, by the question"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[natural_history_quiz.",
+   "comment": "Orlando's right or wrong"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 533,
+   "absent": true
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3672 3"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3672,
+   "value": 3
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3673 3"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3673,
+   "value": 3
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3674 3"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3674,
+   "value": 3
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3675 3"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3675,
+   "value": 3
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3676 3"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3676,
+   "value": 3
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3677 3"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3677,
+   "value": 3
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3678 3"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3678,
+   "value": 3
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3679 3"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3679,
+   "value": 3
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3680 3"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3680,
+   "value": 3
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3681 3"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3681,
+   "value": 3
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3682 3"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3682,
+   "value": 3
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3683 3"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3683,
+   "value": 3
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3684 3"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3684,
+   "value": 3
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3685 3"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3685,
+   "value": 3
+  },
+  {
+   "step": "locOption",
+   "locId": 24613,
+   "option": "Study",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[natural_history_quiz.snail_name]",
+   "comment": "done: the plaque names the animal"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 6001,
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.how_coming]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.all_done]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.beaut]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.glad]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.chat_boss]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.experienced]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[natural_history_quiz.xp]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.thank_you]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.take_care]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.goodbye]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Slayer",
+   "xp": 102333,
+   "comment": "level 50's 101,333 and his 1,000"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Hunter",
+   "xp": 102333
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3688,
+   "value": 1,
+   "comment": "vm_nathis_reward_given"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 6001,
+   "option": "Talk-to",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[orlando_smith.thanks_help]",
+   "comment": "once only"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertStat",
+   "skill": "Slayer",
+   "xp": 102333
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were before ::scenario museum-quiz."
+  }
+ ]
+}
