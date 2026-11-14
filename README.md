@@ -332,6 +332,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::setlevel skill\|all level` | Sets a skill's XP to what the level needs and its current level to match. `::setlevel attack 99` |
 | `::addxp skill xp` | Adds XP, one decimal place allowed (`::addxp cooking 17.5`); levelling raises the current level too. Exact: the XP rate doesn't apply |
 | `::xprate [rate\|restore]` | Shows or sets the server-wide XP rate, 0.1 to 1000 in tenths (`::xprate 5`, `::xprate 2.5`); every XP drop is multiplied by it, rounded down to a tenth. Kept in data/xp-rate.txt (outside git), so it lasts across restarts and deploys. `restore` goes back to the rate before the last change. 1 is live's |
+| `::farmtick [ticks]` | Moves your own farming clock on that many five-minute farming ticks (1 by default, up to 4,096) and grows your patches to it: allotments grow every second tick. For good: your crops keep growing from there |
 | `::boost skill level` | Sets only the current (boosted or drained) level, 0 to 255. `::boost hp 1` for 1 hitpoint |
 | `::stats` | Lists the boosted and drained stats as current/base, and the ticks until each cycle next moves them a level back (boosts on the combat, other and Hitpoints cycles, drains on the restore cycle) |
 | `::statcycles` | Starts the boost and drain cycles again, so the next levels move a minute from now; for tests that read boosts and mustn't have one wear off part way |
@@ -907,6 +908,38 @@ market where the cache map puts them; stealing works as at Draynor's (a guard or
 | The guards' fight | OSRS Wiki, Guard (Ardougne 1) |
 | Who watches which stall (the guards the bakery; knights too the silk and fur; paladins too the silver, spice and gem), the empty stall (`market` 634), the keepers' 20-minute ban, the keepers standing still and the guards wandering 5 | guessed (the watchers 2004Scape's) |
 | Not built: Keldagrim's, Kourend's, Prifddinas's, Civitas illa Fortis's, Port Roberts's, Rellekka's and Ape Atoll's stalls, the keepers' talk and shops, the Ardougne diary | next steps |
+
+### Farming
+
+Farming step 1 (`game/skill/farming/`): the growth clock, each player's patches, and allotments. Every patch is a
+multiloc the map already places, drawn by one of the cache's `farming_transmit_a` to `e` varbits; each tick the
+player's patches grow to the clock and the varbits of the area they stand in are set, the same varbits live sends for
+the same map squares, so RuneLite's Time Tracking farming panel reads them. Crops grow on live's real-time farming
+ticks (every 5 minutes, allotments every second one), shifted by a fixed offset per account, and keep growing while
+the player is logged out. The patches are saved with the player (`farming` in the save) and come back with `::reset`.
+
+Built so far: the two allotments south of Falador (reach them with `::tele 3054 3305`). Rake clears a weed stage at a
+time for 4 XP a weed; three seeds and a seed dibber plant a raked patch; a watering can waters a growing crop until
+its next stage; a grown crop is harvested with a spade, one crop at a time, until its three lives run out, each crop
+keeping its life at the chance its seed page gives (more with magic secateurs); the planting XP comes with the last
+crop, as on live. Bare soil grows a weed stage every
+farming tick until it is overgrown again.
+
+| Farming behaviour | Source |
+|-------------------|--------|
+| Patch locs, which varbit draws each, and which value draws which stage (weeds, growing, watered, grown, diseased, dead) | cache 242 (2026-11-11), the patch multilocs and the names of the locs they show |
+| Which map squares send which patches' varbits (Falador: square 12083 north of z 3272) | RuneLite's Time Tracking plugin (FarmingWorld), worked out from live's varbits |
+| 5-minute farming ticks, allotments every 10 minutes, crops growing while logged out; the offset of 0 to 31 minutes | OSRS Wiki, Farming (the 2018 update; Mod Ash) |
+| Allotment levels, three seeds, planting and harvest XP (the planting XP on the last harvest), stages; 4 XP a weed and weeds back every 5 minutes; three harvest lives | OSRS Wiki, Allotment patch, Weeds, each seed's page |
+| The chance to keep a life (`(1 + low)/256` to `(1 + high)/256`, from each seed page's percentages), magic secateurs' 10% | OSRS Wiki, each seed's page, Variable crop yield |
+| Animations farming_raking, farming_seed_dibbing, farming_watering, human_dig | cache 242 seq names |
+| A rake roll every 4 ticks that always takes a weed; planting and watering 3 ticks after the click; a crop every 4 ticks; raking and harvesting stopping on a full inventory; the three grown values counting down the last lives; the offset taken from the account's name | guessed |
+| Not built yet: herbs and flowers, compost, disease, trees, fruit trees, hops, bushes, compost bins, the Tool Leprechauns and the gardeners' payments; Guide (op4) | next steps |
+
+`::scenario farming` stands you beside the Falador allotments with 99 Farming, the tools and 30 of every allotment
+seed. `::farmtick [n]` moves your own farming clock on n five-minute ticks and grows your patches to it.
+
+Check: `./gradlew test --tests 'osrsps.game.skill.farming.*' --tests 'osrsps.testclient.HeadlessFarmingTest'`.
 
 ## Items and inventory
 

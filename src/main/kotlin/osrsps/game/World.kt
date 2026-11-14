@@ -52,6 +52,7 @@ import osrsps.game.command.registerSeedCommands
 import osrsps.game.command.registerSkillCommands
 import osrsps.game.command.registerSocialCommands
 import osrsps.game.command.registerLodestoneCommands
+import osrsps.game.command.registerFarmingCommands
 import osrsps.game.command.registerXpRateCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
@@ -302,6 +303,8 @@ class World(
     clansDir: Path? = null,
     /** The time clans are founded by (one a day per founder); tests move it. */
     clansClock: () -> java.time.Instant = java.time.Instant::now,
+    /** The real time crops grow by, ms since 1970 ([osrsps.game.skill.farming.FarmingClock]); tests move it. */
+    farmingClock: () -> Long = System::currentTimeMillis,
     /** Who may run the commands that change the world for everyone. */
     val admins: Admins = Admins.EVERYONE,
     /** The combat tab's attack styles by weapon category, from the cache; tests get unarmed only. */
@@ -765,6 +768,7 @@ class World(
     }
 
     val woodcutting = Woodcutting(this, WoodcuttingData.load(), birdNests)
+    val farming = osrsps.game.skill.farming.Farming(this, farmingClock)
 
     val firemaking = Firemaking(this, collision)
 
@@ -847,6 +851,7 @@ class World(
         registerSkillCommands { phase != null }
         registerXpRateCommands(this@World)
         registerLodestoneCommands(this@World)
+        registerFarmingCommands(this@World)
         registerSeedCommands(this@World)
         registerScriptCommands(this@World)
         registerZoneCommands(this@World, collision)
@@ -950,6 +955,7 @@ class World(
         interfaces.onClose(PriceChecker.MAIN, priceChecker::closed)
         interfaces.onClose(Trades.CONFIRM, trades::decline)
         woodcutting.register()
+        farming.register()
         birdNests.register()
         firemaking.register()
         LightSources.register(this)
@@ -1323,6 +1329,7 @@ class World(
             // Outside a player's own scripts, so a failure here would otherwise skip the rest of the tick for everyone.
             perPlayer(player, "Grand Exchange") { grandExchange.process(player) }
             perPlayer(player, "Clans") { clans.process(player) }
+            perPlayer(player, "farming") { farming.process(player) }
         }
         phase = TickPhase.MOVEMENT
         // Guessed place in the tick: before anyone walks, so a door that closes itself blocks this tick's steps.
