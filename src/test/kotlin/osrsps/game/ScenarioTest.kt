@@ -157,6 +157,10 @@ class ScenarioTest {
         assertTrue(cows.x in 3253..3265 && cows.z in 3255..3298 && cows.level == 0)
         assertTrue(cows.equipment.isNotEmpty() && cows.inventory.isNotEmpty())
         val bare = scenarios["lumbridge-bare"]!!
+        val museum = scenarios["museum-finds"]!!
+        // The museum's varbits as the 242 cache has them: vm_kudos, vm_necklace and the five Dig Site displays, all clear.
+        assertEquals((listOf(3637, 3639) + (3645..3649)).associateWith { 0 }, museum.varbits)
+        assertEquals(listOf("vm_symbol_old_inv", "necklace_of_digsite"), museum.inventory.map { it.item })
         assertTrue(bare.equipment.isEmpty() && bare.inventory.isEmpty() && bare.skills.isEmpty())
         val tabs = scenarios["lumbridge-bank-tabs"]!!
         assertEquals(listOf(0, 1, 1), tabs.bank.map { it.tab })

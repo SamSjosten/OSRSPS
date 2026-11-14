@@ -98,6 +98,7 @@ import osrsps.game.content.DialogueLines
 import osrsps.game.content.Examines
 import osrsps.game.content.CustomVars
 import osrsps.game.content.HomeTeleport
+import osrsps.game.content.Kudos
 import osrsps.game.content.LodestoneNetwork
 import osrsps.game.content.message
 import osrsps.game.content.registerAdventurersCamp
@@ -2002,6 +2003,7 @@ class World(
         friendLists.login(player)
         player.listsAfterMapBuild = true
         quests.completeAll(player.vars)
+        Kudos.login(player)
         lodestones.login(player)
         prayers.login(player)
         cooking.wine.login(player)
