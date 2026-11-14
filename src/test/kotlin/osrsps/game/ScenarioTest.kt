@@ -198,5 +198,10 @@ class ScenarioTest {
         assertTrue(thieving.x in 3178..3185 && thieving.z in 3290..3297 && thieving.level == 0)
         assertEquals(listOf(99, 54), listOf(thieving.skills.getValue(Skill.THIEVING).level, thieving.skills.getValue(Skill.HUNTER).level))
         assertEquals(2, thieving.equipment.size)
+        val farming = scenarios["farming"]!!
+        // In the Falador farming area, where its allotments' varbits are sent, with a seed for every allotment crop.
+        assertEquals("Falador", osrsps.game.skill.farming.FarmingPatches.areaAt(farming.x, farming.z)?.name)
+        assertEquals(99, farming.skills.getValue(Skill.FARMING).level)
+        assertEquals(12, farming.inventory.size)
     }
 }

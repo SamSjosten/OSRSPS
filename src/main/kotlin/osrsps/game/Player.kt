@@ -206,6 +206,9 @@ class Player(
      */
     val sessionCharges = Charges()
 
+    /** The player's farming patches and where their farming clock is; see [osrsps.game.skill.farming.Farming]. Saved. */
+    val farming = osrsps.game.skill.farming.FarmingState()
+
     /** Grand Exchange offers and buy limits; see [osrsps.game.ge.GrandExchange]. */
     val ge = osrsps.game.ge.GeAccount()
 
