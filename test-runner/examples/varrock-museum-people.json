@@ -17,6 +17,60 @@
    "comment": "the museum's first floor, by Historian Minas"
   },
   {
+   "step": "command",
+   "text": "::varbit 3650 2",
+   "comment": "every timeline story told already (museum-timeline.json tells them), so Minas hears no new quests: vm_staff_of_armadyl"
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3651 2",
+   "comment": "vm_salveknights"
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3652 1"
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3653 1"
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3654 1"
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3655 1"
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3656 1"
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3657 1"
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3658 1"
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3659 1"
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3660 1"
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3661 1"
+  },
+  {
+   "step": "command",
+   "text": "::varbit 9678 1"
+  },
+  {
    "step": "npcOption",
    "npcId": 1902,
    "option": "Talk-to",

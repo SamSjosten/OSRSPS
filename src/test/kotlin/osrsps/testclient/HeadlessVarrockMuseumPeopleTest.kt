@@ -12,6 +12,7 @@ import osrsps.game.VarTypes
 import osrsps.game.World
 import osrsps.game.content.MUSEUM_VARBITS
 import osrsps.game.content.MuseumAdventurerLines
+import osrsps.game.content.MuseumTimeline
 import osrsps.game.content.NaturalHistorianLines
 import osrsps.game.content.VarrockMuseumPeople
 import osrsps.game.npc.NpcSpawn
@@ -107,6 +108,8 @@ class HeadlessVarrockMuseumPeopleTest {
                 client.tele(3254, 3448)
                 val first = "museum,information,other_sections"
                 val second = "new_dig,information,other_sections"
+                // Every story told already (HeadlessMuseumTimelineTest tells them), so he hears no new quests.
+                for (story in MuseumTimeline.Story.entries) client.setVarbit(story.varbit, maxOf(story.value, client.varbit(story.varbit)))
                 client.walk(
                     minas.id, "historian_minas", "hello", "welcome", "1:$first", "museum", "museum_answer",
                     "1:$second", "new_dig", "new_dig_1", "new_dig_2", "new_dig_3", "new_dig_thanks",

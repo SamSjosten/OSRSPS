@@ -154,7 +154,7 @@
   {"step": "continueDialogue"},
   {"step": "assertLocation", "x": 3362, "y": 3445, "plane": 0, "timeoutMs": 10000},
   {"step": "command", "text": "::tele 3294 3428 0", "expectMessage": "Teleported to 3294, 3428, 0", "comment": "west of the workers' gate east of Varrock"},
-  {"step": "locOption", "locId": 24560, "option": "Open", "x": 3296, "y": 3428, "timeoutMs": 10000, "comment": "vm_fencegate_l: 153 Kudos, which nobody has yet"},
+  {"step": "locOption", "locId": 24560, "option": "Open", "x": 3296, "y": 3428, "timeoutMs": 10000, "comment": "vm_fencegate_l: 153 Kudos, which the test account lacks (the museum scripts put their varbits back)"},
   {"step": "assertDialogue", "contains": "[digsite_barge.workmans_gate"},
   {"step": "continueDialogue"},
   {"step": "assertDialogue", "contains": "[digsite_barge.need_kudos"},

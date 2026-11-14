@@ -186,8 +186,8 @@ object NaturalHistorianLines : Lines("natural_historian", "Transcript:Natural hi
  *
  * Everyone talks as once every quest is done, from the Wiki's transcripts. Guessed: every expression; the teachers on
  * the ground and Natural History floors saying the ground floor pair; a natural historian's first-talk lines once per
- * account (kept in charges as [MET]), then the menu without the later greeting. Left out: Historian Minas's quest
- * information blocks (with their lamps: Kudos isn't built, so he hears no new quests), the lectures' walk to the display
+ * account (kept in charges as [MET]), then the menu without the later greeting. Historian Minas's quest stories
+ * are [MuseumTimeline]'s; with every one told he hears no new quests. Left out: the lectures' walk to the display
  * and the historian's pose (they're told where he stands); Marfet's talk about The Dig Site (the Wiki has only its
  * before-quest form). Orlando's quiz is [NaturalHistoryQuiz]; guessed there: the quiz taken on as the player says
  * Sure thing, the during-quiz talk once a display is done (the Wiki's page wonders whether one right answer does it).
@@ -225,7 +225,7 @@ object VarrockMuseumPeople {
         )
     }
 
-    internal suspend fun Dialogue.minas() = with(HistorianMinasLines) {
+    internal suspend fun Dialogue.minas(world: World) = with(HistorianMinasLines) {
         chatPlayer(ChatAnim.HAPPY, HELLO)
         chatNpc(ChatAnim.HAPPY, WELCOME)
         var pick = choice(MUSEUM, INFORMATION, OTHER_SECTIONS)
@@ -245,6 +245,7 @@ object VarrockMuseumPeople {
         if (pick == 2) {
             chatPlayer(ChatAnim.HAPPY, INFORMATION_SAID)
             chatNpc(ChatAnim.HAPPY, INFORMATION_1)
+            if (with(MuseumTimeline) { tellStories(world) }) return@with
             chatPlayer(ChatAnim.NEUTRAL, NO_NEW_QUESTS)
             chatNpc(ChatAnim.NEUTRAL, NO_MATTER)
             chatPlayer(ChatAnim.NEUTRAL, GO_ON)
@@ -425,7 +426,7 @@ object VarrockMuseumPeople {
     fun metHistorian(player: Player): Boolean = player.charges[MET] > 0
 
     fun register(world: World) {
-        world.handlers.onNpc(HISTORIAN_MINAS, TALK_TO) { op -> world.dialogues.start(this, op.npc) { minas() } }
+        world.handlers.onNpc(HISTORIAN_MINAS, TALK_TO) { op -> world.dialogues.start(this, op.npc) { minas(world) } }
         world.handlers.onNpc(ART_CRITIC, TALK_TO) { op -> world.dialogues.start(this, op.npc) { artCritic() } }
         for (teacher in listOf(TEACHER_AND_BOY, TEACHER_AND_GIRL)) {
             world.handlers.onNpc(teacher, TALK_TO) { op -> world.dialogues.start(this, op.npc) { teacher(upstairs = op.npc!!.level == 2) } }
