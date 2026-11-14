@@ -12,6 +12,7 @@ import osrsps.game.content.message
 import osrsps.game.dialogue.Lines
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
+import osrsps.game.script.QueueType
 import osrsps.game.script.ScriptContext
 import osrsps.game.skill.ClockStep
 import osrsps.game.skill.Making
@@ -175,7 +176,7 @@ object FarmingLines : Lines("farming", "Farming") {
  * 40-minute clock, opened and taken a bucket at a time (compost 4.5 XP, supercompost 8.5, ultracompost 10; rotten
  * tomatoes by hand); a dose of compost potion on an opened bin of compost makes it supercompost, 25 volcanic ash on
  * one of supercompost ultracompost; Dump empties it. Guessed: an item put in every tick while the stack lasts with
- * human_pickuptable, one used item's whole stack going in; a bucket filled every 4 ticks (the Wiki's Recipe: 4 ticks)
+ * human_pickuptable, one used item's whole stack going in (a weak queue, so walking off stops it); a bucket filled every 4 ticks (the Wiki's Recipe: 4 ticks)
  * with human_fillbucket_sandpit; closing, opening and upgrading at once, with no animation; Dump with no confirmation;
  * a supercompostable or tomato bin that gets a plain item turning plain with a message rather than live's warning
  * dialogue.
@@ -1076,21 +1077,25 @@ class Farming(private val world: World, private val clock: () -> Long, private v
         }
     }
 
-    private suspend fun ScriptContext.fillBin(op: Op, state: BinState) {
-        val obj = op.obj
+    /** The first item goes in at once, the rest one a tick in a weak queue, so walking away or another action stops it. */
+    private fun ScriptContext.fillBin(op: Op, state: BinState) {
         if (state.closed || state.open || state.count >= Compostables.CAPACITY) return world.message(player, FarmingLines.BIN_FULL)
-        val name = world.objTypes[obj]?.name?.lowercase().orEmpty()
-        while (player.inventory.count(obj) > 0 && !state.closed && !state.open && state.count < Compostables.CAPACITY) {
-            val kind = Compostables.mix(state.kind, state.count, obj)
-            if (state.count > 0 && kind != state.kind) world.message(player, FarmingLines.BIN_MIXED)
-            player.anim(ANIM_FILL_BIN)
-            Making.removeObj(player.inventory, obj, 1)
-            state.kind = kind
-            state.count++
-            world.message(player, FarmingLines.BIN_ADDED, "item" to name)
-            refresh(player)
-            if (state.count >= Compostables.CAPACITY) return
-            delay(1)
+        world.scripts.clearQueue(player, BIN_QUEUE)
+        depositOne(op.obj, state)
+    }
+
+    private fun ScriptContext.depositOne(obj: Int, state: BinState) {
+        if (player.inventory.count(obj) <= 0 || state.closed || state.open || state.count >= Compostables.CAPACITY) return
+        val kind = Compostables.mix(state.kind, state.count, obj)
+        if (state.count > 0 && kind != state.kind) world.message(player, FarmingLines.BIN_MIXED)
+        player.anim(ANIM_FILL_BIN)
+        Making.removeObj(player.inventory, obj, 1)
+        state.kind = kind
+        state.count++
+        world.message(player, FarmingLines.BIN_ADDED, "item" to world.objTypes[obj]?.name?.lowercase().orEmpty())
+        refresh(player)
+        if (state.count < Compostables.CAPACITY && player.inventory.count(obj) > 0) {
+            queue(BIN_QUEUE, QueueType.WEAK, 1) { depositOne(obj, state) }
         }
     }
 
@@ -1147,6 +1152,9 @@ class Farming(private val world: World, private val clock: () -> Long, private v
 
         /** Op5, Clear: a bush with berries on it (the cache's bush locs). */
         const val OP_CLEAR = 5
+
+        /** The weak queue items going into a compost bin wait in. */
+        const val BIN_QUEUE = "compost_bin"
 
         /** Op5, Dump, on a compost bin (the cache's bin locs). */
         const val OP_DUMP = 5

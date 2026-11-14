@@ -4,6 +4,7 @@ import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
 import osrsps.game.InventoryTab
@@ -185,6 +186,23 @@ class HeadlessFarmingCompostBinTest {
                 client.awaitCount(POTION_3, 1)
                 client.binOp(5)
                 client.awaitBin(0)
+            }
+        }
+    }
+
+    @Test
+    fun `walking away stops the stack going in, and the bin keeps what went in`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.setUp()
+                client.give(WEEDS, 15)
+                client.useOnBin(WEEDS)
+                client.await("a weed or two in") { if (client.bin() in 1..3) Unit else null }
+                client.walk(BIN_X, BIN_Z - 4)
+                client.await("walked off") { client.position?.takeIf { it.z == BIN_Z - 4 } }
+                val kept = client.bin()
+                assertTrue(kept in 1..14, "the bin stopped short: $kept")
+                assertEquals(15 - kept, client.count(WEEDS))
             }
         }
     }
