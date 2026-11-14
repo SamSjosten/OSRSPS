@@ -30,7 +30,7 @@ class FarmingDataTest {
         val flowerValues = flowers.flatMap { crop -> crop.growing + crop.watered + crop.harvest + crop.diseased + crop.dead }
         assertEquals(flowerValues.size, flowerValues.toSet().size, "a flower value drawn twice")
         assertTrue(flowerValues.all { it in 8..255 }, "0 to 7 are the weed stages")
-        assertEquals(34, Crops.ALL.size)
+        assertEquals(42, Crops.ALL.size)
         assertEquals(Crops.ALL.size, Crops.ALL.map { it.seed }.toSet().size)
     }
 
@@ -257,6 +257,80 @@ class FarmingDataTest {
         varrock.stump = true
         val back = FarmingSaves.fromJson(FarmingSaves.toJson(state))
         assertEquals(14, back.value(FarmingPatches.VARROCK_TREE))
+    }
+
+    @Test
+    fun `fruit trees draw as the cache numbers them, fall ill in 4 of 6 growths and grow a fruit every 40 minutes`() {
+        val fruit = Crops.ALL.filter { it.kind == PatchKind.FRUIT_TREE }
+        assertEquals(8, fruit.size)
+        assertTrue(fruit.all { it.stages == 6 && it.disease == 18 })
+        val values = fruit.flatMap { crop -> crop.growing + (0..6).map { crop.harvest + it } + crop.diseased + crop.dead + crop.stumpValue + crop.checkValue }
+        assertEquals(values.size, values.toSet().size, "a fruit tree value drawn twice")
+        assertTrue(values.all { it in 8..253 }, "0 to 7 are the weed stages")
+        // Apple: growing 8 to 13, 0 to 6 apples 14 to 20, diseased from 21, dead from 27, stump 33, Check-health 34.
+        val apple = PatchState(0, Crops.APPLE, 3)
+        assertEquals(11, apple.value(PatchKind.FRUIT_TREE))
+        apple.stage = 6
+        assertEquals(34, apple.value(PatchKind.FRUIT_TREE))
+        apple.checked = true
+        apple.lives = 6
+        assertEquals(20, apple.value(PatchKind.FRUIT_TREE))
+        apple.lives = 0
+        assertEquals(14, apple.value(PatchKind.FRUIT_TREE))
+        apple.stump = true
+        assertEquals(33, apple.value(PatchKind.FRUIT_TREE))
+        assertEquals(22, PatchState(0, Crops.APPLE, 2, diseased = true).value(PatchKind.FRUIT_TREE))
+        assertEquals(253, PatchState(0, Crops.DRAGONFRUIT, 6).value(PatchKind.FRUIT_TREE))
+        // The Disease page's fruit tree row: 18, 9, 4, 2.
+        assertEquals(listOf(18, 9, 4, 2), (0..3).map { Compost.diseaseChance(Crops.APPLE.disease, it, false) })
+        // Every 32nd tick a stage; with every growth ill, only 4 of the 6 roll (stages 1 to 4).
+        val farming = Farming(osrsps.game.World(IntArray(0), osrsps.map.CollisionMap()), clock = { 0L }, diseases = false)
+        val state = FarmingState()
+        val key = FarmingPatches.CATHERBY_FRUIT.key
+        state.patches[key] = PatchState(0, Crops.BANANA)
+        farming.grow(state, 1, 31)
+        assertEquals(0, state.patches.getValue(key).stage)
+        farming.grow(state, 32, 192)
+        val banana = state.patches.getValue(key)
+        assertTrue(banana.grown && !banana.checked && banana.lives == 0, "grown at 6 x 160 minutes, no fruit before the check")
+        farming.grow(state, 193, 300)
+        assertEquals(0, banana.lives, "no fruit grows before the check")
+        banana.checked = true
+        banana.lives = 4
+        farming.grow(state, 301, 303)
+        assertEquals(4, banana.lives)
+        farming.grow(state, 304, 304)
+        assertEquals(5, banana.lives, "a fruit at the next 40-minute tick")
+        farming.grow(state, 305, 400)
+        assertEquals(6, banana.lives, "six at most")
+        // Lives, checked and a stump with no fruit survive a save.
+        banana.lives = 0
+        banana.stump = true
+        val back = FarmingSaves.fromJson(FarmingSaves.toJson(state))
+        assertEquals(60, back.value(FarmingPatches.CATHERBY_FRUIT))
+        banana.stump = false
+        assertEquals(41, FarmingSaves.fromJson(FarmingSaves.toJson(state)).value(FarmingPatches.CATHERBY_FRUIT), "a checked banana tree with no fruit")
+        assertTrue(Crops.ALL.filter { it.kind == PatchKind.FRUIT_TREE }.all { it.lastDiseaseStage == 4 })
+        // Each patch is found where the cache places it; the Gnome Stronghold's two share their map square.
+        assertEquals(FarmingPatches.GNOME_STRONGHOLD_TREE, FarmingPatches.at(19147, 2435, 3414))
+        assertEquals(FarmingPatches.GNOME_STRONGHOLD_FRUIT, FarmingPatches.at(7962, 2475, 3445))
+        assertEquals(FarmingPatches.GNOME_VILLAGE_FRUIT, FarmingPatches.at(7963, 2489, 3179))
+        assertEquals(FarmingPatches.BRIMHAVEN_FRUIT, FarmingPatches.at(7964, 2764, 3212))
+        assertEquals(FarmingPatches.CATHERBY_FRUIT, FarmingPatches.at(7965, 2860, 3433))
+        // With disease on, the growths from stages 0 and 5 never fall ill; from stage 1 some do (18/128).
+        val ill = Farming(osrsps.game.World(IntArray(0), osrsps.map.CollisionMap()), clock = { 0L })
+        val illFrom = IntArray(6)
+        repeat(300) {
+            for (stage in 0..5) {
+                val trial = FarmingState()
+                trial.patches[key] = PatchState(0, Crops.APPLE, stage)
+                ill.grow(trial, 32, 32)
+                if (trial.patches.getValue(key).diseased) illFrom[stage]++
+            }
+        }
+        assertEquals(0, illFrom[0])
+        assertEquals(0, illFrom[5])
+        assertTrue((1..4).all { illFrom[it] in 10..90 }, "about 42 in 300 for each: ${illFrom.toList()}")
     }
 
     @Test

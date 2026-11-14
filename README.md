@@ -927,8 +927,8 @@ market where the cache map puts them; stealing works as at Draynor's (a guard or
 
 ### Farming
 
-Farming steps 1 to 4 (`game/skill/farming/`): the growth clock, each player's patches, allotments, herbs and flowers,
-compost and disease, and trees. Every patch is a
+Farming steps 1 to 5 (`game/skill/farming/`): the growth clock, each player's patches, allotments, herbs and flowers,
+compost and disease, trees and fruit trees. Every patch is a
 multiloc the map already places, drawn by one of the cache's `farming_transmit_a` to `e` varbits; each tick the
 player's patches grow to the clock and the varbits of the area they stand in are set, the same varbits live sends for
 the same map squares, so RuneLite's Time Tracking farming panel reads them. Crops grow on live's real-time farming
@@ -955,7 +955,7 @@ A dead crop is cleared with a spade, for the planting XP after all. A fully grow
 well: marigolds potatoes, onions and tomatoes, rosemary cabbages, nasturtiums watermelons, a white lily everything.
 
 Trees grow in the tree patches west of Lumbridge castle (`::tele 3193 3229`), in Varrock palace's garden, in Falador
-park and in Taverley. An empty plant pot used on a bare patch is filled with soil (no trowel needed); a tree seed
+park, in Taverley and in the Gnome Stronghold. An empty plant pot used on a bare patch is filled with soil (no trowel needed); a tree seed
 used on the filled pot (with the trowel and the tree's Farming level) makes a seedling, and a watered seedling grows
 into a sapling at the next farming tick, in the backpack or the bank. The sapling is planted in a raked tree patch
 with a spade, the pot coming back. Trees grow every 40 minutes (oak 4 stages, willow 6, maple 8, yew 10 with a first
@@ -966,6 +966,13 @@ in 8, and its stump is dug up with a spade for its roots (one at the tree's leve
 most), a dig that can fail below level 99; a stump left alone grows back. A diseased tree is pruned with secateurs, 3
 tries in 4 working (each try made when a Farming skill roll passes), for a leaf; one left ill dies and is cleared with a
 spade, for the planting XP.
+
+Fruit trees grow in the fruit tree patches of Catherby (`::tele 2860 3432`), the Gnome Stronghold, the Tree Gnome
+Village and Brimhaven, from saplings made the same way (apple, banana, orange, curry, pineapple, papaya, palm and
+dragonfruit). They grow through six 160-minute stages, falling ill at 18 in 128 (less with compost) in 4 of them, and
+a grown tree is checked once for its check-health and planting XP. It then bears six fruit, picked one at a time for each tree's
+per-fruit XP, and grows one more every 40 minutes up to six. With no fruit left it can be chopped down (one swing,
+no logs) and its stump cleared with a spade. A diseased fruit tree is pruned with secateurs for leaves.
 
 | Farming behaviour | Source |
 |-------------------|--------|
@@ -982,13 +989,15 @@ spade, for the planting XP.
 | Huasca's chance to keep a life (58 of 256 at level 1, 80 at 99; the Wiki gives none); herbs and flowers picked with picking_low, a herb every 4 ticks, a flower 2 ticks after Pick; flower produce that doesn't fit dropping to the floor; magic secateurs' help on limpwurt as 10% more numbers to draw from; a second click on the first or second tick of a harvest counting | guessed |
 | Tree levels, planting and check-health XP (the planting XP on Check-health or on clearing a dead tree), 40-minute growth and stages (a yew's first 5 minutes from planting); seedlings in a plant pot with a trowel, growing to saplings within 5 minutes when watered, banked too; saplings planted with a spade; 1 log in 8 felling a farmed tree; roots by Farming level; stumps that can fail to dig below 99 and never at 99; pruning with secateurs at 3 in 4 after a skill roll; maple's 13/128 and magic's 9/128 chances to fall ill | OSRS Wiki, Tree patch, Seedling, each tree's page, Disease (Mod Lenny), Roots (Mod Kieren) |
 | Oak 17/128, willow 15 and yew 11 to fall ill; a stump growing back at the tree's next 40-minute tick; digging up a stump 129/256 at level 1, and the pruning skill roll the same; a try at a stump or a prune every 4 ticks; one leaf a prune; a pot filled and a sapling planted 3 ticks after the click; Check-health at once, with no animation; farming_filling_plantpot, farming_trowel_digging and pruning_mid as the animations | guessed |
-| Not built yet: the scarecrow, digging up a healthy crop, the Gnome Stronghold's tree patch, fruit trees, hops, bushes, compost bins, the Tool Leprechauns and the gardeners' payments; Guide (op4) | next steps |
+| Fruit tree levels, planting, check-health and per-fruit XP, six 160-minute stages, six fruit once checked and one more every 40 minutes, 18/128 to fall ill in 4 of 6 growths, pruning with secateurs; Chop-down shown only with no fruit left | OSRS Wiki, Fruit tree patch, Disease, each fruit tree's page; cache 242, the fruit tree multiloc |
+| The 4 risky growths being the second to the fifth; a fruit every 3 ticks with picking_high; chopping a fruit tree in one swing with any axe at any Woodcutting level, for no logs or XP; a fruit tree stump always cleared at the first dig, for no roots or XP, and never growing back; an axe on a tree with fruit refused | guessed |
+| Not built yet: the scarecrow, digging up a healthy crop, hops, bushes, compost bins, the Tool Leprechauns and the gardeners' payments; Guide (op4) | next steps |
 
 `::scenario farming` stands you beside the Falador allotments with 99 Farming, the tools, 30 of every allotment
 seed and some herb and flower seeds (the rest in the bank, with a trowel, secateurs, a rune axe, plant pots, tree seeds
-and oak saplings for the tree patches). `::farmtick [n]` moves your own farming clock on n five-minute ticks and grows your patches to it.
+and oak saplings for the tree patches, fruit tree seeds and apple saplings for the fruit tree patches). `::farmtick [n]` moves your own farming clock on n five-minute ticks and grows your patches to it.
 
-Check: `./gradlew test --tests 'osrsps.game.skill.farming.*' --tests 'osrsps.testclient.HeadlessFarmingTest' --tests 'osrsps.testclient.HeadlessFarmingTreeTest'`.
+Check: `./gradlew test --tests 'osrsps.game.skill.farming.*' --tests 'osrsps.testclient.HeadlessFarmingTest' --tests 'osrsps.testclient.HeadlessFarmingTreeTest' --tests 'osrsps.testclient.HeadlessFarmingFruitTreeTest'`.
 
 ## Items and inventory
 
