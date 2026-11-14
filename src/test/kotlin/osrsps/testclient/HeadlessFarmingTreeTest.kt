@@ -39,6 +39,8 @@ class HeadlessFarmingTreeTest {
             AXE to "Bronze axe", LOGS to "Oak logs", ROOTS to "Oak roots", SECATEURS to "Secateurs", LEAVES to "Oak leaves",
         )) objs[id] = ObjType(id, name)
         objs[ACORN] = ObjType(ACORN, "Acorn", stackable = true)
+        objs[SAPLING] = ObjType(SAPLING, "Oak sapling", placeholderlink = SAPLING_PLACEHOLDER)
+        objs[SAPLING_PLACEHOLDER] = ObjType(SAPLING_PLACEHOLDER, "Oak sapling", placeholderlink = SAPLING, placeholdertemplate = 14401)
         for (id in listOf(5331) + (5333..5340)) objs[id] = ObjType(id, "Watering can")
         World(
             crcs, CollisionMap().apply { markLoaded(X shr 6, Z shr 6) }, objTypes = ObjTypes(objs),
@@ -246,6 +248,22 @@ class HeadlessFarmingTreeTest {
         }
     }
 
+    @Test
+    fun `watered seedlings in the bank grow into saplings that fill the sapling's placeholder`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.toLumbridge()
+                val player = server.world.onlinePlayers.single()
+                // The clock is paused, so nothing grows until ::farmtick.
+                player.bank[0] = osrsps.game.InvObj(SAPLING_PLACEHOLDER, 1)
+                player.bank[1] = osrsps.game.InvObj(WATERED, 3)
+                client.command("farmtick 1")
+                client.await("the saplings in the placeholder's slot") { if (player.bank[0]?.id == SAPLING && player.bank[0]?.count == 3) Unit else null }
+                assertEquals(null, player.bank[1], "the seedlings' slot closed up")
+            }
+        }
+    }
+
     private companion object {
         const val OBJS = 25_000
         const val BACKPACK = 93
@@ -267,6 +285,7 @@ class HeadlessFarmingTreeTest {
         const val WATERED = 5364
         const val SAPLING = 5370
         const val YEW_SAPLING = 5373
+        const val SAPLING_PLACEHOLDER = 24_000
         const val CAN_8 = 5340
         const val AXE = 1351
         const val LOGS = 1521

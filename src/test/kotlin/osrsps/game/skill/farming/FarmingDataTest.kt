@@ -223,6 +223,13 @@ class FarmingDataTest {
         assertEquals(1, state.patches.getValue(FarmingPatches.LUMBRIDGE_TREE.key).stage, "six minutes after planting")
         assertEquals(1, state.patches.getValue(FarmingPatches.FALADOR_TREE.key).stage, "five minutes after planting")
         assertEquals(0, state.patches.getValue(FarmingPatches.VARROCK_TREE.key).stage)
+        // Caught up offline, a yew planted at minute 34 ends its first stage at 39 and grows again at the tick of minute
+        // 40 (tick 8), as it would online: logging out costs no growth.
+        val caught = FarmingState().apply { patches["lumbridge_tree"] = PatchState(0, Crops.YEW).also { it.plantedMillis = 34 * 60_000L } }
+        farming.grow(caught, 7, 7)
+        assertEquals(0, caught.patches.getValue("lumbridge_tree").stage)
+        farming.grow(caught, 8, 8)
+        assertEquals(2, caught.patches.getValue("lumbridge_tree").stage)
         // The planting minute survives a save while the yew is in its first stage.
         val saved = FarmingState().apply { patches["lumbridge_tree"] = PatchState(0, Crops.YEW).also { it.plantedMillis = 123 } }
         assertEquals(123, FarmingSaves.fromJson(FarmingSaves.toJson(saved)).patches.getValue("lumbridge_tree").plantedMillis)

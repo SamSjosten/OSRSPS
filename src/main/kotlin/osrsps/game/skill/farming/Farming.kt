@@ -233,9 +233,16 @@ class Farming(private val world: World, private val clock: () -> Long, private v
         // Last slot first, so a slot closed up behind doesn't move the ones still to come.
         for ((slot, obj) in bank.contents().reversed()) {
             val tree = Trees.byWatered(obj.id) ?: continue
-            val stack = (0 until bank.capacity).firstOrNull { bank[it]?.id == tree.sapling }
+            // The sapling's stack, or its placeholder, which is filled as a deposit fills it.
+            val placeholder = world.objTypes[tree.sapling]?.placeholderlink?.let { world.objTypes[it] }?.takeIf { it.isPlaceholder && it.placeholderlink == tree.sapling }?.id
+            val stack = (0 until bank.capacity).firstOrNull { bank[it]?.id == tree.sapling || (placeholder != null && bank[it]?.id == placeholder) }
             if (stack == null) {
                 bank[slot] = obj.copy(id = tree.sapling)
+                continue
+            }
+            if (bank[stack]!!.id == placeholder) {
+                bank[stack] = InvObj(tree.sapling, obj.count)
+                world.bank.discard(bank, tabs, slot, any = true)
                 continue
             }
             // As many as the stack has room for; any left over stay watered seedlings until there is room.
@@ -283,11 +290,14 @@ class Farming(private val world: World, private val clock: () -> Long, private v
             }
             if (patch.stage == 0 && crop.firstStageMillis > 0) {
                 // A yew's first stage lasts five minutes from planting, off the usual clock (the Wiki's Growth timing).
-                // Offline, it grows at the first farming tick after its five minutes; online, [growFirstStages] grows it on time.
+                // Online [growFirstStages] ends it on time; caught up offline, it ended before this tick began, so the
+                // tick's own growth can follow it, as it would have for a player online.
                 if (patch.plantedMillis >= 0 && tick * TICK_MILLIS < patch.plantedMillis + crop.firstStageMillis) continue
-            } else if (tick % kind.cycleTicks != 0L) {
-                continue
+                patch.stage = 1
+                patch.watered = false
+                patch.plantedMillis = -1
             }
+            if (tick % kind.cycleTicks != 0L) continue
             if (diseases && patch.stage >= 1 && !isProtected(flowers, key, crop) && world.random.nextInt(DISEASE_DENOMINATOR) < Compost.diseaseChance(crop.disease, patch.compost, patch.watered)) {
                 patch.diseased = true
                 patch.watered = false
