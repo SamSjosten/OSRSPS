@@ -41,9 +41,6 @@ object Kudos {
     /** Everything the museum gives Kudos for on live (the Wiki's Kudos page; the client's counter shows it as the most). */
     const val MAX = 243
 
-    /** The workers' gate east of Varrock lets through a player with this many (the Wiki's Kudos page). */
-    const val DIGSITE_GATE = 153
-
     /** A source: worth [kudos] once [varbit] is at least [atLeast]. */
     class Source(val varbit: Int, val kudos: Int, val atLeast: Int = 1)
 
