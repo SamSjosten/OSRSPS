@@ -33,7 +33,7 @@ class HeadlessFarmingTest {
     /** The farming clock the world runs on, moved by the tests: 2026-11-14 00:00 UTC to start. */
     private val clock = AtomicLong(1_794_614_400_000L)
 
-    private fun server(dir: Path, cycleMillis: Long = 100) = TestServer(dir, cycleMillis = cycleMillis) { crcs, millis ->
+    private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val objs = arrayOfNulls<ObjType>(SNAPE_GRASS_SEED + 1)
         for ((id, name) in mapOf(
             RAKE to "Rake", DIBBER to "Seed dibber", SPADE to "Spade", WEEDS to "Weeds", POTATO_SEED to "Potato seed",
@@ -296,8 +296,7 @@ class HeadlessFarmingTest {
 
     @Test
     fun `a second click two ticks into a harvest picks two herbs at each roll`(@TempDir dir: Path) {
-        // Real 600 ms ticks, so the second click lands inside the harvest's first two ticks.
-        server(dir, cycleMillis = 600).use { server ->
+        server(dir).use { server ->
             server.login("erin").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.command("tele ${HERB_X - 1} $HERB_Z")
@@ -315,22 +314,26 @@ class HeadlessFarmingTest {
                 client.command("farmtick 16")
                 client.awaitValue("herb patch", 8) { herb() }
 
+                // Paused and stepped: a click while paused is held for the next tick, so each lands on a known tick.
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
                 client.locOp(HERB, HERB_X, HERB_Z, 1)
+                client.stepTicks(1)
                 client.seen("[farming.harvest_start patch=[farming.patch_herb]]")
-                // Half a tick after the start's message: the click lands on the harvest's first or second tick.
-                Thread.sleep(300)
+                // The second click, on the harvest's next tick.
                 client.locOp(HERB, HERB_X, HERB_Z, 1)
-                val counts = mutableSetOf<Int>()
-                val end = System.currentTimeMillis() + 60_000
-                while (client.herb() != 3) {
-                    check(System.currentTimeMillis() < end) { "The herb patch never emptied" }
+                val counts = mutableListOf<Int>()
+                repeat(60) {
+                    if (client.herb() == 3) return@repeat
+                    client.stepTicks(1)
                     counts += client.count(GRIMY_GUAM)
-                    Thread.sleep(20)
                 }
+                client.commandReply("resume") { it.startsWith("Resumed") }
+                assertEquals(3, client.herb(), "the patch empties; herb counts by tick: $counts")
                 client.seen("[farming.empty patch=[farming.patch_herb]]")
-                counts += client.count(GRIMY_GUAM)
-                // Two herbs at each roll: the pack goes from none to two, never holding just one.
-                assertTrue(1 !in counts && 2 in counts, "herb counts seen: ${counts.sorted()}")
+                // Two herbs at each roll, every 4 ticks from the start: the pack goes from none to two, never one.
+                val changes = counts.zipWithNext().filter { (a, b) -> a != b }.map { (a, b) -> b - a }
+                assertTrue(1 !in counts && changes.first() == 2 && changes.dropLast(1).all { it == 2 }, "herb counts by tick: $counts")
+                assertEquals(2, counts.indexOfFirst { it > 0 }, "the first pair on the third tick after the start: $counts")
                 assertEquals(1, client.messages().count { it.text == "[farming.harvest_start patch=[farming.patch_herb]]" })
             }
         }
