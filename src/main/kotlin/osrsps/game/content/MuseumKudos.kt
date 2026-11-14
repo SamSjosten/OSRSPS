@@ -2,6 +2,7 @@ package osrsps.game.content
 
 import osrsps.game.FrameSlot
 import osrsps.game.Player
+import osrsps.game.Skill
 import osrsps.game.World
 
 /**
@@ -14,8 +15,9 @@ import osrsps.game.World
  * time a source changes and at login. Inferred: live keeps `vm_kudos` as a running count it adds to; working it out from
  * the sources gives the same number, can't count one source twice, and puts right a save made before a source existed.
  *
- * Built so far: the Dig Site exhibit's five display cases (10 each, [MuseumFinds]). Not built, so worth nothing here
- * yet: the natural history quiz, Historian Minas's timeline, Fossil Island's displays, Camdozaal's and Sailing's relics.
+ * Built so far: the Dig Site exhibit's five display cases (10 each, [MuseumFinds]) and the natural history quiz's
+ * fourteen displays (2 each, [NaturalHistoryQuiz]). Not built, so worth nothing here yet: Historian Minas's timeline,
+ * Fossil Island's displays, Camdozaal's and Sailing's relics.
  */
 object Kudos {
     /** `vm_kudos`: varp `vm` (1010) bits 0 to 10. */
@@ -31,6 +33,14 @@ object Kudos {
     const val VARBIT_OLD_COIN = 3648
     const val VARBIT_POTTERY = 3649
 
+    /** `vm_reward_50`, `_100`, `_150`: the information clerk's three rewards, claimed. */
+    const val VARBIT_REWARD_50 = 3640
+    const val VARBIT_REWARD_100 = 3641
+    const val VARBIT_REWARD_150 = 3642
+
+    /** Everything the museum gives Kudos for on live (the Wiki's Kudos page; the client's counter shows it as the most). */
+    const val MAX = 243
+
     /** A source: worth [kudos] once [varbit] is at least [atLeast]. */
     class Source(val varbit: Int, val kudos: Int, val atLeast: Int = 1)
 
@@ -43,7 +53,10 @@ object Kudos {
         Source(VARBIT_POTTERY, 10),
     )
 
-    val SOURCES: List<Source> = DIG_SITE
+    /** The natural history quiz's fourteen displays, in the client's list order (rows 5 to 18), 2 Kudos each once at 3. */
+    val NATURAL_HISTORY = NaturalHistoryQuiz.DISPLAYS.map { Source(it.varbit, NaturalHistoryQuiz.KUDOS_EACH, NaturalHistoryQuiz.DONE) }
+
+    val SOURCES: List<Source> = DIG_SITE + NATURAL_HISTORY
 
     fun total(player: Player): Int = SOURCES.sumOf { if (player.vars.getVarbit(it.varbit) >= it.atLeast) it.kudos else 0 }
 
@@ -62,6 +75,34 @@ object Kudos {
     fun login(player: Player) {
         if (player.vars.types.varbit(VARBIT_KUDOS) == null) return
         refresh(player)
+    }
+
+    /**
+     * The information clerk's rewards, from the Wiki's Kudos page: Mining XP at 51 Kudos, Crafting and Mining at 101,
+     * and Crafting, Hunter, Prayer, Slayer and Smithing at 151, each claimed once.
+     */
+    enum class Reward(val varbit: Int, val kudos: Int, val xp: Map<Skill, Int>) {
+        AT_51(VARBIT_REWARD_50, 51, mapOf(Skill.MINING to 1_000)),
+        AT_101(VARBIT_REWARD_100, 101, mapOf(Skill.CRAFTING to 2_500, Skill.MINING to 2_500)),
+        AT_151(VARBIT_REWARD_150, 151, listOf(Skill.CRAFTING, Skill.HUNTER, Skill.PRAYER, Skill.SLAYER, Skill.SMITHING).associateWith { 4_000 }),
+    }
+
+    /** The rewards the player has the Kudos for and hasn't claimed. */
+    fun pendingRewards(player: Player): List<Reward> {
+        val kudos = total(player)
+        return Reward.entries.filter { kudos >= it.kudos && player.vars.getVarbit(it.varbit) == 0 }
+    }
+
+    /**
+     * Gives every reward in [rewards] and marks it claimed. Inferred: the XP is exact, whatever the server's XP rate, as
+     * a fixed reward rather than XP for an action.
+     */
+    fun claim(player: Player, rewards: List<Reward>) {
+        for (reward in rewards) {
+            if (player.vars.getVarbit(reward.varbit) != 0) continue
+            player.vars.setVarbit(reward.varbit, 1)
+            for ((skill, xp) in reward.xp) player.skills.addExactTenths(skill, xp * 10)
+        }
     }
 
     /** The information booth (`vm_information_booth` 24452). */

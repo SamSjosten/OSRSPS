@@ -316,6 +316,7 @@ object DialogueLines {
         MuseumArchaeologistLines,
         MuseumCaseFindLines,
         MuseumCaseLines,
+        NaturalHistoryQuizLines,
         MuseumCleaningLines,
         HooknosedJackLines,
         AnnaJonesLines,
