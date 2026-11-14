@@ -279,15 +279,9 @@ object Trees {
     val ALL = listOf(OAK, WILLOW, MAPLE, YEW, MAGIC)
 
     private val byCrop = ALL.associateBy { it.crop }
-    private val bySeed = ALL.associateBy { it.seed }
-    private val bySeedling = ALL.associateBy { it.seedling }
     private val byWatered = ALL.associateBy { it.watered }
 
     fun of(crop: Crop): TreeInfo? = byCrop[crop]
-
-    fun bySeed(seed: Int): TreeInfo? = bySeed[seed]
-
-    fun bySeedling(id: Int): TreeInfo? = bySeedling[id]
 
     fun byWatered(id: Int): TreeInfo? = byWatered[id]
 

@@ -272,8 +272,9 @@ class Farming(private val world: World, private val clock: () -> Long, private v
             val crop = patch.crop
             if (crop == null) {
                 if (patch.weeds < kind.weeds) patch.weeds++
-                // An overgrown patch is what an untouched one is: no need to keep it, unless it holds compost.
-                if (patch.weeds >= kind.weeds && patch.compost == 0) iterator.remove()
+                // An overgrown patch is what an untouched one is: no need to keep it, unless it holds compost or an action
+                // under way (a rake started on it) would lose track of itself.
+                if (patch.weeds >= kind.weeds && patch.compost == 0 && patch.doing == DO_NOTHING) iterator.remove()
                 continue
             }
             if (patch.dead || patch.stage >= crop.stages) {

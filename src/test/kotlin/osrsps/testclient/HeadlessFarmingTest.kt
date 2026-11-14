@@ -298,6 +298,25 @@ class HeadlessFarmingTest {
     }
 
     @Test
+    fun `a farming tick before the first rake roll on an overgrown patch doesn't stop the raking`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("frank").use { client ->
+                client.toFalador()
+                client.give(RAKE)
+                // Paused and stepped: the click lands on one tick, and the farming tick before its first roll (3 ticks on).
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
+                client.locOp(ALLOTMENT, 3052, PATCH_Z, 1)
+                client.stepTicks(1)
+                client.command("farmtick 1")
+                client.stepTicks(1)
+                client.commandReply("resume") { it.startsWith("Resumed") }
+                client.seen("[farming.raked]")
+                client.awaitPatch(3)
+            }
+        }
+    }
+
+    @Test
     fun `a second click two ticks into a harvest picks two herbs at each roll`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("erin").use { client ->
