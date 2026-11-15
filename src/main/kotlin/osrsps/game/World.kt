@@ -443,7 +443,7 @@ class World(
     /** The drop item warning setting; see [DropWarnings]. */
     private val dropWarnings = DropWarnings(objTypes, scripts, { dialogues }) { player, slot -> groundObjs.drop(player, slot) }
 
-    private val inventoryTab: InventoryTab = InventoryTab(
+    internal val inventoryTab: InventoryTab = InventoryTab(
         objTypes, scripts, interfaces::closeModals,
         wear = { player, slot -> equipmentTab.wear(player, slot) },
         onDrop = dropWarnings::drop,
