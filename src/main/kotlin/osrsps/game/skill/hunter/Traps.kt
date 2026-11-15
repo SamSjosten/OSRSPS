@@ -76,10 +76,14 @@ enum class TrapState {
     BROKEN,
 }
 
-/** A trap a player has laid. [stateTick] is when it entered [state]; [lured] the creature walking into it. */
+/**
+ * A trap a player has laid. [stateTick] is when it entered [state]; [collapseTick] when it falls, a minute from its
+ * laying and again from its catch or miss; [lured] the creature walking into it.
+ */
 class Trap(val owner: String, val kind: TrapKind, var loc: ZoneLoc) {
     var state = TrapState.SET
     var stateTick = 0L
+    var collapseTick = 0L
     var creature: Creature? = null
     var lured: Npc? = null
     var luredTick = 0L
@@ -106,7 +110,8 @@ class Trap(val owner: String, val kind: TrapKind, var loc: ZoneLoc) {
  * for [CATCHING_TICKS] and [FAILING_TICKS] ticks (the second the failing animation's length); a caught creature comes
  * back where it spawned [RESPAWN_TICKS] later; a collapsed trap leaves its item on its tile, its owner's alone at
  * first as a drop is; a trap collapses at once when its owner leaves the world, goes to another level or is more than
- * [OWNER_RANGE] tiles away; traps go on any tile a fire could (no loc, walkable), indoors and banks included.
+ * [OWNER_RANGE] tiles away; traps go on any tile a fire could (no loc, walkable), indoors and banks included, but not in
+ * an instance (ours: nothing there could take one down again).
  */
 class Traps(private val world: World, private val collision: CollisionMap) {
     private val traps = ArrayList<Trap>()
@@ -141,7 +146,10 @@ class Traps(private val world: World, private val collision: CollisionMap) {
         }
     }
 
-    /** One tick of every trap. The world calls it in the NPC phase, before NPCs move. */
+    /**
+     * One tick of every trap. The world calls it in the NPC phase, before NPCs move, so a creature lured this tick takes
+     * its first step this tick; [arrivals] then rolls for the ones that stepped on.
+     */
     fun process() {
         val tick = world.tick
         respawns.removeAll { respawn ->
@@ -163,23 +171,21 @@ class Traps(private val world: World, private val collision: CollisionMap) {
             val age = tick - trap.stateTick
             when (trap.state) {
                 TrapState.SET -> {
-                    if (age >= TRAP_TICKS) collapse(trap, owner) else hunt(trap, owner, age)
+                    if (tick >= trap.collapseTick) collapse(trap, owner) else hunt(trap, age)
                 }
                 TrapState.CATCHING -> if (age >= CATCHING_TICKS) change(trap, TrapState.FULL, trap.creature!!.full)
                 TrapState.FAILING -> if (age >= FAILING_TICKS) change(trap, TrapState.BROKEN, trap.kind.broken)
-                TrapState.FULL, TrapState.BROKEN -> if (age >= TRAP_TICKS) collapse(trap, owner)
+                TrapState.FULL, TrapState.BROKEN -> if (tick >= trap.collapseTick) collapse(trap, owner)
             }
         }
     }
 
-    /** A set trap's tick: walks its creature in, or looks for one every [LOOK_TICKS]. */
-    private fun hunt(trap: Trap, owner: Player, age: Long) {
+    /** A set trap's tick before NPCs move: walks its creature in, or looks for one every [LOOK_TICKS]. */
+    private fun hunt(trap: Trap, age: Long) {
         val lured = trap.lured
         if (lured != null) {
             if (lured.outOfPlay || world.tick - trap.luredTick > LURE_TICKS) {
                 release(trap)
-            } else if (lured.x == trap.x && lured.z == trap.z && lured.level == trap.level) {
-                spring(trap, owner, lured)
             } else {
                 // A blocked step drops the walk (Npcs.step), so it is asked again every tick it is on its way.
                 lured.destination = Tile(trap.x, trap.z)
@@ -187,7 +193,7 @@ class Traps(private val world: World, private val collision: CollisionMap) {
             return
         }
         if (age == 0L || age % LOOK_TICKS != 0L) return
-        if (world.onlinePlayers.any { it.level == trap.level && it.x == trap.x && it.z == trap.z }) return
+        if (stoodOn(trap)) return
         val taken = traps.mapNotNullTo(HashSet()) { it.lured }
         val candidates = world.npcs.near(trap.x, trap.z, trap.level, LOOK_RANGE)
             .filter { it !in taken && trap.kind.creature(it.type.id) != null && it.target == null && it.engagedWith == null }
@@ -197,6 +203,22 @@ class Traps(private val world: World, private val collision: CollisionMap) {
         trap.luredTick = world.tick
         npc.destination = Tile(trap.x, trap.z)
     }
+
+    /**
+     * After NPCs move: each set trap whose creature stepped onto it this tick springs on it, the same tick. With a player
+     * on the trap it catches nothing, so the creature is let go.
+     */
+    fun arrivals() {
+        for (trap in traps.toList()) {
+            if (trap.state != TrapState.SET) continue
+            val lured = trap.lured ?: continue
+            if (lured.x != trap.x || lured.z != trap.z || lured.level != trap.level) continue
+            val owner = world.playerBySaveKey(trap.owner) ?: continue
+            if (stoodOn(trap)) release(trap) else spring(trap, owner, lured)
+        }
+    }
+
+    private fun stoodOn(trap: Trap): Boolean = world.onlinePlayers.any { it.level == trap.level && it.x == trap.x && it.z == trap.z }
 
     /** [npc] stepped onto [trap]: the catch roll, at the owner's boosted level; always a miss below the creature's level. */
     private fun spring(trap: Trap, owner: Player, npc: Npc) {
@@ -213,6 +235,8 @@ class Traps(private val world: World, private val collision: CollisionMap) {
             npc.destination = null
             change(trap, TrapState.FAILING, trap.kind.failing)
         }
+        // The minute starts again from the catch or the miss, not from the struggle's end.
+        trap.collapseTick = world.tick + TRAP_TICKS
     }
 
     private fun release(trap: Trap) {
@@ -261,6 +285,8 @@ class Traps(private val world: World, private val collision: CollisionMap) {
         if (player.inventory[slot]?.id != kind.item) return
         if (!canLay(kind, player.x, player.z, player.level)) return
         val type = world.objTypes[kind.item] ?: return
+        // The trap goes down on the tile first: a tile already full of objs refuses it, as dropping does, rather than lose one.
+        if (!world.groundObjs.fits(type, 1, player.x, player.z, player.level, player.saveKey)) return world.message(player, HunterLines.CANT_HERE)
         if (player.inventory.remove(slot, 1) != 1) return
         val obj = world.groundObjs.addPrivate(
             type, 1, player.x, player.z, player.level, player.saveKey,
@@ -294,7 +320,10 @@ class Traps(private val world: World, private val collision: CollisionMap) {
     private fun ScriptContext.stand(kind: TrapKind, x: Int, z: Int, level: Int) {
         val loc = ZoneLoc(kind.set, LocShape.CENTREPIECE_STRAIGHT, 0, x, z, level)
         world.locs.add(loc)
-        traps += Trap(player.saveKey, kind, loc).also { it.stateTick = tick }
+        traps += Trap(player.saveKey, kind, loc).also {
+            it.stateTick = tick
+            it.collapseTick = tick + TRAP_TICKS
+        }
     }
 
     /** Whether [player] may lay [kind] on [x], [z], telling them why not. */
@@ -306,7 +335,8 @@ class Traps(private val world: World, private val collision: CollisionMap) {
             return false
         }
         val occupied = world.locs.at(x, z, level).isNotEmpty() || world.locs.reverting(x, z, level)
-        if (occupied || collision[x, z, level] and CollisionFlag.BLOCK_WALK != 0) {
+        // Ours: an instance's locs answer only the ones it lets through, so a trap there could never be taken down.
+        if (occupied || world.instances.inDynamicArea(x, z) || collision[x, z, level] and CollisionFlag.BLOCK_WALK != 0) {
             world.message(player, HunterLines.CANT_HERE)
             return false
         }
@@ -316,6 +346,7 @@ class Traps(private val world: World, private val collision: CollisionMap) {
     /**
      * Dismantle on a set or failed trap, Check on a full one, and Reset on either: only its owner may. The trap and
      * what it caught come off at once and the player stands 3 ticks; with [reset] a new trap is laid where it stood.
+     * While a reset waits, the trap's item lies on its tile, the owner's, so a death or a cut-off script loses nothing.
      */
     private suspend fun ScriptContext.dismantle(kind: TrapKind, loc: ZoneLoc, reset: Boolean) {
         val trap = at(loc.x, loc.z, loc.level)?.takeIf { it.loc == loc } ?: return
@@ -326,6 +357,7 @@ class Traps(private val world: World, private val collision: CollisionMap) {
         // Room for every drop, and for the trap unless it is laid again.
         val gains = creature?.loot.orEmpty().map { it.obj to it.countMax } + if (reset) emptyList() else listOf(kind.item to 1)
         if (player.inventory.freeSlots < slotsNeeded(player, gains)) return world.message(player, HunterLines.NO_SPACE)
+        if (reset && !world.groundObjs.fits(item, 1, trap.x, trap.z, trap.level, player.saveKey)) return world.message(player, HunterLines.CANT_HERE)
         remove(trap)
         player.anim(if (creature != null) CHECK_ANIM else DISMANTLE_ANIM)
         if (creature != null) {
@@ -340,20 +372,25 @@ class Traps(private val world: World, private val collision: CollisionMap) {
             world.message(player, HunterLines.DISMANTLED)
         }
         if (reset) {
-            // Laid again where it stood: the trap never leaves the tile, so the item is only counted.
+            // Laid again where it stood, from the item left on the tile, as laying from the floor does.
+            val obj = world.groundObjs.addPrivate(
+                item, 1, trap.x, trap.z, trap.level, player.saveKey,
+                osrsps.game.GroundObjs.DROP_PRIVATE_TICKS, osrsps.game.GroundObjs.DROP_DESPAWN_TICKS,
+            )
             delay(PICK_UP_TICKS)
             if (canLay(kind, trap.x, trap.z, trap.level)) {
                 player.anim(kind.layAnim)
                 world.message(player, HunterLines.LAYING)
                 player.actionDelay = tick + LAY_TICKS - 1
                 delay(LAY_TICKS - 1)
-                if (at(trap.x, trap.z, trap.level) == null && canLay(kind, trap.x, trap.z, trap.level)) {
+                if (at(trap.x, trap.z, trap.level) == null && canLay(kind, trap.x, trap.z, trap.level) && world.groundObjs.removeOne(obj)) {
                     stand(kind, trap.x, trap.z, trap.level)
                     stepOff(player, trap.x, trap.z)
                     return
                 }
             }
-            world.groundObjs.give(player, item, 1)
+            // Not laid: the item comes back to the player, if it is still there for them.
+            if (world.groundObjs.removeOne(obj)) world.groundObjs.give(player, item, 1)
             return
         }
         world.groundObjs.give(player, item, 1)

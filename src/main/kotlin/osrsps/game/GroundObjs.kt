@@ -187,6 +187,10 @@ class GroundObjs(
     }
 
     /** Whether [owner] dropping [count] of [type] on the tile stays within [MAX_PER_TILE]. */
+    /** Whether [count] of [type], [owner]'s, fits on a tile without [makeRoom] taking anything off it, as [addPrivate] would put it. */
+    fun fits(type: ObjType, count: Int, x: Int, z: Int, level: Int, owner: String): Boolean =
+        fitsOnTile(type, count, x, z, level, owner, !type.tradeable)
+
     private fun fitsOnTile(type: ObjType, count: Int, x: Int, z: Int, level: Int, owner: String, neverPublic: Boolean): Boolean {
         if (stackFor(type, count, x, z, level, owner, neverPublic) != null) return true
         return zones.objsAt(x, z, level).size + (if (type.stackable) 1 else count) <= MAX_PER_TILE

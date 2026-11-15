@@ -92,6 +92,9 @@ class HeadlessHunterTest {
                 // At 99 the catch is sure (164%): the swift two tiles east walks in, struggles, and the snare holds it.
                 client.awaitLoc(9349, at.x, at.z, timeoutMillis = 20_000)
                 client.awaitLoc(9373, at.x, at.z)
+                // The minute runs from the catch, not from the struggle's end (Codex review on #690).
+                val trap = server.world.hunter.traps.all.single()
+                assertEquals((Traps.TRAP_TICKS - Traps.CATCHING_TICKS).toLong(), trap.collapseTick - trap.stateTick)
                 client.locOp(9373, at.x, at.z, Traps.CHECK)
                 client.seen("[hunter.caught creature=crimson swift]")
                 client.await("34 XP") { if (client.stat(HUNTER)!!.xp - before == 34) Unit else null }
@@ -166,6 +169,43 @@ class HeadlessHunterTest {
             // Its owner gone, the trap collapses and its snare is left for anyone.
             server.login("erin").use { erin ->
                 erin.await("the snare left behind") { erin.groundObjs().firstOrNull { it.id == BirdSnares.SNARE } }
+                assertTrue(server.world.hunter.traps.all.isEmpty())
+            }
+        }
+    }
+
+    @Test
+    fun `a player who dies while a Reset waits loses no snare`(@TempDir dir: Path) {
+        server(dir, bird = wagtail).use { server ->
+            server.login("fred").use { client ->
+                val at = client.await("the login rebuild") { client.position }
+                client.command("item ${BirdSnares.SNARE} 1")
+                client.lay()
+                client.awaitLoc(BirdSnares.BROKEN, at.x, at.z, timeoutMillis = 20_000)
+                client.locOp(BirdSnares.BROKEN, at.x, at.z, Traps.RESET)
+                client.seen("[hunter.dismantled]")
+                // Killed mid-Reset: the death cuts the script off, and the snare is on its tile, laid again, or held.
+                client.command("hit 99 me")
+                client.await("one snare, somewhere", timeoutMillis = 20_000) {
+                    val onTile = server.world.zones.objsAt(at.x, at.z, 0).filter { it.id == BirdSnares.SNARE }.sumOf { it.count }
+                    val laid = server.world.hunter.traps.all.size
+                    if (onTile + laid + client.count(BirdSnares.SNARE) == 1) Unit else null
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `no trap goes down in an instance`(@TempDir dir: Path) {
+        server(dir, bird = null).use { server ->
+            server.login("gina").use { client ->
+                val at = client.await("the login rebuild") { client.position }
+                client.command("item ${BirdSnares.SNARE} 1")
+                client.command("instance 0")
+                client.await("inside the instance") { client.position?.takeIf { it != at } }
+                client.lay()
+                client.seen("[hunter.cant_here]")
+                assertEquals(1, client.count(BirdSnares.SNARE))
                 assertTrue(server.world.hunter.traps.all.isEmpty())
             }
         }

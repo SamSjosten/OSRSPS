@@ -1201,7 +1201,9 @@ every time below the creature's level. A caught bird struggles, then the snare h
 and the snare back, 3 ticks); a miss snaps the snare shut until Dismantle or Reset (which lays it again in place). A
 trap stands a minute, counted again from a catch or a miss, then collapses, leaving its snare on its tile, as it does
 at once when its owner logs out or goes far away. Only the owner can take a trap down. Two traps from level 1, three
-at 40, four at 60, five at 80.
+at 40, four at 60, five at 80. No trap goes down in an instance, or on a tile already full of objs. While a Reset
+waits, the snare lies on its tile, so a death then loses nothing. `test-runner/examples/hunter-bird-snare.json` lays,
+catches, checks, fails, resets and dismantles a snare at Feldip with `::keys on`.
 
 | What | Source |
 |---|---|
@@ -1211,7 +1213,7 @@ at 40, four at 60, five at 80.
 | Laying takes 4 ticks of the skill clock; picking a trap up takes 3 ticks and stalls the player | OSRS Wiki, Tick manipulation |
 | A trap stands a minute, counted again when it catches or fails | RuneLite's Hunter plugin (HunterTrap.TRAP_TIME, observed on live) |
 | Where the birds are: Feldip (crimson swifts and wagtails, `::tele 2611 2918`, `::tele 2512 2905`), Uzer (warblers, `::tele 3402 3150`), Piscatoris (longtails, `::tele 2340 3590`), Rellekka (twitches, `::tele 2725 3770`) | mejrs NPCList_OSRS.json (live, pre-Nov 2022) |
-| The creature lured is one in range at random, always; it is rolled for on stepping onto the trap; the struggle (2 ticks), the respawn (10 ticks), the collapse leaving the item, how far the owner may go (32 tiles), the birds' wander (4), the check and dismantle animation, traps allowed on any free walkable tile | guessed |
+| The creature lured is one in range at random, always; it is rolled for on stepping onto the trap; the struggle (2 ticks), the respawn (10 ticks), the collapse leaving the item, how far the owner may go (32 tiles), the birds' wander (4), the check and dismantle animation, traps allowed on any free walkable tile outside instances | guessed |
 | Not built: box traps, net traps, deadfalls, pitfalls, butterflies and implings, falconry, tracking, the Hunter shops, smoking and baiting traps, the honey buzzards, Hunters' Rumours | next steps |
 
 ## Fred's farm

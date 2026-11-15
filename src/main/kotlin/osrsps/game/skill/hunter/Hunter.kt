@@ -29,4 +29,7 @@ class Hunter(world: World, collision: CollisionMap) {
 
     /** Call once a tick, in the NPC phase before NPCs move. */
     fun process() = traps.process()
+
+    /** Call once a tick, straight after NPCs move. */
+    fun arrivals() = traps.arrivals()
 }

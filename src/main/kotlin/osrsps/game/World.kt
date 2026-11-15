@@ -1352,6 +1352,8 @@ class World(
         // Before NPCs move, so a creature a trap lures this tick takes its first step this tick.
         hunter.process()
         npcs.process()
+        // After NPCs move, so a creature that steps onto a trap is rolled for the tick it arrives.
+        hunter.arrivals()
         fishing.process()
         shopScreen.restock(tick)
         phase = TickPhase.SCRIPTS
