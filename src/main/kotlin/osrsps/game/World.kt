@@ -3161,7 +3161,9 @@ class World(
     /** Whether [player] was hit within the last [LOGOUT_COMBAT_TICKS], so can't log out. */
     private fun inCombat(player: Player): Boolean =
         (player.attackedTick >= 0 && tick - player.attackedTick < LOGOUT_COMBAT_TICKS) ||
-            (player.attackedByPlayerTick >= 0 && tick - player.attackedByPlayerTick < LOGOUT_COMBAT_TICKS)
+            (player.attackedByPlayerTick >= 0 && tick - player.attackedByPlayerTick < LOGOUT_COMBAT_TICKS) ||
+            // A player's swing still on its way counts already, so processing order can't let them log out from under it.
+            pvpMelee.incoming(player)
 
     /** Saves and removes a player who logged out or whose wait for a reconnect is over. */
     private fun remove(player: Player) {

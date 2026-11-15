@@ -932,19 +932,26 @@ class MeleeCombat(
      */
     fun hitPlayerBy(player: Player, attacker: Player, damage: Int, tick: Long): Int {
         if (player.hitpoints <= 0 || player.dead) return 0
-        val dealt = hurt(player, NpcEffects.PLAYER_SOURCE + attacker.index, damage)
+        // The attacker sees their own hit's variant, as on an NPC; onlookers the other one.
+        val dealt = hurt(player, NpcEffects.PLAYER_SOURCE + attacker.index, damage, sourceSees = true)
         player.attackedByPlayer = attacker
         player.attackedByPlayerTick = tick
         if (player.hitpoints <= 0) died(player) else redemption(player)
         return dealt
     }
 
-    /** Takes [damage] off [player], capped and 0 under `::god`, with the hitsplat from [from] and their block animation. */
-    private fun hurt(player: Player, from: Int, damage: Int): Int {
+    /**
+     * Takes [damage] off [player], capped and 0 under `::god`, with the hitsplat from [from] and their block animation;
+     * [sourceSees] gives a player source their own hit's variant.
+     */
+    private fun hurt(player: Player, from: Int, damage: Int, sourceSees: Boolean = false): Int {
         val dealt = if (player.god) 0 else damage.coerceIn(0, player.hitpoints)
         player.hitpoints -= dealt
-        if (dealt > 0) player.effects.hit(from, HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER, HitsplatType.DAMAGE_OTHER, dealt)
-        else player.effects.hit(from, HitsplatType.BLOCK_ME, HitsplatType.BLOCK_OTHER, HitsplatType.BLOCK_OTHER, 0)
+        if (dealt > 0) {
+            player.effects.hit(from, HitsplatType.DAMAGE_ME, if (sourceSees) HitsplatType.DAMAGE_ME else HitsplatType.DAMAGE_OTHER, HitsplatType.DAMAGE_OTHER, dealt)
+        } else {
+            player.effects.hit(from, HitsplatType.BLOCK_ME, if (sourceSees) HitsplatType.BLOCK_ME else HitsplatType.BLOCK_OTHER, HitsplatType.BLOCK_OTHER, 0)
+        }
         player.effects.headBar(from, HEALTH_BAR, healthBarFill(player.hitpoints, player.skills.baseLevel(Skill.HITPOINTS)))
         // The NPC phase comes before the player's own swing, which overwrites this (guessed: the swing wins).
         if (player.effects.anim == null) player.effects.anim(combat.anims(player).defend, 0)

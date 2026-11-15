@@ -59,28 +59,27 @@ class PvpMelee(
     /** Whether the player's protection prayers block an attack of this type; see [Prayers.protects]. */
     private val protects: (Player, AttackType) -> Boolean = { _, _ -> false },
 ) {
-    /** A swing on its way to [target], landing when they are next processed from [landTick]. */
-    private class Hit(val attacker: Player, val target: Player, val damage: Int, val landTick: Long)
+    /** A swing on its way to [target] on [level], landing when they are next processed from [landTick]. */
+    private class Hit(val attacker: Player, val target: Player, val damage: Int, val landTick: Long, val level: Int)
 
     private val hits = ArrayList<Hit>()
 
     /** Hits rolled and not landed yet, for tests. */
     val hitsLanding: Int get() = hits.size
 
+    /** Whether a hit is on its way to [player]: they are in combat as if hit already, so can't log out from under it. */
+    fun incoming(player: Player): Boolean = hits.any { it.target === player }
+
     /**
      * [attacker] used Attack on [target]. Refused with the rules' lines ([PvpRules.refusal]), returned so the caller can
-     * reset the client's flag; otherwise the fight starts, with the first swing now if they are beside them already.
+     * reset the client's flag; otherwise the fight starts, its first swing in the attacker's own part of the movement
+     * phase, so processing order counts for it as for every other (a click comes in the input phase, before anyone's).
      */
     fun attack(attacker: Player, target: Player): List<Line> {
         val refusal = PvpRules.refusal(attacker, target)
         if (refusal.isNotEmpty()) return refusal
-        if (combat.meleeType(combat.style(attacker)) == null) {
-            message(attacker, MeleeCombat.MELEE_ONLY)
-            return emptyList()
-        }
-        val fight = PvpInteraction(target, this)
-        attacker.interaction = fight
-        if (fight.tryInteract(attacker) && attacker.interaction === fight) attacker.interaction = null
+        if (!canFight(attacker)) return emptyList()
+        attacker.interaction = PvpInteraction(target, this)
         return emptyList()
     }
 
@@ -92,11 +91,8 @@ class PvpMelee(
             for (line in refusal) message(player, words(player)[line])
             return true
         }
-        if (combat.meleeType(combat.style(player)) == null) {
-            // The style changed on the way (the combat tab is open while walking).
-            message(player, MeleeCombat.MELEE_ONLY)
-            return true
-        }
+        // The style can change on the way (the combat tab is open while walking).
+        if (!canFight(player)) return true
         if (!Reach.reachedEntity(collision, player.level, player.x, player.z, 1, target.x, target.z, 1, 1)) {
             fight.inReach = false
             val at = Tile(target.x, target.z)
@@ -113,6 +109,25 @@ class PvpMelee(
         return false
     }
 
+    /**
+     * Whether [player]'s style can fight a player; told why not otherwise: Dinh's bulwark's Block can't attack at all,
+     * as against an NPC, and only melee is in yet.
+     */
+    private fun canFight(player: Player): Boolean {
+        if (combat.bulwarkBlock(player)) {
+            message(player, words(player)[CombatLines.BULWARK_BLOCK])
+            return false
+        }
+        if (combat.meleeType(combat.style(player)) == null) {
+            message(player, MeleeCombat.MELEE_ONLY)
+            return false
+        }
+        return true
+    }
+
+    /** What [target] has left after the hits on their way to them. */
+    private fun left(target: Player): Int = (target.hitpoints - hits.sumOf { if (it.target === target) it.damage else 0 }).coerceAtLeast(0)
+
     private fun swing(player: Player, target: Player, tick: Long) {
         val matchup = combat.pvpMatchup(player, target) ?: return
         player.nextAttackTick = tick + combat.attackSpeed(player)
@@ -123,10 +138,11 @@ class PvpMelee(
             0
         }
         val protected = if (protects(target, matchup.style.type)) prayed(rolled) else rolled
-        val damage = minOf(protected, target.hitpoints)
+        // Capped at what the hits already on their way leave, so two swings can't both pay XP for the same hitpoints.
+        val damage = minOf(protected, left(target))
         for (skill in matchup.style.xp) player.skills.addTenths(skill, CombatMath.styleXpTenths(damage, matchup.style.xp.size))
         player.skills.addTenths(Skill.HITPOINTS, CombatMath.hitpointsXpTenths(damage))
-        hits += Hit(player, target, damage, tick)
+        hits += Hit(player, target, damage, tick, target.level)
     }
 
     /**
@@ -142,7 +158,7 @@ class PvpMelee(
             val hit = iterator.next()
             if (hit.target !== player || tick < hit.landTick) continue
             iterator.remove()
-            if (!inWorld(player) || player.dead) continue
+            if (!inWorld(player) || player.dead || player.level != hit.level) continue
             melee.hitPlayerBy(player, hit.attacker, hit.damage, tick)
             if (player.hitpoints > 0 && !player.dead) retaliate(player, hit.attacker, tick)
         }
@@ -160,7 +176,7 @@ class PvpMelee(
     private fun retaliate(player: Player, attacker: Player, tick: Long) {
         if (!player.autoRetaliate || player.interaction != null || player.modalOpen || tick < player.stunnedUntil) return
         if (!inWorld(attacker) || attacker.dead || PvpRules.refusal(player, attacker).isNotEmpty()) return
-        if (combat.meleeType(combat.style(player)) == null) return
+        if (combat.bulwarkBlock(player) || combat.meleeType(combat.style(player)) == null) return
         player.interaction = PvpInteraction(attacker, this)
         player.nextAttackTick = maxOf(tick + (combat.attackSpeed(player) + 1) / 2, player.attackLockedUntil)
     }
