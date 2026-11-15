@@ -4,6 +4,7 @@ import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.content.message
+import osrsps.game.dialogue.Line
 import osrsps.game.npc.Npc
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
@@ -26,7 +27,8 @@ class CreatureLoot(val obj: Int, val count: Int, val countMax: Int = count)
 /**
  * A creature a trap catches: NPC type [npc], the Hunter [level] it needs, the XP in tenths, the catch pair for
  * [SuccessRoll] (the Wiki's "Skilling success chart" for it, Mod Ash's figures), the trap's loc while it struggles
- * ([catching]) and once it is caught ([full]), and what checking the trap gives.
+ * ([catching]) and once it is caught ([full]), and what checking the trap gives. A box trap has a struggling loc for each
+ * side the creature came in from, [catchingFrom] (north, east, south, west), and [catching] is then the north one.
  */
 class Creature(
     val npc: Int,
@@ -37,7 +39,23 @@ class Creature(
     val catching: Int,
     val full: Int,
     val loot: List<CreatureLoot>,
-)
+    val catchingFrom: List<Int> = emptyList(),
+) {
+    /**
+     * The struggling loc for a creature that stepped in from [dx], [dz] off the trap's tile. Guessed: the cache's _n,
+     * _e, _s and _w types are named for the side it came from; a diagonal step counts as its north or south side.
+     */
+    fun catchingLoc(dx: Int, dz: Int): Int {
+        if (catchingFrom.size != 4) return catching
+        return when {
+            dz > 0 -> catchingFrom[0]
+            dz < 0 -> catchingFrom[2]
+            dx > 0 -> catchingFrom[1]
+            dx < 0 -> catchingFrom[3]
+            else -> catching
+        }
+    }
+}
 
 /**
  * A kind of trap a player lays from an item: the [item] laid, its locs when set, failing and failed (with its Dismantle
@@ -51,11 +69,13 @@ class TrapKind(
     val broken: Int,
     val layAnim: Int,
     val creatures: List<Creature>,
+    /** What Investigate on the owner's set trap says. */
+    val investigate: Line = HunterLines.INVESTIGATE,
 ) {
     fun creature(npcType: Int): Creature? = creatures.firstOrNull { it.npc == npcType }
 
     /** Whether [locId] is one of this kind's locs, in any state. */
-    fun owns(locId: Int): Boolean = locId == set || locId == failing || locId == broken || creatures.any { locId == it.catching || locId == it.full }
+    fun owns(locId: Int): Boolean = locId == set || locId == failing || locId == broken || creatures.any { locId == it.catching || locId == it.full || locId in it.catchingFrom }
 }
 
 /** Where a laid trap is. */
@@ -87,6 +107,10 @@ class Trap(val owner: String, val kind: TrapKind, var loc: ZoneLoc) {
     var creature: Creature? = null
     var lured: Npc? = null
     var luredTick = 0L
+
+    /** Where the lured creature last stood off the trap, for the side it steps in from. */
+    var luredFromX = 0
+    var luredFromZ = 0
     val x: Int get() = loc.x
     val z: Int get() = loc.z
     val level: Int get() = loc.level
@@ -105,13 +129,14 @@ class Trap(val owner: String, val kind: TrapKind, var loc: ZoneLoc) {
  * appear on the tile the player stood on the tick before, so the player steps off after it stands (west, else east,
  * south, north, as for a fire: inferred). A creature caught with too low a level always fails (Wiki, Box trap).
  *
- * Guessed, none of it on the Wiki: the trap goes for one creature in range at random and always lures it; it walks to
+ * Guessed unless said, none of it on the Wiki: the trap goes for one creature in range at random and always lures it; it walks to
  * the trap and the roll is made the tick it steps on (given up after [LURE_TICKS]); a struggle and a snap each show
  * for [CATCHING_TICKS] and [FAILING_TICKS] ticks (the second the failing animation's length); a caught creature comes
- * back where it spawned [RESPAWN_TICKS] later; a collapsed trap leaves its item on its tile, its owner's alone at
- * first as a drop is; a trap collapses at once when its owner leaves the world, goes to another level or is more than
- * [OWNER_RANGE] tiles away; traps go on any tile a fire could (no loc, walkable), indoors and banks included, but not in
- * an instance (ours: nothing there could take one down again).
+ * back where it spawned [RESPAWN_TICKS] later; a collapsed trap leaves its item on its tile (the Wiki's Net trap page:
+ * it reverts to the item, gone a minute later, [COLLAPSED_DESPAWN_TICKS]), its owner's alone at first as a drop is
+ * (guessed); a trap collapses at once when its owner leaves the world, goes to another level or is more than
+ * [OWNER_RANGE] tiles away; traps go on any tile a fire could (no loc, walkable), indoors and banks included, but
+ * not in an instance (ours: nothing there could take one down again).
  */
 class Traps(private val world: World, private val collision: CollisionMap) {
     private val traps = ArrayList<Trap>()
@@ -189,6 +214,8 @@ class Traps(private val world: World, private val collision: CollisionMap) {
             } else {
                 // A blocked step drops the walk (Npcs.step), so it is asked again every tick it is on its way.
                 lured.destination = Tile(trap.x, trap.z)
+                trap.luredFromX = lured.x
+                trap.luredFromZ = lured.z
             }
             return
         }
@@ -201,6 +228,8 @@ class Traps(private val world: World, private val collision: CollisionMap) {
         val npc = candidates[world.random.between(0, candidates.size - 1)]
         trap.lured = npc
         trap.luredTick = world.tick
+        trap.luredFromX = npc.x
+        trap.luredFromZ = npc.z
         npc.destination = Tile(trap.x, trap.z)
     }
 
@@ -230,7 +259,7 @@ class Traps(private val world: World, private val collision: CollisionMap) {
             trap.creature = creature
             world.hide(npc)
             respawns += Respawn(npc, world.tick + RESPAWN_TICKS)
-            change(trap, TrapState.CATCHING, creature.catching)
+            change(trap, TrapState.CATCHING, creature.catchingLoc(trap.luredFromX - trap.x, trap.luredFromZ - trap.z))
         } else {
             npc.destination = null
             change(trap, TrapState.FAILING, trap.kind.failing)
@@ -273,9 +302,9 @@ class Traps(private val world: World, private val collision: CollisionMap) {
         remove(trap)
         if (type == null) return
         if (owner != null) {
-            world.groundObjs.addPrivate(type, 1, trap.x, trap.z, trap.level, owner.saveKey, osrsps.game.GroundObjs.DROP_PRIVATE_TICKS, osrsps.game.GroundObjs.DROP_DESPAWN_TICKS)
+            world.groundObjs.addPrivate(type, 1, trap.x, trap.z, trap.level, owner.saveKey, osrsps.game.GroundObjs.DROP_PRIVATE_TICKS, COLLAPSED_DESPAWN_TICKS)
         } else {
-            world.groundObjs.addPublic(type, 1, trap.x, trap.z, trap.level, osrsps.game.GroundObjs.DROP_DESPAWN_TICKS)
+            world.groundObjs.addPublic(type, 1, trap.x, trap.z, trap.level, COLLAPSED_DESPAWN_TICKS)
         }
     }
 
@@ -421,7 +450,7 @@ class Traps(private val world: World, private val collision: CollisionMap) {
 
     private fun ScriptContext.investigate(loc: ZoneLoc) {
         val trap = at(loc.x, loc.z, loc.level)?.takeIf { it.loc == loc } ?: return
-        world.message(player, if (trap.owner == player.saveKey) HunterLines.INVESTIGATE else HunterLines.NOT_YOURS)
+        world.message(player, if (trap.owner == player.saveKey) trap.kind.investigate else HunterLines.NOT_YOURS)
     }
 
     /** Walks [player] a step off the trap's tile: west if they can, else east, south, north. */
@@ -470,6 +499,9 @@ class Traps(private val world: World, private val collision: CollisionMap) {
 
         /** Guessed: a caught creature's respawn. */
         const val RESPAWN_TICKS = 10
+
+        /** The Wiki's Net trap page: a collapsed trap's item disappears if not picked up within the next minute. */
+        const val COLLAPSED_DESPAWN_TICKS = 100
 
         /** Guessed: how far the owner may go before their traps collapse. */
         const val OWNER_RANGE = 32
