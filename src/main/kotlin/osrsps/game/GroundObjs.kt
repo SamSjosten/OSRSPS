@@ -129,7 +129,8 @@ class GroundObjs(
      *
      * A stackable obj lands on [owner]'s private stack of the same item on that tile, if there is one, as RSMod does,
      * and the stack keeps its timers. Guessed: live may restart them, but ObjCount carries no times, so the client would
-     * then count down the old ones anyway. Anything else goes down one per obj.
+     * then count down the old ones anyway. Anything else goes down one per obj. With [merge] false it never joins a
+     * stack, so it keeps timers of its own, as a PvP death's loot does. [droppedBy] is whose it was, [owner] by default.
      */
     fun addPrivate(
         type: ObjType,
@@ -141,9 +142,11 @@ class GroundObjs(
         privateTicks: Int,
         despawnTicks: Int,
         neverPublic: Boolean = !type.tradeable,
+        droppedBy: String = owner,
+        merge: Boolean = true,
     ): ZoneObj {
         require(count >= 1) { "Can't put $count of $type on the ground" }
-        val stack = stackFor(type, count, x, z, level, owner, neverPublic)
+        val stack = if (merge) stackFor(type, count, x, z, level, owner, neverPublic) else null
         if (stack != null) {
             zones.setObjCount(stack, stack.count + count)
             return stack
@@ -154,7 +157,7 @@ class GroundObjs(
         var last: ZoneObj? = null
         repeat(pieces) {
             val obj = ZoneObj(
-                type.id, if (type.stackable) count else 1, x, z, level, owner = owner,
+                type.id, if (type.stackable) count else 1, x, z, level, owner = owner, droppedBy = droppedBy,
                 ticksUntilPublic = privateTicks, ticksUntilDespawn = despawnTicks, neverPublic = neverPublic,
             )
             zones.addObj(obj)

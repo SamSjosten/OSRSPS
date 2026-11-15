@@ -35,7 +35,7 @@ class PvpInteraction internal constructor(val target: Player, spell: CombatSpell
 }
 
 /**
- * Fighting between players in the Wilderness (steps W1.3 to W1.6). Attack on a player the rules allow ([PvpRules]), or
+ * Fighting between players in the Wilderness (steps W1.3 to W1.7). Attack on a player the rules allow ([PvpRules]), or
  * a combat spell cast on them, becomes a [PvpInteraction]: each movement phase the player walks until the target is in
  * reach and attacks every weapon-speed ticks, as at an NPC. Melee reaches the tiles beside the target ([MeleeCombat]);
  * a bow, crossbow, thrown weapon or blowpipe its range in line of sight, using its ammunition as at an NPC
@@ -65,10 +65,11 @@ class PvpInteraction internal constructor(val target: Player, spell: CombatSpell
  *
  * Single-way combat (step W1.5) keeps a third player off a fight with the PJ timer ([singleWayRefusal]); in multi-way
  * combat ([MultiCombat]) anyone can join, and a Burst or Barrage hits the players around its target too ([around]).
- * Each attack skulls an attacker who wasn't attacked first ([Skulls], step W1.6).
+ * Each attack skulls an attacker who wasn't attacked first ([Skulls], step W1.6). A player killed soon after a
+ * player's hit dies a PvP death ([killerOf], step W1.7): [Deaths] drops what they lose for the killer.
  *
- * Not here yet: special attacks and enchanted bolts' effects on players, poison and venom from a player's weapon,
- * chinchompas' blast on players, and the PvP death (W1.7). Powered staves can't attack players (OSRS Wiki,
+ * Not here yet: special attacks and enchanted bolts' effects on players, poison and venom from a player's weapon, and
+ * chinchompas' blast on players. Powered staves can't attack players (OSRS Wiki,
  * Trident of the seas); the refusal's words are not sourced.
  */
 class PvpCombat(
@@ -398,6 +399,8 @@ class PvpCombat(
             val spell = hit.spell
             if (spell != null) magic.landedOn(player, spell, hit.hit)
             if (spell == null || (hit.hit && spell.maxHit > 0)) {
+                // Noted before the hit, as a killing hit's death asks who killed them (Deaths.die).
+                dealtBy(player, hit.attacker, minOf(hit.damage, player.hitpoints), tick)
                 melee.hitPlayerBy(player, hit.attacker, hit.damage, tick)
                 // A kill starts the killer's timer (OSRS Wiki, PJ timer: 12 seconds).
                 if (player.dead || player.hitpoints <= 0) {
@@ -413,6 +416,40 @@ class PvpCombat(
             if (spell != null && hit.hit && spell.freezeTicks > 0) freeze(player, hit.attacker, spell)
             retaliate(player, hit.attacker, tick)
         }
+    }
+
+    /**
+     * [attacker] hit [player] for [damage] on [tick], for [killerOf]. What others dealt earlier is forgotten once
+     * [RECENT_TICKS] have gone by without a player's hit.
+     */
+    internal fun dealtBy(player: Player, attacker: Player, damage: Int, tick: Long) {
+        if (tick - player.lastPvpHitTick > RECENT_TICKS) player.pvpDamage.clear()
+        // Moved to the end on every hit, so the map runs from the longest-ago hitter to the latest (killerOf's tie).
+        val dealt = player.pvpDamage.remove(attacker.saveKey) ?: 0
+        player.pvpDamage[attacker.saveKey] = dealt + damage
+        player.lastPvpHitTick = tick
+    }
+
+    /**
+     * Who killed [player], dying now, by save key: the player who dealt them the most damage, the last to hit them on
+     * a tie, if a player hit them within [RECENT_TICKS]; null when none did, for a death like any other (OSRS Wiki,
+     * Items Kept on Death: a death with no recent player damage is a normal PvM death). Guessed: the most damage
+     * deciding, and how recent counts.
+     */
+    fun killerOf(player: Player): String? {
+        if (player.lastPvpHitTick < 0 || currentTick() - player.lastPvpHitTick > RECENT_TICKS || player.pvpDamage.isEmpty()) return null
+        val most = player.pvpDamage.values.max()
+        return player.pvpDamage.entries.last { it.value == most }.key
+    }
+
+    /**
+     * [killer] (a save key) is credited with [player]'s death: their PJ timer starts, naming [player] (OSRS Wiki, PJ
+     * timer: 12 seconds after a kill), whoever dealt the last hit.
+     */
+    fun credited(player: Player, killer: String) {
+        val credited = players().firstOrNull { it.saveKey == killer } ?: return
+        credited.pjOpponent = player
+        credited.pjUntil = currentTick() + PJ_TICKS
     }
 
     /** [player] is frozen by [caster]'s [spell] for its ticks, unless frozen or immune already; see the class note. */
@@ -482,6 +519,9 @@ class PvpCombat(
     companion object {
         /** What gets through a protection prayer against a player, out of 100 (OSRS Wiki: 40% is resisted). */
         const val PROTECTED_PERCENT = 60
+
+        /** How long after a player's last hit a death still counts as theirs: a minute (guessed). */
+        const val RECENT_TICKS = 100
 
         /** The PvP PJ timer: 20 ticks, 12 seconds (OSRS Wiki, PJ timer). */
         const val PJ_TICKS = 20
