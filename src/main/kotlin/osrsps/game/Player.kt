@@ -360,6 +360,13 @@ class Player(
     /** The PJ timer runs after a kill ([pjOpponent] is who they killed), which holds though the victim logs out. */
     var pjAfterKill = false
 
+    /**
+     * Ticks left of a Tele Block on them ([osrsps.game.combat.Teleblock]), and who cast it, by save key. Not saved: a
+     * logout ends it, as on live.
+     */
+    var teleblockTicks: Int = 0
+    var teleblockedBy: String? = null
+
     /** Ticks left of their skull ([osrsps.game.combat.Skulls]). Saved. */
     var skullTicks: Int = 0
 

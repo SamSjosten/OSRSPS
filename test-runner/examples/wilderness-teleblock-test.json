@@ -1,0 +1,19 @@
+{
+ "name": "Wilderness step W1.8, two players (run with wilderness-teleblock-test2.json on the other VM at the same time): test, at level 20 with 85 Magic and the runes, casts Tele Block on test2 from the standard spellbook",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::setlevel magic 85", "expectMessage": "85"},
+  {"step": "command", "text": "::item 563", "expectMessage": "Law rune"},
+  {"step": "command", "text": "::item 560", "expectMessage": "Death rune"},
+  {"step": "command", "text": "::item 562", "expectMessage": "Chaos rune"},
+  {"step": "command", "text": "::sure on", "expectMessage": "Your attacks", "comment": "Tele Block can splash; this makes it land"},
+  {"step": "command", "text": "::wildy 20", "expectMessage": ": level 20 Wilderness", "comment": "the deepest level where teleports work but for a block; combat levels within 20 of each other"},
+  {"step": "castOnPlayer", "interfaceId": 218, "component": 75, "player": "test2", "timeoutMs": 180000, "comment": "magic_spellbook's Tele Block, once test2 has jumped here too, its sign that it's ready"},
+  {"step": "assertInventory", "item": "Law rune", "count": 0, "timeoutMs": 15000, "comment": "the runes spent: the cast went off"},
+  {"step": "command", "text": "::sure off", "expectMessage": "Your attacks can miss again."},
+  {"step": "command", "text": "::tele 3222 3218 0", "expectMessage": "Teleported to 3222, 3218, 0"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"}
+ ]
+}

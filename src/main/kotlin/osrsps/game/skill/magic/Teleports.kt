@@ -20,7 +20,7 @@ import osrsps.game.combat.CombatLines
 import osrsps.game.combat.RuneCost
 import osrsps.game.combat.Spellbook
 import osrsps.game.combat.Spells
-import osrsps.game.content.HomeTeleportLines
+import osrsps.game.combat.Teleblock
 import osrsps.game.script.ScriptContext
 
 private val logger = KotlinLogging.logger {}
@@ -240,12 +240,15 @@ class Teleports(private val world: World, private val data: TeleportData) {
         player.anim(-1)
     }
 
-    /** Whether [player] may teleport from where they stand, telling them why not: every teleport stops above level 20 Wilderness. */
+    /**
+     * Whether [player] may teleport from where they stand, telling them why not: every teleport stops above level 20
+     * Wilderness, and while Tele Blocked ([Teleblock]).
+     */
     private fun allowedHere(player: Player): Boolean {
-        if (Wilderness.level(player.x, player.z) <= Wilderness.TELEPORT_LIMIT) return true
+        val refusal = Teleblock.refusal(player, Wilderness.level(player.x, player.z))
+        if (refusal.isEmpty()) return true
         val text = world.textFor(player)
-        player.message(text[HomeTeleportLines.WILDERNESS])
-        player.message(text[HomeTeleportLines.WILDERNESS_2])
+        for (line in refusal) player.message(text[line])
         return false
     }
 

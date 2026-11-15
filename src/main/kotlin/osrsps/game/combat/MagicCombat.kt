@@ -132,6 +132,12 @@ class MagicCombat(
             logger.info { "${player.username} cast ${spell.name} on $npc, which can't be fought" }
             return
         }
+        // Inferred: the client doesn't offer Tele Block on NPCs (its obj's param 603 is false, true for the spells that
+        // can be cast on them), so only a forged packet gets here.
+        if (spell.teleblock) {
+            logger.info { "${player.username} cast ${spell.name} on $npc, which only players can be" }
+            return
+        }
         val barred = combat.barred(player, npc)
         if (barred != null) {
             message(player, words(player)[barred])
@@ -343,11 +349,12 @@ class MagicCombat(
 
     /**
      * [player] casts [spell] on [target], another player ([PvpCombat]), on [tick], the next attack [speed] ticks on: as on
-     * an NPC, held spells refused on a frozen or immune target, and the projectile landing [extra] ticks after the
+     * an NPC, held spells refused on a frozen or immune target and Tele Block on one Tele Blocked already, and the projectile landing [extra] ticks after the
      * spell's own delay. Returns the delay, or null when they can't cast it and have been told why.
      */
     internal fun castAt(player: Player, target: Player, spell: CombatSpell, tick: Long, speed: Int, extra: Int): Int? {
         val held = when {
+            spell.teleblock && target.teleblockTicks > 0 -> PvpLines.TELEBLOCK_ALREADY
             !spell.holds -> null
             target.freezeTicks > 0 -> CombatLines.ALREADY_HELD
             target.freezeImmunityTicks > 0 -> CombatLines.IMMUNE
