@@ -537,6 +537,22 @@ class PvpCombat(
         }
     }
 
+    /**
+     * Everything PvP about [player] is forgotten, for a test that starts afresh (`::scenario`, `::reset`): the hits on
+     * their way to or from them, their PJ timer, skull, Tele Block, whom they attacked first and the damage players dealt
+     * them. Not live content.
+     */
+    fun clear(player: Player) {
+        forget(player)
+        player.pjOpponent = null
+        player.pjUntil = 0
+        player.skullTicks = 0
+        player.attackedFirst.clear()
+        Teleblock.clear(player)
+        player.pvpDamage.clear()
+        player.lastPvpHitTick = -1
+    }
+
     /** The hits on their way to or from [player] are dropped, and freezes they cast forgotten: they left the world. */
     fun forget(player: Player) {
         hits.removeAll { it.attacker === player || it.target === player }

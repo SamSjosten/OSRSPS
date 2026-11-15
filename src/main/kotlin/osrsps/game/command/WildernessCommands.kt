@@ -2,6 +2,7 @@ package osrsps.game.command
 
 import osrsps.game.Wilderness
 import osrsps.game.World
+import osrsps.game.combat.Skulls
 
 /**
  * `::wildy <level>` jumps to that Wilderness level on the line north of Edgeville (x 3090), on the first tile of the
@@ -18,6 +19,31 @@ fun CommandRegistry.registerWildernessCommands(world: World) {
         world.scripts.interrupt(player)
         world.teleport(player, x, z, 0)
         reply("Jumped to $x, $z: level $level Wilderness")
+    }
+
+    // on and off rather than a toggle, so a test script sets the state it needs whatever an earlier one left; with
+    // neither it only says, so a script can check a skull it got from a fight.
+    register("skull", "::skull [on|off]", admin = true) {
+        if (args.size > 1) fail("Usage: ::skull [on|off]")
+        val on = when (args.firstOrNull()?.lowercase()) {
+            null -> {
+                reply(if (player.skullTicks > 0) "You're skulled: ${player.skullTicks} ticks left." else "You have no skull.")
+                return@register
+            }
+            "on" -> true
+            "off" -> false
+            else -> fail("Usage: ::skull [on|off]")
+        }
+        player.skullTicks = if (on) Skulls.TICKS else 0
+        reply(if (on) "You're skulled for ${Skulls.TICKS} ticks (30 minutes)." else "Your skull is gone.")
+    }
+
+    register("pj", "::pj", admin = true) {
+        if (args.isNotEmpty()) fail("Usage: ::pj")
+        val left = (player.pjUntil - world.tick).coerceAtLeast(0)
+        player.pjOpponent = null
+        player.pjUntil = 0
+        reply(if (left > 0) "Your PJ timer is cleared ($left ticks were left): anyone may attack you in single-way combat." else "No PJ timer was running.")
     }
 }
 

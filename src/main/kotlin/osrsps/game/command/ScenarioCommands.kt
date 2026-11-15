@@ -12,7 +12,7 @@ import osrsps.game.World
  * Jump into a testing scenario and back out. `::scenario name` remembers the player as they were the first time, so a
  * second scenario still resets to before the first; `::reset` puts that back and forgets it. Both are kept in the save,
  * so a logout in the middle loses nothing. Both end every fight the player is in, so a test script starts and leaves
- * with no NPC still hitting them.
+ * with no NPC still hitting them, and clear their skull, PJ timer and Tele Block.
  */
 fun CommandRegistry.registerScenarioCommands(world: World) {
     register("scenario", "::scenario [name]") {
@@ -36,6 +36,7 @@ fun CommandRegistry.registerScenarioCommands(world: World) {
         world.meleeCombat.endFights(player)
         // A stopped Hunter run's traps come down too, so none stands for the next script.
         world.hunter.traps.takeDown(player)
+        world.pvpCombat.clear(player)
         player.testCheatsOff()
         before.restoreTo(player)
         // Varp 83 came back with the rest; the overhead icon and the drain go with the prayer book, so it starts afresh.
@@ -89,6 +90,8 @@ private fun CommandContext.start(world: World, scenario: Scenario) {
     player.priceChecker.clear()
     world.scripts.clearAll(player)
     world.meleeCombat.endFights(player)
+    // Nor a skull, a PJ timer or a Tele Block from a fight before.
+    world.pvpCombat.clear(player)
     // A divine potion drunk before would hold the scenario's boosts and then drop them; ::reset puts its varbits back.
     world.potions.clearDivine(player)
     // Nor poison, venom or an antipoison's immunity from before; ::reset puts the poison varp back with the rest.
