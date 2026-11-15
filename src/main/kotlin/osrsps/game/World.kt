@@ -87,7 +87,7 @@ import osrsps.game.combat.Poison
 import osrsps.game.combat.StatusEffects
 import osrsps.game.combat.Potions
 import osrsps.game.combat.Prayers
-import osrsps.game.combat.PvpRules
+import osrsps.game.combat.PvpMelee
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrains
 import osrsps.game.combat.LootNotifications
@@ -612,6 +612,12 @@ class World(
             slayer.damaged(npc, player, dealt)
             osrsps.game.content.Bryophyta.damaged(this, npc, player)
         },
+    )
+
+    /** Players fighting players with melee in the Wilderness; see [PvpMelee]. */
+    val pvpMelee = PvpMelee(
+        collision, movement, combat, meleeCombat, random, { tick }, inWorld = { players[it.index] === it && !it.loggedOut },
+        words = ::textFor, protects = prayers::protects,
     )
 
     /** Aggressive NPCs going for players, and players' tolerance; see [Aggression]. */
@@ -1405,6 +1411,8 @@ class World(
 
     /** One player's part of the movement phase. */
     private fun movePhase(player: Player) {
+        // Hits from players processed before them this tick, or after them last tick; see PvpMelee.land.
+        pvpMelee.land(player)
         interfaces.processFrameMove(player, tick)
         sendWeight(player)
         // Before the interactions, so a loc or NPC used this tick can still turn the player after a follow ends;
@@ -2215,9 +2223,9 @@ class World(
     }
 
     /**
-     * Attack on [clicked] (Wilderness step W1.2): refused with [PvpRules]' lines when either player is outside the
-     * Wilderness's fighting ground or out of range; otherwise the player goes after them as Follow does, facing them.
-     * Hitting comes with PvP combat (step W1.3).
+     * Attack on [clicked] (Wilderness step W1.2): refused with [osrsps.game.combat.PvpRules]' lines when either player
+     * is outside the Wilderness's fighting ground or out of range; otherwise a melee fight with them ([PvpMelee], step
+     * W1.3). [ctrl] flips walk and run for the walk up to them, as for an NPC.
      */
     private fun attackPlayer(player: Player, clicked: Player?, ctrl: Boolean) {
         scripts.interrupt(player)
@@ -2229,14 +2237,13 @@ class World(
             player.session.queue(SetMapFlagV2.RESET)
             return
         }
-        val refusal = PvpRules.refusal(player, target)
+        player.invertRun = ctrl
+        val refusal = pvpMelee.attack(player, target)
         if (refusal.isNotEmpty()) {
             // Guessed, as for a walk with nowhere to go: the client's flag would otherwise stay up.
             player.session.queue(SetMapFlagV2.RESET)
             for (line in refusal) message(player, line)
-            return
         }
-        follows.click(player, target, ctrl)
     }
 
     /**
@@ -3176,7 +3183,11 @@ class World(
     }
 
     /** Whether [player] was hit within the last [LOGOUT_COMBAT_TICKS], so can't log out. */
-    private fun inCombat(player: Player): Boolean = player.attackedTick >= 0 && tick - player.attackedTick < LOGOUT_COMBAT_TICKS
+    private fun inCombat(player: Player): Boolean =
+        (player.attackedTick >= 0 && tick - player.attackedTick < LOGOUT_COMBAT_TICKS) ||
+            (player.attackedByPlayerTick >= 0 && tick - player.attackedByPlayerTick < LOGOUT_COMBAT_TICKS) ||
+            // A player's swing still on its way counts already, so processing order can't let them log out from under it.
+            pvpMelee.incoming(player)
 
     /** Saves and removes a player who logged out or whose wait for a reconnect is over. */
     private fun remove(player: Player) {
@@ -3197,6 +3208,7 @@ class World(
             swampCavesHazards.forget(player)
             caveGoblins.forget(player)
             wallBeasts.forget(player)
+            pvpMelee.forget(player)
             canoes.forget(player)
             npcs.forget(player, scripts::busy)
             save(player)
