@@ -587,6 +587,14 @@
       "source": "OSRS Wiki, Obor, read 2026-11-15: speed 6, max hit 22 melee (his thrown rocks' 26 is the fight's, Obor.kt), crush, attack +100 and strength +68, ranged attack +100, the defence bonuses, weak to earth 20%, immune to poison and venom, XP bonus 7.5%. He stands and walks with giant_update_basic_ready and _walk, so the giant_update_basic fight animations are taken. He never respawns by himself: the respawn here is unused, his lair puts him back (GiantLairs)"
     },
     {
+      "npcs": ["chaosmonk2"],
+      "attackSpeed": 4, "maxHit": 5, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 250,
+      "source": "OSRS Wiki, Monk of Zamorak (level 17, ids 528 and 8401), read 2026-11-15: speed 4, max hit 5, crush, no bonuses, not aggressive, respawn 250. The Wiki's magic attack is the higher levels' (their max hits name one; level 17's doesn't), so this one only punches (inferred). Guessed: the unarmed human fight animations, as for the other robed men"
+    },
+    {
       "npcs": ["gb_mossgiant"],
       "attackSpeed": 6, "maxHit": 16, "attackType": "crush", "attackBonus": 33, "strengthBonus": 31,
       "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },

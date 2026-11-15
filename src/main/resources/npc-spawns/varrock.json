@@ -151,7 +151,7 @@
     {"npc": "tramppg", "x": 3208, "z": 3391, "wander": 2, "source": "Charlie the Tramp, by the Black Arm Gang's alley. mejrs's live NPC list; the wander range guessed"},
     {"npc": "tramp", "x": 3235, "z": 3401, "wander": 3, "source": "Tramp, south of the square. mejrs's live NPC list; the wander range guessed"},
     {"npc": "dr_harlow_vis", "x": 3222, "z": 3397, "restrict": "indoors", "wander": 2, "source": "Dr Harlow, in the Blue Moon Inn. mejrs's live NPC list (seen there as the multi-NPC dr_harlow, 3480, which always shows this type); the wander range guessed"},
-    {"npc": "jonny_the_beard_2op", "x": 3223, "z": 3395, "restrict": "indoors", "wander": 2, "source": "Jonny the Beard, in the Blue Moon Inn. mejrs's live NPC list (seen there as the multi-NPC jonny_the_beard, 5213, spawned as the type it shows after Shield of Arrav); the wander range guessed"},
+    {"npc": "jonny_the_beard_1op", "x": 3223, "z": 3395, "restrict": "indoors", "wander": 2, "source": "Jonny the Beard, in the Blue Moon Inn. mejrs's live NPC list (seen there as the multi-NPC jonny_the_beard, 5213). Spawned as the Talk-to-only type: he 'can only be attacked once the player is tasked by Straven to kill him' (OSRS Wiki, Jonny the Beard, read 2026-11-15), and with every quest done that task is over. The wander range guessed"},
     {"npc": "pmod_town_crier_varrock", "x": 3253, "z": 3429, "wander": 2, "source": "Town Crier, by the east bank. mejrs's live NPC list; the wander range guessed"},
     {"npc": "rat", "x": 3151, "z": 3414, "wander": 5, "source": "Rat, mejrs's live NPC list"},
     {"npc": "man", "x": 3154, "z": 3428, "wander": 5, "source": "Man, mejrs's live NPC list"},
