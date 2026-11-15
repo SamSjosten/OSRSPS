@@ -310,6 +310,52 @@ class Combat(
         val def = npcCombat[npc.type] ?: return null
         val style = style(player)
         if (style.type != AttackType.RANGED) return null
+        val size = npc.type.size
+        val (attackRoll, maxHit) = rangedNumbers(
+            player, style,
+            distance = { LineOfSight.distance(player.x, player.z, 1, npc.x, npc.z, size, size) },
+            magic = { maxOf(npc.level(NpcStat.MAGIC), def.magicAttack) },
+            mask = slayerHelm(player, npc)::rangedOrMagic,
+        )
+        val defenceRoll = rangedDefenceRoll(npc, style)!!
+        return RangedMatchup(
+            style = style,
+            attackRoll = attackRoll,
+            defenceRoll = defenceRoll,
+            maxHit = maxHit,
+            hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
+        )
+    }
+
+    /**
+     * [attacker]'s ranged numbers against [target], another player, or null when [attacker]'s style isn't ranged: as
+     * against an NPC ([rangedMatchup]), the target defending with their own defence roll for ranged ([pvpMatchup]).
+     * A twisted bow scales by the higher of the target's Magic level and magic attack bonus, as for an NPC (OSRS Wiki,
+     * Twisted bow).
+     */
+    fun pvpRangedMatchup(attacker: Player, target: Player): RangedMatchup? {
+        val style = style(attacker)
+        if (style.type != AttackType.RANGED) return null
+        val (attackRoll, maxHit) = rangedNumbers(
+            attacker, style,
+            distance = { LineOfSight.distance(attacker.x, attacker.z, 1, target.x, target.z, 1, 1) },
+            magic = { maxOf(target.skills.currentLevel(Skill.MAGIC), bonuses(target).magicAttack) },
+        )
+        val defenceRoll = playerDefenceRoll(target, style(target), bonuses(target), AttackType.RANGED, prayerBoosts(target))
+        return RangedMatchup(style, attackRoll, defenceRoll, maxHit, CombatMath.hitChance(attackRoll, defenceRoll))
+    }
+
+    /**
+     * [player]'s ranged attack roll and max hit with [style]: chinchompas' accuracy by the target's [distance], a twisted
+     * bow's scaling by the target's [magic]. See [rangedMatchup].
+     */
+    private fun rangedNumbers(
+        player: Player,
+        style: AttackStyle,
+        distance: () -> Int,
+        magic: () -> Int,
+        mask: (Int) -> Int = { it },
+    ): Pair<Int, Int> {
         val bonuses = bonuses(player)
         val boosts = prayerBoosts(player)
         val level = player.skills.currentLevel(Skill.RANGED)
@@ -318,9 +364,7 @@ class Combat(
         val weapon = rangedWeapons.weapon(equipment.weapon(player))
         var attackBonus = bonuses.rangedAttack
         if (weapon?.kind == AmmoKind.CHINCHOMPAS) {
-            val size = npc.type.size
-            val distance = LineOfSight.distance(player.x, player.z, 1, npc.x, npc.z, size, size)
-            attackBonus = attackBonus * CombatMath.chinchompaAccuracy(style.stance, distance) / 100
+            attackBonus = attackBonus * CombatMath.chinchompaAccuracy(style.stance, distance()) / 100
         }
         var attackRoll = CombatMath.playerRangedAttackRoll(ranged, style.stance, attackBonus)
         var strength = bonuses.rangedStrength
@@ -334,22 +378,14 @@ class Combat(
         }
         var maxHit = CombatMath.playerRangedMaxHit(rangedStrengthLevel, style.stance, strength)
         // Inferred: the imbued mask's 15% comes before the twisted bow's scaling, as the Wiki's DPS calculator has it.
-        val helm = slayerHelm(player, npc)
-        attackRoll = helm.rangedOrMagic(attackRoll)
-        maxHit = helm.rangedOrMagic(maxHit)
+        attackRoll = mask(attackRoll)
+        maxHit = mask(maxHit)
         if (weapon?.scaling == RangedScaling.TWISTED_BOW) {
-            val magic = maxOf(npc.level(NpcStat.MAGIC), def.magicAttack)
-            attackRoll = attackRoll * CombatMath.twistedBowAccuracy(magic) / 100
-            maxHit = maxHit * CombatMath.twistedBowDamage(magic) / 100
+            val scaling = magic()
+            attackRoll = attackRoll * CombatMath.twistedBowAccuracy(scaling) / 100
+            maxHit = maxHit * CombatMath.twistedBowDamage(scaling) / 100
         }
-        val defenceRoll = rangedDefenceRoll(npc, style)!!
-        return RangedMatchup(
-            style = style,
-            attackRoll = attackRoll,
-            defenceRoll = defenceRoll,
-            maxHit = maxHit,
-            hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
-        )
+        return attackRoll to maxHit
     }
 
     /**
@@ -361,23 +397,7 @@ class Combat(
      */
     fun magicMatchup(player: Player, npc: Npc, spell: CombatSpell): MagicMatchup? {
         val def = npcCombat[npc.type] ?: return null
-        val bonuses = bonuses(player)
-        val boosts = prayerBoosts(player)
-        val magic = PrayerBoosts.boost(player.skills.currentLevel(Skill.MAGIC), boosts.magic)
-        val staff = spell.staff
-        var attackRoll: Int
-        var maxHit: Int
-        if (staff == null) {
-            attackRoll = CombatMath.playerMagicAttackRoll(magic, bonuses.magicAttack)
-            maxHit = CombatMath.spellMaxHit(spell.maxHit, bonuses.magicDamage + boosts.magicDamage)
-        } else {
-            // A powered staff's spell: its styles' level bonus, and its multiplier on the worn bonuses (OSRS Wiki,
-            // Damage per second/Magic, Tumeken's shadow).
-            val level = magic + CombatMath.poweredStaffStanceBonus(style(player).stance)
-            attackRoll = CombatMath.playerMagicAttackRoll(level, bonuses.magicAttack * staff.bonusMultiplier)
-            val worn = minOf(bonuses.magicDamage * staff.bonusMultiplier, CombatMath.MAGIC_DAMAGE_CAP)
-            maxHit = CombatMath.spellMaxHit(spell.maxHit, worn + boosts.magicDamage)
-        }
+        var (attackRoll, maxHit) = magicNumbers(player, spell)
         // The imbued mask's 15% multiplies the roll and max hit before an elemental weakness, which then adds its own
         // share of the roll and of the spell's base max hit without the mask (the Wiki's DPS calculator,
         // PlayerVsNPCCalc: blackMaskBonus, then the spellement bonus).
@@ -397,6 +417,39 @@ class Combat(
             maxHit = maxHit,
             hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
         )
+    }
+
+    /**
+     * [attacker]'s numbers against [target], another player, with [spell]: as against an NPC ([magicMatchup]), the
+     * target defending with 70% of their Magic and 30% of their Defence ([defenceLevel]), their stance and their worn
+     * magic defence bonus (OSRS Wiki, Combat: a player's magic defence whoever attacks).
+     */
+    fun pvpMagicMatchup(attacker: Player, target: Player, spell: CombatSpell): MagicMatchup {
+        val (attackRoll, maxHit) = magicNumbers(attacker, spell)
+        val defenceRoll = playerDefenceRoll(target, style(target), bonuses(target), AttackType.MAGIC, prayerBoosts(target))
+        return MagicMatchup(attackRoll, defenceRoll, maxHit, CombatMath.hitChance(attackRoll, defenceRoll))
+    }
+
+    /** [player]'s magic attack roll and max hit with [spell]; see [magicMatchup]. */
+    private fun magicNumbers(player: Player, spell: CombatSpell): Pair<Int, Int> {
+        val bonuses = bonuses(player)
+        val boosts = prayerBoosts(player)
+        val magic = PrayerBoosts.boost(player.skills.currentLevel(Skill.MAGIC), boosts.magic)
+        val staff = spell.staff
+        var attackRoll: Int
+        var maxHit: Int
+        if (staff == null) {
+            attackRoll = CombatMath.playerMagicAttackRoll(magic, bonuses.magicAttack)
+            maxHit = CombatMath.spellMaxHit(spell.maxHit, bonuses.magicDamage + boosts.magicDamage)
+        } else {
+            // A powered staff's spell: its styles' level bonus, and its multiplier on the worn bonuses (OSRS Wiki,
+            // Damage per second/Magic, Tumeken's shadow).
+            val level = magic + CombatMath.poweredStaffStanceBonus(style(player).stance)
+            attackRoll = CombatMath.playerMagicAttackRoll(level, bonuses.magicAttack * staff.bonusMultiplier)
+            val worn = minOf(bonuses.magicDamage * staff.bonusMultiplier, CombatMath.MAGIC_DAMAGE_CAP)
+            maxHit = CombatMath.spellMaxHit(spell.maxHit, worn + boosts.magicDamage)
+        }
+        return attackRoll to maxHit
     }
 
     /** [npc]'s defence roll against a ranged [style], or null when it has no combat definition. */

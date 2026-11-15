@@ -947,9 +947,9 @@ class MeleeCombat(
     }
 
     /**
-     * [player] takes [damage] from another player, [attacker] ([PvpMelee]), as [hitPlayer] takes an NPC's: the hitsplat
+     * [player] takes [damage] from another player, [attacker], as [hitPlayer] takes an NPC's ([PvpCombat]): the hitsplat
      * (the max hit one is not shown to the attacker yet, guessed), health bar, block animation, death and Redemption.
-     * Who hit them is noted for [Player.attackedByPlayer]; fighting back is [PvpMelee]'s. Returns the damage dealt.
+     * Who hit them is noted for [Player.attackedByPlayer]; fighting back is [PvpCombat]'s. Returns the damage dealt.
      */
     fun hitPlayerBy(player: Player, attacker: Player, damage: Int, tick: Long): Int {
         if (player.hitpoints <= 0 || player.dead) return 0
@@ -1092,6 +1092,8 @@ class MeleeCombat(
         for (npc in npcs.all) if (npc.target === player) giveUp(npc)
         player.attackedBy = null
         player.attackedByPlayer = null
+        player.freezeTicks = 0
+        player.frozenBy = null
     }
 
     /**

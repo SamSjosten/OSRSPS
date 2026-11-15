@@ -667,6 +667,11 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   take Trade with and Report off other players' menus after a relog, and back on after another.
 - `wilderness-attack-option.json` (needs 0.22.0): Wilderness step W1.2. Attack absent from other players' menus at
   Edgeville, there at level 10 after `::wildy 10` (with `inside_wilderness` 1), and gone again back south.
+- `wilderness-pvp-ranged-test.json` and `wilderness-pvp-ranged-test2.json` (need 0.20.0, for `assertHitsplat` with
+  `self` and `playerOption`): Wilderness step W1.4, two players at once (test on one VM and test2 on the other). At
+  level 50, test shoots test2 with a shortbow and bronze arrows for a sure 12, read off its Ranged XP and test2's
+  hitsplat. Spells cast on a player and freezes are in HeadlessPvpRangedMagicTest only: the runner has no step that
+  casts on a player yet.
 - `settings-search.json` (needs 0.12.0): the All Settings search typed with real key presses, a found row clicked,
   and a window closed mid-search reopening on its category, also after a relog.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in

@@ -161,6 +161,12 @@ class Player(
     /** The player this one was last told to face, so a change is sent once. See [World]'s face updates. */
     var sentFacePlayer: Player? = null
 
+    /**
+     * The player [this] last cast a single spellbook spell at, whom they keep facing once the cast's fight is over until
+     * they do something else ([osrsps.game.Follow.updateFace]), as after a single cast at an NPC. Not saved.
+     */
+    var castAtPlayer: Player? = null
+
     /** What the player is walking to use, a loc, a ground obj or an NPC, if anything. Walking elsewhere or teleporting drops it. */
     var interaction: Interaction? = null
 
@@ -315,6 +321,15 @@ class Player(
      */
     var rootedTicks: Int = 0
 
+    /**
+     * Ticks left of a freeze from another player's spell ([osrsps.game.combat.PvpCombat]): like [rootedTicks] they take
+     * no steps. [frozenBy] cast it; it breaks once they are more than 10 tiles apart. Then [freezeImmunityTicks] of
+     * immunity follow. Not saved.
+     */
+    var freezeTicks: Int = 0
+    var freezeImmunityTicks: Int = 0
+    var frozenBy: Player? = null
+
     /** Ticks since special attack energy last came back; see [osrsps.game.combat.SpecialAttacks]. Not saved: a login starts it again. */
     var specRegenTicks: Int = 0
 
@@ -332,9 +347,12 @@ class Player(
     var attackedBy: Npc? = null
     var attackedTick: Long = -1
 
-    /** The player that hit them last, and the tick they did; see [osrsps.game.combat.PvpMelee]. Not saved. */
+    /** The player that hit them last, and the tick they did; see [osrsps.game.combat.PvpCombat]. Not saved. */
     var attackedByPlayer: Player? = null
     var attackedByPlayerTick: Long = -1
+
+    /** The tick their part of the movement phase last landed other players' hits on them; see [osrsps.game.combat.PvpCombat.land]. */
+    var pvpTick: Long = -1
 
     /**
      * The NPC they last attacked (swung at, fired or cast on, or hit), and the tick they did; see

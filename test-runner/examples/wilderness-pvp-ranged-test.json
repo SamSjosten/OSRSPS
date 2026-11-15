@@ -1,0 +1,24 @@
+{
+ "name": "Wilderness step W1.4, two players (run with wilderness-pvp-ranged-test2.json on the other VM at the same time): test, at level 50 with Ranged 99, a shortbow and bronze arrows, shoots test2 from where it stands for a sure 12, gets the shot's Ranged XP and an arrow used, then jumps away to end the fight",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::xprate 1", "expectMessage": "XP rate set to 1x", "comment": "live's rate; ::xprate restore at the end goes back"},
+  {"step": "command", "text": "::setlevel ranged 99", "expectMessage": "99"},
+  {"step": "command", "text": "::empty", "comment": "room for the bow and arrows"},
+  {"step": "command", "text": "::item 841", "expectMessage": ""},
+  {"step": "itemOption", "item": "Shortbow", "option": "Wield"},
+  {"step": "command", "text": "::item 882 100", "expectMessage": ""},
+  {"step": "itemOption", "item": "Bronze arrow", "option": "Wield"},
+  {"step": "assertEquipment", "slot": "ammo", "item": "Bronze arrow", "timeoutMs": 10000},
+  {"step": "command", "text": "::sure max", "expectMessage": "Your attacks", "comment": "Ranged 99, accurate, bronze arrows: a max hit of 12"},
+  {"step": "command", "text": "::wildy 50", "expectMessage": ": level 50 Wilderness"},
+  {"step": "playerOption", "player": "test2", "option": "Attack", "timeoutMs": 180000, "comment": "once test2 has jumped here too, its sign that it's ready; in bow range from the jump tiles"},
+  {"step": "assertStat", "skill": "Ranged", "level": 99, "xp": 13034479, "timeoutMs": 20000, "comment": "13,034,431 at level 99, then 4 XP a point of the 12"},
+  {"step": "command", "text": "::wildy 1", "expectMessage": ": level 1 Wilderness", "comment": "away out of range: the fight ends"},
+  {"step": "command", "text": "::sure off", "expectMessage": "Your attacks"},
+  {"step": "command", "text": "::xprate restore", "expectMessage": "XP rate back to "},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"}
+ ]
+}

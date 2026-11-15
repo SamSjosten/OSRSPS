@@ -211,12 +211,64 @@ class RangedCombat(
 
     /** Fires at [npc] on [tick]; false when there is nothing to fire, and the player has been told. */
     private fun fire(player: Player, npc: Npc, weapon: RangedWeapon, tick: Long): Boolean {
-        if (weapon.loaded) return fireLoaded(player, npc, weapon, tick)
-        if (weapon.thrown) return fireThrown(player, npc, weapon, tick)
+        // The numbers first: they count the ammunition worn, and the last piece is about to go.
+        val matchup = combat.rangedMatchup(player, npc) ?: return false
+        val spent = spend(player, weapon, matchup.style) ?: return false
+        release(player, npc, weapon, matchup, spent, tick)
+        return true
+    }
+
+    /**
+     * What one attack fires: [ammo] flies (null for none of its own), [dropped] falls where it lands, [shots] of it (the
+     * dark bow's two), poisoning at [poison] or envenoming, [recover] out of 100 coming back to [slot], falling to the
+     * floor if [floor]; the next attack [speed] ticks on. See [spend].
+     */
+    internal class Spent(
+        val ammo: RangedAmmo?,
+        val dropped: ObjType?,
+        val shots: Int,
+        val speed: Int,
+        val poison: Int = 0,
+        val venom: Boolean = false,
+        val recover: Int = 0,
+        val slot: Int = WearPos.AMMO,
+        val floor: Boolean = true,
+    )
+
+    /**
+     * Takes what [player]'s [weapon] fires with [style] from where it is kept; null when there is nothing to fire, and
+     * they have been told. Ammunition from the quiver: "There is no ammo left in your quiver." with none, the dark bow
+     * firing one arrow when only one is left (OSRS Wiki, Dark bow).
+     *
+     * A blowpipe's shot is its dart, with a scale two times in three ([Blowpipe.use]), and nothing to the floor, as no
+     * Ava's device brings the blowpipe's darts back yet.
+     *
+     * A throw is one from the stack in the weapon slot, the speed taken while it was still there, and nothing to the
+     * floor. Chinchompas can't be picked up again, even when they do no damage (OSRS Wiki, Chinchompa (weapon)), and no
+     * Ava's device brings them back (Ava's device); darts, knives, thrownaxes and the rest come back to the weapon slot
+     * as arrows do to the quiver, and without one fall under the target as arrows do (a fifth breaking; inferred from
+     * arrows, as the Wiki's Ammunition page treats them alike).
+     */
+    internal fun spend(player: Player, weapon: RangedWeapon, style: AttackStyle): Spent? {
+        if (weapon.loaded) {
+            val ammo = weapons.ammo(blowpipe.dart(player))
+            if (!blowpipe.use(player, { message(player, it) }, { random.chance(SCALE_KEPT_NUMERATOR, SCALE_KEPT_DENOMINATOR) })) return null
+            return Spent(ammo, null, 1, speed(player, style), venom = true)
+        }
+        if (weapon.thrown) {
+            val thrown = combat.weapon(player)
+            val poison = PoisonedWeapons.ranged(thrown)
+            // The speed too: the last one thrown leaves the slot empty, and an empty hand's speed is slower.
+            val speed = speed(player, style)
+            player.equipment.remove(WearPos.WEAPON, 1)
+            val recover = if (weapon.targets > 1) 0 else recovery(player)
+            val back = if (recover > 0 || !weapon.splash) thrown else null
+            return Spent(null, back, 1, speed, poison = poison, recover = recover, slot = WearPos.WEAPON, floor = !weapon.splash)
+        }
         val worn = player.equipment[WearPos.AMMO]
         if (worn == null) {
             message(player, words(player)[CombatLines.NO_AMMO])
-            return false
+            return null
         }
         val ammoType = objTypes[worn.id]
         val ammo = weapons.ammo(ammoType)
@@ -227,83 +279,43 @@ class RangedCombat(
                 else -> CombatLines.WRONG_ARROWS
             }
             message(player, words(player)[line])
-            return false
+            return null
         }
-        val matchup = combat.rangedMatchup(player, npc) ?: return false
-        // The dark bow fires one arrow when only one is left (OSRS Wiki, Dark bow).
         val shots = minOf(weapon.shots, worn.count)
         player.equipment.remove(WearPos.AMMO, shots)
-        release(player, npc, weapon, ammo, ammoType, matchup, shots, tick, poison = PoisonedWeapons.ranged(ammoType), recover = recovery(player))
-        return true
+        return Spent(ammo, ammoType, shots, speed(player, style), poison = PoisonedWeapons.ranged(ammoType), recover = recovery(player))
     }
 
     /**
-     * A blowpipe's shot: its dart, a scale two times in three ([Blowpipe.use]), and nothing to the floor, as no Ava's
-     * device brings the blowpipe's darts back yet.
+     * The attack leaves [player]: the weapon's animation and the launch graphic for [spent]'s ammunition, and the next
+     * attack [Spent.speed] ticks on. Returns the projectile id its shots fly as, -1 for none.
      */
-    private fun fireLoaded(player: Player, npc: Npc, weapon: RangedWeapon, tick: Long): Boolean {
-        val ammo = weapons.ammo(blowpipe.dart(player))
-        val matchup = combat.rangedMatchup(player, npc) ?: return false
-        if (!blowpipe.use(player, { message(player, it) }, { random.chance(SCALE_KEPT_NUMERATOR, SCALE_KEPT_DENOMINATOR) })) return false
-        release(player, npc, weapon, ammo, null, matchup, 1, tick, venom = true)
-        return true
-    }
-
-    /**
-     * A throw: one from the stack in the weapon slot, the numbers (and the speed) taken while it was still there, and nothing to the
-     * floor. Chinchompas can't be picked up again, even when they do no damage (OSRS Wiki, Chinchompa (weapon)), and no
-     * Ava's device brings them back (Ava's device); darts, knives, thrownaxes and the rest come back to the weapon slot
-     * as arrows do to the quiver, and without one fall under the target as arrows do (a fifth breaking; inferred from
-     * arrows, as the Wiki's Ammunition page treats them alike).
-     */
-    private fun fireThrown(player: Player, npc: Npc, weapon: RangedWeapon, tick: Long): Boolean {
-        val matchup = combat.rangedMatchup(player, npc) ?: return false
-        val thrown = combat.weapon(player)
-        val poison = PoisonedWeapons.ranged(thrown)
-        // The speed too: the last one thrown leaves the slot empty, and an empty hand's speed is slower.
-        val speed = speed(player, matchup.style)
-        player.equipment.remove(WearPos.WEAPON, 1)
-        val recover = if (weapon.targets > 1) 0 else recovery(player)
-        val back = if (recover > 0 || !weapon.splash) thrown else null
-        release(player, npc, weapon, null, back, matchup, 1, tick, poison = poison, recover = recover, slot = WearPos.WEAPON, floor = !weapon.splash, speed = speed)
-        return true
-    }
-
-    /** The shots leave: the animation, graphics and projectiles, and each one's roll and XP. [dropped] falls where they land. */
-    private fun release(
-        player: Player,
-        npc: Npc,
-        weapon: RangedWeapon,
-        ammo: RangedAmmo?,
-        dropped: ObjType?,
-        matchup: RangedMatchup,
-        shots: Int,
-        tick: Long,
-        poison: Int = 0,
-        venom: Boolean = false,
-        recover: Int = 0,
-        slot: Int = WearPos.AMMO,
-        floor: Boolean = true,
-        speed: Int = speed(player, matchup.style),
-    ) {
-        val style = matchup.style
-        player.nextAttackTick = tick + speed
+    internal fun launch(player: Player, weapon: RangedWeapon, spent: Spent, tick: Long): Int {
+        val ammo = spent.ammo
+        player.nextAttackTick = tick + spent.speed
         if (weapon.anim >= 0) player.effects.anim(weapon.anim, 0)
         val launch = when {
             weapon.launch >= 0 -> weapon.launch
             ammo == null -> -1
-            shots > 1 && ammo.doubleLaunch >= 0 -> ammo.doubleLaunch
+            spent.shots > 1 && ammo.doubleLaunch >= 0 -> ammo.doubleLaunch
             else -> ammo.launch
         }
-        val travel = if (weapon.travel >= 0) weapon.travel else ammo?.travel ?: -1
         if (launch >= 0) player.effects.spotanim(0, launch, LAUNCH_HEIGHT, 0)
+        return if (weapon.travel >= 0) weapon.travel else ammo?.travel ?: -1
+    }
+
+    /** The shots leave: the animation, graphics and projectiles, and each one's roll and XP. [Spent.dropped] falls where they land. */
+    private fun release(player: Player, npc: Npc, weapon: RangedWeapon, matchup: RangedMatchup, spent: Spent, tick: Long) {
+        val style = matchup.style
+        val ammo = spent.ammo
+        val travel = launch(player, weapon, spent, tick)
         face(player, npc)
         val size = npc.type.size
         val distance = LineOfSight.distance(player.x, player.z, 1, npc.x, npc.z, size, size)
         val landTick = tick + weapon.delay.ticks(distance) + HitDelay.ON_NPC
         val zaryte = combat.weapon(player)?.internalName == BoltEffects.ZARYTE
-        repeat(shots) { shot ->
-            if (travel >= 0) projectile(flight(player, npc, travel, landTick - tick, shot))
+        repeat(spent.shots) { shot ->
+            if (travel >= 0) projectile(flight(player, npc.x, npc.z, npc.index + 1, travel, landTick - tick, shot))
             // Accuracy first, then damage, as for melee; a shot's random draws are always these two.
             val sure = combat.sureHit(player, npc, style.type)
             val accurate = CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll) || player.sureHits || sure == SureHit.MAX
@@ -315,8 +327,13 @@ class RangedCombat(
             val rolled = bolt?.damage ?: if (hit) damageRoll(matchup.maxHit) else 0
             val damage = reserve(player, npc, style, combat.rolledOn(player, npc, style.type, rolled))
             melee.attackMade(player, npc, tick)
-            inFlight += Shot(player, npc, damage, landTick, dropped, weapon.bounces, style, matchup.attackRoll, matchup.maxHit, travel, hit, weapon.targets, poison, venom, from = Tile(player.x, player.z), recover = recover, slot = slot, floor = floor, effect = effect?.takeIf { bolt?.fired == true }, rolledMax = bolt?.max ?: matchup.maxHit, zaryte = zaryte)
+            inFlight += Shot(player, npc, damage, landTick, spent.dropped, weapon.bounces, style, matchup.attackRoll, matchup.maxHit, travel, hit, weapon.targets, spent.poison, spent.venom, from = Tile(player.x, player.z), recover = spent.recover, slot = spent.slot, floor = spent.floor, effect = effect?.takeIf { bolt?.fired == true }, rolledMax = bolt?.max ?: matchup.maxHit, zaryte = zaryte)
         }
+    }
+
+    /** A shot at another player ([PvpCombat]) flies: [shot] of [Spent.shots], landing [ticks] from now. */
+    internal fun flyAt(player: Player, target: Player, travel: Int, ticks: Long, shot: Int) {
+        if (travel >= 0) projectile(flight(player, target.x, target.z, -(target.index + 1), travel, ticks, shot))
     }
 
     /**
@@ -436,16 +453,22 @@ class RangedCombat(
      * rest falls. Guessed: that it comes back as the shot lands rather than as it is fired, and that one with no room
      * there (the player has put on other ammunition, or logged out) falls instead.
      */
-    private fun land(shot: Shot, npc: Npc) {
-        val ammo = shot.ammo ?: return
-        if (shot.recover <= 0) {
-            if (shot.floor && !random.chance(AMMO_BROKEN_NUMERATOR, AMMO_BROKEN_DENOMINATOR)) dropAmmo(ammo, npc.x, npc.z, npc.level, shot.player)
+    private fun land(shot: Shot, npc: Npc) = landAmmo(shot.player, shot.ammo, shot.recover, shot.slot, shot.floor, npc.x, npc.z, npc.level)
+
+    /** What becomes of one piece of [spent]'s ammunition, landed at [x], [z] on [level]; see [land]. */
+    internal fun landAmmo(player: Player, spent: Spent, x: Int, z: Int, level: Int) =
+        landAmmo(player, spent.dropped, spent.recover, spent.slot, spent.floor, x, z, level)
+
+    private fun landAmmo(player: Player, ammo: ObjType?, recover: Int, slot: Int, floor: Boolean, x: Int, z: Int, level: Int) {
+        ammo ?: return
+        if (recover <= 0) {
+            if (floor && !random.chance(AMMO_BROKEN_NUMERATOR, AMMO_BROKEN_DENOMINATOR)) dropAmmo(ammo, x, z, level, player)
             return
         }
         val roll = random.nextInt(100)
         if (roll < AvaDevices.BROKEN) return
-        if (roll < AvaDevices.BROKEN + shot.recover && giveBack(shot.player, shot.slot, ammo)) return
-        if (shot.floor) dropAmmo(ammo, npc.x, npc.z, npc.level, shot.player)
+        if (roll < AvaDevices.BROKEN + recover && giveBack(player, slot, ammo)) return
+        if (floor) dropAmmo(ammo, x, z, level, player)
     }
 
     /** Puts one [type] back in [player]'s worn [slot]; false when it holds something else or a full stack, or they've gone. */
@@ -466,6 +489,12 @@ class RangedCombat(
     /** Shots fired and not landed yet, for tests and commands. */
     val shotsInFlight: Int get() = inFlight.size
 
+    /** The ranged weapon [player] fights another player with, or null when their style isn't ranged or it isn't one here. */
+    internal fun pvpWeapon(player: Player): RangedWeapon? = if (combat.style(player).type == AttackType.RANGED) weapon(player) else null
+
+    /** How far [weapon] reaches with [player]'s style; see [range]. */
+    internal fun reach(player: Player, weapon: RangedWeapon): Int = range(weapon, combat.style(player))
+
     private fun weapon(player: Player): RangedWeapon? {
         val worn = player.equipment[WearPos.WEAPON] ?: return null
         return weapons.weapon(objTypes[worn.id])
@@ -485,15 +514,15 @@ class RangedCombat(
      * The projectile a shot flies as, landing as its hit does: [ticks] after it was fired, in client cycles. Guessed
      * heights, start, arc and offset, the same as `::proj`'s; a second arrow from the dark bow leaves a little later.
      */
-    private fun flight(player: Player, npc: Npc, id: Int, ticks: Long, shot: Int): Projectile {
+    private fun flight(player: Player, toX: Int, toZ: Int, targetIndex: Int, id: Int, ticks: Long, shot: Int): Projectile {
         val start = PROJECTILE_START + shot * SECOND_SHOT_DELAY
         return Projectile(
             id = id,
             fromX = player.x,
             fromZ = player.z,
             level = player.level,
-            toX = npc.x,
-            toZ = npc.z,
+            toX = toX,
+            toZ = toZ,
             startHeight = PROJECTILE_START_HEIGHT,
             endHeight = PROJECTILE_END_HEIGHT,
             startTime = start,
@@ -501,7 +530,7 @@ class RangedCombat(
             angle = PROJECTILE_ANGLE,
             progress = PROJECTILE_PROGRESS,
             sourceIndex = -(player.index + 1),
-            targetIndex = npc.index + 1,
+            targetIndex = targetIndex,
         )
     }
 
