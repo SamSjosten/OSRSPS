@@ -37,11 +37,11 @@ object GiantBonesLines : Lines("giant_bones", "Giant bones") {
  *   the boss comes back [RESPAWN_TICKS] later, key or none ("Bryophyta respawns 15 ticks (9 seconds) after attempting to
  *   open her chest, regardless of whether the player has a mossy key", OSRS Wiki, Bryophyta; Obor "respawn shortly
  *   after", taken as the same 15, guessed). One kill opens the chest once.
- * - **Giant bones**, the bosses' members drop, can't be taken ("I don't think those will fit in my backpack...") and
+ * - **Giant bones**, the bosses' members drop, can't be taken ([GiantBonesLines.NO_FIT]) and
  *   bury from the floor for 150 Prayer XP (OSRS Wiki, Giant bones). Left out: live's confirmation before the bury (shared
- *   with bull bones, with its "don't ask me again"); ours buries at once.
+ *   with bull bones, which can be turned off); ours buries at once.
  *
- * The chest's messages follow Bryophyta's chest's transcript (the leaves stir; "you need a key"; the loot spills out; the
+ * The chest's messages follow Bryophyta's chest's transcript (the stir, the key needed, the loot on the floor, the
  * count); Obor's chest has no transcript, so his are inferred from hers. Guessed: that the chest does nothing more while
  * a respawn is on its way.
  */
