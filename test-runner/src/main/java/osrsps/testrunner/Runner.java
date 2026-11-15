@@ -31,6 +31,17 @@ final class Runner
 	 * plugin starts.
 	 */
 	private int ticksSinceLogin = Steps.WaitForLogin.SETTLE_TICKS;
+	/** (0.27.0) Whether the running script's last {@code ::keys} command left the server showing keys. */
+	private boolean keysOn;
+	/**
+	 * (0.27.0) A {@code ::keys off} sent after a script that left keys on, so a client someone is watching between
+	 * scripts shows the dialogue file's words, as a player sees them, not {@code [key]}. Not part of any result.
+	 */
+	private Step tidy;
+	private Run tidyRun;
+	private long tidyStartMs;
+	/** The account the tidy-up is for: it is sent only while that account, still a test account, is logged in. */
+	private String tidyAccount;
 
 	Runner(Game game, LongSupplier clock, Supplier<List<String>> allowedAccounts)
 	{
@@ -41,7 +52,7 @@ final class Runner
 
 	boolean busy()
 	{
-		return script != null;
+		return script != null || tidy != null;
 	}
 
 	/** Name of the running script, or null. */
@@ -56,6 +67,7 @@ final class Runner
 		this.trigger = trigger;
 		run = new Run(game, () -> ticksSinceLogin);
 		stepIndex = 0;
+		keysOn = false;
 		done = new ArrayList<>();
 		scriptStartMs = clock.getAsLong();
 		startStep();
@@ -65,6 +77,10 @@ final class Runner
 	void loggedIn()
 	{
 		ticksSinceLogin = 0;
+		// A login starts with keys off, so a tidy-up still owed from before it has nothing left to do, and a script that
+		// spans the login starts counting its ::keys commands again from off.
+		dropTidy();
+		keysOn = false;
 	}
 
 	void gameTick()
@@ -77,6 +93,10 @@ final class Runner
 		{
 			run.gameTick();
 		}
+		if (tidyRun != null)
+		{
+			tidyRun.gameTick();
+		}
 	}
 
 	void message(String text)
@@ -84,6 +104,10 @@ final class Runner
 		if (run != null)
 		{
 			run.message(text);
+		}
+		if (tidyRun != null)
+		{
+			tidyRun.message(text);
 		}
 	}
 
@@ -123,6 +147,11 @@ final class Runner
 	/** Advances the running script; returns its result once it has finished, else null. */
 	Result poll()
 	{
+		if (script == null)
+		{
+			pollTidy();
+			return null;
+		}
 		while (script != null)
 		{
 			Step step = script.steps.get(stepIndex);
@@ -155,6 +184,7 @@ final class Runner
 				return finish(p);
 			}
 			done.add(stepResult(step, "pass", p.detail, now));
+			noteKeys(step);
 			stepIndex++;
 			if (stepIndex == script.steps.size())
 			{
@@ -225,6 +255,11 @@ final class Runner
 		{
 			Step step = script.steps.get(stepIndex);
 			done.add(stepResult(step, "fail", failure.detail, now));
+			// The command may have reached the server though its reply never matched: ::keys off is harmless either way.
+			if (isKeysCommand(step))
+			{
+				keysOn = true;
+			}
 			failText = "step " + (stepIndex + 1) + " (" + step.describe() + "): " + failure.detail;
 			for (int i = stepIndex + 1; i < script.steps.size(); i++)
 			{
@@ -232,11 +267,99 @@ final class Runner
 				done.add(new Result.StepResult(i + 1, skipped.type, skipped.describe(), "skipped", null, 0, 0));
 			}
 		}
+		String account = script.account;
 		Result r = new Result(script.id, script.name, trigger, failure == null ? Result.PASS : Result.FAIL, failText,
 			scriptStartMs, now - scriptStartMs, run.gameTicks(), done);
 		script = null;
 		run = null;
 		done = null;
+		if (keysOn)
+		{
+			tidy = new Steps.Chat("command", TIDY_TIMEOUT_MS, KEYS_OFF, KEYS_OFF_REPLY);
+			tidyRun = new Run(game, () -> ticksSinceLogin);
+			tidyStartMs = now;
+			tidyAccount = account;
+		}
+		keysOn = false;
 		return r;
 	}
+
+	/** A chat step's words split on whitespace as the server splits a command, or null for any other step. */
+	private static String[] keysCommand(Step step)
+	{
+		if (!(step instanceof Steps.Chat))
+		{
+			return null;
+		}
+		String[] words = ((Steps.Chat) step).text.trim().toLowerCase(Locale.ROOT).split("\\s+");
+		return words[0].equals("::keys") ? words : null;
+	}
+
+	private static boolean isKeysCommand(Step step)
+	{
+		return keysCommand(step) != null;
+	}
+
+	/** Keeps track of what a passed {@code ::keys} command left on: {@code ::keys} alone flips it. */
+	private void noteKeys(Step step)
+	{
+		String[] words = keysCommand(step);
+		if (words == null)
+		{
+			return;
+		}
+		if (words.length == 1)
+		{
+			keysOn = !keysOn;
+		}
+		else if (words.length == 2 && (words[1].equals("on") || words[1].equals("off")))
+		{
+			keysOn = words[1].equals("on");
+		}
+	}
+
+	/**
+	 * Sends the {@code ::keys off} a finished script left owing, on the script's own account only while it is logged in
+	 * and still a test account. It waits through region loads, gives up quietly when it times out or a fresh login
+	 * comes (a login starts with keys off), and the next script waits for it, so the two never type at once.
+	 */
+	private void pollTidy()
+	{
+		if (tidy == null)
+		{
+			return;
+		}
+		boolean timedOut = clock.getAsLong() - tidyStartMs >= tidy.timeoutMs;
+		if (timedOut || !isAllowed(tidyAccount))
+		{
+			dropTidy();
+			return;
+		}
+		if (!game.loggedIn())
+		{
+			return;
+		}
+		String name = game.localName();
+		if (name == null || !normalise(name).equals(normalise(tidyAccount)))
+		{
+			dropTidy();
+			return;
+		}
+		if (tidy.poll(tidyRun).state != Step.State.WAIT)
+		{
+			dropTidy();
+		}
+	}
+
+	private void dropTidy()
+	{
+		tidy = null;
+		tidyRun = null;
+		tidyAccount = null;
+	}
+
+	static final String KEYS_OFF = "::keys off";
+	static final String KEYS_OFF_REPLY = "Dialogue shows words";
+	/** How long the tidy-up may take before it is dropped. */
+	static final long TIDY_TIMEOUT_MS = 10_000;
 }

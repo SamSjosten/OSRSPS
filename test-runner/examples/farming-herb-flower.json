@@ -6,6 +6,7 @@
   {"step": "command", "text": "::scenario farming", "expectMessage": "Started scenario farming.", "comment": "beside the Falador patches with 99 Farming, the tools and limpwurt and guam seeds; ::reset at the end puts the account back"},
   {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
   {"step": "command", "text": "::farmclock pause", "expectMessage": "Farming clock paused", "comment": "the crops grow only by ::farmtick"},
+  {"step": "command", "text": "::farmdisease off", "expectMessage": "Farming diseases off", "comment": "the guam isn't watered or composted, so it could fall ill and die over its four ticks (live run 2026-11-15: dead guam, 170)"},
   {"step": "locOption", "locId": 7847, "option": "Rake", "x": 3054, "y": 3307, "timeoutMs": 20000, "comment": "the multiloc farming_flower_patch_1, drawn as Flower Patch while overgrown"},
   {"step": "assertMessage", "contains": "[farming.raked]", "timeoutMs": 30000},
   {"step": "assertVarbit", "id": 4773, "value": 3, "timeoutMs": 5000},

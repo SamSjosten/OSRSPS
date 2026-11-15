@@ -81,6 +81,157 @@ public class RunnerTest
 	}
 
 	@Test
+	public void turnsKeysOffAfterAScriptThatLeftThemOn() throws Exception
+	{
+		runner.start(script("{\"step\":\"command\",\"text\":\"::keys on\",\"expectMessage\":\"Dialogue shows keys\"}"), "file");
+		assertNull(cycle());
+		runner.message("Dialogue shows keys");
+		Result r = cycle();
+		assertNotNull(r);
+		assertEquals(Result.PASS, r.result);
+		// The result is in, but the runner stays busy until the server says keys are off, so no script starts meanwhile.
+		assertTrue(runner.busy());
+		assertNull(cycle());
+		assertEquals(List.of("chat ::keys on", "chat ::keys off"), game.actions);
+		assertTrue(runner.busy());
+		runner.message("Dialogue shows words");
+		assertNull(cycle());
+		assertFalse(runner.busy());
+	}
+
+	@Test
+	public void turnsKeysOffAfterAFailToo() throws Exception
+	{
+		runner.start(script("{\"step\":\"command\",\"text\":\"::keys on\",\"expectMessage\":\"Dialogue shows keys\"},"
+			+ "{\"step\":\"command\",\"text\":\"::pos\",\"expectMessage\":\"never\",\"timeoutMs\":100}"), "file");
+		assertNull(cycle());
+		runner.message("Dialogue shows keys");
+		Result r = null;
+		for (int i = 0; i < 20 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertNotNull(r);
+		assertEquals(Result.FAIL, r.result);
+		assertNull(cycle());
+		assertEquals("chat ::keys off", game.actions.get(game.actions.size() - 1));
+	}
+
+	@Test
+	public void leavesKeysAloneWhenTheScriptTurnedThemOff() throws Exception
+	{
+		runner.start(script("{\"step\":\"command\",\"text\":\"::keys on\",\"expectMessage\":\"Dialogue shows keys\"},"
+			+ "{\"step\":\"command\",\"text\":\"::keys off\",\"expectMessage\":\"Dialogue shows words\"}"), "file");
+		assertNull(cycle());
+		runner.message("Dialogue shows keys");
+		assertNull(cycle());
+		runner.message("Dialogue shows words");
+		assertNotNull(cycle());
+		assertFalse(runner.busy());
+		assertEquals(List.of("chat ::keys on", "chat ::keys off"), game.actions);
+	}
+
+	private static final String KEYS_ON = "{\"step\":\"command\",\"text\":\"::keys on\",\"expectMessage\":\"Dialogue shows keys\"}";
+
+	/** Runs a script that only turns keys on, to its result. */
+	private void keysOnScript() throws Exception
+	{
+		runner.start(script(KEYS_ON), "file");
+		assertNull(cycle());
+		runner.message("Dialogue shows keys");
+		assertNotNull(cycle());
+	}
+
+	@Test
+	public void dropsTheKeysTidyUpWhenItTimesOut() throws Exception
+	{
+		keysOnScript();
+		assertNull(cycle());
+		now.addAndGet(Runner.TIDY_TIMEOUT_MS);
+		assertNull(cycle());
+		assertFalse(runner.busy());
+	}
+
+	@Test
+	public void keepsTheKeysTidyUpThroughARegionLoadButDropsItOnAFreshLogin() throws Exception
+	{
+		keysOnScript();
+		// A region load: the client is briefly not logged in, the server's switch untouched. Nothing is typed meanwhile.
+		game.loggedIn = false;
+		assertNull(cycle());
+		assertTrue(runner.busy());
+		assertEquals(List.of("chat ::keys on"), game.actions);
+		game.loggedIn = true;
+		assertNull(cycle());
+		assertEquals("chat ::keys off", game.actions.get(1));
+
+		runner.message("Dialogue shows words");
+		assertNull(cycle());
+		keysOnScript();
+		// A fresh login starts with keys off.
+		runner.loggedIn();
+		assertFalse(runner.busy());
+	}
+
+	@Test
+	public void turnsKeysOffWhenTheKeysCommandItselfFails() throws Exception
+	{
+		runner.start(script("{\"step\":\"command\",\"text\":\"::keys on\",\"expectMessage\":\"never\",\"timeoutMs\":100}"), "file");
+		Result r = null;
+		for (int i = 0; i < 20 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertNotNull(r);
+		assertEquals(Result.FAIL, r.result);
+		assertNull(cycle());
+		assertEquals("chat ::keys off", game.actions.get(game.actions.size() - 1));
+	}
+
+	@Test
+	public void readsKeysCommandsAsTheServerSplitsThem() throws Exception
+	{
+		// On, off with two spaces, then a bare toggle: the server ends with keys on.
+		runner.start(script(KEYS_ON + ",{\"step\":\"command\",\"text\":\"::keys  off\",\"expectMessage\":\"Dialogue shows words\"},"
+			+ "{\"step\":\"command\",\"text\":\"::keys\",\"expectMessage\":\"Dialogue shows keys\"}"), "file");
+		assertNull(cycle());
+		runner.message("Dialogue shows keys");
+		assertNull(cycle());
+		runner.message("Dialogue shows words");
+		assertNull(cycle());
+		runner.message("Dialogue shows keys");
+		assertNotNull(cycle());
+		assertNull(cycle());
+		assertEquals("chat ::keys off", game.actions.get(game.actions.size() - 1));
+	}
+
+	@Test
+	public void countsKeysFromOffAgainAfterALoginMidScript() throws Exception
+	{
+		// Keys on, a relog (keys off on the server), then a bare toggle: keys end on.
+		runner.start(script(KEYS_ON + ",{\"step\":\"command\",\"text\":\"::keys\",\"expectMessage\":\"Dialogue shows keys\"}"), "file");
+		assertNull(cycle());
+		runner.message("Dialogue shows keys");
+		// The first step passes, and the toggle is sent.
+		assertNull(cycle());
+		runner.loggedIn();
+		runner.message("Dialogue shows keys");
+		assertNotNull(cycle());
+		assertNull(cycle());
+		assertEquals("chat ::keys off", game.actions.get(game.actions.size() - 1));
+	}
+
+	@Test
+	public void sendsTheKeysTidyUpOnlyToTheScriptsOwnTestAccount() throws Exception
+	{
+		keysOnScript();
+		game.name = "someone";
+		assertNull(cycle());
+		assertFalse(runner.busy());
+		assertEquals(List.of("chat ::keys on"), game.actions);
+	}
+
+	@Test
 	public void walkRetriesUntilTheTileIsOnScreen() throws Exception
 	{
 		// Right after a teleport the camera may not show the tile yet.
