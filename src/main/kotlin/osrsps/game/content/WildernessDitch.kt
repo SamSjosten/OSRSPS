@@ -102,6 +102,9 @@ object WildernessDitch {
         val type = world.locs.types[ditch.id] ?: return
         val from = Tile(player.x, player.z)
         val to = landing(ditch, type.width, type.length, from) ?: return world.message(player, GameLines.CANT_REACH)
+        // Rock or a wall on the far side (the 242 map's x 3042 run lands on rock at 3042,3520): no jump there (exploit
+        // review round 34). Inferred: live can't land a player inside scenery either.
+        if (!world.canStand(to.x, to.z, ditch.level)) return world.message(player, GameLines.CANT_REACH)
         if (!Wilderness.inside(from.x, from.z) && Wilderness.inside(to.x, to.z)) {
             if (!warned(world)) return
             // Answered a tick or more later: the jump starts from the tile the screen was opened on, or not at all.
