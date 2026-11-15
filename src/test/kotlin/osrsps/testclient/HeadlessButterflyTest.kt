@@ -27,17 +27,19 @@ import osrsps.map.CollisionMap
  */
 class HeadlessButterflyTest {
     private val warlock = NpcType(Butterflies.BLACK_WARLOCK.npcs.first(), "Black warlock", ops = listOf("Catch", null, null, null, null), internalName = "butterfly_warlock")
+    private val moth = NpcType(Butterflies.SUNLIGHT_MOTH.npcs.first(), "Sunlight moth", ops = listOf("Catch", null, null, null, null), internalName = "butterfly_sunlight_moth")
 
-    private fun server(dir: Path) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
+    private fun server(dir: Path, kind: NpcType = warlock) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
         val objs = arrayOfNulls<ObjType>(30_000)
         objs[Butterflies.BUTTERFLY_JAR] = ObjType(Butterflies.BUTTERFLY_JAR, "Butterfly jar", stackable = false, tradeable = true)
         objs[JARRED] = ObjType(JARRED, "Black warlock", stackable = false, tradeable = true, iops = listOf(null, null, null, "Release", "Drop"))
         objs[Butterflies.MAGIC_INSECT_NET] = ObjType(Butterflies.MAGIC_INSECT_NET, "Magic insect net", stackable = false, tradeable = false)
+        objs[Butterflies.INSECT_NET] = ObjType(Butterflies.INSECT_NET, "Insect net", stackable = false, tradeable = true)
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs),
             random = GameRandom(7),
-            npcTypes = NpcTypes.of(warlock),
-            npcSpawns = listOf(NpcSpawn(warlock, 3224, 3218, wander = 0, source = "test")),
+            npcTypes = NpcTypes.of(warlock, moth),
+            npcSpawns = listOf(NpcSpawn(kind, 3224, 3218, wander = 0, source = "test")),
             cycleMillis = millis,
         )
     }
@@ -67,6 +69,8 @@ class HeadlessButterflyTest {
                 client.seen("[hunter.caught creature=black warlock]")
                 client.await("the jarred warlock") { if (client.count(JARRED) == 1) Unit else null }
                 assertEquals(0, client.count(Butterflies.BUTTERFLY_JAR))
+                // The catch holds the player for its whole 3 ticks.
+                client.awaitTicks(Butterflies.CATCH_TICKS)
                 client.await("54 XP") { if (client.stat(HUNTER)!!.xp - before == 54) Unit else null }
                 // Release: 60 * 15% + 4 = 13 over 60, and the jar back.
                 client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, RELEASE_BUTTON_OP, client.slotOf(JARRED), JARRED)
@@ -100,6 +104,54 @@ class HeadlessButterflyTest {
                 client.npcOp(client.warlock().index, Butterflies.CATCH)
                 client.seen("[hunter.catch_level level=45]")
                 assertTrue(server.world.npcs.all.none { it.hidden })
+            }
+        }
+    }
+
+    @Test
+    fun `a caught sunlight moth gives 5 percent run energy, jarred or not`(@TempDir dir: Path) {
+        server(dir, moth).use { server ->
+            server.login("su").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel hunter 99")
+                client.await("level 99") { client.stat(HUNTER)?.takeIf { it.level == 99 } }
+                val player = server.world.playerNamed("su")!!
+                player.equipment[WearPos.WEAPON] = InvObj(Butterflies.MAGIC_INSECT_NET, 1)
+                val target = client.await("the moth in view", 15_000) { client.npcs().firstOrNull { it.id == moth.id } }
+                // Energy comes back 15 a tick standing at Agility 1; the catch must add 500 more than that.
+                player.runEnergy = 0
+                val start = server.world.tick
+                client.npcOp(target.index, Butterflies.CATCH)
+                client.seen("[hunter.caught_released creature=sunlight moth]")
+                val regen = 15 * (server.world.tick - start + 1)
+                assertTrue(player.runEnergy - regen >= 500 - 15, "energy ${player.runEnergy} after ${regen / 15} ticks")
+            }
+        }
+    }
+
+    @Test
+    fun `a missed butterfly flies straight away from the player`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dy").use { client ->
+                client.await("the login rebuild") { client.position }
+                // At 45 with a plain net a black warlock is caught 20 times in 256: try until one is missed.
+                client.command("setlevel hunter 45")
+                client.await("level 45") { client.stat(HUNTER)?.takeIf { it.level == 45 } }
+                server.world.playerNamed("dy")!!.equipment[WearPos.WEAPON] = InvObj(Butterflies.INSECT_NET, 1)
+                var missed = false
+                repeat(5) {
+                    if (missed) return@repeat
+                    val mark = client.messages().size
+                    client.npcOp(client.warlock().index, Butterflies.CATCH)
+                    val result = client.await("the catch's result", 15_000) {
+                        client.messages().drop(mark).firstOrNull { it.text == "[hunter.catch_miss]" || it.text.startsWith("[hunter.caught") }
+                    }
+                    missed = result.text == "[hunter.catch_miss]"
+                    client.awaitTicks(Butterflies.CATCH_TICKS)
+                }
+                assertTrue(missed)
+                // The player is west of it at 3222 or 3223, so it flies east.
+                client.await("the warlock gone east") { client.npcs().firstOrNull { it.id == warlock.id }?.takeIf { it.coord.x > 3224 } }
             }
         }
     }

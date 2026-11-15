@@ -1,6 +1,7 @@
 package osrsps.game.skill.hunter
 
 import osrsps.game.InvObj
+import osrsps.game.Movement
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.WearPos
@@ -9,6 +10,8 @@ import osrsps.game.content.message
 import osrsps.game.npc.Npc
 import osrsps.game.script.ScriptContext
 import osrsps.game.skill.SuccessRoll
+import osrsps.map.Tile
+import kotlin.math.sign
 
 /** What releasing a butterfly or moth does (OSRS Wiki, Butterfly (Hunter)). */
 sealed class ButterflyEffect {
@@ -58,9 +61,9 @@ class Butterfly(
  * spread, set so each is caught as often at its own level as a black warlock at 45 (ruby 105 to 381, sapphire 76 to
  * 352, snowy 48 to 324; 20 more each with the magic net or barehanded); barehanded meaning no weapon wielded, with
  * human_catch; one attempt per Catch, judged the tick after the swing, the player held [CATCH_TICKS]; the respawn
- * ([RESPAWN_TICKS]); every release, not only the snowy knight's, sharing the potions' delay; moonlight moths all the
- * catchable type (12771). Left out: hunter's mixes, using a jar on another player in multicombat, the butterfly wings
- * (Hunters' Rumours), Puro-Puro, the inaccessible Crypt of Tonali spawns.
+ * ([RESPAWN_TICKS]); a missed one flying [FLEE_TILES] away; every release, not only the snowy knight's, sharing the
+ * potions' delay; moonlight moths all the catchable type (12771). Left out: hunter's mixes, using a jar on another
+ * player in multicombat, the butterfly wings (Hunters' Rumours), Puro-Puro, the inaccessible Crypt of Tonali spawns.
  */
 class Butterflies(private val world: World) {
     private class Respawn(val npc: Npc, val tick: Long)
@@ -103,10 +106,24 @@ class Butterflies(private val world: World) {
         player.actionDelay = tick + CATCH_TICKS
         delay(1)
         if (npc.hidden || npc.dead) return
-        if (!SuccessRoll.roll(world.random, pair.first, pair.second, hunter)) return world.message(player, HunterLines.CATCH_MISS)
+        if (!SuccessRoll.roll(world.random, pair.first, pair.second, hunter)) {
+            world.message(player, HunterLines.CATCH_MISS)
+            flee(npc)
+        } else {
+            caught(butterfly, npc)
+        }
+        // The player is held for the rest of the catch, hit or miss.
+        delay(CATCH_TICKS - 1)
+    }
+
+    private fun ScriptContext.caught(butterfly: Butterfly, npc: Npc) {
         world.hide(npc)
         respawns += Respawn(npc, world.tick + RESPAWN_TICKS)
         player.skills.addTenths(Skill.HUNTER, butterfly.xpTenths)
+        // The sunlight moth's page: catching one, jarred or not, gives 5% run energy (not opening a jarred one).
+        if (butterfly === SUNLIGHT_MOTH) {
+            player.runEnergy = minOf(Movement.MAX_ENERGY, player.runEnergy + Movement.MAX_ENERGY * SUNLIGHT_ENERGY_PERCENT / 100)
+        }
         val name = world.npcTypes[npc.type.id]?.name?.lowercase() ?: "butterfly"
         val jar = player.inventory.contents().firstOrNull { it.second.id == BUTTERFLY_JAR }?.first
         if (jar != null) {
@@ -116,6 +133,17 @@ class Butterflies(private val world: World) {
             apply(player, butterfly.effect)
             world.message(player, HunterLines.CAUGHT_RELEASED, "creature" to name)
         }
+    }
+
+    /**
+     * A missed butterfly flies [FLEE_TILES] straight away from the player, so the side it is approached from sets where it
+     * goes (the Wiki's Hunter training: caught at from the north or east, they flee south-west). Guessed: the distance.
+     */
+    private fun ScriptContext.flee(npc: Npc) {
+        val dx = (npc.x - player.x).sign
+        val dz = (npc.z - player.z).sign
+        val (sx, sz) = if (dx == 0 && dz == 0) -1 to -1 else dx to dz
+        npc.destination = Tile(npc.x + sx * FLEE_TILES, npc.z + sz * FLEE_TILES)
     }
 
     private fun ScriptContext.release(butterfly: Butterfly, slot: Int) {
@@ -178,6 +206,10 @@ class Butterflies(private val world: World) {
 
         /** Guessed. */
         const val CATCH_TICKS = 3
+        const val FLEE_TILES = 3
+
+        /** The sunlight moth's page: 5% run energy on a catch. */
+        const val SUNLIGHT_ENERGY_PERCENT = 5
         const val RESPAWN_TICKS = 10
 
         /** Snowy knight's page: a release shares the potions' 3 ticks. */
