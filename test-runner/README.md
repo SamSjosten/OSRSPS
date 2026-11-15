@@ -682,6 +682,10 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   `self` and `playerOption`): Wilderness step W1.6, two players at once. At level 50 with PK Skull Prevention on
   (`::varbit 13131 1`), test's attack on test2 is refused with `[pvp.skull_prevented]`; with it off, test punches test2.
   The skull itself is checked with `::skull` in the W1.10 kill pair, and in HeadlessPvpSkullTest.
+- `wilderness-pvp-death-test.json` and `wilderness-pvp-death-test2.json` (need 0.20.0, for `playerOption`): Wilderness
+  step W1.7, two players at once. test2, carrying four rune pieces on 1 hitpoint with auto retaliate off (`::varp 172 1`),
+  is killed at level 50 by test's sure punch; test takes the rune full helm that fell for it alone, and test2 comes back
+  with the platebody, platelegs and kiteshield, its three most valuable items. Assumes test2 wears nothing worth more.
 - `settings-search.json` (needs 0.12.0): the All Settings search typed with real key presses, a found row clicked,
   and a window closed mid-search reopening on its category, also after a relog.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in

@@ -80,7 +80,7 @@ class Grave(
  * Dying again while it stands adds to it and starts its timer again. When it collapses its contents are lost: Death's
  * Office, where they would go on live, isn't built. Nobody else can check or loot it.
  *
- * From the Wiki: the message, three items kept (one more with Protect Item; fewer skulled, which isn't built), valued at
+ * From the Wiki: the message, three items kept (one more with Protect Item; none skulled), valued at
  * the Grand Exchange price or the alchemy value, 15 minutes that pause while logged out or with the interface open,
  * a second death adding to the grave, and death restoring stats and run energy. Guessed and marked below: the ticks
  * the body lies before the respawn, ties in the value order ([value]) going by worn then inventory slot, that each
@@ -153,6 +153,15 @@ class Deaths(
     },
     /** The player has just fallen, before their death animation: a raid counts the death then ([osrsps.game.raid.ArchiveRaids.fell]). */
     private val fell: (Player) -> Unit = {},
+    /** Who killed the player, by save key, if it is a PvP death ([PvpCombat.killerOf]); null for any other. */
+    private val killerOf: (Player) -> String? = { null },
+    /**
+     * Puts a count of the victim's item down at a tile for a killer (a save key) alone for [PVP_LOOT_PRIVATE_TICKS],
+     * then for everyone, gone after [PVP_LOOT_DESPAWN_TICKS].
+     */
+    private val dropForKiller: (victim: Player, killer: String, ObjType, Int, Int, Int, Int) -> Unit = { _, _, _, _, _, _, _ -> },
+    /** Writes the player's save now, as a PvP death does before the killer's loot goes down; false if it couldn't be. */
+    private val saveNow: (Player) -> Boolean = { true },
 ) {
     private val graves = LinkedHashMap<Npc, Grave>()
 
@@ -183,7 +192,12 @@ class Deaths(
         // Guessed: live's death clears the player's queue too, so a climb or a search in progress never finishes.
         cancelScripts(player)
         // Protect Item counts if it is on as they fall; the prayers then go off (guessed: as they fall, not at the respawn).
-        player.deathKeptItems = KEPT_ITEMS + if (protectItem(player)) 1 else 0
+        // A skull keeps none of the three (OSRS Wiki, Items Kept on Death); the skull then goes (guessed).
+        player.deathKeptItems = (if (player.skullTicks > 0) 0 else KEPT_ITEMS) + if (protectItem(player)) 1 else 0
+        player.skullTicks = 0
+        // Those they attacked first may hit back unskulled only while that skull lasts (Skulls), so they go with it.
+        player.attackedFirst.clear()
+        player.deathKiller = killerOf(player)
         prayersOff(player)
         player.interaction = null
         player.waypoints.clear()
@@ -228,7 +242,15 @@ class Deaths(
         val lost = if (keep) emptyList() else sorted + over
         player.deathKeptItems = KEPT_ITEMS
         val charges = lostCharges(player, lost)
-        if (lost.isNotEmpty() || charges.isNotEmpty()) bury(player, lost + charges, place)
+        val killer = player.deathKiller.takeIf { !keep }
+        player.deathKiller = null
+        player.pvpDamage.clear()
+        val forKiller = ArrayList<InvObj>()
+        val buried = if (killer == null) lost + charges else toKiller(player, lost + charges, forKiller)
+        if (buried.isNotEmpty()) bury(player, buried, place)
+        val fellX = player.x
+        val fellZ = player.z
+        val fellLevel = player.level
         for (skill in Skill.entries) player.skills.setCurrentLevel(skill, player.skills.baseLevel(skill))
         player.runEnergy = Movement.MAX_ENERGY
         cure(player)
@@ -238,6 +260,44 @@ class Deaths(
         player.anim(-1)
         if (place == null) teleportToSpawn(player) else teleport(player, place.toX, place.toZ, place.toLevel)
         if (keep) for (obj in over) drop(player, objTypes[obj.id] ?: ObjType(obj.id), obj.count)
+        if (killer != null && forKiller.isNotEmpty()) {
+            // Saved, respawned and without the lost items, before any reaches the ground: a crash after the killer
+            // picks one up can't give it back to the victim too. A save that couldn't be written puts them in the
+            // victim's grave instead, where they fell, so nothing is handed over until the removal is on disk.
+            if (saveNow(player)) {
+                for (obj in forKiller) dropForKiller(player, killer, objTypes[obj.id] ?: ObjType(obj.id), obj.count, fellX, fellZ, fellLevel)
+            } else {
+                logger.warn { "${player.username}'s save failed after a PvP death: ${forKiller.size} items to the grave, not to $killer" }
+                bury(player, forKiller, place, fellX, fellZ, fellLevel)
+            }
+        }
+    }
+
+    /**
+     * A PvP death's [lost] items (OSRS Wiki, Items Kept on Death, Wilderness): the tradeable ones go into [forKiller],
+     * which [respawn] drops where [player] fell for the killer alone for a minute, then for everyone for four more.
+     * Untradeables at level 20 or below go to the grave, as returned; above it, one with no combat use is kept, and the
+     * rest are gone. Inferred: an item that
+     * can be worn has a combat use and one that can't hasn't. Not in: untradeables that break or turn into coins or
+     * components for the killer, and Trouver parchment locks.
+     */
+    private fun toKiller(player: Player, lost: List<InvObj>, forKiller: MutableList<InvObj>): List<InvObj> {
+        val deep = osrsps.game.Wilderness.level(player.x, player.z) > UNTRADEABLES_TO_GRAVE_LEVEL
+        val buried = ArrayList<InvObj>()
+        for (obj in lost) {
+            val type = objTypes[obj.id] ?: ObjType(obj.id)
+            when {
+                // Player-to-player tradeable: coins and platinum tokens too, which aren't on the Grand Exchange.
+                type.tradeable || type.id == osrsps.game.ge.GrandExchange.COINS || type.id == osrsps.game.ge.GrandExchange.PLATINUM_TOKEN -> forKiller += obj
+                !deep -> buried += obj
+                !type.wearable -> {
+                    val over = obj.count - player.inventory.add(type, obj.count)
+                    if (over > 0) buried += InvObj(obj.id, over)
+                }
+                else -> logger.info { "${player.username} lost untradeable ${type.name} x${obj.count} to a PvP death above level 20" }
+            }
+        }
+        return buried
     }
 
     /**
@@ -322,10 +382,10 @@ class Deaths(
      * Puts [lost] in [player]'s grave, raising one on their tile, or [place]'s grave tile, if they have none; an existing
      * grave starts its timer again.
      */
-    private fun bury(player: Player, lost: List<InvObj>, place: DeathPlace?) {
-        val coord = place?.coord?.takeIf { it >= 0 } ?: GraveFees.coord(player.x, player.z, player.level)
+    private fun bury(player: Player, lost: List<InvObj>, place: DeathPlace?, x: Int = player.x, z: Int = player.z, level: Int = player.level) {
+        val coord = place?.coord?.takeIf { it >= 0 } ?: GraveFees.coord(x, z, level)
         val existing = graveOf(player)
-        val grave = existing ?: if (place == null) raise(player, player.x, player.z, player.level, coord) else raise(player, place.graveX, place.graveZ, place.graveLevel, coord)
+        val grave = existing ?: if (place == null) raise(player, x, z, level, coord) else raise(player, place.graveX, place.graveZ, place.graveLevel, coord)
         if (existing != null) {
             grave!!.merged = true
             grave.paid = false
@@ -607,6 +667,13 @@ class Deaths(
     }
 
     companion object {
+        /** A PvP death's loot is the killer's alone for a minute, then everyone's for four (OSRS Wiki, Items Kept on Death). */
+        const val PVP_LOOT_PRIVATE_TICKS = 100
+        const val PVP_LOOT_DESPAWN_TICKS = 500
+
+        /** Untradeables lost in a PvP death at this Wilderness level or below go to the grave (OSRS Wiki, Items Kept on Death). */
+        const val UNTRADEABLES_TO_GRAVE_LEVEL = 20
+
         /** Every interface and component id above with its gameval name in the rev 242 cache, for [osrsps.cache.GameFrameCheck]. */
         val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>>
             get() = mapOf(
