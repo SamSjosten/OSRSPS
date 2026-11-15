@@ -85,6 +85,8 @@ class Slayer(private val world: World, val data: SlayerData) {
     /** Superior Slayer monsters; see [SlayerSuperiors]. */
     val superiors = SlayerSuperiors(world)
 
+    val helmets = SlayerHelmets(world, this)
+
     companion object {
         /** The NPC type param naming its task (osrs-dumps: cows 6, birds 5, rats 3). */
         const val PARAM_CATEGORY = 50
@@ -387,5 +389,6 @@ class Slayer(private val world: World, val data: SlayerData) {
         val gem = world.objTypes[ENCHANTED_GEM] ?: return
         val check = gem.iops.indexOfFirst { it.equals("Check", ignoreCase = true) }.takeIf { it >= 0 }?.plus(1) ?: return
         world.handlers.onObj(ENCHANTED_GEM, check) { check(player) }
+        helmets.register()
     }
 }
