@@ -1,6 +1,7 @@
 package osrsps.game.combat
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import osrsps.game.FountainOfRune
 import osrsps.game.GameRandom
 import osrsps.game.Interaction
 import osrsps.game.Movement
@@ -255,7 +256,8 @@ class MagicCombat(
         // the Wiki gives its styles' skills, not the split).
         val defensive = if (spell.staff != null) combat.style(player).stance == AttackStance.LONGRANGE else fighting && Autocast.defensive(player)
         val speed = if (fighting) combat.attackSpeed(player) else SPEED + combat.wearyDelay(player)
-        if (!release(player, npc, spell, tick, defensive, speed)) {
+        // At the Fountain of Rune the cast is free and trains nothing ([FountainOfRune]).
+        if (!player.skills.withoutXpIf(FountainOfRune.covers(player)) { release(player, npc, spell, tick, defensive, speed) }) {
             stopFacing(player)
             return true
         }
@@ -319,8 +321,8 @@ class MagicCombat(
             message(player, words(player)[CombatLines.MAGIC_LEVEL])
             return false
         }
-        val provided = spells.runesFrom(player.equipment[WearPos.WEAPON]?.id)
-        val short = spell.runes.firstOrNull { it.rune !in provided && player.inventory.count(it.rune) < it.count }
+        val short = FountainOfRune.runesToPay(player, spell.runes, spells.runesFrom(player.equipment[WearPos.WEAPON]?.id))
+            .firstOrNull { player.inventory.count(it.rune) < it.count }
         if (short != null) {
             message(player, notEnough(player, short.rune))
             return false
@@ -338,8 +340,7 @@ class MagicCombat(
      */
     private fun pay(player: Player, spell: CombatSpell, tick: Long, speed: Int): Boolean {
         if (spell.staff != null && !poweredStaves.use(player, spell.staff) { message(player, it) }) return false
-        val provided = spells.runesFrom(player.equipment[WearPos.WEAPON]?.id)
-        for (cost in spell.runes) if (cost.rune !in provided) take(player, cost)
+        for (cost in FountainOfRune.runesToPay(player, spell.runes, spells.runesFrom(player.equipment[WearPos.WEAPON]?.id))) take(player, cost)
         player.nextAttackTick = tick + speed
         val anim = if (combat.weaponCategory(player) == Weapons.STAFF) spell.staffAnim else spell.anim
         if (anim >= 0) player.effects.anim(anim, 0)

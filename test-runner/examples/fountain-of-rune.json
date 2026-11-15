@@ -1,0 +1,19 @@
+{
+  "name": "Wilderness step W3.4d: an amulet of glory(1) used on the Fountain of Rune (level 47) and recharged to six charges (::keys on)",
+  "account": "test2",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::scenario gathering", "expectMessage": "Started scenario gathering.", "comment": "any scenario: ::reset at the end takes the amulet back off the account"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off)."},
+    {"step": "command", "text": "::item 1706", "comment": "an amulet of glory(1)"},
+    {"step": "assertInventory", "item": "Amulet of glory(1)", "count": 1},
+    {"step": "command", "text": "::tele 3374 3896 0", "expectMessage": "Teleported to 3374, 3896, 0", "comment": "north of fountain_of_rune_obelisk (3373, 3892, 3 by 3)"},
+    {"step": "useItemOnLoc", "itemId": 1706, "locId": 26782, "x": 3373, "y": 3892},
+    {"step": "assertMessage", "contains": "fountain_of_rune.recharge", "timeoutMs": 10000, "comment": "or fountain_of_rune.eternal, 1 in 25,000"},
+    {"step": "assertInventory", "item": "Amulet of glory(6)", "count": 1},
+
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
+    {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+  ]
+}

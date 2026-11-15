@@ -8,6 +8,7 @@ import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import osrsps.game.FountainOfRune
 import osrsps.game.ObjTypes
 import osrsps.game.Skill
 import osrsps.game.WearPos
@@ -161,8 +162,7 @@ class BoltEnchant(private val world: World, private val data: BoltEnchantData) {
             player.message(text[CombatLines.MAGIC_LEVEL])
             return
         }
-        val provided = world.spells.runesFrom(player.equipment[WearPos.WEAPON]?.id)
-        val costs = enchantment.runes.filter { it.rune !in provided }
+        val costs = FountainOfRune.runesToPay(player, enchantment.runes, world.spells.runesFrom(player.equipment[WearPos.WEAPON]?.id))
         val short = costs.firstOrNull { player.inventory.count(it.rune) < it.count }
         if (short != null) {
             player.message(text[CombatLines.NOT_ENOUGH_RUNES, "runes" to plural(short.rune)])
@@ -180,7 +180,8 @@ class BoltEnchant(private val world: World, private val data: BoltEnchantData) {
             return
         }
         lastCast[player] = world.tick
-        player.skills.addTenths(Skill.MAGIC, enchantment.xpTenths)
+        // No XP for a free cast at the Fountain of Rune.
+        if (!FountainOfRune.covers(player)) player.skills.addTenths(Skill.MAGIC, enchantment.xpTenths)
         player.anim(ANIM)
         player.spotanim(SPOTANIM)
         if (left <= 1 || boltsHeld(enchantment) == null) return

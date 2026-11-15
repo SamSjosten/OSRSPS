@@ -1025,6 +1025,7 @@ class World(
         MemberGates.register(this)
         registerLavaMaze(this)
         registerChaosTemple(this)
+        FountainOfRune.register(this)
         registerFeroxEnclave(this)
         registerWildernessObelisks(this)
         registerWildernessLevers(this)

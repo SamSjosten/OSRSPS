@@ -1,5 +1,6 @@
 package osrsps.game.combat
 
+import osrsps.game.FountainOfRune
 import osrsps.game.GameRandom
 import osrsps.game.Interaction
 import osrsps.game.Movement
@@ -340,7 +341,11 @@ class PvpCombat(
      * Casts [spell] at [target]; returns true when the fight ends: the player couldn't cast it (and was told), or it was
      * a spellbook spell and they don't autocast, so one cast is all.
      */
-    private fun castSpell(player: Player, target: Player, fight: PvpInteraction, spell: CombatSpell, tick: Long): Boolean {
+    private fun castSpell(player: Player, target: Player, fight: PvpInteraction, spell: CombatSpell, tick: Long): Boolean =
+        // At the Fountain of Rune the cast is free and trains nothing ([FountainOfRune]).
+        player.skills.withoutXpIf(FountainOfRune.covers(player)) { castSpellPaid(player, target, fight, spell, tick) }
+
+    private fun castSpellPaid(player: Player, target: Player, fight: PvpInteraction, spell: CombatSpell, tick: Long): Boolean {
         val fighting = fight.spell == null
         val speed = if (fighting) combat.attackSpeed(player) else MagicCombat.SPEED + combat.wearyDelay(player)
         val late = late(target, tick)
