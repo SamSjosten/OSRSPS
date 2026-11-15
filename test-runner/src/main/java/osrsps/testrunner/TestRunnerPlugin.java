@@ -417,6 +417,11 @@ public class TestRunnerPlugin extends Plugin
 	{
 		try
 		{
+			// (0.27.0) The ::keys off owed after a failed script waits for the failure's screenshot, so it shows the failure.
+			if (runner.running() == null && capturing.get() != null)
+			{
+				return;
+			}
 			if (!runner.busy())
 			{
 				if (capturing.get() != null)

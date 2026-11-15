@@ -94,8 +94,10 @@ server's `data/dialogue.txt`, and the script passes whether or not that file has
 never words: the words are Jagex's and stay out of git (see the main README's Dialogue words).
 
 (0.27.0) A script that leaves `::keys` on gets a `::keys off` from the runner once it ends, pass or fail, before the
-next script starts. It is in no result, and dropped after 10 seconds or a logout (a login starts with keys off). A test
-client someone is watching between scripts then shows the words a player sees, not `[key]`.
+next script starts, and after a failure's screenshot. A `::keys` step that failed counts as on. It goes only to the
+script's own account while that is logged in and still a test account, waits through region loads, is in no result,
+and is dropped after 10 seconds or a fresh login (a login starts with keys off). A test client someone is watching
+between scripts then shows the words a player sees, not `[key]`.
 
 `examples\` also has the Lumbridge Castle checks. They need runner 0.4.2 or later (`locOption` came in 0.3.0;
 `takeItem`, `assertInventory`, `finishDialogue` and Examine in 0.4.0; `assertLoc` in 0.4.2). The combat checks

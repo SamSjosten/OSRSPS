@@ -131,25 +131,71 @@ public class RunnerTest
 		assertEquals(List.of("chat ::keys on", "chat ::keys off"), game.actions);
 	}
 
-	@Test
-	public void dropsTheKeysTidyUpWhenItTimesOutOrTheClientLogsOut() throws Exception
+	private static final String KEYS_ON = "{\"step\":\"command\",\"text\":\"::keys on\",\"expectMessage\":\"Dialogue shows keys\"}";
+
+	/** Runs a script that only turns keys on, to its result. */
+	private void keysOnScript() throws Exception
 	{
-		runner.start(script("{\"step\":\"command\",\"text\":\"::keys on\",\"expectMessage\":\"Dialogue shows keys\"}"), "file");
+		runner.start(script(KEYS_ON), "file");
 		assertNull(cycle());
 		runner.message("Dialogue shows keys");
 		assertNotNull(cycle());
+	}
+
+	@Test
+	public void dropsTheKeysTidyUpWhenItTimesOut() throws Exception
+	{
+		keysOnScript();
 		assertNull(cycle());
 		now.addAndGet(Runner.TIDY_TIMEOUT_MS);
 		assertNull(cycle());
 		assertFalse(runner.busy());
+	}
 
-		runner.start(script("{\"step\":\"command\",\"text\":\"::keys on\",\"expectMessage\":\"Dialogue shows keys\"}"), "file");
-		assertNull(cycle());
-		runner.message("Dialogue shows keys");
-		assertNotNull(cycle());
+	@Test
+	public void keepsTheKeysTidyUpThroughARegionLoadButDropsItOnAFreshLogin() throws Exception
+	{
+		keysOnScript();
+		// A region load: the client is briefly not logged in, the server's switch untouched. Nothing is typed meanwhile.
 		game.loggedIn = false;
 		assertNull(cycle());
+		assertTrue(runner.busy());
+		assertEquals(List.of("chat ::keys on"), game.actions);
+		game.loggedIn = true;
+		assertNull(cycle());
+		assertEquals("chat ::keys off", game.actions.get(1));
+
+		runner.message("Dialogue shows words");
+		assertNull(cycle());
+		keysOnScript();
+		// A fresh login starts with keys off.
+		runner.loggedIn();
 		assertFalse(runner.busy());
+	}
+
+	@Test
+	public void turnsKeysOffWhenTheKeysCommandItselfFails() throws Exception
+	{
+		runner.start(script("{\"step\":\"command\",\"text\":\"::keys on\",\"expectMessage\":\"never\",\"timeoutMs\":100}"), "file");
+		Result r = null;
+		for (int i = 0; i < 20 && r == null; i++)
+		{
+			r = cycle();
+		}
+		assertNotNull(r);
+		assertEquals(Result.FAIL, r.result);
+		assertNull(cycle());
+		assertEquals("chat ::keys off", game.actions.get(game.actions.size() - 1));
+	}
+
+	@Test
+	public void sendsTheKeysTidyUpOnlyToTheScriptsOwnTestAccount() throws Exception
+	{
+		keysOnScript();
+		game.name = "someone";
+		assertNull(cycle());
+		assertFalse(runner.busy());
+		assertEquals(List.of("chat ::keys on"), game.actions);
 	}
 
 	@Test
