@@ -12,9 +12,6 @@ object EdgevilleDungeonLines : Lines("edgeville_dungeon", "Edgeville Dungeon") {
     val GATE_CLOSED = line("gate_closed", "Open on the gate north of the dungeon's middle: ours, the Wilderness isn't built yet")
     val DOOR_LOCKED = line("door_locked", "Open on the shed's door west of the Cooks' Guild, from either side (2004Scape's edgeville_dungeon script)")
     val DOOR_UNLOCK = line("door_unlock", "the brass key used on the shed's door (2004Scape's edgeville_dungeon script)")
-
-    /** Our own words, not live's: Obor isn't built, so the gate to his lair stays shut. */
-    val OBOR_CLOSED = line("obor_closed", "Open on the gate west of the hill giants: ours, Obor isn't built yet")
 }
 
 /**
@@ -55,8 +52,7 @@ object EdgevilleDungeonLines : Lines("edgeville_dungeon", "Edgeville Dungeon") {
  * - The brass key lies in the small room north of the hill giants (obj-spawns/edgeville-dungeon.tsv, with the
  *   dungeon's coins, bones, bronze arrows and brass necklace).
  * - The hill giants fight and drop as npc-combat.json and npc-drops.json have them, the giant key among their drops.
- * - The gate to Obor's lair (`hillgiant_boss_entrance_l`/`_r` 29487 and 29486) refuses, in our own words, until Obor
- *   is built.
+ * - The gate to Obor's lair (`hillgiant_boss_entrance_l`/`_r` 29487 and 29486) is [Obor]'s.
  */
 object EdgevilleDungeon {
     const val TRAPDOOR = 1579
@@ -109,10 +105,6 @@ object EdgevilleDungeon {
     const val SHED_LADDER = 17384
     val SHED_LADDER_TILE = Tile(3116, 3452)
     const val CLIMB = 1
-
-    /** `hillgiant_boss_entrance_l`/`_r`, the gate to Obor's lair at 3095,9832 and 9833. */
-    const val OBOR_GATE_LEFT = 29487
-    const val OBOR_GATE_RIGHT = 29486
 
     fun isShedDoor(loc: ZoneLoc) = loc.level == 0 && loc.x == SHED_DOOR_TILE.x && loc.z == SHED_DOOR_TILE.z
 
@@ -230,9 +222,6 @@ fun registerEdgevilleDungeon(world: World) {
             val loc = op.loc!!
             if (isShedLadder(loc)) climbDungeonLadder(world, loc, down = true, anim = Climbing.ANIM_PICKUP_FLOOR)
             else world.message(player, GameLines.NOTHING_INTERESTING)
-        }
-        for (leaf in listOf(OBOR_GATE_LEFT, OBOR_GATE_RIGHT)) {
-            world.handlers.onLoc(leaf, OPEN) { world.message(player, EdgevilleDungeonLines.OBOR_CLOSED) }
         }
 
         for (leaf in listOf(NORTH_GATE_LEFT, NORTH_GATE_RIGHT)) {

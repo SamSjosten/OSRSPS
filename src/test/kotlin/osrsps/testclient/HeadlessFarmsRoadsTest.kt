@@ -10,6 +10,7 @@ import osrsps.game.NpcTypes
 import osrsps.game.World
 import osrsps.game.content.FarmsRoads
 import osrsps.game.npc.NpcSpawn
+import osrsps.game.skill.farming.ToolStore
 import osrsps.map.CollisionMap
 
 /**
@@ -59,8 +60,6 @@ class HeadlessFarmsRoadsTest {
 
     private fun HeadlessClient.awaitClosed() = await("the dialogue to close") { if (dialogueView == null) Unit else null }
 
-    private fun HeadlessClient.seen(text: String) = messages().count { it.text == text }
-
     @Test
     fun `a gardener offers his four options, and looks after nothing in an empty patch`(@TempDir dir: Path) {
         server(dir).use { server ->
@@ -80,13 +79,12 @@ class HeadlessFarmsRoadsTest {
                 client.talkTo(FarmsRoads.DREVEN, FarmsRoads.PAY)
                 client.chats("gardener.no_seeds")
                 client.awaitClosed()
-                assertEquals(0, client.seen(LATER))
             }
         }
     }
 
     @Test
-    fun `a Tool Leprechaun answers each question and asks again, and his store waits for Farming`(@TempDir dir: Path) {
+    fun `a Tool Leprechaun answers each question and asks again, and Yes please opens his store`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bob").use { client ->
                 val options = arrayOf("tool_leprechaun.yes_please", "tool_leprechaun.what_store", "tool_leprechaun.what_do", "tool_leprechaun.no_thanks")
@@ -110,14 +108,8 @@ class HeadlessFarmsRoadsTest {
                 client.chats("tool_leprechaun.greeting")
                 client.menu(*options)
                 client.chooseOption(1)
-                client.awaitDialogue("the store's refusal") { it == DialogueView.Message(LATER) }
-                client.continueDialogue()
-                client.awaitClosed()
-
-                client.talkTo(FarmsRoads.TOOL_LEPRECHAUN, FarmsRoads.EXCHANGE)
-                client.await("Exchange's refusal") { if (client.seen(LATER) == 1) Unit else null }
-                client.talkTo(FarmsRoads.TOOL_LEPRECHAUN, FarmsRoads.DEPOSIT_ALL)
-                client.await("Deposit-all's refusal") { if (client.seen(LATER) == 2) Unit else null }
+                // The store itself is Farming's (HeadlessFarmingToolStoreTest).
+                client.await("his store open") { if (ToolStore.MAIN in client.openInterfaces()) Unit else null }
             }
         }
     }
@@ -184,7 +176,6 @@ class HeadlessFarmsRoadsTest {
     }
 
     private companion object {
-        const val LATER = "[farms_roads.farming_later]"
         const val WOODCUTTING = 8
     }
 }

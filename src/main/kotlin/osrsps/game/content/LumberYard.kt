@@ -49,8 +49,7 @@ object TolnaRiftLines : Lines("tolna_rift", "Transcript:Warning sign (Tolna's ri
  * - The six mewing crates (`kittens_mew` 3499, NPCs) and the yard's crates and barrels (2620, 2619): Search finds
  *   nothing once Gertrude's Cat is done (inferred), the crates with the crate line, the barrels with "Nothing
  *   interesting happens" (guessed).
- * - The Earth Altar's ruins (34816, a multiloc, and 29099, its Enter form): Enter and an earth talisman or tiara refuse,
- *   as the Water Altar's do, until the Runecraft skill thread builds the altar.
+ * - The Earth Altar's ruins (34816, a multiloc) are [osrsps.game.skill.Runecraft]'s.
  * - Tolna (`soulbane_tolna_multi` 2010, which shows `soulbane_tolna_top` 1058 beside the rift after the quest) talks as
  *   the Wiki's transcript after A Soul's Bane has it. Launa isn't spawned: the Wiki's Launa page says she went home with
  *   Brana after the quest, and her multi-NPC shows nothing once it's done. The rift's rope and holes, and the dungeon
@@ -74,11 +73,6 @@ object LumberYard {
     const val TOLNA = 2010
     const val TOLNA_SHOWN = 1058
 
-    /** `earthtemple_ruined`, the multiloc, and `earthtemple_ruined_new`, what it shows with Enter. */
-    const val EARTH_RUINS = 34816
-    const val EARTH_RUINS_ENTER = 29099
-    const val EARTH_TALISMAN = 1440
-    const val EARTH_TIARA = 5535
     const val ENTER = 1
 
     /** `soulbane_warning_sign_multi`, on the map, which shows `soulbane_warning_sign` (14002) after the quest. */
@@ -159,12 +153,6 @@ fun registerLumberYard(world: World) {
         world.handlers.onNpc(MEWING_CRATE, SEARCH) { world.message(player, SearchLines.CRATE_EMPTY) }
         registerSearch(world, CRATE, SEARCH, SearchLines.CRATE_EMPTY)
         registerSearch(world, BARREL, SEARCH, GameLines.NOTHING_INTERESTING)
-        for (ruins in listOf(EARTH_RUINS, EARTH_RUINS_ENTER)) {
-            world.handlers.onLoc(ruins, ENTER) { world.message(player, LumbridgeSwampLines.RUNECRAFT_CLOSED) }
-            for (obj in listOf(EARTH_TALISMAN, EARTH_TIARA)) {
-                world.handlers.onObjOnLoc(ruins, obj) { world.message(player, LumbridgeSwampLines.RUNECRAFT_CLOSED) }
-            }
-        }
         world.handlers.onNpc(TOLNA_SHOWN, TALK_TO) { op -> world.dialogues.start(this, op.npc) { tolna() } }
         for (sign in listOf(WARNING_SIGN, WARNING_SIGN_SHOWN)) {
             world.handlers.onLoc(sign, READ) { world.dialogues.start(this) { mesbox(TolnaRiftLines.SIGN) } }

@@ -19,6 +19,8 @@ import osrsps.game.combat.NpcCombat
 import osrsps.game.content.EdgevilleDungeon
 import osrsps.game.content.EdgevilleDungeonLines
 import osrsps.game.content.LumbridgeCastle
+import osrsps.game.content.Obor
+import osrsps.game.content.OborLines
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
@@ -58,8 +60,8 @@ class HeadlessEdgevilleDungeonTest {
             type(EdgevilleDungeon.NORTH_GATE_RIGHT, "Gate", "Open"),
             type(EdgevilleDungeon.SHED_DOOR, "Door", "Open"),
             type(EdgevilleDungeon.SHED_LADDER, "Ladder", "Climb-down"),
-            type(EdgevilleDungeon.OBOR_GATE_LEFT, "Gate", "Open"),
-            type(EdgevilleDungeon.OBOR_GATE_RIGHT, "Gate", "Open"),
+            type(Obor.ENTRANCE_LEFT, "Gate", "Open"),
+            type(Obor.ENTRANCE_RIGHT, "Gate", "Open"),
         ).associateBy { it.id },
     )
 
@@ -75,8 +77,8 @@ class HeadlessEdgevilleDungeonTest {
         ZoneLoc(EdgevilleDungeon.SHED_DOOR, LocShape.WALL_STRAIGHT, 3, 3115, 3450, 0),
         ZoneLoc(EdgevilleDungeon.SHED_LADDER, LocShape.CENTREPIECE_STRAIGHT, 3, 3116, 3452, 0),
         ZoneLoc(LumbridgeCastle.CELLAR_LADDER, LocShape.CENTREPIECE_STRAIGHT, 3, 3116, 9852, 0),
-        ZoneLoc(EdgevilleDungeon.OBOR_GATE_LEFT, LocShape.WALL_STRAIGHT, 0, 3095, 9832, 0),
-        ZoneLoc(EdgevilleDungeon.OBOR_GATE_RIGHT, LocShape.WALL_STRAIGHT, 0, 3095, 9833, 0),
+        ZoneLoc(Obor.ENTRANCE_LEFT, LocShape.WALL_STRAIGHT, 0, 3095, 9832, 0),
+        ZoneLoc(Obor.ENTRANCE_RIGHT, LocShape.WALL_STRAIGHT, 0, 3095, 9833, 0),
         // Made up: the trapdoor type somewhere else, where it climbs nowhere, and the gate type outside the middle.
         ZoneLoc(EdgevilleDungeon.TRAPDOOR, LocShape.GROUND_DECOR, 0, STRAY_X, 3468, 0),
         ZoneLoc(EdgevilleDungeon.GATE_LEFT, LocShape.WALL_STRAIGHT, 1, 3105, 9944, 0),
@@ -272,13 +274,13 @@ class HeadlessEdgevilleDungeonTest {
     }
 
     @Test
-    fun `a hill giant killed drops big bones, and Obor's gate stays shut`(@TempDir dir: Path) {
+    fun `a hill giant killed drops big bones, and Obor's gate is locked without a giant key`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("gus").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.tele(3096, 9832, 0)
-                client.locOp(EdgevilleDungeon.OBOR_GATE_LEFT, 3095, 9832, EdgevilleDungeon.OPEN)
-                client.seen(DialogueText.NONE[EdgevilleDungeonLines.OBOR_CLOSED])
+                client.locOp(Obor.ENTRANCE_LEFT, 3095, 9832, EdgevilleDungeon.OPEN)
+                client.seen(DialogueText.NONE[OborLines.GATE_LOCKED])
 
                 client.tele(GIANT_X - 1, GIANT_Z, 0)
                 client.commandReply("god") { it.startsWith("You can") }
