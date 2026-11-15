@@ -125,10 +125,6 @@ class HeadlessLavaMazeTest {
                 client.awaitAt(3018, 10249)
                 client.locOp(LavaMaze.MIDDLE_LADDER.bottom, 3017, 10249, LavaMaze.CLIMB)
                 client.awaitAt(3070, 3856)
-                // The lever is nothing interesting until the King Black Dragon's lair is built.
-                client.tele(3067, 10252)
-                client.locOp(KBD_LEVER, 3067, 10253, 1)
-                client.awaitMessage("nothing interesting") { it == "[game.nothing_interesting]" }
             }
         }
     }

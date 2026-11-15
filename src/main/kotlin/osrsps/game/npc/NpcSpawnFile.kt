@@ -60,6 +60,7 @@ object NpcSpawnFile {
         "fractured-archive-lobby.json",
         "mage-arena-bank.json",
         "scorpia-cave.json",
+        "kbd-lair.json",
         "rogues-den.json",
         "wizards-tower.json",
         "lumbridge-swamp-quest.json",
