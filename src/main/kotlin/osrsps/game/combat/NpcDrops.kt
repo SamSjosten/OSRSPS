@@ -29,11 +29,20 @@ data class DropItem(val type: ObjType, val min: Int, val max: Int) {
 
 /**
  * One line of a [DropTable]: [weight] of its slots give [item] (and [with] beside it, as the Wiki's lines that drop
- * several items together, the Sepulchre zombie's bones), or a roll on [table], or nothing when both are null.
+ * several items together, the Sepulchre zombie's bones), or a roll on [table], or nothing when both are null. A
+ * table's roll may give [tableCount] of what it lands on, as the chaos druid's "two herbs" line.
  */
-class DropSlot(val weight: Int, val item: DropItem? = null, val table: DropTable? = null, val with: List<DropItem> = emptyList()) {
+class DropSlot(
+    val weight: Int,
+    val item: DropItem? = null,
+    val table: DropTable? = null,
+    val with: List<DropItem> = emptyList(),
+    val tableCount: Int = 1,
+) {
     init {
         require(weight >= 1) { "A drop table line needs a weight, had $weight" }
+        require(tableCount >= 1) { "A table line gives at least one of what it rolls, had $tableCount" }
+        require(tableCount == 1 || table != null) { "Only a table line multiplies what it rolls" }
         require(item == null || table == null) { "A drop table line gives an item or a table, not both" }
         require(with.isEmpty() || item != null) { "Only an item line drops others with it" }
     }
@@ -60,7 +69,11 @@ class DropTable(val slots: Int, val lines: List<DropSlot>) {
         var left = random.nextInt(slots)
         for (line in lines) {
             left -= line.weight
-            if (left < 0) return line.table?.roll(random) ?: line.items
+            if (left < 0) {
+                val table = line.table ?: return line.items
+                val rolled = table.roll(random)
+                return if (line.tableCount == 1) rolled else rolled.map { DropItem(it.type, it.min * line.tableCount, it.max * line.tableCount) }
+            }
         }
         error("A draw of $slots slots landed on no line")
     }
@@ -172,7 +185,11 @@ class NpcDrops(
                             line["table"] != null -> {
                                 val name = line["table"]!!.jsonPrimitive.content
                                 if (name in missingItems) throw MissingItem("table $name has items the cache lacks")
-                                DropSlot(weight, table = shared[name] ?: throw IllegalArgumentException("no table called $name"))
+                                DropSlot(
+                                    weight,
+                                    table = shared[name] ?: throw IllegalArgumentException("no table called $name"),
+                                    tableCount = line["count"]?.jsonPrimitive?.int ?: 1,
+                                )
                             }
                             line["items"] != null -> {
                                 val items = line["items"]!!.jsonArray.map { item(it.jsonObject) }

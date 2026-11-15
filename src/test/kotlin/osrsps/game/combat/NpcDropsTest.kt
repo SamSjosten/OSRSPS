@@ -1061,6 +1061,61 @@ class NpcDropsTest {
         mapOf("bundle" to bundles).expect("bundle", 1.0, 256)
     }
 
+    @Test
+    fun `the Wilderness Edgeville Dungeon's chaos druids give one or two of a herb, the black demons one malicious ashes`() {
+        val names = listOf("chaos_druid", "earthwarrior", "thug", "black_demon2", "black_demon3", "black_demon5", "giantskeleton")
+        val wildTypes = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(2700 + i, name, internalName = name) }.toTypedArray())
+        val wild = NpcDrops.load(wildTypes, objTypes)
+        assertTrue(wild.warnings.all { it.startsWith("no NPC called") }, wild.warnings.toString())
+        fun def(name: String) = wild[wildTypes.find(name)!!]!!
+        for (name in names) assertEquals(128, def(name).table!!.slots, name)
+        val random = GameRandom(71)
+        fun expect(what: String, got: Int, weight: Double) {
+            val p = weight / 128
+            val mean = KILLS * p
+            val sigma = sqrt(KILLS * p * (1 - p))
+            assertTrue(abs(got - mean) <= 5 * sigma + 1, "$what: $got of $KILLS, expected about ${mean.toInt()}")
+        }
+        // The herb table 46/128: one herb 35/128, two of it 11/128 (OSRS Wiki, Chaos druid).
+        var one = 0
+        var two = 0
+        repeat(KILLS) {
+            val kill = def("chaos_druid").roll(random)
+            assertEquals("Bones", kill.first().type.name)
+            val herbs = kill.filter { it.type.name.startsWith("Grimy") }
+            assertTrue(herbs.size <= 1, kill.toString())
+            when (herbs.singleOrNull()?.count) { 1 -> one++; 2 -> two++ }
+        }
+        expect("one herb", one, 35.0)
+        expect("two herbs", two, 11.0)
+        // One set of malicious ashes a kill: the second is the Chasm of Fire's only.
+        for (name in listOf("black_demon2", "black_demon3", "black_demon5")) {
+            assertEquals(listOf(Triple("Malicious ashes", 1, 1)), def(name).always.map { Triple(it.type.name, it.min, it.max) }, name)
+        }
+        var herbs = 0
+        repeat(KILLS) {
+            val kill = def("black_demon3").roll(random)
+            assertEquals(listOf(1), kill.filter { it.type.name == "Malicious ashes" }.map { it.count })
+            if (kill.any { it.type.name.startsWith("Grimy") }) herbs++
+        }
+        expect("a black demon's herb", herbs, 23.0)
+        assertEquals(listOf("Bones"), def("thug").always.map { it.type.name })
+        assertEquals(emptyList(), def("earthwarrior").always)
+        assertEquals(listOf("Clue scroll (easy)" to 128), def("thug").tertiary.map { it.item.type.name to it.denominator })
+        var seeds = 0
+        repeat(KILLS) { if (def("earthwarrior").roll(random).any { it.type.name.endsWith("seed") }) seeds++ }
+        expect("an earth warrior's seed", seeds, 18.0)
+    }
+
+    @Test
+    fun `a table line with a count gives that many of what its table lands on, and only a table line takes one`() {
+        val guam = objTypes[199]!!
+        val herbs = DropTable(1, listOf(DropSlot(1, DropItem(guam, 1, 1))))
+        val doubled = DropTable(1, listOf(DropSlot(1, table = herbs, tableCount = 2)))
+        assertEquals(listOf(DropItem(guam, 2, 2)), doubled.roll(GameRandom(1)))
+        assertFailsWith<IllegalArgumentException> { DropSlot(1, DropItem(guam, 1, 1), tableCount = 2) }
+    }
+
     companion object {
         private const val KILLS = 10_000
     }
