@@ -15,11 +15,14 @@ object HunterLines : Lines("hunter", "Hunter") {
     val CAUGHT = line("caught", "the message on checking a trap that caught something", "creature")
     val INVESTIGATE = line("investigate", "Investigate on the player's own set bird snare")
     val INVESTIGATE_BOX = line("investigate_box", "Investigate on the player's own set box trap")
+    val INVESTIGATE_NET = line("investigate_net", "Investigate on the player's own set net trap or its young tree")
+    val NO_NET = line("no_net", "the message on Set-trap on a young tree with no net trap in the backpack")
+    val NET_LEVEL = line("net_level", "the message on Set-trap on a young tree below the Hunter level its salamander needs", "level")
 }
 
 /**
  * The Hunter skill: the trap engine ([Traps]) and the kinds of trap built so far. Hunter step 1: bird snares
- * ([BirdSnares]); step 2: box traps ([BoxTraps]). Hunter's areas are outside Misthalin; they are built where live has them and reached by ::tele.
+ * ([BirdSnares]); step 2: box traps ([BoxTraps]); step 3: net traps ([NetTraps]). Hunter's areas are outside Misthalin; they are built where live has them and reached by ::tele.
  */
 class Hunter(world: World, collision: CollisionMap) {
     val traps = Traps(world, collision)
@@ -27,6 +30,7 @@ class Hunter(world: World, collision: CollisionMap) {
     fun register() {
         traps.register(BirdSnares.KIND)
         traps.register(BoxTraps.KIND)
+        NetTraps.KINDS.forEach(traps::register)
     }
 
     /** Call once a tick, in the NPC phase before NPCs move. */

@@ -1114,4 +1114,19 @@ class NpcSpawnFileTest {
         assertTrue(of(2911).all { it.x in 2490..2560 && (it.z in 2880..2940 || it.z in 9280..9310) })
         assertTrue(result.spawns.all { it.wander == 4 && it.level == 0 && it.source.isNotBlank() })
     }
+
+    @Test
+    fun `Hunter step 3's salamanders are by their young trees`() {
+        val names = mapOf(2906 to "salamander_green", 2903 to "salamander_orange", 2904 to "salamander_red")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("hunter-net-traps.json"), types, "hunter-net-traps.json")
+        assertEquals(emptyList(), result.unknown)
+        fun of(id: Int) = result.spawns.filter { it.type.id == id }
+        assertEquals(listOf(35, 24, 15), listOf(of(2906).size, of(2903).size, of(2904).size))
+        // Canifis and Slepe; Uzer, the Necropolis and the Abalone Cliffs; Ourania and Charred Island.
+        assertTrue(of(2906).all { it.x in 3530..3710 && it.z in 3390..3460 })
+        assertTrue(of(2903).all { (it.x in 3400..3420 && it.z in 3070..3140) || (it.x in 3280..3290 && it.z in 2735..2745) || (it.x in 3115..3130 && it.z in 2520..2540) })
+        assertTrue(of(2904).all { (it.x in 2440..2480 && it.z in 3215..3255) || (it.x == 2644 && it.z == 2401) })
+        assertTrue(result.spawns.all { it.wander == 4 && it.level == 0 && it.source.isNotBlank() })
+    }
 }

@@ -58,10 +58,17 @@ class Creature(
 }
 
 /**
- * A kind of trap a player lays from an item: the [item] laid, its locs when set, failing and failed (with its Dismantle
- * and Reset ops), the player's animation while laying it, and the [creatures] it catches.
+ * What a trap shows: the [locs] it puts up, and the cache's locs it takes away while they stand ([hidden]): a net trap's
+ * young tree, under a caught salamander's net.
  */
-class TrapKind(
+class TrapLook(val locs: List<ZoneLoc>, val hidden: List<ZoneLoc> = emptyList())
+
+/**
+ * A kind of trap a player lays from an item: the [item] laid, its locs when set, failing and failed (with its Dismantle
+ * and Reset ops), the player's animation while laying it, and the [creatures] it catches. A net trap ([NetTraps]) is
+ * set on a young tree instead, and shows more than one loc.
+ */
+open class TrapKind(
     val name: String,
     val item: Int,
     val set: Int,
@@ -74,8 +81,25 @@ class TrapKind(
 ) {
     fun creature(npcType: Int): Creature? = creatures.firstOrNull { it.npc == npcType }
 
+    /** Whether the trap is laid from its item (Lay); false for one set on a loc, which registers that itself. */
+    open val laidFromItem: Boolean get() = true
+
+    /** The locs answering Dismantle and Investigate while the trap is set. */
+    open val setLocs: List<Int> get() = listOf(set)
+
+    /** The locs answering Dismantle and Reset once it has failed. */
+    open val brokenLocs: List<Int> get() = listOf(broken)
+
     /** Whether [locId] is one of this kind's locs, in any state. */
-    fun owns(locId: Int): Boolean = locId == set || locId == failing || locId == broken || creatures.any { locId == it.catching || locId == it.full || locId in it.catchingFrom }
+    open fun owns(locId: Int): Boolean =
+        locId in setLocs || locId == failing || locId in brokenLocs || creatures.any { locId == it.catching || locId == it.full || locId in it.catchingFrom }
+
+    /** What [trap] shows in [state], [locId] being the loc for it ([set], a creature's [Creature.full], ...): one loc on its tile. */
+    open fun look(trap: Trap, state: TrapState, locId: Int): TrapLook =
+        TrapLook(listOf(ZoneLoc(locId, LocShape.CENTREPIECE_STRAIGHT, 0, trap.x, trap.z, trap.level)))
+
+    /** Whether nothing on [x], [z], [level] is in the trap's way, [locs] holding what is there. */
+    open fun fits(locs: List<ZoneLoc>): Boolean = locs.isEmpty()
 }
 
 /** Where a laid trap is. */
@@ -97,10 +121,14 @@ enum class TrapState {
 }
 
 /**
- * A trap a player has laid. [stateTick] is when it entered [state]; [collapseTick] when it falls, a minute from its
- * laying and again from its catch or miss; [lured] the creature walking into it.
+ * A trap a player has laid on [x], [z], [level], the tile a creature steps onto to spring it. [anchor] is the cache loc
+ * it is set on (a net trap's young tree) and [rotation] the side of it the trap is on. [stateTick] is when it entered
+ * [state]; [collapseTick] when it falls, a minute from its laying and again from its catch or miss; [lured] the creature
+ * walking into it.
  */
-class Trap(val owner: String, val kind: TrapKind, var loc: ZoneLoc) {
+class Trap(val owner: String, val kind: TrapKind, val x: Int, val z: Int, val level: Int, val anchor: ZoneLoc? = null, val rotation: Int = 0) {
+    /** What it shows now. */
+    var look = TrapLook(emptyList())
     var state = TrapState.SET
     var stateTick = 0L
     var collapseTick = 0L
@@ -111,9 +139,9 @@ class Trap(val owner: String, val kind: TrapKind, var loc: ZoneLoc) {
     /** Where the lured creature last stood off the trap, for the side it steps in from. */
     var luredFromX = 0
     var luredFromZ = 0
-    val x: Int get() = loc.x
-    val z: Int get() = loc.z
-    val level: Int get() = loc.level
+
+    /** Its locs now. */
+    val locs: List<ZoneLoc> get() = look.locs
 }
 
 /**
@@ -151,20 +179,30 @@ class Traps(private val world: World, private val collision: CollisionMap) {
     /** The trap on [x], [z], [level], if any. */
     fun at(x: Int, z: Int, level: Int): Trap? = traps.firstOrNull { it.x == x && it.z == z && it.level == level }
 
+    /** The trap showing [loc], if any. */
+    fun showing(loc: ZoneLoc): Trap? = traps.firstOrNull { loc in it.locs }
+
     /** Every trap laid, for tests and commands. */
     val all: List<Trap> get() = traps
 
     /** Registers the Lay, Dismantle, Investigate, Check and Reset options of [kind]'s item and locs. */
     fun register(kind: TrapKind) {
-        val type = world.objTypes[kind.item]
-        val layHeld = type?.iops?.indexOfFirst { it == "Lay" }?.takeIf { it >= 0 }?.plus(1) ?: LAY_HELD
-        val layGround = type?.ops?.indexOfFirst { it == "Lay" }?.takeIf { it >= 0 }?.plus(1) ?: LAY_GROUND
-        world.handlers.onObj(kind.item, layHeld) { op -> layHeld(kind, op.sub) }
-        world.handlers.onGroundObj(kind.item, layGround) { op -> lay(kind, op.groundObj ?: return@onGroundObj, op.repeat, layGround) }
-        world.handlers.onLoc(kind.set, DISMANTLE) { op -> dismantle(kind, op.loc ?: return@onLoc, reset = false) }
-        world.handlers.onLoc(kind.set, INVESTIGATE) { op -> investigate(op.loc ?: return@onLoc) }
-        world.handlers.onLoc(kind.broken, DISMANTLE) { op -> dismantle(kind, op.loc ?: return@onLoc, reset = false) }
-        world.handlers.onLoc(kind.broken, RESET) { op -> dismantle(kind, op.loc ?: return@onLoc, reset = true) }
+        if (kind.laidFromItem) {
+            val type = world.objTypes[kind.item]
+            val layHeld = type?.iops?.indexOfFirst { it == "Lay" }?.takeIf { it >= 0 }?.plus(1) ?: LAY_HELD
+            val layGround = type?.ops?.indexOfFirst { it == "Lay" }?.takeIf { it >= 0 }?.plus(1) ?: LAY_GROUND
+            world.handlers.onObj(kind.item, layHeld) { op -> layHeld(kind, op.sub) }
+            world.handlers.onGroundObj(kind.item, layGround) { op -> lay(kind, op.groundObj ?: return@onGroundObj, op.repeat, layGround) }
+        }
+        if (kind is NetTrapKind) world.handlers.onLoc(kind.tree, SET_TRAP) { op -> setTrap(kind, op.loc ?: return@onLoc) }
+        for (set in kind.setLocs) {
+            world.handlers.onLoc(set, DISMANTLE) { op -> dismantle(kind, op.loc ?: return@onLoc, reset = false) }
+            world.handlers.onLoc(set, INVESTIGATE) { op -> investigate(op.loc ?: return@onLoc) }
+        }
+        for (broken in kind.brokenLocs) {
+            world.handlers.onLoc(broken, DISMANTLE) { op -> dismantle(kind, op.loc ?: return@onLoc, reset = false) }
+            world.handlers.onLoc(broken, RESET) { op -> dismantle(kind, op.loc ?: return@onLoc, reset = true) }
+        }
         for (full in kind.creatures.map { it.full }.distinct()) {
             world.handlers.onLoc(full, CHECK) { op -> dismantle(kind, op.loc ?: return@onLoc, reset = false) }
             world.handlers.onLoc(full, RESET) { op -> dismantle(kind, op.loc ?: return@onLoc, reset = true) }
@@ -275,16 +313,31 @@ class Traps(private val world: World, private val collision: CollisionMap) {
     }
 
     private fun change(trap: Trap, state: TrapState, locId: Int) {
-        val replaced = world.locs.replace(trap.loc, locId)
-        if (replaced == null) {
-            // Something else took the tile; the trap is gone.
+        if (trap.locs.any { !world.locs.exists(it) }) {
+            // Something else took a tile; the trap is gone.
             traps.remove(trap)
             release(trap)
             return
         }
-        trap.loc = replaced
+        show(trap, state, locId)
         trap.state = state
         trap.stateTick = world.tick
+    }
+
+    /** Takes down what [trap] shows and puts up its look for [state]. */
+    private fun show(trap: Trap, state: TrapState, locId: Int) {
+        clear(trap)
+        val look = trap.kind.look(trap, state, locId)
+        for (hidden in look.hidden) world.locs.remove(hidden)
+        for (loc in look.locs) world.locs.add(loc)
+        trap.look = look
+    }
+
+    /** Puts every tile [trap] touched back as the cache has it: bare, or its young tree. */
+    private fun clear(trap: Trap) {
+        for (loc in trap.look.locs) if (world.locs.exists(loc)) world.locs.restore(loc.x, loc.z, loc.level, loc.layer)
+        for (hidden in trap.look.hidden) if (world.locs[hidden.x, hidden.z, hidden.level, hidden.layer] == null) world.locs.restore(hidden.x, hidden.z, hidden.level, hidden.layer)
+        trap.look = TrapLook(emptyList())
     }
 
     /**
@@ -311,7 +364,7 @@ class Traps(private val world: World, private val collision: CollisionMap) {
     private fun remove(trap: Trap) {
         traps.remove(trap)
         release(trap)
-        world.locs.remove(trap.loc)
+        clear(trap)
     }
 
     /** Forgets the traps on the tiles where [inside] holds (an instance ending), so none acts there later. */
@@ -355,25 +408,25 @@ class Traps(private val world: World, private val collision: CollisionMap) {
         world.repeatOp(player, Op(OpTarget.GROUND_OBJ, obj.id, option, groundObj = obj, repeat = true))
     }
 
-    /** Puts [player]'s trap of [kind] up on [x], [z], [level]. */
-    private fun ScriptContext.stand(kind: TrapKind, x: Int, z: Int, level: Int) {
-        val loc = ZoneLoc(kind.set, LocShape.CENTREPIECE_STRAIGHT, 0, x, z, level)
-        world.locs.add(loc)
-        traps += Trap(player.saveKey, kind, loc).also {
-            it.stateTick = tick
-            it.collapseTick = tick + TRAP_TICKS
-        }
+    /** Puts [player]'s trap of [kind] up on [x], [z], [level], set on [anchor] (on its [rotation] side) if it has one. */
+    private fun ScriptContext.stand(kind: TrapKind, x: Int, z: Int, level: Int, anchor: ZoneLoc? = null, rotation: Int = 0) {
+        val trap = Trap(player.saveKey, kind, x, z, level, anchor, rotation)
+        show(trap, TrapState.SET, kind.set)
+        trap.stateTick = tick
+        trap.collapseTick = tick + TRAP_TICKS
+        traps += trap
     }
 
-    /** Whether [player] may lay [kind] on [x], [z], telling them why not. */
-    private fun ScriptContext.canLay(kind: TrapKind, x: Int, z: Int, level: Int): Boolean {
+    /** Whether [player] may lay [kind] on [x], [z], set on [anchor] if it has one, telling them why not. */
+    private fun ScriptContext.canLay(kind: TrapKind, x: Int, z: Int, level: Int, anchor: ZoneLoc? = null): Boolean {
         val hunter = player.skills.currentLevel(Skill.HUNTER)
         val max = maxTrapsAt(hunter)
         if (of(player.saveKey).size >= max) {
             world.message(player, HunterLines.TOO_MANY, "count" to max)
             return false
         }
-        val occupied = world.locs.at(x, z, level).isNotEmpty() || world.locs.reverting(x, z, level)
+        val occupied = !kind.fits(world.locs.at(x, z, level)) || world.locs.reverting(x, z, level) ||
+            (anchor != null && (!world.locs.exists(anchor) || world.locs.reverting(anchor.x, anchor.z, anchor.level)))
         // Ours: an instance's locs answer only the ones it lets through, so a trap there could never be taken down.
         if (occupied || world.instances.inDynamicArea(x, z) || collision[x, z, level] and CollisionFlag.BLOCK_WALK != 0) {
             world.message(player, HunterLines.CANT_HERE)
@@ -383,12 +436,38 @@ class Traps(private val world: World, private val collision: CollisionMap) {
     }
 
     /**
+     * Set-trap on a young tree: the net goes on the player's tile beside it, so they must stand square to one of its
+     * sides. The tree bends while the player sets it, and the trap stands on the skill clock's fourth tick, the net
+     * trap leaving the backpack only then, so a trap cut short loses nothing and the tree springs back by itself.
+     */
+    private suspend fun ScriptContext.setTrap(kind: NetTrapKind, tree: ZoneLoc) {
+        val rotation = NetTrapKind.sideOf(player.x - tree.x, player.z - tree.z) ?: return world.message(player, HunterLines.CANT_HERE)
+        if (player.inventory.count(kind.item) == 0L) return world.message(player, HunterLines.NO_NET)
+        if (player.skills.currentLevel(Skill.HUNTER) < kind.level) return world.message(player, HunterLines.NET_LEVEL, "level" to kind.level)
+        val x = player.x
+        val z = player.z
+        if (!canLay(kind, x, z, player.level, tree)) return
+        player.anim(kind.layAnim)
+        world.message(player, HunterLines.LAYING)
+        world.locs.replace(tree, kind.setting, revertAfter = LAY_TICKS + 1)
+        player.actionDelay = tick + LAY_TICKS - 1
+        delay(LAY_TICKS - 1)
+        val bent = world.locs.find(kind.setting, tree.x, tree.z, tree.level) ?: return
+        world.locs.restore(bent.x, bent.z, bent.level, bent.layer)
+        if (!canLay(kind, x, z, tree.level, tree)) return
+        val slot = player.inventory.contents().firstOrNull { it.second.id == kind.item }?.first ?: return world.message(player, HunterLines.NO_NET)
+        if (player.inventory.remove(slot, 1) != 1) return
+        stand(kind, x, z, tree.level, tree, rotation)
+        stepOff(player, x, z)
+    }
+
+    /**
      * Dismantle on a set or failed trap, Check on a full one, and Reset on either: only its owner may. The trap and
      * what it caught come off at once and the player stands 3 ticks; with [reset] a new trap is laid where it stood.
      * While a reset waits, the trap's item lies on its tile, the owner's, so a death or a cut-off script loses nothing.
      */
     private suspend fun ScriptContext.dismantle(kind: TrapKind, loc: ZoneLoc, reset: Boolean) {
-        val trap = at(loc.x, loc.z, loc.level)?.takeIf { it.loc == loc } ?: return
+        val trap = showing(loc) ?: return
         if (trap.owner != player.saveKey) return world.message(player, HunterLines.NOT_YOURS)
         val item = world.objTypes[kind.item] ?: return
         val creature = trap.creature.takeIf { trap.state == TrapState.FULL }
@@ -417,13 +496,13 @@ class Traps(private val world: World, private val collision: CollisionMap) {
                 osrsps.game.GroundObjs.DROP_PRIVATE_TICKS, osrsps.game.GroundObjs.DROP_DESPAWN_TICKS,
             )
             delay(PICK_UP_TICKS)
-            if (canLay(kind, trap.x, trap.z, trap.level)) {
+            if (canLay(kind, trap.x, trap.z, trap.level, trap.anchor)) {
                 player.anim(kind.layAnim)
                 world.message(player, HunterLines.LAYING)
                 player.actionDelay = tick + LAY_TICKS - 1
                 delay(LAY_TICKS - 1)
-                if (at(trap.x, trap.z, trap.level) == null && canLay(kind, trap.x, trap.z, trap.level) && world.groundObjs.useOne(player, obj)) {
-                    stand(kind, trap.x, trap.z, trap.level)
+                if (at(trap.x, trap.z, trap.level) == null && canLay(kind, trap.x, trap.z, trap.level, trap.anchor) && world.groundObjs.useOne(player, obj)) {
+                    stand(kind, trap.x, trap.z, trap.level, trap.anchor, trap.rotation)
                     stepOff(player, trap.x, trap.z)
                     return
                 }
@@ -449,7 +528,7 @@ class Traps(private val world: World, private val collision: CollisionMap) {
     }
 
     private fun ScriptContext.investigate(loc: ZoneLoc) {
-        val trap = at(loc.x, loc.z, loc.level)?.takeIf { it.loc == loc } ?: return
+        val trap = showing(loc) ?: return
         world.message(player, if (trap.owner == player.saveKey) trap.kind.investigate else HunterLines.NOT_YOURS)
     }
 
@@ -511,6 +590,9 @@ class Traps(private val world: World, private val collision: CollisionMap) {
         const val CHECK = 1
         const val INVESTIGATE = 2
         const val RESET = 2
+
+        /** The young tree's op1. */
+        const val SET_TRAP = 1
 
         /** The item's own ops when the type doesn't say (tests): iop1 Lay, ground op4 Lay. */
         const val LAY_HELD = 1
