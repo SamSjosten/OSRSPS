@@ -332,6 +332,10 @@ class Player(
     var attackedBy: Npc? = null
     var attackedTick: Long = -1
 
+    /** The player that hit them last, and the tick they did; see [osrsps.game.combat.PvpMelee]. Not saved. */
+    var attackedByPlayer: Player? = null
+    var attackedByPlayerTick: Long = -1
+
     /**
      * The NPC they last attacked (swung at, fired or cast on, or hit), and the tick they did; see
      * [osrsps.game.combat.MeleeCombat.fightingAnother]. Not saved.

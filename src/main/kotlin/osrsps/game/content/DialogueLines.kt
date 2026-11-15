@@ -53,6 +53,7 @@ import osrsps.game.skill.ThievingLines
 import osrsps.game.skill.ThievingLockLines
 import osrsps.game.skill.WoodcuttingLines
 import osrsps.game.skill.farming.FarmingLines
+import osrsps.game.skill.hunter.HunterLines
 import osrsps.game.skill.farming.GardenerLines
 import osrsps.game.skill.farming.NoteLines
 import osrsps.game.skill.farming.ToolStoreLines
@@ -246,6 +247,7 @@ object DialogueLines {
         HamStoreroomsLines,
         ToolStoreLines,
         FarmingLines,
+        HunterLines,
         GardenerLines,
         NoteLines,
         ToolLeprechaunLines,

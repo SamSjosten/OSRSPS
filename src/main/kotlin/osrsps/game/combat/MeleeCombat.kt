@@ -901,6 +901,16 @@ class MeleeCombat(
     /** Magic and ranged NPC shots on their way, for tests. */
     val shotsInFlight: Int get() = shots.size
 
+    /**
+     * The shots [npc] has on their way land nowhere: for a fight a test command ends with its boss still up (`::raid
+     * clear`), which would otherwise land a shot fired a tick or two before on a player whose `::god` is off by then
+     * (nightly 2026-11-15: archive-guardian-entrance's Guardian shot killing test2 the tick after the clear). A shot from
+     * an NPC that dies in play still lands, as the class note says.
+     */
+    fun dropShotsFrom(npc: Npc) {
+        shots.removeAll { it.npc === npc }
+    }
+
     /** Whether [player] is further than [CHASE_RANGE] from [npc]'s spawn on either axis; never for an unleashed one. */
     private fun outOfRange(npc: Npc, player: Player): Boolean =
         !npc.unleashed && (abs(player.x - npc.spawn.x) > CHASE_RANGE || abs(player.z - npc.spawn.z) > CHASE_RANGE)
@@ -912,14 +922,7 @@ class MeleeCombat(
      */
     fun hitPlayer(player: Player, source: Npc?, damage: Int, tick: Long): Int {
         if (player.hitpoints <= 0 || player.dead) return 0
-        val dealt = if (player.god) 0 else damage.coerceIn(0, player.hitpoints)
-        player.hitpoints -= dealt
-        val from = source?.index ?: -1
-        if (dealt > 0) player.effects.hit(from, HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER, HitsplatType.DAMAGE_OTHER, dealt)
-        else player.effects.hit(from, HitsplatType.BLOCK_ME, HitsplatType.BLOCK_OTHER, HitsplatType.BLOCK_OTHER, 0)
-        player.effects.headBar(from, HEALTH_BAR, healthBarFill(player.hitpoints, player.skills.baseLevel(Skill.HITPOINTS)))
-        // The NPC phase comes before the player's own swing, which overwrites this (guessed: the swing wins).
-        if (player.effects.anim == null) player.effects.anim(combat.anims(player).defend, 0)
+        val dealt = hurt(player, source?.index ?: -1, damage)
         if (source != null) {
             player.attackedBy = source
             player.attackedTick = tick
@@ -932,6 +935,39 @@ class MeleeCombat(
         if (source != null && player.autoRetaliate && player.interaction == null && !player.modalOpen && tick >= player.stunnedUntil) {
             retaliate(player, source, tick)
         }
+        return dealt
+    }
+
+    /**
+     * [player] takes [damage] from another player, [attacker] ([PvpMelee]), as [hitPlayer] takes an NPC's: the hitsplat
+     * (the max hit one is not shown to the attacker yet, guessed), health bar, block animation, death and Redemption.
+     * Who hit them is noted for [Player.attackedByPlayer]; fighting back is [PvpMelee]'s. Returns the damage dealt.
+     */
+    fun hitPlayerBy(player: Player, attacker: Player, damage: Int, tick: Long): Int {
+        if (player.hitpoints <= 0 || player.dead) return 0
+        // The attacker sees their own hit's variant, as on an NPC; onlookers the other one.
+        val dealt = hurt(player, NpcEffects.PLAYER_SOURCE + attacker.index, damage, sourceSees = true)
+        player.attackedByPlayer = attacker
+        player.attackedByPlayerTick = tick
+        if (player.hitpoints <= 0) died(player) else redemption(player)
+        return dealt
+    }
+
+    /**
+     * Takes [damage] off [player], capped and 0 under `::god`, with the hitsplat from [from] and their block animation;
+     * [sourceSees] gives a player source their own hit's variant.
+     */
+    private fun hurt(player: Player, from: Int, damage: Int, sourceSees: Boolean = false): Int {
+        val dealt = if (player.god) 0 else damage.coerceIn(0, player.hitpoints)
+        player.hitpoints -= dealt
+        if (dealt > 0) {
+            player.effects.hit(from, HitsplatType.DAMAGE_ME, if (sourceSees) HitsplatType.DAMAGE_ME else HitsplatType.DAMAGE_OTHER, HitsplatType.DAMAGE_OTHER, dealt)
+        } else {
+            player.effects.hit(from, HitsplatType.BLOCK_ME, if (sourceSees) HitsplatType.BLOCK_ME else HitsplatType.BLOCK_OTHER, HitsplatType.BLOCK_OTHER, 0)
+        }
+        player.effects.headBar(from, HEALTH_BAR, healthBarFill(player.hitpoints, player.skills.baseLevel(Skill.HITPOINTS)))
+        // The NPC phase comes before the player's own swing, which overwrites this (guessed: the swing wins).
+        if (player.effects.anim == null) player.effects.anim(combat.anims(player).defend, 0)
         return dealt
     }
 
@@ -1047,6 +1083,7 @@ class MeleeCombat(
         stopFacing(player)
         for (npc in npcs.all) if (npc.target === player) giveUp(npc)
         player.attackedBy = null
+        player.attackedByPlayer = null
     }
 
     /**

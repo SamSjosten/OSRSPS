@@ -51,6 +51,8 @@ class Grave(
     val items: Inventory = Inventory(Deaths.GRAVE_INV, Deaths.GRAVE_CAPACITY),
     /** Where it counts as made, for its fee: `gravestone_creation_death_coord` (level shl 28 or x shl 14 or z). */
     val coord: Int = -1,
+    /** Raised while its owner was in a `::scenario`, so it holds the scenario's items and goes with it ([Deaths.dropScenarioGrave]). */
+    val scenario: Boolean = false,
 ) {
     /** Ticks until it collapses; counts down only while the owner is logged in and nobody has it open. */
     var ticksLeft: Int = Deaths.GRAVE_TICKS
@@ -384,7 +386,7 @@ class Deaths(
     private fun raise(player: Player, x: Int, z: Int, level: Int, coord: Int): Grave? {
         val type = graveType ?: return null
         val npc = spawnNpc(NpcSpawn(type, x, z, level, source = "${player.username}'s death")) ?: return null
-        val grave = Grave(player.saveKey, npc, coord = coord)
+        val grave = Grave(player.saveKey, npc, coord = coord, scenario = player.scenario != null)
         graves[npc] = grave
         return grave
     }
@@ -403,7 +405,7 @@ class Deaths(
                 logger.warn { "No room to move ${grave.owner}'s grave to $x, $z, $level: ${grave.items.contents().size} slots lost" }
                 continue
             }
-            graves[npc] = Grave(grave.owner, npc, grave.items, grave.coord).also {
+            graves[npc] = Grave(grave.owner, npc, grave.items, grave.coord, grave.scenario).also {
                 it.ticksLeft = grave.ticksLeft
                 it.merged = grave.merged
                 it.paid = grave.paid
@@ -414,6 +416,19 @@ class Deaths(
     private fun closeViewers(grave: Grave) {
         viewing.values.removeIf { it === grave }
         for (viewer in players()) if (viewing[viewer.saveKey] == null && hasOpen(viewer)) closeModals(viewer)
+    }
+
+    /**
+     * [player]'s grave goes, with no word, if a `::scenario` raised it: a test script that died part way (and so never
+     * got its `::reset` in) leaves no grave for the next, whose own death would be added to it as a merged grave's and
+     * lose a content's discount (nightly 2026-11-15: archive-raid-death-costs paid 500 for 125 after
+     * archive-guardian-entrance's death). A grave from before the scenario holds the player's own items and stays.
+     */
+    fun dropScenarioGrave(player: Player) {
+        val grave = graveOf(player)?.takeIf { it.scenario } ?: return
+        graves.remove(grave.npc)
+        removeNpc(grave.npc)
+        closeViewers(grave)
     }
 
     /** The grave falls: its NPC goes and its contents with it (Death's Office isn't built), and the owner is told. */

@@ -20,6 +20,7 @@ import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.SeqNames
+import osrsps.game.Skill
 import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.combat.Deaths
@@ -791,6 +792,43 @@ class HeadlessArchiveGuardianTest {
                 )
                 server.world.encounters.stop(fight)
                 alice.await("the inert guardians gone with the fight") { if (batteries.none { server.world.npcs[it.index] === it }) Unit else null }
+            }
+        }
+    }
+
+    @Test
+    fun `raid clear mid fight leaves no shot of the Guardian's to land after it`(@TempDir dir: Path) {
+        server(dir, batteries = true).use { server ->
+            server.login("alice").use { alice ->
+                alice.await("the login rebuild") { alice.position }
+                alice.commandReply("god on") { it.startsWith("You can't be hurt") }
+                alice.tele(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z)
+                alice.locOp(ArchiveRaids.ARCHIVE_DOOR, 4123, 5562, ArchiveRaids.ENTER)
+                alice.await("into the instance") { alice.position?.takeIf { server.world.instances.inDynamicArea(it.x, it.z) } }
+                val world = server.world
+                val player = world.playerNamed("alice")!!
+                val run: ArchiveRun = assertNotNull(world.parties.of(player)?.let(world.archiveRaids::of))
+                alice.commandReply("raid tp guardian") { it.startsWith("To ") }
+                val waiting = alice.await("the waiting Guardian in view") { alice.npcs().firstOrNull { it.id == ArchiveGuardian.DORMANT } }
+                alice.npcOp(waiting.index, ArchiveGuardian.TOUCH)
+                alice.awaitDialogue("the Guardian's menu") { it is DialogueView.Menu }
+                alice.chooseOption(1)
+                alice.await("its fight") { run.fights[ArchiveRoom.GUARDIAN] }
+                // The clock stopped and stepped to a tick with the Guardian's shot on its way to her.
+                alice.commandReply("pause") { it.startsWith("Paused") }
+                var stepped = 0
+                while (world.meleeCombat.shotsInFlight == 0) {
+                    assertTrue(stepped++ < 20, "no shot of the Guardian's in 20 ticks")
+                    alice.stepTicks(1)
+                }
+                // As archive-guardian-entrance ends (nightly 2026-11-15): the room cleared, then ::god off, with the
+                // shot not yet landed; it goes with the fight, so a 10-hitpoint player isn't killed by it.
+                alice.commandReply("raid clear") { it.startsWith("Cleared") || it.startsWith("You") }
+                assertEquals(0, world.meleeCombat.shotsInFlight)
+                alice.commandReply("god off") { it.startsWith("You can be hurt") }
+                alice.stepTicks(10)
+                assertEquals(player.skills.baseLevel(Skill.HITPOINTS), player.hitpoints)
+                assertTrue(!player.dead)
             }
         }
     }

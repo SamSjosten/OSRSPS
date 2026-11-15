@@ -2,6 +2,7 @@ package osrsps.game
 
 import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
 import net.rsprot.protocol.message.OutgoingGameMessage
+import osrsps.game.combat.PvpInteraction
 import osrsps.game.trade.TradeInteraction
 import osrsps.map.Tile
 import kotlin.math.abs
@@ -124,6 +125,8 @@ class Follows(
             is FollowInteraction -> interaction.target
             // Trade with turns the player to who they walk up to, and stops once anything else replaces it.
             is TradeInteraction -> interaction.target
+            // A fight with a player turns the attacker to them for as long as it lasts.
+            is PvpInteraction -> interaction.target
             else -> null
         }
         if (target === player.sentFacePlayer) return

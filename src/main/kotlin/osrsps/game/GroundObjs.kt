@@ -187,6 +187,10 @@ class GroundObjs(
     }
 
     /** Whether [owner] dropping [count] of [type] on the tile stays within [MAX_PER_TILE]. */
+    /** Whether [count] of [type], [owner]'s, fits on a tile without [makeRoom] taking anything off it, as [addPrivate] would put it. */
+    fun fits(type: ObjType, count: Int, x: Int, z: Int, level: Int, owner: String): Boolean =
+        fitsOnTile(type, count, x, z, level, owner, !type.tradeable)
+
     private fun fitsOnTile(type: ObjType, count: Int, x: Int, z: Int, level: Int, owner: String, neverPublic: Boolean): Boolean {
         if (stackFor(type, count, x, z, level, owner, neverPublic) != null) return true
         return zones.objsAt(x, z, level).size + (if (type.stackable) 1 else count) <= MAX_PER_TILE
@@ -236,6 +240,30 @@ class GroundObjs(
         if (!zones.removeObj(obj)) return false
         timed -= obj
         spawned.remove(obj)?.let { respawns += Respawn(it, respawnDelay(it)) }
+        return true
+    }
+
+    /**
+     * Uses one of [obj] where it lies for [player], as laying a trap from the floor does: like [take], it must still be
+     * there for them, and a drop another player put down counts as handed over ([handedOver] saves the dropper). The
+     * raid's supply count ([taken]) doesn't apply: nothing is used where it lies in an instance.
+     */
+    fun useOne(player: Player, obj: ZoneObj): Boolean {
+        if (!zones.hasObj(obj) || !obj.visibleTo(player.saveKey)) return false
+        val dropper = obj.droppedBy
+        if (!removeOne(obj)) return false
+        if (dropper != null && dropper != player.saveKey) handedOver(player, dropper)
+        return true
+    }
+
+    /**
+     * Takes one of [obj] off the ground: the whole obj when it is the last, else one off its stack (a Hunter trap laid
+     * from a stack its owner dropped there). Returns false if it was already gone.
+     */
+    fun removeOne(obj: ZoneObj): Boolean {
+        if (!zones.hasObj(obj)) return false
+        if (obj.count <= 1) return remove(obj)
+        zones.setObjCount(obj, obj.count - 1)
         return true
     }
 
