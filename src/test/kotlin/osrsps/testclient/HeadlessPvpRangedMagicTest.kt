@@ -49,6 +49,8 @@ class HeadlessPvpRangedMagicTest {
         Blowpipe.LOADED, "Toxic blowpipe", iops = listOf(null, "Wield", "Check", "Unload", "Uncharge"), wearpos1 = WearPos.WEAPON,
         params = mapOf(4 to 30, 12 to 20, 14 to 3), internalName = "toxic_blowpipe_loaded", category = 24,
     )
+    // Not the real longbow's speed: a test bow of speed 5, whose rapid speed is even.
+    private val longbow = ObjType(LONGBOW, "Longbow", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, params = mapOf(4 to 8, 14 to 5), internalName = "longbow", category = 64)
     private val darts = ObjType(DRAGON_DART, "Dragon dart", stackable = true, params = mapOf(12 to 35), internalName = "dragon_dart")
     private val runes = listOf(
         Triple(AIR, "Air rune", "airrune"), Triple(FIRE, "Fire rune", "firerune"), Triple(MIND, "Mind rune", "mindrune"),
@@ -80,7 +82,7 @@ class HeadlessPvpRangedMagicTest {
             for (sz in (3456 shr 6)..(3967 shr 6)) markLoaded(3090 shr 6, sz)
         }
         val objs = arrayOfNulls<ObjType>(Blowpipe.LOADED + 1)
-        for (type in runes + listOf(shortbow, arrows, fireStrike, barrage, blowpipe, darts)) objs[type.id] = type
+        for (type in runes + listOf(shortbow, longbow, arrows, fireStrike, barrage, blowpipe, darts)) objs[type.id] = type
         val objTypes = ObjTypes(objs)
         World(
             crcs, map, random = GameRandom(9), objTypes = objTypes,
@@ -221,6 +223,68 @@ class HeadlessPvpRangedMagicTest {
     }
 
     @Test
+    fun `a freeze breaks when its caster logs out`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("yves").use { a ->
+                server.login("zora").use { b ->
+                    a.await("the login rebuild") { a.position }
+                    a.commandReply("setlevel magic 94") { true }
+                    a.commandReply("spellbook ancient") { it == "Your spellbook is ancient now." }
+                    a.give(WATER, 6)
+                    a.give(BLOOD, 2)
+                    a.give(DEATH, 4)
+                    a.commandReply("sure") { it.startsWith("Your attacks") }
+                    pair(a, b)
+                    val zora = server.world.playerNamed("zora")!!
+
+                    a.playerTarget(b.index, Spells.SPELLBOOK, ICE_BARRAGE)
+                    b.await("the freeze") { Unit.takeIf { zora.freezeTicks > 0 } }
+                    // Codex review on #708: a caster who leaves the world breaks the freeze (OSRS Wiki, Free-to-play PvP
+                    // techniques), well before Ice Barrage's 32 ticks run out.
+                    a.awaitTicks(MagicCombat.SPEED)
+                    a.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+                    a.await("the logout") { a.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+                    b.await("the freeze broken") { Unit.takeIf { zora.freezeTicks == 0 } }
+                    assertTrue(zora.freezeImmunityTicks in 1..PvpCombat.FREEZE_IMMUNITY_TICKS)
+                    b.walk(3095, Z + 5)
+                    b.await("walking again") { b.position?.takeIf { it.z > Z } }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `auto retaliate times the next shot from the rapid speed, and a blowpipe's a tick slower`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("abel").use { b ->
+                b.await("the login rebuild") { b.position }
+                b.command("item $LONGBOW")
+                b.itemOp(LONGBOW, WIELD)
+                b.command("item $BRONZE_ARROW $ARROWS")
+                b.itemOp(BRONZE_ARROW, WIELD)
+                b.await("the arrows worn") { b.inventory(WORN).getOrNull(WearPos.AMMO)?.takeIf { it.count == ARROWS } }
+                val abel = server.world.playerNamed("abel")!!
+                val pvp = server.world.pvpCombat
+                // Codex review on #708: auto retaliate halves the speed the next attack really has (OSRS Wiki, Auto
+                // Retaliate). The test bow's speed is 5, so 4 on rapid: 2 ticks to the first shot back, not 3.
+                b.await("the bow on accurate") { pvp.interval(abel)?.takeIf { it == 5 } }
+                b.command("varp 43 1")
+                b.await("the bow on rapid") { pvp.interval(abel)?.takeIf { it == 4 } }
+
+                b.command("item ${Blowpipe.LOADED}")
+                b.itemOp(Blowpipe.LOADED, WIELD)
+                abel.charges[Blowpipe.DART_TYPE] = DRAGON_DART
+                abel.charges[Blowpipe.DARTS] = 100
+                abel.charges[Blowpipe.SCALES] = 1_000
+                b.command("varp 43 0")
+                b.await("the blowpipe on accurate: 3, a tick more at a player") { pvp.interval(abel)?.takeIf { it == 4 } }
+                b.command("varp 43 1")
+                b.await("the blowpipe on rapid") { pvp.interval(abel)?.takeIf { it == 3 } }
+            }
+        }
+    }
+
+    @Test
     fun `a blowpipe shoots a player a tick slower than a monster`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("walt").use { a ->
@@ -251,6 +315,7 @@ class HeadlessPvpRangedMagicTest {
         const val Z = 3800
         const val DRAGON_DART = 11230
         const val SHORTBOW = 841
+        const val LONGBOW = 839
         const val BRONZE_ARROW = 882
         const val ARROWS = 100
         const val FIRE_STRIKE = 19

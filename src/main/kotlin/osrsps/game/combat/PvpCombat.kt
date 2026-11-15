@@ -314,13 +314,16 @@ class PvpCombat(
     /**
      * At the start of the tick: [player]'s freeze counts down, breaking once they are more than [FREEZE_BREAK_DISTANCE]
      * tiles from who cast it on either axis (the Wiki: only x and y count, not the plane); then the immunity counts
-     * down. Guessed: a caster who left the world keeps the freeze on to its end.
+     * down. A caster who left the world breaks it at once.
      */
     fun countDown(player: Player) {
         if (player.freezeTicks > 0) {
             val caster = player.frozenBy
-            val apart = caster != null && inWorld(caster) &&
-                maxOf(abs(caster.x - player.x), abs(caster.z - player.z)) > FREEZE_BREAK_DISTANCE
+            // A caster who left the world is as far away as can be: the freeze breaks (OSRS Wiki, Free-to-play PvP
+            // techniques: logging out unfreezes the target).
+            val apart = caster != null && (
+                !inWorld(caster) || maxOf(abs(caster.x - player.x), abs(caster.z - player.z)) > FREEZE_BREAK_DISTANCE
+                )
             player.freezeTicks = if (apart) 0 else player.freezeTicks - 1
             if (player.freezeTicks == 0) {
                 player.frozenBy = null
@@ -343,9 +346,22 @@ class PvpCombat(
     private fun retaliate(player: Player, attacker: Player, tick: Long) {
         if (!player.autoRetaliate || player.interaction != null || player.modalOpen || tick < player.stunnedUntil) return
         if (!inWorld(attacker) || attacker.dead || PvpRules.refusal(player, attacker).isNotEmpty()) return
-        mode(player, null) ?: return
+        val mode = mode(player, null) ?: return
         player.interaction = PvpInteraction(attacker, null, this)
-        player.nextAttackTick = maxOf(tick + (combat.attackSpeed(player) + 1) / 2, player.attackLockedUntil)
+        player.nextAttackTick = maxOf(tick + (interval(player, mode) + 1) / 2, player.attackLockedUntil)
+    }
+
+    /**
+     * The ticks between [player]'s attacks in [mode], as their next attack would be timed: the style's speed, a tick
+     * fewer on rapid with a ranged weapon and a tick more for a blowpipe at a player (OSRS Wiki, Ranged; Attack speed).
+     */
+    /** The ticks between [player]'s attacks with what they wear, as auto retaliate times them; null if they can't fight. */
+    internal fun interval(player: Player): Int? = mode(player, null)?.let { interval(player, it) }
+
+    private fun interval(player: Player, mode: Mode): Int {
+        val weapon = mode.weapon ?: return combat.attackSpeed(player)
+        val rapid = combat.style(player).stance == AttackStance.RAPID
+        return combat.attackSpeed(player) - (if (rapid) 1 else 0) + (if (weapon.loaded) BLOWPIPE_PVP_SLOWER else 0)
     }
 
     companion object {
