@@ -967,8 +967,9 @@
   },
   {
    "step": "walk",
-   "x": 3290,
-   "y": 3382
+   "x": 3291,
+   "y": 3382,
+   "comment": "a tile east of the fence: 242 has a stone wall on 3290,3382 (215, 15 Nov); 3291 is clear in the 241 map, and is guessed clear in 242"
   },
   {
    "step": "walk",

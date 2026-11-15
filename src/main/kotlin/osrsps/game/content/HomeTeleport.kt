@@ -132,7 +132,8 @@ class HomeTeleport(
 
     /** Stage [elapsed] ticks into [cast], started on tick [started]; queues the next tick's. */
     private fun ScriptContext.step(cast: Cast, started: Long, elapsed: Int) {
-        if (player.attackedTick >= started) {
+        // Hit by a monster or a player since it began.
+        if (player.attackedTick >= started || player.attackedByPlayerTick >= started) {
             stop(player)
             return
         }

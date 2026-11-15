@@ -86,6 +86,7 @@
   {"step": "assertDialogue", "contains": "[panning_guide.ok_thanks"},
   {"step": "continueDialogue"},
   {"step": "assertNoDialogue"},
+  {"step": "command", "text": "::tele 3354 3394 0", "expectMessage": "Teleported to 3354, 3394, 0", "comment": "beside the training site's signpost: from the panning guide 20 tiles off the click landed on a specimen tray (215, 15 Nov)"},
   {"step": "locOption", "locId": 2366, "option": "Read", "x": 3354, "y": 3395, "timeoutMs": 15000, "comment": "digsigntrain, a training site"},
   {"step": "assertMessage", "contains": "[digsite_sign.training]", "timeoutMs": 10000},
   {"step": "command", "text": "::tele 3322 3431 0", "expectMessage": "Teleported to 3322, 3431, 0", "comment": "by Captain Errdo's crashed glider"},

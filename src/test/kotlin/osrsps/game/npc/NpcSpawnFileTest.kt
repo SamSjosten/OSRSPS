@@ -1084,4 +1084,20 @@ class NpcSpawnFileTest {
             "vlad_bechstein", "vlad_diaemus", "von_van_von", "vonnetta_varnis", "vormar_vakan",
         )
     }
+
+    @Test
+    fun `Hunter step 1's birds are in the live Hunter areas they are snared in`() {
+        val names = mapOf(5548 to "multicoloured_bird", 5549 to "hunting_bird_jungle", 5550 to "hunting_bird_polar", 5551 to "hunting_bird_desert", 5552 to "hunting_bird_woodland")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("hunter-birds.json"), types, "hunter-birds.json")
+        assertEquals(emptyList(), result.unknown)
+        fun of(id: Int) = result.spawns.filter { it.type.id == id }
+        assertEquals(listOf(12, 15, 13, 10, 15), (5548..5552).map { of(it).size })
+        // Feldip (swifts and wagtails), Rellekka (twitches, some on its upper ledges), Uzer (warblers), Piscatoris (longtails).
+        assertTrue((of(5548) + of(5549)).all { it.x in 2490..2620 && it.z in 2880..2940 && it.level == 0 })
+        assertTrue(of(5550).all { it.x in 2700..2740 && it.z in 3760..3840 })
+        assertTrue(of(5551).all { it.x in 3390..3410 && it.z in 3080..3160 })
+        assertTrue(of(5552).all { it.x in 2300..2370 && it.z in 3580..3610 })
+        assertTrue(result.spawns.all { it.wander == 4 && it.source.isNotBlank() })
+    }
 }
