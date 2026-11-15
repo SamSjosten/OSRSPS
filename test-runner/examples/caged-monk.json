@@ -1,0 +1,18 @@
+{
+ "name": "Misthalin bosses step 3: the Varrock Palace's caged Monk of Zamorak (level 17). Fire Strike through the cage until he is down, then his bones on the floor of the cage",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::tele 3213 3473 0", "comment": "outside the cage under the stairs, south of the monk"},
+  {"step": "command", "text": "::setlevel magic 13"},
+  {"step": "command", "text": "::item 554 20"},
+  {"step": "command", "text": "::item 556 40"},
+  {"step": "command", "text": "::item 558 20"},
+  {"step": "castOnNpc", "interfaceId": 218, "component": 19, "npc": "Monk of Zamorak", "timeoutMs": 20000, "comment": "Fire Strike (README: 218:19); in sight through the cage's bars there is no walk"},
+  {"step": "assertHitsplat", "npc": "Monk of Zamorak", "timeoutMs": 20000},
+  {"step": "command", "text": "::kill monk of zamorak", "comment": "the rest of his 10 hitpoints; the casts above showed he can be fought"},
+  {"step": "assertGroundItem", "item": "Bones", "timeoutMs": 20000, "comment": "bones always, inside the cage"},
+  {"step": "command", "text": "::setlevel magic 1", "comment": "back as it was"},
+  {"step": "command", "text": "::empty"}
+ ]
+}
