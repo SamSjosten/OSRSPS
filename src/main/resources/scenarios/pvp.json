@@ -1,0 +1,26 @@
+{
+  "about": "Level 10 Wilderness north of Edgeville in rune armour with a rune scimitar, 70 melee, 85 Magic, 43 Prayer, 20 sharks and the runes for five Tele Blocks. Two accounts start the same fight; ::wildy n moves to another level.",
+  "notes": "For the Wilderness's PvP steps and trying a fight by hand: both players run it, then ::seed n before the first attack to repeat the rolls. The loadout is ours. Combat level 85 with these stats, so any level that allows an attack between two of them does.",
+  "position": { "x": 3090, "z": 3592, "level": 0 },
+  "skills": { "attack": 70, "strength": 70, "defence": 70, "hitpoints": 70, "prayer": 43, "magic": 85 },
+  "run": true,
+  "inventory": [
+    { "item": "lawrune", "count": 5 },
+    { "item": "deathrune", "count": 5 },
+    { "item": "chaosrune", "count": 5 },
+    { "item": "shark" }, { "item": "shark" }, { "item": "shark" }, { "item": "shark" }, { "item": "shark" },
+    { "item": "shark" }, { "item": "shark" }, { "item": "shark" }, { "item": "shark" }, { "item": "shark" },
+    { "item": "shark" }, { "item": "shark" }, { "item": "shark" }, { "item": "shark" }, { "item": "shark" },
+    { "item": "shark" }, { "item": "shark" }, { "item": "shark" }, { "item": "shark" }, { "item": "shark" }
+  ],
+  "equipment": [
+    { "item": "rune_full_helm" },
+    { "item": "rune_platebody" },
+    { "item": "rune_platelegs" },
+    { "item": "rune_kiteshield" },
+    { "item": "rune_scimitar" },
+    { "item": "amulet_of_power" },
+    { "item": "leather_boots" },
+    { "item": "leather_gloves" }
+  ]
+}

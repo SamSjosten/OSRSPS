@@ -7,12 +7,14 @@ import osrsps.game.PlayerSkills
 import osrsps.game.Scenario
 import osrsps.game.Skill
 import osrsps.game.World
+import osrsps.game.bank.setVarbitIfKnown
+import osrsps.game.combat.Teleblock
 
 /**
  * Jump into a testing scenario and back out. `::scenario name` remembers the player as they were the first time, so a
  * second scenario still resets to before the first; `::reset` puts that back and forgets it. Both are kept in the save,
  * so a logout in the middle loses nothing. Both end every fight the player is in, so a test script starts and leaves
- * with no NPC still hitting them.
+ * with no NPC still hitting them, and clear their skull, PJ timer and Tele Block.
  */
 fun CommandRegistry.registerScenarioCommands(world: World) {
     register("scenario", "::scenario [name]") {
@@ -38,6 +40,11 @@ fun CommandRegistry.registerScenarioCommands(world: World) {
         world.hunter.traps.takeDown(player)
         player.testCheatsOff()
         before.restoreTo(player)
+        // After the snapshot, which holds the skull, whom they attacked first and the Tele Block's varbit from before the
+        // scenario: ::reset clears those too (Codex review on #723). Teleblock.clear skips a player with no block, so its
+        // varbit is cleared here, or RuneLite would show a timer for a block that's gone.
+        world.pvpCombat.clear(player)
+        player.vars.setVarbitIfKnown(Teleblock.VARBIT, 0)
         // Varp 83 came back with the rest; the overhead icon and the drain go with the prayer book, so it starts afresh.
         world.prayers.deactivateAll(player)
         // A stall owner's grudge from a test theft goes too, so the next script can trade with them.
@@ -89,6 +96,8 @@ private fun CommandContext.start(world: World, scenario: Scenario) {
     player.priceChecker.clear()
     world.scripts.clearAll(player)
     world.meleeCombat.endFights(player)
+    // Nor a skull, a PJ timer or a Tele Block from a fight before.
+    world.pvpCombat.clear(player)
     // A divine potion drunk before would hold the scenario's boosts and then drop them; ::reset puts its varbits back.
     world.potions.clearDivine(player)
     // Nor poison, venom or an antipoison's immunity from before; ::reset puts the poison varp back with the rest.
