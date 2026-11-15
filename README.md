@@ -2183,7 +2183,7 @@ the ditch: nothing north of it is spawned yet, and players can't fight each othe
 | An allowed Attack goes after the target as Follow does, facing them; no hits yet | ours until PvP combat (step W1.3) |
 | The Doomsayer's Toggle warnings list, PvP hits, skulls, Wilderness deaths and everything north of the ditch | not built: later steps |
 
-Check: `test-runner/examples/ditch-cross.json`, `HeadlessWildernessDitchTest` and `HeadlessPvpRulesTest`.
+Check: `test-runner/examples/ditch-cross.json`, `wilderness-attack-option.json`, `HeadlessWildernessDitchTest`, `HeadlessPvpRulesTest` and `HeadlessPlayerOpsSettingsTest` (a settings toggle keeps Attack).
 
 ## Varrock
 

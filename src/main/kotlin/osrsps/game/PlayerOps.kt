@@ -36,9 +36,15 @@ object PlayerOps {
     const val VARBIT_TRADE_HIDDEN = 6580
     const val VARBIT_REPORT_HIDDEN = 1334
 
-    /** Sends the options [vars]' settings leave on through [queue]. */
-    fun send(vars: PlayerVars, queue: (OutgoingGameMessage) -> Unit) {
-        for ((slot, text) in AT_LOGIN) queue(SetPlayerOp(slot, false, text?.takeIf { shown(vars, slot) }))
+    /**
+     * Sends the options [vars]' settings leave on through [queue], with Attack while [attack] (the player is inside the
+     * Wilderness), so a settings toggle that sends them all again keeps it.
+     */
+    fun send(vars: PlayerVars, queue: (OutgoingGameMessage) -> Unit, attack: Boolean = false) {
+        for ((slot, text) in AT_LOGIN) {
+            val shown = if (slot == ATTACK) ATTACK_TEXT.takeIf { attack } else text?.takeIf { shown(vars, slot) }
+            queue(SetPlayerOp(slot, false, shown))
+        }
     }
 
     /** Whether the option in [slot] is on the menu, by the settings that can hide it. */
