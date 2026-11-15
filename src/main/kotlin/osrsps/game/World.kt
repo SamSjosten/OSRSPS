@@ -449,7 +449,7 @@ class World(
     /** The drop item warning setting; see [DropWarnings]. */
     private val dropWarnings = DropWarnings(objTypes, scripts, { dialogues }) { player, slot -> groundObjs.drop(player, slot) }
 
-    private val inventoryTab: InventoryTab = InventoryTab(
+    internal val inventoryTab: InventoryTab = InventoryTab(
         objTypes, scripts, interfaces::closeModals,
         wear = { player, slot -> equipmentTab.wear(player, slot) },
         onDrop = dropWarnings::drop,
@@ -783,6 +783,9 @@ class World(
     /** The River Lum's canoe stations; see [Canoes]. */
     val canoes = Canoes(this, woodcutting.data)
 
+    /** Runecraft's ruins, talismans, tiaras and altars; see [osrsps.game.skill.Runecraft]. */
+    val runecraft = osrsps.game.skill.Runecraft(this)
+
     val firemaking = Firemaking(this, collision)
 
     val mining = Mining(this)
@@ -989,6 +992,7 @@ class World(
         decanting.register()
         teleports.register()
         boltEnchant.register()
+        runecraft.register()
         loadDialogue()
     }
 
@@ -1477,6 +1481,7 @@ class World(
                         player.weaponSince = tick
                     }
                     specialAttacks.weaponChanged(player, weapon)
+                    runecraft.wornChanged(player)
                 }
                 equipmentTab.updateVars(player)
                 bankScreen.updateVars(player)

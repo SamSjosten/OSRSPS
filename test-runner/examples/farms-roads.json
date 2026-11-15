@@ -25,7 +25,7 @@
   {"step": "continueDialogue"},
   {"step": "assertNoDialogue"},
   {"step": "npcOption", "npc": "Tool Leprechaun", "option": "Exchange", "timeoutMs": 20000},
-  {"step": "assertMessage", "contains": "[farms_roads.farming_later]", "timeoutMs": 10000, "comment": "his store is the next Farming step"},
+  {"step": "assertInterface", "interfaceId": 125, "comment": "his store (Farming's: farming-tool-store.json)"},
   {"step": "command", "text": "::tele 3223 3293 0", "expectMessage": "Teleported to 3223, 3293, 0", "comment": "north of Groats' farm, Seth Groats's tile"},
   {"step": "npcOption", "npc": "Seth Groats", "option": "Talk-to", "timeoutMs": 20000},
   {"step": "assertDialogue", "contains": "[seth_groats.morning]"},

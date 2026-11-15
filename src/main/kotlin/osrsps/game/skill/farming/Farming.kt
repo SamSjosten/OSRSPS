@@ -200,6 +200,7 @@ class Farming(private val world: World, private val clock: () -> Long, private v
             world.handlers.onObjOnObj(tree.seedling, WATERING_CAN_EMPTY) { world.message(player, FarmingLines.CAN_EMPTY) }
         }
         Gardeners(world).register()
+        ToolStore(world).register()
     }
 
     /**

@@ -927,8 +927,9 @@ market where the cache map puts them; stealing works as at Draynor's (a guard or
 
 ### Farming
 
-Farming steps 1 to 8 (`game/skill/farming/`): the growth clock, each player's patches, allotments, herbs and flowers,
-compost and disease, trees and fruit trees, hops and bushes, compost bins, the gardeners and noting produce. Every patch is a
+Farming steps 1 to 9 (`game/skill/farming/`): the growth clock, each player's patches, allotments, herbs and flowers,
+compost and disease, trees and fruit trees, hops and bushes, compost bins, the gardeners and noting produce, and the Tool
+Leprechauns' store. Every patch is a
 multiloc the map already places, drawn by one of the cache's `farming_transmit_a` to `e` varbits; each tick the
 player's patches grow to the clock and the varbits of the area they stand in are set, the same varbits live sends for
 the same map squares, so RuneLite's Time Tracking farming panel reads them. Crops grow on live's real-time farming
@@ -998,8 +999,16 @@ tomatoes for an oak, two buckets of compost for potatoes and so on, noted or not
 never falls ill. A grown tree is chopped down for 200 coins from Talk-to or Pay, which leaves the patch clear. They
 give one of 17 pieces of advice, sell Farming Supplies (Talk-to or Trade), and say whether an item shown to them makes
 compost or supercompost. A Tool Leprechaun changes every one of an item used on him into banknotes, if it was grown
-(produce, herbs clean or grimy, saplings, weeds, roots; not logs). His tool store is the next step. The Varrock garden patches
-belong to the Garden of Tranquillity quest and are left out (no quests).
+(produce, herbs clean or grimy, saplings, weeds, roots; not logs). The Varrock garden patches belong to the Garden of
+Tranquillity quest and are left out (no quests).
+
+The Tool Leprechauns' store (`ToolStore.kt`), the Amazing Farming Equipment Store, opens from a leprechaun's Exchange or
+"Yes please." in his talk, with its own side panel in place of the inventory. It holds 100 rakes, seed dibbers, spades,
+secateurs (or magic secateurs) and trowels, one watering can (any doses, or a Gricoller's can), one bottomless bucket,
+and 1000 plant cures, buckets, compost, supercompost and ultracompost, noted or not; the same store at every leprechaun.
+Remove- and Store-1, -5, -X and -All follow the default quantity buttons, Banknotes takes items out noted, and his
+Deposit-all puts in everything it holds from the pack. What is stored lives in the varbits the client draws it from, so
+it is saved with the player.
 
 | Farming behaviour | Source |
 |-------------------|--------|
@@ -1025,14 +1034,34 @@ belong to the Garden of Tranquillity quest and are left out (no quests).
 | Huasca supercompostable; items going in one a tick from the used stack with human_pickuptable; buckets filled with human_fillbucket_sandpit; closing, opening and upgrading at once with no animation; Dump without a confirmation; a plain item turning a supercompostable or tomato bin plain with a message rather than live's warning dialogue; no XP for rotten tomatoes | guessed |
 | Gardeners' payments (noted accepted, exact form only), no payment for herbs and flowers, a paid crop never falling ill, 200 coins to remove a grown tree or fruit tree, their talk (Fayeth's and Treznor's pages), Farming Supplies' stock and prices; the leprechaun noting grown items and his refusals | OSRS Wiki, Farming, Allotment/Hops/Bush/Tree/Fruit tree patch seeds, Transcript:Fayeth, Transcript:Treznor, Farming Supplies, Tool Leprechaun, Transcript:Tool Leprechaun; cache 242, inv farmer_supplies (894) |
 | Every gardener saying Fayeth's words; the hops and bush gardeners' line for an empty patch and every payment's name but the trees'; their lines for a grown crop that can't be chopped, poison ivy and an item that makes no compost; the patch left raked after a tree is removed; unnoted payment taken first; advice going back to the menu; Farming Supplies' 1000 stock for the Wiki's infinite; the leprechaun noting every one of the item at once | guessed |
-| Not built yet: the scarecrow, digging up a healthy crop, Aldarin's hops and the Farming Guild's bush, the other compost bins (they come with their allotments) and the Big Compost Bin, the Tool Leprechauns' store, the gardeners outside Misthalin (none is placed); Guide (op4) | next steps |
+| The tool store's capacities, its varbits and how counts are split over them, its menus and the default quantity's order, Banknotes taking items out noted | OSRS Wiki, Tool Leprechaun; cache 242, enums 136 and 2193, client scripts farming_tools_getstored, farming_tools_getcarried, farming_tools_main_update and farming_tools_side_update (Joshua-F osrs-dumps) |
+| Banknotes taking the default quantity; unnoted items stored before noted ones; secateurs and magic secateurs never stored together; Remove-X asking every time; a store or withdrawal moving what fits; every tool store message | guessed |
+| Not built yet: the scarecrow, digging up a healthy crop, Aldarin's hops and the Farming Guild's bush, the other compost bins (they come with their allotments) and the Big Compost Bin, the filled bottomless bucket (no bottomless bucket yet), the gardeners outside Misthalin (none is placed); Guide (op4) | next steps |
 
 `::scenario farming` stands you beside the Falador allotments with 99 Farming, the tools, 30 of every allotment
 seed and some herb and flower seeds (the rest in the bank, with a trowel, secateurs, a rune axe, plant pots, tree seeds
 and oak saplings for the tree patches, fruit tree seeds and apple saplings for the fruit tree patches, hops and bush
 seeds for the hops and bush patches, empty buckets, volcanic ash and a compost potion for the compost bin). `::farmtick [n]` moves your own farming clock on n five-minute ticks and grows your patches to it.
 
-Check: `./gradlew test --tests 'osrsps.game.skill.farming.*' --tests 'osrsps.testclient.HeadlessFarmingTest' --tests 'osrsps.testclient.HeadlessFarmingTreeTest' --tests 'osrsps.testclient.HeadlessFarmingFruitTreeTest' --tests 'osrsps.testclient.HeadlessFarmingHopsBushTest' --tests 'osrsps.testclient.HeadlessFarmingCompostBinTest' --tests 'osrsps.testclient.HeadlessFarmingGardenersTest'`.
+Check: `./gradlew test --tests 'osrsps.game.skill.farming.*' --tests 'osrsps.testclient.HeadlessFarmingTest' --tests 'osrsps.testclient.HeadlessFarmingTreeTest' --tests 'osrsps.testclient.HeadlessFarmingFruitTreeTest' --tests 'osrsps.testclient.HeadlessFarmingHopsBushTest' --tests 'osrsps.testclient.HeadlessFarmingCompostBinTest' --tests 'osrsps.testclient.HeadlessFarmingGardenersTest' --tests 'osrsps.testclient.HeadlessFarmingToolStoreTest'`.
+
+### Runecraft
+
+Runecraft step RC1 (`game/skill/Runecraft.kt`): the mysterious ruins, talismans, tiaras and the altars' exit portals.
+The ruins, altars and portals are the cache's, where the 242 map puts them; only their options are new. The
+`runecraft` scenario starts beside the Water Altar's ruins with every talisman.
+
+| What | Source |
+|---|---|
+| The 13 ruins (air, mind, water, earth, fire, body, cosmic, law, nature, chaos, death, wrath, true blood): their talisman, or the elemental talisman (air, water, earth, fire) or catalytic talisman (the rest), used on them sends the player inside. Each is a multiloc that shows Enter when its `rc_no_tally_required_*` varbit is set, which the server sets while the player wears the altar's tiara, the elemental or catalytic tiara, or the Runecraft cape | OSRS Wiki, Mysterious ruins, Runic altar, Tiara, Elemental talisman, Catalytic talisman; ids and varbits from the 242 cache |
+| Each altar's exit portal puts the player back beside its ruins | OSRS Wiki, Portal (Runecrafting) |
+| Locate on a talisman: which of eight ways its ruins lie; the elemental talisman picks the nearest of its four ruins and can't tell when two are equally near; the catalytic talisman's does nothing; inside its own temple it says so, and underground (or in another temple) it doesn't work | OSRS Wiki, Talisman, Elemental talisman, Catalytic talisman; the Words thread's RS2-era source for the temple and underground lines |
+| Ruins outside Misthalin, by `::tele`: air 2985 3289, mind 2982 3511, body 3053 3442, cosmic (Zanaris) 2407 4374, law (Entrana) 2858 3378, nature 2869 3016, chaos (Wilderness) 3060 3588, death 1860 4636, wrath 2446 2822, true blood 3561 9778. In Misthalin: water 3185 3162, earth 3306 3471, fire 3312 3252 | the 242 map |
+| The tile inside each altar (beside its exit portal, toward the altar; one of four for the cosmic altar and one of two for the true blood altar, at random; the chaos altar's maze from its top floor) and outside (beside the ruins' south side); Locate's eight 45-degree slices | inferred from the 242 map |
+| The send as soon as the player is at the ruins, with no animation; the wrong talisman, or Enter without a tiara, does nothing interesting | guessed |
+| Not built: crafting runes (RC2), combination runes (RC3), essence pouches (RC4), the Arceuus Blood and Soul altars (RC5), the Ourania altar (RC6); the Abyss, Guardians of the Rift and its Hat of the Eye; Entrana's no-weapons rule | next steps |
+
+Check: `./gradlew test --tests 'osrsps.game.skill.RunecraftTest' --tests 'osrsps.testclient.HeadlessRunecraftRuinsTest'`.
 
 ## Items and inventory
 
@@ -1443,7 +1472,7 @@ each colour at 1/10 each, the H.A.M. coin pouch, or the rest of the Wiki's table
 #### Farms and roads between the towns
 
 Misthalin piece 7 step 5 (`game/content/FarmsRoads.kt`, `npc-spawns/misthalin-farms-roads.json`, words under
-`farms_roads.*`, `gardener.*`, `tool_leprechaun.*`, `tarquin.*`, `rat_burgiss.*` and `seth_groats.*`): the NPCs live has
+`gardener.*`, `tool_leprechaun.*`, `tarquin.*`, `rat_burgiss.*` and `seth_groats.*`): the NPCs live has
 between Lumbridge, Draynor and Varrock that no other file spawned. The cow fields north-west of Lumbridge and north of
 Fred's farm (53 cows, 16 calves), 41 ducks and drakes swimming on the River Lum north of them, 19 chickens south of the
 Champions' Guild and north of Groats' farm, 53 level 2 goblins in the fields between Lumbridge and Draynor and a giant
@@ -1451,10 +1480,9 @@ spider, two Farmers tending the fields, the Master Farmer south of Varrock (pick
 two swans, three imps, and the sheep pen south of Varrock (10 sheep to shear, 3 rams). On the Lumbridge to Varrock road:
 Rat Burgiss, two unicorns, a black bear (level 19, which fights and drops as the Wiki has it) and a level 5 goblin.
 
-The patch gardeners Dreven, Vasquen, Fayeth and Treznor show their four options; looking after crops, advice, the
-Farming Supplies shop, Pay and Trade wait for the Farming skill thread and say so. A Tool Leprechaun by each of their
-patches and by Draynor Manor's belladonna patch answers what he stores and where it goes, and asks again; his store,
-Exchange and Deposit-all wait for Farming too. Tarquin at the Champions' Guild's canoe station talks about canoes by
+The patch gardeners Dreven, Vasquen, Fayeth and Treznor are placed here; what they do is Farming's (see Farming). A Tool
+Leprechaun by each of their patches and by Draynor Manor's belladonna patch answers what he stores and where it goes,
+and asks again; "Yes please.", his store, Exchange and Deposit-all are Farming's too. Tarquin at the Champions' Guild's canoe station talks about canoes by
 Woodcutting level, as Barfy Bill does; his Store-axe and the canoes wait for step 11. Rat Burgiss is too busy to chat and
 Seth Groats is off to milk his cows.
 
@@ -1467,8 +1495,8 @@ Seth Groats is off to milk his cows.
 | Tarquin's talk and its Woodcutting bands | OSRS Wiki, Transcript:Tarquin, read 2026-11-10 |
 | Rat Burgiss's and Seth Groats's lines | OSRS Wiki, Transcript:Rat Burgiss (its members' version) and Transcript:Seth Groats, read 2026-11-10 |
 | The black bear: speed 4, max hit 3, slash, no bonuses, respawn 50, weak to fire 30%, not aggressive; bones, bear fur, raw bear meat, the ensouled head and the beginner clue | OSRS Wiki, Black bear, read 2026-11-10 |
-| Every wander range, the chathead expressions, the player repeating a gardener's option, the Farming refusal's words | guessed |
-| Out: the Evil Chicken (a random event); the gardeners' payments and shop and the leprechauns' store (the Farming skill thread); canoes (step 11); stray sightings near Lumbridge and Varrock (a dwarf, a H.A.M. Member, Ali the Leaflet Dropper, Avan, Katrine, Sarah, Julie, Guidor: the 12a sweep) | out of scope |
+| Every wander range, the chathead expressions, the player repeating a gardener's option | guessed |
+| Out: the Evil Chicken (a random event); canoes (step 11); stray sightings near Lumbridge and Varrock (a dwarf, a H.A.M. Member, Ali the Leaflet Dropper, Avan, Katrine, Sarah, Julie, Guidor: the 12a sweep) | out of scope |
 
 #### The Lumber Yard and Tolna's rift
 
