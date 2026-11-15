@@ -351,6 +351,13 @@ class Player(
     var attackedByPlayer: Player? = null
     var attackedByPlayerTick: Long = -1
 
+    /**
+     * The player they last fought, attacking or attacked, and the tick until which that keeps others off them in
+     * single-way combat: the PJ timer ([osrsps.game.combat.PvpCombat.singleWayRefusal]). Not saved.
+     */
+    var pjOpponent: Player? = null
+    var pjUntil: Long = 0
+
     /** The tick their part of the movement phase last landed other players' hits on them; see [osrsps.game.combat.PvpCombat.land]. */
     var pvpTick: Long = -1
 

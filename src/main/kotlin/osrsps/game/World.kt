@@ -647,6 +647,7 @@ class World(
     val pvpCombat = PvpCombat(
         collision, movement, combat, meleeCombat, rangedCombat, magicCombat, random, { tick },
         inWorld = { players[it.index] === it && !it.loggedOut }, words = ::textFor, protects = prayers::protects,
+        multi = multiCombat, players = { players.asSequence().filterNotNull() },
     )
 
     /** Home Teleport; see [HomeTeleport]. Its target is a seam the lodestone network takes ([registerLodestones]). */

@@ -35,7 +35,7 @@ class PvpInteraction internal constructor(val target: Player, spell: CombatSpell
 }
 
 /**
- * Fighting between players in the Wilderness (steps W1.3 and W1.4). Attack on a player the rules allow ([PvpRules]), or
+ * Fighting between players in the Wilderness (steps W1.3 to W1.5). Attack on a player the rules allow ([PvpRules]), or
  * a combat spell cast on them, becomes a [PvpInteraction]: each movement phase the player walks until the target is in
  * reach and attacks every weapon-speed ticks, as at an NPC. Melee reaches the tiles beside the target ([MeleeCombat]);
  * a bow, crossbow, thrown weapon or blowpipe its range in line of sight, using its ammunition as at an NPC
@@ -61,9 +61,12 @@ class PvpInteraction internal constructor(val target: Player, spell: CombatSpell
  *
  * A target with auto retaliate and nothing else to do fights back from the tick after the hit or splash, with their
  * attack delay set to half their weapon's speed rounded up, as against an NPC (OSRS Wiki, Auto Retaliate), if the
- * rules let them. Not here yet: special attacks and enchanted bolts' effects on players, poison and venom from a
- * player's weapon, Burst and Barrage spells' other targets and chinchompas' blast (W1.5, with multi-way combat), the
- * single-way rules (W1.5), skulls (W1.6) and the PvP death (W1.7). Powered staves can't attack players (OSRS Wiki,
+ * rules let them.
+ *
+ * Single-way combat (step W1.5) keeps a third player off a fight with the PJ timer ([singleWayRefusal]); in multi-way
+ * combat ([MultiCombat]) anyone can join, and a Burst or Barrage hits the players around its target too ([around]).
+ * Not here yet: special attacks and enchanted bolts' effects on players, poison and venom from a player's weapon,
+ * chinchompas' blast on players, skulls (W1.6) and the PvP death (W1.7). Powered staves can't attack players (OSRS Wiki,
  * Trident of the seas); the refusal's words are not sourced.
  */
 class PvpCombat(
@@ -81,6 +84,10 @@ class PvpCombat(
     private val words: (Player) -> DialogueText = { DialogueText.NONE },
     /** Whether the player's protection prayers block an attack of this type; see [Prayers.protects]. */
     private val protects: (Player, AttackType) -> Boolean = { _, _ -> false },
+    /** Where the single-way rules don't hold. */
+    private val multi: MultiCombat = MultiCombat(),
+    /** Everyone in the world, for a Burst or Barrage's other targets. */
+    private val players: () -> Sequence<Player> = { emptySequence() },
 ) {
     /**
      * An attack on its way to [target], landing when they are next processed from [landTick]: [damage] of [type], or a
@@ -122,6 +129,7 @@ class PvpCombat(
     private fun start(attacker: Player, target: Player, spell: CombatSpell?): List<Line> {
         val refusal = PvpRules.refusal(attacker, target)
         if (refusal.isNotEmpty()) return refusal
+        singleWayRefusal(attacker, target, currentTick())?.let { return listOf(it) }
         if (mode(attacker, spell) == null) {
             cantFight(attacker)
             return emptyList()
@@ -159,6 +167,11 @@ class PvpCombat(
             for (line in refusal) message(player, words(player)[line])
             return true
         }
+        // Someone else may have got to either of them on the way.
+        singleWayRefusal(player, target, currentTick())?.let {
+            message(player, words(player)[it])
+            return true
+        }
         // The style can change on the way (the combat tab is open while walking).
         val mode = mode(player, fight.spell) ?: run {
             cantFight(player)
@@ -193,6 +206,50 @@ class PvpCombat(
         }
     }
 
+    /**
+     * Why [attacker] can't attack [target] in single-way combat, or null when they can (OSRS Wiki, PJ timer: both
+     * players of a PvP fight start a timer of [PJ_TICKS], refreshed with each attack, and while it runs no one else can
+     * attack either of them, nor can they attack anyone else). Refused too: a target a monster is fighting (hit them
+     * within [MeleeCombat.IN_COMBAT_TICKS], the Wiki's monster timer) or that is fighting one (attacked it within as
+     * long, so before it hits back too: Codex review on #710), and an attacker one is fighting or who is fighting one
+     * (guessed for the second: the same timer both ways), as for an NPC
+     * ("I'm already under attack."). By the attacker's tile for their own timer and the target's for theirs, as
+     * [MeleeCombat] does for NPCs (guessed). The target's refusal's words are held.
+     */
+    fun singleWayRefusal(attacker: Player, target: Player, tick: Long): Line? {
+        if (!multi.at(attacker.level, attacker.x, attacker.z) &&
+            (fightingOther(attacker, target, tick) || npcFighting(attacker, tick) || melee.fightingNpc(attacker))
+        ) {
+            return CombatLines.ALREADY_UNDER_ATTACK
+        }
+        if (!multi.at(target.level, target.x, target.z) &&
+            (fightingOther(target, attacker, tick) || npcFighting(target, tick) || melee.fightingNpc(target))
+        ) {
+            return PvpLines.TARGET_IN_COMBAT
+        }
+        return null
+    }
+
+    /** Whether [player]'s PJ timer runs for a fight with someone other than [other]. */
+    private fun fightingOther(player: Player, other: Player, tick: Long): Boolean {
+        val opponent = player.pjOpponent ?: return false
+        return opponent !== other && tick < player.pjUntil
+    }
+
+    /** Whether a monster fighting [player] hit them within the monster PJ timer. */
+    private fun npcFighting(player: Player, tick: Long): Boolean {
+        val npc = player.attackedBy ?: return false
+        return npc.target === player && !npc.dead && tick - player.attackedTick <= MeleeCombat.IN_COMBAT_TICKS
+    }
+
+    /** [attacker] attacked [target] on [tick]: both PJ timers start again, each naming the other. */
+    private fun fought(attacker: Player, target: Player, tick: Long) {
+        attacker.pjOpponent = target
+        attacker.pjUntil = tick + PJ_TICKS
+        target.pjOpponent = attacker
+        target.pjUntil = tick + PJ_TICKS
+    }
+
     /** One more tick on a hit [target] would take if they were processed already this tick; see the class note. */
     private fun late(target: Player, tick: Long): Int = if (target.pvpTick == tick) 1 else 0
 
@@ -221,6 +278,7 @@ class PvpCombat(
         val damage = dealt(target, matchup.style.type, roll(player, matchup.attackRoll, matchup.defenceRoll, matchup.maxHit) ?: 0)
         styleXp(player, matchup.style, damage)
         hits += Hit(player, target, damage, tick + late(target, tick))
+        fought(player, target, tick)
     }
 
     /** Fires [weapon] at [target]; returns true when the fight ends (nothing left to fire, and the player told). */
@@ -231,6 +289,7 @@ class PvpCombat(
         val travel = ranged.launch(player, weapon, spent, tick)
         // A blowpipe is a tick slower at a player than at a monster, on every style (OSRS Wiki, Attack speed).
         if (weapon.loaded) player.nextAttackTick += BLOWPIPE_PVP_SLOWER
+        fought(player, target, tick)
         val distance = LineOfSight.distance(player.x, player.z, 1, target.x, target.z, 1, 1)
         val delay = weapon.delay.ticks(distance) + late(target, tick)
         repeat(spent.shots) { shot ->
@@ -252,18 +311,19 @@ class PvpCombat(
         val speed = if (fighting) combat.attackSpeed(player) else MagicCombat.SPEED + combat.wearyDelay(player)
         val late = late(target, tick)
         val delay = magic.castAt(player, target, spell, tick, speed, late) ?: return true
-        val matchup = combat.pvpMagicMatchup(player, target, spell)
-        val rolled = roll(player, matchup.attackRoll, matchup.defenceRoll, matchup.maxHit)
-        val damage = dealt(target, AttackType.MAGIC, rolled ?: 0)
-        player.skills.addTenths(Skill.MAGIC, if (rolled != null) spell.xpTenths else spell.splashXpTenths)
-        if (fighting && Autocast.defensive(player)) {
-            player.skills.addTenths(Skill.MAGIC, CombatMath.defensiveSpellMagicXpTenths(damage))
-            player.skills.addTenths(Skill.DEFENCE, CombatMath.defensiveSpellDefenceXpTenths(damage))
-        } else {
-            player.skills.addTenths(Skill.MAGIC, CombatMath.spellDamageXpTenths(damage))
+        fought(player, target, tick)
+        val defensive = fighting && Autocast.defensive(player)
+        val hit = spellOn(player, target, spell, tick + delay + late, defensive)
+        player.skills.addTenths(Skill.MAGIC, if (hit) spell.xpTenths else spell.splashXpTenths)
+        if (spell.area && multi.at(target.level, target.x, target.z)) {
+            for (other in around(player, target, tick)) {
+                spellOn(player, other, spell, tick + delay + late(other, tick), defensive)
+                // Each one hit is attacked: their PJ timer starts as the target's does, naming the caster, whose own
+                // stays on the target (guessed: the Wiki doesn't say).
+                other.pjOpponent = player
+                other.pjUntil = tick + PJ_TICKS
+            }
         }
-        player.skills.addTenths(Skill.HITPOINTS, CombatMath.hitpointsXpTenths(damage))
-        hits += Hit(player, target, damage, tick + delay + late, spell, hit = rolled != null)
         // A spell from the book is cast once; the autocast spell, if any, carries the fight on. With none, the fight
         // ends here, and the player keeps facing the target ([Player.castAtPlayer]).
         fight.spell = null
@@ -271,6 +331,42 @@ class PvpCombat(
         if (ends) player.castAtPlayer = target
         return ends
     }
+
+    /**
+     * Rolls [spell] on [target] and sends it on its way to land on [landTick], with the XP for its damage (the base XP
+     * is the caller's); whether it hits.
+     */
+    private fun spellOn(player: Player, target: Player, spell: CombatSpell, landTick: Long, defensive: Boolean): Boolean {
+        val matchup = combat.pvpMagicMatchup(player, target, spell)
+        val rolled = roll(player, matchup.attackRoll, matchup.defenceRoll, matchup.maxHit)
+        val damage = dealt(target, AttackType.MAGIC, rolled ?: 0)
+        if (defensive) {
+            player.skills.addTenths(Skill.MAGIC, CombatMath.defensiveSpellMagicXpTenths(damage))
+            player.skills.addTenths(Skill.DEFENCE, CombatMath.defensiveSpellDefenceXpTenths(damage))
+        } else {
+            player.skills.addTenths(Skill.MAGIC, CombatMath.spellDamageXpTenths(damage))
+        }
+        player.skills.addTenths(Skill.HITPOINTS, CombatMath.hitpointsXpTenths(damage))
+        hits += Hit(player, target, damage, landTick, spell, hit = rolled != null)
+        return rolled != null
+    }
+
+    /**
+     * The other players a Burst or Barrage on [target] hits in multi-way combat: those standing on the 3x3 around the
+     * target, in multi-way combat themselves, whom [player] could attack ([PvpRules], and [singleWayRefusal]: a caster
+     * standing in single-way combat is held to their target), eight at most, lowest index first (OSRS Wiki, Ancient
+     * Magicks: up to nine targets in the 3x3; the order guessed, as for NPCs).
+     */
+    private fun around(player: Player, target: Player, tick: Long): List<Player> =
+        players()
+            .filter {
+                it !== player && it !== target && inWorld(it) && !it.dead && it.hitpoints > 0 && it.level == target.level &&
+                    abs(it.x - target.x) <= 1 && abs(it.z - target.z) <= 1 && multi.at(it.level, it.x, it.z) &&
+                    PvpRules.refusal(player, it).isEmpty() && singleWayRefusal(player, it, tick) == null
+            }
+            .sortedBy { it.index }
+            .take(MagicCombat.AREA_TARGETS - 1)
+            .toList()
 
     /**
      * Lands the hits on [player] whose tick has come, at the start of their part of the movement phase; see the class
@@ -291,6 +387,11 @@ class PvpCombat(
             if (spell != null) magic.landedOn(player, spell, hit.hit)
             if (spell == null || (hit.hit && spell.maxHit > 0)) {
                 melee.hitPlayerBy(player, hit.attacker, hit.damage, tick)
+                // A kill starts the killer's timer (OSRS Wiki, PJ timer: 12 seconds).
+                if (player.dead || player.hitpoints <= 0) {
+                    hit.attacker.pjOpponent = player
+                    hit.attacker.pjUntil = tick + PJ_TICKS
+                }
             } else {
                 // A splash, or a bind that can't do damage: no hitsplat, but they were attacked (guessed, as for an NPC).
                 player.attackedByPlayer = hit.attacker
@@ -346,6 +447,7 @@ class PvpCombat(
     private fun retaliate(player: Player, attacker: Player, tick: Long) {
         if (!player.autoRetaliate || player.interaction != null || player.modalOpen || tick < player.stunnedUntil) return
         if (!inWorld(attacker) || attacker.dead || PvpRules.refusal(player, attacker).isNotEmpty()) return
+        if (singleWayRefusal(player, attacker, tick) != null) return
         val mode = mode(player, null) ?: return
         player.interaction = PvpInteraction(attacker, null, this)
         player.nextAttackTick = maxOf(tick + (interval(player, mode) + 1) / 2, player.attackLockedUntil)
@@ -367,6 +469,9 @@ class PvpCombat(
     companion object {
         /** What gets through a protection prayer against a player, out of 100 (OSRS Wiki: 40% is resisted). */
         const val PROTECTED_PERCENT = 60
+
+        /** The PvP PJ timer: 20 ticks, 12 seconds (OSRS Wiki, PJ timer). */
+        const val PJ_TICKS = 20
 
         /** A freeze breaks once caster and target are further apart than this, the 10-tile weapon range (OSRS Wiki, Freeze). */
         const val FREEZE_BREAK_DISTANCE = 10
