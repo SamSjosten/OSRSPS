@@ -16,6 +16,7 @@ import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
+import osrsps.game.combat.PvpInteraction
 import osrsps.game.combat.Skulls
 import osrsps.game.combat.Teleblock
 import osrsps.map.CollisionMap
@@ -107,13 +108,16 @@ class HeadlessPvpScenarioTest {
                     a.await("the login rebuild") { a.position }
                     b.await("the login rebuild") { b.position }
                     val emil = server.world.playerNamed("emil")!!
+                    // Ranges, not exact counts: the clock keeps running between a reply and the next read (Codex review on #723).
                     a.commandReply("skull on") { it.startsWith("You're skulled") }
-                    assertEquals(Skulls.TICKS, emil.skullTicks)
+                    assertTrue(emil.skullTicks in (Skulls.TICKS - SLACK)..Skulls.TICKS, "a fresh skull: ${emil.skullTicks}")
                     a.commandReply("skull off") { it == "Your skull is gone." }
                     assertEquals(0, emil.skullTicks)
                     a.commandReply("skull") { it == "You have no skull." }
                     a.commandReply("skull on") { true }
-                    a.commandReply("skull") { it == "You're skulled: ${Skulls.TICKS} ticks left." || it == "You're skulled: ${Skulls.TICKS - 1} ticks left." }
+                    a.commandReply("skull") { reply ->
+                        Regex("You're skulled: (\\d+) ticks left\\.").matchEntire(reply)?.groupValues?.get(1)?.toInt()?.let { it in (Skulls.TICKS - SLACK)..Skulls.TICKS } == true
+                    }
 
                     // A fight starts both PJ timers; ::pj clears the one who asks.
                     for (client in listOf(a, b)) client.commandReply("scenario pvp") { it.startsWith("Started scenario pvp") }
@@ -137,7 +141,7 @@ class HeadlessPvpScenarioTest {
     }
 
     @Test
-    fun `reset after a scenario leaves no Tele Block timer from before it`(@TempDir dir: Path) {
+    fun `reset after a scenario leaves no skull, Tele Block timer or opponent's attack from before`(@TempDir dir: Path) {
         // Codex review on #723: the snapshot taken as the scenario starts holds the block's varbit.
         server(dir).use { server ->
             server.login("gwen").use { a ->
@@ -148,14 +152,29 @@ class HeadlessPvpScenarioTest {
                     val gwen = world.playerNamed("gwen")!!
                     a.command("wildy 10")
                     a.await("in the Wilderness") { a.position?.takeIf { it.z > 3520 } }
-                    Teleblock.block(gwen, world.playerNamed("hugo")!!, Teleblock.TICKS)
+                    val hugo = world.playerNamed("hugo")!!
+                    Teleblock.block(gwen, hugo, Teleblock.TICKS)
                     a.await("the varbit set") { a.varp(TELEBLOCK_VARP).takeIf { it > 0 } }
+                    a.commandReply("skull on") { it.startsWith("You're skulled") }
                     a.commandReply("scenario pvp") { it.startsWith("Started scenario pvp") }
                     assertEquals(0, gwen.teleblockTicks, "the scenario cleared the block")
-                    a.commandReply("reset") { it.startsWith("Back to how you were") }
+                    // An opponent beside them still attacking as they start the scenario again: it stops the attack.
+                    b.commandReply("scenario pvp") { it.startsWith("Started scenario pvp") }
+                    a.command("varp 172 1")
+                    b.command("tele 3091 3592 0")
+                    b.await("beside gwen") { b.position?.takeIf { it == Coord(3091, 3592, 0) } }
+                    b.await("Attack given") { Unit.takeIf { b.playerOps()[PlayerOps.ATTACK] == PlayerOps.ATTACK_TEXT } }
+                    b.await("gwen in view") { b.otherPlayers().takeIf { it.isNotEmpty() } }
+                    b.playerOp(a.index, PlayerOps.ATTACK)
+                    b.await("hugo attacking") { Unit.takeIf { (hugo.interaction as? PvpInteraction)?.target === gwen } }
+                    a.commandReply("scenario pvp") { it.startsWith("Started scenario pvp") }
+                    assertTrue((hugo.interaction as? PvpInteraction)?.target !== gwen, "the opponent's attack is stopped")
+                    a.command("reset")
+                    a.await("the reset") { a.messages().firstOrNull { it.text.startsWith("Back to how you were") } }
                     a.awaitTicks(2)
                     assertEquals(0, a.varp(TELEBLOCK_VARP), "no timer for a block that's gone")
                     assertEquals(0, gwen.teleblockTicks)
+                    assertEquals(0, gwen.skullTicks, "the skull from before the scenario is cleared too")
                 }
             }
         }
@@ -164,6 +183,9 @@ class HeadlessPvpScenarioTest {
     private companion object {
         const val ATTACK = 0
         const val TELEBLOCK_VARP = 2741
+
+        /** Ticks the clock may run between a command's reply and the test's next look. */
+        const val SLACK = 20
 
         /** Long enough for several swings, short of a kill: 70 Hitpoints. */
         const val TICKS = 14

@@ -38,11 +38,12 @@ fun CommandRegistry.registerScenarioCommands(world: World) {
         world.meleeCombat.endFights(player)
         // A stopped Hunter run's traps come down too, so none stands for the next script.
         world.hunter.traps.takeDown(player)
-        world.pvpCombat.clear(player)
         player.testCheatsOff()
         before.restoreTo(player)
-        // A Tele Block from before the scenario was cleared as it started, but the snapshot held its varbit: cleared again,
-        // or RuneLite would show a timer for a block that's gone (Codex review on #723).
+        // After the snapshot, which holds the skull, whom they attacked first and the Tele Block's varbit from before the
+        // scenario: ::reset clears those too (Codex review on #723). Teleblock.clear skips a player with no block, so its
+        // varbit is cleared here, or RuneLite would show a timer for a block that's gone.
+        world.pvpCombat.clear(player)
         player.vars.setVarbitIfKnown(Teleblock.VARBIT, 0)
         // Varp 83 came back with the rest; the overhead icon and the drain go with the prayer book, so it starts afresh.
         world.prayers.deactivateAll(player)
