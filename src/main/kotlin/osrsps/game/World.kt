@@ -19,6 +19,7 @@ import net.rsprot.protocol.game.outgoing.misc.player.ChatFilterSettings
 import net.rsprot.protocol.game.outgoing.misc.player.ChatFilterSettingsPrivateChat
 import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
 import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
+import net.rsprot.protocol.game.outgoing.misc.player.SetPlayerOp
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateRunEnergy
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateRunWeight
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateStatV2
@@ -85,6 +86,7 @@ import osrsps.game.combat.Poison
 import osrsps.game.combat.StatusEffects
 import osrsps.game.combat.Potions
 import osrsps.game.combat.Prayers
+import osrsps.game.combat.PvpRules
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrains
 import osrsps.game.combat.LootNotifications
@@ -1417,6 +1419,10 @@ class World(
         val inside = Wilderness.inside(player.x, player.z)
         interfaces.showWildernessOverlay(player, inside)
         player.vars.setVarbitIfKnown(VARBIT_INSIDE_WILDERNESS, if (inside) 1 else 0)
+        if (player.attackOp != inside) {
+            player.attackOp = inside
+            player.session.queue(SetPlayerOp(PlayerOps.ATTACK, false, PlayerOps.ATTACK_TEXT.takeIf { inside }))
+        }
     }
 
     /**
@@ -2023,6 +2029,8 @@ class World(
         friendChats.resend(player)
         // A toggle's SET_PLAYER_OP may have been lost with the old connection.
         PlayerOps.send(player.vars, player.session::queue)
+        // That cleared Attack: the next movement phase gives it back if the player is inside the Wilderness.
+        player.attackOp = false
         clans.resync(player)
         rebuild(player)
         interfaces.resendClosesWhileAway(player)
@@ -2045,6 +2053,7 @@ class World(
         for (slot in 0 until 5) appearance.setColour(slot, 0)
         sendRunState(player)
         PlayerOps.send(player.vars, player.session::queue)
+        player.attackOp = false
         allowChat(player)
         // Guessed: live sends the saved filters at login; a new account's are all on.
         sendChatFilters(player)
@@ -2149,6 +2158,10 @@ class World(
             clans.inviteOrAccept(player, target)
             return
         }
+        if (option == PlayerOps.ATTACK && player.attackOp) {
+            attackPlayer(player, clicked, ctrl)
+            return
+        }
         if (option != PlayerOps.FOLLOW && option != PlayerOps.TRADE && option != PlayerOps.REPORT || !PlayerOps.shown(player.vars, option)) {
             logger.info { "${player.username} sent op $option on player ${clicked?.username}, which has no such option" }
             return
@@ -2177,6 +2190,31 @@ class World(
                 reports.open(player, target.username)
             }
         }
+    }
+
+    /**
+     * Attack on [clicked] (Wilderness step W1.2): refused with [PvpRules]' lines when either player is outside the
+     * Wilderness's fighting ground or out of range; otherwise the player goes after them as Follow does, facing them.
+     * Hitting comes with PvP combat (step W1.3).
+     */
+    private fun attackPlayer(player: Player, clicked: Player?, ctrl: Boolean) {
+        scripts.interrupt(player)
+        player.interaction = null
+        npcInteractions.leave(player)
+        player.waypoints.clear()
+        val target = clicked?.takeIf { players[it.index] === it && it !== player }
+        if (target == null) {
+            player.session.queue(SetMapFlagV2.RESET)
+            return
+        }
+        val refusal = PvpRules.refusal(player, target)
+        if (refusal.isNotEmpty()) {
+            // Guessed, as for a walk with nowhere to go: the client's flag would otherwise stay up.
+            player.session.queue(SetMapFlagV2.RESET)
+            for (line in refusal) message(player, line)
+            return
+        }
+        follows.click(player, target, ctrl)
     }
 
     /**

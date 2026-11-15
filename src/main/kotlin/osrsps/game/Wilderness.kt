@@ -38,6 +38,30 @@ object Wilderness {
     /** The ditch's northern row; the Wilderness proper starts on the row after it. */
     const val DITCH_NORTH = 3522
 
+    /**
+     * The rows north of the ditch where players can't fight: the Wiki's Wilderness page says the first two steps of the
+     * Wilderness are safe, players there can't attack or be attacked. Inferred: the two rows just past the ditch's, 3523
+     * and 3524, all along the surface's width; the caves have no ditch, so none there.
+     */
+    val SAFE_ROWS = DITCH_NORTH + 1..DITCH_NORTH + 2
+
+    /**
+     * The Wilderness level players fight by at [x], [z]: [level] inside the Wilderness past its safe rows, else 0, where
+     * nobody can attack a player or be attacked by one.
+     */
+    fun pvpLevel(x: Int, z: Int): Int {
+        if (!inside(x, z)) return 0
+        if (z in SAFE_ROWS && SURFACE.contains(x, z)) return 0
+        return level(x, z)
+    }
+
+    /**
+     * Whether players of combat levels [a] and [b], fighting by Wilderness levels [levelA] and [levelB], are in range of
+     * each other: the gap in combat levels is at most the Wilderness level (the Wiki's Wilderness page: level 100 at
+     * level 24 attacks 76 to 124). Inferred: each player's own level must cover it, so the lower of the two counts.
+     */
+    fun inRange(a: Int, levelA: Int, b: Int, levelB: Int): Boolean = Math.abs(a - b) <= minOf(levelA, levelB)
+
     /** Where the client's sum puts the caves' level 1: the surface's 3520, 6,400 tiles up. */
     private const val UNDERGROUND_SOUTH = 155 * 64
 
