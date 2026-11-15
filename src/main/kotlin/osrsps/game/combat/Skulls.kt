@@ -10,7 +10,8 @@ import osrsps.game.SettingsSide
  * skull_prevent_enabled, the side panel's toggle) refuses an attack that would skull a player who has none.
  *
  * Inferred, as the Wiki gives no attack list: whoever was attacked unprovoked may hit their attacker back unskulled for
- * as long as the attacker's skull from that attack lasts, [TICKS], kept by name so a relog doesn't lose it. Guessed:
+ * as long as the attacker's skull from that attack lasts, [TICKS]. The attacker keeps the list ([Player.attackedFirst]),
+ * counted down with the skull and saved with it, so neither one's relog loses it. Guessed:
  * every attack on someone who never attacked first counts as starting a fight, so it starts the timer again; the timer
  * runs only while logged in, and is saved.
  */
@@ -24,10 +25,9 @@ object Skulls {
     const val VARBIT_PREVENTION = SettingsSide.VARBIT_SKULL_PREVENTION
 
     /** Whether [attacker]'s attack on [target] on [tick] is unprovoked: [target] hasn't attacked them first, unskulled. */
-    fun unprovoked(attacker: Player, target: Player, tick: Long): Boolean {
-        val until = attacker.attackedFirstBy[target.username.lowercase()] ?: return true
-        return tick >= until
-    }
+    @Suppress("UNUSED_PARAMETER")
+    fun unprovoked(attacker: Player, target: Player, tick: Long): Boolean =
+        (target.attackedFirst[attacker.username.lowercase()] ?: 0) <= 0
 
     /** Whether the PK Skull Prevention setting refuses [attacker]'s attack on [target]: it would give them a skull. */
     fun prevented(attacker: Player, target: Player, tick: Long): Boolean =
@@ -43,13 +43,20 @@ object Skulls {
     fun attacked(attacker: Player, target: Player, tick: Long) {
         if (!unprovoked(attacker, target, tick)) return
         attacker.skullTicks = TICKS
-        target.attackedFirstBy[attacker.username.lowercase()] = tick + TICKS
+        attacker.attackedFirst[target.username.lowercase()] = TICKS
     }
 
-    /** A tick of [player]'s skull goes by, and the attackers they may hit back whose time is up are forgotten. */
+    /** A tick of [player]'s skull goes by, and of the time each player they attacked first may hit them back. */
+    @Suppress("UNUSED_PARAMETER")
     fun countDown(player: Player, tick: Long) {
         if (player.skullTicks > 0) player.skullTicks--
-        if (player.attackedFirstBy.isNotEmpty()) player.attackedFirstBy.values.removeIf { tick >= it }
+        if (player.attackedFirst.isNotEmpty()) {
+            val each = player.attackedFirst.entries.iterator()
+            while (each.hasNext()) {
+                val entry = each.next()
+                if (entry.value <= 1) each.remove() else entry.setValue(entry.value - 1)
+            }
+        }
     }
 
     /** The head icon [player] should show now: [ICON] while skulled, -1 for none. */

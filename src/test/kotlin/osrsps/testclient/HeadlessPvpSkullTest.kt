@@ -57,6 +57,10 @@ class HeadlessPvpSkullTest {
                     assertEquals(0, hal.skullTicks, "hitting back doesn't skull")
                     assertEquals(Skulls.ICON, gus.sentSkullIcon)
                     assertEquals(-1, hal.sentSkullIcon)
+                    // gus keeps who may hit him back, so it doesn't hang on hal's own Player: a relog of hal's keeps it
+                    // (Codex review on #711), and it runs down with gus's skull.
+                    assertEquals(gus.skullTicks, gus.attackedFirst["hal"])
+                    assertTrue(!Skulls.unprovoked(hal, gus, server.world.tick))
 
                     // The skull goes when its time is up.
                     a.command("tele 3090 3500 0")
@@ -86,7 +90,8 @@ class HeadlessPvpSkullTest {
                     assertEquals(0, ida.skullTicks)
 
                     b.playerOp(a.index, PlayerOps.ATTACK)
-                    b.await("jon's first hit") { Unit.takeIf { ida.attackedFirstBy.isNotEmpty() } }
+                    val jon = server.world.playerNamed("jon")!!
+                    b.await("jon's first hit") { Unit.takeIf { jon.attackedFirst.isNotEmpty() } }
                     a.playerOp(b.index, PlayerOps.ATTACK)
                     a.await("ida hitting back") { (ida.interaction as? PvpInteraction)?.takeIf { ida.pjOpponent != null && ida.nextAttackTick > 0 } }
                     a.awaitTicks(6)

@@ -331,6 +331,8 @@ class PvpCombat(
                 // stays on the target (guessed: the Wiki doesn't say).
                 other.pjOpponent = player
                 other.pjUntil = tick + PJ_TICKS
+                // And unprovoked, a skull for the caster and the right to hit back for them, as for the target.
+                Skulls.attacked(player, other, tick)
             }
         }
         // A spell from the book is cast once; the autocast spell, if any, carries the fight on. With none, the fight
@@ -362,7 +364,7 @@ class PvpCombat(
 
     /**
      * The other players a Burst or Barrage on [target] hits in multi-way combat: those standing on the 3x3 around the
-     * target, in multi-way combat themselves, whom [player] could attack ([PvpRules], and [singleWayRefusal]: a caster
+     * target, in multi-way combat themselves, whom [player] could attack ([PvpRules], [Skulls.prevented], and [singleWayRefusal]: a caster
      * standing in single-way combat is held to their target), eight at most, lowest index first (OSRS Wiki, Ancient
      * Magicks: up to nine targets in the 3x3; the order guessed, as for NPCs).
      */
@@ -371,7 +373,8 @@ class PvpCombat(
             .filter {
                 it !== player && it !== target && inWorld(it) && !it.dead && it.hitpoints > 0 && it.level == target.level &&
                     abs(it.x - target.x) <= 1 && abs(it.z - target.z) <= 1 && multi.at(it.level, it.x, it.z) &&
-                    PvpRules.refusal(player, it).isEmpty() && singleWayRefusal(player, it, tick) == null
+                    PvpRules.refusal(player, it).isEmpty() && singleWayRefusal(player, it, tick) == null &&
+                    !Skulls.prevented(player, it, tick)
             }
             .sortedBy { it.index }
             .take(MagicCombat.AREA_TARGETS - 1)

@@ -208,6 +208,8 @@ class HeadlessPvpSingleWayTest {
                         a.playerTarget(b.index, Spells.SPELLBOOK, ICE_BARRAGE)
                         a.await("kim frozen") { Unit.takeIf { kim.freezeTicks > 0 } }
                         assertSame(ida, kim.pjOpponent)
+                        // kim was attacked unprovoked too: she may hit ida back unskulled (Codex review on #711).
+                        assertTrue("kim" in ida.attackedFirst)
                         assertTrue(kim.pjUntil > world.tick)
                     }
                 }

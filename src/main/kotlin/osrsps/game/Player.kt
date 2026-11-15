@@ -365,10 +365,10 @@ class Player(
     var sentSkullIcon: Int = -1
 
     /**
-     * Who attacked them unprovoked, by lower-case name, and the tick until which they may hit back unskulled
-     * ([osrsps.game.combat.Skulls]). Not saved.
+     * The players they attacked unprovoked, by lower-case name, and the ticks left in which each may hit them back
+     * unskulled ([osrsps.game.combat.Skulls]); counted down with their skull, while they are logged in, and saved.
      */
-    val attackedFirstBy = HashMap<String, Long>()
+    val attackedFirst = HashMap<String, Int>()
 
     /** The tick their part of the movement phase last landed other players' hits on them; see [osrsps.game.combat.PvpCombat.land]. */
     var pvpTick: Long = -1
