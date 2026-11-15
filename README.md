@@ -1114,6 +1114,12 @@ heart, dust or mist battlestaff, eternal gem). It goes 2 minutes on if never att
 once its player has died, logged out or left. Built: the chasm crawler (cave crawlers) and the giant rockslug
 (rockslugs, 2 flat armour). `::slayer superior` puts the task's superior out at once, for tests.
 
+The Slayer helmet (`game/skill/SlayerHelmets.kt`, words under `slayer_helmet.*`): with Malevolent Masquerade bought
+and 55 Crafting (boosts count, no XP), any part used on another while all seven are carried makes it: a black mask (its
+charges lost), earmuffs, a facemask, a nose peg, a spiny helmet, an enchanted gem and reinforced goggles. A black mask
+(i) makes the Slayer helmet (i) of its own kind. Disassemble gives the parts back with an uncharged mask, and Check,
+held or worn, is the gem's.
+
 | Slayer behaviour | Source |
 |------------------|--------|
 | Tasks, masters' weights and amounts, combat and Slayer level gates, rewards' bits and costs | cache 242, db tables 113, 114, 117 (column order from osrs-dumps' dump.dbtable) |
@@ -1143,9 +1149,11 @@ once its player has died, logged out or left. Built: the chasm crawler (cave cra
 | Rounding down after each multiply; the ranged 15% before the twisted bow's scaling; the magic 15% before an elemental weakness, which adds its share unmasked (the Wiki's DPS calculator) | inferred |
 | Superiors: the 1/200 chance with Bigger and Badder (bit 35), on task and for the finisher or top damager; one at a time, theirs alone, the two messages; their own XP off task too; three rolls on the normal table with its tertiary drops, one maybe a unique at 1/(200 - (level + 55)² / 125) per table, either table as likely; its player switching to it in single-way combat, the other monster giving up; 2 minutes ignored, 30-second checks once gone; the chasm crawler's and giant rockslug's stats, XP and flat armour | OSRS Wiki, Superior slayer monster, Chasm Crawler, Giant rockslug (read 2026-11-15); Mod Ash on the despawn |
 | A superior's kill counting one off the task; "left" as another level or 32 tiles away; it stands still; the normal monsters' animations | guessed |
+| The Slayer helmet: Malevolent Masquerade, 55 Crafting boostable with no XP, the seven parts (the goggles needed as A Porcine of Interest counts as done), any part on another, a charged mask's charges lost, a black mask (i) making the helmet (i) of its kind and coming back from it, Disassemble returning the parts, Check as the gem's | OSRS Wiki, Slayer helmet, Slayer helmet (i) (read 2026-11-15); 242 cache (the helmets' options and worn Check) |
+| The helmet taking the used mask's slot; Disassemble needing six free slots; a plain mask chosen before an imbued one when both are carried; all six messages (none quoted on the Wiki, so their words stay empty) | guessed |
 | A Buy taking as many as the points and inventory allow, refusing only when not one fits; its refusals' words | guessed |
 | Every message's words | unsourced: the Words thread fills them |
-| Not built yet: Konar and her places, the salve amulet not stacking with the mask (no salve amulet yet), making the Slayer helmet, the slayer ring's teleports, Task Storage, the diary's seventh block slot, the superiors of Slayer monsters not in yet, boss tasks, Krystilia (the Wilderness), Aya's blessed axe talk, Kuradal's Slayer cape sale and talk about Duradel, the Slayer cape overlooking a master's combat level | |
+| Not built yet: Konar and her places, the salve amulet not stacking with the mask (no salve amulet yet), the recoloured Slayer helmets and the helmet's Partner and Log, the slayer ring's teleports, Task Storage, the diary's seventh block slot, the superiors of Slayer monsters not in yet, boss tasks, Krystilia (the Wilderness), Aya's blessed axe talk, Kuradal's Slayer cape sale and talk about Duradel, the Slayer cape overlooking a master's combat level | |
 
 ## Items and inventory
 

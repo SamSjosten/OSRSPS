@@ -203,6 +203,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   hard on a cows task and plain off it, read off `::combat`.
 - `slayer-superior.json` (needs 0.8.0 for `assertVarp`): Slayer step 6: a chasm crawler put out with `::slayer
   superior` on a cave crawler task, its message by key and its kill counting one off the task (with `::keys on`).
+- `slayer-helmet.json`: Slayer step 7: the Slayer helmet refused without Malevolent Masquerade, then assembled from a
+  charged black mask and its six parts at 55 Crafting, its Check, and Disassemble giving back an uncharged black mask
+  and the parts (with `::keys on`). The level, missing-part, no-room, worn Check and imbued cases are in the headless test.
 - `ham-hideout.json`: Misthalin piece 7 step 4a: the H.A.M. Hideout's trapdoor locked, picked open at 99 Thieving
   with a lockpick, climbed down and back up by the ladder, a H.A.M. member pickpocketed, and Jimmy's cell door locked
   from outside and picked from inside (with `::keys on` and `::god on`; the concussions are in the headless test).
