@@ -592,7 +592,7 @@
       "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
       "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
       "respawnTicks": 250,
-      "source": "OSRS Wiki, Monk of Zamorak (level 17, ids 528 and 8401), read 2026-11-15: speed 4, max hit 5, crush, no bonuses, not aggressive, respawn 250. The Wiki's magic attack is the higher levels' (their max hits name one; level 17's doesn't), so this one only punches (inferred). Guessed: the unarmed human fight animations, as for the other robed men"
+      "source": "OSRS Wiki, Monk of Zamorak (level 17, ids 528 and 8401), read 2026-11-15: speed 4, max hit 5, crush, no bonuses, not aggressive, respawn 250. The infobox's shared Crush, Magic style isn't used for this one (inferred): his max hit names no Magic as the higher levels' do, and the Wiki says he is used to train Magic on through his cage, so he only punches. Guessed: the unarmed human fight animations, as for the other robed men"
     },
     {
       "npcs": ["gb_mossgiant"],

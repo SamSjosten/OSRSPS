@@ -9,7 +9,7 @@
   {"step": "command", "text": "::item 556 40"},
   {"step": "command", "text": "::item 558 20"},
   {"step": "castOnNpc", "interfaceId": 218, "component": 19, "npc": "Monk of Zamorak", "timeoutMs": 20000, "comment": "Fire Strike (README: 218:19); in sight through the cage's bars there is no walk"},
-  {"step": "assertHitsplat", "npc": "Monk of Zamorak", "timeoutMs": 20000},
+  {"step": "assertSpotanim", "npc": "Monk of Zamorak", "ids": [101, 85], "timeoutMs": 20000, "comment": "the impact, or the splash on a miss"},
   {"step": "command", "text": "::kill monk of zamorak", "comment": "the rest of his 10 hitpoints; the casts above showed he can be fought"},
   {"step": "assertGroundItem", "item": "Bones", "timeoutMs": 20000, "comment": "bones always, inside the cage"},
   {"step": "command", "text": "::setlevel magic 1", "comment": "back as it was"},
