@@ -54,9 +54,11 @@ enum class SlayerMaster(val id: Int, val npc: Int, val points: Int) {
  * multiplied by its experience bonus"). The last kill completes the task: the streak goes up and, from the fifth task,
  * the master's points are paid ([pointsFor]).
  *
- * The kill goes to whoever [osrsps.game.combat.MeleeCombat] counts as the killer, the player whose hit finished it.
- * Guessed: a kill counts and pays XP even if someone else dealt most of the damage (live halves it with a partner; Slayer
- * partners aren't built). Krystilia's tasks keep their own streak in slayer_wilderness_tasks_completed; she belongs to
+ * The kill counts for whoever [osrsps.game.combat.MeleeCombat] counts as the killer, the player whose hit finished it.
+ * When another player dealt the monster the most damage, the XP is split: half to them and half to the finisher, each
+ * rounded down to a tenth, and each only if on the task (OSRS Wiki, Slayer/Experience table). Guessed: the kill counts
+ * towards the finisher's task alone; of two players who dealt the same most damage, the first to deal it counts.
+ * Slayer partners aren't built. Krystilia's tasks keep their own streak in slayer_wilderness_tasks_completed; she belongs to
  * the Wilderness, which isn't built, so it is left alone. Out: boss tasks, Konar's places, superiors (later steps).
  */
 class Slayer(private val world: World, val data: SlayerData) {
@@ -73,8 +75,11 @@ class Slayer(private val world: World, val data: SlayerData) {
         /** The most points varbit slayer_points' 17 bits hold. Guessed: live caps there too. */
         const val MAX_POINTS = (1 shl 17) - 1
 
-        /** The most the 14-bit streak varbit holds. Guessed: it stops there rather than wrapping. */
+        /** The most the 14-bit streak varbit holds. */
         const val MAX_STREAK = (1 shl 14) - 1
+
+        /** How far a streak past [MAX_STREAK] goes back: the longest milestone, so the bonuses keep their pace. */
+        const val STREAK_WRAP = 1000
 
         const val ENCHANTED_GEM = 4155
 
@@ -132,17 +137,39 @@ class Slayer(private val world: World, val data: SlayerData) {
         CombatMath.withXpBonus(npc.maxHitpoints * 10, world.combat.npcCombat[npc.type]?.xpBonusTenths ?: 0)
 
     /** [npc] died with [killer] the one who finished it: one off their task if it counts, with its XP. */
+    /**
+     * Damage dealt to each monster that is some task, by player, in the order they first hit it: whoever dealt it the
+     * most shares a kill's XP ([killed]). A monster back at full hitpoints starts afresh.
+     */
+    private val damage = HashMap<Npc, LinkedHashMap<Player, Int>>()
+
+    /** [player] dealt [npc] [dealt] damage (MeleeCombat's every hit from a player). */
+    fun damaged(npc: Npc, player: Player, dealt: Int) {
+        if (npc.type.params[PARAM_CATEGORY] !is Int) return
+        if (npc.hitpoints + dealt >= npc.maxHitpoints) damage.remove(npc)
+        damage.getOrPut(npc) { LinkedHashMap() }.merge(player, dealt, Int::plus)
+    }
+
     fun killed(npc: Npc, killer: Player?) {
+        val dealt = damage.remove(npc)
         val player = killer ?: return
+        val top = dealt?.maxByOrNull { it.value }?.key
+        val shared = top != null && top !== player
+        val xp = xpTenths(npc)
+        if (shared && top != null && !top.loggedOut && onTask(top, npc)) top.skills.addTenths(Skill.SLAYER, xp / 2)
         if (player.loggedOut || !onTask(player, npc)) return
-        player.skills.addTenths(Skill.SLAYER, xpTenths(npc))
+        player.skills.addTenths(Skill.SLAYER, if (shared) xp / 2 else xp)
         val left = remaining(player) - 1
         player.vars[VARP_COUNT] = left
         if (left == 0) complete(player)
     }
 
     private fun complete(player: Player) {
-        val streak = (streak(player) + 1).coerceAtMost(MAX_STREAK)
+        // A streak past what the 14-bit varbit holds goes back 1,000, so every milestone (10, 50, 100, 250 and 1,000
+        // all divide 1,000) still comes round on time: the Wiki's March 2023 update keeps a huge streak's bonuses
+        // coming "as if you didn't have a ludicrous streak count". Guessed: how live stores it.
+        val next = streak(player) + 1
+        val streak = if (next > MAX_STREAK) next - STREAK_WRAP else next
         setStreak(player, streak)
         val points = pointsFor(master(player)?.points ?: 0, streak)
         setPoints(player, points(player) + points)

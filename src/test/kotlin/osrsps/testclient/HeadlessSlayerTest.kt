@@ -124,6 +124,48 @@ class HeadlessSlayerTest {
         }
     }
 
+    @Test
+    fun `when another player dealt the most damage, the XP is split between them and the finisher`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dana").use { dana ->
+                server.login("erin").use { erin ->
+                    for (client in listOf(dana, erin)) {
+                        client.await("the login rebuild") { client.position }
+                        client.commandReply("slayer task cows 5 vannaka") { it.startsWith("Task") }
+                    }
+                    // Erin deals 5 of the cow's 8, Dana the last 3: 8 XP shared, 4 each.
+                    erin.commandReply("hit 5 cow") { it.startsWith("Hit") }
+                    dana.killAndWait("cow", cow.id)
+                    dana.await("dana's half") { if (dana.slayerXp() == 4) Unit else null }
+                    erin.await("erin's half") { if (erin.slayerXp() == 4) Unit else null }
+                    // The kill counts for the finisher's task.
+                    dana.await("dana's count") { if (dana.varp(Slayer.VARP_COUNT) == 4) Unit else null }
+                    assertEquals(5, erin.varp(Slayer.VARP_COUNT))
+
+                    // Alone, the finisher gets it all.
+                    erin.await("the cow back") { erin.npcs().firstOrNull { it.id == cow.id } }
+                    erin.killAndWait("cow", cow.id)
+                    erin.await("erin's whole kill") { if (erin.slayerXp() == 12) Unit else null }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a streak past the varbit's top goes back 1,000 so the milestones keep their pace`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("fred").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("slayer streak 16383") { it.startsWith("Streak") }
+                client.commandReply("slayer task cows 1 vannaka") { it.startsWith("Task") }
+                client.killAndWait("cow", cow.id)
+                client.await("the streak wrapped") { if (client.varp(STREAK_VARP) and 0x3FFF == 16384 - 1000) Unit else null }
+                // 16,384 is no milestone: Vannaka's 8.
+                client.seen("[slayer.task_done_points streak=15384 points=8 total=8]")
+            }
+        }
+    }
+
     private companion object {
         const val BACKPACK = 93
         const val SLAYER = 18

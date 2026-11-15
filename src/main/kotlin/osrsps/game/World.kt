@@ -606,6 +606,7 @@ class World(
         projectile = zones::projectile,
         npcDamaged = { npc, player, dealt ->
             archiveRaids.damaged(npc, player, dealt)
+            slayer.damaged(npc, player, dealt)
             osrsps.game.content.Bryophyta.damaged(this, npc, player)
         },
     )
