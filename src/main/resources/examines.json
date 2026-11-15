@@ -18,7 +18,8 @@
     "Locs and NPCs: Hunter step 2: the ferret, chinchompa and carnivorous chinchompa and every box trap loc type of theirs (set, failing, failed, each creature's caught type and its four struggling types; the 242 cache), keyed one per id.",
     "Hunter step 3 (2026-11-15): the swamp lizards and salamanders of npc-spawns/hunter-net-traps.json, and the young trees and net traps in every state, from the Young tree and Net trap pages.",
     "Hunter step 4 (2026-11-15): the kebbits of npc-spawns/hunter-deadfalls.json, and the deadfall's boulder in every state, from the Deadfall page.",
-    "Hunter step 5 (2026-11-15): the pitfall creatures of npc-spawns/hunter-pitfalls.json, and the pit, spiked pit and the big cats full pits from the Pitfall page. The falling-in form (19229, 19230) and the antelopes full pit (53024) have no Wiki text yet."
+    "Hunter step 5 (2026-11-15): the pitfall creatures of npc-spawns/hunter-pitfalls.json, and the pit, spiked pit and the big cats full pits from the Pitfall page. The falling-in form (19229, 19230) and the antelopes full pit (53024) have no Wiki text yet.",
+    "Hunter step 6a (2026-11-15): the butterflies and moths of npc-spawns/hunter-butterflies.json, from each creature page."
   ],
   "npcs": [
     {"npc": 0, "name": "Tool Leprechaun"},
@@ -531,6 +532,10 @@
     {"npc": 5550, "name": "Cerulean twitch"},
     {"npc": 5551, "name": "Golden warbler"},
     {"npc": 5552, "name": "Copper longtail"},
+    {"npc": 5553, "name": "Black warlock", "wiki": "Black warlock page, infobox"},
+    {"npc": 5554, "name": "Snowy knight", "wiki": "Snowy knight page, infobox"},
+    {"npc": 5555, "name": "Sapphire glacialis", "wiki": "Sapphire glacialis page, infobox"},
+    {"npc": 5556, "name": "Ruby harvest", "wiki": "Ruby harvest page, infobox"},
     {"npc": 5730, "name": "Master Farmer"},
     {"npc": 5731, "name": "Master Farmer"},
     {"npc": 5732, "name": "Market Guard"},
@@ -724,6 +729,8 @@
     {"npc": 11919, "name": "Farmer"},
     {"npc": 11920, "name": "Farmer"},
     {"npc": 11921, "name": "Farmer"},
+    {"npc": 12770, "name": "Sunlight Moth", "wiki": "Sunlight moth page, infobox"},
+    {"npc": 12771, "name": "Moonlight moth", "wiki": "Moonlight moth page, infobox (12771)"},
     {"npc": 13132, "name": "Moonlight antelope", "wiki": "Moonlight antelope page, infobox"},
     {"npc": 13133, "name": "Sunlight antelope", "wiki": "Sunlight antelope page, infobox"},
     {"npc": 13302, "name": "Wealthy citizen"},
