@@ -93,7 +93,7 @@ class NpcCombatTest {
             "xarth_attack_magic_01" to 14984, "xarth_death_01" to 14995, "xarth_corpse_death_01" to 15003,
             "npc_dagonhai_attack_ranged_01" to 14593, "npc_dagonhai_death_01" to 14652, "npc_dagonhai_death_02" to 14653,
             "npc_dagonhai_death_03" to 14654, "leagues_6_thrall_imp_melee_attack" to 13851, "leagues_6_thrall_imp_melee_despawn" to 13856,
-            "demon_attack" to 64, "demon_block" to 65, "demon_death" to 67,
+            "demon_attack" to 64, "demon_attack_greater" to 4644, "demon_death_greater" to 68, "demon_block" to 65, "demon_death" to 67,
             "shade_attack" to 1283, "shade_block" to 1286, "shade_sink" to 1287,
             "monalisk_cave_bug_attack" to 6079, "monalisk_cave_bug_defend" to 6080, "monalisk_mini_cave_bug_death" to 6082,
             "cave_slime_attack" to 1789, "cave_slime_defend" to 1791, "cave_slime_death" to 1792,

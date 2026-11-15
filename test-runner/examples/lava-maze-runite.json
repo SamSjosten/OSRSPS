@@ -1,0 +1,22 @@
+{
+  "name": "Wilderness step W3.4: runite mined north of the Lava Maze (level 46) with a rune pickaxe, then a lava dragon seen on Lava Dragon Isle (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::scenario gathering", "expectMessage": "Started scenario gathering.", "comment": "99 Mining and a rune pickaxe; ::reset at the end puts the account back"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off)."},
+    {"step": "command", "text": "::tele 3059 3884 0", "expectMessage": "Teleported to 3059, 3884, 0", "comment": "south of runiterock1 at 3059, 3885"},
+    {"step": "locOption", "locId": 11376, "option": "Mine", "x": 3059, "y": 3885},
+    {"step": "assertMessage", "contains": "mining.swing"},
+    {"step": "assertInventory", "item": "Runite ore", "count": 1, "timeoutMs": 120000, "comment": "about 7% a roll at 99 (the pair 1 to 18 out of 256), a roll every 3 ticks"},
+    {"step": "assertLoc", "locId": 11390, "x": 3059, "y": 3885, "comment": "rocks1, the empty rock, for 600 ticks in the Wilderness"},
+
+    {"step": "command", "text": "::tele 3200 3836 0", "expectMessage": "Teleported to 3200, 3836, 0", "comment": "on Lava Dragon Isle, among its eight lava dragons"},
+    {"step": "npcOption", "npc": "Lava dragon", "option": "Attack", "timeoutMs": 20000},
+    {"step": "assertHitsplat", "npc": "Lava dragon", "timeoutMs": 20000},
+
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
+    {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+  ]
+}

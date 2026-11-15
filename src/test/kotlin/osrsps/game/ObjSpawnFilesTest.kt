@@ -199,6 +199,25 @@ class ObjSpawnFilesTest {
     }
 
     @Test
+    fun `levels 36 to 48 have the Wiki's Lava Maze, Lava Dragon Isle and Demonic Ruins spawns`() {
+        val items = ObjTypes.of(
+            ObjType(1217, "Black dagger", internalName = "black_dagger"), ObjType(565, "Blood rune", stackable = true, internalName = "bloodrune"),
+            ObjType(559, "Body rune", stackable = true, internalName = "bodyrune"), ObjType(528, "Burnt bones", internalName = "bones_burnt"),
+            ObjType(995, "Coins", stackable = true, internalName = "coins"), ObjType(1654, "Gold necklace", internalName = "gold_necklace"),
+            ObjType(1153, "Iron full helm", internalName = "iron_full_helm"), ObjType(946, "Knife", internalName = "knife"),
+            ObjType(1385, "Staff of earth", internalName = "staff_of_earth"), ObjType(1119, "Steel platebody", internalName = "steel_platebody"),
+            ObjType(229, "Vial", internalName = "vial_empty"), ObjType(239, "White berries", internalName = "white_berries"),
+        )
+        val text = ObjSpawnFiles.resources().toMap().getValue("wilderness-36-48.tsv")
+        val spawns = ObjSpawnFiles.parse(text, items, "wilderness-36-48.tsv")
+        assertEquals(2, spawns.count { it.id == 946 }, "the Lava Maze's two knives")
+        assertEquals(15, spawns.single { it.id == 559 }.count)
+        assertEquals(45, spawns.single { it.id == 559 }.respawnTicks)
+        assertEquals(2000, spawns.single { it.id == 1119 }.respawnTicks)
+        assertTrue(spawns.all { it.level == 0 && Wilderness.level(it.x, it.z) in 36..48 })
+    }
+
+    @Test
     fun `finds the spawn files in a folder and in a jar`() {
         val dir = createTempDirectory("obj-spawns")
         val spawns = dir.resolve(ObjSpawnFiles.RESOURCE_DIR).createDirectories()
