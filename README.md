@@ -1284,8 +1284,9 @@ the dialogue shows each line's key.
 
 ### Hunter
 
-Hunter steps 1 and 2 (`game/skill/hunter/`, `npc-spawns/hunter-birds.json` and `hunter-box-traps.json`,
-`::scenario hunter`): the trap engine, bird snares and box traps. Lay (from the backpack, or on a snare on the ground) drops the snare and puts the trap up on the skill clock's
+Hunter steps 1 to 4 (`game/skill/hunter/`, `npc-spawns/hunter-birds.json`, `hunter-box-traps.json`,
+`hunter-net-traps.json` and `hunter-deadfalls.json`, `::scenario hunter`): the trap engine, bird snares, box traps, net
+traps and deadfalls. Lay (from the backpack, or on a snare on the ground) drops the snare and puts the trap up on the skill clock's
 fourth tick, the player stepping off it; a set trap looks for a creature within 2 tiles every 3 ticks (none while a
 player stands on it), the creature walks in, and the catch is rolled at the owner's boosted Hunter level, a miss
 every time below the creature's level. A caught bird struggles, then the snare holds it until Check (its drops, XP
@@ -1296,18 +1297,35 @@ at 40, four at 60, five at 80. No trap goes down in an instance, or on a tile al
 waits, the snare lies on its tile, so a death then loses nothing. `test-runner/examples/hunter-bird-snare.json` lays,
 catches, checks, fails, resets and dismantles a snare at Feldip with `::keys on`.
 
+A net trap is set on a young tree (Set-trap, with a net trap in the backpack and the salamander's Hunter level) from a
+tile square to one of its sides: the tree bends, then stands bent over the net, which lies on the player's tile; the
+creature has to step onto the net. A catch or a miss shows one 1 by 2 net over the tree and the net; Check gives the
+salamander and puts the tree back as the cache has it; a miss lets the tree spring up beside the fallen net, both
+with Dismantle and Reset.
+
+A deadfall is set on a boulder (Set-trap, with a knife or fletching knife and logs, the log kept three times in four),
+two at most. It looks for a kebbit from 8 ticks after it stands, whoever stands by it; a kebbit reaching either long
+side of the boulder is caught under it, and Check gives its drops and the boulder back. A miss drops the boulder on
+nothing and the trap is over. `hunter-net-trap.json` and `hunter-deadfall.json` in `test-runner/examples/` catch a
+swamp lizard and a barb-tailed kebbit.
+
 | What | Source |
 |---|---|
 | The birds: crimson swift (1, 34 XP), golden warbler (5, 47), copper longtail (9, 61.2), cerulean twitch (11, 64.5), tropical wagtail (19, 95.2); bones, raw bird meat and 5 to 10 feathers of the bird's colour; each one's catch pair (crimson swift 39% at 1 to 164% at 99) | OSRS Wiki, Bird snare and each bird's page (the Skilling success chart, Mod Ash's figures) |
 | Box traps: ferret (27, 115.2 XP, the ferret), chinchompa (53, 198.4, the chinchompa), carnivorous chinchompa (63, 265, the red chinchompa); the chinchompas' catch chances (Mod Ash: greys 6 to 268 out of 255, reds -78 to 228); laying with the tinderbox's animation | OSRS Wiki, Box trap, Ferret (Hunter), Chinchompa (Hunter), Carnivorous chinchompa |
 | Where they are: Piscatoris (ferrets `::tele 2313 3510`, chinchompas `::tele 2340 3595`), Feldip (carnivorous chinchompas `::tele 2556 2925`, and the red chinchompa hunting ground under it, `::tele 2520 9296`) | mejrs NPCList_OSRS.json (live, pre-Nov 2022) |
+| Net traps: swamp lizard (29, 152 XP), orange salamander (47, 224), red salamander (59, 272), each giving itself; their catch pairs (Mod Ash: green 20% to 141%, orange 6% to 113%, red 0% to 94%); a creature passing the net may be caught, never with the player on it; the tree springing back on a miss with the net left to Reset or Dismantle | OSRS Wiki, Net trap, Young tree, each creature's (Hunter) page |
+| Where they are: Canifis (`::tele 3549 3443`) and north-west of Slepe, Uzer (`::tele 3410 3085`), the Necropolis and the Abalone Cliffs (orange), Ourania (`::tele 2451 3227`) and Charred Island (red) | each creature's OSRS Wiki page (location table) |
+| The net on the player's tile, turned to the tree; the 1 by 2 locs starting on the tree's tile when the net is north or east of it, on the net's when south or west | RuneLite's Hunter plugin (net trap placement) and the cache's loc sizes |
+| Deadfalls: wild kebbit (23, 102.4 XP, bones and kebbit claws), barb-tailed (33, 134.4, bones, barb-tail harpoon, raw barb-tailed kebbit), prickly (37, 147.2, bones and kebbit spike), sabre-toothed (51, 160, bones and kebbit teeth); the barb-tailed and sabre-toothed catch pairs; knife and logs (not redwood or arctic pine), two at most, the log kept 3 times in 4, catching from 8 ticks after laying, standing by it not mattering | OSRS Wiki, Deadfall, each kebbit's page, Update:Summer Sweep Up - Hunter & Skilling (19 August 2026) |
+| Where the kebbits are: Piscatoris (wild `::tele 2307 3578`, prickly `::tele 2307 3607`) and Auburnvale (wild), Feldip (barb-tailed `::tele 2573 2899`), Rellekka (sabre-toothed `::tele 2711 3775`) | each kebbit's OSRS Wiki page (location table) |
 | The trap count, and Reset and the failed snare (since 7 October 2026) | OSRS Wiki, Hunter (Multiple traps, Changes) |
 | A trap looks every 3 ticks within 2 tiles, nothing while a player stands on it; a creature above the player's level always gets away | OSRS Wiki, Box trap (Mechanics, Mod Ash) |
 | Laying takes 4 ticks of the skill clock; picking a trap up takes 3 ticks and stalls the player | OSRS Wiki, Tick manipulation |
 | A trap stands a minute, counted again when it catches or fails | RuneLite's Hunter plugin (HunterTrap.TRAP_TIME, observed on live) |
 | Where the birds are: Feldip (crimson swifts and wagtails, `::tele 2611 2918`, `::tele 2512 2905`), Uzer (warblers, `::tele 3402 3150`), Piscatoris (longtails, `::tele 2340 3590`), Rellekka (twitches, `::tele 2725 3770`) | mejrs NPCList_OSRS.json (live, pre-Nov 2022) |
-| The creature lured is one in range at random, always; it is rolled for on stepping onto the trap; the struggle (2 ticks), the respawn (10 ticks), the collapse leaving the item, how far the owner may go (32 tiles), the birds' wander (4), the check and dismantle animation, traps allowed on any free walkable tile outside instances; the ferret's catch chance (the grey chinchompa's); a box trap's struggling loc by the side the creature came in from | guessed |
-| Not built: black chinchompas (the Wilderness), embertailed jerboas and letvek (Varlamore), net traps, deadfalls, pitfalls, butterflies and implings, falconry, tracking, the Hunter shops, smoking and baiting traps, the honey buzzards, Hunters' Rumours | next steps |
+| The creature lured is one in range at random, always; it is rolled for on stepping onto the trap; the struggle (2 ticks), the respawn (10 ticks), the collapse leaving the item, how far the owner may go (32 tiles), the birds' wander (4), the check and dismantle animation, traps allowed on any free walkable tile outside instances; the ferret's catch chance (the grey chinchompa's); a box trap's struggling loc by the side the creature came in from; Set-trap needing the salamander's level, standing square to the tree, the tree bending for the 4 ticks of laying; the wild and prickly kebbits' catch pairs (their pages' figures from before the 19 August 2026 rise), a kebbit caught on reaching either long side of the boulder, laying a deadfall with human_laytrap in 4 ticks, Dismantle giving nothing back | guessed |
+| Not built: black chinchompas and black salamanders (the Wilderness), embertailed jerboas, letvek and tecu salamanders (Varlamore), salamanders as weapons, Release, making a net trap, pyre foxes and maniacal monkeys, pitfalls, butterflies and implings, falconry, tracking, the Hunter shops, smoking and baiting traps, the honey buzzards, Hunters' Rumours | next steps |
 
 ## Fred's farm
 

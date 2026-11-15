@@ -270,7 +270,7 @@ class SlayerMasters(private val world: World) {
         if (!slayer.meets(player, master)) return chatNpc(ChatAnim.NEUTRAL, TOO_WEAK)
         val task = slayer.task(player)
         if (task != null) {
-            if (!slayer.fit(player, task)) return offerCancel(task.nameLower)
+            if (!slayer.fit(player, task, combat = false)) return offerCancel(task.nameLower)
             val line = when (master) {
                 SlayerMaster.AYA, SlayerMaster.SPRIA -> STILL_HUNTING
                 SlayerMaster.MAZCHNA -> MazchnaLines.STILL_HUNTING

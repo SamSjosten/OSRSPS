@@ -1,0 +1,26 @@
+{
+ "name": "Hunter step 3: a net trap set on a swamp young tree in the Canifis Hunter area from the tile south of it at 99 Hunter (a sure catch), the tree bent over the net on the player's tile, a swamp lizard caught on it, and Check giving the lizard and the net trap back with the tree up again (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario hunter", "expectMessage": "Started scenario hunter.", "comment": "five net traps among the Hunter loadout; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::setlevel hunter 99", "expectMessage": "Hunter set to level 99", "comment": "a swamp lizard's catch is sure from 67"},
+  {"step": "command", "text": "::tele 3548 3441 0", "comment": "south of the young tree at 3548, 3442; a swamp lizard spawns a tile from it (npc-spawns/hunter-net-traps.json)"},
+  {"step": "assertLocation", "x": 3548, "y": 3441, "plane": 0},
+  {"step": "locOption", "locId": 9341, "option": "Set-trap", "x": 3548, "y": 3442, "comment": "hunting_sapling_up_swamp"},
+  {"step": "assertMessage", "contains": "hunter.laying"},
+  {"step": "assertAnimation", "id": 5215, "comment": "hunting_setting_sapling_trap"},
+  {"step": "assertLoc", "locId": 9343, "x": 3548, "y": 3441, "option": "Dismantle", "comment": "hunting_sapling_net_set_swamp on the player's tile, turned to the tree"},
+  {"step": "assertLoc", "locId": 9257, "x": 3548, "y": 3442, "option": "Investigate", "comment": "the tree bent over it"},
+  {"step": "assertInventory", "item": "Net trap", "count": 4},
+  {"step": "assertLoc", "locId": 9004, "x": 3548, "y": 3441, "option": "Check", "timeoutMs": 60000, "comment": "hunting_sapling_full_green, 1 by 2 from the net's tile over the tree; if no lizard comes within the minute the trap falls, so a rerun may be needed"},
+  {"step": "locOption", "locId": 9004, "option": "Check", "x": 3548, "y": 3441},
+  {"step": "assertMessage", "contains": "hunter.caught", "timeoutMs": 15000},
+  {"step": "assertInventory", "item": "Swamp lizard", "count": 1},
+  {"step": "assertInventory", "item": "Net trap", "count": 5},
+  {"step": "assertLoc", "locId": 9341, "x": 3548, "y": 3442, "option": "Set-trap", "comment": "the tree up again"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

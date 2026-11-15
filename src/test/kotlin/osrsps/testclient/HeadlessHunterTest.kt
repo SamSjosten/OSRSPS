@@ -56,6 +56,7 @@ class HeadlessHunterTest {
             locTypes = LocTypes(snareLocs.associateWith { LocType(it, "Bird snare", ops = opsOf(it), collision = LocCollisionType(interactType = 0, blocksProjectile = false)) }),
             npcTypes = NpcTypes.of(swift, wagtail, chinchompa),
             npcSpawns = listOfNotNull(bird?.let { NpcSpawn(it, 3224, 3218, source = "test") }),
+            scenarios = osrsps.game.Scenarios(listOf(osrsps.game.Scenario.parse("here", """{ "position": { "x": 3222, "z": 3218 } }"""))),
             cycleMillis = millis,
         )
     }
@@ -190,6 +191,26 @@ class HeadlessHunterTest {
     }
 
     @Test
+    fun `a snare laid before a first scenario comes back to the backpack, and a reset gives it back`(@TempDir dir: Path) {
+        server(dir, bird = null).use { server ->
+            server.login("gil").use { client ->
+                val at = client.await("the login rebuild") { client.position }
+                client.command("item ${BirdSnares.SNARE} 1")
+                client.lay()
+                client.awaitLoc(BirdSnares.SET, at.x, at.z)
+                assertEquals(0, client.count(BirdSnares.SNARE))
+                // The scenario's snapshot then holds it, so ::reset gives it back too.
+                client.command("scenario here")
+                client.await("the scenario") { client.messages().firstOrNull { it.text.startsWith("Started scenario here.") } }
+                client.await("the trap down") { if (client.locAt(at.x, at.z) != BirdSnares.SET) Unit else null }
+                client.command("reset")
+                client.await("the reset") { client.messages().firstOrNull { it.text.startsWith("Back to how you were") } }
+                client.await("the snare back") { if (client.count(BirdSnares.SNARE) == 1) Unit else null }
+            }
+        }
+    }
+
+    @Test
     fun `a player who dies while a Reset waits loses no snare`(@TempDir dir: Path) {
         server(dir, bird = wagtail).use { server ->
             server.login("fred").use { client ->
@@ -267,9 +288,13 @@ class HeadlessHunterTest {
         server(dir, bird = chinchompa).use { server ->
             server.login("fred").use { client ->
                 val at = client.await("the login rebuild") { client.position }
-                client.command("setlevel hunter 99")
                 client.command("item ${BoxTraps.BOX_TRAP} 1")
                 client.slotOf(BoxTraps.BOX_TRAP)
+                // Below the box trap's 27 it won't go down.
+                client.lay(BoxTraps.BOX_TRAP)
+                client.seen("[hunter.trap_level level=27]")
+                assertEquals(1, client.count(BoxTraps.BOX_TRAP))
+                client.command("setlevel hunter 99")
                 val before = client.await("Hunter XP") { client.stat(HUNTER)?.takeIf { it.level == 99 } }.xp
                 client.lay(BoxTraps.BOX_TRAP)
                 client.seen("[hunter.laying]")
