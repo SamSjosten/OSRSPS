@@ -131,6 +131,28 @@ class ImplingsTest {
     }
 
     @Test
+    fun `a caught impling's spawner starts over, but a caught crystal impling waits for the next cycle`() {
+        val world = World(IntArray(0), CollisionMap(), random = GameRandom(11), npcTypes = NpcTypes.of(*types.toTypedArray()), objTypes = objTypes())
+        val implings = world.hunter.implings
+        implings.process(0)
+        implings.process(Implings.CRYSTAL_UNSEEN_TICKS.toLong())
+        val low = implings.all.first { it.tier === Implings.LOW }
+        val crystal = implings.all.single { it.tier === Implings.CRYSTAL_TIER }
+        val tick = Implings.CRYSTAL_UNSEEN_TICKS.toLong() + 10
+        for (spawner in listOf(low, crystal)) {
+            world.removeNpc(spawner.npc!!)
+            implings.restart(spawner, tick)
+        }
+        implings.process(tick + Implings.CRYSTAL_UNSEEN_TICKS)
+        assertTrue(low.npc != null)
+        assertEquals(null, crystal.npc)
+        // The next half hour brings a new one.
+        implings.process(Implings.CYCLE_TICKS.toLong())
+        implings.process(Implings.CYCLE_TICKS.toLong() + Implings.CRYSTAL_UNSEEN_TICKS)
+        assertTrue(implings.all.single { it.tier === Implings.CRYSTAL_TIER }.npc != null)
+    }
+
+    @Test
     fun `nothing is rolled in a world whose cache has no implings`() {
         val world = World(IntArray(0), CollisionMap(), random = GameRandom(11))
         world.hunter.implings.process(0)

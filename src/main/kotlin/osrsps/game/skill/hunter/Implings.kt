@@ -35,7 +35,13 @@ class Impling(
 )
 
 /** A table of implings by weight, as the Wiki's spawn tiers are written (20/100 and so on), unseen for [unseenTicks] before each shows. */
-class ImplingTier(val name: String, val lines: List<Pair<Impling, Int>>, val unseenTicks: Int = Implings.UNSEEN_TICKS) {
+class ImplingTier(
+    val name: String,
+    val lines: List<Pair<Impling, Int>>,
+    val unseenTicks: Int = Implings.UNSEEN_TICKS,
+    /** Whether a caught one's spawner starts over at once, or waits for the next cycle. */
+    val restartsOnCatch: Boolean = true,
+) {
     val total: Int = lines.sumOf { it.second }
 
     fun roll(world: World): Impling {
@@ -59,7 +65,8 @@ class ImplingTier(val name: String, val lines: List<Pair<Impling, Int>>, val uns
  * [PRIF_POINTS]. A spawner shows its impling [UNSEEN_TICKS] later ([CRYSTAL_UNSEEN_TICKS] for the crystal one, from its
  * page), picking the impling then from its tier. A visible
  * impling roams up to [ROAM] tiles from its point, and an unseen one roams the same way, so it shows where that took it
- * ([roamed]). A caught one's spawner starts over at once at the same point.
+ * ([roamed]). A caught one's spawner starts over at once at the same point, but the crystal one's waits for the next
+ * cycle (its page: half-hourly).
  *
  * Sources: the OSRS Wiki's Impling page (read 2026-11-15) for the tiers, the points, the cycle, the 2-minute unseen
  * phase, the 100-tile roam, the respawn on capture, barehanded at 10 levels over, a jar needed to keep one and looting at
@@ -203,10 +210,7 @@ class Implings(private val world: World) {
     private fun ScriptContext.caught(impling: Impling, npc: Npc) {
         world.removeNpc(npc)
         // A spawner's starts over; one put down another way (a spawn file, ::npc) is simply gone.
-        spawners.firstOrNull { it.npc === npc }?.let { spawner ->
-            spawner.npc = null
-            spawner.showTick = world.tick + spawner.tier.unseenTicks
-        }
+        spawners.firstOrNull { it.npc === npc }?.let { restart(it, world.tick) }
         player.skills.addTenths(Skill.HUNTER, impling.xpTenths)
         val jar = player.inventory.contents().firstOrNull { it.second.id == IMPLING_JAR }?.first
         if (jar != null) {
@@ -216,6 +220,15 @@ class Implings(private val world: World) {
             give(player, impling)
             world.message(player, HunterLines.IMP_LOOTED)
         }
+    }
+
+    /**
+     * [spawner]'s impling was caught on [tick]: it starts over unseen at its point, or, for a tier that doesn't
+     * ([ImplingTier.restartsOnCatch], the crystal one), stays empty until the next cycle replaces it.
+     */
+    internal fun restart(spawner: Spawner, tick: Long) {
+        spawner.npc = null
+        spawner.showTick = if (spawner.tier.restartsOnCatch) tick + spawner.tier.unseenTicks else Long.MAX_VALUE
     }
 
     private fun ScriptContext.lootJar(impling: Impling, slot: Int) {
@@ -249,7 +262,7 @@ class Implings(private val world: World) {
         const val CYCLE_TICKS = 3000
         const val UNSEEN_TICKS = 200
 
-        /** The Crystal impling's page: three minutes unseen (it shows at :03 and :33). */
+        /** The Crystal impling's page: three minutes unseen (it shows at :03 and :33); a caught one waits for the next half hour. */
         const val CRYSTAL_UNSEEN_TICKS = 300
         const val ROAM = 100
 
@@ -277,7 +290,7 @@ class Implings(private val world: World) {
         val LOW = ImplingTier("low", listOf(BABY to 20, YOUNG to 20, GOURMET to 20, EARTH to 20, ESSENCE to 10, ECLECTIC to 10))
         val MID = ImplingTier("mid", listOf(GOURMET to 10, EARTH to 10, ESSENCE to 20, ECLECTIC to 37, NATURE to 20, MAGPIE to 2, NINJA to 1))
         val HIGH = ImplingTier("high", listOf(NATURE to 10, MAGPIE to 50, NINJA to 30, DRAGON to 10))
-        val CRYSTAL_TIER = ImplingTier("crystal", listOf(CRYSTAL to 1), CRYSTAL_UNSEEN_TICKS)
+        val CRYSTAL_TIER = ImplingTier("crystal", listOf(CRYSTAL to 1), CRYSTAL_UNSEEN_TICKS, restartsOnCatch = false)
 
         /** The Wiki's map of Gielinor's variable-tier spawn points. */
         val VARIABLE_POINTS: List<Pair<Int, Int>> = points(
