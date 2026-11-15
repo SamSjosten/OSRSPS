@@ -35,7 +35,7 @@ class PvpInteraction internal constructor(val target: Player, spell: CombatSpell
 }
 
 /**
- * Fighting between players in the Wilderness (steps W1.3 to W1.5). Attack on a player the rules allow ([PvpRules]), or
+ * Fighting between players in the Wilderness (steps W1.3 to W1.6). Attack on a player the rules allow ([PvpRules]), or
  * a combat spell cast on them, becomes a [PvpInteraction]: each movement phase the player walks until the target is in
  * reach and attacks every weapon-speed ticks, as at an NPC. Melee reaches the tiles beside the target ([MeleeCombat]);
  * a bow, crossbow, thrown weapon or blowpipe its range in line of sight, using its ammunition as at an NPC
@@ -65,8 +65,10 @@ class PvpInteraction internal constructor(val target: Player, spell: CombatSpell
  *
  * Single-way combat (step W1.5) keeps a third player off a fight with the PJ timer ([singleWayRefusal]); in multi-way
  * combat ([MultiCombat]) anyone can join, and a Burst or Barrage hits the players around its target too ([around]).
+ * Each attack skulls an attacker who wasn't attacked first ([Skulls], step W1.6).
+ *
  * Not here yet: special attacks and enchanted bolts' effects on players, poison and venom from a player's weapon,
- * chinchompas' blast on players, skulls (W1.6) and the PvP death (W1.7). Powered staves can't attack players (OSRS Wiki,
+ * chinchompas' blast on players, and the PvP death (W1.7). Powered staves can't attack players (OSRS Wiki,
  * Trident of the seas); the refusal's words are not sourced.
  */
 class PvpCombat(
@@ -130,6 +132,7 @@ class PvpCombat(
         val refusal = PvpRules.refusal(attacker, target)
         if (refusal.isNotEmpty()) return refusal
         singleWayRefusal(attacker, target, currentTick())?.let { return listOf(it) }
+        if (Skulls.prevented(attacker, target, currentTick())) return listOf(PvpLines.SKULL_PREVENTED)
         if (mode(attacker, spell) == null) {
             cantFight(attacker)
             return emptyList()
@@ -170,6 +173,11 @@ class PvpCombat(
         // Someone else may have got to either of them on the way.
         singleWayRefusal(player, target, currentTick())?.let {
             message(player, words(player)[it])
+            return true
+        }
+        // A skull can run out on the way.
+        if (Skulls.prevented(player, target, currentTick())) {
+            message(player, words(player)[PvpLines.SKULL_PREVENTED])
             return true
         }
         // The style can change on the way (the combat tab is open while walking).
@@ -242,8 +250,9 @@ class PvpCombat(
         return npc.target === player && !npc.dead && tick - player.attackedTick <= MeleeCombat.IN_COMBAT_TICKS
     }
 
-    /** [attacker] attacked [target] on [tick]: both PJ timers start again, each naming the other. */
+    /** [attacker] attacked [target] on [tick]: both PJ timers start again, each naming the other, and a skull if unprovoked. */
     private fun fought(attacker: Player, target: Player, tick: Long) {
+        Skulls.attacked(attacker, target, tick)
         attacker.pjOpponent = target
         attacker.pjUntil = tick + PJ_TICKS
         target.pjOpponent = attacker
@@ -322,6 +331,8 @@ class PvpCombat(
                 // stays on the target (guessed: the Wiki doesn't say).
                 other.pjOpponent = player
                 other.pjUntil = tick + PJ_TICKS
+                // And unprovoked, a skull for the caster and the right to hit back for them, as for the target.
+                Skulls.attacked(player, other, tick)
             }
         }
         // A spell from the book is cast once; the autocast spell, if any, carries the fight on. With none, the fight
@@ -353,7 +364,7 @@ class PvpCombat(
 
     /**
      * The other players a Burst or Barrage on [target] hits in multi-way combat: those standing on the 3x3 around the
-     * target, in multi-way combat themselves, whom [player] could attack ([PvpRules], and [singleWayRefusal]: a caster
+     * target, in multi-way combat themselves, whom [player] could attack ([PvpRules], [Skulls.prevented], and [singleWayRefusal]: a caster
      * standing in single-way combat is held to their target), eight at most, lowest index first (OSRS Wiki, Ancient
      * Magicks: up to nine targets in the 3x3; the order guessed, as for NPCs).
      */
@@ -362,7 +373,8 @@ class PvpCombat(
             .filter {
                 it !== player && it !== target && inWorld(it) && !it.dead && it.hitpoints > 0 && it.level == target.level &&
                     abs(it.x - target.x) <= 1 && abs(it.z - target.z) <= 1 && multi.at(it.level, it.x, it.z) &&
-                    PvpRules.refusal(player, it).isEmpty() && singleWayRefusal(player, it, tick) == null
+                    PvpRules.refusal(player, it).isEmpty() && singleWayRefusal(player, it, tick) == null &&
+                    !Skulls.prevented(player, it, tick)
             }
             .sortedBy { it.index }
             .take(MagicCombat.AREA_TARGETS - 1)
@@ -413,11 +425,12 @@ class PvpCombat(
     }
 
     /**
-     * At the start of the tick: [player]'s freeze counts down, breaking once they are more than [FREEZE_BREAK_DISTANCE]
-     * tiles from who cast it on either axis (the Wiki: only x and y count, not the plane); then the immunity counts
-     * down. A caster who left the world breaks it at once.
+     * At the start of the tick: [player]'s skull counts down ([Skulls.countDown]), and their freeze, breaking once they
+     * are more than [FREEZE_BREAK_DISTANCE] tiles from who cast it on either axis (the Wiki: only x and y count, not the
+     * plane); then the immunity counts down. A caster who left the world breaks it at once.
      */
     fun countDown(player: Player) {
+        Skulls.countDown(player, currentTick())
         if (player.freezeTicks > 0) {
             val caster = player.frozenBy
             // A caster who left the world is as far away as can be: the freeze breaks (OSRS Wiki, Free-to-play PvP
@@ -447,7 +460,7 @@ class PvpCombat(
     private fun retaliate(player: Player, attacker: Player, tick: Long) {
         if (!player.autoRetaliate || player.interaction != null || player.modalOpen || tick < player.stunnedUntil) return
         if (!inWorld(attacker) || attacker.dead || PvpRules.refusal(player, attacker).isNotEmpty()) return
-        if (singleWayRefusal(player, attacker, tick) != null) return
+        if (singleWayRefusal(player, attacker, tick) != null || Skulls.prevented(player, attacker, tick)) return
         val mode = mode(player, null) ?: return
         player.interaction = PvpInteraction(attacker, null, this)
         player.nextAttackTick = maxOf(tick + (interval(player, mode) + 1) / 2, player.attackLockedUntil)

@@ -90,6 +90,10 @@ class PlayerSave(
     val friendsChatOwner: String? = null,
     /** Run went off because energy ran out, so the energy threshold setting may still turn it back on; see [Movement]. */
     val runRanOut: Boolean = false,
+    /** Ticks left of the player's skull ([osrsps.game.combat.Skulls]), counted while logged in only; 0 for none. */
+    val skullTicks: Int = 0,
+    /** The players they attacked unprovoked and the ticks each may still hit back unskulled ([Player.attackedFirst]). */
+    val attackedFirst: Map<String, Int> = emptyMap(),
     /** What the Grand Exchange's bot market has bought from the player against the buy limits, by item. */
     val geSellLimits: List<BuyLimitUse> = emptyList(),
     /**
@@ -171,6 +175,8 @@ class PlayerSave(
     private fun applyState(player: Player) {
         player.runEnergy = runEnergy
         player.runRanOut = runRanOut
+        player.skullTicks = skullTicks
+        player.attackedFirst.putAll(attackedFirst)
         val types = player.vars.types
         for ((varp, value) in varps) {
             if (varp >= types.cacheVarpCount) {
@@ -273,6 +279,8 @@ class PlayerSave(
         }
         put("runEnergy", runEnergy)
         if (runRanOut) put("runRanOut", true)
+        if (skullTicks > 0) put("skullTicks", skullTicks)
+        if (attackedFirst.isNotEmpty()) putJsonObject("attackedFirst") { for ((name, ticks) in attackedFirst) put(name, ticks) }
         putJsonObject("skills") {
             for ((skill, save) in skills) {
                 putJsonObject(skill.name.lowercase()) {
@@ -404,6 +412,8 @@ class PlayerSave(
                 player.friendsChat,
                 player.friendsChatOwner,
                 runRanOut = player.runRanOut,
+                skullTicks = player.skullTicks,
+                attackedFirst = player.attackedFirst.toMap(),
                 geSellLimits = player.ge.sellLimits.values.toList(),
                 customVars = customVars,
                 archiveChest = player.archiveChest.contents().toMap(),
@@ -487,6 +497,8 @@ class PlayerSave(
                     root["lastTrade"]?.jsonPrimitive?.contentOrNull,
                     readFriendsChat(root), root["friendsChatOwner"]?.jsonPrimitive?.contentOrNull,
                     runRanOut = state.runRanOut,
+                    skullTicks = state.skullTicks,
+                    attackedFirst = state.attackedFirst,
                     geSellLimits = state.geSellLimits,
                     customVars = state.customVars,
                     archiveChest = state.archiveChest,
@@ -574,6 +586,12 @@ class PlayerSave(
                 geOffers = geOffers, geLimits = geLimits, geHistory = geHistory, geSellLimits = geSellLimits,
                 // Optional: saves from before the energy threshold setting, and saves with run not waiting on it, have none.
                 runRanOut = root["runRanOut"]?.jsonPrimitive?.boolean ?: false,
+                // Optional: saves from before skulls, and saves of players without one, have none.
+                skullTicks = (root["skullTicks"]?.jsonPrimitive?.int ?: 0).coerceIn(0, osrsps.game.combat.Skulls.TICKS),
+                // Optional, as skullTicks.
+                attackedFirst = root["attackedFirst"]?.jsonObject?.mapValues { (_, v) ->
+                    v.jsonPrimitive.int.coerceIn(0, osrsps.game.combat.Skulls.TICKS)
+                }?.filterValues { it > 0 }.orEmpty(),
                 customVars = customVars,
                 // Optional: saves from before the Archive's loot, and saves with none waiting, have none.
                 archiveChest = root.objs("archiveChest", "Archive chest", osrsps.game.raid.ArchiveChestWindow.SLOTS),

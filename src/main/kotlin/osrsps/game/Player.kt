@@ -358,6 +358,18 @@ class Player(
     var pjOpponent: Player? = null
     var pjUntil: Long = 0
 
+    /** Ticks left of their skull ([osrsps.game.combat.Skulls]). Saved. */
+    var skullTicks: Int = 0
+
+    /** The skull head icon last sent for them, -1 for none. */
+    var sentSkullIcon: Int = -1
+
+    /**
+     * The players they attacked unprovoked, by lower-case name, and the ticks left in which each may hit them back
+     * unskulled ([osrsps.game.combat.Skulls]); counted down with their skull, while they are logged in, and saved.
+     */
+    val attackedFirst = HashMap<String, Int>()
+
     /** The tick their part of the movement phase last landed other players' hits on them; see [osrsps.game.combat.PvpCombat.land]. */
     var pvpTick: Long = -1
 
