@@ -5,7 +5,7 @@
   {"step": "waitForLogin"},
   {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account with no task; ::reset at the end puts the account back"},
   {"step": "command", "text": "::keys on", "expectMessage": "keys", "comment": "the masters' words aren't filled yet, so the script reads their keys"},
-  {"step": "command", "text": "::setlevel all 70", "expectMessage": "Every skill"},
+  {"step": "command", "text": "::setlevel all 60", "expectMessage": "Every skill", "comment": "combat 76, under Steve's 85"},
   {"step": "command", "text": "::tele 2432 3421 0", "expectMessage": "Teleported to 2432, 3421, 0", "comment": "just south of Steve in the Tree Gnome Stronghold"},
   {"step": "npcOption", "npcId": 6798, "option": "Assignment", "timeoutMs": 20000, "comment": "slayer_master_steve"},
   {"step": "assertDialogue", "contains": "[slayer_master.too_weak]", "timeoutMs": 15000},
