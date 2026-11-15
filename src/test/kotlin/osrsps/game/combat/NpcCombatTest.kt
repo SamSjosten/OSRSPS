@@ -77,7 +77,7 @@ class NpcCombatTest {
             "mammoth_attack" to 304, "mammoth_block" to 305, "mammoth_death" to 307,
             "earthwarrior_chop" to 2951, "earthwarrior_def" to 2952, "earthwarrior_death" to 2946,
             "skeleton_update_giant_attack" to 5499, "skeleton_update_giant_defend" to 5501, "skeleton_update_giant_death" to 5503,
-            "dragon_attack" to 80, "dragon_block" to 89, "dragon_death" to 92, "dragon_firebreath_attack" to 86,
+            "dragon_attack" to 80, "dwarf_attack" to 99, "dwarf_block" to 100, "dwarf_death" to 102, "dragon_block" to 89, "dragon_death" to 92, "dragon_firebreath_attack" to 86,
             "npc_ent_attack_01" to 12506, "npc_ent_defend_01" to 12504, "npc_ent_death_01" to 12508,
             "catpon_attack" to 4271, "catpon_attack_breath" to 4272, "catpon_parry" to 4273, "catpon_death" to 4270,
             "small_spider_update_attack" to 6249, "small_spider_update_defend" to 6250, "small_spider_update_death" to 6251,

@@ -1,0 +1,23 @@
+{
+  "name": "Wilderness step W3.3: mithril mined at the Bandit Camp mine (level 31) with a rune pickaxe, then the Wilderness God Wars Dungeon's mouth (level 28) shut (::keys on)",
+  "account": "test2",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::scenario gathering", "expectMessage": "Started scenario gathering.", "comment": "99 Mining and a rune pickaxe; ::reset at the end puts the account back"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off).", "comment": "the mine's hobgoblins are aggressive"},
+    {"step": "command", "text": "::tele 3083 3759 0", "expectMessage": "Teleported to 3083, 3759, 0", "comment": "south of mithrilrock1 at 3083, 3760"},
+    {"step": "locOption", "locId": 11372, "option": "Mine", "x": 3083, "y": 3760},
+    {"step": "assertMessage", "contains": "mining.swing"},
+    {"step": "assertInventory", "item": "Mithril ore", "count": 1, "timeoutMs": 60000},
+    {"step": "assertMessage", "contains": "mining.get_ore ore=mithril"},
+
+    {"step": "command", "text": "::tele 3017 3737 0", "expectMessage": "Teleported to 3017, 3737, 0", "comment": "south of wilderness_gwd_entrance (3016, 3738, 3 by 2, approached from the south)"},
+    {"step": "locOption", "locId": 26766, "option": "Enter", "x": 3016, "y": 3738},
+    {"step": "assertMessage", "contains": "game.nothing_interesting", "timeoutMs": 10000, "comment": "shut until Wilderness step W6.3"},
+    {"step": "assertLocation", "x": 3017, "y": 3737, "plane": 0},
+
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
+    {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+  ]
+}
