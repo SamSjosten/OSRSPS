@@ -19,6 +19,9 @@ import osrsps.game.combat.NpcDrops
 import osrsps.game.combat.Prayers
 import osrsps.game.content.KingBlackDragon
 import osrsps.game.content.KingBlackDragon.Breath
+import osrsps.game.content.KingBlackDragonLines
+import osrsps.game.content.WildernessLevers
+import osrsps.game.dialogue.DialogueText
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
@@ -52,6 +55,7 @@ class HeadlessKingBlackDragonTest {
         val names = Regex("\"item\": (\\d+), \"name\": \"([^\"]+)\"").findAll(text).associate { it.groupValues[1].toInt() to it.groupValues[2] }
         val objs = names.map { (id, name) -> ObjType(id, name, stackable = true) }.associateBy { it.id }.toMutableMap()
         objs[protectFromMagic.id] = protectFromMagic
+        objs[KingBlackDragon.COINS] = ObjType(KingBlackDragon.COINS, "Coins", stackable = true)
         objs[SHIELD] = ObjType(SHIELD, "Anti-dragon shield", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.SHIELD)
         val objTypes = ObjTypes.of(*objs.values.toTypedArray())
         val lever = { id: Int -> LocType(id, "Lever", listOf("Pull", "Commune", null, null, "Private"), LocCollisionType(width = 1, length = 1)) }
@@ -239,6 +243,39 @@ class HeadlessKingBlackDragonTest {
                 assertEquals(1, cy.vars[KingBlackDragon.KILL_COUNT_VARP])
                 client.await("his bones") { server.world.groundObjs.visibleAt(cy, npc.x, npc.z, 0).firstOrNull { it.id == 536 } }
                 client.await("his hides") { server.world.groundObjs.visibleAt(cy, npc.x, npc.z, 0).firstOrNull { it.id == 1747 && it.count == 2 } }
+            }
+        }
+    }
+
+    @Test
+    fun `Private takes 50,000 coins from the bank for a lair of the player's own, gone once they leave`(@TempDir dir: Path) {
+        server(dir, seed = 5).use { server ->
+            server.login("di").use { client ->
+                client.await("the login rebuild") { client.position }
+                val di = server.world.playerNamed("di")!!
+                client.tele(3067, 10254)
+                client.locOp(KingBlackDragon.LEVER_IN, 3067, 10253, KingBlackDragon.PRIVATE)
+                client.await("refused without the fee") { client.messages().firstOrNull { it.text == DialogueText.NONE[KingBlackDragonLines.PRIVATE_NO_COINS] } }
+                assertTrue(server.world.instances.all.isEmpty())
+
+                di.bank.add(server.world.objTypes[KingBlackDragon.COINS]!!, 60_000)
+                client.locOp(KingBlackDragon.LEVER_IN, 3067, 10253, KingBlackDragon.PRIVATE)
+                client.awaitDialogue("the menu") { it is DialogueView.Menu && it.title == DialogueText.NONE[KingBlackDragonLines.PRIVATE_TITLE] }
+                client.chooseOption(1)
+                val instance = client.await("a lair of their own", timeoutMillis = 15_000) { server.world.instances.at(di.x, di.z) }
+                val tile = WildernessLevers.KBD_LAIR_TILE
+                val inside = Coord(instance.baseX + tile.x - KingBlackDragon.LAIR_X, instance.baseZ + tile.z - KingBlackDragon.LAIR_Z, 0)
+                client.await("at the private lair's lever") { client.position?.takeIf { it == inside } }
+                assertEquals(10_000L, di.bank.count(KingBlackDragon.COINS), "the fee from the bank")
+                val npc = server.world.npcs.all.single { it.type.id == KingBlackDragon.BOSS && instance.contains(it.x, it.z) }
+                assertEquals(1, server.world.npcs.all.count { it.type.id == KingBlackDragon.BOSS && !instance.contains(it.x, it.z) }, "the open lair keeps its own")
+                client.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit King Black Dragon") }
+                client.await("his fight in the instance") { server.world.encounters.all.firstOrNull { it.boss === npc } }
+
+                client.locOp(KingBlackDragon.LEVER_OUT, instance.baseX + tile.x - KingBlackDragon.LAIR_X, instance.baseZ + tile.z - KingBlackDragon.LAIR_Z, 1)
+                client.await("back in the dungeon", timeoutMillis = 15_000) { client.position?.takeIf { it == Coord(3067, 10253, 0) } }
+                client.await("the lair gone") { Unit.takeIf { server.world.instances.all.isEmpty() } }
+                assertTrue(server.world.npcs.all.none { it === npc }, "and him with it")
             }
         }
     }

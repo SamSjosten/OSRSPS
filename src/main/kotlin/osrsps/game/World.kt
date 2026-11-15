@@ -194,6 +194,7 @@ import osrsps.game.content.registerJalarast
 import osrsps.game.content.registerRick
 import osrsps.game.content.registerBones
 import osrsps.game.content.GiantLairs
+import osrsps.game.content.KingBlackDragon
 import osrsps.game.content.registerGiantBones
 import osrsps.game.content.registerBryophyta
 import osrsps.game.content.registerEmotes
@@ -605,7 +606,7 @@ class World(
 
     private val locInteractions = LocInteractions(
         locs, collision, movement, handlers, scripts, doors, gates, words = ::textFor, inInstance = { x, z -> instances.at(x, z) != null },
-        forInstances = { it in ArchiveRaids.INSTANCE_LOCS || it in GiantLairs.INSTANCE_LOCS },
+        forInstances = { it in ArchiveRaids.INSTANCE_LOCS || it in GiantLairs.INSTANCE_LOCS || it in KingBlackDragon.INSTANCE_LOCS },
     )
 
     /** Lets loc type [id] be used from the tiles [tiles] gives, as a stepping stone from the bank; see [LocInteractions.useFrom]. */
