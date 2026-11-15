@@ -452,6 +452,7 @@ class World(
         equipment, attackStyles, npcCombat, rangedWeapons, prayerBoosts = { prayers.boosts(it) },
         slayerHelm = { player, npc -> slayer.helm(player, npc) },
         notYours = { player, npc -> slayer.superiors.barred(player, npc) },
+        ownSuperior = { player, npc -> slayer.superiors.owns(player, npc) },
     )
 
     /** The prayer book; see [Prayers]. */

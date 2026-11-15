@@ -271,12 +271,20 @@ class MeleeCombat(
 
     /**
      * Whether an NPC other than [npc] is fighting [player] and hit them within the last [IN_COMBAT_TICKS] ticks. Never
-     * for a player standing in a multi-way area (guessed: by the player's tile).
+     * for a player standing in a multi-way area (guessed: by the player's tile), nor when [npc] is their own Slayer
+     * superior ([Combat.switchesSingleWay]), which makes the other NPC give up.
      */
     internal fun underAttackByAnother(player: Player, npc: Npc): Boolean {
         if (multi.at(player.level, player.x, player.z)) return false
         val other = player.attackedBy ?: return false
-        return other !== npc && other.target === player && !other.dead && currentTick() - player.attackedTick <= IN_COMBAT_TICKS
+        val fighting = other !== npc && other.target === player && !other.dead && currentTick() - player.attackedTick <= IN_COMBAT_TICKS
+        // Their own superior they may switch to, and the monster that was fighting them gives up (OSRS Wiki, Superior
+        // slayer monster).
+        if (fighting && combat.switchesSingleWay(player, npc)) {
+            giveUp(other)
+            return false
+        }
+        return fighting
     }
 
     private fun swing(player: Player, npc: Npc, tick: Long) {

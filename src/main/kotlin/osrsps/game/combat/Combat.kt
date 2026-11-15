@@ -71,7 +71,15 @@ class Combat(
     private val slayerHelm: (Player, Npc) -> SlayerHelm = { _, _ -> SlayerHelm.NONE },
     /** Why [Player] may not attack [Npc] that belongs to another player (a Slayer superior), null when they may. */
     private val notYours: (Player, Npc) -> Line? = { _, _ -> null },
+    /** Whether [Npc] is [Player]'s own Slayer superior, which single-way combat lets them switch to. */
+    private val ownSuperior: (Player, Npc) -> Boolean = { _, _ -> false },
 ) {
+    /**
+     * Whether [player] may attack [npc] in single-way combat though another NPC is fighting them: their own Slayer
+     * superior (OSRS Wiki, Superior slayer monster: the standard monster then stops attacking them).
+     */
+    fun switchesSingleWay(player: Player, npc: Npc): Boolean = ownSuperior(player, npc)
+
     /**
      * The level [player] defends with against an attack of [type], before the style bonus: their Defence, or for magic
      * 70% of their Magic and 30% of their Defence (see the class note), with their prayers' boosts.

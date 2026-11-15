@@ -14,6 +14,13 @@ class SlayerSuperiorsTest {
         assertEquals(1378, anyUniqueTenths(20))
     }
 
+    @Test
+    fun `either unique table is as likely as the other`() {
+        val tables = (0 until SlayerSuperiors.uniqueOdds(10)).groupingBy { SlayerSuperiors.uniqueTable(it) }.eachCount()
+        assertEquals(125, tables[1])
+        assertEquals(125, tables[2])
+    }
+
     /** 1 in this many tenths of kills give any unique: the table's odds over 125, times 8/9. */
     private fun anyUniqueTenths(level: Int) = Math.round(SlayerSuperiors.uniqueOdds(level) * 8.0 / 9 / 125 * 10).toInt()
 }

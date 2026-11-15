@@ -33,8 +33,10 @@ class Superior(val internalName: String, val base: String, val xp: Int, val slay
  * the imbued heart (1/8) or a dust or mist battlestaff (7/16 each), the second an eternal gem (1/8) or nothing.
  *
  * It goes away 2 minutes after it appeared if its player never attacked it, and at the next 30-second check once they
- * have died, logged out or left (Mod Ash). Guessed: "left" is being on another level or more than [AREA] tiles away; a
- * hit on either unique table takes the place of one of the three rolls, the first table checked first; it stands still.
+ * have died, logged out or left (Mod Ash). A hit on either unique table takes the place of one of the three rolls (the
+ * Wiki's superiors' drop pages: "only 1 roll may be from the superior unique table"), the two tables equally likely. In
+ * single-way combat its player may attack it while another monster fights them, which then gives up (the Wiki).
+ * Guessed: "left" is being on another level or more than [AREA] tiles away; it stands still.
  *
  * Built: the chasm crawler (cave crawlers) and giant rockslug (rockslugs, with 2 flat armour), the superiors of the
  * Slayer monsters in so far. Left out: the Combat Achievements' and the Wilderness's better chances, the clue scroll
@@ -73,6 +75,13 @@ class SlayerSuperiors(private val world: World) {
 
         /** The unique tables' rate, 1 in (25000 - (level + 55)²) / 125: as a chance out of the first. */
         fun uniqueOdds(slayerLevel: Int): Int = 25_000 - (slayerLevel + 55) * (slayerLevel + 55)
+
+        /** Which unique table a draw out of [uniqueOdds] hits: 1 or 2, 125 draws each, or 0 for neither. */
+        fun uniqueTable(draw: Int): Int = when {
+            draw < 125 -> 1
+            draw < 250 -> 2
+            else -> 0
+        }
     }
 
     private class Out(val owner: String, val since: Long) {
@@ -91,6 +100,9 @@ class SlayerSuperiors(private val world: World) {
 
     /** The Slayer XP in tenths a kill of [npc] gives, if it is a superior. */
     fun xpTenths(npc: Npc): Int? = superiorOf(npc)?.let { it.xp * 10 }
+
+    /** Whether [npc] is [player]'s own superior. */
+    fun owns(player: Player, npc: Npc): Boolean = out[npc]?.owner == player.saveKey
 
     /** Why [player] can't attack [npc]: another player's superior. */
     fun barred(player: Player, npc: Npc): Line? = out[npc]?.takeIf { it.owner != player.saveKey }?.let { SlayerSuperiorLines.NOT_YOURS }
@@ -165,8 +177,10 @@ class SlayerSuperiors(private val world: World) {
 
     /** A roll on the unique tables: a list (maybe empty, the second table's nothing) when one is hit, else null. */
     private fun unique(random: GameRandom, superior: Superior): List<Drop>? {
-        val odds = uniqueOdds(superior.slayerLevel)
-        if (random.nextInt(odds) < 125) {
+        // One draw for both tables, each hit at 125 in the odds: an equal chance of either (OSRS Wiki, Superior slayer
+        // monster: "an equal chance of hitting either Unique Drop Table").
+        val table = uniqueTable(random.nextInt(uniqueOdds(superior.slayerLevel)))
+        if (table == 1) {
             val roll = random.nextInt(16)
             val id = when {
                 roll < 2 -> IMBUED_HEART
@@ -175,7 +189,7 @@ class SlayerSuperiors(private val world: World) {
             }
             return listOfNotNull(world.objTypes[id]?.let { Drop(it, 1) })
         }
-        if (random.nextInt(odds) < 125) {
+        if (table == 2) {
             if (random.nextInt(8) != 0) return emptyList()
             return listOfNotNull(world.objTypes[ETERNAL_GEM]?.let { Drop(it, 1) })
         }

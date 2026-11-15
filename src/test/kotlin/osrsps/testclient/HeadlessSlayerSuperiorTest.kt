@@ -14,6 +14,7 @@ import osrsps.game.SeqNames
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.World
+import osrsps.game.npc.NpcSpawn
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
 import osrsps.game.skill.Slayer
@@ -44,13 +45,13 @@ class HeadlessSlayerSuperiorTest {
     private val objTypes = ObjTypes.of(gloves)
     private val drops = """{ "npcs": [ { "npcs": ["slayer_cave_crawler_1"], "tertiary": [ { "item": $GLOVES, "name": "Mystic gloves (light)", "chance": "1/1" } ], "source": "test" } ] }"""
 
-    private fun server(dir: Path, superior: NpcType = chasm) = TestServer(dir) { crcs, millis ->
+    private fun server(dir: Path, superior: NpcType = chasm, spawns: List<NpcSpawn> = emptyList()) = TestServer(dir) { crcs, millis ->
         val types = NpcTypes.of(crawler, superior)
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, random = GameRandom(5),
             varTypes = VarTypes(6_000, mapOf(Slayer.VARBIT_MASTER to VarbitType(661, 2, 5), Slayer.VARBIT_POINTS to VarbitType(661, 6, 22), Slayer.VARBIT_STREAK to VarbitType(1077, 0, 13))),
             npcTypes = types, npcCombat = NpcCombat.load(types, SeqNames.NONE), slayerData = data, cycleMillis = millis,
-            objTypes = objTypes, npcDrops = NpcDrops.parse(drops, types, objTypes),
+            objTypes = objTypes, npcDrops = NpcDrops.parse(drops, types, objTypes), npcSpawns = spawns,
         )
     }
 
@@ -126,6 +127,29 @@ class HeadlessSlayerSuperiorTest {
                 val npc = server.world.npcs.all.first { it.index == index }
                 assertEquals(npc.maxHitpoints, npc.hitpoints)
                 assertEquals(true, client.npcs().any { it.index == index })
+            }
+        }
+    }
+
+    @Test
+    fun `in single-way combat a player fought by a monster may switch to their superior, and the monster gives up`(@TempDir dir: Path) {
+        server(dir, spawns = listOf(NpcSpawn(crawler, 3226, 3218, wander = 0, source = "test"))).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("setlevel all 40") { it.startsWith("Every skill") }
+                client.command("god")
+                client.commandReply("slayer task cave crawlers 5 vannaka") { it.startsWith("Task") }
+                val erin = server.world.playerNamed("erin")!!
+                val crawlerNpc = server.world.npcs.all.first { it.type.id == crawler.id }
+                client.await("the cave crawler in view") { client.npcs().firstOrNull { it.index == crawlerNpc.index } }
+                client.npcOp(crawlerNpc.index, ATTACK)
+                client.await("the cave crawler fighting back", timeoutMillis = 20_000) { if (crawlerNpc.target === erin && erin.attackedBy === crawlerNpc) Unit else null }
+                val index = client.superior()
+                client.await("the chasm crawler in view") { client.npcs().firstOrNull { it.index == index } }
+                client.npcOp(index, ATTACK)
+                client.await("an attack on the chasm crawler", timeoutMillis = 20_000) { if (erin.attackedNpc?.index == index) Unit else null }
+                assertEquals(null, crawlerNpc.target)
+                assertEquals(0, client.messages().count { it.text == "[combat.already_under_attack]" })
             }
         }
     }
