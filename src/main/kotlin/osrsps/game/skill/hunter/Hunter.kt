@@ -24,16 +24,29 @@ object HunterLines : Lines("hunter", "Hunter") {
     val NET_LEVEL = line("net_level", "the message on Set-trap on a young tree below the Hunter level its salamander needs", "level")
     val PIT_LEVEL = line("pit_level", "the message on Trap on a pit below the Hunter level its creature needs", "level")
     val NO_TEASING_STICK = line("no_teasing_stick", "the message on Tease with no teasing stick in the backpack and no hunter's spear wielded")
+    val NEED_NET = line("need_net", "the message on Catch on a butterfly or moth with no insect net wielded and too low a level to catch it barehanded")
+    val CATCH_LEVEL = line("catch_level", "the message on Catch below the Hunter level the butterfly or moth needs", "level")
+    val CATCH_MISS = line("catch_miss", "the message on failing to catch a butterfly or moth")
+    val CAUGHT_RELEASED = line("caught_released", "the message on catching a butterfly or moth with no butterfly jar, which lets it go at once", "creature")
+    val RELEASED = line("released", "the message on Release on a jarred butterfly or moth")
+    val IMP_NEED_NET = line("imp_need_net", "the message on Catch on an impling with no insect net wielded and too low a level to catch it barehanded")
+    val IMP_LEVEL = line("imp_level", "the message on Catch below the Hunter level the impling needs", "level")
+    val IMP_MISS = line("imp_miss", "the message on failing to catch an impling")
+    val IMP_JARRED = line("imp_jarred", "the message on catching an impling into an impling jar")
+    val IMP_LOOTED = line("imp_looted", "the message on catching an impling with no impling jar, which takes its loot at once")
+    val LOOT_SPACE = line("loot_space", "the message on Loot on an impling jar with no free backpack slot")
     val TEASE_LEVEL = line("tease_level", "the message on Tease below the Hunter level the creature needs", "level")
 }
 
 /**
  * The Hunter skill: the trap engine ([Traps]) and the kinds of trap built so far. Hunter step 1: bird snares
- * ([BirdSnares]); step 2: box traps ([BoxTraps]); step 3: net traps ([NetTraps]); step 4: deadfalls ([Deadfalls]); step 5: pitfalls ([Pitfalls]). Hunter's areas are outside Misthalin; they are built where live has them and reached by ::tele.
+ * ([BirdSnares]); step 2: box traps ([BoxTraps]); step 3: net traps ([NetTraps]); step 4: deadfalls ([Deadfalls]); step 5: pitfalls ([Pitfalls]); step 6a: butterflies and moths ([Butterflies]); step 6b: implings ([Implings]). Hunter's areas are outside Misthalin; they are built where live has them and reached by ::tele.
  */
 class Hunter(world: World, collision: CollisionMap) {
     val traps = Traps(world, collision)
     val pitfalls = Pitfalls(world, traps)
+    val butterflies = Butterflies(world)
+    val implings = Implings(world)
 
     fun register() {
         traps.register(BirdSnares.KIND)
@@ -41,12 +54,16 @@ class Hunter(world: World, collision: CollisionMap) {
         NetTraps.KINDS.forEach(traps::register)
         traps.register(Deadfalls.KIND)
         pitfalls.register()
+        butterflies.register()
+        implings.register()
     }
 
     /** Call once a tick, in the NPC phase before NPCs move. */
     fun process() {
         traps.process()
         pitfalls.process()
+        butterflies.process()
+        implings.process()
     }
 
     /** Call once a tick, straight after NPCs move. */
