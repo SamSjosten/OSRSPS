@@ -1,0 +1,23 @@
+{
+ "name": "Hunter step 9: a box trap pack opened into 100 box traps, then a larupia top made by Asyff from a tatty larupia fur and 100 coins on the Custom Fur Clothing panel (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario hunter", "expectMessage": "Started scenario hunter.", "comment": "::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::item 12742 1"},
+  {"step": "itemOption", "item": "Box trap pack", "option": "Open"},
+  {"step": "assertInventory", "item": "Box trap", "count": 105, "timeoutMs": 5000, "comment": "the scenario's five and the pack's 100"},
+  {"step": "command", "text": "::item 10093 1"},
+  {"step": "command", "text": "::item 995 100"},
+  {"step": "command", "text": "::tele 3281 3398 0", "comment": "the Fancy Clothes Store, Varrock"},
+  {"step": "npcOption", "npc": "Asyff", "option": "Fur Clothing"},
+  {"step": "assertInterface", "interfaceId": 477, "timeoutMs": 5000, "comment": "hunting_customfurs"},
+  {"step": "clickWidget", "interfaceId": 477, "component": 6, "slot": 9, "op": 1, "comment": "choices_items slot 9, the larupia top: Value (op1, GUESSED, the panel's script isn't in our sources)"},
+  {"step": "assertMessage", "contains": "hunter.fur_value", "timeoutMs": 5000},
+  {"step": "clickWidget", "interfaceId": 477, "component": 6, "slot": 9, "op": 2, "comment": "Buy (op2, GUESSED)"},
+  {"step": "assertInventory", "item": "Larupia top", "count": 1, "timeoutMs": 5000},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

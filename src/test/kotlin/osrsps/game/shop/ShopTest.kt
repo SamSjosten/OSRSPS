@@ -74,6 +74,9 @@ class ShopTest {
         4155 to 1, 4156 to 5000, 4158 to 31000, 4160 to 60, 4161 to 10, 4162 to 500, 4164 to 200, 4166 to 200, 4168 to 200,
         4170 to 21000, 4551 to 650, 6664 to 60, 6696 to 1, 6720 to 200, 7051 to 130, 7159 to 200, 7421 to 300, 7432 to 10,
         8923 to 900, 10952 to 150, 11874 to 55, 11885 to 5500, 11876 to 55, 11887 to 5500, 21754 to 200, 23037 to 200, 24942 to 100,
+        // The Hunter shops (the 242 cache's values).
+        10010 to 20, 10012 to 1, 10025 to 600, 10150 to 4, 10006 to 5, 10008 to 32, 10029 to 50, 596 to 4, 10031 to 15, 34631 to 32,
+        12740 to 505, 12742 to 3200, 12744 to 60000,
     )
 
     /**
@@ -147,6 +150,10 @@ class ShopTest {
             NpcType(2672, "Vasquen", internalName = "farming_gardener_hops_3"),
             NpcType(2681, "Fayeth", internalName = "farming_gardener_tree_4"),
             NpcType(2680, "Treznor", internalName = "farming_gardener_tree_3"),
+            NpcType(1501, "Aleck", internalName = "hunting_shop_owner_yanille"),
+            NpcType(1350, "Artimeus", internalName = "hunting_shop_owner_nardah"),
+            NpcType(14832, "Elder Strom", internalName = "tortugan_strom_2ops"),
+            NpcType(3218, "Bea", internalName = "baw_bea_3ops"),
         )
         return ShopTypes.parse(shopFile, npcs, objs)
     }
@@ -220,6 +227,11 @@ class ShopTest {
         "farming_supplies" to listOf(40, 20, 6, 1, 8, 12, 6),
         // Slayer Equipment, read 2026-11-15: 100% of each item's value.
         "slayer_equipment" to listOf(1, 5000, 31000, 60, 10, 500, 200, 200, 200, 21000, 650, 60, 1, 200, 130, 200, 300, 10, 900, 150, 55, 5500, 55, 5500, 200, 200, 100),
+        // The Hunter shops, read 2026-11-15: the Wiki's stock tables at 120% (Bea's at 130%, with no insect net).
+        "alecks_hunter_emporium" to listOf(24, 1, 720, 4, 6, 38, 60, 4, 18, 38, 606, 3840, 72000),
+        "nardah_hunter_shop" to listOf(24, 1, 720, 4, 6, 38, 60, 4, 18, 38, 606, 3840, 72000),
+        "elder_stroms_hunting_stall" to listOf(24, 1, 720, 4, 6, 38, 60, 4, 18, 38, 606, 3840, 72000),
+        "beas_hunting_gear" to listOf(1, 780, 5, 6, 41, 65, 5, 19, 41, 656, 4160, 78000),
     )
 
     @Test
