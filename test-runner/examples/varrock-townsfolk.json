@@ -242,7 +242,7 @@
   },
   {
    "step": "npcOption",
-   "npcId": 14139,
+   "npcId": 14138,
    "option": "Talk-to",
    "timeoutMs": 20000,
    "comment": "Jonny the Beard"
