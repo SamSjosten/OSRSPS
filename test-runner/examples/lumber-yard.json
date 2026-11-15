@@ -42,6 +42,7 @@
   {"step": "assertInterface", "interfaceId": 300, "comment": "Construction supplies"},
   {"step": "locOption", "locId": 2618, "option": "Climb-over", "x": 3308, "y": 3492, "timeoutMs": 10000, "comment": "into the yard again, from beside the operator's counter"},
   {"step": "assertLocation", "x": 3308, "y": 3493, "timeoutMs": 10000},
+  {"step": "waitTicks", "ticks": 2, "comment": "the client draws the climb before it ends on the server, and a click sent in that gap is dropped (215, 2026-11-15)"},
   {"step": "npcOption", "npc": "Crate", "option": "Search", "timeoutMs": 20000, "comment": "a mewing crate (an NPC): Gertrude's Cat is done"},
   {"step": "assertMessage", "contains": "[search.crate_empty]", "timeoutMs": 10000},
   {"step": "locOption", "locId": 2620, "option": "Search", "x": 3301, "y": 3500},
