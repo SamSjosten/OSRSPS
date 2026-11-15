@@ -82,7 +82,8 @@
     "Locs and NPCs: Karamja (step K4.2): Tai Bwo Wannai's ten trading-stick villagers (with and without sticks, and the multi-NPC each is shown through), Jiminua, the tribal statue, the jungle in every state and the village fence's repaired types (the 242 cache, 2026-11-19). None yet for the Hardwood Grove's doors (9038, 9039), which have no Wiki text.",
     "NPCs: random events step 15 (2026-11-19): the Pillory Guard (380), from his infobox.",
     "NPCs and locs: random events step 16 (2026-11-19): Flippa (5427 in the room, 6744 the invitation, one examine in his infobox), Tilt (5428) and the pinball posts (8982 and the nine other ids, one examine in their infobox), from each page's infobox.",
-    "NPCs and locs: Wilderness step W4.16 (2026-11-15): the bosses of piece 4, their lairs' monsters and the Escape Caves' bear and spider, and the lairs' locs that had none, one per id, from the infobox of the page in wiki, else of the page named after it. None yet where the Wiki gives no text: the lairs' other locs (677, 26762, 26763, 46925, 46996, 47000, 47077, 47078, 47122, 47140, 47141, 47147 to 47149, 47175)."
+    "NPCs and locs: Wilderness step W4.16 (2026-11-15): the bosses of piece 4, their lairs' monsters and the Escape Caves' bear and spider, and the lairs' locs that had none, one per id, from the infobox of the page in wiki, else of the page named after it. None yet where the Wiki gives no text: the lairs' other locs (677, 26762, 26763, 46925, 46996, 47000, 47077, 47078, 47122, 47140, 47141, 47147 to 47149, 47175).",
+    "Locs: Wilderness step W5.1 (2026-11-15): the Revenant Caves' ways in and out and the trapdoors they come out by, one per id, from the infobox of the page in wiki."
   ],
   "npcs": [
     {"npc": 0, "name": "Tool Leprechaun"},
@@ -3276,6 +3277,10 @@
     {"loc": 30285, "name": "Rocky support", "wiki": "Rocky support page, infobox (75%)"},
     {"loc": 30286, "name": "Rocky support", "wiki": "Rocky support page, infobox (50%)"},
     {"loc": 30287, "name": "Rocky support", "wiki": "Rocky support page, infobox (25%)"},
+    {"loc": 31555, "name": "Cavern", "wiki": "Cavern (Revenant Caves) page, infobox (Level 17)"},
+    {"loc": 31556, "name": "Cavern", "wiki": "Cavern (Revenant Caves) page, infobox (Level 40)"},
+    {"loc": 31557, "name": "Trapdoor", "wiki": "Trapdoor (Revenant Caves) page, infobox"},
+    {"loc": 31558, "name": "Stairs", "wiki": "Stairs (Revenant Caves) page, infobox (Southern)"},
     {"loc": 31706, "name": "Manhole", "wiki": "Manhole (Port Piscarilius) page, infobox"},
     {"loc": 31715, "name": "Lancalliums"},
     {"loc": 31945, "name": "Chest of Champions", "wiki": "Chest of Champions page, infobox (the map's multiloc, closed 22456 and open 31944)"},
@@ -3437,6 +3442,7 @@
     {"loc": 40330, "name": "Rope", "wiki": "the Sourhog Cave's exit rope; no Wiki page found"},
     {"loc": 40331, "name": "Blockage", "wiki": "the Sourhog Cave's blockage; no Wiki page found"},
     {"loc": 40341, "name": "Strange hole", "wiki": "Strange hole (Sourhog Cave) page, infobox (the map's multiloc, showing 40309 with the rope after the quest)"},
+    {"loc": 40386, "name": "Crevice", "wiki": "Crevice (Revenant Caves) page, infobox"},
     {"loc": 40474, "name": "Soul Wars Portal"},
     {"loc": 40729, "name": "Stool", "wiki": "Stool (Wild Varrock) page, infobox"},
     {"loc": 40731, "name": "Tent"},
@@ -3454,6 +3460,7 @@
     {"loc": 41730, "name": "Clan recruitment board"},
     {"loc": 42801, "name": "Bench", "wiki": "Bench (Prifddinas) page, infobox"},
     {"loc": 43475, "name": "Fire"},
+    {"loc": 43868, "name": "Stairs", "wiki": "Stairs (Revenant Caves) page, infobox (Northern)"},
     {"loc": 44050, "name": "Gate", "also": [44051, 44052, 44053], "wiki": "Toll gate page, infobox (Al Kharid's toll gate; the player sees 44050/44051 after Prince Ali Rescue)"},
     {"loc": 44054, "name": "Cupboard"},
     {"loc": 44784, "name": "Door"},

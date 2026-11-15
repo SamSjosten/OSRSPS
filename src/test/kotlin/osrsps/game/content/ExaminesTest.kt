@@ -68,6 +68,14 @@ class ExaminesTest {
     }
 
     @Test
+    fun `the Revenant Caves' ways in and out have examines, keyed one per id`() {
+        // Wilderness step W5.1: the caverns, the crevice, the stairs and the trapdoors they come out by.
+        for (id in listOf(RevenantCaves.CAVERN_LOW, RevenantCaves.CAVERN_HIGH, 31557, RevenantCaves.STAIRS_LOW, RevenantCaves.CREVICE, RevenantCaves.STAIRS_HIGH)) {
+            assertEquals("examine.loc_$id", Examines.loc(id)?.key, "loc $id")
+        }
+    }
+
+    @Test
     fun `every castle NPC that talks has an examine`() {
         for (id in listOf(Hans.ID, Cook.ID, DukeHoracio.ID, Perdu.ID, Cadmus.ID, Bankers.BANKER, Doomsayer.ID, Mikasi.ID, LumbridgeGuide.ID) + Townsfolk.MEN + Townsfolk.WOMEN) {
             assertEquals("examine.npc_$id", Examines.npc(id)?.key, "NPC $id")

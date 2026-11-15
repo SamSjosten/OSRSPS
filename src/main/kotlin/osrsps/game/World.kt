@@ -194,6 +194,9 @@ import osrsps.game.content.registerVenenatis
 import osrsps.game.content.registerCorporealBeast
 import osrsps.game.content.registerEscapeCaves
 import osrsps.game.content.registerCallisto
+import osrsps.game.content.RevenantCaves
+import osrsps.game.content.SinglesPlus
+import osrsps.game.content.registerRevenantCaves
 import osrsps.game.content.registerVetion
 import osrsps.game.content.registerKingBlackDragon
 import osrsps.game.tzhaar.FightCaves
@@ -830,7 +833,7 @@ class World(
     val pvpCombat = PvpCombat(
         collision, movement, combat, meleeCombat, rangedCombat, magicCombat, random, { tick },
         inWorld = { players[it.index] === it && !it.loggedOut }, words = ::textFor, protects = prayers::protects,
-        multi = multiCombat, players = { players.asSequence().filterNotNull() },
+        multi = multiCombat, players = { players.asSequence().filterNotNull() }, singlesPlus = SinglesPlus::at,
     )
 
     /** Home Teleport; see [HomeTeleport]. Its target is a seam the lodestone network takes ([registerLodestones]). */
@@ -876,7 +879,8 @@ class World(
         takeFromBank = { player, id, count -> bank.take(player.bank, bankScreen.tabs(player), id, count) },
         // The killer credited gets their PJ timer, though a monster's hit finished the victim.
         killerOf = { victim -> pvpCombat.killerOf(victim)?.also { pvpCombat.credited(victim, it) } },
-        forfeit = WildernessLairFee::forfeit,
+        forfeit = { WildernessLairFee.forfeit(it) + RevenantCaves.forfeit(it) },
+        diedUnkilled = RevenantCaves::lose,
         // The victim's, seen by the killer alone at first: a pickup is a hand-over, which saves the victim with the
         // taker. Never merged into a stack already there, so the loot keeps its own timers.
         dropForKiller = { victim, killer, type, count, x, z, level ->
@@ -1369,6 +1373,7 @@ class World(
         registerSpindel(this)
         registerVenenatis(this)
         registerCorporealBeast(this)
+        registerRevenantCaves(this)
         registerEscapeCaves(this)
         registerCallisto(this)
         registerVetion(this)
@@ -1951,6 +1956,7 @@ class World(
     private fun sendMultiIndicator(player: Player) {
         val multi = if (multiCombat.at(player.level, player.x, player.z)) 1 else 0
         player.vars.setVarbitIfKnown(MultiCombat.VARBIT_INDICATOR, multi)
+        player.vars.setVarbitIfKnown(SinglesPlus.VARBIT_INDICATOR, if (multi == 0 && SinglesPlus.at(player.level, player.x, player.z)) 1 else 0)
     }
 
     /**

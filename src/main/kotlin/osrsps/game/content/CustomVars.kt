@@ -136,14 +136,20 @@ class CustomVars(
      */
     val tbwCleanupVarp: Int = firstVarp + 18
 
+    /**
+     * 1 while the player's Revenant Caves fee stands paid ([RevenantCaves]). Live keeps this somewhere we haven't found;
+     * ours is guessed.
+     */
+    val revenantFeeVarp: Int = firstVarp + 19
+
     /** Every varbit of ours, by id. */
     val varbits: Map<Int, VarbitType> = Lodestones.SITES.associate { lodestoneVarbit(it) to VarbitType(lodestonesVarp, it.index, it.index) } +
         (lodestonePreviousVarbit to VarbitType(lodestonesVarp, Lodestones.PREVIOUS_LOW_BIT, Lodestones.PREVIOUS_HIGH_BIT))
 
     /** Every varp of ours. */
-    val varps: List<Int> = listOf(lodestonesVarp, harlanClaimVarp, giantLairsVarp, lairVisitVarp, fightCaveVarp, infernoVarp, whiteTreeVarp, bananaCrateVarp, morUlRekAccessVarp, logStorageVarp, logStorageMagicVarp, championsVarp, brutusDeathsVarp, brutusBestVarp, togVisitVarp, togVisitXpVarp, brutusDemonicDeathsVarp, brutusDemonicBestVarp, tbwCleanupVarp)
+    val varps: List<Int> = listOf(lodestonesVarp, harlanClaimVarp, giantLairsVarp, lairVisitVarp, fightCaveVarp, infernoVarp, whiteTreeVarp, bananaCrateVarp, morUlRekAccessVarp, logStorageVarp, logStorageMagicVarp, championsVarp, brutusDeathsVarp, brutusBestVarp, togVisitVarp, togVisitXpVarp, brutusDemonicDeathsVarp, brutusDemonicBestVarp, tbwCleanupVarp, revenantFeeVarp)
 
-    /** The varps by name, for `::varp name`: [LODESTONES], [HARLAN_CLAIMED], [GIANT_LAIRS], [LAIR_VISIT], [FIGHT_CAVE], [INFERNO], [WHITE_TREE], [BANANA_CRATE], [MOR_UL_REK_ACCESS], [LOG_STORAGE], [LOG_STORAGE_MAGIC], [CHAMPIONS], [BRUTUS_DEATHS], [BRUTUS_BEST], [TOG_VISIT], [TOG_VISIT_XP], [BRUTUS_DEMONIC_DEATHS], [BRUTUS_DEMONIC_BEST] and [TBW_CLEANUP]. */
+    /** The varps by name, for `::varp name`: [LODESTONES], [HARLAN_CLAIMED], [GIANT_LAIRS], [LAIR_VISIT], [FIGHT_CAVE], [INFERNO], [WHITE_TREE], [BANANA_CRATE], [MOR_UL_REK_ACCESS], [LOG_STORAGE], [LOG_STORAGE_MAGIC], [CHAMPIONS], [BRUTUS_DEATHS], [BRUTUS_BEST], [TOG_VISIT], [TOG_VISIT_XP], [BRUTUS_DEMONIC_DEATHS], [BRUTUS_DEMONIC_BEST], [TBW_CLEANUP] and [REVENANT_FEE]. */
     val varpNames: Map<String, Int> = mapOf(
         LODESTONES to lodestonesVarp, HARLAN_CLAIMED to harlanClaimVarp, GIANT_LAIRS to giantLairsVarp, LAIR_VISIT to lairVisitVarp,
         FIGHT_CAVE to fightCaveVarp, INFERNO to infernoVarp, WHITE_TREE to whiteTreeVarp, BANANA_CRATE to bananaCrateVarp, MOR_UL_REK_ACCESS to morUlRekAccessVarp,
@@ -153,6 +159,7 @@ class CustomVars(
         TOG_VISIT to togVisitVarp, TOG_VISIT_XP to togVisitXpVarp,
         BRUTUS_DEMONIC_DEATHS to brutusDemonicDeathsVarp, BRUTUS_DEMONIC_BEST to brutusDemonicBestVarp,
         TBW_CLEANUP to tbwCleanupVarp,
+        REVENANT_FEE to revenantFeeVarp,
     )
 
     /** The varbits by name, for `::varbit name`: each site's line key (`lodestone.lumbridge`, `lodestone.al_kharid`) and [LODESTONE_PREVIOUS]. */
@@ -194,6 +201,8 @@ class CustomVars(
 
         /** The Inferno run's varp's name. */
         const val INFERNO = "inferno"
+        /** The Revenant Caves' fee's varp's name. */
+        const val REVENANT_FEE = "revenant_fee_paid"
 
         /** The White Tree's regrowth varp's name. */
         const val WHITE_TREE = "white_tree"
