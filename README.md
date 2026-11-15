@@ -332,6 +332,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::if id [side]` | Opens interface `id` bare in the main game area (or the side panel with `side`), for checking it opens, moves with a layout change and closes |
 | `::setlevel skill\|all level` | Sets a skill's XP to what the level needs and its current level to match. `::setlevel attack 99` |
 | `::addxp skill xp` | Adds XP, one decimal place allowed (`::addxp cooking 17.5`); levelling raises the current level too. Exact: the XP rate doesn't apply |
+| `::slayer [task <id\|name> [amount] [master] \| points n \| streak n \| clear]` | Alone, your Slayer task, streak and points. `task` gives you a task straight away (`::slayer task cows 20 vannaka`; the master's most when no amount, Turael's when no master), `points` and `streak` set those, `clear` takes the task away |
 | `::xprate [rate\|restore]` | Shows or sets the server-wide XP rate, 0.1 to 1000 in tenths (`::xprate 5`, `::xprate 2.5`); every XP drop is multiplied by it, rounded down to a tenth. Kept in data/xp-rate.txt (outside git), so it lasts across restarts and deploys. `restore` goes back to the rate before the last change. 1 is live's |
 | `::farmtick [ticks]` | Moves your own farming clock on that many five-minute farming ticks (1 by default, up to 4,096) and grows your patches to it: allotments grow every second tick. For good: your crops keep growing from there |
 | `::farmclock <pause\|run>` | Holds your farming clock where it is, so your crops grow only by `::farmtick` (for tests that check each stage), or runs it again, the crops catching up on the time it was held; a login runs it again too |
@@ -1063,6 +1064,34 @@ The ruins, altars and portals are the cache's, where the 242 map puts them; only
 | Not built: crafting runes (RC2), combination runes (RC3), essence pouches (RC4), the Arceuus Blood and Soul altars (RC5), the Ourania altar (RC6); the Abyss, Guardians of the Rift and its Hat of the Eye; Entrana's no-weapons rule | next steps |
 
 Check: `./gradlew test --tests 'osrsps.game.skill.RunecraftTest' --tests 'osrsps.testclient.HeadlessRunecraftRuinsTest'`.
+
+### Slayer
+
+The task engine (`game/skill/Slayer.kt`, words under `slayer.*`). Every task, every master's list with its weights,
+amounts and level gates, and the rewards are read from the cache's own Slayer tables (`cache/SlayerLoader.kt`: db
+tables slayer_task 113, slayer_master_task 114 and slayer_unlock 117), so they stay live's. A task lives in live's vars:
+varp slayer_target holds the task, slayer_count how many are left, and varbits slayer_master, slayer_points and
+slayer_tasks_completed (the streak) the rest, so a save keeps them and the client's helpers read them.
+
+A monster counts for a task when its type's param 50 names it (cows carry 6, the cows task). Each kill on task gives
+Slayer XP for the monster's hitpoints with its XP bonus, and the last one completes the task: the streak goes up and,
+from the fifth task, the master pays points, five times as many every 10th task, 15 every 50th, 25 every 100th, 35
+every 250th and 50 every 1,000th. The enchanted gem's Check tells the task, how many are left and the streak.
+Masters, rewards and Slayer equipment come in later steps; `::slayer task` gives a task meanwhile.
+
+| Slayer behaviour | Source |
+|------------------|--------|
+| Tasks, masters' weights and amounts, combat and Slayer level gates, rewards' bits and costs | cache 242, db tables 113, 114, 117 (column order from osrs-dumps' dump.dbtable) |
+| The task vars (varps 394 and 395, varbits 4067 to 4069); param 50 as the monster's task | cache 242, osrs-dumps' names |
+| Slayer XP = hitpoints times the XP bonus; points by master and streak, none before the fifth task | OSRS Wiki, Slayer and Slayer reward point (read 2026-11-15) |
+| Konar's 18 and Nieve's 12 points, without the Elite diaries | no diaries are built |
+| Another player who dealt the most damage sharing the XP half and half with the finisher, each rounded down to a tenth | OSRS Wiki, Slayer/Experience table |
+| The kill counting toward both their tasks, once for one player who did both | Jagex, Update:Creature of Fenkenstrain |
+| A tie for the most damage going to whoever dealt it first | guessed |
+| A streak past 16,383 going back 1,000 so the milestones keep coming | OSRS Wiki, Update: Theatre of Blood: Entry Mode Improvements (the bonuses keep coming); how it is stored guessed |
+| The points stopping at their varbit's top; the task var cleared when a task is done | guessed |
+| Every message's words | unsourced: the Words thread fills them |
+| Not built yet: masters, rewards, equipment, superiors, Konar's places, boss tasks, Krystilia (the Wilderness) | |
 
 ## Items and inventory
 
@@ -2178,9 +2207,12 @@ the ditch: nothing north of it is spawned yet, and players can't fight each othe
 | The screen is the Doomsayer's warning 7 (enum 688, `cws_warning_id` 14801 set to 7): `cws_warning_7` (3857) counts the times it was answered, 0 to 6, and from the seventh showing its "Don't ask me this again" toggle turns it off (7) or on again (6); off, the ditch is crossed without it | the Wiki's Doomsayer page (toggleable after the seventh time seen) and the client's `cws_set_toggle` (6 shows the toggle on, 7 off); counting on the answer rather than the opening guessed |
 | The Wilderness level is the client's own sum (proc `wilderness_level`): one level every 8 tiles from z 3520 between x 2944 and 3391, to 56 at the north edge, and the caves' band 6,400 tiles up with the client's fixed and shifted squares | the 242 client script; the Wiki's Wilderness page (level 1 at the ditch, 56 in the far north) |
 | Inside the Wilderness means a level above 0 north of the ditch (z 3523 and up on the surface): there the Wilderness overlay (`pvp_icons` 90) opens in its frame slot, showing the skull and "Level: n" (drawn by the client), and varbit `inside_wilderness` (5963, RuneLite's `Varbits.IN_WILDERNESS`) is 1; leaving closes the overlay and sets it to 0. The overlay is no longer opened at login | the client's `pvp_icons_layout` (the skull shows whenever the overlay is open, so live can't have it open in Lumbridge); where inside starts, and both changing on the step that crosses, inferred |
-| The Doomsayer's Toggle warnings list, PvP, skulls, Wilderness deaths and everything north of the ditch | not built: later steps |
+| Attack (player option 2) is on other players' menus only while the player is inside the Wilderness, given and taken away on the step that crosses the edge; the client orders it by the attack priority setting | the Wiki's Wilderness page; slot 2 and no priority flag inferred (RuneLite's PLAYER_SECOND_OPTION) |
+| Players fight only past the Wilderness's first two rows (z 3523 and 3524 are safe), each by the level where they stand, and only when their combat levels differ by no more than the lower of the two levels; refused attacks say why (`pvp.not_in_wilderness`, `pvp.target_not_in_wilderness`, `pvp.level_difference` then `pvp.move_deeper`) | the Wiki's Wilderness page (the two safe steps; level 100 at 24 attacks 76 to 124); the rows, the lower level counting and the refusals' order inferred; their words held |
+| An allowed Attack goes after the target as Follow does, facing them; no hits yet | ours until PvP combat (step W1.3) |
+| The Doomsayer's Toggle warnings list, PvP hits, skulls, Wilderness deaths and everything north of the ditch | not built: later steps |
 
-Check: `test-runner/examples/ditch-cross.json` and `HeadlessWildernessDitchTest`.
+Check: `test-runner/examples/ditch-cross.json`, `wilderness-attack-option.json`, `HeadlessWildernessDitchTest`, `HeadlessPvpRulesTest` and `HeadlessPlayerOpsSettingsTest` (a settings toggle keeps Attack).
 
 ## Varrock
 
@@ -3149,7 +3181,7 @@ Right-clicking another player offers Follow, Trade with and Report (`game/Player
 | A follow stops when the follower clicks elsewhere or teleports, or the target logs out, changes level or gets more than 15 tiles away; the follower then stops where they are | the 15 is how far players see each other; when live gives up is guessed |
 | Trade with and Report stop any walk or follow and say they aren't built yet | ours, not live |
 
-Not built yet: trading, reporting, Attack (Wilderness and PvP worlds), and a player hiding another by standing on them
+Not built yet: trading, reporting, Attack on PvP worlds (the Wilderness's is under Wilderness), and a player hiding another by standing on them
 is the client's own business.
 
 Check with two clients, logged in as two different names: walk, run (orb on), type in the chatbox, `::anim 866` and

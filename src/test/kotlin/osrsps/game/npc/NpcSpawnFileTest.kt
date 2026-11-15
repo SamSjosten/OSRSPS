@@ -940,7 +940,7 @@ class NpcSpawnFileTest {
             16812 to "deadman_nigel_varrock", 16811 to "clue_hunter_arthur", 5449 to "ge_expert_herbs",
             2152 to "ge_boss", 5450 to "ge_expert_runes", 5451 to "ge_expert_logs", 5452 to "ge_expert_combat", 3115 to "ge_expert_ores",
             1110 to "guidor", 1106 to "gambler2", 4574 to "vc_pox", 4588 to "vc_hooknosed_jack", 4162 to "surok_annajones",
-            3225 to "aide_tutor_smithing_master", 10415 to "con_contract_client_2", 10414 to "con_contract_client_1",
+            16816 to "sani", 10415 to "con_contract_client_2", 10414 to "con_contract_client_1",
             10416 to "con_contract_client_3", 5042 to "romeo_juliet_pew_sleeping_man", 5921 to "rooftops_bigredjapan",
             5525 to "toby_varrock_diary", 5885 to "bond_james_bond", 10733 to "boardgames_barmaid3", 5211 to "weaponsmaster",
         )

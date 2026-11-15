@@ -19,6 +19,7 @@ import net.rsprot.protocol.game.outgoing.misc.player.ChatFilterSettings
 import net.rsprot.protocol.game.outgoing.misc.player.ChatFilterSettingsPrivateChat
 import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
 import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
+import net.rsprot.protocol.game.outgoing.misc.player.SetPlayerOp
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateRunEnergy
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateRunWeight
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateStatV2
@@ -54,6 +55,7 @@ import osrsps.game.command.registerSocialCommands
 import osrsps.game.command.registerLodestoneCommands
 import osrsps.game.command.registerWildernessCommands
 import osrsps.game.command.registerFarmingCommands
+import osrsps.game.command.registerSlayerCommands
 import osrsps.game.command.registerXpRateCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
@@ -85,6 +87,7 @@ import osrsps.game.combat.Poison
 import osrsps.game.combat.StatusEffects
 import osrsps.game.combat.Potions
 import osrsps.game.combat.Prayers
+import osrsps.game.combat.PvpRules
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrains
 import osrsps.game.combat.LootNotifications
@@ -229,6 +232,8 @@ import osrsps.game.skill.Mining
 import osrsps.game.skill.Pickpocketing
 import osrsps.game.skill.Agility
 import osrsps.game.skill.AgilityData
+import osrsps.game.skill.Slayer
+import osrsps.game.skill.SlayerData
 import osrsps.game.skill.Thieving
 import osrsps.game.skill.ThievingLocks
 import osrsps.game.skill.SkillUnlocks
@@ -365,6 +370,8 @@ class World(
     specialAttackCosts: Map<Int, Int> = emptyMap(),
     /** The Agility obstacles ([Agility]); tests that cross their own pass them. */
     agilityData: AgilityData = AgilityData.load(),
+    /** Slayer's tasks, masters and rewards, from the cache ([osrsps.cache.SlayerLoader]); tests that slay pass their own. */
+    slayerData: SlayerData = SlayerData.NONE,
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
 ) : GameConnectionHandler<Player> {
@@ -594,6 +601,7 @@ class World(
         multi = multiCombat, protects = prayers::protects, hasPrayer = prayers::has, prayersOff = prayers::deactivateAll,
         words = ::textFor,
         npcDied = { npcScripts.died(it) },
+        npcKilled = { npc, killer -> slayer.killed(npc, killer) },
         poisonNpc = { npc, severity -> poison.poison(npc, severity) }, envenomNpc = { poison.envenom(it) },
         poisonPlayer = { player, severity -> poison.poison(player, severity) },
         special = { specialAttacks.use(it, combat.weapon(it)) },
@@ -601,6 +609,7 @@ class World(
         projectile = zones::projectile,
         npcDamaged = { npc, player, dealt ->
             archiveRaids.damaged(npc, player, dealt)
+            slayer.damaged(npc, player, dealt)
             osrsps.game.content.Bryophyta.damaged(this, npc, player)
         },
     )
@@ -805,6 +814,9 @@ class World(
     val pickpocketing = Pickpocketing(this)
     val agility = Agility(this, agilityData)
 
+    /** Slayer tasks: kills, XP and the enchanted gem; see [Slayer]. */
+    val slayer = Slayer(this, slayerData)
+
     val fishing = Fishing(this)
 
     val cooking = Cooking(this)
@@ -877,6 +889,7 @@ class World(
         registerLodestoneCommands(this@World)
         registerWildernessCommands(this@World)
         registerFarmingCommands(this@World)
+        registerSlayerCommands(this@World)
         registerSeedCommands(this@World)
         registerScriptCommands(this@World)
         registerZoneCommands(this@World, collision)
@@ -995,6 +1008,7 @@ class World(
         thieving.register()
         pickpocketing.register()
         agility.register()
+        slayer.register()
         fishing.register()
         cooking.register()
         smithing.register()
@@ -1417,6 +1431,10 @@ class World(
         val inside = Wilderness.inside(player.x, player.z)
         interfaces.showWildernessOverlay(player, inside)
         player.vars.setVarbitIfKnown(VARBIT_INSIDE_WILDERNESS, if (inside) 1 else 0)
+        if (player.attackOp != inside) {
+            player.attackOp = inside
+            player.session.queue(SetPlayerOp(PlayerOps.ATTACK, false, PlayerOps.ATTACK_TEXT.takeIf { inside }))
+        }
     }
 
     /**
@@ -2023,6 +2041,8 @@ class World(
         friendChats.resend(player)
         // A toggle's SET_PLAYER_OP may have been lost with the old connection.
         PlayerOps.send(player.vars, player.session::queue)
+        // That cleared Attack: the next movement phase gives it back if the player is inside the Wilderness.
+        player.attackOp = false
         clans.resync(player)
         rebuild(player)
         interfaces.resendClosesWhileAway(player)
@@ -2045,6 +2065,7 @@ class World(
         for (slot in 0 until 5) appearance.setColour(slot, 0)
         sendRunState(player)
         PlayerOps.send(player.vars, player.session::queue)
+        player.attackOp = false
         allowChat(player)
         // Guessed: live sends the saved filters at login; a new account's are all on.
         sendChatFilters(player)
@@ -2149,6 +2170,10 @@ class World(
             clans.inviteOrAccept(player, target)
             return
         }
+        if (option == PlayerOps.ATTACK && player.attackOp) {
+            attackPlayer(player, clicked, ctrl)
+            return
+        }
         if (option != PlayerOps.FOLLOW && option != PlayerOps.TRADE && option != PlayerOps.REPORT || !PlayerOps.shown(player.vars, option)) {
             logger.info { "${player.username} sent op $option on player ${clicked?.username}, which has no such option" }
             return
@@ -2177,6 +2202,31 @@ class World(
                 reports.open(player, target.username)
             }
         }
+    }
+
+    /**
+     * Attack on [clicked] (Wilderness step W1.2): refused with [PvpRules]' lines when either player is outside the
+     * Wilderness's fighting ground or out of range; otherwise the player goes after them as Follow does, facing them.
+     * Hitting comes with PvP combat (step W1.3).
+     */
+    private fun attackPlayer(player: Player, clicked: Player?, ctrl: Boolean) {
+        scripts.interrupt(player)
+        player.interaction = null
+        npcInteractions.leave(player)
+        player.waypoints.clear()
+        val target = clicked?.takeIf { players[it.index] === it && it !== player }
+        if (target == null) {
+            player.session.queue(SetMapFlagV2.RESET)
+            return
+        }
+        val refusal = PvpRules.refusal(player, target)
+        if (refusal.isNotEmpty()) {
+            // Guessed, as for a walk with nowhere to go: the client's flag would otherwise stay up.
+            player.session.queue(SetMapFlagV2.RESET)
+            for (line in refusal) message(player, line)
+            return
+        }
+        follows.click(player, target, ctrl)
     }
 
     /**
@@ -2691,6 +2741,7 @@ class World(
         // Players walking to it give up in their next movement phase; see NpcInteractions.
         npcs.remove(npc)
         npcInteractions.removed(npc, players.asIterable())
+        slayer.removed(npc)
         npc.avatar?.let(network.npcAvatarFactory::release)
         npc.avatar = null
     }

@@ -13,6 +13,7 @@ import osrsps.game.combat.LootLines
 import osrsps.game.combat.PoisonLines
 import osrsps.game.combat.PotionLines
 import osrsps.game.combat.PrayerLines
+import osrsps.game.combat.PvpLines
 import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
 import osrsps.game.ge.GrandExchangeLines
@@ -46,6 +47,7 @@ import osrsps.game.skill.MiningLines
 import osrsps.game.skill.PickpocketGearLines
 import osrsps.game.skill.PickpocketLines
 import osrsps.game.skill.RunecraftLines
+import osrsps.game.skill.SlayerLines
 import osrsps.game.skill.SmithingLines
 import osrsps.game.skill.ThievingLines
 import osrsps.game.skill.ThievingLockLines
@@ -309,6 +311,7 @@ object DialogueLines {
         PotionLines,
         PrayerLines,
         PriceCheckerLines,
+        PvpLines,
         osrsps.game.ge.ItemSetsLines,
         osrsps.game.ge.PriceGuideLines,
         BrugsenLines,
@@ -362,6 +365,7 @@ object DialogueLines {
         ShopLines,
         SigurdLines,
         SilkTraderLines,
+        SlayerLines,
         SmithingLines,
         SocialLines,
         StrayDogLines,

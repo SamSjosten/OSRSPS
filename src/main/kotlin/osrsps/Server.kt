@@ -18,6 +18,7 @@ import osrsps.cache.OmnishopLoader
 import osrsps.cache.QuestLoader
 import osrsps.cache.SettingsLoader
 import osrsps.cache.SkillUnlockLoader
+import osrsps.cache.SlayerLoader
 import osrsps.cache.VarTypeLoader
 import osrsps.cache.WorldMap
 import osrsps.cache.overlay.CacheOverlay
@@ -72,6 +73,7 @@ import osrsps.game.raid.Xarth
 import osrsps.game.shop.Omnishops
 import osrsps.game.shop.ShopTypes
 import osrsps.game.skill.SkillUnlocks
+import osrsps.game.skill.SlayerData
 import osrsps.game.social.Reports
 import osrsps.net.ClientConfig
 import osrsps.net.Js5Store
@@ -161,6 +163,7 @@ class GameServer(
         val skillUnlocks: SkillUnlocks
         val omnishops: Omnishops
         val itemSets: osrsps.game.ge.ItemSets
+        val slayerData: SlayerData
         val settings: SettingsCatalog
         try {
             // Our own vars and locs take ids right after this cache's, so they are built from its var types first:
@@ -187,6 +190,7 @@ class GameServer(
             skillUnlocks = SkillUnlockLoader.load(library)
             omnishops = OmnishopLoader.load(library)
             itemSets = osrsps.cache.ItemSetLoader.load(library)
+            slayerData = SlayerLoader.load(library)
             settings = SettingsLoader.load(library)
             interfaceIds = library.index(INTERFACE_INDEX)?.archiveIds()?.toSet().orEmpty() + LodestoneMap.INTERFACE
             val fonts = library.index(FONT_INDEX)?.archiveIds()?.toSet().orEmpty()
@@ -270,7 +274,7 @@ class GameServer(
             spells = spells, prayerList = prayers, foodList = Foods.load(objTypes), potionData = Potions.load(objTypes), shopTypes = shopTypes, omnishops = omnishops, itemSets = itemSets, skillUnlocks = skillUnlocks, ipBans = ipBans, xpRate = xpRate,
             wearRequirements = wearRequirements, itemPrices = itemPrices, itemPricesFile = itemPricesFile, settings = settings,
             specialAttackCosts = specialAttackCosts, encounterDefs = listOfNotNull(ArchiveGuardian.def(npcTypes), Ezekiel.def(npcTypes), Bork.def(npcTypes), Dreadnoth.def(npcTypes), Moia.def(npcTypes), Xarth.def(npcTypes), Dagonhai.def(npcTypes), Ocellus.def(npcTypes)),
-            cycleMillis = cycleMillis,
+            slayerData = slayerData, cycleMillis = cycleMillis,
         )
         loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world, relays, proxy, js5Connections)
