@@ -173,6 +173,7 @@ object DialogueLines {
         ResourceAreaLines,
         MageArenaBankLines,
         WildernessBossLines,
+        CrazyArchaeologistLines,
         osrsps.game.FountainOfRuneLines,
         OborLines,
         BryophytaLines,
