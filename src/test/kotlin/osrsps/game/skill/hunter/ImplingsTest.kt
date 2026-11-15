@@ -76,7 +76,7 @@ class ImplingsTest {
     @Test
     fun `a cycle rolls 4 high, N mid and 2N low spawners plus the fixed ones, shown two minutes on (the crystal one three) and replaced at 30`() {
         val world = World(IntArray(0), CollisionMap(), random = GameRandom(11), npcTypes = NpcTypes.of(*types.toTypedArray()), objTypes = objTypes())
-        val implings = world.hunter.implings
+        val implings = world.hunter.implings.apply { clock = { 0L } } // on the hour
         implings.process(0)
         val first = implings.all.toList()
         val variable = first.count { it.tier !== Implings.CRYSTAL_TIER } - Implings.LOW_POINTS.size
@@ -118,7 +118,7 @@ class ImplingsTest {
         val points = Implings.VARIABLE_POINTS + Implings.LOW_POINTS + Implings.PRIF_POINTS
         for ((x, z) in points) for (rx in (x - Implings.ROAM shr 6)..(x + Implings.ROAM shr 6)) for (rz in (z - Implings.ROAM shr 6)..(z + Implings.ROAM shr 6)) collision.markLoaded(rx, rz)
         val world = World(IntArray(0), collision, random = GameRandom(11), npcTypes = NpcTypes.of(*types.toTypedArray()), objTypes = objTypes())
-        val implings = world.hunter.implings
+        val implings = world.hunter.implings.apply { clock = { 0L } } // on the hour
         implings.process(0)
         implings.process(Implings.CRYSTAL_UNSEEN_TICKS.toLong())
         val shown = implings.all.map { it to it.npc!! }
@@ -133,7 +133,7 @@ class ImplingsTest {
     @Test
     fun `a caught impling's spawner starts over, but a caught crystal impling waits for the next cycle`() {
         val world = World(IntArray(0), CollisionMap(), random = GameRandom(11), npcTypes = NpcTypes.of(*types.toTypedArray()), objTypes = objTypes())
-        val implings = world.hunter.implings
+        val implings = world.hunter.implings.apply { clock = { 0L } } // on the hour
         implings.process(0)
         implings.process(Implings.CRYSTAL_UNSEEN_TICKS.toLong())
         val low = implings.all.first { it.tier === Implings.LOW }
@@ -150,6 +150,31 @@ class ImplingsTest {
         implings.process(Implings.CYCLE_TICKS.toLong())
         implings.process(Implings.CYCLE_TICKS.toLong() + Implings.CRYSTAL_UNSEEN_TICKS)
         assertTrue(implings.all.single { it.tier === Implings.CRYSTAL_TIER }.npc != null)
+    }
+
+    @Test
+    fun `booted between half hours, the next cycle comes on the half hour and the crystal impling at 33 past`() {
+        val world = World(IntArray(0), CollisionMap(), random = GameRandom(11), npcTypes = NpcTypes.of(*types.toTypedArray()), objTypes = objTypes())
+        // Ten past the hour: the half hour is 2000 ticks on.
+        val implings = world.hunter.implings.apply { clock = { 10 * 60_000L } }
+        implings.process(0)
+        val boot = implings.all.toList()
+        implings.process(Implings.CRYSTAL_UNSEEN_TICKS.toLong())
+        assertEquals(null, boot.single { it.tier === Implings.CRYSTAL_TIER }.npc)
+        implings.process(1999)
+        assertTrue(implings.all.all { it in boot })
+        implings.process(2000)
+        assertTrue(implings.all.none { it in boot })
+        val crystal = implings.all.single { it.tier === Implings.CRYSTAL_TIER }
+        implings.process(2000 + Implings.CRYSTAL_UNSEEN_TICKS.toLong() - 1)
+        assertEquals(null, crystal.npc)
+        implings.process(2000 + Implings.CRYSTAL_UNSEEN_TICKS.toLong())
+        assertTrue(crystal.npc != null)
+        // Then every 3000 ticks.
+        implings.process(2000 + Implings.CYCLE_TICKS.toLong() - 1)
+        assertTrue(crystal in implings.all)
+        implings.process(2000 + Implings.CYCLE_TICKS.toLong())
+        assertTrue(crystal !in implings.all)
     }
 
     @Test

@@ -75,7 +75,8 @@ class ImplingTier(
  * ii_impling_type_1 to 10 and ii_impling_type_12_*, ii_captured_impling_1 to 10 and 12, ii_impling_jar 11260.
  *
  * Guessed: one attempt per Catch, judged the tick after the swing, as for butterflies; the unseen roam following the
- * visible one's rules; the first cycle at boot; a caught impling's spawner rolling the tier it was made from;
+ * visible one's rules; a set rolled at boot (the next comes on the clock's half hour), its implings
+ * showing two minutes after boot; a caught impling's spawner rolling the tier it was made from;
  * which of the crystal impling's seventeen names shows (at random); Loot needing one free slot beside the jar, and loot
  * that doesn't fit (looting at once with a full backpack) going on the ground; that the miss and catch messages are
  * their own lines. Left out: Puro-Puro and its implings, the lucky impling (its loot is the clue reward tables, not
@@ -90,6 +91,10 @@ class Implings(private val world: World) {
 
     private val spawners = ArrayList<Spawner>()
     private var nextCycle = 0L
+    private var started = false
+
+    /** The real time, ms since 1970, that the cycles keep to the half hours of; tests set it. */
+    var clock: () -> Long = System::currentTimeMillis
     private var loot: NpcDrops = NpcDrops.NONE
 
     /** The spawners there are now, for tests. */
@@ -109,14 +114,26 @@ class Implings(private val world: World) {
     /** Call once a tick; a test may pass its own [tick]. */
     fun process(tick: Long = world.tick) {
         if (tick >= nextCycle) {
-            nextCycle = tick + CYCLE_TICKS
-            if (present) cycle(tick)
+            val boot = !started
+            started = true
+            // The first cycle after boot lands on the clock's next :00 or :30; ticks count from there.
+            nextCycle = tick + if (boot) ticksUntil(0) else CYCLE_TICKS.toLong()
+            if (present) cycle(tick, boot)
         }
         for (spawner in spawners) if (spawner.npc == null && tick >= spawner.showTick) show(spawner, tick)
     }
 
-    /** The 30-minute cycle: every impling out goes, and a new set of spawners is rolled. */
-    private fun cycle(tick: Long) {
+    /** Whole ticks from now until [offsetMillis] past the clock's next half hour (a full half hour when it is now). */
+    private fun ticksUntil(offsetMillis: Long): Long {
+        val millis = HALF_HOUR_MILLIS - Math.floorMod(clock() - offsetMillis, HALF_HOUR_MILLIS)
+        return (millis + TICK_MILLIS - 1) / TICK_MILLIS
+    }
+
+    /**
+     * The 30-minute cycle: every impling out goes, and a new set of spawners is rolled. At [boot], between half hours,
+     * the crystal one still shows at the next :03 or :33.
+     */
+    private fun cycle(tick: Long, boot: Boolean = false) {
         for (spawner in spawners) spawner.npc?.let(world::removeNpc)
         spawners.clear()
         fun variable(tier: ImplingTier) {
@@ -129,7 +146,8 @@ class Implings(private val world: World) {
         repeat(n * 2) { variable(LOW) }
         for ((x, z) in LOW_POINTS) spawners += Spawner(LOW, x, z, tick + LOW.unseenTicks)
         val (px, pz) = PRIF_POINTS[world.random.nextInt(PRIF_POINTS.size)]
-        spawners += Spawner(CRYSTAL_TIER, px, pz, tick + CRYSTAL_TIER.unseenTicks)
+        val crystalShow = if (boot) ticksUntil(CRYSTAL_UNSEEN_TICKS * TICK_MILLIS) else CRYSTAL_TIER.unseenTicks.toLong()
+        spawners += Spawner(CRYSTAL_TIER, px, pz, tick + crystalShow)
     }
 
     private fun show(spawner: Spawner, tick: Long) {
@@ -258,8 +276,10 @@ class Implings(private val world: World) {
         const val JAR_KEPT = 9
         const val JAR_OF = 10
 
-        /** The Wiki: thirty minutes, two minutes unseen, a hundred tiles. */
+        /** The Wiki: thirty minutes (on the half hours of the clock), two minutes unseen, a hundred tiles. */
         const val CYCLE_TICKS = 3000
+        const val HALF_HOUR_MILLIS = 30 * 60_000L
+        private const val TICK_MILLIS = 600L
         const val UNSEEN_TICKS = 200
 
         /** The Crystal impling's page: three minutes unseen (it shows at :03 and :33); a caught one waits for the next half hour. */
