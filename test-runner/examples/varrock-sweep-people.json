@@ -143,7 +143,7 @@
    "step": "command",
    "text": "::tele 3188 3423 0",
    "expectMessage": "Teleported to 3188, 3423, 0",
-   "comment": "beside the Master smithing tutor (3187 3423)"
+   "comment": "beside Sani, the Master smithing tutor (3187 3423), type 16816 since 242"
   },
   {
    "step": "waitTicks",
@@ -151,7 +151,7 @@
   },
   {
    "step": "npcOption",
-   "npcId": 3225,
+   "npcId": 16816,
    "option": "Talk-to",
    "timeoutMs": 20000
   },
