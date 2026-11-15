@@ -2314,7 +2314,7 @@ the ditch: nothing north of it is spawned yet, and players can't fight each othe
 | The Wilderness's own multi-way areas | not yet in `multi-combat.tsv`: each piece adds its areas with its content |
 | The Doomsayer's Toggle warnings list, special attacks, enchanted bolts' effects and weapon poison on players, chinchompas' blast on players, the freeze's thaw warning and everything north of the ditch | not built: later steps |
 
-Check: `test-runner/examples/ditch-cross.json`, `wilderness-attack-option.json`, the `wilderness-pvp-single-way-test.json` and `wilderness-pvp-skull-test.json` pairs, `HeadlessWildernessDitchTest`, `HeadlessPvpRulesTest`, `HeadlessPlayerOpsSettingsTest`, `HeadlessPvpMeleeTest`, `HeadlessPvpRangedMagicTest`, `HeadlessPvpSingleWayTest`, `HeadlessPvpSkullTest` and `HeadlessPvpDeathTest`.
+Check: `test-runner/examples/ditch-cross.json`, `wilderness-attack-option.json`, the `wilderness-pvp-single-way-test.json`, `wilderness-pvp-skull-test.json` and `wilderness-pvp-death-test.json` pairs, `HeadlessWildernessDitchTest`, `HeadlessPvpRulesTest`, `HeadlessPlayerOpsSettingsTest`, `HeadlessPvpMeleeTest`, `HeadlessPvpRangedMagicTest`, `HeadlessPvpSingleWayTest`, `HeadlessPvpSkullTest` and `HeadlessPvpDeathTest`.
 
 ## Varrock
 

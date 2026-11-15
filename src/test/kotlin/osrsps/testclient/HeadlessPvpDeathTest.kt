@@ -6,11 +6,14 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.MemorySaveStore
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.PlayerOps
+import osrsps.game.PlayerSave
+import osrsps.game.SaveStore
 import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.combat.Deaths
@@ -30,12 +33,12 @@ class HeadlessPvpDeathTest {
     private val cape = ObjType(6570, "Fire cape", wearpos1 = WearPos.CAPE)
     private val book = ObjType(757, "Book")
 
-    private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
+    private fun server(dir: Path, saves: SaveStore = MemorySaveStore()) = TestServer(dir) { crcs, millis ->
         val map = CollisionMap().apply {
             markLoaded(3222 shr 6, 3218 shr 6)
             for (sz in (3456 shr 6)..(3967 shr 6)) markLoaded(3090 shr 6, sz)
         }
-        World(crcs, map, objTypes = ObjTypes.of(coins, sword, bones, lobster, cape, book), npcTypes = NpcTypes.of(grave), cycleMillis = millis)
+        World(crcs, map, objTypes = ObjTypes.of(coins, sword, bones, lobster, cape, book), npcTypes = NpcTypes.of(grave), cycleMillis = millis, saves = saves)
     }
 
     private fun HeadlessClient.tele(x: Int, z: Int) {
@@ -91,8 +94,10 @@ class HeadlessPvpDeathTest {
         server(dir).use { server ->
             server.login("max").use { killer ->
                 server.login("ned").use { victim ->
+                    server.world.playerNamed("ned")!!.attackedFirst["zed"] = 500
                     server.kill(killer, victim, "ned", LEVEL_25, skulled = true)
                     victim.awaitTicks(2)
+                    assertEquals(emptyMap(), server.world.playerNamed("ned")!!.attackedFirst, "hit-back rights go with the skull")
                     assertEquals(listOf(InvObj(book.id, 1)), victim.inventory(BACKPACK).filterNotNull())
                     assertTrue(InvObj(lobster.id, 1) in server.groundFor("max", LEVEL_25))
                     assertEquals(0, server.world.playerNamed("ned")!!.skullTicks)
@@ -110,6 +115,54 @@ class HeadlessPvpDeathTest {
                     val graveItems = server.world.deaths.graveOf(server.world.playerNamed("pam")!!)!!.items.contents().map { InvObj(it.second.id, it.second.count) }
                     assertEquals(setOf(InvObj(cape.id, 1), InvObj(book.id, 1)), graveItems.toSet())
                     assertEquals(listOf(InvObj(bones.id, 1), InvObj(bones.id, 1), InvObj(coins.id, 9)), server.groundFor("oli", LEVEL_5))
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `the loot is the victim's, keeps its own timers beside the killer's stack, and the victim is saved without it`(@TempDir dir: Path) {
+        val saves = MemorySaveStore()
+        server(dir, saves).use { server ->
+            server.login("quin").use { killer ->
+                server.login("rex").use { victim ->
+                    killer.await("the login rebuild") { killer.position }
+                    // The killer's own coins already on the tile, nearly public and nearly gone.
+                    server.world.groundObjs.addPrivate(coins, 5, 3091, LEVEL_25, 0, "quin", 3, 30)
+                    server.kill(killer, victim, "rex", LEVEL_25)
+                    val stacks = server.world.groundObjs.visibleAt(server.world.playerNamed("quin")!!, 3091, LEVEL_25, 0).filter { it.id == coins.id }
+                    assertEquals(listOf(5, 9), stacks.map { it.count }.sorted(), "not merged into the killer's stack")
+                    val loot = stacks.single { it.count == 9 }
+                    assertEquals("rex", loot.droppedBy, "the victim's, so a pickup saves them")
+                    assertEquals("quin", loot.owner)
+                    assertTrue(loot.ticksUntilPublic > 90 && loot.ticksUntilDespawn > 490, "its own timers: ${loot.ticksUntilPublic}, ${loot.ticksUntilDespawn}")
+                    val saved = PlayerSave.fromJson(saves.read("rex")!!).inventory.values.map { InvObj(it.id, it.count) }.toSet()
+                    assertEquals(setOf(InvObj(lobster.id, 1), InvObj(sword.id, 1), InvObj(coins.id, 1), InvObj(book.id, 1)), saved, "saved without the loot")
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `on a tie in damage the latest of the leaders to hit is the killer`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("sid").use { a ->
+                server.login("tom").use { b ->
+                    server.login("uma").use { c ->
+                        a.await("the login rebuild") { a.position }
+                        b.await("the login rebuild") { b.position }
+                        c.await("the login rebuild") { c.position }
+                        val world = server.world
+                        val (sid, tom, uma) = listOf("sid", "tom", "uma").map { world.playerNamed(it)!! }
+                        val tick = world.tick
+                        world.pvpCombat.dealtBy(uma, sid, 5, tick)
+                        world.pvpCombat.dealtBy(uma, tom, 5, tick)
+                        assertEquals("tom", world.pvpCombat.killerOf(uma))
+                        world.pvpCombat.dealtBy(uma, sid, 0, tick)
+                        assertEquals("sid", world.pvpCombat.killerOf(uma), "a splash of 0 still makes them the latest")
+                        world.pvpCombat.dealtBy(uma, tom, 1, tick)
+                        assertEquals("tom", world.pvpCombat.killerOf(uma), "the most damage wins outright")
+                    }
                 }
             }
         }

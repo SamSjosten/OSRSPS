@@ -156,10 +156,12 @@ class Deaths(
     /** Who killed the player, by save key, if it is a PvP death ([PvpCombat.killerOf]); null for any other. */
     private val killerOf: (Player) -> String? = { null },
     /**
-     * Puts a count of an item down at a tile for a killer (a save key) alone for [PVP_LOOT_PRIVATE_TICKS], then for
-     * everyone, gone after [PVP_LOOT_DESPAWN_TICKS].
+     * Puts a count of the victim's item down at a tile for a killer (a save key) alone for [PVP_LOOT_PRIVATE_TICKS],
+     * then for everyone, gone after [PVP_LOOT_DESPAWN_TICKS].
      */
-    private val dropForKiller: (killer: String, ObjType, Int, Int, Int, Int) -> Unit = { _, _, _, _, _, _ -> },
+    private val dropForKiller: (victim: Player, killer: String, ObjType, Int, Int, Int, Int) -> Unit = { _, _, _, _, _, _, _ -> },
+    /** Writes the player's save now, as a PvP death does before the killer's loot goes down. */
+    private val saveNow: (Player) -> Unit = {},
 ) {
     private val graves = LinkedHashMap<Npc, Grave>()
 
@@ -193,6 +195,8 @@ class Deaths(
         // A skull keeps none of the three (OSRS Wiki, Items Kept on Death); the skull then goes (guessed).
         player.deathKeptItems = (if (player.skullTicks > 0) 0 else KEPT_ITEMS) + if (protectItem(player)) 1 else 0
         player.skullTicks = 0
+        // Those they attacked first may hit back unskulled only while that skull lasts (Skulls), so they go with it.
+        player.attackedFirst.clear()
         player.deathKiller = killerOf(player)
         prayersOff(player)
         player.interaction = null
@@ -241,8 +245,12 @@ class Deaths(
         val killer = player.deathKiller.takeIf { !keep }
         player.deathKiller = null
         player.pvpDamage.clear()
-        val buried = if (killer == null) lost + charges else toKiller(player, killer, lost + charges)
+        val forKiller = ArrayList<InvObj>()
+        val buried = if (killer == null) lost + charges else toKiller(player, lost + charges, forKiller)
         if (buried.isNotEmpty()) bury(player, buried, place)
+        val fellX = player.x
+        val fellZ = player.z
+        val fellLevel = player.level
         for (skill in Skill.entries) player.skills.setCurrentLevel(skill, player.skills.baseLevel(skill))
         player.runEnergy = Movement.MAX_ENERGY
         cure(player)
@@ -252,22 +260,29 @@ class Deaths(
         player.anim(-1)
         if (place == null) teleportToSpawn(player) else teleport(player, place.toX, place.toZ, place.toLevel)
         if (keep) for (obj in over) drop(player, objTypes[obj.id] ?: ObjType(obj.id), obj.count)
+        if (killer != null && forKiller.isNotEmpty()) {
+            // Saved, respawned and without the lost items, before any reaches the ground: a crash after the killer
+            // picks one up can't give it back to the victim too.
+            saveNow(player)
+            for (obj in forKiller) dropForKiller(player, killer, objTypes[obj.id] ?: ObjType(obj.id), obj.count, fellX, fellZ, fellLevel)
+        }
     }
 
     /**
-     * A PvP death's [lost] items (OSRS Wiki, Items Kept on Death, Wilderness): the tradeable ones drop where [player]
-     * fell for [killer] alone for a minute, then for everyone for four more. Untradeables at level 20 or below go to
-     * the grave, as returned; above it, one with no combat use is kept, and the rest are gone. Inferred: an item that
+     * A PvP death's [lost] items (OSRS Wiki, Items Kept on Death, Wilderness): the tradeable ones go into [forKiller],
+     * which [respawn] drops where [player] fell for the killer alone for a minute, then for everyone for four more.
+     * Untradeables at level 20 or below go to the grave, as returned; above it, one with no combat use is kept, and the
+     * rest are gone. Inferred: an item that
      * can be worn has a combat use and one that can't hasn't. Not in: untradeables that break or turn into coins or
      * components for the killer, and Trouver parchment locks.
      */
-    private fun toKiller(player: Player, killer: String, lost: List<InvObj>): List<InvObj> {
+    private fun toKiller(player: Player, lost: List<InvObj>, forKiller: MutableList<InvObj>): List<InvObj> {
         val deep = osrsps.game.Wilderness.level(player.x, player.z) > UNTRADEABLES_TO_GRAVE_LEVEL
         val buried = ArrayList<InvObj>()
         for (obj in lost) {
             val type = objTypes[obj.id] ?: ObjType(obj.id)
             when {
-                type.tradeable -> dropForKiller(killer, type, obj.count, player.x, player.z, player.level)
+                type.tradeable -> forKiller += obj
                 !deep -> buried += obj
                 !type.wearable -> {
                     val over = obj.count - player.inventory.add(type, obj.count)

@@ -435,10 +435,12 @@ class Player(
      */
     var deathKiller: String? = null
 
-    /** The damage each player has dealt them lately, by [saveKey], and the tick of the last hit; see [osrsps.game.combat.PvpCombat]. Not saved. */
-    val pvpDamage = HashMap<String, Int>()
+    /**
+     * The damage each player has dealt them lately, by [saveKey], the latest hitter last, and the tick of the last hit;
+     * see [osrsps.game.combat.PvpCombat]. Not saved.
+     */
+    val pvpDamage = LinkedHashMap<String, Int>()
     var lastPvpHitTick: Long = -1
-    var lastPvpAttacker: String? = null
 
     /** The overhead prayer icon in the player's appearance, -1 for none. */
     var overheadIcon: Int = -1

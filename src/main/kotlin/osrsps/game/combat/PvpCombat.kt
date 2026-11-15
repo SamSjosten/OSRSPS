@@ -422,11 +422,12 @@ class PvpCombat(
      * [attacker] hit [player] for [damage] on [tick], for [killerOf]. What others dealt earlier is forgotten once
      * [RECENT_TICKS] have gone by without a player's hit.
      */
-    private fun dealtBy(player: Player, attacker: Player, damage: Int, tick: Long) {
+    internal fun dealtBy(player: Player, attacker: Player, damage: Int, tick: Long) {
         if (tick - player.lastPvpHitTick > RECENT_TICKS) player.pvpDamage.clear()
-        player.pvpDamage.merge(attacker.saveKey, damage, Int::plus)
+        // Moved to the end on every hit, so the map runs from the longest-ago hitter to the latest (killerOf's tie).
+        val dealt = player.pvpDamage.remove(attacker.saveKey) ?: 0
+        player.pvpDamage[attacker.saveKey] = dealt + damage
         player.lastPvpHitTick = tick
-        player.lastPvpAttacker = attacker.saveKey
     }
 
     /**
@@ -438,9 +439,7 @@ class PvpCombat(
     fun killerOf(player: Player): String? {
         if (player.lastPvpHitTick < 0 || currentTick() - player.lastPvpHitTick > RECENT_TICKS || player.pvpDamage.isEmpty()) return null
         val most = player.pvpDamage.values.max()
-        val last = player.lastPvpAttacker
-        if (last != null && player.pvpDamage[last] == most) return last
-        return player.pvpDamage.entries.first { it.value == most }.key
+        return player.pvpDamage.entries.last { it.value == most }.key
     }
 
     /** [player] is frozen by [caster]'s [spell] for its ticks, unless frozen or immune already; see the class note. */
