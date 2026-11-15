@@ -418,6 +418,9 @@ class Player(
     /** Whether the Wilderness overlay is open in the client ([Interfaces.showWildernessOverlay]). */
     var wildernessOverlay: Boolean = false
 
+    /** Whether the client has Attack on other players' menus ([PlayerOps.ATTACK]), given inside the Wilderness. */
+    var attackOp: Boolean = false
+
     /** Clicks and buttons that arrived while the clock was paused, run at the start of the next tick. */
     val heldActions = ArrayDeque<() -> Unit>()
 

@@ -643,6 +643,8 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   punches of 1 on a man show as max hits (hitmark 43) with the toggle on and off, and as ordinary hits at a threshold of 2.
 - `settings-player-ops.json` (needs 0.22.0): Player Trade options and Player Report options switched off with `::varbit`
   take Trade with and Report off other players' menus after a relog, and back on after another.
+- `wilderness-attack-option.json` (needs 0.22.0): Wilderness step W1.2. Attack absent from other players' menus at
+  Edgeville, there at level 10 after `::wildy 10` (with `inside_wilderness` 1), and gone again back south.
 - `settings-search.json` (needs 0.12.0): the All Settings search typed with real key presses, a found row clicked,
   and a window closed mid-search reopening on its category, also after a relog.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in

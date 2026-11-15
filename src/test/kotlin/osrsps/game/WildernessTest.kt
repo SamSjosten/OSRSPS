@@ -59,4 +59,27 @@ class WildernessTest {
         assertTrue(Wilderness.inside(3100, 10000))
         assertFalse(Wilderness.inside(3222, 3218))
     }
+
+    @Test
+    fun `players fight past the two safe rows, by the level where they stand`() {
+        assertEquals(0, Wilderness.pvpLevel(3090, 3520), "south of the ditch")
+        assertEquals(0, Wilderness.pvpLevel(3090, 3523), "the first safe row")
+        assertEquals(0, Wilderness.pvpLevel(3090, 3524), "the second")
+        assertEquals(1, Wilderness.pvpLevel(3090, 3525))
+        assertEquals(20, Wilderness.pvpLevel(3090, 3679))
+        assertEquals(11, Wilderness.pvpLevel(3100, 10000), "the caves have no safe rows")
+    }
+
+    @Test
+    fun `combat levels are in range within the lower Wilderness level`() {
+        assertTrue(Wilderness.inRange(100, 1, 99, 1))
+        assertTrue(Wilderness.inRange(100, 1, 101, 1))
+        assertFalse(Wilderness.inRange(100, 1, 102, 1))
+        // The Wiki's example: level 100 at level 24 attacks 76 to 124.
+        assertTrue(Wilderness.inRange(100, 24, 76, 24))
+        assertTrue(Wilderness.inRange(100, 24, 124, 24))
+        assertFalse(Wilderness.inRange(100, 24, 75, 24))
+        assertFalse(Wilderness.inRange(100, 24, 125, 24))
+        assertFalse(Wilderness.inRange(100, 24, 80, 10), "the target's own level is too low for the gap")
+    }
 }

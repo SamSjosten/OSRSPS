@@ -1,0 +1,17 @@
+{
+  "name": "Wilderness step W1.2: Attack is on other players' menus only inside the Wilderness, given on the way in and taken on the way out (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::tele 3090 3500 0", "comment": "Edgeville, south of the ditch"},
+    {"step": "assertLocation", "x": 3090, "y": 3500, "plane": 0, "timeoutMs": 10000},
+    {"step": "assertPlayerOption", "option": "Attack", "absent": true, "timeoutMs": 5000},
+    {"step": "command", "text": "::wildy 10"},
+    {"step": "assertVarbit", "id": 5963, "value": 1, "timeoutMs": 10000, "comment": "inside_wilderness"},
+    {"step": "assertPlayerOption", "option": "Attack", "timeoutMs": 5000},
+    {"step": "command", "text": "::tele 3090 3500 0"},
+    {"step": "assertLocation", "x": 3090, "y": 3500, "plane": 0, "timeoutMs": 10000},
+    {"step": "assertPlayerOption", "option": "Attack", "absent": true, "timeoutMs": 5000}
+  ]
+}
