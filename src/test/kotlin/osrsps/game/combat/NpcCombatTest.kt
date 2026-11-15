@@ -74,6 +74,7 @@ class NpcCombatTest {
             "mino_attack" to 4266, "mino_parry" to 4267, "mino_death" to 4265,
             "kalphite_attack_mandibles" to 1184, "kalphite_block" to 1186, "kalphite_death" to 1190,
             "dog_update_wolf_attack" to 6559, "dog_update_wolf_defend" to 6557, "dog_update_wolf_death" to 6558,
+            "mammoth_attack" to 304, "mammoth_block" to 305, "mammoth_death" to 307,
             "earthwarrior_chop" to 2951, "earthwarrior_def" to 2952, "earthwarrior_death" to 2946,
             "skeleton_update_giant_attack" to 5499, "skeleton_update_giant_defend" to 5501, "skeleton_update_giant_death" to 5503,
             "catpon_attack" to 4271, "catpon_attack_breath" to 4272, "catpon_parry" to 4273, "catpon_death" to 4270,
