@@ -17,6 +17,7 @@ object HunterLines : Lines("hunter", "Hunter") {
     val INVESTIGATE_BOX = line("investigate_box", "Investigate on the player's own set box trap")
     val INVESTIGATE_NET = line("investigate_net", "Investigate on the player's own set net trap or its young tree")
     val NO_NET = line("no_net", "the message on Set-trap on a young tree with no net trap in the backpack")
+    val TRAP_LEVEL = line("trap_level", "the message on laying a trap below the Hunter level it needs", "level")
     val NET_LEVEL = line("net_level", "the message on Set-trap on a young tree below the Hunter level its salamander needs", "level")
 }
 

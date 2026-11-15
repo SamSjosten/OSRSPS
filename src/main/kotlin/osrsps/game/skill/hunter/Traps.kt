@@ -81,6 +81,9 @@ open class TrapKind(
 ) {
     fun creature(npcType: Int): Creature? = creatures.firstOrNull { it.npc == npcType }
 
+    /** The Hunter level laying it needs: its lowest creature's (the Wiki's 1 for a bird snare, 27 for a box trap). */
+    open val level: Int get() = creatures.minOf { it.level }
+
     /** Whether the trap is laid from its item (Lay); false for one set on a loc, which registers that itself. */
     open val laidFromItem: Boolean get() = true
 
@@ -351,7 +354,9 @@ class Traps(private val world: World, private val collision: CollisionMap) {
     private fun collapse(trap: Trap, owner: Player?) {
         val type = world.objTypes[trap.kind.item]
         if (type != null && !world.groundObjs.fits(type, 1, trap.x, trap.z, trap.level, owner?.saveKey ?: "")) {
-            if (owner == null || owner.inventory.add(type, 1) != 1) return
+            // No room on its tile: the owner's backpack takes it, or (guessed) with the owner gone it is lost, so the trap
+            // never stays up waiting on a tile to clear.
+            if (owner != null && owner.inventory.add(type, 1) != 1) return
             remove(trap)
             return
         }
@@ -368,6 +373,11 @@ class Traps(private val world: World, private val collision: CollisionMap) {
         traps.remove(trap)
         release(trap)
         clear(trap)
+    }
+
+    /** Takes down every trap [owner] (a save key) has laid, giving nothing back: ::reset and ::scenario clearing a run. */
+    fun takeDown(owner: String) {
+        of(owner).forEach(::remove)
     }
 
     /** Forgets the traps on the tiles where [inside] holds (an instance ending), so none acts there later. */
@@ -423,6 +433,10 @@ class Traps(private val world: World, private val collision: CollisionMap) {
     /** Whether [player] may lay [kind] on [x], [z], set on [anchor] if it has one, telling them why not. */
     private fun ScriptContext.canLay(kind: TrapKind, x: Int, z: Int, level: Int, anchor: ZoneLoc? = null): Boolean {
         val hunter = player.skills.currentLevel(Skill.HUNTER)
+        if (hunter < kind.level) {
+            world.message(player, HunterLines.TRAP_LEVEL, "level" to kind.level)
+            return false
+        }
         val max = maxTrapsAt(hunter)
         if (of(player.saveKey).size >= max) {
             world.message(player, HunterLines.TOO_MANY, "count" to max)

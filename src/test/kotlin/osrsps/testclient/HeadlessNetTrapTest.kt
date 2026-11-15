@@ -143,6 +143,9 @@ class HeadlessNetTrapTest {
                 val index = server.world.npcs.all.single().index
                 client.command("hidenpc $index")
                 client.await("the lizard hidden") { if (server.world.npcs.all.single().hidden) Unit else null }
+                // Laying it again needs the level again.
+                client.command("setlevel hunter 29")
+                client.await("level 29 again") { client.stat(HUNTER)?.takeIf { it.level == 29 } }
                 client.locOp(kind.treeReset, 3223, 3218, Traps.RESET)
                 client.seen("[hunter.dismantled]")
                 client.awaitLoc(kind.treeSet, 3223, 3218)

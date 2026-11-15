@@ -22,7 +22,7 @@ class NetTrapKind(
     creature: Creature,
 ) : TrapKind(name, NetTraps.NET_TRAP, netSet, failing, netReset, NetTraps.SET_ANIM, listOf(creature), HunterLines.INVESTIGATE_NET) {
     /** The Hunter level Set-trap needs: the salamander's. */
-    val level: Int get() = creatures.single().level
+    override val level: Int get() = creatures.single().level
 
     override val laidFromItem: Boolean get() = false
     override val setLocs: List<Int> get() = listOf(treeSet, set)

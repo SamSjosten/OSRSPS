@@ -34,6 +34,8 @@ fun CommandRegistry.registerScenarioCommands(world: World) {
         val name = player.scenario
         world.scripts.clearAll(player)
         world.meleeCombat.endFights(player)
+        // A stopped Hunter run's traps come down too, so none stands for the next script.
+        world.hunter.traps.takeDown(player.saveKey)
         player.testCheatsOff()
         before.restoreTo(player)
         // Varp 83 came back with the rest; the overhead icon and the drain go with the prayer book, so it starts afresh.
@@ -84,6 +86,8 @@ private fun CommandContext.start(world: World, scenario: Scenario) {
     player.priceChecker.clear()
     world.scripts.clearAll(player)
     world.meleeCombat.endFights(player)
+    // Nor traps from an earlier run: a scenario starts with none laid.
+    world.hunter.traps.takeDown(player.saveKey)
     // A divine potion drunk before would hold the scenario's boosts and then drop them; ::reset puts its varbits back.
     world.potions.clearDivine(player)
     // Nor poison, venom or an antipoison's immunity from before; ::reset puts the poison varp back with the rest.

@@ -267,9 +267,13 @@ class HeadlessHunterTest {
         server(dir, bird = chinchompa).use { server ->
             server.login("fred").use { client ->
                 val at = client.await("the login rebuild") { client.position }
-                client.command("setlevel hunter 99")
                 client.command("item ${BoxTraps.BOX_TRAP} 1")
                 client.slotOf(BoxTraps.BOX_TRAP)
+                // Below the box trap's 27 it won't go down.
+                client.lay(BoxTraps.BOX_TRAP)
+                client.seen("[hunter.trap_level level=27]")
+                assertEquals(1, client.count(BoxTraps.BOX_TRAP))
+                client.command("setlevel hunter 99")
                 val before = client.await("Hunter XP") { client.stat(HUNTER)?.takeIf { it.level == 99 } }.xp
                 client.lay(BoxTraps.BOX_TRAP)
                 client.seen("[hunter.laying]")
