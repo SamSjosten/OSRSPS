@@ -11,6 +11,7 @@
   {"step": "command", "text": "::tele 3308 3491 0", "expectMessage": "Teleported to 3308, 3491, 0", "comment": "outside the yard's south fence, by its broken part"},
   {"step": "locOption", "locId": 2618, "option": "Climb-over", "x": 3308, "y": 3492},
   {"step": "assertLocation", "x": 3308, "y": 3493, "timeoutMs": 10000, "comment": "inside the yard"},
+  {"step": "waitTicks", "ticks": 2, "comment": "the client draws the player at the landing as its exact move ends, about half a tick before the server moves them there and the climb ends; a click sent sooner comes while the climb is still running and is dropped (nightly 2026-11-15 on 215: the player stayed inside)"},
   {"step": "locOption", "locId": 2618, "option": "Climb-over", "x": 3308, "y": 3492},
   {"step": "assertLocation", "x": 3308, "y": 3491, "timeoutMs": 10000, "comment": "and back out"},
   {"step": "command", "text": "::item 1521 3", "comment": "three oak logs"},
