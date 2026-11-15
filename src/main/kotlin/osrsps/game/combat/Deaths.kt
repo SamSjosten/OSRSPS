@@ -282,7 +282,8 @@ class Deaths(
         for (obj in lost) {
             val type = objTypes[obj.id] ?: ObjType(obj.id)
             when {
-                type.tradeable -> forKiller += obj
+                // Player-to-player tradeable: coins and platinum tokens too, which aren't on the Grand Exchange.
+                type.tradeable || type.id == osrsps.game.ge.GrandExchange.COINS || type.id == osrsps.game.ge.GrandExchange.PLATINUM_TOKEN -> forKiller += obj
                 !deep -> buried += obj
                 !type.wearable -> {
                     val over = obj.count - player.inventory.add(type, obj.count)

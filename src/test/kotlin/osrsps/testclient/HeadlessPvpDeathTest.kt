@@ -26,7 +26,8 @@ import osrsps.map.CollisionMap
  */
 class HeadlessPvpDeathTest {
     private val grave = NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null))
-    private val coins = ObjType(995, "Coins", cost = 1, stackable = true, tradeable = true)
+    // Not tradeable on the Grand Exchange, as the cache has it (Codex review on #712): it still drops for the killer.
+    private val coins = ObjType(995, "Coins", cost = 1, stackable = true)
     private val sword = ObjType(1277, "Bronze sword", cost = 26, tradeable = true)
     private val bones = ObjType(526, "Bones", cost = 1, tradeable = true)
     private val lobster = ObjType(379, "Lobster", cost = 150, tradeable = true)
@@ -163,6 +164,35 @@ class HeadlessPvpDeathTest {
                         world.pvpCombat.dealtBy(uma, tom, 1, tick)
                         assertEquals("tom", world.pvpCombat.killerOf(uma), "the most damage wins outright")
                     }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a death the killer didn't finish still credits them, and starts their PJ timer`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("vic").use { killer ->
+                server.login("wes").use { victim ->
+                    killer.await("the login rebuild") { killer.position }
+                    victim.await("the login rebuild") { victim.position }
+                    victim.command("varp 172 1")
+                    killer.commandReply("sure") { it.startsWith("Your attacks") }
+                    killer.tele(3090, LEVEL_25)
+                    victim.tele(3091, LEVEL_25)
+                    killer.await("Attack given") { Unit.takeIf { killer.playerOps()[PlayerOps.ATTACK] == PlayerOps.ATTACK_TEXT } }
+                    killer.await("the victim in view") { killer.otherPlayers().takeIf { it.isNotEmpty() } }
+                    val world = server.world
+                    val vic = world.playerNamed("vic")!!
+                    val wes = world.playerNamed("wes")!!
+                    killer.playerOp(victim.index, PlayerOps.ATTACK)
+                    killer.await("a hit on wes") { wes.pvpDamage["vic"] }
+                    killer.tele(3090, 3500)
+                    killer.await("vic's PJ timer over") { Unit.takeIf { world.tick >= vic.pjUntil } }
+                    victim.commandReply("hit 99 me") { it.startsWith("Hit yourself") }
+                    victim.await("[combat.dead]") { victim.messages().firstOrNull { it.text == "[combat.dead]" } }
+                    assertEquals("vic", wes.deathKiller)
+                    assertTrue(vic.pjOpponent === wes && vic.pjUntil > world.tick, "credited, vic's timer runs again")
                 }
             }
         }

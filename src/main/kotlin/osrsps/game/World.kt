@@ -685,13 +685,14 @@ class World(
             }
         },
         takeFromBank = { player, id, count -> bank.take(player.bank, bankScreen.tabs(player), id, count) },
-        killerOf = { pvpCombat.killerOf(it) },
+        // The killer credited gets their PJ timer, though a monster's hit finished the victim.
+        killerOf = { victim -> pvpCombat.killerOf(victim)?.also { pvpCombat.credited(victim, it) } },
         // The victim's, seen by the killer alone at first: a pickup is a hand-over, which saves the victim with the
         // taker. Never merged into a stack already there, so the loot keeps its own timers.
         dropForKiller = { victim, killer, type, count, x, z, level ->
             groundObjs.addPrivate(
                 type, count, x, z, level, killer, Deaths.PVP_LOOT_PRIVATE_TICKS, Deaths.PVP_LOOT_DESPAWN_TICKS,
-                droppedBy = victim.saveKey, merge = false,
+                neverPublic = false, droppedBy = victim.saveKey, merge = false,
             )
         },
         // Saved with the lost items out, before they go down for the killer (see dropForKiller).

@@ -442,6 +442,16 @@ class PvpCombat(
         return player.pvpDamage.entries.last { it.value == most }.key
     }
 
+    /**
+     * [killer] (a save key) is credited with [player]'s death: their PJ timer starts, naming [player] (OSRS Wiki, PJ
+     * timer: 12 seconds after a kill), whoever dealt the last hit.
+     */
+    fun credited(player: Player, killer: String) {
+        val credited = players().firstOrNull { it.saveKey == killer } ?: return
+        credited.pjOpponent = player
+        credited.pjUntil = currentTick() + PJ_TICKS
+    }
+
     /** [player] is frozen by [caster]'s [spell] for its ticks, unless frozen or immune already; see the class note. */
     private fun freeze(player: Player, caster: Player, spell: CombatSpell) {
         if (player.freezeTicks > 0 || player.freezeImmunityTicks > 0) return
