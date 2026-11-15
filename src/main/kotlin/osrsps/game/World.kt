@@ -52,6 +52,7 @@ import osrsps.game.command.registerSeedCommands
 import osrsps.game.command.registerSkillCommands
 import osrsps.game.command.registerSocialCommands
 import osrsps.game.command.registerLodestoneCommands
+import osrsps.game.command.registerWildernessCommands
 import osrsps.game.command.registerFarmingCommands
 import osrsps.game.command.registerXpRateCommands
 import osrsps.game.command.registerTickCommands
@@ -140,7 +141,9 @@ import osrsps.game.content.registerLumbridgeTown
 import osrsps.game.content.registerAlKharid
 import osrsps.game.content.registerVarrock
 import osrsps.game.content.registerDraynorVillage
+import osrsps.game.content.WildernessDitch
 import osrsps.game.content.registerEdgeville
+import osrsps.game.content.registerWildernessDitch
 import osrsps.game.content.registerEdgevilleDungeon
 import osrsps.game.content.registerSkullSceptre
 import osrsps.game.content.registerStrongholdOfSecurity
@@ -867,6 +870,7 @@ class World(
         registerSkillCommands { phase != null }
         registerXpRateCommands(this@World)
         registerLodestoneCommands(this@World)
+        registerWildernessCommands(this@World)
         registerFarmingCommands(this@World)
         registerSeedCommands(this@World)
         registerScriptCommands(this@World)
@@ -947,6 +951,7 @@ class World(
         registerChurch(this)
         registerAlKharid(this)
         registerEdgeville(this)
+        registerWildernessDitch(this)
         registerEdgevilleShops(this)
         registerEdgevillePeople(this)
         registerEdgevilleMonastery(this)
@@ -1393,6 +1398,18 @@ class World(
         }
         player.infos.updateRootCoord(player.level, player.x, player.z)
         sendMultiIndicator(player)
+        sendWilderness(player)
+    }
+
+    /**
+     * Opens or closes the Wilderness overlay and sets varbit inside_wilderness for where [player] now stands, each tick
+     * as [sendMultiIndicator] does; both only go out when they change. The varbit is the one RuneLite reads as
+     * `Varbits.IN_WILDERNESS`. Inferred: live changes both on the step that crosses the edge.
+     */
+    private fun sendWilderness(player: Player) {
+        val inside = Wilderness.inside(player.x, player.z)
+        interfaces.showWildernessOverlay(player, inside)
+        player.vars.setVarbitIfKnown(VARBIT_INSIDE_WILDERNESS, if (inside) 1 else 0)
     }
 
     /**
@@ -2002,6 +2019,7 @@ class World(
         clans.resync(player)
         rebuild(player)
         interfaces.resendClosesWhileAway(player)
+        interfaces.resendWildernessOverlay(player)
         interfaces.closeEmptyModalSlots(player)
     }
 
@@ -2700,7 +2718,8 @@ class World(
     fun onResumePauseButton(player: Player, interfaceId: Int, componentId: Int, sub: Int) = act(player) {
         trades.interrupt(player)
         if (player.scripts.delayed) return@act
-        if (!dialogues.resume(player, interfaceId, componentId, sub) && !bankPinSettings.resume(player, interfaceId, componentId) &&
+        if (!dialogues.resume(player, interfaceId, componentId, sub) && !WildernessDitch.toggle(player, interfaceId, componentId) &&
+            !bankPinSettings.resume(player, interfaceId, componentId) &&
             !clans.reviewApplicant(player, interfaceId, componentId, sub)
         ) {
             logger.debug { "${player.username} continued $interfaceId:$componentId sub $sub, which nothing waits for" }
@@ -3199,6 +3218,9 @@ class World(
 
         /** has_displayname_transmitter in RuneLite's VarbitID. */
         const val VARBIT_HAS_DISPLAYNAME = 8119
+
+        /** inside_wilderness (5963): 1 while the player is inside the Wilderness. */
+        const val VARBIT_INSIDE_WILDERNESS = 5963
 
         private val DEFAULT_IDENT_KITS = intArrayOf(0, 10, 18, 26, 33, 36, 42)
     }

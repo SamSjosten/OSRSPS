@@ -1,5 +1,5 @@
 {
- "name": "Edgeville piece step 1: the grange's doors and haystack, the mausoleum's coffin, the leather gloves, the east house's wardrobe, the Wilderness Ditch's refusal, and the Edgeville bank's bankers and booths (::keys on)",
+ "name": "Edgeville piece step 1: the grange's doors and haystack, the mausoleum's coffin, the leather gloves, the east house's wardrobe and the Edgeville bank's bankers and booths (::keys on)",
  "account": "test",
  "steps": [
   {
@@ -181,23 +181,6 @@
    "x": 3120,
    "y": 3481,
    "option": "Open"
-  },
-  {
-   "step": "command",
-   "text": "::tele 3090 3519 0",
-   "expectMessage": "Teleported to 3090, 3519, 0",
-   "comment": "south of the Wilderness Ditch, north of the bank"
-  },
-  {
-   "step": "locOption",
-   "loc": "Wilderness Ditch",
-   "option": "Cross",
-   "x": 3090,
-   "y": 3521
-  },
-  {
-   "step": "assertMessage",
-   "contains": "[edgeville.ditch_closed]"
   },
   {
    "step": "command",

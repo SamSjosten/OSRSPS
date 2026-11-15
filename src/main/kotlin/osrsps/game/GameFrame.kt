@@ -97,6 +97,17 @@ enum class GameFrame(
             else -> null
         }
 
+        /**
+         * pvp_icons, the Wilderness overlay: the skull, "Level: n" and the combat range. Opened only while the player
+         * is inside the Wilderness ([osrsps.game.Wilderness.inside]), as its layout script (`pvp_icons_layout`) shows the
+         * skull whenever it is open and the level whenever the client's sum gives one. Inferred from those scripts: live
+         * shows no skull in Lumbridge, so it can't be open there.
+         */
+        const val PVP_ICONS = 90
+
+        /** pvp_icons' gameval name and its components the server touches, for the startup check. */
+        val PVP_ICONS_CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>> = mapOf(PVP_ICONS to ("pvp_icons" to emptyMap()))
+
         /** Overlay interface, its gameval name and the slot it opens into on login. */
         val overlays: List<Overlay> = listOf(
             Overlay(162, "chatbox", FrameSlot.CHAT_CONTAINER),
@@ -104,7 +115,6 @@ enum class GameFrame(
             Overlay(708, "stat_boosts_hud", FrameSlot.STAT_BOOSTS_HUD),
             Overlay(163, "pm_chat", FrameSlot.PM_CONTAINER),
             Overlay(303, "hpbar_hud", FrameSlot.HPBAR_HUD),
-            Overlay(90, "pvp_icons", FrameSlot.PVP_ICONS),
             Overlay(ORBS, "orbs", FrameSlot.ORBS),
             Overlay(122, "xp_drops", FrameSlot.XP_DROPS),
             Overlay(728, "popout", FrameSlot.POPOUT),
