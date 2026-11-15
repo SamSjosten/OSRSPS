@@ -12,8 +12,8 @@ import osrsps.game.npc.NpcSpawn
 
 /** The superiors' messages. */
 object SlayerSuperiorLines : Lines("slayer_superior", "Slayer superiors") {
-    val APPEARED = line("appeared", "a superior spawning for the player, in red (the Wiki quotes it: \"A superior foe has appeared...\")")
-    val NOT_YOURS = line("not_yours", "attacking another player's superior (the Wiki quotes it: \"That is not your superior creature.\")")
+    val APPEARED = line("appeared", "a superior spawning for the player, in red; words on the OSRS Wiki's Superior slayer monster page")
+    val NOT_YOURS = line("not_yours", "attacking another player's superior; words on the OSRS Wiki's Superior slayer monster page")
 }
 
 /**
@@ -25,9 +25,9 @@ class Superior(val internalName: String, val base: String, val xp: Int, val slay
 /**
  * Superior Slayer monsters (Slayer step 6), from the OSRS Wiki's Superior slayer monster page (read 2026-11-15). With
  * Bigger and Badder bought and on, a player on a task who kills one of its monsters (finishing it or having dealt the
- * most damage) has a 1 in 200 chance that its superior appears where it died, for them alone: "A superior foe has
- * appeared...". Only one is out for a player at a time; another player's attack on it is refused ("That is not your
- * superior creature."). Its kill gives its own Slayer XP, task or not, and counts as one of the task (guessed: the Wiki
+ * most damage) has a 1 in 200 chance that its superior appears where it died, for them alone, with a message
+ * ([SlayerSuperiorLines.APPEARED]). Only one is out for a player at a time; another player's attack on it is refused
+ * ([SlayerSuperiorLines.NOT_YOURS]). Its kill gives its own Slayer XP, task or not, and counts as one of the task (guessed: the Wiki
  * doesn't say), and drops its own drops plus three rolls on its normal counterpart's table, one of which may instead be
  * a superior unique: each of the two unique tables is hit at 1 / (200 - (Slayer level + 55)² / 125), the first giving
  * the imbued heart (1/8) or a dust or mist battlestaff (7/16 each), the second an eternal gem (1/8) or nothing.
@@ -47,6 +47,9 @@ class SlayerSuperiors(private val world: World) {
 
         /** 1 in this many on-task kills. */
         const val CHANCE = 200
+
+        /** The rolls on the normal counterpart's drops a superior's kill gives, one maybe taken by a unique. */
+        const val ROLLS = 3
 
         /** Superiors by the task their normal counterpart is, with the Wiki's Slayer XP. */
         val BY_TASK = mapOf(
@@ -148,12 +151,15 @@ class SlayerSuperiors(private val world: World) {
         val superior = dropping.remove(npc) ?: return null
         val base = world.npcTypes.find(superior.base)?.let { world.npcDrops[it] }
         val drops = ArrayList<Drop>()
-        var rolls = 3
+        var rolls = ROLLS
         unique(random, superior)?.let {
             rolls--
             it.forEach(drops::add)
         }
         repeat(rolls) { base?.table?.roll(random)?.forEach { drops += Drop(it.type, it.count(random)) } }
+        // The counterpart's tertiary drops come with each of the three rolls (the OSRS Wiki's Giant rockslug: mystic
+        // gloves (light) at 1/512 with rolls=3). Inferred: a roll the unique table took still rolls them.
+        repeat(ROLLS) { for (extra in base?.tertiary.orEmpty()) if (random.nextInt(extra.denominator) == 0) drops += Drop(extra.item.type, extra.item.count(random)) }
         return drops
     }
 

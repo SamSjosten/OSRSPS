@@ -6,6 +6,8 @@ import kotlin.test.assertEquals
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
 import osrsps.game.NpcStats
+import osrsps.game.ObjType
+import osrsps.game.ObjTypes
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.SeqNames
@@ -13,6 +15,7 @@ import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.World
 import osrsps.game.combat.NpcCombat
+import osrsps.game.combat.NpcDrops
 import osrsps.game.skill.Slayer
 import osrsps.game.skill.SlayerData
 import osrsps.game.skill.SlayerMasterTask
@@ -36,12 +39,18 @@ class HeadlessSlayerSuperiorTest {
     private val crawlers = SlayerTask(6226, 37, "cave crawlers", "Cave crawlers")
     private val data = SlayerData(listOf(crawlers), listOf(SlayerMasterTask(3, crawlers, 8, 40, 80)))
 
+    // A stand-in tertiary on the cave crawler's drops that always lands, to count the superior's rolls of it.
+    private val gloves = ObjType(GLOVES, "Mystic gloves (light)")
+    private val objTypes = ObjTypes.of(gloves)
+    private val drops = """{ "npcs": [ { "npcs": ["slayer_cave_crawler_1"], "tertiary": [ { "item": $GLOVES, "name": "Mystic gloves (light)", "chance": "1/1" } ], "source": "test" } ] }"""
+
     private fun server(dir: Path, superior: NpcType = chasm) = TestServer(dir) { crcs, millis ->
         val types = NpcTypes.of(crawler, superior)
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, random = GameRandom(5),
             varTypes = VarTypes(6_000, mapOf(Slayer.VARBIT_MASTER to VarbitType(661, 2, 5), Slayer.VARBIT_POINTS to VarbitType(661, 6, 22), Slayer.VARBIT_STREAK to VarbitType(1077, 0, 13))),
             npcTypes = types, npcCombat = NpcCombat.load(types, SeqNames.NONE), slayerData = data, cycleMillis = millis,
+            objTypes = objTypes, npcDrops = NpcDrops.parse(drops, types, objTypes),
         )
     }
 
@@ -72,6 +81,8 @@ class HeadlessSlayerSuperiorTest {
                     alice.commandReply("kill $index") { it.startsWith("Killed") }
                     alice.await("600 Slayer XP") { if ((alice.stat(SLAYER)?.xp ?: 0) - before == 600) Unit else null }
                     alice.await("one off the task") { if (alice.varp(Slayer.VARP_COUNT) == 4) Unit else null }
+                    // Each of the three rolls on the cave crawler's drops brings its tertiaries (the Wiki's rolls=3).
+                    alice.await("three pairs of gloves") { if (alice.groundObjs().count { it.id == GLOVES } == 3) Unit else null }
                 }
             }
         }
@@ -123,5 +134,6 @@ class HeadlessSlayerSuperiorTest {
         val OPS = listOf(null, "Attack", null, null, null)
         const val ATTACK = 2
         const val SLAYER = 18
+        const val GLOVES = 20000
     }
 }
