@@ -182,6 +182,8 @@ object Bryophyta {
         val target = target() ?: return
         boss.face(target)
         if (world.tick < state.nextAttack) return
+        // Neither reach nor sight (under her, or behind a wall): she holds her attack until she has one. Guessed.
+        if (!world.meleeCombat.reaches(boss, target) && !world.meleeCombat.sees(boss, target)) return
         state.nextAttack = world.tick + ATTACK_SPEED
         attack(target)
     }
@@ -211,7 +213,7 @@ object Bryophyta {
             world.meleeCombat.fireAt(boss, target, world.tick, NpcRangedAttack(anim = ANIM_ATTACK, impact = IMPACT_MAGIC, maxHit = MAGIC_MAX), AttackType.MAGIC)
             log("casts at ${target.username}")
         }
-        if (mayGrow(target) && roll(1, GROWTH_CHANCE) == 1) grow()
+        if (mayGrow(target, hitting = false) && roll(1, GROWTH_CHANCE) == 1) grow()
     }
 
     /**
@@ -223,13 +225,14 @@ object Bryophyta {
         // Not on the killing blow: hit() tells of the damage before she is dead.
         if (boss.type.id != BOSS || boss.dead || boss.hitpoints <= 0) return
         val encounter = world.encounters.all.firstOrNull { it.boss === boss && !it.ended } ?: return
-        with(encounter) { if (mayGrow(player) && roll(1, GROWTH_CHANCE) == 1) grow() }
+        with(encounter) { if (mayGrow(player, hitting = true) && roll(1, GROWTH_CHANCE) == 1) grow() }
     }
 
-    private fun EncounterContext.mayGrow(target: Player): Boolean =
+    /** [hitting] when [target]'s own hit is landing now, which counts as their attacking her before her fields say so. */
+    private fun EncounterContext.mayGrow(target: Player, hitting: Boolean): Boolean =
         boss.hitpoints * 100 <= boss.maxHitpoints * GROWTH_BELOW_PERCENT &&
             living(world, state).isEmpty() && world.tick >= state.growthAfter &&
-            boss.attacker === target && world.tick - boss.attackedTick <= ATTACKING_TICKS
+            (hitting || (boss.attacker === target && world.tick - boss.attackedTick <= ATTACKING_TICKS))
 
     /** Three growthlings on the free tiles around her, each going for whoever she fights. */
     private fun EncounterContext.grow() {

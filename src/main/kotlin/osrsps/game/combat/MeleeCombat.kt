@@ -734,6 +734,10 @@ class MeleeCombat(
     fun reaches(npc: Npc, player: Player): Boolean =
         npc.level == player.level && Reach.reachedEntity(collision, npc.level, npc.x, npc.z, npc.type.size, player.x, player.z, 1, 1)
 
+    /** Whether [npc] sees [player] to cast or shoot at them, at any range: not from under them, nor through walls. */
+    fun sees(npc: Npc, player: Player): Boolean =
+        npc.level == player.level && LineOfSight.clear(collision, npc.level, npc.x, npc.z, npc.type.size, player.x, player.z)
+
     /** Whether [player] is in [npc]'s range and sight for its magic or ranged attacks, as its fight back asks before a shot. */
     fun inShot(npc: Npc, player: Player): Boolean = combat.npcCombat[npc.type]?.let { inShot(npc, it, player) } ?: false
 
