@@ -1706,7 +1706,10 @@ class World(
             // a minute, and their standing request goes with it. Not checked against a live disconnect mid-trade.
             trades.leave(player)
         }
-        return tick - player.connectionLostTick >= LINGER_TICKS
+        // Not while a player is fighting them: pulling the cable mustn't take them out of a PvP fight, or a PvP death
+        // (exploit review R35A-4). Guessed: live keeps a disconnected player in combat in the world until it is over.
+        // A monster's fight doesn't hold them, as before: a boss fight whose starter's client went is called off.
+        return tick - player.connectionLostTick >= LINGER_TICKS && !inPvpCombat(player)
     }
 
     private fun acceptLogins() {
@@ -3253,6 +3256,10 @@ class World(
             (player.attackedByPlayerTick >= 0 && tick - player.attackedByPlayerTick < LOGOUT_COMBAT_TICKS) ||
             // A player's swing still on its way counts already, so processing order can't let them log out from under it.
             pvpCombat.incoming(player)
+
+    /** Whether a player hit [player] within the last [LOGOUT_COMBAT_TICKS], or a player's hit is on its way to them. */
+    private fun inPvpCombat(player: Player): Boolean =
+        (player.attackedByPlayerTick >= 0 && tick - player.attackedByPlayerTick < LOGOUT_COMBAT_TICKS) || pvpCombat.incoming(player)
 
     /** Saves and removes a player who logged out or whose wait for a reconnect is over. */
     private fun remove(player: Player) {

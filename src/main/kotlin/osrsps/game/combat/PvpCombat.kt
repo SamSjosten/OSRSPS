@@ -52,7 +52,10 @@ class PvpInteraction internal constructor(val target: Player, spell: CombatSpell
  * The hit lands after the attack's own delay ([HitDelay]: none for melee, the distance's for ranged and magic), and in
  * PvP the processing order (PID) decides whether it waits one tick more (OSRS Wiki, Hit delay). Here a hit lands when
  * the target is next processed in the movement phase ([land]), one tick later if the target was already processed this
- * tick when it was made. Inferred: players are processed in index order, while live shuffles PIDs.
+ * tick when it was made. Inferred: players are processed in index order, while live shuffles PIDs. A hit already on
+ * its way lands even if the target has stepped out of the Wilderness since (a freeze with it), as an attack's XP was
+ * given when it was made; only a target who changed plane or left the world escapes it (inferred, as live resolves an
+ * attack when it is made; exploit review R35A-1).
  *
  * An ice spell or a bind that hits freezes the target for its ticks unless they are frozen or immune; a freeze breaks
  * once the two are more than 10 tiles apart, and 5 ticks of immunity follow it (OSRS Wiki, Freeze). An ice spell tells
@@ -227,23 +230,41 @@ class PvpCombat(
      */
     fun singleWayRefusal(attacker: Player, target: Player, tick: Long): Line? {
         if (!multi.at(attacker.level, attacker.x, attacker.z) &&
-            (fightingOther(attacker, target, tick) || npcFighting(attacker, tick) || melee.fightingNpc(attacker))
+            (fightingOther(attacker, target, tick) || (!lockedOn(attacker, target, tick) && fightingAnyNpc(attacker, tick)))
         ) {
             return CombatLines.ALREADY_UNDER_ATTACK
         }
         if (!multi.at(target.level, target.x, target.z) &&
-            (fightingOther(target, attacker, tick) || npcFighting(target, tick) || melee.fightingNpc(target))
+            (fightingOther(target, attacker, tick) || (!lockedOn(target, attacker, tick) && fightingAnyNpc(target, tick)))
         ) {
             return PvpLines.TARGET_IN_COMBAT
         }
         return null
     }
 
-    /** Whether [player]'s PJ timer runs for a fight with someone other than [other]. */
+    /**
+     * Whether [player]'s PJ timer runs for a fight with someone other than [other]. An opponent who has left the world
+     * is none, so a friend can't splash and log out to shield them; one who has come back is the same player by save
+     * key (exploit review R35A-3). Guessed: the Wiki's PJ timer page doesn't say what an opponent's logout does; this
+     * is our rule against the shield. The timer after a kill holds though the victim logs out.
+     */
     private fun fightingOther(player: Player, other: Player, tick: Long): Boolean {
         val opponent = player.pjOpponent ?: return false
-        return opponent !== other && tick < player.pjUntil
+        return tick < player.pjUntil && (player.pjAfterKill || inWorld(opponent)) && opponent.saveKey != other.saveKey
     }
+
+    /**
+     * Whether [player]'s PJ timer runs for their fight with [other]: a monster they hit since doesn't keep [other] off
+     * them, or one of the two could end the fight by hitting any monster nearby (exploit review R35A-2). Guessed: no
+     * source covers it; this is our rule against ending a fight that way.
+     */
+    private fun lockedOn(player: Player, other: Player, tick: Long): Boolean {
+        val opponent = player.pjOpponent ?: return false
+        return tick < player.pjUntil && opponent.saveKey == other.saveKey
+    }
+
+    /** Whether a monster is fighting [player], or they are fighting one. */
+    private fun fightingAnyNpc(player: Player, tick: Long): Boolean = npcFighting(player, tick) || melee.fightingNpc(player)
 
     /** Whether a monster fighting [player] hit them within the monster PJ timer. */
     private fun npcFighting(player: Player, tick: Long): Boolean {
@@ -256,8 +277,10 @@ class PvpCombat(
         Skulls.attacked(attacker, target, tick)
         attacker.pjOpponent = target
         attacker.pjUntil = tick + PJ_TICKS
+        attacker.pjAfterKill = false
         target.pjOpponent = attacker
         target.pjUntil = tick + PJ_TICKS
+        target.pjAfterKill = false
     }
 
     /** One more tick on a hit [target] would take if they were processed already this tick; see the class note. */
@@ -332,6 +355,7 @@ class PvpCombat(
                 // stays on the target (guessed: the Wiki doesn't say).
                 other.pjOpponent = player
                 other.pjUntil = tick + PJ_TICKS
+                other.pjAfterKill = false
                 // And unprovoked, a skull for the caster and the right to hit back for them, as for the target.
                 Skulls.attacked(player, other, tick)
             }
@@ -406,6 +430,7 @@ class PvpCombat(
                 if (player.dead || player.hitpoints <= 0) {
                     hit.attacker.pjOpponent = player
                     hit.attacker.pjUntil = tick + PJ_TICKS
+                    hit.attacker.pjAfterKill = true
                 }
             } else {
                 // A splash, or a bind that can't do damage: no hitsplat, but they were attacked (guessed, as for an NPC).
@@ -450,6 +475,7 @@ class PvpCombat(
         val credited = players().firstOrNull { it.saveKey == killer } ?: return
         credited.pjOpponent = player
         credited.pjUntil = currentTick() + PJ_TICKS
+        credited.pjAfterKill = true
     }
 
     /** [player] is frozen by [caster]'s [spell] for its ticks, unless frozen or immune already; see the class note. */
