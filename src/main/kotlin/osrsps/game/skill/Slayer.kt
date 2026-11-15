@@ -315,7 +315,6 @@ class Slayer(private val world: World, val data: SlayerData) {
         if (npc.type.params[PARAM_CATEGORY] !is Int) return
         if (npc.hitpoints + dealt >= npc.maxHitpoints) damage.remove(npc)
         damage.getOrPut(npc) { LinkedHashMap() }.merge(player.saveKey, dealt, Int::plus)
-        superiors.hit(npc, player)
     }
 
     /** [npc] left the world without being killed (World.removeNpc). */

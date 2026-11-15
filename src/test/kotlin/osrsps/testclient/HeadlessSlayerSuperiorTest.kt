@@ -23,18 +23,21 @@ import osrsps.map.CollisionMap
 /**
  * Slayer step 6 through the headless client: a chasm crawler put out for a player on a cave crawler task with the
  * superior's message, another player's attack on it refused, its kill giving its 600 Slayer XP and one off the task,
- * and one left alone going away after 2 minutes.
+ * one left alone going away after 2 minutes, and one attacked only with misses staying.
  */
 class HeadlessSlayerSuperiorTest {
     // The 242 cache's types: the cave crawler and its superior, both naming the cave crawlers task (37) in param 50.
     private val crawler = NpcType(406, "Cave crawler", size = 2, ops = OPS, combatLevel = 23, internalName = "slayer_cave_crawler_1", params = mapOf(Slayer.PARAM_CATEGORY to 37), stats = NpcStats(hitpoints = 22))
     private val chasm = NpcType(7389, "Chasm Crawler", size = 3, ops = OPS, combatLevel = 68, internalName = "superior_cave_crawler", params = mapOf(Slayer.PARAM_CATEGORY to 37), stats = NpcStats(attack = 64, defence = 55, strength = 59, hitpoints = 60))
 
+    /** The chasm crawler with a Defence no level-40 swing can get past: every attack on it misses. */
+    private val armouredChasm = NpcType(chasm.id, chasm.name, size = 3, ops = OPS, combatLevel = 68, internalName = chasm.internalName, params = chasm.params, stats = NpcStats(attack = 1, defence = 100_000, strength = 1, hitpoints = 60))
+
     private val crawlers = SlayerTask(6226, 37, "cave crawlers", "Cave crawlers")
     private val data = SlayerData(listOf(crawlers), listOf(SlayerMasterTask(3, crawlers, 8, 40, 80)))
 
-    private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
-        val types = NpcTypes.of(crawler, chasm)
+    private fun server(dir: Path, superior: NpcType = chasm) = TestServer(dir) { crcs, millis ->
+        val types = NpcTypes.of(crawler, superior)
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, random = GameRandom(5),
             varTypes = VarTypes(6_000, mapOf(Slayer.VARBIT_MASTER to VarbitType(661, 2, 5), Slayer.VARBIT_POINTS to VarbitType(661, 6, 22), Slayer.VARBIT_STREAK to VarbitType(1077, 0, 13))),
@@ -89,6 +92,29 @@ class HeadlessSlayerSuperiorTest {
                 }
                 assertEquals(true, client.npcs().any { it.index == index })
                 client.await("the chasm crawler gone", timeoutMillis = 10_000) { if (client.npcs().none { it.index == index }) Unit else null }
+            }
+        }
+    }
+
+    @Test
+    fun `a superior attacked only with misses is not left alone`(@TempDir dir: Path) {
+        server(dir, armouredChasm).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("setlevel all 40") { it.startsWith("Every skill") }
+                client.command("god")
+                client.commandReply("slayer task cave crawlers 5 vannaka") { it.startsWith("Task") }
+                val index = client.superior()
+                client.await("the chasm crawler in view") { client.npcs().firstOrNull { it.index == index } }
+                client.npcOp(index, ATTACK)
+                client.await("a blocked swing") { if (server.world.playerNamed("dave")?.attackedNpc?.index == index) Unit else null }
+                repeat(SlayerSuperiors.IGNORED_TICKS / 38 + 2) {
+                    client.awaitTicks(38)
+                    client.commandReply("slayer") { it.contains("points") }
+                }
+                val npc = server.world.npcs.all.first { it.index == index }
+                assertEquals(npc.maxHitpoints, npc.hitpoints)
+                assertEquals(true, client.npcs().any { it.index == index })
             }
         }
     }

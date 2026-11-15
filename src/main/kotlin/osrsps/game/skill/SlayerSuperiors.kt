@@ -86,18 +86,11 @@ class SlayerSuperiors(private val world: World) {
     /** Its superior's details when [npc] is a superior that is out, else null. */
     private fun superiorOf(npc: Npc): Superior? = if (npc in out) superiorType(npc) else null
 
-    fun isSuperior(npc: Npc): Boolean = npc in out
-
     /** The Slayer XP in tenths a kill of [npc] gives, if it is a superior. */
     fun xpTenths(npc: Npc): Int? = superiorOf(npc)?.let { it.xp * 10 }
 
     /** Why [player] can't attack [npc]: another player's superior. */
     fun barred(player: Player, npc: Npc): Line? = out[npc]?.takeIf { it.owner != player.saveKey }?.let { SlayerSuperiorLines.NOT_YOURS }
-
-    /** [player] hit [npc]: an attacked superior isn't ignored. */
-    fun hit(npc: Npc, player: Player) {
-        out[npc]?.takeIf { it.owner == player.saveKey }?.attacked = true
-    }
 
     /** [player], on task, got credit for killing [npc]: perhaps its superior appears. */
     fun rolled(player: Player, npc: Npc) {
@@ -131,6 +124,8 @@ class SlayerSuperiors(private val world: World) {
     fun process() {
         if (out.isEmpty()) return
         val tick = world.tick
+        // Attacked at all, hit, missed or splashed: whoever last attacked it is on record (MeleeCombat.attacked).
+        for ((npc, it) in out) if (npc.lastAttacker?.saveKey == it.owner) it.attacked = true
         val gone = out.entries.filter { (npc, it) ->
             !npc.dead && (
                 !it.attacked && tick - it.since >= IGNORED_TICKS ||
