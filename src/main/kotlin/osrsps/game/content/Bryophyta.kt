@@ -230,15 +230,15 @@ object Bryophyta {
      * attacked" as a hit of hers landing with damage.
      */
     fun damaged(world: World, boss: Npc, player: Player) {
-        // Not on the killing blow: hit() tells of the damage before she is dead.
-        if (boss.type.id != BOSS || boss.dead || boss.hitpoints <= 0) return
+        if (boss.type.id != BOSS) return
         val encounter = world.encounters.all.firstOrNull { it.boss === boss && !it.ended } ?: return
         with(encounter) { if (mayGrow(player, hitting = true) && roll(1, GROWTH_CHANCE) == 1) grow() }
     }
 
     /** [hitting] when [target]'s own hit is landing now, which counts as their attacking her before her fields say so. */
     private fun EncounterContext.mayGrow(target: Player, hitting: Boolean): Boolean =
-        boss.hitpoints * 100 <= boss.maxHitpoints * GROWTH_BELOW_PERCENT &&
+        // Alive: a hit can kill her mid-attack (Retribution off her own swing) or be the killing blow.
+        !boss.dead && boss.hitpoints > 0 && boss.hitpoints * 100 <= boss.maxHitpoints * GROWTH_BELOW_PERCENT &&
             living(world, state).isEmpty() && world.tick >= state.growthAfter &&
             (hitting || (boss.attacker === target && world.tick - boss.attackedTick <= ATTACKING_TICKS))
 
