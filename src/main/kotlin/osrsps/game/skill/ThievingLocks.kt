@@ -66,7 +66,9 @@ class TrapChest(
 
 /**
  * A door locked from outside: [level], XP, the pick's chart ([low] to [high] out of 256), and the trap roll before it, if
- * any ([trapLow] to [trapHigh]), whose blow [trapDamage] takes from the current and full Hitpoints.
+ * any ([trapLow] to [trapHigh]), whose blow [trapDamage] takes from the current and full Hitpoints. A [lockpick] door
+ * (`toollock`) wants a lockpick in the backpack; an [ownTileInside] door stands on the inside's edge of its wall, so its
+ * own tile is the unlocked side.
  */
 class LockedDoor(
     val loc: Int,
@@ -76,6 +78,8 @@ class LockedDoor(
     val high: Int,
     val trapLow: Int = 0,
     val trapHigh: Int = 0,
+    val lockpick: Boolean = false,
+    val ownTileInside: Boolean = false,
     val trapDamage: (current: Int, full: Int) -> Int = { _, _ -> 0 },
 ) {
     val trapped: Boolean get() = trapHigh > 0
@@ -113,8 +117,13 @@ class LockedDoor(
  * single-way rules, so only one fights until the castle is a multi-way area. GUESSED: Open without searching springs
  * the nature rune chest's trap; the room check wanting two free slots, one for the roll and one for a hard clue.
  *
+ * The Pirates' Hideout's doors (Wilderness step W3.7; the Wiki's Door (Pirates' Hideout), read 2026-11-15): level 39,
+ * 35 XP, a lockpick wanted, Jagex's 12 to 87 chart; from inside they just open. Its chests are the 10-coin, nature rune
+ * and 50-coin chests above, where the cache map puts them. INFERRED: no lockpick message but the steel arrowtip
+ * chest's, the doors' own tiles being inside (their walls stand on the hideout's edge of the tile).
+ *
  * Guessed too: the room check before a chest's loot. Left out: the Dorgesh-Kaan chests, the looting bag the Rogues'
- * chests' loot goes into (no looting bag yet), the ring of wealth (i)'s doubled clue chance, the doors
+ * chests' loot goes into (no looting bag yet), the ring of wealth (i)'s doubled clue chance, the other doors
  * that need a lockpick (`toollock`), the Ardougne sewer gates, the Ardougne diary, the gas random event.
  */
 object ThievingLocks {
@@ -155,6 +164,9 @@ object ThievingLocks {
     const val DOOR_CHAOS_DRUID_TOWER = 11723
     const val DOOR_ARDOUGNE_CASTLE = 11724
     const val DOOR_ROSS = 40178
+
+    /** The Pirates' Hideout's three doors (`toollock3`), Wilderness step W3.7. */
+    const val DOOR_PIRATES = 11727
 
     const val OP_OPEN = 1
     const val OP_SECOND = 2
@@ -200,19 +212,21 @@ object ThievingLocks {
         LockedDoor(DOOR_ROSS, 13, 150, 4, 40, 32, 250) { current, _ -> if (current <= 10) 0 else current / 10 },
         LockedDoor(DOOR_CHAOS_DRUID_TOWER, 46, 375, 8, 75, 220, 280) { _, full -> full * 6 / 100 },
         LockedDoor(DOOR_ARDOUGNE_CASTLE, 61, 500, 4, 40, 200, 270) { _, full -> full * 10 / 100 },
+        LockedDoor(DOOR_PIRATES, 39, 350, 12, 87, lockpick = true, ownTileInside = true),
     ).associateBy { it.loc }
 
     /**
      * True when a player at [x], [z] is in line with [door]'s own tile across its wall: outside, where it is locked
      * (2004Scape's check_axis_locactive, whose "entering" is the locked side).
      */
-    fun outside(door: ZoneLoc, x: Int, z: Int): Boolean = if (door.angle % 2 == 1) z == door.z else x == door.x
+    fun outside(door: ZoneLoc, x: Int, z: Int, ownTileInside: Boolean = false): Boolean =
+        (if (door.angle % 2 == 1) z == door.z else x == door.x) != ownTileInside
 
-    fun inside(door: ZoneLoc, x: Int, z: Int): Boolean = !outside(door, x, z)
+    fun inside(door: ZoneLoc, x: Int, z: Int, ownTileInside: Boolean = false): Boolean = !outside(door, x, z, ownTileInside)
 
     /** The tile through [door] from [x], [z]: the tile past its wall from outside, its own tile from inside. */
     fun through(door: ZoneLoc, x: Int, z: Int): Pair<Int, Int> {
-        if (inside(door, x, z)) return door.x to door.z
+        if (!outside(door, x, z)) return door.x to door.z
         val (dx, dz) = Doors.SWING[door.angle]
         return door.x + dx to door.z + dz
     }
@@ -250,7 +264,7 @@ object ThievingLocks {
             }
         }
         for (door in DOORS.values) {
-            world.handlers.onLoc(door.loc, OP_OPEN) { op -> openDoor(world, op) }
+            world.handlers.onLoc(door.loc, OP_OPEN) { op -> openDoor(world, op, door) }
             world.handlers.onLoc(door.loc, OP_SECOND) { op -> pickDoor(world, op, door) }
         }
     }
@@ -349,12 +363,12 @@ object ThievingLocks {
         world.teleport(player, x, z, level)
     }
 
-    private suspend fun ScriptContext.openDoor(world: World, op: Op) {
+    private suspend fun ScriptContext.openDoor(world: World, op: Op, data: LockedDoor) {
         val door = op.loc ?: return
         arriveDelay()
         // Another thief may have gone through, swinging the door open, while this one walked up.
         if (!world.locs.exists(door)) return
-        if (!inside(door, player.x, player.z)) return world.message(player, ThievingLockLines.DOOR_LOCKED)
+        if (!inside(door, player.x, player.z, data.ownTileInside)) return world.message(player, ThievingLockLines.DOOR_LOCKED)
         world.message(player, ThievingLockLines.THROUGH)
         goThrough(world, door)
     }
@@ -364,7 +378,7 @@ object ThievingLocks {
         arriveDelay()
         // Another thief may have gone through, swinging the door open, while this one walked up.
         if (!world.locs.exists(door)) return
-        if (inside(door, player.x, player.z)) {
+        if (inside(door, player.x, player.z, data.ownTileInside)) {
             world.message(player, ThievingLockLines.ALREADY_UNLOCKED)
             delay(1)
             world.message(player, ThievingLockLines.THROUGH)
@@ -382,6 +396,7 @@ object ThievingLocks {
             world.dialogues.start(this) { mesbox(ThievingLockLines.DOOR_LEVEL, "level" to data.level) }
             return
         }
+        if (data.lockpick && player.inventory.count(LOCKPICK) == 0L) return world.message(player, ThievingLockLines.NEED_LOCKPICK)
         if (!SuccessRoll.roll(world.random, data.low, data.high, thieving)) return world.message(player, ThievingLockLines.PICK_FAIL)
         world.message(player, ThievingLockLines.PICK_DONE)
         player.skills.addTenths(Skill.THIEVING, data.xpTenths)

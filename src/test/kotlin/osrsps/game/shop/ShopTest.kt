@@ -77,6 +77,8 @@ class ShopTest {
         // The Hunter shops (the 242 cache's values).
         10010 to 20, 10012 to 1, 10025 to 600, 10150 to 4, 10006 to 5, 10008 to 32, 10029 to 50, 596 to 4, 10031 to 15, 34631 to 32,
         12740 to 505, 12742 to 3200, 12744 to 60000,
+        // Lundail's runes not sold elsewhere yet.
+        561 to 180, 563 to 240, 564 to 50,
     )
 
     /**
@@ -137,6 +139,7 @@ class ShopTest {
             NpcType(2200, "Richard", internalName = "wilderness_capeseller_6"),
             NpcType(2872, "Peksa", internalName = "peksa"),
             NpcType(6533, "Romily Weaklax", internalName = "merchant_pies"),
+            NpcType(1601, "Lundail", internalName = "magearena_runeshop"),
             NpcType(5919, "Grace", internalName = "rooftops_grace"),
             NpcType(3101, "Sawmill operator", internalName = "poh_sawmill_opp"),
             NpcType(13619, "Aya", internalName = "slayer_master_1_aya"),
@@ -232,6 +235,8 @@ class ShopTest {
         "nardah_hunter_shop" to listOf(24, 1, 720, 4, 6, 38, 60, 4, 18, 38, 606, 3840, 72000),
         "elder_stroms_hunting_stall" to listOf(24, 1, 720, 4, 6, 38, 60, 4, 18, 38, 606, 3840, 72000),
         "beas_hunting_gear" to listOf(1, 780, 5, 6, 41, 65, 5, 19, 41, 656, 4160, 78000),
+        // Lundail's Arena-side Rune Shop., read 2026-11-15.
+        "lundails_arena_side_rune_shop" to listOf(4, 4, 4, 4, 3, 3, 180, 90, 240, 50, 180, 430, 430, 430, 430, 330, 9950),
     )
 
     @Test

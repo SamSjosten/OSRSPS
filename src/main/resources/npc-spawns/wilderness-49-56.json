@@ -1,5 +1,5 @@
 {
-  "about": "The Wilderness's levels 49 to 56 on the surface, z 3904 to 3967 (Wilderness step W3.5): the Frozen Waste Plateau's ice warriors, ice giants, ice spiders and white wolves, Rogues' Castle's level 135 rogues (its level 15 rogues are in rogues-castle.json), the Scorpion Pit's scorpions, the Deserted Keep's giant bats and skeletons, the axe hut's magic axes, the hellhounds and wolves round the Resource Area, and its Mandrith, Piles (step W3.6a), runite golems and dark crab spots (step W3.6b). Left out: the Chaos Elemental (piece 4), the Pirates' Hideout's pirates (step W3.7), the Mage Arena's battle mages, the cape sellers and the ghost",
+  "about": "The Wilderness's levels 49 to 56 on the surface, z 3904 to 3967 (Wilderness step W3.5): the Frozen Waste Plateau's ice warriors, ice giants, ice spiders and white wolves, Rogues' Castle's level 135 rogues (its level 15 rogues are in rogues-castle.json), the Scorpion Pit's scorpions, the Deserted Keep's giant bats and skeletons, the axe hut's magic axes, the hellhounds and wolves round the Resource Area, and its Mandrith, Piles (step W3.6a), runite golems and dark crab spots (step W3.6b). The Pirates' Hideout's pirates (step W3.7). Left out: the Chaos Elemental (piece 4), the Mage Arena's battle mages, the cape sellers and the ghost",
   "spawns": [
     {"npc": "icegiant", "x": 2947, "z": 3921, "wander": 5, "source": "Ice giant (icegiant), the Frozen Waste Plateau, Wilderness level 51. mejrs NPCList_OSRS; wander guessed"},
     {"npc": "icewarrior", "x": 2947, "z": 3934, "wander": 5, "source": "Ice warrior (icewarrior), the Frozen Waste Plateau, Wilderness level 52. mejrs NPCList_OSRS; wander guessed"},
@@ -86,6 +86,18 @@
     {"npc": "49_61_crabs", "x": 3181, "z": 3926, "wander": 0, "source": "Fishing spot (49_61_crabs), dark crabs in the Resource Area, Wilderness level 51 (W3.6b). mejrs NPCList_OSRS; the spots never move (the Wiki's Raw dark crab page)"},
     {"npc": "49_61_crabs", "x": 3183, "z": 3926, "wander": 0, "source": "Fishing spot (49_61_crabs), dark crabs in the Resource Area, Wilderness level 51 (W3.6b). mejrs NPCList_OSRS; the spots never move (the Wiki's Raw dark crab page)"},
     {"npc": "49_61_crabs", "x": 3185, "z": 3926, "wander": 0, "source": "Fishing spot (49_61_crabs), dark crabs in the Resource Area, Wilderness level 51 (W3.6b). mejrs NPCList_OSRS; the spots never move (the Wiki's Raw dark crab page)"},
-    {"npc": "49_61_crabs", "x": 3187, "z": 3927, "wander": 0, "source": "Fishing spot (49_61_crabs), dark crabs in the Resource Area, Wilderness level 51 (W3.6b). mejrs NPCList_OSRS; the spots never move (the Wiki's Raw dark crab page)"}
+    {"npc": "49_61_crabs", "x": 3187, "z": 3927, "wander": 0, "source": "Fishing spot (49_61_crabs), dark crabs in the Resource Area, Wilderness level 51 (W3.6b). mejrs NPCList_OSRS; the spots never move (the Wiki's Raw dark crab page)"},
+    {"npc": "pirate_aggressive", "x": 3039, "z": 3950, "wander": 2, "source": "Pirate (pirate_aggressive), the Pirates' Hideout, Wilderness level 54 (W3.7). mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "pirate_aggressive", "x": 3039, "z": 3955, "wander": 2, "source": "Pirate (pirate_aggressive), the Pirates' Hideout, Wilderness level 55 (W3.7). mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "pirate_aggressive", "x": 3039, "z": 3958, "wander": 2, "source": "Pirate (pirate_aggressive), the Pirates' Hideout, Wilderness level 55 (W3.7). mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "pirate_aggressive", "x": 3040, "z": 3955, "wander": 2, "source": "Pirate (pirate_aggressive), the Pirates' Hideout, Wilderness level 55 (W3.7). mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "pirate_aggressive", "x": 3041, "z": 3950, "wander": 2, "source": "Pirate (pirate_aggressive), the Pirates' Hideout, Wilderness level 54 (W3.7). mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "pirate_aggressive", "x": 3041, "z": 3951, "wander": 2, "source": "Pirate (pirate_aggressive), the Pirates' Hideout, Wilderness level 54 (W3.7). mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "pirate_aggressive", "x": 3041, "z": 3953, "wander": 2, "source": "Pirate (pirate_aggressive), the Pirates' Hideout, Wilderness level 55 (W3.7). mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "pirate_aggressive", "x": 3041, "z": 3956, "wander": 2, "source": "Pirate (pirate_aggressive), the Pirates' Hideout, Wilderness level 55 (W3.7). mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "pirate_aggressive", "x": 3043, "z": 3950, "wander": 2, "source": "Pirate (pirate_aggressive), the Pirates' Hideout, Wilderness level 54 (W3.7). mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "pirate_aggressive", "x": 3043, "z": 3951, "wander": 2, "source": "Pirate (pirate_aggressive), the Pirates' Hideout, Wilderness level 54 (W3.7). mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "pirate_aggressive", "x": 3043, "z": 3956, "wander": 2, "source": "Pirate (pirate_aggressive), the Pirates' Hideout, Wilderness level 55 (W3.7). mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "pirate_aggressive", "x": 3043, "z": 3958, "wander": 2, "source": "Pirate (pirate_aggressive), the Pirates' Hideout, Wilderness level 55 (W3.7). mejrs NPCList_OSRS; wander guessed"}
   ]
 }
