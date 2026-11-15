@@ -685,6 +685,10 @@ class World(
             }
         },
         takeFromBank = { player, id, count -> bank.take(player.bank, bankScreen.tabs(player), id, count) },
+        killerOf = { pvpCombat.killerOf(it) },
+        dropForKiller = { killer, type, count, x, z, level ->
+            groundObjs.addPrivate(type, count, x, z, level, killer, Deaths.PVP_LOOT_PRIVATE_TICKS, Deaths.PVP_LOOT_DESPAWN_TICKS)
+        },
     )
 
     /**

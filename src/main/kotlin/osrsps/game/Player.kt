@@ -429,6 +429,17 @@ class Player(
     /** How many items a death keeps, decided as the player falls; see [osrsps.game.combat.Deaths]. */
     var deathKeptItems: Int = osrsps.game.combat.Deaths.KEPT_ITEMS
 
+    /**
+     * Who killed them, by [saveKey], when their death is a PvP one ([osrsps.game.combat.PvpCombat.killerOf]): their lost
+     * items drop for the killer ([osrsps.game.combat.Deaths]). Null for any other death. Not saved.
+     */
+    var deathKiller: String? = null
+
+    /** The damage each player has dealt them lately, by [saveKey], and the tick of the last hit; see [osrsps.game.combat.PvpCombat]. Not saved. */
+    val pvpDamage = HashMap<String, Int>()
+    var lastPvpHitTick: Long = -1
+    var lastPvpAttacker: String? = null
+
     /** The overhead prayer icon in the player's appearance, -1 for none. */
     var overheadIcon: Int = -1
 
