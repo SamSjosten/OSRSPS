@@ -973,12 +973,13 @@
   },
   {
    "step": "walk",
-   "x": 3290,
-   "y": 3378
+   "x": 3293,
+   "y": 3378,
+   "comment": "east of the battlemented wall, which 242 runs south-east from 3290,3382 past 3290,3379 (215, 15 Nov); guessed clear"
   },
   {
    "step": "walk",
-   "x": 3290,
+   "x": 3292,
    "y": 3374
   },
   {
