@@ -490,6 +490,13 @@ class FakeGame implements Game
 		return castError;
 	}
 
+	@Override
+	public String castOnPlayer(int interfaceId, int component, String player)
+	{
+		actions.add("cast " + interfaceId + ":" + component + " on player " + player);
+		return castError;
+	}
+
 	/** The friends list, world by name; null for not loaded. */
 	java.util.Map<String, Integer> friends = new java.util.LinkedHashMap<>();
 

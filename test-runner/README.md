@@ -682,6 +682,11 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   `self` and `playerOption`): Wilderness step W1.6, two players at once. At level 50 with PK Skull Prevention on
   (`::varbit 13131 1`), test's attack on test2 is refused with `[pvp.skull_prevented]`; with it off, test punches test2.
   The skull itself is checked with `::skull` in the W1.10 kill pair, and in HeadlessPvpSkullTest.
+- `wilderness-teleblock-test.json` and `wilderness-teleblock-test2.json` (need 0.28.0, for `castOnPlayer`): Wilderness
+  step W1.8, two players at once. At level 20, test casts Tele Block on test2 from the standard spellbook (85 Magic and the
+  runes given); test2 gets `[pvp.teleblocked name=test]` and `teleblock_cycles` (varbit 4163) at 600, is refused
+  `::lodestone lumbridge` with `[pvp.teleport_blocked]`, and the block ends as it leaves the Wilderness. Assumes the two
+  accounts' combat levels are within 20 of each other with test at 85 Magic.
 - `wilderness-pvp-death-test.json` and `wilderness-pvp-death-test2.json` (need 0.20.0, for `playerOption`): Wilderness
   step W1.7, two players at once. test2, carrying four rune pieces on 1 hitpoint with auto retaliate off (`::varp 172 1`),
   is killed at level 50 by test's sure punch; test takes the rune full helm that fell for it alone, and test2 comes back
@@ -777,6 +782,7 @@ server's answer instead of failing on what was there before.
 | `assertAnimation` | `id`, `npc` (name) | Waits until the player, or the NPC of that name (chosen as for `assertHitsplat`), has started animation `id` (a cache sequence id, such as 422 for a punch), counting only animations since the last step that acted. |
 | `assertSpotanim` | `id` or `ids`, `npc` (name) | (0.7.0) Waits until the player, or the NPC of that name (chosen as for `assertHitsplat`), has been given spotanim `id` (a cache spotanim id, such as 101 for Fire Strike's impact), or any of the list `ids`, counting only spotanims since the last step that acted. The client doesn't say which spotanim changed, so one the actor already had counts again when it gets another. |
 | `castOnNpc` | `interfaceId`, `component`, `npc` (name) or `npcId` | (0.7.0) Picks the spell at that component (the standard spellbook is 218; Fire Strike is 218:19) and casts it on the NPC, chosen as for `assertHitsplat`, as clicking the spell and then Cast on the NPC would; retries until the interface is loaded and the NPC in view. Doesn't wait for the result. |
+| `castOnPlayer` | `interfaceId`, `component`, `player` | (0.28.0) Picks the spell at that component (Tele Block is 218:75) and casts it on the other player named `player`, as clicking the spell and then Cast on them would; retries until the interface is loaded and the player in view. Doesn't wait for the result. |
 | `itemOption` | `item` (name) or `itemId`, `option` | Clicks the option (such as `Wield`, `Wear`, `Eat`, `Drop`, or `Examine`) on the first such item in the inventory, retrying until there is one. Doesn't wait for the result: follow it with an assert. |
 | `wornOption` | `slot`, `option` | Clicks the option (`Remove`, `Examine`, or one of the item's own) on a slot of the equipment tab. `slot` is one of `head`, `cape`, `neck`, `weapon`, `body`, `shield`, `legs`, `hands`, `feet`, `ring`, `ammo`. |
 | `clickWidget` | `interfaceId`, `component`, `slot`, `name`, `op` | Clicks op `op` (default 1) on an interface component, or on its slot `slot` (an item in an interface's inventory), as that menu entry would; retries until the interface is open. The equipment tab's View equipment stats is 387:1. (0.21.0) Op 1 on an old-style (if1) button, such as the tanning screen's Tan buttons, is sent as that button's click rather than an if3 op. (0.23.0) `name` instead of `slot` picks the first slot a client script built for that name and that offers the op, as the friends chat lists' rows (7:12, the setup screen's 94:28); it retries until there is one. |

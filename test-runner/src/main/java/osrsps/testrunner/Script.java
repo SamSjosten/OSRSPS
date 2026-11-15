@@ -504,6 +504,19 @@ final class Script
 				f.rejectUnknown("step", "timeoutMs", "interfaceId", "component", "npc", "npcId", "comment");
 				return new Steps.CastOnNpc(timeout, interfaceId, component, npc, id);
 			}
+			case "castOnPlayer":
+			{
+				long timeout = f.positiveLong("timeoutMs", defaultTimeout);
+				int interfaceId = f.requiredInt("interfaceId");
+				int component = f.requiredInt("component");
+				if (interfaceId < 0 || interfaceId > 0xffff || component < 0 || component > 0xffff)
+				{
+					throw new Invalid(f.where + ": \"interfaceId\" and \"component\" must be 0 to 65535");
+				}
+				String player = f.requiredString("player");
+				f.rejectUnknown("step", "timeoutMs", "interfaceId", "component", "player", "comment");
+				return new Steps.CastOnPlayer(timeout, interfaceId, component, player);
+			}
 			case "mouseClick":
 			{
 				long timeout = f.positiveLong("timeoutMs", defaultTimeout);

@@ -99,6 +99,7 @@ import osrsps.game.combat.RangedWeapons
 import osrsps.game.combat.SpecialAttacks
 import osrsps.game.combat.Spells
 import osrsps.game.combat.StatRestore
+import osrsps.game.combat.Teleblock
 import osrsps.game.content.DialogueLines
 import osrsps.game.content.Examines
 import osrsps.game.content.CustomVars
@@ -1776,6 +1777,9 @@ class World(
         // A canoe lasts until logout: a save without one (a restart's or an autosave before a crash) still has it
         // (Codex review on #659).
         canoes.forget(player)
+        // A logout ends a Tele Block, but the save holds its varbit's backing varp: cleared, or RuneLite would show a timer
+        // for a block the server no longer has (Codex review on #720).
+        player.vars.setVarbitIfKnown(Teleblock.VARBIT, 0)
         // A pitfall shows by the player's own varbits; none stands after a logout.
         hunter.pitfalls.forget(player)
         // A save from inside an instance, from before saves moved players to its exit, lands where no map is now.
