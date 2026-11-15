@@ -86,6 +86,11 @@
    "count": 0
   },
   {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "the backpack beside the window redraws on the client's next cycle: clicked at once, the slot still holds the d'hide body and the server rightly ignores the click as stale (the 215 run on 15 Nov echoed obj 1135)"
+  },
+  {
    "step": "clickWidget",
    "interfaceId": 430,
    "component": 0,

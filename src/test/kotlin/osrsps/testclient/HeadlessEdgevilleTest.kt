@@ -4,7 +4,6 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
-import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
 import osrsps.game.ObjType
@@ -26,7 +25,7 @@ import osrsps.map.LocShape
 
 /**
  * Edgeville piece step 1 through the headless client: the grange's double doors, the haystack's three outcomes, the
- * mausoleum's coffin, the east house's wardrobe and the Wilderness Ditch's refusal, placed as the 241 cache has them
+ * mausoleum's coffin and the east house's wardrobe, placed as the 241 cache has them
  * (types, sizes, angles and options), on open ground. The rl-client script test-runner/examples/edgeville-town.json
  * does the same on the real map.
  */
@@ -45,7 +44,6 @@ class HeadlessEdgevilleTest {
             type(Edgeville.WARDROBE, "Wardrobe", 1, 1, "Open"),
             type(Edgeville.WARDROBE_OPEN, "Wardrobe", 1, 1, null, "Search", "Close"),
             type(HAYSTACK, "Haystack", 1, 1, "Search"),
-            type(Edgeville.DITCH, "Wilderness Ditch", 1, 1, "Cross"),
         ).associateBy { it.id },
     )
 
@@ -55,7 +53,6 @@ class HeadlessEdgevilleTest {
         ZoneLoc(Edgeville.COFFIN, LocShape.CENTREPIECE_STRAIGHT, 2, 3090, 3476, 0),
         ZoneLoc(Edgeville.WARDROBE, LocShape.CENTREPIECE_STRAIGHT, 3, 3120, 3481, 0),
         ZoneLoc(HAYSTACK, LocShape.CENTREPIECE_STRAIGHT, 1, 3093, 3509, 0),
-        ZoneLoc(Edgeville.DITCH, LocShape.CENTREPIECE_STRAIGHT, 0, 3090, 3521, 0),
     )
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
@@ -63,7 +60,6 @@ class HeadlessEdgevilleTest {
         objs[Haystacks.NEEDLE] = ObjType(Haystacks.NEEDLE, "Needle", iops = listOf(null, null, null, null, "Drop"))
         val map = CollisionMap().apply {
             markLoaded(3101 shr 6, 3509 shr 6)
-            markLoaded(3090 shr 6, 3521 shr 6)
         }
         World(crcs, map, objTypes = ObjTypes(objs), locTypes = types, staticLocs = StaticLocs().apply { locs.forEach(::add) }, cycleMillis = millis)
     }
@@ -139,7 +135,7 @@ class HeadlessEdgevilleTest {
     }
 
     @Test
-    fun `the coffin and the wardrobe open and close, and the ditch can't be crossed`(@TempDir dir: Path) {
+    fun `the coffin and the wardrobe open and close`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { client ->
                 client.await("the login rebuild") { client.position }
@@ -154,11 +150,6 @@ class HeadlessEdgevilleTest {
                 client.locOp(Edgeville.WARDROBE, 3120, 3481, 1)
                 client.await("the wardrobe open") { world.locs.find(Edgeville.WARDROBE_OPEN, 3120, 3481, 0) }
                 client.expectMessage(DialogueText.NONE[EdgevilleLines.WARDROBE_EMPTY]) { client.locOp(Edgeville.WARDROBE_OPEN, 3120, 3481, 2) }
-
-                client.tele(3090, 3520, 0)
-                client.expectMessage(DialogueText.NONE[EdgevilleLines.DITCH_CLOSED]) { client.locOp(Edgeville.DITCH, 3090, 3521, Edgeville.CROSS) }
-                client.awaitTicks(2)
-                assertTrue(client.position!!.z < 3521, "still south of the ditch")
             }
         }
     }

@@ -83,8 +83,9 @@ class HeadlessFarmingToolStoreTest {
         npcOp(npc.index, op)
     }
 
-    private fun HeadlessClient.awaitStore() = await("the store open") {
-        if (ToolStore.MAIN in openInterfaces() && ToolStore.SIDE in openInterfaces()) Unit else null
+    private fun HeadlessClient.awaitStore() = await("the store open, with the quantity buttons' op 1 let through") {
+        val buttons = ToolStore.QUANTITY_BUTTONS.keys.all { opEnabled(ToolStore.MAIN, it, -1, 1) }
+        if (ToolStore.MAIN in openInterfaces() && ToolStore.SIDE in openInterfaces() && buttons) Unit else null
     }
 
     private fun HeadlessClient.setUp() {

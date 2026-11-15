@@ -35,6 +35,8 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         for (overlay in GameFrame.overlays) {
             send(player, IfOpenSub(frame.interfaceId, frame.component(overlay.slot), overlay.interfaceId, OVERLAY))
         }
+        // The Wilderness overlay isn't one of the login overlays: the next movement phase opens it if the player is inside.
+        player.wildernessOverlay = false
         openJournalTab(player, JournalTab.forValue(journalTabVarbit(player)?.let { player.vars.getVarbit(it) } ?: 0))
         openChatChannel(player)
         // The Clans tab's four tabs (side_channels_tabinit), which tell the server which page to show.
@@ -156,6 +158,34 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
     /** Opens [interfaceId] as the Clans tab's page, in place of what is there. */
     fun openClansTab(player: Player, interfaceId: Int) {
         send(player, IfOpenSub(Clans.SIDE_CHANNELS, Clans.SIDE_CHANNELS_CONTENTS, interfaceId, OVERLAY))
+    }
+
+    /**
+     * Opens or closes the Wilderness overlay ([GameFrame.PVP_ICONS]) in its frame slot, so it shows only while [inside].
+     * It moves with the frame as the other slots do.
+     */
+    fun showWildernessOverlay(player: Player, inside: Boolean) {
+        if (player.wildernessOverlay == inside) return
+        player.wildernessOverlay = inside
+        val frame = player.frame
+        val component = frame.component(FrameSlot.PVP_ICONS)
+        if (inside) {
+            player.closedWhileAway -= frame.interfaceId to component
+            send(player, IfOpenSub(frame.interfaceId, component, GameFrame.PVP_ICONS, OVERLAY))
+        } else {
+            sendClose(player, frame.interfaceId, component)
+        }
+    }
+
+    /**
+     * After a reconnect, opens the Wilderness overlay again if the server has it open: the open may have gone with the
+     * old connection (Codex review on #675), and [showWildernessOverlay] sends only changes. A close lost that way is
+     * in [Player.closedWhileAway].
+     */
+    fun resendWildernessOverlay(player: Player) {
+        if (!player.wildernessOverlay) return
+        val frame = player.frame
+        send(player, IfOpenSub(frame.interfaceId, frame.component(FrameSlot.PVP_ICONS), GameFrame.PVP_ICONS, OVERLAY))
     }
 
     /** Opens [interfaceId] in side panel [slot] in place of what is there, as an overlay like the side panels. */
