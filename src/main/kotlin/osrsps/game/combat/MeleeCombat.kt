@@ -99,6 +99,8 @@ class MeleeCombat(
     private val words: (Player) -> DialogueText = { DialogueText.NONE },
     /** Told of an NPC on the tick it is killed; see [osrsps.game.npc.NpcScripts.onDeath]. */
     private val npcDied: (Npc) -> Unit = {},
+    /** Told of an NPC on the tick it is killed and who finished it (null for no one), for Slayer ([osrsps.game.skill.Slayer.killed]). */
+    private val npcKilled: (Npc, Player?) -> Unit = { _, _ -> },
     /** Poisons an NPC at a severity, or envenoms it, as [Poison] does; false when it is immune or poisoned already. */
     private val poisonNpc: (Npc, Int) -> Unit = { _, _ -> },
     private val envenomNpc: (Npc) -> Unit = {},
@@ -599,6 +601,7 @@ class MeleeCombat(
         dying += Dying(npc, killer, tick + def.deathTicks, respawnTick)
         logger.debug { "$npc died; back on tick $respawnTick" }
         npcDied(npc)
+        npcKilled(npc, killer)
     }
 
     /** [npc] stops fighting whoever it fought and goes back to what it did. */

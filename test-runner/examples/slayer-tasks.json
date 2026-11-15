@@ -1,0 +1,31 @@
+{
+ "name": "Slayer task engine: ::slayer task giving 2 cows from Vannaka, the enchanted gem's Check telling the task and the streak, each cow killed counting down with Slayer XP for its 8 hitpoints, and the last completing the task with the streak up, read off assertVarp, assertStat and ::slayer with ::keys on",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "keys", "comment": "the Slayer messages' words aren't filled yet, so the script reads their keys"},
+  {"step": "command", "text": "::delnpc mine", "expectMessage": "you put in.", "comment": "anything an earlier run left behind"},
+  {"step": "command", "text": "::tele 3236 3220 0", "expectMessage": "Teleported to 3236, 3220, 0", "comment": "the grass east of the castle, away from the courtyard's men"},
+  {"step": "command", "text": "::slayer task cows 2 vannaka", "expectMessage": "Task: 2 cows from vannaka."},
+  {"step": "assertVarp", "id": 395, "value": 6, "comment": "slayer_target: the cows task (the cache's slayer_task id 6)"},
+  {"step": "assertVarp", "id": 394, "value": 2, "comment": "slayer_count"},
+  {"step": "command", "text": "::item 4155", "expectMessage": "Added 1 x Enchanted gem"},
+  {"step": "itemOption", "item": "Enchanted gem", "option": "Check"},
+  {"step": "assertMessage", "contains": "[slayer.gem_task task=cows amount=2]"},
+  {"step": "assertMessage", "contains": "[slayer.gem_streak streak=0]"},
+  {"step": "command", "text": "::npc cow", "expectMessage": "Spawned Cow"},
+  {"step": "command", "text": "::kill cow", "expectMessage": "Killed Cow #", "comment": "the kill goes to the player, the cow's 8 hitpoints in Slayer XP"},
+  {"step": "assertVarp", "id": 394, "value": 1},
+  {"step": "assertStat", "skill": "Slayer", "level": 1, "xp": 8},
+  {"step": "command", "text": "::npc cow", "expectMessage": "Spawned Cow"},
+  {"step": "command", "text": "::kill cow", "expectMessage": "Killed Cow #"},
+  {"step": "assertMessage", "contains": "[slayer.task_done_points streak=1 points=0 total=0]", "comment": "no points before the fifth task"},
+  {"step": "assertVarp", "id": 394, "value": 0},
+  {"step": "command", "text": "::slayer", "expectMessage": "No task; streak 1, 0 points."},
+  {"step": "itemOption", "item": "Enchanted gem", "option": "Check"},
+  {"step": "assertMessage", "contains": "[slayer.gem_no_task]"},
+  {"step": "command", "text": "::delnpc mine", "expectMessage": "you put in."},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
