@@ -128,6 +128,8 @@ data class NpcCombatDef(
     val spell: NpcMeleeSpell? = null,
     /** A dragon's dragonfire, breathed in reach now and then instead of a swing ([Dragonfire]). */
     val dragonfire: NpcDragonfire? = null,
+    /** Typeless attacks, which no protection prayer blocks or cuts (`"typeless": true`; the Escape Caves' bears and spiders). */
+    val typeless: Boolean = false,
     /**
      * It flies out of melee's reach: only ranged, magic and halberds hit it (the Archive Guardian levitating, OSRS Wiki,
      * The Fractured Archive/Strategies).
@@ -224,7 +226,7 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
          * `"retreatsAt": 25` (the share of its hitpoints, in percent, at which it retreats) and `"xpBonus": -97.5` (the
          * Wiki's XP bonus, in percent to a tenth), `"slayerLevel": 7` (the Slayer level to hurt it) and `"regenTicks": 5`
          * (ticks between the hitpoints it gets back, when faster than the usual 100) and `"minHitpoints": 1` (what no hit
-         * takes it below, for a rockslug).
+         * takes it below, for a rockslug) and `"typeless": true` (no protection prayer blocks its attacks).
          * A magic or ranged NPC adds `"range"` and its `"attacks"`, each `{ "anim": "human_caststrike", "cast": 93,
          * "projectile": 94, "impact": 95, "weight": 1, "maxHit": 2, "drain": { "skill": "attack", "percent": 5 } }`, all
          * optional ([NpcRangedAttack]); its `attackBonus` is its bonus for its attack type, magic or ranged.
@@ -307,6 +309,7 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                     NpcStat.parse(stat) to percent.jsonPrimitive.int.also { require(it in 0..100) { "a drain cap of $it%" } }
                 }.orEmpty(),
                 aggression = entry["aggressive"]?.let(::aggression),
+                typeless = entry["typeless"]?.jsonPrimitive?.boolean ?: false,
                 retreatsAt = (entry["retreatsAt"]?.jsonPrimitive?.int ?: 0).also { require(it in 0..100) { "retreats at $it%" } },
                 range = (entry["range"]?.jsonPrimitive?.int ?: 1).also { require(it in 1..MAX_RANGE) { "range $it" } },
                 attacks = entry["attacks"]?.jsonArray?.map { attack(it.jsonObject, seqs) }.orEmpty().also {
