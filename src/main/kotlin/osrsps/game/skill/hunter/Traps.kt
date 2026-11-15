@@ -216,6 +216,12 @@ class Traps(private val world: World, private val collision: CollisionMap) {
     /** The trap showing [loc], if any. */
     fun showing(loc: ZoneLoc): Trap? = traps.firstOrNull { loc in it.locs }
 
+    /** How many other traps (pitfalls) [owner] has laid, counted against the same limit. */
+    var otherLaid: (String) -> Int = { 0 }
+
+    /** Takes down a player's traps kept elsewhere (pitfalls) along with these, on ::scenario and ::reset. */
+    var otherTakeDown: (Player) -> Unit = {}
+
     /** Every trap laid, for tests and commands. */
     val all: List<Trap> get() = traps
 
@@ -422,6 +428,7 @@ class Traps(private val world: World, private val collision: CollisionMap) {
             remove(trap)
             if (refund && trap.kind.returnsItem) world.objTypes[trap.kind.item]?.let { world.groundObjs.give(owner, it, 1) }
         }
+        otherTakeDown(owner)
     }
 
     /** Forgets the traps on the tiles where [inside] holds (an instance ending), so none acts there later. */
@@ -483,7 +490,7 @@ class Traps(private val world: World, private val collision: CollisionMap) {
         }
         val max = maxTrapsAt(hunter)
         val laid = of(player.saveKey)
-        if (laid.size >= max) {
+        if (laid.size + otherLaid(player.saveKey) >= max) {
             world.message(player, HunterLines.TOO_MANY, "count" to max)
             return false
         }
@@ -540,7 +547,7 @@ class Traps(private val world: World, private val collision: CollisionMap) {
      * the log goes only one time in four.
      */
     private suspend fun ScriptContext.setDeadfall(kind: DeadfallKind, boulder: ZoneLoc) {
-        if (Deadfalls.KNIVES.none { player.inventory.count(it) > 0L }) return world.message(player, HunterLines.NO_KNIFE)
+        if (!Deadfalls.hasKnife(player)) return world.message(player, HunterLines.NO_KNIFE)
         if (Deadfalls.LOGS.none { player.inventory.count(it) > 0L }) return world.message(player, HunterLines.NO_LOGS)
         if (!canLay(kind, boulder.x, boulder.z, boulder.level, boulder)) return
         player.anim(kind.layAnim)

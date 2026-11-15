@@ -1284,9 +1284,9 @@ the dialogue shows each line's key.
 
 ### Hunter
 
-Hunter steps 1 to 4 (`game/skill/hunter/`, `npc-spawns/hunter-birds.json`, `hunter-box-traps.json`,
-`hunter-net-traps.json` and `hunter-deadfalls.json`, `::scenario hunter`): the trap engine, bird snares, box traps, net
-traps and deadfalls. Lay (from the backpack, or on a snare on the ground) drops the snare and puts the trap up on the skill clock's
+Hunter steps 1 to 5 (`game/skill/hunter/`, `npc-spawns/hunter-birds.json`, `hunter-box-traps.json`,
+`hunter-net-traps.json`, `hunter-deadfalls.json` and `hunter-pitfalls.json`, `::scenario hunter`): the trap engine, bird
+snares, box traps, net traps, deadfalls and pitfalls. Lay (from the backpack, or on a snare on the ground) drops the snare and puts the trap up on the skill clock's
 fourth tick, the player stepping off it; a set trap looks for a creature within 2 tiles every 3 ticks (none while a
 player stands on it), the creature walks in, and the catch is rolled at the owner's boosted Hunter level, a miss
 every time below the creature's level. A caught bird struggles, then the snare holds it until Check (its drops, XP
@@ -1309,6 +1309,15 @@ side of the boulder is caught under it, and Check gives its drops and the boulde
 nothing and the trap is over. `hunter-net-trap.json` and `hunter-deadfall.json` in `test-runner/examples/` catch a
 swamp lizard and a barb-tailed kebbit.
 
+A pitfall is one of the map's pits, each a 2 by 2 multiloc on a varbit of its own, so every player sees only their
+own: Trap (the creature's level, a knife and logs, the lowest logs first) makes a spiked pit, counted with the other
+traps. Tease on a big cat or an antelope (a teasing stick in the backpack, or a hunter's spear wielded) has it chase
+the player and hit them every 4 ticks; Jump on the spiked pit takes the player over it, and the creature, reaching the
+far edge, falls in (a roll for the big cats, the spear adding 5 in 100; antelopes always) or leaps over, after which it
+won't be caught in that pit next. Dismantle on the full pit gives big bones, the meat and the fur (or the tatty fur) and
+the XP; on a spiked pit it gives nothing back. Pits go when their owner logs out or goes far away, a full one after a
+minute. `hunter-pitfall.json` in `test-runner/examples/` catches a spined larupia.
+
 | What | Source |
 |---|---|
 | The birds: crimson swift (1, 34 XP), golden warbler (5, 47), copper longtail (9, 61.2), cerulean twitch (11, 64.5), tropical wagtail (19, 95.2); bones, raw bird meat and 5 to 10 feathers of the bird's colour; each one's catch pair (crimson swift 39% at 1 to 164% at 99) | OSRS Wiki, Bird snare and each bird's page (the Skilling success chart, Mod Ash's figures) |
@@ -1319,13 +1328,15 @@ swamp lizard and a barb-tailed kebbit.
 | The net on the player's tile, turned to the tree; the 1 by 2 locs starting on the tree's tile when the net is north or east of it, on the net's when south or west | RuneLite's Hunter plugin (net trap placement) and the cache's loc sizes |
 | Deadfalls: wild kebbit (23, 102.4 XP, bones and kebbit claws), barb-tailed (33, 134.4, bones, barb-tail harpoon, raw barb-tailed kebbit), prickly (37, 147.2, bones and kebbit spike), sabre-toothed (51, 160, bones and kebbit teeth); the barb-tailed and sabre-toothed catch pairs; knife and logs (not redwood or arctic pine), two at most, the log kept 3 times in 4, catching from 8 ticks after laying, standing by it not mattering | OSRS Wiki, Deadfall, each kebbit's page, Update:Summer Sweep Up - Hunter & Skilling (19 August 2026) |
 | Where the kebbits are: Piscatoris (wild `::tele 2307 3578`, prickly `::tele 2307 3607`) and Auburnvale (wild), Feldip (barb-tailed `::tele 2573 2899`), Rellekka (sabre-toothed `::tele 2711 3775`) | each kebbit's OSRS Wiki page (location table) |
+| Pitfalls: spined larupia (31, 180 XP), horned graahk (41, 240), sabre-toothed kyatt (55, 300), sunlight antelope (72, 380, also its antler, fur and 2 to 6 sunfire splinters), moonlight antelope (91, 450, its antler and fur); big bones and the meat; max hits 5, 7, 7, 5, 5 every 4 ticks; antelopes always caught; a creature that misses leaps over and won't take the same pit next; the spear's 5% | OSRS Wiki, Pitfall, each creature's page, Hunter's spear |
+| Where they are: Feldip (larupias `::tele 2548 2906`), Karamja (graahks `::tele 2768 3007`), Rellekka (kyatts `::tele 2703 3790`), the Avium Savannah (sunlight antelopes `::tele 1746 3008`), the Burrow (moonlight antelopes `::tele 1559 9419`) | each creature's OSRS Wiki page (location table); the pits from the rev 242 map |
 | The trap count, and Reset and the failed snare (since 7 October 2026) | OSRS Wiki, Hunter (Multiple traps, Changes) |
 | A trap looks every 3 ticks within 2 tiles, nothing while a player stands on it; a creature above the player's level always gets away | OSRS Wiki, Box trap (Mechanics, Mod Ash) |
 | Laying takes 4 ticks of the skill clock; picking a trap up takes 3 ticks and stalls the player | OSRS Wiki, Tick manipulation |
 | A trap stands a minute, counted again when it catches or fails | RuneLite's Hunter plugin (HunterTrap.TRAP_TIME, observed on live) |
 | Where the birds are: Feldip (crimson swifts and wagtails, `::tele 2611 2918`, `::tele 2512 2905`), Uzer (warblers, `::tele 3402 3150`), Piscatoris (longtails, `::tele 2340 3590`), Rellekka (twitches, `::tele 2725 3770`) | mejrs NPCList_OSRS.json (live, pre-Nov 2022) |
-| The creature lured is one in range at random, always; it is rolled for on stepping onto the trap; the struggle (2 ticks), the respawn (10 ticks), the collapse leaving the item, how far the owner may go (32 tiles), the birds' wander (4), the check and dismantle animation, traps allowed on any free walkable tile outside instances; the ferret's catch chance (the grey chinchompa's); a box trap's struggling loc by the side the creature came in from; Set-trap needing the salamander's level, standing square to the tree, the tree bending for the 4 ticks of laying; the wild and prickly kebbits' catch pairs (their pages' figures from before the 19 August 2026 rise), a kebbit caught on reaching either long side of the boulder, laying a deadfall with human_laytrap in 4 ticks, Dismantle giving nothing back | guessed |
-| Not built: black chinchompas and black salamanders (the Wilderness), embertailed jerboas, letvek and tecu salamanders (Varlamore), salamanders as weapons, Release, making a net trap, pyre foxes and maniacal monkeys, pitfalls, butterflies and implings, falconry, tracking, the Hunter shops, smoking and baiting traps, the honey buzzards, Hunters' Rumours | next steps |
+| The creature lured is one in range at random, always; it is rolled for on stepping onto the trap; the struggle (2 ticks), the respawn (10 ticks), the collapse leaving the item, how far the owner may go (32 tiles), the birds' wander (4), the check and dismantle animation, traps allowed on any free walkable tile outside instances; the ferret's catch chance (the grey chinchompa's); a box trap's struggling loc by the side the creature came in from; Set-trap needing the salamander's level, standing square to the tree, the tree bending for the 4 ticks of laying; the wild and prickly kebbits' catch pairs (their pages' figures from before the 19 August 2026 rise), a kebbit caught on reaching either long side of the boulder, laying a deadfall with human_laytrap in 4 ticks, Dismantle giving nothing back; the big cats' catch pair (128 to 256), the undamaged fur's chance (half at the creature's level to always at 99), teasing needing the level, a teased creature's hit (0 to its max, no accuracy roll, none through Protect from Melee), how long it chases (100 ticks without a tease or jump, 32 tiles), when it is judged (reaching the far edge within 10 ticks of the jump), which full look shows, trapping a pit in 4 ticks with the log always used, a spiked pit lasting till its owner leaves, the jump's animation and 2 ticks | guessed |
+| Not built: black chinchompas and black salamanders (the Wilderness), embertailed jerboas, letvek and tecu salamanders (Varlamore), salamanders as weapons, Release, making a net trap, pyre foxes and maniacal monkeys, the wild broav, hunter gear's damage cut, butterflies and implings, falconry, tracking, the Hunter shops, smoking and baiting traps, the honey buzzards, Hunters' Rumours | next steps |
 
 ## Fred's farm
 

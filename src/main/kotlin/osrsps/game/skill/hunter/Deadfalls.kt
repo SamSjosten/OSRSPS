@@ -1,5 +1,7 @@
 package osrsps.game.skill.hunter
 
+import osrsps.game.Player
+import osrsps.game.WearPos
 import osrsps.map.Tile
 
 /**
@@ -101,8 +103,17 @@ object Deadfalls {
     const val KEBBIT_SPIKE = 10105 // huntingbeast_spike
     const val KEBBIT_TEETH = 10109 // huntingbeast_sabreteeth
 
+    const val FLETCHING_KNIFE = 31043
+
     /** A knife or a fletching knife. */
-    val KNIVES = listOf(946, 31043)
+    val KNIVES = listOf(946, FLETCHING_KNIFE)
+
+    /**
+     * A knife in the backpack, or the fletching knife worn in the off-hand: the OSRS Wiki's Fletching knife page says it
+     * sets up Hunter traps "including while equipped".
+     */
+    fun hasKnife(player: Player): Boolean =
+        KNIVES.any { player.inventory.count(it) > 0L } || player.equipment[WearPos.SHIELD]?.id == FLETCHING_KNIFE
 
     /** Every log but redwood and arctic pine: logs, achey, oak, willow, teak, maple, mahogany, yew, magic, camphor, ironwood, rosewood. */
     val LOGS = listOf(1511, 2862, 1521, 1519, 6333, 1517, 6332, 1515, 1513, 32904, 32907, 32910)

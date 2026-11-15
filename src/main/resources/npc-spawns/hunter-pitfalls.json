@@ -1,0 +1,33 @@
+{
+  "about": "Hunter step 5's pitfall creatures, where live has them, by the pits: spined larupias in the Feldip Hunter area, horned graahks in the Karamja Hunter area, sabre-toothed kyatts in the Rellekka Hunter area, sunlight antelopes in the Avium Savannah and moonlight antelopes in the Burrow under the Hunter Guild. Each tile and type is the creature's OSRS Wiki page (its location table). Wander ranges are guessed (4). Left out: the wild broav (While Guthix Sleeps).",
+  "spawns": [
+    {"npc": "hunting_jaguar", "x": 2544, "z": 2910, "wander": 4, "source": "Spined larupia, Feldip Hunter area. OSRS Wiki, Spined larupia (read 2026-11-15)"},
+    {"npc": "hunting_jaguar", "x": 2550, "z": 2904, "wander": 4, "source": "Spined larupia, Feldip Hunter area. OSRS Wiki, Spined larupia (read 2026-11-15)"},
+    {"npc": "hunting_jaguar", "x": 2556, "z": 2895, "wander": 4, "source": "Spined larupia, Feldip Hunter area. OSRS Wiki, Spined larupia (read 2026-11-15)"},
+    {"npc": "hunting_jaguar", "x": 2563, "z": 2888, "wander": 4, "source": "Spined larupia, Feldip Hunter area. OSRS Wiki, Spined larupia (read 2026-11-15)"},
+    {"npc": "hunting_jaguar", "x": 2573, "z": 2883, "wander": 4, "source": "Spined larupia, Feldip Hunter area. OSRS Wiki, Spined larupia (read 2026-11-15)"},
+    {"npc": "hunting_leopard", "x": 2766, "z": 3008, "wander": 4, "source": "Horned graahk, Karamja Hunter area. OSRS Wiki, Horned graahk (read 2026-11-15)"},
+    {"npc": "hunting_leopard", "x": 2767, "z": 3005, "wander": 4, "source": "Horned graahk, Karamja Hunter area. OSRS Wiki, Horned graahk (read 2026-11-15)"},
+    {"npc": "hunting_leopard", "x": 2774, "z": 3002, "wander": 4, "source": "Horned graahk, Karamja Hunter area. OSRS Wiki, Horned graahk (read 2026-11-15)"},
+    {"npc": "hunting_leopard", "x": 2781, "z": 3001, "wander": 4, "source": "Horned graahk, Karamja Hunter area. OSRS Wiki, Horned graahk (read 2026-11-15)"},
+    {"npc": "hunting_snow_tiger", "x": 2708, "z": 3796, "wander": 4, "source": "Sabre-toothed kyatt, Rellekka Hunter area. OSRS Wiki, Sabre-toothed kyatt (read 2026-11-15)"},
+    {"npc": "hunting_snow_tiger", "x": 2725, "z": 3791, "wander": 4, "source": "Sabre-toothed kyatt, Rellekka Hunter area. OSRS Wiki, Sabre-toothed kyatt (read 2026-11-15)"},
+    {"npc": "hunting_snow_tiger", "x": 2696, "z": 3790, "wander": 4, "source": "Sabre-toothed kyatt, Rellekka Hunter area. OSRS Wiki, Sabre-toothed kyatt (read 2026-11-15)"},
+    {"npc": "hunting_snow_tiger", "x": 2702, "z": 3790, "wander": 4, "source": "Sabre-toothed kyatt, Rellekka Hunter area. OSRS Wiki, Sabre-toothed kyatt (read 2026-11-15)"},
+    {"npc": "hunting_snow_tiger", "x": 2741, "z": 3790, "wander": 4, "source": "Sabre-toothed kyatt, Rellekka Hunter area. OSRS Wiki, Sabre-toothed kyatt (read 2026-11-15)"},
+    {"npc": "hunting_snow_tiger", "x": 2734, "z": 3780, "wander": 4, "source": "Sabre-toothed kyatt, Rellekka Hunter area. OSRS Wiki, Sabre-toothed kyatt (read 2026-11-15)"},
+    {"npc": "sunlight_antelope", "x": 1735, "z": 3008, "wander": 4, "source": "Sunlight antelope, Avium Savannah. OSRS Wiki, Sunlight antelope (read 2026-11-15)"},
+    {"npc": "sunlight_antelope", "x": 1738, "z": 3003, "wander": 4, "source": "Sunlight antelope, Avium Savannah. OSRS Wiki, Sunlight antelope (read 2026-11-15)"},
+    {"npc": "sunlight_antelope", "x": 1744, "z": 3006, "wander": 4, "source": "Sunlight antelope, Avium Savannah. OSRS Wiki, Sunlight antelope (read 2026-11-15)"},
+    {"npc": "sunlight_antelope", "x": 1746, "z": 3011, "wander": 4, "source": "Sunlight antelope, Avium Savannah. OSRS Wiki, Sunlight antelope (read 2026-11-15)"},
+    {"npc": "sunlight_antelope", "x": 1749, "z": 3016, "wander": 4, "source": "Sunlight antelope, Avium Savannah. OSRS Wiki, Sunlight antelope (read 2026-11-15)"},
+    {"npc": "sunlight_antelope", "x": 1750, "z": 3001, "wander": 4, "source": "Sunlight antelope, Avium Savannah. OSRS Wiki, Sunlight antelope (read 2026-11-15)"},
+    {"npc": "sunlight_antelope", "x": 1754, "z": 3006, "wander": 4, "source": "Sunlight antelope, Avium Savannah. OSRS Wiki, Sunlight antelope (read 2026-11-15)"},
+    {"npc": "sunlight_antelope", "x": 1755, "z": 3013, "wander": 4, "source": "Sunlight antelope, Avium Savannah. OSRS Wiki, Sunlight antelope (read 2026-11-15)"},
+    {"npc": "sunlight_antelope", "x": 1741, "z": 3015, "wander": 4, "source": "Sunlight antelope, Avium Savannah. OSRS Wiki, Sunlight antelope (read 2026-11-15)"},
+    {"npc": "moonlight_antelope", "x": 1555, "z": 9416, "wander": 4, "source": "Moonlight antelope, the Burrow (Hunter Guild). OSRS Wiki, Moonlight antelope (read 2026-11-15)"},
+    {"npc": "moonlight_antelope", "x": 1562, "z": 9417, "wander": 4, "source": "Moonlight antelope, the Burrow (Hunter Guild). OSRS Wiki, Moonlight antelope (read 2026-11-15)"},
+    {"npc": "moonlight_antelope", "x": 1557, "z": 9422, "wander": 4, "source": "Moonlight antelope, the Burrow (Hunter Guild). OSRS Wiki, Moonlight antelope (read 2026-11-15)"},
+    {"npc": "moonlight_antelope", "x": 1561, "z": 9421, "wander": 4, "source": "Moonlight antelope, the Burrow (Hunter Guild). OSRS Wiki, Moonlight antelope (read 2026-11-15)"}
+  ]
+}
