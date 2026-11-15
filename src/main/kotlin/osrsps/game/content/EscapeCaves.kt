@@ -16,7 +16,7 @@ import osrsps.map.Tile
  *   in this way get a debuff draining their prayer as long as they stay.
  * - **Out**: Exit or Climb-up on the four ways out (`wild_boss_escape_cave_exit01` 47147, `_exit02` 47148 twice and
  *   `_exit03` 47149) puts the player back outside the cave above.
- * - **From a lair** ([lairExit], for the three big lairs' ways out): the player comes out of one of the three cave mouths
+ * - **From a lair** ([leaveLair], for the three big lairs' ways out): the player comes out of one of the three cave mouths
  *   (`wild_boss_escape_cave_exit_noop` 47151) at random; anyone leaving the same lair within 10 seconds (17 ticks) of the
  *   last comes out of the same one.
  * - **Lingering**: anyone in the caves for about 30 seconds (50 ticks) slowly loses prayer and run energy.
@@ -53,6 +53,13 @@ class EscapeCaves {
         val mouth = if (last != null && tick - last.first <= SHARED_TICKS) last.second else LAIR_MOUTHS[roll(LAIR_MOUTHS.size)]
         lastLeft[lair] = tick to mouth
         return mouth
+    }
+
+    /** [player] leaves [lair] by its way out into the caves, with no debuff. */
+    fun leaveLair(world: World, player: Player, lair: String) {
+        val mouth = lairExit(lair, world.tick) { world.random.nextInt(it) }
+        visits[player.saveKey] = Visit(world.tick, debuff = false)
+        world.teleport(player, mouth.x, mouth.z, 0)
     }
 
     /** Through a surface cave, with the debuff. */

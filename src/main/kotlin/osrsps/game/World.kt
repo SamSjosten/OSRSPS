@@ -174,6 +174,7 @@ import osrsps.game.content.registerArtio
 import osrsps.game.content.registerCalvarion
 import osrsps.game.content.registerSpindel
 import osrsps.game.content.registerEscapeCaves
+import osrsps.game.content.registerCallisto
 import osrsps.game.content.registerKingBlackDragon
 import osrsps.game.tzhaar.FightCaves
 import osrsps.game.content.MemberGates
@@ -1182,6 +1183,7 @@ class World(
         registerCalvarion(this)
         registerSpindel(this)
         registerEscapeCaves(this)
+        registerCallisto(this)
         FountainOfRune.register(this)
         registerFeroxEnclave(this)
         registerWildernessObelisks(this)

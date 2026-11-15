@@ -113,6 +113,7 @@ object NpcSpawnFile {
         "web-chasm.json",
         "escape-caves.json",
         "karamja-musa-point.json",
+        "callistos-den.json",
     )
 
     /** What a file gave: the spawns, and the NPC names the cache doesn't know (skipped). */
