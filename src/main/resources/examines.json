@@ -87,7 +87,7 @@
     "NPCs and locs: Wilderness step W4.16 (2026-11-15): the bosses of piece 4, their lairs' monsters and the Escape Caves' bear and spider, and the lairs' locs that had none, one per id, from the infobox of the page in wiki, else of the page named after it. None yet where the Wiki gives no text: the lairs' other locs (677, 26762, 26763, 46925, 46996, 47000, 47077, 47078, 47122, 47140, 47141, 47147 to 47149, 47175).",
     "The Varrock rat pits (post-quest step 14, RatPits.kt): the ladder up and the pits' rats, the other two under also (the 242 cache, 2026-11-19).",
     "NPCs and locs: random events step 18 (2026-11-19): Mr. Mordaut (5504), the dunce (5503 on his stool, 6749 the invitation, one examine for both) and the classroom doors (9316 to 9319, one examine in their infobox), from each page's infobox.",
-    "Locs: Wilderness step W5.1 (2026-11-15): the Revenant Caves' ways in and out and the trapdoors they come out by, one per id, from the infobox of the page in wiki; W5.1b: the caves' pillars (one type for all five); W5.2: the eleven kinds of revenant.",
+    "Locs: Wilderness step W5.1 (2026-11-15): the Revenant Caves' ways in and out and the trapdoors they come out by, one per id, from the infobox of the page in wiki; W5.1b: the caves' pillars (one type for all five); W5.2: the eleven kinds of revenant; W5.3: the Emblem Trader.",
     "NPCs: random events step 19 (2026-11-19): the Evil Chicken in the Champions' Guild coop (6739), from its infobox."
   ],
   "npcs": [
@@ -960,6 +960,7 @@
     {"npc": 7938, "name": "Revenant dark beast"},
     {"npc": 7939, "name": "Revenant knight"},
     {"npc": 7940, "name": "Revenant dragon"},
+    {"npc": 7943, "name": "Emblem Trader", "wiki": "Emblem Trader page, infobox (Revenant Caves)"},
     {"npc": 8368, "name": "Abigaila"},
     {"npc": 8391, "name": "Nigel", "also": [6093, 16812], "wiki": "Nigel page, infobox, Normal"},
     {"npc": 8491, "name": "The Collector"},

@@ -233,6 +233,7 @@ object DialogueLines {
         WildernessLairFeeLines,
         CorporealBeastLines,
         RevenantCavesLines,
+        EmblemTraderLines,
         osrsps.game.FountainOfRuneLines,
         OborLines,
         BryophytaLines,
