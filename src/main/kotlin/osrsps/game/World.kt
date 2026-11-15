@@ -152,6 +152,7 @@ import osrsps.game.content.WildernessDitch
 import osrsps.game.content.registerEdgeville
 import osrsps.game.content.registerWildernessDitch
 import osrsps.game.content.registerEdgevilleDungeon
+import osrsps.game.content.registerFeroxEnclave
 import osrsps.game.content.registerSkullSceptre
 import osrsps.game.content.registerStrongholdOfSecurity
 import osrsps.game.content.registerBarbarianVillage
@@ -1012,6 +1013,7 @@ class World(
         registerBarbarianVillage(this)
         registerCooksGuild(this)
         registerEdgevilleDungeon(this)
+        registerFeroxEnclave(this)
         registerStrongholdOfSecurity(this)
         registerSkullSceptre(this)
         registerHaystacks(this)
@@ -1487,6 +1489,8 @@ class World(
         val inside = Wilderness.inside(player.x, player.z)
         interfaces.showWildernessOverlay(player, inside)
         player.vars.setVarbitIfKnown(VARBIT_INSIDE_WILDERNESS, if (inside) 1 else 0)
+        // Ferox Enclave: the overlay's level reads "Level: --" (client script pvp_icons_wildernesslevel).
+        player.vars.setVarbitIfKnown(VARBIT_WILDY_HUB_BUFFER, if (inside && player.level == 0 && Wilderness.inFerox(player.x, player.z)) 1 else 0)
         if (player.attackOp != inside) {
             player.attackOp = inside
             player.session.queue(SetPlayerOp(PlayerOps.ATTACK, false, PlayerOps.ATTACK_TEXT.takeIf { inside }))
@@ -3378,6 +3382,9 @@ class World(
 
         /** inside_wilderness (5963): 1 while the player is inside the Wilderness. */
         const val VARBIT_INSIDE_WILDERNESS = 5963
+
+        /** wildy_hub_buffer (10530): 1 inside Ferox Enclave, where the Wilderness overlay shows "Level: --". */
+        const val VARBIT_WILDY_HUB_BUFFER = 10530
 
         private val DEFAULT_IDENT_KITS = intArrayOf(0, 10, 18, 26, 33, 36, 42)
     }

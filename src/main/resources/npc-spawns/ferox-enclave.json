@@ -1,0 +1,32 @@
+{
+  "about": "Ferox Enclave and the rats around it (Wilderness step W2.3). Types and tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live). The Banker banks; everyone else stands without talk, shop or minigame for now. Left out: the Financial Wizard (deadman_banker_wildy, Deadman worlds only). Guessed: the townsfolk stand still and the rats wander 5.",
+  "spawns": [
+    {"npc": "wildy_skeleton_hunter", "x": 3152, "z": 3643, "source": "Andros Mai (wildy_skeleton_hunter), Ferox Enclave. mejrs NPCList_OSRS"},
+    {"npc": "wildy_hub_banker", "x": 3134, "z": 3629, "source": "Banker (wildy_hub_banker), Ferox Enclave. mejrs NPCList_OSRS"},
+    {"npc": "wildy_hub_pub_owner", "x": 3148, "z": 3643, "source": "Camarst (wildy_hub_pub_owner), Ferox Enclave. mejrs NPCList_OSRS"},
+    {"npc": "wildy_bear_hunter", "x": 3150, "z": 3644, "source": "Derse Venator (wildy_bear_hunter), Ferox Enclave. mejrs NPCList_OSRS"},
+    {"npc": "wildy_hub_chief", "x": 3129, "z": 3637, "source": "Ferox (wildy_hub_chief), Ferox Enclave. mejrs NPCList_OSRS"},
+    {"npc": "br_reward_shopkeeper", "x": 3143, "z": 3634, "source": "Justine (br_reward_shopkeeper), Ferox Enclave. mejrs NPCList_OSRS"},
+    {"npc": "br_host", "x": 3141, "z": 3636, "source": "Lisa (br_host), Ferox Enclave. mejrs NPCList_OSRS"},
+    {"npc": "canoeing_marten", "x": 3153, "z": 3629, "source": "Marten (canoeing_marten), Ferox Enclave. mejrs NPCList_OSRS"},
+    {"npc": "lost_property_merchant_model", "x": 3128, "z": 3631, "source": "Perdu (lost_property_merchant_model), Ferox Enclave. mejrs NPCList_OSRS"},
+    {"npc": "wildy_spider_hunter", "x": 3151, "z": 3642, "source": "Phabelle Bile (wildy_spider_hunter), Ferox Enclave. mejrs NPCList_OSRS"},
+    {"npc": "rat", "x": 3136, "z": 3630, "wander": 5, "source": "Rat (rat), Ferox Enclave. mejrs NPCList_OSRS"},
+    {"npc": "rat", "x": 3142, "z": 3628, "wander": 5, "source": "Rat (rat), Ferox Enclave. mejrs NPCList_OSRS"},
+    {"npc": "rat", "x": 3146, "z": 3626, "wander": 5, "source": "Rat (rat), Ferox Enclave. mejrs NPCList_OSRS"},
+    {"npc": "rat", "x": 3146, "z": 3633, "wander": 5, "source": "Rat (rat), Ferox Enclave. mejrs NPCList_OSRS"},
+    {"npc": "rat", "x": 3149, "z": 3638, "wander": 5, "source": "Rat (rat), Ferox Enclave. mejrs NPCList_OSRS"},
+    {"npc": "rat", "x": 3150, "z": 3631, "wander": 5, "source": "Rat (rat), Ferox Enclave. mejrs NPCList_OSRS"},
+    {"npc": "rat", "x": 3158, "z": 3645, "wander": 5, "source": "Rat (rat), Ferox Enclave. mejrs NPCList_OSRS"},
+    {"npc": "rat", "x": 3160, "z": 3644, "wander": 5, "source": "Rat (rat), Ferox Enclave. mejrs NPCList_OSRS"},
+    {"npc": "wildy_hub_refugee4", "x": 3129, "z": 3617, "source": "Refugee (wildy_hub_refugee4), Ferox Enclave. mejrs NPCList_OSRS"},
+    {"npc": "wildy_hub_refugee2", "x": 3133, "z": 3624, "source": "Refugee (wildy_hub_refugee2), Ferox Enclave. mejrs NPCList_OSRS"},
+    {"npc": "wildy_hub_refugee1", "x": 3139, "z": 3626, "source": "Refugee (wildy_hub_refugee1), Ferox Enclave. mejrs NPCList_OSRS"},
+    {"npc": "wildy_hub_guard", "x": 3134, "z": 3620, "source": "Sigismund (wildy_hub_guard), Ferox Enclave. mejrs NPCList_OSRS"},
+    {"npc": "clanwars_nun", "x": 3128, "z": 3636, "source": "Sister Scarophia (clanwars_nun), Ferox Enclave. mejrs NPCList_OSRS"},
+    {"npc": "br_wizard_competitive", "x": 3142, "z": 3644, "source": "Wizard (br_wizard_competitive), Ferox Enclave. mejrs NPCList_OSRS"},
+    {"npc": "wildy_hub_acolyte2", "x": 3127, "z": 3628, "source": "Zamorakian Acolyte (wildy_hub_acolyte2), Ferox Enclave. mejrs NPCList_OSRS"},
+    {"npc": "wildy_hub_acolyte1", "x": 3135, "z": 3632, "source": "Zamorakian Acolyte (wildy_hub_acolyte1), Ferox Enclave. mejrs NPCList_OSRS"},
+    {"npc": "wildy_hub_acolyte3", "x": 3135, "z": 3636, "source": "Zamorakian Acolyte (wildy_hub_acolyte3), Ferox Enclave. mejrs NPCList_OSRS"}
+  ]
+}
