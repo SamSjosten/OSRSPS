@@ -76,6 +76,13 @@ class ExaminesTest {
     }
 
     @Test
+    fun `the Revenant Caves' monsters and the Emblem Trader have examines, keyed one per id`() {
+        // Wilderness step W5.5: piece 5's NPCs, the eleven revenants (W5.2), the Emblem Trader (W5.3) and the Revenant
+        // maledictus (W5.4).
+        for (id in Revenants.IDS + EmblemTrader.ID + Maledictus.BOSS) assertEquals("examine.npc_$id", Examines.npc(id)?.key, "NPC $id")
+    }
+
+    @Test
     fun `every castle NPC that talks has an examine`() {
         for (id in listOf(Hans.ID, Cook.ID, DukeHoracio.ID, Perdu.ID, Cadmus.ID, Bankers.BANKER, Doomsayer.ID, Mikasi.ID, LumbridgeGuide.ID) + Townsfolk.MEN + Townsfolk.WOMEN) {
             assertEquals("examine.npc_$id", Examines.npc(id)?.key, "NPC $id")
