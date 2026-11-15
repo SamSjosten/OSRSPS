@@ -1100,4 +1100,18 @@ class NpcSpawnFileTest {
         assertTrue(of(5552).all { it.x in 2300..2370 && it.z in 3580..3610 })
         assertTrue(result.spawns.all { it.wander == 4 && it.source.isNotBlank() })
     }
+
+    @Test
+    fun `Hunter step 2's box trap creatures are in Piscatoris and the Feldip Hills`() {
+        val names = mapOf(1505 to "hunting_ferret", 2910 to "hunting_chinchompa", 2911 to "hunting_chinchompa_big")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("hunter-box-traps.json"), types, "hunter-box-traps.json")
+        assertEquals(emptyList(), result.unknown)
+        fun of(id: Int) = result.spawns.filter { it.type.id == id }
+        assertEquals(listOf(9, 22, 26), listOf(of(1505).size, of(2910).size, of(2911).size))
+        assertTrue((of(1505) + of(2910)).all { it.x in 2300..2370 && it.z in 3490..3630 })
+        // Carnivorous chinchompas on the surface of the Feldip Hunter area and in the hunting ground under it.
+        assertTrue(of(2911).all { it.x in 2490..2560 && (it.z in 2880..2940 || it.z in 9280..9310) })
+        assertTrue(result.spawns.all { it.wander == 4 && it.level == 0 && it.source.isNotBlank() })
+    }
 }
