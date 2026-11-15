@@ -507,6 +507,21 @@ class NpcCombatTest {
     }
 
     @Test
+    fun `the Wilderness's mammoths fight as the Wiki has them`() {
+        val mammothTypes = NpcTypes.of(NpcType(2800, "wilderness_mammoth", internalName = "wilderness_mammoth"))
+        val combat = NpcCombat.load(mammothTypes, seqs)
+        val def = combat[mammothTypes.find("wilderness_mammoth")!!]!!
+        assertEquals(4, def.attackSpeed)
+        assertEquals(7, def.maxHit)
+        assertEquals(AttackType.STAB, def.attackType)
+        assertEquals(70, def.respawnTicks)
+        assertTrue(def.aggression != null)
+        assertEquals(NpcCombatAnims(304, 305, 307), def.anims)
+        for (type in AttackType.entries) assertEquals(0, def.defence.against(type), type.name)
+        assertNull(def.spell)
+    }
+
+    @Test
     fun `the Sepulchre of Death's ankou, ghosts, skeletons, shades and zombie fight as the Wiki has them, each max hit the formula's`() {
         // The 241 cache's Strength levels (the DPS calculator's).
         val sepulchre = mapOf(

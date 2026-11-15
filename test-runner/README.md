@@ -670,6 +670,9 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
 - `wilderness-pvp-scenario.json`: Wilderness step W1.9. `::scenario pvp` stands the player at 3090,3592 (level 10)
   in rune armour with a rune scimitar, 20 sharks and five Tele Blocks' runes; `::skull` with nothing, `on` and `off`
   reports, gives and takes a skull; `::pj` says no PJ timer runs; `::reset` puts the account back.
+- `wilderness-south.json`: Wilderness step W2.2. Under `::god` and `::scenario gathering`, a mammoth south-east of
+  Ferox Enclave (level 10) takes a hit, then iron is mined at the South Wilderness mine (level 7) and coal at the
+  South-west mine (level 10); `::reset` puts the account back.
 - `wilderness-pvp-ranged-test.json` and `wilderness-pvp-ranged-test2.json` (need 0.20.0, for `assertHitsplat` with
   `self` and `playerOption`): Wilderness step W1.4, two players at once (test on one VM and test2 on the other). At
   level 50, test shoots test2 with a shortbow and bronze arrows for a sure 12, read off its Ranged XP and test2's
