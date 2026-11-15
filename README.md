@@ -1085,7 +1085,7 @@ Assignment follow the Wiki's transcripts. A master draws a task by the cache's w
 amount from the entry's range, or an extend's once bought. Below a master's combat level (Vannaka 40) they turn the
 player away; with a task they say what is left. Aya and Spria suggest a higher master to a strong player first;
 Vannaka offers the task's tip. Aya swaps another master's task that isn't on her list for one of hers, resetting the
-streak. Rewards and Slayer equipment come in later steps.
+streak, but never Spria's (OSRS Wiki, Spria: her tasks can't be skipped through Turael). Rewards and Slayer equipment come in later steps.
 
 | Slayer behaviour | Source |
 |------------------|--------|

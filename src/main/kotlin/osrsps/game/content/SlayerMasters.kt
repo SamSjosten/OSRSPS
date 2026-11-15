@@ -172,7 +172,8 @@ class SlayerMasters(private val world: World) {
         if (task != null) {
             val line = if (master == SlayerMaster.VANNAKA) STILL_HUNTING_COME_BACK else STILL_HUNTING
             chatNpc(ChatAnim.NEUTRAL, line, "task" to task.nameLower, "amount" to slayer.remaining(player))
-            if (master == SlayerMaster.AYA && slayer.data.entry(SlayerMaster.AYA.id, task.id) == null) swap()
+            // Spria's tasks can't be skipped through Turael (OSRS Wiki, Spria), so Aya keeps hers too.
+            if (master == SlayerMaster.AYA && slayer.master(player) != SlayerMaster.SPRIA && slayer.data.entry(SlayerMaster.AYA.id, task.id) == null) swap()
             return
         }
         if ((master == SlayerMaster.AYA || master == SlayerMaster.SPRIA) && !suggestHigher()) return

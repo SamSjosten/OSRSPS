@@ -148,6 +148,14 @@ class HeadlessSlayerMastersTest {
                 client.saysStarting("[slayer_master.still_hunting task=cows ")
                 client.awaitTicks(2)
                 assertTrue((client.dialogueView as? DialogueView.Chat)?.text != "[aya.not_mine]")
+
+                // Nor Spria's, even one not on her list (OSRS Wiki, Spria: her tasks can't be skipped through Turael).
+                client.commandReply("slayer task rats 20 spria") { it.startsWith("Task") }
+                client.npcOp(npc.index, SlayerMasters.ASSIGNMENT)
+                client.says("[slayer_master.still_hunting task=rats amount=20]")
+                client.awaitTicks(2)
+                assertTrue(client.dialogueView == null, "no swap offered for Spria's task: ${client.dialogueView}")
+                assertEquals(3, client.varp(Slayer.VARP_TARGET))
             }
         }
     }
