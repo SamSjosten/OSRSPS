@@ -1,0 +1,18 @@
+{
+ "name": "Wilderness step W1.8, two players (run with wilderness-teleblock-test.json on the other VM at the same time): test2, Tele Blocked by test at level 20, is refused a lodestone teleport, and the block ends as it leaves the Wilderness",
+ "account": "test2",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::varp 172 1", "expectMessage": "Varp 172:", "comment": "auto retaliate off: we stand still"},
+  {"step": "command", "text": "::wildy 20", "expectMessage": ": level 20 Wilderness", "comment": "test's sign that we're ready"},
+  {"step": "assertMessage", "contains": "[pvp.teleblocked name=test]", "timeoutMs": 180000, "comment": "the block's message naming the caster, a key here"},
+  {"step": "assertVarbit", "id": 4163, "value": 600, "timeoutMs": 10000, "comment": "teleblock_cycles: 500 ticks (5 minutes) plus the 100 RuneLite's timer reads over (OSRS Wiki, Tele Block)"},
+  {"step": "waitTicks", "ticks": 17, "comment": "out of combat first: the Tele Block's hit put us in combat for 16 ticks, and Home Teleport's combat check comes before the block's"},
+  {"step": "command", "text": "::lodestone lumbridge", "expectMessage": "[pvp.teleport_blocked]", "comment": "every teleport is blocked; the words are held, a key here"},
+  {"step": "command", "text": "::tele 3222 3218 0", "expectMessage": "Teleported to 3222, 3218, 0", "comment": "out of the Wilderness"},
+  {"step": "assertVarbit", "id": 4163, "value": 0, "timeoutMs": 10000, "comment": "leaving the Wilderness ends the block"},
+  {"step": "command", "text": "::varp 172 0", "expectMessage": "Varp 172:", "comment": "auto retaliate back on"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"}
+ ]
+}

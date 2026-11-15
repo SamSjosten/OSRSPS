@@ -69,7 +69,8 @@ class PvpInteraction internal constructor(val target: Player, spell: CombatSpell
  * Single-way combat (step W1.5) keeps a third player off a fight with the PJ timer ([singleWayRefusal]); in multi-way
  * combat ([MultiCombat]) anyone can join, and a Burst or Barrage hits the players around its target too ([around]).
  * Each attack skulls an attacker who wasn't attacked first ([Skulls], step W1.6). A player killed soon after a
- * player's hit dies a PvP death ([killerOf], step W1.7): [Deaths] drops what they lose for the killer.
+ * player's hit dies a PvP death ([killerOf], step W1.7): [Deaths] drops what they lose for the killer. Tele Block that
+ * lands stops the target's teleports ([Teleblock], step W1.8).
  *
  * Not here yet: special attacks and enchanted bolts' effects on players, poison and venom from a player's weapon, and
  * chinchompas' blast on players. Powered staves can't attack players (OSRS Wiki,
@@ -439,6 +440,7 @@ class PvpCombat(
             }
             if (player.dead || player.hitpoints <= 0) continue
             if (spell != null && hit.hit && spell.freezeTicks > 0) freeze(player, hit.attacker, spell)
+            if (spell != null && hit.hit && spell.teleblock) teleblock(player, hit.attacker)
             retaliate(player, hit.attacker, tick)
         }
     }
@@ -476,6 +478,7 @@ class PvpCombat(
         credited.pjOpponent = player
         credited.pjUntil = currentTick() + PJ_TICKS
         credited.pjAfterKill = true
+        killedTeleblocker(credited, player)
     }
 
     /** [player] is frozen by [caster]'s [spell] for its ticks, unless frozen or immune already; see the class note. */
@@ -488,12 +491,35 @@ class PvpCombat(
     }
 
     /**
-     * At the start of the tick: [player]'s skull counts down ([Skulls.countDown]), and their freeze, breaking once they
-     * are more than [FREEZE_BREAK_DISTANCE] tiles from who cast it on either axis (the Wiki: only x and y count, not the
-     * plane); then the immunity counts down. A caster who left the world breaks it at once.
+     * [player] is Tele Blocked by [caster]: for [Teleblock.PROTECTED_TICKS] if they pray Protect from Magic as it lands,
+     * else [Teleblock.TICKS], and told who cast it. One already blocked can't be (refused at the cast), but a second
+     * cast can be on its way as the first lands: it does nothing then (guessed).
+     */
+    private fun teleblock(player: Player, caster: Player) {
+        if (player.teleblockTicks > 0) return
+        Teleblock.block(player, caster, if (protects(player, AttackType.MAGIC)) Teleblock.PROTECTED_TICKS else Teleblock.TICKS)
+        message(player, words(player)[PvpLines.TELEBLOCKED, "name" to caster.username])
+    }
+
+    /**
+     * [killer] is credited with [victim]'s death ([credited]): a Tele Block [victim] cast on [killer] is over (OSRS Wiki,
+     * Tele Block). Guessed: the kill is the credited one, the most damage, not whoever dealt the last hit, so that the
+     * block ends for whoever gets the loot.
+     */
+    private fun killedTeleblocker(killer: Player, victim: Player) {
+        if (killer.teleblockTicks <= 0 || killer.teleblockedBy != victim.saveKey) return
+        Teleblock.clear(killer)
+        message(killer, words(killer)[PvpLines.TELEBLOCK_REMOVED, "name" to victim.username])
+    }
+
+    /**
+     * At the start of the tick: [player]'s skull counts down ([Skulls.countDown]), their Tele Block ([Teleblock.countDown]),
+     * and their freeze, breaking once they are more than [FREEZE_BREAK_DISTANCE] tiles from who cast it on either axis
+     * (the Wiki: only x and y count, not the plane); then the immunity counts down. A caster who left the world breaks it at once.
      */
     fun countDown(player: Player) {
         Skulls.countDown(player, currentTick())
+        Teleblock.countDown(player)
         if (player.freezeTicks > 0) {
             val caster = player.frozenBy
             // A caster who left the world is as far away as can be: the freeze breaks (OSRS Wiki, Free-to-play PvP
