@@ -14,9 +14,9 @@ object PvpLines : Lines("pvp", "Wilderness") {
     val POWERED_STAFF = line("powered_staff", "Attack on a player with a powered staff's own spell, which can't be used on players")
     val TARGET_IN_COMBAT = line("target_in_combat", "Attack on a player another player or a monster is fighting, in single-way combat")
     val SKULL_PREVENTED = line("skull_prevented", "Attack refused by the PK Skull Prevention setting, as it would skull you")
-    val FROZEN = line("frozen", "A player's ice spell froze you (Wiki, Freeze: You have been frozen!)")
-    val TELEBLOCKED = line("teleblocked", "A player's Tele Block landed on you (Wiki, Tele Block: A Tele Block has been cast on you by [player name].)", "name")
-    val TELEBLOCK_REMOVED = line("teleblock_removed", "You killed the player whose Tele Block was on you (Wiki, Tele Block: Your Tele Block has been removed because you killed [player name].)", "name")
+    val FROZEN = line("frozen", "A player's ice spell froze you (words from the Wiki's Freeze page)")
+    val TELEBLOCKED = line("teleblocked", "A player's Tele Block landed on you, naming the caster (words from the Wiki's Tele Block page)", "name")
+    val TELEBLOCK_REMOVED = line("teleblock_removed", "You were credited with killing the player whose Tele Block was on you, naming them (words from the Wiki's Tele Block page)", "name")
     val TELEBLOCK_ALREADY = line("teleblock_already", "Tele Block cast on a player who is Tele Blocked already (Wiki, Tele Block: immune while it lasts; the words unsourced)")
     val TELEPORT_BLOCKED = line("teleport_blocked", "Any teleport tried while Tele Blocked (the words unsourced)")
 }

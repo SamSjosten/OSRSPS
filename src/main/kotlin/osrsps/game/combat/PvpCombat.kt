@@ -432,7 +432,6 @@ class PvpCombat(
                     hit.attacker.pjOpponent = player
                     hit.attacker.pjUntil = tick + PJ_TICKS
                     hit.attacker.pjAfterKill = true
-                    killedTeleblocker(hit.attacker, player)
                 }
             } else {
                 // A splash, or a bind that can't do damage: no hitsplat, but they were attacked (guessed, as for an NPC).
@@ -479,6 +478,7 @@ class PvpCombat(
         credited.pjOpponent = player
         credited.pjUntil = currentTick() + PJ_TICKS
         credited.pjAfterKill = true
+        killedTeleblocker(credited, player)
     }
 
     /** [player] is frozen by [caster]'s [spell] for its ticks, unless frozen or immune already; see the class note. */
@@ -501,7 +501,11 @@ class PvpCombat(
         message(player, words(player)[PvpLines.TELEBLOCKED, "name" to caster.username])
     }
 
-    /** [killer] killed [victim]: a Tele Block [victim] cast on [killer] is over (OSRS Wiki, Tele Block). */
+    /**
+     * [killer] is credited with [victim]'s death ([credited]): a Tele Block [victim] cast on [killer] is over (OSRS Wiki,
+     * Tele Block). Guessed: the kill is the credited one, the most damage, not whoever dealt the last hit, so that the
+     * block ends for whoever gets the loot.
+     */
     private fun killedTeleblocker(killer: Player, victim: Player) {
         if (killer.teleblockTicks <= 0 || killer.teleblockedBy != victim.saveKey) return
         Teleblock.clear(killer)

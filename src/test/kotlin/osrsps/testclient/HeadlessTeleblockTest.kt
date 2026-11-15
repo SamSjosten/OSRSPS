@@ -173,6 +173,79 @@ class HeadlessTeleblockTest {
         }
     }
 
+    @Test
+    fun `the block ends for whoever is credited with the caster's death, not the last hitter`(@TempDir dir: Path) {
+        // Codex review on #720: the kill that ends a block is the credited one, the most damage (killerOf).
+        server(dir).use { server ->
+            server.login("cara").use { a ->
+                server.login("dov").use { b ->
+                    server.login("eli").use { c ->
+                        c.await("the login rebuild") { c.position }
+                        pair(a, b)
+                        val world = server.world
+                        val (cara, dov, eli) = listOf("cara", "dov", "eli").map { world.playerNamed(it)!! }
+                        a.playerTarget(b.index, Spells.SPELLBOOK, TELE_BLOCK)
+                        b.await("the Tele Block") { Unit.takeIf { dov.teleblockTicks > 0 } }
+
+                        // eli dealt the caster the most; dov only lands the last punch, and the block stays.
+                        a.commandReply("hit 9 me") { it.startsWith("Hit yourself") }
+                        world.pvpCombat.dealtBy(cara, eli, 50, world.tick)
+                        b.commandReply("sure max") { it.startsWith("Your attacks") }
+                        val before = b.messages().size
+                        b.playerOp(a.index, PlayerOps.ATTACK)
+                        a.await("the caster's respawn", timeoutMillis = 30_000) { a.position?.takeIf { it.z < 3500 } }
+                        assertTrue(dov.teleblockTicks > 0, "the last hitter isn't credited")
+                        assertTrue(b.messagesAfter(before).none { it.startsWith("[pvp.teleblock_removed") })
+                    }
+                }
+            }
+            server.login("fay").use { a ->
+                server.login("gus").use { b ->
+                    pair(a, b)
+                    val world = server.world
+                    val fay = world.playerNamed("fay")!!
+                    val gus = world.playerNamed("gus")!!
+                    a.playerTarget(b.index, Spells.SPELLBOOK, TELE_BLOCK)
+                    b.await("the Tele Block") { Unit.takeIf { gus.teleblockTicks > 0 } }
+                    // The caster dies to something else soon after gus's hit: gus is credited, and the block is over.
+                    world.pvpCombat.dealtBy(fay, gus, 5, world.tick)
+                    a.command("hit 99 me")
+                    b.await("the block removed") { b.messages().firstOrNull { it.text == "[pvp.teleblock_removed name=fay]" } }
+                    assertEquals(0, gus.teleblockTicks)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a logout ends the block, and the varbit comes back cleared`(@TempDir dir: Path) {
+        // Codex review on #720: the save keeps the varbit's backing varp.
+        server(dir).use { server ->
+            server.login("hal").use { a ->
+                server.login("ivy").use { b ->
+                    pair(a, b)
+                    val ivy = server.world.playerNamed("ivy")!!
+                    a.playerTarget(b.index, Spells.SPELLBOOK, TELE_BLOCK)
+                    b.await("the varbit set") { b.varp(TELEBLOCK_VARP).takeIf { it == Teleblock.TICKS + Teleblock.VARBIT_OFFSET } }
+                    assertTrue(ivy.teleblockTicks > 0)
+                    b.awaitTicks(World.LOGOUT_COMBAT_TICKS.toInt() + 1)
+                    b.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+                    b.await("the logout") { b.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+                }
+                b@ while (true) {
+                    if (server.world.playerNamed("ivy") == null) break@b
+                    a.awaitTicks(1)
+                }
+                server.login("ivy").use { b ->
+                    b.await("the login rebuild") { b.position }
+                    b.awaitTicks(2)
+                    assertEquals(0, b.varp(TELEBLOCK_VARP), "no timer for a block that's over")
+                    assertEquals(0, server.world.playerNamed("ivy")!!.teleblockTicks)
+                }
+            }
+        }
+    }
+
     private companion object {
         // Level 20, the deepest teleports work from.
         const val Z = 3672

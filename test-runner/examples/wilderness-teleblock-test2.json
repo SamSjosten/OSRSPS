@@ -8,6 +8,7 @@
   {"step": "command", "text": "::wildy 20", "expectMessage": ": level 20 Wilderness", "comment": "test's sign that we're ready"},
   {"step": "assertMessage", "contains": "[pvp.teleblocked name=test]", "timeoutMs": 180000, "comment": "the block's message naming the caster, a key here"},
   {"step": "assertVarbit", "id": 4163, "value": 600, "timeoutMs": 10000, "comment": "teleblock_cycles: 500 ticks (5 minutes) plus the 100 RuneLite's timer reads over (OSRS Wiki, Tele Block)"},
+  {"step": "waitTicks", "ticks": 17, "comment": "out of combat first: the Tele Block's hit put us in combat for 16 ticks, and Home Teleport's combat check comes before the block's"},
   {"step": "command", "text": "::lodestone lumbridge", "expectMessage": "[pvp.teleport_blocked]", "comment": "every teleport is blocked; the words are held, a key here"},
   {"step": "command", "text": "::tele 3222 3218 0", "expectMessage": "Teleported to 3222, 3218, 0", "comment": "out of the Wilderness"},
   {"step": "assertVarbit", "id": 4163, "value": 0, "timeoutMs": 10000, "comment": "leaving the Wilderness ends the block"},
