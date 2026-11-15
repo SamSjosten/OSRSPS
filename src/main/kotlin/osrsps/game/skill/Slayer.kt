@@ -2,6 +2,7 @@ package osrsps.game.skill
 
 import osrsps.game.GameRandom
 import osrsps.game.Player
+import osrsps.game.Quests
 import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.combat.CombatMath
@@ -30,16 +31,26 @@ object SlayerLines : Lines("slayer", "Slayer") {
  * every 250th and 50 every 1,000th. Konar's 18 and Steve's 12 are without the Elite diaries (no diaries are built).
  * [combat] and [slayer] are what a player needs before the master gives them a task (OSRS Wiki, Slayer Master).
  */
-enum class SlayerMaster(val id: Int, val npc: Int, val points: Int, val combat: Int = 0, val slayer: Int = 1) {
-    AYA(1, 13619, 0),
-    MAZCHNA(2, 13620, 6, combat = 20),
-    VANNAKA(3, 403, 8, combat = 40),
-    CHAELDAR(4, 404, 10, combat = 70),
-    KURADAL(5, 13623, 15, combat = 100, slayer = 50),
-    STEVE(6, 6798, 12, combat = 85),
-    KRYSTILIA(7, 7663, 25),
-    KONAR(8, 8623, 18, combat = 75),
-    SPRIA(9, 10432, 0),
+enum class SlayerMaster(
+    val id: Int,
+    val npc: Int,
+    val points: Int,
+    val combat: Int = 0,
+    val slayer: Int = 1,
+    /** Which block list is theirs: the order of the cache's slayer_blocked_* varbits (Turael's, shared with Spria, first). */
+    val blockList: Int,
+    /** What blocking a task costs at their rewards screen (the 242 client's own costs, script 823). */
+    val blockCost: Int,
+) {
+    AYA(1, 13619, 0, blockList = 0, blockCost = 40),
+    MAZCHNA(2, 13620, 6, combat = 20, blockList = 1, blockCost = 50),
+    VANNAKA(3, 403, 8, combat = 40, blockList = 2, blockCost = 60),
+    CHAELDAR(4, 404, 10, combat = 70, blockList = 3, blockCost = 70),
+    KURADAL(5, 13623, 15, combat = 100, slayer = 50, blockList = 6, blockCost = 100),
+    STEVE(6, 6798, 12, combat = 85, blockList = 5, blockCost = 90),
+    KRYSTILIA(7, 7663, 25, blockList = 7, blockCost = 100),
+    KONAR(8, 8623, 18, combat = 75, blockList = 4, blockCost = 80),
+    SPRIA(9, 10432, 0, blockList = 0, blockCost = 40),
     ;
 
     companion object {
@@ -98,6 +109,22 @@ class Slayer(private val world: World, val data: SlayerData) {
         /** The bought rewards, by slayer_unlock bit: bits 0 to 31 in slayer_rewards_unlocks, 32 to 63 in _unlocks1, then _unlocks2. */
         val UNLOCK_VARPS = intArrayOf(1076, 1344, 5587)
 
+        /**
+         * The block slots' varbits (slayer_blocked_<master>_1 to _6), 8 bits each holding a blocked task's id: six a
+         * list, the lists in [SlayerMaster.blockList]'s order.
+         */
+        const val VARBIT_FIRST_BLOCK = 17812
+
+        /** The seventh slot of each list, which the Lumbridge & Draynor Elite diary opens (slayer_blocked_<master>_diary). */
+        const val VARBIT_FIRST_DIARY_BLOCK = 17860
+
+        /** Block slots a list has without the diary: one for every 50 quest points (OSRS Wiki, Slayer Rewards). */
+        const val BLOCK_SLOTS = 6
+        const val QUEST_POINTS_A_SLOT = 50
+
+        /** What cancelling a task costs (the 242 client's own, script 9741; Mortimer's 100 isn't built). */
+        const val CANCEL_COST = 30
+
         /** One of [choices], each with the chance its weight is of all their weights; null with none to draw. */
         fun draw(random: GameRandom, choices: List<SlayerMasterTask>): SlayerMasterTask? {
             val total = choices.sumOf { it.weight }
@@ -138,11 +165,41 @@ class Slayer(private val world: World, val data: SlayerData) {
     fun setStreak(player: Player, streak: Int) = player.vars.setVarbit(VARBIT_STREAK, streak.coerceIn(0, MAX_STREAK))
 
     /** Whether [player] has bought the reward in slayer_unlock row [row]. */
-    fun unlocked(player: Player, row: Int): Boolean {
-        val bit = data.unlocks[row]?.bit ?: return false
+    fun unlocked(player: Player, row: Int): Boolean = data.unlocks[row]?.let { hasBit(player, it.bit) } ?: false
+
+    /** Whether [player]'s unlock varps have [bit] set. */
+    fun hasBit(player: Player, bit: Int): Boolean {
         val varp = UNLOCK_VARPS.getOrNull(bit / 32) ?: return false
         return player.vars[varp] and (1 shl (bit % 32)) != 0
     }
+
+    fun setBit(player: Player, bit: Int, on: Boolean) {
+        val varp = UNLOCK_VARPS.getOrNull(bit / 32) ?: return
+        val mask = 1 shl (bit % 32)
+        player.vars[varp] = if (on) player.vars[varp] or mask else player.vars[varp] and mask.inv()
+    }
+
+    /** The varbit of [master]'s block slot [slot], 1 to 7 (7 the diary's). */
+    fun blockVarbit(master: SlayerMaster, slot: Int): Int =
+        if (slot == BLOCK_SLOTS + 1) VARBIT_FIRST_DIARY_BLOCK + master.blockList else VARBIT_FIRST_BLOCK + master.blockList * BLOCK_SLOTS + slot - 1
+
+    /** The task id in [master]'s block slot [slot], 0 for none. */
+    fun blockedIn(player: Player, master: SlayerMaster, slot: Int): Int {
+        // A cache (or a test's) without the block varbits has nothing blocked.
+        val varbit = blockVarbit(master, slot)
+        return if (world.varTypes.varbit(varbit) == null) 0 else player.vars.getVarbit(varbit)
+    }
+
+    /** Whether [master] (or, for Aya and Spria, their shared list) has [task] blocked. */
+    fun blocked(player: Player, master: SlayerMaster, task: Int): Boolean = (1..BLOCK_SLOTS + 1).any { blockedIn(player, master, it) == task }
+
+    /**
+     * The block slots [player] may use: one for every 50 quest points, up to six. Left out: the seventh, the Lumbridge &
+     * Draynor Elite diary's (no diaries are built).
+     */
+    fun blockSlots(player: Player): Int = (player.vars[Quests.VARP_QUEST_POINTS] / QUEST_POINTS_A_SLOT).coerceAtMost(BLOCK_SLOTS)
+
+    fun setBlocked(player: Player, master: SlayerMaster, slot: Int, task: Int) = player.vars.setVarbit(blockVarbit(master, slot), task)
 
     fun combatChecked(player: Player): Boolean = player.vars.getVarbit(VARBIT_COMBAT_CHECK_OFF) == 0
 
@@ -163,6 +220,7 @@ class Slayer(private val world: World, val data: SlayerData) {
         if (entry.min <= 0 || entry.max < entry.min) return false
         if (!fit(player, task)) return false
         if (entry.unlockedBy != null && !unlocked(player, entry.unlockedBy)) return false
+        if (SlayerMaster.of(entry.master)?.let { blocked(player, it, task.id) } == true) return false
         if (task.blockedBy != null && unlocked(player, task.blockedBy)) return false
         return true
     }

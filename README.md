@@ -1088,7 +1088,15 @@ amount from the entry's range, or an extend's once bought. Below a master's comb
 player away; with a task the player is no longer fit for (its combat level while checked, or its stat levels) they
 offer to cancel it, keeping the streaks; with another task they say what is left. Aya, Spria and Mazchna suggest a
 higher master to a strong player first; every master but Aya, Spria and Steve offers the task's tip. Aya swaps another master's task that isn't on her list for one of hers, resetting the
-streak, but never Spria's (OSRS Wiki, Spria: her tasks can't be skipped through Turael). Rewards and Slayer equipment come in later steps.
+streak, but never Spria's (OSRS Wiki, Spria: her tasks can't be skipped through Turael).
+
+The rewards screen (`game/content/SlayerRewards.kt`, interface 426), opened by a master's Rewards option or "Look at
+rewards". The client draws it from the cache's slayer_unlock table and the unlock varps and sends only what its confirm
+box confirms, as an op on confirm_button's child: an unlock's bit buys it for its cost (a refundable one turns off again,
+no points back), 75 buys every extend not yet bought, 67 cancels the task for 30 points, 68 blocks it at the master's own
+cost, and 69 to 74 and 78 empty a block slot. Each master keeps their own block list (Aya and Spria share Turael's), one
+slot for every 50 quest points up to six, and never gives a task they have blocked. Slayer equipment and the Buy tab come
+next.
 
 | Slayer behaviour | Source |
 |------------------|--------|
@@ -1109,8 +1117,12 @@ streak, but never Spria's (OSRS Wiki, Spria: her tasks can't be skipped through 
 | Aya's and Spria's tiles; Mazchna's, Chaeldar's, Steve's and Kuradal's (listed under older types: Steve's tile as Nieve's 490, Kuradal's as Duradel's 405) | mejrs NPCList_OSRS (live), the Wiki's map pins |
 | A weak player turned away, a master with nothing to give, what follows Aya's "Yes, please"; chathead expressions | guessed, words unsourced |
 | The amount even across the range | inferred |
+| The rewards screen's confirm children (bits, 67, 68, 75, 66 + 3 to 8 and 12), cancel 30 points, block costs by master (40 Aya/Spria, 50 Mazchna, 60 Vannaka, 70 Chaeldar, 80 Konar, 90 Steve, 100 Kuradal and Krystilia) | the 242 client's scripts (osrs-dumps): slayer_rewards_unlock_confirm, slayer_rewards_tasks_canceltask, scripts 823 and 9741 |
+| Per-master block lists, Aya and Spria sharing Turael's; one block slot for every 50 quest points | OSRS Wiki, Slayer Rewards (2025 changelog) |
+| Block slot varbits slayer_blocked_<master>_1 to _6 (17812 on), slayer_master_in_focus (17868); the Rewards tab's task in varps if1 to if3 | cache 242, osrs-dumps' names; the task copied there inferred |
+| "Extend everything" costing the extends not yet bought; the refusals as game messages, their words | inferred; guessed |
 | Every message's words | unsourced: the Words thread fills them |
-| Not built yet: Konar and her places, rewards, equipment, superiors, boss tasks, Krystilia (the Wilderness), Aya's blessed axe talk, Kuradal's Slayer cape sale and talk about Duradel, the Slayer cape overlooking a master's combat level | |
+| Not built yet: Konar and her places, the Buy tab, Task Storage, the diary's seventh block slot, equipment, superiors, boss tasks, Krystilia (the Wilderness), Aya's blessed axe talk, Kuradal's Slayer cape sale and talk about Duradel, the Slayer cape overlooking a master's combat level | |
 
 ## Items and inventory
 

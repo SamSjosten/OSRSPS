@@ -371,6 +371,7 @@ object DialogueLines {
         SlayerLines,
         SlayerMasterLines,
         SlayerTipLines,
+        SlayerRewardsLines,
         KuradalLines,
         MazchnaLines,
         SteveLines,

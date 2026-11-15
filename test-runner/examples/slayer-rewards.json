@@ -1,0 +1,16 @@
+{
+ "name": "Slayer step 4 at Vannaka in Edgeville Dungeon: his Rewards option opening the rewards screen (426) with him in focus, read off assertInterface and assertVarbit, with ::keys on",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "keys"},
+  {"step": "command", "text": "::tele 3147 9912 0", "expectMessage": "Teleported to 3147, 9912, 0", "comment": "beside Vannaka, by the gate north of the middle of Edgeville Dungeon"},
+  {"step": "command", "text": "::slayer points 200", "expectMessage": "Streak 0, 200 points."},
+  {"step": "npcOption", "npc": "Vannaka", "option": "Rewards", "timeoutMs": 20000},
+  {"step": "assertInterface", "interfaceId": 426, "comment": "slayer_rewards"},
+  {"step": "assertVarbit", "id": 17868, "value": 3, "comment": "slayer_master_in_focus: Vannaka"},
+  {"step": "assertVarbit", "id": 4068, "value": 200, "comment": "slayer_points, which the screen shows"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

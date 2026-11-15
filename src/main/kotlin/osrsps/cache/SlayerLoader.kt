@@ -43,6 +43,8 @@ object SlayerLoader {
     // slayer_unlock's.
     private const val UNLOCK_BIT = 0
     private const val UNLOCK_COST = 1
+    private const val UNLOCK_REFUNDABLE = 5
+    private const val UNLOCK_LIST = 6
 
     fun load(library: CacheLibrary): SlayerData =
         build(DbRows.load(library, TASK_TABLE), DbRows.load(library, MASTER_TASK_TABLE), DbRows.load(library, UNLOCK_TABLE))
@@ -81,7 +83,10 @@ object SlayerLoader {
             )
         }
         val unlocks = unlockRows.mapNotNull { (row, db) ->
-            SlayerUnlock(row, db.int(UNLOCK_BIT) ?: return@mapNotNull null, db.int(UNLOCK_COST) ?: return@mapNotNull null)
+            SlayerUnlock(
+                row, db.int(UNLOCK_BIT) ?: return@mapNotNull null, db.int(UNLOCK_COST) ?: return@mapNotNull null,
+                refundable = db.int(UNLOCK_REFUNDABLE) == 1, list = db.int(UNLOCK_LIST) ?: 0,
+            )
         }
         logger.info { "Loaded ${tasks.size} Slayer tasks, ${masterTasks.size} master assignments and ${unlocks.size} rewards" }
         return SlayerData(tasks.values, masterTasks, unlocks)
