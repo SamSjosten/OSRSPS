@@ -2306,9 +2306,12 @@ the ditch: nothing north of it is spawned yet, and players can't fight each othe
 | An ice spell or a bind that hits freezes the target for its ticks unless frozen or immune; the freeze breaks once the two are more than 10 tiles apart on x or z, and 5 ticks of immunity follow; ice spells say "You have been frozen!" (`pvp.frozen`) | the Wiki's Freeze page; binds saying nothing inferred from the Wiki listing only the ice spells' message |
 | Powered staves (tridents, Tumeken's shadow) can't attack players (`pvp.powered_staff`) | the Wiki's Trident of the seas page; the refusal's words held |
 | A target with auto retaliate on and nothing else to do fights back, starting after half their weapon's speed, rounded up | the Wiki's Auto Retaliate page, as against monsters; the same for players inferred |
-| The Doomsayer's Toggle warnings list, special attacks, enchanted bolts' effects and weapon poison on players, Burst and Barrage spells' and chinchompas' other targets, the freeze's thaw warning, the single-way rules, skulls, Wilderness deaths and everything north of the ditch | not built: later steps |
+| In single-way combat each attack starts both players' PJ timer, 20 ticks: while it runs nobody else can attack either of them (`pvp.target_in_combat`), they can't attack anyone else ("I'm already under attack."), and monsters leave them be; a kill starts the killer's. A player a monster hit in the last 8 ticks can't be attacked by a player, nor attack one | the Wiki's PJ timer page (20 ticks in the Wilderness, refreshed by each attack, 12 seconds for a killer; 8 ticks for monsters); judging the attacker by their tile and the target by theirs, and the monster part for players, guessed; the target refusal's words held |
+| In multi-way combat anyone can join, and Ice Burst, Ice Barrage and the other Burst and Barrage spells also hit the players on the 3x3 around their target whom the caster could attack, each rolled on its own | the Wiki's Ancient Magicks page; the order when more than nine could be hit guessed |
+| The Wilderness's own multi-way areas | not yet in `multi-combat.tsv`: each piece adds its areas with its content |
+| The Doomsayer's Toggle warnings list, special attacks, enchanted bolts' effects and weapon poison on players, chinchompas' blast on players, the freeze's thaw warning, skulls, Wilderness deaths and everything north of the ditch | not built: later steps |
 
-Check: `test-runner/examples/ditch-cross.json`, `wilderness-attack-option.json`, `HeadlessWildernessDitchTest`, `HeadlessPvpRulesTest`, `HeadlessPlayerOpsSettingsTest`, `HeadlessPvpMeleeTest` and `HeadlessPvpRangedMagicTest`.
+Check: `test-runner/examples/ditch-cross.json`, `wilderness-attack-option.json`, `HeadlessWildernessDitchTest`, `HeadlessPvpRulesTest`, `HeadlessPlayerOpsSettingsTest`, `HeadlessPvpMeleeTest`, `HeadlessPvpRangedMagicTest` and `HeadlessPvpSingleWayTest`.
 
 ## Varrock
 

@@ -12,6 +12,7 @@ object PvpLines : Lines("pvp", "Wilderness") {
     val LEVEL_DIFFERENCE = line("level_difference", "Attack on a player whose combat level is out of range for the Wilderness level")
     val MOVE_DEEPER = line("move_deeper", "the line after level_difference, telling the attacker to go deeper")
     val POWERED_STAFF = line("powered_staff", "Attack on a player with a powered staff's own spell, which can't be used on players")
+    val TARGET_IN_COMBAT = line("target_in_combat", "Attack on a player another player or a monster is fighting, in single-way combat")
     val FROZEN = line("frozen", "A player's ice spell froze you (Wiki, Freeze: You have been frozen!)")
 }
 

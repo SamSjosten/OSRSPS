@@ -270,12 +270,14 @@ class MeleeCombat(
     }
 
     /**
-     * Whether an NPC other than [npc] is fighting [player] and hit them within the last [IN_COMBAT_TICKS] ticks. Never
-     * for a player standing in a multi-way area (guessed: by the player's tile), nor when [npc] is their own Slayer
-     * superior ([Combat.switchesSingleWay]), which makes the other NPC give up.
+     * Whether an NPC other than [npc] is fighting [player] and hit them within the last [IN_COMBAT_TICKS] ticks, or a
+     * player is ([Player.pjUntil]). Never for a player standing in a multi-way area (guessed: by the player's tile), nor
+     * when [npc] is their own Slayer superior ([Combat.switchesSingleWay]), which makes the other NPC give up.
      */
     internal fun underAttackByAnother(player: Player, npc: Npc): Boolean {
         if (multi.at(player.level, player.x, player.z)) return false
+        // A player's PJ timer keeps monsters off them too (OSRS Wiki, PJ timer); see PvpCombat.singleWayRefusal.
+        if (player.pjOpponent != null && currentTick() < player.pjUntil) return true
         val other = player.attackedBy ?: return false
         val fighting = other !== npc && other.target === player && !other.dead && currentTick() - player.attackedTick <= IN_COMBAT_TICKS
         // Their own superior they may switch to, and the monster that was fighting them gives up (OSRS Wiki, Superior
@@ -1094,6 +1096,7 @@ class MeleeCombat(
         player.attackedByPlayer = null
         player.freezeTicks = 0
         player.frozenBy = null
+        player.pjOpponent = null
     }
 
     /**
