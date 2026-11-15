@@ -458,7 +458,8 @@ class MeleeCombat(
     fun hit(npc: Npc, source: Player?, damage: Int, tick: Long, maxHit: Int = 0, attackedFrom: Tile? = null, finishing: Boolean = false): Int {
         val def = combat.npcCombat[npc.type] ?: throw IllegalArgumentException("${npc.type.name} can't be fought")
         if (npc.outOfPlay) return 0
-        val dealt = damage.coerceIn(0, if (finishing) npc.hitpoints else (npc.hitpoints - combat.floor(npc, source)).coerceAtLeast(0))
+        val dealt = if (!finishing && combat.immune(npc)) 0
+        else damage.coerceIn(0, if (finishing) npc.hitpoints else (npc.hitpoints - combat.floor(npc, source)).coerceAtLeast(0))
         npc.hitpoints -= dealt
         if (source != null && dealt > 0) npcDamaged(npc, source, dealt)
         val from = if (source != null) NpcEffects.PLAYER_SOURCE + source.index else -1

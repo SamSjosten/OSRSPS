@@ -129,6 +129,13 @@ class Combat(
     var rolledOn: (Player, Npc, AttackType, Int) -> Int = { _, _, _, rolled -> rolled }
 
     /**
+     * Set by content: whether [Npc] takes nothing from a hit now, asked as each hit lands, so a shot or spell already on
+     * its way, recoil and retribution are stopped too; poison and venom ([MeleeCombat.statusHit]) and a finishing hit
+     * (::kill, a bag of salt) still land. Bryophyta while her growthlings live ([osrsps.game.content.Bryophyta]).
+     */
+    var immune: (Npc) -> Boolean = { false }
+
+    /**
      * Why no attack of [player]'s reaches [npc], as the line that tells them, null when one can: its Slayer level
      * ([slayerGated]), or being shut out of where it is fought ([shutOut]). Asked wherever an attack begins, goes on,
      * or spreads to another NPC.

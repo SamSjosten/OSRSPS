@@ -189,6 +189,11 @@ class HeadlessBryophytaTest {
                 val shieldedAt = boss.hitpoints
                 client.awaitTicks(8)
                 assertEquals(shieldedAt, boss.hitpoints, "no damage while they live")
+                assertTrue(server.world.combat.immune(boss), "a shot or spell landing now does nothing either")
+                // Her lair is multi-way, so they fight bob while she does.
+                assertTrue(server.world.multiCombat.at(bob.level, bob.x, bob.z), "multi-way in her lair")
+                assertFalse(server.world.multiCombat.at(0, Bryophyta.EXIT_TILE.x, Bryophyta.EXIT_TILE.z), "single-way outside it")
+                client.await("a growthling on bob", timeoutMillis = 20_000) { Bryophyta.state(boss).growthlings.firstOrNull { it.target === bob } }
 
                 // An axe used on each finishes it; a battleaxe doesn't.
                 val first = Bryophyta.state(boss).growthlings.first()
@@ -201,6 +206,10 @@ class HeadlessBryophytaTest {
                     client.await("growthling ${growthling.index} cut", timeoutMillis = 20_000) { if (growthling.dead) Unit else null }
                 }
                 assertFalse(Bryophyta.shielded(server.world, boss))
+                // The cooldown runs from the tick the last one died, not the tick she notices.
+                val lastDied = Bryophyta.state(boss).lastGone
+                client.await("the cooldown") { Bryophyta.state(boss).growthAfter.takeIf { it != Long.MIN_VALUE } }
+                assertEquals(lastDied + Bryophyta.GROWTH_COOLDOWN_TICKS, Bryophyta.state(boss).growthAfter)
 
                 client.commandReply("kill ${boss.index}") { it.startsWith("Killed") }
                 client.await("her death") { if (boss.dead) Unit else null }

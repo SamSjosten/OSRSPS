@@ -61,7 +61,8 @@ object BryophytaLines : Lines("bryophyta", "Bryophyta's lair") {
  * - Once she is down ~25% ([GROWTH_BELOW_PERCENT] of her hitpoints left or fewer), each of her attacks at a player who
  *   is attacking her has a 1/5 chance to bring three growthlings ([GROWTHLINGS]), one batch at a time, none for
  *   [GROWTH_COOLDOWN_TICKS] after the last of a batch dies (Mod Ash, cited on the Growthling page). While any lives she
- *   takes no damage but poison and venom ([osrsps.game.combat.Combat.rolledOn]).
+ *   takes no damage but poison and venom, checked as each hit lands ([osrsps.game.combat.Combat.immune]). Her lair is
+ *   multi-way (inferred), so they fight the player alongside her and can be fought while she attacks.
  * - **Growthlings** (`gb_growthling` 8194, 10 hitpoints, slash max 5, speed 4, aggressive) stop at 1 hitpoint for any
  *   hit but an axe's or magic secateurs' wielded, which kill one outright; an axe or secateurs used on one kills it too.
  *   Inferred: "instantly killed" as a sure hit for all its hitpoints. Guessed: "attacking her" as her having been hit by
@@ -127,6 +128,12 @@ object Bryophyta {
         var nextAttack = Long.MIN_VALUE
         val growthlings = ArrayList<Npc>()
         var growthAfter = Long.MIN_VALUE
+
+        /** Whether a batch is out whose end hasn't started the cooldown yet. */
+        var batchOut = false
+
+        /** The tick the last growthling of the batch went: its death tick, or the tick it was found gone. */
+        var lastGone = Long.MIN_VALUE
     }
 
     private val states = WeakHashMap<Npc, State>()
@@ -137,7 +144,11 @@ object Bryophyta {
     fun shielded(world: World, boss: Npc): Boolean = living(world, state(boss)).isNotEmpty()
 
     private fun living(world: World, state: State): List<Npc> {
-        state.growthlings.removeAll { it.dead || world.npcs[it.index] !== it }
+        state.growthlings.removeAll { npc ->
+            val gone = npc.dead || world.npcs[npc.index] !== npc
+            if (gone) state.lastGone = maxOf(state.lastGone, if (npc.dead && npc.diedTick >= 0) npc.diedTick else world.tick)
+            gone
+        }
         return state.growthlings
     }
 
@@ -159,9 +170,10 @@ object Bryophyta {
 
     private fun EncounterContext.tick() {
         val state = state
-        val before = state.growthlings.size
-        if (before > 0 && living(world, state).isEmpty()) {
-            state.growthAfter = world.tick + GROWTH_COOLDOWN_TICKS
+        if (state.batchOut && living(world, state).isEmpty()) {
+            // From the tick the last one died, which may be a tick before this one sees it (killed by an item).
+            state.batchOut = false
+            state.growthAfter = state.lastGone + GROWTH_COOLDOWN_TICKS
             log("growthlings gone")
         }
         val target = target() ?: return
@@ -213,6 +225,7 @@ object Bryophyta {
             val npc = world.spawnNpc(NpcSpawn(type, tile.x, tile.z, boss.level, source = "lair bryophyta growthling", respawns = false)) ?: continue
             npc.unleashed = true
             state.growthlings += npc
+            state.batchOut = true
             if (target != null && run?.instance?.contains(target.x, target.z) == true) world.meleeCombat.aggress(npc, target, world.tick)
         }
         log("brings ${state.growthlings.size} growthlings")
@@ -289,11 +302,17 @@ fun registerBryophyta(world: World, lairs: GiantLairs) {
         world.combat.sureHit = { player, npc, type ->
             if (npc.type.id == GROWTHLING && type != AttackType.MAGIC && wieldsCutter(world, player)) SureHit.MAX else sureHit(player, npc, type)
         }
+        // While her growthlings live she takes nothing but poison and venom, checked as each hit lands.
+        val immune = world.combat.immune
+        world.combat.immune = { npc -> (npc.type.id == BOSS && shielded(world, npc)) || immune(npc) }
+        // Inferred: her lair is multi-way, as her growthlings fight the player alongside her and are fought with an axe
+        // while she still attacks (OSRS Wiki, Bryophyta, Growthling).
+        val multi = world.multiCombat.dynamic
+        world.multiCombat.dynamic = { level, x, z -> lairs.runAt(x, z)?.lair === LAIR || multi(level, x, z) }
         val rolledOn = world.combat.rolledOn
         world.combat.rolledOn = { player, npc, type, rolled ->
             when {
                 npc.type.id == GROWTHLING && type != AttackType.MAGIC && wieldsCutter(world, player) -> npc.hitpoints
-                npc.type.id == BOSS && shielded(world, npc) -> 0
                 else -> rolledOn(player, npc, type, rolled)
             }
         }
