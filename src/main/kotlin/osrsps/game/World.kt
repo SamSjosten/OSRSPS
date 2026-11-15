@@ -153,6 +153,7 @@ import osrsps.game.content.registerEdgeville
 import osrsps.game.content.registerWildernessDitch
 import osrsps.game.content.registerEdgevilleDungeon
 import osrsps.game.content.registerLavaMaze
+import osrsps.game.content.registerChaosTemple
 import osrsps.game.content.MemberGates
 import osrsps.game.content.registerFeroxEnclave
 import osrsps.game.content.registerWildernessObelisks
@@ -1023,6 +1024,7 @@ class World(
         registerEdgevilleDungeon(this)
         MemberGates.register(this)
         registerLavaMaze(this)
+        registerChaosTemple(this)
         registerFeroxEnclave(this)
         registerWildernessObelisks(this)
         registerWildernessLevers(this)
