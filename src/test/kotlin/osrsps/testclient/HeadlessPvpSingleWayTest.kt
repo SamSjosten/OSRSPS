@@ -217,6 +217,75 @@ class HeadlessPvpSingleWayTest {
         }
     }
 
+    @Test
+    fun `an opponent who logged out doesn't keep a third player off, and a monster hit since doesn't end a fight`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("lea").use { a ->
+                server.login("mo").use { b ->
+                    server.login("nia").use { c ->
+                        a.ready(3090)
+                        b.ready(3091)
+                        c.ready(3093)
+                        c.await("both in view") { c.otherPlayers().takeIf { it.size == 2 } }
+                        val world = server.world
+                        val lea = world.playerNamed("lea")!!
+                        val mo = world.playerNamed("mo")!!
+                        val nia = world.playerNamed("nia")!!
+
+                        // Exploit review R35A-2: mo, attacked by lea, goes on hitting the man (as a swing already begun
+                        // does: set here, as a new attack on him is refused); lea's fight with mo goes on.
+                        a.playerOp(b.index, PlayerOps.ATTACK)
+                        a.await("lea's first swing") { mo.pjOpponent }
+                        val theMan = world.npcs.all.first { it.type.id == man.id }
+                        repeat(3) {
+                            mo.attackedNpc = theMan
+                            mo.attackedNpcTick = world.tick
+                            a.awaitTicks(2)
+                        }
+                        assertSame(mo, (lea.interaction as? PvpInteraction)?.target, "lea still on mo")
+                        assertTrue(a.messages().none { it.text == DialogueText.NONE[PvpLines.TARGET_IN_COMBAT] })
+
+                        mo.attackedNpc = null
+                        // Exploit review R35A-3: lea logs out; her timer on mo no longer keeps nia off him.
+                        a.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+                        a.await("the logout") { a.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+                        c.await("lea gone") { Unit.takeIf { world.playerNamed("lea") == null } }
+                        assertTrue(mo.pjUntil > world.tick, "mo's timer still runs")
+                        c.playerOp(b.index, PlayerOps.ATTACK)
+                        c.await("nia on mo") { (nia.interaction as? PvpInteraction)?.target?.takeIf { it === mo } }
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a player whose connection drops in a fight stays in the world until it is over`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("oz").use { a ->
+                val b = server.login("pia")
+                a.ready(3090)
+                b.ready(3091)
+                a.await("pia in view") { a.otherPlayers().takeIf { it.isNotEmpty() } }
+                val world = server.world
+                val pia = world.playerNamed("pia")!!
+                a.commandReply("sure") { it.startsWith("Your attacks") }
+                a.playerOp(b.index, PlayerOps.ATTACK)
+                a.await("oz's first hit") { Unit.takeIf { pia.attackedByPlayerTick >= 0 } }
+
+                // Exploit review R35A-4: still hit, she is kept past the reconnect wait.
+                a.commandReply("pause") { it.startsWith("Paused after tick") }
+                b.close()
+                a.stepTicks(World.LINGER_TICKS.toInt() + 5)
+                assertSame(pia, world.playerNamed("pia"), "kept while in combat")
+                // Once oz stops, she goes when the fight is over.
+                a.commandReply("resume") { true }
+                a.tele(3090, 3500)
+                a.await("pia gone", timeoutMillis = 15_000) { Unit.takeIf { world.playerNamed("pia") == null } }
+            }
+        }
+    }
+
     private companion object {
         // Level 51: the caster's 94 Magic puts them some 45 combat levels over the others.
         const val Z = 3920

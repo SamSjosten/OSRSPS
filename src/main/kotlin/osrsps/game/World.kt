@@ -1706,7 +1706,9 @@ class World(
             // a minute, and their standing request goes with it. Not checked against a live disconnect mid-trade.
             trades.leave(player)
         }
-        return tick - player.connectionLostTick >= LINGER_TICKS
+        // Not while in combat: pulling the cable mustn't take them out of a fight, or a PvP death (exploit review R35A-4).
+        // Guessed: live keeps a disconnected player in combat in the world too, until the fight is over.
+        return tick - player.connectionLostTick >= LINGER_TICKS && !inCombat(player)
     }
 
     private fun acceptLogins() {
