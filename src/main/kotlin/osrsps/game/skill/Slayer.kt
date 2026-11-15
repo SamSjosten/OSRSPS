@@ -241,11 +241,13 @@ class Slayer(private val world: World, val data: SlayerData) {
     }
 
     /**
-     * Whether [player] is fit for [task]: its combat level (while the masters check it) and its stat levels. A master
-     * offers to cancel a task the player is no longer fit for (the Wiki's master transcripts).
+     * Whether [player] is fit for [task]: its combat level (while the masters check it, and [combat] asks) and its stat
+     * levels. A master offers to cancel a task the player is no longer fit for (the Wiki's master transcripts); that
+     * asks without the combat level, since combat only rises and a task given with the check on was within it, so only
+     * turning the check back on after a task could fail it: a free cancel at will (exploit review round 35, R35B-1).
      */
-    fun fit(player: Player, task: SlayerTask): Boolean {
-        if (combatChecked(player) && player.skills.combatLevel < task.minCombat) return false
+    fun fit(player: Player, task: SlayerTask, combat: Boolean = true): Boolean {
+        if (combat && combatChecked(player) && player.skills.combatLevel < task.minCombat) return false
         if (task.statsAll.any { (skill, level) -> player.skills.baseLevel(skill) < level }) return false
         return task.statsAny.isEmpty() || task.statsAny.any { (skill, level) -> player.skills.baseLevel(skill) >= level }
     }
@@ -261,7 +263,9 @@ class Slayer(private val world: World, val data: SlayerData) {
      */
     fun roll(player: Player, master: SlayerMaster): Pair<SlayerMasterTask, Int>? {
         val entry = draw(world.random, choices(player, master)) ?: return null
-        val range = entry.task.extensions.entries.firstOrNull { unlocked(player, it.key) }?.value ?: entry.min..entry.max
+        // An extend's range only when it is a sane one (exploit review round 35, R35B-4), as eligible() asks of the entry's.
+        val range = entry.task.extensions.entries.firstOrNull { unlocked(player, it.key) }?.value?.takeIf { it.first > 0 && it.last >= it.first }
+            ?: entry.min..entry.max
         return entry to world.random.between(range.first, range.last)
     }
 
