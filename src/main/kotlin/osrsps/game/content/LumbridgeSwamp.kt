@@ -21,7 +21,6 @@ object LumbridgeSwampLines : Lines("lumbridge_swamp", "Lumbridge Swamp") {
     val TOOLS_SPADE = line("tools_spade", "that menu, option 2: the spade; words guessed")
     val TOOLS_HAVE_BOTH = line("tools_have_both", "the shed's tools taken holding a rake and a spade; words guessed")
     val TOOLS_NO_ROOM = line("tools_no_room", "the shed's tools taken with a full inventory; words guessed")
-    val RUNECRAFT_CLOSED = line("runecraft_closed", "a water talisman or tiara used on the Water Altar's ruins, or Enter: our own line, as Runecraft isn't built")
     val GRAPPLE_LEVELS = line("grapple_levels", "the broken raft's Grapple below 8 Agility, 19 Strength or 37 Ranged; words guessed", "agility", "strength", "ranged")
     val GRAPPLE_GEAR = line("grapple_gear", "the broken raft's Grapple without a crossbow wielded and a mith grapple worn; words guessed")
     val GRAPPLE_BROKEN = line("grapple_broken", "the mith grapple breaking after a crossing (the Wiki's Mith grapple page quotes it)")
@@ -39,8 +38,7 @@ object LumbridgeSwampLines : Lines("lumbridge_swamp", "Lumbridge Swamp") {
  * - The tools inside (`farming_shed_tools` 10375 at 3203,3170): Take gives a rake or a spade, whichever the player
  *   doesn't hold, and a choice of the two when they hold neither. Guessed: nothing at all with both held, and no
  *   animation.
- * - The Water Altar's ruins (`watertemple_ruined` 34815 at 3184,3164, a multiloc that shows Enter with a water tiara
- *   worn): Runecraft isn't built, so a water talisman or tiara used on them, or Enter, gets our own refusal.
+ * - The Water Altar's ruins (`watertemple_ruined` 34815 at 3184,3164) are [osrsps.game.skill.Runecraft]'s.
  * - The broken raft in the River Lum (`xbows_raft_br` 17068 at 3252,3179): Grapple, with a crossbow wielded and a mith
  *   grapple worn, at 8 Agility, 19 Strength and 37 Ranged (the infobox's 19; its text says 17), from either bank's
  *   shortcut icon (3246,3179 and 3259,3179, as the 242 map places `agility_shortcut_icon`) to the other, no XP. A
@@ -59,11 +57,6 @@ object LumbridgeSwamp {
     const val OPEN = 1
     const val TOOLS = 10375
     const val TAKE = 1
-    const val WATER_RUINS = 34815
-
-    /** `watertemple_ruined_new`: what the ruins show with `rc_no_tally_required_water` set, with its Enter. */
-    const val WATER_RUINS_ENTER = 29097
-    const val ENTER = 1
     const val RAFT = 17068
     const val GRAPPLE = 1
 
@@ -71,8 +64,6 @@ object LumbridgeSwamp {
     const val LUNAR_STAFF = 9084
     const val RAKE = 5341
     const val SPADE = 952
-    const val WATER_TALISMAN = 1444
-    const val WATER_TIARA = 5531
     const val MITH_GRAPPLE = 9419
 
     const val GRAPPLE_AGILITY = 8
@@ -186,20 +177,11 @@ object LumbridgeSwamp {
     }
 }
 
-/** The shed's door and tools, the Water Altar's ruins and the raft's Grapple. */
+/** The shed's door and tools and the raft's Grapple. */
 fun registerLumbridgeSwamp(world: World) {
     with(LumbridgeSwamp) {
         world.handlers.onLoc(SHED_DOOR, OPEN) { op -> shedDoor(world, op.loc!!) }
         world.handlers.onLoc(TOOLS, TAKE) { takeTools(world) }
-        val refuse: suspend ScriptContext.() -> Unit = {
-            arriveDelay()
-            world.message(player, LumbridgeSwampLines.RUNECRAFT_CLOSED)
-        }
-        // The client sends the map's multiloc id (34815) for Enter, not the shown type's: both are handled.
-        for (ruins in listOf(WATER_RUINS, WATER_RUINS_ENTER)) {
-            world.handlers.onLoc(ruins, ENTER) { refuse() }
-            for (obj in listOf(WATER_TALISMAN, WATER_TIARA)) world.handlers.onObjOnLoc(ruins, obj) { refuse() }
-        }
         world.handlers.onLoc(RAFT, GRAPPLE) { grapple(world) }
         // The raft is in the river: a click walks to the nearer bank's shortcut tile.
         world.useLocFrom(RAFT) { _, _ -> listOf(RAFT_WEST, RAFT_EAST) }

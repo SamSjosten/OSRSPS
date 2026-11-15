@@ -23,7 +23,10 @@
   {"step": "command", "text": "::tele 3184 3161 0", "comment": "south of the Water Altar's ruins"},
   {"step": "assertLocation", "x": 3184, "y": 3161, "plane": 0},
   {"step": "useItemOnLoc", "item": "Water talisman", "locId": 34815, "x": 3184, "y": 3164},
-  {"step": "assertMessage", "contains": "[lumbridge_swamp.runecraft_closed]", "timeoutMs": 10000, "comment": "Runecraft isn't built"},
+  {"step": "assertMessage", "contains": "[runecraft.enter]", "timeoutMs": 10000, "comment": "Runecraft step RC1"},
+  {"step": "assertLocation", "x": 2726, "y": 4832, "plane": 0, "timeoutMs": 10000, "comment": "inside the Water Altar, by its portal"},
+  {"step": "locOption", "locId": 34750, "option": "Use", "x": 2727, "y": 4832},
+  {"step": "assertLocation", "x": 3185, "y": 3163, "plane": 0, "timeoutMs": 10000, "comment": "back beside the ruins"},
 
   {"step": "command", "text": "::setlevel agility 66", "expectMessage": "66", "comment": "the desert stone's level; the raft's Grapple wants 8, its Jump-to 48"},
   {"step": "command", "text": "::setlevel strength 19", "expectMessage": "19"},
