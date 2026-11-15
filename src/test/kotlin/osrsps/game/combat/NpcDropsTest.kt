@@ -1152,6 +1152,9 @@ class NpcDropsTest {
         expect("Barley seed x4", 30)
         expect("Apple tree seed x1", 18)
         expect("Lobster x2", 15)
+        // The gem table is the surface one: its talisman is a nature talisman, never a chaos talisman.
+        assertTrue((counts["Nature talisman x1"] ?: 0) > 0)
+        assertNull(counts["Chaos talisman x1"])
     }
 
     companion object {
