@@ -50,9 +50,13 @@ class HeadlessWildernessDitchTest {
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val map = CollisionMap().apply {
             for (sz in (3456 shr 6)..(3712 shr 6)) markLoaded(3090 shr 6, sz)
+            // Rock south of the second run, as at x 3042 on the 242 map.
+            add(3100, 3520, 0, osrsps.map.CollisionFlag.LOC)
         }
         val ditch = ZoneLoc(WildernessDitch.DITCH, LocShape.CENTREPIECE_STRAIGHT, 0, 3090, 3521, 0)
-        World(crcs, map, locTypes = types, staticLocs = StaticLocs().apply { add(ditch) }, varTypes = vars, cycleMillis = millis)
+        // A second run, with the rock on its south side.
+        val blocked = ZoneLoc(WildernessDitch.DITCH, LocShape.CENTREPIECE_STRAIGHT, 0, 3100, 3521, 0)
+        World(crcs, map, locTypes = types, staticLocs = StaticLocs().apply { add(ditch); add(blocked) }, varTypes = vars, cycleMillis = millis)
     }
 
     private fun HeadlessClient.tele(x: Int, z: Int) {
@@ -67,6 +71,20 @@ class HeadlessWildernessDitchTest {
     private fun HeadlessClient.overlayOpen() = GameFrame.PVP_ICONS in openInterfaces()
 
     private fun HeadlessClient.cross() = locOp(WildernessDitch.DITCH, 3090, 3521, WildernessDitch.CROSS)
+
+    @Test
+    fun `no jump onto rock on the far side`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("eli").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3100, 3523)
+                client.locOp(WildernessDitch.DITCH, 3100, 3521, WildernessDitch.CROSS)
+                client.await("the refusal") { client.messages().firstOrNull { it.text == "[game.cant_reach]" } }
+                client.awaitTicks(4)
+                assertEquals(Coord(3100, 3523, 0), client.position, "still north of the ditch")
+            }
+        }
+    }
 
     @Test
     fun `the warning shows on the way in, Don't go stays and Enter Wilderness jumps, and the way back has none`(@TempDir dir: Path) {
