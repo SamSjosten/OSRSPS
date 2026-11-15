@@ -1,0 +1,7 @@
+{
+  "about": "Slayer masters placed by the Slayer thread (Slayer step 2): Aya, who holds Turael's place once While Guthix Sleeps is done (every quest counts as done), in the house in Burthorpe (reached by ::tele 2931 3536), and Spria in her house in Draynor Village. Vannaka is in edgeville-dungeon.json. Tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live; it lists them under their older ids 401 and 10440), checked against the OSRS Wiki's map pins (Turael and Aya 2931,3536; Spria 3091,3267) and the 242 cache's types slayer_master_1_aya and slayer_master_9_active. The wander ranges are guessed.",
+  "spawns": [
+    {"npc": "slayer_master_1_aya", "x": 2931, "z": 3536, "wander": 2, "source": "Aya, in Turael's house south of Burthorpe's general store: Turael's tile (mejrs NPCList_OSRS), which the Wiki's Aya page pins too"},
+    {"npc": "slayer_master_9_active", "x": 3091, "z": 3266, "wander": 2, "source": "Spria, in her house in Draynor Village. mejrs NPCList_OSRS; Wiki, Spria"}
+  ]
+}

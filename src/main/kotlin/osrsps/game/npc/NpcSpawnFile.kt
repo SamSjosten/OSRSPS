@@ -79,6 +79,7 @@ object NpcSpawnFile {
         "rogues-castle.json",
         "thieving-far.json",
         "ardougne-market.json",
+        "slayer-masters.json",
     )
 
     /** What a file gave: the spawns, and the NPC names the cache doesn't know (skipped). */

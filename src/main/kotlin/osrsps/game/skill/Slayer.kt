@@ -1,5 +1,6 @@
 package osrsps.game.skill
 
+import osrsps.game.GameRandom
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
@@ -23,19 +24,21 @@ object SlayerLines : Lines("slayer", "Slayer") {
 
 /**
  * The masters, by the id the cache's slayer_master_task table and varbit slayer_master use, each with its NPC (the
- * cache's slayer_master_* types) and the points a task of theirs gives (OSRS Wiki, Slayer reward point, read
+ * cache's slayer_master_* types). With every quest done, Aya holds Turael's place (master 1) since While Guthix Sleeps,
+ * Kuradal Duradel's (5) and Steve Nieve's (6) since Monkey Madness II (OSRS Wiki, Aya, Kuradal and Steve) and the points a task of theirs gives (OSRS Wiki, Slayer reward point, read
  * 2026-11-15): [points] for every task from the fifth, five times that every 10th, 15 every 50th, 25 every 100th, 35
- * every 250th and 50 every 1,000th. Konar's 18 and Nieve's 12 are without the Elite diaries (no diaries are built).
+ * every 250th and 50 every 1,000th. Konar's 18 and Steve's 12 are without the Elite diaries (no diaries are built).
+ * [combat] and [slayer] are what a player needs before the master gives them a task (OSRS Wiki, Slayer Master).
  */
-enum class SlayerMaster(val id: Int, val npc: Int, val points: Int) {
-    TURAEL(1, 13618, 0),
-    MAZCHNA(2, 13620, 6),
-    VANNAKA(3, 403, 8),
-    CHAELDAR(4, 404, 10),
-    DURADEL(5, 13622, 15),
-    NIEVE(6, 6797, 12),
+enum class SlayerMaster(val id: Int, val npc: Int, val points: Int, val combat: Int = 0, val slayer: Int = 1) {
+    AYA(1, 13619, 0),
+    MAZCHNA(2, 13620, 6, combat = 20),
+    VANNAKA(3, 403, 8, combat = 40),
+    CHAELDAR(4, 404, 10, combat = 70),
+    KURADAL(5, 13623, 15, combat = 100, slayer = 50),
+    STEVE(6, 6798, 12, combat = 85),
     KRYSTILIA(7, 7663, 25),
-    KONAR(8, 8623, 18),
+    KONAR(8, 8623, 18, combat = 75),
     SPRIA(9, 10432, 0),
     ;
 
@@ -75,6 +78,9 @@ class Slayer(private val world: World, val data: SlayerData) {
         const val VARBIT_POINTS = 4068
         const val VARBIT_STREAK = 4069
 
+        /** slayer_wilderness_tasks_completed: Krystilia's streak, kept apart from the standard one. */
+        const val VARBIT_WILDERNESS_STREAK = 5617
+
         /** The most points varbit slayer_points' 17 bits hold. Guessed: live caps there too. */
         const val MAX_POINTS = (1 shl 17) - 1
 
@@ -85,6 +91,20 @@ class Slayer(private val world: World, val data: SlayerData) {
         const val STREAK_WRAP = 1000
 
         const val ENCHANTED_GEM = 4155
+
+        /** combat_level_reqs_disabled: 1 once the player has asked the masters to stop checking their combat level. */
+        const val VARBIT_COMBAT_CHECK_OFF = 4745
+
+        /** The bought rewards, by slayer_unlock bit: bits 0 to 31 in slayer_rewards_unlocks, 32 to 63 in _unlocks1, then _unlocks2. */
+        val UNLOCK_VARPS = intArrayOf(1076, 1344, 5587)
+
+        /** One of [choices], each with the chance its weight is of all their weights; null with none to draw. */
+        fun draw(random: GameRandom, choices: List<SlayerMasterTask>): SlayerMasterTask? {
+            val total = choices.sumOf { it.weight }
+            if (total <= 0) return null
+            var pick = random.nextInt(total)
+            return choices.first { pick -= it.weight; pick < 0 }
+        }
 
         /** Points for the [streak]th task from a master paying [base] a task (the Wiki's table: none before the fifth). */
         fun pointsFor(base: Int, streak: Int): Int = when {
@@ -111,9 +131,58 @@ class Slayer(private val world: World, val data: SlayerData) {
 
     fun streak(player: Player): Int = player.vars.getVarbit(VARBIT_STREAK)
 
+    fun wildernessStreak(player: Player): Int = player.vars.getVarbit(VARBIT_WILDERNESS_STREAK)
+
     fun setPoints(player: Player, points: Int) = player.vars.setVarbit(VARBIT_POINTS, points.coerceIn(0, MAX_POINTS))
 
     fun setStreak(player: Player, streak: Int) = player.vars.setVarbit(VARBIT_STREAK, streak.coerceIn(0, MAX_STREAK))
+
+    /** Whether [player] has bought the reward in slayer_unlock row [row]. */
+    fun unlocked(player: Player, row: Int): Boolean {
+        val bit = data.unlocks[row]?.bit ?: return false
+        val varp = UNLOCK_VARPS.getOrNull(bit / 32) ?: return false
+        return player.vars[varp] and (1 shl (bit % 32)) != 0
+    }
+
+    fun combatChecked(player: Player): Boolean = player.vars.getVarbit(VARBIT_COMBAT_CHECK_OFF) == 0
+
+    fun setCombatChecked(player: Player, checked: Boolean) = player.vars.setVarbit(VARBIT_COMBAT_CHECK_OFF, if (checked) 0 else 1)
+
+    /** Whether [player] is strong enough for [master] to give them tasks at all. */
+    fun meets(player: Player, master: SlayerMaster): Boolean =
+        player.skills.combatLevel >= master.combat && player.skills.baseLevel(Skill.SLAYER) >= master.slayer
+
+    /**
+     * Whether [master] may give [player] [entry]: with base levels (OSRS Wiki, Slayer task: "The player cannot boost their
+     * Slayer level to obtain a task"), the task's combat level unless they've turned the check off, every one of its
+     * stats and one of its either-or stats, the reward it needs bought, and not the reward that blocks it. Quests count
+     * as done. Boss tasks, whose amount the player picks, aren't built.
+     */
+    fun eligible(player: Player, entry: SlayerMasterTask): Boolean {
+        val task = entry.task
+        if (entry.min <= 0 || entry.max < entry.min) return false
+        if (combatChecked(player) && player.skills.combatLevel < task.minCombat) return false
+        if (task.statsAll.any { (skill, level) -> player.skills.baseLevel(skill) < level }) return false
+        if (task.statsAny.isNotEmpty() && task.statsAny.none { (skill, level) -> player.skills.baseLevel(skill) >= level }) return false
+        if (entry.unlockedBy != null && !unlocked(player, entry.unlockedBy)) return false
+        if (task.blockedBy != null && unlocked(player, task.blockedBy)) return false
+        return true
+    }
+
+    /** [master]'s tasks [player] may be given. */
+    fun choices(player: Player, master: SlayerMaster): List<SlayerMasterTask> =
+        data.masterTasks[master.id].orEmpty().filter { eligible(player, it) }
+
+    /**
+     * Draws [master]'s next task for [player] by the cache's weights over what they may be given (OSRS Wiki, Slayer task,
+     * Task weighting) and its amount, even from the entry's least to its most, or from an extend's when bought. Null when
+     * there is nothing to give.
+     */
+    fun roll(player: Player, master: SlayerMaster): Pair<SlayerMasterTask, Int>? {
+        val entry = draw(world.random, choices(player, master)) ?: return null
+        val range = entry.task.extensions.entries.firstOrNull { unlocked(player, it.key) }?.value ?: entry.min..entry.max
+        return entry to world.random.between(range.first, range.last)
+    }
 
     /** Gives [player] [amount] of [task] from [master], replacing any task they had. */
     fun assign(player: Player, master: SlayerMaster, task: SlayerTask, amount: Int) {
