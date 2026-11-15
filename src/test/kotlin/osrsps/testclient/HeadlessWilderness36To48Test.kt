@@ -49,6 +49,7 @@ class HeadlessWilderness36To48Test {
         264 to "green_dragon5", 3027 to "kingscorpion", 6593 to "lava_dragon", 2005 to "lesser_demon", 2006 to "lesser_demon2",
         2007 to "lesser_demon3", 2008 to "lesser_demon4", 2018 to "lesser_demon5", 2090 to "mossgiant", 2091 to "mossgiant2",
         2093 to "mossgiant4", 3023 to "poisonspider", 77 to "skeleton_armed", 3019 to "spider", 7995 to "wild_chaos_uncerter", 2841 to "icewarrior", 2085 to "icegiant", 2086 to "icegiant2", 2087 to "icegiant3",
+        6619 to "chaos_fanatic",
     )
 
     private val lavaDragon = NpcType(
@@ -81,6 +82,7 @@ class HeadlessWilderness36To48Test {
         assertEquals(8, parsed.spawns.count { it.type.internalName == "lava_dragon" }, "Lava Dragon Isle's eight (the Wiki's Lava Dragon Isle)")
         assertEquals(4, parsed.spawns.count { it.type.internalName.orEmpty().startsWith("greater_demon") }, "the Demonic Ruins' greater demons")
         assertEquals(4, parsed.spawns.count { it.type.internalName == "kingscorpion" })
+        assertEquals(1, parsed.spawns.count { it.type.internalName == "chaos_fanatic" }, "the Chaos Fanatic west of the Lava Maze (W4.3)")
         val squares = parsed.spawns.groupBy { Triple(it.x shr 6, it.z shr 6, it.level) }
         TestServer(dir) { crcs, millis ->
             World(

@@ -153,6 +153,7 @@
     {"npc": "deadly_red_spider", "x": 3067, "z": 3896, "wander": 5, "source": "Deadly red spider (deadly_red_spider), Wilderness level 48. mejrs NPCList_OSRS"},
     {"npc": "deadly_red_spider", "x": 3070, "z": 3896, "wander": 5, "source": "Deadly red spider (deadly_red_spider), Wilderness level 48. mejrs NPCList_OSRS"},
     {"npc": "deadly_red_spider", "x": 3058, "z": 3897, "wander": 5, "source": "Deadly red spider (deadly_red_spider), Wilderness level 48. mejrs NPCList_OSRS"},
-    {"npc": "deadly_red_spider", "x": 3061, "z": 3897, "wander": 5, "source": "Deadly red spider (deadly_red_spider), Wilderness level 48. mejrs NPCList_OSRS"}
+    {"npc": "deadly_red_spider", "x": 3061, "z": 3897, "wander": 5, "source": "Deadly red spider (deadly_red_spider), Wilderness level 48. mejrs NPCList_OSRS"},
+    {"npc": "chaos_fanatic", "x": 2979, "z": 3846, "wander": 5, "source": "Chaos Fanatic, west of the Lava Maze, Wilderness level 42 (W4.3). OSRS Wiki LocLine 2979,3846; mejrs NPCList_OSRS; wander guessed"}
   ]
 }
