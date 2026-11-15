@@ -1236,8 +1236,8 @@ the dialogue shows each line's key.
 
 ### Hunter
 
-Hunter step 1 (`game/skill/hunter/`, `npc-spawns/hunter-birds.json`, `::scenario hunter`): the trap engine and bird
-snares. Lay (from the backpack, or on a snare on the ground) drops the snare and puts the trap up on the skill clock's
+Hunter steps 1 and 2 (`game/skill/hunter/`, `npc-spawns/hunter-birds.json` and `hunter-box-traps.json`,
+`::scenario hunter`): the trap engine, bird snares and box traps. Lay (from the backpack, or on a snare on the ground) drops the snare and puts the trap up on the skill clock's
 fourth tick, the player stepping off it; a set trap looks for a creature within 2 tiles every 3 ticks (none while a
 player stands on it), the creature walks in, and the catch is rolled at the owner's boosted Hunter level, a miss
 every time below the creature's level. A caught bird struggles, then the snare holds it until Check (its drops, XP
@@ -1251,13 +1251,15 @@ catches, checks, fails, resets and dismantles a snare at Feldip with `::keys on`
 | What | Source |
 |---|---|
 | The birds: crimson swift (1, 34 XP), golden warbler (5, 47), copper longtail (9, 61.2), cerulean twitch (11, 64.5), tropical wagtail (19, 95.2); bones, raw bird meat and 5 to 10 feathers of the bird's colour; each one's catch pair (crimson swift 39% at 1 to 164% at 99) | OSRS Wiki, Bird snare and each bird's page (the Skilling success chart, Mod Ash's figures) |
+| Box traps: ferret (27, 115.2 XP, the ferret), chinchompa (53, 198.4, the chinchompa), carnivorous chinchompa (63, 265, the red chinchompa); the chinchompas' catch chances (Mod Ash: greys 6 to 268 out of 255, reds -78 to 228); laying with the tinderbox's animation | OSRS Wiki, Box trap, Ferret (Hunter), Chinchompa (Hunter), Carnivorous chinchompa |
+| Where they are: Piscatoris (ferrets `::tele 2313 3510`, chinchompas `::tele 2340 3595`), Feldip (carnivorous chinchompas `::tele 2556 2925`, and the red chinchompa hunting ground under it, `::tele 2520 9296`) | mejrs NPCList_OSRS.json (live, pre-Nov 2022) |
 | The trap count, and Reset and the failed snare (since 7 October 2026) | OSRS Wiki, Hunter (Multiple traps, Changes) |
 | A trap looks every 3 ticks within 2 tiles, nothing while a player stands on it; a creature above the player's level always gets away | OSRS Wiki, Box trap (Mechanics, Mod Ash) |
 | Laying takes 4 ticks of the skill clock; picking a trap up takes 3 ticks and stalls the player | OSRS Wiki, Tick manipulation |
 | A trap stands a minute, counted again when it catches or fails | RuneLite's Hunter plugin (HunterTrap.TRAP_TIME, observed on live) |
 | Where the birds are: Feldip (crimson swifts and wagtails, `::tele 2611 2918`, `::tele 2512 2905`), Uzer (warblers, `::tele 3402 3150`), Piscatoris (longtails, `::tele 2340 3590`), Rellekka (twitches, `::tele 2725 3770`) | mejrs NPCList_OSRS.json (live, pre-Nov 2022) |
-| The creature lured is one in range at random, always; it is rolled for on stepping onto the trap; the struggle (2 ticks), the respawn (10 ticks), the collapse leaving the item, how far the owner may go (32 tiles), the birds' wander (4), the check and dismantle animation, traps allowed on any free walkable tile outside instances | guessed |
-| Not built: box traps, net traps, deadfalls, pitfalls, butterflies and implings, falconry, tracking, the Hunter shops, smoking and baiting traps, the honey buzzards, Hunters' Rumours | next steps |
+| The creature lured is one in range at random, always; it is rolled for on stepping onto the trap; the struggle (2 ticks), the respawn (10 ticks), the collapse leaving the item, how far the owner may go (32 tiles), the birds' wander (4), the check and dismantle animation, traps allowed on any free walkable tile outside instances; the ferret's catch chance (the grey chinchompa's); a box trap's struggling loc by the side the creature came in from | guessed |
+| Not built: black chinchompas (the Wilderness), embertailed jerboas and letvek (Varlamore), net traps, deadfalls, pitfalls, butterflies and implings, falconry, tracking, the Hunter shops, smoking and baiting traps, the honey buzzards, Hunters' Rumours | next steps |
 
 ## Fred's farm
 
