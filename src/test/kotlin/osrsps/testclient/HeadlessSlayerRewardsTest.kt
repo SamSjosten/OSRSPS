@@ -23,6 +23,8 @@ import osrsps.game.World
 import osrsps.game.content.SlayerMasters
 import osrsps.game.content.SlayerRewards
 import osrsps.game.npc.NpcSpawn
+import osrsps.game.dialogue.DialogueText
+import osrsps.game.shop.ShopLines
 import osrsps.game.shop.ShopScreen
 import osrsps.game.shop.ShopTypes
 import osrsps.game.skill.Slayer
@@ -69,7 +71,8 @@ class HeadlessSlayerRewardsTest {
         }
         ObjTypes.of(
             ObjType(COINS, "Coins", stackable = true), ObjType(RING, "Slayer ring (8)"), ObjType(BOLTS, "Broad bolts", stackable = true),
-            ObjType(LOOTING_BAG, "Looting bag"), *stock.toTypedArray(),
+            ObjType(LOOTING_BAG, "Looting bag"), ObjType(OPEN_LOOTING_BAG, "Looting bag"), ObjType(HERB_SACK, "Herb sack"),
+            ObjType(RUNE_POUCH, "Rune pouch"), ObjType(DIVINE_RUNE_POUCH, "Divine rune pouch"), *stock.toTypedArray(),
         )
     }
 
@@ -223,6 +226,71 @@ class HeadlessSlayerRewardsTest {
         }
     }
 
+    @Test
+    fun `the herb sack needs base Herblore 58, a second pouch or bag is refused, and bolts stop at the stack limit`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                val dave = server.world.playerNamed("dave")!!
+                client.commandReply("slayer points 5000") { it.startsWith("Streak") }
+                client.open()
+                client.await("the Buy tab's ops") { if (client.opEnabled(SlayerRewards.INTERFACE, SlayerRewards.BUY_ITEMS, 0, 3)) Unit else null }
+
+                // Herblore 57 boosted to 60 still can't buy the herb sack; base 58 can.
+                client.command("setlevel herblore 57")
+                client.command("boost herblore 3")
+                client.buy(3, 2)
+                client.awaitMessage("need_herblore") { it == "[slayer_rewards.need_herblore]" }
+                assertEquals(0, client.count(HERB_SACK))
+                client.command("setlevel herblore 58")
+                client.buy(3, 2)
+                client.await("a herb sack") { if (client.count(HERB_SACK) == 1) Unit else null }
+                assertEquals(4250, client.points())
+
+                // A divine rune pouch in the bank counts as a rune pouch, and an open looting bag as a looting bag.
+                dave.bank.add(server.world.objTypes[DIVINE_RUNE_POUCH]!!, 1)
+                client.buy(4, 2)
+                client.awaitMessage("already_own rune pouch") { it == "[slayer_rewards.already_own item=Rune pouch]" }
+                client.command("item $OPEN_LOOTING_BAG")
+                client.buy(5, 2)
+                client.awaitMessage("already_own looting bag") { it == "[slayer_rewards.already_own item=Looting bag]" }
+                assertEquals(0, client.count(RUNE_POUCH))
+                assertEquals(0, client.count(LOOTING_BAG))
+                assertEquals(4250, client.points())
+
+                // 250 short of the stack limit: Buy 10 sets takes one set, 35 points; full, it takes none.
+                client.command("item $BOLTS ${Int.MAX_VALUE - 250}")
+                client.await("the bolts") { if (client.count(BOLTS) == Int.MAX_VALUE - 250) Unit else null }
+                client.buy(1, 4)
+                client.await("a full stack") { if (client.count(BOLTS) == Int.MAX_VALUE) Unit else null }
+                assertEquals(4215, client.points())
+                client.buy(1, 4)
+                client.awaitMessage("no_room") { it == "[slayer_rewards.no_room]" }
+                assertEquals(4215, client.points())
+            }
+        }
+    }
+
+    @Test
+    fun `the Slayer Equipment shop buys back a witchwood icon but no other untradeable`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.npcOp(vannakaIndex(client), TRADE)
+                client.await("Sell on the inventory") { if (client.opEnabled(ShopScreen.SIDE, ShopScreen.SIDE_ITEMS, 27, 2)) Unit else null }
+                client.command("item $WITCHWOOD_ICON")
+                client.command("item $ENCHANTED_GEM")
+                client.await("the icon and gem") { if (client.count(WITCHWOOD_ICON) == 1 && client.count(ENCHANTED_GEM) == 1) Unit else null }
+                client.ifButton(ShopScreen.SIDE, ShopScreen.SIDE_ITEMS, 2, client.slotOf(ENCHANTED_GEM), ENCHANTED_GEM)
+                client.awaitMessage("no selling the gem") { it == DialogueText.NONE[ShopLines.CANT_SELL] }
+                client.ifButton(ShopScreen.SIDE, ShopScreen.SIDE_ITEMS, 2, client.slotOf(WITCHWOOD_ICON), WITCHWOOD_ICON)
+                client.await("coins for the icon") { if (client.count(WITCHWOOD_ICON) == 0 && client.count(COINS) > 0) Unit else null }
+                assertEquals(1, client.count(ENCHANTED_GEM))
+            }
+        }
+    }
+
+    private fun HeadlessClient.slotOf(id: Int) = inventory(Inventory.INV).indexOfFirst { it?.id == id }
+
     private fun vannakaIndex(client: HeadlessClient) = client.await("Vannaka in view") { client.npcs().firstOrNull { it.id == vannaka.id } }.index
 
     private companion object {
@@ -233,6 +301,12 @@ class HeadlessSlayerRewardsTest {
         const val RING = 11866
         const val BOLTS = 11875
         const val LOOTING_BAG = 11941
+        const val OPEN_LOOTING_BAG = 22586
+        const val HERB_SACK = 13226
+        const val RUNE_POUCH = 12791
+        const val DIVINE_RUNE_POUCH = 27281
+        const val WITCHWOOD_ICON = 8923
+        const val ENCHANTED_GEM = 4155
 
         /** The masters' 242 cache types, by which shops.json names them. */
         val INTERNAL = mapOf(

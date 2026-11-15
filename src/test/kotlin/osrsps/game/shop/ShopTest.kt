@@ -255,6 +255,10 @@ class ShopTest {
         val farmingSupplies = shops["farming_supplies"]!!
         assertEquals(listOf(2674, 2672, 2681, 2680).map { shops.ofNpc(it) }, List(4) { farmingSupplies })
         assertEquals(mapOf("al_kharid_general_store" to setOf(950), "farming_supplies" to farmingSupplies.stock.map { it.type.id }.toSet()), shops.all.filter { it.refuses.isNotEmpty() }.associate { it.key to it.refuses })
+        // Slayer Equipment buys back its witchwood icon, which no one can trade, at 60% (no buy=N/A on the Wiki's line).
+        val slayerShop = shops["slayer_equipment"]!!
+        assertEquals(mapOf("slayer_equipment" to setOf(8923)), shops.all.filter { it.buysBack.isNotEmpty() }.associate { it.key to it.buysBack })
+        assertEquals(540, Shop(slayerShop).sellPrice(8923, 900, 50))
         assertEquals(shops["lumbridge_general_store"], shops.ofNpc(2814))
         assertEquals(shops["bobs_brilliant_axes"], shops.ofNpc(10619))
         assertEquals(shops["lumbridge_blacksmith"], shops.ofNpc(16806))
