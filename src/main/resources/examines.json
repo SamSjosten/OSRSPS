@@ -568,6 +568,8 @@
     {"npc": 6816, "name": "Gee"},
     {"npc": 6818, "name": "Man", "wiki": "Man page, infobox"},
     {"npc": 6825, "name": "Rod Fishing spot", "wiki": "Rod Fishing spot (anglerfish) page, infobox"},
+    {"npc": 7389, "name": "Chasm Crawler"},
+    {"npc": 7392, "name": "Giant rockslug"},
     {"npc": 7414, "name": "Count Check"},
     {"npc": 7456, "name": "Perdu", "also": [7457]},
     {"npc": 7546, "name": "Bartender", "wiki": "Bartender (The Sheared Ram) page, infobox"},

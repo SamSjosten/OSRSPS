@@ -201,6 +201,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   headless test, as their confirm box only exists once the client has drawn the clicked unlock.
 - `slayer-helm.json`: Slayer step 5b: a black mask worn, a cow punched at 60 in every skill 7/6 as accurately and
   hard on a cows task and plain off it, read off `::combat`.
+- `slayer-superior.json` (needs 0.8.0 for `assertVarp`): Slayer step 6: a chasm crawler put out with `::slayer
+  superior` on a cave crawler task, its message by key and its kill counting one off the task (with `::keys on`).
 - `ham-hideout.json`: Misthalin piece 7 step 4a: the H.A.M. Hideout's trapdoor locked, picked open at 99 Thieving
   with a lockpick, climbed down and back up by the ladder, a H.A.M. member pickpocketed, and Jimmy's cell door locked
   from outside and picked from inside (with `::keys on` and `::god on`; the concussions are in the headless test).

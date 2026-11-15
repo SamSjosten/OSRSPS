@@ -2,14 +2,16 @@ package osrsps.game.command
 
 import osrsps.game.World
 import osrsps.game.skill.SlayerMaster
+import osrsps.game.skill.SlayerSuperiors
 
 /**
  * `::slayer` shows the typing player's task, streak and points; `::slayer task <task> [amount] [master]` gives them a
  * task straight away (by its id or its name, as the cache words it: `cows`, `rockslugs`), `::slayer points n` and
- * `::slayer streak n` set those, and `::slayer clear` takes the task away, so a test starts anywhere in a task.
+ * `::slayer streak n` set those, `::slayer clear` takes the task away, so a test starts anywhere in a task, and
+ * `::slayer superior` puts the task's superior out for the player beside them, as a 1 in 200 kill would.
  */
 fun CommandRegistry.registerSlayerCommands(world: World) {
-    val usage = "::slayer [task <id|name> [amount] [master] | points n | streak n | clear]"
+    val usage = "::slayer [task <id|name> [amount] [master] | points n | streak n | clear | superior]"
     register("slayer", usage) {
         val slayer = world.slayer
         when (args.firstOrNull()?.lowercase()) {
@@ -38,6 +40,12 @@ fun CommandRegistry.registerSlayerCommands(world: World) {
                 val value = args.getOrNull(1)?.toIntOrNull()?.takeIf { args.size == 2 && it >= 0 } ?: fail("Usage: $usage")
                 if (args[0].equals("points", ignoreCase = true)) slayer.setPoints(player, value) else slayer.setStreak(player, value)
                 reply("Streak ${slayer.streak(player)}, ${slayer.points(player)} points.")
+            }
+            "superior" -> {
+                val task = slayer.task(player) ?: fail("No task")
+                val superior = SlayerSuperiors.BY_TASK[task.id] ?: fail("${task.nameUpper} have no superior in yet")
+                val npc = slayer.superiors.spawn(player, superior, player.x + 1, player.z, player.level) ?: fail("No room for it")
+                reply("Put out ${npc.type.name} #${npc.index}.")
             }
             "clear" -> {
                 slayer.clear(player)

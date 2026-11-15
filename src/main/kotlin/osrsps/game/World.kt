@@ -451,6 +451,7 @@ class World(
     val combat = Combat(
         equipment, attackStyles, npcCombat, rangedWeapons, prayerBoosts = { prayers.boosts(it) },
         slayerHelm = { player, npc -> slayer.helm(player, npc) },
+        notYours = { player, npc -> slayer.superiors.barred(player, npc) },
     )
 
     /** The prayer book; see [Prayers]. */
@@ -1382,6 +1383,7 @@ class World(
         encounters.process()
         archiveRaids.process()
         thieving.process()
+        slayer.superiors.process()
         // Before NPCs move, so a creature a trap lures this tick takes its first step this tick.
         hunter.process()
         npcs.process()
@@ -2732,9 +2734,10 @@ class World(
      * they are everyone's from the start (guessed).
      */
     fun dropLoot(npc: Npc, killer: Player?) {
-        val def = npcDrops[npc.type] ?: return
+        // A superior's three rolls on its normal counterpart's table come after its own drops.
+        val drops = npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty()
         val owner = killer?.takeIf { !it.loggedOut }?.saveKey
-        for (drop in def.roll(random)) {
+        for (drop in drops) {
             if (owner != null) {
                 groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, owner, GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.LOOT_DESPAWN_TICKS)
                 killer?.let { lootNotifications.dropped(it, drop.type, drop.count) }

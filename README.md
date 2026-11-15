@@ -332,7 +332,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::if id [side]` | Opens interface `id` bare in the main game area (or the side panel with `side`), for checking it opens, moves with a layout change and closes |
 | `::setlevel skill\|all level` | Sets a skill's XP to what the level needs and its current level to match. `::setlevel attack 99` |
 | `::addxp skill xp` | Adds XP, one decimal place allowed (`::addxp cooking 17.5`); levelling raises the current level too. Exact: the XP rate doesn't apply |
-| `::slayer [task <id\|name> [amount] [master] \| points n \| streak n \| clear]` | Alone, your Slayer task, streak and points. `task` gives you a task straight away (`::slayer task cows 20 vannaka`; the master's most when no amount, Aya's when no master), `points` and `streak` set those, `clear` takes the task away |
+| `::slayer [task <id\|name> [amount] [master] \| points n \| streak n \| clear \| superior]` | Alone, your Slayer task, streak and points. `task` gives you a task straight away (`::slayer task cows 20 vannaka`; the master's most when no amount, Aya's when no master), `points` and `streak` set those, `clear` takes the task away, `superior` puts the task's superior out beside you |
 | `::xprate [rate\|restore]` | Shows or sets the server-wide XP rate, 0.1 to 1000 in tenths (`::xprate 5`, `::xprate 2.5`); every XP drop is multiplied by it, rounded down to a tenth. Kept in data/xp-rate.txt (outside git), so it lasts across restarts and deploys. `restore` goes back to the rate before the last change. 1 is live's |
 | `::farmtick [ticks]` | Moves your own farming clock on that many five-minute farming ticks (1 by default, up to 4,096) and grows your patches to it: allotments grow every second tick. For good: your crops keep growing from there |
 | `::farmclock <pause\|run>` | Holds your farming clock where it is, so your crops grow only by `::farmtick` (for tests that check each stage), or runs it again, the crops catching up on the time it was held; a login runs it again too |
@@ -1106,6 +1106,14 @@ A black mask or Slayer helmet worn on task (`combat/SlayerHelm.kt`) makes melee 
 the task's monster; the imbued ones (named "(i)") make ranged and magic 15% more of both too. Every charge of the mask
 and every recolour of the helmet is known by its cache name.
 
+Superior Slayer monsters (`game/skill/SlayerSuperiors.kt`, words under `slayer_superior.*`): with Bigger and Badder
+bought and on, a kill on task (finishing it or having dealt the most damage) has a 1 in 200 chance of putting its
+superior out where it died, for that player alone; another player's attack is refused. Its kill gives its own Slayer
+XP, task or not, and its normal counterpart's table three times, one roll of which may be a superior unique (imbued
+heart, dust or mist battlestaff, eternal gem). It goes 2 minutes on if never attacked, or at the next 30-second check
+once its player has died, logged out or left. Built: the chasm crawler (cave crawlers) and the giant rockslug
+(rockslugs, 2 flat armour). `::slayer superior` puts the task's superior out at once, for tests.
+
 | Slayer behaviour | Source |
 |------------------|--------|
 | Tasks, masters' weights and amounts, combat and Slayer level gates, rewards' bits and costs | cache 242, db tables 113, 114, 117 (column order from osrs-dumps' dump.dbtable) |
@@ -1133,9 +1141,11 @@ and every recolour of the helmet is known by its cache name.
 | The Buy tab's items, costs, set sizes and ops (one at a time for the herb sack, rune pouch and looting bag) | the 242 client's script slayer_rewards_buy_draw and enums 840 to 842 (osrs-dumps) |
 | The black mask's and Slayer helmet's 7/6 melee and the imbued ones' 15% ranged and magic, on task only | OSRS Wiki, Black mask and Slayer helmet (Mod Ash's "7/6") |
 | Rounding down after each multiply; the ranged 15% before the twisted bow's scaling; the magic 15% before an elemental weakness, which adds its share unmasked (the Wiki's DPS calculator) | inferred |
+| Superiors: the 1/200 chance with Bigger and Badder (bit 35), on task and for the finisher or top damager; one at a time, theirs alone, the two messages; their own XP off task too; three rolls on the normal table, one maybe a unique at 1/(200 - (level + 55)² / 125) per table; 2 minutes ignored, 30-second checks once gone; the chasm crawler's and giant rockslug's stats, XP and flat armour | OSRS Wiki, Superior slayer monster, Chasm Crawler, Giant rockslug (read 2026-11-15); Mod Ash on the despawn |
+| A superior's kill counting one off the task; a unique hit taking one of the three rolls, the first table checked first; "left" as another level or 32 tiles away; it stands still; the normal monsters' animations | guessed |
 | A Buy taking as many as the points and inventory allow, refusing only when not one fits; its refusals' words | guessed |
 | Every message's words | unsourced: the Words thread fills them |
-| Not built yet: Konar and her places, the salve amulet not stacking with the mask (no salve amulet yet), making the Slayer helmet, the slayer ring's teleports, Task Storage, the diary's seventh block slot, equipment, superiors, boss tasks, Krystilia (the Wilderness), Aya's blessed axe talk, Kuradal's Slayer cape sale and talk about Duradel, the Slayer cape overlooking a master's combat level | |
+| Not built yet: Konar and her places, the salve amulet not stacking with the mask (no salve amulet yet), making the Slayer helmet, the slayer ring's teleports, Task Storage, the diary's seventh block slot, the superiors of Slayer monsters not in yet, boss tasks, Krystilia (the Wilderness), Aya's blessed axe talk, Kuradal's Slayer cape sale and talk about Duradel, the Slayer cape overlooking a master's combat level | |
 
 ## Items and inventory
 

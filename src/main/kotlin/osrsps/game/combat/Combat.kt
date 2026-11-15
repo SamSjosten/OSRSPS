@@ -69,6 +69,8 @@ class Combat(
     private val prayerBoosts: (Player) -> PrayerBoosts = { PrayerBoosts.NONE },
     /** What the player's black mask or Slayer helmet does against this NPC; see [SlayerHelm]. */
     private val slayerHelm: (Player, Npc) -> SlayerHelm = { _, _ -> SlayerHelm.NONE },
+    /** Why [Player] may not attack [Npc] that belongs to another player (a Slayer superior), null when they may. */
+    private val notYours: (Player, Npc) -> Line? = { _, _ -> null },
 ) {
     /**
      * The level [player] defends with against an attack of [type], before the style bonus: their Defence, or for magic
@@ -145,13 +147,13 @@ class Combat(
 
     /**
      * Why no attack of [player]'s reaches [npc], as the line that tells them, null when one can: its Slayer level
-     * ([slayerGated]), or being shut out of where it is fought ([shutOut]). Asked wherever an attack begins, goes on,
+     * ([slayerGated]), being shut out of where it is fought ([shutOut]), or its being another player's ([notYours]). Asked wherever an attack begins, goes on,
      * or spreads to another NPC.
      */
     fun barred(player: Player, npc: Npc): Line? = when {
         slayerGated(player, npc) -> CombatLines.SLAYER_LEVEL
         shutOut(player, npc) -> GameLines.CANT_REACH
-        else -> null
+        else -> notYours(player, npc)
     }
 
     /**

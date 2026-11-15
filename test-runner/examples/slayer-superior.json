@@ -1,0 +1,19 @@
+{
+ "name": "Slayer step 6: a chasm crawler put out with ::slayer superior on a cave crawler task east of Lumbridge Castle, the superior's message read by key, and its kill counting one off the task, read off assertVarp, with ::keys on",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "keys"},
+  {"step": "command", "text": "::tele 3236 3220 0", "expectMessage": "Teleported to 3236, 3220, 0", "comment": "the grass east of the castle"},
+  {"step": "command", "text": "::setlevel all 40", "expectMessage": "Every skill"},
+  {"step": "command", "text": "::slayer task cave crawlers 5 vannaka", "expectMessage": "Task: 5 cave crawlers from vannaka."},
+  {"step": "command", "text": "::slayer superior", "expectMessage": "Put out Chasm Crawler #", "comment": "as a 1 in 200 cave crawler kill with Bigger and Badder would"},
+  {"step": "assertMessage", "contains": "[slayer_superior.appeared]"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "command", "text": "::kill chasm crawler", "expectMessage": "Killed Chasm Crawler #"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "assertVarp", "id": 394, "value": 4, "comment": "slayer_count: the superior counts as one of the task"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
