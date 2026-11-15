@@ -1085,6 +1085,19 @@ public class RunnerTest
 	}
 
 	@Test
+	public void castOnPlayerRetriesUntilItCan() throws Exception
+	{
+		game.castError = "no player \"test2\" in view";
+		runner.start(script("{\"step\":\"castOnPlayer\",\"interfaceId\":218,\"component\":75,\"player\":\"test2\"}"), "file");
+		assertNull(cycle());
+		assertEquals("cast 218:75 on player test2", game.actions.get(game.actions.size() - 1));
+		game.castError = null;
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals("cast 218:75 on test2", r.steps.get(0).description);
+	}
+
+	@Test
 	public void castOnNpcRetriesUntilItCanThenSpotanimsCountOnlyAfterIt() throws Exception
 	{
 		game.castError = "no NPC \"Man\" in view";

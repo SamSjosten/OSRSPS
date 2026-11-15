@@ -5,6 +5,7 @@ import osrsps.game.Player
 import osrsps.game.WearPos
 import osrsps.game.Wilderness
 import osrsps.game.World
+import osrsps.game.combat.Teleblock
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Dialogue
 import osrsps.game.dialogue.Lines
@@ -275,9 +276,9 @@ private suspend fun ScriptContext.invoke(world: World, used: Int, worn: Boolean)
         // Only an imbued sceptre can be empty; one that isn't would have crumbled.
         return world.message(player, SkullSceptreLines.NO_CHARGES)
     }
-    if (Wilderness.level(player.x, player.z) > Wilderness.TELEPORT_LIMIT) {
-        world.message(player, HomeTeleportLines.WILDERNESS)
-        world.message(player, HomeTeleportLines.WILDERNESS_2)
+    val refusal = Teleblock.refusal(player, Wilderness.level(player.x, player.z))
+    if (refusal.isNotEmpty()) {
+        for (line in refusal) world.message(player, line)
         return
     }
     player.charges[SkullSceptre.CHARGES] = charges - 1
