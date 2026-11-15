@@ -87,7 +87,8 @@
   },
   {
    "step": "assertDialogue",
-   "contains": "[anna_jones.greeting]"
+   "contains": "[anna_jones.greeting",
+   "comment": "her greeting carries the player's name (name=...), so match the key's start"
   },
   {
    "step": "continueDialogue"

@@ -78,11 +78,11 @@
   },
   {
    "step": "assertLocation",
-   "x": 3231,
-   "y": 9802,
+   "x": 3232,
+   "y": 9801,
    "plane": 0,
    "timeoutMs": 20000,
-   "comment": "a dungeon ladder keeps the player's tile"
+   "comment": "south of the ladder below: on the real map the client walks round to the ladder's south side before climbing (inferred from the 215 run, 15 Nov), and the landing keeps that side"
   },
   {
    "step": "waitTicks",
@@ -97,11 +97,11 @@
   },
   {
    "step": "assertLocation",
-   "x": 3231,
-   "y": 3402,
+   "x": 3232,
+   "y": 3401,
    "plane": 0,
    "timeoutMs": 20000,
-   "comment": "back up"
+   "comment": "back up, south of the ladder"
   },
   {
    "step": "command",

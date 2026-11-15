@@ -576,6 +576,17 @@
       "source": "OSRS Wiki, Hobgoblin (Level 42, id 3050, with a spear) and the DPS calculator's 3050, read 2026-11-02: speed 6, max hit 5, stab, the bonuses, aggressive. The respawn is taken as the level 28's (inferred). Which of hobgoblin_attack and hobgoblin_spear_attack it thrusts with is guessed, as is the default hunt range"
     },
     {
+      "npcs": ["hillgiant_boss"],
+      "attackSpeed": 6, "maxHit": 22, "attackType": "crush", "attackBonus": 100, "strengthBonus": 68, "rangedAttack": 100,
+      "defence": { "stab": 35, "slash": 40, "crush": 45, "magic": 20, "light": 20, "standard": 20, "heavy": 20 },
+      "anims": { "attack": "giant_update_basic_attack", "defend": "giant_update_basic_defend", "death": "giant_update_basic_death" },
+      "respawnTicks": 15,
+      "weakness": { "element": "earth", "percent": 20 },
+      "immune": ["poison", "venom"],
+      "xpBonus": 7.5,
+      "source": "OSRS Wiki, Obor, read 2026-11-15: speed 6, max hit 22 melee (his thrown rocks' 26 is the fight's, Obor.kt), crush, attack +100 and strength +68, ranged attack +100, the defence bonuses, weak to earth 20%, immune to poison and venom, XP bonus 7.5%. He stands and walks with giant_update_basic_ready and _walk, so the giant_update_basic fight animations are taken. He never respawns by himself: the respawn here is unused, his lair puts him back (GiantLairs)"
+    },
+    {
       "npcs": ["giant", "giant2", "giant3", "giant4", "giant5", "giant6"],
       "attackSpeed": 6, "maxHit": 4, "attackType": "crush", "attackBonus": 18, "strengthBonus": 16,
       "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },

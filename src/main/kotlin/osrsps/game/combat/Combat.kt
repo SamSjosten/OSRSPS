@@ -346,13 +346,19 @@ class Combat(
     fun npcAttack(npc: Npc, player: Player): NpcAttack? = npcAttack(npc, player, npcCombat[npc.type]?.attackType ?: return null)
 
     /**
-     * [npc]'s roll at [player] with an attack of [type]: its own attack type, or magic for a melee NPC's spell
-     * ([NpcMeleeSpell]), which rolls with its Magic level and its magic attack bonus.
+     * [npc]'s roll at [player] with an attack of [type]: its own attack type, magic for a melee NPC's spell
+     * ([NpcMeleeSpell]), which rolls with its Magic level and its magic attack bonus, or ranged for a melee NPC's
+     * throw, with its Ranged level and its ranged attack bonus ([NpcCombatDef.rangedAttack]).
      */
     fun npcAttack(npc: Npc, player: Player, type: AttackType): NpcAttack? {
         val def = npcCombat[npc.type] ?: return null
         val style = style(player)
-        val bonus = if (type == def.attackType) def.attackBonus else if (type == AttackType.MAGIC) def.magicAttack else 0
+        val bonus = when {
+            type == def.attackType -> def.attackBonus
+            type == AttackType.MAGIC -> def.magicAttack
+            type == AttackType.RANGED -> def.rangedAttack
+            else -> 0
+        }
         return NpcAttack(
             attackRoll = CombatMath.npcAttackRoll(npcAttackLevel(npc, type), bonus),
             defenceRoll = playerDefenceRoll(player, style, bonuses(player), type, prayerBoosts(player)),

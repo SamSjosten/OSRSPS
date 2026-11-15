@@ -45,6 +45,7 @@ import osrsps.game.skill.magic.BoltEnchantLines
 import osrsps.game.skill.MiningLines
 import osrsps.game.skill.PickpocketGearLines
 import osrsps.game.skill.PickpocketLines
+import osrsps.game.skill.RunecraftLines
 import osrsps.game.skill.SmithingLines
 import osrsps.game.skill.ThievingLines
 import osrsps.game.skill.ThievingLockLines
@@ -52,6 +53,7 @@ import osrsps.game.skill.WoodcuttingLines
 import osrsps.game.skill.farming.FarmingLines
 import osrsps.game.skill.farming.GardenerLines
 import osrsps.game.skill.farming.NoteLines
+import osrsps.game.skill.farming.ToolStoreLines
 import osrsps.game.social.ClanLines
 import osrsps.game.social.FriendsChatLines
 import osrsps.game.social.ReportLines
@@ -158,6 +160,8 @@ object DialogueLines {
         DummyLines,
         EdgevilleClosedLines,
         EdgevilleDungeonLines,
+        OborLines,
+        GiantBonesLines,
         StrongholdLines,
         SkullSceptreLines,
         SolztunLines,
@@ -236,7 +240,7 @@ object DialogueLines {
         SwampCaveSlayerLines,
         HamHideoutLines,
         HamStoreroomsLines,
-        FarmsRoadsLines,
+        ToolStoreLines,
         FarmingLines,
         GardenerLines,
         NoteLines,
@@ -339,6 +343,7 @@ object DialogueLines {
         RottenPotatoLines,
         RovinLines,
         RuantunLines,
+        RunecraftLines,
         ScavvoLines,
         SchoolboyLines,
         SchoolgirlLines,

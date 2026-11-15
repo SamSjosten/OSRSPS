@@ -171,6 +171,9 @@ import osrsps.game.content.registerWizardsTowerPeople
 import osrsps.game.content.registerJalarast
 import osrsps.game.content.registerRick
 import osrsps.game.content.registerBones
+import osrsps.game.content.GiantLairs
+import osrsps.game.content.registerGiantBones
+import osrsps.game.content.registerObor
 import osrsps.game.content.registerRoguesDen
 import osrsps.game.content.registerRottenPotato
 import osrsps.game.content.registerCombatTutors
@@ -408,6 +411,9 @@ class World(
     /** What NPCs do on their own: timers, per-tick actions and deaths that content gives them; see [NpcScripts]. */
     val npcScripts = NpcScripts(npcs) { tick }
 
+    /** The giant bosses' lairs ([GiantLairs]): Obor's. */
+    val giantLairs = GiantLairs(this)
+
     val scripts = ScriptRunner(handlers, interfaces::closeModals) { tick }
 
     /** Items on the ground: drops, takes, their timers and item spawns. */
@@ -446,7 +452,7 @@ class World(
     /** The drop item warning setting; see [DropWarnings]. */
     private val dropWarnings = DropWarnings(objTypes, scripts, { dialogues }) { player, slot -> groundObjs.drop(player, slot) }
 
-    private val inventoryTab: InventoryTab = InventoryTab(
+    internal val inventoryTab: InventoryTab = InventoryTab(
         objTypes, scripts, interfaces::closeModals,
         wear = { player, slot -> equipmentTab.wear(player, slot) },
         onDrop = dropWarnings::drop,
@@ -559,7 +565,7 @@ class World(
 
     private val locInteractions = LocInteractions(
         locs, collision, movement, handlers, scripts, doors, gates, words = ::textFor, inInstance = { x, z -> instances.at(x, z) != null },
-        forInstances = { it in ArchiveRaids.INSTANCE_LOCS },
+        forInstances = { it in ArchiveRaids.INSTANCE_LOCS || it in GiantLairs.INSTANCE_LOCS },
     )
 
     /** Lets loc type [id] be used from the tiles [tiles] gives, as a stepping stone from the bank; see [LocInteractions.useFrom]. */
@@ -780,6 +786,9 @@ class World(
     /** The River Lum's canoe stations; see [Canoes]. */
     val canoes = Canoes(this, woodcutting.data)
 
+    /** Runecraft's ruins, talismans, tiaras and altars; see [osrsps.game.skill.Runecraft]. */
+    val runecraft = osrsps.game.skill.Runecraft(this)
+
     val firemaking = Firemaking(this, collision)
 
     val mining = Mining(this)
@@ -956,6 +965,9 @@ class World(
         registerVarrock(this)
         registerArchiveLobby(this)
         archiveRaids.register()
+        // After the raid, which sets the combat's shut-out rule afresh; the lairs add theirs to it.
+        registerObor(this, giantLairs)
+        registerGiantBones(this)
         registerRoguesDen(this)
         registerCrops(this)
         ducks.register()
@@ -985,6 +997,7 @@ class World(
         decanting.register()
         teleports.register()
         boltEnchant.register()
+        runecraft.register()
         loadDialogue()
     }
 
@@ -1485,6 +1498,7 @@ class World(
                         player.weaponSince = tick
                     }
                     specialAttacks.weaponChanged(player, weapon)
+                    runecraft.wornChanged(player)
                 }
                 equipmentTab.updateVars(player)
                 bankScreen.updateVars(player)

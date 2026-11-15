@@ -42,7 +42,7 @@ class HeadlessLumbridgeSwampRestTest {
             LocType(LumbridgeSwamp.SHED_DOOR_OPEN, "null"),
             type(LumbridgeSwamp.TOOLS, "Tools", "Take"),
             // A multiloc, as on the map: its Enter comes from the type it shows, but the client sends this id.
-            LocType(LumbridgeSwamp.WATER_RUINS, "null", collision = LocCollisionType(width = 3, length = 3), multiloc = true),
+            LocType(WATER_RUINS, "null", collision = LocCollisionType(width = 3, length = 3), multiloc = true),
             type(LumbridgeSwamp.RAFT, "Broken Raft", "Grapple"),
         ).associateBy { it.id },
     )
@@ -50,14 +50,14 @@ class HeadlessLumbridgeSwampRestTest {
     /** As the 242 map has them. */
     private val door = ZoneLoc(LumbridgeSwamp.SHED_DOOR, LocShape.WALL_STRAIGHT, 0, 3202, 3169, 0)
     private val tools = ZoneLoc(LumbridgeSwamp.TOOLS, LocShape.CENTREPIECE_STRAIGHT, 0, 3203, 3170, 0)
-    private val ruins = ZoneLoc(LumbridgeSwamp.WATER_RUINS, LocShape.CENTREPIECE_STRAIGHT, 0, 3184, 3164, 0)
+    private val ruins = ZoneLoc(WATER_RUINS, LocShape.CENTREPIECE_STRAIGHT, 0, 3184, 3164, 0)
     private val raft = ZoneLoc(LumbridgeSwamp.RAFT, LocShape.GROUND_DECOR, 0, 3252, 3179, 0)
 
     private val objs = listOf(
         ObjType(LumbridgeSwamp.DRAMEN_STAFF, "Dramen staff", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, internalName = "dramen_staff"),
         ObjType(LumbridgeSwamp.RAKE, "Rake", tradeable = true, internalName = "rake"),
         ObjType(LumbridgeSwamp.SPADE, "Spade", tradeable = true, internalName = "spade"),
-        ObjType(LumbridgeSwamp.WATER_TALISMAN, "Water talisman", tradeable = true, internalName = "water_talisman"),
+        ObjType(WATER_TALISMAN, "Water talisman", tradeable = true, internalName = "water_talisman"),
         // A bronze crossbow, as ranged-weapons.json names the plain crossbow: it fires bolts.
         ObjType(CROSSBOW, "Crossbow", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON, internalName = "crossbow"),
         ObjType(LumbridgeSwamp.MITH_GRAPPLE, "Mith grapple", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.AMMO, internalName = "xbows_grapple_tip_bolt_mithril_rope"),
@@ -146,19 +146,18 @@ class HeadlessLumbridgeSwampRestTest {
     }
 
     @Test
-    fun `the Water Altar's ruins refuse a water talisman and Enter, as Runecraft isn't built`(@TempDir dir: Path) {
+    fun `the Water Altar's ruins refuse a bare Enter and take a water talisman`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.tele(3184, 3161)
-                client.command("item ${LumbridgeSwamp.WATER_TALISMAN}")
-                val slot = client.slotOf(LumbridgeSwamp.WATER_TALISMAN)
-                client.locTarget(ruins.id, ruins.x, ruins.z, INVENTORY, INVENTORY_ITEMS, slot, LumbridgeSwamp.WATER_TALISMAN)
-                client.awaitMessage("[lumbridge_swamp.runecraft_closed]")
-                assertEquals(1, client.held(LumbridgeSwamp.WATER_TALISMAN))
-
-                client.locOp(ruins.id, ruins.x, ruins.z, LumbridgeSwamp.ENTER)
-                client.await("the second refusal") { if (client.messages().count { it.text == "[lumbridge_swamp.runecraft_closed]" } == 2) Unit else null }
+                client.locOp(ruins.id, ruins.x, ruins.z, ENTER)
+                client.awaitMessage("[game.nothing_interesting]")
+                client.command("item $WATER_TALISMAN")
+                val slot = client.slotOf(WATER_TALISMAN)
+                client.locTarget(ruins.id, ruins.x, ruins.z, INVENTORY, INVENTORY_ITEMS, slot, WATER_TALISMAN)
+                client.awaitMessage("[runecraft.enter]")
+                assertEquals(1, client.held(WATER_TALISMAN))
             }
         }
     }
@@ -225,6 +224,9 @@ class HeadlessLumbridgeSwampRestTest {
     }
 
     private companion object {
+        const val WATER_RUINS = 34815
+        const val WATER_TALISMAN = 1444
+        const val ENTER = 1
         const val CROSSBOW = 837
         const val RANGED = 4
 

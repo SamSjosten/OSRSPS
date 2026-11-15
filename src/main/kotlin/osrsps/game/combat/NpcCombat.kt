@@ -90,6 +90,11 @@ data class NpcCombatDef(
     val source: String,
     /** The Wiki's magic attack bonus, which the twisted bow scales on when it beats the Magic level. */
     val magicAttack: Int = 0,
+    /**
+     * The Wiki's ranged attack bonus, for a melee NPC that also throws (Obor's rocks): what a ranged attack of its rolls
+     * with, as [magicAttack] is for its spells.
+     */
+    val rangedAttack: Int = 0,
     /** The Wiki's elemental weakness, null for "No elemental weakness". */
     val weakness: ElementalWeakness? = null,
     /** The poison severity its attacks give ([Poison]), 0 for none: five times the Wiki's starting damage. */
@@ -205,7 +210,7 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
          * ] }
          * ```
          *
-         * An animation may be `null` for none. An entry may add `"magicAttack"`, `"weakness": { "element": "water", "percent": 10 }`,
+         * An animation may be `null` for none. An entry may add `"magicAttack"`, `"rangedAttack"`, `"weakness": { "element": "water", "percent": 10 }`,
          * `"poison"` (the Wiki's starting damage of the poison its attacks give), `"immune": ["poison", "venom", "freeze"]` and
          * `"drainCap": { "defence": 60 }` (the most of a level drains can take, in percent) and `"aggressive"`: `true`, or
          * `{ "huntRange": 3, "ignoresLevels": true, "tolerant": false }` with any of the three ([NpcAggression]), and
@@ -278,6 +283,7 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                 respawnTicks = entry.required("respawnTicks").jsonPrimitive.int.also { require(it > 0) { "respawn $it" } },
                 source = entry.required("source").jsonPrimitive.content.ifBlank { throw IllegalArgumentException("blank source") },
                 magicAttack = entry["magicAttack"]?.jsonPrimitive?.int ?: 0,
+                rangedAttack = entry["rangedAttack"]?.jsonPrimitive?.int ?: 0,
                 weakness = entry["weakness"]?.jsonObject?.let { weakness ->
                     ElementalWeakness(
                         Element.parse(weakness.required("element").jsonPrimitive.content),
