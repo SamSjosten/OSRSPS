@@ -21,7 +21,8 @@
     "Hunter step 5 (2026-11-15): the pitfall creatures of npc-spawns/hunter-pitfalls.json, and the pit, spiked pit and the big cats full pits from the Pitfall page. The falling-in form (19229, 19230) and the antelopes full pit (53024) have no Wiki text yet.",
     "Hunter step 6a (2026-11-15): the butterflies and moths of npc-spawns/hunter-butterflies.json, from each creature page.",
     "Hunter step 6b (2026-11-15): the Gielinor implings and the crystal impling's seventeen names, from each impling page (the baby impling's overworld version).",
-    "Hunter step 7 (2026-11-15): Matthias, the falcons on their prey and the falconry kebbits of npc-spawns/hunter-falconry.json, from each page."
+    "Hunter step 7 (2026-11-15): Matthias, the falcons on their prey and the falconry kebbits of npc-spawns/hunter-falconry.json, from each page.",
+    "Hunter step 9 (2026-11-15): the Hunter shops' keepers of npc-spawns/hunter-shops.json, from each page."
   ],
   "npcs": [
     {"npc": 0, "name": "Tool Leprechaun"},
@@ -120,6 +121,7 @@
     {"npc": 1347, "name": "Sabre-toothed kebbit", "wiki": "Sabre-toothed kebbit page, infobox"},
     {"npc": 1348, "name": "Barb-tailed kebbit", "wiki": "Barb-tailed kebbit page, infobox"},
     {"npc": 1349, "name": "Wild kebbit", "wiki": "Wild kebbit page, infobox"},
+    {"npc": 1350, "name": "Artimeus", "wiki": "Artimeus page, infobox"},
     {"npc": 1351, "name": "Seth Groats"},
     {"npc": 1352, "name": "Tassie Slipcast"},
     {"npc": 1361, "name": "Jimmy the Chisel"},
@@ -133,6 +135,7 @@
     {"npc": 1421, "name": "Raccoon"},
     {"npc": 1497, "name": "Fishing spot", "wiki": "Fishing spot (frog spawn, eels) page, infobox"},
     {"npc": 1498, "name": "Fishing spot", "wiki": "Fishing spot (frog spawn, eels) page, infobox"},
+    {"npc": 1501, "name": "Aleck", "wiki": "Aleck page, infobox"},
     {"npc": 1505, "name": "Ferret", "wiki": "Ferret (Hunter) page, infobox"},
     {"npc": 1518, "name": "Fishing spot", "also": [1521], "wiki": "Fishing spot (small net, bait) page, infobox"},
     {"npc": 1519, "name": "Fishing spot", "also": [1522], "wiki": "Fishing spot (cage, harpoon) page, infobox"},
@@ -399,6 +402,7 @@
     {"npc": 3113, "name": "Woman", "wiki": "Woman page, infobox (ids 3111 to 3113)"},
     {"npc": 3114, "name": "Farmer"},
     {"npc": 3115, "name": "Farid Morrisane (ores and bars)"},
+    {"npc": 3218, "name": "Farmer Bea", "wiki": "Bea page, infobox"},
     {"npc": 3231, "name": "Ellis"},
     {"npc": 3232, "name": "Wizard Jalarast"},
     {"npc": 3243, "name": "Farmer"},
@@ -779,6 +783,7 @@
     {"npc": 13620, "name": "Mazchna"},
     {"npc": 13623, "name": "Kuradal"},
     {"npc": 14139, "name": "Jonny the Beard", "also": [5213, 14138]},
+    {"npc": 14832, "name": "Elder Strom", "wiki": "Elder Strom page, infobox"},
     {"npc": 16277, "name": "Dr Harlow", "also": [3480]},
     {"npc": 16692, "name": "Record Keeper"},
     {"npc": 16693, "name": "Wizard apprentice"},

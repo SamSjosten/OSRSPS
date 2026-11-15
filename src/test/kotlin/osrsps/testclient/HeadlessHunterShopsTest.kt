@@ -1,0 +1,98 @@
+package osrsps.testclient
+
+import java.nio.file.Path
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import org.junit.jupiter.api.io.TempDir
+import osrsps.game.GameRandom
+import osrsps.game.NpcType
+import osrsps.game.NpcTypes
+import osrsps.game.ObjType
+import osrsps.game.ObjTypes
+import osrsps.game.World
+import osrsps.game.npc.NpcSpawn
+import osrsps.game.skill.hunter.HunterShops
+import osrsps.map.CollisionMap
+
+/**
+ * Hunter step 9 through the headless client: a box trap pack opened into 100 box traps; Asyff's Fur Clothing panel, its
+ * Value, and Buy on a larupia top taking the tatty fur before the perfect one and the fee, then a larupia hat refused
+ * without its perfect fur once it is used. Asyff stands two tiles east of where the player logs in (3222, 3218).
+ */
+class HeadlessHunterShopsTest {
+    private val asyff = NpcType(HunterShops.ASYFF, "Asyff", ops = listOf("Talk-to", null, "Trade", "Fur Clothing", null), internalName = "tailorp")
+
+    private fun server(dir: Path) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
+        val objs = arrayOfNulls<ObjType>(30_000)
+        objs[HunterShops.COINS] = ObjType(HunterShops.COINS, "Coins", stackable = true, tradeable = true)
+        objs[BOX_TRAP_PACK] = ObjType(BOX_TRAP_PACK, "Box trap pack", stackable = false, tradeable = false, iops = listOf("Open", null, null, null, "Drop"))
+        objs[BOX_TRAP] = ObjType(BOX_TRAP, "Box trap", stackable = true, tradeable = true)
+        for (piece in HunterShops.PIECES) {
+            objs[piece.item] = ObjType(piece.item, "Piece ${piece.item}", stackable = false, tradeable = true)
+            for (fur in piece.furs) objs[fur] = ObjType(fur, "Fur $fur", stackable = false, tradeable = true)
+        }
+        World(
+            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs),
+            random = GameRandom(7),
+            npcTypes = NpcTypes.of(asyff),
+            npcSpawns = listOf(NpcSpawn(asyff, 3224, 3218, source = "test")),
+            cycleMillis = millis,
+        )
+    }
+
+    private fun HeadlessClient.count(id: Int) = inventory(BACKPACK).filter { it?.id == id }.sumOf { it!!.count }
+
+    private fun HeadlessClient.slotOf(id: Int) =
+        await("item $id in the backpack") { inventory(BACKPACK).indexOfFirst { it?.id == id }.takeIf { it >= 0 } }
+
+    private fun HeadlessClient.seen(text: String, timeoutMillis: Long = 10_000) =
+        await(text, timeoutMillis) { messages().firstOrNull { it.text == text } }
+
+    @Test
+    fun `a box trap pack opens into 100 box traps, and Asyff makes fur clothing for its fee and furs, tatty first`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("hs").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item $BOX_TRAP_PACK 1")
+                client.ifButton(osrsps.game.InventoryTab.INTERFACE, osrsps.game.InventoryTab.ITEMS, OPEN_BUTTON_OP, client.slotOf(BOX_TRAP_PACK), BOX_TRAP_PACK)
+                client.await("100 box traps") { if (client.count(BOX_TRAP) == 100) Unit else null }
+                assertEquals(0, client.count(BOX_TRAP_PACK))
+                client.command("empty")
+                client.command("item ${HunterShops.COINS} 600")
+                client.command("item $TATTY_LARUPIA 1")
+                client.command("item $LARUPIA 1")
+                client.await("the furs") { if (client.count(LARUPIA) == 1 && client.count(TATTY_LARUPIA) == 1 && client.count(HunterShops.COINS) == 600) Unit else null }
+                client.npcOp(client.await("Asyff") { client.npcs().firstOrNull { it.id == asyff.id } }.index, HunterShops.FUR_CLOTHING)
+                client.await("the panel") { if (HunterShops.PANEL in server.world.playerNamed("hs")!!.modals.values) Unit else null }
+                val top = HunterShops.PIECES.first { it.item == LARUPIA_TOP }
+                val hat = HunterShops.PIECES.first { it.item == LARUPIA_HAT }
+                client.ifButton(HunterShops.PANEL, HunterShops.PANEL_ITEMS, HunterShops.VALUE, HunterShops.PIECES.indexOf(top), top.item)
+                client.seen("[hunter.fur_value fee=100 count=1]")
+                client.ifButton(HunterShops.PANEL, HunterShops.PANEL_ITEMS, HunterShops.BUY, HunterShops.PIECES.indexOf(top), top.item)
+                client.await("the top") { if (client.count(LARUPIA_TOP) == 1) Unit else null }
+                assertEquals(0, client.count(TATTY_LARUPIA))
+                assertEquals(1, client.count(LARUPIA))
+                assertEquals(500, client.count(HunterShops.COINS))
+                // The hat takes the perfect fur and 500: bought, then refused with the fur gone.
+                client.ifButton(HunterShops.PANEL, HunterShops.PANEL_ITEMS, HunterShops.BUY, HunterShops.PIECES.indexOf(hat), hat.item)
+                client.await("the hat") { if (client.count(LARUPIA_HAT) == 1) Unit else null }
+                assertEquals(0, client.count(HunterShops.COINS))
+                client.ifButton(HunterShops.PANEL, HunterShops.PANEL_ITEMS, HunterShops.BUY, HunterShops.PIECES.indexOf(hat), hat.item)
+                client.seen("[hunter.fur_needed count=1]")
+            }
+        }
+    }
+
+    private companion object {
+        const val BACKPACK = 93
+        const val BOX_TRAP_PACK = 12742
+        const val BOX_TRAP = 10008
+        const val LARUPIA = 10095
+        const val TATTY_LARUPIA = 10093
+        const val LARUPIA_TOP = 10043
+        const val LARUPIA_HAT = 10045
+
+        /** iop1 (Open) is button op 2 (see InventoryTab.click). */
+        const val OPEN_BUTTON_OP = 2
+    }
+}
