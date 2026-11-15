@@ -136,6 +136,9 @@ class Trap(val owner: String, val kind: TrapKind, val x: Int, val z: Int, val le
     var lured: Npc? = null
     var luredTick = 0L
 
+    /** Whether the trap stands on [tx], [tz]: its own tile, or the tree it is set on. */
+    fun covers(tx: Int, tz: Int): Boolean = (x == tx && z == tz) || (anchor != null && anchor.x == tx && anchor.z == tz)
+
     /** Where the lured creature last stood off the trap, for the side it steps in from. */
     var luredFromX = 0
     var luredFromZ = 0
@@ -426,7 +429,10 @@ class Traps(private val world: World, private val collision: CollisionMap) {
             return false
         }
         val occupied = !kind.fits(world.locs.at(x, z, level)) || world.locs.reverting(x, z, level) ||
-            (anchor != null && (!world.locs.exists(anchor) || world.locs.reverting(anchor.x, anchor.z, anchor.level)))
+            (anchor != null && (!world.locs.exists(anchor) || world.locs.reverting(anchor.x, anchor.z, anchor.level))) ||
+            // A standing trap keeps its own tile and its tree's whatever it shows: a net trap's 1 by 2 loc may start on
+            // the tree's tile and leave the net's without a loc of its own.
+            traps.any { it.level == level && (it.covers(x, z) || anchor != null && it.covers(anchor.x, anchor.z)) }
         // Ours: an instance's locs answer only the ones it lets through, so a trap there could never be taken down.
         if (occupied || world.instances.inDynamicArea(x, z) || collision[x, z, level] and CollisionFlag.BLOCK_WALK != 0) {
             world.message(player, HunterLines.CANT_HERE)

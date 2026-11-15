@@ -44,4 +44,14 @@ class NetTrapsTest {
         }
         assertEquals(21, NetTraps.KINDS.flatMap { k -> listOf(k.treeSet, k.set, k.treeReset, k.broken, k.failing, creature(k).catching, creature(k).full) }.toSet().size)
     }
+
+    @Test
+    fun `a net trap stands on its net's tile and its tree's, whatever loc shows`() {
+        val tree = osrsps.game.zone.ZoneLoc(NetTraps.SWAMP.tree, 10, 0, 3222, 3219, 0)
+        // The net south of the tree: both tiles stay taken while the trap stands, so nothing else goes on either.
+        val trap = Trap("owner", NetTraps.SWAMP, 3222, 3218, 0, tree, 2)
+        assertTrue(trap.covers(3222, 3218))
+        assertTrue(trap.covers(3222, 3219))
+        assertTrue(!trap.covers(3223, 3218))
+    }
 }
