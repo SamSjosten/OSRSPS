@@ -2178,9 +2178,12 @@ the ditch: nothing north of it is spawned yet, and players can't fight each othe
 | The screen is the Doomsayer's warning 7 (enum 688, `cws_warning_id` 14801 set to 7): `cws_warning_7` (3857) counts the times it was answered, 0 to 6, and from the seventh showing its "Don't ask me this again" toggle turns it off (7) or on again (6); off, the ditch is crossed without it | the Wiki's Doomsayer page (toggleable after the seventh time seen) and the client's `cws_set_toggle` (6 shows the toggle on, 7 off); counting on the answer rather than the opening guessed |
 | The Wilderness level is the client's own sum (proc `wilderness_level`): one level every 8 tiles from z 3520 between x 2944 and 3391, to 56 at the north edge, and the caves' band 6,400 tiles up with the client's fixed and shifted squares | the 242 client script; the Wiki's Wilderness page (level 1 at the ditch, 56 in the far north) |
 | Inside the Wilderness means a level above 0 north of the ditch (z 3523 and up on the surface): there the Wilderness overlay (`pvp_icons` 90) opens in its frame slot, showing the skull and "Level: n" (drawn by the client), and varbit `inside_wilderness` (5963, RuneLite's `Varbits.IN_WILDERNESS`) is 1; leaving closes the overlay and sets it to 0. The overlay is no longer opened at login | the client's `pvp_icons_layout` (the skull shows whenever the overlay is open, so live can't have it open in Lumbridge); where inside starts, and both changing on the step that crosses, inferred |
-| The Doomsayer's Toggle warnings list, PvP, skulls, Wilderness deaths and everything north of the ditch | not built: later steps |
+| Attack (player option 2) is on other players' menus only while the player is inside the Wilderness, given and taken away on the step that crosses the edge; the client orders it by the attack priority setting | the Wiki's Wilderness page; slot 2 and no priority flag inferred (RuneLite's PLAYER_SECOND_OPTION) |
+| Players fight only past the Wilderness's first two rows (z 3523 and 3524 are safe), each by the level where they stand, and only when their combat levels differ by no more than the lower of the two levels; refused attacks say why (`pvp.not_in_wilderness`, `pvp.target_not_in_wilderness`, `pvp.level_difference` then `pvp.move_deeper`) | the Wiki's Wilderness page (the two safe steps; level 100 at 24 attacks 76 to 124); the rows, the lower level counting and the refusals' order inferred; their words held |
+| An allowed Attack goes after the target as Follow does, facing them; no hits yet | ours until PvP combat (step W1.3) |
+| The Doomsayer's Toggle warnings list, PvP hits, skulls, Wilderness deaths and everything north of the ditch | not built: later steps |
 
-Check: `test-runner/examples/ditch-cross.json` and `HeadlessWildernessDitchTest`.
+Check: `test-runner/examples/ditch-cross.json`, `wilderness-attack-option.json`, `HeadlessWildernessDitchTest`, `HeadlessPvpRulesTest` and `HeadlessPlayerOpsSettingsTest` (a settings toggle keeps Attack).
 
 ## Varrock
 
@@ -3149,7 +3152,7 @@ Right-clicking another player offers Follow, Trade with and Report (`game/Player
 | A follow stops when the follower clicks elsewhere or teleports, or the target logs out, changes level or gets more than 15 tiles away; the follower then stops where they are | the 15 is how far players see each other; when live gives up is guessed |
 | Trade with and Report stop any walk or follow and say they aren't built yet | ours, not live |
 
-Not built yet: trading, reporting, Attack (Wilderness and PvP worlds), and a player hiding another by standing on them
+Not built yet: trading, reporting, Attack on PvP worlds (the Wilderness's is under Wilderness), and a player hiding another by standing on them
 is the client's own business.
 
 Check with two clients, logged in as two different names: walk, run (orb on), type in the chatbox, `::anim 866` and
