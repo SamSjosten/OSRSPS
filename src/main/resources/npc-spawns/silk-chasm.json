@@ -1,0 +1,6 @@
+{
+  "about": "The Silk Chasm (Wilderness step W4.14): Venenatis. mejrs's NPCList_OSRS has her at 3332,3734 on the surface, from before the 2023 rework moved her into her lair, so her tile is GUESSED: in front of the passage out, as Callisto spawns in his den (the chasm is map square 53_159 on level 2). Her wander range is guessed until recorded.",
+  "spawns": [
+    {"npc": "venenatis", "x": 3421, "z": 10196, "level": 2, "wander": 5, "source": "Venenatis, Silk Chasm. GUESSED: in front of the passage out; wander guessed"}
+  ]
+}

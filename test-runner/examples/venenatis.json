@@ -1,0 +1,27 @@
+{
+  "name": "Wilderness step W4.14: the Silk Chasm's way in (Check-Fee, then Enter paying the lairs' fee from the backpack) down to level 2, Venenatis fought under ::god and killed with ::kill, her kill count's key, and the way out into the Escape Caves (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off).", "comment": "level 35"},
+    {"step": "command", "text": "::tele 3322 3792 0", "expectMessage": "Teleported to 3322, 3792, 0", "comment": "south of the way in at 3321,3794"},
+    {"step": "locOption", "locId": 47077, "option": "Check-Fee", "x": 3321, "y": 3794},
+    {"step": "assertMessage", "contains": "[wildy_lair.fee_", "timeoutMs": 10000},
+    {"step": "command", "text": "::varbit 14693 0", "comment": "wbr_entrance_fee_paid back to unpaid, so the fee's menu shows every run"},
+    {"step": "command", "text": "::item 995 50000", "comment": "the fee in the backpack, in case it isn't paid yet"},
+    {"step": "locOption", "locId": 47077, "option": "Enter", "x": 3321, "y": 3794},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "chooseOption", "text": "[wildy_lair_fee.yes]"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "assertLocation", "x": 3423, "y": 10212, "plane": 2},
+    {"step": "npcOption", "npc": "Venenatis", "option": "Attack", "timeoutMs": 20000},
+    {"step": "assertHitsplat", "npc": "Venenatis", "timeoutMs": 30000},
+    {"step": "command", "text": "::kill", "expectMessage": "Killed Venenatis #"},
+    {"step": "assertMessage", "contains": "[wilderness_boss.kill_count boss=Venenatis count=", "timeoutMs": 15000},
+    {"step": "locOption", "locId": 47000, "option": "Exit", "x": 3422, "y": 10183},
+    {"step": "waitTicks", "ticks": 12},
+    {"step": "command", "text": "::pos", "comment": "one of the Escape Caves' three cave mouths: 3341,10254, 3362,10297 or 3377,10256"},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
+  ]
+}

@@ -190,6 +190,7 @@ import osrsps.game.content.registerChaosElemental
 import osrsps.game.content.registerArtio
 import osrsps.game.content.registerCalvarion
 import osrsps.game.content.registerSpindel
+import osrsps.game.content.registerVenenatis
 import osrsps.game.content.registerEscapeCaves
 import osrsps.game.content.registerCallisto
 import osrsps.game.content.registerVetion
@@ -1364,6 +1365,7 @@ class World(
         registerArtio(this)
         registerCalvarion(this)
         registerSpindel(this)
+        registerVenenatis(this)
         registerEscapeCaves(this)
         registerCallisto(this)
         registerVetion(this)
