@@ -98,6 +98,7 @@
     {"npc": "pirate_aggressive", "x": 3043, "z": 3950, "wander": 2, "source": "Pirate (pirate_aggressive), the Pirates' Hideout, Wilderness level 54 (W3.7). mejrs NPCList_OSRS; wander guessed"},
     {"npc": "pirate_aggressive", "x": 3043, "z": 3951, "wander": 2, "source": "Pirate (pirate_aggressive), the Pirates' Hideout, Wilderness level 54 (W3.7). mejrs NPCList_OSRS; wander guessed"},
     {"npc": "pirate_aggressive", "x": 3043, "z": 3956, "wander": 2, "source": "Pirate (pirate_aggressive), the Pirates' Hideout, Wilderness level 55 (W3.7). mejrs NPCList_OSRS; wander guessed"},
-    {"npc": "pirate_aggressive", "x": 3043, "z": 3958, "wander": 2, "source": "Pirate (pirate_aggressive), the Pirates' Hideout, Wilderness level 55 (W3.7). mejrs NPCList_OSRS; wander guessed"}
+    {"npc": "pirate_aggressive", "x": 3043, "z": 3958, "wander": 2, "source": "Pirate (pirate_aggressive), the Pirates' Hideout, Wilderness level 55 (W3.7). mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "chaoselemental", "x": 3261, "z": 3927, "wander": 10, "source": "Chaos Elemental, west of Rogues' Castle, Wilderness level 51 (W4.5). OSRS Wiki LocLine 3261,3927; mejrs NPCList_OSRS; wander guessed (the Wiki: it wanders around)"}
   ]
 }

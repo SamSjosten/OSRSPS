@@ -293,7 +293,7 @@ fun CommandRegistry.registerCombatCommands(world: World) {
             }
             reply("One of: $lines")
         }
-        if (def.tertiary.isNotEmpty()) reply("Also: ${def.tertiary.joinToString { "${item(it.item)} 1/${it.denominator}" }}")
+        if (def.tertiary.isNotEmpty()) reply("Also: ${def.tertiary.joinToString { "${item(it.item)} ${it.numerator}/${it.denominator}" }}")
     }
 
     register("kill", "::kill [index|name]", admin = true) {

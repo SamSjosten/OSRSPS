@@ -80,10 +80,13 @@ class DropTable(val slots: Int, val lines: List<DropSlot>) {
 }
 
 /** A drop rolled on its own after the main table, as the Wiki's tertiary drops are: 1 in [denominator] kills. */
-class TertiaryDrop(val item: DropItem, val denominator: Int) {
+class TertiaryDrop(val item: DropItem, val denominator: Int, val numerator: Int = 1) {
     init {
-        require(denominator >= 1) { "Bad tertiary rate 1/$denominator" }
+        require(denominator >= 1 && numerator in 1..denominator) { "Bad tertiary rate $numerator/$denominator" }
     }
+
+    /** One draw: [numerator] in [denominator]; for 1/N the draw a 1/N roll always made. */
+    fun hits(random: GameRandom): Boolean = random.nextInt(denominator) < numerator
 }
 
 /**
@@ -98,22 +101,26 @@ class NpcDropsDef(
     val tertiary: List<TertiaryDrop>,
     val source: String,
     val preroll: List<TertiaryDrop> = emptyList(),
+    /** A second table rolled on every kill beside the main roll: the Wiki's "minor drops" (the Chaos Elemental's). */
+    val minor: DropTable? = null,
 ) {
     /** Whether a kill can give nothing at all, as a rat's does. */
-    val isEmpty: Boolean get() = always.isEmpty() && table == null && tertiary.isEmpty() && preroll.isEmpty()
+    val isEmpty: Boolean get() = always.isEmpty() && table == null && tertiary.isEmpty() && preroll.isEmpty() && minor == null
 
     /**
-     * The items one kill gives, in the order they are rolled, so a test can replay the draws: each pre-roll's draw
+     * The items one kill gives, in the order they are rolled, so a test can replay the draws: the [minor] table's draw
+     * and its items' counts, each pre-roll's draw
      * until one hits, then (if none did) the main table's draw, then each of its items' ranged counts, then each
      * tertiary's. Items of no count (a nothing line) are left out.
      */
     fun roll(random: GameRandom): List<Drop> {
         val drops = ArrayList<Drop>()
         for (item in always) drops += Drop(item.type, item.count(random))
-        val pre = preroll.firstOrNull { random.nextInt(it.denominator) == 0 }
+        minor?.roll(random)?.forEach { drops += Drop(it.type, it.count(random)) }
+        val pre = preroll.firstOrNull { it.hits(random) }
         if (pre != null) drops += Drop(pre.item.type, pre.item.count(random))
         else table?.roll(random)?.forEach { drops += Drop(it.type, it.count(random)) }
-        for (extra in tertiary) if (random.nextInt(extra.denominator) == 0) drops += Drop(extra.item.type, extra.item.count(random))
+        for (extra in tertiary) if (extra.hits(random)) drops += Drop(extra.item.type, extra.item.count(random))
         return drops
     }
 }
@@ -152,7 +159,7 @@ class NpcDrops(
         /**
          * Reads the drop file: `tables` names shared tables (the herb table) that a line may refer to by `table`;
          * each `npcs` entry gives `always` items, a `table` of `slots` and `lines` (each an `item` with `count` or
-         * `min`/`max`, `items` that drop together, a `table` name, or `nothing`), `preroll` drops that take the table's place when they hit, and
+         * `min`/`max`, `items` that drop together, a `table` name, or `nothing`), `preroll` drops that take the table's place when they hit, a `minor` table rolled on every kill besides, and
          * `tertiary` drops, each with a `chance` such as "1/128". `npcs`
          * takes type ids, gameval names or menu names, as spawn files do; an NPC the cache doesn't have is skipped
          * with a warning. An item is an id plus its `name`: a name the cache doesn't agree with is warned about, and
@@ -221,6 +228,7 @@ class NpcDrops(
                 table = entry["table"]?.let { table(it.jsonObject) },
                 tertiary = entry["tertiary"]?.jsonArray?.map { tertiary(it.jsonObject, ::item) } ?: emptyList(),
                 preroll = entry["preroll"]?.jsonArray?.map { tertiary(it.jsonObject, ::item) } ?: emptyList(),
+                minor = entry["minor"]?.let { table(it.jsonObject) },
                 source = entry.required("source").jsonPrimitive.content.ifBlank { throw IllegalArgumentException("blank source") },
             )
             val chests = HashMap<String, NpcDropsDef>()
@@ -267,9 +275,12 @@ class NpcDrops(
         private fun tertiary(entry: JsonObject, item: (JsonObject) -> DropItem): TertiaryDrop {
             val chance = entry.required("chance").jsonPrimitive.content
             val parts = chance.split('/')
+            val numerator = parts.getOrNull(0)?.trim()?.toIntOrNull()
             val denominator = parts.getOrNull(1)?.trim()?.toIntOrNull()
-            require(parts.size == 2 && parts[0].trim() == "1" && denominator != null) { "a tertiary chance is \"1/N\", had \"$chance\"" }
-            return TertiaryDrop(item(entry), denominator)
+            require(parts.size == 2 && numerator != null && denominator != null && numerator in 1..denominator) {
+                "a tertiary chance is \"N/D\" with N from 1 to D, had \"$chance\""
+            }
+            return TertiaryDrop(item(entry), denominator, numerator)
         }
 
         private fun JsonObject.required(key: String): JsonElement = get(key) ?: throw IllegalArgumentException("no \"$key\"")
