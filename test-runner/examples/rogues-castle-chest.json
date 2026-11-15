@@ -1,0 +1,21 @@
+{
+  "name": "Wilderness step W3.5b: a Rogues' Castle chest (level 54) searched for traps at Thieving 84, its treasure, then the chest standing open until it restocks (::keys on)",
+  "account": "test2",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::scenario gathering", "expectMessage": "Started scenario gathering.", "comment": "any scenario: ::reset at the end puts the account's Thieving XP and backpack back"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off).", "comment": "the courtyard's rogues all attack once the chest is looted"},
+    {"step": "command", "text": "::empty", "comment": "room for the loot"},
+    {"step": "command", "text": "::setlevel thieving 84"},
+    {"step": "command", "text": "::tele 3283 3945 0", "expectMessage": "Teleported to 3283, 3945, 0", "comment": "south of wilderness_rogue_chest at 3283, 3946"},
+    {"step": "locOption", "locId": 26757, "option": "Search for traps", "x": 3283, "y": 3946},
+    {"step": "assertMessage", "contains": "[thieving_lock.trap_found]", "timeoutMs": 10000},
+    {"step": "assertMessage", "contains": "[thieving_lock.treasure]", "timeoutMs": 10000},
+    {"step": "assertLoc", "locId": 26758, "x": 3283, "y": 3946, "timeoutMs": 5000, "comment": "open until it restocks"},
+    {"step": "assertLoc", "locId": 26757, "x": 3283, "y": 3946, "timeoutMs": 30000, "comment": "restocked 34 ticks (20.4 seconds) later"},
+
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
+    {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+  ]
+}

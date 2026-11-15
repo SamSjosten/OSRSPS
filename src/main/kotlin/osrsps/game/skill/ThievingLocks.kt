@@ -1,5 +1,7 @@
 package osrsps.game.skill
 
+import kotlin.math.abs
+import osrsps.game.GroundObjs
 import osrsps.game.Inventory
 import osrsps.game.Player
 import osrsps.game.Skill
@@ -43,7 +45,9 @@ class ChestLoot(val obj: Int, val count: Int)
 /**
  * A chest to search for traps (or, [lockpick], to pick): [level], XP, its [loot], the [empty] loc it shows for
  * [respawnTicks] after, the damage an Open does ([trapDamage], from the player's current and full Hitpoints), and where
- * a second trap sends the looter ([teleport]: x, z, level), if anywhere.
+ * a second trap sends the looter ([teleport]: x, z, level), if anywhere. A chest with a [table] rolls that npc-drops.json
+ * chest table in place of [loot]; one that [stayOpen]s shows [empty] at once until it restocks, with no open stage; and
+ * the NPCs of the types in [alerts] near it all go for the looter.
  */
 class TrapChest(
     val loc: Int,
@@ -55,6 +59,9 @@ class TrapChest(
     val lockpick: Boolean = false,
     val trapDamage: (current: Int, full: Int) -> Int = ThievingLocks::natureTrapDamage,
     val teleport: Triple<Int, Int, Int>? = null,
+    val table: String? = null,
+    val stayOpen: Boolean = false,
+    val alerts: Set<Int> = emptySet(),
 )
 
 /**
@@ -99,7 +106,15 @@ class LockedDoor(
  * across and leaves the door shut, so nobody slips in behind (exploit sweep round 25, R25B-1; the cache pairs these
  * doors with no open type).
  *
- * Guessed too: the room check before a chest's loot. Left out: the Dorgesh-Kaan and Rogues' Castle chests, the doors
+ * The Rogues' Castle chests (Wilderness step W3.5b; the Wiki's Chest (Rogues' Castle), read 2026-11-15): level 84,
+ * 701.7 XP, the `rogues_castle` table of npc-drops.json, open until they restock 34 ticks later, and every rogue in the
+ * courtyard attacks the looter. INFERRED: the medium Wilderness Diary's table (diaries aren't built, and the
+ * diary-gated lairs are open); "the courtyard" as rogues within [ALERT_RANGE] tiles; the rogues still keeping to
+ * single-way rules, so only one fights until the castle is a multi-way area. GUESSED: Open without searching springs
+ * the nature rune chest's trap; the room check wanting two free slots, one for the roll and one for a hard clue.
+ *
+ * Guessed too: the room check before a chest's loot. Left out: the Dorgesh-Kaan chests, the looting bag the Rogues'
+ * chests' loot goes into (no looting bag yet), the ring of wealth (i)'s doubled clue chance, the doors
  * that need a lockpick (`toollock`), the Ardougne sewer gates, the Ardougne diary, the gas random event.
  */
 object ThievingLocks {
@@ -121,6 +136,16 @@ object ThievingLocks {
     const val EMPTY_PICK_CHEST = 11741
     const val CHEST_ARROWTIPS = 11742
     const val OPEN_CHEST = 11743
+    const val CHEST_ROGUES = 26757
+    const val CHEST_ROGUES_OPEN = 26758
+    const val ROGUE = 6603
+    const val ROGUES_TABLE = "rogues_castle"
+
+    /** How far from a looted Rogues' chest the rogues come from (INFERRED: the courtyard). */
+    const val ALERT_RANGE = 10
+
+    /** Free slots a table chest's loot wants (GUESSED: the roll and a clue). */
+    const val TABLE_SLOTS = 2
 
     const val DOOR_EAST_ARDOUGNE_NORTH = 11719
     const val DOOR_EAST_ARDOUGNE_SOUTH = 11720
@@ -160,6 +185,10 @@ object ThievingLocks {
             listOf(ChestLoot(COINS, 1000), ChestLoot(RAW_SHARK, 1), ChestLoot(ADAMANTITE_ORE, 1), ChestLoot(UNCUT_SAPPHIRE, 1)),
             teleport = Triple(2696, 3281, 0),
         ),
+        TrapChest(
+            CHEST_ROGUES, 84, 7017, 34, emptyList(), empty = CHEST_ROGUES_OPEN, table = ROGUES_TABLE, stayOpen = true,
+            alerts = setOf(ROGUE),
+        ),
     ).associateBy { it.loc }
 
     val DOORS: Map<Int, LockedDoor> = listOf(
@@ -187,6 +216,7 @@ object ThievingLocks {
 
     /** True when [chest]'s loot fits: a free slot for each item not already a stack held, and room in each stack. */
     fun fits(player: Player, chest: TrapChest, stackable: (Int) -> Boolean): Boolean {
+        if (chest.table != null) return player.inventory.freeSlots >= TABLE_SLOTS
         var slots = 0
         for (item in chest.loot) {
             if (!stackable(item.obj)) {
@@ -273,14 +303,36 @@ object ThievingLocks {
         // The room may have gone in the ticks the search took.
         if (!fits(player, chest) { world.objTypes[it]?.stackable == true }) return world.message(player, ThievingLockLines.NO_ROOM)
         // The world turns it empty and relocks it, so the stages go on even if the looter dies or logs out.
-        world.locs.replaceInStages(loc, OPEN_CHEST, OPEN_TICKS, chest.empty, chest.respawnTicks) ?: return
+        if (chest.stayOpen) {
+            world.locs.replace(loc, chest.empty, revertAfter = chest.respawnTicks) ?: return
+        } else {
+            world.locs.replaceInStages(loc, OPEN_CHEST, OPEN_TICKS, chest.empty, chest.respawnTicks) ?: return
+        }
         world.message(player, ThievingLockLines.TREASURE)
         player.anim(ANIM_OPEN)
         for (item in chest.loot) {
             val type = world.objTypes[item.obj] ?: error("No obj type ${item.obj} for chest ${chest.loc}")
             player.inventory.add(type, item.count)
         }
+        chest.table?.let { table ->
+            for (drop in world.npcDrops.chests[table]?.roll(world.random).orEmpty()) {
+                val over = drop.count - player.inventory.add(drop.type, drop.count)
+                if (over > 0) {
+                    world.groundObjs.addPrivate(
+                        drop.type, over, player.x, player.z, player.level, player.saveKey,
+                        GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.LOOT_DESPAWN_TICKS,
+                    )
+                }
+            }
+        }
         player.skills.addTenths(Skill.THIEVING, chest.xpTenths)
+        if (chest.alerts.isNotEmpty()) {
+            for (npc in world.npcs.all) {
+                if (npc.type.id !in chest.alerts || npc.level != loc.level) continue
+                if (maxOf(abs(npc.x - loc.x), abs(npc.z - loc.z)) > ALERT_RANGE) continue
+                world.meleeCombat.provoke(npc, player, tick)
+            }
+        }
         val (x, z, level) = chest.teleport ?: return
         delay(OPEN_TICKS)
         world.message(player, ThievingLockLines.SECOND_TRAP)
