@@ -193,6 +193,7 @@ class HeadlessBryophytaTest {
                 assertTrue(server.world.combat.immune(boss), "a shot or spell landing now does nothing either")
                 assertEquals(0, server.world.combat.rolledOn(bob, boss, AttackType.CRUSH, 20), "nothing rolled against her shield, so no XP")
                 assertFalse(server.world.combat.finishers[Bryophyta.GROWTHLING]!!(bob, AttackType.MAGIC), "a spell never finishes one")
+                assertFalse(server.world.combat.finishers[Bryophyta.GROWTHLING]!!(bob, null), "nor damage of no attack (Retribution)")
                 // Her lair is multi-way, so they fight bob while she does.
                 assertTrue(server.world.multiCombat.at(bob.level, bob.x, bob.z), "multi-way in her lair")
                 assertFalse(server.world.multiCombat.at(0, Bryophyta.EXIT_TILE.x, Bryophyta.EXIT_TILE.z), "single-way outside it")

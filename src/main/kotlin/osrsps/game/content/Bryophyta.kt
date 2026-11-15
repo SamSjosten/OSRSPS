@@ -126,7 +126,12 @@ object Bryophyta {
     class State {
         var target: WeakReference<Player>? = null
         var nextAttack = Long.MIN_VALUE
-        val growthlings = ArrayList<Npc>()
+        // Held weakly: the world holds them while they live, and a lair that ends with them out (World.endInstance)
+        // mustn't keep them, nor through their targets the player and her, in [states].
+        internal val batch = ArrayList<WeakReference<Npc>>()
+
+        /** The growthlings of the batch still held, living or not ([living] prunes them). */
+        val growthlings: List<Npc> get() = batch.mapNotNull { it.get() }
         var growthAfter = Long.MIN_VALUE
 
         /** Whether a batch is out whose end hasn't started the cooldown yet. */
@@ -138,20 +143,23 @@ object Bryophyta {
 
     private val states = WeakHashMap<Npc, State>()
 
+    internal val MELEE_TYPES = setOf(AttackType.STAB, AttackType.SLASH, AttackType.CRUSH)
+
     fun state(boss: Npc): State = states.getOrPut(boss) { State() }
 
     /** Whether [boss]'s growthlings are out, so she takes nothing but poison and venom. */
     fun shielded(world: World, boss: Npc): Boolean = living(world, state(boss)).isNotEmpty()
 
     private fun living(world: World, state: State): List<Npc> {
-        state.growthlings.removeAll { npc ->
-            val gone = npc.dead || world.npcs[npc.index] !== npc
-            if (gone) state.lastGone = maxOf(state.lastGone, if (npc.dead && npc.diedTick >= 0) npc.diedTick else world.tick)
+        state.batch.removeAll { ref ->
+            val npc = ref.get()
+            val gone = npc == null || npc.dead || world.npcs[npc.index] !== npc
+            if (gone) state.lastGone = maxOf(state.lastGone, if (npc != null && npc.dead && npc.diedTick >= 0) npc.diedTick else world.tick)
             gone
         }
         // The batch's end starts the cooldown wherever it is first seen (her tick, or a hit landing before it), from the
         // tick the last one died, which may be a tick before (killed by an item).
-        if (state.batchOut && state.growthlings.isEmpty()) {
+        if (state.batchOut && state.batch.isEmpty()) {
             state.batchOut = false
             state.growthAfter = state.lastGone + GROWTH_COOLDOWN_TICKS
         }
@@ -242,7 +250,7 @@ object Bryophyta {
         for (tile in around(world, boss).take(GROWTHLINGS)) {
             val npc = world.spawnNpc(NpcSpawn(type, tile.x, tile.z, boss.level, source = "lair bryophyta growthling", respawns = false)) ?: continue
             npc.unleashed = true
-            state.growthlings += npc
+            state.batch += WeakReference(npc)
             state.batchOut = true
             if (target != null && run?.instance?.contains(target.x, target.z) == true) world.meleeCombat.aggress(npc, target, world.tick)
         }
@@ -312,13 +320,14 @@ fun registerBryophyta(world: World, lairs: GiantLairs) {
             // Growthlings out as she dies stay to be fought (OSRS Wiki, Bryophyta, Trivia) until killed or the lair ends;
             // let go of here so the next of her starts without them.
             val state = state(boss)
-            state.growthlings.clear()
+            state.batch.clear()
             state.batchOut = false
             state.growthAfter = Long.MIN_VALUE
         }
 
         // Growthlings: held at 1 hitpoint (npc-combat.json) but for a wielded cutter, which kills one outright.
-        world.combat.finishers[GROWTHLING] = { player, type -> type != AttackType.MAGIC && wieldsCutter(world, player) }
+        // Only a melee hit: not a spell, nor damage of no attack (Retribution, recoil), even with a cutter wielded.
+        world.combat.finishers[GROWTHLING] = { player, type -> type in MELEE_TYPES && wieldsCutter(world, player) }
         val sureHit = world.combat.sureHit
         world.combat.sureHit = { player, npc, type ->
             if (npc.type.id == GROWTHLING && type != AttackType.MAGIC && wieldsCutter(world, player)) SureHit.MAX else sureHit(player, npc, type)
