@@ -92,6 +92,8 @@ class HeadlessNetTrapTest {
                 client.awaitLoc(kind.setting, 3222, 3219)
                 client.awaitLoc(kind.set, at.x, at.z)
                 client.awaitLoc(kind.treeSet, 3222, 3219)
+                // Bent over the net, south of it: turned as the net is (guessed).
+                assertEquals(2, client.locChanges().last { it.coord.x == 3222 && it.coord.z == 3219 }.angle)
                 client.await("a step west") { client.position?.takeIf { it.x == at.x - 1 && it.z == at.z } }
                 assertEquals(0, client.count(NetTraps.NET_TRAP))
                 client.locOp(kind.treeSet, 3222, 3219, Traps.INVESTIGATE)

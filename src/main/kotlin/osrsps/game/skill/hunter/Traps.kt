@@ -483,7 +483,7 @@ class Traps(private val world: World, private val collision: CollisionMap) {
         // The skill clock as lay() steps it: a running clock's due tick stands, else a new cycle starts now.
         val due = if (player.actionDelay >= tick) player.actionDelay else (tick + LAY_TICKS - 1).also { player.actionDelay = it }
         val wait = (due - tick).toInt()
-        world.locs.replace(tree, kind.setting, revertAfter = wait + 2)
+        world.locs.replace(tree, kind.setting, revertAfter = wait + 2, angle = rotation)
         if (wait > 0) delay(wait)
         val bent = world.locs.find(kind.setting, tree.x, tree.z, tree.level) ?: return
         world.locs.restore(bent.x, bent.z, bent.level, bent.layer)

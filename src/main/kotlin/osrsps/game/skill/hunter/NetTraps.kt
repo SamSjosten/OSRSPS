@@ -32,7 +32,9 @@ class NetTrapKind(
         val tree = trap.anchor ?: error("A net trap is set on a tree")
         val net = ZoneLoc(locId, LocShape.CENTREPIECE_STRAIGHT, trap.rotation, trap.x, trap.z, trap.level)
         return when (state) {
-            TrapState.SET -> TrapLook(listOf(tree.copy(id = treeSet), net.copy(id = set)))
+            // Guessed: the bent tree turns to the net as the 1 by 2 loc does (the cache's angle 0 bending north); the
+            // tree's own angle comes back with the cache's loc when the trap goes.
+            TrapState.SET -> TrapLook(listOf(tree.copy(id = treeSet, angle = trap.rotation), net.copy(id = set)))
             TrapState.BROKEN -> TrapLook(listOf(tree.copy(id = treeReset), net.copy(id = broken)))
             else -> {
                 // Turned north or east (0, 1) the 1 by 2 loc starts on the tree's tile and takes its place; turned south or

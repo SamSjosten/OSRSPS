@@ -95,12 +95,12 @@ class Locs(
     }
 
     /**
-     * Swaps [loc] for a loc of type [id] on the same tile, shape and angle, the way content turns a tree into a stump.
-     * Returns the new loc, or null, changing nothing, if [loc] isn't there.
+     * Swaps [loc] for a loc of type [id] on the same tile and shape (and angle, unless [angle] turns it), the way content
+     * turns a tree into a stump. Returns the new loc, or null, changing nothing, if [loc] isn't there.
      */
-    fun replace(loc: ZoneLoc, id: Int, revertAfter: Int = 0): ZoneLoc? {
+    fun replace(loc: ZoneLoc, id: Int, revertAfter: Int = 0, angle: Int = loc.angle): ZoneLoc? {
         if (!exists(loc)) return null
-        val replacement = loc.copy(id = id)
+        val replacement = loc.copy(id = id, angle = angle)
         change(loc.x, loc.z, loc.level, loc.layer, replacement, revertAfter)
         return replacement
     }
