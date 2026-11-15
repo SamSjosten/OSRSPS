@@ -448,7 +448,10 @@ class World(
     private val graceful = Graceful(objTypes)
 
     /** Melee combat with NPCs; see [Combat]. */
-    val combat = Combat(equipment, attackStyles, npcCombat, rangedWeapons, prayerBoosts = { prayers.boosts(it) })
+    val combat = Combat(
+        equipment, attackStyles, npcCombat, rangedWeapons, prayerBoosts = { prayers.boosts(it) },
+        slayerHelm = { player, npc -> slayer.helm(player, npc) },
+    )
 
     /** The prayer book; see [Prayers]. */
     val prayers = Prayers(

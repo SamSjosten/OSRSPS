@@ -1102,6 +1102,10 @@ shop", with the Wiki's stock, sell and buy percentages. The rewards screen's Buy
 points at enum_842's costs (the slayer ring 75, 250 broad bolts or arrows 35, the herb sack and rune pouch 750, the
 looting bag 10): ops 2 to 5 buy 1, 5, 10 or 50 (sets), the last three items only one at a time.
 
+A black mask or Slayer helmet worn on task (`combat/SlayerHelm.kt`) makes melee 7/6 as accurate and hard hitting against
+the task's monster; the imbued ones (named "(i)") make ranged and magic 15% more of both too. Every charge of the mask
+and every recolour of the helmet is known by its cache name.
+
 | Slayer behaviour | Source |
 |------------------|--------|
 | Tasks, masters' weights and amounts, combat and Slayer level gates, rewards' bits and costs | cache 242, db tables 113, 114, 117 (column order from osrs-dumps' dump.dbtable) |
@@ -1127,9 +1131,11 @@ looting bag 10): ops 2 to 5 buy 1, 5, 10 or 50 (sets), the last three items only
 | "Extend everything" costing the extends not yet bought; the refusals as game messages, their words | inferred; guessed |
 | The Slayer Equipment shop's stock, counts, restock times, 100% sell, 60% buy, 0.1% change | OSRS Wiki, Slayer Equipment (read 2026-11-15); inv slayershop 231 from the cache |
 | The Buy tab's items, costs, set sizes and ops (one at a time for the herb sack, rune pouch and looting bag) | the 242 client's script slayer_rewards_buy_draw and enums 840 to 842 (osrs-dumps) |
+| The black mask's and Slayer helmet's 7/6 melee and the imbued ones' 15% ranged and magic, on task only | OSRS Wiki, Black mask and Slayer helmet (Mod Ash's "7/6") |
+| Rounding down after each multiply; the ranged 15% before the twisted bow's scaling; the magic 15% multiplying the max hit after a weakness | inferred; guessed for magic |
 | A Buy taking as many as the points and inventory allow, refusing only when not one fits; its refusals' words | guessed |
 | Every message's words | unsourced: the Words thread fills them |
-| Not built yet: Konar and her places, the slayer helmet's and black mask's bonus, the slayer ring's teleports, Task Storage, the diary's seventh block slot, equipment, superiors, boss tasks, Krystilia (the Wilderness), Aya's blessed axe talk, Kuradal's Slayer cape sale and talk about Duradel, the Slayer cape overlooking a master's combat level | |
+| Not built yet: Konar and her places, the salve amulet not stacking with the mask (no salve amulet yet), making the Slayer helmet, the slayer ring's teleports, Task Storage, the diary's seventh block slot, equipment, superiors, boss tasks, Krystilia (the Wilderness), Aya's blessed axe talk, Kuradal's Slayer cape sale and talk about Duradel, the Slayer cape overlooking a master's combat level | |
 
 ## Items and inventory
 

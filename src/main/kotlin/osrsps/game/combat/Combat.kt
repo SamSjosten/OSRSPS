@@ -67,6 +67,8 @@ class Combat(
     private val rangedWeapons: RangedWeapons = RangedWeapons.NONE,
     /** What the player's prayers add this tick; see [Prayers.boosts]. */
     private val prayerBoosts: (Player) -> PrayerBoosts = { PrayerBoosts.NONE },
+    /** What the player's black mask or Slayer helmet does against this NPC; see [SlayerHelm]. */
+    private val slayerHelm: (Player, Npc) -> SlayerHelm = { _, _ -> SlayerHelm.NONE },
 ) {
     /**
      * The level [player] defends with against an attack of [type], before the style bonus: their Defence, or for magic
@@ -230,7 +232,8 @@ class Combat(
         val boosts = prayerBoosts(player)
         val attack = PrayerBoosts.boost(skills.currentLevel(Skill.ATTACK), boosts.attack)
         val strength = PrayerBoosts.boost(skills.currentLevel(Skill.STRENGTH), boosts.strength)
-        val attackRoll = CombatMath.playerAttackRoll(attack, style.stance, attackBonus(bonuses, type))
+        val helm = slayerHelm(player, npc)
+        val attackRoll = helm.melee(CombatMath.playerAttackRoll(attack, style.stance, attackBonus(bonuses, type)))
         val defenceRoll = CombatMath.npcDefenceRoll(npc.level(NpcStat.DEFENCE), def.defence.against(against ?: type))
         val npcAttackRoll = CombatMath.npcAttackRoll(npcAttackLevel(npc, def.attackType), def.attackBonus)
         val playerDefenceRoll = playerDefenceRoll(player, style, bonuses, def.attackType, boosts)
@@ -238,7 +241,7 @@ class Combat(
             style = style,
             attackRoll = attackRoll,
             defenceRoll = defenceRoll,
-            maxHit = CombatMath.playerMaxHit(strength, style.stance, bonuses.meleeStrength + bulwarkStrength(player, bonuses)),
+            maxHit = helm.melee(CombatMath.playerMaxHit(strength, style.stance, bonuses.meleeStrength + bulwarkStrength(player, bonuses))),
             hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
             npcAttackRoll = npcAttackRoll,
             playerDefenceRoll = playerDefenceRoll,
@@ -320,6 +323,10 @@ class Combat(
             strength -= rangedStrength(player.equipment[WearPos.AMMO]?.let { equipment.objTypes[it.id] })
         }
         var maxHit = CombatMath.playerRangedMaxHit(rangedStrengthLevel, style.stance, strength)
+        // Inferred: the imbued mask's 15% comes before the twisted bow's scaling, as the Wiki's DPS calculator has it.
+        val helm = slayerHelm(player, npc)
+        attackRoll = helm.rangedOrMagic(attackRoll)
+        maxHit = helm.rangedOrMagic(maxHit)
         if (weapon?.scaling == RangedScaling.TWISTED_BOW) {
             val magic = maxOf(npc.level(NpcStat.MAGIC), def.magicAttack)
             attackRoll = attackRoll * CombatMath.twistedBowAccuracy(magic) / 100
@@ -366,6 +373,11 @@ class Combat(
             attackRoll = CombatMath.weaknessAttackRoll(attackRoll, weakness.percent)
             maxHit += CombatMath.weaknessMaxHit(spell.maxHit, weakness.percent)
         }
+        // Guessed: the imbued mask's 15% on the max hit multiplies, after a weakness, rather than adding to the magic
+        // damage bonus.
+        val helm = slayerHelm(player, npc)
+        attackRoll = helm.rangedOrMagic(attackRoll)
+        maxHit = helm.rangedOrMagic(maxHit)
         val defenceRoll = CombatMath.npcDefenceRoll(npc.level(NpcStat.MAGIC), def.defence.magic)
         return MagicMatchup(
             attackRoll = attackRoll,

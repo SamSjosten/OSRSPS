@@ -5,7 +5,9 @@ import osrsps.game.Player
 import osrsps.game.Quests
 import osrsps.game.Skill
 import osrsps.game.World
+import osrsps.game.WearPos
 import osrsps.game.combat.CombatMath
+import osrsps.game.combat.SlayerHelm
 import osrsps.game.content.message
 import osrsps.game.dialogue.Lines
 import osrsps.game.npc.Npc
@@ -75,7 +77,8 @@ enum class SlayerMaster(
  * who dealt the killing blow and the person who did the most damage will be counted as the slayer"). Each is their
  * session now, so a player who logged out and back in since (a poisoned monster dying later) still gets it. Guessed:
  * of two players who dealt the same most damage, the first to deal it counts.
- * Slayer partners aren't built. Krystilia's tasks keep their own streak in slayer_wilderness_tasks_completed; she belongs to
+ * A black mask or Slayer helmet worn on task makes the player's attacks on the task's monster stronger ([helm],
+ * [SlayerHelm]). Slayer partners aren't built. Krystilia's tasks keep their own streak in slayer_wilderness_tasks_completed; she belongs to
  * the Wilderness, which isn't built, so it is left alone. Out: boss tasks, Konar's places, superiors (later steps).
  */
 class Slayer(private val world: World, val data: SlayerData) {
@@ -102,6 +105,13 @@ class Slayer(private val world: World, val data: SlayerData) {
         const val STREAK_WRAP = 1000
 
         const val ENCHANTED_GEM = 4155
+
+        /** A head item's [SlayerHelm] by its cache name: a black mask or Slayer helmet of any charge or colour. */
+        fun helmOf(name: String?): SlayerHelm {
+            val lower = name?.lowercase() ?: return SlayerHelm.NONE
+            if (!lower.startsWith("black mask") && !lower.endsWith("slayer helmet") && !lower.endsWith("slayer helmet (i)")) return SlayerHelm.NONE
+            return if (lower.endsWith("(i)")) SlayerHelm.IMBUED else SlayerHelm.MELEE
+        }
 
         /** combat_level_reqs_disabled: 1 once the player has asked the masters to stop checking their combat level. */
         const val VARBIT_COMBAT_CHECK_OFF = 4745
@@ -268,6 +278,21 @@ class Slayer(private val world: World, val data: SlayerData) {
     fun onTask(player: Player, npc: Npc): Boolean {
         val task = task(player) ?: return false
         return (npc.type.params[PARAM_CATEGORY] as? Int) == task.id
+    }
+
+    /** Each head item's [SlayerHelm], worked out from its name once. */
+    private val helms = HashMap<Int, SlayerHelm>()
+
+    /**
+     * What [player]'s head slot does against [npc] ([SlayerHelm]): a black mask (any charge) or any Slayer helmet,
+     * recolours included, against their task's monster; the imbued ones, named "(i)", for ranged and magic too. Known by
+     * the cache's names (Black mask (10), Black mask (i), Slayer helmet, Hydra slayer helmet (i) and so on) rather than a
+     * list of ids, as each recolour has its own pair.
+     */
+    fun helm(player: Player, npc: Npc): SlayerHelm {
+        val head = player.equipment[WearPos.HEAD]?.id ?: return SlayerHelm.NONE
+        val helm = helms.getOrPut(head) { helmOf(world.objTypes[head]?.name) }
+        return if (helm != SlayerHelm.NONE && onTask(player, npc)) helm else SlayerHelm.NONE
     }
 
     /** Slayer XP in tenths for a kill of [npc]: its hitpoints, with its XP bonus. */
