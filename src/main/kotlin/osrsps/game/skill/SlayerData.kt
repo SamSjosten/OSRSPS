@@ -42,8 +42,12 @@ class SlayerMasterTask(
     val unlockedBy: Int? = null,
 )
 
-/** A Slayer reward from the cache's slayer_unlock table (117): its [bit] in the unlock varps and its [cost] in points. */
-class SlayerUnlock(val row: Int, val bit: Int, val cost: Int)
+/**
+ * A Slayer reward from the cache's slayer_unlock table (117): its [bit] in the unlock varps and its [cost] in points;
+ * whether it may be turned off again ([refundable], though the points don't come back); and which of the rewards screen's
+ * lists shows it ([list]: 0 Unlock, 1 Extend, 2 the Rewards tab's own list).
+ */
+class SlayerUnlock(val row: Int, val bit: Int, val cost: Int, val refundable: Boolean = false, val list: Int = 0)
 
 /**
  * Slayer's data, read from the cache by [osrsps.cache.SlayerLoader] so it stays live's: every task, every master's list

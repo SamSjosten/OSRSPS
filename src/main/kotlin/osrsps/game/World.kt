@@ -136,6 +136,7 @@ import osrsps.game.content.registerArchiveLobby
 import osrsps.game.content.registerBanking
 import osrsps.game.content.registerShops
 import osrsps.game.content.SlayerMasters
+import osrsps.game.content.SlayerRewards
 import osrsps.game.content.Ducks
 import osrsps.game.content.registerCrops
 import osrsps.game.content.registerFredsFarm
@@ -826,8 +827,11 @@ class World(
     /** Slayer tasks: kills, XP and the enchanted gem; see [Slayer]. */
     val slayer = Slayer(this, slayerData)
 
-    /** Turael, Spria and Vannaka's Talk-to and Assignment; see [SlayerMasters]. */
+    /** The Slayer masters' Talk-to and Assignment; see [SlayerMasters]. */
     val slayerMasters = SlayerMasters(this)
+
+    /** The Slayer rewards screen (Slayer step 4). */
+    val slayerRewards = SlayerRewards(this)
 
     val fishing = Fishing(this)
 
@@ -1023,6 +1027,7 @@ class World(
         agility.register()
         slayer.register()
         slayerMasters.register()
+        slayerRewards.register()
         fishing.register()
         cooking.register()
         smithing.register()
