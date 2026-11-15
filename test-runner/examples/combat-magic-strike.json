@@ -10,6 +10,7 @@
   {"step": "command", "text": "::item fire rune 3", "expectMessage": "Added 3 x Fire rune"},
   {"step": "command", "text": "::item air rune 4", "expectMessage": "Added 4 x Air rune"},
   {"step": "command", "text": "::tele 3216 3219 0", "expectMessage": "Teleported to 3216, 3219, 0"},
+  {"step": "command", "text": "::varp 172 1", "expectMessage": "Varp 172:", "comment": "auto retaliate off: punches back at a man who survives the first cast could kill him just as the wait below ends, and the second cast would click him dying; ::reset at the end puts it back"},
   {"step": "castOnNpc", "interfaceId": 218, "component": 19, "npc": "Man", "timeoutMs": 20000, "comment": "Fire Strike on the nearest man; in range and in sight there is no walk"},
   {"step": "assertAnimation", "id": 711, "timeoutMs": 20000, "comment": "human_caststrike, no staff"},
   {"step": "assertSpotanim", "id": 99, "timeoutMs": 20000, "comment": "firestrike_casting on the player"},
