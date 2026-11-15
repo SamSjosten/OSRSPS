@@ -213,6 +213,6 @@ class ScenarioTest {
         // Among the Feldip Hunter area's crimson swifts, with every box trap creature's level, snares and box traps.
         assertTrue(hunter.x in 2580..2620 && hunter.z in 2880..2940 && hunter.level == 0)
         assertEquals(63, hunter.skills.getValue(Skill.HUNTER).level)
-        assertEquals(9, hunter.inventory.size)
+        assertEquals(10, hunter.inventory.size)
     }
 }

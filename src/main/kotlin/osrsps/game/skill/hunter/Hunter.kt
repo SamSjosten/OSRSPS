@@ -22,25 +22,36 @@ object HunterLines : Lines("hunter", "Hunter") {
     val NO_LOGS = line("no_logs", "the message on Set-trap on a boulder with no logs in the backpack")
     val INVESTIGATE_DEADFALL = line("investigate_deadfall", "Investigate on the player's own set deadfall")
     val NET_LEVEL = line("net_level", "the message on Set-trap on a young tree below the Hunter level its salamander needs", "level")
+    val PIT_LEVEL = line("pit_level", "the message on Trap on a pit below the Hunter level its creature needs", "level")
+    val NO_TEASING_STICK = line("no_teasing_stick", "the message on Tease with no teasing stick in the backpack and no hunter's spear wielded")
+    val TEASE_LEVEL = line("tease_level", "the message on Tease below the Hunter level the creature needs", "level")
 }
 
 /**
  * The Hunter skill: the trap engine ([Traps]) and the kinds of trap built so far. Hunter step 1: bird snares
- * ([BirdSnares]); step 2: box traps ([BoxTraps]); step 3: net traps ([NetTraps]); step 4: deadfalls ([Deadfalls]). Hunter's areas are outside Misthalin; they are built where live has them and reached by ::tele.
+ * ([BirdSnares]); step 2: box traps ([BoxTraps]); step 3: net traps ([NetTraps]); step 4: deadfalls ([Deadfalls]); step 5: pitfalls ([Pitfalls]). Hunter's areas are outside Misthalin; they are built where live has them and reached by ::tele.
  */
 class Hunter(world: World, collision: CollisionMap) {
     val traps = Traps(world, collision)
+    val pitfalls = Pitfalls(world, traps)
 
     fun register() {
         traps.register(BirdSnares.KIND)
         traps.register(BoxTraps.KIND)
         NetTraps.KINDS.forEach(traps::register)
         traps.register(Deadfalls.KIND)
+        pitfalls.register()
     }
 
     /** Call once a tick, in the NPC phase before NPCs move. */
-    fun process() = traps.process()
+    fun process() {
+        traps.process()
+        pitfalls.process()
+    }
 
     /** Call once a tick, straight after NPCs move. */
-    fun arrivals() = traps.arrivals()
+    fun arrivals() {
+        traps.arrivals()
+        pitfalls.arrivals()
+    }
 }
