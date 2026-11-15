@@ -1,5 +1,5 @@
 {
- "name": "Farming step 9: the Tool Leprechaun by Lumbridge's tree patch: Exchange opens his store (125 and 126), rakes go in by Store-1 and Store-5 and come out by Remove-X, noted compost goes in with the All button and comes out with Banknotes, a second watering can is refused, Yes please opens the store, and Deposit-all with nothing to store says so (::keys on)",
+ "name": "Farming step 9: the Tool Leprechaun by Lumbridge's tree patch: Deposit-all with nothing to store says so, Yes please opens his store (125 and 126), rakes go in by Store-1 and Store-5 and come out by Remove-X, noted compost goes in with the All button and comes out with Banknotes, and a second watering can is refused (::keys on)",
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},
@@ -13,8 +13,13 @@
   {"step": "command", "text": "::varbit 1439 0", "expectMessage": "-> 0"},
   {"step": "command", "text": "::varbit 7792 0", "expectMessage": "-> 0", "comment": "default quantity 1"},
   {"step": "command", "text": "::tele 3193 3229 0", "expectMessage": "Teleported to 3193, 3229, 0", "comment": "south of the tree patch west of Lumbridge castle; the Tool Leprechaun stands by it"},
+  {"step": "npcOption", "npc": "Tool Leprechaun", "option": "Deposit-all", "timeoutMs": 20000, "comment": "first, while the pack is empty and before the store covers the screen (live run 2026-11-15: a walk click with the store open found no Walk here)"},
+  {"step": "assertMessage", "contains": "[tool_store.nothing]", "timeoutMs": 10000},
+  {"step": "npcOption", "npc": "Tool Leprechaun", "option": "Talk-to", "timeoutMs": 20000},
+  {"step": "assertDialogue", "contains": "[tool_leprechaun.greeting]"},
+  {"step": "continueDialogue"},
+  {"step": "chooseOption", "text": "[tool_leprechaun.yes_please]", "comment": "Exchange opening it is farms-roads.json's"},
   {"step": "command", "text": "::item 5341 6", "comment": "six rakes"},
-  {"step": "npcOption", "npc": "Tool Leprechaun", "option": "Exchange", "timeoutMs": 20000},
   {"step": "assertInterface", "interfaceId": 125},
   {"step": "assertInterface", "interfaceId": 126},
   {"step": "clickWidget", "interfaceId": 126, "component": 1, "op": 1, "comment": "Store-1 on the rakes"},
@@ -46,16 +51,6 @@
   {"step": "clickWidget", "interfaceId": 125, "component": 12, "op": 1, "comment": "Remove the stored can"},
   {"step": "assertInventory", "itemId": 5336, "count": 1},
   {"step": "assertVarbit", "id": 1439, "value": 0},
-  {"step": "command", "text": "::empty"},
-  {"step": "walk", "x": 3193, "y": 3228, "comment": "walking away closes the store"},
-  {"step": "assertInterface", "interfaceId": 125, "absent": true},
-  {"step": "npcOption", "npc": "Tool Leprechaun", "option": "Deposit-all", "timeoutMs": 20000},
-  {"step": "assertMessage", "contains": "[tool_store.nothing]", "timeoutMs": 10000},
-  {"step": "npcOption", "npc": "Tool Leprechaun", "option": "Talk-to", "timeoutMs": 20000},
-  {"step": "assertDialogue", "contains": "[tool_leprechaun.greeting]"},
-  {"step": "continueDialogue"},
-  {"step": "chooseOption", "text": "[tool_leprechaun.yes_please]"},
-  {"step": "assertInterface", "interfaceId": 125},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
  ]
 }

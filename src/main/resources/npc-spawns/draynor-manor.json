@@ -26,6 +26,19 @@
     {"npc": "rat", "x": 3101, "z": 3355, "wander": 3, "restrict": "indoors", "source": "Rat, the ground floor's south-west room. mejrs NPCList_OSRS (NPCs seen on live); the Wiki, Draynor Manor"},
     {"npc": 3562, "x": 3110, "z": 3367, "level": 2, "wander": 2, "restrict": "indoors", "source": "Professor Oddenstein (professor_oddenstein), on the manor's top floor by his machine (step 12b). mejrs NPCList_OSRS; the wander range guessed"},
     {"npc": 4409, "x": 3099, "z": 3370, "wander": 2, "restrict": "indoors", "source": "Witch (anma_witch), in the manor's north-west room (step 12b). mejrs NPCList_OSRS (seen there as the multi-NPC anma_witch_multi, 4410, spawned as the type it shows after Animal Magnetism); the wander range guessed"},
-    {"npc": 4407, "x": 3093, "z": 3357, "wander": 2, "restrict": "indoors", "source": "Ava (anma_assistant), in the manor's west room (step 12b). mejrs NPCList_OSRS (seen there as the multi-NPC anma_assistant_multi, 4408, spawned as the type it shows after Animal Magnetism); the wander range guessed"}
+    {"npc": 4407, "x": 3093, "z": 3357, "wander": 2, "restrict": "indoors", "source": "Ava (anma_assistant), in the manor's west room (step 12b). mejrs NPCList_OSRS (seen there as the multi-NPC anma_assistant_multi, 4408, spawned as the type it shows after Animal Magnetism); the wander range guessed"},
+    {"npc": "rat", "x": 3093, "z": 9754, "wander": 3, "source": "Rat, the manor's basement (Misthalin bosses step 3). mejrs NPCList_OSRS (NPCs seen on live; audit 2026-11-15); the wander range guessed"},
+    {"npc": "rat", "x": 3099, "z": 9755, "wander": 3, "source": "Rat, the manor's basement (Misthalin bosses step 3). mejrs NPCList_OSRS (NPCs seen on live; audit 2026-11-15); the wander range guessed"},
+    {"npc": "rat", "x": 3099, "z": 9765, "wander": 3, "source": "Rat, the manor's basement (Misthalin bosses step 3). mejrs NPCList_OSRS (NPCs seen on live; audit 2026-11-15); the wander range guessed"},
+    {"npc": "rat", "x": 3101, "z": 9748, "wander": 3, "source": "Rat, the manor's basement (Misthalin bosses step 3). mejrs NPCList_OSRS (NPCs seen on live; audit 2026-11-15); the wander range guessed"},
+    {"npc": "rat", "x": 3103, "z": 9764, "wander": 3, "source": "Rat, the manor's basement (Misthalin bosses step 3). mejrs NPCList_OSRS (NPCs seen on live; audit 2026-11-15); the wander range guessed"},
+    {"npc": "rat", "x": 3104, "z": 9760, "wander": 3, "source": "Rat, the manor's basement (Misthalin bosses step 3). mejrs NPCList_OSRS (NPCs seen on live; audit 2026-11-15); the wander range guessed"},
+    {"npc": "rat", "x": 3111, "z": 9752, "wander": 3, "source": "Rat, the manor's basement (Misthalin bosses step 3). mejrs NPCList_OSRS (NPCs seen on live; audit 2026-11-15); the wander range guessed"},
+    {"npc": "rat", "x": 3113, "z": 9754, "wander": 3, "source": "Rat, the manor's basement (Misthalin bosses step 3). mejrs NPCList_OSRS (NPCs seen on live; audit 2026-11-15); the wander range guessed"},
+    {"npc": "rat", "x": 3116, "z": 9754, "wander": 3, "source": "Rat, the manor's basement (Misthalin bosses step 3). mejrs NPCList_OSRS (NPCs seen on live; audit 2026-11-15); the wander range guessed"},
+    {"npc": "spider", "x": 3110, "z": 9745, "wander": 3, "source": "Spider, the manor's basement (Misthalin bosses step 3). mejrs NPCList_OSRS (NPCs seen on live; audit 2026-11-15); the wander range guessed"},
+    {"npc": "spider", "x": 3111, "z": 9746, "wander": 3, "source": "Spider, the manor's basement (Misthalin bosses step 3). mejrs NPCList_OSRS (NPCs seen on live; audit 2026-11-15); the wander range guessed"},
+    {"npc": "spider", "x": 3112, "z": 9748, "wander": 3, "source": "Spider, the manor's basement (Misthalin bosses step 3). mejrs NPCList_OSRS (NPCs seen on live; audit 2026-11-15); the wander range guessed"},
+    {"npc": "spider", "x": 3112, "z": 9749, "wander": 3, "source": "Spider, the manor's basement (Misthalin bosses step 3). mejrs NPCList_OSRS (NPCs seen on live; audit 2026-11-15); the wander range guessed"}
   ]
 }

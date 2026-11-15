@@ -1160,6 +1160,11 @@
       "tertiary": [{"item": 13474, "name": "Ensouled giant head", "chance": "1/25"}, {"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/50"}, {"item": 10976, "name": "Long bone", "chance": "1/400"}, {"item": 6800, "name": "Giant champion scroll", "chance": "1/5000"}],
       "source": "OSRS Wiki, Obor, Members' worlds drops, read 2026-11-15: giant bones always (they bury from the floor, GiantLairs), the main table's lines out of 135 (the herb table 7/135 and the general seed table 18/135, the gem table 3/135). The giant key's own 1/16 (Stackable Clues, 2 July 2025) is taken as a pre-roll, as the hill giants' is: the 127 slots left are the table's (inferred; 8/135 is the key's share of the Wiki's 135). Tertiary: the ensouled head, beginner clue, long bone and champion scroll. Left out: the curved bone (1/5,012.5) and the gem table's nature talisman variant (the shared gem table is taken)"
     },
+    {"npcs": ["chaosmonk2"], "always": [{"item": 526, "name": "Bones"}], "table": {"slots": 20, "lines": [
+      {"item": 1033, "name": "Zamorak monk bottom", "weight": 1}, {"item": 1035, "name": "Zamorak monk top", "weight": 1}, {"nothing": true, "weight": 18}
+    ]},
+      "source": "OSRS Wiki, Monk of Zamorak, Drops, read 2026-11-15: bones always, the bottom and the top 1/20 each, nothing 18/20. The looting bag is the Wilderness monks' only"
+    },
     {"npcs": ["gb_mossgiant"], "always": [{"item": 30898, "name": "Giant bones"}], "preroll": [{"item": 22374, "name": "Mossy key", "chance": "1/16"}], "table": {"slots": 128, "lines": [
       {"item": 1179, "name": "Black sq shield", "weight": 5}, {"item": 1389, "name": "Magic staff", "weight": 2}, {"item": 1141, "name": "Steel med helm", "weight": 2},
       {"item": 1285, "name": "Mithril shortsword", "weight": 2}, {"item": 1243, "name": "Mithril spear", "weight": 2}, {"item": 1193, "name": "Steel kiteshield", "weight": 1},

@@ -92,19 +92,7 @@
    "step": "command",
    "text": "::tele 3171 3462 0",
    "expectMessage": "Teleported to 3171, 3462, 0",
-   "comment": "by James at the Grand Exchange's south-west entrance; the client shows him as bond_james_visible (8193), but the runner matches the base id 5885"
-  },
-  {
-   "step": "command",
-   "text": "::varbit 6707",
-   "expectMessage": "Varbit 6707 (varp 2855 bits 22-22) = ",
-   "comment": "logs bond_npc_hide: James (bond_james_bond) shows only while it is 0, and the 215 run on 15 Nov drew nobody there"
-  },
-  {
-   "step": "command",
-   "text": "::varbit 6707 0",
-   "expectMessage": "Varbit 6707 (varp 2855 bits 22-22): ",
-   "comment": "shows him whatever the account had stored"
+   "comment": "by James at the Grand Exchange's south-west entrance"
   },
   {
    "step": "waitTicks",
@@ -112,9 +100,10 @@
   },
   {
    "step": "npcOption",
-   "npcId": 5885,
+   "npc": "James",
    "option": "Talk-to",
-   "timeoutMs": 20000
+   "timeoutMs": 20000,
+   "comment": "by name: the client shows bond_james_bond (5885) as bond_james_visible (8193), and the runner matches the shown id (215, 15 Nov)"
   },
   {
    "step": "assertDialogue",
