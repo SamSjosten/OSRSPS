@@ -260,10 +260,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   down for 200 coins from her menu, and opening Farming Supplies, read off varbit 4771, with `::keys on` and `::reset`
   at the end. Items used on a gardener or Tool Leprechaun are in the headless test only (no use-item-on-NPC step).
 - `farming-tool-store.json`: Farming step 9: with `::scenario farming` and `::tele` to Lumbridge's tree patch, the Tool
-  Leprechaun's Exchange opening his store (125 and 126), six rakes stored by Store-1 and Store-5 and three taken back by
-  Remove-X, 300 noted compost stored with the All button and taken back with Banknotes, a second watering can refused,
-  walking away closing the store, Deposit-all with nothing to store, and "Yes please." opening it, read off the store's
-  varbits, with `::keys on` and `::reset` at the end. Needs 0.11.0 for `enterAmount` (and 0.8.0 `assertVarbit`).
+  Leprechaun's Deposit-all with nothing to store, "Yes please." opening his store (125 and 126), six rakes stored by
+  Store-1 and Store-5 and three taken back by Remove-X, 300 noted compost stored with the All button and taken back with
+  Banknotes, and a second watering can refused, read off the store's varbits. Exchange opening it is `farms-roads.json`'s;
+  closing it is the headless test's (a walk click with the store open found no Walk here on 215), with `::keys on` and `::reset` at the end. Needs 0.11.0 for `enterAmount` (and 0.8.0 `assertVarbit`).
 - `farms-roads.json`: Misthalin piece 7 step 5: from Lumbridge to Varrock by `::tele`, Fayeth and a Tool Leprechaun
   by the castle, Seth Groats, Vasquen, Dreven, Tarquin at the canoe station, Rat Burgiss on the road and Treznor by the
   palace talked to, the gardeners' empty patches and Farming Supplies, and the leprechauns' store refused (with `::keys on`; the spawn counts are
