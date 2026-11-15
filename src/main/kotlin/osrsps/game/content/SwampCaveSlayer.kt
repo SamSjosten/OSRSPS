@@ -34,7 +34,7 @@ object Rockslugs {
 
 fun registerRockslugs(world: World) {
     for (slug in Rockslugs.SLUGS) {
-        world.combat.finishers[slug] = { player -> player.equipment[WearPos.WEAPON]?.id == Rockslugs.BRINE_SABRE }
+        world.combat.finishers[slug] = { player, _ -> player.equipment[WearPos.WEAPON]?.id == Rockslugs.BRINE_SABRE }
         world.handlers.onObjOnNpc(slug, Rockslugs.BAG_OF_SALT) { op ->
             val npc = op.npc ?: return@onObjOnNpc
             if (npc.outOfPlay || world.npcs[npc.index] !== npc) return@onObjOnNpc

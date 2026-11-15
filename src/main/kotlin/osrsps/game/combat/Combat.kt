@@ -129,6 +129,13 @@ class Combat(
     var rolledOn: (Player, Npc, AttackType, Int) -> Int = { _, _, _, rolled -> rolled }
 
     /**
+     * Set by content: whether [Npc] takes nothing from a hit now, asked as each hit lands, so a shot or spell already on
+     * its way, recoil and retribution are stopped too; poison and venom ([MeleeCombat.statusHit]) and a finishing hit
+     * (::kill, a bag of salt) still land. Bryophyta while her growthlings live ([osrsps.game.content.Bryophyta]).
+     */
+    var immune: (Npc) -> Boolean = { false }
+
+    /**
      * Why no attack of [player]'s reaches [npc], as the line that tells them, null when one can: its Slayer level
      * ([slayerGated]), or being shut out of where it is fought ([shutOut]). Asked wherever an attack begins, goes on,
      * or spreads to another NPC.
@@ -141,14 +148,23 @@ class Combat(
 
     /**
      * By NPC type id, what lets a player's hits take one below its [NpcCombatDef.minHitpoints]: the brine sabre for
-     * rockslugs ([osrsps.game.content.Rockslugs]). Content fills it in.
+     * rockslugs ([osrsps.game.content.Rockslugs]). Content fills it in. Asked with the attack's type when it is rolled,
+     * null when a hit lands (its damage was already held to the floor when rolled).
      */
-    val finishers = HashMap<Int, (Player) -> Boolean>()
+    val finishers = HashMap<Int, (Player, AttackType?) -> Boolean>()
 
-    /** The hitpoints a hit from [source] (null for none) leaves [npc] at the least: its own, or its fight's [Npc.holdsAt]. */
-    fun floor(npc: Npc, source: Player?): Int {
+    /** Whether [source]'s attack of [type] may take [npc] below its [NpcCombatDef.minHitpoints] ([finishers]). */
+    fun finishes(npc: Npc, source: Player?, type: AttackType?): Boolean =
+        source != null && finishers[npc.type.id]?.invoke(source, type) == true
+
+    /**
+     * The hitpoints a hit from [source] (null for none) of [type] (null when not known) leaves [npc] at the least: its
+     * own, or its fight's [Npc.holdsAt]. [finisher], when given, is [finishes] as it stood when the hit was rolled, so a
+     * weapon changed while the hit is on its way doesn't change it.
+     */
+    fun floor(npc: Npc, source: Player?, type: AttackType? = null, finisher: Boolean? = null): Int {
         val min = npcCombat[npc.type]?.minHitpoints ?: 0
-        val own = if (min == 0 || (source != null && finishers[npc.type.id]?.invoke(source) == true)) 0 else min
+        val own = if (min == 0 || (finisher ?: finishes(npc, source, type))) 0 else min
         return maxOf(own, npc.holdsAt)
     }
 

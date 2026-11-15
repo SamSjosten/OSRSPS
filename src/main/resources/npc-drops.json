@@ -1159,6 +1159,22 @@
     ]},
       "tertiary": [{"item": 13474, "name": "Ensouled giant head", "chance": "1/25"}, {"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/50"}, {"item": 10976, "name": "Long bone", "chance": "1/400"}, {"item": 6800, "name": "Giant champion scroll", "chance": "1/5000"}],
       "source": "OSRS Wiki, Obor, Members' worlds drops, read 2026-11-15: giant bones always (they bury from the floor, GiantLairs), the main table's lines out of 135 (the herb table 7/135 and the general seed table 18/135, the gem table 3/135). The giant key's own 1/16 (Stackable Clues, 2 July 2025) is taken as a pre-roll, as the hill giants' is: the 127 slots left are the table's (inferred; 8/135 is the key's share of the Wiki's 135). Tertiary: the ensouled head, beginner clue, long bone and champion scroll. Left out: the curved bone (1/5,012.5) and the gem table's nature talisman variant (the shared gem table is taken)"
+    },
+    {"npcs": ["gb_mossgiant"], "always": [{"item": 30898, "name": "Giant bones"}], "preroll": [{"item": 22374, "name": "Mossy key", "chance": "1/16"}], "table": {"slots": 128, "lines": [
+      {"item": 1179, "name": "Black sq shield", "weight": 5}, {"item": 1389, "name": "Magic staff", "weight": 2}, {"item": 1141, "name": "Steel med helm", "weight": 2},
+      {"item": 1285, "name": "Mithril shortsword", "weight": 2}, {"item": 1243, "name": "Mithril spear", "weight": 2}, {"item": 1193, "name": "Steel kiteshield", "weight": 1},
+      {"item": 563, "name": "Law rune", "count": 3, "weight": 4}, {"item": 556, "name": "Air rune", "count": 18, "weight": 3}, {"item": 557, "name": "Earth rune", "count": 27, "weight": 3},
+      {"item": 562, "name": "Chaos rune", "count": 7, "weight": 3}, {"item": 561, "name": "Nature rune", "count": 6, "weight": 3}, {"item": 564, "name": "Cosmic rune", "count": 3, "weight": 2},
+      {"item": 884, "name": "Iron arrow", "count": 15, "weight": 2}, {"item": 886, "name": "Steel arrow", "count": 30, "weight": 1}, {"item": 560, "name": "Death rune", "count": 3, "weight": 1},
+      {"item": 565, "name": "Blood rune", "weight": 1},
+      {"table": "herbs", "weight": 5}, {"table": "uncommon_seeds", "weight": 35},
+      {"item": 995, "name": "Coins", "count": 37, "weight": 19}, {"item": 995, "name": "Coins", "count": 2, "weight": 8}, {"item": 995, "name": "Coins", "count": 119, "weight": 10},
+      {"item": 995, "name": "Coins", "count": 300, "weight": 2},
+      {"item": 2353, "name": "Steel bar", "weight": 6}, {"item": 453, "name": "Coal", "weight": 1}, {"item": 1969, "name": "Spinach roll", "weight": 1},
+      {"table": "gems_surface", "weight": 4}
+    ]},
+      "tertiary": [{"item": 13474, "name": "Ensouled giant head", "chance": "1/24"}, {"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/45"}, {"item": 10976, "name": "Long bone", "chance": "1/400"}, {"item": 6800, "name": "Giant champion scroll", "chance": "1/5000"}],
+      "source": "OSRS Wiki, Bryophyta, Members' worlds drops, read 2026-11-15: giant bones always (they bury from the floor, GiantLairs), the main table out of 128 (the herb table 5/128, the uncommon seed table 35/128, the gem table 4/128 with the nature talisman, as above ground's gems_surface: the Wiki's naturetalisman=yes). The mossy key's 1/16 (Stackable Clues, 2 July 2025) is taken as a pre-roll, as Obor's giant key is (inferred). Tertiary: the ensouled head, beginner clue, long bone and champion scroll. Left out: the 1/8 key on a moss giant Slayer task (no Slayer yet), the curved bone (1/5,012.5) and the moss giant bone (Rag and Bone Man II, a quest)"
     }
   ],
   "chests": {
@@ -1176,6 +1192,24 @@
     ]},
       "tertiary": [{"item": 20754, "name": "Giant key", "chance": "1/16"}],
       "source": "OSRS Wiki, Chest (Obor's lair), read 2026-11-15: the clue and (members) the ensouled head always, the main table out of 118 (Mod Ash for the club, the rune kiteshield and the runes), the limpwurt roots, big bones and uncut gems noted (226, 533, 1620, 1618), the rubies and diamonds together; the giant key at 1/16. Ranged counts are taken as even across their range (inferred)"
+    },
+    "bryophyta": {"always": [{"item": 23182, "name": "Clue scroll (beginner)"}], "table": {"slots": 118, "lines": [
+      {"item": 1303, "name": "Rune longsword", "weight": 6}, {"item": 1147, "name": "Rune med helm", "count": 2, "weight": 6}, {"item": 1113, "name": "Rune chainbody", "weight": 6},
+      {"item": 1093, "name": "Rune plateskirt", "weight": 6}, {"item": 1079, "name": "Rune platelegs", "weight": 6}, {"item": 1185, "name": "Rune sq shield", "weight": 6},
+      {"item": 1289, "name": "Rune shortsword", "count": 2, "weight": 5}, {"item": 1124, "name": "Adamant platebody", "count": 5, "weight": 3}, {"item": 1392, "name": "Battlestaff", "count": 3, "weight": 3},
+      {"item": 1199, "name": "Adamant kiteshield", "count": 3, "weight": 1},
+      {"item": 561, "name": "Nature rune", "count": 100, "weight": 8}, {"item": 564, "name": "Cosmic rune", "count": 100, "weight": 6}, {"item": 563, "name": "Law rune", "count": 100, "weight": 6},
+      {"item": 560, "name": "Death rune", "count": 100, "weight": 5}, {"item": 562, "name": "Chaos rune", "count": 200, "weight": 6}, {"item": 562, "name": "Chaos rune", "count": 100, "weight": 5},
+      {"item": 565, "name": "Blood rune", "count": 100, "weight": 1}, {"item": 890, "name": "Adamant arrow", "count": 100, "weight": 1},
+      {"table": "herbs", "weight": 5}, {"table": "uncommon_seeds", "weight": 6},
+      {"item": 2363, "name": "Runite bar", "count": 2, "weight": 6},
+      {"items": [{"item": 1620, "name": "Uncut ruby", "count": 5}, {"item": 1618, "name": "Uncut diamond", "count": 5}], "weight": 4},
+      {"item": 2354, "name": "Steel bar", "count": 25, "weight": 3},
+      {"item": 995, "name": "Coins", "count": 10000, "weight": 5}, {"item": 995, "name": "Coins", "count": 8000, "weight": 2},
+      {"item": 22372, "name": "Bryophyta's essence", "weight": 1}
+    ]},
+      "tertiary": [{"item": 22374, "name": "Mossy key", "chance": "1/16"}],
+      "source": "OSRS Wiki, Chest (Bryophyta's lair), Members drops, read 2026-11-15: the beginner clue always, the main table out of 118 (Mod Kira for the essence's 1/118), the adamant platebodies, battlestaves, uncut gems and steel bars noted (1124, 1392, 1620, 1618, 2354), the rubies and diamonds together; the herb table 5/118 and the uncommon seed table 6/118; the mossy key at 1/16"
     }
   }
 }

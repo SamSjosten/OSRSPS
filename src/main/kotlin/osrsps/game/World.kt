@@ -173,6 +173,7 @@ import osrsps.game.content.registerRick
 import osrsps.game.content.registerBones
 import osrsps.game.content.GiantLairs
 import osrsps.game.content.registerGiantBones
+import osrsps.game.content.registerBryophyta
 import osrsps.game.content.registerObor
 import osrsps.game.content.registerRoguesDen
 import osrsps.game.content.registerRottenPotato
@@ -597,7 +598,10 @@ class World(
         special = { specialAttacks.use(it, combat.weapon(it)) },
         specialLanded = { npc, dealt, special -> specialAttacks.landed(npc, dealt, special) },
         projectile = zones::projectile,
-        npcDamaged = { npc, player, dealt -> archiveRaids.damaged(npc, player, dealt) },
+        npcDamaged = { npc, player, dealt ->
+            archiveRaids.damaged(npc, player, dealt)
+            osrsps.game.content.Bryophyta.damaged(this, npc, player)
+        },
     )
 
     /** Aggressive NPCs going for players, and players' tolerance; see [Aggression]. */
@@ -967,6 +971,7 @@ class World(
         archiveRaids.register()
         // After the raid, which sets the combat's shut-out rule afresh; the lairs add theirs to it.
         registerObor(this, giantLairs)
+        registerBryophyta(this, giantLairs)
         registerGiantBones(this)
         registerRoguesDen(this)
         registerCrops(this)

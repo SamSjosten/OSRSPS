@@ -78,13 +78,18 @@ class GiantLairs(private val world: World) {
     /** The lines a lair says, each its own lair's key. */
     class LairLines(
         val gateLocked: Line,
+        /** The box before the gate's menu, if it has one (Bryophyta's instance warning). */
+        val gateWarning: Line? = null,
         val gateTitle: Line,
         val gateYes: Line,
         val gateNo: Line,
+        /** What the menu's no says, if anything. */
+        val gateDeclined: Line? = null,
         val gateOpened: Line,
-        val exitTitle: Line,
-        val exitYes: Line,
-        val exitNo: Line,
+        /** The way out's menu; null where it has none. */
+        val exitTitle: Line? = null,
+        val exitYes: Line? = null,
+        val exitNo: Line? = null,
         val chestAlive: Line,
         val chestStir: Line,
         val chestNoKey: Line,
@@ -136,8 +141,11 @@ class GiantLairs(private val world: World) {
         val lines = lair.lines
         if (!unlocked(player, lair) && player.inventory.count(lair.key) == 0L) return world.message(player, lines.gateLocked)
         var yes = false
-        world.dialogues.start(this) { yes = choice(lines.gateYes, lines.gateNo, title = text(lines.gateTitle)) == 1 }
-        if (!yes) return
+        world.dialogues.start(this) {
+            lines.gateWarning?.let { mesbox(it) }
+            yes = choice(lines.gateYes, lines.gateNo, title = text(lines.gateTitle)) == 1
+        }
+        if (!yes) return lines.gateDeclined?.let { world.message(player, it) } ?: Unit
         if (!unlocked(player, lair)) {
             if (player.inventory.count(lair.key) == 0L) return world.message(player, lines.gateLocked)
             unlock(player, lair)
@@ -219,13 +227,15 @@ class GiantLairs(private val world: World) {
         return false
     }
 
-    /** Open on the lair's way out: a menu, and leaving on its first option (Transcript:Gate (Obor)). */
+    /** The way out's main option: its menu where it has one, leaving on its first option (Transcript:Gate (Obor)). */
     suspend fun ScriptContext.leaveAsking() {
         val run = runOf(player) ?: return world.message(player, GameLines.NOTHING_INTERESTING)
         arriveDelay()
         val lines = run.lair.lines
+        val title = lines.exitTitle
+        if (title == null || lines.exitYes == null || lines.exitNo == null) return leave(player)
         var yes = false
-        world.dialogues.start(this) { yes = choice(lines.exitYes, lines.exitNo, title = text(lines.exitTitle)) == 1 }
+        world.dialogues.start(this) { yes = choice(lines.exitYes, lines.exitNo, title = text(title)) == 1 }
         if (yes) leave(player)
     }
 
@@ -240,7 +250,7 @@ class GiantLairs(private val world: World) {
         const val RESPAWN_TICKS = 15
 
         /** The lairs' locs whose handlers work in their copies, the instances: the way out, the rocks and the chest. */
-        val INSTANCE_LOCS: Set<Int> = setOf(Obor.EXIT_LEFT, Obor.EXIT_RIGHT, Obor.ROCKS, Obor.CHEST)
+        val INSTANCE_LOCS: Set<Int> = setOf(Obor.EXIT_LEFT, Obor.EXIT_RIGHT, Obor.ROCKS, Obor.CHEST, Bryophyta.EXIT, Bryophyta.LOGS, Bryophyta.CHEST)
 
         const val GIANT_BONES = 30898
         const val BURY = 3

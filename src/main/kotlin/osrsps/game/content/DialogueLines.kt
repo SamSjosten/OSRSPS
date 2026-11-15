@@ -161,6 +161,7 @@ object DialogueLines {
         EdgevilleClosedLines,
         EdgevilleDungeonLines,
         OborLines,
+        BryophytaLines,
         GiantBonesLines,
         StrongholdLines,
         SkullSceptreLines,

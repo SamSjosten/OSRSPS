@@ -40,6 +40,7 @@ class NpcCombatTest {
             "human_unarmedpunch" to 422, "human_unarmedblock" to 424, "human_death" to 836,
             "human_caststrike" to 711, "human_castconfuse" to 716, "human_castweaken" to 717,
             "giant_update_moss_attack" to 4658, "giant_update_moss_defend" to 4657, "giant_update_moss_death" to 4659,
+            "tanglefoot_attack" to 3262, "tanglefoot_block" to 3260, "tanglefoot_death" to 3263,
             "ghost_update_tendrill_attack" to 5540, "ghost_update_tendrill_defend" to 5541, "ghost_update_tendrill_death" to 5542,
             "mouse_attack" to 2705, "mouse_defend" to 2706, "mouse_death" to 2707,
             "imp_attack" to 169, "imp_block" to 170, "imp_death" to 172,

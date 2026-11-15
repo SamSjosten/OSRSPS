@@ -323,7 +323,7 @@ class MagicCombat(
         val sure = combat.sureHit(player, npc, AttackType.MAGIC)
         val hit = CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll) || player.sureHits || sure == SureHit.MAX
         val rolled = combat.rolledOn(player, npc, AttackType.MAGIC, if (hit) CombatMath.rollDamage(random, matchup.maxHit).let { if (sure != SureHit.ROLLED) matchup.maxHit else it } else 0)
-        val damage = minOf(melee.armoured(npc, rolled, magic = true), (npc.hitpoints - combat.floor(npc, player) - npc.incoming).coerceAtLeast(0))
+        val damage = minOf(melee.armoured(npc, rolled, magic = true), (npc.hitpoints - combat.floor(npc, player, AttackType.MAGIC) - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage
         val bonus = combat.npcCombat[npc.type]?.xpBonusTenths ?: 0
         if (defensive) {
@@ -387,7 +387,7 @@ class MagicCombat(
             if (cast.hit) {
                 if (cast.spell.impact >= 0) npc.effects.spotanim(0, cast.spell.impact, IMPACT_HEIGHT)
                 // Guessed: Bind, which can't do damage, shows no hitsplat, as a splash shows none.
-                if (cast.spell.maxHit == 0) melee.splashed(npc, cast.player, tick, cast.from) else melee.hit(npc, cast.player, cast.damage, tick, cast.maxHit, cast.from)
+                if (cast.spell.maxHit == 0) melee.splashed(npc, cast.player, tick, cast.from) else melee.hit(npc, cast.player, cast.damage, tick, cast.maxHit, cast.from, finisher = combat.finishes(npc, cast.player, AttackType.MAGIC))
                 if (cast.spell.freezeTicks > 0 && !npc.outOfPlay && combat.npcCombat[npc.type]?.freezeImmune != true) npcs.freeze(npc, cast.spell.freezeTicks)
             } else {
                 if (spells.splash >= 0) npc.effects.spotanim(0, spells.splash, IMPACT_HEIGHT)
