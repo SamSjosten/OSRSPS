@@ -1,5 +1,6 @@
 package osrsps.game.skill.hunter
 
+import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -94,6 +95,7 @@ class ImplingsTest {
         assertEquals(first.size, world.npcs.count)
         for (spawner in first) {
             val npc = spawner.npc!!
+            // Unloaded map here, so the unseen roam can't move it (the roam has its own test).
             assertEquals(spawner.x to spawner.z, npc.x to npc.z)
             assertTrue(spawner.tier.lines.any { npc.type.id in it.first.npcs }, "${npc.type.id} from ${spawner.tier.name}")
         }
@@ -101,6 +103,25 @@ class ImplingsTest {
         implings.process(Implings.CYCLE_TICKS.toLong())
         assertEquals(0, world.npcs.count)
         assertTrue(implings.all.isNotEmpty() && implings.all.none { it in first })
+    }
+
+    @Test
+    fun `an impling roams while unseen, so it shows away from its point but inside its roam`() {
+        // Open ground around every point (an unloaded map blocks every step, as in the test above).
+        val collision = CollisionMap()
+        val points = Implings.VARIABLE_POINTS + Implings.LOW_POINTS + Implings.PRIF_POINTS
+        for ((x, z) in points) for (rx in (x - Implings.ROAM shr 6)..(x + Implings.ROAM shr 6)) for (rz in (z - Implings.ROAM shr 6)..(z + Implings.ROAM shr 6)) collision.markLoaded(rx, rz)
+        val world = World(IntArray(0), collision, random = GameRandom(11), npcTypes = NpcTypes.of(*types.toTypedArray()), objTypes = objTypes())
+        val implings = world.hunter.implings
+        implings.process(0)
+        implings.process(Implings.UNSEEN_TICKS.toLong())
+        val shown = implings.all.map { it to it.npc!! }
+        assertTrue(shown.count { (spawner, npc) -> spawner.x to spawner.z != npc.x to npc.z } > shown.size / 2, "most moved")
+        for ((spawner, npc) in shown) {
+            assertTrue(abs(npc.x - spawner.x) <= Implings.ROAM && abs(npc.z - spawner.z) <= Implings.ROAM, "${npc.x}, ${npc.z} from ${spawner.x}, ${spawner.z}")
+            // Still roaming around the point, not around where it showed.
+            assertEquals(spawner.x to spawner.z, npc.spawn.x to npc.spawn.z)
+        }
     }
 
     @Test

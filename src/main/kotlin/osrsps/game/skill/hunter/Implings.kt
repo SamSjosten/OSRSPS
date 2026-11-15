@@ -11,8 +11,10 @@ import osrsps.game.combat.NpcDropsDef
 import osrsps.game.content.message
 import osrsps.game.npc.Npc
 import osrsps.game.npc.NpcSpawn
+import osrsps.game.npc.Npcs
 import osrsps.game.script.ScriptContext
 import osrsps.game.skill.SuccessRoll
+import kotlin.math.sign
 
 private val logger = KotlinLogging.logger {}
 
@@ -55,7 +57,8 @@ class ImplingTier(val name: String, val lines: List<Pair<Impling, Int>>) {
  * the high tier, N (5 to 10) on the mid tier and 2N on the low tier, each put at a random one of [VARIABLE_POINTS]; each
  * of [LOW_POINTS] (the Zanaris one too) has a low-tier spawner, and Prifddinas one crystal spawner at a random one of
  * [PRIF_POINTS]. A spawner shows its impling [UNSEEN_TICKS] later, picking the impling then from its tier. A visible
- * impling roams up to [ROAM] tiles from its point. A caught one's spawner starts over at once at the same point.
+ * impling roams up to [ROAM] tiles from its point, and an unseen one roams the same way, so it shows where that took it
+ * ([roamed]). A caught one's spawner starts over at once at the same point.
  *
  * Sources: the OSRS Wiki's Impling page (read 2026-11-15) for the tiers, the points, the cycle, the 2-minute unseen
  * phase, the 100-tile roam, the respawn on capture, barehanded at 10 levels over, a jar needed to keep one and looting at
@@ -63,8 +66,8 @@ class ImplingTier(val name: String, val lines: List<Pair<Impling, Int>>) {
  * [RESOURCE]), Loot as its op, and the 10% chance (Mod Ash) the impling jar breaks. Ids from the rev 242 cache:
  * ii_impling_type_1 to 10 and ii_impling_type_12_*, ii_captured_impling_1 to 10 and 12, ii_impling_jar 11260.
  *
- * Guessed: one attempt per Catch, judged the tick after the swing, as for butterflies; the spawner standing unseen at
- * its point rather than roaming; the first cycle at boot; a caught impling's spawner rolling the tier it was made from;
+ * Guessed: one attempt per Catch, judged the tick after the swing, as for butterflies; the unseen roam following the
+ * visible one's rules; the first cycle at boot; a caught impling's spawner rolling the tier it was made from;
  * which of the crystal impling's seventeen names shows (at random); Loot needing one free slot beside the jar, and loot
  * that doesn't fit (looting at once with a full backpack) going on the ground; that the miss and catch messages are
  * their own lines. Left out: Puro-Puro and its implings, the lucky impling (its loot is the clue reward tables, not
@@ -131,8 +134,50 @@ class Implings(private val world: World) {
             spawner.showTick = nextCycle
             return
         }
-        spawner.npc = world.spawnNpc(NpcSpawn(type, spawner.x, spawner.z, wander = ROAM, source = "implings", respawns = false))
-        if (spawner.npc == null) spawner.showTick = tick + UNSEEN_TICKS
+        val npc = world.spawnNpc(NpcSpawn(type, spawner.x, spawner.z, wander = ROAM, source = "implings", respawns = false))
+        spawner.npc = npc
+        if (npc == null) {
+            spawner.showTick = tick + UNSEEN_TICKS
+            return
+        }
+        // It shows where its unseen roam took it, still roaming around its point.
+        val (x, z) = roamed(spawner)
+        if (x != npc.x || z != npc.z) world.npcs.teleport(npc, x, z)
+    }
+
+    /**
+     * Where an impling unseen for [UNSEEN_TICKS] has got to from [spawner]'s point: the Wiki's spawn mechanics have it
+     * roam invisibly for those two minutes, so it walks as a visible one does ([osrsps.game.npc.Npcs]' wander, a tile in
+     * the [ROAM] square around the point picked 1 in [Npcs.WANDER_CHANCE] a tick and walked naively, one tile a tick).
+     * Guessed: that the unseen roam follows the visible one's rules.
+     */
+    private fun roamed(spawner: Spawner): Pair<Int, Int> {
+        var x = spawner.x
+        var z = spawner.z
+        var destX = 0
+        var destZ = 0
+        var walking = false
+        repeat(UNSEEN_TICKS) {
+            if (!walking) {
+                if (!world.random.chance(1, Npcs.WANDER_CHANCE)) return@repeat
+                destX = spawner.x + world.random.between(-ROAM, ROAM)
+                destZ = spawner.z + world.random.between(-ROAM, ROAM)
+                walking = true
+            }
+            val dx = (destX - x).sign
+            val dz = (destZ - z).sign
+            val step = sequenceOf(dx to dz, dx to 0, 0 to dz)
+                .filter { (sx, sz) -> sx != 0 || sz != 0 }
+                .firstOrNull { (sx, sz) -> world.canStep(0, x, z, sx, sz) }
+            if (step == null) {
+                walking = false
+                return@repeat
+            }
+            x += step.first
+            z += step.second
+            if (x == destX && z == destZ) walking = false
+        }
+        return x to z
     }
 
     private suspend fun ScriptContext.catch(impling: Impling, npc: Npc) {
