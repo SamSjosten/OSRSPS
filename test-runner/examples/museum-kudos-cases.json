@@ -37,7 +37,7 @@
   {"step": "finishDialogue"},
   {"step": "command", "text": "::tele 3262 3449 0", "expectMessage": "Teleported to 3262, 3449, 0", "comment": "north of the cleaning area's rope, beside the case: the runner's route doesn't open the rope's gate (vm_barrier_guard_gate, 3261,3446), so from the south it answered cant_reach (215, 15 Nov)"},
   {"step": "useItemOnLoc", "itemId": 11182, "locId": 12137, "timeoutMs": 30000},
-  {"step": "assertMessage", "contains": "[museum_case.placed]"},
+  {"step": "assertMessage", "contains": "[museum_case.placed", "comment": "the key carries item=..."},
   {"step": "assertVarbit", "id": 3646, "value": 1, "comment": "the case shows the symbol"},
   {"step": "assertVarbit", "id": 3637, "value": 10, "comment": "10 Kudos, the count the client shows"},
   {"step": "assertInventory", "itemId": 11182, "count": 0},
