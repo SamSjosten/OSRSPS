@@ -901,6 +901,16 @@ class MeleeCombat(
     /** Magic and ranged NPC shots on their way, for tests. */
     val shotsInFlight: Int get() = shots.size
 
+    /**
+     * The shots [npc] has on their way land nowhere: for a fight a test command ends with its boss still up (`::raid
+     * clear`), which would otherwise land a shot fired a tick or two before on a player whose `::god` is off by then
+     * (nightly 2026-11-15: archive-guardian-entrance's Guardian shot killing test2 the tick after the clear). A shot from
+     * an NPC that dies in play still lands, as the class note says.
+     */
+    fun dropShotsFrom(npc: Npc) {
+        shots.removeAll { it.npc === npc }
+    }
+
     /** Whether [player] is further than [CHASE_RANGE] from [npc]'s spawn on either axis; never for an unleashed one. */
     private fun outOfRange(npc: Npc, player: Player): Boolean =
         !npc.unleashed && (abs(player.x - npc.spawn.x) > CHASE_RANGE || abs(player.z - npc.spawn.z) > CHASE_RANGE)
