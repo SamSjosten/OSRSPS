@@ -405,7 +405,17 @@ class Falconry(private val world: World, private val collision: CollisionMap) {
                 else -> slots += obj.count
             }
         }
-        return slots <= player.inventory.freeSlots
+        // The fee comes off first, so a coin stack it empties is room too.
+        var fee = FEE_COINS
+        var freed = 0
+        for ((_, held) in player.inventory.contents()) {
+            if (fee == 0) break
+            if (held.id != COINS) continue
+            val paid = minOf(fee, held.count)
+            fee -= paid
+            if (paid == held.count) freed++
+        }
+        return slots <= player.inventory.freeSlots + freed
     }
 
     private fun rent(player: Player) {

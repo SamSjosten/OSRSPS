@@ -35,6 +35,7 @@ class HeadlessFalconryTest {
         for (id in listOf(Falconry.GLOVE_EMPTY, Falconry.GLOVE_FALCON)) objs[id] = ObjType(id, "Falconer's glove", stackable = false, tradeable = false, wearpos1 = WearPos.WEAPON)
         for (id in Falconry.SPOTTED.drops) objs[id] = ObjType(id, "Drop $id", stackable = false, tradeable = true)
         objs[SWORD] = ObjType(SWORD, "Bronze sword", stackable = false, tradeable = true, wearpos1 = WearPos.WEAPON)
+        objs[FILLER] = ObjType(FILLER, "Logs", stackable = false, tradeable = true)
         objs[DARTS] = ObjType(DARTS, "Bronze dart", stackable = true, tradeable = true, wearpos1 = WearPos.WEAPON)
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6); markLoaded(2376 shr 6, 3590 shr 6) }, objTypes = ObjTypes(objs),
@@ -160,10 +161,30 @@ class HeadlessFalconryTest {
         }
     }
 
+    @Test
+    fun `a full backpack with exactly the fee in coins still has room for the sword`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("fd").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(2377, 3590)
+                client.command("setlevel hunter 50")
+                client.command("item ${Falconry.COINS} ${Falconry.FEE_COINS}")
+                client.command("item $FILLER 27")
+                client.await("a full backpack") { if (client.inventory(BACKPACK).count { it != null } == 28) Unit else null }
+                server.world.playerNamed("fd")!!.equipment[WearPos.WEAPON] = InvObj(SWORD, 1)
+                client.npcOp(client.npc(Falconry.MATTHIAS).index, Falconry.QUICK_FALCON)
+                server.awaitWeapon(client, "fd", Falconry.GLOVE_FALCON)
+                client.await("the sword in the backpack") { if (client.count(SWORD) == 1) Unit else null }
+                assertEquals(0, client.count(Falconry.COINS))
+            }
+        }
+    }
+
     private companion object {
         const val BACKPACK = 93
         const val HUNTER = 21
         const val SWORD = 1277
         const val DARTS = 806
+        const val FILLER = 1511
     }
 }
