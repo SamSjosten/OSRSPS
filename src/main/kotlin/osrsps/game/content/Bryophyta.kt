@@ -149,6 +149,12 @@ object Bryophyta {
             if (gone) state.lastGone = maxOf(state.lastGone, if (npc.dead && npc.diedTick >= 0) npc.diedTick else world.tick)
             gone
         }
+        // The batch's end starts the cooldown wherever it is first seen (her tick, or a hit landing before it), from the
+        // tick the last one died, which may be a tick before (killed by an item).
+        if (state.batchOut && state.growthlings.isEmpty()) {
+            state.batchOut = false
+            state.growthAfter = state.lastGone + GROWTH_COOLDOWN_TICKS
+        }
         return state.growthlings
     }
 
@@ -170,12 +176,9 @@ object Bryophyta {
 
     private fun EncounterContext.tick() {
         val state = state
-        if (state.batchOut && living(world, state).isEmpty()) {
-            // From the tick the last one died, which may be a tick before this one sees it (killed by an item).
-            state.batchOut = false
-            state.growthAfter = state.lastGone + GROWTH_COOLDOWN_TICKS
-            log("growthlings gone")
-        }
+        val out = state.batchOut
+        living(world, state)
+        if (out && !state.batchOut) log("growthlings gone")
         val target = target() ?: return
         boss.face(target)
         if (world.tick < state.nextAttack) return
@@ -217,7 +220,8 @@ object Bryophyta {
      * attacked" as a hit of hers landing with damage.
      */
     fun damaged(world: World, boss: Npc, player: Player) {
-        if (boss.type.id != BOSS || boss.dead) return
+        // Not on the killing blow: hit() tells of the damage before she is dead.
+        if (boss.type.id != BOSS || boss.dead || boss.hitpoints <= 0) return
         val encounter = world.encounters.all.firstOrNull { it.boss === boss && !it.ended } ?: return
         with(encounter) { if (mayGrow(player) && roll(1, GROWTH_CHANCE) == 1) grow() }
     }
