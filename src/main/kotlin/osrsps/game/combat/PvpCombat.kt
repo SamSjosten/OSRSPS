@@ -245,7 +245,8 @@ class PvpCombat(
     /**
      * Whether [player]'s PJ timer runs for a fight with someone other than [other]. An opponent who has left the world
      * is none, so a friend can't splash and log out to shield them; one who has come back is the same player by save
-     * key (exploit review R35A-3). The timer after a kill holds though the victim logs out (Codex review on #717).
+     * key (exploit review R35A-3). Guessed: the Wiki's PJ timer page doesn't say what an opponent's logout does; this
+     * is our rule against the shield. The timer after a kill holds though the victim logs out.
      */
     private fun fightingOther(player: Player, other: Player, tick: Long): Boolean {
         val opponent = player.pjOpponent ?: return false
@@ -254,7 +255,8 @@ class PvpCombat(
 
     /**
      * Whether [player]'s PJ timer runs for their fight with [other]: a monster they hit since doesn't keep [other] off
-     * them, or one of the two could end the fight by hitting any monster nearby (exploit review R35A-2).
+     * them, or one of the two could end the fight by hitting any monster nearby (exploit review R35A-2). Guessed: no
+     * source covers it; this is our rule against ending a fight that way.
      */
     private fun lockedOn(player: Player, other: Player, tick: Long): Boolean {
         val opponent = player.pjOpponent ?: return false
