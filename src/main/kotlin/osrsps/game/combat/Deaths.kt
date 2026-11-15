@@ -160,8 +160,8 @@ class Deaths(
      * then for everyone, gone after [PVP_LOOT_DESPAWN_TICKS].
      */
     private val dropForKiller: (victim: Player, killer: String, ObjType, Int, Int, Int, Int) -> Unit = { _, _, _, _, _, _, _ -> },
-    /** Writes the player's save now, as a PvP death does before the killer's loot goes down. */
-    private val saveNow: (Player) -> Unit = {},
+    /** Writes the player's save now, as a PvP death does before the killer's loot goes down; false if it couldn't be. */
+    private val saveNow: (Player) -> Boolean = { true },
 ) {
     private val graves = LinkedHashMap<Npc, Grave>()
 
@@ -262,9 +262,14 @@ class Deaths(
         if (keep) for (obj in over) drop(player, objTypes[obj.id] ?: ObjType(obj.id), obj.count)
         if (killer != null && forKiller.isNotEmpty()) {
             // Saved, respawned and without the lost items, before any reaches the ground: a crash after the killer
-            // picks one up can't give it back to the victim too.
-            saveNow(player)
-            for (obj in forKiller) dropForKiller(player, killer, objTypes[obj.id] ?: ObjType(obj.id), obj.count, fellX, fellZ, fellLevel)
+            // picks one up can't give it back to the victim too. A save that couldn't be written puts them in the
+            // victim's grave instead, where they fell, so nothing is handed over until the removal is on disk.
+            if (saveNow(player)) {
+                for (obj in forKiller) dropForKiller(player, killer, objTypes[obj.id] ?: ObjType(obj.id), obj.count, fellX, fellZ, fellLevel)
+            } else {
+                logger.warn { "${player.username}'s save failed after a PvP death: ${forKiller.size} items to the grave, not to $killer" }
+                bury(player, forKiller, place, fellX, fellZ, fellLevel)
+            }
         }
     }
 
@@ -377,10 +382,10 @@ class Deaths(
      * Puts [lost] in [player]'s grave, raising one on their tile, or [place]'s grave tile, if they have none; an existing
      * grave starts its timer again.
      */
-    private fun bury(player: Player, lost: List<InvObj>, place: DeathPlace?) {
-        val coord = place?.coord?.takeIf { it >= 0 } ?: GraveFees.coord(player.x, player.z, player.level)
+    private fun bury(player: Player, lost: List<InvObj>, place: DeathPlace?, x: Int = player.x, z: Int = player.z, level: Int = player.level) {
+        val coord = place?.coord?.takeIf { it >= 0 } ?: GraveFees.coord(x, z, level)
         val existing = graveOf(player)
-        val grave = existing ?: if (place == null) raise(player, player.x, player.z, player.level, coord) else raise(player, place.graveX, place.graveZ, place.graveLevel, coord)
+        val grave = existing ?: if (place == null) raise(player, x, z, level, coord) else raise(player, place.graveX, place.graveZ, place.graveLevel, coord)
         if (existing != null) {
             grave!!.merged = true
             grave.paid = false

@@ -696,7 +696,7 @@ class World(
             )
         },
         // Saved with the lost items out, before they go down for the killer (see dropForKiller).
-        saveNow = { save(it) },
+        saveNow = ::save,
     )
 
     /**

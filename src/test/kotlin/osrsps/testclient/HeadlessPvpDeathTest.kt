@@ -145,6 +145,32 @@ class HeadlessPvpDeathTest {
     }
 
     @Test
+    fun `if the victim's save can't be written, the loot goes to their grave, not the killer`(@TempDir dir: Path) {
+        val memory = MemorySaveStore()
+        var failing: String? = null
+        val saves = object : SaveStore {
+            override fun read(key: String) = memory.read(key)
+            override fun write(key: String, text: String) {
+                if (key == failing) throw java.io.IOException("disk full (test)")
+                memory.write(key, text)
+            }
+        }
+        server(dir, saves).use { server ->
+            server.login("yan").use { killer ->
+                server.login("zoe").use { victim ->
+                    killer.await("the login rebuild") { killer.position }
+                    failing = "zoe"
+                    server.kill(killer, victim, "zoe", LEVEL_25)
+                    assertEquals(emptyList(), server.groundFor("yan", LEVEL_25), "nothing handed over")
+                    val graveItems = server.world.deaths.graveOf(server.world.playerNamed("zoe")!!)!!.items.contents().map { InvObj(it.second.id, it.second.count) }
+                    assertEquals(setOf(InvObj(bones.id, 2), InvObj(coins.id, 9)), graveItems.groupBy { it.id }.map { (id, l) -> InvObj(id, l.sumOf { it.count }) }.toSet())
+                    failing = null
+                }
+            }
+        }
+    }
+
+    @Test
     fun `on a tie in damage the latest of the leaders to hit is the killer`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("sid").use { a ->
