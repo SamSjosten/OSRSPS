@@ -107,11 +107,15 @@ class NpcSpawnFileTest {
             NpcType(306, "Lumbridge Guide", internalName = "lumbridge_guide"),
             NpcType(119, "null", internalName = "cws_doomsayer"),
             NpcType(16804, "Mikasi", internalName = "mikasi_lumbridge_diary"),
+            NpcType(3019, "Spider", internalName = "spider"),
         )
         val result = NpcSpawnFile.parse(file("lumbridge-castle.json"), castle, "lumbridge-castle.json")
         assertEquals(emptyList(), result.unknown)
         val spawns = result.spawns
-        assertEquals(28, spawns.size)
+        assertEquals(32, spawns.size)
+        // The cellar's four spiders, on mejrs's tiles (Misthalin bosses step 3).
+        val spiders = spawns.filter { it.type.id == 3019 }
+        assertEquals(listOf(Tile(3209, 9618), Tile(3211, 9621), Tile(3216, 9616), Tile(3216, 9624)), spiders.map { Tile(it.x, it.z) })
         assertEquals(10, spawns.count { it.type.id == 2854 }, "rats")
         assertEquals(5, spawns.count { it.level == 1 })
         val hans = spawns.single { it.type.id == 3105 }
@@ -778,8 +782,19 @@ class NpcSpawnFileTest {
             .map { (id, name) -> NpcType(id, "Ghost", internalName = name) }.toTypedArray(),
         NpcType(3565, "Skeleton", internalName = "draynor_skeleton"), NpcType(2854, "Rat", internalName = "rat"),
         NpcType(3562, "Professor Oddenstein", internalName = "professor_oddenstein"), NpcType(4409, "Witch", internalName = "anma_witch"),
-        NpcType(4407, "Ava", internalName = "anma_assistant"),
+        NpcType(4407, "Ava", internalName = "anma_assistant"), NpcType(3019, "Spider", internalName = "spider"),
     )
+
+    @Test
+    fun `Draynor Manor's basement has mejrs's nine rats and four spiders`() {
+        val result = NpcSpawnFile.parse(file("draynor-manor.json"), manorTypes, "draynor-manor.json")
+        assertEquals(emptyList(), result.unknown)
+        val basement = result.spawns.filter { it.x in 3093..3116 && it.z in 9745..9765 }
+        assertEquals(9, basement.count { it.type.id == 2854 })
+        assertEquals(4, basement.count { it.type.id == 3019 })
+        assertEquals(13, basement.size)
+        assertTrue(basement.all { it.level == 0 && it.wander > 0 && it.source.isNotBlank() })
+    }
 
     @Test
     fun `Draynor Manor's inside has five ghosts upstairs, the closet's skeleton, two rats and its three people, all kept indoors`() {
@@ -901,7 +916,7 @@ class NpcSpawnFileTest {
             1311 to "donkey_bartender", 1312 to "bluemoon_bartender", 2895 to "fai_varrock_bluemoon_chef",
             2896 to "fai_varrock_jollyboar_chef", 5037 to "romeo", 5035 to "juliet", 5039 to "draul_leptoc", 5040 to "phillipa",
             7723 to "gertrude_post", 3501 to "shilop", 3502 to "philop", 3503 to "wilough", 3504 to "kanel", 11868 to "aris",
-            5209 to "tramppg", 3255 to "tramp", 16277 to "dr_harlow_vis", 14139 to "jonny_the_beard_2op", 2899 to "varrock_granny_1",
+            5209 to "tramppg", 3255 to "tramp", 16277 to "dr_harlow_vis", 14138 to "jonny_the_beard_1op", 2899 to "varrock_granny_1",
             276 to "pmod_town_crier_varrock",
             4984 to "dimintheis", 5445 to "johnathon_fitzharmon_2ops", 10425 to "daddyshome_daddy",
             5214 to "curator", 1909 to "vm_info_booth_lady", 1910 to "vm_museum_guard", 1912 to "vm_museum_guard3",
@@ -925,7 +940,7 @@ class NpcSpawnFileTest {
             16812 to "deadman_nigel_varrock", 16811 to "clue_hunter_arthur", 5449 to "ge_expert_herbs",
             2152 to "ge_boss", 5450 to "ge_expert_runes", 5451 to "ge_expert_logs", 5452 to "ge_expert_combat", 3115 to "ge_expert_ores",
             1110 to "guidor", 1106 to "gambler2", 4574 to "vc_pox", 4588 to "vc_hooknosed_jack", 4162 to "surok_annajones",
-            3225 to "aide_tutor_smithing_master", 10415 to "con_contract_client_2", 10414 to "con_contract_client_1",
+            16816 to "sani", 10415 to "con_contract_client_2", 10414 to "con_contract_client_1",
             10416 to "con_contract_client_3", 5042 to "romeo_juliet_pew_sleeping_man", 5921 to "rooftops_bigredjapan",
             5525 to "toby_varrock_diary", 5885 to "bond_james_bond", 10733 to "boardgames_barmaid3", 5211 to "weaponsmaster",
         )
@@ -981,7 +996,7 @@ class NpcSpawnFileTest {
         assertEquals(listOf(1310, 1311, 1312, 2895, 2896), inns.map { it.type.id }.sorted())
         assertTrue(inns.all { it.restrict == MoveRestrict.INDOORS })
         // Step 8a: one of each townsperson, the multi-NPCs as the types they show after their quests; Iffie sits still.
-        val townsfolk = listOf(276, 2899, 3255, 3501, 3502, 3503, 3504, 5035, 5037, 5039, 5040, 5209, 7723, 11868, 14139, 16277)
+        val townsfolk = listOf(276, 2899, 3255, 3501, 3502, 3503, 3504, 5035, 5037, 5039, 5040, 5209, 7723, 11868, 14138, 16277)
         assertEquals(townsfolk, spawns.filter { it.type.id in townsfolk }.map { it.type.id }.sorted())
         val iffie = spawns.single { it.type.id == 2899 }
         assertEquals(0, iffie.wander)
