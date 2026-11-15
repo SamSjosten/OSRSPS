@@ -729,6 +729,10 @@ class MeleeCombat(
         fireAt(npc, player, tick)
     }
 
+    /** Whether [npc] stands where its melee reaches [player], as its fight back asks before a swing. */
+    fun reaches(npc: Npc, player: Player): Boolean =
+        npc.level == player.level && Reach.reachedEntity(collision, npc.level, npc.x, npc.z, npc.type.size, player.x, player.z, 1, 1)
+
     /** Whether [player] is in [npc]'s range and sight for its magic or ranged attacks, as its fight back asks before a shot. */
     fun inShot(npc: Npc, player: Player): Boolean = combat.npcCombat[npc.type]?.let { inShot(npc, it, player) } ?: false
 
@@ -743,9 +747,11 @@ class MeleeCombat(
      * is due and they are in range and sight: the roll as it fires and the hit landing after the flight. A boss fight
      * calls it for its boss's own shots ([Npc.scriptedAttacks]), and can name the [attack] and its [type] (the Smorks'
      * ranged bones or magic potions, raid step 18a); without them, one of its file's by weight, of its file's type. Does
-     * nothing for an NPC with no such attacks.
+     * nothing for an NPC with no such attacks. A protection prayer against it blocks it all, unless [prayerPasses] says
+     * what share of the damage, in percent, still lands through one (Obor's rocks, half).
      */
-    fun fireAt(npc: Npc, player: Player, tick: Long, attack: NpcRangedAttack? = null, type: AttackType? = null) {
+    fun fireAt(npc: Npc, player: Player, tick: Long, attack: NpcRangedAttack? = null, type: AttackType? = null, prayerPasses: Int = 0) {
+        require(prayerPasses in 0..100) { "$prayerPasses% through a prayer" }
         val def = combat.npcCombat[npc.type] ?: return
         if (npc.hidden) return
         if (attack == null && def.attacks.isEmpty()) return
@@ -765,9 +771,11 @@ class MeleeCombat(
         val hit = CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)
         val max = shot.maxHit ?: roll.maxHit
         val damage = if (hit && max > 0) CombatMath.rollDamage(random, max) else 0
-        val blocked = protects(player, shotType)
+        val prayed = protects(player, shotType)
+        val blocked = prayed && prayerPasses == 0
         // Dinh's bulwark counts as it fires, as the prayer does and as for a melee swing.
-        val reduced = if (combat.bulwarkBlocking(player, tick)) DinhsBulwark.blocked(damage) else damage
+        val bulwarked = if (combat.bulwarkBlocking(player, tick)) DinhsBulwark.blocked(damage) else damage
+        val reduced = if (prayed) bulwarked * prayerPasses / 100 else bulwarked
         shots += Shot(npc, player, shot, hit, blocked, if (blocked) 0 else reduced, tick + delay)
     }
 

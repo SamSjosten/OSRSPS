@@ -160,6 +160,8 @@ object DialogueLines {
         DummyLines,
         EdgevilleClosedLines,
         EdgevilleDungeonLines,
+        OborLines,
+        GiantBonesLines,
         StrongholdLines,
         SkullSceptreLines,
         SolztunLines,

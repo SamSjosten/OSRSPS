@@ -1,5 +1,5 @@
 {
- "name": "Edgeville piece step 11: the hill giants. The brass key taken, the shed's door locked and then unlocked, the ladder down, a hill giant killed for its big bones, Obor's gate refusing, and back up (::keys on)",
+ "name": "Edgeville piece step 11: the hill giants. The brass key taken, the shed's door locked and then unlocked, the ladder down, a hill giant killed for its big bones, Obor's gate locked without a giant key, and back up (::keys on)",
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},
@@ -25,8 +25,9 @@
   {"step": "assertHitsplat", "npc": "Hill Giant", "timeoutMs": 20000},
   {"step": "assertGroundItem", "item": "Big bones", "timeoutMs": 90000, "comment": "a hill giant always drops big bones"},
   {"step": "command", "text": "::tele 3096 9832 0", "expectMessage": "Teleported to 3096, 9832, 0", "comment": "east of the gate to Obor's lair"},
+  {"step": "command", "text": "::varp giant_lairs 0", "comment": "the gate not yet unlocked on this account"},
   {"step": "locOption", "locId": 29487, "option": "Open", "x": 3095, "y": 9832},
-  {"step": "assertMessage", "contains": "edgeville_dungeon.obor_closed", "timeoutMs": 10000},
+  {"step": "assertMessage", "contains": "obor.gate_locked", "timeoutMs": 10000},
   {"step": "command", "text": "::tele 3116 9851 0", "expectMessage": "Teleported to 3116, 9851, 0", "comment": "south of the ladder"},
   {"step": "locOption", "locId": 17385, "option": "Climb-up", "x": 3116, "y": 9852},
   {"step": "assertLocation", "x": 3116, "y": 3451, "plane": 0, "timeoutMs": 10000, "comment": "back in the shed"},
