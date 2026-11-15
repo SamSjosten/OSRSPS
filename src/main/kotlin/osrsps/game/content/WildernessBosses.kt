@@ -17,7 +17,7 @@ object WildernessBossLines : Lines("wilderness_boss", "Kill count") {
 /**
  * A Wilderness boss (piece 4): its NPC [types], the name `::wboss` takes, its kill count's varp (the cache's
  * `total_<boss>_kills`, -1 for none), whether a kill's loot is [group] loot split by damage, and its [uniques], the items
- * that drop at most once a kill.
+ * that drop at most once a kill. A [lair] boss's top damage dealer gets 10,000 off the lairs' fee ([WildernessLairFee]).
  */
 class WildernessBoss(
     val name: String,
@@ -25,6 +25,7 @@ class WildernessBoss(
     val killCountVarp: Int,
     val group: Boolean = false,
     val uniques: Set<Int> = emptySet(),
+    val lair: Boolean = false,
 )
 
 /**
@@ -118,6 +119,11 @@ class WildernessBosses(private val world: World) {
     internal val tallies: Int get() = damage.size
 
     private fun died(npc: Npc, boss: WildernessBoss) {
+        if (boss.lair) {
+            // The most damage; a tie goes to whoever hit first (inferred), the tally's first.
+            val top = damage[npc]?.damage.orEmpty().entries.maxByOrNull { it.value }?.key
+            world.onlinePlayers.firstOrNull { it.saveKey == top }?.let(WildernessLairFee::discount)
+        }
         // Who is logged in now decides both rewards, not who is when the loot shows a few ticks later.
         val atKill = shares(npc).also { damage[npc]?.atKill = it }
         val looters = if (boss.group) atKill.map { it.key } else atKill.take(1).map { it.key }
