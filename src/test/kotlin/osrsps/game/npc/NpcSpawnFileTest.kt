@@ -1176,4 +1176,14 @@ class NpcSpawnFileTest {
         assertEquals(3, of(5554).count { it.level == 1 })
         assertTrue(result.spawns.all { it.wander == 4 && it.source.isNotBlank() })
     }
+
+    @Test
+    fun `Hunter step 7's kebbits are where the Wiki has them, all inside the falconry area, with Matthias`() {
+        val names = mapOf(1340 to "hunting_npc_falconer", 5531 to "huntingbeast_speedy", 5532 to "huntingbeast_silent", 5533 to "huntingbeast_speedy2")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("hunter-falconry.json"), types, "hunter-falconry.json")
+        assertEquals(emptyList(), result.unknown)
+        assertEquals(listOf(1, 7, 7, 3), names.keys.map { id -> result.spawns.count { it.type.id == id } })
+        assertTrue(result.spawns.all { osrsps.game.skill.hunter.Falconry.inArea(it.x, it.z, it.level) && it.source.isNotBlank() })
+    }
 }
