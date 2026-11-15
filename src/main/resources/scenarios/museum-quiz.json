@@ -1,6 +1,6 @@
 {
   "about": "On the Varrock Museum's Natural History floor beside Orlando Smith, with 50 Slayer, Hunter and Mining, his quiz not yet taken on, no display done in the quiz or the Dig Site exhibit, and the information clerk's first reward unclaimed.",
-  "notes": "For test-runner/examples/museum-quiz.json: the varbits are the 242 cache's vm_kudos (3637), vm_reward_50 (3640), the Dig Site's vm_digsite_* (3645-3649), vm_nathis_agreed (3671), the fourteen vm_nathis_*_display (3672-3685) and vm_nathis_reward_given (3688), set to 0 so the quiz can repeat on one account; ::reset puts them back. The levels keep Orlando's and the clerk's XP from opening level-up boxes. Orlando stands at 1759, 4955 (npc-spawns/varrock.json); the tile beside him is guessed walkable.",
+  "notes": "For test-runner/examples/museum-quiz.json: the varbits are the 242 cache's vm_kudos (3637), vm_reward_50 (3640), the Dig Site's vm_digsite_* (3645-3649), vm_nathis_agreed (3671), the fourteen vm_nathis_*_display (3672-3685) vm_nathis_reward_given (3688) and the timeline's displays (3650-3661, 9678, 9679, as the Kudos count is worked out from every source), set to 0 so the quiz can repeat on one account; ::reset puts them back. The levels keep Orlando's and the clerk's XP from opening level-up boxes. Orlando stands at 1759, 4955 (npc-spawns/varrock.json); the tile beside him is guessed walkable.",
   "position": {
     "x": 1760,
     "z": 4956,
@@ -34,6 +34,20 @@
     "3683": 0,
     "3684": 0,
     "3685": 0,
-    "3688": 0
+    "3688": 0,
+    "3650": 0,
+    "3651": 0,
+    "3652": 0,
+    "3653": 0,
+    "3654": 0,
+    "3655": 0,
+    "3656": 0,
+    "3657": 0,
+    "3658": 0,
+    "3659": 0,
+    "3660": 0,
+    "3661": 0,
+    "9678": 0,
+    "9679": 0
   }
 }
