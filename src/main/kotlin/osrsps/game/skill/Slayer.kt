@@ -242,9 +242,10 @@ class Slayer(private val world: World, val data: SlayerData) {
 
     /**
      * Whether [player] is fit for [task]: its combat level (while the masters check it, and [combat] asks) and its stat
-     * levels. A master offers to cancel a task the player is no longer fit for (the Wiki's master transcripts); that
-     * asks without the combat level, since combat only rises and a task given with the check on was within it, so only
-     * turning the check back on after a task could fail it: a free cancel at will (exploit review round 35, R35B-1).
+     * levels. A master offers to cancel a task the player is no longer fit for (the Wiki's master transcripts). Inferred
+     * (the Wiki gives no rule for it): that offer asks without the combat level, since combat only rises and a task given
+     * with the check on was within it, so only turning the check back on after a task could fail it: a free cancel at
+     * will (exploit review round 35, R35B-1).
      */
     fun fit(player: Player, task: SlayerTask, combat: Boolean = true): Boolean {
         if (combat && combatChecked(player) && player.skills.combatLevel < task.minCombat) return false
