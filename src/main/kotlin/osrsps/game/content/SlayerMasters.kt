@@ -1,5 +1,6 @@
 package osrsps.game.content
 
+import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Dialogue
@@ -46,6 +47,12 @@ object SlayerMasterLines : Lines("slayer_master", "Transcript:Vannaka") {
     val GO_MAZCHNA = line("go_mazchna", "that menu, option 2, which the player then says: off to Mazchna")
     val GO_VANNAKA = line("go_vannaka", "that menu, option 2, which the player then says: off to Vannaka")
     val GO_CHAELDAR = line("go_chaeldar", "that menu, option 2, which the player then says: off to Chaeldar")
+    val STILL_HUNTING_WITH = line("still_hunting_with", "with a task the player is no longer fit for: the task and how many are left", "task", "amount")
+    val NOT_SUITABLE = line("not_suitable", "then: the offer to cancel it, which keeps the streaks")
+    val YES_CANCEL = line("yes_cancel", "that menu, option 1, which the player then says")
+    val CANCELLED = line("cancelled", "option 1: the master's answer, the task gone")
+    val NO_TRY = line("no_try", "that menu, option 2, which the player then says")
+    val GOOD_LUCK_WITH_THAT = line("good_luck_with_that", "option 2: the master's answer")
     val TOO_WEAK = line("too_weak", "a master whose combat level the player hasn't reached; the Wiki's transcripts leave it out, words unsourced")
     val NOTHING_TO_GIVE = line("nothing_to_give", "a master with no task the player may be given; words unsourced")
 }
@@ -62,6 +69,30 @@ object AyaLines : Lines("aya", "Transcript:Aya") {
     val THRILL_SEEKER = line("thrill_seeker", "Aya on her brother")
     val SORRY = line("sorry", "the player's apology")
     val HERO = line("hero", "Aya's last line")
+}
+
+/** Mazchna's own lines (the Wiki's Transcript:Mazchna, read 2026-11-15). */
+object MazchnaLines : Lines("mazchna", "Transcript:Mazchna") {
+    val STILL_HUNTING = line("still_hunting", "with a task already: her line, worded with a comma where the others have a semicolon", "task", "amount")
+    val ABOUT_LUCIEN = line("about_lucien", "first menu after While Guthix Sleeps, which the player then says")
+    val RECKONING = line("reckoning", "that talk: Mazchna's first line")
+    val SO_WILL_I = line("so_will_i", "the player's answer")
+    val SIDE_BY_SIDE = line("side_by_side", "Mazchna's last line")
+}
+
+/** Steve's own lines (the Wiki's Transcript:Steve, read 2026-11-15), after Monkey Madness II. */
+object SteveLines : Lines("steve", "Transcript:Steve") {
+    val NEW_MASTER = line("new_master", "first menu, which the player then says: the new Slayer Master here")
+    val NIEVE_WAS = line("nieve_was", "after Monkey Madness II: Steve on his cousin Nieve")
+    val NO_SHIELD = line("no_shield", "then: no shield like Nieve's")
+    val HOW_SAD = line("how_sad", "the player's answer")
+}
+
+/** Kuradal's own lines (the Wiki's Transcript:Kuradal, read 2026-11-15). */
+object KuradalLines : Lines("kuradal", "Transcript:Kuradal") {
+    val SKILLCAPE = line("skillcape", "first menu below 99 Slayer, which the player then says")
+    val SKILLCAPE_ABOUT = line("skillcape_about", "Kuradal on the Slayer cape")
+    val MORE_TRAINING = line("more_training", "then: more training needed")
 }
 
 /** The tip a master gives for each task (the Wiki's Transcript:Slayer task tips), by the cache's task id. */
@@ -97,31 +128,43 @@ object SlayerTipLines : Lines("slayer_tip", "Transcript:Slayer task tips") {
 }
 
 /**
- * Aya in Burthorpe, Spria in Draynor and Vannaka in Edgeville Dungeon (Slayer step 2): Talk-to and Assignment, from the
- * Wiki's transcripts. With every quest done Aya holds Turael's place, as she does since While Guthix Sleeps (OSRS Wiki,
- * Aya), with his task list and his swap. Talk-to's menu: another assignment, rewards or trade (its menu only, as the
- * rewards screen and the shop come later), the difficulty of assignments (turning the combat level check off and on for
- * every master, varbit combat_level_reqs_disabled), Aya's talk about Turael, or nothing. Assignment goes straight to the
- * assignment.
+ * The Slayer masters with every quest done: Aya in Burthorpe, Spria in Draynor and Vannaka in Edgeville Dungeon (Slayer
+ * step 2), and Mazchna in Canifis, Chaeldar in Zanaris, Steve at the Stronghold Slayer Cave and Kuradal in Shilo Village
+ * (step 3, built in place and reached by ::tele). Talk-to and Assignment, from the Wiki's transcripts. With every quest
+ * done Aya holds Turael's place (since While Guthix Sleeps), Kuradal Duradel's (the same) and Steve Nieve's (since Monkey
+ * Madness II) (OSRS Wiki, Aya, Kuradal, Steve). Talk-to's menu: another assignment, rewards or trade (its menu only, as
+ * the rewards screen and the shop come later), the difficulty of assignments (turning the combat level check off and on
+ * for every master, varbit combat_level_reqs_disabled), each master's own talk (Aya's about Turael, Mazchna's about
+ * Lucien, Steve's about Nieve, Kuradal's about the Slayer cape below 99 Slayer), or nothing. Assignment goes straight to
+ * the assignment.
  *
- * Asked for an assignment, a master below whose combat (and Slayer) level the player is turns them away; with a task,
- * they say what is left; with none they give a new one ([Slayer.roll]), Aya and Spria first suggesting a higher master to
- * a strong player (Spria's transcript's bands: Mazchna 20 to 39, Vannaka 40 to 69, Chaeldar 70 and over; inferred the
- * same for Aya, whose transcript gives only Chaeldar). Vannaka then offers a tip ([SlayerTipLines]). Aya swaps another
- * master's task that isn't on her own list for one of hers, which resets the streak (OSRS Wiki, Aya); Spria doesn't.
+ * Asked for an assignment, a master below whose combat (and Slayer) level the player is turns them away; with a task
+ * the player is no longer fit for ([Slayer.fit]) they offer to cancel it, keeping the streaks; with another task, they
+ * say what is left; with none they give a new one ([Slayer.roll]). Aya and Spria first suggest a higher master to a
+ * strong player (Spria's transcript's bands: Mazchna 20 to 39, Vannaka 40 to 69, Chaeldar 70 and over; inferred the same
+ * for Aya, whose transcript gives only Chaeldar), and Mazchna suggests Chaeldar (inferred at 70 and over). After a new
+ * task every master but Aya, Spria and Steve offers a tip ([SlayerTipLines]). Aya swaps another master's task that isn't
+ * on her own list for one of hers, which resets the streak (OSRS Wiki, Aya); Spria doesn't.
  *
  * Guessed: the chathead expressions; every line the transcripts leave out (a master turning a weak player away, a master
- * with nothing to give, what follows Aya's "Yes, please", taken to be her new task line). Left out: Aya's blessed axe talk
- * (Animal Magnetism's axe; a sixth option where a menu holds five) and, not reachable with every quest done, the offer to
- * cancel a task the player is no longer fit for. Spria's Draynor tile and Aya's Burthorpe one are mejrs's (live) tiles.
+ * with nothing to give, what follows Aya's "Yes, please", taken to be her new task line); the cancel offer coming before
+ * Aya's swap; Mazchna's band. Left out: Aya's blessed axe talk (Animal Magnetism's axe), Kuradal's Slayer cape sale at 99
+ * and her talk about Duradel (Duradel's notes), Spria's cancel of a Morytania task, and the Slayer cape letting a master
+ * overlook the combat level. Tiles are mejrs's (live) tiles.
  */
 class SlayerMasters(private val world: World) {
     companion object {
         const val TALK_TO = 1
         const val ASSIGNMENT = 3
 
-        /** The masters this step places, and Vannaka, who stood waiting in Edgeville Dungeon. */
-        val BUILT = listOf(SlayerMaster.AYA, SlayerMaster.SPRIA, SlayerMaster.VANNAKA)
+        /** The masters placed so far; Vannaka stood waiting in Edgeville Dungeon. */
+        val BUILT = listOf(
+            SlayerMaster.AYA, SlayerMaster.SPRIA, SlayerMaster.VANNAKA, SlayerMaster.MAZCHNA, SlayerMaster.CHAELDAR,
+            SlayerMaster.STEVE, SlayerMaster.KURADAL,
+        )
+
+        /** The masters whose transcripts end at the new task, with no tip offered. */
+        private val NO_TIPS = setOf(SlayerMaster.AYA, SlayerMaster.SPRIA, SlayerMaster.STEVE)
     }
 
     private val slayer get() = world.slayer
@@ -133,9 +176,18 @@ class SlayerMasters(private val world: World) {
         }
     }
 
+    /** The master's own option in Talk-to's menu, before "Er... Nothing...", if they have one. */
+    private fun Dialogue.ownOption(master: SlayerMaster): Line? = when (master) {
+        SlayerMaster.AYA -> AyaLines.ABOUT_TURAEL
+        SlayerMaster.MAZCHNA -> MazchnaLines.ABOUT_LUCIEN
+        SlayerMaster.STEVE -> SteveLines.NEW_MASTER
+        SlayerMaster.KURADAL -> KuradalLines.SKILLCAPE.takeIf { player.skills.baseLevel(Skill.SLAYER) < 99 }
+        else -> null
+    }
+
     private suspend fun Dialogue.talk(master: SlayerMaster): Unit = with(SlayerMasterLines) {
         chatNpc(ChatAnim.NEUTRAL, GREETING)
-        val options = if (master == SlayerMaster.AYA) listOf(NEED_TASK, REWARDS, DIFFICULTY, AyaLines.ABOUT_TURAEL, NOTHING) else listOf(NEED_TASK, REWARDS, DIFFICULTY, NOTHING)
+        val options = listOfNotNull(NEED_TASK, REWARDS, DIFFICULTY, ownOption(master), NOTHING)
         when (options[choice(*options.toTypedArray()) - 1]) {
             NEED_TASK -> {
                 chatPlayer(ChatAnim.NEUTRAL, NEED_TASK)
@@ -152,6 +204,9 @@ class SlayerMasters(private val world: World) {
                 difficulty()
             }
             AyaLines.ABOUT_TURAEL -> aboutTurael()
+            MazchnaLines.ABOUT_LUCIEN -> aboutLucien()
+            SteveLines.NEW_MASTER -> aboutNieve()
+            KuradalLines.SKILLCAPE -> aboutSkillcape()
             else -> chatPlayer(ChatAnim.NEUTRAL, NOTHING)
         }
     }
@@ -165,26 +220,67 @@ class SlayerMasters(private val world: World) {
         chatNpc(ChatAnim.NEUTRAL, HERO)
     }
 
+    private suspend fun Dialogue.aboutLucien(): Unit = with(MazchnaLines) {
+        chatPlayer(ChatAnim.NEUTRAL, ABOUT_LUCIEN)
+        chatNpc(ChatAnim.ANGRY, RECKONING)
+        chatPlayer(ChatAnim.ANGRY, SO_WILL_I)
+        chatNpc(ChatAnim.ANGRY, SIDE_BY_SIDE)
+    }
+
+    private suspend fun Dialogue.aboutNieve(): Unit = with(SteveLines) {
+        chatPlayer(ChatAnim.NEUTRAL, NEW_MASTER)
+        chatNpc(ChatAnim.NEUTRAL, NIEVE_WAS)
+        chatNpc(ChatAnim.SAD, NO_SHIELD)
+        chatPlayer(ChatAnim.NEUTRAL, HOW_SAD)
+    }
+
+    private suspend fun Dialogue.aboutSkillcape(): Unit = with(KuradalLines) {
+        chatPlayer(ChatAnim.QUIZ, SKILLCAPE)
+        chatNpc(ChatAnim.NEUTRAL, SKILLCAPE_ABOUT)
+        chatNpc(ChatAnim.NEUTRAL, MORE_TRAINING)
+    }
+
     /** "I need another assignment", or the Assignment option. */
     private suspend fun Dialogue.assignment(master: SlayerMaster): Unit = with(SlayerMasterLines) {
         if (!slayer.meets(player, master)) return chatNpc(ChatAnim.NEUTRAL, TOO_WEAK)
         val task = slayer.task(player)
         if (task != null) {
-            val line = if (master == SlayerMaster.VANNAKA) STILL_HUNTING_COME_BACK else STILL_HUNTING
+            if (!slayer.fit(player, task)) return offerCancel(task.nameLower)
+            val line = when (master) {
+                SlayerMaster.AYA, SlayerMaster.SPRIA -> STILL_HUNTING
+                SlayerMaster.MAZCHNA -> MazchnaLines.STILL_HUNTING
+                else -> STILL_HUNTING_COME_BACK
+            }
             chatNpc(ChatAnim.NEUTRAL, line, "task" to task.nameLower, "amount" to slayer.remaining(player))
             // Spria's tasks can't be skipped through Turael (OSRS Wiki, Spria), so Aya keeps hers too.
             if (master == SlayerMaster.AYA && slayer.master(player) != SlayerMaster.SPRIA && slayer.data.entry(SlayerMaster.AYA.id, task.id) == null) swap()
             return
         }
-        if ((master == SlayerMaster.AYA || master == SlayerMaster.SPRIA) && !suggestHigher()) return
+        if (!suggestHigher(master)) return
         newTask(master)
     }
 
-    /** Aya and Spria to a strong player: false when they go to the higher master instead. */
-    private suspend fun Dialogue.suggestHigher(): Boolean = with(SlayerMasterLines) {
+    /** A task the player is no longer fit for: the master offers to cancel it, which keeps the streaks. */
+    private suspend fun Dialogue.offerCancel(task: String): Unit = with(SlayerMasterLines) {
+        chatNpc(ChatAnim.NEUTRAL, STILL_HUNTING_WITH, "task" to task, "amount" to slayer.remaining(player))
+        chatNpc(ChatAnim.QUIZ, NOT_SUITABLE)
+        if (choice(YES_CANCEL, NO_TRY) == 1) {
+            chatPlayer(ChatAnim.NEUTRAL, YES_CANCEL)
+            slayer.clear(player)
+            chatNpc(ChatAnim.NEUTRAL, CANCELLED)
+        } else {
+            chatPlayer(ChatAnim.NEUTRAL, NO_TRY)
+            chatNpc(ChatAnim.NEUTRAL, GOOD_LUCK_WITH_THAT)
+        }
+    }
+
+    /** Aya, Spria and Mazchna to a strong player: false when they go to the higher master instead. */
+    private suspend fun Dialogue.suggestHigher(master: SlayerMaster): Boolean = with(SlayerMasterLines) {
         val combat = player.skills.combatLevel
         val (suggest, go) = when {
+            master !in setOf(SlayerMaster.AYA, SlayerMaster.SPRIA, SlayerMaster.MAZCHNA) -> return true
             combat >= SlayerMaster.CHAELDAR.combat -> STRONG_CHAELDAR to GO_CHAELDAR
+            master == SlayerMaster.MAZCHNA -> return true
             combat >= SlayerMaster.VANNAKA.combat -> STRONG_VANNAKA to GO_VANNAKA
             combat >= SlayerMaster.MAZCHNA.combat -> STRONG_MAZCHNA to GO_MAZCHNA
             else -> return true
@@ -202,8 +298,7 @@ class SlayerMasters(private val world: World) {
         val (entry, amount) = slayer.roll(player, master) ?: return chatNpc(ChatAnim.NEUTRAL, NOTHING_TO_GIVE)
         slayer.assign(player, master, entry.task, amount)
         chatNpc(ChatAnim.HAPPY, NEW_TASK, "amount" to amount, "task" to entry.task.nameLower)
-        // Aya's and Spria's transcripts end at the new task; Vannaka's offers a tip.
-        if (master == SlayerMaster.VANNAKA) tips(entry.task.id)
+        if (master !in NO_TIPS) tips(entry.task.id)
     }
 
     /** "Got any tips for me?" or "Okay, great!". */
