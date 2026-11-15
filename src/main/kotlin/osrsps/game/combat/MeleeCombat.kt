@@ -169,7 +169,7 @@ class MeleeCombat(
         combat.npcCombat[npc.type] ?: return false
         val barred = combat.barred(player, npc)
         if (barred != null) {
-            message(player, words(player)[barred])
+            if (!combat.tellBarred(player, npc, barred)) message(player, words(player)[barred])
             return true
         }
         if (combat.bulwarkBlock(player)) {
@@ -217,7 +217,7 @@ class MeleeCombat(
         // leave where the NPC is fought.
         val barred = combat.barred(player, npc)
         if (barred != null) {
-            message(player, words(player)[barred])
+            if (!combat.tellBarred(player, npc, barred)) message(player, words(player)[barred])
             stopFacing(player)
             return true
         }
