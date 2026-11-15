@@ -208,6 +208,7 @@ import osrsps.game.content.registerRevenants
 import osrsps.game.content.registerEmblemTrader
 import osrsps.game.content.registerMaledictus
 import osrsps.game.content.registerDeepWildernessDungeon
+import osrsps.game.content.registerWildernessGodWars
 import osrsps.game.content.registerWildernessSlayerCave
 import osrsps.game.content.registerVetion
 import osrsps.game.content.registerKingBlackDragon
@@ -1408,6 +1409,7 @@ class World(
         registerMaledictus(this)
         registerDeepWildernessDungeon(this)
         registerWildernessSlayerCave(this)
+        registerWildernessGodWars(this)
         registerEscapeCaves(this)
         registerCallisto(this)
         registerVetion(this)
@@ -3454,6 +3456,9 @@ class World(
      * everyone's, gone after [GroundObjs.LOOT_DESPAWN_TICKS] (OSRS Wiki, Drop). With no killer, or one who has left,
      * they are everyone's from the start (guessed).
      */
+    /** Drops content adds to a kill beside its table's, as the Wilderness God Wars Dungeon's ecumenical key. */
+    var extraDrops: (Npc, Player?) -> List<osrsps.game.combat.Drop> = { _, _ -> emptyList() }
+
     fun dropLoot(npc: Npc, killer: Player?) {
         // A Treasure Trails key step's key goes down with the loot, as the death animation ends.
         trails.fights.dropKey(npc, killer)
@@ -3472,7 +3477,7 @@ class World(
         } else {
             npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty() +
                 osrsps.game.content.EvilChicken.extraDrops(this, npc, killer)
-        }
+        } + extraDrops(npc, killer)
         // A champion's scroll for a champion the killer has beaten doesn't drop.
         val drops = championsChallenge.filterDrops(killer, rolled)
         // A solo boss's drop stays its top damager's even if they log out as the body falls (exploit review round 40,

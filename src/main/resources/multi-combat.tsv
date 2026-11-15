@@ -326,3 +326,7 @@ corporeal_beast_lair	2	2944	4224	3007	4287
 # The Wilderness Slayer Cave (Wilderness step W6.2): the OSRS Wiki's Wilderness Slayer Cave has it multi-combat throughout
 # (Ice Barrage "in multi-combat", the cannon). The box is its map squares 52_157 to 53_158 on the ground level (inferred).
 wilderness_slayer_cave	0	3328	10048	3455	10175
+# The Wilderness God Wars Dungeon (Wilderness step W6.3): "This empty cavern is a single-way combat zone. The large cavern
+# in which the followers fight is a multi-way combat zone" (OSRS Wiki). The box is map square 47_158 on the ground level, the
+# large cavern; the empty cavern is on level 3 and stays single-way (inferred).
+wilderness_god_wars_dungeon	0	3008	10112	3071	10175
