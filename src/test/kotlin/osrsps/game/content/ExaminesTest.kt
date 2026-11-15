@@ -69,8 +69,8 @@ class ExaminesTest {
 
     @Test
     fun `the Revenant Caves' ways in and out have examines, keyed one per id`() {
-        // Wilderness step W5.1: the caverns, the crevice, the stairs and the trapdoors they come out by.
-        for (id in listOf(RevenantCaves.CAVERN_LOW, RevenantCaves.CAVERN_HIGH, 31557, RevenantCaves.STAIRS_LOW, RevenantCaves.CREVICE, RevenantCaves.STAIRS_HIGH)) {
+        // Wilderness steps W5.1 and W5.1b: the caverns, the crevice, the stairs, the trapdoors they come out by and the pillars.
+        for (id in listOf(RevenantCaves.CAVERN_LOW, RevenantCaves.CAVERN_HIGH, 31557, RevenantCaves.STAIRS_LOW, RevenantCaves.CREVICE, RevenantCaves.STAIRS_HIGH, 31561)) {
             assertEquals("examine.loc_$id", Examines.loc(id)?.key, "loc $id")
         }
     }

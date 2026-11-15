@@ -1,5 +1,5 @@
 {
-  "name": "Wilderness step W5.1: the Revenant Caves' level 17 cavern (Enter paying the 100,000-coin fee from the backpack), the southern stairs out to the level 17 trapdoor, then the level 26 crevice back in with no menu, the fee still paid (::keys on)",
+  "name": "Wilderness step W5.1: the Revenant Caves' level 17 cavern (Enter paying the 100,000-coin fee from the backpack), Jump-to on the easy pillar across (step W5.1b), the southern stairs out to the level 17 trapdoor, then the level 26 crevice back in with no menu, the fee still paid (::keys on)",
   "account": "test",
   "steps": [
     {"step": "waitForLogin"},
@@ -13,6 +13,11 @@
     {"step": "chooseOption", "text": "[revenant_caves.yes]"},
     {"step": "waitTicks", "ticks": 3},
     {"step": "assertLocation", "x": 3197, "y": 10056, "plane": 0},
+    {"step": "command", "text": "::setlevel agility 65", "comment": "step W5.1b: the easy pillar's level"},
+    {"step": "command", "text": "::tele 3220 10084 0", "expectMessage": "Teleported to 3220, 10084, 0", "comment": "south of the easy pillar at 3220,10086"},
+    {"step": "locOption", "locId": 31561, "option": "Jump-to", "x": 3220, "y": 10086},
+    {"step": "waitTicks", "ticks": 6},
+    {"step": "assertLocation", "x": 3220, "y": 10088, "plane": 0, "comment": "across, a failure too"},
     {"step": "command", "text": "::tele 3217 10058 0", "expectMessage": "Teleported to 3217, 10058, 0", "comment": "beside the southern stairs at 3218,10058"},
     {"step": "locOption", "locId": 31558, "option": "Climb-up", "x": 3218, "y": 10058},
     {"step": "waitTicks", "ticks": 3},
