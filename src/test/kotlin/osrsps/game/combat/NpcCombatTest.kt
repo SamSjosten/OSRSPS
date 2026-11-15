@@ -74,6 +74,8 @@ class NpcCombatTest {
             "mino_attack" to 4266, "mino_parry" to 4267, "mino_death" to 4265,
             "kalphite_attack_mandibles" to 1184, "kalphite_block" to 1186, "kalphite_death" to 1190,
             "dog_update_wolf_attack" to 6559, "dog_update_wolf_defend" to 6557, "dog_update_wolf_death" to 6558,
+            "earthwarrior_chop" to 2951, "earthwarrior_def" to 2952, "earthwarrior_death" to 2946,
+            "skeleton_update_giant_attack" to 5499, "skeleton_update_giant_defend" to 5501, "skeleton_update_giant_death" to 5503,
             "catpon_attack" to 4271, "catpon_attack_breath" to 4272, "catpon_parry" to 4273, "catpon_death" to 4270,
             "small_spider_update_attack" to 6249, "small_spider_update_defend" to 6250, "small_spider_update_death" to 6251,
             "bear_rework_attack" to 4925, "bear_rework_defend" to 4927, "bear_rework_death" to 4929,
@@ -461,6 +463,46 @@ class NpcCombatTest {
         // "aggressive towards any level" (OSRS Wiki, Stronghold of Security); the others keep the level rule.
         assertTrue(def("sos_pest_giantspider1").aggression!!.ignoresLevels)
         assertFalse(def("sos_pest_scorpion").aggression!!.ignoresLevels)
+    }
+
+    @Test
+    fun `the Wilderness Edgeville Dungeon's druids, warriors, thugs, spiders, skeletons and demons fight as the Wiki has them`() {
+        val names = listOf("chaos_druid", "earthwarrior", "thug", "poisonspider", "giantskeleton", "black_demon2", "black_demon3", "black_demon5")
+        val wildTypes = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(2700 + i, name, internalName = name) }.toTypedArray())
+        val combat = NpcCombat.load(wildTypes, seqs)
+        assertEquals(names.size, combat.size)
+        fun def(name: String) = combat[wildTypes.find(name)!!]!!
+        for (name in names) {
+            assertTrue(def(name).aggression != null, "$name is aggressive")
+            assertEquals(4, def(name).attackSpeed, name)
+        }
+        assertEquals(listOf(2, 5, 2, 7, 5, 16, 16, 16), names.map { def(it).maxHit })
+        assertEquals(listOf(25, 30, 50, 30, 60, 30, 30, 30), names.map { def(it).respawnTicks })
+        assertEquals(
+            listOf(AttackType.CRUSH, AttackType.CRUSH, AttackType.STAB, AttackType.STAB, AttackType.SLASH, AttackType.SLASH, AttackType.SLASH, AttackType.SLASH),
+            names.map { def(it).attackType },
+        )
+        assertEquals(NpcCombatAnims(2951, 2952, 2946), def("earthwarrior").anims)
+        assertEquals(NpcCombatAnims(386, 387, 836), def("thug").anims)
+        assertEquals(NpcCombatAnims(5327, 5328, 5329), def("poisonspider").anims)
+        assertEquals(NpcCombatAnims(5499, 5501, 5503), def("giantskeleton").anims)
+        assertEquals(NpcCombatAnims(64, 65, 67), def("black_demon5").anims)
+        assertEquals(30, def("poisonspider").poison)
+        assertEquals(ElementalWeakness(Element.FIRE, 40), def("poisonspider").weakness)
+        assertEquals(ElementalWeakness(Element.EARTH, 35), def("giantskeleton").weakness)
+        assertEquals(ElementalWeakness(Element.WATER, 40), def("black_demon2").weakness)
+        assertEquals(-10, def("black_demon3").defence.against(AttackType.MAGIC))
+        assertEquals(40, def("earthwarrior").defence.against(AttackType.SLASH))
+        // The druid's Confuse, one turn in 4: it casts at a player Confuse hasn't touched, at any level, and stops once it has.
+        val spell = def("chaos_druid").spell!!
+        assertEquals(4, spell.chance)
+        assertEquals(StatDrain(Skill.ATTACK, 5), spell.attack.drain)
+        assertEquals(0, spell.attack.maxHit)
+        for (level in listOf(1, 10, 40, 99)) assertTrue(spell.casts(level, level), "casts at $level Attack")
+        // 10 Attack: Confuse takes 1, to 9, and it stops; 99: it takes 4, to 95 (5% + 1 is 5), and it stops at 94.
+        assertFalse(spell.casts(10, 9))
+        assertFalse(spell.casts(99, 94))
+        for (name in names - "chaos_druid") assertNull(def(name).spell, name)
     }
 
     @Test
