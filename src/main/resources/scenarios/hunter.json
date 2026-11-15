@@ -1,0 +1,10 @@
+{
+  "about": "In the Feldip Hunter area among the crimson swifts, with 40 Hunter (three traps) and five bird snares, for the Hunter steps.",
+  "notes": "Crimson swifts here (npc-spawns/hunter-birds.json); tropical wagtails (19) at ::tele 2512 2905. Golden warblers (5): ::tele 3402 3150 (Uzer). Copper longtails (9): ::tele 2340 3590 (Piscatoris). Cerulean twitches (11): ::tele 2725 3770 (Rellekka). Lower Hunter with ::setlevel to see the trap count (2 below 40) and the catches a low level always misses. The loadout is ours.",
+  "position": { "x": 2611, "z": 2918, "level": 0 },
+  "skills": { "hunter": 40 },
+  "run": true,
+  "inventory": [
+    { "item": "hunting_ojibway_bird_snare", "count": 5 }
+  ]
+}

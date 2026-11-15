@@ -805,6 +805,8 @@ class World(
 
     val firemaking = Firemaking(this, collision)
 
+    val hunter = osrsps.game.skill.hunter.Hunter(this, collision)
+
     val mining = Mining(this)
     val thieving = Thieving(this, collision)
     val manorHazards = ManorHazards(this)
@@ -1003,6 +1005,7 @@ class World(
         canoes.register()
         birdNests.register()
         firemaking.register()
+        hunter.register()
         LightSources.register(this)
         mining.register()
         thieving.register()
@@ -1360,7 +1363,11 @@ class World(
         encounters.process()
         archiveRaids.process()
         thieving.process()
+        // Before NPCs move, so a creature a trap lures this tick takes its first step this tick.
+        hunter.process()
         npcs.process()
+        // After NPCs move, so a creature that steps onto a trap is rolled for the tick it arrives.
+        hunter.arrivals()
         fishing.process()
         shopScreen.restock(tick)
         phase = TickPhase.SCRIPTS
@@ -1960,6 +1967,9 @@ class World(
 
     /** The player in the world under [name], matched the way save names are, or null. */
     fun playerNamed(name: String): Player? = SaveStore.saveKey(name)?.let(::findPlayer)
+
+    /** The player in the world whose save key is [saveKey], or null: for things a player owns, such as Hunter traps. */
+    fun playerBySaveKey(saveKey: String): Player? = findPlayer(saveKey)
 
     /** Everyone in the world, a dropped connection waiting for a reconnect included. */
     val onlinePlayers: List<Player> get() = players.filterNotNull()
@@ -3089,6 +3099,7 @@ class World(
         meleeCombat.forgetArea(instance::contains)
         rangedCombat.forgetArea(instance::contains)
         firemaking.forgetArea(instance::contains)
+        hunter.traps.forgetArea(instance::contains)
         // A zone further each way, into the free square round the block: a door or gate on its edge opens onto the tile
         // beyond.
         val fromX = instance.baseX - ZoneKey.SIZE

@@ -201,6 +201,7 @@ class Scenarios(scenarios: Collection<Scenario>) {
             "farming",
             "fishing-cooking",
             "gathering",
+            "hunter",
             "lumbridge-artisan",
             "lumbridge-bare",
             "lumbridge-bank-tabs",
