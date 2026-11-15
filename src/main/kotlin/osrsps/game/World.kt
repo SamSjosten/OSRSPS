@@ -170,6 +170,7 @@ import osrsps.game.content.registerRick
 import osrsps.game.content.registerBones
 import osrsps.game.content.GiantLairs
 import osrsps.game.content.registerGiantBones
+import osrsps.game.content.registerBryophyta
 import osrsps.game.content.registerObor
 import osrsps.game.content.registerRoguesDen
 import osrsps.game.content.registerRottenPotato
@@ -962,6 +963,7 @@ class World(
         archiveRaids.register()
         // After the raid, which sets the combat's shut-out rule afresh; the lairs add theirs to it.
         registerObor(this, giantLairs)
+        registerBryophyta(this, giantLairs)
         registerGiantBones(this)
         registerRoguesDen(this)
         registerCrops(this)

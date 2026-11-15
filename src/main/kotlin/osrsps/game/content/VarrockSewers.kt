@@ -41,7 +41,7 @@ object WebLines : Lines("web", "Web") {
  * - the Wilderness swords and the 50% least for slash swords;
  * - the Aranea boots;
  * - the obstacle pipe shortcut, which is the Agility thread's;
- * - Bryophyta's gate (a members' boss).
+ * - (Bryophyta's gate is [Bryophyta]'s.)
  */
 object VarrockSewers {
     const val MANHOLE = 881
