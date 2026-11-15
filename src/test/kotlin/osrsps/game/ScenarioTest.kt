@@ -157,6 +157,22 @@ class ScenarioTest {
         assertTrue(cows.x in 3253..3265 && cows.z in 3255..3298 && cows.level == 0)
         assertTrue(cows.equipment.isNotEmpty() && cows.inventory.isNotEmpty())
         val bare = scenarios["lumbridge-bare"]!!
+        val museum = scenarios["museum-finds"]!!
+        // The museum's varbits as the 242 cache has them: vm_kudos, vm_necklace and every Kudos source (Dig Site, quiz,
+        // timeline), all clear, since the count is worked out from every source.
+        assertEquals((listOf(3637, 3639, 9678, 9679) + (3645..3661) + (3672..3685)).associateWith { 0 }, museum.varbits)
+        assertEquals(listOf("vm_symbol_old_inv", "necklace_of_digsite"), museum.inventory.map { it.item })
+        val quiz = scenarios["museum-quiz"]!!
+        // Orlando's quiz untaken, every display (his and the Dig Site's), his reward and the clerk's first clear (the 242 cache's varbits).
+        assertEquals((listOf(3637, 3640, 3671, 3688, 9678, 9679) + (3645..3661) + (3672..3685)).associateWith { 0 }, quiz.varbits)
+        // On the Natural History floor, by Orlando (npc-spawns/varrock.json, 1759, 4955).
+        assertTrue(quiz.x in 1756..1762 && quiz.z in 4953..4958 && quiz.level == 0)
+        assertEquals(setOf(50), quiz.skills.values.map { it.level }.toSet())
+        val timeline = scenarios["museum-timeline"]!!
+        // Every timeline display clear (vm_staff_of_armadyl to vm_runes, vm_dov, vm_soa_vis), the others done at 78 Kudos.
+        assertEquals(((3650..3661) + listOf(9678, 9679)).associateWith { 0 }, timeline.varbits.filterValues { it == 0 })
+        assertEquals(78, timeline.varbits[3637])
+        assertTrue(timeline.inventory.isEmpty() && timeline.level == 1)
         assertTrue(bare.equipment.isEmpty() && bare.inventory.isEmpty() && bare.skills.isEmpty())
         val tabs = scenarios["lumbridge-bank-tabs"]!!
         assertEquals(listOf(0, 1, 1), tabs.bank.map { it.tab })
@@ -188,5 +204,15 @@ class ScenarioTest {
         assertTrue(thieving.x in 3178..3185 && thieving.z in 3290..3297 && thieving.level == 0)
         assertEquals(listOf(99, 54), listOf(thieving.skills.getValue(Skill.THIEVING).level, thieving.skills.getValue(Skill.HUNTER).level))
         assertEquals(2, thieving.equipment.size)
+        val farming = scenarios["farming"]!!
+        // In the Falador farming area, where its allotments' varbits are sent, with a seed for every allotment crop and some herbs and flowers.
+        assertEquals("Falador", osrsps.game.skill.farming.FarmingPatches.areaAt(farming.x, farming.z)?.name)
+        assertEquals(99, farming.skills.getValue(Skill.FARMING).level)
+        assertEquals(18, farming.inventory.size)
+        val hunter = scenarios["hunter"]!!
+        // Among the Feldip Hunter area's crimson swifts, with every box trap creature's level, snares and box traps.
+        assertTrue(hunter.x in 2580..2620 && hunter.z in 2880..2940 && hunter.level == 0)
+        assertEquals(63, hunter.skills.getValue(Skill.HUNTER).level)
+        assertEquals(13, hunter.inventory.size)
     }
 }

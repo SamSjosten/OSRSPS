@@ -198,14 +198,20 @@ class Scenarios(scenarios: Collection<Scenario>) {
         val FILES = listOf(
             "agility",
             "artisan-2",
+            "farming",
             "fishing-cooking",
             "gathering",
+            "hunter",
             "lumbridge-artisan",
             "lumbridge-bare",
             "lumbridge-bank-tabs",
             "lumbridge-cows",
             "lumbridge-run-low",
             "magic",
+            "museum-finds",
+            "museum-quiz",
+            "museum-timeline",
+            "pvp",
             "thieving",
         )
 

@@ -611,6 +611,9 @@ internal class HeadlessGame(
         return null
     }
 
+    override fun castOnPlayer(interfaceId: Int, component: Int, player: String): String =
+        "castOnPlayer needs other players' names, which the headless client doesn't read yet"
+
     /**
      * The text the server set on the component (IF_SETTEXT), or on every component of the interface for -1. Text an
      * interface has in the cache, or that the client's scripts build, isn't known here.

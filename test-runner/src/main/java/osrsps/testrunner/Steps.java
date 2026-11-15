@@ -1583,6 +1583,39 @@ final class Steps
 		}
 	}
 
+	/**
+	 * (0.28.0) Picks a spell in an interface (the spellbook) and casts it on another player. Waits (to the timeout) for
+	 * the interface and the player; does not wait for the result.
+	 */
+	static final class CastOnPlayer extends Step
+	{
+		final int interfaceId;
+		final int component;
+		final String player;
+
+		CastOnPlayer(long timeoutMs, int interfaceId, int component, String player)
+		{
+			super("castOnPlayer", timeoutMs, false);
+			this.interfaceId = interfaceId;
+			this.component = component;
+			this.player = player;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			run.markAction();
+			String error = run.game.castOnPlayer(interfaceId, component, player);
+			return error == null ? Poll.pass("cast") : Poll.waiting(error);
+		}
+
+		@Override
+		String describe()
+		{
+			return "cast " + interfaceId + ":" + component + " on " + player;
+		}
+	}
+
 	/** Clicks an option on the first such item in the inventory, retrying until there is one. */
 	static final class ItemOption extends Step
 	{

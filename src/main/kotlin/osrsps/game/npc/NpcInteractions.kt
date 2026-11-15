@@ -113,7 +113,27 @@ class NpcInteractions(
             face(player, npc)
             if (attackFromAfar(player, npc)) return
         }
+        fromAfar[type.id.toLong() shl 8 or option.toLong()]?.let { handler ->
+            // Guessed, as for a spell: what the player was busy with is dropped and they turn to the NPC first.
+            scripts.interrupt(player)
+            npcs.leave(player, scripts::busy)
+            player.interaction = null
+            player.invertRun = invertRun
+            face(player, npc)
+            if (handler(player, npc)) return
+        }
         start(player, NpcInteraction(npc, option, this, sub), invertRun)
+    }
+
+    private val fromAfar = HashMap<Long, (Player, Npc) -> Boolean>()
+
+    /**
+     * Option [option] on NPC type [id] can be done from where the player stands, without walking beside it: on the click,
+     * [handler] gets the player and NPC and returns true when it has done the option, or false to walk over as usual (a
+     * falcon sent at a kebbit in sight).
+     */
+    fun fromAfar(id: Int, option: Int, handler: (Player, Npc) -> Boolean) {
+        fromAfar[id.toLong() shl 8 or option.toLong()] = handler
     }
 
     /**

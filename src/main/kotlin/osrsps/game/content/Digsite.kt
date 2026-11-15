@@ -84,6 +84,7 @@ object BargeLines : Lines("digsite_barge", "Transcripts: Barge guard, Barge fore
     val WORKMANS_GATE = line("workmans_gate", "the workers' gate's guard, without 153 Kudos")
     val NEED_KUDOS = line("need_kudos", "the message box after him")
     val WORKMANS_GATE_ONLY = line("workmans_gate_only", "his overhead line when the player tries the gate")
+    val FRIEND_OF_THE_MUSEUM = line("friend_of_the_museum", "the workers' gate's guard, with 153 Kudos")
     val FOSSIL_LATER = line("fossil_later", "Quick-Travel, Travel and the trip to Fossil Island: our own line, as the island is outside Misthalin")
 }
 
@@ -114,8 +115,11 @@ object DigsiteSignLines : Lines("digsite_sign", "Signpost (Digsite)") {
  *   Navigator sends the player to the Lead Navigator. John and David are hidden once the quest is done.
  * - The Barge foreman thanks the player; the Barge workman and Ed Wood say one of their six busy lines overhead.
  * - Captain Errdo by his crashed glider (Lemanto Andra) says the landing gear is broken; the glider goes nowhere.
- * - The workers' gate east of Varrock (`vm_fencegate_l`/`_r` 24560/24561) wants 153 Kudos; the museum counts none yet
- *   ([VarrockMuseum]), so its guard (`vm_museum_guard2` 1911) turns everyone away, by talk or by the gate.
+ * - The workers' gate east of Varrock (`vm_fencegate_l`/`_r` 24560/24561) wants 153 Kudos ([Kudos]): its guard
+ *   (`vm_museum_guard2` 1911) turns away a player with fewer, by talk or by the gate, and greets one with enough as a
+ *   friend of the museum, who goes through the gate as they wish. The gate has no open form in the cache, so the player
+ *   steps through it from the tile in front, as through the museum's cleaning area gate ([VarrockMuseum.throughGate]);
+ *   guessed, as is Open taking a friend of the museum through with no talk.
  * - The signposts read their site's level.
  *
  * Guessed: every chathead expression; the tiles the boarding and leaving put the player on (beside each guard on the
@@ -292,8 +296,23 @@ object Digsite {
     }
 
     internal suspend fun Dialogue.gateGuard() = with(BargeLines) {
+        if (Kudos.total(player) >= Kudos.DIGSITE_GATE) return@with chatNpc(ChatAnim.HAPPY, FRIEND_OF_THE_MUSEUM)
         chatNpc(ChatAnim.NEUTRAL, WORKMANS_GATE)
         mesbox(NEED_KUDOS)
+    }
+
+    /**
+     * Takes the player through the workers' gate leaf at [z] from whichever side they're on, stepping up to it first.
+     * The leaves stand on the west edge of x [GATE_X]: Varrock's side is to the west.
+     */
+    suspend fun ScriptContext.throughWorkersGate(world: World, z: Int) {
+        val west = player.x < GATE_X
+        val front = if (west) GATE_X - 1 else GATE_X
+        if (player.x != front || player.z != z) {
+            world.teleport(player, front, z, 0)
+            delay(1)
+        }
+        world.teleport(player, if (west) GATE_X else GATE_X - 1, z, 0)
     }
 
     fun ScriptContext.board(world: World) {
@@ -354,7 +373,8 @@ fun registerDigsite(world: World) {
 
         world.handlers.onNpc(GATE_GUARD, TALK_TO) { op -> world.dialogues.start(this, op.npc) { gateGuard() } }
         for (gate in listOf(GATE_LEFT, GATE_RIGHT)) {
-            world.handlers.onLoc(gate, 1) {
+            world.handlers.onLoc(gate, 1) { op ->
+                if (Kudos.total(player) >= Kudos.DIGSITE_GATE) return@onLoc throughWorkersGate(world, op.loc!!.z)
                 val guard = gateGuard(world) ?: return@onLoc world.dialogues.start(this) { mesbox(BargeLines.NEED_KUDOS) }
                 guard.effects.say(world.textFor(player)[BargeLines.WORKMANS_GATE_ONLY])
                 world.dialogues.start(this, guard) { gateGuard() }

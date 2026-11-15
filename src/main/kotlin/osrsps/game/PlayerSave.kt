@@ -21,6 +21,8 @@ import kotlinx.serialization.json.putJsonObject
 import osrsps.game.combat.SpecialAttacks
 import osrsps.game.combat.StatRestore
 import osrsps.game.combat.Tolerance
+import osrsps.game.skill.farming.FarmingSaves
+import osrsps.game.skill.farming.FarmingState
 import osrsps.game.social.FriendChats
 import osrsps.game.social.FriendLists
 import osrsps.game.ge.BuyLimitUse
@@ -88,6 +90,10 @@ class PlayerSave(
     val friendsChatOwner: String? = null,
     /** Run went off because energy ran out, so the energy threshold setting may still turn it back on; see [Movement]. */
     val runRanOut: Boolean = false,
+    /** Ticks left of the player's skull ([osrsps.game.combat.Skulls]), counted while logged in only; 0 for none. */
+    val skullTicks: Int = 0,
+    /** The players they attacked unprovoked and the ticks each may still hit back unskulled ([Player.attackedFirst]). */
+    val attackedFirst: Map<String, Int> = emptyMap(),
     /** What the Grand Exchange's bot market has bought from the player against the buy limits, by item. */
     val geSellLimits: List<BuyLimitUse> = emptyList(),
     /**
@@ -97,6 +103,8 @@ class PlayerSave(
     val customVars: Map<String, Int> = emptyMap(),
     /** The Fractured Archive's loot not yet claimed, by slot ([osrsps.game.raid.ArchiveChestWindow]). */
     val archiveChest: Map<Int, InvObj> = emptyMap(),
+    /** The farming patches and clock ([osrsps.game.skill.farming.FarmingState]), a copy of the player's. */
+    val farming: FarmingState = FarmingState(),
 ) {
     class BoostSegments(val combat: Int, val other: Int)
 
@@ -167,6 +175,8 @@ class PlayerSave(
     private fun applyState(player: Player) {
         player.runEnergy = runEnergy
         player.runRanOut = runRanOut
+        player.skullTicks = skullTicks
+        player.attackedFirst.putAll(attackedFirst)
         val types = player.vars.types
         for ((varp, value) in varps) {
             if (varp >= types.cacheVarpCount) {
@@ -202,6 +212,7 @@ class PlayerSave(
         for (use in geLimits) player.ge.limits[use.item] = use
         for (use in geSellLimits) player.ge.sellLimits[use.item] = use
         player.ge.history.addAll(geHistory)
+        player.farming.replaceWith(farming)
     }
 
     fun toJson(username: String): String {
@@ -268,6 +279,8 @@ class PlayerSave(
         }
         put("runEnergy", runEnergy)
         if (runRanOut) put("runRanOut", true)
+        if (skullTicks > 0) put("skullTicks", skullTicks)
+        if (attackedFirst.isNotEmpty()) putJsonObject("attackedFirst") { for ((name, ticks) in attackedFirst) put(name, ticks) }
         putJsonObject("skills") {
             for ((skill, save) in skills) {
                 putJsonObject(skill.name.lowercase()) {
@@ -289,6 +302,7 @@ class PlayerSave(
         if (bank.isNotEmpty()) putJsonArray("bank") { putObjs(bank) }
         if (archiveChest.isNotEmpty()) putJsonArray("archiveChest") { putObjs(archiveChest) }
         if (charges.isNotEmpty()) putJsonObject("charges") { for ((name, count) in charges) put(name, count) }
+        if (!farming.isUntouched) put("farming", FarmingSaves.toJson(farming))
         if (geOffers.isNotEmpty()) {
             putJsonArray("geOffers") {
                 for ((slot, offer) in geOffers.toSortedMap()) {
@@ -398,9 +412,12 @@ class PlayerSave(
                 player.friendsChat,
                 player.friendsChatOwner,
                 runRanOut = player.runRanOut,
+                skullTicks = player.skullTicks,
+                attackedFirst = player.attackedFirst.toMap(),
                 geSellLimits = player.ge.sellLimits.values.toList(),
                 customVars = customVars,
                 archiveChest = player.archiveChest.contents().toMap(),
+                farming = FarmingState().apply { replaceWith(player.farming) },
             )
         }
 
@@ -480,9 +497,12 @@ class PlayerSave(
                     root["lastTrade"]?.jsonPrimitive?.contentOrNull,
                     readFriendsChat(root), root["friendsChatOwner"]?.jsonPrimitive?.contentOrNull,
                     runRanOut = state.runRanOut,
+                    skullTicks = state.skullTicks,
+                    attackedFirst = state.attackedFirst,
                     geSellLimits = state.geSellLimits,
                     customVars = state.customVars,
                     archiveChest = state.archiveChest,
+                    farming = state.farming,
                 )
             } catch (e: IllegalArgumentException) {
                 throw e
@@ -566,9 +586,17 @@ class PlayerSave(
                 geOffers = geOffers, geLimits = geLimits, geHistory = geHistory, geSellLimits = geSellLimits,
                 // Optional: saves from before the energy threshold setting, and saves with run not waiting on it, have none.
                 runRanOut = root["runRanOut"]?.jsonPrimitive?.boolean ?: false,
+                // Optional: saves from before skulls, and saves of players without one, have none.
+                skullTicks = (root["skullTicks"]?.jsonPrimitive?.int ?: 0).coerceIn(0, osrsps.game.combat.Skulls.TICKS),
+                // Optional, as skullTicks.
+                attackedFirst = root["attackedFirst"]?.jsonObject?.mapValues { (_, v) ->
+                    v.jsonPrimitive.int.coerceIn(0, osrsps.game.combat.Skulls.TICKS)
+                }?.filterValues { it > 0 }.orEmpty(),
                 customVars = customVars,
                 // Optional: saves from before the Archive's loot, and saves with none waiting, have none.
                 archiveChest = root.objs("archiveChest", "Archive chest", osrsps.game.raid.ArchiveChestWindow.SLOTS),
+                // Optional: saves from before Farming, and saves of players who never farmed, have none.
+                farming = root["farming"]?.jsonObject?.let(FarmingSaves::fromJson) ?: FarmingState(),
             )
         }
 

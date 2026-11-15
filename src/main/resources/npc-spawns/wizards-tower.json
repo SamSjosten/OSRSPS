@@ -15,6 +15,7 @@
     {"npc": 5006, "x": 3110, "z": 3161, "level": 2, "wander": 2, "restrict": "indoors", "source": "Wizard Grayzag (wizard_grayzag), the second floor (step 15b). mejrs NPCList_OSRS; Wiki, Wizards' Tower; wander range guessed"},
     {"npc": 2560, "x": 3115, "z": 3160, "wander": 2, "restrict": "indoors", "source": "Professor Onglewip (aluft_gnome_mage), the ground floor (step 15b). mejrs NPCList_OSRS; Wiki, Professor Onglewip; wander range guessed"},
     {"npc": 3232, "x": 3108, "z": 3161, "level": 1, "wander": 2, "restrict": "indoors", "source": "Wizard Jalarast (armourmaking_wizard), the first floor (step 15c). mejrs NPCList_OSRS; Wiki, Wizards' Tower; wander range guessed"},
-    {"npc": 11410, "x": 3108, "z": 3164, "level": 1, "wander": 2, "restrict": "indoors", "source": "Rick (telecrystal_wizard_shop, the type that shows Buy-crystals), the first floor (step 15d). mejrs NPCList_OSRS (5931 on that tile, his type before the escape crystals); Wiki, Wizards' Tower; wander range guessed"}
+    {"npc": 11410, "x": 3108, "z": 3164, "level": 1, "wander": 2, "restrict": "indoors", "source": "Rick (telecrystal_wizard_shop, the type that shows Buy-crystals), the first floor (step 15d). mejrs NPCList_OSRS (5931 on that tile, his type before the escape crystals); Wiki, Wizards' Tower; wander range guessed"},
+    {"npc": "wizard", "x": 3109, "z": 9558, "wander": 3, "source": "Wizard (level 9), the tower's basement (Misthalin bosses step 3). mejrs NPCList_OSRS (NPCs seen on live; audit 2026-11-15); the wander range guessed"}
   ]
 }

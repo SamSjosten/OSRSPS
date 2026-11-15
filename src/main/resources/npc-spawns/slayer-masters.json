@@ -1,0 +1,11 @@
+{
+  "about": "Slayer masters placed by the Slayer thread (Slayer step 2): Aya, who holds Turael's place once While Guthix Sleeps is done (every quest counts as done), in the house in Burthorpe (reached by ::tele 2931 3536), and Spria in her house in Draynor Village. Vannaka is in edgeville-dungeon.json. Slayer step 3 adds, built in place outside Misthalin and reached by ::tele: Mazchna in Canifis (::tele 3511 3509), Chaeldar in Zanaris (::tele 2444 4431), Steve at the Stronghold Slayer Cave's entrance in the Tree Gnome Stronghold (::tele 2432 3423) and Kuradal upstairs in Duradel's hut in Shilo Village (::tele 2869 2982 1), by their every-quest-done types slayer_master_2_mazchna, slayer_master_4, slayer_master_steve and slayer_master_5_kuradal; mejrs lists Mazchna (402), Steve (490) and Duradel (405) under their older types. Tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live; it lists them under their older ids 401 and 10440), checked against the OSRS Wiki's map pins (Turael and Aya 2931,3536; Spria 3091,3267) and the 242 cache's types slayer_master_1_aya and slayer_master_9_active. The wander ranges are guessed.",
+  "spawns": [
+    {"npc": "slayer_master_1_aya", "x": 2931, "z": 3536, "wander": 2, "source": "Aya, in Turael's house south of Burthorpe's general store: Turael's tile (mejrs NPCList_OSRS), which the Wiki's Aya page pins too"},
+    {"npc": "slayer_master_9_active", "x": 3091, "z": 3266, "wander": 2, "source": "Spria, in her house in Draynor Village. mejrs NPCList_OSRS; Wiki, Spria"},
+    {"npc": "slayer_master_2_mazchna", "x": 3511, "z": 3509, "wander": 2, "source": "Mazchna, by the Canifis pub. mejrs NPCList_OSRS (id 402); Wiki, Mazchna"},
+    {"npc": "slayer_master_4", "x": 2444, "z": 4431, "wander": 2, "source": "Chaeldar, in Zanaris. mejrs NPCList_OSRS; Wiki, Chaeldar"},
+    {"npc": "slayer_master_steve", "x": 2432, "z": 3423, "wander": 2, "source": "Steve, at the Stronghold Slayer Cave's entrance after Monkey Madness II. mejrs NPCList_OSRS (id 490 at this tile); Wiki, Steve"},
+    {"npc": "slayer_master_5_kuradal", "x": 2869, "z": 2982, "level": 1, "wander": 2, "source": "Kuradal, upstairs in Duradel's hut in Shilo Village after While Guthix Sleeps. mejrs NPCList_OSRS (Duradel, id 405, level 1); Wiki, Kuradal"}
+  ]
+}

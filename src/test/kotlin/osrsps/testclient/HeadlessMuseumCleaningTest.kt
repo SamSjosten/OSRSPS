@@ -9,8 +9,10 @@ import osrsps.game.EquipmentTab
 import osrsps.game.Inventory
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
+import osrsps.game.VarTypes
 import osrsps.game.WearPos
 import osrsps.game.World
+import osrsps.game.content.MUSEUM_VARBITS
 import osrsps.game.content.MuseumCleaning
 import osrsps.game.content.VarrockMuseum
 import osrsps.game.loc.LocType
@@ -59,6 +61,7 @@ class HeadlessMuseumCleaningTest {
                 add(ZoneLoc(MuseumCleaning.CRATE, LocShape.CENTREPIECE_STRAIGHT, 0, 3222, 3220, 0))
                 add(ZoneLoc(MuseumCleaning.WALL_MAPS.first(), LocShape.CENTREPIECE_STRAIGHT, 0, 3220, 3218, 0))
             },
+            varTypes = VarTypes(6_000, MUSEUM_VARBITS),
             cycleMillis = millis,
         )
     }
@@ -179,7 +182,8 @@ class HeadlessMuseumCleaningTest {
                 client.awaitHeld(MuseumCleaning.POTTERY, 1)
                 client.locOp(MuseumCleaning.CRATE, 3222, 3220, 1)
                 val reward = client.await("the reward") { client.messages().lastOrNull { it.text.startsWith("[museum_cleaning.reward") } }
-                assertEquals(0L, client.held(MuseumCleaning.POTTERY))
+                // The message can arrive before the backpack's update, which goes with the end of the tick.
+                client.awaitHeld(MuseumCleaning.POTTERY, 0)
                 assertTrue("Reward" in reward.text, reward.text)
 
                 client.locOp(MuseumCleaning.WALL_MAPS.first(), 3220, 3218, 2)

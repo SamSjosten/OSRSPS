@@ -10,6 +10,7 @@ import osrsps.game.Skill
 import osrsps.game.Weapons
 import osrsps.game.WearPos
 import osrsps.game.dialogue.DialogueText
+import osrsps.game.dialogue.Line
 import osrsps.game.npc.Npc
 import osrsps.game.npc.Npcs
 import osrsps.game.zone.Projectile
@@ -129,6 +130,12 @@ class MagicCombat(
         }
         if (combat.npcCombat[npc.type] == null) {
             logger.info { "${player.username} cast ${spell.name} on $npc, which can't be fought" }
+            return
+        }
+        // Inferred: the client doesn't offer Tele Block on NPCs (its obj's param 603 is false, true for the spells that
+        // can be cast on them), so only a forged packet gets here.
+        if (spell.teleblock) {
+            logger.info { "${player.username} cast ${spell.name} on $npc, which only players can be" }
             return
         }
         val barred = combat.barred(player, npc)
@@ -265,9 +272,42 @@ class MagicCombat(
      * false when the player can't, and has been told why.
      */
     private fun release(player: Player, npc: Npc, spell: CombatSpell, tick: Long, defensive: Boolean, speed: Int): Boolean {
+        val held = when {
+            !spell.holds -> null
+            npc.freezeTicks > 0 -> CombatLines.ALREADY_HELD
+            npc.freezeImmunityTicks > 0 -> CombatLines.IMMUNE
+            else -> null
+        }
+        if (!ready(player, spell, "$npc", held)) return false
+        val matchup = combat.magicMatchup(player, npc, spell) ?: return false
+        if (!pay(player, spell, tick, speed)) return false
+        face(player, npc)
+        val size = npc.type.size
+        val distance = LineOfSight.distance(player.x, player.z, 1, npc.x, npc.z, size, size)
+        val landTick = tick + HitDelay.MAGIC.ticks(distance) + HitDelay.ON_NPC
+        if (spell.travel >= 0) projectile(flight(player, npc.x, npc.z, npc.index + 1, spell.travel, landTick - tick))
+        melee.attackMade(player, npc, tick)
+        val hit = roll(player, npc, spell, matchup, landTick, defensive)
+        player.skills.addTenths(Skill.MAGIC, if (hit) spell.xpTenths else spell.splashXpTenths)
+        if (spell.area && multi.at(npc.level, npc.x, npc.z)) {
+            for (other in around(npc)) {
+                if (combat.barred(player, other) != null) continue
+                val otherMatchup = combat.magicMatchup(player, other, spell) ?: continue
+                roll(player, other, spell, otherMatchup, landTick, defensive)
+            }
+        }
+        return true
+    }
+
+    /**
+     * Whether [player] can cast [spell] now on [target] (named for the log): the book still open, not on Dinh's bulwark's
+     * Block, the Magic level, the runes, and for a holding spell a target neither [held] already nor immune. Told why
+     * not.
+     */
+    private fun ready(player: Player, spell: CombatSpell, target: String, held: Line?): Boolean {
         // The book can change between the click and the cast (::spellbook on the way to the NPC).
         if (spell.staff == null && spell.spellbook != Spellbook.of(player)) {
-            logger.info { "${player.username} was to cast ${spell.name} on $npc, but has spellbook ${Spellbook.of(player)} open now" }
+            logger.info { "${player.username} was to cast ${spell.name} on $target, but has spellbook ${Spellbook.of(player)} open now" }
             return false
         }
         // Dinh's bulwark's Block can't attack, a spell from the book included; checked at the cast, as Block may be picked on the way.
@@ -285,34 +325,72 @@ class MagicCombat(
             message(player, notEnough(player, short.rune))
             return false
         }
-        if (spell.holds && (npc.freezeTicks > 0 || npc.freezeImmunityTicks > 0)) {
-            message(player, words(player)[if (npc.freezeTicks > 0) CombatLines.ALREADY_HELD else CombatLines.IMMUNE])
+        if (held != null) {
+            message(player, words(player)[held])
             return false
         }
-        val matchup = combat.magicMatchup(player, npc, spell) ?: return false
+        return true
+    }
+
+    /**
+     * [player] casts [spell]: a powered staff's charge or the runes are taken, the next attack [speed] ticks on, and the
+     * casting animation and graphic. False when the staff's charges ran out, and they have been told.
+     */
+    private fun pay(player: Player, spell: CombatSpell, tick: Long, speed: Int): Boolean {
         if (spell.staff != null && !poweredStaves.use(player, spell.staff) { message(player, it) }) return false
+        val provided = spells.runesFrom(player.equipment[WearPos.WEAPON]?.id)
         for (cost in spell.runes) if (cost.rune !in provided) take(player, cost)
         player.nextAttackTick = tick + speed
         val anim = if (combat.weaponCategory(player) == Weapons.STAFF) spell.staffAnim else spell.anim
         if (anim >= 0) player.effects.anim(anim, 0)
         if (spell.casting >= 0) player.effects.spotanim(0, spell.casting, CASTING_HEIGHT, 0)
-        face(player, npc)
-        val size = npc.type.size
-        val distance = LineOfSight.distance(player.x, player.z, 1, npc.x, npc.z, size, size)
-        val landTick = tick + HitDelay.MAGIC.ticks(distance) + HitDelay.ON_NPC
-        if (spell.travel >= 0) projectile(flight(player, npc, spell.travel, landTick - tick))
-        melee.attackMade(player, npc, tick)
-        val hit = roll(player, npc, spell, matchup, landTick, defensive)
-        player.skills.addTenths(Skill.MAGIC, if (hit) spell.xpTenths else spell.splashXpTenths)
-        if (spell.area && multi.at(npc.level, npc.x, npc.z)) {
-            for (other in around(npc)) {
-                if (combat.barred(player, other) != null) continue
-                val otherMatchup = combat.magicMatchup(player, other, spell) ?: continue
-                roll(player, other, spell, otherMatchup, landTick, defensive)
-            }
-        }
         return true
     }
+
+    /**
+     * [player] casts [spell] on [target], another player ([PvpCombat]), on [tick], the next attack [speed] ticks on: as on
+     * an NPC, held spells refused on a frozen or immune target and Tele Block on one Tele Blocked already, and the projectile landing [extra] ticks after the
+     * spell's own delay. Returns the delay, or null when they can't cast it and have been told why.
+     */
+    internal fun castAt(player: Player, target: Player, spell: CombatSpell, tick: Long, speed: Int, extra: Int): Int? {
+        val held = when {
+            spell.teleblock && target.teleblockTicks > 0 -> PvpLines.TELEBLOCK_ALREADY
+            !spell.holds -> null
+            target.freezeTicks > 0 -> CombatLines.ALREADY_HELD
+            target.freezeImmunityTicks > 0 -> CombatLines.IMMUNE
+            else -> null
+        }
+        if (!ready(player, spell, target.username, held)) return null
+        if (!pay(player, spell, tick, speed)) return null
+        val delay = HitDelay.MAGIC.ticks(LineOfSight.distance(player.x, player.z, 1, target.x, target.z, 1, 1))
+        if (spell.travel >= 0) projectile(flight(player, target.x, target.z, -(target.index + 1), spell.travel, (delay + extra).toLong()))
+        return delay
+    }
+
+    /** [spell], cast by another player, lands on [target]: its impact graphic if it [hit], else the splash graphic. */
+    internal fun landedOn(target: Player, spell: CombatSpell, hit: Boolean) {
+        val graphic = if (hit) spell.impact else spells.splash
+        if (graphic >= 0) target.effects.spotanim(0, graphic, IMPACT_HEIGHT, 0)
+    }
+
+    /**
+     * The spell [player] casts on another player from the magic tab's [component]: a combat spell of the book they have
+     * open, else null (logged).
+     */
+    internal fun bookSpell(player: Player, component: Int): CombatSpell? {
+        val spell = spells.spell(component)
+        if (spell == null || spell.spellbook != Spellbook.of(player)) {
+            logger.info { "${player.username} cast spellbook component $component on a player: ${spell?.name ?: "not a combat spell here"}" }
+            return null
+        }
+        return spell
+    }
+
+    /** The spell an autocasting [player] fights another player with, or null: no powered staff's, as those can't attack players. */
+    internal fun pvpFightSpell(player: Player): CombatSpell? = autocastSpell(player)
+
+    /** How far [spell] reaches for [player]; see [range]. */
+    internal fun reach(player: Player, spell: CombatSpell): Int = range(player, spell)
 
     /**
      * Rolls [spell] on [npc] and sends it on its way to land on [landTick], with the XP for its damage (the base XP is
@@ -323,7 +401,7 @@ class MagicCombat(
         val sure = combat.sureHit(player, npc, AttackType.MAGIC)
         val hit = CombatMath.rollHits(random, matchup.attackRoll, matchup.defenceRoll) || player.sureHits || sure == SureHit.MAX
         val rolled = combat.rolledOn(player, npc, AttackType.MAGIC, if (hit) CombatMath.rollDamage(random, matchup.maxHit).let { if (sure != SureHit.ROLLED) matchup.maxHit else it } else 0)
-        val damage = minOf(melee.armoured(npc, rolled, magic = true), (npc.hitpoints - combat.floor(npc, player) - npc.incoming).coerceAtLeast(0))
+        val damage = minOf(melee.armoured(npc, rolled, magic = true), (npc.hitpoints - combat.floor(npc, player, AttackType.MAGIC) - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage
         val bonus = combat.npcCombat[npc.type]?.xpBonusTenths ?: 0
         if (defensive) {
@@ -387,7 +465,7 @@ class MagicCombat(
             if (cast.hit) {
                 if (cast.spell.impact >= 0) npc.effects.spotanim(0, cast.spell.impact, IMPACT_HEIGHT)
                 // Guessed: Bind, which can't do damage, shows no hitsplat, as a splash shows none.
-                if (cast.spell.maxHit == 0) melee.splashed(npc, cast.player, tick, cast.from) else melee.hit(npc, cast.player, cast.damage, tick, cast.maxHit, cast.from)
+                if (cast.spell.maxHit == 0) melee.splashed(npc, cast.player, tick, cast.from) else melee.hit(npc, cast.player, cast.damage, tick, cast.maxHit, cast.from, finisher = combat.finishes(npc, cast.player, AttackType.MAGIC))
                 if (cast.spell.freezeTicks > 0 && !npc.outOfPlay && combat.npcCombat[npc.type]?.freezeImmune != true) npcs.freeze(npc, cast.spell.freezeTicks)
             } else {
                 if (spells.splash >= 0) npc.effects.spotanim(0, spells.splash, IMPACT_HEIGHT)
@@ -404,13 +482,13 @@ class MagicCombat(
      * The projectile a spell flies as, landing as its hit does: [ticks] after it was cast, in client cycles. Guessed
      * heights, start, arc and offset: the arrows' heights, leaving a little later as the casting animation is longer.
      */
-    private fun flight(player: Player, npc: Npc, id: Int, ticks: Long): Projectile = Projectile(
+    private fun flight(player: Player, toX: Int, toZ: Int, targetIndex: Int, id: Int, ticks: Long): Projectile = Projectile(
         id = id,
         fromX = player.x,
         fromZ = player.z,
         level = player.level,
-        toX = npc.x,
-        toZ = npc.z,
+        toX = toX,
+        toZ = toZ,
         startHeight = PROJECTILE_START_HEIGHT,
         endHeight = PROJECTILE_END_HEIGHT,
         startTime = PROJECTILE_START,
@@ -418,7 +496,7 @@ class MagicCombat(
         angle = PROJECTILE_ANGLE,
         progress = PROJECTILE_PROGRESS,
         sourceIndex = -(player.index + 1),
-        targetIndex = npc.index + 1,
+        targetIndex = targetIndex,
     )
 
     companion object {

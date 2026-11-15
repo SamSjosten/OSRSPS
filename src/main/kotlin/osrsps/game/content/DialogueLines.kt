@@ -13,6 +13,7 @@ import osrsps.game.combat.LootLines
 import osrsps.game.combat.PoisonLines
 import osrsps.game.combat.PotionLines
 import osrsps.game.combat.PrayerLines
+import osrsps.game.combat.PvpLines
 import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
 import osrsps.game.ge.GrandExchangeLines
@@ -30,6 +31,7 @@ import osrsps.game.shop.ShopLines
 import osrsps.game.skill.AgilityLines
 import osrsps.game.skill.BirdNestLines
 import osrsps.game.skill.BobBarterLines
+import osrsps.game.skill.CanoeLines
 import osrsps.game.skill.CookingLines
 import osrsps.game.skill.CookingMixLines
 import osrsps.game.skill.CraftingLines
@@ -44,10 +46,20 @@ import osrsps.game.skill.magic.BoltEnchantLines
 import osrsps.game.skill.MiningLines
 import osrsps.game.skill.PickpocketGearLines
 import osrsps.game.skill.PickpocketLines
+import osrsps.game.skill.RunecraftLines
+import osrsps.game.skill.SlayerLines
+import osrsps.game.skill.SlayerHelmetLines
+import osrsps.game.skill.SlayerSuperiorLines
 import osrsps.game.skill.SmithingLines
 import osrsps.game.skill.ThievingLines
 import osrsps.game.skill.ThievingLockLines
 import osrsps.game.skill.WoodcuttingLines
+import osrsps.game.skill.farming.FarmingLines
+import osrsps.game.skill.hunter.HunterLines
+import osrsps.game.skill.hunter.MatthiasLines
+import osrsps.game.skill.farming.GardenerLines
+import osrsps.game.skill.farming.NoteLines
+import osrsps.game.skill.farming.ToolStoreLines
 import osrsps.game.social.ClanLines
 import osrsps.game.social.FriendsChatLines
 import osrsps.game.social.ReportLines
@@ -85,6 +97,7 @@ object DialogueLines {
         AvaDevicesLines,
         AvaLines,
         AxeLogsLines,
+        AyaLines,
         BankGuardLines,
         BankLines,
         BankerLines,
@@ -121,6 +134,7 @@ object DialogueLines {
         CampWarriorLines,
         CampWizardLines,
         CandleSellerLines,
+        CanoeLines,
         CharlieLines,
         CheckalLines,
         ClanLines,
@@ -153,6 +167,10 @@ object DialogueLines {
         DummyLines,
         EdgevilleClosedLines,
         EdgevilleDungeonLines,
+        OborLines,
+        BryophytaLines,
+        EmoteLines,
+        GiantBonesLines,
         StrongholdLines,
         SkullSceptreLines,
         SolztunLines,
@@ -194,6 +212,7 @@ object DialogueLines {
         HariLines,
         HarlanLines,
         HassanLines,
+        MatthiasLines,
         MikasiLines,
         HaystackLines,
         HeadChefLines,
@@ -231,8 +250,11 @@ object DialogueLines {
         SwampCaveSlayerLines,
         HamHideoutLines,
         HamStoreroomsLines,
-        FarmsRoadsLines,
+        ToolStoreLines,
+        FarmingLines,
+        HunterLines,
         GardenerLines,
+        NoteLines,
         ToolLeprechaunLines,
         TarquinLines,
         RatBurgissLines,
@@ -296,6 +318,7 @@ object DialogueLines {
         PotionLines,
         PrayerLines,
         PriceCheckerLines,
+        PvpLines,
         osrsps.game.ge.ItemSetsLines,
         osrsps.game.ge.PriceGuideLines,
         BrugsenLines,
@@ -309,6 +332,11 @@ object DialogueLines {
         TobyLines,
         JamesLines,
         MeredithLines,
+        MuseumArchaeologistLines,
+        MuseumCaseFindLines,
+        MuseumCaseLines,
+        NaturalHistoryQuizLines,
+        MuseumTimelineLines,
         MuseumCleaningLines,
         HooknosedJackLines,
         AnnaJonesLines,
@@ -327,6 +355,7 @@ object DialogueLines {
         RottenPotatoLines,
         RovinLines,
         RuantunLines,
+        RunecraftLines,
         ScavvoLines,
         SchoolboyLines,
         SchoolgirlLines,
@@ -343,6 +372,15 @@ object DialogueLines {
         ShopLines,
         SigurdLines,
         SilkTraderLines,
+        SlayerLines,
+        SlayerMasterLines,
+        SlayerTipLines,
+        SlayerRewardsLines,
+        SlayerSuperiorLines,
+        SlayerHelmetLines,
+        KuradalLines,
+        MazchnaLines,
+        SteveLines,
         SmithingLines,
         SocialLines,
         StrayDogLines,
@@ -365,6 +403,7 @@ object DialogueLines {
         VeronicaLines,
         WaterLines,
         WestBankDoorLines,
+        WildernessDitchLines,
         WilfredLines,
         WiloughLines,
         WizardApprenticeLines,

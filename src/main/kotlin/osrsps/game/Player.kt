@@ -161,6 +161,12 @@ class Player(
     /** The player this one was last told to face, so a change is sent once. See [World]'s face updates. */
     var sentFacePlayer: Player? = null
 
+    /**
+     * The player [this] last cast a single spellbook spell at, whom they keep facing once the cast's fight is over until
+     * they do something else ([osrsps.game.Follow.updateFace]), as after a single cast at an NPC. Not saved.
+     */
+    var castAtPlayer: Player? = null
+
     /** What the player is walking to use, a loc, a ground obj or an NPC, if anything. Walking elsewhere or teleporting drops it. */
     var interaction: Interaction? = null
 
@@ -205,6 +211,9 @@ class Player(
      * ([osrsps.game.content.HamHideout.PICK_DUE]).
      */
     val sessionCharges = Charges()
+
+    /** The player's farming patches and where their farming clock is; see [osrsps.game.skill.farming.Farming]. Saved. */
+    val farming = osrsps.game.skill.farming.FarmingState()
 
     /** Grand Exchange offers and buy limits; see [osrsps.game.ge.GrandExchange]. */
     val ge = osrsps.game.ge.GeAccount()
@@ -312,6 +321,15 @@ class Player(
      */
     var rootedTicks: Int = 0
 
+    /**
+     * Ticks left of a freeze from another player's spell ([osrsps.game.combat.PvpCombat]): like [rootedTicks] they take
+     * no steps. [frozenBy] cast it; it breaks once they are more than 10 tiles apart. Then [freezeImmunityTicks] of
+     * immunity follow. Not saved.
+     */
+    var freezeTicks: Int = 0
+    var freezeImmunityTicks: Int = 0
+    var frozenBy: Player? = null
+
     /** Ticks since special attack energy last came back; see [osrsps.game.combat.SpecialAttacks]. Not saved: a login starts it again. */
     var specRegenTicks: Int = 0
 
@@ -328,6 +346,41 @@ class Player(
     /** The NPC that hit them last, and the tick it did; see [osrsps.game.combat.MeleeCombat]. Not saved. */
     var attackedBy: Npc? = null
     var attackedTick: Long = -1
+
+    /** The player that hit them last, and the tick they did; see [osrsps.game.combat.PvpCombat]. Not saved. */
+    var attackedByPlayer: Player? = null
+    var attackedByPlayerTick: Long = -1
+
+    /**
+     * The player they last fought, attacking or attacked, and the tick until which that keeps others off them in
+     * single-way combat: the PJ timer ([osrsps.game.combat.PvpCombat.singleWayRefusal]). Not saved.
+     */
+    var pjOpponent: Player? = null
+    var pjUntil: Long = 0
+    /** The PJ timer runs after a kill ([pjOpponent] is who they killed), which holds though the victim logs out. */
+    var pjAfterKill = false
+
+    /**
+     * Ticks left of a Tele Block on them ([osrsps.game.combat.Teleblock]), and who cast it, by save key. Not saved: a
+     * logout ends it, as on live.
+     */
+    var teleblockTicks: Int = 0
+    var teleblockedBy: String? = null
+
+    /** Ticks left of their skull ([osrsps.game.combat.Skulls]). Saved. */
+    var skullTicks: Int = 0
+
+    /** The skull head icon last sent for them, -1 for none. */
+    var sentSkullIcon: Int = -1
+
+    /**
+     * The players they attacked unprovoked, by lower-case name, and the ticks left in which each may hit them back
+     * unskulled ([osrsps.game.combat.Skulls]); counted down with their skull, while they are logged in, and saved.
+     */
+    val attackedFirst = HashMap<String, Int>()
+
+    /** The tick their part of the movement phase last landed other players' hits on them; see [osrsps.game.combat.PvpCombat.land]. */
+    var pvpTick: Long = -1
 
     /**
      * The NPC they last attacked (swung at, fired or cast on, or hit), and the tick they did; see
@@ -385,6 +438,19 @@ class Player(
     /** How many items a death keeps, decided as the player falls; see [osrsps.game.combat.Deaths]. */
     var deathKeptItems: Int = osrsps.game.combat.Deaths.KEPT_ITEMS
 
+    /**
+     * Who killed them, by [saveKey], when their death is a PvP one ([osrsps.game.combat.PvpCombat.killerOf]): their lost
+     * items drop for the killer ([osrsps.game.combat.Deaths]). Null for any other death. Not saved.
+     */
+    var deathKiller: String? = null
+
+    /**
+     * The damage each player has dealt them lately, by [saveKey], the latest hitter last, and the tick of the last hit;
+     * see [osrsps.game.combat.PvpCombat]. Not saved.
+     */
+    val pvpDamage = LinkedHashMap<String, Int>()
+    var lastPvpHitTick: Long = -1
+
     /** The overhead prayer icon in the player's appearance, -1 for none. */
     var overheadIcon: Int = -1
 
@@ -411,6 +477,12 @@ class Player(
 
     /** Moved by a teleport this tick; the client is told when the tick's movement is sent. */
     var teleported: Boolean = false
+
+    /** Whether the Wilderness overlay is open in the client ([Interfaces.showWildernessOverlay]). */
+    var wildernessOverlay: Boolean = false
+
+    /** Whether the client has Attack on other players' menus ([PlayerOps.ATTACK]), given inside the Wilderness. */
+    var attackOp: Boolean = false
 
     /** Clicks and buttons that arrived while the clock was paused, run at the start of the next tick. */
     val heldActions = ArrayDeque<() -> Unit>()

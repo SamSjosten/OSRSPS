@@ -35,10 +35,14 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         for (overlay in GameFrame.overlays) {
             send(player, IfOpenSub(frame.interfaceId, frame.component(overlay.slot), overlay.interfaceId, OVERLAY))
         }
+        // The Wilderness overlay isn't one of the login overlays: the next movement phase opens it if the player is inside.
+        player.wildernessOverlay = false
         openJournalTab(player, JournalTab.forValue(journalTabVarbit(player)?.let { player.vars.getVarbit(it) } ?: 0))
         openChatChannel(player)
         // The Clans tab's four tabs (side_channels_tabinit), which tell the server which page to show.
         for (tab in Clans.SIDE_CHANNELS_TABS) send(player, IfSetEventsV2(Clans.SIDE_CHANNELS, tab, -1, -1, 0, IF_EVENT_OP1))
+        // The emote tab's emotes, its client-made children 0 to 55 (emote_init), Perform and Loop.
+        send(player, IfSetEventsV2(osrsps.game.content.Emotes.INTERFACE, osrsps.game.content.Emotes.CONTENTS, 0, osrsps.game.content.Emotes.LAST, 0, IF_EVENT_OP1 or IF_EVENT_OP2))
         // Lets the client send clicks on the "Game client layout" dropdown's three options.
         send(player, IfSetEventsV2(GameFrame.SETTINGS_SIDE, GameFrame.SETTINGS_CLIENT_LAYOUT_BUTTONS, 1, 3, 0, IF_EVENT_OP1))
         // And on the attack priority dropdowns' options: client-made children 1 to n of their buttons components.
@@ -156,6 +160,34 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
     /** Opens [interfaceId] as the Clans tab's page, in place of what is there. */
     fun openClansTab(player: Player, interfaceId: Int) {
         send(player, IfOpenSub(Clans.SIDE_CHANNELS, Clans.SIDE_CHANNELS_CONTENTS, interfaceId, OVERLAY))
+    }
+
+    /**
+     * Opens or closes the Wilderness overlay ([GameFrame.PVP_ICONS]) in its frame slot, so it shows only while [inside].
+     * It moves with the frame as the other slots do.
+     */
+    fun showWildernessOverlay(player: Player, inside: Boolean) {
+        if (player.wildernessOverlay == inside) return
+        player.wildernessOverlay = inside
+        val frame = player.frame
+        val component = frame.component(FrameSlot.PVP_ICONS)
+        if (inside) {
+            player.closedWhileAway -= frame.interfaceId to component
+            send(player, IfOpenSub(frame.interfaceId, component, GameFrame.PVP_ICONS, OVERLAY))
+        } else {
+            sendClose(player, frame.interfaceId, component)
+        }
+    }
+
+    /**
+     * After a reconnect, opens the Wilderness overlay again if the server has it open: the open may have gone with the
+     * old connection (Codex review on #675), and [showWildernessOverlay] sends only changes. A close lost that way is
+     * in [Player.closedWhileAway].
+     */
+    fun resendWildernessOverlay(player: Player) {
+        if (!player.wildernessOverlay) return
+        val frame = player.frame
+        send(player, IfOpenSub(frame.interfaceId, frame.component(FrameSlot.PVP_ICONS), GameFrame.PVP_ICONS, OVERLAY))
     }
 
     /** Opens [interfaceId] in side panel [slot] in place of what is there, as an overlay like the side panels. */

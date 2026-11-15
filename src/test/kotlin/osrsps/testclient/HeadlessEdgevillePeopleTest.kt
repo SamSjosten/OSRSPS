@@ -25,7 +25,7 @@ import osrsps.map.LocShape
 
 /**
  * Edgeville piece step 3 through the headless client: the Basement of Doom's trapdoor (each player's own, on varbit
- * 1888) and cellar stairs, the refusals on the lever, fairy ring, Soul Wars portal, Death's Domain and canoe station,
+ * 1888) and cellar stairs, the refusals on the lever, fairy ring, Soul Wars portal, and Death's Domain,
  * Doris's talk, and Lucien showing (on varbit 10753, set at login as after the quest) with his new pendant.
  */
 class HeadlessEdgevillePeopleTest {
@@ -40,7 +40,6 @@ class HeadlessEdgevillePeopleTest {
             type(EdgevillePeople.FAIRY_RING, "Fairy ring", "Zanaris", "Configure", "Last-destination", "Favourites"),
             type(EdgevillePeople.SOUL_WARS_PORTAL, "Soul Wars Portal", "Enter"),
             type(EdgevillePeople.DEATHS_DOMAIN, "Death's Domain", "Enter"),
-            type(EdgevillePeople.CANOE_STATION, "null", "Make-Canoe", multiloc = true),
         ).associateBy { it.id },
     )
 
@@ -78,7 +77,6 @@ class HeadlessEdgevillePeopleTest {
                 add(ZoneLoc(EdgevillePeople.FAIRY_RING, LocShape.CENTREPIECE_STRAIGHT, 0, 3129, 3496, 0))
                 add(ZoneLoc(EdgevillePeople.SOUL_WARS_PORTAL, LocShape.CENTREPIECE_DIAGONAL, 3, 3082, 3473, 0))
                 add(ZoneLoc(EdgevillePeople.DEATHS_DOMAIN, LocShape.CENTREPIECE_STRAIGHT, 0, 3096, 3476, 0))
-                add(ZoneLoc(EdgevillePeople.CANOE_STATION, LocShape.CENTREPIECE_STRAIGHT, 3, 3130, 3508, 0))
             },
             varTypes = VarTypes(
                 VARP_COUNT,
@@ -132,7 +130,7 @@ class HeadlessEdgevillePeopleTest {
     }
 
     @Test
-    fun `the lever, fairy ring, Soul Wars portal, Death's Domain and canoe station refuse`(@TempDir dir: Path) {
+    fun `the lever, fairy ring, Soul Wars portal and Death's Domain refuse`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bob").use { client ->
                 client.await("the login rebuild") { client.position }
@@ -146,8 +144,6 @@ class HeadlessEdgevillePeopleTest {
                 for (option in 1..4) {
                     client.expectMessage(DialogueText.NONE[EdgevilleClosedLines.FAIRY_RING]) { client.locOp(EdgevillePeople.FAIRY_RING, 3129, 3496, option) }
                 }
-                client.tele(3131, 3508, 0)
-                client.expectMessage(DialogueText.NONE[EdgevilleClosedLines.CANOE]) { client.locOp(EdgevillePeople.CANOE_STATION, 3130, 3508, 1) }
             }
         }
     }

@@ -18,7 +18,7 @@
   {"step": "assertLocation", "x": 1827, "y": 3769, "plane": 0},
   {"step": "npcOption", "npcId": 6825, "option": "Bait", "timeoutMs": 20000, "comment": "piscariliusfish"},
   {"step": "assertMessage", "contains": "fishing.cast_line"},
-  {"step": "assertAnimation", "id": 622, "comment": "human_fishing_casting"},
+  {"step": "assertAnimation", "id": 623, "timeoutMs": 15000, "comment": "human_fish_onspot, played on each roll. The first tick's cast (622) is replaced by it when the monkfish clock puts a roll on that tick (nightly 2026-11-15)"},
   {"step": "assertMessage", "contains": "fishing.catch_anglerfish", "timeoutMs": 120000, "comment": "about 14% a roll at 99, a sandworm a catch"},
   {"step": "assertInventory", "item": "Raw anglerfish", "timeoutMs": 10000},
 
@@ -27,6 +27,7 @@
   {"step": "command", "text": "::empty", "comment": "one raw monkfish alone, so it cooks with no box"},
   {"step": "command", "text": "::item 7944 1"},
   {"step": "assertInventory", "itemId": 7944, "count": 1, "timeoutMs": 10000},
+  {"step": "waitTicks", "ticks": 3, "comment": "let the backpack redraw before the Use: clicked at once, the slot was still blank and the range click became a walk (217, 2026-11-15; a probe that waited 3 ticks cooked)"},
   {"step": "useItemOnLoc", "item": "Raw monkfish", "locId": 114, "x": 3212, "y": 3215},
   {"step": "assertMessage", "contains": "cooking.cooked_monkfish", "timeoutMs": 20000, "comment": "no burns on a range from 90"},
   {"step": "assertInventory", "itemId": 7946, "count": 1, "timeoutMs": 10000, "comment": "monkfish"},

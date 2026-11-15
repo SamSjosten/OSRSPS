@@ -1,0 +1,21 @@
+{
+ "name": "Slayer step 2: Aya in Burthorpe giving a new account a task by Assignment, then telling what is left of it when asked again, and the enchanted gem agreeing, with ::keys on",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account at combat 3 with no task; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "keys", "comment": "the masters' words aren't filled yet, so the script reads their keys"},
+  {"step": "command", "text": "::tele 2931 3534 0", "expectMessage": "Teleported to 2931, 3534, 0", "comment": "Turael's house south of Burthorpe's general store, where Aya stands"},
+  {"step": "npcOption", "npcId": 13619, "option": "Assignment", "timeoutMs": 20000, "comment": "slayer_master_1_aya"},
+  {"step": "assertDialogue", "contains": "[slayer_master.new_task ", "timeoutMs": 15000},
+  {"step": "continueDialogue"},
+  {"step": "npcOption", "npcId": 13619, "option": "Assignment", "timeoutMs": 20000},
+  {"step": "assertDialogue", "contains": "[slayer_master.still_hunting ", "timeoutMs": 15000},
+  {"step": "continueDialogue"},
+  {"step": "command", "text": "::item 4155", "expectMessage": "Added 1 x Enchanted gem"},
+  {"step": "itemOption", "item": "Enchanted gem", "option": "Check"},
+  {"step": "assertMessage", "contains": "[slayer.gem_task "},
+  {"step": "command", "text": "::slayer clear", "expectMessage": "No task."},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

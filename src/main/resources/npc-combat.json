@@ -576,6 +576,47 @@
       "source": "OSRS Wiki, Hobgoblin (Level 42, id 3050, with a spear) and the DPS calculator's 3050, read 2026-11-02: speed 6, max hit 5, stab, the bonuses, aggressive. The respawn is taken as the level 28's (inferred). Which of hobgoblin_attack and hobgoblin_spear_attack it thrusts with is guessed, as is the default hunt range"
     },
     {
+      "npcs": ["hillgiant_boss"],
+      "attackSpeed": 6, "maxHit": 22, "attackType": "crush", "attackBonus": 100, "strengthBonus": 68, "rangedAttack": 100,
+      "defence": { "stab": 35, "slash": 40, "crush": 45, "magic": 20, "light": 20, "standard": 20, "heavy": 20 },
+      "anims": { "attack": "giant_update_basic_attack", "defend": "giant_update_basic_defend", "death": "giant_update_basic_death" },
+      "respawnTicks": 15,
+      "weakness": { "element": "earth", "percent": 20 },
+      "immune": ["poison", "venom"],
+      "xpBonus": 7.5,
+      "source": "OSRS Wiki, Obor, read 2026-11-15: speed 6, max hit 22 melee (his thrown rocks' 26 is the fight's, Obor.kt), crush, attack +100 and strength +68, ranged attack +100, the defence bonuses, weak to earth 20%, immune to poison and venom, XP bonus 7.5%. He stands and walks with giant_update_basic_ready and _walk, so the giant_update_basic fight animations are taken. He never respawns by himself: the respawn here is unused, his lair puts him back (GiantLairs)"
+    },
+    {
+      "npcs": ["chaosmonk2"],
+      "attackSpeed": 4, "maxHit": 5, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
+      "respawnTicks": 250,
+      "source": "OSRS Wiki, Monk of Zamorak (level 17, ids 528 and 8401), read 2026-11-15: speed 4, max hit 5, crush, no bonuses, not aggressive, respawn 250. The infobox's shared Crush, Magic style isn't used for this one (inferred): his max hit names no Magic as the higher levels' do, and the Wiki says he is used to train Magic on through his cage, so he only punches. Guessed: the unarmed human fight animations, as for the other robed men"
+    },
+    {
+      "npcs": ["gb_mossgiant"],
+      "attackSpeed": 6, "maxHit": 16, "attackType": "crush", "attackBonus": 33, "strengthBonus": 31,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "giant_update_moss_attack", "defend": "giant_update_moss_defend", "death": "giant_update_moss_death" },
+      "respawnTicks": 15,
+      "weakness": { "element": "fire", "percent": 50 },
+      "poison": 8,
+      "xpBonus": 2.5,
+      "source": "OSRS Wiki, Bryophyta, read 2026-11-15: speed 6, max hit 16 melee (her magic's 10 is the fight's, Bryophyta.kt), crush, attack +33 and strength +31, no defence bonuses, weak to fire 50%, poisons from 8 (members), XP bonus 2.5%. She stands and walks with giant_update_moss_ready and _walk, so the giant_update_moss fight animations are taken. Her lair puts her back (GiantLairs): the respawn here is unused"
+    },
+    {
+      "npcs": ["gb_growthling"],
+      "attackSpeed": 4, "maxHit": 5, "attackType": "slash", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "tanglefoot_attack", "defend": "tanglefoot_block", "death": "tanglefoot_death" },
+      "respawnTicks": 15,
+      "aggressive": true,
+      "immune": ["poison", "venom"],
+      "minHitpoints": 1,
+      "source": "OSRS Wiki, Growthling, read 2026-11-15: speed 4, max hit 5, slash, no bonuses, aggressive, immune to poison and venom; held at 1 hitpoint until an axe or secateurs finish it (Bryophyta.kt). It stands and walks with tanglefoot_ready and _walk, so the tanglefoot fight animations are taken. Only her fight spawns them: the respawn here is unused"
+    },
+    {
       "npcs": ["giant", "giant2", "giant3", "giant4", "giant5", "giant6"],
       "attackSpeed": 6, "maxHit": 4, "attackType": "crush", "attackBonus": 18, "strengthBonus": 16,
       "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
@@ -1280,6 +1321,27 @@
       "slayerLevel": 20,
       "minHitpoints": 1,
       "source": "OSRS Wiki, Rockslug (level 29, ids 421 and 422), read 2026-11-10: speed 4, max hit 4, crush, no bonuses, respawn 15, not aggressive, 25% weak to earth, Slayer 20, and finished only by a bag of salt at 4 or less (\"If a rockslug's health is reduced to 1 but a bag of salt is not used on it, the rockslug will stop retaliating and wander off\"). Its own rockslug animations"
+    },
+    {
+      "npcs": ["superior_cave_crawler"],
+      "attackSpeed": 4, "maxHit": 7, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 41, "slash": 43, "crush": 23, "magic": 24, "light": 40, "standard": 20, "heavy": 40 },
+      "anims": { "attack": "crawler_attack", "defend": "crawler_parry", "death": "crawler_death" },
+      "respawnTicks": 1,
+      "poison": 12,
+      "weakness": { "element": "fire", "percent": 50 },
+      "slayerLevel": 10,
+      "source": "OSRS Wiki, Chasm Crawler (level 68, id 7389), read 2026-11-15: speed 4, max hit 7, stab, no attack bonuses, the defences, not aggressive, poisonous (12), 50% weak to fire, Slayer 10. A superior never respawns (SlayerSuperiors puts it out once), so the respawn time only stands in. Guessed: the cave crawler's animations, as it has their stand and walk"
+    },
+    {
+      "npcs": ["superior_rockslug"],
+      "attackSpeed": 4, "maxHit": 9, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "rockslug_attack", "defend": "rockslug_defend", "death": "rockslug_death" },
+      "respawnTicks": 1,
+      "weakness": { "element": "earth", "percent": 20 },
+      "slayerLevel": 20,
+      "source": "OSRS Wiki, Giant rockslug (level 86, id 7392), read 2026-11-15: speed 4, max hit 9, crush, no bonuses, not aggressive, 20% weak to earth, Slayer 20; its 2 flat armour is set by SlayerSuperiors. A superior never respawns, so the respawn time only stands in. Guessed: the rockslug's animations, as it has their stand and walk"
     },
     {
       "npcs": ["swamp_wallbeast_combat"],

@@ -55,6 +55,8 @@ data class CombatSpell(
     val area: Boolean = false,
     /** The powered staff whose built-in spell this is, null for a spellbook spell; see [MagicCombat]. */
     val staff: PoweredStaff? = null,
+    /** Tele Block: cast on players only, it stops their teleports instead of dealing damage ([Teleblock]). */
+    val teleblock: Boolean = false,
 )
 
 /**
@@ -119,7 +121,7 @@ class Spells(
          *
          * A spell that freezes has "hold" (the hold spells) or "freeze" with its ticks, and may have "splashXp" when a
          * splash gives less, and "maxHit" when its obj has no max hit param (0 only for a spell that freezes). An area
-         * spell has "area": true. "casting" may be left out for a spell with no graphic on the caster.
+         * spell has "area": true, and Tele Block "teleblock": true with "maxHit": 0. "casting" may be left out for a spell with no graphic on the caster.
          *
          * Spells, items and runes are gameval names; the rest of a spell comes from its obj's params, and a spell obj without
          * them fails the file. Animations and spotanims are gameval names too: one [seqs] or [spotanims] doesn't know
@@ -161,7 +163,8 @@ class Spells(
                     val dataMaxHit = entry["maxHit"]?.jsonPrimitive?.int
                     require(cacheMaxHit < 0 || dataMaxHit == null) { "\"maxHit\" given, but the cache has $cacheMaxHit (param $PARAM_MAX_HIT)" }
                     val maxHit = if (cacheMaxHit >= 0) cacheMaxHit else dataMaxHit ?: -1
-                    require(maxHit >= 1 || (maxHit == 0 && freezeTicks > 0)) { "$name has max hit $maxHit (param $PARAM_MAX_HIT, or \"maxHit\")" }
+                    val teleblock = entry["teleblock"]?.jsonPrimitive?.boolean ?: false
+                    require(maxHit >= 1 || (maxHit == 0 && (freezeTicks > 0 || teleblock))) { "$name has max hit $maxHit (param $PARAM_MAX_HIT, or \"maxHit\")" }
                     val spell = CombatSpell(
                         obj = type.id,
                         name = spellName,
@@ -182,6 +185,7 @@ class Spells(
                         holds = hold != null,
                         spellbook = type.intParam(PARAM_SPELLBOOK, Spellbook.STANDARD).also { require(it in Spellbook.STANDARD..Spellbook.ARCEUUS) { "$name is in spellbook $it (param $PARAM_SPELLBOOK)" } },
                         area = entry["area"]?.jsonPrimitive?.boolean ?: false,
+                        teleblock = teleblock,
                     )
                     require(spell.component !in byComponent) { "component ${spell.component} is listed twice" }
                     require(spell.autocast < 0 || byComponent.values.none { it.autocast == spell.autocast }) { "autocast key ${spell.autocast} is listed twice" }

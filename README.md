@@ -316,6 +316,9 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::pos` | **everyone.** Your coordinates as `x, z, level`, plus the map region and your tile inside it |
 | `::tele x z [level]` | Teleports there; the level stays the same when left out. `::tele 3222, 3218, 0` also works, so `::pos` output pastes in |
 | `::teleto name` | Teleports onto the player called that, on their level |
+| `::wildy level` | Jumps to that Wilderness level (1 to 56) on the line north of Edgeville, x 3090, or the nearest tile there that can be stood on |
+| `::skull [on\|off]` | Gives you a 30-minute skull, or takes yours away; with neither, says whether you have one and how many ticks it has left |
+| `::pj` | Clears your PJ timer, so anyone may attack you in single-way combat again |
 | `::tick` | **everyone.** The server's current tick number, and whether the clock is paused |
 | `::pause` | Freezes the game once the current tick has finished |
 | `::step [n]` | While paused, runs n ticks (default 1, up to 1000), one every 600 ms, then says where it stopped |
@@ -331,7 +334,11 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::if id [side]` | Opens interface `id` bare in the main game area (or the side panel with `side`), for checking it opens, moves with a layout change and closes |
 | `::setlevel skill\|all level` | Sets a skill's XP to what the level needs and its current level to match. `::setlevel attack 99` |
 | `::addxp skill xp` | Adds XP, one decimal place allowed (`::addxp cooking 17.5`); levelling raises the current level too. Exact: the XP rate doesn't apply |
+| `::slayer [task <id\|name> [amount] [master] \| points n \| streak n \| clear \| superior]` | Alone, your Slayer task, streak and points. `task` gives you a task straight away (`::slayer task cows 20 vannaka`; the master's most when no amount, Aya's when no master), `points` and `streak` set those, `clear` takes the task away, `superior` puts the task's superior out beside you |
 | `::xprate [rate\|restore]` | Shows or sets the server-wide XP rate, 0.1 to 1000 in tenths (`::xprate 5`, `::xprate 2.5`); every XP drop is multiplied by it, rounded down to a tenth. Kept in data/xp-rate.txt (outside git), so it lasts across restarts and deploys. `restore` goes back to the rate before the last change. 1 is live's |
+| `::farmtick [ticks]` | Moves your own farming clock on that many five-minute farming ticks (1 by default, up to 4,096) and grows your patches to it: allotments grow every second tick. For good: your crops keep growing from there |
+| `::farmclock <pause\|run>` | Holds your farming clock where it is, so your crops grow only by `::farmtick` (for tests that check each stage), or runs it again, the crops catching up on the time it was held; a login runs it again too |
+| `::farmdisease <patch\|off\|on>` | Makes the crop in one of your patches (by its save key, such as `falador_allotment_nw`) diseased now, to try a plant cure or let it die; `off` stops your crops falling ill on their own (for scripts that grow a crop through many stages) until `on` or your next login |
 | `::boost skill level` | Sets only the current (boosted or drained) level, 0 to 255. `::boost hp 1` for 1 hitpoint |
 | `::stats` | Lists the boosted and drained stats as current/base, and the ticks until each cycle next moves them a level back (boosts on the combat, other and Hitpoints cycles, drains on the restore cycle) |
 | `::statcycles` | Starts the boost and drain cycles again, so the next levels move a minute from now; for tests that read boosts and mustn't have one wear off part way |
@@ -438,7 +445,21 @@ dialogue file. Trees outside Misthalin are where live has them and reached by ::
 | Teak (35, 85 XP, timer 50, back in 15), mahogany (50, 125 XP, 100, 14), arctic pine (54, 40 XP, 140, 14), redwood sections (90, 380 XP, 440, 199), with each chart's pair per axe (`WoodcuttingG2Test`) | OSRS Wiki tree pages (read 2026-11-10) |
 | Their stumps: teaktree to teak_stump and the like, redwoodtree_l/_r to their _cut sections | 242 gamevals, by name |
 | Redwoods give no seed, ring or egg nests (only clue nests, which are out) | OSRS Wiki, Redwood tree |
-| Out: the Woodcutting Guild (its +7, doors and the redwoods' ladders), the Hardwood Grove's trading sticks, Etceteria's trees giving no logs, Farming's patch trees | out of scope; later pieces |
+| Out: the Woodcutting Guild (its +7, doors and the redwoods' ladders), the Hardwood Grove's trading sticks, Etceteria's trees giving no logs (Farming's patch trees are Farming's, with Woodcutting's rates) | out of scope; later pieces |
+
+The River Lum's canoe stations (`game/skill/Canoes.kt`, words under `canoe.*`): Lumbridge, the Champions' Guild,
+Barbarian Village, Edgeville and the Ferox Enclave. Each is a multiloc on a varbit of its own, so every player has their
+own tree: Chop-down fells it, Shape-Canoe opens the canoeing box (416) with the canoes the level allows, Float pushes
+the canoe in and Paddle opens the river map (953), where the client offers the stations that canoe reaches. The canoe
+sinks on landing and the station is a tree again. Check: `test-runner/examples/canoes.json`, `HeadlessCanoeTest`.
+
+| Canoe behaviour | Source |
+|-----------------|--------|
+| Log 12 (30 XP), dugout 27 (60), stable dugout 42 (90), waka 57 (150); the XP on shaping; shaping pairs by axe, whatever the canoe (bronze 32/100 to rune, dragon and crystal 112/350); the tree's pairs for bronze to black axes; one trip a canoe; an unused canoe kept until logout, and cleared by starting another station's tree | OSRS Wiki, Canoe and Canoe station (read 2026-11-14) |
+| Which station each canoe reaches from each (log one on, dugout two, stable dugout three; only a waka to the Ferox Enclave or the Wilderness Pond); the box's level 12 check and list; the station states, interfaces and carving animations | 242 cache: client scripts `canoe_setup`, `canoe_paddle_*`, `canoe_location_setup_lum`, the locs, varbits and seqs |
+| The tree always falling for mithril axes and up; the box's level 12 message left to the client; shaping rolling every 4 ticks; the fall and push taking 3 ticks and the trip 8; the player's push animation; the landing tiles (from the 2009scape project, not live), the Ferox Enclave's; no message on starting to chop or shape | guessed, to check against a recording |
+| The Ferox Enclave and Wilderness Pond refusing a waka, in our own words, until the Wilderness is built | ours |
+| Out: the travel cutscene, the sinking canoe at the landing, followers, the Wilderness warning, the Ardougne river's stations; the canoe experts' Store-axe | out of scope; later pieces |
 
 Each log has a 1/256 chance of a bird nest (`game/skill/BirdNests.kt`, words under `birdnest.*`), 11/2560 with a
 Woodcutting cape worn; `::nest [seeds|ring|red|green|blue]` drops one as a tree does. Search on a nest leaves an empty
@@ -908,6 +929,234 @@ market where the cache map puts them; stealing works as at Draynor's (a guard or
 | Who watches which stall (the guards the bakery; knights too the silk and fur; paladins too the silver, spice and gem), the empty stall (`market` 634), the keepers' 20-minute ban, the keepers standing still and the guards wandering 5 | guessed (the watchers 2004Scape's) |
 | Not built: Keldagrim's, Kourend's, Prifddinas's, Civitas illa Fortis's, Port Roberts's, Rellekka's and Ape Atoll's stalls, the keepers' talk and shops, the Ardougne diary | next steps |
 
+### Farming
+
+Farming steps 1 to 9 (`game/skill/farming/`): the growth clock, each player's patches, allotments, herbs and flowers,
+compost and disease, trees and fruit trees, hops and bushes, compost bins, the gardeners and noting produce, and the Tool
+Leprechauns' store. Every patch is a
+multiloc the map already places, drawn by one of the cache's `farming_transmit_a` to `e` varbits; each tick the
+player's patches grow to the clock and the varbits of the area they stand in are set, the same varbits live sends for
+the same map squares, so RuneLite's Time Tracking farming panel reads them. Crops grow on live's real-time farming
+ticks (every 5 minutes: flowers every one, allotments every second, herbs every fourth), shifted by a fixed offset
+per account, and keep growing while the player is logged out. The patches are saved with the player (`farming` in the
+save); a `::scenario` starts with every patch overgrown, and `::reset` puts the player's own back.
+
+Built so far: the two allotments, the flower patch and the herb patch south of Falador (reach them with `::tele 3054 3305`). Rake clears a weed stage at a
+time for 4 XP a weed; three seeds and a seed dibber plant a raked patch; a watering can waters a growing crop until
+its next stage; a grown crop is harvested with a spade, one crop at a time, until its three lives run out, each crop
+keeping its life at the chance its seed page gives (more with magic secateurs); the planting XP comes with the last
+crop, as on live. A herb takes one seed, can't be watered, and is picked with a spade a herb at a time the same way.
+A flower takes one seed, can be watered, and is picked once by hand for its produce (woad three leaves, limpwurt three
+roots and a random number below the Farming level, divided by ten, more), with its planting and harvest XP together.
+Clicking a patch again two ticks into a harvest picks two crops at each roll from then, as on live. Bare soil grows a weed
+stage every farming tick until it is overgrown again.
+
+Compost, supercompost and ultracompost go on a raked patch or a growing crop, once, for 18, 26 and 36 XP and an empty
+bucket: an allotment or herb then has 4, 5 or 6 harvest lives instead of 3, and every patch falls ill less often. Each
+time a crop grows past its first stage it may fall ill instead (27 in 128 for herbs; compost halves that,
+supercompost takes 80% off, ultracompost 90%, rounded up). A diseased crop stops growing; a plant cure (Cure, or the
+cure used on it) makes it well and leaves the vial, and one left alone dies at its next tick of the next slower clock.
+A dead crop is cleared with a spade, for the planting XP after all. A fully grown flower keeps the allotments beside it
+well: marigolds potatoes, onions and tomatoes, rosemary cabbages, nasturtiums watermelons, a white lily everything.
+
+Trees grow in the tree patches west of Lumbridge castle (`::tele 3193 3229`), in Varrock palace's garden, in Falador
+park, in Taverley and in the Gnome Stronghold. An empty plant pot used on a bare patch is filled with soil (no trowel needed); a tree seed
+used on the filled pot (with the trowel and the tree's Farming level) makes a seedling, and a watered seedling grows
+into a sapling at the next farming tick, in the backpack or the bank. The sapling is planted in a raked tree patch
+with a spade, the pot coming back. Trees grow every 40 minutes (oak 4 stages, willow 6, maple 8, yew 10 with a first
+one lasting 5 minutes from planting, magic 12), and a grown tree is checked once (Check-health) for its check-health
+and planting XP. It
+is then chopped as a wild tree of its kind is (Woodcutting's level, rates, XP and bird nests) until it falls at 1 log
+in 8, and its stump is dug up with a spade for its roots (one at the tree's level and one more every 8 levels, four at
+most), a dig that can fail below level 99; a stump left alone grows back. A diseased tree is pruned with secateurs, 3
+tries in 4 working (each try made when a Farming skill roll passes), for a leaf; one left ill dies and is cleared with a
+spade, for the planting XP.
+
+Fruit trees grow in the fruit tree patches of Catherby (`::tele 2860 3432`), the Gnome Stronghold, the Tree Gnome
+Village and Brimhaven, from saplings made the same way (apple, banana, orange, curry, pineapple, papaya, palm and
+dragonfruit). They grow through six 160-minute stages, falling ill at 18 in 128 (less with compost) in 4 of them, and
+a grown tree is checked once for its check-health and planting XP. It then bears six fruit, picked one at a time for each tree's
+per-fruit XP, and grows one more every 40 minutes up to six. With no fruit left it can be chopped down (one swing,
+no logs) and its stump cleared with a spade. A diseased fruit tree is pruned with secateurs for leaves.
+
+Hops grow in the hops patches north of Lumbridge (`::tele 3228 3312`), in Yanille, on Entrana and at Seers' Village:
+barley, hammerstone, asgarnian, jute, yanillian, krandorian and wildblood, four seeds a planting (jute three), every 10
+minutes, watered, composted, falling ill and cured as allotments are, and harvested with a spade until their lives run
+out, each hop keeping its life at the chance Mod Easty gave, the planting XP with the last. Bushes grow in the bush
+patches west of the Champions' Guild (`::tele 3182 3356`), in Rimmington, Etceteria and south of Ardougne: redberry,
+cadavaberry, dwellberry, jangerberry, whiteberry and poison ivy (never ill), from one seed, every 20 minutes. A grown
+bush is checked for its check-health and planting XP, then has four berries, picked by hand for each bush's per-berry
+XP, a berry sometimes staying on the bush (so four at least, about 17 at level 99), and grows one more every 20
+minutes up to four. Clear digs it up with a spade. A diseased bush is pruned with secateurs for leaves.
+
+The compost bin by the Falador allotments (3056, 3312) takes 15 un-noted compostable items (weeds, crops, herbs,
+fruit, berries, hops, roots), one a tick from the stack used on it. All supercompostable items (watermelons, high
+herbs, the top berries and fruit, roots and so on) make supercompost, all tomatoes rotten tomatoes, anything else
+compost. Close a full bin and it rots over two ticks of the 40-minute clock; Open it and Take (or use empty buckets
+on it) fills a bucket every 4 ticks, for 4.5 XP a bucket of compost, 8.5 of supercompost and 10 of ultracompost
+(rotten tomatoes come by hand, for no XP). A dose of compost potion on an opened bin of compost makes it supercompost,
+and 25 volcanic ash on one of supercompost ultracompost. Dump throws away whatever is in it.
+
+Misthalin's gardeners (Dreven by the Champions' Guild bush patch, Vasquen by the Lumbridge hops, Fayeth by the
+Lumbridge tree patch and Treznor by Varrock's) look after the crop growing in their patch for its payment (a basket of
+tomatoes for an oak, two buckets of compost for potatoes and so on, noted or not), through Talk-to or Pay; a paid crop
+never falls ill. A grown tree is chopped down for 200 coins from Talk-to or Pay, which leaves the patch clear. They
+give one of 17 pieces of advice, sell Farming Supplies (Talk-to or Trade), and say whether an item shown to them makes
+compost or supercompost. A Tool Leprechaun changes every one of an item used on him into banknotes, if it was grown
+(produce, herbs clean or grimy, saplings, weeds, roots; not logs). The Varrock garden patches belong to the Garden of
+Tranquillity quest and are left out (no quests).
+
+The Tool Leprechauns' store (`ToolStore.kt`), the Amazing Farming Equipment Store, opens from a leprechaun's Exchange or
+"Yes please." in his talk, with its own side panel in place of the inventory. It holds 100 rakes, seed dibbers, spades,
+secateurs (or magic secateurs) and trowels, one watering can (any doses, or a Gricoller's can), one bottomless bucket,
+and 1000 plant cures, buckets, compost, supercompost and ultracompost, noted or not; the same store at every leprechaun.
+Remove- and Store-1, -5, -X and -All follow the default quantity buttons, Banknotes takes items out noted, and his
+Deposit-all puts in everything it holds from the pack. What is stored lives in the varbits the client draws it from, so
+it is saved with the player.
+
+| Farming behaviour | Source |
+|-------------------|--------|
+| Patch locs, which varbit draws each, and which value draws which stage (weeds, growing, watered, grown, diseased, dead) | cache 242 (2026-11-11), the patch multilocs and the names of the locs they show |
+| Which map squares send which patches' varbits (Falador: square 12083 north of z 3272) | RuneLite's Time Tracking plugin (FarmingWorld), worked out from live's varbits |
+| 5-minute farming ticks, allotments every 10 minutes, crops growing while logged out; the offset of 0 to 31 minutes | OSRS Wiki, Farming (the 2018 update; Mod Ash) |
+| Allotment levels, three seeds, planting and harvest XP (the planting XP on the last harvest), stages; 4 XP a weed and weeds back every 5 minutes; three harvest lives | OSRS Wiki, Allotment patch, Weeds, each seed's page |
+| Herb levels and XP, herbs every 20 minutes, a spade to pick them, the planting XP with the final herb; flower levels, XP, yields and 5-minute growth, both XPs when picked; limpwurt's 3 roots plus a random 0 to level - 1, divided by ten, and magic secateurs helping it; a second click 2 ticks into a harvest picking two at a time (allotments and herbs) | OSRS Wiki, Herb patch, Flower patch, each seed's page, Limpwurt seed (Mod Ash) |
+| The chance to keep a life (`(1 + low)/256` to `(1 + high)/256`, from each seed page's percentages), magic secateurs' 10% | OSRS Wiki, each seed's page, Variable crop yield |
+| Animations farming_raking, farming_seed_dibbing, farming_watering, human_dig | cache 242 seq names |
+| A rake roll every 4 ticks that always takes a weed; planting and watering 3 ticks after the click; a crop every 4 ticks; raking and harvesting stopping on a full inventory; the three grown values counting down the last lives; the offset taken from the account's name | guessed |
+| Compost's XP and extra lives (Mod Ash: 4, 5, 6), its disease reduction rounded to a 128th, herbs' 27/128, disease only past the first stage and never when grown, dying at the next slower tick, the planting XP on clearing a dead patch; which flower protects which crop | OSRS Wiki, Compost, Supercompost, Ultracompost, Disease, Herb patch, Flower patch, Allotment patch |
+| Allotments and flowers falling ill as often as herbs; watering halving the chance; curing, composting and clearing 3 ticks after the click; compost refused on a grown, diseased or dead crop | guessed |
+| Huasca's chance to keep a life (58 of 256 at level 1, 80 at 99; the Wiki gives none); herbs and flowers picked with picking_low, a herb every 4 ticks, a flower 2 ticks after Pick; flower produce that doesn't fit dropping to the floor; magic secateurs' help on limpwurt as 10% more numbers to draw from; a second click on the first or second tick of a harvest counting | guessed |
+| Tree levels, planting and check-health XP (the planting XP on Check-health or on clearing a dead tree), 40-minute growth and stages (a yew's first 5 minutes from planting); seedlings in a plant pot with a trowel, growing to saplings within 5 minutes when watered, banked too; saplings planted with a spade; 1 log in 8 felling a farmed tree; roots by Farming level; stumps that can fail to dig below 99 and never at 99; pruning with secateurs at 3 in 4 after a skill roll; maple's 13/128 and magic's 9/128 chances to fall ill | OSRS Wiki, Tree patch, Seedling, each tree's page, Disease (Mod Lenny), Roots (Mod Kieren) |
+| Oak 17/128, willow 15 and yew 11 to fall ill; a stump growing back at the tree's next 40-minute tick; digging up a stump 129/256 at level 1, and the pruning skill roll the same; a try at a stump or a prune every 4 ticks; one leaf a prune; a pot filled and a sapling planted 3 ticks after the click; Check-health at once, with no animation; farming_filling_plantpot, farming_trowel_digging and pruning_mid as the animations | guessed |
+| Fruit tree levels, planting, check-health and per-fruit XP, six 160-minute stages, six fruit once checked and one more every 40 minutes, 18/128 to fall ill in 4 of 6 growths, pruning with secateurs; Chop-down shown only with no fruit left | OSRS Wiki, Fruit tree patch, Disease, each fruit tree's page; cache 242, the fruit tree multiloc |
+| The 4 risky growths being the second to the fifth; a fruit every 3 ticks with picking_high; chopping a fruit tree in one swing with any axe at any Woodcutting level, for no logs or XP; a fruit tree stump always cleared at the first dig, for no roots or XP, and never growing back; an axe on a tree with fruit refused | guessed |
+| Hops levels, seeds (four, jute three), planting and harvest XP (the planting XP with the last hop), 10-minute stages, watering; the chance to keep a life (Mod Easty's low and high numbers); bush levels, planting, check-health and per-berry XP, 20-minute stages, four berries once checked and all back in about 80 minutes, Clear with a spade, pruning with secateurs, poison ivy immune; the last two diseased bush models unused | OSRS Wiki, Hops patch, Hops seeds, Bush patch, Bush seeds, each bush's page, Talk:Farming (Mod Easty); cache 242, the hops and bush multilocs and their op5 Clear |
+| A berry kept with whiteberries' chance (Talk:Farming 83-85 and 193-195; the middle taken) | OSRS Wiki, Talk:Farming, Farming (15-20 berries) |
+| Hops falling ill at 27/128 and bushes at 18/128; every other bush keeping a berry at whiteberries' chance; a berry every 3 ticks with picking_mid; a bush dug up 3 ticks after Clear, for no XP; the berries regrowing at the bush's own 20-minute ticks; the hops' three grown values counting down the lives as an allotment's | guessed |
+| Compost bins: 15 un-noted items, what is compostable and supercompostable, supercompost only from all supercompostable items and rotten tomatoes from all tomatoes, Take with empty buckets for 4.5, 8.5 and 10 XP, a bucket every 4 ticks, a compost potion dose or 25 volcanic ash upgrading an opened bin, Dump; the bin's varbit values; rotting over two ticks of the 40-minute clock | OSRS Wiki, Compost Bin, Compost, Supercompost, Ultracompost, Rotten tomato; cache 242, the compost bin multiloc 7836; RuneLite's Time Tracking (Produce: 40 minutes, 3 stages) |
+| Huasca supercompostable; items going in one a tick from the used stack with human_pickuptable; buckets filled with human_fillbucket_sandpit; closing, opening and upgrading at once with no animation; Dump without a confirmation; a plain item turning a supercompostable or tomato bin plain with a message rather than live's warning dialogue; no XP for rotten tomatoes | guessed |
+| Gardeners' payments (noted accepted, exact form only), no payment for herbs and flowers, a paid crop never falling ill, 200 coins to remove a grown tree or fruit tree, their talk (Fayeth's and Treznor's pages), Farming Supplies' stock and prices; the leprechaun noting grown items and his refusals | OSRS Wiki, Farming, Allotment/Hops/Bush/Tree/Fruit tree patch seeds, Transcript:Fayeth, Transcript:Treznor, Farming Supplies, Tool Leprechaun, Transcript:Tool Leprechaun; cache 242, inv farmer_supplies (894) |
+| Every gardener saying Fayeth's words; the hops and bush gardeners' line for an empty patch and every payment's name but the trees'; their lines for a grown crop that can't be chopped, poison ivy and an item that makes no compost; the patch left raked after a tree is removed; unnoted payment taken first; advice going back to the menu; Farming Supplies' 1000 stock for the Wiki's infinite; the leprechaun noting every one of the item at once | guessed |
+| The tool store's capacities, its varbits and how counts are split over them, its menus and the default quantity's order, Banknotes taking items out noted | OSRS Wiki, Tool Leprechaun; cache 242, enums 136 and 2193, client scripts farming_tools_getstored, farming_tools_getcarried, farming_tools_main_update and farming_tools_side_update (Joshua-F osrs-dumps) |
+| Banknotes taking the default quantity; unnoted items stored before noted ones; secateurs and magic secateurs never stored together; Remove-X asking every time; a store or withdrawal moving what fits; every tool store message | guessed |
+| Not built yet: the scarecrow, digging up a healthy crop, Aldarin's hops and the Farming Guild's bush, the other compost bins (they come with their allotments) and the Big Compost Bin, the filled bottomless bucket (no bottomless bucket yet), the gardeners outside Misthalin (none is placed); Guide (op4) | next steps |
+
+`::scenario farming` stands you beside the Falador allotments with 99 Farming, the tools, 30 of every allotment
+seed and some herb and flower seeds (the rest in the bank, with a trowel, secateurs, a rune axe, plant pots, tree seeds
+and oak saplings for the tree patches, fruit tree seeds and apple saplings for the fruit tree patches, hops and bush
+seeds for the hops and bush patches, empty buckets, volcanic ash and a compost potion for the compost bin). `::farmtick [n]` moves your own farming clock on n five-minute ticks and grows your patches to it.
+
+Check: `./gradlew test --tests 'osrsps.game.skill.farming.*' --tests 'osrsps.testclient.HeadlessFarmingTest' --tests 'osrsps.testclient.HeadlessFarmingTreeTest' --tests 'osrsps.testclient.HeadlessFarmingFruitTreeTest' --tests 'osrsps.testclient.HeadlessFarmingHopsBushTest' --tests 'osrsps.testclient.HeadlessFarmingCompostBinTest' --tests 'osrsps.testclient.HeadlessFarmingGardenersTest' --tests 'osrsps.testclient.HeadlessFarmingToolStoreTest'`.
+
+### Runecraft
+
+Runecraft step RC1 (`game/skill/Runecraft.kt`): the mysterious ruins, talismans, tiaras and the altars' exit portals.
+The ruins, altars and portals are the cache's, where the 242 map puts them; only their options are new. The
+`runecraft` scenario starts beside the Water Altar's ruins with every talisman.
+
+| What | Source |
+|---|---|
+| The 13 ruins (air, mind, water, earth, fire, body, cosmic, law, nature, chaos, death, wrath, true blood): their talisman, or the elemental talisman (air, water, earth, fire) or catalytic talisman (the rest), used on them sends the player inside. Each is a multiloc that shows Enter when its `rc_no_tally_required_*` varbit is set, which the server sets while the player wears the altar's tiara, the elemental or catalytic tiara, or the Runecraft cape | OSRS Wiki, Mysterious ruins, Runic altar, Tiara, Elemental talisman, Catalytic talisman; ids and varbits from the 242 cache |
+| Each altar's exit portal puts the player back beside its ruins | OSRS Wiki, Portal (Runecrafting) |
+| Locate on a talisman: which of eight ways its ruins lie; the elemental talisman picks the nearest of its four ruins and can't tell when two are equally near; the catalytic talisman's does nothing; inside its own temple it says so, and underground (or in another temple) it doesn't work | OSRS Wiki, Talisman, Elemental talisman, Catalytic talisman; the Words thread's RS2-era source for the temple and underground lines |
+| Ruins outside Misthalin, by `::tele`: air 2985 3289, mind 2982 3511, body 3053 3442, cosmic (Zanaris) 2407 4374, law (Entrana) 2858 3378, nature 2869 3016, chaos (Wilderness) 3060 3588, death 1860 4636, wrath 2446 2822, true blood 3561 9778. In Misthalin: water 3185 3162, earth 3306 3471, fire 3312 3252 | the 242 map |
+| The tile inside each altar (beside its exit portal, toward the altar; one of four for the cosmic altar and one of two for the true blood altar, at random; the chaos altar's maze from its top floor) and outside (beside the ruins' south side); Locate's eight 45-degree slices | inferred from the 242 map |
+| The send as soon as the player is at the ruins, with no animation; the wrong talisman, or Enter without a tiara, does nothing interesting | guessed |
+| Not built: crafting runes (RC2), combination runes (RC3), essence pouches (RC4), the Arceuus Blood and Soul altars (RC5), the Ourania altar (RC6); the Abyss, Guardians of the Rift and its Hat of the Eye; Entrana's no-weapons rule | next steps |
+
+Check: `./gradlew test --tests 'osrsps.game.skill.RunecraftTest' --tests 'osrsps.testclient.HeadlessRunecraftRuinsTest'`.
+
+### Slayer
+
+The task engine (`game/skill/Slayer.kt`, words under `slayer.*`). Every task, every master's list with its weights,
+amounts and level gates, and the rewards are read from the cache's own Slayer tables (`cache/SlayerLoader.kt`: db
+tables slayer_task 113, slayer_master_task 114 and slayer_unlock 117), so they stay live's. A task lives in live's vars:
+varp slayer_target holds the task, slayer_count how many are left, and varbits slayer_master, slayer_points and
+slayer_tasks_completed (the streak) the rest, so a save keeps them and the client's helpers read them.
+
+A monster counts for a task when its type's param 50 names it (cows carry 6, the cows task). Each kill on task gives
+Slayer XP for the monster's hitpoints with its XP bonus, and the last one completes the task: the streak goes up and,
+from the fifth task, the master pays points, five times as many every 10th task, 15 every 50th, 25 every 100th, 35
+every 250th and 50 every 1,000th. The enchanted gem's Check tells the task, how many are left and the streak.
+
+Masters (`game/content/SlayerMasters.kt`): Aya in Burthorpe (`::tele 2931 3536`; with every quest done she holds
+Turael's place, as since While Guthix Sleeps), Spria in Draynor Village and Vannaka in Edgeville Dungeon; built in place
+outside Misthalin, Mazchna in Canifis (`::tele 3511 3509`), Chaeldar in Zanaris (`::tele 2444 4431`), Steve at the
+Stronghold Slayer Cave (`::tele 2432 3423`, Nieve's place since Monkey Madness II) and Kuradal in Shilo Village
+(`::tele 2869 2982 1`, Duradel's place). Talk-to and Assignment follow the Wiki's transcripts. A master draws a task by the cache's weights over what the player may be given
+(combat level unless they've asked the masters to stop checking it, base levels, rewards bought or blocking) and an
+amount from the entry's range, or an extend's once bought. Below a master's combat level (Vannaka 40) they turn the
+player away; with a task the player is no longer fit for (its combat level while checked, or its stat levels) they
+offer to cancel it, keeping the streaks; with another task they say what is left. Aya, Spria and Mazchna suggest a
+higher master to a strong player first; every master but Aya, Spria and Steve offers the task's tip. Aya swaps another master's task that isn't on her list for one of hers, resetting the
+streak, but never Spria's (OSRS Wiki, Spria: her tasks can't be skipped through Turael).
+
+The rewards screen (`game/content/SlayerRewards.kt`, interface 426), opened by a master's Rewards option or "Look at
+rewards". The client draws it from the cache's slayer_unlock table and the unlock varps and sends only what its confirm
+box confirms, as an op on confirm_button's child: an unlock's bit buys it for its cost (a refundable one turns off again,
+no points back), 75 buys every extend not yet bought, 67 cancels the task for 30 points, 68 blocks it at the master's own
+cost, and 69 to 74 and 78 empty a block slot. Each master keeps their own block list (Aya and Spria share Turael's), one
+slot for every 50 quest points up to six, and never gives a task they have blocked.
+
+The Slayer Equipment shop (`shops.json`, key `slayer_equipment`) opens from every master's Trade and Talk-to's "Look at
+shop", with the Wiki's stock, sell and buy percentages. The rewards screen's Buy tab sells enum_840's six items for
+points at enum_842's costs (the slayer ring 75, 250 broad bolts or arrows 35, the herb sack and rune pouch 750, the
+looting bag 10): ops 2 to 5 buy 1, 5, 10 or 50 (sets), the last three items only one at a time.
+
+A black mask or Slayer helmet worn on task (`combat/SlayerHelm.kt`) makes melee 7/6 as accurate and hard hitting against
+the task's monster; the imbued ones (named "(i)") make ranged and magic 15% more of both too. Every charge of the mask
+and every recolour of the helmet is known by its cache name.
+
+Superior Slayer monsters (`game/skill/SlayerSuperiors.kt`, words under `slayer_superior.*`): with Bigger and Badder
+bought and on, a kill on task (finishing it or having dealt the most damage) has a 1 in 200 chance of putting its
+superior out where it died, for that player alone; another player's attack is refused. Its kill gives its own Slayer
+XP, task or not, and its normal counterpart's table three times, one roll of which may be a superior unique (imbued
+heart, dust or mist battlestaff, eternal gem). It goes 2 minutes on if never attacked, or at the next 30-second check
+once its player has died, logged out or left. Built: the chasm crawler (cave crawlers) and the giant rockslug
+(rockslugs, 2 flat armour). `::slayer superior` puts the task's superior out at once, for tests.
+
+The Slayer helmet (`game/skill/SlayerHelmets.kt`, words under `slayer_helmet.*`): with Malevolent Masquerade bought
+and 55 Crafting (boosts count, no XP), any part used on another while all seven are carried makes it: a black mask (its
+charges lost), earmuffs, a facemask, a nose peg, a spiny helmet, an enchanted gem and reinforced goggles. A black mask
+(i) makes the Slayer helmet (i) of its own kind. Disassemble gives the parts back with an uncharged mask, and Check,
+held or worn, is the gem's.
+
+| Slayer behaviour | Source |
+|------------------|--------|
+| Tasks, masters' weights and amounts, combat and Slayer level gates, rewards' bits and costs | cache 242, db tables 113, 114, 117 (column order from osrs-dumps' dump.dbtable) |
+| The task vars (varps 394 and 395, varbits 4067 to 4069); param 50 as the monster's task | cache 242, osrs-dumps' names |
+| Slayer XP = hitpoints times the XP bonus; points by master and streak, none before the fifth task | OSRS Wiki, Slayer and Slayer reward point (read 2026-11-15) |
+| Konar's 18 and Steve's 12 points, without the Elite diaries | no diaries are built |
+| Another player who dealt the most damage sharing the XP half and half with the finisher, each rounded down to a tenth | OSRS Wiki, Slayer/Experience table |
+| The kill counting toward both their tasks, once for one player who did both | Jagex, Update:Creature of Fenkenstrain |
+| A tie for the most damage going to whoever dealt it first | guessed |
+| A streak past 16,383 going back 1,000 so the milestones keep coming | OSRS Wiki, Update: Theatre of Blood: Entry Mode Improvements (the bonuses keep coming); how it is stored guessed |
+| The points stopping at their varbit's top; the task var cleared when a task is done | guessed |
+| The draw: weight over the eligible weights; base levels; the combat check (varbit combat_level_reqs_disabled) | OSRS Wiki, Slayer task (Task weighting) |
+| Masters' combat and Slayer levels; Aya, Kuradal and Steve holding Turael's, Duradel's and Nieve's places | OSRS Wiki, Slayer Master, Aya, Kuradal, Steve |
+| Aya's, Spria's and Vannaka's talk, the strong-player bands (Mazchna 20, Vannaka 40, Chaeldar 70), Aya's swap resetting the streak | the Wiki's transcripts (Aya's bands inferred from Spria's) |
+| Mazchna's, Chaeldar's, Steve's and Kuradal's talk; the cancel offer for a task the player is no longer fit for | the Wiki's transcripts |
+| Mazchna suggesting Chaeldar from combat 70; the cancel offer coming before Aya's swap | guessed |
+| Aya's and Spria's tiles; Mazchna's, Chaeldar's, Steve's and Kuradal's (listed under older types: Steve's tile as Nieve's 490, Kuradal's as Duradel's 405) | mejrs NPCList_OSRS (live), the Wiki's map pins |
+| A weak player turned away, a master with nothing to give, what follows Aya's "Yes, please"; chathead expressions | guessed, words unsourced |
+| The amount even across the range | inferred |
+| The rewards screen's confirm children (bits, 67, 68, 75, 66 + 3 to 8 and 12), cancel 30 points, block costs by master (40 Aya/Spria, 50 Mazchna, 60 Vannaka, 70 Chaeldar, 80 Konar, 90 Steve, 100 Kuradal and Krystilia) | the 242 client's scripts (osrs-dumps): slayer_rewards_unlock_confirm, slayer_rewards_tasks_canceltask, scripts 823 and 9741 |
+| Per-master block lists, Aya and Spria sharing Turael's; one block slot for every 50 quest points | OSRS Wiki, Slayer Rewards (2025 changelog) |
+| Block slot varbits slayer_blocked_<master>_1 to _6 (17812 on), slayer_master_in_focus (17868); the Rewards tab's task in varps if1 to if3 | cache 242, osrs-dumps' names; the task copied there inferred |
+| "Extend everything" costing the extends not yet bought; the refusals as game messages, their words | inferred; guessed |
+| The Slayer Equipment shop's stock, counts, restock times, 100% sell, 60% buy, 0.1% change | OSRS Wiki, Slayer Equipment (read 2026-11-15); inv slayershop 231 from the cache |
+| The Buy tab's items, costs, set sizes and ops (one at a time for the herb sack, rune pouch and looting bag) | the 242 client's script slayer_rewards_buy_draw and enums 840 to 842 (osrs-dumps) |
+| The black mask's and Slayer helmet's 7/6 melee and the imbued ones' 15% ranged and magic, on task only | OSRS Wiki, Black mask and Slayer helmet (Mod Ash's "7/6") |
+| Rounding down after each multiply; the ranged 15% before the twisted bow's scaling; the magic 15% before an elemental weakness, which adds its share unmasked (the Wiki's DPS calculator) | inferred |
+| Superiors: the 1/200 chance with Bigger and Badder (bit 35), on task and for the finisher or top damager; one at a time, theirs alone, the two messages; their own XP off task too; three rolls on the normal table with its tertiary drops, one maybe a unique at 1/(200 - (level + 55)² / 125) per table, either table as likely; its player switching to it in single-way combat, the other monster giving up; 2 minutes ignored, 30-second checks once gone; the chasm crawler's and giant rockslug's stats, XP and flat armour | OSRS Wiki, Superior slayer monster, Chasm Crawler, Giant rockslug (read 2026-11-15); Mod Ash on the despawn |
+| A superior's kill counting one off the task; "left" as another level or 32 tiles away; it stands still; the normal monsters' animations | guessed |
+| The Slayer helmet: Malevolent Masquerade, 55 Crafting boostable with no XP, the seven parts (the goggles needed as A Porcine of Interest counts as done), any part on another, a charged mask's charges lost, a black mask (i) making the helmet (i) of its kind and coming back from it, Disassemble returning the parts, Check as the gem's | OSRS Wiki, Slayer helmet, Slayer helmet (i) (read 2026-11-15); 242 cache (the helmets' options and worn Check) |
+| The helmet taking the used mask's slot; Disassemble needing six free slots; a plain mask chosen before an imbued one when both are carried; all six messages (none quoted on the Wiki, so their words stay empty) | guessed |
+| A Buy taking as many as the points and inventory allow, refusing only when not one fits; its refusals' words | guessed |
+| Every message's words | unsourced: the Words thread fills them |
+| Not built yet: Konar and her places, the salve amulet not stacking with the mask (no salve amulet yet), the recoloured Slayer helmets and the helmet's Partner and Log, the slayer ring's teleports, Task Storage, the diary's seventh block slot, the superiors of Slayer monsters not in yet, boss tasks, Krystilia (the Wilderness), Aya's blessed axe talk, Kuradal's Slayer cape sale and talk about Duradel, the Slayer cape overlooking a master's combat level | |
+
 ## Items and inventory
 
 Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for
@@ -1034,6 +1283,85 @@ and account modes, Bob's Repair.
 
 Check: `test-runner/examples/lumbridge-talk-*.json` talk to each of them through every option with `::keys on`, so
 the dialogue shows each line's key.
+
+### Hunter
+
+Hunter steps 1 to 7 (`game/skill/hunter/`, `npc-spawns/hunter-birds.json`, `hunter-box-traps.json`,
+`hunter-net-traps.json`, `hunter-deadfalls.json`, `hunter-pitfalls.json` and `hunter-butterflies.json`, `hunter-falconry.json`, `skills/hunter-implings.json`, `::scenario hunter`):
+the trap engine, bird snares, box traps, net traps, deadfalls, pitfalls, butterflies and moths, implings, and falconry. Lay (from the backpack, or on a snare on the ground) drops the snare and puts the trap up on the skill clock's
+fourth tick, the player stepping off it; a set trap looks for a creature within 2 tiles every 3 ticks (none while a
+player stands on it), the creature walks in, and the catch is rolled at the owner's boosted Hunter level, a miss
+every time below the creature's level. A caught bird struggles, then the snare holds it until Check (its drops, XP
+and the snare back, 3 ticks); a miss snaps the snare shut until Dismantle or Reset (which lays it again in place). A
+trap stands a minute, counted again from a catch or a miss, then collapses, leaving its snare on its tile, as it does
+at once when its owner logs out or goes far away. Only the owner can take a trap down. Two traps from level 1, three
+at 40, four at 60, five at 80. No trap goes down in an instance, or on a tile already full of objs. While a Reset
+waits, the snare lies on its tile, so a death then loses nothing. `test-runner/examples/hunter-bird-snare.json` lays,
+catches, checks, fails, resets and dismantles a snare at Feldip with `::keys on`.
+
+A net trap is set on a young tree (Set-trap, with a net trap in the backpack and the salamander's Hunter level) from a
+tile square to one of its sides: the tree bends, then stands bent over the net, which lies on the player's tile; the
+creature has to step onto the net. A catch or a miss shows one 1 by 2 net over the tree and the net; Check gives the
+salamander and puts the tree back as the cache has it; a miss lets the tree spring up beside the fallen net, both
+with Dismantle and Reset.
+
+A deadfall is set on a boulder (Set-trap, with a knife or fletching knife and logs, the log kept three times in four),
+two at most. It looks for a kebbit from 8 ticks after it stands, whoever stands by it; a kebbit reaching either long
+side of the boulder is caught under it, and Check gives its drops and the boulder back. A miss drops the boulder on
+nothing and the trap is over. `hunter-net-trap.json` and `hunter-deadfall.json` in `test-runner/examples/` catch a
+swamp lizard and a barb-tailed kebbit.
+
+A pitfall is one of the map's pits, each a 2 by 2 multiloc on a varbit of its own, so every player sees only their
+own: Trap (the creature's level, a knife and logs, the lowest logs first) makes a spiked pit, counted with the other
+traps. Tease on a big cat or an antelope (a teasing stick in the backpack, or a hunter's spear wielded) has it chase
+the player and hit them every 4 ticks; Jump on the spiked pit takes the player over it, and the creature, reaching the
+far edge, falls in (a roll for the big cats, the spear adding 5 in 100; antelopes always) or leaps over, after which it
+won't be caught in that pit next. Dismantle on the full pit gives big bones, the meat and the fur (or the tatty fur) and
+the XP; on a spiked pit it gives nothing back. Pits go when their owner logs out or goes far away, a full one after a
+minute. `hunter-pitfall.json` in `test-runner/examples/` catches a spined larupia.
+
+Butterflies and moths are caught with Catch, wielding an insect net or magic insect net, or barehanded (nothing
+wielded) 10 levels over the requirement. With a butterfly jar in the backpack the jar becomes the jarred butterfly;
+without one it goes at once and its effect applies. Release on a jarred one applies the effect (sharing the potions'
+3-tick delay) and leaves the jar. `hunter-butterfly.json` catches and releases a ruby harvest.
+
+Implings are caught the same way (Catch with a net, or barehanded 10 levels over). With an impling jar in the backpack
+the jar becomes the jarred impling; without one its loot comes at once. Loot on a jarred impling rolls its table
+(`skills/hunter-implings.json`, read by the drop loader) and gives the empty jar back 9 times in 10. Every 30 minutes
+the implings out go and new spawners are rolled (4 high tier, 5 to 10 mid, twice that low, one at each low-tier point
+and one crystal impling in Prifddinas); each shows its impling 2 minutes later and starts over when it is caught.
+`hunter-impling.json` catches a baby impling put down with `::npc ii_impling_type_1` and loots the jar.
+
+Falconry, in the Piscatoris falconry area (`::tele 2377 3600`): Matthias (Talk-to, as the Wiki's transcript, or
+Quick-falcon) rents a gyr falcon on the falconer's glove for 500 coins at 43 Hunter, moving what is worn in the weapon
+and shield slots to the backpack; the glove won't come off or be worn over until he takes it back, and leaving the
+area with it sends the falcon home. Catch on a kebbit sends the falcon; on reaching it the catch is rolled, and a
+caught kebbit leaves the falcon on its tile for Retrieve (the XP, bones, fur, and a dashing kebbit's meat; what doesn't
+fit is discarded). Left too long, the falcon flies off and Matthias fetches it. `hunter-falconry.json` catches a
+spotted kebbit.
+
+| What | Source |
+|---|---|
+| The birds: crimson swift (1, 34 XP), golden warbler (5, 47), copper longtail (9, 61.2), cerulean twitch (11, 64.5), tropical wagtail (19, 95.2); bones, raw bird meat and 5 to 10 feathers of the bird's colour; each one's catch pair (crimson swift 39% at 1 to 164% at 99) | OSRS Wiki, Bird snare and each bird's page (the Skilling success chart, Mod Ash's figures) |
+| Box traps: ferret (27, 115.2 XP, the ferret), chinchompa (53, 198.4, the chinchompa), carnivorous chinchompa (63, 265, the red chinchompa); the chinchompas' catch chances (Mod Ash: greys 6 to 268 out of 255, reds -78 to 228); laying with the tinderbox's animation | OSRS Wiki, Box trap, Ferret (Hunter), Chinchompa (Hunter), Carnivorous chinchompa |
+| Where they are: Piscatoris (ferrets `::tele 2313 3510`, chinchompas `::tele 2340 3595`), Feldip (carnivorous chinchompas `::tele 2556 2925`, and the red chinchompa hunting ground under it, `::tele 2520 9296`) | mejrs NPCList_OSRS.json (live, pre-Nov 2022) |
+| Net traps: swamp lizard (29, 152 XP), orange salamander (47, 224), red salamander (59, 272), each giving itself; their catch pairs (Mod Ash: green 20% to 141%, orange 6% to 113%, red 0% to 94%); a creature passing the net may be caught, never with the player on it; the tree springing back on a miss with the net left to Reset or Dismantle | OSRS Wiki, Net trap, Young tree, each creature's (Hunter) page |
+| Where they are: Canifis (`::tele 3549 3443`) and north-west of Slepe, Uzer (`::tele 3410 3085`), the Necropolis and the Abalone Cliffs (orange), Ourania (`::tele 2451 3227`) and Charred Island (red) | each creature's OSRS Wiki page (location table) |
+| The net on the player's tile, turned to the tree; the 1 by 2 locs starting on the tree's tile when the net is north or east of it, on the net's when south or west | RuneLite's Hunter plugin (net trap placement) and the cache's loc sizes |
+| Deadfalls: wild kebbit (23, 102.4 XP, bones and kebbit claws), barb-tailed (33, 134.4, bones, barb-tail harpoon, raw barb-tailed kebbit), prickly (37, 147.2, bones and kebbit spike), sabre-toothed (51, 160, bones and kebbit teeth); the barb-tailed and sabre-toothed catch pairs; knife and logs (not redwood or arctic pine), two at most, the log kept 3 times in 4, catching from 8 ticks after laying, standing by it not mattering | OSRS Wiki, Deadfall, each kebbit's page, Update:Summer Sweep Up - Hunter & Skilling (19 August 2026) |
+| Where the kebbits are: Piscatoris (wild `::tele 2307 3578`, prickly `::tele 2307 3607`) and Auburnvale (wild), Feldip (barb-tailed `::tele 2573 2899`), Rellekka (sabre-toothed `::tele 2711 3775`) | each kebbit's OSRS Wiki page (location table) |
+| Pitfalls: spined larupia (31, 180 XP), horned graahk (41, 240), sabre-toothed kyatt (55, 300), sunlight antelope (72, 380, also its antler, fur and 2 to 6 sunfire splinters), moonlight antelope (91, 450, its antler and fur); big bones and the meat; max hits 5, 7, 7, 5, 5 every 4 ticks; antelopes always caught; a creature that misses leaps over and won't take the same pit next; the spear's 5% | OSRS Wiki, Pitfall, each creature's page, Hunter's spear |
+| Where they are: Feldip (larupias `::tele 2548 2906`), Karamja (graahks `::tele 2768 3007`), Rellekka (kyatts `::tele 2703 3790`), the Avium Savannah (sunlight antelopes `::tele 1746 3008`), the Burrow (moonlight antelopes `::tele 1559 9419`) | each creature's OSRS Wiki page (location table); the pits from the rev 242 map |
+| Butterflies and moths: ruby harvest (15, 24 XP, Attack), sapphire glacialis (25, 34, Defence), snowy knight (35, 44, 15 hitpoints), black warlock (45, 54, Strength), sunlight moth (65, 74, 20% + 6 of lowered stats and 8 hitpoints), moonlight moth (75, 84, 22 prayer); boosts 15% + 4; barehanded at 10 over; the black warlock's and moths' catch pairs; Release leaving the jar; where they live (`::tele 2316 3605`, `2703 3822`, `2701 3804`, `2563 2920`, `1568 2995`, `1554 9433`) | OSRS Wiki, Butterfly (Hunter), each creature's page and its jarred item's page |
+| Implings: baby (17, 20 XP), young (22, 22), gourmet (28, 24), earth (36, 27), essence (42, 29), eclectic (50, 32), nature (58, 36), magpie (65, 216), ninja (74, 240), crystal (80, 280), dragon (83, 300); their catch pairs; each jar's loot table, the gourmet's grubby key pre-roll and the crystal's elven signet; the jar breaking 1 time in 10; the spawn tiers, cycle, 2 minutes unseen, 100-tile roam and the points | OSRS Wiki, Impling, each impling's page and its jar's page (Mod Ash for the jar) |
+| Falconry: spotted (43, 104 XP, its fur), dark (57, 132, its fur), dashing (69, 156, its fur and meat) kebbits, each with bones; their catch pairs; the 500 coin rent, the glove's rules, the 19 August 2026 changes; Matthias's talk; the kebbits' spawns | OSRS Wiki, Falconry, Falconer's glove, each kebbit's page, Transcript:Matthias |
+| The trap count, and Reset and the failed snare (since 7 October 2026) | OSRS Wiki, Hunter (Multiple traps, Changes) |
+| A trap looks every 3 ticks within 2 tiles, nothing while a player stands on it; a creature above the player's level always gets away | OSRS Wiki, Box trap (Mechanics, Mod Ash) |
+| Laying takes 4 ticks of the skill clock; picking a trap up takes 3 ticks and stalls the player | OSRS Wiki, Tick manipulation |
+| A trap stands a minute, counted again when it catches or fails | RuneLite's Hunter plugin (HunterTrap.TRAP_TIME, observed on live) |
+| Where the birds are: Feldip (crimson swifts and wagtails, `::tele 2611 2918`, `::tele 2512 2905`), Uzer (warblers, `::tele 3402 3150`), Piscatoris (longtails, `::tele 2340 3590`), Rellekka (twitches, `::tele 2725 3770`) | mejrs NPCList_OSRS.json (live, pre-Nov 2022) |
+| The creature lured is one in range at random, always; it is rolled for on stepping onto the trap; the struggle (2 ticks), the respawn (10 ticks), the collapse leaving the item, how far the owner may go (32 tiles), the birds' wander (4), the check and dismantle animation, traps allowed on any free walkable tile outside instances; the ferret's catch chance (the grey chinchompa's); a box trap's struggling loc by the side the creature came in from; Set-trap needing the salamander's level, standing square to the tree, the tree bending for the 4 ticks of laying; the wild and prickly kebbits' catch pairs (their pages' figures from before the 19 August 2026 rise), a kebbit caught on reaching either long side of the boulder, laying a deadfall with human_laytrap in 4 ticks, Dismantle giving nothing back; the big cats' catch pair (128 to 256), the undamaged fur's chance (half at the creature's level to always at 99), teasing needing the level, a teased creature's hit (0 to its max, no accuracy roll, none through Protect from Melee), how long it chases (100 ticks without a tease or jump, 32 tiles), when it is judged (reaching the far edge within 10 ticks of the jump), which full look shows, trapping a pit in 4 ticks with the log always used, a spiked pit lasting till its owner leaves, the jump's animation and 2 ticks; the ruby harvest, sapphire glacialis and snowy knight pairs (caught as often at their level as a black warlock at 45), barehanded meaning nothing wielded and its animation, a catch judged the tick after the swing, the butterflies' respawn (10 ticks), every release sharing the potions' delay; an impling's spawner standing unseen rather than roaming, the first cycle at boot, a caught impling's spawner rolling its own tier again, which crystal impling name shows, Loot needing a free slot, loot that doesn't fit going on the ground; the falcon's flight (a tile in three ticks) and its wait on the prey (50 ticks), the falconry kebbits' respawn (10 ticks) and wander, the falconry area as its fence's bounding box, Quick-falcon renting at once and handing the glove back | guessed |
+| Not built: black chinchompas and black salamanders (the Wilderness), embertailed jerboas, letvek and tecu salamanders (Varlamore), salamanders as weapons, Release, making a net trap, pyre foxes and maniacal monkeys, the wild broav, hunter gear's damage cut, hunter's mixes, jarred butterflies on other players, Puro-Puro and the lucky impling, clue scrolls from implings, the impling tracker, investing in Matthias's falcons and the falconry stile, tracking, the Hunter shops, smoking and baiting traps, the honey buzzards, Hunters' Rumours | next steps |
 
 ## Fred's farm
 
@@ -1317,7 +1645,7 @@ each colour at 1/10 each, the H.A.M. coin pouch, or the rest of the Wiki's table
 #### Farms and roads between the towns
 
 Misthalin piece 7 step 5 (`game/content/FarmsRoads.kt`, `npc-spawns/misthalin-farms-roads.json`, words under
-`farms_roads.*`, `gardener.*`, `tool_leprechaun.*`, `tarquin.*`, `rat_burgiss.*` and `seth_groats.*`): the NPCs live has
+`gardener.*`, `tool_leprechaun.*`, `tarquin.*`, `rat_burgiss.*` and `seth_groats.*`): the NPCs live has
 between Lumbridge, Draynor and Varrock that no other file spawned. The cow fields north-west of Lumbridge and north of
 Fred's farm (53 cows, 16 calves), 41 ducks and drakes swimming on the River Lum north of them, 19 chickens south of the
 Champions' Guild and north of Groats' farm, 53 level 2 goblins in the fields between Lumbridge and Draynor and a giant
@@ -1325,10 +1653,9 @@ spider, two Farmers tending the fields, the Master Farmer south of Varrock (pick
 two swans, three imps, and the sheep pen south of Varrock (10 sheep to shear, 3 rams). On the Lumbridge to Varrock road:
 Rat Burgiss, two unicorns, a black bear (level 19, which fights and drops as the Wiki has it) and a level 5 goblin.
 
-The patch gardeners Dreven, Vasquen, Fayeth and Treznor show their four options; looking after crops, advice, the
-Farming Supplies shop, Pay and Trade wait for the Farming skill thread and say so. A Tool Leprechaun by each of their
-patches and by Draynor Manor's belladonna patch answers what he stores and where it goes, and asks again; his store,
-Exchange and Deposit-all wait for Farming too. Tarquin at the Champions' Guild's canoe station talks about canoes by
+The patch gardeners Dreven, Vasquen, Fayeth and Treznor are placed here; what they do is Farming's (see Farming). A Tool
+Leprechaun by each of their patches and by Draynor Manor's belladonna patch answers what he stores and where it goes,
+and asks again; "Yes please.", his store, Exchange and Deposit-all are Farming's too. Tarquin at the Champions' Guild's canoe station talks about canoes by
 Woodcutting level, as Barfy Bill does; his Store-axe and the canoes wait for step 11. Rat Burgiss is too busy to chat and
 Seth Groats is off to milk his cows.
 
@@ -1341,8 +1668,8 @@ Seth Groats is off to milk his cows.
 | Tarquin's talk and its Woodcutting bands | OSRS Wiki, Transcript:Tarquin, read 2026-11-10 |
 | Rat Burgiss's and Seth Groats's lines | OSRS Wiki, Transcript:Rat Burgiss (its members' version) and Transcript:Seth Groats, read 2026-11-10 |
 | The black bear: speed 4, max hit 3, slash, no bonuses, respawn 50, weak to fire 30%, not aggressive; bones, bear fur, raw bear meat, the ensouled head and the beginner clue | OSRS Wiki, Black bear, read 2026-11-10 |
-| Every wander range, the chathead expressions, the player repeating a gardener's option, the Farming refusal's words | guessed |
-| Out: the Evil Chicken (a random event); the gardeners' payments and shop and the leprechauns' store (the Farming skill thread); canoes (step 11); stray sightings near Lumbridge and Varrock (a dwarf, a H.A.M. Member, Ali the Leaflet Dropper, Avan, Katrine, Sarah, Julie, Guidor: the 12a sweep) | out of scope |
+| Every wander range, the chathead expressions, the player repeating a gardener's option | guessed |
+| Out: the Evil Chicken (a random event); canoes (step 11); stray sightings near Lumbridge and Varrock (a dwarf, a H.A.M. Member, Ali the Leaflet Dropper, Avan, Katrine, Sarah, Julie, Guidor: the 12a sweep) | out of scope |
 
 #### The Lumber Yard and Tolna's rift
 
@@ -1730,7 +2057,7 @@ The Misthalin roadmap's Edgeville and Barbarian Village piece, built a step at a
 | Search on a haystack or hay bales (`haystack`, `haystack2`, `haystack3`, `haybail`: 298 to 300 and 304), here and on the farms north of Lumbridge: a needle 10% of the time, a prick for 1 hitpoint 2% of the time, else nothing | OSRS Wiki, Haystack (it names haystacks; the hay bales sharing it is inferred); one roll for all three, prick first, no needle with a full backpack, no animation: guessed |
 | The mausoleum's coffins (`coffin` 398) open into `coffin_open` (3577, Close only) and close again; the east house's wardrobes (`spookywardrobe` 388/389) open, are empty and shut | 241 cache; opening and shutting as other furniture does (`Searching`) |
 | A pair of leather gloves south of the bank and an iron mace in the jail, back 100 ticks after taking | the Wiki's Edgeville spawn list; tiles from 2004Scape's map m48_54; respawn guessed |
-| Cross on the Wilderness Ditch (`ditch_wilderness_cover` 23271, along the whole southern border) refuses with a message of our own: the Wilderness isn't built | ours, as Shantay Pass refuses the desert |
+| Cross on the Wilderness Ditch (`ditch_wilderness_cover` 23271) jumps it: see Wilderness | see Wilderness |
 | Evil Dave's and the other houses' doors, Doris's yard gate, the grange's ladders, crates and boxes, the bookcases | the engine's doors by name, `Gates`, and the castle's and Draynor's types |
 | Wander ranges (3 indoors in the grange, 5 outside) | guessed |
 
@@ -1773,9 +2100,10 @@ Step 3a is the town's people and the places not built yet, `game/content/Edgevil
 | 18 hell-rats and four Hell-Rat Behemoths in the basement, with no options (they wait for cats) | mejrs's NPC list for the tiles; 241 cache (no ops); the Wiki's Basement of Doom page (four behemoths) |
 | Hari (`canoeing_hari` 1325) by the canoe station: who he is, and canoes by the Woodcutting level (Barfy Bill's bands) | OSRS Wiki, Transcript:Hari |
 | Lucien (`ikov_lucien2` 13644, a multi-NPC on varbit 10753 `ikov_lucien_vis`) in the house east of the willows, Talk-to only, as after Temple of Ikov on his side; a new Pendant of Lucien (86) if the player owns none | OSRS Wiki, Transcript:Lucien; that 1 means "after the quest, his side" is inferred, and the side is our pick |
-| Refusals, in our own words: the Wilderness lever (26761), the fairy ring (29495, all four options), the Soul Wars portal (40474), Death's Domain (39547) and the canoe station (12166) | ours: none of those places is built yet |
+| Refusals, in our own words: the Wilderness lever (26761), the fairy ring (29495, all four options), the Soul Wars portal (40474) and Death's Domain (39547) | ours: none of those places is built yet |
 
-The words are in the dialogue file (keys `doris.*`, `evil_dave.*`, `hari.*`, `lucien.*`, `edgeville_closed.*`). Check:
+The words are in the dialogue file (keys `doris.*`, `evil_dave.*`, `hari.*`, `lucien.*`, `edgeville_closed.*`). The
+canoe station is `Canoes.kt`'s (Gathering 2). Check:
 `test-runner/examples/edgeville-people.json` talks to Doris, opens, shuts and goes down the trapdoor, talks to Evil
 Dave, climbs the stairs, talks to Lucien and Hari, and tries each refused place; `EdgevillePeopleTest` does each talk's
 branches and `HeadlessEdgevillePeopleTest` the trapdoor, stairs, refusals, Doris and Lucien through the headless client.
@@ -2010,6 +2338,40 @@ Step 14b is the skull sceptre and Solztun, in `game/content/SkullSceptre.kt`.
 
 Check: `test-runner/examples/skull-sceptre.json` and `HeadlessSkullSceptreTest`.
 
+## Wilderness
+
+The Wilderness is built one step at a time from the plan agreed on 9 November 2026 (Wilderness roadmap). Step W1.1 opens
+the ditch: nothing north of it is spawned yet, and players can't fight each other yet (W1.2 on).
+
+| Behaviour | Source |
+|-----------|--------|
+| Cross on the Wilderness Ditch (`ditch_wilderness_cover` 23271) jumps the player over the piece clicked to the tile straight across, either way: every piece is 1 by 2 tiles at z 3521, so from 3520 to 3523 and back, and the short east-west run at x 2996 sideways | the 242 cache's loc type and map; the jump's animation `WILD_DITCH_JUMP` (6132) from RuneLite's gameval names; its 2 ticks and the exact move starting at client cycle 33 guessed |
+| Going north the warning screen (`wilderness_warningscreen` 475) shows first, with the message set by the server (`wilderness_ditch.warning`): Enter Wilderness jumps, Don't go doesn't, walking away or Esc closes it | the Wiki's Doomsayer page (the ditch is one of his danger signs); the 242 cache's interface and its `cws_*` client scripts; showing only on the way in guessed |
+| The screen is the Doomsayer's warning 7 (enum 688, `cws_warning_id` 14801 set to 7): `cws_warning_7` (3857) counts the times it was answered, 0 to 6, and from the seventh showing its "Don't ask me this again" toggle turns it off (7) or on again (6); off, the ditch is crossed without it | the Wiki's Doomsayer page (toggleable after the seventh time seen) and the client's `cws_set_toggle` (6 shows the toggle on, 7 off); counting on the answer rather than the opening guessed |
+| The Wilderness level is the client's own sum (proc `wilderness_level`): one level every 8 tiles from z 3520 between x 2944 and 3391, to 56 at the north edge, and the caves' band 6,400 tiles up with the client's fixed and shifted squares | the 242 client script; the Wiki's Wilderness page (level 1 at the ditch, 56 in the far north) |
+| Inside the Wilderness means a level above 0 north of the ditch (z 3523 and up on the surface): there the Wilderness overlay (`pvp_icons` 90) opens in its frame slot, showing the skull and "Level: n" (drawn by the client), and varbit `inside_wilderness` (5963, RuneLite's `Varbits.IN_WILDERNESS`) is 1; leaving closes the overlay and sets it to 0. The overlay is no longer opened at login | the client's `pvp_icons_layout` (the skull shows whenever the overlay is open, so live can't have it open in Lumbridge); where inside starts, and both changing on the step that crosses, inferred |
+| Attack (player option 2) is on other players' menus only while the player is inside the Wilderness, given and taken away on the step that crosses the edge; the client orders it by the attack priority setting | the Wiki's Wilderness page; slot 2 and no priority flag inferred (RuneLite's PLAYER_SECOND_OPTION) |
+| Players fight only past the Wilderness's first two rows (z 3523 and 3524 are safe), each by the level where they stand, and only when their combat levels differ by no more than the lower of the two levels; refused attacks say why (`pvp.not_in_wilderness`, `pvp.target_not_in_wilderness`, `pvp.level_difference` then `pvp.move_deeper`) | the Wiki's Wilderness page (the two safe steps; level 100 at 24 attacks 76 to 124); the rows, the lower level counting and the refusals' order inferred; their words held |
+| An allowed Attack starts a melee fight: the attacker walks up, faces the target and swings every weapon-speed ticks, their attack roll against the target's own defence roll (the target's Defence, prayers, stance and worn defence bonus), with XP as against a monster; the rules are asked again before every swing, so a target who leaves the Wilderness or the range is let go with the refusal | the Wiki's Combat page (a player defends with the same formula whoever attacks); asking before every swing inferred |
+| Protect from Melee on the target takes 40% off a melee hit from a player, rounded down | the Wiki's Protect from Melee page ("40% of melee damage by other players"); the rounding and the prayer being asked as the swing is rolled guessed |
+| A player's melee hit lands when the target is next processed: the same tick if the attacker comes first in the tick, else the next | the Wiki's Hit delay page (melee has none; in PvP the PID decides whether processing order adds a tick); players processed in index order rather than a shuffled PID inferred |
+| Bows, crossbows, thrown weapons and the blowpipe shoot players from their range in line of sight, using their ammunition as at a monster (some breaks, the rest falls under the target); combat spells from the spellbook are cast once on a player, with their runes, and an autocast spell fights on; the target defends with their own ranged or magic defence roll; Protect from Missiles and Protect from Magic take 40% off; a spell that misses splashes | the Wiki's Combat, Protect from Missiles and Protect from Magic pages ("40% resistance to magic attacks dealt by players"); a twisted bow scaling by the target's Magic level inferred |
+| Ranged and magic hits land after their distance's delay, the processing order adding a tick as for melee | the Wiki's Hit delay page |
+| An ice spell or a bind that hits freezes the target for its ticks unless frozen or immune; the freeze breaks once the two are more than 10 tiles apart on x or z, and 5 ticks of immunity follow; ice spells say "You have been frozen!" (`pvp.frozen`) | the Wiki's Freeze page; binds saying nothing inferred from the Wiki listing only the ice spells' message |
+| Powered staves (tridents, Tumeken's shadow) can't attack players (`pvp.powered_staff`) | the Wiki's Trident of the seas page; the refusal's words held |
+| A target with auto retaliate on and nothing else to do fights back, starting after half their weapon's speed, rounded up | the Wiki's Auto Retaliate page, as against monsters; the same for players inferred |
+| In single-way combat each attack starts both players' PJ timer, 20 ticks: while it runs nobody else can attack either of them (`pvp.target_in_combat`), they can't attack anyone else ("I'm already under attack."), and monsters leave them be; a kill starts the killer's. A player a monster hit in the last 8 ticks can't be attacked by a player, nor attack one | the Wiki's PJ timer page (20 ticks in the Wilderness, refreshed by each attack, 12 seconds for a killer; 8 ticks for monsters); judging the attacker by their tile and the target by theirs, and the monster part for players, guessed; the target refusal's words held |
+| In multi-way combat anyone can join, and Ice Burst, Ice Barrage and the other Burst and Barrage spells also hit the players on the 3x3 around their target whom the caster could attack, each rolled on its own | the Wiki's Ancient Magicks page; the order when more than nine could be hit guessed |
+| An attack on a player who didn't attack first skulls the attacker for 30 minutes (3,000 ticks, counted while logged in and saved), started again by each such attack; the skull shows over their head. Whoever was attacked may hit back without a skull for as long as that skull lasts. The PK Skull Prevention setting refuses an attack that would skull a player with none (`pvp.skull_prevented`) | the Wiki's Skull (status) page (30 minutes, retaliation unskulled, the setting); the attack list's length, every unprovoked attack restarting the timer, and the timer running only while logged in guessed; the refusal's words held |
+| A skulled player keeps none of the three items (one with Protect Item), anywhere they die; the skull goes with the death | the Wiki's Items Kept on Death page; the skull going on death guessed |
+| A player killed within a minute of a player's hit dies a PvP death: the killer is whoever dealt them the most damage (the last hitter on a tie). Their lost tradeables drop where they fell, the killer's alone for a minute and everyone's for four more; lost untradeables go to the grave at level 20 or below, and above it one that can't be worn is kept and one that can is gone. Any other death in the Wilderness is a normal one, with a grave | the Wiki's Items Kept on Death page (killer's loot, one minute then four, the level 20 split, untradeables with no combat use kept, a death with no recent player damage being a PvM one); the minute, the most damage deciding, and wearable meaning a combat use guessed. Not in: untradeables breaking or turning into coins for the killer, Trouver locks, looting bags, the Revenant Caves' rules |
+| Tele Block (level 85; 1 law, 1 chaos, 1 death; 95 XP, 84 on a splash) is cast on players only and can splash. One that lands stops every teleport for 5 minutes, 2 minutes 30 seconds if the target prays Protect from Magic as it lands, and tells them who cast it (`pvp.teleblocked`); while it lasts it can't be cast on them again (`pvp.teleblock_already`), and a teleport tried says so (`pvp.teleport_blocked`). Killing the caster ends it (`pvp.teleblock_removed`), and so do leaving the Wilderness and logging out. Varbit `teleblock_cycles` (4163, RuneLite's `Varbits.TELEBLOCK`) holds the ticks left plus 100. Every teleport (spells, tablets, Home Teleport, the lodestones, the skull sceptre) asks the same check, which also refuses above level 20 | the Wiki's Tele Block page (the times, Protect from Magic, the recast immunity, what ends it, both messages, the XP); the projectile's spotanim, the varbit sent only as it starts and ends, no immunity after it ends, and the level refusal coming first guessed; the recast and teleport refusals' words held. No level-30 teleports (jewellery) exist yet, so there is nothing for the level-30 limit to apply to. Not in: the 30-second warning and the expiry message, which the Wiki gives no words for |
+| `::scenario pvp` stands a player at level 10 Wilderness north of Edgeville in rune armour with a rune scimitar, 70 melee, 85 Magic, 43 Prayer, 20 sharks and the runes for five Tele Blocks; two accounts run it for a fight, `::wildy n` moves either to another level, and `::seed n` before the first attack repeats its rolls. `::scenario` and `::reset` clear a skull, the PJ timer and a Tele Block from before | ours, for testing |
+| The Wilderness's own multi-way areas | not yet in `multi-combat.tsv`: each piece adds its areas with its content |
+| The Doomsayer's Toggle warnings list, special attacks, enchanted bolts' effects and weapon poison on players, chinchompas' blast on players, the freeze's thaw warning and everything north of the ditch | not built: later steps |
+
+Check: `test-runner/examples/ditch-cross.json`, `wilderness-attack-option.json`, `wilderness-pvp-scenario.json`, the `wilderness-pvp-single-way-test.json`, `wilderness-pvp-skull-test.json`, `wilderness-pvp-death-test.json` and `wilderness-teleblock-test.json` pairs, `wilderness-pvp-test.json` with `wilderness-pvp-test2.json` (two VMs), `HeadlessWildernessDitchTest`, `HeadlessPvpRulesTest`, `HeadlessPlayerOpsSettingsTest`, `HeadlessPvpMeleeTest`, `HeadlessPvpRangedMagicTest`, `HeadlessPvpSingleWayTest`, `HeadlessPvpSkullTest`, `HeadlessPvpDeathTest`, `HeadlessTeleblockTest`, `TeleblockTest` and `HeadlessPvpScenarioTest`.
+
 ## Varrock
 
 The Misthalin roadmap's Varrock piece, built a step at a time ([plan](https://claude.ai/artifact/UnqHb7sdn2TizdxP16Mvxu)).
@@ -2041,6 +2403,9 @@ Village piece's.
 | Step 8b: Dimintheis (4984) in his house, who hands a lost pair of family gauntlets back for free (naming the pair, with a key for each), but not while any of the four pairs is held, worn or banked; his son Johnathon (5445, the type his multi-NPC 4988 shows after Family Crest) upstairs in the Jolly Boar Inn, who turns family gauntlets into chaos gauntlets for free and cooking or goldsmith gauntlets for 25,000 coins (the worn pair before one carried), through his talk or his Gauntlets option, after which Dimintheis hands back chaos gauntlets if they're lost; Old Man Yarlo (10425); their talk every way it goes (`dimintheis.*`, `johnathon.*`, `yarlo.*`) | OSRS Wiki, each NPC's transcript (after Family Crest and Daddy's Home); tiles from mejrs's live NPC list; where the last enchanted pair is kept (with charges), a plain pair going straight to his chant without a menu, which pairs count as owned, the worn pair first, Johnathon's lines without a pair or the coins, every expression and the wander ranges guessed |
 | Step 9a: the Varrock Museum: its stairs down to the Natural History floor (24428) and back up (24427), the back entrance's double doors (24565/24567, opening apart), the cleaning area's gate (24536) through its guard (1910), who asks on the first Open or talk after login (Wiki), and out again freely; Curator Haig Halen (5214), the information clerk (1909, behind her booth, who hands out a museum map) and the back entrance's guard (1912), their talk every way it goes as once every quest is done and with no Kudos (`curator.*`, `museum_clerk.*`, `museum_guard.*`); an examine key for every museum loc and the four NPCs | OSRS Wiki, each NPC's transcript (after Bone Voyage and The Dig Site, no Kudos); the 241 cache's museum locs and the basement's walls; tiles from mejrs's live NPC list; the stairs' landing tiles, the gate guard letting the player through without a word once he has asked, leaving the cleaning area freely, every expression and the curator's wander range guessed |
 | Step 9b: the museum's other people: Historian Minas (1902) and Torrcs (6019) on the first floor, Art Critic Jacques (1901) on the second, Marfet (6020) in the cleaning area, the teachers and pupils and school visitors on every floor, and on the Natural History floor its four natural historians (6002 to 6005, one a section, each with his section's lectures), Orlando Smith (6001) and the twelve animal displays (NPCs with no options); their talk every way it goes as once every quest is done (`historian_minas.*`, `art_critic_jacques.*`, `museum_adventurer.*`, `museum_teacher.*`, `museum_schoolgirl.*`, `museum_schoolboy.*`, `orlando_smith.*`, `natural_historian.*`), a natural historian's first talk once per account | OSRS Wiki, each NPC's transcript; tiles from mejrs's live NPC list; every expression, the wander ranges, the teachers below the second floor saying the ground floor's pair, and the natural historians' first talk going straight to the menu guessed |
+| Kudos step 1: the museum's Kudos in the cache's own varbits (`vm_kudos` 3637, the count the client shows, worked out from what the player has done), the cleaning area's six archaeologists (1903 to 1908, at their tables) looking at each find by talk or by the item used on them (`museum_archaeologist.*`, `museum_case_find.*`), the Dig Site exhibit's five display cases (old coin 15484, ancient coin 12234, ancient symbol 12138, old symbol 12137, pottery 12139) taking their find once an archaeologist has sent the player there, for 10 Kudos each (`museum_case.*`), a symbol or coin taking every copy carried or banked, the clean necklace's secret (`vm_necklace`, every copy taken), jewellery for 5 coins, cleaning never turning up a find on display, carried, worn or banked (R29B-2), the clerk's Dig Site answer following the cases filled, and the information booth's Look at (the museum map) and Check Kudos (the Kudos List, `vm_kudos_info` 600); `::scenario museum-finds` clears the museum varbits and the archaeologists' memory, so a case run repeats on one account (`museum-kudos-cases.json`) | OSRS Wiki, Kudos, Uncleaned find, Clean necklace, Old symbol, Old coin, Pottery, the display case pages and the six archaeologists' transcripts (read 2026-11-14); the 242 cache (osrs-dumps 2026-11-11-rev242: the `vm_*` varbits, the cases' multilocs, the Kudos List's scripts and enums); tiles from mejrs's live NPC list; the archaeologist remembering where he sent the player (kept in saved charges) inferred from his "Back again?"; every expression, the cases' messages, the booth's Look at, the necklace's last two lines' place and a second necklace going the same way guessed |
+| Kudos step 2: the natural history quiz on the Natural History floor: Orlando Smith takes on the player's help (`vm_nathis_agreed`), each of the fourteen plaques (`vm_plaque_*` 24605 to 24618, Study) opens `vm_natural_history` (533) with one of its display's six questions (`natural_history_quiz.*`), three right answers fill the display (`vm_nathis_*_display` 3672 to 3685, at 3) for 2 Kudos, a done plaque names its animal, Orlando's talk follows the displays and gives 1,000 Slayer and Hunter XP once all are done (`vm_nathis_reward_given`); the information clerk's three rewards at 51, 101 and 151 Kudos (`vm_reward_50`/`_100`/`_150`, XP given exactly) and her Natural History and "Would I qualify?" answers following the player; `::scenario museum-quiz` clears it all for a repeatable run (`museum-quiz.json`) | OSRS Wiki, Natural history quiz, Kudos, Transcript:Orlando Smith and Transcript:Information clerk (read 2026-11-14); the 242 cache (osrs-dumps 2026-11-11-rev242: the varbits, plaques, interface 533, enum 1741 and `vm_kudos_get_status`); the question asked (random, never the one just asked), the plaque closing on an answer with Orlando's remark as a chat box, the animals' names but the snail's, the qualifying 100 (Bone Voyage's) and exact XP guessed or inferred; the plaque's animal picture (server-set model ids unknown) and the historians' lectures left out |
+| Kudos step 3: Historian Minas's Timeline exhibit: "I have some information" hears every untold quest story in the Wiki's order (`historian_minas_timeline.*`), each filling its timeline display (`vm_staff_of_armadyl`, `vm_salveknights`, `vm_observatory` to `vm_runes`, `vm_dov`, on varp 1011; the display cases follow) for 5 Kudos (Curse of the Empty Lord 10, 80 in all), with the cache's antique lamps (`vm_reward_*`) after Shield of Arrav, Merlin's Crystal, Making History, Curse of the Empty Lord and Defender of Varrock; What Lies Below only with the Dagon'hai history book, which he keeps; the clerk's Timeline answer following the player; the Digsite's workers' gate letting a player with 153 Kudos through (`digsite_barge.friend_of_the_museum`); `::scenario museum-timeline` clears the timeline for a repeatable run (`museum-timeline.json`) | OSRS Wiki, Transcript:Historian Minas, Historian Minas, Kudos, Transcript:Information clerk and Transcript:Museum guard (read 2026-11-14); the 242 cache (osrs-dumps 2026-11-11-rev242: the varbits, enums 1740 to 1742, `vm_kudos_get_status`, the lamps); every story told in one talk, Ikov on Lucien's side (the project's choice), Making History's and Curse of the Empty Lord's lamp lines, `vm_soa_vis` with Shield of Arrav, a lamp that doesn't fit dropped, and the gate's step-through guessed; rubbing the lamps and the displays' Study left out |
 | Step 10: the Champions' Guild: its door (every account has the 32 quest points; the Guildmaster greets whoever comes in, `guildmaster.welcome`), the Guildmaster (814) and his talk (`guildmaster.*`), Scavvo (2871) and Valaine (2870) upstairs with their talk (`scavvo.*`, `valaine.*`) and shops (Scavvo's Rune Store; Valaine's Shop of Champions, which buys anything as a general store does), and the trapdoor by the stairs (Open, Close, Climb-down) to the basement and its ladder back up | OSRS Wiki, Transcript:Guildmaster, Transcript:Scavvo, Transcript:Valaine and the two shops' pages (prices, stock, restock times); the 241 cache for the door, trapdoor, ladder and the shops' invs; tiles from mejrs's live NPC list; every expression, that the Guildmaster greets only those coming in, Scavvo's inv (runiteshop), the wander ranges and where the trapdoor and ladder put the player guessed |
 | Step 11: mines and skilling spots: the south-east and south-west mines (copper, tin, iron, clay and silver rocks, already Mining's), the anvils (already Smithing's), the houses' ranges (7184) and the posh oven (7421) as ranges, the oaks and yews (already Woodcutting's) and the dying trees (3648, as regular trees, to their stump 3649); buckets, jugs and bowls filling at every sink, fountain and water pump by the cache's name, and buckets at wells (`water.*`; vials stay Herblore's); the training dummies (1764: 5 Attack XP a hit below level 8 with `dummy.hit`, then `dummy.nothing_more`; ranged styles refused, `dummy.no_ranged`) | OSRS Wiki, the Dying tree, Water source, Dummy and Range pages; 2004Scape's dummy messages; the 241 cache for the ids and names; that the oven cooks as a range, the filling animation and one a tick (as Herblore's vials), that a well fills only buckets, and the dummy's swing (the weapon's attack animation, no faster than its attack speed) guessed |
 | Step 12: the city's fighters: muggers (513, aggressive to players of twice their level or less), thieves (3252 and the Varrock gang's 5217, 5219 and 5220), the Black Knight north of the Jolly Boar Inn (516), the Blue Moon Inn's barbarian (3262) and her talk (`blue_moon_barbarian.*`; her scream over her head too), Varrock Palace's warrior women (3260), the grizzly bear in its pen east of the palace (2838, aggressive), giant rats by the south-east mine (2862, 2864) and a spider (3019): combat, drops and spawns | OSRS Wiki, each monster's page (stats, respawn, aggression, drops) and the DPS calculator's bonuses; tiles from mejrs's live NPC list; every fighting animation from the stand animation (punches for the unarmed, sword and shield for the knight and warriors), the mugger's respawn (25, as the thieves'), the gang thieves' drops (the standard thief's) and the barbarian's expressions and screaming order guessed; the player's scream shows only in the chatbox (no overhead text for players yet) |
@@ -2974,7 +3339,7 @@ Right-clicking another player offers Follow, Trade with and Report (`game/Player
 | A follow stops when the follower clicks elsewhere or teleports, or the target logs out, changes level or gets more than 15 tiles away; the follower then stops where they are | the 15 is how far players see each other; when live gives up is guessed |
 | Trade with and Report stop any walk or follow and say they aren't built yet | ours, not live |
 
-Not built yet: trading, reporting, Attack (Wilderness and PvP worlds), and a player hiding another by standing on them
+Not built yet: trading, reporting, Attack on PvP worlds (the Wilderness's is under Wilderness), and a player hiding another by standing on them
 is the client's own business.
 
 Check with two clients, logged in as two different names: walk, run (orb on), type in the chatbox, `::anim 866` and

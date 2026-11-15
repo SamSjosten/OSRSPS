@@ -27,6 +27,12 @@ data class MeleeMatchup(
     val npcHitChance: Double,
 )
 
+/**
+ * A player's melee numbers against another player: their [attackRoll] and [maxHit] with [style], and the target's
+ * [defenceRoll] against it; see [Combat.pvpMatchup].
+ */
+data class PvpMeleeMatchup(val style: AttackStyle, val attackRoll: Int, val defenceRoll: Int, val maxHit: Int)
+
 /** A player's ranged numbers against one NPC with the ammunition they have; see [Combat.rangedMatchup]. */
 data class RangedMatchup(val style: AttackStyle, val attackRoll: Int, val defenceRoll: Int, val maxHit: Int, val hitChance: Double)
 
@@ -61,7 +67,19 @@ class Combat(
     private val rangedWeapons: RangedWeapons = RangedWeapons.NONE,
     /** What the player's prayers add this tick; see [Prayers.boosts]. */
     private val prayerBoosts: (Player) -> PrayerBoosts = { PrayerBoosts.NONE },
+    /** What the player's black mask or Slayer helmet does against this NPC; see [SlayerHelm]. */
+    private val slayerHelm: (Player, Npc) -> SlayerHelm = { _, _ -> SlayerHelm.NONE },
+    /** Why [Player] may not attack [Npc] that belongs to another player (a Slayer superior), null when they may. */
+    private val notYours: (Player, Npc) -> Line? = { _, _ -> null },
+    /** Whether [Npc] is [Player]'s own Slayer superior, which single-way combat lets them switch to. */
+    private val ownSuperior: (Player, Npc) -> Boolean = { _, _ -> false },
 ) {
+    /**
+     * Whether [player] may attack [npc] in single-way combat though another NPC is fighting them: their own Slayer
+     * superior (OSRS Wiki, Superior slayer monster: the standard monster then stops attacking them).
+     */
+    fun switchesSingleWay(player: Player, npc: Npc): Boolean = ownSuperior(player, npc)
+
     /**
      * The level [player] defends with against an attack of [type], before the style bonus: their Defence, or for magic
      * 70% of their Magic and 30% of their Defence (see the class note), with their prayers' boosts.
@@ -129,26 +147,42 @@ class Combat(
     var rolledOn: (Player, Npc, AttackType, Int) -> Int = { _, _, _, rolled -> rolled }
 
     /**
+     * Set by content: whether [Npc] takes nothing from a hit now, asked as each hit lands, so a shot or spell already on
+     * its way, recoil and retribution are stopped too; poison and venom ([MeleeCombat.statusHit]) and a finishing hit
+     * (::kill, a bag of salt) still land. Bryophyta while her growthlings live ([osrsps.game.content.Bryophyta]).
+     */
+    var immune: (Npc) -> Boolean = { false }
+
+    /**
      * Why no attack of [player]'s reaches [npc], as the line that tells them, null when one can: its Slayer level
-     * ([slayerGated]), or being shut out of where it is fought ([shutOut]). Asked wherever an attack begins, goes on,
+     * ([slayerGated]), being shut out of where it is fought ([shutOut]), or its being another player's ([notYours]). Asked wherever an attack begins, goes on,
      * or spreads to another NPC.
      */
     fun barred(player: Player, npc: Npc): Line? = when {
         slayerGated(player, npc) -> CombatLines.SLAYER_LEVEL
         shutOut(player, npc) -> GameLines.CANT_REACH
-        else -> null
+        else -> notYours(player, npc)
     }
 
     /**
      * By NPC type id, what lets a player's hits take one below its [NpcCombatDef.minHitpoints]: the brine sabre for
-     * rockslugs ([osrsps.game.content.Rockslugs]). Content fills it in.
+     * rockslugs ([osrsps.game.content.Rockslugs]). Content fills it in. Asked with the attack's type when it is rolled,
+     * null when a hit lands (its damage was already held to the floor when rolled).
      */
-    val finishers = HashMap<Int, (Player) -> Boolean>()
+    val finishers = HashMap<Int, (Player, AttackType?) -> Boolean>()
 
-    /** The hitpoints a hit from [source] (null for none) leaves [npc] at the least: its own, or its fight's [Npc.holdsAt]. */
-    fun floor(npc: Npc, source: Player?): Int {
+    /** Whether [source]'s attack of [type] may take [npc] below its [NpcCombatDef.minHitpoints] ([finishers]). */
+    fun finishes(npc: Npc, source: Player?, type: AttackType?): Boolean =
+        source != null && finishers[npc.type.id]?.invoke(source, type) == true
+
+    /**
+     * The hitpoints a hit from [source] (null for none) of [type] (null when not known) leaves [npc] at the least: its
+     * own, or its fight's [Npc.holdsAt]. [finisher], when given, is [finishes] as it stood when the hit was rolled, so a
+     * weapon changed while the hit is on its way doesn't change it.
+     */
+    fun floor(npc: Npc, source: Player?, type: AttackType? = null, finisher: Boolean? = null): Int {
         val min = npcCombat[npc.type]?.minHitpoints ?: 0
-        val own = if (min == 0 || (source != null && finishers[npc.type.id]?.invoke(source) == true)) 0 else min
+        val own = if (min == 0 || (finisher ?: finishes(npc, source, type))) 0 else min
         return maxOf(own, npc.holdsAt)
     }
 
@@ -208,7 +242,8 @@ class Combat(
         val boosts = prayerBoosts(player)
         val attack = PrayerBoosts.boost(skills.currentLevel(Skill.ATTACK), boosts.attack)
         val strength = PrayerBoosts.boost(skills.currentLevel(Skill.STRENGTH), boosts.strength)
-        val attackRoll = CombatMath.playerAttackRoll(attack, style.stance, attackBonus(bonuses, type))
+        val helm = slayerHelm(player, npc)
+        val attackRoll = helm.melee(CombatMath.playerAttackRoll(attack, style.stance, attackBonus(bonuses, type)))
         val defenceRoll = CombatMath.npcDefenceRoll(npc.level(NpcStat.DEFENCE), def.defence.against(against ?: type))
         val npcAttackRoll = CombatMath.npcAttackRoll(npcAttackLevel(npc, def.attackType), def.attackBonus)
         val playerDefenceRoll = playerDefenceRoll(player, style, bonuses, def.attackType, boosts)
@@ -216,12 +251,33 @@ class Combat(
             style = style,
             attackRoll = attackRoll,
             defenceRoll = defenceRoll,
-            maxHit = CombatMath.playerMaxHit(strength, style.stance, bonuses.meleeStrength + bulwarkStrength(player, bonuses)),
+            maxHit = helm.melee(CombatMath.playerMaxHit(strength, style.stance, bonuses.meleeStrength + bulwarkStrength(player, bonuses))),
             hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
             npcAttackRoll = npcAttackRoll,
             playerDefenceRoll = playerDefenceRoll,
             npcMaxHit = npcMaxHit(npc, def),
             npcHitChance = CombatMath.hitChance(npcAttackRoll, playerDefenceRoll),
+        )
+    }
+
+    /**
+     * [attacker]'s melee numbers against [target], or null when [attacker]'s style isn't melee ([meleeType]). The
+     * attack roll and max hit are those against an NPC; the defence roll is the target's own, as an NPC's swing at them
+     * meets it: their Defence with their prayers' boosts, their style's stance bonus, and their worn defence bonus for
+     * the attack type (OSRS Wiki, Combat: a player defends with the same formula whoever attacks).
+     */
+    fun pvpMatchup(attacker: Player, target: Player): PvpMeleeMatchup? {
+        val style = style(attacker)
+        val type = meleeType(style) ?: return null
+        val bonuses = bonuses(attacker)
+        val boosts = prayerBoosts(attacker)
+        val attack = PrayerBoosts.boost(attacker.skills.currentLevel(Skill.ATTACK), boosts.attack)
+        val strength = PrayerBoosts.boost(attacker.skills.currentLevel(Skill.STRENGTH), boosts.strength)
+        return PvpMeleeMatchup(
+            style = style,
+            attackRoll = CombatMath.playerAttackRoll(attack, style.stance, attackBonus(bonuses, type)),
+            defenceRoll = playerDefenceRoll(target, style(target), bonuses(target), type, prayerBoosts(target)),
+            maxHit = CombatMath.playerMaxHit(strength, style.stance, bonuses.meleeStrength + bulwarkStrength(attacker, bonuses)),
         )
     }
 
@@ -254,6 +310,52 @@ class Combat(
         val def = npcCombat[npc.type] ?: return null
         val style = style(player)
         if (style.type != AttackType.RANGED) return null
+        val size = npc.type.size
+        val (attackRoll, maxHit) = rangedNumbers(
+            player, style,
+            distance = { LineOfSight.distance(player.x, player.z, 1, npc.x, npc.z, size, size) },
+            magic = { maxOf(npc.level(NpcStat.MAGIC), def.magicAttack) },
+            mask = slayerHelm(player, npc)::rangedOrMagic,
+        )
+        val defenceRoll = rangedDefenceRoll(npc, style)!!
+        return RangedMatchup(
+            style = style,
+            attackRoll = attackRoll,
+            defenceRoll = defenceRoll,
+            maxHit = maxHit,
+            hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
+        )
+    }
+
+    /**
+     * [attacker]'s ranged numbers against [target], another player, or null when [attacker]'s style isn't ranged: as
+     * against an NPC ([rangedMatchup]), the target defending with their own defence roll for ranged ([pvpMatchup]).
+     * A twisted bow scales by the higher of the target's Magic level and magic attack bonus, as for an NPC (OSRS Wiki,
+     * Twisted bow).
+     */
+    fun pvpRangedMatchup(attacker: Player, target: Player): RangedMatchup? {
+        val style = style(attacker)
+        if (style.type != AttackType.RANGED) return null
+        val (attackRoll, maxHit) = rangedNumbers(
+            attacker, style,
+            distance = { LineOfSight.distance(attacker.x, attacker.z, 1, target.x, target.z, 1, 1) },
+            magic = { maxOf(target.skills.currentLevel(Skill.MAGIC), bonuses(target).magicAttack) },
+        )
+        val defenceRoll = playerDefenceRoll(target, style(target), bonuses(target), AttackType.RANGED, prayerBoosts(target))
+        return RangedMatchup(style, attackRoll, defenceRoll, maxHit, CombatMath.hitChance(attackRoll, defenceRoll))
+    }
+
+    /**
+     * [player]'s ranged attack roll and max hit with [style]: chinchompas' accuracy by the target's [distance], a twisted
+     * bow's scaling by the target's [magic]. See [rangedMatchup].
+     */
+    private fun rangedNumbers(
+        player: Player,
+        style: AttackStyle,
+        distance: () -> Int,
+        magic: () -> Int,
+        mask: (Int) -> Int = { it },
+    ): Pair<Int, Int> {
         val bonuses = bonuses(player)
         val boosts = prayerBoosts(player)
         val level = player.skills.currentLevel(Skill.RANGED)
@@ -262,9 +364,7 @@ class Combat(
         val weapon = rangedWeapons.weapon(equipment.weapon(player))
         var attackBonus = bonuses.rangedAttack
         if (weapon?.kind == AmmoKind.CHINCHOMPAS) {
-            val size = npc.type.size
-            val distance = LineOfSight.distance(player.x, player.z, 1, npc.x, npc.z, size, size)
-            attackBonus = attackBonus * CombatMath.chinchompaAccuracy(style.stance, distance) / 100
+            attackBonus = attackBonus * CombatMath.chinchompaAccuracy(style.stance, distance()) / 100
         }
         var attackRoll = CombatMath.playerRangedAttackRoll(ranged, style.stance, attackBonus)
         var strength = bonuses.rangedStrength
@@ -277,19 +377,15 @@ class Combat(
             strength -= rangedStrength(player.equipment[WearPos.AMMO]?.let { equipment.objTypes[it.id] })
         }
         var maxHit = CombatMath.playerRangedMaxHit(rangedStrengthLevel, style.stance, strength)
+        // Inferred: the imbued mask's 15% comes before the twisted bow's scaling, as the Wiki's DPS calculator has it.
+        attackRoll = mask(attackRoll)
+        maxHit = mask(maxHit)
         if (weapon?.scaling == RangedScaling.TWISTED_BOW) {
-            val magic = maxOf(npc.level(NpcStat.MAGIC), def.magicAttack)
-            attackRoll = attackRoll * CombatMath.twistedBowAccuracy(magic) / 100
-            maxHit = maxHit * CombatMath.twistedBowDamage(magic) / 100
+            val scaling = magic()
+            attackRoll = attackRoll * CombatMath.twistedBowAccuracy(scaling) / 100
+            maxHit = maxHit * CombatMath.twistedBowDamage(scaling) / 100
         }
-        val defenceRoll = rangedDefenceRoll(npc, style)!!
-        return RangedMatchup(
-            style = style,
-            attackRoll = attackRoll,
-            defenceRoll = defenceRoll,
-            maxHit = maxHit,
-            hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
-        )
+        return attackRoll to maxHit
     }
 
     /**
@@ -301,6 +397,41 @@ class Combat(
      */
     fun magicMatchup(player: Player, npc: Npc, spell: CombatSpell): MagicMatchup? {
         val def = npcCombat[npc.type] ?: return null
+        var (attackRoll, maxHit) = magicNumbers(player, spell)
+        // The imbued mask's 15% multiplies the roll and max hit before an elemental weakness, which then adds its own
+        // share of the roll and of the spell's base max hit without the mask (the Wiki's DPS calculator,
+        // PlayerVsNPCCalc: blackMaskBonus, then the spellement bonus).
+        val helm = slayerHelm(player, npc)
+        val unmaskedRoll = attackRoll
+        attackRoll = helm.rangedOrMagic(attackRoll)
+        maxHit = helm.rangedOrMagic(maxHit)
+        val weakness = def.weakness?.takeIf { spell.element != null && it.element == spell.element }
+        if (weakness != null) {
+            attackRoll += CombatMath.weaknessAttackRoll(unmaskedRoll, weakness.percent) - unmaskedRoll
+            maxHit += CombatMath.weaknessMaxHit(spell.maxHit, weakness.percent)
+        }
+        val defenceRoll = CombatMath.npcDefenceRoll(npc.level(NpcStat.MAGIC), def.defence.magic)
+        return MagicMatchup(
+            attackRoll = attackRoll,
+            defenceRoll = defenceRoll,
+            maxHit = maxHit,
+            hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
+        )
+    }
+
+    /**
+     * [attacker]'s numbers against [target], another player, with [spell]: as against an NPC ([magicMatchup]), the
+     * target defending with 70% of their Magic and 30% of their Defence ([defenceLevel]), their stance and their worn
+     * magic defence bonus (OSRS Wiki, Combat: a player's magic defence whoever attacks).
+     */
+    fun pvpMagicMatchup(attacker: Player, target: Player, spell: CombatSpell): MagicMatchup {
+        val (attackRoll, maxHit) = magicNumbers(attacker, spell)
+        val defenceRoll = playerDefenceRoll(target, style(target), bonuses(target), AttackType.MAGIC, prayerBoosts(target))
+        return MagicMatchup(attackRoll, defenceRoll, maxHit, CombatMath.hitChance(attackRoll, defenceRoll))
+    }
+
+    /** [player]'s magic attack roll and max hit with [spell]; see [magicMatchup]. */
+    private fun magicNumbers(player: Player, spell: CombatSpell): Pair<Int, Int> {
         val bonuses = bonuses(player)
         val boosts = prayerBoosts(player)
         val magic = PrayerBoosts.boost(player.skills.currentLevel(Skill.MAGIC), boosts.magic)
@@ -318,18 +449,7 @@ class Combat(
             val worn = minOf(bonuses.magicDamage * staff.bonusMultiplier, CombatMath.MAGIC_DAMAGE_CAP)
             maxHit = CombatMath.spellMaxHit(spell.maxHit, worn + boosts.magicDamage)
         }
-        val weakness = def.weakness?.takeIf { spell.element != null && it.element == spell.element }
-        if (weakness != null) {
-            attackRoll = CombatMath.weaknessAttackRoll(attackRoll, weakness.percent)
-            maxHit += CombatMath.weaknessMaxHit(spell.maxHit, weakness.percent)
-        }
-        val defenceRoll = CombatMath.npcDefenceRoll(npc.level(NpcStat.MAGIC), def.defence.magic)
-        return MagicMatchup(
-            attackRoll = attackRoll,
-            defenceRoll = defenceRoll,
-            maxHit = maxHit,
-            hitChance = CombatMath.hitChance(attackRoll, defenceRoll),
-        )
+        return attackRoll to maxHit
     }
 
     /** [npc]'s defence roll against a ranged [style], or null when it has no combat definition. */
@@ -346,13 +466,19 @@ class Combat(
     fun npcAttack(npc: Npc, player: Player): NpcAttack? = npcAttack(npc, player, npcCombat[npc.type]?.attackType ?: return null)
 
     /**
-     * [npc]'s roll at [player] with an attack of [type]: its own attack type, or magic for a melee NPC's spell
-     * ([NpcMeleeSpell]), which rolls with its Magic level and its magic attack bonus.
+     * [npc]'s roll at [player] with an attack of [type]: its own attack type, magic for a melee NPC's spell
+     * ([NpcMeleeSpell]), which rolls with its Magic level and its magic attack bonus, or ranged for a melee NPC's
+     * throw, with its Ranged level and its ranged attack bonus ([NpcCombatDef.rangedAttack]).
      */
     fun npcAttack(npc: Npc, player: Player, type: AttackType): NpcAttack? {
         val def = npcCombat[npc.type] ?: return null
         val style = style(player)
-        val bonus = if (type == def.attackType) def.attackBonus else if (type == AttackType.MAGIC) def.magicAttack else 0
+        val bonus = when {
+            type == def.attackType -> def.attackBonus
+            type == AttackType.MAGIC -> def.magicAttack
+            type == AttackType.RANGED -> def.rangedAttack
+            else -> 0
+        }
         return NpcAttack(
             attackRoll = CombatMath.npcAttackRoll(npcAttackLevel(npc, type), bonus),
             defenceRoll = playerDefenceRoll(player, style, bonuses(player), type, prayerBoosts(player)),

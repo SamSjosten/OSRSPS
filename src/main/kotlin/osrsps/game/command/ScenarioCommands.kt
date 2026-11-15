@@ -7,12 +7,14 @@ import osrsps.game.PlayerSkills
 import osrsps.game.Scenario
 import osrsps.game.Skill
 import osrsps.game.World
+import osrsps.game.bank.setVarbitIfKnown
+import osrsps.game.combat.Teleblock
 
 /**
  * Jump into a testing scenario and back out. `::scenario name` remembers the player as they were the first time, so a
  * second scenario still resets to before the first; `::reset` puts that back and forgets it. Both are kept in the save,
  * so a logout in the middle loses nothing. Both end every fight the player is in, so a test script starts and leaves
- * with no NPC still hitting them.
+ * with no NPC still hitting them, and clear their skull, PJ timer and Tele Block.
  */
 fun CommandRegistry.registerScenarioCommands(world: World) {
     register("scenario", "::scenario [name]") {
@@ -34,8 +36,15 @@ fun CommandRegistry.registerScenarioCommands(world: World) {
         val name = player.scenario
         world.scripts.clearAll(player)
         world.meleeCombat.endFights(player)
+        // A stopped Hunter run's traps come down too, so none stands for the next script.
+        world.hunter.traps.takeDown(player)
         player.testCheatsOff()
         before.restoreTo(player)
+        // After the snapshot, which holds the skull, whom they attacked first and the Tele Block's varbit from before the
+        // scenario: ::reset clears those too (Codex review on #723). Teleblock.clear skips a player with no block, so its
+        // varbit is cleared here, or RuneLite would show a timer for a block that's gone.
+        world.pvpCombat.clear(player)
+        player.vars.setVarbitIfKnown(Teleblock.VARBIT, 0)
         // Varp 83 came back with the rest; the overhead icon and the drain go with the prayer book, so it starts afresh.
         world.prayers.deactivateAll(player)
         // A stall owner's grudge from a test theft goes too, so the next script can trade with them.
@@ -51,6 +60,8 @@ fun CommandRegistry.registerScenarioCommands(world: World) {
         // The doors and gates the player moved and nobody has moved since shut or open again as the cache has them, so a
         // script that stopped part way leaves none for the next (nightly 2026-11-08, Edgeville's).
         world.locs.restoreOwnedBy(player.saveKey)
+        // A grave the scenario raised goes too, its items being the scenario's.
+        world.deaths.dropScenarioGrave(player)
         world.teleport(player, before.x, before.z, before.level)
         player.scenario = null
         player.beforeScenario = null
@@ -75,11 +86,18 @@ private fun CommandContext.start(world: World, scenario: Scenario) {
     }
     if (!world.hasMap(scenario.x, scenario.z)) fail("Scenario ${scenario.name} can't start: no map at ${scenario.x}, ${scenario.z}")
 
+    // Traps laid before a first scenario come back to the backpack first, so its snapshot (and ::reset) keeps them;
+    // an earlier scenario's own traps just come down.
+    world.hunter.traps.takeDown(player, refund = player.beforeScenario == null)
     if (player.beforeScenario == null) player.beforeScenario = world.snapshot(player)
+    // Nor a grave from an earlier scenario whose script died before its ::reset: the scenario's death would merge into it.
+    world.deaths.dropScenarioGrave(player)
     // The snapshot holds the items in the guide prices screen; the scenario's inventory replaces them.
     player.priceChecker.clear()
     world.scripts.clearAll(player)
     world.meleeCombat.endFights(player)
+    // Nor a skull, a PJ timer or a Tele Block from a fight before.
+    world.pvpCombat.clear(player)
     // A divine potion drunk before would hold the scenario's boosts and then drop them; ::reset puts its varbits back.
     world.potions.clearDivine(player)
     // Nor poison, venom or an antipoison's immunity from before; ::reset puts the poison varp back with the rest.
@@ -106,6 +124,9 @@ private fun CommandContext.start(world: World, scenario: Scenario) {
     for ((slot, obj) in loadout.bank) player.bank[slot] = obj
     // A scenario starts with no Grand Exchange offers or buy limits used; ::reset puts them back.
     player.ge.clear()
+    // Nor any farming: every patch overgrown and the clock running, so a script finds what it expects; ::reset puts
+    // the player's own patches back.
+    player.farming.replaceWith(osrsps.game.skill.farming.FarmingState())
     val tabs = world.bankScreen.tabs(player)
     loadout.bankTabs.forEachIndexed { i, size -> tabs[i + 1] = size }
     for ((varp, value) in scenario.varps) vars[varp] = value

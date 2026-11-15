@@ -259,6 +259,12 @@ interface Game
 	String castOnNpc(int interfaceId, int component, String npc, int npcId);
 
 	/**
+	 * (0.28.0) Picks the spell at {@code interfaceId:component} and casts it on the other player named {@code player},
+	 * as clicking the spell and then Cast on them would. Returns null once sent, or why it couldn't be yet.
+	 */
+	String castOnPlayer(int interfaceId, int component, String player);
+
+	/**
 	 * The text of a component and everything inside it, or of the whole interface when {@code component} is -1, with
 	 * colour tags removed and the pieces joined by " / "; null while the interface isn't open (loaded) in the client.
 	 */

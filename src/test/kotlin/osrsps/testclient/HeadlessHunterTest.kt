@@ -1,0 +1,327 @@
+package osrsps.testclient
+
+import java.nio.file.Path
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import org.junit.jupiter.api.io.TempDir
+import osrsps.game.GameRandom
+import osrsps.game.InventoryTab
+import osrsps.game.NpcType
+import osrsps.game.NpcTypes
+import osrsps.game.ObjType
+import osrsps.game.ObjTypes
+import osrsps.game.World
+import osrsps.game.loc.LocType
+import osrsps.game.loc.LocTypes
+import osrsps.game.npc.NpcSpawn
+import osrsps.game.skill.hunter.BirdSnares
+import osrsps.game.skill.hunter.BoxTraps
+import osrsps.game.skill.hunter.Traps
+import osrsps.map.CollisionMap
+import osrsps.map.LocCollisionType
+
+/**
+ * Hunter step 1 through the headless client: laying a bird snare, a bird walking into it, checking it, the trap count,
+ * someone else's trap, dismantling, the minute after which a trap collapses, a bird too high for the player's level
+ * slipping out, and Reset. The players log in at 3222, 3218, so a snare laid there stands with a bird two tiles east.
+ */
+class HeadlessHunterTest {
+    private val swift = NpcType(BirdSnares.CRIMSON_SWIFT, "Crimson swift", internalName = "hunting_bird_jungle")
+    private val wagtail = NpcType(BirdSnares.TROPICAL_WAGTAIL, "Tropical wagtail", internalName = "multicoloured_bird")
+    private val chinchompa = NpcType(BoxTraps.CHINCHOMPA, "Chinchompa", internalName = "hunting_chinchompa")
+
+    // Fast ticks: a trap stands 100 of them before it collapses.
+    private fun server(dir: Path, bird: NpcType? = swift) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
+        val objs = arrayOfNulls<ObjType>(11_000)
+        objs[BirdSnares.SNARE] = ObjType(
+            BirdSnares.SNARE, "Bird snare", stackable = true, tradeable = true,
+            ops = listOf(null, null, "Take", "Lay", null), iops = listOf("Lay", null, null, null, "Drop"),
+        )
+        objs[BoxTraps.BOX_TRAP] = ObjType(
+            BoxTraps.BOX_TRAP, "Box trap", stackable = true, tradeable = true,
+            ops = listOf(null, null, "Take", "Lay", null), iops = listOf("Lay", null, null, null, "Drop"),
+        )
+        for ((id, name, stacks) in listOf(
+            Triple(BONES, "Bones", false), Triple(MEAT, "Raw bird meat", false), Triple(RED_FEATHER, "Red feather", true),
+            Triple(BoxTraps.CHINCHOMPA_ITEM, "Chinchompa", true),
+        )) {
+            objs[id] = ObjType(id, name, stackable = stacks, tradeable = true)
+        }
+        val snareLocs = listOf(BirdSnares.SET, BirdSnares.FAILING, BirdSnares.BROKEN) + BirdSnares.BIRDS.flatMap { listOf(it.catching, it.full) } +
+            listOf(BoxTraps.SET, BoxTraps.FAILING, BoxTraps.BROKEN) + BoxTraps.CREATURES.flatMap { it.catchingFrom + it.full }
+        World(
+            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs),
+            random = GameRandom(7),
+            locTypes = LocTypes(snareLocs.associateWith { LocType(it, "Bird snare", ops = opsOf(it), collision = LocCollisionType(interactType = 0, blocksProjectile = false)) }),
+            npcTypes = NpcTypes.of(swift, wagtail, chinchompa),
+            npcSpawns = listOfNotNull(bird?.let { NpcSpawn(it, 3224, 3218, source = "test") }),
+            scenarios = osrsps.game.Scenarios(listOf(osrsps.game.Scenario.parse("here", """{ "position": { "x": 3222, "z": 3218 } }"""))),
+            cycleMillis = millis,
+        )
+    }
+
+    /** The cache's ops on each snare loc. */
+    private fun opsOf(loc: Int): List<String?> = when (loc) {
+        BirdSnares.SET, BoxTraps.SET -> listOf("Dismantle", "Investigate", null, null, null)
+        BirdSnares.BROKEN, BoxTraps.BROKEN -> listOf("Dismantle", "Reset", null, null, null)
+        in BirdSnares.BIRDS.map { it.full } + BoxTraps.CREATURES.map { it.full } -> listOf("Check", "Reset", null, null, null)
+        else -> List(5) { null }
+    }
+
+    private fun HeadlessClient.slotOf(id: Int) =
+        await("item $id in the backpack") { inventory(BACKPACK).indexOfFirst { it?.id == id }.takeIf { it >= 0 } }
+
+    private fun HeadlessClient.count(id: Int) = inventory(BACKPACK).filter { it?.id == id }.sumOf { it!!.count }
+
+    private fun HeadlessClient.seen(text: String, timeoutMillis: Long = 10_000) =
+        await(text, timeoutMillis) { messages().firstOrNull { it.text == text } }
+
+    private fun HeadlessClient.locAt(x: Int, z: Int) = locChanges().lastOrNull { it.coord.x == x && it.coord.z == z }?.id
+
+    private fun HeadlessClient.awaitLoc(id: Int, x: Int, z: Int, timeoutMillis: Long = 10_000) =
+        await("loc $id at $x, $z", timeoutMillis) { if (locAt(x, z) == id) Unit else null }
+
+    private fun HeadlessClient.lay(item: Int = BirdSnares.SNARE) = ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, LAY_BUTTON_OP, slotOf(item), item)
+
+    @Test
+    fun `a snare laid beside a crimson swift stands, the swift walks in, and Check gives its drops and XP`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { client ->
+                val at = client.await("the login rebuild") { client.position }
+                client.command("setlevel hunter 99")
+                client.command("item ${BirdSnares.SNARE} 2")
+                client.slotOf(BirdSnares.SNARE)
+                val before = client.await("Hunter XP") { client.stat(HUNTER)?.takeIf { it.level == 99 } }.xp
+                client.lay()
+                client.seen("[hunter.laying]")
+                // The snare goes down at once, and stands as the trap on the skill clock's fourth tick; the player steps west.
+                client.await("the snare on the ground") { client.groundObjs().firstOrNull { it.id == BirdSnares.SNARE && it.coord == at } }
+                client.awaitLoc(BirdSnares.SET, at.x, at.z)
+                client.await("a step west") { client.position?.takeIf { it.x == at.x - 1 && it.z == at.z } }
+                assertEquals(1, client.count(BirdSnares.SNARE))
+                // At 99 the catch is sure (164%): the swift two tiles east walks in, struggles, and the snare holds it.
+                client.awaitLoc(9349, at.x, at.z, timeoutMillis = 20_000)
+                client.awaitLoc(9373, at.x, at.z)
+                // The minute runs from the catch, not from the struggle's end (Codex review on #690).
+                val trap = server.world.hunter.traps.all.single()
+                assertEquals((Traps.TRAP_TICKS - Traps.CATCHING_TICKS).toLong(), trap.collapseTick - trap.stateTick)
+                client.locOp(9373, at.x, at.z, Traps.CHECK)
+                client.seen("[hunter.caught creature=crimson swift]")
+                client.await("34 XP") { if (client.stat(HUNTER)!!.xp - before == 34) Unit else null }
+                client.await("the snare back") { if (client.count(BirdSnares.SNARE) == 2) Unit else null }
+                assertEquals(1, client.count(BONES))
+                assertEquals(1, client.count(MEAT))
+                assertTrue(client.count(RED_FEATHER) in 5..10, "${client.count(RED_FEATHER)} feathers")
+                assertTrue(server.world.hunter.traps.all.isEmpty())
+            }
+        }
+    }
+
+    @Test
+    fun `two snares at level 1, none on a trap, and only the owner can take one down`(@TempDir dir: Path) {
+        server(dir, bird = null).use { server ->
+            server.login("bob").use { bob ->
+                val at = bob.await("the login rebuild") { bob.position }
+                bob.command("item ${BirdSnares.SNARE} 3")
+                bob.lay()
+                bob.awaitLoc(BirdSnares.SET, at.x, at.z)
+                // Back onto the trap: nothing more goes there.
+                bob.command("tele ${at.x} ${at.z}")
+                bob.await("back on the trap") { bob.position?.takeIf { it == at } }
+                bob.lay()
+                bob.seen("[hunter.cant_here]")
+                bob.command("tele ${at.x} ${at.z + 2}")
+                bob.await("north of it") { bob.position?.takeIf { it.z == at.z + 2 } }
+                bob.lay()
+                bob.awaitLoc(BirdSnares.SET, at.x, at.z + 2)
+                bob.lay()
+                bob.seen("[hunter.too_many count=2]")
+                assertEquals(1, bob.count(BirdSnares.SNARE))
+
+                server.login("carol").use { carol ->
+                    carol.await("the login rebuild") { carol.position }
+                    carol.locOp(BirdSnares.SET, at.x, at.z, Traps.DISMANTLE)
+                    carol.seen("[hunter.not_yours]")
+                }
+                bob.locOp(BirdSnares.SET, at.x, at.z, Traps.DISMANTLE)
+                bob.seen("[hunter.dismantled]")
+                bob.await("the snare back") { if (bob.count(BirdSnares.SNARE) == 2) Unit else null }
+                bob.await("the trap gone") { if (bob.locAt(at.x, at.z) == -1 || bob.locAt(at.x, at.z) == null) Unit else null }
+                assertEquals(1, server.world.hunter.traps.all.size)
+
+                // The other one, left alone, collapses a minute after it stood, leaving its snare on its tile.
+                bob.await("the trap collapsed", timeoutMillis = 20_000) {
+                    bob.groundObjs().firstOrNull { it.id == BirdSnares.SNARE && it.coord.x == at.x && it.coord.z == at.z + 2 }
+                }
+                assertTrue(server.world.hunter.traps.all.isEmpty())
+            }
+        }
+    }
+
+    @Test
+    fun `a bird above the player's level always slips out, Reset lays the snare again, and going too far collapses it`(@TempDir dir: Path) {
+        server(dir, bird = wagtail).use { server ->
+            server.login("dave").use { client ->
+                val at = client.await("the login rebuild") { client.position }
+                client.command("item ${BirdSnares.SNARE} 1")
+                client.lay()
+                client.awaitLoc(BirdSnares.SET, at.x, at.z)
+                // Level 1 against the wagtail's 19: it walks in and the snare fails.
+                client.awaitLoc(BirdSnares.FAILING, at.x, at.z, timeoutMillis = 20_000)
+                client.awaitLoc(BirdSnares.BROKEN, at.x, at.z)
+                assertEquals(0, client.count(BirdSnares.SNARE))
+                client.locOp(BirdSnares.BROKEN, at.x, at.z, Traps.RESET)
+                client.seen("[hunter.dismantled]")
+                client.awaitLoc(BirdSnares.SET, at.x, at.z)
+                assertEquals(0, client.count(BirdSnares.SNARE))
+                // Its owner gone further than the trap allows, it collapses at once and leaves its snare on its tile,
+                // the owner's at first as a drop is: back again, they see it there.
+                val away = at.x + Traps.OWNER_RANGE + 8
+                client.command("tele $away ${at.z} 0")
+                client.await("the step away") { client.position?.takeIf { it.x == away } }
+                client.command("tele ${at.x} ${at.z} 0")
+                client.await("the step back") { client.position?.takeIf { it.x == at.x } }
+                client.await("the snare left behind") {
+                    client.groundObjs().firstOrNull { it.id == BirdSnares.SNARE && it.coord.x == at.x && it.coord.z == at.z }
+                }
+                assertTrue(client.locAt(at.x, at.z) != BirdSnares.SET, "the trap is down")
+            }
+        }
+    }
+
+    @Test
+    fun `a snare laid before a first scenario comes back to the backpack, and a reset gives it back`(@TempDir dir: Path) {
+        server(dir, bird = null).use { server ->
+            server.login("gil").use { client ->
+                val at = client.await("the login rebuild") { client.position }
+                client.command("item ${BirdSnares.SNARE} 1")
+                client.lay()
+                client.awaitLoc(BirdSnares.SET, at.x, at.z)
+                assertEquals(0, client.count(BirdSnares.SNARE))
+                // The scenario's snapshot then holds it, so ::reset gives it back too.
+                client.command("scenario here")
+                client.await("the scenario") { client.messages().firstOrNull { it.text.startsWith("Started scenario here.") } }
+                client.await("the trap down") { if (client.locAt(at.x, at.z) != BirdSnares.SET) Unit else null }
+                client.command("reset")
+                client.await("the reset") { client.messages().firstOrNull { it.text.startsWith("Back to how you were") } }
+                client.await("the snare back") { if (client.count(BirdSnares.SNARE) == 1) Unit else null }
+            }
+        }
+    }
+
+    @Test
+    fun `a player who dies while a Reset waits loses no snare`(@TempDir dir: Path) {
+        server(dir, bird = wagtail).use { server ->
+            server.login("fred").use { client ->
+                val at = client.await("the login rebuild") { client.position }
+                client.command("item ${BirdSnares.SNARE} 1")
+                client.lay()
+                client.awaitLoc(BirdSnares.BROKEN, at.x, at.z, timeoutMillis = 20_000)
+                client.locOp(BirdSnares.BROKEN, at.x, at.z, Traps.RESET)
+                client.seen("[hunter.dismantled]")
+                // Killed mid-Reset: the death cuts the script off, and the snare is on its tile, laid again, or held.
+                client.command("hit 99 me")
+                client.await("[combat.dead]") { client.messages().firstOrNull { it.text == "[combat.dead]" } }
+                // After the death has cut the script off, the count must settle on one and stay there.
+                fun snares(): Int {
+                    val onTile = server.world.zones.objsAt(at.x, at.z, 0).filter { it.id == BirdSnares.SNARE }.sumOf { it.count }
+                    return onTile + server.world.hunter.traps.all.size + client.count(BirdSnares.SNARE)
+                }
+                client.await("one snare, somewhere", timeoutMillis = 20_000) { if (snares() == 1) Unit else null }
+                val settled = server.world.tick + 10
+                client.await("ten more ticks", timeoutMillis = 20_000) { if (server.world.tick >= settled) Unit else null }
+                assertEquals(1, snares())
+            }
+        }
+    }
+
+    @Test
+    fun `a Reset beaten to the tile, with a full backpack, leaves the snare where it lies`(@TempDir dir: Path) {
+        server(dir, bird = wagtail).use { server ->
+            server.login("hana").use { a ->
+                val at = a.await("the login rebuild") { a.position }
+                a.command("item ${BirdSnares.SNARE} 1")
+                a.lay()
+                a.awaitLoc(BirdSnares.BROKEN, at.x, at.z, timeoutMillis = 20_000)
+                a.command("item $BONES 28")
+                a.await("a full backpack") { if (a.count(BONES) == 28) Unit else null }
+                server.login("ivan").use { b ->
+                    b.await("ivan's login") { b.position?.takeIf { it == at } }
+                    b.command("item ${BirdSnares.SNARE} 1")
+                    b.slotOf(BirdSnares.SNARE)
+                    // Ivan, on the tile, lays his snare as Hana's Reset picks hers up: his stands first, so hers can't.
+                    a.locOp(BirdSnares.BROKEN, at.x, at.z, Traps.RESET)
+                    a.seen("[hunter.dismantled]")
+                    b.lay()
+                    b.await("ivan's trap", timeoutMillis = 15_000) { server.world.hunter.traps.of(osrsps.game.SaveStore.saveKey("ivan")!!).firstOrNull() }
+                    val settled = server.world.tick + 10
+                    a.await("ten more ticks", timeoutMillis = 20_000) { if (server.world.tick >= settled) Unit else null }
+                    assertTrue(server.world.hunter.traps.of(osrsps.game.SaveStore.saveKey("hana")!!).isEmpty())
+                    val left = server.world.zones.objsAt(at.x, at.z, 0).filter { it.id == BirdSnares.SNARE }
+                    assertEquals(1, left.sumOf { it.count }, "Hana's snare stays on its tile")
+                    assertEquals(0, a.count(BirdSnares.SNARE))
+                    assertEquals(28, a.count(BONES))
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `no trap goes down in an instance`(@TempDir dir: Path) {
+        server(dir, bird = null).use { server ->
+            server.login("gina").use { client ->
+                val at = client.await("the login rebuild") { client.position }
+                client.command("item ${BirdSnares.SNARE} 1")
+                client.command("instance 0")
+                client.await("inside the instance") { client.position?.takeIf { it != at } }
+                client.lay()
+                client.seen("[hunter.cant_here]")
+                assertEquals(1, client.count(BirdSnares.SNARE))
+                assertTrue(server.world.hunter.traps.all.isEmpty())
+            }
+        }
+    }
+
+    @Test
+    fun `a box trap laid west of a chinchompa catches it coming in from the east, and Check gives the chinchompa`(@TempDir dir: Path) {
+        server(dir, bird = chinchompa).use { server ->
+            server.login("fred").use { client ->
+                val at = client.await("the login rebuild") { client.position }
+                client.command("item ${BoxTraps.BOX_TRAP} 1")
+                client.slotOf(BoxTraps.BOX_TRAP)
+                // Below the box trap's 27 it won't go down.
+                client.lay(BoxTraps.BOX_TRAP)
+                client.seen("[hunter.trap_level level=27]")
+                assertEquals(1, client.count(BoxTraps.BOX_TRAP))
+                client.command("setlevel hunter 99")
+                val before = client.await("Hunter XP") { client.stat(HUNTER)?.takeIf { it.level == 99 } }.xp
+                client.lay(BoxTraps.BOX_TRAP)
+                client.seen("[hunter.laying]")
+                client.awaitLoc(BoxTraps.SET, at.x, at.z)
+                client.locOp(BoxTraps.SET, at.x, at.z, Traps.INVESTIGATE)
+                client.seen("[hunter.investigate_box]")
+                // The chinchompa two tiles east walks in from the east: hunting_boxtrap_trapping_chinchompa_e, then full.
+                client.awaitLoc(9387, at.x, at.z, timeoutMillis = 20_000)
+                client.awaitLoc(9382, at.x, at.z)
+                client.locOp(9382, at.x, at.z, Traps.CHECK)
+                client.seen("[hunter.caught creature=chinchompa]")
+                // 198.4 XP; the client sees whole XP.
+                client.await("198 XP") { if (client.stat(HUNTER)!!.xp - before == 198) Unit else null }
+                client.await("the chinchompa") { if (client.count(BoxTraps.CHINCHOMPA_ITEM) == 1) Unit else null }
+                assertEquals(1, client.count(BoxTraps.BOX_TRAP))
+            }
+        }
+    }
+
+    private companion object {
+        const val BONES = 526
+        const val MEAT = 9978
+        const val RED_FEATHER = 10088
+        const val BACKPACK = 93
+        const val HUNTER = 21
+
+        /** iop1 (Lay) is button op 2 (see InventoryTab.click). */
+        const val LAY_BUTTON_OP = 2
+    }
+}

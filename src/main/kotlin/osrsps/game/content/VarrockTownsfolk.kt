@@ -156,8 +156,9 @@ object TrampLines : Lines("tramp", "Transcript:Tramp") {
  * Juliet (5035, upstairs), her father Draul Leptoc (5039) and Phillipa (5040, upstairs) in the house west of the city;
  * Gertrude (7723, the after-quest type her multi-NPC 3500 shows), who sells kittens for 100 coins, and the children
  * Shilop (3501), Wilough (3503), Philop (3502) and Kanel (3504); Aris (11868) in her tent; Charlie the Tramp (5209)
- * and the tramp (3255), each begging a coin; Dr Harlow (16277) and Jonny the Beard (14139, the after-quest type) in the
- * Blue Moon Inn; Iffie (2899) knitting in Thessalia's shop; and the Town Crier (276) in the square.
+ * and the tramp (3255), each begging a coin; Dr Harlow (16277) and Jonny the Beard (14138, Talk-to only: the Wiki has
+ * him attackable only while Straven's task is on) in the Blue Moon Inn; Iffie (2899) knitting in Thessalia's shop; and
+ * the Town Crier (276) in the square.
  *
  * From the Wiki's transcripts; the Town Crier as he talks on live today. Guessed: every expression; Charlie's alley talk (the player is a Black Arm Gang member,
  * one of the two gangs Shield of Arrav ends in); that Gertrude's talk also refuses
@@ -181,7 +182,7 @@ object VarrockTownsfolk {
     const val CHARLIE = 5209
     const val TRAMP = 3255
     const val DR_HARLOW = 16277
-    const val JONNY_THE_BEARD = 14139
+    const val JONNY_THE_BEARD = 14138
     const val IFFIE = 2899
     const val TOWN_CRIER = 276
     const val TALK_TO = 1

@@ -80,7 +80,7 @@ object StrongholdLines : Lines("stronghold_of_security", "Stronghold of Security
  * - The Gift of Peace (20656 at 1907,5222), opened once: 2,000 coins, the Flap emote (varbit `sos_emote_flap`, which
  *   is also how the floor remembers its reward is claimed), Hitpoints and Prayer back to full and its jingle
  *   (`sos_peace`). Every account counts as having two-factor authentication (the plan's decision). Opened again, it
- *   says so. The emote tab shows Flap unlocked; playing emotes isn't built yet.
+ *   says so. The emote tab shows Flap unlocked, and it plays from there ([Emotes]).
  * - The portal by the entrance (20786 at 1863,5238) takes a player with the reward claimed, or of combat level 26 and
  *   up, to the reward room ([PORTAL_LANDING], guessed); anyone else is told no.
  * - The goblins, minotaurs, rats and wolves fight and drop as npc-combat.json and npc-drops.json have them

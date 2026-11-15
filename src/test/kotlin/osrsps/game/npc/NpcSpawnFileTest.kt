@@ -107,11 +107,15 @@ class NpcSpawnFileTest {
             NpcType(306, "Lumbridge Guide", internalName = "lumbridge_guide"),
             NpcType(119, "null", internalName = "cws_doomsayer"),
             NpcType(16804, "Mikasi", internalName = "mikasi_lumbridge_diary"),
+            NpcType(3019, "Spider", internalName = "spider"),
         )
         val result = NpcSpawnFile.parse(file("lumbridge-castle.json"), castle, "lumbridge-castle.json")
         assertEquals(emptyList(), result.unknown)
         val spawns = result.spawns
-        assertEquals(28, spawns.size)
+        assertEquals(32, spawns.size)
+        // The cellar's four spiders, on mejrs's tiles (Misthalin bosses step 3).
+        val spiders = spawns.filter { it.type.id == 3019 }
+        assertEquals(listOf(Tile(3209, 9618), Tile(3211, 9621), Tile(3216, 9616), Tile(3216, 9624)), spiders.map { Tile(it.x, it.z) })
         assertEquals(10, spawns.count { it.type.id == 2854 }, "rats")
         assertEquals(5, spawns.count { it.level == 1 })
         val hans = spawns.single { it.type.id == 3105 }
@@ -778,8 +782,19 @@ class NpcSpawnFileTest {
             .map { (id, name) -> NpcType(id, "Ghost", internalName = name) }.toTypedArray(),
         NpcType(3565, "Skeleton", internalName = "draynor_skeleton"), NpcType(2854, "Rat", internalName = "rat"),
         NpcType(3562, "Professor Oddenstein", internalName = "professor_oddenstein"), NpcType(4409, "Witch", internalName = "anma_witch"),
-        NpcType(4407, "Ava", internalName = "anma_assistant"),
+        NpcType(4407, "Ava", internalName = "anma_assistant"), NpcType(3019, "Spider", internalName = "spider"),
     )
+
+    @Test
+    fun `Draynor Manor's basement has mejrs's nine rats and four spiders`() {
+        val result = NpcSpawnFile.parse(file("draynor-manor.json"), manorTypes, "draynor-manor.json")
+        assertEquals(emptyList(), result.unknown)
+        val basement = result.spawns.filter { it.x in 3093..3116 && it.z in 9745..9765 }
+        assertEquals(9, basement.count { it.type.id == 2854 })
+        assertEquals(4, basement.count { it.type.id == 3019 })
+        assertEquals(13, basement.size)
+        assertTrue(basement.all { it.level == 0 && it.wander > 0 && it.source.isNotBlank() })
+    }
 
     @Test
     fun `Draynor Manor's inside has five ghosts upstairs, the closet's skeleton, two rats and its three people, all kept indoors`() {
@@ -901,10 +916,12 @@ class NpcSpawnFileTest {
             1311 to "donkey_bartender", 1312 to "bluemoon_bartender", 2895 to "fai_varrock_bluemoon_chef",
             2896 to "fai_varrock_jollyboar_chef", 5037 to "romeo", 5035 to "juliet", 5039 to "draul_leptoc", 5040 to "phillipa",
             7723 to "gertrude_post", 3501 to "shilop", 3502 to "philop", 3503 to "wilough", 3504 to "kanel", 11868 to "aris",
-            5209 to "tramppg", 3255 to "tramp", 16277 to "dr_harlow_vis", 14139 to "jonny_the_beard_2op", 2899 to "varrock_granny_1",
+            5209 to "tramppg", 3255 to "tramp", 16277 to "dr_harlow_vis", 14138 to "jonny_the_beard_1op", 2899 to "varrock_granny_1",
             276 to "pmod_town_crier_varrock",
             4984 to "dimintheis", 5445 to "johnathon_fitzharmon_2ops", 10425 to "daddyshome_daddy",
             5214 to "curator", 1909 to "vm_info_booth_lady", 1910 to "vm_museum_guard", 1912 to "vm_museum_guard3",
+            1903 to "vm_archaeologist1_npc_dummy", 1904 to "vm_archaeologist2_npc_dummy", 1905 to "vm_archaeologist3_npc_dummy",
+            1906 to "vm_archaeologist4_npc_dummy", 1907 to "vm_archaeologist5_npc_dummy", 1908 to "vm_archaeologist6_npc_dummy",
             1901 to "vm_art_critic", 1902 to "vm_timeline_historian", 1913 to "vm_school_teacher_male_and_boy",
             1914 to "vm_school_girl_brunette", 1919 to "vm_school_boy_brunnete", 1920 to "vm_school_boy_blonde",
             1921 to "vm_school_girl_blonde", 1922 to "vm_teacher_girl_multi", 6001 to "vm_nathis_apprentice",
@@ -923,7 +940,7 @@ class NpcSpawnFileTest {
             16812 to "deadman_nigel_varrock", 16811 to "clue_hunter_arthur", 5449 to "ge_expert_herbs",
             2152 to "ge_boss", 5450 to "ge_expert_runes", 5451 to "ge_expert_logs", 5452 to "ge_expert_combat", 3115 to "ge_expert_ores",
             1110 to "guidor", 1106 to "gambler2", 4574 to "vc_pox", 4588 to "vc_hooknosed_jack", 4162 to "surok_annajones",
-            3225 to "aide_tutor_smithing_master", 10415 to "con_contract_client_2", 10414 to "con_contract_client_1",
+            16816 to "sani", 10415 to "con_contract_client_2", 10414 to "con_contract_client_1",
             10416 to "con_contract_client_3", 5042 to "romeo_juliet_pew_sleeping_man", 5921 to "rooftops_bigredjapan",
             5525 to "toby_varrock_diary", 5885 to "bond_james_bond", 10733 to "boardgames_barmaid3", 5211 to "weaponsmaster",
         )
@@ -979,7 +996,7 @@ class NpcSpawnFileTest {
         assertEquals(listOf(1310, 1311, 1312, 2895, 2896), inns.map { it.type.id }.sorted())
         assertTrue(inns.all { it.restrict == MoveRestrict.INDOORS })
         // Step 8a: one of each townsperson, the multi-NPCs as the types they show after their quests; Iffie sits still.
-        val townsfolk = listOf(276, 2899, 3255, 3501, 3502, 3503, 3504, 5035, 5037, 5039, 5040, 5209, 7723, 11868, 14139, 16277)
+        val townsfolk = listOf(276, 2899, 3255, 3501, 3502, 3503, 3504, 5035, 5037, 5039, 5040, 5209, 7723, 11868, 14138, 16277)
         assertEquals(townsfolk, spawns.filter { it.type.id in townsfolk }.map { it.type.id }.sorted())
         val iffie = spawns.single { it.type.id == 2899 }
         assertEquals(0, iffie.wander)
@@ -993,6 +1010,10 @@ class NpcSpawnFileTest {
         assertTrue(museum.all { it.x in 3252..3267 && it.z in 3441..3456 })
         val museumStill = museum.filter { it.type.id != 5214 }
         assertTrue(museumStill.all { it.wander == 0 })
+        // Kudos step 1: the cleaning area's six archaeologists, standing at their tables.
+        val archaeologists = spawns.filter { it.type.id in 1903..1908 }
+        assertEquals((1903..1908).toList(), archaeologists.map { it.type.id }.sorted())
+        assertTrue(archaeologists.all { it.x in 3252..3267 && it.z in 3441..3446 && it.wander == 0 })
         // Step 9b: the museum's other people; the Natural History floor (map square 27,77) has its four historians, two
         // of each, Orlando Smith and the twelve animal displays, which stand still.
         val basement = spawns.filter { it.x in 1728..1791 && it.z in 4928..4991 }
@@ -1024,7 +1045,7 @@ class NpcSpawnFileTest {
         // sweep's sick Guidor, the sleeping Jeremy Clerksin and BigRedJapan on the rooftops.
         val still = spawns.filter { it.type.id in listOf(16811, 1110, 5042, 5921) }.toSet()
         assertEquals(4, still.size)
-        assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - museumStill.toSet() - displays.toSet() - elsie - iffie - still).all { it.wander > 0 })
+        assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - museumStill.toSet() - archaeologists.toSet() - displays.toSet() - elsie - iffie - still).all { it.wander > 0 })
     }
 
     @Test
@@ -1062,5 +1083,107 @@ class NpcSpawnFileTest {
             "vallessia_dracyula", "vallessia_von_pitt", "vampyressa_van_von", "vampyrus_diaemus", "violetta_sanguine",
             "vlad_bechstein", "vlad_diaemus", "von_van_von", "vonnetta_varnis", "vormar_vakan",
         )
+    }
+
+    @Test
+    fun `Hunter step 1's birds are in the live Hunter areas they are snared in`() {
+        val names = mapOf(5548 to "multicoloured_bird", 5549 to "hunting_bird_jungle", 5550 to "hunting_bird_polar", 5551 to "hunting_bird_desert", 5552 to "hunting_bird_woodland")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("hunter-birds.json"), types, "hunter-birds.json")
+        assertEquals(emptyList(), result.unknown)
+        fun of(id: Int) = result.spawns.filter { it.type.id == id }
+        assertEquals(listOf(12, 15, 13, 10, 15), (5548..5552).map { of(it).size })
+        // Feldip (swifts and wagtails), Rellekka (twitches, some on its upper ledges), Uzer (warblers), Piscatoris (longtails).
+        assertTrue((of(5548) + of(5549)).all { it.x in 2490..2620 && it.z in 2880..2940 && it.level == 0 })
+        assertTrue(of(5550).all { it.x in 2700..2740 && it.z in 3760..3840 })
+        assertTrue(of(5551).all { it.x in 3390..3410 && it.z in 3080..3160 })
+        assertTrue(of(5552).all { it.x in 2300..2370 && it.z in 3580..3610 })
+        assertTrue(result.spawns.all { it.wander == 4 && it.source.isNotBlank() })
+    }
+
+    @Test
+    fun `Hunter step 2's box trap creatures are in Piscatoris and the Feldip Hills`() {
+        val names = mapOf(1505 to "hunting_ferret", 2910 to "hunting_chinchompa", 2911 to "hunting_chinchompa_big")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("hunter-box-traps.json"), types, "hunter-box-traps.json")
+        assertEquals(emptyList(), result.unknown)
+        fun of(id: Int) = result.spawns.filter { it.type.id == id }
+        assertEquals(listOf(9, 22, 26), listOf(of(1505).size, of(2910).size, of(2911).size))
+        assertTrue((of(1505) + of(2910)).all { it.x in 2300..2370 && it.z in 3490..3630 })
+        // Carnivorous chinchompas on the surface of the Feldip Hunter area and in the hunting ground under it.
+        assertTrue(of(2911).all { it.x in 2490..2560 && (it.z in 2880..2940 || it.z in 9280..9310) })
+        assertTrue(result.spawns.all { it.wander == 4 && it.level == 0 && it.source.isNotBlank() })
+    }
+
+    @Test
+    fun `Hunter step 3's salamanders are by their young trees`() {
+        val names = mapOf(2906 to "salamander_green", 2903 to "salamander_orange", 2904 to "salamander_red")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("hunter-net-traps.json"), types, "hunter-net-traps.json")
+        assertEquals(emptyList(), result.unknown)
+        fun of(id: Int) = result.spawns.filter { it.type.id == id }
+        assertEquals(listOf(35, 24, 15), listOf(of(2906).size, of(2903).size, of(2904).size))
+        // Canifis and Slepe; Uzer, the Necropolis and the Abalone Cliffs; Ourania and Charred Island.
+        assertTrue(of(2906).all { it.x in 3530..3710 && it.z in 3390..3460 })
+        assertTrue(of(2903).all { (it.x in 3400..3420 && it.z in 3070..3140) || (it.x in 3280..3290 && it.z in 2735..2745) || (it.x in 3115..3130 && it.z in 2520..2540) })
+        assertTrue(of(2904).all { (it.x in 2440..2480 && it.z in 3215..3255) || (it.x == 2644 && it.z == 2401) })
+        assertTrue(result.spawns.all { it.wander == 4 && it.level == 0 && it.source.isNotBlank() })
+    }
+
+    @Test
+    fun `Hunter step 4's kebbits are by their boulders`() {
+        val names = mapOf(1349 to "huntingbeast_claws", 1348 to "huntingbeast_barbedtail", 1346 to "huntingbeast_spiky", 1347 to "huntingbeast_sabreteeth")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("hunter-deadfalls.json"), types, "hunter-deadfalls.json")
+        assertEquals(emptyList(), result.unknown)
+        fun of(id: Int) = result.spawns.filter { it.type.id == id }
+        assertEquals(listOf(32, 15, 20, 12), listOf(of(1349).size, of(1348).size, of(1346).size, of(1347).size))
+        // Piscatoris (and Auburnvale), Feldip, Piscatoris, Rellekka.
+        assertTrue(of(1349).all { (it.x in 2300..2370 && it.z in 3520..3580) || (it.x in 1375..1400 && it.z in 3380..3400) })
+        assertTrue(of(1348).all { it.x in 2560..2590 && it.z in 2880..2935 })
+        assertTrue(of(1346).all { it.x in 2300..2350 && it.z in 3590..3650 })
+        assertTrue(of(1347).all { it.x in 2700..2725 && it.z in 3760..3785 })
+        assertTrue(result.spawns.all { it.wander == 4 && it.level == 0 && it.source.isNotBlank() })
+    }
+
+    @Test
+    fun `Hunter step 5's pitfall creatures are by their pits`() {
+        val names = mapOf(2908 to "hunting_jaguar", 2909 to "hunting_leopard", 2907 to "hunting_snow_tiger", 13133 to "sunlight_antelope", 13132 to "moonlight_antelope")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("hunter-pitfalls.json"), types, "hunter-pitfalls.json")
+        assertEquals(emptyList(), result.unknown)
+        fun of(id: Int) = result.spawns.filter { it.type.id == id }
+        assertEquals(listOf(5, 4, 6, 9, 4), listOf(of(2908).size, of(2909).size, of(2907).size, of(13133).size, of(13132).size))
+        // Feldip, Karamja, Rellekka, the Avium Savannah, the Burrow.
+        assertTrue(of(2908).all { it.x in 2540..2580 && it.z in 2880..2915 })
+        assertTrue(of(2909).all { it.x in 2760..2790 && it.z in 2995..3015 })
+        assertTrue(of(2907).all { it.x in 2690..2745 && it.z in 3775..3800 })
+        assertTrue(of(13133).all { it.x in 1730..1760 && it.z in 2995..3020 })
+        assertTrue(of(13132).all { it.x in 1550..1570 && it.z in 9410..9425 })
+        assertTrue(result.spawns.all { it.wander == 4 && it.level == 0 && it.source.isNotBlank() })
+    }
+
+    @Test
+    fun `Hunter step 6a's butterflies and moths are where the Wiki has them`() {
+        val names = mapOf(5556 to "butterfly_ruby", 5555 to "butterfly_glacialis", 5554 to "butterfly_snowy", 5553 to "butterfly_warlock", 12770 to "moth_sunlight", 12771 to "moth_moonlight")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("hunter-butterflies.json"), types, "hunter-butterflies.json")
+        assertEquals(emptyList(), result.unknown)
+        fun of(id: Int) = result.spawns.filter { it.type.id == id }
+        assertEquals(listOf(62, 21, 26, 39, 86, 91), names.keys.map { of(it).size })
+        // Piscatoris has 22 ruby harvests; the Rellekka upper ledge's snowy knights are on level 1.
+        assertEquals(22, of(5556).count { it.x in 2300..2370 && it.z in 3520..3620 })
+        assertEquals(3, of(5554).count { it.level == 1 })
+        assertTrue(result.spawns.all { it.wander == 4 && it.source.isNotBlank() })
+    }
+
+    @Test
+    fun `Hunter step 7's kebbits are where the Wiki has them, all inside the falconry area, with Matthias`() {
+        val names = mapOf(1340 to "hunting_npc_falconer", 5531 to "huntingbeast_speedy", 5532 to "huntingbeast_silent", 5533 to "huntingbeast_speedy2")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("hunter-falconry.json"), types, "hunter-falconry.json")
+        assertEquals(emptyList(), result.unknown)
+        assertEquals(listOf(1, 7, 7, 3), names.keys.map { id -> result.spawns.count { it.type.id == id } })
+        assertTrue(result.spawns.all { osrsps.game.skill.hunter.Falconry.inArea(it.x, it.z, it.level) && it.source.isNotBlank() })
     }
 }

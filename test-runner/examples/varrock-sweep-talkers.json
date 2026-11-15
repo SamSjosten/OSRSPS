@@ -92,7 +92,7 @@
    "step": "command",
    "text": "::tele 3171 3462 0",
    "expectMessage": "Teleported to 3171, 3462, 0",
-   "comment": "by James at the Grand Exchange's south-west entrance; the client shows him as bond_james_visible (8193), but the runner matches the base id 5885"
+   "comment": "by James at the Grand Exchange's south-west entrance"
   },
   {
    "step": "waitTicks",
@@ -100,9 +100,10 @@
   },
   {
    "step": "npcOption",
-   "npcId": 5885,
+   "npc": "James",
    "option": "Talk-to",
-   "timeoutMs": 20000
+   "timeoutMs": 20000,
+   "comment": "by name: the client shows bond_james_bond (5885) as bond_james_visible (8193), and the runner matches the shown id (215, 15 Nov)"
   },
   {
    "step": "assertDialogue",
@@ -133,6 +134,15 @@
    "step": "assertDialogue",
    "contains": "[james_bonds.what]",
    "comment": "back at his menu"
+  },
+  {
+   "step": "walk",
+   "x": 3173,
+   "y": 3462,
+   "comment": "walking off closes his menu, which has no way out (the Wiki); a command typed with it open never sends (215, 15 Nov)"
+  },
+  {
+   "step": "assertNoDialogue"
   },
   {
    "step": "command",
@@ -187,12 +197,12 @@
   {
    "step": "command",
    "text": "::npc weaponsmaster",
-   "expectMessage": "Spawned Weaponsmaster (5211)"
+   "expectMessage": "(5211) as #"
   },
   {
    "step": "command",
    "text": "::kill weaponsmaster",
-   "expectMessage": "Killed Weaponsmaster #"
+   "expectMessage": "Killed "
   },
   {
    "step": "assertAnimation",

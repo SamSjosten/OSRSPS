@@ -1,0 +1,21 @@
+{
+ "name": "Wilderness step W1.9: ::scenario pvp stands the player at level 10 Wilderness in rune with a scimitar and 20 sharks; ::skull gives, reports and takes a skull, ::pj says no PJ timer runs, and ::reset puts the account back",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::scenario pvp", "expectMessage": "Started scenario pvp."},
+  {"step": "assertLocation", "x": 3090, "y": 3592, "plane": 0, "comment": "level 10, north of Edgeville"},
+  {"step": "assertEquipment", "slot": "weapon", "item": "Rune scimitar"},
+  {"step": "assertEquipment", "slot": "body", "item": "Rune platebody"},
+  {"step": "assertInventory", "item": "Shark", "count": 20},
+  {"step": "assertInventory", "item": "Law rune", "count": 5, "comment": "with the death and chaos runes, five Tele Blocks"},
+  {"step": "command", "text": "::skull", "expectMessage": "You have no skull.", "comment": "the scenario clears one from before"},
+  {"step": "command", "text": "::skull on", "expectMessage": "You're skulled for 3000 ticks"},
+  {"step": "command", "text": "::skull", "expectMessage": "You're skulled:"},
+  {"step": "command", "text": "::skull off", "expectMessage": "Your skull is gone."},
+  {"step": "command", "text": "::pj", "expectMessage": "No PJ timer was running."},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were before ::scenario"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"}
+ ]
+}

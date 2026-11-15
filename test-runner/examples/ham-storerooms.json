@@ -21,11 +21,13 @@
   {"step": "locOption", "locId": 15759, "option": "Pick-lock", "x": 2576, "y": 5192},
   {"step": "assertMessage", "contains": "[ham_storerooms.door_pick_done]", "timeoutMs": 15000, "comment": "9 ticks"},
   {"step": "assertLocation", "x": 2576, "y": 5192, "plane": 0, "timeoutMs": 5000, "comment": "inside the room"},
+  {"step": "waitTicks", "ticks": 2, "comment": "the client draws the step through the door before it ends on the server, and a click sent in that gap is dropped (nightly 2026-11-15)"},
   {"step": "locOption", "locId": 15722, "option": "Open", "x": 2573, "y": 5193, "timeoutMs": 10000},
   {"step": "assertMessage", "contains": "[ham_storerooms.key_breaks key=steel]", "timeoutMs": 10000},
   {"step": "waitTicks", "ticks": 3, "comment": "the door never opened: the picker stepped through"},
   {"step": "locOption", "locId": 15759, "option": "Open", "x": 2576, "y": 5192, "timeoutMs": 10000},
   {"step": "assertLocation", "x": 2577, "y": 5192, "plane": 0, "timeoutMs": 5000, "comment": "out in the corridor, no pick"},
+  {"step": "waitTicks", "ticks": 2, "comment": "let the step out end first: a ::tele sent while it runs is undone when the step lands (217, 2026-11-15)"},
 
   {"step": "command", "text": "::tele 2569 5189 0", "expectMessage": "Teleported to 2569, 5189, 0", "comment": "the corridor south of the south-west room's crack"},
   {"step": "locOption", "locId": 15731, "option": "Squeeze-through", "x": 2569, "y": 5190},

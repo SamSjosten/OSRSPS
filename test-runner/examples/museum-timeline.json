@@ -1,0 +1,1096 @@
+{
+ "name": "Museum Kudos step 3 (::keys on): Historian Minas hears every quest story for the Timeline exhibit, with the five lamps; What Lies Below once the Dagon'hai history book is carried; then no new quests; and at 158 Kudos the Digsite's workers' gate guard lets the player through both ways. The museum-timeline scenario clears the timeline's varbits, so this repeats on one account, and ::reset puts them back",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle: a command typed straight away can be lost"
+  },
+  {
+   "step": "command",
+   "text": "::scenario museum-timeline",
+   "expectMessage": "Started scenario museum-timeline.",
+   "comment": "by Historian Minas, every Dig Site and natural history display done (78 Kudos), no story told"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 1902,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "Historian Minas"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas.hello"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas.welcome"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[historian_minas.information]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas.information_said"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas.information_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.demon_slayer_1",
+   "comment": "demon slayer"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.demon_slayer_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.shield_of_arrav_1",
+   "comment": "shield of arrav"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.shield_of_arrav_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.shield_of_arrav_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.shield_of_arrav_4"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.shield_of_arrav_5"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.shield_of_arrav_6"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.lamp"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.tat"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.lamp_welcome"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.lamp_received"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.rune_mysteries_1",
+   "comment": "rune mysteries"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.rune_mysteries_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.rune_mysteries_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.rune_mysteries_4"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.observatory_1",
+   "comment": "observatory"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.observatory_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.merlins_crystal_1",
+   "comment": "merlins crystal"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.merlins_crystal_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.merlins_crystal_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.merlins_crystal_4"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.merlins_crystal_5"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.merlins_crystal_6"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.merlins_crystal_7"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.merlins_crystal_8"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.lamp"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.tat"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.lamp_welcome"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.lamp_received"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.grand_tree_1",
+   "comment": "grand tree"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.grand_tree_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.grand_tree_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.grand_tree_4"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.grand_tree_5"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.grand_tree_6"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.priest_in_peril_1",
+   "comment": "priest in peril"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.priest_in_peril_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.priest_in_peril_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.priest_in_peril_4"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.myreque_1",
+   "comment": "myreque"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.myreque_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.myreque_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.myreque_4"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.two_cats_1",
+   "comment": "two cats"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.two_cats_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.two_cats_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.two_cats_4"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.two_cats_5"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.two_cats_6"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.two_cats_7"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.two_cats_8"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.two_cats_9"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.making_history_1",
+   "comment": "making history"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.making_history_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.making_history_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.making_history_4"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.making_history_5"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.making_history_6"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.lamp"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.tat"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.lamp_welcome"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.lamp_received"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.temple_of_ikov_1",
+   "comment": "temple of ikov"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.temple_of_ikov_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.temple_of_ikov_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.temple_of_ikov_4"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.curse_of_the_empty_lord_1",
+   "comment": "curse of the empty lord"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.curse_of_the_empty_lord_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.curse_of_the_empty_lord_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.curse_of_the_empty_lord_4"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.curse_of_the_empty_lord_5"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.lamp"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.tat"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.lamp_welcome"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.lamp_received"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.hazeel_cult_1",
+   "comment": "hazeel cult"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.hazeel_cult_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.hazeel_cult_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.hazeel_cult_4"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.hazeel_cult_5"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.hazeel_cult_6"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.hazeel_cult_7"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.what_lies_below_1",
+   "comment": "what lies below"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.what_lies_below_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.what_lies_below_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.what_lies_below_4"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.what_lies_below_5"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.what_lies_below_6"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.what_lies_below_7"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.what_lies_below_no_book_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.what_lies_below_no_book_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.what_lies_below_no_book_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.what_lies_below_no_book_4"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.defender_of_varrock_1",
+   "comment": "defender of varrock"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.defender_of_varrock_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.defender_of_varrock_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.defender_of_varrock_4"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.defender_of_varrock_5"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.lamp_dov"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.tat"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.lamp_welcome"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.lamp_received"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3637,
+   "value": 153,
+   "comment": "vm_kudos: 78 and 75 for every story but What Lies Below"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3650,
+   "value": 2,
+   "comment": "vm_staff_of_armadyl: Temple of Ikov, then Curse of the Empty Lord"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3651,
+   "value": 2,
+   "comment": "vm_salveknights: Priest in Peril, then In Aid of the Myreque"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3660,
+   "value": 0,
+   "comment": "vm_surok: What Lies Below waits for the book"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Antique lamp",
+   "count": 5,
+   "comment": "Shield of Arrav's, Merlin's Crystal's, Making History's, Curse of the Empty Lord's and Defender of Varrock's"
+  },
+  {
+   "step": "command",
+   "text": "::item 11001",
+   "comment": "surok_tome, Dagon'hai history"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Dagon'hai history",
+   "count": 1
+  },
+  {
+   "step": "npcOption",
+   "npcId": 1902,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "Historian Minas"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas.hello"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas.welcome"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[historian_minas.information]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas.information_said"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas.information_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.what_lies_below_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.what_lies_below_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.what_lies_below_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.what_lies_below_4"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.what_lies_below_5"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.what_lies_below_6"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.what_lies_below_7"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.what_lies_below_book_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.what_lies_below_book_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas_timeline.what_lies_below_book_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3637,
+   "value": 158,
+   "comment": "every story told: 80 for the timeline"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3660,
+   "value": 1
+  },
+  {
+   "step": "assertInventory",
+   "item": "Dagon'hai history",
+   "count": 0,
+   "comment": "he keeps the book"
+  },
+  {
+   "step": "npcOption",
+   "npcId": 1902,
+   "option": "Talk-to",
+   "timeoutMs": 20000,
+   "comment": "Historian Minas"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas.hello"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas.welcome"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[historian_minas.information]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas.information_said"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas.information_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas.no_new_quests"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas.no_matter"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[historian_minas.go_on"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3294 3428 0",
+   "expectMessage": "Teleported to 3294, 3428, 0",
+   "comment": "west of the Digsite's workers' gate, now with 158 Kudos"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Museum guard",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[digsite_barge.friend_of_the_museum"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "locOption",
+   "locId": 24560,
+   "option": "Open",
+   "x": 3296,
+   "y": 3428,
+   "timeoutMs": 10000,
+   "comment": "vm_fencegate_l: through, as a friend of the museum"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3296,
+   "y": 3428,
+   "plane": 0,
+   "timeoutMs": 10000,
+   "comment": "east of the gate"
+  },
+  {
+   "step": "locOption",
+   "locId": 24560,
+   "option": "Open",
+   "x": 3296,
+   "y": 3428,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3295,
+   "y": 3428,
+   "plane": 0,
+   "timeoutMs": 10000,
+   "comment": "back west"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were before ::scenario museum-timeline.",
+   "comment": "the museum's varbits, backpack and position as before the scenario"
+  }
+ ]
+}

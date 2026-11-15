@@ -19,6 +19,7 @@ import net.rsprot.protocol.game.outgoing.misc.player.ChatFilterSettings
 import net.rsprot.protocol.game.outgoing.misc.player.ChatFilterSettingsPrivateChat
 import net.rsprot.protocol.game.outgoing.misc.player.MessageGame
 import net.rsprot.protocol.game.outgoing.misc.player.SetMapFlagV2
+import net.rsprot.protocol.game.outgoing.misc.player.SetPlayerOp
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateRunEnergy
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateRunWeight
 import net.rsprot.protocol.game.outgoing.misc.player.UpdateStatV2
@@ -52,6 +53,9 @@ import osrsps.game.command.registerSeedCommands
 import osrsps.game.command.registerSkillCommands
 import osrsps.game.command.registerSocialCommands
 import osrsps.game.command.registerLodestoneCommands
+import osrsps.game.command.registerWildernessCommands
+import osrsps.game.command.registerFarmingCommands
+import osrsps.game.command.registerSlayerCommands
 import osrsps.game.command.registerXpRateCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
@@ -83,6 +87,8 @@ import osrsps.game.combat.Poison
 import osrsps.game.combat.StatusEffects
 import osrsps.game.combat.Potions
 import osrsps.game.combat.Prayers
+import osrsps.game.combat.PvpCombat
+import osrsps.game.combat.Skulls
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrains
 import osrsps.game.combat.LootNotifications
@@ -93,10 +99,12 @@ import osrsps.game.combat.RangedWeapons
 import osrsps.game.combat.SpecialAttacks
 import osrsps.game.combat.Spells
 import osrsps.game.combat.StatRestore
+import osrsps.game.combat.Teleblock
 import osrsps.game.content.DialogueLines
 import osrsps.game.content.Examines
 import osrsps.game.content.CustomVars
 import osrsps.game.content.HomeTeleport
+import osrsps.game.content.Kudos
 import osrsps.game.content.LodestoneNetwork
 import osrsps.game.content.message
 import osrsps.game.content.registerAdventurersCamp
@@ -129,6 +137,8 @@ import osrsps.game.content.registerHans
 import osrsps.game.content.registerArchiveLobby
 import osrsps.game.content.registerBanking
 import osrsps.game.content.registerShops
+import osrsps.game.content.SlayerMasters
+import osrsps.game.content.SlayerRewards
 import osrsps.game.content.Ducks
 import osrsps.game.content.registerCrops
 import osrsps.game.content.registerFredsFarm
@@ -138,7 +148,9 @@ import osrsps.game.content.registerLumbridgeTown
 import osrsps.game.content.registerAlKharid
 import osrsps.game.content.registerVarrock
 import osrsps.game.content.registerDraynorVillage
+import osrsps.game.content.WildernessDitch
 import osrsps.game.content.registerEdgeville
+import osrsps.game.content.registerWildernessDitch
 import osrsps.game.content.registerEdgevilleDungeon
 import osrsps.game.content.registerSkullSceptre
 import osrsps.game.content.registerStrongholdOfSecurity
@@ -166,6 +178,11 @@ import osrsps.game.content.registerWizardsTowerPeople
 import osrsps.game.content.registerJalarast
 import osrsps.game.content.registerRick
 import osrsps.game.content.registerBones
+import osrsps.game.content.GiantLairs
+import osrsps.game.content.registerGiantBones
+import osrsps.game.content.registerBryophyta
+import osrsps.game.content.registerEmotes
+import osrsps.game.content.registerObor
 import osrsps.game.content.registerRoguesDen
 import osrsps.game.content.registerRottenPotato
 import osrsps.game.content.registerCombatTutors
@@ -202,6 +219,7 @@ import osrsps.game.script.Handlers
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
 import osrsps.game.skill.BirdNests
+import osrsps.game.skill.Canoes
 import osrsps.game.skill.Firemaking
 import osrsps.game.skill.LightSources
 import osrsps.game.skill.LevelUps
@@ -218,6 +236,8 @@ import osrsps.game.skill.Mining
 import osrsps.game.skill.Pickpocketing
 import osrsps.game.skill.Agility
 import osrsps.game.skill.AgilityData
+import osrsps.game.skill.Slayer
+import osrsps.game.skill.SlayerData
 import osrsps.game.skill.Thieving
 import osrsps.game.skill.ThievingLocks
 import osrsps.game.skill.SkillUnlocks
@@ -302,6 +322,10 @@ class World(
     clansDir: Path? = null,
     /** The time clans are founded by (one a day per founder); tests move it. */
     clansClock: () -> java.time.Instant = java.time.Instant::now,
+    /** The real time crops grow by, ms since 1970 ([osrsps.game.skill.farming.FarmingClock]); tests move it. */
+    farmingClock: () -> Long = System::currentTimeMillis,
+    /** Whether crops fall ill on their own; tests of other farming turn it off and make crops ill with `::farmdisease`. */
+    farmingDiseases: Boolean = true,
     /** Who may run the commands that change the world for everyone. */
     val admins: Admins = Admins.EVERYONE,
     /** The combat tab's attack styles by weapon category, from the cache; tests get unarmed only. */
@@ -350,6 +374,8 @@ class World(
     specialAttackCosts: Map<Int, Int> = emptyMap(),
     /** The Agility obstacles ([Agility]); tests that cross their own pass them. */
     agilityData: AgilityData = AgilityData.load(),
+    /** Slayer's tasks, masters and rewards, from the cache ([osrsps.cache.SlayerLoader]); tests that slay pass their own. */
+    slayerData: SlayerData = SlayerData.NONE,
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
 ) : GameConnectionHandler<Player> {
@@ -398,6 +424,9 @@ class World(
     /** What NPCs do on their own: timers, per-tick actions and deaths that content gives them; see [NpcScripts]. */
     val npcScripts = NpcScripts(npcs) { tick }
 
+    /** The giant bosses' lairs ([GiantLairs]): Obor's. */
+    val giantLairs = GiantLairs(this)
+
     val scripts = ScriptRunner(handlers, interfaces::closeModals) { tick }
 
     /** Items on the ground: drops, takes, their timers and item spawns. */
@@ -416,12 +445,17 @@ class World(
         taken = { taker, owner, obj -> archiveRaids.supplies.pickedUp(taker, owner, findPlayer(owner), obj.id, obj.count) },
     )
 
-    private val equipment = Equipment(objTypes, wearRequirements)
+    val equipment = Equipment(objTypes, wearRequirements)
     private val itemWeights = ItemWeights(objTypes)
     private val graceful = Graceful(objTypes)
 
     /** Melee combat with NPCs; see [Combat]. */
-    val combat = Combat(equipment, attackStyles, npcCombat, rangedWeapons, prayerBoosts = { prayers.boosts(it) })
+    val combat = Combat(
+        equipment, attackStyles, npcCombat, rangedWeapons, prayerBoosts = { prayers.boosts(it) },
+        slayerHelm = { player, npc -> slayer.helm(player, npc) },
+        notYours = { player, npc -> slayer.superiors.barred(player, npc) },
+        ownSuperior = { player, npc -> slayer.superiors.owns(player, npc) },
+    )
 
     /** The prayer book; see [Prayers]. */
     val prayers = Prayers(
@@ -436,7 +470,7 @@ class World(
     /** The drop item warning setting; see [DropWarnings]. */
     private val dropWarnings = DropWarnings(objTypes, scripts, { dialogues }) { player, slot -> groundObjs.drop(player, slot) }
 
-    private val inventoryTab: InventoryTab = InventoryTab(
+    internal val inventoryTab: InventoryTab = InventoryTab(
         objTypes, scripts, interfaces::closeModals,
         wear = { player, slot -> equipmentTab.wear(player, slot) },
         onDrop = dropWarnings::drop,
@@ -549,7 +583,7 @@ class World(
 
     private val locInteractions = LocInteractions(
         locs, collision, movement, handlers, scripts, doors, gates, words = ::textFor, inInstance = { x, z -> instances.at(x, z) != null },
-        forInstances = { it in ArchiveRaids.INSTANCE_LOCS },
+        forInstances = { it in ArchiveRaids.INSTANCE_LOCS || it in GiantLairs.INSTANCE_LOCS },
     )
 
     /** Lets loc type [id] be used from the tiles [tiles] gives, as a stepping stone from the bank; see [LocInteractions.useFrom]. */
@@ -576,12 +610,17 @@ class World(
         multi = multiCombat, protects = prayers::protects, hasPrayer = prayers::has, prayersOff = prayers::deactivateAll,
         words = ::textFor,
         npcDied = { npcScripts.died(it) },
+        npcKilled = { npc, killer -> slayer.killed(npc, killer) },
         poisonNpc = { npc, severity -> poison.poison(npc, severity) }, envenomNpc = { poison.envenom(it) },
         poisonPlayer = { player, severity -> poison.poison(player, severity) },
         special = { specialAttacks.use(it, combat.weapon(it)) },
         specialLanded = { npc, dealt, special -> specialAttacks.landed(npc, dealt, special) },
         projectile = zones::projectile,
-        npcDamaged = { npc, player, dealt -> archiveRaids.damaged(npc, player, dealt) },
+        npcDamaged = { npc, player, dealt ->
+            archiveRaids.damaged(npc, player, dealt)
+            slayer.damaged(npc, player, dealt)
+            osrsps.game.content.Bryophyta.damaged(this, npc, player)
+        },
     )
 
     /** Aggressive NPCs going for players, and players' tolerance; see [Aggression]. */
@@ -604,6 +643,13 @@ class World(
         projectile = zones::projectile,
         face = { player, npc -> npcInteractions.face(player, npc) }, stopFacing = { npcInteractions.stopFacing(it) },
         multi = multiCombat, poweredStaves = poweredStaves, words = ::textFor,
+    )
+
+    /** Players fighting players in the Wilderness; see [PvpCombat]. */
+    val pvpCombat = PvpCombat(
+        collision, movement, combat, meleeCombat, rangedCombat, magicCombat, random, { tick },
+        inWorld = { players[it.index] === it && !it.loggedOut }, words = ::textFor, protects = prayers::protects,
+        multi = multiCombat, players = { players.asSequence().filterNotNull() },
     )
 
     /** Home Teleport; see [HomeTeleport]. Its target is a seam the lodestone network takes ([registerLodestones]). */
@@ -640,6 +686,18 @@ class World(
             }
         },
         takeFromBank = { player, id, count -> bank.take(player.bank, bankScreen.tabs(player), id, count) },
+        // The killer credited gets their PJ timer, though a monster's hit finished the victim.
+        killerOf = { victim -> pvpCombat.killerOf(victim)?.also { pvpCombat.credited(victim, it) } },
+        // The victim's, seen by the killer alone at first: a pickup is a hand-over, which saves the victim with the
+        // taker. Never merged into a stack already there, so the loot keeps its own timers.
+        dropForKiller = { victim, killer, type, count, x, z, level ->
+            groundObjs.addPrivate(
+                type, count, x, z, level, killer, Deaths.PVP_LOOT_PRIVATE_TICKS, Deaths.PVP_LOOT_DESPAWN_TICKS,
+                neverPublic = false, droppedBy = victim.saveKey, merge = false,
+            )
+        },
+        // Saved with the lost items out, before they go down for the killer (see dropForKiller).
+        saveNow = ::save,
     )
 
     /**
@@ -765,8 +823,17 @@ class World(
     }
 
     val woodcutting = Woodcutting(this, WoodcuttingData.load(), birdNests)
+    val farming = osrsps.game.skill.farming.Farming(this, farmingClock, farmingDiseases)
+
+    /** The River Lum's canoe stations; see [Canoes]. */
+    val canoes = Canoes(this, woodcutting.data)
+
+    /** Runecraft's ruins, talismans, tiaras and altars; see [osrsps.game.skill.Runecraft]. */
+    val runecraft = osrsps.game.skill.Runecraft(this)
 
     val firemaking = Firemaking(this, collision)
+
+    val hunter = osrsps.game.skill.hunter.Hunter(this, collision)
 
     val mining = Mining(this)
     val thieving = Thieving(this, collision)
@@ -776,6 +843,15 @@ class World(
     val wallBeasts = WallBeasts(this)
     val pickpocketing = Pickpocketing(this)
     val agility = Agility(this, agilityData)
+
+    /** Slayer tasks: kills, XP and the enchanted gem; see [Slayer]. */
+    val slayer = Slayer(this, slayerData)
+
+    /** The Slayer masters' Talk-to and Assignment; see [SlayerMasters]. */
+    val slayerMasters = SlayerMasters(this)
+
+    /** The Slayer rewards screen (Slayer step 4). */
+    val slayerRewards = SlayerRewards(this)
 
     val fishing = Fishing(this)
 
@@ -847,6 +923,9 @@ class World(
         registerSkillCommands { phase != null }
         registerXpRateCommands(this@World)
         registerLodestoneCommands(this@World)
+        registerWildernessCommands(this@World)
+        registerFarmingCommands(this@World)
+        registerSlayerCommands(this@World)
         registerSeedCommands(this@World)
         registerScriptCommands(this@World)
         registerZoneCommands(this@World, collision)
@@ -926,6 +1005,7 @@ class World(
         registerChurch(this)
         registerAlKharid(this)
         registerEdgeville(this)
+        registerWildernessDitch(this)
         registerEdgevilleShops(this)
         registerEdgevillePeople(this)
         registerEdgevilleMonastery(this)
@@ -939,6 +1019,11 @@ class World(
         registerVarrock(this)
         registerArchiveLobby(this)
         archiveRaids.register()
+        // After the raid, which sets the combat's shut-out rule afresh; the lairs add theirs to it.
+        registerObor(this, giantLairs)
+        registerBryophyta(this, giantLairs)
+        registerEmotes(this)
+        registerGiantBones(this)
         registerRoguesDen(this)
         registerCrops(this)
         ducks.register()
@@ -950,13 +1035,19 @@ class World(
         interfaces.onClose(PriceChecker.MAIN, priceChecker::closed)
         interfaces.onClose(Trades.CONFIRM, trades::decline)
         woodcutting.register()
+        farming.register()
+        canoes.register()
         birdNests.register()
         firemaking.register()
+        hunter.register()
         LightSources.register(this)
         mining.register()
         thieving.register()
         pickpocketing.register()
         agility.register()
+        slayer.register()
+        slayerMasters.register()
+        slayerRewards.register()
         fishing.register()
         cooking.register()
         smithing.register()
@@ -966,6 +1057,7 @@ class World(
         decanting.register()
         teleports.register()
         boltEnchant.register()
+        runecraft.register()
         loadDialogue()
     }
 
@@ -1281,6 +1373,7 @@ class World(
             // phases, and before both of the movement phase's combat checks, so they see the same value.
             if (player.wearyTicks > 0) player.wearyTicks--
             if (player.rootedTicks > 0) player.rootedTicks--
+            pvpCombat.countDown(player)
         }
         endEmptyInstances()
         groundObjs.process()
@@ -1307,7 +1400,12 @@ class World(
         encounters.process()
         archiveRaids.process()
         thieving.process()
+        slayer.superiors.process()
+        // Before NPCs move, so a creature a trap lures this tick takes its first step this tick.
+        hunter.process()
         npcs.process()
+        // After NPCs move, so a creature that steps onto a trap is rolled for the tick it arrives.
+        hunter.arrivals()
         fishing.process()
         shopScreen.restock(tick)
         phase = TickPhase.SCRIPTS
@@ -1323,6 +1421,7 @@ class World(
             // Outside a player's own scripts, so a failure here would otherwise skip the rest of the tick for everyone.
             perPlayer(player, "Grand Exchange") { grandExchange.process(player) }
             perPlayer(player, "Clans") { clans.process(player) }
+            perPlayer(player, "farming") { farming.process(player) }
         }
         phase = TickPhase.MOVEMENT
         // Guessed place in the tick: before anyone walks, so a door that closes itself blocks this tick's steps.
@@ -1344,6 +1443,8 @@ class World(
 
     /** One player's part of the movement phase. */
     private fun movePhase(player: Player) {
+        // Other players' hits whose tick has come; see PvpCombat.land.
+        pvpCombat.land(player)
         interfaces.processFrameMove(player, tick)
         sendWeight(player)
         // Before the interactions, so a loc or NPC used this tick can still turn the player after a follow ends;
@@ -1365,6 +1466,31 @@ class World(
         }
         player.infos.updateRootCoord(player.level, player.x, player.z)
         sendMultiIndicator(player)
+        sendWilderness(player)
+        sendSkull(player)
+    }
+
+    /** Shows or hides [player]'s skull head icon ([Skulls]) when it changes. */
+    private fun sendSkull(player: Player) {
+        val icon = Skulls.icon(player)
+        if (icon == player.sentSkullIcon) return
+        player.sentSkullIcon = icon
+        player.infos.playerInfo.avatar.extendedInfo.setSkullIcon(icon)
+    }
+
+    /**
+     * Opens or closes the Wilderness overlay and sets varbit inside_wilderness for where [player] now stands, each tick
+     * as [sendMultiIndicator] does; both only go out when they change. The varbit is the one RuneLite reads as
+     * `Varbits.IN_WILDERNESS`. Inferred: live changes both on the step that crosses the edge.
+     */
+    private fun sendWilderness(player: Player) {
+        val inside = Wilderness.inside(player.x, player.z)
+        interfaces.showWildernessOverlay(player, inside)
+        player.vars.setVarbitIfKnown(VARBIT_INSIDE_WILDERNESS, if (inside) 1 else 0)
+        if (player.attackOp != inside) {
+            player.attackOp = inside
+            player.session.queue(SetPlayerOp(PlayerOps.ATTACK, false, PlayerOps.ATTACK_TEXT.takeIf { inside }))
+        }
     }
 
     /**
@@ -1453,6 +1579,7 @@ class World(
                         player.weaponSince = tick
                     }
                     specialAttacks.weaponChanged(player, weapon)
+                    runecraft.wornChanged(player)
                 }
                 equipmentTab.updateVars(player)
                 bankScreen.updateVars(player)
@@ -1580,7 +1707,10 @@ class World(
             // a minute, and their standing request goes with it. Not checked against a live disconnect mid-trade.
             trades.leave(player)
         }
-        return tick - player.connectionLostTick >= LINGER_TICKS
+        // Not while a player is fighting them: pulling the cable mustn't take them out of a PvP fight, or a PvP death
+        // (exploit review R35A-4). Guessed: live keeps a disconnected player in combat in the world until it is over.
+        // A monster's fight doesn't hold them, as before: a boss fight whose starter's client went is called off.
+        return tick - player.connectionLostTick >= LINGER_TICKS && !inPvpCombat(player)
     }
 
     private fun acceptLogins() {
@@ -1644,6 +1774,14 @@ class World(
             specialAttacks.refill(it)
         }
         PlayerSave.fromJson(text).applyTo(player, inTick = phase != null)
+        // A canoe lasts until logout: a save without one (a restart's or an autosave before a crash) still has it
+        // (Codex review on #659).
+        canoes.forget(player)
+        // A logout ends a Tele Block, but the save holds its varbit's backing varp: cleared, or RuneLite would show a timer
+        // for a block the server no longer has (Codex review on #720).
+        player.vars.setVarbitIfKnown(Teleblock.VARBIT, 0)
+        // A pitfall shows by the player's own varbits; none stands after a logout.
+        hunter.pitfalls.forget(player)
         // A save from inside an instance, from before saves moved players to its exit, lands where no map is now.
         if (instances.inDynamicArea(player.x, player.z) && instances.at(player.x, player.z) == null) {
             player.x = SPAWN_X
@@ -1887,6 +2025,9 @@ class World(
     /** The player in the world under [name], matched the way save names are, or null. */
     fun playerNamed(name: String): Player? = SaveStore.saveKey(name)?.let(::findPlayer)
 
+    /** The player in the world whose save key is [saveKey], or null: for things a player owns, such as Hunter traps. */
+    fun playerBySaveKey(saveKey: String): Player? = findPlayer(saveKey)
+
     /** Everyone in the world, a dropped connection waiting for a reconnect included. */
     val onlinePlayers: List<Player> get() = players.filterNotNull()
 
@@ -1967,9 +2108,12 @@ class World(
         friendChats.resend(player)
         // A toggle's SET_PLAYER_OP may have been lost with the old connection.
         PlayerOps.send(player.vars, player.session::queue)
+        // That cleared Attack: the next movement phase gives it back if the player is inside the Wilderness.
+        player.attackOp = false
         clans.resync(player)
         rebuild(player)
         interfaces.resendClosesWhileAway(player)
+        interfaces.resendWildernessOverlay(player)
         interfaces.closeEmptyModalSlots(player)
     }
 
@@ -1988,6 +2132,7 @@ class World(
         for (slot in 0 until 5) appearance.setColour(slot, 0)
         sendRunState(player)
         PlayerOps.send(player.vars, player.session::queue)
+        player.attackOp = false
         allowChat(player)
         // Guessed: live sends the saved filters at login; a new account's are all on.
         sendChatFilters(player)
@@ -1995,6 +2140,7 @@ class World(
         friendLists.login(player)
         player.listsAfterMapBuild = true
         quests.completeAll(player.vars)
+        Kudos.login(player)
         lodestones.login(player)
         prayers.login(player)
         cooking.wine.login(player)
@@ -2091,6 +2237,10 @@ class World(
             clans.inviteOrAccept(player, target)
             return
         }
+        if (option == PlayerOps.ATTACK && player.attackOp) {
+            attackPlayer(player, clicked, ctrl)
+            return
+        }
         if (option != PlayerOps.FOLLOW && option != PlayerOps.TRADE && option != PlayerOps.REPORT || !PlayerOps.shown(player.vars, option)) {
             logger.info { "${player.username} sent op $option on player ${clicked?.username}, which has no such option" }
             return
@@ -2122,10 +2272,52 @@ class World(
     }
 
     /**
+     * Attack on [clicked] (Wilderness step W1.2): refused with [osrsps.game.combat.PvpRules]' lines when either player
+     * is outside the Wilderness's fighting ground or out of range; otherwise a fight with them in their style
+     * ([PvpCombat], steps W1.3 and W1.4). [ctrl] flips walk and run for the walk up to them, as for an NPC.
+     */
+    private fun attackPlayer(player: Player, clicked: Player?, ctrl: Boolean) {
+        scripts.interrupt(player)
+        player.interaction = null
+        npcInteractions.leave(player)
+        player.waypoints.clear()
+        val target = clicked?.takeIf { players[it.index] === it && it !== player }
+        if (target == null) {
+            player.session.queue(SetMapFlagV2.RESET)
+            return
+        }
+        player.invertRun = ctrl
+        val refusal = pvpCombat.attack(player, target)
+        if (refusal.isNotEmpty()) {
+            // Guessed, as for a walk with nowhere to go: the client's flag would otherwise stay up.
+            player.session.queue(SetMapFlagV2.RESET)
+            for (line in refusal) message(player, line)
+        }
+    }
+
+    /**
+     * A combat spell from the magic tab's [component] cast on [target] (Wilderness step W1.4): refused as Attack is
+     * ([attackPlayer]), otherwise a fight with them that casts it once ([PvpCombat.cast]).
+     */
+    private fun castOnPlayer(player: Player, target: Player, component: Int, ctrl: Boolean) {
+        scripts.interrupt(player)
+        player.interaction = null
+        npcInteractions.leave(player)
+        player.waypoints.clear()
+        // Ctrl held inverts walking and running on the way, as for Attack ([attackPlayer]).
+        player.invertRun = ctrl
+        val refusal = pvpCombat.cast(player, target, component)
+        if (refusal.isNotEmpty()) {
+            player.session.queue(SetMapFlagV2.RESET)
+            for (line in refusal) message(player, line)
+        }
+    }
+
+    /**
      * The player used something on the player at [index]: the item in slot [sub] of [interfaceId]:[componentId], or a
      * spell. Only inventory items are handled; see [InventoryTab.useOnPlayer].
      */
-    fun onPlayerTarget(player: Player, index: Int, interfaceId: Int, componentId: Int, sub: Int, obj: Int) {
+    fun onPlayerTarget(player: Player, index: Int, interfaceId: Int, componentId: Int, sub: Int, obj: Int, ctrl: Boolean = false) {
         // Looked up as the packet is read, as for an option on a player.
         val clicked = players.getOrNull(index)
         act(player) {
@@ -2134,6 +2326,10 @@ class World(
             val target = clicked?.takeIf { players[it.index] === it && it !== player }
             if (interfaceId == Clans.CREATION && componentId == Clans.CREATION_INVITE && target != null) {
                 clans.inviteOrAccept(player, target)
+                return@act
+            }
+            if (interfaceId == Spells.SPELLBOOK && target != null) {
+                castOnPlayer(player, target, componentId, ctrl)
                 return@act
             }
             if (interfaceId != InventoryTab.INTERFACE || componentId != InventoryTab.ITEMS || target == null) {
@@ -2594,9 +2790,10 @@ class World(
      * they are everyone's from the start (guessed).
      */
     fun dropLoot(npc: Npc, killer: Player?) {
-        val def = npcDrops[npc.type] ?: return
+        // A superior's three rolls on its normal counterpart's table come after its own drops.
+        val drops = npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty()
         val owner = killer?.takeIf { !it.loggedOut }?.saveKey
-        for (drop in def.roll(random)) {
+        for (drop in drops) {
             if (owner != null) {
                 groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, owner, GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.LOOT_DESPAWN_TICKS)
                 killer?.let { lootNotifications.dropped(it, drop.type, drop.count) }
@@ -2633,6 +2830,7 @@ class World(
         // Players walking to it give up in their next movement phase; see NpcInteractions.
         npcs.remove(npc)
         npcInteractions.removed(npc, players.asIterable())
+        slayer.removed(npc)
         npc.avatar?.let(network.npcAvatarFactory::release)
         npc.avatar = null
     }
@@ -2667,7 +2865,8 @@ class World(
     fun onResumePauseButton(player: Player, interfaceId: Int, componentId: Int, sub: Int) = act(player) {
         trades.interrupt(player)
         if (player.scripts.delayed) return@act
-        if (!dialogues.resume(player, interfaceId, componentId, sub) && !bankPinSettings.resume(player, interfaceId, componentId) &&
+        if (!dialogues.resume(player, interfaceId, componentId, sub) && !WildernessDitch.toggle(player, interfaceId, componentId) &&
+            !bankPinSettings.resume(player, interfaceId, componentId) &&
             !clans.reviewApplicant(player, interfaceId, componentId, sub)
         ) {
             logger.debug { "${player.username} continued $interfaceId:$componentId sub $sub, which nothing waits for" }
@@ -2979,6 +3178,7 @@ class World(
         meleeCombat.forgetArea(instance::contains)
         rangedCombat.forgetArea(instance::contains)
         firemaking.forgetArea(instance::contains)
+        hunter.traps.forgetArea(instance::contains)
         // A zone further each way, into the free square round the block: a door or gate on its edge opens onto the tile
         // beyond.
         val fromX = instance.baseX - ZoneKey.SIZE
@@ -3055,7 +3255,15 @@ class World(
     }
 
     /** Whether [player] was hit within the last [LOGOUT_COMBAT_TICKS], so can't log out. */
-    private fun inCombat(player: Player): Boolean = player.attackedTick >= 0 && tick - player.attackedTick < LOGOUT_COMBAT_TICKS
+    private fun inCombat(player: Player): Boolean =
+        (player.attackedTick >= 0 && tick - player.attackedTick < LOGOUT_COMBAT_TICKS) ||
+            (player.attackedByPlayerTick >= 0 && tick - player.attackedByPlayerTick < LOGOUT_COMBAT_TICKS) ||
+            // A player's swing still on its way counts already, so processing order can't let them log out from under it.
+            pvpCombat.incoming(player)
+
+    /** Whether a player hit [player] within the last [LOGOUT_COMBAT_TICKS], or a player's hit is on its way to them. */
+    private fun inPvpCombat(player: Player): Boolean =
+        (player.attackedByPlayerTick >= 0 && tick - player.attackedByPlayerTick < LOGOUT_COMBAT_TICKS) || pvpCombat.incoming(player)
 
     /** Saves and removes a player who logged out or whose wait for a reconnect is over. */
     private fun remove(player: Player) {
@@ -3076,6 +3284,8 @@ class World(
             swampCavesHazards.forget(player)
             caveGoblins.forget(player)
             wallBeasts.forget(player)
+            pvpCombat.forget(player)
+            canoes.forget(player)
             npcs.forget(player, scripts::busy)
             save(player)
         } finally {
@@ -3165,6 +3375,9 @@ class World(
 
         /** has_displayname_transmitter in RuneLite's VarbitID. */
         const val VARBIT_HAS_DISPLAYNAME = 8119
+
+        /** inside_wilderness (5963): 1 while the player is inside the Wilderness. */
+        const val VARBIT_INSIDE_WILDERNESS = 5963
 
         private val DEFAULT_IDENT_KITS = intArrayOf(0, 10, 18, 26, 33, 36, 42)
     }

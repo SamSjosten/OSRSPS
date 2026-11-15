@@ -1,0 +1,23 @@
+{
+  "about": "Hunter step 7: Matthias and the falconry kebbits in the Piscatoris falconry area. The kebbits' tiles are each one's OSRS Wiki location table; Matthias is where mejrs' NPC list (live) has him. Wander ranges are guessed (4 for kebbits, 2 for Matthias).",
+  "spawns": [
+    {"npc": "hunting_npc_falconer", "x": 2376, "z": 3606, "wander": 2, "source": "Matthias, Piscatoris falconry area. mejrs NPCList_OSRS.json (live)"},
+    {"npc": "huntingbeast_speedy", "x": 2391, "z": 3592, "wander": 4, "source": "Spotted kebbit, Piscatoris falconry area. OSRS Wiki, Spotted kebbit (read 2026-11-15)"},
+    {"npc": "huntingbeast_speedy", "x": 2370, "z": 3591, "wander": 4, "source": "Spotted kebbit, Piscatoris falconry area. OSRS Wiki, Spotted kebbit (read 2026-11-15)"},
+    {"npc": "huntingbeast_speedy", "x": 2370, "z": 3587, "wander": 4, "source": "Spotted kebbit, Piscatoris falconry area. OSRS Wiki, Spotted kebbit (read 2026-11-15)"},
+    {"npc": "huntingbeast_speedy", "x": 2384, "z": 3586, "wander": 4, "source": "Spotted kebbit, Piscatoris falconry area. OSRS Wiki, Spotted kebbit (read 2026-11-15)"},
+    {"npc": "huntingbeast_speedy", "x": 2379, "z": 3585, "wander": 4, "source": "Spotted kebbit, Piscatoris falconry area. OSRS Wiki, Spotted kebbit (read 2026-11-15)"},
+    {"npc": "huntingbeast_speedy", "x": 2372, "z": 3584, "wander": 4, "source": "Spotted kebbit, Piscatoris falconry area. OSRS Wiki, Spotted kebbit (read 2026-11-15)"},
+    {"npc": "huntingbeast_speedy", "x": 2382, "z": 3584, "wander": 4, "source": "Spotted kebbit, Piscatoris falconry area. OSRS Wiki, Spotted kebbit (read 2026-11-15)"},
+    {"npc": "huntingbeast_silent", "x": 2389, "z": 3598, "wander": 4, "source": "Dark kebbit, Piscatoris falconry area. OSRS Wiki, Dark kebbit (read 2026-11-15)"},
+    {"npc": "huntingbeast_silent", "x": 2368, "z": 3594, "wander": 4, "source": "Dark kebbit, Piscatoris falconry area. OSRS Wiki, Dark kebbit (read 2026-11-15)"},
+    {"npc": "huntingbeast_silent", "x": 2388, "z": 3590, "wander": 4, "source": "Dark kebbit, Piscatoris falconry area. OSRS Wiki, Dark kebbit (read 2026-11-15)"},
+    {"npc": "huntingbeast_silent", "x": 2368, "z": 3589, "wander": 4, "source": "Dark kebbit, Piscatoris falconry area. OSRS Wiki, Dark kebbit (read 2026-11-15)"},
+    {"npc": "huntingbeast_silent", "x": 2380, "z": 3581, "wander": 4, "source": "Dark kebbit, Piscatoris falconry area. OSRS Wiki, Dark kebbit (read 2026-11-15)"},
+    {"npc": "huntingbeast_silent", "x": 2365, "z": 3579, "wander": 4, "source": "Dark kebbit, Piscatoris falconry area. OSRS Wiki, Dark kebbit (read 2026-11-15)"},
+    {"npc": "huntingbeast_silent", "x": 2374, "z": 3575, "wander": 4, "source": "Dark kebbit, Piscatoris falconry area. OSRS Wiki, Dark kebbit (read 2026-11-15)"},
+    {"npc": "huntingbeast_speedy2", "x": 2390, "z": 3588, "wander": 4, "source": "Dashing kebbit, Piscatoris falconry area. OSRS Wiki, Dashing kebbit (read 2026-11-15)"},
+    {"npc": "huntingbeast_speedy2", "x": 2375, "z": 3578, "wander": 4, "source": "Dashing kebbit, Piscatoris falconry area. OSRS Wiki, Dashing kebbit (read 2026-11-15)"},
+    {"npc": "huntingbeast_speedy2", "x": 2367, "z": 3576, "wander": 4, "source": "Dashing kebbit, Piscatoris falconry area. OSRS Wiki, Dashing kebbit (read 2026-11-15)"}
+  ]
+}

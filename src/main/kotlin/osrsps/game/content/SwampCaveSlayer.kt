@@ -19,7 +19,7 @@ object SwampCaveSlayerLines : Lines("swamp_slayer", "OSRS Wiki, Rockslug, Bag of
  * The Lumbridge Swamp Caves' rockslugs (Misthalin piece 7 step 3b), from the OSRS Wiki's Rockslug and Bag of salt pages:
  * no hit takes one below 1 hitpoint ([osrsps.game.combat.NpcCombatDef.minHitpoints]), and down there it stops fighting
  * and wanders off. A bag of salt used on one at 4 or less finishes it; on one at 5 or more the bag is used up for
- * nothing; someone else's rockslug can't be salted in the single-way caves. A brine sabre wielded kills them outright ([osrsps.game.combat.Combat.finishers]).
+ * nothing; someone else's rockslug can't be salted in the single-way caves. A brine sabre's melee hit kills them outright ([osrsps.game.combat.Combat.finishers]).
  *
  * Guessed: the messages; no animation for the salting; no XP for the salt's kill. Out: the Slug salter perk (Slayer
  * rewards aren't built).
@@ -34,7 +34,8 @@ object Rockslugs {
 
 fun registerRockslugs(world: World) {
     for (slug in Rockslugs.SLUGS) {
-        world.combat.finishers[slug] = { player -> player.equipment[WearPos.WEAPON]?.id == Rockslugs.BRINE_SABRE }
+        // Inferred: the sabre's own swing finishes one (OSRS Wiki, Brine sabre); a spell or a shot landing while it is wielded doesn't.
+        world.combat.finishers[slug] = { player, type -> type?.melee == true && player.equipment[WearPos.WEAPON]?.id == Rockslugs.BRINE_SABRE }
         world.handlers.onObjOnNpc(slug, Rockslugs.BAG_OF_SALT) { op ->
             val npc = op.npc ?: return@onObjOnNpc
             if (npc.outOfPlay || world.npcs[npc.index] !== npc) return@onObjOnNpc

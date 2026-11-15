@@ -1,0 +1,22 @@
+{
+  "about": "Outside Bryophyta's lair in the Varrock Sewers, with a mossy key, rune melee gear, a bronze axe, 70 combat, 43 Prayer and lobsters.",
+  "notes": "Misthalin bosses step 2. On the sewer side of the lair's gate (Bryophyta.EXIT_TILE); Open on the gate takes the player in, unlocking it for good the first time (::varp giant_lairs 0 locks it again). Item 22374 is the mossy key. The loadout is ours, not a live one.",
+  "position": { "x": 3174, "z": 9900, "level": 0 },
+  "skills": { "attack": 70, "strength": 70, "defence": 70, "hitpoints": 70, "prayer": 43 },
+  "run": true,
+  "inventory": [
+    { "item": 22374, "count": 2 },
+    { "item": "bronze_axe" },
+    { "item": "lobster", "count": 20 }
+  ],
+  "equipment": [
+    { "item": "rune_full_helm" },
+    { "item": "amulet_of_strength" },
+    { "item": "rune_scimitar" },
+    { "item": "rune_chainbody" },
+    { "item": "rune_kiteshield" },
+    { "item": "rune_platelegs" },
+    { "item": "leather_gloves" },
+    { "item": "leather_boots" }
+  ]
+}

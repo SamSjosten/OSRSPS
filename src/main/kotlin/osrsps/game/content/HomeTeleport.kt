@@ -3,6 +3,7 @@ package osrsps.game.content
 import osrsps.game.Player
 import osrsps.game.Wilderness
 import osrsps.game.combat.Spellbook
+import osrsps.game.combat.Teleblock
 import osrsps.game.combat.Spells
 import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
@@ -95,9 +96,9 @@ class HomeTeleport(
             message(player, HomeTeleportLines.IN_COMBAT, emptyArray())
             return false
         }
-        if (wildernessLevel(player) > Wilderness.TELEPORT_LIMIT) {
-            message(player, HomeTeleportLines.WILDERNESS, emptyArray())
-            message(player, HomeTeleportLines.WILDERNESS_2, emptyArray())
+        val refusal = Teleblock.refusal(player, wildernessLevel(player))
+        if (refusal.isNotEmpty()) {
+            for (line in refusal) message(player, line, emptyArray())
             return false
         }
         if (cooldown) {
@@ -132,7 +133,8 @@ class HomeTeleport(
 
     /** Stage [elapsed] ticks into [cast], started on tick [started]; queues the next tick's. */
     private fun ScriptContext.step(cast: Cast, started: Long, elapsed: Int) {
-        if (player.attackedTick >= started) {
+        // Hit by a monster or a player since it began.
+        if (player.attackedTick >= started || player.attackedByPlayerTick >= started) {
             stop(player)
             return
         }

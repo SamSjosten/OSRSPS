@@ -99,6 +99,8 @@ class MeleeCombat(
     private val words: (Player) -> DialogueText = { DialogueText.NONE },
     /** Told of an NPC on the tick it is killed; see [osrsps.game.npc.NpcScripts.onDeath]. */
     private val npcDied: (Npc) -> Unit = {},
+    /** Told of an NPC on the tick it is killed and who finished it (null for no one), for Slayer ([osrsps.game.skill.Slayer.killed]). */
+    private val npcKilled: (Npc, Player?) -> Unit = { _, _ -> },
     /** Poisons an NPC at a severity, or envenoms it, as [Poison] does; false when it is immune or poisoned already. */
     private val poisonNpc: (Npc, Int) -> Unit = { _, _ -> },
     private val envenomNpc: (Npc) -> Unit = {},
@@ -261,6 +263,16 @@ class MeleeCombat(
         return other !== npc && !other.outOfPlay && npcs[other.index] === other && currentTick() - player.attackedNpcTick <= IN_COMBAT_TICKS
     }
 
+    /**
+     * Whether [player] attacked an NPC within the last [IN_COMBAT_TICKS] ticks and it still stands, wherever they are: the
+     * fight a player can't be attacked out of in single-way combat, even before the NPC hits back
+     * ([PvpCombat.singleWayRefusal]).
+     */
+    internal fun fightingNpc(player: Player): Boolean {
+        val other = player.attackedNpc ?: return false
+        return !other.outOfPlay && npcs[other.index] === other && currentTick() - player.attackedNpcTick <= IN_COMBAT_TICKS
+    }
+
     /** [player] made an attack on [npc] on [tick], whatever it does when it lands; see [fightingAnother]. */
     internal fun attackMade(player: Player, npc: Npc, tick: Long) {
         player.attackedNpc = npc
@@ -268,13 +280,23 @@ class MeleeCombat(
     }
 
     /**
-     * Whether an NPC other than [npc] is fighting [player] and hit them within the last [IN_COMBAT_TICKS] ticks. Never
-     * for a player standing in a multi-way area (guessed: by the player's tile).
+     * Whether an NPC other than [npc] is fighting [player] and hit them within the last [IN_COMBAT_TICKS] ticks, or a
+     * player is ([Player.pjUntil]). Never for a player standing in a multi-way area (guessed: by the player's tile), nor
+     * when [npc] is their own Slayer superior ([Combat.switchesSingleWay]), which makes the other NPC give up.
      */
     internal fun underAttackByAnother(player: Player, npc: Npc): Boolean {
         if (multi.at(player.level, player.x, player.z)) return false
+        // A player's PJ timer keeps monsters off them too (OSRS Wiki, PJ timer); see PvpCombat.singleWayRefusal.
+        if (player.pjOpponent != null && currentTick() < player.pjUntil) return true
         val other = player.attackedBy ?: return false
-        return other !== npc && other.target === player && !other.dead && currentTick() - player.attackedTick <= IN_COMBAT_TICKS
+        val fighting = other !== npc && other.target === player && !other.dead && currentTick() - player.attackedTick <= IN_COMBAT_TICKS
+        // Their own superior they may switch to, and the monster that was fighting them gives up (OSRS Wiki, Superior
+        // slayer monster).
+        if (fighting && combat.switchesSingleWay(player, npc)) {
+            giveUp(other)
+            return false
+        }
+        return fighting
     }
 
     private fun swing(player: Player, npc: Npc, tick: Long) {
@@ -355,14 +377,14 @@ class MeleeCombat(
         // down to its floor (a rockslug's 1 hitpoint pays nothing more). Nothing through its Protect from Melee
         // (Npc.protectsFromMelee), rolled as the prayer's flag stood at the swing.
         val landed = if (npc.protectsFromMelee) 0 else combat.rolledOn(player, npc, style.type, rolled)
-        val damage = minOf(armoured(npc, landed, magic = false), (npc.hitpoints - combat.floor(npc, player) - npc.incoming).coerceAtLeast(0))
+        val damage = minOf(armoured(npc, landed, magic = false), (npc.hitpoints - combat.floor(npc, player, style.type) - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage
         val bonus = combat.npcCombat[npc.type]?.xpBonusTenths ?: 0
         for (skill in style.xp) player.skills.addTenths(skill, CombatMath.withXpBonus(CombatMath.styleXpTenths(damage, style.xp.size), bonus))
         player.skills.addTenths(Skill.HITPOINTS, CombatMath.withXpBonus(CombatMath.hitpointsXpTenths(damage), bonus))
         val poison = PoisonedWeapons.melee(combat.weapon(player))
         attackMade(player, npc, tick)
-        landing += Swing(player, npc, damage, tick + HitDelay.MELEE.ticks(0) + HitDelay.ON_NPC, poison, spec?.takeIf { effect }, maxHit, Tile(player.x, player.z))
+        landing += Swing(player, npc, damage, tick + HitDelay.MELEE.ticks(0) + HitDelay.ON_NPC, poison, spec?.takeIf { effect }, maxHit, Tile(player.x, player.z), combat.finishes(npc, player, style.type))
     }
 
     /**
@@ -370,7 +392,7 @@ class MeleeCombat(
      * effect if it was one. [maxHit] is what it was rolled against, for the max hit hitsplat; [from] is where the
      * player stood to swing.
      */
-    private class Swing(val player: Player, val npc: Npc, val damage: Int, val landTick: Long, val poison: Int, val special: SpecialAttack?, val maxHit: Int, val from: Tile)
+    private class Swing(val player: Player, val npc: Npc, val damage: Int, val landTick: Long, val poison: Int, val special: SpecialAttack?, val maxHit: Int, val from: Tile, val finisher: Boolean)
 
     /** A magic or ranged NPC's [attack] on its way to [player], landing on [landTick] for [damage] if [hit] and not [blocked]. */
     private class Shot(val npc: Npc, val player: Player, val attack: NpcRangedAttack, val hit: Boolean, val blocked: Boolean, val damage: Int, val landTick: Long)
@@ -396,7 +418,7 @@ class MeleeCombat(
             npc.incoming -= swing.damage
             // Guessed for a hidden NPC: a swing on its way when it went from sight does nothing, as for one that died.
             if (npcs[npc.index] !== npc || npc.outOfPlay) continue
-            val dealt = hit(npc, swing.player, swing.damage, tick, swing.maxHit, swing.from)
+            val dealt = hit(npc, swing.player, swing.damage, tick, swing.maxHit, swing.from, finisher = swing.finisher)
             if (swing.special != null) specialLanded(npc, dealt, swing.special)
             weaponPoison(npc, dealt, swing.poison, venom = false, ranged = false)
         }
@@ -455,10 +477,11 @@ class MeleeCombat(
      * commands). [finishing] lets it go below its [NpcCombatDef.minHitpoints] (a bag of salt, ::kill). Returns the
      * damage dealt.
      */
-    fun hit(npc: Npc, source: Player?, damage: Int, tick: Long, maxHit: Int = 0, attackedFrom: Tile? = null, finishing: Boolean = false): Int {
+    fun hit(npc: Npc, source: Player?, damage: Int, tick: Long, maxHit: Int = 0, attackedFrom: Tile? = null, finishing: Boolean = false, finisher: Boolean? = null): Int {
         val def = combat.npcCombat[npc.type] ?: throw IllegalArgumentException("${npc.type.name} can't be fought")
         if (npc.outOfPlay) return 0
-        val dealt = damage.coerceIn(0, if (finishing) npc.hitpoints else (npc.hitpoints - combat.floor(npc, source)).coerceAtLeast(0))
+        val dealt = if (!finishing && combat.immune(npc)) 0
+        else damage.coerceIn(0, if (finishing) npc.hitpoints else (npc.hitpoints - combat.floor(npc, source, finisher = finisher)).coerceAtLeast(0))
         npc.hitpoints -= dealt
         if (source != null && dealt > 0) npcDamaged(npc, source, dealt)
         val from = if (source != null) NpcEffects.PLAYER_SOURCE + source.index else -1
@@ -598,6 +621,7 @@ class MeleeCombat(
         dying += Dying(npc, killer, tick + def.deathTicks, respawnTick)
         logger.debug { "$npc died; back on tick $respawnTick" }
         npcDied(npc)
+        npcKilled(npc, killer)
     }
 
     /** [npc] stops fighting whoever it fought and goes back to what it did. */
@@ -729,6 +753,14 @@ class MeleeCombat(
         fireAt(npc, player, tick)
     }
 
+    /** Whether [npc] stands where its melee reaches [player], as its fight back asks before a swing. */
+    fun reaches(npc: Npc, player: Player): Boolean =
+        npc.level == player.level && Reach.reachedEntity(collision, npc.level, npc.x, npc.z, npc.type.size, player.x, player.z, 1, 1)
+
+    /** Whether [npc] sees [player] to cast or shoot at them, at any range: not from under them, nor through walls. */
+    fun sees(npc: Npc, player: Player): Boolean =
+        npc.level == player.level && LineOfSight.clear(collision, npc.level, npc.x, npc.z, npc.type.size, player.x, player.z)
+
     /** Whether [player] is in [npc]'s range and sight for its magic or ranged attacks, as its fight back asks before a shot. */
     fun inShot(npc: Npc, player: Player): Boolean = combat.npcCombat[npc.type]?.let { inShot(npc, it, player) } ?: false
 
@@ -743,9 +775,11 @@ class MeleeCombat(
      * is due and they are in range and sight: the roll as it fires and the hit landing after the flight. A boss fight
      * calls it for its boss's own shots ([Npc.scriptedAttacks]), and can name the [attack] and its [type] (the Smorks'
      * ranged bones or magic potions, raid step 18a); without them, one of its file's by weight, of its file's type. Does
-     * nothing for an NPC with no such attacks.
+     * nothing for an NPC with no such attacks. A protection prayer against it blocks it all, unless [prayerPasses] says
+     * what share of the damage, in percent, still lands through one (Obor's rocks, half).
      */
-    fun fireAt(npc: Npc, player: Player, tick: Long, attack: NpcRangedAttack? = null, type: AttackType? = null) {
+    fun fireAt(npc: Npc, player: Player, tick: Long, attack: NpcRangedAttack? = null, type: AttackType? = null, prayerPasses: Int = 0) {
+        require(prayerPasses in 0..100) { "$prayerPasses% through a prayer" }
         val def = combat.npcCombat[npc.type] ?: return
         if (npc.hidden) return
         if (attack == null && def.attacks.isEmpty()) return
@@ -765,9 +799,11 @@ class MeleeCombat(
         val hit = CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)
         val max = shot.maxHit ?: roll.maxHit
         val damage = if (hit && max > 0) CombatMath.rollDamage(random, max) else 0
-        val blocked = protects(player, shotType)
+        val prayed = protects(player, shotType)
+        val blocked = prayed && prayerPasses == 0
         // Dinh's bulwark counts as it fires, as the prayer does and as for a melee swing.
-        val reduced = if (combat.bulwarkBlocking(player, tick)) DinhsBulwark.blocked(damage) else damage
+        val bulwarked = if (combat.bulwarkBlocking(player, tick)) DinhsBulwark.blocked(damage) else damage
+        val reduced = if (prayed) bulwarked * prayerPasses / 100 else bulwarked
         shots += Shot(npc, player, shot, hit, blocked, if (blocked) 0 else reduced, tick + delay)
     }
 
@@ -885,6 +921,16 @@ class MeleeCombat(
     /** Magic and ranged NPC shots on their way, for tests. */
     val shotsInFlight: Int get() = shots.size
 
+    /**
+     * The shots [npc] has on their way land nowhere: for a fight a test command ends with its boss still up (`::raid
+     * clear`), which would otherwise land a shot fired a tick or two before on a player whose `::god` is off by then
+     * (nightly 2026-11-15: archive-guardian-entrance's Guardian shot killing test2 the tick after the clear). A shot from
+     * an NPC that dies in play still lands, as the class note says.
+     */
+    fun dropShotsFrom(npc: Npc) {
+        shots.removeAll { it.npc === npc }
+    }
+
     /** Whether [player] is further than [CHASE_RANGE] from [npc]'s spawn on either axis; never for an unleashed one. */
     private fun outOfRange(npc: Npc, player: Player): Boolean =
         !npc.unleashed && (abs(player.x - npc.spawn.x) > CHASE_RANGE || abs(player.z - npc.spawn.z) > CHASE_RANGE)
@@ -896,14 +942,7 @@ class MeleeCombat(
      */
     fun hitPlayer(player: Player, source: Npc?, damage: Int, tick: Long): Int {
         if (player.hitpoints <= 0 || player.dead) return 0
-        val dealt = if (player.god) 0 else damage.coerceIn(0, player.hitpoints)
-        player.hitpoints -= dealt
-        val from = source?.index ?: -1
-        if (dealt > 0) player.effects.hit(from, HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER, HitsplatType.DAMAGE_OTHER, dealt)
-        else player.effects.hit(from, HitsplatType.BLOCK_ME, HitsplatType.BLOCK_OTHER, HitsplatType.BLOCK_OTHER, 0)
-        player.effects.headBar(from, HEALTH_BAR, healthBarFill(player.hitpoints, player.skills.baseLevel(Skill.HITPOINTS)))
-        // The NPC phase comes before the player's own swing, which overwrites this (guessed: the swing wins).
-        if (player.effects.anim == null) player.effects.anim(combat.anims(player).defend, 0)
+        val dealt = hurt(player, source?.index ?: -1, damage)
         if (source != null) {
             player.attackedBy = source
             player.attackedTick = tick
@@ -916,6 +955,39 @@ class MeleeCombat(
         if (source != null && player.autoRetaliate && player.interaction == null && !player.modalOpen && tick >= player.stunnedUntil) {
             retaliate(player, source, tick)
         }
+        return dealt
+    }
+
+    /**
+     * [player] takes [damage] from another player, [attacker], as [hitPlayer] takes an NPC's ([PvpCombat]): the hitsplat
+     * (the max hit one is not shown to the attacker yet, guessed), health bar, block animation, death and Redemption.
+     * Who hit them is noted for [Player.attackedByPlayer]; fighting back is [PvpCombat]'s. Returns the damage dealt.
+     */
+    fun hitPlayerBy(player: Player, attacker: Player, damage: Int, tick: Long): Int {
+        if (player.hitpoints <= 0 || player.dead) return 0
+        // The attacker sees their own hit's variant, as on an NPC; onlookers the other one.
+        val dealt = hurt(player, NpcEffects.PLAYER_SOURCE + attacker.index, damage, sourceSees = true)
+        player.attackedByPlayer = attacker
+        player.attackedByPlayerTick = tick
+        if (player.hitpoints <= 0) died(player) else redemption(player)
+        return dealt
+    }
+
+    /**
+     * Takes [damage] off [player], capped and 0 under `::god`, with the hitsplat from [from] and their block animation;
+     * [sourceSees] gives a player source their own hit's variant.
+     */
+    private fun hurt(player: Player, from: Int, damage: Int, sourceSees: Boolean = false): Int {
+        val dealt = if (player.god) 0 else damage.coerceIn(0, player.hitpoints)
+        player.hitpoints -= dealt
+        if (dealt > 0) {
+            player.effects.hit(from, HitsplatType.DAMAGE_ME, if (sourceSees) HitsplatType.DAMAGE_ME else HitsplatType.DAMAGE_OTHER, HitsplatType.DAMAGE_OTHER, dealt)
+        } else {
+            player.effects.hit(from, HitsplatType.BLOCK_ME, if (sourceSees) HitsplatType.BLOCK_ME else HitsplatType.BLOCK_OTHER, HitsplatType.BLOCK_OTHER, 0)
+        }
+        player.effects.headBar(from, HEALTH_BAR, healthBarFill(player.hitpoints, player.skills.baseLevel(Skill.HITPOINTS)))
+        // The NPC phase comes before the player's own swing, which overwrites this (guessed: the swing wins).
+        if (player.effects.anim == null) player.effects.anim(combat.anims(player).defend, 0)
         return dealt
     }
 
@@ -1031,6 +1103,11 @@ class MeleeCombat(
         stopFacing(player)
         for (npc in npcs.all) if (npc.target === player) giveUp(npc)
         player.attackedBy = null
+        player.attackedByPlayer = null
+        player.freezeTicks = 0
+        player.frozenBy = null
+        player.pjOpponent = null
+        player.pjAfterKill = false
     }
 
     /**

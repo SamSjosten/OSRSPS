@@ -80,10 +80,11 @@ class HeadlessPickpocketKandarinTest {
     }
 
     /**
-     * Pickpockets [id] until it has both worked and failed: [won] after each success with the XP before it, and the
-     * stun after each failure is checked to last no more than [stunTicks] with a blow of 1 to [damage].
+     * Pickpockets [id] until it has both worked and failed: [won] after each success, once its XP is in, with the
+     * successes so far; the stun after each failure is checked to last no more than [stunTicks] with a blow of 1 to
+     * [damage].
      */
-    private fun HeadlessClient.bothWays(server: TestServer, name: String, id: Int, who: String, xp: Int, stunTicks: Int, damage: Int, won: () -> Unit) {
+    private fun HeadlessClient.bothWays(server: TestServer, name: String, id: Int, who: String, xp: Int, stunTicks: Int, damage: Int, won: (wins: Int) -> Unit) {
         val player = server.world.playerNamed(name)!!
         var wins = 0
         var lost = false
@@ -96,7 +97,7 @@ class HeadlessPickpocketKandarinTest {
             if (tryOnce(id, who)) {
                 wins++
                 await("the XP") { if (player.skills.tenths(Skill.THIEVING) == tenths + xp) Unit else null }
-                won()
+                won(wins)
             } else {
                 lost = true
                 await("the stun") { if (server.world.statusEffects.isStunned(player)) Unit else null }
@@ -117,9 +118,12 @@ class HeadlessPickpocketKandarinTest {
                 client.await("the level message") { if (client.seen("[pickpocket.level level=70 who=paladin]") == 1) Unit else null }
                 client.level("thieving", THIEVING, 99)
                 client.level("hitpoints", HITPOINTS, 99)
-                client.bothWays(server, "alice", PALADIN, "paladin", 1318, Pickpocketing.STUN_4_8_SECONDS, 3) {
-                    val pouches = client.count(Pickpocketing.PALADIN_POUCH)
-                    client.await("the chaos runes") { if (client.count(CHAOS_RUNE) == 2 * pouches) Unit else null }
+                client.bothWays(server, "alice", PALADIN, "paladin", 1318, Pickpocketing.STUN_4_8_SECONDS, 3) { wins ->
+                    // Both counts are read together: a pouch count read before this win's inventory update, and the
+                    // runes read after it, would never match (CI on #715, the watchman's twin of this check).
+                    client.await("a pouch and 2 chaos runes a win") {
+                        if (client.count(Pickpocketing.PALADIN_POUCH) == wins && client.count(CHAOS_RUNE) == 2 * wins) Unit else null
+                    }
                 }
             }
         }
@@ -142,9 +146,12 @@ class HeadlessPickpocketKandarinTest {
                 assertEquals(0, client.count(Pickpocketing.WATCHMAN_POUCH))
                 client.command("empty")
                 client.await("an empty backpack") { if (client.count(JUNK) == 0) Unit else null }
-                client.bothWays(server, "bob", WATCHMAN, "watchman", 1375, StatusEffects.PICKPOCKET_TICKS, 3) {
-                    val pouches = client.count(Pickpocketing.WATCHMAN_POUCH)
-                    client.await("the bread") { if (client.count(BREAD) == pouches) Unit else null }
+                client.bothWays(server, "bob", WATCHMAN, "watchman", 1375, StatusEffects.PICKPOCKET_TICKS, 3) { wins ->
+                    // Both counts are read together and against the wins: a pouch count read before this win's
+                    // inventory update, and the bread read after it, never matched (CI on #715, line 147).
+                    client.await("a pouch and a bread a win") {
+                        if (client.count(Pickpocketing.WATCHMAN_POUCH) == wins && client.count(BREAD) == wins) Unit else null
+                    }
                 }
             }
         }

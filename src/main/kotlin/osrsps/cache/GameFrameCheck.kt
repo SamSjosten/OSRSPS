@@ -9,6 +9,7 @@ import osrsps.game.combat.Prayers
 import osrsps.game.content.ApothecaryPotions
 import osrsps.game.content.AvaDevicesShop
 import osrsps.game.content.Ellis
+import osrsps.game.content.SlayerRewards
 import osrsps.game.content.HomeTeleport
 import osrsps.game.ge.GrandExchangeScreen
 import osrsps.game.ge.PriceChecker
@@ -56,7 +57,8 @@ object GameFrameCheck {
             JournalTab.CACHE_NAMES, World.CACHE_NAMES, Clans.CACHE_NAMES, FriendChats.CACHE_NAMES, IgnoreLists.CACHE_NAMES,
             Reports.CACHE_NAMES, Trades.CACHE_NAMES, Smithing.CACHE_NAMES, Crafting.CACHE_NAMES, Prayers.CACHE_NAMES,
             LevelUps.CACHE_NAMES, Deaths.CACHE_NAMES, HomeTeleport.CACHE_NAMES, AvaDevicesShop.CACHE_NAMES,
-            Ellis.CACHE_NAMES, ApothecaryPotions.CACHE_NAMES, osrsps.game.ge.ItemSetsScreen.CACHE_NAMES, osrsps.game.ge.PriceGuides.CACHE_NAMES,
+            Ellis.CACHE_NAMES, ApothecaryPotions.CACHE_NAMES, SlayerRewards.CACHE_NAMES, osrsps.game.ge.ItemSetsScreen.CACHE_NAMES, osrsps.game.ge.PriceGuides.CACHE_NAMES,
+            osrsps.game.skill.Canoes.CACHE_NAMES, GameFrame.PVP_ICONS_CACHE_NAMES, osrsps.game.content.WildernessDitch.CACHE_NAMES,
         )
 
     /** The problems found, empty when every id matches. [names] looks up an interface's gameval entry by id. */

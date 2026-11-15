@@ -10,8 +10,12 @@ import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
+import osrsps.game.VarTypes
 import osrsps.game.World
 import osrsps.game.content.Digsite
+import osrsps.game.content.Kudos
+import osrsps.game.content.MUSEUM_VARBITS
+import osrsps.game.content.MuseumTimeline
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
@@ -51,7 +55,7 @@ class HeadlessDigsiteTest {
     private val gate = ZoneLoc(Digsite.GATE_LEFT, LocShape.WALL_STRAIGHT, 0, Digsite.GATE_X, Digsite.GATE_Z, 0)
     private val sign = ZoneLoc(2369, LocShape.CENTREPIECE_STRAIGHT, 0, 3226, 3222, 0)
 
-    private fun server(dir: Path, spawns: List<Triple<NpcType, Int, Int>>, upstairs: Set<NpcType> = emptySet()) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
+    private fun server(dir: Path, spawns: List<Triple<NpcType, Int, Int>>, upstairs: Set<NpcType> = emptySet(), varTypes: VarTypes? = null) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
         val objs = arrayOfNulls<ObjType>(2000)
         for (id in listOf(995, 670, 954, 1925, 1059, 952, 673)) objs[id] = ObjType(id, "Item $id", stackable = id == 995)
         World(
@@ -71,6 +75,7 @@ class HeadlessDigsiteTest {
                 ).associateBy { it.id },
             ),
             staticLocs = StaticLocs().apply { listOf(gate, sign).forEach(::add) },
+            varTypes = varTypes ?: VarTypes.NONE,
             cycleMillis = millis,
         )
     }
@@ -273,6 +278,27 @@ class HeadlessDigsiteTest {
                 client.box("digsite_barge.need_kudos")
                 client.awaitClosed()
                 assertTrue(client.position!!.x < Digsite.GATE_X)
+            }
+        }
+    }
+
+    @Test
+    fun `with 153 Kudos the guard greets a friend of the museum, who goes through the workers' gate both ways`(@TempDir dir: Path) {
+        server(dir, listOf(Triple(gateGuard, Digsite.GATE_X - 1, Digsite.GATE_Z - 1)), varTypes = VarTypes(6_000, MUSEUM_VARBITS)).use { server ->
+            server.login("erin").use { client ->
+                client.ready()
+                // Everything built but one River Salve story: 158 - 5 = 153.
+                for (source in Kudos.SOURCES) client.setVarbit(source.varbit, maxOf(source.atLeast, client.varbit(source.varbit)))
+                client.setVarbit(MuseumTimeline.VARBIT_SALVE_KNIGHTS, 1)
+                client.command("tele ${Digsite.GATE_X - 2} ${Digsite.GATE_Z} 0")
+                client.awaitAt(Digsite.GATE_X - 2, Digsite.GATE_Z, 0)
+                client.op(gateGuard.id, Digsite.TALK_TO)
+                client.chats("digsite_barge.friend_of_the_museum")
+                client.awaitClosed()
+                client.locOp(gate.id, gate.x, gate.z, 1)
+                client.awaitAt(Digsite.GATE_X, Digsite.GATE_Z, 0)
+                client.locOp(gate.id, gate.x, gate.z, 1)
+                client.awaitAt(Digsite.GATE_X - 1, Digsite.GATE_Z, 0)
             }
         }
     }

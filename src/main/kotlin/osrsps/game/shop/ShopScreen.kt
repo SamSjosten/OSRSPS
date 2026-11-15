@@ -267,8 +267,9 @@ class ShopScreen(
         }
         val refusal = when {
             base.id == COINS -> ShopLines.CANT_SELL_COINS
-            // Grace buys back the graceful pieces she sells, which no one can trade (the OSRS Wiki's store table).
-            !base.tradeable && !(currency != COINS && shop.type.stocks(base.id)) -> ShopLines.CANT_SELL
+            // Grace buys back the graceful pieces she sells, which no one can trade, and Slayer Equipment its witchwood
+            // icon (the OSRS Wiki's store tables, which give a buy price for them).
+            !base.tradeable && !(currency != COINS && shop.type.stocks(base.id)) && base.id !in shop.type.buysBack -> ShopLines.CANT_SELL
             !shop.type.general && !shop.type.stocks(base.id) || base.id in shop.type.refuses -> ShopLines.WRONG_SHOP
             else -> null
         }

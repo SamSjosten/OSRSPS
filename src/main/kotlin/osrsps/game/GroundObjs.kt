@@ -129,7 +129,8 @@ class GroundObjs(
      *
      * A stackable obj lands on [owner]'s private stack of the same item on that tile, if there is one, as RSMod does,
      * and the stack keeps its timers. Guessed: live may restart them, but ObjCount carries no times, so the client would
-     * then count down the old ones anyway. Anything else goes down one per obj.
+     * then count down the old ones anyway. Anything else goes down one per obj. With [merge] false it never joins a
+     * stack, so it keeps timers of its own, as a PvP death's loot does. [droppedBy] is whose it was, [owner] by default.
      */
     fun addPrivate(
         type: ObjType,
@@ -141,9 +142,11 @@ class GroundObjs(
         privateTicks: Int,
         despawnTicks: Int,
         neverPublic: Boolean = !type.tradeable,
+        droppedBy: String = owner,
+        merge: Boolean = true,
     ): ZoneObj {
         require(count >= 1) { "Can't put $count of $type on the ground" }
-        val stack = stackFor(type, count, x, z, level, owner, neverPublic)
+        val stack = if (merge) stackFor(type, count, x, z, level, owner, neverPublic) else null
         if (stack != null) {
             zones.setObjCount(stack, stack.count + count)
             return stack
@@ -154,7 +157,7 @@ class GroundObjs(
         var last: ZoneObj? = null
         repeat(pieces) {
             val obj = ZoneObj(
-                type.id, if (type.stackable) count else 1, x, z, level, owner = owner,
+                type.id, if (type.stackable) count else 1, x, z, level, owner = owner, droppedBy = droppedBy,
                 ticksUntilPublic = privateTicks, ticksUntilDespawn = despawnTicks, neverPublic = neverPublic,
             )
             zones.addObj(obj)
@@ -187,6 +190,10 @@ class GroundObjs(
     }
 
     /** Whether [owner] dropping [count] of [type] on the tile stays within [MAX_PER_TILE]. */
+    /** Whether [count] of [type], [owner]'s, fits on a tile without [makeRoom] taking anything off it, as [addPrivate] would put it. */
+    fun fits(type: ObjType, count: Int, x: Int, z: Int, level: Int, owner: String): Boolean =
+        fitsOnTile(type, count, x, z, level, owner, !type.tradeable)
+
     private fun fitsOnTile(type: ObjType, count: Int, x: Int, z: Int, level: Int, owner: String, neverPublic: Boolean): Boolean {
         if (stackFor(type, count, x, z, level, owner, neverPublic) != null) return true
         return zones.objsAt(x, z, level).size + (if (type.stackable) 1 else count) <= MAX_PER_TILE
@@ -236,6 +243,30 @@ class GroundObjs(
         if (!zones.removeObj(obj)) return false
         timed -= obj
         spawned.remove(obj)?.let { respawns += Respawn(it, respawnDelay(it)) }
+        return true
+    }
+
+    /**
+     * Uses one of [obj] where it lies for [player], as laying a trap from the floor does: like [take], it must still be
+     * there for them, and a drop another player put down counts as handed over ([handedOver] saves the dropper). The
+     * raid's supply count ([taken]) doesn't apply: nothing is used where it lies in an instance.
+     */
+    fun useOne(player: Player, obj: ZoneObj): Boolean {
+        if (!zones.hasObj(obj) || !obj.visibleTo(player.saveKey)) return false
+        val dropper = obj.droppedBy
+        if (!removeOne(obj)) return false
+        if (dropper != null && dropper != player.saveKey) handedOver(player, dropper)
+        return true
+    }
+
+    /**
+     * Takes one of [obj] off the ground: the whole obj when it is the last, else one off its stack (a Hunter trap laid
+     * from a stack its owner dropped there). Returns false if it was already gone.
+     */
+    fun removeOne(obj: ZoneObj): Boolean {
+        if (!zones.hasObj(obj)) return false
+        if (obj.count <= 1) return remove(obj)
+        zones.setObjCount(obj, obj.count - 1)
         return true
     }
 

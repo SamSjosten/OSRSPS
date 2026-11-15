@@ -1,6 +1,7 @@
 package osrsps.game.content
 
 import osrsps.game.FrameSlot
+import osrsps.game.GameRandom
 import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.dialogue.Lines
@@ -32,12 +33,12 @@ object MuseumCleaningLines : Lines("museum_cleaning", "Uncleaned find") {
  *
  * From the Wiki's Uncleaned find and Kudos pages, read 2026-11-11: each clean has a 14% chance to crumble; otherwise 38
  * in 51 a common artefact (pottery, jewellery, old chipped vase or arrowheads, evenly), and 13 in 51 a unique one (the
- * four symbols and coins 3 each, the clean necklace 1), which is an unremarkable find instead when the player already
- * holds or banks it; the crate's 195-weight table, its rare antique lamp included. Guessed: every message but the
+ * four symbols and coins 3 each, the clean necklace 1), which is an unremarkable find instead once the player has
+ * found it ([found]); the crate's 195-weight table, its rare antique lamp included. Guessed: every message but the
  * crumble, the brushing animation's 3 ticks a find, one find per Take on the rocks (no repeating pickup), one artefact
- * per Add finds, the tool rack giving all missing items at once, and which antique lamp (`vm_reward_digsite`). Left
- * out: Kudos and the display cases (nothing counts Kudos yet), showing finds to the archaeologists, and rubbing the
- * lamp (no lamp interface yet).
+ * per Add finds, the tool rack giving all missing items at once, and which antique lamp (`vm_reward_digsite`).
+ * Showing finds to the archaeologists and the display cases are [MuseumFinds]'s. Left out: rubbing the lamp (no lamp
+ * interface yet).
  */
 object MuseumCleaning {
     const val TOOLS = 24535
@@ -97,28 +98,41 @@ object MuseumCleaning {
         Drop(532, 1, 1, 10), Drop(ANTIQUE_LAMP, 1, 1, 2),
     )
 
-    fun pick(world: World, table: List<Drop>): Pair<Int, Int> {
-        var roll = world.random.nextInt(table.sumOf { it.weight })
+    fun pick(random: GameRandom, table: List<Drop>): Pair<Int, Int> {
+        var roll = random.nextInt(table.sumOf { it.weight })
         for (drop in table) {
-            if (roll < drop.weight) return drop.obj to world.random.between(drop.min, drop.max)
+            if (roll < drop.weight) return drop.obj to random.between(drop.min, drop.max)
             roll -= drop.weight
         }
         error("unreachable")
     }
 
-    private fun held(player: Player, obj: Int) = player.inventory.count(obj) > 0 || player.bank.count(obj) > 0
-
     /** Carried, worn or banked. */
-    internal fun owned(player: Player, obj: Int) = held(player, obj) || player.equipment.count(obj) > 0
+    internal fun owned(player: Player, obj: Int) = player.inventory.count(obj) > 0 || player.bank.count(obj) > 0 || player.equipment.count(obj) > 0
+
+    /** Wearing the leather gloves and boots and carrying the three tools: what cleaning, and the archaeologists, ask for. */
+    fun equipped(player: Player): Boolean =
+        GEAR_IDS.all { player.equipment.count(it) > 0L } && TOOL_IDS.all { player.inventory.count(it) > 0L }
+
+    /**
+     * Whether [unique] is done with: on display, or for the necklace its secret learnt ([MuseumFinds]), so it never turns
+     * up again, as the Wiki has it. Or held: the Wiki says carried; banked and worn count too, so a copy put away can't
+     * make room for another (exploit rounds 29, R29B-2). Guessed: one lost before it was handed in turns up again.
+     */
+    private fun found(player: Player, unique: Int): Boolean {
+        if (owned(player, unique)) return true
+        if (unique == CLEAN_NECKLACE) return MuseumFinds.knowsNecklace(player)
+        return MuseumFinds.CASES.any { it.obj == unique && MuseumFinds.displayed(player, it) }
+    }
 
     /** What one cleaned find turns into: an item and count, or null when it crumbles. */
-    fun clean(world: World, player: Player): Pair<Int, Int>? {
-        if (world.random.nextInt(100) < CRUMBLE_PERCENT) return null
-        val roll = world.random.nextInt(51)
-        // 38 in 51 a common artefact; the other 13 a unique one, or an unremarkable find when that one is held already.
-        if (roll >= 13) return COMMON[world.random.nextInt(COMMON.size)] to 1
+    fun clean(random: GameRandom, player: Player): Pair<Int, Int>? {
+        if (random.nextInt(100) < CRUMBLE_PERCENT) return null
+        val roll = random.nextInt(51)
+        // 38 in 51 a common artefact; the other 13 a unique one, or an unremarkable find when that one is found already.
+        if (roll >= 13) return COMMON[random.nextInt(COMMON.size)] to 1
         val unique = if (roll < 12) UNIQUE_FOUR[roll / 3] else CLEAN_NECKLACE
-        return if (held(player, unique)) pick(world, UNREMARKABLE) else unique to 1
+        return if (found(player, unique)) pick(random, UNREMARKABLE) else unique to 1
     }
 
     fun removeOne(player: Player, obj: Int): Boolean {
@@ -153,7 +167,7 @@ private fun ScriptContext.startClean(world: World): Unit = with(MuseumCleaning) 
  */
 private fun ScriptContext.readyToClean(world: World): Boolean = with(MuseumCleaning) {
     val missing = when {
-        player.equipment.count(LEATHER_GLOVES) == 0L || player.equipment.count(LEATHER_BOOTS) == 0L -> MuseumCleaningLines.NEED_GEAR
+        GEAR_IDS.any { player.equipment.count(it) == 0L } -> MuseumCleaningLines.NEED_GEAR
         TOOL_IDS.any { player.inventory.count(it) == 0L } -> MuseumCleaningLines.NEED_TOOLS
         player.inventory.count(UNCLEANED_FIND) == 0L -> MuseumCleaningLines.NO_FINDS
         else -> return@with true
@@ -165,7 +179,7 @@ private fun ScriptContext.readyToClean(world: World): Boolean = with(MuseumClean
 /** One find cleaned (or crumbled), then the next started while finds are left. */
 private fun ScriptContext.cleanOne(world: World): Unit = with(MuseumCleaning) {
     if (!readyToClean(world) || !removeOne(player, UNCLEANED_FIND)) return@with
-    val found = clean(world, player)
+    val found = clean(world.random, player)
     if (found == null) {
         world.message(player, MuseumCleaningLines.CRUMBLE)
     } else {
@@ -203,7 +217,7 @@ fun registerMuseumCleaning(world: World) {
         world.handlers.onLoc(CRATE, ADD_FINDS) {
             val artefact = COMMON.firstOrNull { player.inventory.count(it) > 0 } ?: return@onLoc world.message(player, MuseumCleaningLines.NO_ARTEFACTS)
             removeOne(player, artefact)
-            val (obj, count) = pick(world, CRATE_REWARDS)
+            val (obj, count) = pick(world.random, CRATE_REWARDS)
             give(world, player, obj, count)
             world.objTypes[obj]?.let { world.message(player, MuseumCleaningLines.REWARD, "item" to it.name) }
         }
