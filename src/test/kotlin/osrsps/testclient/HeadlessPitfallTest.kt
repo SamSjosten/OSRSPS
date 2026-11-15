@@ -84,6 +84,10 @@ class HeadlessPitfallTest {
                 client.locOp(PIT, 3222, 3220, Pitfalls.JUMP)
                 client.await("over the pit", timeoutMillis = 15_000) { client.position?.takeIf { it.z == 3222 } }
                 client.awaitPit(Pitfalls.CATCHING, timeoutMillis = 20_000)
+                // The client sees it fall in before it goes.
+                client.await("the fall") {
+                    client.actorEvents().firstOrNull { it.npc && it.index == cat.index && it.kind == ActorEventKind.ANIMATION && it.id == Pitfalls.FALL_ANIM }
+                }
                 client.awaitPit(Pitfalls.FULL)
                 assertTrue(server.world.hunter.pitfalls.teased.isEmpty())
                 client.locOp(PIT, 3222, 3220, Pitfalls.DISMANTLE)

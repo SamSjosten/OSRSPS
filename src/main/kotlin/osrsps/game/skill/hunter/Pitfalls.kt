@@ -82,8 +82,8 @@ class Tease(val player: Player, val npc: Npc, val creature: PitCreature) {
  * on reaching the pit's far edge within [JUMP_WINDOW] ticks of the jump; the full look (3) is for one heading east or
  * north; trapping takes 4 ticks with human_laytrap and always uses the log; Dismantle on a spiked pit gives nothing
  * back; a spiked pit stands until its owner leaves or logs out, a full one goes after [Traps.TRAP_TICKS]; the jump is
- * the Wilderness ditch's animation and takes 2 ticks. Left out: the damaged-fur drop rate formula, hunter gear's
- * damage cut, the wild broav (While Guthix Sleeps), the rumour drops (Hunters' Rumours).
+ * the Wilderness ditch's animation and takes 2 ticks; a caught creature stays in sight [FALL_TICKS] for its fall. Left
+ * out: the damaged-fur drop rate formula, hunter gear's damage cut, the wild broav (While Guthix Sleeps), the rumour drops (Hunters' Rumours).
  */
 class Pitfalls(private val world: World, private val traps: Traps) {
     private val laid = ArrayList<LaidPit>()
@@ -95,6 +95,11 @@ class Pitfalls(private val world: World, private val traps: Traps) {
     private class Respawn(val npc: Npc, val tick: Long)
 
     private val respawns = ArrayList<Respawn>()
+
+    /** Caught creatures showing their fall into the pit, hidden on their tick. */
+    private class Falling(val npc: Npc, val hideTick: Long)
+
+    private val falling = ArrayList<Falling>()
 
     /** The pits [owner] has trapped. */
     fun of(owner: String): List<LaidPit> = laid.filter { it.owner == owner }
@@ -123,6 +128,11 @@ class Pitfalls(private val world: World, private val traps: Traps) {
     /** Call once a tick, in the NPC phase before NPCs move. */
     fun process() {
         val tick = world.tick
+        falling.removeAll { fall ->
+            if (fall.hideTick > tick) return@removeAll false
+            world.hide(fall.npc)
+            true
+        }
         respawns.removeAll { respawn ->
             if (respawn.tick > tick) return@removeAll false
             val npc = respawn.npc
@@ -189,8 +199,10 @@ class Pitfalls(private val world: World, private val traps: Traps) {
                 // Its next life starts with no pit it won't fall in (the NPC object is reused on respawn).
                 leapt.remove(npc)
                 end(tease)
-                world.hide(npc)
-                respawns += Respawn(npc, tick + Traps.RESPAWN_TICKS)
+                // It stays in sight, held still, while the fall plays, then goes until it respawns.
+                npc.freezeTicks = FALL_TICKS.toInt() + 1
+                falling += Falling(npc, tick + FALL_TICKS)
+                respawns += Respawn(npc, tick + FALL_TICKS + Traps.RESPAWN_TICKS)
                 change(pit, owner, CATCHING)
             } else {
                 npc.effects.anim(LEAP_ANIM)
@@ -361,7 +373,7 @@ class Pitfalls(private val world: World, private val traps: Traps) {
 
     /** Tease: the creature turns on the player and chases them. */
     private suspend fun ScriptContext.tease(creature: PitCreature, npc: Npc) {
-        if (npc.hidden || npc.dead) return
+        if (npc.hidden || npc.dead || falling.any { it.npc === npc }) return
         if (!canTease(player)) return world.message(player, HunterLines.NO_TEASING_STICK)
         if (player.skills.currentLevel(Skill.HUNTER) < creature.level) return world.message(player, HunterLines.TEASE_LEVEL, "level" to creature.level)
         player.anim(TEASE_ANIM)
@@ -395,6 +407,9 @@ class Pitfalls(private val world: World, private val traps: Traps) {
         const val FALL_ANIM = 5234 // hunter_bigcat_fall_in_pit
         const val SUNLIGHT_ATTACK_ANIM = 10927 // antelope_update_sunlight_attack
         const val MOONLIGHT_ATTACK_ANIM = 10926 // antelope_update_moonlight_attack
+
+        /** Guessed: ticks the creature stays in sight, held still, while it falls in. */
+        const val FALL_TICKS = 2L
 
         /** Guessed: human_laytrap. */
         const val LAY_ANIM = 5208
