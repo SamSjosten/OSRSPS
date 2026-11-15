@@ -187,6 +187,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `slayer-masters.json`: Slayer step 2: Aya in Burthorpe giving a new account a task by Assignment, telling what is
   left of it when asked again, and the enchanted gem's Check agreeing (with `::keys on`). Vannaka's gate, the tips,
   Aya's swap and the combat check are in the headless test.
+- `slayer-masters-step3.json`: Slayer step 3: Steve at the Stronghold Slayer Cave's entrance turning away a player
+  under combat 85, then giving a task with no tip at 99 (with `::keys on`). Mazchna, Chaeldar, Kuradal and the cancel
+  offer are in the headless test.
 - `ham-hideout.json`: Misthalin piece 7 step 4a: the H.A.M. Hideout's trapdoor locked, picked open at 99 Thieving
   with a lockpick, climbed down and back up by the ladder, a H.A.M. member pickpocketed, and Jimmy's cell door locked
   from outside and picked from inside (with `::keys on` and `::god on`; the concussions are in the headless test).
