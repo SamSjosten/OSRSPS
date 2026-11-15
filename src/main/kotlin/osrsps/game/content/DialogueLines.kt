@@ -377,6 +377,7 @@ object DialogueLines {
         VeronicaLines,
         WaterLines,
         WestBankDoorLines,
+        WildernessDitchLines,
         WilfredLines,
         WiloughLines,
         WizardApprenticeLines,

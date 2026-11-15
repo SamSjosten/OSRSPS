@@ -1,0 +1,176 @@
+{
+ "name": "Wilderness step W1.1: across the Wilderness Ditch north of Edgeville and back, the warning screen on the way in, the Wilderness overlay and inside_wilderness while inside, and ::wildy (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::varbit 3857 0",
+   "comment": "cws_warning_7: the ditch warning on and never seen, so the screen shows however often this script has run"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3090 3520 0",
+   "expectMessage": "Teleported to 3090, 3520, 0",
+   "comment": "south of the ditch, north of the bank: level 1 by the client's sum, but not inside yet"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 90,
+   "absent": true,
+   "comment": "pvp_icons: no Wilderness overlay south of the ditch"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 5963,
+   "value": 0,
+   "comment": "inside_wilderness"
+  },
+  {
+   "step": "locOption",
+   "loc": "Wilderness Ditch",
+   "option": "Cross",
+   "x": 3090,
+   "y": 3521
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 475,
+   "comment": "wilderness_warningscreen"
+  },
+  {
+   "step": "assertWidgetText",
+   "interfaceId": 475,
+   "component": 10,
+   "contains": "[wilderness_ditch.warning]",
+   "comment": "the message, set by the server"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 475,
+   "component": 12,
+   "op": 1,
+   "comment": "Don't go: the screen closes and the player stays south"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 475,
+   "absent": true
+  },
+  {
+   "step": "assertLocation",
+   "x": 3090,
+   "y": 3520,
+   "plane": 0
+  },
+  {
+   "step": "assertVarbit",
+   "id": 3857,
+   "value": 1,
+   "comment": "seen once"
+  },
+  {
+   "step": "locOption",
+   "loc": "Wilderness Ditch",
+   "option": "Cross",
+   "x": 3090,
+   "y": 3521
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 475
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 475,
+   "component": 11,
+   "op": 1,
+   "comment": "Enter Wilderness"
+  },
+  {
+   "step": "assertAnimation",
+   "id": 6132,
+   "comment": "WILD_DITCH_JUMP"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3090,
+   "y": 3523,
+   "plane": 0,
+   "timeoutMs": 5000,
+   "comment": "across the ditch, on the Wilderness's first row"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 90,
+   "comment": "the Wilderness overlay is open"
+  },
+  {
+   "step": "assertWidgetText",
+   "interfaceId": 90,
+   "component": 50,
+   "contains": "Level: 1",
+   "comment": "pvp_icons:wildernesslevel, drawn by the client's own script"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 5963,
+   "value": 1
+  },
+  {
+   "step": "locOption",
+   "loc": "Wilderness Ditch",
+   "option": "Cross",
+   "x": 3090,
+   "y": 3521,
+   "comment": "back south: no warning that way"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3090,
+   "y": 3520,
+   "plane": 0,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 90,
+   "absent": true
+  },
+  {
+   "step": "assertVarbit",
+   "id": 5963,
+   "value": 0
+  },
+  {
+   "step": "command",
+   "text": "::wildy 20",
+   "expectMessage": "level 20",
+   "comment": "the dev jump north along the Edgeville line"
+  },
+  {
+   "step": "assertWidgetText",
+   "interfaceId": 90,
+   "component": 50,
+   "contains": "Level: 20"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3094 3490 0",
+   "expectMessage": "Teleported to 3094, 3490, 0",
+   "comment": "back to Edgeville's bank"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 90,
+   "absent": true
+  }
+ ]
+}

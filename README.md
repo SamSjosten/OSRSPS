@@ -316,6 +316,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::pos` | **everyone.** Your coordinates as `x, z, level`, plus the map region and your tile inside it |
 | `::tele x z [level]` | Teleports there; the level stays the same when left out. `::tele 3222, 3218, 0` also works, so `::pos` output pastes in |
 | `::teleto name` | Teleports onto the player called that, on their level |
+| `::wildy level` | Jumps to that Wilderness level (1 to 56) on the line north of Edgeville, x 3090, or the nearest tile there that can be stood on |
 | `::tick` | **everyone.** The server's current tick number, and whether the clock is paused |
 | `::pause` | Freezes the game once the current tick has finished |
 | `::step [n]` | While paused, runs n ticks (default 1, up to 1000), one every 600 ms, then says where it stopped |
@@ -1856,7 +1857,7 @@ The Misthalin roadmap's Edgeville and Barbarian Village piece, built a step at a
 | Search on a haystack or hay bales (`haystack`, `haystack2`, `haystack3`, `haybail`: 298 to 300 and 304), here and on the farms north of Lumbridge: a needle 10% of the time, a prick for 1 hitpoint 2% of the time, else nothing | OSRS Wiki, Haystack (it names haystacks; the hay bales sharing it is inferred); one roll for all three, prick first, no needle with a full backpack, no animation: guessed |
 | The mausoleum's coffins (`coffin` 398) open into `coffin_open` (3577, Close only) and close again; the east house's wardrobes (`spookywardrobe` 388/389) open, are empty and shut | 241 cache; opening and shutting as other furniture does (`Searching`) |
 | A pair of leather gloves south of the bank and an iron mace in the jail, back 100 ticks after taking | the Wiki's Edgeville spawn list; tiles from 2004Scape's map m48_54; respawn guessed |
-| Cross on the Wilderness Ditch (`ditch_wilderness_cover` 23271, along the whole southern border) refuses with a message of our own: the Wilderness isn't built | ours, as Shantay Pass refuses the desert |
+| Cross on the Wilderness Ditch (`ditch_wilderness_cover` 23271) jumps it: see Wilderness | see Wilderness |
 | Evil Dave's and the other houses' doors, Doris's yard gate, the grange's ladders, crates and boxes, the bookcases | the engine's doors by name, `Gates`, and the castle's and Draynor's types |
 | Wander ranges (3 indoors in the grange, 5 outside) | guessed |
 
@@ -2136,6 +2137,22 @@ Step 14b is the skull sceptre and Solztun, in `game/content/SkullSceptre.kt`.
 | The imbued sceptre stays when empty and takes bone fragments (a charge each) and pieces (3, the left skull half 5), never past 10; a chisel breaks a piece into that many fragments | OSRS Wiki, Skull sceptre (the Varrock Diary's extra charges wait for the diary) |
 
 Check: `test-runner/examples/skull-sceptre.json` and `HeadlessSkullSceptreTest`.
+
+## Wilderness
+
+The Wilderness is built one step at a time from the plan agreed on 9 November 2026 (Wilderness roadmap). Step W1.1 opens
+the ditch: nothing north of it is spawned yet, and players can't fight each other yet (W1.2 on).
+
+| Behaviour | Source |
+|-----------|--------|
+| Cross on the Wilderness Ditch (`ditch_wilderness_cover` 23271) jumps the player over the piece clicked to the tile straight across, either way: every piece is 1 by 2 tiles at z 3521, so from 3520 to 3523 and back, and the short east-west run at x 2996 sideways | the 242 cache's loc type and map; the jump's animation `WILD_DITCH_JUMP` (6132) from RuneLite's gameval names; its 2 ticks and the exact move starting at client cycle 33 guessed |
+| Going north the warning screen (`wilderness_warningscreen` 475) shows first, with the message set by the server (`wilderness_ditch.warning`): Enter Wilderness jumps, Don't go doesn't, walking away or Esc closes it | the Wiki's Doomsayer page (the ditch is one of his danger signs); the 242 cache's interface and its `cws_*` client scripts; showing only on the way in guessed |
+| The screen is the Doomsayer's warning 7 (enum 688, `cws_warning_id` 14801 set to 7): `cws_warning_7` (3857) counts the times it was answered, 0 to 6, and from the seventh showing its "Don't ask me this again" toggle turns it off (7) or on again (6); off, the ditch is crossed without it | the Wiki's Doomsayer page (toggleable after the seventh time seen) and the client's `cws_set_toggle` (6 shows the toggle on, 7 off); counting on the answer rather than the opening guessed |
+| The Wilderness level is the client's own sum (proc `wilderness_level`): one level every 8 tiles from z 3520 between x 2944 and 3391, to 56 at the north edge, and the caves' band 6,400 tiles up with the client's fixed and shifted squares | the 242 client script; the Wiki's Wilderness page (level 1 at the ditch, 56 in the far north) |
+| Inside the Wilderness means a level above 0 north of the ditch (z 3523 and up on the surface): there the Wilderness overlay (`pvp_icons` 90) opens in its frame slot, showing the skull and "Level: n" (drawn by the client), and varbit `inside_wilderness` (5963, RuneLite's `Varbits.IN_WILDERNESS`) is 1; leaving closes the overlay and sets it to 0. The overlay is no longer opened at login | the client's `pvp_icons_layout` (the skull shows whenever the overlay is open, so live can't have it open in Lumbridge); where inside starts, and both changing on the step that crosses, inferred |
+| The Doomsayer's Toggle warnings list, PvP, skulls, Wilderness deaths and everything north of the ditch | not built: later steps |
+
+Check: `test-runner/examples/ditch-cross.json` and `HeadlessWildernessDitchTest`.
 
 ## Varrock
 
