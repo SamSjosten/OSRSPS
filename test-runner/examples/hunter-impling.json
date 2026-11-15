@@ -1,0 +1,21 @@
+{
+ "name": "Hunter step 6b: a baby impling put down with ::npc caught with the insect net into an impling jar at 99 Hunter, then looted from the jar (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario hunter", "expectMessage": "Started scenario hunter.", "comment": "an insect net and an impling jar among the Hunter loadout; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::setlevel hunter 99", "expectMessage": "Hunter set to level 99", "comment": "a baby impling's catch (79 to 402) is sure at 99"},
+  {"step": "itemOption", "item": "Insect net", "option": "Wield"},
+  {"step": "assertEquipment", "slot": "weapon", "item": "Insect net"},
+  {"step": "command", "text": "::npc ii_impling_type_1", "expectMessage": "Spawned Baby impling", "comment": "real implings show at random points every 30 minutes; this one stands still where the player is"},
+  {"step": "npcOption", "npc": "Baby impling", "option": "Catch"},
+  {"step": "assertMessage", "contains": "hunter.imp_jarred", "timeoutMs": 15000},
+  {"step": "assertInventory", "item": "Baby impling jar", "count": 1},
+  {"step": "waitTicks", "ticks": 3, "comment": "the catch holds the player for 3 ticks, and a click during it is dropped"},
+  {"step": "itemOption", "item": "Baby impling jar", "option": "Loot"},
+  {"step": "assertInventory", "item": "Baby impling jar", "count": 0, "comment": "the impling jar comes back 9 times in 10; the loot can be nothing"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

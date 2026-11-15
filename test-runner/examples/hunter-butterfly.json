@@ -12,6 +12,7 @@
   {"step": "npcOption", "npc": "Ruby harvest", "option": "Catch", "comment": "a miss is possible; run the step again"},
   {"step": "assertMessage", "contains": "hunter.caught", "timeoutMs": 15000},
   {"step": "assertInventory", "item": "Ruby harvest", "count": 1},
+  {"step": "waitTicks", "ticks": 3, "comment": "the catch holds the player for 3 ticks, and a click during it is dropped"},
   {"step": "itemOption", "item": "Ruby harvest", "option": "Release"},
   {"step": "assertMessage", "contains": "hunter.released"},
   {"step": "assertInventory", "item": "Butterfly jar", "count": 1},

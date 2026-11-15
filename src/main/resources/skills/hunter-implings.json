@@ -1,0 +1,1263 @@
+{
+  "about": "What each impling jar gives when looted, as the OSRS Wiki's jar pages list it (read 2026-11-15): one roll on the table (a line's weight out of the slots), a pre-roll first where the Wiki gives one, then each tertiary drop. Written as npc-drops.json's chests are and read by the same loader. Items are ids with their cache names beside them; a noted line is the note's id. Clue scrolls are left out until clues are their own piece, so the tables hold only the Wiki's other lines.",
+  "npcs": [],
+  "chests": {
+    "baby": {
+      "table": {
+        "slots": 100,
+        "lines": [
+          {
+            "item": 1755,
+            "name": "Chisel",
+            "weight": 10
+          },
+          {
+            "item": 1734,
+            "name": "Thread",
+            "weight": 10
+          },
+          {
+            "item": 1733,
+            "name": "Needle",
+            "weight": 10
+          },
+          {
+            "item": 946,
+            "name": "Knife",
+            "weight": 10
+          },
+          {
+            "item": 1985,
+            "name": "Cheese",
+            "weight": 10
+          },
+          {
+            "item": 2347,
+            "name": "Hammer",
+            "weight": 10
+          },
+          {
+            "item": 1759,
+            "name": "Ball of wool",
+            "weight": 10
+          },
+          {
+            "item": 319,
+            "name": "Anchovies",
+            "weight": 10
+          },
+          {
+            "nothing": true,
+            "weight": 10
+          },
+          {
+            "item": 2007,
+            "name": "Spice",
+            "weight": 1
+          },
+          {
+            "item": 1779,
+            "name": "Flax",
+            "weight": 1
+          },
+          {
+            "item": 7170,
+            "name": "Mud pie",
+            "weight": 1
+          },
+          {
+            "item": 401,
+            "name": "Seaweed",
+            "weight": 1
+          },
+          {
+            "item": 1438,
+            "name": "Air talisman",
+            "weight": 1
+          },
+          {
+            "item": 2355,
+            "name": "Silver bar",
+            "weight": 1
+          },
+          {
+            "item": 1607,
+            "name": "Sapphire",
+            "weight": 1
+          },
+          {
+            "item": 1743,
+            "name": "Hard leather",
+            "weight": 1
+          },
+          {
+            "item": 379,
+            "name": "Lobster",
+            "weight": 1
+          },
+          {
+            "item": 1761,
+            "name": "Soft clay",
+            "weight": 1
+          }
+        ]
+      },
+      "source": "OSRS Wiki, Baby impling jar (read 2026-11-15)"
+    },
+    "young": {
+      "table": {
+        "slots": 100,
+        "lines": [
+          {
+            "item": 1539,
+            "name": "Steel nails",
+            "count": 5,
+            "weight": 10
+          },
+          {
+            "item": 1523,
+            "name": "Lockpick",
+            "weight": 10
+          },
+          {
+            "item": 7936,
+            "name": "Pure essence",
+            "weight": 10
+          },
+          {
+            "item": 361,
+            "name": "Tuna",
+            "weight": 10
+          },
+          {
+            "item": 1901,
+            "name": "Chocolate slice",
+            "weight": 10
+          },
+          {
+            "item": 1353,
+            "name": "Steel axe",
+            "weight": 10
+          },
+          {
+            "item": 2293,
+            "name": "Meat pizza",
+            "weight": 10
+          },
+          {
+            "item": 453,
+            "name": "Coal",
+            "weight": 10
+          },
+          {
+            "item": 1777,
+            "name": "Bow string",
+            "weight": 10
+          },
+          {
+            "item": 231,
+            "name": "Snape grass",
+            "weight": 1
+          },
+          {
+            "item": 1761,
+            "name": "Soft clay",
+            "weight": 1
+          },
+          {
+            "item": 1097,
+            "name": "Studded chaps",
+            "weight": 1
+          },
+          {
+            "item": 1157,
+            "name": "Steel full helm",
+            "weight": 1
+          },
+          {
+            "item": 8778,
+            "name": "Oak plank",
+            "weight": 1
+          },
+          {
+            "item": 133,
+            "name": "Defence potion(3)",
+            "weight": 1
+          },
+          {
+            "item": 2359,
+            "name": "Mithril bar",
+            "weight": 1
+          },
+          {
+            "item": 855,
+            "name": "Yew longbow",
+            "weight": 1
+          },
+          {
+            "item": 7178,
+            "name": "Garden pie",
+            "weight": 1
+          },
+          {
+            "item": 247,
+            "name": "Jangerberries",
+            "weight": 1
+          }
+        ]
+      },
+      "source": "OSRS Wiki, Young impling jar (read 2026-11-15)"
+    },
+    "gourmet": {
+      "table": {
+        "slots": 100,
+        "lines": [
+          {
+            "item": 361,
+            "name": "Tuna",
+            "weight": 20
+          },
+          {
+            "item": 365,
+            "name": "Bass",
+            "weight": 10
+          },
+          {
+            "item": 2011,
+            "name": "Curry",
+            "weight": 10
+          },
+          {
+            "item": 2327,
+            "name": "Meat pie",
+            "weight": 10
+          },
+          {
+            "item": 1897,
+            "name": "Chocolate cake",
+            "weight": 10
+          },
+          {
+            "item": 5004,
+            "name": "Frog spawn",
+            "weight": 10
+          },
+          {
+            "item": 2007,
+            "name": "Spice",
+            "weight": 10
+          },
+          {
+            "item": 5970,
+            "name": "Curry leaf",
+            "weight": 10
+          },
+          {
+            "item": 1885,
+            "name": "Ugthanki kebab",
+            "weight": 1
+          },
+          {
+            "item": 380,
+            "name": "Lobster",
+            "count": 4,
+            "weight": 1
+          },
+          {
+            "item": 386,
+            "name": "Shark",
+            "count": 3,
+            "weight": 1
+          },
+          {
+            "item": 7188,
+            "name": "Fish pie",
+            "weight": 1
+          },
+          {
+            "item": 5755,
+            "name": "Chef's delight",
+            "weight": 1
+          },
+          {
+            "item": 10137,
+            "name": "Rainbow fish",
+            "count": 5,
+            "weight": 1
+          },
+          {
+            "item": 7179,
+            "name": "Garden pie",
+            "count": 6,
+            "weight": 1
+          },
+          {
+            "item": 374,
+            "name": "Swordfish",
+            "count": 3,
+            "weight": 1
+          },
+          {
+            "item": 5406,
+            "name": "Strawberries(5)",
+            "weight": 1
+          },
+          {
+            "item": 3145,
+            "name": "Cooked karambwan",
+            "count": 2,
+            "weight": 1
+          }
+        ]
+      },
+      "source": "OSRS Wiki, Gourmet impling jar (read 2026-11-15)",
+      "preroll": [
+        {
+          "item": 23499,
+          "name": "Grubby key",
+          "chance": "1/500"
+        }
+      ]
+    },
+    "earth": {
+      "table": {
+        "slots": 100,
+        "lines": [
+          {
+            "item": 1442,
+            "name": "Fire talisman",
+            "weight": 10
+          },
+          {
+            "item": 1440,
+            "name": "Earth talisman",
+            "weight": 10
+          },
+          {
+            "item": 5535,
+            "name": "Earth tiara",
+            "weight": 10
+          },
+          {
+            "item": 557,
+            "name": "Earth rune",
+            "count": 32,
+            "weight": 10
+          },
+          {
+            "item": 447,
+            "name": "Mithril ore",
+            "weight": 10
+          },
+          {
+            "item": 1784,
+            "name": "Bucket of sand",
+            "count": 4,
+            "weight": 10
+          },
+          {
+            "item": 237,
+            "name": "Unicorn horn",
+            "weight": 10
+          },
+          {
+            "item": 6033,
+            "name": "Compost",
+            "count": 6,
+            "weight": 10
+          },
+          {
+            "item": 444,
+            "name": "Gold ore",
+            "weight": 10
+          },
+          {
+            "item": 2353,
+            "name": "Steel bar",
+            "weight": 1
+          },
+          {
+            "item": 1273,
+            "name": "Mithril pickaxe",
+            "weight": 1
+          },
+          {
+            "item": 5311,
+            "name": "Wildblood seed",
+            "count": 2,
+            "weight": 1
+          },
+          {
+            "item": 5104,
+            "name": "Jangerberry seed",
+            "count": 2,
+            "weight": 1
+          },
+          {
+            "item": 6035,
+            "name": "Supercompost",
+            "count": 2,
+            "weight": 1
+          },
+          {
+            "item": 448,
+            "name": "Mithril ore",
+            "count": 3,
+            "weight": 1
+          },
+          {
+            "item": 5294,
+            "name": "Harralander seed",
+            "count": 2,
+            "weight": 1
+          },
+          {
+            "item": 454,
+            "name": "Coal",
+            "count": 6,
+            "weight": 1
+          },
+          {
+            "item": 1606,
+            "name": "Emerald",
+            "count": 2,
+            "weight": 1
+          },
+          {
+            "item": 1603,
+            "name": "Ruby",
+            "weight": 1
+          }
+        ]
+      },
+      "source": "OSRS Wiki, Earth impling jar (read 2026-11-15)"
+    },
+    "essence": {
+      "table": {
+        "slots": 100,
+        "lines": [
+          {
+            "item": 7937,
+            "name": "Pure essence",
+            "count": 20,
+            "weight": 10
+          },
+          {
+            "item": 555,
+            "name": "Water rune",
+            "count": 30,
+            "weight": 10
+          },
+          {
+            "item": 556,
+            "name": "Air rune",
+            "count": 30,
+            "weight": 10
+          },
+          {
+            "item": 554,
+            "name": "Fire rune",
+            "count": 50,
+            "weight": 10
+          },
+          {
+            "item": 558,
+            "name": "Mind rune",
+            "count": 25,
+            "weight": 10
+          },
+          {
+            "item": 559,
+            "name": "Body rune",
+            "count": 28,
+            "weight": 10
+          },
+          {
+            "item": 562,
+            "name": "Chaos rune",
+            "count": 4,
+            "weight": 10
+          },
+          {
+            "item": 564,
+            "name": "Cosmic rune",
+            "count": 4,
+            "weight": 10
+          },
+          {
+            "item": 1448,
+            "name": "Mind talisman",
+            "weight": 10
+          },
+          {
+            "item": 7937,
+            "name": "Pure essence",
+            "count": 35,
+            "weight": 1
+          },
+          {
+            "item": 4699,
+            "name": "Lava rune",
+            "count": 4,
+            "weight": 1
+          },
+          {
+            "item": 4698,
+            "name": "Mud rune",
+            "count": 4,
+            "weight": 1
+          },
+          {
+            "item": 4697,
+            "name": "Smoke rune",
+            "count": 4,
+            "weight": 1
+          },
+          {
+            "item": 4694,
+            "name": "Steam rune",
+            "count": 4,
+            "weight": 1
+          },
+          {
+            "item": 560,
+            "name": "Death rune",
+            "count": 13,
+            "weight": 1
+          },
+          {
+            "item": 563,
+            "name": "Law rune",
+            "count": 13,
+            "weight": 1
+          },
+          {
+            "item": 565,
+            "name": "Blood rune",
+            "count": 7,
+            "weight": 1
+          },
+          {
+            "item": 566,
+            "name": "Soul rune",
+            "count": 11,
+            "weight": 1
+          },
+          {
+            "item": 561,
+            "name": "Nature rune",
+            "count": 13,
+            "weight": 1
+          }
+        ]
+      },
+      "source": "OSRS Wiki, Essence impling jar (read 2026-11-15)"
+    },
+    "eclectic": {
+      "table": {
+        "slots": 100,
+        "lines": [
+          {
+            "item": 1273,
+            "name": "Mithril pickaxe",
+            "weight": 10
+          },
+          {
+            "item": 5970,
+            "name": "Curry leaf",
+            "weight": 10
+          },
+          {
+            "item": 231,
+            "name": "Snape grass",
+            "weight": 10
+          },
+          {
+            "item": 556,
+            "name": "Air rune",
+            "min": 30,
+            "max": 60,
+            "weight": 10
+          },
+          {
+            "item": 8779,
+            "name": "Oak plank",
+            "count": 4,
+            "weight": 10
+          },
+          {
+            "item": 4527,
+            "name": "Empty candle lantern",
+            "weight": 10
+          },
+          {
+            "item": 444,
+            "name": "Gold ore",
+            "weight": 10
+          },
+          {
+            "item": 2358,
+            "name": "Gold bar",
+            "count": 5,
+            "weight": 10
+          },
+          {
+            "item": 237,
+            "name": "Unicorn horn",
+            "weight": 10
+          },
+          {
+            "item": 1199,
+            "name": "Adamant kiteshield",
+            "weight": 1
+          },
+          {
+            "item": 2493,
+            "name": "Blue d'hide chaps",
+            "weight": 1
+          },
+          {
+            "item": 10083,
+            "name": "Red spiky vambraces",
+            "weight": 1
+          },
+          {
+            "item": 1213,
+            "name": "Rune dagger",
+            "weight": 1
+          },
+          {
+            "item": 1391,
+            "name": "Battlestaff",
+            "weight": 1
+          },
+          {
+            "item": 450,
+            "name": "Adamantite ore",
+            "count": 10,
+            "weight": 1
+          },
+          {
+            "item": 5760,
+            "name": "Slayer's respite",
+            "count": 2,
+            "weight": 1
+          },
+          {
+            "item": 7208,
+            "name": "Wild pie",
+            "weight": 1
+          },
+          {
+            "item": 5321,
+            "name": "Watermelon seed",
+            "count": 3,
+            "weight": 1
+          },
+          {
+            "item": 1601,
+            "name": "Diamond",
+            "weight": 1
+          }
+        ]
+      },
+      "source": "OSRS Wiki, Eclectic impling jar (read 2026-11-15)"
+    },
+    "nature": {
+      "table": {
+        "slots": 100,
+        "lines": [
+          {
+            "item": 5100,
+            "name": "Limpwurt seed",
+            "weight": 10
+          },
+          {
+            "item": 5104,
+            "name": "Jangerberry seed",
+            "weight": 10
+          },
+          {
+            "item": 5281,
+            "name": "Belladonna seed",
+            "weight": 10
+          },
+          {
+            "item": 5294,
+            "name": "Harralander seed",
+            "weight": 10
+          },
+          {
+            "item": 6016,
+            "name": "Cactus spine",
+            "weight": 10
+          },
+          {
+            "item": 1513,
+            "name": "Magic logs",
+            "weight": 10
+          },
+          {
+            "item": 254,
+            "name": "Tarromin",
+            "count": 4,
+            "weight": 10
+          },
+          {
+            "item": 5974,
+            "name": "Coconut",
+            "weight": 10
+          },
+          {
+            "item": 5297,
+            "name": "Irit seed",
+            "weight": 10
+          },
+          {
+            "item": 5286,
+            "name": "Curry tree seed",
+            "weight": 1
+          },
+          {
+            "item": 5285,
+            "name": "Orange tree seed",
+            "weight": 1
+          },
+          {
+            "item": 3000,
+            "name": "Snapdragon",
+            "weight": 1
+          },
+          {
+            "item": 5299,
+            "name": "Kwuarm seed",
+            "weight": 1
+          },
+          {
+            "item": 5298,
+            "name": "Avantoe seed",
+            "count": 5,
+            "weight": 1
+          },
+          {
+            "item": 5313,
+            "name": "Willow seed",
+            "weight": 1
+          },
+          {
+            "item": 5304,
+            "name": "Torstol seed",
+            "weight": 1
+          },
+          {
+            "item": 5295,
+            "name": "Ranarr seed",
+            "weight": 1
+          },
+          {
+            "item": 270,
+            "name": "Torstol",
+            "count": 2,
+            "weight": 1
+          },
+          {
+            "item": 5303,
+            "name": "Dwarf weed seed",
+            "weight": 1
+          }
+        ]
+      },
+      "source": "OSRS Wiki, Nature impling jar (read 2026-11-15)"
+    },
+    "magpie": {
+      "table": {
+        "slots": 21,
+        "lines": [
+          {
+            "item": 1748,
+            "name": "Black dragonhide",
+            "count": 6,
+            "weight": 2
+          },
+          {
+            "item": 1701,
+            "name": "Diamond amulet",
+            "count": 3,
+            "weight": 1
+          },
+          {
+            "item": 1732,
+            "name": "Amulet of power",
+            "count": 3,
+            "weight": 1
+          },
+          {
+            "item": 2569,
+            "name": "Ring of forging",
+            "count": 3,
+            "weight": 1
+          },
+          {
+            "item": 3391,
+            "name": "Splitbark gauntlets",
+            "weight": 1
+          },
+          {
+            "item": 4097,
+            "name": "Mystic boots",
+            "weight": 1
+          },
+          {
+            "item": 4095,
+            "name": "Mystic gloves",
+            "weight": 1
+          },
+          {
+            "item": 1347,
+            "name": "Rune warhammer",
+            "weight": 1
+          },
+          {
+            "item": 2571,
+            "name": "Ring of life",
+            "count": 4,
+            "weight": 1
+          },
+          {
+            "item": 1185,
+            "name": "Rune sq shield",
+            "weight": 1
+          },
+          {
+            "item": 1215,
+            "name": "Dragon dagger",
+            "weight": 1
+          },
+          {
+            "item": 5541,
+            "name": "Nature tiara",
+            "weight": 1
+          },
+          {
+            "item": 2364,
+            "name": "Runite bar",
+            "count": 2,
+            "weight": 1
+          },
+          {
+            "item": 1602,
+            "name": "Diamond",
+            "count": 4,
+            "weight": 1
+          },
+          {
+            "item": 5287,
+            "name": "Pineapple seed",
+            "weight": 1
+          },
+          {
+            "item": 2551,
+            "name": "Ring of recoil",
+            "count": 3,
+            "weight": 1
+          },
+          {
+            "item": 987,
+            "name": "Loop half of key",
+            "weight": 1
+          },
+          {
+            "item": 985,
+            "name": "Tooth half of key",
+            "weight": 1
+          },
+          {
+            "item": 5300,
+            "name": "Snapdragon seed",
+            "weight": 1
+          },
+          {
+            "item": 993,
+            "name": "Sinister key",
+            "weight": 1
+          }
+        ]
+      },
+      "source": "OSRS Wiki, Magpie impling jar (read 2026-11-15)"
+    },
+    "ninja": {
+      "table": {
+        "slots": 19,
+        "lines": [
+          {
+            "item": 6328,
+            "name": "Snakeskin boots",
+            "weight": 1
+          },
+          {
+            "item": 3385,
+            "name": "Splitbark helm",
+            "weight": 1
+          },
+          {
+            "item": 4097,
+            "name": "Mystic boots",
+            "weight": 1
+          },
+          {
+            "item": 1113,
+            "name": "Rune chainbody",
+            "weight": 1
+          },
+          {
+            "item": 4095,
+            "name": "Mystic gloves",
+            "weight": 1
+          },
+          {
+            "item": 6313,
+            "name": "Opal machete",
+            "weight": 1
+          },
+          {
+            "item": 3101,
+            "name": "Rune claws",
+            "weight": 1
+          },
+          {
+            "item": 1333,
+            "name": "Rune scimitar",
+            "weight": 1
+          },
+          {
+            "item": 5680,
+            "name": "Dragon dagger(p+)",
+            "weight": 1
+          },
+          {
+            "item": 892,
+            "name": "Rune arrow",
+            "count": 70,
+            "weight": 1
+          },
+          {
+            "item": 811,
+            "name": "Rune dart",
+            "count": 70,
+            "weight": 1
+          },
+          {
+            "item": 868,
+            "name": "Rune knife",
+            "count": 40,
+            "weight": 1
+          },
+          {
+            "item": 805,
+            "name": "Rune thrownaxe",
+            "count": 50,
+            "weight": 1
+          },
+          {
+            "item": 9342,
+            "name": "Onyx bolts",
+            "count": 2,
+            "weight": 1
+          },
+          {
+            "item": 9194,
+            "name": "Onyx bolt tips",
+            "count": 4,
+            "weight": 1
+          },
+          {
+            "item": 1748,
+            "name": "Black dragonhide",
+            "count": 10,
+            "weight": 1
+          },
+          {
+            "item": 140,
+            "name": "Prayer potion(3)",
+            "count": 4,
+            "weight": 1
+          },
+          {
+            "item": 5938,
+            "name": "Weapon poison(+)",
+            "count": 4,
+            "weight": 1
+          },
+          {
+            "item": 6156,
+            "name": "Dagannoth hide",
+            "count": 3,
+            "weight": 1
+          }
+        ]
+      },
+      "source": "OSRS Wiki, Ninja impling jar (read 2026-11-15)"
+    },
+    "crystal": {
+      "table": {
+        "slots": 18,
+        "lines": [
+          {
+            "item": 1732,
+            "name": "Amulet of power",
+            "min": 5,
+            "max": 7,
+            "weight": 1
+          },
+          {
+            "item": 23661,
+            "name": "Crystal acorn",
+            "weight": 1
+          },
+          {
+            "item": 23962,
+            "name": "Crystal shard",
+            "min": 30,
+            "max": 40,
+            "weight": 1
+          },
+          {
+            "item": 1702,
+            "name": "Dragonstone amulet",
+            "weight": 1
+          },
+          {
+            "item": 1616,
+            "name": "Dragonstone",
+            "count": 2,
+            "weight": 1
+          },
+          {
+            "item": 9191,
+            "name": "Ruby bolt tips",
+            "min": 50,
+            "max": 125,
+            "weight": 1
+          },
+          {
+            "item": 9194,
+            "name": "Onyx bolt tips",
+            "min": 6,
+            "max": 10,
+            "weight": 1
+          },
+          {
+            "item": 44,
+            "name": "Rune arrowtips",
+            "min": 150,
+            "max": 250,
+            "weight": 1
+          },
+          {
+            "item": 892,
+            "name": "Rune arrow",
+            "min": 400,
+            "max": 750,
+            "weight": 1
+          },
+          {
+            "item": 19580,
+            "name": "Rune javelin tips",
+            "min": 20,
+            "max": 60,
+            "weight": 1
+          },
+          {
+            "item": 824,
+            "name": "Rune dart tip",
+            "min": 25,
+            "max": 75,
+            "weight": 1
+          },
+          {
+            "item": 811,
+            "name": "Rune dart",
+            "min": 50,
+            "max": 100,
+            "weight": 1
+          },
+          {
+            "item": 11232,
+            "name": "Dragon dart tip",
+            "min": 10,
+            "max": 15,
+            "weight": 1
+          },
+          {
+            "item": 1216,
+            "name": "Dragon dagger",
+            "count": 2,
+            "weight": 1
+          },
+          {
+            "item": 1334,
+            "name": "Rune scimitar",
+            "min": 3,
+            "max": 6,
+            "weight": 1
+          },
+          {
+            "item": 535,
+            "name": "Babydragon bones",
+            "min": 75,
+            "max": 125,
+            "weight": 1
+          },
+          {
+            "item": 5295,
+            "name": "Ranarr seed",
+            "min": 3,
+            "max": 8,
+            "weight": 1
+          },
+          {
+            "item": 5315,
+            "name": "Yew seed",
+            "weight": 1
+          }
+        ]
+      },
+      "source": "OSRS Wiki, Crystal impling jar (read 2026-11-15)",
+      "tertiary": [
+        {
+          "item": 23943,
+          "name": "Elven signet",
+          "chance": "1/128"
+        }
+      ]
+    },
+    "dragon": {
+      "table": {
+        "slots": 19,
+        "lines": [
+          {
+            "item": 9193,
+            "name": "Dragonstone bolt tips",
+            "min": 10,
+            "max": 30,
+            "weight": 1
+          },
+          {
+            "item": 9193,
+            "name": "Dragonstone bolt tips",
+            "count": 36,
+            "weight": 1
+          },
+          {
+            "item": 4093,
+            "name": "Mystic robe bottom",
+            "weight": 1
+          },
+          {
+            "item": 1705,
+            "name": "Amulet of glory",
+            "count": 3,
+            "weight": 1
+          },
+          {
+            "item": 1703,
+            "name": "Dragonstone amulet",
+            "count": 2,
+            "weight": 1
+          },
+          {
+            "item": 11212,
+            "name": "Dragon arrow",
+            "min": 100,
+            "max": 250,
+            "weight": 1
+          },
+          {
+            "item": 9341,
+            "name": "Dragonstone bolts",
+            "min": 10,
+            "max": 40,
+            "weight": 1
+          },
+          {
+            "item": 1305,
+            "name": "Dragon longsword",
+            "weight": 1
+          },
+          {
+            "item": 5699,
+            "name": "Dragon dagger(p++)",
+            "count": 3,
+            "weight": 1
+          },
+          {
+            "item": 11230,
+            "name": "Dragon dart",
+            "min": 100,
+            "max": 250,
+            "weight": 1
+          },
+          {
+            "item": 1616,
+            "name": "Dragonstone",
+            "count": 3,
+            "weight": 1
+          },
+          {
+            "item": 11232,
+            "name": "Dragon dart tip",
+            "min": 100,
+            "max": 350,
+            "weight": 1
+          },
+          {
+            "item": 11237,
+            "name": "Dragon arrowtips",
+            "min": 100,
+            "max": 350,
+            "weight": 1
+          },
+          {
+            "item": 19582,
+            "name": "Dragon javelin tips",
+            "min": 25,
+            "max": 35,
+            "weight": 1
+          },
+          {
+            "item": 535,
+            "name": "Babydragon bones",
+            "min": 100,
+            "max": 300,
+            "weight": 1
+          },
+          {
+            "item": 537,
+            "name": "Dragon bones",
+            "min": 50,
+            "max": 100,
+            "weight": 1
+          },
+          {
+            "item": 5316,
+            "name": "Magic seed",
+            "weight": 1
+          },
+          {
+            "item": 5300,
+            "name": "Snapdragon seed",
+            "count": 6,
+            "weight": 1
+          },
+          {
+            "item": 7219,
+            "name": "Summer pie",
+            "count": 15,
+            "weight": 1
+          }
+        ]
+      },
+      "source": "OSRS Wiki, Dragon impling jar (read 2026-11-15)"
+    }
+  }
+}
