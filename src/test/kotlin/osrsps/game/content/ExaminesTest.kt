@@ -18,6 +18,13 @@ class ExaminesTest {
     }
 
     @Test
+    fun `the text review's types have examines too, keyed one per id`() {
+        // A Farmer of the farms and roads, and the Lumbridge Swamp Caves' gas hole and stalagmites (2026-11-15).
+        for (id in listOf(3114, 3243, 11921)) assertEquals("examine.npc_$id", Examines.npc(id)?.key, "NPC $id")
+        for (id in listOf(5918, 22542, 22543)) assertEquals("examine.loc_$id", Examines.loc(id)?.key, "loc $id")
+    }
+
+    @Test
     fun `every castle NPC that talks has an examine`() {
         for (id in listOf(Hans.ID, Cook.ID, DukeHoracio.ID, Perdu.ID, Cadmus.ID, Bankers.BANKER, Doomsayer.ID, Mikasi.ID, LumbridgeGuide.ID) + Townsfolk.MEN + Townsfolk.WOMEN) {
             assertEquals("examine.npc_$id", Examines.npc(id)?.key, "NPC $id")
