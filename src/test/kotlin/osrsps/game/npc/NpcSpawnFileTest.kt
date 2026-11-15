@@ -1162,4 +1162,28 @@ class NpcSpawnFileTest {
         assertTrue(of(13132).all { it.x in 1550..1570 && it.z in 9410..9425 })
         assertTrue(result.spawns.all { it.wander == 4 && it.level == 0 && it.source.isNotBlank() })
     }
+
+    @Test
+    fun `Hunter step 6a's butterflies and moths are where the Wiki has them`() {
+        val names = mapOf(5556 to "butterfly_ruby", 5555 to "butterfly_glacialis", 5554 to "butterfly_snowy", 5553 to "butterfly_warlock", 12770 to "moth_sunlight", 12771 to "moth_moonlight")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("hunter-butterflies.json"), types, "hunter-butterflies.json")
+        assertEquals(emptyList(), result.unknown)
+        fun of(id: Int) = result.spawns.filter { it.type.id == id }
+        assertEquals(listOf(62, 21, 26, 39, 86, 91), names.keys.map { of(it).size })
+        // Piscatoris has 22 ruby harvests; the Rellekka upper ledge's snowy knights are on level 1.
+        assertEquals(22, of(5556).count { it.x in 2300..2370 && it.z in 3520..3620 })
+        assertEquals(3, of(5554).count { it.level == 1 })
+        assertTrue(result.spawns.all { it.wander == 4 && it.source.isNotBlank() })
+    }
+
+    @Test
+    fun `Hunter step 7's kebbits are where the Wiki has them, all inside the falconry area, with Matthias`() {
+        val names = mapOf(1340 to "hunting_npc_falconer", 5531 to "huntingbeast_speedy", 5532 to "huntingbeast_silent", 5533 to "huntingbeast_speedy2")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("hunter-falconry.json"), types, "hunter-falconry.json")
+        assertEquals(emptyList(), result.unknown)
+        assertEquals(listOf(1, 7, 7, 3), names.keys.map { id -> result.spawns.count { it.type.id == id } })
+        assertTrue(result.spawns.all { osrsps.game.skill.hunter.Falconry.inArea(it.x, it.z, it.level) && it.source.isNotBlank() })
+    }
 }

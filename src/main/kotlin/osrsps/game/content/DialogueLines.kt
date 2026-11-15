@@ -56,6 +56,7 @@ import osrsps.game.skill.ThievingLockLines
 import osrsps.game.skill.WoodcuttingLines
 import osrsps.game.skill.farming.FarmingLines
 import osrsps.game.skill.hunter.HunterLines
+import osrsps.game.skill.hunter.MatthiasLines
 import osrsps.game.skill.farming.GardenerLines
 import osrsps.game.skill.farming.NoteLines
 import osrsps.game.skill.farming.ToolStoreLines
@@ -211,6 +212,7 @@ object DialogueLines {
         HariLines,
         HarlanLines,
         HassanLines,
+        MatthiasLines,
         MikasiLines,
         HaystackLines,
         HeadChefLines,

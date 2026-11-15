@@ -1286,9 +1286,9 @@ the dialogue shows each line's key.
 
 ### Hunter
 
-Hunter steps 1 to 5 (`game/skill/hunter/`, `npc-spawns/hunter-birds.json`, `hunter-box-traps.json`,
-`hunter-net-traps.json`, `hunter-deadfalls.json` and `hunter-pitfalls.json`, `::scenario hunter`): the trap engine, bird
-snares, box traps, net traps, deadfalls and pitfalls. Lay (from the backpack, or on a snare on the ground) drops the snare and puts the trap up on the skill clock's
+Hunter steps 1 to 7 (`game/skill/hunter/`, `npc-spawns/hunter-birds.json`, `hunter-box-traps.json`,
+`hunter-net-traps.json`, `hunter-deadfalls.json`, `hunter-pitfalls.json` and `hunter-butterflies.json`, `hunter-falconry.json`, `skills/hunter-implings.json`, `::scenario hunter`):
+the trap engine, bird snares, box traps, net traps, deadfalls, pitfalls, butterflies and moths, implings, and falconry. Lay (from the backpack, or on a snare on the ground) drops the snare and puts the trap up on the skill clock's
 fourth tick, the player stepping off it; a set trap looks for a creature within 2 tiles every 3 ticks (none while a
 player stands on it), the creature walks in, and the catch is rolled at the owner's boosted Hunter level, a miss
 every time below the creature's level. A caught bird struggles, then the snare holds it until Check (its drops, XP
@@ -1320,6 +1320,26 @@ won't be caught in that pit next. Dismantle on the full pit gives big bones, the
 the XP; on a spiked pit it gives nothing back. Pits go when their owner logs out or goes far away, a full one after a
 minute. `hunter-pitfall.json` in `test-runner/examples/` catches a spined larupia.
 
+Butterflies and moths are caught with Catch, wielding an insect net or magic insect net, or barehanded (nothing
+wielded) 10 levels over the requirement. With a butterfly jar in the backpack the jar becomes the jarred butterfly;
+without one it goes at once and its effect applies. Release on a jarred one applies the effect (sharing the potions'
+3-tick delay) and leaves the jar. `hunter-butterfly.json` catches and releases a ruby harvest.
+
+Implings are caught the same way (Catch with a net, or barehanded 10 levels over). With an impling jar in the backpack
+the jar becomes the jarred impling; without one its loot comes at once. Loot on a jarred impling rolls its table
+(`skills/hunter-implings.json`, read by the drop loader) and gives the empty jar back 9 times in 10. Every 30 minutes
+the implings out go and new spawners are rolled (4 high tier, 5 to 10 mid, twice that low, one at each low-tier point
+and one crystal impling in Prifddinas); each shows its impling 2 minutes later and starts over when it is caught.
+`hunter-impling.json` catches a baby impling put down with `::npc ii_impling_type_1` and loots the jar.
+
+Falconry, in the Piscatoris falconry area (`::tele 2377 3600`): Matthias (Talk-to, as the Wiki's transcript, or
+Quick-falcon) rents a gyr falcon on the falconer's glove for 500 coins at 43 Hunter, moving what is worn in the weapon
+and shield slots to the backpack; the glove won't come off or be worn over until he takes it back, and leaving the
+area with it sends the falcon home. Catch on a kebbit sends the falcon; on reaching it the catch is rolled, and a
+caught kebbit leaves the falcon on its tile for Retrieve (the XP, bones, fur, and a dashing kebbit's meat; what doesn't
+fit is discarded). Left too long, the falcon flies off and Matthias fetches it. `hunter-falconry.json` catches a
+spotted kebbit.
+
 | What | Source |
 |---|---|
 | The birds: crimson swift (1, 34 XP), golden warbler (5, 47), copper longtail (9, 61.2), cerulean twitch (11, 64.5), tropical wagtail (19, 95.2); bones, raw bird meat and 5 to 10 feathers of the bird's colour; each one's catch pair (crimson swift 39% at 1 to 164% at 99) | OSRS Wiki, Bird snare and each bird's page (the Skilling success chart, Mod Ash's figures) |
@@ -1332,13 +1352,16 @@ minute. `hunter-pitfall.json` in `test-runner/examples/` catches a spined larupi
 | Where the kebbits are: Piscatoris (wild `::tele 2307 3578`, prickly `::tele 2307 3607`) and Auburnvale (wild), Feldip (barb-tailed `::tele 2573 2899`), Rellekka (sabre-toothed `::tele 2711 3775`) | each kebbit's OSRS Wiki page (location table) |
 | Pitfalls: spined larupia (31, 180 XP), horned graahk (41, 240), sabre-toothed kyatt (55, 300), sunlight antelope (72, 380, also its antler, fur and 2 to 6 sunfire splinters), moonlight antelope (91, 450, its antler and fur); big bones and the meat; max hits 5, 7, 7, 5, 5 every 4 ticks; antelopes always caught; a creature that misses leaps over and won't take the same pit next; the spear's 5% | OSRS Wiki, Pitfall, each creature's page, Hunter's spear |
 | Where they are: Feldip (larupias `::tele 2548 2906`), Karamja (graahks `::tele 2768 3007`), Rellekka (kyatts `::tele 2703 3790`), the Avium Savannah (sunlight antelopes `::tele 1746 3008`), the Burrow (moonlight antelopes `::tele 1559 9419`) | each creature's OSRS Wiki page (location table); the pits from the rev 242 map |
+| Butterflies and moths: ruby harvest (15, 24 XP, Attack), sapphire glacialis (25, 34, Defence), snowy knight (35, 44, 15 hitpoints), black warlock (45, 54, Strength), sunlight moth (65, 74, 20% + 6 of lowered stats and 8 hitpoints), moonlight moth (75, 84, 22 prayer); boosts 15% + 4; barehanded at 10 over; the black warlock's and moths' catch pairs; Release leaving the jar; where they live (`::tele 2316 3605`, `2703 3822`, `2701 3804`, `2563 2920`, `1568 2995`, `1554 9433`) | OSRS Wiki, Butterfly (Hunter), each creature's page and its jarred item's page |
+| Implings: baby (17, 20 XP), young (22, 22), gourmet (28, 24), earth (36, 27), essence (42, 29), eclectic (50, 32), nature (58, 36), magpie (65, 216), ninja (74, 240), crystal (80, 280), dragon (83, 300); their catch pairs; each jar's loot table, the gourmet's grubby key pre-roll and the crystal's elven signet; the jar breaking 1 time in 10; the spawn tiers, cycle, 2 minutes unseen, 100-tile roam and the points | OSRS Wiki, Impling, each impling's page and its jar's page (Mod Ash for the jar) |
+| Falconry: spotted (43, 104 XP, its fur), dark (57, 132, its fur), dashing (69, 156, its fur and meat) kebbits, each with bones; their catch pairs; the 500 coin rent, the glove's rules, the 19 August 2026 changes; Matthias's talk; the kebbits' spawns | OSRS Wiki, Falconry, Falconer's glove, each kebbit's page, Transcript:Matthias |
 | The trap count, and Reset and the failed snare (since 7 October 2026) | OSRS Wiki, Hunter (Multiple traps, Changes) |
 | A trap looks every 3 ticks within 2 tiles, nothing while a player stands on it; a creature above the player's level always gets away | OSRS Wiki, Box trap (Mechanics, Mod Ash) |
 | Laying takes 4 ticks of the skill clock; picking a trap up takes 3 ticks and stalls the player | OSRS Wiki, Tick manipulation |
 | A trap stands a minute, counted again when it catches or fails | RuneLite's Hunter plugin (HunterTrap.TRAP_TIME, observed on live) |
 | Where the birds are: Feldip (crimson swifts and wagtails, `::tele 2611 2918`, `::tele 2512 2905`), Uzer (warblers, `::tele 3402 3150`), Piscatoris (longtails, `::tele 2340 3590`), Rellekka (twitches, `::tele 2725 3770`) | mejrs NPCList_OSRS.json (live, pre-Nov 2022) |
-| The creature lured is one in range at random, always; it is rolled for on stepping onto the trap; the struggle (2 ticks), the respawn (10 ticks), the collapse leaving the item, how far the owner may go (32 tiles), the birds' wander (4), the check and dismantle animation, traps allowed on any free walkable tile outside instances; the ferret's catch chance (the grey chinchompa's); a box trap's struggling loc by the side the creature came in from; Set-trap needing the salamander's level, standing square to the tree, the tree bending for the 4 ticks of laying; the wild and prickly kebbits' catch pairs (their pages' figures from before the 19 August 2026 rise), a kebbit caught on reaching either long side of the boulder, laying a deadfall with human_laytrap in 4 ticks, Dismantle giving nothing back; the big cats' catch pair (128 to 256), the undamaged fur's chance (half at the creature's level to always at 99), teasing needing the level, a teased creature's hit (0 to its max, no accuracy roll, none through Protect from Melee), how long it chases (100 ticks without a tease or jump, 32 tiles), when it is judged (reaching the far edge within 10 ticks of the jump), which full look shows, trapping a pit in 4 ticks with the log always used, a spiked pit lasting till its owner leaves, the jump's animation and 2 ticks | guessed |
-| Not built: black chinchompas and black salamanders (the Wilderness), embertailed jerboas, letvek and tecu salamanders (Varlamore), salamanders as weapons, Release, making a net trap, pyre foxes and maniacal monkeys, the wild broav, hunter gear's damage cut, butterflies and implings, falconry, tracking, the Hunter shops, smoking and baiting traps, the honey buzzards, Hunters' Rumours | next steps |
+| The creature lured is one in range at random, always; it is rolled for on stepping onto the trap; the struggle (2 ticks), the respawn (10 ticks), the collapse leaving the item, how far the owner may go (32 tiles), the birds' wander (4), the check and dismantle animation, traps allowed on any free walkable tile outside instances; the ferret's catch chance (the grey chinchompa's); a box trap's struggling loc by the side the creature came in from; Set-trap needing the salamander's level, standing square to the tree, the tree bending for the 4 ticks of laying; the wild and prickly kebbits' catch pairs (their pages' figures from before the 19 August 2026 rise), a kebbit caught on reaching either long side of the boulder, laying a deadfall with human_laytrap in 4 ticks, Dismantle giving nothing back; the big cats' catch pair (128 to 256), the undamaged fur's chance (half at the creature's level to always at 99), teasing needing the level, a teased creature's hit (0 to its max, no accuracy roll, none through Protect from Melee), how long it chases (100 ticks without a tease or jump, 32 tiles), when it is judged (reaching the far edge within 10 ticks of the jump), which full look shows, trapping a pit in 4 ticks with the log always used, a spiked pit lasting till its owner leaves, the jump's animation and 2 ticks; the ruby harvest, sapphire glacialis and snowy knight pairs (caught as often at their level as a black warlock at 45), barehanded meaning nothing wielded and its animation, a catch judged the tick after the swing, the butterflies' respawn (10 ticks), every release sharing the potions' delay; an impling's spawner standing unseen rather than roaming, the first cycle at boot, a caught impling's spawner rolling its own tier again, which crystal impling name shows, Loot needing a free slot, loot that doesn't fit going on the ground; the falcon's flight (a tile in three ticks) and its wait on the prey (50 ticks), the falconry kebbits' respawn (10 ticks) and wander, the falconry area as its fence's bounding box, Quick-falcon renting at once and handing the glove back | guessed |
+| Not built: black chinchompas and black salamanders (the Wilderness), embertailed jerboas, letvek and tecu salamanders (Varlamore), salamanders as weapons, Release, making a net trap, pyre foxes and maniacal monkeys, the wild broav, hunter gear's damage cut, hunter's mixes, jarred butterflies on other players, Puro-Puro and the lucky impling, clue scrolls from implings, the impling tracker, investing in Matthias's falcons and the falconry stile, tracking, the Hunter shops, smoking and baiting traps, the honey buzzards, Hunters' Rumours | next steps |
 
 ## Fred's farm
 
