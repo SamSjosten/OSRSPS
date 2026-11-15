@@ -153,26 +153,29 @@ class ImplingsTest {
     }
 
     @Test
-    fun `booted between half hours, the next cycle comes on the half hour and the crystal impling at 33 past`() {
+    fun `booted between half hours, Gielinor's implings cycle from boot and the crystal one on the half hours`() {
         val world = World(IntArray(0), CollisionMap(), random = GameRandom(11), npcTypes = NpcTypes.of(*types.toTypedArray()), objTypes = objTypes())
         // Ten past the hour: the half hour is 2000 ticks on.
         val implings = world.hunter.implings.apply { clock = { 10 * 60_000L } }
         implings.process(0)
         val boot = implings.all.toList()
+        val bootCrystal = boot.single { it.tier === Implings.CRYSTAL_TIER }
         implings.process(Implings.CRYSTAL_UNSEEN_TICKS.toLong())
-        assertEquals(null, boot.single { it.tier === Implings.CRYSTAL_TIER }.npc)
-        implings.process(1999)
-        assertTrue(implings.all.all { it in boot })
+        assertEquals(null, bootCrystal.npc)
+        assertTrue(boot.filter { it !== bootCrystal }.all { it.npc != null })
+        // At the half hour only the crystal spawner is replaced, showing at 33 past.
         implings.process(2000)
-        assertTrue(implings.all.none { it in boot })
         val crystal = implings.all.single { it.tier === Implings.CRYSTAL_TIER }
+        assertTrue(crystal !== bootCrystal)
+        assertTrue(implings.all.filter { it !== crystal }.all { it in boot })
         implings.process(2000 + Implings.CRYSTAL_UNSEEN_TICKS.toLong() - 1)
         assertEquals(null, crystal.npc)
         implings.process(2000 + Implings.CRYSTAL_UNSEEN_TICKS.toLong())
         assertTrue(crystal.npc != null)
-        // Then every 3000 ticks.
-        implings.process(2000 + Implings.CYCLE_TICKS.toLong() - 1)
-        assertTrue(crystal in implings.all)
+        // Gielinor's go 3000 ticks after boot, and the crystal one stays until its own half hour.
+        implings.process(Implings.CYCLE_TICKS.toLong())
+        assertTrue(implings.all.none { it in boot })
+        assertTrue(crystal in implings.all && crystal.npc != null)
         implings.process(2000 + Implings.CYCLE_TICKS.toLong())
         assertTrue(crystal !in implings.all)
     }

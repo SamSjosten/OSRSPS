@@ -59,10 +59,10 @@ class ImplingTier(
  * levels over its requirement); with an impling jar in the backpack the jar becomes the jarred impling, without one its
  * loot is taken at once. Loot on a jarred impling gives a roll of its table and the empty jar back, 9 times in 10.
  *
- * Spawning, from the Wiki's Impling page: every [CYCLE_TICKS] the implings out despawn; four spawners are rolled on
+ * Spawning, from the Wiki's Impling page: every [CYCLE_TICKS] from boot the implings out despawn; four spawners are rolled on
  * the high tier, N (5 to 10) on the mid tier and 2N on the low tier, each put at a random one of [VARIABLE_POINTS]; each
  * of [LOW_POINTS] (the Zanaris one too) has a low-tier spawner, and Prifddinas one crystal spawner at a random one of
- * [PRIF_POINTS]. A spawner shows its impling [UNSEEN_TICKS] later ([CRYSTAL_UNSEEN_TICKS] for the crystal one, from its
+ * [PRIF_POINTS], replaced on the clock's :00 and :30 instead (the Crystal impling page). A spawner shows its impling [UNSEEN_TICKS] later ([CRYSTAL_UNSEEN_TICKS] for the crystal one, from its
  * page), picking the impling then from its tier. A visible
  * impling roams up to [ROAM] tiles from its point, and an unseen one roams the same way, so it shows where that took it
  * ([roamed]). A caught one's spawner starts over at once at the same point, but the crystal one's waits for the next
@@ -75,8 +75,8 @@ class ImplingTier(
  * ii_impling_type_1 to 10 and ii_impling_type_12_*, ii_captured_impling_1 to 10 and 12, ii_impling_jar 11260.
  *
  * Guessed: one attempt per Catch, judged the tick after the swing, as for butterflies; the unseen roam following the
- * visible one's rules; a set rolled at boot (the next comes on the clock's half hour), its implings
- * showing two minutes after boot; a caught impling's spawner rolling the tier it was made from;
+ * visible one's rules; the first cycle at boot, and a crystal impling rolled at boot too, showing at the next :03 or
+ * :33; a caught impling's spawner rolling the tier it was made from;
  * which of the crystal impling's seventeen names shows (at random); Loot needing one free slot beside the jar, and loot
  * that doesn't fit (looting at once with a full backpack) going on the ground; that the miss and catch messages are
  * their own lines. Left out: Puro-Puro and its implings, the lucky impling (its loot is the clue reward tables, not
@@ -91,9 +91,10 @@ class Implings(private val world: World) {
 
     private val spawners = ArrayList<Spawner>()
     private var nextCycle = 0L
+    private var nextCrystalCycle = 0L
     private var started = false
 
-    /** The real time, ms since 1970, that the cycles keep to the half hours of; tests set it. */
+    /** The real time, ms since 1970, whose half hours the crystal impling's cycle keeps to; tests set it. */
     var clock: () -> Long = System::currentTimeMillis
     private var loot: NpcDrops = NpcDrops.NONE
 
@@ -113,12 +114,20 @@ class Implings(private val world: World) {
 
     /** Call once a tick; a test may pass its own [tick]. */
     fun process(tick: Long = world.tick) {
+        val boot = !started
+        started = true
+        // Gielinor's implings cycle every 3000 ticks from boot; the crystal one on the clock's :00 and :30.
         if (tick >= nextCycle) {
-            val boot = !started
-            started = true
-            // The first cycle after boot lands on the clock's next :00 or :30; ticks count from there.
-            nextCycle = tick + if (boot) ticksUntil(0) else CYCLE_TICKS.toLong()
-            if (present) cycle(tick, boot)
+            nextCycle = tick + CYCLE_TICKS
+            if (present) cycle(tick)
+        }
+        if (boot) {
+            // The first crystal cycle lands on the clock's next half hour; ticks count from there.
+            nextCrystalCycle = tick + ticksUntil(0)
+            if (present) crystalCycle(tick, ticksUntil(CRYSTAL_UNSEEN_TICKS * TICK_MILLIS))
+        } else if (tick >= nextCrystalCycle) {
+            nextCrystalCycle = tick + CYCLE_TICKS
+            if (present) crystalCycle(tick, CRYSTAL_TIER.unseenTicks.toLong())
         }
         for (spawner in spawners) if (spawner.npc == null && tick >= spawner.showTick) show(spawner, tick)
     }
@@ -129,13 +138,13 @@ class Implings(private val world: World) {
         return (millis + TICK_MILLIS - 1) / TICK_MILLIS
     }
 
-    /**
-     * The 30-minute cycle: every impling out goes, and a new set of spawners is rolled. At [boot], between half hours,
-     * the crystal one still shows at the next :03 or :33.
-     */
-    private fun cycle(tick: Long, boot: Boolean = false) {
-        for (spawner in spawners) spawner.npc?.let(world::removeNpc)
-        spawners.clear()
+    /** The 30-minute cycle on Gielinor: every impling out goes, and a new set of spawners is rolled. */
+    private fun cycle(tick: Long) {
+        spawners.removeAll { spawner ->
+            if (spawner.tier === CRYSTAL_TIER) return@removeAll false
+            spawner.npc?.let(world::removeNpc)
+            true
+        }
         fun variable(tier: ImplingTier) {
             val (x, z) = VARIABLE_POINTS[world.random.nextInt(VARIABLE_POINTS.size)]
             spawners += Spawner(tier, x, z, tick + tier.unseenTicks)
@@ -145,9 +154,17 @@ class Implings(private val world: World) {
         repeat(n) { variable(MID) }
         repeat(n * 2) { variable(LOW) }
         for ((x, z) in LOW_POINTS) spawners += Spawner(LOW, x, z, tick + LOW.unseenTicks)
+    }
+
+    /** The crystal impling's half hour in Prifddinas: the one out goes, and a new spawner shows [showIn] ticks on. */
+    private fun crystalCycle(tick: Long, showIn: Long) {
+        spawners.removeAll { spawner ->
+            if (spawner.tier !== CRYSTAL_TIER) return@removeAll false
+            spawner.npc?.let(world::removeNpc)
+            true
+        }
         val (px, pz) = PRIF_POINTS[world.random.nextInt(PRIF_POINTS.size)]
-        val crystalShow = if (boot) ticksUntil(CRYSTAL_UNSEEN_TICKS * TICK_MILLIS) else CRYSTAL_TIER.unseenTicks.toLong()
-        spawners += Spawner(CRYSTAL_TIER, px, pz, tick + crystalShow)
+        spawners += Spawner(CRYSTAL_TIER, px, pz, tick + showIn)
     }
 
     private fun show(spawner: Spawner, tick: Long) {
@@ -276,7 +293,7 @@ class Implings(private val world: World) {
         const val JAR_KEPT = 9
         const val JAR_OF = 10
 
-        /** The Wiki: thirty minutes (on the half hours of the clock), two minutes unseen, a hundred tiles. */
+        /** The Wiki: thirty minutes from boot (the crystal impling's on the clock's half hours), two minutes unseen, a hundred tiles. */
         const val CYCLE_TICKS = 3000
         const val HALF_HOUR_MILLIS = 30 * 60_000L
         private const val TICK_MILLIS = 600L
