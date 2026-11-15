@@ -1034,6 +1034,24 @@ seeds for the hops and bush patches, empty buckets, volcanic ash and a compost p
 
 Check: `./gradlew test --tests 'osrsps.game.skill.farming.*' --tests 'osrsps.testclient.HeadlessFarmingTest' --tests 'osrsps.testclient.HeadlessFarmingTreeTest' --tests 'osrsps.testclient.HeadlessFarmingFruitTreeTest' --tests 'osrsps.testclient.HeadlessFarmingHopsBushTest' --tests 'osrsps.testclient.HeadlessFarmingCompostBinTest' --tests 'osrsps.testclient.HeadlessFarmingGardenersTest'`.
 
+### Runecraft
+
+Runecraft step RC1 (`game/skill/Runecraft.kt`): the mysterious ruins, talismans, tiaras and the altars' exit portals.
+The ruins, altars and portals are the cache's, where the 242 map puts them; only their options are new. The
+`runecraft` scenario starts beside the Water Altar's ruins with every talisman.
+
+| What | Source |
+|---|---|
+| The 13 ruins (air, mind, water, earth, fire, body, cosmic, law, nature, chaos, death, wrath, true blood): their talisman, or the elemental talisman (air, water, earth, fire) or catalytic talisman (the rest), used on them sends the player inside. Each is a multiloc that shows Enter when its `rc_no_tally_required_*` varbit is set, which the server sets while the player wears the altar's tiara, the elemental or catalytic tiara, or the Runecraft cape | OSRS Wiki, Mysterious ruins, Runic altar, Tiara, Elemental talisman, Catalytic talisman; ids and varbits from the 242 cache |
+| Each altar's exit portal puts the player back beside its ruins | OSRS Wiki, Portal (Runecrafting) |
+| Locate on a talisman: which of eight ways its ruins lie; the elemental talisman picks the nearest of its four ruins and can't tell when two are equally near; the catalytic talisman's does nothing | OSRS Wiki, Talisman, Elemental talisman, Catalytic talisman |
+| Ruins outside Misthalin, by `::tele`: air 2985 3289, mind 2982 3511, body 3053 3442, cosmic (Zanaris) 2407 4374, law (Entrana) 2858 3378, nature 2869 3016, chaos (Wilderness) 3060 3588, death 1860 4636, wrath 2446 2822, true blood 3561 9778. In Misthalin: water 3185 3162, earth 3306 3471, fire 3312 3252 | the 242 map |
+| The tile inside each altar (beside its exit portal, toward the altar; one of four for the cosmic altar and one of two for the true blood altar, at random; the chaos altar's maze from its top floor) and outside (beside the ruins' south side); Locate's eight 45-degree slices | inferred from the 242 map |
+| The send as soon as the player is at the ruins, with no animation; the wrong talisman, or Enter without a tiara, does nothing interesting | guessed |
+| Not built: crafting runes (RC2), combination runes (RC3), essence pouches (RC4), the Arceuus Blood and Soul altars (RC5), the Ourania altar (RC6); the Abyss, Guardians of the Rift and its Hat of the Eye; Entrana's no-weapons rule | next steps |
+
+Check: `./gradlew test --tests 'osrsps.game.skill.RunecraftTest' --tests 'osrsps.testclient.HeadlessRunecraftRuinsTest'`.
+
 ## Items and inventory
 
 Item types come from cache config 10 at startup (`ObjTypeLoader`), with their gameval names from index 24 for

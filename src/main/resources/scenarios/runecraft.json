@@ -1,0 +1,28 @@
+{
+  "about": "Beside the Water Altar's ruins in Lumbridge Swamp with 99 Runecraft, every talisman (the elemental and catalytic too) in the backpack and a water tiara worn, so Enter shows on the water ruins and every other ruins takes its talisman.",
+  "notes": "For the Runecraft steps (RC1: ruins, Locate, tiaras, exit portals). The loadout is ours. Ruins outside Misthalin by ::tele: air 2985 3289, mind 2982 3511, body 3053 3442, cosmic 2407 4374, law 2858 3378, nature 2869 3016, chaos 3060 3588 (Wilderness), death 1860 4636, wrath 2446 2822, blood 3561 9778. In Misthalin: water 3185 3162, earth 3306 3471, fire 3312 3252.",
+  "position": { "x": 3185, "z": 3162, "level": 0 },
+  "skills": { "runecraft": 99 },
+  "run": true,
+  "inventory": [
+    { "item": "air_talisman" },
+    { "item": "mind_talisman" },
+    { "item": "earth_talisman" },
+    { "item": "fire_talisman" },
+    { "item": "body_talisman" },
+    { "item": "cosmic_talisman" },
+    { "item": "chaos_talisman" },
+    { "item": "nature_talisman" },
+    { "item": "law_talisman" },
+    { "item": "death_talisman" },
+    { "item": "blood_talisman" },
+    { "item": "wrath_talisman" },
+    { "item": "elemental_talisman" },
+    { "item": "catalytic_talisman" },
+    { "item": "water_talisman" },
+    { "item": "tiara_air" }
+  ],
+  "equipment": [
+    { "item": "tiara_water" }
+  ]
+}

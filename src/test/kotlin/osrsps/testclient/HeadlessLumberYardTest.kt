@@ -49,7 +49,7 @@ class HeadlessLumberYardTest {
 
     private val crate = ZoneLoc(LumberYard.CRATE, LocShape.CENTREPIECE_STRAIGHT, 0, 3226, 3222, 0)
     private val barrel = ZoneLoc(LumberYard.BARREL, LocShape.CENTREPIECE_STRAIGHT, 0, 3228, 3222, 0)
-    private val ruins = ZoneLoc(LumberYard.EARTH_RUINS, LocShape.CENTREPIECE_STRAIGHT, 0, 3218, 3222, 0)
+    private val ruins = ZoneLoc(EARTH_RUINS, LocShape.CENTREPIECE_STRAIGHT, 0, 3218, 3222, 0)
     private val rift = ZoneLoc(TolnasRift.HOLES.first(), LocShape.CENTREPIECE_STRAIGHT, 0, 3216, 3216, 0)
     private val sign = ZoneLoc(LumberYard.WARNING_SIGN, LocShape.CENTREPIECE_STRAIGHT, 0, 3218, 3216, 0)
     private val fence = ZoneLoc(FENCE, LocShape.CENTREPIECE_STRAIGHT, 0, 3308, 3492, 0)
@@ -63,7 +63,7 @@ class HeadlessLumberYardTest {
             objs[plank.log] = ObjType(plank.log, "Logs ${plank.log}", tradeable = true)
         }
         objs[LumberYard.COINS] = ObjType(LumberYard.COINS, "Coins", stackable = true)
-        objs[LumberYard.EARTH_TALISMAN] = ObjType(LumberYard.EARTH_TALISMAN, "Earth talisman")
+        objs[EARTH_TALISMAN] = ObjType(EARTH_TALISMAN, "Earth talisman")
         objs[SAW] = saw
         World(
             crcs,
@@ -89,7 +89,7 @@ class HeadlessLumberYardTest {
                 listOf(
                     type(LumberYard.CRATE, "Crate", "Search"),
                     type(LumberYard.BARREL, "Barrel", "Search"),
-                    type(LumberYard.EARTH_RUINS, "Mysterious ruins", "Enter"),
+                    type(EARTH_RUINS, "Mysterious ruins", "Enter"),
                     type(TolnasRift.HOLES.first(), "Rift", "Enter"),
                     type(LumberYard.WARNING_SIGN, "Warning sign", "Read"),
                     type(FENCE, "Broken fence", "Climb-over"),
@@ -226,7 +226,7 @@ class HeadlessLumberYardTest {
     }
 
     @Test
-    fun `the crates and barrels hold nothing, and the Earth Altar's ruins wait for Runecraft`(@TempDir dir: Path) {
+    fun `the crates and barrels hold nothing, and the Earth Altar's ruins take an earth talisman but not a bare Enter`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("dave").use { client ->
                 client.ready()
@@ -237,13 +237,14 @@ class HeadlessLumberYardTest {
                 client.locOp(barrel.id, barrel.x, barrel.z, LumberYard.SEARCH)
                 client.awaitSeen("[game.nothing_interesting]")
 
+                // Enter without an earth tiara (the client wouldn't show it): Runecraft's refusal.
                 client.locOp(ruins.id, ruins.x, ruins.z, LumberYard.ENTER)
-                client.awaitSeen(RUNECRAFT_CLOSED)
-                client.give(LumberYard.EARTH_TALISMAN, 1)
-                val slot = client.inventory(Inventory.INV).indexOfFirst { it?.id == LumberYard.EARTH_TALISMAN }
-                client.locTarget(ruins.id, ruins.x, ruins.z, InventoryTab.INTERFACE, InventoryTab.ITEMS, slot, LumberYard.EARTH_TALISMAN)
-                client.awaitSeen(RUNECRAFT_CLOSED, 2)
-                assertEquals(1, client.count(LumberYard.EARTH_TALISMAN))
+                client.awaitSeen("[game.nothing_interesting]", 2)
+                client.give(EARTH_TALISMAN, 1)
+                val slot = client.inventory(Inventory.INV).indexOfFirst { it?.id == EARTH_TALISMAN }
+                client.locTarget(ruins.id, ruins.x, ruins.z, InventoryTab.INTERFACE, InventoryTab.ITEMS, slot, EARTH_TALISMAN)
+                client.awaitSeen("[runecraft.enter]")
+                assertEquals(1, client.count(EARTH_TALISMAN))
             }
         }
     }
@@ -293,6 +294,7 @@ class HeadlessLumberYardTest {
         const val TOLNA_PRES = 2025
         const val VARP_SOULBANE = 709
         const val VARP_COUNT = 5_000
-        const val RUNECRAFT_CLOSED = "[lumbridge_swamp.runecraft_closed]"
+        const val EARTH_TALISMAN = 1440
+        const val EARTH_RUINS = 34816
     }
 }
