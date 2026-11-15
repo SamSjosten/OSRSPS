@@ -138,25 +138,33 @@ class Slayer(private val world: World, val data: SlayerData) {
 
     /** [npc] died with [killer] the one who finished it: one off their task if it counts, with its XP. */
     /**
-     * Damage dealt to each monster that is some task, by player, in the order they first hit it: whoever dealt it the
-     * most shares a kill's XP ([killed]). A monster back at full hitpoints starts afresh.
+     * Damage dealt to each monster that is some task, by account (the save key, so a player who logs out and back in is
+     * still one player), in the order they first hit it: whoever dealt it the most shares a kill's XP ([killed]). A
+     * monster back at full hitpoints starts afresh, and one taken out of the world alive is forgotten ([removed]).
      */
-    private val damage = HashMap<Npc, LinkedHashMap<Player, Int>>()
+    private val damage = HashMap<Npc, LinkedHashMap<String, Int>>()
 
     /** [player] dealt [npc] [dealt] damage (MeleeCombat's every hit from a player). */
     fun damaged(npc: Npc, player: Player, dealt: Int) {
         if (npc.type.params[PARAM_CATEGORY] !is Int) return
         if (npc.hitpoints + dealt >= npc.maxHitpoints) damage.remove(npc)
-        damage.getOrPut(npc) { LinkedHashMap() }.merge(player, dealt, Int::plus)
+        damage.getOrPut(npc) { LinkedHashMap() }.merge(player.saveKey, dealt, Int::plus)
+    }
+
+    /** [npc] left the world without being killed (World.removeNpc). */
+    fun removed(npc: Npc) {
+        damage.remove(npc)
     }
 
     fun killed(npc: Npc, killer: Player?) {
         val dealt = damage.remove(npc)
         val player = killer ?: return
-        val top = dealt?.maxByOrNull { it.value }?.key
-        val shared = top != null && top !== player
+        val topKey = dealt?.maxByOrNull { it.value }?.key
+        val shared = topKey != null && topKey != player.saveKey
         val xp = xpTenths(npc)
-        if (shared && top != null && !top.loggedOut && onTask(top, npc)) top.skills.addTenths(Skill.SLAYER, xp / 2)
+        // The top damager's session now, if they are in the world: not the one that dealt the damage, after a relog.
+        val top = if (shared) world.onlinePlayers.firstOrNull { it.saveKey == topKey && !it.loggedOut } else null
+        if (top != null && onTask(top, npc)) top.skills.addTenths(Skill.SLAYER, xp / 2)
         if (player.loggedOut || !onTask(player, npc)) return
         player.skills.addTenths(Skill.SLAYER, if (shared) xp / 2 else xp)
         val left = remaining(player) - 1

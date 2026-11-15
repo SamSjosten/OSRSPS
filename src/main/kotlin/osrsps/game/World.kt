@@ -2701,6 +2701,7 @@ class World(
         // Players walking to it give up in their next movement phase; see NpcInteractions.
         npcs.remove(npc)
         npcInteractions.removed(npc, players.asIterable())
+        slayer.removed(npc)
         npc.avatar?.let(network.npcAvatarFactory::release)
         npc.avatar = null
     }

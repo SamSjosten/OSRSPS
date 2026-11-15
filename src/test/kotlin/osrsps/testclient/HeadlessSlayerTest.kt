@@ -152,6 +152,29 @@ class HeadlessSlayerTest {
     }
 
     @Test
+    fun `a player who logs out and back in is still the top damager, so their own kill gives the whole XP`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("gina").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("slayer task cows 5 vannaka") { it.startsWith("Task") }
+                client.commandReply("hit 5 cow") { it.startsWith("Hit") }
+                // Away from the cow, which fights back: a hit taken holds off a logout for 10 seconds.
+                client.commandReply("tele 3255 3255") { it.startsWith("Teleported") }
+                client.awaitTicks(20)
+                client.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+                client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+            }
+            server.awaitNobodyOn()
+            server.login("gina").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("tele 3222 3218") { it.startsWith("Teleported") }
+                client.killAndWait("cow", cow.id)
+                client.await("the whole kill") { if (client.slayerXp() == 8) Unit else null }
+            }
+        }
+    }
+
+    @Test
     fun `a streak past the varbit's top goes back 1,000 so the milestones keep their pace`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("fred").use { client ->
@@ -163,6 +186,14 @@ class HeadlessSlayerTest {
                 // 16,384 is no milestone: Vannaka's 8.
                 client.seen("[slayer.task_done_points streak=15384 points=8 total=8]")
             }
+        }
+    }
+
+    private fun TestServer.awaitNobodyOn() {
+        val deadline = System.nanoTime() + 10_000_000_000L
+        while (world.playerCount != 0) {
+            check(System.nanoTime() < deadline) { "Timed out waiting for the world to let the last player go" }
+            Thread.sleep(10)
         }
     }
 
