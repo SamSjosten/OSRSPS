@@ -207,6 +207,7 @@ import osrsps.game.content.registerRevenantCaves
 import osrsps.game.content.registerRevenants
 import osrsps.game.content.registerEmblemTrader
 import osrsps.game.content.registerMaledictus
+import osrsps.game.content.registerDeepWildernessDungeon
 import osrsps.game.content.registerVetion
 import osrsps.game.content.registerKingBlackDragon
 import osrsps.game.tzhaar.FightCaves
@@ -1404,6 +1405,7 @@ class World(
         registerRevenants(this)
         registerEmblemTrader(this)
         registerMaledictus(this)
+        registerDeepWildernessDungeon(this)
         registerEscapeCaves(this)
         registerCallisto(this)
         registerVetion(this)
