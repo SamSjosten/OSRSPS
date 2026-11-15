@@ -12,10 +12,10 @@
   {"step": "waitTicks", "ticks": 3, "comment": "let the client list the farm's NPCs"},
   {"step": "npcOption", "npc": "Farmer", "option": "Pickpocket", "timeoutMs": 20000},
   {"step": "assertMessage", "contains": "[pickpocket.attempt who=farmer]", "timeoutMs": 10000},
-  {"step": "assertMessage", "contains": "[pickpocket.success who=farmer]", "timeoutMs": 10000, "comment": "99% at 99 with the gloves: a farmer's pouch 123/128, a potato seed 5/128"},
+  {"step": "waitTicks", "ticks": 12, "comment": "a success or a stun: 99% at 99 with the gloves is not 100% (nightly 2026-11-15 failed here once); two tries make a pouch all but certain"},
   {"step": "waitTicks", "ticks": 2},
   {"step": "npcOption", "npc": "Farmer", "option": "Pickpocket", "timeoutMs": 20000},
-  {"step": "assertMessage", "contains": "[pickpocket.success who=farmer]", "timeoutMs": 10000},
+  {"step": "waitTicks", "ticks": 12, "comment": "past a stun, if this try failed"},
   {"step": "itemOption", "item": "Coin pouch", "option": "Open-all", "comment": "two tries make a pouch all but certain (1 in 655 gives two seeds)"},
   {"step": "assertMessage", "contains": "[pickpocket.pouch_open_all coins=", "timeoutMs": 5000, "comment": "9 coins a pouch"},
 
@@ -25,7 +25,7 @@
   {"step": "itemOption", "item": "Dodgy necklace", "option": "Check"},
   {"step": "assertMessage", "contains": "[pickpocket_gear.necklace_check charges=", "timeoutMs": 5000, "comment": "10 unless a failure used one"},
 
-  {"step": "command", "text": "::tele 3290 3172 0", "expectMessage": "Teleported to 3290, 3172, 0", "comment": "Al Kharid palace, among its warriors"},
+  {"step": "command", "text": "::tele 3293 3170 0", "expectMessage": "Teleported to 3293, 3170, 0", "comment": "Al Kharid palace, beside the warriors at 3292,3169 and 3295,3168. From 3290,3172 the nearest one was behind a wall (nightly 2026-11-15); this tile is inferred, not checked"},
   {"step": "waitTicks", "ticks": 3},
   {"step": "npcOption", "npc": "Al Kharid warrior", "option": "Pickpocket", "timeoutMs": 20000},
   {"step": "assertMessage", "contains": "[pickpocket.attempt who=Al Kharid warrior]", "timeoutMs": 10000},

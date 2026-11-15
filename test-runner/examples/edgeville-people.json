@@ -276,7 +276,7 @@
    "step": "command",
    "text": "::scenario lumbridge-bare",
    "expectMessage": "Started scenario lumbridge-bare.",
-   "comment": "Woodcutting 1, so Hari takes the below-level-12 branch; ::reset after his talk puts the account back"
+   "comment": "Woodcutting 1, so Hari takes the below-level-12 branch; ::reset after the canoe station's level check puts the account back"
   },
   {
    "step": "command",
@@ -338,14 +338,9 @@
   },
   {
    "step": "command",
-   "text": "::reset",
-   "expectMessage": "Back to how you were"
-  },
-  {
-   "step": "command",
    "text": "::tele 3131 3508 0",
    "expectMessage": "Teleported to 3131, 3508, 0",
-   "comment": "by the canoe station"
+   "comment": "by the canoe station, still in lumbridge-bare: after ::reset the account's own Woodcutting level may be 12 or more (nightly 2026-11-15)"
   },
   {
    "step": "locOption",
@@ -357,6 +352,11 @@
   {
    "step": "assertMessage",
    "contains": "[canoe.level level=12]"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
   },
   {
    "step": "command",

@@ -18,6 +18,7 @@
   {"step": "assertInventory", "item": "Mind rune", "count": 1},
   {"step": "assertInventory", "item": "Fire rune", "count": 0},
   {"step": "assertInventory", "item": "Air rune", "count": 2},
+  {"step": "waitTicks", "ticks": 30, "comment": "a man has 7 hitpoints and Fire Strike hits up to 8: if the first cast killed him, a click on him while he dies does nothing, so wait for the respawn (nightly 2026-11-15)"},
   {"step": "castOnNpc", "interfaceId": 218, "component": 19, "npc": "Man", "timeoutMs": 20000},
   {"step": "assertMessage", "contains": "[combat.not_enough_runes runes=Fire Runes]", "timeoutMs": 20000, "comment": "after the first cast's 5 ticks; guessed wording"},
   {"step": "command", "text": "::setlevel magic 12", "expectMessage": "Magic set to level 12"},
