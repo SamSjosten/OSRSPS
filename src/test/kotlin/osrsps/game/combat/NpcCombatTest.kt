@@ -96,6 +96,7 @@ class NpcCombatTest {
             "giant_update_ice_attack" to 4672, "giant_update_ice_defend" to 4671, "giant_update_ice_death" to 4673,
             "magicaxe_attack" to 185, "magicaxe_block" to 186, "magicaxe_death" to 188,
             "dog_update_small_dog_attack" to 6562, "dog_update_hellhound_godwars_death" to 6576,
+            "golem_attack" to 153, "golem_block" to 154, "golem_death" to 156,
             "demon_attack" to 64, "demon_attack_greater" to 4644, "demon_death_greater" to 68, "demon_block" to 65, "demon_death" to 67,
             "shade_attack" to 1283, "shade_block" to 1286, "shade_sink" to 1287,
             "monalisk_cave_bug_attack" to 6079, "monalisk_cave_bug_defend" to 6080, "monalisk_mini_cave_bug_death" to 6082,

@@ -67,6 +67,10 @@ object FishingLines : Lines("fishing", "Fishing") {
     val CATCH_ANGLERFISH = line("catch_anglerfish", "Raw anglerfish: the message for each catch")
     val NO_SANDWORMS = line("no_sandworms", "Sandworms: the message on Bait at an anglerfish spot with none left")
     val LEVEL_KARAMBWANJI = line("level_karambwanji", "the message when netting the karambwanji spots needs a higher level (5)", "level")
+    val CAST_DARK_CRAB = line("cast_dark_crab", "the message on starting to cage dark crabs")
+    val CATCH_DARK_CRAB = line("catch_dark_crab", "Raw dark crab: the message for each catch")
+    val LEVEL_DARK_CRAB = line("level_dark_crab", "the message when caging dark crabs needs a higher level (85)", "level")
+    val NO_DARK_BAIT = line("no_dark_bait", "Dark fishing bait: the message on Cage at a dark crab spot with none left")
     val NO_KARAMBWANJI = line("no_karambwanji", "Raw karambwanji: the message on Fish with an empty vessel and none left")
 }
 
@@ -537,6 +541,17 @@ class Fishing(private val world: World) {
             FishingLines.LEVEL_BAIT,
         )
 
+        /**
+         * Dark crabs (Wilderness step W3.6b), from the Wiki's Raw dark crab page (read 2026-11-15): a lobster pot and dark
+         * fishing bait, one a catch, from 85 for 130 XP (Mod Ash's 3/40). Out: the elite Wilderness Diary's better roll.
+         */
+        const val DARK_FISHING_BAIT = 11940 // wilderness_fishing_bait
+        val DARK_CRAB = Fish(11934, 85, 1300, 3, 40, FishingLines.CATCH_DARK_CRAB) // raw_dark_crab
+        val DARK_CRAB_CAGE = FishingMethod(
+            "Cage", LOBSTER_POT, FishingLines.NO_CAGE, Bait(DARK_FISHING_BAIT, FishingLines.NO_DARK_BAIT), FishingLines.CAST_DARK_CRAB,
+            CAGE_ANIM, CAGE_ANIM, listOf(DARK_CRAB), FishingLines.LEVEL_DARK_CRAB,
+        )
+
         val CAGE = FishingMethod(
             "Cage", LOBSTER_POT, FishingLines.NO_CAGE, null, FishingLines.CAST_CAGE, CAGE_ANIM, CAGE_ANIM, listOf(LOBSTER),
             FishingLines.LEVEL_CAGE,
@@ -609,6 +624,12 @@ class Fishing(private val world: World) {
         const val PISCATORIS_SPOT = 4316
         const val PISCARILIUS_SPOT = 6825
 
+        /**
+         * The Resource Area's dark crab spots (`49_61_crabs`), which never move (the Wiki's Raw dark crab page), so they have
+         * no area.
+         */
+        const val RESOURCE_AREA_SPOT = 1536
+
         val SPOTS = listOf(
             SpotType(SWAMP_SPOT, listOf(SMALL_NET, SEA_BAIT)),
             SpotType(RIVER_SPOT, listOf(LURE, RIVER_BAIT)),
@@ -627,6 +648,7 @@ class Fishing(private val world: World) {
             SpotType(KARAMBWAN_SPOT_EAST, listOf(KARAMBWAN_FISHING)),
             SpotType(PISCATORIS_SPOT, listOf(MONKFISH_NET, HARPOON_TUNA)),
             SpotType(PISCARILIUS_SPOT, listOf(ANGLERFISH_BAIT)),
+            SpotType(RESOURCE_AREA_SPOT, listOf(DARK_CRAB_CAGE)),
         )
         private val SPOT_IDS = SPOTS.map { it.npc }.toSet()
 
