@@ -56,8 +56,11 @@ enum class SlayerMaster(val id: Int, val npc: Int, val points: Int) {
  *
  * The kill counts for whoever [osrsps.game.combat.MeleeCombat] counts as the killer, the player whose hit finished it.
  * When another player dealt the monster the most damage, the XP is split: half to them and half to the finisher, each
- * rounded down to a tenth, and each only if on the task (OSRS Wiki, Slayer/Experience table). Guessed: the kill counts
- * towards the finisher's task alone; of two players who dealt the same most damage, the first to deal it counts.
+ * rounded down to a tenth, and each only if on the task (OSRS Wiki, Slayer/Experience table), and the kill counts
+ * towards both their tasks, once for a player who did both (Jagex, Update:Creature of Fenkenstrain: "both the person
+ * who dealt the killing blow and the person who did the most damage will be counted as the slayer"). Each is their
+ * session now, so a player who logged out and back in since (a poisoned monster dying later) still gets it. Guessed:
+ * of two players who dealt the same most damage, the first to deal it counts.
  * Slayer partners aren't built. Krystilia's tasks keep their own streak in slayer_wilderness_tasks_completed; she belongs to
  * the Wilderness, which isn't built, so it is left alone. Out: boss tasks, Konar's places, superiors (later steps).
  */
@@ -158,19 +161,24 @@ class Slayer(private val world: World, val data: SlayerData) {
 
     fun killed(npc: Npc, killer: Player?) {
         val dealt = damage.remove(npc)
-        val player = killer ?: return
+        val killerKey = killer?.saveKey ?: return
         val topKey = dealt?.maxByOrNull { it.value }?.key
-        val shared = topKey != null && topKey != player.saveKey
+        val shared = topKey != null && topKey != killerKey
         val xp = xpTenths(npc)
-        // The top damager's session now, if they are in the world: not the one that dealt the damage, after a relog.
-        val top = if (shared) world.onlinePlayers.firstOrNull { it.saveKey == topKey && !it.loggedOut } else null
-        if (top != null && onTask(top, npc)) top.skills.addTenths(Skill.SLAYER, xp / 2)
-        if (player.loggedOut || !onTask(player, npc)) return
-        player.skills.addTenths(Skill.SLAYER, if (shared) xp / 2 else xp)
-        val left = remaining(player) - 1
-        player.vars[VARP_COUNT] = left
-        if (left == 0) complete(player)
+        // Each one's session now, if they are in the world: not the one that hit, after a relog.
+        val credited = if (shared) listOf(killerKey, topKey!!) else listOf(killerKey)
+        for (key in credited) {
+            val player = online(key) ?: continue
+            if (!onTask(player, npc)) continue
+            player.skills.addTenths(Skill.SLAYER, if (shared) xp / 2 else xp)
+            val left = remaining(player) - 1
+            player.vars[VARP_COUNT] = left
+            if (left == 0) complete(player)
+        }
     }
+
+    /** The player in the world under save key [key], not logged out, or null. */
+    private fun online(key: String): Player? = world.onlinePlayers.firstOrNull { it.saveKey == key && !it.loggedOut }
 
     private fun complete(player: Player) {
         // A streak past what the 14-bit varbit holds goes back 1,000, so every milestone (10, 50, 100, 250 and 1,000

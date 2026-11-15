@@ -138,9 +138,9 @@ class HeadlessSlayerTest {
                     dana.killAndWait("cow", cow.id)
                     dana.await("dana's half") { if (dana.slayerXp() == 4) Unit else null }
                     erin.await("erin's half") { if (erin.slayerXp() == 4) Unit else null }
-                    // The kill counts for the finisher's task.
+                    // The kill counts for both their tasks.
                     dana.await("dana's count") { if (dana.varp(Slayer.VARP_COUNT) == 4) Unit else null }
-                    assertEquals(5, erin.varp(Slayer.VARP_COUNT))
+                    erin.await("erin's count") { if (erin.varp(Slayer.VARP_COUNT) == 4) Unit else null }
 
                     // Alone, the finisher gets it all.
                     erin.await("the cow back") { erin.npcs().firstOrNull { it.id == cow.id } }

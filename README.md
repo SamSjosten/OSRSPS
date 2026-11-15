@@ -1086,7 +1086,8 @@ Masters, rewards and Slayer equipment come in later steps; `::slayer task` gives
 | Slayer XP = hitpoints times the XP bonus; points by master and streak, none before the fifth task | OSRS Wiki, Slayer and Slayer reward point (read 2026-11-15) |
 | Konar's 18 and Nieve's 12 points, without the Elite diaries | no diaries are built |
 | Another player who dealt the most damage sharing the XP half and half with the finisher, each rounded down to a tenth | OSRS Wiki, Slayer/Experience table |
-| The kill counting toward the finisher's task alone; a tie for the most damage going to whoever dealt it first | guessed |
+| The kill counting toward both their tasks, once for one player who did both | Jagex, Update:Creature of Fenkenstrain |
+| A tie for the most damage going to whoever dealt it first | guessed |
 | A streak past 16,383 going back 1,000 so the milestones keep coming | OSRS Wiki, Update: Theatre of Blood: Entry Mode Improvements (the bonuses keep coming); how it is stored guessed |
 | The points stopping at their varbit's top; the task var cleared when a task is done | guessed |
 | Every message's words | unsourced: the Words thread fills them |
