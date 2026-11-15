@@ -1,6 +1,7 @@
 package osrsps.game.skill
 
 import java.util.concurrent.ConcurrentHashMap
+import osrsps.game.AllSettings
 import osrsps.game.FrameSlot
 import osrsps.game.Interfaces
 import osrsps.game.Player
@@ -117,7 +118,13 @@ class Canoes(private val world: World, private val woodcutting: WoodcuttingData)
             world.handlers.onButton(MAP, destination.component) { paddle(destination) }
         }
         world.interfaces.onClose(SHAPING) { player -> shaping[player]?.takeIf { it.type == null }?.let { shaping.remove(player) } }
-        world.interfaces.onClose(MAP) { player -> paddling.remove(player) }
+        world.interfaces.onClose(MAP) { player ->
+            paddling.remove(player)
+            // canoe_map_init takes the chat's keys away (chatdefault_stopinput) and nothing in the client gives them
+            // back, so the server does when the map closes, as for the settings search (AllSettings). Without it the
+            // chat ignores every key after a trip (nightly 2026-11-15: canoes.json stuck at its next command).
+            world.interfaces.runClientScript(player, AllSettings.CHATDEFAULT_RESTOREINPUT_SCRIPT, emptyList())
+        }
     }
 
     /** Clears [player]'s stations and canoe at logout: the varbits are saved, and an unused canoe goes at logout. */

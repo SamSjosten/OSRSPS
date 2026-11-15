@@ -5,6 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.AllSettings
 import osrsps.game.GameRandom
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
@@ -126,6 +127,10 @@ class HeadlessCanoeTest {
                 client.seen("[canoe.arrive_champions]")
                 client.seen("[canoe.sinks]")
                 client.state(Canoes.TREE)
+                // The map took the chat's keys (canoe_map_init's chatdefault_stopinput); its closing gives them back.
+                client.await("chatdefault_restoreinput") {
+                    client.clientScripts().count { it.id == AllSettings.CHATDEFAULT_RESTOREINPUT_SCRIPT }.takeIf { it == 1 }
+                }
             }
         }
     }
