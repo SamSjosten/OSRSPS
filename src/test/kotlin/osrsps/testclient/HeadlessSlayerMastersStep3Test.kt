@@ -10,6 +10,7 @@ import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
+import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.content.SlayerMasters
 import osrsps.game.npc.NpcSpawn
@@ -34,7 +35,7 @@ class HeadlessSlayerMastersStep3Test {
     private val vannaka = NpcType(SlayerMaster.VANNAKA.npc, "Vannaka", ops = ops, internalName = "slayer_master_3")
 
     private val ghouls = SlayerTask(6236, 23, "ghouls", "Ghouls", minCombat = 25)
-    private val gargoyles = SlayerTask(6259, 46, "gargoyles", "Gargoyles", minCombat = 80)
+    private val gargoyles = SlayerTask(6259, 46, "gargoyles", "Gargoyles", minCombat = 80, statsAll = listOf(Skill.SLAYER to 75))
 
     // Each master gives ghouls here (the 242 cache's amounts for Mazchna's), and Vannaka gargoyles too.
     private val data = SlayerData(
@@ -167,6 +168,23 @@ class HeadlessSlayerMastersStep3Test {
                 client.says("[slayer_master.greeting]")
                 client.pick(4)
                 for (key in listOf("skillcape", "skillcape_about", "more_training")) client.says("[kuradal.$key]")
+            }
+        }
+    }
+
+    @Test
+    fun `combat level alone never makes the cancel offer, so turning the check back on skips nothing`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("fred").use { client ->
+                val npc = client.npc(vannaka)
+                client.level("all", 40)
+                client.level("slayer", 75)
+                // Combat 40 against the gargoyles' 80, with the check on: a task given while it was off.
+                client.commandReply("slayer task gargoyles 50 vannaka") { it.startsWith("Task") }
+                client.npcOp(npc.index, SlayerMasters.ASSIGNMENT)
+                // The client wraps the key's long line: the start is enough.
+                client.saysStarting("[slayer_master.still_hunting_come_back task=gargoyles")
+                assertEquals(50, client.varp(Slayer.VARP_COUNT))
             }
         }
     }
