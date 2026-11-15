@@ -385,7 +385,7 @@ class RangedCombat(
             val rolled = if (shot.hit) CombatMath.rollDamage(random, shot.maxHit) else 0
             val damage = reserve(shot.player, npc, style, rolled)
             npc.incoming -= damage
-            melee.hit(npc, shot.player, damage, tick, shot.maxHit, shot.from)
+            melee.hit(npc, shot.player, damage, tick, shot.maxHit, shot.from, finisher = combat.finishes(npc, shot.player, AttackType.RANGED))
         }
     }
 
@@ -410,7 +410,7 @@ class RangedCombat(
             if (landed) {
                 // The graphic goes on first, so a death graphic the killing hit sets in the same slot wins.
                 shot.effect?.let { npc.effects.spotanim(0, BoltEffects.spotanim(it), 0) }
-                val dealt = melee.hit(npc, shot.player, shot.damage, tick, shot.rolledMax, shot.from)
+                val dealt = melee.hit(npc, shot.player, shot.damage, tick, shot.rolledMax, shot.from, finisher = combat.finishes(npc, shot.player, AttackType.RANGED))
                 melee.weaponPoison(npc, dealt, shot.poison, shot.venom, ranged = true)
                 shot.effect?.let { boltLanded(shot, it, dealt, tick) }
             }

@@ -153,13 +153,18 @@ class Combat(
      */
     val finishers = HashMap<Int, (Player, AttackType?) -> Boolean>()
 
+    /** Whether [source]'s attack of [type] may take [npc] below its [NpcCombatDef.minHitpoints] ([finishers]). */
+    fun finishes(npc: Npc, source: Player?, type: AttackType?): Boolean =
+        source != null && finishers[npc.type.id]?.invoke(source, type) == true
+
     /**
      * The hitpoints a hit from [source] (null for none) of [type] (null when not known) leaves [npc] at the least: its
-     * own, or its fight's [Npc.holdsAt].
+     * own, or its fight's [Npc.holdsAt]. [finisher], when given, is [finishes] as it stood when the hit was rolled, so a
+     * weapon changed while the hit is on its way doesn't change it.
      */
-    fun floor(npc: Npc, source: Player?, type: AttackType? = null): Int {
+    fun floor(npc: Npc, source: Player?, type: AttackType? = null, finisher: Boolean? = null): Int {
         val min = npcCombat[npc.type]?.minHitpoints ?: 0
-        val own = if (min == 0 || (source != null && finishers[npc.type.id]?.invoke(source, type) == true)) 0 else min
+        val own = if (min == 0 || (finisher ?: finishes(npc, source, type))) 0 else min
         return maxOf(own, npc.holdsAt)
     }
 

@@ -362,7 +362,7 @@ class MeleeCombat(
         player.skills.addTenths(Skill.HITPOINTS, CombatMath.withXpBonus(CombatMath.hitpointsXpTenths(damage), bonus))
         val poison = PoisonedWeapons.melee(combat.weapon(player))
         attackMade(player, npc, tick)
-        landing += Swing(player, npc, damage, tick + HitDelay.MELEE.ticks(0) + HitDelay.ON_NPC, poison, spec?.takeIf { effect }, maxHit, Tile(player.x, player.z))
+        landing += Swing(player, npc, damage, tick + HitDelay.MELEE.ticks(0) + HitDelay.ON_NPC, poison, spec?.takeIf { effect }, maxHit, Tile(player.x, player.z), combat.finishes(npc, player, style.type))
     }
 
     /**
@@ -370,7 +370,7 @@ class MeleeCombat(
      * effect if it was one. [maxHit] is what it was rolled against, for the max hit hitsplat; [from] is where the
      * player stood to swing.
      */
-    private class Swing(val player: Player, val npc: Npc, val damage: Int, val landTick: Long, val poison: Int, val special: SpecialAttack?, val maxHit: Int, val from: Tile)
+    private class Swing(val player: Player, val npc: Npc, val damage: Int, val landTick: Long, val poison: Int, val special: SpecialAttack?, val maxHit: Int, val from: Tile, val finisher: Boolean)
 
     /** A magic or ranged NPC's [attack] on its way to [player], landing on [landTick] for [damage] if [hit] and not [blocked]. */
     private class Shot(val npc: Npc, val player: Player, val attack: NpcRangedAttack, val hit: Boolean, val blocked: Boolean, val damage: Int, val landTick: Long)
@@ -396,7 +396,7 @@ class MeleeCombat(
             npc.incoming -= swing.damage
             // Guessed for a hidden NPC: a swing on its way when it went from sight does nothing, as for one that died.
             if (npcs[npc.index] !== npc || npc.outOfPlay) continue
-            val dealt = hit(npc, swing.player, swing.damage, tick, swing.maxHit, swing.from)
+            val dealt = hit(npc, swing.player, swing.damage, tick, swing.maxHit, swing.from, finisher = swing.finisher)
             if (swing.special != null) specialLanded(npc, dealt, swing.special)
             weaponPoison(npc, dealt, swing.poison, venom = false, ranged = false)
         }
@@ -455,11 +455,11 @@ class MeleeCombat(
      * commands). [finishing] lets it go below its [NpcCombatDef.minHitpoints] (a bag of salt, ::kill). Returns the
      * damage dealt.
      */
-    fun hit(npc: Npc, source: Player?, damage: Int, tick: Long, maxHit: Int = 0, attackedFrom: Tile? = null, finishing: Boolean = false): Int {
+    fun hit(npc: Npc, source: Player?, damage: Int, tick: Long, maxHit: Int = 0, attackedFrom: Tile? = null, finishing: Boolean = false, finisher: Boolean? = null): Int {
         val def = combat.npcCombat[npc.type] ?: throw IllegalArgumentException("${npc.type.name} can't be fought")
         if (npc.outOfPlay) return 0
         val dealt = if (!finishing && combat.immune(npc)) 0
-        else damage.coerceIn(0, if (finishing) npc.hitpoints else (npc.hitpoints - combat.floor(npc, source)).coerceAtLeast(0))
+        else damage.coerceIn(0, if (finishing) npc.hitpoints else (npc.hitpoints - combat.floor(npc, source, finisher = finisher)).coerceAtLeast(0))
         npc.hitpoints -= dealt
         if (source != null && dealt > 0) npcDamaged(npc, source, dealt)
         val from = if (source != null) NpcEffects.PLAYER_SOURCE + source.index else -1
