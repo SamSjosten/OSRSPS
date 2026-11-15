@@ -51,6 +51,8 @@ fun CommandRegistry.registerScenarioCommands(world: World) {
         // The doors and gates the player moved and nobody has moved since shut or open again as the cache has them, so a
         // script that stopped part way leaves none for the next (nightly 2026-11-08, Edgeville's).
         world.locs.restoreOwnedBy(player.saveKey)
+        // A grave the scenario raised goes too, its items being the scenario's.
+        world.deaths.dropScenarioGrave(player)
         world.teleport(player, before.x, before.z, before.level)
         player.scenario = null
         player.beforeScenario = null
@@ -76,6 +78,8 @@ private fun CommandContext.start(world: World, scenario: Scenario) {
     if (!world.hasMap(scenario.x, scenario.z)) fail("Scenario ${scenario.name} can't start: no map at ${scenario.x}, ${scenario.z}")
 
     if (player.beforeScenario == null) player.beforeScenario = world.snapshot(player)
+    // Nor a grave from an earlier scenario whose script died before its ::reset: the scenario's death would merge into it.
+    world.deaths.dropScenarioGrave(player)
     // The snapshot holds the items in the guide prices screen; the scenario's inventory replaces them.
     player.priceChecker.clear()
     world.scripts.clearAll(player)
