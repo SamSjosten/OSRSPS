@@ -54,6 +54,7 @@ import osrsps.game.command.registerSocialCommands
 import osrsps.game.command.registerLodestoneCommands
 import osrsps.game.command.registerWildernessCommands
 import osrsps.game.command.registerFarmingCommands
+import osrsps.game.command.registerSlayerCommands
 import osrsps.game.command.registerXpRateCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
@@ -228,6 +229,8 @@ import osrsps.game.skill.Mining
 import osrsps.game.skill.Pickpocketing
 import osrsps.game.skill.Agility
 import osrsps.game.skill.AgilityData
+import osrsps.game.skill.Slayer
+import osrsps.game.skill.SlayerData
 import osrsps.game.skill.Thieving
 import osrsps.game.skill.ThievingLocks
 import osrsps.game.skill.SkillUnlocks
@@ -364,6 +367,8 @@ class World(
     specialAttackCosts: Map<Int, Int> = emptyMap(),
     /** The Agility obstacles ([Agility]); tests that cross their own pass them. */
     agilityData: AgilityData = AgilityData.load(),
+    /** Slayer's tasks, masters and rewards, from the cache ([osrsps.cache.SlayerLoader]); tests that slay pass their own. */
+    slayerData: SlayerData = SlayerData.NONE,
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
 ) : GameConnectionHandler<Player> {
@@ -593,6 +598,7 @@ class World(
         multi = multiCombat, protects = prayers::protects, hasPrayer = prayers::has, prayersOff = prayers::deactivateAll,
         words = ::textFor,
         npcDied = { npcScripts.died(it) },
+        npcKilled = { npc, killer -> slayer.killed(npc, killer) },
         poisonNpc = { npc, severity -> poison.poison(npc, severity) }, envenomNpc = { poison.envenom(it) },
         poisonPlayer = { player, severity -> poison.poison(player, severity) },
         special = { specialAttacks.use(it, combat.weapon(it)) },
@@ -804,6 +810,9 @@ class World(
     val pickpocketing = Pickpocketing(this)
     val agility = Agility(this, agilityData)
 
+    /** Slayer tasks: kills, XP and the enchanted gem; see [Slayer]. */
+    val slayer = Slayer(this, slayerData)
+
     val fishing = Fishing(this)
 
     val cooking = Cooking(this)
@@ -876,6 +885,7 @@ class World(
         registerLodestoneCommands(this@World)
         registerWildernessCommands(this@World)
         registerFarmingCommands(this@World)
+        registerSlayerCommands(this@World)
         registerSeedCommands(this@World)
         registerScriptCommands(this@World)
         registerZoneCommands(this@World, collision)
@@ -993,6 +1003,7 @@ class World(
         thieving.register()
         pickpocketing.register()
         agility.register()
+        slayer.register()
         fishing.register()
         cooking.register()
         smithing.register()

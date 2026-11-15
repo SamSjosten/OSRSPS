@@ -46,6 +46,7 @@ import osrsps.game.skill.MiningLines
 import osrsps.game.skill.PickpocketGearLines
 import osrsps.game.skill.PickpocketLines
 import osrsps.game.skill.RunecraftLines
+import osrsps.game.skill.SlayerLines
 import osrsps.game.skill.SmithingLines
 import osrsps.game.skill.ThievingLines
 import osrsps.game.skill.ThievingLockLines
@@ -361,6 +362,7 @@ object DialogueLines {
         ShopLines,
         SigurdLines,
         SilkTraderLines,
+        SlayerLines,
         SmithingLines,
         SocialLines,
         StrayDogLines,

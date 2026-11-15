@@ -332,6 +332,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::if id [side]` | Opens interface `id` bare in the main game area (or the side panel with `side`), for checking it opens, moves with a layout change and closes |
 | `::setlevel skill\|all level` | Sets a skill's XP to what the level needs and its current level to match. `::setlevel attack 99` |
 | `::addxp skill xp` | Adds XP, one decimal place allowed (`::addxp cooking 17.5`); levelling raises the current level too. Exact: the XP rate doesn't apply |
+| `::slayer [task <id\|name> [amount] [master] \| points n \| streak n \| clear]` | Alone, your Slayer task, streak and points. `task` gives you a task straight away (`::slayer task cows 20 vannaka`; the master's most when no amount, Turael's when no master), `points` and `streak` set those, `clear` takes the task away |
 | `::xprate [rate\|restore]` | Shows or sets the server-wide XP rate, 0.1 to 1000 in tenths (`::xprate 5`, `::xprate 2.5`); every XP drop is multiplied by it, rounded down to a tenth. Kept in data/xp-rate.txt (outside git), so it lasts across restarts and deploys. `restore` goes back to the rate before the last change. 1 is live's |
 | `::farmtick [ticks]` | Moves your own farming clock on that many five-minute farming ticks (1 by default, up to 4,096) and grows your patches to it: allotments grow every second tick. For good: your crops keep growing from there |
 | `::farmclock <pause\|run>` | Holds your farming clock where it is, so your crops grow only by `::farmtick` (for tests that check each stage), or runs it again, the crops catching up on the time it was held; a login runs it again too |
@@ -1063,6 +1064,31 @@ The ruins, altars and portals are the cache's, where the 242 map puts them; only
 | Not built: crafting runes (RC2), combination runes (RC3), essence pouches (RC4), the Arceuus Blood and Soul altars (RC5), the Ourania altar (RC6); the Abyss, Guardians of the Rift and its Hat of the Eye; Entrana's no-weapons rule | next steps |
 
 Check: `./gradlew test --tests 'osrsps.game.skill.RunecraftTest' --tests 'osrsps.testclient.HeadlessRunecraftRuinsTest'`.
+
+### Slayer
+
+The task engine (`game/skill/Slayer.kt`, words under `slayer.*`). Every task, every master's list with its weights,
+amounts and level gates, and the rewards are read from the cache's own Slayer tables (`cache/SlayerLoader.kt`: db
+tables slayer_task 113, slayer_master_task 114 and slayer_unlock 117), so they stay live's. A task lives in live's vars:
+varp slayer_target holds the task, slayer_count how many are left, and varbits slayer_master, slayer_points and
+slayer_tasks_completed (the streak) the rest, so a save keeps them and the client's helpers read them.
+
+A monster counts for a task when its type's param 50 names it (cows carry 6, the cows task). Each kill on task gives
+Slayer XP for the monster's hitpoints with its XP bonus, and the last one completes the task: the streak goes up and,
+from the fifth task, the master pays points, five times as many every 10th task, 15 every 50th, 25 every 100th, 35
+every 250th and 50 every 1,000th. The enchanted gem's Check tells the task, how many are left and the streak.
+Masters, rewards and Slayer equipment come in later steps; `::slayer task` gives a task meanwhile.
+
+| Slayer behaviour | Source |
+|------------------|--------|
+| Tasks, masters' weights and amounts, combat and Slayer level gates, rewards' bits and costs | cache 242, db tables 113, 114, 117 (column order from osrs-dumps' dump.dbtable) |
+| The task vars (varps 394 and 395, varbits 4067 to 4069); param 50 as the monster's task | cache 242, osrs-dumps' names |
+| Slayer XP = hitpoints times the XP bonus; points by master and streak, none before the fifth task | OSRS Wiki, Slayer and Slayer reward point (read 2026-11-15) |
+| Konar's 18 and Nieve's 12 points, without the Elite diaries | no diaries are built |
+| The kill goes to the player whose hit finished it, full XP even if someone else did most of the damage | guessed |
+| The points and streak stopping at their varbits' tops; the task var cleared when a task is done | guessed |
+| Every message's words | unsourced: the Words thread fills them |
+| Not built yet: masters, rewards, equipment, superiors, Konar's places, boss tasks, Krystilia (the Wilderness) | |
 
 ## Items and inventory
 
