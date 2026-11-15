@@ -209,6 +209,7 @@ import osrsps.game.content.registerEmblemTrader
 import osrsps.game.content.registerMaledictus
 import osrsps.game.content.registerDeepWildernessDungeon
 import osrsps.game.content.registerWildernessGodWars
+import osrsps.game.content.registerWildernessAgility
 import osrsps.game.content.registerWildernessSlayerCave
 import osrsps.game.content.registerVetion
 import osrsps.game.content.registerKingBlackDragon
@@ -1417,6 +1418,7 @@ class World(
         registerDeepWildernessDungeon(this)
         registerWildernessSlayerCave(this)
         registerWildernessGodWars(this)
+        registerWildernessAgility(this)
         registerEscapeCaves(this)
         registerCallisto(this)
         registerVetion(this)
