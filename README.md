@@ -317,6 +317,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::tele x z [level]` | Teleports there; the level stays the same when left out. `::tele 3222, 3218, 0` also works, so `::pos` output pastes in |
 | `::teleto name` | Teleports onto the player called that, on their level |
 | `::wildy level` | Jumps to that Wilderness level (1 to 56) on the line north of Edgeville, x 3090, or the nearest tile there that can be stood on |
+| `::wboss [name]` | Lists the Wilderness bosses built so far, or spawns the one named next to the player (it never respawns); admin |
 | `::skull [on\|off]` | Gives you a 30-minute skull, or takes yours away; with neither, says whether you have one and how many ticks it has left |
 | `::pj` | Clears your PJ timer, so anyone may attack you in single-way combat again |
 | `::tick` | **everyone.** The server's current tick number, and whether the clock is paused |
