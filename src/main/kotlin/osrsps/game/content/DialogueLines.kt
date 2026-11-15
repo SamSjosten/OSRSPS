@@ -190,6 +190,7 @@ object DialogueLines {
         VolcanicForgeLines,
         KingBlackDragonLines,
         WildernessLairLines,
+        CalvarionLines,
         WildernessLairFeeLines,
         osrsps.game.FountainOfRuneLines,
         OborLines,

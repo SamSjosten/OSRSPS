@@ -164,6 +164,7 @@ import osrsps.game.content.registerChaosFanatic
 import osrsps.game.content.registerScorpia
 import osrsps.game.content.registerChaosElemental
 import osrsps.game.content.registerArtio
+import osrsps.game.content.registerCalvarion
 import osrsps.game.content.registerKingBlackDragon
 import osrsps.game.tzhaar.FightCaves
 import osrsps.game.content.MemberGates
@@ -1096,6 +1097,7 @@ class World(
         registerChaosElemental(this)
         registerKingBlackDragon(this)
         registerArtio(this)
+        registerCalvarion(this)
         FountainOfRune.register(this)
         registerFeroxEnclave(this)
         registerWildernessObelisks(this)
