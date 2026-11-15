@@ -27,6 +27,12 @@ data class MeleeMatchup(
     val npcHitChance: Double,
 )
 
+/**
+ * A player's melee numbers against another player: their [attackRoll] and [maxHit] with [style], and the target's
+ * [defenceRoll] against it; see [Combat.pvpMatchup].
+ */
+data class PvpMeleeMatchup(val style: AttackStyle, val attackRoll: Int, val defenceRoll: Int, val maxHit: Int)
+
 /** A player's ranged numbers against one NPC with the ammunition they have; see [Combat.rangedMatchup]. */
 data class RangedMatchup(val style: AttackStyle, val attackRoll: Int, val defenceRoll: Int, val maxHit: Int, val hitChance: Double)
 
@@ -238,6 +244,27 @@ class Combat(
             playerDefenceRoll = playerDefenceRoll,
             npcMaxHit = npcMaxHit(npc, def),
             npcHitChance = CombatMath.hitChance(npcAttackRoll, playerDefenceRoll),
+        )
+    }
+
+    /**
+     * [attacker]'s melee numbers against [target], or null when [attacker]'s style isn't melee ([meleeType]). The
+     * attack roll and max hit are those against an NPC; the defence roll is the target's own, as an NPC's swing at them
+     * meets it: their Defence with their prayers' boosts, their style's stance bonus, and their worn defence bonus for
+     * the attack type (OSRS Wiki, Combat: a player defends with the same formula whoever attacks).
+     */
+    fun pvpMatchup(attacker: Player, target: Player): PvpMeleeMatchup? {
+        val style = style(attacker)
+        val type = meleeType(style) ?: return null
+        val bonuses = bonuses(attacker)
+        val boosts = prayerBoosts(attacker)
+        val attack = PrayerBoosts.boost(attacker.skills.currentLevel(Skill.ATTACK), boosts.attack)
+        val strength = PrayerBoosts.boost(attacker.skills.currentLevel(Skill.STRENGTH), boosts.strength)
+        return PvpMeleeMatchup(
+            style = style,
+            attackRoll = CombatMath.playerAttackRoll(attack, style.stance, attackBonus(bonuses, type)),
+            defenceRoll = playerDefenceRoll(target, style(target), bonuses(target), type, prayerBoosts(target)),
+            maxHit = CombatMath.playerMaxHit(strength, style.stance, bonuses.meleeStrength + bulwarkStrength(attacker, bonuses)),
         )
     }
 

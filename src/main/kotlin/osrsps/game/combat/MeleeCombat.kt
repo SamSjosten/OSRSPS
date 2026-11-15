@@ -909,14 +909,7 @@ class MeleeCombat(
      */
     fun hitPlayer(player: Player, source: Npc?, damage: Int, tick: Long): Int {
         if (player.hitpoints <= 0 || player.dead) return 0
-        val dealt = if (player.god) 0 else damage.coerceIn(0, player.hitpoints)
-        player.hitpoints -= dealt
-        val from = source?.index ?: -1
-        if (dealt > 0) player.effects.hit(from, HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER, HitsplatType.DAMAGE_OTHER, dealt)
-        else player.effects.hit(from, HitsplatType.BLOCK_ME, HitsplatType.BLOCK_OTHER, HitsplatType.BLOCK_OTHER, 0)
-        player.effects.headBar(from, HEALTH_BAR, healthBarFill(player.hitpoints, player.skills.baseLevel(Skill.HITPOINTS)))
-        // The NPC phase comes before the player's own swing, which overwrites this (guessed: the swing wins).
-        if (player.effects.anim == null) player.effects.anim(combat.anims(player).defend, 0)
+        val dealt = hurt(player, source?.index ?: -1, damage)
         if (source != null) {
             player.attackedBy = source
             player.attackedTick = tick
@@ -929,6 +922,32 @@ class MeleeCombat(
         if (source != null && player.autoRetaliate && player.interaction == null && !player.modalOpen && tick >= player.stunnedUntil) {
             retaliate(player, source, tick)
         }
+        return dealt
+    }
+
+    /**
+     * [player] takes [damage] from another player, [attacker] ([PvpMelee]), as [hitPlayer] takes an NPC's: the hitsplat
+     * (the max hit one is not shown to the attacker yet, guessed), health bar, block animation, death and Redemption.
+     * Who hit them is noted for [Player.attackedByPlayer]; fighting back is [PvpMelee]'s. Returns the damage dealt.
+     */
+    fun hitPlayerBy(player: Player, attacker: Player, damage: Int, tick: Long): Int {
+        if (player.hitpoints <= 0 || player.dead) return 0
+        val dealt = hurt(player, NpcEffects.PLAYER_SOURCE + attacker.index, damage)
+        player.attackedByPlayer = attacker
+        player.attackedByPlayerTick = tick
+        if (player.hitpoints <= 0) died(player) else redemption(player)
+        return dealt
+    }
+
+    /** Takes [damage] off [player], capped and 0 under `::god`, with the hitsplat from [from] and their block animation. */
+    private fun hurt(player: Player, from: Int, damage: Int): Int {
+        val dealt = if (player.god) 0 else damage.coerceIn(0, player.hitpoints)
+        player.hitpoints -= dealt
+        if (dealt > 0) player.effects.hit(from, HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER, HitsplatType.DAMAGE_OTHER, dealt)
+        else player.effects.hit(from, HitsplatType.BLOCK_ME, HitsplatType.BLOCK_OTHER, HitsplatType.BLOCK_OTHER, 0)
+        player.effects.headBar(from, HEALTH_BAR, healthBarFill(player.hitpoints, player.skills.baseLevel(Skill.HITPOINTS)))
+        // The NPC phase comes before the player's own swing, which overwrites this (guessed: the swing wins).
+        if (player.effects.anim == null) player.effects.anim(combat.anims(player).defend, 0)
         return dealt
     }
 
@@ -1044,6 +1063,7 @@ class MeleeCombat(
         stopFacing(player)
         for (npc in npcs.all) if (npc.target === player) giveUp(npc)
         player.attackedBy = null
+        player.attackedByPlayer = null
     }
 
     /**
