@@ -1,0 +1,444 @@
+package osrsps.game.skill.hunter
+
+import osrsps.game.Player
+import osrsps.game.Skill
+import osrsps.game.World
+import osrsps.game.content.message
+import osrsps.game.npc.Npc
+import osrsps.game.script.Op
+import osrsps.game.script.OpTarget
+import osrsps.game.script.ScriptContext
+import osrsps.game.skill.ClockStep
+import osrsps.game.skill.SkillClock
+import osrsps.game.skill.SuccessRoll
+import osrsps.game.zone.ZoneLoc
+import osrsps.game.zone.ZoneObj
+import osrsps.map.CollisionFlag
+import osrsps.map.CollisionMap
+import osrsps.map.LocShape
+import osrsps.map.Steps
+import osrsps.map.Tile
+import kotlin.math.abs
+
+/** One drop a creature gives when its trap is checked: [count] to [countMax] of obj [obj]. */
+class CreatureLoot(val obj: Int, val count: Int, val countMax: Int = count)
+
+/**
+ * A creature a trap catches: NPC type [npc], the Hunter [level] it needs, the XP in tenths, the catch pair for
+ * [SuccessRoll] (the Wiki's "Skilling success chart" for it, Mod Ash's figures), the trap's loc while it struggles
+ * ([catching]) and once it is caught ([full]), and what checking the trap gives.
+ */
+class Creature(
+    val npc: Int,
+    val level: Int,
+    val xpTenths: Int,
+    val low: Int,
+    val high: Int,
+    val catching: Int,
+    val full: Int,
+    val loot: List<CreatureLoot>,
+)
+
+/**
+ * A kind of trap a player lays from an item: the [item] laid, its locs when set, failing and failed (with its Dismantle
+ * and Reset ops), the player's animation while laying it, and the [creatures] it catches.
+ */
+class TrapKind(
+    val name: String,
+    val item: Int,
+    val set: Int,
+    val failing: Int,
+    val broken: Int,
+    val layAnim: Int,
+    val creatures: List<Creature>,
+) {
+    fun creature(npcType: Int): Creature? = creatures.firstOrNull { it.npc == npcType }
+
+    /** Whether [locId] is one of this kind's locs, in any state. */
+    fun owns(locId: Int): Boolean = locId == set || locId == failing || locId == broken || creatures.any { locId == it.catching || locId == it.full }
+}
+
+/** Where a laid trap is. */
+enum class TrapState {
+    /** Waiting for a creature. */
+    SET,
+
+    /** A creature walked in and is caught; the trap shows it struggling. */
+    CATCHING,
+
+    /** Caught, ready to check. */
+    FULL,
+
+    /** A creature got away; the trap shows it snapping shut. */
+    FAILING,
+
+    /** Snapped shut with nothing in it, ready to dismantle or reset. */
+    BROKEN,
+}
+
+/** A trap a player has laid. [stateTick] is when it entered [state]; [lured] the creature walking into it. */
+class Trap(val owner: String, val kind: TrapKind, var loc: ZoneLoc) {
+    var state = TrapState.SET
+    var stateTick = 0L
+    var creature: Creature? = null
+    var lured: Npc? = null
+    var luredTick = 0L
+    val x: Int get() = loc.x
+    val z: Int get() = loc.z
+    val level: Int get() = loc.level
+}
+
+/**
+ * Hunter's trap engine: traps a player lays and owns, which hunt the creatures around them.
+ *
+ * Sources: the OSRS Wiki's Hunter page (Multiple traps, read 2026-11-15) for the trap count, 2 from level 1 (since 19
+ * August 2026), 3 at 40, 4 at 60, 5 at 80, by the boosted level; its Box trap page (Mechanics, citing Mod Ash) for
+ * the hunt: a set trap looks for a creature every 3 ticks, any within 2 tiles of it (a 5 by 5 square), and catches
+ * nothing while a player stands on it; the Tick manipulation page for the timing: laying uses the skill clock and takes
+ * 4 ticks ([SkillClock], so a clock already running lays sooner), and picking a trap up takes 3 ticks and stalls the
+ * player. RuneLite's Hunter plugin (HunterTrap.TRAP_TIME, observed on live) for the collapse: a trap stands a minute
+ * ([TRAP_TICKS]) and the minute starts again when it catches or fails; the plugin also expects the trap's loc to
+ * appear on the tile the player stood on the tick before, so the player steps off after it stands (west, else east,
+ * south, north, as for a fire: inferred). A creature caught with too low a level always fails (Wiki, Box trap).
+ *
+ * Guessed, none of it on the Wiki: the trap goes for one creature in range at random and always lures it; it walks to
+ * the trap and the roll is made the tick it steps on (given up after [LURE_TICKS]); a struggle and a snap each show
+ * for [CATCHING_TICKS] and [FAILING_TICKS] ticks (the second the failing animation's length); a caught creature comes
+ * back where it spawned [RESPAWN_TICKS] later; a collapsed trap leaves its item on its tile, its owner's alone at
+ * first as a drop is; a trap collapses at once when its owner leaves the world, goes to another level or is more than
+ * [OWNER_RANGE] tiles away; traps go on any tile a fire could (no loc, walkable), indoors and banks included.
+ */
+class Traps(private val world: World, private val collision: CollisionMap) {
+    private val traps = ArrayList<Trap>()
+
+    private class Respawn(val npc: Npc, val tick: Long)
+
+    private val respawns = ArrayList<Respawn>()
+
+    /** The traps [owner] (a save key) has laid. */
+    fun of(owner: String): List<Trap> = traps.filter { it.owner == owner }
+
+    /** The trap on [x], [z], [level], if any. */
+    fun at(x: Int, z: Int, level: Int): Trap? = traps.firstOrNull { it.x == x && it.z == z && it.level == level }
+
+    /** Every trap laid, for tests and commands. */
+    val all: List<Trap> get() = traps
+
+    /** Registers the Lay, Dismantle, Investigate, Check and Reset options of [kind]'s item and locs. */
+    fun register(kind: TrapKind) {
+        val type = world.objTypes[kind.item]
+        val layHeld = type?.iops?.indexOfFirst { it == "Lay" }?.takeIf { it >= 0 }?.plus(1) ?: LAY_HELD
+        val layGround = type?.ops?.indexOfFirst { it == "Lay" }?.takeIf { it >= 0 }?.plus(1) ?: LAY_GROUND
+        world.handlers.onObj(kind.item, layHeld) { op -> layHeld(kind, op.sub) }
+        world.handlers.onGroundObj(kind.item, layGround) { op -> lay(kind, op.groundObj ?: return@onGroundObj, op.repeat, layGround) }
+        world.handlers.onLoc(kind.set, DISMANTLE) { op -> dismantle(kind, op.loc ?: return@onLoc, reset = false) }
+        world.handlers.onLoc(kind.set, INVESTIGATE) { op -> investigate(op.loc ?: return@onLoc) }
+        world.handlers.onLoc(kind.broken, DISMANTLE) { op -> dismantle(kind, op.loc ?: return@onLoc, reset = false) }
+        world.handlers.onLoc(kind.broken, RESET) { op -> dismantle(kind, op.loc ?: return@onLoc, reset = true) }
+        for (full in kind.creatures.map { it.full }.distinct()) {
+            world.handlers.onLoc(full, CHECK) { op -> dismantle(kind, op.loc ?: return@onLoc, reset = false) }
+            world.handlers.onLoc(full, RESET) { op -> dismantle(kind, op.loc ?: return@onLoc, reset = true) }
+        }
+    }
+
+    /** One tick of every trap. The world calls it in the NPC phase, before NPCs move. */
+    fun process() {
+        val tick = world.tick
+        respawns.removeAll { respawn ->
+            if (respawn.tick > tick) return@removeAll false
+            val npc = respawn.npc
+            if (npc.hidden) {
+                world.npcs.teleport(npc, npc.spawn.x, npc.spawn.z)
+                world.show(npc)
+            }
+            true
+        }
+        if (traps.isEmpty()) return
+        for (trap in traps.toList()) {
+            val owner = world.playerBySaveKey(trap.owner)
+            if (owner == null || owner.level != trap.level || abs(owner.x - trap.x) > OWNER_RANGE || abs(owner.z - trap.z) > OWNER_RANGE) {
+                collapse(trap, owner)
+                continue
+            }
+            val age = tick - trap.stateTick
+            when (trap.state) {
+                TrapState.SET -> {
+                    if (age >= TRAP_TICKS) collapse(trap, owner) else hunt(trap, owner, age)
+                }
+                TrapState.CATCHING -> if (age >= CATCHING_TICKS) change(trap, TrapState.FULL, trap.creature!!.full)
+                TrapState.FAILING -> if (age >= FAILING_TICKS) change(trap, TrapState.BROKEN, trap.kind.broken)
+                TrapState.FULL, TrapState.BROKEN -> if (age >= TRAP_TICKS) collapse(trap, owner)
+            }
+        }
+    }
+
+    /** A set trap's tick: walks its creature in, or looks for one every [LOOK_TICKS]. */
+    private fun hunt(trap: Trap, owner: Player, age: Long) {
+        val lured = trap.lured
+        if (lured != null) {
+            if (lured.outOfPlay || world.tick - trap.luredTick > LURE_TICKS) {
+                release(trap)
+            } else if (lured.x == trap.x && lured.z == trap.z && lured.level == trap.level) {
+                spring(trap, owner, lured)
+            } else {
+                // A blocked step drops the walk (Npcs.step), so it is asked again every tick it is on its way.
+                lured.destination = Tile(trap.x, trap.z)
+            }
+            return
+        }
+        if (age == 0L || age % LOOK_TICKS != 0L) return
+        if (world.onlinePlayers.any { it.level == trap.level && it.x == trap.x && it.z == trap.z }) return
+        val taken = traps.mapNotNullTo(HashSet()) { it.lured }
+        val candidates = world.npcs.near(trap.x, trap.z, trap.level, LOOK_RANGE)
+            .filter { it !in taken && trap.kind.creature(it.type.id) != null && it.target == null && it.engagedWith == null }
+        if (candidates.isEmpty()) return
+        val npc = candidates[world.random.between(0, candidates.size - 1)]
+        trap.lured = npc
+        trap.luredTick = world.tick
+        npc.destination = Tile(trap.x, trap.z)
+    }
+
+    /** [npc] stepped onto [trap]: the catch roll, at the owner's boosted level; always a miss below the creature's level. */
+    private fun spring(trap: Trap, owner: Player, npc: Npc) {
+        val creature = trap.kind.creature(npc.type.id) ?: return release(trap)
+        trap.lured = null
+        val level = owner.skills.currentLevel(Skill.HUNTER)
+        val caught = level >= creature.level && SuccessRoll.roll(world.random, creature.low, creature.high, level)
+        if (caught) {
+            trap.creature = creature
+            world.hide(npc)
+            respawns += Respawn(npc, world.tick + RESPAWN_TICKS)
+            change(trap, TrapState.CATCHING, creature.catching)
+        } else {
+            npc.destination = null
+            change(trap, TrapState.FAILING, trap.kind.failing)
+        }
+    }
+
+    private fun release(trap: Trap) {
+        val npc = trap.lured ?: return
+        trap.lured = null
+        if (npc.destination == Tile(trap.x, trap.z)) npc.destination = null
+    }
+
+    private fun change(trap: Trap, state: TrapState, locId: Int) {
+        val replaced = world.locs.replace(trap.loc, locId)
+        if (replaced == null) {
+            // Something else took the tile; the trap is gone.
+            traps.remove(trap)
+            release(trap)
+            return
+        }
+        trap.loc = replaced
+        trap.state = state
+        trap.stateTick = world.tick
+    }
+
+    /** Takes [trap] down, leaving its item on its tile. */
+    private fun collapse(trap: Trap, owner: Player?) {
+        remove(trap)
+        val type = world.objTypes[trap.kind.item] ?: return
+        if (owner != null) {
+            world.groundObjs.addPrivate(type, 1, trap.x, trap.z, trap.level, owner.saveKey, osrsps.game.GroundObjs.DROP_PRIVATE_TICKS, osrsps.game.GroundObjs.DROP_DESPAWN_TICKS)
+        } else {
+            world.groundObjs.addPublic(type, 1, trap.x, trap.z, trap.level, osrsps.game.GroundObjs.DROP_DESPAWN_TICKS)
+        }
+    }
+
+    private fun remove(trap: Trap) {
+        traps.remove(trap)
+        release(trap)
+        world.locs.remove(trap.loc)
+    }
+
+    /** Forgets the traps on the tiles where [inside] holds (an instance ending), so none acts there later. */
+    fun forgetArea(inside: (Int, Int) -> Boolean) {
+        traps.filter { inside(it.x, it.z) }.forEach(::release)
+        traps.removeIf { inside(it.x, it.z) }
+    }
+
+    private suspend fun ScriptContext.layHeld(kind: TrapKind, slot: Int) {
+        if (player.inventory[slot]?.id != kind.item) return
+        if (!canLay(kind, player.x, player.z, player.level)) return
+        val type = world.objTypes[kind.item] ?: return
+        if (player.inventory.remove(slot, 1) != 1) return
+        val obj = world.groundObjs.addPrivate(
+            type, 1, player.x, player.z, player.level, player.saveKey,
+            osrsps.game.GroundObjs.DROP_PRIVATE_TICKS, osrsps.game.GroundObjs.DROP_DESPAWN_TICKS,
+        )
+        lay(kind, obj, repeat = false, option = LAY_GROUND)
+    }
+
+    /**
+     * Lays [kind] from [obj] on the ground: the first try says so and animates; the trap stands when the skill clock
+     * comes due, re-running the op each tick till then, as lighting logs does.
+     */
+    private suspend fun ScriptContext.lay(kind: TrapKind, obj: ZoneObj, repeat: Boolean, option: Int) {
+        if (repeat && player.modalOpen) return player.anim(-1)
+        if (!canLay(kind, obj.x, obj.z, obj.level)) return player.anim(-1)
+        val step = SkillClock.step(player, tick, LAY_TICKS)
+        if (!repeat) {
+            player.anim(kind.layAnim)
+            world.message(player, HunterLines.LAYING)
+        }
+        if (step == ClockStep.DUE) {
+            if (!world.groundObjs.removeOne(obj)) return player.anim(-1)
+            stand(kind, obj.x, obj.z, obj.level)
+            stepOff(player, obj.x, obj.z)
+            return
+        }
+        world.repeatOp(player, Op(OpTarget.GROUND_OBJ, obj.id, option, groundObj = obj, repeat = true))
+    }
+
+    /** Puts [player]'s trap of [kind] up on [x], [z], [level]. */
+    private fun ScriptContext.stand(kind: TrapKind, x: Int, z: Int, level: Int) {
+        val loc = ZoneLoc(kind.set, LocShape.CENTREPIECE_STRAIGHT, 0, x, z, level)
+        world.locs.add(loc)
+        traps += Trap(player.saveKey, kind, loc).also { it.stateTick = tick }
+    }
+
+    /** Whether [player] may lay [kind] on [x], [z], telling them why not. */
+    private fun ScriptContext.canLay(kind: TrapKind, x: Int, z: Int, level: Int): Boolean {
+        val hunter = player.skills.currentLevel(Skill.HUNTER)
+        val max = maxTrapsAt(hunter)
+        if (of(player.saveKey).size >= max) {
+            world.message(player, HunterLines.TOO_MANY, "count" to max)
+            return false
+        }
+        val occupied = world.locs.at(x, z, level).isNotEmpty() || world.locs.reverting(x, z, level)
+        if (occupied || collision[x, z, level] and CollisionFlag.BLOCK_WALK != 0) {
+            world.message(player, HunterLines.CANT_HERE)
+            return false
+        }
+        return true
+    }
+
+    /**
+     * Dismantle on a set or failed trap, Check on a full one, and Reset on either: only its owner may. The trap and
+     * what it caught come off at once and the player stands 3 ticks; with [reset] a new trap is laid where it stood.
+     */
+    private suspend fun ScriptContext.dismantle(kind: TrapKind, loc: ZoneLoc, reset: Boolean) {
+        val trap = at(loc.x, loc.z, loc.level)?.takeIf { it.loc == loc } ?: return
+        if (trap.owner != player.saveKey) return world.message(player, HunterLines.NOT_YOURS)
+        val item = world.objTypes[kind.item] ?: return
+        val creature = trap.creature.takeIf { trap.state == TrapState.FULL }
+        if (trap.state == TrapState.CATCHING || trap.state == TrapState.FAILING) return
+        // Room for every drop, and for the trap unless it is laid again.
+        val gains = creature?.loot.orEmpty().map { it.obj to it.countMax } + if (reset) emptyList() else listOf(kind.item to 1)
+        if (player.inventory.freeSlots < slotsNeeded(player, gains)) return world.message(player, HunterLines.NO_SPACE)
+        remove(trap)
+        player.anim(if (creature != null) CHECK_ANIM else DISMANTLE_ANIM)
+        if (creature != null) {
+            for (drop in creature.loot) {
+                val type = world.objTypes[drop.obj] ?: continue
+                world.groundObjs.give(player, type, world.random.between(drop.count, drop.countMax))
+            }
+            player.skills.addTenths(Skill.HUNTER, creature.xpTenths)
+            val name = world.npcTypes[creature.npc]?.name?.lowercase() ?: "creature"
+            world.message(player, HunterLines.CAUGHT, "creature" to name)
+        } else {
+            world.message(player, HunterLines.DISMANTLED)
+        }
+        if (reset) {
+            // Laid again where it stood: the trap never leaves the tile, so the item is only counted.
+            delay(PICK_UP_TICKS)
+            if (canLay(kind, trap.x, trap.z, trap.level)) {
+                player.anim(kind.layAnim)
+                world.message(player, HunterLines.LAYING)
+                player.actionDelay = tick + LAY_TICKS - 1
+                delay(LAY_TICKS - 1)
+                if (at(trap.x, trap.z, trap.level) == null && canLay(kind, trap.x, trap.z, trap.level)) {
+                    stand(kind, trap.x, trap.z, trap.level)
+                    stepOff(player, trap.x, trap.z)
+                    return
+                }
+            }
+            world.groundObjs.give(player, item, 1)
+            return
+        }
+        world.groundObjs.give(player, item, 1)
+        delay(PICK_UP_TICKS)
+    }
+
+    /** The free slots [gains] (obj, most it could be) take: none for a stack already held, one per non-stacking obj. */
+    private fun slotsNeeded(player: Player, gains: List<Pair<Int, Int>>): Int = gains.sumOf { (id, count) ->
+        val type = world.objTypes[id]
+        when {
+            type == null -> 0
+            type.stackable -> if (player.inventory.count(id) > 0) 0 else 1
+            else -> count
+        }
+    }
+
+    private fun ScriptContext.investigate(loc: ZoneLoc) {
+        val trap = at(loc.x, loc.z, loc.level)?.takeIf { it.loc == loc } ?: return
+        world.message(player, if (trap.owner == player.saveKey) HunterLines.INVESTIGATE else HunterLines.NOT_YOURS)
+    }
+
+    /** Walks [player] a step off the trap's tile: west if they can, else east, south, north. */
+    private fun stepOff(player: Player, x: Int, z: Int) {
+        if (player.x != x || player.z != z) return
+        for ((dx, dz) in STEPS) {
+            if (!Steps.canStep(collision, player.level, x, z, dx, dz)) continue
+            player.waypoints.clear()
+            player.waypoints.add(Tile(x + dx, z + dz))
+            return
+        }
+    }
+
+    companion object {
+        /** How many traps a player with Hunter at [level] may have laid at once. */
+        fun maxTrapsAt(level: Int): Int = when {
+            level >= 80 -> 5
+            level >= 60 -> 4
+            level >= 40 -> 3
+            else -> 2
+        }
+
+        /** A minute: RuneLite's HunterTrap.TRAP_TIME. */
+        const val TRAP_TICKS = 100
+
+        /** Mod Ash via the Wiki: about every 3 ticks. */
+        const val LOOK_TICKS = 3L
+
+        /** Mod Ash via the Wiki: 2 tiles. */
+        const val LOOK_RANGE = 2
+
+        /** The Tick manipulation page: laying takes four ticks on the skill clock. */
+        const val LAY_TICKS = 4
+
+        /** The Tick manipulation page: picking a trap up takes three ticks. */
+        const val PICK_UP_TICKS = 3
+
+        /** Guessed: how long a lured creature has to reach the trap. */
+        const val LURE_TICKS = 10
+
+        /** Guessed: the struggle shown before the trap reads as full. */
+        const val CATCHING_TICKS = 2
+
+        /** Inferred from hunting_ojibway_fail's length (59 client cycles, about 2 ticks). */
+        const val FAILING_TICKS = 2
+
+        /** Guessed: a caught creature's respawn. */
+        const val RESPAWN_TICKS = 10
+
+        /** Guessed: how far the owner may go before their traps collapse. */
+        const val OWNER_RANGE = 32
+
+        /** The cache's ops: op1 Dismantle (set, failed), Check (full); op2 Investigate (set), Reset (full, failed). */
+        const val DISMANTLE = 1
+        const val CHECK = 1
+        const val INVESTIGATE = 2
+        const val RESET = 2
+
+        /** The item's own ops when the type doesn't say (tests): iop1 Lay, ground op4 Lay. */
+        const val LAY_HELD = 1
+        const val LAY_GROUND = 4
+
+        /** Guessed: picking a trap up plays human_laytrap again, as live shows no other animation for it that we know of. */
+        const val DISMANTLE_ANIM = 5208
+        const val CHECK_ANIM = 5208
+
+        private val STEPS = listOf(-1 to 0, 1 to 0, 0 to -1, 0 to 1)
+    }
+}

@@ -240,6 +240,17 @@ class GroundObjs(
     }
 
     /**
+     * Takes one of [obj] off the ground: the whole obj when it is the last, else one off its stack (a Hunter trap laid
+     * from a stack its owner dropped there). Returns false if it was already gone.
+     */
+    fun removeOne(obj: ZoneObj): Boolean {
+        if (!zones.hasObj(obj)) return false
+        if (obj.count <= 1) return remove(obj)
+        zones.setObjCount(obj, obj.count - 1)
+        return true
+    }
+
+    /**
      * How long [spawn] takes to come back: the wiki's ⌊BaseRate × (4000 − Population) / 4000⌋ (Item spawn), with the
      * players in the world as the population, counted when it is taken. At least a tick.
      */

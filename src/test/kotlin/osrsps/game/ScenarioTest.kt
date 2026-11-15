@@ -208,5 +208,10 @@ class ScenarioTest {
         assertEquals("Falador", osrsps.game.skill.farming.FarmingPatches.areaAt(farming.x, farming.z)?.name)
         assertEquals(99, farming.skills.getValue(Skill.FARMING).level)
         assertEquals(18, farming.inventory.size)
+        val hunter = scenarios["hunter"]!!
+        // Among the Feldip Hunter area's crimson swifts, with three traps' worth of Hunter and five snares.
+        assertTrue(hunter.x in 2580..2620 && hunter.z in 2880..2940 && hunter.level == 0)
+        assertEquals(40, hunter.skills.getValue(Skill.HUNTER).level)
+        assertEquals(1, hunter.inventory.size)
     }
 }
