@@ -77,8 +77,10 @@ final class Runner
 	void loggedIn()
 	{
 		ticksSinceLogin = 0;
-		// A login starts with keys off, so a tidy-up still owed from before it has nothing left to do.
+		// A login starts with keys off, so a tidy-up still owed from before it has nothing left to do, and a script that
+		// spans the login starts counting its ::keys commands again from off.
 		dropTidy();
+		keysOn = false;
 	}
 
 	void gameTick()
@@ -282,31 +284,37 @@ final class Runner
 		return r;
 	}
 
-	/** Keeps track of what a passed {@code ::keys} command left on: {@code ::keys} alone flips it. */
-	private static boolean isKeysCommand(Step step)
+	/** A chat step's words split on whitespace as the server splits a command, or null for any other step. */
+	private static String[] keysCommand(Step step)
 	{
 		if (!(step instanceof Steps.Chat))
 		{
-			return false;
+			return null;
 		}
-		String text = ((Steps.Chat) step).text.trim().toLowerCase(Locale.ROOT);
-		return text.equals("::keys") || text.startsWith("::keys ");
+		String[] words = ((Steps.Chat) step).text.trim().toLowerCase(Locale.ROOT).split("\\s+");
+		return words[0].equals("::keys") ? words : null;
 	}
 
+	private static boolean isKeysCommand(Step step)
+	{
+		return keysCommand(step) != null;
+	}
+
+	/** Keeps track of what a passed {@code ::keys} command left on: {@code ::keys} alone flips it. */
 	private void noteKeys(Step step)
 	{
-		if (!isKeysCommand(step))
+		String[] words = keysCommand(step);
+		if (words == null)
 		{
 			return;
 		}
-		String text = ((Steps.Chat) step).text.trim().toLowerCase(Locale.ROOT);
-		if (text.equals("::keys"))
+		if (words.length == 1)
 		{
 			keysOn = !keysOn;
 		}
-		else if (text.startsWith("::keys "))
+		else if (words.length == 2 && (words[1].equals("on") || words[1].equals("off")))
 		{
-			keysOn = !text.equals(KEYS_OFF);
+			keysOn = words[1].equals("on");
 		}
 	}
 

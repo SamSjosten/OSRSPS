@@ -189,6 +189,39 @@ public class RunnerTest
 	}
 
 	@Test
+	public void readsKeysCommandsAsTheServerSplitsThem() throws Exception
+	{
+		// On, off with two spaces, then a bare toggle: the server ends with keys on.
+		runner.start(script(KEYS_ON + ",{\"step\":\"command\",\"text\":\"::keys  off\",\"expectMessage\":\"Dialogue shows words\"},"
+			+ "{\"step\":\"command\",\"text\":\"::keys\",\"expectMessage\":\"Dialogue shows keys\"}"), "file");
+		assertNull(cycle());
+		runner.message("Dialogue shows keys");
+		assertNull(cycle());
+		runner.message("Dialogue shows words");
+		assertNull(cycle());
+		runner.message("Dialogue shows keys");
+		assertNotNull(cycle());
+		assertNull(cycle());
+		assertEquals("chat ::keys off", game.actions.get(game.actions.size() - 1));
+	}
+
+	@Test
+	public void countsKeysFromOffAgainAfterALoginMidScript() throws Exception
+	{
+		// Keys on, a relog (keys off on the server), then a bare toggle: keys end on.
+		runner.start(script(KEYS_ON + ",{\"step\":\"command\",\"text\":\"::keys\",\"expectMessage\":\"Dialogue shows keys\"}"), "file");
+		assertNull(cycle());
+		runner.message("Dialogue shows keys");
+		// The first step passes, and the toggle is sent.
+		assertNull(cycle());
+		runner.loggedIn();
+		runner.message("Dialogue shows keys");
+		assertNotNull(cycle());
+		assertNull(cycle());
+		assertEquals("chat ::keys off", game.actions.get(game.actions.size() - 1));
+	}
+
+	@Test
 	public void sendsTheKeysTidyUpOnlyToTheScriptsOwnTestAccount() throws Exception
 	{
 		keysOnScript();
