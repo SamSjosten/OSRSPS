@@ -1,0 +1,23 @@
+{
+ "name": "Slayer step 5b: a black mask worn, punching a cow spawned east of Lumbridge Castle at 60 in every skill, 7/6 as accurate and hard hitting once cows are the task and back to plain once the task is cleared, read off ::combat",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "keys"},
+  {"step": "command", "text": "::delnpc mine", "expectMessage": "you put in."},
+  {"step": "command", "text": "::tele 3236 3220 0", "expectMessage": "Teleported to 3236, 3220, 0", "comment": "the grass east of the castle"},
+  {"step": "command", "text": "::setlevel all 60", "expectMessage": "Every skill"},
+  {"step": "command", "text": "::item 8921", "expectMessage": "Added 1 x Black mask"},
+  {"step": "itemOption", "item": "Black mask", "option": "Wear"},
+  {"step": "assertEquipment", "slot": "head", "item": "Black mask"},
+  {"step": "command", "text": "::npc cow", "expectMessage": "Spawned Cow"},
+  {"step": "command", "text": "::combat cow", "expectMessage": "attack roll 4544, max hit 7", "comment": "Punch, accurate: (60 + 3 + 8) * 64 and ((60 + 8) * 64 + 320) / 640; the mask's black med helm stats add no attack or strength"},
+  {"step": "command", "text": "::slayer task cows 5 vannaka", "expectMessage": "Task: 5 cows from vannaka."},
+  {"step": "command", "text": "::combat cow", "expectMessage": "attack roll 5301, max hit 8", "comment": "both times 7/6, rounded down"},
+  {"step": "command", "text": "::slayer clear", "expectMessage": "No task."},
+  {"step": "command", "text": "::combat cow", "expectMessage": "attack roll 4544, max hit 7"},
+  {"step": "command", "text": "::delnpc mine", "expectMessage": "you put in."},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

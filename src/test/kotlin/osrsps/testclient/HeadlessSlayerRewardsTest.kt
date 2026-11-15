@@ -47,14 +47,14 @@ class HeadlessSlayerRewardsTest {
     private val cows = SlayerTask(6219, 6, "cows", "Cows")
     private val rats = SlayerTask(6216, 3, "rats", "Rats")
 
-    // The 242 cache's rows for these unlocks: Gargoyle smasher (bit 4, 100), Bigger and Badder (bit 35, 50, refundable)
-    // and two extends, Need more darkness (bit 8, 100) and Ankou very much (bit 9, 100).
+    // The 242 cache's rows for these unlocks: Gargoyle Smasher (bit 0, 120), Seeing Red (bit 34, 50, refundable) and two
+    // extends, Need More Darkness (bit 4, 100) and Ankou Very Much (bit 8, 100), both refundable as every extend is.
     private val data = SlayerData(
         listOf(cows, rats),
         listOf(SlayerMasterTask(SlayerMaster.VANNAKA.id, rats, 7, 40, 80), SlayerMasterTask(SlayerMaster.VANNAKA.id, cows, 7, 40, 80)),
         listOf(
-            SlayerUnlock(6399, 4, 100), SlayerUnlock(6428, 35, 50, refundable = true),
-            SlayerUnlock(6400, 8, 100, list = 1), SlayerUnlock(6401, 9, 100, list = 1),
+            SlayerUnlock(6392, 0, 120), SlayerUnlock(6408, 34, 50, refundable = true),
+            SlayerUnlock(6399, 4, 100, refundable = true, list = 1), SlayerUnlock(6400, 8, 100, refundable = true, list = 1),
         ),
     )
 
@@ -119,26 +119,26 @@ class HeadlessSlayerRewardsTest {
     fun `unlocks are bought with points, a refundable one turned off, and Extend everything buys the rest`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { client ->
-                client.commandReply("slayer points 150") { it.startsWith("Streak") }
+                client.commandReply("slayer points 170") { it.startsWith("Streak") }
                 client.open()
                 assertEquals(SlayerMaster.VANNAKA.id, client.varp(4844) and 0x3F)
 
-                client.confirm(4)
-                client.awaitVarp(Slayer.UNLOCK_VARPS[0], "Gargoyle smasher bought") { it and (1 shl 4) != 0 }
+                client.confirm(0)
+                client.awaitVarp(Slayer.UNLOCK_VARPS[0], "Gargoyle Smasher bought") { it and 1 != 0 }
                 assertEquals(50, client.points())
 
-                client.confirm(35)
-                client.awaitVarp(Slayer.UNLOCK_VARPS[1], "Bigger and Badder bought") { it and (1 shl 3) != 0 }
+                client.confirm(34)
+                client.awaitVarp(Slayer.UNLOCK_VARPS[1], "Seeing Red bought") { it and (1 shl 2) != 0 }
                 assertEquals(0, client.points())
-                client.confirm(35)
-                client.awaitVarp(Slayer.UNLOCK_VARPS[1], "Bigger and Badder off") { it and (1 shl 3) == 0 }
+                client.confirm(34)
+                client.awaitVarp(Slayer.UNLOCK_VARPS[1], "Seeing Red off") { it and (1 shl 2) == 0 }
                 assertEquals(0, client.points())
 
                 client.confirm(SlayerRewards.EXTEND_ALL)
                 client.awaitMessage("[slayer_rewards.not_enough_points cost=200]") { it == "[slayer_rewards.not_enough_points cost=200]" }
                 client.commandReply("slayer points 200") { it.startsWith("Streak") }
                 client.confirm(SlayerRewards.EXTEND_ALL)
-                client.awaitVarp(Slayer.UNLOCK_VARPS[0], "both extends bought") { it and (3 shl 8) == 3 shl 8 }
+                client.awaitVarp(Slayer.UNLOCK_VARPS[0], "both extends bought") { it and EXTENDS == EXTENDS }
                 assertEquals(0, client.points())
             }
         }
@@ -295,6 +295,9 @@ class HeadlessSlayerRewardsTest {
 
     private companion object {
         const val COINS = 995
+
+        /** Need More Darkness's and Ankou Very Much's bits. */
+        const val EXTENDS = (1 shl 4) or (1 shl 8)
 
         /** Vannaka's op 4, Trade. */
         const val TRADE = 4
