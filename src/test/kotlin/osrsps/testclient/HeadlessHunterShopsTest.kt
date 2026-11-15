@@ -83,6 +83,23 @@ class HeadlessHunterShopsTest {
         }
     }
 
+    @Test
+    fun `a pack whose 100 would pass the stack's limit stays shut`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("hs").use { client ->
+                client.await("the login rebuild") { client.position }
+                val near = Int.MAX_VALUE - 50
+                client.command("item $BOX_TRAP $near")
+                client.command("item $BOX_TRAP_PACK 1")
+                client.await("the stack and the pack") { if (client.count(BOX_TRAP) == near && client.count(BOX_TRAP_PACK) == 1) Unit else null }
+                client.ifButton(osrsps.game.InventoryTab.INTERFACE, osrsps.game.InventoryTab.ITEMS, OPEN_BUTTON_OP, client.slotOf(BOX_TRAP_PACK), BOX_TRAP_PACK)
+                client.seen("[hunter.pack_space]")
+                assertEquals(1, client.count(BOX_TRAP_PACK))
+                assertEquals(near, client.count(BOX_TRAP))
+            }
+        }
+    }
+
     private companion object {
         const val BACKPACK = 93
         const val BOX_TRAP_PACK = 12742

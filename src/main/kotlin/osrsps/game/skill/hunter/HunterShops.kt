@@ -4,6 +4,8 @@ import net.rsprot.protocol.game.outgoing.inv.UpdateInvFull
 import net.rsprot.protocol.common.game.outgoing.inv.InventoryObject
 import osrsps.game.FrameSlot
 import osrsps.game.InvObj
+import osrsps.game.Inventory
+import osrsps.game.ObjType
 import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.bank.BankScreen
@@ -32,8 +34,7 @@ class HunterShops(private val world: World) {
             world.handlers.onObj(pack, OPEN) { op ->
                 if (player.inventory[op.sub]?.id != pack) return@onObj
                 val type = world.objTypes[item] ?: return@onObj
-                val room = player.inventory.count(item) > 0 || player.inventory.freeSlots > 0
-                if (!room) return@onObj world.message(player, HunterLines.PACK_SPACE)
+                if (!fits(player.inventory, type)) return@onObj world.message(player, HunterLines.PACK_SPACE)
                 player.inventory.remove(op.sub, 1)
                 player.inventory.add(type, PACK_COUNT)
             }
@@ -48,6 +49,15 @@ class HunterShops(private val world: World) {
                 EXAMINE -> world.objTypes[piece.item]?.let { world.inventoryTab.examine(player, it, 1) }
             }
         }
+    }
+
+    /**
+     * Whether all [PACK_COUNT] of [type] fit: onto its stack without passing [Inventory.MAX_STACK], or into a free slot.
+     * Inv.add would cap the stack and lose the rest after the pack is gone.
+     */
+    private fun fits(inv: Inventory, type: ObjType): Boolean {
+        val held = inv.count(type.id)
+        return if (held > 0) held + PACK_COUNT <= Inventory.MAX_STACK else inv.freeSlots > 0
     }
 
     /** Opens the Custom Fur Clothing panel with its pieces. */
