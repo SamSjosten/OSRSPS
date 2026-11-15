@@ -445,7 +445,7 @@ class World(
         taken = { taker, owner, obj -> archiveRaids.supplies.pickedUp(taker, owner, findPlayer(owner), obj.id, obj.count) },
     )
 
-    private val equipment = Equipment(objTypes, wearRequirements)
+    val equipment = Equipment(objTypes, wearRequirements)
     private val itemWeights = ItemWeights(objTypes)
     private val graceful = Graceful(objTypes)
 
