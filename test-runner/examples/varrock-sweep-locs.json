@@ -105,9 +105,9 @@
   },
   {
    "step": "command",
-   "text": "::tele 3200 3386 0",
-   "expectMessage": "Teleported to 3200, 3386, 0",
-   "comment": "beside the fairy crate in the south-west house"
+   "text": "::tele 3202 3386 0",
+   "expectMessage": "Teleported to 3202, 3386, 0",
+   "comment": "inside the south-west house, east of the fairy crate: 3200,3386 is outside its west wall (cache collision), where the crate can't be reached"
   },
   {
    "step": "waitTicks",
