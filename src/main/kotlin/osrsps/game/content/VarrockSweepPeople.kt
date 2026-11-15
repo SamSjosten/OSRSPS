@@ -136,7 +136,7 @@ object MasterSmithingTutorLines : Lines("master_smithing_tutor", "Transcript:Mas
  * - Guidor (1110) and Chancy (1106), after Biohazard; Pox (4574) and Hooknosed Jack (4588), after Ratcatchers (Pox
  *   without a catspeak amulet); Anna Jones (4162), after What Lies Below with the statue standing.
  * - Jeff, Bob and Sarah (10415, 10414, 10416), Mahogany Homes clients: their one line with no contract.
- * - The Master smithing tutor (3225), with his level bands (1-20, 21-37, 38-99, 99), a hammer when the player has none.
+ * - Sani, the Master smithing tutor (16816 since 242, which renamed him; 3225 before), with his level bands (1-20, 21-37, 38-99, 99), a hammer when the player has none.
  * - Jeremy Clerksin (5042), asleep in a church pew, and BigRedJapan (5921) on the rooftops: no options.
  *
  * Left out: Hooknosed Jack's pit topics (the Rat Pits aren't built: a guessed line ends it) and his Rat Pits manual;
@@ -152,7 +152,7 @@ object VarrockSweepPeople {
     const val JEFF = 10415
     const val BOB = 10414
     const val SARAH = 10416
-    const val MASTER_SMITHING_TUTOR = 3225
+    const val MASTER_SMITHING_TUTOR = 16816
     const val TALK_TO = 1
 
     const val HAMMER = 2347

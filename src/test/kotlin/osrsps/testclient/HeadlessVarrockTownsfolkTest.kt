@@ -45,7 +45,7 @@ class HeadlessVarrockTownsfolkTest {
         npc(VarrockTownsfolk.CHARLIE, "Charlie the Tramp", "tramppg"),
         npc(VarrockTownsfolk.TRAMP, "Tramp", "tramp"),
         npc(VarrockTownsfolk.DR_HARLOW, "Dr Harlow", "dr_harlow_vis"),
-        npc(VarrockTownsfolk.JONNY_THE_BEARD, "Jonny the Beard", "jonny_the_beard_2op"),
+        npc(VarrockTownsfolk.JONNY_THE_BEARD, "Jonny the Beard", "jonny_the_beard_1op"),
         npc(VarrockTownsfolk.IFFIE, "Iffie", "varrock_granny_1"),
         npc(VarrockTownsfolk.TOWN_CRIER, "Town Crier", "pmod_town_crier_varrock"),
     )

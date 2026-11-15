@@ -41,6 +41,8 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         openChatChannel(player)
         // The Clans tab's four tabs (side_channels_tabinit), which tell the server which page to show.
         for (tab in Clans.SIDE_CHANNELS_TABS) send(player, IfSetEventsV2(Clans.SIDE_CHANNELS, tab, -1, -1, 0, IF_EVENT_OP1))
+        // The emote tab's emotes, its client-made children 0 to 55 (emote_init), Perform and Loop.
+        send(player, IfSetEventsV2(osrsps.game.content.Emotes.INTERFACE, osrsps.game.content.Emotes.CONTENTS, 0, osrsps.game.content.Emotes.LAST, 0, IF_EVENT_OP1 or IF_EVENT_OP2))
         // Lets the client send clicks on the "Game client layout" dropdown's three options.
         send(player, IfSetEventsV2(GameFrame.SETTINGS_SIDE, GameFrame.SETTINGS_CLIENT_LAYOUT_BUTTONS, 1, 3, 0, IF_EVENT_OP1))
         // And on the attack priority dropdowns' options: client-made children 1 to n of their buttons components.
