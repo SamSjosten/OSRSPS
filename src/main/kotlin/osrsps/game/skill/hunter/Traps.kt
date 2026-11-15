@@ -353,13 +353,14 @@ class Traps(private val world: World, private val collision: CollisionMap) {
      */
     private fun collapse(trap: Trap, owner: Player?) {
         val type = world.objTypes[trap.kind.item]
-        if (type != null && !world.groundObjs.fits(type, 1, trap.x, trap.z, trap.level, owner?.saveKey ?: "")) {
-            // No room on its tile: the owner's backpack takes it, or (guessed) with the owner gone it is lost, so the trap
-            // never stays up waiting on a tile to clear.
-            if (owner != null && owner.inventory.add(type, 1) != 1) return
+        if (owner != null && type != null && !world.groundObjs.fits(type, 1, trap.x, trap.z, trap.level, owner.saveKey)) {
+            // No room on its tile for the owner's drop: their backpack takes it, else the trap waits for room.
+            if (owner.inventory.add(type, 1) != 1) return
             remove(trap)
             return
         }
+        // With the owner gone the item goes down for anyone at once, making room on a full tile as loot does, so the trap
+        // never stands waiting on a tile to clear and its item is never lost.
         remove(trap)
         if (type == null) return
         if (owner != null) {
