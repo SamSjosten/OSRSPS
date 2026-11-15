@@ -332,7 +332,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::if id [side]` | Opens interface `id` bare in the main game area (or the side panel with `side`), for checking it opens, moves with a layout change and closes |
 | `::setlevel skill\|all level` | Sets a skill's XP to what the level needs and its current level to match. `::setlevel attack 99` |
 | `::addxp skill xp` | Adds XP, one decimal place allowed (`::addxp cooking 17.5`); levelling raises the current level too. Exact: the XP rate doesn't apply |
-| `::slayer [task <id\|name> [amount] [master] \| points n \| streak n \| clear]` | Alone, your Slayer task, streak and points. `task` gives you a task straight away (`::slayer task cows 20 vannaka`; the master's most when no amount, Aya's when no master), `points` and `streak` set those, `clear` takes the task away |
+| `::slayer [task <id\|name> [amount] [master] \| points n \| streak n \| clear \| superior]` | Alone, your Slayer task, streak and points. `task` gives you a task straight away (`::slayer task cows 20 vannaka`; the master's most when no amount, Aya's when no master), `points` and `streak` set those, `clear` takes the task away, `superior` puts the task's superior out beside you |
 | `::xprate [rate\|restore]` | Shows or sets the server-wide XP rate, 0.1 to 1000 in tenths (`::xprate 5`, `::xprate 2.5`); every XP drop is multiplied by it, rounded down to a tenth. Kept in data/xp-rate.txt (outside git), so it lasts across restarts and deploys. `restore` goes back to the rate before the last change. 1 is live's |
 | `::farmtick [ticks]` | Moves your own farming clock on that many five-minute farming ticks (1 by default, up to 4,096) and grows your patches to it: allotments grow every second tick. For good: your crops keep growing from there |
 | `::farmclock <pause\|run>` | Holds your farming clock where it is, so your crops grow only by `::farmtick` (for tests that check each stage), or runs it again, the crops catching up on the time it was held; a login runs it again too |
@@ -1106,6 +1106,20 @@ A black mask or Slayer helmet worn on task (`combat/SlayerHelm.kt`) makes melee 
 the task's monster; the imbued ones (named "(i)") make ranged and magic 15% more of both too. Every charge of the mask
 and every recolour of the helmet is known by its cache name.
 
+Superior Slayer monsters (`game/skill/SlayerSuperiors.kt`, words under `slayer_superior.*`): with Bigger and Badder
+bought and on, a kill on task (finishing it or having dealt the most damage) has a 1 in 200 chance of putting its
+superior out where it died, for that player alone; another player's attack is refused. Its kill gives its own Slayer
+XP, task or not, and its normal counterpart's table three times, one roll of which may be a superior unique (imbued
+heart, dust or mist battlestaff, eternal gem). It goes 2 minutes on if never attacked, or at the next 30-second check
+once its player has died, logged out or left. Built: the chasm crawler (cave crawlers) and the giant rockslug
+(rockslugs, 2 flat armour). `::slayer superior` puts the task's superior out at once, for tests.
+
+The Slayer helmet (`game/skill/SlayerHelmets.kt`, words under `slayer_helmet.*`): with Malevolent Masquerade bought
+and 55 Crafting (boosts count, no XP), any part used on another while all seven are carried makes it: a black mask (its
+charges lost), earmuffs, a facemask, a nose peg, a spiny helmet, an enchanted gem and reinforced goggles. A black mask
+(i) makes the Slayer helmet (i) of its own kind. Disassemble gives the parts back with an uncharged mask, and Check,
+held or worn, is the gem's.
+
 | Slayer behaviour | Source |
 |------------------|--------|
 | Tasks, masters' weights and amounts, combat and Slayer level gates, rewards' bits and costs | cache 242, db tables 113, 114, 117 (column order from osrs-dumps' dump.dbtable) |
@@ -1133,9 +1147,13 @@ and every recolour of the helmet is known by its cache name.
 | The Buy tab's items, costs, set sizes and ops (one at a time for the herb sack, rune pouch and looting bag) | the 242 client's script slayer_rewards_buy_draw and enums 840 to 842 (osrs-dumps) |
 | The black mask's and Slayer helmet's 7/6 melee and the imbued ones' 15% ranged and magic, on task only | OSRS Wiki, Black mask and Slayer helmet (Mod Ash's "7/6") |
 | Rounding down after each multiply; the ranged 15% before the twisted bow's scaling; the magic 15% before an elemental weakness, which adds its share unmasked (the Wiki's DPS calculator) | inferred |
+| Superiors: the 1/200 chance with Bigger and Badder (bit 35), on task and for the finisher or top damager; one at a time, theirs alone, the two messages; their own XP off task too; three rolls on the normal table with its tertiary drops, one maybe a unique at 1/(200 - (level + 55)² / 125) per table, either table as likely; its player switching to it in single-way combat, the other monster giving up; 2 minutes ignored, 30-second checks once gone; the chasm crawler's and giant rockslug's stats, XP and flat armour | OSRS Wiki, Superior slayer monster, Chasm Crawler, Giant rockslug (read 2026-11-15); Mod Ash on the despawn |
+| A superior's kill counting one off the task; "left" as another level or 32 tiles away; it stands still; the normal monsters' animations | guessed |
+| The Slayer helmet: Malevolent Masquerade, 55 Crafting boostable with no XP, the seven parts (the goggles needed as A Porcine of Interest counts as done), any part on another, a charged mask's charges lost, a black mask (i) making the helmet (i) of its kind and coming back from it, Disassemble returning the parts, Check as the gem's | OSRS Wiki, Slayer helmet, Slayer helmet (i) (read 2026-11-15); 242 cache (the helmets' options and worn Check) |
+| The helmet taking the used mask's slot; Disassemble needing six free slots; a plain mask chosen before an imbued one when both are carried; all six messages (none quoted on the Wiki, so their words stay empty) | guessed |
 | A Buy taking as many as the points and inventory allow, refusing only when not one fits; its refusals' words | guessed |
 | Every message's words | unsourced: the Words thread fills them |
-| Not built yet: Konar and her places, the salve amulet not stacking with the mask (no salve amulet yet), making the Slayer helmet, the slayer ring's teleports, Task Storage, the diary's seventh block slot, equipment, superiors, boss tasks, Krystilia (the Wilderness), Aya's blessed axe talk, Kuradal's Slayer cape sale and talk about Duradel, the Slayer cape overlooking a master's combat level | |
+| Not built yet: Konar and her places, the salve amulet not stacking with the mask (no salve amulet yet), the recoloured Slayer helmets and the helmet's Partner and Log, the slayer ring's teleports, Task Storage, the diary's seventh block slot, the superiors of Slayer monsters not in yet, boss tasks, Krystilia (the Wilderness), Aya's blessed axe talk, Kuradal's Slayer cape sale and talk about Duradel, the Slayer cape overlooking a master's combat level | |
 
 ## Items and inventory
 
@@ -2292,10 +2310,18 @@ the ditch: nothing north of it is spawned yet, and players can't fight each othe
 | An allowed Attack starts a melee fight: the attacker walks up, faces the target and swings every weapon-speed ticks, their attack roll against the target's own defence roll (the target's Defence, prayers, stance and worn defence bonus), with XP as against a monster; the rules are asked again before every swing, so a target who leaves the Wilderness or the range is let go with the refusal | the Wiki's Combat page (a player defends with the same formula whoever attacks); asking before every swing inferred |
 | Protect from Melee on the target takes 40% off a melee hit from a player, rounded down | the Wiki's Protect from Melee page ("40% of melee damage by other players"); the rounding and the prayer being asked as the swing is rolled guessed |
 | A player's melee hit lands when the target is next processed: the same tick if the attacker comes first in the tick, else the next | the Wiki's Hit delay page (melee has none; in PvP the PID decides whether processing order adds a tick); players processed in index order rather than a shuffled PID inferred |
+| Bows, crossbows, thrown weapons and the blowpipe shoot players from their range in line of sight, using their ammunition as at a monster (some breaks, the rest falls under the target); combat spells from the spellbook are cast once on a player, with their runes, and an autocast spell fights on; the target defends with their own ranged or magic defence roll; Protect from Missiles and Protect from Magic take 40% off; a spell that misses splashes | the Wiki's Combat, Protect from Missiles and Protect from Magic pages ("40% resistance to magic attacks dealt by players"); a twisted bow scaling by the target's Magic level inferred |
+| Ranged and magic hits land after their distance's delay, the processing order adding a tick as for melee | the Wiki's Hit delay page |
+| An ice spell or a bind that hits freezes the target for its ticks unless frozen or immune; the freeze breaks once the two are more than 10 tiles apart on x or z, and 5 ticks of immunity follow; ice spells say "You have been frozen!" (`pvp.frozen`) | the Wiki's Freeze page; binds saying nothing inferred from the Wiki listing only the ice spells' message |
+| Powered staves (tridents, Tumeken's shadow) can't attack players (`pvp.powered_staff`) | the Wiki's Trident of the seas page; the refusal's words held |
 | A target with auto retaliate on and nothing else to do fights back, starting after half their weapon's speed, rounded up | the Wiki's Auto Retaliate page, as against monsters; the same for players inferred |
-| The Doomsayer's Toggle warnings list, special attacks and poison on players, PvP ranged and magic, the single-way rules, skulls, Wilderness deaths and everything north of the ditch | not built: later steps |
+| In single-way combat each attack starts both players' PJ timer, 20 ticks: while it runs nobody else can attack either of them (`pvp.target_in_combat`), they can't attack anyone else ("I'm already under attack."), and monsters leave them be; a kill starts the killer's. A player a monster hit in the last 8 ticks can't be attacked by a player, nor attack one | the Wiki's PJ timer page (20 ticks in the Wilderness, refreshed by each attack, 12 seconds for a killer; 8 ticks for monsters); judging the attacker by their tile and the target by theirs, and the monster part for players, guessed; the target refusal's words held |
+| In multi-way combat anyone can join, and Ice Burst, Ice Barrage and the other Burst and Barrage spells also hit the players on the 3x3 around their target whom the caster could attack, each rolled on its own | the Wiki's Ancient Magicks page; the order when more than nine could be hit guessed |
+| An attack on a player who didn't attack first skulls the attacker for 30 minutes (3,000 ticks, counted while logged in and saved), started again by each such attack; the skull shows over their head. Whoever was attacked may hit back without a skull for as long as that skull lasts. The PK Skull Prevention setting refuses an attack that would skull a player with none (`pvp.skull_prevented`) | the Wiki's Skull (status) page (30 minutes, retaliation unskulled, the setting); the attack list's length, every unprovoked attack restarting the timer, and the timer running only while logged in guessed; the refusal's words held |
+| The Wilderness's own multi-way areas | not yet in `multi-combat.tsv`: each piece adds its areas with its content |
+| The Doomsayer's Toggle warnings list, special attacks, enchanted bolts' effects and weapon poison on players, chinchompas' blast on players, the freeze's thaw warning, Wilderness deaths and everything north of the ditch | not built: later steps |
 
-Check: `test-runner/examples/ditch-cross.json`, `wilderness-attack-option.json`, `HeadlessWildernessDitchTest`, `HeadlessPvpRulesTest` and `HeadlessPvpMeleeTest`.
+Check: `test-runner/examples/ditch-cross.json`, `wilderness-attack-option.json`, the `wilderness-pvp-single-way-test.json` and `wilderness-pvp-skull-test.json` pairs, `HeadlessWildernessDitchTest`, `HeadlessPvpRulesTest`, `HeadlessPlayerOpsSettingsTest`, `HeadlessPvpMeleeTest`, `HeadlessPvpRangedMagicTest`, `HeadlessPvpSingleWayTest` and `HeadlessPvpSkullTest`.
 
 ## Varrock
 

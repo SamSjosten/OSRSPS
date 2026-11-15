@@ -197,12 +197,12 @@
   {
    "step": "command",
    "text": "::npc weaponsmaster",
-   "expectMessage": "Spawned Weaponsmaster (5211)"
+   "expectMessage": "(5211) as #"
   },
   {
    "step": "command",
    "text": "::kill weaponsmaster",
-   "expectMessage": "Killed Weaponsmaster #"
+   "expectMessage": "Killed "
   },
   {
    "step": "assertAnimation",

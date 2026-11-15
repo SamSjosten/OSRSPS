@@ -16,7 +16,7 @@ import osrsps.game.combat.CombatMath
 import osrsps.game.combat.Prayers
 import osrsps.game.combat.PvpInteraction
 import osrsps.game.combat.PvpLines
-import osrsps.game.combat.PvpMelee
+import osrsps.game.combat.PvpCombat
 import osrsps.game.dialogue.DialogueText
 import osrsps.map.CollisionMap
 
@@ -90,7 +90,7 @@ class HeadlessPvpMeleeTest {
                     b.awaitTicks(2)
                     val before = b.hitpoints()!!
                     b.await("a protected punch") { b.hitpoints()?.takeIf { it < before } }
-                    assertEquals(before - PvpMelee.prayed(max), b.hitpoints(), "11 through the prayer is 6")
+                    assertEquals(before - PvpCombat.prayed(max), b.hitpoints(), "11 through the prayer is 6")
                 }
             }
         }
@@ -122,10 +122,10 @@ class HeadlessPvpMeleeTest {
 
     @Test
     fun `40% of a hit is resisted, rounded down`() {
-        assertEquals(6, PvpMelee.prayed(11))
-        assertEquals(0, PvpMelee.prayed(1))
-        assertEquals(30, PvpMelee.prayed(50))
-        assertEquals(0, PvpMelee.prayed(0))
+        assertEquals(6, PvpCombat.prayed(11))
+        assertEquals(0, PvpCombat.prayed(1))
+        assertEquals(30, PvpCombat.prayed(50))
+        assertEquals(0, PvpCombat.prayed(0))
     }
 
     private companion object {

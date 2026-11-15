@@ -87,7 +87,8 @@ import osrsps.game.combat.Poison
 import osrsps.game.combat.StatusEffects
 import osrsps.game.combat.Potions
 import osrsps.game.combat.Prayers
-import osrsps.game.combat.PvpMelee
+import osrsps.game.combat.PvpCombat
+import osrsps.game.combat.Skulls
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrains
 import osrsps.game.combat.LootNotifications
@@ -451,6 +452,8 @@ class World(
     val combat = Combat(
         equipment, attackStyles, npcCombat, rangedWeapons, prayerBoosts = { prayers.boosts(it) },
         slayerHelm = { player, npc -> slayer.helm(player, npc) },
+        notYours = { player, npc -> slayer.superiors.barred(player, npc) },
+        ownSuperior = { player, npc -> slayer.superiors.owns(player, npc) },
     )
 
     /** The prayer book; see [Prayers]. */
@@ -619,12 +622,6 @@ class World(
         },
     )
 
-    /** Players fighting players with melee in the Wilderness; see [PvpMelee]. */
-    val pvpMelee = PvpMelee(
-        collision, movement, combat, meleeCombat, random, { tick }, inWorld = { players[it.index] === it && !it.loggedOut },
-        words = ::textFor, protects = prayers::protects,
-    )
-
     /** Aggressive NPCs going for players, and players' tolerance; see [Aggression]. */
     val aggression = Aggression(npcs, collision, { combat.npcCombat[it.type] }, meleeCombat, random, { tick }, players = { players.asSequence().filterNotNull().filter { !it.loggedOut } })
 
@@ -645,6 +642,13 @@ class World(
         projectile = zones::projectile,
         face = { player, npc -> npcInteractions.face(player, npc) }, stopFacing = { npcInteractions.stopFacing(it) },
         multi = multiCombat, poweredStaves = poweredStaves, words = ::textFor,
+    )
+
+    /** Players fighting players in the Wilderness; see [PvpCombat]. */
+    val pvpCombat = PvpCombat(
+        collision, movement, combat, meleeCombat, rangedCombat, magicCombat, random, { tick },
+        inWorld = { players[it.index] === it && !it.loggedOut }, words = ::textFor, protects = prayers::protects,
+        multi = multiCombat, players = { players.asSequence().filterNotNull() },
     )
 
     /** Home Teleport; see [HomeTeleport]. Its target is a seam the lodestone network takes ([registerLodestones]). */
@@ -1356,6 +1360,7 @@ class World(
             // phases, and before both of the movement phase's combat checks, so they see the same value.
             if (player.wearyTicks > 0) player.wearyTicks--
             if (player.rootedTicks > 0) player.rootedTicks--
+            pvpCombat.countDown(player)
         }
         endEmptyInstances()
         groundObjs.process()
@@ -1382,6 +1387,7 @@ class World(
         encounters.process()
         archiveRaids.process()
         thieving.process()
+        slayer.superiors.process()
         // Before NPCs move, so a creature a trap lures this tick takes its first step this tick.
         hunter.process()
         npcs.process()
@@ -1424,8 +1430,8 @@ class World(
 
     /** One player's part of the movement phase. */
     private fun movePhase(player: Player) {
-        // Hits from players processed before them this tick, or after them last tick; see PvpMelee.land.
-        pvpMelee.land(player)
+        // Other players' hits whose tick has come; see PvpCombat.land.
+        pvpCombat.land(player)
         interfaces.processFrameMove(player, tick)
         sendWeight(player)
         // Before the interactions, so a loc or NPC used this tick can still turn the player after a follow ends;
@@ -1448,6 +1454,15 @@ class World(
         player.infos.updateRootCoord(player.level, player.x, player.z)
         sendMultiIndicator(player)
         sendWilderness(player)
+        sendSkull(player)
+    }
+
+    /** Shows or hides [player]'s skull head icon ([Skulls]) when it changes. */
+    private fun sendSkull(player: Player) {
+        val icon = Skulls.icon(player)
+        if (icon == player.sentSkullIcon) return
+        player.sentSkullIcon = icon
+        player.infos.playerInfo.avatar.extendedInfo.setSkullIcon(icon)
     }
 
     /**
@@ -2237,8 +2252,8 @@ class World(
 
     /**
      * Attack on [clicked] (Wilderness step W1.2): refused with [osrsps.game.combat.PvpRules]' lines when either player
-     * is outside the Wilderness's fighting ground or out of range; otherwise a melee fight with them ([PvpMelee], step
-     * W1.3). [ctrl] flips walk and run for the walk up to them, as for an NPC.
+     * is outside the Wilderness's fighting ground or out of range; otherwise a fight with them in their style
+     * ([PvpCombat], steps W1.3 and W1.4). [ctrl] flips walk and run for the walk up to them, as for an NPC.
      */
     private fun attackPlayer(player: Player, clicked: Player?, ctrl: Boolean) {
         scripts.interrupt(player)
@@ -2251,9 +2266,27 @@ class World(
             return
         }
         player.invertRun = ctrl
-        val refusal = pvpMelee.attack(player, target)
+        val refusal = pvpCombat.attack(player, target)
         if (refusal.isNotEmpty()) {
             // Guessed, as for a walk with nowhere to go: the client's flag would otherwise stay up.
+            player.session.queue(SetMapFlagV2.RESET)
+            for (line in refusal) message(player, line)
+        }
+    }
+
+    /**
+     * A combat spell from the magic tab's [component] cast on [target] (Wilderness step W1.4): refused as Attack is
+     * ([attackPlayer]), otherwise a fight with them that casts it once ([PvpCombat.cast]).
+     */
+    private fun castOnPlayer(player: Player, target: Player, component: Int, ctrl: Boolean) {
+        scripts.interrupt(player)
+        player.interaction = null
+        npcInteractions.leave(player)
+        player.waypoints.clear()
+        // Ctrl held inverts walking and running on the way, as for Attack ([attackPlayer]).
+        player.invertRun = ctrl
+        val refusal = pvpCombat.cast(player, target, component)
+        if (refusal.isNotEmpty()) {
             player.session.queue(SetMapFlagV2.RESET)
             for (line in refusal) message(player, line)
         }
@@ -2263,7 +2296,7 @@ class World(
      * The player used something on the player at [index]: the item in slot [sub] of [interfaceId]:[componentId], or a
      * spell. Only inventory items are handled; see [InventoryTab.useOnPlayer].
      */
-    fun onPlayerTarget(player: Player, index: Int, interfaceId: Int, componentId: Int, sub: Int, obj: Int) {
+    fun onPlayerTarget(player: Player, index: Int, interfaceId: Int, componentId: Int, sub: Int, obj: Int, ctrl: Boolean = false) {
         // Looked up as the packet is read, as for an option on a player.
         val clicked = players.getOrNull(index)
         act(player) {
@@ -2272,6 +2305,10 @@ class World(
             val target = clicked?.takeIf { players[it.index] === it && it !== player }
             if (interfaceId == Clans.CREATION && componentId == Clans.CREATION_INVITE && target != null) {
                 clans.inviteOrAccept(player, target)
+                return@act
+            }
+            if (interfaceId == Spells.SPELLBOOK && target != null) {
+                castOnPlayer(player, target, componentId, ctrl)
                 return@act
             }
             if (interfaceId != InventoryTab.INTERFACE || componentId != InventoryTab.ITEMS || target == null) {
@@ -2732,9 +2769,10 @@ class World(
      * they are everyone's from the start (guessed).
      */
     fun dropLoot(npc: Npc, killer: Player?) {
-        val def = npcDrops[npc.type] ?: return
+        // A superior's three rolls on its normal counterpart's table come after its own drops.
+        val drops = npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty()
         val owner = killer?.takeIf { !it.loggedOut }?.saveKey
-        for (drop in def.roll(random)) {
+        for (drop in drops) {
             if (owner != null) {
                 groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, owner, GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.LOOT_DESPAWN_TICKS)
                 killer?.let { lootNotifications.dropped(it, drop.type, drop.count) }
@@ -3200,7 +3238,7 @@ class World(
         (player.attackedTick >= 0 && tick - player.attackedTick < LOGOUT_COMBAT_TICKS) ||
             (player.attackedByPlayerTick >= 0 && tick - player.attackedByPlayerTick < LOGOUT_COMBAT_TICKS) ||
             // A player's swing still on its way counts already, so processing order can't let them log out from under it.
-            pvpMelee.incoming(player)
+            pvpCombat.incoming(player)
 
     /** Saves and removes a player who logged out or whose wait for a reconnect is over. */
     private fun remove(player: Player) {
@@ -3221,7 +3259,7 @@ class World(
             swampCavesHazards.forget(player)
             caveGoblins.forget(player)
             wallBeasts.forget(player)
-            pvpMelee.forget(player)
+            pvpCombat.forget(player)
             canoes.forget(player)
             npcs.forget(player, scripts::busy)
             save(player)

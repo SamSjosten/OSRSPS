@@ -263,6 +263,16 @@ class MeleeCombat(
         return other !== npc && !other.outOfPlay && npcs[other.index] === other && currentTick() - player.attackedNpcTick <= IN_COMBAT_TICKS
     }
 
+    /**
+     * Whether [player] attacked an NPC within the last [IN_COMBAT_TICKS] ticks and it still stands, wherever they are: the
+     * fight a player can't be attacked out of in single-way combat, even before the NPC hits back
+     * ([PvpCombat.singleWayRefusal]).
+     */
+    internal fun fightingNpc(player: Player): Boolean {
+        val other = player.attackedNpc ?: return false
+        return !other.outOfPlay && npcs[other.index] === other && currentTick() - player.attackedNpcTick <= IN_COMBAT_TICKS
+    }
+
     /** [player] made an attack on [npc] on [tick], whatever it does when it lands; see [fightingAnother]. */
     internal fun attackMade(player: Player, npc: Npc, tick: Long) {
         player.attackedNpc = npc
@@ -270,13 +280,23 @@ class MeleeCombat(
     }
 
     /**
-     * Whether an NPC other than [npc] is fighting [player] and hit them within the last [IN_COMBAT_TICKS] ticks. Never
-     * for a player standing in a multi-way area (guessed: by the player's tile).
+     * Whether an NPC other than [npc] is fighting [player] and hit them within the last [IN_COMBAT_TICKS] ticks, or a
+     * player is ([Player.pjUntil]). Never for a player standing in a multi-way area (guessed: by the player's tile), nor
+     * when [npc] is their own Slayer superior ([Combat.switchesSingleWay]), which makes the other NPC give up.
      */
     internal fun underAttackByAnother(player: Player, npc: Npc): Boolean {
         if (multi.at(player.level, player.x, player.z)) return false
+        // A player's PJ timer keeps monsters off them too (OSRS Wiki, PJ timer); see PvpCombat.singleWayRefusal.
+        if (player.pjOpponent != null && currentTick() < player.pjUntil) return true
         val other = player.attackedBy ?: return false
-        return other !== npc && other.target === player && !other.dead && currentTick() - player.attackedTick <= IN_COMBAT_TICKS
+        val fighting = other !== npc && other.target === player && !other.dead && currentTick() - player.attackedTick <= IN_COMBAT_TICKS
+        // Their own superior they may switch to, and the monster that was fighting them gives up (OSRS Wiki, Superior
+        // slayer monster).
+        if (fighting && combat.switchesSingleWay(player, npc)) {
+            giveUp(other)
+            return false
+        }
+        return fighting
     }
 
     private fun swing(player: Player, npc: Npc, tick: Long) {
@@ -939,9 +959,9 @@ class MeleeCombat(
     }
 
     /**
-     * [player] takes [damage] from another player, [attacker] ([PvpMelee]), as [hitPlayer] takes an NPC's: the hitsplat
+     * [player] takes [damage] from another player, [attacker], as [hitPlayer] takes an NPC's ([PvpCombat]): the hitsplat
      * (the max hit one is not shown to the attacker yet, guessed), health bar, block animation, death and Redemption.
-     * Who hit them is noted for [Player.attackedByPlayer]; fighting back is [PvpMelee]'s. Returns the damage dealt.
+     * Who hit them is noted for [Player.attackedByPlayer]; fighting back is [PvpCombat]'s. Returns the damage dealt.
      */
     fun hitPlayerBy(player: Player, attacker: Player, damage: Int, tick: Long): Int {
         if (player.hitpoints <= 0 || player.dead) return 0
@@ -1084,6 +1104,9 @@ class MeleeCombat(
         for (npc in npcs.all) if (npc.target === player) giveUp(npc)
         player.attackedBy = null
         player.attackedByPlayer = null
+        player.freezeTicks = 0
+        player.frozenBy = null
+        player.pjOpponent = null
     }
 
     /**

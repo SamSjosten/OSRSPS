@@ -214,7 +214,7 @@ class NetworkFactory(
             world.onPlayerOp(player, message.index, message.op, message.controlKey)
         })
         builder.addListener(OpPlayerT::class.java, MessageConsumer { player, message ->
-            world.onPlayerTarget(player, message.index, message.selectedInterfaceId, message.selectedComponentId, message.selectedSub, message.selectedObj)
+            world.onPlayerTarget(player, message.index, message.selectedInterfaceId, message.selectedComponentId, message.selectedSub, message.selectedObj, message.controlKey)
         })
         builder.addListener(ResumePCountDialog::class.java, MessageConsumer { player, message ->
             world.onResumeCount(player, message.count)

@@ -201,6 +201,11 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   headless test, as their confirm box only exists once the client has drawn the clicked unlock.
 - `slayer-helm.json`: Slayer step 5b: a black mask worn, a cow punched at 60 in every skill 7/6 as accurately and
   hard on a cows task and plain off it, read off `::combat`.
+- `slayer-superior.json` (needs 0.8.0 for `assertVarp`): Slayer step 6: a chasm crawler put out with `::slayer
+  superior` on a cave crawler task, its message by key and its kill counting one off the task (with `::keys on`).
+- `slayer-helmet.json`: Slayer step 7: the Slayer helmet refused without Malevolent Masquerade, then assembled from a
+  charged black mask and its six parts at 55 Crafting, its Check, and Disassemble giving back an uncharged black mask
+  and the parts (with `::keys on`). The level, missing-part, no-room, worn Check and imbued cases are in the headless test.
 - `ham-hideout.json`: Misthalin piece 7 step 4a: the H.A.M. Hideout's trapdoor locked, picked open at 99 Thieving
   with a lockpick, climbed down and back up by the ladder, a H.A.M. member pickpocketed, and Jimmy's cell door locked
   from outside and picked from inside (with `::keys on` and `::god on`; the concussions are in the headless test).
@@ -662,6 +667,21 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   take Trade with and Report off other players' menus after a relog, and back on after another.
 - `wilderness-attack-option.json` (needs 0.22.0): Wilderness step W1.2. Attack absent from other players' menus at
   Edgeville, there at level 10 after `::wildy 10` (with `inside_wilderness` 1), and gone again back south.
+- `wilderness-pvp-ranged-test.json` and `wilderness-pvp-ranged-test2.json` (need 0.20.0, for `assertHitsplat` with
+  `self` and `playerOption`): Wilderness step W1.4, two players at once (test on one VM and test2 on the other). At
+  level 50, test shoots test2 with a shortbow and bronze arrows for a sure 12, read off its Ranged XP and test2's
+  hitsplat. Spells cast on a player and freezes are in HeadlessPvpRangedMagicTest only: the runner has no step that
+  casts on a player yet.
+- `wilderness-pvp-single-way-test.json` and `wilderness-pvp-single-way-test2.json` (need 0.20.0, for `assertHitsplat`
+  with `self` and `playerOption`): Wilderness step W1.5, two players at once. At level 50, test spawns a cow on its
+  tile with `::npc cow`, then punches test2 (auto retaliate off), which starts the PJ timer. Attack on the cow is then
+  refused with `[combat.already_under_attack]`, and is allowed once the 20 ticks are up. A third player kept off a
+  fight, and Burst and Barrage on several players, are in HeadlessPvpSingleWayTest only: the runner pairs have two
+  players.
+- `wilderness-pvp-skull-test.json` and `wilderness-pvp-skull-test2.json` (need 0.20.0, for `assertHitsplat` with
+  `self` and `playerOption`): Wilderness step W1.6, two players at once. At level 50 with PK Skull Prevention on
+  (`::varbit 13131 1`), test's attack on test2 is refused with `[pvp.skull_prevented]`; with it off, test punches test2.
+  The skull itself is checked with `::skull` in the W1.10 kill pair, and in HeadlessPvpSkullTest.
 - `settings-search.json` (needs 0.12.0): the All Settings search typed with real key presses, a found row clicked,
   and a window closed mid-search reopening on its category, also after a relog.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
