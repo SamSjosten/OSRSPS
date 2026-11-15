@@ -1186,4 +1186,14 @@ class NpcSpawnFileTest {
         assertEquals(listOf(1, 7, 7, 3), names.keys.map { id -> result.spawns.count { it.type.id == id } })
         assertTrue(result.spawns.all { osrsps.game.skill.hunter.Falconry.inArea(it.x, it.z, it.level) && it.source.isNotBlank() })
     }
+
+    @Test
+    fun `Hunter step 9's shopkeepers each stand once where live has them`() {
+        val names = mapOf(1501 to "hunting_shop_owner_yanille", 1350 to "hunting_shop_owner_nardah", 3218 to "baw_bea_3ops", 14832 to "tortugan_strom_2ops")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("hunter-shops.json"), types, "hunter-shops.json")
+        assertEquals(emptyList(), result.unknown)
+        assertEquals(listOf(1, 1, 1, 1), names.keys.map { id -> result.spawns.count { it.type.id == id } })
+        assertTrue(result.spawns.all { it.source.isNotBlank() })
+    }
 }

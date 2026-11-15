@@ -45,12 +45,16 @@ object HunterLines : Lines("hunter", "Hunter") {
     val FALCON_LEVEL = line("falcon_level", "the message on Catch below the Hunter level the kebbit needs", "level")
     val NOT_YOUR_FALCON = line("not_your_falcon", "the message on Retrieve on someone else's falcon")
     val FALCON_RETRIEVED = line("falcon_retrieved", "the message on Retrieve on the player's own falcon")
+    val PACK_SPACE = line("pack_space", "the message on Open on a Hunter pack with no room for what it holds")
+    val FUR_VALUE = line("fur_value", "Value on a piece in Asyff's Custom Fur Clothing panel", "fee", "count")
+    val FUR_NEEDED = line("fur_needed", "Buy on a fur clothing piece without its furs", "count")
+    val FUR_COINS = line("fur_coins", "Buy on a fur clothing piece without its fee", "fee")
     val TEASE_LEVEL = line("tease_level", "the message on Tease below the Hunter level the creature needs", "level")
 }
 
 /**
  * The Hunter skill: the trap engine ([Traps]) and the kinds of trap built so far. Hunter step 1: bird snares
- * ([BirdSnares]); step 2: box traps ([BoxTraps]); step 3: net traps ([NetTraps]); step 4: deadfalls ([Deadfalls]); step 5: pitfalls ([Pitfalls]); step 6a: butterflies and moths ([Butterflies]); step 6b: implings ([Implings]); step 7: falconry ([Falconry]). Hunter's areas are outside Misthalin; they are built where live has them and reached by ::tele.
+ * ([BirdSnares]); step 2: box traps ([BoxTraps]); step 3: net traps ([NetTraps]); step 4: deadfalls ([Deadfalls]); step 5: pitfalls ([Pitfalls]); step 6a: butterflies and moths ([Butterflies]); step 6b: implings ([Implings]); step 7: falconry ([Falconry]); step 9: the Hunter shops' packs and Asyff's fur clothing ([HunterShops]). Hunter's areas are outside Misthalin; they are built where live has them and reached by ::tele.
  */
 class Hunter(world: World, collision: CollisionMap) {
     val traps = Traps(world, collision)
@@ -58,6 +62,7 @@ class Hunter(world: World, collision: CollisionMap) {
     val butterflies = Butterflies(world)
     val implings = Implings(world)
     val falconry = Falconry(world, collision)
+    val shops = HunterShops(world)
 
     fun register() {
         traps.register(BirdSnares.KIND)
@@ -68,6 +73,7 @@ class Hunter(world: World, collision: CollisionMap) {
         butterflies.register()
         implings.register()
         falconry.register()
+        shops.register()
     }
 
     /** Call once a tick, in the NPC phase before NPCs move. */
