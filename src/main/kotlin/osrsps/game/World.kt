@@ -1780,6 +1780,8 @@ class World(
         // A logout ends a Tele Block, but the save holds its varbit's backing varp: cleared, or RuneLite would show a timer
         // for a block the server no longer has (Codex review on #720).
         player.vars.setVarbitIfKnown(Teleblock.VARBIT, 0)
+        // A pitfall shows by the player's own varbits; none stands after a logout.
+        hunter.pitfalls.forget(player)
         // A save from inside an instance, from before saves moved players to its exit, lands where no map is now.
         if (instances.inDynamicArea(player.x, player.z) && instances.at(player.x, player.z) == null) {
             player.x = SPAWN_X

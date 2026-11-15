@@ -34,4 +34,10 @@ class BoxTrapsTest {
         assertEquals(9349, BirdSnares.BIRDS.first().catchingLoc(1, 0))
         assertTrue(BoxTraps.CREATURES.flatMap { it.catchingFrom + it.full }.all(BoxTraps.KIND::owns))
     }
+
+    @Test
+    fun `laying needs the trap's level, a box trap's 27 and a bird snare's 1`() {
+        assertEquals(27, BoxTraps.KIND.level)
+        assertEquals(1, BirdSnares.KIND.level)
+    }
 }

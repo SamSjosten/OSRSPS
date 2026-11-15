@@ -1114,4 +1114,52 @@ class NpcSpawnFileTest {
         assertTrue(of(2911).all { it.x in 2490..2560 && (it.z in 2880..2940 || it.z in 9280..9310) })
         assertTrue(result.spawns.all { it.wander == 4 && it.level == 0 && it.source.isNotBlank() })
     }
+
+    @Test
+    fun `Hunter step 3's salamanders are by their young trees`() {
+        val names = mapOf(2906 to "salamander_green", 2903 to "salamander_orange", 2904 to "salamander_red")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("hunter-net-traps.json"), types, "hunter-net-traps.json")
+        assertEquals(emptyList(), result.unknown)
+        fun of(id: Int) = result.spawns.filter { it.type.id == id }
+        assertEquals(listOf(35, 24, 15), listOf(of(2906).size, of(2903).size, of(2904).size))
+        // Canifis and Slepe; Uzer, the Necropolis and the Abalone Cliffs; Ourania and Charred Island.
+        assertTrue(of(2906).all { it.x in 3530..3710 && it.z in 3390..3460 })
+        assertTrue(of(2903).all { (it.x in 3400..3420 && it.z in 3070..3140) || (it.x in 3280..3290 && it.z in 2735..2745) || (it.x in 3115..3130 && it.z in 2520..2540) })
+        assertTrue(of(2904).all { (it.x in 2440..2480 && it.z in 3215..3255) || (it.x == 2644 && it.z == 2401) })
+        assertTrue(result.spawns.all { it.wander == 4 && it.level == 0 && it.source.isNotBlank() })
+    }
+
+    @Test
+    fun `Hunter step 4's kebbits are by their boulders`() {
+        val names = mapOf(1349 to "huntingbeast_claws", 1348 to "huntingbeast_barbedtail", 1346 to "huntingbeast_spiky", 1347 to "huntingbeast_sabreteeth")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("hunter-deadfalls.json"), types, "hunter-deadfalls.json")
+        assertEquals(emptyList(), result.unknown)
+        fun of(id: Int) = result.spawns.filter { it.type.id == id }
+        assertEquals(listOf(32, 15, 20, 12), listOf(of(1349).size, of(1348).size, of(1346).size, of(1347).size))
+        // Piscatoris (and Auburnvale), Feldip, Piscatoris, Rellekka.
+        assertTrue(of(1349).all { (it.x in 2300..2370 && it.z in 3520..3580) || (it.x in 1375..1400 && it.z in 3380..3400) })
+        assertTrue(of(1348).all { it.x in 2560..2590 && it.z in 2880..2935 })
+        assertTrue(of(1346).all { it.x in 2300..2350 && it.z in 3590..3650 })
+        assertTrue(of(1347).all { it.x in 2700..2725 && it.z in 3760..3785 })
+        assertTrue(result.spawns.all { it.wander == 4 && it.level == 0 && it.source.isNotBlank() })
+    }
+
+    @Test
+    fun `Hunter step 5's pitfall creatures are by their pits`() {
+        val names = mapOf(2908 to "hunting_jaguar", 2909 to "hunting_leopard", 2907 to "hunting_snow_tiger", 13133 to "sunlight_antelope", 13132 to "moonlight_antelope")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("hunter-pitfalls.json"), types, "hunter-pitfalls.json")
+        assertEquals(emptyList(), result.unknown)
+        fun of(id: Int) = result.spawns.filter { it.type.id == id }
+        assertEquals(listOf(5, 4, 6, 9, 4), listOf(of(2908).size, of(2909).size, of(2907).size, of(13133).size, of(13132).size))
+        // Feldip, Karamja, Rellekka, the Avium Savannah, the Burrow.
+        assertTrue(of(2908).all { it.x in 2540..2580 && it.z in 2880..2915 })
+        assertTrue(of(2909).all { it.x in 2760..2790 && it.z in 2995..3015 })
+        assertTrue(of(2907).all { it.x in 2690..2745 && it.z in 3775..3800 })
+        assertTrue(of(13133).all { it.x in 1730..1760 && it.z in 2995..3020 })
+        assertTrue(of(13132).all { it.x in 1550..1570 && it.z in 9410..9425 })
+        assertTrue(result.spawns.all { it.wander == 4 && it.level == 0 && it.source.isNotBlank() })
+    }
 }

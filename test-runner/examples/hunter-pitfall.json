@@ -1,0 +1,25 @@
+{
+ "name": "Hunter step 5: a spiked pit trapped in the Feldip Hunter area with a knife and logs at 99 Hunter (a sure catch), a spined larupia teased with a teasing stick, the player jumping the pit with it chasing so it falls in, and Dismantle giving its big bones, meat and fur (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario hunter", "expectMessage": "Started scenario hunter.", "comment": "a knife, five logs and a teasing stick among the Hunter loadout; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::setlevel hunter 99", "expectMessage": "Hunter set to level 99", "comment": "the guessed catch pair is sure at 99"},
+  {"step": "command", "text": "::tele 2556 2891 0", "comment": "south of hunting_pitfall_7 (19259, 2 by 2 from 2556, 2893); a larupia spawns just north of it (npc-spawns/hunter-pitfalls.json)"},
+  {"step": "locOption", "loc": "Pit", "option": "Trap", "x": 2556, "y": 2893, "comment": "the pit's varbit 2964 goes to 1"},
+  {"step": "assertMessage", "contains": "hunter.laying"},
+  {"step": "assertVarbit", "id": 2964, "value": 1, "comment": "the spiked pit, for this player alone"},
+  {"step": "npcOption", "npc": "Spined larupia", "option": "Tease"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "locOption", "loc": "Spiked pit", "option": "Jump", "x": 2556, "y": 2893, "comment": "over the pit; the larupia, chasing, comes to the edge it left and falls in"},
+  {"step": "waitTicks", "ticks": 12, "comment": "the jump (2 ticks), the larupia's walk to the edge, and the falling-in form (2 ticks)"},
+  {"step": "locOption", "loc": "Collapsed trap", "option": "Dismantle", "x": 2556, "y": 2893, "comment": "if the larupia wandered off first, Tease and Jump again"},
+  {"step": "assertMessage", "contains": "hunter.caught", "timeoutMs": 15000},
+  {"step": "assertInventory", "item": "Big bones", "count": 1},
+  {"step": "assertInventory", "item": "Raw larupia", "count": 1},
+  {"step": "assertVarbit", "id": 2964, "value": 0, "comment": "the bare pit again"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

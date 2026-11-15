@@ -55,6 +55,8 @@ class HeadlessSlayerRewardsTest {
         listOf(
             SlayerUnlock(6392, 0, 120), SlayerUnlock(6408, 34, 50, refundable = true),
             SlayerUnlock(6399, 4, 100, refundable = true, list = 1), SlayerUnlock(6400, 8, 100, refundable = true, list = 1),
+            // I Hope You Mith Me (bit 16, 80): on no list, so the client never draws it.
+            SlayerUnlock(6409, 16, 80, refundable = true, list = -1),
         ),
     )
 
@@ -133,6 +135,14 @@ class HeadlessSlayerRewardsTest {
                 client.confirm(34)
                 client.awaitVarp(Slayer.UNLOCK_VARPS[1], "Seeing Red off") { it and (1 shl 2) == 0 }
                 assertEquals(0, client.points())
+
+                // A row the screen doesn't draw buys nothing, whatever a client sends (exploit review round 35, R35B-2).
+                client.commandReply("slayer points 80") { it.startsWith("Streak") }
+                client.confirm(16)
+                client.awaitTicks(3)
+                assertEquals(0, client.varp(Slayer.UNLOCK_VARPS[0]) and (1 shl 16))
+                assertEquals(80, client.points())
+                client.commandReply("slayer points 0") { it.startsWith("Streak") }
 
                 client.confirm(SlayerRewards.EXTEND_ALL)
                 client.awaitMessage("[slayer_rewards.not_enough_points cost=200]") { it == "[slayer_rewards.not_enough_points cost=200]" }
