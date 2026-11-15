@@ -17,6 +17,8 @@ import osrsps.game.SaveStore
 import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.combat.Deaths
+import osrsps.game.combat.PvpLines
+import osrsps.game.dialogue.DialogueText
 import osrsps.map.CollisionMap
 
 /**
@@ -219,6 +221,31 @@ class HeadlessPvpDeathTest {
                     victim.await("[combat.dead]") { victim.messages().firstOrNull { it.text == "[combat.dead]" } }
                     assertEquals("vic", wes.deathKiller)
                     assertTrue(vic.pjOpponent === wes && vic.pjUntil > world.tick, "credited, vic's timer runs again")
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `the killer's PJ timer holds though the victim logs out`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ada").use { killer ->
+                val victim = server.login("bo")
+                server.login("cy").use { third ->
+                    third.await("the login rebuild") { third.position }
+                    third.tele(3093, LEVEL_25)
+                    server.kill(killer, victim, "bo", LEVEL_25)
+                    val world = server.world
+                    val ada = world.playerNamed("ada")!!
+                    // Out of combat at once, so the victim can log out while the killer's timer still runs.
+                    world.playerNamed("bo")!!.attackedByPlayerTick = -1
+                    victim.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+                    third.await("bo gone") { Unit.takeIf { world.playerNamed("bo") == null } }
+                    assertTrue(ada.pjAfterKill && ada.pjUntil > world.tick, "ada's timer after the kill still runs")
+                    third.await("ada in view") { third.otherPlayers().takeIf { it.isNotEmpty() } }
+                    val text = DialogueText.NONE[PvpLines.TARGET_IN_COMBAT]
+                    third.playerOp(killer.index, PlayerOps.ATTACK)
+                    third.await("the refusal") { third.messages().firstOrNull { it.text == text } }
                 }
             }
         }

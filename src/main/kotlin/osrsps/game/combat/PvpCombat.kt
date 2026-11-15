@@ -245,11 +245,11 @@ class PvpCombat(
     /**
      * Whether [player]'s PJ timer runs for a fight with someone other than [other]. An opponent who has left the world
      * is none, so a friend can't splash and log out to shield them; one who has come back is the same player by save
-     * key (exploit review R35A-3).
+     * key (exploit review R35A-3). The timer after a kill holds though the victim logs out (Codex review on #717).
      */
     private fun fightingOther(player: Player, other: Player, tick: Long): Boolean {
         val opponent = player.pjOpponent ?: return false
-        return tick < player.pjUntil && inWorld(opponent) && opponent.saveKey != other.saveKey
+        return tick < player.pjUntil && (player.pjAfterKill || inWorld(opponent)) && opponent.saveKey != other.saveKey
     }
 
     /**
@@ -275,8 +275,10 @@ class PvpCombat(
         Skulls.attacked(attacker, target, tick)
         attacker.pjOpponent = target
         attacker.pjUntil = tick + PJ_TICKS
+        attacker.pjAfterKill = false
         target.pjOpponent = attacker
         target.pjUntil = tick + PJ_TICKS
+        target.pjAfterKill = false
     }
 
     /** One more tick on a hit [target] would take if they were processed already this tick; see the class note. */
@@ -351,6 +353,7 @@ class PvpCombat(
                 // stays on the target (guessed: the Wiki doesn't say).
                 other.pjOpponent = player
                 other.pjUntil = tick + PJ_TICKS
+                other.pjAfterKill = false
                 // And unprovoked, a skull for the caster and the right to hit back for them, as for the target.
                 Skulls.attacked(player, other, tick)
             }
@@ -425,6 +428,7 @@ class PvpCombat(
                 if (player.dead || player.hitpoints <= 0) {
                     hit.attacker.pjOpponent = player
                     hit.attacker.pjUntil = tick + PJ_TICKS
+                    hit.attacker.pjAfterKill = true
                 }
             } else {
                 // A splash, or a bind that can't do damage: no hitsplat, but they were attacked (guessed, as for an NPC).
@@ -469,6 +473,7 @@ class PvpCombat(
         val credited = players().firstOrNull { it.saveKey == killer } ?: return
         credited.pjOpponent = player
         credited.pjUntil = currentTick() + PJ_TICKS
+        credited.pjAfterKill = true
     }
 
     /** [player] is frozen by [caster]'s [spell] for its ticks, unless frozen or immune already; see the class note. */
