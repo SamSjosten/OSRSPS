@@ -110,6 +110,17 @@ class PlayerSaveTest {
     }
 
     @Test
+    fun `a skull's time left is kept over a logout, and a save without one has none`() {
+        val player = world.loadPlayer(1, "Test")
+        player.skullTicks = 1_234
+        assertTrue(world.save(player))
+        assertEquals(1_234, world.loadPlayer(2, "test").skullTicks, "relogging doesn't lose a skull")
+        val none = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap()).toJson("test")
+        assertTrue("skullTicks" !in none)
+        assertEquals(0, PlayerSave.fromJson(none).skullTicks)
+    }
+
+    @Test
     fun `charges are saved, and a save without them loads with none`() {
         val text = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap(), charges = mapOf("blowpipe_scales" to 500)).toJson("test")
         assertEquals(mapOf("blowpipe_scales" to 500), PlayerSave.fromJson(text).charges)

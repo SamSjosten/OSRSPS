@@ -1,0 +1,17 @@
+{
+ "name": "Wilderness step W1.6, two players (run with wilderness-pvp-skull-test2.json on the other VM at the same time): test, at level 50 with PK Skull Prevention on, is refused an attack on test2 that would skull it, then with the setting off punches test2",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::varbit 13131 1", "expectMessage": "Varbit ", "comment": "skull_prevent_enabled: the side panel's PK Skull Prevention on"},
+  {"step": "command", "text": "::wildy 50", "expectMessage": ": level 50 Wilderness"},
+  {"step": "playerOption", "player": "test2", "option": "Attack", "timeoutMs": 180000, "comment": "once test2 has jumped here too, its sign that it's ready"},
+  {"step": "assertMessage", "contains": "[pvp.skull_prevented]", "timeoutMs": 10000, "comment": "unskulled and unprovoked: the attack would skull us (OSRS Wiki, Skull (status)); the words are held, a key here"},
+  {"step": "command", "text": "::varbit 13131 0", "expectMessage": "Varbit ", "comment": "the setting off"},
+  {"step": "playerOption", "player": "test2", "option": "Attack", "timeoutMs": 10000, "comment": "allowed now, and skulls us; test2 sees the punch"},
+  {"step": "waitTicks", "ticks": 5},
+  {"step": "command", "text": "::wildy 1", "expectMessage": ": level 1 Wilderness", "comment": "away out of reach: the fight ends"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"}
+ ]
+}

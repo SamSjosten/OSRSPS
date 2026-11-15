@@ -88,6 +88,7 @@ import osrsps.game.combat.StatusEffects
 import osrsps.game.combat.Potions
 import osrsps.game.combat.Prayers
 import osrsps.game.combat.PvpCombat
+import osrsps.game.combat.Skulls
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrains
 import osrsps.game.combat.LootNotifications
@@ -1453,6 +1454,15 @@ class World(
         player.infos.updateRootCoord(player.level, player.x, player.z)
         sendMultiIndicator(player)
         sendWilderness(player)
+        sendSkull(player)
+    }
+
+    /** Shows or hides [player]'s skull head icon ([Skulls]) when it changes. */
+    private fun sendSkull(player: Player) {
+        val icon = Skulls.icon(player)
+        if (icon == player.sentSkullIcon) return
+        player.sentSkullIcon = icon
+        player.infos.playerInfo.avatar.extendedInfo.setSkullIcon(icon)
     }
 
     /**

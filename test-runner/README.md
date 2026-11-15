@@ -678,6 +678,10 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   refused with `[combat.already_under_attack]`, and is allowed once the 20 ticks are up. A third player kept off a
   fight, and Burst and Barrage on several players, are in HeadlessPvpSingleWayTest only: the runner pairs have two
   players.
+- `wilderness-pvp-skull-test.json` and `wilderness-pvp-skull-test2.json` (need 0.20.0, for `assertHitsplat` with
+  `self` and `playerOption`): Wilderness step W1.6, two players at once. At level 50 with PK Skull Prevention on
+  (`::varbit 13131 1`), test's attack on test2 is refused with `[pvp.skull_prevented]`; with it off, test punches test2.
+  The skull itself is checked with `::skull` in the W1.10 kill pair, and in HeadlessPvpSkullTest.
 - `settings-search.json` (needs 0.12.0): the All Settings search typed with real key presses, a found row clicked,
   and a window closed mid-search reopening on its category, also after a relog.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in

@@ -1,0 +1,14 @@
+{
+ "name": "Wilderness step W1.6, two players (run with wilderness-pvp-skull-test.json on the other VM at the same time): test2, on 99 hitpoints at level 50 with auto retaliate off, isn't attacked while test's PK Skull Prevention is on, then takes its punch",
+ "account": "test2",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::setlevel hitpoints 99", "expectMessage": "99"},
+  {"step": "command", "text": "::varp 172 1", "expectMessage": "Varp 172:", "comment": "auto retaliate off: we stand still"},
+  {"step": "command", "text": "::wildy 50", "expectMessage": ": level 50 Wilderness", "comment": "test's sign that we're ready"},
+  {"step": "assertHitsplat", "self": true, "timeoutMs": 180000, "comment": "test's punch once its setting is off, a hit or a miss (0)"},
+  {"step": "command", "text": "::varp 172 0", "expectMessage": "Varp 172:", "comment": "auto retaliate back on"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"}
+ ]
+}
