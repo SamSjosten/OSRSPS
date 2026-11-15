@@ -75,7 +75,7 @@
   {"step": "assertNoDialogue"},
   {"step": "assertInventory", "item": "Coins", "count": 5},
   {"step": "assertInventory", "item": "Jewellery", "count": 0},
-  {"step": "command", "text": "::tele 3254 3456 0", "expectMessage": "Teleported to 3254, 3456, 0", "comment": "by the information booth (3253,3455, the Wiki's map)"},
+  {"step": "command", "text": "::tele 3254 3455 0", "expectMessage": "Teleported to 3254, 3455, 0", "comment": "east of the information booth (3253,3455): 3254,3456 is behind a wall edge from it, and Check Kudos from there did nothing (215, 15 Nov)"},
   {"step": "locOption", "locId": 24452, "option": "Check Kudos", "x": 3253, "y": 3455, "timeoutMs": 10000, "comment": "vm_information_booth"},
   {"step": "assertInterface", "interfaceId": 600, "comment": "vm_kudos_info, the Kudos List"}
  ]
