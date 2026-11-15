@@ -129,13 +129,14 @@ class Trap(val owner: String, val kind: TrapKind, var loc: ZoneLoc) {
  * appear on the tile the player stood on the tick before, so the player steps off after it stands (west, else east,
  * south, north, as for a fire: inferred). A creature caught with too low a level always fails (Wiki, Box trap).
  *
- * Guessed, none of it on the Wiki: the trap goes for one creature in range at random and always lures it; it walks to
+ * Guessed unless said, none of it on the Wiki: the trap goes for one creature in range at random and always lures it; it walks to
  * the trap and the roll is made the tick it steps on (given up after [LURE_TICKS]); a struggle and a snap each show
  * for [CATCHING_TICKS] and [FAILING_TICKS] ticks (the second the failing animation's length); a caught creature comes
- * back where it spawned [RESPAWN_TICKS] later; a collapsed trap leaves its item on its tile, its owner's alone at
- * first as a drop is; a trap collapses at once when its owner leaves the world, goes to another level or is more than
- * [OWNER_RANGE] tiles away; traps go on any tile a fire could (no loc, walkable), indoors and banks included, but not in
- * an instance (ours: nothing there could take one down again).
+ * back where it spawned [RESPAWN_TICKS] later; a collapsed trap leaves its item on its tile (the Wiki's Net trap page:
+ * it reverts to the item, gone a minute later, [COLLAPSED_DESPAWN_TICKS]), its owner's alone at first as a drop is
+ * (guessed); a trap collapses at once when its owner leaves the world, goes to another level or is more than
+ * [OWNER_RANGE] tiles away; traps go on any tile a fire could (no loc, walkable), indoors and banks included, but
+ * not in an instance (ours: nothing there could take one down again).
  */
 class Traps(private val world: World, private val collision: CollisionMap) {
     private val traps = ArrayList<Trap>()
@@ -301,9 +302,9 @@ class Traps(private val world: World, private val collision: CollisionMap) {
         remove(trap)
         if (type == null) return
         if (owner != null) {
-            world.groundObjs.addPrivate(type, 1, trap.x, trap.z, trap.level, owner.saveKey, osrsps.game.GroundObjs.DROP_PRIVATE_TICKS, osrsps.game.GroundObjs.DROP_DESPAWN_TICKS)
+            world.groundObjs.addPrivate(type, 1, trap.x, trap.z, trap.level, owner.saveKey, osrsps.game.GroundObjs.DROP_PRIVATE_TICKS, COLLAPSED_DESPAWN_TICKS)
         } else {
-            world.groundObjs.addPublic(type, 1, trap.x, trap.z, trap.level, osrsps.game.GroundObjs.DROP_DESPAWN_TICKS)
+            world.groundObjs.addPublic(type, 1, trap.x, trap.z, trap.level, COLLAPSED_DESPAWN_TICKS)
         }
     }
 
@@ -498,6 +499,9 @@ class Traps(private val world: World, private val collision: CollisionMap) {
 
         /** Guessed: a caught creature's respawn. */
         const val RESPAWN_TICKS = 10
+
+        /** The Wiki's Net trap page: a collapsed trap's item disappears if not picked up within the next minute. */
+        const val COLLAPSED_DESPAWN_TICKS = 100
 
         /** Guessed: how far the owner may go before their traps collapse. */
         const val OWNER_RANGE = 32

@@ -161,7 +161,7 @@ class HeadlessHunterTest {
     @Test
     fun `a bird above the player's level always slips out, and Reset lays the snare again`(@TempDir dir: Path) {
         server(dir, bird = wagtail).use { server ->
-            server.login("dave").use { client ->
+            val at = server.login("dave").use { client ->
                 val at = client.await("the login rebuild") { client.position }
                 client.command("item ${BirdSnares.SNARE} 1")
                 client.lay()
@@ -175,12 +175,13 @@ class HeadlessHunterTest {
                 client.awaitLoc(BirdSnares.SET, at.x, at.z)
                 assertEquals(0, client.count(BirdSnares.SNARE))
                 assertEquals(1, server.world.hunter.traps.all.size)
+                at
             }
-            // Its owner gone, the trap collapses and its snare is left for anyone.
-            server.login("erin").use { erin ->
-                erin.await("the snare left behind") { erin.groundObjs().firstOrNull { it.id == BirdSnares.SNARE } }
-                assertTrue(server.world.hunter.traps.all.isEmpty())
-            }
+            // Its owner gone (once the server lets them go), the trap collapses and its snare is left for anyone, for a minute.
+            val deadline = System.currentTimeMillis() + 15_000
+            while (server.world.hunter.traps.all.isNotEmpty() && System.currentTimeMillis() < deadline) Thread.sleep(10)
+            assertTrue(server.world.hunter.traps.all.isEmpty(), "the trap collapsed")
+            assertTrue(server.world.zones.objsAt(at.x, at.z, 0).any { it.id == BirdSnares.SNARE && it.owner == null }, "the snare left behind, anyone's")
         }
     }
 
