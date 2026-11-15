@@ -9,6 +9,7 @@ import osrsps.game.World
 import osrsps.game.dialogue.Lines
 import osrsps.game.skill.Slayer
 import osrsps.game.skill.SlayerMaster
+import osrsps.game.skill.SlayerUnlock
 
 /** The rewards screen's game messages; the client words its own boxes, so these are only the server's refusals. */
 object SlayerRewardsLines : Lines("slayer_rewards", "Slayer Rewards") {
@@ -76,8 +77,10 @@ class SlayerRewards(private val world: World) {
         /** The boss task, TzTok-Jad's and TzKal-Zuk's, which the client offers no Block for. */
         private val UNBLOCKABLE = setOf(97, 98, 105)
 
-        /** The extends' list in slayer_unlock's list_position. */
+        /** slayer_unlock's list_position lists the client draws: the unlocks, the extends and the helmet recolours. */
+        private const val UNLOCK_LIST = 0
         private const val EXTEND_LIST = 1
+        private const val RECOLOUR_LIST = 2
 
         /** The Buy tab's items, drawn as children 0 to 5 in enum_840's order. */
         const val BUY_ITEMS = 25
@@ -150,10 +153,18 @@ class SlayerRewards(private val world: World) {
             BLOCK -> block(player, focus(player))
             EXTEND_ALL -> extendAll(player)
             in UNBLOCK -> slayer.setBlocked(player, focus(player), UNBLOCK.indexOf(child) + 1, 0)
-            else -> slayer.data.unlocks.values.firstOrNull { it.bit == child }?.let { toggle(player, it.bit, it.cost, it.refundable) }
+            else -> slayer.data.unlocks.values.firstOrNull { it.bit == child && buyable(it) }?.let { toggle(player, it.bit, it.cost, it.refundable) }
         }
         showTask(player)
     }
+
+    /**
+     * Whether the screen offers [unlock]: a row on one of the lists the client draws (slayer_unlock's list column: 0 the
+     * unlocks, 1 the extends, 2 the helmet recolours; -1 rows are drawn on none) within the confirm box's children. A
+     * modified client's other child ids buy nothing (exploit review round 35, R35B-2). The Wiki's Slayer Rewards page
+     * names no prerequisite for any row, so none is asked.
+     */
+    private fun buyable(unlock: SlayerUnlock): Boolean = unlock.bit in 0..LAST_CHILD && unlock.list in UNLOCK_LIST..RECOLOUR_LIST
 
     /** Pays [cost] points if [player] has them; false, with the refusal, if not. */
     private fun pay(player: Player, cost: Int): Boolean {
