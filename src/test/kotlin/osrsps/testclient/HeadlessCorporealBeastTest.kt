@@ -30,7 +30,8 @@ import osrsps.map.LocCollisionType
  * Wilderness step W4.15 through the headless client: the cave in the Wilderness down to the lair, the Passage both
  * ways and its Peek, and the Cave exit back out; the Corporeal Beast's swipe, its three spells and its stomp; its
  * healing with no one in its room; its armour halving all but magic and corpbane stabs; and its loot and kill count
- * going to its top damage dealer, not whoever struck last. The rl-client script test-runner/examples/corporeal-beast.json
+ * going to its top damage dealer, not whoever struck last; and its dark energy core (W4.15b), sent out by big hits,
+ * leeching from whoever stands beside it, jumping to a player when no one does, and gone when the beast dies. The rl-client script test-runner/examples/corporeal-beast.json
  * does the way in and the fight on the real map.
  */
 class HeadlessCorporealBeastTest {
@@ -38,7 +39,11 @@ class HeadlessCorporealBeastTest {
         CorporealBeast.BOSS, "Corporeal Beast", size = 5, ops = listOf(null, "Attack", null, null, null), combatLevel = 785, internalName = "corp_beast",
         stats = NpcStats(attack = 320, strength = 320, defence = 310, hitpoints = 2000, magic = 350, ranged = 150),
     )
-    private val types = NpcTypes.of(boss)
+    private val core = NpcType(
+        CorporealBeast.CORE, "Dark energy core", size = 1, ops = listOf(null, "Attack", null, null, null), combatLevel = 75, internalName = "dark_core",
+        stats = NpcStats(attack = 1, strength = 1, defence = 20, hitpoints = 25, magic = 1, ranged = 1),
+    )
+    private val types = NpcTypes.of(boss, core)
 
     private fun server(dir: Path, seed: Long, spawn: Boolean = true) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
         val text = NpcDrops::class.java.getResource(NpcDrops.RESOURCE)!!.readText()
@@ -210,6 +215,41 @@ class HeadlessCorporealBeastTest {
                     val ashes = di.await("its ashes, di's") { server.world.groundObjs.visibleAt(diPlayer, npc.x, npc.z, npc.level).firstOrNull { it.id == ASHES } }
                     assertEquals(1, ashes.count, "always ashes")
                 }
+            }
+        }
+    }
+
+    @Test
+    fun `big hits send out its core, which leeches from those beside it, jumps to a player, and goes when it dies`(@TempDir dir: Path) {
+        server(dir, seed = 5).use { server ->
+            server.login("fi").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                val level = CorporealBeast.LAIR_LEVEL
+                client.tele(CorporealBeast.SPAWN.x + 2, CorporealBeast.SPAWN.z + 5, level)
+                val npc = server.world.npcs.all.first { it.type.id == CorporealBeast.BOSS }
+                client.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Corporeal Beast") }
+                val fight = client.await("its fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
+                // One hit of 32 or more in 8 sends it out.
+                var core = CorporealBeast.core(npc)
+                repeat(60) {
+                    if (core != null) return@repeat
+                    client.commandReply("hit 40 ${npc.index}") { it.startsWith("Hit Corporeal Beast") }
+                    core = runCatching { client.await("its core", timeoutMillis = 300) { CorporealBeast.core(npc) } }.getOrNull()
+                }
+                val out = core ?: throw AssertionError("no core: ${fight.lines.toList().takeLast(20)}")
+                client.await("sent out") { fight.lines.firstOrNull { it.endsWith("sends out its core") } }
+
+                client.command("tele ${out.x} ${out.z + 1} $level")
+                client.keepAlive()
+                client.await("the leech", timeoutMillis = 15_000) { fight.lines.firstOrNull { " core leeches fi for " in it } }
+
+                client.tele(npc.x + 2, npc.z + 12, level)
+                client.keepAlive()
+                client.await("the jump", timeoutMillis = 15_000) { fight.lines.firstOrNull { " core jumps to " in it } }
+
+                client.commandReply("hit 2000 ${npc.index}") { it.startsWith("Hit Corporeal Beast") }
+                client.await("the core gone", timeoutMillis = 15_000) { Unit.takeIf { server.world.npcs.all.none { it === out } } }
             }
         }
     }
