@@ -22,6 +22,9 @@ object RunecraftLines : Lines("runecraft", "Runecraft") {
     val LOCATE_NORTH_WEST = line("locate_north_west", "a talisman's Locate when its ruins lie to the north-west")
     val LOCATE_UNSURE = line("locate_unsure", "the elemental talisman's Locate when two of its ruins are equally near (Elemental talisman)")
     val PORTAL = line("portal", "the message on using an altar's exit portal")
+    val HOLD = line("hold", "the message before enter when a talisman is used on its ruins; {talisman} is the talisman's name", "talisman")
+    val LOCATE_UNDERGROUND = line("locate_underground", "a talisman's Locate underground, or inside another altar's temple")
+    val LOCATE_IN_TEMPLE = line("locate_in_temple", "a talisman's Locate inside its own altar's temple; {altar} is the altar's element, capitalised", "altar")
 }
 
 /**
@@ -69,7 +72,9 @@ enum class Pull { NORTH, NORTH_EAST, EAST, SOUTH_EAST, SOUTH, SOUTH_WEST, WEST, 
  * - Each altar's exit portal puts the player back beside its ruins.
  * - A talisman's Locate says which of eight ways its ruins lie; the elemental talisman picks the nearest of its four
  *   and can't tell when two are equally near; the catalytic talisman's says nothing interesting happens (Catalytic
- *   talisman).
+ *   talisman). Inside its own temple it says so, and underground it doesn't work (the Words thread's RS2-era source;
+ *   inferred: another altar's temple counts as underground, and a temple is its portal's map square).
+ * - A talisman used on its ruins says the player holds it towards them before the enter line (the same source).
  * - No quests: Lost City (cosmic), Troll Stronghold (law), Mourning's End Part II (death), Dragon Slayer II (wrath)
  *   and Sins of the Father (blood) count as done. The ruins outside Misthalin are reached by ::tele (README).
  *
@@ -87,7 +92,7 @@ class Runecraft(private val world: World) {
             for (id in listOf(altar.ruins) + altar.ruinsTypes) {
                 world.handlers.onLoc(id, 1) { enterByTiara(altar) }
                 for (talisman in talismansFor(altar)) {
-                    world.handlers.onObjOnLoc(id, talisman) { enter(altar) }
+                    world.handlers.onObjOnLoc(id, talisman) { enter(altar, talisman) }
                 }
             }
             world.handlers.onLoc(altar.portal, 1) {
@@ -101,9 +106,11 @@ class Runecraft(private val world: World) {
         world.handlers.onObj(CATALYTIC_TALISMAN, LOCATE_OP) { player.message(world.textFor(player)[GameLines.NOTHING_INTERESTING]) }
     }
 
-    private suspend fun ScriptContext.enter(altar: RunicAltar) {
+    private suspend fun ScriptContext.enter(altar: RunicAltar, talisman: Int? = null) {
         arriveDelay()
-        player.message(world.textFor(player)[RunecraftLines.ENTER])
+        val text = world.textFor(player)
+        if (talisman != null) player.message(text[RunecraftLines.HOLD, "talisman" to (world.objTypes[talisman]?.name ?: "talisman")])
+        player.message(text[RunecraftLines.ENTER])
         val to = altar.inside[if (altar.inside.size == 1) 0 else world.random.nextInt(altar.inside.size)]
         world.teleport(player, to.x, to.z, to.level)
     }
@@ -119,6 +126,11 @@ class Runecraft(private val world: World) {
 
     private fun ScriptContext.locate(altars: List<RunicAltar>) {
         val text = world.textFor(player)
+        val temple = ALTARS.firstOrNull { inTemple(it, player.x, player.z) }
+        if (temple != null && temple in altars) {
+            return player.message(text[RunecraftLines.LOCATE_IN_TEMPLE, "altar" to temple.key.replaceFirstChar { it.uppercase() }])
+        }
+        if (temple != null || player.z >= UNDERGROUND_Z) return player.message(text[RunecraftLines.LOCATE_UNDERGROUND])
         val distances = altars.map { it to distanceSquared(player.x, player.z, it.ruinsCentre) }.sortedBy { it.second }
         if (distances.size > 1 && distances[0].second == distances[1].second) return player.message(text[RunecraftLines.LOCATE_UNSURE])
         val target = distances.first().first.ruinsCentre
@@ -195,6 +207,13 @@ class Runecraft(private val world: World) {
                 else -> ALTARS.filter { it.tiara == head }.mapTo(HashSet()) { it.key }
             }
         }
+
+        /** Map squares from this z north hold the world's underground areas, mirrored above the surface's. */
+        const val UNDERGROUND_Z = 6400
+
+        /** Whether [x], [z] is in [altar]'s temple: the map square of a tile the ruins send the player to. */
+        fun inTemple(altar: RunicAltar, x: Int, z: Int): Boolean =
+            altar.inside.any { (it.x shr 6) == (x shr 6) && (it.z shr 6) == (z shr 6) }
 
         private fun distanceSquared(x: Int, z: Int, tile: Tile): Long {
             val dx = (tile.x - x).toLong()

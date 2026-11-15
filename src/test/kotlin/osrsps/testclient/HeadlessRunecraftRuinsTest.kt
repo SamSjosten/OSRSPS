@@ -41,7 +41,7 @@ class HeadlessRunecraftRuinsTest {
         objs[Runecraft.ELEMENTAL_TALISMAN] = ObjType(Runecraft.ELEMENTAL_TALISMAN, "Elemental talisman", iops = talismanOps)
         objs[Runecraft.CATALYTIC_TALISMAN] = ObjType(Runecraft.CATALYTIC_TALISMAN, "Catalytic talisman", iops = talismanOps)
         val map = CollisionMap().apply {
-            for ((x, z) in listOf(3222 to 3218, air.ruinsTile.x to air.ruinsTile.z, water.ruinsTile.x to water.ruinsTile.z, 2841 to 4829, 2726 to 4832)) {
+            for ((x, z) in listOf(3222 to 3218, 3222 to 9618, air.ruinsTile.x to air.ruinsTile.z, water.ruinsTile.x to water.ruinsTile.z, 2841 to 4829, 2726 to 4832)) {
                 markLoaded(x shr 6, z shr 6)
             }
         }
@@ -98,8 +98,11 @@ class HeadlessRunecraftRuinsTest {
                 client.tele(2985, 3289)
                 client.give(air.talisman)
                 client.useOn(air, air.talisman)
+                client.seen("[runecraft.hold talisman=air talisman]")
                 client.seen("[runecraft.enter]")
                 client.at(2841, 4829)
+                client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, 6, client.slotOf(air.talisman)!!, air.talisman)
+                client.seen("[runecraft.locate_in_temple altar=Air]")
 
                 client.locOp(air.portal, AIR_PORTAL_X, AIR_PORTAL_Z, 1)
                 client.seen("[runecraft.portal]")
@@ -165,6 +168,10 @@ class HeadlessRunecraftRuinsTest {
                 client.give(Runecraft.CATALYTIC_TALISMAN)
                 client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, 6, client.slotOf(Runecraft.CATALYTIC_TALISMAN)!!, Runecraft.CATALYTIC_TALISMAN)
                 client.seen("[game.nothing_interesting]")
+                // Underground (the Lumbridge Swamp Caves' map square) the talismans don't work.
+                client.tele(3222, 9618)
+                client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, 6, client.slotOf(air.talisman)!!, air.talisman)
+                client.seen("[runecraft.locate_underground]")
             }
         }
     }
