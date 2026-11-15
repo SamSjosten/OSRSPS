@@ -230,8 +230,11 @@ class Slayer(private val world: World, val data: SlayerData) {
 
     fun killed(npc: Npc, killer: Player?) {
         val dealt = damage.remove(npc)
-        val killerKey = killer?.saveKey ?: return
-        val topKey = dealt?.maxByOrNull { it.value }?.key
+        val topKey = dealt?.filterValues { it > 0 }?.maxByOrNull { it.value }?.key
+        // A finisher who never did the monster any damage (a miss or splash before poison or venom finished it) gets
+        // nothing: the top damager alone is credited (exploit review round 34, R34B-1). With no damage on record (an
+        // admin's ::kill) the finisher is.
+        val killerKey = killer?.saveKey?.takeIf { dealt.isNullOrEmpty() || (dealt[it] ?: 0) > 0 } ?: topKey ?: return
         val shared = topKey != null && topKey != killerKey
         val xp = xpTenths(npc)
         // Each one's session now, if they are in the world: not the one that hit, after a relog.
