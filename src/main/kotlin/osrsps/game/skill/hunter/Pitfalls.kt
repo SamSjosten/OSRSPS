@@ -186,6 +186,8 @@ class Pitfalls(private val world: World, private val traps: Traps) {
             if (caught) {
                 pit.headingUp = axis.headingUp
                 npc.effects.anim(FALL_ANIM)
+                // Its next life starts with no pit it won't fall in (the NPC object is reused on respawn).
+                leapt.remove(npc)
                 end(tease)
                 world.hide(npc)
                 respawns += Respawn(npc, tick + Traps.RESPAWN_TICKS)
