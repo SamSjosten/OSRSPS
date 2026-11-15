@@ -2,6 +2,7 @@ package osrsps.game.skill.hunter
 
 import kotlin.math.abs
 import osrsps.game.InvObj
+import osrsps.game.Inventory
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.WearPos
@@ -15,6 +16,8 @@ import osrsps.game.npc.NpcSpawn
 import osrsps.game.script.ScriptContext
 import osrsps.game.skill.SuccessRoll
 import osrsps.game.zone.Projectile
+import osrsps.map.CollisionMap
+import osrsps.map.LineOfSight
 
 /** Matthias's lines, from the Wiki's Transcript:Matthias (read 2026-11-15). */
 object MatthiasLines : Lines("matthias", "Transcript:Matthias") {
@@ -82,22 +85,26 @@ class FalconKebbit(val npc: Int, val level: Int, val xpTenths: Int, val pair: Pa
  *
  * Sources: the OSRS Wiki's Falconry page (read 2026-11-15) for the levels, XP, rent, the glove's rules and the 19 August
  * 2026 changes (moving while the falcon chases, a full backpack discarding the excess); Falconer's glove (the glove's
- * messages); each kebbit's page for its catch pair (Mod Ash), drops and spawns; Transcript:Matthias for his talk. Ids
+ * messages); each kebbit's page for its catch pair (Mod Ash), drops and spawns; the Hunter training page for a kebbit back four
+ * seconds after its prey is retrieved (7 ticks, rounded up); Transcript:Matthias for his talk. Ids
  * and ops from the rev 242 cache: huntingbeast_speedy/silent/speedy2 (5531-5533, op1 Catch), hunting_npc_falconer 1340
  * (op1 Talk-to, op3 Quick-falcon), hunting_falcon_onspeedy/onspeedy2/onsilent (1342-1344, op1 Retrieve), falcon_gloves
  * 10023 and falcon_on_gloves 10024 (worn as a weapon over the shield), human_falconer_attack, falcon_travel_anim.
  *
  * Guessed: how long the falcon flies ([FLIGHT_TICKS_PER] tiles a tick, at least one) and comes back, how long it waits on
- * its prey ([WAIT_TICKS]), the kebbits' respawn ([RESPAWN_TICKS]) and wander, the area as the fence's bounding box
+ * its prey ([WAIT_TICKS]), the kebbits' wander, how far off one can be sent at ([LAUNCH_RANGE], in sight), the area as the fence's bounding box
  * ([inArea]), every message key and chathead, Quick-falcon renting at
  * once (and handing the glove back when it is worn). Left out: investing 500,000 coins, the stile, the hand slot (the
  * cache's glove covers only weapon and shield), bonecrushers and pouches, Hunters' Rumours' tufts.
  */
-class Falconry(private val world: World) {
+class Falconry(private val world: World, private val collision: CollisionMap) {
     /** A player's falcon while it is off the glove: flying to [target], waiting on its prey as [onPrey], or coming back. */
     private class Flight(val player: Player, var kebbit: FalconKebbit?, var target: Npc?, var arrives: Long) {
         var onPrey: Npc? = null
         var leaves: Long = 0
+
+        /** The kebbit the falcon caught, hidden until its prey is retrieved or left. */
+        var caught: Npc? = null
     }
 
     private val flights = HashMap<String, Flight>()
@@ -107,7 +114,9 @@ class Falconry(private val world: World) {
         world.handlers.onNpc(MATTHIAS, TALK_TO) { op -> world.dialogues.start(this, op.npc) { talk() } }
         world.handlers.onNpc(MATTHIAS, QUICK_FALCON) { op -> world.dialogues.start(this, op.npc) { quick() } }
         for (kebbit in KEBBITS) {
-            world.handlers.onNpc(kebbit.npc, CATCH) { op -> catch(kebbit, op.npc ?: return@onNpc) }
+            world.handlers.onNpc(kebbit.npc, CATCH) { op -> launch(player, kebbit, op.npc ?: return@onNpc) }
+            // The falcon goes from where the player stands, when the kebbit is in sight and in range.
+            world.npcInteractions.fromAfar(kebbit.npc, CATCH) { player, npc -> inRange(player, npc).also { if (it) launch(player, kebbit, npc) } }
             world.handlers.onNpc(kebbit.falcon, RETRIEVE) { op -> retrieve(kebbit, op.npc ?: return@onNpc) }
         }
         world.equipment.keptOn = keptOn@{ player, obj ->
@@ -148,6 +157,7 @@ class Falconry(private val world: World) {
             if (player.loggedOut) {
                 // The glove stays on with no falcon: Matthias fetches it when they are back.
                 flight.onPrey?.let(world::removeNpc)
+                respawn(flight, tick)
                 iterator.remove()
                 continue
             }
@@ -155,6 +165,7 @@ class Falconry(private val world: World) {
             when {
                 onPrey != null && tick >= flight.leaves -> {
                     world.removeNpc(onPrey)
+                    respawn(flight, tick)
                     world.message(player, HunterLines.FALCON_LEFT_PREY)
                     iterator.remove()
                 }
@@ -172,8 +183,9 @@ class Falconry(private val world: World) {
                             world.spawnNpc(NpcSpawn(type, target.x, target.z, target.level, source = "falconry ${player.saveKey}", respawns = false))
                         }
                         world.hide(target)
-                        respawns += target to tick + RESPAWN_TICKS
+                        flight.caught = target
                         if (falcon == null) {
+                            respawn(flight, tick)
                             iterator.remove()
                             continue
                         }
@@ -191,8 +203,15 @@ class Falconry(private val world: World) {
         }
     }
 
-    private suspend fun ScriptContext.catch(kebbit: FalconKebbit, npc: Npc) {
+    /** Whether [player] can send the falcon at [npc] from where they stand: in sight, within [LAUNCH_RANGE] tiles. Guessed. */
+    private fun inRange(player: Player, npc: Npc): Boolean =
+        npc.level == player.level && maxOf(abs(npc.x - player.x), abs(npc.z - player.z)) <= LAUNCH_RANGE &&
+            LineOfSight.clear(collision, player.level, player.x, player.z, 1, npc.x, npc.z, npc.type.size, npc.type.size)
+
+    /** Catch on [npc]: the falcon flies from [player] to it. */
+    private fun launch(player: Player, kebbit: FalconKebbit, npc: Npc) {
         if (npc.hidden) return
+        player.waypoints.clear()
         val key = player.saveKey
         val worn = player.equipment[WearPos.WEAPON]?.id
         if (worn != GLOVE_FALCON) {
@@ -218,6 +237,7 @@ class Falconry(private val world: World) {
         if (flight == null || flight.onPrey !== npc) return world.message(player, HunterLines.NOT_YOUR_FALCON)
         flights.remove(player.saveKey)
         world.removeNpc(npc)
+        respawn(flight, world.tick)
         player.equipment[WearPos.WEAPON] = InvObj(GLOVE_FALCON, 1)
         player.skills.addTenths(Skill.HUNTER, kebbit.xpTenths)
         // Since 19 August 2026 what doesn't fit is discarded.
@@ -373,8 +393,19 @@ class Falconry(private val world: World) {
      * there is room for it.
      */
     private fun handsFree(player: Player): Boolean {
-        val worn = listOf(WearPos.WEAPON, WearPos.SHIELD).count { player.equipment[it] != null }
-        return worn <= player.inventory.freeSlots
+        var slots = 0
+        for (pos in listOf(WearPos.WEAPON, WearPos.SHIELD)) {
+            val obj = player.equipment[pos] ?: continue
+            val type = world.objTypes[obj.id] ?: return false
+            val stack = if (type.stackable) player.inventory.contents().firstOrNull { it.second.id == obj.id }?.second else null
+            when {
+                // Onto the stack already in the backpack, all of it or not at all.
+                stack != null -> if (stack.count.toLong() + obj.count > Inventory.MAX_STACK) return false
+                type.stackable -> slots++
+                else -> slots += obj.count
+            }
+        }
+        return slots <= player.inventory.freeSlots
     }
 
     private fun rent(player: Player) {
@@ -402,7 +433,16 @@ class Falconry(private val world: World) {
     }
 
     private fun end(key: String) {
-        flights.remove(key)?.onPrey?.let(world::removeNpc)
+        val flight = flights.remove(key) ?: return
+        flight.onPrey?.let(world::removeNpc)
+        respawn(flight, world.tick)
+    }
+
+    /** The kebbit [flight]'s falcon caught comes back [RESPAWN_TICKS] after its prey is retrieved (or left). */
+    private fun respawn(flight: Flight, tick: Long) {
+        val kebbit = flight.caught ?: return
+        flight.caught = null
+        respawns += kebbit to tick + RESPAWN_TICKS
     }
 
     companion object {
@@ -424,7 +464,11 @@ class Falconry(private val world: World) {
         /** Guessed. */
         const val FLIGHT_TICKS_PER = 3
         const val WAIT_TICKS = 50
-        const val RESPAWN_TICKS = 10
+        /** The Wiki's Hunter training: a kebbit is back four seconds after its prey is retrieved. */
+        const val RESPAWN_TICKS = 7
+
+        /** Guessed: how far off a kebbit in sight can be sent at. */
+        const val LAUNCH_RANGE = 15
 
         private const val CYCLES_PER_TICK = 30
 

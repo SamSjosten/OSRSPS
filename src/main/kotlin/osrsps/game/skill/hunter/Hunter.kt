@@ -57,7 +57,7 @@ class Hunter(world: World, collision: CollisionMap) {
     val pitfalls = Pitfalls(world, traps)
     val butterflies = Butterflies(world)
     val implings = Implings(world)
-    val falconry = Falconry(world)
+    val falconry = Falconry(world, collision)
 
     fun register() {
         traps.register(BirdSnares.KIND)
