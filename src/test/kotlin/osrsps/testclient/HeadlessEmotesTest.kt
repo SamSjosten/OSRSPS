@@ -2,8 +2,10 @@ package osrsps.testclient
 
 import java.nio.file.Path
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.PlayerOps
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.World
@@ -15,7 +17,7 @@ import osrsps.map.CollisionMap
 
 /**
  * The emote tab through the headless client: a default emote plays its animation, a Stronghold of Security emote is
- * refused until its varbit is set, then plays with its spotanim. The rl-client script test-runner/examples/emotes.json
+ * refused until its varbit is set, then plays with its spotanim; and an emote stops a follow. The rl-client script test-runner/examples/emotes.json
  * does the same in the real client.
  */
 class HeadlessEmotesTest {
@@ -59,6 +61,30 @@ class HeadlessEmotesTest {
                 client.ifButton(Emotes.INTERFACE, Emotes.CONTENTS, 2, sub = IDEA)
                 client.played(mark, ANIM_IDEA)
                 client.await("the lightbulb") { client.actorEvents(mark).firstOrNull { !it.npc && it.kind == ActorEventKind.SPOTANIM && it.id == SPOT_IDEA } }
+            }
+        }
+    }
+
+    @Test
+    fun `an emote stops a follow where the player stands`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    alice.await("alice's rebuild") { alice.position }
+                    bob.await("bob's rebuild") { bob.position }
+                    bob.await("alice in view") { bob.otherPlayers()[alice.index] }
+                    val bobStart = bob.position!!
+                    bob.playerOp(alice.index, PlayerOps.FOLLOW)
+                    alice.walk(alice.position!!.x + 4, alice.position!!.z)
+                    bob.await("following", timeoutMillis = 10_000) { bob.position?.takeIf { it != bobStart } }
+                    val mark = bob.actorEvents().size
+                    bob.ifButton(Emotes.INTERFACE, Emotes.CONTENTS, 1, sub = 0)
+                    bob.played(mark, ANIM_YES)
+                    val stopped = bob.position!!
+                    alice.walk(alice.position!!.x + 6, alice.position!!.z)
+                    alice.awaitTicks(8)
+                    assertEquals(stopped, bob.position, "no longer following")
+                }
             }
         }
     }

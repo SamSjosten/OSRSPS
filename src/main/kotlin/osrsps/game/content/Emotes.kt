@@ -147,6 +147,13 @@ fun registerEmotes(world: World) {
     world.handlers.onButton(Emotes.INTERFACE, Emotes.CONTENTS) { op ->
         val emote = Emotes.EMOTES[op.sub] ?: return@onButton
         if (!Emotes.unlocked(player, emote.index)) return@onButton world.message(player, EmoteLines.LOCKED)
+        // Inferred, as a walk click: a delayed player (an agility obstacle) can't break off for an emote.
+        if (player.scripts.delayed) return@onButton
+        // Guessed: an emote replaces whatever the player was doing, as a cast does: a follow or other interaction, and
+        // a queued activity (a home teleport's stages stop here, before the emote's animation goes on).
+        player.scripts.dropWeak()
+        player.interaction = null
+        world.npcInteractions.leave(player)
         player.waypoints.clear()
         player.anim(emote.anim)
         if (emote.spotanim >= 0) player.spotanim(emote.spotanim)
