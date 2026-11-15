@@ -5,9 +5,17 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import osrsps.game.GameRandom
+import osrsps.game.Inventory
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
+import osrsps.game.ObjType
+import osrsps.game.ObjTypes
 import osrsps.game.Quests
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
@@ -15,6 +23,10 @@ import osrsps.game.World
 import osrsps.game.content.SlayerMasters
 import osrsps.game.content.SlayerRewards
 import osrsps.game.npc.NpcSpawn
+import osrsps.game.dialogue.DialogueText
+import osrsps.game.shop.ShopLines
+import osrsps.game.shop.ShopScreen
+import osrsps.game.shop.ShopTypes
 import osrsps.game.skill.Slayer
 import osrsps.game.skill.SlayerData
 import osrsps.game.skill.SlayerMaster
@@ -26,7 +38,7 @@ import osrsps.map.CollisionMap
 /**
  * Slayer step 4 through the headless client: the rewards screen opened from Vannaka, an unlock bought and a refundable
  * one turned off, too few points, "Extend everything", a task cancelled, and a task blocked so Vannaka no longer gives it,
- * then unblocked.
+ * then unblocked; and step 5's Trade on the Slayer Equipment shop and the rewards screen's Buy tab.
  */
 class HeadlessSlayerRewardsTest {
     private val ops = listOf("Talk-to", null, "Assignment", "Trade", "Rewards")
@@ -46,6 +58,27 @@ class HeadlessSlayerRewardsTest {
         ),
     )
 
+    // Every master who runs the Slayer Equipment shop, so the real shops.json entry loads; only Vannaka stands here.
+    private val masters = listOf(vannaka) + SlayerMasters.BUILT.filter { it != SlayerMaster.VANNAKA }.map { NpcType(it.npc, it.name, ops = ops, internalName = INTERNAL.getValue(it)) }
+
+    // The shop's stock as its entry names it, and the Buy tab's ring, bolts and looting bag (the 242 cache's names).
+    private val objs = run {
+        val shop = Json.parseToJsonElement(ShopTypes::class.java.getResource(ShopTypes.RESOURCE)!!.readText()).jsonObject["shops"]!!.jsonArray
+            .map { it.jsonObject }.first { it["key"]!!.jsonPrimitive.content == "slayer_equipment" }
+        val stock = shop["stock"]!!.jsonArray.map { it.jsonObject }.map {
+            val id = it["item"]!!.jsonPrimitive.int
+            ObjType(id, it["name"]!!.jsonPrimitive.content, cost = 100, stackable = id == 4160 || id == 4161)
+        }
+        ObjTypes.of(
+            ObjType(COINS, "Coins", stackable = true), ObjType(RING, "Slayer ring (8)"), ObjType(BOLTS, "Broad bolts", stackable = true),
+            ObjType(LOOTING_BAG, "Looting bag"), ObjType(OPEN_LOOTING_BAG, "Looting bag"), ObjType(HERB_SACK, "Herb sack"),
+            ObjType(RUNE_POUCH, "Rune pouch"), ObjType(DIVINE_RUNE_POUCH, "Divine rune pouch"), *stock.toTypedArray(),
+        )
+    }
+
+    private val shops = ShopTypes.parse(ShopTypes::class.java.getResource(ShopTypes.RESOURCE)!!.readText(), NpcTypes.of(*masters.toTypedArray()), objs)
+        .let { all -> ShopTypes(listOf(all["slayer_equipment"]!!)) }
+
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, random = GameRandom(5),
@@ -62,7 +95,7 @@ class HeadlessSlayerRewardsTest {
                     17862 to VarbitType(4842, 16, 23), SlayerRewards.VARBIT_MASTER_IN_FOCUS to VarbitType(4844, 0, 5),
                 ),
             ),
-            npcTypes = NpcTypes.of(vannaka),
+            npcTypes = NpcTypes.of(*masters.toTypedArray()), objTypes = objs, shopTypes = shops,
             npcSpawns = listOf(NpcSpawn(vannaka, 3224, 3218, wander = 0, source = "test")),
             slayerData = data, cycleMillis = millis,
         )
@@ -154,5 +187,133 @@ class HeadlessSlayerRewardsTest {
                 client.awaitVarp(4833, "Vannaka's first block slot empty") { it and 0xFF == 0 }
             }
         }
+    }
+
+    private fun HeadlessClient.count(id: Int) = inventory(Inventory.INV).filterNotNull().filter { it.id == id }.sumOf { it.count }
+
+    private fun HeadlessClient.buy(child: Int, op: Int) = ifButton(SlayerRewards.INTERFACE, SlayerRewards.BUY_ITEMS, op, child)
+
+    @Test
+    fun `Trade opens the Slayer Equipment shop, and the Buy tab spends points on as many as can be paid for`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                client.npcOp(vannakaIndex(client), TRADE)
+                client.await("the shop") { if (ShopScreen.MAIN in client.openInterfaces()) Unit else null }
+                client.closeModal()
+
+                client.commandReply("slayer points 300") { it.startsWith("Streak") }
+                client.open()
+                client.await("the Buy tab's ops") { if (client.opEnabled(SlayerRewards.INTERFACE, SlayerRewards.BUY_ITEMS, 0, 3)) Unit else null }
+                // Buy 5 rings with points for 4.
+                client.buy(0, 3)
+                client.await("four rings") { if (client.count(RING) == 4) Unit else null }
+                assertEquals(0, client.points())
+                client.buy(1, 2)
+                client.awaitMessage("[slayer_rewards.not_enough_points cost=35]") { it == "[slayer_rewards.not_enough_points cost=35]" }
+
+                // Buy 10 sets of broad bolts with points for 2: 500 bolts, 30 points left.
+                client.commandReply("slayer points 100") { it.startsWith("Streak") }
+                client.buy(1, 4)
+                client.await("500 bolts") { if (client.count(BOLTS) == 500) Unit else null }
+                assertEquals(30, client.points())
+
+                // The looting bag comes one at a time: Buy 5 does nothing, Buy 1 buys it.
+                client.buy(5, 3)
+                client.buy(5, 2)
+                client.await("a looting bag") { if (client.count(LOOTING_BAG) == 1) Unit else null }
+                assertEquals(20, client.points())
+            }
+        }
+    }
+
+    @Test
+    fun `the herb sack needs base Herblore 58, a second pouch or bag is refused, and bolts stop at the stack limit`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                val dave = server.world.playerNamed("dave")!!
+                client.commandReply("slayer points 5000") { it.startsWith("Streak") }
+                client.open()
+                client.await("the Buy tab's ops") { if (client.opEnabled(SlayerRewards.INTERFACE, SlayerRewards.BUY_ITEMS, 0, 3)) Unit else null }
+
+                // Herblore 57 boosted to 60 still can't buy the herb sack; base 58 can.
+                client.command("setlevel herblore 57")
+                client.command("boost herblore 3")
+                client.buy(3, 2)
+                client.awaitMessage("need_herblore") { it == "[slayer_rewards.need_herblore]" }
+                assertEquals(0, client.count(HERB_SACK))
+                client.command("setlevel herblore 58")
+                client.buy(3, 2)
+                client.await("a herb sack") { if (client.count(HERB_SACK) == 1) Unit else null }
+                assertEquals(4250, client.points())
+
+                // A divine rune pouch in the bank counts as a rune pouch, and an open looting bag as a looting bag.
+                dave.bank.add(server.world.objTypes[DIVINE_RUNE_POUCH]!!, 1)
+                client.buy(4, 2)
+                client.awaitMessage("already_own rune pouch") { it == "[slayer_rewards.already_own item=Rune pouch]" }
+                client.command("item $OPEN_LOOTING_BAG")
+                client.buy(5, 2)
+                client.awaitMessage("already_own looting bag") { it == "[slayer_rewards.already_own item=Looting bag]" }
+                assertEquals(0, client.count(RUNE_POUCH))
+                assertEquals(0, client.count(LOOTING_BAG))
+                assertEquals(4250, client.points())
+
+                // 250 short of the stack limit: Buy 10 sets takes one set, 35 points; full, it takes none.
+                client.command("item $BOLTS ${Int.MAX_VALUE - 250}")
+                client.await("the bolts") { if (client.count(BOLTS) == Int.MAX_VALUE - 250) Unit else null }
+                client.buy(1, 4)
+                client.await("a full stack") { if (client.count(BOLTS) == Int.MAX_VALUE) Unit else null }
+                assertEquals(4215, client.points())
+                client.buy(1, 4)
+                client.awaitMessage("no_room") { it == "[slayer_rewards.no_room]" }
+                assertEquals(4215, client.points())
+            }
+        }
+    }
+
+    @Test
+    fun `the Slayer Equipment shop buys back a witchwood icon but no other untradeable`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.npcOp(vannakaIndex(client), TRADE)
+                client.await("Sell on the inventory") { if (client.opEnabled(ShopScreen.SIDE, ShopScreen.SIDE_ITEMS, 27, 2)) Unit else null }
+                client.command("item $WITCHWOOD_ICON")
+                client.command("item $ENCHANTED_GEM")
+                client.await("the icon and gem") { if (client.count(WITCHWOOD_ICON) == 1 && client.count(ENCHANTED_GEM) == 1) Unit else null }
+                client.ifButton(ShopScreen.SIDE, ShopScreen.SIDE_ITEMS, 2, client.slotOf(ENCHANTED_GEM), ENCHANTED_GEM)
+                client.awaitMessage("no selling the gem") { it == DialogueText.NONE[ShopLines.CANT_SELL] }
+                client.ifButton(ShopScreen.SIDE, ShopScreen.SIDE_ITEMS, 2, client.slotOf(WITCHWOOD_ICON), WITCHWOOD_ICON)
+                client.await("coins for the icon") { if (client.count(WITCHWOOD_ICON) == 0 && client.count(COINS) > 0) Unit else null }
+                assertEquals(1, client.count(ENCHANTED_GEM))
+            }
+        }
+    }
+
+    private fun HeadlessClient.slotOf(id: Int) = inventory(Inventory.INV).indexOfFirst { it?.id == id }
+
+    private fun vannakaIndex(client: HeadlessClient) = client.await("Vannaka in view") { client.npcs().firstOrNull { it.id == vannaka.id } }.index
+
+    private companion object {
+        const val COINS = 995
+
+        /** Vannaka's op 4, Trade. */
+        const val TRADE = 4
+        const val RING = 11866
+        const val BOLTS = 11875
+        const val LOOTING_BAG = 11941
+        const val OPEN_LOOTING_BAG = 22586
+        const val HERB_SACK = 13226
+        const val RUNE_POUCH = 12791
+        const val DIVINE_RUNE_POUCH = 27281
+        const val WITCHWOOD_ICON = 8923
+        const val ENCHANTED_GEM = 4155
+
+        /** The masters' 242 cache types, by which shops.json names them. */
+        val INTERNAL = mapOf(
+            SlayerMaster.AYA to "slayer_master_1_aya", SlayerMaster.SPRIA to "slayer_master_9_active",
+            SlayerMaster.VANNAKA to "slayer_master_3", SlayerMaster.MAZCHNA to "slayer_master_2_mazchna",
+            SlayerMaster.CHAELDAR to "slayer_master_4", SlayerMaster.STEVE to "slayer_master_steve",
+            SlayerMaster.KURADAL to "slayer_master_5_kuradal",
+        )
     }
 }

@@ -1,5 +1,6 @@
 package osrsps.game.content
 
+import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.dialogue.ChatAnim
@@ -133,7 +134,7 @@ object SlayerTipLines : Lines("slayer_tip", "Transcript:Slayer task tips") {
  * (step 3, built in place and reached by ::tele). Talk-to and Assignment, from the Wiki's transcripts. With every quest
  * done Aya holds Turael's place (since While Guthix Sleeps), Kuradal Duradel's (the same) and Steve Nieve's (since Monkey
  * Madness II) (OSRS Wiki, Aya, Kuradal, Steve). Talk-to's menu: another assignment, rewards or trade ("Look at rewards" opens
- * [SlayerRewards]; the shop comes later), the difficulty of assignments (turning the combat level check off and on
+ * [SlayerRewards], "Look at shop" and Trade the Slayer Equipment shop), the difficulty of assignments (turning the combat level check off and on
  * for every master, varbit combat_level_reqs_disabled), each master's own talk (Aya's about Turael, Mazchna's about
  * Lucien, Steve's about Nieve, Kuradal's about the Slayer cape below 99 Slayer), or nothing. Assignment goes straight to
  * the assignment.
@@ -157,6 +158,10 @@ class SlayerMasters(private val world: World) {
         const val TALK_TO = 1
         const val ASSIGNMENT = 3
 
+        /** What Talk-to's rewards menu leaves to open once the talk is over. */
+        private const val LOOK_REWARDS = 1
+        private const val LOOK_SHOP = 2
+
         /** The masters placed so far; Vannaka stood waiting in Edgeville Dungeon. */
         val BUILT = listOf(
             SlayerMaster.AYA, SlayerMaster.SPRIA, SlayerMaster.VANNAKA, SlayerMaster.MAZCHNA, SlayerMaster.CHAELDAR,
@@ -172,9 +177,12 @@ class SlayerMasters(private val world: World) {
     fun register() {
         for (master in BUILT) {
             world.handlers.onNpc(master.npc, TALK_TO) { op ->
-                var rewards = false
-                world.dialogues.start(this, op.npc) { rewards = talk(master) }
-                if (rewards) world.slayerRewards.open(player, master)
+                var look = 0
+                world.dialogues.start(this, op.npc) { look = talk(master) }
+                when (look) {
+                    LOOK_REWARDS -> world.slayerRewards.open(player, master)
+                    LOOK_SHOP -> trade(player, master)
+                }
             }
             world.handlers.onNpc(master.npc, ASSIGNMENT) { op -> world.dialogues.start(this, op.npc) { assignment(master) } }
         }
@@ -189,8 +197,16 @@ class SlayerMasters(private val world: World) {
         else -> null
     }
 
-    /** Talk-to; true when the player picked "Look at rewards", which opens the rewards screen once the talk is over. */
-    private suspend fun Dialogue.talk(master: SlayerMaster): Boolean = with(SlayerMasterLines) {
+    /** The Slayer Equipment shop, which every master runs (OSRS Wiki, Slayer Equipment); Trade opens it through [registerShops]. */
+    private fun trade(player: Player, master: SlayerMaster) {
+        world.shopTypes.ofNpc(master.npc)?.let { world.shopScreen.open(player, it) }
+    }
+
+    /**
+     * Talk-to; [LOOK_REWARDS] or [LOOK_SHOP] when the player picked "Look at rewards" or "Look at shop", which opens the
+     * rewards screen or the shop once the talk is over, else 0.
+     */
+    private suspend fun Dialogue.talk(master: SlayerMaster): Int = with(SlayerMasterLines) {
         chatNpc(ChatAnim.NEUTRAL, GREETING)
         val options = listOfNotNull(NEED_TASK, REWARDS, DIFFICULTY, ownOption(master), NOTHING)
         when (options[choice(*options.toTypedArray()) - 1]) {
@@ -201,8 +217,11 @@ class SlayerMasters(private val world: World) {
             REWARDS -> {
                 chatPlayer(ChatAnim.NEUTRAL, REWARDS)
                 chatNpc(ChatAnim.NEUTRAL, REWARDS_ANSWER)
-                // The shop comes in a later step; "Look at shop" closes the menu meanwhile.
-                return choice(LOOK_REWARDS, LOOK_SHOP, CANCEL) == 1
+                return when (choice(LOOK_REWARDS, LOOK_SHOP, CANCEL)) {
+                    1 -> SlayerMasters.LOOK_REWARDS
+                    2 -> SlayerMasters.LOOK_SHOP
+                    else -> 0
+                }
             }
             DIFFICULTY -> {
                 chatPlayer(ChatAnim.NEUTRAL, DIFFICULTY)
@@ -214,7 +233,7 @@ class SlayerMasters(private val world: World) {
             KuradalLines.SKILLCAPE -> aboutSkillcape()
             else -> chatPlayer(ChatAnim.NEUTRAL, NOTHING)
         }
-        false
+        0
     }
 
     private suspend fun Dialogue.aboutTurael(): Unit = with(AyaLines) {

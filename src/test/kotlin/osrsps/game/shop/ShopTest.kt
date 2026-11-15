@@ -70,6 +70,10 @@ class ShopTest {
         2518 to 1,
         // Farming Supplies, which sells at its own prices and buys nothing back: the values only stand in.
         6036 to 40, 6032 to 20, 5341 to 6, 5350 to 1, 5331 to 8, 5325 to 12, 5343 to 6,
+        // Slayer Equipment (the 242 cache's values, which the Wiki's prices at 100% are).
+        4155 to 1, 4156 to 5000, 4158 to 31000, 4160 to 60, 4161 to 10, 4162 to 500, 4164 to 200, 4166 to 200, 4168 to 200,
+        4170 to 21000, 4551 to 650, 6664 to 60, 6696 to 1, 6720 to 200, 7051 to 130, 7159 to 200, 7421 to 300, 7432 to 10,
+        8923 to 900, 10952 to 150, 11874 to 55, 11885 to 5500, 11876 to 55, 11887 to 5500, 21754 to 200, 23037 to 200, 24942 to 100,
     )
 
     /**
@@ -80,6 +84,8 @@ class ShopTest {
         4613, 11705, 11706, 11707, 11708, 11709, 12727, 13188, 13328, 13660, 13679, 13681, 13215, 13216, 13217, 13218, 21314, 22364,
         // Grace's graceful pieces and amylase pack.
         11850, 11854, 11856, 11858, 11860, 11852, 12641,
+        // Slayer Equipment's untradeables (the 242 cache).
+        4155, 4158, 4160, 6664, 6696, 6720, 7421, 7432, 8923, 24942,
     )
 
     private val shopFile = ShopTest::class.java.getResource(ShopTypes.RESOURCE)!!.readText()
@@ -130,6 +136,13 @@ class ShopTest {
             NpcType(6533, "Romily Weaklax", internalName = "merchant_pies"),
             NpcType(5919, "Grace", internalName = "rooftops_grace"),
             NpcType(3101, "Sawmill operator", internalName = "poh_sawmill_opp"),
+            NpcType(13619, "Aya", internalName = "slayer_master_1_aya"),
+            NpcType(10432, "Spria", internalName = "slayer_master_9_active"),
+            NpcType(403, "Vannaka", internalName = "slayer_master_3"),
+            NpcType(13620, "Mazchna", internalName = "slayer_master_2_mazchna"),
+            NpcType(404, "Chaeldar", internalName = "slayer_master_4"),
+            NpcType(6798, "Steve", internalName = "slayer_master_steve"),
+            NpcType(13623, "Kuradal", internalName = "slayer_master_5_kuradal"),
             NpcType(2674, "Dreven", internalName = "farming_gardener_bush_1"),
             NpcType(2672, "Vasquen", internalName = "farming_gardener_hops_3"),
             NpcType(2681, "Fayeth", internalName = "farming_gardener_tree_4"),
@@ -205,6 +218,8 @@ class ShopTest {
         "varrock_pelters_veg_stall" to listOf(1),
         // Farming Supplies, read 2026-11-14.
         "farming_supplies" to listOf(40, 20, 6, 1, 8, 12, 6),
+        // Slayer Equipment, read 2026-11-15: 100% of each item's value.
+        "slayer_equipment" to listOf(1, 5000, 31000, 60, 10, 500, 200, 200, 200, 21000, 650, 60, 1, 200, 130, 200, 300, 10, 900, 150, 55, 5500, 55, 5500, 200, 200, 100),
     )
 
     @Test
@@ -240,6 +255,10 @@ class ShopTest {
         val farmingSupplies = shops["farming_supplies"]!!
         assertEquals(listOf(2674, 2672, 2681, 2680).map { shops.ofNpc(it) }, List(4) { farmingSupplies })
         assertEquals(mapOf("al_kharid_general_store" to setOf(950), "farming_supplies" to farmingSupplies.stock.map { it.type.id }.toSet()), shops.all.filter { it.refuses.isNotEmpty() }.associate { it.key to it.refuses })
+        // Slayer Equipment buys back its witchwood icon, which no one can trade, at 60% (no buy=N/A on the Wiki's line).
+        val slayerShop = shops["slayer_equipment"]!!
+        assertEquals(mapOf("slayer_equipment" to setOf(8923)), shops.all.filter { it.buysBack.isNotEmpty() }.associate { it.key to it.buysBack })
+        assertEquals(540, Shop(slayerShop).sellPrice(8923, 900, 50))
         assertEquals(shops["lumbridge_general_store"], shops.ofNpc(2814))
         assertEquals(shops["bobs_brilliant_axes"], shops.ofNpc(10619))
         assertEquals(shops["lumbridge_blacksmith"], shops.ofNpc(16806))
