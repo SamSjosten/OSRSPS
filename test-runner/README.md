@@ -667,6 +667,9 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   take Trade with and Report off other players' menus after a relog, and back on after another.
 - `wilderness-attack-option.json` (needs 0.22.0): Wilderness step W1.2. Attack absent from other players' menus at
   Edgeville, there at level 10 after `::wildy 10` (with `inside_wilderness` 1), and gone again back south.
+- `wilderness-pvp-scenario.json`: Wilderness step W1.9. `::scenario pvp` stands the player at 3090,3592 (level 10)
+  in rune armour with a rune scimitar, 20 sharks and five Tele Blocks' runes; `::skull` with nothing, `on` and `off`
+  reports, gives and takes a skull; `::pj` says no PJ timer runs; `::reset` puts the account back.
 - `wilderness-pvp-ranged-test.json` and `wilderness-pvp-ranged-test2.json` (need 0.20.0, for `assertHitsplat` with
   `self` and `playerOption`): Wilderness step W1.4, two players at once (test on one VM and test2 on the other). At
   level 50, test shoots test2 with a shortbow and bronze arrows for a sure 12, read off its Ranged XP and test2's
