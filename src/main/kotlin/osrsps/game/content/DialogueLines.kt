@@ -163,6 +163,7 @@ object DialogueLines {
         EdgevilleDungeonLines,
         OborLines,
         BryophytaLines,
+        EmoteLines,
         GiantBonesLines,
         StrongholdLines,
         SkullSceptreLines,

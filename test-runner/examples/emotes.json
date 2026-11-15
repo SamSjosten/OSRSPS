@@ -1,0 +1,18 @@
+{
+ "name": "Misthalin bosses step 4: the emote tab. Yes plays at once; Idea is refused while its varbit is 0, then plays with its lightbulb once ::varbit unlocks it; the varbit is put back after",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::varbit 2311 0", "expectMessage": "-> 0", "comment": "Idea locked, as on an account without the Box of Health"},
+  {"step": "clickWidget", "interfaceId": 216, "component": 2, "slot": 0, "comment": "Yes"},
+  {"step": "assertAnimation", "id": 855},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "clickWidget", "interfaceId": 216, "component": 2, "slot": 28, "comment": "Idea, greyed while locked"},
+  {"step": "assertMessage", "contains": "emotes.locked", "comment": "the key until 214 has words for it"},
+  {"step": "command", "text": "::varbit 2311 1", "expectMessage": "-> 1"},
+  {"step": "clickWidget", "interfaceId": 216, "component": 2, "slot": 28, "comment": "Idea"},
+  {"step": "assertAnimation", "id": 4276},
+  {"step": "assertSpotanim", "id": 712},
+  {"step": "command", "text": "::varbit 2311 0", "expectMessage": "-> 0", "comment": "back as it was"}
+ ]
+}
