@@ -451,12 +451,20 @@ fun registerCalvarion(world: World) {
             if (WildernessLairFee.paid(player) || WildernessLairFee.fee(player) == 0) world.message(player, WildernessLairLines.FEE_PAID)
             else world.message(player, WildernessLairLines.FEE_DUE, "fee" to WildernessLairFee.fee(player))
         }
-        // Vet'ion's Rest has the same way out; his step gives it its own place to put the player.
+        // Vet'ion's Rest has the same way out, into the Escape Caves.
         world.handlers.onLoc(EXIT, 1) { op ->
             val loc = op.loc!!
-            if (!inTomb(loc.x, loc.z)) return@onLoc world.message(player, osrsps.game.GameLines.NOTHING_INTERESTING)
-            arriveDelay()
-            world.teleport(player, OUTSIDE.x, OUTSIDE.z, 0)
+            when {
+                inTomb(loc.x, loc.z) -> {
+                    arriveDelay()
+                    world.teleport(player, OUTSIDE.x, OUTSIDE.z, 0)
+                }
+                Vetion.inRest(loc.x, loc.z) -> {
+                    arriveDelay()
+                    world.escapeCaves.leaveLair(world, player, Vetion.NAME)
+                }
+                else -> world.message(player, osrsps.game.GameLines.NOTHING_INTERESTING)
+            }
         }
         FIGHT.register(world, WildernessBoss("calvarion", setOf(BOSS, ENRAGED), KILL_COUNT_VARP, lair = true))
     }
