@@ -9,8 +9,11 @@ COPY src ./src
 # separate Kotlin compile daemon) peak around 1.8 GB and got the server OOM-killed during a deploy; one daemon that
 # compiles Kotlin in-process peaks around 0.8 GB. Its heap was 95% full after a full GC at 256 MB (18k lines of main),
 # 64% at 384 MB. At 45k lines 384 MB ran out ("Java heap space" in compileKotlin, 2026-11-01): up to 389 MB stays
-# live after a full GC, so it is 640 MB now (61%) and a cold build peaks around 1.1-1.2 GB. Raise it again before it
-# fills up. Incremental compilation is off: every image build is a full one, and its
+# live after a full GC, so it went to 640 MB (61%). At 97k lines 640 MB ran out again (2026-11-15, two deploys failed:
+# "Java heap space" in compileKotlin, then GC thrashing until the daemon died): a cold build measured in a cloud
+# session keeps up to 507 MB live after a full GC, so it is 1280 MB now (40%), and the build's JVMs peaked at 1.46-1.52
+# GB resident with 1024 or 1536 MB. Raise it again before it fills up. Incremental compilation is off: every image
+# build is a full one, and its
 # snapshots only cost heap. Metaspace needs about 250 MB
 # here, because every image build is a cold one that also compiles the build scripts (192 MB failed with
 # "OutOfMemoryError: Metaspace").
@@ -20,7 +23,7 @@ ENV GRADLE_OPTS="-Xmx64m -XX:+UseSerialGC -XX:TieredStopAtLevel=1"
 # the step first raises its own score; the JVMs it starts inherit it.
 RUN echo 1000 >/proc/$$/oom_score_adj || true; \
     ./gradlew --no-daemon installDist \
-    "-Dorg.gradle.jvmargs=-Xmx640m -XX:MaxMetaspaceSize=320m -XX:ReservedCodeCacheSize=64m -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -Xss512k" \
+    "-Dorg.gradle.jvmargs=-Xmx1280m -XX:MaxMetaspaceSize=320m -XX:ReservedCodeCacheSize=64m -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -Xss512k" \
     -Pkotlin.compiler.execution.strategy=in-process -Pkotlin.incremental=false -Dorg.gradle.workers.max=1 -Dorg.gradle.parallel=false \
     -Dorg.gradle.vfs.watch=false
 
