@@ -211,12 +211,15 @@ class PvpCombat(
      * players of a PvP fight start a timer of [PJ_TICKS], refreshed with each attack, and while it runs no one else can
      * attack either of them, nor can they attack anyone else). Refused too: a target a monster is fighting (hit them
      * within [MeleeCombat.IN_COMBAT_TICKS], the Wiki's monster timer) or that is fighting one (attacked it within as
-     * long, so before it hits back too: Codex review on #710), and an attacker one is fighting, as for an NPC
+     * long, so before it hits back too: Codex review on #710), and an attacker one is fighting or who is fighting one
+     * (guessed for the second: the same timer both ways), as for an NPC
      * ("I'm already under attack."). By the attacker's tile for their own timer and the target's for theirs, as
      * [MeleeCombat] does for NPCs (guessed). The target's refusal's words are held.
      */
     fun singleWayRefusal(attacker: Player, target: Player, tick: Long): Line? {
-        if (!multi.at(attacker.level, attacker.x, attacker.z) && (fightingOther(attacker, target, tick) || npcFighting(attacker, tick))) {
+        if (!multi.at(attacker.level, attacker.x, attacker.z) &&
+            (fightingOther(attacker, target, tick) || npcFighting(attacker, tick) || melee.fightingNpc(attacker))
+        ) {
             return CombatLines.ALREADY_UNDER_ATTACK
         }
         if (!multi.at(target.level, target.x, target.z) &&

@@ -153,7 +153,7 @@ class HeadlessPvpSingleWayTest {
     }
 
     @Test
-    fun `a player who has just attacked a monster can't be attacked by a player in single-way, before it hits back`(@TempDir dir: Path) {
+    fun `a player who has just attacked a monster can't attack or be attacked by a player in single-way, before it hits back`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("gus").use { a ->
                 server.login("hal").use { b ->
@@ -168,6 +168,8 @@ class HeadlessPvpSingleWayTest {
                     a.npcOp(npc, 2)
                     a.await("gus's swing at the man") { gus.attackedNpc }
                     b.refusedWith(PvpLines.TARGET_IN_COMBAT) { b.playerOp(a.index, PlayerOps.ATTACK) }
+                    // Nor can gus turn on hal while the man's fight lasts.
+                    a.refusedWith(CombatLines.ALREADY_UNDER_ATTACK) { a.playerOp(b.index, PlayerOps.ATTACK) }
                 }
             }
         }
