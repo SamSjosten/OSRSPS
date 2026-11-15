@@ -961,6 +961,7 @@
     {"npc": 7939, "name": "Revenant knight"},
     {"npc": 7940, "name": "Revenant dragon"},
     {"npc": 7943, "name": "Emblem Trader", "wiki": "Emblem Trader page, infobox (Revenant Caves)"},
+    {"npc": 11246, "name": "Revenant maledictus"},
     {"npc": 8368, "name": "Abigaila"},
     {"npc": 8391, "name": "Nigel", "also": [6093, 16812], "wiki": "Nigel page, infobox, Normal"},
     {"npc": 8491, "name": "The Collector"},

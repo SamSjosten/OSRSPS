@@ -264,10 +264,10 @@ class MeleeCombat(
      * them and is still here. So an NPC held at its max range by a player out of its reach is free again once neither
      * side has fought for that long. Guessed: the Wiki says a single-way NPC stays someone's for a while after their
      * last hit, but not how long, and that only one player or monster can attack one at a time. Never for an NPC
-     * standing in a multi-way area (guessed: by the NPC's tile, not the player's).
+     * standing in a multi-way area (guessed: by the NPC's tile, not the player's), nor for a [Npc.multiTarget] one.
      */
     internal fun foughtByAnother(player: Player, npc: Npc): Boolean {
-        if (multi.at(npc.level, npc.x, npc.z)) return false
+        if (npc.multiTarget || multi.at(npc.level, npc.x, npc.z)) return false
         val tick = currentTick()
         val target = npc.target
         if (target != null && target !== player && !target.loggedOut && tick - npc.fightTick <= IN_COMBAT_TICKS) return true
