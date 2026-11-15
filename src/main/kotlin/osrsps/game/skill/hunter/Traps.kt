@@ -399,8 +399,10 @@ class Traps(private val world: World, private val collision: CollisionMap) {
                     return
                 }
             }
-            // Not laid: the item comes back to the player, if it is still there for them.
-            if (world.groundObjs.useOne(player, obj)) world.groundObjs.give(player, item, 1)
+            // Not laid: the item comes back to the player's backpack, if it is still there for them and there is room;
+            // otherwise it stays where it lies, theirs, rather than dropping on a tile that may be full (Codex review).
+            val room = player.inventory.freeSlots > 0 || (item.stackable && player.inventory.count(item.id) > 0L)
+            if (room && world.groundObjs.useOne(player, obj)) player.inventory.add(item, 1)
             return
         }
         world.groundObjs.give(player, item, 1)

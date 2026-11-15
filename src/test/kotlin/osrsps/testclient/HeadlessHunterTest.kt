@@ -201,6 +201,37 @@ class HeadlessHunterTest {
     }
 
     @Test
+    fun `a Reset beaten to the tile, with a full backpack, leaves the snare where it lies`(@TempDir dir: Path) {
+        server(dir, bird = wagtail).use { server ->
+            server.login("hana").use { a ->
+                val at = a.await("the login rebuild") { a.position }
+                a.command("item ${BirdSnares.SNARE} 1")
+                a.lay()
+                a.awaitLoc(BirdSnares.BROKEN, at.x, at.z, timeoutMillis = 20_000)
+                a.command("item $BONES 28")
+                a.await("a full backpack") { if (a.count(BONES) == 28) Unit else null }
+                server.login("ivan").use { b ->
+                    b.await("ivan's login") { b.position?.takeIf { it == at } }
+                    b.command("item ${BirdSnares.SNARE} 1")
+                    b.slotOf(BirdSnares.SNARE)
+                    // Ivan, on the tile, lays his snare as Hana's Reset picks hers up: his stands first, so hers can't.
+                    a.locOp(BirdSnares.BROKEN, at.x, at.z, Traps.RESET)
+                    a.seen("[hunter.dismantled]")
+                    b.lay()
+                    b.await("ivan's trap", timeoutMillis = 15_000) { server.world.hunter.traps.of(osrsps.game.SaveStore.saveKey("ivan")!!).firstOrNull() }
+                    val settled = server.world.tick + 10
+                    a.await("ten more ticks", timeoutMillis = 20_000) { if (server.world.tick >= settled) Unit else null }
+                    assertTrue(server.world.hunter.traps.of(osrsps.game.SaveStore.saveKey("hana")!!).isEmpty())
+                    val left = server.world.zones.objsAt(at.x, at.z, 0).filter { it.id == BirdSnares.SNARE }
+                    assertEquals(1, left.sumOf { it.count }, "Hana's snare stays on its tile")
+                    assertEquals(0, a.count(BirdSnares.SNARE))
+                    assertEquals(28, a.count(BONES))
+                }
+            }
+        }
+    }
+
+    @Test
     fun `no trap goes down in an instance`(@TempDir dir: Path) {
         server(dir, bird = null).use { server ->
             server.login("gina").use { client ->
