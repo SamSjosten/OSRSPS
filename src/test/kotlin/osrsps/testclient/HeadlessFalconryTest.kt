@@ -80,8 +80,7 @@ class HeadlessFalconryTest {
                 client.npcOp(client.npc(Falconry.MATTHIAS).index, Falconry.QUICK_FALCON)
                 client.awaitDialogue("the glove") { it is DialogueView.Message && it.text == "[matthias.gives_glove]" }
                 server.awaitWeapon(client, "fa", Falconry.GLOVE_FALCON)
-                assertEquals(100, client.count(Falconry.COINS))
-                assertEquals(1, client.count(SWORD))
+                client.await("the fee paid and the sword in the backpack") { if (client.count(Falconry.COINS) == 100 && client.count(SWORD) == 1) Unit else null }
                 // The glove stays on.
                 server.world.equipment.remove(server.world.playerNamed("fa")!!, WearPos.WEAPON)
                 client.seen("[hunter.glove_stays]")
@@ -131,7 +130,8 @@ class HeadlessFalconryTest {
                 // Again, then out of the area with it.
                 client.npcOp(matthiasIndex, Falconry.QUICK_FALCON)
                 server.awaitWeapon(client, "fb", Falconry.GLOVE_FALCON)
-                assertEquals(0, client.count(Falconry.COINS))
+                // The backpack's update can come a packet after the glove goes on.
+                client.await("the fee paid") { if (client.count(Falconry.COINS) == 0) Unit else null }
                 client.tele(3222, 3218)
                 client.seen("[hunter.falcon_flies_back]")
                 server.awaitWeapon(client, "fb", null)
@@ -174,8 +174,7 @@ class HeadlessFalconryTest {
                 server.world.playerNamed("fd")!!.equipment[WearPos.WEAPON] = InvObj(SWORD, 1)
                 client.npcOp(client.npc(Falconry.MATTHIAS).index, Falconry.QUICK_FALCON)
                 server.awaitWeapon(client, "fd", Falconry.GLOVE_FALCON)
-                client.await("the sword in the backpack") { if (client.count(SWORD) == 1) Unit else null }
-                assertEquals(0, client.count(Falconry.COINS))
+                client.await("the fee paid and the sword in the backpack") { if (client.count(SWORD) == 1 && client.count(Falconry.COINS) == 0) Unit else null }
             }
         }
     }
