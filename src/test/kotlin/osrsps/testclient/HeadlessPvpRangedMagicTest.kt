@@ -174,6 +174,15 @@ class HeadlessPvpRangedMagicTest {
                     assertEquals(99 - 8, b.hitpoints(), "cast once")
                     // The fight is over, but the caster still faces the target (Codex review on #708).
                     assertEquals("tess", server.world.playerNamed("saul")!!.sentFacePlayer?.username)
+
+                    // Ctrl held on the cast inverts running on the way, and a cast without it doesn't keep that (Codex
+                    // review on #708).
+                    val saul = server.world.playerNamed("saul")!!
+                    a.playerTarget(b.index, Spells.SPELLBOOK, FIRE_STRIKE, ctrl = true)
+                    a.await("running inverted") { Unit.takeIf { saul.invertRun } }
+                    a.awaitTicks(MagicCombat.SPEED * 2)
+                    a.playerTarget(b.index, Spells.SPELLBOOK, FIRE_STRIKE)
+                    a.await("running as set") { Unit.takeIf { !saul.invertRun } }
                 }
             }
         }

@@ -330,7 +330,8 @@ class Combat(
     /**
      * [attacker]'s ranged numbers against [target], another player, or null when [attacker]'s style isn't ranged: as
      * against an NPC ([rangedMatchup]), the target defending with their own defence roll for ranged ([pvpMatchup]).
-     * Inferred: a twisted bow scales by the target's Magic level, as by an NPC's.
+     * A twisted bow scales by the higher of the target's Magic level and magic attack bonus, as for an NPC (OSRS Wiki,
+     * Twisted bow).
      */
     fun pvpRangedMatchup(attacker: Player, target: Player): RangedMatchup? {
         val style = style(attacker)
@@ -338,7 +339,7 @@ class Combat(
         val (attackRoll, maxHit) = rangedNumbers(
             attacker, style,
             distance = { LineOfSight.distance(attacker.x, attacker.z, 1, target.x, target.z, 1, 1) },
-            magic = { target.skills.currentLevel(Skill.MAGIC) },
+            magic = { maxOf(target.skills.currentLevel(Skill.MAGIC), bonuses(target).magicAttack) },
         )
         val defenceRoll = playerDefenceRoll(target, style(target), bonuses(target), AttackType.RANGED, prayerBoosts(target))
         return RangedMatchup(style, attackRoll, defenceRoll, maxHit, CombatMath.hitChance(attackRoll, defenceRoll))

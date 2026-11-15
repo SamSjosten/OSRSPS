@@ -2267,11 +2267,13 @@ class World(
      * A combat spell from the magic tab's [component] cast on [target] (Wilderness step W1.4): refused as Attack is
      * ([attackPlayer]), otherwise a fight with them that casts it once ([PvpCombat.cast]).
      */
-    private fun castOnPlayer(player: Player, target: Player, component: Int) {
+    private fun castOnPlayer(player: Player, target: Player, component: Int, ctrl: Boolean) {
         scripts.interrupt(player)
         player.interaction = null
         npcInteractions.leave(player)
         player.waypoints.clear()
+        // Ctrl held inverts walking and running on the way, as for Attack ([attackPlayer]).
+        player.invertRun = ctrl
         val refusal = pvpCombat.cast(player, target, component)
         if (refusal.isNotEmpty()) {
             player.session.queue(SetMapFlagV2.RESET)
@@ -2283,7 +2285,7 @@ class World(
      * The player used something on the player at [index]: the item in slot [sub] of [interfaceId]:[componentId], or a
      * spell. Only inventory items are handled; see [InventoryTab.useOnPlayer].
      */
-    fun onPlayerTarget(player: Player, index: Int, interfaceId: Int, componentId: Int, sub: Int, obj: Int) {
+    fun onPlayerTarget(player: Player, index: Int, interfaceId: Int, componentId: Int, sub: Int, obj: Int, ctrl: Boolean = false) {
         // Looked up as the packet is read, as for an option on a player.
         val clicked = players.getOrNull(index)
         act(player) {
@@ -2295,7 +2297,7 @@ class World(
                 return@act
             }
             if (interfaceId == Spells.SPELLBOOK && target != null) {
-                castOnPlayer(player, target, componentId)
+                castOnPlayer(player, target, componentId, ctrl)
                 return@act
             }
             if (interfaceId != InventoryTab.INTERFACE || componentId != InventoryTab.ITEMS || target == null) {
