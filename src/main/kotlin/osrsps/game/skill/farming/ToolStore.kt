@@ -1,6 +1,7 @@
 package osrsps.game.skill.farming
 
 import osrsps.game.FrameSlot
+import osrsps.game.Interfaces
 import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.bank.getVarbitIfKnown
@@ -73,6 +74,10 @@ class ToolStore(private val world: World) {
     fun open(player: Player) {
         world.interfaces.openModal(player, FrameSlot.MAINMODAL, MAIN)
         world.interfaces.openModal(player, FrameSlot.SIDEMODAL, SIDE)
+        // The quantity buttons' op 1 is set by their client script, not the cache, so the server lets it through, as
+        // the item rows' ops are already (their transmitop). Without it the client changes the default quantity alone
+        // (live run on 215, 2026-11-15: the client at All, the server still at 1).
+        for (component in QUANTITY_BUTTONS.keys) world.interfaces.setEvents(player, MAIN, component, -1, -1, Interfaces.IF_EVENT_OP1)
     }
 
     private suspend fun ScriptContext.clickMain(op: Op, tool: Tool) {
