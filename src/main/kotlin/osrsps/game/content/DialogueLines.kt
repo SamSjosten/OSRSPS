@@ -175,6 +175,7 @@ object DialogueLines {
         WildernessBossLines,
         CrazyArchaeologistLines,
         ChaosFanaticLines,
+        VolcanicForgeLines,
         osrsps.game.FountainOfRuneLines,
         OborLines,
         BryophytaLines,

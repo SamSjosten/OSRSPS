@@ -1041,6 +1041,7 @@ class World(
         registerCrazyArchaeologist(this)
         registerChaosFanatic(this)
         registerScorpia(this)
+        osrsps.game.content.VolcanicForge.register(this)
         FountainOfRune.register(this)
         registerFeroxEnclave(this)
         registerWildernessObelisks(this)
