@@ -258,10 +258,20 @@ class Traps(private val world: World, private val collision: CollisionMap) {
         trap.stateTick = world.tick
     }
 
-    /** Takes [trap] down, leaving its item on its tile. */
+    /**
+     * Takes [trap] down, leaving its item on its tile. A tile already full of objs takes nothing off it for the item
+     * (exploit review): the item goes to its owner's backpack if there is room, or else the trap stands until a tick
+     * when it fits.
+     */
     private fun collapse(trap: Trap, owner: Player?) {
+        val type = world.objTypes[trap.kind.item]
+        if (type != null && !world.groundObjs.fits(type, 1, trap.x, trap.z, trap.level, owner?.saveKey ?: "")) {
+            if (owner == null || owner.inventory.add(type, 1) != 1) return
+            remove(trap)
+            return
+        }
         remove(trap)
-        val type = world.objTypes[trap.kind.item] ?: return
+        if (type == null) return
         if (owner != null) {
             world.groundObjs.addPrivate(type, 1, trap.x, trap.z, trap.level, owner.saveKey, osrsps.game.GroundObjs.DROP_PRIVATE_TICKS, osrsps.game.GroundObjs.DROP_DESPAWN_TICKS)
         } else {
@@ -308,7 +318,7 @@ class Traps(private val world: World, private val collision: CollisionMap) {
             world.message(player, HunterLines.LAYING)
         }
         if (step == ClockStep.DUE) {
-            if (!world.groundObjs.removeOne(obj)) return player.anim(-1)
+            if (!world.groundObjs.useOne(player, obj)) return player.anim(-1)
             stand(kind, obj.x, obj.z, obj.level)
             stepOff(player, obj.x, obj.z)
             return
@@ -383,14 +393,14 @@ class Traps(private val world: World, private val collision: CollisionMap) {
                 world.message(player, HunterLines.LAYING)
                 player.actionDelay = tick + LAY_TICKS - 1
                 delay(LAY_TICKS - 1)
-                if (at(trap.x, trap.z, trap.level) == null && canLay(kind, trap.x, trap.z, trap.level) && world.groundObjs.removeOne(obj)) {
+                if (at(trap.x, trap.z, trap.level) == null && canLay(kind, trap.x, trap.z, trap.level) && world.groundObjs.useOne(player, obj)) {
                     stand(kind, trap.x, trap.z, trap.level)
                     stepOff(player, trap.x, trap.z)
                     return
                 }
             }
             // Not laid: the item comes back to the player, if it is still there for them.
-            if (world.groundObjs.removeOne(obj)) world.groundObjs.give(player, item, 1)
+            if (world.groundObjs.useOne(player, obj)) world.groundObjs.give(player, item, 1)
             return
         }
         world.groundObjs.give(player, item, 1)

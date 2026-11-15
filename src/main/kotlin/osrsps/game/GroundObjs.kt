@@ -244,6 +244,19 @@ class GroundObjs(
     }
 
     /**
+     * Uses one of [obj] where it lies for [player], as laying a trap from the floor does: like [take], it must still be
+     * there for them, and a drop another player put down counts as handed over ([handedOver] saves the dropper). The
+     * raid's supply count ([taken]) doesn't apply: nothing is used where it lies in an instance.
+     */
+    fun useOne(player: Player, obj: ZoneObj): Boolean {
+        if (!zones.hasObj(obj) || !obj.visibleTo(player.saveKey)) return false
+        val dropper = obj.droppedBy
+        if (!removeOne(obj)) return false
+        if (dropper != null && dropper != player.saveKey) handedOver(player, dropper)
+        return true
+    }
+
+    /**
      * Takes one of [obj] off the ground: the whole obj when it is the last, else one off its stack (a Hunter trap laid
      * from a stack its owner dropped there). Returns false if it was already gone.
      */

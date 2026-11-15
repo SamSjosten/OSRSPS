@@ -186,11 +186,16 @@ class HeadlessHunterTest {
                 client.seen("[hunter.dismantled]")
                 // Killed mid-Reset: the death cuts the script off, and the snare is on its tile, laid again, or held.
                 client.command("hit 99 me")
-                client.await("one snare, somewhere", timeoutMillis = 20_000) {
+                client.await("[combat.dead]") { client.messages().firstOrNull { it.text == "[combat.dead]" } }
+                // After the death has cut the script off, the count must settle on one and stay there.
+                fun snares(): Int {
                     val onTile = server.world.zones.objsAt(at.x, at.z, 0).filter { it.id == BirdSnares.SNARE }.sumOf { it.count }
-                    val laid = server.world.hunter.traps.all.size
-                    if (onTile + laid + client.count(BirdSnares.SNARE) == 1) Unit else null
+                    return onTile + server.world.hunter.traps.all.size + client.count(BirdSnares.SNARE)
                 }
+                client.await("one snare, somewhere", timeoutMillis = 20_000) { if (snares() == 1) Unit else null }
+                val settled = server.world.tick + 10
+                client.await("ten more ticks", timeoutMillis = 20_000) { if (server.world.tick >= settled) Unit else null }
+                assertEquals(1, snares())
             }
         }
     }
