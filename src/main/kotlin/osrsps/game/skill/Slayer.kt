@@ -161,12 +161,20 @@ class Slayer(private val world: World, val data: SlayerData) {
     fun eligible(player: Player, entry: SlayerMasterTask): Boolean {
         val task = entry.task
         if (entry.min <= 0 || entry.max < entry.min) return false
-        if (combatChecked(player) && player.skills.combatLevel < task.minCombat) return false
-        if (task.statsAll.any { (skill, level) -> player.skills.baseLevel(skill) < level }) return false
-        if (task.statsAny.isNotEmpty() && task.statsAny.none { (skill, level) -> player.skills.baseLevel(skill) >= level }) return false
+        if (!fit(player, task)) return false
         if (entry.unlockedBy != null && !unlocked(player, entry.unlockedBy)) return false
         if (task.blockedBy != null && unlocked(player, task.blockedBy)) return false
         return true
+    }
+
+    /**
+     * Whether [player] is fit for [task]: its combat level (while the masters check it) and its stat levels. A master
+     * offers to cancel a task the player is no longer fit for (the Wiki's master transcripts).
+     */
+    fun fit(player: Player, task: SlayerTask): Boolean {
+        if (combatChecked(player) && player.skills.combatLevel < task.minCombat) return false
+        if (task.statsAll.any { (skill, level) -> player.skills.baseLevel(skill) < level }) return false
+        return task.statsAny.isEmpty() || task.statsAny.any { (skill, level) -> player.skills.baseLevel(skill) >= level }
     }
 
     /** [master]'s tasks [player] may be given. */

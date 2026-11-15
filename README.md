@@ -1079,12 +1079,15 @@ from the fifth task, the master pays points, five times as many every 10th task,
 every 250th and 50 every 1,000th. The enchanted gem's Check tells the task, how many are left and the streak.
 
 Masters (`game/content/SlayerMasters.kt`): Aya in Burthorpe (`::tele 2931 3536`; with every quest done she holds
-Turael's place, as since While Guthix Sleeps), Spria in Draynor Village and Vannaka in Edgeville Dungeon. Talk-to and
-Assignment follow the Wiki's transcripts. A master draws a task by the cache's weights over what the player may be given
+Turael's place, as since While Guthix Sleeps), Spria in Draynor Village and Vannaka in Edgeville Dungeon; built in place
+outside Misthalin, Mazchna in Canifis (`::tele 3511 3509`), Chaeldar in Zanaris (`::tele 2444 4431`), Steve at the
+Stronghold Slayer Cave (`::tele 2432 3423`, Nieve's place since Monkey Madness II) and Kuradal in Shilo Village
+(`::tele 2869 2982 1`, Duradel's place). Talk-to and Assignment follow the Wiki's transcripts. A master draws a task by the cache's weights over what the player may be given
 (combat level unless they've asked the masters to stop checking it, base levels, rewards bought or blocking) and an
 amount from the entry's range, or an extend's once bought. Below a master's combat level (Vannaka 40) they turn the
-player away; with a task they say what is left. Aya and Spria suggest a higher master to a strong player first;
-Vannaka offers the task's tip. Aya swaps another master's task that isn't on her list for one of hers, resetting the
+player away; with a task the player is no longer fit for (its combat level while checked, or its stat levels) they
+offer to cancel it, keeping the streaks; with another task they say what is left. Aya, Spria and Mazchna suggest a
+higher master to a strong player first; every master but Aya, Spria and Steve offers the task's tip. Aya swaps another master's task that isn't on her list for one of hers, resetting the
 streak, but never Spria's (OSRS Wiki, Spria: her tasks can't be skipped through Turael). Rewards and Slayer equipment come in later steps.
 
 | Slayer behaviour | Source |
@@ -1101,11 +1104,13 @@ streak, but never Spria's (OSRS Wiki, Spria: her tasks can't be skipped through 
 | The draw: weight over the eligible weights; base levels; the combat check (varbit combat_level_reqs_disabled) | OSRS Wiki, Slayer task (Task weighting) |
 | Masters' combat and Slayer levels; Aya, Kuradal and Steve holding Turael's, Duradel's and Nieve's places | OSRS Wiki, Slayer Master, Aya, Kuradal, Steve |
 | Aya's, Spria's and Vannaka's talk, the strong-player bands (Mazchna 20, Vannaka 40, Chaeldar 70), Aya's swap resetting the streak | the Wiki's transcripts (Aya's bands inferred from Spria's) |
-| Aya's and Spria's tiles | mejrs NPCList_OSRS (live), the Wiki's map pins |
+| Mazchna's, Chaeldar's, Steve's and Kuradal's talk; the cancel offer for a task the player is no longer fit for | the Wiki's transcripts |
+| Mazchna suggesting Chaeldar from combat 70; the cancel offer coming before Aya's swap | guessed |
+| Aya's and Spria's tiles; Mazchna's, Chaeldar's, Steve's and Kuradal's (listed under older types: Steve's tile as Nieve's 490, Kuradal's as Duradel's 405) | mejrs NPCList_OSRS (live), the Wiki's map pins |
 | A weak player turned away, a master with nothing to give, what follows Aya's "Yes, please"; chathead expressions | guessed, words unsourced |
 | The amount even across the range | inferred |
 | Every message's words | unsourced: the Words thread fills them |
-| Not built yet: the other masters, rewards, equipment, superiors, Konar's places, boss tasks, Krystilia (the Wilderness), Aya's blessed axe talk | |
+| Not built yet: Konar and her places, rewards, equipment, superiors, boss tasks, Krystilia (the Wilderness), Aya's blessed axe talk, Kuradal's Slayer cape sale and talk about Duradel, the Slayer cape overlooking a master's combat level | |
 
 ## Items and inventory
 

@@ -1,0 +1,21 @@
+{
+ "name": "Slayer step 3: Steve at the Stronghold Slayer Cave's entrance (built in place, reached by ::tele) turning away a player under combat 85, then giving a task with no tip at 99 in every skill, with ::keys on",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account with no task; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "keys", "comment": "the masters' words aren't filled yet, so the script reads their keys"},
+  {"step": "command", "text": "::setlevel all 60", "expectMessage": "Every skill", "comment": "combat 76, under Steve's 85"},
+  {"step": "command", "text": "::tele 2432 3421 0", "expectMessage": "Teleported to 2432, 3421, 0", "comment": "just south of Steve in the Tree Gnome Stronghold"},
+  {"step": "npcOption", "npcId": 6798, "option": "Assignment", "timeoutMs": 20000, "comment": "slayer_master_steve"},
+  {"step": "assertDialogue", "contains": "[slayer_master.too_weak]", "timeoutMs": 15000},
+  {"step": "continueDialogue"},
+  {"step": "command", "text": "::setlevel all 99", "expectMessage": "Every skill"},
+  {"step": "npcOption", "npcId": 6798, "option": "Assignment", "timeoutMs": 20000},
+  {"step": "assertDialogue", "contains": "[slayer_master.new_task ", "timeoutMs": 15000},
+  {"step": "continueDialogue"},
+  {"step": "assertNoDialogue", "comment": "Steve offers no tips"},
+  {"step": "command", "text": "::slayer clear", "expectMessage": "No task."},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
