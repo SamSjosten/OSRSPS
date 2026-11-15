@@ -35,7 +35,7 @@ fun CommandRegistry.registerScenarioCommands(world: World) {
         world.scripts.clearAll(player)
         world.meleeCombat.endFights(player)
         // A stopped Hunter run's traps come down too, so none stands for the next script.
-        world.hunter.traps.takeDown(player.saveKey)
+        world.hunter.traps.takeDown(player)
         player.testCheatsOff()
         before.restoreTo(player)
         // Varp 83 came back with the rest; the overhead icon and the drain go with the prayer book, so it starts afresh.
@@ -79,6 +79,9 @@ private fun CommandContext.start(world: World, scenario: Scenario) {
     }
     if (!world.hasMap(scenario.x, scenario.z)) fail("Scenario ${scenario.name} can't start: no map at ${scenario.x}, ${scenario.z}")
 
+    // Traps laid before a first scenario come back to the backpack first, so its snapshot (and ::reset) keeps them;
+    // an earlier scenario's own traps just come down.
+    world.hunter.traps.takeDown(player, refund = player.beforeScenario == null)
     if (player.beforeScenario == null) player.beforeScenario = world.snapshot(player)
     // Nor a grave from an earlier scenario whose script died before its ::reset: the scenario's death would merge into it.
     world.deaths.dropScenarioGrave(player)
@@ -86,8 +89,6 @@ private fun CommandContext.start(world: World, scenario: Scenario) {
     player.priceChecker.clear()
     world.scripts.clearAll(player)
     world.meleeCombat.endFights(player)
-    // Nor traps from an earlier run: a scenario starts with none laid.
-    world.hunter.traps.takeDown(player.saveKey)
     // A divine potion drunk before would hold the scenario's boosts and then drop them; ::reset puts its varbits back.
     world.potions.clearDivine(player)
     // Nor poison, venom or an antipoison's immunity from before; ::reset puts the poison varp back with the rest.

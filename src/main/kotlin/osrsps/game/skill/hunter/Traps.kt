@@ -375,9 +375,16 @@ class Traps(private val world: World, private val collision: CollisionMap) {
         clear(trap)
     }
 
-    /** Takes down every trap [owner] (a save key) has laid, giving nothing back: ::reset and ::scenario clearing a run. */
-    fun takeDown(owner: String) {
-        of(owner).forEach(::remove)
+    /**
+     * Takes down every trap [owner] has laid: ::reset and ::scenario clearing a run. With [refund], each trap's item goes
+     * back to that player (the backpack, else their tile), as for traps laid before a first scenario, which its snapshot
+     * would otherwise lose; without, a scenario's own traps give nothing back.
+     */
+    fun takeDown(owner: Player, refund: Boolean = false) {
+        for (trap in of(owner.saveKey)) {
+            remove(trap)
+            if (refund) world.objTypes[trap.kind.item]?.let { world.groundObjs.give(owner, it, 1) }
+        }
     }
 
     /** Forgets the traps on the tiles where [inside] holds (an instance ending), so none acts there later. */

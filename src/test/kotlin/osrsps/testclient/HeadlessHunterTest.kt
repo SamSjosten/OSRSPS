@@ -56,6 +56,7 @@ class HeadlessHunterTest {
             locTypes = LocTypes(snareLocs.associateWith { LocType(it, "Bird snare", ops = opsOf(it), collision = LocCollisionType(interactType = 0, blocksProjectile = false)) }),
             npcTypes = NpcTypes.of(swift, wagtail, chinchompa),
             npcSpawns = listOfNotNull(bird?.let { NpcSpawn(it, 3224, 3218, source = "test") }),
+            scenarios = osrsps.game.Scenarios(listOf(osrsps.game.Scenario.parse("here", """{ "position": { "x": 3222, "z": 3218 } }"""))),
             cycleMillis = millis,
         )
     }
@@ -185,6 +186,26 @@ class HeadlessHunterTest {
                     client.groundObjs().firstOrNull { it.id == BirdSnares.SNARE && it.coord.x == at.x && it.coord.z == at.z }
                 }
                 assertTrue(client.locAt(at.x, at.z) != BirdSnares.SET, "the trap is down")
+            }
+        }
+    }
+
+    @Test
+    fun `a snare laid before a first scenario comes back to the backpack, and a reset gives it back`(@TempDir dir: Path) {
+        server(dir, bird = null).use { server ->
+            server.login("gil").use { client ->
+                val at = client.await("the login rebuild") { client.position }
+                client.command("item ${BirdSnares.SNARE} 1")
+                client.lay()
+                client.awaitLoc(BirdSnares.SET, at.x, at.z)
+                assertEquals(0, client.count(BirdSnares.SNARE))
+                // The scenario's snapshot then holds it, so ::reset gives it back too.
+                client.command("scenario here")
+                client.await("the scenario") { client.messages().firstOrNull { it.text.startsWith("Started scenario here.") } }
+                client.await("the trap down") { if (client.locAt(at.x, at.z) != BirdSnares.SET) Unit else null }
+                client.command("reset")
+                client.await("the reset") { client.messages().firstOrNull { it.text.startsWith("Back to how you were") } }
+                client.await("the snare back") { if (client.count(BirdSnares.SNARE) == 1) Unit else null }
             }
         }
     }
