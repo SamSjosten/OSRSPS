@@ -158,12 +158,13 @@ class ScenarioTest {
         assertTrue(cows.equipment.isNotEmpty() && cows.inventory.isNotEmpty())
         val bare = scenarios["lumbridge-bare"]!!
         val museum = scenarios["museum-finds"]!!
-        // The museum's varbits as the 242 cache has them: vm_kudos, vm_necklace and the five Dig Site displays, all clear.
-        assertEquals((listOf(3637, 3639) + (3645..3649)).associateWith { 0 }, museum.varbits)
+        // The museum's varbits as the 242 cache has them: vm_kudos, vm_necklace and every Kudos source (Dig Site, quiz,
+        // timeline), all clear, since the count is worked out from every source.
+        assertEquals((listOf(3637, 3639, 9678, 9679) + (3645..3661) + (3672..3685)).associateWith { 0 }, museum.varbits)
         assertEquals(listOf("vm_symbol_old_inv", "necklace_of_digsite"), museum.inventory.map { it.item })
         val quiz = scenarios["museum-quiz"]!!
         // Orlando's quiz untaken, every display (his and the Dig Site's), his reward and the clerk's first clear (the 242 cache's varbits).
-        assertEquals((listOf(3637, 3640, 3671, 3688) + (3645..3649) + (3672..3685)).associateWith { 0 }, quiz.varbits)
+        assertEquals((listOf(3637, 3640, 3671, 3688, 9678, 9679) + (3645..3661) + (3672..3685)).associateWith { 0 }, quiz.varbits)
         // On the Natural History floor, by Orlando (npc-spawns/varrock.json, 1759, 4955).
         assertTrue(quiz.x in 1756..1762 && quiz.z in 4953..4958 && quiz.level == 0)
         assertEquals(setOf(50), quiz.skills.values.map { it.level }.toSet())
