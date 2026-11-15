@@ -194,16 +194,23 @@ class Deaths(
         // Protect Item counts if it is on as they fall; the prayers then go off (guessed: as they fall, not at the respawn).
         // A skull keeps none of the three (OSRS Wiki, Items Kept on Death); the skull then goes (guessed).
         player.deathKeptItems = (if (player.skullTicks > 0) 0 else KEPT_ITEMS) + if (protectItem(player)) 1 else 0
-        player.skullTicks = 0
-        // Those they attacked first may hit back unskulled only while that skull lasts (Skulls), so they go with it.
-        player.attackedFirst.clear()
-        player.deathKiller = killerOf(player)
+        // The skull and the hit-back rights go at the respawn, and only with a death that loses items (respawn).
+        player.deathKiller = if (pvpDeath(player)) killerOf(player) else null
         prayersOff(player)
         player.interaction = null
         player.waypoints.clear()
         player.anim(DEATH_ANIM)
         fell(player)
     }
+
+    /**
+     * Whether [player]'s death can be a PvP one, its loot for a killer: only on a tile where players may fight
+     * ([osrsps.game.Wilderness.pvpLevel] above 0, so not the safe rows or Ferox Enclave), outside any instance or raid
+     * ([placeOf] null), and not in a `::scenario` (whose items go with its grave). A hit that came in the Wilderness
+     * with the death somewhere else is a death like any other (exploit review round 36, R36A-1 and R36A-2).
+     */
+    private fun pvpDeath(player: Player): Boolean =
+        osrsps.game.Wilderness.pvpLevel(player.x, player.z) > 0 && placeOf(player) == null && player.scenario == null
 
     /** Counts the graves down (a grave raised this tick starts next tick), and respawns the players whose death animation is over. */
     fun process() {
@@ -232,6 +239,12 @@ class Deaths(
         player.deathTick = -1
         loseHardcore(player)
         val keep = place?.keepItems == true
+        if (!keep) {
+            // A skull goes with a death that loses items (guessed), and with it the hit-back rights it gave those
+            // attacked first (Skulls); a raid death that keeps everything keeps both (exploit review round 36, R36A-3).
+            player.skullTicks = 0
+            player.attackedFirst.clear()
+        }
         // The kept items are sorted with the price checker's among them, before it is emptied, so a valuable one being
         // checked can still be kept.
         val sorted = if (keep) emptyList() else dropItems(player)

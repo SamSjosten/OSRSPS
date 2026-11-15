@@ -27,7 +27,7 @@ object Skulls {
     /** Whether [attacker]'s attack on [target] on [tick] is unprovoked: [target] hasn't attacked them first, unskulled. */
     @Suppress("UNUSED_PARAMETER")
     fun unprovoked(attacker: Player, target: Player, tick: Long): Boolean =
-        (target.attackedFirst[attacker.username.lowercase()] ?: 0) <= 0
+        (target.attackedFirst[attacker.saveKey] ?: 0) <= 0
 
     /** Whether the PK Skull Prevention setting refuses [attacker]'s attack on [target]: it would give them a skull. */
     fun prevented(attacker: Player, target: Player, tick: Long): Boolean =
@@ -43,7 +43,7 @@ object Skulls {
     fun attacked(attacker: Player, target: Player, tick: Long) {
         if (!unprovoked(attacker, target, tick)) return
         attacker.skullTicks = TICKS
-        attacker.attackedFirst[target.username.lowercase()] = TICKS
+        attacker.attackedFirst[target.saveKey] = TICKS
     }
 
     /** A tick of [player]'s skull goes by, and of the time each player they attacked first may hit them back. */
