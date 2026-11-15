@@ -15,7 +15,7 @@
   {"step": "npcOption", "npc": "Hero", "option": "Pickpocket", "timeoutMs": 20000},
   {"step": "assertMessage", "contains": "[pickpocket.attempt who=hero]", "timeoutMs": 10000},
   {"step": "waitTicks", "ticks": 14, "comment": "past a stun, if there was one (heroes' is 10 ticks)"},
-  {"step": "command", "text": "::tele 2576 3300 0", "expectMessage": "Teleported to 2576, 3300, 0", "comment": "East Ardougne Castle's ground floor: paladins"},
+  {"step": "command", "text": "::tele 2653 3310 0", "expectMessage": "Teleported to 2653, 3310, 0", "comment": "the market, by the paladins at 2653,3315 and 2657,3307. From the castle lawn (2576,3300) none was reachable (nightly 2026-11-15); this tile is inferred, not checked"},
   {"step": "waitTicks", "ticks": 3},
   {"step": "npcOption", "npc": "Paladin", "option": "Pickpocket", "timeoutMs": 20000},
   {"step": "assertMessage", "contains": "[pickpocket.attempt who=paladin]", "timeoutMs": 10000},

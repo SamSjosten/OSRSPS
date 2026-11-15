@@ -181,6 +181,11 @@ class HeadlessHamHideoutTest {
                         // The stunned message gives way to the concussion's (or Agility's).
                         client.await("the blow") { if (client.seen(CONCUSSED) + client.seen(AVOIDED) > 0) Unit else null }
                         assertEquals(0, client.seen("[pickpocket.stunned]"))
+                        // The third concussion's bundling comes as a message of its own in the same tick: the client may
+                        // not have read it yet when the concussion wakes this wait, and another click would go to a
+                        // member the thief was just thrown away from (CI, 2026-11-15). With no H.A.M. clothing it always
+                        // comes.
+                        if (client.seen(CONCUSSED) >= HamHideout.CONCUSSIONS_OUT) client.awaitSeen(BUNDLED)
                     }
                 }
                 assertTrue(won, "a pickpocket at 53% works in 80 tries")
