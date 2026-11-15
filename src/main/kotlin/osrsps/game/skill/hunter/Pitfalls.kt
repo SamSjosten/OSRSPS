@@ -192,7 +192,8 @@ class Pitfalls(private val world: World, private val traps: Traps) {
             val creature = tease.creature
             val pair = creature.catchPair
             val hunter = owner.skills.currentLevel(Skill.HUNTER)
-            val caught = pair == null || hunter >= creature.level && rolls(owner, pair, hunter)
+            // The level holds for the sure catches (antelopes) too, as a boost may have run out since the tease.
+            val caught = hunter >= creature.level && (pair == null || rolls(owner, pair, hunter))
             if (caught) {
                 pit.headingUp = axis.headingUp
                 npc.effects.anim(FALL_ANIM)
@@ -271,7 +272,7 @@ class Pitfalls(private val world: World, private val traps: Traps) {
         if (mine(player, loc) != null) return
         val creature = pit.creature
         if (player.skills.currentLevel(Skill.HUNTER) < creature.level) return world.message(player, HunterLines.PIT_LEVEL, "level" to creature.level)
-        if (Deadfalls.KNIVES.none { player.inventory.count(it) > 0L }) return world.message(player, HunterLines.NO_KNIFE)
+        if (!Deadfalls.hasKnife(player)) return world.message(player, HunterLines.NO_KNIFE)
         if (Deadfalls.LOGS.none { player.inventory.count(it) > 0L }) return world.message(player, HunterLines.NO_LOGS)
         if (!underLimit()) return
         player.anim(LAY_ANIM)

@@ -547,7 +547,7 @@ class Traps(private val world: World, private val collision: CollisionMap) {
      * the log goes only one time in four.
      */
     private suspend fun ScriptContext.setDeadfall(kind: DeadfallKind, boulder: ZoneLoc) {
-        if (Deadfalls.KNIVES.none { player.inventory.count(it) > 0L }) return world.message(player, HunterLines.NO_KNIFE)
+        if (!Deadfalls.hasKnife(player)) return world.message(player, HunterLines.NO_KNIFE)
         if (Deadfalls.LOGS.none { player.inventory.count(it) > 0L }) return world.message(player, HunterLines.NO_LOGS)
         if (!canLay(kind, boulder.x, boulder.z, boulder.level, boulder)) return
         player.anim(kind.layAnim)

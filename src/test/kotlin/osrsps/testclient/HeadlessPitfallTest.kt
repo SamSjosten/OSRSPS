@@ -17,6 +17,7 @@ import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
 import osrsps.game.npc.NpcSpawn
+import osrsps.game.skill.hunter.Deadfalls
 import osrsps.game.skill.hunter.Pitfalls
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
@@ -40,6 +41,10 @@ class HeadlessPitfallTest {
         for (id in listOf(KNIFE, LOGS, Pitfalls.TEASING_STICK, Pitfalls.BIG_BONES, RAW_LARUPIA, LARUPIA_FUR, TATTY_LARUPIA_FUR)) {
             objs[id] = ObjType(id, "Obj $id", stackable = false, tradeable = true)
         }
+        objs[Deadfalls.FLETCHING_KNIFE] = ObjType(
+            Deadfalls.FLETCHING_KNIFE, "Fletching knife", stackable = false, tradeable = false,
+            iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = osrsps.game.WearPos.SHIELD,
+        )
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs),
             random = GameRandom(7),
@@ -171,7 +176,29 @@ class HeadlessPitfallTest {
         }
     }
 
+    @Test
+    fun `a fletching knife worn in the off-hand sets a pit, as one in the backpack does`(@TempDir dir: Path) {
+        server(dir, 3226, 3213).use { server ->
+            server.login("fi").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel hunter 31")
+                client.command("item ${Deadfalls.FLETCHING_KNIFE} 1")
+                client.command("item $LOGS 1")
+                client.await("the logs") { if (client.count(LOGS) == 1) Unit else null }
+                val slot = client.await("the knife") { client.inventory(BACKPACK).indexOfFirst { it?.id == Deadfalls.FLETCHING_KNIFE }.takeIf { it >= 0 } }
+                client.ifButton(INVENTORY, INVENTORY_ITEMS, WIELD_BUTTON, slot, Deadfalls.FLETCHING_KNIFE)
+                client.await("the knife worn") { client.inventory(WORN).getOrNull(osrsps.game.WearPos.SHIELD)?.takeIf { it.id == Deadfalls.FLETCHING_KNIFE } }
+                client.locOp(PIT, 3222, 3220, Pitfalls.TRAP)
+                client.awaitPit(Pitfalls.SET)
+            }
+        }
+    }
+
     private companion object {
+        const val INVENTORY = 149
+        const val INVENTORY_ITEMS = 0
+        const val WIELD_BUTTON = 3
+        const val WORN = 94
         const val BACKPACK = 93
         const val HUNTER = 21
         const val PIT = 19259 // hunting_pitfall_7, a larupia pit
