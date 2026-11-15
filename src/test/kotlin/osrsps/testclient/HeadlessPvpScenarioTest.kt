@@ -14,7 +14,10 @@ import osrsps.game.Scenario
 import osrsps.game.Scenarios
 import osrsps.game.WearPos
 import osrsps.game.World
+import osrsps.game.VarTypes
+import osrsps.game.VarbitType
 import osrsps.game.combat.Skulls
+import osrsps.game.combat.Teleblock
 import osrsps.map.CollisionMap
 
 /**
@@ -41,13 +44,16 @@ class HeadlessPvpScenarioTest {
 
     private val pvp = Scenario.parse("pvp", Scenarios::class.java.getResource("/scenarios/pvp.json")!!.readText())
 
+    /** The 242 cache's `teleblock_cycles`, bits 0 to 11 of varp 2741. */
+    private val varTypes = VarTypes(6_000, mapOf(Teleblock.VARBIT to VarbitType(TELEBLOCK_VARP, 0, 11)))
+
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val map = CollisionMap().apply {
             for (sz in (3456 shr 6)..(3967 shr 6)) markLoaded(3090 shr 6, sz)
         }
         val objs = arrayOfNulls<ObjType>(items.maxOf { it.id } + 1)
         for (type in items) objs[type.id] = type
-        World(crcs, map, random = GameRandom(3), objTypes = ObjTypes(objs), scenarios = Scenarios(listOf(pvp)), cycleMillis = millis)
+        World(crcs, map, random = GameRandom(3), objTypes = ObjTypes(objs), scenarios = Scenarios(listOf(pvp)), varTypes = varTypes, cycleMillis = millis)
     }
 
     /**
@@ -130,8 +136,34 @@ class HeadlessPvpScenarioTest {
         }
     }
 
+    @Test
+    fun `reset after a scenario leaves no Tele Block timer from before it`(@TempDir dir: Path) {
+        // Codex review on #723: the snapshot taken as the scenario starts holds the block's varbit.
+        server(dir).use { server ->
+            server.login("gwen").use { a ->
+                server.login("hugo").use { b ->
+                    a.await("the login rebuild") { a.position }
+                    b.await("the login rebuild") { b.position }
+                    val world = server.world
+                    val gwen = world.playerNamed("gwen")!!
+                    a.command("wildy 10")
+                    a.await("in the Wilderness") { a.position?.takeIf { it.z > 3520 } }
+                    Teleblock.block(gwen, world.playerNamed("hugo")!!, Teleblock.TICKS)
+                    a.await("the varbit set") { a.varp(TELEBLOCK_VARP).takeIf { it > 0 } }
+                    a.commandReply("scenario pvp") { it.startsWith("Started scenario pvp") }
+                    assertEquals(0, gwen.teleblockTicks, "the scenario cleared the block")
+                    a.commandReply("reset") { it.startsWith("Back to how you were") }
+                    a.awaitTicks(2)
+                    assertEquals(0, a.varp(TELEBLOCK_VARP), "no timer for a block that's gone")
+                    assertEquals(0, gwen.teleblockTicks)
+                }
+            }
+        }
+    }
+
     private companion object {
         const val ATTACK = 0
+        const val TELEBLOCK_VARP = 2741
 
         /** Long enough for several swings, short of a kill: 70 Hitpoints. */
         const val TICKS = 14

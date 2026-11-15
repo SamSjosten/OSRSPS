@@ -7,6 +7,8 @@ import osrsps.game.PlayerSkills
 import osrsps.game.Scenario
 import osrsps.game.Skill
 import osrsps.game.World
+import osrsps.game.bank.setVarbitIfKnown
+import osrsps.game.combat.Teleblock
 
 /**
  * Jump into a testing scenario and back out. `::scenario name` remembers the player as they were the first time, so a
@@ -39,6 +41,9 @@ fun CommandRegistry.registerScenarioCommands(world: World) {
         world.pvpCombat.clear(player)
         player.testCheatsOff()
         before.restoreTo(player)
+        // A Tele Block from before the scenario was cleared as it started, but the snapshot held its varbit: cleared again,
+        // or RuneLite would show a timer for a block that's gone (Codex review on #723).
+        player.vars.setVarbitIfKnown(Teleblock.VARBIT, 0)
         // Varp 83 came back with the rest; the overhead icon and the drain go with the prayer book, so it starts afresh.
         world.prayers.deactivateAll(player)
         // A stall owner's grudge from a test theft goes too, so the next script can trade with them.
