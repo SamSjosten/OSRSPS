@@ -128,12 +128,13 @@ main() {
 		if ! fast_forward "$target"; then
 			return 1
 		fi
-		# VM 214 has about 2.2 GB, the server takes about 1 GB and a cold build about 1.1 GB: when that doesn't fit, the
-		# server stops for the build (players are kicked a few minutes early) rather than the kernel killing the build.
+		# The server takes about 1 GB and a cold build about 1.5 GB (Dockerfile, 2026-11-15; it was 1.1 GB when VM 214 had
+		# about 2.2 GB): when that doesn't fit, the server stops for the build (players are kicked a few minutes early)
+		# rather than the kernel killing the build.
 		local stopped=0 available
 		available=$(mem_available_mb)
-		if ((available < ${OSRSPS_BUILD_NEEDS_MB:-1300})); then
-			echo "Stopping the server for the build: ${available} MB available, the build needs ${OSRSPS_BUILD_NEEDS_MB:-1300}"
+		if ((available < ${OSRSPS_BUILD_NEEDS_MB:-1600})); then
+			echo "Stopping the server for the build: ${available} MB available, the build needs ${OSRSPS_BUILD_NEEDS_MB:-1600}"
 			put built ""
 			docker compose stop && stopped=1
 		fi
