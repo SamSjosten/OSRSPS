@@ -229,6 +229,8 @@ class PvpCombat(
         val matchup = combat.pvpRangedMatchup(player, target) ?: return true
         val spent = ranged.spend(player, weapon, matchup.style) ?: return true
         val travel = ranged.launch(player, weapon, spent, tick)
+        // A blowpipe is a tick slower at a player than at a monster, on every style (OSRS Wiki, Attack speed).
+        if (weapon.loaded) player.nextAttackTick += BLOWPIPE_PVP_SLOWER
         val distance = LineOfSight.distance(player.x, player.z, 1, target.x, target.z, 1, 1)
         val delay = weapon.delay.ticks(distance) + late(target, tick)
         repeat(spent.shots) { shot ->
@@ -262,9 +264,12 @@ class PvpCombat(
         }
         player.skills.addTenths(Skill.HITPOINTS, CombatMath.hitpointsXpTenths(damage))
         hits += Hit(player, target, damage, tick + delay + late, spell, hit = rolled != null)
-        // A spell from the book is cast once; the autocast spell, if any, carries the fight on.
+        // A spell from the book is cast once; the autocast spell, if any, carries the fight on. With none, the fight
+        // ends here, and the player keeps facing the target ([Player.castAtPlayer]).
         fight.spell = null
-        return magic.pvpFightSpell(player) == null
+        val ends = magic.pvpFightSpell(player) == null
+        if (ends) player.castAtPlayer = target
+        return ends
     }
 
     /**
@@ -352,6 +357,9 @@ class PvpCombat(
 
         /** Ticks of immunity after a freeze (OSRS Wiki, Freeze: 5 ticks for all but the Grasp spells). */
         const val FREEZE_IMMUNITY_TICKS = 5
+
+        /** The ticks a blowpipe adds to its attack speed against a player (OSRS Wiki, Attack speed). */
+        const val BLOWPIPE_PVP_SLOWER = 1
 
         /** [damage] through the target's protection prayer: 60% of it, rounded down (guessed rounding). */
         fun prayed(damage: Int): Int = damage * PROTECTED_PERCENT / 100

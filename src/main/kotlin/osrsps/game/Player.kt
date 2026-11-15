@@ -161,6 +161,12 @@ class Player(
     /** The player this one was last told to face, so a change is sent once. See [World]'s face updates. */
     var sentFacePlayer: Player? = null
 
+    /**
+     * The player [this] last cast a single spellbook spell at, whom they keep facing once the cast's fight is over until
+     * they do something else ([osrsps.game.Follow.updateFace]), as after a single cast at an NPC. Not saved.
+     */
+    var castAtPlayer: Player? = null
+
     /** What the player is walking to use, a loc, a ground obj or an NPC, if anything. Walking elsewhere or teleporting drops it. */
     var interaction: Interaction? = null
 

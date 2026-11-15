@@ -17,6 +17,7 @@ import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.combat.AttackStance
 import osrsps.game.combat.AttackStyles
+import osrsps.game.combat.Blowpipe
 import osrsps.game.combat.CombatMath
 import osrsps.game.combat.MagicCombat
 import osrsps.game.combat.PvpCombat
@@ -43,6 +44,12 @@ class HeadlessPvpRangedMagicTest {
         4651, "Ice Barrage", internalName = "94_ice_barrage",
         params = mapOf(601 to "Ice Barrage", 604 to 94, 596 to (218 shl 16 or ICE_BARRAGE), 336 to 1, 365 to WATER, 366 to 6, 367 to BLOOD, 368 to 2, 369 to DEATH, 370 to 4),
     )
+    // As HeadlessBlowpipeTest has them: param 14 attack speed 3; obj category 24 is thrown (attack styles row 19).
+    private val blowpipe = ObjType(
+        Blowpipe.LOADED, "Toxic blowpipe", iops = listOf(null, "Wield", "Check", "Unload", "Uncharge"), wearpos1 = WearPos.WEAPON,
+        params = mapOf(4 to 30, 12 to 20, 14 to 3), internalName = "toxic_blowpipe_loaded", category = 24,
+    )
+    private val darts = ObjType(DRAGON_DART, "Dragon dart", stackable = true, params = mapOf(12 to 35), internalName = "dragon_dart")
     private val runes = listOf(
         Triple(AIR, "Air rune", "airrune"), Triple(FIRE, "Fire rune", "firerune"), Triple(MIND, "Mind rune", "mindrune"),
         Triple(WATER, "Water rune", "waterrune"), Triple(BLOOD, "Blood rune", "bloodrune"), Triple(DEATH, "Death rune", "deathrune"),
@@ -60,6 +67,11 @@ class HeadlessPvpRangedMagicTest {
                 1, "Rapid", "(Rapid)<br>(Standard)<br>(Ranged XP)", 0,
                 3, "Longrange", "(Longrange)<br>(Standard)<br>(Ranged XP)<br>(Defence XP)", 0,
             ),
+            listOf<Any>(19) to listOf<Any>(
+                0, "Accurate", "(Accurate)<br>(Standard)<br>(Ranged XP)", 0,
+                1, "Rapid", "(Rapid)<br>(Standard)<br>(Ranged XP)", 0,
+                3, "Longrange", "(Longrange)<br>(Standard)<br>(Ranged XP)<br>(Defence XP)", 0,
+            ),
         ),
     )
 
@@ -67,8 +79,8 @@ class HeadlessPvpRangedMagicTest {
         val map = CollisionMap().apply {
             for (sz in (3456 shr 6)..(3967 shr 6)) markLoaded(3090 shr 6, sz)
         }
-        val objs = arrayOfNulls<ObjType>(barrage.id + 1)
-        for (type in runes + listOf(shortbow, arrows, fireStrike, barrage)) objs[type.id] = type
+        val objs = arrayOfNulls<ObjType>(Blowpipe.LOADED + 1)
+        for (type in runes + listOf(shortbow, arrows, fireStrike, barrage, blowpipe, darts)) objs[type.id] = type
         val objTypes = ObjTypes(objs)
         World(
             crcs, map, random = GameRandom(9), objTypes = objTypes,
@@ -160,6 +172,8 @@ class HeadlessPvpRangedMagicTest {
                     a.awaitTicks(MagicCombat.SPEED * 2)
                     assertEquals(listOf(9, 27, 18), listOf(a.carried(MIND), a.carried(FIRE), a.carried(AIR)), "one cast's runes")
                     assertEquals(99 - 8, b.hitpoints(), "cast once")
+                    // The fight is over, but the caster still faces the target (Codex review on #708).
+                    assertEquals("tess", server.world.playerNamed("saul")!!.sentFacePlayer?.username)
                 }
             }
         }
@@ -197,8 +211,36 @@ class HeadlessPvpRangedMagicTest {
         }
     }
 
+    @Test
+    fun `a blowpipe shoots a player a tick slower than a monster`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("walt").use { a ->
+                server.login("xena").use { b ->
+                    a.await("the login rebuild") { a.position }
+                    a.commandReply("setlevel ranged 99") { true }
+                    a.command("item ${Blowpipe.LOADED}")
+                    a.itemOp(Blowpipe.LOADED, WIELD)
+                    a.await("the blowpipe worn") { a.inventory(WORN).getOrNull(WearPos.WEAPON)?.takeIf { it.id == Blowpipe.LOADED } }
+                    val walt = server.world.playerNamed("walt")!!
+                    walt.charges[Blowpipe.DART_TYPE] = DRAGON_DART
+                    walt.charges[Blowpipe.DARTS] = 100
+                    walt.charges[Blowpipe.SCALES] = 1_000
+                    pair(a, b)
+
+                    a.playerOp(b.index, PlayerOps.ATTACK)
+                    // Two shots in a row: the second's next-attack tick is the speed after the first's. Accurate is
+                    // the blowpipe's 3 at a monster, so 4 at a player.
+                    val first = a.await("the first shot") { walt.nextAttackTick.takeIf { it > 0 } }
+                    val second = a.await("the second shot") { walt.nextAttackTick.takeIf { it > first } }
+                    assertEquals(3 + PvpCombat.BLOWPIPE_PVP_SLOWER.toLong(), second - first)
+                }
+            }
+        }
+    }
+
     private companion object {
         const val Z = 3800
+        const val DRAGON_DART = 11230
         const val SHORTBOW = 841
         const val BRONZE_ARROW = 882
         const val ARROWS = 100
