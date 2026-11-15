@@ -1,0 +1,33 @@
+{
+  "name": "Wilderness step W4.15: the Corporeal Beast's cave at level 20 down to its lair, Peek and Go-through on the Passage, the Corporeal Beast fought under ::god and killed with ::kill, its kill count's key, then back through the Passage and out by the Cave exit (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off).", "comment": "level 20 outside; the lair isn't in the Wilderness"},
+    {"step": "command", "text": "::tele 3202 3678 0", "expectMessage": "Teleported to 3202, 3678, 0", "comment": "south of the cave at 3201,3679"},
+    {"step": "waitTicks", "ticks": 1},
+    {"step": "command", "text": "::aggro 1000", "expectMessage": "aggressive monsters here are tolerant of you", "comment": "tolerated, so no level-20 monster takes the player on: in combat, the cave refuses Enter"},
+    {"step": "command", "text": "::kill black unicorn", "expectMessage": "Killed Black unicorn #", "comment": "the one that took the player on as they arrived, before the tolerance"},
+    {"step": "waitTicks", "ticks": 10, "comment": "out of combat, as the cave's Enter wants"},
+    {"step": "locOption", "locId": 678, "option": "Enter", "x": 3201, "y": 3679},
+    {"step": "waitTicks", "ticks": 4},
+    {"step": "assertLocation", "x": 2965, "y": 4254, "plane": 2},
+    {"step": "locOption", "locId": 677, "option": "Peek", "x": 2971, "y": 4254},
+    {"step": "assertMessage", "contains": "[corporeal_beast.peek count=", "timeoutMs": 10000},
+    {"step": "locOption", "locId": 677, "option": "Go-through", "x": 2971, "y": 4254},
+    {"step": "waitTicks", "ticks": 4},
+    {"step": "npcOption", "npc": "Corporeal Beast", "option": "Attack", "timeoutMs": 20000},
+    {"step": "assertHitsplat", "npc": "Corporeal Beast", "timeoutMs": 30000},
+    {"step": "command", "text": "::kill", "expectMessage": "Killed Corporeal Beast #"},
+    {"step": "assertMessage", "contains": "[wilderness_boss.kill_count boss=Corporeal Beast count=", "timeoutMs": 15000},
+    {"step": "command", "text": "::tele 2974 4256 2", "expectMessage": "Teleported to 2974, 4256, 2", "comment": "east of the Passage"},
+    {"step": "locOption", "locId": 677, "option": "Go-through", "x": 2971, "y": 4254},
+    {"step": "waitTicks", "ticks": 4},
+    {"step": "assertLocation", "x": 2970, "y": 4256, "plane": 2},
+    {"step": "locOption", "locId": 679, "option": "Exit", "x": 2963, "y": 4254},
+    {"step": "waitTicks", "ticks": 6},
+    {"step": "assertLocation", "x": 3202, "y": 3678, "plane": 0},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
+  ]
+}

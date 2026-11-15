@@ -5,6 +5,7 @@ import osrsps.game.Facing
 import osrsps.game.NpcStat
 import osrsps.game.NpcType
 import osrsps.game.Player
+import osrsps.game.combat.AttackType
 import osrsps.map.Tile
 
 /** The eight directions an NPC can face when it spawns, with the ids RSProt's NPC info sends them as. */
@@ -235,6 +236,13 @@ class Npc(
      * "Magic resistance") for Bork.
      */
     var armour: ((magic: Boolean) -> Int)? = null
+
+    /**
+     * What it takes of each player hit after its [armour], asked as the hit is rolled
+     * ([osrsps.game.combat.MeleeCombat.armoured]) with the player and the hit's attack type. Null, all of it, for most;
+     * a boss fight sets it (the Corporeal Beast's halving of all but stabs from its bane weapons, W4.15).
+     */
+    var damageCut: ((player: Player, damage: Int, type: AttackType) -> Int)? = null
 
     /**
      * Melee hits on it always land before this tick, whatever their roll; -1, none. A boss fight sets it: Bork dazed by

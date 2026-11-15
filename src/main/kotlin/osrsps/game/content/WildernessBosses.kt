@@ -19,6 +19,8 @@ object WildernessBossLines : Lines("wilderness_boss", "Kill count") {
  * A Wilderness boss (piece 4): its NPC [types], the name `::wboss` takes, its kill count's varp (the cache's
  * `total_<boss>_kills`, -1 for none), whether a kill's loot is [group] loot split by damage, and its [uniques], the items
  * that drop at most once a kill. A [lair] boss's top damage dealer gets 10,000 off the lairs' fee ([WildernessLairFee]).
+ * A [topDamage] boss's loot and kill count go to its top damage dealer alone, not whoever struck last (the Corporeal
+ * Beast: "only the player who dealt the most damage will receive kill credit and loot").
  */
 class WildernessBoss(
     val name: String,
@@ -27,6 +29,7 @@ class WildernessBoss(
     val group: Boolean = false,
     val uniques: Set<Int> = emptySet(),
     val lair: Boolean = false,
+    val topDamage: Boolean = false,
 )
 
 /**
@@ -122,13 +125,14 @@ class WildernessBosses(private val world: World) {
     private fun died(npc: Npc, boss: WildernessBoss) {
         // Who is logged in and at the fight now decides every reward, not who is when the loot shows a few ticks later.
         val atKill = shares(npc).also { damage[npc]?.atKill = it }
-        if (boss.lair) {
-            // The most damage among them; a tie goes to whoever hit first (inferred), the tally's first. Not the raw
-            // tally, which still holds those who logged out or left (exploit review rounds 40 and 42, R40B-5).
-            val top = atKill.firstOrNull()?.key
-            world.onlinePlayers.firstOrNull { it.saveKey == top }?.let(WildernessLairFee::discount)
+        // The most damage among them; a tie goes to whoever hit first (inferred), the tally's first. Not the raw tally,
+        // which still holds those who logged out or left (exploit review rounds 40 and 42, R40B-5).
+        val top = atKill.firstOrNull()?.key
+        if (boss.lair) world.onlinePlayers.firstOrNull { it.saveKey == top }?.let(WildernessLairFee::discount)
+        val looters = when {
+            boss.group -> atKill.map { it.key }
+            else -> listOfNotNull(top)
         }
-        val looters = if (boss.group) atKill.map { it.key } else atKill.take(1).map { it.key }
         if (boss.killCountVarp < 0) return
         for (key in looters) {
             val player = world.onlinePlayers.firstOrNull { it.saveKey == key && !it.loggedOut } ?: continue
@@ -163,8 +167,8 @@ class WildernessBosses(private val world: World) {
         player.vars.types.varbit(SettingsSide.VARBIT_IRONMAN) != null && player.vars.getVarbit(SettingsSide.VARBIT_IRONMAN) != 0
 
     /**
-     * Puts down [npc]'s loot if it is a boss with group loot, and returns true; false leaves it to the usual drop. Its
-     * damage tally goes either way.
+     * Puts down [npc]'s loot if it is a boss with group loot, or a [WildernessBoss.topDamage] one's for its top damage
+     * dealer, and returns true; false leaves it to the usual drop. Its damage tally goes either way.
      */
     fun loot(npc: Npc): Boolean {
         // Most NPCs that die are no boss: they cost one lookup here, no more.
@@ -172,7 +176,22 @@ class WildernessBosses(private val world: World) {
         bodyGoing?.takeIf { it.first === npc }?.let { damage[npc] = it.second }
         bodyGoing = null
         val shares = damage[npc]?.atKill ?: shares(npc)
+        // The top of those still at the fight at the kill (exploit review rounds 40 and 42).
+        val top = shares.firstOrNull()?.key
         damage.remove(npc)
+        if (boss.topDamage) {
+            val def = world.npcDrops[npc.type] ?: return true
+            val player = world.onlinePlayers.firstOrNull { it.saveKey == top }
+            for (drop in def.roll(world.random)) {
+                if (top != null) {
+                    world.groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, top, GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.LOOT_DESPAWN_TICKS)
+                    player?.let { world.lootNotifications.dropped(it, drop.type, drop.count) }
+                } else {
+                    world.groundObjs.addPublic(drop.type, drop.count, npc.x, npc.z, npc.level, GroundObjs.LOOT_DESPAWN_TICKS)
+                }
+            }
+            return true
+        }
         if (!boss.group) {
             solo = Solo(npc, shares.firstOrNull()?.key)
             return false
