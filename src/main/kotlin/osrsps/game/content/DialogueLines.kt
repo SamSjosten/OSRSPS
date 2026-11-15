@@ -182,6 +182,7 @@ object DialogueLines {
         ChaosFanaticLines,
         VolcanicForgeLines,
         KingBlackDragonLines,
+        WildernessLairLines,
         WildernessLairFeeLines,
         osrsps.game.FountainOfRuneLines,
         OborLines,
