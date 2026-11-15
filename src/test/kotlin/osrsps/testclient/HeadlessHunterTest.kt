@@ -16,6 +16,7 @@ import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.skill.hunter.BirdSnares
+import osrsps.game.skill.hunter.BoxTraps
 import osrsps.game.skill.hunter.Traps
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
@@ -28,6 +29,7 @@ import osrsps.map.LocCollisionType
 class HeadlessHunterTest {
     private val swift = NpcType(BirdSnares.CRIMSON_SWIFT, "Crimson swift", internalName = "hunting_bird_jungle")
     private val wagtail = NpcType(BirdSnares.TROPICAL_WAGTAIL, "Tropical wagtail", internalName = "multicoloured_bird")
+    private val chinchompa = NpcType(BoxTraps.CHINCHOMPA, "Chinchompa", internalName = "hunting_chinchompa")
 
     // Fast ticks: a trap stands 100 of them before it collapses.
     private fun server(dir: Path, bird: NpcType? = swift) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
@@ -36,15 +38,23 @@ class HeadlessHunterTest {
             BirdSnares.SNARE, "Bird snare", stackable = true, tradeable = true,
             ops = listOf(null, null, "Take", "Lay", null), iops = listOf("Lay", null, null, null, "Drop"),
         )
-        for ((id, name, stacks) in listOf(Triple(BONES, "Bones", false), Triple(MEAT, "Raw bird meat", false), Triple(RED_FEATHER, "Red feather", true))) {
+        objs[BoxTraps.BOX_TRAP] = ObjType(
+            BoxTraps.BOX_TRAP, "Box trap", stackable = true, tradeable = true,
+            ops = listOf(null, null, "Take", "Lay", null), iops = listOf("Lay", null, null, null, "Drop"),
+        )
+        for ((id, name, stacks) in listOf(
+            Triple(BONES, "Bones", false), Triple(MEAT, "Raw bird meat", false), Triple(RED_FEATHER, "Red feather", true),
+            Triple(BoxTraps.CHINCHOMPA_ITEM, "Chinchompa", true),
+        )) {
             objs[id] = ObjType(id, name, stackable = stacks, tradeable = true)
         }
-        val snareLocs = listOf(BirdSnares.SET, BirdSnares.FAILING, BirdSnares.BROKEN) + BirdSnares.BIRDS.flatMap { listOf(it.catching, it.full) }
+        val snareLocs = listOf(BirdSnares.SET, BirdSnares.FAILING, BirdSnares.BROKEN) + BirdSnares.BIRDS.flatMap { listOf(it.catching, it.full) } +
+            listOf(BoxTraps.SET, BoxTraps.FAILING, BoxTraps.BROKEN) + BoxTraps.CREATURES.flatMap { it.catchingFrom + it.full }
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs),
             random = GameRandom(7),
             locTypes = LocTypes(snareLocs.associateWith { LocType(it, "Bird snare", ops = opsOf(it), collision = LocCollisionType(interactType = 0, blocksProjectile = false)) }),
-            npcTypes = NpcTypes.of(swift, wagtail),
+            npcTypes = NpcTypes.of(swift, wagtail, chinchompa),
             npcSpawns = listOfNotNull(bird?.let { NpcSpawn(it, 3224, 3218, source = "test") }),
             cycleMillis = millis,
         )
@@ -52,9 +62,9 @@ class HeadlessHunterTest {
 
     /** The cache's ops on each snare loc. */
     private fun opsOf(loc: Int): List<String?> = when (loc) {
-        BirdSnares.SET -> listOf("Dismantle", "Investigate", null, null, null)
-        BirdSnares.BROKEN -> listOf("Dismantle", "Reset", null, null, null)
-        in BirdSnares.BIRDS.map { it.full } -> listOf("Check", "Reset", null, null, null)
+        BirdSnares.SET, BoxTraps.SET -> listOf("Dismantle", "Investigate", null, null, null)
+        BirdSnares.BROKEN, BoxTraps.BROKEN -> listOf("Dismantle", "Reset", null, null, null)
+        in BirdSnares.BIRDS.map { it.full } + BoxTraps.CREATURES.map { it.full } -> listOf("Check", "Reset", null, null, null)
         else -> List(5) { null }
     }
 
@@ -71,7 +81,7 @@ class HeadlessHunterTest {
     private fun HeadlessClient.awaitLoc(id: Int, x: Int, z: Int, timeoutMillis: Long = 10_000) =
         await("loc $id at $x, $z", timeoutMillis) { if (locAt(x, z) == id) Unit else null }
 
-    private fun HeadlessClient.lay() = ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, LAY_BUTTON_OP, slotOf(BirdSnares.SNARE), BirdSnares.SNARE)
+    private fun HeadlessClient.lay(item: Int = BirdSnares.SNARE) = ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, LAY_BUTTON_OP, slotOf(item), item)
 
     @Test
     fun `a snare laid beside a crimson swift stands, the swift walks in, and Check gives its drops and XP`(@TempDir dir: Path) {
@@ -243,6 +253,33 @@ class HeadlessHunterTest {
                 client.seen("[hunter.cant_here]")
                 assertEquals(1, client.count(BirdSnares.SNARE))
                 assertTrue(server.world.hunter.traps.all.isEmpty())
+            }
+        }
+    }
+
+    @Test
+    fun `a box trap laid west of a chinchompa catches it coming in from the east, and Check gives the chinchompa`(@TempDir dir: Path) {
+        server(dir, bird = chinchompa).use { server ->
+            server.login("fred").use { client ->
+                val at = client.await("the login rebuild") { client.position }
+                client.command("setlevel hunter 99")
+                client.command("item ${BoxTraps.BOX_TRAP} 1")
+                client.slotOf(BoxTraps.BOX_TRAP)
+                val before = client.await("Hunter XP") { client.stat(HUNTER)?.takeIf { it.level == 99 } }.xp
+                client.lay(BoxTraps.BOX_TRAP)
+                client.seen("[hunter.laying]")
+                client.awaitLoc(BoxTraps.SET, at.x, at.z)
+                client.locOp(BoxTraps.SET, at.x, at.z, Traps.INVESTIGATE)
+                client.seen("[hunter.investigate_box]")
+                // The chinchompa two tiles east walks in from the east: hunting_boxtrap_trapping_chinchompa_e, then full.
+                client.awaitLoc(9387, at.x, at.z, timeoutMillis = 20_000)
+                client.awaitLoc(9382, at.x, at.z)
+                client.locOp(9382, at.x, at.z, Traps.CHECK)
+                client.seen("[hunter.caught creature=chinchompa]")
+                // 198.4 XP; the client sees whole XP.
+                client.await("198 XP") { if (client.stat(HUNTER)!!.xp - before == 198) Unit else null }
+                client.await("the chinchompa") { if (client.count(BoxTraps.CHINCHOMPA_ITEM) == 1) Unit else null }
+                assertEquals(1, client.count(BoxTraps.BOX_TRAP))
             }
         }
     }
