@@ -8,8 +8,6 @@ import osrsps.map.Tile
 
 /** The Edgeville Dungeon's lines (keys only; the words are in data/dialogue.txt). */
 object EdgevilleDungeonLines : Lines("edgeville_dungeon", "Edgeville Dungeon") {
-    /** Our own words, not live's: the Wilderness isn't built, so the gate into its part of the dungeon stays shut. */
-    val GATE_CLOSED = line("gate_closed", "Open on the gate north of the dungeon's middle: ours, the Wilderness isn't built yet")
     val DOOR_LOCKED = line("door_locked", "Open on the shed's door west of the Cooks' Guild, from either side (2004Scape's edgeville_dungeon script)")
     val DOOR_UNLOCK = line("door_unlock", "the brass key used on the shed's door (2004Scape's edgeville_dungeon script)")
 }
@@ -33,9 +31,12 @@ object EdgevilleDungeonLines : Lines("edgeville_dungeon", "Edgeville Dungeon") {
  *   it): Push opens both halves (`openoddwall_l`/`_r` 1737 and 1735) for [WALL_OPEN_TICKS] and puts the player on the
  *   other side, as the Cooks' Guild's doors do. The open types have no options, so the wall shuts by itself; how long
  *   it stays open and how the player passes are guessed until recorded.
- * - The gate north of the middle (`membergatel`/`_r` 1727 and 1728 at 3131 and 3132,9917) leads into the Wilderness's
- *   part of the dungeon, which isn't built: Open refuses, in our own words. Elsewhere those types are nothing
- *   interesting until their piece builds them.
+ * - The gate north of the middle (`membergatel`/`_r` 1727 and 1728 at 3131 and 3132,9917, on the north edge of
+ *   their tiles) leads into the Wilderness's part of the dungeon (Wilderness step W2.1): Open swings both leaves open
+ *   for [NORTH_GATE_OPEN_TICKS] and puts the player on the other side, either way, as the odd wall does. The cache
+ *   has no open types for them, so the leaves turn as they are. Guessed until recorded: the leaves turning, how long
+ *   they stay open, the player passing in a tick, and no warning screen (the Wiki's Edgeville Dungeon page mentions
+ *   none). Elsewhere those types are nothing interesting until their piece builds them.
  * - The zombies, skeletons, hobgoblins, rats and giant spiders fight and drop as npc-combat.json and npc-drops.json
  *   have them (npc-spawns/edgeville-dungeon.json); the mine's rocks mine by type ([osrsps.game.skill.Mining]), the
  *   crates and sacks search by type. Vannaka stands by the gate without talk until Slayer is built, and the obstacle
@@ -93,6 +94,22 @@ object EdgevilleDungeon {
 
     /** The north gate's two leaves. */
     val NORTH_GATE_TILES = listOf(Tile(3131, 9917), Tile(3132, 9917))
+
+    /** How long the north gate stands open after a player goes through (guessed). */
+    const val NORTH_GATE_OPEN_TICKS = 2
+
+    /**
+     * Where the north gate [gate] (on the north edge of its tile) takes a player at [x], [z]: from the gate's row out
+     * north, from the row north of it back in, keeping their column; anyone not in front of a leaf goes nowhere (null).
+     */
+    fun throughNorthGate(gate: ZoneLoc, x: Int, z: Int): Tile? {
+        if (NORTH_GATE_TILES.none { it.x == x }) return null
+        return when (z) {
+            gate.z -> Tile(x, gate.z + 1)
+            gate.z + 1 -> Tile(x, gate.z)
+            else -> null
+        }
+    }
 
     const val VANNAKA = 403
 
@@ -226,7 +243,19 @@ fun registerEdgevilleDungeon(world: World) {
 
         for (leaf in listOf(NORTH_GATE_LEFT, NORTH_GATE_RIGHT)) {
             world.handlers.onLoc(leaf, OPEN) { op ->
-                world.message(player, if (isNorthGate(op.loc!!)) EdgevilleDungeonLines.GATE_CLOSED else GameLines.NOTHING_INTERESTING)
+                val gate = op.loc!!
+                val to = if (isNorthGate(gate)) throughNorthGate(gate, player.x, player.z) else null
+                if (to == null) {
+                    world.message(player, GameLines.NOTHING_INTERESTING)
+                    return@onLoc
+                }
+                arriveDelay()
+                for (tile in NORTH_GATE_TILES) {
+                    val closed = world.locs[tile.x, tile.z, gate.level, gate.layer]?.takeIf { it.id == NORTH_GATE_LEFT || it.id == NORTH_GATE_RIGHT } ?: continue
+                    world.doors.openAs(closed, closed.id, shutAfter = NORTH_GATE_OPEN_TICKS)
+                }
+                delay(1)
+                world.teleport(player, to.x, to.z, gate.level)
             }
         }
     }
