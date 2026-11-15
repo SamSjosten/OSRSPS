@@ -35,18 +35,29 @@ object HunterLines : Lines("hunter", "Hunter") {
     val IMP_JARRED = line("imp_jarred", "the message on catching an impling into an impling jar")
     val IMP_LOOTED = line("imp_looted", "the message on catching an impling with no impling jar, which takes its loot at once")
     val LOOT_SPACE = line("loot_space", "the message on Loot on an impling jar with no free backpack slot")
+    val GLOVE_STAYS = line("glove_stays", "the message on removing the falconer's glove, or wearing something over it (Falconer's glove page)")
+    val FALCON_FLIES_BACK = line("falcon_flies_back", "the message when the falconer's glove leaves the falconry area, by a teleport (Falconer's glove page)")
+    val FALCON_LEFT_PREY = line("falcon_left_prey", "the message when a falcon left on its prey flies off (Falconry page)")
+    val FALCON_CAUGHT = line("falcon_caught", "the message when the falcon catches the kebbit")
+    val FALCON_MISSED = line("falcon_missed", "the message when the falcon misses the kebbit")
+    val FALCON_AWAY = line("falcon_away", "the message on Catch while the falcon is off the glove")
+    val KEBBIT_ESCAPES = line("kebbit_escapes", "the message on Catch on a falconry kebbit with no falcon")
+    val FALCON_LEVEL = line("falcon_level", "the message on Catch below the Hunter level the kebbit needs", "level")
+    val NOT_YOUR_FALCON = line("not_your_falcon", "the message on Retrieve on someone else's falcon")
+    val FALCON_RETRIEVED = line("falcon_retrieved", "the message on Retrieve on the player's own falcon")
     val TEASE_LEVEL = line("tease_level", "the message on Tease below the Hunter level the creature needs", "level")
 }
 
 /**
  * The Hunter skill: the trap engine ([Traps]) and the kinds of trap built so far. Hunter step 1: bird snares
- * ([BirdSnares]); step 2: box traps ([BoxTraps]); step 3: net traps ([NetTraps]); step 4: deadfalls ([Deadfalls]); step 5: pitfalls ([Pitfalls]); step 6a: butterflies and moths ([Butterflies]); step 6b: implings ([Implings]). Hunter's areas are outside Misthalin; they are built where live has them and reached by ::tele.
+ * ([BirdSnares]); step 2: box traps ([BoxTraps]); step 3: net traps ([NetTraps]); step 4: deadfalls ([Deadfalls]); step 5: pitfalls ([Pitfalls]); step 6a: butterflies and moths ([Butterflies]); step 6b: implings ([Implings]); step 7: falconry ([Falconry]). Hunter's areas are outside Misthalin; they are built where live has them and reached by ::tele.
  */
 class Hunter(world: World, collision: CollisionMap) {
     val traps = Traps(world, collision)
     val pitfalls = Pitfalls(world, traps)
     val butterflies = Butterflies(world)
     val implings = Implings(world)
+    val falconry = Falconry(world, collision)
 
     fun register() {
         traps.register(BirdSnares.KIND)
@@ -56,6 +67,7 @@ class Hunter(world: World, collision: CollisionMap) {
         pitfalls.register()
         butterflies.register()
         implings.register()
+        falconry.register()
     }
 
     /** Call once a tick, in the NPC phase before NPCs move. */
@@ -64,6 +76,7 @@ class Hunter(world: World, collision: CollisionMap) {
         pitfalls.process()
         butterflies.process()
         implings.process()
+        falconry.process()
     }
 
     /** Call once a tick, straight after NPCs move. */

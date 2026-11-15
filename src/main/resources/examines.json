@@ -20,7 +20,8 @@
     "Hunter step 4 (2026-11-15): the kebbits of npc-spawns/hunter-deadfalls.json, and the deadfall's boulder in every state, from the Deadfall page.",
     "Hunter step 5 (2026-11-15): the pitfall creatures of npc-spawns/hunter-pitfalls.json, and the pit, spiked pit and the big cats full pits from the Pitfall page. The falling-in form (19229, 19230) and the antelopes full pit (53024) have no Wiki text yet.",
     "Hunter step 6a (2026-11-15): the butterflies and moths of npc-spawns/hunter-butterflies.json, from each creature page.",
-    "Hunter step 6b (2026-11-15): the Gielinor implings and the crystal impling's seventeen names, from each impling page (the baby impling's overworld version)."
+    "Hunter step 6b (2026-11-15): the Gielinor implings and the crystal impling's seventeen names, from each impling page (the baby impling's overworld version).",
+    "Hunter step 7 (2026-11-15): Matthias, the falcons on their prey and the falconry kebbits of npc-spawns/hunter-falconry.json, from each page."
   ],
   "npcs": [
     {"npc": 0, "name": "Tool Leprechaun"},
@@ -111,6 +112,10 @@
     {"npc": 1324, "name": "Sigurd"},
     {"npc": 1325, "name": "Hari"},
     {"npc": 1326, "name": "Barfy Bill"},
+    {"npc": 1340, "name": "Matthias", "wiki": "Matthias page, infobox (falcon version)"},
+    {"npc": 1342, "name": "Gyr Falcon", "wiki": "Gyr Falcon page, infobox (caught prey)"},
+    {"npc": 1343, "name": "Gyr Falcon", "wiki": "Gyr Falcon page, infobox (caught prey)"},
+    {"npc": 1344, "name": "Gyr Falcon", "wiki": "Gyr Falcon page, infobox (caught prey)"},
     {"npc": 1346, "name": "Prickly kebbit", "wiki": "Prickly kebbit page, infobox"},
     {"npc": 1347, "name": "Sabre-toothed kebbit", "wiki": "Sabre-toothed kebbit page, infobox"},
     {"npc": 1348, "name": "Barb-tailed kebbit", "wiki": "Barb-tailed kebbit page, infobox"},
@@ -538,6 +543,9 @@
     {"npc": 5451, "name": "Relobo Blinyo (logs)"},
     {"npc": 5452, "name": "Hofuthand (weapons and armour)"},
     {"npc": 5525, "name": "Toby"},
+    {"npc": 5531, "name": "Spotted kebbit", "wiki": "Spotted kebbit page, infobox"},
+    {"npc": 5532, "name": "Dark kebbit", "wiki": "Dark kebbit page, infobox"},
+    {"npc": 5533, "name": "Dashing kebbit", "wiki": "Dashing kebbit page, infobox"},
     {"npc": 5548, "name": "Tropical wagtail"},
     {"npc": 5549, "name": "Crimson swift"},
     {"npc": 5550, "name": "Cerulean twitch"},

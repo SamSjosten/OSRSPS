@@ -1,0 +1,22 @@
+{
+ "name": "Hunter step 7: the falcon rented from Matthias with Quick-falcon, sent at a spotted kebbit at 99 Hunter and retrieved for its fur, then handed back (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario hunter", "expectMessage": "Started scenario hunter.", "comment": "::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::setlevel hunter 99", "expectMessage": "Hunter set to level 99", "comment": "a spotted kebbit's catch (26 to 310) is sure at 99"},
+  {"step": "command", "text": "::item 995 500"},
+  {"step": "command", "text": "::tele 2377 3600 0", "comment": "the Piscatoris falconry area, by Matthias"},
+  {"step": "npcOption", "npc": "Matthias", "option": "Quick-falcon"},
+  {"step": "assertEquipment", "slot": "weapon", "item": "Falconer's glove", "timeoutMs": 5000},
+  {"step": "npcOption", "npc": "Spotted kebbit", "option": "Catch"},
+  {"step": "assertMessage", "contains": "hunter.falcon_caught", "timeoutMs": 15000},
+  {"step": "npcOption", "npc": "Gyr Falcon", "option": "Retrieve"},
+  {"step": "assertMessage", "contains": "hunter.falcon_retrieved", "timeoutMs": 15000},
+  {"step": "assertInventory", "item": "Spotted kebbit fur", "count": 1},
+  {"step": "npcOption", "npc": "Matthias", "option": "Quick-falcon", "comment": "with the glove on, Quick-falcon hands it back"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
