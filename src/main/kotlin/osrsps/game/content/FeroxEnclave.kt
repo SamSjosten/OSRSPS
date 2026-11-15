@@ -1,6 +1,8 @@
 package osrsps.game.content
 
+import kotlin.math.abs
 import osrsps.game.GameLines
+import osrsps.game.Player
 import osrsps.game.Movement
 import osrsps.game.Skill
 import osrsps.game.Wilderness
@@ -43,8 +45,10 @@ object FeroxEnclave {
     const val BANKER = 10389
 
     /**
-     * Where Pass-Through on [barrier] takes a player standing at [x], [z]: out of the box from the barrier's own tile,
-     * into it from the tile just past the barrier's edge, or null from anywhere else.
+     * Where Pass-Through on [barrier] takes a player standing at [x], [z]: out of the box (to the tile just past the
+     * barrier's edge) from anywhere inside it beside the barrier, and into it (onto the barrier's own tile) from anywhere
+     * outside beside that outer tile, as wall routing may finish a click on either side's neighbouring tiles; null
+     * from anywhere else.
      */
     fun across(barrier: ZoneLoc, x: Int, z: Int): Tile? {
         val (dx, dz) = when (barrier.angle) {
@@ -54,12 +58,17 @@ object FeroxEnclave {
             else -> 0 to -1
         }
         val outside = Tile(barrier.x + dx, barrier.z + dz)
+        fun beside(tile: Tile) = abs(x - tile.x) <= 1 && abs(z - tile.z) <= 1
+        val inside = Wilderness.inFerox(x, z)
         return when {
-            x == barrier.x && z == barrier.z -> outside
-            x == outside.x && z == outside.z -> Tile(barrier.x, barrier.z)
+            inside && beside(Tile(barrier.x, barrier.z)) -> outside
+            !inside && beside(outside) -> Tile(barrier.x, barrier.z)
             else -> null
         }
     }
+
+    /** Whether a Tele Block keeps [player] from crossing to [to]: only inward, into the Enclave. */
+    fun blocked(player: Player, to: Tile) = Wilderness.inFerox(to.x, to.z) && player.teleblockTicks > 0
 
     fun isBarrier(loc: ZoneLoc) = loc.level == 0 && Wilderness.inFerox(loc.x, loc.z)
 }
@@ -70,9 +79,11 @@ fun registerFeroxEnclave(world: World) {
             val loc = op.loc!!
             val to = if (FeroxEnclave.isBarrier(loc)) FeroxEnclave.across(loc, player.x, player.z) else null
             if (to == null) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
-            if (Wilderness.inFerox(to.x, to.z) && player.teleblockTicks > 0) return@onLoc world.message(player, FeroxEnclaveLines.BARRIER_TELEBLOCKED)
+            if (FeroxEnclave.blocked(player, to)) return@onLoc world.message(player, FeroxEnclaveLines.BARRIER_TELEBLOCKED)
             arriveDelay()
             delay(1)
+            // A Tele Block that landed during the two ticks above still keeps the player out.
+            if (FeroxEnclave.blocked(player, to)) return@onLoc world.message(player, FeroxEnclaveLines.BARRIER_TELEBLOCKED)
             world.teleport(player, to.x, to.z, loc.level)
         }
     }

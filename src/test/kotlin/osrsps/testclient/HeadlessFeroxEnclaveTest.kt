@@ -123,6 +123,35 @@ class HeadlessFeroxEnclaveTest {
                 client.locOp(FeroxEnclave.BARRIER_MIRROR, 3135, 3617, FeroxEnclave.PASS_THROUGH)
                 client.awaitMessage("the Tele Block refusal") { it == "[ferox.barrier_teleblocked]" }
                 assertEquals(Coord(3135, 3616, 0), client.position)
+
+                // A Tele Block landing while the crossing is under way still keeps the player out.
+                mona.teleblockTicks = 0
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
+                client.locOp(FeroxEnclave.BARRIER_MIRROR, 3135, 3617, FeroxEnclave.PASS_THROUGH)
+                client.stepTicks(1)
+                mona.teleblockTicks = 400
+                client.stepTicks(4)
+                client.commandReply("resume") { it.startsWith("Resumed") }
+                client.await("the late Tele Block refusal") { client.messages().lastOrNull { it.text == "[ferox.barrier_teleblocked]" } }
+                assertEquals(Coord(3135, 3616, 0), mona.let { Coord(it.x, it.z, it.level) })
+                mona.teleblockTicks = 0
+            }
+        }
+    }
+
+    @Test
+    fun `the barrier passes from the tiles beside it too, as wall routing may stop there`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("nell").use { client ->
+                client.await("the login rebuild") { client.position }
+                // Inside, west of the barrier's own tile: out to the tile past its edge.
+                client.tele(3133, 3617)
+                client.locOp(FeroxEnclave.BARRIER, 3134, 3617, FeroxEnclave.PASS_THROUGH)
+                client.awaitAt(3134, 3616)
+                // Outside, west of the outer tile: in onto the barrier's tile.
+                client.tele(3133, 3616)
+                client.locOp(FeroxEnclave.BARRIER, 3134, 3617, FeroxEnclave.PASS_THROUGH)
+                client.awaitAt(3134, 3617)
             }
         }
     }
