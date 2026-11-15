@@ -48,6 +48,7 @@ import osrsps.game.skill.PickpocketGearLines
 import osrsps.game.skill.PickpocketLines
 import osrsps.game.skill.RunecraftLines
 import osrsps.game.skill.SlayerLines
+import osrsps.game.skill.SlayerHelmetLines
 import osrsps.game.skill.SlayerSuperiorLines
 import osrsps.game.skill.SmithingLines
 import osrsps.game.skill.ThievingLines
@@ -374,6 +375,7 @@ object DialogueLines {
         SlayerTipLines,
         SlayerRewardsLines,
         SlayerSuperiorLines,
+        SlayerHelmetLines,
         KuradalLines,
         MazchnaLines,
         SteveLines,
