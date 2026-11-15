@@ -1107,6 +1107,7 @@ class MeleeCombat(
         player.freezeTicks = 0
         player.frozenBy = null
         player.pjOpponent = null
+        player.pjAfterKill = false
     }
 
     /**

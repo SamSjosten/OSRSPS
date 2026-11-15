@@ -357,6 +357,8 @@ class Player(
      */
     var pjOpponent: Player? = null
     var pjUntil: Long = 0
+    /** The PJ timer runs after a kill ([pjOpponent] is who they killed), which holds though the victim logs out. */
+    var pjAfterKill = false
 
     /** Ticks left of their skull ([osrsps.game.combat.Skulls]). Saved. */
     var skullTicks: Int = 0
