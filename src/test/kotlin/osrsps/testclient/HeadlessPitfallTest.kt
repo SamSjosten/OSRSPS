@@ -75,7 +75,8 @@ class HeadlessPitfallTest {
                 client.locOp(PIT, 3222, 3220, Pitfalls.TRAP)
                 client.seen("[hunter.laying]")
                 client.awaitPit(Pitfalls.SET)
-                assertEquals(0, client.count(LOGS))
+                // The backpack's update may come a packet after the varbit's.
+                client.await("the log used") { if (client.count(LOGS) == 0) Unit else null }
                 val cat = client.await("the larupia in view") { client.npcs().firstOrNull { it.id == Pitfalls.SPINED_LARUPIA } }
                 client.npcOp(cat.index, Pitfalls.TEASE)
                 client.await("the tease") { server.world.hunter.pitfalls.teased.firstOrNull() }
