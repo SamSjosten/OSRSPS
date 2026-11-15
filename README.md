@@ -1234,6 +1234,31 @@ and account modes, Bob's Repair.
 Check: `test-runner/examples/lumbridge-talk-*.json` talk to each of them through every option with `::keys on`, so
 the dialogue shows each line's key.
 
+### Hunter
+
+Hunter step 1 (`game/skill/hunter/`, `npc-spawns/hunter-birds.json`, `::scenario hunter`): the trap engine and bird
+snares. Lay (from the backpack, or on a snare on the ground) drops the snare and puts the trap up on the skill clock's
+fourth tick, the player stepping off it; a set trap looks for a creature within 2 tiles every 3 ticks (none while a
+player stands on it), the creature walks in, and the catch is rolled at the owner's boosted Hunter level, a miss
+every time below the creature's level. A caught bird struggles, then the snare holds it until Check (its drops, XP
+and the snare back, 3 ticks); a miss snaps the snare shut until Dismantle or Reset (which lays it again in place). A
+trap stands a minute, counted again from a catch or a miss, then collapses, leaving its snare on its tile, as it does
+at once when its owner logs out or goes far away. Only the owner can take a trap down. Two traps from level 1, three
+at 40, four at 60, five at 80. No trap goes down in an instance, or on a tile already full of objs. While a Reset
+waits, the snare lies on its tile, so a death then loses nothing. `test-runner/examples/hunter-bird-snare.json` lays,
+catches, checks, fails, resets and dismantles a snare at Feldip with `::keys on`.
+
+| What | Source |
+|---|---|
+| The birds: crimson swift (1, 34 XP), golden warbler (5, 47), copper longtail (9, 61.2), cerulean twitch (11, 64.5), tropical wagtail (19, 95.2); bones, raw bird meat and 5 to 10 feathers of the bird's colour; each one's catch pair (crimson swift 39% at 1 to 164% at 99) | OSRS Wiki, Bird snare and each bird's page (the Skilling success chart, Mod Ash's figures) |
+| The trap count, and Reset and the failed snare (since 7 October 2026) | OSRS Wiki, Hunter (Multiple traps, Changes) |
+| A trap looks every 3 ticks within 2 tiles, nothing while a player stands on it; a creature above the player's level always gets away | OSRS Wiki, Box trap (Mechanics, Mod Ash) |
+| Laying takes 4 ticks of the skill clock; picking a trap up takes 3 ticks and stalls the player | OSRS Wiki, Tick manipulation |
+| A trap stands a minute, counted again when it catches or fails | RuneLite's Hunter plugin (HunterTrap.TRAP_TIME, observed on live) |
+| Where the birds are: Feldip (crimson swifts and wagtails, `::tele 2611 2918`, `::tele 2512 2905`), Uzer (warblers, `::tele 3402 3150`), Piscatoris (longtails, `::tele 2340 3590`), Rellekka (twitches, `::tele 2725 3770`) | mejrs NPCList_OSRS.json (live, pre-Nov 2022) |
+| The creature lured is one in range at random, always; it is rolled for on stepping onto the trap; the struggle (2 ticks), the respawn (10 ticks), the collapse leaving the item, how far the owner may go (32 tiles), the birds' wander (4), the check and dismantle animation, traps allowed on any free walkable tile outside instances | guessed |
+| Not built: box traps, net traps, deadfalls, pitfalls, butterflies and implings, falconry, tracking, the Hunter shops, smoking and baiting traps, the honey buzzards, Hunters' Rumours | next steps |
+
 ## Fred's farm
 
 North-west of the castle, in `npc-spawns/lumbridge-farms.json` on RSMod's tiles: Fred the Farmer, his sheep pen's
@@ -2223,10 +2248,13 @@ the ditch: nothing north of it is spawned yet, and players can't fight each othe
 | Inside the Wilderness means a level above 0 north of the ditch (z 3523 and up on the surface): there the Wilderness overlay (`pvp_icons` 90) opens in its frame slot, showing the skull and "Level: n" (drawn by the client), and varbit `inside_wilderness` (5963, RuneLite's `Varbits.IN_WILDERNESS`) is 1; leaving closes the overlay and sets it to 0. The overlay is no longer opened at login | the client's `pvp_icons_layout` (the skull shows whenever the overlay is open, so live can't have it open in Lumbridge); where inside starts, and both changing on the step that crosses, inferred |
 | Attack (player option 2) is on other players' menus only while the player is inside the Wilderness, given and taken away on the step that crosses the edge; the client orders it by the attack priority setting | the Wiki's Wilderness page; slot 2 and no priority flag inferred (RuneLite's PLAYER_SECOND_OPTION) |
 | Players fight only past the Wilderness's first two rows (z 3523 and 3524 are safe), each by the level where they stand, and only when their combat levels differ by no more than the lower of the two levels; refused attacks say why (`pvp.not_in_wilderness`, `pvp.target_not_in_wilderness`, `pvp.level_difference` then `pvp.move_deeper`) | the Wiki's Wilderness page (the two safe steps; level 100 at 24 attacks 76 to 124); the rows, the lower level counting and the refusals' order inferred; their words held |
-| An allowed Attack goes after the target as Follow does, facing them; no hits yet | ours until PvP combat (step W1.3) |
-| The Doomsayer's Toggle warnings list, PvP hits, skulls, Wilderness deaths and everything north of the ditch | not built: later steps |
+| An allowed Attack starts a melee fight: the attacker walks up, faces the target and swings every weapon-speed ticks, their attack roll against the target's own defence roll (the target's Defence, prayers, stance and worn defence bonus), with XP as against a monster; the rules are asked again before every swing, so a target who leaves the Wilderness or the range is let go with the refusal | the Wiki's Combat page (a player defends with the same formula whoever attacks); asking before every swing inferred |
+| Protect from Melee on the target takes 40% off a melee hit from a player, rounded down | the Wiki's Protect from Melee page ("40% of melee damage by other players"); the rounding and the prayer being asked as the swing is rolled guessed |
+| A player's melee hit lands when the target is next processed: the same tick if the attacker comes first in the tick, else the next | the Wiki's Hit delay page (melee has none; in PvP the PID decides whether processing order adds a tick); players processed in index order rather than a shuffled PID inferred |
+| A target with auto retaliate on and nothing else to do fights back, starting after half their weapon's speed, rounded up | the Wiki's Auto Retaliate page, as against monsters; the same for players inferred |
+| The Doomsayer's Toggle warnings list, special attacks and poison on players, PvP ranged and magic, the single-way rules, skulls, Wilderness deaths and everything north of the ditch | not built: later steps |
 
-Check: `test-runner/examples/ditch-cross.json`, `wilderness-attack-option.json`, `HeadlessWildernessDitchTest`, `HeadlessPvpRulesTest` and `HeadlessPlayerOpsSettingsTest` (a settings toggle keeps Attack).
+Check: `test-runner/examples/ditch-cross.json`, `wilderness-attack-option.json`, `HeadlessWildernessDitchTest`, `HeadlessPvpRulesTest` and `HeadlessPvpMeleeTest`.
 
 ## Varrock
 

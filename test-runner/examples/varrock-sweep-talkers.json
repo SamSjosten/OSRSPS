@@ -136,6 +136,15 @@
    "comment": "back at his menu"
   },
   {
+   "step": "walk",
+   "x": 3173,
+   "y": 3462,
+   "comment": "walking off closes his menu, which has no way out (the Wiki); a command typed with it open never sends (215, 15 Nov)"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
    "step": "command",
    "text": "::tele 3145 3472 0",
    "expectMessage": "Teleported to 3145, 3472, 0",

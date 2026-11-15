@@ -141,13 +141,14 @@
   {
    "step": "command",
    "text": "::raid log 40",
-   "expectMessage": "fight: test is infected"
+   "expectMessage": " is infected",
+   "comment": "the player infected: the line names the account (test or test2) before the words, so only the words are matched; the next step's prayer drain is a player's alone"
   },
   {
    "step": "command",
    "text": "::raid log 40",
-   "expectMessage": "fight: the infection hurts test for 2, 0 dealt, draining 2 prayer",
-   "comment": "its first hit: 2, and as much prayer (::god takes the damage)"
+   "expectMessage": " for 2, 0 dealt, draining 2 prayer",
+   "comment": "its first hit: 2, and as much prayer (::god takes the damage); matched after the account's name, as on VM 217 it is test2 (nightly of 2026-11-15)"
   },
   {
    "step": "waitTicks",

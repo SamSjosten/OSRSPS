@@ -1539,6 +1539,9 @@ class ArchiveRaids(private val world: World) {
     /** Ends [room]'s fight in [run], if one is going on, and takes its boss out unless it lies dying. */
     private fun stopFight(run: ArchiveRun, room: ArchiveRoom) {
         val fight = run.fights.remove(room) ?: return
+        // Ended with its boss still up (::raid clear, a wipe): nothing of the fight lands after it, the shots its boss
+        // and adds fired just before going with them. A boss killed in play has its last shots land, as anyone's do.
+        if (!fight.boss.dead) for (npc in fight.adds + fight.boss) world.meleeCombat.dropShotsFrom(npc)
         if (!fight.ended) world.encounters.stop(fight)
         val boss = fight.boss
         if (!boss.dead && world.npcs[boss.index] === boss) world.removeNpc(boss)
