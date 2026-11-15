@@ -102,6 +102,7 @@ import osrsps.game.combat.StatRestore
 import osrsps.game.combat.Teleblock
 import osrsps.game.content.DialogueLines
 import osrsps.game.content.Examines
+import osrsps.game.content.ResourceArea
 import osrsps.game.content.CustomVars
 import osrsps.game.content.HomeTeleport
 import osrsps.game.content.Kudos
@@ -154,6 +155,7 @@ import osrsps.game.content.registerWildernessDitch
 import osrsps.game.content.registerEdgevilleDungeon
 import osrsps.game.content.registerLavaMaze
 import osrsps.game.content.registerChaosTemple
+import osrsps.game.content.registerResourceArea
 import osrsps.game.content.MemberGates
 import osrsps.game.content.registerFeroxEnclave
 import osrsps.game.content.registerWildernessObelisks
@@ -1026,6 +1028,7 @@ class World(
         MemberGates.register(this)
         registerLavaMaze(this)
         registerChaosTemple(this)
+        registerResourceArea(this)
         FountainOfRune.register(this)
         registerFeroxEnclave(this)
         registerWildernessObelisks(this)
@@ -1810,6 +1813,13 @@ class World(
             player.level = SPAWN_LEVEL
             player.buildAreaZoneX = SPAWN_X shr 3
             player.buildAreaZoneZ = SPAWN_Z shr 3
+        }
+        // Logging out inside the Wilderness Resource Area puts the player outside its gate, to pay again (the Wiki).
+        ResourceArea.loginPlace(player.x, player.z, player.level)?.let { tile ->
+            player.x = tile.x
+            player.z = tile.z
+            player.buildAreaZoneX = tile.x shr 3
+            player.buildAreaZoneZ = tile.z shr 3
         }
         // An autosave can catch a player lying dead (0 hitpoints, their items still on them); a crash before their
         // respawn would strand them at 0, so they come back whole. The death itself is lost, which the autosave is for.
