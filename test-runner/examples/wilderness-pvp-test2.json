@@ -1,0 +1,21 @@
+{
+ "name": "Wilderness step W1.10, two players (run with wilderness-pvp-test.json on the other VM at the same time): test2, in ::scenario pvp on 10 hitpoints at level 50 with auto retaliate off, is killed by test, unskulled, so it keeps its three most valuable items (the rune platebody, platelegs and kiteshield) and comes back in Lumbridge with no skull",
+ "account": "test2",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario pvp", "expectMessage": "Started scenario pvp", "comment": "rune armour and scimitar; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::varp 172 1", "expectMessage": "Varp 172:", "comment": "auto retaliate off: we stand still and don't hit back"},
+  {"step": "command", "text": "::hit 60 me", "expectMessage": "Hit yourself for 60", "comment": "10 hitpoints left, one sure punch from test"},
+  {"step": "command", "text": "::wildy 50", "expectMessage": ": level 50 Wilderness", "comment": "test's sign that we're ready"},
+  {"step": "assertMessage", "contains": "[combat.dead]", "timeoutMs": 180000, "comment": "test's punch"},
+  {"step": "assertLocation", "x": 3222, "y": 3218, "plane": 0, "timeoutMs": 20000, "comment": "back on the Lumbridge spawn"},
+  {"step": "assertInventory", "item": "Rune platebody", "count": 1, "timeoutMs": 10000, "comment": "unskulled: the three most valuable kept"},
+  {"step": "assertInventory", "item": "Rune platelegs", "count": 1},
+  {"step": "assertInventory", "item": "Rune kiteshield", "count": 1},
+  {"step": "assertInventory", "item": "Shark", "count": 0, "comment": "the rest dropped for test"},
+  {"step": "command", "text": "::skull", "expectMessage": "You have no skull."},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

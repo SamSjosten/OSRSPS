@@ -1,0 +1,20 @@
+{
+ "name": "Wilderness step W1.10, two players (run with wilderness-pvp-test2.json on the other VM at the same time): test, in ::scenario pvp at level 50, attacks test2 and kills it with one sure punch of its rune scimitar, is skulled for it, and takes the rune full helm test2 dropped for it alone",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario pvp", "expectMessage": "Started scenario pvp", "comment": "rune armour and scimitar, 70 melee; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::skull", "expectMessage": "You have no skull.", "comment": "the scenario cleared any skull from before"},
+  {"step": "command", "text": "::sure max", "expectMessage": "Your attacks", "comment": "test2 is on 10 hitpoints, so one hit is the kill"},
+  {"step": "command", "text": "::wildy 50", "expectMessage": ": level 50 Wilderness"},
+  {"step": "assertWidgetText", "interfaceId": 90, "component": 50, "contains": "Level: 50", "timeoutMs": 10000, "comment": "the overlay's level, drawn by the client"},
+  {"step": "playerOption", "player": "test2", "option": "Attack", "timeoutMs": 180000, "comment": "once test2 has jumped here too, its sign that it's ready; combat levels 85 and 85, in range anywhere"},
+  {"step": "assertGroundItem", "item": "Rune full helm", "timeoutMs": 20000, "comment": "test2 kept its three most valuable items; the rest fell for us alone for a minute"},
+  {"step": "takeItem", "item": "Rune full helm"},
+  {"step": "assertInventory", "item": "Rune full helm", "count": 1, "timeoutMs": 15000},
+  {"step": "command", "text": "::skull", "expectMessage": "You're skulled", "comment": "the attack was unprovoked"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
