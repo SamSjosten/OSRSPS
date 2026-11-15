@@ -1,0 +1,18 @@
+{
+  "name": "Wilderness step W2.5: piece 2's examines with ::keys on, on an elder Chaos druid, a black unicorn and the Corporeal Beast's cave mouth",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off)."},
+    {"step": "command", "text": "::tele 3227 3613 0", "expectMessage": "Teleported to 3227, 3613, 0", "comment": "by the Chaos Temple (level 12), near an elder Chaos druid's spawn"},
+    {"step": "npcOption", "npcId": 6607, "option": "Examine", "timeoutMs": 20000, "comment": "an elder Chaos druid"},
+    {"step": "assertMessage", "contains": "[examine.npc_6607]"},
+    {"step": "command", "text": "::tele 3205 3676 0", "expectMessage": "Teleported to 3205, 3676, 0", "comment": "level 20, between the black unicorns and the cave mouth"},
+    {"step": "npcOption", "npcId": 2849, "option": "Examine", "timeoutMs": 20000, "comment": "a black unicorn"},
+    {"step": "assertMessage", "contains": "[examine.npc_2849]"},
+    {"step": "locOption", "locId": 678, "option": "Examine", "timeoutMs": 10000, "comment": "the Corporeal Beast's cave mouth at 3201,3679"},
+    {"step": "assertMessage", "contains": "[examine.loc_678]"},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
+  ]
+}
