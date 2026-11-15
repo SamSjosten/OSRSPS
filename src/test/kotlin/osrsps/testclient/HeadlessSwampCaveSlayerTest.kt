@@ -17,6 +17,7 @@ import osrsps.game.ObjType
 import osrsps.game.SeqNames
 import osrsps.game.WearPos
 import osrsps.game.World
+import osrsps.game.combat.AttackType
 import osrsps.game.combat.DropTestItems
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
@@ -156,6 +157,13 @@ class HeadlessSwampCaveSlayerTest {
                 client.wear(Rockslugs.BRINE_SABRE)
                 client.npcOp(view.index, 2)
                 client.await("the rockslug's death", timeoutMillis = 60_000) { if (npc.dead) Unit else null }
+                // Only its melee: a spell or a shot landing while it is wielded doesn't finish one.
+                val finisher = server.world.combat.finishers.getValue(slug.id)
+                val bob = server.world.playerNamed("bob")!!
+                assertTrue(finisher(bob, AttackType.SLASH))
+                assertFalse(finisher(bob, AttackType.MAGIC))
+                assertFalse(finisher(bob, AttackType.RANGED))
+                assertFalse(finisher(bob, null))
             }
         }
     }
