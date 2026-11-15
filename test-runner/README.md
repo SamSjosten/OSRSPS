@@ -184,6 +184,8 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `swamp-caves-slayer.json`: Misthalin piece 7 step 3b: a wall beast grabbing a player with no helmet and coming out
   of its hole to fight one in a spiny helmet, and a rockslug held at 1 hitpoint (with `::keys on` and `::god on`; the
   bag of salt that finishes it is in the headless test, as the runner has no item-on-NPC step).
+- `slayer-tasks.json`: Slayer step 1: `::slayer task` giving 2 cows from Vannaka, the enchanted gem's Check, each cow
+  killed counting down with Slayer XP, and the last completing the task with the streak up (with `::keys on`).
 - `slayer-masters.json`: Slayer step 2: Aya in Burthorpe giving a new account a task by Assignment, telling what is
   left of it when asked again, and the enchanted gem's Check agreeing (with `::keys on`). Vannaka's gate, the tips,
   Aya's swap and the combat check are in the headless test.
@@ -193,6 +195,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `slayer-rewards.json` (needs 0.8.0 for `assertVarbit`): Slayer step 4: Vannaka's Rewards option opening the rewards
   screen with him in focus and the points it shows. The unlocks, cancel and block are in the headless test, as their
   confirm box only exists once the client has drawn the clicked unlock.
+- `slayer-rewards-shop.json` (needs 0.8.0 for `assertVarbit`): Slayer steps 4 and 5 at Vannaka in Edgeville Dungeon:
+  Trade and Talk-to's Look at shop opening the Slayer Equipment shop, Rewards opening the rewards screen, and its Buy
+  tab's slayer ring and broad bolts paid for in points (with `::keys on`). The unlocks, cancel and block are in the
+  headless test, as their confirm box only exists once the client has drawn the clicked unlock.
 - `ham-hideout.json`: Misthalin piece 7 step 4a: the H.A.M. Hideout's trapdoor locked, picked open at 99 Thieving
   with a lockpick, climbed down and back up by the ladder, a H.A.M. member pickpocketed, and Jimmy's cell door locked
   from outside and picked from inside (with `::keys on` and `::god on`; the concussions are in the headless test).

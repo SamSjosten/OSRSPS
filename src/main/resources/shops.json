@@ -2770,6 +2770,190 @@
           "price": 6
         }
       ]
+    },
+    {
+      "key": "slayer_equipment",
+      "title": "Slayer Equipment",
+      "inv": 231,
+      "size": 27,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 600,
+      "changePer": 1,
+      "npcs": [
+        "slayer_master_1_aya",
+        "slayer_master_9_active",
+        "slayer_master_3",
+        "slayer_master_2_mazchna",
+        "slayer_master_4",
+        "slayer_master_steve",
+        "slayer_master_5_kuradal"
+      ],
+      "source": "OSRS Wiki, Slayer Equipment, read 2026-11-15: Sells at 100.0%, Buys at 60.0%, Change per 0.1%, and the stock table; the masters who run it as built so far (Krystilia, Konar, Nieve and Duradel come later)",
+      "stock": [
+        {
+          "item": 4155,
+          "name": "Enchanted gem",
+          "count": 50,
+          "restock": 100
+        },
+        {
+          "item": 4156,
+          "name": "Mirror shield",
+          "count": 100,
+          "restock": 100
+        },
+        {
+          "item": 4158,
+          "name": "Leaf-bladed spear",
+          "count": 50,
+          "restock": 100
+        },
+        {
+          "item": 4160,
+          "name": "Broad arrows",
+          "count": 50000,
+          "restock": 5
+        },
+        {
+          "item": 4161,
+          "name": "Bag of salt",
+          "count": 5000,
+          "restock": 5
+        },
+        {
+          "item": 4162,
+          "name": "Rock hammer",
+          "count": 50,
+          "restock": 100
+        },
+        {
+          "item": 4164,
+          "name": "Facemask",
+          "count": 50,
+          "restock": 100
+        },
+        {
+          "item": 4166,
+          "name": "Earmuffs",
+          "count": 50,
+          "restock": 100
+        },
+        {
+          "item": 4168,
+          "name": "Nose peg",
+          "count": 50,
+          "restock": 100
+        },
+        {
+          "item": 4170,
+          "name": "Slayer's staff",
+          "count": 50,
+          "restock": 100
+        },
+        {
+          "item": 4551,
+          "name": "Spiny helmet",
+          "count": 50,
+          "restock": 100
+        },
+        {
+          "item": 6664,
+          "name": "Fishing explosive",
+          "count": 5000,
+          "restock": 50
+        },
+        {
+          "item": 6696,
+          "name": "Ice cooler",
+          "count": 5000,
+          "restock": 5
+        },
+        {
+          "item": 6720,
+          "name": "Slayer gloves",
+          "count": 50,
+          "restock": 16
+        },
+        {
+          "item": 7051,
+          "name": "Unlit bug lantern",
+          "count": 50,
+          "restock": 100
+        },
+        {
+          "item": 7159,
+          "name": "Insulated boots",
+          "count": 50,
+          "restock": 100
+        },
+        {
+          "item": 7421,
+          "name": "Fungicide spray 10",
+          "count": 50,
+          "restock": 100
+        },
+        {
+          "item": 7432,
+          "name": "Fungicide",
+          "count": 5000,
+          "restock": 5
+        },
+        {
+          "item": 8923,
+          "name": "Witchwood icon",
+          "count": 50,
+          "restock": 100
+        },
+        {
+          "item": 10952,
+          "name": "Slayer bell",
+          "count": 50,
+          "restock": 100
+        },
+        {
+          "item": 11874,
+          "name": "Broad arrowheads",
+          "count": 3000,
+          "restock": 1
+        },
+        {
+          "item": 11885,
+          "name": "Broad arrowhead pack",
+          "count": 800,
+          "restock": 1
+        },
+        {
+          "item": 11876,
+          "name": "Unfinished broad bolts",
+          "count": 5000,
+          "restock": 1
+        },
+        {
+          "item": 11887,
+          "name": "Unfinished broad bolt pack",
+          "count": 1000,
+          "restock": 1
+        },
+        {
+          "item": 21754,
+          "name": "Rock thrownhammer",
+          "count": 5000,
+          "restock": 5
+        },
+        {
+          "item": 23037,
+          "name": "Boots of stone",
+          "count": 50,
+          "restock": 1
+        },
+        {
+          "item": 24942,
+          "name": "Reinforced goggles",
+          "count": 50,
+          "restock": 1
+        }
+      ]
     }
   ]
 }

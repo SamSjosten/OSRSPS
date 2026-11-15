@@ -1095,8 +1095,12 @@ rewards". The client draws it from the cache's slayer_unlock table and the unloc
 box confirms, as an op on confirm_button's child: an unlock's bit buys it for its cost (a refundable one turns off again,
 no points back), 75 buys every extend not yet bought, 67 cancels the task for 30 points, 68 blocks it at the master's own
 cost, and 69 to 74 and 78 empty a block slot. Each master keeps their own block list (Aya and Spria share Turael's), one
-slot for every 50 quest points up to six, and never gives a task they have blocked. Slayer equipment and the Buy tab come
-next.
+slot for every 50 quest points up to six, and never gives a task they have blocked.
+
+The Slayer Equipment shop (`shops.json`, key `slayer_equipment`) opens from every master's Trade and Talk-to's "Look at
+shop", with the Wiki's stock, sell and buy percentages. The rewards screen's Buy tab sells enum_840's six items for
+points at enum_842's costs (the slayer ring 75, 250 broad bolts or arrows 35, the herb sack and rune pouch 750, the
+looting bag 10): ops 2 to 5 buy 1, 5, 10 or 50 (sets), the last three items only one at a time.
 
 | Slayer behaviour | Source |
 |------------------|--------|
@@ -1121,8 +1125,11 @@ next.
 | Per-master block lists, Aya and Spria sharing Turael's; one block slot for every 50 quest points | OSRS Wiki, Slayer Rewards (2025 changelog) |
 | Block slot varbits slayer_blocked_<master>_1 to _6 (17812 on), slayer_master_in_focus (17868); the Rewards tab's task in varps if1 to if3 | cache 242, osrs-dumps' names; the task copied there inferred |
 | "Extend everything" costing the extends not yet bought; the refusals as game messages, their words | inferred; guessed |
+| The Slayer Equipment shop's stock, counts, restock times, 100% sell, 60% buy, 0.1% change | OSRS Wiki, Slayer Equipment (read 2026-11-15); inv slayershop 231 from the cache |
+| The Buy tab's items, costs, set sizes and ops (one at a time for the herb sack, rune pouch and looting bag) | the 242 client's script slayer_rewards_buy_draw and enums 840 to 842 (osrs-dumps) |
+| A Buy taking as many as the points and inventory allow, refusing only when not one fits; its refusals' words | guessed |
 | Every message's words | unsourced: the Words thread fills them |
-| Not built yet: Konar and her places, the Buy tab, Task Storage, the diary's seventh block slot, equipment, superiors, boss tasks, Krystilia (the Wilderness), Aya's blessed axe talk, Kuradal's Slayer cape sale and talk about Duradel, the Slayer cape overlooking a master's combat level | |
+| Not built yet: Konar and her places, the slayer helmet's and black mask's bonus, the slayer ring's teleports, Task Storage, the diary's seventh block slot, equipment, superiors, boss tasks, Krystilia (the Wilderness), Aya's blessed axe talk, Kuradal's Slayer cape sale and talk about Duradel, the Slayer cape overlooking a master's combat level | |
 
 ## Items and inventory
 

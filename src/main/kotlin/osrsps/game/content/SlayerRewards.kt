@@ -16,6 +16,7 @@ object SlayerRewardsLines : Lines("slayer_rewards", "Slayer Rewards") {
     val ALREADY_BLOCKED = line("already_blocked", "Block on a task this master already has blocked; words unsourced")
     val NO_BLOCK_SLOT = line("no_block_slot", "Block with every block slot the player may use full; words unsourced")
     val ALL_EXTENDED = line("all_extended", "Extend everything with every extend already bought; words unsourced")
+    val NO_ROOM = line("no_room", "a Buy with no room in the inventory for even one; words unsourced")
 }
 
 /**
@@ -34,7 +35,12 @@ object SlayerRewardsLines : Lines("slayer_rewards", "Slayer Rewards") {
  *
  * The Rewards tab shows the task from varps if1 to if3 (count, task, boss); the server copies the task there while the
  * screen is open (inferred from the scripts reading them, since slayer_count and slayer_target are what the helper
- * reads). Left out: the Buy tab (with the shop, the next step), Task Storage's store and unstore, the seventh block
+ * reads).
+ *
+ * The Buy tab (Slayer step 5) lists enum_840's six items, at enum_842's points for one or for enum_841's set (250 broad
+ * bolts or arrows), as the client draws them (slayer_rewards_buy_draw): ops 2 to 5 on buy_items' child buy 1, 5, 10 or 50,
+ * and the herb sack, rune pouch and looting bag only 1. Guessed: a Buy takes as many as the points and the inventory
+ * allow, and refuses only when not even one fits. Left out: Task Storage's store and unstore, the seventh block
  * slot (the Lumbridge & Draynor Elite diary), and the content restrictions on some unlocks (Leagues and the like).
  * Guessed: the refusals' words and that they are game messages.
  */
@@ -68,8 +74,28 @@ class SlayerRewards(private val world: World) {
         /** The extends' list in slayer_unlock's list_position. */
         private const val EXTEND_LIST = 1
 
+        /** The Buy tab's items, drawn as children 0 to 5 in enum_840's order. */
+        const val BUY_ITEMS = 25
+
+        /** The Buy tab's ops: op 2 buys 1 (or one set), 3 five, 4 ten and 5 fifty. */
+        private val BUY_AMOUNTS = mapOf(2 to 1, 3 to 5, 4 to 10, 5 to 50)
+        private const val BUY_OPS = (1 shl 1) or (1 shl 2) or (1 shl 3) or (1 shl 4)
+
+        /** One of the Buy tab's items: its points for [per] of it, and whether only one is bought at a time. */
+        data class Buy(val obj: Int, val cost: Int, val per: Int = 1, val single: Boolean = false)
+
+        /** enum_840's items with enum_842's costs and enum_841's set sizes (242 cache). */
+        val BUY = listOf(
+            Buy(11866, 75), // slayer_ring_8
+            Buy(11875, 35, per = 250), // slayer_broad_bolt
+            Buy(4160, 35, per = 250), // slayer_broad_arrows
+            Buy(13226, 750, single = true), // slayer_herb_sack
+            Buy(12791, 750, single = true), // bh_rune_pouch
+            Buy(11941, 10, single = true), // looting_bag
+        )
+
         val CACHE_NAMES: Map<Int, Pair<String, Map<Int, String>>>
-            get() = mapOf(INTERFACE to ("slayer_rewards" to mapOf(CONFIRM_BUTTON to "confirm_button")))
+            get() = mapOf(INTERFACE to ("slayer_rewards" to mapOf(CONFIRM_BUTTON to "confirm_button", BUY_ITEMS to "buy_items")))
     }
 
     private val slayer get() = world.slayer
@@ -79,6 +105,9 @@ class SlayerRewards(private val world: World) {
         world.handlers.onButton(INTERFACE, CONFIRM_BUTTON) { op ->
             if (player.modals[FrameSlot.MAINMODAL] == INTERFACE) confirm(player, op.sub)
         }
+        world.handlers.onButton(INTERFACE, BUY_ITEMS) { op ->
+            if (player.modals[FrameSlot.MAINMODAL] == INTERFACE) buy(player, op.sub, op.option)
+        }
     }
 
     fun open(player: Player, master: SlayerMaster) {
@@ -86,6 +115,7 @@ class SlayerRewards(private val world: World) {
         showTask(player)
         world.interfaces.openModal(player, FrameSlot.MAINMODAL, INTERFACE)
         world.interfaces.setEvents(player, INTERFACE, CONFIRM_BUTTON, 0, LAST_CHILD, Interfaces.IF_EVENT_OP1)
+        world.interfaces.setEvents(player, INTERFACE, BUY_ITEMS, 0, BUY.lastIndex, BUY_OPS)
     }
 
     private fun showTask(player: Player) {
@@ -150,5 +180,25 @@ class SlayerRewards(private val world: World) {
         if (!pay(player, master.blockCost)) return
         slayer.setBlocked(player, master, slot, task.id)
         slayer.clear(player)
+    }
+
+    /** Op [op] on the Buy tab's child [child]. */
+    fun buy(player: Player, child: Int, op: Int) {
+        val buy = BUY.getOrNull(child) ?: return
+        val asked = BUY_AMOUNTS[op]?.takeIf { op == 2 || !buy.single } ?: return
+        val type = world.objTypes[buy.obj] ?: return
+        val text = world.textFor(player)
+        val room = when {
+            type.stackable -> if (player.inventory.count(buy.obj) > 0 || player.inventory.freeSlots > 0) asked else 0
+            else -> minOf(asked, player.inventory.freeSlots / buy.per)
+        }
+        val afford = minOf(room, slayer.points(player) / buy.cost)
+        if (afford == 0) {
+            if (room == 0) player.message(text[SlayerRewardsLines.NO_ROOM])
+            else player.message(text[SlayerRewardsLines.NOT_ENOUGH_POINTS, "cost" to buy.cost])
+            return
+        }
+        slayer.setPoints(player, slayer.points(player) - afford * buy.cost)
+        player.inventory.add(type, afford * buy.per)
     }
 }
