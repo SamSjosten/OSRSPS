@@ -374,6 +374,20 @@ class MagicCombatTest {
     }
 
     @Test
+    fun `an imbued mask's 15% comes before a weakness, which adds its share of the unmasked roll and base max hit`() {
+        val strike = spells.spell(FIRE_STRIKE)!!
+        val masked = Combat(Equipment(objTypes), styles, npcCombat, slayerHelm = { _, _ -> SlayerHelm.IMBUED })
+        alice.equipment[WearPos.NECK] = InvObj(bigDamage.id, 1)
+        val plain = combat.magicMatchup(alice, spawn(dummy), strike)!!
+        val weak = masked.magicMatchup(alice, spawn(fireWeak, z = 3211), strike)!!
+        // 8 with +50% damage is 12; the mask makes it 13 (13.8 down), and the weakness adds 8 x 50%: 17, where masking
+        // after the weakness would give 18 (the Wiki's DPS calculator, PlayerVsNPCCalc).
+        assertEquals(12, plain.maxHit)
+        assertEquals(17, weak.maxHit)
+        assertEquals(plain.attackRoll * 23 / 20 + plain.attackRoll / 2, weak.attackRoll)
+    }
+
+    @Test
     fun `Fire Strike on a fire-weak monster hits past its own max hit, up to the Wiki's`() {
         val npc = spawn(fireWeak, x = 3212)
         autocast(alice)

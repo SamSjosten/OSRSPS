@@ -368,16 +368,18 @@ class Combat(
             val worn = minOf(bonuses.magicDamage * staff.bonusMultiplier, CombatMath.MAGIC_DAMAGE_CAP)
             maxHit = CombatMath.spellMaxHit(spell.maxHit, worn + boosts.magicDamage)
         }
-        val weakness = def.weakness?.takeIf { spell.element != null && it.element == spell.element }
-        if (weakness != null) {
-            attackRoll = CombatMath.weaknessAttackRoll(attackRoll, weakness.percent)
-            maxHit += CombatMath.weaknessMaxHit(spell.maxHit, weakness.percent)
-        }
-        // Guessed: the imbued mask's 15% on the max hit multiplies, after a weakness, rather than adding to the magic
-        // damage bonus.
+        // The imbued mask's 15% multiplies the roll and max hit before an elemental weakness, which then adds its own
+        // share of the roll and of the spell's base max hit without the mask (the Wiki's DPS calculator,
+        // PlayerVsNPCCalc: blackMaskBonus, then the spellement bonus).
         val helm = slayerHelm(player, npc)
+        val unmaskedRoll = attackRoll
         attackRoll = helm.rangedOrMagic(attackRoll)
         maxHit = helm.rangedOrMagic(maxHit)
+        val weakness = def.weakness?.takeIf { spell.element != null && it.element == spell.element }
+        if (weakness != null) {
+            attackRoll += CombatMath.weaknessAttackRoll(unmaskedRoll, weakness.percent) - unmaskedRoll
+            maxHit += CombatMath.weaknessMaxHit(spell.maxHit, weakness.percent)
+        }
         val defenceRoll = CombatMath.npcDefenceRoll(npc.level(NpcStat.MAGIC), def.defence.magic)
         return MagicMatchup(
             attackRoll = attackRoll,

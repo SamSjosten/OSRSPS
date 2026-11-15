@@ -1132,7 +1132,7 @@ and every recolour of the helmet is known by its cache name.
 | The Slayer Equipment shop's stock, counts, restock times, 100% sell, 60% buy, 0.1% change | OSRS Wiki, Slayer Equipment (read 2026-11-15); inv slayershop 231 from the cache |
 | The Buy tab's items, costs, set sizes and ops (one at a time for the herb sack, rune pouch and looting bag) | the 242 client's script slayer_rewards_buy_draw and enums 840 to 842 (osrs-dumps) |
 | The black mask's and Slayer helmet's 7/6 melee and the imbued ones' 15% ranged and magic, on task only | OSRS Wiki, Black mask and Slayer helmet (Mod Ash's "7/6") |
-| Rounding down after each multiply; the ranged 15% before the twisted bow's scaling; the magic 15% multiplying the max hit after a weakness | inferred; guessed for magic |
+| Rounding down after each multiply; the ranged 15% before the twisted bow's scaling; the magic 15% before an elemental weakness, which adds its share unmasked (the Wiki's DPS calculator) | inferred |
 | A Buy taking as many as the points and inventory allow, refusing only when not one fits; its refusals' words | guessed |
 | Every message's words | unsourced: the Words thread fills them |
 | Not built yet: Konar and her places, the salve amulet not stacking with the mask (no salve amulet yet), making the Slayer helmet, the slayer ring's teleports, Task Storage, the diary's seventh block slot, equipment, superiors, boss tasks, Krystilia (the Wilderness), Aya's blessed axe talk, Kuradal's Slayer cape sale and talk about Duradel, the Slayer cape overlooking a master's combat level | |
