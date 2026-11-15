@@ -3,8 +3,13 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import kotlin.test.assertSame
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
+import osrsps.game.NpcStats
+import osrsps.game.NpcType
+import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.PlayerOps
@@ -12,12 +17,14 @@ import osrsps.game.SeqNames
 import osrsps.game.SpotanimNames
 import osrsps.game.World
 import osrsps.game.combat.CombatLines
+import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.PvpCombat
 import osrsps.game.combat.PvpInteraction
 import osrsps.game.combat.PvpLines
 import osrsps.game.combat.Spells
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.dialogue.Line
+import osrsps.game.npc.NpcSpawn
 import osrsps.map.CollisionMap
 
 /**
@@ -35,6 +42,9 @@ class HeadlessPvpSingleWayTest {
         ObjType(id, name, stackable = true, iops = listOf(null, null, null, null, "Drop"), internalName = internal)
     }
 
+    // As HeadlessMaxHitTest has him: 99 hitpoints, so a fight with him lasts.
+    private val man = NpcType(3106, "Man", ops = listOf("Talk-to", "Attack", "Pickpocket", null, null), combatLevel = 2, internalName = "man", stats = NpcStats(hitpoints = 99))
+
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val map = CollisionMap().apply {
             for (sz in (3456 shr 6)..(3967 shr 6)) markLoaded(3090 shr 6, sz)
@@ -42,7 +52,12 @@ class HeadlessPvpSingleWayTest {
         val objs = arrayOfNulls<ObjType>(barrage.id + 1)
         for (type in runes + barrage) objs[type.id] = type
         val objTypes = ObjTypes(objs)
-        World(crcs, map, random = GameRandom(11), objTypes = objTypes, spells = Spells.load(objTypes, SeqNames.NONE, SpotanimNames.NONE), cycleMillis = millis)
+        val npcTypes = NpcTypes.of(man)
+        World(
+            crcs, map, random = GameRandom(11), objTypes = objTypes, spells = Spells.load(objTypes, SeqNames.NONE, SpotanimNames.NONE),
+            npcTypes = npcTypes, npcSpawns = listOf(NpcSpawn(man, 3090, Z - 6, source = "test")), npcCombat = NpcCombat.load(npcTypes, SeqNames.NONE),
+            cycleMillis = millis,
+        )
     }
 
     private fun HeadlessClient.tele(x: Int, z: Int) {
@@ -131,6 +146,67 @@ class HeadlessPvpSingleWayTest {
                         a.awaitTicks(PvpCombat.FREEZE_IMMUNITY_TICKS)
                         a.playerTarget(b.index, Spells.SPELLBOOK, ICE_BARRAGE)
                         a.await("fay frozen") { Unit.takeIf { fay.freezeTicks > 0 } }
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a player who has just attacked a monster can't be attacked by a player in single-way, before it hits back`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("gus").use { a ->
+                server.login("hal").use { b ->
+                    a.ready(3090)
+                    b.ready(3092)
+                    b.await("gus in view") { b.otherPlayers().takeIf { it.isNotEmpty() } }
+                    val gus = server.world.playerNamed("gus")!!
+                    val npc = a.await("the man in view") { a.npcs().firstOrNull { it.id == man.id } }.index
+
+                    // Codex review on #710: gus's fight with the man keeps hal off him from gus's first swing, not only
+                    // once the man has hit back.
+                    a.npcOp(npc, 2)
+                    a.await("gus's swing at the man") { gus.attackedNpc }
+                    b.refusedWith(PvpLines.TARGET_IN_COMBAT) { b.playerOp(a.index, PlayerOps.ATTACK) }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a caster in single-way can't barrage past their target, and a player a barrage hits gets a PJ timer`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ida").use { a ->
+                server.login("jon").use { b ->
+                    server.login("kim").use { c ->
+                        a.ready(3086)
+                        b.ready(3093)
+                        c.ready(3094)
+                        a.await("both in view") { a.otherPlayers().takeIf { it.size == 2 } }
+                        val world = server.world
+                        val ida = world.playerNamed("ida")!!
+                        val jon = world.playerNamed("jon")!!
+                        val kim = world.playerNamed("kim")!!
+                        // The zone from 3088 is multi-way; ida stands single-way, west of it.
+                        world.multiCombat.set(0, 3093, Z, true)
+                        a.commandReply("setlevel magic 94") { true }
+                        a.commandReply("spellbook ancient") { it == "Your spellbook is ancient now." }
+                        for ((id, count) in listOf(WATER to 12, BLOOD to 4, DEATH to 8)) a.command("item $id $count")
+                        a.commandReply("sure") { it.startsWith("Your attacks") }
+
+                        // Codex review on #710: ida's PJ timer holds her to jon, so the barrage leaves kim alone.
+                        a.playerTarget(b.index, Spells.SPELLBOOK, ICE_BARRAGE)
+                        a.await("jon frozen") { Unit.takeIf { jon.freezeTicks > 0 } }
+                        a.awaitTicks(2)
+                        assertEquals(0, kim.freezeTicks, "ida stands single-way")
+
+                        // From inside the multi-way zone the barrage takes kim too, and starts her PJ timer naming ida.
+                        a.tele(3089, Z)
+                        a.await("jon free and no longer immune") { Unit.takeIf { jon.freezeTicks == 0 && jon.freezeImmunityTicks == 0 } }
+                        a.playerTarget(b.index, Spells.SPELLBOOK, ICE_BARRAGE)
+                        a.await("kim frozen") { Unit.takeIf { kim.freezeTicks > 0 } }
+                        assertSame(ida, kim.pjOpponent)
+                        assertTrue(kim.pjUntil > world.tick)
                     }
                 }
             }

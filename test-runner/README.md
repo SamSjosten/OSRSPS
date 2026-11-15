@@ -672,6 +672,12 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   level 50, test shoots test2 with a shortbow and bronze arrows for a sure 12, read off its Ranged XP and test2's
   hitsplat. Spells cast on a player and freezes are in HeadlessPvpRangedMagicTest only: the runner has no step that
   casts on a player yet.
+- `wilderness-pvp-single-way-test.json` and `wilderness-pvp-single-way-test2.json` (need 0.20.0, for `assertHitsplat`
+  with `self` and `playerOption`): Wilderness step W1.5, two players at once. At level 50, test spawns a cow on its
+  tile with `::npc cow`, then punches test2 (auto retaliate off), which starts the PJ timer. Attack on the cow is then
+  refused with `[combat.already_under_attack]`, and is allowed once the 20 ticks are up. A third player kept off a
+  fight, and Burst and Barrage on several players, are in HeadlessPvpSingleWayTest only: the runner pairs have two
+  players.
 - `settings-search.json` (needs 0.12.0): the All Settings search typed with real key presses, a found row clicked,
   and a window closed mid-search reopening on its category, also after a relog.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in

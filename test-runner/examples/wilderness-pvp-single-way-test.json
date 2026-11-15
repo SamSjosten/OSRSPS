@@ -1,0 +1,20 @@
+{
+ "name": "Wilderness step W1.5, two players (run with wilderness-pvp-single-way-test2.json on the other VM at the same time): test, at level 50 in single-way combat beside a cow it spawned, punches test2, which starts its PJ timer; Attack on the cow is refused with the line for being under attack, and allowed once the 20 ticks are up",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::wildy 50", "expectMessage": ": level 50 Wilderness"},
+  {"step": "command", "text": "::npc cow", "expectMessage": "Spawned Cow", "comment": "on our tile, standing still; the Wilderness has no multi-way areas yet, so this is single-way"},
+  {"step": "playerOption", "player": "test2", "option": "Attack", "timeoutMs": 180000, "comment": "once test2 has jumped here too, its sign that it's ready"},
+  {"step": "waitTicks", "ticks": 3, "comment": "a punch made: both PJ timers run (OSRS Wiki, PJ timer: 20 ticks in the Wilderness)"},
+  {"step": "npcOption", "npc": "Cow", "option": "Attack", "timeoutMs": 10000, "comment": "ends the punching, and is refused"},
+  {"step": "assertMessage", "contains": "[combat.already_under_attack]", "timeoutMs": 10000},
+  {"step": "waitTicks", "ticks": 22, "comment": "the timer over: test2 has auto retaliate off, so nothing set it again"},
+  {"step": "npcOption", "npc": "Cow", "option": "Attack", "timeoutMs": 10000},
+  {"step": "assertHitsplat", "npc": "Cow", "timeoutMs": 20000, "comment": "a hit or a miss (0)"},
+  {"step": "command", "text": "::kill cow", "expectMessage": "Killed Cow #"},
+  {"step": "command", "text": "::wildy 1", "expectMessage": ": level 1 Wilderness", "comment": "away, test2's sign that we're done"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"}
+ ]
+}

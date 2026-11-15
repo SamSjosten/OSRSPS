@@ -210,7 +210,8 @@ class PvpCombat(
      * Why [attacker] can't attack [target] in single-way combat, or null when they can (OSRS Wiki, PJ timer: both
      * players of a PvP fight start a timer of [PJ_TICKS], refreshed with each attack, and while it runs no one else can
      * attack either of them, nor can they attack anyone else). Refused too: a target a monster is fighting (hit them
-     * within [MeleeCombat.IN_COMBAT_TICKS], the Wiki's monster timer), and an attacker one is fighting, as for an NPC
+     * within [MeleeCombat.IN_COMBAT_TICKS], the Wiki's monster timer) or that is fighting one (attacked it within as
+     * long, so before it hits back too: Codex review on #710), and an attacker one is fighting, as for an NPC
      * ("I'm already under attack."). By the attacker's tile for their own timer and the target's for theirs, as
      * [MeleeCombat] does for NPCs (guessed). The target's refusal's words are held.
      */
@@ -218,7 +219,9 @@ class PvpCombat(
         if (!multi.at(attacker.level, attacker.x, attacker.z) && (fightingOther(attacker, target, tick) || npcFighting(attacker, tick))) {
             return CombatLines.ALREADY_UNDER_ATTACK
         }
-        if (!multi.at(target.level, target.x, target.z) && (fightingOther(target, attacker, tick) || npcFighting(target, tick))) {
+        if (!multi.at(target.level, target.x, target.z) &&
+            (fightingOther(target, attacker, tick) || npcFighting(target, tick) || melee.fightingNpc(target))
+        ) {
             return PvpLines.TARGET_IN_COMBAT
         }
         return null
@@ -310,7 +313,13 @@ class PvpCombat(
         val hit = spellOn(player, target, spell, tick + delay + late, defensive)
         player.skills.addTenths(Skill.MAGIC, if (hit) spell.xpTenths else spell.splashXpTenths)
         if (spell.area && multi.at(target.level, target.x, target.z)) {
-            for (other in around(player, target)) spellOn(player, other, spell, tick + delay + late(other, tick), defensive)
+            for (other in around(player, target, tick)) {
+                spellOn(player, other, spell, tick + delay + late(other, tick), defensive)
+                // Each one hit is attacked: their PJ timer starts as the target's does, naming the caster, whose own
+                // stays on the target (guessed: the Wiki doesn't say).
+                other.pjOpponent = player
+                other.pjUntil = tick + PJ_TICKS
+            }
         }
         // A spell from the book is cast once; the autocast spell, if any, carries the fight on. With none, the fight
         // ends here, and the player keeps facing the target ([Player.castAtPlayer]).
@@ -341,15 +350,16 @@ class PvpCombat(
 
     /**
      * The other players a Burst or Barrage on [target] hits in multi-way combat: those standing on the 3x3 around the
-     * target, in multi-way combat themselves, whom [player] could attack ([PvpRules]), eight at most, lowest index first
-     * (OSRS Wiki, Ancient Magicks: up to nine targets in the 3x3; the order guessed, as for NPCs).
+     * target, in multi-way combat themselves, whom [player] could attack ([PvpRules], and [singleWayRefusal]: a caster
+     * standing in single-way combat is held to their target), eight at most, lowest index first (OSRS Wiki, Ancient
+     * Magicks: up to nine targets in the 3x3; the order guessed, as for NPCs).
      */
-    private fun around(player: Player, target: Player): List<Player> =
+    private fun around(player: Player, target: Player, tick: Long): List<Player> =
         players()
             .filter {
                 it !== player && it !== target && inWorld(it) && !it.dead && it.hitpoints > 0 && it.level == target.level &&
                     abs(it.x - target.x) <= 1 && abs(it.z - target.z) <= 1 && multi.at(it.level, it.x, it.z) &&
-                    PvpRules.refusal(player, it).isEmpty()
+                    PvpRules.refusal(player, it).isEmpty() && singleWayRefusal(player, it, tick) == null
             }
             .sortedBy { it.index }
             .take(MagicCombat.AREA_TARGETS - 1)

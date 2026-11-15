@@ -1,0 +1,15 @@
+{
+ "name": "Wilderness step W1.5, two players (run with wilderness-pvp-single-way-test.json on the other VM at the same time): test2, on 99 hitpoints at level 50 with auto retaliate off, takes test's punch and doesn't fight back, so test's PJ timer runs out on its own",
+ "account": "test2",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::setlevel hitpoints 99", "expectMessage": "99"},
+  {"step": "command", "text": "::varp 172 1", "expectMessage": "Varp 172:", "comment": "auto retaliate off: we don't hit back, which would start the timer again"},
+  {"step": "command", "text": "::wildy 50", "expectMessage": ": level 50 Wilderness", "comment": "test's sign that we're ready"},
+  {"step": "assertHitsplat", "self": true, "timeoutMs": 180000, "comment": "test's punch, a hit or a miss (0)"},
+  {"step": "waitTicks", "ticks": 40, "comment": "stand still while test tries the cow"},
+  {"step": "command", "text": "::varp 172 0", "expectMessage": "Varp 172:", "comment": "auto retaliate back on"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"}
+ ]
+}
