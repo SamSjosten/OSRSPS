@@ -1,0 +1,22 @@
+{
+ "name": "Hunter step 4: a deadfall set on a boulder in the Feldip Hunter area with a knife and logs at 99 Hunter (a sure catch), a barb-tailed kebbit caught under it, and Check giving its bones, harpoon and meat with the boulder back (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario hunter", "expectMessage": "Started scenario hunter.", "comment": "a knife and five logs among the Hunter loadout; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::setlevel hunter 99", "expectMessage": "Hunter set to level 99", "comment": "a barb-tailed kebbit's catch is sure well before 99"},
+  {"step": "command", "text": "::tele 2572 2897 0", "comment": "west of the boulder at 2573, 2897; barb-tailed kebbits spawn on both sides of it (npc-spawns/hunter-deadfalls.json)"},
+  {"step": "locOption", "locId": 19215, "option": "Set-trap", "x": 2573, "y": 2897, "comment": "hunting_deadfall_boulder"},
+  {"step": "assertMessage", "contains": "hunter.laying"},
+  {"step": "assertLoc", "locId": 19217, "x": 2573, "y": 2897, "option": "Dismantle", "comment": "hunting_deadfall_trap"},
+  {"step": "assertLoc", "locId": 20650, "x": 2573, "y": 2897, "option": "Check", "timeoutMs": 60000, "comment": "hunting_deadfall_full_barbed; it looks from 8 ticks on, and falls after a minute if nothing comes, so a rerun may be needed"},
+  {"step": "locOption", "locId": 20650, "option": "Check", "x": 2573, "y": 2897},
+  {"step": "assertMessage", "contains": "hunter.caught", "timeoutMs": 15000},
+  {"step": "assertInventory", "item": "Barb-tail harpoon", "count": 1},
+  {"step": "assertInventory", "item": "Bones", "count": 1},
+  {"step": "assertLoc", "locId": 19215, "x": 2573, "y": 2897, "option": "Set-trap", "comment": "the boulder back as it was"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

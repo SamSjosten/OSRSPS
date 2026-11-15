@@ -1129,4 +1129,20 @@ class NpcSpawnFileTest {
         assertTrue(of(2904).all { (it.x in 2440..2480 && it.z in 3215..3255) || (it.x == 2644 && it.z == 2401) })
         assertTrue(result.spawns.all { it.wander == 4 && it.level == 0 && it.source.isNotBlank() })
     }
+
+    @Test
+    fun `Hunter step 4's kebbits are by their boulders`() {
+        val names = mapOf(1349 to "huntingbeast_claws", 1348 to "huntingbeast_barbedtail", 1346 to "huntingbeast_spiky", 1347 to "huntingbeast_sabreteeth")
+        val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
+        val result = NpcSpawnFile.parse(file("hunter-deadfalls.json"), types, "hunter-deadfalls.json")
+        assertEquals(emptyList(), result.unknown)
+        fun of(id: Int) = result.spawns.filter { it.type.id == id }
+        assertEquals(listOf(32, 15, 20, 12), listOf(of(1349).size, of(1348).size, of(1346).size, of(1347).size))
+        // Piscatoris (and Auburnvale), Feldip, Piscatoris, Rellekka.
+        assertTrue(of(1349).all { (it.x in 2300..2370 && it.z in 3520..3580) || (it.x in 1375..1400 && it.z in 3380..3400) })
+        assertTrue(of(1348).all { it.x in 2560..2590 && it.z in 2880..2935 })
+        assertTrue(of(1346).all { it.x in 2300..2350 && it.z in 3590..3650 })
+        assertTrue(of(1347).all { it.x in 2700..2725 && it.z in 3760..3785 })
+        assertTrue(result.spawns.all { it.wander == 4 && it.level == 0 && it.source.isNotBlank() })
+    }
 }
