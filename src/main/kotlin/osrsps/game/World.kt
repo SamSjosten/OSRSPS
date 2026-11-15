@@ -2005,6 +2005,7 @@ class World(
         clans.resync(player)
         rebuild(player)
         interfaces.resendClosesWhileAway(player)
+        interfaces.resendWildernessOverlay(player)
         interfaces.closeEmptyModalSlots(player)
     }
 

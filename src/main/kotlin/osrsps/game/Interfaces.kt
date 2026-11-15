@@ -177,6 +177,17 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         }
     }
 
+    /**
+     * After a reconnect, opens the Wilderness overlay again if the server has it open: the open may have gone with the
+     * old connection (Codex review on #675), and [showWildernessOverlay] sends only changes. A close lost that way is
+     * in [Player.closedWhileAway].
+     */
+    fun resendWildernessOverlay(player: Player) {
+        if (!player.wildernessOverlay) return
+        val frame = player.frame
+        send(player, IfOpenSub(frame.interfaceId, frame.component(FrameSlot.PVP_ICONS), GameFrame.PVP_ICONS, OVERLAY))
+    }
+
     /** Opens [interfaceId] in side panel [slot] in place of what is there, as an overlay like the side panels. */
     fun openSide(player: Player, slot: FrameSlot, interfaceId: Int) {
         val frame = player.frame

@@ -172,6 +172,21 @@ class HeadlessWildernessDitchTest {
     }
 
     @Test
+    fun `a reconnect opens the overlay again inside the Wilderness`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            val hal = server.login("hal")
+            hal.await("the login rebuild") { hal.position }
+            hal.command("wildy 5")
+            hal.await("the overlay open") { Unit.takeIf { hal.overlayOpen() } }
+            // The new connection knows nothing the old one was sent: the open must come again.
+            server.reconnect("hal", hal).use { back ->
+                back.await("the overlay open again") { Unit.takeIf { back.overlayOpen() } }
+            }
+            hal.close()
+        }
+    }
+
+    @Test
     fun `a piece is jumped along its two-tile side, either way, and refused from its ends`() {
         val piece = ZoneLoc(WildernessDitch.DITCH, LocShape.CENTREPIECE_STRAIGHT, 0, 3090, 3521, 0)
         assertEquals(Tile(3090, 3523), WildernessDitch.landing(piece, 1, 2, Tile(3090, 3520)))
