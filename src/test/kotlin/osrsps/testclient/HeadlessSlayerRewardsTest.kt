@@ -165,7 +165,8 @@ class HeadlessSlayerRewardsTest {
                 client.commandReply("slayer task rats 50 vannaka") { it.startsWith("Task") }
                 client.confirm(SlayerRewards.BLOCK)
                 client.awaitVarp(4833, "rats in Vannaka's first block slot") { it and 0xFF == 3 }
-                assertEquals(0, client.varp(Slayer.VARP_COUNT))
+                // The count's varp may come a packet after the block's.
+                client.awaitVarp(Slayer.VARP_COUNT, "the blocked task gone") { it == 0 }
                 assertEquals(110, client.points())
 
                 // Vannaka gives only cows now.

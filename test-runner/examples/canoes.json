@@ -4,8 +4,10 @@
  "steps": [
   {"step": "waitForLogin"},
   {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack; ::reset at the end puts the account back, the station's varbit with it"},
+  {"step": "command", "text": "::varbit 1839 0", "comment": "the Lumbridge station a tree, whatever an earlier run that stopped part way left (nightly 2026-11-15: a waka still afloat hid Chop-down)"},
   {"step": "command", "text": "::setlevel woodcutting 99"},
-  {"step": "command", "text": "::item 1359", "comment": "a rune axe; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::item 1359", "comment": "a rune axe"},
   {"step": "command", "text": "::tele 3243 3234 0", "expectMessage": "Teleported to 3243, 3234, 0", "comment": "south of the Lumbridge station (3241, 3235, 5 by 2; approached from the south); the standing tile is not yet checked on the VM"},
 
   {"step": "locOption", "loc": "Canoe Station", "option": "Chop-down", "x": 3241, "y": 3235},

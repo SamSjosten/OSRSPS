@@ -79,9 +79,12 @@ enum class SlayerMaster(
  * of two players who dealt the same most damage, the first to deal it counts.
  * A black mask or Slayer helmet worn on task makes the player's attacks on the task's monster stronger ([helm],
  * [SlayerHelm]). Slayer partners aren't built. Krystilia's tasks keep their own streak in slayer_wilderness_tasks_completed; she belongs to
- * the Wilderness, which isn't built, so it is left alone. Out: boss tasks, Konar's places, superiors (later steps).
+ * the Wilderness, which isn't built, so it is left alone. Out: boss tasks, Konar's places. Superiors are [SlayerSuperiors].
  */
 class Slayer(private val world: World, val data: SlayerData) {
+    /** Superior Slayer monsters; see [SlayerSuperiors]. */
+    val superiors = SlayerSuperiors(world)
+
     companion object {
         /** The NPC type param naming its task (osrs-dumps: cows 6, birds 5, rats 3). */
         const val PARAM_CATEGORY = 50
@@ -317,6 +320,7 @@ class Slayer(private val world: World, val data: SlayerData) {
     /** [npc] left the world without being killed (World.removeNpc). */
     fun removed(npc: Npc) {
         damage.remove(npc)
+        superiors.removed(npc)
     }
 
     fun killed(npc: Npc, killer: Player?) {
@@ -327,6 +331,13 @@ class Slayer(private val world: World, val data: SlayerData) {
         // admin's ::kill) the finisher is.
         val killerKey = killer?.saveKey?.takeIf { dealt.isNullOrEmpty() || (dealt[it] ?: 0) > 0 } ?: topKey ?: return
         val shared = topKey != null && topKey != killerKey
+        // A superior gives its own XP, on task or not; only its player can attack it, so it is never shared.
+        superiors.xpTenths(npc)?.let { superiorXp ->
+            val player = online(killerKey) ?: return
+            player.skills.addTenths(Skill.SLAYER, superiorXp)
+            if (onTask(player, npc)) countKill(player)
+            return
+        }
         val xp = xpTenths(npc)
         // Each one's session now, if they are in the world: not the one that hit, after a relog.
         val credited = if (shared) listOf(killerKey, topKey!!) else listOf(killerKey)
@@ -334,10 +345,16 @@ class Slayer(private val world: World, val data: SlayerData) {
             val player = online(key) ?: continue
             if (!onTask(player, npc)) continue
             player.skills.addTenths(Skill.SLAYER, if (shared) xp / 2 else xp)
-            val left = remaining(player) - 1
-            player.vars[VARP_COUNT] = left
-            if (left == 0) complete(player)
+            superiors.rolled(player, npc)
+            countKill(player)
         }
+    }
+
+    /** One off [player]'s task, completing it with the last. */
+    private fun countKill(player: Player) {
+        val left = remaining(player) - 1
+        player.vars[VARP_COUNT] = left
+        if (left == 0) complete(player)
     }
 
     /** The player in the world under save key [key], not logged out, or null. */
