@@ -1323,6 +1323,27 @@
       "source": "OSRS Wiki, Rockslug (level 29, ids 421 and 422), read 2026-11-10: speed 4, max hit 4, crush, no bonuses, respawn 15, not aggressive, 25% weak to earth, Slayer 20, and finished only by a bag of salt at 4 or less (\"If a rockslug's health is reduced to 1 but a bag of salt is not used on it, the rockslug will stop retaliating and wander off\"). Its own rockslug animations"
     },
     {
+      "npcs": ["superior_cave_crawler"],
+      "attackSpeed": 4, "maxHit": 7, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 41, "slash": 43, "crush": 23, "magic": 24, "light": 40, "standard": 20, "heavy": 40 },
+      "anims": { "attack": "crawler_attack", "defend": "crawler_parry", "death": "crawler_death" },
+      "respawnTicks": 1,
+      "poison": 12,
+      "weakness": { "element": "fire", "percent": 50 },
+      "slayerLevel": 10,
+      "source": "OSRS Wiki, Chasm Crawler (level 68, id 7389), read 2026-11-15: speed 4, max hit 7, stab, no attack bonuses, the defences, not aggressive, poisonous (12), 50% weak to fire, Slayer 10. A superior never respawns (SlayerSuperiors puts it out once), so the respawn time only stands in. Guessed: the cave crawler's animations, as it has their stand and walk"
+    },
+    {
+      "npcs": ["superior_rockslug"],
+      "attackSpeed": 4, "maxHit": 9, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "rockslug_attack", "defend": "rockslug_defend", "death": "rockslug_death" },
+      "respawnTicks": 1,
+      "weakness": { "element": "earth", "percent": 20 },
+      "slayerLevel": 20,
+      "source": "OSRS Wiki, Giant rockslug (level 86, id 7392), read 2026-11-15: speed 4, max hit 9, crush, no bonuses, not aggressive, 20% weak to earth, Slayer 20; its 2 flat armour is set by SlayerSuperiors. A superior never respawns, so the respawn time only stands in. Guessed: the rockslug's animations, as it has their stand and walk"
+    },
+    {
       "npcs": ["swamp_wallbeast_combat"],
       "attackSpeed": 4, "maxHit": 4, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
       "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
