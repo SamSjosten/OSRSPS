@@ -171,6 +171,7 @@ object DialogueLines {
         BryophytaLines,
         EmoteLines,
         GiantBonesLines,
+        FeroxEnclaveLines,
         StrongholdLines,
         SkullSceptreLines,
         SolztunLines,

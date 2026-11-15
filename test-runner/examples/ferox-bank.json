@@ -1,0 +1,32 @@
+{
+  "name": "Wilderness step W2.3: Ferox Enclave's south barrier both ways, \"Level: --\" inside, a Pool of Refreshment, the bank chest and the banker (::keys on)",
+  "account": "test2",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::tele 3134 3615 0", "comment": "level 13, just south of the south barrier"},
+    {"step": "assertLocation", "x": 3134, "y": 3615, "plane": 0, "timeoutMs": 10000},
+    {"step": "assertVarbit", "id": 10530, "value": 0, "comment": "wildy_hub_buffer off outside"},
+    {"step": "locOption", "locId": 39652, "option": "Pass-Through", "x": 3134, "y": 3617},
+    {"step": "assertLocation", "x": 3134, "y": 3617, "plane": 0, "timeoutMs": 10000, "comment": "through into the Enclave"},
+    {"step": "assertVarbit", "id": 10530, "value": 1, "timeoutMs": 5000, "comment": "wildy_hub_buffer: the overlay reads Level: --"},
+    {"step": "command", "text": "::hit 3 me"},
+    {"step": "walk", "x": 3127, "y": 3633},
+    {"step": "assertLocation", "x": 3127, "y": 3633, "plane": 0, "timeoutMs": 20000},
+    {"step": "locOption", "locId": 39651, "option": "Drink", "x": 3128, "y": 3633},
+    {"step": "assertMessage", "contains": "[ferox.pool]", "timeoutMs": 10000},
+    {"step": "locOption", "locId": 26711, "option": "Use", "x": 3130, "y": 3632},
+    {"step": "assertInterface", "interfaceId": 12, "timeoutMs": 10000, "comment": "bankmain from the bank chest"},
+    {"step": "walk", "x": 3133, "y": 3628, "comment": "walking away closes the bank"},
+    {"step": "assertLocation", "x": 3133, "y": 3628, "plane": 0, "timeoutMs": 10000},
+    {"step": "npcOption", "npc": "Banker", "option": "Bank"},
+    {"step": "assertInterface", "interfaceId": 12, "timeoutMs": 10000, "comment": "bankmain: the banker's own Bank"},
+    {"step": "walk", "x": 3134, "y": 3618},
+    {"step": "assertLocation", "x": 3134, "y": 3618, "plane": 0, "timeoutMs": 20000},
+    {"step": "walk", "x": 3134, "y": 3617},
+    {"step": "assertLocation", "x": 3134, "y": 3617, "plane": 0, "timeoutMs": 10000},
+    {"step": "locOption", "locId": 39652, "option": "Pass-Through", "x": 3134, "y": 3617},
+    {"step": "assertLocation", "x": 3134, "y": 3616, "plane": 0, "timeoutMs": 10000, "comment": "back out"},
+    {"step": "assertVarbit", "id": 10530, "value": 0, "timeoutMs": 5000}
+  ]
+}

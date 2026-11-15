@@ -52,8 +52,22 @@ object Wilderness {
     fun pvpLevel(x: Int, z: Int): Int {
         if (!inside(x, z)) return 0
         if (z in SAFE_ROWS && SURFACE.contains(x, z)) return 0
+        if (inFerox(x, z)) return 0
         return level(x, z)
     }
+
+    /**
+     * Ferox Enclave's safe area (step W2.3), levels 13 to 16, where nobody can attack a player or be attacked by one
+     * (the Wiki's Ferox Enclave and Barrier pages). Inferred: the box whose edges its four barriers stand on in the 242
+     * map, x 3123 to 3154 and z 3617 to 3639 on the surface; the Wiki's safe tiles around each barrier outside, and any
+     * of the town past the box, wait for a recording.
+     */
+    fun inFerox(x: Int, z: Int): Boolean = x in FEROX_WEST..FEROX_EAST && z in FEROX_SOUTH..FEROX_NORTH
+
+    const val FEROX_WEST = 3123
+    const val FEROX_EAST = 3154
+    const val FEROX_SOUTH = 3617
+    const val FEROX_NORTH = 3639
 
     /**
      * Whether players of combat levels [a] and [b], fighting by Wilderness levels [levelA] and [levelB], are in range of
