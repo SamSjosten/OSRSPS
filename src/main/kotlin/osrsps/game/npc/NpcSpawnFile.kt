@@ -88,6 +88,7 @@ object NpcSpawnFile {
         "edgeville-dungeon-wilderness.json",
         "hunter-butterflies.json",
         "hunter-falconry.json",
+        "wilderness-south.json",
         "hunter-shops.json",
     )
 

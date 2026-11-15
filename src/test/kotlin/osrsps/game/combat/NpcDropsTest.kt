@@ -1116,6 +1116,47 @@ class NpcDropsTest {
         assertFailsWith<IllegalArgumentException> { DropSlot(1, DropItem(guam, 1, 1), tableCount = 2) }
     }
 
+    @Test
+    fun `the Wilderness's mammoths drop big bones, then the Wiki's table out of 640`() {
+        val mammothTypes = NpcTypes.of(NpcType(2800, "wilderness_mammoth", internalName = "wilderness_mammoth"))
+        val drops = NpcDrops.load(mammothTypes, objTypes)
+        val def = drops[mammothTypes.find("wilderness_mammoth")!!]!!
+        assertEquals(listOf("Big bones"), def.always.map { it.type.name })
+        assertEquals(640, def.table!!.slots)
+        assertEquals(
+            listOf("Clue scroll (medium)" to 128, "Long bone" to 400, "Curved bone" to 5013),
+            def.tertiary.map { it.item.type.name to it.denominator },
+        )
+        val random = GameRandom(81)
+        val counts = HashMap<String, Int>()
+        repeat(KILLS) {
+            val kill = def.roll(random)
+            assertEquals("Big bones", kill.first().type.name)
+            for (drop in kill.drop(1)) {
+                val key = if (drop.type.name.startsWith("Grimy")) "herb" else "${drop.type.name} x${drop.count}"
+                counts[key] = (counts[key] ?: 0) + 1
+            }
+        }
+        fun expect(key: String, weight: Int) {
+            val p = weight / 640.0
+            val mean = KILLS * p
+            val sigma = sqrt(KILLS * p * (1 - p))
+            val got = counts[key] ?: 0
+            assertTrue(abs(got - mean) <= 5 * sigma + 1, "$key: $got of $KILLS, expected about ${mean.toInt()}")
+        }
+        // Out of 128: the herb table 8 (40 of 640), 30 coins 13 (65), potato seeds 30 of the allotment table's 100.
+        expect("herb", 40)
+        expect("Coins x30", 65)
+        expect("Coins x180", 35)
+        expect("Potato seed x3", 30)
+        expect("Barley seed x4", 30)
+        expect("Apple tree seed x1", 18)
+        expect("Lobster x2", 15)
+        // The gem table is the surface one: its talisman is a nature talisman, never a chaos talisman.
+        assertTrue((counts["Nature talisman x1"] ?: 0) > 0)
+        assertNull(counts["Chaos talisman x1"])
+    }
+
     companion object {
         private const val KILLS = 10_000
     }
