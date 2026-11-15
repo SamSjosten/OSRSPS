@@ -182,6 +182,9 @@ class Traps(private val world: World, private val collision: CollisionMap) {
     /** The traps [owner] (a save key) has laid. */
     fun of(owner: String): List<Trap> = traps.filter { it.owner == owner }
 
+    /** Whether a standing trap takes [x], [z], [level]: its own tile or its tree's, even while that tree is hidden. */
+    fun takes(x: Int, z: Int, level: Int): Boolean = traps.any { it.level == level && it.covers(x, z) }
+
     /** The trap on [x], [z], [level], if any. */
     fun at(x: Int, z: Int, level: Int): Trap? = traps.firstOrNull { it.x == x && it.z == z && it.level == level }
 
@@ -454,7 +457,7 @@ class Traps(private val world: World, private val collision: CollisionMap) {
             (anchor != null && (!world.locs.exists(anchor) || world.locs.reverting(anchor.x, anchor.z, anchor.level))) ||
             // A standing trap keeps its own tile and its tree's whatever it shows: a net trap's 1 by 2 loc may start on
             // the tree's tile and leave the net's without a loc of its own.
-            traps.any { it.level == level && (it.covers(x, z) || anchor != null && it.covers(anchor.x, anchor.z)) }
+            takes(x, z, level) || anchor != null && takes(anchor.x, anchor.z, level)
         // Ours: an instance's locs answer only the ones it lets through, so a trap there could never be taken down.
         if (occupied || world.instances.inDynamicArea(x, z) || collision[x, z, level] and CollisionFlag.BLOCK_WALK != 0) {
             world.message(player, HunterLines.CANT_HERE)
