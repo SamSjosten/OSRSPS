@@ -59,7 +59,7 @@ object BryophytaLines : Lines("bryophyta", "Bryophyta's lair") {
  *   of her reach"). Guessed: even chances between the two in reach.
  * - Her swing poisons (8, members), through the shared NPC poison chance.
  * - Once she is down ~25% ([GROWTH_BELOW_PERCENT] of her hitpoints left or fewer), each of her attacks at a player who
- *   is attacking her has a 1/5 chance to bring three growthlings ([GROWTHLINGS]), one batch at a time, none for
+ *   is attacking her, and each of that player's hits on her ([damaged]), has a 1/5 chance to bring three growthlings ([GROWTHLINGS]), one batch at a time, none for
  *   [GROWTH_COOLDOWN_TICKS] after the last of a batch dies (Mod Ash, cited on the Growthling page). While any lives she
  *   takes no damage but poison and venom, checked as each hit lands ([osrsps.game.combat.Combat.immune]). Her lair is
  *   multi-way (inferred), so they fight the player alongside her and can be fought while she attacks.
@@ -67,7 +67,7 @@ object BryophytaLines : Lines("bryophyta", "Bryophyta's lair") {
  *   hit but an axe's or magic secateurs' wielded, which kill one outright; an axe or secateurs used on one kills it too.
  *   Inferred: "instantly killed" as a sure hit for all its hitpoints. Guessed: "attacking her" as her having been hit by
  *   the player in the last [ATTACKING_TICKS]; where the three appear (the free tiles around her, west first); that
- *   they come along with her attack, not instead of it; and that they go when she dies.
+ *   they come along with her attack, not instead of it. Those out when she dies stay to be fought (Trivia).
  *
  * Guessed too: her magic's look (her swing's animation and roving_mossgiant_impact on the player, no projectile).
  */
@@ -211,6 +211,17 @@ object Bryophyta {
         if (mayGrow(target) && roll(1, GROWTH_CHANCE) == 1) grow()
     }
 
+    /**
+     * [player]'s hit took [boss] some hitpoints: the other chance at growthlings ("upon attacking or being attacked", OSRS
+     * Wiki, Bryophyta), after the hit, so the rest of a multi-hit special does nothing (its Trivia). Inferred: "being
+     * attacked" as a hit of hers landing with damage.
+     */
+    fun damaged(world: World, boss: Npc, player: Player) {
+        if (boss.type.id != BOSS || boss.dead) return
+        val encounter = world.encounters.all.firstOrNull { it.boss === boss && !it.ended } ?: return
+        with(encounter) { if (mayGrow(player) && roll(1, GROWTH_CHANCE) == 1) grow() }
+    }
+
     private fun EncounterContext.mayGrow(target: Player): Boolean =
         boss.hitpoints * 100 <= boss.maxHitpoints * GROWTH_BELOW_PERCENT &&
             living(world, state).isEmpty() && world.tick >= state.growthAfter &&
@@ -291,13 +302,16 @@ fun registerBryophyta(world: World, lairs: GiantLairs) {
         world.handlers.onLoc(CHEST, OPEN) { op -> with(lairs) { openChest(op.loc!!) } }
         world.npcScripts.onDeath(listOf(BOSS)) { boss ->
             lairs.killed(boss)
-            // Guessed: her growthlings go with her.
-            for (growthling in state(boss).growthlings.toList()) if (!growthling.dead && world.npcs[growthling.index] === growthling) world.removeNpc(growthling)
-            state(boss).growthlings.clear()
+            // Growthlings out as she dies stay to be fought (OSRS Wiki, Bryophyta, Trivia) until killed or the lair ends;
+            // let go of here so the next of her starts without them.
+            val state = state(boss)
+            state.growthlings.clear()
+            state.batchOut = false
+            state.growthAfter = Long.MIN_VALUE
         }
 
         // Growthlings: held at 1 hitpoint (npc-combat.json) but for a wielded cutter, which kills one outright.
-        world.combat.finishers[GROWTHLING] = { player -> wieldsCutter(world, player) }
+        world.combat.finishers[GROWTHLING] = { player, type -> type != AttackType.MAGIC && wieldsCutter(world, player) }
         val sureHit = world.combat.sureHit
         world.combat.sureHit = { player, npc, type ->
             if (npc.type.id == GROWTHLING && type != AttackType.MAGIC && wieldsCutter(world, player)) SureHit.MAX else sureHit(player, npc, type)
@@ -312,6 +326,8 @@ fun registerBryophyta(world: World, lairs: GiantLairs) {
         val rolledOn = world.combat.rolledOn
         world.combat.rolledOn = { player, npc, type, rolled ->
             when {
+                // Nothing rolled against her shield either, so no XP for it.
+                npc.type.id == BOSS && shielded(world, npc) -> 0
                 npc.type.id == GROWTHLING && type != AttackType.MAGIC && wieldsCutter(world, player) -> npc.hitpoints
                 else -> rolledOn(player, npc, type, rolled)
             }

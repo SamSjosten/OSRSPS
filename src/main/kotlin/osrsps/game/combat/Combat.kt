@@ -148,14 +148,18 @@ class Combat(
 
     /**
      * By NPC type id, what lets a player's hits take one below its [NpcCombatDef.minHitpoints]: the brine sabre for
-     * rockslugs ([osrsps.game.content.Rockslugs]). Content fills it in.
+     * rockslugs ([osrsps.game.content.Rockslugs]). Content fills it in. Asked with the attack's type when it is rolled,
+     * null when a hit lands (its damage was already held to the floor when rolled).
      */
-    val finishers = HashMap<Int, (Player) -> Boolean>()
+    val finishers = HashMap<Int, (Player, AttackType?) -> Boolean>()
 
-    /** The hitpoints a hit from [source] (null for none) leaves [npc] at the least: its own, or its fight's [Npc.holdsAt]. */
-    fun floor(npc: Npc, source: Player?): Int {
+    /**
+     * The hitpoints a hit from [source] (null for none) of [type] (null when not known) leaves [npc] at the least: its
+     * own, or its fight's [Npc.holdsAt].
+     */
+    fun floor(npc: Npc, source: Player?, type: AttackType? = null): Int {
         val min = npcCombat[npc.type]?.minHitpoints ?: 0
-        val own = if (min == 0 || (source != null && finishers[npc.type.id]?.invoke(source) == true)) 0 else min
+        val own = if (min == 0 || (source != null && finishers[npc.type.id]?.invoke(source, type) == true)) 0 else min
         return maxOf(own, npc.holdsAt)
     }
 

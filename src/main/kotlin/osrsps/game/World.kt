@@ -595,7 +595,10 @@ class World(
         special = { specialAttacks.use(it, combat.weapon(it)) },
         specialLanded = { npc, dealt, special -> specialAttacks.landed(npc, dealt, special) },
         projectile = zones::projectile,
-        npcDamaged = { npc, player, dealt -> archiveRaids.damaged(npc, player, dealt) },
+        npcDamaged = { npc, player, dealt ->
+            archiveRaids.damaged(npc, player, dealt)
+            osrsps.game.content.Bryophyta.damaged(this, npc, player)
+        },
     )
 
     /** Aggressive NPCs going for players, and players' tolerance; see [Aggression]. */

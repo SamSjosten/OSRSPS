@@ -355,7 +355,7 @@ class MeleeCombat(
         // down to its floor (a rockslug's 1 hitpoint pays nothing more). Nothing through its Protect from Melee
         // (Npc.protectsFromMelee), rolled as the prayer's flag stood at the swing.
         val landed = if (npc.protectsFromMelee) 0 else combat.rolledOn(player, npc, style.type, rolled)
-        val damage = minOf(armoured(npc, landed, magic = false), (npc.hitpoints - combat.floor(npc, player) - npc.incoming).coerceAtLeast(0))
+        val damage = minOf(armoured(npc, landed, magic = false), (npc.hitpoints - combat.floor(npc, player, style.type) - npc.incoming).coerceAtLeast(0))
         npc.incoming += damage
         val bonus = combat.npcCombat[npc.type]?.xpBonusTenths ?: 0
         for (skill in style.xp) player.skills.addTenths(skill, CombatMath.withXpBonus(CombatMath.styleXpTenths(damage, style.xp.size), bonus))
