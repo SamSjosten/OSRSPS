@@ -154,7 +154,8 @@ class Pitfalls(private val world: World, private val traps: Traps) {
                 end(tease)
                 continue
             }
-            if (tick >= tease.nextHitTick && beside(npc, player.x, player.z)) {
+            // The same reach as an NPC's own melee: no hit across a corner or through a wall edge.
+            if (tick >= tease.nextHitTick && world.meleeCombat.reaches(npc, player)) {
                 npc.face(player)
                 npc.effects.anim(tease.creature.attackAnim)
                 val damage = if (world.prayers.protects(player, AttackType.CRUSH)) 0 else world.random.between(0, tease.creature.maxHit)
@@ -226,22 +227,6 @@ class Pitfalls(private val world: World, private val traps: Traps) {
     }
 
     private class Crossing(val headingUp: Boolean, val landX: Int, val landZ: Int)
-
-    /** Whether [x], [z] is next to [npc]'s footprint (not under it), diagonals included. */
-    private fun beside(npc: Npc, x: Int, z: Int): Boolean {
-        val size = npc.type.size
-        val dx = when {
-            x < npc.x -> npc.x - x
-            x > npc.x + size - 1 -> x - (npc.x + size - 1)
-            else -> 0
-        }
-        val dz = when {
-            z < npc.z -> npc.z - z
-            z > npc.z + size - 1 -> z - (npc.z + size - 1)
-            else -> 0
-        }
-        return maxOf(dx, dz) == 1
-    }
 
     private fun end(tease: Tease) {
         teases.remove(tease)
@@ -379,7 +364,8 @@ class Pitfalls(private val world: World, private val traps: Traps) {
         if (player.skills.currentLevel(Skill.HUNTER) < creature.level) return world.message(player, HunterLines.TEASE_LEVEL, "level" to creature.level)
         player.anim(TEASE_ANIM)
         // One player at a time: a second tease takes it over (guessed).
-        teases.removeAll { it.npc === npc || it.player === player }
+        // Each displaced tease ends, so its creature stops following too.
+        for (old in teases.filter { it.npc === npc || it.player === player }) end(old)
         val tease = Tease(player, npc, creature)
         tease.activeTick = world.tick
         tease.nextHitTick = world.tick + 1

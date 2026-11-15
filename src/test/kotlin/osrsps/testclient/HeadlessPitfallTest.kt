@@ -35,7 +35,7 @@ class HeadlessPitfallTest {
 
     private val vars = VarTypes(6_000, mapOf(pit.varbit to VarbitType(PIT_VARP, 0, 2)))
 
-    private fun server(dir: Path, larupiaX: Int, larupiaZ: Int) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
+    private fun server(dir: Path, larupiaX: Int, larupiaZ: Int, others: List<Pair<Int, Int>> = emptyList()) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
         val objs = arrayOfNulls<ObjType>(35_000)
         for (id in listOf(KNIFE, LOGS, Pitfalls.TEASING_STICK, Pitfalls.BIG_BONES, RAW_LARUPIA, LARUPIA_FUR, TATTY_LARUPIA_FUR)) {
             objs[id] = ObjType(id, "Obj $id", stackable = false, tradeable = true)
@@ -45,7 +45,7 @@ class HeadlessPitfallTest {
             random = GameRandom(7),
             locTypes = LocTypes(mapOf(PIT to LocType(PIT, "null", List(5) { null }, LocCollisionType(width = 2, length = 2, blocksProjectile = false), multiloc = true, multiVarbit = pit.varbit))),
             npcTypes = NpcTypes.of(larupia),
-            npcSpawns = listOf(NpcSpawn(larupia, larupiaX, larupiaZ, wander = 0, source = "test")),
+            npcSpawns = (listOf(larupiaX to larupiaZ) + others).map { (x, z) -> NpcSpawn(larupia, x, z, wander = 0, source = "test") },
             staticLocs = StaticLocs().apply { add(ZoneLoc(PIT, LocShape.CENTREPIECE_STRAIGHT, 0, 3222, 3220, 0)) },
             varTypes = vars,
             scenarios = osrsps.game.Scenarios(listOf(osrsps.game.Scenario.parse("here", """{ "position": { "x": 3222, "z": 3218 } }"""))),
@@ -125,6 +125,24 @@ class HeadlessPitfallTest {
                 // Nothing back for a spiked pit taken down.
                 assertEquals(0, client.count(LOGS))
                 assertTrue(server.world.hunter.pitfalls.all.isEmpty())
+            }
+        }
+    }
+
+    @Test
+    fun `teasing a second creature ends the first tease, and the first stops following`(@TempDir dir: Path) {
+        server(dir, 3220, 3214, others = listOf(3224 to 3214)).use { server ->
+            server.login("vi").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel hunter 99")
+                client.command("item ${Pitfalls.TEASING_STICK} 1")
+                client.await("the stick") { if (client.count(Pitfalls.TEASING_STICK) == 1) Unit else null }
+                val cats = client.await("both larupias in view") { client.npcs().filter { it.id == Pitfalls.SPINED_LARUPIA }.takeIf { it.size == 2 } }
+                client.npcOp(cats[0].index, Pitfalls.TEASE)
+                val first = client.await("the first tease") { server.world.hunter.pitfalls.teased.firstOrNull()?.npc }
+                client.npcOp(cats[1].index, Pitfalls.TEASE)
+                client.await("the second tease") { server.world.hunter.pitfalls.teased.singleOrNull()?.takeIf { it.npc !== first } }
+                client.await("the first stops following") { if (first.following == null) Unit else null }
             }
         }
     }
