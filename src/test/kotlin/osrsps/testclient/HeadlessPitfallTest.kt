@@ -36,7 +36,9 @@ class HeadlessPitfallTest {
 
     private val vars = VarTypes(6_000, mapOf(pit.varbit to VarbitType(PIT_VARP, 0, 2)))
 
-    private fun server(dir: Path, larupiaX: Int, larupiaZ: Int, others: List<Pair<Int, Int>> = emptyList()) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
+    private fun server(
+        dir: Path, larupiaX: Int, larupiaZ: Int, others: List<Pair<Int, Int>> = emptyList(), blocked: List<Pair<Int, Int>> = emptyList(),
+    ) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
         val objs = arrayOfNulls<ObjType>(35_000)
         for (id in listOf(KNIFE, LOGS, Pitfalls.TEASING_STICK, Pitfalls.BIG_BONES, RAW_LARUPIA, LARUPIA_FUR, TATTY_LARUPIA_FUR)) {
             objs[id] = ObjType(id, "Obj $id", stackable = false, tradeable = true)
@@ -46,7 +48,12 @@ class HeadlessPitfallTest {
             iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = osrsps.game.WearPos.SHIELD,
         )
         World(
-            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs),
+            crcs,
+            CollisionMap().apply {
+                markLoaded(3222 shr 6, 3218 shr 6)
+                for ((x, z) in blocked) add(x, z, 0, osrsps.map.CollisionFlag.LOC)
+            },
+            objTypes = ObjTypes(objs),
             random = GameRandom(7),
             locTypes = LocTypes(mapOf(PIT to LocType(PIT, "null", List(5) { null }, LocCollisionType(width = 2, length = 2, blocksProjectile = false), multiloc = true, multiVarbit = pit.varbit))),
             npcTypes = NpcTypes.of(larupia),
@@ -103,6 +110,26 @@ class HeadlessPitfallTest {
                 assertEquals(1, client.count(LARUPIA_FUR) + client.count(TATTY_LARUPIA_FUR))
                 client.awaitPit(Pitfalls.EMPTY)
                 assertTrue(server.world.hunter.pitfalls.all.isEmpty())
+            }
+        }
+    }
+
+    @Test
+    fun `Jump refuses a pit whose far side is blocked, and the player stays put`(@TempDir dir: Path) {
+        // Exploit review round 36, B-1: no landing on a loc's tile.
+        server(dir, 3230, 3230, blocked = listOf(3222 to 3222)).use { server ->
+            server.login("lb").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel hunter 99")
+                client.command("item $KNIFE 1")
+                client.command("item $LOGS 1")
+                client.await("the logs") { if (client.count(LOGS) == 1) Unit else null }
+                client.locOp(PIT, 3222, 3220, Pitfalls.TRAP)
+                client.awaitPit(Pitfalls.SET)
+                client.locOp(PIT, 3222, 3220, Pitfalls.JUMP)
+                client.seen("[game.cant_reach]")
+                val here = client.await("standing") { client.position }
+                assertTrue(here.z < 3220, "still south of the pit: $here")
             }
         }
     }
