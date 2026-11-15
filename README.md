@@ -332,7 +332,7 @@ has used would otherwise become an admin. So log in as a name first, then add it
 | `::if id [side]` | Opens interface `id` bare in the main game area (or the side panel with `side`), for checking it opens, moves with a layout change and closes |
 | `::setlevel skill\|all level` | Sets a skill's XP to what the level needs and its current level to match. `::setlevel attack 99` |
 | `::addxp skill xp` | Adds XP, one decimal place allowed (`::addxp cooking 17.5`); levelling raises the current level too. Exact: the XP rate doesn't apply |
-| `::slayer [task <id\|name> [amount] [master] \| points n \| streak n \| clear]` | Alone, your Slayer task, streak and points. `task` gives you a task straight away (`::slayer task cows 20 vannaka`; the master's most when no amount, Turael's when no master), `points` and `streak` set those, `clear` takes the task away |
+| `::slayer [task <id\|name> [amount] [master] \| points n \| streak n \| clear]` | Alone, your Slayer task, streak and points. `task` gives you a task straight away (`::slayer task cows 20 vannaka`; the master's most when no amount, Aya's when no master), `points` and `streak` set those, `clear` takes the task away |
 | `::xprate [rate\|restore]` | Shows or sets the server-wide XP rate, 0.1 to 1000 in tenths (`::xprate 5`, `::xprate 2.5`); every XP drop is multiplied by it, rounded down to a tenth. Kept in data/xp-rate.txt (outside git), so it lasts across restarts and deploys. `restore` goes back to the rate before the last change. 1 is live's |
 | `::farmtick [ticks]` | Moves your own farming clock on that many five-minute farming ticks (1 by default, up to 4,096) and grows your patches to it: allotments grow every second tick. For good: your crops keep growing from there |
 | `::farmclock <pause\|run>` | Holds your farming clock where it is, so your crops grow only by `::farmtick` (for tests that check each stage), or runs it again, the crops catching up on the time it was held; a login runs it again too |
@@ -1077,21 +1077,35 @@ A monster counts for a task when its type's param 50 names it (cows carry 6, the
 Slayer XP for the monster's hitpoints with its XP bonus, and the last one completes the task: the streak goes up and,
 from the fifth task, the master pays points, five times as many every 10th task, 15 every 50th, 25 every 100th, 35
 every 250th and 50 every 1,000th. The enchanted gem's Check tells the task, how many are left and the streak.
-Masters, rewards and Slayer equipment come in later steps; `::slayer task` gives a task meanwhile.
+
+Masters (`game/content/SlayerMasters.kt`): Aya in Burthorpe (`::tele 2931 3536`; with every quest done she holds
+Turael's place, as since While Guthix Sleeps), Spria in Draynor Village and Vannaka in Edgeville Dungeon. Talk-to and
+Assignment follow the Wiki's transcripts. A master draws a task by the cache's weights over what the player may be given
+(combat level unless they've asked the masters to stop checking it, base levels, rewards bought or blocking) and an
+amount from the entry's range, or an extend's once bought. Below a master's combat level (Vannaka 40) they turn the
+player away; with a task they say what is left. Aya and Spria suggest a higher master to a strong player first;
+Vannaka offers the task's tip. Aya swaps another master's task that isn't on her list for one of hers, resetting the
+streak, but never Spria's (OSRS Wiki, Spria: her tasks can't be skipped through Turael). Rewards and Slayer equipment come in later steps.
 
 | Slayer behaviour | Source |
 |------------------|--------|
 | Tasks, masters' weights and amounts, combat and Slayer level gates, rewards' bits and costs | cache 242, db tables 113, 114, 117 (column order from osrs-dumps' dump.dbtable) |
 | The task vars (varps 394 and 395, varbits 4067 to 4069); param 50 as the monster's task | cache 242, osrs-dumps' names |
 | Slayer XP = hitpoints times the XP bonus; points by master and streak, none before the fifth task | OSRS Wiki, Slayer and Slayer reward point (read 2026-11-15) |
-| Konar's 18 and Nieve's 12 points, without the Elite diaries | no diaries are built |
+| Konar's 18 and Steve's 12 points, without the Elite diaries | no diaries are built |
 | Another player who dealt the most damage sharing the XP half and half with the finisher, each rounded down to a tenth | OSRS Wiki, Slayer/Experience table |
 | The kill counting toward both their tasks, once for one player who did both | Jagex, Update:Creature of Fenkenstrain |
 | A tie for the most damage going to whoever dealt it first | guessed |
 | A streak past 16,383 going back 1,000 so the milestones keep coming | OSRS Wiki, Update: Theatre of Blood: Entry Mode Improvements (the bonuses keep coming); how it is stored guessed |
 | The points stopping at their varbit's top; the task var cleared when a task is done | guessed |
+| The draw: weight over the eligible weights; base levels; the combat check (varbit combat_level_reqs_disabled) | OSRS Wiki, Slayer task (Task weighting) |
+| Masters' combat and Slayer levels; Aya, Kuradal and Steve holding Turael's, Duradel's and Nieve's places | OSRS Wiki, Slayer Master, Aya, Kuradal, Steve |
+| Aya's, Spria's and Vannaka's talk, the strong-player bands (Mazchna 20, Vannaka 40, Chaeldar 70), Aya's swap resetting the streak | the Wiki's transcripts (Aya's bands inferred from Spria's) |
+| Aya's and Spria's tiles | mejrs NPCList_OSRS (live), the Wiki's map pins |
+| A weak player turned away, a master with nothing to give, what follows Aya's "Yes, please"; chathead expressions | guessed, words unsourced |
+| The amount even across the range | inferred |
 | Every message's words | unsourced: the Words thread fills them |
-| Not built yet: masters, rewards, equipment, superiors, Konar's places, boss tasks, Krystilia (the Wilderness) | |
+| Not built yet: the other masters, rewards, equipment, superiors, Konar's places, boss tasks, Krystilia (the Wilderness), Aya's blessed axe talk | |
 
 ## Items and inventory
 

@@ -79,6 +79,7 @@ object NpcSpawnFile {
         "rogues-castle.json",
         "thieving-far.json",
         "ardougne-market.json",
+        "slayer-masters.json",
         "hunter-birds.json",
     )
 

@@ -135,6 +135,7 @@ import osrsps.game.content.registerHans
 import osrsps.game.content.registerArchiveLobby
 import osrsps.game.content.registerBanking
 import osrsps.game.content.registerShops
+import osrsps.game.content.SlayerMasters
 import osrsps.game.content.Ducks
 import osrsps.game.content.registerCrops
 import osrsps.game.content.registerFredsFarm
@@ -825,6 +826,9 @@ class World(
     /** Slayer tasks: kills, XP and the enchanted gem; see [Slayer]. */
     val slayer = Slayer(this, slayerData)
 
+    /** Turael, Spria and Vannaka's Talk-to and Assignment; see [SlayerMasters]. */
+    val slayerMasters = SlayerMasters(this)
+
     val fishing = Fishing(this)
 
     val cooking = Cooking(this)
@@ -1018,6 +1022,7 @@ class World(
         pickpocketing.register()
         agility.register()
         slayer.register()
+        slayerMasters.register()
         fishing.register()
         cooking.register()
         smithing.register()

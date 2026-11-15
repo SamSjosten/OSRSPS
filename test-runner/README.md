@@ -184,6 +184,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `swamp-caves-slayer.json`: Misthalin piece 7 step 3b: a wall beast grabbing a player with no helmet and coming out
   of its hole to fight one in a spiny helmet, and a rockslug held at 1 hitpoint (with `::keys on` and `::god on`; the
   bag of salt that finishes it is in the headless test, as the runner has no item-on-NPC step).
+- `slayer-masters.json`: Slayer step 2: Aya in Burthorpe giving a new account a task by Assignment, telling what is
+  left of it when asked again, and the enchanted gem's Check agreeing (with `::keys on`). Vannaka's gate, the tips,
+  Aya's swap and the combat check are in the headless test.
 - `ham-hideout.json`: Misthalin piece 7 step 4a: the H.A.M. Hideout's trapdoor locked, picked open at 99 Thieving
   with a lockpick, climbed down and back up by the ladder, a H.A.M. member pickpocketed, and Jimmy's cell door locked
   from outside and picked from inside (with `::keys on` and `::god on`; the concussions are in the headless test).

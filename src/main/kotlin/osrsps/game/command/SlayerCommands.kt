@@ -23,7 +23,7 @@ fun CommandRegistry.registerSlayerCommands(world: World) {
                 // The name may be several words ("fever spiders"): an amount and a master come after it, if given.
                 var end = args.size
                 val master = args.last().let { last -> SlayerMaster.entries.firstOrNull { it.name.equals(last, ignoreCase = true) } }
-                    ?.also { end-- } ?: SlayerMaster.TURAEL
+                    ?.also { end-- } ?: SlayerMaster.AYA
                 val amount = args.getOrNull(end - 1)?.toIntOrNull()?.takeIf { end > 2 }?.also { end-- }
                 val name = args.subList(1, end).joinToString(" ")
                 val task = name.toIntOrNull()?.let { slayer.data.tasks[it] }

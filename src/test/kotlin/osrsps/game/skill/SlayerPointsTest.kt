@@ -26,8 +26,8 @@ class SlayerPointsTest {
     }
 
     @Test
-    fun `Turael and Spria pay nothing, Konar 18 a task`() {
-        assertEquals(0, Slayer.pointsFor(SlayerMaster.TURAEL.points, 10))
+    fun `Aya and Spria pay nothing, Konar 18 a task`() {
+        assertEquals(0, Slayer.pointsFor(SlayerMaster.AYA.points, 10))
         assertEquals(0, Slayer.pointsFor(SlayerMaster.SPRIA.points, 1000))
         assertEquals(18, Slayer.pointsFor(SlayerMaster.KONAR.points, 7))
         assertEquals(900, Slayer.pointsFor(SlayerMaster.KONAR.points, 2000))

@@ -152,6 +152,38 @@ class HeadlessSlayerTest {
     }
 
     @Test
+    fun `a finisher who did no damage gets nothing when poison kills, and the top damager gets it all`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("hana").use { hana ->
+                server.login("iris").use { iris ->
+                    for (client in listOf(hana, iris)) {
+                        client.await("the login rebuild") { client.position }
+                        client.commandReply("slayer task rats 5 vannaka") { it.startsWith("Task") }
+                        // Auto retaliate off, so neither hits the rat back when it attacks.
+                        client.commandReply("varp 172 1") { it.startsWith("Varp 172") }
+                    }
+                    // Iris deals 4 of the rat's 5 (cows are immune to poison); Hana lands a 0 (a miss), so she is its attacker when poison finishes it.
+                    iris.commandReply("hit 4 giant rat") { it.startsWith("Hit") }
+                    hana.commandReply("hit 0 giant rat") { it.startsWith("Hit") }
+                    iris.commandReply("poison npc 6 giant rat") { it.startsWith("Giant rat #") && !it.contains("can't be") }
+                    // Poison hits every 30 ticks: commands keep both connections alive meanwhile.
+                    for (i in 0 until 60) {
+                        if (iris.varp(Slayer.VARP_COUNT) == 4) break
+                        hana.command("slayer")
+                        iris.command("slayer")
+                        iris.awaitTicks(5)
+                    }
+                    assertEquals(4, iris.varp(Slayer.VARP_COUNT), "the rat dead of poison, a kill off Iris's task")
+                    iris.await("iris's whole kill") { if (iris.slayerXp() == 5) Unit else null }
+                    hana.awaitTicks(3)
+                    assertEquals(0, hana.slayerXp(), "no XP for a finisher who did no damage")
+                    assertEquals(5, hana.varp(Slayer.VARP_COUNT), "no count for a finisher who did no damage")
+                }
+            }
+        }
+    }
+
+    @Test
     fun `a player who logs out and back in is still the top damager, so their own kill gives the whole XP`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("gina").use { client ->
