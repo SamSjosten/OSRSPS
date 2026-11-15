@@ -1,0 +1,28 @@
+{
+  "name": "Wilderness step W3.4b: the Lava Maze's pen ladder down to the King Black Dragon's end of its dungeon and back up, then the muddy chest refused without a key and opened with one (::keys on)",
+  "account": "test2",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::scenario gathering", "expectMessage": "Started scenario gathering.", "comment": "any scenario: ::reset at the end takes the chest's loot back off the account"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off).", "comment": "the pen's lesser demons and the dungeon's poison spiders are aggressive"},
+    {"step": "command", "text": "::tele 3017 3848 0", "expectMessage": "Teleported to 3017, 3848, 0", "comment": "in the lesser demons' pen, south of wildymirrorladdertop1 at 3017, 3849"},
+    {"step": "locOption", "locId": 18987, "option": "Climb-down", "x": 3017, "y": 3849},
+    {"step": "assertLoc", "locId": 1816, "x": 3067, "y": 10253, "timeoutMs": 10000, "comment": "the King Black Dragon's lever: the ladder comes out at the dungeon's east end"},
+    {"step": "locOption", "locId": 18988, "option": "Climb-up", "x": 3069, "y": 10256},
+    {"step": "assertLoc", "locId": 18987, "x": 3017, "y": 3849, "timeoutMs": 10000, "comment": "back up in the pen"},
+
+    {"step": "command", "text": "::tele 3089 3858 0", "expectMessage": "Teleported to 3089, 3858, 0", "comment": "south of muddy_chestclosed at 3089, 3859"},
+    {"step": "locOption", "locId": 170, "option": "Open", "x": 3089, "y": 3859},
+    {"step": "assertMessage", "contains": "lava_maze.chest_locked", "timeoutMs": 10000},
+    {"step": "command", "text": "::item 991", "comment": "a muddy key"},
+    {"step": "assertInventory", "item": "Muddy key", "count": 1},
+    {"step": "locOption", "locId": 170, "option": "Open", "x": 3089, "y": 3859},
+    {"step": "assertMessage", "contains": "lava_maze.chest_treasure", "timeoutMs": 10000},
+    {"step": "assertInventory", "item": "Uncut ruby", "count": 1, "comment": "with 2 noted mithril bars, 5 law, 5 death and 15 chaos runes always"},
+    {"step": "assertInventory", "item": "Muddy key", "count": 0},
+
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
+    {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+  ]
+}
