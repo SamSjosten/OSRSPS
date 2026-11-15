@@ -34,8 +34,8 @@ class Impling(
     val jarred: Int,
 )
 
-/** A table of implings by weight, as the Wiki's spawn tiers are written (20/100 and so on). */
-class ImplingTier(val name: String, val lines: List<Pair<Impling, Int>>) {
+/** A table of implings by weight, as the Wiki's spawn tiers are written (20/100 and so on), unseen for [unseenTicks] before each shows. */
+class ImplingTier(val name: String, val lines: List<Pair<Impling, Int>>, val unseenTicks: Int = Implings.UNSEEN_TICKS) {
     val total: Int = lines.sumOf { it.second }
 
     fun roll(world: World): Impling {
@@ -56,7 +56,8 @@ class ImplingTier(val name: String, val lines: List<Pair<Impling, Int>>) {
  * Spawning, from the Wiki's Impling page: every [CYCLE_TICKS] the implings out despawn; four spawners are rolled on
  * the high tier, N (5 to 10) on the mid tier and 2N on the low tier, each put at a random one of [VARIABLE_POINTS]; each
  * of [LOW_POINTS] (the Zanaris one too) has a low-tier spawner, and Prifddinas one crystal spawner at a random one of
- * [PRIF_POINTS]. A spawner shows its impling [UNSEEN_TICKS] later, picking the impling then from its tier. A visible
+ * [PRIF_POINTS]. A spawner shows its impling [UNSEEN_TICKS] later ([CRYSTAL_UNSEEN_TICKS] for the crystal one, from its
+ * page), picking the impling then from its tier. A visible
  * impling roams up to [ROAM] tiles from its point, and an unseen one roams the same way, so it shows where that took it
  * ([roamed]). A caught one's spawner starts over at once at the same point.
  *
@@ -111,18 +112,17 @@ class Implings(private val world: World) {
     private fun cycle(tick: Long) {
         for (spawner in spawners) spawner.npc?.let(world::removeNpc)
         spawners.clear()
-        val show = tick + UNSEEN_TICKS
         fun variable(tier: ImplingTier) {
             val (x, z) = VARIABLE_POINTS[world.random.nextInt(VARIABLE_POINTS.size)]
-            spawners += Spawner(tier, x, z, show)
+            spawners += Spawner(tier, x, z, tick + tier.unseenTicks)
         }
         repeat(HIGH_ROLLS) { variable(HIGH) }
         val n = world.random.between(MID_MIN, MID_MAX)
         repeat(n) { variable(MID) }
         repeat(n * 2) { variable(LOW) }
-        for ((x, z) in LOW_POINTS) spawners += Spawner(LOW, x, z, show)
+        for ((x, z) in LOW_POINTS) spawners += Spawner(LOW, x, z, tick + LOW.unseenTicks)
         val (px, pz) = PRIF_POINTS[world.random.nextInt(PRIF_POINTS.size)]
-        spawners += Spawner(CRYSTAL_TIER, px, pz, show)
+        spawners += Spawner(CRYSTAL_TIER, px, pz, tick + CRYSTAL_TIER.unseenTicks)
     }
 
     private fun show(spawner: Spawner, tick: Long) {
@@ -137,7 +137,7 @@ class Implings(private val world: World) {
         val npc = world.spawnNpc(NpcSpawn(type, spawner.x, spawner.z, wander = ROAM, source = "implings", respawns = false))
         spawner.npc = npc
         if (npc == null) {
-            spawner.showTick = tick + UNSEEN_TICKS
+            spawner.showTick = tick + spawner.tier.unseenTicks
             return
         }
         // It shows where its unseen roam took it, still roaming around its point.
@@ -146,7 +146,8 @@ class Implings(private val world: World) {
     }
 
     /**
-     * Where an impling unseen for [UNSEEN_TICKS] has got to from [spawner]'s point: the Wiki's spawn mechanics have it
+     * Where an impling unseen for its tier's [ImplingTier.unseenTicks] has got to from [spawner]'s point: the Wiki's
+     * spawn mechanics have it
      * roam invisibly for those two minutes, so it walks as a visible one does ([osrsps.game.npc.Npcs]' wander, a tile in
      * the [ROAM] square around the point picked 1 in [Npcs.WANDER_CHANCE] a tick and walked naively, one tile a tick).
      * Guessed: that the unseen roam follows the visible one's rules.
@@ -157,7 +158,7 @@ class Implings(private val world: World) {
         var destX = 0
         var destZ = 0
         var walking = false
-        repeat(UNSEEN_TICKS) {
+        repeat(spawner.tier.unseenTicks) {
             if (!walking) {
                 if (!world.random.chance(1, Npcs.WANDER_CHANCE)) return@repeat
                 destX = spawner.x + world.random.between(-ROAM, ROAM)
@@ -204,7 +205,7 @@ class Implings(private val world: World) {
         // A spawner's starts over; one put down another way (a spawn file, ::npc) is simply gone.
         spawners.firstOrNull { it.npc === npc }?.let { spawner ->
             spawner.npc = null
-            spawner.showTick = world.tick + UNSEEN_TICKS
+            spawner.showTick = world.tick + spawner.tier.unseenTicks
         }
         player.skills.addTenths(Skill.HUNTER, impling.xpTenths)
         val jar = player.inventory.contents().firstOrNull { it.second.id == IMPLING_JAR }?.first
@@ -247,6 +248,9 @@ class Implings(private val world: World) {
         /** The Wiki: thirty minutes, two minutes unseen, a hundred tiles. */
         const val CYCLE_TICKS = 3000
         const val UNSEEN_TICKS = 200
+
+        /** The Crystal impling's page: three minutes unseen (it shows at :03 and :33). */
+        const val CRYSTAL_UNSEEN_TICKS = 300
         const val ROAM = 100
 
         const val HIGH_ROLLS = 4
@@ -273,7 +277,7 @@ class Implings(private val world: World) {
         val LOW = ImplingTier("low", listOf(BABY to 20, YOUNG to 20, GOURMET to 20, EARTH to 20, ESSENCE to 10, ECLECTIC to 10))
         val MID = ImplingTier("mid", listOf(GOURMET to 10, EARTH to 10, ESSENCE to 20, ECLECTIC to 37, NATURE to 20, MAGPIE to 2, NINJA to 1))
         val HIGH = ImplingTier("high", listOf(NATURE to 10, MAGPIE to 50, NINJA to 30, DRAGON to 10))
-        val CRYSTAL_TIER = ImplingTier("crystal", listOf(CRYSTAL to 1))
+        val CRYSTAL_TIER = ImplingTier("crystal", listOf(CRYSTAL to 1), CRYSTAL_UNSEEN_TICKS)
 
         /** The Wiki's map of Gielinor's variable-tier spawn points. */
         val VARIABLE_POINTS: List<Pair<Int, Int>> = points(

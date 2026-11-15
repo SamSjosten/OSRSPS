@@ -74,7 +74,7 @@ class ImplingsTest {
     }
 
     @Test
-    fun `a cycle rolls 4 high, N mid and 2N low spawners plus the fixed ones, shown two minutes on and replaced at 30`() {
+    fun `a cycle rolls 4 high, N mid and 2N low spawners plus the fixed ones, shown two minutes on (the crystal one three) and replaced at 30`() {
         val world = World(IntArray(0), CollisionMap(), random = GameRandom(11), npcTypes = NpcTypes.of(*types.toTypedArray()), objTypes = objTypes())
         val implings = world.hunter.implings
         implings.process(0)
@@ -92,6 +92,12 @@ class ImplingsTest {
         implings.process(Implings.UNSEEN_TICKS.toLong() - 1)
         assertEquals(0, world.npcs.count)
         implings.process(Implings.UNSEEN_TICKS.toLong())
+        // The crystal impling waits three minutes, the rest two.
+        assertEquals(first.size - 1, world.npcs.count)
+        assertEquals(null, first.single { it.tier === Implings.CRYSTAL_TIER }.npc)
+        implings.process(Implings.CRYSTAL_UNSEEN_TICKS.toLong() - 1)
+        assertEquals(first.size - 1, world.npcs.count)
+        implings.process(Implings.CRYSTAL_UNSEEN_TICKS.toLong())
         assertEquals(first.size, world.npcs.count)
         for (spawner in first) {
             val npc = spawner.npc!!
@@ -114,7 +120,7 @@ class ImplingsTest {
         val world = World(IntArray(0), collision, random = GameRandom(11), npcTypes = NpcTypes.of(*types.toTypedArray()), objTypes = objTypes())
         val implings = world.hunter.implings
         implings.process(0)
-        implings.process(Implings.UNSEEN_TICKS.toLong())
+        implings.process(Implings.CRYSTAL_UNSEEN_TICKS.toLong())
         val shown = implings.all.map { it to it.npc!! }
         assertTrue(shown.count { (spawner, npc) -> spawner.x to spawner.z != npc.x to npc.z } > shown.size / 2, "most moved")
         for ((spawner, npc) in shown) {
