@@ -28,7 +28,7 @@ import osrsps.map.CollisionMap
 class HeadlessPlayerOpsSettingsTest {
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         World(
-            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) },
+            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6); markLoaded(3090 shr 6, 3600 shr 6) },
             varTypes = VarTypes(6_000, SettingsSide.VARBITS + AllSettings.VARBITS), settings = CATALOG, cycleMillis = millis,
         )
     }
@@ -65,6 +65,21 @@ class HeadlessPlayerOpsSettingsTest {
             server.login("alice").use { client ->
                 client.await("the login's options") { client.playerOps().takeIf { it[PlayerOps.REPORT] == "Report" } }
                 assertEquals(null, client.playerOps()[PlayerOps.TRADE], "Trade with still hidden")
+            }
+        }
+    }
+
+    @Test
+    fun `a toggle inside the Wilderness keeps Attack on the menu`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bert").use { client ->
+                open(client)
+                client.command("tele 3090 3600 0")
+                client.await("Attack inside the Wilderness") { Unit.takeIf { client.playerOps()[PlayerOps.ATTACK] == PlayerOps.ATTACK_TEXT } }
+                client.ifButton(INTERFACE, SETTINGS_CLICKZONE, 1, sub = 0)
+                client.await("Trade with gone") { Unit.takeIf { PlayerOps.TRADE in client.playerOps() && client.playerOps()[PlayerOps.TRADE] == null } }
+                client.awaitTicks(2)
+                assertEquals(PlayerOps.ATTACK_TEXT, client.playerOps()[PlayerOps.ATTACK], "Attack kept through the options sent again")
             }
         }
     }
