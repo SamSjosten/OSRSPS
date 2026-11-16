@@ -18,15 +18,23 @@ class WildernessBossesTest {
         val shares = WildernessBosses.shares(mapOf("a" to 225))
         assertEquals(listOf("a"), shares.map { it.key })
         assertEquals(1.0, shares.single().factor)
-        assertEquals(100, WildernessBosses.scale(100, shares.single().factor))
+        assertEquals(100, shares.single().scale(100))
     }
 
     @Test
     fun `three players get their share of the damage, but never under 25%`() {
         val shares = WildernessBosses.shares(mapOf("a" to 600, "b" to 300, "c" to 100))
         assertEquals(listOf("a", "b", "c"), shares.map { it.key }, "by damage")
-        assertEquals(listOf(60, 30, 25), shares.map { WildernessBosses.scale(100, it.factor) })
-        assertEquals(1, WildernessBosses.scale(2, shares[2].factor), "never under 1")
+        assertEquals(listOf(60, 30, 25), shares.map { it.scale(100) })
+        assertEquals(1, shares[2].scale(2), "never under 1")
+    }
+
+    @Test
+    fun `a share that is a whole number of items gets every one of them`() {
+        // 0.29 * 100 is 28.999999999999996 in floating point: the count must still be 29.
+        val shares = WildernessBosses.shares(mapOf("a" to 71, "b" to 29))
+        assertEquals(listOf(71, 29), shares.map { it.scale(100) })
+        assertEquals(listOf(57, 43), WildernessBosses.shares(mapOf("a" to 57, "b" to 43)).map { it.scale(100) })
     }
 
     @Test
@@ -42,13 +50,13 @@ class WildernessBossesTest {
     fun `an Ironman under 7% gets 5%, and at 7% or more 25%`() {
         val low = WildernessBosses.shares(mapOf("a" to 940, "iron" to 60), ironmen = setOf("iron")).last()
         assertEquals(0.06, low.factor, 1e-9)
-        assertEquals(6, WildernessBosses.scale(100, low.factor))
+        assertEquals(6, low.scale(100))
         val tiny = WildernessBosses.shares(mapOf("a" to 990, "iron" to 10), ironmen = setOf("iron")).last()
-        assertEquals(5, WildernessBosses.scale(100, tiny.factor))
+        assertEquals(5, tiny.scale(100))
         val enough = WildernessBosses.shares(mapOf("a" to 930, "iron" to 70), ironmen = setOf("iron")).last()
-        assertEquals(25, WildernessBosses.scale(100, enough.factor))
+        assertEquals(25, enough.scale(100))
         val plain = WildernessBosses.shares(mapOf("a" to 990, "b" to 10)).last()
-        assertEquals(25, WildernessBosses.scale(100, plain.factor), "the 5% is for Ironmen only")
+        assertEquals(25, plain.scale(100), "the 5% is for Ironmen only")
     }
 
     @Test

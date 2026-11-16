@@ -3,7 +3,9 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.AllSettings
 import osrsps.game.GameRandom
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
@@ -11,6 +13,8 @@ import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.SeqNames
+import osrsps.game.SettingsSide
+import osrsps.game.VarTypes
 import osrsps.game.World
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
@@ -34,6 +38,7 @@ class HeadlessWildernessBossLootTest {
         val objs = ObjTypes.of(ObjType(532, "Big bones"), ObjType(995, "Coins", stackable = true))
         World(
             crcs, CollisionMap().apply { markLoaded(3200 shr 6, 3900 shr 6) }, objTypes = objs, npcTypes = types, random = GameRandom(4),
+            varTypes = VarTypes(6_000, SettingsSide.VARBITS + AllSettings.VARBITS),
             npcCombat = NpcCombat.load(types, SeqNames.NONE), npcDrops = NpcDrops.parse(drops, types, objs), cycleMillis = millis,
         ).also { it.wildernessBosses.register(osrsps.game.content.WildernessBoss("test boss", setOf(BOSS), KILL_COUNT_VARP, group = true)) }
     }
@@ -76,8 +81,67 @@ class HeadlessWildernessBossLootTest {
         }
     }
 
+    @Test
+    fun `an Ironman who logs out before the kill keeps the 5% floor, and loot notifications tell each looter`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bea").use { b ->
+                b.await("the login rebuild") { b.position }
+                b.tele(3200, 3901)
+                b.commandReply("wboss test boss") { it.startsWith("Spawned Ice giant") }
+                val npc = b.await("the boss") { server.world.npcs.all.firstOrNull { it.type.id == BOSS } }
+                server.login("iron").use { i ->
+                    i.await("the login rebuild") { i.position }
+                    i.tele(3200, 3900)
+                    i.commandReply("varbit ${SettingsSide.VARBIT_IRONMAN} 1") { it.startsWith("Varbit") }
+                    i.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Ice giant") }
+                    // Out of the boss's reach and out of combat first: the button refuses a logout for a few seconds after a hit.
+                    i.tele(3260, 3845)
+                    repeat(LOGOUT_TRIES) {
+                        if (server.world.playerNamed("iron") == null) return@repeat
+                        i.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+                        b.awaitTicks(2)
+                    }
+                }
+                b.await("iron's logout") { Unit.takeIf { server.world.playerNamed("iron") == null } }
+                // Loot notifications on, for anything worth a coin or more.
+                b.commandReply("varbit ${AllSettings.VARBIT_LOOT_NOTIFICATION} 1") { it.startsWith("Varbit") }
+                b.commandReply("varbit ${AllSettings.VARBIT_LOOT_NOTIFICATION_VALUE} 1") { it.startsWith("Varbit") }
+                b.commandReply("god") { it.startsWith("You can") }
+                b.commandReply("kill ${npc.index}") { it.startsWith("Killed") }
+                b.await("bea's loot notification") { b.messages().firstOrNull { it.text.startsWith("[loot.valuable item=99 x Coins") } }
+                server.login("iron").use { i ->
+                    i.await("the login rebuild") { i.position }
+                    val iron = server.world.playerNamed("iron")!!
+                    fun pile() = server.world.groundObjs.visibleAt(iron, npc.x, npc.z, npc.level).map { it.id to it.count }.sortedBy { it.first }
+                    i.await("iron's pile") { Unit.takeIf { pile().isNotEmpty() } }
+                    // 1% of the damage: an Ironman's 5%, not the 25% everyone else gets.
+                    assertEquals(listOf(532 to 1, 995 to 5), pile())
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a boss taken out alive leaves no damage tally behind`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ada").use { a ->
+                a.await("the login rebuild") { a.position }
+                a.tele(3200, 3900)
+                a.commandReply("wboss test boss") { it.startsWith("Spawned Ice giant") }
+                val npc = a.await("the boss") { server.world.npcs.all.firstOrNull { it.type.id == BOSS } }
+                a.commandReply("god") { it.startsWith("You can") }
+                a.commandReply("hit 30 ${npc.index}") { it.startsWith("Hit Ice giant") }
+                assertEquals(1, server.world.wildernessBosses.tallies)
+                a.commandReply("delnpc ${npc.index}") { true }
+                a.await("the tally gone") { Unit.takeIf { server.world.wildernessBosses.tallies == 0 } }
+                assertTrue(server.world.npcs.all.none { it === npc })
+            }
+        }
+    }
+
     private companion object {
         const val BOSS = 2085
         const val KILL_COUNT_VARP = 1510
+        const val LOGOUT_TRIES = 30
     }
 }

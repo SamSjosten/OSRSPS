@@ -49,8 +49,16 @@ class WildernessBosses(private val world: World) {
     private val byType = HashMap<Int, WildernessBoss>()
     private val byName = LinkedHashMap<String, WildernessBoss>()
 
-    /** Damage dealt to each living boss NPC, by player save key, in the order they first hit it. */
-    private val damage = HashMap<Npc, LinkedHashMap<String, Int>>()
+    /**
+     * Damage dealt to each living boss NPC, by player save key, in the order they first hit it, and which of them hit it
+     * as Ironmen, kept with the damage so one who logs out before the kill keeps their 5% floor.
+     */
+    private class Tally {
+        val damage = LinkedHashMap<String, Int>()
+        val ironmen = HashSet<String>()
+    }
+
+    private val damage = HashMap<Npc, Tally>()
 
     val all: Collection<WildernessBoss> get() = byName.values
 
@@ -63,16 +71,24 @@ class WildernessBosses(private val world: World) {
 
     operator fun get(name: String): WildernessBoss? = byName[name.lowercase()]
 
-    fun of(npc: Npc): WildernessBoss? = byType[npc.type.id]
-
     /** [player] dealt [dealt] to [npc]: counted toward its loot if it is a boss. */
     fun damaged(npc: Npc, player: Player, dealt: Int) {
         if (byType[npc.type.id] == null) return
-        damage.getOrPut(npc) { LinkedHashMap() }.merge(player.saveKey, dealt, Int::plus)
+        val tally = damage.getOrPut(npc) { Tally() }
+        tally.damage.merge(player.saveKey, dealt, Int::plus)
+        if (ironman(player)) tally.ironmen += player.saveKey
     }
 
-    /** The damage each player has dealt [npc] so far, by save key. */
-    fun damageTo(npc: Npc): Map<String, Int> = damage[npc].orEmpty()
+    /**
+     * [npc] has left the world. A boss taken out alive (`::delnpc`, say) gives no loot, so its tally goes now; a dead
+     * one's stays for [loot], which comes straight after its body goes.
+     */
+    fun removed(npc: Npc) {
+        if (npc.hitpoints > 0) damage.remove(npc)
+    }
+
+    /** How many boss NPCs have a damage tally, for tests: none once each has died or gone. */
+    internal val tallies: Int get() = damage.size
 
     private fun died(npc: Npc, boss: WildernessBoss) {
         val looters = if (boss.group) shares(npc).map { it.key } else listOfNotNull((npc.attacker ?: npc.lastAttacker)?.saveKey)
@@ -86,8 +102,8 @@ class WildernessBosses(private val world: World) {
     }
 
     private fun shares(npc: Npc): List<Share> {
-        val ironmen = world.onlinePlayers.filter { ironman(it) }.map { it.saveKey }.toSet()
-        return shares(damage[npc].orEmpty(), ironmen)
+        val tally = damage[npc] ?: return emptyList()
+        return shares(tally.damage, tally.ironmen)
     }
 
     private fun ironman(player: Player): Boolean =
@@ -98,15 +114,18 @@ class WildernessBosses(private val world: World) {
      * damage tally goes either way.
      */
     fun loot(npc: Npc): Boolean {
-        val boss = byType[npc.type.id]
+        // Most NPCs that die are no boss: they cost one lookup here, no more.
+        val boss = byType[npc.type.id] ?: return false
         val shares = shares(npc)
         damage.remove(npc)
-        if (boss == null || !boss.group) return false
+        if (!boss.group) return false
         val def = world.npcDrops[npc.type] ?: return true
         val drops = split(shares, boss.uniques, world.random) { def.roll(world.random) }
         for ((key, items) in drops) {
+            val player = world.onlinePlayers.firstOrNull { it.saveKey == key }
             for (drop in items) {
                 world.groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, key, GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.LOOT_DESPAWN_TICKS)
+                player?.let { world.lootNotifications.dropped(it, drop.type, drop.count) }
             }
         }
         return true
@@ -114,8 +133,14 @@ class WildernessBosses(private val world: World) {
 
     /** [key]'s share of a kill: [damage] of [total], and the least part of a solo kill's loot it gets, in percent. */
     data class Share(val key: String, val damage: Int, val total: Int, val floorPercent: Int) {
-        /** The part of a solo kill's counts this share gets, from 0 to 1. */
+        /** The part of a solo kill's counts this share gets, from 0 to 1 (for reading; [scale] counts exactly). */
         val factor: Double get() = maxOf(damage.toDouble() / total, floorPercent / 100.0)
+
+        /** [count] scaled to this share, rounded down in whole numbers (no floating point), never below 1. */
+        fun scale(count: Int): Int {
+            val part = maxOf(damage.toLong() * 100, floorPercent.toLong() * total)
+            return maxOf(1L, count.toLong() * part / (100L * total)).toInt()
+        }
     }
 
     companion object {
@@ -137,9 +162,6 @@ class WildernessBosses(private val world: World) {
             }
         }
 
-        /** [count] scaled by [factor], never below 1. */
-        fun scale(count: Int, factor: Double): Int = maxOf(1, (count * factor).toInt())
-
         /**
          * Each share's loot: its own [roll] with [uniques] taken out and every count scaled, then one more roll for the
          * kill whose first unique, if any, goes to a share picked with odds of its damage.
@@ -147,7 +169,7 @@ class WildernessBosses(private val world: World) {
         fun split(shares: List<Share>, uniques: Set<Int>, random: GameRandom, roll: () -> List<Drop>): Map<String, List<Drop>> {
             val out = LinkedHashMap<String, MutableList<Drop>>()
             for (share in shares) {
-                out[share.key] = roll().filter { it.type.id !in uniques }.mapTo(ArrayList()) { Drop(it.type, scale(it.count, share.factor)) }
+                out[share.key] = roll().filter { it.type.id !in uniques }.mapTo(ArrayList()) { Drop(it.type, share.scale(it.count)) }
             }
             if (shares.isEmpty() || uniques.isEmpty()) return out
             val unique = roll().firstOrNull { it.type.id in uniques } ?: return out

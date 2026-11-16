@@ -2823,7 +2823,7 @@ class World(
     }
 
     /** The loot drop notification settings; see [LootNotifications]. */
-    private val lootNotifications = LootNotifications({ this.itemPrices.price(it) }, ::textFor)
+    val lootNotifications = LootNotifications({ this.itemPrices.price(it) }, ::textFor)
 
     /**
      * Rolls [npc]'s drops and puts them on its tile: the killer's alone for [GroundObjs.DROP_PRIVATE_TICKS], then
@@ -2874,6 +2874,7 @@ class World(
         npcs.remove(npc)
         npcInteractions.removed(npc, players.asIterable())
         slayer.removed(npc)
+        wildernessBosses.removed(npc)
         npc.avatar?.let(network.npcAvatarFactory::release)
         npc.avatar = null
     }
