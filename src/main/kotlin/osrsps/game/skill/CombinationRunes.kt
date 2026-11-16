@@ -67,7 +67,8 @@ class CombinationRunes(private val world: World) {
         if (essence == 0L) return player.message(text[CombinationRuneLines.NO_ESSENCE])
         val runes = inventory.count(recipe.input)
         if (runes == 0L) return player.message(text[CombinationRuneLines.NO_RUNES])
-        val pairs = minOf(essence, runes).toInt()
+        // Pure essence never stacks, so a backpack holds at most 28 pairs: the rolls below and the XP stay small.
+        val pairs = minOf(essence, runes, Inventory.INV_CAPACITY.toLong()).toInt()
         val necklace = player.equipment[WearPos.NECK]?.id == BINDING_NECKLACE
         val made = if (necklace) pairs else (0 until pairs).count { world.random.chance(1, 2) }
         val runeType = world.objTypes[recipe.rune] ?: error("No obj type ${recipe.rune} for ${recipe.key} runes")
