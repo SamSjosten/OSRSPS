@@ -67,7 +67,9 @@ object ChaosElemental {
         val type = world.npcTypes[BOSS] ?: return null
         return EncounterDef(
             "chaoselemental", type,
-            listOf(PhaseDef("fight", cycle = listOf(CycleStep(1) { tick() }))),
+            // Unleashed, so he follows anyone in his area past the spawn leash (exploit review round 39: from the area's
+            // edge a leashed boss never reached them).
+            listOf(PhaseDef("fight", cycle = listOf(CycleStep(1) { tick() }), onStart = { boss.unleashed = true })),
             scriptedAttacks = true,
         )
     }
@@ -149,6 +151,8 @@ object ChaosElemental {
             val order = ArrayList<Int>()
             if (target.equipment[WearPos.WEAPON] != null) order += WearPos.WEAPON
             while (order.size < MADNESS_ITEMS && worn.isNotEmpty()) order += worn.removeAt(roll(0, worn.size - 1))
+            // An open trade ends first: the backpack holds still while one is open (exploit review round 39).
+            if (order.isNotEmpty()) world.trades.decline(target)
             val off = order.filter { world.takeOff(target, it) }
             log("took off ${target.username}'s ${off.joinToString(" ")}")
         }

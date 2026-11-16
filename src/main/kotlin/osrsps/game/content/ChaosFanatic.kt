@@ -75,7 +75,9 @@ object ChaosFanatic {
         val type = world.npcTypes[BOSS] ?: return null
         return EncounterDef(
             "chaosfanatic", type,
-            listOf(PhaseDef("fight", cycle = listOf(CycleStep(1) { tick() }))),
+            // Unleashed, so he follows anyone in his area past the spawn leash (exploit review round 39: from the area's
+            // edge a leashed boss never reached them).
+            listOf(PhaseDef("fight", cycle = listOf(CycleStep(1) { tick() }), onStart = { boss.unleashed = true })),
             scriptedAttacks = true,
         )
     }
@@ -142,6 +144,8 @@ object ChaosFanatic {
             val weapon = target.equipment[WearPos.WEAPON] ?: return@after
             if (target.inventory.freeSlots == 0) return@after
             // Onto its stack if it stacks (knives, darts), as taking it off would.
+            // An open trade ends first: the backpack holds still while one is open (exploit review round 39).
+            world.trades.decline(target)
             if (world.equipment.remove(target, WearPos.WEAPON) != EquipResult.Done) return@after
             log("took ${target.username}'s weapon ${weapon.id}")
         }

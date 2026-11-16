@@ -132,6 +132,12 @@ class Combat(
     var shutOut: (Player, Npc) -> Boolean = { _, _ -> false }
 
     /**
+     * Set by [osrsps.game.content.WildernessBosses]: whether [Player] is outside the fight area of the boss [Npc], and so
+     * can't attack it. Apart from [shutOut], which the raids set outright.
+     */
+    var outsideFight: (Player, Npc) -> Boolean = { _, _ -> false }
+
+    /**
      * Set by content: how [Player]'s attack of [AttackType] on [Npc] is rolled ([SureHit]), asked once as each attack on
      * it is rolled (a hit that bounces or splashes on to another is rolled as usual): Ocellus's void flares, each maxed
      * by a style ([osrsps.game.raid.Ocellus]; OSRS Wiki, Void Siphon, Void Augmenter, Void Rift).
@@ -160,7 +166,7 @@ class Combat(
      */
     fun barred(player: Player, npc: Npc): Line? = when {
         slayerGated(player, npc) -> CombatLines.SLAYER_LEVEL
-        shutOut(player, npc) -> GameLines.CANT_REACH
+        shutOut(player, npc) || outsideFight(player, npc) -> GameLines.CANT_REACH
         else -> notYours(player, npc)
     }
 
