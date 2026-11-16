@@ -50,7 +50,7 @@ class HeadlessBoltEnchantTest {
             bolts(RUBY_E, "xbows_crossbow_bolts_adamantite_tipped_ruby_enchanted", "Ruby bolts (e)"),
         )
         World(
-            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, random = GameRandom(7), objTypes = objTypes,
+            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6); markLoaded(3375 shr 6, 3897 shr 6) }, random = GameRandom(7), objTypes = objTypes,
             spells = Spells.load(objTypes, osrsps.game.SeqNames.NONE, osrsps.game.SpotanimNames.NONE), cycleMillis = millis,
         )
     }
@@ -192,6 +192,26 @@ class HeadlessBoltEnchantTest {
                 client.awaitMessage("the runes refusal") { it.startsWith("[combat.not_enough_runes") }
                 assertEquals(10, client.count(RUBY))
                 assertEquals(0, client.count(RUBY_E))
+            }
+        }
+    }
+
+    @Test
+    fun `beside the Fountain of Rune bolts enchant with no runes and give no XP`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("fen").use { client ->
+                client.ready(4)
+                val start = client.magicXp()
+                client.give(OPAL, 10)
+                // Wilderness step W3.4d: in sight of the fountain (level 47), no cosmic or air runes held.
+                client.command("tele 3375 3897 0")
+                client.await("at the fountain") { client.position?.takeIf { it.x == 3375 && it.z == 3897 } }
+                client.cast()
+                client.box()
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 1)
+                client.await("10 enchanted") { if (client.count(OPAL_E) == 10) Unit else null }
+                client.awaitTicks(2)
+                assertEquals(start, client.magicXp(), "no XP for a free cast")
             }
         }
     }

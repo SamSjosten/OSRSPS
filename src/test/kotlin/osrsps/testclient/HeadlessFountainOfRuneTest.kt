@@ -144,6 +144,27 @@ class HeadlessFountainOfRuneTest {
         }
     }
 
+    @Test
+    fun `a glory recharged may turn eternal, and the message says so`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("zed").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item $GLORY_1")
+                client.command("item $RING")
+                client.await("the jewellery") { Unit.takeIf { client.count(RING) == 1L } }
+                val player = server.world.playerNamed("zed")!!
+                // The 1 in 25,000 roll forced: the glory turns eternal, the ring still goes to five.
+                client.commandReply("pause") { true }
+                val turned = FountainOfRune.recharge(player, server.world.objTypes) { true }
+                client.commandReply("resume") { true }
+                assertTrue(turned)
+                client.await("the eternal glory") { Unit.takeIf { client.count(FountainOfRune.ETERNAL_GLORY) == 1L } }
+                assertEquals(1L, client.count(RING_5))
+                assertEquals(0L, client.count(GLORY_6))
+            }
+        }
+    }
+
     private companion object {
         const val FOUNTAIN_X = 3373
         const val FOUNTAIN_Z = 3892
