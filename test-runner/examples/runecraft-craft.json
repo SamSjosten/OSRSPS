@@ -1,0 +1,30 @@
+{
+ "name": "Runecraft step RC2: Craft-rune at the Air Altar at level 11 (two air runes an essence), then a gold tiara used on the altar with a plain tiara and the air talisman also held makes the elemental tiara, and the plain tiara the air tiara (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario runecraft", "expectMessage": "Started scenario runecraft.", "comment": "every talisman held (air and elemental too); ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::setlevel runecraft 11", "expectMessage": "Runecraft set to level 11", "comment": "1,358 XP: the 65 XP below opens no level-up box"},
+  {"step": "command", "text": "::tele 2841 4829 0", "comment": "inside the Air Altar's temple, where its ruins put you"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "assertLocation", "x": 2841, "y": 4829, "plane": 0},
+  {"step": "command", "text": "::item 1436 5", "comment": "five rune essence"},
+  {"step": "assertInventory", "itemId": 1436, "count": 5},
+  {"step": "locOption", "loc": "Altar", "option": "Craft-rune", "x": 2843, "y": 4833},
+  {"step": "assertMessage", "contains": "runecraft_craft.bind", "timeoutMs": 10000},
+  {"step": "assertInventory", "itemId": 556, "count": 10, "timeoutMs": 5000},
+
+  {"step": "command", "text": "::item 5525", "comment": "a plain tiara"},
+  {"step": "command", "text": "::item 26788", "comment": "a gold tiara"},
+  {"step": "assertInventory", "itemId": 5525, "count": 1},
+  {"step": "useItemOnLoc", "itemId": 26788, "locId": 34760, "x": 2843, "y": 4833, "comment": "the gold tiara: the elemental talisman's recipe, not the plain tiara and air talisman's"},
+  {"step": "assertMessage", "contains": "runecraft_craft.tiara", "timeoutMs": 10000},
+  {"step": "assertInventory", "itemId": 26804, "count": 1, "timeoutMs": 5000},
+  {"step": "assertInventory", "itemId": 5525, "count": 1, "comment": "the plain tiara stays"},
+  {"step": "useItemOnLoc", "itemId": 5525, "locId": 34760, "x": 2843, "y": 4833},
+  {"step": "assertInventory", "itemId": 5527, "count": 2, "timeoutMs": 10000, "comment": "the scenario's own and the new one"},
+
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

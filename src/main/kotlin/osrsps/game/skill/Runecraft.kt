@@ -97,6 +97,8 @@ class Runecraft(private val world: World) {
             }
             world.handlers.onLoc(altar.portal, 1) {
                 arriveDelay()
+                // Hardening (exploit review round 34): the portal types only stand in their temples, but check anyway.
+                if (!inTemple(altar, player.x, player.z)) return@onLoc
                 player.message(world.textFor(player)[RunecraftLines.PORTAL])
                 world.teleport(player, altar.outside.x, altar.outside.z, altar.outside.level)
             }
