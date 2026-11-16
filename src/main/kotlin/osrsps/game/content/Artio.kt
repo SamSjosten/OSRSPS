@@ -47,8 +47,8 @@ object WildernessLairLines : Lines("wildy_lair", "Wilderness boss lairs") {
  * Her drops are in npc-drops.json and her kill count in `total_artio_kills`; she is a lair boss, so her top damage
  * dealer gets 10,000 off the fee.
  *
- * GUESSED until recorded: her swipe always landing (15 to 35, halved under Protect from Melee), on her target alone
- * (the Wiki's diagonal splash isn't built); the knockback one attack in [KNOCKBACK_ODDS] and its flight; [TRAPS] traps,
+ * GUESSED until recorded: her swipe always landing (15 to 35, halved under Protect from Melee) and its splash (see
+ * [swipe]); the knockback one attack in [KNOCKBACK_ODDS] and its flight; [TRAPS] traps,
  * lasting [TRAP_TICKS] ticks, each binding for [BIND_TICKS] ticks and gone once sprung, and never under a player when
  * laid; her animations (the cache's npc_callisto ones by name), the crescent's graphics (fx_callisto_ranged), the orb's
  * (none in flight; the crescent's impact on landing), the traps' (fx_callisto_trap) and her roar's (fx_callisto_enrage);
@@ -110,7 +110,6 @@ object Artio {
 
     /** One fight's state, by boss. */
     private class Fight {
-        var nextAttack = Long.MIN_VALUE
         /** Roars done: 0, 1 at 66%, 2 at 33%. */
         var roars = 0
         val traps = HashSet<Tile>()
@@ -139,11 +138,12 @@ object Artio {
             return
         }
         boss.face(target)
-        val reaches = world.meleeCombat.reaches(boss, target)
+        val reaches = beside(target)
         val sees = world.meleeCombat.sees(boss, target)
         if (reaches) world.npcs.stopFollowing(boss) else world.npcs.follow(boss, target)
-        if (!sees || world.tick < fight.nextAttack) return
-        fight.nextAttack = world.tick + ATTACK_SPEED
+        // Her own attack timer, so a swing the generic fight made before hers began holds her next one.
+        if (!sees || world.tick < boss.nextAttackTick) return
+        boss.nextAttackTick = world.tick + ATTACK_SPEED
         when {
             roll(1, KNOCKBACK_ODDS) == 1 -> knockback(fight, target)
             reaches -> swipe(target)
@@ -152,12 +152,34 @@ object Artio {
         if (fight.roars >= 2) layTraps(fight)
     }
 
+    /**
+     * Whether [player] is in her swipe's reach: beside her, diagonals too (the Wiki's Artio/Strategies: the swipe "can be
+     * used diagonally across a target").
+     */
+    private fun EncounterContext.beside(player: Player): Boolean {
+        if (player.level != boss.level) return false
+        val size = boss.type.size
+        val inBox = player.x in boss.x - 1..boss.x + size && player.z in boss.z - 1..boss.z + size
+        val under = player.x in boss.x until boss.x + size && player.z in boss.z until boss.z + size
+        return inBox && !under && (world.meleeCombat.reaches(boss, player) || world.meleeCombat.sees(boss, player))
+    }
+
+    /**
+     * The swipe at [target], splashing everyone within a tile of them who is also beside her (the Wiki: "This has AoE
+     * capabilities"). GUESSED: the splash is the 3x3 round the target, each player rolling their own hit.
+     */
     private fun EncounterContext.swipe(target: Player) {
         boss.effects.anim(ANIM_MELEE)
-        val rolled = roll(MELEE_MIN, MELEE_MAX)
-        val damage = if (world.prayers.protects(target, AttackType.CRUSH)) rolled / 2 else rolled
-        log("swipes at ${target.username} for $damage")
-        after(1) { if (!target.dead && players.any { it === target }) hit(target, damage) }
+        val centre = Tile(target.x, target.z)
+        val struck = players.filter {
+            !it.dead && abs(it.x - centre.x) <= 1 && abs(it.z - centre.z) <= 1 && (it === target || beside(it))
+        }
+        for (player in struck) {
+            val rolled = roll(MELEE_MIN, MELEE_MAX)
+            val damage = if (world.prayers.protects(player, AttackType.CRUSH)) rolled / 2 else rolled
+            log("swipes at ${player.username} for $damage")
+            after(1) { if (!player.dead && players.any { it === player }) hit(player, damage) }
+        }
     }
 
     private fun EncounterContext.crescents() {
@@ -182,7 +204,12 @@ object Artio {
                 if (player.dead || player.level != boss.level) continue
                 if (abs(player.x - centre.x) > 1 || abs(player.z - centre.z) > 1) continue
                 player.spotanim(SPOT_RANGED_IMPACT)
-                if (world.prayers.protects(player, AttackType.MAGIC)) continue
+                if (world.prayers.protects(player, AttackType.MAGIC)) {
+                    // Blocked, but still an attack on them: no logging out of it.
+                    world.meleeCombat.attackedWithoutHit(player, boss, world.tick)
+                    log("${player.username} blocks the orb")
+                    continue
+                }
                 throwBack(fight, player)
             }
         }
@@ -284,7 +311,7 @@ fun registerArtio(world: World) {
         }
         world.handlers.onLoc(ENTRANCE, CHECK_FEE) {
             arriveDelay()
-            if (WildernessLairFee.paid(player)) world.message(player, WildernessLairLines.FEE_PAID)
+            if (WildernessLairFee.paid(player) || WildernessLairFee.fee(player) == 0) world.message(player, WildernessLairLines.FEE_PAID)
             else world.message(player, WildernessLairLines.FEE_DUE, "fee" to WildernessLairFee.fee(player))
         }
         // Callisto's den has the same way out; his step gives it its own place to put the player.

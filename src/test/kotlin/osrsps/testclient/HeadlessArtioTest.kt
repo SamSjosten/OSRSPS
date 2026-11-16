@@ -17,6 +17,7 @@ import osrsps.game.VarbitType
 import osrsps.game.World
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
+import osrsps.game.combat.Prayers
 import osrsps.game.content.Artio
 import osrsps.game.content.WildernessLairFee
 import osrsps.game.content.WildernessLairFeeLines
@@ -43,6 +44,12 @@ class HeadlessArtioTest {
     )
     private val types = NpcTypes.of(boss)
 
+    // Shaped like the 242 cache's obj, as HeadlessTeleblockTest has it.
+    private val protectFromMagic = ObjType(
+        20815, "Null", internalName = "placeholder_xmas16_marionette_unpainted",
+        params = mapOf(630 to 12, 1751 to (Prayers.PRAYERBOOK shl 16 or PROTECT_FROM_MAGIC), 1752 to "Protect from Magic", 1753 to 37, 1755 to 2675),
+    )
+
     /** The cache's `wbr_entrance_fee_paid` and `wbr_entrance_discount`, bits of `wbr_perm_int_1`. */
     private val varTypes = VarTypes(
         6_000,
@@ -53,13 +60,14 @@ class HeadlessArtioTest {
     private fun server(dir: Path, seed: Long, spawn: Boolean = true) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
         val text = NpcDrops::class.java.getResource(NpcDrops.RESOURCE)!!.readText()
         val names = Regex("\"item\": (\\d+), \"name\": \"([^\"]+)\"").findAll(text).associate { it.groupValues[1].toInt() to it.groupValues[2] }
-        val objTypes = ObjTypes.of(*names.map { (id, name) -> ObjType(id, name, stackable = true) }.toTypedArray())
+        val objTypes = ObjTypes.of(*(names.map { (id, name) -> ObjType(id, name, stackable = true) } + protectFromMagic).toTypedArray())
         val entrance = LocType(Artio.ENTRANCE, "Cave", listOf("Enter", "Peek", "Check-Fee", null, null), LocCollisionType(width = 3, length = 3))
         val exit = LocType(Artio.EXIT, "Cave", listOf("Exit", null, null, null, null), LocCollisionType(width = 2, length = 2))
         World(
             crcs, CollisionMap().apply { markLoaded(27, 180); markLoaded(48, 57) }, objTypes = objTypes, npcTypes = types,
             random = GameRandom(seed), varTypes = varTypes,
             npcSpawns = if (spawn) listOf(NpcSpawn(boss, Artio.SPAWN.x, Artio.SPAWN.z, wander = 0, source = "test")) else emptyList(),
+            prayerList = Prayers.load(objTypes),
             npcCombat = NpcCombat.load(types, SeqNames.NONE), npcDrops = NpcDrops.load(types, objTypes),
             locTypes = LocTypes(mapOf(Artio.ENTRANCE to entrance, Artio.EXIT to exit)),
             staticLocs = StaticLocs().apply {
@@ -150,7 +158,91 @@ class HeadlessArtioTest {
         }
     }
 
+    @Test
+    fun `Check-Fee says paid when her discounts leave nothing to pay`(@TempDir dir: Path) {
+        server(dir, seed = 1, spawn = false).use { server ->
+            server.login("eve").use { client ->
+                client.await("the login rebuild") { client.position }
+                val eve = server.world.playerNamed("eve")!!
+                client.command("varbit ${WildernessLairFee.VARBIT_DISCOUNT} 5")
+                client.await("five discounts") { Unit.takeIf { WildernessLairFee.fee(eve) == 0 } }
+                client.tele(3116, 3675)
+                client.locOp(Artio.ENTRANCE, 3115, 3676, Artio.CHECK_FEE)
+                client.seen("[${WildernessLairLines.FEE_PAID.key}]")
+            }
+        }
+    }
+
+    @Test
+    fun `her orb blocked by Protect from Magic still counts as an attack`(@TempDir dir: Path) {
+        server(dir, seed = 4).use { server ->
+            server.login("fay").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.command("setlevel prayer 99")
+                client.ifButton(Prayers.PRAYERBOOK, PROTECT_FROM_MAGIC, 1)
+                client.await("Protect from Magic on") { Unit.takeIf { client.varp(Prayers.VARP_PRAYERS) == 1 shl 12 } }
+                client.tele(Artio.SPAWN.x + 1, Artio.SPAWN.z + 6)
+                val fay = server.world.playerNamed("fay")!!
+                val npc = server.world.npcs.all.first { it.type.id == Artio.BOSS }
+                client.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Artio") }
+                val fight = client.await("her fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
+                val blocked = client.await("a blocked orb", timeoutMillis = 60_000) { fight.lines.firstOrNull { it.endsWith("fay blocks the orb") } }
+                val landed = server.world.tick - fight.ticks + blocked.substringBefore(" ").toLong()
+                assertTrue(fay.attackedTick >= landed, "attacked at ${fay.attackedTick}, the orb landed at $landed")
+            }
+        }
+    }
+
+    @Test
+    fun `her swipe splashes a player beside her target, a diagonal too`(@TempDir dir: Path) {
+        server(dir, seed = 5).use { server ->
+            server.login("gil").use { a ->
+                server.login("hal").use { b ->
+                    a.await("the login rebuild") { a.position }
+                    b.await("the login rebuild") { b.position }
+                    a.commandReply("god") { it.startsWith("You can") }
+                    b.commandReply("god") { it.startsWith("You can") }
+                    b.tele(Artio.SPAWN.x - 1, Artio.SPAWN.z - 1)
+                    a.tele(Artio.SPAWN.x, Artio.SPAWN.z - 1)
+                    val npc = server.world.npcs.all.first { it.type.id == Artio.BOSS }
+                    a.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Artio") }
+                    val fight = a.await("her fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
+                    // One swipe, both struck: the two lines on the same tick.
+                    a.await("a swipe at both", timeoutMillis = 60_000) {
+                        val swipes = fight.lines.filter { "swipes at" in it }.groupBy { it.substringBefore(" ") }.values
+                        swipes.firstOrNull { tick -> tick.any { "at gil" in it } && tick.any { "at hal" in it } }
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a swing made before her fight began holds her next attack`(@TempDir dir: Path) {
+        server(dir, seed = 2).use { server ->
+            server.login("ida").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.tele(Artio.SPAWN.x + 1, Artio.SPAWN.z + 6)
+                val npc = server.world.npcs.all.first { it.type.id == Artio.BOSS }
+                // Her cooldown is the NPC's own: held from before her fight starts, then 12 ticks from its start.
+                npc.nextAttackTick = server.world.tick + 1_000
+                client.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Artio") }
+                val fight = client.await("her fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
+                val heldUntil = fight.ticks + 12
+                npc.nextAttackTick = server.world.tick + 12
+                val attack = Regex("swipes at|throws crescents|knockback at")
+                val first = client.await("an attack", timeoutMillis = 30_000) {
+                    fight.lines.firstOrNull { attack.containsMatchIn(it) && it.substringBefore(" ").toLong() > heldUntil - 12 }
+                }
+                assertTrue(first.substringBefore(" ").toLong() >= heldUntil, "attacked before $heldUntil: $first")
+            }
+        }
+    }
+
     private companion object {
+        const val PROTECT_FROM_MAGIC = 21
         const val WBR_PERM_INT_1 = 3755
         const val BIG_BONES = 532
     }
