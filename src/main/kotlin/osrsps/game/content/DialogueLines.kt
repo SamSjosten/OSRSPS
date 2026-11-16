@@ -169,6 +169,7 @@ object DialogueLines {
         EdgevilleClosedLines,
         EdgevilleDungeonLines,
         LavaMazeLines,
+        ChaosTempleLines,
         OborLines,
         BryophytaLines,
         EmoteLines,

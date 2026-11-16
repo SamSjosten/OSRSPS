@@ -29,8 +29,11 @@ object Bones {
     val XP_TENTHS: Map<Int, Int> = mapOf(
         526 to 45, // bones
         528 to 45, // bones_burnt
+        2859 to 45, // wolf_bones
+        530 to 53, // bat_bones
         532 to 150, // big_bones
         536 to 720, // dragon_bones
+        11943 to 850, // lava_dragon_bones
     )
 
     /**
