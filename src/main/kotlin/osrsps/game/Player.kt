@@ -294,7 +294,8 @@ class Player(
     var nextPickpocketTick: Long = 0
 
     /**
-     * NPC type [shieldedFrom] does this player no harm from [shieldedSince] to [shieldedUntil] while they don't move:
+     * NPC type [shieldedFrom] does this player no harm from [shieldedSince] to [shieldedUntil] while they neither move nor
+     * attack an NPC, and only until the search's loot:
      * the Rogues' Castle rogues while a chest is searched; see [osrsps.game.skill.ThievingLocks]. -1 for none.
      */
     var shieldedFrom: Int = -1

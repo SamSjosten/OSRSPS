@@ -961,8 +961,9 @@ class MeleeCombat(
      */
     fun hitPlayer(player: Player, source: Npc?, damage: Int, tick: Long): Int {
         if (player.hitpoints <= 0 || player.dead) return 0
+        // The shield holds while they stand still and leave every NPC alone (round 38, R38A-1).
         val shielded = source != null && source.type.id == player.shieldedFrom && tick in player.shieldedSince..player.shieldedUntil &&
-            player.lastMoveTick < player.shieldedSince
+            player.lastMoveTick < player.shieldedSince && player.attackedNpcTick < player.shieldedSince
         val dealt = hurt(player, source?.index ?: -1, if (shielded) 0 else damage)
         if (source != null) {
             player.attackedBy = source
