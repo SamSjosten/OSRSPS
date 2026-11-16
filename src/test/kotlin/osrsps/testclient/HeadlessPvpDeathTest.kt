@@ -227,6 +227,67 @@ class HeadlessPvpDeathTest {
     }
 
     @Test
+    fun `hit in the Wilderness but dying outside it, or in a scenario, is no PvP death`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("kai").use { killer ->
+                server.login("lia").use { victim ->
+                    killer.await("the login rebuild") { killer.position }
+                    victim.await("the login rebuild") { victim.position }
+                    victim.command("varp 172 1")
+                    killer.commandReply("sure") { it.startsWith("Your attacks") }
+                    killer.tele(3090, LEVEL_25)
+                    victim.tele(3091, LEVEL_25)
+                    killer.await("Attack given") { Unit.takeIf { killer.playerOps()[PlayerOps.ATTACK] == PlayerOps.ATTACK_TEXT } }
+                    killer.await("the victim in view") { killer.otherPlayers().takeIf { it.isNotEmpty() } }
+                    val world = server.world
+                    val lia = world.playerNamed("lia")!!
+                    killer.playerOp(victim.index, PlayerOps.ATTACK)
+                    killer.await("a hit on lia") { lia.pvpDamage["kai"] }
+                    killer.command("tele 3090 3500 0")
+                    // Out of the Wilderness, within the 100 ticks a hit counts for: her death is a death like any other.
+                    victim.command("item 379")
+                    victim.tele(3222, 3230)
+                    victim.commandReply("hit 99 me") { it.startsWith("Hit yourself") }
+                    victim.await("[combat.dead]") { victim.messages().firstOrNull { it.text == "[combat.dead]" } }
+                    assertNull(lia.deathKiller, "no killer outside the Wilderness")
+                    victim.await("the respawn", timeoutMillis = 10_000) { victim.position?.takeIf { it == Coord(3222, 3218) } }
+                    assertTrue(world.groundObjs.visibleAt(world.playerNamed("kai")!!, 3222, 3230, 0).isEmpty(), "nothing on the ground for kai")
+
+                    // In a ::scenario, killed in the Wilderness: the scenario's items go with its grave, not to the killer.
+                    killer.tele(3090, LEVEL_25)
+                    victim.tele(3091, LEVEL_25)
+                    lia.scenario = "pvp"
+                    killer.await("the victim in view again") { killer.otherPlayers().takeIf { it.isNotEmpty() } }
+                    killer.playerOp(victim.index, PlayerOps.ATTACK)
+                    killer.await("another hit on lia") { lia.pvpDamage["kai"] }
+                    victim.commandReply("hit 99 me") { it.startsWith("Hit yourself") }
+                    victim.await("[combat.dead] again") { victim.messages().count { it.text == "[combat.dead]" }.takeIf { it >= 2 } }
+                    assertNull(lia.deathKiller, "no killer for a scenario death")
+                    lia.scenario = null
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a death that keeps everything keeps the skull and the hit-back rights`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ray").use { client ->
+                client.await("the login rebuild") { client.position }
+                val world = server.world
+                val ray = world.playerNamed("ray")!!
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
+                ray.skullTicks = 500
+                ray.attackedFirst["sue"] = 500
+                world.deaths.respawn(ray, osrsps.game.combat.DeathPlace(true, 3222, 3218, 0, 3222, 3218, 0))
+                assertTrue(ray.skullTicks > 0, "the skull stays")
+                assertEquals(500, ray.attackedFirst["sue"])
+                client.commandReply("resume") { it.startsWith("Resumed") }
+            }
+        }
+    }
+
+    @Test
     fun `the killer's PJ timer holds though the victim logs out`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("ada").use { killer ->

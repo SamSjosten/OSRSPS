@@ -176,7 +176,12 @@ class PlayerSave(
         player.runEnergy = runEnergy
         player.runRanOut = runRanOut
         player.skullTicks = skullTicks
-        player.attackedFirst.putAll(attackedFirst)
+        // Saves from before exploit review 36 key these by the lowercased name ("some player"); now by save key
+        // ("some_player"), as pvpDamage is. A key already a save key (with % escapes) is kept as it is.
+        for ((name, ticks) in attackedFirst) {
+            val key = if ('%' in name) name else SaveStore.saveKey(name) ?: name
+            player.attackedFirst[key] = maxOf(ticks, player.attackedFirst[key] ?: 0)
+        }
         val types = player.vars.types
         for ((varp, value) in varps) {
             if (varp >= types.cacheVarpCount) {
