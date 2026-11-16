@@ -45,7 +45,7 @@ import osrsps.map.LocShape
 class HeadlessWilderness21To35Test {
     /** The file's NPCs by their 242 cache ids, read by name as the server reads them. */
     private val names = mapOf(
-        517 to "aggressive_black_knight", 301 to "black_heather", 2849 to "black_unicorn", 1026 to "brawling_bandit",
+        6618 to "crazy_archaeologist", 517 to "aggressive_black_knight", 301 to "black_heather", 2849 to "black_unicorn", 1026 to "brawling_bandit",
         2838 to "brownbear", 3021 to "deadly_red_spider", 302 to "donny_the_lad", 291 to "dwarf_chaos", 85 to "ghost",
         86 to "ghost2", 87 to "ghost3", 90 to "ghost6", 92 to "ghost8", 2856 to "giantrat", 2863 to "giantrat1_2",
         2864 to "giantrat1_3", 3017 to "giantspider1", 260 to "green_dragon", 261 to "green_dragon2", 262 to "green_dragon3",
@@ -72,8 +72,9 @@ class HeadlessWilderness21To35Test {
         assertEquals(21, parsed.spawns.count { it.type.internalName == "wilderness_ankou" }, "the Forgotten Cemetery's Ankou")
         assertEquals(26, parsed.spawns.count { it.type.internalName == "hobgoblin_unarmed" }, "the Bandit Camp mine's hobgoblins")
         assertEquals(4, parsed.spawns.count { it.type.internalName == "wilderness_ent" })
-        // The bosses wait for piece 4.
-        assertTrue(parsed.spawns.none { it.type.internalName in setOf("crazy_archaeologist", "venenatis", "vetion") })
+        // The crazy archaeologist came with W4.2; the lairs' bosses wait for theirs.
+        assertEquals(1, parsed.spawns.count { it.type.internalName == "crazy_archaeologist" }, "the crazy archaeologist in the Ruins")
+        assertTrue(parsed.spawns.none { it.type.internalName in setOf("venenatis", "vetion") })
         val squares = parsed.spawns.groupBy { Triple(it.x shr 6, it.z shr 6, it.level) }
         TestServer(dir) { crcs, millis ->
             World(

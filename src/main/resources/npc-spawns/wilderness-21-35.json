@@ -220,6 +220,7 @@
     {"npc": "poisonspider", "x": 3272, "z": 3798, "wander": 5, "source": "Poison spider (poisonspider), Wilderness level 35. mejrs NPCList_OSRS"},
     {"npc": "poisonspider", "x": 3320, "z": 3798, "wander": 5, "source": "Poison spider (poisonspider), Wilderness level 35. mejrs NPCList_OSRS"},
     {"npc": "poisonspider", "x": 3306, "z": 3799, "wander": 5, "source": "Poison spider (poisonspider), Wilderness level 35. mejrs NPCList_OSRS"},
-    {"npc": "poisonspider", "x": 3318, "z": 3799, "wander": 5, "source": "Poison spider (poisonspider), Wilderness level 35. mejrs NPCList_OSRS"}
+    {"npc": "poisonspider", "x": 3318, "z": 3799, "wander": 5, "source": "Poison spider (poisonspider), Wilderness level 35. mejrs NPCList_OSRS"},
+    {"npc": "crazy_archaeologist", "x": 2977, "z": 3702, "wander": 5, "source": "Crazy archaeologist, the Ruins (west), Wilderness level 23 (W4.2). OSRS Wiki LocLine 2977,3702; mejrs NPCList_OSRS; wander guessed (the Wiki: he wanders levels 22 to 25)"}
   ]
 }
