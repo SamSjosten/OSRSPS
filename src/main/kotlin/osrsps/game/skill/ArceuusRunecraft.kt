@@ -65,7 +65,10 @@ class ArceuusRunecraft(private val world: World) {
         }
     }
 
-    /** The fragments [player] holds: the saved count while the obj is in the backpack, else none. */
+    /**
+     * The fragments [player] can use: the saved count while the obj is in the backpack, else none. The count itself
+     * stays while the obj is banked, so withdrawing it brings them back; only Drop and Bind clear it.
+     */
     fun fragments(player: Player): Int = if (player.inventory.count(FRAGMENTS) > 0) player.charges[FRAGMENT_CHARGES] else 0
 
     /**
@@ -154,7 +157,8 @@ class ArceuusRunecraft(private val world: World) {
     private fun chisel(player: Player) {
         val text = world.textFor(player)
         if (player.skills.currentLevel(Skill.CRAFTING) < LEVEL) return player.message(text[ArceuusRunecraftLines.CHISEL_LEVEL])
-        val held = fragments(player)
+        // The saved count, not [fragments]: an obj in the bank still holds its fragments, so new ones join them.
+        val held = player.charges[FRAGMENT_CHARGES]
         val room = (MAX_FRAGMENTS - held) / FRAGMENTS_PER_BLOCK
         val inventory = player.inventory
         val blocks = inventory.contents().filter { it.second.id == DARK_BLOCK }.map { it.first }.take(room)

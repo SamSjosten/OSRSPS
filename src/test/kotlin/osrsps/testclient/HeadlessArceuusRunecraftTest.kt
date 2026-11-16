@@ -173,6 +173,29 @@ class HeadlessArceuusRunecraftTest {
         }
     }
 
+    @Test
+    fun `fragments banked keep their count and new ones join it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                await(client)
+                client.setLevel("crafting", CRAFTING, 38)
+                val player = server.world.playerNamed("dave")!!
+                client.give(ArceuusRunecraft.CHISEL, 1)
+                client.give(ArceuusRunecraft.DARK_BLOCK, 2)
+                client.chiselBlock()
+                client.await("the fragments") { if (client.count(ArceuusRunecraft.FRAGMENTS) == 1) Unit else null }
+                // As a bank deposit does: the obj leaves the backpack without Drop.
+                player.inventory.remove(player.inventory.contents().first { it.second.id == ArceuusRunecraft.FRAGMENTS }.first, 1)
+                client.await("the fragments banked") { if (client.count(ArceuusRunecraft.FRAGMENTS) == 0) Unit else null }
+                assertEquals(0, server.world.arceuusRunecraft.fragments(player))
+                client.give(ArceuusRunecraft.DARK_BLOCK, 1)
+                client.chiselBlock()
+                client.await("new fragments") { if (client.count(ArceuusRunecraft.FRAGMENTS) == 1) Unit else null }
+                assertEquals(12, server.world.arceuusRunecraft.fragments(player))
+            }
+        }
+    }
+
     private fun await(client: HeadlessClient) {
         client.await("the login rebuild") { client.position }
     }
