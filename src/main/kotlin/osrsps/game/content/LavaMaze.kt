@@ -167,10 +167,12 @@ private suspend fun ScriptContext.mirrorClimb(world: World, to: Tile, anim: Int)
 
 private suspend fun ScriptContext.openChest(world: World, loc: ZoneLoc) {
     if (loc.x != LavaMaze.CHEST_TILE.x || loc.z != LavaMaze.CHEST_TILE.z) return world.message(player, GameLines.NOTHING_INTERESTING)
-    val slot = player.inventory.contents().firstOrNull { (_, obj) -> obj.id == LavaMaze.MUDDY_KEY }?.first
-        ?: return world.message(player, LavaMazeLines.CHEST_LOCKED)
+    fun keySlot() = player.inventory.contents().firstOrNull { (_, obj) -> obj.id == LavaMaze.MUDDY_KEY }?.first
+    if (keySlot() == null) return world.message(player, LavaMazeLines.CHEST_LOCKED)
     arriveDelay()
-    player.inventory.remove(slot, 1)
+    // Looked for again after the walk (round 37): the key may have gone meanwhile, and only a key taken opens it.
+    val slot = keySlot() ?: return world.message(player, LavaMazeLines.CHEST_LOCKED)
+    if (player.inventory.remove(slot, 1) != 1) return world.message(player, LavaMazeLines.CHEST_LOCKED)
     world.message(player, LavaMazeLines.CHEST_UNLOCK)
     world.locs.replace(loc, LavaMaze.CHEST_OPEN, revertAfter = LavaMaze.CHEST_OPEN_TICKS)
     val loot = world.npcDrops.chests[LavaMaze.CHEST_TABLE]?.roll(world.random).orEmpty()
