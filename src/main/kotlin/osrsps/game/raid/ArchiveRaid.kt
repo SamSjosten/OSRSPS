@@ -38,6 +38,31 @@ object ArchiveNavigatorLines : Lines("tfa_navigator", "The_Fractured_Archive") {
     val RETURNED = line("returned", "the chat line to the rest of the party in the run when one follows him out", "name")
 }
 
+/**
+ * The run's own lines: in the chat as each room is won, and at the Blade where Ocellus fell, and on the way out of the
+ * reward vault. Seen in Sam's recording of 16 November 2026 (clip notes, FA 2026-11-16 12-57-18): a challenge-complete
+ * line as each of the five rooms is won, with its duration and the run's total so far and, when it is one, a personal
+ * best; as Ocellus's is, after it, the raid's total completion time (with its own personal best) and the completed
+ * count; Commune on the Blade asking whether the player is ready to proceed, Yes and No; the line to the party when one
+ * goes on to the vault, with their name; and Leave on the vault's Rift asking whether the player is ready to leave,
+ * Yes and No, and a line as they do.
+ */
+object ArchiveRunLines : Lines("tfa_run", "The_Fractured_Archive") {
+    val COMPLETE = line("complete", "chat, to everyone in the run as a room is won: challenge complete, with the room's boss, its duration and the run's total", "boss", "duration", "total")
+    val COMPLETE_BEST = line("complete_best", "the same, when the duration is the player's personal best", "boss", "duration", "total")
+    val RAID_TIME = line("raid_time", "chat, after Ocellus's challenge-complete line: the raid's total completion time", "time")
+    val RAID_TIME_BEST = line("raid_time_best", "the same, when it is the player's personal best", "time")
+    val COUNT = line("count", "chat, after the raid's total time: the player's completed count", "count")
+    val BLADE_READY = line("blade_ready", "Commune on the Blade where Ocellus fell: the menu's question, whether the player is ready to proceed")
+    val BLADE_YES = line("blade_yes", "that menu's first option, on to the reward vault")
+    val BLADE_NO = line("blade_no", "that menu's second option, staying")
+    val ENTERED_VOID = line("entered_void", "chat, to the rest of the party in the run as one goes on to the reward vault: their name", "name")
+    val LEAVE_READY = line("leave_ready", "Leave on the reward vault's Rift: the menu's question, whether the player is ready to leave the Fractured Archive")
+    val LEAVE_YES = line("leave_yes", "that menu's first option, out to the lobby")
+    val LEAVE_NO = line("leave_no", "that menu's second option, staying")
+    val LEFT = line("left", "chat, as the player leaves the reward vault by its Rift: they leave the Fractured Archive")
+}
+
 /** Which of a row's two doors a room is behind, as the nexus faces north: west is the Wiki's left. */
 enum class DoorSide { WEST, EAST }
 
@@ -141,6 +166,9 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
 
     /** Rooms whose fight has begun, and rooms done. */
     val started = LinkedHashSet<ArchiveRoom>()
+
+    /** The tick each room's fight began, for its duration and the run's total ([ArchiveRaids.completeLines]). */
+    internal val startedTick = HashMap<ArchiveRoom, Long>()
     val cleared = LinkedHashSet<ArchiveRoom>()
 
     /** Who was in each room as its fight began, by [Player.saveKey]. */
@@ -381,7 +409,7 @@ class ArchiveRaids(private val world: World) {
         val riftOps = world.npcTypes[RIFT_OUT]?.ops.orEmpty()
         for (name in listOf(LEAVE, QUICK_LEAVE)) {
             val op = riftOps.indexOf(name).takeIf { it >= 0 }?.plus(1) ?: if (name == LEAVE) 1 else 3
-            world.handlers.onNpc(RIFT_OUT, op) { leave(player) }
+            world.handlers.onNpc(RIFT_OUT, op) { o -> leave(this, o.npc!!, quick = name == QUICK_LEAVE) }
         }
         chests.register()
         supplies.register()
@@ -522,6 +550,7 @@ class ArchiveRaids(private val world: World) {
         val room = ArchiveRoom.GUARDIAN
         val def = world.encounters.defs[ArchiveGuardian.NAME] ?: return
         run.started += room
+        run.startedTick.putIfAbsent(room, world.tick)
         val standing = standing(run)
         run.presentAtStart[room] = standing.filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
         world.removeNpc(npc)
@@ -554,6 +583,7 @@ class ArchiveRaids(private val world: World) {
             return
         }
         run.started += room
+        run.startedTick.putIfAbsent(room, world.tick)
         val standing = standing(run)
         run.presentAtStart[room] = standing.filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
         world.partyScaling.scale(boss, standing.size.coerceIn(1, PartyScaling.MAX_PARTY))
@@ -587,6 +617,7 @@ class ArchiveRaids(private val world: World) {
             return
         }
         run.started += room
+        run.startedTick.putIfAbsent(room, world.tick)
         run.presentAtStart[room] = standing.filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
         run.fights[room] = fight
         logger.info { "$run began Xarth's fight with ${standing.size} standing, ${first.username} first in" }
@@ -617,6 +648,7 @@ class ArchiveRaids(private val world: World) {
             return
         }
         run.started += room
+        run.startedTick.putIfAbsent(room, world.tick)
         run.presentAtStart[room] = standing.filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
         run.fights[room] = fight
         logger.info { "$run began the Dagon'hai's fight with ${standing.size} standing, ${first.username} first in" }
@@ -648,6 +680,7 @@ class ArchiveRaids(private val world: World) {
             return
         }
         run.started += room
+        run.startedTick.putIfAbsent(room, world.tick)
         run.presentAtStart[room] = standing.filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
         run.fights[room] = fight
         fight.adds.firstOrNull { it.type.id == Bork.BORK }?.let { world.meleeCombat.aggress(it, first, world.tick) }
@@ -711,6 +744,7 @@ class ArchiveRaids(private val world: World) {
         world.removeNpc(figure)
         run.ocellusFigure = null
         run.started += room
+        run.startedTick.putIfAbsent(room, world.tick)
         val standing = standing(run)
         run.presentAtStart[room] = standing.filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
         world.partyScaling.scale(boss, standing.size.coerceIn(1, PartyScaling.MAX_PARTY))
@@ -734,6 +768,7 @@ class ArchiveRaids(private val world: World) {
             return
         }
         run.started += room
+        run.startedTick.putIfAbsent(room, world.tick)
         val standing = standing(run)
         run.presentAtStart[room] = standing.filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
         world.partyScaling.scale(boss, standing.size.coerceIn(1, PartyScaling.MAX_PARTY))
@@ -760,6 +795,7 @@ class ArchiveRaids(private val world: World) {
             return
         }
         run.started += room
+        run.startedTick.putIfAbsent(room, world.tick)
         val standing = standing(run)
         run.presentAtStart[room] = standing.filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
         world.partyScaling.scale(boss, standing.size.coerceIn(1, PartyScaling.MAX_PARTY))
@@ -1046,9 +1082,39 @@ class ArchiveRaids(private val world: World) {
     }
 
     /**
-     * The Blade's Travel, where Ocellus fell: [player] to the reward vault, [MOVE_DELAY] ticks on as any move between
-     * rooms (tsps capture notes: the Blade "takes the party to the vault"). Only once his room is done, and from it.
-     * Guessed: that each member travels by their own click, and the four ticks. Returns whether they set off.
+     * Commune on the Blade where Ocellus fell ([npc]): whether the player is ready to proceed, and on Yes, on to the
+     * reward vault ([enterVoid]). Seen in Sam's recording of 16 November 2026: the menu, then the line to the party,
+     * then the load. Guessed: that one still busy (a teleport or a death while it was open) doesn't go.
+     */
+    suspend fun commune(context: ScriptContext, npc: Npc) {
+        val player = context.player
+        val run = at(npc.x, npc.z) ?: return
+        if (!run.completed || run.wiped || player.saveKey !in run.entered || world.parties.of(player) !== run.party) return
+        world.dialogues.start(context, npc) {
+            val go = choice(ArchiveRunLines.BLADE_YES, ArchiveRunLines.BLADE_NO, title = text(ArchiveRunLines.BLADE_READY)) == 1
+            if (go && at(player.x, player.z) === run) enterVoid(player)
+        }
+    }
+
+    /**
+     * [player] goes on to the reward vault ([travel]), and the rest of the party in the run are told
+     * ([ArchiveRunLines.ENTERED_VOID]: Sam's recording of 16 November 2026, as the option is taken, before the load).
+     * Each member goes by their own click. Returns whether they set off; once on their way, again does nothing.
+     */
+    fun enterVoid(player: Player): Boolean {
+        val run = at(player.x, player.z) ?: return false
+        if (run.moving[player.saveKey]?.let { it.room == null } == true) return false
+        if (!travel(player)) return false
+        for (member in present(run)) {
+            if (member !== player) member.message(world.textFor(member)[ArchiveRunLines.ENTERED_VOID, "name" to player.username])
+        }
+        return true
+    }
+
+    /**
+     * On to the reward vault from where Ocellus fell: [player] there [MOVE_DELAY] ticks on as any move between rooms
+     * (tsps capture notes: the Blade "takes the party to the vault"). Only once his room is done, and from it. Guessed:
+     * the four ticks. Returns whether they set off.
      */
     fun travel(player: Player): Boolean {
         val run = at(player.x, player.z) ?: return false
@@ -1102,14 +1168,33 @@ class ArchiveRaids(private val world: World) {
     }
 
     /**
-     * Leave or Quick-leave on the reward vault's Rift out: to the lobby, in front of the Archive Door (tsps capture
-     * notes: it "goes back to the lobby"). Guessed: that it is at once, that the two do the same (Leave likely asks
-     * first), and the tile, the instance's exit.
+     * Leave on the reward vault's Rift out ([npc]): whether the player is ready to leave the Fractured Archive, and on
+     * Yes, out ([leave]). Sam's recordings of 16 November 2026: Leave Rift, the question, Yes and No, then the line and
+     * the lobby. Quick-leave goes without asking. Guessed: that Quick-leave skips the question.
+     */
+    suspend fun leave(context: ScriptContext, npc: Npc, quick: Boolean) {
+        val player = context.player
+        if (quick) {
+            leave(player)
+            return
+        }
+        val run = at(npc.x, npc.z) ?: return
+        if (!inRewardRoom(run, player.x, player.z)) return
+        world.dialogues.start(context, npc) {
+            val go = choice(ArchiveRunLines.LEAVE_YES, ArchiveRunLines.LEAVE_NO, title = text(ArchiveRunLines.LEAVE_READY)) == 1
+            if (go) leave(player)
+        }
+    }
+
+    /**
+     * Out of the reward vault: to the lobby ([RIFT_LEAVE_X], Sam's recordings of 16 November 2026: a load, the lobby,
+     * and a line in the chat, [ArchiveRunLines.LEFT]). Guessed: that it is at once.
      */
     fun leave(player: Player) {
         val run = at(player.x, player.z) ?: return
         if (!inRewardRoom(run, player.x, player.z)) return
-        world.teleport(player, run.instance.exitX, run.instance.exitZ, run.instance.exitLevel)
+        world.teleport(player, RIFT_LEAVE_X, RIFT_LEAVE_Z, run.instance.exitLevel)
+        player.message(world.textFor(player)[ArchiveRunLines.LEFT])
     }
 
     /** The nexus's Archive Door, north: on to Ocellus, once the fourth room is done and it stands open ([placeOcellusDoor]). */
@@ -1242,6 +1327,7 @@ class ArchiveRaids(private val world: World) {
     /** [room]'s fight begins, with whoever of the party stands in it. Its boss isn't built yet, so it is done at once. */
     private fun begin(run: ArchiveRun, room: ArchiveRoom) {
         run.started += room
+        run.startedTick.putIfAbsent(room, world.tick)
         run.presentAtStart[room] = standing(run).filter { inRoom(run, room, it.x, it.z) }.map { it.saveKey }.toSet()
         logger.info { "$run began ${room.boss}'s room with ${run.presentAtStart[room]}" }
         clear(run, room)
@@ -1295,6 +1381,7 @@ class ArchiveRaids(private val world: World) {
         share(run, room)
         // The raid's end: the loot is rolled, for whoever of the party is in the run now.
         if (room == ArchiveRoom.OCELLUS) chests.pay(run)
+        completeLines(run, room)
         upAgain(run, room)
         run.downed.clear()
         run.clearedTick = world.tick
@@ -1310,6 +1397,40 @@ class ArchiveRaids(private val world: World) {
             placeOcellusDoor(run)
         }
         logger.info { "$run cleared ${room.boss}'s room; points ${run.points}" }
+    }
+
+    /**
+     * The chat as [room] is won, to everyone of the party in the run ([ArchiveRunLines], seen in Sam's recording of 16
+     * November 2026): challenge complete, with the room's duration from its fight's start and the run's total from the
+     * first fight's, each as the clock shows them, and, for Ocellus's, the raid's total time and the completed count
+     * after (`total_completed_thefracturedarchive`, which the run's end has just added to, [ArchiveChests.pay]). A
+     * duration or a total under the player's best so far is their new personal best, kept with their account.
+     * Guessed: one best for each room and one for the raid, whatever the party's size; a room done with no fight
+     * ([begin], `::raid clear` before its fight) counting from the tick it is done.
+     */
+    private fun completeLines(run: ArchiveRun, room: ArchiveRoom) {
+        val now = world.tick
+        val duration = now - (run.startedTick[room] ?: now)
+        val total = now - (run.startedTick.values.minOrNull() ?: now)
+        for (player in present(run)) {
+            val text = world.textFor(player)
+            val roomBest = best(player, "$BEST_PREFIX${room.name.lowercase()}", duration)
+            val line = if (roomBest) ArchiveRunLines.COMPLETE_BEST else ArchiveRunLines.COMPLETE
+            player.message(text[line, "boss" to room.boss, "duration" to clock(duration), "total" to clock(total)])
+            if (room != ArchiveRoom.OCELLUS) continue
+            val raidBest = best(player, BEST_TOTAL, total)
+            player.message(text[if (raidBest) ArchiveRunLines.RAID_TIME_BEST else ArchiveRunLines.RAID_TIME, "time" to clock(total)])
+            val varp = GraveFees.VARP_ARCHIVE_CLEARS
+            if (varp < player.vars.types.varpCount) player.message(text[ArchiveRunLines.COUNT, "count" to player.vars[varp].toString()])
+        }
+    }
+
+    /** Whether [ticks] beats [player]'s best kept as [name] (none kept counts as beaten), keeping it if so. */
+    private fun best(player: Player, name: String, ticks: Long): Boolean {
+        val kept = player.charges[name]
+        if (kept in 1..ticks) return false
+        player.charges[name] = ticks.coerceIn(1L, Int.MAX_VALUE.toLong()).toInt()
+        return true
     }
 
     /**
@@ -1627,8 +1748,9 @@ class ArchiveRaids(private val world: World) {
         const val REWARD_SQUARE_X = 64
         const val REWARD_SQUARE_Z = 90
         const val REWARD_LEVEL = 2
-        const val REWARD_X = 4127
-        const val REWARD_Z = 5779
+        /** Where the reward vault is come into: Sam's recording of 16 November 2026 (4125,5773, the tsps capture notes' 4127,5779). */
+        const val REWARD_X = 4125
+        const val REWARD_Z = 5773
 
         /** tfa_vault_exit, the Rift at the walk's south end (no options), and tfa_vault_scoreboard, the Merit scroll (Read). */
         const val REWARD_RIFT = 63297
@@ -1737,6 +1859,23 @@ class ArchiveRaids(private val world: World) {
         /** In front of the Archive Door, in the lobby: where a wipe lands and its graves go, and the instance's exit. Guessed. */
         const val LOBBY_X = 4127
         const val LOBBY_Z = 5560
+
+        /** Where the reward vault's Rift out lands, in the lobby: Sam's recording of 16 November 2026. */
+        const val RIFT_LEAVE_X = 4125
+        const val RIFT_LEAVE_Z = 5553
+
+        /** The names a player's personal bests are kept by ([osrsps.game.Charges]), in ticks: each room's, and the raid's. */
+        const val BEST_PREFIX = "tfa_best_"
+        const val BEST_TOTAL = "tfa_best_total"
+
+        /** [ticks] as the game's clock shows a time, m:ss, or h:mm:ss from an hour, in whole seconds of 0.6 a tick. */
+        fun clock(ticks: Long): String {
+            val seconds = ticks * 3 / 5
+            val h = seconds / 3600
+            val m = seconds / 60 % 60
+            val sec = seconds % 60
+            return if (h > 0) "%d:%02d:%02d".format(h, m, sec) else "%d:%02d".format(m, sec)
+        }
 
         /**
          * The cache's levels of the nexus the instance's level 0 shows: at the start, and with the Guardian's corpse and

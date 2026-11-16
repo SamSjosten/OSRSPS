@@ -1292,7 +1292,14 @@ class HeadlessOcellusTest {
                 alice.commandReply("hit ${boss.hitpoints} ${boss.index}") { it.startsWith("Hit ") }
                 alice.await("his room done", 30_000) { ArchiveRoom.OCELLUS.takeIf { it in run.cleared } }
                 assertTrue(boss.dead)
-                // His body goes and the Blade appears where he fell, with Travel, to the vault.
+                // The chat as his room is won: challenge complete, her first, so a personal best; then the raid's
+                // total time, a best too, and her completed count, the first.
+                val said = alice.await("his challenge complete and the two lines after") {
+                    alice.messages().map { it.text }.dropWhile { !it.startsWith("[tfa_run.complete_best boss=Ocellus ") }.take(3).takeIf { it.size == 3 }
+                }
+                val total = said[0].substringAfter(" total=").removeSuffix("]")
+                assertEquals(listOf("[tfa_run.raid_time_best time=$total]", "[tfa_run.count count=1]"), said.drop(1))
+                // His body goes and the Blade appears where he fell, with Commune and Travel, to the vault.
                 val fell = Tile(boss.x, boss.z)
                 val world = server.world
                 val vaultBlade = alice.await("the Blade", 30_000) { world.npcs.all.singleOrNull { it.type.id == Ocellus.BLADE_TRAVEL } }
@@ -1300,7 +1307,17 @@ class HeadlessOcellusTest {
                 assertEquals(fell, Tile(vaultBlade.x, vaultBlade.z))
                 assertEquals(boss.level, vaultBlade.level)
                 alice.await("his body gone") { if (world.npcs.all.none { it === boss }) Unit else null }
-                alice.npcOp(vaultBlade.index, Ocellus.TRAVEL)
+                // Commune: whether she is ready to proceed. No keeps her there; Yes takes her on.
+                alice.npcOp(vaultBlade.index, Ocellus.COMMUNE)
+                val menu = alice.awaitDialogue("the Blade's question") { it is DialogueView.Menu } as DialogueView.Menu
+                assertEquals(DialogueView.Menu("[tfa_run.blade_ready]", listOf("[tfa_run.blade_yes]", "[tfa_run.blade_no]")), menu)
+                alice.chooseOption(2)
+                alice.awaitTicks(osrsps.game.raid.ArchiveRaids.MOVE_DELAY + 1)
+                assertTrue(run.moving.isEmpty(), "No left her where she was")
+                assertEquals(-1L, run.rewardTick)
+                alice.npcOp(vaultBlade.index, Ocellus.COMMUNE)
+                alice.awaitDialogue("the Blade's question again") { it is DialogueView.Menu }
+                alice.chooseOption(1)
                 val to = world.archiveRaids.tile(run, osrsps.game.raid.ArchiveRaids.REWARD_X, osrsps.game.raid.ArchiveRaids.REWARD_Z)
                 alice.await("the reward vault", 30_000) { alice.position?.takeIf { it == Coord(to.x, to.z, osrsps.game.raid.ArchiveRaids.REWARD_LEVEL) } }
             }
