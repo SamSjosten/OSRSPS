@@ -25,6 +25,7 @@ import osrsps.game.loc.StaticLocs
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
+import osrsps.map.LocCollision
 import osrsps.map.LocCollisionType
 import osrsps.map.LocShape
 import osrsps.map.Tile
@@ -32,7 +33,8 @@ import osrsps.map.Tile
 /**
  * Wilderness step W3.6a through the headless client: the Resource Area's gate refusing a player without the 7,500
  * coins, then taking them and letting the player in, and out again for nothing; Peek from both sides; Mandrith's talk;
- * Piles noting iron ore at 50 coins each, as many as the coins allow, and refusing logs; and a logout inside coming back
+ * Piles noting iron ore at 50 coins each, as many as the coins and the banknote stack allow, and refusing logs; nobody
+ * walking in behind a payer; and a logout inside coming back
  * outside the gate. The gate, Mandrith and Piles stand on open ground at their 242 tiles. The rl-client script
  * test-runner/examples/resource-area.json does the same on the real map.
  */
@@ -49,9 +51,14 @@ class HeadlessResourceAreaTest {
         objs[LOGS + 1] = ObjType(LOGS + 1, "Logs", stackable = true, certlink = LOGS, certtemplate = 799)
         val gate = LocType(ResourceArea.GATE, "Gate", ops = listOf("Open", "Peek", null, null, null), collision = LocCollisionType(width = 1, length = 1))
         World(
-            crcs, CollisionMap().apply { markLoaded(3184 shr 6, 3944 shr 6) }, objTypes = ObjTypes(objs),
+            crcs, CollisionMap().apply {
+                markLoaded(3184 shr 6, 3944 shr 6)
+                // Static locs add no collision here: the gate's, and the wall's either side of it, far enough that going
+                // round takes longer than a test waits.
+                for (x in GATE_X - 12..GATE_X + 12) LocCollision(this).addLoc(LocCollisionType(), x, GATE_Z, 0, LocShape.WALL_STRAIGHT, 1)
+            }, objTypes = ObjTypes(objs),
             locTypes = LocTypes(mapOf(ResourceArea.GATE to gate)),
-            staticLocs = StaticLocs().apply { add(ZoneLoc(ResourceArea.GATE, LocShape.WALL_STRAIGHT, 1, GATE_X, GATE_Z, 0)) },
+            staticLocs = StaticLocs().apply { add(GATE) },
             npcTypes = NpcTypes.of(mandrith, piles),
             npcSpawns = listOf(NpcSpawn(mandrith, 3183, 3945, wander = 0, source = "test"), NpcSpawn(piles, 3185, 3933, wander = 0, source = "test")),
             cycleMillis = millis,
@@ -111,8 +118,7 @@ class HeadlessResourceAreaTest {
                 client.chooseOption(1)
                 client.await("inside") { client.position?.takeIf { it == Coord(GATE_X, GATE_Z, 0) } }
                 assertEquals(2_500L, client.count(COINS))
-                // The gate swings open for a moment; it is back in its frame after.
-                client.awaitTicks(MEMBER_GATE_SHUT)
+                assertTrue(server.world.locs.exists(GATE), "the gate stays shut behind a payer")
 
                 client.locOp(ResourceArea.GATE, GATE_X, GATE_Z, ResourceArea.PEEK)
                 client.awaitMessage("the wasteland") { it == DialogueText.NONE[ResourceAreaLines.PEEK_INSIDE] }
@@ -120,6 +126,55 @@ class HeadlessResourceAreaTest {
                 client.openGate()
                 client.await("outside") { client.position?.takeIf { it == Coord(GATE_X, GATE_Z + 1, 0) } }
                 assertEquals(2_500L, client.count(COINS), "out for nothing")
+            }
+        }
+    }
+
+    @Test
+    fun `nobody walks in behind a player who paid`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ash").use { payer ->
+                server.login("bly").use { follower ->
+                    payer.await("the login rebuild") { payer.position }
+                    follower.await("the login rebuild") { follower.position }
+                    payer.tele(GATE_X, GATE_Z + 1)
+                    follower.tele(GATE_X - 1, GATE_Z + 1)
+                    payer.command("item $COINS 7500")
+                    payer.await("the fee") { Unit.takeIf { payer.count(COINS) == 7_500L } }
+                    payer.openGate()
+                    payer.awaitDialogue("the fee's menu") { it is DialogueView.Menu }
+                    payer.chooseOption(1)
+                    // The follower clicks inside every tick while the payer crosses, and after.
+                    repeat(6) {
+                        follower.walk(GATE_X, GATE_Z - 1)
+                        follower.awaitTicks(1)
+                    }
+                    assertEquals(Coord(GATE_X, GATE_Z, 0), payer.position)
+                    val at = follower.position!!
+                    assertTrue(at.z > GATE_Z, "the follower is still outside at $at")
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `Piles notes no more than the banknote stack can hold`(@TempDir dir: Path) {
+        assertEquals(1, ResourceArea.noteable(held = 3, coins = 150, notedHeld = Int.MAX_VALUE - 1L))
+        assertEquals(0, ResourceArea.noteable(held = 3, coins = 150, notedHeld = Int.MAX_VALUE.toLong()))
+        server(dir).use { server ->
+            server.login("cyd").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("keys on") { it == "Dialogue shows keys" }
+                val pilesIndex = server.world.npcs.all.first { it.type.id == ResourceArea.PILES }.index
+                client.tele(3185, 3932)
+                client.command("item $IRON_NOTED ${Int.MAX_VALUE - 1}")
+                client.command("item $IRON 3")
+                client.command("item $COINS 150")
+                client.await("the items") { Unit.takeIf { client.count(IRON) == 3L && client.count(COINS) == 150L && client.count(IRON_NOTED) > 0 } }
+                client.npcTarget(pilesIndex, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slotOf(IRON), IRON)
+                client.await("one noted") { Unit.takeIf { client.count(IRON_NOTED) == Int.MAX_VALUE.toLong() } }
+                assertEquals(2L, client.count(IRON), "two kept: the stack had room for one")
+                assertEquals(100L, client.count(COINS), "only one paid for")
             }
         }
     }
@@ -188,7 +243,7 @@ class HeadlessResourceAreaTest {
     }
 
     private companion object {
-        const val MEMBER_GATE_SHUT = 4
+        val GATE = ZoneLoc(ResourceArea.GATE, LocShape.WALL_STRAIGHT, 1, 3184, 3944, 0)
         const val GATE_X = 3184
         const val GATE_Z = 3944
         const val COINS = 995

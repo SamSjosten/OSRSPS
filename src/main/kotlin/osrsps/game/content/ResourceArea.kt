@@ -1,11 +1,15 @@
 package osrsps.game.content
 
 import osrsps.game.GameLines
+import osrsps.game.Inventory
 import osrsps.game.Player
+import osrsps.game.PlayerEffects
 import osrsps.game.World
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Dialogue
 import osrsps.game.dialogue.Lines
+import osrsps.game.script.ScriptContext
+import osrsps.game.skill.Agility
 import osrsps.map.Tile
 
 /** The Resource Area's words: Mandrith's and Piles' transcripts and the gate's (the Wiki's Transcript pages). */
@@ -71,6 +75,9 @@ object ResourceArea {
     const val FEE = 7_500
     const val NOTE_FEE = 50
 
+    /** How long the step across the gate takes (guessed, as the H.A.M. storeroom doors'). */
+    const val STEP_TICKS = 1
+
     val GATE_TILES = MemberGates.Gate(listOf(Tile(3184, 3944)), edge = 1)
     val OUTSIDE = Tile(3184, 3945)
 
@@ -93,8 +100,12 @@ object ResourceArea {
     /** Where a player saved at [x], [z] on [level] comes back: outside the gate if they were inside, else null. */
     fun loginPlace(x: Int, z: Int, level: Int): Tile? = OUTSIDE.takeIf { inside(x, z, level) }
 
-    /** How many of [held] items Piles notes with [coins]. */
-    fun noteable(held: Long, coins: Long): Int = minOf(held, coins / NOTE_FEE).toInt().coerceAtLeast(0)
+    /**
+     * How many of [held] items Piles notes with [coins], when [notedHeld] of their banknotes are already carried: no more
+     * than the banknote stack has room for, so none are taken or paid for that can't come back as notes.
+     */
+    fun noteable(held: Long, coins: Long, notedHeld: Long = 0): Int =
+        minOf(held, coins / NOTE_FEE, Inventory.MAX_STACK.toLong() - notedHeld).toInt().coerceAtLeast(0)
 }
 
 fun registerResourceArea(world: World) {
@@ -104,18 +115,11 @@ fun registerResourceArea(world: World) {
             val to = MemberGates.through(GATE_TILES, player.x, player.z)
                 ?: return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
             arriveDelay()
-            if (!inside(to.x, to.z, loc.level)) {
-                world.doors.openAs(loc, loc.id, shutAfter = MemberGates.OPEN_TICKS)
-                delay(1)
-                world.teleport(player, to.x, to.z, loc.level)
-                return@onLoc
-            }
+            if (!inside(to.x, to.z, loc.level)) return@onLoc stepThrough(world, to, loc.level)
             var paid = false
             world.dialogues.start(this) { paid = payFee() }
             if (!paid) return@onLoc
-            world.doors.openAs(loc, loc.id, shutAfter = MemberGates.OPEN_TICKS)
-            delay(1)
-            world.teleport(player, to.x, to.z, loc.level)
+            stepThrough(world, to, loc.level)
         }
         world.handlers.onLoc(GATE, PEEK) {
             arriveDelay()
@@ -129,6 +133,21 @@ fun registerResourceArea(world: World) {
         world.handlers.onNpc(PILES, TALK_TO) { op -> world.dialogues.start(this, op.npc) { piles() } }
         world.handlers.onObjOnNpc(PILES) { op -> world.dialogues.start(this, op.npc) { note(world, op.obj) } }
     }
+}
+
+/**
+ * Across the gate to [to]: the player steps over in [ResourceArea.STEP_TICKS] and the gate stays shut, so nobody waiting
+ * beside it can walk in behind a payer without paying (the review of W3.6a found an opened gate let them). Guessed: live
+ * swings the gate open as the player walks through.
+ */
+private suspend fun ScriptContext.stepThrough(world: World, to: Tile, level: Int) {
+    val fromX = player.x
+    val fromZ = player.z
+    player.waypoints.clear()
+    val angle = Agility.angle(to.x - fromX, to.z - fromZ)
+    player.effects.exactMove(PlayerEffects.ExactMove(fromX, fromZ, to.x, to.z, 0, ResourceArea.STEP_TICKS * 30, angle))
+    delay(ResourceArea.STEP_TICKS)
+    world.teleport(player, to.x, to.z, level)
 }
 
 /** The fee asked at the gate: true once it is paid. */
@@ -175,7 +194,7 @@ private suspend fun Dialogue.note(world: World, id: Int): Unit = with(ResourceAr
     val type = world.objTypes[id]
     val noted = type?.certlink?.let { world.objTypes[it] }
     if (type == null || type.isCert || id !in ResourceArea.NOTEABLE || noted == null) return chatNpc(ChatAnim.NEUTRAL, PILES_NOT_HERE)
-    val count = ResourceArea.noteable(player.inventory.count(id), player.inventory.count(ResourceArea.COINS))
+    val count = ResourceArea.noteable(player.inventory.count(id), player.inventory.count(ResourceArea.COINS), player.inventory.count(noted.id))
     if (count <= 0) return chatNpc(ChatAnim.NEUTRAL, PILES_NO_COINS)
     Ned.take(player, ResourceArea.COINS, count * ResourceArea.NOTE_FEE)
     Ned.take(player, id, count)
