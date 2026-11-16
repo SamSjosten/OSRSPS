@@ -58,6 +58,9 @@ class WildernessBosses(private val world: World) {
     private class Tally {
         val damage = LinkedHashMap<String, Int>()
         val ironmen = HashSet<String>()
+
+        /** The shares of those logged in on the killing tick, kept for the loot that shows as the body goes. */
+        var atKill: List<Share>? = null
     }
 
     private val damage = HashMap<Npc, Tally>()
@@ -93,7 +96,10 @@ class WildernessBosses(private val world: World) {
     internal val tallies: Int get() = damage.size
 
     private fun died(npc: Npc, boss: WildernessBoss) {
-        val looters = if (boss.group) shares(npc).map { it.key } else listOfNotNull((npc.attacker ?: npc.lastAttacker)?.saveKey)
+        val looters = if (boss.group) {
+            // Who is logged in now decides both rewards, not who is when the loot shows a few ticks later.
+            shares(npc).also { damage[npc]?.atKill = it }.map { it.key }
+        } else listOfNotNull((npc.attacker ?: npc.lastAttacker)?.saveKey)
         if (boss.killCountVarp < 0) return
         for (key in looters) {
             val player = world.onlinePlayers.firstOrNull { it.saveKey == key } ?: continue
@@ -119,7 +125,7 @@ class WildernessBosses(private val world: World) {
     fun loot(npc: Npc): Boolean {
         // Most NPCs that die are no boss: they cost one lookup here, no more.
         val boss = byType[npc.type.id] ?: return false
-        val shares = shares(npc)
+        val shares = damage[npc]?.atKill ?: shares(npc)
         damage.remove(npc)
         if (!boss.group) return false
         val def = world.npcDrops[npc.type] ?: return true

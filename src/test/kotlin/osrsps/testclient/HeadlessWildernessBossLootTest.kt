@@ -34,13 +34,29 @@ class HeadlessWildernessBossLootTest {
           "table": {"slots": 1, "lines": [{"item": 995, "name": "Coins", "count": 100, "weight": 1}]}, "source": "test"}]}
     """.trimIndent()
 
-    private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
+    private fun server(dir: Path, deathTicks: Int? = null) = TestServer(dir) { crcs, millis ->
         val objs = ObjTypes.of(ObjType(532, "Big bones"), ObjType(995, "Coins", stackable = true))
         World(
             crcs, CollisionMap().apply { markLoaded(3200 shr 6, 3900 shr 6) }, objTypes = objs, npcTypes = types, random = GameRandom(4),
             varTypes = VarTypes(6_000, SettingsSide.VARBITS + AllSettings.VARBITS),
-            npcCombat = NpcCombat.load(types, SeqNames.NONE), npcDrops = NpcDrops.parse(drops, types, objs), cycleMillis = millis,
+            npcCombat = if (deathTicks == null) NpcCombat.load(types, SeqNames.NONE) else NpcCombat.parse(
+                """{ "npcs": [ { "npcs": ["icegiant"], "attackSpeed": 5, "maxHit": 0, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+                    "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+                    "anims": { "attack": null, "defend": null, "death": null }, "deathTicks": $deathTicks, "respawnTicks": 100, "source": "test" } ] }""",
+                types, SeqNames.NONE,
+            ), npcDrops = NpcDrops.parse(drops, types, objs), cycleMillis = millis,
         ).also { it.wildernessBosses.register(osrsps.game.content.WildernessBoss("test boss", setOf(BOSS), KILL_COUNT_VARP, group = true)) }
+    }
+
+    /** Presses Logout until it takes, [other] counting ticks: the button refuses it for a few seconds after a hit. */
+    private fun HeadlessClient.logOutOfCombat(other: HeadlessClient) {
+        repeat(LOGOUT_TRIES) {
+            if (packets().any { it.prot.name == "LOGOUT" }) return
+            // The socket may close between the check and the click once the logout has gone through.
+            runCatching { ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1) }
+            other.awaitTicks(2)
+        }
+        await("the logout") { packets().firstOrNull { it.prot.name == "LOGOUT" } }
     }
 
     private fun HeadlessClient.tele(x: Int, z: Int) {
@@ -95,11 +111,7 @@ class HeadlessWildernessBossLootTest {
                     a.commandReply("hit 30 ${npc.index}") { it.startsWith("Hit Ice giant") }
                     // Out of the boss's reach and out of combat first: the button refuses a logout for a few seconds after a hit.
                     a.tele(3260, 3845)
-                    repeat(LOGOUT_TRIES) {
-                        if (server.world.playerNamed("ada") == null) return@repeat
-                        a.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
-                        b.awaitTicks(2)
-                    }
+                    a.logOutOfCombat(b)
                 }
                 server.login("iron").use { i ->
                     i.await("the login rebuild") { i.position }
@@ -133,6 +145,37 @@ class HeadlessWildernessBossLootTest {
     }
 
     @Test
+    fun `one who logs back in while the boss's body is still there gets no loot, as who is logged in at the kill decides`(@TempDir dir: Path) {
+        server(dir, deathTicks = LONG_DEATH_TICKS).use { server ->
+            server.login("bea").use { b ->
+                b.await("the login rebuild") { b.position }
+                b.tele(3200, 3901)
+                b.commandReply("wboss test boss") { it.startsWith("Spawned Ice giant") }
+                val npc = b.await("the boss") { server.world.npcs.all.firstOrNull { it.type.id == BOSS } }
+                server.login("ada").use { a ->
+                    a.await("the login rebuild") { a.position }
+                    a.tele(3200, 3900)
+                    a.commandReply("hit 30 ${npc.index}") { it.startsWith("Hit Ice giant") }
+                    a.tele(3260, 3845)
+                    a.logOutOfCombat(b)
+                }
+                b.commandReply("god") { it.startsWith("You can") }
+                b.commandReply("kill ${npc.index}") { it.startsWith("Killed") }
+                server.login("ada").use { a ->
+                    a.await("the login rebuild") { a.position }
+                    val ada = server.world.playerNamed("ada")!!
+                    val bea = server.world.playerNamed("bea")!!
+                    assertTrue(server.world.npcs.all.any { it === npc }, "back before the body goes")
+                    a.await("the loot") { Unit.takeIf { server.world.groundObjs.visibleAt(bea, npc.x, npc.z, npc.level).isNotEmpty() } }
+                    a.awaitTicks(2)
+                    assertEquals(emptyList(), server.world.groundObjs.visibleAt(ada, npc.x, npc.z, npc.level).filter { it.id == 995 }.map { it.count }, "no pile for ada")
+                    assertEquals(0, ada.vars[KILL_COUNT_VARP])
+                }
+            }
+        }
+    }
+
+    @Test
     fun `a boss taken out alive leaves no damage tally behind`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("ada").use { a ->
@@ -154,5 +197,6 @@ class HeadlessWildernessBossLootTest {
         const val BOSS = 2085
         const val KILL_COUNT_VARP = 1510
         const val LOGOUT_TRIES = 30
+        const val LONG_DEATH_TICKS = 40
     }
 }
