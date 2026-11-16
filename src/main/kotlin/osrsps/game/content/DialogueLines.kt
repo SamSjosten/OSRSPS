@@ -173,6 +173,7 @@ object DialogueLines {
         EmoteLines,
         GiantBonesLines,
         FeroxEnclaveLines,
+        WildernessObeliskLines,
         StrongholdLines,
         SkullSceptreLines,
         SolztunLines,

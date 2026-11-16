@@ -153,6 +153,8 @@ import osrsps.game.content.registerEdgeville
 import osrsps.game.content.registerWildernessDitch
 import osrsps.game.content.registerEdgevilleDungeon
 import osrsps.game.content.registerFeroxEnclave
+import osrsps.game.content.registerWildernessObelisks
+import osrsps.game.content.WildernessObelisks
 import osrsps.game.content.registerSkullSceptre
 import osrsps.game.content.registerStrongholdOfSecurity
 import osrsps.game.content.registerBarbarianVillage
@@ -419,6 +421,9 @@ class World(
 
     /** Fence gates, both leaves at once; see [Gates]. */
     val gates = Gates(locs)
+
+    /** The six Wilderness obelisks' lit stones and the teleports they have going ([WildernessObelisks]). */
+    val obelisks = WildernessObelisks(this)
 
     val npcs = Npcs(collision, random)
 
@@ -1015,6 +1020,7 @@ class World(
         registerCooksGuild(this)
         registerEdgevilleDungeon(this)
         registerFeroxEnclave(this)
+        registerWildernessObelisks(this)
         registerStrongholdOfSecurity(this)
         registerSkullSceptre(this)
         registerHaystacks(this)
@@ -1429,6 +1435,7 @@ class World(
         phase = TickPhase.MOVEMENT
         // Guessed place in the tick: before anyone walks, so a door that closes itself blocks this tick's steps.
         locs.process()
+        obelisks.process()
         firemaking.process()
         follows.startMovement(players.filterNotNull())
         for (player in players) {
