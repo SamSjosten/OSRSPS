@@ -21,6 +21,7 @@ import osrsps.game.ge.GrandExchangeLines
 import osrsps.game.ge.PriceCheckerLines
 import osrsps.game.raid.ArchiveGuardianLines
 import osrsps.game.raid.ArchiveNavigatorLines
+import osrsps.game.raid.ArchiveRunLines
 import osrsps.game.raid.ArchiveVaultLines
 import osrsps.game.raid.BorkLines
 import osrsps.game.raid.DagonhaiLines
@@ -89,6 +90,7 @@ object DialogueLines {
         ArchiveBankerLines,
         ArchiveGuardianLines,
         ArchiveNavigatorLines,
+        ArchiveRunLines,
         ArenaStubLines,
         ArisLines,
         ArtCriticLines,

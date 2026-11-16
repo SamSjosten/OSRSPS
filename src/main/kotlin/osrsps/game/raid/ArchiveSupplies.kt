@@ -29,6 +29,7 @@ object QuartermasterLines : Lines("tfa_quartermaster", "Transcript:Quartermaster
     val AGREE = line("agree", "after resupply: his answer, before the shop opens")
     val INTRO = line("intro", "who he is: his answer, Liam the Quartermaster, who supports others in combat")
     val KEEP_IN_MIND = line("keep_in_mind", "the second menu, option 2, which the player then says: they'll keep it in mind; the player says it too after his advice")
+    val OPENED_SHOP = line("opened_shop", "chat, to everyone in the run as he comes to the nexus after the third row's room (Sam's recording of 16 November 2026)")
     val ADVICE = line("advice", "after fine for now: his answer, that stock runs low quickly, so chances to resupply are few")
 }
 
@@ -327,6 +328,7 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
         val barrow = raids.tile(run, WHEELBARROW_X, WHEELBARROW_Z)
         world.locs.add(ZoneLoc(WHEELBARROW, LocShape.CENTREPIECE_STRAIGHT, 0, barrow.x, barrow.z, ArchiveRaids.NEXUS_PLANE))
         for (player in raids.present(run)) {
+            player.message(world.textFor(player)[QuartermasterLines.OPENED_SHOP])
             setCredits(player, CREDITS)
             run.supplies.remove(player.saveKey)
             stockFor(run, player.saveKey)
