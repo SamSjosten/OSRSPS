@@ -868,7 +868,7 @@ class ArchiveRaids(private val world: World) {
         val leader = party.leader
         if (leader === player) return false
         val waiting = if (room == null) {
-            runs[party] == null && world.onlinePlayers.any { it === leader }
+            runs[party] == null && world.onlinePlayers.any { it === leader } && !leader.dead
         } else {
             val run = at(player.x, player.z) ?: return false
             val taken = if (room == ArchiveRoom.OCELLUS) room in run.led else run.chosen[room.stage] != null
