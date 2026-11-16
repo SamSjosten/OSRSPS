@@ -109,6 +109,35 @@ class HeadlessRoguesCastleChestTest {
     }
 
     @Test
+    fun `the rogues do no damage while their chest is searched, and do again once it is looted`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ivo").use { client ->
+                client.await("the login rebuild") { client.position }
+                val ivo = server.world.playerNamed("ivo")!!
+                client.level("thieving", THIEVING, 84)
+                client.level("hitpoints", HITPOINTS, 99)
+                client.tele(CHEST_X, CHEST_Z - 1)
+                val rogue = server.world.npcs.all.first { it.type.id == ThievingLocks.ROGUE }
+                client.locOp(chest.id, CHEST_X, CHEST_Z, ThievingLocks.OP_SECOND)
+                client.await("the trap found") { Unit.takeIf { client.seen("[thieving_lock.trap_found]") == 1 } }
+                // Mid-search: a rogue's hit does nothing, though any other harm still lands.
+                client.commandReply("pause") { true }
+                val before = ivo.hitpoints
+                assertEquals(0, server.world.meleeCombat.hitPlayer(ivo, rogue, 10, server.world.tick))
+                assertEquals(before, ivo.hitpoints)
+                assertEquals(5, server.world.meleeCombat.hitPlayer(ivo, null, 5, server.world.tick))
+                client.commandReply("resume") { true }
+                client.await("the treasure") { Unit.takeIf { client.seen("[thieving_lock.treasure]") == 1 } }
+                val now = server.world.tick
+                client.await("the search over") { Unit.takeIf { server.world.tick > ivo.shieldedUntil } }
+                client.commandReply("pause") { true }
+                assertEquals(10, server.world.meleeCombat.hitPlayer(ivo, rogue, 10, server.world.tick), "after tick $now")
+                client.commandReply("resume") { true }
+            }
+        }
+    }
+
+    @Test
     fun `the Rogues' chest is open loot, wanting two free slots`() {
         val chest = ThievingLocks.CHESTS.getValue(ThievingLocks.CHEST_ROGUES)
         assertEquals(84, chest.level)
@@ -121,6 +150,7 @@ class HeadlessRoguesCastleChestTest {
         const val CHEST_X = 3283
         const val CHEST_Z = 3946
         const val THIEVING = 17
+        const val HITPOINTS = 3
         const val BACKPACK = 93
         const val PRAYER_POTION = 141
         const val HARD_CLUE = 2722

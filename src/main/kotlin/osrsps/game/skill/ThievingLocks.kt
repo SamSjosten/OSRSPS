@@ -141,6 +141,9 @@ object ThievingLocks {
     const val ROGUE = 6603
     const val ROGUES_TABLE = "rogues_castle"
 
+    /** Ticks from a trap found to the loot: the search's three delays. */
+    const val SEARCH_TICKS = 6
+
     /** How far from a looted Rogues' chest the rogues come from (INFERRED: the courtyard). */
     const val ALERT_RANGE = 10
 
@@ -272,6 +275,13 @@ object ThievingLocks {
         if (player.skills.currentLevel(Skill.THIEVING) < chest.level) return world.message(player, ThievingLockLines.NOTHING)
         if (!fits(player, chest) { world.objTypes[it]?.stackable == true }) return world.message(player, ThievingLockLines.NO_ROOM)
         world.message(player, ThievingLockLines.TRAP_FOUND)
+        // The rogues do no damage while a chest of theirs is searched, though player killers still can (the Wiki's
+        // Blackjacking page, Rogues' Castle chests): until the loot, if the player stays put.
+        for (rogue in chest.alerts) {
+            player.shieldedFrom = rogue
+            player.shieldedSince = tick
+            player.shieldedUntil = tick + SEARCH_TICKS
+        }
         delay(2)
         world.message(player, ThievingLockLines.TRAP_DISABLED)
         delay(2)

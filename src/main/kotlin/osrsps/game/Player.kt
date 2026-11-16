@@ -293,6 +293,14 @@ class Player(
     /** The first tick they may pickpocket again; see [osrsps.game.skill.Pickpocketing]. Food eaten before it pushes it back. */
     var nextPickpocketTick: Long = 0
 
+    /**
+     * NPC type [shieldedFrom] does this player no harm from [shieldedSince] to [shieldedUntil] while they don't move:
+     * the Rogues' Castle rogues while a chest is searched; see [osrsps.game.skill.ThievingLocks]. -1 for none.
+     */
+    var shieldedFrom: Int = -1
+    var shieldedSince: Long = -1
+    var shieldedUntil: Long = -1
+
     /** The first tick bones used on the Chaos Temple's altar may be offered again; see [osrsps.game.content.ChaosTemple]. */
     var nextAltarOfferTick: Long = 0
 
