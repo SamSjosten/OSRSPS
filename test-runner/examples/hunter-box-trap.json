@@ -19,7 +19,7 @@
   {"step": "assertMessage", "contains": "hunter.caught", "timeoutMs": 15000},
   {"step": "assertInventory", "item": "Box trap", "count": 5},
   {"step": "assertInventory", "item": "Ferret", "count": 1},
-  {"step": "command", "text": "::setlevel hunter 1", "expectMessage": "Hunter set to level 1", "comment": "below the chinchompa's 53: every one that walks in gets away"},
+  {"step": "command", "text": "::setlevel hunter 40", "expectMessage": "Hunter set to level 40", "comment": "below the chinchompa's 53, so every one that walks in gets away, and over the box trap's 27 (the ferret's level) to lay it"},
   {"step": "command", "text": "::tele 2340 3595 0", "comment": "among the Piscatoris chinchompas (the scenario's notes)"},
   {"step": "assertLocation", "x": 2340, "y": 3595, "plane": 0},
   {"step": "itemOption", "item": "Box trap", "option": "Lay"},

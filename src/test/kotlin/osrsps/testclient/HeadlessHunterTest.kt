@@ -53,7 +53,12 @@ class HeadlessHunterTest {
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs),
             random = GameRandom(7),
-            locTypes = LocTypes(snareLocs.associateWith { LocType(it, "Bird snare", ops = opsOf(it), collision = LocCollisionType(interactType = 0, blocksProjectile = false)) }),
+            locTypes = LocTypes(
+                snareLocs.associateWith { LocType(it, "Bird snare", ops = opsOf(it), collision = LocCollisionType(interactType = 0, blocksProjectile = false)) } +
+                    (GRASS to LocType(GRASS, "null", List(5) { null }, LocCollisionType(interactType = 0, blocksProjectile = false))),
+            ),
+            // Feldip's grass, a ground decoration, south of the login tile.
+            staticLocs = osrsps.game.loc.StaticLocs().apply { add(osrsps.game.zone.ZoneLoc(GRASS, osrsps.map.LocShape.GROUND_DECOR, 0, 3222, 3216, 0)) },
             npcTypes = NpcTypes.of(swift, wagtail, chinchompa),
             npcSpawns = listOfNotNull(bird?.let { NpcSpawn(it, 3224, 3218, source = "test") }),
             scenarios = osrsps.game.Scenarios(listOf(osrsps.game.Scenario.parse("here", """{ "position": { "x": 3222, "z": 3218 } }"""))),
@@ -114,6 +119,22 @@ class HeadlessHunterTest {
                 assertEquals(1, client.count(MEAT))
                 assertTrue(client.count(RED_FEATHER) in 5..10, "${client.count(RED_FEATHER)} feathers")
                 assertTrue(server.world.hunter.traps.all.isEmpty())
+            }
+        }
+    }
+
+    @Test
+    fun `a snare goes down on a tile of grass, which stays under it`(@TempDir dir: Path) {
+        // Nightly 2026-11-16: the wagtails' and chinchompas' tiles all have a ground decoration.
+        server(dir, bird = null).use { server ->
+            server.login("gr").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item ${BirdSnares.SNARE} 1")
+                client.command("tele 3222 3216")
+                client.await("on the grass") { client.position?.takeIf { it.z == 3216 } }
+                client.lay()
+                client.awaitLoc(BirdSnares.SET, 3222, 3216)
+                assertTrue(server.world.locs.at(3222, 3216, 0).any { it.id == GRASS })
             }
         }
     }
@@ -315,6 +336,8 @@ class HeadlessHunterTest {
     }
 
     private companion object {
+        const val GRASS = 19824
+
         const val BONES = 526
         const val MEAT = 9978
         const val RED_FEATHER = 10088
