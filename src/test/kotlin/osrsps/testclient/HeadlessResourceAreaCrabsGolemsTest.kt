@@ -131,6 +131,31 @@ class HeadlessResourceAreaCrabsGolemsTest {
         }
     }
 
+    @Test
+    fun `a walk ends mining a golem's head at once, as it ends mining a rock`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("wyn").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.give(RUNE_PICKAXE)
+                client.level("mining", MINING, 85)
+                client.tele(GOLEM_X, GOLEM_Z - 1)
+                val golem = server.world.npcs.all.first { it.type.id == ResourceArea.GOLEM && it.x == GOLEM_X }
+                client.commandReply("kill ${golem.index}") { it.startsWith("Killed") }
+                val head = client.await("the golem's head") {
+                    server.world.npcs.all.firstOrNull { it.type.id == ResourceArea.GOLEM_ROCK && it.x == GOLEM_X && it.z == GOLEM_Z }
+                }
+                client.npcOp(head.index, ResourceArea.MINE)
+                client.seen("[mining.swing]")
+                client.walk(GOLEM_X, GOLEM_Z - 4)
+                client.await("walked off", timeoutMillis = 5_000) { client.position?.takeIf { it.z <= GOLEM_Z - 3 } }
+                client.awaitTicks(8)
+                assertEquals(0L, client.count(RUNITE_ORE), "no ore after walking off")
+                assertTrue(server.world.npcs[head.index] === head, "the head is still there to mine")
+            }
+        }
+    }
+
     private companion object {
         const val SPOT_X = 3183
         const val SPOT_Z = 3926

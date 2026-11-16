@@ -108,6 +108,36 @@ class HeadlessCookingTest {
     }
 
     @Test
+    fun `dark crabs cook from 90, for 215 XP each one cooked`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dina").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel cooking 89")
+                client.await("level 89") { client.stat(COOKING)?.takeIf { it.level == 89 } }
+                client.give(Cooking.DARK_CRAB.raw)
+                client.locTarget(Cooking.RANGE, RANGE_X, RANGE_Z, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slotOf(Cooking.DARK_CRAB.raw), Cooking.DARK_CRAB.raw)
+                client.seen("[cooking.level level=90]")
+                assertEquals(1, client.count(Cooking.DARK_CRAB.raw))
+
+                client.command("setlevel cooking 99")
+                val before = client.await("level 99") { client.stat(COOKING)?.takeIf { it.level == 99 } }.xp
+                client.give(Cooking.DARK_CRAB.raw, 5)
+                client.locTarget(Cooking.RANGE, RANGE_X, RANGE_Z, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slotOf(Cooking.DARK_CRAB.raw), Cooking.DARK_CRAB.raw)
+                client.await("the Make-X box") { client.clientScripts().firstOrNull { it.id == Chatbox.SKILLMULTI_SETUP_SCRIPT } }
+                client.resumePause(Chatbox.SKILLMULTI, Chatbox.SKILLMULTI_FIRST_ITEM, 6)
+                client.await("all six cooked or burnt", timeoutMillis = 30_000) { Unit.takeIf { client.count(Cooking.DARK_CRAB.raw) == 0 } }
+                val cooked = client.count(Cooking.DARK_CRAB.cooked)
+                val burnt = client.count(Cooking.DARK_CRAB.burnt)
+                assertEquals(6, cooked + burnt)
+                assertTrue(cooked > 0, "some cook at 99")
+                assertEquals(cooked * 215, client.await("Cooking XP") { client.stat(COOKING)?.takeIf { it.xp > before } }.xp - before)
+                assertEquals(cooked, client.messages().count { it.text == "[cooking.cooked_dark_crab]" })
+                assertEquals(burnt, client.messages().count { it.text == "[cooking.burnt_dark_crab]" })
+            }
+        }
+    }
+
+    @Test
     fun `bread dough won't cook on a fire, trout needs 15, and level 1 burns some until the level-up ends it`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { client ->

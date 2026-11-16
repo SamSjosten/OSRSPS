@@ -1,5 +1,5 @@
 {
-  "name": "Wilderness step W3.6b: a runite golem in the Resource Area killed and its head mined for runite ore, then a dark crab caged at a dark crab spot (::keys on)",
+  "name": "Wilderness step W3.6b: a runite golem in the Resource Area killed and its head mined for runite ore, then a dark crab caged at a dark crab spot and dark crabs cooked on a range (::keys on)",
   "account": "test2",
   "steps": [
     {"step": "waitForLogin"},
@@ -22,6 +22,15 @@
     {"step": "npcOption", "npc": "Fishing spot", "option": "Cage", "timeoutMs": 20000},
     {"step": "assertMessage", "contains": "[fishing.cast_dark_crab]", "timeoutMs": 10000},
     {"step": "assertMessage", "contains": "[fishing.catch_dark_crab]", "timeoutMs": 120000},
+
+    {"step": "command", "text": "::setlevel cooking 99", "comment": "dark crabs cook from 90"},
+    {"step": "command", "text": "::item 11934 2", "comment": "raw dark crabs, two so the Make-X box opens"},
+    {"step": "command", "text": "::tele 3211 3215 0", "comment": "beside the Lumbridge Castle kitchen's Cooking range"},
+    {"step": "locOption", "locId": 114, "option": "Cook", "x": 3212, "y": 3215},
+    {"step": "assertInterface", "interfaceId": 270, "comment": "skillmulti, the Make-X box"},
+    {"step": "clickWidget", "interfaceId": 270, "component": 15, "comment": "the raw dark crabs; the box suggests all"},
+    {"step": "assertMessage", "contains": "_dark_crab]", "timeoutMs": 20000, "comment": "cooking.cooked_dark_crab, or burnt_dark_crab now and then even at 99"},
+    {"step": "assertInventory", "item": "Raw dark crab", "count": 0, "timeoutMs": 20000},
 
     {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
     {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}

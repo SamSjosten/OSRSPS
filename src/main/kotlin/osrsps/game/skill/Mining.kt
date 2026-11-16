@@ -211,32 +211,51 @@ class Mining(private val world: World) {
 
     /**
      * Mining an NPC that stands for a rock, as the runite golem's head (Wilderness step W3.6b): as a rock of [type] is
-     * mined, with no gem table (inferred), one ore and then [taken], which ends it. The swing goes on every interval
-     * until it succeeds, the player moves, the NPC is gone or a box opens.
+     * mined, with no gem table (inferred), one ore and then [taken], which ends it. Like a rock, the swing runs on the
+     * skill clock and repeats the click ([World.repeatOp]) rather than holding the player, so a walk, a click elsewhere
+     * or an attack ends it at once; the NPC going or a box opening ends it too.
      */
     fun onNpcRock(npcType: Int, option: Int, type: RockType, taken: (Npc) -> Unit) {
-        world.handlers.onNpc(npcType, option) { op -> mineNpc(op.npc ?: return@onNpc, type, taken) }
+        world.handlers.onNpc(npcType, option) { op -> mineNpc(op, type, taken) }
     }
 
-    private suspend fun ScriptContext.mineNpc(npc: Npc, type: RockType, taken: (Npc) -> Unit) {
+    private suspend fun ScriptContext.mineNpc(op: Op, type: RockType, taken: (Npc) -> Unit) {
+        val npc = op.npc ?: return
+        if (op.repeat && player.modalOpen) return stop()
+        if (npc.dead || world.npcs[npc.index] !== npc) return stop()
         val text = world.textFor(player)
-        if (player.inventory.freeSlots == 0) return player.message(text[MiningLines.INVENTORY_FULL, "ore" to type.key])
-        if (player.skills.currentLevel(Skill.MINING) < type.level) return player.message(text[MiningLines.LEVEL, "level" to type.level])
-        val tool = (tools.best(player) as? ToolCheck.Found)?.tool ?: return player.message(text[MiningLines.NO_PICKAXE])
-        val pickaxe = pickaxes.getValue(tool.obj)
-        player.message(text[MiningLines.SWING])
-        while (true) {
-            player.anim(tool.anim)
-            delay(interval(pickaxe))
-            if (npc.dead || world.npcs[npc.index] !== npc || player.modalOpen) return stop()
-            if (SuccessRoll.roll(world.random, type.low, type.high, player.skills.currentLevel(Skill.MINING))) break
+        if (player.inventory.freeSlots == 0) {
+            player.message(text[MiningLines.INVENTORY_FULL, "ore" to type.key])
+            return stop()
         }
-        val ore = world.objTypes[type.ore] ?: error("No obj type ${type.ore} for ${type.key} ore")
-        player.inventory.add(ore, 1)
-        player.skills.addTenths(Skill.MINING, type.xpTenths)
-        player.message(text[MiningLines.GET_ORE, "ore" to type.key])
-        stop()
-        taken(npc)
+        if (player.skills.currentLevel(Skill.MINING) < type.level) {
+            player.message(text[MiningLines.LEVEL, "level" to type.level])
+            return stop()
+        }
+        val tool = (tools.best(player) as? ToolCheck.Found)?.tool
+        if (tool == null) {
+            player.message(text[MiningLines.NO_PICKAXE])
+            return stop()
+        }
+        val pickaxe = pickaxes.getValue(tool.obj)
+        if (!op.repeat) {
+            player.message(text[MiningLines.SWING])
+            player.anim(tool.anim)
+        }
+        val ticks = if (player.actionDelay < tick) interval(pickaxe) + (if (op.repeat) 0 else 1) else 1
+        if (SkillClock.step(player, tick, ticks) == ClockStep.DUE) {
+            player.anim(tool.anim)
+            if (SuccessRoll.roll(world.random, type.low, type.high, player.skills.currentLevel(Skill.MINING))) {
+                val ore = world.objTypes[type.ore] ?: error("No obj type ${type.ore} for ${type.key} ore")
+                player.inventory.add(ore, 1)
+                player.skills.addTenths(Skill.MINING, type.xpTenths)
+                player.message(text[MiningLines.GET_ORE, "ore" to type.key])
+                stop()
+                taken(npc)
+                return
+            }
+        }
+        world.repeatOp(player, op)
     }
 
     /** The mining gem table's roll: 1/256, and with a charged glory a second 3/256 when that misses. */
