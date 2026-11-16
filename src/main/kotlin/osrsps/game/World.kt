@@ -855,6 +855,9 @@ class World(
     /** Runecraft's ruins, talismans, tiaras and altars; see [osrsps.game.skill.Runecraft]. */
     val runecraft = osrsps.game.skill.Runecraft(this)
 
+    /** Craft-rune at the altars and binding tiaras; see [osrsps.game.skill.RuneCrafting]. */
+    val runeCrafting = osrsps.game.skill.RuneCrafting(this)
+
     val firemaking = Firemaking(this, collision)
 
     val hunter = osrsps.game.skill.hunter.Hunter(this, collision)
@@ -1097,6 +1100,7 @@ class World(
         teleports.register()
         boltEnchant.register()
         runecraft.register()
+        runeCrafting.register()
         loadDialogue()
     }
 

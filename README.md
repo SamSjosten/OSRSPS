@@ -1064,9 +1064,12 @@ The ruins, altars and portals are the cache's, where the 242 map puts them; only
 | Ruins outside Misthalin, by `::tele`: air 2985 3289, mind 2982 3511, body 3053 3442, cosmic (Zanaris) 2407 4374, law (Entrana) 2858 3378, nature 2869 3016, chaos (Wilderness) 3060 3588, death 1860 4636, wrath 2446 2822, true blood 3561 9778. In Misthalin: water 3185 3162, earth 3306 3471, fire 3312 3252 | the 242 map |
 | The tile inside each altar (beside its exit portal, toward the altar; one of four for the cosmic altar and one of two for the true blood altar, at random; the chaos altar's maze from its top floor) and outside (beside the ruins' south side); Locate's eight 45-degree slices | inferred from the 242 map |
 | The send as soon as the player is at the ruins, with no animation; the wrong talisman, or Enter without a tiara, does nothing interesting | guessed |
-| Not built: crafting runes (RC2), combination runes (RC3), essence pouches (RC4), the Arceuus Blood and Soul altars (RC5), the Ourania altar (RC6); the Abyss, Guardians of the Rift and its Hat of the Eye; Entrana's no-weapons rule | next steps |
+| Craft-rune (RC2, `game/skill/RuneCrafting.kt`) turns every essence the altar takes into runes at once: rune or pure essence at the air, mind, water, earth, fire and body altars, pure essence alone at the rest (and the Astral Altar on the Lunar Isle, `::tele 2156 3864`). Levels, XP per essence and the levels at which each essence makes one more rune are the Wiki's; the runes per essence and the level check use the current level | OSRS Wiki, Runecraft (and its Multiple runes table) |
+| A talisman and a tiara (or the elemental or catalytic talisman and a gold tiara) used on its altar make that tiara, using up the talisman, for the tiara's XP | OSRS Wiki, Tiara and each tiara's page |
+| Animation 791 and spotanim 186 on crafting; the runes on the click's tick; Craft-rune refuses when the runes wouldn't fit on the stack; the exit portals work only inside their temple | the 242 cache; guessed |
+| Not built: combination runes (RC3), essence pouches (RC4), the Arceuus Blood and Soul altars (RC5), the Ourania altar (RC6); the Abyss, Guardians of the Rift and its Hat of the Eye; Entrana's no-weapons rule | next steps |
 
-Check: `./gradlew test --tests 'osrsps.game.skill.RunecraftTest' --tests 'osrsps.testclient.HeadlessRunecraftRuinsTest'`.
+Check: `./gradlew test --tests 'osrsps.game.skill.Rune*' --tests 'osrsps.game.skill.EssencePouchesTest' --tests 'osrsps.game.skill.OuraniaTest' --tests 'osrsps.testclient.HeadlessRune*' --tests 'osrsps.testclient.Headless*Runecraft*' --tests 'osrsps.testclient.HeadlessCombinationRunesTest' --tests 'osrsps.testclient.HeadlessEssencePouchesTest' --tests 'osrsps.testclient.HeadlessOuraniaTest'`.
 
 ### Slayer
 
@@ -1518,7 +1521,7 @@ the NPCs are `npc-spawns/lumbridge-swamp-quest.json` and `npc-spawns/lumbridge-w
 |-----------|--------|
 | The shed's door (2406 at 3202,3169) lets a player in or out; with a dramen or lunar staff wielded it refuses with our own line, as Zanaris (where live takes them) is piece 8's. Live's Elite Lumbridge Diary does the same; there are no diaries | OSRS Wiki, Shed (Lumbridge Swamp) |
 | The tools inside (10375) give a rake or a spade, whichever isn't held, and a choice of the two with neither held | OSRS Wiki, Tools (gardening) |
-| The Water Altar's ruins (34815) refuse a water talisman or tiara, and Enter, with our own line: Runecraft isn't built | OSRS Wiki, Mysterious ruins; the 242 cache |
+| The Water Altar's ruins (34815) are Runecraft's: see Runecraft | OSRS Wiki, Mysterious ruins; the 242 cache |
 | The broken raft's Grapple (17068): 8 Agility, 19 Strength and 37 Ranged, a crossbow wielded and a mith grapple worn, from either bank's shortcut icon (3246,3179 and 3259,3179) to the other, no XP; the grapple breaks one time in 25 | OSRS Wiki, Broken Raft (the infobox's 19 Strength; its text says 17) and Mith grapple (Mod Ash's 1/25); the 242 map |
 | The raft's Jump-to (17069 and 17070) at 48 Agility, no grapple, since 12 August 2026 | OSRS Wiki, Broken Raft |
 | The stepping stone to the desert (16513 at 3214,3135) at 66 Agility, no diary since 8 May 2024, from 3214,3140 to 3214,3131 and back | OSRS Wiki, Stepping stone (Lumbridge Swamp); the bank tiles by flood fill over the 242 map |
@@ -1693,8 +1696,8 @@ transcript: his first option opens the Make-X box of the seven planks, his secon
 Trade too, his op 4, as his op 3 is Buy-plank), his third says goodbye. Buy-plank opens the box at once. Each plank chosen
 takes one unnoted log of its kind and the Wiki's fee (100, 250, 500, 1500, 2500, 5000, 7500 coins); with none of the logs
 he says so, and with too few coins he makes as many as they pay for and says what each costs. The six mewing crates and
-the yard's crates hold nothing now that Gertrude's Cat is done; its barrels do nothing. The Earth Altar's ruins refuse
-Enter and an earth talisman or tiara, as the Water Altar's do, until Runecraft is built.
+the yard's crates hold nothing now that Gertrude's Cat is done; its barrels do nothing. The Earth Altar's ruins are
+Runecraft's (see Runecraft).
 
 Every account has done A Soul's Bane, so login sets the varbits that show Tolna at the top of his rift, the rope in it and
 the five warning signs round it. Tolna talks as the Wiki has him after the quest; the rift's rope leads down into its
