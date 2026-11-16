@@ -63,7 +63,7 @@ object KingBlackDragonLines : Lines("kbd", "King Black Dragon Lair") {
  * of everyone in the lair's map square; Private taking the fee from the backpack when it holds it all and else from the
  * bank, after a menu, and refused under a Tele Block; the private lair's pull as the open lever's. His drops in a private
  * lair last [PRIVATE_LOOT_TICKS] ("Items dropped by the boss in this instance will disappear after 30 minutes", the
- * Wiki's King Black Dragon). No pet, no draconic visage, no KBD heads yet.
+ * Wiki's King Black Dragon). The KBD heads and draconic visage drop (npc-drops.json); no pet yet.
  */
 object KingBlackDragon {
     const val BOSS = 239

@@ -39,10 +39,17 @@ class WildernessBoss(
  *   player's own roll, and how uniques are split: they come out of the players' rolls, and one more roll for the kill
  *   gives at most one, to a player picked with odds of their share of the damage, so a kill's unique chance is a solo
  *   kill's.
- * - **Kill counts**: every player who gets loot (the killer, for a boss without group loot) counts the kill in its
+ * - **Solo loot**: a boss without group loot drops for whoever dealt it the most damage, as on live ("The player who
+ *   has done the most damage will see the drop before the other players", the Wiki's Drops page), not whoever hit it last; for everyone when no
+ *   player damaged it (exploit review round 39: one splash before the kill took another player's drop and kill count).
+ *   INFERRED: ties to whoever hit it first.
+ * - **Kill counts**: every player who gets loot (the top damager, for a boss without group loot) counts the kill in its
  *   varp and is told it. INFERRED: the count going to every looter of a group kill, and both loot and count going only
  *   to those still logged in at the kill: one who logged out keeps their damage in the total, so no one else's share
  *   grows, but gets nothing.
+ * - **Out of reach from outside the fight**: a player outside a boss's fight area can't attack it (GUESSED: told they
+ *   can't reach it). Exploit review round 39: the fight drops a target outside its area every tick, so one standing
+ *   just outside hit the boss for free.
  * - **`::wboss`** spawns any boss built so far next to the player, for tests.
  *
  * Each boss step registers its boss here ([register]).
@@ -69,12 +76,20 @@ class WildernessBosses(private val world: World) {
 
     fun register(boss: WildernessBoss) {
         require(boss.name.lowercase() !in byName) { "${boss.name} registered twice" }
+        if (byType.isEmpty()) world.combat.outsideFight = ::outsideFight
         byName[boss.name.lowercase()] = boss
         for (type in boss.types) byType[type] = boss
         world.npcScripts.onDeath(boss.types) { npc -> died(npc, boss) }
     }
 
     operator fun get(name: String): WildernessBoss? = byName[name.lowercase()]
+
+    /** Whether [npc] is a boss in a fight whose area [player] is outside. */
+    private fun outsideFight(player: Player, npc: Npc): Boolean {
+        if (byType[npc.type.id] == null) return false
+        val fight = world.encounters.all.firstOrNull { it.boss === npc && !it.ended } ?: return false
+        return !fight.covers(player.x, player.z)
+    }
 
     /** [player] dealt [dealt] to [npc]: counted toward its loot if it is a boss. */
     fun damaged(npc: Npc, player: Player, dealt: Int) {
@@ -103,13 +118,12 @@ class WildernessBosses(private val world: World) {
     internal val tallies: Int get() = damage.size
 
     private fun died(npc: Npc, boss: WildernessBoss) {
-        val looters = if (boss.group) {
-            // Who is logged in now decides both rewards, not who is when the loot shows a few ticks later.
-            shares(npc).also { damage[npc]?.atKill = it }.map { it.key }
-        } else listOfNotNull((npc.attacker ?: npc.lastAttacker)?.saveKey)
+        // Who is logged in now decides both rewards, not who is when the loot shows a few ticks later.
+        val atKill = shares(npc).also { damage[npc]?.atKill = it }
+        val looters = if (boss.group) atKill.map { it.key } else atKill.take(1).map { it.key }
         if (boss.killCountVarp < 0) return
         for (key in looters) {
-            val player = world.onlinePlayers.firstOrNull { it.saveKey == key } ?: continue
+            val player = world.onlinePlayers.firstOrNull { it.saveKey == key && !it.loggedOut } ?: continue
             if (boss.killCountVarp !in 0 until player.vars.types.varpCount) continue
             player.vars[boss.killCountVarp] = player.vars[boss.killCountVarp] + 1
             world.message(player, WildernessBossLines.KILL_COUNT, "boss" to npc.type.name, "count" to player.vars[boss.killCountVarp])
@@ -118,7 +132,8 @@ class WildernessBosses(private val world: World) {
 
     private fun shares(npc: Npc): List<Share> {
         val tally = damage[npc] ?: return emptyList()
-        val online = world.onlinePlayers.mapTo(HashSet()) { it.saveKey }
+        // Not one who logged out this tick, still in the list until the end of it.
+        val online = world.onlinePlayers.filter { !it.loggedOut }.mapTo(HashSet()) { it.saveKey }
         return shares(tally.damage, tally.ironmen).filter { it.key in online }
     }
 
@@ -136,7 +151,10 @@ class WildernessBosses(private val world: World) {
         bodyGoing = null
         val shares = damage[npc]?.atKill ?: shares(npc)
         damage.remove(npc)
-        if (!boss.group) return false
+        if (!boss.group) {
+            solo = Solo(npc, shares.firstOrNull()?.key)
+            return false
+        }
         val def = world.npcDrops[npc.type] ?: return true
         val drops = split(shares, boss.uniques, world.random) { def.roll(world.random) }
         for ((key, items) in drops) {
@@ -148,6 +166,17 @@ class WildernessBosses(private val world: World) {
         }
         return true
     }
+
+    /** Whose a solo boss's drop is, from [loot] to [soloLooter]: [key], or everyone's for null. */
+    class Solo(val npc: Npc, val key: String?)
+
+    private var solo: Solo? = null
+
+    /**
+     * For [npc], a boss without group loot that [loot] has just passed on: whose drop it is. Null for any other NPC, whose
+     * drop goes to its killer.
+     */
+    fun soloLooter(npc: Npc): Solo? = solo?.takeIf { it.npc === npc }.also { solo = null }
 
     /** [key]'s share of a kill: [damage] of [total], and the least part of a solo kill's loot it gets, in percent. */
     data class Share(val key: String, val damage: Int, val total: Int, val floorPercent: Int) {

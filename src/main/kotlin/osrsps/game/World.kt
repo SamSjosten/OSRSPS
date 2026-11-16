@@ -855,6 +855,9 @@ class World(
     /** Runecraft's ruins, talismans, tiaras and altars; see [osrsps.game.skill.Runecraft]. */
     val runecraft = osrsps.game.skill.Runecraft(this)
 
+    /** Craft-rune at the altars and binding tiaras; see [osrsps.game.skill.RuneCrafting]. */
+    val runeCrafting = osrsps.game.skill.RuneCrafting(this)
+
     val firemaking = Firemaking(this, collision)
 
     val hunter = osrsps.game.skill.hunter.Hunter(this, collision)
@@ -1097,6 +1100,7 @@ class World(
         teleports.register()
         boltEnchant.register()
         runecraft.register()
+        runeCrafting.register()
         loadDialogue()
     }
 
@@ -2848,6 +2852,9 @@ class World(
     fun dropLoot(npc: Npc, killer: Player?) {
         // A Wilderness boss with group loot puts its own down, split by damage.
         if (wildernessBosses.loot(npc)) return
+        // Any other Wilderness boss's goes to whoever dealt it the most damage, not its last hit; everyone's for nobody.
+        val solo = wildernessBosses.soloLooter(npc)
+        val killer = if (solo != null) solo.key?.let { key -> onlinePlayers.firstOrNull { it.saveKey == key } } else killer
         // A superior's three rolls on its normal counterpart's table come after its own drops.
         val drops = npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty()
         val owner = killer?.takeIf { !it.loggedOut }?.saveKey

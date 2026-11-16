@@ -74,7 +74,9 @@ object Scorpia {
         val type = world.npcTypes[BOSS] ?: return null
         return EncounterDef(
             "scorpia", type,
-            listOf(PhaseDef("fight", cycle = listOf(CycleStep(1) { tick() }))),
+            // Unleashed, so he follows anyone in his area past the spawn leash (exploit review round 39: from the area's
+            // edge a leashed boss never reached them).
+            listOf(PhaseDef("fight", cycle = listOf(CycleStep(1) { tick() }), onStart = { boss.unleashed = true })),
             scriptedAttacks = true,
         )
     }
