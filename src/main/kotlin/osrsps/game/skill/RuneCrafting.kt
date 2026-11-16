@@ -56,8 +56,8 @@ class TiaraRecipe(val altar: Int, val talisman: Int, val blank: Int, val tiara: 
  * - The Astral Altar on the Lunar Isle stands in the open: Craft-rune works on it with no ruins (reach it with
  *   ::tele 2156 3864). No quests: Lunar Diplomacy counts as done.
  *
- * Guessed: the runes and XP arrive on the click's tick (after [arriveDelay]'s when the player walked) with the animation
- * and spotanim (height 100); every message's wording is the Words thread's; Craft-rune refuses when the runes wouldn't
+ * Guessed: the runes and XP arrive on the click's tick, or the arrival tick when the player walked (no arrive delay, by
+ * the Wiki's 23 March 2022 change), with the animation and spotanim (height 100); binding a tiara waits [arriveDelay]; every message's wording is the Words thread's; Craft-rune refuses when the runes wouldn't
  * fit on the stack, rather than losing them. Out: daeyalt essence, the Raiments of the Eye, the abyssal lantern and
  * runic extracts; sunfire runes (the Shrine of Ralos, Varlamore); runecrafting cores (Guardians of the Rift).
  */
@@ -68,13 +68,13 @@ class RuneCrafting(private val world: World) {
         }
         for (tiara in TIARAS) {
             for (obj in listOf(tiara.talisman, tiara.blank)) {
-                world.handlers.onObjOnLoc(tiara.altar, obj) { bindTiara(tiara.altar) }
+                world.handlers.onObjOnLoc(tiara.altar, obj) { bindTiara(tiara) }
             }
         }
     }
 
     private suspend fun ScriptContext.craft(recipe: RuneRecipe) {
-        arriveDelay()
+        // No arriveDelay: the Wiki's Runecraft history (23 March 2022) says the delay after using essence on an altar was removed.
         val text = world.textFor(player)
         val inventory = player.inventory
         val rune = inventory.count(Mining.RUNE_ESSENCE).takeIf { !recipe.pureOnly } ?: 0L
@@ -98,15 +98,16 @@ class RuneCrafting(private val world: World) {
         player.message(text[RuneCraftingLines.BIND, "rune" to runeType.name])
     }
 
-    private suspend fun ScriptContext.bindTiara(altar: Int) {
+    /**
+     * Binds [recipe]: the item used on the altar picks it, so a gold tiara or an elemental talisman makes the elemental
+     * tiara even when a plain tiara and the altar's own talisman are held too.
+     */
+    private suspend fun ScriptContext.bindTiara(recipe: TiaraRecipe) {
         arriveDelay()
         val text = world.textFor(player)
         val inventory = player.inventory
-        val recipes = TIARAS.filter { it.altar == altar }
-        val recipe = recipes.firstOrNull { inventory.count(it.talisman) > 0 && inventory.count(it.blank) > 0 }
-        if (recipe == null) {
-            val heldBlank = recipes.any { inventory.count(it.blank) > 0 }
-            return player.message(text[if (heldBlank) RuneCraftingLines.TIARA_NEEDS_TALISMAN else RuneCraftingLines.TIARA_NEEDS_TIARA])
+        if (inventory.count(recipe.talisman) == 0L || inventory.count(recipe.blank) == 0L) {
+            return player.message(text[if (inventory.count(recipe.blank) > 0) RuneCraftingLines.TIARA_NEEDS_TALISMAN else RuneCraftingLines.TIARA_NEEDS_TIARA])
         }
         val tiaraType = world.objTypes[recipe.tiara] ?: error("No obj type ${recipe.tiara} for a tiara")
         removeAll(inventory, recipe.talisman, 1)

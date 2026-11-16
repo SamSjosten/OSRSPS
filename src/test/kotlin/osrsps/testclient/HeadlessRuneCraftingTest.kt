@@ -30,7 +30,7 @@ class HeadlessRuneCraftingTest {
     private val cosmic = Runecraft.ALTARS.first { it.key == "cosmic" }
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
-        val objs = arrayOfNulls<ObjType>(RuneCrafting.GOLD_TIARA + 1)
+        val objs = arrayOfNulls<ObjType>(Runecraft.ELEMENTAL_TIARA + 1)
         objs[Mining.RUNE_ESSENCE] = ObjType(Mining.RUNE_ESSENCE, "Rune essence")
         objs[Mining.PURE_ESSENCE] = ObjType(Mining.PURE_ESSENCE, "Pure essence")
         objs[AIR_RUNE] = ObjType(AIR_RUNE, "Air rune", stackable = true)
@@ -38,6 +38,9 @@ class HeadlessRuneCraftingTest {
         objs[air.talisman] = ObjType(air.talisman, "Air talisman")
         objs[air.tiara] = ObjType(air.tiara, "Air tiara")
         objs[RuneCrafting.TIARA] = ObjType(RuneCrafting.TIARA, "Tiara")
+        objs[RuneCrafting.GOLD_TIARA] = ObjType(RuneCrafting.GOLD_TIARA, "Gold tiara")
+        objs[Runecraft.ELEMENTAL_TALISMAN] = ObjType(Runecraft.ELEMENTAL_TALISMAN, "Elemental talisman")
+        objs[Runecraft.ELEMENTAL_TIARA] = ObjType(Runecraft.ELEMENTAL_TIARA, "Elemental tiara")
         val map = CollisionMap().apply {
             markLoaded(2841 shr 6, 4829 shr 6)
             markLoaded(2142 shr 6, 4813 shr 6)
@@ -131,6 +134,27 @@ class HeadlessRuneCraftingTest {
                 client.await("the air tiara") { if (client.count(air.tiara) == 1) Unit else null }
                 assertEquals(0, client.count(air.talisman) + client.count(RuneCrafting.TIARA))
                 assertEquals(start + 25, client.await("25 XP") { client.stat(RUNECRAFT)?.takeIf { it.xp >= start + 25 } }.xp)
+            }
+        }
+    }
+
+    @Test
+    fun `a gold tiara used on the Air Altar makes the elemental tiara even with a tiara and an air talisman held`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.ready(2841, 4829, 1)
+                val start = client.stat(RUNECRAFT)!!.xp
+                client.give(RuneCrafting.TIARA, 1)
+                client.give(air.talisman, 1)
+                client.give(RuneCrafting.GOLD_TIARA, 1)
+                client.give(Runecraft.ELEMENTAL_TALISMAN, 1)
+                val goldSlot = client.inventory(BACKPACK).indexOfFirst { it?.id == RuneCrafting.GOLD_TIARA }
+                client.locTarget(air.altar, AIR_ALTAR_X, AIR_ALTAR_Z, InventoryTab.INTERFACE, InventoryTab.ITEMS, goldSlot, RuneCrafting.GOLD_TIARA)
+                client.await("the elemental tiara") { if (client.count(Runecraft.ELEMENTAL_TIARA) == 1) Unit else null }
+                assertEquals(0, client.count(RuneCrafting.GOLD_TIARA) + client.count(Runecraft.ELEMENTAL_TALISMAN))
+                assertEquals(1, client.count(RuneCrafting.TIARA), "the plain tiara stays")
+                assertEquals(1, client.count(air.talisman), "the air talisman stays")
+                assertEquals(start + 40, client.await("40 XP") { client.stat(RUNECRAFT)?.takeIf { it.xp >= start + 40 } }.xp)
             }
         }
     }
