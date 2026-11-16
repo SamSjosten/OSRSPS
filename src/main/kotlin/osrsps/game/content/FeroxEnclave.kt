@@ -18,11 +18,11 @@ object FeroxEnclaveLines : Lines("ferox", "Ferox Enclave") {
 }
 
 /**
- * Ferox Enclave (Wilderness step W2.3), the safe town at levels 13 to 16. Inside its box ([Wilderness.inFerox]) no
+ * Ferox Enclave (Wilderness step W2.3), the safe town at levels 13 to 16. Inside its walls ([Wilderness.inFerox]) no
  * player can attack another ([osrsps.game.combat.PvpRules] asks [Wilderness.pvpLevel]), and the Wilderness overlay reads
  * "Level: --" (varbit `wildy_hub_buffer`, set with the overlay in [World]).
  *
- * Its four barriers (`wildy_hub_entry_barrier` 39652 and its mirror 39653, two at each entrance) are walls on the box's
+ * Its four barriers (`wildy_hub_entry_barrier` 39652 and its mirror 39653, two at each entrance) are walls on the safe area's
  * edges in the 242 map. Pass-Through puts the player on the other side, either way; a Tele Blocked player can't come
  * in, but anyone in combat can (the Wiki's Ferox Enclave and Barrier pages). Its two Pools of Refreshment
  * (`wildy_hub_pool` 39651, Drink) restore Hitpoints, Prayer and run energy, set every boosted or drained skill back,
