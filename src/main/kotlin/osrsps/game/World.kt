@@ -440,6 +440,9 @@ class World(
     /** The giant bosses' lairs ([GiantLairs]): Obor's. */
     val giantLairs = GiantLairs(this)
 
+    /** The Wilderness bosses' shared rules: group loot, kill counts, `::wboss`; see [WildernessBosses]. */
+    val wildernessBosses = osrsps.game.content.WildernessBosses(this)
+
     val scripts = ScriptRunner(handlers, interfaces::closeModals) { tick }
 
     /** Items on the ground: drops, takes, their timers and item spawns. */
@@ -633,6 +636,7 @@ class World(
         npcDamaged = { npc, player, dealt ->
             archiveRaids.damaged(npc, player, dealt)
             slayer.damaged(npc, player, dealt)
+            wildernessBosses.damaged(npc, player, dealt)
             osrsps.game.content.Bryophyta.damaged(this, npc, player)
         },
     )
@@ -2819,7 +2823,7 @@ class World(
     }
 
     /** The loot drop notification settings; see [LootNotifications]. */
-    private val lootNotifications = LootNotifications({ this.itemPrices.price(it) }, ::textFor)
+    val lootNotifications = LootNotifications({ this.itemPrices.price(it) }, ::textFor)
 
     /**
      * Rolls [npc]'s drops and puts them on its tile: the killer's alone for [GroundObjs.DROP_PRIVATE_TICKS], then
@@ -2827,6 +2831,8 @@ class World(
      * they are everyone's from the start (guessed).
      */
     fun dropLoot(npc: Npc, killer: Player?) {
+        // A Wilderness boss with group loot puts its own down, split by damage.
+        if (wildernessBosses.loot(npc)) return
         // A superior's three rolls on its normal counterpart's table come after its own drops.
         val drops = npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty()
         val owner = killer?.takeIf { !it.loggedOut }?.saveKey
@@ -2868,6 +2874,7 @@ class World(
         npcs.remove(npc)
         npcInteractions.removed(npc, players.asIterable())
         slayer.removed(npc)
+        wildernessBosses.removed(npc)
         npc.avatar?.let(network.npcAvatarFactory::release)
         npc.avatar = null
     }
