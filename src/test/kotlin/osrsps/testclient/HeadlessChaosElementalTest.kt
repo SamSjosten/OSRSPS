@@ -151,6 +151,21 @@ class HeadlessChaosElementalTest {
         }
     }
 
+    @Test
+    fun `its drops command shows the minor drop and the pickaxe pre-roll`(@TempDir dir: Path) {
+        server(dir, seed = 7).use { server ->
+            server.login("ula").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.tele(X + 6, Z + 1)
+                client.command("drops chaos elemental")
+                client.await("the minor table") { client.messages().firstOrNull { it.text.startsWith("Every kill, one of:") } }
+                val pre = client.await("the pre-roll") { client.messages().firstOrNull { it.text.startsWith("Before the table:") } }
+                assertTrue("1/256" in pre.text, pre.text)
+            }
+        }
+    }
+
     private companion object {
         const val X = 3261
         const val Z = 3927
