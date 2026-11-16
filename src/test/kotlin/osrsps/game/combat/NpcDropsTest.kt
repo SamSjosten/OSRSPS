@@ -1109,6 +1109,25 @@ class NpcDropsTest {
     }
 
     @Test
+    fun `greater demons leave vile ashes, King Scorpions no bones, lava dragons their bones, hide and scale`() {
+        val names = listOf("greater_demon2", "greater_demon5", "kingscorpion", "lava_dragon")
+        val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(2026 + i, name, internalName = name) }.toTypedArray())
+        val drops = NpcDrops.load(types, objTypes)
+        fun def(name: String) = drops[types.find(name)!!]!!
+        for (name in listOf("greater_demon2", "greater_demon5")) {
+            assertEquals(listOf("Vile ashes"), def(name).always.map { it.type.name }, name)
+            assertEquals(128, def(name).table!!.slots, name)
+        }
+        // OSRS Wiki, King Scorpion: no bones and no main table, only the ensouled head (1/25) and the beginner clue (1/100).
+        val scorpion = def("kingscorpion")
+        assertTrue(scorpion.always.isEmpty())
+        assertEquals(null, scorpion.table)
+        assertEquals(listOf("Ensouled scorpion head", "Clue scroll (beginner)"), scorpion.tertiary.map { it.item.type.name })
+        assertEquals(listOf("Lava dragon bones", "Black dragonhide", "Lava scale"), def("lava_dragon").always.map { it.type.name })
+        assertEquals(128, def("lava_dragon").table!!.slots)
+    }
+
+    @Test
     fun `the Wilderness Edgeville Dungeon's chaos druids give one or two of a herb, the black demons one malicious ashes`() {
         val names = listOf("chaos_druid", "earthwarrior", "thug", "black_demon2", "black_demon3", "black_demon5", "giantskeleton")
         val wildTypes = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(2700 + i, name, internalName = name) }.toTypedArray())

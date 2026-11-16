@@ -1081,6 +1081,31 @@ class NpcCombatTest {
     }
 
     @Test
+    fun `levels 36 to 48 bring greater demons, King Scorpions and lava dragons`() {
+        val names = listOf("greater_demon2", "greater_demon3", "greater_demon4", "greater_demon5", "kingscorpion", "lava_dragon")
+        val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(2026 + i, name, internalName = name) }.toTypedArray())
+        val combat = NpcCombat.load(types, seqs)
+        fun def(name: String) = combat[types.find(name)!!]!!
+        // OSRS Wiki, Greater demon (level 92): aggressive, max hit 9, slash, magic defence -10, weak to water 40%, respawn 15.
+        for (name in names.take(4)) {
+            assertEquals(9, def(name).maxHit, name)
+            assertEquals(AttackType.SLASH, def(name).attackType, name)
+            assertEquals(-10, def(name).defence.magic, name)
+            assertEquals(ElementalWeakness(Element.WATER, 40), def(name).weakness, name)
+            assertEquals(15, def(name).respawnTicks, name)
+            assertTrue(def(name).aggression != null, name)
+        }
+        // King Scorpion: aggressive, max hit 4, stab, weak to fire 20%. Lava dragon: melee max 23, weak to water 50%, breathes fire.
+        assertEquals(4, def("kingscorpion").maxHit)
+        assertEquals(AttackType.STAB, def("kingscorpion").attackType)
+        assertEquals(ElementalWeakness(Element.FIRE, 20), def("kingscorpion").weakness)
+        assertEquals(23, def("lava_dragon").maxHit)
+        assertEquals(ElementalWeakness(Element.WATER, 50), def("lava_dragon").weakness)
+        assertTrue(def("lava_dragon").dragonfire != null)
+        assertEquals(14, def("lava_dragon").respawnTicks)
+    }
+
+    @Test
     fun `each max hit in the file is what the formula gives from the levels`() {
         val combat = NpcCombat.load(types, seqs)
         for (name in names) {
