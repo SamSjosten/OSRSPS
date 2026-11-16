@@ -3,6 +3,7 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
@@ -243,7 +244,8 @@ class HeadlessResourceAreaTest {
         assertEquals(Tile(GATE_X, GATE_Z + 1), ResourceArea.loginPlace(3185, 3933, 0))
         assertNull(ResourceArea.loginPlace(GATE_X, GATE_Z + 1, 0))
         assertNull(ResourceArea.loginPlace(3185, 3933, 1))
-        assertTrue(ResourceArea.inside(3175, 3925, 0) && ResourceArea.inside(3196, 3944, 0))
+        assertTrue(ResourceArea.inside(3174, 3924, 0) && ResourceArea.inside(3196, 3944, 0))
+        assertFalse(ResourceArea.inside(3173, 3933, 0) || ResourceArea.inside(3185, 3923, 0))
         server(dir).use { server ->
             server.login("tam").use { client ->
                 client.await("the login rebuild") { client.position }

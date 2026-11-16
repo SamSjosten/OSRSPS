@@ -107,8 +107,11 @@ object ResourceArea {
         2351, 2353, 2357, 2359, 2361, 2363,
     )
 
-    /** Whether the tile is inside the area's wall. */
-    fun inside(x: Int, z: Int, level: Int): Boolean = level == 0 && x in 3175..3196 && z in 3925..3944
+    /**
+     * Whether the tile is inside the area's wall: x 3174 to 3196, z 3924 to 3944, every tile walked to from inside with the
+     * gate shut (osrsps.audit.ResourceAreaAuditTest; round 38 found the old box a tile short on the west and south).
+     */
+    fun inside(x: Int, z: Int, level: Int): Boolean = level == 0 && x in 3174..3196 && z in 3924..3944
 
     fun inside(player: Player) = inside(player.x, player.z, player.level)
 
