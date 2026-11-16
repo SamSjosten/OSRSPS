@@ -60,8 +60,8 @@ class Butterfly(
  * Guessed: the ruby harvest, sapphire glacialis and snowy knight's pairs (the Wiki gives none): the black warlock's
  * spread, set so each is caught as often at its own level as a black warlock at 45 (ruby 105 to 381, sapphire 76 to
  * 352, snowy 48 to 324; 20 more each with the magic net or barehanded); barehanded meaning no weapon wielded, with
- * human_catch; one attempt per Catch, judged the tick after the swing, the player held [CATCH_TICKS]; the respawn
- * ([RESPAWN_TICKS]); a missed one flying [FLEE_TILES] away; every release, not only the snowy knight's, sharing the
+ * human_catch; one attempt per Catch, judged the tick after the swing, the player held [CATCH_TICKS]; every butterfly
+ * respawning as the Great Conch's black warlocks do ([RESPAWN_TICKS]); a missed one flying [FLEE_TILES] away; every release, not only the snowy knight's, sharing the
  * potions' delay; moonlight moths all the catchable type (12771). Left out: hunter's mixes, using a jar on another
  * player in multicombat, the butterfly wings (Hunters' Rumours), Puro-Puro, the inaccessible Crypt of Tonali spawns.
  */
@@ -210,7 +210,8 @@ class Butterflies(private val world: World) {
 
         /** The sunlight moth's page: 5% run energy on a catch. */
         const val SUNLIGHT_ENERGY_PERCENT = 5
-        const val RESPAWN_TICKS = 10
+        /** 4.2 seconds: the Black warlock page's Great Conch spawns (read 2026-11-15). */
+        const val RESPAWN_TICKS = 7
 
         /** Snowy knight's page: a release shares the potions' 3 ticks. */
         const val RELEASE_DELAY = 3
