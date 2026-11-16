@@ -1062,6 +1062,31 @@ class NpcDropsTest {
     }
 
     @Test
+    fun `the elder Chaos druids give one to four of a herb, the black unicorns never a unicorn bone`() {
+        val names = listOf("wilderness_chaos_druid", "black_unicorn")
+        val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(6607 + i, name, internalName = name) }.toTypedArray())
+        val drops = NpcDrops.load(types, objTypes)
+        fun def(name: String) = drops[types.find(name)!!]!!
+        val druid = def("wilderness_chaos_druid")
+        assertEquals(1419, druid.table!!.slots)
+        val random = GameRandom(73)
+        // The herb table 55/129: 1, 2, 3 or 4 herbs at 15, 20, 15 and 5 in 55 (OSRS Wiki, Elder Chaos druid).
+        val counts = IntArray(5)
+        repeat(KILLS) {
+            val herbs = druid.roll(random).filter { it.type.name.startsWith("Grimy") }
+            assertTrue(herbs.size <= 1, herbs.toString())
+            herbs.singleOrNull()?.let { counts[it.count]++ }
+        }
+        for ((count, weight) in listOf(1 to 15.0, 2 to 20.0, 3 to 15.0, 4 to 5.0)) {
+            val p = weight / 129
+            val mean = KILLS * p
+            val sigma = sqrt(KILLS * p * (1 - p))
+            assertTrue(abs(counts[count] - mean) <= 5 * sigma + 1, "$count herbs: ${counts[count]} of $KILLS, expected about ${mean.toInt()}")
+        }
+        assertEquals(listOf("Bones", "Unicorn horn"), def("black_unicorn").always.map { it.type.name })
+    }
+
+    @Test
     fun `the Wilderness Edgeville Dungeon's chaos druids give one or two of a herb, the black demons one malicious ashes`() {
         val names = listOf("chaos_druid", "earthwarrior", "thug", "black_demon2", "black_demon3", "black_demon5", "giantskeleton")
         val wildTypes = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(2700 + i, name, internalName = name) }.toTypedArray())

@@ -1027,6 +1027,20 @@ class NpcCombatTest {
     }
 
     @Test
+    fun `the elder Chaos druids never grow tolerant, black unicorns attack every level, the level 130 bandit gives 2,5% more XP`() {
+        val names = listOf("wilderness_chaos_druid", "black_unicorn", "wilderness_bandit")
+        val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(6607 + i, name, internalName = name) }.toTypedArray())
+        val combat = NpcCombat.load(types, seqs)
+        fun def(name: String) = combat[types.find(name)!!]!!
+        // OSRS Wiki: Elder Chaos druid (never tolerant), Black unicorn (aggressive to all levels in the Wilderness),
+        // Bandit (level 130: XP bonus 2.5).
+        assertEquals(false, def("wilderness_chaos_druid").aggression!!.tolerant)
+        assertEquals(true, def("black_unicorn").aggression!!.ignoresLevels)
+        assertEquals(25, def("wilderness_bandit").xpBonusTenths)
+        assertEquals(0, def("black_unicorn").xpBonusTenths)
+    }
+
+    @Test
     fun `each max hit in the file is what the formula gives from the levels`() {
         val combat = NpcCombat.load(types, seqs)
         for (name in names) {
