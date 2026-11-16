@@ -193,6 +193,23 @@ class HeadlessWildernessBossLootTest {
         }
     }
 
+    @Test
+    fun `a boss deleted mid-death leaves no damage tally behind either`(@TempDir dir: Path) {
+        server(dir, deathTicks = LONG_DEATH_TICKS).use { server ->
+            server.login("ada").use { a ->
+                a.await("the login rebuild") { a.position }
+                a.tele(3200, 3900)
+                a.commandReply("wboss test boss") { it.startsWith("Spawned Ice giant") }
+                val npc = a.await("the boss") { server.world.npcs.all.firstOrNull { it.type.id == BOSS } }
+                a.commandReply("god") { it.startsWith("You can") }
+                a.commandReply("kill ${npc.index}") { it.startsWith("Killed") }
+                assertEquals(1, server.world.wildernessBosses.tallies)
+                a.commandReply("delnpc ${npc.index}") { true }
+                a.await("the tally gone") { Unit.takeIf { server.world.wildernessBosses.tallies == 0 } }
+            }
+        }
+    }
+
     private companion object {
         const val BOSS = 2085
         const val KILL_COUNT_VARP = 1510

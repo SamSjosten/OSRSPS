@@ -85,11 +85,18 @@ class WildernessBosses(private val world: World) {
     }
 
     /**
-     * [npc] has left the world. A boss taken out alive (`::delnpc`, say) gives no loot, so its tally goes now; a dead
-     * one's stays for [loot], which comes straight after its body goes.
+     * A dead boss's tally, held from its body going until [loot], which comes straight after in the same pass. One at
+     * most: a body taken out any other way (`::delnpc` mid-death) never loots, and the next removal replaces it.
+     */
+    private var bodyGoing: Pair<Npc, Tally>? = null
+
+    /**
+     * [npc] has left the world: its tally goes now. A boss taken out alive (`::delnpc`, say) gives no loot; a dead one's
+     * tally waits in [bodyGoing] for [loot].
      */
     fun removed(npc: Npc) {
-        if (npc.hitpoints > 0) damage.remove(npc)
+        val tally = damage.remove(npc)
+        bodyGoing = if (tally != null && npc.hitpoints <= 0) npc to tally else null
     }
 
     /** How many boss NPCs have a damage tally, for tests: none once each has died or gone. */
@@ -125,6 +132,8 @@ class WildernessBosses(private val world: World) {
     fun loot(npc: Npc): Boolean {
         // Most NPCs that die are no boss: they cost one lookup here, no more.
         val boss = byType[npc.type.id] ?: return false
+        bodyGoing?.takeIf { it.first === npc }?.let { damage[npc] = it.second }
+        bodyGoing = null
         val shares = damage[npc]?.atKill ?: shares(npc)
         damage.remove(npc)
         if (!boss.group) return false
