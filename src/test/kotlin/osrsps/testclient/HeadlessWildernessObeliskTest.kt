@@ -13,6 +13,7 @@ import osrsps.game.content.WildernessObelisks
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
+import osrsps.game.script.QueueType
 import osrsps.game.trade.Trades
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
@@ -163,7 +164,7 @@ class HeadlessWildernessObeliskTest {
     }
 
     @Test
-    fun `a rider's trade with a player outside the 3x3 ends before the teleport`(@TempDir dir: Path) {
+    fun `a rider's trade with a player outside the 3x3 ends, and their weak scripts drop, before the teleport`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("tess").use { a ->
                 server.login("ugo").use { b ->
@@ -180,12 +181,16 @@ class HeadlessWildernessObeliskTest {
                     a.await("trading") { a.openInterfaces().takeIf { Trades.MAIN in it } }
                     b.await("trading") { b.openInterfaces().takeIf { Trades.MAIN in it } }
                     a.commandReply("pause") { it.startsWith("Paused after tick") }
+                    // A weak script under way (as a Home Teleport's cast is) doesn't carry on at the far end.
+                    var dropped = false
+                    server.world.scripts.queue(server.world.playerNamed("tess")!!, "obelisk_test_cast", QueueType.WEAK, 50, onDrop = { dropped = true }) {}
                     assertTrue(server.world.obelisks.activate(from, WildernessObelisks.LEVEL_50))
                     a.stepTicks(WildernessObelisks.TELEPORT_TICKS + 1)
                     a.commandReply("resume") { it.startsWith("Resumed") }
                     val to = WildernessObelisks.LEVEL_50
                     a.await("a at level 50") { a.position?.takeIf { it == Coord(to.x, to.z + 1, 0) } }
                     assertNull(server.world.playerNamed("tess")!!.trade)
+                    assertTrue(dropped, "the weak script dropped by the move")
                     assertNull(server.world.playerNamed("ugo")!!.trade)
                     b.await("b's trade screen shut") { Unit.takeIf { Trades.MAIN !in b.openInterfaces() } }
                     assertEquals(Coord(from.x, from.z + 2, 0), b.position)

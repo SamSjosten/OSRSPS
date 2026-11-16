@@ -15,7 +15,8 @@ object WildernessObeliskLines : Lines("obelisk", "Wilderness Obelisk") {
  * The six Wilderness obelisks (Wilderness step W3.1). Each is four corner stones round a 3x3 centre; Activate on a
  * corner lights all four, and after a delay everyone standing in that centre goes to one obelisk picked at random
  * from all six, the same one included, and gets [WildernessObeliskLines.TELEPORTED] on arrival. A Tele Blocked player
- * is left behind; one in a trade has it ended (its offers given back) before going. The six stand at levels 13, 18 to 19, 27, 35, 44 and 50 (the Wiki's Wilderness Obelisk page:
+ * is left behind; one in a trade has it ended (its offers given back) before going, and whatever else they had going
+ * (a cast, an open screen) is interrupted as a walk would. The six stand at levels 13, 18 to 19, 27, 35, 44 and 50 (the Wiki's Wilderness Obelisk page:
  * the six, their levels, the 3x3, the random pick, the Tele Block rule and the message).
  *
  * The stones are `wilderness_portal_stone_0` to `_5` (14826 to 14831), one type per obelisk, at the corners the 242 map
@@ -72,6 +73,8 @@ class WildernessObelisks(private val world: World) {
             val from = activation.obelisk
             val dest = activation.destination
             world.trades.interrupt(player)
+            // A Home Teleport or other weak script under way doesn't carry on at the far end (Codex review of W3.1).
+            world.scripts.interrupt(player)
             world.teleport(player, dest.x + (x - from.x), dest.z + (z - from.z), 0)
             world.message(player, WildernessObeliskLines.TELEPORTED)
         }
