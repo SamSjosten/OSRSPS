@@ -12,6 +12,7 @@
     {"step": "useItemOnLoc", "itemId": 526, "locId": 411, "x": 2947, "y": 3820},
     {"step": "assertInventory", "item": "Bones", "count": 0, "timeoutMs": 60000, "comment": "one offering every 3 ticks (guessed), each spared half the time"},
 
+    {"step": "command", "text": "::tele 2956 3816 0", "expectMessage": "Teleported to 2956, 3816, 0", "comment": "outside, by the Elder Chaos druid south of the east wing: the temple's east doors are shut, so he can't be reached from the altar (nightly 2026-11-16)"},
     {"step": "npcOption", "npc": "Elder Chaos druid", "option": "Talk-to", "timeoutMs": 20000},
     {"step": "assertDialogue", "contains": "chaos_temple.welcome", "timeoutMs": 10000},
 
