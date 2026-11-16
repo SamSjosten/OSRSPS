@@ -1027,8 +1027,8 @@ class NpcCombatTest {
     }
 
     @Test
-    fun `the elder Chaos druids never grow tolerant, black unicorns attack every level, the level 130 bandit gives 2,5% more XP`() {
-        val names = listOf("wilderness_chaos_druid", "black_unicorn", "wilderness_bandit")
+    fun `the elder Chaos druids never grow tolerant, black unicorns attack every level, the level 130 bandit and the ent give 2,5% more XP, the level 145 dark warrior 10%, the ent shrugs off poison`() {
+        val names = listOf("wilderness_chaos_druid", "black_unicorn", "wilderness_bandit", "wilderness_dark_warrior", "wilderness_ent")
         val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(6607 + i, name, internalName = name) }.toTypedArray())
         val combat = NpcCombat.load(types, seqs)
         fun def(name: String) = combat[types.find(name)!!]!!
@@ -1038,6 +1038,10 @@ class NpcCombatTest {
         assertEquals(true, def("black_unicorn").aggression!!.ignoresLevels)
         assertEquals(25, def("wilderness_bandit").xpBonusTenths)
         assertEquals(0, def("black_unicorn").xpBonusTenths)
+        // Dark warrior (level 145: XP bonus 10), Ent (level 101: XP bonus 2.5, poison and venom resistance 100).
+        assertEquals(100, def("wilderness_dark_warrior").xpBonusTenths)
+        assertEquals(25, def("wilderness_ent").xpBonusTenths)
+        assertTrue(def("wilderness_ent").poisonImmune && def("wilderness_ent").venomImmune)
     }
 
     @Test
