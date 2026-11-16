@@ -41,7 +41,7 @@ import osrsps.map.LocShape
 /**
  * The Quartermaster and his Alliance Supplies (raid step 21) through the headless client: the cache's omnishop rows as
  * the loader reads them; him and his wheelbarrow coming to the nexus once the third row's room is done, with each
- * member's 50 Supply Credits, and going as the fourth row's fight begins; Resupply opening the omnishop window, its list
+ * member's 21 Supply Credits, and going as the fourth row's fight begins; Resupply opening the omnishop window, its list
  * and buttons buying from the credits and the member's own stock, and its refusals; his Talk-to; the failure shop
  * with Leftovers after deaths; and the credits gone as a new run is entered. The rl-client script
  * test-runner/examples/archive-supplies.json does the same in the real client.
@@ -160,6 +160,13 @@ class HeadlessArchiveSuppliesTest {
         await("in the nexus") { position?.takeIf { it == Coord(at.x, at.z, 0) } }
     }
 
+    /** Credits topped up past his [ArchiveSupplies.CREDITS], for buying more than they'd pay for. */
+    private fun HeadlessClient.topUp(credits: Int = 50) {
+        awaitCredits(ArchiveSupplies.CREDITS)
+        command("varbit ${ArchiveSupplies.CREDITS_VARBIT} $credits")
+        awaitCredits(credits)
+    }
+
     private fun HeadlessClient.quartermaster() = npcs().firstOrNull { it.id == ArchiveSupplies.QUARTERMASTER }
 
     private fun HeadlessClient.wheelbarrowShown(server: TestServer, run: ArchiveRun): Boolean {
@@ -196,7 +203,7 @@ class HeadlessArchiveSuppliesTest {
     }
 
     @Test
-    fun `he comes with 50 credits once the third row's room is done, and the shop's list and buttons buy from them and the stock`(@TempDir dir: Path) {
+    fun `he comes with 21 credits once the third row's room is done, and the shop's list and buttons buy from them and the stock`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bob").use { client ->
                 client.await("the login rebuild") { client.position }
@@ -220,6 +227,9 @@ class HeadlessArchiveSuppliesTest {
                 assertEquals(Coord(at.x, at.z, 0), npc.coord)
                 client.await("his wheelbarrow") { client.wheelbarrowShown(server, run).takeIf { it } }
                 client.awaitCredits(ArchiveSupplies.CREDITS)
+                assertEquals(21, ArchiveSupplies.CREDITS, "Sam's recordings of 16 November 2026")
+                // Topped up to 50, for the buying below to run the stock down.
+                client.topUp()
 
                 client.resupply()
                 // The side panel's open comes in the same tick as the shop's, read here a packet or two after it.
@@ -377,6 +387,7 @@ class HeadlessArchiveSuppliesTest {
                 client.clear(run, ArchiveRoom.BORK)
                 client.clear(run, ArchiveRoom.DREADNOTH)
                 client.toNexus(server, run)
+                client.topUp()
                 client.resupply()
                 client.entry(1, 5)
                 client.entry(1, 3)
