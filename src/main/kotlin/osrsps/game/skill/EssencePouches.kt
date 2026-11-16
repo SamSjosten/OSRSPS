@@ -206,8 +206,14 @@ class EssencePouches(private val world: World) {
 
         private val ESSENCE = setOf(Mining.RUNE_ESSENCE, Mining.PURE_ESSENCE)
 
-        /** skillcape_runecrafting, its trimmed cape and skillcape_max. */
-        val NO_DECAY_CAPES = setOf(9765, 9766, 13280)
+        /**
+         * skillcape_runecrafting, its trimmed cape, and every max cape variant (the Wiki: any max cape stops decay): the
+         * 242 cache's wearable skillcape_max* objs named "... max cape".
+         */
+        val NO_DECAY_CAPES = setOf(9765, 9766) + setOf(
+            13280, 13329, 13331, 13333, 13335, 13337, 13342, 20760, 21186, 21284, 21285, 21776, 21780, 21784, 21898,
+            24855, 27363, 28902, 34625,
+        )
 
         fun typeOf(essence: Int): Int = if (essence == Mining.PURE_ESSENCE) TYPE_PURE else TYPE_RUNE
 
