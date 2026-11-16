@@ -117,12 +117,19 @@ class Pitfalls(private val world: World, private val traps: Traps) {
         for (creature in CREATURES) world.handlers.onNpc(creature.npc, TEASE) { op -> tease(creature, op.npc ?: return@onNpc) }
         traps.otherLaid = { owner -> laid.count { it.owner == owner } }
         // A spiked pit's log is spent, so a run's pits just come down (exploit review round 35, C-3).
-        traps.otherTakeDown = { owner -> for (pit in of(owner.saveKey)) remove(pit, owner) }
+        traps.otherTakeDown = { owner ->
+            for (pit in of(owner.saveKey)) remove(pit, owner)
+            // The run's tease goes with its pits (exploit review round 36, B-4).
+            teases.filter { it.player === owner }.forEach(::end)
+        }
     }
 
     /** [player] logs in: no pit of theirs stands, whatever their save's varbits held. */
     fun forget(player: Player) {
         for (pit in PITS.values) setVarbit(player, pit.varbit, EMPTY)
+        // Nor in our books: a pit still listed would work under an empty varbit (exploit review round 36, B-5).
+        for (pit in of(player.saveKey)) remove(pit, null)
+        teases.filter { it.player.saveKey == player.saveKey }.forEach(::end)
     }
 
     /** Call once a tick, in the NPC phase before NPCs move. */
@@ -185,6 +192,11 @@ class Pitfalls(private val world: World, private val traps: Traps) {
                 continue
             }
             val npc = tease.npc
+            // Only the creature the pit is dug for falls in it, or leaps it (exploit review round 36, B-2).
+            if (pit.pit.creature !== tease.creature) {
+                tease.jumped = null
+                continue
+            }
             val axis = crossing(pit.loc, npc, tease.player) ?: continue
             tease.jumped = null
             val owner = tease.player
@@ -208,7 +220,8 @@ class Pitfalls(private val world: World, private val traps: Traps) {
             } else {
                 npc.effects.anim(LEAP_ANIM)
                 leapt[npc] = pit
-                world.npcs.teleport(npc, axis.landX, axis.landZ)
+                // A blocked far side (a wall, a tree) leaves it where it stood: a plain miss.
+                if (clear(pit.loc, axis, size = npc.type.size)) world.npcs.teleport(npc, axis.landX, axis.landZ)
                 tease.activeTick = tick
             }
         }
@@ -242,6 +255,25 @@ class Pitfalls(private val world: World, private val traps: Traps) {
     }
 
     private class Crossing(val headingUp: Boolean, val landX: Int, val landZ: Int)
+
+    /**
+     * Whether a mover of [size] can land at [axis]'s tile across [pit]: every tile it would stand on walkable, and no
+     * wall between the pit's far edge and the row (or column) it lands on.
+     */
+    private fun clear(pit: ZoneLoc, axis: Crossing, size: Int): Boolean {
+        val level = pit.level
+        for (dx in 0 until size) for (dz in 0 until size) {
+            if (!world.canStand(axis.landX + dx, axis.landZ + dz, level)) return false
+        }
+        val px = pit.x
+        val pz = pit.z
+        return when {
+            axis.landX == px + 2 -> (0 until size).all { world.canStep(level, px + 1, axis.landZ + it, 1, 0) }
+            axis.landX + size - 1 == px - 1 -> (0 until size).all { world.canStep(level, px, axis.landZ + it, -1, 0) }
+            axis.landZ == pz + 2 -> (0 until size).all { world.canStep(level, axis.landX + it, pz + 1, 0, 1) }
+            else -> (0 until size).all { world.canStep(level, axis.landX + it, pz, 0, -1) }
+        }
+    }
 
     private fun end(tease: Tease) {
         teases.remove(tease)
@@ -303,7 +335,8 @@ class Pitfalls(private val world: World, private val traps: Traps) {
         arriveDelay()
         val mine = mine(player, loc)?.takeIf { it.value == SET } ?: return
         val from = osrsps.map.Tile(player.x, player.z)
-        val to = landing(loc, from.x, from.z) ?: return world.message(player, osrsps.game.GameLines.CANT_REACH)
+        val to = landing(loc, from.x, from.z)?.takeIf { clear(loc, Crossing(true, it.x, it.z), size = 1) }
+            ?: return world.message(player, osrsps.game.GameLines.CANT_REACH)
         val angle = Agility.angle(to.x - from.x, to.z - from.z)
         player.effects.exactMove(PlayerEffects.ExactMove(from.x, from.z, to.x, to.z, WildernessDitch.JUMP_START_CYCLES, JUMP_TICKS * 30, angle))
         player.anim(WildernessDitch.ANIM_JUMP)

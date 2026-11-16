@@ -79,13 +79,15 @@ class Bank(
      * Puts everything in [from] into [bank], item by item in slot order. Returns how many items went in, how many
      * didn't all fit because the bank or its stack is full, and how many can't be banked at all.
      */
-    fun depositAll(bank: Inventory, tabs: BankTabs, from: Inventory): DepositAll {
+    fun depositAll(bank: Inventory, tabs: BankTabs, from: Inventory, keep: (Int) -> Boolean = { false }): DepositAll {
         var deposited = 0
         var noRoom = 0
         var notBankable = 0
-        for ((slot, _) in from.contents()) {
+        for ((slot, held) in from.contents()) {
             // An earlier slot of the same item took this one with it.
             if (from[slot] == null) continue
+            // Something that stays where it is (a rented falconer's glove).
+            if (keep(held.id)) continue
             when (deposit(bank, tabs, from, slot, Int.MAX_VALUE)) {
                 is Deposit.Done -> deposited++
                 is Deposit.Partly, Deposit.BankFull, Deposit.FullStack -> noRoom++

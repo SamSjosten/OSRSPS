@@ -131,7 +131,7 @@ class ImplingsTest {
     }
 
     @Test
-    fun `a caught impling's spawner starts over, but a caught crystal impling waits for the next cycle`() {
+    fun `a caught impling's spawner, crystal or not, waits for the next cycle (only Puro-Puro's come back on capture)`() {
         val world = World(IntArray(0), CollisionMap(), random = GameRandom(11), npcTypes = NpcTypes.of(*types.toTypedArray()), objTypes = objTypes())
         val implings = world.hunter.implings.apply { clock = { 0L } } // on the hour
         implings.process(0)
@@ -141,14 +141,15 @@ class ImplingsTest {
         val tick = Implings.CRYSTAL_UNSEEN_TICKS.toLong() + 10
         for (spawner in listOf(low, crystal)) {
             world.removeNpc(spawner.npc!!)
-            implings.restart(spawner, tick)
+            implings.restart(spawner)
         }
         implings.process(tick + Implings.CRYSTAL_UNSEEN_TICKS)
-        assertTrue(low.npc != null)
+        assertEquals(null, low.npc)
         assertEquals(null, crystal.npc)
-        // The next half hour brings a new one.
+        // The next half hour brings new ones.
         implings.process(Implings.CYCLE_TICKS.toLong())
         implings.process(Implings.CYCLE_TICKS.toLong() + Implings.CRYSTAL_UNSEEN_TICKS)
+        assertTrue(low !in implings.all)
         assertTrue(implings.all.single { it.tier === Implings.CRYSTAL_TIER }.npc != null)
     }
 

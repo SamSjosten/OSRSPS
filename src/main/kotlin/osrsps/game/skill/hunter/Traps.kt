@@ -362,9 +362,9 @@ class Traps(private val world: World, private val collision: CollisionMap) {
 
     private fun change(trap: Trap, state: TrapState, locId: Int) {
         if (trap.locs.any { !world.locs.exists(it) }) {
-            // Something else took a tile; the trap is gone.
-            traps.remove(trap)
-            release(trap)
+            // Something else took a tile; the trap comes down as a collapse does: what it hid (a net trap's young tree)
+            // put back and its item left (exploit review round 36, B-3).
+            collapse(trap, world.playerBySaveKey(trap.owner))
             return
         }
         show(trap, state, locId)
