@@ -3,8 +3,11 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.GameLines
 import osrsps.game.GameRandom
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
@@ -110,6 +113,28 @@ class HeadlessCrazyArchaeologistTest {
                 // Out of his area (more than AREA_RADIUS from his spawn) but inside an NPC's 18-tile chase.
                 client.tele(X + CrazyArchaeologist.AREA_RADIUS + 2, Z)
                 client.await("him giving kit up", timeoutMillis = 10_000) { Unit.takeIf { npc.target == null } }
+            }
+        }
+    }
+
+    @Test
+    fun `he follows a player at his area's edge past his spawn leash, and can't be attacked from outside it`(@TempDir dir: Path) {
+        server(dir, seed = 5).use { server ->
+            server.login("lou").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                val npc = server.world.npcs.all.first { it.type.id == CrazyArchaeologist.BOSS }
+                val lou = server.world.playerNamed("lou")!!
+                // Outside his area: no attack reaches him (exploit review round 39).
+                client.tele(X + CrazyArchaeologist.AREA_RADIUS + 1, Z)
+                client.await("his fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
+                assertSame(GameLines.CANT_REACH, server.world.combat.barred(lou, npc), "from outside his area")
+                // At its edge, 15 tiles out: he comes for them, further than an NPC's 7-tile leash from his spawn.
+                client.tele(X + CrazyArchaeologist.AREA_RADIUS, Z)
+                assertNull(server.world.combat.barred(lou, npc), "from inside it")
+                client.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Crazy archaeologist") }
+                client.await("him past the leash", timeoutMillis = 15_000) { Unit.takeIf { npc.x - X > 7 } }
+                assertTrue(npc.unleashed)
             }
         }
     }

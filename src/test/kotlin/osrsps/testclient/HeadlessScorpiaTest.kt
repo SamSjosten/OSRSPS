@@ -202,6 +202,23 @@ class HeadlessScorpiaTest {
         }
     }
 
+    @Test
+    fun `she comes for a player at the south crevice's foot, past her spawn leash`(@TempDir dir: Path) {
+        server(dir, seed = 4).use { server ->
+            server.login("dot").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                val below = Scorpia.WAYS.first().below
+                client.tele(below.x, below.z)
+                val npc = server.world.npcs.all.first { it.type.id == Scorpia.BOSS }
+                // From here, 9 tiles south of her spawn, a leashed Scorpia never reached them (exploit review round 39).
+                client.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Scorpia") }
+                client.await("her past the leash", timeoutMillis = 15_000) { Unit.takeIf { Z - npc.z > 7 } }
+                assertTrue(npc.unleashed)
+            }
+        }
+    }
+
     private companion object {
         /** An offspring away from her, so her fight doesn't start. */
         const val OX = 3220

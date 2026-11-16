@@ -31,11 +31,12 @@ object VolcanicForge {
 
     fun register(world: World) {
         world.handlers.onObjOnLoc(FORGE) { op ->
+            // The arrival first, then the shards' slots, so nothing moved in between is used (exploit review round 39).
+            arriveDelay()
             val ward = WARDS.firstOrNull { op.obj in it.shards }
             val inv = player.inventory
             val slots = ward?.shards?.map { shard -> inv.contents().firstOrNull { it.second.id == shard }?.first }
             if (ward == null || slots == null || slots.any { it == null }) return@onObjOnLoc world.message(player, GameLines.NOTHING_INTERESTING)
-            arriveDelay()
             for (slot in slots) inv.remove(slot!!, 1)
             inv[slots.first()!!] = InvObj(ward.ward, 1)
             world.message(player, VolcanicForgeLines.FORGED)
