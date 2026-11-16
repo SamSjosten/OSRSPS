@@ -74,18 +74,20 @@ jobs:
       - run: ./gradlew build --build-cache -PtestShard=${{ matrix.shard }}/5 -PtestForks=${{ runner.environment == 'self-hosted' && 3 || 1 }}
 
   # The server's build and every one of its tests: passes when each part above did. Also fails when `changes` did,
-  # since the jobs that wait on it would be skipped, and a skipped job counts as passing.
+  # since the jobs that wait on it would be skipped, and a skipped job counts as passing. TFA Helper's job is part of
+  # it too, passing when it ran green or sat out a change that touches nothing it builds from.
   build:
-    needs: [changes, server-tests]
+    needs: [changes, server-tests, tfa-helper]
     if: always()
     runs-on: ${{ github.repository == 'SamSjosten/OSRSPS' && (github.event.repository.private || vars.RUNNER == 'self-hosted' && github.ref == 'refs/heads/main' && contains(fromJSON('["push", "workflow_dispatch", "schedule"]'), github.event_name)) && fromJSON('["self-hosted", "linux"]') || 'ubuntu-latest' }}
     steps:
       - env:
           CHANGES: ${{ needs.changes.result }}
           TESTS: ${{ needs.server-tests.result }}
+          TFA_HELPER: ${{ needs.tfa-helper.result }}
         run: |
-          echo "changes: $CHANGES, server-tests: $TESTS"
-          [[ $CHANGES == success && $TESTS == success ]]
+          echo "changes: $CHANGES, server-tests: $TESTS, tfa-helper: $TFA_HELPER"
+          [[ $CHANGES == success && $TESTS == success && ($TFA_HELPER == success || $TFA_HELPER == skipped) ]]
 
   # The server VM's scripts: the deploy of main and the staging server, each played through on a made-up origin with a
   # stand-in for docker.
