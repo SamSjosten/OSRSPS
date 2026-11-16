@@ -499,6 +499,7 @@ class World(
         wear = { player, slot -> equipmentTab.wear(player, slot) },
         remove = { player, wearpos -> equipmentTab.remove(player, wearpos) },
         words = ::textFor,
+        keptOn = { player, id -> equipment.keptOn(player, id) },
     )
 
     /** Bank deposit boxes; see [DepositBox]. */
