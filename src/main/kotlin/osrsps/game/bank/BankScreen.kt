@@ -92,6 +92,8 @@ class BankScreen(
     /** The words of [BankLines] for a player. */
     private val words: (Player) -> DialogueText = { DialogueText.NONE },
     private val send: (Player, OutgoingGameMessage) -> Unit = { player, message -> player.session.queue(message) },
+    /** Whether a worn item can't come off (a rented falconer's glove), saying why: as for the equipment tab's Remove. */
+    private val keptOn: (Player, Int) -> Boolean = { _, _ -> false },
 ) {
     fun isOpen(player: Player): Boolean = player.modals[FrameSlot.MAINMODAL] == MAIN
 
@@ -403,7 +405,7 @@ class BankScreen(
         if (player.scripts.delayed) return
         when (op) {
             1 -> remove(player, wearpos)
-            2 -> depositFrom(player, player.equipment, wearpos, worn.id, Int.MAX_VALUE)
+            2 -> if (!keptOn(player, worn.id)) depositFrom(player, player.equipment, wearpos, worn.id, Int.MAX_VALUE)
         }
     }
 
@@ -444,7 +446,9 @@ class BankScreen(
             message(player, BankLines.NOTHING_TO_DEPOSIT)
             return
         }
-        val result = bank.depositAll(player.bank, tabs(player), from)
+        // Deposit-worn leaves what can't come off (exploit review round 36, C-6).
+        val worn = from === player.equipment
+        val result = bank.depositAll(player.bank, tabs(player), from) { id -> worn && keptOn(player, id) }
         when {
             result.noRoom > 0 -> message(player, BankLines.CANNOT_HOLD)
             result.notBankable > 0 && result.deposited == 0 -> message(player, BankLines.NONE_BANKABLE)
