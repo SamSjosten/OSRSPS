@@ -159,6 +159,7 @@ import osrsps.game.content.registerResourceArea
 import osrsps.game.content.registerMageArenaBank
 import osrsps.game.content.registerCrazyArchaeologist
 import osrsps.game.content.registerChaosFanatic
+import osrsps.game.content.registerScorpia
 import osrsps.game.content.MemberGates
 import osrsps.game.content.registerFeroxEnclave
 import osrsps.game.content.registerWildernessObelisks
@@ -1039,6 +1040,7 @@ class World(
         registerMageArenaBank(this)
         registerCrazyArchaeologist(this)
         registerChaosFanatic(this)
+        registerScorpia(this)
         FountainOfRune.register(this)
         registerFeroxEnclave(this)
         registerWildernessObelisks(this)
