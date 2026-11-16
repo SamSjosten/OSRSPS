@@ -1106,6 +1106,22 @@ class NpcCombatTest {
     }
 
     @Test
+    fun `the Lava Maze Dungeon's black dragons hit up to 21, breathe fire and are weak to water`() {
+        val names = listOf("black_dragon4", "black_dragon5")
+        val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(255 + i, name, internalName = name) }.toTypedArray())
+        val combat = NpcCombat.load(types, seqs)
+        for (name in names) {
+            val def = combat[types.find(name)!!]!!
+            // OSRS Wiki, Black dragon (level 227): aggressive, max hit 21, slash, weak to water 50%, respawn 30, dragonfire.
+            assertEquals(21, def.maxHit, name)
+            assertEquals(AttackType.SLASH, def.attackType, name)
+            assertEquals(ElementalWeakness(Element.WATER, 50), def.weakness, name)
+            assertEquals(30, def.respawnTicks, name)
+            assertTrue(def.aggression != null && def.dragonfire != null, name)
+        }
+    }
+
+    @Test
     fun `each max hit in the file is what the formula gives from the levels`() {
         val combat = NpcCombat.load(types, seqs)
         for (name in names) {

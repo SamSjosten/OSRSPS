@@ -168,6 +168,7 @@ object DialogueLines {
         DummyLines,
         EdgevilleClosedLines,
         EdgevilleDungeonLines,
+        LavaMazeLines,
         OborLines,
         BryophytaLines,
         EmoteLines,

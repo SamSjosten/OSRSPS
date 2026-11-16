@@ -1,0 +1,20 @@
+{
+  "about": "The Lava Maze Dungeon under the Lava Maze (Wilderness step W3.4): the poison spiders by the King Black Dragon's lever, reached by the west ladder, and the greater demons and black dragons by the runite rock, reached by the east one. Types and tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live); every wander range is guessed until recorded.",
+  "spawns": [
+    {"npc": "greater_demon3", "x": 3035, "z": 10245, "wander": 5, "source": "Greater demon (greater_demon3), the Lava Maze Dungeon. mejrs NPCList_OSRS"},
+    {"npc": "greater_demon5", "x": 3028, "z": 10250, "wander": 5, "source": "Greater demon (greater_demon5), the Lava Maze Dungeon. mejrs NPCList_OSRS"},
+    {"npc": "poisonspider", "x": 3044, "z": 10252, "wander": 5, "source": "Poison spider (poisonspider), the Lava Maze Dungeon. mejrs NPCList_OSRS"},
+    {"npc": "poisonspider", "x": 3055, "z": 10253, "wander": 5, "source": "Poison spider (poisonspider), the Lava Maze Dungeon. mejrs NPCList_OSRS"},
+    {"npc": "poisonspider", "x": 3068, "z": 10253, "wander": 5, "source": "Poison spider (poisonspider), the Lava Maze Dungeon. mejrs NPCList_OSRS"},
+    {"npc": "poisonspider", "x": 3067, "z": 10255, "wander": 5, "source": "Poison spider (poisonspider), the Lava Maze Dungeon. mejrs NPCList_OSRS"},
+    {"npc": "poisonspider", "x": 3051, "z": 10257, "wander": 5, "source": "Poison spider (poisonspider), the Lava Maze Dungeon. mejrs NPCList_OSRS"},
+    {"npc": "poisonspider", "x": 3067, "z": 10257, "wander": 5, "source": "Poison spider (poisonspider), the Lava Maze Dungeon. mejrs NPCList_OSRS"},
+    {"npc": "poisonspider", "x": 3069, "z": 10257, "wander": 5, "source": "Poison spider (poisonspider), the Lava Maze Dungeon. mejrs NPCList_OSRS"},
+    {"npc": "greater_demon4", "x": 3030, "z": 10259, "wander": 5, "source": "Greater demon (greater_demon4), the Lava Maze Dungeon. mejrs NPCList_OSRS"},
+    {"npc": "poisonspider", "x": 3069, "z": 10259, "wander": 5, "source": "Poison spider (poisonspider), the Lava Maze Dungeon. mejrs NPCList_OSRS"},
+    {"npc": "poisonspider", "x": 3043, "z": 10262, "wander": 5, "source": "Poison spider (poisonspider), the Lava Maze Dungeon. mejrs NPCList_OSRS"},
+    {"npc": "poisonspider", "x": 3037, "z": 10263, "wander": 5, "source": "Poison spider (poisonspider), the Lava Maze Dungeon. mejrs NPCList_OSRS"},
+    {"npc": "black_dragon4", "x": 3048, "z": 10266, "wander": 5, "source": "Black dragon (black_dragon4), the Lava Maze Dungeon. mejrs NPCList_OSRS"},
+    {"npc": "black_dragon5", "x": 3054, "z": 10269, "wander": 5, "source": "Black dragon (black_dragon5), the Lava Maze Dungeon. mejrs NPCList_OSRS"}
+  ]
+}

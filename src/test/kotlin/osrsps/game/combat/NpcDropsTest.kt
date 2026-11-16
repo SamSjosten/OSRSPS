@@ -1128,6 +1128,18 @@ class NpcDropsTest {
     }
 
     @Test
+    fun `the Lava Maze Dungeon's black dragons drop dragon bones and black dragonhide always`() {
+        val names = listOf("black_dragon4", "black_dragon5")
+        val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(255 + i, name, internalName = name) }.toTypedArray())
+        val drops = NpcDrops.load(types, objTypes)
+        for (name in names) {
+            val def = drops[types.find(name)!!]!!
+            assertEquals(listOf("Dragon bones", "Black dragonhide"), def.always.map { it.type.name }, name)
+            assertEquals(128, def.table!!.slots, name)
+        }
+    }
+
+    @Test
     fun `the Wilderness Edgeville Dungeon's chaos druids give one or two of a herb, the black demons one malicious ashes`() {
         val names = listOf("chaos_druid", "earthwarrior", "thug", "black_demon2", "black_demon3", "black_demon5", "giantskeleton")
         val wildTypes = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(2700 + i, name, internalName = name) }.toTypedArray())
