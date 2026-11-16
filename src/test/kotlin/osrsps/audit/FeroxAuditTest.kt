@@ -49,4 +49,25 @@ class FeroxAuditTest {
         val unsafe = town.filterNot { (x, z) -> Wilderness.inFerox(x, z) }
         assertEquals(emptyList(), unsafe)
     }
+
+    @Test
+    fun `no door or gate stands on the safe area's edge, so the cache's shut walls are the only way in`() {
+        val world = RealMap.load().map
+        val opens = setOf("Open", "Close", "Pass-Through", "Pass", "Enter", "Climb-over")
+        val edge = HashSet<Pair<Int, Int>>()
+        for ((z, runs) in Wilderness.FEROX_ROWS) for (run in runs) for (x in run) {
+            for (dx in -1..1) for (dz in -1..1) {
+                if (!Wilderness.inFerox(x + dx, z + dz)) {
+                    edge += x to z
+                    edge += (x + dx) to (z + dz)
+                }
+            }
+        }
+        val doors = edge.flatMap { (x, z) ->
+            world.locs.at(x, z, 0).filter { loc -> world.locTypes[loc.id]?.ops.orEmpty().any { it in opens } }.map { "${world.locTypes[it.id]?.name} ${it.id} at ${it.x},${it.z}" }
+        }.sorted()
+        println("Openable locs on Ferox's edge: $doors")
+        // The barriers (39652, Pass-Through) are the way in, and check the player as they pass; nothing else opens.
+        assertEquals(emptyList(), doors.filterNot { it.contains(" 39652 ") || it.contains(" 39653 ") })
+    }
 }

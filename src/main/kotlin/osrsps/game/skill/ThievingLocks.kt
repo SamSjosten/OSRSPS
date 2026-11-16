@@ -284,6 +284,8 @@ object ThievingLocks {
     private suspend fun ScriptContext.searchChest(world: World, op: Op, chest: TrapChest) {
         val loc = op.loc ?: return
         arriveDelay()
+        // Another thief may have looted it while this one walked up: no search, so no shield (round 38, R38A-1).
+        if (!world.locs.exists(loc)) return world.message(player, ThievingLockLines.LOOTED)
         world.message(player, ThievingLockLines.SEARCH)
         player.anim(ANIM_SEARCH)
         if (player.skills.currentLevel(Skill.THIEVING) < chest.level) return world.message(player, ThievingLockLines.NOTHING)
@@ -323,6 +325,12 @@ object ThievingLocks {
 
     /** Gives [chest]'s loot and XP, unless another thief emptied it first; then open, then empty for its time. */
     private suspend fun ScriptContext.loot(world: World, loc: ZoneLoc, chest: TrapChest) {
+        // The search is over, whatever comes of it: the rogues' shield goes with it (round 38, R38A-1).
+        if (player.shieldedFrom in chest.alerts) {
+            player.shieldedFrom = -1
+            player.shieldedSince = -1
+            player.shieldedUntil = -1
+        }
         if (!world.locs.exists(loc)) return world.message(player, ThievingLockLines.LOOTED)
         // The room may have gone in the ticks the search took.
         if (!fits(player, chest) { world.objTypes[it]?.stackable == true }) return world.message(player, ThievingLockLines.NO_ROOM)

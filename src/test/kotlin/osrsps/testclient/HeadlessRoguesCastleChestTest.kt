@@ -128,11 +128,35 @@ class HeadlessRoguesCastleChestTest {
                 assertEquals(5, server.world.meleeCombat.hitPlayer(ivo, null, 5, server.world.tick))
                 client.commandReply("resume") { true }
                 client.await("the treasure") { Unit.takeIf { client.seen("[thieving_lock.treasure]") == 1 } }
-                val now = server.world.tick
-                client.await("the search over") { Unit.takeIf { server.world.tick > ivo.shieldedUntil } }
+                assertEquals(-1, ivo.shieldedFrom, "the shield goes with the loot")
                 client.commandReply("pause") { true }
-                assertEquals(10, server.world.meleeCombat.hitPlayer(ivo, rogue, 10, server.world.tick), "after tick $now")
+                assertEquals(10, server.world.meleeCombat.hitPlayer(ivo, rogue, 10, server.world.tick))
                 client.commandReply("resume") { true }
+            }
+        }
+    }
+
+    @Test
+    fun `attacking any NPC mid-search ends the rogues' shield`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ivo").use { client ->
+                client.await("the login rebuild") { client.position }
+                val ivo = server.world.playerNamed("ivo")!!
+                client.level("thieving", THIEVING, 84)
+                client.level("hitpoints", HITPOINTS, 99)
+                client.tele(CHEST_X, CHEST_Z - 1)
+                val rogue = server.world.npcs.all.first { it.type.id == ThievingLocks.ROGUE }
+                client.locOp(chest.id, CHEST_X, CHEST_Z, ThievingLocks.OP_SECOND)
+                client.await("the trap found") { Unit.takeIf { client.seen("[thieving_lock.trap_found]") == 1 } }
+                client.commandReply("pause") { true }
+                assertEquals(0, server.world.meleeCombat.hitPlayer(ivo, rogue, 10, server.world.tick), "shielded")
+                // A swing or a cast at an NPC, as one fired from the chest's own tile.
+                ivo.attackedNpcTick = server.world.tick
+                assertEquals(10, server.world.meleeCombat.hitPlayer(ivo, rogue, 10, server.world.tick), "no shield once they attack")
+                client.commandReply("resume") { true }
+                client.await("the treasure") { Unit.takeIf { client.seen("[thieving_lock.treasure]") == 1 } }
+
+                assertTrue(ivo.shieldedFrom == -1)
             }
         }
     }
