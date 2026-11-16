@@ -3,6 +3,7 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
@@ -12,6 +13,7 @@ import osrsps.game.content.WildernessObelisks
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
+import osrsps.game.trade.Trades
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
@@ -127,6 +129,66 @@ class HeadlessWildernessObeliskTest {
                     assertEquals(Coord(from.x - 1, from.z + 1, 0), b.position)
                     assertEquals(bSeen, b.messages().count { it.text == "[obelisk.teleported]" })
                     assertTrue(obeliskAt(a.position!!) != null)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `two obelisks going on one tick, one to the other, each take only their own riders`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("rhea").use { a ->
+                server.login("saul").use { b ->
+                    for (client in listOf(a, b)) {
+                        client.await("the login rebuild") { client.position }
+                        client.commandReply("keys on") { it == "Dialogue shows keys" }
+                    }
+                    a.tele(WildernessObelisks.LEVEL_13.x, WildernessObelisks.LEVEL_13.z)
+                    b.tele(WildernessObelisks.LEVEL_19.x + 1, WildernessObelisks.LEVEL_19.z)
+                    a.commandReply("pause") { it.startsWith("Paused after tick") }
+                    // Set going together while the world is paused: 13 to 19, and 19 to 27.
+                    assertTrue(server.world.obelisks.activate(WildernessObelisks.LEVEL_13, WildernessObelisks.LEVEL_19))
+                    assertTrue(server.world.obelisks.activate(WildernessObelisks.LEVEL_19, WildernessObelisks.LEVEL_27))
+                    a.stepTicks(WildernessObelisks.TELEPORT_TICKS + 1)
+                    a.commandReply("resume") { it.startsWith("Resumed") }
+                    val to19 = WildernessObelisks.LEVEL_19
+                    val to27 = WildernessObelisks.LEVEL_27
+                    a.await("a at level 19's centre") { a.position?.takeIf { it == Coord(to19.x, to19.z, 0) } }
+                    b.await("b beside level 27's centre") { b.position?.takeIf { it == Coord(to27.x + 1, to27.z, 0) } }
+                    assertEquals(1, a.messages().count { it.text == "[obelisk.teleported]" })
+                    assertEquals(1, b.messages().count { it.text == "[obelisk.teleported]" })
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a rider's trade with a player outside the 3x3 ends before the teleport`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("tess").use { a ->
+                server.login("ugo").use { b ->
+                    for (client in listOf(a, b)) {
+                        client.await("the login rebuild") { client.position }
+                        client.commandReply("keys on") { it == "Dialogue shows keys" }
+                    }
+                    val from = WildernessObelisks.LEVEL_35
+                    a.tele(from.x, from.z + 1)
+                    b.tele(from.x, from.z + 2)
+                    a.playerOp(b.index, 4)
+                    b.await("the request") { b.messages().firstOrNull { it.type == Trades.CHATTYPE_TRADEREQ } }
+                    b.playerOp(a.index, 4)
+                    a.await("trading") { a.openInterfaces().takeIf { Trades.MAIN in it } }
+                    b.await("trading") { b.openInterfaces().takeIf { Trades.MAIN in it } }
+                    a.commandReply("pause") { it.startsWith("Paused after tick") }
+                    assertTrue(server.world.obelisks.activate(from, WildernessObelisks.LEVEL_50))
+                    a.stepTicks(WildernessObelisks.TELEPORT_TICKS + 1)
+                    a.commandReply("resume") { it.startsWith("Resumed") }
+                    val to = WildernessObelisks.LEVEL_50
+                    a.await("a at level 50") { a.position?.takeIf { it == Coord(to.x, to.z + 1, 0) } }
+                    assertNull(server.world.playerNamed("tess")!!.trade)
+                    assertNull(server.world.playerNamed("ugo")!!.trade)
+                    b.await("b's trade screen shut") { Unit.takeIf { Trades.MAIN !in b.openInterfaces() } }
+                    assertEquals(Coord(from.x, from.z + 2, 0), b.position)
                 }
             }
         }
