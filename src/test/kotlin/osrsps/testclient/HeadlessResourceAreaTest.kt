@@ -158,6 +158,30 @@ class HeadlessResourceAreaTest {
     }
 
     @Test
+    fun `the gate works from beside it along the wall, on either side`(@TempDir dir: Path) {
+        assertEquals(Tile(GATE_X, GATE_Z), ResourceArea.crossingFrom(GATE_X - 1, GATE_Z, 0))
+        assertEquals(Tile(GATE_X, GATE_Z + 1), ResourceArea.crossingFrom(GATE_X + 1, GATE_Z + 1, 0))
+        assertNull(ResourceArea.crossingFrom(GATE_X + 2, GATE_Z, 0))
+        server(dir).use { server ->
+            server.login("dax").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(GATE_X - 1, GATE_Z)
+                client.openGate()
+                client.await("out from beside the gate") { client.position?.takeIf { it == Coord(GATE_X, GATE_Z + 1, 0) } }
+
+                client.tele(GATE_X + 1, GATE_Z + 1)
+                client.command("item $COINS 7500")
+                client.await("the fee") { Unit.takeIf { client.count(COINS) == 7_500L } }
+                client.openGate()
+                client.awaitDialogue("the fee's menu") { it is DialogueView.Menu }
+                client.chooseOption(1)
+                client.await("in from beside the gate") { client.position?.takeIf { it == Coord(GATE_X, GATE_Z, 0) } }
+                assertEquals(0L, client.count(COINS))
+            }
+        }
+    }
+
+    @Test
     fun `Piles notes no more than the banknote stack can hold`(@TempDir dir: Path) {
         assertEquals(1, ResourceArea.noteable(held = 3, coins = 150, notedHeld = Int.MAX_VALUE - 1L))
         assertEquals(0, ResourceArea.noteable(held = 3, coins = 150, notedHeld = Int.MAX_VALUE.toLong()))

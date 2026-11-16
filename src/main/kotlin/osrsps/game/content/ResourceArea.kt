@@ -97,6 +97,20 @@ object ResourceArea {
 
     fun inside(player: Player) = inside(player.x, player.z, player.level)
 
+    /**
+     * The tile in front of the gate on the side a player at [x], [z] reaches it from: their own if they stand in front of
+     * it, the one beside them if they reached it from along the wall (as reaching a wall allows); else null.
+     */
+    fun crossingFrom(x: Int, z: Int, level: Int): Tile? {
+        val gate = GATE_TILES.tiles.first()
+        if (level != GATE_TILES.level || kotlin.math.abs(x - gate.x) > 1) return null
+        return when (z) {
+            gate.z -> gate
+            OUTSIDE.z -> OUTSIDE
+            else -> null
+        }
+    }
+
     /** Where a player saved at [x], [z] on [level] comes back: outside the gate if they were inside, else null. */
     fun loginPlace(x: Int, z: Int, level: Int): Tile? = OUTSIDE.takeIf { inside(x, z, level) }
 
@@ -112,9 +126,15 @@ fun registerResourceArea(world: World) {
     with(ResourceArea) {
         world.handlers.onLoc(GATE, OPEN) { op ->
             val loc = op.loc!!
-            val to = MemberGates.through(GATE_TILES, player.x, player.z)
+            val from = crossingFrom(player.x, player.z, player.level)
                 ?: return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
+            val to = MemberGates.through(GATE_TILES, from.x, from.z)!!
             arriveDelay()
+            if (player.x != from.x || player.z != from.z) {
+                // Reached from beside the gate along its wall: in front of it first, on the same side.
+                world.teleport(player, from.x, from.z, loc.level)
+                delay(1)
+            }
             if (!inside(to.x, to.z, loc.level)) return@onLoc stepThrough(world, to, loc.level)
             var paid = false
             world.dialogues.start(this) { paid = payFee() }
