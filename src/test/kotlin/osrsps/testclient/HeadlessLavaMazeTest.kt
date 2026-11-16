@@ -189,6 +189,34 @@ class HeadlessLavaMazeTest {
     }
 
     @Test
+    fun `a muddy key gone in the tick before the chest opens opens nothing`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("orrin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("keys on") { it == "Dialogue shows keys" }
+                client.command("item ${LavaMaze.MUDDY_KEY}")
+                client.await("the key") { Unit.takeIf { client.count(LavaMaze.MUDDY_KEY) == 1L } }
+                client.tele(3089, 3857)
+                // One step from the chest, with the clock stopped: the Open arrives, the player steps beside the chest
+                // in the next tick and the chest waits a tick more; the key leaves the backpack in between.
+                client.commandReply("pause") { it.startsWith("Paused") }
+                client.locOp(LavaMaze.CHEST, 3089, 3859, LavaMaze.OPEN)
+                val paused = server.world.tick
+                client.commandReply("step 1") { it.startsWith("Stepping") }
+                client.await("the stepped tick") { Unit.takeIf { server.world.tick > paused } }
+                val player = server.world.playerNamed("orrin")!!
+                assertEquals(3858, player.z, "beside the chest")
+                player.inventory.remove(player.inventory.contents().first { it.second.id == LavaMaze.MUDDY_KEY }.first, 1)
+                client.commandReply("resume") { true }
+                client.awaitMessage("locked") { it == "[lava_maze.chest_locked]" }
+                assertEquals(0L, client.count(1619), "no loot")
+                assertTrue(client.messages().none { it.text == "[lava_maze.chest_treasure]" })
+                assertNotNull(server.world.locs.find(LavaMaze.CHEST, 3089, 3859, 0), "still shut")
+            }
+        }
+    }
+
+    @Test
     fun `the dungeon's spawn file has its demons, spiders and dragons`() {
         val names = mapOf(
             "greater_demon3" to 2027, "greater_demon4" to 2028, "greater_demon5" to 2029, "poisonspider" to 3023,

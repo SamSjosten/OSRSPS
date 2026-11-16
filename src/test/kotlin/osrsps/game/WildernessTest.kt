@@ -71,6 +71,20 @@ class WildernessTest {
     }
 
     @Test
+    fun `Ferox Enclave is safe inside its walls only, its north-east corner too`() {
+        // Its four barriers' tiles are inside; the tiles past them are not.
+        for ((x, z) in listOf(3123 to 3628, 3123 to 3629, 3134 to 3617, 3135 to 3617, 3134 to 3639, 3135 to 3639, 3154 to 3634, 3154 to 3635)) {
+            assertEquals(0, Wilderness.pvpLevel(x, z), "barrier $x, $z")
+        }
+        assertTrue(Wilderness.pvpLevel(3122, 3628) > 0, "west of the west barriers")
+        assertTrue(Wilderness.pvpLevel(3155, 3634) > 0, "east of the east barriers")
+        // Round 37: the tiles beside the level 13 obelisk (3156, 3620) are outside the walls, though in the old box.
+        for (z in 3619..3621) assertTrue(Wilderness.pvpLevel(3154, z) > 0, "by the obelisk, 3154, $z")
+        // The town past z 3639, where its north-east NPCs stand, is inside.
+        assertEquals(0, Wilderness.pvpLevel(3151, 3643))
+    }
+
+    @Test
     fun `combat levels are in range within the lower Wilderness level`() {
         assertTrue(Wilderness.inRange(100, 1, 99, 1))
         assertTrue(Wilderness.inRange(100, 1, 101, 1))
