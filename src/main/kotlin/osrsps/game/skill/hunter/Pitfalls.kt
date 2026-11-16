@@ -335,17 +335,29 @@ class Pitfalls(private val world: World, private val traps: Traps) {
         arriveDelay()
         val mine = mine(player, loc)?.takeIf { it.value == SET } ?: return
         val from = osrsps.map.Tile(player.x, player.z)
-        val to = landing(loc, from.x, from.z)?.takeIf { clear(loc, Crossing(true, it.x, it.z), size = 1) }
+        val to = landing(loc, from.x, from.z)?.takeIf { jumpable(loc, from, it) }
             ?: return world.message(player, osrsps.game.GameLines.CANT_REACH)
         val angle = Agility.angle(to.x - from.x, to.z - from.z)
         player.effects.exactMove(PlayerEffects.ExactMove(from.x, from.z, to.x, to.z, WildernessDitch.JUMP_START_CYCLES, JUMP_TICKS * 30, angle))
         player.anim(WildernessDitch.ANIM_JUMP)
         delay(JUMP_TICKS)
+        // Again on landing: the far side may have filled during the jump (exploit review round 37, B-2).
+        if (!jumpable(loc, from, to) || mine(player, loc)?.value != SET) {
+            world.teleport(player, from.x, from.z, loc.level)
+            return world.message(player, osrsps.game.GameLines.CANT_REACH)
+        }
         world.teleport(player, to.x, to.z, loc.level)
         val tease = teases.firstOrNull { it.player === player } ?: return
         tease.jumped = mine
         tease.jumpTick = world.tick
         tease.activeTick = world.tick
+    }
+
+    /** Whether a jump from [from] over [loc] to [to] is open: no wall onto the pit's near edge, and the far side clear. */
+    private fun jumpable(loc: ZoneLoc, from: osrsps.map.Tile, to: osrsps.map.Tile): Boolean {
+        val dx = Integer.signum(to.x - from.x)
+        val dz = Integer.signum(to.z - from.z)
+        return world.noWallBetween(loc.level, from.x, from.z, dx, dz) && clear(loc, Crossing(true, to.x, to.z), size = 1)
     }
 
     /** The tile across the 2 by 2 pit at [loc] from [x], [z], which must be square to one of its sides. */

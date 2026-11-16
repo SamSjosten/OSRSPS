@@ -425,21 +425,37 @@ class Falconry(private val world: World, private val collision: CollisionMap) {
      */
     private fun rent(player: Player): Boolean {
         if (player.inventory.count(COINS) < FEE_COINS || !handsFree(player)) return false
+        // The hands first, the fee last (exploit review round 37, B-3); a coin stack the fee empties is room handsFree
+        // counted, so what didn't fit before the fee is moved after it.
+        val pending = moveHands(player)
         var left = FEE_COINS
         for ((slot, held) in player.inventory.contents()) {
             if (left == 0) break
             if (held.id == COINS) left -= player.inventory.remove(slot, left)
         }
-        for (pos in listOf(WearPos.WEAPON, WearPos.SHIELD)) {
-            val obj = player.equipment[pos] ?: continue
-            val type = world.objTypes[obj.id]
-            if (type != null && player.inventory.add(type, obj.count) == obj.count) player.equipment[pos] = null
+        if (pending) moveHands(player)
+        // handsFree said both would fit; never write the glove over a weapon still worn, and never keep the fee for it.
+        if (player.equipment[WearPos.WEAPON] != null || player.equipment[WearPos.SHIELD] != null) {
+            world.objTypes[COINS]?.let { world.groundObjs.give(player, it, FEE_COINS) }
+            return false
         }
-        // handsFree said both would fit; never write the glove over a weapon still worn.
-        if (player.equipment[WearPos.WEAPON] != null) return false
         player.equipment[WearPos.WEAPON] = InvObj(GLOVE_FALCON, 1)
         return true
     }
+
+    /** Moves what is worn in the weapon and shield slots to the backpack where it fits; true if any is still worn. */
+    private fun moveHands(player: Player): Boolean {
+        for (pos in listOf(WearPos.WEAPON, WearPos.SHIELD)) {
+            val obj = player.equipment[pos] ?: continue
+            val type = world.objTypes[obj.id] ?: continue
+            if (!type.stackable && player.inventory.freeSlots == 0) continue
+            if (type.stackable && player.inventory.count(obj.id) == 0L && player.inventory.freeSlots == 0) continue
+            if (type.stackable && player.inventory.count(obj.id) + obj.count > Inventory.MAX_STACK) continue
+            if (player.inventory.add(type, obj.count) == obj.count) player.equipment[pos] = null
+        }
+        return player.equipment[WearPos.WEAPON] != null || player.equipment[WearPos.SHIELD] != null
+    }
+
 
     /** Takes the glove off [player] wherever it is, and ends their falcon's flight. */
     private fun takeGlove(player: Player) {
