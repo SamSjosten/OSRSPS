@@ -96,6 +96,9 @@ class HeadlessChaosTempleTest {
                 assertTrue(spared > 0, "seed 7 spares some")
                 // Each offering, spared or not, gives 15.7 XP (4.5 times 3.5, to a tenth).
                 assertEquals((5 + spared) * 157, player.skills.tenths(osrsps.game.Skill.PRAYER) - before)
+                // One offering every three ticks, the first repeat included, though the player started beside the altar.
+                val offers = client.animationTicks().takeLast(5 + spared)
+                assertEquals(List(4 + spared) { ChaosTemple.OFFER_TICKS }, offers.zipWithNext { a, b -> b - a }, "ticks $offers")
 
                 client.command("item $VILE")
                 client.locTarget(ChaosTemple.ALTAR, ChaosTemple.ALTAR_X, ChaosTemple.ALTAR_Z, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slotOf(VILE), VILE)

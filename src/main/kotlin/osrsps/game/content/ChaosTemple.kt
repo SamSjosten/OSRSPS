@@ -83,22 +83,30 @@ fun registerChaosTemple(world: World) {
         world.handlers.onObjOnLoc(ALTAR) { op ->
             val loc = op.loc!!
             if (!isTempleAltar(loc) || offerXp(op.obj) == null) return@onObjOnLoc world.message(player, AltarLines.WRATH)
+            // A player already beside it offers in this tick's movement phase, after the script phase that first counts
+            // a queued delay down; one who stepped there waits a tick and offers in the script phase (as fill's fromMovement).
+            val fromMovement = player.lastMoveTick != tick
             arriveDelay()
-            offer(world, op.obj)
+            offer(world, op.obj, fromMovement)
         }
         world.handlers.onNpc(DRUID, TALK_TO) { op -> world.dialogues.start(this, op.npc) { druid() } }
         world.handlers.onObjOnNpc(DRUID) { op -> world.dialogues.start(this, op.npc) { exchange(world, op.obj) } }
     }
 }
 
-/** One offering of bones [id], then the next queued [ChaosTemple.OFFER_TICKS] later, until the player moves or runs out. */
-private fun ScriptContext.offer(world: World, id: Int) {
+/**
+ * One offering of bones [id], then the next queued [ChaosTemple.OFFER_TICKS] later ([fromMovement] when this runs in the
+ * movement phase), until the player moves or runs out.
+ */
+private fun ScriptContext.offer(world: World, id: Int, fromMovement: Boolean = false) {
     val xp = ChaosTemple.offerXp(id) ?: return
     val slot = player.inventory.contents().firstOrNull { (_, obj) -> obj.id == id }?.first ?: return
     player.anim(ChaosTemple.ANIM_OFFER)
     if (world.random.chance(1, 2)) world.message(player, ChaosTempleLines.SPARED) else player.inventory.remove(slot, 1)
     player.skills.addTenths(Skill.PRAYER, xp)
-    if (player.inventory.count(id) > 0) queue(ChaosTemple.QUEUE, QueueType.WEAK, delay = ChaosTemple.OFFER_TICKS) { offer(world, id) }
+    if (player.inventory.count(id) == 0L) return
+    val delay = if (fromMovement) ChaosTemple.OFFER_TICKS - 1 else ChaosTemple.OFFER_TICKS
+    queue(ChaosTemple.QUEUE, QueueType.WEAK, delay = delay) { offer(world, id) }
 }
 
 private suspend fun Dialogue.druid(): Unit = with(ChaosTempleLines) {
