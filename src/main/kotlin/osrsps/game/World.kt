@@ -194,6 +194,7 @@ import osrsps.game.content.registerJalarast
 import osrsps.game.content.registerRick
 import osrsps.game.content.registerBones
 import osrsps.game.content.GiantLairs
+import osrsps.game.content.KingBlackDragon
 import osrsps.game.content.registerGiantBones
 import osrsps.game.content.registerBryophyta
 import osrsps.game.content.registerEmotes
@@ -605,7 +606,7 @@ class World(
 
     private val locInteractions = LocInteractions(
         locs, collision, movement, handlers, scripts, doors, gates, words = ::textFor, inInstance = { x, z -> instances.at(x, z) != null },
-        forInstances = { it in ArchiveRaids.INSTANCE_LOCS || it in GiantLairs.INSTANCE_LOCS },
+        forInstances = { it in ArchiveRaids.INSTANCE_LOCS || it in GiantLairs.INSTANCE_LOCS || it in KingBlackDragon.INSTANCE_LOCS },
     )
 
     /** Lets loc type [id] be used from the tiles [tiles] gives, as a stepping stone from the bank; see [LocInteractions.useFrom]. */
@@ -2850,12 +2851,13 @@ class World(
         // A superior's three rolls on its normal counterpart's table come after its own drops.
         val drops = npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty()
         val owner = killer?.takeIf { !it.loggedOut }?.saveKey
+        val despawn = osrsps.game.content.KingBlackDragon.lootTicks(this, npc, GroundObjs.LOOT_DESPAWN_TICKS)
         for (drop in drops) {
             if (owner != null) {
-                groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, owner, GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.LOOT_DESPAWN_TICKS)
+                groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, owner, GroundObjs.DROP_PRIVATE_TICKS, despawn)
                 killer?.let { lootNotifications.dropped(it, drop.type, drop.count) }
             } else {
-                groundObjs.addPublic(drop.type, drop.count, npc.x, npc.z, npc.level, GroundObjs.LOOT_DESPAWN_TICKS)
+                groundObjs.addPublic(drop.type, drop.count, npc.x, npc.z, npc.level, despawn)
             }
         }
     }

@@ -1,19 +1,23 @@
 package osrsps.game.content
 
 import kotlin.math.max
+import osrsps.game.GameLines
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.combat.AttackType
 import osrsps.game.combat.Dragonfire
 import osrsps.game.combat.MeleeCombat
+import osrsps.game.combat.PvpLines
 import osrsps.game.dialogue.Lines
 import osrsps.game.encounter.CycleStep
 import osrsps.game.encounter.EncounterContext
 import osrsps.game.encounter.EncounterDef
 import osrsps.game.encounter.PhaseDef
 import osrsps.game.encounter.heldTarget
+import osrsps.game.instance.Instance
 import osrsps.game.npc.Npc
+import osrsps.game.npc.NpcSpawn
 import osrsps.game.zone.Projectile
 import osrsps.map.LineOfSight
 
@@ -24,6 +28,10 @@ object KingBlackDragonLines : Lines("kbd", "King Black Dragon Lair") {
     val TOXIC = line("toxic", "A toxic breath hits a player with no dragonfire protection (the Wiki's King Black Dragon)")
     val SHOCKING = line("shocking", "A shocking breath hits a player with no dragonfire protection (the Wiki's King Black Dragon)")
     val FIERY = line("fiery", "His fiery breath hits a player with no dragonfire protection (the Wiki's King Black Dragon)")
+    val PRIVATE_TITLE = line("private_title", "Private on the lever into the lair: the menu's title, asking to pay 50,000 coins for a private lair (no source yet)")
+    val PRIVATE_YES = line("private_yes", "Private on the lever: the menu's option that pays and goes in (no source yet)")
+    val PRIVATE_NO = line("private_no", "Private on the lever: the menu's option that doesn't (no source yet)")
+    val PRIVATE_NO_COINS = line("private_no_coins", "Private on the lever with fewer than 50,000 coins in the backpack and in the bank (no source yet)")
 }
 
 /**
@@ -33,7 +41,11 @@ object KingBlackDragonLines : Lines("kbd", "King Black Dragon Lair") {
  * The lair (map square 35_73, multi-way, not in the Wilderness) is reached by Pull on the Lava Maze Dungeon's lever
  * (`dragonkinginlever` 1816 at 3067,10253), which a Tele Blocked player can't, and left by Pull on its own
  * (`dragonkingoutlever` 1817 at 2271,4680), both through [WildernessLevers]. Commune on the way in says how many players
- * are in the lair. Its Private option (the 50,000-coin instance) is step W4.6b.
+ * are in the lair. Private on the way in (step W4.6b) takes 50,000 coins, from the backpack or else the bank ("Players do
+ * not need to carry coins on them, as the fee may be deducted from the bank", the Wiki's King Black Dragon), for a lair
+ * of the player's own: a copy of his map square ([osrsps.game.instance.Instance]) with him in it, which he comes back to
+ * after each kill as in the open lair, gone with everything in it once nobody is inside. Its lever out works there too,
+ * and logging out or dying inside leaves by the dungeon's lever, as every instance does.
  *
  * `king_dragon` 239, size 5, combat 276, 240 hitpoints, aggressive, every 4 ticks. Beside the player he swings (stab,
  * max 25) one attack in three; otherwise he breathes, half the time dragonfire (max 65) and half one of three special
@@ -46,8 +58,12 @@ object KingBlackDragonLines : Lines("kbd", "King Black Dragon Lair") {
  * GUESSED until recorded: each breath's damage from 0 to its cap with no accuracy roll; the effects only on a hit of 1
  * or more; the shock draining every stat but Hitpoints; his animations (dragon_attack for the swing,
  * dragon_ranged_attacks for every breath) and the breaths' flight; the chromatic dragons' dragonfire messages for a
- * shield or Protect from Magic; where the levers put the player (the far lever's own tile, as the other levers); the Commune line's count
- * of everyone in the lair's map square. No pet, no draconic visage, no KBD heads yet.
+ * shield or Protect from Magic; where the levers put the player (the far lever's own tile, as the other levers); the
+ * Commune line's count
+ * of everyone in the lair's map square; Private taking the fee from the backpack when it holds it all and else from the
+ * bank, after a menu, and refused under a Tele Block; the private lair's pull as the open lever's. His drops in a private
+ * lair last [PRIVATE_LOOT_TICKS] ("Items dropped by the boss in this instance will disappear after 30 minutes", the
+ * Wiki's King Black Dragon). No pet, no draconic visage, no KBD heads yet.
  */
 object KingBlackDragon {
     const val BOSS = 239
@@ -56,6 +72,24 @@ object KingBlackDragon {
     const val LEVER_IN = 1816
     const val LEVER_OUT = 1817
     const val COMMUNE = 2
+    const val PRIVATE = 5
+    const val PRIVATE_FEE = 50_000
+    const val COINS = 995
+
+    /** 30 minutes: how long his drops last in a private lair. */
+    const val PRIVATE_LOOT_TICKS = 3000
+
+    /** Where he spawns, and how far he wanders, in the open lair and (moved) in a private one. */
+    val SPAWN = osrsps.map.Tile(2269, 4697)
+    const val WANDER = 10
+
+    /** The private lair copies his whole map square. */
+    const val LAIR_X = 35 shl 6
+    const val LAIR_Z = 73 shl 6
+    const val LAIR_ZONES = 8
+
+    /** His locs whose handlers work in a private lair: the lever out. */
+    val INSTANCE_LOCS: Set<Int> = setOf(LEVER_OUT)
 
     const val ATTACK_SPEED = 4
     const val MELEE_MAX = 25
@@ -122,6 +156,40 @@ object KingBlackDragon {
     /** A breath's projectile, arriving as it lands [ticks] later: timed as an NPC's shot ([MeleeCombat.flight]). */
     fun breathProjectile(world: World, boss: Npc, target: Player, breath: Breath, ticks: Int): Projectile =
         world.meleeCombat.flight(boss, target, breath.spot, ticks)
+
+    /**
+     * A private lair, him in it; null (and no lair left behind) when the dynamic area has no room or he can't be spawned
+     * there (Codex review of W4.6b: no fee for an empty lair).
+     */
+    fun openPrivate(world: World): Instance? {
+        val exit = WildernessLevers.KBD_DUNGEON_TILE
+        val instance = world.instances.create(LAIR_X, LAIR_Z, LAIR_ZONES, LAIR_ZONES, exit.x, exit.z, exit.level) ?: return null
+        val type = world.npcTypes[BOSS]
+        val boss = type?.let { world.spawnNpc(NpcSpawn(it, instance.baseX + SPAWN.x - LAIR_X, instance.baseZ + SPAWN.z - LAIR_Z, 0, wander = WANDER, source = "kbd private lair")) }
+        if (boss == null) {
+            world.endInstance(instance)
+            return null
+        }
+        return instance
+    }
+
+    /** How long [npc]'s drops last: [PRIVATE_LOOT_TICKS] for him in a private lair, else [default]. */
+    fun lootTicks(world: World, npc: Npc, default: Int): Int =
+        if (npc.type.id == BOSS && world.instances.at(npc.x, npc.z) != null) PRIVATE_LOOT_TICKS else default
+
+    /** Takes the fee: from the backpack if it holds it all, else from the bank; false (nothing taken) if neither does. */
+    fun pay(world: World, player: Player): Boolean {
+        if (player.inventory.count(COINS) >= PRIVATE_FEE) {
+            Ned.take(player.inventory, COINS, PRIVATE_FEE)
+            return true
+        }
+        if (player.bank.count(COINS) < PRIVATE_FEE) return false
+        world.bank.take(player.bank, world.bankScreen.tabs(player), COINS, PRIVATE_FEE)
+        return true
+    }
+
+    /** Whether [player] can pay the fee, from the backpack or the bank. */
+    fun canPay(player: Player): Boolean = player.inventory.count(COINS) >= PRIVATE_FEE || player.bank.count(COINS) >= PRIVATE_FEE
 
     private fun EncounterContext.tick() {
         val target = heldTarget() ?: hunt()
@@ -197,12 +265,43 @@ fun registerKingBlackDragon(world: World) {
             val inside = world.onlinePlayers.count { inLair(it.x, it.z) && it.level == 0 }
             world.message(player, KingBlackDragonLines.COMMUNE, "count" to inside)
         }
+        world.handlers.onLoc(LEVER_IN, PRIVATE) {
+            arriveDelay()
+            if (player.teleblockTicks > 0) return@onLoc world.message(player, PvpLines.TELEPORT_BLOCKED)
+            if (!canPay(player)) return@onLoc world.message(player, KingBlackDragonLines.PRIVATE_NO_COINS)
+            var yes = false
+            world.dialogues.start(this) {
+                yes = choice(KingBlackDragonLines.PRIVATE_YES, KingBlackDragonLines.PRIVATE_NO, title = text(KingBlackDragonLines.PRIVATE_TITLE)) == 1
+            }
+            if (!yes) return@onLoc
+            if (!canPay(player)) return@onLoc world.message(player, KingBlackDragonLines.PRIVATE_NO_COINS)
+            player.anim(WildernessLevers.PULL_ANIM)
+            delay(WildernessLevers.PULL_TICKS)
+            // A Tele Block landing during the pull stops it before the teleport starts, as at the other levers (Codex
+            // review of W4.6b).
+            if (player.teleblockTicks > 0) {
+                player.anim(-1)
+                return@onLoc world.message(player, PvpLines.TELEPORT_BLOCKED)
+            }
+            player.anim(WildernessLevers.TELEPORT_ANIM)
+            player.spotanim(WildernessLevers.TELEPORT_SPOTANIM, WildernessLevers.TELEPORT_SPOTANIM_HEIGHT)
+            delay(WildernessLevers.TELEPORT_TICKS)
+            player.anim(-1)
+            // Made, paid for and gone into in one tick: an instance with nobody in it ends at the tick's end.
+            if (player.teleblockTicks > 0) return@onLoc world.message(player, PvpLines.TELEPORT_BLOCKED)
+            if (!canPay(player)) return@onLoc world.message(player, KingBlackDragonLines.PRIVATE_NO_COINS)
+            val instance = openPrivate(world) ?: return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
+            pay(world, player)
+            val to = WildernessLevers.KBD_LAIR_TILE
+            world.teleport(player, instance.baseX + to.x - LAIR_X, instance.baseZ + to.z - LAIR_Z, 0)
+        }
         // Not in a cache without him (a test's).
         val def = def(world) ?: return
         world.wildernessBosses.register(WildernessBoss("king black dragon", setOf(BOSS), KILL_COUNT_VARP))
         world.npcScripts.onTick(listOf(BOSS)) { npc ->
             if (npc.dead || world.encounters.all.any { it.boss === npc }) return@onTick
-            world.encounters.start(def, npc, { x, z -> inLair(x, z) })
+            val instance = world.instances.at(npc.x, npc.z)
+            world.encounters.start(def, npc, if (instance != null) instance::contains else { x, z -> inLair(x, z) })
         }
     }
 }
