@@ -51,7 +51,6 @@ object WildernessLevers {
 
     val KEEP_TILE = Destination(3153, 3923)
     val ARDOUGNE_TILE = Destination(2561, 3311)
-    val EDGEVILLE_TILE = Destination(3090, 3475)
     val MAGE_BANK_TILE = Destination(2539, 4712)
     val MAGE_HUT_TILE = Destination(3090, 3956)
 
@@ -75,9 +74,18 @@ fun registerWildernessLevers(world: World) {
             player.anim(WildernessLevers.PULL_ANIM)
             if (arrival != null) world.message(player, WildernessLeverLines.PULL)
             delay(WildernessLevers.PULL_TICKS)
+            // A Tele Block landing during the pull or the teleport still stops it (Codex review of W3.2).
+            if (player.teleblockTicks > 0) {
+                player.anim(-1)
+                return@onLoc world.message(player, PvpLines.TELEPORT_BLOCKED)
+            }
             player.anim(WildernessLevers.TELEPORT_ANIM)
             player.spotanim(WildernessLevers.TELEPORT_SPOTANIM, WildernessLevers.TELEPORT_SPOTANIM_HEIGHT)
             delay(WildernessLevers.TELEPORT_TICKS)
+            if (player.teleblockTicks > 0) {
+                player.anim(-1)
+                return@onLoc world.message(player, PvpLines.TELEPORT_BLOCKED)
+            }
             // The arrival's line and the reset go in the move's own tick, just before it.
             player.anim(-1)
             if (arrival != null) world.message(player, arrival)

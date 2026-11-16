@@ -100,4 +100,30 @@ class HeadlessWildernessLeverTest {
             }
         }
     }
+
+    @Test
+    fun `a Tele Block landing during the pull or the teleport still keeps the player`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("tam").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("keys on") { it == "Dialogue shows keys" }
+                val tam = server.world.playerNamed("tam")!!
+                val refusals = { client.messages().count { it.text == "[pvp.teleport_blocked]" } }
+                for (after in listOf(1, 1 + WildernessLevers.PULL_TICKS)) {
+                    client.tele(3153, 3923)
+                    tam.teleblockTicks = 0
+                    val before = refusals()
+                    client.commandReply("pause") { it.startsWith("Paused after tick") }
+                    client.locOp(WildernessLevers.KEEP_DEFAULT, 3153, 3923, WildernessLevers.PULL)
+                    client.stepTicks(after)
+                    tam.teleblockTicks = 400
+                    client.stepTicks(WildernessLevers.PULL_TICKS + WildernessLevers.TELEPORT_TICKS + 2)
+                    client.commandReply("resume") { it.startsWith("Resumed") }
+                    client.await("the refusal ${after} ticks in") { Unit.takeIf { refusals() == before + 1 } }
+                    assertEquals(Coord(3153, 3923, 0), client.position, "blocked $after ticks into the pull")
+                }
+                tam.teleblockTicks = 0
+            }
+        }
+    }
 }
