@@ -1,5 +1,5 @@
 {
-  "name": "Wilderness step W3.5: an ice warrior fought on the Frozen Waste Plateau (level 52), then a level 135 rogue at Rogues' Castle (level 53) fought under ::god (::keys on)",
+  "name": "Wilderness step W3.5: an ice warrior fought on the Frozen Waste Plateau (level 52), then a level 135 rogue at Rogues' Castle (level 53) fought, then a hellhound killed and leaving vile ashes, under ::god (::keys on)",
   "account": "test",
   "steps": [
     {"step": "waitForLogin"},
@@ -12,6 +12,13 @@
     {"step": "command", "text": "::tele 3285 3940 0", "expectMessage": "Teleported to 3285, 3940, 0", "comment": "inside Rogues' Castle"},
     {"step": "npcOption", "npc": "Rogue", "option": "Attack", "timeoutMs": 20000, "comment": "a level 15 or 135 rogue, whichever is nearest"},
     {"step": "assertHitsplat", "npc": "Rogue", "timeoutMs": 20000},
+
+    {"step": "command", "text": "::tele 3167 3956 0", "expectMessage": "Teleported to 3167, 3956, 0", "comment": "beside a hellhound's spawn (3169, 3956) by the Resource Area"},
+    {"step": "npcOption", "npc": "Hellhound", "option": "Attack", "timeoutMs": 20000},
+    {"step": "assertHitsplat", "npc": "Hellhound", "timeoutMs": 20000},
+    {"step": "command", "text": "::drops", "expectMessage": "Hellhound always drops: Vile ashes"},
+    {"step": "command", "text": "::kill", "expectMessage": "Killed Hellhound #"},
+    {"step": "assertGroundItem", "item": "Vile ashes", "timeoutMs": 15000},
 
     {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
   ]

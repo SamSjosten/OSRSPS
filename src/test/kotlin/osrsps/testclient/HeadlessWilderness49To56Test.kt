@@ -5,8 +5,15 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
+import osrsps.game.NpcStats
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.SeqNames
@@ -15,13 +22,15 @@ import osrsps.game.World
 import osrsps.game.combat.DropTestItems
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
+import osrsps.game.npc.NpcSpawn
 import osrsps.game.npc.NpcSpawnFile
 import osrsps.map.CollisionMap
 
 /**
  * Wilderness step W3.5 (its spawns) through the headless client: the spawn file for levels 49 to 56 loads every NPC in
- * it and a client visiting each map square sees that square's NPCs; and the far north's monsters have their Wiki
- * numbers and drops in the combat and drop files.
+ * it and a client visiting each map square sees that square's NPCs; the far north's monsters have their Wiki numbers
+ * and drops in the combat and drop files; and a hellhound and an ice giant fought with those files leave their vile
+ * ashes and big bones and only what their tables name.
  */
 class HeadlessWilderness49To56Test {
     /** The file's NPCs by their 242 cache ids, read by name as the server reads them. */
@@ -85,5 +94,83 @@ class HeadlessWilderness49To56Test {
         assertEquals(listOf(25769), drops[104]!!.always.map { it.type.id }, "hellhounds' vile ashes")
         assertNotNull(drops[2841]!!.table, "ice warriors roll a table")
         assertEquals(128, drops[2841]!!.table!!.slots)
+    }
+
+    private val hellhound = NpcType(
+        HELLHOUND, "Hellhound", size = 2, ops = listOf(null, "Attack", null, null, null), combatLevel = 122,
+        internalName = "hellhound", stats = NpcStats(attack = 105, defence = 102, strength = 104, hitpoints = 116),
+    )
+
+    private val iceGiant = NpcType(
+        ICE_GIANT, "Ice giant", size = 2, ops = listOf(null, "Attack", null, null, null), combatLevel = 53,
+        internalName = "icegiant", stats = NpcStats(attack = 40, defence = 40, strength = 40, hitpoints = 70),
+    )
+
+    private fun monsterServer(dir: Path) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
+        val types = NpcTypes.of(hellhound, iceGiant)
+        val objTypes = DropTestItems.objTypes()
+        World(
+            crcs, CollisionMap().apply { markLoaded(HOUND_X shr 6, HOUND_Z shr 6); markLoaded(GIANT_X shr 6, GIANT_Z shr 6) },
+            random = GameRandom(11), objTypes = objTypes, npcTypes = types,
+            npcSpawns = listOf(NpcSpawn(hellhound, HOUND_X, HOUND_Z, source = "test"), NpcSpawn(iceGiant, GIANT_X, GIANT_Z, source = "test")),
+            npcCombat = NpcCombat.load(types, SeqNames.NONE), npcDrops = NpcDrops.load(types, objTypes), cycleMillis = millis,
+        )
+    }
+
+    /** The items the drop file's line for [name] can give: its own, and those of every shared table it rolls on. */
+    private fun dropItems(name: String): Set<Int> {
+        val root = Json.parseToJsonElement(NpcDrops::class.java.getResource(NpcDrops.RESOURCE)!!.readText()).jsonObject
+        val entry = root.getValue("npcs").jsonArray.map { it.jsonObject }
+            .single { e -> e.getValue("npcs").jsonArray.any { it.jsonPrimitive.content == name } }
+        val tables = root.getValue("tables").jsonObject
+        val items = HashSet<Int>()
+        fun lines(lines: List<JsonObject>) {
+            for (line in lines) {
+                line["item"]?.let { items += it.jsonPrimitive.int }
+                line["table"]?.let { lines(tables.getValue(it.jsonPrimitive.content).jsonObject.getValue("lines").jsonArray.map { l -> l.jsonObject }) }
+            }
+        }
+        lines(entry["always"]?.jsonArray?.map { it.jsonObject }.orEmpty())
+        lines(entry["table"]?.jsonObject?.getValue("lines")?.jsonArray?.map { it.jsonObject }.orEmpty())
+        lines(entry["tertiary"]?.jsonArray?.map { it.jsonObject }.orEmpty())
+        return items
+    }
+
+    @Test
+    fun `a hellhound and an ice giant killed leave their ashes and big bones and only what their tables name`(@TempDir dir: Path) {
+        monsterServer(dir).use { server ->
+            server.login("ymir").use { client ->
+                client.await("the login rebuild") { client.position }
+                assertEquals(55, Wilderness.level(HOUND_X, HOUND_Z))
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("sure max") { true }
+                client.command("setlevel attack 99")
+                client.command("setlevel strength 99")
+                for ((id, at, name, always) in listOf(Kill(HELLHOUND, HOUND_X to HOUND_Z, "hellhound", VILE_ASHES), Kill(ICE_GIANT, GIANT_X to GIANT_Z, "icegiant", BIG_BONES))) {
+                    client.tele(at.first - 1, at.second)
+                    val npc = client.await("the $name in view") { client.npcs().firstOrNull { it.id == id } }
+                    client.npcOp(npc.index, 2)
+                    client.await("the $name's death", timeoutMillis = 60_000) { if (client.npcs().none { it.id == id }) Unit else null }
+                    client.await("the $name's $always") { client.groundObjs().firstOrNull { it.id == always } }
+                    val table = dropItems(name)
+                    val near = client.groundObjs().filter { kotlin.math.abs(it.coord.x - at.first) <= 8 && kotlin.math.abs(it.coord.z - at.second) <= 8 }
+                    for (obj in near) assertTrue(obj.id in table, "${obj.id} is on the $name's table")
+                }
+            }
+        }
+    }
+
+    private data class Kill(val id: Int, val at: Pair<Int, Int>, val name: String, val always: Int)
+
+    private companion object {
+        /** A hellhound's spawn by the Resource Area (level 55) and an ice giant's on the Frozen Waste Plateau (level 51). */
+        const val HELLHOUND = 104
+        const val HOUND_X = 3169
+        const val HOUND_Z = 3956
+        const val ICE_GIANT = 2085
+        const val GIANT_X = 2947
+        const val GIANT_Z = 3921
+        const val VILE_ASHES = 25769
+        const val BIG_BONES = 532
     }
 }
