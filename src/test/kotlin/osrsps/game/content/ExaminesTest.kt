@@ -25,6 +25,21 @@ class ExaminesTest {
     }
 
     @Test
+    fun `the Wilderness's NPCs and Ferox Enclave's locs up to level 20 have examines, keyed one per id`() {
+        // Wilderness step W2.5: the types the Edgeville Dungeon's Wilderness part, levels 1 to 20 and Ferox Enclave
+        // spawn (the 242 cache's ids) that had none, and the Enclave's pool, barriers and bank chest and the Corporeal
+        // Beast's cave.
+        val npcs = listOf(
+            45, 46, 47, 48, 60, 61, 62, 63, 82, 86, 87, 90, 91, 260, 263, 264, 510, 520, 525, 531, 1027, 2049, 2050, 2052,
+            2840, 2849, 3023, 6590, 6594, 6604, 6605, 6606, 6607, 8721, 10370, 10373, 10377, 10378, 10379, 10380, 10381,
+            10382, 10383, 10385, 10386, 10387, 10388, FeroxEnclave.BANKER, 10392,
+        )
+        for (id in npcs) assertEquals("examine.npc_$id", Examines.npc(id)?.key, "NPC $id")
+        val locs = listOf(678, 26711, FeroxEnclave.POOL, FeroxEnclave.BARRIER, FeroxEnclave.BARRIER_MIRROR)
+        for (id in locs) assertEquals("examine.loc_$id", Examines.loc(id)?.key, "loc $id")
+    }
+
+    @Test
     fun `every castle NPC that talks has an examine`() {
         for (id in listOf(Hans.ID, Cook.ID, DukeHoracio.ID, Perdu.ID, Cadmus.ID, Bankers.BANKER, Doomsayer.ID, Mikasi.ID, LumbridgeGuide.ID) + Townsfolk.MEN + Townsfolk.WOMEN) {
             assertEquals("examine.npc_$id", Examines.npc(id)?.key, "NPC $id")
