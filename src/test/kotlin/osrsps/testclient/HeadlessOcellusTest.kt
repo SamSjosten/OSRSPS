@@ -456,8 +456,9 @@ class HeadlessOcellusTest {
                 val centre = Ocellus.centre(boss.spawn.x, boss.spawn.z)
                 // His blue bar out at once; then into the south-east quadrant, on the south arm's second strip (two tiles
                 // south of the middle row, three east of the cross): the first volley's safe crossing there.
-                alice.commandReply("hit 2500 ${boss.index}") { it.startsWith("Hit ") }
+                // In first, so she is in it when the Blade comes, however slow the run (CI, PR 706).
                 alice.tele(centre.x + 3, centre.z - 3, ArchiveRoom.OCELLUS.level)
+                alice.commandReply("hit 2500 ${boss.index}") { it.startsWith("Hit ") }
                 alice.commandReply("god off") { it.startsWith("You can be hurt") }
                 val second = tickOf(alice.awaitLine(run, "his second phase") { it.endsWith("second: phase starts") })
                 val portals = alice.awaitLine(run, "the portals") { it.endsWith("second: portals stand") }
@@ -542,8 +543,8 @@ class HeadlessOcellusTest {
                 val centre = Ocellus.centre(boss.spawn.x, boss.spawn.z)
                 // On the north arm as the portals come: moved a tile off it, into the north-west (nobody's quadrant, so
                 // the first clockwise from there), not left under a portal (exploit review round 22, R22B-1).
-                alice.commandReply("hit 2500 ${boss.index}") { it.startsWith("Hit ") }
                 alice.tele(centre.x, centre.z + 4, ArchiveRoom.OCELLUS.level)
+                alice.commandReply("hit 2500 ${boss.index}") { it.startsWith("Hit ") }
                 val second = tickOf(alice.awaitLine(run, "his second phase") { it.endsWith("second: phase starts") })
                 val moved = alice.awaitLine(run, "her moved off the arm") { it.contains("second: alice moved off the cross to ") }
                 assertEquals(second + Ocellus.PORTALS_AT, tickOf(moved))
@@ -617,10 +618,11 @@ class HeadlessOcellusTest {
                 val boss = boss(run)
                 val fight = assertNotNull(run.fights[ArchiveRoom.OCELLUS])
                 val centre = Ocellus.centre(boss.spawn.x, boss.spawn.z)
-                alice.commandReply("hit 2500 ${boss.index}") { it.startsWith("Hit ") }
-                // In the south-east quadrant, under ::god, so every hit is logged and none hurts.
+                // In the south-east quadrant, under ::god, so every hit is logged and none hurts; in before his bar runs
+                // out, so she is there when the Blade comes, however slow the run.
                 val stand = Tile(centre.x + 3, centre.z - 3)
                 alice.tele(stand.x, stand.z, ArchiveRoom.OCELLUS.level)
+                alice.commandReply("hit 2500 ${boss.index}") { it.startsWith("Hit ") }
                 val second = tickOf(alice.awaitLine(run, "his second phase") { it.endsWith("second: phase starts") })
                 val turn = second + Ocellus.BLADE_AT
                 alice.keepAlive()
@@ -725,9 +727,10 @@ class HeadlessOcellusTest {
                 val world = server.world
                 val level = ArchiveRoom.OCELLUS.level
                 val centre = Ocellus.centre(boss.spawn.x, boss.spawn.z)
-                alice.commandReply("hit 2500 ${boss.index}") { it.startsWith("Hit ") }
-                // The south-east first, so the second phase ends in the north-west's turn, which he holds.
+                // The south-east first, so the second phase ends in the north-west's turn, which he holds: in before
+                // his bar runs out, so she is there when the Blade picks the first quadrant, however slow the run.
                 alice.tele(centre.x + 3, centre.z - 3, level)
+                alice.commandReply("hit 2500 ${boss.index}") { it.startsWith("Hit ") }
                 alice.awaitLine(run, "his second phase") { it.endsWith("second: phase starts") }
                 alice.keepAlive()
                 alice.awaitLine(run, "the south-west's turn", 30_000) { it.endsWith("second: quadrant SW") }
@@ -846,8 +849,11 @@ class HeadlessOcellusTest {
     private fun HeadlessClient.toHisThird(run: ArchiveRun, vararg others: HeadlessClient): Long {
         val boss = boss(run)
         val centre = Ocellus.centre(boss.spawn.x, boss.spawn.z)
-        commandReply("hit 2500 ${boss.index}") { it.startsWith("Hit ") }
+        // Into the south-east before his bar runs out, so she stands there when the Blade picks the first quadrant
+        // (20 ticks on) and the second phase ends in the north-west's turn. Hit first, a slow run (CI on PR 706) could
+        // leave her beside the hooded figure then, and the third phase begin in another quadrant.
         tele(centre.x + 3, centre.z - 3, ArchiveRoom.OCELLUS.level)
+        commandReply("hit 2500 ${boss.index}") { it.startsWith("Hit ") }
         awaitLine(run, "his second phase") { it.endsWith("second: phase starts") }
         keepAlive()
         for (other in others) other.keepAlive()
