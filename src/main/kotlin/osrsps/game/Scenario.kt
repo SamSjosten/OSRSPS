@@ -215,6 +215,9 @@ class Scenarios(scenarios: Collection<Scenario>) {
             "obor",
             "pvp",
             "runecraft",
+            "tfa-magic",
+            "tfa-melee",
+            "tfa-ranged",
             "thieving",
         )
 

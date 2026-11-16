@@ -1,0 +1,7 @@
+{
+  "about": "The raid tester (RaidTester.kt): a playtesting helper for The Fractured Archive, testing only and not live content, so nothing here is from the Wiki. He is the cache's Leagues Tutor (league_tutor_normal, 316), which no live world shows outside a league. Both tiles are ours.",
+  "spawns": [
+    {"npc": 316, "x": 3225, "z": 3218, "direction": "W", "source": "Ours: Lumbridge's courtyard, three tiles east of the spawn (3222,3218), facing it"},
+    {"npc": 316, "x": 4130, "z": 5558, "direction": "W", "source": "Ours: the raid's lobby, south-east of the tile in front of the Archive Door (4127,5560), to kit out again after a wipe"}
+  ]
+}

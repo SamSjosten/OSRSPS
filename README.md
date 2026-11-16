@@ -3153,6 +3153,25 @@ Check: `./gradlew test --tests 'osrsps.game.content.ArchiveLobbyTest' --tests 'o
 (each talk line by line; the cavity open from login and crawled through, the Opening back, the bank chest and banker
 banking, the apprentice remembering his first talk), and in RuneLite `test-runner/examples/archive-lobby.json`.
 
+## The raid tester (testing only)
+
+A playtesting helper for The Fractured Archive, asked for by Sam on 16 November 2026. **Not live content**: live has no
+such NPC, so nothing about him is 1:1. He is the cache's Leagues Tutor (316, which no live world shows outside a league)
+and stands in Lumbridge's courtyard three tiles east of the spawn (3225, 3218) and in the raid's lobby (4130, 5558), to
+kit out again after a wipe (`npc-spawns/raid-tester.json`, `game/content/RaidTester.kt`). Anyone can use him, admin or
+not, though `::scenario` and `::reset` stay admins' commands: he offers only his three loadouts.
+
+His Talk-to offers a melee, ranged or magic loadout. Each starts a scenario (`tfa-melee`, `tfa-ranged`, `tfa-magic`) as
+`::scenario` does: the player lands in the lobby in front of the Archive Door (4127, 5560) with 99 in every combat
+skill, the chosen style worn and a hybrid inventory for the whole raid (the other two styles' weapons, a Dragon
+warhammer, runes for Wind and Fire Surge, brews, restores, a Super combat, Ranging and Magic potion and Manta rays; the
+lists are in each file's `notes`). From there the Archive Door goes in, alone or after `::raidparty` for a party. His
+fourth option (or an admin's `::reset`) puts the player back as they were; like any scenario, the bank and the skills it
+doesn't name are the scenario's until then. His words are ours (`raid_tester.*`, and his examine, in the dialogue file).
+
+Check: `./gradlew test --tests 'osrsps.game.content.RaidTesterTest' --tests 'osrsps.testclient.HeadlessRaidTesterTest'`,
+and in RuneLite: Talk-to the Leagues Tutor east of the Lumbridge spawn, pick a loadout, then Enter the Archive Door.
+
 ## Line of sight
 
 Ranged and magic attacks need the target in line of sight and within the weapon's range (OSRS Wiki, Line of sight).
