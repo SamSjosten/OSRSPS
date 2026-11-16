@@ -870,6 +870,9 @@ class World(
     /** Essence pouches; see [osrsps.game.skill.EssencePouches]. */
     val essencePouches = osrsps.game.skill.EssencePouches(this)
 
+    /** Arceuus's dense runestone and Blood and Soul Altars; see [osrsps.game.skill.ArceuusRunecraft]. */
+    val arceuusRunecraft = osrsps.game.skill.ArceuusRunecraft(this)
+
     val firemaking = Firemaking(this, collision)
 
     val hunter = osrsps.game.skill.hunter.Hunter(this, collision)
@@ -1116,6 +1119,7 @@ class World(
         runeCrafting.register()
         combinationRunes.register()
         essencePouches.register()
+        arceuusRunecraft.register()
         loadDialogue()
     }
 
