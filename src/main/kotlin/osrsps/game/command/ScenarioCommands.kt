@@ -52,6 +52,9 @@ internal fun startScenario(world: World, player: Player, scenario: Scenario): St
 internal fun resetScenario(world: World, player: Player): String {
     val before = player.beforeScenario ?: refuse("Nothing to reset: you haven't started a ::scenario since the last ::reset.")
     val name = player.scenario
+    // An open trade ends first, its offer back in the backpack, so nothing is restored under it: the raid tester puts
+    // back without ::reset's own interrupt (World.onCommand). Exploit review 40, R40C-5.
+    if (player.trade != null) world.trades.interrupt(player)
     world.scripts.clearAll(player)
     world.meleeCombat.endFights(player)
     // A stopped Hunter run's traps come down too, so none stands for the next script.
@@ -107,8 +110,13 @@ private fun start(world: World, player: Player, scenario: Scenario) {
 
     // Traps laid before a first scenario come back to the backpack first, so its snapshot (and ::reset) keeps them;
     // an earlier scenario's own traps just come down.
+    // An open trade ends first, its offer back in the backpack, so the snapshot holds it (R40C-5).
+    if (player.trade != null) world.trades.interrupt(player)
     world.hunter.traps.takeDown(player, refund = player.beforeScenario == null)
     if (player.beforeScenario == null) player.beforeScenario = world.snapshot(player)
+    // Unclaimed raid loot is in the snapshot, which puts it back: claimed during the scenario as well, it would come
+    // twice (exploit review 40, R40C-2). A scenario starts with the chest empty, as with the bank.
+    player.archiveChest.clear()
     // Nor a grave from an earlier scenario whose script died before its ::reset: the scenario's death would merge into it.
     world.deaths.dropScenarioGrave(player)
     // The snapshot holds the items in the guide prices screen; the scenario's inventory replaces them.
@@ -137,8 +145,9 @@ private fun start(world: World, player: Player, scenario: Scenario) {
     for ((slot, obj) in loadout.inventory) player.inventory[slot] = obj
     player.equipment.clear()
     for ((slot, obj) in loadout.equipment) player.equipment[slot] = obj
-    // A scenario's charged items start empty.
+    // A scenario's charged items start empty, and its essence pouches too.
     player.charges.clear()
+    world.essencePouches.emptyAll(player)
     world.bankScreen.clear(player)
     for ((slot, obj) in loadout.bank) player.bank[slot] = obj
     // A scenario starts with no Grand Exchange offers or buy limits used; ::reset puts them back.

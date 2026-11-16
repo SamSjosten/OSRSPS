@@ -5,6 +5,7 @@ import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.WearPos
 import osrsps.game.World
+import osrsps.game.bank.setVarbitIfKnown
 import osrsps.game.dialogue.Lines
 
 /** Essence pouches' words, in the dialogue file. */
@@ -99,6 +100,17 @@ class EssencePouches(private val world: World) {
         val pouch = POUCHES.firstOrNull { obj == it.obj || obj == it.degraded } ?: return
         player.vars.setVarbit(pouch.countVarbit, 0)
         player.vars.setVarbit(pouch.typeVarbit, 0)
+    }
+
+    /**
+     * Every pouch of [player]'s empty, as a scenario starts: what one held before is in the snapshot, which `::reset`
+     * puts back, so essence put in during the scenario never comes out real (exploit review 40, R40A-3).
+     */
+    fun emptyAll(player: Player) {
+        for (pouch in POUCHES) {
+            player.vars.setVarbitIfKnown(pouch.countVarbit, 0)
+            player.vars.setVarbitIfKnown(pouch.typeVarbit, 0)
+        }
     }
 
     private fun check(player: Player, pouch: EssencePouch) {

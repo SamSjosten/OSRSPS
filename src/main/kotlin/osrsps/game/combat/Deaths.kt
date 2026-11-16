@@ -404,6 +404,12 @@ class Deaths(
     private fun bury(player: Player, lost: List<InvObj>, place: DeathPlace?, x: Int = player.x, z: Int = player.z, level: Int = player.level) {
         val coord = place?.coord?.takeIf { it >= 0 } ?: GraveFees.coord(x, z, level)
         val existing = graveOf(player)
+        // A death in a scenario never goes into the grave from before it: that grave stays after ::reset, so the
+        // scenario's items would come out real (exploit review 40, R40C-3). They're the scenario's, so they go.
+        if (player.scenario != null && existing != null && !existing.scenario) {
+            logger.info { "${player.username} died in scenario ${player.scenario} with a grave from before it: ${lost.size} scenario items gone" }
+            return
+        }
         val grave = existing ?: if (place == null) raise(player, x, z, level, coord) else raise(player, place.graveX, place.graveZ, place.graveLevel, coord)
         if (existing != null) {
             grave!!.merged = true
