@@ -811,6 +811,7 @@ the trapdoor behind the bar, the den's door, and the passageway back up; the maz
 | Marks: the three-minute timer in whole minutes from the last mark, kept across a logout; 2/6 a lap, a fifth at 20 over; private, ten minutes, stacking resets the time | OSRS Wiki, Mark of Grace (read 2026-11-02) |
 | Marks: Draynor's four spots (the start's roof, Diango's Workshop, the Slayer shop, Ned's rope shop) | the Wiki's Mark of grace spawns table |
 | Marks: the spot picked at random; a failed roll leaving the timer alone | inferred |
+| Combination runes (RC3, `game/skill/CombinationRunes.kt`): one element's runes and its talisman with pure essence, used on the other element's altar, make one combination rune per pair at 50% (always with a worn binding necklace, 16 uses, then it crumbles); the talisman is used up; XP per rune made, lower at the lower-levelled altar | OSRS Wiki, Combination runes, Binding necklace; guessed: timing, refusal order, words |
 | Not built: marks pausing on the ground while the player is logged out (ours keep counting down), the Achievement Diary rerolls | |
 | Grace (`rooftops_grace`) at 3050,4962 in the den; her shop's stock, prices and 80% buy-back | mejrs NPCList_OSRS; OSRS Wiki, Grace's Graceful Clothing |
 | Grace's shop inv, roguesden_shop (279); the tiles the trapdoor, door and passageway take the player to; the passageway being the way out | guessed (the 241 map shows no other exit) |
@@ -1067,7 +1068,7 @@ The ruins, altars and portals are the cache's, where the 242 map puts them; only
 | Craft-rune (RC2, `game/skill/RuneCrafting.kt`) turns every essence the altar takes into runes at once: rune or pure essence at the air, mind, water, earth, fire and body altars, pure essence alone at the rest (and the Astral Altar on the Lunar Isle, `::tele 2156 3864`). Levels, XP per essence and the levels at which each essence makes one more rune are the Wiki's; the runes per essence and the level check use the current level | OSRS Wiki, Runecraft (and its Multiple runes table) |
 | A talisman and a tiara (or the elemental or catalytic talisman and a gold tiara) used on its altar make that tiara, using up the talisman, for the tiara's XP | OSRS Wiki, Tiara and each tiara's page |
 | Animation 791 and spotanim 186 on crafting; the runes on the click's tick; Craft-rune refuses when the runes wouldn't fit on the stack; the exit portals work only inside their temple | the 242 cache; guessed |
-| Not built: combination runes (RC3), essence pouches (RC4), the Arceuus Blood and Soul altars (RC5), the Ourania altar (RC6); the Abyss, Guardians of the Rift and its Hat of the Eye; Entrana's no-weapons rule | next steps |
+| Not built: essence pouches (RC4), the Arceuus Blood and Soul altars (RC5), the Ourania altar (RC6); the Abyss, Guardians of the Rift and its Hat of the Eye; Entrana's no-weapons rule | next steps |
 
 Check: `./gradlew test --tests 'osrsps.game.skill.Rune*' --tests 'osrsps.game.skill.EssencePouchesTest' --tests 'osrsps.game.skill.OuraniaTest' --tests 'osrsps.testclient.HeadlessRune*' --tests 'osrsps.testclient.Headless*Runecraft*' --tests 'osrsps.testclient.HeadlessCombinationRunesTest' --tests 'osrsps.testclient.HeadlessEssencePouchesTest' --tests 'osrsps.testclient.HeadlessOuraniaTest'`.
 

@@ -860,6 +860,9 @@ class World(
     /** Craft-rune at the altars and binding tiaras; see [osrsps.game.skill.RuneCrafting]. */
     val runeCrafting = osrsps.game.skill.RuneCrafting(this)
 
+    /** Combination runes and the binding necklace; see [osrsps.game.skill.CombinationRunes]. */
+    val combinationRunes = osrsps.game.skill.CombinationRunes(this)
+
     val firemaking = Firemaking(this, collision)
 
     val hunter = osrsps.game.skill.hunter.Hunter(this, collision)
@@ -1103,6 +1106,7 @@ class World(
         boltEnchant.register()
         runecraft.register()
         runeCrafting.register()
+        combinationRunes.register()
         loadDialogue()
     }
 
