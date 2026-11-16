@@ -20,6 +20,10 @@ import osrsps.map.LineOfSight
 /** The King Black Dragon's lair's words (keys only; the words are in data/dialogue.txt). */
 object KingBlackDragonLines : Lines("kbd", "King Black Dragon Lair") {
     val COMMUNE = line("commune", "Commune on the lever into the lair: how many players are inside (no source yet)", "count")
+    val ICY = line("icy", "An icy breath hits a player with no dragonfire protection (the Wiki's King Black Dragon)")
+    val TOXIC = line("toxic", "A toxic breath hits a player with no dragonfire protection (the Wiki's King Black Dragon)")
+    val SHOCKING = line("shocking", "A shocking breath hits a player with no dragonfire protection (the Wiki's King Black Dragon)")
+    val FIERY = line("fiery", "His fiery breath hits a player with no dragonfire protection (the Wiki's King Black Dragon)")
 }
 
 /**
@@ -41,8 +45,8 @@ object KingBlackDragonLines : Lines("kbd", "King Black Dragon Lair") {
  *
  * GUESSED until recorded: each breath's damage from 0 to its cap with no accuracy roll; the effects only on a hit of 1
  * or more; the shock draining every stat but Hitpoints; his animations (dragon_attack for the swing,
- * dragon_ranged_attacks for every breath) and the breaths' flight; the chromatic dragons' dragonfire messages for his
- * breaths; where the levers put the player (the far lever's own tile, as the other levers); the Commune line's count
+ * dragon_ranged_attacks for every breath) and the breaths' flight; the chromatic dragons' dragonfire messages for a
+ * shield or Protect from Magic; where the levers put the player (the far lever's own tile, as the other levers); the Commune line's count
  * of everyone in the lair's map square. No pet, no draconic visage, no KBD heads yet.
  */
 object KingBlackDragon {
@@ -80,7 +84,15 @@ object KingBlackDragon {
     fun inLair(x: Int, z: Int): Boolean = x shr 6 == 35 && z shr 6 == 73
 
     enum class Breath(val spot: Int, val special: Boolean) {
-        FIRE(SPOT_FIRE, false), TOXIC(SPOT_TOXIC, true), SHOCK(SPOT_SHOCK, true), ICE(SPOT_ICE, true)
+        FIRE(SPOT_FIRE, false), TOXIC(SPOT_TOXIC, true), SHOCK(SPOT_SHOCK, true), ICE(SPOT_ICE, true);
+
+        /** What a player with no protection is told as it hits: each breath its own line (the Wiki's King Black Dragon). */
+        val line get() = when (this) {
+            FIRE -> KingBlackDragonLines.FIERY
+            TOXIC -> KingBlackDragonLines.TOXIC
+            SHOCK -> KingBlackDragonLines.SHOCKING
+            ICE -> KingBlackDragonLines.ICY
+        }
     }
 
     /** The most [breath] can hit for, with or without an anti-dragon [shield] and Protect from Magic ([prayer]). */
@@ -142,6 +154,8 @@ object KingBlackDragon {
         val target = players.filter { !it.dead && it.level == boss.level && world.meleeCombat.sees(boss, it) }
             .minByOrNull { max(kotlin.math.abs(it.x - boss.x), kotlin.math.abs(it.z - boss.z)) } ?: return null
         world.meleeCombat.aggress(boss, target, world.tick)
+        // As any NPC taking a target on, his first attack waits for the next tick.
+        boss.nextAttackTick = maxOf(boss.nextAttackTick, world.tick + 1)
         log("takes on ${target.username}")
         return heldTarget()
     }
@@ -157,7 +171,7 @@ object KingBlackDragon {
         after(ticks) {
             if (target.dead || players.none { it === target }) return@after
             val dealt = hit(target, damage)
-            world.message(target, Dragonfire.line(shield, prayer, resisted = false))
+            world.message(target, if (shield || prayer) Dragonfire.line(shield, prayer, resisted = false) else breath.line)
             if (!breath.special || dealt <= 0 || roll(1, effectChance(shield, prayer)) != 1) return@after
             when (breath) {
                 Breath.TOXIC -> world.poison.poison(target, POISON * 5)

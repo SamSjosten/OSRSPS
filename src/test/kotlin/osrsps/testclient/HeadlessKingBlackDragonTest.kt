@@ -127,7 +127,10 @@ class HeadlessKingBlackDragonTest {
                 val wes = server.world.playerNamed("wes")!!
                 client.await("him taking wes on", timeoutMillis = 20_000) { npc.target?.takeIf { it === wes } }
                 val fight = client.await("his fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
-                client.await("a breath or a swing", timeoutMillis = 30_000) { fight.lines.firstOrNull { "breathes" in it || "swings" in it } }
+                val first = client.await("a breath or a swing", timeoutMillis = 30_000) { fight.lines.firstOrNull { "breathes" in it || "swings" in it } }
+                // As any NPC taking a target on, his first attack waits for the next tick.
+                val took = fight.lines.first { "takes on wes" in it }
+                assertTrue(first.substringBefore(" ").toLong() > took.substringBefore(" ").toLong(), "$took then $first")
             }
         }
     }
@@ -147,6 +150,22 @@ class HeadlessKingBlackDragonTest {
                 client.tele(X + 2, Z - 1)
                 val first = client.await("an attack", timeoutMillis = 30_000) { fight.lines.firstOrNull { "breathes" in it || "swings" in it } }
                 assertTrue(first.substringBefore(" ").toLong() >= heldUntil, "attacked before $heldUntil: $first")
+            }
+        }
+    }
+
+    @Test
+    fun `an unprotected player is told which of his breaths hit them`(@TempDir dir: Path) {
+        server(dir, seed = 1).use { server ->
+            server.login("dee").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("keys on") { it == "Dialogue shows keys" }
+                client.command("varp 172 1")
+                client.tele(X + 2, Z - 6)
+                val keys = setOf("[kbd.icy]", "[kbd.toxic]", "[kbd.shocking]", "[kbd.fiery]")
+                client.await("a breath's own line", timeoutMillis = 40_000) { client.messages().firstOrNull { it.text in keys } }
+                assertTrue(client.messages().none { it.text == "[dragonfire.burnt]" })
             }
         }
     }

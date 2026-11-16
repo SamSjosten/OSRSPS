@@ -83,15 +83,17 @@ fun registerWildernessLevers(world: World) {
             player.anim(WildernessLevers.PULL_ANIM)
             if (arrival != null) world.message(player, WildernessLeverLines.PULL)
             delay(WildernessLevers.PULL_TICKS)
-            // A Tele Block landing during the pull or the teleport still stops it (Codex review of W3.2).
-            if (player.teleblockTicks > 0) {
+            // A Tele Block landing during the pull or the teleport still stops it (Codex review of W3.2), but never on
+            // the levers it doesn't stop at all.
+            val blocks = lever !in WildernessLevers.UNBLOCKED
+            if (blocks && player.teleblockTicks > 0) {
                 player.anim(-1)
                 return@onLoc world.message(player, PvpLines.TELEPORT_BLOCKED)
             }
             player.anim(WildernessLevers.TELEPORT_ANIM)
             player.spotanim(WildernessLevers.TELEPORT_SPOTANIM, WildernessLevers.TELEPORT_SPOTANIM_HEIGHT)
             delay(WildernessLevers.TELEPORT_TICKS)
-            if (player.teleblockTicks > 0) {
+            if (blocks && player.teleblockTicks > 0) {
                 player.anim(-1)
                 return@onLoc world.message(player, PvpLines.TELEPORT_BLOCKED)
             }
