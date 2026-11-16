@@ -26,7 +26,8 @@ object OuraniaLines : Lines("runecraft_ourania", "Ourania Altar") {
  * the ladders `rc_zmi_dungeon_entrance` (29635, 2452,3231) and `_ladder` (29636, 3015,5630), the crack
  * `rc_zmi_dungeon_wall_crack_entrance` (29626, 3053,5587) and its `_exit` (29627, 3055,5586).
  *
- * Guessed: the band follows the current level, so boosts count; the tiles each ladder and the crack put the player on (beside the other end, from the map's collision); no
+ * Inferred: the band follows the current level, so boosts count (a player report on the Wiki's Talk:Ourania Altar page,
+ * not the article). Guessed: the tiles each ladder and the crack put the player on (beside the other end, from the map's collision); no
  * delay or animation on the ladders and the crack; the runes and XP on the click's tick (or the arrival tick: no arrive delay, by the Wiki's 23 March 2022 change) with the Craft-rune animation;
  * Craft-rune refuses when a rune's stack would overflow; every message's wording. Out: Eniola's bank for runes, the
  * cave's monsters on the short path, daeyalt essence, the medium Ardougne diary's extra runes, the Raiments of the
