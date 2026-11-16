@@ -133,6 +133,25 @@ class HeadlessKingBlackDragonTest {
     }
 
     @Test
+    fun `a strike made before his fight began holds his next attack`(@TempDir dir: Path) {
+        server(dir, seed = 1).use { server ->
+            server.login("xan").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.command("varp 172 1")
+                val npc = server.world.npcs.all.first { it.type.id == KingBlackDragon.BOSS }
+                val fight = client.await("his fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
+                // As a generic strike just before the fight would leave it: held 12 ticks from the fight's own count.
+                val heldUntil = fight.ticks + 12
+                npc.nextAttackTick = server.world.tick + 12
+                client.tele(X + 2, Z - 1)
+                val first = client.await("an attack", timeoutMillis = 30_000) { fight.lines.firstOrNull { "breathes" in it || "swings" in it } }
+                assertTrue(first.substringBefore(" ").toLong() >= heldUntil, "attacked before $heldUntil: $first")
+            }
+        }
+    }
+
+    @Test
     fun `the dungeon's lever takes the player into the lair, Commune counts who is there, and its own lever back`(@TempDir dir: Path) {
         server(dir, seed = 1, spawn = false).use { server ->
             server.login("abe").use { client ->

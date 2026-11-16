@@ -111,8 +111,6 @@ object KingBlackDragon {
     fun breathProjectile(world: World, boss: Npc, target: Player, breath: Breath, ticks: Int): Projectile =
         world.meleeCombat.flight(boss, target, breath.spot, ticks)
 
-    private val nextAttack = java.util.WeakHashMap<Npc, Long>()
-
     private fun EncounterContext.tick() {
         val target = heldTarget() ?: hunt()
         if (target == null) {
@@ -123,8 +121,10 @@ object KingBlackDragon {
         val reaches = world.meleeCombat.reaches(boss, target)
         val sees = world.meleeCombat.sees(boss, target)
         if (sees) world.npcs.stopFollowing(boss) else world.npcs.follow(boss, target)
-        if (!sees || world.tick < (nextAttack[boss] ?: Long.MIN_VALUE)) return
-        nextAttack[boss] = world.tick + ATTACK_SPEED
+        // His cooldown is the NPC's own, so a generic strike made before his fight began (as he respawns beside a
+        // player) holds his next attack too.
+        if (!sees || world.tick < boss.nextAttackTick) return
+        boss.nextAttackTick = world.tick + ATTACK_SPEED
         if (reaches && roll(1, 3) == 1) {
             world.meleeCombat.swingAt(boss, target, world.tick, ANIM_MELEE)
             log("swings at ${target.username}")
