@@ -876,6 +876,7 @@ class MeleeCombat(
             if (shot.blocked && shot.attack.maxHit != 0) {
                 // The prayer shows a 0, hit or miss.
                 hitPlayer(player, shot.npc, 0, tick)
+                shotPoison(shot)
                 continue
             }
             if (!shot.hit || shot.blocked) {
@@ -889,8 +890,19 @@ class MeleeCombat(
                 attackedWithoutHit(player, shot.npc, tick)
             } else {
                 hitPlayer(player, shot.npc, shot.damage, tick)
+                shotPoison(shot)
             }
         }
+    }
+
+    /**
+     * A poisonous NPC's shot that landed poisons as its swing does ([swingAt]): whatever the hit did, through a
+     * protection prayer too, one time in four (guessed, as there). Not a splash: that missed. Scorpia's offspring
+     * (Codex on Wilderness step W4.4: their poison never came, as only the swing poisoned).
+     */
+    private fun shotPoison(shot: Shot) {
+        val poison = combat.npcCombat[shot.npc.type]?.poison ?: return
+        if (poison > 0 && !shot.player.dead && random.chance(1, PoisonedWeapons.MELEE_CHANCE)) poisonPlayer(shot.player, poison)
     }
 
     /**

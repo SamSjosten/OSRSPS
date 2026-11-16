@@ -6,6 +6,7 @@ import osrsps.game.GameLines
 import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.combat.AttackType
+import osrsps.game.combat.MeleeCombat
 import osrsps.game.encounter.CycleStep
 import osrsps.game.encounter.EncounterContext
 import osrsps.game.encounter.EncounterDef
@@ -87,10 +88,14 @@ object Scorpia {
         val guardians = HashMap<Npc, Long>()
     }
 
-    private val fights = java.util.WeakHashMap<Npc, Fight>()
+    /**
+     * By fight, not by boss: a guardian follows her ([Npc.leader]), so a fight held by her would hold her too and never
+     * be let go (Codex on W4.4). The encounter is dropped once it ends, and its state with it.
+     */
+    private val fights = java.util.WeakHashMap<EncounterContext, Fight>()
 
     private fun EncounterContext.tick() {
-        val fight = fights.getOrPut(boss) { Fight() }
+        val fight = fights.getOrPut(this) { Fight() }
         guardians(fight)
         if (fight.lowTick < 0 && boss.hitpoints <= GUARDIANS_AT) fight.lowTick = world.tick
         if (!fight.summoned && fight.lowTick >= 0 && boss.attackedTick > fight.lowTick) summon(fight)
@@ -138,7 +143,8 @@ object Scorpia {
                 continue
             }
             if (world.tick - healed >= LEAVE_TICKS) {
-                world.npcs.remove(guardian)
+                // As every NPC leaves the world: its avatar and whoever was fighting it let go too.
+                world.removeNpc(guardian)
                 each.remove()
                 log("a guardian leaves")
                 continue
@@ -147,6 +153,8 @@ object Scorpia {
             val distance = LineOfSight.distance(boss.x, boss.z, boss.type.size, guardian.x, guardian.z, 1, 1)
             if (distance !in 1..HEAL_RANGE || boss.hitpoints >= boss.maxHitpoints) continue
             boss.hitpoints = min(boss.maxHitpoints, boss.hitpoints + HEAL)
+            // Her health bar shows the heal, as a hit's would.
+            boss.effects.headBar(-1, MeleeCombat.HEALTH_BAR, MeleeCombat.healthBarFill(boss.hitpoints, boss.maxHitpoints))
             fight.guardians[guardian] = world.tick
             world.zones.projectile(
                 Projectile(
