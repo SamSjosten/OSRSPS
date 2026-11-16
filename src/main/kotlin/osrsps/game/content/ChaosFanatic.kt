@@ -1,6 +1,7 @@
 package osrsps.game.content
 
 import kotlin.math.abs
+import osrsps.game.EquipResult
 import osrsps.game.Player
 import osrsps.game.WearPos
 import osrsps.game.World
@@ -120,7 +121,8 @@ object ChaosFanatic {
         log("explosions on ${landings.joinToString(" ") { "${it.x},${it.z}" }}")
         for (at in landings) {
             world.zones.projectile(bolt(SPOT_GREEN, at.x, at.z, EXPLOSION_TICKS))
-            hazard(listOf(at), warning = -1, warnTicks = EXPLOSION_TICKS, ticks = 1, minDamage = 0, maxDamage = SPECIAL_MAX, spotanim = SPOT_EXPLOSION)
+            // Only the player he aims at: since 2 April 2025 the explosions hurt nobody else (OSRS Wiki, Chaos Fanatic, Changes).
+            hazard(listOf(at), warning = -1, warnTicks = EXPLOSION_TICKS, ticks = 1, minDamage = 0, maxDamage = SPECIAL_MAX, spotanim = SPOT_EXPLOSION, only = target)
         }
     }
 
@@ -135,9 +137,8 @@ object ChaosFanatic {
         after(ticks) {
             val weapon = target.equipment[WearPos.WEAPON] ?: return@after
             if (target.level != boss.level || target.inventory.freeSlots == 0) return@after
-            val inv = target.inventory
-            target.equipment[WearPos.WEAPON] = null
-            inv[(0 until inv.capacity).first { inv[it] == null }] = weapon
+            // Onto its stack if it stacks (knives, darts), as taking it off would.
+            if (world.equipment.remove(target, WearPos.WEAPON) != EquipResult.Done) return@after
             log("took ${target.username}'s weapon ${weapon.id}")
         }
     }

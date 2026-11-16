@@ -40,6 +40,7 @@ class HeadlessChaosFanaticTest {
         val objs = names.map { (id, name) -> ObjType(id, name, stackable = true) }.associateBy { it.id }.toMutableMap()
         objs[SCIMITAR] = ObjType(SCIMITAR, "Rune scimitar", iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON)
         objs[POT] = ObjType(POT, "Pot")
+        objs[DART] = ObjType(DART, "Bronze dart", stackable = true, iops = listOf(null, "Wield", null, null, "Drop"), wearpos1 = WearPos.WEAPON)
         World(
             crcs, CollisionMap().apply { markLoaded(X shr 6, Z shr 6) }, objTypes = ObjTypes.of(*objs.values.toTypedArray()),
             npcTypes = types, random = GameRandom(seed), npcSpawns = listOf(NpcSpawn(boss, X, Z, wander = 0, source = "test")),
@@ -119,6 +120,54 @@ class HeadlessChaosFanaticTest {
     }
 
     @Test
+    fun `his disarm puts thrown weapons onto the stack already in the backpack`(@TempDir dir: Path) {
+        server(dir, seed = 5).use { server ->
+            server.login("kit").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.command("item $DART 10")
+                val slot = client.await("the darts in the backpack") { client.inventory(BACKPACK).indexOfFirst { it?.id == DART }.takeIf { it >= 0 } }
+                client.ifButton(INVENTORY, INVENTORY_ITEMS, IOP_WIELD, slot, DART)
+                client.await("the darts worn") { client.inventory(WORN).getOrNull(WearPos.WEAPON)?.takeIf { it.id == DART && it.count == 10 } }
+                client.command("item $DART 5")
+                client.await("five more darts") { Unit.takeIf { client.inventory(BACKPACK).any { it?.id == DART && it.count == 5 } } }
+                client.tele(X + 3, Z)
+                val (_, fight) = client.fight(server)
+                client.await("the darts taken", timeoutMillis = 90_000) { fight.lines.firstOrNull { "took kit's weapon $DART" in it } }
+                client.awaitTicks(2)
+                val darts = client.inventory(BACKPACK).filterNotNull().filter { it.id == DART }
+                assertEquals(listOf(15), darts.map { it.count }, "one stack of all fifteen")
+            }
+        }
+    }
+
+    @Test
+    fun `his explosions hurt only the player he aims at, not one standing beside them`(@TempDir dir: Path) {
+        server(dir, seed = 11).use { server ->
+            server.login("ike").use { client ->
+                server.login("amy").use { other ->
+                    client.await("the login rebuild") { client.position }
+                    other.await("the login rebuild") { other.position }
+                    client.commandReply("god") { it.startsWith("You can") }
+                    other.commandReply("god") { it.startsWith("You can") }
+                    // Auto retaliate off, so neither walks up to him and both stay on the one tile.
+                    client.command("varp 172 1")
+                    other.command("varp 172 1")
+                    client.tele(X + 4, Z)
+                    val (_, fight) = client.fight(server)
+                    // On ike's tile once he has taken ike on.
+                    other.tele(X + 4, Z)
+                    val explosions = client.await("the explosions", timeoutMillis = 60_000) { fight.lines.firstOrNull { "explosions on" in it } }
+                    assertTrue(explosions.substringAfter("explosions on ").startsWith("${X + 4},$Z"), explosions)
+                    client.await("the explosions landing on ike") { fight.lines.firstOrNull { "hazard hit ike" in it } }
+                    client.awaitTicks(2)
+                    assertTrue(fight.lines.none { "hazard hit amy" in it }, fight.lines.joinToString("\n"))
+                }
+            }
+        }
+    }
+
+    @Test
     fun `a kill counts in his kill count and leaves his bones`(@TempDir dir: Path) {
         server(dir, seed = 3).use { server ->
             server.login("lou").use { client ->
@@ -143,6 +192,7 @@ class HeadlessChaosFanaticTest {
         const val BONES = 526
         const val SCIMITAR = 1333
         const val POT = 1931
+        const val DART = 806
         const val BACKPACK = 93
         const val WORN = 94
         const val IOP_WIELD = 3
