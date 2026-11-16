@@ -105,10 +105,27 @@ object FountainOfRune {
                 if (!type.isCert) continue
                 val kind = BY_FORM[type.certlink]?.takeIf { it.notedToo } ?: continue
                 val noted = objTypes[kind.full]?.certlink ?: continue
-                if (noted >= 0) inv[slot] = InvObj(noted, held.count)
+                if (noted >= 0) mergeNote(inv, slot, held, noted)
             }
         }
         return turned
+    }
+
+    /**
+     * The notes in [slot] turned to [noted]: onto a stack of [noted] already held, as stacks merge, or in place. Any that
+     * would take that stack past [Inventory.MAX_STACK] stay in [slot] as they were.
+     */
+    private fun mergeNote(inv: Inventory, slot: Int, held: InvObj, noted: Int) {
+        val into = (0 until inv.capacity).firstOrNull { it != slot && inv[it]?.id == noted }
+        if (into == null) {
+            inv[slot] = InvObj(noted, held.count)
+            return
+        }
+        val have = inv[into]!!.count
+        val moved = minOf(held.count.toLong(), Inventory.MAX_STACK.toLong() - have).toInt()
+        if (moved <= 0) return
+        inv[into] = InvObj(noted, have + moved)
+        inv[slot] = if (moved == held.count) null else InvObj(held.id, held.count - moved)
     }
 
     fun register(world: World) {

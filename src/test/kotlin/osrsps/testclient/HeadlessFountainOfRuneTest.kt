@@ -125,7 +125,7 @@ class HeadlessFountainOfRuneTest {
             server.login("yew").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.commandReply("keys on") { it == "Dialogue shows keys" }
-                for (item in listOf("$GLORY_1", "$RING", "${SKILLS + 1} 3", "${GLORY_1 + 1} 2", "$LOGS")) client.command("item $item")
+                for (item in listOf("$GLORY_1", "$RING", "${SKILLS + 1} 3", "${GLORY_1 + 1} 2", "${SKILLS_6 + 1} 2", "$LOGS")) client.command("item $item")
                 client.await("the jewellery") { Unit.takeIf { client.count(LOGS) == 1L } }
                 client.tele(FOUNTAIN_X + 1, FOUNTAIN_Z - 1)
 
@@ -139,7 +139,9 @@ class HeadlessFountainOfRuneTest {
                 // The message goes out at once, the backpack at the end of the tick: wait for it.
                 client.await("the glory to six") { Unit.takeIf { client.count(GLORY_6) == 1L } }
                 assertEquals(1L, client.count(RING_5), "the ring to five")
-                assertEquals(3L, client.count(SKILLS_6 + 1), "noted skills necklaces too")
+                assertEquals(5L, client.count(SKILLS_6 + 1), "noted skills necklaces too, onto the charged notes already held")
+                assertEquals(1, client.inventory(BACKPACK).count { it?.id == SKILLS_6 + 1 }, "one stack of them")
+                assertEquals(0L, client.count(SKILLS + 1))
                 assertEquals(2L, client.count(GLORY_1 + 1), "noted glories left alone")
             }
         }
