@@ -61,8 +61,9 @@ object KingBlackDragonLines : Lines("kbd", "King Black Dragon Lair") {
  * shield or Protect from Magic; where the levers put the player (the far lever's own tile, as the other levers); the
  * Commune line's count
  * of everyone in the lair's map square; Private taking the fee from the backpack when it holds it all and else from the
- * bank, after a menu, and refused under a Tele Block; the private lair's pull as the open lever's. Left out: the
- * instance's drops lasting 30 minutes (ours last as anywhere else). No pet, no draconic visage, no KBD heads yet.
+ * bank, after a menu, and refused under a Tele Block; the private lair's pull as the open lever's. His drops in a private
+ * lair last [PRIVATE_LOOT_TICKS] ("Items dropped by the boss in this instance will disappear after 30 minutes", the
+ * Wiki's King Black Dragon). No pet, no draconic visage, no KBD heads yet.
  */
 object KingBlackDragon {
     const val BOSS = 239
@@ -74,6 +75,9 @@ object KingBlackDragon {
     const val PRIVATE = 5
     const val PRIVATE_FEE = 50_000
     const val COINS = 995
+
+    /** 30 minutes: how long his drops last in a private lair. */
+    const val PRIVATE_LOOT_TICKS = 3000
 
     /** Where he spawns, and how far he wanders, in the open lair and (moved) in a private one. */
     val SPAWN = osrsps.map.Tile(2269, 4697)
@@ -153,14 +157,25 @@ object KingBlackDragon {
     fun breathProjectile(world: World, boss: Npc, target: Player, breath: Breath, ticks: Int): Projectile =
         world.meleeCombat.flight(boss, target, breath.spot, ticks)
 
-    /** A private lair, him in it; null when the dynamic area has no room. */
+    /**
+     * A private lair, him in it; null (and no lair left behind) when the dynamic area has no room or he can't be spawned
+     * there (Codex review of W4.6b: no fee for an empty lair).
+     */
     fun openPrivate(world: World): Instance? {
         val exit = WildernessLevers.KBD_DUNGEON_TILE
         val instance = world.instances.create(LAIR_X, LAIR_Z, LAIR_ZONES, LAIR_ZONES, exit.x, exit.z, exit.level) ?: return null
-        val type = world.npcTypes[BOSS] ?: return instance
-        world.spawnNpc(NpcSpawn(type, instance.baseX + SPAWN.x - LAIR_X, instance.baseZ + SPAWN.z - LAIR_Z, 0, wander = WANDER, source = "kbd private lair"))
+        val type = world.npcTypes[BOSS]
+        val boss = type?.let { world.spawnNpc(NpcSpawn(it, instance.baseX + SPAWN.x - LAIR_X, instance.baseZ + SPAWN.z - LAIR_Z, 0, wander = WANDER, source = "kbd private lair")) }
+        if (boss == null) {
+            world.endInstance(instance)
+            return null
+        }
         return instance
     }
+
+    /** How long [npc]'s drops last: [PRIVATE_LOOT_TICKS] for him in a private lair, else [default]. */
+    fun lootTicks(world: World, npc: Npc, default: Int): Int =
+        if (npc.type.id == BOSS && world.instances.at(npc.x, npc.z) != null) PRIVATE_LOOT_TICKS else default
 
     /** Takes the fee: from the backpack if it holds it all, else from the bank; false (nothing taken) if neither does. */
     fun pay(world: World, player: Player): Boolean {
@@ -262,6 +277,12 @@ fun registerKingBlackDragon(world: World) {
             if (!canPay(player)) return@onLoc world.message(player, KingBlackDragonLines.PRIVATE_NO_COINS)
             player.anim(WildernessLevers.PULL_ANIM)
             delay(WildernessLevers.PULL_TICKS)
+            // A Tele Block landing during the pull stops it before the teleport starts, as at the other levers (Codex
+            // review of W4.6b).
+            if (player.teleblockTicks > 0) {
+                player.anim(-1)
+                return@onLoc world.message(player, PvpLines.TELEPORT_BLOCKED)
+            }
             player.anim(WildernessLevers.TELEPORT_ANIM)
             player.spotanim(WildernessLevers.TELEPORT_SPOTANIM, WildernessLevers.TELEPORT_SPOTANIM_HEIGHT)
             delay(WildernessLevers.TELEPORT_TICKS)

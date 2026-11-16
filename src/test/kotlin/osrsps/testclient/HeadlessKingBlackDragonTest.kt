@@ -13,6 +13,7 @@ import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.SeqNames
 import osrsps.game.WearPos
+import osrsps.game.GroundObjs
 import osrsps.game.World
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
@@ -271,6 +272,13 @@ class HeadlessKingBlackDragonTest {
                 assertEquals(1, server.world.npcs.all.count { it.type.id == KingBlackDragon.BOSS && !instance.contains(it.x, it.z) }, "the open lair keeps its own")
                 client.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit King Black Dragon") }
                 client.await("his fight in the instance") { server.world.encounters.all.firstOrNull { it.boss === npc } }
+                // His drops there last 30 minutes, not the usual 200 ticks (Codex review of W4.6b).
+                val (dx, dz) = npc.x to npc.z
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("kill ${npc.index}") { it.startsWith("Killed") }
+                val bones = client.await("his bones in the private lair") { server.world.groundObjs.visibleAt(di, dx, dz, 0).firstOrNull { it.id == 536 } }
+                assertTrue(bones.ticksUntilDespawn > GroundObjs.LOOT_DESPAWN_TICKS, "lasting ${bones.ticksUntilDespawn} ticks")
+                assertEquals(GroundObjs.LOOT_DESPAWN_TICKS, KingBlackDragon.lootTicks(server.world, server.world.npcs.all.first { it.type.id == KingBlackDragon.BOSS && !instance.contains(it.x, it.z) }, GroundObjs.LOOT_DESPAWN_TICKS), "the open lair's last as anywhere")
 
                 client.locOp(KingBlackDragon.LEVER_OUT, instance.baseX + tile.x - KingBlackDragon.LAIR_X, instance.baseZ + tile.z - KingBlackDragon.LAIR_Z, 1)
                 client.await("back in the dungeon", timeoutMillis = 15_000) { client.position?.takeIf { it == Coord(3067, 10253, 0) } }

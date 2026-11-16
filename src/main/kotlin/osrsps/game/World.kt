@@ -2851,12 +2851,13 @@ class World(
         // A superior's three rolls on its normal counterpart's table come after its own drops.
         val drops = npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty()
         val owner = killer?.takeIf { !it.loggedOut }?.saveKey
+        val despawn = osrsps.game.content.KingBlackDragon.lootTicks(this, npc, GroundObjs.LOOT_DESPAWN_TICKS)
         for (drop in drops) {
             if (owner != null) {
-                groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, owner, GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.LOOT_DESPAWN_TICKS)
+                groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, owner, GroundObjs.DROP_PRIVATE_TICKS, despawn)
                 killer?.let { lootNotifications.dropped(it, drop.type, drop.count) }
             } else {
-                groundObjs.addPublic(drop.type, drop.count, npc.x, npc.z, npc.level, GroundObjs.LOOT_DESPAWN_TICKS)
+                groundObjs.addPublic(drop.type, drop.count, npc.x, npc.z, npc.level, despawn)
             }
         }
     }
