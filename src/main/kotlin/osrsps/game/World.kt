@@ -861,6 +861,9 @@ class World(
     /** Combination runes and the binding necklace; see [osrsps.game.skill.CombinationRunes]. */
     val combinationRunes = osrsps.game.skill.CombinationRunes(this)
 
+    /** Essence pouches; see [osrsps.game.skill.EssencePouches]. */
+    val essencePouches = osrsps.game.skill.EssencePouches(this)
+
     val firemaking = Firemaking(this, collision)
 
     val hunter = osrsps.game.skill.hunter.Hunter(this, collision)
@@ -1105,6 +1108,7 @@ class World(
         runecraft.register()
         runeCrafting.register()
         combinationRunes.register()
+        essencePouches.register()
         loadDialogue()
     }
 
