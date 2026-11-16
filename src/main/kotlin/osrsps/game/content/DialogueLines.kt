@@ -181,6 +181,7 @@ object DialogueLines {
         ChaosFanaticLines,
         VolcanicForgeLines,
         KingBlackDragonLines,
+        WildernessLairFeeLines,
         osrsps.game.FountainOfRuneLines,
         OborLines,
         BryophytaLines,
