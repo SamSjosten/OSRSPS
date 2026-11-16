@@ -234,7 +234,10 @@ class Falconry(private val world: World, private val collision: CollisionMap) {
 
     private fun ScriptContext.retrieve(kebbit: FalconKebbit, npc: Npc) {
         val flight = flights[player.saveKey]
-        if (flight == null || flight.onPrey !== npc) return world.message(player, HunterLines.NOT_YOUR_FALCON)
+        // The empty glove too: the falcon goes back onto it (exploit review round 36, C-3).
+        if (flight == null || flight.onPrey !== npc || player.equipment[WearPos.WEAPON]?.id != GLOVE_EMPTY) {
+            return world.message(player, HunterLines.NOT_YOUR_FALCON)
+        }
         flights.remove(player.saveKey)
         world.removeNpc(npc)
         respawn(flight, world.tick)
@@ -334,8 +337,9 @@ class Falconry(private val world: World, private val collision: CollisionMap) {
         when (choice(REASONABLE, NOT_INTERESTED)) {
             1 -> {
                 chatPlayer(ChatAnim.NEUTRAL, REASONABLE)
-                if (!handsFree(player)) return@with chatNpc(ChatAnim.NEUTRAL, HANDS_FREE)
-                rent(player)
+                // The coins may have gone while the lines played.
+                if (player.inventory.count(COINS) < FEE_COINS) return@with chatPlayer(ChatAnim.SAD, NOT_ENOUGH)
+                if (!rent(player)) return@with chatNpc(ChatAnim.NEUTRAL, HANDS_FREE)
                 mesbox(GIVES_GLOVE)
                 chatNpc(ChatAnim.NEUTRAL, KEEP_AN_EYE)
             }
@@ -380,11 +384,8 @@ class Falconry(private val world: World, private val collision: CollisionMap) {
             }
             player.skills.baseLevel(Skill.HUNTER) < LEVEL -> chatNpc(ChatAnim.NEUTRAL, TOO_LOW)
             player.inventory.count(COINS) < FEE_COINS -> chatPlayer(ChatAnim.SAD, NOT_ENOUGH)
-            !handsFree(player) -> chatNpc(ChatAnim.NEUTRAL, HANDS_FREE)
-            else -> {
-                rent(player)
-                mesbox(GIVES_GLOVE)
-            }
+            !rent(player) -> chatNpc(ChatAnim.NEUTRAL, HANDS_FREE)
+            else -> mesbox(GIVES_GLOVE)
         }
     }
 
@@ -418,7 +419,12 @@ class Falconry(private val world: World, private val collision: CollisionMap) {
         return slots <= player.inventory.freeSlots + freed
     }
 
-    private fun rent(player: Player) {
+    /**
+     * Takes the fee, moves the weapon and shield to the backpack and puts the glove on, all or nothing: the coins and the
+     * room are checked again here, with nothing between that and the change (exploit review round 36, C-2).
+     */
+    private fun rent(player: Player): Boolean {
+        if (player.inventory.count(COINS) < FEE_COINS || !handsFree(player)) return false
         var left = FEE_COINS
         for ((slot, held) in player.inventory.contents()) {
             if (left == 0) break
@@ -429,7 +435,10 @@ class Falconry(private val world: World, private val collision: CollisionMap) {
             val type = world.objTypes[obj.id]
             if (type != null && player.inventory.add(type, obj.count) == obj.count) player.equipment[pos] = null
         }
+        // handsFree said both would fit; never write the glove over a weapon still worn.
+        if (player.equipment[WearPos.WEAPON] != null) return false
         player.equipment[WearPos.WEAPON] = InvObj(GLOVE_FALCON, 1)
+        return true
     }
 
     /** Takes the glove off [player] wherever it is, and ends their falcon's flight. */
