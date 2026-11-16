@@ -34,7 +34,8 @@ object KingBlackDragonLines : Lines("kbd", "King Black Dragon Lair") {
  * `king_dragon` 239, size 5, combat 276, 240 hitpoints, aggressive, every 4 ticks. Beside the player he swings (stab,
  * max 25) one attack in three; otherwise he breathes, half the time dragonfire (max 65) and half one of three special
  * breaths (max 50): toxic, which may poison from 8; shocking, which may drain 2 from every stat; icy, which may freeze
- * for 10 ticks; each special's effect half the time it hits. An anti-dragon shield (or its upgrades) caps dragonfire at
+ * for 10 ticks; each special's effect half the time it hits, one in eight behind a shield or Protect from Magic
+ * (the Wiki's Strategies page, from Mod Ash). An anti-dragon shield (or its upgrades) caps dragonfire at
  * 15 and the specials at 10, Protect from Magic alone at 20 and 15, both at 15 and 10. Antifire potions aren't in the
  * game yet. His drops are in npc-drops.json and his kill count in `total_kbd_kills`.
  *
@@ -63,6 +64,8 @@ object KingBlackDragon {
     const val SPECIAL_PRAYER = 15
 
     const val POISON = 8
+    const val EFFECT_UNPROTECTED = 2
+    const val EFFECT_PROTECTED = 8
     const val SHOCK_DRAIN = 2
     const val FREEZE_TICKS = 10
 
@@ -91,10 +94,14 @@ object KingBlackDragon {
         val type = world.npcTypes[BOSS] ?: return null
         return EncounterDef(
             "kbd", type,
-            listOf(PhaseDef("fight", cycle = listOf(CycleStep(1) { tick() }))),
+            // Unleashed: he fights anywhere in his lair, not only near his spawn.
+            listOf(PhaseDef("fight", cycle = listOf(CycleStep(1) { tick() }), onStart = { boss.unleashed = true })),
             scriptedAttacks = true,
         )
     }
+
+    /** One in this many hits of a special breath sets off its effect: 8 behind an anti-dragon shield or Protect from Magic, else 2. */
+    fun effectChance(shield: Boolean, prayer: Boolean): Int = if (shield || prayer) EFFECT_PROTECTED else EFFECT_UNPROTECTED
 
     /** How many ticks a breath takes from [boss] to [target]: a magic bolt's flight. */
     fun breathTicks(boss: Npc, target: Player): Int =
@@ -107,7 +114,7 @@ object KingBlackDragon {
     private val nextAttack = java.util.WeakHashMap<Npc, Long>()
 
     private fun EncounterContext.tick() {
-        val target = heldTarget()
+        val target = heldTarget() ?: hunt()
         if (target == null) {
             world.npcs.stopFollowing(boss)
             return
@@ -127,6 +134,18 @@ object KingBlackDragon {
         breathe(target, breath)
     }
 
+    /**
+     * With no one to fight, he takes on the nearest player in his lair he can see, wherever they stand in it (as they
+     * come through the lever), tolerance or not. GUESSED: the whole lair as his hunting ground.
+     */
+    private fun EncounterContext.hunt(): Player? {
+        val target = players.filter { !it.dead && it.level == boss.level && world.meleeCombat.sees(boss, it) }
+            .minByOrNull { max(kotlin.math.abs(it.x - boss.x), kotlin.math.abs(it.z - boss.z)) } ?: return null
+        world.meleeCombat.aggress(boss, target, world.tick)
+        log("takes on ${target.username}")
+        return heldTarget()
+    }
+
     private fun EncounterContext.breathe(target: Player, breath: Breath) {
         boss.effects.anim(ANIM_BREATH)
         val ticks = breathTicks(boss, target)
@@ -139,7 +158,7 @@ object KingBlackDragon {
             if (target.dead || players.none { it === target }) return@after
             val dealt = hit(target, damage)
             world.message(target, Dragonfire.line(shield, prayer, resisted = false))
-            if (!breath.special || dealt <= 0 || roll(1, 2) != 1) return@after
+            if (!breath.special || dealt <= 0 || roll(1, effectChance(shield, prayer)) != 1) return@after
             when (breath) {
                 Breath.TOXIC -> world.poison.poison(target, POISON * 5)
                 Breath.SHOCK -> for (skill in Skill.entries) {

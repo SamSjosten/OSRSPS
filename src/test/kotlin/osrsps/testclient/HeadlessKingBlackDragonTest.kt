@@ -107,6 +107,32 @@ class HeadlessKingBlackDragonTest {
     }
 
     @Test
+    fun `protection cuts a special breath's effect to one in eight, and he ignores tolerance`() {
+        assertEquals(2, KingBlackDragon.effectChance(shield = false, prayer = false))
+        assertEquals(8, KingBlackDragon.effectChance(shield = true, prayer = false))
+        assertEquals(8, KingBlackDragon.effectChance(shield = false, prayer = true))
+        assertEquals(8, KingBlackDragon.effectChance(shield = true, prayer = true))
+        assertEquals(false, NpcCombat.load(types, SeqNames.NONE)[boss]?.aggression?.tolerant)
+    }
+
+    @Test
+    fun `he takes on a player who comes through the lever, far from his spawn`(@TempDir dir: Path) {
+        server(dir, seed = 1).use { server ->
+            server.login("wes").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.command("varp 172 1")
+                client.tele(2271, 4680)
+                val npc = server.world.npcs.all.first { it.type.id == KingBlackDragon.BOSS }
+                val wes = server.world.playerNamed("wes")!!
+                client.await("him taking wes on", timeoutMillis = 20_000) { npc.target?.takeIf { it === wes } }
+                val fight = client.await("his fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
+                client.await("a breath or a swing", timeoutMillis = 30_000) { fight.lines.firstOrNull { "breathes" in it || "swings" in it } }
+            }
+        }
+    }
+
+    @Test
     fun `the dungeon's lever takes the player into the lair, Commune counts who is there, and its own lever back`(@TempDir dir: Path) {
         server(dir, seed = 1, spawn = false).use { server ->
             server.login("abe").use { client ->

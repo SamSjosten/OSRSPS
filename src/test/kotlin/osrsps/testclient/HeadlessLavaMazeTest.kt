@@ -171,7 +171,8 @@ class HeadlessLavaMazeTest {
                 client.locOp(LavaMaze.CHEST, 3089, 3859, LavaMaze.OPEN)
                 client.awaitMessage("the treasure") { it == "[lava_maze.chest_treasure]" }
                 assertTrue(client.messages().any { it.text == "[lava_maze.chest_unlock]" })
-                assertEquals(0L, client.count(LavaMaze.MUDDY_KEY))
+                // The backpack's update can come a moment after the message.
+                client.await("the key used") { Unit.takeIf { client.count(LavaMaze.MUDDY_KEY) == 0L } }
                 // The always part of the loot, as the Wiki lists it.
                 assertEquals(1L, client.count(1619), "uncut ruby")
                 assertEquals(2L, client.count(2360), "noted mithril bars")

@@ -60,7 +60,6 @@ object NpcSpawnFile {
         "fractured-archive-lobby.json",
         "mage-arena-bank.json",
         "scorpia-cave.json",
-        "kbd-lair.json",
         "rogues-den.json",
         "wizards-tower.json",
         "lumbridge-swamp-quest.json",
@@ -99,6 +98,7 @@ object NpcSpawnFile {
         "wilderness-36-48.json",
         "lava-maze-dungeon.json",
         "wilderness-49-56.json",
+        "kbd-lair.json",
     )
 
     /** What a file gave: the spawns, and the NPC names the cache doesn't know (skipped). */
