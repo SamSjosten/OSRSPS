@@ -1,0 +1,23 @@
+{
+ "name": "Runecraft step RC4: a small pouch filled with three pure essence (its count varbit 603 at 3 and its type varbit 2088 at 2), checked, then emptied back into the backpack (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario runecraft", "expectMessage": "Started scenario runecraft.", "comment": "99 Runecraft and 12 free slots; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::item 5509", "comment": "a small pouch"},
+  {"step": "command", "text": "::item 7936 3", "comment": "three pure essence"},
+  {"step": "assertInventory", "itemId": 7936, "count": 3},
+  {"step": "itemOption", "itemId": 5509, "option": "Fill"},
+  {"step": "assertInventory", "itemId": 7936, "count": 0, "timeoutMs": 5000},
+  {"step": "assertVarbit", "id": 603, "value": 3, "timeoutMs": 5000, "comment": "small_essence_pouch"},
+  {"step": "assertVarbit", "id": 2088, "value": 2, "comment": "small_essence_pouch_type: 2 = pure essence (guessed value)"},
+  {"step": "itemOption", "itemId": 5509, "option": "Check"},
+  {"step": "assertMessage", "contains": "runecraft_pouch.check", "timeoutMs": 5000},
+  {"step": "itemOption", "itemId": 5509, "option": "Empty"},
+  {"step": "assertInventory", "itemId": 7936, "count": 3, "timeoutMs": 5000},
+  {"step": "assertVarbit", "id": 603, "value": 0, "timeoutMs": 5000},
+
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
