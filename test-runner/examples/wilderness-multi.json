@@ -1,0 +1,16 @@
+{
+  "name": "Wilderness step W4.4a: the multi-way icon in the Wilderness. Varbit multiway_indicator (4605) on at the Bandit Camp and the Dark Warriors' Fortress, off at the Chaos Fanatic and in Ferox Enclave",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::tele 3035 3700 0", "expectMessage": "Teleported to 3035, 3700, 0", "comment": "the Bandit Camp, multi-way"},
+    {"step": "assertVarbit", "id": 4605, "value": 1, "timeoutMs": 5000},
+    {"step": "command", "text": "::tele 2979 3846 0", "expectMessage": "Teleported to 2979, 3846, 0", "comment": "the Chaos Fanatic's spot, single-way"},
+    {"step": "assertVarbit", "id": 4605, "value": 0, "timeoutMs": 5000},
+    {"step": "command", "text": "::tele 3030 3630 0", "expectMessage": "Teleported to 3030, 3630, 0", "comment": "the Dark Warriors' Fortress, multi-way"},
+    {"step": "assertVarbit", "id": 4605, "value": 1, "timeoutMs": 5000},
+    {"step": "command", "text": "::tele 3140 3630 0", "expectMessage": "Teleported to 3140, 3630, 0", "comment": "Ferox Enclave, single-way"},
+    {"step": "assertVarbit", "id": 4605, "value": 0, "timeoutMs": 5000},
+    {"step": "command", "text": "::tele 3222 3218 0", "expectMessage": "Teleported to 3222, 3218, 0", "comment": "back to Lumbridge"}
+  ]
+}
