@@ -26,65 +26,84 @@ fun CommandRegistry.registerScenarioCommands(world: World) {
             return@register
         }
         val scenario = world.scenarios[args[0]] ?: fail("No scenario '${args[0]}'. Scenarios: $names")
-        start(world, scenario)
-        reply("Started scenario ${scenario.name}.${scenario.about?.let { " $it" }.orEmpty()} ::reset puts you back.")
+        reply(startScenario(world, player, scenario))
     }
 
     register("reset", "::reset") {
         if (args.isNotEmpty()) fail("Usage: ::reset")
-        val before = player.beforeScenario ?: fail("Nothing to reset: you haven't started a ::scenario since the last ::reset.")
-        val name = player.scenario
-        world.scripts.clearAll(player)
-        world.meleeCombat.endFights(player)
-        // A stopped Hunter run's traps come down too, so none stands for the next script.
-        world.hunter.traps.takeDown(player)
-        player.testCheatsOff()
-        before.restoreTo(player)
-        // After the snapshot, which holds the skull, whom they attacked first and the Tele Block's varbit from before the
-        // scenario: ::reset clears those too (Codex review on #723). Teleblock.clear skips a player with no block, so its
-        // varbit is cleared here, or RuneLite would show a timer for a block that's gone.
-        world.pvpCombat.clear(player)
-        player.vars.setVarbitIfKnown(Teleblock.VARBIT, 0)
-        // Varp 83 came back with the rest; the overhead icon and the drain go with the prayer book, so it starts afresh.
-        world.prayers.deactivateAll(player)
-        // A stall owner's grudge from a test theft goes too, so the next script can trade with them.
-        world.thieving.forgive(player)
-        world.pickpocketing.forgive(player)
-        // The NPCs the player put in with ::npc or ::raid <boss> go too, a test fight ending with its boss as ::raid stop
-        // ends it: a script that failed before its own clean-up left them for the next to meet (nightly 2026-11-08:
-        // aggro-leash's spider beside aggro-sight's, and a Guardian fight on the login tile killing test2 on each respawn).
-        for (npc in world.npcs.all.filter { it.spawn.source == spawnSource(player.username) }.toList()) {
-            world.encounters.all.firstOrNull { it.boss === npc }?.let(world.encounters::stop)
-            world.removeNpc(npc)
-        }
-        // The doors and gates the player moved and nobody has moved since shut or open again as the cache has them, so a
-        // script that stopped part way leaves none for the next (nightly 2026-11-08, Edgeville's).
-        world.locs.restoreOwnedBy(player.saveKey)
-        // A grave the scenario raised goes too, its items being the scenario's.
-        world.deaths.dropScenarioGrave(player)
-        world.teleport(player, before.x, before.z, before.level)
-        player.scenario = null
-        player.beforeScenario = null
-        reply("Back to how you were before ::scenario${name?.let { " $it" }.orEmpty()}.")
+        reply(resetScenario(world, player))
     }
 }
 
+/**
+ * Starts [scenario] for [player], as `::scenario name` does, and returns its reply. Throws [CommandFailure] with the
+ * reason, leaving the player as they were, when it can't start. For the commands and for testing NPCs that start a
+ * fixed scenario for anyone, such as the raid tester ([osrsps.game.content.RaidTester]).
+ */
+internal fun startScenario(world: World, player: Player, scenario: Scenario): String {
+    start(world, player, scenario)
+    return "Started scenario ${scenario.name}.${scenario.about?.let { " $it" }.orEmpty()} ::reset puts you back."
+}
+
+/**
+ * Puts [player] back as they were before their first scenario, as `::reset` does, and returns its reply. Throws
+ * [CommandFailure] when there is nothing to put back.
+ */
+internal fun resetScenario(world: World, player: Player): String {
+    val before = player.beforeScenario ?: refuse("Nothing to reset: you haven't started a ::scenario since the last ::reset.")
+    val name = player.scenario
+    world.scripts.clearAll(player)
+    world.meleeCombat.endFights(player)
+    // A stopped Hunter run's traps come down too, so none stands for the next script.
+    world.hunter.traps.takeDown(player)
+    player.testCheatsOff()
+    before.restoreTo(player)
+    // After the snapshot, which holds the skull, whom they attacked first and the Tele Block's varbit from before the
+    // scenario: ::reset clears those too (Codex review on #723). Teleblock.clear skips a player with no block, so its
+    // varbit is cleared here, or RuneLite would show a timer for a block that's gone.
+    world.pvpCombat.clear(player)
+    player.vars.setVarbitIfKnown(Teleblock.VARBIT, 0)
+    // Varp 83 came back with the rest; the overhead icon and the drain go with the prayer book, so it starts afresh.
+    world.prayers.deactivateAll(player)
+    // A stall owner's grudge from a test theft goes too, so the next script can trade with them.
+    world.thieving.forgive(player)
+    world.pickpocketing.forgive(player)
+    // The NPCs the player put in with ::npc or ::raid <boss> go too, a test fight ending with its boss as ::raid stop
+    // ends it: a script that failed before its own clean-up left them for the next to meet (nightly 2026-11-08:
+    // aggro-leash's spider beside aggro-sight's, and a Guardian fight on the login tile killing test2 on each respawn).
+    for (npc in world.npcs.all.filter { it.spawn.source == spawnSource(player.username) }.toList()) {
+        world.encounters.all.firstOrNull { it.boss === npc }?.let(world.encounters::stop)
+        world.removeNpc(npc)
+    }
+    // The doors and gates the player moved and nobody has moved since shut or open again as the cache has them, so a
+    // script that stopped part way leaves none for the next (nightly 2026-11-08, Edgeville's).
+    world.locs.restoreOwnedBy(player.saveKey)
+    // A grave the scenario raised goes too, its items being the scenario's.
+    world.deaths.dropScenarioGrave(player)
+    world.teleport(player, before.x, before.z, before.level)
+    player.scenario = null
+    player.beforeScenario = null
+    return "Back to how you were before ::scenario${name?.let { " $it" }.orEmpty()}."
+}
+
+private fun refuse(message: String): Nothing = throw CommandFailure(message)
+
 /** Checks everything first, so a scenario that can't start leaves the player as they were. */
-private fun CommandContext.start(world: World, scenario: Scenario) {
+private fun start(world: World, player: Player, scenario: Scenario) {
     val loadout = try {
         scenario.loadout(world.objTypes)
     } catch (e: IllegalArgumentException) {
-        fail("Scenario ${scenario.name} can't start: ${e.message}")
+        refuse("Scenario ${scenario.name} can't start: ${e.message}")
     }
     val vars = player.vars
     for (varp in scenario.varps.keys) {
-        if (varp >= vars.types.varpCount) fail("Scenario ${scenario.name} can't start: the cache has no varp $varp")
+        if (varp >= vars.types.varpCount) refuse("Scenario ${scenario.name} can't start: the cache has no varp $varp")
     }
     for ((id, value) in scenario.varbits) {
-        val type = vars.types.varbit(id) ?: fail("Scenario ${scenario.name} can't start: the cache has no varbit $id")
-        if (type.mask != -1 && value !in 0..type.mask) fail("Scenario ${scenario.name} can't start: varbit $id holds 0 to ${type.mask}, not $value")
+        val type = vars.types.varbit(id) ?: refuse("Scenario ${scenario.name} can't start: the cache has no varbit $id")
+        if (type.mask != -1 && value !in 0..type.mask) refuse("Scenario ${scenario.name} can't start: varbit $id holds 0 to ${type.mask}, not $value")
     }
-    if (!world.hasMap(scenario.x, scenario.z)) fail("Scenario ${scenario.name} can't start: no map at ${scenario.x}, ${scenario.z}")
+    if (!world.hasMap(scenario.x, scenario.z)) refuse("Scenario ${scenario.name} can't start: no map at ${scenario.x}, ${scenario.z}")
 
     // Traps laid before a first scenario come back to the backpack first, so its snapshot (and ::reset) keeps them;
     // an earlier scenario's own traps just come down.

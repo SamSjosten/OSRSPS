@@ -364,6 +364,7 @@ object DialogueLines {
         MasterSmithingTutorLines,
         PrinceAliLines,
         PrysinLines,
+        RaidTesterLines,
         RamBartenderLines,
         RanaelLines,
         RecordKeeperLines,

@@ -118,6 +118,7 @@ import osrsps.game.content.registerHamHideout
 import osrsps.game.content.registerHamStorerooms
 import osrsps.game.content.registerFarmsRoads
 import osrsps.game.content.registerLumberYard
+import osrsps.game.content.registerRaidTester
 import osrsps.game.content.registerTolnasRift
 import osrsps.game.content.registerDigsite
 import osrsps.game.content.registerDigsiteDigs
@@ -1065,6 +1066,7 @@ class World(
         registerLodestones(this)
         registerVarrock(this)
         registerArchiveLobby(this)
+        registerRaidTester(this)
         archiveRaids.register()
         // After the raid, which sets the combat's shut-out rule afresh; the lairs add theirs to it.
         registerObor(this, giantLairs)
@@ -3329,7 +3331,7 @@ class World(
     }
 
     /** Whether [player] was hit within the last [LOGOUT_COMBAT_TICKS], so can't log out. */
-    private fun inCombat(player: Player): Boolean =
+    internal fun inCombat(player: Player): Boolean =
         (player.attackedTick >= 0 && tick - player.attackedTick < LOGOUT_COMBAT_TICKS) ||
             (player.attackedByPlayerTick >= 0 && tick - player.attackedByPlayerTick < LOGOUT_COMBAT_TICKS) ||
             // A player's swing still on its way counts already, so processing order can't let them log out from under it.

@@ -24,6 +24,7 @@
     "Hunter step 7 (2026-11-15): Matthias, the falcons on their prey and the falconry kebbits of npc-spawns/hunter-falconry.json, from each page.",
     "Hunter step 9 (2026-11-15): the Hunter shops' keepers of npc-spawns/hunter-shops.json, from each page.",
     "NPCs and locs: Wilderness step W2.5 (2026-11-15): the types piece 2 spawns and places that had none (the Edgeville Dungeon's Wilderness part, levels 1 to 20, Ferox Enclave), one per id, from the infobox of the page in wiki, else of the page named after it. Last Man Standing's host (7320, a multi-NPC) gets none until that minigame.",
+    "The raid tester (2026-11-16): npc-spawns/raid-tester.json's Leagues Tutor (316), a testing NPC with no live counterpart; his examine is our own words.",
     "NPCs and locs: Wilderness step W3.8 (2026-11-15): the types piece 3 spawns (levels 21 to 56, the Lava Maze Dungeon, the Mage Arena bank) and the locs its content handles that had none, one per id, from the infobox of the page in wiki, else of the page named after it. None yet where the Wiki gives no text or more than one: the greater demons (2026 to 2029, red or purple), the Chaos Temple's noting Elder Chaos druid (7995), the Lava Maze's mirror ladders (18987 to 18990), the King Black Dragon's levers (1816, 1817)."
   ],
   "npcs": [
@@ -90,6 +91,7 @@
     {"npc": 303, "name": "Speedy Keith"},
     {"npc": 306, "name": "Lumbridge Guide"},
     {"npc": 311, "name": "Ironman tutor", "also": [16814], "wiki": "Ironman tutor page, infobox (16814 is the type the 242 multi-NPC shows Ironmen)"},
+    {"npc": 316, "name": "Leagues Tutor", "wiki": "none: ours, as the raid tester (RaidTester.kt), a testing NPC with no live counterpart, so his examine is our own words, not the Leagues Tutor's"},
     {"npc": 403, "name": "Vannaka"},
     {"npc": 404, "name": "Chaeldar"},
     {"npc": 406, "name": "Cave crawler"},
