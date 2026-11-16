@@ -40,6 +40,20 @@ class ExaminesTest {
     }
 
     @Test
+    fun `the Wilderness's NPCs and handled locs from level 21 up have examines, keyed one per id`() {
+        // Wilderness step W3.8: the types piece 3 spawns (the 242 cache's ids) and the locs its content handles that
+        // had none and that the Wiki gives one text.
+        val npcs = listOf(
+            13, 59, 104, 106, 108, 255, 256, 261, 262, 291, 301, 302, 303, 517, 523, 1026, 1536, MageArenaBank.GUNDAI,
+            MageArenaBank.LUNDAIL, 2006, 2007, 2008, 2018, 2085, 2086, 2087, 2834, 2841, 2844, 3022, 3027, 6593, 6596, 6597,
+            6598, ResourceArea.MANDRITH, ResourceArea.GOLEM, ResourceArea.GOLEM_ROCK, 6603, 6608,
+        )
+        for (id in npcs) assertEquals("examine.npc_$id", Examines.npc(id)?.key, "NPC $id")
+        val locs = listOf(170, 171, 5960, 9472, 11727, 14825, 14826, 14827, 14828, 14829, 14830, ResourceArea.GATE)
+        for (id in locs) assertEquals("examine.loc_$id", Examines.loc(id)?.key, "loc $id")
+    }
+
+    @Test
     fun `every castle NPC that talks has an examine`() {
         for (id in listOf(Hans.ID, Cook.ID, DukeHoracio.ID, Perdu.ID, Cadmus.ID, Bankers.BANKER, Doomsayer.ID, Mikasi.ID, LumbridgeGuide.ID) + Townsfolk.MEN + Townsfolk.WOMEN) {
             assertEquals("examine.npc_$id", Examines.npc(id)?.key, "NPC $id")

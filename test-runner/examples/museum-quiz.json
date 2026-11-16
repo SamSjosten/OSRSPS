@@ -33,6 +33,16 @@
    "contains": "[natural_history_quiz.not_started]"
   },
   {
+   "step": "command",
+   "text": "::tele 1760 4956 0",
+   "expectMessage": "Teleported to 1760, 4956, 0",
+   "comment": "back beside Orlando: a plaque's walk can take him past the client's 15 tiles (nightly 2026-11-16, he was 16 away and gone from view)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
    "step": "npcOption",
    "npcId": 6001,
    "option": "Talk-to",
@@ -41,7 +51,8 @@
   },
   {
    "step": "assertDialogue",
-   "contains": "[orlando_smith.opening_1]"
+   "contains": "[orlando_smith.opening_1]",
+   "timeoutMs": 20000
   },
   {
    "step": "continueDialogue"
@@ -341,6 +352,16 @@
    "comment": "done: the plaque names the animal"
   },
   {
+   "step": "command",
+   "text": "::tele 1760 4956 0",
+   "expectMessage": "Teleported to 1760, 4956, 0",
+   "comment": "back beside Orlando: a plaque's walk can take him past the client's 15 tiles (nightly 2026-11-16, he was 16 away and gone from view)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
    "step": "npcOption",
    "npcId": 6001,
    "option": "Talk-to",
@@ -348,7 +369,8 @@
   },
   {
    "step": "assertDialogue",
-   "contains": "[orlando_smith.how_coming]"
+   "contains": "[orlando_smith.how_coming]",
+   "timeoutMs": 20000
   },
   {
    "step": "continueDialogue"
@@ -434,15 +456,26 @@
    "comment": "vm_nathis_reward_given"
   },
   {
+   "step": "command",
+   "text": "::tele 1760 4956 0",
+   "expectMessage": "Teleported to 1760, 4956, 0",
+   "comment": "back beside Orlando: a plaque's walk can take him past the client's 15 tiles (nightly 2026-11-16, he was 16 away and gone from view)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
    "step": "npcOption",
    "npcId": 6001,
    "option": "Talk-to",
-   "timeoutMs": 10000
+   "timeoutMs": 20000
   },
   {
    "step": "assertDialogue",
    "contains": "[orlando_smith.thanks_help]",
-   "comment": "once only"
+   "comment": "once only",
+   "timeoutMs": 20000
   },
   {
    "step": "continueDialogue"
