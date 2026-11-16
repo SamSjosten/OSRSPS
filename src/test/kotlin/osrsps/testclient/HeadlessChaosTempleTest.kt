@@ -153,6 +153,10 @@ class HeadlessChaosTempleTest {
         assertEquals(157, ChaosTemple.offerXp(BONES))
         assertEquals(2520, ChaosTemple.offerXp(536), "dragon bones: 72 times 3.5")
         assertEquals(null, ChaosTemple.offerXp(VILE), "ashes can't be offered")
+        // Wolf, bat and lava dragon bones, buriable since this step, offer at 3.5 times their XP too.
+        assertEquals(157, ChaosTemple.offerXp(2859))
+        assertEquals(185, ChaosTemple.offerXp(530))
+        assertEquals(2975, ChaosTemple.offerXp(11943))
     }
 
     private companion object {

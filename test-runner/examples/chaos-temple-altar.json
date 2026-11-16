@@ -1,5 +1,5 @@
 {
-  "name": "Wilderness step W3.4c: bones offered on the Chaos Temple's altar (level 38) for 3.5 times their Prayer XP until none are left, then the Elder Chaos druid's talk (::keys on)",
+  "name": "Wilderness step W3.4c: bones offered on the Chaos Temple's altar (level 38) for 3.5 times their Prayer XP until none are left, then the Elder Chaos druid's talk, then lava dragon bones buried (::keys on)",
   "account": "test",
   "steps": [
     {"step": "waitForLogin"},
@@ -14,6 +14,11 @@
 
     {"step": "npcOption", "npc": "Elder Chaos druid", "option": "Talk-to", "timeoutMs": 20000},
     {"step": "assertDialogue", "contains": "chaos_temple.welcome", "timeoutMs": 10000},
+
+    {"step": "command", "text": "::item 11943", "expectMessage": "Added 1 x Lava dragon bones", "comment": "lava dragon bones bury since this step"},
+    {"step": "itemOption", "item": "Lava dragon bones", "option": "Bury"},
+    {"step": "assertMessage", "contains": "[bones.buried]"},
+    {"step": "assertInventory", "item": "Lava dragon bones", "count": 0, "timeoutMs": 5000},
 
     {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
     {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}

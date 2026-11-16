@@ -36,6 +36,9 @@ class HeadlessBonesTest {
         objs[VILE] = vile
         objs[INFERNAL] = infernal
         objs[BUCKET] = bucket
+        for ((id, name) in listOf(WOLF_BONES to "Wolf bones", BAT_BONES to "Bat bones", LAVA_DRAGON_BONES to "Lava dragon bones")) {
+            objs[id] = ObjType(id, name, iops = listOf("Bury", null, null, null, "Drop"))
+        }
         val well = LocType(WELL, "Test well", collision = LocCollisionType(width = 1, length = 1))
         val pump = LocType(PUMP, "Pump", collision = LocCollisionType(width = 1, length = 1))
         World(
@@ -113,11 +116,30 @@ class HeadlessBonesTest {
         }
     }
 
+    @Test
+    fun `wolf, bat and lava dragon bones bury for 4,5, 5,3 and 85 Prayer XP`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("wren").use { client ->
+                client.await("the login rebuild") { client.position }
+                // Wilderness step W3.4c: the OSRS Wiki's XP for each; the stat packet carries whole XP of the running total.
+                for ((id, total) in listOf(WOLF_BONES to 4, BAT_BONES to 9, LAVA_DRAGON_BONES to 94)) {
+                    client.command("item $id")
+                    client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, BURY_BUTTON_OP, client.slotOf(id), id)
+                    client.await("$id buried") { if (client.inventory(BACKPACK).none { it?.id == id }) Unit else null }
+                    assertEquals(total, client.await("$total Prayer XP") { client.stat(PRAYER)?.takeIf { it.xp >= total } }.xp)
+                }
+            }
+        }
+    }
+
     private companion object {
         const val BONES = 526
         const val BUCKET = 1925
         const val VILE = 25769
         const val INFERNAL = 25778
+        const val WOLF_BONES = 2859
+        const val BAT_BONES = 530
+        const val LAVA_DRAGON_BONES = 11943
         const val WELL = 9010
         const val PUMP = 9011
         const val BACKPACK = 93
