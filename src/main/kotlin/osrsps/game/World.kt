@@ -154,6 +154,7 @@ import osrsps.game.content.registerWildernessDitch
 import osrsps.game.content.registerEdgevilleDungeon
 import osrsps.game.content.registerFeroxEnclave
 import osrsps.game.content.registerWildernessObelisks
+import osrsps.game.content.registerWildernessLevers
 import osrsps.game.content.WildernessObelisks
 import osrsps.game.content.registerSkullSceptre
 import osrsps.game.content.registerStrongholdOfSecurity
@@ -1021,6 +1022,7 @@ class World(
         registerEdgevilleDungeon(this)
         registerFeroxEnclave(this)
         registerWildernessObelisks(this)
+        registerWildernessLevers(this)
         registerStrongholdOfSecurity(this)
         registerSkullSceptre(this)
         registerHaystacks(this)

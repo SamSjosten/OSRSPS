@@ -1,0 +1,15 @@
+{
+  "name": "Wilderness step W3.2: the Edgeville lever to the Deserted Keep and the Keep's lever out to East Ardougne, with the Wiki's lines (::keys on)",
+  "account": "test2",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::tele 3090 3476 0", "expectMessage": "Teleported to 3090, 3476, 0", "comment": "beside the lever south of Edgeville bank"},
+    {"step": "locOption", "locId": 26761, "option": "Pull", "x": 3090, "y": 3475},
+    {"step": "assertMessage", "contains": "[wildy_lever.pull]", "timeoutMs": 10000},
+    {"step": "assertLocation", "x": 3153, "y": 3923, "plane": 0, "timeoutMs": 15000, "comment": "on the Deserted Keep's lever, level 51"},
+    {"step": "locOption", "loc": "Lever", "option": "Pull", "x": 3153, "y": 3923},
+    {"step": "assertLocation", "x": 2561, "y": 3311, "plane": 0, "timeoutMs": 15000, "comment": "on East Ardougne's lever"},
+    {"step": "assertMessage", "contains": "[wildy_lever.out]", "timeoutMs": 5000}
+  ]
+}
