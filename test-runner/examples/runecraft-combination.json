@@ -1,0 +1,25 @@
+{
+ "name": "Runecraft step RC3: water runes used on the Air Altar with a water talisman, pure essence and a worn binding necklace make mist runes, one for each pair (sure with the necklace), and the talisman is used up (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario runecraft", "expectMessage": "Started scenario runecraft.", "comment": "99 Runecraft and every talisman, the water talisman among them; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::tele 2841 4829 0", "comment": "inside the Air Altar's temple, where its ruins put you"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "assertLocation", "x": 2841, "y": 4829, "plane": 0},
+  {"step": "command", "text": "::item 7936 4", "comment": "four pure essence"},
+  {"step": "command", "text": "::item 555 4", "comment": "four water runes"},
+  {"step": "command", "text": "::item 5521", "comment": "a binding necklace"},
+  {"step": "assertInventory", "itemId": 7936, "count": 4},
+  {"step": "itemOption", "itemId": 5521, "option": "Wear"},
+  {"step": "assertEquipment", "slot": "neck", "itemId": 5521, "timeoutMs": 5000},
+  {"step": "useItemOnLoc", "itemId": 555, "locId": 34760, "x": 2843, "y": 4833, "comment": "the water runes on the Air Altar"},
+  {"step": "assertMessage", "contains": "runecraft_combo.bind", "timeoutMs": 10000},
+  {"step": "assertInventory", "itemId": 4695, "count": 4, "timeoutMs": 5000, "comment": "four mist runes: the necklace makes every pair bind"},
+  {"step": "assertInventory", "itemId": 1444, "count": 0, "comment": "the water talisman is used up"},
+  {"step": "assertInventory", "itemId": 7936, "count": 0},
+
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
