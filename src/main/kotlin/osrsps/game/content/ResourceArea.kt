@@ -8,8 +8,10 @@ import osrsps.game.World
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Dialogue
 import osrsps.game.dialogue.Lines
+import osrsps.game.npc.NpcSpawn
 import osrsps.game.script.ScriptContext
 import osrsps.game.skill.Agility
+import osrsps.game.skill.Mining
 import osrsps.map.Tile
 
 /** The Resource Area's words: Mandrith's and Piles' transcripts and the gate's (the Wiki's Transcript pages). */
@@ -61,7 +63,12 @@ object ResourceAreaLines : Lines("resource_area", "Transcript:Mandrith; Transcri
  * allow, as the Elder Chaos druid does. Guessed: a menu before paying (its words held), the refusal's words. Left out:
  * the diary discounts (no diaries yet; the full 7,500 is always asked), the message on being put outside after a
  * logout (its words aren't sourced), Mandrith's and Piles' clue steps. The rocks, trees, furnace, anvil and fire are
- * the cache's and work as their skills have them; the dark crab spots and runite golems come in W3.6b.
+ * the cache's and work as their skills have them.
+ *
+ * Step W3.6b: the four dark crab spots (osrsps.game.skill.Fishing) and the two **runite golems** (6600): a golem killed
+ * leaves its head as runite rocks (6601) on its tile for [ROCK_TICKS], which anyone with 85 Mining can mine as a runite
+ * rock. Inferred: one ore and the rock is gone, as a runite rock gives one; no gem table; the rock coming as the golem
+ * falls. Left out: the Mining level scaling melee against a golem, its flat armour.
  */
 object ResourceArea {
     const val GATE = 26760
@@ -71,6 +78,14 @@ object ResourceArea {
     const val PILES = 13
     const val TALK_TO = 1
     const val COINS = 995
+
+    /** The runite golems (`wilderness_rune_golem`) and the rock a dead one's head becomes (`wilderness_golem_rune_rock`). */
+    const val GOLEM = 6600
+    const val GOLEM_ROCK = 6601
+    const val MINE = 1
+
+    /** How long a golem's head stays a rock: a minute (the Wiki). */
+    const val ROCK_TICKS = 100
 
     const val FEE = 7_500
     const val NOTE_FEE = 50
@@ -149,6 +164,13 @@ fun registerResourceArea(world: World) {
                 if (count == 0) mesbox(ResourceAreaLines.PEEK_NONE) else mesbox(ResourceAreaLines.PEEK_SOME, "count" to count)
             }
         }
+        world.npcScripts.onDeath(listOf(GOLEM)) { golem ->
+            val type = world.npcTypes[GOLEM_ROCK] ?: return@onDeath
+            val rock = world.spawnNpc(NpcSpawn(type, golem.x, golem.z, golem.level, source = "a runite golem's head", respawns = false))
+                ?: return@onDeath
+            world.npcScripts.later(ROCK_TICKS) { if (world.npcs[rock.index] === rock) world.removeNpc(rock) }
+        }
+        world.mining.onNpcRock(GOLEM_ROCK, MINE, Mining.RUNITE) { rock -> if (world.npcs[rock.index] === rock) world.removeNpc(rock) }
         world.handlers.onNpc(MANDRITH, TALK_TO) { op -> world.dialogues.start(this, op.npc) { mandrith() } }
         world.handlers.onNpc(PILES, TALK_TO) { op -> world.dialogues.start(this, op.npc) { piles() } }
         world.handlers.onObjOnNpc(PILES) { op -> world.dialogues.start(this, op.npc) { note(world, op.obj) } }

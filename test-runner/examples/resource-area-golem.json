@@ -1,0 +1,38 @@
+{
+  "name": "Wilderness step W3.6b: a runite golem in the Resource Area killed and its head mined for runite ore, then a dark crab caged at a dark crab spot and dark crabs cooked on a range (::keys on)",
+  "account": "test2",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::scenario gathering", "expectMessage": "Started scenario gathering.", "comment": "any scenario: ::reset at the end puts the account's levels and backpack back"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off)."},
+    {"step": "command", "text": "::empty"},
+    {"step": "command", "text": "::setlevel mining 85"},
+    {"step": "command", "text": "::setlevel fishing 99"},
+    {"step": "command", "text": "::item 1275", "comment": "rune pickaxe"},
+    {"step": "command", "text": "::item 301", "comment": "lobster pot"},
+    {"step": "command", "text": "::item 11940 20", "comment": "dark fishing bait"},
+    {"step": "command", "text": "::tele 3184 3936 0", "expectMessage": "Teleported to 3184, 3936, 0", "comment": "inside the Resource Area, between its two runite golems"},
+    {"step": "command", "text": "::kill Runite Golem", "expectMessage": "Killed Runite Golem"},
+    {"step": "npcOption", "npc": "Runite rocks", "option": "Mine", "timeoutMs": 20000, "comment": "the golem's head, for a minute"},
+    {"step": "assertMessage", "contains": "[mining.get_ore ore=runite]", "timeoutMs": 60000},
+    {"step": "assertInventory", "item": "Runite ore", "count": 1, "timeoutMs": 5000},
+
+    {"step": "command", "text": "::tele 3183 3927 0", "expectMessage": "Teleported to 3183, 3927, 0", "comment": "north of the dark crab spots"},
+    {"step": "npcOption", "npc": "Fishing spot", "option": "Cage", "timeoutMs": 20000},
+    {"step": "assertMessage", "contains": "[fishing.cast_dark_crab]", "timeoutMs": 10000},
+    {"step": "assertMessage", "contains": "[fishing.catch_dark_crab]", "timeoutMs": 120000},
+
+    {"step": "command", "text": "::setlevel cooking 99", "comment": "dark crabs cook from 90"},
+    {"step": "command", "text": "::item 11934 2", "comment": "raw dark crabs, two so the Make-X box opens"},
+    {"step": "command", "text": "::tele 3211 3215 0", "comment": "beside the Lumbridge Castle kitchen's Cooking range"},
+    {"step": "locOption", "locId": 114, "option": "Cook", "x": 3212, "y": 3215},
+    {"step": "assertInterface", "interfaceId": 270, "comment": "skillmulti, the Make-X box"},
+    {"step": "clickWidget", "interfaceId": 270, "component": 15, "comment": "the raw dark crabs; the box suggests all"},
+    {"step": "assertMessage", "contains": "_dark_crab]", "timeoutMs": 20000, "comment": "cooking.cooked_dark_crab, or burnt_dark_crab now and then even at 99"},
+    {"step": "assertInventory", "item": "Raw dark crab", "count": 0, "timeoutMs": 20000},
+
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
+    {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+  ]
+}
