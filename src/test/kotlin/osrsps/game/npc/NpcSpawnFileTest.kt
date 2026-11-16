@@ -4,6 +4,11 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.content.LumbridgeSwampCaves
@@ -1195,5 +1200,21 @@ class NpcSpawnFileTest {
         assertEquals(emptyList(), result.unknown)
         assertEquals(listOf(1, 1, 1, 1), names.keys.map { id -> result.spawns.count { it.type.id == id } })
         assertTrue(result.spawns.all { it.source.isNotBlank() })
+    }
+
+    @Test
+    fun `no two loaded files spawn the same NPC on the same tile`() {
+        val files = HashMap<List<Any>, MutableSet<String>>()
+        for (file in NpcSpawnFile.FILES) {
+            val text = NpcSpawnFile::class.java.getResource("/npc-spawns/$file")!!.readText()
+            for (spawn in Json.parseToJsonElement(text).jsonObject.getValue("spawns").jsonArray.map { it.jsonObject }) {
+                val key = listOf(
+                    spawn.getValue("npc").jsonPrimitive.content, spawn.getValue("x").jsonPrimitive.int,
+                    spawn.getValue("z").jsonPrimitive.int, spawn["level"]?.jsonPrimitive?.int ?: 0,
+                )
+                files.getOrPut(key) { HashSet() } += file
+            }
+        }
+        assertEquals(emptyMap(), files.filterValues { it.size > 1 })
     }
 }

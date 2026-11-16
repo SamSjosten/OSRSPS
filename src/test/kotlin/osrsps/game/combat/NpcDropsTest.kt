@@ -573,7 +573,8 @@ class NpcDropsTest {
     @Test
     fun `a bat drops its bones and nothing else`() {
         val bat = NpcType(2827, "Bat", combatLevel = 6, internalName = "small_bat")
-        val def = NpcDrops.load(NpcTypes.of(bat), objTypes)[bat]!!
+        // The giant bat (`bat`) too, or the file's "bat" would fall back on this one's menu name.
+        val def = NpcDrops.load(NpcTypes.of(bat, NpcType(2834, "Giant bat", internalName = "bat")), objTypes)[bat]!!
         assertEquals(listOf("Bat bones"), def.always.map { it.type.name })
         assertEquals(null, def.table)
         assertEquals(emptyList(), def.tertiary)

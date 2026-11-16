@@ -93,6 +93,9 @@ class NpcCombatTest {
             "xarth_attack_magic_01" to 14984, "xarth_death_01" to 14995, "xarth_corpse_death_01" to 15003,
             "npc_dagonhai_attack_ranged_01" to 14593, "npc_dagonhai_death_01" to 14652, "npc_dagonhai_death_02" to 14653,
             "npc_dagonhai_death_03" to 14654, "leagues_6_thrall_imp_melee_attack" to 13851, "leagues_6_thrall_imp_melee_despawn" to 13856,
+            "giant_update_ice_attack" to 4672, "giant_update_ice_defend" to 4671, "giant_update_ice_death" to 4673,
+            "magicaxe_attack" to 185, "magicaxe_block" to 186, "magicaxe_death" to 188,
+            "dog_update_small_dog_attack" to 6562, "dog_update_hellhound_godwars_death" to 6576,
             "demon_attack" to 64, "demon_attack_greater" to 4644, "demon_death_greater" to 68, "demon_block" to 65, "demon_death" to 67,
             "shade_attack" to 1283, "shade_block" to 1286, "shade_sink" to 1287,
             "monalisk_cave_bug_attack" to 6079, "monalisk_cave_bug_defend" to 6080, "monalisk_mini_cave_bug_death" to 6082,
@@ -983,7 +986,8 @@ class NpcCombatTest {
 
     @Test
     fun `Silvarea's bats stab for 1 at speed 4, weak to air, back after 35 ticks and never attacking first`() {
-        val batTypes = NpcTypes.of(NpcType(2827, "Bat", internalName = "small_bat", stats = NpcStats(strength = 5)))
+        // The giant bat (`bat`) too, or the file's "bat" would fall back on this one's menu name.
+        val batTypes = NpcTypes.of(NpcType(2827, "Bat", internalName = "small_bat", stats = NpcStats(strength = 5)), NpcType(2834, "Giant bat", internalName = "bat"))
         val def = NpcCombat.load(batTypes, seqs)[batTypes.find("small_bat")!!]!!
         assertEquals(CombatMath.npcMaxHit(5, def.strengthBonus), def.maxHit)
         assertEquals(listOf(4, 1, 35), listOf(def.attackSpeed, def.maxHit, def.respawnTicks))

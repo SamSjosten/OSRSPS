@@ -48,7 +48,7 @@ class HeadlessWilderness36To48Test {
         2029 to "greater_demon5", 260 to "green_dragon", 261 to "green_dragon2", 262 to "green_dragon3", 263 to "green_dragon4",
         264 to "green_dragon5", 3027 to "kingscorpion", 6593 to "lava_dragon", 2005 to "lesser_demon", 2006 to "lesser_demon2",
         2007 to "lesser_demon3", 2008 to "lesser_demon4", 2018 to "lesser_demon5", 2090 to "mossgiant", 2091 to "mossgiant2",
-        2093 to "mossgiant4", 3023 to "poisonspider", 77 to "skeleton_armed", 3019 to "spider", 7995 to "wild_chaos_uncerter",
+        2093 to "mossgiant4", 3023 to "poisonspider", 77 to "skeleton_armed", 3019 to "spider", 7995 to "wild_chaos_uncerter", 2841 to "icewarrior", 2085 to "icegiant", 2086 to "icegiant2", 2087 to "icegiant3",
     )
 
     private val lavaDragon = NpcType(
