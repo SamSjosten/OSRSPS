@@ -288,7 +288,7 @@ class HeadlessArchiveRaidTest {
             awaitAt(raids.tile(run, 4127, 5790), "the north end of the vault's walk", ArchiveRaids.REWARD_LEVEL)
             val rift = await("the Rift out") { npcs().firstOrNull { it.id == ArchiveRaids.RIFT_OUT } }
             npcOp(rift.index, 3)
-            awaitAt(Tile(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z), "out to the lobby by the Rift's Quick-leave")
+            awaitAt(Tile(ArchiveRaids.RIFT_LEAVE_X, ArchiveRaids.RIFT_LEAVE_Z), "out to the lobby by the Rift's Quick-leave")
         }
         // The instance ends behind them.
         await("the instance ended") { if (server.world.instances.all.none { it === run.instance }) Unit else null }
@@ -430,7 +430,7 @@ class HeadlessArchiveRaidTest {
                 val key = player.saveKey
                 val vault = raids.tile(run, ArchiveRaids.REWARD_X, ArchiveRaids.REWARD_Z)
                 // The vault is two squares north of Ocellus's, on its own levels, with its Rift and Merit scroll put in.
-                assertEquals(Tile(run.instance.baseX + 64 + 31, run.instance.baseZ + 4 * 64 + 19), vault)
+                assertEquals(Tile(run.instance.baseX + 64 + 29, run.instance.baseZ + 4 * 64 + 13), vault)
                 assertTrue(raids.inRewardRoom(run, vault.x, vault.z))
                 assertEquals(null, raids.roomAt(run, vault.x, vault.z))
                 assertEquals(ArchiveRaids.REWARD_LEVEL, raids.levelAt(run, vault.x, vault.z))
@@ -498,8 +498,19 @@ class HeadlessArchiveRaidTest {
                 client.command("raid tp 4127 5790")
                 client.awaitAt(raids.tile(run, 4127, 5790), "the north end of the vault's walk", ArchiveRaids.REWARD_LEVEL)
                 val seen = client.await("the Rift out in view") { client.npcs().firstOrNull { it.id == ArchiveRaids.RIFT_OUT } }
+                // Leave asks whether she is ready to leave the Fractured Archive: No keeps her there, Yes takes her out
+                // with a line in the chat.
                 client.npcOp(seen.index, 1)
-                client.awaitAt(Tile(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z), "out to the lobby by the Rift's Leave")
+                val menu = client.awaitDialogue("the Rift's question") { it is DialogueView.Menu } as DialogueView.Menu
+                assertEquals(DialogueView.Menu("[tfa_run.leave_ready]", listOf("[tfa_run.leave_yes]", "[tfa_run.leave_no]")), menu)
+                client.chooseOption(2)
+                client.awaitTicks(2)
+                assertTrue(raids.inRewardRoom(run, player.x, player.z), "still in the vault after No")
+                client.npcOp(seen.index, 1)
+                client.awaitDialogue("the Rift's question again") { it is DialogueView.Menu }
+                client.chooseOption(1)
+                client.awaitAt(Tile(ArchiveRaids.RIFT_LEAVE_X, ArchiveRaids.RIFT_LEAVE_Z), "out to the lobby by the Rift's Leave")
+                client.await("the line as she leaves") { client.messages().lastOrNull { it.text == "[tfa_run.left]" } }
                 client.await("the instance ended") { if (world.instances.all.none { it === run.instance }) Unit else null }
             }
         }
@@ -666,7 +677,7 @@ class HeadlessArchiveRaidTest {
 
                         // Whoever found the unique leaves by the Rift out without claiming it: it waits in the lobby's
                         // Loot Wheelbarrow, and the Archive Door lets them into no new run before it is claimed.
-                        val lobby = Tile(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z)
+                        val lobby = Tile(ArchiveRaids.RIFT_LEAVE_X, ArchiveRaids.RIFT_LEAVE_Z)
                         finding.command("raid tp 4127 5790")
                         finding.awaitAt(raids.tile(run, 4127, 5790), "the north end of the vault's walk", ArchiveRaids.REWARD_LEVEL)
                         val out = finding.await("the Rift out in view") { finding.npcs().firstOrNull { it.id == ArchiveRaids.RIFT_OUT } }
@@ -753,7 +764,9 @@ class HeadlessArchiveRaidTest {
                     carol.awaitAt(raids.tile(run, 4127, 5790), "the north end of the walk again", ArchiveRaids.REWARD_LEVEL)
                     val rift = carol.await("the Rift out in view") { carol.npcs().firstOrNull { it.id == ArchiveRaids.RIFT_OUT } }
                     carol.npcOp(rift.index, 1)
-                    carol.awaitAt(Tile(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z), "out to the lobby by the Rift's Leave")
+                    carol.awaitDialogue("the Rift's question") { it is DialogueView.Menu }
+                    carol.chooseOption(1)
+                    carol.awaitAt(Tile(ArchiveRaids.RIFT_LEAVE_X, ArchiveRaids.RIFT_LEAVE_Z), "out to the lobby by the Rift's Leave")
                     carol.await("Carol's axes still hers") { carol.inventory(INVENTORY).count { it?.id == axe.id }.takeIf { it == 5 } }
                     assertTrue(world.deaths.all.isEmpty(), "no grave: ${world.deaths.all.map { it.owner }}")
                 }

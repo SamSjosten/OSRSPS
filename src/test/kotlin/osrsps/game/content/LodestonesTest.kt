@@ -133,8 +133,8 @@ class LodestonesTest {
         val other = World(IntArray(0), CollisionMap(), cache)
         assertEquals(5996, other.customVars.lodestonesVarp, "right after this cache's varps")
         assertEquals(20411, other.lodestones.varbit(Lodestones.LUMBRIDGE))
-        assertEquals(5999, other.varTypes.varpCount, "after ours: the lodestones, Captain Harlan's and the giant lairs' varps")
+        assertEquals(6000, other.varTypes.varpCount, "after ours: the lodestones, Captain Harlan's, the giant lairs' and the Wilderness lair visit's varps")
         assertEquals(VarbitType(5996, 4, 4), other.varTypes.varbit(20415))
-        assertEquals(mapOf("lodestones" to 5996, "harlan.claimed" to 5997, "giant_lairs" to 5998), other.varTypes.namedVarps)
+        assertEquals(mapOf("lodestones" to 5996, "harlan.claimed" to 5997, "giant_lairs" to 5998, "wilderness_lair_visit" to 5999), other.varTypes.namedVarps)
     }
 }
