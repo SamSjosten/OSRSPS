@@ -15,6 +15,12 @@
     {"step": "command", "text": "::tele 2956 3816 0", "expectMessage": "Teleported to 2956, 3816, 0", "comment": "outside, by the Elder Chaos druid south of the east wing: the temple's east doors are shut, so he can't be reached from the altar (nightly 2026-11-16)"},
     {"step": "npcOption", "npc": "Elder Chaos druid", "option": "Talk-to", "timeoutMs": 20000},
     {"step": "assertDialogue", "contains": "chaos_temple.welcome", "timeoutMs": 10000},
+    {"step": "continueDialogue"},
+    {"step": "continueDialogue"},
+    {"step": "continueDialogue"},
+    {"step": "chooseOption", "text": "[chaos_temple.no]", "comment": "turns down his bone exchange"},
+    {"step": "finishDialogue", "comment": "the chatbox must be clear for the ::item command (nightly 2026-11-16 rerun)"},
+    {"step": "assertNoDialogue", "timeoutMs": 5000},
 
     {"step": "command", "text": "::item 11943", "expectMessage": "Added 1 x Lava dragon bones", "comment": "lava dragon bones bury since this step"},
     {"step": "itemOption", "item": "Lava dragon bones", "option": "Bury"},
