@@ -44,7 +44,9 @@ object ArchiveNavigatorLines : Lines("tfa_navigator", "The_Fractured_Archive") {
  * line as each of the five rooms is won, with its duration and the run's total so far and, when it is one, a personal
  * best; as Ocellus's is, after it, the raid's total completion time (with its own personal best) and the completed
  * count; Commune on the Blade asking whether the player is ready to proceed, Yes and No; the line to the party when one
- * goes on to the vault, with their name; and Leave on the vault's Rift asking whether the player is ready to leave,
+ * goes on to the vault, with their name; the leader going first through the lobby's Archive Door, each room's door and
+ * the door to the inner vault, a message box for anyone else who tries first, and a line to the rest as the leader
+ * goes; and Leave on the vault's Rift asking whether the player is ready to leave,
  * Yes and No, and a line as they do.
  */
 object ArchiveRunLines : Lines("tfa_run", "The_Fractured_Archive") {
@@ -60,6 +62,13 @@ object ArchiveRunLines : Lines("tfa_run", "The_Fractured_Archive") {
     val LEAVE_READY = line("leave_ready", "Leave on the reward vault's Rift: the menu's question, whether the player is ready to leave the Fractured Archive")
     val LEAVE_YES = line("leave_yes", "that menu's first option, out to the lobby")
     val LEAVE_NO = line("leave_no", "that menu's second option, staying")
+    val LEADER_FIRST = line("leader_first", "a message box, to a member trying a way on before the party's leader has taken it: the leader must go first", "name")
+    val ENTERED_ARCHIVE = line("entered_archive", "chat, to the rest of the party as the leader opens the run through the lobby's Archive Door: step inside to join them", "name")
+    /** By room, as each names its boss in its own words (Sam's recordings: "face Bork", not the room's whole name). */
+    val PROCEEDED = listOf(ArchiveRoom.EZEKIEL, ArchiveRoom.BORK, ArchiveRoom.MOIA, ArchiveRoom.DREADNOTH, ArchiveRoom.DAGONHAI, ArchiveRoom.XARTH).associateWith {
+        line("proceeded_${it.name.lowercase()}", "chat, to the rest of the party in the run as the leader goes through ${it.boss}'s door: on to face its boss", "name")
+    }
+    val PROCEEDED_VAULT = line("proceeded_vault", "chat, to the rest of the party in the run as the leader goes through the nexus's Archive Door north: on to the inner vault", "name")
     val LEFT = line("left", "chat, as the player leaves the reward vault by its Rift: they leave the Fractured Archive")
 }
 
@@ -166,6 +175,9 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
 
     /** Rooms whose fight has begun, and rooms done. */
     val started = LinkedHashSet<ArchiveRoom>()
+
+    /** The ways on that the leader has opened which the row's [chosen] doesn't keep: the door to the inner vault. */
+    internal val led = HashSet<ArchiveRoom>()
 
     /** The tick each room's fight began, for its duration and the run's total ([ArchiveRaids.completeLines]). */
     internal val startedTick = HashMap<ArchiveRoom, Long>()
@@ -312,8 +324,9 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
  * - Bosses scale to the players present, a lone player as two.
  *
  * Guessed, until a recording shows a run (each also in the README):
- * - Any party member opens the run through the Archive Door, a player in no party as a party of one, and the others
- *   can follow until the Guardian's fight begins; nobody comes in after, or back after leaving.
+ * - The party's leader opens the run through the Archive Door ([leaderFirst]; seen in Sam's recordings of 16 November
+ *   2026), a player in no party as a party of one, and the others can follow until the Guardian's fight begins;
+ *   nobody comes in after, or back after leaving.
  * - Going through one door of a row chooses it for the party: the other stays shut for the run. A row's doors open
  *   once the room before is done. Enter and Quick-enter both go in, as do the transporter's Use and
  *   Quick-use: their difference, likely a warning first, isn't known. A move between the nexus and a room comes
@@ -387,15 +400,15 @@ class ArchiveRaids(private val world: World) {
         for (type in listOf(Ocellus.INTRO, Ocellus.INTRO_NOT_MET, Ocellus.INTRO_MET)) {
             for (op in Ocellus.READY_OPS) world.handlers.onNpc(type, op) { o -> readyUp(player, o.npc!!) }
         }
-        world.handlers.onLoc(ARCHIVE_DOOR, ENTER) { enter(player) }
+        world.handlers.onLoc(ARCHIVE_DOOR, ENTER) { if (!leaderFirst(this, null)) enter(player) }
         for (door in DOORS) {
-            world.handlers.onLoc(door, ENTER) { door(player, door) }
-            world.handlers.onLoc(door, QUICK_ENTER) { door(player, door) }
+            world.handlers.onLoc(door, ENTER) { if (ArchiveRoom.ofDoor(door)?.let { leaderFirst(this, it) } != true) door(player, door) }
+            world.handlers.onLoc(door, QUICK_ENTER) { if (ArchiveRoom.ofDoor(door)?.let { leaderFirst(this, it) } != true) door(player, door) }
         }
         world.handlers.onLoc(PASSAGEWAY, EXIT) { passageway(player) }
         world.handlers.onLoc(VAULT_PASSAGEWAY, EXIT) { passageway(player) }
-        world.handlers.onLoc(OCELLUS_DOOR_OPEN, ENTER) { ocellusDoor(player) }
-        world.handlers.onLoc(OCELLUS_DOOR_OPEN, QUICK_ENTER) { ocellusDoor(player) }
+        world.handlers.onLoc(OCELLUS_DOOR_OPEN, ENTER) { if (!leaderFirst(this, ArchiveRoom.OCELLUS)) ocellusDoor(player) }
+        world.handlers.onLoc(OCELLUS_DOOR_OPEN, QUICK_ENTER) { if (!leaderFirst(this, ArchiveRoom.OCELLUS)) ocellusDoor(player) }
         for (transporter in TRANSPORTERS) {
             world.handlers.onLoc(transporter, USE) { transporter(player) }
             world.handlers.onLoc(transporter, QUICK_USE) { transporter(player) }
@@ -473,7 +486,13 @@ class ArchiveRaids(private val world: World) {
             return
         }
         val party = world.parties.start(player)
+        val opened = runs[party] == null
         val run = runs[party] ?: open(party, player) ?: return
+        if (opened) {
+            for (member in party.members) {
+                if (member !== player) member.message(world.textFor(member)[ArchiveRunLines.ENTERED_ARCHIVE, "name" to player.username])
+            }
+        }
         // Once the Guardian's fight has begun, nobody comes in, or back in: that would be a way to the bank mid-raid.
         if (run.wiped || run.started.isNotEmpty()) return
         run.entered += player.saveKey
@@ -811,7 +830,9 @@ class ArchiveRaids(private val world: World) {
         val run = at(player.x, player.z) ?: return
         val room = ArchiveRoom.ofDoor(door) ?: return
         if (!mayEnter(run, player, room)) return
+        val first = run.chosen[room.stage] == null
         run.chosen[room.stage] = room
+        if (first) ArchiveRunLines.PROCEEDED[room]?.let { led(run, player, it) }
         // Inferred from Sam's recording of 2026-11-09: he came back to the tile he had left from, both times both
         // are seen (4140,5598 for Dreadnoth and 4140,5612 for Xarth), a row apart along their doors.
         val from = Tile(player.x - run.instance.baseX + FROM_X, player.z - run.instance.baseZ + FROM_Z)
@@ -831,6 +852,39 @@ class ArchiveRaids(private val world: World) {
         val pending = run.moving[player.saveKey]
         if (pending != null && pending.room == room && pending.into == into) return
         run.moving[player.saveKey] = RoomMove(room, into, world.tick + MOVE_DELAY)
+    }
+
+    /**
+     * The leader goes first (Sam's recordings of 16 November 2026): through the lobby's Archive Door into a run not yet
+     * open ([room] null), through a row's doors before either has been taken, and through the door to the inner vault
+     * ([ArchiveRoom.OCELLUS]) before anyone has. Anyone else who tries first is told so in a message box
+     * ([ArchiveRunLines.LEADER_FIRST], with the leader's name) and goes nowhere; returns whether they were. Once the
+     * leader has gone, the rest follow as they like. Guessed: that a leader who can't go first (not in the run, down,
+     * logged out) holds nobody back, and that the lobby's door asks the same of a party member.
+     */
+    private suspend fun leaderFirst(context: ScriptContext, room: ArchiveRoom?): Boolean {
+        val player = context.player
+        val party = world.parties.of(player) ?: return false
+        val leader = party.leader
+        if (leader === player) return false
+        val waiting = if (room == null) {
+            runs[party] == null && world.onlinePlayers.any { it === leader }
+        } else {
+            val run = at(player.x, player.z) ?: return false
+            val taken = if (room == ArchiveRoom.OCELLUS) room in run.led else run.chosen[room.stage] != null
+            !taken && world.onlinePlayers.any { it === leader } && leader.saveKey in run.entered && leader.saveKey !in run.downed && !leader.dead &&
+                at(leader.x, leader.z) === run && mayEnter(run, player, room)
+        }
+        if (!waiting) return false
+        world.dialogues.start(context) { mesbox(ArchiveRunLines.LEADER_FIRST, "name" to leader.username) }
+        return true
+    }
+
+    /** The rest of the party in [run] are told [line] (with [player]'s name and [args]) as [player] leads the way on. */
+    private fun led(run: ArchiveRun, player: Player, line: osrsps.game.dialogue.Line, vararg args: Pair<String, Any>) {
+        for (member in present(run)) {
+            if (member !== player) member.message(world.textFor(member).get(line, "name" to player.username, *args))
+        }
     }
 
     private fun mayEnter(run: ArchiveRun, player: Player, room: ArchiveRoom): Boolean {
@@ -1202,6 +1256,7 @@ class ArchiveRaids(private val world: World) {
         val run = at(player.x, player.z) ?: return
         if (!inNexus(run, player.x, player.z)) return
         if (!mayEnter(run, player, ArchiveRoom.OCELLUS)) return
+        if (run.led.add(ArchiveRoom.OCELLUS)) led(run, player, ArchiveRunLines.PROCEEDED_VAULT)
         move(run, player, ArchiveRoom.OCELLUS, into = true)
     }
 
