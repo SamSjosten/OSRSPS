@@ -82,40 +82,51 @@ class HeadlessWildernessBossLootTest {
     }
 
     @Test
-    fun `an Ironman who logs out before the kill keeps the 5% floor, and loot notifications tell each looter`(@TempDir dir: Path) {
+    fun `an Ironman under 7% gets 5%, and one who logged out before the kill gets neither loot nor kill count`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bea").use { b ->
                 b.await("the login rebuild") { b.position }
                 b.tele(3200, 3901)
                 b.commandReply("wboss test boss") { it.startsWith("Spawned Ice giant") }
                 val npc = b.await("the boss") { server.world.npcs.all.firstOrNull { it.type.id == BOSS } }
+                server.login("ada").use { a ->
+                    a.await("the login rebuild") { a.position }
+                    a.tele(3200, 3900)
+                    a.commandReply("hit 30 ${npc.index}") { it.startsWith("Hit Ice giant") }
+                    // Out of the boss's reach and out of combat first: the button refuses a logout for a few seconds after a hit.
+                    a.tele(3260, 3845)
+                    repeat(LOGOUT_TRIES) {
+                        if (server.world.playerNamed("ada") == null) return@repeat
+                        a.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+                        b.awaitTicks(2)
+                    }
+                }
                 server.login("iron").use { i ->
                     i.await("the login rebuild") { i.position }
                     i.tele(3200, 3900)
                     i.commandReply("varbit ${SettingsSide.VARBIT_IRONMAN} 1") { it.startsWith("Varbit") }
+                    i.commandReply("god") { it.startsWith("You can") }
                     i.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Ice giant") }
-                    // Out of the boss's reach and out of combat first: the button refuses a logout for a few seconds after a hit.
-                    i.tele(3260, 3845)
-                    repeat(LOGOUT_TRIES) {
-                        if (server.world.playerNamed("iron") == null) return@repeat
-                        i.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
-                        b.awaitTicks(2)
-                    }
-                }
-                b.await("iron's logout") { Unit.takeIf { server.world.playerNamed("iron") == null } }
-                // Loot notifications on, for anything worth a coin or more.
-                b.commandReply("varbit ${AllSettings.VARBIT_LOOT_NOTIFICATION} 1") { it.startsWith("Varbit") }
-                b.commandReply("varbit ${AllSettings.VARBIT_LOOT_NOTIFICATION_VALUE} 1") { it.startsWith("Varbit") }
-                b.commandReply("god") { it.startsWith("You can") }
-                b.commandReply("kill ${npc.index}") { it.startsWith("Killed") }
-                b.await("bea's loot notification") { b.messages().firstOrNull { it.text.startsWith("[loot.valuable item=99 x Coins") } }
-                server.login("iron").use { i ->
-                    i.await("the login rebuild") { i.position }
+                    // Loot notifications on, for anything worth a coin or more.
+                    b.commandReply("varbit ${AllSettings.VARBIT_LOOT_NOTIFICATION} 1") { it.startsWith("Varbit") }
+                    b.commandReply("varbit ${AllSettings.VARBIT_LOOT_NOTIFICATION_VALUE} 1") { it.startsWith("Varbit") }
+                    b.commandReply("god") { it.startsWith("You can") }
+                    b.commandReply("kill ${npc.index}") { it.startsWith("Killed") }
+                    // bea's 69 of the 100 damage: ada's 30 still counts in the total.
+                    b.await("bea's loot notification") { b.messages().firstOrNull { it.text.startsWith("[loot.valuable item=69 x Coins") } }
                     val iron = server.world.playerNamed("iron")!!
-                    fun pile() = server.world.groundObjs.visibleAt(iron, npc.x, npc.z, npc.level).map { it.id to it.count }.sortedBy { it.first }
-                    i.await("iron's pile") { Unit.takeIf { pile().isNotEmpty() } }
+                    fun pile(player: osrsps.game.Player) = server.world.groundObjs.visibleAt(player, npc.x, npc.z, npc.level).map { it.id to it.count }.sortedBy { it.first }
+                    i.await("iron's pile") { Unit.takeIf { pile(iron).isNotEmpty() } }
                     // 1% of the damage: an Ironman's 5%, not the 25% everyone else gets.
-                    assertEquals(listOf(532 to 1, 995 to 5), pile())
+                    assertEquals(listOf(532 to 1, 995 to 5), pile(iron))
+                    assertEquals(1, iron.vars[KILL_COUNT_VARP])
+                }
+                server.login("ada").use { a ->
+                    a.await("the login rebuild") { a.position }
+                    val ada = server.world.playerNamed("ada")!!
+                    a.awaitTicks(2)
+                    assertEquals(emptyList(), server.world.groundObjs.visibleAt(ada, npc.x, npc.z, npc.level).filter { it.id == 995 }.map { it.count }, "no pile for ada")
+                    assertEquals(0, ada.vars[KILL_COUNT_VARP])
                 }
             }
         }

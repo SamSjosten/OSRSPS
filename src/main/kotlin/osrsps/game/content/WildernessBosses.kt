@@ -40,7 +40,9 @@ class WildernessBoss(
  *   gives at most one, to a player picked with odds of their share of the damage, so a kill's unique chance is a solo
  *   kill's.
  * - **Kill counts**: every player who gets loot (the killer, for a boss without group loot) counts the kill in its
- *   varp and is told it. INFERRED: the count going to every looter of a group kill.
+ *   varp and is told it. INFERRED: the count going to every looter of a group kill, and both loot and count going only
+ *   to those still logged in at the kill: one who logged out keeps their damage in the total, so no one else's share
+ *   grows, but gets nothing.
  * - **`::wboss`** spawns any boss built so far next to the player, for tests.
  *
  * Each boss step registers its boss here ([register]).
@@ -103,7 +105,8 @@ class WildernessBosses(private val world: World) {
 
     private fun shares(npc: Npc): List<Share> {
         val tally = damage[npc] ?: return emptyList()
-        return shares(tally.damage, tally.ironmen)
+        val online = world.onlinePlayers.mapTo(HashSet()) { it.saveKey }
+        return shares(tally.damage, tally.ironmen).filter { it.key in online }
     }
 
     private fun ironman(player: Player): Boolean =
