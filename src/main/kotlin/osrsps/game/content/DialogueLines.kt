@@ -170,6 +170,7 @@ object DialogueLines {
         EdgevilleDungeonLines,
         LavaMazeLines,
         ChaosTempleLines,
+        osrsps.game.FountainOfRuneLines,
         OborLines,
         BryophytaLines,
         EmoteLines,

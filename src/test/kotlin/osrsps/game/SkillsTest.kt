@@ -109,4 +109,14 @@ class SkillsTest {
         skills.flush { _, _, _ -> count++ }
         assertEquals(Skill.COUNT, count)
     }
+
+    @Test
+    fun `XP held back for a free cast is none at all, and only while held`() {
+        val skills = PlayerSkills()
+        val gained = skills.withoutXpIf(true) { skills.addTenths(Skill.MAGIC, 115) }
+        assertEquals(0, gained)
+        assertEquals(0, skills.tenths(Skill.MAGIC))
+        skills.withoutXpIf(false) { skills.addTenths(Skill.MAGIC, 115) }
+        assertEquals(115, skills.tenths(Skill.MAGIC))
+    }
 }
