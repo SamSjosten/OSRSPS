@@ -16,7 +16,9 @@ object WildernessLeverLines : Lines("wildy_lever", "Teleport levers") {
  * The Wilderness's teleport levers (Wilderness step W3.2): Edgeville's (`edgeville_wildy_lever` 26761) and East
  * Ardougne's (`wildinlever` 1814) to the Deserted Keep at level 51, the Keep's (`wildoutlever` 1815, a multiloc showing
  * `wildoutlever_default` 9472 before the easy Wilderness Diary) back to East Ardougne, and the Mage Arena bank's two
- * (`magearena_lever_to_cellar` 5959 in the hut north of the arena, `magearena_lever_from_cellar` 5960 in the bank). A
+ * (`magearena_lever_to_cellar` 5959 in the hut north of the arena, `magearena_lever_from_cellar` 5960 in the bank), and
+ * the King Black Dragon's two (step W4.6: `dragonkinginlever` 1816 in the Lava Maze Dungeon and `dragonkingoutlever`
+ * 1817 in his lair, which alone a Tele Block doesn't stop off PvP worlds). A
  * Tele Blocked player can't use any of them (the Wiki's Tele Block page), and none minds the Wilderness's level-20
  * teleport limit. The Edgeville, Ardougne and Keep levers send [WildernessLeverLines.PULL] on the pull, then
  * [WildernessLeverLines.INTO] or [WildernessLeverLines.OUT] on arrival (the Wiki's three lever pages).
@@ -53,6 +55,8 @@ object WildernessLevers {
     val ARDOUGNE_TILE = Destination(2561, 3311)
     val MAGE_BANK_TILE = Destination(2539, 4712)
     val MAGE_HUT_TILE = Destination(3090, 3956)
+    val KBD_LAIR_TILE = Destination(2271, 4680)
+    val KBD_DUNGEON_TILE = Destination(3067, 10253)
 
     /** Lever type to where it goes and its arrival line (null where the Wiki gives none). */
     val LEVERS: Map<Int, Pair<Destination, Line?>> = mapOf(
@@ -62,7 +66,12 @@ object WildernessLevers {
         KEEP_DEFAULT to (ARDOUGNE_TILE to WildernessLeverLines.OUT),
         TO_MAGE_BANK to (MAGE_BANK_TILE to null),
         FROM_MAGE_BANK to (MAGE_HUT_TILE to null),
+        KingBlackDragon.LEVER_IN to (KBD_LAIR_TILE to null),
+        KingBlackDragon.LEVER_OUT to (KBD_DUNGEON_TILE to null),
     )
+
+    /** The levers a Tele Block doesn't stop: the King Black Dragon's way out respects it only on PvP worlds (its Wiki page). */
+    val UNBLOCKED = setOf(KingBlackDragon.LEVER_OUT)
 }
 
 fun registerWildernessLevers(world: World) {
@@ -70,19 +79,21 @@ fun registerWildernessLevers(world: World) {
         val (to, arrival) = target
         world.handlers.onLoc(lever, WildernessLevers.PULL) {
             arriveDelay()
-            if (player.teleblockTicks > 0) return@onLoc world.message(player, PvpLines.TELEPORT_BLOCKED)
+            if (player.teleblockTicks > 0 && lever !in WildernessLevers.UNBLOCKED) return@onLoc world.message(player, PvpLines.TELEPORT_BLOCKED)
             player.anim(WildernessLevers.PULL_ANIM)
             if (arrival != null) world.message(player, WildernessLeverLines.PULL)
             delay(WildernessLevers.PULL_TICKS)
-            // A Tele Block landing during the pull or the teleport still stops it (Codex review of W3.2).
-            if (player.teleblockTicks > 0) {
+            // A Tele Block landing during the pull or the teleport still stops it (Codex review of W3.2), but never on
+            // the levers it doesn't stop at all.
+            val blocks = lever !in WildernessLevers.UNBLOCKED
+            if (blocks && player.teleblockTicks > 0) {
                 player.anim(-1)
                 return@onLoc world.message(player, PvpLines.TELEPORT_BLOCKED)
             }
             player.anim(WildernessLevers.TELEPORT_ANIM)
             player.spotanim(WildernessLevers.TELEPORT_SPOTANIM, WildernessLevers.TELEPORT_SPOTANIM_HEIGHT)
             delay(WildernessLevers.TELEPORT_TICKS)
-            if (player.teleblockTicks > 0) {
+            if (blocks && player.teleblockTicks > 0) {
                 player.anim(-1)
                 return@onLoc world.message(player, PvpLines.TELEPORT_BLOCKED)
             }

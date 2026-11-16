@@ -32,7 +32,7 @@ object LavaMazeLines : Lines("lava_maze", "Lava Maze") {
  *   loot the Wiki lists (the drop file's `muddy_chest` table) into the backpack, any that doesn't fit at the player's
  *   feet; the chest shows open (171) for [CHEST_OPEN_TICKS]. The words are held until sourced.
  * - The webs (`bigweb_slashable` 733) slash as the Varrock Sewers' do ([Webs]); the runite rocks mine by type; the
- *   King Black Dragon's lever (`dragonkinginlever` 1816) is nothing interesting until Wilderness step W4.6.
+ *   King Black Dragon's lever (`dragonkinginlever` 1816) takes the player to his lair ([KingBlackDragon], step W4.6).
  *
  * Guessed until recorded: the climbs' animations and one-tick wait (as the other dungeon ladders), the chest's open
  * time, the loot going to the backpack. Left out: the stepping stone (82 Agility; Agility's shortcuts aren't built).

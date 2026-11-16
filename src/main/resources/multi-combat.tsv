@@ -302,3 +302,6 @@ wilderness_287	0	3364	3967	3366	3967
 # Scorpia's cave under the Scorpion Pit (Wilderness step W4.4): the OSRS Wiki's Scorpion Pit says inside and outside
 # are multi-way. Inferred: the whole of its map square, 50_161.
 scorpia_cave	0	3200	10304	3263	10367
+# The King Black Dragon's lair (Wilderness step W4.6): the OSRS Wiki's King Black Dragon Lair says it is multi-way.
+# Inferred: the whole of its map square, 35_73.
+kbd_lair	0	2240	4672	2303	4735

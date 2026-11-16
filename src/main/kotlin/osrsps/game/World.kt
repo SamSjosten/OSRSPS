@@ -161,6 +161,7 @@ import osrsps.game.content.registerCrazyArchaeologist
 import osrsps.game.content.registerChaosFanatic
 import osrsps.game.content.registerScorpia
 import osrsps.game.content.registerChaosElemental
+import osrsps.game.content.registerKingBlackDragon
 import osrsps.game.content.MemberGates
 import osrsps.game.content.registerFeroxEnclave
 import osrsps.game.content.registerWildernessObelisks
@@ -1044,6 +1045,7 @@ class World(
         registerScorpia(this)
         osrsps.game.content.VolcanicForge.register(this)
         registerChaosElemental(this)
+        registerKingBlackDragon(this)
         FountainOfRune.register(this)
         registerFeroxEnclave(this)
         registerWildernessObelisks(this)

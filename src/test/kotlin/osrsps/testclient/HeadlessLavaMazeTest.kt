@@ -125,10 +125,6 @@ class HeadlessLavaMazeTest {
                 client.awaitAt(3018, 10249)
                 client.locOp(LavaMaze.MIDDLE_LADDER.bottom, 3017, 10249, LavaMaze.CLIMB)
                 client.awaitAt(3070, 3856)
-                // The lever is nothing interesting until the King Black Dragon's lair is built.
-                client.tele(3067, 10252)
-                client.locOp(KBD_LEVER, 3067, 10253, 1)
-                client.awaitMessage("nothing interesting") { it == "[game.nothing_interesting]" }
             }
         }
     }
@@ -175,7 +171,8 @@ class HeadlessLavaMazeTest {
                 client.locOp(LavaMaze.CHEST, 3089, 3859, LavaMaze.OPEN)
                 client.awaitMessage("the treasure") { it == "[lava_maze.chest_treasure]" }
                 assertTrue(client.messages().any { it.text == "[lava_maze.chest_unlock]" })
-                assertEquals(0L, client.count(LavaMaze.MUDDY_KEY))
+                // The backpack's update can come a moment after the message.
+                client.await("the key used") { Unit.takeIf { client.count(LavaMaze.MUDDY_KEY) == 0L } }
                 // The always part of the loot, as the Wiki lists it.
                 assertEquals(1L, client.count(1619), "uncut ruby")
                 assertEquals(2L, client.count(2360), "noted mithril bars")
