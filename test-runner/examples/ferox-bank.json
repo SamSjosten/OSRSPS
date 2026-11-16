@@ -11,6 +11,8 @@
     {"step": "assertLocation", "x": 3134, "y": 3617, "plane": 0, "timeoutMs": 10000, "comment": "through into the Enclave"},
     {"step": "assertVarbit", "id": 10530, "value": 1, "timeoutMs": 5000, "comment": "wildy_hub_buffer: the overlay reads Level: --"},
     {"step": "command", "text": "::hit 3 me"},
+    {"step": "walk", "x": 3133, "y": 3628, "comment": "halfway: the pool's tile is too far off screen from the barrier (nightly 2026-11-16 rerun)"},
+    {"step": "assertLocation", "x": 3133, "y": 3628, "plane": 0, "timeoutMs": 20000},
     {"step": "walk", "x": 3127, "y": 3634, "comment": "beside the Pool of Refreshment; 3127, 3633 is under a loc and can't be stood on (nightly 2026-11-16)"},
     {"step": "assertLocation", "x": 3127, "y": 3634, "plane": 0, "timeoutMs": 20000},
     {"step": "locOption", "locId": 39651, "option": "Drink", "x": 3128, "y": 3633},
