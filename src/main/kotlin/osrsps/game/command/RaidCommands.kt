@@ -111,7 +111,7 @@ fun CommandRegistry.registerRaidCommands(world: World) {
             "travel" -> {
                 // Testing only: as the Blade's Travel where Ocellus fell, to the reward vault four ticks on.
                 if (args.size != 1) fail(usage)
-                if (!world.archiveRaids.travel(player)) fail("You can't travel to the reward vault: only from Ocellus's room, once it is done.")
+                if (!world.archiveRaids.enterVoid(player)) fail("You can't travel to the reward vault: only from Ocellus's room, once it is done.")
                 reply("Travelling to the reward vault.")
             }
             "loot" -> {
