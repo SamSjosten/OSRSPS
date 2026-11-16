@@ -5,15 +5,24 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
+import osrsps.game.NpcStats
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
+import osrsps.game.SeqNames
 import osrsps.game.Wilderness
 import osrsps.game.World
 import osrsps.game.combat.DropTestItems
+import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
 import osrsps.game.content.EdgevilleDungeon
 import osrsps.game.content.LavaMaze
@@ -21,6 +30,7 @@ import osrsps.game.content.MemberGates
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
+import osrsps.game.npc.NpcSpawn
 import osrsps.game.npc.NpcSpawnFile
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
@@ -30,7 +40,9 @@ import osrsps.map.LocShape
 /**
  * Wilderness step W3.4b through the headless client: the Lava Maze's two mirror ladders down into its dungeon and back
  * up, the fence gate into the lesser demons' pen, the metal gates north of the middle, the muddy chest locked and then
- * opened with a muddy key, the King Black Dragon's lever doing nothing yet, and the dungeon's spawn file. The locs are
+ * opened with a muddy key, the King Black Dragon's lever doing nothing yet, the dungeon's spawn file, and one of its black
+ * dragons fought with the real combat and drop files, breathing fire and dropping its bones, hide and only what its table
+ * names. The locs are
  * placed as the 242 map has them, on open ground. The rl-client script test-runner/examples/lava-maze-dungeon.json does
  * the same on the real map.
  */
@@ -189,9 +201,73 @@ class HeadlessLavaMazeTest {
         assertTrue("lava-maze-dungeon.json" in NpcSpawnFile.FILES)
     }
 
+    private val blackDragon = NpcType(
+        BLACK_DRAGON, "Black dragon", size = 4, ops = listOf(null, "Attack", null, null, null), combatLevel = 227,
+        internalName = "black_dragon4", stats = NpcStats(attack = 200, defence = 200, strength = 200, hitpoints = 190, magic = 100),
+    )
+
+    private fun dragonServer(dir: Path) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
+        val npcTypes = NpcTypes.of(blackDragon)
+        val objTypes = DropTestItems.objTypes()
+        World(
+            crcs, CollisionMap().apply { markLoaded(DRAGON_X shr 6, DRAGON_Z shr 6) }, random = GameRandom(7), objTypes = objTypes,
+            npcTypes = npcTypes, npcSpawns = listOf(NpcSpawn(blackDragon, DRAGON_X, DRAGON_Z, source = "test")),
+            npcCombat = NpcCombat.load(npcTypes, SeqNames.NONE), npcDrops = NpcDrops.load(npcTypes, objTypes), cycleMillis = millis,
+        )
+    }
+
+    /** The items the drop file's line for [name] can give: its own, and those of every shared table it rolls on. */
+    private fun dropItems(name: String): Set<Int> {
+        val root = Json.parseToJsonElement(NpcDrops::class.java.getResource(NpcDrops.RESOURCE)!!.readText()).jsonObject
+        val entry = root.getValue("npcs").jsonArray.map { it.jsonObject }
+            .single { e -> e.getValue("npcs").jsonArray.any { it.jsonPrimitive.content == name } }
+        val tables = root.getValue("tables").jsonObject
+        val items = HashSet<Int>()
+        fun lines(lines: List<JsonObject>) {
+            for (line in lines) {
+                line["item"]?.let { items += it.jsonPrimitive.int }
+                line["table"]?.let { lines(tables.getValue(it.jsonPrimitive.content).jsonObject.getValue("lines").jsonArray.map { l -> l.jsonObject }) }
+            }
+        }
+        lines(entry["always"]?.jsonArray?.map { it.jsonObject }.orEmpty())
+        lines(entry["table"]?.jsonObject?.getValue("lines")?.jsonArray?.map { it.jsonObject }.orEmpty())
+        lines(entry["tertiary"]?.jsonArray?.map { it.jsonObject }.orEmpty())
+        return items
+    }
+
+    @Test
+    fun `a black dragon breathes fire, and killed drops its bones, hide and only what its table names`(@TempDir dir: Path) {
+        dragonServer(dir).use { server ->
+            server.login("sol").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("keys on") { it == "Dialogue shows keys" }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.tele(DRAGON_X - 1, DRAGON_Z)
+                val npc = client.await("the dragon in view") { client.npcs().firstOrNull { it.id == BLACK_DRAGON } }
+                client.npcOp(npc.index, 2)
+                client.awaitMessage("a breath", timeoutMillis = 60_000) { it == "[dragonfire.burnt]" || it == "[dragonfire.resisted]" }
+                client.commandReply("sure max") { true }
+                client.command("setlevel attack 99")
+                client.command("setlevel strength 99")
+                client.await("the dragon's death", timeoutMillis = 120_000) { if (client.npcs().none { it.id == BLACK_DRAGON }) Unit else null }
+                client.await("the dragon bones") { client.groundObjs().firstOrNull { it.id == DRAGON_BONES } }
+                client.await("the black dragonhide") { client.groundObjs().firstOrNull { it.id == BLACK_DRAGONHIDE } }
+                val table = dropItems("black_dragon4")
+                for (obj in client.groundObjs()) assertTrue(obj.id in table, "${obj.id} is on the black dragon's table")
+            }
+        }
+    }
+
     private companion object {
         /** `dragonkinginlever`, by the east ladder. */
         const val KBD_LEVER = 1816
         const val BACKPACK = 93
+
+        /** A black dragon's spawn in the dungeon, from its spawn file. */
+        const val BLACK_DRAGON = 255
+        const val DRAGON_X = 3048
+        const val DRAGON_Z = 10266
+        const val DRAGON_BONES = 536
+        const val BLACK_DRAGONHIDE = 1747
     }
 }

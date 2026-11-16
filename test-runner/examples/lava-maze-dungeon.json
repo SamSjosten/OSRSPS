@@ -1,5 +1,5 @@
 {
-  "name": "Wilderness step W3.4b: the Lava Maze's pen ladder down to the King Black Dragon's end of its dungeon and back up, then the muddy chest refused without a key and opened with one (::keys on)",
+  "name": "Wilderness step W3.4b: the Lava Maze's pen ladder down to the King Black Dragon's end of its dungeon and back up, then the muddy chest refused without a key and opened with one, then a black dragon in the dungeon killed (::keys on)",
   "account": "test2",
   "steps": [
     {"step": "waitForLogin"},
@@ -21,6 +21,13 @@
     {"step": "assertMessage", "contains": "lava_maze.chest_treasure", "timeoutMs": 10000},
     {"step": "assertInventory", "item": "Uncut ruby", "count": 1, "comment": "with 2 noted mithril bars, 5 law, 5 death and 15 chaos runes always"},
     {"step": "assertInventory", "item": "Muddy key", "count": 0},
+
+    {"step": "command", "text": "::tele 3046 10266 0", "expectMessage": "Teleported to 3046, 10266, 0", "comment": "beside a black dragon's spawn (3048, 10266) in the dungeon"},
+    {"step": "npcOption", "npc": "Black dragon", "option": "Attack", "timeoutMs": 20000},
+    {"step": "assertHitsplat", "npc": "Black dragon", "timeoutMs": 20000},
+    {"step": "command", "text": "::drops", "expectMessage": "Black dragon always drops: Dragon bones, Black dragonhide"},
+    {"step": "command", "text": "::kill", "expectMessage": "Killed Black dragon #"},
+    {"step": "assertGroundItem", "item": "Dragon bones", "timeoutMs": 15000},
 
     {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
     {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
