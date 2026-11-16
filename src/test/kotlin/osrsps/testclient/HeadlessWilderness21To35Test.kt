@@ -4,17 +4,31 @@ import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.EquipmentTab
 import osrsps.game.GameRandom
+import osrsps.game.NpcStats
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
+import osrsps.game.SeqNames
+import osrsps.game.Skill
 import osrsps.game.Wilderness
 import osrsps.game.World
+import osrsps.game.combat.DropTestItems
+import osrsps.game.combat.NpcCombat
+import osrsps.game.combat.NpcDrops
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
+import osrsps.game.npc.NpcSpawn
 import osrsps.game.npc.NpcSpawnFile
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
@@ -24,7 +38,9 @@ import osrsps.map.LocShape
 /**
  * Wilderness step W3.3 through the headless client: the spawn file for levels 21 to 35 loads every NPC in it and a
  * client visiting each map square sees that square's NPCs; the Bandit Camp mine's mithril and adamantite rocks mine as
- * any others do; and the Wilderness God Wars Dungeon's mouth stands at level 28 and leads nowhere until step W6.3.
+ * any others do; a chaos dwarf goes for a level-3 player unprovoked, and a chaos dwarf and a Forgotten Cemetery Ankou
+ * fought with the real combat and drop files drop their bones and only what their tables name; and the Wilderness God
+ * Wars Dungeon's mouth stands at level 28 and leads nowhere until step W6.3.
  */
 class HeadlessWilderness21To35Test {
     /** The file's NPCs by their 242 cache ids, read by name as the server reads them. */
@@ -80,6 +96,88 @@ class HeadlessWilderness21To35Test {
             }
         }
     }
+
+    private val chaosDwarf = NpcType(
+        CHAOS_DWARF, "Chaos dwarf", ops = listOf(null, "Attack", null, null, null), combatLevel = 48,
+        internalName = "dwarf_chaos", stats = NpcStats(attack = 38, defence = 28, strength = 42, hitpoints = 61),
+    )
+
+    private val ankou = NpcType(
+        ANKOU, "Ankou", ops = listOf(null, "Attack", null, null, null), combatLevel = 86,
+        internalName = "wilderness_ankou", stats = NpcStats(attack = 75, defence = 80, strength = 75, hitpoints = 70),
+    )
+
+    private fun monsterServer(dir: Path) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
+        val npcTypes = NpcTypes.of(chaosDwarf, ankou)
+        val objTypes = DropTestItems.objTypes()
+        World(
+            crcs, CollisionMap().apply { markLoaded(DWARF_X shr 6, DWARF_Z shr 6); markLoaded(ANKOU_X shr 6, ANKOU_Z shr 6) },
+            random = GameRandom(9), objTypes = objTypes, npcTypes = npcTypes,
+            npcSpawns = listOf(NpcSpawn(chaosDwarf, DWARF_X, DWARF_Z, source = "test"), NpcSpawn(ankou, ANKOU_X, ANKOU_Z, source = "test")),
+            npcCombat = NpcCombat.load(npcTypes, SeqNames.NONE), npcDrops = NpcDrops.load(npcTypes, objTypes), cycleMillis = millis,
+        )
+    }
+
+    /** The items the drop file's line for [name] can give: its own, and those of every shared table it rolls on. */
+    private fun dropItems(name: String): Set<Int> {
+        val root = Json.parseToJsonElement(NpcDrops::class.java.getResource(NpcDrops.RESOURCE)!!.readText()).jsonObject
+        val entry = root.getValue("npcs").jsonArray.map { it.jsonObject }
+            .single { e -> e.getValue("npcs").jsonArray.any { it.jsonPrimitive.content == name } }
+        val tables = root.getValue("tables").jsonObject
+        val items = HashSet<Int>()
+        fun lines(lines: List<JsonObject>) {
+            for (line in lines) {
+                line["item"]?.let { items += it.jsonPrimitive.int }
+                line["table"]?.let { lines(tables.getValue(it.jsonPrimitive.content).jsonObject.getValue("lines").jsonArray.map { l -> l.jsonObject }) }
+            }
+        }
+        lines(entry.getValue("always").jsonArray.map { it.jsonObject })
+        lines(entry.getValue("table").jsonObject.getValue("lines").jsonArray.map { it.jsonObject })
+        lines(entry["tertiary"]?.jsonArray?.map { it.jsonObject }.orEmpty())
+        return items
+    }
+
+    @Test
+    fun `a chaos dwarf goes for a level-3 player unprovoked`(@TempDir dir: Path) {
+        monsterServer(dir).use { server ->
+            server.login("quin").use { client ->
+                client.await("the login rebuild") { client.position }
+                assertEquals(30, Wilderness.level(DWARF_X, DWARF_Z))
+                // Auto retaliate off, so the player stands still and only the dwarf can start the fight.
+                client.command("varp ${EquipmentTab.VARP_AUTO_RETALIATE_OFF} 1")
+                client.await("auto retaliate off") { if (client.varp(EquipmentTab.VARP_AUTO_RETALIATE_OFF) == 1) Unit else null }
+                client.tele(DWARF_X - 1, DWARF_Z)
+                val hitpoints = client.await("hitpoints") { client.stat(Skill.HITPOINTS.id) }.level
+                client.await("the dwarf's hit", timeoutMillis = 60_000) { client.stat(Skill.HITPOINTS.id)?.takeIf { it.level < hitpoints } }
+            }
+        }
+    }
+
+    @Test
+    fun `a chaos dwarf and a Forgotten Cemetery Ankou killed drop their bones and only what their tables name`(@TempDir dir: Path) {
+        monsterServer(dir).use { server ->
+            server.login("rue").use { client ->
+                client.await("the login rebuild") { client.position }
+                assertEquals(28, Wilderness.level(ANKOU_X, ANKOU_Z))
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("sure max") { true }
+                client.command("setlevel attack 99")
+                client.command("setlevel strength 99")
+                for ((id, x, z, name) in listOf(Spot(CHAOS_DWARF, DWARF_X, DWARF_Z, "dwarf_chaos"), Spot(ANKOU, ANKOU_X, ANKOU_Z, "wilderness_ankou"))) {
+                    client.tele(x - 1, z)
+                    val npc = client.await("$name in view") { client.npcs().firstOrNull { it.id == id } }
+                    client.npcOp(npc.index, 2)
+                    client.await("$name's death", timeoutMillis = 60_000) { if (client.npcs().none { it.id == id }) Unit else null }
+                    val bones = client.await("$name's bones") { client.groundObjs().firstOrNull { it.id == BONES } }
+                    assertEquals(1, bones.count)
+                    val table = dropItems(name)
+                    for (obj in client.groundObjs()) assertTrue(obj.id in table, "${obj.id} is on $name's table")
+                }
+            }
+        }
+    }
+
+    private data class Spot(val id: Int, val x: Int, val z: Int, val name: String)
 
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
         val objs = arrayOfNulls<ObjType>(RUNE_PICKAXE + 1)
@@ -158,5 +256,14 @@ class HeadlessWilderness21To35Test {
         const val GWD_ENTRANCE = 26766
         const val GWD_X = 3016
         const val GWD_Z = 3738
+
+        /** A chaos dwarf's and an Ankou's spawns from the file, at levels 30 and 28. */
+        const val CHAOS_DWARF = 291
+        const val DWARF_X = 3021
+        const val DWARF_Z = 3755
+        const val ANKOU = 6608
+        const val ANKOU_X = 2981
+        const val ANKOU_Z = 3739
+        const val BONES = 526
     }
 }

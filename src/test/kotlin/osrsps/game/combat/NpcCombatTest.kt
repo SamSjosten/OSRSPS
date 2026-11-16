@@ -1045,6 +1045,42 @@ class NpcCombatTest {
     }
 
     @Test
+    fun `levels 21 to 35 bring the Forgotten Cemetery's Ankou, aggressive Black Knights, the Bandit Camp's champions and level 22 bandits, and chaos dwarves`() {
+        val names = listOf("wilderness_ankou", "aggressive_black_knight", "black_heather", "donny_the_lad", "speedy_keith", "brawling_bandit", "dwarf_chaos")
+        val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(6608 + i, name, internalName = name) }.toTypedArray())
+        val combat = NpcCombat.load(types, seqs)
+        fun def(name: String) = combat[types.find(name)!!]!!
+        // OSRS Wiki, Ankou (level 86): as the Stronghold's, max hit 8 crush, weak to air 40%, aggressive.
+        assertEquals(8, def("wilderness_ankou").maxHit)
+        assertEquals(AttackType.CRUSH, def("wilderness_ankou").attackType)
+        assertEquals(ElementalWeakness(Element.AIR, 40), def("wilderness_ankou").weakness)
+        assertTrue(def("wilderness_ankou").aggression != null)
+        // Black Knight (hostile, 517): aggressive, speed 5, max hit 4, slash, magic defence -11.
+        val knight = def("aggressive_black_knight")
+        assertEquals(5, knight.attackSpeed)
+        assertEquals(4, knight.maxHit)
+        assertEquals(AttackType.SLASH, knight.attackType)
+        assertEquals(-11, knight.defence.magic)
+        assertTrue(knight.aggression != null)
+        // The three champions (level 34): not aggressive, max hit 4, slash, respawn 50.
+        for (name in listOf("black_heather", "donny_the_lad", "speedy_keith")) {
+            assertEquals(4, def(name).maxHit, name)
+            assertEquals(AttackType.SLASH, def(name).attackType, name)
+            assertEquals(50, def(name).respawnTicks, name)
+            assertEquals(null, def(name).aggression, name)
+        }
+        // Bandit (level 22): aggressive, max hit 3, stab, respawn 100. Chaos dwarf: aggressive, max hit 6, crush, respawn 14.
+        assertEquals(3, def("brawling_bandit").maxHit)
+        assertEquals(AttackType.STAB, def("brawling_bandit").attackType)
+        assertEquals(100, def("brawling_bandit").respawnTicks)
+        assertTrue(def("brawling_bandit").aggression != null)
+        assertEquals(6, def("dwarf_chaos").maxHit)
+        assertEquals(AttackType.CRUSH, def("dwarf_chaos").attackType)
+        assertEquals(14, def("dwarf_chaos").respawnTicks)
+        assertTrue(def("dwarf_chaos").aggression != null)
+    }
+
+    @Test
     fun `each max hit in the file is what the formula gives from the levels`() {
         val combat = NpcCombat.load(types, seqs)
         for (name in names) {
