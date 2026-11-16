@@ -2492,6 +2492,10 @@ class World(
     /** Whether a walker of size 1 can step from ([x], [z]) on [level] by ([dx], [dz]): a boss's mark beside a player. */
     fun canStep(level: Int, x: Int, z: Int, dx: Int, dz: Int): Boolean = movement.canStep(level, x, z, dx, dz)
 
+    /** Whether no wall edge stands between [x], [z] and the tile [dx], [dz] from it; what stands on that tile isn't asked. */
+    fun noWallBetween(level: Int, x: Int, z: Int, dx: Int, dz: Int): Boolean =
+        osrsps.map.Steps.canStep(collision, level, x, z, dx, dz, block = 0)
+
     /** A route from where [player] stands to the tile [x], [z], without walking it (an obstacle's start). */
     fun findRoute(player: Player, x: Int, z: Int): Route = movement.find(player, RouteTarget.tile(x, z))
 

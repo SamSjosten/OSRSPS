@@ -362,9 +362,16 @@ class Traps(private val world: World, private val collision: CollisionMap) {
 
     private fun change(trap: Trap, state: TrapState, locId: Int) {
         if (trap.locs.any { !world.locs.exists(it) }) {
-            // Something else took a tile; the trap comes down as a collapse does: what it hid (a net trap's young tree)
-            // put back and its item left (exploit review round 36, B-3).
-            collapse(trap, world.playerBySaveKey(trap.owner))
+            // Something else took a tile; the trap comes down at once, what it hid (a net trap's young tree) put back
+            // (exploit review round 36, B-3). Unlike a collapse it never waits for room, as a trap missing a loc can't
+            // stand (round 37, B-1): the item goes to the owner (backpack, else their tile) or down for anyone.
+            remove(trap)
+            val type = if (trap.kind.returnsItem) world.objTypes[trap.kind.item] else null
+            if (type != null) {
+                val owner = world.playerBySaveKey(trap.owner)
+                if (owner != null) world.groundObjs.give(owner, type, 1)
+                else world.groundObjs.addPublic(type, 1, trap.x, trap.z, trap.level, COLLAPSED_DESPAWN_TICKS)
+            }
             return
         }
         show(trap, state, locId)
