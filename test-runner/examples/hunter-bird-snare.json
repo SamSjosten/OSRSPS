@@ -23,6 +23,7 @@
   {"step": "command", "text": "::setlevel hunter 1", "expectMessage": "Hunter set to level 1", "comment": "below the wagtail's 19: every one that walks in gets away"},
   {"step": "command", "text": "::tele 2513 2911 0", "comment": "a tropical wagtail's spawn tile, with two more within 3 tiles"},
   {"step": "assertLocation", "x": 2513, "y": 2911, "plane": 0},
+  {"step": "waitTicks", "ticks": 3, "comment": "the client loads the new region first; a click sent while it does is lost (nightly 2026-11-16)"},
   {"step": "itemOption", "item": "Bird snare", "option": "Lay"},
   {"step": "assertLoc", "locId": 9345, "x": 2513, "y": 2911, "option": "Investigate"},
   {"step": "assertLoc", "locId": 9344, "x": 2513, "y": 2911, "option": "Reset", "timeoutMs": 60000, "comment": "hunting_ojibway_trap_broken, the Oct 2026 failed state"},
