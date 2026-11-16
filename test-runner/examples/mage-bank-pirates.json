@@ -1,5 +1,5 @@
 {
-  "name": "Wilderness step W3.7: the sack between the hut's webs giving a knife, the lever down to the Mage Arena bank, Gundai's talk opening the bank, Lundail's Trade, then the Pirates' Hideout's door locked from outside and opening from inside (::keys on)",
+  "name": "Wilderness step W3.7: the sack between the hut's webs giving a knife, the lever down to the Mage Arena bank, Gundai's talk opening the bank, Lundail's Trade, then the Pirates' Hideout's door locked from outside and opening from inside, and a pirate fought and killed for its bones (::keys on)",
   "account": "test",
   "steps": [
     {"step": "waitForLogin"},
@@ -33,6 +33,12 @@
     {"step": "locOption", "locId": 11727, "option": "Open", "x": 3038, "y": 3956},
     {"step": "assertMessage", "contains": "[thieving_lock.through]", "timeoutMs": 10000},
     {"step": "assertLocation", "x": 3037, "y": 3956, "plane": 0, "timeoutMs": 10000, "comment": "out through it"},
+    {"step": "command", "text": "::tele 3040 3953 0", "expectMessage": "Teleported to 3040, 3953, 0", "comment": "inside the hideout, among the pirates' spawns"},
+    {"step": "npcOption", "npc": "Pirate", "option": "Attack", "timeoutMs": 20000},
+    {"step": "assertHitsplat", "npc": "Pirate", "timeoutMs": 20000},
+    {"step": "command", "text": "::drops", "expectMessage": "Pirate always drops: Bones"},
+    {"step": "command", "text": "::kill", "expectMessage": "Killed Pirate #"},
+    {"step": "assertGroundItem", "item": "Bones", "timeoutMs": 15000},
 
     {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
     {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
