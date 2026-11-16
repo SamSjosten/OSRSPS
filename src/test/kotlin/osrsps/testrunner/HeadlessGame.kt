@@ -905,8 +905,10 @@ internal class HeadlessGame(
         )
         const val ITEM_SEARCH_MODE = 14
 
-        /** Screens whose frame (steelborder) draws a close button as child [FRAME_CLOSE_CHILD]: shopmain, ge_pricechecker, ge_offers. */
-        val FRAME_CLOSE_BUTTONS = setOf((ShopScreen.MAIN shl 16) or 1, (PriceChecker.MAIN shl 16) or 1, (GrandExchangeScreen.MAIN shl 16) or 2)
+        /** Screens whose frame (steelborder) draws a close button as child [FRAME_CLOSE_CHILD]: shopmain, ge_pricechecker, ge_offers, bankmain. */
+        val FRAME_CLOSE_BUTTONS = setOf(
+            (ShopScreen.MAIN shl 16) or 1, (PriceChecker.MAIN shl 16) or 1, (GrandExchangeScreen.MAIN shl 16) or 2, (BankScreen.MAIN shl 16) or 2,
+        )
         const val FRAME_CLOSE_CHILD = 11
 
         /** popupoverlay's confirm button, as the scripts click it. */

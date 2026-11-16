@@ -56,6 +56,29 @@ class HeadlessScriptsTest {
     }
 
     @Test
+    fun `the bank's frame close button closes the bank, as steelborder's does in the client`(@TempDir dir: Path) {
+        TestServer(dir).use { server ->
+            ScriptSession("test", { server.login(it) }, HeadlessGame.Types.of(server.world)).use { session ->
+                val result = session.run(
+                    script(
+                        """
+                        {"account": "test", "steps": [
+                          {"step": "waitForLogin"},
+                          {"step": "command", "text": "::openbank"},
+                          {"step": "assertInterface", "interfaceId": 12, "timeoutMs": 5000},
+                          {"step": "clickWidget", "interfaceId": 12, "component": 2, "slot": 11, "op": 1},
+                          {"step": "assertInterface", "interfaceId": 12, "absent": true, "timeoutMs": 5000}
+                        ]}
+                        """.trimIndent(),
+                    ),
+                    "test",
+                )
+                assertEquals(Result.PASS, result.result, result.failure)
+            }
+        }
+    }
+
+    @Test
     fun `the player's animations and spotanims reach the script, as RuneLite's events would`(@TempDir dir: Path) {
         TestServer(dir).use { server ->
             ScriptSession("test", { server.login(it) }, HeadlessGame.Types.of(server.world)).use { session ->
