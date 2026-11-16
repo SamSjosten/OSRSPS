@@ -3164,10 +3164,11 @@ not, though `::scenario` and `::reset` stay admins' commands: he offers only his
 His Talk-to offers a melee, ranged or magic loadout. Each starts a scenario (`tfa-melee`, `tfa-ranged`, `tfa-magic`) as
 `::scenario` does: the player lands in the lobby in front of the Archive Door (4127, 5560) with 99 in every combat
 skill, the chosen style worn and a hybrid inventory for the whole raid (the other two styles' weapons, a Dragon
-warhammer, runes for Wind and Fire Surge, brews, restores, a Super combat, Ranging and Magic potion and Manta rays; the
+warhammer, the standard spellbook, runes for Wind and Fire Surge, brews, restores, a Super combat, Ranging and Magic potion and Manta rays; the
 lists are in each file's `notes`). From there the Archive Door goes in, alone or after `::raidparty` for a party. His
 fourth option (or an admin's `::reset`) puts the player back as they were; like any scenario, the bank and the skills it
-doesn't name are the scenario's until then. His words are ours (`raid_tester.*`, and his examine, in the dialogue file).
+doesn't name are the scenario's until then. He
+refuses a player in combat, as a logout does. His words are ours (`raid_tester.*`, and his examine, in the dialogue file).
 
 Check: `./gradlew test --tests 'osrsps.game.content.RaidTesterTest' --tests 'osrsps.testclient.HeadlessRaidTesterTest'`,
 and in RuneLite: Talk-to the Leagues Tutor east of the Lumbridge spawn, pick a loadout, then Enter the Archive Door.

@@ -22,6 +22,7 @@ object RaidTesterLines : Lines("raid_tester", "ours") {
     val MAGIC = line("magic", "ours: his menu, option 3: the magic loadout")
     val PUT_BACK = line("put_back", "ours: his menu, option 4: back to how the player was before the loadout")
     val NOTHING = line("nothing", "ours: his menu, option 5: nothing")
+    val IN_COMBAT = line("in_combat", "ours: a chat message: he won't kit out or put back a player who is in combat")
 }
 
 /**
@@ -40,8 +41,8 @@ object RaidTesterLines : Lines("raid_tester", "ours") {
  *
  * He is the cache's Leagues Tutor (`league_tutor_normal`, 316), which no live world shows outside a league, so he can't
  * stand in for anyone live; his Trade and Claim-trophies do nothing. He stands in Lumbridge's courtyard by the spawn,
- * and in the raid's lobby to kit out again after a wipe (npc-spawns/raid-tester.json). Ours: every line, the tiles, the
- * type and the loadouts.
+ * and in the raid's lobby to kit out again after a wipe (npc-spawns/raid-tester.json). He refuses a player in combat
+ * (as a logout does), since a scenario ends fights and teleports. Ours: every line, the tiles, the type and the loadouts.
  */
 object RaidTester {
     const val NPC = 316
@@ -68,6 +69,12 @@ fun registerRaidTester(world: World) {
         var picked: String? = null
         world.dialogues.start(this, op.npc) { picked = with(RaidTester) { talk() } }
         val name = picked ?: return@onNpc
+        // Not mid-fight, as logging out isn't: a loadout or putting back ends every fight, clears a skull and teleports,
+        // which would be a way out of one (Codex review on #774). Checked after the menu, as a fight can start meanwhile.
+        if (world.inCombat(player)) {
+            player.message(world.textFor(player)[RaidTesterLines.IN_COMBAT])
+            return@onNpc
+        }
         // After the dialogue has closed, as the rotten potato's Slice runs its commands. The reply is the command's:
         // "Started scenario ...", "Back to how you were ...", or why it can't.
         val reply = try {

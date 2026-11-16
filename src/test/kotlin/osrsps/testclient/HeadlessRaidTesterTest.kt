@@ -62,14 +62,15 @@ class HeadlessRaidTesterTest {
         )
     }
 
-    /** Talks to the tester standing on [x], [z] and picks [option] of his menu. */
-    private fun HeadlessClient.ask(x: Int, z: Int, option: Int) {
+    /** Talks to the tester standing on [x], [z] and picks [option] of his menu, after [beforePicking]. */
+    private fun HeadlessClient.ask(x: Int, z: Int, option: Int, beforePicking: () -> Unit = {}) {
         val npc = await("the tester at $x, $z") { npcs().firstOrNull { it.id == RaidTester.NPC && it.coord == Coord(x, z) } }
         npcOp(npc.index, RaidTester.TALK_TO)
         awaitDialogue("his greeting") { it is DialogueView.Chat && it.text == "[raid_tester.greeting]" }
         continueDialogue()
         val menu = awaitDialogue("his menu") { it is DialogueView.Menu } as DialogueView.Menu
         assertEquals(listOf("melee", "ranged", "magic", "put_back", "nothing").map { "[raid_tester.$it]" }, menu.options)
+        beforePicking()
         chooseOption(option)
     }
 
@@ -105,6 +106,20 @@ class HeadlessRaidTesterTest {
                 client.ask(LUMBRIDGE_X, LUMBRIDGE_Z, 5)
                 client.ask(LUMBRIDGE_X, LUMBRIDGE_Z, 4)
                 client.await("nothing to reset") { client.messages().firstOrNull { it.text.startsWith("Nothing to reset") } }
+                assertTrue(client.messages().none { it.text.startsWith("Started scenario") })
+                assertTrue(client.position!!.z < ArchiveRaids.LOBBY_Z - 1000)
+            }
+        }
+    }
+
+    @Test
+    fun `he won't kit out a player in combat`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bob").use { client ->
+                client.await("the login rebuild") { client.position }
+                // Hit just now, as a fight would leave them: the logout's combat check.
+                client.ask(LUMBRIDGE_X, LUMBRIDGE_Z, 1) { server.world.playerNamed("bob")!!.attackedTick = server.world.tick }
+                client.await("his refusal") { client.messages().firstOrNull { it.text == "[raid_tester.in_combat]" } }
                 assertTrue(client.messages().none { it.text.startsWith("Started scenario") })
                 assertTrue(client.position!!.z < ArchiveRaids.LOBBY_Z - 1000)
             }
