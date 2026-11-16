@@ -121,6 +121,8 @@ data class NpcCombatDef(
     val xpBonusTenths: Int = 0,
     /** A melee NPC's spell, cast in its place now and then while it fights in reach (the Catablepon's Weaken). */
     val spell: NpcMeleeSpell? = null,
+    /** A dragon's dragonfire, breathed in reach now and then instead of a swing ([Dragonfire]). */
+    val dragonfire: NpcDragonfire? = null,
     /**
      * It flies out of melee's reach: only ranged, magic and halberds hit it (the Archive Guardian levitating, OSRS Wiki,
      * The Fractured Archive/Strategies).
@@ -223,7 +225,8 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
          * optional ([NpcRangedAttack]); its `attackBonus` is its bonus for its attack type, magic or ranged.
          * A melee NPC may add a `"spell"` it casts in reach now and then: one such attack plus `"chance"` (1 in that
          * many turns) and `"stopsAt": { "percent": 8, "flat": 3 }` ([NpcMeleeSpell]); a drain there may be
-         * `"stacks": true`.
+         * `"stacks": true`. A dragon adds `"dragonfire": { "chance": 6, "anim": "dragon_firebreath_attack", "cast": 1 }`
+         * ([NpcDragonfire]).
          *
          * `npcs` takes type ids, gameval names or menu names, as spawn files do. Animations are gameval names, which
          * [seqs] turns into ids; a name it doesn't know fails the file, unless it knows no names at all (a cache with
@@ -315,6 +318,14 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                         spell.required("chance").jsonPrimitive.int.also { require(it >= 1) { "a spell chance of 1 in $it" } },
                         stops?.get("percent")?.jsonPrimitive?.int ?: 0,
                         stops?.get("flat")?.jsonPrimitive?.int ?: 0,
+                    )
+                },
+                dragonfire = entry["dragonfire"]?.jsonObject?.let { fire ->
+                    require(attackType != AttackType.MAGIC && attackType != AttackType.RANGED) { "dragonfire on a $attackType NPC" }
+                    val breath = attack(fire, seqs)
+                    NpcDragonfire(
+                        fire.required("chance").jsonPrimitive.int.also { require(it >= 1) { "a dragonfire chance of 1 in $it" } },
+                        breath.anim, breath.cast,
                     )
                 },
                 flying = entry["flying"]?.jsonPrimitive?.boolean ?: false,

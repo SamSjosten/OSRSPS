@@ -14,6 +14,7 @@ import osrsps.game.combat.PoisonLines
 import osrsps.game.combat.PotionLines
 import osrsps.game.combat.PrayerLines
 import osrsps.game.combat.PvpLines
+import osrsps.game.combat.DragonfireLines
 import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
 import osrsps.game.ge.GrandExchangeLines
@@ -320,6 +321,7 @@ object DialogueLines {
         PrayerLines,
         PriceCheckerLines,
         PvpLines,
+        DragonfireLines,
         osrsps.game.ge.ItemSetsLines,
         osrsps.game.ge.PriceGuideLines,
         BrugsenLines,

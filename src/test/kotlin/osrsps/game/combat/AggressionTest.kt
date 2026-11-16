@@ -149,6 +149,19 @@ class AggressionTest {
     }
 
     @Test
+    fun `in the Wilderness it goes for a player of any combat level`() {
+        map.markLoaded(50, 56)
+        val wildSpider = spawn(spider, 3220, 3600)
+        assertTrue(osrsps.game.Wilderness.level(3220, 3600) > 0)
+        for (skill in Skill.entries) alice.skills.setLevel(skill, 99)
+        at(alice, 3221, 3600)
+        assertTrue(aggression.huntable(wildSpider, NpcAggression(), alice), "level ${alice.skills.combatLevel} against 2 at level ${osrsps.game.Wilderness.level(3220, 3600)}")
+        val homeSpider = spawn(spider, 3240, 3220)
+        at(alice, 3241, 3220)
+        assertFalse(aggression.huntable(homeSpider, NpcAggression(), alice))
+    }
+
+    @Test
     fun `it doesn't go for a player it can't see, and a big NPC sees from its tile closest to them`() {
         val npc = spawn(spider)
         // A projectile-blocking loc between them, as a wall would be.

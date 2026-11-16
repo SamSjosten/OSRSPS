@@ -710,6 +710,8 @@ class MeleeCombat(
         // Only an NPC with a spell rolls for it, so World.random runs as before for every other.
         val spell = def.spell
         if (spell != null && spellCasts(spell, player) && random.chance(1, spell.chance)) return cast(npc, player, spell.attack, tick)
+        val fire = def.dragonfire
+        if (fire != null && random.chance(1, fire.chance)) return breathe(npc, player, fire, tick)
         val shown = if (anim >= 0) anim else def.anims.attack
         if (shown >= 0) npc.effects.anim(shown)
         npc.face(player)
@@ -833,6 +835,23 @@ class MeleeCombat(
         val blocked = protects(player, AttackType.MAGIC)
         val reduced = if (combat.bulwarkBlocking(player, tick)) DinhsBulwark.blocked(damage) else damage
         shots += Shot(npc, player, attack, hit, blocked, if (blocked) 0 else reduced, tick + delay)
+    }
+
+    /**
+     * [npc] breathes dragonfire at [player] ([Dragonfire]): its Magic accuracy against their Magic defence, capped by an
+     * anti-dragon shield or Protect from Magic, with the message for which held.
+     */
+    private fun breathe(npc: Npc, player: Player, fire: NpcDragonfire, tick: Long) {
+        if (fire.anim >= 0) npc.effects.anim(fire.anim)
+        npc.face(player)
+        if (fire.cast >= 0) npc.effects.spotanim(0, fire.cast, CAST_HEIGHT)
+        val roll = combat.npcAttack(npc, player, AttackType.MAGIC) ?: return
+        val resisted = !CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)
+        val shield = Dragonfire.shielded(player)
+        val prayer = protects(player, AttackType.MAGIC)
+        val damage = CombatMath.rollDamage(random, Dragonfire.maxHit(shield, prayer, resisted))
+        message(player, words(player)[Dragonfire.line(shield, prayer, resisted)])
+        hitPlayer(player, npc, damage, tick)
     }
 
     private fun pick(attacks: List<NpcRangedAttack>): NpcRangedAttack {

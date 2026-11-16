@@ -77,6 +77,8 @@ class NpcCombatTest {
             "mammoth_attack" to 304, "mammoth_block" to 305, "mammoth_death" to 307,
             "earthwarrior_chop" to 2951, "earthwarrior_def" to 2952, "earthwarrior_death" to 2946,
             "skeleton_update_giant_attack" to 5499, "skeleton_update_giant_defend" to 5501, "skeleton_update_giant_death" to 5503,
+            "dragon_attack" to 80, "dragon_block" to 89, "dragon_death" to 92, "dragon_firebreath_attack" to 86,
+            "npc_ent_attack_01" to 12506, "npc_ent_defend_01" to 12504, "npc_ent_death_01" to 12508,
             "catpon_attack" to 4271, "catpon_attack_breath" to 4272, "catpon_parry" to 4273, "catpon_death" to 4270,
             "small_spider_update_attack" to 6249, "small_spider_update_defend" to 6250, "small_spider_update_death" to 6251,
             "bear_rework_attack" to 4925, "bear_rework_defend" to 4927, "bear_rework_death" to 4929,
@@ -1022,6 +1024,24 @@ class NpcCombatTest {
         assertEquals(listOf(4, 1, 100), listOf(def.attackSpeed, def.maxHit, def.respawnTicks))
         assertEquals(listOf(6, 7), listOf(def.attackBonus, def.strengthBonus))
         assertTrue(def.aggression != null)
+    }
+
+    @Test
+    fun `the elder Chaos druids never grow tolerant, black unicorns attack every level, the level 130 bandit and the ent give 2,5% more XP, the level 145 dark warrior 10%, the ent shrugs off poison`() {
+        val names = listOf("wilderness_chaos_druid", "black_unicorn", "wilderness_bandit", "wilderness_dark_warrior", "wilderness_ent")
+        val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(6607 + i, name, internalName = name) }.toTypedArray())
+        val combat = NpcCombat.load(types, seqs)
+        fun def(name: String) = combat[types.find(name)!!]!!
+        // OSRS Wiki: Elder Chaos druid (never tolerant), Black unicorn (aggressive to all levels in the Wilderness),
+        // Bandit (level 130: XP bonus 2.5).
+        assertEquals(false, def("wilderness_chaos_druid").aggression!!.tolerant)
+        assertEquals(true, def("black_unicorn").aggression!!.ignoresLevels)
+        assertEquals(25, def("wilderness_bandit").xpBonusTenths)
+        assertEquals(0, def("black_unicorn").xpBonusTenths)
+        // Dark warrior (level 145: XP bonus 10), Ent (level 101: XP bonus 2.5, poison and venom resistance 100).
+        assertEquals(100, def("wilderness_dark_warrior").xpBonusTenths)
+        assertEquals(25, def("wilderness_ent").xpBonusTenths)
+        assertTrue(def("wilderness_ent").poisonImmune && def("wilderness_ent").venomImmune)
     }
 
     @Test
