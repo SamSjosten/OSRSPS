@@ -151,6 +151,11 @@ class HeadlessLavaMazeTest {
                 client.tele(3075, 3866)
                 client.locOp(EdgevilleDungeon.GATE_LEFT, 3075, 3867, EdgevilleDungeon.GATE_OPTION)
                 client.await("the metal gates open") { Unit.takeIf { server.world.locs.find(EdgevilleDungeon.GATE_LEFT, 3075, 3867, 0) == null } }
+                // Swung open, the leaves stand a tile north, and Close there shuts them again.
+                val open = client.await("the left leaf open") { server.world.locs.find(EdgevilleDungeon.GATE_LEFT_OPEN, 3075, 3868, 0) }
+                client.locOp(EdgevilleDungeon.GATE_LEFT_OPEN, open.x, open.z, EdgevilleDungeon.GATE_OPTION)
+                client.await("the metal gates shut") { server.world.locs.find(EdgevilleDungeon.GATE_LEFT, 3075, 3867, 0) }
+                assertTrue(client.messages().none { it.text == "[game.nothing_interesting]" })
             }
         }
     }

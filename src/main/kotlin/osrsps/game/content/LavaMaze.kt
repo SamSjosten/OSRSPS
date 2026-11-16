@@ -57,8 +57,8 @@ object LavaMaze {
     /** How long the chest shows open after a key (guessed). */
     const val CHEST_OPEN_TICKS = 3
 
-    /** The metal gates north of the maze's middle. */
-    val METAL_GATE_TILES = listOf(Tile(3075, 3867), Tile(3076, 3867))
+    /** The metal gates north of the maze's middle: their leaves shut, and where they stand swung open, a tile north. */
+    val METAL_GATE_TILES = listOf(Tile(3075, 3867), Tile(3076, 3867), Tile(3075, 3868), Tile(3076, 3868))
 
     fun isMetalGate(loc: ZoneLoc) = loc.level == 0 && METAL_GATE_TILES.any { it.x == loc.x && it.z == loc.z }
 
