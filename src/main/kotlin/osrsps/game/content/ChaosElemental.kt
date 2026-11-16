@@ -74,7 +74,6 @@ object ChaosElemental {
         )
     }
 
-    private val nextAttack = java.util.WeakHashMap<Npc, Long>()
 
     private fun EncounterContext.tick() {
         val target = heldTarget()
@@ -86,8 +85,9 @@ object ChaosElemental {
         val far = LineOfSight.distance(boss.x, boss.z, boss.type.size, target.x, target.z, 1, 1) > RANGE ||
             !world.meleeCombat.sees(boss, target)
         if (far) world.npcs.follow(boss, target) else world.npcs.stopFollowing(boss)
-        if (far || world.tick < (nextAttack[boss] ?: Long.MIN_VALUE)) return
-        nextAttack[boss] = world.tick + ATTACK_SPEED
+        if (far || world.tick < boss.nextAttackTick) return
+        // The NPC's own cooldown, so a strike made before his fight began holds his first one here too.
+        boss.nextAttackTick = world.tick + ATTACK_SPEED
         val madness = if (target.inventory.freeSlots > 0) MADNESS_WEIGHT else 0
         val pick = roll(1, DISCORD_WEIGHT + CONFUSION_WEIGHT + madness)
         when {

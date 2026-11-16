@@ -83,7 +83,6 @@ object Scorpia {
 
     /** One fight's state, by boss. */
     private class Fight {
-        var nextAttack = Long.MIN_VALUE
         /** The tick she was first on [GUARDIANS_AT] or fewer, or -1. */
         var lowTick = -1L
         var summoned = false
@@ -110,8 +109,9 @@ object Scorpia {
         boss.face(target)
         val reaches = world.meleeCombat.reaches(boss, target)
         if (reaches) world.npcs.stopFollowing(boss) else world.npcs.follow(boss, target)
-        if (!reaches || world.tick < fight.nextAttack) return
-        fight.nextAttack = world.tick + ATTACK_SPEED
+        if (!reaches || world.tick < boss.nextAttackTick) return
+        // The NPC's own cooldown, so a strike made before her fight began holds her first one here too.
+        boss.nextAttackTick = world.tick + ATTACK_SPEED
         world.meleeCombat.swingAt(boss, target, world.tick, ANIM_ATTACK)
         if (world.prayers.protects(target, AttackType.STAB)) {
             val prayer = target.skills.currentLevel(Skill.PRAYER)

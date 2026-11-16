@@ -83,7 +83,6 @@ object ChaosFanatic {
     }
 
     /** When his next attack may come, and how many plain bolts are left before a special may, by boss. */
-    private val nextAttack = java.util.WeakHashMap<Npc, Long>()
     private val cooldown = java.util.WeakHashMap<Npc, Int>()
 
     private fun EncounterContext.tick() {
@@ -96,8 +95,9 @@ object ChaosFanatic {
         val far = LineOfSight.distance(boss.x, boss.z, boss.type.size, target.x, target.z, 1, 1) > RANGE ||
             !world.meleeCombat.sees(boss, target)
         if (far) world.npcs.follow(boss, target) else world.npcs.stopFollowing(boss)
-        if (far || world.tick < (nextAttack[boss] ?: Long.MIN_VALUE)) return
-        nextAttack[boss] = world.tick + ATTACK_SPEED
+        if (far || world.tick < boss.nextAttackTick) return
+        // The NPC's own cooldown, so a strike made before his fight began holds his first one here too.
+        boss.nextAttackTick = world.tick + ATTACK_SPEED
         boss.effects.say(world.dialogueText[ChaosFanaticLines.SHOUTS[roll(0, ChaosFanaticLines.SHOUTS.size - 1)]])
         val left = cooldown[boss] ?: 0
         val pick = if (left > 0) 1 else roll(1, 15)
