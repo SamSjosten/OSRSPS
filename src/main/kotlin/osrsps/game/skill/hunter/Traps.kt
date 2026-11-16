@@ -101,8 +101,12 @@ open class TrapKind(
     open fun look(trap: Trap, state: TrapState, locId: Int): TrapLook =
         TrapLook(listOf(ZoneLoc(locId, LocShape.CENTREPIECE_STRAIGHT, 0, trap.x, trap.z, trap.level)))
 
-    /** Whether nothing on [x], [z], [level] is in the trap's way, [locs] holding what is there. */
-    open fun fits(locs: List<ZoneLoc>): Boolean = locs.isEmpty()
+    /**
+     * Whether nothing on [x], [z], [level] is in the trap's way, [locs] holding what is there: no loc in the layer the
+     * trap stands in. A ground decoration (the Feldip and Piscatoris grass) stays under it, as under a net trap's net;
+     * one that blocks the tile is refused by its collision. Inferred from the layers: live lays snares in that grass.
+     */
+    open fun fits(locs: List<ZoneLoc>): Boolean = locs.none { it.layer == CENTREPIECE_LAYER }
 
     /** Whether the trap stands on its anchor's own tiles (a deadfall on its boulder), so only the anchor has to be free. */
     open val onAnchor: Boolean get() = false
@@ -128,6 +132,10 @@ open class TrapKind(
     /** The loc [trap] shows while [creature], which reached it at [npcX], [npcZ], struggles. */
     open fun catchingLoc(trap: Trap, creature: Creature, npcX: Int, npcZ: Int): Int =
         creature.catchingLoc(trap.luredFromX - trap.x, trap.luredFromZ - trap.z)
+
+    private companion object {
+        val CENTREPIECE_LAYER = ZoneLoc.layerOf(LocShape.CENTREPIECE_STRAIGHT)
+    }
 }
 
 /** Where a laid trap is. */
