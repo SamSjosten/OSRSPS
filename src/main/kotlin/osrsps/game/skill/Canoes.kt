@@ -24,7 +24,6 @@ object CanoeLines : Lines("canoe", "Canoes") {
     val ARRIVE_POND = line("arrive_pond", "on landing at the Wilderness Pond")
     val SINKS = line("sinks", "after each landing: the canoe sinks")
     val POND_WALK = line("pond_walk", "after landing at the Wilderness Pond: no trees to make another canoe")
-    val WILDERNESS = line("wilderness", "ours: the Ferox Enclave and the Wilderness Pond aren't open yet")
 }
 
 /** One of the River Lum's canoe stations: its loc, the varbit that holds its state for each player, and where you land. */
@@ -47,13 +46,13 @@ enum class CanoeStation(
  * Where a canoe can go, in the order of canoe_return_locations' six values. [component] is the button on canoe_map_lum;
  * [x], [z] the tile the player lands on, guessed (see [Canoes]).
  */
-enum class CanoeDestination(val component: Int, val x: Int, val z: Int, val wilderness: Boolean = false) {
+enum class CanoeDestination(val component: Int, val x: Int, val z: Int) {
     LUMBRIDGE(7, 3240, 3242),
     CHAMPIONS_GUILD(12, 3199, 3344),
     BARBARIAN_VILLAGE(17, 3109, 3415),
     EDGEVILLE(22, 3132, 3510),
-    WILDERNESS_POND(28, 3139, 3796, wilderness = true),
-    FEROX_ENCLAVE(27, 3153, 3631, wilderness = true),
+    WILDERNESS_POND(28, 3139, 3796),
+    FEROX_ENCLAVE(27, 3153, 3631),
     ;
 
     val arrive get() = when (this) {
@@ -256,10 +255,6 @@ class Canoes(private val world: World, private val woodcutting: WoodcuttingData)
         // The client offers only these; anything else is a stale or forged click.
         if (state !in 11..14 || !reaches(state - 10, station, destination)) return
         world.interfaces.closeModals(player)
-        if (destination.wilderness && !WILDERNESS_OPEN) {
-            player.message(world.textFor(player)[CanoeLines.WILDERNESS])
-            return
-        }
         setState(player, station, TREE)
         delay(TRIP_TICKS)
         world.teleport(player, destination.x, destination.z, 0)
@@ -325,9 +320,6 @@ class Canoes(private val world: World, private val woodcutting: WoodcuttingData)
         const val TREE = 0
         const val FALLING = 9
         const val FALLEN = 10
-
-        /** Off until the Wilderness is built: the Ferox Enclave and the Wilderness Pond refuse. */
-        const val WILDERNESS_OPEN = false
 
         /** Rolls every 4 ticks: the Wiki for the tree, guessed for shaping. */
         const val CYCLE = 4

@@ -180,6 +180,25 @@ class ObjSpawnFilesTest {
     }
 
     @Test
+    fun `the Bone Yard has the Wiki's 34 bones, 6 big bones, scimitar, skulls, mind runes and crossbow`() {
+        val yard = ObjTypes.of(
+            ObjType(526, "Bones", internalName = "bones"), ObjType(532, "Big bones", internalName = "big_bones"),
+            ObjType(1323, "Iron scimitar", internalName = "iron_scimitar"), ObjType(964, "Skull", internalName = "skull"),
+            ObjType(558, "Mind rune", stackable = true, internalName = "mindrune"), ObjType(837, "Crossbow", internalName = "crossbow"),
+        )
+        val text = ObjSpawnFiles.resources().toMap().getValue("wilderness-bone-yard.tsv")
+        val spawns = ObjSpawnFiles.parse(text, yard, "wilderness-bone-yard.tsv")
+        assertEquals(34, spawns.count { it.id == 526 })
+        assertEquals(6, spawns.count { it.id == 532 })
+        assertTrue(spawns.filter { it.id == 526 }.all { it.respawnTicks == 100 })
+        assertTrue(spawns.filter { it.id == 532 }.all { it.respawnTicks == 50 })
+        assertEquals(3, spawns.count { it.id == 964 })
+        assertEquals(6, spawns.single { it.id == 558 }.count)
+        // All on the surface, in levels 25 to 29 of the Wilderness.
+        assertTrue(spawns.all { it.level == 0 && Wilderness.level(it.x, it.z) in 25..29 }, spawns.map { Wilderness.level(it.x, it.z) }.toString())
+    }
+
+    @Test
     fun `finds the spawn files in a folder and in a jar`() {
         val dir = createTempDirectory("obj-spawns")
         val spawns = dir.resolve(ObjSpawnFiles.RESOURCE_DIR).createDirectories()

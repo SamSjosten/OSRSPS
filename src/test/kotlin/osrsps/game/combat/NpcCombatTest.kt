@@ -77,7 +77,7 @@ class NpcCombatTest {
             "mammoth_attack" to 304, "mammoth_block" to 305, "mammoth_death" to 307,
             "earthwarrior_chop" to 2951, "earthwarrior_def" to 2952, "earthwarrior_death" to 2946,
             "skeleton_update_giant_attack" to 5499, "skeleton_update_giant_defend" to 5501, "skeleton_update_giant_death" to 5503,
-            "dragon_attack" to 80, "dragon_block" to 89, "dragon_death" to 92, "dragon_firebreath_attack" to 86,
+            "dragon_attack" to 80, "dwarf_attack" to 99, "dwarf_block" to 100, "dwarf_death" to 102, "dragon_block" to 89, "dragon_death" to 92, "dragon_firebreath_attack" to 86,
             "npc_ent_attack_01" to 12506, "npc_ent_defend_01" to 12504, "npc_ent_death_01" to 12508,
             "catpon_attack" to 4271, "catpon_attack_breath" to 4272, "catpon_parry" to 4273, "catpon_death" to 4270,
             "small_spider_update_attack" to 6249, "small_spider_update_defend" to 6250, "small_spider_update_death" to 6251,
@@ -1042,6 +1042,42 @@ class NpcCombatTest {
         assertEquals(100, def("wilderness_dark_warrior").xpBonusTenths)
         assertEquals(25, def("wilderness_ent").xpBonusTenths)
         assertTrue(def("wilderness_ent").poisonImmune && def("wilderness_ent").venomImmune)
+    }
+
+    @Test
+    fun `levels 21 to 35 bring the Forgotten Cemetery's Ankou, aggressive Black Knights, the Bandit Camp's champions and level 22 bandits, and chaos dwarves`() {
+        val names = listOf("wilderness_ankou", "aggressive_black_knight", "black_heather", "donny_the_lad", "speedy_keith", "brawling_bandit", "dwarf_chaos")
+        val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(6608 + i, name, internalName = name) }.toTypedArray())
+        val combat = NpcCombat.load(types, seqs)
+        fun def(name: String) = combat[types.find(name)!!]!!
+        // OSRS Wiki, Ankou (level 86): as the Stronghold's, max hit 8 crush, weak to air 40%, aggressive.
+        assertEquals(8, def("wilderness_ankou").maxHit)
+        assertEquals(AttackType.CRUSH, def("wilderness_ankou").attackType)
+        assertEquals(ElementalWeakness(Element.AIR, 40), def("wilderness_ankou").weakness)
+        assertTrue(def("wilderness_ankou").aggression != null)
+        // Black Knight (hostile, 517): aggressive, speed 5, max hit 4, slash, magic defence -11.
+        val knight = def("aggressive_black_knight")
+        assertEquals(5, knight.attackSpeed)
+        assertEquals(4, knight.maxHit)
+        assertEquals(AttackType.SLASH, knight.attackType)
+        assertEquals(-11, knight.defence.magic)
+        assertTrue(knight.aggression != null)
+        // The three champions (level 34): not aggressive, max hit 4, slash, respawn 50.
+        for (name in listOf("black_heather", "donny_the_lad", "speedy_keith")) {
+            assertEquals(4, def(name).maxHit, name)
+            assertEquals(AttackType.SLASH, def(name).attackType, name)
+            assertEquals(50, def(name).respawnTicks, name)
+            assertEquals(null, def(name).aggression, name)
+        }
+        // Bandit (level 22): aggressive, max hit 3, stab, respawn 100. Chaos dwarf: aggressive, max hit 6, crush, respawn 14.
+        assertEquals(3, def("brawling_bandit").maxHit)
+        assertEquals(AttackType.STAB, def("brawling_bandit").attackType)
+        assertEquals(100, def("brawling_bandit").respawnTicks)
+        assertTrue(def("brawling_bandit").aggression != null)
+        assertEquals(6, def("dwarf_chaos").maxHit)
+        assertEquals(AttackType.CRUSH, def("dwarf_chaos").attackType)
+        assertEquals(14, def("dwarf_chaos").respawnTicks)
+        assertTrue(def("dwarf_chaos").aggression != null)
     }
 
     @Test

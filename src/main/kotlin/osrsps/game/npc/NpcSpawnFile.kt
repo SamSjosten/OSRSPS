@@ -92,6 +92,7 @@ object NpcSpawnFile {
         "hunter-shops.json",
         "ferox-enclave.json",
         "wilderness-11-20.json",
+        "wilderness-21-35.json",
     )
 
     /** What a file gave: the spawns, and the NPC names the cache doesn't know (skipped). */

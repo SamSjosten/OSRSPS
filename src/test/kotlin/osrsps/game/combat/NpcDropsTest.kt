@@ -1087,6 +1087,28 @@ class NpcDropsTest {
     }
 
     @Test
+    fun `levels 21 to 35's monsters drop bones always, the Ankou dark fishing bait often, the chaos dwarf out of 133`() {
+        val names = listOf("wilderness_ankou", "aggressive_black_knight", "black_heather", "donny_the_lad", "speedy_keith", "brawling_bandit", "dwarf_chaos")
+        val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(6608 + i, name, internalName = name) }.toTypedArray())
+        val drops = NpcDrops.load(types, objTypes)
+        fun def(name: String) = drops[types.find(name)!!]!!
+        for (name in names) assertEquals(listOf("Bones"), def(name).always.map { it.type.name }, name)
+        // OSRS Wiki, Ankou (level 86, 6608): out of 100, dark fishing bait x60 at 38/100; Chaos dwarf taken out of 133.
+        assertEquals(100, def("wilderness_ankou").table!!.slots)
+        assertEquals(133, def("dwarf_chaos").table!!.slots)
+        for (name in listOf("aggressive_black_knight", "black_heather", "donny_the_lad", "speedy_keith", "brawling_bandit")) {
+            assertEquals(128, def(name).table!!.slots, name)
+        }
+        val random = GameRandom(77)
+        var bait = 0
+        repeat(KILLS) { if (def("wilderness_ankou").roll(random).any { it.type.name == "Dark fishing bait" && it.count == 60 }) bait++ }
+        val p = 38.0 / 100
+        val mean = KILLS * p
+        val sigma = sqrt(KILLS * p * (1 - p))
+        assertTrue(abs(bait - mean) <= 5 * sigma + 1, "dark fishing bait in $bait of $KILLS, expected about ${mean.toInt()}")
+    }
+
+    @Test
     fun `the Wilderness Edgeville Dungeon's chaos druids give one or two of a herb, the black demons one malicious ashes`() {
         val names = listOf("chaos_druid", "earthwarrior", "thug", "black_demon2", "black_demon3", "black_demon5", "giantskeleton")
         val wildTypes = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(2700 + i, name, internalName = name) }.toTypedArray())
