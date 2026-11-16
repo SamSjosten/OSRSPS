@@ -323,6 +323,11 @@
    "comment": "open, the Rift it leaves there"
   },
   {
+   "step": "assertInterface",
+   "interfaceId": 973,
+   "comment": "tfa_chests, the chest's window, open by itself two ticks after the Rift with nothing clicked (Sam's recordings of 16 November 2026: about 2 to 3 ticks)"
+  },
+  {
    "step": "command",
    "text": "::npcs 2",
    "expectMessage": "(16737)",
