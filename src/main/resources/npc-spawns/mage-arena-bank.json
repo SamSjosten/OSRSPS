@@ -1,0 +1,7 @@
+{
+  "about": "The Mage Arena bank under the hut north of the Mage Arena (Wilderness step W3.7): Gundai the banker and Lundail the rune seller. Types and tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live). Left out: Kolodion (the Mage Arena miniquest) and the chamber guardian (after Mage Arena I).",
+  "spawns": [
+    {"npc": "magearena_banker", "x": 2534, "z": 4714, "wander": 0, "source": "Gundai (magearena_banker), the Mage Arena bank. mejrs NPCList_OSRS; standing still guessed"},
+    {"npc": "magearena_runeshop", "x": 2534, "z": 4719, "wander": 0, "source": "Lundail (magearena_runeshop), the Mage Arena bank. mejrs NPCList_OSRS; standing still guessed"}
+  ]
+}

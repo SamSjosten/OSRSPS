@@ -156,6 +156,7 @@ import osrsps.game.content.registerEdgevilleDungeon
 import osrsps.game.content.registerLavaMaze
 import osrsps.game.content.registerChaosTemple
 import osrsps.game.content.registerResourceArea
+import osrsps.game.content.registerMageArenaBank
 import osrsps.game.content.MemberGates
 import osrsps.game.content.registerFeroxEnclave
 import osrsps.game.content.registerWildernessObelisks
@@ -1029,6 +1030,7 @@ class World(
         registerLavaMaze(this)
         registerChaosTemple(this)
         registerResourceArea(this)
+        registerMageArenaBank(this)
         FountainOfRune.register(this)
         registerFeroxEnclave(this)
         registerWildernessObelisks(this)

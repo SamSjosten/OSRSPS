@@ -58,6 +58,7 @@ object NpcSpawnFile {
         "edgeville-dungeon.json",
         "stronghold-of-security.json",
         "fractured-archive-lobby.json",
+        "mage-arena-bank.json",
         "rogues-den.json",
         "wizards-tower.json",
         "lumbridge-swamp-quest.json",
