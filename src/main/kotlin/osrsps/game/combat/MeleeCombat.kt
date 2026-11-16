@@ -930,7 +930,7 @@ class MeleeCombat(
     }
 
     /** [npc]'s projectile at [player], landing [ticks] later, in client cycles; a player's spell's numbers (guessed). */
-    private fun flight(npc: Npc, player: Player, id: Int, ticks: Int): Projectile = Projectile(
+    fun flight(npc: Npc, player: Player, id: Int, ticks: Int): Projectile = Projectile(
         id = id,
         fromX = npc.x,
         fromZ = npc.z,

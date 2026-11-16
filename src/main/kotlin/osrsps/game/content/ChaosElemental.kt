@@ -6,6 +6,7 @@ import osrsps.game.Player
 import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.combat.AttackType
+import osrsps.game.combat.MeleeCombat
 import osrsps.game.combat.NpcRangedAttack
 import osrsps.game.encounter.CycleStep
 import osrsps.game.encounter.EncounterContext
@@ -109,15 +110,8 @@ object ChaosElemental {
     private fun EncounterContext.special(target: Player, cast: Int, travel: Int, impact: Int, land: () -> Unit) {
         boss.effects.anim(ANIM_ATTACK)
         boss.effects.spotanim(0, cast, 92)
-        val distance = LineOfSight.distance(boss.x, boss.z, boss.type.size, target.x, target.z, 1, 1)
-        val ticks = 1 + (1 + distance) / 3
-        world.zones.projectile(
-            Projectile(
-                id = travel, fromX = boss.x + boss.type.size / 2, fromZ = boss.z + boss.type.size / 2, level = boss.level,
-                toX = target.x, toZ = target.z, startHeight = 43, endHeight = 31, startTime = 51, endTime = 51 + ticks * 30 - 30,
-                angle = 16, progress = 64,
-            ),
-        )
+        val ticks = specialTicks(boss, target)
+        world.zones.projectile(specialProjectile(world, boss, target, travel, ticks))
         after(ticks) {
             if (target.dead || target.level != boss.level || players.none { it === target }) return@after
             target.spotanim(impact)
@@ -159,6 +153,14 @@ object ChaosElemental {
             log("took off ${target.username}'s ${off.joinToString(" ")}")
         }
     }
+
+    /** How many ticks a special takes from [boss] to [target]: a magic bolt's flight. */
+    fun specialTicks(boss: Npc, target: Player): Int =
+        1 + (1 + LineOfSight.distance(boss.x, boss.z, boss.type.size, target.x, target.z, 1, 1)) / 3
+
+    /** A special's projectile, arriving as it lands [ticks] later: timed as an NPC's shot ([MeleeCombat.flight]). */
+    fun specialProjectile(world: World, boss: Npc, target: Player, travel: Int, ticks: Int): Projectile =
+        world.meleeCombat.flight(boss, target, travel, ticks)
 
     /** Whether [x], [z] is within [AREA_RADIUS] of [npc]'s spawn. */
     fun inArea(npc: Npc, x: Int, z: Int): Boolean = abs(x - npc.spawn.x) <= AREA_RADIUS && abs(z - npc.spawn.z) <= AREA_RADIUS

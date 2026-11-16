@@ -133,6 +133,24 @@ class HeadlessChaosElementalTest {
         }
     }
 
+    @Test
+    fun `a special's projectile arrives as the special lands, near or far`(@TempDir dir: Path) {
+        server(dir, seed = 7).use { server ->
+            server.login("tam").use { client ->
+                client.await("the login rebuild") { client.position }
+                val npc = server.world.npcs.all.first { it.type.id == ChaosElemental.BOSS }
+                val tam = server.world.playerNamed("tam")!!
+                for (dx in listOf(3, 5, 8, 12)) {
+                    server.world.teleport(tam, X + dx, Z + 1, 0)
+                    val ticks = ChaosElemental.specialTicks(npc, tam)
+                    val p = ChaosElemental.specialProjectile(server.world, npc, tam, ChaosElemental.SPOT_MADNESS, ticks)
+                    assertEquals(ticks * 30, p.endTime, "lands on its tick at $dx tiles")
+                    assertTrue(p.startTime < p.endTime, "a flight at $dx tiles: $p")
+                }
+            }
+        }
+    }
+
     private companion object {
         const val X = 3261
         const val Z = 3927
