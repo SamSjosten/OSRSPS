@@ -36,7 +36,7 @@ class EssencePouchesTest {
 
     @Test
     fun `every max cape variant stops decay, as the Runecraft capes do`() {
-        for (cape in listOf(9765, 9766, 13280, 13342, 21285, 24855, 28902)) assertTrue(cape in EssencePouches.NO_DECAY_CAPES, "cape $cape")
+        for (cape in listOf(9765, 9766, 13280, 13342, 21285, 24133, 24855, 27365, 28902, 28906)) assertTrue(cape in EssencePouches.NO_DECAY_CAPES, "cape $cape")
         assertFalse(6570 in EssencePouches.NO_DECAY_CAPES, "a fire cape is no max cape")
     }
 }
