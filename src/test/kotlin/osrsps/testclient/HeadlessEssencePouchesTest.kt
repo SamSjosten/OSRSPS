@@ -121,7 +121,30 @@ class HeadlessEssencePouchesTest {
         }
     }
 
+    @Test
+    fun `a dropped pouch loses its essence, so picking it up finds it empty`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                client.ready(1)
+                val player = server.world.playerNamed("carol")!!
+                client.give(EssencePouches.SMALL, 1)
+                client.give(Mining.PURE_ESSENCE, 3)
+                client.op(EssencePouches.SMALL, 1)
+                client.await("3 essence in") { if (client.count(Mining.PURE_ESSENCE) == 0) Unit else null }
+                assertEquals(3, player.vars.getVarbit(SMALL_COUNT))
+                // Drop is iop5, button op 7 (InventoryTab.click).
+                client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, 7, client.inventory(BACKPACK).indexOfFirst { it?.id == EssencePouches.SMALL }, EssencePouches.SMALL)
+                client.await("the pouch dropped") { if (client.count(EssencePouches.SMALL) == 0) Unit else null }
+                assertEquals(0, player.vars.getVarbit(SMALL_COUNT))
+                client.give(EssencePouches.SMALL, 1)
+                client.op(EssencePouches.SMALL, 2)
+                client.seen("[runecraft_pouch.check_empty]")
+            }
+        }
+    }
+
     private companion object {
+        const val SMALL_COUNT = 603
         const val BACKPACK = 93
         const val RUNECRAFT = 20
         const val MEDIUM_COUNT = 604

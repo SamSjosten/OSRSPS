@@ -91,6 +91,16 @@ class EssencePouches(private val world: World) {
         }
     }
 
+    /**
+     * [obj] left [player]'s backpack by Drop: a pouch's essence is lost with it (the Wiki's Essence pouch page), so its
+     * count and type go back to empty and picking it up again finds it empty.
+     */
+    fun dropped(player: Player, obj: Int) {
+        val pouch = POUCHES.firstOrNull { obj == it.obj || obj == it.degraded } ?: return
+        player.vars.setVarbit(pouch.countVarbit, 0)
+        player.vars.setVarbit(pouch.typeVarbit, 0)
+    }
+
     private fun check(player: Player, pouch: EssencePouch) {
         val text = world.textFor(player)
         val count = player.vars.getVarbit(pouch.countVarbit)
