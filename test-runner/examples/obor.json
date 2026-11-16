@@ -34,7 +34,7 @@
   {"step": "waitTicks", "ticks": 16, "comment": "he comes back 15 ticks after the chest"},
   {"step": "command", "text": "::kill Obor", "expectMessage": "Killed Obor", "comment": "back again; killed so the climb isn't knocked back"},
   {"step": "locOption", "locId": 29491, "option": "Climb", "comment": "back up to the ledge"},
-  {"step": "waitTicks", "ticks": 4},
+  {"step": "waitTicks", "ticks": 8, "comment": "the walk back to the rocks, then the climb's 2 ticks: an Open clicked while the climb still runs is dropped (nightly 2026-11-16 rerun: no menu after 4 ticks)"},
   {"step": "locOption", "locId": 29489, "option": "Open", "comment": "the lair's gate out"},
   {"step": "assertDialogue", "contains": "[obor.exit_title]", "timeoutMs": 10000},
   {"step": "chooseOption", "text": "[obor.exit_yes]"},

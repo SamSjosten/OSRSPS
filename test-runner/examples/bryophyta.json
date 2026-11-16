@@ -10,7 +10,7 @@
   {"step": "command", "text": "::setlevel attack 99", "expectMessage": "Attack set to level 99"},
   {"step": "command", "text": "::setlevel strength 99", "expectMessage": "Strength set to level 99"},
   {"step": "locOption", "locId": 32534, "option": "Check-Count", "x": 3174, "y": 9901},
-  {"step": "assertDialogue", "contains": "[bryophyta.check_count]", "timeoutMs": 10000},
+  {"step": "assertDialogue", "contains": "[bryophyta.check_count", "timeoutMs": 10000, "comment": "a prefix: with keys on the box shows the count too, [bryophyta.check_count count=0] (nightly 2026-11-16)"},
   {"step": "continueDialogue"},
   {"step": "locOption", "locId": 32534, "option": "Open", "x": 3174, "y": 9901},
   {"step": "assertDialogue", "contains": "[bryophyta.gate_warning]", "timeoutMs": 10000},
