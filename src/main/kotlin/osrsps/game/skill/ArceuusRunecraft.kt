@@ -73,10 +73,12 @@ class ArceuusRunecraft(private val world: World) {
 
     /**
      * [obj] left [player]'s backpack by Drop. Guessed: dropped fragments are lost, like a dropped pouch's essence, so the
-     * count goes to 0 once no fragments obj is left and an obj picked up again holds none.
+     * count goes to 0 once no fragments obj is left in the backpack or the bank and an obj picked up again holds none.
+     * One still in the bank keeps the count: the dropped one was its stand-in.
      */
     fun dropped(player: Player, obj: Int) {
-        if (obj == FRAGMENTS && player.inventory.count(FRAGMENTS) == 0L) player.charges[FRAGMENT_CHARGES] = 0
+        if (obj != FRAGMENTS || player.inventory.count(FRAGMENTS) > 0 || player.bank.count(FRAGMENTS) > 0) return
+        player.charges[FRAGMENT_CHARGES] = 0
     }
 
     private fun setFragments(player: Player, count: Int) {

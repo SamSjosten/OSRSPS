@@ -184,14 +184,19 @@ class HeadlessArceuusRunecraftTest {
                 client.give(ArceuusRunecraft.DARK_BLOCK, 2)
                 client.chiselBlock()
                 client.await("the fragments") { if (client.count(ArceuusRunecraft.FRAGMENTS) == 1) Unit else null }
-                // As a bank deposit does: the obj leaves the backpack without Drop.
+                // As a bank deposit does: the obj leaves the backpack without Drop, for the bank.
                 player.inventory.remove(player.inventory.contents().first { it.second.id == ArceuusRunecraft.FRAGMENTS }.first, 1)
+                player.bank.add(server.world.objTypes[ArceuusRunecraft.FRAGMENTS]!!, 1)
                 client.await("the fragments banked") { if (client.count(ArceuusRunecraft.FRAGMENTS) == 0) Unit else null }
                 assertEquals(0, server.world.arceuusRunecraft.fragments(player))
                 client.give(ArceuusRunecraft.DARK_BLOCK, 1)
                 client.chiselBlock()
                 client.await("new fragments") { if (client.count(ArceuusRunecraft.FRAGMENTS) == 1) Unit else null }
                 assertEquals(12, server.world.arceuusRunecraft.fragments(player))
+                // Dropping the stand-in leaves the banked obj's count.
+                client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, 7, client.inventory(BACKPACK).indexOfFirst { it?.id == ArceuusRunecraft.FRAGMENTS }, ArceuusRunecraft.FRAGMENTS)
+                client.await("the stand-in dropped") { if (client.count(ArceuusRunecraft.FRAGMENTS) == 0) Unit else null }
+                assertEquals(12, player.charges[ArceuusRunecraft.FRAGMENT_CHARGES])
             }
         }
     }
