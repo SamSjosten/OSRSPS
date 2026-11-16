@@ -136,7 +136,8 @@ class HeadlessFountainOfRuneTest {
                 val ring = client.inventory(BACKPACK).indexOfFirst { it?.id == RING }
                 client.locTarget(FountainOfRune.FOUNTAIN, FOUNTAIN_X, FOUNTAIN_Z, InventoryTab.INTERFACE, InventoryTab.ITEMS, ring, RING)
                 client.awaitMessage("the recharge") { it == "[${FountainOfRuneLines.RECHARGE.key}]" }
-                assertEquals(1L, client.count(GLORY_6), "the glory to six")
+                // The message goes out at once, the backpack at the end of the tick: wait for it.
+                client.await("the glory to six") { Unit.takeIf { client.count(GLORY_6) == 1L } }
                 assertEquals(1L, client.count(RING_5), "the ring to five")
                 assertEquals(3L, client.count(SKILLS_6 + 1), "noted skills necklaces too")
                 assertEquals(2L, client.count(GLORY_1 + 1), "noted glories left alone")
