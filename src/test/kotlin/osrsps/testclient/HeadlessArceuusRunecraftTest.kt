@@ -100,11 +100,13 @@ class HeadlessArceuusRunecraftTest {
                 client.locOp(RUNESTONE, RUNESTONE_X, RUNESTONE_Z, ArceuusRunecraft.CHIP)
                 client.await("a dense block") { if (client.count(ArceuusRunecraft.DENSE_BLOCK) >= 1) Unit else null }
                 val player = server.world.playerNamed("alice")!!
-                val blocks = client.count(ArceuusRunecraft.DENSE_BLOCK)
                 client.tele(DARK_X + 3, DARK_Z + 1)
+                // Counted after the teleport, which ends the chipping: a block can land between the first and it.
+                val blocks = player.inventory.count(ArceuusRunecraft.DENSE_BLOCK).toInt()
                 client.locOp(ArceuusRunecraft.DARK_ALTAR, DARK_X, DARK_Z, ArceuusRunecraft.VENERATE)
                 client.seen("[runecraft_arceuus.venerate]")
-                assertEquals(0, client.count(ArceuusRunecraft.DENSE_BLOCK))
+                // The message can reach the client a packet ahead of the backpack's update.
+                client.await("the blocks venerated") { if (client.count(ArceuusRunecraft.DENSE_BLOCK) == 0) Unit else null }
                 assertEquals(blocks, client.count(ArceuusRunecraft.DARK_BLOCK))
                 assertEquals(10 - blocks, player.skills.currentLevel(Skill.PRAYER))
                 client.chiselBlock()
