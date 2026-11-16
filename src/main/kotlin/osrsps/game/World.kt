@@ -196,6 +196,7 @@ import osrsps.game.content.registerRick
 import osrsps.game.content.registerBones
 import osrsps.game.content.GiantLairs
 import osrsps.game.content.KingBlackDragon
+import osrsps.game.content.WildernessLairFee
 import osrsps.game.content.registerGiantBones
 import osrsps.game.content.registerBryophyta
 import osrsps.game.content.registerEmotes
@@ -713,6 +714,7 @@ class World(
         takeFromBank = { player, id, count -> bank.take(player.bank, bankScreen.tabs(player), id, count) },
         // The killer credited gets their PJ timer, though a monster's hit finished the victim.
         killerOf = { victim -> pvpCombat.killerOf(victim)?.also { pvpCombat.credited(victim, it) } },
+        forfeit = WildernessLairFee::forfeit,
         // The victim's, seen by the killer alone at first: a pickup is a hand-over, which saves the victim with the
         // taker. Never merged into a stack already there, so the loot keeps its own timers.
         dropForKiller = { victim, killer, type, count, x, z, level ->
@@ -1535,6 +1537,7 @@ class World(
      */
     private fun sendWilderness(player: Player) {
         val inside = Wilderness.inside(player.x, player.z)
+        WildernessLairFee.update(player)
         interfaces.showWildernessOverlay(player, inside)
         player.vars.setVarbitIfKnown(VARBIT_INSIDE_WILDERNESS, if (inside) 1 else 0)
         // Ferox Enclave: the overlay's level reads "Level: --" (client script pvp_icons_wildernesslevel).

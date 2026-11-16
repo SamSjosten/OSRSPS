@@ -18,17 +18,17 @@
     },
     {
       "npcs": ["tfa_bork"],
-      "hitpoints": [1500, 1500, 2180, 2810, 3440, 4070, 4700, 5330],
-      "source": "OSRS Wiki, Bork (The Fractured Archive), read 2026-11-09"
+      "hitpoints": [1500, 1500, 2390, 2810, 3440, 4070, 4700, 5330],
+      "source": "OSRS Wiki, Bork (The Fractured Archive), read 2026-11-09; 2,390 for three seen on his bar in Sam's recording of 2026-11-16 (the Wiki has 2,180), 2,810 for four and 3,440 for five in those of 2026-11-09 and 10"
     },
     {
       "npcs": ["tfa_smork"],
-      "hitpoints": [600, 600, 870, 1120, 1370, 1630, 1880, 2130],
-      "source": "OSRS Wiki, Bork (The Fractured Archive)'s table of both, read 2026-11-09"
+      "hitpoints": [600, 600, 940, 1120, 1370, 1630, 1880, 2130],
+      "source": "OSRS Wiki, Bork (The Fractured Archive)'s table of both, read 2026-11-09; 940 for three seen on the Smorks' bar in Sam's recording of 2026-11-16 (the Wiki has 870)"
     },
     {
       "npcs": ["tfa_bork_smork_hp_ui_handler"],
-      "hitpoints": [2100, 2100, 3050, 3930, 4810, 5700, 6580, 7460],
+      "hitpoints": [2100, 2100, 3330, 3930, 4810, 5700, 6580, 7460],
       "source": "Ours: Bork's and the Smorks' together, for the anchor of their fight (Bork, raid step 18a), which isn't fought; it carries the party size the fight scales the two to, as ::raid bork party=n sets it"
     },
     {
@@ -43,8 +43,8 @@
     },
     {
       "npcs": ["tfa_xarth"],
-      "hitpoints": [2600, 2600, 3770, 4860, 5950, 7050, 8140, 9230],
-      "source": "OSRS Wiki, Xarth (read 2026-11-10); 4,860 for four and 5,950 for five seen on his bar in Sam's recordings of 2026-11-09"
+      "hitpoints": [2600, 2600, 3550, 4860, 5950, 7050, 8140, 9230],
+      "source": "OSRS Wiki, Xarth (read 2026-11-10); 3,550 for three seen on his bar in Sam's recording of 2026-11-16 (the Wiki has 3,770), 4,860 for four and 5,950 for five in those of 2026-11-09"
     },
     {
       "npcs": ["tfa_ocellus_p1"],

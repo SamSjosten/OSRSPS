@@ -31,6 +31,22 @@ class PartyScalingTest {
     }
 
     @Test
+    fun `three players' hitpoints are those Sam's recording of 16 November shows, where the Wiki's differ`() {
+        val bork = NpcType(16671, "Bork", internalName = "tfa_bork")
+        val smork = NpcType(16672, "Smork", internalName = "tfa_smork")
+        val xarth = NpcType(16673, "Xarth", internalName = "tfa_xarth")
+        val anchor = NpcType(16674, "Bork", internalName = "tfa_bork_smork_hp_ui_handler")
+        val scaling = PartyScaling.load(NpcTypes.of(bork, smork, xarth, anchor))
+        assertEquals(listOf(1500, 2390, 2810, 3440), (2..5).map { scaling.hitpoints(bork, it) })
+        assertEquals(listOf(600, 940, 1120, 1370), (2..5).map { scaling.hitpoints(smork, it) })
+        assertEquals(listOf(2600, 3550, 4860, 5950), (2..5).map { scaling.hitpoints(xarth, it) })
+        // The anchor of Bork's fight carries the two together.
+        for (size in 1..PartyScaling.MAX_PARTY) {
+            assertEquals(scaling.hitpoints(bork, size)!! + scaling.hitpoints(smork, size)!!, scaling.hitpoints(anchor, size), "a party of $size")
+        }
+    }
+
+    @Test
     fun `a party's hitpoints for two match the cache's own, and a player alone counts as two`() {
         assertEquals(flying.stats.hitpoints, scaling.hitpoints(flying, 2))
         assertEquals(grounded.stats.hitpoints, scaling.hitpoints(grounded, 2))

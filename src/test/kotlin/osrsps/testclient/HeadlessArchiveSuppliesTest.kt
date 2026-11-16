@@ -210,9 +210,12 @@ class HeadlessArchiveSuppliesTest {
                 client.toNexus(server, run)
                 client.awaitTicks(2)
                 assertEquals(null, client.quartermaster(), "not after the second row")
+                assertTrue(client.messages().none { it.text == "[tfa_quartermaster.opened_shop]" }, "no shop yet")
                 client.clear(run, ArchiveRoom.DREADNOTH)
                 client.toNexus(server, run)
                 val npc = client.await("the Quartermaster") { client.quartermaster() }
+                // As he comes, everyone in the run is told he has opened shop (Sam's recording of 16 November 2026).
+                client.await("his shop opened") { client.messages().count { it.text == "[tfa_quartermaster.opened_shop]" }.takeIf { it == 1 } }
                 val at = server.world.archiveRaids.tile(run, ArchiveSupplies.X, ArchiveSupplies.Z)
                 assertEquals(Coord(at.x, at.z, 0), npc.coord)
                 client.await("his wheelbarrow") { client.wheelbarrowShown(server, run).takeIf { it } }
