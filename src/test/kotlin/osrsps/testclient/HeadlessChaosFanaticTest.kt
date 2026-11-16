@@ -186,6 +186,36 @@ class HeadlessChaosFanaticTest {
         }
     }
 
+    @Test
+    fun `a disarm stopped by a full backpack still puts the player in combat as it lands`(@TempDir dir: Path) {
+        // Seed 39: his first attack is a disarm.
+        server(dir, seed = 39).use { server ->
+            server.login("kit").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.command("varp 172 1")
+                client.wield(SCIMITAR)
+                client.command("item $POT 28")
+                client.await("a full backpack") { Unit.takeIf { client.inventory(BACKPACK).count { it?.id == POT } == 28 } }
+                client.tele(X + 3, Z)
+                val kit = server.world.playerNamed("kit")!!
+                val before = kit.attackedTick
+                val (npc, fight) = client.fight(server)
+                val start = server.world.tick - fight.ticks
+                val first = client.await("his first attack", timeoutMillis = 20_000) {
+                    fight.lines.firstOrNull { "casts at" in it || "explosions on" in it || "disarms" in it }
+                }
+                assertTrue("disarms kit" in first, first)
+                val cast = start + first.substringBefore(" ").toLong()
+                val landed = client.await("kit in combat") { kit.attackedTick.takeIf { it != before } }
+                // The bolt's flight, not a later cast's: his next attack comes 2 ticks on and takes 2 more to land.
+                assertTrue(landed - cast in 1..2, "in combat ${landed - cast} ticks after the disarm\n" + fight.lines.joinToString("\n"))
+                assertTrue(kit.attackedBy === npc)
+                assertEquals(SCIMITAR, client.inventory(WORN).getOrNull(WearPos.WEAPON)?.id, "still wielded")
+            }
+        }
+    }
+
     private companion object {
         const val X = 2979
         const val Z = 3846

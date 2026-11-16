@@ -135,8 +135,12 @@ object ChaosFanatic {
         world.zones.projectile(bolt(SPOT_GREEN, target.x, target.z, ticks))
         log("disarms ${target.username}")
         after(ticks) {
+            if (target.dead || target.level != boss.level || players.none { it === target }) return@after
+            // An attack that lands whether or not it takes anything: the player is in combat (no logout) and hits back,
+            // as with any other shot of his.
+            world.meleeCombat.attackedWithoutHit(target, boss, world.tick)
             val weapon = target.equipment[WearPos.WEAPON] ?: return@after
-            if (target.level != boss.level || target.inventory.freeSlots == 0) return@after
+            if (target.inventory.freeSlots == 0) return@after
             // Onto its stack if it stacks (knives, darts), as taking it off would.
             if (world.equipment.remove(target, WearPos.WEAPON) != EquipResult.Done) return@after
             log("took ${target.username}'s weapon ${weapon.id}")
