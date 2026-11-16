@@ -1,0 +1,34 @@
+{
+  "name": "Wilderness step W3.6a: the Resource Area's gate taking the 7,500-coin fee and letting the player in and out, Peek from inside, and Piles' talk (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::scenario gathering", "expectMessage": "Started scenario gathering.", "comment": "any scenario: ::reset at the end puts the account's backpack back"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off).", "comment": "hellhounds roam outside"},
+    {"step": "command", "text": "::item 995 7500"},
+    {"step": "command", "text": "::tele 3184 3945 0", "expectMessage": "Teleported to 3184, 3945, 0", "comment": "outside wilderness_resource_gate at 3184, 3944, beside Mandrith"},
+    {"step": "locOption", "locId": 26760, "option": "Open", "x": 3184, "y": 3944},
+    {"step": "assertDialogue", "contains": "resource_area.pay_yes", "timeoutMs": 10000, "comment": "the fee's menu (guessed)"},
+    {"step": "chooseOption", "text": "[resource_area.pay_yes]"},
+    {"step": "assertLocation", "x": 3184, "y": 3944, "plane": 0, "timeoutMs": 10000},
+    {"step": "assertInventory", "item": "Coins", "count": 0, "timeoutMs": 5000},
+    {"step": "waitTicks", "ticks": 4, "comment": "the gate back in its frame"},
+    {"step": "locOption", "locId": 26760, "option": "Peek", "x": 3184, "y": 3944},
+    {"step": "assertMessage", "contains": "[resource_area.peek_inside]", "timeoutMs": 10000},
+
+    {"step": "npcOption", "npc": "Piles", "option": "Talk-to", "timeoutMs": 20000},
+    {"step": "assertDialogue", "contains": "resource_area.piles_hello", "timeoutMs": 10000},
+    {"step": "continueDialogue"},
+    {"step": "chooseOption", "text": "[resource_area.piles_thanks]"},
+    {"step": "assertDialogue", "contains": "resource_area.piles_thanks", "timeoutMs": 10000},
+    {"step": "continueDialogue"},
+
+    {"step": "walk", "x": 3184, "y": 3944},
+    {"step": "locOption", "locId": 26760, "option": "Open", "x": 3184, "y": 3944},
+    {"step": "assertLocation", "x": 3184, "y": 3945, "plane": 0, "timeoutMs": 10000, "comment": "out for nothing"},
+
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
+    {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+  ]
+}
