@@ -68,12 +68,21 @@ class ArceuusRunecraft(private val world: World) {
     /** The fragments [player] holds: the saved count while the obj is in the backpack, else none. */
     fun fragments(player: Player): Int = if (player.inventory.count(FRAGMENTS) > 0) player.charges[FRAGMENT_CHARGES] else 0
 
+    /**
+     * [obj] left [player]'s backpack by Drop. Guessed: dropped fragments are lost, like a dropped pouch's essence, so the
+     * count goes to 0 once no fragments obj is left and an obj picked up again holds none.
+     */
+    fun dropped(player: Player, obj: Int) {
+        if (obj == FRAGMENTS && player.inventory.count(FRAGMENTS) == 0L) player.charges[FRAGMENT_CHARGES] = 0
+    }
+
     private fun setFragments(player: Player, count: Int) {
         val inventory = player.inventory
         val held = inventory.count(FRAGMENTS) > 0
         when {
             count > 0 && !held -> inventory.add(world.objTypes[FRAGMENTS] ?: error("No obj type $FRAGMENTS for fragments"), 1)
-            count == 0 && held -> inventory.remove(inventory.contents().first { it.second.id == FRAGMENTS }.first, 1)
+            // Every fragments obj goes, so one picked up again after a drop doesn't linger empty.
+            count == 0 -> for (slot in inventory.contents().filter { it.second.id == FRAGMENTS }.map { it.first }) inventory.remove(slot, 1)
         }
         player.charges[FRAGMENT_CHARGES] = count
     }
@@ -107,7 +116,8 @@ class ArceuusRunecraft(private val world: World) {
             player.message(text[ArceuusRunecraftLines.CHIP_START])
             player.anim(CHIP_ANIM)
         }
-        if (SkillClock.step(player, tick, CHIP_TICKS) == ClockStep.DUE) {
+        // The click's first block is a whole interval away; after a block the next one is, as in Mining.
+        if (SkillClock.step(player, tick, CHIP_TICKS + if (op.repeat) 0 else 1) == ClockStep.DUE) {
             player.anim(CHIP_ANIM)
             player.inventory.add(world.objTypes[DENSE_BLOCK] ?: error("No obj type $DENSE_BLOCK for dense essence"), 1)
             player.skills.addTenths(Skill.MINING, 120)

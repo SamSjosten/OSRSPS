@@ -494,7 +494,10 @@ class World(
     /** The drop item warning setting; see [DropWarnings]. */
     private val dropWarnings = DropWarnings(objTypes, scripts, { dialogues }) { player, slot ->
         val id = player.inventory[slot]?.id
-        if (groundObjs.drop(player, slot) != null && id != null) essencePouches.dropped(player, id)
+        if (groundObjs.drop(player, slot) != null && id != null) {
+            essencePouches.dropped(player, id)
+            arceuusRunecraft.dropped(player, id)
+        }
     }
 
     internal val inventoryTab: InventoryTab = InventoryTab(

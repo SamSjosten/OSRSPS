@@ -147,6 +147,30 @@ class HeadlessArceuusRunecraftTest {
         }
     }
 
+    @Test
+    fun `dropped fragments are lost and chiselling again starts from none`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                await(client)
+                client.setLevel("crafting", CRAFTING, 38)
+                val player = server.world.playerNamed("carol")!!
+                client.give(ArceuusRunecraft.CHISEL, 1)
+                client.give(ArceuusRunecraft.DARK_BLOCK, 2)
+                client.chiselBlock()
+                client.await("the fragments") { if (client.count(ArceuusRunecraft.FRAGMENTS) == 1) Unit else null }
+                assertEquals(8, server.world.arceuusRunecraft.fragments(player))
+                // Drop is iop5, button op 7 (InventoryTab.click).
+                client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, 7, client.inventory(BACKPACK).indexOfFirst { it?.id == ArceuusRunecraft.FRAGMENTS }, ArceuusRunecraft.FRAGMENTS)
+                client.await("the fragments dropped") { if (client.count(ArceuusRunecraft.FRAGMENTS) == 0) Unit else null }
+                assertEquals(0, player.charges[ArceuusRunecraft.FRAGMENT_CHARGES])
+                client.give(ArceuusRunecraft.DARK_BLOCK, 1)
+                client.chiselBlock()
+                client.await("new fragments") { if (client.count(ArceuusRunecraft.FRAGMENTS) == 1) Unit else null }
+                assertEquals(4, server.world.arceuusRunecraft.fragments(player))
+            }
+        }
+    }
+
     private fun await(client: HeadlessClient) {
         client.await("the login rebuild") { client.position }
     }
