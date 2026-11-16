@@ -11,7 +11,7 @@
     {"step": "assertAnimation", "id": 86, "npc": "Green dragon", "timeoutMs": 120000, "comment": "dragon_firebreath_attack: one turn in 6 in reach"},
     {"step": "assertSpotanim", "id": 1, "npc": "Green dragon", "timeoutMs": 5000, "comment": "firebreath_attack on the dragon"},
     {"step": "assertMessage", "contains": "[dragonfire.", "timeoutMs": 5000, "comment": "no shield: burnt or resisted"},
-    {"step": "itemOption", "item": "Anti-dragon shield", "option": "Wield"},
+    {"step": "itemOption", "item": "Anti-dragon shield", "option": "Wear", "comment": "the cache's option for 1540 is Wear, not Wield (nightly 2026-11-16)"},
     {"step": "assertEquipment", "slot": "shield", "item": "Anti-dragon shield"},
     {"step": "assertMessage", "contains": "[dragonfire.shield]", "timeoutMs": 120000, "comment": "the next breath, taken on the shield"},
     {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
