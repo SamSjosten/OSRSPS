@@ -1,0 +1,10 @@
+{
+  "name": "Wilderness step W4.1: ::wboss before any boss is built, listing none and refusing a name (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::wboss", "expectMessage": "No Wilderness bosses are built yet.", "comment": "each boss step registers its own; W4.2 on lists the Crazy archaeologist here"},
+    {"step": "command", "text": "::wboss Nobody", "expectMessage": "No Wilderness boss 'Nobody'. ::wboss lists them"}
+  ]
+}

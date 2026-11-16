@@ -62,6 +62,8 @@ class NpcCombatTest {
             "gnome_attackunarmed" to 12044, "gnome_block" to 12046, "gnome_death" to 12048,
             "human_blunt_pound" to 401, "human_shield_defence" to 1156,
             "scorpion_update_attack_tail" to 6254, "scorpion_update_defend" to 6255, "scorpion_update_death" to 6256,
+            "small_scorpion_update_attack" to 6261, "small_scorpion_update_defend" to 6259, "small_scorpion_update_death" to 6260,
+            "chaoselemental_attack" to 3146, "chaoselemental_death" to 3147, "dragon_block_kbd" to 4638,
             "zombie_update_attack_normal" to 5568, "zombie_update_defend_normal" to 5567, "zombie_update_death_normal" to 5569,
             "zombie_update_attack_weapon" to 5571, "zombie_update_defend_weapon" to 5574, "zombie_update_death_weapon" to 5575,
             "zombie_update_attack_dragging" to 5578, "zombie_update_defend_dragging" to 5579, "zombie_update_death_dragging" to 5580,
@@ -74,6 +76,11 @@ class NpcCombatTest {
             "mino_attack" to 4266, "mino_parry" to 4267, "mino_death" to 4265,
             "kalphite_attack_mandibles" to 1184, "kalphite_block" to 1186, "kalphite_death" to 1190,
             "dog_update_wolf_attack" to 6559, "dog_update_wolf_defend" to 6557, "dog_update_wolf_death" to 6558,
+            "mammoth_attack" to 304, "mammoth_block" to 305, "mammoth_death" to 307,
+            "earthwarrior_chop" to 2951, "earthwarrior_def" to 2952, "earthwarrior_death" to 2946,
+            "skeleton_update_giant_attack" to 5499, "skeleton_update_giant_defend" to 5501, "skeleton_update_giant_death" to 5503,
+            "dragon_attack" to 80, "dwarf_attack" to 99, "dwarf_block" to 100, "dwarf_death" to 102, "dragon_block" to 89, "dragon_death" to 92, "dragon_firebreath_attack" to 86,
+            "npc_ent_attack_01" to 12506, "npc_ent_defend_01" to 12504, "npc_ent_death_01" to 12508,
             "catpon_attack" to 4271, "catpon_attack_breath" to 4272, "catpon_parry" to 4273, "catpon_death" to 4270,
             "small_spider_update_attack" to 6249, "small_spider_update_defend" to 6250, "small_spider_update_death" to 6251,
             "bear_rework_attack" to 4925, "bear_rework_defend" to 4927, "bear_rework_death" to 4929,
@@ -88,7 +95,11 @@ class NpcCombatTest {
             "xarth_attack_magic_01" to 14984, "xarth_death_01" to 14995, "xarth_corpse_death_01" to 15003,
             "npc_dagonhai_attack_ranged_01" to 14593, "npc_dagonhai_death_01" to 14652, "npc_dagonhai_death_02" to 14653,
             "npc_dagonhai_death_03" to 14654, "leagues_6_thrall_imp_melee_attack" to 13851, "leagues_6_thrall_imp_melee_despawn" to 13856,
-            "demon_attack" to 64, "demon_block" to 65, "demon_death" to 67,
+            "giant_update_ice_attack" to 4672, "giant_update_ice_defend" to 4671, "giant_update_ice_death" to 4673,
+            "magicaxe_attack" to 185, "magicaxe_block" to 186, "magicaxe_death" to 188,
+            "dog_update_small_dog_attack" to 6562, "dog_update_hellhound_godwars_death" to 6576,
+            "golem_attack" to 153, "golem_block" to 154, "golem_death" to 156,
+            "demon_attack" to 64, "demon_attack_greater" to 4644, "demon_death_greater" to 68, "demon_block" to 65, "demon_death" to 67,
             "shade_attack" to 1283, "shade_block" to 1286, "shade_sink" to 1287,
             "monalisk_cave_bug_attack" to 6079, "monalisk_cave_bug_defend" to 6080, "monalisk_mini_cave_bug_death" to 6082,
             "cave_slime_attack" to 1789, "cave_slime_defend" to 1791, "cave_slime_death" to 1792,
@@ -461,6 +472,61 @@ class NpcCombatTest {
         // "aggressive towards any level" (OSRS Wiki, Stronghold of Security); the others keep the level rule.
         assertTrue(def("sos_pest_giantspider1").aggression!!.ignoresLevels)
         assertFalse(def("sos_pest_scorpion").aggression!!.ignoresLevels)
+    }
+
+    @Test
+    fun `the Wilderness Edgeville Dungeon's druids, warriors, thugs, spiders, skeletons and demons fight as the Wiki has them`() {
+        val names = listOf("chaos_druid", "earthwarrior", "thug", "poisonspider", "giantskeleton", "black_demon2", "black_demon3", "black_demon5")
+        val wildTypes = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(2700 + i, name, internalName = name) }.toTypedArray())
+        val combat = NpcCombat.load(wildTypes, seqs)
+        assertEquals(names.size, combat.size)
+        fun def(name: String) = combat[wildTypes.find(name)!!]!!
+        for (name in names) {
+            assertTrue(def(name).aggression != null, "$name is aggressive")
+            assertEquals(4, def(name).attackSpeed, name)
+        }
+        assertEquals(listOf(2, 5, 2, 7, 5, 16, 16, 16), names.map { def(it).maxHit })
+        assertEquals(listOf(25, 30, 50, 30, 60, 30, 30, 30), names.map { def(it).respawnTicks })
+        assertEquals(
+            listOf(AttackType.CRUSH, AttackType.CRUSH, AttackType.STAB, AttackType.STAB, AttackType.SLASH, AttackType.SLASH, AttackType.SLASH, AttackType.SLASH),
+            names.map { def(it).attackType },
+        )
+        assertEquals(NpcCombatAnims(2951, 2952, 2946), def("earthwarrior").anims)
+        assertEquals(NpcCombatAnims(386, 387, 836), def("thug").anims)
+        assertEquals(NpcCombatAnims(5327, 5328, 5329), def("poisonspider").anims)
+        assertEquals(NpcCombatAnims(5499, 5501, 5503), def("giantskeleton").anims)
+        assertEquals(NpcCombatAnims(64, 65, 67), def("black_demon5").anims)
+        assertEquals(30, def("poisonspider").poison)
+        assertEquals(ElementalWeakness(Element.FIRE, 40), def("poisonspider").weakness)
+        assertEquals(ElementalWeakness(Element.EARTH, 35), def("giantskeleton").weakness)
+        assertEquals(ElementalWeakness(Element.WATER, 40), def("black_demon2").weakness)
+        assertEquals(-10, def("black_demon3").defence.against(AttackType.MAGIC))
+        assertEquals(40, def("earthwarrior").defence.against(AttackType.SLASH))
+        // The druid's Confuse, one turn in 4: it casts at a player Confuse hasn't touched, at any level, and stops once it has.
+        val spell = def("chaos_druid").spell!!
+        assertEquals(4, spell.chance)
+        assertEquals(StatDrain(Skill.ATTACK, 5), spell.attack.drain)
+        assertEquals(0, spell.attack.maxHit)
+        for (level in listOf(1, 10, 40, 99)) assertTrue(spell.casts(level, level), "casts at $level Attack")
+        // 10 Attack: Confuse takes 1, to 9, and it stops; 99: it takes 4, to 95 (5% + 1 is 5), and it stops at 94.
+        assertFalse(spell.casts(10, 9))
+        assertFalse(spell.casts(99, 94))
+        for (name in names - "chaos_druid") assertNull(def(name).spell, name)
+    }
+
+    @Test
+    fun `the Wilderness's mammoths fight as the Wiki has them`() {
+        val mammothTypes = NpcTypes.of(NpcType(2800, "wilderness_mammoth", internalName = "wilderness_mammoth"))
+        val combat = NpcCombat.load(mammothTypes, seqs)
+        val def = combat[mammothTypes.find("wilderness_mammoth")!!]!!
+        assertEquals(4, def.attackSpeed)
+        assertEquals(7, def.maxHit)
+        assertEquals(AttackType.STAB, def.attackType)
+        assertEquals(70, def.respawnTicks)
+        assertTrue(def.aggression != null)
+        assertEquals(NpcCombatAnims(304, 305, 307), def.anims)
+        for (type in AttackType.entries) assertEquals(0, def.defence.against(type), type.name)
+        assertNull(def.spell)
     }
 
     @Test
@@ -923,7 +989,8 @@ class NpcCombatTest {
 
     @Test
     fun `Silvarea's bats stab for 1 at speed 4, weak to air, back after 35 ticks and never attacking first`() {
-        val batTypes = NpcTypes.of(NpcType(2827, "Bat", internalName = "small_bat", stats = NpcStats(strength = 5)))
+        // The giant bat (`bat`) too, or the file's "bat" would fall back on this one's menu name.
+        val batTypes = NpcTypes.of(NpcType(2827, "Bat", internalName = "small_bat", stats = NpcStats(strength = 5)), NpcType(2834, "Giant bat", internalName = "bat"))
         val def = NpcCombat.load(batTypes, seqs)[batTypes.find("small_bat")!!]!!
         assertEquals(CombatMath.npcMaxHit(5, def.strengthBonus), def.maxHit)
         assertEquals(listOf(4, 1, 35), listOf(def.attackSpeed, def.maxHit, def.respawnTicks))
@@ -964,6 +1031,101 @@ class NpcCombatTest {
         assertEquals(listOf(4, 1, 100), listOf(def.attackSpeed, def.maxHit, def.respawnTicks))
         assertEquals(listOf(6, 7), listOf(def.attackBonus, def.strengthBonus))
         assertTrue(def.aggression != null)
+    }
+
+    @Test
+    fun `the elder Chaos druids never grow tolerant, black unicorns attack every level, the level 130 bandit and the ent give 2,5% more XP, the level 145 dark warrior 10%, the ent shrugs off poison`() {
+        val names = listOf("wilderness_chaos_druid", "black_unicorn", "wilderness_bandit", "wilderness_dark_warrior", "wilderness_ent")
+        val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(6607 + i, name, internalName = name) }.toTypedArray())
+        val combat = NpcCombat.load(types, seqs)
+        fun def(name: String) = combat[types.find(name)!!]!!
+        // OSRS Wiki: Elder Chaos druid (never tolerant), Black unicorn (aggressive to all levels in the Wilderness),
+        // Bandit (level 130: XP bonus 2.5).
+        assertEquals(false, def("wilderness_chaos_druid").aggression!!.tolerant)
+        assertEquals(true, def("black_unicorn").aggression!!.ignoresLevels)
+        assertEquals(25, def("wilderness_bandit").xpBonusTenths)
+        assertEquals(0, def("black_unicorn").xpBonusTenths)
+        // Dark warrior (level 145: XP bonus 10), Ent (level 101: XP bonus 2.5, poison and venom resistance 100).
+        assertEquals(100, def("wilderness_dark_warrior").xpBonusTenths)
+        assertEquals(25, def("wilderness_ent").xpBonusTenths)
+        assertTrue(def("wilderness_ent").poisonImmune && def("wilderness_ent").venomImmune)
+    }
+
+    @Test
+    fun `levels 21 to 35 bring the Forgotten Cemetery's Ankou, aggressive Black Knights, the Bandit Camp's champions and level 22 bandits, and chaos dwarves`() {
+        val names = listOf("wilderness_ankou", "aggressive_black_knight", "black_heather", "donny_the_lad", "speedy_keith", "brawling_bandit", "dwarf_chaos")
+        val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(6608 + i, name, internalName = name) }.toTypedArray())
+        val combat = NpcCombat.load(types, seqs)
+        fun def(name: String) = combat[types.find(name)!!]!!
+        // OSRS Wiki, Ankou (level 86): as the Stronghold's, max hit 8 crush, weak to air 40%, aggressive.
+        assertEquals(8, def("wilderness_ankou").maxHit)
+        assertEquals(AttackType.CRUSH, def("wilderness_ankou").attackType)
+        assertEquals(ElementalWeakness(Element.AIR, 40), def("wilderness_ankou").weakness)
+        assertTrue(def("wilderness_ankou").aggression != null)
+        // Black Knight (hostile, 517): aggressive, speed 5, max hit 4, slash, magic defence -11.
+        val knight = def("aggressive_black_knight")
+        assertEquals(5, knight.attackSpeed)
+        assertEquals(4, knight.maxHit)
+        assertEquals(AttackType.SLASH, knight.attackType)
+        assertEquals(-11, knight.defence.magic)
+        assertTrue(knight.aggression != null)
+        // The three champions (level 34): not aggressive, max hit 4, slash, respawn 50.
+        for (name in listOf("black_heather", "donny_the_lad", "speedy_keith")) {
+            assertEquals(4, def(name).maxHit, name)
+            assertEquals(AttackType.SLASH, def(name).attackType, name)
+            assertEquals(50, def(name).respawnTicks, name)
+            assertEquals(null, def(name).aggression, name)
+        }
+        // Bandit (level 22): aggressive, max hit 3, stab, respawn 100. Chaos dwarf: aggressive, max hit 6, crush, respawn 14.
+        assertEquals(3, def("brawling_bandit").maxHit)
+        assertEquals(AttackType.STAB, def("brawling_bandit").attackType)
+        assertEquals(100, def("brawling_bandit").respawnTicks)
+        assertTrue(def("brawling_bandit").aggression != null)
+        assertEquals(6, def("dwarf_chaos").maxHit)
+        assertEquals(AttackType.CRUSH, def("dwarf_chaos").attackType)
+        assertEquals(14, def("dwarf_chaos").respawnTicks)
+        assertTrue(def("dwarf_chaos").aggression != null)
+    }
+
+    @Test
+    fun `levels 36 to 48 bring greater demons, King Scorpions and lava dragons`() {
+        val names = listOf("greater_demon2", "greater_demon3", "greater_demon4", "greater_demon5", "kingscorpion", "lava_dragon")
+        val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(2026 + i, name, internalName = name) }.toTypedArray())
+        val combat = NpcCombat.load(types, seqs)
+        fun def(name: String) = combat[types.find(name)!!]!!
+        // OSRS Wiki, Greater demon (level 92): aggressive, max hit 9, slash, magic defence -10, weak to water 40%, respawn 15.
+        for (name in names.take(4)) {
+            assertEquals(9, def(name).maxHit, name)
+            assertEquals(AttackType.SLASH, def(name).attackType, name)
+            assertEquals(-10, def(name).defence.magic, name)
+            assertEquals(ElementalWeakness(Element.WATER, 40), def(name).weakness, name)
+            assertEquals(15, def(name).respawnTicks, name)
+            assertTrue(def(name).aggression != null, name)
+        }
+        // King Scorpion: aggressive, max hit 4, stab, weak to fire 20%. Lava dragon: melee max 23, weak to water 50%, breathes fire.
+        assertEquals(4, def("kingscorpion").maxHit)
+        assertEquals(AttackType.STAB, def("kingscorpion").attackType)
+        assertEquals(ElementalWeakness(Element.FIRE, 20), def("kingscorpion").weakness)
+        assertEquals(23, def("lava_dragon").maxHit)
+        assertEquals(ElementalWeakness(Element.WATER, 50), def("lava_dragon").weakness)
+        assertTrue(def("lava_dragon").dragonfire != null)
+        assertEquals(14, def("lava_dragon").respawnTicks)
+    }
+
+    @Test
+    fun `the Lava Maze Dungeon's black dragons hit up to 21, breathe fire and are weak to water`() {
+        val names = listOf("black_dragon4", "black_dragon5")
+        val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(255 + i, name, internalName = name) }.toTypedArray())
+        val combat = NpcCombat.load(types, seqs)
+        for (name in names) {
+            val def = combat[types.find(name)!!]!!
+            // OSRS Wiki, Black dragon (level 227): aggressive, max hit 21, slash, weak to water 50%, respawn 30, dragonfire.
+            assertEquals(21, def.maxHit, name)
+            assertEquals(AttackType.SLASH, def.attackType, name)
+            assertEquals(ElementalWeakness(Element.WATER, 50), def.weakness, name)
+            assertEquals(30, def.respawnTicks, name)
+            assertTrue(def.aggression != null && def.dragonfire != null, name)
+        }
     }
 
     @Test

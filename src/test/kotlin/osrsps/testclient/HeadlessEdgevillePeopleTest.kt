@@ -130,12 +130,10 @@ class HeadlessEdgevillePeopleTest {
     }
 
     @Test
-    fun `the lever, fairy ring, Soul Wars portal and Death's Domain refuse`(@TempDir dir: Path) {
+    fun `the fairy ring, Soul Wars portal and Death's Domain refuse`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bob").use { client ->
                 client.await("the login rebuild") { client.position }
-                client.tele(3091, 3475, 0)
-                client.expectMessage(DialogueText.NONE[EdgevilleClosedLines.LEVER]) { client.locOp(EdgevillePeople.LEVER, 3090, 3475, 1) }
                 client.tele(3083, 3474, 0)
                 client.expectMessage(DialogueText.NONE[EdgevilleClosedLines.SOUL_WARS]) { client.locOp(EdgevillePeople.SOUL_WARS_PORTAL, 3082, 3473, 1) }
                 client.tele(3097, 3476, 0)

@@ -99,8 +99,10 @@ import osrsps.game.combat.RangedWeapons
 import osrsps.game.combat.SpecialAttacks
 import osrsps.game.combat.Spells
 import osrsps.game.combat.StatRestore
+import osrsps.game.combat.Teleblock
 import osrsps.game.content.DialogueLines
 import osrsps.game.content.Examines
+import osrsps.game.content.ResourceArea
 import osrsps.game.content.CustomVars
 import osrsps.game.content.HomeTeleport
 import osrsps.game.content.Kudos
@@ -151,6 +153,20 @@ import osrsps.game.content.WildernessDitch
 import osrsps.game.content.registerEdgeville
 import osrsps.game.content.registerWildernessDitch
 import osrsps.game.content.registerEdgevilleDungeon
+import osrsps.game.content.registerLavaMaze
+import osrsps.game.content.registerChaosTemple
+import osrsps.game.content.registerResourceArea
+import osrsps.game.content.registerMageArenaBank
+import osrsps.game.content.registerCrazyArchaeologist
+import osrsps.game.content.registerChaosFanatic
+import osrsps.game.content.registerScorpia
+import osrsps.game.content.registerChaosElemental
+import osrsps.game.content.registerKingBlackDragon
+import osrsps.game.content.MemberGates
+import osrsps.game.content.registerFeroxEnclave
+import osrsps.game.content.registerWildernessObelisks
+import osrsps.game.content.registerWildernessLevers
+import osrsps.game.content.WildernessObelisks
 import osrsps.game.content.registerSkullSceptre
 import osrsps.game.content.registerStrongholdOfSecurity
 import osrsps.game.content.registerBarbarianVillage
@@ -178,6 +194,7 @@ import osrsps.game.content.registerJalarast
 import osrsps.game.content.registerRick
 import osrsps.game.content.registerBones
 import osrsps.game.content.GiantLairs
+import osrsps.game.content.KingBlackDragon
 import osrsps.game.content.registerGiantBones
 import osrsps.game.content.registerBryophyta
 import osrsps.game.content.registerEmotes
@@ -418,6 +435,9 @@ class World(
     /** Fence gates, both leaves at once; see [Gates]. */
     val gates = Gates(locs)
 
+    /** The six Wilderness obelisks' lit stones and the teleports they have going ([WildernessObelisks]). */
+    val obelisks = WildernessObelisks(this)
+
     val npcs = Npcs(collision, random)
 
     /** What NPCs do on their own: timers, per-tick actions and deaths that content gives them; see [NpcScripts]. */
@@ -425,6 +445,9 @@ class World(
 
     /** The giant bosses' lairs ([GiantLairs]): Obor's. */
     val giantLairs = GiantLairs(this)
+
+    /** The Wilderness bosses' shared rules: group loot, kill counts, `::wboss`; see [WildernessBosses]. */
+    val wildernessBosses = osrsps.game.content.WildernessBosses(this)
 
     val scripts = ScriptRunner(handlers, interfaces::closeModals) { tick }
 
@@ -444,7 +467,7 @@ class World(
         taken = { taker, owner, obj -> archiveRaids.supplies.pickedUp(taker, owner, findPlayer(owner), obj.id, obj.count) },
     )
 
-    private val equipment = Equipment(objTypes, wearRequirements)
+    val equipment = Equipment(objTypes, wearRequirements)
     private val itemWeights = ItemWeights(objTypes)
     private val graceful = Graceful(objTypes)
 
@@ -488,6 +511,7 @@ class World(
         wear = { player, slot -> equipmentTab.wear(player, slot) },
         remove = { player, wearpos -> equipmentTab.remove(player, wearpos) },
         words = ::textFor,
+        keptOn = { player, id -> equipment.keptOn(player, id) },
     )
 
     /** Bank deposit boxes; see [DepositBox]. */
@@ -582,7 +606,7 @@ class World(
 
     private val locInteractions = LocInteractions(
         locs, collision, movement, handlers, scripts, doors, gates, words = ::textFor, inInstance = { x, z -> instances.at(x, z) != null },
-        forInstances = { it in ArchiveRaids.INSTANCE_LOCS || it in GiantLairs.INSTANCE_LOCS },
+        forInstances = { it in ArchiveRaids.INSTANCE_LOCS || it in GiantLairs.INSTANCE_LOCS || it in KingBlackDragon.INSTANCE_LOCS },
     )
 
     /** Lets loc type [id] be used from the tiles [tiles] gives, as a stepping stone from the bank; see [LocInteractions.useFrom]. */
@@ -618,6 +642,7 @@ class World(
         npcDamaged = { npc, player, dealt ->
             archiveRaids.damaged(npc, player, dealt)
             slayer.damaged(npc, player, dealt)
+            wildernessBosses.damaged(npc, player, dealt)
             osrsps.game.content.Bryophyta.damaged(this, npc, player)
         },
     )
@@ -685,6 +710,18 @@ class World(
             }
         },
         takeFromBank = { player, id, count -> bank.take(player.bank, bankScreen.tabs(player), id, count) },
+        // The killer credited gets their PJ timer, though a monster's hit finished the victim.
+        killerOf = { victim -> pvpCombat.killerOf(victim)?.also { pvpCombat.credited(victim, it) } },
+        // The victim's, seen by the killer alone at first: a pickup is a hand-over, which saves the victim with the
+        // taker. Never merged into a stack already there, so the loot keeps its own timers.
+        dropForKiller = { victim, killer, type, count, x, z, level ->
+            groundObjs.addPrivate(
+                type, count, x, z, level, killer, Deaths.PVP_LOOT_PRIVATE_TICKS, Deaths.PVP_LOOT_DESPAWN_TICKS,
+                neverPublic = false, droppedBy = victim.saveKey, merge = false,
+            )
+        },
+        // Saved with the lost items out, before they go down for the killer (see dropForKiller).
+        saveNow = ::save,
     )
 
     /**
@@ -999,6 +1036,21 @@ class World(
         registerBarbarianVillage(this)
         registerCooksGuild(this)
         registerEdgevilleDungeon(this)
+        MemberGates.register(this)
+        registerLavaMaze(this)
+        registerChaosTemple(this)
+        registerResourceArea(this)
+        registerMageArenaBank(this)
+        registerCrazyArchaeologist(this)
+        registerChaosFanatic(this)
+        registerScorpia(this)
+        osrsps.game.content.VolcanicForge.register(this)
+        registerChaosElemental(this)
+        registerKingBlackDragon(this)
+        FountainOfRune.register(this)
+        registerFeroxEnclave(this)
+        registerWildernessObelisks(this)
+        registerWildernessLevers(this)
         registerStrongholdOfSecurity(this)
         registerSkullSceptre(this)
         registerHaystacks(this)
@@ -1413,6 +1465,7 @@ class World(
         phase = TickPhase.MOVEMENT
         // Guessed place in the tick: before anyone walks, so a door that closes itself blocks this tick's steps.
         locs.process()
+        obelisks.process()
         firemaking.process()
         follows.startMovement(players.filterNotNull())
         for (player in players) {
@@ -1474,6 +1527,8 @@ class World(
         val inside = Wilderness.inside(player.x, player.z)
         interfaces.showWildernessOverlay(player, inside)
         player.vars.setVarbitIfKnown(VARBIT_INSIDE_WILDERNESS, if (inside) 1 else 0)
+        // Ferox Enclave: the overlay's level reads "Level: --" (client script pvp_icons_wildernesslevel).
+        player.vars.setVarbitIfKnown(VARBIT_WILDY_HUB_BUFFER, if (inside && player.level == 0 && Wilderness.inFerox(player.x, player.z)) 1 else 0)
         if (player.attackOp != inside) {
             player.attackOp = inside
             player.session.queue(SetPlayerOp(PlayerOps.ATTACK, false, PlayerOps.ATTACK_TEXT.takeIf { inside }))
@@ -1694,7 +1749,10 @@ class World(
             // a minute, and their standing request goes with it. Not checked against a live disconnect mid-trade.
             trades.leave(player)
         }
-        return tick - player.connectionLostTick >= LINGER_TICKS
+        // Not while a player is fighting them: pulling the cable mustn't take them out of a PvP fight, or a PvP death
+        // (exploit review R35A-4). Guessed: live keeps a disconnected player in combat in the world until it is over.
+        // A monster's fight doesn't hold them, as before: a boss fight whose starter's client went is called off.
+        return tick - player.connectionLostTick >= LINGER_TICKS && !inPvpCombat(player)
     }
 
     private fun acceptLogins() {
@@ -1761,6 +1819,11 @@ class World(
         // A canoe lasts until logout: a save without one (a restart's or an autosave before a crash) still has it
         // (Codex review on #659).
         canoes.forget(player)
+        // A logout ends a Tele Block, but the save holds its varbit's backing varp: cleared, or RuneLite would show a timer
+        // for a block the server no longer has (Codex review on #720).
+        player.vars.setVarbitIfKnown(Teleblock.VARBIT, 0)
+        // A pitfall shows by the player's own varbits; none stands after a logout.
+        hunter.pitfalls.forget(player)
         // A save from inside an instance, from before saves moved players to its exit, lands where no map is now.
         if (instances.inDynamicArea(player.x, player.z) && instances.at(player.x, player.z) == null) {
             player.x = SPAWN_X
@@ -1768,6 +1831,13 @@ class World(
             player.level = SPAWN_LEVEL
             player.buildAreaZoneX = SPAWN_X shr 3
             player.buildAreaZoneZ = SPAWN_Z shr 3
+        }
+        // Logging out inside the Wilderness Resource Area puts the player outside its gate, to pay again (the Wiki).
+        ResourceArea.loginPlace(player.x, player.z, player.level)?.let { tile ->
+            player.x = tile.x
+            player.z = tile.z
+            player.buildAreaZoneX = tile.x shr 3
+            player.buildAreaZoneZ = tile.z shr 3
         }
         // An autosave can catch a player lying dead (0 hitpoints, their items still on them); a crash before their
         // respawn would strand them at 0, so they come back whole. The death itself is lost, which the autosave is for.
@@ -2447,8 +2517,15 @@ class World(
         return true
     }
 
+    /** Takes off what [player] wears in [wearpos] into their backpack, as a slot's Remove does; false with no room. */
+    fun takeOff(player: Player, wearpos: Int): Boolean = equipment.remove(player, wearpos) == EquipResult.Done
+
     /** Whether a walker of size 1 can step from ([x], [z]) on [level] by ([dx], [dz]): a boss's mark beside a player. */
     fun canStep(level: Int, x: Int, z: Int, dx: Int, dz: Int): Boolean = movement.canStep(level, x, z, dx, dz)
+
+    /** Whether no wall edge stands between [x], [z] and the tile [dx], [dz] from it; what stands on that tile isn't asked. */
+    fun noWallBetween(level: Int, x: Int, z: Int, dx: Int, dz: Int): Boolean =
+        osrsps.map.Steps.canStep(collision, level, x, z, dx, dz, block = 0)
 
     /** A route from where [player] stands to the tile [x], [z], without walking it (an obstacle's start). */
     fun findRoute(player: Player, x: Int, z: Int): Route = movement.find(player, RouteTarget.tile(x, z))
@@ -2761,7 +2838,7 @@ class World(
     }
 
     /** The loot drop notification settings; see [LootNotifications]. */
-    private val lootNotifications = LootNotifications({ this.itemPrices.price(it) }, ::textFor)
+    val lootNotifications = LootNotifications({ this.itemPrices.price(it) }, ::textFor)
 
     /**
      * Rolls [npc]'s drops and puts them on its tile: the killer's alone for [GroundObjs.DROP_PRIVATE_TICKS], then
@@ -2769,15 +2846,18 @@ class World(
      * they are everyone's from the start (guessed).
      */
     fun dropLoot(npc: Npc, killer: Player?) {
+        // A Wilderness boss with group loot puts its own down, split by damage.
+        if (wildernessBosses.loot(npc)) return
         // A superior's three rolls on its normal counterpart's table come after its own drops.
         val drops = npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty()
         val owner = killer?.takeIf { !it.loggedOut }?.saveKey
+        val despawn = osrsps.game.content.KingBlackDragon.lootTicks(this, npc, GroundObjs.LOOT_DESPAWN_TICKS)
         for (drop in drops) {
             if (owner != null) {
-                groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, owner, GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.LOOT_DESPAWN_TICKS)
+                groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, owner, GroundObjs.DROP_PRIVATE_TICKS, despawn)
                 killer?.let { lootNotifications.dropped(it, drop.type, drop.count) }
             } else {
-                groundObjs.addPublic(drop.type, drop.count, npc.x, npc.z, npc.level, GroundObjs.LOOT_DESPAWN_TICKS)
+                groundObjs.addPublic(drop.type, drop.count, npc.x, npc.z, npc.level, despawn)
             }
         }
     }
@@ -2810,6 +2890,7 @@ class World(
         npcs.remove(npc)
         npcInteractions.removed(npc, players.asIterable())
         slayer.removed(npc)
+        wildernessBosses.removed(npc)
         npc.avatar?.let(network.npcAvatarFactory::release)
         npc.avatar = null
     }
@@ -3240,6 +3321,10 @@ class World(
             // A player's swing still on its way counts already, so processing order can't let them log out from under it.
             pvpCombat.incoming(player)
 
+    /** Whether a player hit [player] within the last [LOGOUT_COMBAT_TICKS], or a player's hit is on its way to them. */
+    private fun inPvpCombat(player: Player): Boolean =
+        (player.attackedByPlayerTick >= 0 && tick - player.attackedByPlayerTick < LOGOUT_COMBAT_TICKS) || pvpCombat.incoming(player)
+
     /** Saves and removes a player who logged out or whose wait for a reconnect is over. */
     private fun remove(player: Player) {
         try {
@@ -3353,6 +3438,9 @@ class World(
 
         /** inside_wilderness (5963): 1 while the player is inside the Wilderness. */
         const val VARBIT_INSIDE_WILDERNESS = 5963
+
+        /** wildy_hub_buffer (10530): 1 inside Ferox Enclave, where the Wilderness overlay shows "Level: --". */
+        const val VARBIT_WILDY_HUB_BUFFER = 10530
 
         private val DEFAULT_IDENT_KITS = intArrayOf(0, 10, 18, 26, 33, 36, 42)
     }

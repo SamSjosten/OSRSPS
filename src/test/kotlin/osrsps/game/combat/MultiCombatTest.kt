@@ -31,6 +31,18 @@ class MultiCombatTest {
     }
 
     @Test
+    fun `the Wilderness's multi-way areas are the Wiki's, and its lesser bosses and Ferox Enclave stay single-way`() {
+        for ((name, x, z) in listOf(
+            Triple("the Scorpion Pit", 3240, 3944), Triple("Rogues' Castle", 3286, 3930), Triple("the Bandit Camp", 3035, 3700),
+            Triple("the Dark Warriors' Fortress", 3030, 3630), Triple("Callisto's den", 3307, 3846), Triple("Vet'ion's", 3220, 3790),
+        )) assertTrue(multi.at(0, x, z), name)
+        for ((name, x, z) in listOf(
+            Triple("the Chaos Fanatic", 2979, 3846), Triple("the crazy archaeologist", 2977, 3702), Triple("Ferox Enclave", 3140, 3630),
+            Triple("level 1 north of Edgeville", 3090, 3525), Triple("the Mage Arena hut", 3090, 3956),
+        )) assertFalse(multi.at(0, x, z), name)
+    }
+
+    @Test
     fun `an admin's zone adds to the areas and takes nothing from them`() {
         val combat = MultiCombat(MultiCombat.parse("barbarian_village\t0\t3072\t3392\t3135\t3455\n"))
         assertFalse(combat.at(0, 3222, 3218))

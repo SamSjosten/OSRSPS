@@ -1,0 +1,51 @@
+# The Bone Yard's item spawns, Wilderness levels 25 to 29 (Wilderness step W3.3): its 34 bones and 6 big bones, the
+# iron scimitar, three skulls, six mind runes and the crossbow just south-east of it. Items, tiles and counts are the
+# OSRS Wiki's item spawn lists on each item's page, as the Bone Yard page names them (read 2026-11-15). The bones'
+# 100 ticks and the big bones' 50 are their pages' respawn; the rest are the 100 ticks the other files use, guessed.
+obj	count	x	z	level	respawn
+bones	1	3216	3741	0	100	# Wiki, Bones
+bones	1	3209	3740	0	100	# Wiki, Bones
+bones	1	3216	3748	0	100	# Wiki, Bones
+bones	1	3218	3739	0	100	# Wiki, Bones
+bones	1	3220	3738	0	100	# Wiki, Bones
+bones	1	3220	3741	0	100	# Wiki, Bones
+bones	1	3222	3744	0	100	# Wiki, Bones
+bones	1	3224	3746	0	100	# Wiki, Bones
+bones	1	3225	3740	0	100	# Wiki, Bones
+bones	1	3227	3742	0	100	# Wiki, Bones
+bones	1	3229	3747	0	100	# Wiki, Bones
+bones	1	3236	3749	0	100	# Wiki, Bones
+bones	1	3242	3741	0	100	# Wiki, Bones
+bones	1	3247	3740	0	100	# Wiki, Bones
+bones	1	3247	3743	0	100	# Wiki, Bones
+bones	1	3249	3744	0	100	# Wiki, Bones
+bones	1	3251	3736	0	100	# Wiki, Bones
+bones	1	3251	3749	0	100	# Wiki, Bones
+bones	1	3252	3738	0	100	# Wiki, Bones
+bones	1	3257	3743	0	100	# Wiki, Bones
+bones	1	3259	3735	0	100	# Wiki, Bones
+bones	1	3264	3728	0	100	# Wiki, Bones
+bones	1	3265	3732	0	100	# Wiki, Bones
+bones	1	3268	3730	0	100	# Wiki, Bones
+bones	1	3268	3736	0	100	# Wiki, Bones
+bones	1	3269	3728	0	100	# Wiki, Bones
+bones	1	3270	3724	0	100	# Wiki, Bones
+bones	1	3272	3730	0	100	# Wiki, Bones
+bones	1	3275	3727	0	100	# Wiki, Bones
+bones	1	3275	3729	0	100	# Wiki, Bones
+bones	1	3276	3726	0	100	# Wiki, Bones
+bones	1	3278	3725	0	100	# Wiki, Bones
+bones	1	3280	3724	0	100	# Wiki, Bones
+bones	1	3280	3726	0	100	# Wiki, Bones
+big_bones	1	3214	3733	0	50	# Wiki, Big bones
+big_bones	1	3220	3746	0	50	# Wiki, Big bones
+big_bones	1	3226	3745	0	50	# Wiki, Big bones
+big_bones	1	3243	3742	0	50	# Wiki, Big bones
+big_bones	1	3253	3736	0	50	# Wiki, Big bones
+big_bones	1	3263	3735	0	50	# Wiki, Big bones
+iron_scimitar	1	3214	3730	0	100	# Wiki, Iron scimitar; respawn guessed
+skull	1	3217	3745	0	100	# Wiki, Skull (item); respawn guessed
+skull	1	3233	3740	0	100	# Wiki, Skull (item); respawn guessed
+skull	1	3256	3744	0	100	# Wiki, Skull (item); respawn guessed
+mindrune	6	3283	3728	0	100	# Wiki, Mind rune; respawn guessed
+crossbow	1	3284	3719	0	100	# Wiki, Crossbow (south-east of the Bone Yard); respawn guessed

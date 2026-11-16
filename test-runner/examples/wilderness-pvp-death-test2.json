@@ -1,0 +1,25 @@
+{
+ "name": "Wilderness step W1.7, two players (run with wilderness-pvp-death-test.json on the other VM at the same time): test2, carrying four rune pieces on 1 hitpoint at level 50 with auto retaliate off, dies to test's punch and comes back with the three most valuable, the rune full helm lost to test",
+ "account": "test2",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::empty", "expectMessage": "Inventory emptied.", "comment": "assumes nothing worn is worth more than the rune pieces"},
+  {"step": "command", "text": "::item 1163", "expectMessage": "Rune full helm"},
+  {"step": "command", "text": "::item 1127", "expectMessage": "Rune platebody"},
+  {"step": "command", "text": "::item 1079", "expectMessage": "Rune platelegs"},
+  {"step": "command", "text": "::item 1201", "expectMessage": "Rune kiteshield"},
+  {"step": "command", "text": "::varp 172 1", "expectMessage": "Varp 172:", "comment": "auto retaliate off: we stand still"},
+  {"step": "command", "text": "::setlevel hitpoints 10", "expectMessage": "10"},
+  {"step": "command", "text": "::hit 9 me", "expectMessage": "Hit yourself for 9"},
+  {"step": "command", "text": "::wildy 50", "expectMessage": ": level 50 Wilderness", "comment": "test's sign that we're ready"},
+  {"step": "assertMessage", "contains": "[combat.dead]", "timeoutMs": 180000, "comment": "test's punch"},
+  {"step": "assertInventory", "item": "Rune platebody", "count": 1, "timeoutMs": 20000, "comment": "kept, with the platelegs and kiteshield"},
+  {"step": "assertInventory", "item": "Rune platelegs", "count": 1},
+  {"step": "assertInventory", "item": "Rune kiteshield", "count": 1},
+  {"step": "assertInventory", "item": "Rune full helm", "count": 0, "comment": "the least valuable, lost to test"},
+  {"step": "command", "text": "::varp 172 0", "expectMessage": "Varp 172:", "comment": "auto retaliate back on"},
+  {"step": "command", "text": "::empty", "expectMessage": "Inventory emptied."},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"}
+ ]
+}

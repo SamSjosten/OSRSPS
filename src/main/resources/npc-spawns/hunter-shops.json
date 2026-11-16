@@ -1,0 +1,9 @@
+{
+  "about": "Hunter step 9: the Hunter shops' keepers, where live has them, for shops.json's Hunter shops. Aleck and Artimeus are where mejrs' NPC list (live) has them, Farmer Bea where her Wiki page's map pins her (The Birds and the Wasps counts as done, so her trading version), Elder Strom on his stall's Wiki map square (guessed tile; his page has no map). Wander ranges are guessed (2). The Hunter Guild's Imia is left out with the guild.",
+  "spawns": [
+    {"npc": "hunting_shop_owner_yanille", "x": 2568, "z": 3082, "wander": 2, "source": "Aleck, Yanille. mejrs NPCList_OSRS.json (live)"},
+    {"npc": "hunting_shop_owner_nardah", "x": 3443, "z": 2902, "wander": 2, "source": "Artimeus, Nardah. mejrs NPCList_OSRS.json (live)"},
+    {"npc": "baw_bea_3ops", "x": 3316, "z": 3376, "wander": 2, "source": "Farmer Bea, north-west of the Exam Centre. OSRS Wiki, Bea (read 2026-11-15)"},
+    {"npc": "tortugan_strom_2ops", "x": 3160, "z": 2410, "wander": 2, "source": "Elder Strom, The Summer Shore. OSRS Wiki, Elder Strom's Hunting Stall map (read 2026-11-15)"}
+  ]
+}

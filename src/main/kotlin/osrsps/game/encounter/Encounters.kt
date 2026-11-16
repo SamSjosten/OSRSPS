@@ -83,13 +83,15 @@ class Encounter internal constructor(
         return dealt
     }
 
-    override fun hazard(tiles: Collection<Tile>, warning: Int, warnTicks: Int, ticks: Int, minDamage: Int, maxDamage: Int, spotanim: Int): Hazard {
+    override fun hazard(
+        tiles: Collection<Tile>, warning: Int, warnTicks: Int, ticks: Int, minDamage: Int, maxDamage: Int, spotanim: Int, only: Player?,
+    ): Hazard {
         require(warnTicks >= 0 && ticks > 0) { "a hazard warned $warnTicks ticks ahead for $ticks ticks" }
         require(minDamage in 0..maxDamage) { "hazard damage $minDamage to $maxDamage" }
         val set = tiles.toCollection(LinkedHashSet())
         require(set.isNotEmpty()) { "a hazard on no tiles" }
         val start = world.tick + warnTicks
-        val hazard = Hazard(set, boss.level, start, start + ticks - 1, minDamage, maxDamage, spotanim)
+        val hazard = Hazard(set, boss.level, start, start + ticks - 1, minDamage, maxDamage, spotanim, only)
         hazards += hazard
         if (warning >= 0) for (tile in set) world.zones.mapAnim(tile.x, tile.z, boss.level, warning)
         log("hazard on ${set.joinToString(" ") { "${it.x},${it.z}" }} from tick ${start - world.tick} for $ticks")
@@ -246,6 +248,7 @@ class Encounter internal constructor(
             for (player in players) {
                 // A hit can end the fight (Retribution killing the boss); nothing lands after that.
                 if (boss.dead || world.npcs[boss.index] !== boss) return
+                if (hazard.only != null && player !== hazard.only) continue
                 if (player.level != hazard.level || Tile(player.x, player.z) !in hazard.tiles) continue
                 // From no one, so standing in one neither starts a fight nor makes the player hit back. Guessed.
                 val dealt = world.meleeCombat.hitPlayer(player, null, roll(hazard.minDamage, hazard.maxDamage), now)

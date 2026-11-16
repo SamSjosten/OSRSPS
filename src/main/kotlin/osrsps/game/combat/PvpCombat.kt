@@ -1,5 +1,6 @@
 package osrsps.game.combat
 
+import osrsps.game.FountainOfRune
 import osrsps.game.GameRandom
 import osrsps.game.Interaction
 import osrsps.game.Movement
@@ -35,7 +36,7 @@ class PvpInteraction internal constructor(val target: Player, spell: CombatSpell
 }
 
 /**
- * Fighting between players in the Wilderness (steps W1.3 to W1.6). Attack on a player the rules allow ([PvpRules]), or
+ * Fighting between players in the Wilderness (steps W1.3 to W1.7). Attack on a player the rules allow ([PvpRules]), or
  * a combat spell cast on them, becomes a [PvpInteraction]: each movement phase the player walks until the target is in
  * reach and attacks every weapon-speed ticks, as at an NPC. Melee reaches the tiles beside the target ([MeleeCombat]);
  * a bow, crossbow, thrown weapon or blowpipe its range in line of sight, using its ammunition as at an NPC
@@ -52,7 +53,10 @@ class PvpInteraction internal constructor(val target: Player, spell: CombatSpell
  * The hit lands after the attack's own delay ([HitDelay]: none for melee, the distance's for ranged and magic), and in
  * PvP the processing order (PID) decides whether it waits one tick more (OSRS Wiki, Hit delay). Here a hit lands when
  * the target is next processed in the movement phase ([land]), one tick later if the target was already processed this
- * tick when it was made. Inferred: players are processed in index order, while live shuffles PIDs.
+ * tick when it was made. Inferred: players are processed in index order, while live shuffles PIDs. A hit already on
+ * its way lands even if the target has stepped out of the Wilderness since (a freeze with it), as an attack's XP was
+ * given when it was made; only a target who changed plane or left the world escapes it (inferred, as live resolves an
+ * attack when it is made; exploit review R35A-1).
  *
  * An ice spell or a bind that hits freezes the target for its ticks unless they are frozen or immune; a freeze breaks
  * once the two are more than 10 tiles apart, and 5 ticks of immunity follow it (OSRS Wiki, Freeze). An ice spell tells
@@ -65,10 +69,12 @@ class PvpInteraction internal constructor(val target: Player, spell: CombatSpell
  *
  * Single-way combat (step W1.5) keeps a third player off a fight with the PJ timer ([singleWayRefusal]); in multi-way
  * combat ([MultiCombat]) anyone can join, and a Burst or Barrage hits the players around its target too ([around]).
- * Each attack skulls an attacker who wasn't attacked first ([Skulls], step W1.6).
+ * Each attack skulls an attacker who wasn't attacked first ([Skulls], step W1.6). A player killed soon after a
+ * player's hit dies a PvP death ([killerOf], step W1.7): [Deaths] drops what they lose for the killer. Tele Block that
+ * lands stops the target's teleports ([Teleblock], step W1.8).
  *
- * Not here yet: special attacks and enchanted bolts' effects on players, poison and venom from a player's weapon,
- * chinchompas' blast on players, and the PvP death (W1.7). Powered staves can't attack players (OSRS Wiki,
+ * Not here yet: special attacks and enchanted bolts' effects on players, poison and venom from a player's weapon, and
+ * chinchompas' blast on players. Powered staves can't attack players (OSRS Wiki,
  * Trident of the seas); the refusal's words are not sourced.
  */
 class PvpCombat(
@@ -226,23 +232,41 @@ class PvpCombat(
      */
     fun singleWayRefusal(attacker: Player, target: Player, tick: Long): Line? {
         if (!multi.at(attacker.level, attacker.x, attacker.z) &&
-            (fightingOther(attacker, target, tick) || npcFighting(attacker, tick) || melee.fightingNpc(attacker))
+            (fightingOther(attacker, target, tick) || (!lockedOn(attacker, target, tick) && fightingAnyNpc(attacker, tick)))
         ) {
             return CombatLines.ALREADY_UNDER_ATTACK
         }
         if (!multi.at(target.level, target.x, target.z) &&
-            (fightingOther(target, attacker, tick) || npcFighting(target, tick) || melee.fightingNpc(target))
+            (fightingOther(target, attacker, tick) || (!lockedOn(target, attacker, tick) && fightingAnyNpc(target, tick)))
         ) {
             return PvpLines.TARGET_IN_COMBAT
         }
         return null
     }
 
-    /** Whether [player]'s PJ timer runs for a fight with someone other than [other]. */
+    /**
+     * Whether [player]'s PJ timer runs for a fight with someone other than [other]. An opponent who has left the world
+     * is none, so a friend can't splash and log out to shield them; one who has come back is the same player by save
+     * key (exploit review R35A-3). Guessed: the Wiki's PJ timer page doesn't say what an opponent's logout does; this
+     * is our rule against the shield. The timer after a kill holds though the victim logs out.
+     */
     private fun fightingOther(player: Player, other: Player, tick: Long): Boolean {
         val opponent = player.pjOpponent ?: return false
-        return opponent !== other && tick < player.pjUntil
+        return tick < player.pjUntil && (player.pjAfterKill || inWorld(opponent)) && opponent.saveKey != other.saveKey
     }
+
+    /**
+     * Whether [player]'s PJ timer runs for their fight with [other]: a monster they hit since doesn't keep [other] off
+     * them, or one of the two could end the fight by hitting any monster nearby (exploit review R35A-2). Guessed: no
+     * source covers it; this is our rule against ending a fight that way.
+     */
+    private fun lockedOn(player: Player, other: Player, tick: Long): Boolean {
+        val opponent = player.pjOpponent ?: return false
+        return tick < player.pjUntil && opponent.saveKey == other.saveKey
+    }
+
+    /** Whether a monster is fighting [player], or they are fighting one. */
+    private fun fightingAnyNpc(player: Player, tick: Long): Boolean = npcFighting(player, tick) || melee.fightingNpc(player)
 
     /** Whether a monster fighting [player] hit them within the monster PJ timer. */
     private fun npcFighting(player: Player, tick: Long): Boolean {
@@ -255,8 +279,10 @@ class PvpCombat(
         Skulls.attacked(attacker, target, tick)
         attacker.pjOpponent = target
         attacker.pjUntil = tick + PJ_TICKS
+        attacker.pjAfterKill = false
         target.pjOpponent = attacker
         target.pjUntil = tick + PJ_TICKS
+        target.pjAfterKill = false
     }
 
     /** One more tick on a hit [target] would take if they were processed already this tick; see the class note. */
@@ -315,7 +341,11 @@ class PvpCombat(
      * Casts [spell] at [target]; returns true when the fight ends: the player couldn't cast it (and was told), or it was
      * a spellbook spell and they don't autocast, so one cast is all.
      */
-    private fun castSpell(player: Player, target: Player, fight: PvpInteraction, spell: CombatSpell, tick: Long): Boolean {
+    private fun castSpell(player: Player, target: Player, fight: PvpInteraction, spell: CombatSpell, tick: Long): Boolean =
+        // At the Fountain of Rune the cast is free and trains nothing ([FountainOfRune]).
+        player.skills.withoutXpIf(FountainOfRune.covers(player)) { castSpellPaid(player, target, fight, spell, tick) }
+
+    private fun castSpellPaid(player: Player, target: Player, fight: PvpInteraction, spell: CombatSpell, tick: Long): Boolean {
         val fighting = fight.spell == null
         val speed = if (fighting) combat.attackSpeed(player) else MagicCombat.SPEED + combat.wearyDelay(player)
         val late = late(target, tick)
@@ -331,6 +361,7 @@ class PvpCombat(
                 // stays on the target (guessed: the Wiki doesn't say).
                 other.pjOpponent = player
                 other.pjUntil = tick + PJ_TICKS
+                other.pjAfterKill = false
                 // And unprovoked, a skull for the caster and the right to hit back for them, as for the target.
                 Skulls.attacked(player, other, tick)
             }
@@ -398,11 +429,14 @@ class PvpCombat(
             val spell = hit.spell
             if (spell != null) magic.landedOn(player, spell, hit.hit)
             if (spell == null || (hit.hit && spell.maxHit > 0)) {
+                // Noted before the hit, as a killing hit's death asks who killed them (Deaths.die).
+                dealtBy(player, hit.attacker, minOf(hit.damage, player.hitpoints), tick)
                 melee.hitPlayerBy(player, hit.attacker, hit.damage, tick)
                 // A kill starts the killer's timer (OSRS Wiki, PJ timer: 12 seconds).
                 if (player.dead || player.hitpoints <= 0) {
                     hit.attacker.pjOpponent = player
                     hit.attacker.pjUntil = tick + PJ_TICKS
+                    hit.attacker.pjAfterKill = true
                 }
             } else {
                 // A splash, or a bind that can't do damage: no hitsplat, but they were attacked (guessed, as for an NPC).
@@ -411,8 +445,45 @@ class PvpCombat(
             }
             if (player.dead || player.hitpoints <= 0) continue
             if (spell != null && hit.hit && spell.freezeTicks > 0) freeze(player, hit.attacker, spell)
+            if (spell != null && hit.hit && spell.teleblock) teleblock(player, hit.attacker)
             retaliate(player, hit.attacker, tick)
         }
+    }
+
+    /**
+     * [attacker] hit [player] for [damage] on [tick], for [killerOf]. What others dealt earlier is forgotten once
+     * [RECENT_TICKS] have gone by without a player's hit.
+     */
+    internal fun dealtBy(player: Player, attacker: Player, damage: Int, tick: Long) {
+        if (tick - player.lastPvpHitTick > RECENT_TICKS) player.pvpDamage.clear()
+        // Moved to the end on every hit, so the map runs from the longest-ago hitter to the latest (killerOf's tie).
+        val dealt = player.pvpDamage.remove(attacker.saveKey) ?: 0
+        player.pvpDamage[attacker.saveKey] = dealt + damage
+        player.lastPvpHitTick = tick
+    }
+
+    /**
+     * Who killed [player], dying now, by save key: the player who dealt them the most damage, the last to hit them on
+     * a tie, if a player hit them within [RECENT_TICKS]; null when none did, for a death like any other (OSRS Wiki,
+     * Items Kept on Death: a death with no recent player damage is a normal PvM death). Guessed: the most damage
+     * deciding, and how recent counts.
+     */
+    fun killerOf(player: Player): String? {
+        if (player.lastPvpHitTick < 0 || currentTick() - player.lastPvpHitTick > RECENT_TICKS || player.pvpDamage.isEmpty()) return null
+        val most = player.pvpDamage.values.max()
+        return player.pvpDamage.entries.last { it.value == most }.key
+    }
+
+    /**
+     * [killer] (a save key) is credited with [player]'s death: their PJ timer starts, naming [player] (OSRS Wiki, PJ
+     * timer: 12 seconds after a kill), whoever dealt the last hit.
+     */
+    fun credited(player: Player, killer: String) {
+        val credited = players().firstOrNull { it.saveKey == killer } ?: return
+        credited.pjOpponent = player
+        credited.pjUntil = currentTick() + PJ_TICKS
+        credited.pjAfterKill = true
+        killedTeleblocker(credited, player)
     }
 
     /** [player] is frozen by [caster]'s [spell] for its ticks, unless frozen or immune already; see the class note. */
@@ -425,12 +496,35 @@ class PvpCombat(
     }
 
     /**
-     * At the start of the tick: [player]'s skull counts down ([Skulls.countDown]), and their freeze, breaking once they
-     * are more than [FREEZE_BREAK_DISTANCE] tiles from who cast it on either axis (the Wiki: only x and y count, not the
-     * plane); then the immunity counts down. A caster who left the world breaks it at once.
+     * [player] is Tele Blocked by [caster]: for [Teleblock.PROTECTED_TICKS] if they pray Protect from Magic as it lands,
+     * else [Teleblock.TICKS], and told who cast it. One already blocked can't be (refused at the cast), but a second
+     * cast can be on its way as the first lands: it does nothing then (guessed).
+     */
+    private fun teleblock(player: Player, caster: Player) {
+        if (player.teleblockTicks > 0) return
+        Teleblock.block(player, caster, if (protects(player, AttackType.MAGIC)) Teleblock.PROTECTED_TICKS else Teleblock.TICKS)
+        message(player, words(player)[PvpLines.TELEBLOCKED, "name" to caster.username])
+    }
+
+    /**
+     * [killer] is credited with [victim]'s death ([credited]): a Tele Block [victim] cast on [killer] is over (OSRS Wiki,
+     * Tele Block). Guessed: the kill is the credited one, the most damage, not whoever dealt the last hit, so that the
+     * block ends for whoever gets the loot.
+     */
+    private fun killedTeleblocker(killer: Player, victim: Player) {
+        if (killer.teleblockTicks <= 0 || killer.teleblockedBy != victim.saveKey) return
+        Teleblock.clear(killer)
+        message(killer, words(killer)[PvpLines.TELEBLOCK_REMOVED, "name" to victim.username])
+    }
+
+    /**
+     * At the start of the tick: [player]'s skull counts down ([Skulls.countDown]), their Tele Block ([Teleblock.countDown]),
+     * and their freeze, breaking once they are more than [FREEZE_BREAK_DISTANCE] tiles from who cast it on either axis
+     * (the Wiki: only x and y count, not the plane); then the immunity counts down. A caster who left the world breaks it at once.
      */
     fun countDown(player: Player) {
         Skulls.countDown(player, currentTick())
+        Teleblock.countDown(player)
         if (player.freezeTicks > 0) {
             val caster = player.frozenBy
             // A caster who left the world is as far away as can be: the freeze breaks (OSRS Wiki, Free-to-play PvP
@@ -446,6 +540,26 @@ class PvpCombat(
         } else if (player.freezeImmunityTicks > 0) {
             player.freezeImmunityTicks--
         }
+    }
+
+    /**
+     * Everything PvP about [player] is forgotten, for a test that starts afresh (`::scenario`, `::reset`): the hits on
+     * their way to or from them, other players' attacks on them (so an opponent still swinging or retaliating doesn't
+     * carry the old fight into the new setup), their PJ timer, skull, Tele Block, whom they attacked first and the damage
+     * players dealt them. Not live content.
+     */
+    fun clear(player: Player) {
+        forget(player)
+        for (other in players()) {
+            if ((other.interaction as? PvpInteraction)?.target === player) other.interaction = null
+        }
+        player.pjOpponent = null
+        player.pjUntil = 0
+        player.skullTicks = 0
+        player.attackedFirst.clear()
+        Teleblock.clear(player)
+        player.pvpDamage.clear()
+        player.lastPvpHitTick = -1
     }
 
     /** The hits on their way to or from [player] are dropped, and freezes they cast forgotten: they left the world. */
@@ -482,6 +596,9 @@ class PvpCombat(
     companion object {
         /** What gets through a protection prayer against a player, out of 100 (OSRS Wiki: 40% is resisted). */
         const val PROTECTED_PERCENT = 60
+
+        /** How long after a player's last hit a death still counts as theirs: a minute (guessed). */
+        const val RECENT_TICKS = 100
 
         /** The PvP PJ timer: 20 ticks, 12 seconds (OSRS Wiki, PJ timer). */
         const val PJ_TICKS = 20

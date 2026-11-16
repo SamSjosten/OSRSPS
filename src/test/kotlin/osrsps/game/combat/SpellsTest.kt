@@ -129,9 +129,9 @@ class SpellsTest {
     fun `the real file names only what the 241 cache has, and every spell in it`() {
         // Every name was checked against the cache's gameval dumps when the file was written; here the file must at
         // least parse with nothing known, and list the twenty standard combat spells, the three hold spells and the
-        // four ice spells.
+        // four ice spells, and Tele Block.
         val text = Spells::class.java.getResource(Spells.RESOURCE)!!.readText()
-        assertEquals(27, Regex("\"spell\":").findAll(text).count())
+        assertEquals(28, Regex("\"spell\":").findAll(text).count())
         // Enum 1986's keys for the twenty: 1 to 16 the strikes to waves, 48 to 51 the surges.
         assertEquals((1..16).toList() + (48..51).toList(), Regex("\"autocast\": (\\d+)").findAll(text).map { it.groupValues[1].toInt() }.toList())
         // Each spell's element is the one in its name, wind for air.

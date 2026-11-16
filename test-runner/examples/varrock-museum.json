@@ -12,9 +12,9 @@
   },
   {
    "step": "command",
-   "text": "::scenario lumbridge-bare",
-   "expectMessage": "Started scenario lumbridge-bare.",
-   "comment": "an empty backpack; ::reset at the end puts it back"
+   "text": "::scenario museum-quiz",
+   "expectMessage": "Started scenario museum-quiz.",
+   "comment": "an empty backpack and no museum Kudos, so the clerk has no reward waiting whatever the account has done (nightly 2026-11-16: she opened with one); ::reset at the end puts it back"
   },
   {
    "step": "command",

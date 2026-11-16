@@ -1,0 +1,19 @@
+{
+  "name": "Wilderness step W2.4: a green dragon at level 20 breathing dragonfire, bare and then with an anti-dragon shield",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off)."},
+    {"step": "command", "text": "::item anti-dragon shield", "expectMessage": "Added 1 x Anti-dragon shield"},
+    {"step": "command", "text": "::tele 3337 3676 0", "expectMessage": "Teleported to 3337, 3676, 0", "comment": "level 20, beside a green dragon's spawn"},
+    {"step": "npcOption", "npc": "Green dragon", "option": "Attack", "timeoutMs": 20000},
+    {"step": "assertAnimation", "id": 86, "npc": "Green dragon", "timeoutMs": 120000, "comment": "dragon_firebreath_attack: one turn in 6 in reach"},
+    {"step": "assertSpotanim", "id": 1, "npc": "Green dragon", "timeoutMs": 5000, "comment": "firebreath_attack on the dragon"},
+    {"step": "assertMessage", "contains": "[dragonfire.", "timeoutMs": 5000, "comment": "no shield: burnt or resisted"},
+    {"step": "itemOption", "item": "Anti-dragon shield", "option": "Wear", "comment": "the cache's option for 1540 is Wear, not Wield (nightly 2026-11-16)"},
+    {"step": "assertEquipment", "slot": "shield", "item": "Anti-dragon shield"},
+    {"step": "assertMessage", "contains": "[dragonfire.shield]", "timeoutMs": 120000, "comment": "the next breath, taken on the shield"},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
+  ]
+}

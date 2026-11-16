@@ -1,0 +1,25 @@
+{
+  "name": "Wilderness step W3.4: a greater demon in the Demonic Ruins (level 46) killed and leaving vile ashes, then a King Scorpion in the Lava Maze (level 39) killed",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off)."},
+
+    {"step": "command", "text": "::tele 3302 3886 0", "expectMessage": "Teleported to 3302, 3886, 0", "comment": "beside a greater demon's spawn (3304, 3886)"},
+    {"step": "npcOption", "npc": "Greater demon", "option": "Attack", "timeoutMs": 20000},
+    {"step": "assertHitsplat", "npc": "Greater demon", "timeoutMs": 20000},
+    {"step": "command", "text": "::drops", "expectMessage": "Greater demon always drops: Vile ashes"},
+    {"step": "command", "text": "::kill", "expectMessage": "Killed Greater demon #"},
+    {"step": "assertAnimation", "id": 68, "npc": "Greater demon", "comment": "demon_death_greater"},
+    {"step": "assertGroundItem", "item": "Vile ashes", "timeoutMs": 15000},
+
+    {"step": "command", "text": "::tele 3069 3829 0", "expectMessage": "Teleported to 3069, 3829, 0", "comment": "beside a King Scorpion's spawn (3070, 3829) in the Lava Maze"},
+    {"step": "npcOption", "npc": "King Scorpion", "option": "Attack", "timeoutMs": 20000},
+    {"step": "assertHitsplat", "npc": "King Scorpion", "timeoutMs": 20000},
+    {"step": "command", "text": "::kill", "expectMessage": "Killed King Scorpion #"},
+    {"step": "assertAnimation", "id": 6256, "npc": "King Scorpion", "comment": "scorpion_update_death; it drops no bones"},
+
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
+  ]
+}

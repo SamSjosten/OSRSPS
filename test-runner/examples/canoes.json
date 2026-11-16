@@ -1,5 +1,5 @@
 {
- "name": "Gathering 2 step G3: the Lumbridge canoe station's tree chopped, a stable dugout shaped, floated and paddled to the Champions' Guild; a waka's Ferox Enclave refused (::keys on)",
+ "name": "Gathering 2 step G3: the Lumbridge canoe station's tree chopped, a stable dugout shaped, floated and paddled to the Champions' Guild; a waka paddled to the Ferox Enclave (::keys on)",
  "account": "test",
  "steps": [
   {"step": "waitForLogin"},
@@ -37,9 +37,9 @@
   {"step": "assertVarbit", "id": 1839, "value": 14, "timeoutMs": 10000},
   {"step": "locOption", "loc": "Canoe Station", "option": "Paddle Canoe", "x": 3241, "y": 3235},
   {"step": "assertInterface", "interfaceId": 953},
-  {"step": "clickWidget", "interfaceId": 953, "component": 27, "op": 1, "comment": "Travel to Ferox Enclave"},
-  {"step": "assertMessage", "contains": "canoe.wilderness", "comment": "ours, until the Wilderness is built"},
-  {"step": "assertVarbit", "id": 1839, "value": 14, "comment": "the waka still afloat"},
+  {"step": "clickWidget", "interfaceId": 953, "component": 27, "op": 1, "comment": "Travel to Ferox Enclave (open since Wilderness step W3.3)"},
+  {"step": "assertLocation", "x": 3153, "y": 3631, "plane": 0, "timeoutMs": 20000, "comment": "the landing tile is guessed"},
+  {"step": "assertMessage", "contains": "canoe.arrive_ferox"},
 
   {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}

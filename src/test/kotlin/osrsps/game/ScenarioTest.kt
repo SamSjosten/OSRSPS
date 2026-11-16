@@ -152,6 +152,11 @@ class ScenarioTest {
     fun `every scenario file in the resources reads`() {
         val scenarios = Scenarios.load()
         assertEquals(Scenarios.FILES.toSet(), scenarios.names)
+        // Every file in the folder is listed: obor, bryophyta and runecraft went in without a line in FILES, so the server
+        // never loaded them and their scripts' ::scenario got no reply (nightly 2026-11-16).
+        val folder = java.io.File("src/main/resources/scenarios")
+        assertTrue(folder.isDirectory, "run from the project root")
+        assertEquals(folder.listFiles()!!.filter { it.extension == "json" }.map { it.nameWithoutExtension }.toSet(), scenarios.names)
         val cows = scenarios["lumbridge-cows"]!!
         // The cow field, by the cows in npc-spawns/lumbridge.json.
         assertTrue(cows.x in 3253..3265 && cows.z in 3255..3298 && cows.level == 0)
@@ -213,6 +218,6 @@ class ScenarioTest {
         // Among the Feldip Hunter area's crimson swifts, with every box trap creature's level, snares and box traps.
         assertTrue(hunter.x in 2580..2620 && hunter.z in 2880..2940 && hunter.level == 0)
         assertEquals(63, hunter.skills.getValue(Skill.HUNTER).level)
-        assertEquals(3, hunter.inventory.size)
+        assertEquals(13, hunter.inventory.size)
     }
 }

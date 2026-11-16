@@ -51,6 +51,8 @@ object CookingLines : Lines("cooking", "Cooking") {
     val BURNT_MONKFISH = line("burnt_monkfish", "Monkfish: the message on burning one")
     val COOKED_ANGLERFISH = line("cooked_anglerfish", "Anglerfish: the message on cooking one")
     val BURNT_ANGLERFISH = line("burnt_anglerfish", "Anglerfish: the message on burning one")
+    val COOKED_DARK_CRAB = line("cooked_dark_crab", "Dark crab: the message on cooking one")
+    val BURNT_DARK_CRAB = line("burnt_dark_crab", "Dark crab: the message on burning one")
     val BURNT_KARAMBWAN = line("burnt_karambwan", "Karambwan: the message on burning one, either way")
     val COOKED_MACKEREL = line("cooked_mackerel", "Mackerel: the message on cooking one")
     val BURNT_MACKEREL = line("burnt_mackerel", "Mackerel: the message on burning one")
@@ -402,6 +404,14 @@ class Cooking(private val world: World) {
         )
 
         /**
+         * Dark crab (Wilderness step W3.6b), from the Wiki's Dark crab page (read 2026-11-15): from 90 for 215 XP, 10/222
+         * on a fire or a range alike. Out: the Hosidius kitchen's better rates.
+         */
+        val DARK_CRAB = Food(
+            11934, 11936, 11938, 90, 2150, 10, 222, 10, 222, CookingLines.COOKED_DARK_CRAB, CookingLines.BURNT_DARK_CRAB,
+        )
+
+        /**
          * Pies, pizza, cake and pitta bread (step FC5a), baked on a range only, from the Wiki's food pages (read
          * 2026-11-10), whose burn charts give each range pair. Redberry, meat, botanical and mushroom pies burn less on
          * the Lumbridge range (its page's list and each pie's chart); the rest cook there as on any range. Every pie burns
@@ -441,7 +451,7 @@ class Cooking(private val world: World) {
 
         val FOODS = listOf(
             SHRIMPS, ANCHOVIES, SARDINE, HERRING, TROUT, PIKE, SALMON, BEEF, RAT_MEAT, BEAR_MEAT, CHICKEN, BREAD,
-            LOBSTER, TUNA, SWORDFISH, SHARK, MACKEREL, COD, BASS, KARAMBWAN, POISON_KARAMBWAN, MONKFISH, ANGLERFISH,
+            LOBSTER, TUNA, SWORDFISH, SHARK, MACKEREL, COD, BASS, KARAMBWAN, POISON_KARAMBWAN, MONKFISH, ANGLERFISH, DARK_CRAB,
             REDBERRY_PIE, MEAT_PIE, MUD_PIE, APPLE_PIE, GARDEN_PIE, FISH_PIE, BOTANICAL_PIE, MUSHROOM_PIE, ADMIRAL_PIE,
             DRAGONFRUIT_PIE, WILD_PIE, SUMMER_PIE, PIZZA, CAKE, PITTA,
             STEW, CURRY,

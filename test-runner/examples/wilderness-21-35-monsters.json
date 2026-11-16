@@ -1,0 +1,27 @@
+{
+  "name": "Wilderness step W3.3: a chaos dwarf (level 30) and a Forgotten Cemetery Ankou (level 28) fought, killed and leaving their bones",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off)."},
+
+    {"step": "command", "text": "::tele 3020 3755 0", "expectMessage": "Teleported to 3020, 3755, 0", "comment": "beside a chaos dwarf's spawn (3021, 3755)"},
+    {"step": "npcOption", "npc": "Chaos dwarf", "option": "Attack", "timeoutMs": 20000},
+    {"step": "assertHitsplat", "npc": "Chaos dwarf", "timeoutMs": 20000},
+    {"step": "command", "text": "::drops", "expectMessage": "Chaos dwarf always drops: Bones"},
+    {"step": "command", "text": "::kill", "expectMessage": "Killed Chaos dwarf #"},
+    {"step": "assertAnimation", "id": 102, "npc": "Chaos dwarf", "comment": "dwarf_death"},
+    {"step": "assertGroundItem", "item": "Bones", "timeoutMs": 15000},
+
+    {"step": "command", "text": "::tele 2980 3739 0", "expectMessage": "Teleported to 2980, 3739, 0", "comment": "beside an Ankou's spawn (2981, 3739) in the Forgotten Cemetery"},
+    {"step": "npcOption", "npc": "Ankou", "option": "Attack", "timeoutMs": 20000},
+    {"step": "assertHitsplat", "npc": "Ankou", "timeoutMs": 20000},
+    {"step": "command", "text": "::drops", "expectMessage": "Ankou always drops: Bones"},
+    {"step": "command", "text": "::kill", "expectMessage": "Killed Ankou #"},
+    {"step": "assertAnimation", "id": 836, "npc": "Ankou", "comment": "human_death"},
+    {"step": "assertGroundItem", "item": "Bones", "timeoutMs": 15000},
+
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
+  ]
+}

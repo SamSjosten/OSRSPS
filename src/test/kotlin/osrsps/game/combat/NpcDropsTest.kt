@@ -166,13 +166,23 @@ class NpcDropsTest {
     }
 
     @Test
+    fun `a minor table rolls every kill beside the main roll, and a tertiary may be N in D`() {
+        // Wilderness step W4.5: the Chaos Elemental's minor drops, and its weapon poison(++) at 10/128.
+        val text = """{"npcs": [{"npcs": ["man"], "minor": {"slots": 1, "lines": [{"item": 526, "name": "Bones", "weight": 1}]},
+            "tertiary": [{"item": 526, "name": "Bones", "chance": "128/128"}], "source": "test"}]}"""
+        val def = NpcDrops.parse(text, types, objTypes)[man]!!
+        assertEquals(128 to 128, def.tertiary.single().let { it.numerator to it.denominator })
+        assertEquals(listOf("Bones", "Bones"), def.roll(GameRandom(1)).map { it.type.name }, "the minor drop, then the sure tertiary")
+    }
+
+    @Test
     fun `a table whose lines don't fill its slots, a bad chance, or an unknown item is refused`() {
         val good = """{"npcs": [{"npcs": ["man"], "table": {"slots": 128, "lines": [{"item": 526, "name": "Bones", "weight": 128}]}, "source": "test"}]}"""
         assertEquals(1, NpcDrops.parse(good, types, objTypes).size)
         val short = good.replace("\"weight\": 128", "\"weight\": 100")
         assertTrue(assertFailsWith<IllegalArgumentException> { NpcDrops.parse(short, types, objTypes) }.message!!.contains("100, not the table's 128"))
-        val badChance = """{"npcs": [{"npcs": ["man"], "tertiary": [{"item": 526, "name": "Bones", "chance": "3/128"}], "source": "test"}]}"""
-        assertTrue(assertFailsWith<IllegalArgumentException> { NpcDrops.parse(badChance, types, objTypes) }.message!!.contains("\"1/N\""))
+        val badChance = """{"npcs": [{"npcs": ["man"], "tertiary": [{"item": 526, "name": "Bones", "chance": "130/128"}], "source": "test"}]}"""
+        assertTrue(assertFailsWith<IllegalArgumentException> { NpcDrops.parse(badChance, types, objTypes) }.message!!.contains("\"N/D\""))
         // An item the cache lacks leaves its NPCs without drops rather than stopping the server (a test cache is small).
         val noItem = good.replace("526", "99999")
         val without = NpcDrops.parse(noItem, types, objTypes)
@@ -573,7 +583,8 @@ class NpcDropsTest {
     @Test
     fun `a bat drops its bones and nothing else`() {
         val bat = NpcType(2827, "Bat", combatLevel = 6, internalName = "small_bat")
-        val def = NpcDrops.load(NpcTypes.of(bat), objTypes)[bat]!!
+        // The giant bat (`bat`) too, or the file's "bat" would fall back on this one's menu name.
+        val def = NpcDrops.load(NpcTypes.of(bat, NpcType(2834, "Giant bat", internalName = "bat")), objTypes)[bat]!!
         assertEquals(listOf("Bat bones"), def.always.map { it.type.name })
         assertEquals(null, def.table)
         assertEquals(emptyList(), def.tertiary)
@@ -1059,6 +1070,180 @@ class NpcDropsTest {
             }
         }
         mapOf("bundle" to bundles).expect("bundle", 1.0, 256)
+    }
+
+    @Test
+    fun `the elder Chaos druids give one to four of a herb, the black unicorns never a unicorn bone`() {
+        val names = listOf("wilderness_chaos_druid", "black_unicorn")
+        val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(6607 + i, name, internalName = name) }.toTypedArray())
+        val drops = NpcDrops.load(types, objTypes)
+        fun def(name: String) = drops[types.find(name)!!]!!
+        val druid = def("wilderness_chaos_druid")
+        assertEquals(1419, druid.table!!.slots)
+        val random = GameRandom(73)
+        // The herb table 55/129: 1, 2, 3 or 4 herbs at 15, 20, 15 and 5 in 55 (OSRS Wiki, Elder Chaos druid).
+        val counts = IntArray(5)
+        repeat(KILLS) {
+            val herbs = druid.roll(random).filter { it.type.name.startsWith("Grimy") }
+            assertTrue(herbs.size <= 1, herbs.toString())
+            herbs.singleOrNull()?.let { counts[it.count]++ }
+        }
+        for ((count, weight) in listOf(1 to 15.0, 2 to 20.0, 3 to 15.0, 4 to 5.0)) {
+            val p = weight / 129
+            val mean = KILLS * p
+            val sigma = sqrt(KILLS * p * (1 - p))
+            assertTrue(abs(counts[count] - mean) <= 5 * sigma + 1, "$count herbs: ${counts[count]} of $KILLS, expected about ${mean.toInt()}")
+        }
+        assertEquals(listOf("Bones", "Unicorn horn"), def("black_unicorn").always.map { it.type.name })
+    }
+
+    @Test
+    fun `levels 21 to 35's monsters drop bones always, the Ankou dark fishing bait often, the chaos dwarf out of 133`() {
+        val names = listOf("wilderness_ankou", "aggressive_black_knight", "black_heather", "donny_the_lad", "speedy_keith", "brawling_bandit", "dwarf_chaos")
+        val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(6608 + i, name, internalName = name) }.toTypedArray())
+        val drops = NpcDrops.load(types, objTypes)
+        fun def(name: String) = drops[types.find(name)!!]!!
+        for (name in names) assertEquals(listOf("Bones"), def(name).always.map { it.type.name }, name)
+        // OSRS Wiki, Ankou (level 86, 6608): out of 100, dark fishing bait x60 at 38/100; Chaos dwarf taken out of 133.
+        assertEquals(100, def("wilderness_ankou").table!!.slots)
+        assertEquals(133, def("dwarf_chaos").table!!.slots)
+        for (name in listOf("aggressive_black_knight", "black_heather", "donny_the_lad", "speedy_keith", "brawling_bandit")) {
+            assertEquals(128, def(name).table!!.slots, name)
+        }
+        val random = GameRandom(77)
+        var bait = 0
+        repeat(KILLS) { if (def("wilderness_ankou").roll(random).any { it.type.name == "Dark fishing bait" && it.count == 60 }) bait++ }
+        val p = 38.0 / 100
+        val mean = KILLS * p
+        val sigma = sqrt(KILLS * p * (1 - p))
+        assertTrue(abs(bait - mean) <= 5 * sigma + 1, "dark fishing bait in $bait of $KILLS, expected about ${mean.toInt()}")
+    }
+
+    @Test
+    fun `greater demons leave vile ashes, King Scorpions no bones, lava dragons their bones, hide and scale`() {
+        val names = listOf("greater_demon2", "greater_demon5", "kingscorpion", "lava_dragon")
+        val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(2026 + i, name, internalName = name) }.toTypedArray())
+        val drops = NpcDrops.load(types, objTypes)
+        fun def(name: String) = drops[types.find(name)!!]!!
+        for (name in listOf("greater_demon2", "greater_demon5")) {
+            assertEquals(listOf("Vile ashes"), def(name).always.map { it.type.name }, name)
+            assertEquals(128, def(name).table!!.slots, name)
+        }
+        // OSRS Wiki, King Scorpion: no bones and no main table, only the ensouled head (1/25) and the beginner clue (1/100).
+        val scorpion = def("kingscorpion")
+        assertTrue(scorpion.always.isEmpty())
+        assertEquals(null, scorpion.table)
+        assertEquals(listOf("Ensouled scorpion head", "Clue scroll (beginner)"), scorpion.tertiary.map { it.item.type.name })
+        assertEquals(listOf("Lava dragon bones", "Black dragonhide", "Lava scale"), def("lava_dragon").always.map { it.type.name })
+        assertEquals(128, def("lava_dragon").table!!.slots)
+    }
+
+    @Test
+    fun `the Lava Maze Dungeon's black dragons drop dragon bones and black dragonhide always`() {
+        val names = listOf("black_dragon4", "black_dragon5")
+        val types = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(255 + i, name, internalName = name) }.toTypedArray())
+        val drops = NpcDrops.load(types, objTypes)
+        for (name in names) {
+            val def = drops[types.find(name)!!]!!
+            assertEquals(listOf("Dragon bones", "Black dragonhide"), def.always.map { it.type.name }, name)
+            assertEquals(128, def.table!!.slots, name)
+        }
+    }
+
+    @Test
+    fun `the Wilderness Edgeville Dungeon's chaos druids give one or two of a herb, the black demons one malicious ashes`() {
+        val names = listOf("chaos_druid", "earthwarrior", "thug", "black_demon2", "black_demon3", "black_demon5", "giantskeleton")
+        val wildTypes = NpcTypes.of(*names.mapIndexed { i, name -> NpcType(2700 + i, name, internalName = name) }.toTypedArray())
+        val wild = NpcDrops.load(wildTypes, objTypes)
+        assertTrue(wild.warnings.all { it.startsWith("no NPC called") }, wild.warnings.toString())
+        fun def(name: String) = wild[wildTypes.find(name)!!]!!
+        for (name in names) assertEquals(128, def(name).table!!.slots, name)
+        val random = GameRandom(71)
+        fun expect(what: String, got: Int, weight: Double) {
+            val p = weight / 128
+            val mean = KILLS * p
+            val sigma = sqrt(KILLS * p * (1 - p))
+            assertTrue(abs(got - mean) <= 5 * sigma + 1, "$what: $got of $KILLS, expected about ${mean.toInt()}")
+        }
+        // The herb table 46/128: one herb 35/128, two of it 11/128 (OSRS Wiki, Chaos druid).
+        var one = 0
+        var two = 0
+        repeat(KILLS) {
+            val kill = def("chaos_druid").roll(random)
+            assertEquals("Bones", kill.first().type.name)
+            val herbs = kill.filter { it.type.name.startsWith("Grimy") }
+            assertTrue(herbs.size <= 1, kill.toString())
+            when (herbs.singleOrNull()?.count) { 1 -> one++; 2 -> two++ }
+        }
+        expect("one herb", one, 35.0)
+        expect("two herbs", two, 11.0)
+        // One set of malicious ashes a kill: the second is the Chasm of Fire's only.
+        for (name in listOf("black_demon2", "black_demon3", "black_demon5")) {
+            assertEquals(listOf(Triple("Malicious ashes", 1, 1)), def(name).always.map { Triple(it.type.name, it.min, it.max) }, name)
+        }
+        var herbs = 0
+        repeat(KILLS) {
+            val kill = def("black_demon3").roll(random)
+            assertEquals(listOf(1), kill.filter { it.type.name == "Malicious ashes" }.map { it.count })
+            if (kill.any { it.type.name.startsWith("Grimy") }) herbs++
+        }
+        expect("a black demon's herb", herbs, 23.0)
+        assertEquals(listOf("Bones"), def("thug").always.map { it.type.name })
+        assertEquals(emptyList(), def("earthwarrior").always)
+        assertEquals(listOf("Clue scroll (easy)" to 128), def("thug").tertiary.map { it.item.type.name to it.denominator })
+        var seeds = 0
+        repeat(KILLS) { if (def("earthwarrior").roll(random).any { it.type.name.endsWith("seed") }) seeds++ }
+        expect("an earth warrior's seed", seeds, 18.0)
+    }
+
+    @Test
+    fun `a table line with a count gives that many of what its table lands on, and only a table line takes one`() {
+        val guam = objTypes[199]!!
+        val herbs = DropTable(1, listOf(DropSlot(1, DropItem(guam, 1, 1))))
+        val doubled = DropTable(1, listOf(DropSlot(1, table = herbs, tableCount = 2)))
+        assertEquals(listOf(DropItem(guam, 2, 2)), doubled.roll(GameRandom(1)))
+        assertFailsWith<IllegalArgumentException> { DropSlot(1, DropItem(guam, 1, 1), tableCount = 2) }
+    }
+
+    @Test
+    fun `the Wilderness's mammoths drop big bones, then the Wiki's table out of 640`() {
+        val mammothTypes = NpcTypes.of(NpcType(2800, "wilderness_mammoth", internalName = "wilderness_mammoth"))
+        val drops = NpcDrops.load(mammothTypes, objTypes)
+        val def = drops[mammothTypes.find("wilderness_mammoth")!!]!!
+        assertEquals(listOf("Big bones"), def.always.map { it.type.name })
+        assertEquals(640, def.table!!.slots)
+        assertEquals(
+            listOf("Clue scroll (medium)" to 128, "Long bone" to 400, "Curved bone" to 5013),
+            def.tertiary.map { it.item.type.name to it.denominator },
+        )
+        val random = GameRandom(81)
+        val counts = HashMap<String, Int>()
+        repeat(KILLS) {
+            val kill = def.roll(random)
+            assertEquals("Big bones", kill.first().type.name)
+            for (drop in kill.drop(1)) {
+                val key = if (drop.type.name.startsWith("Grimy")) "herb" else "${drop.type.name} x${drop.count}"
+                counts[key] = (counts[key] ?: 0) + 1
+            }
+        }
+        fun expect(key: String, weight: Int) {
+            val p = weight / 640.0
+            val mean = KILLS * p
+            val sigma = sqrt(KILLS * p * (1 - p))
+            val got = counts[key] ?: 0
+            assertTrue(abs(got - mean) <= 5 * sigma + 1, "$key: $got of $KILLS, expected about ${mean.toInt()}")
+        }
+        // Out of 128: the herb table 8 (40 of 640), 30 coins 13 (65), potato seeds 30 of the allotment table's 100.
+        expect("herb", 40)
+        expect("Coins x30", 65)
+        expect("Coins x180", 35)
+        expect("Potato seed x3", 30)
+        expect("Barley seed x4", 30)
+        expect("Apple tree seed x1", 18)
+        expect("Lobster x2", 15)
+        // The gem table is the surface one: its talisman is a nature talisman, never a chaos talisman.
+        assertTrue((counts["Nature talisman x1"] ?: 0) > 0)
+        assertNull(counts["Chaos talisman x1"])
     }
 
     companion object {

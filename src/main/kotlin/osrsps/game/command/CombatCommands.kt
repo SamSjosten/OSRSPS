@@ -10,6 +10,7 @@ import osrsps.game.combat.AttackType
 import osrsps.game.combat.Blowpipe
 import osrsps.game.combat.CombatMath
 import osrsps.game.combat.DropItem
+import osrsps.game.combat.DropTable
 import osrsps.game.combat.MagicInteraction
 import osrsps.game.combat.MeleeCombat
 import osrsps.game.combat.MeleeInteraction
@@ -285,15 +286,14 @@ fun CommandRegistry.registerCombatCommands(world: World) {
         val def = world.npcDrops[type]?.takeIf { !it.isEmpty } ?: fail("${type.name} drops nothing")
         fun item(item: DropItem) = item.type.name + (if (item.max > 1) " x${if (item.min == item.max) item.min else "${item.min}-${item.max}"}" else "")
         if (def.always.isNotEmpty()) reply("${type.name} always drops: ${def.always.joinToString { item(it) }}")
-        val table = def.table
-        if (table != null) {
-            val lines = table.lines.sortedByDescending { it.weight }.joinToString { line ->
-                val what = line.items.takeIf { it.isNotEmpty() }?.joinToString(" + ") { item(it) } ?: if (line.table != null) "a herb" else "nothing"
-                "$what ${line.weight}/${table.slots}"
-            }
-            reply("One of: $lines")
+        fun lines(table: DropTable) = table.lines.sortedByDescending { it.weight }.joinToString { line ->
+            val what = line.items.takeIf { it.isNotEmpty() }?.joinToString(" + ") { item(it) } ?: if (line.table != null) "a herb" else "nothing"
+            "$what ${line.weight}/${table.slots}"
         }
-        if (def.tertiary.isNotEmpty()) reply("Also: ${def.tertiary.joinToString { "${item(it.item)} 1/${it.denominator}" }}")
+        def.minor?.let { reply("Every kill, one of: ${lines(it)}") }
+        if (def.preroll.isNotEmpty()) reply("Before the table: ${def.preroll.joinToString { "${item(it.item)} ${it.numerator}/${it.denominator}" }}")
+        def.table?.let { reply("One of: ${lines(it)}") }
+        if (def.tertiary.isNotEmpty()) reply("Also: ${def.tertiary.joinToString { "${item(it.item)} ${it.numerator}/${it.denominator}" }}")
     }
 
     register("kill", "::kill [index|name]", admin = true) {

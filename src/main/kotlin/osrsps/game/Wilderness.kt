@@ -52,8 +52,60 @@ object Wilderness {
     fun pvpLevel(x: Int, z: Int): Int {
         if (!inside(x, z)) return 0
         if (z in SAFE_ROWS && SURFACE.contains(x, z)) return 0
+        if (inFerox(x, z)) return 0
         return level(x, z)
     }
+
+    /**
+     * Ferox Enclave's safe area (step W2.3), levels 13 to 16, where nobody can attack a player or be attacked by one
+     * (the Wiki's Ferox Enclave and Barrier pages): the surface tiles of [FEROX_ROWS]. INFERRED from the 242 map (round
+     * 37): every tile of the town's rectangle, x 3123 to 3155 and z 3617 to 3645, that can't be walked to from outside
+     * without a barrier, so the walls and its four barriers are its only edges, and all of the town inside them (its
+     * north-east corner past z 3639 too) is safe. The Wiki's safe tiles around each barrier outside wait for a recording.
+     */
+    fun inFerox(x: Int, z: Int): Boolean = FEROX_ROWS[z]?.any { x in it } == true
+
+    /**
+     * [inFerox]'s tiles, row by row: each z's runs of x. Worked out from the abextm/osrs-cache 2026-11-11-rev242 map
+     * by walking out from outside the town; [osrsps.audit.FeroxAuditTest] checks them against the cache.
+     */
+    val FEROX_ROWS: Map<Int, List<IntRange>> = mapOf(
+        3617 to listOf(3125..3140, 3145..3146),
+        3618 to listOf(3125..3143, 3145..3146, 3154..3154),
+        3619 to listOf(3125..3150),
+        3620 to listOf(3125..3151),
+        3621 to listOf(3125..3151),
+        3622 to listOf(3123..3152, 3154..3154),
+        3623 to listOf(3123..3153),
+        3624 to listOf(3123..3153),
+        3625 to listOf(3123..3154),
+        3626 to listOf(3123..3155),
+        3627 to listOf(3123..3155),
+        3628 to listOf(3123..3155),
+        3629 to listOf(3123..3155),
+        3630 to listOf(3123..3155),
+        3631 to listOf(3123..3155),
+        3632 to listOf(3123..3155),
+        3633 to listOf(3123..3155),
+        3634 to listOf(3123..3154),
+        3635 to listOf(3123..3154),
+        3636 to listOf(3123..3123, 3125..3155),
+        3637 to listOf(3125..3155),
+        3638 to listOf(3125..3155),
+        3639 to listOf(3123..3123, 3125..3155),
+        3640 to listOf(3123..3123, 3132..3133, 3136..3155),
+        3641 to listOf(3123..3124, 3126..3127, 3132..3133, 3136..3155),
+        3642 to listOf(3123..3128, 3138..3155),
+        3643 to listOf(3123..3128, 3138..3155),
+        3644 to listOf(3123..3124, 3127..3128, 3136..3155),
+        3645 to listOf(3123..3123, 3128..3128, 3136..3155),
+    )
+
+    /** The rectangle [FEROX_ROWS] lies in. */
+    const val FEROX_WEST = 3123
+    const val FEROX_EAST = 3155
+    const val FEROX_SOUTH = 3617
+    const val FEROX_NORTH = 3645
 
     /**
      * Whether players of combat levels [a] and [b], fighting by Wilderness levels [levelA] and [levelB], are in range of

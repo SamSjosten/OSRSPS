@@ -1,0 +1,14 @@
+{
+  "name": "Wilderness step W3.1: the level 13 obelisk south-east of Ferox Enclave activated, the player back in its 3x3 and teleported to one of the six (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::tele 3157 3619 0", "expectMessage": "Teleported to 3157, 3619, 0", "comment": "the south-east tile of the obelisk's 3x3"},
+    {"step": "locOption", "locId": 14829, "option": "Activate", "x": 3158, "y": 3618},
+    {"step": "assertLoc", "locId": 14825, "x": 3158, "y": 3618, "timeoutMs": 10000, "comment": "wilderness_portal_stone_glowing"},
+    {"step": "walk", "x": 3157, "y": 3619},
+    {"step": "assertLocation", "x": 3157, "y": 3619, "plane": 0, "timeoutMs": 5000},
+    {"step": "assertMessage", "contains": "[obelisk.teleported]", "timeoutMs": 15000, "comment": "landed on the same tile of one obelisk's 3x3; ::pos says which"}
+  ]
+}

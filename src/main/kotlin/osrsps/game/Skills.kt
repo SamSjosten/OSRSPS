@@ -151,7 +151,21 @@ class PlayerSkills(private val rate: XpRate = XpRate()) {
      */
     fun addTenths(skill: Skill, amount: Int): Int {
         require(amount >= 0) { "XP can only be added, not $amount" }
+        if (xpHeld > 0) return 0
         return addExactTenths(skill, rate.apply(amount))
+    }
+
+    private var xpHeld = 0
+
+    /** Runs [block] with the XP the game grants ([addTenths]) withheld when [hold]: a free cast at the Fountain of Rune. */
+    fun <T> withoutXpIf(hold: Boolean, block: () -> T): T {
+        if (!hold) return block()
+        xpHeld++
+        try {
+            return block()
+        } finally {
+            xpHeld--
+        }
     }
 
     /**

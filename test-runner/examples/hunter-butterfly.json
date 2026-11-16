@@ -1,0 +1,22 @@
+{
+ "name": "Hunter step 6a: a ruby harvest caught in the Piscatoris Hunter area with the insect net into a butterfly jar at 99 Hunter, released for its Attack boost and the jar back (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario hunter", "expectMessage": "Started scenario hunter.", "comment": "an insect net and a butterfly jar among the Hunter loadout; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::setlevel hunter 99", "expectMessage": "Hunter set to level 99", "comment": "a ruby harvest's catch (guessed pair) is near sure at 99"},
+  {"step": "itemOption", "itemId": 10010, "option": "Wield", "comment": "the insect net by id: called Butterfly net before 11 November 2026, so a server on an older cache names it so (nightly 2026-11-16)"},
+  {"step": "assertEquipment", "slot": "weapon", "itemId": 10010},
+  {"step": "command", "text": "::tele 2316 3605 0", "comment": "among the Piscatoris ruby harvests (npc-spawns/hunter-butterflies.json)"},
+  {"step": "npcOption", "npc": "Ruby harvest", "option": "Catch", "comment": "a miss is possible; run the step again"},
+  {"step": "assertMessage", "contains": "hunter.caught", "timeoutMs": 15000},
+  {"step": "assertInventory", "item": "Ruby harvest", "count": 1},
+  {"step": "waitTicks", "ticks": 3, "comment": "the catch holds the player for 3 ticks, and a click during it is dropped"},
+  {"step": "itemOption", "item": "Ruby harvest", "option": "Release"},
+  {"step": "assertMessage", "contains": "hunter.released"},
+  {"step": "assertInventory", "item": "Butterfly jar", "count": 1},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

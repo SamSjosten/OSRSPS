@@ -79,8 +79,8 @@ class CycleStep(val delay: Int, val action: EncounterContext.() -> Unit) {
 
 /**
  * Tiles that hurt whoever stands on them: shown with [warning] when made, then from [startTick] to [endTick] (both
- * included) dealing [minDamage] to [maxDamage] each tick to every player on one, with [spotanim] played on each tile
- * on [startTick].
+ * included) dealing [minDamage] to [maxDamage] each tick to every player on one (only [only] when set), with
+ * [spotanim] played on each tile on [startTick].
  */
 class Hazard internal constructor(
     val tiles: Set<Tile>,
@@ -90,6 +90,7 @@ class Hazard internal constructor(
     val minDamage: Int,
     val maxDamage: Int,
     val spotanim: Int,
+    val only: Player? = null,
 )
 
 /** What a running encounter gives its phases' steps: the boss, the players, and the ways to hurt them. */
@@ -116,9 +117,13 @@ interface EncounterContext {
 
     /**
      * Marks [tiles] with [warning] now, and hurts whoever stands on one with [minDamage] to [maxDamage] each tick from
-     * [warnTicks] ticks on, for [ticks] ticks, with [spotanim] on each tile when they start; -1 for no spotanim.
+     * [warnTicks] ticks on, for [ticks] ticks, with [spotanim] on each tile when they start; -1 for no spotanim. With
+     * [only] set, nobody else on the tiles is hurt (an attack aimed at one player, as the Chaos Fanatic's explosions).
      */
-    fun hazard(tiles: Collection<Tile>, warning: Int, warnTicks: Int, ticks: Int, minDamage: Int, maxDamage: Int, spotanim: Int = -1): Hazard
+    fun hazard(
+        tiles: Collection<Tile>, warning: Int, warnTicks: Int, ticks: Int, minDamage: Int, maxDamage: Int, spotanim: Int = -1,
+        only: Player? = null,
+    ): Hazard
 
     /** Puts in an add of [type] on [x], [z] on the boss's level, gone when the fight ends; null with no room for it. */
     fun spawnAdd(type: NpcType, x: Int, z: Int): Npc?
@@ -145,4 +150,17 @@ interface EncounterContext {
 
     /** Writes [text] to the fight's log, which tests and `::encounter` read. */
     fun log(text: String)
+}
+
+/**
+ * Who [npc] still fights: its target while that player is one of [EncounterContext.players]. Once they aren't (out of
+ * the fight's area, dead, gone), [npc] gives them up, so its fight with them stops being renewed and another player
+ * can take it on (Codex on W4.2: standing just outside the area held the boss for good).
+ */
+fun EncounterContext.heldTarget(npc: Npc = boss): Player? {
+    val held = npc.target ?: return null
+    if (players.any { it === held }) return held
+    npc.target = null
+    world.npcs.stopFollowing(npc)
+    return null
 }

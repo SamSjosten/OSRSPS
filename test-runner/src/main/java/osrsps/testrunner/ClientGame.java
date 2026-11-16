@@ -1671,6 +1671,36 @@ final class ClientGame implements Game
 	}
 
 	@Override
+	public String castOnPlayer(int interfaceId, int component, String name)
+	{
+		int packed = interfaceId << 16 | component;
+		Widget spell = client.getWidget(packed);
+		if (spell == null)
+		{
+			return "interface " + interfaceId + ":" + component + " is not open";
+		}
+		Player me = client.getLocalPlayer();
+		Player target = null;
+		for (Player p : client.getTopLevelWorldView().players())
+		{
+			if (p != null && p != me && p.getName() != null
+				&& net.runelite.client.util.Text.toJagexName(p.getName()).equalsIgnoreCase(net.runelite.client.util.Text.toJagexName(name)))
+			{
+				target = p;
+			}
+		}
+		if (target == null)
+		{
+			return "no player \"" + name + "\" in view";
+		}
+		String spellName = spell.getName() == null ? "" : spell.getName();
+		// The spell first, as for castOnNpc; then the player, which the client sends as OPPLAYERT with the spell.
+		client.menuAction(-1, packed, MenuAction.WIDGET_TARGET, 0, -1, "Cast", spellName);
+		client.menuAction(0, 0, MenuAction.WIDGET_TARGET_ON_PLAYER, target.getId(), -1, "Cast", spellName + " -> " + target.getName());
+		return null;
+	}
+
+	@Override
 	public String widgetText(int interfaceId, int component)
 	{
 		List<String> texts = new ArrayList<>();

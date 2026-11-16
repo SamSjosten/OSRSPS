@@ -11,6 +11,7 @@ import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
+import osrsps.game.Wilderness
 import osrsps.game.World
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
@@ -155,22 +156,25 @@ class HeadlessCanoeTest {
     }
 
     @Test
-    fun `a waka's Ferox Enclave and Wilderness Pond refuse until the Wilderness is built`(@TempDir dir: Path) {
+    fun `a waka reaches the Ferox Enclave and the Wilderness Pond`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { client ->
                 client.canoeist(99)
                 client.makeAndFloat(CanoeType.WAKA)
                 client.ifButton(Canoes.MAP, CanoeDestination.FEROX_ENCLAVE.component, 1)
-                client.seen("[canoe.wilderness]")
-                assertEquals(CanoeType.WAKA.number + 10, client.lumbridge())
-                // The refusal closed the map: wait for that before opening it again, or the open seen is the old one.
-                client.await("the map closed") { if (Canoes.MAP !in client.openInterfaces()) Unit else null }
-                client.locOp(CanoeStation.LUMBRIDGE.loc, LUM_X, LUM_Z, 1)
-                client.await("the river map again") { if (Canoes.MAP in client.openInterfaces()) Unit else null }
-                client.ifButton(Canoes.MAP, CanoeDestination.EDGEVILLE.component, 1)
-                val to = CanoeDestination.EDGEVILLE
-                client.await("landed", timeoutMillis = 20_000) { client.position?.takeIf { it.x == to.x && it.z == to.z } }
-                client.seen("[canoe.arrive_edgeville]")
+                val ferox = CanoeDestination.FEROX_ENCLAVE
+                client.await("landed at the Ferox Enclave", timeoutMillis = 20_000) { client.position?.takeIf { it.x == ferox.x && it.z == ferox.z } }
+                client.seen("[canoe.arrive_ferox]")
+                assertEquals(Canoes.TREE, client.lumbridge())
+
+                client.tele(LUM_X + 2, LUM_Z - 1)
+                client.makeAndFloat(CanoeType.WAKA)
+                client.ifButton(Canoes.MAP, CanoeDestination.WILDERNESS_POND.component, 1)
+                val pond = CanoeDestination.WILDERNESS_POND
+                client.await("landed at the pond", timeoutMillis = 20_000) { client.position?.takeIf { it.x == pond.x && it.z == pond.z } }
+                client.seen("[canoe.arrive_pond]")
+                client.seen("[canoe.pond_walk]")
+                assertEquals(35, Wilderness.level(pond.x, pond.z))
             }
         }
     }

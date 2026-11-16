@@ -1,0 +1,6 @@
+{
+  "about": "The King Black Dragon's lair (Wilderness step W4.6): the King Black Dragon. Its tile is mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live), in map square 35_73, where the 242 map has the lair's lever. Its wander range is guessed until recorded.",
+  "spawns": [
+    {"npc": "king_dragon", "x": 2269, "z": 4697, "wander": 10, "source": "King Black Dragon, his lair. mejrs NPCList_OSRS; wander guessed"}
+  ]
+}

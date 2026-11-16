@@ -1,0 +1,17 @@
+{
+  "name": "Wilderness step W2.4: a dark warrior at the Dark Warriors' Fortress (level 14) fought, killed and leaving its bones",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off)."},
+    {"step": "command", "text": "::tele 3024 3629 0", "expectMessage": "Teleported to 3024, 3629, 0", "comment": "inside the fortress, beside a level 145 dark warrior's spawn"},
+    {"step": "npcOption", "npc": "Dark warrior", "option": "Attack", "timeoutMs": 20000},
+    {"step": "assertHitsplat", "npc": "Dark warrior", "timeoutMs": 20000, "comment": "beside it and swinging"},
+    {"step": "command", "text": "::drops", "expectMessage": "Dark warrior always drops: Bones", "comment": "the one being fought, level 8 or 145: both drop bones"},
+    {"step": "command", "text": "::kill", "expectMessage": "Killed Dark warrior #"},
+    {"step": "assertAnimation", "id": 836, "npc": "Dark warrior", "comment": "human_death"},
+    {"step": "assertGroundItem", "item": "Bones", "timeoutMs": 15000},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
+  ]
+}

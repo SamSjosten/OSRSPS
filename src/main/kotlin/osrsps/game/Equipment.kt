@@ -52,6 +52,12 @@ class Equipment(
     val requirements: WearRequirements = WearRequirements.NONE,
 ) {
     /**
+     * Whether the item [obj] worn by a player has to stay on, as the falconer's glove does until Matthias takes it back:
+     * content sets it, tells the player why, and returns true. Neither Remove nor wearing something over it takes it off.
+     */
+    var keptOn: (player: Player, obj: Int) -> Boolean = { _, _ -> false }
+
+    /**
      * Wears the item in inventory [slot]. What it replaces goes into the inventory slot it leaves; a two-handed weapon
      * worn over both a weapon and a shield needs one more free slot for the shield. Levels are checked against base
      * levels, so boosts don't count. Both rules and the slots things land in are from memory of live, not checked
@@ -78,6 +84,7 @@ class Equipment(
             return EquipResult.Done
         }
         val displaced = displacedBy(type, worn).mapNotNull { wearpos -> worn[wearpos]?.let { wearpos to it } }
+        if (displaced.any { keptOn(player, it.second.id) }) return EquipResult.Ignored
         // The item's own slot takes the first displaced item; the rest need free slots.
         if (displaced.size - 1 > inv.freeSlots) return EquipResult.NoSpace
         inv[slot] = null
@@ -95,6 +102,7 @@ class Equipment(
         if (wearpos !in 0 until WearPos.COUNT) return EquipResult.Ignored
         val worn = player.equipment
         val obj = worn[wearpos] ?: return EquipResult.Ignored
+        if (keptOn(player, obj.id)) return EquipResult.Ignored
         val type = objTypes[obj.id]
         val inv = player.inventory
         if (type != null && type.stackable) {

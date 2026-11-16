@@ -1,12 +1,22 @@
 {
-  "about": "In the Feldip Hunter area among the crimson swifts, with 63 Hunter (three traps), five bird snares, five box traps and five net traps, for the Hunter steps.",
-  "notes": "Crimson swifts here (npc-spawns/hunter-birds.json); tropical wagtails (19) at ::tele 2512 2905. Golden warblers (5): ::tele 3402 3150 (Uzer). Copper longtails (9): ::tele 2340 3590 (Piscatoris). Cerulean twitches (11): ::tele 2725 3770 (Rellekka). Carnivorous chinchompas (63): ::tele 2556 2925 (Feldip), ::tele 2520 9296 (under it). Ferrets (27): ::tele 2313 3510; chinchompas (53): ::tele 2340 3595 (both Piscatoris). Swamp lizards (29): ::tele 3549 3443 (Canifis). Orange salamanders (47): ::tele 3410 3085 (Uzer). Red salamanders (59): ::tele 2451 3227 (Ourania). A net trap goes on a young tree from a tile square to one of its sides. Lower Hunter with ::setlevel to see the trap count (2 below 40) and the catches a low level always misses. The loadout is ours.",
+  "about": "In the Feldip Hunter area among the crimson swifts, with 63 Hunter (three traps), five bird snares, five box traps, five net traps, a knife, logs, a teasing stick, an insect net, a butterfly jar and an impling jar, for the Hunter steps.",
+  "notes": "Crimson swifts here (npc-spawns/hunter-birds.json); tropical wagtails (19) at ::tele 2512 2905. Golden warblers (5): ::tele 3402 3150 (Uzer). Copper longtails (9): ::tele 2340 3590 (Piscatoris). Cerulean twitches (11): ::tele 2725 3770 (Rellekka). Carnivorous chinchompas (63): ::tele 2556 2925 (Feldip), ::tele 2520 9296 (under it). Ferrets (27): ::tele 2313 3510; chinchompas (53): ::tele 2340 3595 (both Piscatoris). Swamp lizards (29): ::tele 3549 3443 (Canifis). Orange salamanders (47): ::tele 3410 3085 (Uzer). Red salamanders (59): ::tele 2451 3227 (Ourania). A net trap goes on a young tree from a tile square to one of its sides. Deadfalls (a knife and logs on a boulder): wild kebbits (23) ::tele 2307 3578 (Piscatoris), barb-tailed (33) ::tele 2573 2899 (Feldip), prickly (37) ::tele 2307 3607 (Piscatoris), sabre-toothed (51) ::tele 2711 3775 (Rellekka). Pitfalls (Trap on a pit with a knife and logs, Tease the creature, Jump the spiked pit): spined larupias (31) ::tele 2548 2906 (Feldip), horned graahks (41) ::tele 2768 3007 (Karamja), sabre-toothed kyatts (55) ::tele 2703 3790 (Rellekka), sunlight antelopes (72) ::tele 1746 3008 (Avium Savannah), moonlight antelopes (91) ::tele 1559 9419 (the Burrow). Butterflies (wield the insect net, or barehanded 10 levels over): ruby harvests (15) ::tele 2316 3605 (Piscatoris), sapphire glacialis (25) ::tele 2703 3822 and snowy knights (35) ::tele 2701 3804 (Rellekka), black warlocks (45) ::tele 2563 2920 (Feldip), sunlight moths (65) ::tele 1568 2995 (Avium Savannah), moonlight moths (75) ::tele 1554 9433 (under the Hunter Guild). Implings show at random points across Gielinor every 30 minutes (the Impling page's map), a crystal impling in Prifddinas; ::npc ii_impling_type_1 puts a baby impling down to try. Falconry (43): ::tele 2377 3600 (Piscatoris falconry area); Quick-falcon on Matthias rents the falcon for 500 coins with the weapon and shield slots empty; spotted (43), dark (57) and dashing (69) kebbits. Hunter shops (Trade): Aleck ::tele 2568 3082 (Yanille), Artimeus ::tele 3443 2902 (Nardah), Bea ::tele 3316 3376, Elder Strom ::tele 3160 2410; the packs Open into 100 traps. Asyff (Fur Clothing) in Varrock ::tele 3281 3398 makes camo, big-cat clothing, gloves of silence and the spotted capes from furs and coins. Lower Hunter with ::setlevel to see the trap count (2 below 40) and the catches a low level always misses. The loadout is ours.",
   "position": { "x": 2611, "z": 2918, "level": 0 },
   "skills": { "hunter": 63 },
   "run": true,
   "inventory": [
     { "item": "hunting_ojibway_bird_snare", "count": 5 },
     { "item": "hunting_box_trap", "count": 5 },
-    { "item": "net_trap", "count": 5 }
+    { "item": "net_trap", "count": 5 },
+    { "item": "knife", "count": 1 },
+    { "item": "hunting_teasing_stick", "count": 1 },
+    { "item": "hunting_butterfly_net", "count": 1 },
+    { "item": "butterfly_jar", "count": 1 },
+    { "item": "ii_impling_jar", "count": 1 },
+    { "item": "logs" },
+    { "item": "logs" },
+    { "item": "logs" },
+    { "item": "logs" },
+    { "item": "logs" }
   ]
 }

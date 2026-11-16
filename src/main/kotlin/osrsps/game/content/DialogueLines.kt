@@ -14,6 +14,7 @@ import osrsps.game.combat.PoisonLines
 import osrsps.game.combat.PotionLines
 import osrsps.game.combat.PrayerLines
 import osrsps.game.combat.PvpLines
+import osrsps.game.combat.DragonfireLines
 import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
 import osrsps.game.ge.GrandExchangeLines
@@ -56,6 +57,7 @@ import osrsps.game.skill.ThievingLockLines
 import osrsps.game.skill.WoodcuttingLines
 import osrsps.game.skill.farming.FarmingLines
 import osrsps.game.skill.hunter.HunterLines
+import osrsps.game.skill.hunter.MatthiasLines
 import osrsps.game.skill.farming.GardenerLines
 import osrsps.game.skill.farming.NoteLines
 import osrsps.game.skill.farming.ToolStoreLines
@@ -166,10 +168,23 @@ object DialogueLines {
         DummyLines,
         EdgevilleClosedLines,
         EdgevilleDungeonLines,
+        LavaMazeLines,
+        ChaosTempleLines,
+        ResourceAreaLines,
+        MageArenaBankLines,
+        WildernessBossLines,
+        CrazyArchaeologistLines,
+        ChaosFanaticLines,
+        VolcanicForgeLines,
+        KingBlackDragonLines,
+        osrsps.game.FountainOfRuneLines,
         OborLines,
         BryophytaLines,
         EmoteLines,
         GiantBonesLines,
+        FeroxEnclaveLines,
+        WildernessObeliskLines,
+        WildernessLeverLines,
         StrongholdLines,
         SkullSceptreLines,
         SolztunLines,
@@ -211,6 +226,7 @@ object DialogueLines {
         HariLines,
         HarlanLines,
         HassanLines,
+        MatthiasLines,
         MikasiLines,
         HaystackLines,
         HeadChefLines,
@@ -317,6 +333,7 @@ object DialogueLines {
         PrayerLines,
         PriceCheckerLines,
         PvpLines,
+        DragonfireLines,
         osrsps.game.ge.ItemSetsLines,
         osrsps.game.ge.PriceGuideLines,
         BrugsenLines,

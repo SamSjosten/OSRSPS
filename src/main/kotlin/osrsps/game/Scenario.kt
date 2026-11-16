@@ -198,6 +198,7 @@ class Scenarios(scenarios: Collection<Scenario>) {
         val FILES = listOf(
             "agility",
             "artisan-2",
+            "bryophyta",
             "farming",
             "fishing-cooking",
             "gathering",
@@ -211,6 +212,9 @@ class Scenarios(scenarios: Collection<Scenario>) {
             "museum-finds",
             "museum-quiz",
             "museum-timeline",
+            "obor",
+            "pvp",
+            "runecraft",
             "thieving",
         )
 

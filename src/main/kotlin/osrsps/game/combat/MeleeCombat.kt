@@ -710,6 +710,8 @@ class MeleeCombat(
         // Only an NPC with a spell rolls for it, so World.random runs as before for every other.
         val spell = def.spell
         if (spell != null && spellCasts(spell, player) && random.chance(1, spell.chance)) return cast(npc, player, spell.attack, tick)
+        val fire = def.dragonfire
+        if (fire != null && random.chance(1, fire.chance)) return breathe(npc, player, fire, tick)
         val shown = if (anim >= 0) anim else def.anims.attack
         if (shown >= 0) npc.effects.anim(shown)
         npc.face(player)
@@ -835,6 +837,23 @@ class MeleeCombat(
         shots += Shot(npc, player, attack, hit, blocked, if (blocked) 0 else reduced, tick + delay)
     }
 
+    /**
+     * [npc] breathes dragonfire at [player] ([Dragonfire]): its Magic accuracy against their Magic defence, capped by an
+     * anti-dragon shield or Protect from Magic, with the message for which held.
+     */
+    private fun breathe(npc: Npc, player: Player, fire: NpcDragonfire, tick: Long) {
+        if (fire.anim >= 0) npc.effects.anim(fire.anim)
+        npc.face(player)
+        if (fire.cast >= 0) npc.effects.spotanim(0, fire.cast, CAST_HEIGHT)
+        val roll = combat.npcAttack(npc, player, AttackType.MAGIC) ?: return
+        val resisted = !CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)
+        val shield = Dragonfire.shielded(player)
+        val prayer = protects(player, AttackType.MAGIC)
+        val damage = CombatMath.rollDamage(random, Dragonfire.maxHit(shield, prayer, resisted))
+        message(player, words(player)[Dragonfire.line(shield, prayer, resisted)])
+        hitPlayer(player, npc, damage, tick)
+    }
+
     private fun pick(attacks: List<NpcRangedAttack>): NpcRangedAttack {
         if (attacks.size == 1) return attacks[0]
         var roll = random.nextInt(attacks.sumOf { it.weight })
@@ -857,6 +876,7 @@ class MeleeCombat(
             if (shot.blocked && shot.attack.maxHit != 0) {
                 // The prayer shows a 0, hit or miss.
                 hitPlayer(player, shot.npc, 0, tick)
+                shotPoison(shot)
                 continue
             }
             if (!shot.hit || shot.blocked) {
@@ -870,8 +890,19 @@ class MeleeCombat(
                 attackedWithoutHit(player, shot.npc, tick)
             } else {
                 hitPlayer(player, shot.npc, shot.damage, tick)
+                shotPoison(shot)
             }
         }
+    }
+
+    /**
+     * A poisonous NPC's shot that landed poisons as its swing does ([swingAt]): whatever the hit did, through a
+     * protection prayer too, one time in four (guessed, as there). Not a splash: that missed. Scorpia's offspring
+     * (Codex on Wilderness step W4.4: their poison never came, as only the swing poisoned).
+     */
+    private fun shotPoison(shot: Shot) {
+        val poison = combat.npcCombat[shot.npc.type]?.poison ?: return
+        if (poison > 0 && !shot.player.dead && random.chance(1, PoisonedWeapons.MELEE_CHANCE)) poisonPlayer(shot.player, poison)
     }
 
     /**
@@ -899,7 +930,7 @@ class MeleeCombat(
     }
 
     /** [npc]'s projectile at [player], landing [ticks] later, in client cycles; a player's spell's numbers (guessed). */
-    private fun flight(npc: Npc, player: Player, id: Int, ticks: Int): Projectile = Projectile(
+    fun flight(npc: Npc, player: Player, id: Int, ticks: Int): Projectile = Projectile(
         id = id,
         fromX = npc.x,
         fromZ = npc.z,
@@ -942,7 +973,10 @@ class MeleeCombat(
      */
     fun hitPlayer(player: Player, source: Npc?, damage: Int, tick: Long): Int {
         if (player.hitpoints <= 0 || player.dead) return 0
-        val dealt = hurt(player, source?.index ?: -1, damage)
+        // The shield holds while they stand still and leave every NPC alone (round 38, R38A-1).
+        val shielded = source != null && source.type.id == player.shieldedFrom && tick in player.shieldedSince..player.shieldedUntil &&
+            player.lastMoveTick < player.shieldedSince && player.attackedNpcTick < player.shieldedSince
+        val dealt = hurt(player, source?.index ?: -1, if (shielded) 0 else damage)
         if (source != null) {
             player.attackedBy = source
             player.attackedTick = tick
@@ -1107,6 +1141,7 @@ class MeleeCombat(
         player.freezeTicks = 0
         player.frozenBy = null
         player.pjOpponent = null
+        player.pjAfterKill = false
     }
 
     /**

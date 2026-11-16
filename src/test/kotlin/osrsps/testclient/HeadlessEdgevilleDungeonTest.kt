@@ -3,9 +3,12 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.GameFrame
 import osrsps.game.GameRandom
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
@@ -14,6 +17,7 @@ import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.InventoryTab
 import osrsps.game.SeqNames
+import osrsps.game.Wilderness
 import osrsps.game.World
 import osrsps.game.combat.NpcCombat
 import osrsps.game.content.EdgevilleDungeon
@@ -35,7 +39,7 @@ import osrsps.map.LocShape
 
 /**
  * Edgeville piece step 10 through the headless client and the registered handlers: the trapdoor down and the ladder
- * back up, a metal gate's two leaves, the odd looking wall, the north gate's refusal, and a level 18 zombie fought with
+ * back up, a metal gate's two leaves, the odd looking wall, the north gate into the Wilderness's part, a chaos druid there, and a level 18 zombie fought with
  * the real combat and drop files. The locs are placed as the 241 cache has them (types, shapes, angles and options), on
  * open ground. The rl-client script test-runner/examples/edgeville-dungeon.json does the same on the real map.
  */
@@ -89,6 +93,11 @@ class HeadlessEdgevilleDungeonTest {
         internalName = "zombie2", stats = NpcStats(attack = 13, defence = 18, strength = 13, hitpoints = 24),
     )
 
+    private val druid = NpcType(
+        DRUID, "Chaos druid", ops = listOf(null, "Attack", null, null, null), combatLevel = 13,
+        internalName = "chaos_druid", stats = NpcStats(attack = 8, defence = 12, strength = 8, hitpoints = 20),
+    )
+
     private val giant = NpcType(
         GIANT, "Hill Giant", ops = listOf(null, "Attack", null, null, null), combatLevel = 28,
         internalName = "giant", stats = NpcStats(attack = 18, defence = 26, strength = 22, hitpoints = 35),
@@ -102,8 +111,9 @@ class HeadlessEdgevilleDungeonTest {
             markLoaded(3105 shr 6, 9944 shr 6)
             markLoaded(3115 shr 6, 3450 shr 6)
             markLoaded(3116 shr 6, 9852 shr 6)
+            markLoaded(DRUID_X shr 6, DRUID_Z shr 6)
         }
-        val npcTypes = NpcTypes.of(zombie, giant)
+        val npcTypes = NpcTypes.of(zombie, giant, druid)
         val drops = DropTestItems.objTypes()
         val objTypes = ObjTypes.of(*(0 until drops.size).mapNotNull { drops[it] }.toTypedArray(), ObjType(EdgevilleDungeon.BRASS_KEY, "Brass key"))
         World(
@@ -111,6 +121,7 @@ class HeadlessEdgevilleDungeonTest {
             npcTypes = npcTypes, npcSpawns = listOf(
                 NpcSpawn(zombie, ZOMBIE_X, ZOMBIE_Z, wander = 0, source = "test"),
                 NpcSpawn(giant, GIANT_X, GIANT_Z, wander = 0, source = "test"),
+                NpcSpawn(druid, DRUID_X, DRUID_Z, wander = 0, source = "test"),
             ),
             npcCombat = NpcCombat.load(npcTypes, SeqNames.NONE), npcDrops = NpcDrops.load(npcTypes, objTypes), cycleMillis = millis,
         )
@@ -197,7 +208,7 @@ class HeadlessEdgevilleDungeonTest {
     }
 
     @Test
-    fun `the odd looking wall opens and lets the player through both ways, and the north gate stays shut`(@TempDir dir: Path) {
+    fun `the odd looking wall opens and lets the player through both ways, and the north gate opens into the Wilderness`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("dan").use { client ->
                 client.await("the login rebuild") { client.position }
@@ -215,12 +226,23 @@ class HeadlessEdgevilleDungeonTest {
                 client.awaitAt(3093, 9895, 0)
 
                 client.tele(3131, 9916, 0)
+                // The gate is on its tiles' north edge: the player walks up to it, and Open takes them through into the
+                // Wilderness's part, its leaves swung open and back shut after.
                 client.locOp(EdgevilleDungeon.NORTH_GATE_LEFT, 3131, 9917, EdgevilleDungeon.OPEN)
-                client.seen(DialogueText.NONE[EdgevilleDungeonLines.GATE_CLOSED])
-                client.awaitTicks(2)
-                // The gate is on its tiles' north edge: the player walks up to it and stays south of it.
-                assertEquals(Coord(3131, 9917, 0), client.position)
-                assertNotNull(server.world.locs.find(EdgevilleDungeon.NORTH_GATE_LEFT, 3131, 9917, 0))
+                client.awaitAt(3131, 9918, 0)
+                // The Wilderness starts two rows further north, at level 1, as the client's wilderness_level script has it.
+                assertFalse(Wilderness.inside(3131, 9919))
+                client.walk(3131, 9920)
+                client.awaitAt(3131, 9920, 0)
+                assertEquals(1, Wilderness.level(3131, 9920))
+                client.await("the Wilderness overlay") { Unit.takeIf { GameFrame.PVP_ICONS in client.openInterfaces() } }
+                client.await("the gate shut again") { server.world.locs.find(EdgevilleDungeon.NORTH_GATE_LEFT, 3131, 9917, 0) }
+                assertNotNull(server.world.locs.find(EdgevilleDungeon.NORTH_GATE_RIGHT, 3132, 9917, 0))
+                // And back the other way through the right leaf.
+                client.tele(3132, 9918, 0)
+                client.locOp(EdgevilleDungeon.NORTH_GATE_RIGHT, 3132, 9917, EdgevilleDungeon.OPEN)
+                client.awaitAt(3132, 9917, 0)
+                client.await("the overlay gone south of the gate") { Unit.takeIf { GameFrame.PVP_ICONS !in client.openInterfaces() } }
             }
         }
     }
@@ -237,6 +259,25 @@ class HeadlessEdgevilleDungeonTest {
                 val npc = client.await("the zombie in view") { client.npcs().firstOrNull { it.id == ZOMBIE } }
                 client.npcOp(npc.index, 2)
                 client.await("the zombie's death", timeoutMillis = 60_000) { if (client.npcs().none { it.id == ZOMBIE }) Unit else null }
+                val bones = client.await("the bones") { client.groundObjs().firstOrNull { it.id == BONES } }
+                assertEquals(1, bones.count)
+            }
+        }
+    }
+
+    @Test
+    fun `a chaos druid in the Wilderness's part killed drops its bones`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("emma").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(DRUID_X - 1, DRUID_Z, 0)
+                assertTrue(Wilderness.inside(DRUID_X, DRUID_Z))
+                client.commandReply("god") { it.startsWith("You can") }
+                client.command("setlevel attack 99")
+                client.command("setlevel strength 99")
+                val npc = client.await("the druid in view") { client.npcs().firstOrNull { it.id == DRUID } }
+                client.npcOp(npc.index, 2)
+                client.await("the druid's death", timeoutMillis = 60_000) { if (client.npcs().none { it.id == DRUID }) Unit else null }
                 val bones = client.await("the bones") { client.groundObjs().firstOrNull { it.id == BONES } }
                 assertEquals(1, bones.count)
             }
@@ -305,5 +346,10 @@ class HeadlessEdgevilleDungeonTest {
         const val ZOMBIE_X = 3139
         const val ZOMBIE_Z = 9885
         const val BONES = 526
+
+        /** chaos_druid in the 242 cache, put north of the north gate, out of reach of the gate's test. */
+        const val DRUID = 520
+        const val DRUID_X = 3150
+        const val DRUID_Z = 9930
     }
 }

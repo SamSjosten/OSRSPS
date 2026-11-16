@@ -125,6 +125,16 @@ class PlayerSaveTest {
     }
 
     @Test
+    fun `an old save's hit-back rights keyed by a lowercased name with a space come back under its save key`() {
+        val player = world.loadPlayer(1, "Test")
+        player.attackedFirst["some player"] = 1_000
+        player.attackedFirst["vic"] = 900
+        assertTrue(world.save(player))
+        val back = world.loadPlayer(2, "test")
+        assertEquals(mapOf("some_player" to 1_000, "vic" to 900), back.attackedFirst.toMap())
+    }
+
+    @Test
     fun `charges are saved, and a save without them loads with none`() {
         val text = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap(), charges = mapOf("blowpipe_scales" to 500)).toJson("test")
         assertEquals(mapOf("blowpipe_scales" to 500), PlayerSave.fromJson(text).charges)

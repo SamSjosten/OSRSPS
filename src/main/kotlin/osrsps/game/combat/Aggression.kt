@@ -14,7 +14,8 @@ import osrsps.map.Tile
  * How an NPC attacks players who haven't attacked it, from its combat file's `"aggressive"` (OSRS Wiki,
  * Aggressiveness, read 2026-10-30). [huntRange] is how far from its south-west tile it looks, not counting its size;
  * the Wiki gives no numbers, so 5, the 2004Scape engine's default `huntrange`, is guessed. [ignoresLevels]: it attacks
- * whatever the player's combat level, as bosses and most Wilderness monsters do. [tolerant]: it leaves a player alone
+ * whatever the player's combat level, as bosses do; every aggressive monster standing in the Wilderness does too (the
+ * Wiki says most do; that it is all of them is inferred, so no Wilderness monster's file has to say so). [tolerant]: it leaves a player alone
  * after their ten minutes in the area; bosses, dark beasts and bandits never do.
  */
 data class NpcAggression(val huntRange: Int = DEFAULT_HUNT_RANGE, val ignoresLevels: Boolean = false, val tolerant: Boolean = true) {
@@ -151,7 +152,8 @@ class Aggression(
         if (max(abs(player.x - npc.x), abs(player.z - npc.z)) > aggression.huntRange) return false
         if (!inAggressionRange(npc, player.x, player.z, npcCombat(npc)?.range ?: ATTACK_RANGE)) return false
         if (!sees(npc, player)) return false
-        if (!aggression.ignoresLevels && npc.type.combatLevel < ALWAYS_LEVEL && player.skills.combatLevel > 2 * npc.type.combatLevel) return false
+        if (!aggression.ignoresLevels && npc.type.combatLevel < ALWAYS_LEVEL && osrsps.game.Wilderness.level(npc.x, npc.z) == 0 &&
+            player.skills.combatLevel > 2 * npc.type.combatLevel) return false
         if (aggression.tolerant && player.tolerance.tolerant) return false
         return !melee.underAttackByAnother(player, npc) && !melee.fightingAnother(player, npc) && !melee.foughtByAnother(player, npc)
     }

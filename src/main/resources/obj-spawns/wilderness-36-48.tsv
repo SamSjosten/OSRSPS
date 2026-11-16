@@ -1,0 +1,45 @@
+# Item spawns in Wilderness levels 36 to 48 (Wilderness step W3.4): the Lava Maze's knives, body runes, steel
+# platebody, gold necklace, coins, staff of earth and iron full helm; Lava Dragon Isle's burnt bones, black dagger,
+# coins, vials and white berries; the Demonic Ruins' burnt bones and blood rune, and the three blood runes south of
+# Callisto's den. Items, tiles and counts are the OSRS Wiki's item spawn lists on each item's page (read 2026-11-15).
+# The body runes' 45 ticks are their page's; the steel platebody's 2,000 the Lava Maze page's "approximately 20
+# minutes"; the rest are the 100 ticks the other files use, guessed.
+obj	count	x	z	level	respawn
+black_dagger	1	3180	3824	0	100	# Wiki, Black dagger; respawn guessed; Lava Dragon Isle
+bloodrune	1	3297	3890	0	100	# Wiki, Blood rune; respawn guessed; Demonic Ruins
+bloodrune	1	3283	3819	0	100	# Wiki, Blood rune; respawn guessed; south of Callisto
+bloodrune	1	3290	3806	0	100	# Wiki, Blood rune; respawn guessed; south of Callisto
+bloodrune	1	3305	3816	0	100	# Wiki, Blood rune; respawn guessed; south of Callisto
+bodyrune	15	3091	3865	0	45	# Wiki, Body rune (its respawn); Lava Maze
+bones_burnt	1	3313	3890	0	100	# Wiki, Burnt bones; respawn guessed; Demonic Ruins
+bones_burnt	1	3316	3888	0	100	# Wiki, Burnt bones; respawn guessed; Demonic Ruins
+bones_burnt	1	3321	3892	0	100	# Wiki, Burnt bones; respawn guessed; Demonic Ruins
+bones_burnt	1	3287	3887	0	100	# Wiki, Burnt bones; respawn guessed; Demonic Ruins
+bones_burnt	1	3288	3891	0	100	# Wiki, Burnt bones; respawn guessed; Demonic Ruins
+bones_burnt	1	3290	3890	0	100	# Wiki, Burnt bones; respawn guessed; Demonic Ruins
+bones_burnt	1	3291	3888	0	100	# Wiki, Burnt bones; respawn guessed; Demonic Ruins
+bones_burnt	1	3292	3887	0	100	# Wiki, Burnt bones; respawn guessed; Demonic Ruins
+bones_burnt	1	3213	3821	0	100	# Wiki, Burnt bones; respawn guessed; Lava Dragon Isle
+bones_burnt	1	3214	3820	0	100	# Wiki, Burnt bones; respawn guessed; Lava Dragon Isle
+bones_burnt	1	3218	3818	0	100	# Wiki, Burnt bones; respawn guessed; Lava Dragon Isle
+bones_burnt	1	3219	3816	0	100	# Wiki, Burnt bones; respawn guessed; Lava Dragon Isle
+bones_burnt	1	3178	3852	0	100	# Wiki, Burnt bones; respawn guessed; Lava Dragon Isle island
+bones_burnt	1	3179	3850	0	100	# Wiki, Burnt bones; respawn guessed; Lava Dragon Isle island
+bones_burnt	1	3179	3853	0	100	# Wiki, Burnt bones; respawn guessed; Lava Dragon Isle island
+bones_burnt	1	3184	3856	0	100	# Wiki, Burnt bones; respawn guessed; Lava Dragon Isle island
+bones_burnt	1	3185	3850	0	100	# Wiki, Burnt bones; respawn guessed; Lava Dragon Isle island
+bones_burnt	1	3187	3856	0	100	# Wiki, Burnt bones; respawn guessed; Lava Dragon Isle island
+coins	8	3221	3829	0	100	# Wiki, Coins; respawn guessed; Lava Dragon Isle
+coins	6	3220	3826	0	100	# Wiki, Coins; respawn guessed; Lava Dragon Isle
+coins	21	3076	3845	0	100	# Wiki, Coins; respawn guessed; Lava Maze
+coins	25	3108	3859	0	100	# Wiki, Coins; respawn guessed; Lava Maze
+gold_necklace	1	3065	3864	0	100	# Wiki, Gold necklace; respawn guessed; Lava Maze
+iron_full_helm	1	3069	3831	0	100	# Wiki, Iron full helm; respawn guessed; Lava Maze
+knife	1	3061	3851	0	100	# Wiki, Knife; respawn guessed; Lava Maze
+knife	1	3096	3856	0	100	# Wiki, Knife; respawn guessed; Lava Maze
+staff_of_earth	1	3100	3862	0	100	# Wiki, Staff of earth; respawn guessed; Lava Maze
+steel_platebody	1	3085	3859	0	2000	# Wiki, Steel platebody; the Lava Maze page's "approximately 20 minutes"; Lava Maze
+vial_empty	1	3188	3839	0	100	# Wiki, Vial; respawn guessed; Lava Dragon Isle
+vial_empty	1	3196	3849	0	100	# Wiki, Vial; respawn guessed; Lava Dragon Isle
+white_berries	1	3214	3809	0	100	# Wiki, White berries; respawn guessed; Lava Dragon Isle
+white_berries	1	3218	3812	0	100	# Wiki, White berries; respawn guessed; Lava Dragon Isle

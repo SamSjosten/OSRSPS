@@ -1,0 +1,19 @@
+{
+  "name": "Wilderness step W3.8: piece 3's examines with ::keys on, on Mandrith and the Resource Area gate outside it, and Piles inside",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off)."},
+    {"step": "command", "text": "::tele 3185 3946 0", "expectMessage": "Teleported to 3185, 3946, 0", "comment": "level 54, outside the Resource Area gate, beside Mandrith"},
+    {"step": "npcOption", "npcId": 6599, "option": "Examine", "timeoutMs": 20000, "comment": "Mandrith"},
+    {"step": "assertMessage", "contains": "[examine.npc_6599]"},
+    {"step": "locOption", "locId": 26760, "option": "Examine", "timeoutMs": 10000, "comment": "the Resource Area gate at 3184,3944"},
+    {"step": "assertMessage", "contains": "[examine.loc_26760]"},
+    {"step": "command", "text": "::tele 3185 3932 0", "expectMessage": "Teleported to 3185, 3932, 0", "comment": "inside the Resource Area, beside Piles"},
+    {"step": "npcOption", "npcId": 13, "option": "Examine", "timeoutMs": 20000, "comment": "Piles"},
+    {"step": "assertMessage", "contains": "[examine.npc_13]"},
+    {"step": "command", "text": "::tele 3185 3946 0", "expectMessage": "Teleported to 3185, 3946, 0", "comment": "back outside, so a logout inside doesn't matter"},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
+  ]
+}

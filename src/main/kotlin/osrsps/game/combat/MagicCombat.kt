@@ -1,6 +1,7 @@
 package osrsps.game.combat
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import osrsps.game.FountainOfRune
 import osrsps.game.GameRandom
 import osrsps.game.Interaction
 import osrsps.game.Movement
@@ -132,6 +133,12 @@ class MagicCombat(
             logger.info { "${player.username} cast ${spell.name} on $npc, which can't be fought" }
             return
         }
+        // Inferred: the client doesn't offer Tele Block on NPCs (its obj's param 603 is false, true for the spells that
+        // can be cast on them), so only a forged packet gets here.
+        if (spell.teleblock) {
+            logger.info { "${player.username} cast ${spell.name} on $npc, which only players can be" }
+            return
+        }
         val barred = combat.barred(player, npc)
         if (barred != null) {
             message(player, words(player)[barred])
@@ -249,7 +256,8 @@ class MagicCombat(
         // the Wiki gives its styles' skills, not the split).
         val defensive = if (spell.staff != null) combat.style(player).stance == AttackStance.LONGRANGE else fighting && Autocast.defensive(player)
         val speed = if (fighting) combat.attackSpeed(player) else SPEED + combat.wearyDelay(player)
-        if (!release(player, npc, spell, tick, defensive, speed)) {
+        // At the Fountain of Rune the cast is free and trains nothing ([FountainOfRune]).
+        if (!player.skills.withoutXpIf(FountainOfRune.covers(player)) { release(player, npc, spell, tick, defensive, speed) }) {
             stopFacing(player)
             return true
         }
@@ -313,8 +321,8 @@ class MagicCombat(
             message(player, words(player)[CombatLines.MAGIC_LEVEL])
             return false
         }
-        val provided = spells.runesFrom(player.equipment[WearPos.WEAPON]?.id)
-        val short = spell.runes.firstOrNull { it.rune !in provided && player.inventory.count(it.rune) < it.count }
+        val short = FountainOfRune.runesToPay(player, spell.runes, spells.runesFrom(player.equipment[WearPos.WEAPON]?.id))
+            .firstOrNull { player.inventory.count(it.rune) < it.count }
         if (short != null) {
             message(player, notEnough(player, short.rune))
             return false
@@ -332,8 +340,7 @@ class MagicCombat(
      */
     private fun pay(player: Player, spell: CombatSpell, tick: Long, speed: Int): Boolean {
         if (spell.staff != null && !poweredStaves.use(player, spell.staff) { message(player, it) }) return false
-        val provided = spells.runesFrom(player.equipment[WearPos.WEAPON]?.id)
-        for (cost in spell.runes) if (cost.rune !in provided) take(player, cost)
+        for (cost in FountainOfRune.runesToPay(player, spell.runes, spells.runesFrom(player.equipment[WearPos.WEAPON]?.id))) take(player, cost)
         player.nextAttackTick = tick + speed
         val anim = if (combat.weaponCategory(player) == Weapons.STAFF) spell.staffAnim else spell.anim
         if (anim >= 0) player.effects.anim(anim, 0)
@@ -343,11 +350,12 @@ class MagicCombat(
 
     /**
      * [player] casts [spell] on [target], another player ([PvpCombat]), on [tick], the next attack [speed] ticks on: as on
-     * an NPC, held spells refused on a frozen or immune target, and the projectile landing [extra] ticks after the
+     * an NPC, held spells refused on a frozen or immune target and Tele Block on one Tele Blocked already, and the projectile landing [extra] ticks after the
      * spell's own delay. Returns the delay, or null when they can't cast it and have been told why.
      */
     internal fun castAt(player: Player, target: Player, spell: CombatSpell, tick: Long, speed: Int, extra: Int): Int? {
         val held = when {
+            spell.teleblock && target.teleblockTicks > 0 -> PvpLines.TELEBLOCK_ALREADY
             !spell.holds -> null
             target.freezeTicks > 0 -> CombatLines.ALREADY_HELD
             target.freezeImmunityTicks > 0 -> CombatLines.IMMUNE

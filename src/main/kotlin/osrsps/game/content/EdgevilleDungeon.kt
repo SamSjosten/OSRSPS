@@ -8,8 +8,6 @@ import osrsps.map.Tile
 
 /** The Edgeville Dungeon's lines (keys only; the words are in data/dialogue.txt). */
 object EdgevilleDungeonLines : Lines("edgeville_dungeon", "Edgeville Dungeon") {
-    /** Our own words, not live's: the Wilderness isn't built, so the gate into its part of the dungeon stays shut. */
-    val GATE_CLOSED = line("gate_closed", "Open on the gate north of the dungeon's middle: ours, the Wilderness isn't built yet")
     val DOOR_LOCKED = line("door_locked", "Open on the shed's door west of the Cooks' Guild, from either side (2004Scape's edgeville_dungeon script)")
     val DOOR_UNLOCK = line("door_unlock", "the brass key used on the shed's door (2004Scape's edgeville_dungeon script)")
 }
@@ -28,14 +26,18 @@ object EdgevilleDungeonLines : Lines("edgeville_dungeon", "Edgeville Dungeon") {
  *   until a piece builds that one. The landing tile is guessed until recorded.
  * - The metal gates (`metalgateclosedl`/`_r` 1568 and 1569, into `metalgateopenl`/`_r` 1571 and 1572), west of the
  *   skeletons at 3103,9909 and by the mine at 3145,9870, open and close as double doors ([osrsps.game.loc.Doors]),
- *   only here: elsewhere on the map they are nothing interesting until their piece builds them.
+ *   here and north of the Lava Maze's middle ([LavaMaze]): elsewhere on the map they are nothing interesting until their piece builds them.
  * - The odd looking wall west of the unaggressive skeletons (`oddwall_l` 1736 at 3094,9895 and `oddwall_r` 1734 above
  *   it): Push opens both halves (`openoddwall_l`/`_r` 1737 and 1735) for [WALL_OPEN_TICKS] and puts the player on the
  *   other side, as the Cooks' Guild's doors do. The open types have no options, so the wall shuts by itself; how long
  *   it stays open and how the player passes are guessed until recorded.
- * - The gate north of the middle (`membergatel`/`_r` 1727 and 1728 at 3131 and 3132,9917) leads into the Wilderness's
- *   part of the dungeon, which isn't built: Open refuses, in our own words. Elsewhere those types are nothing
- *   interesting until their piece builds them.
+ * - The gate north of the middle (`membergatel`/`_r` 1727 and 1728 at 3131 and 3132,9917, on the north edge of
+ *   their tiles) leads into the Wilderness's part of the dungeon (Wilderness step W2.1): Open swings both leaves open
+ *   for [NORTH_GATE_OPEN_TICKS] and puts the player on the other side, either way ([MemberGates], which the Lava Maze's
+ *   fence gates share). The cache
+ *   has no open types for them, so the leaves turn as they are. Guessed until recorded: the leaves turning, how long
+ *   they stay open, the player passing in a tick, and no warning screen (the Wiki's Edgeville Dungeon page mentions
+ *   none). Elsewhere those types are nothing interesting until their piece builds them.
  * - The zombies, skeletons, hobgoblins, rats and giant spiders fight and drop as npc-combat.json and npc-drops.json
  *   have them (npc-spawns/edgeville-dungeon.json); the mine's rocks mine by type ([osrsps.game.skill.Mining]), the
  *   crates and sacks search by type. Vannaka stands by the gate without talk until Slayer is built, and the obstacle
@@ -93,6 +95,9 @@ object EdgevilleDungeon {
 
     /** The north gate's two leaves. */
     val NORTH_GATE_TILES = listOf(Tile(3131, 9917), Tile(3132, 9917))
+
+    /** How long the north gate stands open after a player goes through (guessed). */
+    const val NORTH_GATE_OPEN_TICKS = MemberGates.OPEN_TICKS
 
     const val VANNAKA = 403
 
@@ -178,7 +183,7 @@ fun registerEdgevilleDungeon(world: World) {
         for (leaf in listOf(GATE_LEFT, GATE_RIGHT, GATE_LEFT_OPEN, GATE_RIGHT_OPEN)) {
             world.handlers.onLoc(leaf, GATE_OPTION) { op ->
                 val loc = op.loc!!
-                if (!inMiddle(loc) || world.doors.toggle(loc, GATE_OPTION, player.saveKey) == null) world.message(player, GameLines.NOTHING_INTERESTING)
+                if (!(inMiddle(loc) || LavaMaze.isMetalGate(loc)) || world.doors.toggle(loc, GATE_OPTION, player.saveKey) == null) world.message(player, GameLines.NOTHING_INTERESTING)
             }
         }
 
@@ -223,11 +228,6 @@ fun registerEdgevilleDungeon(world: World) {
             if (isShedLadder(loc)) climbDungeonLadder(world, loc, down = true, anim = Climbing.ANIM_PICKUP_FLOOR)
             else world.message(player, GameLines.NOTHING_INTERESTING)
         }
-
-        for (leaf in listOf(NORTH_GATE_LEFT, NORTH_GATE_RIGHT)) {
-            world.handlers.onLoc(leaf, OPEN) { op ->
-                world.message(player, if (isNorthGate(op.loc!!)) EdgevilleDungeonLines.GATE_CLOSED else GameLines.NOTHING_INTERESTING)
-            }
-        }
+        // The north gate passes the player through as the Lava Maze's fence gates do ([MemberGates], registered by World).
     }
 }

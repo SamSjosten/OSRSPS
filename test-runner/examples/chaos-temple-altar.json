@@ -1,0 +1,33 @@
+{
+  "name": "Wilderness step W3.4c: bones offered on the Chaos Temple's altar (level 38) for 3.5 times their Prayer XP until none are left, then the Elder Chaos druid's talk, then lava dragon bones buried (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::scenario gathering", "expectMessage": "Started scenario gathering.", "comment": "any scenario: ::reset at the end puts the account's Prayer XP back"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off)."},
+    {"step": "command", "text": "::setlevel prayer 50", "comment": "clear of a level-up, whose box would stop the offerings"},
+    {"step": "command", "text": "::item 526 5", "comment": "five bones"},
+    {"step": "command", "text": "::tele 2949 3820 0", "expectMessage": "Teleported to 2949, 3820, 0", "comment": "inside the temple, east of chaosaltar at 2947, 3820"},
+    {"step": "useItemOnLoc", "itemId": 526, "locId": 411, "x": 2947, "y": 3820},
+    {"step": "assertInventory", "item": "Bones", "count": 0, "timeoutMs": 60000, "comment": "one offering every 3 ticks (guessed), each spared half the time"},
+
+    {"step": "command", "text": "::tele 2956 3816 0", "expectMessage": "Teleported to 2956, 3816, 0", "comment": "outside, by the Elder Chaos druid south of the east wing: the temple's east doors are shut, so he can't be reached from the altar (nightly 2026-11-16)"},
+    {"step": "npcOption", "npc": "Elder Chaos druid", "option": "Talk-to", "timeoutMs": 20000},
+    {"step": "assertDialogue", "contains": "chaos_temple.welcome", "timeoutMs": 10000},
+    {"step": "continueDialogue"},
+    {"step": "continueDialogue"},
+    {"step": "continueDialogue"},
+    {"step": "chooseOption", "text": "[chaos_temple.no]", "comment": "turns down his bone exchange"},
+    {"step": "finishDialogue", "comment": "the chatbox must be clear for the ::item command (nightly 2026-11-16 rerun)"},
+    {"step": "assertNoDialogue", "timeoutMs": 5000},
+
+    {"step": "command", "text": "::item 11943", "expectMessage": "Added 1 x Lava dragon bones", "comment": "lava dragon bones bury since this step"},
+    {"step": "itemOption", "item": "Lava dragon bones", "option": "Bury"},
+    {"step": "assertMessage", "contains": "[bones.buried]"},
+    {"step": "assertInventory", "item": "Lava dragon bones", "count": 0, "timeoutMs": 5000},
+
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
+    {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+  ]
+}

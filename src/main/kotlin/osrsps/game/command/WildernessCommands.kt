@@ -2,6 +2,8 @@ package osrsps.game.command
 
 import osrsps.game.Wilderness
 import osrsps.game.World
+import osrsps.game.combat.Skulls
+import osrsps.game.npc.NpcSpawn
 
 /**
  * `::wildy <level>` jumps to that Wilderness level on the line north of Edgeville (x 3090), on the first tile of the
@@ -18,6 +20,46 @@ fun CommandRegistry.registerWildernessCommands(world: World) {
         world.scripts.interrupt(player)
         world.teleport(player, x, z, 0)
         reply("Jumped to $x, $z: level $level Wilderness")
+    }
+
+    // Wilderness step W4.1: any boss built so far, next to the player, for tests; it never respawns.
+    register("wboss", "::wboss [name]", admin = true) {
+        val bosses = world.wildernessBosses.all
+        if (args.isEmpty()) {
+            reply(if (bosses.isEmpty()) "No Wilderness bosses are built yet." else "Wilderness bosses: ${bosses.joinToString { it.name }}")
+            return@register
+        }
+        val name = args.joinToString(" ")
+        val boss = world.wildernessBosses[name] ?: fail("No Wilderness boss '$name'. ::wboss lists them")
+        val type = world.npcTypes[boss.types.first()] ?: fail("The cache has no NPC ${boss.types.first()}")
+        val npc = world.spawnNpc(NpcSpawn(type, player.x + 1, player.z, player.level, source = spawnSource(player.username), respawns = false))
+            ?: fail("No free NPC slot")
+        reply("Spawned ${type.name} (${type.id}) as #${npc.index} at ${npc.x}, ${npc.z}")
+    }
+
+    // on and off rather than a toggle, so a test script sets the state it needs whatever an earlier one left; with
+    // neither it only says, so a script can check a skull it got from a fight.
+    register("skull", "::skull [on|off]", admin = true) {
+        if (args.size > 1) fail("Usage: ::skull [on|off]")
+        val on = when (args.firstOrNull()?.lowercase()) {
+            null -> {
+                reply(if (player.skullTicks > 0) "You're skulled: ${player.skullTicks} ticks left." else "You have no skull.")
+                return@register
+            }
+            "on" -> true
+            "off" -> false
+            else -> fail("Usage: ::skull [on|off]")
+        }
+        player.skullTicks = if (on) Skulls.TICKS else 0
+        reply(if (on) "You're skulled for ${Skulls.TICKS} ticks (30 minutes)." else "Your skull is gone.")
+    }
+
+    register("pj", "::pj", admin = true) {
+        if (args.isNotEmpty()) fail("Usage: ::pj")
+        val left = (player.pjUntil - world.tick).coerceAtLeast(0)
+        player.pjOpponent = null
+        player.pjUntil = 0
+        reply(if (left > 0) "Your PJ timer is cleared ($left ticks were left): anyone may attack you in single-way combat." else "No PJ timer was running.")
     }
 }
 

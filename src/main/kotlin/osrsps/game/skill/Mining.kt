@@ -7,6 +7,7 @@ import osrsps.game.WearPos
 import osrsps.game.Wilderness
 import osrsps.game.World
 import osrsps.game.dialogue.Lines
+import osrsps.game.npc.Npc
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
 import osrsps.game.script.ScriptContext
@@ -208,6 +209,55 @@ class Mining(private val world: World) {
         world.repeatOp(player, op)
     }
 
+    /**
+     * Mining an NPC that stands for a rock, as the runite golem's head (Wilderness step W3.6b): as a rock of [type] is
+     * mined, with no gem table (inferred), one ore and then [taken], which ends it. Like a rock, the swing runs on the
+     * skill clock and repeats the click ([World.repeatOp]) rather than holding the player, so a walk, a click elsewhere
+     * or an attack ends it at once; the NPC going or a box opening ends it too.
+     */
+    fun onNpcRock(npcType: Int, option: Int, type: RockType, taken: (Npc) -> Unit) {
+        world.handlers.onNpc(npcType, option) { op -> mineNpc(op, type, taken) }
+    }
+
+    private suspend fun ScriptContext.mineNpc(op: Op, type: RockType, taken: (Npc) -> Unit) {
+        val npc = op.npc ?: return
+        if (op.repeat && player.modalOpen) return stop()
+        if (npc.dead || world.npcs[npc.index] !== npc) return stop()
+        val text = world.textFor(player)
+        if (player.inventory.freeSlots == 0) {
+            player.message(text[MiningLines.INVENTORY_FULL, "ore" to type.key])
+            return stop()
+        }
+        if (player.skills.currentLevel(Skill.MINING) < type.level) {
+            player.message(text[MiningLines.LEVEL, "level" to type.level])
+            return stop()
+        }
+        val tool = (tools.best(player) as? ToolCheck.Found)?.tool
+        if (tool == null) {
+            player.message(text[MiningLines.NO_PICKAXE])
+            return stop()
+        }
+        val pickaxe = pickaxes.getValue(tool.obj)
+        if (!op.repeat) {
+            player.message(text[MiningLines.SWING])
+            player.anim(tool.anim)
+        }
+        val ticks = if (player.actionDelay < tick) interval(pickaxe) + (if (op.repeat) 0 else 1) else 1
+        if (SkillClock.step(player, tick, ticks) == ClockStep.DUE) {
+            player.anim(tool.anim)
+            if (SuccessRoll.roll(world.random, type.low, type.high, player.skills.currentLevel(Skill.MINING))) {
+                val ore = world.objTypes[type.ore] ?: error("No obj type ${type.ore} for ${type.key} ore")
+                player.inventory.add(ore, 1)
+                player.skills.addTenths(Skill.MINING, type.xpTenths)
+                player.message(text[MiningLines.GET_ORE, "ore" to type.key])
+                stop()
+                taken(npc)
+                return
+            }
+        }
+        world.repeatOp(player, op)
+    }
+
     /** The mining gem table's roll: 1/256, and with a charged glory a second 3/256 when that misses. */
     private fun gemTableRoll(glory: Boolean): Boolean =
         world.random.chance(GEM_TABLE_CHANCE, GEM_TABLE_DENOMINATOR) ||
@@ -316,7 +366,7 @@ class Mining(private val world: World) {
         private val GOLD = RockType("gold", 40, 650, 444, 7, 75, 100)
         private val MITHRIL = RockType("mithril", 55, 800, 447, 4, 50, 200)
         private val ADAMANTITE = RockType("adamantite", 70, 950, 449, 2, 25, 400)
-        private val RUNITE = RockType("runite", 85, 1250, 451, 1, 18, 1200)
+        val RUNITE = RockType("runite", 85, 1250, 451, 1, 18, 1200)
         private val AMETHYST = RockType("amethyst", 92, 2400, 21347, -18, 10, 125, minYield = 2, maxYield = 3)
         private val GEM_ROCK = RockType("gem", 40, 650, NOTHING, 28, 70, 99, gemRock = true)
 

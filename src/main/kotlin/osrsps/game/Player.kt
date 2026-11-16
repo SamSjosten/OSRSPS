@@ -293,6 +293,18 @@ class Player(
     /** The first tick they may pickpocket again; see [osrsps.game.skill.Pickpocketing]. Food eaten before it pushes it back. */
     var nextPickpocketTick: Long = 0
 
+    /**
+     * NPC type [shieldedFrom] does this player no harm from [shieldedSince] to [shieldedUntil] while they neither move nor
+     * attack an NPC, and only until the search's loot:
+     * the Rogues' Castle rogues while a chest is searched; see [osrsps.game.skill.ThievingLocks]. -1 for none.
+     */
+    var shieldedFrom: Int = -1
+    var shieldedSince: Long = -1
+    var shieldedUntil: Long = -1
+
+    /** The first tick bones used on the Chaos Temple's altar may be offered again; see [osrsps.game.content.ChaosTemple]. */
+    var nextAltarOfferTick: Long = 0
+
     /** When Draynor Manor's vines next whip them, -1 while they aren't in reach; see [osrsps.game.content.ManorHazards]. */
     var vinesDue: Long = -1
 
@@ -357,6 +369,15 @@ class Player(
      */
     var pjOpponent: Player? = null
     var pjUntil: Long = 0
+    /** The PJ timer runs after a kill ([pjOpponent] is who they killed), which holds though the victim logs out. */
+    var pjAfterKill = false
+
+    /**
+     * Ticks left of a Tele Block on them ([osrsps.game.combat.Teleblock]), and who cast it, by save key. Not saved: a
+     * logout ends it, as on live.
+     */
+    var teleblockTicks: Int = 0
+    var teleblockedBy: String? = null
 
     /** Ticks left of their skull ([osrsps.game.combat.Skulls]). Saved. */
     var skullTicks: Int = 0
@@ -428,6 +449,19 @@ class Player(
 
     /** How many items a death keeps, decided as the player falls; see [osrsps.game.combat.Deaths]. */
     var deathKeptItems: Int = osrsps.game.combat.Deaths.KEPT_ITEMS
+
+    /**
+     * Who killed them, by [saveKey], when their death is a PvP one ([osrsps.game.combat.PvpCombat.killerOf]): their lost
+     * items drop for the killer ([osrsps.game.combat.Deaths]). Null for any other death. Not saved.
+     */
+    var deathKiller: String? = null
+
+    /**
+     * The damage each player has dealt them lately, by [saveKey], the latest hitter last, and the tick of the last hit;
+     * see [osrsps.game.combat.PvpCombat]. Not saved.
+     */
+    val pvpDamage = LinkedHashMap<String, Int>()
+    var lastPvpHitTick: Long = -1
 
     /** The overhead prayer icon in the player's appearance, -1 for none. */
     var overheadIcon: Int = -1
