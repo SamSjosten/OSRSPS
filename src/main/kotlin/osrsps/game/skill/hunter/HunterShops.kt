@@ -70,6 +70,8 @@ class HunterShops(private val world: World) {
     /** Buys [piece]: its fee and furs, the piece in the furs' slot. */
     fun buy(player: Player, piece: FurPiece): Boolean {
         val inv = player.inventory
+        // Looked up before anything is taken (exploit review round 36, C-5).
+        val type = world.objTypes[piece.item] ?: return false
         val fur = piece.furs.firstOrNull { inv.count(it) >= piece.count }
         if (fur == null) {
             world.message(player, HunterLines.FUR_NEEDED, "count" to piece.count)
@@ -92,7 +94,6 @@ class HunterShops(private val world: World) {
             furs -= inv.remove(slot, furs)
             if (inv[slot] == null && freed < 0) freed = slot
         }
-        val type = world.objTypes[piece.item] ?: return false
         if (freed >= 0) inv[freed] = InvObj(piece.item, 1) else world.groundObjs.give(player, type, 1)
         return true
     }

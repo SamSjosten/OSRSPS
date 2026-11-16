@@ -140,6 +140,27 @@ class HeadlessFalconryTest {
     }
 
     @Test
+    fun `the bank's deposit-worn leaves the rented glove on`(@TempDir dir: Path) {
+        // Exploit review round 36, C-6.
+        server(dir).use { server ->
+            server.login("fw").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(2377, 3590)
+                client.command("setlevel hunter 50")
+                client.command("item ${Falconry.COINS} 500")
+                client.await("the coins") { if (client.count(Falconry.COINS) == 500) Unit else null }
+                client.npcOp(client.npc(Falconry.MATTHIAS).index, Falconry.QUICK_FALCON)
+                server.awaitWeapon(client, "fw", Falconry.GLOVE_FALCON)
+                client.command("openbank")
+                client.await("the bank open") { Unit.takeIf { osrsps.game.bank.BankScreen.MAIN in client.openInterfaces() } }
+                client.ifButton(osrsps.game.bank.BankScreen.MAIN, osrsps.game.bank.BankScreen.DEPOSIT_WORN, 1)
+                client.seen("[hunter.glove_stays]")
+                assertEquals(Falconry.GLOVE_FALCON, server.weapon("fw"))
+            }
+        }
+    }
+
+    @Test
     fun `wielded darts that wouldn't all fit on the backpack's stack keep the falcon from being rented`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("fc").use { client ->

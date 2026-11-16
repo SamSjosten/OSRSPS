@@ -39,8 +39,6 @@ class ImplingTier(
     val name: String,
     val lines: List<Pair<Impling, Int>>,
     val unseenTicks: Int = Implings.UNSEEN_TICKS,
-    /** Whether a caught one's spawner starts over at once, or waits for the next cycle. */
-    val restartsOnCatch: Boolean = true,
 ) {
     val total: Int = lines.sumOf { it.second }
 
@@ -76,7 +74,7 @@ class ImplingTier(
  *
  * Guessed: one attempt per Catch, judged the tick after the swing, as for butterflies; the unseen roam following the
  * visible one's rules; the first cycle at boot, and a crystal impling rolled at boot too, showing at the next :03 or
- * :33; a caught impling's spawner rolling the tier it was made from;
+ * :33;
  * which of the crystal impling's seventeen names shows (at random); Loot needing one free slot beside the jar, and loot
  * that doesn't fit (looting at once with a full backpack) going on the ground; that the miss and catch messages are
  * their own lines. Left out: Puro-Puro and its implings, the lucky impling (its loot is the clue reward tables, not
@@ -245,7 +243,7 @@ class Implings(private val world: World) {
     private fun ScriptContext.caught(impling: Impling, npc: Npc) {
         world.removeNpc(npc)
         // A spawner's starts over; one put down another way (a spawn file, ::npc) is simply gone.
-        spawners.firstOrNull { it.npc === npc }?.let { restart(it, world.tick) }
+        spawners.firstOrNull { it.npc === npc }?.let { restart(it) }
         player.skills.addTenths(Skill.HUNTER, impling.xpTenths)
         val jar = player.inventory.contents().firstOrNull { it.second.id == IMPLING_JAR }?.first
         if (jar != null) {
@@ -258,12 +256,12 @@ class Implings(private val world: World) {
     }
 
     /**
-     * [spawner]'s impling was caught on [tick]: it starts over unseen at its point, or, for a tier that doesn't
-     * ([ImplingTier.restartsOnCatch], the crystal one), stays empty until the next cycle replaces it.
+     * [spawner]'s impling was caught: it stays empty until the next cycle replaces it. The Wiki's Impling page has only
+     * Puro-Puro's spawns coming back on capture; Gielinor's and Prifddinas's are rolled each half hour.
      */
-    internal fun restart(spawner: Spawner, tick: Long) {
+    internal fun restart(spawner: Spawner) {
         spawner.npc = null
-        spawner.showTick = if (spawner.tier.restartsOnCatch) tick + spawner.tier.unseenTicks else Long.MAX_VALUE
+        spawner.showTick = Long.MAX_VALUE
     }
 
     private fun ScriptContext.lootJar(impling: Impling, slot: Int) {
@@ -327,7 +325,7 @@ class Implings(private val world: World) {
         val LOW = ImplingTier("low", listOf(BABY to 20, YOUNG to 20, GOURMET to 20, EARTH to 20, ESSENCE to 10, ECLECTIC to 10))
         val MID = ImplingTier("mid", listOf(GOURMET to 10, EARTH to 10, ESSENCE to 20, ECLECTIC to 37, NATURE to 20, MAGPIE to 2, NINJA to 1))
         val HIGH = ImplingTier("high", listOf(NATURE to 10, MAGPIE to 50, NINJA to 30, DRAGON to 10))
-        val CRYSTAL_TIER = ImplingTier("crystal", listOf(CRYSTAL to 1), CRYSTAL_UNSEEN_TICKS, restartsOnCatch = false)
+        val CRYSTAL_TIER = ImplingTier("crystal", listOf(CRYSTAL to 1), CRYSTAL_UNSEEN_TICKS)
 
         /** The Wiki's map of Gielinor's variable-tier spawn points. */
         val VARIABLE_POINTS: List<Pair<Int, Int>> = points(
