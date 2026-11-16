@@ -166,13 +166,23 @@ class NpcDropsTest {
     }
 
     @Test
+    fun `a minor table rolls every kill beside the main roll, and a tertiary may be N in D`() {
+        // Wilderness step W4.5: the Chaos Elemental's minor drops, and its weapon poison(++) at 10/128.
+        val text = """{"npcs": [{"npcs": ["man"], "minor": {"slots": 1, "lines": [{"item": 526, "name": "Bones", "weight": 1}]},
+            "tertiary": [{"item": 526, "name": "Bones", "chance": "128/128"}], "source": "test"}]}"""
+        val def = NpcDrops.parse(text, types, objTypes)[man]!!
+        assertEquals(128 to 128, def.tertiary.single().let { it.numerator to it.denominator })
+        assertEquals(listOf("Bones", "Bones"), def.roll(GameRandom(1)).map { it.type.name }, "the minor drop, then the sure tertiary")
+    }
+
+    @Test
     fun `a table whose lines don't fill its slots, a bad chance, or an unknown item is refused`() {
         val good = """{"npcs": [{"npcs": ["man"], "table": {"slots": 128, "lines": [{"item": 526, "name": "Bones", "weight": 128}]}, "source": "test"}]}"""
         assertEquals(1, NpcDrops.parse(good, types, objTypes).size)
         val short = good.replace("\"weight\": 128", "\"weight\": 100")
         assertTrue(assertFailsWith<IllegalArgumentException> { NpcDrops.parse(short, types, objTypes) }.message!!.contains("100, not the table's 128"))
-        val badChance = """{"npcs": [{"npcs": ["man"], "tertiary": [{"item": 526, "name": "Bones", "chance": "3/128"}], "source": "test"}]}"""
-        assertTrue(assertFailsWith<IllegalArgumentException> { NpcDrops.parse(badChance, types, objTypes) }.message!!.contains("\"1/N\""))
+        val badChance = """{"npcs": [{"npcs": ["man"], "tertiary": [{"item": 526, "name": "Bones", "chance": "130/128"}], "source": "test"}]}"""
+        assertTrue(assertFailsWith<IllegalArgumentException> { NpcDrops.parse(badChance, types, objTypes) }.message!!.contains("\"N/D\""))
         // An item the cache lacks leaves its NPCs without drops rather than stopping the server (a test cache is small).
         val noItem = good.replace("526", "99999")
         val without = NpcDrops.parse(noItem, types, objTypes)

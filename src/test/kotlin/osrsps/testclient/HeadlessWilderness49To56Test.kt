@@ -39,6 +39,7 @@ class HeadlessWilderness49To56Test {
         2834 to "bat", 3024 to "scorpion", 104 to "hellhound", 106 to "wolf", 2085 to "icegiant", 2086 to "icegiant2", 2087 to "icegiant3",
         77 to "skeleton_armed", 79 to "skeleton_armed3", 81 to "skeleton_armed5", 6599 to "wilderness_resource_guardian", 13 to "wilderness_resource_certer",
         6600 to "wilderness_rune_golem", 1536 to "49_61_crabs", 523 to "pirate_aggressive",
+        2054 to "chaoselemental",
     )
 
     private val npcTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
@@ -57,6 +58,7 @@ class HeadlessWilderness49To56Test {
         assertEquals(8, parsed.spawns.count { it.type.internalName == "wilderness_rogue" }, "Rogues' Castle's level 135 rogues")
         assertEquals(9, parsed.spawns.count { it.type.internalName == "magicaxe" }, "the axe hut's magic axes")
         assertEquals(12, parsed.spawns.count { it.type.internalName == "pirate_aggressive" }, "the Pirates' Hideout's pirates")
+        assertEquals(1, parsed.spawns.count { it.type.internalName == "chaoselemental" }, "the Chaos Elemental west of Rogues' Castle (W4.5)")
         // The Chaos Elemental waits for piece 4.
         assertEquals(
             mapOf<String?, Int>("wilderness_resource_certer" to 1, "wilderness_rune_golem" to 2, "49_61_crabs" to 4),

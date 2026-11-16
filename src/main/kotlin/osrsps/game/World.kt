@@ -160,6 +160,7 @@ import osrsps.game.content.registerMageArenaBank
 import osrsps.game.content.registerCrazyArchaeologist
 import osrsps.game.content.registerChaosFanatic
 import osrsps.game.content.registerScorpia
+import osrsps.game.content.registerChaosElemental
 import osrsps.game.content.MemberGates
 import osrsps.game.content.registerFeroxEnclave
 import osrsps.game.content.registerWildernessObelisks
@@ -1042,6 +1043,7 @@ class World(
         registerChaosFanatic(this)
         registerScorpia(this)
         osrsps.game.content.VolcanicForge.register(this)
+        registerChaosElemental(this)
         FountainOfRune.register(this)
         registerFeroxEnclave(this)
         registerWildernessObelisks(this)
@@ -2511,6 +2513,9 @@ class World(
         player.teleported = true
         return true
     }
+
+    /** Takes off what [player] wears in [wearpos] into their backpack, as a slot's Remove does; false with no room. */
+    fun takeOff(player: Player, wearpos: Int): Boolean = equipment.remove(player, wearpos) == EquipResult.Done
 
     /** Whether a walker of size 1 can step from ([x], [z]) on [level] by ([dx], [dz]): a boss's mark beside a player. */
     fun canStep(level: Int, x: Int, z: Int, dx: Int, dz: Int): Boolean = movement.canStep(level, x, z, dx, dz)

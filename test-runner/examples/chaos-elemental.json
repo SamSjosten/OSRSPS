@@ -1,0 +1,15 @@
+{
+  "name": "Wilderness step W4.5: the Chaos Elemental west of Rogues' Castle (level 51) fought under ::god, killed with ::kill, its kill count's key (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off).", "comment": "multi-way, level 51"},
+    {"step": "command", "text": "::tele 3261 3922 0", "expectMessage": "Teleported to 3261, 3922, 0", "comment": "south of its spawn at 3261,3927; it wanders, so ::npcs finds it if it isn't in view"},
+    {"step": "npcOption", "npc": "Chaos Elemental", "option": "Attack", "timeoutMs": 20000},
+    {"step": "assertHitsplat", "npc": "Chaos Elemental", "timeoutMs": 30000},
+    {"step": "command", "text": "::kill", "expectMessage": "Killed Chaos Elemental #"},
+    {"step": "assertMessage", "contains": "[wilderness_boss.kill_count boss=Chaos Elemental count=", "timeoutMs": 15000},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
+  ]
+}
