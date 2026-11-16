@@ -34,7 +34,7 @@ class HeadlessWildernessBossLootTest {
           "table": {"slots": 1, "lines": [{"item": 995, "name": "Coins", "count": 100, "weight": 1}]}, "source": "test"}]}
     """.trimIndent()
 
-    private fun server(dir: Path, deathTicks: Int? = null) = TestServer(dir) { crcs, millis ->
+    private fun server(dir: Path, deathTicks: Int? = null, group: Boolean = true) = TestServer(dir) { crcs, millis ->
         val objs = ObjTypes.of(ObjType(532, "Big bones"), ObjType(995, "Coins", stackable = true))
         World(
             crcs, CollisionMap().apply { markLoaded(3200 shr 6, 3900 shr 6) }, objTypes = objs, npcTypes = types, random = GameRandom(4),
@@ -45,7 +45,7 @@ class HeadlessWildernessBossLootTest {
                     "anims": { "attack": null, "defend": null, "death": null }, "deathTicks": $deathTicks, "respawnTicks": 100, "source": "test" } ] }""",
                 types, SeqNames.NONE,
             ), npcDrops = NpcDrops.parse(drops, types, objs), cycleMillis = millis,
-        ).also { it.wildernessBosses.register(osrsps.game.content.WildernessBoss("test boss", setOf(BOSS), KILL_COUNT_VARP, group = true)) }
+        ).also { it.wildernessBosses.register(osrsps.game.content.WildernessBoss("test boss", setOf(BOSS), KILL_COUNT_VARP, group = group)) }
     }
 
     /** Presses Logout until it takes, [other] counting ticks: the button refuses it for a few seconds after a hit. */
@@ -62,6 +62,35 @@ class HeadlessWildernessBossLootTest {
     private fun HeadlessClient.tele(x: Int, z: Int) {
         command("tele $x $z 0")
         await("the teleport to $x, $z") { position?.takeIf { it == Coord(x, z, 0) } }
+    }
+
+    @Test
+    fun `a boss without group loot drops for whoever dealt the most damage, not the last hit`(@TempDir dir: Path) {
+        server(dir, group = false).use { server ->
+            server.login("ada").use { a ->
+                server.login("bea").use { b ->
+                    a.await("the login rebuild") { a.position }
+                    b.await("the login rebuild") { b.position }
+                    a.tele(3200, 3900)
+                    b.tele(3200, 3901)
+                    a.commandReply("wboss test boss") { it.startsWith("Spawned Ice giant") }
+                    val npc = a.await("the boss") { server.world.npcs.all.firstOrNull { it.type.id == BOSS } }
+                    a.commandReply("god") { it.startsWith("You can") }
+                    b.commandReply("god") { it.startsWith("You can") }
+                    a.commandReply("hit 60 ${npc.index}") { it.startsWith("Hit Ice giant") }
+                    // Bea's last 40 kill it, but Ada's 60 are the most (exploit review round 39).
+                    b.commandReply("kill ${npc.index}") { it.startsWith("Killed") }
+                    a.await("ada's kill count") { a.messages().firstOrNull { it.text == "[wilderness_boss.kill_count boss=Ice giant count=1]" } }
+                    val world = server.world
+                    val ada = world.playerNamed("ada")!!
+                    val bea = world.playerNamed("bea")!!
+                    a.await("ada's drop") { world.groundObjs.visibleAt(ada, npc.x, npc.z, npc.level).firstOrNull { it.id == 995 } }
+                    assertEquals(1, ada.vars[KILL_COUNT_VARP])
+                    assertEquals(0, bea.vars[KILL_COUNT_VARP], "not the last hit's")
+                    assertTrue(world.groundObjs.visibleAt(bea, npc.x, npc.z, npc.level).isEmpty(), "ada's alone at first")
+                }
+            }
+        }
     }
 
     @Test
