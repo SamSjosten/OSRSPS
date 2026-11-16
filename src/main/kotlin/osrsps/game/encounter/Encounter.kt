@@ -146,3 +146,16 @@ interface EncounterContext {
     /** Writes [text] to the fight's log, which tests and `::encounter` read. */
     fun log(text: String)
 }
+
+/**
+ * Who [npc] still fights: its target while that player is one of [EncounterContext.players]. Once they aren't (out of
+ * the fight's area, dead, gone), [npc] gives them up, so its fight with them stops being renewed and another player
+ * can take it on (Codex on W4.2: standing just outside the area held the boss for good).
+ */
+fun EncounterContext.heldTarget(npc: Npc = boss): Player? {
+    val held = npc.target ?: return null
+    if (players.any { it === held }) return held
+    npc.target = null
+    world.npcs.stopFollowing(npc)
+    return null
+}

@@ -10,6 +10,7 @@ import osrsps.game.encounter.CycleStep
 import osrsps.game.encounter.EncounterContext
 import osrsps.game.encounter.EncounterDef
 import osrsps.game.encounter.PhaseDef
+import osrsps.game.encounter.heldTarget
 import osrsps.game.npc.Npc
 import osrsps.game.zone.Projectile
 import osrsps.map.LineOfSight
@@ -71,7 +72,7 @@ object CrazyArchaeologist {
     private val nextAttack = java.util.WeakHashMap<Npc, Long>()
 
     private fun EncounterContext.tick() {
-        val target = boss.target?.takeIf { held -> players.any { it === held } }
+        val target = heldTarget()
         if (target == null) {
             world.npcs.stopFollowing(boss)
             return

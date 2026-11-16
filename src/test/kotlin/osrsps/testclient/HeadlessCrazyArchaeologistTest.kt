@@ -95,6 +95,25 @@ class HeadlessCrazyArchaeologistTest {
         }
     }
 
+    @Test
+    fun `stepping out of his area makes him give the player up`(@TempDir dir: Path) {
+        server(dir, seed = 5).use { server ->
+            server.login("kit").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.tele(X + 4, Z)
+                val npc = server.world.npcs.all.first { it.type.id == CrazyArchaeologist.BOSS }
+                val kit = server.world.playerNamed("kit")!!
+                client.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Crazy archaeologist") }
+                client.await("his fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
+                client.await("him taking kit on") { npc.target?.takeIf { it === kit } }
+                // Out of his area (more than AREA_RADIUS from his spawn) but inside an NPC's 18-tile chase.
+                client.tele(X + CrazyArchaeologist.AREA_RADIUS + 2, Z)
+                client.await("him giving kit up", timeoutMillis = 10_000) { Unit.takeIf { npc.target == null } }
+            }
+        }
+    }
+
     private companion object {
         const val X = 2977
         const val Z = 3702
