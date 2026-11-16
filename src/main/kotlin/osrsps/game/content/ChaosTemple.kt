@@ -67,6 +67,12 @@ object ChaosTemple {
 
     fun isTempleAltar(loc: ZoneLoc) = loc.level == 0 && loc.x == ALTAR_X && loc.z == ALTAR_Z
 
+    /** Whether [x], [z], [level] is on or beside [altar], [width] by [length] tiles before its rotation. */
+    fun besideAltar(altar: ZoneLoc, width: Int, length: Int, x: Int, z: Int, level: Int): Boolean {
+        val (w, l) = if (altar.angle % 2 == 1) length to width else width to length
+        return level == altar.level && x in altar.x - 1..altar.x + w && z in altar.z - 1..altar.z + l
+    }
+
     /** The altar's XP for bones [id], in tenths, or null for anything that can't be offered. */
     fun offerXp(id: Int): Int? = Bones.XP_TENTHS[id]?.let { it * XP_MULTIPLIER_TENTHS / 10 }
 
@@ -87,7 +93,16 @@ fun registerChaosTemple(world: World) {
             // a queued delay down; one who stepped there waits a tick and offers in the script phase (as fill's fromMovement).
             val fromMovement = player.lastMoveTick != tick
             arriveDelay()
-            offer(world, op.obj, fromMovement)
+            // Using bones again doesn't offer any sooner than the repeat would (round 37: re-clicking each tick tripled
+            // the rate): an offering still [OFFER_TICKS] off from the last one waits for it. INFERRED from the Wiki's
+            // steady rate; nothing found says live lets clicks hurry it.
+            val wait = (player.nextAltarOfferTick - tick).toInt()
+            if (wait > 0) {
+                val delay = if (fromMovement) wait - 1 else wait
+                queue(QUEUE, QueueType.WEAK, delay = delay) { offer(world, loc, op.obj) }
+            } else {
+                offer(world, loc, op.obj, fromMovement)
+            }
         }
         world.handlers.onNpc(DRUID, TALK_TO) { op -> world.dialogues.start(this, op.npc) { druid() } }
         world.handlers.onObjOnNpc(DRUID) { op -> world.dialogues.start(this, op.npc) { exchange(world, op.obj) } }
@@ -98,15 +113,19 @@ fun registerChaosTemple(world: World) {
  * One offering of bones [id], then the next queued [ChaosTemple.OFFER_TICKS] later ([fromMovement] when this runs in the
  * movement phase), until the player moves or runs out.
  */
-private fun ScriptContext.offer(world: World, id: Int, fromMovement: Boolean = false) {
+private fun ScriptContext.offer(world: World, altar: ZoneLoc, id: Int, fromMovement: Boolean = false) {
     val xp = ChaosTemple.offerXp(id) ?: return
+    // The repeat stops once the player isn't beside the altar any more, however they left (a teleport too).
+    val type = world.locs.types[altar.id]
+    if (!ChaosTemple.besideAltar(altar, type?.width ?: 1, type?.length ?: 1, player.x, player.z, player.level)) return
     val slot = player.inventory.contents().firstOrNull { (_, obj) -> obj.id == id }?.first ?: return
     player.anim(ChaosTemple.ANIM_OFFER)
+    player.nextAltarOfferTick = tick + ChaosTemple.OFFER_TICKS
     if (world.random.chance(1, 2)) world.message(player, ChaosTempleLines.SPARED) else player.inventory.remove(slot, 1)
     player.skills.addTenths(Skill.PRAYER, xp)
     if (player.inventory.count(id) == 0L) return
     val delay = if (fromMovement) ChaosTemple.OFFER_TICKS - 1 else ChaosTemple.OFFER_TICKS
-    queue(ChaosTemple.QUEUE, QueueType.WEAK, delay = delay) { offer(world, id) }
+    queue(ChaosTemple.QUEUE, QueueType.WEAK, delay = delay) { offer(world, altar, id) }
 }
 
 private suspend fun Dialogue.druid(): Unit = with(ChaosTempleLines) {

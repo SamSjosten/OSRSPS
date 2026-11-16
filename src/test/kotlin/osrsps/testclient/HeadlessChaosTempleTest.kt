@@ -112,6 +112,38 @@ class HeadlessChaosTempleTest {
     }
 
     @Test
+    fun `using bones again every tick offers no faster, and the offerings stop once the player leaves the altar`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("rhea").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel prayer 50")
+                client.await("level 50") { client.stat(PRAYER)?.takeIf { it.level == 50 } }
+                client.command("item $BONES 20")
+                client.await("the bones") { Unit.takeIf { client.count(BONES) == 20L } }
+                client.tele(ChaosTemple.ALTAR_X, ChaosTemple.ALTAR_Z - 1)
+                // Bones used on the altar again on each of twelve ticks.
+                repeat(12) {
+                    val tick = server.world.tick
+                    client.locTarget(ChaosTemple.ALTAR, ChaosTemple.ALTAR_X, ChaosTemple.ALTAR_Z, InventoryTab.INTERFACE, InventoryTab.ITEMS, client.slotOf(BONES), BONES)
+                    client.await("the next tick") { Unit.takeIf { server.world.tick > tick } }
+                }
+                client.await("an offering after the clicks") { Unit.takeIf { client.animationTicks().size >= 4 } }
+                val offers = client.animationTicks()
+                assertTrue(offers.zipWithNext { a, b -> b - a }.all { it >= ChaosTemple.OFFER_TICKS }, "ticks $offers")
+
+                // Teleported away mid-repeat: no more offerings.
+                client.tele(ChaosTemple.ALTAR_X + 10, ChaosTemple.ALTAR_Z)
+                val left = client.count(BONES)
+                val animations = client.animationTicks().size
+                val now = server.world.tick
+                client.await("a few ticks") { Unit.takeIf { server.world.tick >= now + 2 * ChaosTemple.OFFER_TICKS } }
+                assertEquals(left, client.count(BONES))
+                assertEquals(animations, client.animationTicks().size)
+            }
+        }
+    }
+
+    @Test
     fun `the Elder Chaos druid talks and exchanges noted bones for 50 coins each`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("wren").use { client ->

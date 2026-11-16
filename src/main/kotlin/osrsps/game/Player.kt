@@ -293,6 +293,9 @@ class Player(
     /** The first tick they may pickpocket again; see [osrsps.game.skill.Pickpocketing]. Food eaten before it pushes it back. */
     var nextPickpocketTick: Long = 0
 
+    /** The first tick bones used on the Chaos Temple's altar may be offered again; see [osrsps.game.content.ChaosTemple]. */
+    var nextAltarOfferTick: Long = 0
+
     /** When Draynor Manor's vines next whip them, -1 while they aren't in reach; see [osrsps.game.content.ManorHazards]. */
     var vinesDue: Long = -1
 
