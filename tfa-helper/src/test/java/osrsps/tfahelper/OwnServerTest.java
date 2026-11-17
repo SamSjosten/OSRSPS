@@ -14,6 +14,9 @@ public class OwnServerTest
 		assertTrue(OwnServer.isOurs("192.168.0.210:43594"));
 		assertTrue(OwnServer.isOurs("10.99.0.10"));
 		assertTrue(OwnServer.isOurs("127.0.0.1"));
+		// RSProx's own loopback address for our target on VM 215.
+		assertTrue(OwnServer.isOurs("127.1.45.3"));
+		assertTrue(OwnServer.isOurs("127.1.45.3:43594"));
 		assertTrue(OwnServer.isOurs("LOCALHOST"));
 		assertTrue(OwnServer.isOurs("::1"));
 		assertTrue(OwnServer.isOurs("[::1]:43594"));
@@ -30,5 +33,8 @@ public class OwnServerTest
 		assertFalse(OwnServer.isOurs(""));
 		assertFalse(OwnServer.isOurs(null));
 		assertFalse(OwnServer.isOurs("[::1"));
+		assertFalse(OwnServer.isOurs("127.1.45.256"));
+		assertFalse(OwnServer.isOurs("128.0.0.1"));
+		assertFalse(OwnServer.isOurs("127.example.com"));
 	}
 }

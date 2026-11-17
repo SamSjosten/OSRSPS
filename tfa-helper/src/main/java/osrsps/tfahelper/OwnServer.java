@@ -2,6 +2,8 @@ package osrsps.tfahelper;
 
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import net.runelite.api.Client;
 
 /**
@@ -12,11 +14,13 @@ import net.runelite.api.Client;
  * <p>It goes by the host RuneLite reports the client connected to ({@link Client#getWorldHost()}), and anything it
  * doesn't recognise counts as not ours. Our hosts: the launcher's (Odin's Gate) connects to the Proxmox host's
  * forwarded game port, 192.168.0.210; the VM itself is 10.99.0.10; the RSProx test client connects to RSProx on the same
- * machine (loopback). Guessed: the exact string each client reports, until checked on a test VM.
+ * machine, which gives each of its targets a loopback address of its own: 127.1.45.3 for ours on VM 215 (seen 17 November
+ * 2026), so any IPv4 loopback address counts, written as an address, never a name to look up.
  */
 final class OwnServer
 {
-	static final Set<String> HOSTS = Set.of("192.168.0.210", "10.99.0.10", "127.0.0.1", "localhost", "::1");
+	static final Set<String> HOSTS = Set.of("192.168.0.210", "10.99.0.10", "localhost", "::1");
+	private static final Pattern IPV4 = Pattern.compile("(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})");
 
 	private OwnServer()
 	{
@@ -44,6 +48,24 @@ final class OwnServer
 		{
 			bare = bare.substring(0, bare.indexOf(':'));
 		}
-		return HOSTS.contains(bare);
+		return HOSTS.contains(bare) || isIpv4Loopback(bare);
+	}
+
+	/** Whether {@code host} is an IPv4 address in 127.0.0.0/8, each part 0 to 255. */
+	static boolean isIpv4Loopback(String host)
+	{
+		Matcher m = IPV4.matcher(host);
+		if (!m.matches() || !m.group(1).equals("127"))
+		{
+			return false;
+		}
+		for (int i = 2; i <= 4; i++)
+		{
+			if (Integer.parseInt(m.group(i)) > 255)
+			{
+				return false;
+			}
+		}
+		return true;
 	}
 }
