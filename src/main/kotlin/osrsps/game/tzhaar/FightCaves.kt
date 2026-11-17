@@ -17,12 +17,12 @@ private val logger = KotlinLogging.logger {}
 
 /** The Fight Cave's words (keys only; the words are in data/dialogue.txt). */
 object FightCaveLines : Lines("fight_cave", "TzHaar Fight Cave") {
-    val WAVE = line("wave", "Each wave as it starts, in red: \"Wave: 1\" (the Wiki's TzHaar Fight Cave)", "wave")
+    val WAVE = line("wave", "Each wave as it starts, in red, with its number (the Wiki's TzHaar Fight Cave: the chatbox shows the wave)", "wave")
     val LOGOUT_PAUSE = line("logout_pause", "The logout button in a wave, in red: the run will pause when the wave ends (the Wiki's Strategies page: logging out)")
     val LOGOUT_REPEAT = line("logout_repeat", "Straight after logout_pause, in red: logging out before the wave ends repeats it")
-    val DEFEATED = line("defeated", "TzHaar-Mej-Jal after a death in the cave, as Tokkul is handed over (no source yet)")
-    val LEFT = line("left", "TzHaar-Mej-Jal after leaving the cave by its exit, as Tokkul is handed over (no source yet)")
-    val VICTORIOUS = line("victorious", "TzHaar-Mej-Jal after TzTok-Jad's death, handing over the fire cape (no source yet)")
+    val TRIED = line("tried", "TzHaar-Mej-Jal after a death or leaving in the first wave, with no TokKul (Transcript:TzHaar-Mej-Jal)")
+    val REWARD = line("reward", "TzHaar-Mej-Jal after a death or leaving in a later wave, as TokKul is handed over (Transcript:TzHaar-Mej-Jal)")
+    val VICTORIOUS = line("victorious", "TzHaar-Mej-Jal after TzTok-Jad's death, handing over the fire cape (Transcript:TzHaar-Mej-Jal)")
     val NO_ROOM = line("no_room", "Enter on the cave entrance when no cave can be made (ours: the server's instances are all taken)")
 }
 
@@ -293,23 +293,24 @@ class FightCaves(private val world: World) {
     fun leave(player: Player) {
         val run = runs[player.saveKey] ?: return world.message(player, GameLines.NOTHING_INTERESTING)
         world.teleport(player, OUTSIDE.x, OUTSIDE.z, 0)
-        paidOut(player, run, FightCaveLines.LEFT)
+        paidOut(player, run)
     }
 
     /** [player] is out of their cave while their run went on: paid for a death or a walk out, else just ended. */
     private fun left(player: Player, run: Run) {
-        if (run.died) return paidOut(player, run, FightCaveLines.DEFEATED)
+        if (run.died) return paidOut(player, run)
         // Out some other way (::tele, ::reset): no Tokkul, and nothing to come back to.
         end(run)
         forget(player)
     }
 
-    private fun paidOut(player: Player, run: Run, line: osrsps.game.dialogue.Line) {
+    /** Pays [run]'s TokKul: the transcript has one line for a run out in the first wave and one for a later wave, death or not. */
+    private fun paidOut(player: Player, run: Run) {
         end(run)
         forget(player)
         val tokkul = FightCaveWaves.tokkul(run.wave - 1)
         if (tokkul > 0) pay(player, tokkul)
-        if (!player.loggedOut) mejJal(player, line)
+        if (!player.loggedOut) mejJal(player, if (tokkul > 0) FightCaveLines.REWARD else FightCaveLines.TRIED)
     }
 
     private fun pay(player: Player, tokkul: Int) {

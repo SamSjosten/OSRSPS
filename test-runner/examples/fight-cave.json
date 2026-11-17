@@ -15,7 +15,7 @@
     {"step": "locOption", "locId": 11834, "option": "Leave"},
     {"step": "assertLocation", "x": 2438, "y": 5168, "plane": 0, "timeoutMs": 30000},
     {"step": "assertInventory", "itemId": 6529, "count": 2},
-    {"step": "assertDialogue", "contains": "[fight_cave.left]", "speaker": "TzHaar-Mej-Jal"},
+    {"step": "assertDialogue", "contains": "[fight_cave.reward]", "speaker": "TzHaar-Mej-Jal"},
     {"step": "finishDialogue"},
     {"step": "command", "text": "::fightcave 63 1", "expectMessage": "Fight cave: wave 63 of rotation 1"},
     {"step": "assertMessage", "contains": "[fight_cave.wave wave=63]", "timeoutMs": 15000},
