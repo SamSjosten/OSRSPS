@@ -2455,6 +2455,18 @@ does the stairs, the ladder, the drawers and Knock-at on the locked door through
 guards' numbers and 10,000 kills against the table, and `HeadlessGrandExchangeBuildingTest` the clerks', a banker's and a booth's options, `HeadlessVarrockShopsTest` and `HeadlessVarrockStoresTest` each keeper's talk into their shop and turned down, `HeadlessVarrockTradersTest` Benny's, Baraek's and the Apothecary's talk every way it goes and his potions screen's Buy-All and Buy-X, `HeadlessVarrockPalaceTest` the palace's talk every way, Sir Prysin's Silverlight sale, the bookcases and the Captain's shouting, `ShopTest` the shops' prices, and `HeadlessGuardsTest` a guard of each kind attacked through the
 headless client, fought to its death and leaving its bones.
 
+## Karamja
+
+Karamja and the TzHaar city, Mor Ul Rek, are built one step at a time from the plan agreed on 17 November 2026 (Karamja
+and TzHaar city: step plan); the Fight Caves and the Inferno are their own piece. Until a step builds a way there,
+`::tele` reaches each place. Quest content is left out; places behind a quest are open, as every quest counts as done.
+
+| Behaviour | Source |
+|-----------|--------|
+| The boat between Port Sarim and Musa Point (step K1.1): Captain Tobias, Seaman Lorris and Seaman Thresnor on Port Sarim's dock sail to Musa Point from their talk (`karamja_ship.*`) or their Musa Point option, and the customs officer on Musa Point's dock sails back from her talk or her Port Sarim option, each for 30 coins, 15 wearing Karamja gloves (`karamja_ship.paid`); too few coins are refused (`karamja_ship.no_money` in talk, `karamja_ship.not_enough_coins` on the option). The ship journey screen (`ship_journey` 299) shows the boat crossing (seq `sarim_karamja` or `karamja_sarim`) for 7 ticks, then the player is on the other ship's deck (2956,3143 or 3032,3217, plane 1) with the arrival box; the gangplanks (2081 to 2084) cross between deck and dock for free | the Wiki's Captain Tobias, Seaman Lorris, Seaman Thresnor and Customs officer pages and transcripts, after Pandemonium and Pirate's Treasure; the 242 cache's NPCs (multi-NPCs on `sailing_intro`), interface, seqs and map. Inferred: Lorris's and Thresnor's talk being Tobias's, the seamen's paid and arrival lines being the customs officer's, the crossing's length from the seq. Guessed: the deck and dock tiles, a gangplank needing no fare |
+| The customs officer takes every Karamjan rum (431, and the Tai Bwo Wannai Trio's 3164 and 3165) before the trip, from her talk (`karamja_ship.spot_inspection`, `karamja_ship.confiscated`) or her Port Sarim option, and the player stays on Karamja | the Wiki's Customs officer page and transcript; the option searching too guessed |
+| The Pandemonium options (seamen and customs officer) answer `karamja_ship.pandemonium_closed`: the Pandemonium is a Sailing island and isn't built | ours |
+
 ## Equipment
 
 Every player has the worn inventory, inv 94 (`Player.equipment`), one slot per wearpos (`WearPos`). Wear, Wield and
