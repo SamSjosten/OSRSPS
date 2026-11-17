@@ -24,7 +24,9 @@ import osrsps.game.collection.CollectionLogCatalog
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.Prayers
 import osrsps.game.tzhaar.FightCaveMonsters
+import osrsps.game.tzhaar.MejJal
 import osrsps.game.loc.LocType
+import osrsps.game.npc.NpcSpawn
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
 import osrsps.game.tzhaar.FightCaveMonster
@@ -86,6 +88,7 @@ class HeadlessFightCaveTest {
             crcs, CollisionMap().apply { markLoaded(37, 79); markLoaded(38, 80) }, objTypes = objTypes, npcTypes = types,
             collectionLogCatalog = catalog,
             random = GameRandom(1), npcCombat = NpcCombat.load(types, SeqNames.NONE), prayerList = Prayers.load(objTypes),
+            npcSpawns = listOf(NpcSpawn(types[FightCaves.MEJ_JAL]!!, 2440, 5170, source = "test")),
             locTypes = LocTypes(
                 listOf(
                     cave(FightCaves.ENTRANCE, "Cave entrance", listOf("Enter", null, null, null, null)),
@@ -598,6 +601,42 @@ class HeadlessFightCaveTest {
         }
     }
 
+    // Fight Caves step FC4: TzHaar-Mej-Jal.
+
+    private fun HeadlessClient.mejJal(): NpcView {
+        tele(2438, 5168)
+        return await("TzHaar-Mej-Jal in view") { npcs().firstOrNull { it.id == FightCaves.MEJ_JAL } }
+    }
+
+    private fun HeadlessClient.next(description: String, predicate: (DialogueView) -> Boolean): DialogueView {
+        continueDialogue()
+        return awaitDialogue(description, predicate = predicate)
+    }
+
+    @Test
+    fun `TzHaar-Mej-Jal buys a fire cape back for 8,000 TokKul`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("lou").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("item ${FightCaves.FIRE_CAPE} 1") { true }
+                val mej = client.mejJal()
+                client.npcOp(mej.index, MejJal.TALK_TO)
+                client.awaitDialogue("his greeting") { it is DialogueView.Chat && "mej_jal.greeting" in it.text && "JalYt-" in it.text }
+                val menu = client.next("the first menu") { it is DialogueView.Menu } as DialogueView.Menu
+                assertTrue("mej_jal.have_cape" in menu.options[0], menu.toString())
+                client.chooseOption(1)
+                client.awaitDialogue("the player's line") { it is DialogueView.Chat && "mej_jal.have_cape" in it.text }
+                client.next("his offer") { it is DialogueView.Chat && "mej_jal.sell_offer" in it.text }
+                val capeMenu = client.next("the cape's menu") { it is DialogueView.Menu } as DialogueView.Menu
+                assertEquals(3, capeMenu.options.size, "sell, keep, and bargain without the pet")
+                client.chooseOption(1)
+                client.awaitDialogue("sold") { it is DialogueView.Message && "mej_jal.sell_done" in it.text }
+                assertEquals(8_000, client.tokkul())
+                assertTrue(client.inventory(INV).none { it?.id == FightCaves.FIRE_CAPE })
+            }
+        }
+    }
+
     @Test
     fun `TzRek-Jad is 1 in 200, 1 in 100 on task, and comes as the item with its collection log entry`(@TempDir dir: Path) {
         server(dir).use { server ->
@@ -611,6 +650,48 @@ class HeadlessFightCaveTest {
                 client.await("the pet") { client.inventory(INV).firstOrNull { it?.id == FightCaves.PET } }
                 assertEquals(1, server.world.collectionLog.count(player, FightCaves.PET))
                 client.await("its message") { client.messages().firstOrNull { "fight_cave.pet" in it.text } }
+            }
+        }
+    }
+
+    @Test
+    fun `Exchange fire cape bargains it away for a toss at TzRek-Jad, and the cape is gone either way`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("max").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("item ${FightCaves.FIRE_CAPE} 1") { true }
+                val mej = client.mejJal()
+                client.npcOp(mej.index, MejJal.EXCHANGE)
+                client.awaitDialogue("his offer") { it is DialogueView.Chat && "mej_jal.sell_offer" in it.text }
+                client.next("the cape's menu") { it is DialogueView.Menu }
+                client.chooseOption(3)
+                client.awaitDialogue("the apprentice") { it is DialogueView.Chat && "mej_jal.apprentice" in it.text }
+                client.next("his terms") { it is DialogueView.Chat && "mej_jal.give_cape" in it.text }
+                client.next("the cape back") { it is DialogueView.Chat && "mej_jal.cape_back" in it.text }
+                client.next("no cape back") { it is DialogueView.Chat && "mej_jal.no_cape_back" in it.text }
+                client.next("try or not") { it is DialogueView.Menu }
+                client.chooseOption(1)
+                val end = client.awaitDialogue("the toss") { it is DialogueView.Chat && ("mej_jal.lucky" in it.text || "mej_jal.unlucky" in it.text) } as DialogueView.Chat
+                assertTrue(client.inventory(INV).none { it?.id == FightCaves.FIRE_CAPE }, "no cape back")
+                assertEquals("mej_jal.lucky" in end.text, client.inventory(INV).any { it?.id == FightCaves.PET })
+            }
+        }
+    }
+
+    @Test
+    fun `the caste goes by the player's best skill`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ned").use { client ->
+                client.await("the login rebuild") { client.position }
+                val player = server.world.playerNamed("ned")!!
+                client.commandReply("setlevel magic 50") { true }
+                client.await("Mej") { MejJal.caste(player).takeIf { it == "JalYt-Mej" } }
+                client.commandReply("setlevel ranged 60") { true }
+                client.await("Xil") { MejJal.caste(player).takeIf { it == "JalYt-Xil" } }
+                client.commandReply("setlevel cooking 70") { true }
+                client.await("Hur") { MejJal.caste(player).takeIf { it == "JalYt-Hur" } }
+                client.commandReply("setlevel strength 80") { true }
+                client.await("Ket") { MejJal.caste(player).takeIf { it == "JalYt-Ket" } }
             }
         }
     }

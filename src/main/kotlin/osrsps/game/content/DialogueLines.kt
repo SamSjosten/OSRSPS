@@ -77,6 +77,7 @@ import osrsps.game.social.ReportLines
 import osrsps.game.social.SocialLines
 import osrsps.game.trade.TradeLines
 import osrsps.game.tzhaar.FightCaveLines
+import osrsps.game.tzhaar.MejJalLines
 
 /**
  * Every conversation's lines, which the dialogue file is read and written against. Each new [Lines] object goes here,
@@ -132,6 +133,7 @@ object DialogueLines {
         CadmusLines,
         FeorasLines,
         FightCaveLines,
+        MejJalLines,
         FinlayLines,
         MonlumLines,
         WebLines,

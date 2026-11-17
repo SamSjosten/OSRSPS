@@ -23,6 +23,8 @@ object FightCaveLines : Lines("fight_cave", "TzHaar Fight Cave") {
     val TRIED = line("tried", "TzHaar-Mej-Jal after a death or leaving in the first wave, with no TokKul (Transcript:TzHaar-Mej-Jal)")
     val REWARD = line("reward", "TzHaar-Mej-Jal after a death or leaving in a later wave, as TokKul is handed over (Transcript:TzHaar-Mej-Jal)")
     val VICTORIOUS = line("victorious", "TzHaar-Mej-Jal after TzTok-Jad's death, handing over the fire cape (Transcript:TzHaar-Mej-Jal)")
+    val ENTERED = line("entered", "TzHaar-Mej-Jal as the player goes in by the entrance (Transcript:TzHaar-Mej-Jal, Upon entering the fight cave)")
+    val JAD_COMING = line("jad_coming", "TzHaar-Mej-Jal as wave 63 comes in (Transcript:TzHaar-Mej-Jal, Before TzTok-Jad appears)")
     val PET = line("pet", "As TzRek-Jad goes into the backpack after TzTok-Jad's death: ours has no followers yet, so the Wiki's Pet page message for a pet that goes to the inventory")
     val NO_ROOM = line("no_room", "Enter on the cave entrance when no cave can be made (ours: the server's instances are all taken)")
     val IN_SCENARIO = line("in_scenario", "Enter on the cave entrance in a test setup (::scenario, the Leagues Tutor's kits): ours, as its kit would earn real rewards; ::reset first")
@@ -113,6 +115,7 @@ class FightCaves(private val world: World) {
 
     fun register() {
         monsterMechanics.register(this)
+        MejJal.register(world)
         world.handlers.onLoc(ENTRANCE, ENTER) { enter(player) }
         world.handlers.onLoc(EXIT, LEAVE) { leave(player) }
         world.handlers.onLoc(EXIT, ESCAPE) { leave(player) }
@@ -128,7 +131,7 @@ class FightCaves(private val world: World) {
         if (runs.containsKey(player.saveKey)) return
         // A test setup's kit (99s, the best gear) would earn a real fire cape and TokKul that outlive putting it back.
         if (player.scenario != null) return world.message(player, FightCaveLines.IN_SCENARIO)
-        start(player, 1, randomRotation(), ARRIVAL, FIRST_WAVE_TICKS)
+        if (start(player, 1, randomRotation(), ARRIVAL, FIRST_WAVE_TICKS)) mejJal(player, FightCaveLines.ENTERED)
     }
 
     /** A rotation from 1 to 15, from the world's random (guessed: live goes by the time the player goes in). */
@@ -258,6 +261,7 @@ class FightCaves(private val world: World) {
         run.nextWaveTick = -1
         run.pausing = false
         world.message(player, FightCaveLines.WAVE, "wave" to run.wave)
+        if (run.wave == FightCaveWaves.WAVES) mejJal(player, FightCaveLines.JAD_COMING)
         val monsters = FightCaveWaves.monsters(run.wave)
         val spots = FightCaveWaves.spots(run.wave, run.rotation)
         val seen = HashSet<FightCaveMonster>()
