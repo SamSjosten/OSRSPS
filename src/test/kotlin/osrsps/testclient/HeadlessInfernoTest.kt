@@ -62,6 +62,7 @@ class HeadlessInfernoTest {
         monster(7698, "Jal-Xil", 3, "inferno_creature_ranger", 125),
         monster(7699, "Jal-Zek", 4, "inferno_creature_mager", 220),
         monster(7700, "JalTok-Jad", 5, "inferno_jad", 350),
+        monster(7701, "Yt-HurKot", 1, "inferno_jad_healer", 90),
         monster(7706, "TzKal-Zuk", 7, "inferno_tzkalzuk_placeholder", 1200),
         monster(InfernoPillars.SUPPORT, "Rocky support", 3, "inferno_invisible_3x3", 1, ops = listOf(null, null, null, null, null)),
         monster(InfernoPillars.COLLAPSING, "Rocky support", 3, "inferno_safespot_dying", 1, ops = listOf(null, null, null, null, null)),
@@ -603,6 +604,44 @@ class HeadlessInfernoTest {
                 client.commandReply("kill ${back.index}") { it.startsWith("Killed") }
                 client.await("its death not counted again") { run.takeIf { back.dead } }
                 assertTrue(run.slain.isEmpty(), "a revived monster isn't revived twice")
+            }
+        }
+    }
+
+    // Inferno step IN3: the JalTok-Jads and their healers.
+
+    @Test
+    fun `wave 68's three JalTok-Jads attack three ticks apart, each every 9 ticks`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("kim").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("inferno 68") { it.startsWith("Inferno") }
+                val jads = client.waveIn(server, "kim", 68)
+                assertEquals(List(3) { InfernoMonster.JAD.type }, jads.map { it.type.id })
+                val firsts = jads.map { server.world.inferno.jads.firstAttack(it)!! }
+                assertEquals(listOf(0L, 3L, 6L), firsts.map { it - firsts[0] })
+                assertTrue(jads.all { server.world.inferno.jads.attackSpeed(it) == osrsps.game.tzhaar.InfernoJads.TRIPLE_SPEED && it.scriptedAttacks })
+            }
+        }
+    }
+
+    @Test
+    fun `wave 67's JalTok-Jad summons five healers below half health, who heal him, and they go when he dies`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("lee").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("inferno 67") { it.startsWith("Inferno") }
+                val jad = client.waveIn(server, "lee", 67).single()
+                assertEquals(osrsps.game.tzhaar.InfernoJads.ATTACK_SPEED, server.world.inferno.jads.attackSpeed(jad))
+                client.commandReply("hit 200 ${jad.index}") { it.startsWith("Hit") }
+                val healers = client.await("five healers") { server.world.inferno.jads.healersOf(jad).takeIf { it.size == 5 } }
+                assertTrue(healers.all { it.type.id == osrsps.game.tzhaar.InfernoJads.HEALER && it.target == null })
+                client.await("a heal", timeoutMillis = 20_000) { jad.hitpoints.takeIf { it > 150 } }
+                client.commandReply("kill ${jad.index}") { it.startsWith("Killed") }
+                client.await("the healers gone") { healers.takeIf { h -> h.none { server.world.npcs[it.index] === it } } }
+                client.await("wave 68 coming") { server.run("lee")?.takeIf { it.wave == 68 } }
             }
         }
     }
