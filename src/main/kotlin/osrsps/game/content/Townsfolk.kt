@@ -61,9 +61,10 @@ object Townsfolk {
     /**
      * Man (man, man2, man3, man_indoor) and Woman (woman, woman2, woman3), the ones in Lumbridge, and Varrock's own:
      * varrock_man1 (3014, the Man page's Blue Moon Inn version) and varrock_woman1 (3015, taken to be the Woman page's
-     * match, guessed).
+     * match, guessed), and Musa Point's two, man4_for_musa_point (3110) and karamja_man (3652), the Man page's Musa Point
+     * and Karamja versions (Karamja step K1.3; their talk taken to be the transcript's, inferred).
      */
-    val MEN = listOf(3014, 3106, 3107, 3108, 6818)
+    val MEN = listOf(3014, 3106, 3107, 3108, 6818, 3110, 3652)
     val WOMEN = listOf(3015, 3111, 3112, 3113)
     const val TALK_TO = 1
 

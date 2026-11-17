@@ -70,12 +70,12 @@
       "source": "OSRS Wiki, Ghost (Level 19; the Varrock Sewers' 85, 89 and 92), read 2026-11-01 for Draynor Manor's: speed 4, max hit 2, crush, the bonuses, respawn 40, weak to air 50%, aggressive. These stand and walk with ghost_update_tendrill_ready and _walk, so the ghost_update_tendrill fight animations are taken"
     },
     {
-      "npcs": ["man", "man2", "man3", "man4", "al_kharid_man", "varrock_man1"],
+      "npcs": ["man", "man2", "man3", "man4", "al_kharid_man", "varrock_man1", "man4_for_musa_point", "karamja_man"],
       "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
       "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -21, "light": -21, "standard": -21, "heavy": -21 },
       "anims": { "attack": "human_unarmedpunch", "defend": "human_unarmedblock", "death": "human_death" },
       "respawnTicks": 25,
-      "source": "OSRS Wiki, Man (ids 3106 to 3109 share the infobox; Al Kharid's man, 3261, is a version of the same page and shares it too, though the DPS calculator gives it 0 defence bonuses)"
+      "source": "OSRS Wiki, Man (ids 3106 to 3109 share the infobox; Al Kharid's man, 3261, is a version of the same page and shares it too, though the DPS calculator gives it 0 defence bonuses; so are Musa Point's two, man4_for_musa_point 3110 and karamja_man 3652, Karamja step K1.3)"
     },
     {
       "npcs": ["farmer1", "farmer2", "farmer3", "farmer1_f", "farmer2_f", "farmer3_f", "farmer4"],
@@ -197,6 +197,15 @@
       "respawnTicks": 35,
       "weakness": { "element": "fire", "percent": 50 },
       "source": "OSRS Wiki, Spider (level 1, id 3019) and the DPS calculator, read 2026-10-30; the giant spider's spider_update animations, guessed"
+    },
+    {
+      "npcs": ["snake"],
+      "attackSpeed": 4, "maxHit": 1, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "snake_attack", "defend": "snake_block", "death": "snake_death" },
+      "respawnTicks": 30,
+      "aggressive": true,
+      "source": "OSRS Wiki, Snake (level 5, id 2845), read 2026-11-17: speed 4, max hit 1, stab, no bonuses, respawn 30, aggressive, not poisonous (Karamja step K1.3); the animations are the cache's snake_* seqs"
     },
     {
       "npcs": ["woman", "woman2", "woman3", "varrock_woman1"],
