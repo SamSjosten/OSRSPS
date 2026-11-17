@@ -41,4 +41,15 @@ public interface TfaHelperConfig extends Config
 	{
 		return true;
 	}
+
+	@ConfigItem(
+		keyName = "ocellusFinalStand",
+		name = "Ocellus final stand",
+		description = "On our own server only: the final stand's loop tick, the next event's countdown and blasts so far",
+		position = 3
+	)
+	default boolean ocellusFinalStand()
+	{
+		return true;
+	}
 }
