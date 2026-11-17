@@ -1179,8 +1179,8 @@ class ArchiveRaids(private val world: World) {
     }
 
     /**
-     * [player] comes into [run]'s reward vault, at the south end of its walk (tsps capture notes: 4127,5779 on level
-     * 2 of map square 64,90). The first to come starts the count to its Rift out ([riftOut]).
+     * [player] comes into [run]'s reward vault, at [REWARD_X], [REWARD_Z] on level
+     * 2 of map square 64,90 (Sam's recording of 16 November 2026). The first to come starts the count to its Rift out ([riftOut]).
      */
     fun arrive(run: ArchiveRun, player: Player) {
         val to = tile(run, REWARD_X, REWARD_Z)
