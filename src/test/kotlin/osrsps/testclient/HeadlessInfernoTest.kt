@@ -27,6 +27,7 @@ import osrsps.game.npc.NpcSpawn
 import osrsps.game.tzhaar.FightCaves
 import osrsps.game.tzhaar.Inferno
 import osrsps.game.tzhaar.InfernoMonster
+import osrsps.game.tzhaar.InfernoMonsters
 import osrsps.game.tzhaar.InfernoPillars
 import osrsps.game.tzhaar.InfernoWaves
 import osrsps.game.tzhaar.KetKeh
@@ -52,6 +53,9 @@ class HeadlessInfernoTest {
         monster(7691, "Jal-Nib", 1, "inferno_nibbler", 10),
         monster(7692, "Jal-MejRah", 2, "inferno_creature_harpie", 25),
         monster(7693, "Jal-Ak", 3, "inferno_creature_splitter", 40),
+        monster(7694, "Jal-AkRek-Mej", 1, "inferno_creature_splitter_mage", 15),
+        monster(7695, "Jal-AkRek-Xil", 1, "inferno_creature_splitter_range", 15),
+        monster(7696, "Jal-AkRek-Ket", 1, "inferno_creature_splitter_melee", 15),
         monster(7697, "Jal-ImKot", 4, "inferno_creature_melee", 75),
         monster(7698, "Jal-Xil", 3, "inferno_creature_ranger", 125),
         monster(7699, "Jal-Zek", 4, "inferno_creature_mager", 220),
@@ -399,6 +403,124 @@ class HeadlessInfernoTest {
         assertEquals(Scenario.ScenarioMinigame.INFERNO, scenarios["inferno"]!!.minigame!!.name)
         assertEquals(1, scenarios["inferno"]!!.minigame!!.wave)
         assertEquals(66, scenarios["inferno-wave66"]!!.minigame!!.wave)
+    }
+
+    // Inferno step IN2: the monsters' own mechanics.
+
+    @Test
+    fun `a Jal-MejRah's attacks drain 3 run energy each without Protect from Missiles`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("gus").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("inferno 1") { it.startsWith("Inferno") }
+                val bat = client.waveIn(server, "gus", 1).single { it.type.id == InfernoMonster.BAT.type }
+                assertTrue(bat.scriptedAttacks)
+                val player = server.world.playerNamed("gus")!!
+                // 3% a hit, less what the player gets back standing between hits.
+                client.await("run energy drained", timeoutMillis = 20_000) {
+                    player.runEnergy.takeIf { it <= osrsps.game.Movement.MAX_ENERGY - InfernoMonsters.BAT_RUN_DRAIN + 50 }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a Jal-Ak splits into its three smaller selves as it dies, and the wave waits for them`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("hal").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("inferno 4") { it.startsWith("Inferno") }
+                val blob = client.waveIn(server, "hal", 4).single { it.type.id == InfernoMonster.BLOB.type }
+                val run = server.run("hal")!!
+                val player = server.world.playerNamed("hal")!!
+                client.commandReply("kill ${blob.index}") { it.startsWith("Killed") }
+                val small = client.await("the split") { run.monsters.filter { it.type.id in InfernoMonsters.SPLITS && !it.dead }.takeIf { it.size == 3 } }
+                assertEquals(InfernoMonsters.SPLITS.toSet(), small.map { it.type.id }.toSet())
+                assertTrue(small.all { it.target === player })
+                for (npc in run.monsters.filter { !it.dead && it.type.id == InfernoMonster.NIBBLER.type }) client.commandReply("kill ${npc.index}") { it.startsWith("Killed") }
+                assertEquals(4, run.wave, "the wave waits for them")
+                for (npc in small) client.commandReply("kill ${npc.index}") { it.startsWith("Killed") }
+                client.await("wave 5") { run.takeIf { it.wave == 5 } }
+            }
+        }
+    }
+
+    @Test
+    fun `a Jal-Ak split owed for want of room comes in later and the wave waits for it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("hew").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("inferno 4") { it.startsWith("Inferno") }
+                val blob = client.waveIn(server, "hew", 4).single { it.type.id == InfernoMonster.BLOB.type }
+                val run = server.run("hew")!!
+                for (npc in run.monsters.filter { !it.dead && it.type.id == InfernoMonster.NIBBLER.type }) client.commandReply("kill ${npc.index}") { it.startsWith("Killed") }
+                // As if one of an earlier split couldn't come in: owed, it comes in with the next free tick.
+                run.splitsOwed += InfernoMonsters.SPLITS.first() to osrsps.map.Tile(blob.x, blob.z)
+                client.commandReply("kill ${blob.index}") { it.startsWith("Killed") }
+                val small = client.await("the split and the owed one") { run.monsters.filter { it.type.id in InfernoMonsters.SPLITS && !it.dead }.takeIf { it.size == 4 } }
+                assertTrue(run.splitsOwed.isEmpty())
+                assertEquals(4, run.wave, "the wave waits for them")
+                for (npc in small) client.commandReply("kill ${npc.index}") { it.startsWith("Killed") }
+                client.await("wave 5") { run.takeIf { it.wave == 5 } }
+            }
+        }
+    }
+
+    @Test
+    fun `a Jal-ImKot that can't reach the player digs and comes up beside them`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ida").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("inferno 9") { it.startsWith("Inferno") }
+                val imKot = client.waveIn(server, "ida", 9).single { it.type.id == InfernoMonster.MELEE.type }
+                val run = server.run("ida")!!
+                val player = server.world.playerNamed("ida")!!
+                val corners = listOf(run.at(Tile(2258, 5330)), run.at(Tile(2284, 5357)))
+                // Kept out of its reach, back and forth across the arena, till it goes under.
+                var i = 0
+                client.await("it digs", timeoutMillis = 30_000) {
+                    if (imKot.hidden) Unit else {
+                        val to = corners[i++ % 2]
+                        client.command("tele ${to.x} ${to.z} 0")
+                        Thread.sleep(150)
+                        null
+                    }
+                }
+                val stand = Tile(player.x, player.z)
+                client.await("it comes up beside them", timeoutMillis = 10_000) { imKot.takeIf { !it.hidden } }
+                assertEquals(stand.x - 1 to stand.z - imKot.type.size, imKot.x to imKot.z)
+                assertTrue(imKot.target === player)
+            }
+        }
+    }
+
+    @Test
+    fun `a Jal-Zek brings a dead monster of its wave back at half its hitpoints, once`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("jon").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("inferno 36") { it.startsWith("Inferno") }
+                val wave = client.waveIn(server, "jon", 36)
+                val bat = wave.single { it.type.id == InfernoMonster.BAT.type }
+                val run = server.run("jon")!!
+                client.commandReply("kill ${bat.index}") { it.startsWith("Killed") }
+                val back = client.await("the bat back", timeoutMillis = 30_000) {
+                    run.monsters.firstOrNull { it.type.id == InfernoMonster.BAT.type && it !== bat && !it.dead }
+                }
+                val at = run.at(InfernoMonsters.REVIVE_TILE)
+                assertEquals(at.x to at.z, back.spawn.x to back.spawn.z)
+                assertTrue(back.hitpoints <= back.maxHitpoints / 2)
+                assertTrue(run.slain.isEmpty(), "nothing left to bring back")
+                client.commandReply("kill ${back.index}") { it.startsWith("Killed") }
+                client.await("its death not counted again") { run.takeIf { back.dead } }
+                assertTrue(run.slain.isEmpty(), "a revived monster isn't revived twice")
+            }
+        }
     }
 
     private companion object {
