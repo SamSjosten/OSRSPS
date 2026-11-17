@@ -3,6 +3,8 @@ package osrsps.game.command
 import osrsps.game.World
 import osrsps.game.tzhaar.FightCaveWaves
 import osrsps.game.tzhaar.FightCaves
+import osrsps.game.tzhaar.Inferno
+import osrsps.game.tzhaar.InfernoWaves
 
 /**
  * `::fightcave`: a TzHaar Fight Cave of your own at any wave of any rotation (Fight Caves step FC1), and what your run is
@@ -43,6 +45,48 @@ fun CommandRegistry.registerTzHaarCommands(world: World) {
                 world.scripts.interrupt(player)
                 if (!caves.start(player, wave, rotation)) fail("No room for another fight cave.")
                 reply("Fight cave: wave $wave of rotation $rotation, in ${FightCaves.FIRST_WAVE_TICKS} ticks.")
+            }
+        }
+    }
+
+    val inferno = world.inferno
+    val infernoUsage = "Usage: ::inferno [wave] | ::inferno status | ::inferno next | ::inferno sacrifice | ::inferno leave"
+
+    // `::inferno`: an Inferno of your own at any wave (Inferno step IN1). `::inferno 67` puts you in at JalTok-Jad, with
+    // the supports your varbits say are standing (all three from wave 1); `::inferno sacrifice` counts your fire cape as
+    // given to TzHaar-Ket-Keh, so the entrance shows Jump-in.
+    register("inferno", "::inferno [wave] | status | next | sacrifice | leave", admin = true) {
+        when (args.firstOrNull()?.lowercase()) {
+            "status" -> {
+                val run = inferno.runOf(player) ?: fail("You're not in the Inferno.")
+                val alive = run.monsters.filter { !it.dead }
+                val coming = if (run.nextWaveTick >= 0) ", in ${run.nextWaveTick - world.tick} ticks" else ""
+                val supports = run.pillars.joinToString { "${it.index + 1}: ${it.npc.hitpoints}" }.ifEmpty { "none" }
+                reply("Wave ${run.wave}$coming: ${alive.size} alive (${alive.joinToString { "${it.type.name} #${it.index}" }}); supports $supports")
+            }
+            "next" -> {
+                val run = inferno.runOf(player) ?: fail("You're not in the Inferno.")
+                if (run.nextWaveTick >= 0) fail("Wave ${run.wave} hasn't come in yet.")
+                for (npc in run.monsters.toList()) if (world.npcs[npc.index] === npc) world.removeNpc(npc)
+                run.monsters.clear()
+                reply("Took wave ${run.wave}'s monsters out.")
+            }
+            "sacrifice" -> {
+                inferno.sacrifice(player)
+                reply(if (inferno.sacrificed(player)) "Your fire cape counts as given: the Inferno is open to you." else "This cache has no inferno_sacrificed_firecape varbit.")
+            }
+            "leave" -> {
+                inferno.runOf(player) ?: fail("You're not in the Inferno.")
+                inferno.leave(player)
+                reply("Left the Inferno.")
+            }
+            else -> {
+                if (args.size > 1) fail(infernoUsage)
+                val wave = args.getOrNull(0)?.let { it.toIntOrNull() ?: fail(infernoUsage) } ?: 1
+                if (wave !in 1..InfernoWaves.WAVES) fail("Waves are 1 to ${InfernoWaves.WAVES}.")
+                world.scripts.interrupt(player)
+                if (!inferno.start(player, wave)) fail("No room for another Inferno.")
+                reply("Inferno: wave $wave, in ${Inferno.FIRST_WAVE_TICKS} ticks.")
             }
         }
     }

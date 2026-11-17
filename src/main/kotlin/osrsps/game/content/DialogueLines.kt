@@ -77,6 +77,8 @@ import osrsps.game.social.ReportLines
 import osrsps.game.social.SocialLines
 import osrsps.game.trade.TradeLines
 import osrsps.game.tzhaar.FightCaveLines
+import osrsps.game.tzhaar.InfernoLines
+import osrsps.game.tzhaar.KetKehLines
 import osrsps.game.tzhaar.MejJalLines
 
 /**
@@ -134,6 +136,8 @@ object DialogueLines {
         FeorasLines,
         FightCaveLines,
         MejJalLines,
+        InfernoLines,
+        KetKehLines,
         FinlayLines,
         MonlumLines,
         WebLines,

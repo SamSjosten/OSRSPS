@@ -115,6 +115,11 @@ class NpcCombatTest {
             "lizard_cleric_attack" to 2637, "lizard_cleric_defend" to 2635, "lizard_cleric_death" to 2638,
             "igniferum_ranged" to 2647, "igniferum_defend" to 2645, "igniferum_death" to 2646,
             "lordmagmus_fire" to 2656, "lordmagmus_defend" to 2653, "lordmagmus_death" to 2654,
+            "jalnib_attack" to 7574, "jalnib_defend" to 7575, "jalnib_death" to 7576, "jalmejrah_attack" to 7578, "jalmejrah_defend" to 7579, "jalmejrah_death" to 7580,
+            "jalak_attack_magic" to 7581, "jalak_attack_ranged" to 7583, "jalak_attack_melee" to 7582, "jalak_defend" to 7585, "jalak_death" to 7584,
+            "jalimkot_attack" to 7597, "jalimkot_defend" to 7598, "jalimkot_death" to 7599, "jalxil_attack_ranged" to 7605, "jalxil_defend" to 7607, "jalxil_death" to 7606,
+            "jalakxil_attack_magic" to 7610, "jalakxil_death" to 7613, "jaltokjad_attack_magic" to 7592, "jaltokjad_defend" to 7591, "jaltokjad_death" to 7594,
+            "zuk_attack" to 7566, "zuk_defend" to 7565, "zuk_death" to 7562,
         ),
     )
 
