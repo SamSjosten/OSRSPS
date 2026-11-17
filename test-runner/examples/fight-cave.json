@@ -1,0 +1,27 @@
+{
+  "name": "Fight Caves step FC1: Enter on the Fight Cave's entrance into a cave of one's own, wave 1's Tz-Kih killed with ::kill and wave 2 coming in, Leave on the exit paying 2 Tokkul with TzHaar-Mej-Jal's line, and ::fightcave 63 putting TzTok-Jad in (::keys on, ::god on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off)."},
+    {"step": "command", "text": "::empty", "comment": "an empty backpack, so the Tokkul count below is the cave's alone"},
+    {"step": "command", "text": "::tele 2438 5168 0", "expectMessage": "Teleported to 2438, 5168, 0", "comment": "north of the cave entrance (2437,5166), where the run ends"},
+    {"step": "locOption", "locId": 11833, "option": "Enter", "x": 2437, "y": 5166},
+    {"step": "assertMessage", "contains": "[fight_cave.wave wave=1]", "timeoutMs": 15000},
+    {"step": "command", "text": "::fightcave status", "expectMessage": "Wave 1, rotation "},
+    {"step": "command", "text": "::kill Tz-Kih", "expectMessage": "Killed Tz-Kih #"},
+    {"step": "assertMessage", "contains": "[fight_cave.wave wave=2]", "timeoutMs": 20000},
+    {"step": "locOption", "locId": 11834, "option": "Leave"},
+    {"step": "assertLocation", "x": 2438, "y": 5168, "plane": 0, "timeoutMs": 30000},
+    {"step": "assertInventory", "itemId": 6529, "count": 2},
+    {"step": "assertDialogue", "contains": "[fight_cave.left]", "speaker": "TzHaar-Mej-Jal"},
+    {"step": "finishDialogue"},
+    {"step": "command", "text": "::fightcave 63 1", "expectMessage": "Fight cave: wave 63 of rotation 1"},
+    {"step": "assertMessage", "contains": "[fight_cave.wave wave=63]", "timeoutMs": 15000},
+    {"step": "command", "text": "::fightcave leave", "expectMessage": "Left the fight cave."},
+    {"step": "finishDialogue"},
+    {"step": "command", "text": "::empty"},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
+  ]
+}

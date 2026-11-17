@@ -40,6 +40,7 @@ import osrsps.game.command.registerDevCommands
 import osrsps.game.command.registerEffectCommands
 import osrsps.game.command.registerGroundObjCommands
 import osrsps.game.command.registerInstanceCommands
+import osrsps.game.command.registerTzHaarCommands
 import osrsps.game.command.registerPartyCommands
 import osrsps.game.command.registerRaidCommands
 import osrsps.game.command.registerIpCommands
@@ -163,6 +164,7 @@ import osrsps.game.content.registerChaosFanatic
 import osrsps.game.content.registerScorpia
 import osrsps.game.content.registerChaosElemental
 import osrsps.game.content.registerKingBlackDragon
+import osrsps.game.tzhaar.FightCaves
 import osrsps.game.content.MemberGates
 import osrsps.game.content.registerFeroxEnclave
 import osrsps.game.content.registerWildernessObelisks
@@ -431,6 +433,9 @@ class World(
     /** The Fractured Archive's runs; see [ArchiveRaids]. */
     val archiveRaids = ArchiveRaids(this)
 
+    /** The TzHaar Fight Cave; see [FightCaves]. */
+    val fightCaves = FightCaves(this)
+
     /** Boss fights in progress; see [Encounters]. */
     val encounters = Encounters(this, encounterDefs)
 
@@ -614,7 +619,9 @@ class World(
 
     private val locInteractions = LocInteractions(
         locs, collision, movement, handlers, scripts, doors, gates, words = ::textFor, inInstance = { x, z -> instances.at(x, z) != null },
-        forInstances = { it in ArchiveRaids.INSTANCE_LOCS || it in GiantLairs.INSTANCE_LOCS || it in KingBlackDragon.INSTANCE_LOCS },
+        forInstances = {
+            it in ArchiveRaids.INSTANCE_LOCS || it in GiantLairs.INSTANCE_LOCS || it in KingBlackDragon.INSTANCE_LOCS || it in FightCaves.INSTANCE_LOCS
+        },
     )
 
     /** Lets loc type [id] be used from the tiles [tiles] gives, as a stepping stone from the bank; see [LocInteractions.useFrom]. */
@@ -740,6 +747,7 @@ class World(
      */
     private fun deathPlace(player: Player): DeathPlace? {
         archiveRaids.deathPlace(player)?.let { return it }
+        fightCaves.deathPlace(player)?.let { return it }
         val instance = instances.at(player.x, player.z) ?: return null
         return DeathPlace(keepItems = false, instance.exitX, instance.exitZ, instance.exitLevel, SPAWN_X, SPAWN_Z, SPAWN_LEVEL)
     }
@@ -975,6 +983,7 @@ class World(
         registerScriptCommands(this@World)
         registerZoneCommands(this@World, collision)
         registerInstanceCommands(this@World)
+        registerTzHaarCommands(this@World)
         registerPartyCommands(this@World)
         registerRaidCommands(this@World)
         registerEffectCommands(this@World)
@@ -1080,6 +1089,8 @@ class World(
         registerArchiveLobby(this)
         registerRaidTester(this)
         archiveRaids.register()
+        // After the raid, which sets the multi-way check for instances rather than adding to it.
+        fightCaves.register()
         // After the raid, which sets the combat's shut-out rule afresh; the lairs add theirs to it.
         registerObor(this, giantLairs)
         registerBryophyta(this, giantLairs)
@@ -1464,6 +1475,7 @@ class World(
         npcScripts.process()
         encounters.process()
         archiveRaids.process()
+        fightCaves.process()
         thieving.process()
         slayer.superiors.process()
         // Before NPCs move, so a creature a trap lures this tick takes its first step this tick.
@@ -2218,6 +2230,7 @@ class World(
         quests.completeAll(player.vars)
         Kudos.login(player)
         lodestones.login(player)
+        fightCaves.login(player)
         prayers.login(player)
         cooking.wine.login(player)
         if (player.newAccount) allSettings.newAccount(player)
@@ -2769,6 +2782,8 @@ class World(
             // A delayed player (part way along an agility obstacle, say) can't log out, or they would be saved on a tile
             // the move only passes through (round 12 exploit review, R12B-1). Inferred from live's p_delay.
             if (player.scripts.delayed) return@act
+            // In a Fight Cave wave the first click pauses the run at the wave's end instead.
+            if (fightCaves.logoutClicked(player)) return@act
             if (inCombat(player)) {
                 player.message(textFor(player)[GameLines.CANT_LOG_OUT])
                 return@act
@@ -3362,6 +3377,8 @@ class World(
             if (player.dead) deaths.respawn(player)
             // Down in a raid, leaving counts as a death (RAID-2), also when the death just finished put them down.
             archiveRaids.leaving(player)
+            // After the death above, so a run's death is paid before the save.
+            fightCaves.leaving(player)
             trades.leave(player)
             // Once a trade's offer is back in the backpack: saved at the instance's exit, out of any raid run, so its
             // supplies stay in it (R26A-1; Codex review on #636).

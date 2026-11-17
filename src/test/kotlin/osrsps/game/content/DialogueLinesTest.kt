@@ -24,7 +24,7 @@ class DialogueLinesTest {
     }
 
     private companion object {
-        /** Where lines are declared: the engine's game messages, NPCs and places, the skills, combat, the bank, shops, the Grand Exchange and the raid. */
+        /** Where lines are declared: the engine's game messages, NPCs and places, the skills, combat, the bank, shops, the Grand Exchange, the raid and the TzHaar minigames. */
         val CONTENT_DIRS = listOf(
             "src/main/kotlin/osrsps/game",
             "src/main/kotlin/osrsps/game/content",
@@ -38,6 +38,7 @@ class DialogueLinesTest {
             "src/main/kotlin/osrsps/game/social",
             "src/main/kotlin/osrsps/game/ge",
             "src/main/kotlin/osrsps/game/raid",
+            "src/main/kotlin/osrsps/game/tzhaar",
             "src/main/kotlin/osrsps/game/trade",
         )
         val DECLARATION = Regex("""object (\w+) : \w*Lines\(""")

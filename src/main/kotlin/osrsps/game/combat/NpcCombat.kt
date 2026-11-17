@@ -350,8 +350,11 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
             )
         }
 
-        /** The farthest an NPC attacks from here: a spell's 10 tiles (OSRS Wiki, Attack range). */
-        const val MAX_RANGE = 10
+        /**
+         * The farthest an NPC attacks from here: 15 tiles, the Fight Cave's Tok-Xil, Ket-Zek and TzTok-Jad (OSRS Wiki,
+         * their pages: "a range of 15 tiles"); most stop at a spell's 10 (OSRS Wiki, Attack range).
+         */
+        const val MAX_RANGE = 15
 
         private fun attack(entry: JsonObject, seqs: SeqNames): NpcRangedAttack {
             fun id(key: String) = entry[key]?.jsonPrimitive?.int ?: -1
