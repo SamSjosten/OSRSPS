@@ -79,6 +79,8 @@ class ShopTest {
         12740 to 505, 12742 to 3200, 12744 to 60000,
         // Lundail's runes not sold elsewhere yet.
         561 to 180, 563 to 240, 564 to 50,
+        // Zembo's beer and Karamjan rum (the 242 cache's values).
+        1917 to 2, 431 to 30,
     )
 
     /**
@@ -157,6 +159,9 @@ class ShopTest {
             NpcType(1350, "Artimeus", internalName = "hunting_shop_owner_nardah"),
             NpcType(14832, "Elder Strom", internalName = "tortugan_strom_2ops"),
             NpcType(3218, "Bea", internalName = "baw_bea_3ops"),
+            NpcType(2825, "Shop keeper", internalName = "generalshopkeeper7"),
+            NpcType(2826, "Shop assistant", internalName = "generalassistant7"),
+            NpcType(13655, "Zembo", internalName = "zembo"),
         )
         return ShopTypes.parse(shopFile, npcs, objs)
     }
@@ -237,6 +242,9 @@ class ShopTest {
         "beas_hunting_gear" to listOf(1, 780, 5, 6, 41, 65, 5, 19, 41, 656, 4160, 78000),
         // Lundail's Arena-side Rune Shop., read 2026-11-15.
         "lundails_arena_side_rune_shop" to listOf(4, 4, 4, 4, 3, 3, 180, 90, 240, 50, 180, 430, 430, 430, 430, 330, 9950),
+        // Musa Point's shops, read 2026-11-17.
+        "karamja_general_store" to listOf(1, 1, 182, 1, 2, 650, 5, 13, 1, 1, 1),
+        "karamja_wines_spirits_and_beers" to listOf(2, 30, 1),
     )
 
     @Test
@@ -268,10 +276,10 @@ class ShopTest {
         assertEquals(11849, grace.currency)
         assertEquals(listOf(28, 44, 48, 24, 32, 32, 8), grace.stock.map { Shop(grace).sellPrice(it.type.id, it.type.cost, it.count) })
         assertTrue(shops.all.filter { it.key != grace.key }.all { it.currency == ShopScreen.COINS })
-        // The Al Kharid General Store won't buy silk (the Wiki's page), Farming Supplies buys nothing; no other shop refuses anything.
+        // The Al Kharid General Store won't buy silk (the Wiki's page), Zembo Karamjan rum, Farming Supplies buys nothing; no other shop refuses anything.
         val farmingSupplies = shops["farming_supplies"]!!
         assertEquals(listOf(2674, 2672, 2681, 2680).map { shops.ofNpc(it) }, List(4) { farmingSupplies })
-        assertEquals(mapOf("al_kharid_general_store" to setOf(950), "farming_supplies" to farmingSupplies.stock.map { it.type.id }.toSet()), shops.all.filter { it.refuses.isNotEmpty() }.associate { it.key to it.refuses })
+        assertEquals(mapOf("al_kharid_general_store" to setOf(950), "karamja_wines_spirits_and_beers" to setOf(431), "farming_supplies" to farmingSupplies.stock.map { it.type.id }.toSet()), shops.all.filter { it.refuses.isNotEmpty() }.associate { it.key to it.refuses })
         // Slayer Equipment buys back its witchwood icon, which no one can trade, at 60% (no buy=N/A on the Wiki's line).
         val slayerShop = shops["slayer_equipment"]!!
         assertEquals(mapOf("slayer_equipment" to setOf(8923)), shops.all.filter { it.buysBack.isNotEmpty() }.associate { it.key to it.buysBack })

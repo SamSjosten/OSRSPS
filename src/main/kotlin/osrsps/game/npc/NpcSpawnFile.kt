@@ -102,6 +102,7 @@ object NpcSpawnFile {
         "raid-tester.json",
         "hunters-end.json",
         "karamja-ships.json",
+        "karamja-musa-point.json",
     )
 
     /** What a file gave: the spawns, and the NPC names the cache doesn't know (skipped). */

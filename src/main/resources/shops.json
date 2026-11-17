@@ -3077,6 +3077,126 @@
           "restock": 40
         }
       ]
+    },
+    {
+      "key": "karamja_general_store",
+      "title": "Karamja General Store",
+      "inv": 34,
+      "size": 40,
+      "general": true,
+      "sellAt": 1300,
+      "buyAt": 400,
+      "changePer": 30,
+      "npcs": [
+        "generalshopkeeper7",
+        "generalassistant7"
+      ],
+      "source": "OSRS Wiki, Karamja General Store, read 2026-11-17: Sells at 130.0%, Buys at 40.0%, Change per 3.0%, and the stock table (default tab; the Karamja gloves 3 prices left out, no diary). inv generalshop7 (34): the shop keeper and assistant are generalshopkeeper7 and generalassistant7 in the 242 cache",
+      "stock": [
+        {
+          "item": 1931,
+          "name": "Pot",
+          "count": 5,
+          "restock": 10
+        },
+        {
+          "item": 1935,
+          "name": "Jug",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 20742,
+          "name": "Empty jug pack",
+          "count": 5,
+          "restock": 20
+        },
+        {
+          "item": 1735,
+          "name": "Shears",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 1925,
+          "name": "Bucket",
+          "count": 3,
+          "restock": 10
+        },
+        {
+          "item": 22660,
+          "name": "Empty bucket pack",
+          "count": 15,
+          "restock": 10
+        },
+        {
+          "item": 1923,
+          "name": "Bowl",
+          "count": 2,
+          "restock": 50
+        },
+        {
+          "item": 1887,
+          "name": "Cake tin",
+          "count": 2,
+          "restock": 50
+        },
+        {
+          "item": 590,
+          "name": "Tinderbox",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 1755,
+          "name": "Chisel",
+          "count": 2,
+          "restock": 100
+        },
+        {
+          "item": 2347,
+          "name": "Hammer",
+          "count": 5,
+          "restock": 100
+        }
+      ]
+    },
+    {
+      "key": "karamja_wines_spirits_and_beers",
+      "title": "Karamja Wines, Spirits, and Beers.",
+      "inv": 29,
+      "size": 3,
+      "general": false,
+      "refuses": [
+        431
+      ],
+      "sellAt": 1000,
+      "buyAt": 700,
+      "changePer": 20,
+      "npcs": [
+        "zembo"
+      ],
+      "source": "OSRS Wiki, Karamja Wines, Spirits, and Beers, read 2026-11-17: Sells at 100.0%, Buys at 70.0%, Change per 2.0%, and the stock table (Karamjan rum: buy N/A). inv boozeshop (29) inferred: the 242 cache names no Karamja pub inv, and boozeshop is the old one of its era",
+      "stock": [
+        {
+          "item": 1917,
+          "name": "Beer",
+          "count": 3,
+          "restock": 100
+        },
+        {
+          "item": 431,
+          "name": "Karamjan rum",
+          "count": 3,
+          "restock": 100
+        },
+        {
+          "item": 1993,
+          "name": "Jug of wine",
+          "count": 1,
+          "restock": 15000
+        }
+      ]
     }
   ]
 }

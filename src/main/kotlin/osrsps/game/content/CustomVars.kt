@@ -60,15 +60,24 @@ class CustomVars(
      */
     val lairVisitVarp: Int = firstVarp + 3
 
+    /**
+     * Luthas's banana crate: the bananas in it (bits 0 to 3, 0 to [MusaPoint.CRATE_SIZE]) and whether the player took his
+     * job (bit 4) ([MusaPoint]). Live keeps this somewhere we haven't found; ours is guessed.
+     */
+    val bananaCrateVarp: Int = firstVarp + 4
+
     /** Every varbit of ours, by id. */
     val varbits: Map<Int, VarbitType> = Lodestones.SITES.associate { lodestoneVarbit(it) to VarbitType(lodestonesVarp, it.index, it.index) } +
         (lodestonePreviousVarbit to VarbitType(lodestonesVarp, Lodestones.PREVIOUS_LOW_BIT, Lodestones.PREVIOUS_HIGH_BIT))
 
     /** Every varp of ours. */
-    val varps: List<Int> = listOf(lodestonesVarp, harlanClaimVarp, giantLairsVarp, lairVisitVarp)
+    val varps: List<Int> = listOf(lodestonesVarp, harlanClaimVarp, giantLairsVarp, lairVisitVarp, bananaCrateVarp)
 
-    /** The varps by name, for `::varp name`: [LODESTONES], [HARLAN_CLAIMED], [GIANT_LAIRS] and [LAIR_VISIT]. */
-    val varpNames: Map<String, Int> = mapOf(LODESTONES to lodestonesVarp, HARLAN_CLAIMED to harlanClaimVarp, GIANT_LAIRS to giantLairsVarp, LAIR_VISIT to lairVisitVarp)
+    /** The varps by name, for `::varp name`: [LODESTONES], [HARLAN_CLAIMED], [GIANT_LAIRS], [LAIR_VISIT] and [BANANA_CRATE]. */
+    val varpNames: Map<String, Int> = mapOf(
+        LODESTONES to lodestonesVarp, HARLAN_CLAIMED to harlanClaimVarp, GIANT_LAIRS to giantLairsVarp, LAIR_VISIT to lairVisitVarp,
+        BANANA_CRATE to bananaCrateVarp,
+    )
 
     /** The varbits by name, for `::varbit name`: each site's line key (`lodestone.lumbridge`, `lodestone.al_kharid`) and [LODESTONE_PREVIOUS]. */
     val varbitNames: Map<String, Int> = Lodestones.SITES.associate { it.name.key to lodestoneVarbit(it) } + (LODESTONE_PREVIOUS to lodestonePreviousVarbit)
@@ -103,6 +112,9 @@ class CustomVars(
 
         /** The Wilderness lairs' visit varp's name. */
         const val LAIR_VISIT = "wilderness_lair_visit"
+
+        /** Luthas's banana crate's varp's name. */
+        const val BANANA_CRATE = "banana_crate"
 
         /** Our vars with ids right after [cache]'s, the loaded cache's own types (before ours are added to them). */
         fun after(cache: VarTypes): CustomVars = CustomVars(cache.varpCount, cache.varbitCount)
