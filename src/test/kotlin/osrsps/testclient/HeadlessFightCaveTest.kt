@@ -153,6 +153,25 @@ class HeadlessFightCaveTest {
     }
 
     @Test
+    fun `a shot from the cave doesn't land on a player who teleported out before it arrived`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dot").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("setlevel hitpoints 99") { true }
+                client.commandReply("fightcave 7 1") { it.startsWith("Fight cave") }
+                client.waveIn(server, "dot", 7)
+                val player = server.world.playerNamed("dot")!!
+                // Wait for a shot to leave, then teleport out with it on its way (a ::tele, which lands at once).
+                client.await("a shot on its way", timeoutMillis = 20_000) { server.world.meleeCombat.shotsInFlight.takeIf { it > 0 } }
+                val hp = player.hitpoints
+                client.tele(2438, 5170)
+                client.await("the shot gone") { true.takeIf { server.world.meleeCombat.shotsInFlight == 0 } }
+                assertEquals(hp, player.hitpoints, "no hit outside")
+            }
+        }
+    }
+
+    @Test
     fun `a death in the cave is safe and pays for the waves done`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bea").use { client ->

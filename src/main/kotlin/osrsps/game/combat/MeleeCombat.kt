@@ -90,6 +90,11 @@ class MeleeCombat(
     private val multi: MultiCombat = MultiCombat(),
     /** Whether the player's protection prayers block an NPC's attack of this type; see [Prayers.protects]. */
     private val protects: (Player, AttackType) -> Boolean = { _, _ -> false },
+    /**
+     * Whether a shot from the NPC still lands on the player as it arrives: false once they have left the instance it was
+     * fired in (a teleport out of the Fight Cave, whose shot would otherwise kill them outside, where a death isn't safe).
+     */
+    private val shotLands: (Npc, Player) -> Boolean = { _, _ -> true },
     /** Whether a prayer with the effect counts for the player this tick; see [Prayers.has]. */
     private val hasPrayer: (Player, String) -> Boolean = { _, _ -> false },
     /** Every prayer off ([Prayers.deactivateAll]), for Redemption. */
@@ -873,6 +878,7 @@ class MeleeCombat(
             iterator.remove()
             val player = shot.player
             if (player.loggedOut || player.dead || player.hitpoints <= 0) continue
+            if (!shotLands(shot.npc, player)) continue
             if (shot.blocked && shot.attack.maxHit != 0) {
                 // The prayer shows a 0, hit or miss.
                 hitPlayer(player, shot.npc, 0, tick)

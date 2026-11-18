@@ -645,7 +645,13 @@ class World(
         onDeath = { deaths.die(it) },
         loot = ::dropLoot,
         ranged = { player, npc -> magicCombat.fight(player, npc) ?: rangedCombat.fight(player, npc) },
-        multi = multiCombat, protects = prayers::protects, hasPrayer = prayers::has, prayersOff = prayers::deactivateAll,
+        multi = multiCombat, protects = prayers::protects,
+        // A shot from an instance lands only in it: its copy of the map may already be gone, so an NPC on a dynamic tile
+        // needs the player in an instance holding its tile.
+        shotLands = { npc, player ->
+            !instances.inDynamicArea(npc.x, npc.z) || instances.at(player.x, player.z)?.contains(npc.x, npc.z) == true
+        },
+        hasPrayer = prayers::has, prayersOff = prayers::deactivateAll,
         words = ::textFor,
         npcDied = { npcScripts.died(it) },
         npcKilled = { npc, killer -> slayer.killed(npc, killer) },
@@ -1411,7 +1417,12 @@ class World(
         }
         // Once the executor has stopped this thread is the only one touching the players. Nobody is saved dead: a
         // death the stop cut short finishes now, grave and all (the grave is lost with the restart).
-        for (player in players) if (player?.dead == true) deaths.respawn(player)
+        for (player in players) {
+            if (player?.dead != true) continue
+            deaths.respawn(player)
+            // A Fight Cave death is paid and its run ended before the save, as a leaver's is (remove).
+            fightCaves.leaving(player)
+        }
         saveAll()
     }
 
