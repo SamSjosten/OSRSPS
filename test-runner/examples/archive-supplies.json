@@ -1,5 +1,5 @@
 {
- "name": "Raid step 21: the Quartermaster solo, coming to the nexus with his wheelbarrow once the third row's room is done and each member's 50 Supply Credits, his Talk-to, Resupply opening Alliance Supplies on the omnishop window, the list's Buy-2 and Buy-5, a button buying for the entry selected, the credits and stock running down, the refusal for too few credits, and the shop closing as the fourth row begins",
+ "name": "Raid step 21: the Quartermaster solo, coming to the nexus with his wheelbarrow once the third row's room is done and each member's 21 Supply Credits, his Talk-to, Resupply opening Alliance Supplies on the omnishop window, the list's Buy-2 and Buy-5, a button buying for the entry selected, the credits and stock running down, the refusal for too few credits, and the shop closing as the fourth row begins",
  "account": "test",
  "steps": [
   {
@@ -91,9 +91,21 @@
   {
    "step": "assertVarbit",
    "id": 16381,
-   "value": 50,
+   "value": 21,
    "timeoutMs": 5000,
-   "comment": "guessed: 50 Supply Credits each as he comes"
+   "comment": "21 Supply Credits each as he comes (Sam's recordings of 16 November 2026)"
+  },
+  {
+   "step": "command",
+   "text": "::varbit 16381 50",
+   "expectMessage": "-> 50",
+   "comment": "topped up to 50, for the buying below to run the stock down"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 16381,
+   "value": 50,
+   "timeoutMs": 5000
   },
   {
    "step": "command",

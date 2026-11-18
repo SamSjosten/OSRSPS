@@ -118,6 +118,7 @@ import osrsps.game.content.registerHamHideout
 import osrsps.game.content.registerHamStorerooms
 import osrsps.game.content.registerFarmsRoads
 import osrsps.game.content.registerLumberYard
+import osrsps.game.content.registerRaidTester
 import osrsps.game.content.registerTolnasRift
 import osrsps.game.content.registerDigsite
 import osrsps.game.content.registerDigsiteDigs
@@ -195,6 +196,7 @@ import osrsps.game.content.registerRick
 import osrsps.game.content.registerBones
 import osrsps.game.content.GiantLairs
 import osrsps.game.content.KingBlackDragon
+import osrsps.game.content.WildernessLairFee
 import osrsps.game.content.registerGiantBones
 import osrsps.game.content.registerBryophyta
 import osrsps.game.content.registerEmotes
@@ -490,7 +492,13 @@ class World(
         private set
 
     /** The drop item warning setting; see [DropWarnings]. */
-    private val dropWarnings = DropWarnings(objTypes, scripts, { dialogues }) { player, slot -> groundObjs.drop(player, slot) }
+    private val dropWarnings = DropWarnings(objTypes, scripts, { dialogues }) { player, slot ->
+        val id = player.inventory[slot]?.id
+        if (groundObjs.drop(player, slot) != null && id != null) {
+            essencePouches.dropped(player, id)
+            arceuusRunecraft.dropped(player, id)
+        }
+    }
 
     internal val inventoryTab: InventoryTab = InventoryTab(
         objTypes, scripts, interfaces::closeModals,
@@ -712,6 +720,7 @@ class World(
         takeFromBank = { player, id, count -> bank.take(player.bank, bankScreen.tabs(player), id, count) },
         // The killer credited gets their PJ timer, though a monster's hit finished the victim.
         killerOf = { victim -> pvpCombat.killerOf(victim)?.also { pvpCombat.credited(victim, it) } },
+        forfeit = WildernessLairFee::forfeit,
         // The victim's, seen by the killer alone at first: a pickup is a hand-over, which saves the victim with the
         // taker. Never merged into a stack already there, so the loot keeps its own timers.
         dropForKiller = { victim, killer, type, count, x, z, level ->
@@ -857,6 +866,15 @@ class World(
 
     /** Craft-rune at the altars and binding tiaras; see [osrsps.game.skill.RuneCrafting]. */
     val runeCrafting = osrsps.game.skill.RuneCrafting(this)
+
+    /** Combination runes and the binding necklace; see [osrsps.game.skill.CombinationRunes]. */
+    val combinationRunes = osrsps.game.skill.CombinationRunes(this)
+
+    /** Essence pouches; see [osrsps.game.skill.EssencePouches]. */
+    val essencePouches = osrsps.game.skill.EssencePouches(this)
+
+    /** Arceuus's dense runestone and Blood and Soul Altars; see [osrsps.game.skill.ArceuusRunecraft]. */
+    val arceuusRunecraft = osrsps.game.skill.ArceuusRunecraft(this)
 
     val firemaking = Firemaking(this, collision)
 
@@ -1060,6 +1078,7 @@ class World(
         registerLodestones(this)
         registerVarrock(this)
         registerArchiveLobby(this)
+        registerRaidTester(this)
         archiveRaids.register()
         // After the raid, which sets the combat's shut-out rule afresh; the lairs add theirs to it.
         registerObor(this, giantLairs)
@@ -1101,6 +1120,9 @@ class World(
         boltEnchant.register()
         runecraft.register()
         runeCrafting.register()
+        combinationRunes.register()
+        essencePouches.register()
+        arceuusRunecraft.register()
         loadDialogue()
     }
 
@@ -1529,6 +1551,7 @@ class World(
      */
     private fun sendWilderness(player: Player) {
         val inside = Wilderness.inside(player.x, player.z)
+        WildernessLairFee.update(player)
         interfaces.showWildernessOverlay(player, inside)
         player.vars.setVarbitIfKnown(VARBIT_INSIDE_WILDERNESS, if (inside) 1 else 0)
         // Ferox Enclave: the overlay's level reads "Level: --" (client script pvp_icons_wildernesslevel).
@@ -3322,7 +3345,7 @@ class World(
     }
 
     /** Whether [player] was hit within the last [LOGOUT_COMBAT_TICKS], so can't log out. */
-    private fun inCombat(player: Player): Boolean =
+    internal fun inCombat(player: Player): Boolean =
         (player.attackedTick >= 0 && tick - player.attackedTick < LOGOUT_COMBAT_TICKS) ||
             (player.attackedByPlayerTick >= 0 && tick - player.attackedByPlayerTick < LOGOUT_COMBAT_TICKS) ||
             // A player's swing still on its way counts already, so processing order can't let them log out from under it.

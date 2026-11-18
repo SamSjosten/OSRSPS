@@ -29,6 +29,7 @@ object QuartermasterLines : Lines("tfa_quartermaster", "Transcript:Quartermaster
     val AGREE = line("agree", "after resupply: his answer, before the shop opens")
     val INTRO = line("intro", "who he is: his answer, Liam the Quartermaster, who supports others in combat")
     val KEEP_IN_MIND = line("keep_in_mind", "the second menu, option 2, which the player then says: they'll keep it in mind; the player says it too after his advice")
+    val OPENED_SHOP = line("opened_shop", "chat, to everyone in the run as he comes to the nexus after the third row's room (Sam's recording of 16 November 2026)")
     val ADVICE = line("advice", "after fine for now: his answer, that stock runs low quickly, so chances to resupply are few")
 }
 
@@ -52,9 +53,10 @@ object QuartermasterLines : Lines("tfa_quartermaster", "Transcript:Quartermaster
  *   poor contribution" (the Wiki's shop page, marked as needing confirmation) or "when the first three fights went
  *   poorly, such as with multiple deaths" (the Wiki's Leftovers page). Guessed: it is offered once the party has died
  *   [FAILURE_DEATHS] times or more in the run, and [LEFTOVERS_STOCK] Leftovers. Leftovers heal 5 (the Wiki), in food.json.
- * - **Supply Credits**, `tfa_supply_points` (16381, seven bits), shown by the shop itself. Guessed: every member in
- *   the run as he comes has [CREDITS] (guides speak of 50 personal credits; the tsps notes estimate 10 for each room
- *   won), and they are gone with the next run (set to 0 as a player comes through the Archive Door).
+ * - **Supply Credits**, `tfa_supply_points` (16381, seven bits), shown by the shop itself. Every member in the run as
+ *   he comes has [CREDITS] (seen in Sam's recordings of 16 November 2026; guides had spoken of 50, and the tsps notes
+ *   estimated 10 for each room won). Guessed: they are gone with the next run (set to 0 as a player comes through
+ *   the Archive Door).
  * - **Only for the raid.** What a member holds of the supplies' kinds as they get out of the run (a teleport, the Rift
  *   out, leaving the party, logging out, the instance's end) or lose it (a wipe, dying of an escape while down), beyond
  *   what they brought in through the Archive Door, is taken: doses of each potion, whatever its doses, and items of
@@ -327,6 +329,7 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
         val barrow = raids.tile(run, WHEELBARROW_X, WHEELBARROW_Z)
         world.locs.add(ZoneLoc(WHEELBARROW, LocShape.CENTREPIECE_STRAIGHT, 0, barrow.x, barrow.z, ArchiveRaids.NEXUS_PLANE))
         for (player in raids.present(run)) {
+            player.message(world.textFor(player)[QuartermasterLines.OPENED_SHOP])
             setCredits(player, CREDITS)
             run.supplies.remove(player.saveKey)
             stockFor(run, player.saveKey)
@@ -444,8 +447,11 @@ class ArchiveSupplies(private val world: World, private val raids: ArchiveRaids)
         const val CREDITS_VARBIT = 16381
         const val MAX_CREDITS = 127
 
-        /** Guessed: each member's credits as he comes. */
-        const val CREDITS = 50
+        /**
+         * Each member's credits as he comes: 21 in both of Sam's runs of 16 November 2026 (three players, after the
+         * three rooms, the shop's own balance box). Guessed: the same for any party size and contribution.
+         */
+        const val CREDITS = 21
 
         /** Guessed: the deaths in a run that bring the failure shop. */
         const val FAILURE_DEATHS = 2

@@ -765,11 +765,12 @@ object Ocellus {
      * His death (raid step 27c; tsps capture notes): `npc_ocellus_phase3_death` (his NPC combat entry's death
      * animation) with [SPOT_DEATH], [SPOT_DEATH_SKIRT] and [SPOT_DEATH_CRACK] and [SOUND_DEATH], his room done at once.
      * [BLADE_AFTER] ticks later the Blade ([BLADE_TRAVEL], `tfa_blade_npc_vault_entry`, 3 by 3, Commune and Travel)
-     * appears where he fell, and [TRAVEL] on it takes the party in his room to the vault. Guessed: the graphics' slots, the sound's reach, his body
-     * going as the Blade appears ([BLADE_AFTER] his death ticks), Travel setting off everyone in his room at once
-     * (each by [ArchiveRaids.travel], to the reward vault [ArchiveRaids.MOVE_DELAY] ticks on) with no graphic; Commune
-     * doing nothing yet.
-     * Not in yet: the raid's total time, the Combat Achievements kill.
+     * appears where he fell. [COMMUNE] on it asks whether the player is ready to proceed and takes them on to the vault
+     * ([ArchiveRaids.commune], Sam's recording of 16 November 2026, which has the Blade standing about 16 ticks after
+     * the room is won); [TRAVEL] goes on without asking ([ArchiveRaids.enterVoid]). Guessed: the graphics' slots, the
+     * sound's reach, his body going as the Blade appears ([BLADE_AFTER] his death ticks), Travel skipping the question,
+     * and each going by their own click with no graphic.
+     * Not in yet: the Combat Achievements kill.
      */
     const val SPOT_DEATH = 4274
     const val SPOT_DEATH_SKIRT = 4275
@@ -778,6 +779,7 @@ object Ocellus {
     const val SOUND_DEATH_RADIUS = 15
     const val BLADE_AFTER = 14
     const val BLADE_TRAVEL = 16683
+    const val COMMUNE = 1
     const val TRAVEL = 3
 
     /** headicons_prayer (sprite group 440): the curses' icons, by the capture notes. */
@@ -2772,7 +2774,8 @@ object Ocellus {
         world.combat.rolledOn = { player, npc, type, rolled -> rolledOn(player, npc, type, slowed(world, player, npc, deflected(npc, type, rolled))) }
         // Death scripts go by the type an NPC appeared as: he becomes his third phase from his first.
         world.npcScripts.onDeath(listOf(P1, P2, P3).distinct()) { boss -> if (boss.type.id == P3) died(world, boss) }
-        world.handlers.onNpc(BLADE_TRAVEL, TRAVEL) { op -> travel(world, op.npc!!) }
+        world.handlers.onNpc(BLADE_TRAVEL, COMMUNE) { op -> world.archiveRaids.commune(this, op.npc!!) }
+        world.handlers.onNpc(BLADE_TRAVEL, TRAVEL) { world.archiveRaids.enterVoid(player) }
     }
 
     /** His death (see [SPOT_DEATH]): its graphics and sound now, the Blade [BLADE_AFTER] ticks on where he fell. */
@@ -2795,19 +2798,6 @@ object Ocellus {
             world.instances.at(x, z) !== instance ||
                 world.spawnNpc(NpcSpawn(type, x, z, level, source = "ocellus vault entry", respawns = false)) != null
         }
-    }
-
-    /**
-     * Travel on the Blade at the vault's entry: everyone of the party in his room sets off to the reward vault
-     * ([ArchiveRaids.travel], which holds it to once the run is done and to his room).
-     */
-    private fun travel(world: World, blade: Npc) {
-        val raids = world.archiveRaids
-        val run = raids.at(blade.x, blade.z) ?: return
-        val room = ArchiveRoom.OCELLUS
-        if (room !in run.cleared) return
-        val party = raids.present(run).filter { !it.dead && raids.inRoom(run, room, it.x, it.z) }
-        for (member in party) raids.travel(member)
     }
 
     /** What each player has dealt each Siphon standing, for the heal as it is destroyed. */

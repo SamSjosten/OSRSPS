@@ -21,6 +21,7 @@ import osrsps.game.ge.GrandExchangeLines
 import osrsps.game.ge.PriceCheckerLines
 import osrsps.game.raid.ArchiveGuardianLines
 import osrsps.game.raid.ArchiveNavigatorLines
+import osrsps.game.raid.ArchiveRunLines
 import osrsps.game.raid.ArchiveVaultLines
 import osrsps.game.raid.BorkLines
 import osrsps.game.raid.DagonhaiLines
@@ -49,6 +50,9 @@ import osrsps.game.skill.PickpocketGearLines
 import osrsps.game.skill.PickpocketLines
 import osrsps.game.skill.RunecraftLines
 import osrsps.game.skill.RuneCraftingLines
+import osrsps.game.skill.CombinationRuneLines
+import osrsps.game.skill.EssencePouchLines
+import osrsps.game.skill.ArceuusRunecraftLines
 import osrsps.game.skill.SlayerLines
 import osrsps.game.skill.SlayerHelmetLines
 import osrsps.game.skill.SlayerSuperiorLines
@@ -89,6 +93,7 @@ object DialogueLines {
         ArchiveBankerLines,
         ArchiveGuardianLines,
         ArchiveNavigatorLines,
+        ArchiveRunLines,
         ArenaStubLines,
         ArisLines,
         ArtCriticLines,
@@ -178,6 +183,7 @@ object DialogueLines {
         ChaosFanaticLines,
         VolcanicForgeLines,
         KingBlackDragonLines,
+        WildernessLairFeeLines,
         osrsps.game.FountainOfRuneLines,
         OborLines,
         BryophytaLines,
@@ -360,6 +366,7 @@ object DialogueLines {
         MasterSmithingTutorLines,
         PrinceAliLines,
         PrysinLines,
+        RaidTesterLines,
         RamBartenderLines,
         RanaelLines,
         RecordKeeperLines,
@@ -373,6 +380,9 @@ object DialogueLines {
         RuantunLines,
         RunecraftLines,
         RuneCraftingLines,
+        CombinationRuneLines,
+        EssencePouchLines,
+        ArceuusRunecraftLines,
         ScavvoLines,
         SchoolboyLines,
         SchoolgirlLines,

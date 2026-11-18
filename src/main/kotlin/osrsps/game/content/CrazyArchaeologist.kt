@@ -71,7 +71,6 @@ object CrazyArchaeologist {
     }
 
     /** When his next attack may come, by boss. */
-    private val nextAttack = java.util.WeakHashMap<Npc, Long>()
 
     private fun EncounterContext.tick() {
         val target = heldTarget()
@@ -83,8 +82,9 @@ object CrazyArchaeologist {
         val far = LineOfSight.distance(boss.x, boss.z, boss.type.size, target.x, target.z, 1, 1) > RANGE ||
             !world.meleeCombat.sees(boss, target)
         if (far) world.npcs.follow(boss, target) else world.npcs.stopFollowing(boss)
-        if (far || world.tick < (nextAttack[boss] ?: Long.MIN_VALUE)) return
-        nextAttack[boss] = world.tick + ATTACK_SPEED
+        if (far || world.tick < boss.nextAttackTick) return
+        // The NPC's own cooldown, so a strike made before his fight began holds his first one here too.
+        boss.nextAttackTick = world.tick + ATTACK_SPEED
         when {
             roll(1, SPECIAL_CHANCE) == 1 -> rain(target)
             world.meleeCombat.reaches(boss, target) && roll(1, 2) == 1 -> {

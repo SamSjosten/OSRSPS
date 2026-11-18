@@ -166,6 +166,25 @@ class HeadlessChaosElementalTest {
         }
     }
 
+    @Test
+    fun `a strike made before his fight began holds his next attack`(@TempDir dir: Path) {
+        server(dir, seed = 2).use { server ->
+            server.login("ned").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                val npc = server.world.npcs.all.first { it.type.id == ChaosElemental.BOSS }
+                val fight = client.await("his fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
+                // His cooldown is the NPC's own, as the King Black Dragon's: held 12 ticks from the fight's own count.
+                val heldUntil = fight.ticks + 12
+                npc.nextAttackTick = server.world.tick + 12
+                client.tele(X + 3, Z)
+                client.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Chaos Elemental") }
+                val first = client.await("an attack", timeoutMillis = 30_000) { fight.lines.firstOrNull { " at ned" in it } }
+                assertTrue(first.substringBefore(" ").toLong() >= heldUntil, "attacked before $heldUntil: $first")
+            }
+        }
+    }
+
     private companion object {
         const val X = 3261
         const val Z = 3927

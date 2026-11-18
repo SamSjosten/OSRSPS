@@ -162,6 +162,8 @@ class Deaths(
     private val dropForKiller: (victim: Player, killer: String, ObjType, Int, Int, Int, Int) -> Unit = { _, _, _, _, _, _, _ -> },
     /** Writes the player's save now, as a PvP death does before the killer's loot goes down; false if it couldn't be. */
     private val saveNow: (Player) -> Boolean = { true },
+    /** A PvP death's lost Wilderness lairs' fee, in coins for the killer ([osrsps.game.content.WildernessLairFee.forfeit]); 0 for none. */
+    private val forfeit: (Player) -> Int = { 0 },
 ) {
     private val graves = LinkedHashMap<Npc, Grave>()
 
@@ -260,6 +262,10 @@ class Deaths(
         player.pvpDamage.clear()
         val forKiller = ArrayList<InvObj>()
         val buried = if (killer == null) lost + charges else toKiller(player, lost + charges, forKiller)
+        if (killer != null) {
+            val fee = forfeit(player)
+            if (fee > 0) forKiller += InvObj(COINS, fee)
+        }
         if (buried.isNotEmpty()) bury(player, buried, place)
         val fellX = player.x
         val fellZ = player.z

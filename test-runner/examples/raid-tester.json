@@ -1,0 +1,33 @@
+{
+ "name": "The raid tester (testing only, not live content): the Leagues Tutor east of the Lumbridge spawn kits the account out for The Fractured Archive (ranged) and stands it in front of the Archive Door; the lobby's tester swaps it to melee and then puts the account back (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "on the Lumbridge spawn with nothing carried; ::reset at the end puts the account back"},
+  {"step": "npcOption", "npcId": 316, "option": "Talk-to", "timeoutMs": 20000, "comment": "the raid tester, three tiles east of the spawn"},
+  {"step": "assertDialogue", "contains": "[raid_tester.greeting]"},
+  {"step": "continueDialogue"},
+  {"step": "chooseOption", "text": "[raid_tester.ranged]"},
+  {"step": "assertMessage", "contains": "Started scenario tfa-ranged.", "timeoutMs": 5000},
+  {"step": "assertLocation", "x": 4127, "y": 5560, "plane": 0, "comment": "the lobby, in front of the Archive Door"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "assertEquipment", "slot": "weapon", "item": "Twisted bow", "timeoutMs": 5000},
+  {"step": "assertEquipment", "slot": "ammo", "item": "Dragon arrow"},
+  {"step": "assertStat", "skill": "Ranged", "level": 99, "timeoutMs": 5000},
+  {"step": "assertInventory", "itemId": 22324, "count": 1, "comment": "a Ghrazi rapier to switch to"},
+  {"step": "npcOption", "npcId": 316, "option": "Talk-to", "timeoutMs": 20000, "comment": "the lobby's tester, south-east of the Door"},
+  {"step": "assertDialogue", "contains": "[raid_tester.greeting]"},
+  {"step": "continueDialogue"},
+  {"step": "chooseOption", "text": "[raid_tester.melee]"},
+  {"step": "assertMessage", "contains": "Started scenario tfa-melee.", "timeoutMs": 5000},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "assertEquipment", "slot": "weapon", "item": "Ghrazi rapier", "timeoutMs": 5000},
+  {"step": "npcOption", "npcId": 316, "option": "Talk-to", "timeoutMs": 20000},
+  {"step": "assertDialogue", "contains": "[raid_tester.greeting]"},
+  {"step": "continueDialogue"},
+  {"step": "chooseOption", "text": "[raid_tester.put_back]"},
+  {"step": "assertMessage", "contains": "Back to how you were before ::scenario tfa-melee", "timeoutMs": 5000, "comment": "back to before lumbridge-bare, the first scenario: the account as it came"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"}
+ ]
+}

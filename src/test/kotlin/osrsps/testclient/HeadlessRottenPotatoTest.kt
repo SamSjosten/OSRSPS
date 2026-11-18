@@ -221,7 +221,8 @@ class HeadlessRottenPotatoTest {
                 boss.prompted(ScriptContext.MESLAYER_MODE9)
                 boss.resumeString("full")
                 boss.seen(RottenPotato.NO_ROOM)
-                assertEquals(List(28) { BONES }, boss.inventory(BACKPACK).map { it?.id })
+                // The backpack's update can reach the client after the message, in a later packet.
+                boss.await("a backpack of bones") { Unit.takeIf { boss.inventory(BACKPACK).map { it?.id } == List(28) { BONES } } }
                 assertTrue(boss.commandReply("reset") { it.startsWith("Back to") }.startsWith("Back to"))
                 boss.slotOf(RottenPotato.OBJ)
             }
