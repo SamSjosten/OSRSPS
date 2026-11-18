@@ -18,6 +18,7 @@ import osrsps.game.World
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
 import osrsps.game.combat.Prayers
+import osrsps.game.EquipmentTab
 import osrsps.game.content.Artio
 import osrsps.game.content.WildernessLairFee
 import osrsps.game.content.WildernessLairFeeLines
@@ -237,6 +238,45 @@ class HeadlessArtioTest {
                     fight.lines.firstOrNull { attack.containsMatchIn(it) && it.substringBefore(" ").toLong() > heldUntil - 12 }
                 }
                 assertTrue(first.substringBefore(" ").toLong() >= heldUntil, "attacked before $heldUntil: $first")
+            }
+        }
+    }
+
+    @Test
+    fun `she follows a player at the den's way in, past her spawn's leash`(@TempDir dir: Path) {
+        server(dir, seed = 7).use { server ->
+            server.login("jon").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                // Auto retaliate off, so jon stays where he is and she has to come to him.
+                client.command("varp ${EquipmentTab.VARP_AUTO_RETALIATE_OFF} 1")
+                client.await("auto retaliate off") { Unit.takeIf { client.varp(EquipmentTab.VARP_AUTO_RETALIATE_OFF) == 1 } }
+                client.tele(Artio.ARRIVAL.x, Artio.ARRIVAL.z)
+                val npc = server.world.npcs.all.first { it.type.id == Artio.BOSS }
+                client.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Artio") }
+                val fight = client.await("her fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
+                client.await("a swipe at jon", timeoutMillis = 60_000) { fight.lines.firstOrNull { "swipes at jon" in it } }
+            }
+        }
+    }
+
+    @Test
+    fun `her roar's tick has no attack, so the roar is what shows`(@TempDir dir: Path) {
+        server(dir, seed = 4).use { server ->
+            server.login("kim").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.tele(Artio.SPAWN.x + 1, Artio.SPAWN.z - 1)
+                val npc = server.world.npcs.all.first { it.type.id == Artio.BOSS }
+                client.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Artio") }
+                val fight = client.await("her fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
+                // Her attack due on the tick she roars.
+                npc.nextAttackTick = 0
+                npc.hitpoints = 290
+                val roar = client.await("her roar") { fight.lines.firstOrNull { it.endsWith("roars (1)") } }
+                val tick = roar.substringBefore(" ")
+                val attack = Regex("swipes at|throws crescents|knockback at")
+                assertTrue(fight.lines.none { it.substringBefore(" ") == tick && attack.containsMatchIn(it) }, fight.lines.joinToString("\n"))
             }
         }
     }

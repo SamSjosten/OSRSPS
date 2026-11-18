@@ -103,7 +103,8 @@ object Artio {
         val type = world.npcTypes[BOSS] ?: return null
         return EncounterDef(
             "artio", type,
-            listOf(PhaseDef("fight", cycle = listOf(CycleStep(1) { tick() }))),
+            // Unleashed: she follows anywhere in her den, not only near her spawn (Codex review of W4.8).
+            listOf(PhaseDef("fight", cycle = listOf(CycleStep(1) { tick() }), onStart = { boss.unleashed = true })),
             scriptedAttacks = true,
         )
     }
@@ -129,7 +130,8 @@ object Artio {
             1 -> boss.maxHitpoints / 3
             else -> -1
         }
-        if (boss.hitpoints in 1..roarAt) roar(fight)
+        val roared = boss.hitpoints in 1..roarAt
+        if (roared) roar(fight)
         if (fight.roars > 0 && world.tick >= fight.trapsEnd) layTraps(fight)
 
         val target = boss.target?.takeIf { held -> players.any { it === held } }
@@ -142,7 +144,8 @@ object Artio {
         val sees = world.meleeCombat.sees(boss, target)
         if (reaches) world.npcs.stopFollowing(boss) else world.npcs.follow(boss, target)
         // Her own attack timer, so a swing the generic fight made before hers began holds her next one.
-        if (!sees || world.tick < boss.nextAttackTick) return
+        // No attack on a roar's tick, so the roar's animation is the one seen (an NPC shows one a tick).
+        if (roared || !sees || world.tick < boss.nextAttackTick) return
         boss.nextAttackTick = world.tick + ATTACK_SPEED
         when {
             roll(1, KNOCKBACK_ODDS) == 1 -> knockback(fight, target)
