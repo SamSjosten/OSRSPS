@@ -27,12 +27,12 @@ in the code. Current RuneLite connects unchanged.
 
 ### 🗺️ What's in it
 
-| | |
+| | Built so far |
 |---|---|
-| 🏰 **Areas** | Lumbridge, Draynor, Varrock, Al Kharid, Edgeville, the swamp and Misthalin's dungeons, the Wilderness |
-| ⛏️ **Skills** | Gathering, artisan and combat skills, Agility, Thieving, Magic, Farming, Hunter, Runecraft, Slayer |
-| 🐉 **Bosses** | The Fractured Archive raid, Misthalin's bosses and the Wilderness bosses |
-| 🧪 **Testing** | Pause and step ticks, fixed seeds, one-command scenarios, a headless client and a RuneLite test runner |
+| 🏰&nbsp;**Areas** | Lumbridge, Draynor, Varrock, Al Kharid, Edgeville, the swamp and Misthalin's dungeons, the Wilderness |
+| ⛏️&nbsp;**Skills** | Gathering, artisan and combat skills, Agility, Thieving, Magic, Farming, Hunter, Runecraft, Slayer |
+| 🐉&nbsp;**Bosses** | The Fractured Archive raid, Misthalin's bosses and the Wilderness bosses |
+| 🧪&nbsp;**Testing** | Pause and step ticks, fixed seeds, one-command scenarios, a headless client and a RuneLite test runner |
 
 ### 🚀 Quick start
 
