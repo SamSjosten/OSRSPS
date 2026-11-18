@@ -162,6 +162,11 @@
    "comment": "vm_nathis_agreed"
   },
   {
+   "step": "waitTicks",
+   "ticks": 2,
+   "comment": "let Orlando's last line close before the click: a click while his script still runs can be dropped"
+  },
+  {
    "step": "locOption",
    "locId": 24613,
    "option": "Study",
@@ -170,7 +175,8 @@
   {
    "step": "assertInterface",
    "interfaceId": 533,
-   "comment": "vm_natural_history"
+   "comment": "vm_natural_history; the walk from Orlando to the plaque is about 16 tiles, close to the 10 s default (nightly 2026-11-17: not open)",
+   "timeoutMs": 20000
   },
   {
    "step": "assertWidgetText",
