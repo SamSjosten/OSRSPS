@@ -1,8 +1,6 @@
 <div align="center">
 
-# Odin's Gate
-
-<img src=".github/readme/banner.svg" alt="A stone gate glowing at dusk between mountains" width="100%">
+<img src=".github/readme/banner.jpg" alt="Odin's Gate" width="100%">
 
 **Odin's Gate is a private Old School RuneScape test server, built from the ground up for testing RuneLite plugins against 1:1 recreations of live content.**
 
