@@ -1288,8 +1288,15 @@ class HeadlessOcellusTest {
                 val again = alice.awaitLine(run, "his second rise", 30_000) { it.endsWith("rises, Deflect Melee, void round him") && tickOf(it) > risen }
                 assertEquals(risen + Ocellus.FINAL_LOOP, tickOf(again))
                 assertEquals(2, Ocellus.finalState(boss)?.third)
-                // To the end of his bar: he dies, and the room is done.
-                alice.commandReply("hit ${boss.hitpoints} ${boss.index}") { it.startsWith("Hit ") }
+                // A hit of hers that would end his bar does nothing (Sam's runs of 16 November 2026, inferred): his bar
+                // is held, run out, and he lives on.
+                val her = server.world.playerNamed("alice")!!
+                assertEquals(0, server.world.combat.rolledOn(her, boss, AttackType.RANGED, boss.maxHitpoints))
+                assertTrue(Ocellus.barRunOut(boss), "his bar run out")
+                assertFalse(boss.dead)
+                // A Rift destroyed then ends him, and the room is done.
+                val rift = Ocellus.flares(boss).first { it.type.id == Ocellus.Flare.RIFT.id && !it.dead }
+                alice.commandReply("hit ${rift.hitpoints} ${rift.index}") { it.startsWith("Hit ") }
                 alice.await("his room done", 30_000) { ArchiveRoom.OCELLUS.takeIf { it in run.cleared } }
                 assertTrue(boss.dead)
                 // The chat as his room is won: challenge complete, her first, so a personal best; then the raid's
