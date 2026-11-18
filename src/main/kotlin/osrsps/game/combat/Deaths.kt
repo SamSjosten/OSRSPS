@@ -22,6 +22,7 @@ import osrsps.game.npc.Npc
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.script.Handlers
 import osrsps.game.script.Op
+import osrsps.game.skill.ArceuusRunecraft
 
 private val logger = KotlinLogging.logger {}
 
@@ -387,6 +388,8 @@ class Deaths(
             if (left > 0) for (cost in staff.runesPerCharge) charges += InvObj(cost.rune, cost.count * left)
             player.charges[staff.charge] = 0
         }
+        // Guessed: fragments lost with their obj are gone, not put in the grave as anything.
+        if (lostLast(player, lost, setOf(ArceuusRunecraft.FRAGMENTS))) player.charges[ArceuusRunecraft.FRAGMENT_CHARGES] = 0
         return charges
     }
 
