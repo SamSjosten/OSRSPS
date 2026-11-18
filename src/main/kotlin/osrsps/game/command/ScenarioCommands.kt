@@ -61,6 +61,8 @@ internal fun resetScenario(world: World, player: Player): String {
     world.hunter.traps.takeDown(player)
     player.testCheatsOff()
     before.restoreTo(player)
+    // A trail being followed ends, and the restored varbits show none of its footprints.
+    world.hunter.tracking.forget(player)
     // After the snapshot, which holds the skull, whom they attacked first and the Tele Block's varbit from before the
     // scenario: ::reset clears those too (Codex review on #723). Teleblock.clear skips a player with no block, so its
     // varbit is cleared here, or RuneLite would show a timer for a block that's gone.
@@ -114,6 +116,7 @@ private fun start(world: World, player: Player, scenario: Scenario) {
     if (player.trade != null) world.trades.interrupt(player)
     world.hunter.traps.takeDown(player, refund = player.beforeScenario == null)
     if (player.beforeScenario == null) player.beforeScenario = world.snapshot(player)
+    world.hunter.tracking.forget(player)
     // Unclaimed raid loot is in the snapshot, which puts it back: claimed during the scenario as well, it would come
     // twice (exploit review 40, R40C-2). A scenario starts with the chest empty, as with the bank.
     player.archiveChest.clear()

@@ -302,6 +302,9 @@ class ArchiveRun internal constructor(val id: Int, val party: Party, val instanc
     internal val opening = HashMap<Int, Long>()
     val opened = HashSet<Int>()
 
+    /** The slots open whose window is still to open by itself, with the tick it does ([ArchiveChests.WINDOW_AFTER]). */
+    internal val revealing = HashMap<Int, Long>()
+
     /** The stage the party is at: the first not done. */
     val stage: Int get() = (1..ArchiveRaids.STAGES).firstOrNull { s -> ArchiveRoom.atStage(s).none { it in cleared } } ?: (ArchiveRaids.STAGES + 1)
 
