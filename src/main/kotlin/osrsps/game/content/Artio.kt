@@ -12,6 +12,7 @@ import osrsps.game.encounter.CycleStep
 import osrsps.game.encounter.EncounterContext
 import osrsps.game.encounter.EncounterDef
 import osrsps.game.encounter.PhaseDef
+import osrsps.game.encounter.heldTarget
 import osrsps.game.npc.Npc
 import osrsps.game.zone.Projectile
 import osrsps.map.LineOfSight
@@ -134,7 +135,8 @@ object Artio {
         if (roared) roar(fight)
         if (fight.roars > 0 && world.tick >= fight.trapsEnd) layTraps(fight)
 
-        val target = boss.target?.takeIf { held -> players.any { it === held } }
+        // Let go of a target who left the den, so she is free for whoever comes in next (Codex review of W4.8).
+        val target = heldTarget()
         if (target == null) {
             world.npcs.stopFollowing(boss)
             return

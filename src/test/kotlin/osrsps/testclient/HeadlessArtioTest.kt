@@ -281,6 +281,23 @@ class HeadlessArtioTest {
         }
     }
 
+    @Test
+    fun `she lets go of a target who leaves her den`(@TempDir dir: Path) {
+        server(dir, seed = 8).use { server ->
+            server.login("lou").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.tele(Artio.SPAWN.x + 1, Artio.SPAWN.z - 1)
+                val npc = server.world.npcs.all.first { it.type.id == Artio.BOSS }
+                client.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Artio") }
+                val lou = server.world.playerNamed("lou")!!
+                client.await("her target") { Unit.takeIf { npc.target === lou } }
+                client.tele(Artio.OUTSIDE.x, Artio.OUTSIDE.z)
+                client.await("let go") { Unit.takeIf { npc.target == null } }
+            }
+        }
+    }
+
     private companion object {
         const val PROTECT_FROM_MAGIC = 21
         const val WBR_PERM_INT_1 = 3755
