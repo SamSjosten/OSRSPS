@@ -124,7 +124,9 @@ class Houses(private val world: World) {
     /** A house open now: whose it is, its instance, and whether it is in building mode. */
     class Open(val owner: String, val instance: Instance, val buildingMode: Boolean)
 
+    /** By owner, their house open now; by instance, the same houses, for looking one up by where a player is. */
     private val open = HashMap<String, Open>()
+    private val byInstance = HashMap<Instance, Open>()
 
     /** Players who were in a house at the end of the last tick, so leaving by any way is noticed ([process]). */
     private val inside = HashSet<Player>()
@@ -134,9 +136,9 @@ class Houses(private val world: World) {
 
     /** The house [player] is in, if any. */
     fun houseAt(x: Int, z: Int): Open? {
-        forgetEnded()
         val instance = world.instances.at(x, z) ?: return null
-        return open.values.firstOrNull { it.instance === instance }
+        // An ended instance is never found by its tiles, so a house not yet pruned can't be returned for one.
+        return byInstance[instance]
     }
 
     fun register() {
@@ -186,6 +188,7 @@ class Houses(private val world: World) {
      * leaving cures poison (the Wiki's Player-owned house: "exiting the POH in any way will remove this debuff").
      */
     fun process() {
+        forgetEnded()
         if (inside.isEmpty()) return
         val left = inside.filter { houseAt(it.x, it.z) == null }
         for (player in left) {
@@ -230,8 +233,8 @@ class Houses(private val world: World) {
         val instance = world.instances.create(House.GRID, House.GRID, parts, outside.x, outside.z, 0) ?: return null
         for (room in state.rooms) furnish(instance, state, room, buildingMode)
         val house = Open(player.saveKey, instance, buildingMode)
-        open[player.saveKey]?.let { old -> if (world.instances.all.none { it === old.instance }) open.remove(player.saveKey) }
         open[player.saveKey] = house
+        byInstance[instance] = house
         setVarbit(player, House.BUILDING_MODE_VARBIT, if (buildingMode) 1 else 0)
         logger.info { "Built ${player.username}'s house (${state.rooms.size} rooms${if (buildingMode) ", building mode" else ""}) in $instance" }
         return house
@@ -309,7 +312,11 @@ class Houses(private val world: World) {
 
     /** Houses whose instance has ended, as nothing tells this when one does. */
     private fun forgetEnded() {
-        open.values.removeAll { house -> world.instances.all.none { it === house.instance } }
+        if (byInstance.isEmpty()) return
+        // Once a tick and on each build, over a set of the live instances: never once per lookup (Codex review on #788).
+        val live = world.instances.all.toHashSet()
+        byInstance.keys.retainAll(live)
+        open.values.removeAll { it.instance !in live }
     }
 
     private fun setVarbit(player: Player, id: Int, value: Int) {

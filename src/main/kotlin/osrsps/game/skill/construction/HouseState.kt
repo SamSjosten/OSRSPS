@@ -89,7 +89,7 @@ class HouseState(
 
 /**
  * Where a house's portal is, with the value `poh_house_location` (varbit 2187) holds for it: 0 is no house (cs2 proc
- * 3809 says "You must own a house" at 0). GUESSED: Rimmington's 1, as it is first in the estate agent's list.
+ * 3809 refuses a player who owns no house at 0). GUESSED: Rimmington's 1, as it is first in the estate agent's list.
  */
 enum class HouseLocation(val key: String, val varbitValue: Int, val portal: Int) {
     RIMMINGTON("rimmington", 1, House.RIMMINGTON_PORTAL),
