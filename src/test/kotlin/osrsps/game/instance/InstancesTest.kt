@@ -2,6 +2,7 @@ package osrsps.game.instance
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFails
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -19,7 +20,7 @@ import osrsps.map.LocShape
 
 /** Instances: copying zones of the map, collision and locs, into a block of the dynamic area, and ending them. */
 class InstancesTest {
-    private val types = LocTypes(mapOf(WALL to LocType(WALL, "Wall")))
+    private val types = LocTypes(mapOf(WALL to LocType(WALL, "Wall"), BOX to LocType(BOX, "Box", collision = LocCollisionType(width = 2, length = 1))))
     private val map = CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }
     private val static = StaticLocs()
     private val instances = Instances(map, static, types)
@@ -134,8 +135,40 @@ class InstancesTest {
         assertNull(instances.create(3208, 3208, 1, 1, 3222, 3218, 0))
     }
 
+    @Test
+    fun `a zone turned a quarter clockwise turns its terrain, its walls and its locs, and the client is told so`() {
+        // A 2 by 1 box at 3209, 3214 (1, 6 in the zone), whose footprint stands upright once turned.
+        val box = ZoneLoc(BOX, LocShape.CENTREPIECE_STRAIGHT, 0, 3209, 3214, 0)
+        static.add(box)
+        LocCollision(map).addLoc(LocCollisionType(width = 2, length = 1), box.x, box.z, 0, box.shape, box.angle)
+        val instance = assertNotNull(instances.create(1, 1, listOf(InstancePart(3208, 3208, 0, 1, 1, 0, 0, 0, rotation = 1)), 3222, 3218, 0))
+        val x = instance.baseX
+        val z = instance.baseZ
+        // Tile 2, 2's west wall is 2, 5's north wall; the water at 4, 3 is at 3, 3.
+        assertEquals(listOf(wall.copy(x = x + 2, z = z + 5, angle = 1)), static.at(x + 2, z + 5, 0))
+        assertTrue(map[x + 2, z + 5, 0] and CollisionFlag.WALL_NORTH != 0, "the wall turned north")
+        assertEquals(CollisionFlag.FLOOR, map[x + 3, z + 3, 0], "the water")
+        assertEquals(0, map[x + 4, z + 3, 0], "open ground where the water was")
+        // The box's south-west tile 1, 6 goes to 6, 5 (its width moving it), turned once: 1 by 2 there.
+        assertEquals(listOf(box.copy(x = x + 6, z = z + 5, angle = 1)), static.at(x + 6, z + 5, 0))
+        assertTrue(map[x + 6, z + 5, 0] and CollisionFlag.LOC != 0 && map[x + 6, z + 6, 0] and CollisionFlag.LOC != 0, "its footprint")
+        assertEquals(0, map[x + 7, z + 5, 0] and CollisionFlag.LOC, "nothing beside it")
+        assertEquals(1, instances.referenceZone(x shr 3, z shr 3, 0)?.rotation)
+    }
+
+    @Test
+    fun `the turn sums put a footprint's south-west tile where the client draws it, each way round`() {
+        // A 3 by 2 footprint at 1, 2: clockwise once to 2, 4, twice to 4, 4, three times to 4, 1; and back after four.
+        assertEquals(1 to 2, Instances.rotateX(1, 2, 0, 3, 2) to Instances.rotateZ(1, 2, 0, 3, 2))
+        assertEquals(2 to 4, Instances.rotateX(1, 2, 1, 3, 2) to Instances.rotateZ(1, 2, 1, 3, 2))
+        assertEquals(4 to 4, Instances.rotateX(1, 2, 2, 3, 2) to Instances.rotateZ(1, 2, 2, 3, 2))
+        assertEquals(4 to 1, Instances.rotateX(1, 2, 3, 3, 2) to Instances.rotateZ(1, 2, 3, 3, 2))
+        assertFails { InstancePart(3208, 3208, 0, 2, 1, 0, 0, 0, rotation = 1) }
+    }
+
     private companion object {
         const val WALL = 1
+        const val BOX = 2
     }
 
     @Test
