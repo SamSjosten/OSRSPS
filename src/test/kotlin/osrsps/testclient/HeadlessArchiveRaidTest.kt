@@ -17,6 +17,7 @@ import osrsps.game.ObjTypes
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.World
+import osrsps.game.bank.BankScreen
 import osrsps.game.combat.Deaths
 import osrsps.game.combat.DropItem
 import osrsps.game.combat.DropSlot
@@ -526,6 +527,25 @@ class HeadlessArchiveRaidTest {
     }
 
     @Test
+    fun `a leader away from the lobby doesn't hold the party at the Archive Door`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { carol ->
+                server.login("erin").use { erin ->
+                    for (client in listOf(carol, erin)) client.await("the login rebuild") { client.position }
+                    carol.commandReply("raidparty invite erin") { it.startsWith("Invited") }
+                    erin.commandReply("raidparty accept carol") { it.startsWith("You joined") }
+                    val world = server.world
+                    // Carol, the leader, is where she logged in, far from the lobby (exploit review R42C-1): Erin goes in.
+                    assertFalse(world.archiveRaids.inLobby(world.playerNamed("carol")!!), "Carol away from the lobby")
+                    val run = erin.enter(server, "erin")
+                    assertNotNull(run)
+                    assertTrue(erin.messages().none { it.text.contains("tfa_run.leader_first") }, "Erin held back")
+                }
+            }
+        }
+    }
+
+    @Test
     fun `the leader goes first through the Archive Door and each way on, and the rest are told as they do`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { carol ->
@@ -541,7 +561,9 @@ class HeadlessArchiveRaidTest {
                         assertEquals("[tfa_run.leader_first name=carol]", box.text)
                         client.continueDialogue()
                     }
-                    // Erin first at the lobby's Archive Door: Carol must go first, and no run is opened.
+                    // Erin first at the lobby's Archive Door, with Carol in the lobby too: Carol must go first, and no
+                    // run is opened.
+                    carol.tele(ArchiveRaids.LOBBY_X + 2, ArchiveRaids.LOBBY_Z)
                     erin.tele(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z)
                     erin.locOp(ArchiveRaids.ARCHIVE_DOOR, 4123, 5562, ArchiveRaids.ENTER)
                     firstRefused(erin)
@@ -704,12 +726,20 @@ class HeadlessArchiveRaidTest {
                         dave.command("raid tp ${ArchiveChests.SLOTS[2].first + 1} ${ArchiveChests.SLOTS[2].second}")
                         dave.awaitAt(Tile(third.x + 1, third.z), "beside his chest", ArchiveRaids.REWARD_LEVEL)
                         val seen = dave.await("his chest in view") { dave.npcs().firstOrNull { it.id == ArchiveChests.chestType(2, false) } }
+                        // He opens his bank while it opens (exploit review R42C-3): the window coming doesn't shut it.
+                        dave.commandReply("pause") { it.contains("aused after tick") }
                         dave.npcOp(seen.index, ArchiveChests.OPEN)
-                        dave.await("his chest open") { if (run.opened == setOf(0, 2)) Unit else null }
+                        dave.stepTicks(1)
+                        assertEquals(setOf(2), run.opening.keys, "his opening")
+                        dave.command("openbank")
+                        dave.stepTicks(ArchiveChests.OPEN_TICKS + ArchiveChests.WINDOW_AFTER)
+                        assertTrue(run.opened == setOf(0, 2) && run.revealing.isEmpty(), "open: ${run.opened}, revealing: ${run.revealing}")
                         assertEquals(ArchiveChests.chestType(2, open = true), run.chests.getValue(2).type.id)
-                        dave.await("his chest's window, by itself") { (ArchiveChestWindow.ID in dave.openInterfaces()).takeIf { it } }
+                        dave.commandReply("resume") { it.startsWith("Resumed") }
+                        dave.await("his bank, still open") { dave.openInterfaces().takeIf { BankScreen.MAIN in it } }
+                        assertTrue(ArchiveChestWindow.ID !in dave.openInterfaces(), "the window over his bank")
                         dave.closeModal()
-                        dave.await("his window closed") { (ArchiveChestWindow.ID !in dave.openInterfaces()).takeIf { it } }
+                        dave.await("his bank closed") { dave.openInterfaces().takeIf { BankScreen.MAIN !in it } }
 
                         // Raid step 29b. Each one's loot waits as theirs, the Wheelbarrow's varbit set; the one without
                         // the unique has the thirty axes, and takes them from the window their Rift's Search opens.
