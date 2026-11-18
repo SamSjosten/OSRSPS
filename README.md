@@ -69,7 +69,7 @@ with any new name.
 Needs JDK 21; the Gradle wrapper fetches Gradle.
 
 ```bash
-./gradlew build                       # sandbox VM (bash)
+./gradlew build                       # compile and run the tests
 ./gradlew run --args=serve            # game and JS5 on 43594, HTTP files on 43595
 ./gradlew run --args="serve 50000"    # another port (HTTP on 50001)
 ```
@@ -143,8 +143,8 @@ The server fills in the modulus and the RuneLite build pinned for its revision (
 
 ### Letting friends test
 
-Friends reach the server at `odinsgate.net`, a VPS relay of 43594 and 43595 run by the Home Lab project, with Odin's
-Gate, our launcher. The launcher, its download page and releases live in the OdinsGate repository; `docs/` here only
+Friends reach the server at `odinsgate.net`, a VPS relay of 43594 and 43595 run by the Home Lab project, with our own
+launcher (also called Odin's Gate). The launcher, its download page and releases live in the OdinsGate repository; `docs/` here only
 forwards to that page (CI's `friend-page` job checks it). The launcher reads `/status.json`, `/rl/worlds.js` and
 `/launcher/*.ws` from the HTTP port. A revision bump adds the new RuneLite build to both pin tables first
 (`CONTRIBUTING.md`).
@@ -202,8 +202,8 @@ conversation is a `Lines` object listed in `DialogueLines.ALL`; examines come fr
 
 ## Developer commands
 
-Type them in the chatbox. Click a group to open it. Only admins (`OSRSPS_ADMINS`) can run them, except those marked **everyone**, which only
-read the world or only show you something. A dead player can run only those. An unknown command lists the ones you
+Type them in the chatbox. Click a group to open it. Only admins (`OSRSPS_ADMINS`) can run them, except those marked **everyone**, which are
+safe for any player: they read the world, show you something or do what a player could do anyway. A dead player can run only those. An unknown command lists the ones you
 can use. Commands live in `src/main/kotlin/osrsps/game/command/`; register new ones on `World.commands`, next to
 related ones.
 
