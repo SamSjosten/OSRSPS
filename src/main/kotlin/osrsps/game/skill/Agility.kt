@@ -47,6 +47,13 @@ object AgilityLines : Lines("agility", "Agility") {
     val PIPE_STUCK = line("pipe_stuck", "Shortcut: an Edgeville Dungeon obstacle pipe crossed with damage (the Wiki's Obstacle pipe (Edgeville Dungeon) page quotes it)")
     val LUMBRIDGE_CELLAR_HOLE_LEVEL = line("lumbridge_cellar_hole_level", "Shortcut: the Lumbridge Castle cellar's hole clicked below level 13; words unsourced", "level")
     val BRIMHAVEN_ROPESWING_LEVEL = line("brimhaven_ropeswing_level", "Shortcut: a Brimhaven ropeswing to or from Moss Giant Island clicked below level 10 (keys only: the Wiki gives no words)", "level")
+    val BRIMHAVEN_DUNGEON_WEST_STONES_LEVEL = line("brimhaven_dungeon_west_stones_level", "Shortcut: Brimhaven Dungeon's western stepping stones, from the north, below level 12 (keys only: the Wiki gives no words)", "level")
+    val BRIMHAVEN_DUNGEON_ENTRANCE_PIPE_LEVEL = line("brimhaven_dungeon_entrance_pipe_level", "Shortcut: Brimhaven Dungeon's pipe by the entrance, toward the moss giants, below level 22 (keys only)", "level")
+    val BRIMHAVEN_DUNGEON_LOG_LEVEL = line("brimhaven_dungeon_log_level", "Shortcut: Brimhaven Dungeon's log balance, toward the red dragons, below level 30 (keys only)", "level")
+    val BRIMHAVEN_DUNGEON_PIPE_LEVEL = line("brimhaven_dungeon_pipe_level", "Shortcut: Brimhaven Dungeon's pipe, from the red dragons to the black demons, below level 34 (keys only)", "level")
+    val BRIMHAVEN_DUNGEON_STONES_NORTH_LEVEL = line("brimhaven_dungeon_stones_north_level", "Shortcut: Brimhaven Dungeon's eastern stepping stones, toward the island from the north-west, below level 56 (keys only)", "level")
+    val BRIMHAVEN_DUNGEON_STONES_SOUTH_LEVEL = line("brimhaven_dungeon_stones_south_level", "Shortcut: Brimhaven Dungeon's eastern stepping stones, toward the island from the red dragons, below level 56 (keys only)", "level")
+    val BRIMHAVEN_DUNGEON_VINE_LEVEL = line("brimhaven_dungeon_vine_level", "Shortcut: Brimhaven Dungeon's vine to the baby green dragons, below level 87 (keys only)", "level")
 
     /** A line by its key, for agility.json to name one. */
     fun byKey(key: String): Line = lines.firstOrNull { it.key == key } ?: error("No agility line $key")
@@ -85,9 +92,16 @@ sealed interface AgilityMove {
 /**
  * One way across an obstacle: the tile the player starts from, what crossing does, for an obstacle that can be failed
  * what a failure does instead ([fail], empty for one that can't), and where the obstacle is one of several locs, the
- * tiles of the locs this route is for ([at], empty for every loc).
+ * tiles of the locs this route is for ([at], empty for every loc), and the Agility level this way needs when it isn't the
+ * obstacle's ([level]: a shortcut that asks a level only one way, as the Brimhaven Dungeon's, is free back).
  */
-class AgilityRoute(val from: AgilityTile, val moves: List<AgilityMove>, val fail: List<AgilityMove>, val at: List<AgilityTile> = emptyList())
+class AgilityRoute(
+    val from: AgilityTile,
+    val moves: List<AgilityMove>,
+    val fail: List<AgilityMove>,
+    val at: List<AgilityTile> = emptyList(),
+    val level: Int? = null,
+)
 
 /**
  * An obstacle: the loc and its option (by the start of the cache's option text), any other loc types that are the same
@@ -125,7 +139,12 @@ class Obstacle(
      * as their Wiki pages say; 0 for most.
      */
     val safeAtHp: Int = 0,
+    /** Further tiles that are this obstacle besides [at], for one of several locs that share a type with another obstacle. */
+    val alsoAt: List<AgilityTile> = emptyList(),
 ) {
+    /** Whether the loc at [tile] is this obstacle, when its type is several. */
+    fun stands(tile: AgilityTile): Boolean = at == tile || tile in alsoAt
+
     /** Every loc type that is this obstacle. */
     val locs: List<Int> get() = listOf(loc) + alsoLocs
 
@@ -224,6 +243,7 @@ class AgilityData(val obstacles: List<Obstacle>, val courses: List<AgilityCourse
                     route.getValue("moves").jsonArray.map { move(key, it.jsonObject) },
                     route["fail"]?.jsonArray?.map { move(key, it.jsonObject) } ?: emptyList(),
                     route["at"]?.jsonArray.orEmpty().map { tile(it.jsonArray) },
+                    route["level"]?.jsonPrimitive?.int,
                 )
             }
             return Obstacle(
@@ -236,6 +256,7 @@ class AgilityData(val obstacles: List<Obstacle>, val courses: List<AgilityCourse
                 json["failDouses"]?.jsonPrimitive?.boolean ?: false,
                 json["failLine"]?.jsonPrimitive?.content?.let(AgilityLines::byKey),
                 json["safeAtHp"]?.jsonPrimitive?.int ?: 0,
+                json["alsoAt"]?.jsonArray.orEmpty().map { tile(it.jsonArray) },
             )
         }
 
@@ -298,11 +319,12 @@ class Agility(private val world: World, val data: AgilityData) {
         val loc = op.loc ?: return
         val obstacle = obstacleAt(obstacles, loc) ?: return
         arriveDelay()
-        if (player.skills.currentLevel(Skill.AGILITY) < obstacle.level) {
-            player.message(world.textFor(player)[obstacle.levelLine, "level" to obstacle.level])
+        val route = routeFor(obstacle, loc) ?: return
+        val level = route.level ?: obstacle.level
+        if (player.skills.currentLevel(Skill.AGILITY) < level) {
+            player.message(world.textFor(player)[obstacle.levelLine, "level" to level])
             return
         }
-        val route = routeFor(obstacle, loc) ?: return
         if (!walkTo(route.from)) return
         val success = player.hitpoints <= obstacle.safeAtHp || obstacle.success?.let { (low, high) ->
             SuccessRoll.roll(world.random, low, high, player.skills.currentLevel(Skill.AGILITY))
@@ -379,7 +401,7 @@ class Agility(private val world: World, val data: AgilityData) {
 
     /** The obstacle [loc] is: the only one of its type, or the one standing on its tile. */
     private fun obstacleAt(obstacles: List<Obstacle>, loc: ZoneLoc): Obstacle? =
-        obstacles.singleOrNull()?.takeIf { it.at == null } ?: obstacles.firstOrNull { it.at == AgilityTile(loc.x, loc.z, loc.level) }
+        obstacles.singleOrNull()?.takeIf { it.at == null } ?: obstacles.firstOrNull { it.stands(AgilityTile(loc.x, loc.z, loc.level)) }
 
     /**
      * The way across from where the player is: of the routes on their level, those that name the loc clicked (one net or

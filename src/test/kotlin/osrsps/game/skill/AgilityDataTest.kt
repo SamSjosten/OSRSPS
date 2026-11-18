@@ -92,6 +92,13 @@ class AgilityDataTest {
                 "shortcut_goblin_maze_hole" to (1 to 0),
                 "shortcut_brimhaven_ropeswing" to (10 to 30),
                 "shortcut_sourhog_cave_blockage" to (1 to 0),
+                "shortcut_brimhaven_dungeon_west_stones" to (12 to 75),
+                "shortcut_brimhaven_dungeon_entrance_pipe" to (22 to 85),
+                "shortcut_brimhaven_dungeon_log" to (30 to 100),
+                "shortcut_brimhaven_dungeon_pipe" to (34 to 100),
+                "shortcut_brimhaven_dungeon_stones_north" to (56 to 0),
+                "shortcut_brimhaven_dungeon_stones_south" to (56 to 0),
+                "shortcut_brimhaven_dungeon_vine" to (87 to 0),
             ),
             // A crossing's XP: the obstacle's own at the end, and any given partway, the same both ways.
             shortcuts.associate { shortcut ->
@@ -110,6 +117,7 @@ class AgilityDataTest {
             setOf(
                 "shortcut_champions_guild_stone", "shortcut_champions_guild_south_stones", "shortcut_river_lum_raft",
                 "shortcut_lumbridge_swamp_desert_stone", "shortcut_swamp_caves_stone_north", "shortcut_swamp_caves_stone_south",
+                "shortcut_brimhaven_dungeon_west_stones", "shortcut_brimhaven_dungeon_stones_north", "shortcut_brimhaven_dungeon_stones_south",
             ),
             shortcuts.filter { it.fromStart }.map { it.key }.toSet(),
         )
@@ -130,6 +138,15 @@ class AgilityDataTest {
             assertEquals(back.from, landing(there.moves), shortcut.key)
             assertEquals(there.from, landing(back.moves), shortcut.key)
         }
+        // Brimhaven Dungeon's shortcuts but the vine need their level only going deeper; back out is level 1.
+        assertEquals(
+            setOf(
+                "shortcut_brimhaven_dungeon_west_stones", "shortcut_brimhaven_dungeon_entrance_pipe", "shortcut_brimhaven_dungeon_log",
+                "shortcut_brimhaven_dungeon_pipe", "shortcut_brimhaven_dungeon_stones_north", "shortcut_brimhaven_dungeon_stones_south",
+            ),
+            shortcuts.filter { shortcut -> shortcut.routes.any { it.level != null } }.map { it.key }.toSet(),
+        )
+        assertTrue(shortcuts.flatMap { it.routes }.mapNotNull { it.level }.all { it == 1 })
         val stone = shortcuts.single { it.key == "shortcut_champions_guild_stone" }
         assertEquals(10, stone.failXpTenths)
         assertEquals(1..3, stone.damage)

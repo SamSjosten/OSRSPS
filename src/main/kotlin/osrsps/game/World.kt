@@ -194,6 +194,7 @@ import osrsps.game.content.registerMorUlRek
 import osrsps.game.content.registerMorUlRekInner
 import osrsps.game.content.registerBarnabyShip
 import osrsps.game.content.registerBrimhavenTown
+import osrsps.game.content.registerBrimhavenDungeon
 import osrsps.game.content.registerInfernalEels
 import osrsps.game.content.registerTzHaarShops
 import osrsps.game.content.RunePacks
@@ -1295,6 +1296,7 @@ class World(
         registerInfernalEels(this)
         registerBarnabyShip(this)
         registerBrimhavenTown(this)
+        registerBrimhavenDungeon(this)
         registerVarrock(this)
         registerDiaries(this)
         registerAntiqueLamps(this)
