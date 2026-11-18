@@ -5,6 +5,7 @@ import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.WearPos
 import osrsps.game.World
+import osrsps.game.bank.setVarbitIfKnown
 import osrsps.game.dialogue.Lines
 
 /** Essence pouches' words, in the dialogue file. */
@@ -19,6 +20,7 @@ object EssencePouchLines : Lines("runecraft_pouch", "Essence pouch") {
     val EMPTY_NO_SPACE = line("empty_no_space", "Empty with no free backpack slot")
     val DECAYED = line("decayed", "a pouch's capacity dropping through use")
     val DESTROYED = line("destroyed", "a pouch falling apart through use")
+    val DROPPED = line("dropped", "Drop on a pouch holding essence, the essence lost (the Wiki's Large pouch page quotes it)")
 }
 
 /**
@@ -93,12 +95,28 @@ class EssencePouches(private val world: World) {
 
     /**
      * [obj] left [player]'s backpack by Drop: a pouch's essence is lost with it (the Wiki's Essence pouch page), so its
-     * count and type go back to empty and picking it up again finds it empty.
+     * count and type go back to empty and picking it up again finds it empty. The count is per kind of pouch, so while
+     * another of the same kind (or its degraded version) is still in the backpack or the bank, that one keeps it
+     * (exploit review round 40, R40A-2).
      */
     fun dropped(player: Player, obj: Int) {
         val pouch = POUCHES.firstOrNull { obj == it.obj || obj == it.degraded } ?: return
+        val ids = listOfNotNull(pouch.obj, pouch.degraded)
+        if (ids.any { player.inventory.count(it) > 0 || player.bank.count(it) > 0 }) return
+        if (player.vars.getVarbit(pouch.countVarbit) > 0) player.message(world.textFor(player)[EssencePouchLines.DROPPED])
         player.vars.setVarbit(pouch.countVarbit, 0)
         player.vars.setVarbit(pouch.typeVarbit, 0)
+    }
+
+    /**
+     * Every pouch of [player]'s empty, as a scenario starts: what one held before is in the snapshot, which `::reset`
+     * puts back, so essence put in during the scenario never comes out real (exploit review 40, R40A-3).
+     */
+    fun emptyAll(player: Player) {
+        for (pouch in POUCHES) {
+            player.vars.setVarbitIfKnown(pouch.countVarbit, 0)
+            player.vars.setVarbitIfKnown(pouch.typeVarbit, 0)
+        }
     }
 
     private fun check(player: Player, pouch: EssencePouch) {

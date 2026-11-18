@@ -8,6 +8,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.AllSettings
 import osrsps.game.InvObj
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
@@ -21,6 +22,7 @@ import osrsps.game.combat.DropItem
 import osrsps.game.combat.DropSlot
 import osrsps.game.combat.DropTable
 import osrsps.game.combat.GraveFees
+import osrsps.game.combat.LootNotifications
 import osrsps.game.combat.Spells
 import osrsps.game.content.HomeTeleport
 import osrsps.game.content.LodestoneMap
@@ -144,10 +146,16 @@ class HeadlessArchiveRaidTest {
                 *chestTypes.toTypedArray(),
             ),
             // tfa_vault_own_chest, where the 241.4 cache has it.
-            // And tfa_has_claimable_loot.
+            // And tfa_has_claimable_loot; and the loot notification settings, the untradeable one on a varp of its own.
             varTypes = VarTypes(
                 6_000,
-                mapOf(ArchiveChests.OWN_CHEST to VarbitType(OWN_CHEST_VARP, 0, 3), ArchiveChestWindow.CLAIMABLE to VarbitType(CLAIMABLE_VARP, 10, 10)),
+                mapOf(
+                    ArchiveChests.OWN_CHEST to VarbitType(OWN_CHEST_VARP, 0, 3),
+                    ArchiveChestWindow.CLAIMABLE to VarbitType(CLAIMABLE_VARP, 10, 10),
+                    LootNotifications.VARBIT_ON to AllSettings.VARBITS.getValue(LootNotifications.VARBIT_ON),
+                    LootNotifications.VARBIT_VALUE to AllSettings.VARBITS.getValue(LootNotifications.VARBIT_VALUE),
+                    LootNotifications.VARBIT_UNTRADEABLE to VarbitType(LOOT_UNTRADEABLE_VARP, 0, 0),
+                ),
             ),
             cycleMillis = millis,
         )
@@ -646,6 +654,11 @@ class HeadlessArchiveRaidTest {
                             assertEquals("Travelling to the reward vault.", client.commandReply("raid travel") { it.contains("ravel") })
                             client.awaitAt(vault, "the reward vault", ArchiveRaids.REWARD_LEVEL)
                         }
+                        // Both tell of untradeable loot, the axes, as a drop's notification does.
+                        for (client in listOf(carol, dave)) {
+                            client.commandReply("varbit ${LootNotifications.VARBIT_ON} 1") { it.startsWith("Varbit") }
+                            client.commandReply("varbit ${LootNotifications.VARBIT_UNTRADEABLE} 1") { it.startsWith("Varbit") }
+                        }
                         carol.await("Carol's own chest, the first") { carol.varp(OWN_CHEST_VARP).takeIf { it and 15 == 1 } }
                         dave.await("Dave's own chest, the third") { dave.varp(OWN_CHEST_VARP).takeIf { it and 15 == 3 } }
                         // Beside her chest, on the island: Open, and it is the Rift a tick later.
@@ -668,7 +681,15 @@ class HeadlessArchiveRaidTest {
                         val rift = run.chests.getValue(0)
                         assertEquals(ArchiveChests.chestType(0, open = true), rift.type.id)
                         assertEquals(Triple(own.x, own.z, ArchiveRaids.REWARD_LEVEL), Triple(rift.x, rift.z, rift.level))
+                        // Her chest's window opens by itself, WINDOW_AFTER ticks on, with nothing clicked.
+                        assertEquals(mapOf(0 to world.tick + ArchiveChests.WINDOW_AFTER), run.revealing.toMap(), "the window to come")
+                        assertTrue(ArchiveChestWindow.ID !in carol.openInterfaces(), "the window before its time")
+                        carol.stepTicks(ArchiveChests.WINDOW_AFTER)
+                        assertTrue(run.revealing.isEmpty(), "revealing: ${run.revealing}")
                         carol.commandReply("resume") { it.startsWith("Resumed") }
+                        carol.await("her chest's window, by itself") { (ArchiveChestWindow.ID in carol.openInterfaces()).takeIf { it } }
+                        carol.closeModal()
+                        carol.await("her window closed") { (ArchiveChestWindow.ID !in carol.openInterfaces()).takeIf { it } }
                         carol.await("her chest the Rift in view") {
                             carol.npcs().let { seen -> seen.any { it.id == ArchiveChests.chestType(0, true) } && seen.none { it.id == ArchiveChests.chestType(0, false) } }.takeIf { it }
                         }
@@ -686,6 +707,9 @@ class HeadlessArchiveRaidTest {
                         dave.npcOp(seen.index, ArchiveChests.OPEN)
                         dave.await("his chest open") { if (run.opened == setOf(0, 2)) Unit else null }
                         assertEquals(ArchiveChests.chestType(2, open = true), run.chests.getValue(2).type.id)
+                        dave.await("his chest's window, by itself") { (ArchiveChestWindow.ID in dave.openInterfaces()).takeIf { it } }
+                        dave.closeModal()
+                        dave.await("his window closed") { (ArchiveChestWindow.ID !in dave.openInterfaces()).takeIf { it } }
 
                         // Raid step 29b. Each one's loot waits as theirs, the Wheelbarrow's varbit set; the one without
                         // the unique has the thirty axes, and takes them from the window their Rift's Search opens.
@@ -693,6 +717,9 @@ class HeadlessArchiveRaidTest {
                         for (client in listOf(carol, dave)) client.await("loot to claim") { claimable(client).takeIf { it == 1 } }
                         val (taker, takerSlot) = if (finder == carolKey) dave to 2 else carol to 0
                         val (finding, findingSlot) = if (finder == carolKey) carol to 0 else dave to 2
+                        // The axes were told of as their window opened; the pickaxe, worth nothing, wasn't.
+                        taker.await("the axes told of") { taker.messages().firstOrNull { it.text == "[loot.untradeable item=30 x Bronze axe]" } }
+                        assertTrue(finding.messages().none { it.text.startsWith("[loot.") }, "the finder told of loot")
                         // The other's Rift isn't theirs to search.
                         val others = taker.await("the other's Rift in view") { taker.npcs().firstOrNull { it.id == ArchiveChests.chestType(findingSlot, true) } }
                         taker.npcOp(others.index, ArchiveChests.SEARCH)
@@ -1532,6 +1559,9 @@ class HeadlessArchiveRaidTest {
 
         /** The varp tfa_has_claimable_loot is bit 10 of; the Loot Wheelbarrow closed, and where the lobby has it (241.4 cache). */
         const val CLAIMABLE_VARP = 5912
+
+        /** A varp nothing else in this test uses, for the untradeable loot notification setting. */
+        const val LOOT_UNTRADEABLE_VARP = 5930
         const val WHEELBARROW_CLOSED = 63300
         const val WHEELBARROW_X = 4136
         const val WHEELBARROW_Z = 5551
