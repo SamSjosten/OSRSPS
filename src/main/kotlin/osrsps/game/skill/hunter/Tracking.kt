@@ -91,7 +91,7 @@ class TrackingArea(
  * Guessed: which way the footprints point (varbit 3 when the trail goes the way the segment's pieces are turned); the
  * hunting_searching_bushes animation and [INSPECT_TICKS] on every Inspect; [CATCH_TICKS]; a miss chance for every
  * creature as the polar kebbit's, by levels over its requirement ([missChance]); a trail starting afresh from any den
- * inspected, the old one wiped; a trail lasting until it ends or the player logs out; footprints going at once rather
+ * inspected, the old one wiped; which noose animation each creature takes (by its area's name); a trail lasting until it ends or the player logs out; footprints going at once rather
  * than fading; Search on a hiding spot finding nothing; the polar kebbits' tunnels as hubs. Left out: the ring of
  * pursuit, the old boot from searching a hiding spot (the Wiki gives no rate), Hunters' Rumours' kebbity tufts, and the
  * herbiboar.
