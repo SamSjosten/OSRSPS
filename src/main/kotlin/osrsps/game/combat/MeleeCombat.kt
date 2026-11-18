@@ -962,6 +962,14 @@ class MeleeCombat(
         shots.removeAll { it.npc === npc }
     }
 
+    /**
+     * The shots on their way from every NPC whose tile is in [area] land nowhere, those of NPCs already gone included
+     * (a body can go before its last shot lands): for an instance's run that ends, whose shots would land after it.
+     */
+    fun dropShotsFromWithin(area: (x: Int, z: Int) -> Boolean) {
+        shots.removeAll { area(it.npc.x, it.npc.z) }
+    }
+
     /** Whether [player] is further than [CHASE_RANGE] from [npc]'s spawn on either axis; never for an unleashed one. */
     private fun outOfRange(npc: Npc, player: Player): Boolean =
         !npc.unleashed && (abs(player.x - npc.spawn.x) > CHASE_RANGE || abs(player.z - npc.spawn.z) > CHASE_RANGE)

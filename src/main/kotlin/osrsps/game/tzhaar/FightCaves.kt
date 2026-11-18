@@ -337,11 +337,10 @@ class FightCaves(private val world: World) {
     /** Ends [run]: its monsters go, and its cave once nobody is in it (the world ends empty instances). */
     internal fun end(run: Run) {
         if (runs[run.owner] === run) runs.remove(run.owner)
-        for (npc in run.monsters) {
-            // A shot on its way would land outside after the run is over, where a death is no longer safe.
-            world.meleeCombat.dropShotsFrom(npc)
-            if (world.npcs[npc.index] === npc) world.removeNpc(npc)
-        }
+        // A shot on its way would land outside after the run is over, where a death is no longer safe: every shot from
+        // the cave goes, a monster's whose body has already gone too.
+        world.meleeCombat.dropShotsFromWithin { x, z -> run.instance.contains(x, z) }
+        for (npc in run.monsters) if (world.npcs[npc.index] === npc) world.removeNpc(npc)
         run.monsters.clear()
     }
 
