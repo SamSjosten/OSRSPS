@@ -51,6 +51,8 @@ class NpcCombatTest {
             "slice_surface_goblin_squat_unarmed_attack" to 6184, "slice_surface_goblin_defend" to 6183, "slice_surface_goblin_death" to 6182,
             "spider_update_attack" to 5327, "spider_update_defend" to 5328, "spider_update_death" to 5329,
             "snake_attack" to 275, "snake_block" to 276, "snake_death" to 278,
+            "thzaar_unarmed_attack" to 2609, "thzaar_armed_attack" to 2610, "thzaar_magic_attack" to 2613,
+            "thzaar_parry" to 2605, "thzaar_staff_parry" to 2606, "thzaar_death" to 2607, "thzaar_staff_death" to 2608,
             "bat_rework_attack" to 4915, "bat_rework_defend" to 4916, "bat_rework_death" to 4917,
             "bear_rework_attack" to 4925, "bear_rework_defend" to 4927, "bear_rework_death" to 4929,
             "fear_attack" to 3812, "fear_parry" to 3811, "fear_death" to 3813,

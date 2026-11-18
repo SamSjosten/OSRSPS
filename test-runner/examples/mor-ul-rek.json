@@ -1,0 +1,41 @@
+{
+  "name": "Karamja step K2.1: two Karamjan rums carried through the cave entrance into Mor Ul Rek and broken in the heat, the cave exit back to the dungeon, TzHaar-Ket-Zuh's talk naming the player by TzHaar caste and his Bank option (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::scenario gathering", "expectMessage": "Started scenario gathering.", "comment": "any scenario: ::reset at the end puts the account's backpack and hitpoints back"},
+    {"step": "command", "text": "::empty"},
+    {"step": "command", "text": "::item 431 2", "comment": "two Karamjan rums"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now", "comment": "the dungeon's skeletons and bats; it keeps the rum's damage off too, so the script checks the rum and the message"},
+    {"step": "command", "text": "::tele 2862 9572 0", "expectMessage": "Teleported to 2862, 9572, 0", "comment": "the dungeon's south end, by the cave entrance"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "locOption", "locId": 11835, "option": "Enter", "x": 2863, "y": 9571},
+    {"step": "assertLocation", "x": 2480, "y": 5175, "plane": 0, "timeoutMs": 10000, "comment": "Mor Ul Rek, by the cave exit"},
+    {"step": "assertMessage", "contains": "[mor_ul_rek.rum_explodes]", "timeoutMs": 5000},
+    {"step": "assertInventory", "item": "Karamjan rum", "count": 0},
+    {"step": "waitTicks", "ticks": 3},
+
+    {"step": "command", "text": "::tele 2445 5178 0", "expectMessage": "Teleported to 2445, 5178, 0", "comment": "the north bank"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "npcOption", "npc": "TzHaar-Ket-Zuh", "option": "Talk-to", "timeoutMs": 20000},
+    {"step": "assertDialogue", "contains": "[tzhaar_banker.greeting name=JalYt-", "timeoutMs": 15000},
+    {"step": "continueDialogue"},
+    {"step": "chooseOption", "text": "[tzhaar_banker.what_call]"},
+    {"step": "assertDialogue", "contains": "[tzhaar_banker.are_you_not name=JalYt-", "timeoutMs": 15000},
+    {"step": "continueDialogue"},
+    {"step": "chooseOption", "text": "[tzhaar_banker.guess_so]"},
+    {"step": "continueDialogue", "comment": "the player: I guess so"},
+    {"step": "assertDialogue", "contains": "[tzhaar_banker.no_problems]", "timeoutMs": 15000},
+    {"step": "continueDialogue"},
+    {"step": "npcOption", "npc": "TzHaar-Ket-Zuh", "option": "Bank", "timeoutMs": 20000},
+    {"step": "assertInterface", "interfaceId": 12, "timeoutMs": 10000, "comment": "the bank"},
+
+    {"step": "command", "text": "::tele 2480 5175 0", "expectMessage": "Teleported to 2480, 5175, 0"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "locOption", "locId": 11836, "option": "Enter", "x": 2479, "y": 5176},
+    {"step": "assertLocation", "x": 2862, "y": 9572, "plane": 0, "timeoutMs": 10000, "comment": "back in the dungeon"},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again"},
+    {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+  ]
+}

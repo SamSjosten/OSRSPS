@@ -122,6 +122,8 @@ between scripts then shows the words a player sees, not `[key]`.
 
 `karamja-volcano.json` (Karamja step K1.4, for test on 215: under `::god`, Climb-down on the volcano's rocks (11441 at 2856,3168) to 2856,9570, Open on the wall (2606 at 2836,9600) both ways, Climb on the rope below (18969) back to 2856,3167, Enter on Crandor's hole (25154 at 2833,3255) to 2834,9656 and Climb on its rope (25213) back to 2834,3254, then `::npcs 10` among Crandor's King Scorpions) needs nothing newer than `assertLocation`.
 
+`mor-ul-rek.json` (Karamja step K2.1, for test on 215: two Karamjan rums (431) from `::item` under `::god`, Enter on the cave entrance (11835 at 2863,9571) to 2480,5175 with `[mor_ul_rek.rum_explodes]` and the rum gone, TzHaar-Ket-Zuh's greeting naming the player `JalYt-...`, his what-did-you-call-me option, Bank opening the bank (12), and Enter on the cave exit (11836 at 2479,5176) back to 2862,9572) needs nothing newer than `assertDialogue`.
+
 `combat-respawn.json` (a castle man and a cow killed with `::kill`, still listed by `::respawns` until their Wiki
 respawn times of 25 and 45 ticks are up) needs 0.5.0.
 
