@@ -8,6 +8,8 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
+import osrsps.game.InvObj
+import osrsps.game.Inventory
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
@@ -187,6 +189,32 @@ class HeadlessFightCaveTest {
                 // Three waves done: 2 + 4 + 6, all in the bank.
                 assertEquals(12L, player.bank.count(FightCaves.TOKKUL))
                 assertNull(server.run("eve"))
+            }
+        }
+    }
+
+    @Test
+    fun `TokKul a stop's settling has no room for comes at the next login`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ivy").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("item ${FightCaves.FIRE_CAPE} 28") { true }
+                client.await("a full backpack") { client.inventory(INV).takeIf { inv -> inv.count { it != null } == 28 } }
+                client.commandReply("fightcave 4 2") { it.startsWith("Fight cave") }
+                client.waveIn(server, "ivy", 4)
+                val player = server.world.playerNamed("ivy")!!
+                // A bank with every slot taken, none of them TokKul.
+                for (slot in 0 until Inventory.BANK_CAPACITY) player.bank[slot] = InvObj(995, 1)
+                server.world.fightCaves.runOf(player)!!.died = true
+                server.world.fightCaves.leaving(player, shuttingDown = true)
+                assertEquals(0L, player.bank.count(FightCaves.TOKKUL) + player.inventory.count(FightCaves.TOKKUL))
+                assertEquals(12, server.world.fightCaves.owed(player), "kept for later")
+                assertNull(server.world.fightCaves.saved(player), "no run to come back to")
+                // Room again, and the next login pays it.
+                player.inventory[0] = null
+                server.world.fightCaves.login(player)
+                assertEquals(12L, player.inventory.count(FightCaves.TOKKUL))
+                assertEquals(0, server.world.fightCaves.owed(player))
             }
         }
     }

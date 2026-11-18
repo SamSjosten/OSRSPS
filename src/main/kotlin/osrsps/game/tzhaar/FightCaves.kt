@@ -144,9 +144,33 @@ class FightCaves(private val world: World) {
         return true
     }
 
-    /** [player] has just come into the world: a run they left waits for them, put in by the next tick's [process]. */
+    /**
+     * [player] has just come into the world: TokKul a stop's settling couldn't give them comes now, and a run they left
+     * waits for them, put in by the next tick's [process].
+     */
     fun login(player: Player) {
+        val owed = owed(player)
+        if (owed > 0) setOwed(player, owed - give(player, owed))
         if (saved(player) != null) resuming += player.saveKey
+    }
+
+    /**
+     * TokKul [player] is owed: what the server's stop settled for a death but neither their backpack nor bank had room
+     * for, kept in the cave's varp until a login has the room. Guessed: live has no such case.
+     */
+    fun owed(player: Player): Int = (player.vars[world.customVars.fightCaveVarp] ushr OWED_SHIFT) and OWED_MASK
+
+    private fun setOwed(player: Player, tokkul: Int) {
+        val value = player.vars[world.customVars.fightCaveVarp] and ((1 shl OWED_SHIFT) - 1)
+        player.vars[world.customVars.fightCaveVarp] = value or (tokkul.coerceIn(0, OWED_MASK) shl OWED_SHIFT)
+    }
+
+    /** Puts up to [tokkul] in [player]'s backpack, then their bank; how much went in. */
+    private fun give(player: Player, tokkul: Int): Int {
+        val type = world.objTypes[TOKKUL] ?: return 0
+        val added = player.inventory.add(type, tokkul)
+        val left = tokkul - added
+        return added + if (left > 0) world.bankItems(player, TOKKUL, left) else 0
     }
 
     /** What [player]'s save holds of a run they left, if anything. */
@@ -159,11 +183,13 @@ class FightCaves(private val world: World) {
     }
 
     private fun save(player: Player, wave: Int, rotation: Int) {
-        player.vars[world.customVars.fightCaveVarp] = wave or (rotation shl ROTATION_SHIFT)
+        val owed = player.vars[world.customVars.fightCaveVarp] and (OWED_MASK shl OWED_SHIFT)
+        player.vars[world.customVars.fightCaveVarp] = wave or (rotation shl ROTATION_SHIFT) or owed
     }
 
+    /** Clears the saved run, keeping any TokKul [owed]. */
     private fun forget(player: Player) {
-        player.vars[world.customVars.fightCaveVarp] = 0
+        player.vars[world.customVars.fightCaveVarp] = player.vars[world.customVars.fightCaveVarp] and (OWED_MASK shl OWED_SHIFT)
     }
 
     /** The cave's part of a tick, in the NPC phase after the fights: logins, waves in, waves done, runs ended. */
@@ -318,12 +344,15 @@ class FightCaves(private val world: World) {
         if (!player.loggedOut) mejJal(player, if (tokkul > 0) FightCaveLines.REWARD else FightCaveLines.TRIED)
     }
 
-    /** Gives [tokkul], what won't fit on the ground, or with [bankOverflow] (the server stopping) in the bank. */
+    /**
+     * Gives [tokkul], what won't fit on the ground; or with [bankOverflow] (the server stopping) into the backpack and
+     * bank, what neither takes [owed] for the next login.
+     */
     private fun pay(player: Player, tokkul: Int, bankOverflow: Boolean = false) {
         val type = world.objTypes[TOKKUL] ?: return
         if (!bankOverflow) return world.groundObjs.give(player, type, tokkul)
-        val left = tokkul - player.inventory.add(type, tokkul)
-        if (left > 0) world.bankItems(player, TOKKUL, left)
+        val left = tokkul - give(player, tokkul)
+        if (left > 0) setOwed(player, owed(player) + left)
     }
 
     /** TzHaar-Mej-Jal says [line], his head beside it, as he does as a run ends. */
@@ -392,5 +421,9 @@ class FightCaves(private val world: World) {
         private const val WAVE_MASK = 0x7f
         private const val ROTATION_SHIFT = 7
         private const val ROTATION_MASK = 0xf
+        private const val OWED_SHIFT = 11
+
+        /** Room for 1..62's 3,906 TokKul several times over; the varp's sign bit stays clear. */
+        private const val OWED_MASK = 0xfffff
     }
 }
