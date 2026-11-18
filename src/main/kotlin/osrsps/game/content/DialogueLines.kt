@@ -378,6 +378,7 @@ object DialogueLines {
         TzHaarGuardLines,
         TzHaarElderLines,
         InfernalEelLines,
+        BarnabyLines,
         MisthalinSweepLines,
         MageOfZamorakLines,
         MakeLines,

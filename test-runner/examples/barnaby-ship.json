@@ -1,0 +1,38 @@
+{
+  "name": "Karamja step K3.1: Captain Barnaby's talk on Brimhaven's dock sailing to Ardougne for 30 coins and the gangplank ashore; his Rimmington option on Ardougne's dock and the gangplank ashore; his Brimhaven option on Rimmington's dock and the gangplank ashore (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::scenario gathering", "expectMessage": "Started scenario gathering.", "comment": "any scenario: ::reset at the end puts the account's backpack back"},
+    {"step": "command", "text": "::empty"},
+    {"step": "command", "text": "::item 995 100"},
+    {"step": "command", "text": "::tele 2773 3230 0", "expectMessage": "Teleported to 2773, 3230, 0", "comment": "Brimhaven's dock, beside Captain Barnaby"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "npcOption", "npc": "Captain Barnaby", "option": "Talk-to", "timeoutMs": 20000},
+    {"step": "continueDialogue", "comment": "[barnaby.greeting_brimhaven]"},
+    {"step": "chooseOption", "text": "[barnaby.to_ardougne]"},
+    {"step": "continueDialogue", "comment": "the player says it"},
+    {"step": "continueDialogue", "comment": "[barnaby.sail_ardougne]"},
+    {"step": "assertLocation", "x": 2683, "y": 3263, "plane": 1, "timeoutMs": 15000, "comment": "the deck of the ship at Ardougne"},
+    {"step": "assertInventory", "item": "Coins", "count": 70},
+    {"step": "locOption", "locId": 2086, "option": "Cross", "x": 2683, "y": 3264},
+    {"step": "assertLocation", "x": 2683, "y": 3266, "plane": 0, "timeoutMs": 10000, "comment": "Ardougne's dock"},
+    {"step": "command", "text": "::tele 2680 3276 0", "expectMessage": "Teleported to 2680, 3276, 0", "comment": "beside Barnaby on Ardougne's dock"},
+    {"step": "waitTicks", "ticks": 2},
+    {"step": "npcOption", "npc": "Captain Barnaby", "option": "Rimmington", "timeoutMs": 20000},
+    {"step": "continueDialogue", "comment": "[barnaby.sail_rimmington]"},
+    {"step": "assertLocation", "x": 2915, "y": 3222, "plane": 1, "timeoutMs": 15000, "comment": "the deck of the ship at Rimmington"},
+    {"step": "assertInventory", "item": "Coins", "count": 40},
+    {"step": "locOption", "locId": 34670, "option": "Cross", "x": 2915, "y": 3223},
+    {"step": "assertLocation", "x": 2915, "y": 3225, "plane": 0, "timeoutMs": 10000, "comment": "Rimmington's dock"},
+    {"step": "npcOption", "npc": "Captain Barnaby", "option": "Brimhaven", "timeoutMs": 20000},
+    {"step": "continueDialogue", "comment": "[barnaby.sail_brimhaven]"},
+    {"step": "assertLocation", "x": 2775, "y": 3234, "plane": 1, "timeoutMs": 15000, "comment": "the deck of the ship at Brimhaven"},
+    {"step": "assertInventory", "item": "Coins", "count": 10},
+    {"step": "locOption", "locId": 2088, "option": "Cross", "x": 2774, "y": 3234},
+    {"step": "assertLocation", "x": 2772, "y": 3234, "plane": 0, "timeoutMs": 10000, "comment": "Brimhaven's dock"},
+
+    {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+  ]
+}
