@@ -37,6 +37,11 @@ object ArchiveVaultLines : Lines("tfa_vault", "Chest_(The_Fractured_Archive)") {
  *   can only open their own chest" (the Wiki): another's refuses with [ArchiveVaultLines.NOT_YOURS]. Guessed: that it
  *   says anything.
  *
+ * - **The window opens by itself** [WINDOW_AFTER] ticks after the chest is the Rift, for its owner still in the vault,
+ *   and each item of their loot worth telling of is told as any drop is ([osrsps.game.combat.LootNotifications]).
+ *   Sam's recordings of 16 November 2026: the crystal shatters into a small rift, and the loot window opens about 2 to
+ *   3 ticks later with nothing clicked; a "Valuable drop" line as it does. Inferred: that it opens by itself, and the
+ *   line with it. Guessed: the 2 ticks.
  * - **Search** on the Rift one's own chest leaves opens the chest's window over the loot ([ArchiveChestWindow], raid
  *   step 29b); another's refuses as its Open does (live took Search off others' Rifts on 3 November 2026, the Wiki;
  *   the 241 cache still has it). What isn't claimed there waits in the lobby's Loot Wheelbarrow, and the Archive Door
@@ -181,15 +186,29 @@ class ArchiveChests(private val world: World, private val raids: ArchiveRaids) {
         if (slot in run.opened) world.archiveChestWindow.open(player)
     }
 
-    /** Each tick: a chest whose opening is over is the Rift it leaves. */
+    /** Each tick: a chest whose opening is over is the Rift it leaves, and [WINDOW_AFTER] ticks on its window opens. */
     fun process(run: ArchiveRun) {
-        if (run.opening.isEmpty()) return
         for ((slot, due) in run.opening.entries.toList()) {
             if (world.tick < due) continue
             run.opening -= slot
             run.opened += slot
             placeChest(run, slot, open = true)
+            run.revealing[slot] = world.tick + WINDOW_AFTER
         }
+        for ((slot, due) in run.revealing.entries.toList()) {
+            if (world.tick < due) continue
+            run.revealing -= slot
+            reveal(run, slot)
+        }
+    }
+
+    /** [slot]'s window opens by itself for its owner, if they're still in the vault, and their loot is told of. */
+    private fun reveal(run: ArchiveRun, slot: Int) {
+        val key = run.chestSlots.entries.firstOrNull { it.value == slot }?.key ?: return
+        val player = world.onlinePlayers.firstOrNull { it.saveKey == key } ?: return
+        if (player.dead || raids.at(player.x, player.z) !== run || !raids.inRewardRoom(run, player.x, player.z)) return
+        world.archiveChestWindow.open(player)
+        for (drop in run.loot?.chests?.get(key).orEmpty()) world.lootNotifications.dropped(player, drop.type, drop.count)
     }
 
     /** What `::raid loot` shows [player] of [run]'s pay: who found the unique, and their own chest. */
@@ -228,6 +247,9 @@ class ArchiveChests(private val world: World, private val raids: ArchiveRaids) {
         /** chest_guthixian02_open01, and its length in ticks (30 client cycles). */
         const val OPEN_ANIM = 15101
         const val OPEN_TICKS = 1
+
+        /** Ticks from a chest becoming its Rift to its window opening by itself (Sam's recordings: about 2 to 3). */
+        const val WINDOW_AFTER = 2
 
         /** The chests' tiles by slot, on the vault's level (tsps capture notes). */
         val SLOTS = listOf(4124 to 5793, 4130 to 5793, 4121 to 5796, 4133 to 5796, 4120 to 5800, 4134 to 5800, 4121 to 5803, 4133 to 5803)
