@@ -26,6 +26,8 @@ import osrsps.game.script.Handlers
 import osrsps.game.script.Op
 import osrsps.game.script.OpTarget
 import osrsps.game.script.ScriptRunner
+import osrsps.game.skill.ArceuusRunecraft
+import osrsps.game.skill.EssencePouches
 import osrsps.map.CollisionMap
 
 class DeathsTest {
@@ -541,6 +543,26 @@ class DeathsTest {
         tick(Deaths.DEATH_TICKS)
         assertEquals(InvObj(pipe.id, 1), bob.equipment[WearPos.WEAPON])
         assertEquals(500, bob.charges[Blowpipe.DARTS])
+    }
+
+    @Test
+    fun `a death that loses items empties every pouch and loses dark essence fragments with their obj`() {
+        val types = osrsps.game.VarTypes(4_000, EssencePouches.POUCHES.flatMap { listOf(it.countVarbit, it.typeVarbit) }.withIndex().associate { (i, id) -> id to osrsps.game.VarbitType(486 + i, 0, 9) })
+        val carol = Player(3, "carol", 3212, 3210, 0, varTypes = types)
+        online += carol
+        val small = EssencePouches.POUCHES.first()
+        carol.vars.setVarbit(small.countVarbit, 3)
+        carol.vars.setVarbit(small.typeVarbit, 1)
+        carol.inventory.add(ObjType(small.obj, "Small pouch", cost = 1), 1)
+        carol.inventory.add(ObjType(ArceuusRunecraft.FRAGMENTS, "Dark essence fragments", cost = 0), 1)
+        carol.charges[ArceuusRunecraft.FRAGMENT_CHARGES] = 40
+        carol.inventory.add(lobster, 3)
+        deaths.die(carol)
+        tick(Deaths.DEATH_TICKS)
+        // The lobsters are kept; the pouch, kept or not, comes back empty, and the fragments went with their obj.
+        assertEquals(0, carol.vars.getVarbit(small.countVarbit))
+        assertEquals(0, carol.vars.getVarbit(small.typeVarbit))
+        assertEquals(0, carol.charges[ArceuusRunecraft.FRAGMENT_CHARGES])
     }
 
     @Test

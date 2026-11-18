@@ -93,10 +93,14 @@ class EssencePouches(private val world: World) {
 
     /**
      * [obj] left [player]'s backpack by Drop: a pouch's essence is lost with it (the Wiki's Essence pouch page), so its
-     * count and type go back to empty and picking it up again finds it empty.
+     * count and type go back to empty and picking it up again finds it empty. The count is per kind of pouch, so while
+     * another of the same kind (or its degraded version) is still in the backpack or the bank, that one keeps it
+     * (exploit review round 40, R40A-2).
      */
     fun dropped(player: Player, obj: Int) {
         val pouch = POUCHES.firstOrNull { obj == it.obj || obj == it.degraded } ?: return
+        val ids = listOfNotNull(pouch.obj, pouch.degraded)
+        if (ids.any { player.inventory.count(it) > 0 || player.bank.count(it) > 0 }) return
         player.vars.setVarbit(pouch.countVarbit, 0)
         player.vars.setVarbit(pouch.typeVarbit, 0)
     }
