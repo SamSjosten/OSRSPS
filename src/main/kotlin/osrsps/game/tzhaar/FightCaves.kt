@@ -214,7 +214,14 @@ class FightCaves(private val world: World) {
         val seen = HashSet<FightCaveMonster>()
         for ((monster, spot) in monsters.zip(spots)) {
             val typeId = if (seen.add(monster)) monster.first else monster.second
-            spawn(player, run, typeId, run.at(spot.tile))
+            if (spawn(player, run, typeId, run.at(spot.tile)) == null) {
+                // A monster that couldn't come in (the world full of NPCs) isn't a kill: the wave goes and comes again.
+                logger.warn { "${run.owner}: fight cave wave ${run.wave} couldn't spawn ${typeId}; trying again" }
+                for (npc in run.monsters) if (world.npcs[npc.index] === npc) world.removeNpc(npc)
+                run.monsters.clear()
+                run.nextWaveTick = world.tick + WAVE_GAP_TICKS
+                return
+            }
         }
         logger.debug { "${run.owner}: wave ${run.wave} in, ${monsters.joinToString()} at ${spots.joinToString()}" }
     }
@@ -227,6 +234,7 @@ class FightCaves(private val world: World) {
         val type = world.npcTypes[typeId] ?: return null.also { logger.warn { "The cache has no NPC $typeId for the fight cave" } }
         val npc = world.spawnNpc(NpcSpawn(type, tile.x, tile.z, 0, source = SOURCE, respawns = false)) ?: return null
         npc.unleashed = true
+        npc.huntsAnywhere = true
         run.monsters += npc
         world.meleeCombat.aggress(npc, player, world.tick)
         return npc
@@ -286,7 +294,7 @@ class FightCaves(private val world: World) {
     fun deathPlace(player: Player): DeathPlace? {
         val run = runs[player.saveKey]?.takeIf { it.instance.contains(player.x, player.z) } ?: return null
         run.died = true
-        return DeathPlace(keepItems = true, OUTSIDE.x, OUTSIDE.z, 0, OUTSIDE.x, OUTSIDE.z, 0)
+        return DeathPlace(keepItems = true, OUTSIDE.x, OUTSIDE.z, 0, OUTSIDE.x, OUTSIDE.z, 0, safe = true)
     }
 
     /** Leave or Escape on the exit (and `::fightcave leave`): out with the Tokkul for the waves done. */

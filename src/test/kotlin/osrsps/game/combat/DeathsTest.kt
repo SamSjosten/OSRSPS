@@ -426,6 +426,25 @@ class DeathsTest {
     }
 
     @Test
+    fun `a safe minigame's death leaves a Hardcore Ironman one`() {
+        val types = osrsps.game.VarTypes(600, mapOf(osrsps.game.SettingsSide.VARBIT_IRONMAN to osrsps.game.VarbitType(499, 3, 5)))
+        val dave = Player(4, "dave", 3212, 3210, 0, types)
+        online += dave
+        dave.vars.setVarbit(osrsps.game.SettingsSide.VARBIT_IRONMAN, Deaths.HARDCORE_IRONMAN)
+        dave.hitpoints = 0
+        deaths.die(dave)
+        // The Fight Cave's place: everything kept, out by the entrance, and safe.
+        deaths.respawn(dave, DeathPlace(keepItems = true, 2438, 5168, 0, 2438, 5168, 0, safe = true))
+        assertTrue(varbits.none { it.first == dave }, "the status kept")
+        assertTrue(messages.none { it.first == dave && it.second == "[combat.hardcore_lost]" })
+        // A place that keeps the items but isn't safe (a raid's) still costs the status.
+        dave.hitpoints = 0
+        deaths.die(dave)
+        deaths.respawn(dave, DeathPlace(keepItems = true, 2438, 5168, 0, 2438, 5168, 0))
+        assertEquals(Triple(dave, osrsps.game.SettingsSide.VARBIT_IRONMAN, Deaths.IRONMAN), varbits.last())
+    }
+
+    @Test
     fun `a click on the items with the gravestone closed does nothing`() {
         val grave = aliceDies()
         button(alice, Deaths.FREEITEMS, sub = 0)

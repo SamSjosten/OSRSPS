@@ -525,7 +525,7 @@ class MeleeCombat(
     private fun hitBy(npc: Npc, def: NpcCombatDef, player: Player, from: Tile, tick: Long) {
         // A boss whose fight picks its moves never retreats, whatever its range or hitpoints.
         if (npc.scriptedAttacks) return retaliate(npc, player, tick)
-        val inRange = Aggression.inAggressionRange(npc, from.x, from.z, combat.npcCombat[npc.type]?.range ?: Aggression.ATTACK_RANGE)
+        val inRange = npc.huntsAnywhere || Aggression.inAggressionRange(npc, from.x, from.z, combat.npcCombat[npc.type]?.range ?: Aggression.ATTACK_RANGE)
         if (lowOnHitpoints(npc, def) || (!inRange && npc.retreatingFrom == null)) return retreat(npc, player)
         if (npc.retreatingFrom != null) {
             if (!inRange) {
