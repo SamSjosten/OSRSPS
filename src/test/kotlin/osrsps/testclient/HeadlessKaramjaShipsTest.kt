@@ -35,8 +35,20 @@ class HeadlessKaramjaShipsTest {
     private fun npc(id: Int, name: String, internal: String, travel: String) =
         NpcType(id, name, ops = listOf("Talk-to", null, travel, "The Pandemonium", null), internalName = internal)
 
-    private val tobias = npc(KaramjaShips.CAPTAIN_TOBIAS, "Captain Tobias", "captain_tobias", "Musa Point")
-    private val customs = npc(KaramjaShips.CUSTOMS_OFFICER, "Customs officer", "customs_officer", "Port Sarim")
+    /**
+     * As the cache has them: each base type a multi-NPC on `sailing_intro`, showing its `_1op` type below 15 and its
+     * `_2op` type by default. The test world has no such varbit, so the `_2op` type shows, as after the Pandemonium; the
+     * options then go by that type's id, as on live.
+     */
+    private fun multi(base: Int, name: String, internal: String) =
+        NpcType(base, name, internalName = internal, multiVarbit = SAILING_INTRO, multiNpcs = IntArray(16) { KaramjaShips.SHOWN.getValue(base)[if (it == 15) 1 else 0] })
+
+    private val tobias = multi(KaramjaShips.CAPTAIN_TOBIAS, "Captain Tobias", "captain_tobias")
+    private val customs = multi(KaramjaShips.CUSTOMS_OFFICER, "Customs officer", "customs_officer")
+    private val tobiasShown = npc(KaramjaShips.SHOWN.getValue(KaramjaShips.CAPTAIN_TOBIAS)[1], "Captain Tobias", "captain_tobias_2op", "Musa Point")
+    private val customsShown = npc(KaramjaShips.SHOWN.getValue(KaramjaShips.CUSTOMS_OFFICER)[1], "Customs officer", "customs_officer_2op", "Port Sarim")
+    private val tobiasBefore = npc(KaramjaShips.SHOWN.getValue(KaramjaShips.CAPTAIN_TOBIAS)[0], "Captain Tobias", "captain_tobias_1op", "Travel")
+    private val customsBefore = npc(KaramjaShips.SHOWN.getValue(KaramjaShips.CUSTOMS_OFFICER)[0], "Customs officer", "customs_officer_1op", "Travel")
 
     private fun plank(id: Int, x: Int, z: Int, level: Int) = ZoneLoc(id, LocShape.CENTREPIECE_STRAIGHT, 0, x, z, level)
 
@@ -55,7 +67,7 @@ class HeadlessKaramjaShipsTest {
         World(
             crcs,
             CollisionMap().apply { markLoaded(2956 shr 6, 3143 shr 6); markLoaded(3028 shr 6, 3216 shr 6) },
-            random = GameRandom(7), objTypes = ObjTypes(objs), npcTypes = NpcTypes.of(tobias, customs),
+            random = GameRandom(7), objTypes = ObjTypes(objs), npcTypes = NpcTypes.of(tobias, customs, tobiasShown, customsShown, tobiasBefore, customsBefore),
             npcSpawns = listOf(NpcSpawn(tobias, 3028, 3216, wander = 0, source = "test"), NpcSpawn(customs, 2953, 3147, wander = 0, source = "test")),
             locTypes = LocTypes(planks.map { it.id }.distinct().associateWith { LocType(it, "Gangplank", ops = listOf("Cross", null, null, null, null), collision = LocCollisionType(width = 1, length = 1)) }),
             staticLocs = StaticLocs().apply { planks.forEach(::add) },
@@ -222,6 +234,7 @@ class HeadlessKaramjaShipsTest {
     }
 
     companion object {
+        const val SAILING_INTRO = 18314
         const val BACKPACK = 93
     }
 }

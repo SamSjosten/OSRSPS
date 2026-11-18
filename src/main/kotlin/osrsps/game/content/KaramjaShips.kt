@@ -44,7 +44,7 @@ object KaramjaShipLines : Lines("karamja_ship", "Transcript:Captain Tobias; Tran
     val NOT_ENOUGH_COINS = line("not_enough_coins", "the Port Sarim (right-click) option without 30 coins")
     val NOT_ENOUGH_COINS_GLOVES = line("not_enough_coins_gloves", "the right-click option wearing Karamja gloves, without 15 coins")
     val GLOVES_SMILE = line("gloves_smile", "the right-click option wearing Karamja gloves with 15 coins")
-    val ARRIVES_MUSA_POINT = line("arrives_musa_point", "the box on landing at Musa Point (INFERRED from the customs officer's 'The ship arrives at Port Sarim.')")
+    val ARRIVES_MUSA_POINT = line("arrives_musa_point", "the box on landing at Musa Point (INFERRED: the customs officer's arrival box, with the other port's name)")
     val ARRIVES_PORT_SARIM = line("arrives_port_sarim", "the box on landing at Port Sarim")
     val PANDEMONIUM_CLOSED = line("pandemonium_closed", "ours: the Pandemonium (a Sailing island) isn't built, so no boat goes there")
 }
@@ -80,9 +80,23 @@ object KaramjaShips {
     const val CUSTOMS_OFFICER = 3648
     val SEAMEN = listOf(CAPTAIN_TOBIAS, SEAMAN_LORRIS, SEAMAN_THRESNOR)
 
+    /**
+     * The types each boat NPC shows on `sailing_intro` (its `_1op` before the Pandemonium, its `_2op` after), by base
+     * type. Options go by the type the player sees, so each handler is on all three.
+     */
+    val SHOWN = mapOf(
+        CAPTAIN_TOBIAS to listOf(14978, 14979),
+        SEAMAN_LORRIS to listOf(14980, 14981),
+        SEAMAN_THRESNOR to listOf(14982, 14983),
+        CUSTOMS_OFFICER to listOf(14984, 14985),
+    )
+
+    /** A boat NPC's base type and the types it shows. */
+    fun types(base: Int): List<Int> = listOf(base) + SHOWN.getValue(base)
+
     const val TALK_TO = 1
 
-    /** The after-Pandemonium types' options: Musa Point (or Port Sarim) and The Pandemonium. */
+    /** The boat options: Travel before the Pandemonium, Musa Point (or Port Sarim) after, and The Pandemonium. */
     const val TRAVEL = 3
     const val PANDEMONIUM = 4
 
@@ -135,7 +149,7 @@ private enum class Boat { STAY, SAIL, PANDEMONIUM }
 
 fun registerKaramjaShips(world: World) {
     with(KaramjaShips) {
-        for (seaman in SEAMEN) {
+        for (seaman in SEAMEN.flatMap(::types)) {
             world.handlers.onNpc(seaman, TALK_TO) { op ->
                 var boat = Boat.STAY
                 var fare = 0
@@ -155,19 +169,21 @@ fun registerKaramjaShips(world: World) {
             world.handlers.onNpc(seaman, PANDEMONIUM) { world.message(player, KaramjaShipLines.PANDEMONIUM_CLOSED) }
         }
 
-        world.handlers.onNpc(CUSTOMS_OFFICER, TALK_TO) { op ->
-            var fare = 0
-            world.dialogues.start(this, op.npc) { customs { fare = it } }
-            if (fare > 0) {
-                world.message(player, KaramjaShipLines.PAID, "fare" to fare)
-                sail(world, PORT_SARIM, SEQ_KARAMJA_SARIM, KaramjaShipLines.ARRIVES_PORT_SARIM)
+        for (officer in types(CUSTOMS_OFFICER)) {
+            world.handlers.onNpc(officer, TALK_TO) { op ->
+                var fare = 0
+                world.dialogues.start(this, op.npc) { customs { fare = it } }
+                if (fare > 0) {
+                    world.message(player, KaramjaShipLines.PAID, "fare" to fare)
+                    sail(world, PORT_SARIM, SEQ_KARAMJA_SARIM, KaramjaShipLines.ARRIVES_PORT_SARIM)
+                }
             }
+            world.handlers.onNpc(officer, TRAVEL) {
+                if (confiscate(world)) return@onNpc
+                if (payAtOnce(world, customs = true)) sail(world, PORT_SARIM, SEQ_KARAMJA_SARIM, KaramjaShipLines.ARRIVES_PORT_SARIM)
+            }
+            world.handlers.onNpc(officer, PANDEMONIUM) { world.message(player, KaramjaShipLines.PANDEMONIUM_CLOSED) }
         }
-        world.handlers.onNpc(CUSTOMS_OFFICER, TRAVEL) {
-            if (confiscate(world)) return@onNpc
-            if (payAtOnce(world, customs = true)) sail(world, PORT_SARIM, SEQ_KARAMJA_SARIM, KaramjaShipLines.ARRIVES_PORT_SARIM)
-        }
-        world.handlers.onNpc(CUSTOMS_OFFICER, PANDEMONIUM) { world.message(player, KaramjaShipLines.PANDEMONIUM_CLOSED) }
 
         world.handlers.onLoc(SARIM_SHIP_PLANK_ON, CROSS) { cross(world, MUSA_POINT.deck) }
         world.handlers.onLoc(SARIM_SHIP_PLANK_OFF, CROSS) { cross(world, MUSA_POINT.dock) }
