@@ -302,6 +302,7 @@ object DialogueLines {
         HamTalkLines,
         JohanhusLines,
         JimmyTheChiselLines,
+        KaramjaShipLines,
         MisthalinSweepLines,
         MageOfZamorakLines,
         MakeLines,

@@ -50,11 +50,19 @@ object HunterLines : Lines("hunter", "Hunter") {
     val FUR_NEEDED = line("fur_needed", "Buy on a fur clothing piece without its furs", "count")
     val FUR_COINS = line("fur_coins", "Buy on a fur clothing piece without its fee", "fee")
     val TEASE_LEVEL = line("tease_level", "the message on Tease below the Hunter level the creature needs", "level")
+    val TRACK_LEVEL = line("track_level", "the message on Inspect on a tracking den below the Hunter level its creature needs", "level")
+    val TRACK_FOUND = line("track_found", "the message on Inspect on a den or connector that shows the trail's next track segment")
+    val TRACK_NOTHING = line("track_nothing", "the message on Inspect on a connector that isn't the trail's next one")
+    val TRACK_HIDING = line("track_hiding", "the message on Search on the hiding spot a followed trail ends at")
+    val TRACK_EMPTY = line("track_empty", "the message on Search or Attack on a hiding spot no followed trail ends at")
+    val TRACK_NO_NOOSE = line("track_no_noose", "the message on Attack on the trail's hiding spot with no noose wand wielded, which scares the creature off", "creature")
+    val TRACK_ESCAPED = line("track_escaped", "the message on failing to noose the creature in its hiding spot", "creature")
+    val TRACK_CAUGHT = line("track_caught", "the message on noosing the creature in its hiding spot", "creature")
 }
 
 /**
  * The Hunter skill: the trap engine ([Traps]) and the kinds of trap built so far. Hunter step 1: bird snares
- * ([BirdSnares]); step 2: box traps ([BoxTraps]); step 3: net traps ([NetTraps]); step 4: deadfalls ([Deadfalls]); step 5: pitfalls ([Pitfalls]); step 6a: butterflies and moths ([Butterflies]); step 6b: implings ([Implings]); step 7: falconry ([Falconry]); step 9: the Hunter shops' packs and Asyff's fur clothing ([HunterShops]). Hunter's areas are outside Misthalin; they are built where live has them and reached by ::tele.
+ * ([BirdSnares]); step 2: box traps ([BoxTraps]); step 3: net traps ([NetTraps]); step 4: deadfalls ([Deadfalls]); step 5: pitfalls ([Pitfalls]); step 6a: butterflies and moths ([Butterflies]); step 6b: implings ([Implings]); step 7: falconry ([Falconry]); step 8: tracking ([Tracking]); step 9: the Hunter shops' packs and Asyff's fur clothing ([HunterShops]). Hunter's areas are outside Misthalin; they are built where live has them and reached by ::tele.
  */
 class Hunter(world: World, collision: CollisionMap) {
     val traps = Traps(world, collision)
@@ -63,6 +71,7 @@ class Hunter(world: World, collision: CollisionMap) {
     val implings = Implings(world)
     val falconry = Falconry(world, collision)
     val shops = HunterShops(world)
+    val tracking = Tracking(world)
 
     fun register() {
         traps.register(BirdSnares.KIND)
@@ -74,6 +83,7 @@ class Hunter(world: World, collision: CollisionMap) {
         implings.register()
         falconry.register()
         shops.register()
+        tracking.register()
     }
 
     /** Call once a tick, in the NPC phase before NPCs move. */
