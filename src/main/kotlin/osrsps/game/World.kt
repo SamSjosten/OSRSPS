@@ -587,7 +587,7 @@ class World(
     )
 
     /** Puts [count] of [id] into [player]'s bank as a deposit would, a note as its item; returns how many went in. */
-    private fun bankItems(player: Player, id: Int, count: Int): Int {
+    internal fun bankItems(player: Player, id: Int, count: Int): Int {
         val from = Inventory(-1, 1)
         from[0] = InvObj(id, count)
         return when (val deposit = bank.deposit(player.bank, bankScreen.tabs(player), from, 0, count)) {
@@ -1420,8 +1420,9 @@ class World(
         for (player in players) {
             if (player?.dead != true) continue
             deaths.respawn(player)
-            // A Fight Cave death is paid and its run ended before the save, as a leaver's is (remove).
-            fightCaves.leaving(player)
+            // A Fight Cave death is paid and its run ended before the save, as a leaver's is (remove); TokKul that won't
+            // fit goes to the bank, as a ground drop wouldn't outlast the stop.
+            fightCaves.leaving(player, shuttingDown = true)
         }
         saveAll()
     }

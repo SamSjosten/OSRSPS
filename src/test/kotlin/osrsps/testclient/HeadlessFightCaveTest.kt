@@ -172,6 +172,26 @@ class HeadlessFightCaveTest {
     }
 
     @Test
+    fun `a death the server's stop settles pays the TokKul that won't fit into the bank`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("eve").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("item ${FightCaves.FIRE_CAPE} 28") { true }
+                client.await("a full backpack") { client.inventory(INV).takeIf { inv -> inv.count { it != null } == 28 } }
+                client.commandReply("fightcave 4 2") { it.startsWith("Fight cave") }
+                client.waveIn(server, "eve", 4)
+                val player = server.world.playerNamed("eve")!!
+                // As World.stop() finishes a death: the run marked died, then settled with the stop's flag.
+                server.world.fightCaves.runOf(player)!!.died = true
+                server.world.fightCaves.leaving(player, shuttingDown = true)
+                // Three waves done: 2 + 4 + 6, all in the bank.
+                assertEquals(12L, player.bank.count(FightCaves.TOKKUL))
+                assertNull(server.run("eve"))
+            }
+        }
+    }
+
+    @Test
     fun `a death in the cave is safe and pays for the waves done`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bea").use { client ->

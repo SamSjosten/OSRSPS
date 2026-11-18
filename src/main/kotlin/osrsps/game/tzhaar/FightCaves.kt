@@ -277,10 +277,10 @@ class FightCaves(private val world: World) {
      * [player] is leaving the world, saved next: a run left mid-wave starts that wave again at their next login, one
      * paused at a wave's end the next (its varp already says which); a death's Tokkul is paid now.
      */
-    fun leaving(player: Player) {
+    fun leaving(player: Player, shuttingDown: Boolean = false) {
         resuming -= player.saveKey
         val run = runs[player.saveKey] ?: return
-        if (run.died) return left(player, run)
+        if (run.died) return paidOut(player, run, bankOverflow = shuttingDown)
         end(run)
     }
 
@@ -310,17 +310,20 @@ class FightCaves(private val world: World) {
     }
 
     /** Pays [run]'s TokKul: the transcript has one line for a run out in the first wave and one for a later wave, death or not. */
-    private fun paidOut(player: Player, run: Run) {
+    private fun paidOut(player: Player, run: Run, bankOverflow: Boolean = false) {
         end(run)
         forget(player)
         val tokkul = FightCaveWaves.tokkul(run.wave - 1)
-        if (tokkul > 0) pay(player, tokkul)
+        if (tokkul > 0) pay(player, tokkul, bankOverflow)
         if (!player.loggedOut) mejJal(player, if (tokkul > 0) FightCaveLines.REWARD else FightCaveLines.TRIED)
     }
 
-    private fun pay(player: Player, tokkul: Int) {
+    /** Gives [tokkul], what won't fit on the ground, or with [bankOverflow] (the server stopping) in the bank. */
+    private fun pay(player: Player, tokkul: Int, bankOverflow: Boolean = false) {
         val type = world.objTypes[TOKKUL] ?: return
-        world.groundObjs.give(player, type, tokkul)
+        if (!bankOverflow) return world.groundObjs.give(player, type, tokkul)
+        val left = tokkul - player.inventory.add(type, tokkul)
+        if (left > 0) world.bankItems(player, TOKKUL, left)
     }
 
     /** TzHaar-Mej-Jal says [line], his head beside it, as he does as a run ends. */
