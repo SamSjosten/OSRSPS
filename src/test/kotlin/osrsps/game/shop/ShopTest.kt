@@ -97,6 +97,8 @@ class ShopTest {
         6522 to 250, 6523 to 40000, 6525 to 25000, 6528 to 50001, 6526 to 35000, 6527 to 30000, 6568 to 60000, 6524 to 45000,
         438 to 3, 436 to 3, 440 to 17, 442 to 75, 453 to 45, 444 to 150, 447 to 162, 449 to 400, 451 to 3200, 1631 to 1000, 6571 to 200000,
         9194 to 1000, 21707 to 430, 21701 to 430, 21698 to 430, 21704 to 430, 21298 to 56320, 21301 to 84000, 21304 to 67000,
+        // Brimhaven's shops (the 242 cache's values).
+        1718 to 300, 1727 to 900, 1729 to 1275, 1725 to 2025, 1731 to 3525, 347 to 10, 339 to 10, 361 to 40, 379 to 70, 373 to 80, 3144 to 250,
     )
 
     /**
@@ -191,6 +193,8 @@ class ShopTest {
             NpcType(7688, "TzHaar-Hur-Zal", internalName = "tzhaar_merchant_cityequipment"),
             NpcType(7689, "TzHaar-Hur-Rin", internalName = "tzhaar_merchant_cityoreandgem"),
             NpcType(996, "Nardok", internalName = "dttd_bone_dealer"),
+            NpcType(8680, "Davon", internalName = "davon"),
+            NpcType(4920, "Alfonse the waiter", internalName = "alfonse_the_waiter"),
         )
         return ShopTypes.parse(shopFile, npcs, objs)
     }
@@ -289,6 +293,9 @@ class ShopTest {
         "tzhaar_hur_rins_ore_and_gem_store" to listOf(4, 4, 25, 112, 67, 225, 243, 600, 4800, 37, 75, 150, 300, 1500, 300000, 1500),
         // Nardok's Bone Weapons, read 2026-11-19.
         "nardoks_bone_weapons" to listOf(600, 600, 2000, 2000, 3, 350),
+        // Brimhaven's shops, read 2026-11-18: Davon's at 120% with none in stock, the Shrimp and Parrot's at 130%.
+        "davons_amulet_store" to listOf(360, 1080, 1530, 2430, 4230),
+        "the_shrimp_and_parrot" to listOf(13, 13, 52, 91, 104, 325),
     )
 
     @Test
@@ -310,6 +317,8 @@ class ShopTest {
         assertEquals(shops["pie_shop"], shops.ofNpc(6533))
         assertEquals(shops["scavvos_rune_store"], shops.ofNpc(2871))
         assertEquals(shops["valaines_shop_of_champions"], shops.ofNpc(2870))
+        assertEquals(shops["davons_amulet_store"], shops.ofNpc(8680))
+        assertEquals(shops["the_shrimp_and_parrot"], shops.ofNpc(4920))
         // The Sawmill operator's Construction supplies buys back at 50% with no change per item (the Wiki's 5, 250, 1, 2, 1).
         val supplies = shops["construction_supplies"]!!
         assertEquals(supplies, shops.ofNpc(3101))

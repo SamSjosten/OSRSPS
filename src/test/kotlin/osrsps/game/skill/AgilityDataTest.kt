@@ -90,6 +90,7 @@ class AgilityDataTest {
                 "shortcut_edgeville_dungeon_south_pipe" to (60 to 100),
                 "shortcut_lumbridge_cellar_hole" to (13 to 0),
                 "shortcut_goblin_maze_hole" to (1 to 0),
+                "shortcut_brimhaven_ropeswing" to (10 to 30),
             ),
             // A crossing's XP: the obstacle's own at the end, and any given partway, the same both ways.
             shortcuts.associate { shortcut ->
@@ -120,8 +121,10 @@ class AgilityDataTest {
         assertTrue(refusing.none { it.levelLine == AgilityLines.LEVEL })
         // Only the swamp caves' stones put the lights out on a fall.
         assertEquals(setOf("shortcut_swamp_caves_stone_north", "shortcut_swamp_caves_stone_south"), shortcuts.filter { it.failDouses }.map { it.key }.toSet())
-        // Each way ends where the other starts.
-        for (shortcut in shortcuts) {
+        // Each way ends where the other starts, but for the Brimhaven ropeswings: one rope swings each way, each from its own tile.
+        val ropeswing = shortcuts.single { it.key == "shortcut_brimhaven_ropeswing" }
+        assertEquals(listOf(listOf(AgilityTile(2705, 3209, 0)), listOf(AgilityTile(2703, 3205, 0))), ropeswing.routes.map { it.at })
+        for (shortcut in shortcuts - ropeswing) {
             val (there, back) = shortcut.routes
             assertEquals(back.from, landing(there.moves), shortcut.key)
             assertEquals(there.from, landing(back.moves), shortcut.key)
