@@ -1,0 +1,21 @@
+{
+  "name": "Karamja step K1.1b: the Karamja lodestone south of Brimhaven activated once and turned active for the player, then from Lumbridge ::lodestone karamja casting there in 17 ticks onto its centre tile (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::varp lodestones 0", "expectMessage": "Varp lodestones:", "comment": "every stone dormant again (Lumbridge's is always active)"},
+    {"step": "command", "text": "::tele 2763 3147 0", "expectMessage": "Teleported to 2763, 3147, 0", "comment": "east of the Karamja stone"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "assertLoc", "loc": "Lodestone", "x": 2759, "y": 3146, "option": "Activate", "comment": "dormant for this player"},
+    {"step": "locOption", "loc": "Lodestone", "option": "Activate", "x": 2759, "y": 3146},
+    {"step": "assertMessage", "contains": "[lodestone.activated name=[lodestone.karamja]]", "timeoutMs": 10000},
+    {"step": "command", "text": "::varbit lodestone.karamja", "expectMessage": "bits 5-5) = 1", "comment": "bit 5 of the lodestones' varp"},
+    {"step": "assertLoc", "loc": "Lodestone", "x": 2759, "y": 3146, "option": "Teleport"},
+    {"step": "command", "text": "::tele 3236 3221 0", "expectMessage": "Teleported to 3236, 3221, 0", "comment": "Lumbridge"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "command", "text": "::lodestone karamja"},
+    {"step": "assertLocation", "x": 2760, "y": 3147, "plane": 0, "timeoutMs": 20000, "comment": "the stone's centre tile, 17 ticks after the cast"},
+    {"step": "command", "text": "::varp lodestones 0", "expectMessage": "Varp lodestones:"}
+  ]
+}
