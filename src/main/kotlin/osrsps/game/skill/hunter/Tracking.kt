@@ -102,14 +102,6 @@ class Tracking(private val world: World) {
     private class Run(val area: TrackingArea, val start: Int, val steps: List<Step>) {
         var shown = 0
 
-        /** The node the trail has been followed to. */
-        val at: Int
-            get() {
-                var node = start
-                for (i in 0 until shown) node = steps[i].segment.other(node)
-                return node
-            }
-
         val done: Boolean get() = shown == steps.size
 
         val end: Int get() {
