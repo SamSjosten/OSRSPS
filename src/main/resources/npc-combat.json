@@ -208,6 +208,70 @@
       "source": "OSRS Wiki, Snake (level 5, id 2845), read 2026-11-17: speed 4, max hit 1, stab, no bonuses, respawn 30, aggressive, not poisonous (Karamja step K1.3); the animations are the cache's snake_* seqs"
     },
     {
+      "npcs": ["pirate2"],
+      "attackSpeed": 5, "maxHit": 3, "attackType": "slash", "attackBonus": 8, "strengthBonus": 10,
+      "defence": { "stab": 3, "slash": 2, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "human_sword_slash", "defend": "human_sword_block", "death": "human_death" },
+      "respawnTicks": 25,
+      "source": "OSRS Wiki, Pirate (the Brimhaven version, level 23, id 522) and the DPS calculator, read 2026-11-18: speed 5, max hit 3, slash, attack +8, strength +10, stab +3 and slash +2 defence, respawn 25, not aggressive (Karamja step K3.2b). GUESSED: the human sword animations, as the level 26 pirate's"
+    },
+    {
+      "npcs": ["pirate_guard"],
+      "attackSpeed": 4, "maxHit": 3, "attackType": "slash", "attackBonus": 20, "strengthBonus": 16,
+      "defence": { "stab": 30, "slash": 39, "crush": 30, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "human_sword_slash", "defend": "human_sword_block", "death": "human_death" },
+      "respawnTicks": 50,
+      "source": "OSRS Wiki, Pirate Guard (level 19, id 4926) and the DPS calculator, read 2026-11-18: speed 4, max hit 3, slash, attack +20, strength +16, stab +30, slash +39 and crush +30 defence, respawn 50, not aggressive (Karamja step K3.2b). GUESSED: the human sword animations"
+    },
+    {
+      "npcs": ["guarddog"],
+      "attackSpeed": 4, "maxHit": 5, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "dog_update_small_dog_attack", "defend": "dog_update_medium_dog_defend", "death": "dog_update_medium_dog_death" },
+      "respawnTicks": 25,
+      "aggressive": true,
+      "source": "OSRS Wiki, Guard dog (level 44, id 114) and the DPS calculator, read 2026-11-18: speed 4, max hit 5, crush, no bonuses, respawn 25 (Karamja step K3.2b: Brimhaven's, in the Black Arm Gang's hideout). GUESSED: aggressive (the Wiki says it varies; only Xeric's Glade's are said to wait for a thief), the small dog's attack with the medium dog's defend and death"
+    },
+    {
+      "npcs": ["monkey"],
+      "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 0, "crush": 0, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "monkey_attack", "defend": "monkey_block", "death": "monkey_death" },
+      "respawnTicks": 37,
+      "source": "OSRS Wiki, Monkey (monster) (the common version, level 3, id 2848), read 2026-11-18: speed 4, max hit 1, crush, no bonuses, respawn 37, not aggressive (Karamja step K3.2b); the animations are the cache's monkey_* seqs"
+    },
+    {
+      "npcs": ["jungle_spider"],
+      "attackSpeed": 4, "maxHit": 6, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 20, "slash": 20, "crush": 10, "magic": 17, "light": 20, "standard": 20, "heavy": 20 },
+      "anims": { "attack": "spider_update_attack", "defend": "spider_update_defend", "death": "spider_update_death" },
+      "respawnTicks": 30,
+      "aggressive": true,
+      "weakness": { "element": "fire", "percent": 40 },
+      "source": "OSRS Wiki, Jungle spider (level 44, id 3020) and the DPS calculator, read 2026-11-18: speed 4, max hit 6, stab, the defence bonuses and the fire weakness (40%), respawn 30, aggressive, not poisonous (Karamja step K3.2b). Its stance is spider_update_ready, so the spider_update fight animations are taken"
+    },
+    {
+      "npcs": ["poison_scorpion"],
+      "attackSpeed": 4, "maxHit": 3, "attackType": "stab", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 5, "slash": 15, "crush": 15, "magic": 0, "light": 5, "standard": 5, "heavy": 5 },
+      "anims": { "attack": "scorpion_update_attack_tail", "defend": "scorpion_update_defend", "death": "scorpion_update_death" },
+      "respawnTicks": 25,
+      "aggressive": true,
+      "poison": 3,
+      "weakness": { "element": "fire", "percent": 25 },
+      "source": "OSRS Wiki, Poison Scorpion (level 20, id 3025) and the DPS calculator, read 2026-11-18: speed 4, max hit 3, stab, the defence bonuses and the fire weakness (25%), respawn 25, aggressive, poisonous (3) (Karamja step K3.2b); its stance is scorpion_update_ready, so the scorpion_update fight animations are taken"
+    },
+    {
+      "npcs": ["tribesman"],
+      "attackSpeed": 4, "maxHit": 4, "attackType": "stab", "attackBonus": 8, "strengthBonus": 5,
+      "defence": { "stab": 4, "slash": 6, "crush": 6, "magic": 0, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "human_spear_spike", "defend": "human_spear_block", "death": "human_death" },
+      "respawnTicks": 50,
+      "aggressive": true,
+      "poison": 11,
+      "source": "OSRS Wiki, Tribesman (the dark brown version, level 32, id 530) and the DPS calculator, read 2026-11-18: speed 4, max hit 4, stab, attack +8, strength +5, stab +4, slash +6 and crush +6 defence, respawn 50, aggressive, poisonous (11) (Karamja step K3.2b). GUESSED: the spear's stab and block (it stands with a staff's stance)"
+    },
+    {
       "npcs": ["woman", "woman2", "woman3", "varrock_woman1"],
       "attackSpeed": 4, "maxHit": 1, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
       "defence": { "stab": -21, "slash": -21, "crush": -21, "magic": -21, "light": -21, "standard": -21, "heavy": -21 },
