@@ -166,6 +166,7 @@ import osrsps.game.content.registerArtio
 import osrsps.game.content.registerKingBlackDragon
 import osrsps.game.content.MemberGates
 import osrsps.game.content.registerFeroxEnclave
+import osrsps.game.content.registerKaramjaShips
 import osrsps.game.content.registerWildernessObelisks
 import osrsps.game.content.registerWildernessLevers
 import osrsps.game.content.WildernessObelisks
@@ -1081,6 +1082,7 @@ class World(
         registerSkullSceptre(this)
         registerHaystacks(this)
         registerLodestones(this)
+        registerKaramjaShips(this)
         registerVarrock(this)
         registerArchiveLobby(this)
         registerRaidTester(this)
@@ -1857,6 +1859,8 @@ class World(
         player.vars.setVarbitIfKnown(Teleblock.VARBIT, 0)
         // A pitfall shows by the player's own varbits; none stands after a logout.
         hunter.pitfalls.forget(player)
+        // Nor a trail's footprints, which are the player's varbits too.
+        hunter.tracking.forget(player)
         // A save from inside an instance, from before saves moved players to its exit, lands where no map is now.
         if (instances.inDynamicArea(player.x, player.z) && instances.at(player.x, player.z) == null) {
             player.x = SPAWN_X
@@ -3382,6 +3386,7 @@ class World(
             wallBeasts.forget(player)
             pvpCombat.forget(player)
             canoes.forget(player)
+            hunter.tracking.loggedOut(player)
             npcs.forget(player, scripts::busy)
             save(player)
         } finally {
