@@ -876,6 +876,9 @@ class World(
     /** Arceuus's dense runestone and Blood and Soul Altars; see [osrsps.game.skill.ArceuusRunecraft]. */
     val arceuusRunecraft = osrsps.game.skill.ArceuusRunecraft(this)
 
+    /** The Ourania Altar and its cave's ladders and crack; see [osrsps.game.skill.Ourania]. */
+    val ourania = osrsps.game.skill.Ourania(this)
+
     val firemaking = Firemaking(this, collision)
 
     val hunter = osrsps.game.skill.hunter.Hunter(this, collision)
@@ -1123,6 +1126,7 @@ class World(
         combinationRunes.register()
         essencePouches.register()
         arceuusRunecraft.register()
+        ourania.register()
         loadDialogue()
     }
 

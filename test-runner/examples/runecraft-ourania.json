@@ -1,0 +1,101 @@
+{
+ "name": "Runecraft step RC6: down the Ourania ladder west of Ardougne into the cave, through the crack to the altar side, and Craft-rune on the Ourania Altar turning five pure essence into random runes (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario runecraft",
+   "expectMessage": "Started scenario runecraft.",
+   "comment": "99 Runecraft; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::item 7936 5",
+   "comment": "five pure essence"
+  },
+  {
+   "step": "command",
+   "text": "::tele 2453 3232 0",
+   "comment": "beside rc_zmi_dungeon_entrance (2452, 3231)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "locId": 29635,
+   "option": "Climb",
+   "x": 2452,
+   "y": 3231
+  },
+  {
+   "step": "assertLocation",
+   "x": 3016,
+   "y": 5629,
+   "plane": 0,
+   "timeoutMs": 10000,
+   "comment": "the cave's ladder landing"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "command",
+   "text": "::tele 3052 5587 0",
+   "comment": "the path side of the crack (3053, 5587); the cave itself is walked on live"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "locId": 29626,
+   "option": "Squeeze-through",
+   "x": 3053,
+   "y": 5587
+  },
+  {
+   "step": "assertLocation",
+   "x": 3057,
+   "y": 5587,
+   "plane": 0,
+   "timeoutMs": 10000,
+   "comment": "the altar side"
+  },
+  {
+   "step": "locOption",
+   "locId": 29631,
+   "option": "Craft-rune",
+   "x": 3059,
+   "y": 5578
+  },
+  {
+   "step": "assertMessage",
+   "contains": "runecraft_ourania.bind",
+   "timeoutMs": 15000
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 7936,
+   "count": 0,
+   "timeoutMs": 5000,
+   "comment": "every essence became a random rune (which ones is the seed's)"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}
