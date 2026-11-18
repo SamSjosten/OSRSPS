@@ -3382,6 +3382,7 @@ class World(
             wallBeasts.forget(player)
             pvpCombat.forget(player)
             canoes.forget(player)
+            hunter.tracking.loggedOut(player)
             npcs.forget(player, scripts::busy)
             save(player)
         } finally {

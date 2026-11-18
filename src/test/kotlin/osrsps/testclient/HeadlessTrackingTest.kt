@@ -179,6 +179,31 @@ class HeadlessTrackingTest {
         }
     }
 
+    @Test
+    fun `a trail ends at logout, and after logging back in no footprints show and its next connector shows nothing`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            val first = server.login("pl").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("tele 2717 3817 1")
+                client.await("at Rellekka") { client.position?.takeIf { it.x == 2717 } }
+                startAt(client, HOLE_SOUTH)
+                val shown = client.await("the first footprints") { client.shown().singleOrNull() }
+                client.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+                client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+                shown
+            }
+            server.login("pl").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.await("no footprints") { if (client.varp(TRAIL_VARP) == 0) Unit else null }
+                // Every connector of the node the old trail led to shows nothing now.
+                val at = area.segment(first).other(area.denAt(2717, 3819)!!)
+                for (segment in area.nodes[at].segments.filter { it != first }) {
+                    assertEquals(null, client.inspect(area.segment(segment).connectors.first()))
+                }
+            }
+        }
+    }
+
     private companion object {
         const val BACKPACK = 93
         const val WORN = 94

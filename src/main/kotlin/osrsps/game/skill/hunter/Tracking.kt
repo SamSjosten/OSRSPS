@@ -133,8 +133,10 @@ class Tracking(private val world: World) {
         }
     }
 
-    /** Whether [player] is following a trail; for tests. */
-    fun tracking(player: Player): Boolean = player.saveKey in runs
+    /** [player] logs out: their trail goes, so runs are kept only for players online (Codex review on #787). */
+    fun loggedOut(player: Player) {
+        runs.remove(player.saveKey)
+    }
 
     /**
      * [player] logs in, or a scenario starts or ends: no trail of theirs goes on, and no footprint shows whatever their
