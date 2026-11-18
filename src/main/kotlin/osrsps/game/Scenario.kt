@@ -199,6 +199,7 @@ class Scenarios(scenarios: Collection<Scenario>) {
             "agility",
             "artisan-2",
             "bryophyta",
+            "construction",
             "farming",
             "fishing-cooking",
             "gathering",

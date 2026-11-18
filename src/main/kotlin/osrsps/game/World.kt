@@ -614,7 +614,7 @@ class World(
 
     private val locInteractions = LocInteractions(
         locs, collision, movement, handlers, scripts, doors, gates, words = ::textFor, inInstance = { x, z -> instances.at(x, z) != null },
-        forInstances = { it in ArchiveRaids.INSTANCE_LOCS || it in GiantLairs.INSTANCE_LOCS || it in KingBlackDragon.INSTANCE_LOCS },
+        forInstances = { it in ArchiveRaids.INSTANCE_LOCS || it in GiantLairs.INSTANCE_LOCS || it in KingBlackDragon.INSTANCE_LOCS || it in osrsps.game.skill.construction.House.INSTANCE_LOCS },
     )
 
     /** Lets loc type [id] be used from the tiles [tiles] gives, as a stepping stone from the bank; see [LocInteractions.useFrom]. */
@@ -879,6 +879,9 @@ class World(
     /** The Ourania Altar and its cave's ladders and crack; see [osrsps.game.skill.Ourania]. */
     val ourania = osrsps.game.skill.Ourania(this)
 
+    /** Player-owned houses: the estate agent, the house portals and each house's instance; see [osrsps.game.skill.construction.Houses]. */
+    val houses = osrsps.game.skill.construction.Houses(this)
+
     val firemaking = Firemaking(this, collision)
 
     val hunter = osrsps.game.skill.hunter.Hunter(this, collision)
@@ -1127,6 +1130,8 @@ class World(
         essencePouches.register()
         arceuusRunecraft.register()
         ourania.register()
+        houses.register()
+        osrsps.game.skill.construction.EstateAgent.register(this, houses)
         loadDialogue()
     }
 
