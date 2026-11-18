@@ -250,7 +250,7 @@
    "step": "command",
    "text": "::raid run",
    "expectMessage": "You're in the reward vault, at 4125, 5773 of the raid",
-   "comment": "where the party comes in, at the south end of the vault's walk (tsps capture notes)"
+   "comment": "where the party comes in, at the south end of the vault's walk (Sam's recording of 16 November 2026)"
   },
   {
    "step": "command",
@@ -260,9 +260,9 @@
   },
   {
    "step": "command",
-   "text": "::locs 2",
+   "text": "::locs 6",
    "expectMessage": "62775 ",
-   "comment": "tfa_vault_scoreboard, the Merit scroll, which the server puts on the walk's east wall (4129,5778); its angle is a guess"
+   "comment": "tfa_vault_scoreboard, the Merit scroll, which the server puts on the walk's east wall (4129,5778), five tiles from where the party comes in; its angle is a guess"
   },
   {
    "step": "command",
