@@ -44,6 +44,12 @@
    "expectMessage": "You joined test's party"
   },
   {
+   "step": "assertMessage",
+   "contains": "[tfa_run.entered_archive name=test]",
+   "timeoutMs": 60000,
+   "comment": "the leader goes first: test has opened the run (Sam's recordings of 16 November 2026)"
+  },
+  {
    "step": "locOption",
    "locId": 62768,
    "option": "Enter",

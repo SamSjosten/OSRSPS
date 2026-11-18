@@ -5,6 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.InvObj
@@ -512,6 +513,55 @@ class HeadlessArchiveRaidTest {
                 client.awaitAt(Tile(ArchiveRaids.RIFT_LEAVE_X, ArchiveRaids.RIFT_LEAVE_Z), "out to the lobby by the Rift's Leave")
                 client.await("the line as she leaves") { client.messages().lastOrNull { it.text == "[tfa_run.left]" } }
                 client.await("the instance ended") { if (world.instances.all.none { it === run.instance }) Unit else null }
+            }
+        }
+    }
+
+    @Test
+    fun `the leader goes first through the Archive Door and each way on, and the rest are told as they do`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { carol ->
+                server.login("erin").use { erin ->
+                    for (client in listOf(carol, erin)) client.await("the login rebuild") { client.position }
+                    carol.commandReply("raidparty invite erin") { it.startsWith("Invited") }
+                    erin.commandReply("raidparty accept carol") { it.startsWith("You joined") }
+                    val world = server.world
+                    val raids = world.archiveRaids
+                    val party = assertNotNull(world.parties.of(world.playerNamed("carol")!!))
+                    fun firstRefused(client: HeadlessClient) {
+                        val box = client.awaitDialogue("the leader must go first") { it is DialogueView.Message } as DialogueView.Message
+                        assertEquals("[tfa_run.leader_first name=carol]", box.text)
+                        client.continueDialogue()
+                    }
+                    // Erin first at the lobby's Archive Door: Carol must go first, and no run is opened.
+                    erin.tele(ArchiveRaids.LOBBY_X, ArchiveRaids.LOBBY_Z)
+                    erin.locOp(ArchiveRaids.ARCHIVE_DOOR, 4123, 5562, ArchiveRaids.ENTER)
+                    firstRefused(erin)
+                    assertNull(raids.of(party), "no run opened by Erin")
+                    // Carol opens it, and Erin is told to step inside; then in she goes.
+                    val run = carol.enter(server, "carol")
+                    erin.await("Carol's line") { erin.messages().lastOrNull { it.text == "[tfa_run.entered_archive name=carol]" } }
+                    assertEquals(run, erin.enter(server, "erin"))
+                    assertTrue(carol.messages().none { it.text.contains("tfa_run.entered_archive") }, "Carol not told of herself")
+                    // The Guardian's hall, done at once with no Guardian here.
+                    carol.command("raid tp guardian")
+                    erin.await("the Guardian's room done") { ArchiveRoom.GUARDIAN.takeIf { it in run.cleared } }
+                    // Erin at Bork's door before Carol: refused, and the row's still unchosen.
+                    val room = ArchiveRoom.BORK
+                    val door = raids.tile(run, doorX(room), ArchiveRaids.doorZ(room.stage))
+                    erin.locOp(room.door, door.x, door.z, ArchiveRaids.ENTER)
+                    firstRefused(erin)
+                    erin.awaitTicks(ArchiveRaids.MOVE_DELAY + 1)
+                    assertNull(run.chosen[room.stage], "the row not chosen by Erin")
+                    assertFalse(raids.inRoom(run, room, erin.position!!.x, erin.position!!.z), "Erin not in Bork's room")
+                    // Carol goes through: Erin is told, and follows.
+                    carol.locOp(room.door, door.x, door.z, ArchiveRaids.ENTER)
+                    erin.await("Carol's line at the door") { erin.messages().lastOrNull { it.text == "[tfa_run.proceeded_bork name=carol]" } }
+                    carol.awaitAt(raids.tile(run, room.entryX, room.entryZ), "Carol in ${room.boss}'s room")
+                    erin.locOp(room.door, door.x, door.z, ArchiveRaids.QUICK_ENTER)
+                    erin.await("Erin in ${room.boss}'s room") { erin.position?.takeIf { raids.inRoom(run, room, it.x, it.z) } }
+                    assertTrue(carol.messages().none { it.text.contains("tfa_run.proceeded") }, "Carol not told of herself")
+                }
             }
         }
     }

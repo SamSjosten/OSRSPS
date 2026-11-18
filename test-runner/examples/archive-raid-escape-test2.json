@@ -11,6 +11,7 @@
   {"step": "command", "text": "::tele 4127 5560 0", "expectMessage": "Teleported to 4127, 5560, 0", "comment": "the lobby, in front of the Archive Door: test's sign that we're ready"},
   {"step": "assertMessage", "contains": "test invited you to their party", "timeoutMs": 180000},
   {"step": "command", "text": "::raidparty accept test", "expectMessage": "You joined test's party"},
+  {"step": "assertMessage", "contains": "[tfa_run.entered_archive name=test]", "timeoutMs": 60000, "comment": "the leader goes first: test has opened the run (Sam's recordings of 16 November 2026)"},
   {"step": "locOption", "locId": 62768, "option": "Enter", "timeoutMs": 20000, "comment": "into the party's run"},
   {"step": "waitTicks", "ticks": 6},
   {"step": "command", "text": "::raid run", "expectMessage": "You're in the nexus's entrance"},

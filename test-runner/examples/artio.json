@@ -1,0 +1,27 @@
+{
+  "name": "Wilderness step W4.8: Hunter's End's way in (Check-Fee, then Enter paying the lairs' fee from the backpack), Artio fought under ::god and killed with ::kill, her kill count's key, and the way out (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off).", "comment": "level 20 outside, 21 inside"},
+    {"step": "command", "text": "::tele 3116 3674 0", "expectMessage": "Teleported to 3116, 3674, 0", "comment": "south of the way in at 3115,3676"},
+    {"step": "locOption", "locId": 47141, "option": "Check-Fee", "x": 3115, "y": 3676},
+    {"step": "assertMessage", "contains": "[wildy_lair.fee_", "timeoutMs": 10000},
+    {"step": "command", "text": "::varbit 14693 0", "comment": "wbr_entrance_fee_paid back to unpaid, so the fee's menu shows every run"},
+    {"step": "command", "text": "::varbit 14694 0", "comment": "and wbr_entrance_discount back to none: each run's kill takes 10,000 off, and five would leave no fee and no menu"},
+    {"step": "command", "text": "::item 995 50000", "comment": "the fee in the backpack, in case it isn't paid yet"},
+    {"step": "locOption", "locId": 47141, "option": "Enter", "x": 3115, "y": 3676},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "chooseOption", "text": "[wildy_lair_fee.yes]"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "npcOption", "npc": "Artio", "option": "Attack", "timeoutMs": 20000},
+    {"step": "assertHitsplat", "npc": "Artio", "timeoutMs": 30000},
+    {"step": "command", "text": "::kill", "expectMessage": "Killed Artio #"},
+    {"step": "assertMessage", "contains": "[wilderness_boss.kill_count boss=Artio count=", "timeoutMs": 15000},
+    {"step": "locOption", "locId": 47122, "option": "Exit", "x": 1758, "y": 11531},
+    {"step": "waitTicks", "ticks": 6},
+    {"step": "assertLocation", "x": 3116, "y": 3675, "plane": 0},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
+  ]
+}
