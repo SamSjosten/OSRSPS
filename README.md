@@ -11,7 +11,7 @@
 [![RSProt](https://img.shields.io/badge/protocol-RSProt-4c8eda)](https://github.com/blurite/rsprot)
 ![Private](https://img.shields.io/badge/server-private%20test%20only-555)
 
-[Quick start](#-quick-start) · [Build and run](#️-build-and-run) · [VM 214](#️-on-vm-214) · [Connect RuneLite](#-connect-runelite) · [Testing tools](#-testing-tools) · [Commands](#-developer-commands)
+[Quick start](#-quick-start) · [Build and run](#️-build-and-run) · [VM 214](#️-on-vm-214) · [Connect RuneLite](#-connect-runelite) · [Testing tools](#-testing-tools) · [Commands](#️-developer-commands)
 
 </div>
 
