@@ -180,6 +180,9 @@ object KingBlackDragon {
     /**
      * Where the grave of a player dying at [x], [z] in a private lair goes: the open lair's matching tile, not the
      * instance's exit at the Lava Maze lever in deep Wilderness (exploit review round 40, R40B-1); null outside one.
+     *
+     * Guessed: the Wiki's Grave page has an instance's grave "outside the instance" without naming where for this
+     * lair; outside it, the open lair is the nearest place and keeps the grave out of reach of PKers.
      */
     fun graveTile(world: World, x: Int, z: Int): osrsps.map.Tile? {
         val instance = world.instances.at(x, z)?.takeIf { it in privateLairs } ?: return null
