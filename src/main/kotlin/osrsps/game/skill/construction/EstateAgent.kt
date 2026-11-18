@@ -11,31 +11,31 @@ import osrsps.game.dialogue.Lines
 /** The estate agents' lines; the words are in the dialogue file, from the Wiki's Transcript:Estate agent. */
 object EstateAgentLines : Lines("estate_agent", "Transcript:Estate agent") {
     val GREETING = line("greeting", "Both menus: his greeting")
-    val HOW_GET = line("how_get", "Before buying a house: How can I get a house?, which the player then says")
-    val HOW_GET_REPLY = line("how_get_reply", "How can I get a house?: a starting house in Rimmington for 1000 coins")
-    val WANT_BUY = line("want_buy", "How can I get a house?: do you want to buy a starter house?")
-    val YES_PLEASE = line("yes_please", "Buying: Yes please!, which the player then says")
-    val NO_COINS = line("no_coins", "Buying without 1,000 coins: the player's line")
-    val NO_COINS_REPLY = line("no_coins_reply", "Buying without 1,000 coins: come back when you have it")
-    val SOLD = line("sold", "Bought: go through the Rimmington house portal")
-    val SOLD_BOOK = line("sold_book", "Bought: this book will help you, as he hands over a Construction guide")
-    val NO_THANKS = line("no_thanks", "Buying: No thanks, which the player then says")
-    val NO_THANKS_REPLY = line("no_thanks_reply", "Buying, no thanks: enjoy your player-owned cardboard box")
-    val ABOUT = line("about", "Both menus: Tell me about houses!, which the player then says (standard dialogue only)")
-    val ABOUT_1 = line("about_1", "Tell me about houses: the wizards' experiments folding space")
-    val ABOUT_2 = line("about_2", "Tell me about houses: folded-space regions of plots")
-    val ABOUT_PLAYER = line("about_player", "Tell me about houses: the player's 'so that's how everyone can have a house'")
-    val ABOUT_3 = line("about_3", "Tell me about houses: the wizards hired him to sell them")
-    val ABOUT_4 = line("about_4", "Tell me about houses: others help you furnish it")
-    val ABOUT_5 = line("about_5", "Tell me about houses: start by buying planks from a sawmill operator")
-    val GUIDE = line("guide", "Standard dialogue: Could I have a Construction guide book?, which the player then says")
-    val GUIDE_HAS = line("guide_has", "A guide book with one in the inventory: you've already got one")
-    val GUIDE_NO_SPACE = line("guide_no_space", "A guide book with a full inventory: free up some space")
-    val GUIDE_GIVEN = line("guide_given", "A guide book: certainly")
-    val CAPE = line("cape", "Standard dialogue under 99 Construction: Tell me about that skillcape you're wearing., which the player then says")
-    val CAPE_1 = line("cape_1", "The skillcape: only masters, his life building houses")
-    val CAPE_2 = line("cape_2", "The skillcape: come back when you can build a demonic throne")
-    val CAPE_3 = line("cape_3", "The skillcape: its teleports to the house portals")
+    val HOW_GET = line("how_get", "Before buying a house: the first menu option, asking how to get a house, which the player then says")
+    val HOW_GET_REPLY = line("how_get_reply", "Asking how to get a house: his offer of the starter house in Rimmington and its price")
+    val WANT_BUY = line("want_buy", "Asking how to get a house: his question whether to buy one")
+    val YES_PLEASE = line("yes_please", "Buying: the menu option accepting, which the player then says")
+    val NO_COINS = line("no_coins", "Buying without 1,000 coins: the player saying so")
+    val NO_COINS_REPLY = line("no_coins_reply", "Buying without 1,000 coins: his answer")
+    val SOLD = line("sold", "Bought: where the house is to be found")
+    val SOLD_BOOK = line("sold_book", "Bought: his line as he hands over a Construction guide")
+    val NO_THANKS = line("no_thanks", "Buying: the menu option declining, which the player then says")
+    val NO_THANKS_REPLY = line("no_thanks_reply", "Buying, declined: his parting joke")
+    val ABOUT = line("about", "Both menus: the option asking about houses, which the player then says (standard dialogue only)")
+    val ABOUT_1 = line("about_1", "About houses: his first line, where houses came from")
+    val ABOUT_2 = line("about_2", "About houses: his second line, the regions of plots")
+    val ABOUT_PLAYER = line("about_player", "About houses: the player's answer to his second line")
+    val ABOUT_3 = line("about_3", "About houses: his third line, why he sells them")
+    val ABOUT_4 = line("about_4", "About houses: his fourth line, others who help with furnishing")
+    val ABOUT_5 = line("about_5", "About houses: his last line, where to start")
+    val GUIDE = line("guide", "Standard dialogue: the option asking for a guide book, which the player then says")
+    val GUIDE_HAS = line("guide_has", "A guide book with one in the inventory: his refusal")
+    val GUIDE_NO_SPACE = line("guide_no_space", "A guide book with a full inventory: his refusal")
+    val GUIDE_GIVEN = line("guide_given", "A guide book: his answer as he hands it over")
+    val CAPE = line("cape", "Standard dialogue under 99 Construction: the option asking about his skillcape, which the player then says")
+    val CAPE_1 = line("cape_1", "The skillcape: his first line, about masters and himself")
+    val CAPE_2 = line("cape_2", "The skillcape: his second line, what it takes to buy one")
+    val CAPE_3 = line("cape_3", "The skillcape: his last line, its teleports")
 }
 
 /**
@@ -43,7 +43,7 @@ object EstateAgentLines : Lines("estate_agent", "Transcript:Estate agent") {
  * coins, with a Construction guide (`poh_guide_book` 8463), and gives another guide later. From the Wiki's
  * Transcript:Estate agent (read 2026-11-18). GUESSED: every chathead expression; the guide dropped at the player's
  * feet when the backpack is full after buying (the transcript gives no line for it); the coins counted from the
- * backpack only ("I haven't got 1,000 coins on me"). Left out until step CON11: his Relocate and Redecorate, the
+ * backpack only (the player's line says on them). Left out until step CON11: his Relocate and Redecorate, the
  * standard menu's moving and redecorating, and selling the Construction cape; until then the standard menu offers the
  * guide book, houses and the skillcape talk.
  */

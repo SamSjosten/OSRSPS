@@ -174,18 +174,31 @@ class HeadlessHouseTest {
                 client.await("the house's own locs") { if (client.shown(House.EXIT_PORTAL, gardenX + 3, gardenZ + 3)) Unit else null }
                 assertTrue(client.shown(-1, gardenX + 3, gardenZ + 7), "the garden's north door hotspot goes")
                 assertTrue(client.shown(-1, gardenX + 2, parlourZ + 4), "the chair space goes")
-                assertTrue(client.shown(House.DOOR_LEFT, gardenX + 3, parlourZ), "the parlour's south door")
-                assertTrue(client.shown(House.DOOR_RIGHT, gardenX + 4, parlourZ), "the parlour's south door")
+                // Its right leaf is on the left hotspot's tile: the double door's leaves go clockwise along the wall.
+                assertTrue(client.shown(House.DOOR_RIGHT, gardenX + 3, parlourZ), "the parlour's south door")
+                assertTrue(client.shown(House.DOOR_LEFT, gardenX + 4, parlourZ), "the parlour's south door")
                 assertTrue(client.shown(House.WALL, gardenX, parlourZ + 4), "the parlour's west wall")
                 assertTrue(client.shown(House.WALL, gardenX + 7, parlourZ + 3), "the parlour's east wall")
 
                 // The parlour's door opens as a double door, the house's own.
-                client.locOp(House.DOOR_LEFT, gardenX + 3, parlourZ, 1)
-                client.await("the door open") { if (client.locChanges().any { it.id == House.DOOR_LEFT_OPEN }) Unit else null }
+                client.locOp(House.DOOR_LEFT, gardenX + 4, parlourZ, 1)
+                client.await("both leaves open") {
+                    if (client.locChanges().any { it.id == House.DOOR_LEFT_OPEN } && client.locChanges().any { it.id == House.DOOR_RIGHT_OPEN }) Unit else null
+                }
 
-                // The exit portal puts her outside the Rimmington portal, and the house ends once she has gone.
+                // A death here is a safe one, outside the portal she came in by.
+                val alice = server.world.playerNamed("alice")!!
+                val death = assertNotNull(server.world.houses.deathPlace(alice))
+                assertEquals(listOf(true, true, OUTSIDE.x, OUTSIDE.z, 0), listOf(death.safe, death.keepItems, death.toX, death.toZ, death.toLevel))
+
+                // Poisoned in the house, the exit portal puts her outside the Rimmington portal cured, and the house
+                // ends once she has gone.
+                client.command("poison 6")
+                client.await("poisoned") { if (server.world.poison.value(alice) > 0) Unit else null }
                 client.locOp(House.EXIT_PORTAL, gardenX + 3, gardenZ + 3, House.EXIT_ENTER)
                 client.await("outside") { client.position?.takeIf { it == Coord(OUTSIDE.x, OUTSIDE.z, 0) } }
+                client.await("cured") { if (server.world.poison.value(alice) == 0) Unit else null }
+                assertNull(server.world.houses.deathPlace(alice), "outside, an ordinary death")
                 client.await("the house ended") { if (server.world.instances.all.isEmpty()) Unit else null }
 
                 // Building mode: the hotspots stay, what is built shows on them.

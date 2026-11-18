@@ -30,7 +30,8 @@ private val logger = KotlinLogging.logger {}
  * [graveLevel]), when not at the spawn and on the tile they died on: a death in an instance, whose tile they can't get
  * back to, or in a raid. With [keepItems] they lose nothing: a raid death while the party still stands. [coord] is where
  * the grave counts as made, for its fee ([GraveFees]): a raid's death counts where it was in the cache's map, not in
- * the run's copy of it; -1 for where they fell.
+ * the run's copy of it; -1 for where they fell. A [safe] death, as in a player-owned house, keeps everything and costs
+ * no Hardcore status either.
  */
 data class DeathPlace(
     val keepItems: Boolean,
@@ -41,6 +42,7 @@ data class DeathPlace(
     val toZ: Int,
     val toLevel: Int,
     val coord: Int = -1,
+    val safe: Boolean = false,
 )
 
 /** A player's gravestone: the [npc] standing where they died, holding what they lost in [items]. */
@@ -239,8 +241,8 @@ class Deaths(
         // offers back, the price checker keeps its items for the sorting below, and Protect Item counts as they fall.
         if (!player.dead) die(player)
         player.deathTick = -1
-        loseHardcore(player)
-        val keep = place?.keepItems == true
+        if (place?.safe != true) loseHardcore(player)
+        val keep = place?.keepItems == true || place?.safe == true
         if (!keep) {
             // A skull goes with a death that loses items (guessed), and with it the hit-back rights it gave those
             // attacked first (Skulls); a raid death that keeps everything keeps both (exploit review round 36, R36A-3).

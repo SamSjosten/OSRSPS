@@ -5,6 +5,7 @@ import osrsps.game.GameLines
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
+import osrsps.game.combat.DeathPlace
 import osrsps.game.content.arriveDelay
 import osrsps.game.content.message
 import osrsps.game.dialogue.Lines
@@ -125,6 +126,9 @@ class Houses(private val world: World) {
 
     private val open = HashMap<String, Open>()
 
+    /** Players who were in a house at the end of the last tick, so leaving by any way is noticed ([process]). */
+    private val inside = HashSet<Player>()
+
     /** By room type, the sides of its template with door hotspots (0 west, 1 north, 2 east, 3 south). */
     private val doorSides = HashMap<RoomType, Set<Int>>()
 
@@ -174,6 +178,37 @@ class Houses(private val world: World) {
         val house = build(player, state, buildingMode) ?: return world.message(player, ConstructionLines.NO_ROOM)
         val arrive = arrival(house.instance, state)
         world.teleport(player, arrive.x, arrive.z, House.GROUND)
+        inside += player
+    }
+
+    /**
+     * Each tick: whoever was in a house and isn't now has left it, by its exit portal, a teleport or anything else, and
+     * leaving cures poison (the Wiki's Player-owned house: "exiting the POH in any way will remove this debuff").
+     */
+    fun process() {
+        if (inside.isEmpty()) return
+        val left = inside.filter { houseAt(it.x, it.z) == null }
+        for (player in left) {
+            inside -= player
+            world.poison.curePoison(player)
+        }
+    }
+
+    /** [player] is logging out: in a house, that is leaving it too, so the save they come back to has no poison. */
+    fun leaving(player: Player) {
+        if (!inside.remove(player)) return
+        if (houseAt(player.x, player.z) != null) world.poison.curePoison(player)
+    }
+
+    /**
+     * Where a death in a house goes: a safe one (the Wiki's Player-owned house: whoever dies in a house "will be
+     * teleported to outside the house but will retain all their items and have their Hitpoints and other stats
+     * restored"; Teleport to House: they do NOT lose any items), outside the portal they came in by.
+     */
+    fun deathPlace(player: Player): DeathPlace? {
+        val house = houseAt(player.x, player.z) ?: return null
+        val outside = outside(house.instance)
+        return DeathPlace(keepItems = true, outside.x, outside.z, 0, outside.x, outside.z, 0, safe = true)
     }
 
     /**
@@ -234,7 +269,9 @@ class Houses(private val world: World) {
             else -> state.room(room.x, room.z - 1, room.floor)
         }
         if (beyond == null || (side + 2) % 4 !in doorSides(beyond.type)) return hotspot.copy(id = House.WALL)
-        return hotspot.copy(id = if (hotspot.id == House.DOOR_HOTSPOT_LEFT) House.DOOR_LEFT else House.DOOR_RIGHT)
+        // The cache's left hotspot is the door's right leaf: the double door's right leaf is the next tile clockwise along
+        // the wall from its left one ([osrsps.game.loc.Doors]), and the left hotspot is the other way (Codex review on #788).
+        return hotspot.copy(id = if (hotspot.id == House.DOOR_HOTSPOT_LEFT) House.DOOR_RIGHT else House.DOOR_LEFT)
     }
 
     /** Which side of an unrotated room a tile [dx], [dz] in it is on: 0 west, 1 north, 2 east, 3 south. */

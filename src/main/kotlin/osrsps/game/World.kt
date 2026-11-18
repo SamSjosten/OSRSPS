@@ -740,6 +740,7 @@ class World(
      */
     private fun deathPlace(player: Player): DeathPlace? {
         archiveRaids.deathPlace(player)?.let { return it }
+        houses.deathPlace(player)?.let { return it }
         val instance = instances.at(player.x, player.z) ?: return null
         return DeathPlace(keepItems = false, instance.exitX, instance.exitZ, instance.exitLevel, SPAWN_X, SPAWN_Z, SPAWN_LEVEL)
     }
@@ -1473,6 +1474,7 @@ class World(
         npcScripts.process()
         encounters.process()
         archiveRaids.process()
+        houses.process()
         thieving.process()
         slayer.superiors.process()
         // Before NPCs move, so a creature a trap lures this tick takes its first step this tick.
@@ -3375,6 +3377,7 @@ class World(
             // Once a trade's offer is back in the backpack: saved at the instance's exit, out of any raid run, so its
             // supplies stay in it (R26A-1; Codex review on #636).
             archiveRaids.settleSupplies(player)
+            houses.leaving(player)
             thieving.forgive(player)
             friendChats.logout(player)
             clans.logout(player)
