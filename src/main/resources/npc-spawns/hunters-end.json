@@ -1,0 +1,6 @@
+{
+  "about": "Hunter's End (Wilderness step W4.8): Artio. mejrs's NPCList_OSRS has no Artio, so her tile is GUESSED from the Wiki's Artio/Strategies (\"Artio will spawn to the south of the den, right in front of the exit\"): the den is map square 27_180, its way out at 1758,11531. Her wander range is guessed until recorded.",
+  "spawns": [
+    {"npc": "callisto_singles", "x": 1757, "z": 11535, "wander": 5, "source": "Artio, Hunter's End. GUESSED: in front of the way out; wander guessed"}
+  ]
+}
