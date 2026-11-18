@@ -58,6 +58,8 @@ internal fun resetScenario(world: World, player: Player): String {
     world.hunter.traps.takeDown(player)
     player.testCheatsOff()
     before.restoreTo(player)
+    // A trail being followed ends, and the restored varbits show none of its footprints.
+    world.hunter.tracking.forget(player)
     // After the snapshot, which holds the skull, whom they attacked first and the Tele Block's varbit from before the
     // scenario: ::reset clears those too (Codex review on #723). Teleblock.clear skips a player with no block, so its
     // varbit is cleared here, or RuneLite would show a timer for a block that's gone.
@@ -109,6 +111,7 @@ private fun start(world: World, player: Player, scenario: Scenario) {
     // an earlier scenario's own traps just come down.
     world.hunter.traps.takeDown(player, refund = player.beforeScenario == null)
     if (player.beforeScenario == null) player.beforeScenario = world.snapshot(player)
+    world.hunter.tracking.forget(player)
     // Nor a grave from an earlier scenario whose script died before its ::reset: the scenario's death would merge into it.
     world.deaths.dropScenarioGrave(player)
     // The snapshot holds the items in the guide prices screen; the scenario's inventory replaces them.
