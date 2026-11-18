@@ -156,6 +156,17 @@
    "step": "assertInterface",
    "interfaceId": 300,
    "comment": "the Pelters' Veg Stall opens"
+  },
+  {
+   "step": "walk",
+   "x": 3227,
+   "y": 3410,
+   "comment": "a step away closes the stall, so no window is left open for the next script's commands: with it open, nightly 2026-11-17 and -18 stalled on Enter at the next command both nights"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "absent": true
   }
  ]
 }
