@@ -184,6 +184,7 @@ import osrsps.game.content.registerFeroxEnclave
 import osrsps.game.content.registerKaramjaShips
 import osrsps.game.content.registerKaramjaVolcano
 import osrsps.game.content.registerMorUlRek
+import osrsps.game.content.registerTzHaarShops
 import osrsps.game.content.registerMusaPoint
 import osrsps.game.content.registerWildernessObelisks
 import osrsps.game.content.registerWildernessLevers
@@ -1226,6 +1227,7 @@ class World(
         registerMusaPoint(this)
         registerKaramjaVolcano(this)
         registerMorUlRek(this)
+        registerTzHaarShops(this)
         registerVarrock(this)
         registerArchiveLobby(this)
         registerRaidTester(this)
