@@ -135,6 +135,7 @@ class HeadlessEssencePouchesTest {
                 // Drop is iop5, button op 7 (InventoryTab.click).
                 client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, 7, client.inventory(BACKPACK).indexOfFirst { it?.id == EssencePouches.SMALL }, EssencePouches.SMALL)
                 client.await("the pouch dropped") { if (client.count(EssencePouches.SMALL) == 0) Unit else null }
+                client.seen("[runecraft_pouch.dropped]")
                 assertEquals(0, player.vars.getVarbit(SMALL_COUNT))
                 client.give(EssencePouches.SMALL, 1)
                 client.op(EssencePouches.SMALL, 2)

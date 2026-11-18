@@ -19,6 +19,7 @@ object EssencePouchLines : Lines("runecraft_pouch", "Essence pouch") {
     val EMPTY_NO_SPACE = line("empty_no_space", "Empty with no free backpack slot")
     val DECAYED = line("decayed", "a pouch's capacity dropping through use")
     val DESTROYED = line("destroyed", "a pouch falling apart through use")
+    val DROPPED = line("dropped", "Drop on a pouch holding essence, the essence lost (the Wiki's Large pouch page quotes it)")
 }
 
 /**
@@ -101,6 +102,7 @@ class EssencePouches(private val world: World) {
         val pouch = POUCHES.firstOrNull { obj == it.obj || obj == it.degraded } ?: return
         val ids = listOfNotNull(pouch.obj, pouch.degraded)
         if (ids.any { player.inventory.count(it) > 0 || player.bank.count(it) > 0 }) return
+        if (player.vars.getVarbit(pouch.countVarbit) > 0) player.message(world.textFor(player)[EssencePouchLines.DROPPED])
         player.vars.setVarbit(pouch.countVarbit, 0)
         player.vars.setVarbit(pouch.typeVarbit, 0)
     }
