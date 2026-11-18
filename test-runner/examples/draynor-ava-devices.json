@@ -123,6 +123,17 @@
    "contains": "[ava_devices.level level=70 device=Ava's assembler]"
   },
   {
+   "step": "walk",
+   "x": 3093,
+   "y": 3358,
+   "comment": "walking closes the devices screen before a command is typed: with it open, nightly 2026-11-17 and -18: the client stalled on Enter at this command both nights"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 67,
+   "absent": true
+  },
+  {
    "step": "command",
    "text": "::tele 3093 3358 0",
    "expectMessage": "Teleported to 3093, 3358, 0",
