@@ -263,6 +263,9 @@ class Deaths(
         player.pvpDamage.clear()
         val forKiller = ArrayList<InvObj>()
         val buried = if (killer == null) lost + charges else toKiller(player, lost + charges, forKiller)
+        // Guessed: fragments lost with their obj are gone, not put in the grave as anything. Checked after toKiller,
+        // which can hand a deep-Wilderness death's fragments obj back to the backpack (exploit review round 42, R42A-1).
+        if (lostLast(player, lost, setOf(ArceuusRunecraft.FRAGMENTS))) player.charges[ArceuusRunecraft.FRAGMENT_CHARGES] = 0
         if (killer != null) {
             val fee = forfeit(player)
             if (fee > 0) forKiller += InvObj(COINS, fee)
@@ -388,8 +391,6 @@ class Deaths(
             if (left > 0) for (cost in staff.runesPerCharge) charges += InvObj(cost.rune, cost.count * left)
             player.charges[staff.charge] = 0
         }
-        // Guessed: fragments lost with their obj are gone, not put in the grave as anything.
-        if (lostLast(player, lost, setOf(ArceuusRunecraft.FRAGMENTS))) player.charges[ArceuusRunecraft.FRAGMENT_CHARGES] = 0
         return charges
     }
 
