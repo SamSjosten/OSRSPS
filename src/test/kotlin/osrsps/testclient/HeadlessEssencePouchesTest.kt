@@ -135,10 +135,28 @@ class HeadlessEssencePouchesTest {
                 // Drop is iop5, button op 7 (InventoryTab.click).
                 client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, 7, client.inventory(BACKPACK).indexOfFirst { it?.id == EssencePouches.SMALL }, EssencePouches.SMALL)
                 client.await("the pouch dropped") { if (client.count(EssencePouches.SMALL) == 0) Unit else null }
+                client.seen("[runecraft_pouch.dropped]")
                 assertEquals(0, player.vars.getVarbit(SMALL_COUNT))
                 client.give(EssencePouches.SMALL, 1)
                 client.op(EssencePouches.SMALL, 2)
                 client.seen("[runecraft_pouch.check_empty]")
+            }
+        }
+    }
+
+    @Test
+    fun `dropping a spare pouch keeps the essence in the one still held`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.ready(1)
+                val player = server.world.playerNamed("dave")!!
+                client.give(EssencePouches.SMALL, 2)
+                client.give(Mining.PURE_ESSENCE, 3)
+                client.op(EssencePouches.SMALL, 1)
+                client.await("3 essence in") { if (client.count(Mining.PURE_ESSENCE) == 0) Unit else null }
+                client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, 7, client.inventory(BACKPACK).indexOfFirst { it?.id == EssencePouches.SMALL }, EssencePouches.SMALL)
+                client.await("one pouch dropped") { if (client.count(EssencePouches.SMALL) == 1) Unit else null }
+                assertEquals(3, player.vars.getVarbit(SMALL_COUNT))
             }
         }
     }

@@ -163,6 +163,7 @@ import osrsps.game.content.registerCrazyArchaeologist
 import osrsps.game.content.registerChaosFanatic
 import osrsps.game.content.registerScorpia
 import osrsps.game.content.registerChaosElemental
+import osrsps.game.content.registerArtio
 import osrsps.game.content.registerKingBlackDragon
 import osrsps.game.tzhaar.FightCaves
 import osrsps.game.content.MemberGates
@@ -890,6 +891,9 @@ class World(
     /** Arceuus's dense runestone and Blood and Soul Altars; see [osrsps.game.skill.ArceuusRunecraft]. */
     val arceuusRunecraft = osrsps.game.skill.ArceuusRunecraft(this)
 
+    /** The Ourania Altar and its cave's ladders and crack; see [osrsps.game.skill.Ourania]. */
+    val ourania = osrsps.game.skill.Ourania(this)
+
     val firemaking = Firemaking(this, collision)
 
     val hunter = osrsps.game.skill.hunter.Hunter(this, collision)
@@ -1083,6 +1087,7 @@ class World(
         osrsps.game.content.VolcanicForge.register(this)
         registerChaosElemental(this)
         registerKingBlackDragon(this)
+        registerArtio(this)
         FountainOfRune.register(this)
         registerFeroxEnclave(this)
         registerWildernessObelisks(this)
@@ -1140,6 +1145,7 @@ class World(
         combinationRunes.register()
         essencePouches.register()
         arceuusRunecraft.register()
+        ourania.register()
         loadDialogue()
     }
 

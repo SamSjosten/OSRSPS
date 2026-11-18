@@ -53,6 +53,7 @@ import osrsps.game.skill.RuneCraftingLines
 import osrsps.game.skill.CombinationRuneLines
 import osrsps.game.skill.EssencePouchLines
 import osrsps.game.skill.ArceuusRunecraftLines
+import osrsps.game.skill.OuraniaLines
 import osrsps.game.skill.SlayerLines
 import osrsps.game.skill.SlayerHelmetLines
 import osrsps.game.skill.SlayerSuperiorLines
@@ -185,6 +186,7 @@ object DialogueLines {
         ChaosFanaticLines,
         VolcanicForgeLines,
         KingBlackDragonLines,
+        WildernessLairLines,
         WildernessLairFeeLines,
         osrsps.game.FountainOfRuneLines,
         OborLines,
@@ -385,6 +387,7 @@ object DialogueLines {
         CombinationRuneLines,
         EssencePouchLines,
         ArceuusRunecraftLines,
+        OuraniaLines,
         ScavvoLines,
         SchoolboyLines,
         SchoolgirlLines,

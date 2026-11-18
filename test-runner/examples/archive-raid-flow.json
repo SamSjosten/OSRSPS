@@ -249,7 +249,7 @@
   {
    "step": "command",
    "text": "::raid run",
-   "expectMessage": "You're in the reward vault, at 4127, 5779 of the raid",
+   "expectMessage": "You're in the reward vault, at 4125, 5773 of the raid",
    "comment": "where the party comes in, at the south end of the vault's walk (tsps capture notes)"
   },
   {
@@ -388,7 +388,7 @@
   {
    "step": "command",
    "text": "::raid run",
-   "expectMessage": " 700. You're in the reward vault, at 4127, 5779 of the raid",
+   "expectMessage": " 700. You're in the reward vault, at 4125, 5773 of the raid",
    "comment": "up again at the vault's arrival tile, the run still there: nothing between the points and the place, so nobody down and no death counted (a guess: what such a death costs on live isn't known)"
   },
   {
