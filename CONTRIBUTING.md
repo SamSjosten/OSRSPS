@@ -98,8 +98,10 @@ The server's Linux jobs (`build.yml`, `probe.yml`, and once private `automerge.y
 self-hosted runner VM on pve (`ci-runner`, VM 218, Ubuntu 24.04, labels `self-hosted` and `linux`, internet only), as a
 private repository's 2,000 hosted minutes a month last a few days here:
 
-- **Public repository**: pull requests, and every `pull_request_target` workflow, run on GitHub's `ubuntu-latest`,
-  so no fork's code reaches the VM. Main's own code (a push to `main`, a dispatch or schedule on `main`) runs on the VM
+- **Public repository**: pull requests, and every `pull_request_target` workflow, run on GitHub's `ubuntu-latest`
+  as main's copies of the workflows say. A fork's pull request runs the fork's own copy of `build.yml`, though, and
+  that copy can ask for the VM: only GitHub's approval of fork runs stands in the way (see "Pull requests from
+  forks"). Main's own code (a push to `main`, a dispatch or schedule on `main`) runs on the VM
   only with the repository variable `RUNNER` set to `self-hosted` (Settings, Secrets and variables, Actions,
   Variables).
 - **Private repository**: all of them run on the VM. Keep `RUNNER` set then too: a scheduled run's event may not say
@@ -120,6 +122,28 @@ registered on it, `ci-runner-1` and `ci-runner-2`, but only `ci-runner-1` runs: 
 purpose, as the builds are CPU-bound and one job on all the VM's cores beats two sharing them (and more Gradle jobs
 at once make the tick-timing tests flaky). So jobs run one at a time, and a build on `main` can wait behind the one
 before it; GitHub shows `ci-runner-2` as offline, which is expected.
+
+## Pull requests from forks
+
+The repository is public, so anyone can open a pull request from a fork. Nothing from one reaches `main`, VM 214 or
+the CI VM without Sam:
+
+- Only Sam can write to the repository, and only a merge moves `main` (ruleset `main`: pull requests only, required
+  checks, no force push or deletion). VM 214 deploys `main` alone, and staging only takes a branch of this
+  repository.
+- The queue (`automerge.yml`) never takes a fork's pull request, auto-merge on or not, so it never approves the
+  fork's held runs or merges main into it: Sam reviews and merges each by hand.
+- GitHub holds a fork's workflow runs for approval (Settings, Actions, General: approval for all outside
+  contributors). Before approving, look at the diff: a run executes the fork's code, its Gradle build and tests,
+  and a change to `.github/workflows/` can send that run to the self-hosted runner VM. Never approve one that
+  touches `.github/`.
+- A fork's runs get a read-only token and no secrets; their artifacts are never fetched by the test VMs
+  (`repo-fetch-functions.ps1` takes only builds of this repository's own branches).
+- CODEOWNERS makes Sam review every change to `.github/` and `deploy/`: the workflows, the scripts that run with a
+  token that can write, and the scripts VM 214 runs outside Docker.
+
+Threads treat a fork's pull request, its comments and its code as untrusted: they never enable auto-merge on one,
+never approve its runs, and never run its code.
 
 ## The staging server
 
