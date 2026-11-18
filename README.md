@@ -1,26 +1,67 @@
-# OSRSPS
+<div align="center">
 
-A private Old School RuneScape test server for developing RuneLite plugins against 1:1 recreations of live content.
-Our own engine in Kotlin on Java 21, using [RSProt](https://github.com/blurite/rsprot) for the network protocol.
+# ⚔️ OSRSPS
 
-Revision: **242** (`src/main/kotlin/osrsps/Revision.kt`; the cache build VM 214 runs is `deploy/cache-build.txt`).
+**A private Old School RuneScape test server, built from the ground up for testing RuneLite plugins against 1:1 recreations of live content.**
 
-More docs:
+[![build](https://github.com/SamSjosten/OSRSPS/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/SamSjosten/OSRSPS/actions/workflows/build.yml)
+![OSRS revision](https://img.shields.io/badge/OSRS-revision%20242-c8aa6e?style=flat)
+![Kotlin](https://img.shields.io/badge/Kotlin-2.4-7f52ff?logo=kotlin&logoColor=white)
+![Java](https://img.shields.io/badge/Java-21-e76f00?logo=openjdk&logoColor=white)
+[![RSProt](https://img.shields.io/badge/protocol-RSProt-4c8eda)](https://github.com/blurite/rsprot)
+![Private](https://img.shields.io/badge/server-private%20test%20only-555)
 
-- [`CONTRIBUTING.md`](CONTRIBUTING.md): how pull requests move (auto-merge, the queue, conflicts, revision bumps).
-- [`AGENTS.md`](AGENTS.md): review guidelines, sourcing (`// Guessed:`, `// Inferred:`) and what never goes in git.
-- [`deploy/README.md`](deploy/README.md): how VM 214 deploys itself, cache swaps and the staging server.
-- [`test-runner/README.md`](test-runner/README.md): the RuneLite test runner, its script format and headless runs.
-- [`TRIAGE.md`](TRIAGE.md): how filed problem reports are triaged.
-- [`NOTES.md`](NOTES.md): the notes each content and engine step wrote as it merged (behaviour, sources, guesses).
-  They are not kept in step with the code; the code and its comments win where the two differ.
+[Quick start](#-quick-start) · [Build and run](#️-build-and-run) · [VM 214](#️-on-vm-214) · [Connect RuneLite](#-connect-runelite) · [Testing tools](#-testing-tools) · [Commands](#-developer-commands)
 
-## Never commit Jagex files
+</div>
 
-The game cache, the client, XTEA keys, RSA keys, gameplay recordings and the words NPCs say stay out of git. They live
-under `data/` (git-ignored) on the machine that runs the server.
+---
 
-## Build and run
+Our own engine in Kotlin on Java 21, with [RSProt](https://github.com/blurite/rsprot) for the network protocol. Every
+behaviour is matched tick for tick from the OSRS Wiki and recordings of the live game, and anything guessed is marked
+in the code. Current RuneLite connects unchanged.
+
+> [!NOTE]
+> Revision **242**, set in `src/main/kotlin/osrsps/Revision.kt`. The cache build VM 214 runs is in
+> `deploy/cache-build.txt`.
+
+### 🗺️ What's in it
+
+| | |
+|---|---|
+| 🏰 **Areas** | Lumbridge, Draynor, Varrock, Al Kharid, Edgeville, the swamp and Misthalin's dungeons, the Wilderness |
+| ⛏️ **Skills** | Gathering, artisan and combat skills, Agility, Thieving, Magic, Farming, Hunter, Runecraft, Slayer |
+| 🐉 **Bosses** | The Fractured Archive raid, Misthalin's bosses and the Wilderness bosses |
+| 🧪 **Testing** | Pause and step ticks, fixed seeds, one-command scenarios, a headless client and a RuneLite test runner |
+
+### 🚀 Quick start
+
+```bash
+./gradlew run --args=fetch-cache   # once: download the live cache into data/
+./gradlew run --args=serve         # game on 43594, launcher files on 43595
+```
+
+Then point RSProx at `http://<host>:43595/proxy-targets.yaml` ([Connect RuneLite](#-connect-runelite)) and log in
+with any new name.
+
+### 📚 More docs
+
+| File | What's in it |
+|------|--------------|
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | How pull requests move: auto-merge, the queue, conflicts, revision bumps |
+| [`AGENTS.md`](AGENTS.md) | Review guidelines, sourcing (`// Guessed:`, `// Inferred:`), what never goes in git |
+| [`deploy/README.md`](deploy/README.md) | How VM 214 deploys itself, cache swaps, the staging server |
+| [`test-runner/README.md`](test-runner/README.md) | The RuneLite test runner, its script format, headless runs |
+| [`TRIAGE.md`](TRIAGE.md) | How filed problem reports are triaged |
+| [`NOTES.md`](NOTES.md) | Each step's build notes as it merged. Not kept in step with the code; the code wins |
+
+## 🚫 Never commit Jagex files
+
+> [!CAUTION]
+> The game cache, the client, XTEA keys, RSA keys, gameplay recordings and the words NPCs say stay out of git. They live
+> under `data/` (git-ignored) on the machine that runs the server.
+
+## 🛠️ Build and run
 
 Needs JDK 21; the Gradle wrapper fetches Gradle.
 
@@ -54,7 +95,7 @@ Models, sprites and loc, var and animation types of our own (ids from 65,000) ar
 `data/models/`, `data/sprites/` and code (`game/content/Custom*.kt`, `osrsps.cache.overlay`). The cache files on disk
 stay live's.
 
-## On VM 214
+## 🖥️ On VM 214
 
 The server runs in Docker in `/srv/rsps/OSRSPS`, with `data/` mounted in. A timer redeploys every merge to `main`
 within a few minutes; a merge that only touches top-level docs, tests, the plugins, `docs/`, `deploy/` or `.github/`
@@ -82,7 +123,7 @@ Any branch can run on the staging server next to the live one (`git push origin 
 44595); see `deploy/README.md`. Changes to the VM's system, the Proxmox host or the network go through the Home Lab
 project.
 
-## Connect RuneLite
+## 🔌 Connect RuneLite
 
 ### Through RSProx
 
@@ -113,7 +154,7 @@ becomes a comment there), at most 20 a day. Filing needs `data/github-report-tok
 Issues read and write on this repository only, put there by hand. Without it, reports wait. A scheduled task triages
 new issues by `TRIAGE.md`.
 
-## Accounts and admins
+## 👤 Accounts and admins
 
 The first login as a name claims it with the password typed; after that only that password works. Names ignore case
 and treat spaces as underscores. Names with `@` and names that break live's display name rules are refused. Five
@@ -129,7 +170,7 @@ cd /srv/rsps/OSRSPS && docker compose exec -e JAVA_OPTS=-Xmx64m osrsps bin/osrsp
 Deleting a name's account file resets it. `::ipban` bans an address (kept in `data/ip-bans.txt`); behind the relay
 that is the player's own address from the PROXY header.
 
-## Dialogue words
+## 💬 Dialogue words
 
 Dialogue, examine text and game messages are Jagex's, so code holds keys (`[hans.greeting]`) and the words live in
 `data/dialogue.txt` on the server, one `key = words` a line. A key with no words shows as the key in brackets, so
@@ -137,33 +178,34 @@ everything runs and is tested without them. `dialogue-keys` rewrites the file wi
 to `dialogue.txt.bak`), `::dialogue` reloads it without a restart, and `::keys` shows keys instead of words. Each
 conversation is a `Lines` object listed in `DialogueLines.ALL`; examines come from `src/main/resources/examines.json`.
 
-## Testing tools
+## 🧪 Testing tools
 
-- **Tick control.** The game ticks every 600 ms in fixed phases (`TickPhase`). `::pause` freezes it after the current
+- ⏱️ **Tick control.** The game ticks every 600 ms in fixed phases (`TickPhase`). `::pause` freezes it after the current
   tick, `::step [n]` runs n ticks, `::resume` restarts it. While paused, commands still answer; clicks wait for the
   next tick.
-- **Random seeds.** Every roll comes from `World.random` (`GameRandom`, xoshiro256\*\*), and a test fails if `src/main`
+- 🎲 **Random seeds.** Every roll comes from `World.random` (`GameRandom`, xoshiro256\*\*), and a test fails if `src/main`
   uses anything else. `OSRSPS_SEED` or `::seed n` fixes it; `::pause`, `::seed n`, set up, then `::step` repeats a
   run.
-- **Scenarios.** `::scenario name` sets position, stats, inventory, equipment, bank and vars in one go; `::reset` puts
+- 🎬 **Scenarios.** `::scenario name` sets position, stats, inventory, equipment, bank and vars in one go; `::reset` puts
   you back as you were before your first one, across logouts too. They are JSON files in
   `src/main/resources/scenarios/`, listed in `Scenarios.FILES`, format in `game/Scenario.kt`.
-- **The rotten potato.** `::item 5733`. Its Eat, Slice, Peel and Mash menus run the `::` commands (stats, wipe, heal,
+- 🥔 **The rotten potato.** `::item 5733`. Its Eat, Slice, Peel and Mash menus run the `::` commands (stats, wipe, heal,
   teleports, spawns, god mode, sure hits, XP rate, scenarios, logout, death), so admins can test from the menus.
-- **Headless test client.** `src/test/kotlin/osrsps/testclient/` speaks the real protocol, and `TestServer` runs the
+- 🤖 **Headless test client.** `src/test/kotlin/osrsps/testclient/` speaks the real protocol, and `TestServer` runs the
   world with no cache and 100 ms ticks, so content is tested in `./gradlew test`. `./gradlew headlessScripts` plays
   the runner's scripts against the live cache without RuneLite (`test-runner/README.md`).
-- **The RuneLite test runner.** `test-runner/` is a sideloaded plugin that plays JSON scripts in the real client on
+- 🏃 **The RuneLite test runner.** `test-runner/` is a sideloaded plugin that plays JSON scripts in the real client on
   the test VMs (215, 217), for test accounts only. `tick-recorder/` records what the client sees each tick.
 
-## Developer commands
+## ⌨️ Developer commands
 
-Type them in the chatbox. Only admins (`OSRSPS_ADMINS`) can run them, except those marked **everyone**, which only
+Type them in the chatbox. Click a group to open it. Only admins (`OSRSPS_ADMINS`) can run them, except those marked **everyone**, which only
 read the world or only show you something. A dead player can run only those. An unknown command lists the ones you
 can use. Commands live in `src/main/kotlin/osrsps/game/command/`; register new ones on `World.commands`, next to
 related ones.
 
-**Position and world**
+<details open>
+<summary><b>🧭 Position and world</b></summary>
 
 | Command | What it does |
 |---------|--------------|
@@ -178,7 +220,11 @@ related ones.
 | `::resetlocs [radius]` | Puts nearby locs back as the cache has them |
 | `::los npcIndex` / `::los dx dz` | **everyone.** Distance, line of sight and hit delays to an NPC or tile |
 
-**Ticks, seeds and scripts**
+</details>
+
+
+<details>
+<summary><b>⏱️ Ticks, seeds and scripts</b></summary>
 
 | Command | What it does |
 |---------|--------------|
@@ -190,7 +236,11 @@ related ones.
 | `::scripts` | **everyone.** What you have queued, delayed and on timers |
 | `::scenario [name]` / `::reset` | Starts a scenario (alone, lists them), or ends it |
 
-**Items, stats and vars**
+</details>
+
+
+<details>
+<summary><b>🎒 Items, stats and vars</b></summary>
 
 | Command | What it does |
 |---------|--------------|
@@ -209,7 +259,11 @@ related ones.
 | `::farmtick [ticks]` / `::farmclock pause\|run` / `::farmdisease patch\|off\|on` | Moves, holds or runs your farming clock; makes a patch diseased or stops disease |
 | `::nest [seeds\|ring\|red\|green\|blue]` | Drops a bird's nest as a tree would |
 
-**Combat**
+</details>
+
+
+<details>
+<summary><b>⚔️ Combat</b></summary>
 
 | Command | What it does |
 |---------|--------------|
@@ -231,7 +285,11 @@ related ones.
 | `::skull [on\|off]` / `::pj` | Gives or removes a skull; clears your PJ timer |
 | `::wboss [name]` | Lists or spawns a Wilderness boss |
 
-**NPCs and ground items**
+</details>
+
+
+<details>
+<summary><b>👹 NPCs and ground items</b></summary>
 
 | Command | What it does |
 |---------|--------------|
@@ -245,7 +303,11 @@ related ones.
 | `::objspawn id\|name [count [respawn ticks]]` | An item spawn on your tile until a restart |
 | `::grounditems` / `::cleartile` | Lists the items on your tile, or clears them |
 
-**Raid**
+</details>
+
+
+<details>
+<summary><b>🏛️ Raid</b></summary>
 
 | Command | What it does |
 |---------|--------------|
@@ -254,7 +316,11 @@ related ones.
 | `::raid log\|digest\|stop\|run\|tp\|travel\|loot\|clear\|hold` | The fight's log, stops it; in an Archive run, shows it, goes to a room, travels, loots, clears or holds |
 | `::raidnpc id\|name [party size]` | Puts in a raid NPC scaled for a party size |
 
-**Social, Grand Exchange and admin**
+</details>
+
+
+<details>
+<summary><b>🤝 Social, Grand Exchange and admin</b></summary>
 
 | Command | What it does |
 |---------|--------------|
@@ -269,7 +335,11 @@ related ones.
 | `::reports` | The newest player reports |
 | `::ip [name]` / `::ipban name\|address [note]` / `::ipunban address` / `::ipbans` | Addresses and bans |
 
-**Client and effects**
+</details>
+
+
+<details>
+<summary><b>✨ Client and effects</b></summary>
 
 | Command | What it does |
 |---------|--------------|
@@ -282,3 +352,5 @@ related ones.
 | `::gfx id [height] [delay]` / `::proj id [dx dz]` | Plays a spotanim on your tile, or fires a projectile |
 | `::sound [id] [loops] [delay]` / `::jingle id` | **everyone.** Plays a sound or jingle to you |
 | `::areasound id [radius] [loops]` | Plays a sound from your tile to everyone in range |
+
+</details>
