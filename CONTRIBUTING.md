@@ -37,12 +37,20 @@ different lines, so these lists hold one entry a line, with a trailing comma whe
 - `NpcSpawnFile.FILES`: one file a line, a new area at the end. Not sorted: the order sets NPCs' indexes.
 - `World`'s `init` registrations and `commands`: one call a line, already. Add yours next to the related ones (the
   area's other registrations), not at the end of the block, as the order can matter.
-- README tables (`::` commands, the runner's steps): add a row next to the related rows, not at the end of the table.
+- README tables (`::` commands) and the runner's steps table: add a row next to the related rows, not at the end of
+  the table.
 
 Never put several entries on one line, and never reflow such a list.
 
 A pull request that only changes this file, top-level docs, the friend page (`docs/`) or `.github/` doesn't restart
 the server on VM 214 (the deploy filter in `deploy/auto-deploy.sh`).
+
+## Docs
+
+The README holds only what is needed to run and test the server: setup, the testing tools and the `::` commands
+table. A pull request that adds a command adds its row (one line) there. How a feature behaves, and where each rule
+came from, goes in the code's comments (`// Guessed:`, `// Inferred:`, the Wiki page or recording), not in the README.
+`NOTES.md` keeps the notes written before 2026-11-18; don't add new sections to it.
 
 ## Auto-merge
 
