@@ -1,8 +1,8 @@
 <div align="center">
 
-# ⚔️ OSRSPS
+# ⚔️ Odin's Gate
 
-**A private Old School RuneScape test server, built from the ground up for testing RuneLite plugins against 1:1 recreations of live content.**
+**Odin's Gate is a private Old School RuneScape test server, built from the ground up for testing RuneLite plugins against 1:1 recreations of live content.**
 
 [![build](https://github.com/SamSjosten/OSRSPS/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/SamSjosten/OSRSPS/actions/workflows/build.yml)
 ![OSRS revision](https://img.shields.io/badge/OSRS-revision%20242-c8aa6e?style=flat)
@@ -17,7 +17,7 @@
 
 ---
 
-Our own engine in Kotlin on Java 21, with [RSProt](https://github.com/blurite/rsprot) for the network protocol. Every
+This repository (OSRSPS) is the server: our own engine in Kotlin on Java 21, with [RSProt](https://github.com/blurite/rsprot) for the network protocol. Every
 behaviour is matched tick for tick from the OSRS Wiki and recordings of the live game, and anything guessed is marked
 in the code. Current RuneLite connects unchanged.
 
