@@ -1,0 +1,29 @@
+{
+ "name": "Runecraft step RC5: two dense essence blocks venerated at the Dark Altar into dark essence blocks, chiselled into eight fragments, then bound at the Blood Altar into eight blood runes (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario runecraft", "expectMessage": "Started scenario runecraft.", "comment": "99 Runecraft; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::setlevel crafting 38", "expectMessage": "Crafting set to level 38", "comment": "chiselling dark blocks needs 38"},
+  {"step": "command", "text": "::item 13445 2", "comment": "two dense essence blocks"},
+  {"step": "command", "text": "::item 1755", "comment": "a chisel"},
+  {"step": "assertInventory", "itemId": 13445, "count": 2},
+  {"step": "command", "text": "::tele 1718 3883 0", "comment": "east of the Dark Altar (1715, 3882, 3 by 3)"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "locOption", "locId": 27979, "option": "Venerate", "x": 1715, "y": 3882},
+  {"step": "assertMessage", "contains": "runecraft_arceuus.venerate", "timeoutMs": 10000},
+  {"step": "assertInventory", "itemId": 13446, "count": 2, "timeoutMs": 5000, "comment": "dark essence blocks"},
+  {"step": "useItemOnItem", "itemId": 1755, "onItemId": 13446},
+  {"step": "assertInventory", "itemId": 13446, "count": 0, "timeoutMs": 5000},
+  {"step": "assertInventory", "itemId": 7938, "count": 1, "comment": "dark essence fragments: one obj, eight counted on the server"},
+  {"step": "command", "text": "::tele 1719 3829 0", "comment": "east of the Blood Altar (1715, 3828, 4 by 4)"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "locOption", "locId": 27978, "option": "Bind", "x": 1715, "y": 3828},
+  {"step": "assertMessage", "contains": "runecraft_arceuus.bind", "timeoutMs": 10000},
+  {"step": "assertInventory", "itemId": 565, "count": 8, "timeoutMs": 5000},
+  {"step": "assertInventory", "itemId": 7938, "count": 0},
+
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

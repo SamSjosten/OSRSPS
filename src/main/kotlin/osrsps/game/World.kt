@@ -494,7 +494,10 @@ class World(
     /** The drop item warning setting; see [DropWarnings]. */
     private val dropWarnings = DropWarnings(objTypes, scripts, { dialogues }) { player, slot ->
         val id = player.inventory[slot]?.id
-        if (groundObjs.drop(player, slot) != null && id != null) essencePouches.dropped(player, id)
+        if (groundObjs.drop(player, slot) != null && id != null) {
+            essencePouches.dropped(player, id)
+            arceuusRunecraft.dropped(player, id)
+        }
     }
 
     internal val inventoryTab: InventoryTab = InventoryTab(
@@ -870,6 +873,12 @@ class World(
     /** Essence pouches; see [osrsps.game.skill.EssencePouches]. */
     val essencePouches = osrsps.game.skill.EssencePouches(this)
 
+    /** Arceuus's dense runestone and Blood and Soul Altars; see [osrsps.game.skill.ArceuusRunecraft]. */
+    val arceuusRunecraft = osrsps.game.skill.ArceuusRunecraft(this)
+
+    /** The Ourania Altar and its cave's ladders and crack; see [osrsps.game.skill.Ourania]. */
+    val ourania = osrsps.game.skill.Ourania(this)
+
     val firemaking = Firemaking(this, collision)
 
     val hunter = osrsps.game.skill.hunter.Hunter(this, collision)
@@ -1116,6 +1125,8 @@ class World(
         runeCrafting.register()
         combinationRunes.register()
         essencePouches.register()
+        arceuusRunecraft.register()
+        ourania.register()
         loadDialogue()
     }
 
