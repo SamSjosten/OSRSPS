@@ -545,23 +545,30 @@ class DeathsTest {
         assertEquals(500, bob.charges[Blowpipe.DARTS])
     }
 
-    @Test
-    fun `a death that loses items empties every pouch and loses dark essence fragments with their obj`() {
+    private fun pouchPlayer(index: Int, name: String): Player {
         val types = osrsps.game.VarTypes(4_000, EssencePouches.POUCHES.flatMap { listOf(it.countVarbit, it.typeVarbit) }.withIndex().associate { (i, id) -> id to osrsps.game.VarbitType(486 + i, 0, 9) })
-        val carol = Player(3, "carol", 3212, 3210, 0, varTypes = types)
-        online += carol
+        val player = Player(index, name, 3212, 3210, 0, varTypes = types)
+        online += player
         val small = EssencePouches.POUCHES.first()
-        carol.vars.setVarbit(small.countVarbit, 3)
-        carol.vars.setVarbit(small.typeVarbit, 1)
-        carol.inventory.add(ObjType(small.obj, "Small pouch", cost = 1), 1)
-        carol.inventory.add(ObjType(ArceuusRunecraft.FRAGMENTS, "Dark essence fragments", cost = 0), 1)
-        carol.charges[ArceuusRunecraft.FRAGMENT_CHARGES] = 40
-        carol.inventory.add(lobster, 3)
+        player.vars.setVarbit(small.countVarbit, 3)
+        player.vars.setVarbit(small.typeVarbit, 1)
+        player.inventory.add(ObjType(small.obj, "Small pouch", cost = 1), 1)
+        player.inventory.add(ObjType(ArceuusRunecraft.FRAGMENTS, "Dark essence fragments", cost = 0), 1)
+        player.charges[ArceuusRunecraft.FRAGMENT_CHARGES] = 40
+        player.inventory.add(lobster, 3)
+        return player
+    }
+
+    @Test
+    fun `a pouch in the grave keeps its essence, and dark essence fragments go with their obj`() {
+        val carol = pouchPlayer(3, "carol")
+        val small = EssencePouches.POUCHES.first()
         deaths.die(carol)
         tick(Deaths.DEATH_TICKS)
-        // The lobsters are kept; the pouch, kept or not, comes back empty, and the fragments went with their obj.
-        assertEquals(0, carol.vars.getVarbit(small.countVarbit))
-        assertEquals(0, carol.vars.getVarbit(small.typeVarbit))
+        // The lobsters are kept; the pouch went to the grave still holding its essence, as the Wiki's Medium pouch
+        // page says one got back from the gravestone does (exploit review round 40, R40A-1: no change).
+        assertEquals(1L, deaths.graveOf(carol)!!.items.count(small.obj))
+        assertEquals(3, carol.vars.getVarbit(small.countVarbit))
         assertEquals(0, carol.charges[ArceuusRunecraft.FRAGMENT_CHARGES])
     }
 

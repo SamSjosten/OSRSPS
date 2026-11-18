@@ -23,7 +23,6 @@ import osrsps.game.npc.NpcSpawn
 import osrsps.game.script.Handlers
 import osrsps.game.script.Op
 import osrsps.game.skill.ArceuusRunecraft
-import osrsps.game.skill.EssencePouches
 
 private val logger = KotlinLogging.logger {}
 
@@ -248,13 +247,6 @@ class Deaths(
             // attacked first (Skulls); a raid death that keeps everything keeps both (exploit review round 36, R36A-3).
             player.skullTicks = 0
             player.attackedFirst.clear()
-            // Inferred: pouches empty on a death that loses items, wherever the pouch ends up (exploit review round 40,
-            // R40A-1, citing a cache param emptyondeath_essencepouch, not checked here). Fragments: lostCharges (R41-1).
-            for (pouch in EssencePouches.POUCHES) {
-                for (varbit in listOf(pouch.countVarbit, pouch.typeVarbit)) {
-                    if (player.vars.types.varbit(varbit) != null) player.vars.setVarbit(varbit, 0)
-                }
-            }
         }
         // The kept items are sorted with the price checker's among them, before it is emptied, so a valuable one being
         // checked can still be kept.
