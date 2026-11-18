@@ -71,7 +71,8 @@ class TrackingArea(
 }
 
 /**
- * Tracking (Hunter step 8): Inspect on a den shows the first track segment of a trail of the player's own; at the node
+ * Tracking (Hunter step 8): polar kebbits (Rellekka), feldip weasels (Feldip), common and razor-backed kebbits
+ * (Piscatoris) and desert devils (Uzer). Inspect on a den shows the first track segment of a trail of the player's own; at the node
  * it leads to, Inspect on the connector of the next segment shows that one, and any other connector shows nothing. Once
  * the trail has passed its area's minimum number of nodes it ends at the first hiding spot it reaches, where Attack
  * with a noose wand wielded catches the creature for bones, raw beast meat and its fur (a razor-backed kebbit's long
@@ -229,6 +230,10 @@ class Tracking(private val world: World) {
         const val BONES = 526
         const val RAW_BEAST_MEAT = 9986
         const val POLAR_KEBBIT_FUR = 10117
+        const val FELDIP_WEASEL_FUR = 10119
+        const val COMMON_KEBBIT_FUR = 10121
+        const val DESERT_DEVIL_FUR = 10123
+        const val LONG_KEBBIT_SPIKE = 10107
 
         /** A segment's varbit: no footprints, or footprints the way its pieces are turned or the other way. */
         const val HIDDEN = 0
@@ -237,6 +242,9 @@ class Tracking(private val world: World) {
 
         const val INSPECT_ANIM = 5216 // hunting_searching_bushes
         const val NOOSE_POLAR_ANIM = 5256 // hunting_noose_polar
+        const val NOOSE_DESERT_ANIM = 5257 // hunting_noose_desert
+        const val NOOSE_JUNGLE_ANIM = 5258 // hunting_noose_jungle
+        const val NOOSE_WOOD_ANIM = 5259 // hunting_noose_wood
 
         /** Guessed. */
         const val INSPECT_TICKS = 2
@@ -279,6 +287,10 @@ class Tracking(private val world: World) {
         }
 
         val POLAR_KEBBIT = TrackedCreature("polar kebbit", 1, 300, POLAR_KEBBIT_FUR, NOOSE_POLAR_ANIM)
+        val COMMON_KEBBIT = TrackedCreature("common kebbit", 3, 360, COMMON_KEBBIT_FUR, NOOSE_WOOD_ANIM)
+        val FELDIP_WEASEL = TrackedCreature("feldip weasel", 7, 480, FELDIP_WEASEL_FUR, NOOSE_JUNGLE_ANIM)
+        val DESERT_DEVIL = TrackedCreature("desert devil", 13, 660, DESERT_DEVIL_FUR, NOOSE_DESERT_ANIM)
+        val RAZOR_BACKED_KEBBIT = TrackedCreature("razor-backed kebbit", 49, 3485, LONG_KEBBIT_SPIKE, NOOSE_WOOD_ANIM)
 
         /**
          * The Rellekka Hunter area's polar kebbits, on level 1 (the cache's map): two holes, nine connectors (three
@@ -309,6 +321,159 @@ class Tracking(private val world: World) {
             ),
         )
 
-        val AREAS = listOf(POLAR)
+        /**
+         * The Feldip Hunter area's feldip weasels: two burrows, jungle plants, six bushes, ten nodes (the Wiki's trail map and tile markers).
+         */
+        val FELDIP = TrackingArea(
+            FELDIP_WEASEL, level = 0, dens = listOf(19479, 19593), hides = listOf(19427), minNodes = 5,
+            nodes = listOf(
+                TrackNode(den = Tile(2525, 2889), segments = listOf(3036, 3037, 3038)),
+                TrackNode(hide = Tile(2525, 2882), segments = listOf(3036, 3037, 3040)),
+                TrackNode(segments = listOf(3040, 3041, 3045)),
+                TrackNode(hide = Tile(2553, 2888), segments = listOf(3048, 3050, 3051)),
+                TrackNode(hide = Tile(2540, 2886), segments = listOf(3044, 3046, 3047)),
+                TrackNode(hide = Tile(2531, 2890), segments = listOf(3038, 3039, 3043)),
+                TrackNode(segments = listOf(3043, 3047, 3048)),
+                TrackNode(hide = Tile(2542, 2881), segments = listOf(3045, 3046, 3049)),
+                TrackNode(den = Tile(2554, 2882), segments = listOf(3049, 3050, 3051)),
+                TrackNode(hide = Tile(2533, 2885), segments = listOf(3039, 3041, 3044)),
+            ),
+            segments = listOf(
+                TrackSegment(3036, listOf(19403), 1, 0),
+                TrackSegment(3037, listOf(19404), 0, 1),
+                TrackSegment(3038, listOf(19405), 0, 5),
+                TrackSegment(3039, listOf(19406), 5, 9),
+                TrackSegment(3040, listOf(19407), 2, 1),
+                TrackSegment(3041, listOf(19408), 2, 9),
+                TrackSegment(3043, listOf(19409), 5, 6),
+                TrackSegment(3044, listOf(19410), 9, 4),
+                TrackSegment(3045, listOf(19411), 7, 2),
+                TrackSegment(3046, listOf(19412), 7, 4),
+                TrackSegment(3047, listOf(19413), 4, 6),
+                TrackSegment(3048, listOf(19414), 6, 3),
+                TrackSegment(3049, listOf(19415), 8, 7),
+                TrackSegment(3050, listOf(19416), 3, 8),
+                TrackSegment(3051, listOf(19417), 3, 8),
+            ),
+        )
+
+        /**
+         * The Piscatoris Hunter area's common kebbits, in its south: three burrows, plants, eight bushes, eleven nodes (the Wiki's trail map and tile markers).
+         */
+        val PISCATORIS_COMMON = TrackingArea(
+            COMMON_KEBBIT, level = 0, dens = listOf(19492, 19707, 19710), hides = listOf(19429), minNodes = 5,
+            nodes = listOf(
+                TrackNode(den = Tile(2331, 3562), segments = listOf(2995, 2996, 2997)),
+                TrackNode(hide = Tile(2323, 3563), segments = listOf(2995, 2999, 3000)),
+                TrackNode(hide = Tile(2322, 3570), segments = listOf(2999, 3004, 3007)),
+                TrackNode(hide = Tile(2332, 3578), segments = listOf(3010, 3011, 3013)),
+                TrackNode(hide = Tile(2337, 3565), segments = listOf(2997, 2998, 3001)),
+                TrackNode(den = Tile(2341, 3577), segments = listOf(3003, 3012, 3013)),
+                TrackNode(hide = Tile(2327, 3573), segments = listOf(3007, 3008, 3009)),
+                TrackNode(hide = Tile(2343, 3568), segments = listOf(2998, 3002, 3003)),
+                TrackNode(den = Tile(2322, 3576), segments = listOf(3004, 3009, 3010)),
+                TrackNode(hide = Tile(2336, 3571), segments = listOf(3001, 3002, 3012, 3011)),
+                TrackNode(hide = Tile(2332, 3568), segments = listOf(2996, 3000, 3008)),
+            ),
+            segments = listOf(
+                TrackSegment(2995, listOf(19339), 0, 1),
+                TrackSegment(2996, listOf(19340), 0, 10),
+                TrackSegment(2997, listOf(19341), 0, 4),
+                TrackSegment(2998, listOf(19342), 7, 4),
+                TrackSegment(2999, listOf(19343), 1, 2),
+                TrackSegment(3000, listOf(19344), 10, 1),
+                TrackSegment(3001, listOf(19345), 4, 9),
+                TrackSegment(3002, listOf(19346), 7, 9),
+                TrackSegment(3003, listOf(19347), 5, 7),
+                TrackSegment(3004, listOf(19348), 8, 2),
+                TrackSegment(3007, listOf(19349), 2, 6),
+                TrackSegment(3008, listOf(19350), 6, 10),
+                TrackSegment(3009, listOf(19351), 8, 6),
+                TrackSegment(3010, listOf(19352), 8, 3),
+                TrackSegment(3011, listOf(19353), 3, 9),
+                TrackSegment(3012, listOf(19354), 5, 9),
+                TrackSegment(3013, listOf(19355), 3, 5),
+            ),
+        )
+
+        /**
+         * The Piscatoris Hunter area's razor-backed kebbits, north of the common kebbits: three burrows, plants, eight bushes, twelve nodes (the Wiki's trail map and tile markers).
+         */
+        val PISCATORIS_RAZOR = TrackingArea(
+            RAZOR_BACKED_KEBBIT, level = 0, dens = listOf(19438, 19579, 19580), hides = listOf(19428), minNodes = 5,
+            nodes = listOf(
+                TrackNode(den = Tile(2353, 3595), segments = listOf(2974, 2975, 2976)),
+                TrackNode(hide = Tile(2355, 3601), segments = listOf(2975, 2977, 2978)),
+                TrackNode(hide = Tile(2349, 3604), segments = listOf(2976, 2978, 2988, 2983)),
+                TrackNode(hide = Tile(2360, 3602), segments = listOf(2974, 2977, 2979, 2980)),
+                TrackNode(hide = Tile(2357, 3607), segments = listOf(2979, 2981, 2982)),
+                TrackNode(den = Tile(2360, 3611), segments = listOf(2980, 2981, 2992)),
+                TrackNode(hide = Tile(2354, 3609), segments = listOf(2982, 2983, 2989)),
+                TrackNode(segments = listOf(2988, 2989, 2990)),
+                TrackNode(hide = Tile(2351, 3619), segments = listOf(2990, 2991, 2986)),
+                TrackNode(den = Tile(2357, 3624), segments = listOf(2986, 2985, 2987)),
+                TrackNode(hide = Tile(2358, 3620), segments = listOf(2987, 2991, 2993)),
+                TrackNode(hide = Tile(2362, 3615), segments = listOf(2985, 2993, 2992)),
+            ),
+            segments = listOf(
+                TrackSegment(2974, listOf(19356), 3, 0),
+                TrackSegment(2975, listOf(19357), 1, 0),
+                TrackSegment(2976, listOf(19358), 2, 0),
+                TrackSegment(2977, listOf(19359), 1, 3),
+                TrackSegment(2978, listOf(19360), 2, 1),
+                TrackSegment(2979, listOf(19361), 4, 3),
+                TrackSegment(2980, listOf(19362), 5, 3),
+                TrackSegment(2981, listOf(19363), 5, 4),
+                TrackSegment(2982, listOf(19364), 6, 4),
+                TrackSegment(2983, listOf(19365), 2, 6),
+                TrackSegment(2985, listOf(19372), 11, 9),
+                TrackSegment(2986, listOf(19373), 9, 8),
+                TrackSegment(2987, listOf(19374), 9, 10),
+                TrackSegment(2988, listOf(19375), 2, 7),
+                TrackSegment(2989, listOf(19376), 7, 6),
+                TrackSegment(2990, listOf(19377), 7, 8),
+                TrackSegment(2991, listOf(19378), 8, 10),
+                TrackSegment(2992, listOf(19379), 5, 11),
+                TrackSegment(2993, listOf(19380), 11, 10),
+            ),
+        )
+
+        /**
+         * The Uzer Hunter area's desert devils: two burrows, cacti and rockslides, six patches of disturbed sand, ten nodes (the Wiki counts the eight with a burrow or sand; two more are where three segments meet).
+         */
+        val UZER = TrackingArea(
+            DESERT_DEVIL, level = 0, dens = listOf(19526, 19552), hides = listOf(19430), minNodes = 5,
+            nodes = listOf(
+                TrackNode(segments = listOf(3025, 3030, 3031)),
+                TrackNode(hide = Tile(3414, 3121), segments = listOf(3018, 3022, 3026)),
+                TrackNode(den = Tile(3402, 3131), segments = listOf(3016, 3017, 3018)),
+                TrackNode(hide = Tile(3411, 3108), segments = listOf(3026, 3031, 3032)),
+                TrackNode(hide = Tile(3405, 3124), segments = listOf(3017, 3020, 3021)),
+                TrackNode(hide = Tile(3393, 3122), segments = listOf(3016, 3019, 3023)),
+                TrackNode(segments = listOf(3019, 3020, 3024)),
+                TrackNode(den = Tile(3396, 3106), segments = listOf(3023, 3027, 3032)),
+                TrackNode(hide = Tile(3407, 3121), segments = listOf(3021, 3022, 3025)),
+                TrackNode(hide = Tile(3400, 3114), segments = listOf(3024, 3027, 3030)),
+            ),
+            segments = listOf(
+                TrackSegment(3016, listOf(19388), 5, 2),
+                TrackSegment(3017, listOf(19389), 4, 2),
+                TrackSegment(3018, listOf(19390), 2, 1),
+                TrackSegment(3019, listOf(19391), 6, 5),
+                TrackSegment(3020, listOf(19392), 4, 6),
+                TrackSegment(3021, listOf(19393), 8, 4),
+                TrackSegment(3022, listOf(19394), 8, 1),
+                TrackSegment(3023, listOf(19395), 7, 5),
+                TrackSegment(3024, listOf(19396), 6, 9),
+                TrackSegment(3025, listOf(19397), 0, 8),
+                TrackSegment(3026, listOf(19398), 1, 3),
+                TrackSegment(3027, listOf(19399), 9, 7),
+                TrackSegment(3030, listOf(19400), 9, 0),
+                TrackSegment(3031, listOf(19401), 3, 0),
+                TrackSegment(3032, listOf(19402), 3, 7),
+            ),
+        )
+
+        val AREAS = listOf(POLAR, FELDIP, PISCATORIS_COMMON, PISCATORIS_RAZOR, UZER)
     }
 }
