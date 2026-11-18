@@ -136,6 +136,23 @@ class HeadlessFightCaveTest {
     }
 
     @Test
+    fun `leaving the cave drops the shots its monsters have on their way`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("cyd").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                // Wave 7 is a Tok-Xil alone.
+                client.commandReply("fightcave 7 1") { it.startsWith("Fight cave") }
+                client.waveIn(server, "cyd", 7)
+                client.await("a shot on its way", timeoutMillis = 20_000) { server.world.meleeCombat.shotsInFlight.takeIf { it > 0 } }
+                client.commandReply("fightcave leave") { true }
+                client.await("the run over") { true.takeIf { server.run("cyd") == null } }
+                assertEquals(0, server.world.meleeCombat.shotsInFlight)
+            }
+        }
+    }
+
+    @Test
     fun `a death in the cave is safe and pays for the waves done`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bea").use { client ->
