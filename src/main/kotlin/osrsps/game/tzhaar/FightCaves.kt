@@ -96,9 +96,6 @@ class FightCaves(private val world: World) {
     /** Players logged in with a run waiting, put in their cave in the next tick. */
     private val resuming = LinkedHashSet<String>()
 
-    /** Every run going on now, for tests and `::fightcave`. */
-    val all: Collection<Run> get() = runs.values
-
     /** [player]'s run, if they have one going. */
     fun runOf(player: Player): Run? = runs[player.saveKey]
 
