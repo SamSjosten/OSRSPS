@@ -1,0 +1,30 @@
+{
+  "name": "Karamja step K3.3b: Brimhaven Dungeon's wild dog examined (::keys on), fought under ::god, killed with ::kill and its bones on the floor; a red dragon killed for its dragon bones; a steel dragon killed for its steel bars",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off)."},
+    {"step": "command", "text": "::tele 2662 9519 0", "expectMessage": "Teleported to 2662, 9519, 0", "comment": "the wild dogs, west of the entrance"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "npcOption", "npcId": 112, "option": "Examine", "timeoutMs": 20000},
+    {"step": "assertMessage", "contains": "[examine.npc_112]"},
+    {"step": "npcOption", "npcId": 112, "option": "Attack", "timeoutMs": 20000},
+    {"step": "assertHitsplat", "npc": "Wild dog", "timeoutMs": 30000},
+    {"step": "command", "text": "::kill", "expectMessage": "Killed Wild dog #"},
+    {"step": "assertGroundItem", "item": "Bones", "timeoutMs": 15000},
+    {"step": "command", "text": "::tele 2710 9541 0", "expectMessage": "Teleported to 2710, 9541, 0", "comment": "the red dragons"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "npcOption", "npcId": 247, "option": "Attack", "timeoutMs": 20000},
+    {"step": "assertHitsplat", "npc": "Red dragon", "timeoutMs": 30000},
+    {"step": "command", "text": "::kill", "expectMessage": "Killed Red dragon #"},
+    {"step": "assertGroundItem", "item": "Dragon bones", "timeoutMs": 15000},
+    {"step": "command", "text": "::tele 2710 9435 0", "expectMessage": "Teleported to 2710, 9435, 0", "comment": "the metal dragons in the south-east"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "npcOption", "npcId": 274, "option": "Attack", "timeoutMs": 20000},
+    {"step": "assertHitsplat", "npc": "Steel dragon", "timeoutMs": 30000},
+    {"step": "command", "text": "::kill", "expectMessage": "Killed Steel dragon #"},
+    {"step": "assertGroundItem", "item": "Steel bar", "timeoutMs": 15000},
+    {"step": "command", "text": "::god", "comment": "off again"}
+  ]
+}
