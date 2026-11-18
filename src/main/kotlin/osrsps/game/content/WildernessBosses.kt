@@ -119,13 +119,14 @@ class WildernessBosses(private val world: World) {
     internal val tallies: Int get() = damage.size
 
     private fun died(npc: Npc, boss: WildernessBoss) {
+        // Who is logged in and at the fight now decides every reward, not who is when the loot shows a few ticks later.
+        val atKill = shares(npc).also { damage[npc]?.atKill = it }
         if (boss.lair) {
-            // The most damage; a tie goes to whoever hit first (inferred), the tally's first.
-            val top = damage[npc]?.damage.orEmpty().entries.maxByOrNull { it.value }?.key
+            // The most damage among them; a tie goes to whoever hit first (inferred), the tally's first. Not the raw
+            // tally, which still holds those who logged out or left (exploit review rounds 40 and 42, R40B-5).
+            val top = atKill.firstOrNull()?.key
             world.onlinePlayers.firstOrNull { it.saveKey == top }?.let(WildernessLairFee::discount)
         }
-        // Who is logged in now decides both rewards, not who is when the loot shows a few ticks later.
-        val atKill = shares(npc).also { damage[npc]?.atKill = it }
         val looters = if (boss.group) atKill.map { it.key } else atKill.take(1).map { it.key }
         if (boss.killCountVarp < 0) return
         for (key in looters) {
@@ -138,9 +139,22 @@ class WildernessBosses(private val world: World) {
 
     private fun shares(npc: Npc): List<Share> {
         val tally = damage[npc] ?: return emptyList()
-        // Not one who logged out this tick, still in the list until the end of it.
-        val online = world.onlinePlayers.filter { !it.loggedOut }.mapTo(HashSet()) { it.saveKey }
-        return shares(tally.damage, tally.ironmen).filter { it.key in online }
+        // Not one who logged out this tick, still in the list until the end of it, nor one who has left the fight
+        // (exploit review round 40, R40B-3).
+        val present = world.onlinePlayers.filter { !it.loggedOut && atFight(it, npc) }.mapTo(HashSet()) { it.saveKey }
+        return shares(tally.damage, tally.ironmen).filter { it.key in present }
+    }
+
+    /**
+     * Whether [player] is still at [npc]'s fight: in its encounter's area, or for a boss without one within [PRESENT_TILES]
+     * of it. Inferred: the Wiki's Drops pages give the loot to the most damage without saying whether one who has walked
+     * away keeps it; one gone from the fight is taken not to.
+     */
+    private fun atFight(player: Player, npc: Npc): Boolean {
+        if (player.level != npc.level) return false
+        val fight = world.encounters.all.firstOrNull { it.boss === npc }
+        if (fight != null) return fight.covers(player.x, player.z)
+        return kotlin.math.abs(player.x - npc.x) <= PRESENT_TILES + npc.type.size && kotlin.math.abs(player.z - npc.z) <= PRESENT_TILES + npc.type.size
     }
 
     private fun ironman(player: Player): Boolean =
@@ -198,6 +212,9 @@ class WildernessBosses(private val world: World) {
 
     companion object {
         const val MAX_LOOTERS = 10
+
+        /** How near a boss without an encounter a damage dealer must be at its death to share in it: the view distance. */
+        const val PRESENT_TILES = 15
         const val FLOOR_PERCENT = 25
         const val IRONMAN_ELIGIBLE_PERCENT = 7
         const val IRONMAN_FLOOR_PERCENT = 5

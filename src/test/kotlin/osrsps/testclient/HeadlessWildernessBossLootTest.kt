@@ -94,6 +94,64 @@ class HeadlessWildernessBossLootTest {
     }
 
     @Test
+    fun `one who walked away from the boss before the kill gets neither its drop nor the kill count`(@TempDir dir: Path) {
+        server(dir, group = false).use { server ->
+            server.login("ada").use { a ->
+                server.login("bea").use { b ->
+                    a.await("the login rebuild") { a.position }
+                    b.await("the login rebuild") { b.position }
+                    a.tele(3200, 3900)
+                    b.tele(3200, 3901)
+                    a.commandReply("wboss test boss") { it.startsWith("Spawned Ice giant") }
+                    val npc = a.await("the boss") { server.world.npcs.all.firstOrNull { it.type.id == BOSS } }
+                    a.commandReply("god") { it.startsWith("You can") }
+                    b.commandReply("god") { it.startsWith("You can") }
+                    a.commandReply("hit 60 ${npc.index}") { it.startsWith("Hit Ice giant") }
+                    // Ada's 60 are the most, but she has walked off, still logged in (exploit review round 40, R40B-3).
+                    a.tele(3240, 3900)
+                    b.commandReply("kill ${npc.index}") { it.startsWith("Killed") }
+                    b.await("bea's kill count") { b.messages().firstOrNull { it.text == "[wilderness_boss.kill_count boss=Ice giant count=1]" } }
+                    val world = server.world
+                    val bea = world.playerNamed("bea")!!
+                    b.await("bea's drop") { world.groundObjs.visibleAt(bea, npc.x, npc.z, npc.level).firstOrNull { it.id == 995 } }
+                    assertEquals(0, world.playerNamed("ada")!!.vars[KILL_COUNT_VARP])
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a top damager who logs out as the body falls keeps the drop theirs`(@TempDir dir: Path) {
+        server(dir, deathTicks = LONG_DEATH_TICKS, group = false).use { server ->
+            server.login("bea").use { b ->
+                b.await("the login rebuild") { b.position }
+                b.tele(3200, 3901)
+                b.commandReply("wboss test boss") { it.startsWith("Spawned Ice giant") }
+                val npc = b.await("the boss") { server.world.npcs.all.firstOrNull { it.type.id == BOSS } }
+                b.commandReply("god") { it.startsWith("You can") }
+                server.login("ada").use { a ->
+                    a.await("the login rebuild") { a.position }
+                    a.tele(3200, 3900)
+                    a.commandReply("god") { it.startsWith("You can") }
+                    a.commandReply("hit 60 ${npc.index}") { it.startsWith("Hit Ice giant") }
+                    b.commandReply("kill ${npc.index}") { it.startsWith("Killed") }
+                    // Gone while the body is still falling (exploit review round 40, R40B-6).
+                    a.logOutOfCombat(b)
+                }
+                val bea = server.world.playerNamed("bea")!!
+                b.await("the body gone", timeoutMillis = 20_000) { Unit.takeIf { server.world.npcs.all.none { it === npc } } }
+                b.awaitTicks(2)
+                assertEquals(emptyList(), server.world.groundObjs.visibleAt(bea, npc.x, npc.z, npc.level).map { it.id }, "ada's alone, not everyone's")
+                server.login("ada").use { a ->
+                    a.await("the login rebuild") { a.position }
+                    val ada = server.world.playerNamed("ada")!!
+                    a.await("ada's drop") { server.world.groundObjs.visibleAt(ada, npc.x, npc.z, npc.level).firstOrNull { it.id == 995 } }
+                }
+            }
+        }
+    }
+
+    @Test
     fun `two players' damage splits the boss's loot into two piles, and both count the kill`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("ada").use { a ->
