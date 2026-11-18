@@ -9,6 +9,7 @@
     {"step": "locOption", "locId": 47141, "option": "Check-Fee", "x": 3115, "y": 3676},
     {"step": "assertMessage", "contains": "[wildy_lair.fee_", "timeoutMs": 10000},
     {"step": "command", "text": "::varbit 14693 0", "comment": "wbr_entrance_fee_paid back to unpaid, so the fee's menu shows every run"},
+    {"step": "command", "text": "::varbit 14694 0", "comment": "and wbr_entrance_discount back to none: each run's kill takes 10,000 off, and five would leave no fee and no menu"},
     {"step": "command", "text": "::item 995 50000", "comment": "the fee in the backpack, in case it isn't paid yet"},
     {"step": "locOption", "locId": 47141, "option": "Enter", "x": 3115, "y": 3676},
     {"step": "waitTicks", "ticks": 3},

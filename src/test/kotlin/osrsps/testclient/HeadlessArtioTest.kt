@@ -298,6 +298,27 @@ class HeadlessArtioTest {
         }
     }
 
+    @Test
+    fun `a knockback onto a trap springs it as the player lands`(@TempDir dir: Path) {
+        server(dir, seed = 4).use { server ->
+            server.login("max").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.command("varp 172 1")
+                client.tele(Artio.SPAWN.x + 1, Artio.SPAWN.z + 6)
+                val npc = server.world.npcs.all.first { it.type.id == Artio.BOSS }
+                // Two tiles behind him, on the line she throws him along.
+                Artio.layTrap(npc, Tile(Artio.SPAWN.x + 1, Artio.SPAWN.z + 8))
+                client.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Artio") }
+                val fight = client.await("her fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
+                val thrown = client.await("a knockback", timeoutMillis = 60_000) { fight.lines.firstOrNull { "threw max " in it } }
+                assertTrue("threw max 2 to" in thrown, thrown)
+                val tick = thrown.substringBefore(" ")
+                assertTrue(fight.lines.any { it.substringBefore(" ") == tick && "max springs a trap" in it }, fight.lines.joinToString("\n"))
+            }
+        }
+    }
+
     private companion object {
         const val PROTECT_FROM_MAGIC = 21
         const val WBR_PERM_INT_1 = 3755

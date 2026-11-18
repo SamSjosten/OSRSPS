@@ -123,6 +123,11 @@ object Artio {
     /** The tiles her traps cover now, for tests. */
     fun traps(npc: Npc): Set<Tile> = fights[npc]?.traps.orEmpty()
 
+    /** Lays a trap on [at] in [npc]'s fight, for tests. */
+    internal fun layTrap(npc: Npc, at: Tile) {
+        fights.getOrPut(npc) { Fight() }.traps += at
+    }
+
     private fun EncounterContext.tick() {
         val fight = fights.getOrPut(boss) { Fight() }
         springTraps(fight)
@@ -248,6 +253,8 @@ object Artio {
         val damage = if (trapped) KNOCKBACK_BASE else KNOCKBACK_BASE + KNOCKBACK_PER_TILE * (KNOCKBACK_TILES - moved)
         hit(player, damage)
         log("threw ${player.username} $moved to $x,$z for $damage")
+        // Thrown onto a trap: sprung now, before this tick's movement could walk them off it (Codex review of W4.8).
+        if (trapped && fight.traps.remove(Tile(x, z))) spring(player)
     }
 
     private fun EncounterContext.roar(fight: Fight) {
@@ -287,16 +294,20 @@ object Artio {
         for (player in players.toList()) {
             if (player.dead || player.level != boss.level) continue
             val at = Tile(player.x, player.z)
-            if (!fight.traps.remove(at)) continue
-            val damage = roll(0, TRAP_MAX)
-            hit(player, damage)
-            if (player.freezeTicks <= 0 && player.freezeImmunityTicks <= 0) {
-                player.freezeTicks = BIND_TICKS
-                player.frozenBy = null
-                player.waypoints.clear()
-            }
-            log("${player.username} springs a trap for $damage")
+            if (fight.traps.remove(at)) spring(player)
         }
+    }
+
+    /** [player] springs the trap they stand on (gone from the den already): hurt and bound. */
+    private fun EncounterContext.spring(player: Player) {
+        val damage = roll(0, TRAP_MAX)
+        hit(player, damage)
+        if (player.freezeTicks <= 0 && player.freezeImmunityTicks <= 0) {
+            player.freezeTicks = BIND_TICKS
+            player.frozenBy = null
+            player.waypoints.clear()
+        }
+        log("${player.username} springs a trap for $damage")
     }
 }
 
