@@ -46,7 +46,7 @@ object TzHaarBankerLines : Lines("tzhaar_banker", "Transcript:TzHaar-Ket-Zuh") {
 /**
  * What the TzHaar call a player, as the Wiki's TzHaar page has it (read 2026-11-18): JalYt (a human), then the caste
  * whose two skills add up highest (Mej: Magic and Prayer; Ket: Strength and Defence; Xil: Attack and Agility; Hur:
- * Crafting and Smithing), then Xo once the inner city is open to them (step K2.3), then
+ * Crafting and Smithing), then Xo once the inner city is open to them (step K2.3, [MorUlRekInner]), then
  * the player's name. Inferred: a tie going to the first of Mej, Ket, Xil, Hur (the Wiki doesn't say; this is the
  * order its page lists them in). Left out: Kal (TzKal-Zuk killed), which the Inferno will add.
  */
@@ -75,8 +75,8 @@ object TzHaarNames {
     /** JalYt and the caste, as "JalYt-Ket". */
     fun casteTitle(player: Player): String = "JalYt-${caste(player).word}"
 
-    /** The whole name, as "JalYt-Ket-Ada". */
-    fun name(player: Player): String = "${casteTitle(player)}-${player.username}"
+    /** The whole name, as "JalYt-Ket-Ada", or "JalYt-Ket-Xo-Ada" once the inner city is open to them ([MorUlRekInner.hasAccess]). */
+    fun name(player: Player): String = "${casteTitle(player)}-${if (MorUlRekInner.hasAccess(player)) "Xo-" else ""}${player.username}"
 }
 
 /**
@@ -96,7 +96,8 @@ object TzHaarNames {
  *
  * Inferred: the rum's message (keys only) and its damage in one hit; the caste names shown as the transcript's
  * brackets have them. Guessed: the tiles the cave entrance and exit put the player on; the chathead faces. Left out
- * here: the shops (step K2.2), the inner city, its barrier guard, bank and the level 221 TzHaar-Ket (K2.3), the eels
+ * here: the shops (step K2.2, [TzHaarShops]), the inner city, its barrier guards and the level 221 TzHaar-Ket (K2.3,
+ * [MorUlRekInner]), the eels
  * (K2.4), the Fight Cave and Inferno and their TzHaar (the Fight Caves thread), the Fight Pits and TzHaar-Ket-Rak, the
  * fairy ring and buying bank slots.
  */
@@ -110,6 +111,12 @@ object MorUlRek {
     val IN_DUNGEON = Destination(2862, 9572, 0)
 
     const val BANKER = 7677
+
+    /**
+     * TzHaar-Ket-Yil, the inner city's east bank (step K2.3): the Wiki's transcript of him is TzHaar-Ket-Zuh's word for
+     * word (but for a slip, "JalYt-Hur-[TzHaar caste]", in his greeting), so he says the same lines.
+     */
+    const val BANKER_INNER = 7678
     const val TALK_TO = 1
     const val BANK = 3
     const val COLLECT = 4
@@ -203,13 +210,15 @@ fun registerMorUlRek(world: World) {
             arriveDelay()
             world.teleport(player, IN_DUNGEON.x, IN_DUNGEON.z, IN_DUNGEON.level)
         }
-        world.handlers.onNpc(BANKER, TALK_TO) { op ->
-            var ask = Bankers.Ask.NOTHING
-            world.dialogues.start(this, op.npc) { ask = banker(player) }
-            answer(world, ask)
+        for (keeper in listOf(BANKER, BANKER_INNER)) {
+            world.handlers.onNpc(keeper, TALK_TO) { op ->
+                var ask = Bankers.Ask.NOTHING
+                world.dialogues.start(this, op.npc) { ask = banker(player) }
+                answer(world, ask)
+            }
+            world.handlers.onNpc(keeper, BANK) { world.bankScreen.open(player) }
+            world.handlers.onNpc(keeper, COLLECT) { world.grandExchangeScreen.openCollectionBox(player) }
         }
-        world.handlers.onNpc(BANKER, BANK) { world.bankScreen.open(player) }
-        world.handlers.onNpc(BANKER, COLLECT) { world.grandExchangeScreen.openCollectionBox(player) }
     }
 }
 
