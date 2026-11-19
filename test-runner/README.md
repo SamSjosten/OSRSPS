@@ -743,6 +743,9 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
 - `random-events-freaky-forester.json`: random events step 4 (with `::keys on`): the Freaky Forester takes the player to
   his forest, a pheasant is killed and its carcass handed in, and the exit portal brings them back to 3222,3218 with a
   Lederhosen piece (or a lamp for an account that has all three).
+- `random-events-drill-demon.json`: random events step 5 (with `::keys on`): Sergeant Damien takes the player to his
+  camp and orders an exercise; one go on a mat brings his next order, and "I want to leave." sends them back to
+  3222,3218 with nothing. The four-in-a-row reward needs the signs read, so the headless test does that part.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
   it with no dependency, guard or var shared with another row is set to 0, clicked on and checked, then checked again
   after a relog and put back to 0. Generated from the 241 cache's settings catalog; run them one at a time.
