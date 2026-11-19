@@ -352,6 +352,8 @@ class Agility(private val world: World, val data: AgilityData) {
             privateTicks = MARK_TICKS, despawnTicks = MARK_TICKS, neverPublic = true,
         )
         obj.ticksUntilDespawn = MARK_TICKS
+        // The Rooftop Agility page of the collection log. Inferred: logged as the mark lands, as a drop is.
+        world.collectionLog.add(player, MARK_OF_GRACE, 1)
         player.charges[MARK_MINUTE] = now.coerceIn(1, Int.MAX_VALUE.toLong()).toInt()
     }
 

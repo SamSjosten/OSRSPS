@@ -9,6 +9,7 @@ import osrsps.game.dialogue.Lines
  */
 object GameLines : Lines("game", "Choose Option") {
     val WELCOME = line("welcome", "the first line in the chatbox after logging in")
+    val DESTROY_TITLE = line("destroy_title", "the destroy check's title, above the item and its name (confirmdestroy); not on the Wiki")
     val NOTHING_INTERESTING = line("nothing_interesting", "an option or Use that does nothing (the Choose Option page)")
     val CANT_REACH = line("cant_reach", "a target the route never reaches, once the player stops")
     val CANT_LOG_OUT = line("cant_log_out", "the logout button within 10 seconds of being hit (the Logout button page); words from memory")

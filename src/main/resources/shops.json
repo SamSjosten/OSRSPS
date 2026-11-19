@@ -2630,6 +2630,7 @@
       "buyAt": 800,
       "changePer": 0,
       "currency": 11849,
+      "collectionLog": true,
       "npcs": [
         "rooftops_grace"
       ],

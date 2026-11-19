@@ -202,6 +202,8 @@ class GiantLairs(private val world: World) {
             world.message(player, run.lair.lines.chestLoot)
             world.npcDrops.chests[run.lair.chestTable]?.roll(world.random)?.forEach { drop ->
                 world.groundObjs.addPrivate(drop.type, drop.count, player.x, player.z, player.level, player.saveKey, osrsps.game.GroundObjs.DROP_PRIVATE_TICKS, osrsps.game.GroundObjs.LOOT_DESPAWN_TICKS)
+                // The chest's loot is the boss's drop (Bryophyta's essence, Hill giant club): logged as it lands.
+                world.collectionLog.add(player, drop.type.id, drop.count)
             }
             val varp = run.lair.killCountVarp
             if (varp in 0 until player.vars.types.varpCount) {

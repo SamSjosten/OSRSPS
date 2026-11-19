@@ -1,0 +1,36 @@
+{
+ "name": "Shooting stars step 1: a star lands at the South-east Varrock mine; Prospect, the discovery bonus, mining stardust and the layers, from ::scenario shooting-stars (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario shooting-stars", "expectMessage": "Started scenario shooting-stars.", "comment": "Mining 99, a rune pickaxe and a glory, south of the site; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "waitTicks", "ticks": 3, "comment": "after a teleport into a new region"},
+
+  {"step": "command", "text": "::star land varrock_south_east_mine 2", "expectMessage": "A size-2 star lands at South-east Varrock mine", "comment": "a small star so ::star layer runs it out quickly"},
+  {"step": "assertLoc", "locId": 41019, "x": 3290, "y": 3353, "comment": "star_landing_star, the impact, for 4 ticks"},
+  {"step": "assertLoc", "locId": 41228, "x": 3290, "y": 3353, "timeoutMs": 10000, "comment": "star_size_two_star"},
+
+  {"step": "locOption", "locId": 41228, "option": "Prospect", "x": 3290, "y": 3353},
+  {"step": "assertMessage", "contains": "shooting_stars.discovered", "comment": "the first to find it: 300 bonus dust and the star_mining_boost jingle"},
+  {"step": "assertVarbit", "id": 15351, "value": 300, "comment": "star_bonus_dust"},
+  {"step": "assertMessage", "contains": "shooting_stars.prospect size=2 level=20 percent=0"},
+
+  {"step": "locOption", "locId": 41228, "option": "Mine", "x": 3290, "y": 3353},
+  {"step": "assertMessage", "contains": "shooting_stars.swing"},
+  {"step": "assertAnimation", "id": 624, "comment": "human_mining_rune_pickaxe"},
+  {"step": "assertInventory", "itemId": 25527, "timeoutMs": 30000, "comment": "stardust, two a roll while the bonus lasts; 46% a roll at 99"},
+  {"step": "command", "text": "::star bonus", "expectMessage": "Your star discovery bonus:"},
+
+  {"step": "command", "text": "::star layer", "expectMessage": "The star is size 1 now."},
+  {"step": "assertLoc", "locId": 41229, "x": 3290, "y": 3353, "comment": "star_size_one_star; the layer's change ends the swing"},
+  {"step": "locOption", "locId": 41229, "option": "Mine", "x": 3290, "y": 3353},
+  {"step": "assertMessage", "contains": "shooting_stars.swing"},
+  {"step": "command", "text": "::star layer", "expectMessage": "The star has disintegrated."},
+  {"step": "assertMessage", "contains": "shooting_stars.disintegrates"},
+
+  {"step": "command", "text": "::star bonus 0", "expectMessage": "Your star discovery bonus is 0 dust."},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

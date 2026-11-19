@@ -1,0 +1,7 @@
+{
+  "about": "Scurrius's lair in the Varrock Sewers (Scurrius step 1): the public Scurrius, rat_boss_normal, and Historian Aldo outside the broken bars. The OSRS Wiki's Scurrius (map pin 3299,9867, taken as his centre, so his south-west tile is 3298,9866: guessed) and Historian Aldo (3276,9872), read 2026-11-19; ids from the 242 cache. A private lair's Scurrius is put in with the lair (ScurriusLairs). Aldo's wander is guessed. Left out: the patrolling rats.",
+  "spawns": [
+    {"npc": "rat_boss_normal", "x": 3298, "z": 9866, "direction": "W", "source": "Scurrius (group), Varrock Sewers. OSRS Wiki, Scurrius"},
+    {"npc": "rat_boss_biologist", "x": 3276, "z": 9872, "wander": 1, "source": "Historian Aldo, Varrock Sewers. OSRS Wiki, Historian Aldo"}
+  ]
+}

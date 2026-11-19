@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import osrsps.game.NpcStat
@@ -64,6 +65,7 @@ class NpcCombatTest {
             "scorpion_update_attack_tail" to 6254, "scorpion_update_defend" to 6255, "scorpion_update_death" to 6256,
             "small_scorpion_update_attack" to 6261, "small_scorpion_update_defend" to 6259, "small_scorpion_update_death" to 6260,
             "chaoselemental_attack" to 3146, "chaoselemental_death" to 3147, "dragon_block_kbd" to 4638, "npc_callisto_attack_melee01" to 10012, "npc_callisto_death01" to 10017, "npc_vetion_attack_magic_01" to 9969, "npc_vetion_attack_magic_02" to 9970, "npc_vetion_defend_parry_01" to 9973, "npc_vetion_defend_parry_02" to 9974, "npc_vetion_death_01" to 9980, "npc_vetion_death_02" to 9981, "dog_update_skeleton_hellhound_attack" to 6579, "dog_update_skeleton_hellhound_defend" to 6578,
+            "npc_rat_boss_attack_melee_01" to 10692, "npc_rat_boss_death_01" to 10705,
             "zombie_update_attack_normal" to 5568, "zombie_update_defend_normal" to 5567, "zombie_update_death_normal" to 5569,
             "zombie_update_attack_weapon" to 5571, "zombie_update_defend_weapon" to 5574, "zombie_update_death_weapon" to 5575,
             "zombie_update_attack_dragging" to 5578, "zombie_update_defend_dragging" to 5579, "zombie_update_death_dragging" to 5580,
@@ -991,6 +993,24 @@ class NpcCombatTest {
         assertEquals(ElementalWeakness(Element.FIRE, 30), def.weakness)
         assertNull(def.aggression)
         assertEquals(NpcCombatAnims(4925, 4927, 4929), def.anims)
+    }
+
+    @Test
+    fun `Scurrius swipes for 13 every 4 ticks in both lairs, back after 30, the public one with the bigger XP bonus`() {
+        val ratTypes = NpcTypes.of(
+            NpcType(7221, "Scurrius", internalName = "rat_boss_normal", stats = NpcStats(attack = 300, strength = 100, defence = 100, hitpoints = 1500)),
+            NpcType(7222, "Scurrius", internalName = "rat_boss_instance", stats = NpcStats(attack = 300, strength = 100, defence = 60, hitpoints = 500)),
+        )
+        val combat = NpcCombat.load(ratTypes, seqs)
+        for (name in listOf("rat_boss_normal", "rat_boss_instance")) {
+            val def = combat[ratTypes.find(name)!!]!!
+            assertEquals(CombatMath.npcMaxHit(100, def.strengthBonus), def.maxHit, name)
+            assertEquals(listOf(4, 13, 30, 5), listOf(def.attackSpeed, def.maxHit, def.respawnTicks, def.deathTicks), name)
+            assertEquals(NpcCombatAnims(10692, -1, 10705), def.anims, name)
+            assertNotNull(def.aggression, name)
+        }
+        assertEquals(425, combat[ratTypes.find("rat_boss_normal")!!]!!.xpBonusTenths)
+        assertEquals(200, combat[ratTypes.find("rat_boss_instance")!!]!!.xpBonusTenths)
     }
 
     @Test

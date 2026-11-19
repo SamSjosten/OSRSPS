@@ -180,10 +180,9 @@ class WildernessBosses(private val world: World) {
         val def = world.npcDrops[npc.type] ?: return true
         val drops = split(shares, boss.uniques, world.random) { def.roll(world.random) }
         for ((key, items) in drops) {
-            val player = world.onlinePlayers.firstOrNull { it.saveKey == key }
             for (drop in items) {
                 world.groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, key, GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.LOOT_DESPAWN_TICKS)
-                player?.let { world.lootNotifications.dropped(it, drop.type, drop.count) }
+                world.lootDroppedFor(key, drop.type, drop.count)
             }
         }
         return true
