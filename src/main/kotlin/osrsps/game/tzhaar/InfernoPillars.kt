@@ -52,18 +52,38 @@ class InfernoPillars(private val world: World) {
             val pillar = run.pillars.firstOrNull { it.npc === npc } ?: return@onDeath
             collapse(run, pillar)
         }
+        // A burst, a barrage, a chinchompa's blast or a bow's bounce at a Nibbler beside a support passes it by, as a
+        // click on it does: only the Nibblers bring it down (it has no Attack option; Codex review on #829).
+        val shutOut = world.combat.shutOut
+        world.combat.shutOut = { player, npc -> npc.type.id == SUPPORT || shutOut(player, npc) }
     }
 
-    /** Puts up [run]'s supports still standing by [player]'s varbits (all three on a new run). */
+    /**
+     * Puts up [run]'s supports still standing by [player]'s varbits (all three on a new run). One that can't come in
+     * for want of room (the world full of NPCs) is owed ([Inferno.Run.pillarsOwed]) and comes in on a later tick
+     * ([tick]), so the run never goes on short of its cover (Codex review on #829).
+     */
     fun raise(run: Inferno.Run, player: Player) {
-        for ((index, tile) in TILES.withIndex()) {
+        for (index in TILES.indices) if (damage(player, index) < HITPOINTS) run.pillarsOwed += index
+        raiseOwed(run, player)
+    }
+
+    private fun raiseOwed(run: Inferno.Run, player: Player) {
+        val type = world.npcTypes[SUPPORT] ?: return run.pillarsOwed.clear()
+        for (index in run.pillarsOwed.toList()) {
             val damage = damage(player, index)
-            if (damage >= HITPOINTS) continue
-            val at = run.at(tile)
-            val type = world.npcTypes[SUPPORT] ?: continue
+            if (damage >= HITPOINTS) {
+                run.pillarsOwed -= index
+                continue
+            }
+            val at = run.at(TILES[index])
             val npc = world.spawnNpc(NpcSpawn(type, at.x, at.z, 0, source = Inferno.SOURCE, respawns = false)) ?: continue
+            run.pillarsOwed -= index
             npc.scaledHitpoints = HITPOINTS
             npc.hitpoints = HITPOINTS - damage
+            // A support doesn't heal: no hitpoint comes back to it ever, so none of a Nibbler's damage is lost before
+            // [tick] counts it (Codex review on #829).
+            npc.hitpointsRegenTicks = Int.MAX_VALUE
             val loc = ZoneLoc(LOCS[index], LocShape.CENTREPIECE_STRAIGHT, 0, at.x, at.z, 0)
             world.locs.add(loc)
             run.pillars += Pillar(index, npc, loc, damage)
@@ -89,8 +109,9 @@ class InfernoPillars(private val world: World) {
     /** The supports' and Nibblers' part of [run]'s tick, fought by [player]: the varbits kept up, each Nibbler's turn. */
     fun tick(run: Inferno.Run, player: Player) {
         run.pillars.removeAll { it.npc.dead || world.npcs[it.npc.index] !== it.npc }
+        if (run.pillarsOwed.isNotEmpty()) raiseOwed(run, player)
         for (pillar in run.pillars) {
-            // Hitpoints the world gave back (every NPC's regeneration) don't count: the support keeps its damage.
+            // Hitpoints given back by anything else don't count either: the support keeps its damage.
             pillar.damage = maxOf(pillar.damage, HITPOINTS - pillar.npc.hitpoints)
             pillar.npc.hitpoints = HITPOINTS - pillar.damage
             if (pillar.damage != damage(player, pillar.index)) setDamage(player, pillar.index, pillar.damage)
@@ -112,6 +133,8 @@ class InfernoPillars(private val world: World) {
 
     private fun nibbler(run: Inferno.Run, nibbler: Npc, player: Player) {
         if (run.pillars.isEmpty()) {
+            // One owed is coming in: wait for it.
+            if (run.pillarsOwed.isNotEmpty()) return
             // No support left: the player is the target, chased and hit by [nibblerHits].
             targets.remove(nibbler)
             if (nibbler.target !== player) world.meleeCombat.aggress(nibbler, player, world.tick)
@@ -122,6 +145,12 @@ class InfernoPillars(private val world: World) {
             pillar = run.pillars[world.random.nextInt(run.pillars.size)]
             targets[nibbler] = pillar
             world.npcs.followNpc(nibbler, pillar.npc)
+        }
+        // A player's hit or splash makes it turn on them, which would hold it before the supports for good: it goes on
+        // ignoring the player while any support stands (Codex review on #829).
+        if (nibbler.target != null) {
+            nibbler.target = null
+            world.npcs.stopFollowing(nibbler)
         }
         if (!beside(nibbler, pillar.npc)) {
             if (nibbler.leader !== pillar.npc) world.npcs.followNpc(nibbler, pillar.npc)
@@ -152,6 +181,7 @@ class InfernoPillars(private val world: World) {
 
     /** Every support of [run]'s still standing falls, as wave 66 ends. */
     fun collapseAll(run: Inferno.Run) {
+        run.pillarsOwed.clear()
         for (pillar in run.pillars.toList()) collapse(run, pillar)
     }
 

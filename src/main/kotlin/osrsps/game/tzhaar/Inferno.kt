@@ -71,6 +71,9 @@ class Inferno(private val world: World) {
         /** The rocky supports still standing. */
         val pillars: MutableList<InfernoPillars.Pillar> = ArrayList()
 
+        /** The supports (0 to 2) still standing that couldn't come in for want of room yet ([InfernoPillars.raise]). */
+        internal val pillarsOwed: MutableSet<Int> = sortedSetOf()
+
         /** The logout button was clicked in this wave: the player is logged out as it ends. */
         var pausing: Boolean = false
             internal set
@@ -228,7 +231,7 @@ class Inferno(private val world: World) {
                 else -> spots.removeAt(world.random.nextInt(spots.size)).tile
             }
             // Nibblers go for the supports while any stand ([InfernoPillars]); the rest for the player.
-            if (spawn(player, run, monster.type, run.at(tile), fight = monster != InfernoMonster.NIBBLER || run.pillars.isEmpty()) == null) {
+            if (spawn(player, run, monster.type, run.at(tile), fight = monster != InfernoMonster.NIBBLER || (run.pillars.isEmpty() && run.pillarsOwed.isEmpty())) == null) {
                 // A monster that couldn't come in (the world full of NPCs) isn't a kill: the wave goes and comes again.
                 logger.warn { "${run.owner}: inferno wave ${run.wave} couldn't spawn ${monster.type}; trying again" }
                 for (npc in run.monsters) if (world.npcs[npc.index] === npc) world.removeNpc(npc)
@@ -354,6 +357,7 @@ class Inferno(private val world: World) {
             world.locs.remove(pillar.loc)
         }
         run.pillars.clear()
+        run.pillarsOwed.clear()
     }
 
     companion object {

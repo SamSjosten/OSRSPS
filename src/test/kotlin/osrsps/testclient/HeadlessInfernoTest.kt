@@ -183,6 +183,40 @@ class HeadlessInfernoTest {
     }
 
     @Test
+    fun `a player's hit doesn't turn a Nibbler from the supports, which no player's attack reaches, never heal, and come in when there's room`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("cat").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("inferno 3") { it.startsWith("Inferno") }
+                val nibblers = client.waveIn(server, "cat", 3)
+                val run = server.run("cat")!!
+                val player = server.world.playerNamed("cat")!!
+                for (pillar in run.pillars) {
+                    assertNotNull(server.world.combat.barred(player, pillar.npc), "no player's attack reaches a support")
+                    assertTrue(pillar.npc.hitpointsRegenTicks > 1_000_000, "a support's regeneration never comes round")
+                }
+
+                val nibbler = nibblers.first { it.type.id == InfernoMonster.NIBBLER.type }
+                server.world.meleeCombat.hit(nibbler, player, 0, server.world.tick)
+                client.await("back after the supports") { nibbler.takeIf { it.target == null && it.leader != null } }
+                assertTrue(run.pillars.any { it.npc === nibbler.leader }, "following a support")
+
+                // A support that couldn't come in for want of room comes in once there is, with the damage it had.
+                val south = run.pillars.single { it.index == 2 }
+                server.world.removeNpc(south.npc)
+                server.world.locs.remove(south.loc)
+                run.pillars.remove(south)
+                run.pillarsOwed += 2
+                val back = client.await("the owed support in") { run.pillars.firstOrNull { it.index == 2 } }
+                assertTrue(run.pillarsOwed.isEmpty())
+                val at = run.at(InfernoPillars.TILES[2])
+                assertEquals(at.x to at.z, back.npc.x to back.npc.z)
+                assertNotNull(server.world.locs.find(InfernoPillars.LOCS[2], at.x, at.z, 0), "its loc")
+            }
+        }
+    }
+
+    @Test
     fun `the Nibblers wear the supports down, a collapse halves whoever stands beside it, and with none left they turn on the player`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bea").use { client ->
