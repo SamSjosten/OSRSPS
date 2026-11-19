@@ -8,6 +8,8 @@
     {"step": "command", "text": "::empty", "comment": "room for the cape and the Tokkul"},
     {"step": "command", "text": "::fightcave 63 1", "expectMessage": "Fight cave: wave 63 of rotation 1"},
     {"step": "assertMessage", "contains": "[fight_cave.wave wave=63]", "timeoutMs": 15000},
+    {"step": "assertDialogue", "contains": "[fight_cave.jad_coming]", "speaker": "TzHaar-Mej-Jal", "comment": "step FC4: his warning as wave 63 comes in"},
+    {"step": "finishDialogue"},
     {"step": "assertHitsplat", "self": true, "amount": 0, "timeoutMs": 60000, "comment": "one of his attacks, a 0 under ::god"},
     {"step": "command", "text": "::hit 110 TzTok-Jad", "expectMessage": "Hit TzTok-Jad"},
     {"step": "waitTicks", "ticks": 2},
