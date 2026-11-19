@@ -1,0 +1,16 @@
+{
+ "name": "Misthalin fixes 12: Guide on a farming patch opens the Farming skill guide on the patch's tab (the belladonna patch's Special, the Lumbridge tree patch's Trees)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::tele 3085 3354 0", "expectMessage": "Teleported to 3085, 3354, 0", "comment": "west of the belladonna patch by Draynor Manor"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "locOption", "locId": 7572, "option": "Guide", "x": 3086, "y": 3354, "timeoutMs": 20000},
+  {"step": "assertInterface", "interfaceId": 860, "timeoutMs": 10000, "comment": "Farming - Special (Members Only), drawn by the client"},
+  {"step": "command", "text": "::tele 3193 3230 0", "expectMessage": "Teleported to 3193, 3230, 0", "comment": "by the Lumbridge tree patch; the teleport closes the guide"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "locOption", "locId": 8391, "option": "Guide", "x": 3193, "y": 3231, "timeoutMs": 20000},
+  {"step": "assertInterface", "interfaceId": 860, "timeoutMs": 10000, "comment": "Farming - Trees"},
+  {"step": "command", "text": "::tele 3222 3218 0", "expectMessage": "Teleported to 3222, 3218, 0"}
+ ]
+}
