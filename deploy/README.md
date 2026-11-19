@@ -59,6 +59,23 @@ project.
   same lock so a timed deploy can't start in the middle: `flock .deploy/lock docker compose run --rm osrsps fetch-cache`,
   or stop the crontab line / `sudo systemctl stop osrsps-deploy.timer` first and start it after.
 
+## Reaching it, and problem reports
+
+Over the LAN, RSProx and the test VMs use `http://192.168.0.210:43595/proxy-targets.yaml` directly. Away from it, keep
+an SSH tunnel open (PowerShell) and use `http://127.0.0.1:43595/proxy-targets.yaml`:
+
+```powershell
+ssh -J root@192.168.0.210 -L 43594:127.0.0.1:43594 -L 43595:127.0.0.1:43595 sam@10.99.0.10
+```
+
+Friends reach the server at `odinsgate.net`, a VPS relay of 43594 and 43595 run by the Home Lab project.
+
+The launcher's "Send problem report" posts to `POST /report`. The server scrubs each one, saves it under
+`data/reports/`, and every minute files waiting reports as issues labelled `bug-report` (a repeat of an open issue
+becomes a comment there), at most 20 a day. Filing needs `data/github-report-token.txt`: a fine-grained token with
+Issues read and write on that repository only, put there by hand. Without it, reports wait. To set a password on 214,
+which has little memory to spare: `docker compose exec -e JAVA_OPTS=-Xmx64m osrsps bin/osrsps set-password <name>`.
+
 ## The staging server: any branch, next to the live one
 
 `staging.sh` runs a second server on VM 214, in the compose project `osrsps-staging`, from any branch or commit, so a

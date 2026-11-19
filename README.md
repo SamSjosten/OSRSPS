@@ -156,34 +156,22 @@ Our own server (VM 214) redeploys itself from `main`, and any branch can run nex
 
 ## Connect RuneLite
 
-### Through RSProx
+Players connect with the unchanged RuneLite client, through one of two routes.
 
-The developer route. Over the LAN nothing needs to run on the PC. Away from it, keep an SSH tunnel
-open (PowerShell):
+### RSProx client
 
-```powershell
-ssh -J root@192.168.0.210 -L 43594:127.0.0.1:43594 -L 43595:127.0.0.1:43595 sam@10.99.0.10
-```
+Install [RSProx](https://github.com/blurite/rsprox). In it press **+** next to the proxy target selector, **From URL…**,
+paste `http://<host>:43595/proxy-targets.yaml` and restart RSProx. The server fills in its login key and the RuneLite
+build pinned for its revision. Our own server's addresses and SSH tunnel are in [`deploy/README.md`](deploy/README.md).
 
-In RSProx press **+** next to the proxy target selector, **From URL…**, paste
-`http://192.168.0.210:43595/proxy-targets.yaml` (`http://127.0.0.1:43595/...` through the tunnel) and restart RSProx.
-The server fills in the modulus and the RuneLite build pinned for its revision (`src/main/resources/runelite-pins.json`).
+### Odin's Gate launcher
 
-### Letting friends test
+Friends install Odin's Gate, our launcher, from [its download page](https://samsjosten.github.io/OdinsGate/), and it
+connects them to `odinsgate.net`. The launcher lives in the
+[OdinsGate repository](https://github.com/SamSjosten/OdinsGate); `CONTRIBUTING.md` covers the files the two share.
 
-Friends reach the server at `odinsgate.net`, a VPS relay of 43594 and 43595 run by the Home Lab project, with our own
-launcher (also called Odin's Gate). The launcher, its download page and releases live in the OdinsGate repository; `docs/` here only
-forwards to that page (CI's `friend-page` job checks it). The launcher reads `/status.json`, `/rl/worlds.js` and
-`/launcher/*.ws` from the HTTP port. A revision bump adds the new RuneLite build to both pin tables first
-(`CONTRIBUTING.md`).
-
-### Problem reports
-
-The launcher's "Send problem report" posts to `POST /report`. The server scrubs each one, saves it under
-`data/reports/`, and every minute files waiting reports as issues here labelled `bug-report` (a repeat of an open issue
-becomes a comment there), at most 20 a day. Filing needs `data/github-report-token.txt`: a fine-grained token with
-Issues read and write on this repository only, put there by hand. Without it, reports wait. A scheduled task triages
-new issues by `TRIAGE.md`.
+The launcher's **Send problem report** button files the report as a GitHub issue, triaged by
+[`TRIAGE.md`](TRIAGE.md). Setting that up (the token on the server) is in `deploy/README.md`.
 
 ## Accounts and admins
 
@@ -191,15 +179,15 @@ The first login as a name claims it with the password typed; after that only tha
 and treat spaces as underscores. Names with `@` and names that break live's display name rules are refused. Five
 wrong passwords lock a name for 5 minutes. A name in `OSRSPS_ADMINS` can't be claimed, so claim it first, then list it.
 
-Accounts are `data/accounts/<name>.json` (a PBKDF2 hash) and saves are `data/saves/<name>.json`, neither backed up.
-To set a password (12 characters or more, asked twice, no restart):
+Accounts are `data/accounts/<name>.json` and saves `data/saves/<name>.json`; deleting a name's account file resets
+it. To set a password (12 characters or more, no restart):
 
 ```bash
-cd /srv/rsps/OSRSPS && docker compose exec -e JAVA_OPTS=-Xmx64m osrsps bin/osrsps set-password <name>
+docker compose exec osrsps bin/osrsps set-password <name>     # in Docker
+./gradlew run --args="set-password <name>"                     # from a checkout
 ```
 
-Deleting a name's account file resets it. `::ipban` bans an address (kept in `data/ip-bans.txt`); behind the relay
-that is the player's own address from the PROXY header.
+`::ipban` bans an address (kept in `data/ip-bans.txt`); behind the relay that is the player's own address.
 
 ## Dialogue words
 
