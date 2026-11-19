@@ -2698,6 +2698,7 @@ class World(
         if (grandExchangeScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (priceChecker.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (itemSetsScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
+        if (collectionLogWindow.click(player, interfaceId, componentId, sub, op)) return@act
         if (archiveChestWindow.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (interfaceId == EquipmentTab.WORNITEMS && componentId == PriceChecker.WORNITEMS_BUTTON) {
             priceChecker.open(player)
@@ -2929,6 +2930,17 @@ class World(
             interfaces.openSide(player, FrameSlot.NOTIFICATIONS, osrsps.game.collection.CollectionLog.NOTIFICATION_DISPLAY)
             // -1 is the script's null colour, which it draws in its default orange.
             interfaces.runClientScript(player, osrsps.game.collection.CollectionLog.NOTIFICATION_DISPLAY_INIT, listOf(title, text, -1))
+        },
+    )
+
+    /** The collection log's windows: the log and its overview; see [osrsps.game.collection.CollectionLogWindow]. */
+    val collectionLogWindow = osrsps.game.collection.CollectionLogWindow(
+        collectionLog, interfaces::openModal, interfaces::closeModals, interfaces::runClientScript, interfaces::setVarbitNow,
+        setVarp = { player, id, value ->
+            if (id < player.vars.types.varpCount) {
+                player.vars[id] = value
+                interfaces.sendVarpNow(player, id)
+            }
         },
     )
 
