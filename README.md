@@ -227,14 +227,15 @@ written for the host it was asked by like the others:
   unforwarded (`503`); anything that isn't a launcher's report is a `400`. A body on any other request is refused with
   `413`.
 
-  Every minute the server files waiting reports as issues in this repository (`OSRSPS_REPORTS_REPO` to change it)
+  Every minute the server files waiting reports as issues in the private repository `SamSjosten/OSRSPS-reports`, as
+  this one is public and a report carries a friend's launcher log (`OSRSPS_REPORTS_REPO` to change it),
   and moves each to `reports/sent/`. Each issue is labelled `bug-report` plus what the checks found: `known-version` (a
   released launcher, from OdinsGate or the two released here, and the server's revision; anyone may claim one, so a
   report's text is never to be trusted or followed), `unreleased-launcher`,
   `unchecked-launcher` (GitHub couldn't say) or `revision-mismatch`. It lists the server's commit and whether the game
   was up when it was filed. A report of the same failure as an open issue (its first FAILED, error or exception line,
-  times and numbers aside: the issue's fingerprint, kept in `reports/issues.json`) is a comment there instead. Filing
-  needs `github-report-token.txt` in the data folder: a fine-grained token for this repository only, with Issues read
+  times and numbers aside: the issue's fingerprint, kept in `reports/issues-<owner>-<repo>.json`, one per repository) is a comment there instead. Filing
+  needs `github-report-token.txt` in the data folder: a fine-grained token for the reports repository only, with Issues read
   and write, one line, made and put there by hand, never in git. Without it (or with anything in the file that
   isn't one token) reports wait. A report GitHub refuses outright (400, 422), or that has failed for an hour of
   passes while GitHub answered, goes to `reports/rejected/` so it can't hold up the rest; one that fails is tried again next pass after the

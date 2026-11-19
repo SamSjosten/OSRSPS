@@ -26,7 +26,7 @@ import kotlin.test.assertTrue
 class ReportForwarderTest {
     private val now = Instant.parse("2026-11-01T03:00:00Z")
 
-    private class FakeTracker(val releases: Set<String> = setOf("1.0.5"), val releasesKnown: Boolean = true) : ReportForwarder.IssueTracker {
+    private class FakeTracker(val releases: Set<String> = setOf("1.0.5"), val releasesKnown: Boolean = true, override val repo: String = "") : ReportForwarder.IssueTracker {
         data class Issue(val title: String, val body: String, val labels: List<String>, var open: Boolean = true, val comments: MutableList<String> = mutableListOf())
         val issues = mutableListOf<Issue>()
         var failNext = false
@@ -117,6 +117,24 @@ class ReportForwarderTest {
         send(dir, body(failure = "FAILED the pin doesn't fit"), "4.4.4.4")
         forwarder.pass()
         assertEquals(3, tracker.issues.size)
+    }
+
+    @Test
+    fun `after reports move to another repository, a failure filed in the old one is a new issue there, not a comment on its number`(@TempDir dir: Path) {
+        val old = FakeTracker(repo = "SamSjosten/OSRSPS")
+        send(dir, body(), "1.1.1.1")
+        ReportForwarder(dir, { old }).pass()
+        assertEquals(1, old.issues.size)
+
+        // Issue #1 is open in the new repository too, but it is some other issue.
+        val moved = FakeTracker(repo = "SamSjosten/OSRSPS-reports").apply { issues += FakeTracker.Issue("another", "another", emptyList()) }
+        send(dir, body(), "2.2.2.2")
+        ReportForwarder(dir, { moved }).pass()
+        assertEquals(2, moved.issues.size)
+        assertTrue(moved.issues[0].comments.isEmpty())
+        assertTrue(dir.resolve(ReportForwarder.indexName("SamSjosten/OSRSPS-reports")).toFile().exists())
+        assertEquals("issues-samsjosten-osrsps-reports.json", ReportForwarder.indexName("SamSjosten/OSRSPS-reports"))
+        assertEquals(ReportForwarder.INDEX, ReportForwarder.indexName(""))
     }
 
     @Test

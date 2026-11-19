@@ -44,7 +44,6 @@ class ReportForwarder(
     private val clock: () -> Instant = Instant::now,
 ) {
     private val sent: Path = dir.resolve(SENT)
-    private val index: Path = dir.resolve(INDEX)
     private val budget: Path = dir.resolve(BUDGET)
     private var budgetRead = false
     private var saidBudgetUnreadable = false
@@ -262,7 +261,8 @@ class ReportForwarder(
         val launcher = report.string("launcher").orEmpty()
         val check = check(tracker, launcher, body)
         val print = fingerprint(body)
-        val known = readIndex()
+        val index = dir.resolve(indexName(tracker.repo))
+        val known = readIndex(index)
         val existing = print?.let { known[it] }?.takeIf(tracker::isOpen)
         val text = issueBody(id, report.string("received"), check, print, body)
         val commented = existing != null && try {
@@ -276,7 +276,7 @@ class ReportForwarder(
             logger.info { "Problem report $id is the same failure as issue #$existing; commented there" }
         } else {
             val number = budgeted { tracker.create(title(id, launcher, body), text, check.labels) }
-            if (print != null) writeIndex(known + (print to number))
+            if (print != null) writeIndex(index, known + (print to number))
             logger.info { "Problem report $id filed as issue #$number" }
         }
         Files.createDirectories(sent)
@@ -327,11 +327,11 @@ class ReportForwarder(
         if (shown.length < body.length) appendLine("The report was cut to fit; the whole of it is `reports/$SENT/$id.json` in the server's data folder.")
     }
 
-    private fun readIndex(): Map<String, Int> =
+    private fun readIndex(index: Path): Map<String, Int> =
         if (!Files.exists(index)) emptyMap()
         else Json.parseToJsonElement(Files.readString(index)).jsonObject.mapValues { it.value.jsonPrimitive.int }
 
-    private fun writeIndex(map: Map<String, Int>) {
+    private fun writeIndex(index: Path, map: Map<String, Int>) {
         val json = JsonObject(map.toSortedMap().mapValues { JsonPrimitive(it.value) })
         writeAtomically(index, "$json\n")
     }
@@ -370,6 +370,11 @@ class ReportForwarder(
 
     /** Files and comments on issues, and knows which launcher versions were released. */
     interface IssueTracker {
+        /**
+         * Where the issues are (owner/name), or "" for a tracker that doesn't say. Each place keeps its own [INDEX] of
+         * which failure is which issue: an issue number from one repository means another issue, or none, in the next.
+         */
+        val repo: String get() = ""
         /** Whether [version] is a released launcher; null when that couldn't be found out. */
         fun isRelease(version: String): Boolean?
         fun isOpen(issue: Int): Boolean
@@ -382,6 +387,13 @@ class ReportForwarder(
         const val SENT = "sent"
         const val REJECTED = "rejected"
         const val INDEX = "issues.json"
+
+        /**
+         * The index file for issues in [repo]: [INDEX] for a tracker that doesn't say where, else one per repository.
+         * The old issues.json of the public OSRSPS repository is left behind with the move (all its issues closed).
+         */
+        fun indexName(repo: String): String =
+            if (repo.isEmpty()) INDEX else "issues-${repo.lowercase().replace(Regex("[^a-z0-9._-]"), "-")}.json"
         /** The day's posts and the last cap notice, so a restart doesn't start the day's count again. */
         const val BUDGET = "posted.json"
         /** Asked of the releases only to find out whether GitHub answers at all. */

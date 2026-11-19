@@ -25,7 +25,7 @@ private val logger = io.github.oshai.kotlinlogging.KotlinLogging.logger {}
  * write on [repo]; it never leaves this class but in the Authorization header, and isn't in any message it throws.
  */
 class GitHubIssues(
-    private val repo: String,
+    override val repo: String,
     private val token: String,
     private val launcherRepo: String = LAUNCHER_REPO,
     private val api: String = API,
@@ -97,7 +97,11 @@ class GitHubIssues(
     companion object {
         const val API = "https://api.github.com"
         const val LAUNCHER_REPO = "SamSjosten/OdinsGate"
-        const val REPO = "SamSjosten/OSRSPS"
+        /**
+         * Where reports go: a private repository, since a report carries a friend's launcher log and OSRSPS is public
+         * (Sam, 2026-11-19). OSRSPS_REPORTS_REPO overrides it.
+         */
+        const val REPO = "SamSjosten/OSRSPS-reports"
 
         private val GONE = setOf(301, 404, 410)
         private val CLOSED_TO_COMMENTS = setOf(301, 403, 404, 410)
