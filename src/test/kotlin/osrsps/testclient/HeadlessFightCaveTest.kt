@@ -20,6 +20,7 @@ import osrsps.game.Scenarios
 import osrsps.game.SeqNames
 import osrsps.game.World
 import osrsps.game.Skill
+import osrsps.game.collection.CollectionLogCatalog
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.Prayers
 import osrsps.game.tzhaar.FightCaveMonsters
@@ -59,13 +60,20 @@ class HeadlessFightCaveTest {
         monster(3125, "Ket-Zek", 5, 360, "tzhaar_fightcave_swarm_5a", 160),
         monster(3126, "Ket-Zek", 5, 360, "tzhaar_fightcave_swarm_5b", 160),
         monster(3127, "TzTok-Jad", 5, 702, "tzhaar_fightcave_swarm_boss", 250),
+        monster(3128, "Yt-HurKot", 1, 108, "tzhaar_fightcave_swarm_boss_cleric", 60),
         NpcType(FightCaves.MEJ_JAL, "TzHaar-Mej-Jal", ops = listOf("Talk-to", null, "Exchange fire cape", null, null), internalName = "tzhaar_fightcave_master"),
+    )
+
+    // A Fight Caves page holding the cape and the pet, its ids made up.
+    private val catalog = CollectionLogCatalog(
+        listOf(CollectionLogCatalog.Tab(0, 471, listOf(CollectionLogCatalog.Page(1, 0, 0, listOf(FightCaves.FIRE_CAPE, FightCaves.PET), completedVarbit = null)))),
     )
 
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
         val objTypes = ObjTypes.of(
             ObjType(FightCaves.TOKKUL, "Tokkul", stackable = true),
             ObjType(FightCaves.FIRE_CAPE, "Fire cape"),
+            ObjType(FightCaves.PET, "TzRek-Jad"),
             ObjType(995, "Coins", stackable = true),
             // Protect from Melee's prayer obj, shaped like the cache's (HeadlessArchiveGuardianTest).
             ObjType(
@@ -76,6 +84,7 @@ class HeadlessFightCaveTest {
         val cave = { id: Int, name: String, ops: List<String?> -> LocType(id, name, ops, LocCollisionType(width = 3, length = 2)) }
         World(
             crcs, CollisionMap().apply { markLoaded(37, 79); markLoaded(38, 80) }, objTypes = objTypes, npcTypes = types,
+            collectionLogCatalog = catalog,
             random = GameRandom(1), npcCombat = NpcCombat.load(types, SeqNames.NONE), prayerList = Prayers.load(objTypes),
             locTypes = LocTypes(
                 listOf(
@@ -183,7 +192,7 @@ class HeadlessFightCaveTest {
     }
 
     @Test
-    fun `a death the server's stop settles pays the TokKul that won't fit into the bank`(@TempDir dir: Path) {
+    fun `a death settled as the player leaves the world pays the TokKul that won't fit into the bank`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("eve").use { client ->
                 client.await("the login rebuild") { client.position }
@@ -192,9 +201,9 @@ class HeadlessFightCaveTest {
                 client.commandReply("fightcave 4 2") { it.startsWith("Fight cave") }
                 client.waveIn(server, "eve", 4)
                 val player = server.world.playerNamed("eve")!!
-                // As World.stop() finishes a death: the run marked died, then settled with the stop's flag.
+                // As a logout or World.stop() finishes a death: the run marked died, then settled as they go.
                 server.world.fightCaves.runOf(player)!!.died = true
-                server.world.fightCaves.leaving(player, shuttingDown = true)
+                server.world.fightCaves.leaving(player)
                 // Three waves done: 2 + 4 + 6, all in the bank.
                 assertEquals(12L, player.bank.count(FightCaves.TOKKUL))
                 assertNull(server.run("eve"))
@@ -203,7 +212,7 @@ class HeadlessFightCaveTest {
     }
 
     @Test
-    fun `TokKul a stop's settling has no room for comes at the next login`(@TempDir dir: Path) {
+    fun `TokKul a death's settling has no room for comes at the next login, not in a test setup`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("ivy").use { client ->
                 client.await("the login rebuild") { client.position }
@@ -215,15 +224,38 @@ class HeadlessFightCaveTest {
                 // A bank with every slot taken, none of them TokKul.
                 for (slot in 0 until Inventory.BANK_CAPACITY) player.bank[slot] = InvObj(995, 1)
                 server.world.fightCaves.runOf(player)!!.died = true
-                server.world.fightCaves.leaving(player, shuttingDown = true)
+                server.world.fightCaves.leaving(player)
                 assertEquals(0L, player.bank.count(FightCaves.TOKKUL) + player.inventory.count(FightCaves.TOKKUL))
                 assertEquals(12, server.world.fightCaves.owed(player), "kept for later")
                 assertNull(server.world.fightCaves.saved(player), "no run to come back to")
-                // Room again, and the next login pays it.
+                // Room again, but a login in a test setup doesn't pay it: putting the setup back would owe it again.
                 player.inventory[0] = null
+                player.scenario = "fight-cave"
+                server.world.fightCaves.login(player)
+                assertEquals(12, server.world.fightCaves.owed(player))
+                assertEquals(0L, player.inventory.count(FightCaves.TOKKUL))
+                // Out of it, the next login pays it.
+                player.scenario = null
                 server.world.fightCaves.login(player)
                 assertEquals(12L, player.inventory.count(FightCaves.TOKKUL))
                 assertEquals(0, server.world.fightCaves.owed(player))
+            }
+        }
+    }
+
+    @Test
+    fun `the cave entrance turns away a player in a test setup`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("lou").use { client ->
+                client.await("the login rebuild") { client.position }
+                val player = server.world.playerNamed("lou")!!
+                player.scenario = "raid-tester"
+                server.world.fightCaves.enter(player)
+                assertNull(server.run("lou"), "no cave")
+                client.await("the line") { client.messages().firstOrNull { "fight_cave.in_scenario" in it.text } }
+                player.scenario = null
+                server.world.fightCaves.enter(player)
+                assertNotNull(server.run("lou"))
             }
         }
     }
@@ -454,11 +486,131 @@ class HeadlessFightCaveTest {
                 val mej = client.waveIn(server, "ida", 15).single()
                 assertEquals(3123, mej.type.id)
                 client.commandReply("hit 50 ${mej.index}") { it.startsWith("Hit") }
+                // No passive regeneration while it's watched, so only a heal can give hitpoints back.
+                mej.hitpointsRegenTicks = Int.MAX_VALUE
+                val hurt = mej.hitpoints
+                assertTrue(hurt * 2 < mej.maxHitpoints)
                 client.tele(mej.x - 1, mej.z)
-                client.await("its heal", timeoutMillis = 20_000) {
+                val heal = client.await("its heal", timeoutMillis = 20_000) {
                     client.actorEvents().firstOrNull { it.npc && it.index == mej.index && it.kind == ActorEventKind.ANIMATION && it.id == FightCaveMonsters.ANIM_MEJKOT_HEAL }
                 }
                 assertTrue(client.actorEvents().any { it.npc && it.index == mej.index && it.kind == ActorEventKind.SPOTANIM && it.id == FightCaveMonsters.SPOTANIM_HEAL })
+                // The heal is its attack for that tick: no swing lands on the player alongside it (a 0 under ::god).
+                assertTrue(client.actorEvents().none { !it.npc && it.kind == ActorEventKind.HITSPLAT && it.ticks == heal.ticks })
+                // Each heal is a roll of 0 to 10, and it heals again every attack while below half, so it gains in time.
+                client.await("hitpoints back", timeoutMillis = 30_000) { mej.hitpoints.takeIf { it > hurt } }
+            }
+        }
+    }
+
+    // Fight Caves step FC3: TzTok-Jad and his healers.
+
+    @Test
+    fun `TzTok-Jad's magic and ranged hits land 3 ticks after their tells`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("jon").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("setlevel hitpoints 99") { true }
+                client.commandReply("fightcave 63 1") { it.startsWith("Fight cave") }
+                val jad = client.waveIn(server, "jon", 63).single()
+                assertTrue(jad.scriptedAttacks)
+                // Near enough for the client to see him (he is 5 tiles across), out of his reach.
+                client.tele(jad.x - 6, jad.z)
+                val tells = setOf(FightCaveMonsters.ANIM_JAD_MAGIC, FightCaveMonsters.ANIM_JAD_RANGED)
+                val tell = client.await("a tell", timeoutMillis = 20_000) {
+                    client.actorEvents().firstOrNull { it.npc && it.index == jad.index && it.kind == ActorEventKind.ANIMATION && it.id in tells }
+                }
+                val hit = client.await("its hit") {
+                    client.actorEvents().firstOrNull { !it.npc && it.kind == ActorEventKind.HITSPLAT && it.ticks > tell.ticks }
+                }
+                assertEquals(FightCaveMonsters.JAD_HIT_DELAY, hit.ticks - tell.ticks)
+            }
+        }
+    }
+
+    @Test
+    fun `leaving the cave drops TzTok-Jad's hits on their way`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("kit").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("setlevel hitpoints 99") { true }
+                client.commandReply("fightcave 63 1") { it.startsWith("Fight cave") }
+                val jad = client.waveIn(server, "kit", 63).single()
+                client.tele(jad.x - 6, jad.z)
+                val player = server.world.playerNamed("kit")!!
+                val mechanics = server.world.fightCaves.monsterMechanics
+                client.await("a hit on its way", timeoutMillis = 20_000) { mechanics.jadHitsInFlight.takeIf { it > 0 } }
+                val hp = player.hitpoints
+                client.commandReply("fightcave leave") { true }
+                client.await("the run over") { true.takeIf { server.run("kit") == null } }
+                assertEquals(0, mechanics.jadHitsInFlight)
+                assertEquals(hp, player.hitpoints, "no hit outside")
+            }
+        }
+    }
+
+    @Test
+    fun `below 150 TzTok-Jad brings four Yt-HurKots that heal him, one attacked fights back, and they go when he dies`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("kim").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("fightcave 63 1") { it.startsWith("Fight cave") }
+                val jad = client.waveIn(server, "kim", 63).single()
+                val run = server.run("kim")!!
+                assertTrue(run.monsters.none { it.type.id == FightCaveMonsters.YT_HURKOT })
+                client.commandReply("hit 110 ${jad.index}") { it.startsWith("Hit") }
+                val healers = client.await("the healers") { run.monsters.filter { it.type.id == FightCaveMonsters.YT_HURKOT }.takeIf { it.size == 4 } }
+                assertTrue(healers.all { it.target == null }, "they go for him, not the player")
+                client.await("a heal", timeoutMillis = 20_000) { jad.hitpoints.takeIf { it > 140 } }
+
+                val player = server.world.playerNamed("kim")!!
+                val one = healers.first()
+                client.tele(one.x - 1, one.z)
+                client.await("it in view") { client.npcs().firstOrNull { it.index == one.index } }
+                client.npcOp(one.index, 1)
+                client.await("it fights back") { one.target?.takeIf { it === player } }
+
+                client.commandReply("kill ${jad.index}") { it.startsWith("Killed") }
+                client.await("outside", timeoutMillis = 20_000) { client.position?.takeIf { it == Coord(FightCaves.OUTSIDE.x, FightCaves.OUTSIDE.z, 0) } }
+                assertTrue(healers.none { server.world.npcs[it.index] === it }, "the healers went with him")
+                assertNotNull(client.inventory(INV).firstOrNull { it?.id == FightCaves.FIRE_CAPE })
+            }
+        }
+    }
+
+    @Test
+    fun `leaving with TzTok-Jad's healers out keeps nothing of them`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("lou").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("fightcave 63 1") { it.startsWith("Fight cave") }
+                val jad = client.waveIn(server, "lou", 63).single()
+                client.commandReply("hit 110 ${jad.index}") { it.startsWith("Hit") }
+                val mechanics = server.world.fightCaves.monsterMechanics
+                client.await("the healers", timeoutMillis = 10_000) { server.run("lou")?.monsters?.count { it.type.id == FightCaveMonsters.YT_HURKOT }?.takeIf { it == 4 } }
+                assertTrue(mechanics.jadsTracked > 0)
+                client.commandReply("fightcave leave") { true }
+                client.await("the run over") { true.takeIf { server.run("lou") == null } }
+                assertEquals(0, mechanics.jadsTracked)
+            }
+        }
+    }
+
+    @Test
+    fun `TzRek-Jad is 1 in 200, 1 in 100 on task, and comes as the item with its collection log entry`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("pip").use { client ->
+                client.await("the login rebuild") { client.position }
+                val caves = server.world.fightCaves
+                assertEquals(200, caves.petOdds(onTask = false))
+                assertEquals(100, caves.petOdds(onTask = true))
+                val player = server.world.playerNamed("pip")!!
+                caves.givePet(player)
+                client.await("the pet") { client.inventory(INV).firstOrNull { it?.id == FightCaves.PET } }
+                assertEquals(1, server.world.collectionLog.count(player, FightCaves.PET))
+                client.await("its message") { client.messages().firstOrNull { "fight_cave.pet" in it.text } }
             }
         }
     }

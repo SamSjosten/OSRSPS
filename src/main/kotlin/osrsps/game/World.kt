@@ -1471,7 +1471,7 @@ class World(
             deaths.respawn(player)
             // A Fight Cave death is paid and its run ended before the save, as a leaver's is (remove); TokKul that won't
             // fit goes to the bank, as a ground drop wouldn't outlast the stop.
-            fightCaves.leaving(player, shuttingDown = true)
+            fightCaves.leaving(player)
         }
         saveAll()
     }

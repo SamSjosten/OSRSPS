@@ -4,9 +4,13 @@ import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.combat.AttackType
+import osrsps.game.combat.CombatMath
+import osrsps.game.combat.DinhsBulwark
 import osrsps.game.combat.MeleeCombat
 import osrsps.game.npc.Npc
+import osrsps.map.LineOfSight
 import osrsps.map.Tile
+import java.util.WeakHashMap
 
 /**
  * The Fight Cave's monsters' own mechanics (Fight Caves step FC2; the OSRS Wiki page named after each, read
@@ -30,6 +34,20 @@ import osrsps.map.Tile
  *   gets too close": in reach, where it keeps its magic too (the Wiki's Fight Cave Strategies: it uses both Magic and
  *   Melee in melee range). Guessed: even odds between the two in reach.
  *
+ * - **TzTok-Jad** (3127; Fight Caves step FC3; the Wiki's TzTok-Jad and Yt-HurKot): every 8 ticks a magic (max 95) or
+ *   ranged (max 97) attack from up to 15 tiles, each with its own tell, and an instant melee (max 97) only "if the player
+ *   is within melee distance", after which he "can attack with melee every 4 ticks". The magic and ranged hits land
+ *   [JAD_HIT_DELAY] ticks after the tell, and the protection prayer counts as they land, so switching on seeing the tell
+ *   works. Guessed: the 3-tick delay; the pick (even odds between the styles he can use); melee as crush; the tells'
+ *   animations (lordmagmus_fire 2656 for magic, lordmagmus_smash 2652 for ranged, lordmagmus_attack 2655 for melee) and
+ *   spotanims (tzhaar_fire_spit_launch/_travel 447/448 for the fireball, tzhaar_rock_smash 451 on the player).
+ * - **Yt-HurKot** (3128): "Once TzTok-Jad is reduced to below 150 health, he will summon four Yt-HurKots". Each heals him
+ *   5 every 4 ticks within 5 tiles of him, walking to him otherwise; attacked, it "stop[s] healing and immediately
+ *   target[s] the player with melee", going back to him once it gives up. If they heal him to full they come again
+ *   when he is next below 150 (ours: topped up to four). They go when he dies. Guessed: where they come in (around
+ *   him, [HEALER_OFFSETS]); a distracted one doesn't heal even close by (the Jad page says it would, the Yt-HurKot page
+ *   that it stops: the latter kept); the heal's animation and spotanim (a Yt-MejKot's).
+ *
  * They fight through [Npc.scriptedAttacks], driven from [FightCaves.process] by [tick], so these choices are made where
  * the engine would swing or fire. The level 22 Tz-Kek has nothing of its own and fights as the engine's ordinary melee
  * monster.
@@ -43,6 +61,128 @@ class FightCaveMonsters(private val world: World) {
             if (npc.type.id in TZ_KEK_45) recoil(npc, player)
         }
         world.npcScripts.onDeath(TZ_KEK_45) { split(caves, it) }
+        world.npcScripts.onDeath(listOf(TZTOK_JAD)) { jadDied(caves, it) }
+    }
+
+    /** Jad's healers and when each next heals. */
+    private class JadState {
+        val healers: MutableList<Npc> = ArrayList()
+        var healersOut = false
+    }
+
+    private val jads = WeakHashMap<Npc, JadState>()
+    private val nextHeal = WeakHashMap<Npc, Long>()
+
+    /** A magic or ranged hit of Jad's on its way, the prayer counted as it lands. */
+    private class JadHit(val jad: Npc, val player: Player, val type: AttackType, val damage: Int, val landTick: Long)
+
+    private val jadHits = ArrayList<JadHit>()
+
+    /** How many of Jad's hits are on their way, for the tests. */
+    val jadHitsInFlight: Int get() = jadHits.size
+
+    /** How many Jads (and healers) have state kept, for the tests: none once their runs are over. */
+    val jadsTracked: Int get() = jads.size + nextHeal.size
+
+    /** The cave monsters' part of a tick with no one monster to it: Jad's hits landing. */
+    fun process() {
+        if (jadHits.isEmpty()) return
+        val iterator = jadHits.iterator()
+        while (iterator.hasNext()) {
+            val hit = iterator.next()
+            if (world.tick < hit.landTick) continue
+            iterator.remove()
+            val player = hit.player
+            if (player.loggedOut || player.dead || player.hitpoints <= 0 || hit.jad.dead) continue
+            // Out of Jad's cave (teleported, or the cave gone) before it landed: it doesn't follow them.
+            if (world.instances.at(player.x, player.z)?.contains(hit.jad.x, hit.jad.z) != true) continue
+            if (hit.type == AttackType.RANGED) player.effects.spotanim(0, SPOTANIM_JAD_ROCK, 0, 0)
+            // Dinh's bulwark counts as it lands, as the prayer does (MeleeCombat's own shots count both as they fire).
+            val bulwarked = if (world.combat.bulwarkBlocking(player, world.tick)) DinhsBulwark.blocked(hit.damage) else hit.damage
+            val damage = if (world.prayers.protects(player, hit.type)) 0 else bulwarked
+            world.meleeCombat.hitPlayer(player, hit.jad, damage, world.tick)
+        }
+    }
+
+    /** Drops Jad's hits on their way from inside [area], a run's cave, as the run ends. */
+    fun dropHitsWithin(area: (x: Int, z: Int) -> Boolean) {
+        jadHits.removeAll { area(it.jad.x, it.jad.z) }
+        // A Jad left alive (a death, leaving, logging out) and his healers: their state goes with the run.
+        val gone = jads.keys.filter { area(it.x, it.z) }
+        for (jad in gone) jads.remove(jad)?.healers?.forEach { nextHeal.remove(it) }
+        nextHeal.keys.removeAll { area(it.x, it.z) }
+    }
+
+    /** Jad's healers' turn, and his healers coming when he is low: for [jad] in [run], fought by [player]. */
+    fun jadTick(caves: FightCaves, run: FightCaves.Run, jad: Npc, player: Player) {
+        if (jad.dead) return
+        val state = jads.getOrPut(jad) { JadState() }
+        state.healers.removeAll { it.dead || world.npcs[it.index] !== it }
+        if (jad.hitpoints >= jad.maxHitpoints) state.healersOut = false
+        if (!state.healersOut && jad.hitpoints < HEALERS_BELOW) {
+            state.healersOut = true
+            for (offset in HEALER_OFFSETS.drop(state.healers.size)) {
+                val healer = caves.spawn(player, run, YT_HURKOT, Tile(jad.x + offset.x, jad.z + offset.z), fight = false) ?: continue
+                state.healers += healer
+                nextHeal[healer] = world.tick + HEAL_TICKS
+            }
+        }
+        for (healer in state.healers) healerTick(state, healer, jad)
+    }
+
+    private fun healerTick(state: JadState, healer: Npc, jad: Npc) {
+        // Attacked, it fights the player until it gives up on them.
+        if (healer.target != null || healer.dead) return
+        val near = jadDistance(healer, jad)
+        if (healer.leader !== jad) world.npcs.followNpc(healer, jad)
+        if (near > HEAL_RANGE || world.tick < (nextHeal[healer] ?: 0L)) return
+        nextHeal[healer] = world.tick + HEAL_TICKS
+        if (jad.hitpoints >= jad.maxHitpoints) return
+        healer.effects.anim(ANIM_MEJKOT_HEAL)
+        jad.hitpoints = minOf(jad.maxHitpoints, jad.hitpoints + HURKOT_HEAL)
+        // Healed to full: they come again when he is next below 150, though a hit lands before the next tick looks.
+        if (jad.hitpoints >= jad.maxHitpoints) state.healersOut = false
+        jad.effects.spotanim(0, SPOTANIM_HEAL, 0)
+        jad.effects.headBar(-1, MeleeCombat.HEALTH_BAR, MeleeCombat.healthBarFill(jad.hitpoints, jad.maxHitpoints))
+    }
+
+    private fun jadDistance(healer: Npc, jad: Npc): Int =
+        maxOf(gap(healer.x, healer.type.size, jad.x, jad.type.size), gap(healer.z, healer.type.size, jad.z, jad.type.size))
+
+    /** Jad died: his healers go with him, and whether the kill was on a Slayer task is kept for the pet's odds. */
+    private fun jadDied(caves: FightCaves, jad: Npc) {
+        val state = jads.remove(jad)
+        state?.healers?.forEach { if (world.npcs[it.index] === it) world.removeNpc(it) }
+        jadHits.removeAll { it.jad === jad }
+        val run = caves.runAt(jad.x, jad.z) ?: return
+        run.monsters.removeAll { it.type.id == YT_HURKOT }
+        val player = world.onlinePlayers.firstOrNull { it.saveKey == run.owner } ?: return
+        run.jadOnTask = world.slayer.onTask(player, jad)
+    }
+
+    /** Jad's attack at [player]: [reaches] says whether melee is one he can pick. */
+    private fun jadAttack(jad: Npc, player: Player, reaches: Boolean) {
+        val styles = if (reaches) JAD_STYLES_IN_REACH else JAD_STYLES_AFAR
+        val type = styles[world.random.between(0, styles.size - 1)]
+        if (type.melee) {
+            world.meleeCombat.swingAt(jad, player, world.tick, ANIM_JAD_MELEE, type, JAD_MELEE_MAX)
+            jad.nextAttackTick = world.tick + JAD_MELEE_TICKS
+            return
+        }
+        val def = world.combat.npcCombat[jad.type] ?: return
+        jad.nextAttackTick = world.tick + def.attackSpeed
+        jad.fightTick = world.tick
+        jad.face(player)
+        val magic = type == AttackType.MAGIC
+        jad.effects.anim(if (magic) ANIM_JAD_MAGIC else ANIM_JAD_RANGED)
+        if (magic) {
+            jad.effects.spotanim(0, SPOTANIM_JAD_FIRE_LAUNCH, 0)
+            world.zones.projectile(world.meleeCombat.flight(jad, player, SPOTANIM_JAD_FIRE_TRAVEL, JAD_HIT_DELAY))
+        }
+        val roll = world.combat.npcAttack(jad, player, type) ?: return
+        val max = if (magic) JAD_MAGIC_MAX else JAD_RANGED_MAX
+        val damage = if (CombatMath.rollHits(world.random, roll.attackRoll, roll.defenceRoll)) CombatMath.rollDamage(world.random, max) else 0
+        jadHits += JadHit(jad, player, type, damage, world.tick + JAD_HIT_DELAY)
     }
 
     /** Whether a monster of [typeId] fights through [tick] rather than the engine's own swings. */
@@ -52,7 +192,7 @@ class FightCaveMonsters(private val world: World) {
     fun tick(npc: Npc, player: Player) {
         if (npc.dead || npc.hidden || player.dead || player.hitpoints <= 0) return
         val reaches = world.meleeCombat.reaches(npc, player)
-        val shoots = npc.type.id in TOK_XIL || npc.type.id in KET_ZEK
+        val shoots = npc.type.id in TOK_XIL || npc.type.id in KET_ZEK || npc.type.id == TZTOK_JAD
         npc.face(player)
         when {
             reaches -> world.npcs.stopFollowing(npc)
@@ -75,6 +215,7 @@ class FightCaveMonsters(private val world: World) {
                 world.meleeCombat.fireAt(npc, player, world.tick)
             }
             id in YT_MEJKOT -> if (!heal(npc)) world.meleeCombat.swingAt(npc, player, world.tick)
+            id == TZTOK_JAD -> jadAttack(npc, player, reaches)
             id in KET_ZEK -> if (reaches && world.random.chance(1, 2)) {
                 world.meleeCombat.swingAt(npc, player, world.tick, ANIM_KET_ZEK_MELEE, AttackType.STAB, KET_ZEK_MELEE_MAX)
             } else {
@@ -149,7 +290,30 @@ class FightCaveMonsters(private val world: World) {
         val TOK_XIL = setOf(3121, 3122)
         val YT_MEJKOT = setOf(3123, 3124)
         val KET_ZEK = setOf(3125, 3126)
-        private val SCRIPTED = TZ_KIH + TOK_XIL + YT_MEJKOT + KET_ZEK
+        const val TZTOK_JAD = 3127
+        const val YT_HURKOT = 3128
+        private val SCRIPTED = TZ_KIH + TOK_XIL + YT_MEJKOT + KET_ZEK + TZTOK_JAD
+
+        const val JAD_MELEE_MAX = 97
+        const val JAD_RANGED_MAX = 97
+        const val JAD_MAGIC_MAX = 95
+        const val JAD_MELEE_TICKS = 4
+        const val JAD_HIT_DELAY = 3
+        private val JAD_STYLES_IN_REACH = listOf(AttackType.CRUSH, AttackType.RANGED, AttackType.MAGIC)
+        private val JAD_STYLES_AFAR = listOf(AttackType.RANGED, AttackType.MAGIC)
+        const val ANIM_JAD_MAGIC = 2656
+        const val ANIM_JAD_RANGED = 2652
+        const val ANIM_JAD_MELEE = 2655
+        const val SPOTANIM_JAD_FIRE_LAUNCH = 447
+        const val SPOTANIM_JAD_FIRE_TRAVEL = 448
+        const val SPOTANIM_JAD_ROCK = 451
+
+        const val HEALERS_BELOW = 150
+        const val HURKOT_HEAL = 5
+        const val HEAL_RANGE = 5
+
+        /** Where his four healers come in, from his south-west tile (guessed: one off each side of his 5 by 5). */
+        val HEALER_OFFSETS = listOf(Tile(-2, 2), Tile(6, 2), Tile(2, -2), Tile(2, 6))
 
         const val RECOIL = 1
         const val TOK_XIL_MELEE_MAX = 13
