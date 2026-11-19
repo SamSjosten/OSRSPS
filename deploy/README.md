@@ -4,6 +4,10 @@
 VM with cron, a line in `sam`'s crontab) runs it, and when `origin/main` has moved it fast-forwards
 `/srv/rsps/OSRSPS` and runs `docker compose up -d --build`. Nobody needs to ssh in after a merge.
 
+The server runs there in Docker from that checkout, with `data/` mounted in, using the settings in `compose.yaml`
+(the top README's "Run in Docker"). Changes to the VM's system, the Proxmox host or the network go through the Home Lab
+project.
+
 - The server answers `http://192.168.0.210:43595/version` with the commit of main it runs: the one it was built from
   (`OSRSPS_COMMIT`, set by the script; `unknown` after a plain `docker compose up`), or a newer one that left it
   running (next point). `test-runner/launch/start-client.ps1 -Commit <sha>` on the test VM waits for it, so a test run
@@ -24,8 +28,9 @@ VM with cron, a line in `sam`'s crontab) runs it, and when `origin/main` has mov
 - It also swaps the cache: when `deploy/cache-build.txt` (e.g. `241.4`) names another OpenRS2 build than
   `data/cache-source.txt`, it runs `fetch-cache <build>` with the new image, then recreates the container. The fetch
   keeps the old cache in `data/cache.previous`. While OpenRS2 doesn't list that build as the newest, `fetch-cache`
-  changes nothing and the script tries again every 30 minutes (`.deploy/cache-wait`). Rolling back is by hand (see the
-  top README's "Get the cache"); put the old build in `cache-build.txt` too, or the next run fetches the new one again.
+  changes nothing and the script tries again every 30 minutes (`.deploy/cache-wait`). Rolling back is by hand: stop the server, swap `data/cache` with
+  `data/cache.previous` and `data/cache-source.txt` with `data/cache.previous-source.txt`, and put the old build in
+  `cache-build.txt` too, or the next run fetches the new one again.
   Write the build as OpenRS2's caches.json lists it, which is what `data/cache-source.txt` records: it lists the
   2026-10-20 cache (the one the game calls 241.4) as plain `241`, with no minor build.
 - `http://192.168.0.210:43595/status` answers with the commit, the cache's source line and the game frame check
@@ -53,6 +58,23 @@ VM with cron, a line in `sam`'s crontab) runs it, and when `origin/main` has mov
 - Other work on the checkout or the container (a cache swap, `fetch-cache`, a hand-made `git pull`) should hold the
   same lock so a timed deploy can't start in the middle: `flock .deploy/lock docker compose run --rm osrsps fetch-cache`,
   or stop the crontab line / `sudo systemctl stop osrsps-deploy.timer` first and start it after.
+
+## Reaching it, and problem reports
+
+Over the LAN, RSProx and the test VMs use `http://192.168.0.210:43595/proxy-targets.yaml` directly. Away from it, keep
+an SSH tunnel open (PowerShell) and use `http://127.0.0.1:43595/proxy-targets.yaml`:
+
+```powershell
+ssh -J root@192.168.0.210 -L 43594:127.0.0.1:43594 -L 43595:127.0.0.1:43595 sam@10.99.0.10
+```
+
+Friends reach the server at `odinsgate.net`, a VPS relay of 43594 and 43595 run by the Home Lab project.
+
+The launcher's "Send problem report" posts to `POST /report`. The server scrubs each one, saves it under
+`data/reports/`, and every minute files waiting reports as issues labelled `bug-report` (a repeat of an open issue
+becomes a comment there), at most 20 a day. Filing needs `data/github-report-token.txt`: a fine-grained token with
+Issues read and write on that repository only, put there by hand. Without it, reports wait. To set a password on 214,
+which has little memory to spare: `docker compose exec -e JAVA_OPTS=-Xmx64m osrsps bin/osrsps set-password <name>`.
 
 ## The staging server: any branch, next to the live one
 

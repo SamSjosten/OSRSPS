@@ -1,7 +1,7 @@
 # AGENTS.md
 
 OSRSPS is a private Old School RuneScape test server: our own engine in Kotlin on Java 21, RSProt for the protocol,
-revision 241 (`src/main/kotlin/osrsps/Revision.kt`). Content is recreated 1:1 from the OSRS Wiki and recordings of the
+revision 242 (`src/main/kotlin/osrsps/Revision.kt`). Content is recreated 1:1 from the OSRS Wiki and recordings of the
 live game, so RuneLite plugins can be tested against it. See `README.md` for building, running and the commands, and
 `CONTRIBUTING.md` for how pull requests move.
 
@@ -38,7 +38,7 @@ anything below that the diff gets wrong.
 
 ### Protocol and the client
 
-- The client is the live 241 client and must connect unchanged. Check packet fields, varp and varbit ids, interface
+- The client is the live 242 client and must connect unchanged. Check packet fields, varp and varbit ids, interface
   and component ids against the cache and `osrs-dumps`, not against older revisions or other servers.
 - `IF_SETEVENTS`: ops go in events2 (op n is bit n-1). Bits 1-10 of events1 are old op bits the 241 client ignores;
   events1 keeps pause (bit 0), targets (11-16) and drag (17-21).
