@@ -472,6 +472,13 @@ class Pickpocketing(private val world: World) {
 
         val MASTER_FARMERS = listOf(5730, 5731)
 
+        /**
+         * martin_the_master_farmer: Martin the Master Gardener in Draynor's market, a Master Farmer by the Wiki's
+         * Pickpocketing section (the same chart, XP, damage, stun and seed table, and the same caught line). Inferred:
+         * the messages name him.
+         */
+        const val MARTIN = 5832
+
         /** favour_male_ham_civilian and favour_female_ham_civilian: Pickpocket is their op1, not op3. */
         val HAM_MEMBERS = listOf(2540, 2541)
         const val HAM_PICKPOCKET = 1
@@ -624,6 +631,7 @@ class Pickpocketing(private val world: World) {
             Pocket(Townsfolk.MEN + AL_KHARID_MAN, "man", 1, 80, 180, 240, 1, PickpocketLines.CAUGHT_CITIZEN, CITIZEN_POUCH, COINS_PER_CITIZEN_POUCH),
             Pocket(Townsfolk.WOMEN, "woman", 1, 80, 180, 240, 1, PickpocketLines.CAUGHT_CITIZEN, CITIZEN_POUCH, COINS_PER_CITIZEN_POUCH),
             Pocket(MASTER_FARMERS, "Master Farmer", 38, 430, 90, 240, 3, PickpocketLines.CAUGHT_FARMER, loot = MASTER_FARMER_LOOT),
+            Pocket(listOf(MARTIN), "Martin the Master Gardener", 38, 430, 90, 240, 3, PickpocketLines.CAUGHT_FARMER, loot = MASTER_FARMER_LOOT),
             Pocket(VARROCK_GUARDS + EDGEVILLE_GUARD + ARDOUGNE_GUARD, "guard", 40, 468, 50, 240, 2, PickpocketLines.CAUGHT_CITIZEN, GUARD_POUCH, COINS_PER_GUARD_POUCH),
             Pocket(listOf(WARRIOR_WOMAN) + WARRIORS_2022, "warrior", 25, 260, 100, 240, 2, PickpocketLines.CAUGHT_CITIZEN, WARRIOR_POUCH, COINS_PER_WARRIOR_POUCH),
             Pocket(listOf(AL_KHARID_WARRIOR), "Al Kharid warrior", 25, 260, 100, 240, 2, PickpocketLines.CAUGHT_CITIZEN, WARRIOR_POUCH, COINS_PER_WARRIOR_POUCH),
