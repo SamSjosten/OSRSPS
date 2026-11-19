@@ -114,6 +114,8 @@ between scripts then shows the words a player sees, not `[key]`.
 
 `karamja-ships.json` (Karamja step K1.1, for test on 215: 100 coins from `::item`, Captain Tobias's Musa Point option on Port Sarim's dock and `[karamja_ship.paid fare=30]`, the ship journey screen (299), the landing on Musa Point's deck (2956,3143, plane 1) and its arrival box, the gangplank ashore to 2956,3146; then a Karamjan rum from `::item 431`, the customs officer's Port Sarim option and `[karamja_ship.confiscated]` with no fare taken, her talk's journey and boarding options sailing back to Port Sarim's deck (3032,3217, plane 1) for 30 more, and the gangplank ashore to 3029,3217) needs 0.4.0 for `assertInventory` (and `locOption`, `assertInterface`).
 
+`musa-point.json` (Karamja step K1.2, for test on 215: the banana crate emptied with `::varp banana_crate 0`, Luthas's employment option, Pick on the banana tree at 2930,3155 and `[musa_point.banana_picked]` with the tree then 2074, ten bananas from `::item`, one used on his crate (2072 at 2939,3149) and `[musa_point.pack_one]`, Search and `[musa_point.crate_has count=1 s=]`, Fill and nine more gone, Search's full box, his pay of 30 coins, and Zembo's yes opening his shop (300)) needs 0.15.0 for `useItemOnLoc` (and `assertLoc`, `assertInventory`).
+
 `combat-respawn.json` (a castle man and a cow killed with `::kill`, still listed by `::respawns` until their Wiki
 respawn times of 25 and 45 ticks are up) needs 0.5.0.
 
