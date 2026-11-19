@@ -722,6 +722,13 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   `collection_last_tab` (6905), the burger menu's Overview (621:73 slot 12) opens the overview (908) and its Bosses
   button (908:22 slot 0) the log again, then the close button. Ends with `::clog reset` and the kills back at 0. On the
   VMs the header reads "King Black Dragon kills: 31" and "Obtained: 1/4"; headless can't read script-drawn text.
+- `collection-log-collector.json` (needs 0.21.0): collection log step 3, with `::keys on`. At The Collector by the
+  Varrock Museum's stairs (3265, 3455), Get-log hands over a collection log (`[collector.gives_log]`, item 22711) and a
+  second Get-log says `[collector.have_one]`; the log's Read opens the log (621) and Collections overview the overview
+  (908); Claim-log-rewards with nothing logged starts `[collector.count_please]`; Create-book on a bronze staff of
+  collection (30597, from `::item`) makes the bronze collection log (30579); Destroy on that book opens the destroy
+  check (584), and a mouse click on its drawn No (universe child 0) keeps the book while Yes (child 1) takes it. Starts
+  and ends with `::empty`.
 
 ## Results
 

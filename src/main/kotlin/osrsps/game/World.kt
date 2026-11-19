@@ -462,6 +462,9 @@ class World(
     /** The giant bosses' lairs ([GiantLairs]): Obor's. */
     val giantLairs = GiantLairs(this)
 
+    /** Scurrius's lairs, public and private ([osrsps.game.content.ScurriusLairs]). */
+    val scurriusLairs = osrsps.game.content.ScurriusLairs(this)
+
     /** The Wilderness bosses' shared rules: group loot, kill counts, `::wboss`; see [WildernessBosses]. */
     val wildernessBosses = osrsps.game.content.WildernessBosses(this)
 
@@ -633,7 +636,8 @@ class World(
         locs, collision, movement, handlers, scripts, doors, gates, words = ::textFor, inInstance = { x, z -> instances.at(x, z) != null },
         forInstances = {
             it in ArchiveRaids.INSTANCE_LOCS || it in GiantLairs.INSTANCE_LOCS || it in KingBlackDragon.INSTANCE_LOCS ||
-                it in osrsps.game.skill.construction.House.INSTANCE_LOCS || it in FightCaves.INSTANCE_LOCS
+                it in osrsps.game.skill.construction.House.INSTANCE_LOCS || it in FightCaves.INSTANCE_LOCS ||
+                it in osrsps.game.content.Scurrius.INSTANCE_LOCS
         },
     )
 
@@ -769,6 +773,7 @@ class World(
         archiveRaids.deathPlace(player)?.let { return it }
         fightCaves.deathPlace(player)?.let { return it }
         houses.deathPlace(player)?.let { return it }
+        scurriusLairs.deathPlace(player)?.let { return it }
         val instance = instances.at(player.x, player.z) ?: return null
         KingBlackDragon.graveTile(this, player.x, player.z)?.let { return DeathPlace(keepItems = false, it.x, it.z, 0, SPAWN_X, SPAWN_Z, SPAWN_LEVEL) }
         return DeathPlace(keepItems = false, instance.exitX, instance.exitZ, instance.exitLevel, SPAWN_X, SPAWN_Z, SPAWN_LEVEL)
@@ -1075,6 +1080,7 @@ class World(
         registerMillLaneMill(this)
         registerBarfyBill(this)
         registerFatherUrhney(this)
+        osrsps.game.collection.TheCollector.register(this)
         registerAdventurersCamp(this)
         registerCandleSeller(this)
         registerSwampTutors(this)
@@ -1135,6 +1141,7 @@ class World(
         // After the raid, which sets the combat's shut-out rule afresh; the lairs add theirs to it.
         registerObor(this, giantLairs)
         registerBryophyta(this, giantLairs)
+        osrsps.game.content.registerScurrius(this, scurriusLairs)
         registerEmotes(this)
         registerGiantBones(this)
         registerRoguesDen(this)
