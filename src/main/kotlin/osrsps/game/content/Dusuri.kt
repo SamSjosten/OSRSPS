@@ -46,9 +46,10 @@ object DusuriLines : Lines("dusuri", "Transcript:Dusuri") {
  *
  * - He is the multi-NPC star_trader: Talk-to only until the introduction ends with varbit star_trader_met set, then
  *   Trade as well. The introduction asks whether the player has touched a star (star_mined, set by [ShootingStars]) and
- *   offers to trade there and then when they carry stardust. Every world counts as members, so "Not now" is never said.
+ *   offers to trade there and then when they carry stardust. Every world counts as members, so his free-to-play refusal is never used.
  * - A bag full of gems opens to 40 noted uncut gems, each rolled on its table (sapphire 100, emerald 69, ruby 24,
- *   diamond 6, dragonstone 1 out of 200, and onyx 1 in 100,000,000 first); a soft clay pack to 100 noted soft clay.
+ *   diamond 6, dragonstone 1 out of 200, and onyx 1 in 100,000,000 first, logged in the collection log); a soft clay
+ *   pack to 100 noted soft clay.
  * - The celestial ring's +4 is [osrsps.game.skill.Mining.celestialBoost].
  *
  * Guessed: every chathead expression; a bag or pack needing room for everything it could hold (for the bag, 40 of each
@@ -175,12 +176,16 @@ fun registerDusuri(world: World) {
             val possible = (GEM_TABLE.map { it.obj } + UNCUT_ONYX).associate { noted(it) to GEMS_PER_BAG }
             if (!fits(player.inventory, possible, freedSlot = true)) return@onObj world.message(player, DusuriLines.PACK_SPACE)
             val rolled = LinkedHashMap<ObjType, Int>()
+            var onyxes = 0
             repeat(GEMS_PER_BAG) {
                 val gem = if (world.random.chance(1, ONYX_CHANCE)) UNCUT_ONYX else BirdNests.pick(world.random, GEM_TABLE)
+                if (gem == UNCUT_ONYX) onyxes++
                 rolled.merge(noted(gem), 1, Int::plus)
             }
             player.inventory.remove(op.sub, 1)
             for ((type, count) in rolled) player.inventory.add(type, count)
+            // An onyx from the bag goes in the collection log (OSRS Wiki, Bag full of gems), as the unnoted gem.
+            world.collectionLog.add(player, UNCUT_ONYX, onyxes)
         }
         world.handlers.onObj(SOFT_CLAY_PACK, OPEN) { op ->
             if (player.inventory[op.sub]?.id != SOFT_CLAY_PACK) return@onObj
