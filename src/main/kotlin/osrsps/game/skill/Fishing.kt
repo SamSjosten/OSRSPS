@@ -336,8 +336,10 @@ class Fishing(private val world: World) {
                 val slot = player.inventory.contents().firstOrNull { it.second.id == bait.obj }?.first
                 if (slot != null) player.inventory.remove(slot, 1)
             }
-            player.inventory.add(type, fish.amount(level))
+            val caught = fish.amount(level)
+            player.inventory.add(type, caught)
             player.skills.addTenths(Skill.FISHING, fish.xpTenths)
+            world.diaries.made(player, fish.obj, caught)
             player.message(world.textFor(player)[fish.line])
             return
         }
@@ -356,6 +358,7 @@ class Fishing(private val world: World) {
             val type = world.objTypes[fish.obj] ?: error("No obj type ${fish.obj} for a caught fish")
             player.inventory.add(type, 1)
             player.skills.addTenths(Skill.FISHING, fish.xpTenths)
+            world.diaries.made(player, fish.obj, 1)
             player.message(text[fish.line])
         }
     }
@@ -376,6 +379,7 @@ class Fishing(private val world: World) {
         val type = world.objTypes[fish.obj] ?: error("No obj type ${fish.obj} for a caught fish")
         player.inventory.add(type, 1)
         player.skills.addTenths(Skill.FISHING, fish.xpTenths)
+        world.diaries.made(player, fish.obj, 1)
         player.message(text[fish.line])
     }
 

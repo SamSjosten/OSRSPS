@@ -171,6 +171,7 @@ class Woodcutting(private val world: World, val data: WoodcuttingData, private v
                 val logs = world.objTypes[tree.logs] ?: error("No obj type ${tree.logs} for ${tree.key} logs")
                 player.inventory.add(logs, 1)
                 player.skills.addTenths(Skill.WOODCUTTING, tree.xpTenths)
+                world.diaries.made(player, logs.id, 1)
                 player.message(text[WoodcuttingLines.GET_LOGS, "logs" to logs.name.lowercase()])
                 if (tree.birdNests) nests.roll(player)
                 if (timer == null || timer.left <= 0) {

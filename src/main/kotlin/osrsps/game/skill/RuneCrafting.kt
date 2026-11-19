@@ -92,6 +92,7 @@ class RuneCrafting(private val world: World) {
         removeAll(inventory, Mining.PURE_ESSENCE, pure.toInt())
         // Every essence has left the backpack, so the stack has a slot even when it was full.
         inventory.add(runeType, made.toInt())
+        world.diaries.made(player, recipe.rune, made.toInt())
         player.anim(ANIM)
         player.spotanim(SPOTANIM, SPOTANIM_HEIGHT)
         player.skills.addTenths(Skill.RUNECRAFT, recipe.xpTenths * essence)

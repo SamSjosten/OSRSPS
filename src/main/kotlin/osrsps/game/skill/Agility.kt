@@ -343,6 +343,7 @@ class Agility(private val world: World, val data: AgilityData) {
         player.charges[course.lapsCounter] = laps
         if (course.lapXpTenths > 0) player.skills.addTenths(Skill.AGILITY, course.lapXpTenths)
         player.message(world.textFor(player)[course.lapLine, "count" to laps])
+        world.diaries.lap(player, course.lapLine)
         rollMark(course)
     }
 
