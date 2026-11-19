@@ -1617,6 +1617,7 @@ class World(
             perPlayer(player, "Clans") { clans.process(player) }
             perPlayer(player, "farming") { farming.process(player) }
             perPlayer(player, "random events") { randomEvents.process(player) }
+            perPlayer(player, "White Tree") { osrsps.game.content.PalaceGarden.process(this, player) }
         }
         phase = TickPhase.MOVEMENT
         // Guessed place in the tick: before anyone walks, so a door that closes itself blocks this tick's steps.

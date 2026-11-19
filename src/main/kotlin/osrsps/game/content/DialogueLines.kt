@@ -354,6 +354,7 @@ object DialogueLines {
         OrlandoSmithLines,
         OsmanLines,
         OziachLines,
+        PalaceGardenLines,
         PalaceLibraryLines,
         PeksaLines,
         PerduLines,
