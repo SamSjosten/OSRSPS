@@ -27,6 +27,10 @@ object JewelleryTeleportLines : Lines("jewellery_teleport", "Ring of dueling") {
     val USES_LEFT = line("uses_left", "a ring of dueling or games necklace after a teleport, the uses left as a word (Ring of dueling)", "item", "count")
     val ONE_USE_LEFT = line("one_use_left", "a ring of dueling or games necklace with one use left after a teleport; words guessed from uses_left", "item")
     val CRUMBLES = line("crumbles", "a ring of dueling or games necklace after its last teleport (Ring of dueling)", "item")
+    val CRUMBLES_AWAY = line("crumbles_away", "a necklace of passage or ring of returning after its last teleport (Necklace of passage)", "item")
+    val WILDERNESS_WARNING = line("wilderness_warning", "the warning over two options before a teleport into the Wilderness (the Wiki's Burning amulet says there is one); words guessed", "place")
+    val WILDERNESS_YES = line("wilderness_yes", "the warning's option that teleports; words guessed")
+    val WILDERNESS_NO = line("wilderness_no", "the warning's option that stays; words guessed")
     val CHARGES_LEFT = line("charges_left", "dragonstone jewellery after a teleport, the charges left as a word; words guessed", "item", "count")
     val LAST_CHARGE = line("last_charge", "dragonstone jewellery after the teleport that uses its last charge; words guessed", "item")
     val NO_CHARGES = line("no_charges", "rubbing dragonstone jewellery with no charges; words guessed", "item")
@@ -36,13 +40,18 @@ object JewelleryTeleportLines : Lines("jewellery_teleport", "Ring of dueling") {
     val WILDERNESS_30 = line("wilderness_30", "dragonstone jewellery rubbed above level 30 Wilderness, after home_teleport.wilderness; words guessed")
 }
 
-/** Where a piece of jewellery takes the player: its worn option's [name] (the cache's) and the [landing]. */
-class JewelleryDestination(val name: String, val landing: Landing)
+/**
+ * Where a piece of jewellery takes the player: its worn option's [name] (the cache's), the [landing], and whether the
+ * player is warned first because it is in the Wilderness ([wilderness]).
+ */
+class JewelleryDestination(val name: String, val landing: Landing, val wilderness: Boolean = false)
 
 /**
  * One kind of teleport jewellery: its [forms] from most charges to one (one form that never runs out when [unlimited]),
  * the [empty] form the last charge leaves (-1 when the piece crumbles), what it is ([kind], for the rub message), the
- * deepest Wilderness level it works at ([wilderness]) and its [destinations], in the order of its worn options.
+ * deepest Wilderness level it works at ([wilderness]) and its [destinations], in the order of its worn options; the
+ * last charge's message says it crumbles away ([crumblesAway]) rather than to dust, and the messages give its name
+ * in title case ([titleCase]: "Digsite Pendant").
  */
 class TeleportJewellery(
     val key: String,
@@ -52,6 +61,8 @@ class TeleportJewellery(
     val empty: Int,
     val unlimited: Boolean,
     val destinations: List<JewelleryDestination>,
+    val crumblesAway: Boolean = false,
+    val titleCase: Boolean = false,
 ) {
     /** The form one charge after [obj], or null when [obj] goes ([empty] being -1); [obj] itself when [unlimited]. */
     fun after(obj: Int): Int? {
@@ -118,7 +129,11 @@ class JewelleryTeleportData(val jewellery: List<TeleportJewellery>) {
                             require(option == destination.name) { "${type.internalName}'s worn option ${d + 1} is $option, not ${destination.name}" }
                         }
                     }
-                    list += TeleportJewellery(key, kind, wilderness, forms, empty, unlimited, destinations)
+                    val crumble = entry["crumble"]?.jsonPrimitive?.content ?: "dust"
+                    require(crumble in setOf("dust", "away")) { "crumble $crumble" }
+                    require(crumble == "dust" || empty < 0) { "only jewellery that goes crumbles" }
+                    val titleCase = entry["titleCase"]?.jsonPrimitive?.boolean ?: false
+                    list += TeleportJewellery(key, kind, wilderness, forms, empty, unlimited, destinations, crumble == "away", titleCase)
                 } catch (e: Exception) {
                     throw IllegalArgumentException("$fileName: jewellery entry ${i + 1}: ${e.message}", e)
                 }
@@ -134,7 +149,8 @@ class JewelleryTeleportData(val jewellery: List<TeleportJewellery>) {
             val r = entry["r"]?.jsonPrimitive?.int ?: 0
             val level = entry["level"]?.jsonPrimitive?.int ?: 0
             require(level in 0..3 && r >= 0) { "level $level, r $r" }
-            return JewelleryDestination(entry.required("name").jsonPrimitive.content, Landing(level, listOf(intArrayOf(x - r, z - r, x + r, z + r))))
+            val wilderness = entry["wilderness"]?.jsonPrimitive?.boolean ?: false
+            return JewelleryDestination(entry.required("name").jsonPrimitive.content, Landing(level, listOf(intArrayOf(x - r, z - r, x + r, z + r))), wilderness)
         }
 
         private fun JsonObject.required(key: String): JsonElement = get(key) ?: throw IllegalArgumentException("no \"$key\"")
@@ -142,29 +158,35 @@ class JewelleryTeleportData(val jewellery: List<TeleportJewellery>) {
 }
 
 /**
- * The teleport jewellery (Magic utility step U4): the amulet of glory (with its trimmed and eternal forms), ring of
- * dueling, games necklace, combat bracelet, skills necklace and ring of wealth (with its imbued form). Rub in the
- * inventory, or Rub on the worn item when it has no charges, opens a menu of its places; a charged worn item has one
- * option for each place. Each teleport uses a charge: the piece becomes its next form, then its uncharged form
- * (dragonstone jewellery) or crumbles (the ring of dueling and games necklace).
+ * The teleport jewellery (Magic utility steps U4 and U5): the amulet of glory (with its trimmed and eternal forms), ring
+ * of dueling, games necklace, combat bracelet, skills necklace and ring of wealth (with its imbued form) (U4), and the
+ * digsite pendant, necklace of passage, burning amulet and ring of returning (U5). Rub in the inventory, or Rub on the
+ * worn item when it has no charges, opens a menu of its places (the ring of returning, with one, goes straight there);
+ * a charged worn item has one option for each place. Each teleport uses a charge: the piece becomes its next form, then
+ * its uncharged form (dragonstone jewellery) or crumbles (the rest).
  *
  * Verified on the OSRS Wiki (each item's page, read 2026-11-19): the places and their tiles (the Wiki's tile, within its
- * radius where it gives one), the charges, the uncharged forms, the rub message and charges message of the ring of
- * dueling and games necklace and their crumbling, and that the dragonstone pieces work up to level 30 Wilderness while
- * the others stop above 20. The places' names and their order are the cache's worn options (params 451 on), which the
- * data file is checked against.
+ * radius where it gives one, on its plane where it gives one), the charges, the uncharged forms, the rub message and
+ * charges message of the pieces that crumble and their crumbling (to dust, or away for the necklace of passage and ring
+ * of returning; the digsite pendant's name in title case), the burning amulet's warning before a Wilderness teleport,
+ * the ring of returning going to the respawn point, and that the dragonstone pieces work up to level 30 Wilderness
+ * while the others stop above 20. The places' names and their order are the cache's worn options (params 451 on), which
+ * the data file is checked against.
  *
  * Guessed: the teleport's animation, graphic and timing are the standard spellbook's ([Teleports.CAST_ANIM], 3 ticks);
  * the amulet's and bracelet's rub messages, the one-use-left message, the dragonstone charges messages, the menu's
  * title and its Nowhere option (left off when the places fill the menu), places past the fifth behind a More option,
- * and the refusal above level 30; the messages coming as the teleport starts; and the Corporeal Beast's cave (plane 2,
- * the only one whose map is walkable there) and Tears of Guthix (plane 2) planes. Every place is open as in a
- * post-quest world: the Wiki's Tears of Guthix, Miscellania and Dondakan quests, Zeah for Wintertodt and the Colosseum's
- * Hero title for Fortis Colosseum all count as done, and the Farming Guild teleport lands at the Wiki's tile whatever
- * the Farming level (the Wiki puts a player under 45 outside, at a tile it doesn't give).
+ * the refusal above level 30, and the Wilderness warning's words and its coming after the Wilderness check and before
+ * the rub message (from a worn option too); the messages coming as the teleport starts; and the Corporeal Beast's cave
+ * (plane 2, the only one whose map is walkable there) and Tears of Guthix (plane 2) planes. Every place is open as in
+ * a post-quest world: the Wiki's Tears of Guthix, Miscellania, Dondakan, Fossil Island, Lithkren and Wyrmscraig quests
+ * and unlocks, Zeah for Wintertodt and the Colosseum's Hero title for Fortis Colosseum all count as done, and the
+ * Farming Guild teleport lands at the Wiki's tile whatever the Farming level (the Wiki puts a player under 45 outside,
+ * at a tile it doesn't give). The ring of returning lands at Lumbridge, the respawn point everyone has here.
  *
  * Not built here: the ring of wealth's Features, Boss Log and Coin Collection, and its coin collecting and drop effects
- * (step U6), the amulet of glory's mounted form, and recharging (the Fountain of Rune's is [osrsps.game.FountainOfRune]).
+ * (step U6), the amulet of glory's mounted form, the other respawn points, and recharging (the Fountain of Rune's is
+ * [osrsps.game.FountainOfRune]).
  */
 class JewelleryTeleports(private val world: World, private val data: JewelleryTeleportData) {
     fun register() {
@@ -194,12 +216,13 @@ class JewelleryTeleports(private val world: World, private val data: JewelleryTe
     }
 
     private fun ScriptContext.noCharges(obj: Int) {
-        player.message(world.textFor(player)[JewelleryTeleportLines.NO_CHARGES, "item" to itemName(obj)])
+        player.message(world.textFor(player)[JewelleryTeleportLines.NO_CHARGES, "item" to itemName(obj, titleCase = false)])
     }
 
     private suspend fun ScriptContext.rub(jewellery: TeleportJewellery, held: Held, obj: Int) {
         if (objAt(held) != obj) return
-        val destination = pick(jewellery.destinations) ?: return
+        // A piece with one place (the ring of returning) goes there without a menu.
+        val destination = jewellery.destinations.singleOrNull() ?: pick(jewellery.destinations) ?: return
         // The menu waited: the piece must still be where it was.
         if (objAt(held) != obj) return
         teleport(jewellery, held, obj, destination)
@@ -232,15 +255,25 @@ class JewelleryTeleports(private val world: World, private val data: JewelleryTe
         return picked
     }
 
-    private suspend fun ScriptContext.teleport(jewellery: TeleportJewellery, held: Held, obj: Int, destination: JewelleryDestination) {
+    private suspend fun ScriptContext.teleport(jewellery: TeleportJewellery, held: Held, obj: Int, destination: JewelleryDestination, warned: Boolean = false) {
         if (objAt(held) != obj) return
         val tooDeep = if (jewellery.wilderness > Wilderness.TELEPORT_LIMIT) listOf(HomeTeleportLines.WILDERNESS, JewelleryTeleportLines.WILDERNESS_30) else listOf(HomeTeleportLines.WILDERNESS, HomeTeleportLines.WILDERNESS_2)
         val teleports = world.teleports
         if (!teleports.allowedHere(player, jewellery.wilderness, tooDeep)) return
+        if (destination.wilderness && !warned) {
+            var yes = false
+            world.dialogues.start(this) {
+                yes = choice(JewelleryTeleportLines.WILDERNESS_YES, JewelleryTeleportLines.WILDERNESS_NO, title = text(JewelleryTeleportLines.WILDERNESS_WARNING, "place" to destination.name)) == 1
+            }
+            world.interfaces.closeChatModal(player)
+            // The warning waited: everything is checked again.
+            if (yes) teleport(jewellery, held, obj, destination, warned = true)
+            return
+        }
         teleports.start(this)
         val text = world.textFor(player)
         player.message(text[rubLine(jewellery.kind)])
-        val name = itemName(obj)
+        val name = itemName(obj, jewellery.titleCase)
         val next = jewellery.after(obj)
         if (!jewellery.unlimited) {
             when (held) {
@@ -253,6 +286,7 @@ class JewelleryTeleports(private val world: World, private val data: JewelleryTe
                     left == 1 && jewellery.empty < 0 -> text[JewelleryTeleportLines.ONE_USE_LEFT, "item" to name]
                     left > 0 && jewellery.empty < 0 -> text[JewelleryTeleportLines.USES_LEFT, "item" to name, "count" to word(left)]
                     left > 0 -> text[JewelleryTeleportLines.CHARGES_LEFT, "item" to name, "count" to word(left)]
+                    jewellery.crumblesAway -> text[JewelleryTeleportLines.CRUMBLES_AWAY, "item" to name]
                     jewellery.empty < 0 -> text[JewelleryTeleportLines.CRUMBLES, "item" to name]
                     else -> text[JewelleryTeleportLines.LAST_CHARGE, "item" to name]
                 },
@@ -266,8 +300,10 @@ class JewelleryTeleports(private val world: World, private val data: JewelleryTe
     }
 
     /** The piece's name without its charges, as the messages have it: ring of dueling, amulet of glory. */
-    private fun itemName(obj: Int): String =
-        (world.objTypes[obj]?.name ?: "jewellery").replace(CHARGES_SUFFIX, "").lowercase()
+    private fun itemName(obj: Int, titleCase: Boolean): String {
+        val name = (world.objTypes[obj]?.name ?: "jewellery").replace(CHARGES_SUFFIX, "").lowercase()
+        return if (titleCase) name.split(' ').joinToString(" ") { word -> word.replaceFirstChar { it.uppercase() } } else name
+    }
 
     private fun rubLine(kind: String): Line = when (kind) {
         "ring" -> JewelleryTeleportLines.RUB_RING
