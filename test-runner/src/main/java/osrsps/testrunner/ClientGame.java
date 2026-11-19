@@ -1701,6 +1701,35 @@ final class ClientGame implements Game
 	}
 
 	@Override
+	public String castOnItem(int interfaceId, int component, String name, int id)
+	{
+		int packed = interfaceId << 16 | component;
+		Widget spell = client.getWidget(packed);
+		if (spell == null)
+		{
+			return "interface " + interfaceId + ":" + component + " is not open";
+		}
+		ItemContainer inventory = client.getItemContainer(InventoryID.INV);
+		if (inventory == null)
+		{
+			return "no inventory yet";
+		}
+		Item[] items = inventory.getItems();
+		int slot = inventorySlot(items, name, id, -1);
+		if (slot < 0)
+		{
+			return "no " + (name != null ? "\"" + name + "\"" : "item " + id) + " in the inventory";
+		}
+		String spellName = spell.getName() == null ? "" : spell.getName();
+		String itemName = client.getItemDefinition(items[slot].getId()).getName();
+		// The spell first, as for castOnNpc; then the slot, which the client sends as IF_BUTTONT from the spell to the item.
+		client.menuAction(-1, packed, MenuAction.WIDGET_TARGET, 0, -1, "Cast", spellName);
+		client.menuAction(slot, InterfaceID.Inventory.ITEMS, MenuAction.WIDGET_TARGET_ON_WIDGET, 0, items[slot].getId(), "Cast",
+			spellName + " -> " + itemName);
+		return null;
+	}
+
+	@Override
 	public String widgetText(int interfaceId, int component)
 	{
 		List<String> texts = new ArrayList<>();
