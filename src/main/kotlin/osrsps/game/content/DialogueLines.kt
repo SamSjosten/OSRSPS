@@ -402,6 +402,7 @@ object DialogueLines {
         ChampionsChestLines,
         JunaLines,
         CatLines,
+        RatPitsLines,
         TearsLines,
         ExamCentreLines,
         TerryLines,

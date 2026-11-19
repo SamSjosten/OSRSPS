@@ -74,6 +74,7 @@ object CatLines : Lines("cat", "Transcript:Kitten, Transcript:Cat, Transcript:Ov
     val SHOO_CAT = line("shoo_cat", "overhead, the player shooing")
     val MEOW_AWAY = line("meow_away", "overhead, the cat shooed, and one running away")
     val RUN_AWAY = line("run_away", "the message, a cat shooed or run away")
+    val PASSED_AWAY = line("passed_away", "the message, a cat dead in a fight (Cat page)")
 
     // Chase vermin.
     val NO_VERMIN = line("no_vermin", "Chase vermin with no rat near")
@@ -165,6 +166,8 @@ class Cats(private val world: World, private val collision: osrsps.map.Collision
     private class Out(val npc: Npc, var kind: Kind, var growthTicks: Int = 0) {
         /** The tick a Chase vermin run ends; until then the cat goes for the rat and doesn't follow. */
         var chasingUntil: Long = 0
+        /** Held by a game (the rat pits' fight): it stays where it is put, neither following nor growing. */
+        var held = false
     }
 
     private val out = HashMap<String, Out>()
@@ -360,6 +363,10 @@ class Cats(private val world: World, private val collision: osrsps.map.Collision
                 despawn(key)
                 return@later
             }
+            if (mine.held) {
+                watch(key, npc)
+                return@later
+            }
             if (npc.level != player.level || maxOf(kotlin.math.abs(npc.x - player.x), kotlin.math.abs(npc.z - player.z)) > CATCH_UP) {
                 despawn(player)
                 spawn(player, mine.kind, mine.growthTicks) ?: return@later
@@ -447,6 +454,34 @@ class Cats(private val world: World, private val collision: osrsps.map.Collision
         world.scripts.start(player) {
             world.dialogues.start(this) { mesbox(if (next == Stage.CAT) CatLines.GROWN else CatLines.OVERGROWN) }
         }
+    }
+
+    // ---- Games ------------------------------------------------------------------------------------------------------
+
+    /** Takes [player]'s follower out of their hands for a game: it stops following and stays where the game puts it. */
+    fun hold(player: Player): Npc? {
+        val mine = out[player.saveKey] ?: return null
+        mine.held = true
+        world.npcs.stopFollowing(mine.npc)
+        return mine.npc
+    }
+
+    /** Gives a held follower back: it follows again from where it stands. */
+    fun release(player: Player) {
+        val mine = out[player.saveKey] ?: return
+        mine.held = false
+        world.npcs.follow(mine.npc, player)
+    }
+
+    /** [cycles] more growth for [player]'s cat, as a won or lost fight gives; it grows up at its next cycle if due. */
+    fun addGrowth(player: Player, cycles: Int) = setGrowth(player, growth(player) + cycles)
+
+    /** [player]'s cat died in a fight: gone for good, with the message. */
+    fun passedAway(player: Player) {
+        player.message(world.textFor(player)[CatLines.PASSED_AWAY])
+        despawn(player)
+        setFollowerVarps(player, null, -1)
+        forget(player)
     }
 
     // ---- Talk-to and Interact -----------------------------------------------------------------------------------
