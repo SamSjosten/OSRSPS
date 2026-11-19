@@ -1,0 +1,6 @@
+{
+  "about": "The Web Chasm (Wilderness step W4.10): Spindel. mejrs's NPCList_OSRS has no Spindel, so her tile is GUESSED: the middle of the chasm, map square 25_180 on level 2. Her wander range is guessed until recorded.",
+  "spawns": [
+    {"npc": "venenatis_singles", "x": 1630, "z": 11545, "level": 2, "wander": 5, "source": "Spindel, Web Chasm. GUESSED: the chasm's middle; wander guessed"}
+  ]
+}
