@@ -6,11 +6,12 @@ import osrsps.game.trail.TrailTier
 /**
  * `::clue` shows the typing player's trails under way; `::clue <tier> [step]` gives them a clue scroll of that tier on
  * a new trail, at the step named (`map:107`, as `::clue` and saves name steps) or a random built one; `::clue <tier>
- * steps` lists the tier's built steps with their tiles; `::clue clear` drops every trail. Tests and runner scripts
- * start a trail anywhere with it.
+ * steps` lists the tier's built steps with their tiles; `::clue <tier> done <count>` sets the caskets of the tier
+ * opened (so the next casket's milestone can be tried); `::clue clear` drops every trail, and `::clue reset` the
+ * counts and opened scroll cases too. Tests and runner scripts start a trail anywhere with it.
  */
 fun CommandRegistry.registerTrailCommands(world: World) {
-    val usage = "::clue [<tier> [step | steps] | clear]"
+    val usage = "::clue [<tier> [step | steps | done <count>] | clear | reset]"
     register("clue", usage) {
         val trails = world.trails
         val first = args.firstOrNull()?.lowercase()
@@ -24,9 +25,19 @@ fun CommandRegistry.registerTrailCommands(world: World) {
                 for (tier in TrailTier.entries) player.trails[tier] = null
                 reply("No trail.")
             }
+            first == "reset" -> {
+                player.trails.replaceWith(osrsps.game.trail.TrailProgress())
+                reply("No trail, no caskets opened, no scroll cases.")
+            }
             else -> {
                 val tier = TrailTier.byKey(first) ?: fail("Usage: $usage")
                 val arg = args.getOrNull(1)
+                if (arg == "done") {
+                    val count = args.getOrNull(2)?.toIntOrNull()?.takeIf { it >= 0 } ?: fail("Usage: $usage")
+                    player.trails.setCompleted(tier, count)
+                    reply("${tier.key}: $count caskets opened, cap ${trails.cap(player, tier)}.")
+                    return@register
+                }
                 if (arg == "steps") {
                     val pool = trails.pool(tier)
                     reply("${pool.size} ${tier.key} steps built: " + pool.joinToString { "${it.key} ${it.targets.first().tile}" })
