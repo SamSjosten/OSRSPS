@@ -207,7 +207,9 @@ class ArchiveChests(private val world: World, private val raids: ArchiveRaids) {
         val key = run.chestSlots.entries.firstOrNull { it.value == slot }?.key ?: return
         val player = world.onlinePlayers.firstOrNull { it.saveKey == key } ?: return
         if (player.dead || raids.at(player.x, player.z) !== run || !raids.inRewardRoom(run, player.x, player.z)) return
-        world.archiveChestWindow.open(player)
+        // Something already open (the window by Search, a question, a count) stays: the window would shut it
+        // (exploit review R42C-3). Guessed.
+        if (!player.modalOpen && !player.scripts.waitingForCount) world.archiveChestWindow.open(player)
         for (drop in run.loot?.chests?.get(key).orEmpty()) world.lootNotifications.dropped(player, drop.type, drop.count)
     }
 

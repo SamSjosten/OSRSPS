@@ -198,6 +198,13 @@ class Npc(
     var unleashed: Boolean = false
 
     /**
+     * Its whole instance is its room: it chases its target past [Npcs.FOLLOW_RANGE] and never retreats for being hit from
+     * outside its aggression range of its spawn (a Fight Cave monster, which goes for the player wherever in the cave
+     * they are). Set with [unleashed].
+     */
+    var huntsAnywhere: Boolean = false
+
+    /**
      * It walks through other NPCs, and they don't stop it: Dreadnoth and his jellies, which stack on one tile and never
      * block him (tsps capture notes, raid step 20a). Others still can't step onto its tiles.
      */
