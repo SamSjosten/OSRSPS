@@ -183,8 +183,8 @@ Accounts are `data/accounts/<name>.json` and saves `data/saves/<name>.json`; del
 it. To set a password (12 characters or more, no restart):
 
 ```bash
-docker compose exec osrsps bin/osrsps set-password <name>     # in Docker
-./gradlew run --args="set-password <name>"                     # from a checkout
+docker compose exec osrsps bin/osrsps set-password <name>                       # in Docker
+./gradlew installDist && build/install/osrsps/bin/osrsps set-password <name>   # from a checkout
 ```
 
 `::ipban` bans an address (kept in `data/ip-bans.txt`); behind the relay that is the player's own address.
