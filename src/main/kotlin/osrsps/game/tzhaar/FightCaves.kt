@@ -393,9 +393,10 @@ class FightCaves(private val world: World) {
 
     /**
      * Gives [tokkul], what won't fit on the ground; or with [bankOverflow] (the player leaving the world) into the
-     * backpack and bank, what neither takes [owed] for the next login.
+     * backpack and bank, what neither takes [owed] for the next login. The Inferno pays through here too, its owed TokKul
+     * kept with the cave's.
      */
-    private fun pay(player: Player, tokkul: Int, bankOverflow: Boolean = false) {
+    internal fun pay(player: Player, tokkul: Int, bankOverflow: Boolean = false) {
         val type = world.objTypes[TOKKUL] ?: return
         if (!bankOverflow) return world.groundObjs.give(player, type, tokkul)
         val left = tokkul - give(player, tokkul)
