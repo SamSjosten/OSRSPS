@@ -84,6 +84,17 @@ class Poison(
         player.vars[VARP] = minOf(value(player), 0, -periods)
     }
 
+    /**
+     * Ends [player]'s poison, if they are poisoned, leaving venom and immunity as they are: leaving a player-owned house
+     * (the Wiki's Player-owned house, Trivia: "exiting the POH in any way will remove this debuff").
+     */
+    fun curePoison(player: Player) {
+        val value = value(player)
+        if (value <= 0 || value >= VENOM) return
+        player.vars[VARP] = 0
+        player.poisonTicks = -1
+    }
+
     /** Ends poison, venom and immunity on [player]: death, or a scenario starting. */
     fun clear(player: Player) {
         player.vars[VARP] = 0
