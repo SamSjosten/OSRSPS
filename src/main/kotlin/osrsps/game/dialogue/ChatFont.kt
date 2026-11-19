@@ -97,6 +97,9 @@ class ChatFont(private val advances: IntArray) {
         /** The font every dialogue text component uses in the 241 cache. */
         const val DIALOGUE_FONT = 497
 
+        /** p12_full, the font of journalscroll's lines (the diaries' journals) in the 242 cache. */
+        const val SCROLL_FONT = 495
+
         /** Guessed width of a mod icon or other `<img=n>` in a line; the icons are about 13 pixels wide. */
         const val IMG_WIDTH = 13
 
