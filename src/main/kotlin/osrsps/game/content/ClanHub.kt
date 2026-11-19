@@ -1,5 +1,6 @@
 package osrsps.game.content
 
+import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.dialogue.ChatAnim
 import osrsps.game.dialogue.Dialogue
@@ -76,6 +77,26 @@ object ClanHub {
     /** The clan cloaks and vexilla, by colour in enum_3819's order (the cache: black, orange, blue, ..., pink). */
     val CLOAKS = intArrayOf(25712, 25714, 25715, 25716, 25717, 25718, 25719, 25720)
     val VEXILLA = intArrayOf(25721, 25723, 25724, 25725, 25726, 25727, 25728, 25729)
+
+    /**
+     * Gives every clan cloak and vexillum [player] holds, wears or banks [colour]'s look: the Clan cloak page says the new
+     * motif "will automatically update for all clan members" when the editor closes, and the cache has one item per
+     * colour, so the items are swapped for the new colour's (inferred). The clan's members get it when the colour is saved
+     * and at each login, so those offline then catch up.
+     */
+    fun recolour(player: Player, colour: Int) {
+        if (colour !in CLOAKS.indices) return
+        for (inv in listOf(player.inventory, player.equipment, player.bank)) {
+            for ((slot, obj) in inv.contents()) {
+                val to = when (obj.id) {
+                    in CLOAKS -> CLOAKS[colour]
+                    in VEXILLA -> VEXILLA[colour]
+                    else -> continue
+                }
+                if (to != obj.id) inv[slot] = obj.copy(id = to)
+            }
+        }
+    }
 
     private enum class Topic { WHO, WHAT_DO, WHAT_CLAN, GIVE, GOODBYE, WHY_HERE, WHAT_HUB, HOW_JOIN, OFFER, COFFER, HALL }
 

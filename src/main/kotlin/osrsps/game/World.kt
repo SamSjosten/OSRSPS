@@ -853,6 +853,7 @@ class World(
             }
         },
         askAmount = { player, prompt, typed -> scripts.start(player) { typed(countDialog(prompt)) } },
+        recolour = osrsps.game.content.ClanHub::recolour,
         pickMotif = { player, current, picked ->
             // clan_outfit draws from clan_editing_0, so it goes first, sent now rather than with the tick's varps.
             if (Clans.VARP_EDITING_MOTIF < player.vars.types.varpCount) {

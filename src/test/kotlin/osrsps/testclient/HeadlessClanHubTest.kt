@@ -168,6 +168,12 @@ class HeadlessClanHubTest {
             server.login("alice").use { alice ->
                 alice.ready()
                 alice.inClan("Odins Gate")
+                // A blue cloak and vexillum from before, and a blue cloak worn: the new colour reaches them too.
+                alice.commandReply("item ${ClanHub.CLOAKS[2]}") { true }
+                alice.commandReply("item ${ClanHub.VEXILLA[2]}") { true }
+                alice.await("the blue items") { Unit.takeIf { alice.count(ClanHub.CLOAKS[2]) == 1 && alice.count(ClanHub.VEXILLA[2]) == 1 } }
+                val player = server.world.playerNamed("alice")!!
+                player.equipment[osrsps.game.WearPos.CAPE] = osrsps.game.InvObj(ClanHub.CLOAKS[2], 1)
                 alice.ifButton(Clans.SIDE_CHANNELS, 3, 1)
                 alice.await("the clan page") { alice.openInterfaces().takeIf { Clans.YOUR_CLAN in it } }
                 alice.ifButton(Clans.YOUR_CLAN, Clans.YOUR_CLAN_SETTINGS, 1)
@@ -186,6 +192,10 @@ class HeadlessClanHubTest {
                 alice.await("the motif saved") { Unit.takeIf { clan.settings[Clans.VAR_MOTIF] == red } }
                 alice.await("Icon customisation closed") { if (Clans.OUTFIT in alice.openInterfaces()) null else Unit }
                 assertEquals(3, server.world.clans.colour(clan))
+                alice.await("the cloak and vexillum turned red") {
+                    Unit.takeIf { alice.count(ClanHub.CLOAKS[3]) == 1 && alice.count(ClanHub.VEXILLA[3]) == 1 && alice.count(ClanHub.VEXILLA[2]) == 0 }
+                }
+                assertEquals(ClanHub.CLOAKS[3], player.equipment[osrsps.game.WearPos.CAPE]?.id)
                 // Every member's client gets it, raw, in the clan settings.
                 assertTrue(server.world.clans.settingVars(clan).any { it.id == Clans.VAR_MOTIF && it.value == red })
 
@@ -201,7 +211,7 @@ class HeadlessClanHubTest {
 
                 alice.talk(ClanHub.ITEMS)
                 alice.pick(1, ClanHub.CLOAKS[3], ClanHub.VEXILLA[3], 1)
-                alice.await("a red vexillum") { Unit.takeIf { alice.count(ClanHub.VEXILLA[3]) == 1 } }
+                alice.await("another red vexillum") { Unit.takeIf { alice.count(ClanHub.VEXILLA[3]) == 2 } }
                 assertFalse(alice.count(ClanHub.VEXILLA[2]) > 0)
             }
         }

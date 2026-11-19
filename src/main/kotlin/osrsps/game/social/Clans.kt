@@ -120,6 +120,8 @@ class Clans(
      * packing); runs the action with the motif saved, or not at all when it is cancelled or unchanged.
      */
     private val pickMotif: (Player, Int, (Int) -> Unit) -> Unit = { _, _, _ -> },
+    /** Gives every clan cloak and vexillum [Player] has the colour given (0 to 7, enum_3819's order). */
+    private val recolour: (Player, Int) -> Unit = { _, _ -> },
     private val now: () -> Instant = Instant::now,
 ) {
     /** A clan being formed: its leader, the founders who joined, the invited and the name picked. */
@@ -210,6 +212,7 @@ class Clans(
         }
         clan.member(player.saveKey)!!.name = player.username
         setVarbit(player, VARBIT_AFFINITY, AFFINITY_CONNECTED)
+        recolour(player, colour(clan))
         send(player, settingsFull(clan))
         joinChannel(player, clan)
     }
@@ -391,8 +394,11 @@ class Clans(
             // A tick or more later: still in the clan, still allowed, and a motif the client could have made.
             val now = clanOf(player)?.takeIf { it.id == clan.id } ?: return@pickMotif
             if (!has(player, now, VAR_ICONS) || !validMotif(motif)) return@pickMotif
+            val before = colour(now)
             store.setSetting(now, VAR_MOTIF, motif)
             sendSettings(now)
+            // The members' cloaks and vexilla take the new colour; offline members' at their next login.
+            if (colour(now) != before) for (member in now.members) playerByKey(member.key)?.let { recolour(it, colour(now)) }
         }
     }
 
