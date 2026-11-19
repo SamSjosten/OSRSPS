@@ -31,8 +31,9 @@ private val logger = KotlinLogging.logger {}
  * [graveLevel]), when not at the spawn and on the tile they died on: a death in an instance, whose tile they can't get
  * back to, or in a raid. With [keepItems] they lose nothing: a raid death while the party still stands. [coord] is where
  * the grave counts as made, for its fee ([GraveFees]): a raid's death counts where it was in the cache's map, not in
- * the run's copy of it; -1 for where they fell. A [safe] death, as in a player-owned house, keeps everything and costs
- * no Hardcore status either.
+ * the run's copy of it; -1 for where they fell. A [safe] death keeps everything and costs no Hardcore status: a
+ * player-owned house's, or a safe minigame's (the Fight Cave; the Wiki's Ironman Mode, Hardcore Ironman: "Safe deaths,
+ * such as those in minigames, will not cause the player to become a standard Ironman").
  */
 data class DeathPlace(
     val keepItems: Boolean,
