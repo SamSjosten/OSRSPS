@@ -385,7 +385,8 @@ fun registerCalvarion(world: World) {
         }
         world.handlers.onLoc(ENTRANCE, CHECK_FEE) {
             arriveDelay()
-            if (WildernessLairFee.paid(player)) world.message(player, WildernessLairLines.FEE_PAID)
+            // A fee discounted to nothing lets them in unpaid, so it reads as paid, as Artio's does (Codex review on #818).
+            if (WildernessLairFee.paid(player) || WildernessLairFee.fee(player) == 0) world.message(player, WildernessLairLines.FEE_PAID)
             else world.message(player, WildernessLairLines.FEE_DUE, "fee" to WildernessLairFee.fee(player))
         }
         // Vet'ion's Rest has the same way out; his step gives it its own place to put the player.

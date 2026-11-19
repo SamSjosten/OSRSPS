@@ -224,6 +224,35 @@ class HeadlessCalvarionTest {
     }
 
     @Test
+    fun `his lightning warns for 3 ticks, then strikes its tile and the eight round it, near the player`(@TempDir dir: Path) {
+        server(dir, seed = 4).use { server ->
+            server.login("ida").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.tele(Calvarion.SPAWN.x + 1, Calvarion.SPAWN.z - 4, Calvarion.TOMB_LEVEL)
+                val npc = server.world.npcs.all.first { it.type.id == Calvarion.BOSS }
+                client.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Calvar'ion") }
+                val fight = client.await("his fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
+                // Codex review on #818: the bolts' tiles, warning and landing, not only the log line.
+                val cast = client.await("his lightning", timeoutMillis = 30_000) { fight.lines.firstOrNull { "lightning on" in it } }
+                val tick = cast.substringBefore(' ').toLong()
+                val centres = cast.substringAfter("lightning on ").split(' ').map { it.split(',').let { (x, z) -> x.toInt() to z.toInt() } }
+                assertEquals(1 + osrsps.game.content.SkeletalLord.SOLO_RANDOM_BOLTS, centres.size, "one near her, the rest at random")
+                val (cx, cz) = centres.first()
+                val ida = server.world.playerNamed("ida")!!
+                assertTrue(kotlin.math.abs(cx - ida.x) <= 1 && kotlin.math.abs(cz - ida.z) <= 1, "the first bolt within a tile of her")
+                val hazards = fight.lines.filter { it.startsWith("$tick fight: hazard on ") }
+                val warn = osrsps.game.content.SkeletalLord.LIGHTNING_WARN
+                assertEquals("$tick fight: hazard on $cx,$cz from tick $warn for 1", hazards[0], "the bolt's own tile")
+                val ring = (-1..1).flatMap { dx -> (-1..1).map { dz -> "${cx + dx},${cz + dz}" } }.filter { it != "$cx,$cz" }
+                assertEquals("$tick fight: hazard on ${ring.joinToString(" ")} from tick $warn for 1", hazards[1], "the eight round it")
+                val hit = client.await("the bolt landing on her") { fight.lines.firstOrNull { it.startsWith("${tick + warn} fight: hazard hit ida") } }
+                assertTrue(fight.lines.none { "hazard hit ida" in it && it.substringBefore(' ').toLong() in tick until tick + warn }, "nothing before the warning ran out: $hit")
+            }
+        }
+    }
+
+    @Test
     fun `his shield bash hurts and stops attacks for 8 ticks for whoever is in its shadows, not one standing off`(@TempDir dir: Path) {
         server(dir, seed = 5).use { server ->
             server.login("ed").use { near ->
