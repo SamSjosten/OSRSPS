@@ -45,7 +45,8 @@
     "NPCs and locs: random events step 6 (2026-11-19): Leo (6746 out in the world, 6745 in his graveyard), and the graveyard's gravestones (9359 to 9363), graves with a coffin (9364 to 9367, 10049), empty graves (10050 to 10054) and mausoleum (10055), from each page's infobox.",
     "NPCs: random events step 7 (2026-11-19): the mime (321), from the Mime page's infobox; the Mysterious Old Man's mime show form (6753) shares his examine.",
     "NPCs: random events step 8 (2026-11-19): the Bee keeper (6747 out in the world, 3235 in his field), from his infobox.",
-    "NPCs: random events step 9 (2026-11-19): Capt' Arnav (5426), from his infobox."
+    "NPCs: random events step 9 (2026-11-19): Capt' Arnav (5426), from his infobox.",
+    "NPCs and locs: random events step 10 (2026-11-19): Evil Bob (390 awake, 391 asleep, 6754 his prison form, one examine in his infobox) and his servant (393), from their infoboxes; the island's uncooking pot (23113), fishing spot (23114) and portal (23115), from each page's infobox."
   ],
   "npcs": [
     {"npc": 0, "name": "Tool Leprechaun"},
@@ -123,6 +124,8 @@
     {"npc": 372, "name": "Freaky Forester", "also": [6748]},
     {"npc": 373, "name": "Pheasant", "also": [5500, 374, 5502]},
     {"npc": 375, "name": "Rick Turpentine"},
+    {"npc": 390, "name": "Evil Bob", "also": [391, 6754]},
+    {"npc": 393, "name": "Servant", "wiki": "Servant (ScapeRune) page, infobox"},
     {"npc": 403, "name": "Vannaka"},
     {"npc": 404, "name": "Chaeldar"},
     {"npc": 406, "name": "Cave crawler"},
@@ -2581,6 +2584,9 @@
     {"loc": 23063, "name": "Camp fire"},
     {"loc": 23091, "name": "Bookcase"},
     {"loc": 23092, "name": "Bookcase"},
+    {"loc": 23113, "name": "Uncooking pot"},
+    {"loc": 23114, "name": "Fishing spot", "wiki": "Fishing spot (ScapeRune) page, infobox"},
+    {"loc": 23115, "name": "Portal", "wiki": "Portal (Evil Bob) page, infobox"},
     {"loc": 23134, "name": "Obstacle net", "wiki": "Gnome Stronghold Agility Course page, the obstacle net's examine"},
     {"loc": 23135, "name": "Obstacle net", "wiki": "Gnome Stronghold Agility Course page, the obstacle net's examine"},
     {"loc": 23138, "name": "Obstacle pipe", "wiki": "Gnome Stronghold Agility Course page, the obstacle pipe's examine"},

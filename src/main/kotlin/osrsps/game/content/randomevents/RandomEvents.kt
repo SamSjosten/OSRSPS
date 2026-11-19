@@ -51,11 +51,20 @@ abstract class RandomEvent(
     /** Talk-to by anyone but its player, with `{name}` their player's name; null for nothing at all. */
     open val notYours: Line? = null
 
+    /** A message box for Talk-to by its player once it has given up and is going; null for nothing at all. */
+    open val gaveUp: Line? = null
+
+    /** Whether [notYours] shows in a message box rather than as the NPC's words (Evil Bob's does). */
+    open val notYoursInBox: Boolean = false
+
     /** Called once its NPC is out, before its first words. */
     open fun started(world: World, out: RandomEvents.Out) {}
 
     /** Talk-to by its player, which ends the event when it returns true: its NPC then goes. */
     abstract suspend fun Dialogue.talk(world: World, events: RandomEvents): Boolean
+
+    /** Talk-to on one of [npcIds] that is no event's NPC out in the world: Evil Bob on his own island. */
+    open suspend fun ScriptContext.talkElsewhere(world: World, npc: Npc) {}
 }
 
 /**
@@ -384,24 +393,34 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
 
     private suspend fun talk(context: ScriptContext, npc: Npc) {
         val player = context.player
-        val it = out[npc] ?: return
+        val it = out[npc] ?: return elsewhere(context, npc)
         if (it.owner != player.saveKey) {
             notYours(context, npc, it)
             return
         }
-        // Guessed: once it has said its leaving line it has nothing more for its player.
-        if (it.leaveAt >= 0) return
+        // Guessed: once it has said its leaving line it has nothing more for its player but its gave-up box, if it has one.
+        if (it.leaveAt >= 0) {
+            val line = it.event.gaveUp ?: return
+            world.dialogues.start(context, npc) { mesbox(line) }
+            return
+        }
         it.talking = true
         world.dialogues.start(context, npc) {
             if (with(it.event) { talk(world, this@RandomEvents) }) remove(it)
         }
     }
 
+    private suspend fun elsewhere(context: ScriptContext, npc: Npc) {
+        val event = all.values.firstOrNull { npc.type.id in it.npcIds } ?: return
+        with(event) { context.talkElsewhere(world, npc) }
+    }
+
     /** Another player's Talk-to or Dismiss: the event's line for them, naming its own player if the words do. */
     private suspend fun notYours(context: ScriptContext, npc: Npc, it: Out) {
         val line = it.event.notYours ?: return
         world.dialogues.start(context, npc) {
-            if ("name" in line.args) chatNpc(ChatAnim.NEUTRAL, line, "name" to it.ownerName) else chatNpc(ChatAnim.NEUTRAL, line)
+            val values = if ("name" in line.args) arrayOf("name" to it.ownerName) else emptyArray()
+            if (it.event.notYoursInBox) mesbox(line, *values) else chatNpc(ChatAnim.NEUTRAL, line, *values)
         }
     }
 
@@ -440,7 +459,7 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
 fun registerRandomEvents(world: World) {
     val events = listOf(
         Genie, CountCheckEvent, DrunkenDwarf, RickTurpentine, MysteriousOldMan, DrJekyll, StrangePlant, Certer, SandwichLady,
-        FreakyForester, DrillDemon, Gravedigger, Mime, Beekeeper, CaptArnav,
+        FreakyForester, DrillDemon, Gravedigger, Mime, Beekeeper, CaptArnav, EvilBob,
     )
     for (event in events) {
         world.randomEvents.register(event)
@@ -450,5 +469,6 @@ fun registerRandomEvents(world: World) {
     Gravedigger.register(world)
     Mime.register(world)
     Beekeeper.register(world)
+    EvilBob.register(world)
     world.handlers.onObj(StrangePlant.FRUIT, 1) { op -> StrangePlant.eat(world, player, op.sub) }
 }

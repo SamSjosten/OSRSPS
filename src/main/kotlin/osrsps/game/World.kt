@@ -683,7 +683,8 @@ class World(
                 it in osrsps.game.skill.construction.FurnitureBuilds.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.FreakyForester.INSTANCE_LOCS ||
                 it in osrsps.game.content.randomevents.DrillDemon.INSTANCE_LOCS ||
-                it in osrsps.game.content.randomevents.Gravedigger.INSTANCE_LOCS
+                it in osrsps.game.content.randomevents.Gravedigger.INSTANCE_LOCS ||
+                it in osrsps.game.content.randomevents.EvilBob.INSTANCE_LOCS
         },
     )
 
