@@ -135,6 +135,7 @@ fun registerVarrock(world: World) {
     registerMuseumKudos(world)
     registerNaturalHistoryQuiz(world)
     registerMuseumDisplays(world)
+    registerTunnelOfChaos(world)
     VarrockMuseumPeople.register(world)
     registerVarrockPalace(world)
     registerPalaceGarden(world)
