@@ -428,6 +428,29 @@ class HeadlessInfernoTest {
     }
 
     @Test
+    fun `a Jal-MejRah's drain takes run energy and now and then a combat level, and none through Protect from Missiles`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ned").use { client ->
+                client.await("the login rebuild") { client.position }
+                val player = server.world.playerNamed("ned")!!
+                val stats = listOf(osrsps.game.Skill.ATTACK, osrsps.game.Skill.STRENGTH, osrsps.game.Skill.DEFENCE, osrsps.game.Skill.RANGED, osrsps.game.Skill.MAGIC)
+                for (skill in stats) client.commandReply("setlevel ${skill.name.lowercase()} 99") { true }
+                client.await("the levels") { stats.all { player.skills.currentLevel(it) == 99 }.takeIf { it } }
+                val monsters = server.world.inferno.monsterMechanics
+                player.runEnergy = osrsps.game.Movement.MAX_ENERGY
+                repeat(40) { monsters.batDrain(player, protected = true) }
+                assertEquals(osrsps.game.Movement.MAX_ENERGY, player.runEnergy, "no run energy through the prayer")
+                assertTrue(stats.all { player.skills.currentLevel(it) == 99 }, "no levels through the prayer")
+                monsters.batDrain(player, protected = false)
+                assertEquals(osrsps.game.Movement.MAX_ENERGY - InfernoMonsters.BAT_RUN_DRAIN, player.runEnergy, "3% a hit")
+                repeat(40) { monsters.batDrain(player, protected = false) }
+                assertTrue(stats.all { player.skills.currentLevel(it) < 99 }, "a level off each combat stat now and then")
+                assertTrue(stats.all { player.skills.currentLevel(it) > 99 - 41 }, "not every hit")
+            }
+        }
+    }
+
+    @Test
     fun `a Jal-Ak splits into its three smaller selves as it dies, and the wave waits for them`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("hal").use { client ->

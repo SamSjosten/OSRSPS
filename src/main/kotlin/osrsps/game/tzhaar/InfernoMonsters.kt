@@ -110,7 +110,7 @@ class InfernoMonsters(private val world: World) {
         when (id) {
             InfernoMonster.BAT.type -> {
                 world.meleeCombat.fireAt(npc, player, world.tick)
-                if (!world.prayers.protects(player, AttackType.RANGED)) batDrain(player)
+                batDrain(player, protected = world.prayers.protects(player, AttackType.RANGED))
             }
             InfernoMonster.BLOB.type -> {
                 val style = blobStyles.remove(npc) ?: blobStyle(player, inReach)
@@ -171,8 +171,12 @@ class InfernoMonsters(private val world: World) {
         nextDig[imKot] = world.tick
     }
 
-    /** A Jal-MejRah's drains on [player]: 3 run energy, and now and then a level off each combat stat. */
-    private fun batDrain(player: Player) {
+    /**
+     * A Jal-MejRah's drains on [player] as it fires: 3 run energy, and now and then a level off each combat stat; none
+     * through Protect from Missiles ([protected]).
+     */
+    internal fun batDrain(player: Player, protected: Boolean) {
+        if (protected) return
         player.runEnergy = maxOf(0, player.runEnergy - BAT_RUN_DRAIN)
         if (!world.random.chance(1, BAT_STAT_DRAIN_ODDS)) return
         for (skill in COMBAT_STATS) {
