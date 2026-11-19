@@ -34,6 +34,7 @@ object AgilityLines : Lines("agility", "Agility") {
     val VARROCK_LEVEL = line("varrock_level", "Varrock Rooftop Course: an obstacle clicked below level 30", "level")
     val GNOME_LAPS = line("gnome_laps", "Gnome Stronghold Agility Course: the lap count message after each lap", "count")
     val VARROCK_FENCE_LEVEL = line("varrock_fence_level", "Shortcut: the Varrock south fence clicked below level 13", "level")
+    val VARROCK_PALACE_TRELLIS_LEVEL = line("varrock_palace_trellis_level", "Shortcut: Varrock Palace garden's trellis clicked below level 35", "level")
     val GRAND_EXCHANGE_TUNNEL_LEVEL = line("grand_exchange_tunnel_level", "Shortcut: the Grand Exchange underwall tunnel clicked below level 21", "level")
     val CHAMPIONS_GUILD_STONE_LEVEL = line("champions_guild_stone_level", "Shortcut: the Champions' Guild stepping stone clicked below level 31", "level")
     val DRAYNOR_TUNNEL_LEVEL = line("draynor_tunnel_level", "Shortcut: the Draynor underwall tunnel clicked below level 42", "level")
