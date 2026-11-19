@@ -474,6 +474,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   (709), searched for chemical powder and closed, the barrel's sealed line, a trowel opening it (varbit 2547 at 1) and a
   vial filled with unidentified liquid as the lid goes back, and the stone tablet taken in the dungeon's after-quest copy
   and refused once owned, with `::reset` at the end.
+- `champions-challenge.json`: post-quest step 9 (with `::keys on`): Larxus with a giant champion scroll held, the duel
+  arranged by `::varp` (the runner can't use an item on an NPC), the Champion Statue opened and climbed down, the giant
+  champion killed (varp 617's bit set and the scroll taken), the portcullis and ladder out, and the Chest of Champions'
+  lamp rubbed, with varp 617 cleared at the end.
 - `sourhog-cave.json`: post-quest step 8: the strange hole east of Draynor Manor climbed down into the Sourhog Cave,
   the blockage climbed over both ways, and the exit rope climbed back up beside the hole.
 - `varrock-churches-inns.json`: Varrock step 7 (with `::keys on`): Pray-at at the church's altar and the chapel's

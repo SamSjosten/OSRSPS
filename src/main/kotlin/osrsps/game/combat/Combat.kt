@@ -138,6 +138,13 @@ class Combat(
     var outsideFight: (Player, Npc) -> Boolean = { _, _ -> false }
 
     /**
+     * Set by content: the line refusing [Player]'s attack on [Npc] under a fight's own rules, null when the rules allow
+     * it: a Champions' Challenge duel's ([osrsps.game.content.ChampionsChallenge]), whose champion is fought with one
+     * kind of attack only, or is another player's.
+     */
+    var ruled: (Player, Npc) -> Line? = { _, _ -> null }
+
+    /**
      * Set by content: how [Player]'s attack of [AttackType] on [Npc] is rolled ([SureHit]), asked once as each attack on
      * it is rolled (a hit that bounces or splashes on to another is rolled as usual): Ocellus's void flares, each maxed
      * by a style ([osrsps.game.raid.Ocellus]; OSRS Wiki, Void Siphon, Void Augmenter, Void Rift).
@@ -193,7 +200,7 @@ class Combat(
     fun barred(player: Player, npc: Npc, weapon: Boolean = true): Line? = when {
         slayerGated(player, npc) -> CombatLines.SLAYER_LEVEL
         shutOut(player, npc) || outsideFight(player, npc) -> GameLines.CANT_REACH
-        else -> (if (weapon) weaponBarred(player, npc) else null) ?: notYours(player, npc)
+        else -> (if (weapon) weaponBarred(player, npc) else null) ?: ruled(player, npc) ?: notYours(player, npc)
     }
 
     /**

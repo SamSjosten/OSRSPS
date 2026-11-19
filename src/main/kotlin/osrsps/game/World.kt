@@ -140,6 +140,7 @@ import osrsps.game.content.registerDigsiteDigs
 import osrsps.game.content.registerExamCentre
 import osrsps.game.content.registerDigsiteCamp
 import osrsps.game.content.registerSourhogCave
+import osrsps.game.content.registerChampionsChallenge
 import osrsps.game.content.registerMisthalinSweep
 import osrsps.game.content.registerMisthalinTownGaps
 import osrsps.game.content.registerPaterdomus
@@ -230,6 +231,7 @@ import osrsps.game.content.registerWizardsTowerPeople
 import osrsps.game.content.registerJalarast
 import osrsps.game.content.registerRick
 import osrsps.game.content.registerBones
+import osrsps.game.content.ChampionsChallenge
 import osrsps.game.content.GiantLairs
 import osrsps.game.content.KingBlackDragon
 import osrsps.game.content.WildernessLairFee
@@ -517,6 +519,8 @@ class World(
 
     /** Brutus's fields, one a player ([osrsps.game.content.BrutusPens]). */
     val brutusPens = osrsps.game.content.BrutusPens(this)
+    /** The Champions' Challenge in the Champions' Guild's basement ([ChampionsChallenge]). */
+    val championsChallenge = ChampionsChallenge(this)
 
     /** The Wilderness bosses' shared rules: group loot, kill counts, `::wboss`; see [WildernessBosses]. */
     val wildernessBosses = osrsps.game.content.WildernessBosses(this)
@@ -752,6 +756,7 @@ class World(
         npcKilled = { npc, killer ->
             slayer.killed(npc, killer)
             killer?.let { diaries.killed(it, npc) }
+            championsChallenge.killed(npc, killer)
         },
         poisonNpc = { npc, severity -> poison.poison(npc, severity) }, envenomNpc = { poison.envenom(it) },
         poisonPlayer = { player, severity -> poison.poison(player, severity) },
@@ -1256,6 +1261,7 @@ class World(
         registerExamCentre(this)
         registerDigsiteCamp(this)
         registerSourhogCave(this)
+        registerChampionsChallenge(this, championsChallenge)
         registerMisthalinSweep(this)
         registerMisthalinTownGaps(this)
         ThievingLocks.register(this)
@@ -3261,7 +3267,9 @@ class World(
         val solo = wildernessBosses.soloLooter(npc)
         val killer = if (solo != null) solo.key?.let { key -> onlinePlayers.firstOrNull { it.saveKey == key } } else killer
         // A superior's three rolls on its normal counterpart's table come after its own drops.
-        val drops = npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty()
+        val rolled = npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty()
+        // A champion's scroll for a champion the killer has beaten doesn't drop.
+        val drops = championsChallenge.filterDrops(killer, rolled)
         // A solo boss's drop stays its top damager's even if they log out as the body falls (exploit review round 40,
         // R40B-6), as group loot does; anyone else's goes public once its killer has left.
         val owner = if (solo != null) solo.key else killer?.takeIf { !it.loggedOut }?.saveKey
