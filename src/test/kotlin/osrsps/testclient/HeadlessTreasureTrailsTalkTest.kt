@@ -6,7 +6,9 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.InvObj
 import osrsps.game.InventoryTab
+import osrsps.game.content.Emotes
 import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.ObjType
@@ -24,6 +26,7 @@ import osrsps.game.trail.ClueStep
 import osrsps.game.trail.StepType
 import osrsps.game.trail.TrailChallenge
 import osrsps.game.trail.TrailData
+import osrsps.game.trail.TrailOutfit
 import osrsps.game.trail.TrailTarget
 import osrsps.game.trail.TrailTier
 import osrsps.game.trail.TrailTile
@@ -46,22 +49,32 @@ class HeadlessTreasureTrailsTalkTest {
     )
     private val far = ClueStep(StepType.CRYPTIC, 4, TrailTier.MEDIUM, "Far away.", listOf(TrailTarget.Npc(ASKER, -1, TrailTile(2600, 3000, 0))), items = listOf(FAR_ITEM))
 
+    // A beginner emote in a hat, and an elite one of two emotes with no outfit: each its tier's only step.
+    private val bow = ClueStep(
+        StepType.EMOTE, 5, TrailTier.BEGINNER, "Bow in a made-up hat.", listOf(TrailTarget.Dig(TrailTile(3222, 3222, 0))),
+        emotes = listOf(BOW), outfits = listOf(TrailOutfit("a made-up hat", items = mapOf(HEAD_SLOT to setOf(HAT)))),
+    )
+    private val cheerThenDance = ClueStep(StepType.EMOTE, 6, TrailTier.ELITE, "Cheer, then dance.", listOf(TrailTarget.Dig(TrailTile(3222, 3222, 0))), items = listOf(ELITE_ITEM), emotes = listOf(CHEER, DANCE))
+
     private val crate = ZoneLoc(CRATE, LocShape.CENTREPIECE_STRAIGHT, 0, CRATE_X, CRATE_Z, 0)
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
         val objs = arrayOfNulls<ObjType>(25_000)
         val read = listOf("Read", "Check steps", null, null, "Drop")
-        for ((id, tier) in listOf(TALK_ITEM to 347, SEARCH_ITEM to 347, ANAGRAM_ITEM to 348, FAR_ITEM to 348)) objs[id] = ObjType(id, "Clue scroll", iops = read, params = mapOf(tier to 1))
+        objs[HAT] = ObjType(HAT, "Made-up hat")
+        objs[TrailTier.BEGINNER.sharedClue] = ObjType(TrailTier.BEGINNER.sharedClue, "Clue scroll (beginner)", iops = read, params = mapOf(TrailTier.BEGINNER.param to 1))
+        for ((id, tier) in listOf(TALK_ITEM to 347, SEARCH_ITEM to 347, ANAGRAM_ITEM to 348, FAR_ITEM to 348, ELITE_ITEM to 350)) objs[id] = ObjType(id, "Clue scroll", iops = read, params = mapOf(tier to 1))
         objs[CHALLENGE] = ObjType(CHALLENGE, "Challenge scroll (medium)", iops = listOf("Read", null, null, null, "Drop"))
         for (tier in TrailTier.entries) objs[tier.rewardCasket] = ObjType(tier.rewardCasket, "Reward casket (${tier.key})", stackable = true, iops = listOf("Open", null, null, null, "Drop"))
         val talkTo = listOf("Talk-to", null, null, null, null)
-        val types = NpcTypes.of(NpcType(TALKER, "Made-up man", ops = talkTo), NpcType(ASKER, "Made-up asker", ops = talkTo))
+        val uris = listOf(TrailTier.BEGINNER, TrailTier.ELITE).map { NpcType(TreasureTrails.URI.getValue(it), "Uri", ops = talkTo) }
+        val types = NpcTypes.of(NpcType(TALKER, "Made-up man", ops = talkTo), NpcType(ASKER, "Made-up asker", ops = talkTo), *uris.toTypedArray())
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs),
             locTypes = LocTypes(mapOf(CRATE to LocType(CRATE, "Crates", ops = listOf("Search", null, null, null, null), collision = LocCollisionType(width = 1, length = 1)))),
             staticLocs = StaticLocs().apply { add(crate) },
             npcTypes = types, npcSpawns = listOf(NpcSpawn(types[TALKER]!!, 3224, 3220, wander = 0, source = "test"), NpcSpawn(types[ASKER]!!, 3220, 3220, wander = 0, source = "test")),
-            trailData = TrailData(listOf(talk, search, anagram, far)), cycleMillis = millis,
+            trailData = TrailData(listOf(talk, search, anagram, far, bow, cheerThenDance)), cycleMillis = millis,
         )
     }
 
@@ -144,7 +157,63 @@ class HeadlessTreasureTrailsTalkTest {
         }
     }
 
+    private fun HeadlessClient.emote(index: Int) = ifButton(Emotes.INTERFACE, Emotes.CONTENTS, 1, sub = index)
+
+    private fun uri(server: TestServer, tier: TrailTier) = server.world.npcs.all.firstOrNull { it.type.id == TreasureTrails.URI.getValue(tier) }
+
+    @Test
+    fun `an emote at the spot in the outfit calls Uri, who gives the next clue, and in the wrong outfit he stays away`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("hal").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("clue beginner emote:5") { it.startsWith("Clue") }
+                client.commandReply("tele 3223 3223") { it.startsWith("Teleported") }
+                client.awaitTicks(2)
+                client.emote(BOW)
+                client.awaitTicks(3)
+                assertNull(uri(server, TrailTier.BEGINNER), "no hat, no Uri")
+
+                server.world.playerNamed("hal")!!.equipment[HEAD_SLOT] = InvObj(HAT, 1)
+                client.emote(BOW)
+                val uri = client.await("Uri") { uri(server, TrailTier.BEGINNER) }
+                client.npcOp(uri.index, 1)
+                client.chat("trail.uri_clue")
+                client.objbox("trail.casket")
+                client.slotOf(TrailTier.BEGINNER.rewardCasket)
+                client.await("Uri gone") { if (uri(server, TrailTier.BEGINNER) == null) Unit else null }
+            }
+        }
+    }
+
+    @Test
+    fun `a step of two emotes has Uri wait for the second before he gives the clue`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ida").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("clue elite emote:6") { it.startsWith("Clue") }
+                client.commandReply("tele 3222 3221") { it.startsWith("Teleported") }
+                client.awaitTicks(2)
+                client.emote(CHEER)
+                val uri = client.await("Uri") { uri(server, TrailTier.ELITE) }
+                client.npcOp(uri.index, 1)
+                client.chat("trail.uri_not_yet")
+                client.emote(DANCE)
+                client.awaitTicks(2)
+                client.npcOp(uri.index, 1)
+                client.chat("trail.uri_clue")
+                client.objbox("trail.casket")
+                client.slotOf(TrailTier.ELITE.rewardCasket)
+            }
+        }
+    }
+
     private companion object {
+        const val HEAD_SLOT = 0
+        const val HAT = 1137
+        const val ELITE_ITEM = 12073
+        const val BOW = 2
+        const val CHEER = 7
+        const val DANCE = 12
         const val BACKPACK = 93
         const val TALKER = 14_990
         const val ASKER = 14_991

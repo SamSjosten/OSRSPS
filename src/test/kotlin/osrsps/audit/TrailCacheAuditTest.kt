@@ -15,7 +15,7 @@ import osrsps.game.trail.TreasureTrails
 
 /**
  * Treasure Trails against the real cache, which the headless tests (no cache) can't check: the clue helper tables load
- * into every step the Wiki lists, the Misthalin dig, talk and search steps built so far (TT1, TT3) are the ones the plan counted (Treasure Trails plan,
+ * into every step the Wiki lists, the Misthalin dig, talk, search and emote steps built so far (TT1, TT3, TT4) are the ones the plan counted (Treasure Trails plan,
  * 19 Nov 2026, from the same tables), every built map has its interface, and every clue scroll item is read.
  *
  * Needs OSRSPS_FLATCACHE: a checkout of github.com/abextm/osrs-cache at the server's revision.
@@ -38,7 +38,7 @@ class TrailCacheAuditTest {
 
         val built = TrailTier.entries.associateWith { tier -> data.tier(tier).filter { step -> TreasureTrails.built(step) }.map { it.key }.sorted() }
         assertEquals(mapOf(
-            TrailTier.BEGINNER to 14, TrailTier.EASY to 38, TrailTier.MEDIUM to 16, TrailTier.HARD to 20, TrailTier.ELITE to 3, TrailTier.MASTER to 1,
+            TrailTier.BEGINNER to 18, TrailTier.EASY to 51, TrailTier.MEDIUM to 21, TrailTier.HARD to 20, TrailTier.ELITE to 3, TrailTier.MASTER to 1,
         ), built.mapValues { it.value.size }, built.toString())
 
         val problems = ArrayList<String>()
@@ -51,6 +51,8 @@ class TrailCacheAuditTest {
                 problems += "$step: no text"
             }
             for (item in step.items) if (objs[item]?.iop(1) != "Read") problems += "$step: item $item isn't read"
+            if (step.type == StepType.EMOTE && step.emotes.any { it !in osrsps.game.content.Emotes.EMOTES }) problems += "$step: emotes ${step.emotes}"
+            for (outfit in step.outfits) for (item in outfit.items.values.flatten()) if (objs[item] == null) problems += "$step: outfit item $item"
         }
         for (tier in TrailTier.entries) {
             if (tier.sharedClue >= 0 && objs[tier.sharedClue]?.intParam(tier.param) != 1) problems += "$tier: shared clue ${tier.sharedClue} lacks param ${tier.param}"

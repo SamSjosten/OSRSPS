@@ -1,0 +1,25 @@
+{
+ "name": "Treasure Trails step TT4: Bow by Brugsen Bursen with the beginner emote clue calls Uri, who hands over the next clue (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::clue reset", "expectMessage": "No trail, no caskets opened, no scroll cases."},
+
+  {"step": "command", "text": "::clue beginner emote:274", "expectMessage": "Clue (beginner): emote:274", "comment": "Bow to Brugsen Bursen at the Grand Exchange, on the shared beginner scroll (23182)"},
+  {"step": "command", "text": "::tele 3164 3476 0", "comment": "a tile south of the clue's spot (3164, 3477)"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "clickWidget", "interfaceId": 216, "component": 2, "slot": 2, "comment": "Bow"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "npcOption", "npc": "Uri", "option": "Talk-to"},
+  {"step": "assertDialogue", "contains": "[trail.uri_clue]", "timeoutMs": 15000},
+  {"step": "continueDialogue"},
+  {"step": "continueDialogue", "comment": "the item box: the next clue, or the casket on a one-step trail"},
+  {"step": "command", "text": "::empty"},
+
+  {"step": "command", "text": "::clue reset", "expectMessage": "No trail, no caskets opened, no scroll cases."},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

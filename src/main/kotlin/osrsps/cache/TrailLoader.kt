@@ -7,6 +7,7 @@ import osrsps.game.trail.ClueStep
 import osrsps.game.trail.StepType
 import osrsps.game.trail.TrailChallenge
 import osrsps.game.trail.TrailData
+import osrsps.game.trail.TrailOutfit
 import osrsps.game.trail.TrailTarget
 import osrsps.game.trail.TrailTier
 import osrsps.game.trail.TrailTile
@@ -34,6 +35,14 @@ object TrailLoader {
     const val TARGET_KILL = 20
     const val CHALLENGE_QUESTION = 25
     const val CHALLENGE_BOX = 26
+    const val OUTFIT = 28
+
+    /**
+     * cluehelper_outfit's columns after the description: an item list for each equipment slot in turn (hat, back,
+     * front, right hand, torso, left hand, legs, hands, feet, ring, quiver), then an item group for each of the same
+     * slots, then a group for any slot.
+     */
+    private val OUTFIT_SLOTS = intArrayOf(0, 1, 2, 3, 4, 5, 7, 9, 10, 12, 13)
 
     /** A challenge scroll's name, which tells it from the step's clue scroll: both name the step's row. */
     const val CHALLENGE_SCROLL = "Challenge scroll"
@@ -43,7 +52,7 @@ object TrailLoader {
     private const val DIFFICULTY = 1
 
     /** The column holding the clue text, the target list, the fight and the challenge, by step type (-1 for none). */
-    private class Columns(val text: Int, val target: Int, val combat: Int = -1, val challenge: Int = -1)
+    private class Columns(val text: Int, val target: Int, val combat: Int = -1, val challenge: Int = -1, val emote: Int = -1, val outfit: Int = -1)
 
     private val COLUMNS = mapOf(
         StepType.ANAGRAM to Columns(text = 2, target = 3, challenge = 4),
@@ -51,7 +60,7 @@ object TrailLoader {
         StepType.CIPHER to Columns(text = 2, target = 3, challenge = 4),
         StepType.COORDINATE to Columns(text = 2, target = 3, combat = 5),
         StepType.CRYPTIC to Columns(text = 2, target = 3, challenge = 5),
-        StepType.EMOTE to Columns(text = 2, target = 3, combat = 9),
+        StepType.EMOTE to Columns(text = 2, target = 3, combat = 9, emote = 4, outfit = 6),
         StepType.FAIRY_RING to Columns(text = 2, target = 5),
         StepType.FALO to Columns(text = 2, target = 3),
         StepType.HOT_COLD to Columns(text = -1, target = 2, combat = 4),
@@ -61,7 +70,7 @@ object TrailLoader {
 
     fun load(library: CacheLibrary, objTypes: ObjTypes): TrailData {
         val rows = HashMap<Int, DbRow>()
-        val tables = StepType.entries.map { it.table }.toSet() + (TARGET_NPC..TARGET_KILL) + CHALLENGE_QUESTION + CHALLENGE_BOX
+        val tables = StepType.entries.map { it.table }.toSet() + (TARGET_NPC..TARGET_KILL) + CHALLENGE_QUESTION + CHALLENGE_BOX + OUTFIT
         for (file in library.index(2)?.archive(38)?.files().orEmpty()) {
             val row = DbRows.decode(file.data ?: continue)
             if (row.table in tables) rows[file.id] = row
@@ -102,10 +111,23 @@ object TrailLoader {
                 combat = columns.combat >= 0 && row.columns[columns.combat].orEmpty().isNotEmpty(),
                 challenge = if (columns.challenge >= 0) row.int(columns.challenge)?.let { challenge(rows, it) } else null,
                 challengeItem = challengeScrolls.firstOrNull() ?: -1,
+                emotes = if (columns.emote >= 0) row.ints(columns.emote) else emptyList(),
+                outfits = if (columns.outfit >= 0) row.ints(columns.outfit).mapNotNull { outfit(rows, it) } else emptyList(),
             )
         }
         logger.info { "Loaded ${steps.size} Treasure Trail steps: ${steps.groupingBy { it.tier.key }.eachCount()}" }
         return TrailData(steps)
+    }
+
+    private fun outfit(rows: Map<Int, DbRow>, rowId: Int): TrailOutfit? {
+        val row = rows[rowId]?.takeIf { it.table == OUTFIT } ?: return null
+        val items = HashMap<Int, Set<Int>>()
+        val groups = HashMap<Int, Int>()
+        for ((i, slot) in OUTFIT_SLOTS.withIndex()) {
+            row.ints(1 + i).takeIf { it.isNotEmpty() }?.let { items[slot] = it.toSet() }
+            row.int(1 + OUTFIT_SLOTS.size + i)?.let { groups[slot] = it }
+        }
+        return TrailOutfit(row.string(0).orEmpty(), items, groups, row.ints(1 + 2 * OUTFIT_SLOTS.size))
     }
 
     /** A challenge row: a question's text and every answer it takes (its list is question, answer pairs), or a box. */
