@@ -19,6 +19,7 @@ import osrsps.game.World
 import osrsps.game.combat.Deaths
 import osrsps.game.combat.PvpLines
 import osrsps.game.dialogue.DialogueText
+import osrsps.game.skill.ArceuusRunecraft
 import osrsps.map.CollisionMap
 
 /**
@@ -35,13 +36,14 @@ class HeadlessPvpDeathTest {
     private val lobster = ObjType(379, "Lobster", cost = 150, tradeable = true)
     private val cape = ObjType(6570, "Fire cape", wearpos1 = WearPos.CAPE)
     private val book = ObjType(757, "Book")
+    private val fragments = ObjType(ArceuusRunecraft.FRAGMENTS, "Dark essence fragments")
 
     private fun server(dir: Path, saves: SaveStore = MemorySaveStore()) = TestServer(dir) { crcs, millis ->
         val map = CollisionMap().apply {
             markLoaded(3222 shr 6, 3218 shr 6)
             for (sz in (3456 shr 6)..(3967 shr 6)) markLoaded(3090 shr 6, sz)
         }
-        World(crcs, map, objTypes = ObjTypes.of(coins, sword, bones, lobster, cape, book), npcTypes = NpcTypes.of(grave), cycleMillis = millis, saves = saves)
+        World(crcs, map, objTypes = ObjTypes.of(coins, sword, bones, lobster, cape, book, fragments), npcTypes = NpcTypes.of(grave), cycleMillis = millis, saves = saves)
     }
 
     private fun HeadlessClient.tele(x: Int, z: Int) {
@@ -50,14 +52,14 @@ class HeadlessPvpDeathTest {
     }
 
     /** [victim] carrying the test's items at level [z]'s Wilderness, on 1 hitpoint, killed by one sure punch from [killer]. */
-    private fun TestServer.kill(killer: HeadlessClient, victim: HeadlessClient, victimName: String, z: Int, skulled: Boolean = false) {
+    private fun TestServer.kill(killer: HeadlessClient, victim: HeadlessClient, victimName: String, z: Int, skulled: Boolean = false, extra: List<String> = emptyList()) {
         killer.await("the login rebuild") { killer.position }
         victim.await("the login rebuild") { victim.position }
         // Both at combat level 3, so even level 5 has them in range: one point of hitpoints left, and a sure punch.
         killer.commandReply("sure max") { it.startsWith("Your attacks") }
         victim.commandReply("hit 9 me") { it.startsWith("Hit yourself") }
-        for (command in listOf("item 379", "item 1277", "item 995 10", "item 526 2", "item 6570", "item 757")) victim.command(command)
-        victim.await("the bag filled") { victim.inventory(BACKPACK).takeIf { it.count { obj -> obj != null } == 7 } }
+        for (command in listOf("item 379", "item 1277", "item 995 10", "item 526 2", "item 6570", "item 757") + extra) victim.command(command)
+        victim.await("the bag filled") { victim.inventory(BACKPACK).takeIf { it.count { obj -> obj != null } == 7 + extra.size } }
         victim.command("varp 172 1")
         if (skulled) world.playerNamed(victimName)!!.skullTicks = 500
         killer.tele(3090, z)
@@ -87,6 +89,22 @@ class HeadlessPvpDeathTest {
                     assertEquals(listOf(InvObj(bones.id, 1), InvObj(bones.id, 1), InvObj(coins.id, 9)), server.groundFor("kai", LEVEL_25))
                     assertEquals(emptyList(), server.groundFor("lou", LEVEL_25), "the killer's alone for now")
                     assertNull(server.world.deaths.graveOf(server.world.playerNamed("lou")!!), "nothing for a grave above 20")
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `above level 20 dark essence fragments are kept, as an untradeable that can't be worn, with their count`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("kai").use { killer ->
+                server.login("lou").use { victim ->
+                    victim.await("the login rebuild") { victim.position }
+                    server.world.playerNamed("lou")!!.charges[ArceuusRunecraft.FRAGMENT_CHARGES] = 40
+                    server.kill(killer, victim, "lou", LEVEL_25, extra = listOf("item ${ArceuusRunecraft.FRAGMENTS}"))
+                    victim.await("the fragments kept") { victim.inventory(BACKPACK).firstOrNull { it?.id == fragments.id } }
+                    // Exploit review round 42, R42A-1: the obj came back to the backpack, so its count stays with it.
+                    assertEquals(40, server.world.arceuusRunecraft.fragments(server.world.playerNamed("lou")!!))
                 }
             }
         }
