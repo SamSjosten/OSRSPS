@@ -95,6 +95,11 @@ data class NpcCombatDef(
      * with, as [magicAttack] is for its spells.
      */
     val rangedAttack: Int = 0,
+    /**
+     * The Wiki's melee attack bonus, for a magic or ranged NPC that also swings in reach (the Inferno's Jal-Ak): what a
+     * melee attack of its rolls with.
+     */
+    val meleeAttack: Int = 0,
     /** The Wiki's elemental weakness, null for "No elemental weakness". */
     val weakness: ElementalWeakness? = null,
     /** The poison severity its attacks give ([Poison]), 0 for none: five times the Wiki's starting damage. */
@@ -212,7 +217,7 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
          * ] }
          * ```
          *
-         * An animation may be `null` for none. An entry may add `"magicAttack"`, `"rangedAttack"`, `"weakness": { "element": "water", "percent": 10 }`,
+         * An animation may be `null` for none. An entry may add `"magicAttack"`, `"rangedAttack"`, `"meleeAttack"`, `"weakness": { "element": "water", "percent": 10 }`,
          * `"poison"` (the Wiki's starting damage of the poison its attacks give), `"immune": ["poison", "venom", "freeze"]` and
          * `"drainCap": { "defence": 60 }` (the most of a level drains can take, in percent) and `"aggressive"`: `true`, or
          * `{ "huntRange": 3, "ignoresLevels": true, "tolerant": false }` with any of the three ([NpcAggression]), and
@@ -287,6 +292,7 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                 source = entry.required("source").jsonPrimitive.content.ifBlank { throw IllegalArgumentException("blank source") },
                 magicAttack = entry["magicAttack"]?.jsonPrimitive?.int ?: 0,
                 rangedAttack = entry["rangedAttack"]?.jsonPrimitive?.int ?: 0,
+                meleeAttack = entry["meleeAttack"]?.jsonPrimitive?.int ?: 0,
                 weakness = entry["weakness"]?.jsonObject?.let { weakness ->
                     ElementalWeakness(
                         Element.parse(weakness.required("element").jsonPrimitive.content),
