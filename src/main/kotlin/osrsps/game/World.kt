@@ -1031,6 +1031,12 @@ class World(
     val woodcutting = Woodcutting(this, WoodcuttingData.load(), birdNests)
 
     /** The Brimhaven Agility Arena's arrowed dispenser and fees (Karamja step K3.4). */
+    /**
+     * Called after a player's step in the movement phase with the tile they stepped from, for what a tile does when
+     * walked onto (the Agility Arena's floor traps). Not after a teleport.
+     */
+    val stepHooks = ArrayList<(Player, Int, Int) -> Unit>()
+
     val agilityArena = AgilityArena(this)
     val farming = osrsps.game.skill.farming.Farming(this, farmingClock, farmingDiseases)
 
@@ -3530,8 +3536,11 @@ class World(
     }
 
     private fun move(player: Player) {
+        val fromX = player.x
+        val fromZ = player.z
         val result = movement.process(player)
         if (result != MoveResult.NONE) player.lastMoveTick = tick
+        if (result != MoveResult.NONE && !player.teleported) for (hook in stepHooks) hook(player, fromX, fromZ)
         val extendedInfo = player.infos.playerInfo.avatar.extendedInfo
         val speed = when (result) {
             MoveResult.NONE -> null

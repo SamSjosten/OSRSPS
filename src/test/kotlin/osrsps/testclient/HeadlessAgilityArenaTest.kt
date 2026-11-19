@@ -390,6 +390,78 @@ class HeadlessAgilityArenaTest {
         }
     }
 
+    @Test
+    fun `walking onto the floor spikes jumps them, and a third pressure pad in a row gives no XP`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.world.agilityArena.rotateTicks = Int.MAX_VALUE
+            server.login("fay").use { client ->
+                client.ready()
+                client.command("setlevel agility 99")
+                client.await("level 99") { client.stat(AGILITY)?.takeIf { it.level == 99 } }
+                client.tele(2772, 9553, 3)
+                var xp = client.stat(AGILITY)!!.xp
+                client.walk(2772, 9548)
+                client.await("over the spikes") { client.position?.takeIf { it == Coord(2772, 9550, 3) } }
+                assertEquals(xp + 24, client.await("24 XP") { client.stat(AGILITY)?.takeIf { it.xp >= xp + 24 } }.xp)
+
+                client.tele(2772, 9586, 3)
+                xp = client.stat(AGILITY)!!.xp
+                client.walk(2772, 9580)
+                client.await("over the pad south") { client.position?.takeIf { it == Coord(2772, 9583, 3) } }
+                client.await("26 XP") { client.stat(AGILITY)?.takeIf { it.xp >= xp + 26 } }
+                client.walk(2772, 9590)
+                client.await("over the pad north") { client.position?.takeIf { it == Coord(2772, 9586, 3) } }
+                client.await("52 XP") { client.stat(AGILITY)?.takeIf { it.xp >= xp + 52 } }
+                client.walk(2772, 9580)
+                client.await("over the pad again") { client.position?.takeIf { it == Coord(2772, 9583, 3) } }
+                client.awaitTicks(2)
+                assertEquals(xp + 52, client.stat(AGILITY)!!.xp, "the third pad in a row within 8 ticks")
+            }
+        }
+    }
+
+    @Test
+    fun `a failed jump over the spinning blades hurts, says so and puts the player back, and the spikes never fail from 50`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.world.agilityArena.rotateTicks = Int.MAX_VALUE
+            server.login("gus").use { client ->
+                client.ready()
+                client.commandReply("setlevel hitpoints 99") { true }
+                client.await("99 HP") { client.stat(HITPOINTS)?.takeIf { it.level == 99 } }
+                // Level 1: the blades' pair, read at 1, fails about two times in five.
+                var failed = false
+                for (attempt in 1..30) {
+                    client.commandReply("setlevel hitpoints 99") { true }
+                    client.await("healed") { client.stat(HITPOINTS)?.takeIf { it.level == 99 } }
+                    client.tele(2782, 9575, 3)
+                    client.walk(2782, 9570)
+                    val end = client.await("over or back") { client.position?.takeIf { it == Coord(2782, 9572, 3) || it == Coord(2782, 9574, 3) } }
+                    if (end == Coord(2782, 9574, 3)) {
+                        // 99 * 5 / 100 + 2.
+                        client.await("a 6 hit") { client.stat(HITPOINTS)?.takeIf { it.level == 93 } }
+                        client.message("[agility_arena.spinning_blades]")
+                        failed = true
+                        break
+                    }
+                    client.awaitTicks(1)
+                }
+                assertTrue(failed, "no failed jump in 30 at level 1")
+
+                client.command("setlevel agility 50")
+                client.await("level 50") { client.stat(AGILITY)?.takeIf { it.level == 50 } }
+                client.commandReply("setlevel hitpoints 99") { true }
+                client.await("healed") { client.stat(HITPOINTS)?.takeIf { it.level == 99 } }
+                repeat(6) {
+                    client.tele(2772, 9553, 3)
+                    client.walk(2772, 9548)
+                    val over = client.await("over the spikes") { client.position?.takeIf { it == Coord(2772, 9550, 3) } }
+                    assertEquals(Coord(2772, 9550, 3), over)
+                }
+                assertEquals(99, client.stat(HITPOINTS)!!.level, "the spikes at 50")
+            }
+        }
+    }
+
     private fun endAt(z: Int) = PLANKS.getValue(z).last().first
 
     private companion object {
