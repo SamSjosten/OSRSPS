@@ -364,6 +364,7 @@ object DialogueLines {
         ClerkLines,
         ClanHallLines,
         ClanCofferLines,
+        ClanPartyLines,
         TolnaLines,
         TolnaRiftLines,
         OddOldManLines,
