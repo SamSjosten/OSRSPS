@@ -79,6 +79,8 @@ A skill built in full trains 1 to 99 by live's main methods; spots outside the b
 until their region is built. Minigames and other regions' extras (Wintertodt, Tempoross, Guardians of the Rift and so
 on) come with their areas.
 
+**Getting around**: lodestones in every built area, and every fairy ring (with a dramen or lunar staff wielded).
+
 ### Quick start
 
 ```bash

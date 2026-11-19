@@ -76,7 +76,10 @@ import osrsps.game.social.FriendsChatLines
 import osrsps.game.social.ReportLines
 import osrsps.game.social.SocialLines
 import osrsps.game.trade.TradeLines
+import osrsps.game.trail.TrailLines
 import osrsps.game.tzhaar.FightCaveLines
+import osrsps.game.tzhaar.InfernoLines
+import osrsps.game.tzhaar.KetKehLines
 import osrsps.game.tzhaar.MejJalLines
 
 /**
@@ -134,6 +137,8 @@ object DialogueLines {
         FeorasLines,
         FightCaveLines,
         MejJalLines,
+        InfernoLines,
+        KetKehLines,
         FinlayLines,
         MonlumLines,
         WebLines,
@@ -196,6 +201,7 @@ object DialogueLines {
         VolcanicForgeLines,
         KingBlackDragonLines,
         WildernessLairLines,
+        CalvarionLines,
         WildernessLairFeeLines,
         osrsps.game.FountainOfRuneLines,
         OborLines,
@@ -222,6 +228,7 @@ object DialogueLines {
         EssenceMineLines,
         EvilDaveLines,
         Examines,
+        FairyRingLines,
         FatherLawrenceLines,
         FerrnookLines,
         FiremakingLines,
@@ -299,6 +306,7 @@ object DialogueLines {
         RatBurgissLines,
         SethGroatsLines,
         SawmillLines,
+        ClerkLines,
         TolnaLines,
         TolnaRiftLines,
         OddOldManLines,
@@ -442,6 +450,7 @@ object DialogueLines {
         TownCrierLines,
         TradeLines,
         TraibornLines,
+        TrailLines,
         TrampLines,
         UrhneyLines,
         ValaineLines,
