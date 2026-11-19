@@ -84,8 +84,24 @@ class CollectionLog(
         sync(player)
     }
 
-    /** Sets the log's vars from [player]'s record, as at login. */
-    fun login(player: Player) = sync(player)
+    /** Items logged for players who were offline when they dropped, by save key, until they log in. */
+    private val pending = HashMap<String, MutableList<Pair<Int, Int>>>()
+
+    /**
+     * Logs [count] of [item] for the player saved under [key], who isn't online: a drop kept for them after they logged
+     * out (a solo boss's top damager, a Wilderness boss's share). It is added at their next login, as [add] would.
+     * INFERRED: live logs it as it drops. Lost if the server restarts first.
+     */
+    fun addLater(key: String, item: Int, count: Int) {
+        if (count <= 0 || item !in catalog) return
+        pending.getOrPut(key) { ArrayList() } += item to count
+    }
+
+    /** Sets the log's vars from [player]'s record, as at login, after anything logged for them while offline. */
+    fun login(player: Player) {
+        pending.remove(player.saveKey)?.forEach { (item, count) -> add(player, item, count) }
+        sync(player)
+    }
 
     /** Every var the log's windows read, from [player]'s record; see the class comment. */
     fun sync(player: Player) {

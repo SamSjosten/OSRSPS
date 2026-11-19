@@ -57,6 +57,19 @@ class CollectionLogTest {
     }
 
     @Test
+    fun `an item dropped for a player who logged out is logged, and announced, at their next login`() {
+        val player = player(setting = CollectionLog.NOTIFY_CHAT)
+        log.addLater(player.saveKey, pickaxe, 1)
+        log.addLater(player.saveKey, 995, 1)
+        assertEquals(0, log.count(player, pickaxe))
+        log.login(player)
+        assertEquals(mapOf(pickaxe to 1), player.collectionLog)
+        assertEquals(1, said.size)
+        log.login(player)
+        assertEquals(1, log.count(player, pickaxe), "once only")
+    }
+
+    @Test
     fun `bracelets of ethereum stop at 250`() {
         val bracelet = CollectionLog.BRACELET_OF_ETHEREUM
         val revenants = CollectionLogCatalog.Page(525, 4, 0, listOf(bracelet), completedVarbit = null)

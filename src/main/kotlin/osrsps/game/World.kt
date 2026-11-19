@@ -2942,6 +2942,15 @@ class World(
     }
 
     /**
+     * [lootDropped] for the player saved under [key]; one who has logged out gets the collection log's entry at their next
+     * login and no notification.
+     */
+    fun lootDroppedFor(key: String, type: ObjType, count: Int) {
+        val player = onlinePlayers.firstOrNull { it.saveKey == key && !it.loggedOut }
+        if (player != null) lootDropped(player, type, count) else collectionLog.addLater(key, type.id, count)
+    }
+
+    /**
      * Rolls [npc]'s drops and puts them on its tile: the killer's alone for [GroundObjs.DROP_PRIVATE_TICKS], then
      * everyone's, gone after [GroundObjs.LOOT_DESPAWN_TICKS] (OSRS Wiki, Drop). With no killer, or one who has left,
      * they are everyone's from the start (guessed).
@@ -2961,7 +2970,7 @@ class World(
         for (drop in drops) {
             if (owner != null) {
                 groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, owner, GroundObjs.DROP_PRIVATE_TICKS, despawn)
-                killer?.takeIf { !it.loggedOut }?.let { lootDropped(it, drop.type, drop.count) }
+                lootDroppedFor(owner, drop.type, drop.count)
             } else {
                 groundObjs.addPublic(drop.type, drop.count, npc.x, npc.z, npc.level, despawn)
             }
