@@ -96,7 +96,7 @@ object MeredithLines : Lines("meredith", "Transcript:Meredith") {
  * - The Weaponsmaster (5211), upstairs in the Phoenix Gang's house: a fight only (the Wiki's stats, npc-combat.json);
  *   his talk is left out, as the Wiki's transcript couldn't be read.
  *
- * Left out: the Castle Wars recruiters, the clan Clerk, Marlo (Mahogany Homes), the Estate agent (player-owned
+ * Left out: the Castle Wars recruiters, Marlo (Mahogany Homes), the Estate agent (player-owned
  * houses) and the Assistant Serf (balloons): their talk leads straight into a system that isn't built. Guessed: every
  * chathead expression.
  */

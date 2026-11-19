@@ -441,6 +441,8 @@ object VarrockPalace {
 /** The palace's people and library. */
 fun registerVarrockPalace(world: World) {
     with(VarrockPalace) {
+        // The GE bot market pays no more than this for them (exploit review 44, R44A-3).
+        world.grandExchange.npcSells(SILVERLIGHT, SILVERLIGHT_PRICE.toLong())
         val talks: List<Pair<Int, suspend Dialogue.() -> Unit>> = listOf(
             KING_ROALD to { roald(world) },
             AEONISIG to { aeonisig() },

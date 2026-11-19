@@ -1,0 +1,23 @@
+{
+ "name": "Grand Exchange: the bot market pays no more for beer than the Varrock bartenders sell it for (exploit review 44, R44A-3)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack and no offers; ::reset at the end puts it back"},
+  {"step": "command", "text": "::gemarket on", "expectMessage": "The Grand Exchange market is on."},
+  {"step": "command", "text": "::item 1917 10", "expectMessage": "Added 10 x Beer"},
+  {"step": "command", "text": "::geoffer sell 1917 10 50", "expectMessage": "Placed: Slot 0: sell 10 x Beer (1917) at 50", "comment": "50 is under beer's guide price but over the 2 gp a bartender charges, so the market does not take it"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "command", "text": "::geoffer list", "expectMessage": "0/10 done for 0,"},
+  {"step": "command", "text": "::geoffer abort 0", "expectMessage": "Aborted slot 0."},
+  {"step": "command", "text": "::geoffer collect 0 items", "expectMessage": "Collected from slot 0.", "comment": "items, not notes, so the beer can be offered again"},
+  {"step": "assertInventory", "item": "Beer", "count": 10},
+  {"step": "command", "text": "::geoffer sell 1917 10 2", "expectMessage": "Placed: Slot 0: sell 10 x Beer (1917) at 2", "comment": "at the bartender's price it fills, and pays 2 each rather than the guide price"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "command", "text": "::geoffer list", "expectMessage": "10/10 done for 20,"},
+  {"step": "command", "text": "::geoffer collect 0", "expectMessage": "Collected from slot 0."},
+  {"step": "assertInventory", "item": "Beer", "count": 0},
+  {"step": "assertInventory", "item": "Coins", "count": 20},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

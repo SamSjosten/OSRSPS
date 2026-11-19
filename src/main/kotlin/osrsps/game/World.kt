@@ -36,6 +36,7 @@ import net.rsprot.protocol.channel.hostAddress
 import osrsps.game.command.Admins
 import osrsps.game.command.CommandRegistry
 import osrsps.game.command.registerCombatCommands
+import osrsps.game.command.registerLookCommands
 import osrsps.game.command.registerDevCommands
 import osrsps.game.command.registerEffectCommands
 import osrsps.game.command.registerGroundObjCommands
@@ -59,6 +60,7 @@ import osrsps.game.command.registerLodestoneCommands
 import osrsps.game.command.registerWildernessCommands
 import osrsps.game.command.registerFarmingCommands
 import osrsps.game.command.registerSlayerCommands
+import osrsps.game.command.registerTrailCommands
 import osrsps.game.command.registerXpRateCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
@@ -121,6 +123,7 @@ import osrsps.game.content.registerHamHideout
 import osrsps.game.content.registerHamStorerooms
 import osrsps.game.content.registerFarmsRoads
 import osrsps.game.content.registerLumberYard
+import osrsps.game.content.registerClanHub
 import osrsps.game.content.registerRaidTester
 import osrsps.game.content.registerTolnasRift
 import osrsps.game.content.registerDigsite
@@ -404,10 +407,16 @@ class World(
     agilityData: AgilityData = AgilityData.load(),
     /** Slayer's tasks, masters and rewards, from the cache ([osrsps.cache.SlayerLoader]); tests that slay pass their own. */
     slayerData: SlayerData = SlayerData.NONE,
+    /** The fairy ring codes, from the cache's `fairyring` table ([osrsps.cache.FairyRingLoader]); tests that travel pass their own. */
+    fairyRingCodes: osrsps.game.content.FairyRingCodes = osrsps.game.content.FairyRingCodes.NONE,
+    /** Treasure Trails' steps, from the cache's clue helper tables ([osrsps.cache.TrailLoader]); tests that dig pass their own. */
+    trailData: osrsps.game.trail.TrailData = osrsps.game.trail.TrailData.NONE,
     /** Whether shooting stars land on their own ([ShootingStars]); tests land theirs with `::star land`. */
     starCycle: Boolean = false,
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
+    /** The cache's identity kits, which ::look and the makeover screens check kits against. */
+    val idkTypes: IdkTypes = IdkTypes.NONE,
 ) : GameConnectionHandler<Player> {
     /**
      * The cache's varps and varbits plus our own ([customVars]), which the client gets through the cache overlay and
@@ -555,7 +564,7 @@ class World(
     private val worldMap = WorldMapScreen(interfaces)
 
     /** Grand Exchange offers; see [GrandExchange]. */
-    val grandExchange = GrandExchange(objTypes, { this.itemPrices }, { tick }, taxExempt = GrandExchange.taxExempt(objTypes))
+    val grandExchange = GrandExchange(objTypes, { this.itemPrices }, { tick }, taxExempt = GrandExchange.taxExempt(objTypes)).also { it.npcSells(shopTypes) }
 
     /** The Grand Exchange's offers screen; see [GrandExchangeScreen]. */
     val grandExchangeScreen = GrandExchangeScreen(
@@ -873,6 +882,22 @@ class World(
             }
         },
         askAmount = { player, prompt, typed -> scripts.start(player) { typed(countDialog(prompt)) } },
+        recolour = osrsps.game.content.ClanHub::recolour,
+        pickMotif = { player, current, picked ->
+            // clan_outfit draws from clan_editing_0, so it goes first, sent now rather than with the tick's varps.
+            if (Clans.VARP_EDITING_MOTIF < player.vars.types.varpCount) {
+                player.vars[Clans.VARP_EDITING_MOTIF] = current
+                interfaces.sendVarpNow(player, Clans.VARP_EDITING_MOTIF)
+            }
+            interfaces.openInside(player, Clans.INFO, Clans.INFO_POPUP, Clans.OUTFIT)
+            interfaces.runClientScript(player, Clans.SCRIPT_OUTFIT, listOf(Clans.component(Clans.INFO, Clans.INFO_POPUP)))
+            scripts.start(player) {
+                // Save sends clan_editing_0 as it stands (script4432); Cancel sends 0 (script4208).
+                val answer = waitForCount()
+                if (Clans.INFO in player.modals.values) interfaces.closeInside(player, Clans.INFO, Clans.INFO_POPUP)
+                if (answer != 0 && answer != current) picked(answer)
+            }
+        },
         now = clansClock,
     )
 
@@ -899,6 +924,9 @@ class World(
 
     /** The River Lum's canoe stations; see [Canoes]. */
     val canoes = Canoes(this, woodcutting.data)
+
+    /** The fairy rings; see [osrsps.game.content.FairyRings]. */
+    val fairyRings = osrsps.game.content.FairyRings(this, fairyRingCodes)
 
     /** Runecraft's ruins, talismans, tiaras and altars; see [osrsps.game.skill.Runecraft]. */
     val runecraft = osrsps.game.skill.Runecraft(this)
@@ -939,6 +967,9 @@ class World(
 
     /** Slayer tasks: kills, XP and the enchanted gem; see [Slayer]. */
     val slayer = Slayer(this, slayerData)
+
+    /** Treasure Trails: scroll boxes, clue scrolls and their steps; see [osrsps.game.trail.TreasureTrails]. */
+    val trails = osrsps.game.trail.TreasureTrails(this, trailData)
 
     /** The Slayer masters' Talk-to and Assignment; see [SlayerMasters]. */
     val slayerMasters = SlayerMasters(this)
@@ -1025,6 +1056,7 @@ class World(
         registerWildernessCommands(this@World)
         registerFarmingCommands(this@World)
         registerSlayerCommands(this@World)
+        registerTrailCommands(this@World)
         registerSeedCommands(this@World)
         registerShootingStarCommands(this@World)
         registerScriptCommands(this@World)
@@ -1044,6 +1076,7 @@ class World(
         registerCombatCommands(this@World)
         registerIpCommands(this@World)
         registerSocialCommands(this@World)
+        registerLookCommands(this@World)
     }
 
     init {
@@ -1096,11 +1129,13 @@ class World(
         registerHamStorerooms(this)
         registerFarmsRoads(this)
         registerLumberYard(this)
+        registerClanHub(this)
         registerTolnasRift(this)
         registerSilvarea(this)
         registerPaterdomus(this)
         registerDigsite(this)
         registerDigsiteDigs(this)
+        osrsps.game.trail.registerTreasureTrails(this)
         registerExamCentre(this)
         registerMisthalinSweep(this)
         registerMisthalinTownGaps(this)
@@ -1164,6 +1199,7 @@ class World(
         woodcutting.register()
         farming.register()
         canoes.register()
+        fairyRings.register()
         birdNests.register()
         firemaking.register()
         hunter.register()
@@ -2288,9 +2324,8 @@ class World(
 
         val appearance = infos.playerInfo.avatar.extendedInfo
         appearance.setName(player.username)
-        // Default male look. Guessed, not checked against live. Worn items and the stance go with the first flush.
-        DEFAULT_IDENT_KITS.forEachIndexed { slot, kit -> appearance.setIdentKit(slot, kit) }
-        for (slot in 0 until 5) appearance.setColour(slot, 0)
+        // The saved look. Worn items and the stance go with the first flush.
+        sendLook(player)
         sendRunState(player)
         PlayerOps.send(player.vars, player.session::queue)
         player.attackOp = false
@@ -2324,6 +2359,22 @@ class World(
             interfaces.runClientScript(player, AllSettings.TUT2_DEFAULT_SETTINGS_SCRIPT, emptyList())
             interfaces.requestFrame(player, GameFrame.RESIZABLE_CLASSIC, tick)
         }
+    }
+
+    /** Gives [player] [look] and shows it to everyone who can see them, the player included, with the next flush. */
+    fun setLook(player: Player, look: PlayerLook) {
+        player.look = look
+        sendLook(player)
+    }
+
+    /** Puts [player]'s look in their appearance block; RSProt sends it only when something in it changed. */
+    private fun sendLook(player: Player) {
+        val appearance = player.infos.playerInfo.avatar.extendedInfo
+        val look = player.look
+        appearance.setBodyType(look.bodyType)
+        appearance.setPronoun(look.pronoun)
+        look.kits.forEachIndexed { part, kit -> appearance.setIdentKit(part, kit) }
+        look.colours.forEachIndexed { part, colour -> appearance.setColour(part, colour) }
     }
 
     /**
@@ -3020,7 +3071,10 @@ class World(
         // R40B-6), as group loot does; anyone else's goes public once its killer has left.
         val owner = if (solo != null) solo.key else killer?.takeIf { !it.loggedOut }?.saveKey
         val despawn = osrsps.game.content.KingBlackDragon.lootTicks(this, npc, GroundObjs.LOOT_DESPAWN_TICKS)
-        for (drop in drops) {
+        for (rolled in drops) {
+            // Every quest counts as done, X Marks the Spot included: a clue scroll comes as its scroll box, or not at all past the cap.
+            val type = trails.dropFor(killer?.takeIf { !it.loggedOut }, rolled.type) ?: continue
+            val drop = if (type === rolled.type) rolled else rolled.copy(type = type)
             if (owner != null) {
                 groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, owner, GroundObjs.DROP_PRIVATE_TICKS, despawn)
                 lootDroppedFor(owner, drop.type, drop.count)
@@ -3615,7 +3669,6 @@ class World(
         /** wildy_hub_buffer (10530): 1 inside Ferox Enclave, where the Wilderness overlay shows "Level: --". */
         const val VARBIT_WILDY_HUB_BUFFER = 10530
 
-        private val DEFAULT_IDENT_KITS = intArrayOf(0, 10, 18, 26, 33, 36, 42)
     }
 }
 
