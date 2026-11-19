@@ -59,6 +59,7 @@ class HeadlessFightCaveTest {
         monster(3125, "Ket-Zek", 5, 360, "tzhaar_fightcave_swarm_5a", 160),
         monster(3126, "Ket-Zek", 5, 360, "tzhaar_fightcave_swarm_5b", 160),
         monster(3127, "TzTok-Jad", 5, 702, "tzhaar_fightcave_swarm_boss", 250),
+        monster(3128, "Yt-HurKot", 1, 108, "tzhaar_fightcave_swarm_boss_cleric", 60),
         NpcType(FightCaves.MEJ_JAL, "TzHaar-Mej-Jal", ops = listOf("Talk-to", null, "Exchange fire cape", null, null), internalName = "tzhaar_fightcave_master"),
     )
 
@@ -490,6 +491,82 @@ class HeadlessFightCaveTest {
                 assertTrue(client.actorEvents().none { !it.npc && it.kind == ActorEventKind.HITSPLAT && it.ticks == heal.ticks })
                 // Each heal is a roll of 0 to 10, and it heals again every attack while below half, so it gains in time.
                 client.await("hitpoints back", timeoutMillis = 30_000) { mej.hitpoints.takeIf { it > hurt } }
+            }
+        }
+    }
+
+    // Fight Caves step FC3: TzTok-Jad and his healers.
+
+    @Test
+    fun `TzTok-Jad's magic and ranged hits land 3 ticks after their tells`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("jon").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("setlevel hitpoints 99") { true }
+                client.commandReply("fightcave 63 1") { it.startsWith("Fight cave") }
+                val jad = client.waveIn(server, "jon", 63).single()
+                assertTrue(jad.scriptedAttacks)
+                // Near enough for the client to see him (he is 5 tiles across), out of his reach.
+                client.tele(jad.x - 6, jad.z)
+                val tells = setOf(FightCaveMonsters.ANIM_JAD_MAGIC, FightCaveMonsters.ANIM_JAD_RANGED)
+                val tell = client.await("a tell", timeoutMillis = 20_000) {
+                    client.actorEvents().firstOrNull { it.npc && it.index == jad.index && it.kind == ActorEventKind.ANIMATION && it.id in tells }
+                }
+                val hit = client.await("its hit") {
+                    client.actorEvents().firstOrNull { !it.npc && it.kind == ActorEventKind.HITSPLAT && it.ticks > tell.ticks }
+                }
+                assertEquals(FightCaveMonsters.JAD_HIT_DELAY, hit.ticks - tell.ticks)
+            }
+        }
+    }
+
+    @Test
+    fun `leaving the cave drops TzTok-Jad's hits on their way`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("kit").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("setlevel hitpoints 99") { true }
+                client.commandReply("fightcave 63 1") { it.startsWith("Fight cave") }
+                val jad = client.waveIn(server, "kit", 63).single()
+                client.tele(jad.x - 6, jad.z)
+                val player = server.world.playerNamed("kit")!!
+                val mechanics = server.world.fightCaves.monsterMechanics
+                client.await("a hit on its way", timeoutMillis = 20_000) { mechanics.jadHitsInFlight.takeIf { it > 0 } }
+                val hp = player.hitpoints
+                client.commandReply("fightcave leave") { true }
+                client.await("the run over") { true.takeIf { server.run("kit") == null } }
+                assertEquals(0, mechanics.jadHitsInFlight)
+                assertEquals(hp, player.hitpoints, "no hit outside")
+            }
+        }
+    }
+
+    @Test
+    fun `below 150 TzTok-Jad brings four Yt-HurKots that heal him, one attacked fights back, and they go when he dies`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("kim").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("fightcave 63 1") { it.startsWith("Fight cave") }
+                val jad = client.waveIn(server, "kim", 63).single()
+                val run = server.run("kim")!!
+                assertTrue(run.monsters.none { it.type.id == FightCaveMonsters.YT_HURKOT })
+                client.commandReply("hit 110 ${jad.index}") { it.startsWith("Hit") }
+                val healers = client.await("the healers") { run.monsters.filter { it.type.id == FightCaveMonsters.YT_HURKOT }.takeIf { it.size == 4 } }
+                assertTrue(healers.all { it.target == null }, "they go for him, not the player")
+                client.await("a heal", timeoutMillis = 20_000) { jad.hitpoints.takeIf { it > 140 } }
+
+                val player = server.world.playerNamed("kim")!!
+                val one = healers.first()
+                client.tele(one.x - 1, one.z)
+                client.await("it in view") { client.npcs().firstOrNull { it.index == one.index } }
+                client.npcOp(one.index, 1)
+                client.await("it fights back") { one.target?.takeIf { it === player } }
+
+                client.commandReply("kill ${jad.index}") { it.startsWith("Killed") }
+                client.await("outside", timeoutMillis = 20_000) { client.position?.takeIf { it == Coord(FightCaves.OUTSIDE.x, FightCaves.OUTSIDE.z, 0) } }
+                assertTrue(healers.none { server.world.npcs[it.index] === it }, "the healers went with him")
+                assertNotNull(client.inventory(INV).firstOrNull { it?.id == FightCaves.FIRE_CAPE })
             }
         }
     }

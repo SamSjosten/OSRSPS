@@ -23,6 +23,7 @@ object FightCaveLines : Lines("fight_cave", "TzHaar Fight Cave") {
     val TRIED = line("tried", "TzHaar-Mej-Jal after a death or leaving in the first wave, with no TokKul (Transcript:TzHaar-Mej-Jal)")
     val REWARD = line("reward", "TzHaar-Mej-Jal after a death or leaving in a later wave, as TokKul is handed over (Transcript:TzHaar-Mej-Jal)")
     val VICTORIOUS = line("victorious", "TzHaar-Mej-Jal after TzTok-Jad's death, handing over the fire cape (Transcript:TzHaar-Mej-Jal)")
+    val PET = line("pet", "As TzRek-Jad goes into the backpack after TzTok-Jad's death: ours has no followers yet, so the Wiki's Pet page message for a pet that goes to the inventory")
     val NO_ROOM = line("no_room", "Enter on the cave entrance when no cave can be made (ours: the server's instances are all taken)")
     val IN_SCENARIO = line("in_scenario", "Enter on the cave entrance in a test setup (::scenario, the Leagues Tutor's kits): ours, as its kit would earn real rewards; ::reset first")
 }
@@ -80,6 +81,10 @@ class FightCaves(private val world: World) {
 
         /** The logout button was clicked in this wave: the player is logged out as it ends. */
         var pausing: Boolean = false
+            internal set
+
+        /** TzTok-Jad was killed on a Slayer task: better odds of the pet. */
+        var jadOnTask: Boolean = false
             internal set
 
         /** They died in the cave, and are paid once they are out. */
@@ -206,6 +211,7 @@ class FightCaves(private val world: World) {
 
     /** The cave's part of a tick, in the NPC phase after the fights: logins, waves in, waves done, runs ended. */
     fun process() {
+        monsterMechanics.process()
         if (resuming.isNotEmpty()) resume()
         if (runs.isEmpty()) return
         for (run in runs.values.toList()) {
@@ -221,7 +227,10 @@ class FightCaves(private val world: World) {
                 continue
             }
             run.monsters.removeAll { world.npcs[it.index] !== it }
-            for (npc in run.monsters.toList()) if (npc.scriptedAttacks && npc.target === player) monsterMechanics.tick(npc, player)
+            for (npc in run.monsters.toList()) {
+                if (npc.scriptedAttacks && npc.target === player) monsterMechanics.tick(npc, player)
+                if (npc.type.id == FightCaveMonsters.TZTOK_JAD) monsterMechanics.jadTick(this, run, npc, player)
+            }
             if (run.nextWaveTick >= 0) {
                 if (world.tick >= run.nextWaveTick) spawnWave(player, run)
             } else if (run.splitsOwed.isNotEmpty()) {
@@ -270,14 +279,14 @@ class FightCaves(private val world: World) {
      * Puts a monster of [typeId] in [run]'s cave on [tile] (already the cave's own), going for [player] from the next
      * tick, wherever in the cave they are; null when it can't be. The Tz-Kek split comes in this way (FightCaveMonsters).
      */
-    fun spawn(player: Player, run: Run, typeId: Int, tile: Tile): Npc? {
+    fun spawn(player: Player, run: Run, typeId: Int, tile: Tile, fight: Boolean = true): Npc? {
         val type = world.npcTypes[typeId] ?: return null.also { logger.warn { "The cache has no NPC $typeId for the fight cave" } }
         val npc = world.spawnNpc(NpcSpawn(type, tile.x, tile.z, 0, source = SOURCE, respawns = false)) ?: return null
         npc.unleashed = true
         npc.huntsAnywhere = true
         npc.scriptedAttacks = monsterMechanics.scripted(typeId)
         run.monsters += npc
-        world.meleeCombat.aggress(npc, player, world.tick)
+        if (fight) world.meleeCombat.aggress(npc, player, world.tick)
         return npc
     }
 
@@ -300,8 +309,15 @@ class FightCaves(private val world: World) {
         world.teleport(player, OUTSIDE.x, OUTSIDE.z, 0)
         pay(player, FightCaveWaves.tokkul(FightCaveWaves.WAVES) + JAD_TOKKUL)
         world.objTypes[FIRE_CAPE]?.let { world.groundObjs.give(player, it, 1) }
-        // The Fight Caves page of the collection log: the cape as it is handed over (inferred: no pet yet, TzRek-Jad).
+        // The Fight Caves page of the collection log: the cape as it is handed over, and the pet below.
         world.collectionLog.add(player, FIRE_CAPE, 1)
+        // The pet: 1 in 200, 1 in 100 on a Slayer task (the Wiki's TzRek-Jad). Ours is the item alone: no followers yet.
+        if (world.random.chance(1, if (run.jadOnTask) PET_ODDS_ON_TASK else PET_ODDS)) {
+            world.objTypes[PET]?.let { world.groundObjs.give(player, it, 1) }
+            world.collectionLog.add(player, PET, 1)
+            world.message(player, FightCaveLines.PET)
+            logger.info { "${player.username} got TzRek-Jad" }
+        }
         mejJal(player, FightCaveLines.VICTORIOUS)
         logger.info { "${player.username} beat the fight cave (rotation ${run.rotation})" }
     }
@@ -390,6 +406,7 @@ class FightCaves(private val world: World) {
         // A shot on its way would land outside after the run is over, where a death is no longer safe: every shot from
         // the cave goes, a monster's whose body has already gone too.
         world.meleeCombat.dropShotsFromWithin { x, z -> run.instance.contains(x, z) }
+        monsterMechanics.dropHitsWithin { x, z -> run.instance.contains(x, z) }
         for (npc in run.monsters) if (world.npcs[npc.index] === npc) world.removeNpc(npc)
         run.monsters.clear()
     }
@@ -406,6 +423,11 @@ class FightCaves(private val world: World) {
 
         const val TOKKUL = 6529
         const val FIRE_CAPE = 6570
+
+        /** TzRek-Jad, the pet's item. */
+        const val PET = 13225
+        const val PET_ODDS = 200
+        const val PET_ODDS_ON_TASK = 100
 
         /** TzTok-Jad's own Tokkul (the Wiki: 8,032 for a full run, of which 4,032 are the 63 waves'). */
         const val JAD_TOKKUL = 4000
