@@ -464,6 +464,11 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   the water mill cellar both ways, its ladder up to Groats' farm, an empty machine-part crate there and the trapdoor
   back down, Dartog's talk to the cellar, the hole between the Goblin Maze and the Swamp Caves both ways, and Sigmund's
   chest's `[lost_tribe.chest_found]`, with `::reset` at the end.
+- `digsite-camp.json`: post-quest step 7 (with `::scenario lumbridge-bare` and `::keys on`): a Digsite bush's
+  `[digsite_camp.bush_nothing]`, the teddy from its bush, the panning tent's chest locked, then opened with the chest key
+  (709), searched for chemical powder and closed, the barrel's sealed line, a trowel opening it (varbit 2547 at 1) and a
+  vial filled with unidentified liquid as the lid goes back, and the stone tablet taken in the dungeon's after-quest copy
+  and refused once owned, with `::reset` at the end.
 - `varrock-churches-inns.json`: Varrock step 7 (with `::keys on`): Pray-at at the church's altar and the chapel's
   chaos altar, Father Lawrence, Elsie upstairs in the church, the Mage of Zamorak, a beer bought at each of the three
   inns, the Blue Moon cook's cabbage and the Jolly Boar cook's jokes.
