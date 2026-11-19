@@ -313,6 +313,7 @@ object DialogueLines {
         osrsps.game.content.randomevents.PinballLines,
         osrsps.game.content.randomevents.QuizMasterLines,
         osrsps.game.content.randomevents.MysteryBoxLines,
+        osrsps.game.content.randomevents.SurpriseExamLines,
         osrsps.game.content.randomevents.PilloryGuardLines,
         osrsps.game.content.randomevents.PostiePeteTwinLines,
         osrsps.game.content.randomevents.MollyLines,

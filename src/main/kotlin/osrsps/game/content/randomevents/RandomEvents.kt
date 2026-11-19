@@ -499,7 +499,7 @@ fun registerRandomEvents(world: World) {
     val events = listOf(
         Genie, CountCheckEvent, DrunkenDwarf, RickTurpentine, MysteriousOldMan, DrJekyll, StrangePlant, Certer, SandwichLady,
         FreakyForester, DrillDemon, Gravedigger, Mime, Beekeeper, CaptArnav, EvilBob, PrisonPete, EvilTwin, KissTheFrog, Maze, Pillory,
-        Pinball, QuizMaster,
+        Pinball, QuizMaster, SurpriseExam,
     )
     for (event in events) {
         world.randomEvents.register(event)
@@ -517,5 +517,6 @@ fun registerRandomEvents(world: World) {
     Pillory.register(world)
     Pinball.register(world)
     QuizMaster.register(world)
+    SurpriseExam.register(world)
     world.handlers.onObj(StrangePlant.FRUIT, 1) { op -> StrangePlant.eat(world, player, op.sub) }
 }
