@@ -1,0 +1,28 @@
+{
+  "name": "Fight Caves step FC2: wave 1's Tz-Kih draining a prayer point through ::god, wave 3's Tz-Kek splitting into two level 22s that hold the wave, and wave 7's Tok-Xil firing from afar (::keys on, ::god on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off)."},
+    {"step": "command", "text": "::pray 1", "expectMessage": "Prayer points set to 1."},
+    {"step": "command", "text": "::fightcave 1 1", "expectMessage": "Fight cave: wave 1 of rotation 1"},
+    {"step": "assertMessage", "contains": "[fight_cave.wave wave=1]", "timeoutMs": 15000},
+    {"step": "assertHitsplat", "self": true, "amount": 0, "comment": "the Tz-Kih's swing, a 0 under ::god", "timeoutMs": 60000},
+    {"step": "command", "text": "::prayers", "expectMessage": "Prayer 0/", "comment": "its swing took the point, hit or not"},
+    {"step": "command", "text": "::fightcave 3 1", "expectMessage": "Fight cave: wave 3 of rotation 1"},
+    {"step": "assertMessage", "contains": "[fight_cave.wave wave=3]", "timeoutMs": 15000},
+    {"step": "command", "text": "::kill Tz-Kek", "expectMessage": "Killed Tz-Kek #"},
+    {"step": "waitTicks", "ticks": 2},
+    {"step": "command", "text": "::fightcave status", "expectMessage": "Wave 3, rotation 1: 2 alive (Tz-Kek #", "comment": "the two level 22s"},
+    {"step": "command", "text": "::fightcave next", "expectMessage": "Took wave 3's monsters out."},
+    {"step": "assertMessage", "contains": "[fight_cave.wave wave=4]", "timeoutMs": 20000},
+    {"step": "command", "text": "::fightcave 7 1", "expectMessage": "Fight cave: wave 7 of rotation 1"},
+    {"step": "assertMessage", "contains": "[fight_cave.wave wave=7]", "timeoutMs": 15000},
+    {"step": "assertAnimation", "npc": "Tok-Xil", "id": 2633, "timeoutMs": 30000, "comment": "magmaquris_spine_attack: it fires from where it stands"},
+    {"step": "command", "text": "::fightcave leave", "expectMessage": "Left the fight cave."},
+    {"step": "finishDialogue"},
+    {"step": "command", "text": "::empty"},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
+  ]
+}
