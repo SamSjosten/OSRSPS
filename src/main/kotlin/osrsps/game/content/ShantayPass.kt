@@ -396,6 +396,8 @@ private class WorldShantayActions(private val world: World, private val context:
 
 fun registerShantayPass(world: World) {
     with(ShantayPass) {
+        // The GE bot market pays no more than this for them (exploit review 44, R44A-3).
+        world.grandExchange.npcSells(PASS, PRICE.toLong())
         world.handlers.onNpc(SHANTAY, TALK_TO) { op ->
             val actions = WorldShantayActions(world, this)
             world.dialogues.start(this, op.npc) { shantay(actions) }

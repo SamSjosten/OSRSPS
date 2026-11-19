@@ -62,6 +62,8 @@ class ShopTest {
         // The Champions' Guild's shops.
         1093 to 64000, 1079 to 64000, 1432 to 14400, 1113 to 50000, 1303 to 32000, 1289 to 20800, 1099 to 3900, 1065 to 2500, 1169 to 200,
         1021 to 32, 1165 to 1056, 1123 to 16640,
+        // Dusuri's Star Shop: the values are the prices in stardust.
+        25539 to 2000, 25547 to 3000, 25537 to 300, 25533 to 150,
         // Grace's Graceful Clothing: the values are the prices in marks of grace.
         11850 to 35, 11854 to 55, 11856 to 60, 11858 to 30, 11860 to 40, 11852 to 40, 12641 to 10,
         // Construction supplies.
@@ -89,6 +91,8 @@ class ShopTest {
      */
     private val untradeable = setOf(
         4613, 11705, 11706, 11707, 11708, 11709, 12727, 13188, 13328, 13660, 13679, 13681, 13215, 13216, 13217, 13218, 21314, 22364,
+        // Dusuri's stock.
+        25539, 25547, 25537, 25533,
         // Grace's graceful pieces and amylase pack.
         11850, 11854, 11856, 11858, 11860, 11852, 12641,
         // Slayer Equipment's untradeables (the 242 cache).
@@ -143,6 +147,7 @@ class ShopTest {
             NpcType(2872, "Peksa", internalName = "peksa"),
             NpcType(6533, "Romily Weaklax", internalName = "merchant_pies"),
             NpcType(1601, "Lundail", internalName = "magearena_runeshop"),
+            NpcType(10631, "Dusuri", internalName = "star_trader_2op"),
             NpcType(5919, "Grace", internalName = "rooftops_grace"),
             NpcType(3101, "Sawmill operator", internalName = "poh_sawmill_opp"),
             NpcType(13619, "Aya", internalName = "slayer_master_1_aya"),
@@ -225,6 +230,8 @@ class ShopTest {
         // The Champions' Guild's, read 2026-11-02.
         "scavvos_rune_store" to listOf(64000, 64000, 14400, 50000, 32000, 20800, 3900, 2500, 200),
         "valaines_shop_of_champions" to listOf(41, 1372, 2496, 21632),
+        // Dusuri's Star Shop, read 2026-11-19: in stardust.
+        "dusuris_star_shop" to listOf(2000, 3000, 300, 150),
         // Grace's Graceful Clothing, read 2026-11-02: in marks of grace.
         "graces_graceful_clothing" to listOf(35, 55, 60, 30, 40, 40, 10),
         // The Lumber Yard's Sawmill, read 2026-11-11.
@@ -272,7 +279,14 @@ class ShopTest {
         assertEquals(shops.ofNpc(5919), grace)
         assertEquals(11849, grace.currency)
         assertEquals(listOf(28, 44, 48, 24, 32, 32, 8), grace.stock.map { Shop(grace).sellPrice(it.type.id, it.type.cost, it.count) })
-        assertTrue(shops.all.filter { it.key != grace.key }.all { it.currency == ShopScreen.COINS })
+        // Dusuri is paid in stardust and buys back at 80% (the Wiki's 1,600, 2,400, 240 and 120).
+        val dusuri = shops["dusuris_star_shop"]!!
+        assertEquals(shops.ofNpc(10631), dusuri)
+        assertEquals(25527, dusuri.currency)
+        assertEquals(listOf(1600, 2400, 240, 120), dusuri.stock.map { Shop(dusuri).sellPrice(it.type.id, it.type.cost, it.count) })
+        assertTrue(shops.all.filter { it.key != grace.key && it.key != dusuri.key }.all { it.currency == ShopScreen.COINS })
+        // Her sales alone go in the collection log (its Rooftop Agility page).
+        assertEquals(listOf(grace.key), shops.all.filter { it.collectionLog }.map { it.key })
         // The Al Kharid General Store won't buy silk (the Wiki's page), Farming Supplies and the Sheared Ram buy nothing; no other
         // shop refuses anything.
         val farmingSupplies = shops["farming_supplies"]!!

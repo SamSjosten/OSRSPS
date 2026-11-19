@@ -218,6 +218,9 @@ class Player(
     /** The player's house, null until they buy one; see [osrsps.game.skill.construction.Houses]. Saved. */
     var house: osrsps.game.skill.construction.HouseState? = null
 
+    /** The player's Treasure Trails under way, one per tier; see [osrsps.game.trail.TreasureTrails]. Saved. */
+    val trails = osrsps.game.trail.TrailProgress()
+
     /** Grand Exchange offers and buy limits; see [osrsps.game.ge.GrandExchange]. */
     val ge = osrsps.game.ge.GeAccount()
 
@@ -230,6 +233,9 @@ class Player(
 
     /** The Fractured Archive's loot not yet claimed: the vault's chest, and the lobby's Loot Wheelbarrow after. Saved. */
     val archiveChest = Inventory(osrsps.game.raid.ArchiveChestWindow.INV, osrsps.game.raid.ArchiveChestWindow.SLOTS)
+
+    /** The collection log's record: each item logged and its count, in the order first logged; see [osrsps.game.collection.CollectionLog]. Saved. */
+    val collectionLog = LinkedHashMap<Int, Int>()
 
     /** Whether the guide prices screen's item search is open, waiting on resume_p_objdialog. */
     var priceCheckSearching = false

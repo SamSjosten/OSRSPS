@@ -15,7 +15,6 @@
     {"step": "assertLoc", "locId": 26758, "x": 3283, "y": 3946, "timeoutMs": 5000, "comment": "open until it restocks"},
     {"step": "assertLoc", "locId": 26757, "x": 3283, "y": 3946, "timeoutMs": 30000, "comment": "restocked 34 ticks (20.4 seconds) later"},
 
-    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
     {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
   ]
 }

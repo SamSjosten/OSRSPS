@@ -25,6 +25,8 @@ import osrsps.game.skill.farming.FarmingSaves
 import osrsps.game.skill.farming.FarmingState
 import osrsps.game.skill.construction.HouseSaves
 import osrsps.game.skill.construction.HouseState
+import osrsps.game.trail.TrailProgress
+import osrsps.game.trail.TrailSaves
 import osrsps.game.social.FriendChats
 import osrsps.game.social.FriendLists
 import osrsps.game.ge.BuyLimitUse
@@ -109,6 +111,10 @@ class PlayerSave(
     val farming: FarmingState = FarmingState(),
     /** The player's house ([osrsps.game.skill.construction.HouseState]), a copy of theirs; null until they buy one. */
     val house: HouseState? = null,
+    /** The player's trails under way ([osrsps.game.trail.TrailProgress]), a copy of theirs. */
+    val trails: TrailProgress = TrailProgress(),
+    /** The collection log's record, item to count, in the order first logged ([Player.collectionLog]). */
+    val collectionLog: Map<Int, Int> = emptyMap(),
 ) {
     class BoostSegments(val combat: Int, val other: Int)
 
@@ -164,6 +170,7 @@ class PlayerSave(
         player.equipment.clear()
         player.bank.clear()
         player.archiveChest.clear()
+        player.collectionLog.clear()
         player.charges.clear()
         player.sessionCharges.clear()
         player.ge.clear()
@@ -215,6 +222,7 @@ class PlayerSave(
         for ((slot, obj) in equipment) player.equipment[slot] = obj
         for ((slot, obj) in bank) player.bank[slot] = obj
         for ((slot, obj) in archiveChest) player.archiveChest[slot] = obj
+        player.collectionLog.putAll(collectionLog)
         // Pick timers older saves kept, now in Player.sessionCharges, are left behind.
         for ((name, count) in charges) if (name !in NO_LONGER_SAVED) player.charges[name] = count
         for ((slot, offer) in geOffers) player.ge[slot] = offer
@@ -223,6 +231,7 @@ class PlayerSave(
         player.ge.history.addAll(geHistory)
         player.farming.replaceWith(farming)
         player.house = house?.copy()
+        player.trails.replaceWith(trails)
     }
 
     fun toJson(username: String): String {
@@ -311,9 +320,11 @@ class PlayerSave(
         putJsonArray("equipment") { putObjs(equipment) }
         if (bank.isNotEmpty()) putJsonArray("bank") { putObjs(bank) }
         if (archiveChest.isNotEmpty()) putJsonArray("archiveChest") { putObjs(archiveChest) }
+        if (collectionLog.isNotEmpty()) putJsonObject("collectionLog") { for ((item, count) in collectionLog) put(item.toString(), count) }
         if (charges.isNotEmpty()) putJsonObject("charges") { for ((name, count) in charges) put(name, count) }
         if (!farming.isUntouched) put("farming", FarmingSaves.toJson(farming))
         house?.let { put("house", HouseSaves.toJson(it)) }
+        if (!trails.isEmpty) put("trails", TrailSaves.toJson(trails))
         if (geOffers.isNotEmpty()) {
             putJsonArray("geOffers") {
                 for ((slot, offer) in geOffers.toSortedMap()) {
@@ -430,6 +441,8 @@ class PlayerSave(
                 archiveChest = player.archiveChest.contents().toMap(),
                 farming = FarmingState().apply { replaceWith(player.farming) },
                 house = player.house?.copy(),
+                trails = player.trails.copy(),
+                collectionLog = LinkedHashMap(player.collectionLog),
             )
         }
 
@@ -516,6 +529,8 @@ class PlayerSave(
                     archiveChest = state.archiveChest,
                     farming = state.farming,
                     house = state.house,
+                    trails = state.trails,
+                    collectionLog = state.collectionLog,
                 )
             } catch (e: IllegalArgumentException) {
                 throw e
@@ -612,7 +627,22 @@ class PlayerSave(
                 farming = root["farming"]?.jsonObject?.let(FarmingSaves::fromJson) ?: FarmingState(),
                 // Optional: saves from before Construction, and saves of players without a house, have none.
                 house = root["house"]?.jsonObject?.let(HouseSaves::fromJson),
+                // Optional: saves from before Treasure Trails, and saves with no trail under way, have none.
+                trails = root["trails"]?.jsonObject?.let(TrailSaves::fromJson) ?: TrailProgress(),
+                // Optional: saves from before the collection log, and saves of players who logged nothing, have none.
+                collectionLog = readCollectionLog(root),
             )
+        }
+
+        private fun readCollectionLog(root: JsonObject): Map<Int, Int> {
+            val log = LinkedHashMap<Int, Int>()
+            for ((key, value) in root["collectionLog"]?.jsonObject.orEmpty()) {
+                val item = requireNotNull(key.toIntOrNull()) { "Collection log item $key isn't a number" }
+                val count = value.jsonPrimitive.int
+                require(item >= 0 && count > 0) { "Collection log item $item has count $count" }
+                log[item] = count
+            }
+            return log
         }
 
         /** Optional: saves from before friends chat, and saves of players who never set theirs up, have none. */
