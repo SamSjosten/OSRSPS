@@ -241,6 +241,7 @@ class Scenarios(scenarios: Collection<Scenario>) {
             "obor",
             "pvp",
             "runecraft",
+            "scurrius",
             "tfa-magic",
             "tfa-melee",
             "tfa-ranged",
