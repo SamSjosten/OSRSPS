@@ -60,7 +60,7 @@ object ManorGroundsLines : Lines("draynor_manor", "Draynor Manor") {
  *   timer that, while the player stays within 10 tiles of that corner each way, whips them for 1 with the
  *   `whippingplant_attack` spotanim on their tile.
  * - Veronica (3561) by the gap gives her post-quest talk; every chathead expression is guessed.
- * - The Belladonna patch stays as the map has it: Farming isn't built.
+ * - The Belladonna patch is Farming's ([osrsps.game.skill.farming.FarmingPatches.DRAYNOR_MANOR_BELLADONNA]).
  */
 object DraynorManorGrounds {
     const val FRONT_DOOR_L = 134

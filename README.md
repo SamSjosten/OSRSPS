@@ -1003,6 +1003,11 @@ bush is checked for its check-health and planting XP, then has four berries, pic
 XP, a berry sometimes staying on the bush (so four at least, about 17 at level 99), and grows one more every 20
 minutes up to four. Clear digs it up with a spade. A diseased bush is pruned with secateurs for leaves.
 
+Draynor Manor's belladonna patch (3086, 3354) grows belladonna from one seed at level 63, through four 80-minute
+stages, and Pick takes the whole crop at once, as a flower's: 6 nightshade and up to 12 more with the Farming level
+(18 at 99), 91 and 512 XP together. Only gloves from the Wiki's list protect the hands: bare-handed, or in a bracelet
+or decorative gloves, Pick hits for 2 as poison and picks nothing.
+
 The compost bin by the Falador allotments (3056, 3312) takes 15 un-noted compostable items (weeds, crops, herbs,
 fruit, berries, hops, roots), one a tick from the stack used on it. All supercompostable items (watermelons, high
 herbs, the top berries and fruit, roots and so on) make supercompost, all tomatoes rotten tomatoes, anything else
@@ -1054,6 +1059,8 @@ it is saved with the player.
 | Every gardener saying Fayeth's words; the hops and bush gardeners' line for an empty patch and every payment's name but the trees'; their lines for a grown crop that can't be chopped, poison ivy and an item that makes no compost; the patch left raked after a tree is removed; unnoted payment taken first; advice going back to the menu; Farming Supplies' 1000 stock for the Wiki's infinite; the leprechaun noting every one of the item at once | guessed |
 | The tool store's capacities, its varbits and how counts are split over them, its menus and the default quantity's order, Banknotes taking items out noted | OSRS Wiki, Tool Leprechaun; cache 242, enums 136 and 2193, client scripts farming_tools_getstored, farming_tools_getcarried, farming_tools_main_update and farming_tools_side_update (Joshua-F osrs-dumps) |
 | Banknotes taking the default quantity; unnoted items stored before noted ones; secateurs and magic secateurs never stored together; Remove-X asking every time; a store or withdrawal moving what fits; every tool store message | guessed |
+| Belladonna: level 63, one seed, 91 and 512 XP, four 80-minute stages, at least 6 nightshade and 18 at 99, magic secateurs no help, 2 damage as poison bare-handed, which gloves protect; its values (4-7 growing, 8 grown, 9-11 diseased, 12-14 dead) | OSRS Wiki, Belladonna, Belladonna seed (read 2026-11-19); cache 242, multiloc 7572 |
+| Belladonna: picked once like a flower with both XPs then; the bonus as limpwurt's but divided by 8 (which gives the 18); 27/128 to fall ill; no message with the hit | inferred, guessed |
 | Not built yet: the scarecrow, digging up a healthy crop, Aldarin's hops and the Farming Guild's bush, the other compost bins (they come with their allotments) and the Big Compost Bin, the filled bottomless bucket (no bottomless bucket yet), the gardeners outside Misthalin (none is placed); Guide (op4) | next steps |
 
 `::scenario farming` stands you beside the Falador allotments with 99 Farming, the tools, 30 of every allotment
