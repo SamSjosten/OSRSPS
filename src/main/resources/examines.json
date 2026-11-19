@@ -29,7 +29,8 @@
     "NPCs and locs: Fight Caves step FC1 (2026-11-17): the Fight Cave's monsters (3116 to 3128), TzHaar-Mej-Jal (2180) and the cave's entrance and exit (11833, 11834), one per id, from the infobox of the page named after each (the cave's two locs share the Cave entrance page).",
     "Locs and NPCs: Karamja (step K1.1): the Port Sarim to Musa Point boat's four NPCs, with the types their multi-NPCs show, and its two ships' gangplanks (the 242 cache, 2026-11-17).",
     "Construction step CON1 (2026-11-18): the estate agent of npc-spawns/construction.json, the Rimmington house portal, the exit portal and the basic wood house doors.",
-    "NPCs and locs: Inferno step IN1 (2026-11-17): the Inferno's monsters (7691 to 7701, 7706), TzHaar-Ket-Keh as each of his forms shows (11247, 11248), the Inferno's entrance as it shows (30281, 30282: the Wiki has no page for it, so no words yet), its exit (30283) and the rocky supports' four looks (30284 to 30287), one per id, from the infobox of the page named after each."
+    "NPCs and locs: Inferno step IN1 (2026-11-17): the Inferno's monsters (7691 to 7701, 7706), TzHaar-Ket-Keh as each of his forms shows (11247, 11248), the Inferno's entrance as it shows (30281, 30282: the Wiki has no page for it, so no words yet), its exit (30283) and the rocky supports' four looks (30284 to 30287), one per id, from the infobox of the page named after each.",
+    "The Clan Hub (2026-11-19): npc-spawns/clan-hub.json's Clerk (10759), from the Clerk (Clan Hub) page."
   ],
   "npcs": [
     {"npc": 0, "name": "Tool Leprechaun"},
@@ -875,6 +876,7 @@
     {"npc": 10657, "name": "Checkal", "also": [10645]},
     {"npc": 10658, "name": "Atlas"},
     {"npc": 10733, "name": "Meredith"},
+    {"npc": 10759, "name": "Clerk", "wiki": "Clerk (Clan Hub) page, infobox"},
     {"npc": 11247, "name": "TzHaar-Ket-Keh", "wiki": "TzHaar-Ket-Keh page, infobox"},
     {"npc": 11248, "name": "TzHaar-Ket-Keh", "wiki": "TzHaar-Ket-Keh page, infobox"},
     {"npc": 11410, "name": "Rick", "also": [11409]},
