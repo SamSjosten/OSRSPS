@@ -118,7 +118,8 @@ function fakeGitHub(prs, { batch = null, commits = {}, rules = [{ type: 'require
       labels: (pr.labels || []).map(name => ({ name })),
       mergeable: pr.mergeable !== false,
       title: `Pull request ${n}`,
-      head: { sha: pr.head, ref: pr.ref || `branch-${n}` },
+      // `fork`: the full name of the fork it comes from (null: a fork since deleted).
+      head: { sha: pr.head, ref: pr.ref || `branch-${n}`, repo: pr.fork === null ? null : { full_name: pr.fork || 'SamSjosten/OSRSPS' } },
       base: { ref: 'main' },
     };
   };
@@ -460,6 +461,16 @@ test('a gate run leaves a check written after its evaluation started', async () 
     1: { head: H('1'), checks: [newer], comments: [summary(H('1'), true)] },
   });
   await automerge.gate({ github, context: { repo, payload: { pull_request: { number: 1 } } }, core, git: fakeGit({}), now: () => Date.parse('2026-10-30T01:00:00Z') });
+  assert.deepStrictEqual(calls, []);
+});
+
+test("the queue leaves a fork's pull request alone, auto-merge on or not, and never approves its held runs", async () => {
+  const { github, calls } = fakeGitHub({
+    3: { head: H('3'), fork: 'stranger/OSRSPS', held: [5], behind: 1, checks: [codexPass], comments: [summary(H('3'), false)] },
+    4: { head: H('4'), fork: null, mergedHead: H('5'), behind: 1, checks: [...green, codexPass], comments: [summary(H('4'), false)] },
+    6: { head: H('6'), fork: 'stranger/OSRSPS', labels: ['automerge'], behind: 0, checks: [...green, codexPass], comments: [summary(H('6'), false)] },
+  }, { rules: [] });
+  await queue(github, fakeGit({ [H('4')]: 'p', [H('5')]: 'p', [H('6')]: 'p' }));
   assert.deepStrictEqual(calls, []);
 });
 

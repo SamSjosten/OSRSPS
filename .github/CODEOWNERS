@@ -1,2 +1,4 @@
-# Sam reviews every change to the workflows: they hold the deploy checks, the alerts and the merge queue.
-/.github/workflows/ @SamSjosten
+# Sam reviews every change to the workflows and their scripts (they hold the deploy checks, the alerts and the merge
+# queue, and the scripts run with a token that can write), to this file, and to the scripts VM 214 runs outside Docker.
+/.github/ @SamSjosten
+/deploy/ @SamSjosten

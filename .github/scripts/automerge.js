@@ -654,7 +654,15 @@ async function advance(github, git, repo, core, sleep, now) {
   const self = !(await enforced(github, repo, core));
   const open = await github.paginate(github.rest.pulls.list, { ...repo, state: 'open', base: 'main', per_page: 100 });
   const labelled = pr => (pr.labels || []).some(label => label.name === LABEL);
-  const queued = open.filter(pr => (pr.auto_merge || (self && labelled(pr))) && !pr.draft).sort((a, b) => a.number - b.number);
+  // Never a fork's pull request, even with auto-merge on: the queue approves a queued head's held runs, which would
+  // let the fork's own copy of the workflows run (on the self-hosted runner too, if it asks for it) without Sam
+  // looking first. Sam merges those by hand (CONTRIBUTING.md, "Pull requests from forks").
+  const ours = pr => Boolean(pr.head.repo) && pr.head.repo.full_name.toLowerCase() === `${repo.owner}/${repo.repo}`.toLowerCase();
+  for (const pr of open) {
+    if ((pr.auto_merge || labelled(pr)) && !ours(pr)) core.info(`#${pr.number}: from a fork; Sam merges it by hand`);
+  }
+  const queued = open.filter(pr => (pr.auto_merge || (self && labelled(pr))) && !pr.draft && ours(pr))
+    .sort((a, b) => a.number - b.number);
   // One listing of the runs waiting for approval, not one per pull request: the queue runs after nearly every event,
   // and per-pull-request calls used up the token's 5,000 an hour (2026-11-01 02:47Z).
   const waitingRuns = queued.length
