@@ -5,6 +5,7 @@ import net.rsprot.protocol.game.incoming.buttons.IfScriptTrigger.ParameterTypes
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.dialogue.Lines
 import osrsps.game.script.ScriptRunner
+import osrsps.game.skill.magic.Alchemy
 
 private val logger = KotlinLogging.logger {}
 
@@ -368,6 +369,9 @@ class AllSettings(
         // OSRS Wiki, Drop: the drop item warning is on, at 30,000 coins, from the start.
         setVarbit(player, VARBIT_DROP_WARNING, 1)
         setVarbit(player, VARBIT_DROP_WARNING_VALUE, DropWarnings.DEFAULT_THRESHOLD)
+        // OSRS Wiki, High Level Alchemy: alchemy warns on untradeables and on items worth 1,000 coins or more.
+        setVarbit(player, Alchemy.VARBIT_UNTRADEABLE_WARNING, 1)
+        setVarbit(player, Alchemy.VARBIT_WARNING_VALUE, Alchemy.DEFAULT_WARNING_VALUE)
     }
 
     /**

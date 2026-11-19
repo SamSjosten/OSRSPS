@@ -611,6 +611,16 @@ internal class HeadlessGame(
         return null
     }
 
+    override fun castOnItem(interfaceId: Int, component: Int, item: String?, itemId: Int): String? {
+        val client = c() ?: return "not logged in"
+        if (!interfaceOpen(interfaceId)) return "interface $interfaceId:$component is not open"
+        val items = client.inventory(Inventory.INV)
+        val slot = inventorySlot(items, item, itemId, -1)
+        if (slot < 0) return "no ${describeItem(item, itemId)} in the inventory"
+        client.ifButtonT(interfaceId, component, -1, -1, InventoryTab.INTERFACE, InventoryTab.ITEMS, slot, items[slot]!!.id)
+        return null
+    }
+
     override fun castOnPlayer(interfaceId: Int, component: Int, player: String): String =
         "castOnPlayer needs other players' names, which the headless client doesn't read yet"
 

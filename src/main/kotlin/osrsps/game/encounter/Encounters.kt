@@ -297,6 +297,11 @@ class Encounters(private val world: World, defs: List<EncounterDef> = emptyList(
 
     val all: List<Encounter> get() = list
 
+    /** Whether [a] and [b] are both in one running fight: its boss or one of its adds. */
+    fun sameFight(a: Npc, b: Npc): Boolean = list.any { fight ->
+        !fight.ended && (fight.boss === a || a in fight.adds) && (fight.boss === b || b in fight.adds)
+    }
+
     /**
      * Starts [def] against [boss], with the players [inArea] says are in the fight and [admits] lets in (everyone, unless
      * it says otherwise), from the phase at [startPhase]; [calledOff], checked each tick, can stop it. The

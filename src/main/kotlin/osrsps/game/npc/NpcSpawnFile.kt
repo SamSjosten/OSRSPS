@@ -104,6 +104,10 @@ object NpcSpawnFile {
         "hunters-end.json",
         "karamja-ships.json",
         "clan-hub.json",
+        "skeletal-tomb.json",
+        "scurrius-lair.json",
+        "fight-cave.json",
+        "shooting-stars.json",
     )
 
     /** What a file gave: the spawns, and the NPC names the cache doesn't know (skipped). */

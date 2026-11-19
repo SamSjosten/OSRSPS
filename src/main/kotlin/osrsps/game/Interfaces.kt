@@ -137,6 +137,8 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
     fun openJournalTab(player: Player, tab: JournalTab) {
         journalTabVarbit(player)?.let { player.vars.setVarbit(it, tab.value) }
         send(player, IfOpenSub(JournalTab.SIDE_JOURNAL, JournalTab.TAB_CONTAINER, tab.interfaceId, OVERLAY))
+        // The summary's Collection Log row: its two ops need events (collection log step 2).
+        if (tab == JournalTab.SUMMARY) send(player, osrsps.game.collection.CollectionLogWindow.SUMMARY_EVENTS)
     }
 
     /** Null when the cache has no such varbit (tests); the tab then still opens but isn't remembered. */
