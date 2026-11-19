@@ -273,6 +273,7 @@ object DialogueLines {
         osrsps.game.content.randomevents.SandwichLadyLines,
         osrsps.game.content.randomevents.FreakyForesterLines,
         osrsps.game.content.randomevents.DrillDemonLines,
+        osrsps.game.content.randomevents.GravediggerLines,
         HariLines,
         HarlanLines,
         HassanLines,

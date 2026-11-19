@@ -746,6 +746,10 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
 - `random-events-drill-demon.json`: random events step 5 (with `::keys on`): Sergeant Damien takes the player to his
   camp and orders an exercise; one go on a mat brings his next order, and "I want to leave." sends them back to
   3222,3218 with nothing. The four-in-a-row reward needs the signs read, so the headless test does that part.
+- `random-events-gravedigger.json`: random events step 6 (with `::keys on`): Leo takes the player to his graveyard; a
+  gravestone is read and a coffin taken and checked (look at both windows' pictures), "Remind me" repeats the task, and
+  "I want to leave now." sends them back to 3222,3218 with the coffin gone. Solving it needs the pictures matched, so
+  the headless test does that part.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
   it with no dependency, guard or var shared with another row is set to 0, clicked on and checked, then checked again
   after a relog and put back to 0. Generated from the 241 cache's settings catalog; run them one at a time.
