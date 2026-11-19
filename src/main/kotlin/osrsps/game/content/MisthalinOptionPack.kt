@@ -124,6 +124,17 @@ object MisthalinOptionPack {
     const val VTAM_PLAQUE = 23636
     const val BOXES = 359
 
+    /**
+     * When the last berry is picked on tick [now], the ticks until the one picked first is back: that berry keeps its
+     * own deadline [due], and the second one's countdown starts once it is back. Null when it is due back this very
+     * tick (the world's timers run after scripts), so it is back as this one is picked: one left, the next in full time.
+     */
+    internal fun ticksUntilFirstBack(due: Long?, now: Long): Int? {
+        if (due == null) return BERRY_TICKS
+        val left = due - now
+        return if (left <= 0) null else left.toInt()
+    }
+
     internal suspend fun ScriptContext.pickBerry(world: World, loc: ZoneLoc, bush: Bush) {
         val stage = bush.stages.indexOf(loc.id)
         if (stage == bush.stages.lastIndex) {
@@ -138,11 +149,10 @@ object MisthalinOptionPack {
         delay(1)
         // Someone else may have picked the same berry this tick.
         if (!world.locs.exists(loc)) return
-        if (stage == 0) {
+        val firstBack = if (stage == 0) null else ticksUntilFirstBack(world.locs.revertDue(loc), world.tick)
+        if (firstBack == null) {
             world.locs.replace(loc, bush.stages[1], BERRY_TICKS)
         } else {
-            // The berry picked first keeps its own deadline; the second one's countdown starts once that one is back.
-            val firstBack = world.locs.revertDue(loc)?.let { (it - world.tick).toInt().coerceAtLeast(1) } ?: BERRY_TICKS
             world.locs.replaceInStages(loc, bush.stages[2], firstBack, bush.stages[1], BERRY_TICKS)
         }
         world.objTypes[bush.berry]?.let { player.inventory.add(it, 1) }

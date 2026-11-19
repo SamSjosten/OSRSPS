@@ -12,6 +12,7 @@ import osrsps.game.content.Crops
 import osrsps.game.content.MisthalinOptionPack
 import osrsps.game.content.SearchLines
 import osrsps.game.content.SignpostLines
+import osrsps.game.content.VarrockReadingLines
 import osrsps.game.content.WildBushLines
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.loc.LocType
@@ -42,6 +43,8 @@ class HeadlessMisthalinOptionPackTest {
             add(locType(MisthalinOptionPack.SIGNPOST_LUMBRIDGE, "Signpost", "Read", size = 2))
             add(locType(MisthalinOptionPack.SIGNPOST_EXAM_CENTRE, "Signpost", "Read"))
             add(locType(MisthalinOptionPack.BOXES, "Boxes", "Search"))
+            add(locType(MisthalinOptionPack.COMBAT_SCROLL, "Combat Scroll", "Read"))
+            add(locType(MisthalinOptionPack.VTAM_PLAQUE, "Plaque", "Read"))
             add(locType(AVIUM_ONION, "Onion", "Pick", opIndex = 2))
         }.associateBy { it.id }
         World(
@@ -53,6 +56,8 @@ class HeadlessMisthalinOptionPackTest {
                 add(ZoneLoc(MisthalinOptionPack.SIGNPOST_LUMBRIDGE, LocShape.CENTREPIECE_STRAIGHT, 0, 3235, 3228, 0))
                 add(ZoneLoc(MisthalinOptionPack.SIGNPOST_EXAM_CENTRE, LocShape.CENTREPIECE_STRAIGHT, 0, 3226, 3222, 0))
                 add(ZoneLoc(MisthalinOptionPack.BOXES, LocShape.CENTREPIECE_STRAIGHT, 0, 3224, 3222, 0))
+                add(ZoneLoc(MisthalinOptionPack.COMBAT_SCROLL, LocShape.CENTREPIECE_STRAIGHT, 0, 3226, 3218, 0))
+                add(ZoneLoc(MisthalinOptionPack.VTAM_PLAQUE, LocShape.CENTREPIECE_STRAIGHT, 0, 3228, 3218, 0))
                 add(ZoneLoc(AVIUM_ONION, LocShape.CENTREPIECE_STRAIGHT, 0, 3222, 3224, 0))
             },
             cycleMillis = millis,
@@ -89,6 +94,25 @@ class HeadlessMisthalinOptionPackTest {
                 client.locOp(MisthalinOptionPack.CADAVA_ALWAYS_EMPTY, 3218, 3220, MisthalinOptionPack.PICK_FROM)
                 client.seen(DialogueText.NONE[WildBushLines.ALWAYS_EMPTY])
                 assertEquals(2, client.count(MisthalinOptionPack.CADAVA_BERRIES))
+            }
+        }
+    }
+
+    @Test
+    fun `the Combat Scroll and the VTAM plaque each read out their own box, which then closes`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                for ((id, x, line) in listOf(
+                    Triple(MisthalinOptionPack.COMBAT_SCROLL, 3226, VarrockReadingLines.COMBAT_SCROLL),
+                    Triple(MisthalinOptionPack.VTAM_PLAQUE, 3228, VarrockReadingLines.VTAM_PLAQUE),
+                )) {
+                    client.locOp(id, x, 3218, MisthalinOptionPack.READ)
+                    val text = DialogueText.NONE[line]
+                    client.awaitDialogue(text) { it is DialogueView.Message && it.text == text }
+                    client.continueDialogue()
+                    client.await("the box to close") { if (client.dialogueView == null) Unit else null }
+                }
             }
         }
     }
