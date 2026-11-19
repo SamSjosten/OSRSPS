@@ -24,10 +24,11 @@ class DialogueLinesTest {
     }
 
     private companion object {
-        /** Where lines are declared: the engine's game messages, NPCs and places, the skills, combat, the bank, shops, the Grand Exchange, the raid and the TzHaar minigames. */
+        /** Where lines are declared: the engine's game messages, NPCs and places, the random events, the skills, combat, the bank, shops, the Grand Exchange, the raid and the TzHaar minigames. */
         val CONTENT_DIRS = listOf(
             "src/main/kotlin/osrsps/game",
             "src/main/kotlin/osrsps/game/content",
+            "src/main/kotlin/osrsps/game/content/randomevents",
             "src/main/kotlin/osrsps/game/skill",
             "src/main/kotlin/osrsps/game/skill/magic",
             "src/main/kotlin/osrsps/game/skill/farming",

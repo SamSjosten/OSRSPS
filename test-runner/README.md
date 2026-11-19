@@ -706,6 +706,9 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   with the platebody, platelegs and kiteshield, its three most valuable items. Assumes test2 wears nothing worth more.
 - `settings-search.json` (needs 0.12.0): the All Settings search typed with real key presses, a found row clicked,
   and a window closed mid-search reopening on its category, also after a relog.
+- `random-events-genie.json`: random events step 1 (with `::keys on`): turns the account's random events off, sends the
+  Genie with `::randomevent genie`, takes his lamp, rubs it and picks Agility in the experience reward window, for 300
+  XP at level 30.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
   it with no dependency, guard or var shared with another row is set to 0, clicked on and checked, then checked again
   after a relog and put back to 0. Generated from the 241 cache's settings catalog; run them one at a time.
