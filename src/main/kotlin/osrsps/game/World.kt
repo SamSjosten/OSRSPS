@@ -1117,7 +1117,7 @@ class World(
         registerBones(this)
         registerRottenPotato(this)
         registerXpLamp(this)
-        randomEvents.register(osrsps.game.content.randomevents.Genie)
+        osrsps.game.content.randomevents.registerRandomEvents(this)
         foods.register(this)
         potions.register(this)
         registerBanking(this)
