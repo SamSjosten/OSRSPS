@@ -12,6 +12,7 @@
     {"step": "command", "text": "::prayers", "expectMessage": "Prayer 0/", "comment": "its swing took the point, hit or not"},
     {"step": "command", "text": "::fightcave 3 1", "expectMessage": "Fight cave: wave 3 of rotation 1"},
     {"step": "assertMessage", "contains": "[fight_cave.wave wave=3]", "timeoutMs": 15000},
+    {"step": "assertHitsplat", "self": true, "amount": 0, "comment": "the Tz-Kek's swing, a 0 under ::god: it has come up to the player, within ::kill's 15 tiles", "timeoutMs": 60000},
     {"step": "command", "text": "::kill Tz-Kek", "expectMessage": "Killed Tz-Kek #"},
     {"step": "waitTicks", "ticks": 2},
     {"step": "command", "text": "::fightcave status", "expectMessage": "Wave 3, rotation 1: 2 alive (Tz-Kek #", "comment": "the two level 22s"},
@@ -27,6 +28,7 @@
     {"step": "assertAnimation", "npc": "Yt-MejKot", "id": 2639, "timeoutMs": 20000, "comment": "lizard_cleric_heal: it heals in place of an attack"},
     {"step": "assertSpotanim", "npc": "Yt-MejKot", "id": 444, "timeoutMs": 5000, "comment": "tzhaar_heal on itself"},
     {"step": "command", "text": "::fightcave leave", "expectMessage": "Left the fight cave."},
+    {"step": "assertDialogue", "contains": "[fight_cave.reward]", "speaker": "TzHaar-Mej-Jal", "timeoutMs": 10000, "comment": "it opens once the player is outside, after the command's reply"},
     {"step": "finishDialogue"},
     {"step": "command", "text": "::empty"},
     {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
