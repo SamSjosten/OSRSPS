@@ -46,6 +46,7 @@ import osrsps.game.skill.LevelUpLines
 import osrsps.game.skill.MakeLines
 import osrsps.game.skill.magic.AlchemyLines
 import osrsps.game.skill.magic.BoltEnchantLines
+import osrsps.game.skill.magic.SuperheatLines
 import osrsps.game.skill.MiningLines
 import osrsps.game.skill.ShootingStarLines
 import osrsps.game.skill.PickpocketGearLines
@@ -76,6 +77,7 @@ import osrsps.game.social.FriendsChatLines
 import osrsps.game.social.ReportLines
 import osrsps.game.social.SocialLines
 import osrsps.game.trade.TradeLines
+import osrsps.game.trail.TrailLines
 import osrsps.game.tzhaar.FightCaveLines
 import osrsps.game.tzhaar.InfernoLines
 import osrsps.game.tzhaar.KetKehLines
@@ -125,6 +127,7 @@ object DialogueLines {
         BlueMoonBarbarianLines,
         BoltEnchantLines,
         AlchemyLines,
+        SuperheatLines,
         BorkLines,
         DagonhaiLines,
         DreadnothLines,
@@ -227,6 +230,7 @@ object DialogueLines {
         EssenceMineLines,
         EvilDaveLines,
         Examines,
+        FairyRingLines,
         FatherLawrenceLines,
         FerrnookLines,
         FiremakingLines,
@@ -244,6 +248,7 @@ object DialogueLines {
         GemTraderLines,
         GeneralMontoyaLines,
         GertrudeLines,
+        FluffsLines,
         GillieLines,
         GrandExchangeLines,
         GrayzagLines,
@@ -254,6 +259,7 @@ object DialogueLines {
         HariLines,
         HarlanLines,
         HassanLines,
+        MartinLines,
         MatthiasLines,
         MikasiLines,
         HaystackLines,
@@ -304,6 +310,7 @@ object DialogueLines {
         RatBurgissLines,
         SethGroatsLines,
         SawmillLines,
+        ClerkLines,
         TolnaLines,
         TolnaRiftLines,
         OddOldManLines,
@@ -350,6 +357,7 @@ object DialogueLines {
         OrlandoSmithLines,
         OsmanLines,
         OziachLines,
+        PalaceGardenLines,
         PalaceLibraryLines,
         PeksaLines,
         PerduLines,
@@ -447,6 +455,7 @@ object DialogueLines {
         TownCrierLines,
         TradeLines,
         TraibornLines,
+        TrailLines,
         TrampLines,
         UrhneyLines,
         ValaineLines,

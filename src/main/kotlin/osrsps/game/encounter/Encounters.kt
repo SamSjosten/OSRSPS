@@ -6,7 +6,6 @@ import osrsps.game.World
 import osrsps.game.npc.Npc
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.zone.ZoneLoc
-import osrsps.map.LocShape
 import osrsps.map.Tile
 
 /**
@@ -98,9 +97,9 @@ class Encounter internal constructor(
         return hazard
     }
 
-    override fun placeLoc(id: Int, x: Int, z: Int, rotation: Int): ZoneLoc {
+    override fun placeLoc(id: Int, x: Int, z: Int, rotation: Int, shape: Int): ZoneLoc {
         require(rotation in 0..3) { "a loc turned $rotation times" }
-        val loc = ZoneLoc(id, LocShape.CENTREPIECE_STRAIGHT, rotation, x, z, boss.level)
+        val loc = ZoneLoc(id, shape, rotation, x, z, boss.level)
         world.locs.add(loc)
         locList[Triple(x, z, loc.layer)] = loc
         return loc

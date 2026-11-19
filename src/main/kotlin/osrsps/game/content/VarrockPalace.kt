@@ -179,7 +179,8 @@ object PalaceLibraryLines : Lines("palace_library", "Varrock Palace Library") {
  * (questbookcase, lost_tribe_bookcase, ds2_varrock_bookcase) say nothing interests the player, as most do; the Captain's
  * shouting every 15 to 30 ticks. Left out: Reldo's Wise Old Man message, Darklight (Sir Prysin's members-world trade),
  * the Monk's combat (he casts, which waits on NPC magic; the city's fighters step), the Varrock Census, Surok Magis
- * (gone from the library once What Lies Below is done), the White Tree's fruit and Treznor's tree patch (Farming).
+ * (gone from the library once What Lies Below is done) and Treznor's tree patch (Farming). The garden's grown beds, the
+ * White Tree's fruit and the trellis are post-quest step 1's ([PalaceGarden]).
  */
 object VarrockPalace {
     const val KING_ROALD = 5215
@@ -440,6 +441,8 @@ object VarrockPalace {
 /** The palace's people and library. */
 fun registerVarrockPalace(world: World) {
     with(VarrockPalace) {
+        // The GE bot market pays no more than this for them (exploit review 44, R44A-3).
+        world.grandExchange.npcSells(SILVERLIGHT, SILVERLIGHT_PRICE.toLong())
         val talks: List<Pair<Int, suspend Dialogue.() -> Unit>> = listOf(
             KING_ROALD to { roald(world) },
             AEONISIG to { aeonisig() },

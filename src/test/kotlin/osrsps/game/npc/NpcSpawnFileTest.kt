@@ -375,8 +375,8 @@ class NpcSpawnFileTest {
     }
 
     @Test
-    fun `the Lumber Yard has the Sawmill operator, six mewing crates and Tolna by his rift, all standing still`() {
-        val names = mapOf(3101 to "poh_sawmill_opp", 3499 to "kittens_mew", 2010 to "soulbane_tolna_multi")
+    fun `the Lumber Yard has the Sawmill operator, six mewing crates and Tolna by his rift, all standing still, and Fluffs upstairs`() {
+        val names = mapOf(3101 to "poh_sawmill_opp", 3499 to "kittens_mew", 2010 to "soulbane_tolna_multi", 3497 to "gertrudescat")
         val types = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("lumber-yard.json"), types, "lumber-yard.json")
         assertEquals(emptyList(), result.unknown)
@@ -386,7 +386,9 @@ class NpcSpawnFileTest {
         assertEquals(3308 to 3452, spawns.single { it.type.id == 2010 }.let { it.x to it.z })
         // The crates are inside the yard's fence.
         assertTrue(spawns.filter { it.type.id == 3499 }.all { it.x in 3295..3320 && it.z in 3495..3520 })
-        assertTrue(spawns.all { it.wander == 0 && it.source.isNotBlank() && it.level == 0 })
+        val fluffs = spawns.single { it.type.id == 3497 }
+        assertEquals(Triple(3306, 3512, 1), Triple(fluffs.x, fluffs.z, fluffs.level))
+        assertTrue(spawns.filter { it !== fluffs }.all { it.wander == 0 && it.source.isNotBlank() && it.level == 0 })
     }
 
     @Test
@@ -691,6 +693,7 @@ class NpcSpawnFileTest {
             1260 to "rag_wine_merchant", 500 to "seed_merchant", 8693 to "aprilfoolshorsesalesman", 4280 to "ned", 4284 to "aggie", 4276 to "jailguard",
             4277 to "jailguard_two_patrol", 4278 to "jailguard_three_patrol", 4279 to "jailguard_four_patrol", 4274 to "leela", 3479 to "morgan",
             2109 to "wom_multi", 2114 to "wom_bed_inactive", 2116 to "wom_gossip", 2123 to "wom_bankguard", 5732 to "farming_market_guard", 5730 to "master_farmer_1", 512 to "young_dark_wizard",
+            5832 to "martin_the_master_farmer", 277 to "pmod_town_crier_draynor",
         )
         val draynorTypes = NpcTypes.of(*names.map { (id, name) -> NpcType(id, name, internalName = name) }.toTypedArray())
         val result = NpcSpawnFile.parse(file("draynor.json"), draynorTypes, "draynor.json")
@@ -723,6 +726,9 @@ class NpcSpawnFileTest {
         assertEquals(Tile(3080, 3250), spawns.single { it.type.id == 5730 }.let { Tile(it.x, it.z) })
         // The two level 7 dark wizards south of the bank.
         assertEquals(listOf(3236, 3238), spawns.filter { it.type.id == 512 }.map { it.z }.sorted())
+        // Martin the Master Gardener by the pig pen, and the Town Crier in the market.
+        assertEquals(Tile(3078, 3258), spawns.single { it.type.id == 5832 }.let { Tile(it.x, it.z) })
+        assertEquals(Tile(3079, 3249), spawns.single { it.type.id == 277 }.let { Tile(it.x, it.z) })
     }
 
     @Test
