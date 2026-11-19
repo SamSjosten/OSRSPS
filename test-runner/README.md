@@ -445,6 +445,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   his bedroom door refused with Julie's four lines, then through in the priest gown (426 and 428 worn) to his talk and out
   again, Farmer Bea's talk every way ending in her shop (interface 300), Swap-darts refused at 34 wasp darts and a bag of
   Bea's supplies for 35, and the bag opened, with `::reset` at the end.
+- `culinaromancers-chest.json`: post-quest step 5 (with `::keys on`): the Culinaromancer's Chest's Bank (interface 12),
+  Collect (402), Buy-food and Buy-items (300) in Lumbridge Castle's cellar, then the Wizards' Tower basement's altar bare
+  (varbit 2130 at 1) and its Search's `[game.nothing_interesting]`.
 - `varrock-churches-inns.json`: Varrock step 7 (with `::keys on`): Pray-at at the church's altar and the chapel's
   chaos altar, Father Lawrence, Elsie upstairs in the church, the Mage of Zamorak, a beer bought at each of the three
   inns, the Blue Moon cook's cabbage and the Jolly Boar cook's jokes.

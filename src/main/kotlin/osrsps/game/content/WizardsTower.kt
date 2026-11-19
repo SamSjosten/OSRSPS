@@ -1,5 +1,6 @@
 package osrsps.game.content
 
+import osrsps.game.GameLines
 import osrsps.game.World
 import osrsps.game.dialogue.Lines
 import osrsps.game.script.ScriptContext
@@ -31,6 +32,9 @@ object WizardsTowerLines : Lines("wizards_tower", "Wizards' Tower bookcases (the
  * - The level 9 wizards fight with Fire Strike (npc-combat.json, npc-drops.json); the second floor's lesser demon sits in
  *   a cage of walls and a railing (`railing_modelled` 24097, which the cache lets projectiles through), so only ranged
  *   attacks and spells reach it and it never reaches anyone. Its drops fall in the cage.
+ * - The basement's altar (`restless_ghost_altar` 2146 at 3120,9566, on varbit 2130) stands bare after The Restless
+ *   Ghost: the skull is back in the ghost's coffin, so login sets 2130 to 1 ([osrsps.game.Quests.AFTER_QUESTS]) and
+ *   Search finds nothing (post-quest content step 5; the line guessed, [GameLines.NOTHING_INTERESTING]).
  * - Item spawns: obj-spawns/wizards-tower.tsv; NPCs: npc-spawns/wizards-tower.json.
  */
 object WizardsTower {
@@ -49,6 +53,9 @@ object WizardsTower {
     val BOOKCASES = listOf(12539, 12540)
     const val BOXES = 12545
     const val SEARCH = 1
+
+    /** restless_ghost_altar, the map's multiloc: 15050 with the skull, 15051 bare. */
+    const val RESTLESS_GHOST_ALTAR = 2146
 }
 
 /** A ladder whose other end is somewhere else on the map: the climb animation, a tick, then [to]. */
@@ -68,6 +75,7 @@ fun registerWizardsTower(world: World) {
         world.handlers.onLoc(STAIRS_TOP, CLIMB) { op -> climbStairs(world, op.loc!!, -1) }
         world.handlers.onLoc(LADDER_DOWN, CLIMB) { op -> climbLadderTo(world, LADDER_DOWN_TO, op.loc!!.level, Climbing.ANIM_PICKUP_FLOOR) }
         world.handlers.onLoc(LADDER_UP, CLIMB) { op -> climbLadderTo(world, LADDER_UP_TO, op.loc!!.level, Climbing.ANIM_REACH_FOR_LADDER) }
+        world.handlers.onLoc(RESTLESS_GHOST_ALTAR, SEARCH) { world.message(player, GameLines.NOTHING_INTERESTING) }
         for (bookcase in BOOKCASES) {
             world.handlers.onLoc(bookcase, SEARCH) {
                 val book = WizardsTowerLines.BOOKS[world.random.nextInt(WizardsTowerLines.BOOKS.size)]
