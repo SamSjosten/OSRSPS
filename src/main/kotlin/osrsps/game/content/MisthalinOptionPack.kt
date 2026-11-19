@@ -4,6 +4,7 @@ import osrsps.game.FrameSlot
 import osrsps.game.World
 import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
+import osrsps.game.loc.Locs
 import osrsps.game.script.ScriptContext
 import osrsps.game.zone.ZoneLoc
 
@@ -135,6 +136,21 @@ object MisthalinOptionPack {
         return if (left <= 0) null else left.toInt()
     }
 
+    /** Takes one berry off [loc], a stage of [bush] that has one, on tick [now], and starts the bush growing back. */
+    internal fun takeBerry(locs: Locs, loc: ZoneLoc, bush: Bush, now: Long) {
+        val stage = bush.stages.indexOf(loc.id)
+        val firstBack = if (stage == 0) null else ticksUntilFirstBack(locs.revertDue(loc), now)
+        when {
+            stage == 0 -> locs.replace(loc, bush.stages[1], BERRY_TICKS)
+            firstBack == null -> {
+                // The first berry is back as this one goes: the full bush, less this berry, growing back from now.
+                locs.restore(loc.x, loc.z, loc.level, loc.layer)
+                locs.cached(loc.x, loc.z, loc.level, loc.layer)?.let { locs.replace(it, bush.stages[1], BERRY_TICKS) }
+            }
+            else -> locs.replaceInStages(loc, bush.stages[2], firstBack, bush.stages[1], BERRY_TICKS)
+        }
+    }
+
     internal suspend fun ScriptContext.pickBerry(world: World, loc: ZoneLoc, bush: Bush) {
         val stage = bush.stages.indexOf(loc.id)
         if (stage == bush.stages.lastIndex) {
@@ -149,12 +165,7 @@ object MisthalinOptionPack {
         delay(1)
         // Someone else may have picked the same berry this tick.
         if (!world.locs.exists(loc)) return
-        val firstBack = if (stage == 0) null else ticksUntilFirstBack(world.locs.revertDue(loc), world.tick)
-        if (firstBack == null) {
-            world.locs.replace(loc, bush.stages[1], BERRY_TICKS)
-        } else {
-            world.locs.replaceInStages(loc, bush.stages[2], firstBack, bush.stages[1], BERRY_TICKS)
-        }
+        takeBerry(world.locs, loc, bush, world.tick)
         world.objTypes[bush.berry]?.let { player.inventory.add(it, 1) }
         world.message(player, bush.picked)
     }
