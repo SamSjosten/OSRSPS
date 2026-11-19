@@ -35,6 +35,7 @@ class TrailLoaderTest {
         26 to DbRow(StepType.ANAGRAM.table, mapOf(0 to listOf(55), 1 to listOf(2), 2 to listOf("A NAGRAM"), 3 to listOf(11), 4 to listOf(30), 5 to listOf(1))),
         // A beginner emote (raspberry, emote 19) in a gold necklace and gold ring, or any ring of dueling (group 18) on the ring slot.
         27 to DbRow(StepType.EMOTE.table, mapOf(0 to listOf(273), 1 to listOf(0), 2 to listOf("Blow a raspberry."), 3 to listOf(10), 4 to listOf(19), 6 to listOf(31, 32), 7 to listOf(34736), 11 to listOf(1))),
+        99 to DbRow(TrailLoader.COMBAT_ENCOUNTER, mapOf(0 to listOf("A Saradomin wizard."), 1 to listOf(2955))),
         31 to DbRow(TrailLoader.OUTFIT, mapOf(0 to listOf("a necklace and ring"), 3 to listOf(1654), 10 to listOf(1635))),
         32 to DbRow(TrailLoader.OUTFIT, mapOf(0 to listOf("a dueling ring"), 21 to listOf(18))),
         30 to DbRow(TrailLoader.CHALLENGE_QUESTION, mapOf(0 to listOf("How many?", 19, "How many?", 20))),
@@ -58,6 +59,7 @@ class TrailLoaderTest {
         val coordinate = data["coordinate:432"]!!
         assertEquals(TrailTier.HARD, coordinate.tier)
         assertTrue(coordinate.combat)
+        assertEquals(listOf(2955), coordinate.combatNpcs)
         assertEquals(listOf(12554, 12555), coordinate.items)
         assertEquals(TrailTier.BEGINNER, data["map:101"]!!.tier)
         assertNull(cryptic.challenge)
