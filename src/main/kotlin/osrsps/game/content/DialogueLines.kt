@@ -458,6 +458,7 @@ object DialogueLines {
         MuseumCaseLines,
         NaturalHistoryQuizLines,
         MuseumTimelineLines,
+        MuseumDisplayLines,
         MuseumCleaningLines,
         HooknosedJackLines,
         AnnaJonesLines,
