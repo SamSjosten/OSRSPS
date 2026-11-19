@@ -129,6 +129,7 @@ import osrsps.game.content.registerFarmsRoads
 import osrsps.game.content.registerLumberYard
 import osrsps.game.content.EdgevilleRespawn
 import osrsps.game.content.registerGertrudesCat
+import osrsps.game.content.registerClanCup
 import osrsps.game.content.registerClanHub
 import osrsps.game.content.registerBarbarianAnvil
 import osrsps.game.content.registerMisthalinOptionPack
@@ -1243,6 +1244,7 @@ class World(
         registerLumberYard(this)
         registerGertrudesCat(this)
         registerClanHub(this)
+        registerClanCup(this)
         registerTolnasRift(this)
         registerSilvarea(this)
         registerPaterdomus(this)
