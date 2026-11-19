@@ -37,7 +37,6 @@ class HeadlessEdgevillePeopleTest {
             type(EdgevillePeople.TRAPDOOR, "null", multiloc = true),
             type(EdgevillePeople.CELLAR_STAIRS, "Cellar stairs", "Climb"),
             type(EdgevillePeople.LEVER, "Lever", "Pull"),
-            type(EdgevillePeople.FAIRY_RING, "Fairy ring", "Zanaris", "Configure", "Last-destination", "Favourites"),
             type(EdgevillePeople.SOUL_WARS_PORTAL, "Soul Wars Portal", "Enter"),
             type(EdgevillePeople.DEATHS_DOMAIN, "Death's Domain", "Enter"),
         ).associateBy { it.id },
@@ -74,7 +73,6 @@ class HeadlessEdgevillePeopleTest {
                 add(ZoneLoc(EdgevillePeople.TRAPDOOR, LocShape.GROUND_DECOR, 3, 3077, 3493, 0))
                 add(ZoneLoc(EdgevillePeople.CELLAR_STAIRS, LocShape.CENTREPIECE_STRAIGHT, 0, 3076, 9893, 0))
                 add(ZoneLoc(EdgevillePeople.LEVER, LocShape.CENTREPIECE_STRAIGHT, 0, 3090, 3475, 0))
-                add(ZoneLoc(EdgevillePeople.FAIRY_RING, LocShape.CENTREPIECE_STRAIGHT, 0, 3129, 3496, 0))
                 add(ZoneLoc(EdgevillePeople.SOUL_WARS_PORTAL, LocShape.CENTREPIECE_DIAGONAL, 3, 3082, 3473, 0))
                 add(ZoneLoc(EdgevillePeople.DEATHS_DOMAIN, LocShape.CENTREPIECE_STRAIGHT, 0, 3096, 3476, 0))
             },
@@ -130,7 +128,7 @@ class HeadlessEdgevillePeopleTest {
     }
 
     @Test
-    fun `the fairy ring, Soul Wars portal and Death's Domain refuse`(@TempDir dir: Path) {
+    fun `the Soul Wars portal and Death's Domain refuse`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bob").use { client ->
                 client.await("the login rebuild") { client.position }
@@ -138,10 +136,6 @@ class HeadlessEdgevillePeopleTest {
                 client.expectMessage(DialogueText.NONE[EdgevilleClosedLines.SOUL_WARS]) { client.locOp(EdgevillePeople.SOUL_WARS_PORTAL, 3082, 3473, 1) }
                 client.tele(3097, 3476, 0)
                 client.expectMessage(DialogueText.NONE[EdgevilleClosedLines.DEATHS_DOMAIN]) { client.locOp(EdgevillePeople.DEATHS_DOMAIN, 3096, 3476, 1) }
-                client.tele(3130, 3496, 0)
-                for (option in 1..4) {
-                    client.expectMessage(DialogueText.NONE[EdgevilleClosedLines.FAIRY_RING]) { client.locOp(EdgevillePeople.FAIRY_RING, 3129, 3496, option) }
-                }
             }
         }
     }

@@ -430,6 +430,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `varrock-palace.json`: Varrock step 6 (with `::keys on`): King Roald, Aeonisig Raispher, Sir Prysin, Queen
   Ellamaria, Reldo and three of the library's bookcases, the altar, Ambassador Ferrnook, Captain Rovin, the roof by
   ladder and the training Captain, then down the spiral stairs to the ground floor.
+- `palace-garden.json`: post-quest step 1 (with `::scenario farming`, `::keys on` and `::farmclock pause`): Varrock
+  Palace's garden as Garden of Tranquillity leaves it (varbits 983, 963 and 964), the White Tree's four fruit picked one
+  by one (varbit 985 from 12 to 8) and grown back with `::farmtick`, the trellis shortcut climbed in and out at Agility
+  35, and Marlo's mended house (varbits 10568 and 10569), with `::reset` at the end.
 - `varrock-churches-inns.json`: Varrock step 7 (with `::keys on`): Pray-at at the church's altar and the chapel's
   chaos altar, Father Lawrence, Elsie upstairs in the church, the Mage of Zamorak, a beer bought at each of the three
   inns, the Blue Moon cook's cabbage and the Jolly Boar cook's jokes.

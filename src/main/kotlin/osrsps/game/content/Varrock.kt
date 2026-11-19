@@ -133,6 +133,7 @@ fun registerVarrock(world: World) {
     registerNaturalHistoryQuiz(world)
     VarrockMuseumPeople.register(world)
     registerVarrockPalace(world)
+    registerPalaceGarden(world)
     registerVarrockShopkeepers(world)
     registerVarrockStores(world)
     registerVarrockTownsfolk(world)
