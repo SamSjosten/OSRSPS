@@ -406,6 +406,8 @@ class World(
     agilityData: AgilityData = AgilityData.load(),
     /** Slayer's tasks, masters and rewards, from the cache ([osrsps.cache.SlayerLoader]); tests that slay pass their own. */
     slayerData: SlayerData = SlayerData.NONE,
+    /** The fairy ring codes, from the cache's `fairyring` table ([osrsps.cache.FairyRingLoader]); tests that travel pass their own. */
+    fairyRingCodes: osrsps.game.content.FairyRingCodes = osrsps.game.content.FairyRingCodes.NONE,
     /** Treasure Trails' steps, from the cache's clue helper tables ([osrsps.cache.TrailLoader]); tests that dig pass their own. */
     trailData: osrsps.game.trail.TrailData = osrsps.game.trail.TrailData.NONE,
     /** Whether shooting stars land on their own ([ShootingStars]); tests land theirs with `::star land`. */
@@ -920,6 +922,9 @@ class World(
     /** The River Lum's canoe stations; see [Canoes]. */
     val canoes = Canoes(this, woodcutting.data)
 
+    /** The fairy rings; see [osrsps.game.content.FairyRings]. */
+    val fairyRings = osrsps.game.content.FairyRings(this, fairyRingCodes)
+
     /** Runecraft's ruins, talismans, tiaras and altars; see [osrsps.game.skill.Runecraft]. */
     val runecraft = osrsps.game.skill.Runecraft(this)
 
@@ -1190,6 +1195,7 @@ class World(
         woodcutting.register()
         farming.register()
         canoes.register()
+        fairyRings.register()
         birdNests.register()
         firemaking.register()
         hunter.register()
