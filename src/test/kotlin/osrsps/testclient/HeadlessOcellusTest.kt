@@ -1299,11 +1299,16 @@ class HeadlessOcellusTest {
                 alice.commandReply("hit ${boss.maxHitpoints} ${boss.index}") { it.startsWith("Hit ") }
                 assertFalse(boss.dead)
                 assertTrue(boss.hitpoints >= Ocellus.HELD_AT, "${boss.hitpoints}")
-                // A Rift destroyed then ends him, and the room is done.
+                // A Rift destroyed then ends him, and the room is done. Healed past HELD_AT (as Soul Split can), the
+                // rest of his bar counts for nobody's points: the Rift's destroyer gets HELD_AT (exploit review round
+                // 43, R43C-2).
+                boss.hitpoints = Ocellus.HELD_AT + 50
+                val before = run.damage[ArchiveRoom.OCELLUS].orEmpty()[her.saveKey] ?: 0
                 val rift = Ocellus.flares(boss).first { it.type.id == Ocellus.Flare.RIFT.id && !it.dead }
                 alice.commandReply("hit ${rift.hitpoints} ${rift.index}") { it.startsWith("Hit ") }
                 alice.await("his room done", 30_000) { ArchiveRoom.OCELLUS.takeIf { it in run.cleared } }
                 assertTrue(boss.dead)
+                assertEquals(before + Ocellus.HELD_AT, run.damage[ArchiveRoom.OCELLUS].orEmpty()[her.saveKey] ?: 0)
                 // The chat as his room is won: challenge complete, her first, so a personal best; then the raid's
                 // total time, a best too, and her completed count, the first.
                 val said = alice.await("his challenge complete and the two lines after") {

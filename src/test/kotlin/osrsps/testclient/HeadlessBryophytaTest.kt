@@ -9,6 +9,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
+import osrsps.game.InvObj
 import osrsps.game.InventoryTab
 import osrsps.game.NpcStats
 import osrsps.game.NpcType
@@ -16,6 +17,7 @@ import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.SeqNames
+import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.combat.AttackType
 import osrsps.game.combat.DropTestItems
@@ -210,6 +212,14 @@ class HeadlessBryophytaTest {
                     client.await("growthling ${growthling.index} cut", timeoutMillis = 20_000) { if (growthling.dead) Unit else null }
                 }
                 assertFalse(Bryophyta.shielded(server.world, boss))
+                // Only melee with an axe wielded finishes one: a bounce or a chinchompa's splash runs the hook as it
+                // lands, so an axe wielded after the throw mustn't count (exploit review round 43, R43C-1).
+                val wielded = bob.equipment[WearPos.WEAPON]
+                bob.equipment[WearPos.WEAPON] = InvObj(Bryophyta.BRONZE_AXE, 1)
+                assertTrue(Bryophyta.wieldsCutter(server.world, bob))
+                assertEquals(3, server.world.combat.rolledOn(bob, first, AttackType.RANGED, 3), "a ranged roll is left as it is")
+                assertEquals(first.hitpoints, server.world.combat.rolledOn(bob, first, AttackType.SLASH, 3), "a slash takes all it has")
+                bob.equipment[WearPos.WEAPON] = wielded
                 // The cooldown runs from the tick the last one died, not the tick she notices.
                 val lastDied = Bryophyta.state(boss).lastGone
                 client.await("the cooldown") { Bryophyta.state(boss).growthAfter.takeIf { it != Long.MIN_VALUE } }
