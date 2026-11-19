@@ -1136,6 +1136,7 @@ class World(
         registerObor(this, giantLairs)
         registerBryophyta(this, giantLairs)
         osrsps.game.content.registerScurrius(this, scurriusLairs)
+        osrsps.game.content.registerScurriusFight(this)
         registerEmotes(this)
         registerGiantBones(this)
         registerRoguesDen(this)
