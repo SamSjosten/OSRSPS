@@ -127,6 +127,7 @@ object DialogueLines {
         BoltEnchantLines,
         AlchemyLines,
         BorkLines,
+        BrutusLines,
         DagonhaiLines,
         DreadnothLines,
         OcellusLines,

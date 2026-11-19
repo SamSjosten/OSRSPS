@@ -66,6 +66,7 @@ class NpcCombatTest {
             "small_scorpion_update_attack" to 6261, "small_scorpion_update_defend" to 6259, "small_scorpion_update_death" to 6260,
             "chaoselemental_attack" to 3146, "chaoselemental_death" to 3147, "dragon_block_kbd" to 4638, "npc_callisto_attack_melee01" to 10012, "npc_callisto_death01" to 10017, "npc_vetion_attack_magic_01" to 9969, "npc_vetion_attack_magic_02" to 9970, "npc_vetion_defend_parry_01" to 9973, "npc_vetion_defend_parry_02" to 9974, "npc_vetion_death_01" to 9980, "npc_vetion_death_02" to 9981, "dog_update_skeleton_hellhound_attack" to 6579, "dog_update_skeleton_hellhound_defend" to 6578,
             "npc_rat_boss_attack_melee_01" to 10692, "npc_rat_boss_death_01" to 10705,
+            "cow_boss_attack" to 13783, "cow_boss_defend" to 13787, "cow_boss_death" to 13784,
             "zombie_update_attack_normal" to 5568, "zombie_update_defend_normal" to 5567, "zombie_update_death_normal" to 5569,
             "zombie_update_attack_weapon" to 5571, "zombie_update_defend_weapon" to 5574, "zombie_update_death_weapon" to 5575,
             "zombie_update_attack_dragging" to 5578, "zombie_update_defend_dragging" to 5579, "zombie_update_death_dragging" to 5580,
@@ -1016,6 +1017,18 @@ class NpcCombatTest {
         }
         assertEquals(425, combat[ratTypes.find("rat_boss_normal")!!]!!.xpBonusTenths)
         assertEquals(200, combat[ratTypes.find("rat_boss_instance")!!]!!.xpBonusTenths)
+    }
+
+    @Test
+    fun `Brutus butts for 3 every 5 ticks, back after 36, weak to earth, with double XP`() {
+        val cowTypes = NpcTypes.of(NpcType(15626, "Brutus", internalName = "cowboss", stats = NpcStats(attack = 12, strength = 25, defence = 10, hitpoints = 58, magic = 8)))
+        val def = NpcCombat.load(cowTypes, seqs)[cowTypes.find("cowboss")!!]!!
+        assertEquals(CombatMath.npcMaxHit(25, def.strengthBonus), def.maxHit)
+        assertEquals(listOf(5, 3, 36), listOf(def.attackSpeed, def.maxHit, def.respawnTicks))
+        assertEquals(NpcCombatAnims(13783, 13787, 13784), def.anims)
+        assertNotNull(def.aggression)
+        assertEquals(1_000, def.xpBonusTenths)
+        assertEquals(ElementalWeakness(Element.EARTH, 25), def.weakness)
     }
 
     @Test
