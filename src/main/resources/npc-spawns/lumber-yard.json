@@ -8,6 +8,7 @@
     {"npc": "kittens_mew", "x": 3307, "z": 3507, "wander": 0, "source": "Crate (a mewing crate, an NPC), Lumber Yard. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022)"},
     {"npc": "kittens_mew", "x": 3310, "z": 3499, "wander": 0, "source": "Crate (a mewing crate, an NPC), Lumber Yard. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022)"},
     {"npc": "kittens_mew", "x": 3315, "z": 3515, "wander": 0, "source": "Crate (a mewing crate, an NPC), Lumber Yard. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022)"},
-    {"npc": "soulbane_tolna_multi", "x": 3308, "z": 3452, "wander": 0, "source": "Tolna, beside his rift; shows soulbane_tolna_top after A Soul's Bane. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the Wiki's Tolna map (3308,3452) agrees"}
+    {"npc": "soulbane_tolna_multi", "x": 3308, "z": 3452, "wander": 0, "source": "Tolna, beside his rift; shows soulbane_tolna_top after A Soul's Bane. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json, pre-Nov 2022); the Wiki's Tolna map (3308,3452) agrees"},
+    {"npc": "gertrudescat", "x": 3306, "z": 3512, "level": 1, "wander": 2, "source": "Gertrude's cat (Fluffs), up the ladder in the Lumber Yard, where the Wiki's Fluffs page has her after Gertrude's Cat (its map at 3310,3506). Tile: mejrs NPCList_OSRS (3306,3512, level 1); wander range guessed"}
   ]
 }
