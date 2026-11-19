@@ -38,6 +38,11 @@ object Chatbox {
     const val OBJECTBOX_ITEM = 1
     const val OBJECTBOX_TEXT = 2
 
+    /** confirmdestroy: an item's destroy check, built by script [CONFIRM_DESTROY_INIT] in universe (No 0, Yes 1). */
+    const val CONFIRM_DESTROY = 584
+    const val CONFIRM_DESTROY_UNIVERSE = 0
+    const val CONFIRM_DESTROY_INIT = 814
+
     /** objectbox_double: two items and text. */
     const val OBJECTBOX_DOUBLE = 11
     const val OBJECTBOX_DOUBLE_MODEL1 = 1
@@ -99,6 +104,7 @@ object Chatbox {
         CHATMENU to ("chatmenu" to mapOf(CHATMENU_OPTIONS to "options")),
         MESSAGEBOX to ("messagebox" to mapOf(MESSAGEBOX_TEXT to "text", MESSAGEBOX_CONTINUE to "continue")),
         OBJECTBOX to ("objectbox" to mapOf(OBJECTBOX_UNIVERSE to "universe", OBJECTBOX_ITEM to "item", OBJECTBOX_TEXT to "text")),
+        CONFIRM_DESTROY to ("confirmdestroy" to mapOf(CONFIRM_DESTROY_UNIVERSE to "universe")),
         SKILLMULTI to ("skillmulti" to mapOf(SKILLMULTI_FIRST_ITEM to "a", SKILLMULTI_FIRST_ITEM + SKILLMULTI_MAX_ITEMS - 1 to "r")),
         OBJECTBOX_DOUBLE to (
             "objectbox_double" to mapOf(

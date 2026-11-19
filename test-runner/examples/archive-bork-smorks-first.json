@@ -176,7 +176,7 @@
   {
    "step": "waitTicks",
    "ticks": 9,
-   "comment": "his body goes 7 ticks after he falls"
+   "comment": "his body goes 7 ticks after he falls, and the room is done a tick after that"
   },
   {
    "step": "command",

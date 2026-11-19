@@ -177,6 +177,7 @@ enum class FrameSlot(val fixed: Int, val classic: Int, val modern: Int) {
     HELPER_CONTENT(39, 12, 12),
     HPBAR_HUD(28, 2, 2),
     POPOUT(3, 35, 67),
+    NOTIFICATIONS(44, 13, 13),
     TLI_LISTENER(4, 36, 68),
     ;
 

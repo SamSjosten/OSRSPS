@@ -19,7 +19,10 @@ object WildernessDitchLines : Lines("wilderness_ditch", "Wilderness Ditch") {
 }
 
 /**
- * Crossing the Wilderness Ditch (`ditch_wilderness_cover` 23271, Cross), the border along the Wilderness's south edge.
+ * Crossing the Wilderness Ditch (`ditch_wilderness_cover` 23271, Cross), the border along the Wilderness's south edge,
+ * and its 13 pieces from x 3328 to 3340 (`ditch_wilderness_cover_members` 50652, the same 1 by 2 Cross in the 242
+ * cache). Every world here is a members world, so those cross like the rest. Inferred from the name: live keeps them
+ * from free-to-play players.
  *
  * Each piece of the ditch is 1 by 2 tiles in the 242 cache, laid along z 3521 so it covers 3521 and 3522, plus a short
  * run turned east-west at x 2996 (map read from the 242 cache, 2026-11-15). Cross jumps the player over the piece to the
@@ -37,6 +40,7 @@ object WildernessDitchLines : Lines("wilderness_ditch", "Wilderness Ditch") {
  */
 object WildernessDitch {
     const val DITCH = 23271
+    const val DITCH_MEMBERS = 50652
     const val CROSS = 1
 
     /** WILD_DITCH_JUMP. */
@@ -158,5 +162,7 @@ object WildernessDitch {
 }
 
 fun registerWildernessDitch(world: World) {
-    world.handlers.onLoc(WildernessDitch.DITCH, WildernessDitch.CROSS) { op -> with(WildernessDitch) { cross(world, op.loc!!) } }
+    for (ditch in listOf(WildernessDitch.DITCH, WildernessDitch.DITCH_MEMBERS)) {
+        world.handlers.onLoc(ditch, WildernessDitch.CROSS) { op -> with(WildernessDitch) { cross(world, op.loc!!) } }
+    }
 }

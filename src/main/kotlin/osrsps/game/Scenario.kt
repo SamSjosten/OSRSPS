@@ -242,6 +242,7 @@ class Scenarios(scenarios: Collection<Scenario>) {
             "pvp",
             "runecraft",
             "scurrius",
+            "shooting-stars",
             "tfa-magic",
             "tfa-melee",
             "tfa-ranged",

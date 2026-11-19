@@ -249,6 +249,44 @@
       ]
     },
     {
+      "key": "sheared_ram",
+      "title": "The Sheared Ram",
+      "inv": 1034,
+      "size": 3,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 0,
+      "changePer": 0,
+      "npcs": [
+        "ram_bartender"
+      ],
+      "refuses": [1917, 5763, 2142],
+      "source": "OSRS Wiki, Bartender (The Sheared Ram), read 2026-11-19: Trade added in the 3 November 2026 update, Sells at 100.0%, Buys at 0.0%, Change per 0.0%, beer and cider 2 coins and cooked meat 4, every item infinite stock, nothing bought back (refused, as Farming Supplies does); inv pub_lumbridge (1034, size 3) in the 242 cache. Guessed: 1000 in stock restocking every tick for the Wiki's infinite",
+      "stock": [
+        {
+          "item": 1917,
+          "name": "Beer",
+          "count": 1000,
+          "restock": 1,
+          "price": 2
+        },
+        {
+          "item": 5763,
+          "name": "Cider",
+          "count": 1000,
+          "restock": 1,
+          "price": 2
+        },
+        {
+          "item": 2142,
+          "name": "Cooked meat",
+          "count": 1000,
+          "restock": 1,
+          "price": 4
+        }
+      ]
+    },
+    {
       "key": "draynor_wine_shop",
       "title": "Fortunato's Fine Wine",
       "inv": 384,
@@ -2592,6 +2630,7 @@
       "buyAt": 800,
       "changePer": 0,
       "currency": 11849,
+      "collectionLog": true,
       "npcs": [
         "rooftops_grace"
       ],

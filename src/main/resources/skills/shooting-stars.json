@@ -1,0 +1,18 @@
+{
+  "about": "Shooting Stars' landing sites (OSRS Wiki, Shooting Stars, Landing sites, read 2026-11-19), by the telescope's regions. Each site's x and z is the star's south-west tile; the Wiki gives only a map pin per site, so every tile here is inferred from its pin and checked against the 242 cache to be open ground the 2x2 star fits on (StarSitesAuditTest). Only Misthalin's six sites are in: another region's sites are added as another entry of regions, with its telescope name key. fallback is the one site live sends a star to when the roll repeats the last site (Mod Ash, 12 Dec 2021: a Darkmeyer spot left out of the roll); none while only part of the list is in, see ShootingStars.",
+  "fallback": null,
+  "regions": [
+    {
+      "key": "misthalin",
+      "name": "Misthalin",
+      "sites": [
+        {"key": "lumbridge_swamp_east", "name": "East Lumbridge Swamp mine", "x": 3230, "z": 3155},
+        {"key": "lumbridge_swamp_west", "name": "West Lumbridge Swamp mine", "x": 3153, "z": 3150},
+        {"key": "draynor", "name": "Draynor Village", "x": 3094, "z": 3235},
+        {"key": "varrock_east_bank", "name": "Varrock (east bank)", "x": 3258, "z": 3408},
+        {"key": "varrock_south_east_mine", "name": "South-east Varrock mine", "x": 3290, "z": 3353},
+        {"key": "varrock_south_west_mine", "name": "South-west Varrock mine", "x": 3175, "z": 3362}
+      ]
+    }
+  ]
+}

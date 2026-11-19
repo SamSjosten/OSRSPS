@@ -34,7 +34,8 @@ object HansLines : Lines("hans", "Transcript:Hans") {
 object Hans {
     const val ID = 3105
     const val TALK_TO = 1
-    const val AGE = 2
+    // Age is op3 in the 242 cache (Talk-to, nothing, Age), not op2.
+    const val AGE = 3
 
     /** How far Hans runs from a player who threatens him, in tiles along each axis. Guessed. */
     const val FLEE_DISTANCE = 4
