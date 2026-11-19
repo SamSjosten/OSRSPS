@@ -115,6 +115,11 @@ class HeadlessRandomEventsTest {
                 client.await("the reward window") { if (XpLamp.INTERFACE in client.openInterfaces()) Unit else null }
                 assertEquals(XpLamp.ALL_SKILLS, client.await("if2") { client.varp(XpLamp.VARP_IF2).takeIf { it != 0 } })
                 assertEquals("[xp_lamp.title]", client.text(XpLamp.INTERFACE, XpLamp.TITLE))
+                // Construction without a house is refused, as the client greys it out: the window stays open.
+                client.resumePause(XpLamp.INTERFACE, XpLamp.UNIVERSE, XpLamp.BY_INDEX.indexOf(Skill.CONSTRUCTION))
+                client.awaitTicks(2)
+                assertTrue(XpLamp.INTERFACE in client.openInterfaces())
+                assertEquals(0, client.stat(Skill.CONSTRUCTION.id)?.xp ?: 0)
                 // Agility is index 8 in enum_681, so its button is child 7.
                 client.resumePause(XpLamp.INTERFACE, XpLamp.UNIVERSE, XpLamp.BY_INDEX.indexOf(Skill.AGILITY))
                 client.await("300 Agility XP") { client.stat(Skill.AGILITY.id)?.takeIf { it.xp == before + 300 } }

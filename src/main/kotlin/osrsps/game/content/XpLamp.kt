@@ -25,8 +25,8 @@ object XpLampLines : Lines("xp_lamp", "Lamp") {
  * the rest, and Construction without a house and Sailing before Pandemonium (client script 3809).
  *
  * The XP is exact, whatever the server's XP rate, as a lamp gives a fixed amount. Inferred: "level" is the real
- * (unboosted) level, which is what the client checks a skill against. Guessed: the server accepts any of the 24
- * skills it is sent (every account here has every quest, and is on a members world), and the window's title and the
+ * (unboosted) level, which is what the client checks a skill against. The server refuses Construction without a house,
+ * as the client does; it accepts the other 23 (every account here has every quest, and is on a members world). Guessed: the window's title and the
  * message after are words we haven't seen yet. Left out: Destroy (no item here can be destroyed yet).
  */
 object XpLamp {
@@ -74,7 +74,12 @@ object XpLamp {
         player.session.queue(IfSetEventsV2(INTERFACE, UNIVERSE, 0, BY_INDEX.size - 1, Chatbox.EVENT_PAUSE_BUTTON, 0))
         while (true) {
             val (_, sub) = pauseButtons(INTERFACE, listOf(UNIVERSE), 0 until BY_INDEX.size)
-            skillAt(sub)?.let { return it }
+            val skill = skillAt(sub)
+            // The client refuses Construction without a house (client script 3809); a forged click mustn't get past.
+            if (skill != null && !(skill == Skill.CONSTRUCTION && player.house == null)) return skill
+            // A tick's wait before waiting again: the click's own handling (Dialogues.resume) drops a script that is
+            // already waiting on a pause button again when it returns.
+            delay(1)
         }
     }
 
