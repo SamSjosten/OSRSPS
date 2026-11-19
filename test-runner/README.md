@@ -432,6 +432,11 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   Palace's garden as Garden of Tranquillity leaves it (varbits 983, 963 and 964), the White Tree's four fruit picked one
   by one (varbit 985 from 12 to 8) and grown back with `::farmtick`, the trellis shortcut climbed in and out at Agility
   35, and Marlo's mended house (varbits 10568 and 10569), with `::reset` at the end.
+- `phoenix-gang.json`: post-quest step 2 (with `::scenario lumbridge-bare` and `::keys on`): Straven handing over a
+  spare weapon store key and his treasures, thieving and go talk, the Phoenix Gang hideout's door both ways, its empty
+  chest and its ladder up, the weapon store's door locked without the key and through with it, the Weaponsmaster's talk
+  and his `[weaponsmaster.stravens]` on a crossbow taken upstairs, Katrine's `[katrine.phoenix_scum]` and the Black Arm
+  Gang's inner door locked, with `::reset` at the end.
 - `varrock-churches-inns.json`: Varrock step 7 (with `::keys on`): Pray-at at the church's altar and the chapel's
   chaos altar, Father Lawrence, Elsie upstairs in the church, the Mage of Zamorak, a beer bought at each of the three
   inns, the Blue Moon cook's cabbage and the Jolly Boar cook's jokes.

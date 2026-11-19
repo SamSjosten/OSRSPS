@@ -1,0 +1,8 @@
+# The Phoenix Gang's item spawns (post-quest content step 2). From the OSRS Wiki's Phoenix crossbow and Grapes item
+# spawn tables (read 2026-11-19): two Phoenix crossbows on the weapon store's floor upstairs (respawn 100, the
+# crossbow page's), and grapes in the hideout by the chest (back roughly every 43 seconds on the Phoenix Gang Hideout
+# page: 72 ticks, rounded). A member can't take a crossbow while the Weaponsmaster watches (PhoenixGang).
+obj	count	x	z	level	respawn
+767	1	3243	3383	1	100	# Phoenix crossbow, Wiki item spawns
+767	1	3245	3385	1	100	# Phoenix crossbow, Wiki item spawns
+1987	1	3237	9761	0	72	# Grapes, Wiki item spawns (mapID 12, the hideout)
