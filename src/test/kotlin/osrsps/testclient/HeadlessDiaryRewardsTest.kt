@@ -1,0 +1,166 @@
+package osrsps.testclient
+
+import java.nio.file.Path
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import org.junit.jupiter.api.io.TempDir
+import osrsps.game.GameFrame
+import osrsps.game.Inventory
+import osrsps.game.JournalTab
+import osrsps.game.NpcType
+import osrsps.game.NpcTypes
+import osrsps.game.ObjType
+import osrsps.game.ObjTypes
+import osrsps.game.VarTypes
+import osrsps.game.World
+import osrsps.game.content.AntiqueLamps
+import osrsps.game.content.DIARY_VARBITS
+import osrsps.game.content.DiaryArea
+import osrsps.game.content.Mikasi
+import osrsps.game.content.VarrockSweepTalkers
+import osrsps.game.dialogue.Chatbox
+import osrsps.game.npc.NpcSpawn
+import osrsps.map.CollisionMap
+
+/**
+ * Claiming diary rewards through the headless client: Mikasi gives the easy ring and lamp once every easy task is done,
+ * then not again, and gives the ring back once it's gone; a hard tier with medium undone isn't offered. Toby turns a
+ * claim down without two free spaces (ending the talk), gives the armour and lamp with room, refuses the elite with the
+ * medium and hard undone, and "Who are you?" opens the Achievement Diaries tab.
+ */
+class HeadlessDiaryRewardsTest {
+    private fun talker(id: Int, name: String) = NpcType(id, name, ops = listOf("Talk-to", null, null, null, null))
+
+    private val mikasi = talker(Mikasi.ID, "Mikasi")
+    private val toby = talker(VarrockSweepTalkers.TOBY, "Toby")
+    private val objs = ObjTypes.of(
+        *(DiaryArea.LUMBRIDGE.rewards + DiaryArea.VARROCK.rewards).map { ObjType(it, "Diary reward") }.toTypedArray(),
+        *AntiqueLamps.Lamp.entries.map { ObjType(it.obj, "Antique lamp") }.toTypedArray(),
+    )
+
+    private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
+        World(
+            crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) },
+            npcTypes = NpcTypes.of(mikasi, toby), objTypes = objs,
+            npcSpawns = listOf(
+                NpcSpawn(mikasi, 3224, 3218, wander = 0, source = "test"),
+                NpcSpawn(toby, 3220, 3218, wander = 0, source = "test"),
+            ),
+            varTypes = VarTypes(4_000, DIARY_VARBITS), cycleMillis = millis,
+        )
+    }
+
+    private fun HeadlessClient.talk(id: Int) {
+        val npc = await("$id in view") { npcs().firstOrNull { it.id == id } }
+        npcOp(npc.index, Mikasi.TALK_TO)
+    }
+
+    private fun HeadlessClient.chat(vararg texts: String) {
+        for (text in texts) {
+            awaitDialogue(text) { it is DialogueView.Chat && it.text == text }
+            continueDialogue()
+        }
+    }
+
+    private fun HeadlessClient.menu(vararg options: String) {
+        val menu = awaitDialogue("the menu ${options.first()}") { it is DialogueView.Menu && (it as DialogueView.Menu).options.first() == options.first() } as DialogueView.Menu
+        assertEquals(options.toList(), menu.options)
+    }
+
+    private fun HeadlessClient.objbox() {
+        awaitDialogue("the item box") { it is DialogueView.Other }
+        resumePause(Chatbox.OBJECTBOX, Chatbox.OBJECTBOX_UNIVERSE, 0)
+    }
+
+    private fun HeadlessClient.count(id: Int) = inventory(Inventory.INV).count { it?.id == id }
+
+    private fun HeadlessClient.awaitCount(id: Int, n: Int) = await("$n of $id") { Unit.takeIf { count(id) == n } }
+
+    private fun HeadlessClient.done(command: String) {
+        val before = messages().size
+        command(command)
+        await("'$command' done") { Unit.takeIf { messages().drop(before).any { "task(s) done" in it.text } } }
+    }
+
+    @Test
+    fun `Mikasi gives the easy ring and lamp, once, and the ring again when it's lost`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.done("diary complete lumbridge easy all")
+                client.talk(Mikasi.ID)
+                client.chat("[mikasi.claim_easy]", "[mikasi.want_reward]", "[mikasi.yes_please]", "[mikasi.ring_easy]", "[mikasi.wow_thanks]", "[mikasi.lose_ring]")
+                client.menu("[mikasi.who_are_you]", "[mikasi.my_diary]", "[mikasi.farewell]")
+                client.awaitCount(DiaryArea.LUMBRIDGE.rewards[0], 1)
+                assertEquals(1, client.count(AntiqueLamps.Lamp.EASY.obj))
+                assertEquals(1 shl 4, client.varp(ACHIEVEMENT_DIARY_REWARDS2))
+                client.closeModal()
+
+                // Claimed already: straight to her menu. Hard done with medium undone isn't offered either.
+                client.done("diary complete lumbridge hard all")
+                client.talk(Mikasi.ID)
+                client.menu("[mikasi.who_are_you]", "[mikasi.my_diary]", "[mikasi.farewell]")
+                client.closeModal()
+
+                client.command("empty")
+                client.awaitCount(DiaryArea.LUMBRIDGE.rewards[0], 0)
+                client.talk(Mikasi.ID)
+                client.menu("[mikasi.another_ring]", "[mikasi.who_are_you]", "[mikasi.my_diary]", "[mikasi.farewell]")
+                client.chooseOption(1)
+                client.chat("[mikasi.another_ring]")
+                client.objbox()
+                client.awaitCount(DiaryArea.LUMBRIDGE.rewards[0], 1)
+                client.menu("[mikasi.who_are_you]", "[mikasi.my_diary]", "[mikasi.farewell]")
+                assertEquals(0, client.count(AntiqueLamps.Lamp.EASY.obj), "the lamp isn't given again")
+            }
+        }
+    }
+
+    @Test
+    fun `Toby needs two spaces, gives the armour, holds the elite back and opens the diary tab`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bob").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.done("diary complete varrock easy all")
+                client.command("item ${AntiqueLamps.Lamp.ELITE.obj} 27")
+                client.awaitCount(AntiqueLamps.Lamp.ELITE.obj, 27)
+                client.talk(VarrockSweepTalkers.TOBY)
+                client.chat("[toby.claim_easy]", "[toby.well_done]", "[toby.yes_please]", "[toby.no_space]")
+                client.await("the talk over") { Unit.takeIf { client.dialogueView == null } }
+                assertEquals(0, client.count(DiaryArea.VARROCK.rewards[0]))
+
+                client.command("empty")
+                client.awaitCount(AntiqueLamps.Lamp.ELITE.obj, 0)
+                client.talk(VarrockSweepTalkers.TOBY)
+                client.chat("[toby.claim_easy]", "[toby.well_done]", "[toby.yes_please]", "[toby.armour_easy]", "[toby.wow_thanks]")
+                client.menu("[toby.who]", "[toby.question]", "[toby.bye]")
+                client.awaitCount(DiaryArea.VARROCK.rewards[0], 1)
+                assertEquals(1, client.count(AntiqueLamps.Lamp.EASY.obj))
+                assertEquals(1 shl 20, client.varp(ACHIEVEMENT_DIARY_REWARDS))
+
+                client.chooseOption(1)
+                client.chat("[toby.who]", "[toby.who_1]", "[toby.who_2]", "[toby.diary_1]")
+                client.await("the diary tab") {
+                    Unit.takeIf {
+                        client.clientScripts().any { it.id == GameFrame.SIDEBUTTON_SWITCH_SCRIPT && it.args == listOf<Any>(GameFrame.SIDE_TAB_QUEST) } &&
+                            JournalTab.DIARIES.interfaceId in client.openInterfaces()
+                    }
+                }
+                client.chat("[toby.diary_2]")
+                client.closeModal()
+
+                client.done("diary complete varrock elite all")
+                client.talk(VarrockSweepTalkers.TOBY)
+                client.chat("[toby.claim_elite]", "[toby.elite_earlier]")
+                client.menu("[toby.who]", "[toby.question]", "[toby.bye]")
+                assertTrue(client.count(DiaryArea.VARROCK.rewards[3]) == 0)
+            }
+        }
+    }
+
+    private companion object {
+        const val ACHIEVEMENT_DIARY_REWARDS = 1190
+        const val ACHIEVEMENT_DIARY_REWARDS2 = 1191
+    }
+}
