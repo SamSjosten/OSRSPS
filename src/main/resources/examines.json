@@ -713,6 +713,7 @@
     {"npc": 6818, "name": "Man", "wiki": "Man page, infobox"},
     {"npc": 6825, "name": "Rod Fishing spot", "wiki": "Rod Fishing spot (anglerfish) page, infobox"},
     {"npc": 7221, "name": "Scurrius", "also": [7222]},
+    {"npc": 7223, "name": "Giant rat", "wiki": "Giant rat (Scurrius) page, infobox"},
     {"npc": 7226, "name": "Historian Aldo", "also": [7615, 12606]},
     {"npc": 7389, "name": "Chasm Crawler"},
     {"npc": 7392, "name": "Giant rockslug"},

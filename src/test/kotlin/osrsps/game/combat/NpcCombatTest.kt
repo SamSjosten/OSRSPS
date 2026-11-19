@@ -1020,6 +1020,16 @@ class NpcCombatTest {
     }
 
     @Test
+    fun `Scurrius's giant rats slash for 4, and a quarter of it comes through Protect from Melee`() {
+        val ratTypes = NpcTypes.of(NpcType(7223, "Giant rat", internalName = "rat_boss_giant_rat", stats = NpcStats(attack = 100, strength = 25, defence = 10, hitpoints = 15)))
+        val def = NpcCombat.load(ratTypes, seqs)[ratTypes.find("rat_boss_giant_rat")!!]!!
+        assertEquals(CombatMath.npcMaxHit(25, def.strengthBonus), def.maxHit)
+        assertEquals(listOf(4, 4, 25), listOf(def.attackSpeed, def.maxHit, def.prayerPasses))
+        assertEquals(NpcCombatAnims(4933, 4934, 4935), def.anims)
+        assertNotNull(def.aggression)
+    }
+
+    @Test
     fun `Silvarea's bats stab for 1 at speed 4, weak to air, back after 35 ticks and never attacking first`() {
         // The giant bat (`bat`) too, or the file's "bat" would fall back on this one's menu name.
         val batTypes = NpcTypes.of(NpcType(2827, "Bat", internalName = "small_bat", stats = NpcStats(strength = 5)), NpcType(2834, "Giant bat", internalName = "bat"))
