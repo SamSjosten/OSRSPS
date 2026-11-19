@@ -1,0 +1,28 @@
+{
+ "name": "Magic utility step U8a: Charge Air Orb cast on the Obelisk of Air from 3 tiles off, walking there, the Make-X box charging both orbs held, then a refusal with no orbs left (::keys on); needs runner 0.31.0 for castOnLoc",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats, nothing worn or carried; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::god", "comment": "level 7 Wilderness: the obelisk's own spiders and skeletons leave the player be"},
+  {"step": "command", "text": "::setlevel magic 66", "expectMessage": "Magic set to level 66"},
+  {"step": "command", "text": "::item 567 2", "expectMessage": "Added 2 x Unpowered orb"},
+  {"step": "command", "text": "::item 564 6", "expectMessage": "Added 6 x Cosmic rune"},
+  {"step": "command", "text": "::item 556 60", "expectMessage": "Added 60 x Air rune"},
+  {"step": "command", "text": "::tele 3088 3566", "expectMessage": "Teleported"},
+  {"step": "waitTicks", "ticks": 3, "comment": "a new region"},
+  {"step": "castOnLoc", "interfaceId": 218, "component": 62, "loc": "Obelisk of Air", "comment": "magic_spellbook:charge_air_orb"},
+  {"step": "clickWidget", "interfaceId": 270, "component": 15, "comment": "the Make-X box's orb, at its quantity: both held"},
+  {"step": "assertAnimation", "id": 726, "timeoutMs": 8000, "comment": "human_castchargeorb"},
+  {"step": "assertSpotanim", "id": 150, "timeoutMs": 5000, "comment": "chargewindorb_casting"},
+  {"step": "assertInventory", "item": "Air orb", "count": 2, "timeoutMs": 12000},
+  {"step": "assertInventory", "item": "Unpowered orb", "count": 0},
+  {"step": "assertInventory", "item": "Cosmic rune", "count": 0},
+  {"step": "castOnLoc", "interfaceId": 218, "component": 62, "loc": "Obelisk of Air", "comment": "no orbs left"},
+  {"step": "assertMessage", "contains": "[charge_orb.no_orb]", "timeoutMs": 5000},
+  {"step": "command", "text": "::god", "comment": "off again"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

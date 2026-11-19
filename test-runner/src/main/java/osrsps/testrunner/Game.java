@@ -279,6 +279,13 @@ interface Game
 	String castOnGroundItem(int interfaceId, int component, String item, int itemId, Tile at);
 
 	/**
+	 * (0.31.0) Picks the spell at {@code interfaceId:component} and casts it on the nearest loc with this name (or id) on
+	 * the player's plane, on the tile when given, as clicking the spell and then "Cast ... -> loc" would (Charge Air Orb on
+	 * its obelisk). Returns null once sent, or why it couldn't be yet.
+	 */
+	String castOnLoc(int interfaceId, int component, String loc, int locId, Tile at);
+
+	/**
 	 * The text of a component and everything inside it, or of the whole interface when {@code component} is -1, with
 	 * colour tags removed and the pieces joined by " / "; null while the interface isn't open (loaded) in the client.
 	 */

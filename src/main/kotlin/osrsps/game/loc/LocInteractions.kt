@@ -37,6 +37,8 @@ class LocInteraction internal constructor(
     val repeat: Boolean = false,
     /** The option's sub-option (a fairy ring's Favourites), -1 for none. */
     val sub: Int = -1,
+    /** The packed magic tab component of a spell cast on the loc ([LocInteractions.castOn]), or -1. */
+    val spell: Int = -1,
 ) : Interaction {
     val usesObj: Boolean get() = obj >= 0
 
@@ -110,6 +112,19 @@ class LocInteractions(
             return
         }
         start(player, LocInteraction(loc, 0, this, obj = obj, slot = slot), invertRun)
+    }
+
+    /**
+     * The spell on [interfaceId]:[componentId] cast on loc [id] at [x], [z]: the player walks to it as for an item used
+     * on it, then the [Handlers.onSpellOnLoc] handler runs, or "Nothing interesting happens.".
+     */
+    fun castOn(player: Player, id: Int, x: Int, z: Int, interfaceId: Int, componentId: Int, invertRun: Boolean) {
+        val loc = locs.find(id, x, z, player.level)
+        if (loc == null) {
+            logger.debug { "${player.username} cast $interfaceId:$componentId on loc $id at $x, $z, ${player.level}, which isn't there" }
+            return
+        }
+        start(player, LocInteraction(loc, 0, this, spell = Op.packButton(interfaceId, componentId)), invertRun)
     }
 
     /**
@@ -190,6 +205,16 @@ class LocInteractions(
         // Guessed: the player turns to the loc as they use it, the way they do on live, and keeps that until they walk.
         // A re-run is still facing it, so it isn't sent again every tick.
         if (!interaction.repeat) faceLoc(player, target(loc))
+        if (interaction.spell >= 0) {
+            val op = Op.spellOnLoc(loc.id, interaction.spell ushr 16, interaction.spell and 0xFFFF, loc)
+            if ((!inInstance(loc.x, loc.z) || forInstances(loc.id, loc.x, loc.z)) && handlers.find(op, player) != null) {
+                scripts.trigger(player, op)
+            } else {
+                logger.info { "${player.username} used $op at ${loc.x}, ${loc.z}, ${loc.level} (not handled)" }
+                message(player, words(player)[GameLines.NOTHING_INTERESTING])
+            }
+            return true
+        }
         if (interaction.usesObj) {
             // Guessed: an item that left its slot on the way (dropped, or moved) is used on nothing, with no message.
             if (!holds(player, interaction.slot, interaction.obj)) return true

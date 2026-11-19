@@ -645,6 +645,20 @@ internal class HeadlessGame(
         return null
     }
 
+    override fun castOnLoc(interfaceId: Int, component: Int, loc: String?, locId: Int, at: Tile?): String? {
+        val client = c() ?: return "not logged in"
+        val here = client.position ?: return "no local player"
+        if (!interfaceOpen(interfaceId)) return "interface $interfaceId:$component is not open"
+        if (at != null && !inScene(client, at.x, at.y)) return "tile ${at.x}, ${at.y} is not in the loaded scene"
+        // As useItemOnLoc finds a loc: the nearest one.
+        val found = sceneLocs(client, here)
+            .filter { locMatches(it, loc, locId) && (at == null || it.covers(at.x, at.y)) }
+            .minByOrNull { distance(Coord(it.loc.x, it.loc.z, it.loc.level), here) }
+            ?: return "no loc " + (if (loc != null) "\"$loc\"" else "id $locId") + (if (at == null) "" else " at ${at.x}, ${at.y}") + " in the scene"
+        client.locTarget(found.loc.id, found.loc.x, found.loc.z, interfaceId, component, longId = found.loc.id > 0xFFFF)
+        return null
+    }
+
     override fun castOnPlayer(interfaceId: Int, component: Int, player: String): String =
         "castOnPlayer needs other players' names, which the headless client doesn't read yet"
 
