@@ -754,6 +754,10 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   mime's stage; the mime does an emote, the window of eight opens, and two picks (Think, then Dance) each close it, the
   player cheering or crying as the pick falls. Four right in a row needs the mime's emote read, so the headless test
   does that part, and the script leaves by `::tele`.
+- `random-events-beekeeper.json`: random events step 8 (with `::keys on`): the Bee keeper takes the player to his
+  field and opens the beehive window; Confirm with the slots empty is wrong, Close and talking to him reopen it, and six
+  wrong builds send the player back to 3222,3218 with nothing. Dragging the parts right is the headless test's part
+  (and worth one try by hand while watching).
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
   it with no dependency, guard or var shared with another row is set to 0, clicked on and checked, then checked again
   after a relog and put back to 0. Generated from the 241 cache's settings catalog; run them one at a time.
