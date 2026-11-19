@@ -434,6 +434,8 @@ class ArchiveRaids(private val world: World) {
         // His stepping stones' Jump, in his third phase, and his second phase barred to splash: after the shutOut
         // above, which Ocellus adds to.
         Ocellus.register(world)
+        // A hit on Dreadnoth while his wave's jellies stand: after Ocellus's, which keeps the chain before it.
+        Dreadnoth.register(world)
     }
 
     /** The cache's tile [x], [z] in [run]'s instance. */

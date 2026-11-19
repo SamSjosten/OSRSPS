@@ -123,6 +123,35 @@ class HeadlessRaidBowsTest {
     }
 
     @Test
+    fun `the Venator bow's bounce goes through the rolled-hit hooks as the shot does`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            // A hook that holds every rolled hit on the second man to 0, as a boss's shield would, noting who it saw.
+            val seen = java.util.concurrent.ConcurrentHashMap.newKeySet<Int>()
+            val held = java.util.concurrent.atomic.AtomicInteger(-1)
+            val before = server.world.combat.rolledOn
+            server.world.combat.rolledOn = { player, npc, type, rolled ->
+                seen += npc.index
+                if (npc.index == held.get()) 0 else before(player, npc, type, rolled)
+            }
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                val (first, second) = client.men()
+                held.set(second.index)
+                assertTrue(client.commandReply("multi") { it.startsWith("Combat is") }.startsWith("Combat is multi-way"))
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("sure") { it.startsWith("Your attacks") }
+                client.wield(VENATOR_BOW)
+                client.wield(BRONZE_ARROW, ARROWS)
+                client.npcOp(first.index, 2)
+                client.await("a bounce rolled on the second man", timeoutMillis = 30_000) { if (second.index in seen) Unit else null }
+                client.awaitTicks(4)
+                // Only bounces reach him, and the hook held each one to 0.
+                assertEquals(7, server.world.npcs[second.index]!!.hitpoints)
+            }
+        }
+    }
+
+    @Test
     fun `in single-way combat the Venator bow's shot hits only the man shot`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("carol").use { client ->

@@ -230,11 +230,19 @@ object Dreadnoth {
 
     /**
      * What an absorbed jelly heals him. Seen in Sam's recording of 2026-11-10: 145 and 85 for two nearly dead jellies
-     * as he landed, then 92 for one, his bar rising by exactly that: not their hitpoints left. The range is inferred
-     * from those three.
+     * as he landed, then 92 for one, his bar rising by exactly that: not their hitpoints left. In Sam's recordings of
+     * 2026-11-16, with three players: 36, 41 and 18. The range is inferred from those six.
      */
-    const val ABSORB_HEAL_MIN = 85
+    const val ABSORB_HEAL_MIN = 18
     const val ABSORB_HEAL_MAX = 145
+
+    /**
+     * While a wave's jellies stand, before his enrage, a hit on him does at most this ([shielded]). Inferred from Sam's
+     * recordings of 2026-11-16: his bar held at 75.8%, 51.5% and 28.5% for 10 to 21 ticks at a time, only 1s landing,
+     * as the jellies of his three waves stood (they appear "about then"), and fast again after. Guessed: that it is
+     * the jellies standing that does it, and only for rolled hits.
+     */
+    const val SHIELDED_HIT = 1
 
     /** The slam on a player not under him without Protect from Melee (the Wiki's "regardless of location"). Guessed. */
     const val STRAY_MAX = 20
@@ -328,11 +336,28 @@ object Dreadnoth {
 
         /** Whether he has split, at 0: nothing of his lands after. */
         var split = false
+
+        /** Whether his enrage has begun: the jellies no longer shield him ([shielded]). */
+        var enraged = false
     }
 
     private val states = WeakHashMap<Npc, State>()
 
     private val EncounterContext.state: State get() = states.getOrPut(boss) { State() }
+
+    /** His hits' cap while his wave's jellies stand ([shielded]): on [world]'s rolled hits, after what was there. */
+    fun register(world: osrsps.game.World) {
+        val rolledOn = world.combat.rolledOn
+        world.combat.rolledOn = { player, npc, type, rolled -> shielded(npc, rolledOn(player, npc, type, rolled)) }
+    }
+
+    /** What of [rolled] a hit on [npc] does: at most [SHIELDED_HIT] while his wave's jellies stand, before his enrage. */
+    fun shielded(npc: Npc, rolled: Int): Int {
+        if (npc.type.id != BOSS || rolled <= SHIELDED_HIT) return rolled
+        val state = states[npc] ?: return rolled
+        if (state.enraged || state.split) return rolled
+        return if (state.jellies.keys.any { !it.dead }) SHIELDED_HIT else rolled
+    }
 
     /** One tick of the fight. */
     private fun EncounterContext.tick(jelly: NpcType?) {
@@ -599,6 +624,7 @@ object Dreadnoth {
 
     /** His enrage begins: his line, and he stands, swinging no more, till his first jump [FIRST_JUMP] ticks on. */
     private fun EncounterContext.enrage(jelly: NpcType?) {
+        state.enraged = true
         hold()
         // Taken from above 25% to 0 at once, he splits next tick without a word. Guessed.
         if (boss.hitpoints > 0) boss.effects.say(text(DreadnothLines.GLUB))
