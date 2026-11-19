@@ -25,16 +25,26 @@ in the code. Current RuneLite connects unchanged.
 
 ### What's in it
 
-| | Built so far |
-|---|---|
-| **Areas** | Lumbridge, Draynor, Varrock, Al Kharid, Edgeville, the swamp and Misthalin's dungeons, the Wilderness |
-| **Skills** | Attack, Strength, Defence, Hitpoints, Ranged, Prayer, Mining, Smithing, Fishing, Cooking, Woodcutting, Firemaking, Fletching, Crafting, Herblore, Thieving, Runecraft, Farming |
-| **Skills, in part** | Magic (no Alchemy or Superheat Item yet), Agility (the Draynor, Al Kharid, Varrock and Gnome Stronghold courses), Slayer (no Task Storage, ring teleports or boss tasks), Hunter (no birdhouses, herbiboar, Hunter Guild or Puro-Puro), Construction (houses only) |
-| **Bosses** | Obor and Bryophyta; in the Wilderness, the King Black Dragon, Chaos Elemental, Chaos Fanatic, Crazy Archaeologist, Scorpia and Artio; in the Fractured Archive raid, the Guardian statues, Bork, the Smorks, Dreadnoth, Xarth, Moia, Dagon'hai and Ocellus |
-| **Being built** | Karamja and Mor Ul Rek (the Port Sarim boat so far), the Fight Caves |
+**By region**
 
-A skill listed in full trains 1 to 99 by live's main methods. Minigames and other regions' extras (Wintertodt, Tempoross,
-Guardians of the Rift and so on) come with their areas.
+| Region | Places | Bosses | Status |
+|--------|--------|--------|--------|
+| **Misthalin** | Lumbridge and its swamp and caves, Draynor Village and Manor, Varrock (palace, museum, sewers, Champions' Guild), Edgeville and its dungeon, Barbarian Village, the Wizards' Tower, the Digsite, Silvarea, Paterdomus, the Stronghold of Security | Obor, Bryophyta | Built; about 80% of live's content by the last audit |
+| **Kharidian Desert** | Al Kharid (palace, Emir's Arena), Shantay Pass | | Al Kharid only |
+| **Wilderness** | Every level, the Ferox Enclave, the Chaos Temple, the Lava Maze, the Mage Arena bank, the Resource Area, Rogues' Castle, the obelisks and levers | King Black Dragon, Chaos Elemental, Chaos Fanatic, Crazy Archaeologist, Scorpia, Artio | Being built; more bosses to come |
+| **Karamja** | The boat from Port Sarim to Musa Point | The Fight Caves (being built) | Being built, with Mor Ul Rek |
+| **Our own** | The Fractured Archive raid and its lobby | The Guardian statues, Bork, the Smorks, Dreadnoth, Xarth, Moia, Dagon'hai, Ocellus | Built |
+
+**Skills**
+
+| | |
+|---|---|
+| **Built in full** | Attack, Strength, Defence, Hitpoints, Ranged, Prayer, Mining, Smithing, Fishing, Cooking, Woodcutting, Firemaking, Fletching, Crafting, Herblore, Thieving, Runecraft, Farming |
+| **Built in part** | Magic (no Alchemy or Superheat Item yet), Agility (the Draynor, Al Kharid, Varrock and Gnome Stronghold courses), Slayer (no Task Storage, ring teleports or boss tasks), Hunter (no birdhouses, herbiboar, Hunter Guild or Puro-Puro), Construction (houses only) |
+
+A skill built in full trains 1 to 99 by live's main methods; spots outside the built regions are reached with `::tele`
+until their region is built. Minigames and other regions' extras (Wintertodt, Tempoross, Guardians of the Rift and so
+on) come with their areas.
 
 ### Quick start
 
