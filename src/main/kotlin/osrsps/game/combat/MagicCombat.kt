@@ -178,7 +178,7 @@ class MagicCombat(
         val staff = poweredStaves.wielded(player) ?: return null
         return CombatSpell(
             obj = -1, name = objTypes[staff.charged]?.name ?: "staff", component = -1, level = 0,
-            maxHit = staff.maxHit(player.skills.currentLevel(Skill.MAGIC)), runes = emptyList(), xpTenths = 0,
+            maxHit = staff.maxHit(player.skills.currentLevel(Skill.MAGIC)), runes = emptyList(), xpTenths = staff.xpTenths,
             anim = staff.anim, staffAnim = staff.anim, casting = staff.casting, travel = staff.travel, impact = staff.impact,
             spellbook = Spellbook.of(player), staff = staff,
         )
@@ -283,6 +283,7 @@ class MagicCombat(
         if (!ready(player, spell, "$npc", held)) return false
         val matchup = combat.magicMatchup(player, npc, spell) ?: return false
         if (!pay(player, spell, tick, speed)) return false
+        if (combat.noCooldown(player, npc)) player.nextAttackTick = tick + 1
         face(player, npc)
         val size = npc.type.size
         val distance = LineOfSight.distance(player.x, player.z, 1, npc.x, npc.z, size, size)

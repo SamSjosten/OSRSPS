@@ -18,7 +18,8 @@ import osrsps.game.script.ScriptContext
  * [charge]), [runesPerCharge] for each, up to [maxCharges]. Worn in its charged form [charged]; [uncharged] is the same
  * staff with none. The built-in spell's max hit is [maxHit] of the visible Magic level, and for it the worn equipment's
  * magic attack and magic damage bonuses are multiplied by [bonusMultiplier] (1 for none), the damage capped at 100%.
- * The spell reaches [range] tiles, 2 more on longrange.
+ * The spell reaches [range] tiles, 2 more on longrange. A staff with one id, the bone staff, has [charged] and
+ * [uncharged] the same.
  */
 class PoweredStaff(
     val charged: Int,
@@ -33,6 +34,8 @@ class PoweredStaff(
     val bonusMultiplier: Int,
     val maxHit: (magicLevel: Int) -> Int,
     val range: Int = 8,
+    /** The built-in spell's base XP, in tenths: none for most, as Tumeken's shadow's; the bone staff's 35. */
+    val xpTenths: Int = 0,
 )
 
 /**
@@ -97,7 +100,7 @@ class PoweredStaves(
             option(charged, CHECK)?.let { handlers.onObj(staff.charged, it) { message(player, check(player, staff)) } }
             wornOption(charged, CHECK)?.let { handlers.onWorn(staff.charged, it) { message(player, check(player, staff)) } }
             option(charged, UNCHARGE)?.let { handlers.onObj(staff.charged, it) { op -> uncharge(player, staff, op.sub, message) } }
-            for (type in listOfNotNull(charged, uncharged)) {
+            for (type in listOfNotNull(charged, uncharged).distinctBy { it.id }) {
                 option(type, CHARGE)?.let { handlers.onObj(type.id, it) { op -> charge(staff, op.sub, message) } }
                 for (cost in staff.runesPerCharge) {
                     handlers.onObjOnObj(cost.rune, type.id) { op -> charge(staff, if (op.obj == cost.rune) op.sub else op.objSlot, message) }
@@ -206,8 +209,35 @@ class PoweredStaves(
             range = 7,
         )
 
+        const val BONE_STAFF_ID = 28796
+
+        /**
+         * The bone staff, made from Scurrius's spine (OSRS Wiki, Bone staff, read 2026-11-19): one chaos rune a charge,
+         * "up to 20,000" charges, all given back when uncharged; max hit "Floor(visible Magic level / 3) + 5"; 35 base
+         * Magic XP; 8 tiles, 10 on longrange; no multiplier on the worn bonuses (its +14 magic attack is worn). One id,
+         * charged or not (the 242 cache has no uncharged one), with Check and Uncharge; chaos runes used on it charge it.
+         * Its +10 against rats, its rats-only rule and no cooldown on Scurrius's giant rats are
+         * [osrsps.game.content.RatBoneWeapons]'. The cast and impact graphics are the cache's
+         * vfx_weapon_staff_rat01_spotanim and _impact_01 and the travel spells_ratbone01_travel01; GUESSED: the attack
+         * animation, the trident's cast (1167).
+         */
+        val BONE_STAFF = PoweredStaff(
+            charged = BONE_STAFF_ID,
+            uncharged = BONE_STAFF_ID,
+            charge = "bone_staff",
+            maxCharges = 20_000,
+            runesPerCharge = listOf(RuneCost(CHAOS_RUNE, 1)),
+            anim = 1167,
+            casting = 2645,
+            travel = 2647,
+            impact = 2646,
+            bonusMultiplier = 1,
+            maxHit = { magic -> magic / 3 + 5 },
+            xpTenths = 350,
+        )
+
         /** Every powered staff that is in. */
-        val ALL = listOf(TUMEKENS_SHADOW, ZORYAS_TOME)
+        val ALL = listOf(TUMEKENS_SHADOW, ZORYAS_TOME, BONE_STAFF)
 
         private const val CHECK = "Check"
         private const val CHARGE = "Charge"

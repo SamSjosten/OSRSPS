@@ -337,7 +337,7 @@ class MeleeCombat(
             player.interaction = next
             return
         }
-        player.nextAttackTick = tick + combat.attackSpeed(player)
+        player.nextAttackTick = if (combat.noCooldown(player, npc)) tick + 1 else tick + combat.attackSpeed(player)
         val spec = special(player)
         if (spec?.against != null) matchup = combat.matchup(player, npc, spec.against)!!
         if (spec == null) {
