@@ -269,7 +269,8 @@ class TreasureTrails(private val world: World, val data: TrailData) {
             if (due) drops += Drop(milestone.type, 1)
         }
         val screen = Inventory(REWARD_INV, REWARD_SLOTS)
-        for (drop in drops.take(REWARD_SLOTS)) screen.add(drop.type, drop.count)
+        // Every drop goes on the screen: stackables merge, and what doesn't fit in its slots is only not shown.
+        for (drop in drops) screen.add(drop.type, drop.count)
         sendInventory(player, screen) { p, message -> p.session.queue(message) }
         world.interfaces.openModal(player, FrameSlot.MAINMODAL, REWARD_SCREEN)
         for (drop in drops) {
