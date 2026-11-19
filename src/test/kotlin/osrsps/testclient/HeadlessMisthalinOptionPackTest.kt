@@ -64,7 +64,7 @@ class HeadlessMisthalinOptionPackTest {
     private fun HeadlessClient.count(id: Int) = inventory(BACKPACK).filter { it?.id == id }.sumOf { it!!.count }
 
     @Test
-    fun `a wild cadava bush gives two berries, then has none, and the south-western one never has any`(@TempDir dir: Path) {
+    fun `a wild cadava bush gives two berries, then has none, the first coming back on time, and the south-western one never has any`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("alice").use { client ->
                 client.await("the login rebuild") { client.position }
@@ -74,10 +74,12 @@ class HeadlessMisthalinOptionPackTest {
                 client.locOp(full, 3220, 3220, MisthalinOptionPack.PICK_FROM)
                 client.await("the first berry") { if (client.count(MisthalinOptionPack.CADAVA_BERRIES) == 1) Unit else null }
                 assertEquals(one, bush())
+                val firstBack = server.world.locs.revertDue(server.world.locs.at(3220, 3220, 0).single())
 
                 client.locOp(one, 3220, 3220, MisthalinOptionPack.PICK_FROM)
                 client.await("the second berry") { if (client.count(MisthalinOptionPack.CADAVA_BERRIES) == 2) Unit else null }
                 assertEquals(none, bush())
+                assertEquals(firstBack, server.world.locs.revertDue(server.world.locs.at(3220, 3220, 0).single()), "picking the second berry put off the first")
                 assertTrue(server.world.locs.reverting(3220, 3220, 0), "the bush never grows back")
 
                 client.locOp(none, 3220, 3220, MisthalinOptionPack.PICK_FROM)

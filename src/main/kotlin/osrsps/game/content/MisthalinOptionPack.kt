@@ -141,7 +141,9 @@ object MisthalinOptionPack {
         if (stage == 0) {
             world.locs.replace(loc, bush.stages[1], BERRY_TICKS)
         } else {
-            world.locs.replaceInStages(loc, bush.stages[2], BERRY_TICKS, bush.stages[1], BERRY_TICKS)
+            // The berry picked first keeps its own deadline; the second one's countdown starts once that one is back.
+            val firstBack = world.locs.revertDue(loc)?.let { (it - world.tick).toInt().coerceAtLeast(1) } ?: BERRY_TICKS
+            world.locs.replaceInStages(loc, bush.stages[2], firstBack, bush.stages[1], BERRY_TICKS)
         }
         world.objTypes[bush.berry]?.let { player.inventory.add(it, 1) }
         world.message(player, bush.picked)
