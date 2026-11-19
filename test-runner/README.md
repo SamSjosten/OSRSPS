@@ -750,6 +750,10 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   gravestone is read and a coffin taken and checked (look at both windows' pictures), "Remind me" repeats the task, and
   "I want to leave now." sends them back to 3222,3218 with the coffin gone. Solving it needs the pictures matched, so
   the headless test does that part.
+- `random-events-mime.json`: random events step 7 (with `::keys on`): the Mysterious Old Man takes the player to the
+  mime's stage; the mime does an emote, the window of eight opens, and two picks (Think, then Dance) each close it, the
+  player cheering or crying as the pick falls. Four right in a row needs the mime's emote read, so the headless test
+  does that part, and the script leaves by `::tele`.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
   it with no dependency, guard or var shared with another row is set to 0, clicked on and checked, then checked again
   after a relog and put back to 0. Generated from the 241 cache's settings catalog; run them one at a time.
