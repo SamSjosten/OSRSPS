@@ -46,6 +46,7 @@ fun CommandRegistry.registerShootingStarCommands(world: World) {
                     else -> stars.sites[where] ?: fail("No star site '$where'. ::star sites lists them")
                 }
                 if (player.level != 0) fail("Stars land on the ground floor")
+                if (where == "here" && !stars.canLand(site.x, site.z)) fail("A star needs open ground with nothing on it, outside instances")
                 val size = args.getOrNull(2)?.let { it.toIntOrNull()?.takeIf { s -> s in 1..ShootingStars.MAX_SIZE } ?: fail(usage) }
                     ?: ShootingStars.SIZE_WEIGHTS.keys.let { world.random.pick(it.toList()) }
                 world.scripts.interrupt(player)

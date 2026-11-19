@@ -249,7 +249,7 @@ class ShootingStars(private val world: World, val sites: StarSites = StarSites.l
     /** Takes the star away, if there is one, with no message. */
     fun clear() {
         val star = star ?: return
-        star.loc?.let { if (world.locs.exists(it)) world.locs.remove(it) }
+        star.loc?.let { if (world.locs.exists(it)) takeAway(it) }
         this.star = null
     }
 
@@ -294,7 +294,7 @@ class ShootingStars(private val world: World, val sites: StarSites = StarSites.l
             star.loc = world.locs.replace(loc, idFor(star.size)) ?: loc
             return
         }
-        if (world.locs.exists(loc)) world.locs.remove(loc)
+        if (world.locs.exists(loc)) takeAway(loc)
         this.star = null
         for (player in world.onlinePlayers) {
             val last = star.miners[player.saveKey] ?: continue
@@ -306,6 +306,13 @@ class ShootingStars(private val world: World, val sites: StarSites = StarSites.l
     }
 
     /** Players on the star's tiles are moved off it, to the nearest open tile around it (OSRS Wiki, Crashed Star). */
+    /** Takes a star's loc away, putting back whatever the cache has on that tile and layer. */
+    private fun takeAway(loc: ZoneLoc) = world.locs.restore(loc.x, loc.z, loc.level, loc.layer)
+
+    /** Whether a star fits on [x], [z] (its south-west tile): ground level, outside instances, open ground with no loc. */
+    fun canLand(x: Int, z: Int): Boolean = !world.instances.inDynamicArea(x, z) &&
+        (x until x + SIZE).all { tx -> (z until z + SIZE).all { tz -> world.canStand(tx, tz, 0) && world.locs.at(tx, tz, 0).isEmpty() } }
+
     private fun pushOff(site: StarSite) {
         for (player in world.onlinePlayers) {
             if (player.level != 0 || player.x !in site.x until site.x + SIZE || player.z !in site.z until site.z + SIZE) continue

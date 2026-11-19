@@ -187,6 +187,19 @@ class HeadlessShootingStarsTest {
     }
 
     @Test
+    fun `star land here refuses a tile with a loc on it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("frank").use { client ->
+                client.landHere(6)
+                // The star itself is a loc there now.
+                client.commandReply("star land here 6") { it.startsWith("A star needs open ground") }
+                client.commandReply("star clear") { it == "The star is gone." }
+                client.commandReply("star land here 6") { it.startsWith("A size-6 star lands") }
+            }
+        }
+    }
+
+    @Test
     fun `a telescope shows the next star's region and window in the message box, or nothing with none planned`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("telescope").use { client ->
