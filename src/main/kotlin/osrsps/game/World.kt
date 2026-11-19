@@ -673,6 +673,7 @@ class World(
     val shopScreen = ShopScreen(
         shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine, words = ::textFor,
         logged = { player, type -> collectionLog.add(player, type.id, 1) },
+        opened = { player, type -> diaries.shopOpened(player, type.key) },
     )
 
     /** The omnishop interface's shops, as the Quartermaster's Alliance Supplies; see [OmnishopScreen]. */

@@ -144,6 +144,7 @@ object VarrockChampionsGuild {
         world.doors.openAs(door, DOOR_OPEN, shutAfter = DOOR_TICKS)
         player.waypoints.clear()
         player.waypoints.add(Tile(DOOR_X, if (comingIn) DOOR_Z - 1 else DOOR_Z))
+        if (comingIn) world.diaries.complete(player, DiaryTask.VARROCK_MEDIUM_2)
     }
 }
 

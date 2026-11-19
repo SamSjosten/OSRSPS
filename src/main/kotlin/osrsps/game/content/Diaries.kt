@@ -9,6 +9,7 @@ import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
 import osrsps.game.npc.Npc
 import osrsps.game.skill.AgilityLines
+import osrsps.game.skill.SlayerMaster
 
 private val logger = KotlinLogging.logger {}
 
@@ -270,7 +271,50 @@ class Diaries(private val world: World, private val font: ChatFont) {
 
     /** A teleport spell cast (not a tablet broken), by its spell obj. */
     fun teleported(player: Player, spellObj: Int) {
-        if (spellObj == LUMBRIDGE_TELEPORT_SPELL) complete(player, DiaryTask.LUMBRIDGE_MEDIUM_5)
+        when (spellObj) {
+            LUMBRIDGE_TELEPORT_SPELL -> complete(player, DiaryTask.LUMBRIDGE_MEDIUM_5)
+            VARROCK_TELEPORT_SPELL -> complete(player, DiaryTask.VARROCK_MEDIUM_8)
+        }
+    }
+
+    /** A task given by [master] at their own talk (not `::slayer`). */
+    fun slayerTask(player: Player, master: SlayerMaster) {
+        when (master) {
+            SlayerMaster.VANNAKA -> complete(player, DiaryTask.VARROCK_MEDIUM_9)
+            SlayerMaster.CHAELDAR -> complete(player, DiaryTask.LUMBRIDGE_MEDIUM_10)
+            else -> {}
+        }
+    }
+
+    /** A theft from the stall loc [stall]. */
+    fun stole(player: Player, stall: Int) {
+        if (stall == DiaryHooks.TEA_STALL) complete(player, DiaryTask.VARROCK_EASY_14)
+    }
+
+    /** Logs got from the tree loc [tree]. */
+    fun chopped(player: Player, tree: Int) {
+        if (tree == DiaryHooks.DYING_TREE) complete(player, DiaryTask.VARROCK_EASY_7)
+    }
+
+    /** An agility obstacle or shortcut crossed, by its key in agility.json. */
+    fun obstacle(player: Player, key: String) {
+        if (key == DiaryHooks.VARROCK_FENCE) complete(player, DiaryTask.VARROCK_EASY_6)
+    }
+
+    /**
+     * Emote [index] played. The Stronghold of Security's four (Idea, Stamp, Flap, Slap Head, 28 to 31) are remembered as
+     * each is done, and the fourth does the Varrock task (inferred: "perform the 4 emotes" counts each once, any order).
+     */
+    fun emoted(player: Player, index: Int) {
+        if (index !in SOS_EMOTES) return
+        val done = player.charges[SOS_EMOTES_CHARGE] or (1 shl (index - SOS_EMOTES.first))
+        player.charges[SOS_EMOTES_CHARGE] = done
+        if (done == (1 shl SOS_EMOTES.count()) - 1) complete(player, DiaryTask.VARROCK_MEDIUM_5)
+    }
+
+    /** A shop opened, by its key in shops.json. */
+    fun shopOpened(player: Player, key: String) {
+        if (key == DiaryHooks.THESSALIA_SHOP) complete(player, DiaryTask.VARROCK_EASY_1)
     }
 
     /** A lap of the course whose lap message is [lapLine]. */
@@ -278,6 +322,7 @@ class Diaries(private val world: World, private val font: ChatFont) {
         when (lapLine) {
             AgilityLines.DRAYNOR_LAPS -> complete(player, DiaryTask.LUMBRIDGE_EASY_1)
             AgilityLines.ALKHARID_LAPS -> complete(player, DiaryTask.LUMBRIDGE_MEDIUM_1)
+            AgilityLines.VARROCK_LAPS -> complete(player, DiaryTask.VARROCK_MEDIUM_13)
         }
     }
 
@@ -412,6 +457,13 @@ class Diaries(private val world: World, private val font: ChatFont) {
 
         /** `31_lumbridge_teleport`, the standard book's Lumbridge Teleport. */
         const val LUMBRIDGE_TELEPORT_SPELL = 3289
+
+        /** `25_varrock_teleport`. */
+        const val VARROCK_TELEPORT_SPELL = 3286
+
+        /** The Stronghold of Security's emotes in the emote tab, and the charge that remembers which are done. */
+        val SOS_EMOTES = 28..31
+        const val SOS_EMOTES_CHARGE = "diary_sos_emotes"
 
         /** The text layer's width: each line is as wide (the cache's qj components). */
         const val LINE_WIDTH = 404

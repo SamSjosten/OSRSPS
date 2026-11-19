@@ -394,6 +394,7 @@ class SlayerMasters(private val world: World) {
     private suspend fun Dialogue.newTask(master: SlayerMaster): Unit = with(SlayerMasterLines) {
         val (entry, amount) = slayer.roll(player, master) ?: return chatNpc(ChatAnim.NEUTRAL, NOTHING_TO_GIVE)
         slayer.assign(player, master, entry.task, amount)
+        world.diaries.slayerTask(player, master)
         chatNpc(ChatAnim.HAPPY, NEW_TASK, "amount" to amount, "task" to entry.task.nameLower)
         if (master !in NO_TIPS) tips(entry.task.id, master)
     }

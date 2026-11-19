@@ -311,6 +311,7 @@ class Agility(private val world: World, val data: AgilityData) {
         if (success) {
             // Most shortcuts give no XP, and no XP drop either.
             if (obstacle.xpTenths > 0) player.skills.addTenths(Skill.AGILITY, obstacle.xpTenths)
+            world.diaries.obstacle(player, obstacle.key)
             crossed(obstacle)
         } else {
             if (obstacle.failXpTenths > 0) player.skills.addTenths(Skill.AGILITY, obstacle.failXpTenths)

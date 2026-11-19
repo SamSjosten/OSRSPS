@@ -195,6 +195,7 @@ suspend fun ScriptContext.teleportToEssenceMine(
     EssenceMine.sentFrom(player, returnTo)
     world.teleport(player, to.x, to.z, 0)
     if (npc.type.id == EssenceMine.SEDRIDOR) world.diaries.complete(player, DiaryTask.LUMBRIDGE_EASY_3)
+    if (npc.type.id in VarrockStores.AUBURY) world.diaries.complete(player, DiaryTask.VARROCK_EASY_2)
 }
 
 fun registerEssenceMine(world: World) {
