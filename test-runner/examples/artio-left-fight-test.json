@@ -1,0 +1,22 @@
+{
+  "name": "Wilderness boss loot, two players (start with artio-left-fight-test2.json on the other VM at the same time): test2 does 440 of Artio's 450 hitpoints and leaves her lair; test stays and finishes her, and her kill count is test's, not the one who walked away (exploit review rounds 40 and 42, ::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off)."},
+    {"step": "command", "text": "::tele 3116 3674 0", "expectMessage": "Teleported to 3116, 3674, 0", "comment": "south of the way in at 3115,3676"},
+    {"step": "command", "text": "::varbit 14693 0", "comment": "the fee unpaid, so its menu shows every run"},
+    {"step": "command", "text": "::varbit 14694 0", "comment": "and no discount left from an earlier kill"},
+    {"step": "command", "text": "::item 995 50000", "comment": "the fee"},
+    {"step": "locOption", "locId": 47141, "option": "Enter", "x": 3115, "y": 3676},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "chooseOption", "text": "[wildy_lair_fee.yes]"},
+    {"step": "waitTicks", "ticks": 40, "comment": "test2 comes in, hits her for 440 and walks out"},
+    {"step": "command", "text": "::hit 0 Artio", "expectMessage": "for 0: 1", "comment": "10 hitpoints left, a few more if she has healed: test2's hit landed"},
+    {"step": "command", "text": "::kill Artio", "expectMessage": "Killed Artio #", "comment": "our 10 or so of the damage, all of it among those still at the fight"},
+    {"step": "assertMessage", "contains": "[wilderness_boss.kill_count boss=Artio count=", "timeoutMs": 15000, "comment": "before the fix test2's 440 took it, though test2 had left"},
+    {"step": "command", "text": "::tele 3222 3218 0", "expectMessage": "Teleported to 3222, 3218, 0", "comment": "out of the lair and the Wilderness before ::god goes off (her respawn can stand between us and the Exit)"},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
+  ]
+}

@@ -1,0 +1,139 @@
+{
+  "about": "An Inferno of your own at wave 66, the last with Nibblers, whose end brings the supports down.",
+  "notes": "Testing only, not live content. The loadout is the fight-cave scenario's (ours, a guessed strong ranged kit). The minigame key puts the player in an Inferno of their own (Inferno.kt) at the wave given, with all three rocky supports standing and the fire cape counted as given to TzHaar-Ket-Keh; the position is outside the Inferno's entrance in Mor Ul Rek, where the run ends. Wave 66 is two Jal-Zeks and three Nibblers.",
+  "position": {
+    "x": 2496,
+    "z": 5122,
+    "level": 0
+  },
+  "skills": {
+    "attack": 99,
+    "strength": 99,
+    "defence": 99,
+    "hitpoints": 99,
+    "ranged": 99,
+    "magic": 99,
+    "prayer": 99
+  },
+  "run": true,
+  "minigame": {
+    "name": "inferno",
+    "wave": 66
+  },
+  "inventory": [
+    {
+      "item": "4doserangerspotion"
+    },
+    {
+      "item": "4dosepotionofsaradomin"
+    },
+    {
+      "item": "4dosepotionofsaradomin"
+    },
+    {
+      "item": "4dosepotionofsaradomin"
+    },
+    {
+      "item": "4dosepotionofsaradomin"
+    },
+    {
+      "item": "4dosepotionofsaradomin"
+    },
+    {
+      "item": "4dosepotionofsaradomin"
+    },
+    {
+      "item": "4dosepotionofsaradomin"
+    },
+    {
+      "item": "4dosepotionofsaradomin"
+    },
+    {
+      "item": "4dose2restore"
+    },
+    {
+      "item": "4dose2restore"
+    },
+    {
+      "item": "4dose2restore"
+    },
+    {
+      "item": "4dose2restore"
+    },
+    {
+      "item": "4dose2restore"
+    },
+    {
+      "item": "4dose2restore"
+    },
+    {
+      "item": "4dose2restore"
+    },
+    {
+      "item": "4dose2restore"
+    },
+    {
+      "item": "mantaray"
+    },
+    {
+      "item": "mantaray"
+    },
+    {
+      "item": "mantaray"
+    },
+    {
+      "item": "mantaray"
+    },
+    {
+      "item": "mantaray"
+    },
+    {
+      "item": "mantaray"
+    },
+    {
+      "item": "mantaray"
+    },
+    {
+      "item": "mantaray"
+    },
+    {
+      "item": "mantaray"
+    },
+    {
+      "item": "mantaray"
+    }
+  ],
+  "equipment": [
+    {
+      "item": "masori_mask_fortified"
+    },
+    {
+      "item": "masori_body_fortified"
+    },
+    {
+      "item": "masori_chaps_fortified"
+    },
+    {
+      "item": "zenyte_necklace_enchanted"
+    },
+    {
+      "item": "avas_assembler"
+    },
+    {
+      "item": "twisted_bow"
+    },
+    {
+      "item": "zaryte_vambraces"
+    },
+    {
+      "item": "pegasian_boots"
+    },
+    {
+      "item": "venator_ring"
+    },
+    {
+      "item": "dragon_arrow",
+      "count": 2000
+    }
+  ]
+}

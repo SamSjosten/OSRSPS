@@ -27,7 +27,6 @@
     {"step": "assertMessage", "contains": "[bones.buried]"},
     {"step": "assertInventory", "item": "Lava dragon bones", "count": 0, "timeoutMs": 5000},
 
-    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
     {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
   ]
 }

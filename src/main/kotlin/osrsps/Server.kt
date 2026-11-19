@@ -166,6 +166,7 @@ class GameServer(
         val slayerData: SlayerData
         val trailData: osrsps.game.trail.TrailData
         val settings: SettingsCatalog
+        val collectionLog: osrsps.game.collection.CollectionLogCatalog
         try {
             // Our own vars and locs take ids right after this cache's, so they are built from its var types first:
             // OpenRS2's builds of one revision differ in how far their varps and varbits go, and the overlay refuses an
@@ -194,6 +195,7 @@ class GameServer(
             slayerData = SlayerLoader.load(library)
             trailData = osrsps.cache.TrailLoader.load(library, objTypes)
             settings = SettingsLoader.load(library)
+            collectionLog = osrsps.cache.CollectionLogLoader.load(library)
             interfaceIds = library.index(INTERFACE_INDEX)?.archiveIds()?.toSet().orEmpty() + LodestoneMap.INTERFACE
             val fonts = library.index(FONT_INDEX)?.archiveIds()?.toSet().orEmpty()
             for (font in LodestoneMap.FONTS) if (font !in fonts) logger.warn { "The cache has no font $font, which the lodestone map's text uses" }
@@ -273,10 +275,10 @@ class GameServer(
             scenarios = scenarios, chatFont = chatFont, dialogueFile = dataDir.resolve(DialogueFile.NAME),
             reportsFile = dataDir.resolve(Reports.FILE_NAME), clansDir = dataDir, admins = admins,
             attackStyles = attackStyles, npcCombat = npcCombat, npcDrops = npcDrops, partyScaling = partyScaling, rangedWeapons = rangedWeapons,
-            spells = spells, prayerList = prayers, foodList = Foods.load(objTypes), potionData = Potions.load(objTypes), shopTypes = shopTypes, omnishops = omnishops, itemSets = itemSets, skillUnlocks = skillUnlocks, ipBans = ipBans, xpRate = xpRate,
+            spells = spells, prayerList = prayers, foodList = Foods.load(objTypes), potionData = Potions.load(objTypes), shopTypes = shopTypes, omnishops = omnishops, itemSets = itemSets, collectionLogCatalog = collectionLog, skillUnlocks = skillUnlocks, ipBans = ipBans, xpRate = xpRate,
             wearRequirements = wearRequirements, itemPrices = itemPrices, itemPricesFile = itemPricesFile, settings = settings,
             specialAttackCosts = specialAttackCosts, encounterDefs = listOfNotNull(ArchiveGuardian.def(npcTypes), Ezekiel.def(npcTypes), Bork.def(npcTypes), Dreadnoth.def(npcTypes), Moia.def(npcTypes), Xarth.def(npcTypes), Dagonhai.def(npcTypes), Ocellus.def(npcTypes)),
-            slayerData = slayerData, trailData = trailData, cycleMillis = cycleMillis,
+            slayerData = slayerData, trailData = trailData, starCycle = true, cycleMillis = cycleMillis,
         )
         loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world, relays, proxy, js5Connections)

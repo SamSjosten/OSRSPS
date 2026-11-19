@@ -38,7 +38,7 @@ class DialoguesTest {
     /** Every character 1 pixel wide, so a line is [Dialogues.CHAT_WIDTH] characters. */
     private val font = ChatFont(IntArray(256) { 1 })
     private val dialogues = Dialogues(interfaces, scripts, font, { npc, _ -> npc.type }, send)
-    private val hans = NpcType(3105, "Hans", ops = listOf("Talk-to", "Age", null, null, null))
+    private val hans = NpcType(3105, "Hans", ops = listOf("Talk-to", null, "Age", null, null))
     private val npc = Npcs(CollisionMap(), GameRandom(1)).add(NpcSpawn(hans, 3221, 3219, source = "test"))!!
     private val player = Player(1, "Zezima", 3222, 3218, 0)
     private val log = mutableListOf<String>()
