@@ -28,7 +28,21 @@ object ShootingStarLines : Lines("shooting_stars", "Transcript:Crashed Star") {
     val BONUS_USED_UP = line("bonus_used_up", "Mining: the last of the discovery bonus (red)")
     val DISINTEGRATES = line("disintegrates", "If the star disappears")
     val INVENTORY_FULL = line("inventory_full", "Not on the Wiki: Mine with a full backpack and no stardust stack to add to")
+    val TELESCOPE = line("telescope", "Telescope: the next star's {region} and when it lands, from {from} to {to} (each a minutes or hours_minutes)", "region", "from", "to")
+    val TELESCOPE_NOTHING = line("telescope_nothing", "Telescope: no star planned")
+    val MINUTES = line("minutes", "Telescope: a time under an hour", "minutes")
+    val HOURS_MINUTES = line("hours_minutes", "Telescope: a time of an hour or more", "hours", "minutes")
 }
+
+/** The study's three telescopes (Construction) and the minutes of their window (OSRS Wiki, Shooting Stars, Telescopes). */
+enum class Telescope(val accuracyMinutes: Int) {
+    OAK(24),
+    TEAK(9),
+    MAHOGANY(2),
+}
+
+/** What a telescope shows of the next star: its region, and a window of minutes from now that it lands in. */
+class Sighting(val region: StarRegion, val fromMinutes: Int, val toMinutes: Int)
 
 /** One place a star can land: its key, its name on the Wiki and its south-west tile (level 0). */
 class StarSite(val key: String, val name: String, val region: StarRegion, val x: Int, val z: Int) {
@@ -102,7 +116,15 @@ class StarSites(val regions: List<StarRegion>, val fallback: StarSite?) {
  * a repeated roll rolls again among the others; the landing loc (star_landing_star, its impact animation about 3.4
  * ticks) shown for [LANDING_TICKS] before the star; a player counting as mining from their click, before the first
  * roll; Prospect's percent rounded down; the full-backpack message (none on the Wiki; stardust stacks, so it only
- * stops a player with no stack and no free slot, or a stack too near the cap for the roll's dust). Inferred: the bonus messages at every 50 left, from the Wiki's list.
+ * stops a player with no stack and no free slot, or a stack too near the cap for the roll's dust). Inferred: the bonus
+ * messages at every 50 left, from the Wiki's list.
+ *
+ * Telescopes ([scout]): the next star's region and a window holding its landing, 24, 9 or 2 minutes wide for an oak,
+ * teak or mahogany telescope, shown in the plain message box. Guessed: where the landing falls in the window (drawn once
+ * per star and telescope, so looking again shows the same window, moved on with the clock); minutes rounded down; the
+ * no-star text only when no star is planned (the Wiki's "recently fallen" read as before the next is picked); "1 hour"
+ * and "1 minute" sharing the plural keys.
+ *
  * Out: the falling whistle and crash sounds (the synths have no names), clue geodes (Treasure Trails), rock golems, the
  * noticeboard at the Observatory, the buff bar's counter, the prospector kit's XP, degrading a star below its level
  * (a Wiki note on a check order), star_last_mined_location (its site numbers aren't known) and free-to-play halving.
@@ -177,7 +199,10 @@ class ShootingStars(private val world: World, val sites: StarSites = StarSites.l
         when {
             next != null -> schedule(tick, next)
             running -> schedule(tick, world.random.between(CYCLE_MIN_TICKS, CYCLE_MAX_TICKS))
-            else -> nextLanding = -1
+            else -> {
+                nextLanding = -1
+                windowOffsets.clear()
+            }
         }
         return star
     }
@@ -186,12 +211,45 @@ class ShootingStars(private val world: World, val sites: StarSites = StarSites.l
     fun schedule(tick: Long, ticks: Int) {
         nextLanding = tick + ticks
         nextSite = pickSite()
+        windowOffsets.clear()
+    }
+
+    /** Per telescope, how many minutes of its window come before the next star's landing; drawn once per star. */
+    private val windowOffsets = HashMap<Telescope, Int>()
+
+    /**
+     * What [telescope] shows of the next star at [tick]: its region and a window [Telescope.accuracyMinutes] wide that
+     * holds its landing, or null when none is planned. The Construction study's telescopes call this; `::star scout`
+     * shows it now.
+     */
+    fun scout(telescope: Telescope, tick: Long): Sighting? {
+        val site = nextSite ?: return null
+        if (nextLanding < 0) return null
+        val minutes = ((nextLanding - tick).coerceAtLeast(0) * 600 / 60_000).toInt()
+        val offset = windowOffsets.getOrPut(telescope) { world.random.between(0, telescope.accuracyMinutes) }
+        val from = (minutes - offset).coerceAtLeast(0)
+        return Sighting(site.region, from, from + telescope.accuracyMinutes)
+    }
+
+    /** The plain message box's text for [sighting] (from [scout]). */
+    fun sightingText(player: Player, sighting: Sighting?): String {
+        val text = world.textFor(player)
+        if (sighting == null) return text[ShootingStarLines.TELESCOPE_NOTHING]
+        fun time(minutes: Int) = if (minutes < 60) text[ShootingStarLines.MINUTES, "minutes" to minutes]
+            else text[ShootingStarLines.HOURS_MINUTES, "hours" to minutes / 60, "minutes" to minutes % 60]
+        return text[ShootingStarLines.TELESCOPE, "region" to sighting.region.name, "from" to time(sighting.fromMinutes), "to" to time(sighting.toMinutes)]
+    }
+
+    /** Looking through [telescope]: the plain message box with what it shows. */
+    suspend fun ScriptContext.lookThrough(telescope: Telescope) {
+        val text = sightingText(player, scout(telescope, world.tick))
+        world.dialogues.start(this) { mesbox(text) }
     }
 
     /** Takes the star away, if there is one, with no message. */
     fun clear() {
         val star = star ?: return
-        star.loc?.let { if (world.locs.exists(it)) world.locs.remove(it) }
+        star.loc?.let { if (world.locs.exists(it)) takeAway(it) }
         this.star = null
     }
 
@@ -236,7 +294,7 @@ class ShootingStars(private val world: World, val sites: StarSites = StarSites.l
             star.loc = world.locs.replace(loc, idFor(star.size)) ?: loc
             return
         }
-        if (world.locs.exists(loc)) world.locs.remove(loc)
+        if (world.locs.exists(loc)) takeAway(loc)
         this.star = null
         for (player in world.onlinePlayers) {
             val last = star.miners[player.saveKey] ?: continue
@@ -248,6 +306,13 @@ class ShootingStars(private val world: World, val sites: StarSites = StarSites.l
     }
 
     /** Players on the star's tiles are moved off it, to the nearest open tile around it (OSRS Wiki, Crashed Star). */
+    /** Takes a star's loc away, putting back whatever the cache has on that tile and layer. */
+    private fun takeAway(loc: ZoneLoc) = world.locs.restore(loc.x, loc.z, loc.level, loc.layer)
+
+    /** Whether a star fits on [x], [z] (its south-west tile): ground level, outside instances, open ground with no loc. */
+    fun canLand(x: Int, z: Int): Boolean = !world.instances.inDynamicArea(x, z) &&
+        (x until x + SIZE).all { tx -> (z until z + SIZE).all { tz -> world.canStand(tx, tz, 0) && world.locs.at(tx, tz, 0).isEmpty() } }
+
     private fun pushOff(site: StarSite) {
         for (player in world.onlinePlayers) {
             if (player.level != 0 || player.x !in site.x until site.x + SIZE || player.z !in site.z until site.z + SIZE) continue
@@ -323,7 +388,7 @@ class ShootingStars(private val world: World, val sites: StarSites = StarSites.l
                     player.inventory.add(gemType, 1)
                     Mining.GEM_LINES[gem]?.let { player.message(text[it]) }
                 }
-            } else if (SuccessRoll.roll(world.random, LOW, HIGH, player.skills.currentLevel(Skill.MINING))) {
+            } else if (SuccessRoll.roll(world.random, LOW, HIGH, player.skills.currentLevel(Skill.MINING) + Mining.celestialBoost(player))) {
                 giveDust(player)
             }
         }

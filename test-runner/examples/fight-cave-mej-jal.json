@@ -1,0 +1,31 @@
+{
+  "name": "Fight Caves step FC4: TzHaar-Mej-Jal by the cave entrance greeting the player by caste, buying a fire cape back for 8,000 TokKul, and Exchange fire cape going straight to the cape's menu, kept (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::empty", "comment": "an empty backpack, so the TokKul count below is the sale's alone"},
+    {"step": "command", "text": "::item 6570 1"},
+    {"step": "command", "text": "::tele 2438 5168 0", "expectMessage": "Teleported to 2438, 5168, 0"},
+    {"step": "npcOption", "npc": "TzHaar-Mej-Jal", "option": "Talk-to"},
+    {"step": "assertDialogue", "contains": "[mej_jal.greeting caste=JalYt-", "speaker": "TzHaar-Mej-Jal"},
+    {"step": "continueDialogue"},
+    {"step": "chooseOption", "text": "[mej_jal.have_cape]"},
+    {"step": "continueDialogue"},
+    {"step": "assertDialogue", "contains": "[mej_jal.sell_offer]", "speaker": "TzHaar-Mej-Jal"},
+    {"step": "continueDialogue"},
+    {"step": "chooseOption", "text": "[mej_jal.sell_yes]"},
+    {"step": "assertDialogue", "contains": "[mej_jal.sell_done]"},
+    {"step": "finishDialogue"},
+    {"step": "assertInventory", "itemId": 6529, "count": 8000},
+    {"step": "command", "text": "::item 6570 1"},
+    {"step": "npcOption", "npc": "TzHaar-Mej-Jal", "option": "Exchange fire cape"},
+    {"step": "assertDialogue", "contains": "[mej_jal.sell_offer]", "speaker": "TzHaar-Mej-Jal"},
+    {"step": "continueDialogue"},
+    {"step": "chooseOption", "text": "[mej_jal.sell_no]"},
+    {"step": "assertDialogue", "contains": "[mej_jal.wise]", "speaker": "TzHaar-Mej-Jal"},
+    {"step": "finishDialogue"},
+    {"step": "assertInventory", "itemId": 6570, "count": 1},
+    {"step": "command", "text": "::empty"}
+  ]
+}
