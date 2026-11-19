@@ -242,6 +242,8 @@ object Kebab {
 /** Karim's and the Silk trader's talk, and Eat on a kebab. */
 fun registerAlKharidTraders(world: World) {
     with(AlKharidTraders) {
+        // The GE bot market pays no more than this for them (exploit review 44, R44A-3).
+        world.grandExchange.npcSells(KEBAB, KEBAB_PRICE.toLong())
         world.npcInteractions.reachOverCounter(KARIM)
         world.handlers.onNpc(KARIM, TALK_TO) { op ->
             val give = { obj: Int -> world.objTypes[obj]?.let { world.groundObjs.give(player, it, 1) } ?: Unit }

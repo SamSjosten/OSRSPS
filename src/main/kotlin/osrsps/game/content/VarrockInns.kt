@@ -269,6 +269,9 @@ object VarrockInns {
 /** The inns' bartenders and cooks. */
 fun registerVarrockInns(world: World) {
     with(VarrockInns) {
+        // The GE bot market pays no more than this for them (exploit review 44, R44A-3).
+        world.grandExchange.npcSells(BEER, BEER_PRICE.toLong())
+        world.grandExchange.npcSells(CABBAGE, CABBAGE_PRICE.toLong())
         val talks: List<Pair<Int, suspend Dialogue.((Int) -> Unit) -> Unit>> = listOf(
             BLUE_MOON_BARTENDER to { give -> blueMoonBartender(give) },
             DANCING_DONKEY_BARTENDER to { give -> dancingDonkeyBartender(give) },
