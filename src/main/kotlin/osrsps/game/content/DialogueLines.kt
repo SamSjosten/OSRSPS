@@ -195,6 +195,8 @@ object DialogueLines {
         osrsps.game.FountainOfRuneLines,
         OborLines,
         BryophytaLines,
+        ScurriusLairLines,
+        HistorianAldoLines,
         EmoteLines,
         EstateAgentLines,
         GiantBonesLines,

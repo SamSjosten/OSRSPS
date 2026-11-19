@@ -1,0 +1,20 @@
+{
+  "about": "Outside Scurrius's lair in the Varrock Sewers, with rune melee gear, 70 combat, 43 Prayer and lobsters.",
+  "notes": "Scurrius step 1. On the sewer side of the broken bars (Scurrius.OUTSIDE): Climb-through (normal) goes into the public lair, Climb-through (private) into one of the player's own. The loadout is ours, not a live one (the Wiki's Strategies page suggests level 60 gear).",
+  "position": { "x": 3281, "z": 9867, "level": 0 },
+  "skills": { "attack": 70, "strength": 70, "defence": 70, "hitpoints": 70, "ranged": 70, "magic": 70, "prayer": 43 },
+  "run": true,
+  "inventory": [
+    { "item": "lobster", "count": 20 }
+  ],
+  "equipment": [
+    { "item": "rune_full_helm" },
+    { "item": "amulet_of_strength" },
+    { "item": "rune_scimitar" },
+    { "item": "rune_chainbody" },
+    { "item": "rune_kiteshield" },
+    { "item": "rune_platelegs" },
+    { "item": "leather_gloves" },
+    { "item": "leather_boots" }
+  ]
+}
