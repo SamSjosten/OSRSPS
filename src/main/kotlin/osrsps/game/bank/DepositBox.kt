@@ -34,8 +34,22 @@ class DepositBox(
 ) {
     fun isOpen(player: Player): Boolean = player.modals[FrameSlot.MAINMODAL] == INTERFACE
 
-    /** Opens the deposit box, as a box's Deposit does. */
-    fun open(player: Player) {
+    /**
+     * What a box opened for something else lets through: Tai Bwo Wannai's parcel service (Karamja step K4.2d), which
+     * charges for each item and refuses some. [allow] says how many of [count] of an item may go (0 for none, after
+     * telling the player why); [moved] is told how many went, to take its fee. A gated box sends nothing worn.
+     */
+    interface Gate {
+        fun allow(player: Player, id: Int, count: Int): Int
+
+        fun moved(player: Player, id: Int, count: Int)
+    }
+
+    private val gates = java.util.WeakHashMap<Player, Gate>()
+
+    /** Opens the deposit box, as a box's Deposit does; with a [gate], for that gate's deposits only. */
+    fun open(player: Player, gate: Gate? = null) {
+        if (gate == null) gates.remove(player) else gates[player] = gate
         openModal(player, FrameSlot.MAINMODAL, INTERFACE)
         send(
             player,
@@ -55,9 +69,9 @@ class DepositBox(
         if (!isOpen(player)) return true
         when (component) {
             ITEMS -> clickItem(player, sub, obj, op)
-            in WORN_SLOTS -> bankScreen.clickWorn(player, WORN_SLOT_WEARPOS.getValue(component), op)
-            DEPOSIT_INVENTORY -> if (!player.scripts.delayed) bankScreen.depositAll(player, player.inventory)
-            DEPOSIT_WORN -> if (!player.scripts.delayed) bankScreen.depositAll(player, player.equipment)
+            in WORN_SLOTS -> if (gates[player] == null) bankScreen.clickWorn(player, WORN_SLOT_WEARPOS.getValue(component), op)
+            DEPOSIT_INVENTORY -> if (!player.scripts.delayed) depositInventory(player)
+            DEPOSIT_WORN -> if (!player.scripts.delayed && gates[player] == null) bankScreen.depositAll(player, player.equipment)
             QUANTITY_1 -> setMode(player, MODE_1)
             QUANTITY_5 -> setMode(player, MODE_5)
             QUANTITY_10 -> setMode(player, MODE_10)
@@ -143,7 +157,23 @@ class DepositBox(
     }
 
     private fun deposit(player: Player, slot: Int, id: Int, count: Int) {
-        if (isOpen(player)) bankScreen.depositFrom(player, player.inventory, slot, id, count)
+        if (!isOpen(player)) return
+        val gate = gates[player] ?: return bankScreen.depositFrom(player, player.inventory, slot, id, count)
+        val allowed = gate.allow(player, id, minOf(count.toLong(), player.inventory.count(id)).toInt())
+        if (allowed <= 0) return
+        val before = player.inventory.count(id)
+        bankScreen.depositFrom(player, player.inventory, slot, id, allowed)
+        val moved = (before - player.inventory.count(id)).toInt()
+        if (moved > 0) gate.moved(player, id, moved)
+    }
+
+    /** The deposit-inventory button: all at once, or through the gate slot by slot. */
+    private fun depositInventory(player: Player) {
+        if (gates[player] == null) return bankScreen.depositAll(player, player.inventory)
+        for (slot in 0 until Inventory.INV_CAPACITY) {
+            val held = player.inventory[slot] ?: continue
+            deposit(player, slot, held.id, held.count)
+        }
     }
 
     /** Op 1's amount: what the mode's button says, X being the last amount typed (at least 1, as the client shows it). */

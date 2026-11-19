@@ -1,0 +1,25 @@
+{
+  "name": "Karamja step K4.2d: Rionasta's Send-parcel opening the parcel service, and its deposit-inventory button sending as many logs as 25 trading sticks pay for (2, for 20) and keeping the coins (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::scenario gathering", "expectMessage": "Started scenario gathering.", "comment": "any scenario: ::reset at the end puts the account's backpack and bank back"},
+    {"step": "command", "text": "::empty"},
+    {"step": "command", "text": "::varbit 901 1", "comment": "Rionasta shown with sticks"},
+    {"step": "command", "text": "::item 6306 25", "comment": "trading sticks"},
+    {"step": "command", "text": "::item 995 100"},
+    {"step": "command", "text": "::item 1511 5", "comment": "logs"},
+    {"step": "command", "text": "::tele 2783 3093 0", "expectMessage": "Teleported to 2783, 3093, 0", "comment": "by Rionasta, who wanders within 3 of 2782,3094"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "npcOption", "npc": "Rionasta", "option": "Send-parcel", "timeoutMs": 20000},
+    {"step": "assertInterface", "interfaceId": 192, "timeoutMs": 10000, "comment": "the deposit box standing in for the parcel screen (guessed)"},
+    {"step": "clickWidget", "interfaceId": 192, "component": 31, "op": 1, "comment": "deposit inventory"},
+    {"step": "assertInventory", "item": "Logs", "count": 3, "timeoutMs": 10000, "comment": "2 sent, 10 sticks each"},
+    {"step": "assertInventory", "item": "Trading sticks", "count": 5},
+    {"step": "assertInventory", "item": "Coins", "count": 100, "comment": "a currency, refused"},
+    {"step": "assertMessage", "contains": "tbw_parcel.currency"},
+
+    {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+  ]
+}

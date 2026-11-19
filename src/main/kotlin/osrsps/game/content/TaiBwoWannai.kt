@@ -141,7 +141,7 @@ object SaftaDocLines : Lines("safta_doc", "Transcript:Safta Doc") {
     val SEE_AGAIN = line("see_again", "option 4 (back to the machetes)")
 }
 
-/** Rionasta's parcel service, as far as his talk goes before it opens (the Wiki's Transcript:Rionasta, read 2026-11-19). */
+/** Rionasta's parcel service talk (the Wiki's Transcript:Rionasta, read 2026-11-19). */
 object RionastaLines : Lines("rionasta", "Transcript:Rionasta") {
     val WHAT = line("what", "What do you do here?: he runs the parcel service")
     val PARCEL = line("parcel", "the player asks about the parcel service")
@@ -151,6 +151,9 @@ object RionastaLines : Lines("rionasta", "Transcript:Rionasta") {
     val WHAT_STICKS = line("what_sticks", "option 2 (what trading sticks are), which the player then says")
     val LOCAL_CURRENCY = line("local_currency", "the village's currency, earned by work")
     val MURCAILY = line("murcaily", "go and talk to Murcaily")
+    val SEND = line("send", "its menu, option 3 (send a parcel), which the player then says")
+    val AT_LEAST = line("at_least", "fewer than 10 trading sticks held: he names the least it costs")
+    val OF_COURSE = line("of_course", "the parcel service opening: he asks what to send to the bank")
 }
 
 /** Gabooty's talk (the Wiki's Transcript:Gabooty, read 2026-11-19). */
@@ -271,10 +274,9 @@ object JiminuaLines : Lines("jiminua", "Transcript:Jiminua") {
  *   the player in, once they've had sticks from Murcaily (the Wiki: "Do any part of the minigame"); from inside, out
  *   for free. Guessed: Open from outside paying as Quick-Pay does, and the messages (held keys).
  *
- * Left out, for step K4.2b: the Cleanup's events (monsters, gout tubers, gem rocks), Rionasta's parcel service (his
- * talk stops before it), Aisles's banknotes, Banisoch's door, Mamma Bufetta's skewer sticks, the favour overlay,
+ * Left out: Aisles's banknotes, Banisoch's door, Mamma Bufetta's skewer sticks, the favour overlay,
  * Timfraku's, Trufitus's and Tai Bwo Wannai Trio's talk (quests), the grove's refusal to let unhelped players chop and
- * its warning on leaving without logs. Safta Doc's machetes need gout tubers, which come with the events.
+ * its warning on leaving without logs.
  */
 object TaiBwoWannai {
     const val TALK_TO = 1
@@ -505,18 +507,41 @@ object TaiBwoWannai {
         false
     }
 
+    /**
+     * Rionasta's talk: the parcel service, its cost, and Can I send a parcel please?, which opens it (after the talk,
+     * [TaiBwoParcels.wanted]) for a player holding at least [TaiBwoParcels.FEE] trading sticks.
+     */
     private suspend fun Dialogue.rionasta(): Boolean = with(RionastaLines) {
         chatNpc(ChatAnim.HAPPY, WHAT)
         chatPlayer(ChatAnim.QUIZ, PARCEL)
         chatNpc(ChatAnim.NEUTRAL, BANK)
+        var asked = false
         while (true) {
-            if (choice(HOW_MUCH, TaiBwoVillagerLines.OK_THANKS) == 2) break
-            chatPlayer(ChatAnim.QUIZ, HOW_MUCH)
-            chatNpc(ChatAnim.NEUTRAL, COSTS)
-            if (choice(WHAT_STICKS, TaiBwoVillagerLines.OK_THANKS) == 2) break
-            chatPlayer(ChatAnim.QUIZ, WHAT_STICKS)
-            chatNpc(ChatAnim.NEUTRAL, LOCAL_CURRENCY)
-            chatNpc(ChatAnim.NEUTRAL, MURCAILY)
+            val options = if (asked) listOf(WHAT_STICKS, SEND, TaiBwoVillagerLines.OK_THANKS) else listOf(HOW_MUCH, SEND, TaiBwoVillagerLines.OK_THANKS)
+            when (options[choice(*options.toTypedArray()) - 1]) {
+                HOW_MUCH -> {
+                    chatPlayer(ChatAnim.QUIZ, HOW_MUCH)
+                    chatNpc(ChatAnim.NEUTRAL, COSTS)
+                    asked = true
+                }
+                WHAT_STICKS -> {
+                    chatPlayer(ChatAnim.QUIZ, WHAT_STICKS)
+                    chatNpc(ChatAnim.NEUTRAL, LOCAL_CURRENCY)
+                    chatNpc(ChatAnim.NEUTRAL, MURCAILY)
+                }
+                SEND -> {
+                    chatPlayer(ChatAnim.QUIZ, SEND)
+                    if (player.inventory.count(TRADING_STICKS) < TaiBwoParcels.FEE) {
+                        chatNpc(ChatAnim.SAD, AT_LEAST)
+                        asked = true
+                    } else {
+                        chatNpc(ChatAnim.HAPPY, OF_COURSE)
+                        TaiBwoParcels.wanted += player
+                        return@with false
+                    }
+                }
+                else -> break
+            }
         }
         chatPlayer(ChatAnim.NEUTRAL, TaiBwoVillagerLines.OK_THANKS)
         false
@@ -907,8 +932,20 @@ fun registerTaiBwoWannai(world: World) {
                                 GabootyShop.NONE -> {}
                             }
                         }
-                        else -> world.dialogues.start(this, op.npc) { villager(world, villager) }
+                        else -> {
+                            world.dialogues.start(this, op.npc) { villager(world, villager) }
+                            if (TaiBwoParcels.wanted.remove(player)) TaiBwoParcels.open(world, player)
+                        }
                     }
+                }
+            }
+        }
+        for (npc in listOf(Villager.RIONASTA.withSticks, Villager.RIONASTA.withoutSticks)) {
+            world.handlers.onNpc(npc, TaiBwoParcels.SEND_PARCEL) { op ->
+                if (player.inventory.count(TRADING_STICKS) < TaiBwoParcels.FEE) {
+                    world.dialogues.start(this, op.npc) { chatNpc(ChatAnim.SAD, RionastaLines.AT_LEAST) }
+                } else {
+                    TaiBwoParcels.open(world, player)
                 }
             }
         }
