@@ -13,7 +13,7 @@
 ![Engine](https://img.shields.io/badge/engine-custom%20Kotlin-c25a2a?labelColor=2c2632)
 ![Server](https://img.shields.io/badge/server-development%20%26%20plugin%20testing-9c3a2e?labelColor=2c2632)
 
-[Quick start](#quick-start) · [Build and run](#build-and-run) · [VM 214](#on-vm-214) · [Connect RuneLite](#connect-runelite) · [Testing tools](#testing-tools) · [Commands](#developer-commands)
+[Quick start](#quick-start) · [Build and run](#build-and-run) · [Run in Docker](#run-in-docker) · [Connect RuneLite](#connect-runelite) · [Testing tools](#testing-tools) · [Commands](#developer-commands)
 
 </div>
 
@@ -96,7 +96,7 @@ out of git (see Build and run).
 |------|--------------|
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | How pull requests move: auto-merge, the queue, conflicts, revision bumps |
 | [`AGENTS.md`](AGENTS.md) | Review guidelines, sourcing (`// Guessed:`, `// Inferred:`), what never goes in git |
-| [`deploy/README.md`](deploy/README.md) | How VM 214 deploys itself, cache swaps, the staging server |
+| [`deploy/README.md`](deploy/README.md) | How our own server (VM 214) deploys itself, cache swaps and rollbacks, the staging server, the settings it runs with |
 | [`test-runner/README.md`](test-runner/README.md) | The RuneLite test runner, its script format, headless runs |
 | [`TRIAGE.md`](TRIAGE.md) | How filed problem reports are triaged |
 | [`NOTES.md`](NOTES.md) | Each step's build notes as it merged. Not kept in step with the code; the code wins |
@@ -109,47 +109,33 @@ out of git (see Build and run).
 
 ## Build and run
 
-Needs JDK 21; the Gradle wrapper fetches Gradle.
+Needs JDK 21; the Gradle wrapper fetches Gradle. On Windows use `.\gradlew.bat` the same way.
 
 ```bash
-./gradlew build                       # compile and run the tests
-./gradlew run --args=serve            # game and JS5 on 43594, HTTP files on 43595
-./gradlew run --args="serve 50000"    # another port (HTTP on 50001)
+./gradlew build                                  # compile and run the tests
+OSRSPS_LOCAL_KEY=1 ./gradlew run --args=serve    # game on 43594, launcher files on 43595
 ```
-
-On Windows use `.\gradlew.bat` the same way. The other entry points:
 
 | `--args=` | What it does |
 |-----------|--------------|
+| `serve [port]` | Runs the server: game and JS5 on the port (43594), launcher files on the next one |
 | `fetch-cache [build]` | Downloads the revision's cache and XTEA keys from [OpenRS2](https://archive.openrs2.org) into `data/cache/`, keeping the old one in `data/cache.previous`. With a build (`242`), only if that is OpenRS2's newest; else exits 3 |
 | `cache-info` | Summarises the cache in `data/` |
 | `collision x z [level]` | Prints what the server thinks is walkable around a tile |
 | `dialogue-keys` | Writes `data/dialogue.txt` with every key, keeping the words already there (see Dialogue words) |
 | `set-password name` | Sets an account's password (see Accounts) |
-| `import-model in.obj out.dat [--scale f] [--mirror-x] [--flip-faces] [--priority n] [--alpha material=n]` | Converts a Wavefront OBJ to a client model for `data/models/<id>.dat` |
+| `import-model in.obj out.dat [...]` | Converts a Wavefront OBJ to a client model for `data/models/<id>.dat` (run it bare for its options) |
 | `import-sprite in.png out.dat` | Converts an image to a client sprite for `data/sprites/<id>.dat` |
 
-`OSRSPS_DATA` points at another data folder. `data/cache-source.txt` names the cache in use, and the server won't start
-on a cache of another revision. To roll back a cache, stop the server and swap `data/cache` with `data/cache.previous`
-and `data/cache-source.txt` with `data/cache.previous-source.txt`.
+Everything the server reads lives in `data/` (`OSRSPS_DATA` points at another folder), and it won't start on a cache
+of another revision. The login key is `data/rsa.key`; `serve` refuses one that doesn't match the committed modulus
+(`src/main/resources/rsa-modulus.txt`, which the launcher carries), so a local server sets `OSRSPS_LOCAL_KEY=1` and
+generates its own.
 
-The login RSA key is `data/rsa.key`. Its modulus is committed in `src/main/resources/rsa-modulus.txt`, because the
-launcher's releases carry it, so `serve` refuses a missing or different key. For a local server with its own key, set
-`OSRSPS_LOCAL_KEY=1` and the first start generates one.
-
-Models, sprites and loc, var and animation types of our own (ids from 65,000) are served on top of the cache from
-`data/models/`, `data/sprites/` and code (`game/content/Custom*.kt`, `osrsps.cache.overlay`). The cache files on disk
-stay live's.
-
-## On VM 214
-
-The server runs in Docker in `/srv/rsps/OSRSPS`, with `data/` mounted in. A timer redeploys every merge to `main`
-within a few minutes; a merge that only touches top-level docs, tests, the plugins, `docs/`, `deploy/` or `.github/`
-doesn't restart it. The cache build it runs is pinned in `deploy/cache-build.txt`. `http://192.168.0.210:43595/version` names the running commit, and `/status` adds the cache and
-frame checks.
+## Run in Docker
 
 ```bash
-docker compose up -d --build      # build and start by hand
+docker compose up -d --build      # build and start
 docker compose logs -f            # follow the log
 docker compose run --rm osrsps collision 3222 3218
 ```
@@ -160,14 +146,13 @@ Settings are in `compose.yaml`'s `environment:`:
 |----------|---------|
 | `OSRSPS_ADMINS` | Names that may run admin commands (comma separated). Unset means everyone, with a warning in the log |
 | `OSRSPS_PUBLIC_HOST` | Host the launcher files point at when a request has no usable Host header |
-| `OSRSPS_RELAYS` | Relay addresses allowed to send a PROXY protocol header (the VPS relay, 192.168.0.216) |
+| `OSRSPS_RELAYS` | Relay addresses allowed to send a PROXY protocol header |
 | `OSRSPS_PROXY_PROTOCOL` | `optional` (default), `required` or `off`, for relay connections |
 | `OSRSPS_SEED` | Fixed random seed at startup; unset picks one and logs it |
-| `OSRSPS_REPORTS_REPO` | Repository problem reports are filed in (default this one) |
+| `OSRSPS_REPORTS_REPO` | Repository problem reports are filed in |
 
-Any branch can run on the staging server next to the live one (`git push origin my-branch:staging`, ports 44594 and
-44595); see `deploy/README.md`. Changes to the VM's system, the Proxmox host or the network go through the Home Lab
-project.
+Our own server (VM 214) redeploys itself from `main`, and any branch can run next to it on the staging server: both in
+[`deploy/README.md`](deploy/README.md).
 
 ## Connect RuneLite
 
