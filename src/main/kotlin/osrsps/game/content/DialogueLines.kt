@@ -363,6 +363,7 @@ object DialogueLines {
         SawmillLines,
         ClerkLines,
         ClanHallLines,
+        ClanCofferLines,
         TolnaLines,
         TolnaRiftLines,
         OddOldManLines,

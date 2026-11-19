@@ -1052,6 +1052,7 @@ class World(
     val kitchen = osrsps.game.skill.construction.Kitchen(this, houses)
     /** The clan hall portal and each clan's hall; see [osrsps.game.content.ClanHall]. */
     val clanHall = osrsps.game.content.ClanHall(this)
+    val clanCoffer = osrsps.game.content.ClanCoffer(this)
 
     val firemaking = Firemaking(this, collision)
 
@@ -1389,6 +1390,7 @@ class World(
         furniture.register()
         kitchen.register()
         clanHall.register()
+        clanCoffer.register()
         osrsps.game.skill.construction.EstateAgent.register(this, houses)
         loadDialogue()
     }
