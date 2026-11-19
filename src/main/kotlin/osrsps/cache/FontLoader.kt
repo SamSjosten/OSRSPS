@@ -13,10 +13,13 @@ private val logger = KotlinLogging.logger {}
 object FontLoader {
     private const val FONT_INDEX = 13
 
-    fun loadDialogueFont(library: CacheLibrary): ChatFont {
-        val data = library.data(FONT_INDEX, ChatFont.DIALOGUE_FONT, 0)
+    fun loadDialogueFont(library: CacheLibrary): ChatFont = loadFont(library, ChatFont.DIALOGUE_FONT)
+
+    /** Font [id]'s metrics, or [ChatFont.APPROXIMATE] with a warning when the cache has no usable font there. */
+    fun loadFont(library: CacheLibrary, id: Int): ChatFont {
+        val data = library.data(FONT_INDEX, id, 0)
         return decode(data) ?: run {
-            logger.warn { "No usable font ${ChatFont.DIALOGUE_FONT} in the cache; dialogue line counts will be rough" }
+            logger.warn { "No usable font $id in the cache; line counts in its text will be rough" }
             ChatFont.APPROXIMATE
         }
     }

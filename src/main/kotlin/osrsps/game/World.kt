@@ -36,6 +36,7 @@ import net.rsprot.protocol.channel.hostAddress
 import osrsps.game.command.Admins
 import osrsps.game.command.CommandRegistry
 import osrsps.game.command.registerCombatCommands
+import osrsps.game.command.registerDiaryCommands
 import osrsps.game.command.registerDevCommands
 import osrsps.game.command.registerEffectCommands
 import osrsps.game.command.registerGroundObjCommands
@@ -102,6 +103,7 @@ import osrsps.game.combat.Spells
 import osrsps.game.combat.StatRestore
 import osrsps.game.combat.Teleblock
 import osrsps.game.content.DialogueLines
+import osrsps.game.content.Diaries
 import osrsps.game.content.Examines
 import osrsps.game.content.ResourceArea
 import osrsps.game.content.CustomVars
@@ -150,6 +152,7 @@ import osrsps.game.content.registerMillLaneMill
 import osrsps.game.content.registerLumbridgeTown
 import osrsps.game.content.registerAlKharid
 import osrsps.game.content.registerVarrock
+import osrsps.game.content.registerDiaries
 import osrsps.game.content.registerDraynorVillage
 import osrsps.game.content.WildernessDitch
 import osrsps.game.content.registerEdgeville
@@ -334,6 +337,8 @@ class World(
     val scenarios: Scenarios = Scenarios.NONE,
     /** The dialogue font's widths, for counting a dialogue's lines; see [ChatFont]. */
     chatFont: ChatFont = ChatFont.APPROXIMATE,
+    /** The journal scroll's font (p12_full), for wrapping the diaries' task lines as the client draws them. */
+    scrollFont: ChatFont = ChatFont.APPROXIMATE,
     /** The dialogue file, read at start and again by `::dialogue`; null for none, so every line shows its key. */
     private val dialogueFile: Path? = null,
     /** Where reports are appended (data/reports.jsonl); null keeps them in memory (tests). */
@@ -977,6 +982,9 @@ class World(
     val dialogues = Dialogues(interfaces, scripts, chatFont, npcInteractions::shownType, words = { dialogueText })
 
     /** The lodestone network; see [LodestoneNetwork]. Its map is a modal of our own, [LodestoneMap]. */
+    /** The achievement diaries; see [Diaries]. */
+    val diaries = Diaries(this, scrollFont)
+
     val lodestones = LodestoneNetwork(
         customVars,
         homeTeleport,
@@ -995,6 +1003,7 @@ class World(
         registerWildernessCommands(this@World)
         registerFarmingCommands(this@World)
         registerSlayerCommands(this@World)
+        registerDiaryCommands(this@World)
         registerSeedCommands(this@World)
         registerScriptCommands(this@World)
         registerZoneCommands(this@World, collision)
@@ -1104,6 +1113,7 @@ class World(
         registerLodestones(this)
         registerKaramjaShips(this)
         registerVarrock(this)
+        registerDiaries(this)
         registerArchiveLobby(this)
         registerRaidTester(this)
         archiveRaids.register()
@@ -2259,6 +2269,7 @@ class World(
         player.listsAfterMapBuild = true
         quests.completeAll(player.vars)
         Kudos.login(player)
+        diaries.login(player)
         lodestones.login(player)
         fightCaves.login(player)
         prayers.login(player)
