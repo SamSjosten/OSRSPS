@@ -129,6 +129,7 @@ object DialogueLines {
         AlchemyLines,
         SuperheatLines,
         BorkLines,
+        BrutusLines,
         DagonhaiLines,
         DreadnothLines,
         OcellusLines,
