@@ -1,0 +1,19 @@
+{
+ "name": "Shooting stars step 3: telescope scouting by ::star scout (the study's telescopes call the same code once Construction builds them), ::keys on",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::star next 7500", "expectMessage": "The next star lands in 7500 ticks", "comment": "75 minutes on, at a site picked now"},
+
+  {"step": "command", "text": "::star scout oak"},
+  {"step": "assertDialogue", "contains": "shooting_stars.telescope region=", "comment": "the plain message box: the region, and a window 24 minutes wide holding 1 hour 14 or 15 minutes"},
+  {"step": "continueDialogue"},
+  {"step": "command", "text": "::star scout mahogany"},
+  {"step": "assertDialogue", "contains": "shooting_stars.hours_minutes hours=1", "comment": "2 minutes wide"},
+  {"step": "continueDialogue"},
+  {"step": "assertNoDialogue"},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"}
+ ]
+}

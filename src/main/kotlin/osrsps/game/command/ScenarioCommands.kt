@@ -184,6 +184,11 @@ private fun startMinigame(world: World, player: Player, scenario: Scenario, mini
             if (rotation !in 1..FightCaveWaves.ROTATIONS) refuse("Scenario ${scenario.name}: the fight cave has no rotation $rotation")
             if (!world.fightCaves.start(player, wave, rotation)) refuse("Scenario ${scenario.name}: no room for another fight cave")
         }
+        Scenario.ScenarioMinigame.INFERNO -> {
+            val wave = minigame.wave.takeIf { it in 1..osrsps.game.tzhaar.InfernoWaves.WAVES } ?: refuse("Scenario ${scenario.name}: the Inferno has no wave ${minigame.wave}")
+            world.inferno.sacrifice(player)
+            if (!world.inferno.start(player, wave, fresh = true)) refuse("Scenario ${scenario.name}: no room for another Inferno")
+        }
     }
 }
 

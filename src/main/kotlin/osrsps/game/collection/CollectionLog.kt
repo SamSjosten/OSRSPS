@@ -106,7 +106,9 @@ class CollectionLog(
     /** Every var the log's windows read, from [player]'s record; see the class comment. */
     fun sync(player: Player) {
         val have = player.collectionLog
-        setVarp(player, VARP_COUNT, catalog.items.count { it in have })
+        val count = catalog.items.count { it in have }
+        setVarp(player, VARP_COUNT, count)
+        setVarp(player, VARP_COUNT_HIGHSCORES, count)
         setVarp(player, VARP_COUNT_MAX, catalog.items.size)
         for (tab in catalog.tabs) {
             val varps = TAB_VARPS.getOrNull(tab.index) ?: continue
@@ -168,6 +170,9 @@ class CollectionLog(
 
         const val VARP_COUNT = 2943
         const val VARP_COUNT_MAX = 2944
+
+        /** `collection_count_highscores`, the account summary's "Collections Logged". INFERRED: the same as collection_count. */
+        const val VARP_COUNT_HIGHSCORES = 4612
 
         /** `collection_count_bosses`/`_max`, then raids, clues, minigames and other: by tab index (struct param 684). */
         val TAB_VARPS = listOf(4613 to 4614, 4615 to 4616, 4617 to 4618, 4619 to 4620, 4621 to 4622)

@@ -5,12 +5,13 @@ import osrsps.game.World
 /**
  * `::clog`: the collection log's record (collection log step 1). `::clog` counts what you've logged; `::clog add <item>
  * [count]` logs an item as if it had dropped for you, announcement and all; `::clog remove <item>` and `::clog reset`
- * take one item, or everything, out again.
+ * take one item, or everything, out again. `::clog open [tab] [page]` opens the log (tabs 0 to 4, pages from 0), and
+ * `::clog overview` its overview (step 2).
  */
 fun CommandRegistry.registerCollectionLogCommands(world: World) {
-    val usage = "Usage: ::clog | ::clog add <item> [count] | ::clog remove <item> | ::clog reset"
+    val usage = "Usage: ::clog | ::clog add <item> [count] | ::clog remove <item> | ::clog reset | ::clog open [tab] [page] | ::clog overview"
 
-    register("clog", "::clog [add <item> [count] | remove <item> | reset]", admin = true) {
+    register("clog", "::clog [add <item> [count] | remove <item> | reset | open [tab] [page] | overview]", admin = true) {
         // Read here, not at registration: the commands are registered before the world has made its log.
         val log = world.collectionLog
         when (args.firstOrNull()?.lowercase()) {
@@ -35,6 +36,15 @@ fun CommandRegistry.registerCollectionLogCommands(world: World) {
                 if (args.size != 1) fail(usage)
                 log.remove(player, null)
                 reply("Collection log emptied.")
+            }
+            "open" -> {
+                val numbers = args.drop(1).map { it.toIntOrNull() ?: fail(usage) }
+                if (numbers.size > 2) fail(usage)
+                world.collectionLogWindow.open(player, numbers.getOrNull(0), numbers.getOrNull(1))
+            }
+            "overview" -> {
+                if (args.size != 1) fail(usage)
+                world.collectionLogWindow.openOverview(player)
             }
             else -> fail(usage)
         }
