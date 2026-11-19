@@ -170,7 +170,23 @@ object KingBlackDragon {
             world.endInstance(instance)
             return null
         }
+        privateLairs += instance
         return instance
+    }
+
+    /** The private lairs open now, so a death in one knows it ([graveTile]). */
+    private val privateLairs: MutableSet<Instance> = java.util.Collections.newSetFromMap(java.util.WeakHashMap())
+
+    /**
+     * Where the grave of a player dying at [x], [z] in a private lair goes: the open lair's matching tile, not the
+     * instance's exit at the Lava Maze lever in deep Wilderness (exploit review round 40, R40B-1); null outside one.
+     *
+     * Guessed: the Wiki's Grave page has an instance's grave "outside the instance" without naming where for this
+     * lair; outside it, the open lair is the nearest place and keeps the grave out of reach of PKers.
+     */
+    fun graveTile(world: World, x: Int, z: Int): osrsps.map.Tile? {
+        val instance = world.instances.at(x, z)?.takeIf { it in privateLairs } ?: return null
+        return osrsps.map.Tile(LAIR_X + x - instance.baseX, LAIR_Z + z - instance.baseZ)
     }
 
     /** How long [npc]'s drops last: [PRIVATE_LOOT_TICKS] for him in a private lair, else [default]. */
