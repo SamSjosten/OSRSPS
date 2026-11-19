@@ -372,6 +372,33 @@ class HeadlessClanHubTest {
         }
     }
 
+    @Test
+    fun `Recruit on someone in combat reads as busy, and asks nothing`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    alice.ready()
+                    bob.ready()
+                    alice.inClan("Odins Gate")
+                    alice.command("item ${ClanHub.VEXILLA[2]} 1")
+                    alice.wield(ClanHub.VEXILLA[2])
+                    alice.await("Recruit on players") { Unit.takeIf { alice.recruitShown() } }
+                    bob.command("varbit ${SettingsSide.VARBIT_ACCEPT_AID} 1")
+                    bob.awaitTicks(2)
+                    // Codex on PR 836: a question open in combat would stop his auto-retaliate.
+                    alice.commandReply("pause") { it.contains("aused after tick") }
+                    val him = server.world.playerNamed("bob")!!
+                    him.attackedTick = server.world.tick
+                    assertTrue(server.world.inCombat(him) && !him.modalOpen && !him.scripts.delayed)
+                    alice.playerOp(bob.index, Clans.PLAYER_OP_RECRUIT)
+                    alice.stepTicks(2)
+                    alice.saw("[clan.recruit_busy name=bob]")
+                    assertNull(bob.dialogueView)
+                }
+            }
+        }
+    }
+
     private companion object {
         const val VARP_COUNT = 5_000
         const val FILLER = 1511

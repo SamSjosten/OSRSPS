@@ -877,6 +877,7 @@ class World(
         recolour = osrsps.game.content.ClanHub::recolour,
         weapon = { player -> player.equipment[WearPos.WEAPON]?.id ?: -1 },
         acceptsAid = { player -> player.vars.getVarbitIfKnown(SettingsSide.VARBIT_ACCEPT_AID) == 1 },
+        inCombat = { player -> inCombat(player) },
         ask = { player, title, answer ->
             scripts.start(player) {
                 dialogues.start(this) { answer(choice(ClanLines.CONFIRM_YES, ClanLines.CONFIRM_NO, title = title) == 1) }

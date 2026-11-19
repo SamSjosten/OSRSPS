@@ -130,6 +130,8 @@ class Clans(
     private val weapon: (Player) -> Int = { -1 },
     /** Whether [Player] has Accept Aid on. */
     private val acceptsAid: (Player) -> Boolean = { true },
+    /** Whether [Player] is in combat: hit lately, or a player's hit on its way to them (World.inCombat). */
+    private val inCombat: (Player) -> Boolean = { false },
     /** Asks the player a yes/no question titled with the given words; runs the action with the answer, if they give one. */
     private val ask: (Player, String, (Boolean) -> Unit) -> Unit = { _, _, _ -> },
     private val now: () -> Instant = Instant::now,
@@ -331,7 +333,7 @@ class Clans(
     /**
      * Recruit on [target] with a clan vexillum wielded: for a member the Recruitment permission allows (Wiki, Clan
      * vexillum: "only usable if your clan rank ... allows it"), [target] is asked whether to join the clan, if they are
-     * in none, have Accept Aid on (Wiki, Clans) and aren't busy (an interface, a delayed action or another invitation); yes makes them
+     * in none, have Accept Aid on (Wiki, Clans) and aren't busy (an interface, a delayed action, combat or another invitation); yes makes them
      * its lowest rank (inferred: the applicants' Accept does the same). Every refusal tells the recruiter why.
      */
     private fun recruit(recruiter: Player, target: Player) {
@@ -345,7 +347,8 @@ class Clans(
             clan.members.size >= MAX_MEMBERS -> tell(recruiter, ClanLines.CLAN_FULL)
             !acceptsAid(target) -> tell(recruiter, ClanLines.RECRUIT_NO_AID, target.username)
             // Someone ignoring the recruiter reads as busy, so the recruiter can't tell they are ignored (guessed).
-            target.modalOpen || target.scripts.delayed || target.saveKey in recruitInvites || ignores.ignores(target, recruiter) -> tell(recruiter, ClanLines.RECRUIT_BUSY, target.username)
+            // In combat is busy too (Codex on PR 836): an open question would stop their auto-retaliate.
+            target.modalOpen || target.scripts.delayed || inCombat(target) || target.saveKey in recruitInvites || ignores.ignores(target, recruiter) -> tell(recruiter, ClanLines.RECRUIT_BUSY, target.username)
             else -> {
                 recruitInvites[target.saveKey] = RecruitInvite(clan.id, recruiter.saveKey, clock)
                 tell(recruiter, ClanLines.RECRUIT_SENT, target.username)
