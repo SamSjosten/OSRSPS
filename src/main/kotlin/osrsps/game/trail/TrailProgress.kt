@@ -12,10 +12,11 @@ import kotlinx.serialization.json.putJsonObject
 
 /**
  * A trail under way: the step the clue scroll is on ([ClueStep.key]), how many steps the whole trail has, the steps
- * done so far, which won't come up again on it, and whether the step's fight is won.
+ * done so far, which won't come up again on it, whether the step's fight is won, and the task Charlie set on his step
+ * (a beginner skill challenge's key).
  */
-class Trail(var step: String, val length: Int, val done: MutableList<String> = ArrayList(), var fought: Boolean = false) {
-    fun copy() = Trail(step, length, ArrayList(done), fought)
+class Trail(var step: String, val length: Int, val done: MutableList<String> = ArrayList(), var fought: Boolean = false, var task: String? = null) {
+    fun copy() = Trail(step, length, ArrayList(done), fought, task)
 }
 
 /**
@@ -88,6 +89,7 @@ object TrailSaves {
                 put("length", trail.length)
                 putJsonArray("done") { trail.done.forEach { add(kotlinx.serialization.json.JsonPrimitive(it)) } }
                 if (trail.fought) put("fought", true)
+                trail.task?.let { put("task", it) }
             }
         }
         val counts = TrailTier.entries.filter { progress.completed(it) > 0 }
@@ -139,7 +141,8 @@ object TrailSaves {
             val entry = value.jsonObject
             val done = entry["done"]?.jsonArray.orEmpty().map { it.jsonPrimitive.content }.take(MAX_LENGTH).toMutableList()
             val fought = entry["fought"]?.jsonPrimitive?.content == "true"
-            progress[tier] = Trail(entry.getValue("step").jsonPrimitive.content, entry.getValue("length").jsonPrimitive.int.coerceIn(1, MAX_LENGTH), done, fought)
+            val task = entry["task"]?.jsonPrimitive?.content
+            progress[tier] = Trail(entry.getValue("step").jsonPrimitive.content, entry.getValue("length").jsonPrimitive.int.coerceIn(1, MAX_LENGTH), done, fought, task)
         }
         return progress
     }

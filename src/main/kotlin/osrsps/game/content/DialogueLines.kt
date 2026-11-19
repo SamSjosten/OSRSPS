@@ -77,6 +77,7 @@ import osrsps.game.social.FriendsChatLines
 import osrsps.game.social.ReportLines
 import osrsps.game.social.SocialLines
 import osrsps.game.trade.TradeLines
+import osrsps.game.trail.HotColdLines
 import osrsps.game.trail.StashLines
 import osrsps.game.trail.TrailLines
 import osrsps.game.tzhaar.FightCaveLines
@@ -499,6 +500,7 @@ object DialogueLines {
         TraibornLines,
         TrailLines,
         StashLines,
+        HotColdLines,
         TrampLines,
         UrhneyLines,
         ValaineLines,

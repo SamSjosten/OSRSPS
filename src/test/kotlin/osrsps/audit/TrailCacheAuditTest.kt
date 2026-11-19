@@ -20,10 +20,10 @@ import osrsps.game.trail.TreasureTrails
 
 /**
  * Treasure Trails against the real cache, which the headless tests (no cache) can't check: the clue helper tables load
- * into every step the Wiki lists, the Misthalin dig, talk, search, emote and fight steps built so far (TT1, TT3, TT4,
- * TT7) are the ones the plan counted (Treasure Trails plan, 19 Nov 2026, from the same tables), every built map has its
- * interface, every clue scroll item is read, and Misthalin's STASH units (TT5) are the Wiki's, each a Build and Search
- * multiloc.
+ * into every step the Wiki lists, the Misthalin dig, talk, search, emote, fight and hot-cold steps built so far (TT1,
+ * TT3, TT4, TT7, TT8) are the ones the plan counted (Treasure Trails plan, 19 Nov 2026, from the same tables), every
+ * built map has its interface, every clue scroll item is read, and Misthalin's STASH units (TT5) are the Wiki's, each a
+ * Build and Search multiloc.
  *
  * Needs OSRSPS_FLATCACHE: a checkout of github.com/abextm/osrs-cache at the server's revision.
  */
@@ -45,11 +45,12 @@ class TrailCacheAuditTest {
 
         val built = TrailTier.entries.associateWith { tier -> data.tier(tier).filter { step -> TreasureTrails.built(step) }.map { it.key }.sorted() }
         assertEquals(mapOf(
-            TrailTier.BEGINNER to 18, TrailTier.EASY to 51, TrailTier.MEDIUM to 24, TrailTier.HARD to 23, TrailTier.ELITE to 3, TrailTier.MASTER to 3,
+            TrailTier.BEGINNER to 21, TrailTier.EASY to 51, TrailTier.MEDIUM to 24, TrailTier.HARD to 23, TrailTier.ELITE to 3, TrailTier.MASTER to 9,
         ), built.mapValues { it.value.size }, built.toString())
 
-        // The fights inside Misthalin: a Saradomin wizard (hard coordinate) and the hard and master double agents.
-        assertEquals(setOf(2955, 1778, 7312), data.steps.values.filter(TreasureTrails::built).flatMap { it.combatNpcs }.toSet())
+        // The fights inside Misthalin: a Saradomin wizard (hard coordinate), the hard and master double agents, and the
+        // Brassican Mage of the master hot-cold steps.
+        assertEquals(setOf(2955, 1778, 7312, 7310), data.steps.values.filter(TreasureTrails::built).flatMap { it.combatNpcs }.toSet())
 
         val problems = ArrayList<String>()
         for (step in data.steps.values) {
@@ -57,7 +58,7 @@ class TrailCacheAuditTest {
             if (step.type == StepType.MAP) {
                 val map = if (step.tier == TrailTier.BEGINNER) TreasureTrails.BEGINNER_MAPS[step.id] else step.items.firstNotNullOfOrNull { TreasureTrails.MAPS[it] }
                 if (map == null) problems += "$step: no map interface"
-            } else if (step.text.isNullOrBlank()) {
+            } else if (step.text.isNullOrBlank() && step.type != StepType.HOT_COLD) {
                 problems += "$step: no text"
             }
             for (item in step.items) if (objs[item]?.iop(1) != "Read") problems += "$step: item $item isn't read"
