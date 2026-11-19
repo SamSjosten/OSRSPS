@@ -100,14 +100,17 @@ class HeadlessCollectionLogWindowTest {
                 client.await("the first search's results") { transmits().takeIf { it == 2 } }
                 client.awaitTicks(1)
 
-                // The clock stopped, so the ten clicks are held and all run in the one stepped tick however slow the
-                // machine: one search's worth, not ten (exploit review 44, R44B-4).
+                // The clock stopped, so the clicks are held and all run in the one stepped tick however slow the
+                // machine: one search's worth, not five (exploit review 44, R44B-4). Five, and a command answered
+                // before the step, keep the burst and the ::step under RSProt's per-cycle limit on user events, so the
+                // ::step isn't held back to a later cycle than the clicks.
                 client.commandReply("pause") { it.startsWith("Paused") }
-                repeat(10) { client.ifButton(CollectionLogWindow.LOG, CollectionLogWindow.SEARCHBAR, 1) }
+                repeat(5) { client.ifButton(CollectionLogWindow.LOG, CollectionLogWindow.SEARCHBAR, 1) }
+                client.commandReply("pause") { it.startsWith("Already paused") }
                 client.stepTicks(1)
                 client.await("the burst's results") { transmits().takeIf { it >= 4 } }
                 client.stepTicks(1)
-                assertEquals(4, transmits(), "ten clicks in one tick search once")
+                assertEquals(4, transmits(), "five clicks in one tick search once")
 
                 // Another op on the search toggle sends nothing.
                 client.ifButton(CollectionLogWindow.LOG, CollectionLogWindow.SEARCH_TOGGLE, 2)
