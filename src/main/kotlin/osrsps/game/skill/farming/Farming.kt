@@ -672,8 +672,10 @@ class Farming(private val world: World, private val clock: () -> Long, private v
             player.inventory[slot] = InvObj(Trees.POT_EMPTY, 1)
             world.message(player, FarmingLines.SAPLING_PLANTED, "sapling" to seedName, "patch" to name)
         } else {
-            Making.removeObj(player.inventory, crop.seed, seeds)
-            world.message(player, FarmingLines.PLANTED, "count" to seeds, "seeds" to seedName, "patch" to name)
+            // An amulet of bounty may save two of an allotment's three seeds.
+            val used = if (crop.kind == PatchKind.ALLOTMENT) world.jewelleryEffects.allotmentSeeds(player, seeds) else seeds
+            Making.removeObj(player.inventory, crop.seed, used)
+            world.message(player, FarmingLines.PLANTED, "count" to used, "seeds" to seedName, "patch" to name)
         }
         refresh(player)
     }
