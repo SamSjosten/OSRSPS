@@ -46,6 +46,7 @@ import osrsps.game.skill.LevelUpLines
 import osrsps.game.skill.MakeLines
 import osrsps.game.skill.magic.BoltEnchantLines
 import osrsps.game.skill.MiningLines
+import osrsps.game.skill.ShootingStarLines
 import osrsps.game.skill.PickpocketGearLines
 import osrsps.game.skill.PickpocketLines
 import osrsps.game.skill.RunecraftLines
@@ -407,6 +408,7 @@ object DialogueLines {
         ShopAssistantLines,
         ShopKeeperLines,
         ShopLines,
+        ShootingStarLines,
         SigurdLines,
         SilkTraderLines,
         SlayerLines,
