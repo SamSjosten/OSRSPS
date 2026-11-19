@@ -1292,7 +1292,10 @@
     {"npcs": ["tbwcu_mosquito_single"], "always": [{"item": 6319, "name": "Proboscis"}], "source": "OSRS Wiki, Large mosquito, read 2026-11-19 (Karamja step K4.2b, the Cleanup's event creature): a proboscis always"},
     {"npcs": ["tbwcu_mosquito_swarm3"], "always": [{"item": 6319, "name": "Proboscis", "count": 3}], "source": "OSRS Wiki, Mosquito swarm, read 2026-11-19 (Karamja step K4.2b, the Cleanup's event creature): the level 17 swarm: 3 proboscises always"},
     {"npcs": ["tbwcu_mosquito_swarm5"], "always": [{"item": 6319, "name": "Proboscis", "count": 5}], "source": "OSRS Wiki, Mosquito swarm, read 2026-11-19 (Karamja step K4.2b, the Cleanup's event creature): the level 20 swarm: 5 proboscises always"},
-    {"npcs": ["tbwcu_tribesman"], "always": [{"item": 526, "name": "Bones"}], "source": "OSRS Wiki, Tribesman, read 2026-11-19 (Karamja step K4.2b, the Cleanup's event creature): bones only (\"Tribesmen encountered in Tai Bwo Wannai Cleanup only drop bones\")"}
+    {"npcs": ["tbwcu_tribesman"], "always": [{"item": 526, "name": "Bones"}], "source": "OSRS Wiki, Tribesman, read 2026-11-19 (Karamja step K4.2b, the Cleanup's event creature): bones only (\"Tribesmen encountered in Tai Bwo Wannai Cleanup only drop bones\")"},
+    {"npcs": ["tbwcu_broodoo_combat"], "always": [{"item": 6339, "name": "Tribal mask"}], "source": "OSRS Wiki, Broodoo victim, read 2026-11-19 (Karamja step K4.2c): the white victim always drops the mask it wears, tribal mask (combat)"},
+    {"npcs": ["tbwcu_broodoo_poison"], "always": [{"item": 6335, "name": "Tribal mask"}], "source": "OSRS Wiki, Broodoo victim, read 2026-11-19 (Karamja step K4.2c): the green victim always drops the mask it wears, tribal mask (poison)"},
+    {"npcs": ["tbwcu_broodoo_disease"], "always": [{"item": 6337, "name": "Tribal mask"}], "source": "OSRS Wiki, Broodoo victim, read 2026-11-19 (Karamja step K4.2c): the yellow victim always drops the mask it wears, tribal mask (disease)"}
   ],
   "chests": {
     "scurrius_non_mvp": {"always": [{"item": 532, "name": "Big bones"}], "table": {"slots": 33, "lines": [

@@ -30,13 +30,14 @@ object TaiBwoEventLines : Lines("tbw_event", "Gout tuber; Tai Bwo Wannai Cleanup
  * - **Which event.** First the gout tuber, 1/100 at Woodcutting 10 to 1/33 at 99, in between linearly ([tuberChance]);
  *   if that misses, the table out of 99 ([TABLE]): jungle spider 22, tribesman 21, bush snake 21, large mosquito 8, the
  *   level 17 swarm 7, the level 20 swarm 6, a gem rock 5 and the three Broodoo victims 4, 3 and 2 (food, poison and
- *   disease, built in K4.2c: until then they fall through to no event).
+ *   disease; [TaiBwoBroodoo], step K4.2c).
  * - **The tuber.** The jungle becomes the Gout Tuber Plant (9033) for 10 minutes, the finder's alone while they stay
  *   logged in; a spade on it gives the gout tuber (6311). Someone else's is refused ([TaiBwoEventLines.NOT_YOURS]),
  *   and so is a dig with a full backpack, the plant left for later.
  * - **The gem rock** (9030, then 9031 and 9032): Mining 40, three gems from the gem rock table at 65 XP each, then gone.
- * - **The creatures** (6271, 6103, 6272, 6273, 6402, 6407) come out beside the player and attack them; killing one gives
- *   its favour to whoever killed it ([Creature.favour]: 1%, or 1 to 2% for the spider and the tribesman). Wild jungle
+ * - **The creatures** (6271, 6103, 6272, 6273, 6402, 6407, and the victims 6413, 6409, 6411) come out beside the player
+ *   and attack them; killing one gives its favour to whoever killed it ([Creature.favourLow] to [Creature.favourHigh]:
+ *   1%, 1 to 2% for the spider and the tribesman, 3% for a Broodoo victim, the Wiki's "~3%"). Wild jungle
  *   spiders (3020) give the spider's too, once the killer has had Murcaily's first trading sticks.
  *
  * Guessed: an event ends the hack (the jungle's tile changes, or something attacks); the creature comes out on the
@@ -77,21 +78,23 @@ object TaiBwoEvents {
         MOSQUITO(6272, 8, 10, 10, -1),
         SWARM_3(6273, 7, 10, 10, -1),
         SWARM_5(6402, 6, 10, 10, -1),
+
+        /** The Broodoo victims ([TaiBwoBroodoo]): white (food), green (poison cures) and yellow (disease cures). */
+        BROODOO_FOOD(6413, 4, 30, 30, -1),
+        BROODOO_POISON(6409, 3, 30, 30, -1),
+        BROODOO_DISEASE(6411, 2, 30, 30, -1),
     }
 
     sealed interface Event {
         data object Tuber : Event
         data object GemRock : Event
         data class Monster(val creature: Creature) : Event
-
-        /** A Broodoo victim, for K4.2c: no event yet. */
-        data class Broodoo(val weight: Int) : Event
     }
 
     /** The table rolled when the tuber misses, out of [TABLE_TOTAL]. */
-    val TABLE: List<Pair<Event, Int>> =
-        Creature.entries.map { Event.Monster(it) to it.weight } +
-            listOf(Event.GemRock to 5, Event.Broodoo(4) to 4, Event.Broodoo(3) to 3, Event.Broodoo(2) to 2)
+    val TABLE: List<Pair<Event, Int>> = Creature.entries.flatMap { creature ->
+        listOf(Event.Monster(creature) to creature.weight) + if (creature == Creature.SWARM_5) listOf(Event.GemRock to 5) else emptyList()
+    }
 
     /** The tuber's chance at Woodcutting [level], as a fraction: 1/100 at 10 to 1/33 at 99, linear between. */
     fun tuberChance(level: Int): Double {
@@ -172,7 +175,6 @@ object TaiBwoEvents {
                 rock != null
             }
             is Event.Monster -> spawn(world, player, event.creature)
-            is Event.Broodoo -> false
         }
 
     private fun spawn(world: World, player: Player, creature: Creature): Boolean {
@@ -278,6 +280,7 @@ object TaiBwoEvents {
     }
 
     fun register(world: World) {
+        TaiBwoBroodoo.register(world)
         world.handlers.onObjOnLoc(TUBER_PLANT, SPADE) { op -> dig(world, op.loc!!) }
         for (id in GEM_ROCKS) world.mining.onGemRock(id) { _, loc -> mined(world, loc) }
         for (creature in Creature.entries) {

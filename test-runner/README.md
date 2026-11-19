@@ -155,6 +155,8 @@ between scripts then shows the words a player sees, not `[key]`.
 
 `tai-bwo-wannai-events.json` (Karamja step K4.2b, for test on 215: Woodcutting and Mining 99, a machete, a spade and a rune pickaxe, then `::tbwevent` before each hack south of the village (light jungle 9010 at 2770,3061, 2768,3061 and 2766,3061): the gout tuber plant (9033) dug for a gout tuber, the gem rock (9030 to 9032) mined three times, and a jungle spider killed under `::god` for its carcass) needs 0.5.0 for `assertGroundItem` (and `useItemOnLoc`).
 
+`tai-bwo-wannai-broodoo.json` (Karamja step K4.2c, for test on 215: under `::god`, `::tbwevent broodoo_poison` before a hack on the light jungle at 2770,3061 and `::kill` on the green Broodoo victim (6409) for its tribal mask; the runner has no step for using an item on an NPC, so the weakness items are only the headless test's) needs 0.5.0 for `assertGroundItem`.
+
 `combat-respawn.json` (a castle man and a cow killed with `::kill`, still listed by `::respawns` until their Wiki
 respawn times of 25 and 45 ticks are up) needs 0.5.0.
 
