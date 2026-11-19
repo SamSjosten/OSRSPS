@@ -523,6 +523,8 @@ class Clans(
     private fun admitted(clan: ClanStore.Clan, player: Player) {
         if (listening[player.saveKey] == clan.id) discard(player)
         setVarbit(player, VARBIT_AFFINITY, AFFINITY_CONNECTED)
+        // Cloaks and vexilla kept from another clan take this one's colour at once, not at the next login.
+        recolour(player, colour(clan))
         sendSettings(clan)
         joinChannel(player, clan)
         showRecruit(player)

@@ -218,6 +218,24 @@ class HeadlessClanHubTest {
     }
 
     @Test
+    fun `joining a clan turns the cloak and vexillum already held to its colour`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                alice.ready()
+                alice.commandReply("clanmake Red Gate") { it.startsWith("Clan") }
+                server.world.clans.clanNamed("Red Gate")!!.settings[Clans.VAR_MOTIF] = 4 shl 20
+                alice.commandReply("item ${ClanHub.CLOAKS[2]}") { true }
+                alice.commandReply("item ${ClanHub.VEXILLA[2]}") { true }
+                alice.await("the blue items") { Unit.takeIf { alice.count(ClanHub.CLOAKS[2]) == 1 && alice.count(ClanHub.VEXILLA[2]) == 1 } }
+                alice.commandReply("clanjoin Red Gate") { it.startsWith("Joined") }
+                alice.await("the cloak and vexillum turned red") {
+                    Unit.takeIf { alice.count(ClanHub.CLOAKS[3]) == 1 && alice.count(ClanHub.VEXILLA[3]) == 1 && alice.count(ClanHub.CLOAKS[2]) == 0 }
+                }
+            }
+        }
+    }
+
+    @Test
     fun `a member below the Icons permission gets no Icon customisation`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bob").use { bob ->
