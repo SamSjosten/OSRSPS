@@ -330,10 +330,10 @@ class Agility(private val world: World, val data: AgilityData) {
             SuccessRoll.roll(world.random, low, high, player.skills.currentLevel(Skill.AGILITY))
         } ?: true
         for (move in if (success) route.moves else route.fail) play(move)
+        world.diaries.obstacle(player, obstacle.key, success)
         if (success) {
             // Most shortcuts give no XP, and no XP drop either.
             if (obstacle.xpTenths > 0) player.skills.addTenths(Skill.AGILITY, obstacle.xpTenths)
-            world.diaries.obstacle(player, obstacle.key)
             crossed(obstacle)
         } else {
             if (obstacle.failXpTenths > 0) player.skills.addTenths(Skill.AGILITY, obstacle.failXpTenths)

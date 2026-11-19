@@ -693,7 +693,7 @@ class World(
         words = ::textFor,
     )
 
-    private val equipmentTab = EquipmentTab(equipment, objTypes, scripts, inventoryTab, interfaces::openModal, spells = spells, words = ::textFor)
+    private val equipmentTab = EquipmentTab(equipment, objTypes, scripts, inventoryTab, interfaces::openModal, spells = spells, words = ::textFor, worn = { player, obj -> diaries.worn(player, obj) })
 
     private val interactions = Interactions(words = ::textFor)
 

@@ -297,8 +297,12 @@ class Diaries(private val world: World, private val font: ChatFont) {
     }
 
     /** An agility obstacle or shortcut crossed, by its key in agility.json. */
-    fun obstacle(player: Player, key: String) {
-        if (key == DiaryHooks.VARROCK_FENCE) complete(player, DiaryTask.VARROCK_EASY_6)
+    fun obstacle(player: Player, key: String, success: Boolean) {
+        when (key) {
+            DiaryHooks.VARROCK_FENCE -> if (success) complete(player, DiaryTask.VARROCK_EASY_6)
+            // Inferred: a failed squeeze still comes out the far end (with damage), so it counts too.
+            DiaryHooks.EDGEVILLE_PIPE -> complete(player, DiaryTask.VARROCK_HARD_10)
+        }
     }
 
     /**
@@ -320,6 +324,19 @@ class Diaries(private val world: World, private val font: ChatFont) {
     /** A shop opened, by its key in shops.json. */
     fun shopOpened(player: Player, key: String) {
         if (key == DiaryHooks.THESSALIA_SHOP) complete(player, DiaryTask.VARROCK_EASY_1)
+    }
+
+    /**
+     * A spottier cape bought from Asyff for furs: marked, so wearing one afterwards does "trade furs for a spottier cape
+     * and wear it". Inferred: the buying marks it once, and any spottier cape worn after counts.
+     */
+    fun boughtSpottierCape(player: Player) {
+        player.charges[SPOTTIER_BOUGHT_CHARGE] = 1
+    }
+
+    /** An item worn from the inventory. */
+    fun worn(player: Player, obj: Int) {
+        if (obj == DiaryHooks.SPOTTIER_CAPE && player.charges[SPOTTIER_BOUGHT_CHARGE] > 0) complete(player, DiaryTask.VARROCK_HARD_1)
     }
 
     /** A lap of the course whose lap message is [lapLine]. */
@@ -483,6 +500,7 @@ class Diaries(private val world: World, private val font: ChatFont) {
         /** The Stronghold of Security's emotes in the emote tab, and the charge that remembers which are done. */
         val SOS_EMOTES = 28..31
         const val SOS_EMOTES_CHARGE = "diary_sos_emotes"
+        const val SPOTTIER_BOUGHT_CHARGE = "diary_spottier_bought"
 
         /** The free spaces a claim needs: the reward and its lamp (Toby's transcript). */
         const val CLAIM_SPACE = 2

@@ -922,7 +922,11 @@ class Farming(private val world: World, private val clock: () -> Long, private v
             val level = player.skills.currentLevel(Skill.FARMING)
             // A fruit tree's stump has no roots and always comes up (guessed).
             if (info.roots == 0 || SuccessRoll.roll(world.random, STUMP_LOW, STUMP_HIGH, level)) {
-                if (info.roots != 0) giveOrDrop(info.roots, Trees.roots(crop, level))
+                if (info.roots != 0) {
+                    val roots = Trees.roots(crop, level)
+                    giveOrDrop(info.roots, roots)
+                    world.diaries.made(player, info.roots, roots)
+                }
                 world.message(player, FarmingLines.STUMP_CLEARED)
                 state.clear()
                 refresh(player)

@@ -224,6 +224,7 @@ class Canoes(private val world: World, private val woodcutting: WoodcuttingData)
                 setState(player, station, type.number)
                 if (player.vars.types.varbit(VARBIT_CANOE_TYPE) != null) player.vars.setVarbit(VARBIT_CANOE_TYPE, type.number)
                 player.skills.addTenths(Skill.WOODCUTTING, type.xpTenths)
+                if (type == CanoeType.WAKA && station == CanoeStation.EDGEVILLE) world.diaries.complete(player, DiaryTask.VARROCK_HARD_3)
                 return
             }
         }

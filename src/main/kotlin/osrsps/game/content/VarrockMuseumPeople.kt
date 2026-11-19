@@ -449,7 +449,11 @@ object VarrockMuseumPeople {
                 world.dialogues.start(this, op.npc) { adventurer(talk) }
             }
         }
-        world.handlers.onNpc(ORLANDO_SMITH, TALK_TO) { op -> world.dialogues.start(this, op.npc) { orlando(world) } }
+        world.handlers.onNpc(ORLANDO_SMITH, TALK_TO) { op ->
+            // "Speak to Orlando Smith when you have achieved 153 Kudos": on the talk, whatever he says.
+            if (Kudos.total(player) >= DiaryHooks.ORLANDO_KUDOS) world.diaries.complete(player, DiaryTask.VARROCK_HARD_2)
+            world.dialogues.start(this, op.npc) { orlando(world) }
+        }
         for (section in LECTURES.keys) {
             world.handlers.onNpc(section, TALK_TO) { op ->
                 val firstTime = !metHistorian(player)
