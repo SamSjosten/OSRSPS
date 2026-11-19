@@ -99,6 +99,9 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
         /** 1 while `::randomevent off` holds events back for the account. */
         const val OFF = "random_events_off"
 
+        /** The charges that are the account's, not its loadout's: a scenario keeps them. */
+        val ACCOUNT_CHARGES = listOf(DUE, OFF)
+
         /** The tiles beside a player the NPC may appear on, in the order tried. */
         private val AROUND = listOf(-1 to 0, 1 to 0, 0 to -1, 0 to 1, -1 to -1, 1 to -1, -1 to 1, 1 to 1)
     }
@@ -254,37 +257,39 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
                 continue
             }
             val far = owner.level != it.npc.level || maxOf(abs(owner.x - it.npc.x), abs(owner.z - it.npc.z)) > CATCH_UP
-            if (far && !catchUp(it, owner)) {
+            // Changing level puts a new NPC, with its own entry, in its place: the timers carry on with that.
+            val current = if (far) catchUp(it, owner) else it
+            if (current == null) {
                 remove(it)
                 continue
             }
             when {
-                tick - it.since >= LINGER_TICKS -> leave(it, owner)
-                tick >= it.nextNag -> {
-                    say(it, owner, it.event.nags[world.random.nextInt(it.event.nags.size)])
-                    it.nextNag = tick + NAG_TICKS
+                tick - current.since >= LINGER_TICKS -> leave(current, owner)
+                tick >= current.nextNag -> {
+                    say(current, owner, current.event.nags[world.random.nextInt(current.event.nags.size)])
+                    current.nextNag = tick + NAG_TICKS
                 }
             }
         }
     }
 
-    /** Puts [it]'s NPC beside [owner] again; false when no tile there is free. */
-    private fun catchUp(it: Out, owner: Player): Boolean {
-        val (x, z) = freeTileBeside(owner, it.npc.type.size) ?: return false
+    /** Puts [it]'s NPC beside [owner] again and returns its entry (a new one after a change of level); null when no tile there is free. */
+    private fun catchUp(it: Out, owner: Player): Out? {
+        val (x, z) = freeTileBeside(owner, it.npc.type.size) ?: return null
         if (it.npc.level != owner.level) {
             // An NPC can't change level in place: a fresh one takes its place beside the player.
             val type = it.npc.type
-            val npc = world.spawnNpc(NpcSpawn(type, x, z, owner.level, source = it.npc.spawn.source, respawns = false)) ?: return false
+            val npc = world.spawnNpc(NpcSpawn(type, x, z, owner.level, source = it.npc.spawn.source, respawns = false)) ?: return null
             val moved = Out(it.owner, it.event, npc, it.since).also { m -> m.nextNag = it.nextNag }
             out.remove(it.npc)
             world.removeNpc(it.npc)
             out[npc] = moved
             world.npcs.follow(npc, owner)
-            return true
+            return moved
         }
         world.npcs.teleport(it.npc, x, z)
         world.npcs.follow(it.npc, owner)
-        return true
+        return it
     }
 
     /** [it] gives up: its leaving line, then it goes. */

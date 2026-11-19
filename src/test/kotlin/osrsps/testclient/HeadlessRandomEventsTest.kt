@@ -12,6 +12,8 @@ import osrsps.game.NpcType
 import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
+import osrsps.game.Scenario
+import osrsps.game.Scenarios
 import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.content.XpLamp
@@ -69,6 +71,7 @@ class HeadlessRandomEventsTest {
             npcTypes = NpcTypes.of(genie, tester), objTypes = ObjTypes.of(lamp),
             locTypes = LocTypes(mapOf(BOOTH to booth)),
             staticLocs = StaticLocs().apply { add(ZoneLoc(BOOTH, LocShape.CENTREPIECE_STRAIGHT, 0, 3230, 3218, 0)) },
+            scenarios = Scenarios(listOf(Scenario.parse("bare", """{ "position": { "x": 3222, "z": 3218 } }"""))),
             randomEventClock = clock::get, cycleMillis = millis,
         ).also { it.randomEvents.register(Tester) }
     }
@@ -173,8 +176,12 @@ class HeadlessRandomEventsTest {
                 val now = (START_MILLIS / 60_000).toInt()
                 assertTrue(due in now + RandomEvents.DUE_MIN_MINUTES..now + RandomEvents.DUE_MAX_MINUTES, "due $due, now $now")
 
-                // Off holds it back, however due.
+                // Off holds it back, however due, and a scenario keeps both the timer and the switch.
                 client.commandReply("randomevent off") { it == "Random events off" }
+                client.command("scenario bare")
+                client.await("the scenario") { player.scenario?.takeIf { it == "bare" } }
+                assertTrue(server.world.randomEvents.isOff(player))
+                assertEquals(due, player.charges[RandomEvents.DUE])
                 clock.set(START_MILLIS + 121 * 60_000L)
                 client.command("randomevent now")
                 client.await("500 ticks", timeoutMillis = 30_000) { if (player.playedTicks > 520) Unit else null }
