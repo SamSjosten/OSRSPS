@@ -92,6 +92,9 @@ class InfernoMonsters(private val world: World) {
             inReach -> world.npcs.stopFollowing(npc)
             shoots && world.meleeCombat.inShot(npc, player) -> world.npcs.stopFollowing(npc)
             else -> {
+                // Out of shot, a Jal-Ak's read goes stale: back in shot, it reads afresh 3 ticks before it attacks
+                // (Codex review on #833).
+                blobStyles.remove(npc)
                 if (npc.following !== player) world.npcs.follow(npc, player)
                 return
             }
