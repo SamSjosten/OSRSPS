@@ -270,6 +270,7 @@ object DialogueLines {
         LodestoneLines,
         LootLines,
         osrsps.game.collection.CollectionLogLines,
+        osrsps.game.collection.CollectorLines,
         LouieLegsLines,
         LoweLines,
         LucienLines,

@@ -1,0 +1,120 @@
+{
+ "name": "Collection log step 3: Get-log on The Collector in the Varrock Museum hands over a collection log, whose Read and Collections overview open the log and its overview; Claim-log-rewards with nothing logged counts and has no staff to give; Create-book on a bronze staff makes its book (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::empty"
+  },
+  {
+   "step": "command",
+   "text": "::clog reset",
+   "expectMessage": "Collection log emptied."
+  },
+  {
+   "step": "command",
+   "text": "::tele 3265 3453 0",
+   "comment": "the museum's ground floor, by The Collector (3265, 3455)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "npcOption",
+   "npc": "The Collector",
+   "option": "Get-log"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[collector.gives_log]"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 22711,
+   "count": 1
+  },
+  {
+   "step": "finishDialogue"
+  },
+  {
+   "step": "npcOption",
+   "npc": "The Collector",
+   "option": "Get-log"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[collector.have_one]",
+   "comment": "one carried already"
+  },
+  {
+   "step": "finishDialogue"
+  },
+  {
+   "step": "itemOption",
+   "itemId": 22711,
+   "option": "Read"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 621,
+   "comment": "collection"
+  },
+  {
+   "step": "itemOption",
+   "itemId": 22711,
+   "option": "Collections overview"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 908,
+   "comment": "collection_overview"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 908,
+   "component": 9,
+   "comment": "close"
+  },
+  {
+   "step": "npcOption",
+   "npc": "The Collector",
+   "option": "Claim-log-rewards"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[collector.count_please]"
+  },
+  {
+   "step": "finishDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::item 30597",
+   "comment": "a bronze staff of collection"
+  },
+  {
+   "step": "itemOption",
+   "itemId": 30597,
+   "option": "Create-book"
+  },
+  {
+   "step": "assertInventory",
+   "itemId": 30579,
+   "count": 1,
+   "comment": "the bronze collection log"
+  },
+  {
+   "step": "command",
+   "text": "::empty"
+  }
+ ]
+}
