@@ -1,0 +1,24 @@
+{
+  "name": "Fight Caves step FC3: ::fightcave 63 putting TzTok-Jad in, his healers coming below 150 hitpoints, and his death ending the run with the fire cape, the healers gone (::keys on, ::god on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off)."},
+    {"step": "command", "text": "::empty", "comment": "room for the cape and the Tokkul"},
+    {"step": "command", "text": "::fightcave 63 1", "expectMessage": "Fight cave: wave 63 of rotation 1"},
+    {"step": "assertMessage", "contains": "[fight_cave.wave wave=63]", "timeoutMs": 15000},
+    {"step": "assertHitsplat", "self": true, "amount": 0, "timeoutMs": 60000, "comment": "one of his attacks, a 0 under ::god"},
+    {"step": "command", "text": "::hit 110 TzTok-Jad", "expectMessage": "Hit TzTok-Jad"},
+    {"step": "waitTicks", "ticks": 2},
+    {"step": "command", "text": "::fightcave status", "expectMessage": "Wave 63, rotation 1: 5 alive", "comment": "Jad and his four Yt-HurKots"},
+    {"step": "command", "text": "::kill TzTok-Jad", "expectMessage": "Killed TzTok-Jad #"},
+    {"step": "assertLocation", "x": 2438, "y": 5168, "plane": 0, "timeoutMs": 30000},
+    {"step": "assertInventory", "itemId": 6570, "count": 1},
+    {"step": "assertInventory", "itemId": 6529, "count": 8032},
+    {"step": "assertDialogue", "contains": "[fight_cave.victorious]", "speaker": "TzHaar-Mej-Jal"},
+    {"step": "finishDialogue"},
+    {"step": "command", "text": "::empty"},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
+  ]
+}
