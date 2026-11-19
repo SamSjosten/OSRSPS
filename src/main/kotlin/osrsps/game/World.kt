@@ -52,6 +52,7 @@ import osrsps.game.command.registerNpcCommands
 import osrsps.game.command.registerScenarioCommands
 import osrsps.game.command.registerScriptCommands
 import osrsps.game.command.registerSeedCommands
+import osrsps.game.command.registerShootingStarCommands
 import osrsps.game.command.registerSkillCommands
 import osrsps.game.command.registerSocialCommands
 import osrsps.game.command.registerLodestoneCommands
@@ -256,6 +257,7 @@ import osrsps.game.skill.FletchingData
 import osrsps.game.skill.Herblore
 import osrsps.game.skill.HerbloreData
 import osrsps.game.skill.Mining
+import osrsps.game.skill.ShootingStars
 import osrsps.game.skill.Pickpocketing
 import osrsps.game.skill.Agility
 import osrsps.game.skill.AgilityData
@@ -401,6 +403,8 @@ class World(
     agilityData: AgilityData = AgilityData.load(),
     /** Slayer's tasks, masters and rewards, from the cache ([osrsps.cache.SlayerLoader]); tests that slay pass their own. */
     slayerData: SlayerData = SlayerData.NONE,
+    /** Whether shooting stars land on their own ([ShootingStars]); tests land theirs with `::star land`. */
+    starCycle: Boolean = false,
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
 ) : GameConnectionHandler<Player> {
@@ -913,6 +917,9 @@ class World(
     val hunter = osrsps.game.skill.hunter.Hunter(this, collision)
 
     val mining = Mining(this)
+
+    /** Shooting stars: the one star on the world, its landings and mining it; see [ShootingStars]. */
+    val shootingStars = ShootingStars(this, running = starCycle)
     val thieving = Thieving(this, collision)
     val manorHazards = ManorHazards(this)
     val swampCavesHazards = SwampCavesHazards(this)
@@ -1004,6 +1011,7 @@ class World(
         registerFarmingCommands(this@World)
         registerSlayerCommands(this@World)
         registerSeedCommands(this@World)
+        registerShootingStarCommands(this@World)
         registerScriptCommands(this@World)
         registerZoneCommands(this@World, collision)
         registerInstanceCommands(this@World)
@@ -1141,6 +1149,7 @@ class World(
         hunter.register()
         LightSources.register(this)
         mining.register()
+        shootingStars.register()
         thieving.register()
         pickpocketing.register()
         agility.register()
@@ -1521,6 +1530,7 @@ class World(
         // After NPCs move, so a creature that steps onto a trap is rolled for the tick it arrives.
         hunter.arrivals()
         fishing.process()
+        shootingStars.process(tick)
         shopScreen.restock(tick)
         phase = TickPhase.SCRIPTS
         for (player in players) {
