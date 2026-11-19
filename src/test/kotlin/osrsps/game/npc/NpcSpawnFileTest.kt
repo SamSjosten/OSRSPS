@@ -929,7 +929,7 @@ class NpcSpawnFileTest {
             1906 to "vm_archaeologist4_npc_dummy", 1907 to "vm_archaeologist5_npc_dummy", 1908 to "vm_archaeologist6_npc_dummy",
             1901 to "vm_art_critic", 1902 to "vm_timeline_historian", 1913 to "vm_school_teacher_male_and_boy",
             1914 to "vm_school_girl_brunette", 1919 to "vm_school_boy_brunnete", 1920 to "vm_school_boy_blonde",
-            1921 to "vm_school_girl_blonde", 1922 to "vm_teacher_girl_multi", 6001 to "vm_nathis_apprentice",
+            1921 to "vm_school_girl_blonde", 8491 to "vm_collector", 1922 to "vm_teacher_girl_multi", 6001 to "vm_nathis_apprentice",
             6002 to "vm_natural_historian_north", 6003 to "vm_natural_historian_south", 6004 to "vm_natural_historian_east",
             6005 to "vm_natural_historian_west", 6019 to "vm_advent_01", 6020 to "vm_advent_02",
             6007 to "vm_natural_history_display_case_leech", 6008 to "vm_natural_history_display_case_seaslugs",
@@ -1015,6 +1015,9 @@ class NpcSpawnFileTest {
         assertTrue(museum.all { it.x in 3252..3267 && it.z in 3441..3456 })
         val museumStill = museum.filter { it.type.id != 5214 }
         assertTrue(museumStill.all { it.wander == 0 })
+        // Collection log step 3: The Collector by the museum's stairs (mejrs).
+        val collector = spawns.single { it.type.id == 8491 }
+        assertEquals(listOf(3265, 3455, 0, 0), listOf(collector.x, collector.z, collector.level, collector.wander))
         // Kudos step 1: the cleaning area's six archaeologists, standing at their tables.
         val archaeologists = spawns.filter { it.type.id in 1903..1908 }
         assertEquals((1903..1908).toList(), archaeologists.map { it.type.id }.sorted())
@@ -1050,7 +1053,7 @@ class NpcSpawnFileTest {
         // sweep's sick Guidor, the sleeping Jeremy Clerksin and BigRedJapan on the rooftops.
         val still = spawns.filter { it.type.id in listOf(16811, 1110, 5042, 5921) }.toSet()
         assertEquals(4, still.size)
-        assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - museumStill.toSet() - archaeologists.toSet() - displays.toSet() - elsie - iffie - still).all { it.wander > 0 })
+        assertTrue((spawns - bankers.toSet() - exchange.toSet() - trainees.toSet() - museumStill.toSet() - archaeologists.toSet() - displays.toSet() - elsie - iffie - still - collector).all { it.wander > 0 })
     }
 
     @Test
