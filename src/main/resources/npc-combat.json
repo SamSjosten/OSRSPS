@@ -2,6 +2,18 @@
   "about": "What NPCs fight with beyond the levels in their cache types. Speeds, max hits, attack styles, bonuses and respawn times are the OSRS Wiki infoboxes' (read 2026-10-26), cross-checked with the Wiki's DPS calculator data (weirdgloop/osrs-dps-calc monsters.json). Animations are gameval names: attack and death are the NPC's own by name; which of an NPC's block or def animations it defends with is guessed.",
   "npcs": [
     {
+      "npcs": ["sourhog"],
+      "attackSpeed": 5, "maxHit": 4, "attackType": "crush", "attackBonus": 0, "strengthBonus": 0,
+      "defence": { "stab": 0, "slash": 30, "crush": 10, "magic": 30, "light": 0, "standard": 0, "heavy": 0 },
+      "anims": { "attack": "sourhog_attack_melee", "defend": null, "death": "sourhog_death" },
+      "respawnTicks": 15,
+      "aggressive": { "ignoresLevels": true },
+      "slayerLevel": 1,
+      "spell": { "type": "ranged", "anim": "sourhog_attack_ranged", "projectile": 1817, "impact": 1818, "maxHit": 6, "chance": 3 },
+      "blinds": { "protection": [24942, 11864, 11865, 25177, 26674], "min": 20, "max": 30, "drainPercent": 90, "skills": ["attack", "defence"] },
+      "source": "OSRS Wiki, Sourhog (id 10435), read 2026-11-19: speed 5, max hit 6 (inferred as the spit's, from its Ranged 35 and ranged strength 20), crush and ranged, no attack or strength bonuses, the defences, respawn 15, aggressive whatever the player's level (post-quest step 8, SourhogCave.kt). Its spit without reinforced goggles or a Slayer helmet worn hits 20 to 30 and drains Attack and Defence 90% (the Wiki), verified. Animations and spotanims by name from the 242 cache (sourhog_attack_melee, _attack_ranged, _death; sourhog_spit_travel 1817, _impact 1818); it has no block animation. INFERRED: the crush's max hit of 4, the formula's from its Strength of 30 and no bonus. GUESSED: a spit one turn in 3 in melee reach, the accuracy roll still counting for the burn, and Protect from Missiles blocking it all. Left out: the overhead 'Argh! My eyes!' (players have no overhead text yet) and the recoloured Slayer helmets (not in)"
+    },
+    {
       "npcs": ["young_dark_wizard", "qip_ds_young_dark_wizard1", "qip_ds_young_dark_wizard2"],
       "attackSpeed": 4, "maxHit": 2, "attackType": "magic", "attackBonus": 0, "strengthBonus": 0,
       "range": 10,
