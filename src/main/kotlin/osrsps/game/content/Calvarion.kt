@@ -98,8 +98,6 @@ class SkeletalLord(val config: Config) {
     /** Whether [npc] is one of this lord's forms with a hound of his alive, so he takes nothing. */
     fun shielded(npc: Npc): Boolean = fights[npc]?.hounds?.any { !it.dead && !it.hidden } == true
 
-    fun enraged(npc: Npc): Boolean = fights[npc]?.enraged == true
-
     fun hounds(npc: Npc): List<Npc> = fights[npc]?.hounds.orEmpty()
 
     private fun EncounterContext.shout(lines: List<Line>) = boss.effects.say(world.dialogueText[lines[roll(0, lines.size - 1)]])
@@ -233,12 +231,14 @@ class SkeletalLord(val config: Config) {
         fight.houndsCalled = false
         strike(fight, ring)
         world.npcTypes[config.enraged]?.let { world.npcs.transform(boss, it, ENRAGED_TICKS) }
-        // The moment it runs out, at the start of a tick before its hits land, he is his normal form at full hitpoints
-        // and held at 0, so no hit that tick kills him (Codex review on #818); [calmDown] does the rest in his fight's tick.
+        // The moment it runs out, at the start of a tick before its hits land, he is his normal form at full hitpoints,
+        // held at 0 and at half for his hounds, so that tick's hits count against him (Codex review on #818);
+        // [calmDown] does the rest in his fight's tick without touching his hitpoints again.
         val lord = boss
         lord.transformEnded = {
             lord.hitpoints = lord.maxHitpoints
             lord.holdsAtZero = true
+            lord.holdsAt = lord.maxHitpoints / 2
             lord.transformEnded = null
         }
         boss.hitpoints = boss.maxHitpoints
@@ -247,13 +247,10 @@ class SkeletalLord(val config: Config) {
         log("enrages")
     }
 
-    /** Not killed within 5 minutes enraged: his normal form again, at full hitpoints. */
+    /** Not killed within 5 minutes enraged: his normal form again; its hitpoints were restored as the transformation ended. */
     private fun EncounterContext.calmDown(fight: Fight) {
         fight.enraged = false
         fight.houndsCalled = false
-        boss.hitpoints = boss.maxHitpoints
-        boss.holdsAtZero = true
-        holdForHounds()
         log("calms down")
     }
 

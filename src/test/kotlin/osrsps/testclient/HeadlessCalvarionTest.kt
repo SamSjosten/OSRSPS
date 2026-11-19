@@ -191,6 +191,37 @@ class HeadlessCalvarionTest {
     }
 
     @Test
+    fun `a hit landing as his enraged form runs out counts against his normal form`(@TempDir dir: Path) {
+        server(dir, seed = 3).use { server ->
+            server.login("ed").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.tele(Calvarion.SPAWN.x + 1, Calvarion.SPAWN.z - 4, Calvarion.TOMB_LEVEL)
+                val npc = server.world.npcs.all.first { it.type.id == Calvarion.BOSS }
+                client.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Calvar'ion") }
+                val fight = client.await("his fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
+                client.commandReply("hit 149 ${npc.index}") { it.startsWith("Hit Calvar'ion") }
+                client.killHounds(server.world, fight, npc, "his hounds are dead")
+                client.commandReply("hit 75 ${npc.index}") { it.startsWith("Hit Calvar'ion") }
+                client.await("his enraged form") { fight.lines.firstOrNull { it.endsWith("enrages") } }
+                val ed = server.world.playerNamed("ed")!!
+                // Codex review on #818: a shot landing after the transformation ran out, before his fight's tick, as
+                // ranged and magic do; his calm-down used to put his hitpoints back to full over it.
+                val ended = npc.transformEnded!!
+                npc.transformEnded = {
+                    ended()
+                    server.world.meleeCombat.hit(npc, ed, 10, server.world.tick)
+                }
+                npc.transformTicks = 1
+                client.await("his calm-down") { fight.lines.firstOrNull { it.endsWith("calms down") } }
+                assertEquals(Calvarion.BOSS, npc.type.id)
+                assertEquals(npc.maxHitpoints - 10, npc.hitpoints)
+                client.commandReply("hit 140 ${npc.index}") { it.startsWith("Hit Calvar'ion #${npc.index} for 65: 75/150") }
+            }
+        }
+    }
+
+    @Test
     fun `his shield bash hurts and stops attacks for 8 ticks for whoever is in its shadows, not one standing off`(@TempDir dir: Path) {
         server(dir, seed = 5).use { server ->
             server.login("ed").use { near ->
