@@ -60,15 +60,25 @@ class CustomVars(
      */
     val lairVisitVarp: Int = firstVarp + 3
 
+    /**
+     * The TzHaar Fight Cave run the player is part way through, for a logout or a lost connection to come back to
+     * ([osrsps.game.tzhaar.FightCaves.State]): the wave to start at their next login and the rotation, 0 for none. Live
+     * keeps this somewhere we haven't found; ours is guessed.
+     */
+    val fightCaveVarp: Int = firstVarp + 4
+
     /** Every varbit of ours, by id. */
     val varbits: Map<Int, VarbitType> = Lodestones.SITES.associate { lodestoneVarbit(it) to VarbitType(lodestonesVarp, it.index, it.index) } +
         (lodestonePreviousVarbit to VarbitType(lodestonesVarp, Lodestones.PREVIOUS_LOW_BIT, Lodestones.PREVIOUS_HIGH_BIT))
 
     /** Every varp of ours. */
-    val varps: List<Int> = listOf(lodestonesVarp, harlanClaimVarp, giantLairsVarp, lairVisitVarp)
+    val varps: List<Int> = listOf(lodestonesVarp, harlanClaimVarp, giantLairsVarp, lairVisitVarp, fightCaveVarp)
 
-    /** The varps by name, for `::varp name`: [LODESTONES], [HARLAN_CLAIMED], [GIANT_LAIRS] and [LAIR_VISIT]. */
-    val varpNames: Map<String, Int> = mapOf(LODESTONES to lodestonesVarp, HARLAN_CLAIMED to harlanClaimVarp, GIANT_LAIRS to giantLairsVarp, LAIR_VISIT to lairVisitVarp)
+    /** The varps by name, for `::varp name`: [LODESTONES], [HARLAN_CLAIMED], [GIANT_LAIRS], [LAIR_VISIT] and [FIGHT_CAVE]. */
+    val varpNames: Map<String, Int> = mapOf(
+        LODESTONES to lodestonesVarp, HARLAN_CLAIMED to harlanClaimVarp, GIANT_LAIRS to giantLairsVarp, LAIR_VISIT to lairVisitVarp,
+        FIGHT_CAVE to fightCaveVarp,
+    )
 
     /** The varbits by name, for `::varbit name`: each site's line key (`lodestone.lumbridge`, `lodestone.al_kharid`) and [LODESTONE_PREVIOUS]. */
     val varbitNames: Map<String, Int> = Lodestones.SITES.associate { it.name.key to lodestoneVarbit(it) } + (LODESTONE_PREVIOUS to lodestonePreviousVarbit)
@@ -103,6 +113,9 @@ class CustomVars(
 
         /** The Wilderness lairs' visit varp's name. */
         const val LAIR_VISIT = "wilderness_lair_visit"
+
+        /** The Fight Cave run's varp's name. */
+        const val FIGHT_CAVE = "fight_cave"
 
         /** Our vars with ids right after [cache]'s, the loaded cache's own types (before ours are added to them). */
         fun after(cache: VarTypes): CustomVars = CustomVars(cache.varpCount, cache.varbitCount)
