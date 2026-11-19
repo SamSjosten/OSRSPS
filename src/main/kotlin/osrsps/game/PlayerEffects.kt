@@ -45,6 +45,15 @@ class PlayerEffects {
     var jingle: Int? = null
         private set
 
+    /** Text over the player's head this cycle (player info's say block), or null; a later one replaces it. */
+    var say: String? = null
+        private set
+
+    /** Shows [text] over the player's head, as when content has them call out ("Shoo cat!"). */
+    fun say(text: String) {
+        say = text
+    }
+
     fun hit(source: Int, selfType: Int, sourceType: Int, otherType: Int, value: Int, delay: Int = 0) {
         hits += Hit(source, selfType, sourceType, otherType, value, delay)
     }
@@ -121,6 +130,7 @@ class PlayerEffects {
         hit: (Hit) -> Unit = {},
         headBar: (HeadBar) -> Unit = {},
         exactMove: (ExactMove) -> Unit = {},
+        say: (String) -> Unit = {},
     ) {
         // Forgotten before sending, so a failed send can't repeat them next cycle.
         val sendAnim = this.anim
@@ -130,6 +140,8 @@ class PlayerEffects {
         val sendHits = hits.toList()
         val sendBars = headBars.toList()
         val sendExactMove = this.exactMove
+        val sendSay = this.say
+        this.say = null
         this.exactMove = null
         this.anim = null
         spotanims.clear()
@@ -144,6 +156,7 @@ class PlayerEffects {
         sendHits.forEach(hit)
         sendBars.forEach(headBar)
         sendExactMove?.let(exactMove)
+        sendSay?.let(say)
     }
 
     // Checked here rather than when sent, so a bad value fails the script that set it, not the whole cycle's updates.

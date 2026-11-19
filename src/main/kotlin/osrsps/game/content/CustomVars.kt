@@ -125,14 +125,26 @@ class CustomVars(
     /** The player's total XP at their last drink of the Tears, in tens of XP ([TearsOfGuthix]); guessed as above. */
     val togVisitXpVarp: Int = firstVarp + 15
 
+    /**
+     * The player's pet cat: its growth cycles ([Cats.GROWTH_CYCLE_TICKS] each) in the low 16 bits and the rats their
+     * cats have caught above them ([Cats]). Live keeps these somewhere we haven't found; ours is guessed.
+     */
+    val catVarp: Int = firstVarp + 16
+
+    /**
+     * A kitten's care ([Cats]): ticks until it runs off hungry in bits 0 to 11, lonely in bits 12 to 25, and bit 30 set
+     * once it has been out. Guessed as above.
+     */
+    val catCareVarp: Int = firstVarp + 17
+
     /** Every varbit of ours, by id. */
     val varbits: Map<Int, VarbitType> = Lodestones.SITES.associate { lodestoneVarbit(it) to VarbitType(lodestonesVarp, it.index, it.index) } +
         (lodestonePreviousVarbit to VarbitType(lodestonesVarp, Lodestones.PREVIOUS_LOW_BIT, Lodestones.PREVIOUS_HIGH_BIT))
 
     /** Every varp of ours. */
-    val varps: List<Int> = listOf(lodestonesVarp, harlanClaimVarp, giantLairsVarp, lairVisitVarp, fightCaveVarp, infernoVarp, whiteTreeVarp, bananaCrateVarp, morUlRekAccessVarp, logStorageVarp, logStorageMagicVarp, championsVarp, brutusDeathsVarp, brutusBestVarp, togVisitVarp, togVisitXpVarp)
+    val varps: List<Int> = listOf(lodestonesVarp, harlanClaimVarp, giantLairsVarp, lairVisitVarp, fightCaveVarp, infernoVarp, whiteTreeVarp, bananaCrateVarp, morUlRekAccessVarp, logStorageVarp, logStorageMagicVarp, championsVarp, brutusDeathsVarp, brutusBestVarp, togVisitVarp, togVisitXpVarp, catVarp, catCareVarp)
 
-    /** The varps by name, for `::varp name`: [LODESTONES], [HARLAN_CLAIMED], [GIANT_LAIRS], [LAIR_VISIT], [FIGHT_CAVE], [INFERNO], [WHITE_TREE], [BANANA_CRATE], [MOR_UL_REK_ACCESS], [LOG_STORAGE], [LOG_STORAGE_MAGIC], [CHAMPIONS], [BRUTUS_DEATHS], [BRUTUS_BEST], [TOG_VISIT] and [TOG_VISIT_XP]. */
+    /** The varps by name, for `::varp name`: [LODESTONES], [HARLAN_CLAIMED], [GIANT_LAIRS], [LAIR_VISIT], [FIGHT_CAVE], [INFERNO], [WHITE_TREE], [BANANA_CRATE], [MOR_UL_REK_ACCESS], [LOG_STORAGE], [LOG_STORAGE_MAGIC], [CHAMPIONS], [BRUTUS_DEATHS], [BRUTUS_BEST], [TOG_VISIT], [TOG_VISIT_XP], [CAT] and [CAT_CARE]. */
     val varpNames: Map<String, Int> = mapOf(
         LODESTONES to lodestonesVarp, HARLAN_CLAIMED to harlanClaimVarp, GIANT_LAIRS to giantLairsVarp, LAIR_VISIT to lairVisitVarp,
         FIGHT_CAVE to fightCaveVarp, INFERNO to infernoVarp, WHITE_TREE to whiteTreeVarp, BANANA_CRATE to bananaCrateVarp, MOR_UL_REK_ACCESS to morUlRekAccessVarp,
@@ -140,6 +152,7 @@ class CustomVars(
         CHAMPIONS to championsVarp,
         BRUTUS_DEATHS to brutusDeathsVarp, BRUTUS_BEST to brutusBestVarp,
         TOG_VISIT to togVisitVarp, TOG_VISIT_XP to togVisitXpVarp,
+        CAT to catVarp, CAT_CARE to catCareVarp,
     )
 
     /** The varbits by name, for `::varbit name`: each site's line key (`lodestone.lumbridge`, `lodestone.al_kharid`) and [LODESTONE_PREVIOUS]. */
@@ -205,6 +218,10 @@ class CustomVars(
         /** The Tears of Guthix's last-visit varps' names. */
         const val TOG_VISIT = "tears_of_guthix"
         const val TOG_VISIT_XP = "tears_of_guthix.xp"
+
+        /** The pet cat's varps' names. */
+        const val CAT = "cat"
+        const val CAT_CARE = "cat.care"
 
         /** Our vars with ids right after [cache]'s, the loaded cache's own types (before ours are added to them). */
         fun after(cache: VarTypes): CustomVars = CustomVars(cache.varpCount, cache.varbitCount)

@@ -133,8 +133,8 @@ class LodestonesTest {
         val other = World(IntArray(0), CollisionMap(), cache)
         assertEquals(5996, other.customVars.lodestonesVarp, "right after this cache's varps")
         assertEquals(20411, other.lodestones.varbit(Lodestones.LUMBRIDGE))
-        assertEquals(6012, other.varTypes.varpCount, "after ours: the lodestones, Captain Harlan's, the giant lairs', the Wilderness lair visit's, the Fight Cave's, the Inferno's, the White Tree's, the banana crate's, Mor Ul Rek's access, the log storage's two and the Champions' Challenge varps, Brutus's scoreboard's two and the Tears of Guthix's two")
+        assertEquals(6014, other.varTypes.varpCount, "after ours: the lodestones, Captain Harlan's, the giant lairs', the Wilderness lair visit's, the Fight Cave's, the Inferno's, the White Tree's, the banana crate's, Mor Ul Rek's access, the log storage's two and the Champions' Challenge varps, Brutus's scoreboard's two, the Tears of Guthix's two and the pet cat's two")
         assertEquals(VarbitType(5996, 4, 4), other.varTypes.varbit(20415))
-        assertEquals(mapOf("lodestones" to 5996, "harlan.claimed" to 5997, "giant_lairs" to 5998, "wilderness_lair_visit" to 5999, "fight_cave" to 6000, "inferno" to 6001, "white_tree" to 6002, "banana_crate" to 6003, "mor_ul_rek_access" to 6004, "log_storage" to 6005, "log_storage.magic" to 6006, "champions_challenge" to 6007, "brutus.deaths" to 6008, "brutus.best_ticks" to 6009, "tears_of_guthix" to 6010, "tears_of_guthix.xp" to 6011), other.varTypes.namedVarps)
+        assertEquals(mapOf("lodestones" to 5996, "harlan.claimed" to 5997, "giant_lairs" to 5998, "wilderness_lair_visit" to 5999, "fight_cave" to 6000, "inferno" to 6001, "white_tree" to 6002, "banana_crate" to 6003, "mor_ul_rek_access" to 6004, "log_storage" to 6005, "log_storage.magic" to 6006, "champions_challenge" to 6007, "brutus.deaths" to 6008, "brutus.best_ticks" to 6009, "tears_of_guthix" to 6010, "tears_of_guthix.xp" to 6011, "cat" to 6012, "cat.care" to 6013), other.varTypes.namedVarps)
     }
 }
