@@ -1,0 +1,58 @@
+{
+ "name": "Travel networks step T1: the Edgeville fairy ring refuses without a staff, dials DIS to the Wizards' Tower, DKR back, Zanaris to BKS and Last-destination home again (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "nothing worn or held; ::reset at the end puts the account back, the dials and last destination with it"},
+  {"step": "command", "text": "::tele 3130 3496 0", "expectMessage": "Teleported to 3130, 3496, 0", "comment": "east of the Edgeville ring (DKR, 3129, 3496)"},
+
+  {"step": "locOption", "loc": "Fairy ring", "option": "Zanaris", "x": 3129, "y": 3496},
+  {"step": "assertMessage", "contains": "[fairy_ring.no_staff]"},
+  {"step": "locOption", "loc": "Fairy ring", "option": "Configure", "x": 3129, "y": 3496},
+  {"step": "assertMessage", "contains": "[fairy_ring.no_staff]"},
+
+  {"step": "command", "text": "::item 772", "comment": "a dramen staff"},
+  {"step": "itemOption", "item": "Dramen staff", "option": "Wield"},
+  {"step": "assertEquipment", "slot": "weapon", "itemId": 772},
+  {"step": "command", "text": "::varbit 3985 0"},
+  {"step": "command", "text": "::varbit 3986 0"},
+  {"step": "command", "text": "::varbit 3987 0", "comment": "the dials at A I P, whatever an earlier run left"},
+  {"step": "locOption", "loc": "Fairy ring", "option": "Configure", "x": 3129, "y": 3496},
+  {"step": "assertInterface", "interfaceId": 398},
+  {"step": "clickWidget", "interfaceId": 398, "component": 19, "op": 1, "comment": "dial 1 clockwise: A to D"},
+  {"step": "assertVarbit", "id": 3985, "value": 1},
+  {"step": "clickWidget", "interfaceId": 398, "component": 23, "op": 1, "comment": "dial 3 clockwise: P to S"},
+  {"step": "assertVarbit", "id": 3987, "value": 1},
+  {"step": "waitTicks", "ticks": 2, "comment": "the dials turn in the client"},
+  {"step": "clickWidget", "interfaceId": 398, "component": 26, "op": 1, "comment": "Confirm: DIS"},
+  {"step": "assertAnimation", "id": 3265, "timeoutMs": 5000, "comment": "human_fairy_vanish"},
+  {"step": "assertLocation", "x": 3108, "y": 3149, "plane": 0, "timeoutMs": 10000, "comment": "the Wizards' Tower's ring, as the cache's fairyring table has DIS"},
+  {"step": "assertVarbit", "id": 5374, "value": 17, "comment": "Last-destination (DIS)"},
+  {"step": "assertVarbit", "id": 20250, "value": 1},
+  {"step": "waitTicks", "ticks": 4, "comment": "the appearance; clicks wait until it ends"},
+
+  {"step": "locOption", "loc": "Fairy ring", "option": "Configure", "x": 3108, "y": 3149},
+  {"step": "assertInterface", "interfaceId": 398},
+  {"step": "clickWidget", "interfaceId": 398, "component": 21, "op": 1, "comment": "dial 2 clockwise: I to L"},
+  {"step": "clickWidget", "interfaceId": 398, "component": 21, "op": 1, "comment": "L to K"},
+  {"step": "clickWidget", "interfaceId": 398, "component": 23, "op": 1, "comment": "dial 3: S to R"},
+  {"step": "assertVarbit", "id": 3986, "value": 2},
+  {"step": "assertVarbit", "id": 3987, "value": 2},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "clickWidget", "interfaceId": 398, "component": 26, "op": 1, "comment": "Confirm: DKR"},
+  {"step": "assertLocation", "x": 3129, "y": 3496, "plane": 0, "timeoutMs": 10000, "comment": "back on the Edgeville ring"},
+  {"step": "waitTicks", "ticks": 4},
+
+  {"step": "locOption", "loc": "Fairy ring", "option": "Zanaris", "x": 3129, "y": 3496},
+  {"step": "assertLocation", "x": 2412, "y": 4434, "plane": 0, "timeoutMs": 10000, "comment": "Zanaris's ring (BKS); Zanaris's own content is step T3"},
+  {"step": "assertVarbit", "id": 5374, "value": 26, "comment": "still DKR: Zanaris doesn't change it"},
+  {"step": "waitTicks", "ticks": 4},
+  {"step": "locOption", "loc": "Fairy ring", "option": "Last-destination (DKR)", "x": 2412, "y": 4434},
+  {"step": "assertLocation", "x": 3129, "y": 3496, "plane": 0, "timeoutMs": 10000},
+  {"step": "waitTicks", "ticks": 4},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
