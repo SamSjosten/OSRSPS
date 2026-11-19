@@ -2982,6 +2982,7 @@ class World(
                 interfaces.sendVarpNow(player, id)
             }
         },
+        now = { tick },
     )
 
     /**
