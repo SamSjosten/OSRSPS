@@ -1,0 +1,33 @@
+{
+  "name": "Exploit review round 40 (R40B-1): a death in a private King Black Dragon lair raises the grave in the open lair, on the matching tile, not at the Lava Maze lever; back there through ::tele and the grave looted (::keys on)",
+  "account": "test2",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare", "comment": "nothing worn or carried, whatever earlier scripts left on the account"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::item rune platebody", "expectMessage": "Added 1 x Rune platebody"},
+    {"step": "command", "text": "::item rune full helm", "expectMessage": "Added 1 x Rune full helm"},
+    {"step": "command", "text": "::item rune scimitar", "expectMessage": "Added 1 x Rune scimitar"},
+    {"step": "command", "text": "::item bronze shortsword", "expectMessage": "Added 1 x Bronze shortsword", "comment": "the fourth item, so a grave is raised"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off).", "comment": "the dungeon is in the Wilderness at level 44"},
+    {"step": "command", "text": "::tele 3067 10254 0", "expectMessage": "Teleported to 3067, 10254, 0", "comment": "beside the dungeon's lever at 3067,10253"},
+    {"step": "command", "text": "::item 995 50000", "comment": "the private lair's fee"},
+    {"step": "locOption", "locId": 1816, "option": "Private", "x": 3067, "y": 10253},
+    {"step": "chooseOption", "text": "[kbd.private_yes]"},
+    {"step": "waitTicks", "ticks": 8, "comment": "in the private lair, on its lever's tile (the open lair's 2271,4680)"},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
+    {"step": "command", "text": "::hit 99 me", "expectMessage": ", dead"},
+    {"step": "assertMessage", "contains": "[combat.dead]"},
+    {"step": "assertLocation", "x": 3222, "y": 3218, "plane": 0, "timeoutMs": 15000, "comment": "respawned at the spawn"},
+    {"step": "assertInventory", "item": "Bronze shortsword", "count": 0, "comment": "in the grave"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off).", "comment": "the open lair's own dragon is about"},
+    {"step": "command", "text": "::tele 2271 4681 0", "expectMessage": "Teleported to 2271, 4681, 0", "comment": "the open lair, beside its lever's tile, where the grave stands"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "npcOption", "npc": "Grave", "option": "Loot", "timeoutMs": 10000},
+    {"step": "assertInterface", "interfaceId": 672, "timeoutMs": 10000},
+    {"step": "clickWidget", "interfaceId": 672, "component": 8, "comment": "Take-All"},
+    {"step": "assertInventory", "item": "Bronze shortsword", "count": 1},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
+    {"step": "command", "text": "::reset", "expectMessage": "Back to how you were before ::scenario lumbridge-bare."}
+  ]
+}

@@ -712,6 +712,12 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
   it with no dependency, guard or var shared with another row is set to 0, clicked on and checked, then checked again
   after a relog and put back to 0. Generated from the 241 cache's settings catalog; run them one at a time.
+- `collection-log-new-item.json` (needs 0.8.0, for `assertVarp` and `assertVarbit`): collection log step 1. With
+  `::keys on`, `::clog reset` and both of the log's new-item settings on (`::varbit 11959 3`), `::clog add Dragon
+  pickaxe` announces it with `[collection_log.new_item item=Dragon pickaxe]` and the pop-up (660), `collection_count`
+  (varp 2943) goes to 1 and the pickaxe is the overview's latest item (varp 4623); the King Black Dragon's other three
+  items fill his page (`collection_bosses_dragon_completed`, varbit 11978, 1), and five more pickaxes count on to 6 with
+  `collection_count` still 4. Ends with `::clog reset` and the settings off.
 
 ## Results
 

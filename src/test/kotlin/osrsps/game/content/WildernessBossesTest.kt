@@ -47,6 +47,15 @@ class WildernessBossesTest {
     }
 
     @Test
+    fun `ten who left don't take the places of an eleventh who stayed`() {
+        // Codex review on #817: the ten places go to the eligible, but the total stays everyone's damage.
+        val damage = (1..10).associate { "gone$it" to 100 } + ("stayed" to 50)
+        val shares = WildernessBosses.shares(damage) { it == "stayed" }
+        assertEquals(listOf("stayed"), shares.map { it.key })
+        assertEquals(1050, shares.single().total)
+    }
+
+    @Test
     fun `an Ironman under 7% gets 5%, and at 7% or more 25%`() {
         val low = WildernessBosses.shares(mapOf("a" to 940, "iron" to 60), ironmen = setOf("iron")).last()
         assertEquals(0.06, low.factor, 1e-9)
