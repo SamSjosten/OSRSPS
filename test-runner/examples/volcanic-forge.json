@@ -14,7 +14,6 @@
     {"step": "useItemOnLoc", "itemId": 11931, "locId": 26755, "x": 3366, "y": 3937},
     {"step": "assertMessage", "contains": "[volcanic_forge.forged]", "timeoutMs": 15000},
     {"step": "assertInventory", "item": "Malediction ward", "count": 1},
-    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
     {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
   ]
 }

@@ -1,0 +1,6 @@
+{
+  "about": "Shooting stars step 2: Dusuri, who runs Dusuri's Star Shop by the Mining Guild's entrance in Falador (OSRS Wiki, Dusuri, read 2026-11-19). Falador isn't built; he stands at his live tile, reached by ::tele 3022 3340. He is the cache's multi-NPC star_trader (10633), shown as star_trader_1op (Talk-to) until varbit star_trader_met is set and as star_trader_2op (Talk-to, Trade) after.",
+  "spawns": [
+    {"npc": 10633, "x": 3022, "z": 3341, "wander": 2, "source": "OSRS Wiki, Dusuri (map pin 3022,3341); the wander of 2 inferred from the pin's r=2 square"}
+  ]
+}

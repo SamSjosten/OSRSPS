@@ -60,12 +60,14 @@ class Scenario(
 ) {
     /**
      * A minigame the scenario starts the player in once the rest is set: [name] is one of [NAMES] (`fight-cave`, the
-     * TzHaar Fight Cave), at [wave], in [rotation] (null for a random one).
+     * TzHaar Fight Cave; `inferno`, the Inferno, every support standing and the fire cape counted as given), at [wave],
+     * in [rotation] (null for a random one; the Inferno has none).
      */
     class ScenarioMinigame(val name: String, val wave: Int, val rotation: Int?) {
         companion object {
             const val FIGHT_CAVE = "fight-cave"
-            val NAMES: Set<String> = setOf(FIGHT_CAVE)
+            const val INFERNO = "inferno"
+            val NAMES: Set<String> = setOf(FIGHT_CAVE, INFERNO)
         }
     }
 
@@ -229,6 +231,8 @@ class Scenarios(scenarios: Collection<Scenario>) {
             "fishing-cooking",
             "gathering",
             "hunter",
+            "inferno",
+            "inferno-wave66",
             "lumbridge-artisan",
             "lumbridge-bare",
             "lumbridge-bank-tabs",
@@ -241,6 +245,7 @@ class Scenarios(scenarios: Collection<Scenario>) {
             "obor",
             "pvp",
             "runecraft",
+            "scurrius",
             "shooting-stars",
             "tfa-magic",
             "tfa-melee",

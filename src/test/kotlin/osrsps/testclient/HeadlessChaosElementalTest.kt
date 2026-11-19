@@ -92,6 +92,28 @@ class HeadlessChaosElementalTest {
     }
 
     @Test
+    fun `confusion never throws a player out of its fight's area`(@TempDir dir: Path) {
+        server(dir, seed = 7).use { server ->
+            server.login("pia").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                // Exploit review round 44, R44C-3: by the area's east edge, a throw east would have put them out of it.
+                // Auto retaliate off, so they stay by the edge while it comes to them.
+                client.commandReply("varp ${osrsps.game.EquipmentTab.VARP_AUTO_RETALIATE_OFF} 1") { it.startsWith("Varp") }
+                client.tele(X + ChaosElemental.AREA_RADIUS - 1, Z + 1)
+                val fight = client.fight(server)
+                repeat(3) { n ->
+                    val threw = client.await("throw ${n + 1}", timeoutMillis = 90_000) { fight.lines.filter { "threw pia to" in it }.getOrNull(n) }
+                    val (tx, tz) = threw.substringAfter("threw pia to ").split(",").map { it.trim().toInt() }
+                    assertTrue(fight.covers(tx, tz), "still in its area: $threw")
+                    // Back to the edge for the next throw.
+                    client.tele(X + ChaosElemental.AREA_RADIUS - 1, Z + 1)
+                }
+            }
+        }
+    }
+
+    @Test
     fun `it never uses madness on a player with a full backpack`(@TempDir dir: Path) {
         server(dir, seed = 7).use { server ->
             server.login("rob").use { client ->

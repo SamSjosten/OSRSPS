@@ -143,6 +143,8 @@ class Interfaces(private val send: (Player, OutgoingGameMessage) -> Unit = { pla
         if (tab == JournalTab.DIARIES) {
             setEvents(player, Diaries.PANEL, Diaries.PANEL_TASKBOX, 0, Diaries.PANEL_ROWS - 1, 1 shl (Diaries.PANEL_OPEN - 1))
         }
+        // The summary's Collection Log row: its two ops need events (collection log step 2).
+        if (tab == JournalTab.SUMMARY) send(player, osrsps.game.collection.CollectionLogWindow.SUMMARY_EVENTS)
     }
 
     /** Null when the cache has no such varbit (tests); the tab then still opens but isn't remembered. */

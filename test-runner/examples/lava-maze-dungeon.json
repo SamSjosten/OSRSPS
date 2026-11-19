@@ -35,7 +35,6 @@
     {"step": "command", "text": "::kill", "expectMessage": "Killed Black dragon #"},
     {"step": "assertGroundItem", "item": "Dragon bones", "timeoutMs": 15000},
 
-    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
     {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
   ]
 }

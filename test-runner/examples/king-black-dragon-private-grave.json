@@ -27,7 +27,6 @@
     {"step": "assertInterface", "interfaceId": 672, "timeoutMs": 10000},
     {"step": "clickWidget", "interfaceId": 672, "component": 8, "comment": "Take-All"},
     {"step": "assertInventory", "item": "Bronze shortsword", "count": 1},
-    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
     {"step": "command", "text": "::reset", "expectMessage": "Back to how you were before ::scenario lumbridge-bare."}
   ]
 }

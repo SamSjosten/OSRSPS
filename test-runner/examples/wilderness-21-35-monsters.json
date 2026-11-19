@@ -22,6 +22,7 @@
     {"step": "assertAnimation", "id": 836, "npc": "Ankou", "comment": "human_death"},
     {"step": "assertGroundItem", "item": "Bones", "timeoutMs": 15000},
 
+    {"step": "command", "text": "::tele 3222 3218 0", "expectMessage": "Teleported to 3222, 3218, 0", "comment": "out of the Wilderness before ::god goes off, so nothing hits the player"},
     {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
   ]
 }

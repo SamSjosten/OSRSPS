@@ -1,0 +1,6 @@
+{
+  "about": "The Clan Hub, the south-east corner of the Grand Exchange (ClanHub.kt): the Clerk, who hands clan members cloaks and vexilla. He stands still (guessed).",
+  "spawns": [
+    {"npc": "clan_clerk", "x": 3181, "z": 3471, "wander": 0, "source": "Clerk, Clan Hub. mejrs's live NPC list (github.com/mejrs/data_osrs NPCList_OSRS.json); the Wiki's Clerk (Clan Hub) page puts him in the Grand Exchange's south-east corner"}
+  ]
+}

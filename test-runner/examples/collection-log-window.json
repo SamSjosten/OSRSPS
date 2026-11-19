@@ -1,0 +1,109 @@
+{
+ "name": "Collection log step 2: the log opens on a page with what you have of it and its kill count, a page and a tab clicked, the burger menu to the overview and its Other button back to the log",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::clog reset",
+   "expectMessage": "Collection log emptied."
+  },
+  {
+   "step": "command",
+   "text": "::clog add Dragon pickaxe 2",
+   "expectMessage": "Logged Dragon pickaxe: 2 now"
+  },
+  {
+   "step": "command",
+   "text": "::varp 1514 31",
+   "comment": "total_kbd_kills, the King Black Dragon page's kill count"
+  },
+  {
+   "step": "command",
+   "text": "::clog open 0 28",
+   "comment": "Bosses, page 28: King Black Dragon"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 621,
+   "comment": "collection"
+  },
+  {
+   "step": "assertVarp",
+   "id": 2048,
+   "value": 31,
+   "comment": "collection_category_count: the header's King Black Dragon kills"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6906,
+   "value": 28,
+   "comment": "collection_last_category: the page is remembered"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 621,
+   "component": 11,
+   "slot": 0,
+   "comment": "boss_background row 0: Check on the first page (Abyssal Sire)"
+  },
+  {
+   "step": "assertVarp",
+   "id": 2048,
+   "value": 0,
+   "comment": "collection_category_count: Abyssal Sire kills, none kept"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 621,
+   "component": 8,
+   "comment": "other_tab: View"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 6905,
+   "value": 4,
+   "comment": "collection_last_tab: Other"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 621,
+   "component": 73,
+   "slot": 12,
+   "comment": "the burger menu's Overview"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 908,
+   "comment": "collection_overview"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 908,
+   "component": 22,
+   "slot": 0,
+   "comment": "subsection_buttons_click 0: Bosses Collections"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 621
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 621,
+   "component": 1,
+   "comment": "close"
+  },
+  {
+   "step": "command",
+   "text": "::clog reset",
+   "expectMessage": "Collection log emptied."
+  },
+  {
+   "step": "command",
+   "text": "::varp 1514 0"
+  }
+ ]
+}
