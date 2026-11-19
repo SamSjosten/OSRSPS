@@ -11,6 +11,7 @@ import osrsps.game.combat.CombatLines
 import osrsps.game.combat.RuneCost
 import osrsps.game.combat.Spellbook
 import osrsps.game.combat.Spells
+import osrsps.game.script.QueueType
 import osrsps.game.script.ScriptContext
 import osrsps.game.skill.Making
 
@@ -53,8 +54,8 @@ class ItemSpell(
 }
 
 /**
- * What the spells cast on items share: one clock (a click before the last cast's ticks are up is dropped; guessed that
- * it isn't queued, and that alchemy and Superheat Item share it), the level and rune checks with combat's refusals,
+ * What the spells cast on items share: one clock (a click before the last cast's ticks are up is dropped for alchemy,
+ * guessed, and kept for Superheat Item, [castOrQueue]; guessed that they share it), the level and rune checks with combat's refusals,
  * and the cast itself: the runes taken (a staff standing in for its own, none at the Fountain of Rune), the XP (none at
  * the fountain), the animation and graphic (at the teleports' height 92, guessed), an attack ended but not a walk
  * (OSRS Wiki, High Level Alchemy), and the magic tab shown again (guessed).
@@ -65,6 +66,23 @@ class ItemSpells(private val world: World) {
 
     /** Whether [player] is on the standard book and past the last cast's ticks. */
     fun ready(player: Player): Boolean = Spellbook.of(player) == Spellbook.STANDARD && (nextCast[player] ?: 0L) <= world.tick
+
+    /**
+     * Runs [cast] now when [player] is [ready], or keeps it for when the last cast's ticks are up: Superheat Item and
+     * the jewellery enchants "queue up one spell if you cast them too quickly" (OSRS Wiki, Superheat Item's changes).
+     * One is kept, the latest click replacing an earlier one (guessed), and it checks everything again as it runs.
+     */
+    fun castOrQueue(context: ScriptContext, cast: ScriptContext.() -> Unit) {
+        val player = context.player
+        if (Spellbook.of(player) != Spellbook.STANDARD) return
+        val due = nextCast[player] ?: 0L
+        if (due <= world.tick) {
+            context.cast()
+            return
+        }
+        world.scripts.clearQueue(player, QUEUED)
+        world.scripts.queue(player, QUEUED, QueueType.NORMAL, (due - world.tick).toInt()) { if (ready(player)) cast() }
+    }
 
     /** Whether [player] has the level for [spell], saying so if not. */
     fun hasLevel(player: Player, spell: ItemSpell): Boolean {
@@ -114,5 +132,8 @@ class ItemSpells(private val world: World) {
 
     companion object {
         const val SPOTANIM_HEIGHT = 92
+
+        /** The queued early cast's name ([castOrQueue]). */
+        private const val QUEUED = "item_spell_queued"
     }
 }

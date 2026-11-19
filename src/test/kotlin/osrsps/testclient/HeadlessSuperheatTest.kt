@@ -99,6 +99,24 @@ class HeadlessSuperheatTest {
     }
 
     @Test
+    fun `a second cast clicked during the first's 3 ticks is kept and cast once they are up`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("carol").use { client ->
+                client.ready(43, 30)
+                client.give(IRON_ORE, 2)
+                client.give(COAL, 4)
+                client.give(NATURE, 2)
+                client.give(TeleportObjs.FIRE, 8)
+                client.cast(IRON_ORE)
+                client.await("the first bar") { if (client.count(STEEL_BAR) == 1) Unit else null }
+                client.cast(IRON_ORE)
+                client.await("the second bar, cast when the clock allowed") { if (client.count(STEEL_BAR) == 2) Unit else null }
+                assertEquals(0, client.count(NATURE))
+            }
+        }
+    }
+
+    @Test
     fun `bronze from tin, and refusals for coal, elemental ore, the Smithing level and too little coal`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("bob").use { client ->

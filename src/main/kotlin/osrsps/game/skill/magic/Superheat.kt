@@ -27,6 +27,8 @@ object SuperheatLines : Lines("superheat", "Superheat Item") {
  * coal making a steel bar and otherwise an iron bar that never fails as it can at a furnace, noted ore refused, and
  * the two refusals the Wiki quotes: anything that isn't ore, which also shows the splash graphic (combat's
  * `failedspell_impact`, at the height guessed), and elemental ore.
+ * A cast clicked before the last one's 3 ticks are up is kept and cast then (the Wiki's changes: "will now queue up
+ * one spell if you cast them too quickly"), checked again as it is.
  * The animation and graphic are the cache's `human_castsuperheatitem` (725) and `superheatitem_casting` (148).
  *
  * Guessed: bronze cast on either copper or tin; coal itself counted as not ore; the furnace's level and missing-ore
@@ -41,12 +43,11 @@ object SuperheatLines : Lines("superheat", "Superheat Item") {
 class Superheat(private val world: World, private val spell: ItemSpell?) {
     fun register() {
         val spell = spell ?: return
-        world.handlers.onSpellOnObj(Spells.SPELLBOOK, spell.component) { op -> cast(spell, op.sub, op.obj) }
+        world.handlers.onSpellOnObj(Spells.SPELLBOOK, spell.component) { op -> world.itemSpells.castOrQueue(this) { cast(spell, op.sub, op.obj) } }
     }
 
     private fun ScriptContext.cast(spell: ItemSpell, slot: Int, obj: Int) {
         val casting = world.itemSpells
-        if (!casting.ready(player)) return
         if (player.inventory[slot]?.id != obj) return
         val text = world.textFor(player)
         if (!casting.hasLevel(player, spell)) return
