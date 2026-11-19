@@ -54,6 +54,8 @@ import osrsps.game.skill.CombinationRuneLines
 import osrsps.game.skill.EssencePouchLines
 import osrsps.game.skill.ArceuusRunecraftLines
 import osrsps.game.skill.OuraniaLines
+import osrsps.game.skill.construction.ConstructionLines
+import osrsps.game.skill.construction.EstateAgentLines
 import osrsps.game.skill.SlayerLines
 import osrsps.game.skill.SlayerHelmetLines
 import osrsps.game.skill.SlayerSuperiorLines
@@ -148,6 +150,7 @@ object DialogueLines {
         ClanLines,
         ClimbLines,
         CombatLines,
+        ConstructionLines,
         CookLines,
         CookingLines,
         CookingMixLines,
@@ -190,6 +193,7 @@ object DialogueLines {
         OborLines,
         BryophytaLines,
         EmoteLines,
+        EstateAgentLines,
         GiantBonesLines,
         FeroxEnclaveLines,
         WildernessObeliskLines,

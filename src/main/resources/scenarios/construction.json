@@ -1,0 +1,9 @@
+{
+  "about": "Beside the estate agent in Varrock with 1,000 coins, Construction step CON1's starter house price. Buy the house from him, then ::tele 2953 3224 to the Rimmington house portal (Home, Build mode, or Enter for the menu).",
+  "notes": "For the Construction runner scripts (test-runner/examples/construction-*.json) and looking at the house by hand. ::reset takes away a house bought since the first scenario, as the save it puts back had none.",
+  "position": { "x": 3241, "z": 3476, "level": 0 },
+  "skills": { "construction": 1 },
+  "inventory": [
+    { "item": "coins", "count": 1000 }
+  ]
+}
