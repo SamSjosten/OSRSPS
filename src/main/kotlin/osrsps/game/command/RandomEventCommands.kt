@@ -11,12 +11,12 @@ private val logger = KotlinLogging.logger {}
  */
 fun CommandRegistry.registerRandomEventCommands(world: World) {
     val events = world.randomEvents
-    val usage = "::randomevent [list|now|on|off|<event>]"
+    val usage = "::randomevent [list|now|on|off|<event> [npc]]"
 
     register("randomevent", usage) {
-        val arg = args.singleOrNull()?.lowercase()
+        val arg = args.firstOrNull()?.lowercase()
         when {
-            args.size > 1 -> fail("Usage: $usage")
+            args.size > 2 || (args.size == 2 && args[1].toIntOrNull() == null) -> fail("Usage: $usage")
             arg == null -> {
                 val out = events.outFor(player)
                 val state = if (events.isOff(player)) "off" else "on, next due in ${events.dueIn(player).coerceAtLeast(0)} min"
@@ -34,7 +34,9 @@ fun CommandRegistry.registerRandomEventCommands(world: World) {
             }
             else -> {
                 val event = events.event(arg) ?: fail("No random event '$arg'; ::randomevent list names them")
-                events.start(player, event) ?: fail("No room beside you, or an event is out already")
+                val npcId = args.getOrNull(1)?.toInt()
+                if (npcId != null && npcId !in event.npcIds) fail("${event.key} comes as ${event.npcIds.joinToString()}, not $npcId")
+                events.start(player, event, npcId) ?: fail("No room beside you, or an event is out already")
                 logger.info { "${player.username} started random event ${event.key}" }
                 reply("Started random event ${event.key}")
             }

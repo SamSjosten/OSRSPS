@@ -31,6 +31,9 @@ abstract class RandomEvent(
     /** Whether its NPC stays when its player walks into a bank: only Count Check, Dr Jekyll and the Genie do (Wiki). */
     open val entersBanks: Boolean = false
 
+    /** The NPCs that may come for it, one at random each time (the three certer brothers); [npcId] alone for most. */
+    open val npcIds: List<Int> get() = listOf(npcId)
+
     /** Whether its NPC follows its player; one that doesn't (the Strange plant) stays where it came up. */
     open val follows: Boolean = true
 
@@ -117,6 +120,9 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
     class Out(val owner: String, val ownerName: String, val event: RandomEvent, val npc: Npc, val since: Long) {
         var nextNag: Long = since + NAG_TICKS
         var leaveAt: Long = -1
+
+        /** Set while its player talks to it; its timers wait until that script ends (a window can be open meanwhile). */
+        var talking: Boolean = false
     }
 
     private val all = LinkedHashMap<String, RandomEvent>()
@@ -131,8 +137,10 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
 
     fun register(event: RandomEvent) {
         require(all.put(event.key, event) == null) { "Two random events called ${event.key}" }
-        world.handlers.onNpc(event.npcId, TALK_TO) { op -> talk(this, op.npc ?: return@onNpc) }
-        world.handlers.onNpc(event.npcId, DISMISS) { op -> dismiss(this, op.npc ?: return@onNpc) }
+        for (id in event.npcIds) {
+            world.handlers.onNpc(id, TALK_TO) { op -> talk(this, op.npc ?: return@onNpc) }
+            world.handlers.onNpc(id, DISMISS) { op -> dismiss(this, op.npc ?: return@onNpc) }
+        }
     }
 
     private fun nowMinutes(): Int = (clock() / 60_000).toInt()
@@ -194,7 +202,7 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
         held -= key
         setNext(player)
         if (outFor(player) != null) return
-        val allowed = all.values.filter { allowedAt(player, it) && world.npcTypes[it.npcId] != null }
+        val allowed = all.values.filter { allowedAt(player, it) && it.npcIds.any { id -> world.npcTypes[id] != null } }
         if (allowed.isEmpty()) return
         start(player, allowed[world.random.nextInt(allowed.size)])
     }
@@ -226,11 +234,14 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
 
     /**
      * Sends [event]'s NPC to [player] now, wherever they are: the timer's pick, or `::randomevent`. Returns null, sending
-     * nothing, when no tile beside them is free or they have an event NPC out already.
+     * nothing, when no tile beside them is free or they have an event NPC out already. [npcId] picks which of the
+     * event's NPCs comes (`::randomevent certer 5437`, for scripts); otherwise one at random.
      */
-    fun start(player: Player, event: RandomEvent): Out? {
+    fun start(player: Player, event: RandomEvent, npcId: Int? = null): Out? {
         if (outFor(player) != null) return null
-        val type = world.npcTypes[event.npcId] ?: return null.also { logger.warn { "No NPC ${event.npcId} for random event ${event.key}" } }
+        val ids = event.npcIds.filter { world.npcTypes[it] != null && (npcId == null || it == npcId) }
+        if (ids.isEmpty()) return null.also { logger.warn { "No NPC ${event.npcIds} for random event ${event.key}" } }
+        val type = world.npcTypes[ids[world.random.nextInt(ids.size)]]!!
         val (x, z) = freeTileBeside(player, type.size) ?: return null
         val npc = world.spawnNpc(NpcSpawn(type, x, z, player.level, source = "random event ${event.key} for ${player.saveKey}", respawns = false)) ?: return null
         val started = Out(player.saveKey, player.username, event, npc, world.tick)
@@ -271,6 +282,10 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
             }
             // Its timers wait while its player talks to it (an NPC in a dialogue is engaged with that player).
             if (it.npc.engagedWith === owner) continue
+            if (it.talking) {
+                if (world.scripts.busy(owner)) continue
+                it.talking = false
+            }
             if (!allowedAt(owner, it.event)) {
                 remove(it)
                 continue
@@ -349,6 +364,7 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
         }
         // Guessed: once it has said its leaving line it has nothing more for its player.
         if (it.leaveAt >= 0) return
+        it.talking = true
         world.dialogues.start(context, npc) {
             if (with(it.event) { talk(world, this@RandomEvents) }) remove(it)
         }
@@ -395,7 +411,7 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
 
 /** Every random event built, and the strange fruit's Eat. */
 fun registerRandomEvents(world: World) {
-    for (event in listOf(Genie, CountCheckEvent, DrunkenDwarf, RickTurpentine, MysteriousOldMan, DrJekyll, StrangePlant)) {
+    for (event in listOf(Genie, CountCheckEvent, DrunkenDwarf, RickTurpentine, MysteriousOldMan, DrJekyll, StrangePlant, Certer, SandwichLady)) {
         world.randomEvents.register(event)
     }
     world.handlers.onObj(StrangePlant.FRUIT, 1) { op -> StrangePlant.eat(world, player, op.sub) }
