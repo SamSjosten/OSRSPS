@@ -825,6 +825,10 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   room (look at the five posts, one with glowing rings, and the two trolls), Tilt gives the rules on arrival and again
   on Talk-To, the score window shows Score: 0, and the exit before ten sends the player home with nothing and closes
   it. Tagging the posts, ten points and the gem reward are the headless test's part.
+- `random-events-quiz-master.json`: random events step 17 (with `::keys on`): the Quiz Master takes the player to
+  the black chair in his studio (look at the chair, the spotlight and him facing the player), welcomes them, and the
+  odd-one-out window shows (look at the three spinning items, two of one kind, each with Select); a teleport ends it.
+  Answering, the prizes and opening the mystery box are the headless test's part.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
   it with no dependency, guard or var shared with another row is set to 0, clicked on and checked, then checked again
   after a relog and put back to 0. Generated from the 241 cache's settings catalog; run them one at a time.
