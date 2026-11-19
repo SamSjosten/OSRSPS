@@ -20,6 +20,7 @@ object InfernoLines : Lines("inferno", "The Inferno") {
     val LOGOUT_PAUSE = line("logout_pause", "The logout button in a wave, in red: the run will pause when the wave ends (the Wiki's Inferno: paused by logging out between waves)")
     val LOGOUT_REPEAT = line("logout_repeat", "Straight after logout_pause, in red: logging out before the wave ends repeats it")
     val NO_ROOM = line("no_room", "Jump-in when no Inferno can be made (ours: the server's instances are all taken)")
+    val NOT_READY = line("not_ready", "Jump-in by a non-admin before TzKal-Zuk fights (ours: exploit review R45B-1, until step IN4)")
     val IN_SCENARIO = line("in_scenario", "Jump-in in a test setup (::scenario, the Leagues Tutor's kits): ours, as its kit would earn real rewards; ::reset first")
 }
 
@@ -153,6 +154,8 @@ class Inferno(private val world: World) {
         if (runs.containsKey(player.saveKey) || !sacrificed(player)) return
         // A test setup's kit (99s, the best gear) would earn a real infernal cape and TokKul that outlive putting it back.
         if (player.scenario != null) return world.message(player, InfernoLines.IN_SCENARIO)
+        // Until TzKal-Zuk fights (step IN4), the run would pay the infernal cape for far less than live (exploit review R45B-1).
+        if (!OPEN_TO_ALL && !world.admins.isAdmin(player)) return world.message(player, InfernoLines.NOT_READY)
         start(player, 1)
     }
 
@@ -445,6 +448,10 @@ class Inferno(private val world: World) {
         private val NIBBLER_OFFSETS = listOf(0 to 0, 1 to 0, -1 to 0, 0 to 1, 0 to -1, 1 to 1)
 
         const val FIRST_WAVE_TICKS = FightCaves.FIRST_WAVE_TICKS
+
+        /** Whether Jump-in is open to every player who sacrificed a fire cape; false (admins only) until step IN4 brings TzKal-Zuk's fight. */
+        const val OPEN_TO_ALL = false
+
         const val WAVE_GAP_TICKS = FightCaves.WAVE_GAP_TICKS
         const val RESUME_TICKS = FightCaves.RESUME_TICKS
 

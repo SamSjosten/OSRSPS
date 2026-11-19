@@ -20,6 +20,7 @@ import osrsps.game.SeqNames
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.World
+import osrsps.game.command.Admins
 import osrsps.game.combat.AttackType
 import osrsps.game.combat.NpcCombat
 import osrsps.game.loc.LocType
@@ -81,7 +82,7 @@ class HeadlessInfernoTest {
         20_000,
     )
 
-    private fun server(dir: Path) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
+    private fun server(dir: Path, admins: Admins = Admins.EVERYONE) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
         val objTypes = ObjTypes.of(
             ObjType(FightCaves.TOKKUL, "Tokkul", stackable = true),
             ObjType(FightCaves.FIRE_CAPE, "Fire cape"),
@@ -91,7 +92,7 @@ class HeadlessInfernoTest {
         val loc = { id: Int, name: String, ops: List<String?>, w: Int, l: Int -> LocType(id, name, ops, LocCollisionType(width = w, length = l)) }
         World(
             crcs, CollisionMap().apply { markLoaded(35, 83); markLoaded(38, 80); markLoaded(39, 79); markLoaded(39, 80) }, varTypes,
-            objTypes = objTypes, npcTypes = types,
+            objTypes = objTypes, npcTypes = types, admins = admins,
             random = GameRandom(1), npcCombat = NpcCombat.load(types, SeqNames.NONE),
             npcSpawns = listOf(NpcSpawn(types[KetKeh.TZHAAR_KET_KEH]!!, 2496, 5115, source = "test")),
             locTypes = LocTypes(
@@ -368,6 +369,21 @@ class HeadlessInfernoTest {
                 assertTrue(client.inventory(INV).none { it?.id == Inferno.INFERNAL_CAPE }, "no cape")
                 if (player.vars.types.varpCount > Inferno.VARP_ZUK_KILLS) assertEquals(0, player.vars[Inferno.VARP_ZUK_KILLS], "no kill")
                 assertTrue(client.messages().none { "ket_keh.impressive" in it.text })
+            }
+        }
+    }
+
+    @Test
+    fun `until Zuk fights the entrance lets in admins only`(@TempDir dir: Path) {
+        assertFalse(Inferno.OPEN_TO_ALL, "IN4 opens it")
+        server(dir, Admins.parse("someone-else")).use { server ->
+            server.login("ivy").use { client ->
+                client.await("the login rebuild") { client.position }
+                val player = server.world.playerNamed("ivy")!!
+                server.world.inferno.sacrifice(player)
+                server.world.inferno.enter(player)
+                assertNull(server.run("ivy"), "no Inferno")
+                client.await("the line") { client.messages().firstOrNull { "inferno.not_ready" in it.text } }
             }
         }
     }
