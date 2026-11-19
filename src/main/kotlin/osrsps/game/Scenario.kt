@@ -221,6 +221,7 @@ class Scenarios(scenarios: Collection<Scenario>) {
             "agility",
             "artisan-2",
             "bryophyta",
+            "construction",
             "farming",
             "fight-cave",
             "fight-cave-jad",

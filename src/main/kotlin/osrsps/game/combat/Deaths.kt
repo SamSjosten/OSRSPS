@@ -31,9 +31,9 @@ private val logger = KotlinLogging.logger {}
  * [graveLevel]), when not at the spawn and on the tile they died on: a death in an instance, whose tile they can't get
  * back to, or in a raid. With [keepItems] they lose nothing: a raid death while the party still stands. [coord] is where
  * the grave counts as made, for its fee ([GraveFees]): a raid's death counts where it was in the cache's map, not in
- * the run's copy of it; -1 for where they fell. A [safe] death is a safe minigame's (the Fight Cave): a Hardcore Ironman
- * keeps their status (the Wiki's Ironman Mode, Hardcore Ironman: "Safe deaths, such as those in minigames, will not
- * cause the player to become a standard Ironman", the TzHaar Fight Cave and the Inferno among them).
+ * the run's copy of it; -1 for where they fell. A [safe] death keeps everything and costs no Hardcore status: a
+ * player-owned house's, or a safe minigame's (the Fight Cave; the Wiki's Ironman Mode, Hardcore Ironman: "Safe deaths,
+ * such as those in minigames, will not cause the player to become a standard Ironman").
  */
 data class DeathPlace(
     val keepItems: Boolean,
@@ -244,7 +244,7 @@ class Deaths(
         if (!player.dead) die(player)
         player.deathTick = -1
         if (place?.safe != true) loseHardcore(player)
-        val keep = place?.keepItems == true
+        val keep = place?.keepItems == true || place?.safe == true
         if (!keep) {
             // A skull goes with a death that loses items (guessed), and with it the hit-back rights it gave those
             // attacked first (Skulls); a raid death that keeps everything keeps both (exploit review round 36, R36A-3).

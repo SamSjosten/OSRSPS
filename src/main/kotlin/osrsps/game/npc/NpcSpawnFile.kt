@@ -100,6 +100,7 @@ object NpcSpawnFile {
         "wilderness-49-56.json",
         "kbd-lair.json",
         "raid-tester.json",
+        "construction.json",
         "hunters-end.json",
         "karamja-ships.json",
     )
