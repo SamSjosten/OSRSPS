@@ -1,5 +1,5 @@
 {
- "name": "Draynor piece step 4: Ned's rope for coins with the free one after The Fremennik Isles, his shop at 16 coins, Aggie's red dye from her Dyes option and her 5-coin fine (::keys on)",
+ "name": "Draynor piece step 4: Ned's rope for coins with the free one after The Fremennik Isles (and neither without the coins), his shop at 16 coins, Aggie's red dye from her Dyes option and her 5-coin fine (::keys on)",
  "account": "test",
  "steps": [
   {
@@ -18,14 +18,100 @@
   },
   {
    "step": "command",
-   "text": "::item coins 100",
-   "expectMessage": "Added 100 x Coins"
-  },
-  {
-   "step": "command",
    "text": "::tele 3100 3258 0",
    "expectMessage": "Teleported to 3100, 3258, 0",
    "comment": "Ned's house"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Ned",
+   "option": "Talk-to",
+   "comment": "with no coins first: he can't sell a rope, and gives no free one (exploit review 45, R45A-1)"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.greeting]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[ned.rope]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.rope]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.price]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.rope_2]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.rope_3]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.rope_4]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.rope_5]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[ned.sell]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.sell]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[ned.cant_afford]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Rope",
+   "count": 0,
+   "comment": "no yak hair talk and no free rope without paying"
+  },
+  {
+   "step": "command",
+   "text": "::item coins 100",
+   "expectMessage": "Added 100 x Coins"
   },
   {
    "step": "npcOption",

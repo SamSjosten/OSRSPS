@@ -70,6 +70,9 @@ object Ned {
     const val COINS = 995
     const val ROPE_COINS = 15
 
+    /** What a rope costs from him: 15 coins buys it and the free one, 7 each rounded down. */
+    const val ROPE_EACH = ROPE_COINS / 2
+
     const val ROPE_ITEM = 954
     const val BALL_OF_WOOL = 1759
     const val WOOL_PER_ROPE = 4
@@ -117,8 +120,10 @@ object Ned {
                     take(player, COINS, ROPE_COINS)
                     give(player, ROPE_ITEM)
                     chatNpc(ChatAnim.HAPPY, HERE)
+                    // The yak hair talk, and its free rope, follow a rope bought: not the can't-afford box, or a player
+                    // with no coins could talk a rope out of him every time (exploit review 45, R45A-1).
+                    yakHair(give)
                 }
-                yakHair(give)
             }
             2 -> {
                 chatPlayer(ChatAnim.ANGRY, EXPENSIVE)
@@ -177,6 +182,8 @@ fun registerNed(world: World) {
     val give: (Player, Int) -> Unit = { player, obj ->
         world.objTypes[obj]?.let { world.groundObjs.give(player, it, 1) } ?: logger.warn { "No item $obj in the cache" }
     }
+    // The GE bot market pays no more than this for rope (exploit review 45, R45A-1).
+    world.grandExchange.npcSells(Ned.ROPE_ITEM, Ned.ROPE_EACH.toLong())
     world.handlers.onNpc(Ned.ID, Ned.TALK_TO) { op ->
         world.dialogues.start(this, op.npc) { with(Ned) { talk(give) } }
     }

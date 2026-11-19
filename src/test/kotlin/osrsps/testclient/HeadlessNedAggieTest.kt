@@ -16,7 +16,7 @@ import osrsps.map.CollisionMap
 
 /**
  * Draynor piece step 4 through the headless client: Ned's rope for 15 coins (and the free one the yak hair talk ends
- * with), and Aggie's Dyes option making red dye, as the registered handlers run them. The rl-client script
+ * with, after a rope bought only), and Aggie's Dyes option making red dye, as the registered handlers run them. The rl-client script
  * test-runner/examples/draynor-ned-aggie.json does the same in Draynor.
  */
 class HeadlessNedAggieTest {
@@ -84,6 +84,21 @@ class HeadlessNedAggieTest {
                 client.objbox()
                 assertEquals(2, client.count(Ned.ROPE_ITEM))
                 client.pages("ned", "yak_jofridr", "yak_bye")
+
+                // With 5 coins left he can't sell one, and gives no free rope either (exploit review 45, R45A-1).
+                client.awaitTicks(1)
+                client.opNpc(Ned.ID, Ned.TALK_TO)
+                client.pages("ned", "greeting")
+                client.pick(2)
+                client.pages("ned", "rope", "price", "rope_2", "rope_3", "rope_4", "rope_5")
+                client.pick(1)
+                client.pages("ned", "sell")
+                client.awaitDialogue("ned.cant_afford") { it is DialogueView.Message && it.text == "[ned.cant_afford]" }
+                client.continueDialogue()
+                client.await("the talk over") { if (client.dialogueView == null) Unit else null }
+                client.awaitTicks(2)
+                assertEquals(2, client.count(Ned.ROPE_ITEM))
+                assertEquals(5, client.count(Ned.COINS))
             }
         }
     }
