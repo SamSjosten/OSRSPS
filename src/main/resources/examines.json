@@ -38,7 +38,8 @@
     "NPCs: Karamja (step K1.3): Musa Point's two men and the snakes (the 242 cache, 2026-11-17).",
     "Construction step CON3 (2026-11-19): the seven chairs built on the parlour's chair spaces (poh_chair1 to 7), one per id, each from the Wiki page of the chair it is.",
     "NPCs: random events step 3 (2026-11-19): the certer brothers Niles, Miles and Giles (5436 to 5438) and the Sandwich lady (5510), from each page's infobox.",
-    "Locs and NPCs: Karamja (step K1.4): the ways into and out of the Crandor and Karamja Dungeon, and the level 45 skeleton's second id (83). None yet for the volcano's climbing rope below (18969), which has no Wiki page."
+    "Locs and NPCs: Karamja (step K1.4): the ways into and out of the Crandor and Karamja Dungeon, and the level 45 skeleton's second id (83). None yet for the volcano's climbing rope below (18969), which has no Wiki page.",
+    "NPCs: random events step 4 (2026-11-19): the Freaky Forester (6748 out in the world, 372 in his forest) and the pheasants (373, 5500, 374, 5502), from each page's infobox."
   ],
   "npcs": [
     {"npc": 0, "name": "Tool Leprechaun"},
@@ -111,6 +112,8 @@
     {"npc": 322, "name": "Drunken Dwarf"},
     {"npc": 323, "name": "Strange plant"},
     {"npc": 326, "name": "Genie"},
+    {"npc": 372, "name": "Freaky Forester", "also": [6748]},
+    {"npc": 373, "name": "Pheasant", "also": [5500, 374, 5502]},
     {"npc": 375, "name": "Rick Turpentine"},
     {"npc": 403, "name": "Vannaka"},
     {"npc": 404, "name": "Chaeldar"},

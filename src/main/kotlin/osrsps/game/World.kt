@@ -678,7 +678,8 @@ class World(
                 it in osrsps.game.skill.construction.House.INSTANCE_LOCS || it in FightCaves.INSTANCE_LOCS ||
                 it in osrsps.game.content.Scurrius.INSTANCE_LOCS ||
                 it in osrsps.game.tzhaar.Inferno.INSTANCE_LOCS ||
-                it in osrsps.game.skill.construction.FurnitureBuilds.INSTANCE_LOCS
+                it in osrsps.game.skill.construction.FurnitureBuilds.INSTANCE_LOCS ||
+                it in osrsps.game.content.randomevents.FreakyForester.INSTANCE_LOCS
         },
     )
 

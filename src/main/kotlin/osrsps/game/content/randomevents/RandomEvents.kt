@@ -125,6 +125,9 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
         var talking: Boolean = false
     }
 
+    /** The places teleporting events take their player to. */
+    val areas = EventAreas(world)
+
     private val all = LinkedHashMap<String, RandomEvent>()
     private val out = LinkedHashMap<Npc, Out>()
 
@@ -411,8 +414,9 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
 
 /** Every random event built, and the strange fruit's Eat. */
 fun registerRandomEvents(world: World) {
-    for (event in listOf(Genie, CountCheckEvent, DrunkenDwarf, RickTurpentine, MysteriousOldMan, DrJekyll, StrangePlant, Certer, SandwichLady)) {
+    for (event in listOf(Genie, CountCheckEvent, DrunkenDwarf, RickTurpentine, MysteriousOldMan, DrJekyll, StrangePlant, Certer, SandwichLady, FreakyForester)) {
         world.randomEvents.register(event)
     }
+    FreakyForester.register(world)
     world.handlers.onObj(StrangePlant.FRUIT, 1) { op -> StrangePlant.eat(world, player, op.sub) }
 }
