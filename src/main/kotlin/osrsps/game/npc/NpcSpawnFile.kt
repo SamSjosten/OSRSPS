@@ -109,6 +109,7 @@ object NpcSpawnFile {
         "fight-cave.json",
         "inferno.json",
         "shooting-stars.json",
+        "web-chasm.json",
     )
 
     /** What a file gave: the spawns, and the NPC names the cache doesn't know (skipped). */

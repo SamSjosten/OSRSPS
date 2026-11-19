@@ -169,6 +169,7 @@ import osrsps.game.content.registerScorpia
 import osrsps.game.content.registerChaosElemental
 import osrsps.game.content.registerArtio
 import osrsps.game.content.registerCalvarion
+import osrsps.game.content.registerSpindel
 import osrsps.game.content.registerKingBlackDragon
 import osrsps.game.tzhaar.FightCaves
 import osrsps.game.content.MemberGates
@@ -998,6 +999,9 @@ class World(
     /** Low and High Level Alchemy; see [osrsps.game.skill.magic.Alchemy]. */
     val alchemy = osrsps.game.skill.magic.Alchemy(this, osrsps.game.skill.magic.Alchemy.load(objTypes))
 
+    /** Superheat Item; see [osrsps.game.skill.magic.Superheat]. */
+    val superheat = osrsps.game.skill.magic.Superheat(this, osrsps.game.skill.magic.Superheat.load(objTypes))
+
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
 
@@ -1159,6 +1163,7 @@ class World(
         registerKingBlackDragon(this)
         registerArtio(this)
         registerCalvarion(this)
+        registerSpindel(this)
         FountainOfRune.register(this)
         registerFeroxEnclave(this)
         registerWildernessObelisks(this)
@@ -1218,6 +1223,7 @@ class World(
         teleports.register()
         boltEnchant.register()
         alchemy.register()
+        superheat.register()
         runecraft.register()
         runeCrafting.register()
         combinationRunes.register()
@@ -1601,6 +1607,7 @@ class World(
             perPlayer(player, "Grand Exchange") { grandExchange.process(player) }
             perPlayer(player, "Clans") { clans.process(player) }
             perPlayer(player, "farming") { farming.process(player) }
+            perPlayer(player, "White Tree") { osrsps.game.content.PalaceGarden.process(this, player) }
         }
         phase = TickPhase.MOVEMENT
         // Guessed place in the tick: before anyone walks, so a door that closes itself blocks this tick's steps.
