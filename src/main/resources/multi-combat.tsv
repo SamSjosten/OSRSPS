@@ -305,3 +305,6 @@ scorpia_cave	0	3200	10304	3263	10367
 # The King Black Dragon's lair (Wilderness step W4.6): the OSRS Wiki's King Black Dragon Lair says it is multi-way.
 # Inferred: the whole of its map square, 35_73.
 kbd_lair	0	2240	4672	2303	4735
+# Scurrius's public lair in the Varrock Sewers (Scurrius step 1): its three by three zones, the sewage water's tiles
+# with it. INFERRED multi-way: the Wiki's Scurrius has groups fighting him alongside his giant rats; the box is ours.
+scurrius_lair	0	3288	9856	3311	9879

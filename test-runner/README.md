@@ -719,6 +719,20 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   (varp 2943) goes to 1 and the pickaxe is the overview's latest item (varp 4623); the King Black Dragon's other three
   items fill his page (`collection_bosses_dragon_completed`, varbit 11978, 1), and five more pickaxes count on to 6 with
   `collection_count` still 4. Ends with `::clog reset` and the settings off.
+- `collection-log-window.json` (needs 0.21.0, for `clickWidget` on a slot): collection log step 2. Two Dragon pickaxes
+  logged and `::varp 1514 31`, then `::clog open 0 28` opens the log (621) on the King Black Dragon's page with his
+  kills in `collection_category_count` (varp 2048) and the page kept in `collection_last_category` (varbit 6906, 28);
+  Check on the bosses' first page (621:11 slot 0) shows Abyssal Sire with 0, View on the Other tab keeps 4 in
+  `collection_last_tab` (6905), the burger menu's Overview (621:73 slot 12) opens the overview (908) and its Bosses
+  button (908:22 slot 0) the log again, then the close button. Ends with `::clog reset` and the kills back at 0. On the
+  VMs the header reads "King Black Dragon kills: 31" and "Obtained: 1/4"; headless can't read script-drawn text.
+- `collection-log-collector.json` (needs 0.21.0): collection log step 3, with `::keys on`. At The Collector by the
+  Varrock Museum's stairs (3265, 3455), Get-log hands over a collection log (`[collector.gives_log]`, item 22711) and a
+  second Get-log says `[collector.have_one]`; the log's Read opens the log (621) and Collections overview the overview
+  (908); Claim-log-rewards with nothing logged starts `[collector.count_please]`; Create-book on a bronze staff of
+  collection (30597, from `::item`) makes the bronze collection log (30579); Destroy on that book opens the destroy
+  check (584), and a mouse click on its drawn No (universe child 0) keeps the book while Yes (child 1) takes it. Starts
+  and ends with `::empty`.
 
 ## Results
 
