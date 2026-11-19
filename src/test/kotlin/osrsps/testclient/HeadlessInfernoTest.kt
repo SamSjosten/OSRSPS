@@ -566,6 +566,15 @@ class HeadlessInfernoTest {
                 assertTrue(read.second - server.world.tick in 0..InfernoMonsters.BLOB_READS_AHEAD.toLong(), "it attacks within 3 ticks of reading")
                 val fired = client.await("its first attack") { monsters.lastStyle[blob] }
                 assertEquals(read.first.takeIf { it != AttackType.CRUSH } ?: fired, fired, "it fires the style it read")
+
+                // Back in shot with its attack overdue and its read dropped, it fires at once, not 3 ticks on (exploit
+                // review R46B-4).
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
+                monsters.blobStyles.remove(blob)
+                blob.nextAttackTick = server.world.tick
+                client.stepTicks(1)
+                assertTrue(blob.nextAttackTick > server.world.tick + InfernoMonsters.BLOB_READS_AHEAD, "it attacked, its next attack a full 6 ticks on")
+                client.commandReply("resume") { it.startsWith("Resumed") }
             }
         }
     }
