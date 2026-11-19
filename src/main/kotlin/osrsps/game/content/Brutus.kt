@@ -57,7 +57,6 @@ class BrutusPens(private val world: World) {
         var boss: Npc? = null
 
         fun inside(x: Int, z: Int) = Tile(instance.baseX + x - Brutus.FIELD_X, instance.baseZ + z - Brutus.FIELD_Z)
-        fun outside(x: Int, z: Int) = Tile(x - instance.baseX + Brutus.FIELD_X, z - instance.baseZ + Brutus.FIELD_Z)
     }
 
     private val runs = HashMap<Int, Run>()
@@ -138,8 +137,8 @@ object Brutus {
     val GATE_X = listOf(3262, 3263)
     const val GATE_Z = 3294
 
-    /** The way out's leaves, whose handlers work in the fields, the instances. */
-    val INSTANCE_LOCS: Set<Int> = setOf(EXIT_LEFT, EXIT_RIGHT)
+    /** The locs whose handlers work in the fields, the instances: the way out's leaves and the dairy cows. */
+    val INSTANCE_LOCS: Set<Int> = setOf(EXIT_LEFT, EXIT_RIGHT) + GroatsFarm.DAIRY_COWS
 
     /** The cache's `cowboss_regular_dontaskagain`: Release goes straight in. */
     const val DONT_ASK_VARBIT = 20160
