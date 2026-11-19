@@ -37,8 +37,9 @@ object IdkTypeLoader {
             }
         }
         if (failed > 0) logger.warn { "$failed identity kits did not decode" }
-        logger.info { "Loaded ${array.count { it != null }} identity kits" }
-        return IdkTypes(array)
+        val types = IdkTypes(array)
+        logger.info { "Loaded ${types.size} identity kits" }
+        return types
     }
 
     fun decode(id: Int, data: ByteArray): IdkType {
