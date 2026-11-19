@@ -15,7 +15,7 @@ import osrsps.game.trail.TreasureTrails
 
 /**
  * Treasure Trails against the real cache, which the headless tests (no cache) can't check: the clue helper tables load
- * into every step the Wiki lists, step TT1's Misthalin dig steps are the ones the plan counted (Treasure Trails plan,
+ * into every step the Wiki lists, the Misthalin dig, talk and search steps built so far (TT1, TT3) are the ones the plan counted (Treasure Trails plan,
  * 19 Nov 2026, from the same tables), every built map has its interface, and every clue scroll item is read.
  *
  * Needs OSRSPS_FLATCACHE: a checkout of github.com/abextm/osrs-cache at the server's revision.
@@ -38,7 +38,7 @@ class TrailCacheAuditTest {
 
         val built = TrailTier.entries.associateWith { tier -> data.tier(tier).filter { step -> TreasureTrails.built(step) }.map { it.key }.sorted() }
         assertEquals(mapOf(
-            TrailTier.BEGINNER to 4, TrailTier.EASY to 4, TrailTier.MEDIUM to 7, TrailTier.HARD to 6, TrailTier.ELITE to 0, TrailTier.MASTER to 0,
+            TrailTier.BEGINNER to 14, TrailTier.EASY to 38, TrailTier.MEDIUM to 16, TrailTier.HARD to 20, TrailTier.ELITE to 3, TrailTier.MASTER to 1,
         ), built.mapValues { it.value.size }, built.toString())
 
         val problems = ArrayList<String>()

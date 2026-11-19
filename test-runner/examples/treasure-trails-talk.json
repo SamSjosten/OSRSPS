@@ -1,0 +1,28 @@
+{
+ "name": "Treasure Trails step TT3: Talk-to on Hans with his easy clue gives the next clue instead of his own talk (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::clue reset", "expectMessage": "No trail, no caskets opened, no scroll cases."},
+
+  {"step": "command", "text": "::clue easy cryptic:650", "expectMessage": "Clue (easy): cryptic:650", "comment": "trail_clue_easy_simple005 (2681), Speak to Hans"},
+  {"step": "itemOption", "itemId": 2681, "option": "Read"},
+  {"step": "assertInterface", "interfaceId": 203},
+  {"step": "clickWidget", "interfaceId": 203, "component": 1},
+  {"step": "command", "text": "::tele 3221 3218 0", "comment": "Hans walks the castle; he comes past the courtyard"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "npcOption", "npc": "Hans", "option": "Talk-to"},
+  {"step": "assertDialogue", "contains": "[trail.npc_clue]", "timeoutMs": 60000},
+  {"step": "continueDialogue"},
+  {"step": "assertDialogue", "contains": "[trail.another_clue]"},
+  {"step": "continueDialogue"},
+  {"step": "assertInventory", "itemId": 2681, "count": 0, "comment": "swapped for the next easy clue (or the casket on a one-step trail)"},
+  {"step": "command", "text": "::empty"},
+
+  {"step": "command", "text": "::clue reset", "expectMessage": "No trail, no caskets opened, no scroll cases."},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

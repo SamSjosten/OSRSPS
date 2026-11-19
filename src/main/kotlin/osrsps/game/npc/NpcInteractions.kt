@@ -313,7 +313,7 @@ class NpcInteractions(
         // checked.
         val engaged = npc.engagedWith
         if (engaged == null || engaged === player || !scripts.busy(engaged)) npcs.engage(npc, player, currentTick()) else npcs.wait(npc, player)
-        if (handlers.find(op) != null) {
+        if (handlers.find(op, player) != null) {
             scripts.trigger(player, op)
         } else {
             logger.info { "${player.username} used $op on $npc (not handled)" }
