@@ -34,7 +34,9 @@ import osrsps.map.Tile
  */
 class HeadlessWildernessDitchTest {
     private val types = LocTypes(
-        mapOf(WildernessDitch.DITCH to LocType(WildernessDitch.DITCH, "Wilderness Ditch", ops = listOf("Cross", null, null, null, null), collision = LocCollisionType(width = 1, length = 2))),
+        listOf(WildernessDitch.DITCH, WildernessDitch.DITCH_MEMBERS).associateWith {
+            LocType(it, "Wilderness Ditch", ops = listOf("Cross", null, null, null, null), collision = LocCollisionType(width = 1, length = 2))
+        },
     )
 
     private val vars = VarTypes(
@@ -56,7 +58,9 @@ class HeadlessWildernessDitchTest {
         val ditch = ZoneLoc(WildernessDitch.DITCH, LocShape.CENTREPIECE_STRAIGHT, 0, 3090, 3521, 0)
         // A second run, with the rock on its south side.
         val blocked = ZoneLoc(WildernessDitch.DITCH, LocShape.CENTREPIECE_STRAIGHT, 0, 3100, 3521, 0)
-        World(crcs, map, locTypes = types, staticLocs = StaticLocs().apply { add(ditch); add(blocked) }, varTypes = vars, cycleMillis = millis)
+        // A members piece, as the 242 map has from x 3328 to 3340.
+        val members = ZoneLoc(WildernessDitch.DITCH_MEMBERS, LocShape.CENTREPIECE_STRAIGHT, 0, 3110, 3521, 0)
+        World(crcs, map, locTypes = types, staticLocs = StaticLocs().apply { add(ditch); add(blocked); add(members) }, varTypes = vars, cycleMillis = millis)
     }
 
     private fun HeadlessClient.tele(x: Int, z: Int) {
@@ -152,6 +156,22 @@ class HeadlessWildernessDitchTest {
                 client.cross()
                 client.await("north again with no screen") { client.position?.takeIf { it == Coord(3090, 3523, 0) } }
                 assertFalse(WildernessDitch.WARNING_SCREEN in client.openInterfaces())
+            }
+        }
+    }
+
+    @Test
+    fun `the members pieces cross like the rest, warning and all`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ivy").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3110, 3520)
+                client.locOp(WildernessDitch.DITCH_MEMBERS, 3110, 3521, WildernessDitch.CROSS)
+                client.await("the warning screen") { WildernessDitch.WARNING_SCREEN.takeIf { it in client.openInterfaces() } }
+                client.resumePause(WildernessDitch.WARNING_SCREEN, WildernessDitch.WARNING_UNIVERSE, WildernessDitch.ENTER)
+                client.await("across the ditch") { client.position?.takeIf { it == Coord(3110, 3523, 0) } }
+                client.locOp(WildernessDitch.DITCH_MEMBERS, 3110, 3521, WildernessDitch.CROSS)
+                client.await("back south") { client.position?.takeIf { it == Coord(3110, 3520, 0) } }
             }
         }
     }
