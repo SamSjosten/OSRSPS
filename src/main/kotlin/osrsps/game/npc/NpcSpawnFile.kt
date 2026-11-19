@@ -109,6 +109,7 @@ object NpcSpawnFile {
         "fight-cave.json",
         "inferno.json",
         "shooting-stars.json",
+        "web-chasm.json",
         "karamja-musa-point.json",
     )
 

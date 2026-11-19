@@ -134,7 +134,7 @@ interface EncounterContext {
      * fight's end puts the tile back as the cache has it. What grows in the fight: a mushroom. A turned loc wider than
      * it is long blocks its length along x and its width along z.
      */
-    fun placeLoc(id: Int, x: Int, z: Int, rotation: Int = 0): ZoneLoc
+    fun placeLoc(id: Int, x: Int, z: Int, rotation: Int = 0, shape: Int = osrsps.map.LocShape.CENTREPIECE_STRAIGHT): ZoneLoc
 
     /** Puts [loc]'s tile back as the cache has it, if [placeLoc] put it there and nothing has changed it since. */
     fun clearLoc(loc: ZoneLoc)

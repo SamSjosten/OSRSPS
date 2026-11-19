@@ -123,6 +123,7 @@ import osrsps.game.content.registerHamHideout
 import osrsps.game.content.registerHamStorerooms
 import osrsps.game.content.registerFarmsRoads
 import osrsps.game.content.registerLumberYard
+import osrsps.game.content.registerGertrudesCat
 import osrsps.game.content.registerClanHub
 import osrsps.game.content.registerRaidTester
 import osrsps.game.content.registerTolnasRift
@@ -170,6 +171,7 @@ import osrsps.game.content.registerScorpia
 import osrsps.game.content.registerChaosElemental
 import osrsps.game.content.registerArtio
 import osrsps.game.content.registerCalvarion
+import osrsps.game.content.registerSpindel
 import osrsps.game.content.registerKingBlackDragon
 import osrsps.game.tzhaar.FightCaves
 import osrsps.game.content.MemberGates
@@ -190,6 +192,7 @@ import osrsps.game.content.registerHaystacks
 import osrsps.game.content.registerLodestones
 import osrsps.game.content.registerAxeLogs
 import osrsps.game.content.registerDraynorMarket
+import osrsps.game.content.registerMartinTheMasterGardener
 import osrsps.game.content.registerNed
 import osrsps.game.content.registerAggie
 import osrsps.game.content.registerDraynorJail
@@ -1002,6 +1005,9 @@ class World(
     /** Low and High Level Alchemy; see [osrsps.game.skill.magic.Alchemy]. */
     val alchemy = osrsps.game.skill.magic.Alchemy(this, osrsps.game.skill.magic.Alchemy.load(objTypes))
 
+    /** Superheat Item; see [osrsps.game.skill.magic.Superheat]. */
+    val superheat = osrsps.game.skill.magic.Superheat(this, osrsps.game.skill.magic.Superheat.load(objTypes))
+
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
 
@@ -1099,6 +1105,7 @@ class World(
         registerDraynorVillage(this)
         registerAxeLogs(this)
         registerDraynorMarket(this)
+        registerMartinTheMasterGardener(this)
         registerNed(this)
         registerAggie(this)
         registerDraynorJail(this)
@@ -1130,6 +1137,7 @@ class World(
         registerHamStorerooms(this)
         registerFarmsRoads(this)
         registerLumberYard(this)
+        registerGertrudesCat(this)
         registerClanHub(this)
         registerTolnasRift(this)
         registerSilvarea(this)
@@ -1164,6 +1172,7 @@ class World(
         registerKingBlackDragon(this)
         registerArtio(this)
         registerCalvarion(this)
+        registerSpindel(this)
         FountainOfRune.register(this)
         registerFeroxEnclave(this)
         registerWildernessObelisks(this)
@@ -1224,6 +1233,7 @@ class World(
         teleports.register()
         boltEnchant.register()
         alchemy.register()
+        superheat.register()
         runecraft.register()
         runeCrafting.register()
         combinationRunes.register()
