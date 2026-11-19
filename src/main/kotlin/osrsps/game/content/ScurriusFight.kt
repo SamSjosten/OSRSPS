@@ -45,7 +45,7 @@ import osrsps.map.Tile
  *   weapon"), and Protect from Melee lets a quarter of their damage through ("reduces their overall damage by 75%",
  *   their NPC file's prayerPasses). They stay when he dies.
  *
- * GUESSED until recorded (each marked where it is used): when he picks each attack ([BRICK_ODDS], [SUMMON_ODDS], magic
+ * GUESSED until recorded (each marked where it is used): [EATING_TAKES_PERCENT] and [FEED_AFTER_ATTACKS]; when he picks each attack ([BRICK_ODDS], [SUMMON_ODDS], magic
  * and ranged at even odds, the swipe whenever he reaches in the phases that have it); the phases with rats (from the
  * piles on, none in phase one, which the Wiki describes as swipes and bricks alone); [CENTRE_SPEED]; [BRICKS],
  * [BRICK_LANDS] and the shadow being the debris graphic's start (the cache has no other); the eating rhythm
@@ -66,7 +66,9 @@ object ScurriusFight {
     const val EAT_TICKS = 5
     const val HEAL_SOLO = 5
     const val HEAL_GROUP = 10
+    // Guessed: "a slight damage reduction" as 20% off each hit.
     const val EATING_TAKES_PERCENT = 80
+    // Guessed: "now and then" as after every eight attacks.
     const val FEED_AFTER_ATTACKS = 8
 
     const val MAGIC_SOLO = 8
@@ -381,7 +383,8 @@ fun registerScurriusFight(world: World) {
         val rolledOn = world.combat.rolledOn
         world.combat.rolledOn = { player, npc, type, rolled ->
             when {
-                npc.type.id == GIANT_RAT -> npc.hitpoints
+                // A spell with no damage (Bind) stays harmless, so it can't earn damage XP on a rat.
+                npc.type.id == GIANT_RAT -> if (rolled > 0) npc.hitpoints else 0
                 isBoss(npc.type.id) && eating(npc) -> rolledOn(player, npc, type, rolled) * EATING_TAKES_PERCENT / 100
                 else -> rolledOn(player, npc, type, rolled)
             }

@@ -123,6 +123,7 @@ class HeadlessScurriusFightTest {
                 val rat = ScurriusFight.rats(boss).first()
                 assertEquals(SureHit.MAX, server.world.combat.sureHit(bob, rat, AttackType.MAGIC), "any style hits one")
                 assertEquals(rat.hitpoints, server.world.combat.rolledOn(bob, rat, AttackType.RANGED, 1), "and kills it")
+                assertEquals(0, server.world.combat.rolledOn(bob, rat, AttackType.MAGIC, 0), "but a spell with no damage (Bind) does none")
                 assertTrue(server.world.multiCombat.at(0, rat.x, rat.z))
                 // They stay when he dies.
                 val rats = ScurriusFight.rats(boss).size
