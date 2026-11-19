@@ -325,12 +325,14 @@ class Diaries(private val world: World, private val font: ChatFont) {
 
 /**
  * The side panel's "Open <diary> Journal" (op 1 on a row's click box) opens that diary's journal. A diary not built
- * here does nothing: its tasks aren't keyed. The rows' second op, Wiki, opens a web page on live and isn't enabled
- * ([osrsps.game.Interfaces.openJournalTab]).
+ * here does nothing: its tasks aren't keyed; nor does a click while another interface is open or a script runs. The
+ * rows' second op, Wiki, opens a web page on live and isn't enabled ([osrsps.game.Interfaces.openJournalTab]).
  */
 fun registerDiaries(world: World) {
     world.handlers.onButton(Diaries.PANEL, Diaries.PANEL_TASKBOX, Diaries.PANEL_OPEN) { op ->
         val area = DiaryArea.forIndex(op.sub) ?: return@onButton
+        // A stale or forged click with the bank or another modal open would swap only the main modal and strand the rest.
+        if (world.scripts.busy(player)) return@onButton
         world.diaries.openJournal(player, area)
     }
 }

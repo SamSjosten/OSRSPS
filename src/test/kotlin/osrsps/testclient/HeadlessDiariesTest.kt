@@ -59,7 +59,7 @@ class HeadlessDiariesTest {
                 assertEquals("<str>[diary_lumbridge_tasks.easy_5]", tasks.single { "easy_5]" in it })
                 assertEquals("[diary_lumbridge_tasks.easy_4]", tasks.single { "easy_4]" in it })
                 assertEquals("", texts.getValue(Diaries.FIRST_LINE + Diaries.LINES - 1))
-                val sized = client.clientScripts().last { it.id == Diaries.LINE_COUNT_SCRIPT }
+                val sized = client.await("the line count script") { client.clientScripts().lastOrNull { it.id == Diaries.LINE_COUNT_SCRIPT } }
                 assertEquals(listOf<Any>(1, 1 + 4 * 2 + 41), sized.args)
                 client.closeModal()
 
