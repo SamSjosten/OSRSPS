@@ -1,0 +1,27 @@
+{
+  "name": "Random events: the Maze, the Mysterious Old Man's invitation, the reward timer, and leaving by teleport",
+  "account": "test",
+  "runOnLogin": false,
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"comment": "Off first, so the timer can't send a second event mid-script.", "step": "command", "text": "::randomevent off", "expectMessage": "Random events off"},
+    {"step": "command", "text": "::empty", "expectMessage": "Inventory emptied"},
+    {"step": "command", "text": "::tele 3222 3218", "expectMessage": "Teleported to 3222, 3218"},
+    {"step": "command", "text": "::randomevent maze", "expectMessage": "Started random event maze"},
+    {"step": "npcOption", "npcId": 6752, "option": "Talk-to", "timeoutMs": 20000},
+    {"step": "assertDialogue", "speaker": "Mysterious Old Man", "contains": "[maze.invite", "timeoutMs": 20000},
+    {"step": "continueDialogue"},
+    {"step": "chooseOption", "text": "[maze.yes]"},
+    {"step": "assertDialogue", "contains": "[maze.yes]"},
+    {"step": "continueDialogue"},
+    {"comment": "The maze: look that the player stands in a corner among walls of floating cubes, with chests along the way.", "step": "assertDialogue", "speaker": "Mysterious Old Man", "contains": "[maze.reach_centre]", "timeoutMs": 20000},
+    {"step": "continueDialogue"},
+    {"step": "assertNoDialogue"},
+    {"comment": "The timer: look that the top says to complete the maze as fast as possible and the bottom right shows the reward left as a percentage.", "step": "assertInterface", "interfaceId": 209, "timeoutMs": 20000},
+    {"comment": "Look that the percentage drops by about one every three seconds.", "step": "waitTicks", "ticks": 15},
+    {"comment": "Out another way: the timer closes within one drain. The shrine, the chests and the rewards are the headless test's part.", "step": "command", "text": "::tele 3222 3218", "expectMessage": "Teleported to 3222, 3218"},
+    {"comment": "Look that the timer window has gone.", "step": "assertInterface", "interfaceId": 209, "absent": true, "timeoutMs": 10000},
+    {"step": "assertLocation", "x": 3222, "y": 3218, "plane": 0, "timeoutMs": 20000}
+  ]
+}
