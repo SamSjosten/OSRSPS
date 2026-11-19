@@ -1,0 +1,12 @@
+{
+  "about": "TzHaar Fight Cave (Fight Caves step FC4): TzHaar-Mej-Jal by the cave entrance in Mor Ul Rek, on the tile of the Wiki's infobox map for him (x=2440, y=5170, r=3), wandering 3 tiles as its square says. The rest of Mor Ul Rek's TzHaar are the Karamja/TzHaar city step's.",
+  "spawns": [
+    {
+      "npc": "tzhaar_fightcave_master",
+      "x": 2440,
+      "z": 5170,
+      "wander": 3,
+      "source": "TzHaar-Mej-Jal: the Wiki's infobox map, {{Map|x=2440|y=5170|r=3}}"
+    }
+  ]
+}

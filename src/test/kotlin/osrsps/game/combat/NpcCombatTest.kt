@@ -64,7 +64,7 @@ class NpcCombatTest {
             "human_blunt_pound" to 401, "human_shield_defence" to 1156,
             "scorpion_update_attack_tail" to 6254, "scorpion_update_defend" to 6255, "scorpion_update_death" to 6256,
             "small_scorpion_update_attack" to 6261, "small_scorpion_update_defend" to 6259, "small_scorpion_update_death" to 6260,
-            "chaoselemental_attack" to 3146, "chaoselemental_death" to 3147, "dragon_block_kbd" to 4638, "npc_callisto_attack_melee01" to 10012, "npc_callisto_death01" to 10017,
+            "chaoselemental_attack" to 3146, "chaoselemental_death" to 3147, "dragon_block_kbd" to 4638, "npc_callisto_attack_melee01" to 10012, "npc_callisto_death01" to 10017, "npc_vetion_attack_magic_01" to 9969, "npc_vetion_attack_magic_02" to 9970, "npc_vetion_defend_parry_01" to 9973, "npc_vetion_defend_parry_02" to 9974, "npc_vetion_death_01" to 9980, "npc_vetion_death_02" to 9981, "dog_update_skeleton_hellhound_attack" to 6579, "dog_update_skeleton_hellhound_defend" to 6578,
             "npc_rat_boss_attack_melee_01" to 10692, "npc_rat_boss_death_01" to 10705,
             "zombie_update_attack_normal" to 5568, "zombie_update_defend_normal" to 5567, "zombie_update_death_normal" to 5569,
             "zombie_update_attack_weapon" to 5571, "zombie_update_defend_weapon" to 5574, "zombie_update_death_weapon" to 5575,

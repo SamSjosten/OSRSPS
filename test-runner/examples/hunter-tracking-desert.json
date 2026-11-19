@@ -1,0 +1,23 @@
+{
+ "name": "Hunter step 8b: tracking desert devils in the Uzer Hunter area. Inspect on the north burrow shows the first footprints of a trail of the player's own; a rockslide away from where they lead shows nothing; a patch of disturbed sand is empty while the trail goes on. The trail is random, so follow the rest by eye: Inspect the cacti and rockslides where the footprints stop until one shows more, then Attack the disturbed sand where they end with the noose wand wielded (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario hunter", "expectMessage": "Started scenario hunter.", "comment": "the scenario's noose wand and 63 Hunter; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::tele 3402 3133 0", "comment": "north of the north burrow (hunting_trail_spawn_desert2 at 3402, 3131)"},
+  {"step": "assertLocation", "x": 3402, "y": 3133, "plane": 0},
+  {"step": "waitTicks", "ticks": 3, "comment": "the client loads the new region first; a click sent while it does is lost (nightly 2026-11-16)"},
+  {"step": "itemOption", "item": "Noose wand", "option": "Wield"},
+  {"step": "assertEquipment", "slot": "weapon", "itemId": 10150},
+  {"step": "locOption", "locId": 19526, "option": "Inspect", "x": 3402, "y": 3131},
+  {"step": "assertAnimation", "id": 5216, "comment": "hunting_searching_bushes (guessed)"},
+  {"step": "assertMessage", "contains": "hunter.track_found", "timeoutMs": 15000},
+  {"step": "locOption", "locId": 19400, "option": "Inspect", "x": 3403, "y": 3110, "comment": "the rockslide of a segment between two nodes this burrow's segments don't reach"},
+  {"step": "assertMessage", "contains": "hunter.track_nothing", "timeoutMs": 30000},
+  {"step": "locOption", "locId": 19430, "option": "Attack", "x": 3400, "y": 3114, "comment": "a trail passes at least five nodes, so it hasn't ended yet"},
+  {"step": "assertMessage", "contains": "hunter.track_empty", "timeoutMs": 15000},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

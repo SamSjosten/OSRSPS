@@ -21,7 +21,6 @@
     {"step": "assertInventory", "item": "Coal", "count": 1, "timeoutMs": 60000},
     {"step": "assertMessage", "contains": "mining.get_ore ore=coal"},
 
-    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
     {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
   ]
 }

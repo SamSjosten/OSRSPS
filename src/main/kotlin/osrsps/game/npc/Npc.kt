@@ -97,6 +97,12 @@ class Npc(
     /** Ticks until it changes back to its spawn's type. */
     internal var transformTicks: Int = 0
 
+    /**
+     * Told the moment it changes back on its own ([Npcs.countDownTransforms]), at the tick's start before any hit lands:
+     * a boss fight sets it to arm its normal form at once (Calvar'ion's calm-down). Null for most.
+     */
+    var transformEnded: (() -> Unit)? = null
+
     /** The south-west tile it covers; it covers [NpcType.size] tiles along each side from here. */
     var x: Int = spawn.x
         internal set

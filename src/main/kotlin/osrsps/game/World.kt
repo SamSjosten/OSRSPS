@@ -166,6 +166,7 @@ import osrsps.game.content.registerChaosFanatic
 import osrsps.game.content.registerScorpia
 import osrsps.game.content.registerChaosElemental
 import osrsps.game.content.registerArtio
+import osrsps.game.content.registerCalvarion
 import osrsps.game.content.registerKingBlackDragon
 import osrsps.game.tzhaar.FightCaves
 import osrsps.game.content.MemberGates
@@ -662,7 +663,7 @@ class World(
         onDeath = { deaths.die(it) },
         loot = ::dropLoot,
         ranged = { player, npc -> magicCombat.fight(player, npc) ?: rangedCombat.fight(player, npc) },
-        multi = multiCombat, protects = prayers::protects,
+        multi = multiCombat, sameFight = { a, b -> encounters.sameFight(a, b) }, protects = prayers::protects,
         // A shot from an instance lands only in it: its copy of the map may already be gone, so an NPC on a dynamic tile
         // needs the player in an instance holding its tile.
         shotLands = { npc, player ->
@@ -1123,6 +1124,7 @@ class World(
         registerChaosElemental(this)
         registerKingBlackDragon(this)
         registerArtio(this)
+        registerCalvarion(this)
         FountainOfRune.register(this)
         registerFeroxEnclave(this)
         registerWildernessObelisks(this)
@@ -1145,6 +1147,7 @@ class World(
         registerEmotes(this)
         registerGiantBones(this)
         registerRoguesDen(this)
+        osrsps.game.content.registerDusuri(this)
         registerCrops(this)
         ducks.register()
         homeTeleport.register(handlers)
@@ -1469,7 +1472,7 @@ class World(
             deaths.respawn(player)
             // A Fight Cave death is paid and its run ended before the save, as a leaver's is (remove); TokKul that won't
             // fit goes to the bank, as a ground drop wouldn't outlast the stop.
-            fightCaves.leaving(player, shuttingDown = true)
+            fightCaves.leaving(player)
         }
         saveAll()
     }
