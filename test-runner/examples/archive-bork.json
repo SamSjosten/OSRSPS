@@ -242,7 +242,7 @@
    "step": "command",
    "text": "::raid run",
    "expectMessage": "done Archive Guardian;",
-   "comment": "their tower is gone 9 ticks after they fall, so the room isn't done yet"
+   "comment": "their tower is gone 9 ticks after they fall and the room is done a tick later, so it isn't done yet"
   },
   {
    "step": "waitTicks",
@@ -252,7 +252,7 @@
    "step": "command",
    "text": "::raid run",
    "expectMessage": "done Archive Guardian, Bork and the Smorks;",
-   "comment": "both gone: their room is done"
+   "comment": "both gone, and a tick on: their room is done, 10 ticks after the Smorks fell"
   },
   {
    "step": "command",
