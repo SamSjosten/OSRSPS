@@ -1616,6 +1616,41 @@ final class Steps
 		}
 	}
 
+	/**
+	 * (0.29.0) Picks a spell in an interface (the spellbook) and casts it on an inventory item. Waits (to the timeout) for
+	 * the interface and the item; does not wait for the result.
+	 */
+	static final class CastOnItem extends Step
+	{
+		final int interfaceId;
+		final int component;
+		final String item;
+		final int itemId;
+
+		CastOnItem(long timeoutMs, int interfaceId, int component, String item, int itemId)
+		{
+			super("castOnItem", timeoutMs, false);
+			this.interfaceId = interfaceId;
+			this.component = component;
+			this.item = item;
+			this.itemId = itemId;
+		}
+
+		@Override
+		Poll poll(Run run)
+		{
+			run.markAction();
+			String error = run.game.castOnItem(interfaceId, component, item, itemId);
+			return error == null ? Poll.pass("cast") : Poll.waiting(error);
+		}
+
+		@Override
+		String describe()
+		{
+			return "cast " + interfaceId + ":" + component + " on " + (item != null ? item : "item " + itemId);
+		}
+	}
+
 	/** Clicks an option on the first such item in the inventory, retrying until there is one. */
 	static final class ItemOption extends Step
 	{

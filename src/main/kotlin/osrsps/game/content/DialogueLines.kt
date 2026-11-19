@@ -44,6 +44,7 @@ import osrsps.game.skill.FletchingLines
 import osrsps.game.skill.HerbloreLines
 import osrsps.game.skill.LevelUpLines
 import osrsps.game.skill.MakeLines
+import osrsps.game.skill.magic.AlchemyLines
 import osrsps.game.skill.magic.BoltEnchantLines
 import osrsps.game.skill.MiningLines
 import osrsps.game.skill.ShootingStarLines
@@ -120,6 +121,7 @@ object DialogueLines {
         BirdNestLines,
         BlueMoonBarbarianLines,
         BoltEnchantLines,
+        AlchemyLines,
         BorkLines,
         DagonhaiLines,
         DreadnothLines,
