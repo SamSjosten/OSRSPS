@@ -331,7 +331,7 @@ class Clans(
     /**
      * Recruit on [target] with a clan vexillum wielded: for a member the Recruitment permission allows (Wiki, Clan
      * vexillum: "only usable if your clan rank ... allows it"), [target] is asked whether to join the clan, if they are
-     * in none, have Accept Aid on (Wiki, Clans) and aren't busy with an interface or another invitation; yes makes them
+     * in none, have Accept Aid on (Wiki, Clans) and aren't busy (an interface, a delayed action or another invitation); yes makes them
      * its lowest rank (inferred: the applicants' Accept does the same). Every refusal tells the recruiter why.
      */
     private fun recruit(recruiter: Player, target: Player) {
@@ -345,7 +345,7 @@ class Clans(
             clan.members.size >= MAX_MEMBERS -> tell(recruiter, ClanLines.CLAN_FULL)
             !acceptsAid(target) -> tell(recruiter, ClanLines.RECRUIT_NO_AID, target.username)
             // Someone ignoring the recruiter reads as busy, so the recruiter can't tell they are ignored (guessed).
-            target.modalOpen || target.saveKey in recruitInvites || ignores.ignores(target, recruiter) -> tell(recruiter, ClanLines.RECRUIT_BUSY, target.username)
+            target.modalOpen || target.scripts.delayed || target.saveKey in recruitInvites || ignores.ignores(target, recruiter) -> tell(recruiter, ClanLines.RECRUIT_BUSY, target.username)
             else -> {
                 recruitInvites[target.saveKey] = RecruitInvite(clan.id, recruiter.saveKey, clock)
                 tell(recruiter, ClanLines.RECRUIT_SENT, target.username)
