@@ -153,15 +153,15 @@ object ScurriusFight {
         return run.inside(x, z)
     }
 
-    private fun EncounterContext.percent(): Int = boss.hitpoints * 100 / boss.maxHitpoints
+    /** Whether he is at or below [percent] of his hitpoints, compared without rounding (as Encounter.phaseOver does). */
+    private fun EncounterContext.atOrBelow(percent: Int): Boolean = boss.hitpoints * 100 <= boss.maxHitpoints * percent
 
     private fun EncounterContext.tick() {
         val fight = fight(boss)
-        val percent = percent()
         when (fight.stage) {
-            Stage.MELEE -> if (percent <= FEED_AT_PERCENT) toPile(fight)
-            Stage.TO_PILE, Stage.FEEDING, Stage.FIGHT -> if (percent <= CENTRE_AT_PERCENT) toCentre(fight)
-            Stage.TO_CENTRE, Stage.CENTRE -> if (percent > CENTRE_AT_PERCENT) toPile(fight)
+            Stage.MELEE -> if (atOrBelow(FEED_AT_PERCENT)) toPile(fight)
+            Stage.TO_PILE, Stage.FEEDING, Stage.FIGHT -> if (atOrBelow(CENTRE_AT_PERCENT)) toCentre(fight)
+            Stage.TO_CENTRE, Stage.CENTRE -> if (!atOrBelow(CENTRE_AT_PERCENT)) toPile(fight)
         }
         if (fight.stage == Stage.FIGHT && fight.attacksSinceFeed >= FEED_AFTER_ATTACKS) toPile(fight)
 
@@ -195,7 +195,6 @@ object ScurriusFight {
     }
 
     private fun EncounterContext.attack(fight: Fight, target: Player, swipe: Boolean, speed: Int) {
-        boss.nextAttackTick = world.tick + speed
         if (fight.stage == Stage.FIGHT) fight.attacksSinceFeed++
         val feeding = fight.stage == Stage.FEEDING
         val rats = fight.stage != Stage.MELEE && fight.waves < WAVES
@@ -208,6 +207,8 @@ object ScurriusFight {
             roll(1, 2) == 1 -> shoot(target, AttackType.MAGIC, feeding)
             else -> shoot(target, AttackType.RANGED, feeding)
         }
+        // After the attack, as swingAt and fireAt set his NPC definition's speed, not this stage's.
+        boss.nextAttackTick = world.tick + speed
     }
 
     private fun EncounterContext.swipeAt(target: Player) {
@@ -364,7 +365,12 @@ fun registerScurriusFight(world: World) {
             world.npcScripts.onTick(defs.keys.toList()) { npc ->
                 if (npc.dead || world.encounters.all.any { it.boss === npc && !it.ended }) return@onTick
                 val def = defs[npc.type.id] ?: return@onTick
-                world.encounters.start(def, npc, { x, z -> world.scurriusLairs.inLair(npc.level, x, z) })
+                // His own lair only: the public one, or the private instance he is in.
+                val run = world.scurriusLairs.runAt(npc.x, npc.z)
+                val level = npc.level
+                world.encounters.start(def, npc, { x, z ->
+                    world.scurriusLairs.inLair(level, x, z) && world.scurriusLairs.runAt(x, z) === run
+                })
             }
             world.npcScripts.onDeath(defs.keys.toList()) { boss -> fight(boss).stage = ScurriusFight.Stage.MELEE }
         }
