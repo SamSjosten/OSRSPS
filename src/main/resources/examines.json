@@ -27,7 +27,8 @@
     "The raid tester (2026-11-16): npc-spawns/raid-tester.json's Leagues Tutor (316), a testing NPC with no live counterpart; his examine is our own words.",
     "NPCs and locs: Wilderness step W3.8 (2026-11-15): the types piece 3 spawns (levels 21 to 56, the Lava Maze Dungeon, the Mage Arena bank) and the locs its content handles that had none, one per id, from the infobox of the page in wiki, else of the page named after it. None yet where the Wiki gives no text or more than one: the greater demons (2026 to 2029, red or purple), the Chaos Temple's noting Elder Chaos druid (7995), the Lava Maze's mirror ladders (18987 to 18990), the King Black Dragon's levers (1816, 1817).",
     "Locs and NPCs: Karamja (step K1.1): the Port Sarim to Musa Point boat's four NPCs, with the types their multi-NPCs show, and its two ships' gangplanks (the 242 cache, 2026-11-17).",
-    "NPCs and locs: Karamja (step K1.2): Musa Point's Luthas, Zembo and general store keeper and assistant, and the banana trees as they lose their fruit (the 242 cache, 2026-11-17)."
+    "NPCs and locs: Karamja (step K1.2): Musa Point's Luthas, Zembo and general store keeper and assistant, and the banana trees as they lose their fruit (the 242 cache, 2026-11-17).",
+    "Construction step CON1 (2026-11-18): the estate agent of npc-spawns/construction.json, the Rimmington house portal, the exit portal and the basic wood house doors."
   ],
   "npcs": [
     {"npc": 0, "name": "Tool Leprechaun"},
@@ -458,6 +459,7 @@
     {"npc": 3075, "name": "Goblin"},
     {"npc": 3076, "name": "Goblin"},
     {"npc": 3090, "name": "Banker", "also": [3091], "wiki": "Banker page, infobox (Al Kharid's bankers)"},
+    {"npc": 3097, "name": "Estate agent", "wiki": "Estate agent page, infobox (Mainland)"},
     {"npc": 3101, "name": "Sawmill operator"},
     {"npc": 3105, "name": "Hans"},
     {"npc": 3106, "name": "Man"},
@@ -1506,6 +1508,7 @@
     {"loc": 4370, "name": "Shelf", "wiki": "Shelf (Bucket) page, infobox"},
     {"loc": 4488, "name": "Pigeon"},
     {"loc": 4489, "name": "Pigeon"},
+    {"loc": 4525, "name": "Portal", "wiki": "Exit portal page, infobox"},
     {"loc": 4641, "name": "Stacked barrels"},
     {"loc": 4729, "name": "Bush"},
     {"loc": 4824, "name": "Orchid"},
@@ -2075,6 +2078,7 @@
     {"loc": 12986, "name": "Gate"},
     {"loc": 12987, "name": "Gate"},
     {"loc": 13001, "name": "Door"},
+    {"loc": 13100, "name": "Door", "also": [13101, 13102, 13103], "wiki": "no source yet: the basic wood house doors (step CON1)"},
     {"loc": 13114, "name": "Ornament", "wiki": "Ornament (Gnome Stronghold) page, infobox"},
     {"loc": 13589, "name": "Cogs", "wiki": "Cogs (Piscatoris Fishing Colony) page, infobox"},
     {"loc": 13590, "name": "Junk", "wiki": "Junk (Piscatoris Fishing Colony) page, infobox"},
@@ -2172,6 +2176,7 @@
     {"loc": 15463, "name": "Hat stand"},
     {"loc": 15465, "name": "Display board"},
     {"loc": 15467, "name": "Cleaning supplies"},
+    {"loc": 15478, "name": "Portal", "wiki": "Portal (Player-owned house) page, infobox (Rimmington)"},
     {"loc": 15490, "name": "Kalphite Queen", "wiki": "Varrock Museum page, the Natural history floor"},
     {"loc": 15510, "name": "Gate"},
     {"loc": 15512, "name": "Gate"},

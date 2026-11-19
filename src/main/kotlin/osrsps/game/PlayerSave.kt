@@ -23,6 +23,8 @@ import osrsps.game.combat.StatRestore
 import osrsps.game.combat.Tolerance
 import osrsps.game.skill.farming.FarmingSaves
 import osrsps.game.skill.farming.FarmingState
+import osrsps.game.skill.construction.HouseSaves
+import osrsps.game.skill.construction.HouseState
 import osrsps.game.social.FriendChats
 import osrsps.game.social.FriendLists
 import osrsps.game.ge.BuyLimitUse
@@ -105,6 +107,8 @@ class PlayerSave(
     val archiveChest: Map<Int, InvObj> = emptyMap(),
     /** The farming patches and clock ([osrsps.game.skill.farming.FarmingState]), a copy of the player's. */
     val farming: FarmingState = FarmingState(),
+    /** The player's house ([osrsps.game.skill.construction.HouseState]), a copy of theirs; null until they buy one. */
+    val house: HouseState? = null,
 ) {
     class BoostSegments(val combat: Int, val other: Int)
 
@@ -218,6 +222,7 @@ class PlayerSave(
         for (use in geSellLimits) player.ge.sellLimits[use.item] = use
         player.ge.history.addAll(geHistory)
         player.farming.replaceWith(farming)
+        player.house = house?.copy()
     }
 
     fun toJson(username: String): String {
@@ -308,6 +313,7 @@ class PlayerSave(
         if (archiveChest.isNotEmpty()) putJsonArray("archiveChest") { putObjs(archiveChest) }
         if (charges.isNotEmpty()) putJsonObject("charges") { for ((name, count) in charges) put(name, count) }
         if (!farming.isUntouched) put("farming", FarmingSaves.toJson(farming))
+        house?.let { put("house", HouseSaves.toJson(it)) }
         if (geOffers.isNotEmpty()) {
             putJsonArray("geOffers") {
                 for ((slot, offer) in geOffers.toSortedMap()) {
@@ -423,6 +429,7 @@ class PlayerSave(
                 customVars = customVars,
                 archiveChest = player.archiveChest.contents().toMap(),
                 farming = FarmingState().apply { replaceWith(player.farming) },
+                house = player.house?.copy(),
             )
         }
 
@@ -508,6 +515,7 @@ class PlayerSave(
                     customVars = state.customVars,
                     archiveChest = state.archiveChest,
                     farming = state.farming,
+                    house = state.house,
                 )
             } catch (e: IllegalArgumentException) {
                 throw e
@@ -602,6 +610,8 @@ class PlayerSave(
                 archiveChest = root.objs("archiveChest", "Archive chest", osrsps.game.raid.ArchiveChestWindow.SLOTS),
                 // Optional: saves from before Farming, and saves of players who never farmed, have none.
                 farming = root["farming"]?.jsonObject?.let(FarmingSaves::fromJson) ?: FarmingState(),
+                // Optional: saves from before Construction, and saves of players without a house, have none.
+                house = root["house"]?.jsonObject?.let(HouseSaves::fromJson),
             )
         }
 
