@@ -49,8 +49,6 @@ class FairyRingCodes(val all: List<FairyRingCode>) {
 
     fun dialled(first: Int, second: Int, third: Int): FairyRingCode? = byId[first * 100 + second * 10 + third]
 
-    fun byId(id: Int): FairyRingCode? = byId[id]
-
     fun byState(state: Int): FairyRingCode? = byState[state]
 
     fun byCode(code: String): FairyRingCode? = all.firstOrNull { it.code.equals(code, ignoreCase = true) }
