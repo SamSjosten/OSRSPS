@@ -19,7 +19,10 @@ import osrsps.game.Scenario
 import osrsps.game.Scenarios
 import osrsps.game.SeqNames
 import osrsps.game.World
+import osrsps.game.Skill
 import osrsps.game.combat.NpcCombat
+import osrsps.game.combat.Prayers
+import osrsps.game.tzhaar.FightCaveMonsters
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
@@ -48,6 +51,7 @@ class HeadlessFightCaveTest {
         monster(3117, "Tz-Kih", 1, 22, "tzhaar_fightcave_swarm_1b", 10),
         monster(3118, "Tz-Kek", 2, 45, "tzhaar_fightcave_swarm_2a", 20),
         monster(3119, "Tz-Kek", 2, 45, "tzhaar_fightcave_swarm_2b", 20),
+        monster(3120, "Tz-Kek", 1, 22, "tzhaar_fightcave_swarm_2spawn", 10),
         monster(3121, "Tok-Xil", 3, 90, "tzhaar_fightcave_swarm_3a", 40),
         monster(3122, "Tok-Xil", 3, 90, "tzhaar_fightcave_swarm_3b", 40),
         monster(3123, "Yt-MejKot", 4, 180, "tzhaar_fightcave_swarm_4a", 80),
@@ -63,11 +67,16 @@ class HeadlessFightCaveTest {
             ObjType(FightCaves.TOKKUL, "Tokkul", stackable = true),
             ObjType(FightCaves.FIRE_CAPE, "Fire cape"),
             ObjType(995, "Coins", stackable = true),
+            // Protect from Melee's prayer obj, shaped like the cache's (HeadlessArchiveGuardianTest).
+            ObjType(
+                PROTECT_FROM_MELEE_OBJ, "Null", internalName = "placeholder_xmas16_marionette_blue",
+                params = mapOf(630 to 14, 1751 to (Prayers.PRAYERBOOK shl 16 or PROTECT_FROM_MELEE), 1752 to "Protect from Melee", 1753 to 43, 1755 to 2676),
+            ),
         )
         val cave = { id: Int, name: String, ops: List<String?> -> LocType(id, name, ops, LocCollisionType(width = 3, length = 2)) }
         World(
             crcs, CollisionMap().apply { markLoaded(37, 79); markLoaded(38, 80) }, objTypes = objTypes, npcTypes = types,
-            random = GameRandom(1), npcCombat = NpcCombat.load(types, SeqNames.NONE),
+            random = GameRandom(1), npcCombat = NpcCombat.load(types, SeqNames.NONE), prayerList = Prayers.load(objTypes),
             locTypes = LocTypes(
                 listOf(
                     cave(FightCaves.ENTRANCE, "Cave entrance", listOf("Enter", null, null, null, null)),
@@ -321,8 +330,143 @@ class HeadlessFightCaveTest {
         assertEquals(31, scenarios["fight-cave-wave31"]!!.minigame!!.wave)
     }
 
+    // Fight Caves step FC2: the monsters' own mechanics.
+
+    @Test
+    fun `a Tz-Kih's swings drain a prayer point each, hit or not`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("fay").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("setlevel prayer 10") { true }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("fightcave 1 1") { it.startsWith("Fight cave") }
+                val bat = client.waveIn(server, "fay", 1).single()
+                assertTrue(bat.scriptedAttacks)
+                val player = server.world.playerNamed("fay")!!
+                client.await("two points drained", timeoutMillis = 20_000) { player.skills.currentLevel(Skill.PRAYER).takeIf { it <= 8 } }
+                assertEquals(player.skills.baseLevel(Skill.HITPOINTS), player.hitpoints, "god: every hit a 0, and still drained")
+            }
+        }
+    }
+
+    @Test
+    fun `a level 45 Tz-Kek recoils 1 on each melee hit, and splits into two level 22s that the wave waits for`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("gus").use { client ->
+                client.await("the login rebuild") { client.position }
+                for (skill in listOf("attack", "strength", "hitpoints", "prayer")) client.commandReply("setlevel $skill 99") { true }
+                client.commandReply("fightcave 3 1") { it.startsWith("Fight cave") }
+                val kek = client.waveIn(server, "gus", 3).single()
+                assertEquals(3118, kek.type.id)
+                client.ifButton(Prayers.PRAYERBOOK, PROTECT_FROM_MELEE, 1)
+                client.await("Protect from Melee on") { if (client.varp(Prayers.VARP_PRAYERS) == 1 shl 14) Unit else null }
+                val player = server.world.playerNamed("gus")!!
+                client.tele(kek.x - 1, kek.z)
+                client.await("it in view") { client.npcs().firstOrNull { it.index == kek.index } }
+                client.npcOp(kek.index, 1)
+                // Its own swings are all 0s under the prayer: what they lose is the recoil.
+                client.await("the recoil", timeoutMillis = 20_000) { player.hitpoints.takeIf { it < 99 } }
+                assertTrue(client.actorEvents().filter { !it.npc && it.kind == ActorEventKind.HITSPLAT && it.amount > 0 }.all { it.amount == 1 })
+
+                client.commandReply("kill ${kek.index}") { it.startsWith("Killed") }
+                val run = server.run("gus")!!
+                val small = client.await("the split") { run.monsters.filter { it.type.id == FightCaveMonsters.TZ_KEK_22 && !it.dead }.takeIf { it.size == 2 } }
+                assertTrue(small.all { it.target === player && !it.scriptedAttacks })
+                assertEquals(setOf(kek.x to kek.z, kek.x + 1 to kek.z), small.map { it.x to it.z }.toSet())
+                assertEquals(3, run.wave, "the wave waits for them")
+                for (npc in small) client.commandReply("kill ${npc.index}") { it.startsWith("Killed") }
+                client.await("wave 4") { run.takeIf { it.wave == 4 } }
+            }
+        }
+    }
+
+    @Test
+    fun `a split owed for want of room comes in later and the wave waits for it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ned").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("fightcave 3 1") { it.startsWith("Fight cave") }
+                val kek = client.waveIn(server, "ned", 3).single()
+                val run = server.run("ned")!!
+                // As if a split's level 22 couldn't come in when it died (the world's NPCs all taken).
+                run.splitsOwed += osrsps.map.Tile(kek.x, kek.z)
+                client.commandReply("kill ${kek.index}") { it.startsWith("Killed") }
+                // The split's two, and the owed one a tick later.
+                val small = client.await("the owed one in") {
+                    run.monsters.filter { it.type.id == FightCaveMonsters.TZ_KEK_22 && !it.dead }.takeIf { it.size == 3 }
+                }
+                assertTrue(run.splitsOwed.isEmpty())
+                assertEquals(3, run.wave, "the wave waits for it")
+                for (npc in small.take(2)) client.commandReply("kill ${npc.index}") { it.startsWith("Killed") }
+                assertEquals(3, run.wave, "still waiting for the owed one")
+                client.commandReply("kill ${small[2].index}") { it.startsWith("Killed") }
+                client.await("wave 4") { run.takeIf { it.wave == 4 } }
+            }
+        }
+    }
+
+    @Test
+    fun `a Tok-Xil fires from afar and punches in reach, and a Ket-Zek both stabs and casts in reach`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("hal").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("fightcave 7 1") { it.startsWith("Fight cave") }
+                val xil = client.waveIn(server, "hal", 7).single()
+                val player = server.world.playerNamed("hal")!!
+                client.await("its spines", timeoutMillis = 20_000) { player.attackedBy?.takeIf { it === xil } }
+                assertTrue(!server.world.meleeCombat.reaches(xil, player), "fired from where it stood")
+                client.tele(xil.x - 1, xil.z)
+                client.await("its punch", timeoutMillis = 20_000) {
+                    client.actorEvents().firstOrNull { it.npc && it.index == xil.index && it.kind == ActorEventKind.ANIMATION && it.id == FightCaveMonsters.ANIM_TOK_XIL_PUNCH }
+                }
+
+                client.commandReply("fightcave 31 1") { it.startsWith("Fight cave") }
+                val zek = client.waveIn(server, "hal", 31).single()
+                assertEquals(3125, zek.type.id)
+                client.tele(zek.x - 1, zek.z)
+                client.await("its stab", timeoutMillis = 20_000) {
+                    client.actorEvents().firstOrNull { it.npc && it.index == zek.index && it.kind == ActorEventKind.ANIMATION && it.id == FightCaveMonsters.ANIM_KET_ZEK_MELEE }
+                }
+                // Its magic stays in reach too (the Wiki's Strategies: both Magic and Melee in melee range).
+                client.await("its magic in reach", timeoutMillis = 20_000) {
+                    server.world.meleeCombat.shotsInFlight.takeIf { it > 0 && server.world.meleeCombat.reaches(zek, server.world.playerNamed("hal")!!) }
+                }
+                // Drained Strength takes off its stab's max hit as it would the file's (a Bandos godsword's specials).
+                val def = server.world.combat.npcCombat[zek.type]!!
+                assertEquals(FightCaveMonsters.KET_ZEK_MELEE_MAX, server.world.combat.npcMaxHit(zek, def, FightCaveMonsters.KET_ZEK_MELEE_MAX))
+                zek.drained[osrsps.game.NpcStat.STRENGTH.ordinal] = 20
+                val lost = def.maxHit - server.world.combat.npcMaxHit(zek, def)
+                assertTrue(lost > 0)
+                assertEquals(FightCaveMonsters.KET_ZEK_MELEE_MAX - lost, server.world.combat.npcMaxHit(zek, def, FightCaveMonsters.KET_ZEK_MELEE_MAX))
+            }
+        }
+    }
+
+    @Test
+    fun `a Yt-MejKot beside the player heals itself below half in place of an attack`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ida").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("fightcave 15 1") { it.startsWith("Fight cave") }
+                val mej = client.waveIn(server, "ida", 15).single()
+                assertEquals(3123, mej.type.id)
+                client.commandReply("hit 50 ${mej.index}") { it.startsWith("Hit") }
+                client.tele(mej.x - 1, mej.z)
+                client.await("its heal", timeoutMillis = 20_000) {
+                    client.actorEvents().firstOrNull { it.npc && it.index == mej.index && it.kind == ActorEventKind.ANIMATION && it.id == FightCaveMonsters.ANIM_MEJKOT_HEAL }
+                }
+                assertTrue(client.actorEvents().any { it.npc && it.index == mej.index && it.kind == ActorEventKind.SPOTANIM && it.id == FightCaveMonsters.SPOTANIM_HEAL })
+            }
+        }
+    }
+
     private companion object {
         const val CENTREPIECE = 10
         const val INV = 93
+        const val PROTECT_FROM_MELEE = 23
+        const val PROTECT_FROM_MELEE_OBJ = 20817
     }
 }
