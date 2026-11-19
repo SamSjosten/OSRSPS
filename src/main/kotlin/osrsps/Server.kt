@@ -9,6 +9,7 @@ import net.rsprot.protocol.api.NetworkService
 import osrsps.cache.CacheInfo
 import osrsps.cache.CombatLoader
 import osrsps.cache.EffectIdLoader
+import osrsps.cache.IdkTypeLoader
 import osrsps.cache.FontLoader
 import osrsps.cache.GameFrameCheck
 import osrsps.cache.MapCollisionLoader
@@ -153,6 +154,7 @@ class GameServer(
         val customVars: CustomVars
         val objTypes: ObjTypes
         val npcTypes: NpcTypes
+        val idkTypes: osrsps.game.IdkTypes
         val quests: Quests
         val effectIds: EffectIds
         val chatFont: ChatFont
@@ -183,6 +185,7 @@ class GameServer(
             map = MapCollisionLoader.loadWorld(library, customLocs.types)
             objTypes = ObjTypeLoader.load(library)
             npcTypes = NpcTypeLoader.load(library)
+            idkTypes = IdkTypeLoader.load(library)
             quests = QuestLoader.load(library)
             effectIds = EffectIdLoader.load(library).withCustom(CustomAnims.seqs.keys, CustomAnims.spotanims.keys)
             chatFont = FontLoader.loadDialogueFont(library)
@@ -280,7 +283,7 @@ class GameServer(
             spells = spells, prayerList = prayers, foodList = Foods.load(objTypes), potionData = Potions.load(objTypes), shopTypes = shopTypes, omnishops = omnishops, itemSets = itemSets, collectionLogCatalog = collectionLog, skillUnlocks = skillUnlocks, ipBans = ipBans, xpRate = xpRate,
             wearRequirements = wearRequirements, itemPrices = itemPrices, itemPricesFile = itemPricesFile, settings = settings,
             specialAttackCosts = specialAttackCosts, encounterDefs = listOfNotNull(ArchiveGuardian.def(npcTypes), Ezekiel.def(npcTypes), Bork.def(npcTypes), Dreadnoth.def(npcTypes), Moia.def(npcTypes), Xarth.def(npcTypes), Dagonhai.def(npcTypes), Ocellus.def(npcTypes)),
-            slayerData = slayerData, fairyRingCodes = fairyRingCodes, trailData = trailData, starCycle = true, cycleMillis = cycleMillis,
+            slayerData = slayerData, fairyRingCodes = fairyRingCodes, trailData = trailData, idkTypes = idkTypes, starCycle = true, cycleMillis = cycleMillis,
         )
         loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world, relays, proxy, js5Connections)
