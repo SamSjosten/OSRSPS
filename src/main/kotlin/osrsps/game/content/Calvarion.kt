@@ -237,15 +237,22 @@ class SkeletalLord(val config: Config) {
         val lord = boss
         lord.transformEnded = {
             lord.hitpoints = lord.maxHitpoints
+            fullBar(lord)
             lord.holdsAtZero = true
             lord.holdsAt = lord.maxHitpoints / 2
             lord.transformEnded = null
         }
         boss.hitpoints = boss.maxHitpoints
+        // The hit that emptied his normal form sent an empty bar; the new form's is full (Codex review on #818).
+        fullBar(boss)
         boss.holdsAtZero = false
         holdForHounds()
         log("enrages")
     }
+
+    /** Shows [npc]'s health bar full again, as a hit's would after a heal. */
+    private fun fullBar(npc: Npc) =
+        npc.effects.headBar(-1, osrsps.game.combat.MeleeCombat.HEALTH_BAR, osrsps.game.combat.MeleeCombat.healthBarFill(npc.hitpoints, npc.maxHitpoints))
 
     /** Not killed within 5 minutes enraged: his normal form again; its hitpoints were restored as the transformation ended. */
     private fun EncounterContext.calmDown(fight: Fight) {

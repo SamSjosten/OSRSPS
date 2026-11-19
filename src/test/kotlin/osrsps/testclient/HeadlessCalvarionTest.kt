@@ -143,6 +143,8 @@ class HeadlessCalvarionTest {
                 assertTrue(!npc.dead, "not dead at 0 in his normal form")
                 assertEquals(Calvarion.ENRAGED, npc.type.id)
                 assertEquals(npc.maxHitpoints, npc.hitpoints)
+                // Codex review on #818: the client is shown the full bar, not the empty one the last hit sent.
+                client.await("his full health bar") { client.npcHealth(npc.index)?.takeIf { it.fill == osrsps.game.combat.MeleeCombat.healthBarFill(1, 1) } }
             }
         }
     }
