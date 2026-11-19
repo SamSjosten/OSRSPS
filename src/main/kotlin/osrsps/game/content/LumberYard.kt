@@ -57,7 +57,8 @@ object TolnaRiftLines : Lines("tolna_rift", "Transcript:Warning sign (Tolna's ri
  *
  * Every account has done A Soul's Bane, so [osrsps.game.Quests.AFTER_QUESTS] sets the varbits that show Tolna at the top,
  * the rope in the rift and the warning signs (inferred from their names and the Wiki's post-quest pictures).
- * Left out: sawmill vouchers (Forestry), Gertrude's cat and kittens (home with Gertrude after the quest), the clue crate.
+ * Left out: sawmill vouchers (Forestry), Fluffs' kittens (home with Gertrude after the quest), the clue crate. Fluffs
+ * herself is upstairs, as the Wiki's Fluffs page has her after the quest: [GertrudesCat].
  */
 object LumberYard {
     const val SAWMILL_OPERATOR = 3101

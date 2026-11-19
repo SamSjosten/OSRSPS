@@ -119,6 +119,7 @@ import osrsps.game.content.registerHamHideout
 import osrsps.game.content.registerHamStorerooms
 import osrsps.game.content.registerFarmsRoads
 import osrsps.game.content.registerLumberYard
+import osrsps.game.content.registerGertrudesCat
 import osrsps.game.content.registerRaidTester
 import osrsps.game.content.registerTolnasRift
 import osrsps.game.content.registerDigsite
@@ -183,6 +184,7 @@ import osrsps.game.content.registerHaystacks
 import osrsps.game.content.registerLodestones
 import osrsps.game.content.registerAxeLogs
 import osrsps.game.content.registerDraynorMarket
+import osrsps.game.content.registerMartinTheMasterGardener
 import osrsps.game.content.registerNed
 import osrsps.game.content.registerAggie
 import osrsps.game.content.registerDraynorJail
@@ -1033,6 +1035,7 @@ class World(
         registerDraynorVillage(this)
         registerAxeLogs(this)
         registerDraynorMarket(this)
+        registerMartinTheMasterGardener(this)
         registerNed(this)
         registerAggie(this)
         registerDraynorJail(this)
@@ -1063,6 +1066,7 @@ class World(
         registerHamStorerooms(this)
         registerFarmsRoads(this)
         registerLumberYard(this)
+        registerGertrudesCat(this)
         registerTolnasRift(this)
         registerSilvarea(this)
         registerPaterdomus(this)
