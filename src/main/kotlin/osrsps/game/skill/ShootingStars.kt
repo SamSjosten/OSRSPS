@@ -323,7 +323,7 @@ class ShootingStars(private val world: World, val sites: StarSites = StarSites.l
                     player.inventory.add(gemType, 1)
                     Mining.GEM_LINES[gem]?.let { player.message(text[it]) }
                 }
-            } else if (SuccessRoll.roll(world.random, LOW, HIGH, player.skills.currentLevel(Skill.MINING))) {
+            } else if (SuccessRoll.roll(world.random, LOW, HIGH, player.skills.currentLevel(Skill.MINING) + Mining.celestialBoost(player))) {
                 giveDust(player)
             }
         }

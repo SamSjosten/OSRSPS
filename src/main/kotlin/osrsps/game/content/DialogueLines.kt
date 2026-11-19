@@ -179,6 +179,7 @@ object DialogueLines {
         DuelGuideLines,
         DukeLines,
         DummyLines,
+        DusuriLines,
         EdgevilleClosedLines,
         EdgevilleDungeonLines,
         LavaMazeLines,

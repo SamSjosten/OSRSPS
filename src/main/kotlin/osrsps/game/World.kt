@@ -1133,6 +1133,7 @@ class World(
         registerEmotes(this)
         registerGiantBones(this)
         registerRoguesDen(this)
+        osrsps.game.content.registerDusuri(this)
         registerCrops(this)
         ducks.register()
         homeTeleport.register(handlers)
