@@ -74,6 +74,9 @@ class FightCaves(private val world: World) {
         /** The wave's monsters still in the world, the dead ones until their bodies go. */
         val monsters: MutableList<Npc> = ArrayList()
 
+        /** Level 22 Tz-Keks a split couldn't bring in yet (the world full of NPCs), by tile: the wave waits for them. */
+        internal val splitsOwed: MutableList<Tile> = ArrayList()
+
         /** The logout button was clicked in this wave: the player is logged out as it ends. */
         var pausing: Boolean = false
             internal set
@@ -216,6 +219,10 @@ class FightCaves(private val world: World) {
             for (npc in run.monsters.toList()) if (npc.scriptedAttacks && npc.target === player) monsterMechanics.tick(npc, player)
             if (run.nextWaveTick >= 0) {
                 if (world.tick >= run.nextWaveTick) spawnWave(player, run)
+            } else if (run.splitsOwed.isNotEmpty()) {
+                for (tile in run.splitsOwed.toList()) {
+                    if (spawn(player, run, FightCaveMonsters.TZ_KEK_22, tile) != null) run.splitsOwed.remove(tile)
+                }
             } else if (run.monsters.none { !it.dead }) {
                 waveDone(player, run)
             }

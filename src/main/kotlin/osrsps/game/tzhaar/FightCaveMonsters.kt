@@ -27,7 +27,8 @@ import osrsps.map.Tile
  *   each monster below half (itself and those beside it), its lizard_cleric_heal animation, and tzhaar_heal (444) on
  *   each one healed.
  * - **Ket-Zek** (3125, 3126): magic (max 49) from up to 15 tiles, and a stab (max 55) "only triggered when a player
- *   gets too close": in reach (inferred, as for the Tok-Xil).
+ *   gets too close": in reach, where it keeps its magic too (the Wiki's Fight Cave Strategies: it uses both Magic and
+ *   Melee in melee range). Guessed: even odds between the two in reach.
  *
  * They fight through [Npc.scriptedAttacks], driven from [FightCaves.process] by [tick], so these choices are made where
  * the engine would swing or fire. The level 22 Tz-Kek has nothing of its own and fights as the engine's ordinary melee
@@ -74,7 +75,7 @@ class FightCaveMonsters(private val world: World) {
                 world.meleeCombat.fireAt(npc, player, world.tick)
             }
             id in YT_MEJKOT -> if (!heal(npc)) world.meleeCombat.swingAt(npc, player, world.tick)
-            id in KET_ZEK -> if (reaches) {
+            id in KET_ZEK -> if (reaches && world.random.chance(1, 2)) {
                 world.meleeCombat.swingAt(npc, player, world.tick, ANIM_KET_ZEK_MELEE, AttackType.STAB, KET_ZEK_MELEE_MAX)
             } else {
                 world.meleeCombat.fireAt(npc, player, world.tick)
@@ -95,12 +96,16 @@ class FightCaveMonsters(private val world: World) {
         world.meleeCombat.hitPlayer(player, npc, RECOIL, world.tick)
     }
 
-    /** A level 45 Tz-Kek died in a cave: two level 22s in its place, going for the cave's player. */
+    /**
+     * A level 45 Tz-Kek died in a cave: two level 22s in its place, going for the cave's player. One that can't come in
+     * now (the world full of NPCs) waits in [FightCaves.Run.splitsOwed], and the wave with it, until it can.
+     */
     private fun split(caves: FightCaves, npc: Npc) {
         val run = caves.runAt(npc.x, npc.z) ?: return
         val player = world.onlinePlayers.firstOrNull { it.saveKey == run.owner } ?: return
-        caves.spawn(player, run, TZ_KEK_22, Tile(npc.x, npc.z))
-        caves.spawn(player, run, TZ_KEK_22, Tile(npc.x + 1, npc.z))
+        for (tile in listOf(Tile(npc.x, npc.z), Tile(npc.x + 1, npc.z))) {
+            if (caves.spawn(player, run, TZ_KEK_22, tile) == null) run.splitsOwed += tile
+        }
     }
 
     /**

@@ -381,7 +381,33 @@ class HeadlessFightCaveTest {
     }
 
     @Test
-    fun `a Tok-Xil fires from afar and punches in reach, and a Ket-Zek stabs in reach`(@TempDir dir: Path) {
+    fun `a split owed for want of room comes in later and the wave waits for it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ned").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("fightcave 3 1") { it.startsWith("Fight cave") }
+                val kek = client.waveIn(server, "ned", 3).single()
+                val run = server.run("ned")!!
+                // As if a split's level 22 couldn't come in when it died (the world's NPCs all taken).
+                run.splitsOwed += osrsps.map.Tile(kek.x, kek.z)
+                client.commandReply("kill ${kek.index}") { it.startsWith("Killed") }
+                // The split's two, and the owed one a tick later.
+                val small = client.await("the owed one in") {
+                    run.monsters.filter { it.type.id == FightCaveMonsters.TZ_KEK_22 && !it.dead }.takeIf { it.size == 3 }
+                }
+                assertTrue(run.splitsOwed.isEmpty())
+                assertEquals(3, run.wave, "the wave waits for it")
+                for (npc in small.take(2)) client.commandReply("kill ${npc.index}") { it.startsWith("Killed") }
+                assertEquals(3, run.wave, "still waiting for the owed one")
+                client.commandReply("kill ${small[2].index}") { it.startsWith("Killed") }
+                client.await("wave 4") { run.takeIf { it.wave == 4 } }
+            }
+        }
+    }
+
+    @Test
+    fun `a Tok-Xil fires from afar and punches in reach, and a Ket-Zek both stabs and casts in reach`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("hal").use { client ->
                 client.await("the login rebuild") { client.position }
@@ -402,6 +428,10 @@ class HeadlessFightCaveTest {
                 client.tele(zek.x - 1, zek.z)
                 client.await("its stab", timeoutMillis = 20_000) {
                     client.actorEvents().firstOrNull { it.npc && it.index == zek.index && it.kind == ActorEventKind.ANIMATION && it.id == FightCaveMonsters.ANIM_KET_ZEK_MELEE }
+                }
+                // Its magic stays in reach too (the Wiki's Strategies: both Magic and Melee in melee range).
+                client.await("its magic in reach", timeoutMillis = 20_000) {
+                    server.world.meleeCombat.shotsInFlight.takeIf { it > 0 && server.world.meleeCombat.reaches(zek, server.world.playerNamed("hal")!!) }
                 }
                 // Drained Strength takes off its stab's max hit as it would the file's (a Bandos godsword's specials).
                 val def = server.world.combat.npcCombat[zek.type]!!
