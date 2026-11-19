@@ -28,8 +28,6 @@ enum class TrailTier(
         fun byDifficulty(difficulty: Int): TrailTier? = entries.getOrNull(difficulty)
 
         fun byKey(key: String): TrailTier? = entries.firstOrNull { it.key == key.lowercase() }
-
-        fun byScrollBox(obj: Int): TrailTier? = entries.firstOrNull { it.scrollBox == obj }
     }
 }
 
@@ -50,8 +48,6 @@ enum class StepType(val key: String, val table: Int) {
 
     companion object {
         fun byTable(table: Int): StepType? = entries.firstOrNull { it.table == table }
-
-        fun byKey(key: String): StepType? = entries.firstOrNull { it.key == key }
     }
 }
 
