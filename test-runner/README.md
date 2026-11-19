@@ -775,6 +775,11 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   explained, her briefing and the controls' explanation, the control panel opens the claw controls (look that the claw
   and its mark move two tiles east), and asking to leave from the control room takes the player home with nothing.
   Catching suspects, the gems and the failure teleport are the headless test's part.
+- `random-events-kiss-the-frog.json`: random events step 13 (with `::keys on`): the pointy-hat frog takes the player to
+  the swamp (look that eight frogs stand in a ring, one crowned), a top-hat frog's line, and the crowned frog's question
+  (look that a touch and a refusal show in either order, then a kiss); the kiss turns it into the prince or princess
+  (look at the kiss and the change), who gives a frog token and sends the player home. The touch, the polite no and
+  Frogland are the headless test's part.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
   it with no dependency, guard or var shared with another row is set to 0, clicked on and checked, then checked again
   after a relog and put back to 0. Generated from the 241 cache's settings catalog; run them one at a time.

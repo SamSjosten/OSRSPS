@@ -51,6 +51,9 @@ abstract class RandomEvent(
     /** Talk-to by anyone but its player, with `{name}` their player's name; null for nothing at all. */
     open val notYours: Line? = null
 
+    /** Other lines for Talk-to by anyone but its player, picked at random with [notYours] (the frogs have two). */
+    open val notYoursAlso: List<Line> = emptyList()
+
     /** A message box for Talk-to by its player once it has given up and is going; null for nothing at all. */
     open val gaveUp: Line? = null
 
@@ -420,7 +423,9 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
 
     /** Another player's Talk-to or Dismiss: the event's line for them, naming its own player if the words do. */
     private suspend fun notYours(context: ScriptContext, npc: Npc, it: Out) {
-        val line = it.event.notYours ?: return
+        val first = it.event.notYours ?: return
+        val also = it.event.notYoursAlso
+        val line = if (also.isEmpty()) first else (listOf(first) + also).let { lines -> lines[world.random.nextInt(lines.size)] }
         world.dialogues.start(context, npc) {
             val values = if ("name" in line.args) arrayOf("name" to it.ownerName) else emptyArray()
             if (it.event.notYoursInBox) mesbox(line, *values) else chatNpc(ChatAnim.NEUTRAL, line, *values)
@@ -462,7 +467,7 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
 fun registerRandomEvents(world: World) {
     val events = listOf(
         Genie, CountCheckEvent, DrunkenDwarf, RickTurpentine, MysteriousOldMan, DrJekyll, StrangePlant, Certer, SandwichLady,
-        FreakyForester, DrillDemon, Gravedigger, Mime, Beekeeper, CaptArnav, EvilBob, PrisonPete, EvilTwin,
+        FreakyForester, DrillDemon, Gravedigger, Mime, Beekeeper, CaptArnav, EvilBob, PrisonPete, EvilTwin, KissTheFrog,
     )
     for (event in events) {
         world.randomEvents.register(event)
@@ -475,5 +480,6 @@ fun registerRandomEvents(world: World) {
     EvilBob.register(world)
     PrisonPete.register(world)
     EvilTwin.register(world)
+    KissTheFrog.register(world)
     world.handlers.onObj(StrangePlant.FRUIT, 1) { op -> StrangePlant.eat(world, player, op.sub) }
 }

@@ -48,7 +48,8 @@
     "NPCs: random events step 9 (2026-11-19): Capt' Arnav (5426), from his infobox.",
     "NPCs and locs: random events step 10 (2026-11-19): Evil Bob (390 awake, 391 asleep, 6754 his prison form, one examine in his infobox) and his servant (393), from their infoboxes; the island's uncooking pot (23113), fishing spot (23114) and portal (23115), from each page's infobox.",
     "NPCs: random events step 11 (2026-11-19): Prison Pete (368) and the balloon animals (369, 370, 371, 5488, 5489, 5491, 5492, 5493, one examine in their infobox), from their infoboxes.",
-    "NPCs and locs: random events step 12 (2026-11-19): Molly (her 20 looks, one examine), the suspects (20 looks, one examine), Postie Pete's Evil twin form (6738), the claw control panel (20813) and the evil claw (20811), from each page's infobox."
+    "NPCs and locs: random events step 12 (2026-11-19): Molly (her 20 looks, one examine), the suspects (20 looks, one examine), Postie Pete's Evil twin form (6738), the claw control panel (20813) and the evil claw (20811), from each page's infobox.",
+    "NPCs: random events step 13 (2026-11-19): the Kiss the frog frogs (312 and 5429-5432, one examine in their infobox), the Frog Prince (13445) and the Frog Princess (13446), from their infoboxes."
   ],
   "npcs": [
     {"npc": 0, "name": "Tool Leprechaun"},
@@ -117,6 +118,7 @@
     {"npc": 306, "name": "Lumbridge Guide"},
     {"npc": 307, "name": "Dr Jekyll"},
     {"npc": 311, "name": "Ironman tutor", "also": [16814], "wiki": "Ironman tutor page, infobox (16814 is the type the 242 multi-NPC shows Ironmen)"},
+    {"npc": 312, "name": "Frog", "also": [5429, 5430, 5431, 5432], "wiki": "Frog (Kiss the frog) page, infobox"},
     {"npc": 316, "name": "Leagues Tutor", "wiki": "none: ours, as the raid tester (RaidTester.kt), a testing NPC with no live counterpart, so his examine is our own words, not the Leagues Tutor's"},
     {"npc": 321, "name": "Mime"},
     {"npc": 322, "name": "Drunken Dwarf"},
@@ -973,6 +975,8 @@
     {"npc": 13303, "name": "Wealthy citizen"},
     {"npc": 13304, "name": "Wealthy citizen"},
     {"npc": 13305, "name": "Wealthy citizen"},
+    {"npc": 13445, "name": "Frog Prince"},
+    {"npc": 13446, "name": "Frog Princess"},
     {"npc": 13607, "name": "Lucien"},
     {"npc": 13608, "name": "Lucien", "also": [13644]},
     {"npc": 13619, "name": "Aya"},
