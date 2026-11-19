@@ -81,6 +81,13 @@ class HeadlessCalvarionTest {
         await("the teleport to $x, $z, $level") { position?.takeIf { it == Coord(x, z, level) } }
     }
 
+    /** Awaits [npc]'s hounds, kills them, and awaits [line] after the [skip] earlier ones. */
+    private fun HeadlessClient.killHounds(world: World, fight: osrsps.game.encounter.Encounter, npc: osrsps.game.npc.Npc, line: String, skip: Int = 0) {
+        await("his hounds") { fight.lines.filter { it.endsWith("calls 2 hounds") }.drop(skip).firstOrNull() }
+        for (h in Calvarion.FIGHT.hounds(npc).toList()) commandReply("hit 30 ${h.index}") { it.startsWith("Hit ") }
+        await("his hounds dead") { fight.lines.filter { it.endsWith(line) }.drop(skip).firstOrNull() }
+    }
+
     private fun HeadlessClient.seen(text: String) = await(text) { messages().firstOrNull { it.text == text } }
 
     @Test
@@ -151,12 +158,63 @@ class HeadlessCalvarionTest {
                 client.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Calvar'ion") }
                 val fight = client.await("his fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
                 client.commandReply("hit 149 ${npc.index}") { it.startsWith("Hit Calvar'ion") }
+                client.killHounds(server.world, fight, npc, "his hounds are dead")
+                client.commandReply("hit 75 ${npc.index}") { it.startsWith("Hit Calvar'ion") }
                 client.await("his enraged form") { fight.lines.firstOrNull { it.endsWith("enrages") } }
-                client.commandReply("hit 150 ${npc.index}") { it.startsWith("Hit Calvar'ion") }
+                client.commandReply("hit 150 ${npc.index}") { it.startsWith("Hit Calvar'ion #${npc.index} for 75") }
+                client.killHounds(server.world, fight, npc, "his hounds are dead", skip = 1)
+                client.commandReply("hit 75 ${npc.index}") { it.startsWith("Hit Calvar'ion") }
                 val cy = server.world.playerNamed("cy")!!
                 client.await("the kill count") { Unit.takeIf { cy.vars[Calvarion.KILL_COUNT_VARP] == 1 } }
                 client.await("his bones") { server.world.groundObjs.visibleAt(cy, npc.x, npc.z, Calvarion.TOMB_LEVEL).firstOrNull { it.id == BIG_BONES } }
                 assertEquals(40_000, WildernessLairFee.fee(cy), "10,000 off for the most damage")
+            }
+        }
+    }
+
+    @Test
+    fun `a hit past half his hitpoints stops at half, for his hounds`(@TempDir dir: Path) {
+        server(dir, seed = 4).use { server ->
+            server.login("di").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.tele(Calvarion.SPAWN.x + 1, Calvarion.SPAWN.z - 4, Calvarion.TOMB_LEVEL)
+                val npc = server.world.npcs.all.first { it.type.id == Calvarion.BOSS }
+                client.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Calvar'ion") }
+                val fight = client.await("his fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
+                // Codex review on #818: a hit of 149 on 149 would have enraged him without his hounds.
+                client.commandReply("hit 149 ${npc.index}") { it.startsWith("Hit Calvar'ion #${npc.index} for 74: 75/150") }
+                client.await("his hounds") { fight.lines.firstOrNull { it.endsWith("calls 2 hounds") } }
+                assertTrue(fight.lines.none { it.endsWith("enrages") })
+            }
+        }
+    }
+
+    @Test
+    fun `his shield bash hurts and stops attacks for 8 ticks for whoever is in its shadows, not one standing off`(@TempDir dir: Path) {
+        server(dir, seed = 5).use { server ->
+            server.login("ed").use { near ->
+                server.login("fay").use { far ->
+                    near.await("the login rebuild") { near.position }
+                    far.await("the login rebuild") { far.position }
+                    near.commandReply("god") { it.startsWith("You can") }
+                    far.commandReply("god") { it.startsWith("You can") }
+                    // Beside him, south of his 3x3, where he can reach; and 6 tiles off, out of every bash's area.
+                    near.tele(Calvarion.SPAWN.x + 1, Calvarion.SPAWN.z - 1, Calvarion.TOMB_LEVEL)
+                    far.tele(Calvarion.SPAWN.x + 1, Calvarion.SPAWN.z - 7, Calvarion.TOMB_LEVEL)
+                    val npc = server.world.npcs.all.first { it.type.id == Calvarion.BOSS }
+                    near.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Calvar'ion") }
+                    val fight = near.await("his fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
+                    val hit = near.await("a bash hitting ed", timeoutMillis = 60_000) { fight.lines.firstOrNull { "bash hits ed for" in it } }
+                    val tick = hit.substringBefore(' ').toLong()
+                    // The log counts from the fight's start: its start tick, read with no tick going by in between.
+                    val start = generateSequence { Triple(server.world.tick, fight.ticks, server.world.tick) }
+                        .first { it.first == it.third }.let { it.first - it.second }
+                    assertEquals(start + tick + osrsps.game.content.SkeletalLord.BASH_STUN_TICKS, server.world.playerNamed("ed")!!.nextAttackTick, "no attack till 8 ticks on")
+                    val bash = fight.lines.last { "bash on" in it }
+                    assertTrue(bash.substringBefore(' ').toLong() + osrsps.game.content.SkeletalLord.BASH_WARN == tick, "its shadows ${osrsps.game.content.SkeletalLord.BASH_WARN} ticks before")
+                    assertTrue(fight.lines.none { "bash hits fay" in it }, "fay stood off")
+                }
             }
         }
     }

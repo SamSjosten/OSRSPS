@@ -90,7 +90,7 @@ class SkeletalLord(val config: Config) {
         val type = world.npcTypes[config.normal] ?: return null
         return EncounterDef(
             config.name, type,
-            listOf(PhaseDef("fight", cycle = listOf(CycleStep(1) { tick() }), onStart = { boss.holdsAtZero = true })),
+            listOf(PhaseDef("fight", cycle = listOf(CycleStep(1) { tick() }), onStart = { boss.holdsAtZero = true; holdForHounds() })),
             scriptedAttacks = true,
         )
     }
@@ -115,7 +115,10 @@ class SkeletalLord(val config: Config) {
         if (!fight.enraged && boss.hitpoints <= 0) return enrage(fight)
         // The transformation runs out on its own after [ENRAGED_TICKS]; his normal form is back.
         if (fight.enraged && boss.transformedTo == null) calmDown(fight)
-        if (!fight.houndsCalled && boss.hitpoints in 1..boss.maxHitpoints / 2) callHounds(fight)
+        if (!fight.houndsCalled && boss.hitpoints <= boss.maxHitpoints / 2) callHounds(fight)
+        // The transformation runs out at the start of next tick, before that tick's hits land: from then on he is his
+        // normal form, so a hit to 0 then holds him there for [calmDown] rather than killing him (Codex review on #818).
+        if (fight.enraged && boss.transformTicks <= 1) boss.holdsAtZero = true
 
         val target = heldTarget()
         if (target == null) {
@@ -195,8 +198,17 @@ class SkeletalLord(val config: Config) {
         }
     }
 
+    /**
+     * No hit takes a form from above half its hitpoints past half before its hounds come: a big hit, or several in a
+     * tick, would otherwise skip them (Codex review on #818). Inferred: the Wiki says each form calls them at half.
+     */
+    private fun EncounterContext.holdForHounds() {
+        boss.holdsAt = boss.maxHitpoints / 2
+    }
+
     private fun EncounterContext.callHounds(fight: Fight) {
         fight.houndsCalled = true
+        boss.holdsAt = 0
         shout(if (fight.enraged) config.enragedHounds else config.hounds)
         val type = world.npcTypes[if (fight.enraged) config.greaterHound else config.hound] ?: return
         val size = boss.type.size
@@ -224,6 +236,7 @@ class SkeletalLord(val config: Config) {
         world.npcTypes[config.enraged]?.let { world.npcs.transform(boss, it, ENRAGED_TICKS) }
         boss.hitpoints = boss.maxHitpoints
         boss.holdsAtZero = false
+        holdForHounds()
         log("enrages")
     }
 
@@ -233,6 +246,7 @@ class SkeletalLord(val config: Config) {
         fight.houndsCalled = false
         boss.hitpoints = boss.maxHitpoints
         boss.holdsAtZero = true
+        holdForHounds()
         log("calms down")
     }
 
