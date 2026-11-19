@@ -687,11 +687,12 @@ object Ocellus {
      * ([HEAD_ICON_SOUL_SPLIT]) until his next deflect. At [FINAL_DEFLECT_RANGE] Deflect Range ([HEAD_ICON_DEFLECT_RANGE],
      * ranged on him does nothing) with the "melee" arena graphic, and his quadrant void but for him and the tiles next to
      * him, until [FINAL_ARENA_END]. At [FINAL_RIFTS] Void Rifts ([RIFTS_FIRST], one more each loop up to [RIFTS_MAX]).
-     * Then round again. A player's hit that would end his bar does nothing, and his bar is held where it is ([barHeld]);
-     * the next Void Rift destroyed then ends him, whoever destroys it. Inferred from Sam's two runs of 16 November 2026:
-     * his bar never showed 0 (held at 14, then 2), and he died as Void Rifts were destroyed ("Destroying the void rift
-     * empowers you!" on the kill tick, twice in the second run). Guessed: that it is a hit that would end him that is
-     * held off, and that damage not rolled against him (recoil, Retribution, a command's) still can. Estimates (capture notes): the blast's damage, Soul Split healing
+     * Then round again. His bar never runs out under a hit: a player's hit that would end it does nothing ([barHeld]),
+     * and anything else leaves him at [HELD_AT] at the least. Once either has happened his bar is run out, and the next
+     * Void Rift destroyed ends him, whoever destroys it. Inferred from Sam's two runs of 16 November 2026: his bar never
+     * showed 0 (held at 14, then 2), and he died as Void Rifts were destroyed ([OcellusLines.EMPOWERED_RIFT] on the kill
+     * tick, twice in the second run). Guessed: that it is a hit that would end him that does nothing, and [HELD_AT] for
+     * the rest (recoil, Retribution, a command's `::hit`; `::kill` still kills). Estimates (capture notes): the blast's damage, Soul Split healing
      * him [SOUL_SPLIT_SHARE]-th of what the blast deals, the void's tiles. Guessed: the blast landing [BLAST_LANDS]
      * ticks after its pattern, the arena graphics' turn for each quadrant ([arenaTurn]), deflected hits doing nothing
      * rather than turning back on the attacker (the capture notes' word; not in yet), no void bombs, flares but the
@@ -714,6 +715,7 @@ object Ocellus {
     const val SOUL_SPLIT_SHARE = 5
     const val RIFTS_FIRST = 2
     const val RIFTS_MAX = 5
+    const val HELD_AT = 1
     const val ARENA_EVERY = 3
     const val ANIM_DEFLECT_IN = 14863
     const val ANIM_DEFLECT_LOOP = 14864
@@ -922,8 +924,9 @@ object Ocellus {
         var deflect: Blast? = null
         var soulSplit = false
 
-        /** Whether a hit in his final stand would have ended his bar, held off ([barHeld]): the next Rift ends him. */
+        /** Whether his bar has run out in his final stand ([barHeld], [HELD_AT]): the next Rift ends him. Logged once. */
         var barRunOut = false
+        var barRunOutLogged = false
 
         /** The lifeforce orbs out, by their player, and the world tick the bursts run until (slower weapons cut). */
         val orbs = WeakHashMap<Player, Orb>()
@@ -1675,13 +1678,13 @@ object Ocellus {
     /**
      * Where no hit takes his bar for now ([Npc.holdsAt]; exploit review R23B-2): at the next of [FALLS_AT] till that
      * fall starts, or where it is if a hit before his third phase already took it lower; where it is while a quadrant
-     * falls, so nothing hurts him from [startFall] till he takes the next; and nowhere once his final stand begins.
+     * falls, so nothing hurts him from [startFall] till he takes the next; and at [HELD_AT] once his final stand begins.
      * Guessed: that live holds his bar so (a burst past a fall otherwise skips its quadrant's fight, or the final stand).
      */
     private fun EncounterContext.holdAtFall() {
         boss.holdsAt = when {
             state.fallStart >= 0 -> boss.hitpoints
-            state.fallen.size >= FALLS_AT.size -> 0
+            state.fallen.size >= FALLS_AT.size -> HELD_AT
             else -> minOf(boss.hitpoints, boss.maxHitpoints * FALLS_AT[state.fallen.size] / 100)
         }
     }
@@ -1747,6 +1750,11 @@ object Ocellus {
         // His final stand's tick first: its void hurts from the tick it is laid (Codex, PR 585).
         val final = state.finalSince >= 0 && phaseTick >= state.finalSince && state.fallStart < 0
         if (final) finalStand(((phaseTick - state.finalSince) % FINAL_LOOP).toInt())
+        if (final && boss.hitpoints <= HELD_AT) state.barRunOut = true
+        if (state.barRunOut && !state.barRunOutLogged) {
+            state.barRunOutLogged = true
+            log("final: his bar run out, held till a rift is destroyed")
+        }
         voidFloor()
         vine()
         flares()
