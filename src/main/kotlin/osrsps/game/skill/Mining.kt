@@ -108,6 +108,9 @@ class Mining(private val world: World) {
     val tools = SkillTools(Skill.MINING, PICKAXES.map { it.tool })
     private val pickaxes = PICKAXES.associateBy { it.tool.obj }
 
+    /** The pickaxe a [SkillTools] check found. */
+    internal fun pickaxe(tool: SkillTool): Pickaxe = pickaxes.getValue(tool.obj)
+
     /** Ores left in each part-mined rock that lasts more than one ore, by tile; at most one entry per such rock. */
     private val yieldsLeft = HashMap<Long, Int>()
 
@@ -259,7 +262,7 @@ class Mining(private val world: World) {
     }
 
     /** The mining gem table's roll: 1/256, and with a charged glory a second 3/256 when that misses. */
-    private fun gemTableRoll(glory: Boolean): Boolean =
+    internal fun gemTableRoll(glory: Boolean): Boolean =
         world.random.chance(GEM_TABLE_CHANCE, GEM_TABLE_DENOMINATOR) ||
             (glory && world.random.chance(GLORY_GEM_TABLE_CHANCE, GEM_TABLE_DENOMINATOR))
 
@@ -311,7 +314,7 @@ class Mining(private val world: World) {
     }
 
     /** Ticks until the next roll with [pickaxe]: dragon and crystal sometimes take one fewer. */
-    private fun interval(pickaxe: Pickaxe): Int =
+    internal fun interval(pickaxe: Pickaxe): Int =
         if (pickaxe.fastNumerator > 0 && world.random.chance(pickaxe.fastNumerator, pickaxe.fastDenominator)) pickaxe.ticks - 1
         else pickaxe.ticks
 
