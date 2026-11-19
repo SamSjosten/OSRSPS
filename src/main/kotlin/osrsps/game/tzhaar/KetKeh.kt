@@ -8,7 +8,7 @@ import osrsps.game.dialogue.Lines
 
 /** TzHaar-Ket-Keh's talk by the Inferno (Transcript:TzHaar-Ket-Keh, read 2026-11-17). */
 object KetKehLines : Lines("ket_keh", "Transcript:TzHaar-Ket-Keh") {
-    val GREETING = line("greeting", "his first line: \"Yes, JalYt-[caste]-Xo-[player name]?\"", "caste", "name")
+    val GREETING = line("greeting", "his first line: answering the player by caste and name", "caste", "name")
     val ABOUT = line("about", "menu: tell me about the Inferno, and what the player says")
     val HELP = line("help", "menu: can I help, and what the player says")
     val NEVER_MIND = line("never_mind", "menu: never mind, and what the player says")
@@ -33,12 +33,12 @@ object KetKehLines : Lines("ket_keh", "Transcript:TzHaar-Ket-Keh") {
     val PROVE = line("prove", "help: first prove I can trust you")
     val TAKE_WORD = line("take_word", "help: sacrifice your fire cape and I can take your word")
 
-    val SACRIFICE_TITLE = line("sacrifice_title", "the first menu's title: \"Fire cape: Sacrifice it?\"")
-    val YES = line("yes", "the sacrifice menus: Yes.")
-    val NO = line("no", "the sacrifice menus: No.")
+    val SACRIFICE_TITLE = line("sacrifice_title", "the first menu's title: whether to sacrifice the fire cape")
+    val YES = line("yes", "the sacrifice menus: agreeing")
+    val NO = line("no", "the sacrifice menus: refusing")
     val SACRIFICE = line("sacrifice", "the player: I'd like to sacrifice my fire cape")
-    val HAND_OVER = line("hand_over", "Very well, just hand it over.")
-    val REALLY_TITLE = line("really_title", "the second menu's title, \"Fire cape\" in red: really sacrifice it?")
+    val HAND_OVER = line("hand_over", "the sacrifice agreed: his answer, asking for the cape")
+    val REALLY_TITLE = line("really_title", "the second menu's title, the cape's name in red: asking again")
     val KEEP_IT = line("keep_it", "the player: sorry, I want to keep it for now")
     val HANDED = line("handed", "the message box with the fire cape: you hand over your cape")
     val ENTER_NOW = line("enter_now", "thank you, you can enter the Inferno now", "caste", "name")
@@ -46,7 +46,7 @@ object KetKehLines : Lines("ket_keh", "Transcript:TzHaar-Ket-Keh") {
     val KILL_SOME = line("kill_some", "if you can kill some of them it would help")
     val WARNING = line("warning", "now you can be trusted, a warning: another being")
     val CAN_HELP = line("can_help", "the player: I can help with that")
-    val THANK_YOU = line("thank_you", "Thank you, JalYt-[caste]-Xo-[player name].", "caste", "name")
+    val THANK_YOU = line("thank_you", "his thanks for the help offered, by caste and name", "caste", "name")
     val TAKE_OFF = line("take_off", "the player, with the fire cape worn: I'll need to take it off first")
     val NO_CAPE = line("no_cape", "the player, with no fire cape: I don't have one on me")
 
@@ -61,16 +61,16 @@ object KetKehLines : Lines("ket_keh", "Transcript:TzHaar-Ket-Keh") {
  * killed TzKal-Zuk, `inferno_master_2op` (11248, Talk-to and Exchange) after; the Wiki's infobox map has him at
  * 2496,5115 (npc-spawns/inferno.json). From his transcript's standard dialogue:
  *
- * - Talk-to: "Tell me about the Inferno." (the TzHaar's history, then TzKal-Zuk once the player has given a fire cape,
- *   or his doubt and the sacrifice offer before), "Can I help here in some way?" (the sacrifice offer) and "Never mind."
- * - The sacrifice, with a fire cape in the backpack: two menus (Sacrifice it? / Really sacrifice it?), then the cape
- *   goes for good and the Inferno's entrance shows Jump-in ([Inferno.sacrifice]). With one worn: "I'll need to take it
- *   off first." With none: "I don't have a fire cape on me unfortunately."
+ * - Talk-to: [KetKehLines.ABOUT] (the TzHaar's history, then TzKal-Zuk once the player has given a fire cape, or his
+ *   doubt and the sacrifice offer before), [KetKehLines.HELP] (the sacrifice offer) and [KetKehLines.NEVER_MIND].
+ * - The sacrifice, with a fire cape in the backpack: two menus ([KetKehLines.SACRIFICE_TITLE], then [KetKehLines.REALLY_TITLE]), then the cape
+ *   goes for good and the Inferno's entrance shows Jump-in ([Inferno.sacrifice]). With one worn: [KetKehLines.TAKE_OFF].
+ *   With none: [KetKehLines.NO_CAPE].
  * - TzKal-Zuk's death: his thanks and the infernal cape and TokKul message box ([victory]).
  *
  * Not built yet: Exchange (the infernal cape for a chance at Jal-Nib-Rek, IN4), his lines as wave 69 starts (IN4), the
- * TzKal slayer helmet talk. GUESSED: "Can I help here in some way?" after the cape is given (the transcript has it only
- * before) says his "kill some of them" line; the caste ([MejJal.caste]); every chathead.
+ * TzKal slayer helmet talk. GUESSED: [KetKehLines.HELP] after the cape is given (the transcript has it only before)
+ * says his [KetKehLines.KILL_SOME] line; the caste ([MejJal.caste]); every chathead.
  */
 object KetKeh {
     const val TZHAAR_KET_KEH = 7690
