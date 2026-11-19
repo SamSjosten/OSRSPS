@@ -322,7 +322,7 @@ class GroundObjs(
         zones.objsAt(x, z, level).filter { it.visibleTo(player.saveKey) }
 
     /** The obj [player] means by a click on [id] on a tile: guessed to be the oldest one they can see there. */
-    private fun find(player: Player, id: Int, x: Int, z: Int, level: Int): ZoneObj? =
+    fun find(player: Player, id: Int, x: Int, z: Int, level: Int): ZoneObj? =
         visibleAt(player, x, z, level).firstOrNull { it.id == id }
 
     /** The item spawn [obj] came from, or null if it wasn't spawned. */
@@ -457,7 +457,7 @@ class GroundObjs(
     }
 
     /** Whether all of [count] of [type] would go into [inventory]. */
-    private fun fits(inventory: Inventory, type: ObjType, count: Int): Boolean {
+    fun fits(inventory: Inventory, type: ObjType, count: Int): Boolean {
         if (!type.stackable) return inventory.freeSlots >= count
         val have = inventory.count(type.id)
         if (have > 0) return have + count <= Inventory.MAX_STACK

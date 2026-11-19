@@ -34,6 +34,7 @@ import net.rsprot.protocol.game.incoming.locs.OpLocV3
 import net.rsprot.protocol.game.incoming.messaging.MessagePrivate
 import net.rsprot.protocol.game.incoming.messaging.MessagePublic
 import net.rsprot.protocol.game.incoming.objs.OpObj6
+import net.rsprot.protocol.game.incoming.objs.OpObjT
 import net.rsprot.protocol.game.incoming.objs.OpObjV2
 import net.rsprot.protocol.game.incoming.misc.user.ClientCheat
 import net.rsprot.protocol.game.incoming.misc.user.CloseModal
@@ -206,6 +207,12 @@ class NetworkFactory(
         builder.addListener(OpLoc6V2::class.java, MessageConsumer { player, message -> world.onLocExamine(player, message.id) })
         builder.addListener(OpObjV2::class.java, MessageConsumer { player, message ->
             world.onGroundObjOp(player, message.id, message.x, message.z, message.op, message.controlKey)
+        })
+        builder.addListener(OpObjT::class.java, MessageConsumer { player, message ->
+            world.onGroundObjTarget(
+                player, message.id, message.x, message.z, message.selectedInterfaceId, message.selectedComponentId,
+                message.selectedSub, message.selectedObj, message.controlKey,
+            )
         })
         builder.addListener(OpObj6::class.java, MessageConsumer { player, message ->
             world.onGroundObjExamine(player, message.id, message.x, message.z)
