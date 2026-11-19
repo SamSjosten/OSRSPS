@@ -41,8 +41,9 @@ object InfernoLines : Lines("inferno", "The Inferno") {
  * [osrsps.game.content.CustomVars.infernoVarp] and the supports' damage in their own varbits.
  *
  * Built in IN1: the waves and their monsters with their stats and ordinary attacks (npc-combat.json); the supports and
- * Nibblers; entry, exit, death and logout. Each monster's own mechanics come in IN2 (Jal-Ak's split, Jal-ImKot's dig,
- * Jal-Zek's revive, ...), JalTok-Jad's in IN3, TzKal-Zuk's shield, sets and healers with the pet in IN4.
+ * Nibblers; entry, exit, death and logout. IN2: each monster's own mechanics ([InfernoMonsters]: Jal-Ak's split,
+ * Jal-ImKot's dig, Jal-Zek's revive, ...). JalTok-Jad's come in IN3, TzKal-Zuk's shield, sets and healers with the pet
+ * in IN4.
  *
  * GUESSED until recorded: the monsters' spots ([InfernoSpot]) and which monster takes which (World.random); where the
  * player comes in ([ARRIVAL], north of the exit), comes back after a login ([MIDDLE]), and comes out ([OUTSIDE], south of
@@ -67,6 +68,16 @@ class Inferno(private val world: World) {
 
         /** The wave's monsters still in the world, the dead ones until their bodies go. */
         val monsters: MutableList<Npc> = ArrayList()
+
+        /** The tick the wave being fought came in on. */
+        var waveStartTick: Long = 0
+            internal set
+
+        /** A Jal-Ak's smaller selves that couldn't come in yet (the world full of NPCs), by type and tile: the wave waits. */
+        internal val splitsOwed: MutableList<Pair<Int, Tile>> = ArrayList()
+
+        /** The wave's monsters that died and a Jal-Zek can bring back, by type, first dead first ([InfernoMonsters]). */
+        val slain: MutableList<Int> = ArrayList()
 
         /** The rocky supports still standing. */
         val pillars: MutableList<InfernoPillars.Pillar> = ArrayList()
@@ -101,8 +112,12 @@ class Inferno(private val world: World) {
 
     val pillars = InfernoPillars(world)
 
+    /** The monsters' own mechanics (Inferno step IN2). */
+    val monsterMechanics = InfernoMonsters(world)
+
     fun register() {
         pillars.register(this)
+        monsterMechanics.register(this)
         KetKeh.register(world, this)
         world.handlers.onLoc(ENTRANCE, JUMP_IN) { enter(player) }
         world.handlers.onLoc(EXIT, LEAVE) { leave(player) }
@@ -200,8 +215,15 @@ class Inferno(private val world: World) {
             }
             run.monsters.removeAll { world.npcs[it.index] !== it }
             pillars.tick(run, player)
+            for (npc in run.monsters.toList()) {
+                if (monsterMechanics.scripted(npc.type.id)) monsterMechanics.tick(this, run, npc, player)
+            }
             if (run.nextWaveTick >= 0) {
                 if (world.tick >= run.nextWaveTick) spawnWave(player, run)
+            } else if (run.splitsOwed.isNotEmpty()) {
+                for (owed in run.splitsOwed.toList()) {
+                    if (spawn(player, run, owed.first, owed.second) != null) run.splitsOwed.remove(owed)
+                }
             } else if (run.monsters.none { !it.dead }) {
                 waveDone(player, run)
             }
@@ -222,6 +244,8 @@ class Inferno(private val world: World) {
     private fun spawnWave(player: Player, run: Run) {
         run.nextWaveTick = -1
         run.pausing = false
+        run.waveStartTick = world.tick
+        run.slain.clear()
         world.message(player, InfernoLines.WAVE, "wave" to run.wave)
         val monsters = InfernoWaves.monsters(run.wave)
         val spots = InfernoSpot.entries.toMutableList()
@@ -262,7 +286,7 @@ class Inferno(private val world: World) {
         npc.huntsAnywhere = true
         // A Nibbler's swings are its own ([InfernoPillars]): at a support, or, with none left, at the player. TzKal-Zuk
         // stands still and holds his attack until his fight is built (Inferno step IN4).
-        npc.scriptedAttacks = typeId == InfernoMonster.NIBBLER.type || typeId == InfernoMonster.ZUK.type
+        npc.scriptedAttacks = typeId == InfernoMonster.NIBBLER.type || typeId == InfernoMonster.ZUK.type || monsterMechanics.scripted(typeId)
         run.monsters += npc
         if (fight) world.meleeCombat.aggress(npc, player, world.tick)
         return npc
