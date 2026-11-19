@@ -28,7 +28,8 @@
     "NPCs and locs: Wilderness step W3.8 (2026-11-15): the types piece 3 spawns (levels 21 to 56, the Lava Maze Dungeon, the Mage Arena bank) and the locs its content handles that had none, one per id, from the infobox of the page in wiki, else of the page named after it. None yet where the Wiki gives no text or more than one: the greater demons (2026 to 2029, red or purple), the Chaos Temple's noting Elder Chaos druid (7995), the Lava Maze's mirror ladders (18987 to 18990), the King Black Dragon's levers (1816, 1817).",
     "NPCs and locs: Fight Caves step FC1 (2026-11-17): the Fight Cave's monsters (3116 to 3128), TzHaar-Mej-Jal (2180) and the cave's entrance and exit (11833, 11834), one per id, from the infobox of the page named after each (the cave's two locs share the Cave entrance page).",
     "Locs and NPCs: Karamja (step K1.1): the Port Sarim to Musa Point boat's four NPCs, with the types their multi-NPCs show, and its two ships' gangplanks (the 242 cache, 2026-11-17).",
-    "Construction step CON1 (2026-11-18): the estate agent of npc-spawns/construction.json, the Rimmington house portal, the exit portal and the basic wood house doors."
+    "Construction step CON1 (2026-11-18): the estate agent of npc-spawns/construction.json, the Rimmington house portal, the exit portal and the basic wood house doors.",
+    "The Clan Hub (2026-11-19): npc-spawns/clan-hub.json's Clerk (10759), from the Clerk (Clan Hub) page."
   ],
   "npcs": [
     {"npc": 0, "name": "Tool Leprechaun"},
@@ -859,6 +860,7 @@
     {"npc": 10657, "name": "Checkal", "also": [10645]},
     {"npc": 10658, "name": "Atlas"},
     {"npc": 10733, "name": "Meredith"},
+    {"npc": 10759, "name": "Clerk", "wiki": "Clerk (Clan Hub) page, infobox"},
     {"npc": 11410, "name": "Rick", "also": [11409]},
     {"npc": 11433, "name": "Archmage Sedridor", "also": [5034]},
     {"npc": 11580, "name": "Prince Ali", "wiki": "Prince Ali page, infobox (the freed Prince Ali, whom prince_ali_palace 11645 shows after Prince Ali Rescue)"},

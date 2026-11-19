@@ -289,6 +289,7 @@ object DialogueLines {
         RatBurgissLines,
         SethGroatsLines,
         SawmillLines,
+        ClerkLines,
         TolnaLines,
         TolnaRiftLines,
         OddOldManLines,

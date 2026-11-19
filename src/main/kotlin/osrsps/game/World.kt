@@ -119,6 +119,7 @@ import osrsps.game.content.registerHamHideout
 import osrsps.game.content.registerHamStorerooms
 import osrsps.game.content.registerFarmsRoads
 import osrsps.game.content.registerLumberYard
+import osrsps.game.content.registerClanHub
 import osrsps.game.content.registerRaidTester
 import osrsps.game.content.registerTolnasRift
 import osrsps.game.content.registerDigsite
@@ -852,6 +853,21 @@ class World(
             }
         },
         askAmount = { player, prompt, typed -> scripts.start(player) { typed(countDialog(prompt)) } },
+        pickMotif = { player, current, picked ->
+            // clan_outfit draws from clan_editing_0, so it goes first, sent now rather than with the tick's varps.
+            if (Clans.VARP_EDITING_MOTIF < player.vars.types.varpCount) {
+                player.vars[Clans.VARP_EDITING_MOTIF] = current
+                interfaces.sendVarpNow(player, Clans.VARP_EDITING_MOTIF)
+            }
+            interfaces.openInside(player, Clans.INFO, Clans.INFO_POPUP, Clans.OUTFIT)
+            interfaces.runClientScript(player, Clans.SCRIPT_OUTFIT, listOf(Clans.component(Clans.INFO, Clans.INFO_POPUP)))
+            scripts.start(player) {
+                // Save sends clan_editing_0 as it stands (script4432); Cancel sends 0 (script4208).
+                val answer = waitForCount()
+                if (Clans.INFO in player.modals.values) interfaces.closeInside(player, Clans.INFO, Clans.INFO_POPUP)
+                if (answer != 0 && answer != current) picked(answer)
+            }
+        },
         now = clansClock,
     )
 
@@ -1063,6 +1079,7 @@ class World(
         registerHamStorerooms(this)
         registerFarmsRoads(this)
         registerLumberYard(this)
+        registerClanHub(this)
         registerTolnasRift(this)
         registerSilvarea(this)
         registerPaterdomus(this)

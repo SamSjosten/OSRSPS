@@ -73,7 +73,12 @@ private val logger = KotlinLogging.logger {}
  * applicant hearing of either answer, accepting dropping their applications elsewhere, and Administrators and up
  * editing the ranks below their own, the Expel question and expelling only those below, the kick lasting an hour,
  * guests still finding a clan they are banned from, and a new clan's permissions (Administrator where that is the
- * floor, the owner for recruiting and kicking, any member talks). Not built yet: inviting after founding, handing the
+ * floor, the owner for recruiting and kicking, any member talks).
+ *
+ * The motif (the settings page's motif button, Icon customisation in clans_outfit 694) is the clan's two icons and colour,
+ * kept in varclansetting 11; the Clan Hub's Clerk ([osrsps.game.content.ClanHub]) gives cloaks and vexilla in its colour.
+ *
+ * Not built yet: inviting after founding, handing the
  * clan over, rank titles, the guest settings (listening and requirements), the ban list's Add button, and muting.
  */
 class Clans(
@@ -110,6 +115,11 @@ class Clans(
     private val pickOption: (Player, String, List<String>, (Int) -> Unit) -> Unit = { _, _, _, _ -> },
     /** Asks for an amount with the given prompt over the chatbox's input line; runs the action with the amount typed. */
     private val askAmount: (Player, String, (Int) -> Unit) -> Unit = { _, _, _ -> },
+    /**
+     * Shows clans_outfit (Icon customisation) in clans_info's popup, starting from the given motif (varclansetting 11's
+     * packing); runs the action with the motif saved, or not at all when it is cancelled or unchanged.
+     */
+    private val pickMotif: (Player, Int, (Int) -> Unit) -> Unit = { _, _, _ -> },
     private val now: () -> Instant = Instant::now,
 ) {
     /** A clan being formed: its leader, the founders who joined, the invited and the name picked. */
@@ -365,6 +375,25 @@ class Clans(
         if (asGuest) showApplying(player)
         openModal(player, INFO)
         for (component in INFO_BUTTONS) setEvents(player, INFO, component, -1, -1, OP1, 0)
+        setEvents(player, INFO, INFO_OUTFIT, -1, -1, OP1, 0)
+    }
+
+    /**
+     * The settings page's motif ("Edit" on clans_info:outfit, a member's page only): for those the Icons permission
+     * allows, Icon customisation opens on the clan's motif, and Save gives the clan the one picked, which every member's
+     * client then draws (the Wiki's Clan cloak: "When the interface is closed, the new motif updates for all clan
+     * members"). Inferred: others get nothing, as the client draws the button without its hover for them.
+     */
+    private fun editMotif(player: Player) {
+        val clan = clanOf(player) ?: return
+        if (!has(player, clan, VAR_ICONS)) return
+        pickMotif(player, clan.settings[VAR_MOTIF] ?: 0) { motif ->
+            // A tick or more later: still in the clan, still allowed, and a motif the client could have made.
+            val now = clanOf(player)?.takeIf { it.id == clan.id } ?: return@pickMotif
+            if (!has(player, now, VAR_ICONS) || !validMotif(motif)) return@pickMotif
+            store.setSetting(now, VAR_MOTIF, motif)
+            sendSettings(now)
+        }
     }
 
     private fun showApplying(player: Player) {
@@ -383,6 +412,10 @@ class Clans(
         // the server when clan_info_editable hasn't given it closebutton_click (VM 215, 2026-11-08: the page stayed open).
         if (component == INFO_CLOSE) {
             if (INFO in player.modals.values) closeModals(player)
+            return true
+        }
+        if (component == INFO_OUTFIT) {
+            if (INFO in player.modals.values && infoAsGuest[player.saveKey] == false) editMotif(player)
             return true
         }
         if (component !in INFO_BUTTONS) return false
@@ -1149,11 +1182,13 @@ class Clans(
      * takes 2 off what it reads (its "unset" is 126 + 2). Talk and Kick go in the settings' own fields instead.
      */
     internal fun settingVars(clan: ClanStore.Clan): List<ClanSettingsFull.IntClanSetting> {
-        val ranks = SETTING_DEFAULTS.keys.plus(clan.settings.keys).filter { it !in CHANNEL_PERMISSIONS && it !in GUEST_SETTINGS }
+        val ranks = SETTING_DEFAULTS.keys.plus(clan.settings.keys).filter { it !in CHANNEL_PERMISSIONS && it !in GUEST_SETTINGS && it != VAR_MOTIF }
             .map { ClanSettingsFull.IntClanSetting(it, setting(clan, it) + PERMISSION_VAR_OFFSET) }
         // The guest requirements go as they are, packed (clan_permissions_buttonresynch reads their bits).
         val guests = clan.settings[VAR_GUEST_REQUIREMENTS]?.let { listOf(ClanSettingsFull.IntClanSetting(VAR_GUEST_REQUIREMENTS, it)) }.orEmpty()
-        return (ranks + guests).sortedBy { it.id }
+        // So does the motif (clan_outfit_icon_get_all reads its bits).
+        val motif = clan.settings[VAR_MOTIF]?.let { listOf(ClanSettingsFull.IntClanSetting(VAR_MOTIF, it)) }.orEmpty()
+        return (ranks + guests + motif).sortedBy { it.id }
     }
 
     /** Whether guests may listen in [clan]'s channel (the clan settings' allow-unaffined). Inferred: permitted unless blocked. */
@@ -1163,6 +1198,16 @@ class Clans(
     fun guestRequirement(clan: ClanStore.Clan, requirement: GuestRequirement): Int {
         val packed = clan.settings[VAR_GUEST_REQUIREMENTS] ?: return 0
         return (packed ushr requirement.shift) and ((1 shl requirement.bits) - 1)
+    }
+
+    /**
+     * [clan]'s colour, from 0 (black) to 7 (pink) in enum_3819's order, which the clan cloaks and vexilla follow (black,
+     * orange, blue, red, green, yellow, light blue, pink). A clan that never picked one has blue, enum_3819's default,
+     * which the client draws for it (inferred from the enum).
+     */
+    fun colour(clan: ClanStore.Clan): Int {
+        val picked = (((clan.settings[VAR_MOTIF] ?: 0) ushr MOTIF_COLOUR_SHIFT) and MOTIF_FIELD_MASK) - 1
+        return if (picked in 0 until MOTIF_COLOURS) picked else MOTIF_DEFAULT_COLOUR
     }
 
     /** Whether [player] meets [clan]'s guest requirements. Iron status: nobody here is an Ironman, so any but None shuts all out. */
@@ -1512,7 +1557,8 @@ class Clans(
                 YOUR_CLAN to ("clans_sidepanel" to mapOf(YOUR_CLAN_REFRESH to "refresh", YOUR_CLAN_CHAT to "chat", YOUR_CLAN_SETTINGS to "info")),
                 GUEST_SIDEPANEL to ("clans_guest_sidepanel" to mapOf(GUEST_REFRESH to "refresh", GUEST_CHAT to "chat", GUEST_INFO to "info", GUEST_SEARCH to "search")),
                 CREATION to ("clans_creation_sidepanel" to mapOf(CREATION_UNIVERSE to "universe", CREATION_REFRESH to "refresh", CREATION_CONTENTS to "contents", CREATION_NAME to "name", CREATION_INVITE to "invite", CREATION_CANCEL to "cancel", CREATION_CONFIRM to "confirm")),
-                INFO to ("clans_info" to mapOf(INFO_CLOSE to "close", INFO_BUTTONS.first to "events", INFO_MEMBERS to "members", INFO_APPLICATIONS to "applications", INFO_PERMISSIONS to "permissions", INFO_BANNED to "banned", INFO_QUIT to "quit")),
+                INFO to ("clans_info" to mapOf(INFO_CLOSE to "close", INFO_BUTTONS.first to "events", INFO_MEMBERS to "members", INFO_APPLICATIONS to "applications", INFO_PERMISSIONS to "permissions", INFO_BANNED to "banned", INFO_QUIT to "quit", INFO_OUTFIT to "outfit", INFO_POPUP to "popup")),
+                OUTFIT to ("clans_outfit" to emptyMap()),
                 BANNED to ("clans_banned" to mapOf(BANNED_EXIT to "exit")),
                 MEMBERS to ("clans_members" to mapOf(MEMBERS_COLUMNS[0] to "column1", MEMBERS_COLUMNS[1] to "column2", MEMBERS_OPTIONS[0] to "options1", MEMBERS_OPTIONS[1] to "options2", MEMBERS_EXIT to "exit", MEMBERS_POPUP to "popup")),
                 PERMISSIONS to ("clans_permissions" to mapOf(PERMISSIONS_EXIT to "exit", PERMISSIONS_LIST to "list_contents", PERMISSIONS_POPUP to "popup")),
@@ -1641,6 +1687,35 @@ class Clans(
         const val VAR_RECRUITMENT = 17
         const val VAR_BAN_FROM_CHAT = 18
         const val VAR_ICONS = 25
+
+        /**
+         * The clan's motif, varclansetting 11: its two icons (enum_3820, 0 none to 27) and its colour (enum_3819, 0 to 7),
+         * each plus 1 in 10 bits, from bit 0 (proc clan_outfit_icon_get_all; 0 is unset).
+         */
+        const val VAR_MOTIF = 11
+        const val MOTIF_COLOUR_SHIFT = 20
+        const val MOTIF_FIELD_MASK = 0x3FF
+        const val MOTIF_ICONS = 28
+        const val MOTIF_COLOURS = 8
+        const val MOTIF_DEFAULT_COLOUR = 2
+
+        /** Whether [motif] is one clans_outfit could save: each icon and the colour unset or in range, nothing above. */
+        fun validMotif(motif: Int): Boolean {
+            if (motif ushr 30 != 0) return false
+            val top = motif and MOTIF_FIELD_MASK
+            val bottom = (motif ushr 10) and MOTIF_FIELD_MASK
+            val colour = (motif ushr MOTIF_COLOUR_SHIFT) and MOTIF_FIELD_MASK
+            return top <= MOTIF_ICONS && bottom <= MOTIF_ICONS && colour <= MOTIF_COLOURS
+        }
+
+        /** clans_info:outfit, the motif's button; clans_info:popup, where Icon customisation opens; and clans_outfit. */
+        const val INFO_OUTFIT = 5
+        const val INFO_POPUP = 27
+        const val OUTFIT = 694
+        const val SCRIPT_OUTFIT = 4431
+
+        /** clan_editing_0, the varp Icon customisation edits (and Save sends back). */
+        const val VARP_EDITING_MOTIF = 3023
 
         /**
          * Talk in chat and Kick from chat, which the clan settings and channel carry in their own fields (talk rank, kick
