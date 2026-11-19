@@ -249,7 +249,11 @@ class Houses(private val world: World) {
         val player = context.player
         val state = player.house ?: return world.message(player, ConstructionLines.NO_HOUSE)
         val house = build(player, state, buildingMode) ?: return world.message(player, ConstructionLines.NO_ROOM)
-        val arrive = arrival(house.instance, state)
+        val arrive = arrival(house.instance, state) ?: run {
+            // A save with no exit portal can't load ([HouseSaves.fromJson]), so this is only a safety net (R43B-1).
+            world.endInstance(house.instance)
+            return world.message(player, ConstructionLines.NO_ROOM)
+        }
         world.teleport(player, arrive.x, arrive.z, House.GROUND)
         inside += player
     }
@@ -265,12 +269,15 @@ class Houses(private val world: World) {
         for (player in left) {
             inside -= player
             world.poison.curePoison(player)
+            setVarbit(player, House.BUILDING_MODE_VARBIT, 0)
         }
     }
 
     /** [player] is logging out: in a house, that is leaving it too, so the save they come back to has no poison. */
     fun leaving(player: Player) {
         if (!inside.remove(player)) return
+        // Off before the save, whichever way they leave (exploit review R43B-2).
+        setVarbit(player, House.BUILDING_MODE_VARBIT, 0)
         if (houseAt(player.x, player.z) != null) world.poison.curePoison(player)
     }
 
@@ -521,9 +528,9 @@ class Houses(private val world: World) {
         world.redrawInstance(instance)
     }
 
-    /** Where [state]'s house puts its owner on the way in: beside the exit portal, in the first garden that has one. */
-    private fun arrival(instance: Instance, state: HouseState): Tile {
-        val garden = state.rooms.firstOrNull { House.EXIT_PORTAL in it.built.values } ?: state.rooms.firstOrNull { it.type == RoomType.GARDEN } ?: state.rooms.first()
+    /** Where [state]'s house puts its owner on the way in: beside the exit portal. Null for a house with none. */
+    private fun arrival(instance: Instance, state: HouseState): Tile? {
+        val garden = state.rooms.firstOrNull { House.EXIT_PORTAL in it.built.values && it.floor == House.GROUND } ?: return null
         return Tile(instance.baseX + (garden.x shl 3) + House.ARRIVE_DX, instance.baseZ + (garden.z shl 3) + House.ARRIVE_DZ)
     }
 

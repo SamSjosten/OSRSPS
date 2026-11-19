@@ -14,6 +14,8 @@ import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.PlayerSave
 import osrsps.game.Skill
+import osrsps.game.VarTypes
+import osrsps.game.VarbitType
 import osrsps.game.World
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
@@ -104,6 +106,8 @@ class HeadlessHouseTest {
                 doors(kitchen.templateX, kitchen.templateZ, listOf(0, 3)).forEach(::add)
                 add(ZoneLoc(LARDER_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, kitchen.templateX + 1, kitchen.templateZ + 6, 0))
             },
+            // Building mode's varbit, on a varp of its own here (the cache's layout doesn't matter to the server).
+            varTypes = VarTypes(3_000, mapOf(House.BUILDING_MODE_VARBIT to VarbitType(2_000, 0, 0))),
             cycleMillis = millis,
             furnitureData = FurnitureData(mapOf(RoomType.PARLOUR.id to List(3) { chairs })),
         )
@@ -333,8 +337,11 @@ class HeadlessHouseTest {
                 assertEquals(RoomType.KITCHEN to 1, kitchen.type to kitchen.rotation)
 
                 // Out of building mode it is drawn turned, and the parlour's east doorway is a door onto it.
+                assertEquals(1, player.vars.getVarbit(House.BUILDING_MODE_VARBIT))
                 client.locOp(House.EXIT_PORTAL, px + 3, pz - 8 + 3, House.EXIT_ENTER)
                 client.await("outside") { client.position?.takeIf { it == Coord(OUTSIDE.x, OUTSIDE.z, 0) } }
+                // Leaving turns building mode's varbit off again (exploit review R43B-2).
+                client.await("building mode off") { if (player.vars.getVarbit(House.BUILDING_MODE_VARBIT) == 0) Unit else null }
                 val home = client.goIn(House.HOME)
                 val again = assertNotNull(server.world.instances.at(home.x, home.z))
                 val hx = again.baseX + (House.STARTER_X shl 3)
