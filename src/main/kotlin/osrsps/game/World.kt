@@ -130,6 +130,7 @@ import osrsps.game.content.registerLumberYard
 import osrsps.game.content.EdgevilleRespawn
 import osrsps.game.content.registerGertrudesCat
 import osrsps.game.content.registerClanHub
+import osrsps.game.content.registerBarbarianAnvil
 import osrsps.game.content.registerMisthalinOptionPack
 import osrsps.game.content.registerRaidTester
 import osrsps.game.content.registerTolnasRift
@@ -1309,6 +1310,7 @@ class World(
         osrsps.game.content.registerDusuri(this)
         registerCrops(this)
         registerMisthalinOptionPack(this)
+        registerBarbarianAnvil(this)
         ducks.register()
         homeTeleport.register(handlers)
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
