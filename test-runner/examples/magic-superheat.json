@@ -1,0 +1,30 @@
+{
+ "name": "Magic utility step U2: Superheat Item cast on iron ore with two coal making a steel bar, then on iron ore alone making an iron bar, coal refused (::keys on); needs runner 0.29.0 for castOnItem",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "a new account's stats, nothing worn or carried; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::setlevel magic 43", "expectMessage": "Magic set to level 43"},
+  {"step": "command", "text": "::setlevel smithing 30", "expectMessage": "Smithing set to level 30"},
+  {"step": "command", "text": "::item 561 2", "expectMessage": "Added 2 x Nature rune"},
+  {"step": "command", "text": "::item 554 8", "expectMessage": "Added 8 x Fire rune"},
+  {"step": "command", "text": "::item 440 2", "expectMessage": "Added 2 x Iron ore"},
+  {"step": "command", "text": "::item 453 2", "expectMessage": "Added 2 x Coal"},
+  {"step": "castOnItem", "interfaceId": 218, "component": 36, "item": "Coal", "comment": "Superheat Item on coal"},
+  {"step": "assertMessage", "contains": "[superheat.not_ore]", "timeoutMs": 5000},
+  {"step": "castOnItem", "interfaceId": 218, "component": 36, "item": "Iron ore", "comment": "with two coal held: steel"},
+  {"step": "assertAnimation", "id": 725, "timeoutMs": 5000, "comment": "human_castsuperheatitem"},
+  {"step": "assertSpotanim", "id": 148, "timeoutMs": 5000, "comment": "superheatitem_casting"},
+  {"step": "assertInventory", "item": "Steel bar", "count": 1, "timeoutMs": 5000},
+  {"step": "assertInventory", "item": "Coal", "count": 0},
+  {"step": "waitTicks", "ticks": 3, "comment": "Superheat Item's 3 ticks"},
+  {"step": "castOnItem", "interfaceId": 218, "component": 36, "item": "Iron ore", "comment": "no coal left: an iron bar, never impure"},
+  {"step": "assertInventory", "item": "Iron bar", "count": 1, "timeoutMs": 5000},
+  {"step": "assertInventory", "item": "Iron ore", "count": 0},
+  {"step": "assertInventory", "item": "Nature rune", "count": 0},
+  {"step": "assertInventory", "item": "Fire rune", "count": 0},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
