@@ -1061,6 +1061,7 @@ class World(
         registerMillLaneMill(this)
         registerBarfyBill(this)
         registerFatherUrhney(this)
+        osrsps.game.collection.TheCollector.register(this)
         registerAdventurersCamp(this)
         registerCandleSeller(this)
         registerSwampTutors(this)
