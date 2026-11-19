@@ -29,7 +29,7 @@ object FluffsLines : Lines("fluffs", "Transcript:Gertrude's cat (NPC)") {
  * after Gertrude's Cat (map at 3310,3506, upstairs). Talk-to with a catspeak amulet worn (4677, or the enchanted 6544)
  * follows the transcript's Lumber Yard talk without a kitten or cat.
  *
- * Guessed: without the amulet she says "Miaoww" overhead, as during the quest (the transcript has no line for it after);
+ * Guessed: without the amulet she gives her quest miaow overhead ([FluffsLines.MIAOWW]), as during the quest (the transcript has no line for it after);
  * Pick-up gets her quest hiss and Stroke a purr (the transcript has neither after the quest), with no scratch; every
  * chathead expression. Left out: the talk with a kitten or cat following (no followers yet), her scratch for a player
  * with a cat in the bank, and feeding her.
