@@ -13,10 +13,12 @@ import osrsps.game.Skill
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.dialogue.Line
 import osrsps.game.dialogue.Lines
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
+import kotlin.math.abs
 
 private val logger = KotlinLogging.logger {}
 
@@ -78,8 +80,10 @@ private val logger = KotlinLogging.logger {}
  * The motif (the settings page's motif button, Icon customisation in clans_outfit 694) is the clan's two icons and colour,
  * kept in varclansetting 11; the Clan Hub's Clerk ([osrsps.game.content.ClanHub]) gives cloaks and vexilla in its colour.
  *
- * Not built yet: inviting after founding, handing the
- * clan over, rank titles, the guest settings (listening and requirements), the ban list's Add button, and muting.
+ * Recruiting after founding: wielding a clan vexillum gives a clan member Recruit on players, which asks the player
+ * whether to join (guessed: a chatbox question, and every line about it).
+ *
+ * Not built yet: handing the clan over, rank titles, the guest settings (listening and requirements), the ban list's Add button, and muting.
  */
 class Clans(
     private val store: ClanStore,
@@ -122,6 +126,14 @@ class Clans(
     private val pickMotif: (Player, Int, (Int) -> Unit) -> Unit = { _, _, _ -> },
     /** Gives every clan cloak and vexillum [Player] has the colour given (0 to 7, enum_3819's order). */
     private val recolour: (Player, Int) -> Unit = { _, _ -> },
+    /** The obj id of what [Player] wields in the weapon slot, or -1. */
+    private val weapon: (Player) -> Int = { -1 },
+    /** Whether [Player] has Accept Aid on. */
+    private val acceptsAid: (Player) -> Boolean = { true },
+    /** Whether [Player] is in combat: hit lately, or a player's hit on its way to them (World.inCombat). */
+    private val inCombat: (Player) -> Boolean = { false },
+    /** Asks the player a yes/no question titled with the given words; runs the action with the answer, if they give one. */
+    private val ask: (Player, String, (Boolean) -> Unit) -> Unit = { _, _, _ -> },
     private val now: () -> Instant = Instant::now,
 ) {
     /** A clan being formed: its leader, the founders who joined, the invited and the name picked. */
@@ -139,6 +151,17 @@ class Clans(
 
     /** The Clans tab page each online player has open (0 chat-channel, 1 your clan, 2 another clan, 3 grouping). */
     private val tabs = HashMap<String, Int>()
+
+    /** Whether each online player's client has Recruit on other players (option 1), as last sent. */
+    private val recruitShown = HashMap<String, Boolean>()
+
+    /**
+     * Recruit invitations sent with a clan vexillum and not answered yet, by the invitee's save key: the clan, who sent
+     * it and when. One at a time per invitee; one left unanswered (the question closed) lapses after [RECRUIT_LAPSE].
+     */
+    private class RecruitInvite(val clanId: Long, val recruiterKey: String, val sent: Instant)
+
+    private val recruitInvites = HashMap<String, RecruitInvite>()
 
     /** Players who were in the Clan Hub at their last [process]. */
     private val inHub = HashSet<String>()
@@ -219,6 +242,8 @@ class Clans(
 
     /** A reconnect: everything clan the old connection may have lost, after the player options are sent again. */
     fun resync(player: Player) {
+        // The new connection's client has no Recruit until it is sent again.
+        recruitShown.remove(player.saveKey)
         showRecruit(player)
         setVarbit(player, VARBIT_GUEST_AFFINITY, AFFINITY_NONE)
         val clan = clanOf(player)
@@ -267,11 +292,17 @@ class Clans(
         told.remove(player.saveKey)
         tabs.remove(player.saveKey)
         inHub.remove(player.saveKey)
+        recruitShown.remove(player.saveKey)
+        recruitInvites.remove(player.saveKey)
         shownName.remove(player.saveKey)
     }
 
-    /** Every tick: walking into or out of the Clan Hub changes the "Your Clan" page of someone without a clan. */
+    /**
+     * Every tick: walking into or out of the Clan Hub changes the "Your Clan" page of someone without a clan; and
+     * Recruit on players follows the Hub and the weapon wielded.
+     */
     fun process(player: Player) {
+        showRecruit(player)
         val now = inHub(player)
         val was = player.saveKey in inHub
         if (now == was) return
@@ -285,11 +316,71 @@ class Clans(
     }
 
     /**
-     * Option 1 on players, "Recruit", while in the Hub without a clan (Wiki, Clans: "right-click a player in the Clan
-     * Hub and choose Recruit"); it invites them, or accepts their invitation as its "Form clan" does.
+     * Option 1 on players, "Recruit": while in the Hub without a clan (Wiki, Clans: "right-click a player in the Clan
+     * Hub and choose Recruit"), where it invites them to found a clan or accepts their invitation as its "Form clan"
+     * does; and while wielding a clan vexillum in a clan (Wiki, Clan vexillum: "a right-click option of this name
+     * appears on nearby players"), where it invites them into the clan ([recruit]). Sent only when it changes.
      */
     private fun showRecruit(player: Player) {
-        send(player, SetPlayerOp(PLAYER_OP_RECRUIT, false, RECRUIT.takeIf { inHub(player) && clanOf(player) == null }))
+        val shown = (inHub(player) && clanOf(player) == null) || canRecruitWithVexillum(player)
+        if (recruitShown[player.saveKey] == shown) return
+        recruitShown[player.saveKey] = shown
+        send(player, SetPlayerOp(PLAYER_OP_RECRUIT, false, RECRUIT.takeIf { shown }))
+    }
+
+    private fun canRecruitWithVexillum(player: Player): Boolean = clanOf(player) != null && weapon(player) in VEXILLA
+
+    /**
+     * Recruit on [target] with a clan vexillum wielded: for a member the Recruitment permission allows (Wiki, Clan
+     * vexillum: "only usable if your clan rank ... allows it"), [target] is asked whether to join the clan, if they are
+     * in none, have Accept Aid on (Wiki, Clans) and aren't busy (an interface, a delayed action, combat or another invitation); yes makes them
+     * its lowest rank (inferred: the applicants' Accept does the same). Every refusal tells the recruiter why.
+     */
+    private fun recruit(recruiter: Player, target: Player) {
+        val clan = clanOf(recruiter) ?: return
+        val clock = now()
+        recruitInvites[target.saveKey]?.let { if (Duration.between(it.sent, clock) >= RECRUIT_LAPSE) recruitInvites.remove(target.saveKey) }
+        when {
+            !isRecruiter(recruiter, clan) -> tell(recruiter, ClanLines.RECRUIT_NOT_ALLOWED)
+            target.level != recruiter.level || maxOf(abs(target.x - recruiter.x), abs(target.z - recruiter.z)) > RECRUIT_DISTANCE -> Unit
+            clanOf(target) != null -> tell(recruiter, ClanLines.ALREADY_IN_CLAN, target.username)
+            clan.members.size >= MAX_MEMBERS -> tell(recruiter, ClanLines.CLAN_FULL)
+            !acceptsAid(target) -> tell(recruiter, ClanLines.RECRUIT_NO_AID, target.username)
+            // Someone ignoring the recruiter reads as busy, so the recruiter can't tell they are ignored (guessed).
+            // In combat is busy too (Codex on PR 836): an open question would stop their auto-retaliate.
+            target.modalOpen || target.scripts.delayed || inCombat(target) || target.saveKey in recruitInvites || ignores.ignores(target, recruiter) -> tell(recruiter, ClanLines.RECRUIT_BUSY, target.username)
+            else -> {
+                recruitInvites[target.saveKey] = RecruitInvite(clan.id, recruiter.saveKey, clock)
+                tell(recruiter, ClanLines.RECRUIT_SENT, target.username)
+                val question = words(target)[ClanLines.RECRUIT_QUESTION, "name" to recruiter.username, "clan" to clan.name]
+                ask(target, question) { yes -> answerRecruit(target, clan.id, recruiter.saveKey, yes) }
+            }
+        }
+    }
+
+    /** [target]'s answer to a Recruit invitation; a yes is checked again, as the clan or the recruiter may have changed. */
+    private fun answerRecruit(target: Player, clanId: Long, recruiterKey: String, yes: Boolean) {
+        val invite = recruitInvites[target.saveKey]?.takeIf { it.clanId == clanId && it.recruiterKey == recruiterKey } ?: return
+        recruitInvites.remove(target.saveKey)
+        val recruiter = playerByKey(invite.recruiterKey)
+        val clan = store.byId(clanId) ?: return
+        if (!yes) {
+            recruiter?.let { tell(it, ClanLines.RECRUIT_DECLINED, target.username) }
+            return
+        }
+        // The recruiter must still be a member who may recruit, online or not (inferred).
+        val member = clan.member(invite.recruiterKey)
+        if (member == null || member.rank < permission(clan, VAR_RECRUITMENT) || clanOf(target) != null) return
+        if (clan.members.size >= MAX_MEMBERS) {
+            tell(target, ClanLines.CLAN_FULL)
+            return
+        }
+        store.removeApplications(target.saveKey)
+        store.addMember(clan, ClanStore.Member(target.saveKey, target.username, RANK_FOUNDER, runeDay()))
+        if (listening[target.saveKey] != clan.id) showApplying(target)
+        admitted(clan, target)
+        tell(target, ClanLines.RECRUITED, clan.name)
+        recruiter?.let { tell(it, ClanLines.RECRUIT_ACCEPTED, target.username) }
     }
 
     /** An admin's clan, deleted (`::clandisband`, for tests that found one again): its members have no clan. */
@@ -921,6 +1012,10 @@ class Clans(
      * one, otherwise invites them.
      */
     fun inviteOrAccept(player: Player, target: Player) {
+        if (canRecruitWithVexillum(player)) {
+            recruit(player, target)
+            return
+        }
         val theirs = forming[target.saveKey]
         if (theirs != null && player.saveKey in theirs.invited) {
             accept(player, theirs)
@@ -1826,6 +1921,15 @@ class Clans(
         /** A clan's member limit (the Wiki: 500). */
         const val MAX_MEMBERS = 500
 
+        /** The clan vexilla, black to pink (the cache's clan_vexillum_*), which give their wielder Recruit. */
+        val VEXILLA = intArrayOf(25721, 25723, 25724, 25725, 25726, 25727, 25728, 25729)
+
+        /** How near Recruit's target must be: the players a client sees (inferred). */
+        const val RECRUIT_DISTANCE = 15
+
+        /** How long an unanswered Recruit invitation holds back another to the same player (guessed). */
+        val RECRUIT_LAPSE: Duration = Duration.ofMinutes(1)
+
         /** [addTestApplicant]'s applicant: `~` is in no account's name. */
         const val TEST_APPLICANT_KEY = "~test applicant"
         const val TEST_APPLICANT_NAME = "Applicant"
@@ -1925,6 +2029,14 @@ object ClanLines : Lines("clan", "Clans") {
     val APPLICANT_IN_A_CLAN = line("applicant_in_a_clan", "accepting an applicant who joined another clan since", "name")
     val CLAN_FULL = line("clan_full", "accepting an applicant into a clan with the most members")
     val ACCEPTED = line("accepted", "your application to a clan was accepted", "name")
+    val RECRUIT_NOT_ALLOWED = line("recruit_not_allowed", "Recruit with a vexillum by a member whose rank can't recruit (guessed)")
+    val RECRUIT_NO_AID = line("recruit_no_aid", "Recruit on someone with Accept Aid off (guessed)", "name")
+    val RECRUIT_BUSY = line("recruit_busy", "Recruit on someone busy or already asked (guessed)", "name")
+    val RECRUIT_SENT = line("recruit_sent", "the recruiter, once the invitation is sent (guessed)", "name")
+    val RECRUIT_QUESTION = line("recruit_question", "the invitee's question: join the clan? (guessed)", "name", "clan")
+    val RECRUIT_DECLINED = line("recruit_declined", "the recruiter, when the invitee says no (guessed)", "name")
+    val RECRUITED = line("recruited", "the invitee, once they joined the clan (guessed)", "name")
+    val RECRUIT_ACCEPTED = line("recruit_accepted", "the recruiter, when the invitee joined (guessed)", "name")
     val DECLINED = line("declined", "your application to a clan was declined", "name")
     val EDIT_RANK_TITLE = line("edit_rank_title", "the title over the rank list when editing a member's rank", "name")
     val RANK_TOO_HIGH = line("rank_too_high", "Edit rank on a member whose rank isn't below yours", "name")
