@@ -71,7 +71,8 @@ class HeadlessCollectionLogTest {
             server.login("alice").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.await("the log's size") { client.varp(CollectionLog.VARP_COUNT_MAX).takeIf { it == 2 } }
-                assertEquals(-1, client.varp(CollectionLog.VARP_LATEST), "no latest item")
+                // Awaited too: the login's varps can arrive over more than one read.
+                client.await("no latest item") { client.varp(CollectionLog.VARP_LATEST).takeIf { it == -1 } }
                 client.command("varbit ${CollectionLog.VARBIT_NEW_ITEM_OPTION} 3")
                 client.command("item ${Agility.MARK_OF_GRACE} 100")
                 client.await("the marks") { if (client.held(Agility.MARK_OF_GRACE) == 100) Unit else null }
