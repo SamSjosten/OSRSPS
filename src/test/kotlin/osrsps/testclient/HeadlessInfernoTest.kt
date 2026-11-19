@@ -491,7 +491,8 @@ class HeadlessInfernoTest {
                 assertFalse(imKot.hidden, "its dig-down shows before it goes from sight")
                 client.await("under") { imKot.takeIf { it.hidden } }
                 client.await("it comes up beside them", timeoutMillis = 10_000) { imKot.takeIf { !it.hidden } }
-                assertEquals(player.x - 1 to player.z - imKot.type.size, imKot.x to imKot.z)
+                assertTrue(server.world.meleeCombat.reaches(imKot, player), "beside them")
+                assertTrue(server.world.npcs.canStand(imKot, imKot.x, imKot.z), "on ground it can stand on")
                 assertTrue(imKot.target === player)
             }
         }

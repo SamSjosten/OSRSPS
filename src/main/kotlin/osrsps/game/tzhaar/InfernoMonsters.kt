@@ -27,12 +27,13 @@ import java.util.WeakHashMap
  *   been fighting in reach, which puts the next dig off (not in the wave's first 30 ticks); it comes up beside the
  *   player and swings 6 ticks after. It can't be hit while under. GUESSED: its jalimkot_digdown animation shown for
  *   [DIG_TICKS] before it is gone from sight (it does nothing else meanwhile), under for [UNDER_TICKS], coming up
- *   south of the player, and "enters combat" read as swinging in reach.
+ *   south of the player (else north, west or east, the first it can stand on), and "enters combat" read as swinging
+ *   in reach.
  * - **Jal-Xil** (7698): "exactly the same as the Tok-Xil": ranged, and in reach a crush (max 19) on any tile beside it,
  *   diagonals too.
  * - **Jal-Zek** (7699): magic, and in reach a stab (max 52) on any tile beside it, diagonals too. Instead of an attack,
  *   1 in 10 (Mod Ash), it revives a monster of the wave that died, once each, at half its hitpoints, in the arena's
- *   centre-east; it stands still for it and attacks again 8 ticks later. GUESSED: Nibblers and other Jal-Zeks aren't
+ *   centre-east; it stands still for it and attacks again 8 ticks later, not moving till then. GUESSED: Nibblers and other Jal-Zeks aren't
  *   revived; the revived monster's short wait ([REVIVED_WAIT]); where it comes back ([REVIVE_TILE]).
  *
  * They fight through [Npc.scriptedAttacks], driven from [Inferno.process] by [tick]. The Jal-AkRek have nothing of
@@ -62,6 +63,9 @@ class InfernoMonsters(private val world: World) {
     /** How many times each Jal-ImKot has dug, for tests. */
     internal val digs = WeakHashMap<Npc, Int>()
 
+    /** Each Jal-Zek reviving, and the tick it may move again. */
+    private val revivingUntil = WeakHashMap<Npc, Long>()
+
     /** Monsters a Jal-Zek has brought back: never again. */
     private val revived = WeakHashMap<Npc, Boolean>()
 
@@ -73,6 +77,12 @@ class InfernoMonsters(private val world: World) {
         if (npc.dead || player.dead || player.hitpoints <= 0) return
         if (npc.type.id == InfernoMonster.MELEE.type && imKot(run, npc, player)) return
         if (npc.hidden || npc.target !== player) return
+        // A Jal-Zek bringing one back stands still until it's done (Codex review on #833).
+        val still = revivingUntil[npc]
+        if (still != null) {
+            if (world.tick < still) return world.npcs.stopFollowing(npc)
+            revivingUntil.remove(npc)
+        }
         val id = npc.type.id
         // The Jal-Xil's and Jal-Zek's melee reaches diagonals too, but not round a corner (Codex review on #833).
         val inReach = if (id == InfernoMonster.RANGER.type || id == InfernoMonster.MAGE.type) besideAny(npc, player) && world.meleeCombat.sees(npc, player) else world.meleeCombat.reaches(npc, player)
@@ -203,7 +213,11 @@ class InfernoMonsters(private val world: World) {
         if (up != null) {
             if (world.tick < up) return true
             surfaceAt.remove(npc)
-            world.npcs.teleport(npc, player.x - 1, player.z - npc.type.size)
+            val size = npc.type.size
+            // Beside the player where it can stand, not in a support or a wall (Codex review on #833).
+            val sides = listOf(player.x - 1 to player.z - size, player.x - 1 to player.z + 1, player.x - size to player.z - 1, player.x + 1 to player.z - 1)
+            val (x, z) = sides.firstOrNull { (x, z) -> world.npcs.canStand(npc, x, z) } ?: sides.first()
+            world.npcs.teleport(npc, x, z)
             world.show(npc)
             npc.effects.anim(ANIM_DIG_UP)
             npc.nextAttackTick = world.tick + SURFACE_WAIT
@@ -233,6 +247,7 @@ class InfernoMonsters(private val world: World) {
         world.npcs.stopFollowing(zek)
         zek.effects.anim(ANIM_ZEK_REVIVE)
         zek.nextAttackTick = world.tick + ZEK_AFTER_REVIVE
+        revivingUntil[zek] = world.tick + ZEK_AFTER_REVIVE
         // One that can't come back now (the world full of NPCs) stays first in line for the next revive.
         val back = inferno.spawn(player, run, typeId, run.at(REVIVE_TILE), fight = false) ?: return true.also { run.slain.add(0, typeId) }
         revived[back] = true
