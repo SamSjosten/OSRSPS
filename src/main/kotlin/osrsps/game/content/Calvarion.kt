@@ -116,9 +116,6 @@ class SkeletalLord(val config: Config) {
         // The transformation runs out on its own after [ENRAGED_TICKS]; his normal form is back.
         if (fight.enraged && boss.transformedTo == null) calmDown(fight)
         if (!fight.houndsCalled && boss.hitpoints <= boss.maxHitpoints / 2) callHounds(fight)
-        // The transformation runs out at the start of next tick, before that tick's hits land: from then on he is his
-        // normal form, so a hit to 0 then holds him there for [calmDown] rather than killing him (Codex review on #818).
-        if (fight.enraged && boss.transformTicks <= 1) boss.holdsAtZero = true
 
         val target = heldTarget()
         if (target == null) {
@@ -192,7 +189,9 @@ class SkeletalLord(val config: Config) {
                 if (player.dead || player.level != boss.level || Tile(player.x, player.z) !in area) continue
                 val damage = roll(0, config.bashMax)
                 hit(player, damage)
-                player.nextAttackTick = max(player.nextAttackTick, world.tick + BASH_STUN_TICKS)
+                // As a lock, so a retaliation in the meantime can't bring the next attack sooner (Codex review on #818).
+                player.attackLockedUntil = max(player.attackLockedUntil, world.tick + BASH_STUN_TICKS)
+                player.nextAttackTick = max(player.nextAttackTick, player.attackLockedUntil)
                 log("bash hits ${player.username} for $damage")
             }
         }
@@ -234,6 +233,14 @@ class SkeletalLord(val config: Config) {
         fight.houndsCalled = false
         strike(fight, ring)
         world.npcTypes[config.enraged]?.let { world.npcs.transform(boss, it, ENRAGED_TICKS) }
+        // The moment it runs out, at the start of a tick before its hits land, he is his normal form at full hitpoints
+        // and held at 0, so no hit that tick kills him (Codex review on #818); [calmDown] does the rest in his fight's tick.
+        val lord = boss
+        lord.transformEnded = {
+            lord.hitpoints = lord.maxHitpoints
+            lord.holdsAtZero = true
+            lord.transformEnded = null
+        }
         boss.hitpoints = boss.maxHitpoints
         boss.holdsAtZero = false
         holdForHounds()
@@ -264,6 +271,7 @@ class SkeletalLord(val config: Config) {
 
     /** His last words as his enraged form dies. */
     fun died(world: World, npc: Npc) {
+        npc.transformEnded = null
         val fight = fights.remove(npc) ?: return
         for (hound in fight.hounds) if (!hound.dead) world.removeNpc(hound)
         if (fight.enraged) npc.effects.say(world.dialogueText[config.dying[world.random.nextInt(config.dying.size)]])

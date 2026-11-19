@@ -211,10 +211,34 @@ class HeadlessCalvarionTest {
                     val start = generateSequence { Triple(server.world.tick, fight.ticks, server.world.tick) }
                         .first { it.first == it.third }.let { it.first - it.second }
                     assertEquals(start + tick + osrsps.game.content.SkeletalLord.BASH_STUN_TICKS, server.world.playerNamed("ed")!!.nextAttackTick, "no attack till 8 ticks on")
+                    assertEquals(start + tick + osrsps.game.content.SkeletalLord.BASH_STUN_TICKS, server.world.playerNamed("ed")!!.attackLockedUntil, "a lock no retaliation shortens")
                     val bash = fight.lines.last { "bash on" in it }
                     assertTrue(bash.substringBefore(' ').toLong() + osrsps.game.content.SkeletalLord.BASH_WARN == tick, "its shadows ${osrsps.game.content.SkeletalLord.BASH_WARN} ticks before")
                     assertTrue(fight.lines.none { "bash hits fay" in it }, "fay stood off")
                 }
+            }
+        }
+    }
+
+    @Test
+    fun `fought by him, the player can attack his hounds, single-way though the tomb is`(@TempDir dir: Path) {
+        server(dir, seed = 4).use { server ->
+            server.login("gus").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.tele(Calvarion.SPAWN.x + 1, Calvarion.SPAWN.z - 1, Calvarion.TOMB_LEVEL)
+                val npc = server.world.npcs.all.first { it.type.id == Calvarion.BOSS }
+                val gus = server.world.playerNamed("gus")!!
+                client.commandReply("hit 75 ${npc.index}") { it.startsWith("Hit Calvar'ion") }
+                val fight = client.await("his fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
+                client.await("his hounds") { fight.lines.firstOrNull { it.endsWith("calls 2 hounds") } }
+                client.await("him fighting gus") { Unit.takeIf { gus.attackedBy === npc } }
+                // Codex review on #818: single-way, this was "already under attack" while he fought gus.
+                val hound = Calvarion.FIGHT.hounds(npc).first()
+                client.npcOp(hound.index, 2)
+                client.await("gus fighting the hound") { Unit.takeIf { (gus.interaction as? osrsps.game.combat.MeleeInteraction)?.npc === hound } }
+                client.awaitTicks(3)
+                assertTrue(client.messages().none { "already_under_attack" in it.text }, "no refusal")
             }
         }
     }

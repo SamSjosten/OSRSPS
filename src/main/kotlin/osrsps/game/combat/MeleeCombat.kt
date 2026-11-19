@@ -88,6 +88,11 @@ class MeleeCombat(
     private val ranged: (Player, Npc) -> Interaction? = { _, _ -> null },
     /** Where the single-way rules below don't hold. */
     private val multi: MultiCombat = MultiCombat(),
+    /**
+     * Whether two NPCs are in one boss fight, its boss or its adds ([osrsps.game.encounter.Encounters.sameFight]): a
+     * player fighting one may switch to another in single-way combat.
+     */
+    private val sameFight: (Npc, Npc) -> Boolean = { _, _ -> false },
     /** Whether the player's protection prayers block an NPC's attack of this type; see [Prayers.protects]. */
     private val protects: (Player, AttackType) -> Boolean = { _, _ -> false },
     /**
@@ -297,6 +302,9 @@ class MeleeCombat(
         val fighting = other !== npc && other.target === player && !other.dead && currentTick() - player.attackedTick <= IN_COMBAT_TICKS
         // Their own superior they may switch to, and the monster that was fighting them gives up (OSRS Wiki, Superior
         // slayer monster).
+        // Inferred: a boss's adds in a single-way lair are there to be fought (Calvar'ion's hounds keep him from harm
+        // till they die), so a player switches between the fight's NPCs freely (Codex review on #818).
+        if (fighting && sameFight(other, npc)) return false
         if (fighting && combat.switchesSingleWay(player, npc)) {
             giveUp(other)
             return false
