@@ -434,7 +434,7 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
 fun registerRandomEvents(world: World) {
     val events = listOf(
         Genie, CountCheckEvent, DrunkenDwarf, RickTurpentine, MysteriousOldMan, DrJekyll, StrangePlant, Certer, SandwichLady,
-        FreakyForester, DrillDemon, Gravedigger, Mime, Beekeeper,
+        FreakyForester, DrillDemon, Gravedigger, Mime, Beekeeper, CaptArnav,
     )
     for (event in events) {
         world.randomEvents.register(event)
