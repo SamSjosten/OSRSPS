@@ -72,6 +72,8 @@ class ShopScreen(
     /** The words of [ShopLines] for a player. */
     private val words: (Player) -> DialogueText = { DialogueText.NONE },
     private val send: (Player, OutgoingGameMessage) -> Unit = { player, message -> player.session.queue(message) },
+    /** One of an item bought from a shop whose sales the collection log counts ([ShopType.collectionLog]). */
+    private val logged: (Player, ObjType) -> Unit = { _, _ -> },
 ) {
     private val shops: Map<String, Shop> = types.all.associate { it.key to Shop(it) }
 
@@ -232,6 +234,7 @@ class ShopScreen(
                 return message(player, ShopLines.NOT_ENOUGH_SPACE)
             }
             shop.take(shop.slotOf(type.id), 1)
+            if (shop.type.collectionLog) logged(player, type)
         }
     }
 

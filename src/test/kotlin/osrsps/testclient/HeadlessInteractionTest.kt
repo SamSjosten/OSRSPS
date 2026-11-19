@@ -22,7 +22,7 @@ import osrsps.map.LocShape
 
 /** NPCs, loc and NPC clicks, and a whole dialogue, through the headless client and the real network stack. */
 class HeadlessInteractionTest {
-    private val hans = NpcSpawn(NpcType(Hans.ID, "Hans", ops = listOf("Talk-to", "Age", null, null, null)), 3221, 3220, source = "test")
+    private val hans = NpcSpawn(NpcType(Hans.ID, "Hans", ops = listOf("Talk-to", null, "Age", null, null)), 3221, 3220, source = "test")
 
     /** Has all five ops; each answers with its number, so a test can tell a misencoded op from the right one. */
     private val statue = NpcType(STATUE, "Statue", ops = listOf("One", "Two", "Three", "Four", "Five"))
@@ -87,6 +87,20 @@ class HeadlessInteractionTest {
                 client.continueDialogue()
                 client.await("the dialogue to close") { if (client.dialogueView == null) Unit else null }
                 assertNull(client.dialogueView)
+            }
+        }
+    }
+
+    @Test
+    fun `Hans's Age is his third op, as in the 242 cache`(@TempDir dir: Path) {
+        server(dir, hans).use { server ->
+            server.login("dora").use { client ->
+                val npc = client.await("Hans in view") { client.npcs().firstOrNull { it.id == Hans.ID } }
+                client.npcOp(npc.index, 3)
+                assertEquals(
+                    DialogueView.Chat(Chatbox.CHAT_LEFT, "Hans", "[hans.newcomers]"),
+                    client.awaitDialogue("Hans's first Age line"),
+                )
             }
         }
     }

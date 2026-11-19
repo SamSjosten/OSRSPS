@@ -724,6 +724,7 @@
     {"npc": 7768, "name": "Barge guard"},
     {"npc": 8368, "name": "Abigaila"},
     {"npc": 8391, "name": "Nigel", "also": [6093, 16812], "wiki": "Nigel page, infobox, Normal"},
+    {"npc": 8491, "name": "The Collector"},
     {"npc": 8666, "name": "Banker", "wiki": "Banker page, infobox (the West Bank's locked door)"},
     {"npc": 8687, "name": "Tea Seller"},
     {"npc": 8693, "name": "Diango"},

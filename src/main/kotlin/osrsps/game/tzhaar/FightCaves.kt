@@ -282,6 +282,8 @@ class FightCaves(private val world: World) {
         world.teleport(player, OUTSIDE.x, OUTSIDE.z, 0)
         pay(player, FightCaveWaves.tokkul(FightCaveWaves.WAVES) + JAD_TOKKUL)
         world.objTypes[FIRE_CAPE]?.let { world.groundObjs.give(player, it, 1) }
+        // The Fight Caves page of the collection log: the cape as it is handed over (inferred: no pet yet, TzRek-Jad).
+        world.collectionLog.add(player, FIRE_CAPE, 1)
         mejJal(player, FightCaveLines.VICTORIOUS)
         logger.info { "${player.username} beat the fight cave (rotation ${run.rotation})" }
     }

@@ -147,6 +147,19 @@ class Dialogues(
         }
     }
 
+    /**
+     * The destroy check, `confirmdestroy` (584): [obj] and its name, [title] above, [text] beside, Yes and No. Returns true
+     * on Yes. confirmdestroy_init (814) builds the buttons as universe's children, No 0 and Yes 1, each resuming the pause
+     * button on its child (rev 242 osrs-dumps). Guessed, as for the object box: the unclamped chat modal.
+     */
+    internal suspend fun confirmDestroy(context: ScriptContext, obj: Int, count: Int, title: String, text: String): Boolean {
+        val player = context.player
+        interfaces.openChatModal(player, Chatbox.CONFIRM_DESTROY, Chatbox.UNCLAMP_INFINITE)
+        send(player, RunClientScript(Chatbox.CONFIRM_DESTROY_INIT, listOf(obj, count, title, text)))
+        send(player, IfSetEventsV2(Chatbox.CONFIRM_DESTROY, Chatbox.CONFIRM_DESTROY_UNIVERSE, 0, 1, Chatbox.EVENT_PAUSE_BUTTON, 0))
+        return context.pauseButton(Chatbox.CONFIRM_DESTROY, Chatbox.CONFIRM_DESTROY_UNIVERSE, 0..1) == 1
+    }
+
     /** A chat menu of [options] under [title]; returns the one picked, from 1. */
     internal suspend fun choice(context: ScriptContext, title: String, options: List<String>): Int {
         require(options.size in 1..MAX_OPTIONS) { "A chat menu has 1 to $MAX_OPTIONS options, not ${options.size}" }
@@ -255,6 +268,9 @@ class Dialogue internal constructor(val context: ScriptContext, private val dial
     suspend fun objbox(obj: Int, line: Line, zoom: Int = DEFAULT_ZOOM) = objbox(obj, text(line), zoom)
 
     suspend fun objbox(obj: Int, text: String, zoom: Int = DEFAULT_ZOOM) = dialogues.objbox(context, obj, text, zoom)
+
+    /** The destroy check for [obj]: true on Yes. See [Dialogues.confirmDestroy]. */
+    suspend fun confirmDestroy(obj: Int, count: Int, title: String, text: String): Boolean = dialogues.confirmDestroy(context, obj, count, title, text)
 
     suspend fun doubleobjbox(obj1: Int, obj2: Int, text: String, zoom1: Int = DEFAULT_ZOOM, zoom2: Int = DEFAULT_ZOOM) =
         dialogues.doubleobjbox(context, obj1, obj2, text, zoom1, zoom2)
