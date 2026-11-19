@@ -25,8 +25,9 @@ import java.util.WeakHashMap
  *   (its tile and the ones east and north of it).
  * - **Jal-ImKot** (7697): melee only. It digs 50 ticks after the wave starts and every 40 to 60 after, unless it has
  *   been fighting in reach, which puts the next dig off (not in the wave's first 30 ticks); it comes up beside the
- *   player and swings 6 ticks after. It can't be hit while under. GUESSED: under for [DIG_TICKS] (its jalimkot_digdown
- *   animation's length), coming up south of the player, and "enters combat" read as swinging in reach.
+ *   player and swings 6 ticks after. It can't be hit while under. GUESSED: its jalimkot_digdown animation shown for
+ *   [DIG_TICKS] before it is gone from sight (it does nothing else meanwhile), under for [UNDER_TICKS], coming up
+ *   south of the player, and "enters combat" read as swinging in reach.
  * - **Jal-Xil** (7698): "exactly the same as the Tok-Xil": ranged, and in reach a crush (max 19) on any tile beside it,
  *   diagonals too.
  * - **Jal-Zek** (7699): magic, and in reach a stab (max 52) on any tile beside it, diagonals too. Instead of an attack,
@@ -50,9 +51,16 @@ class InfernoMonsters(private val world: World) {
     /** A Jal-Ak's style for its next attack, picked 3 ticks before it. */
     private val blobStyles = WeakHashMap<Npc, AttackType>()
 
-    /** When each Jal-ImKot next digs, and when one under comes up. */
+    /** When each Jal-ImKot next digs, when one digging goes from sight, and when one under comes up. */
     private val nextDig = WeakHashMap<Npc, Long>()
+    private val hideAt = WeakHashMap<Npc, Long>()
     private val surfaceAt = WeakHashMap<Npc, Long>()
+
+    /** The style of each scripted monster's last attack, for tests. */
+    internal val lastStyle = WeakHashMap<Npc, AttackType>()
+
+    /** How many times each Jal-ImKot has dug, for tests. */
+    internal val digs = WeakHashMap<Npc, Int>()
 
     /** Monsters a Jal-Zek has brought back: never again. */
     private val revived = WeakHashMap<Npc, Boolean>()
@@ -66,15 +74,25 @@ class InfernoMonsters(private val world: World) {
         if (npc.type.id == InfernoMonster.MELEE.type && imKot(run, npc, player)) return
         if (npc.hidden || npc.target !== player) return
         val id = npc.type.id
-        val inReach = if (id == InfernoMonster.RANGER.type || id == InfernoMonster.MAGE.type) besideAny(npc, player) else world.meleeCombat.reaches(npc, player)
+        // The Jal-Xil's and Jal-Zek's melee reaches diagonals too, but not round a corner (Codex review on #833).
+        val inReach = if (id == InfernoMonster.RANGER.type || id == InfernoMonster.MAGE.type) besideAny(npc, player) && world.meleeCombat.sees(npc, player) else world.meleeCombat.reaches(npc, player)
         val shoots = id != InfernoMonster.MELEE.type
         npc.face(player)
-        if (id == InfernoMonster.BLOB.type && world.tick == npc.nextAttackTick - BLOB_READS_AHEAD) blobStyles[npc] = blobStyle(player, inReach)
         when {
             inReach -> world.npcs.stopFollowing(npc)
             shoots && world.meleeCombat.inShot(npc, player) -> world.npcs.stopFollowing(npc)
             else -> {
                 if (npc.following !== player) world.npcs.follow(npc, player)
+                return
+            }
+        }
+        if (id == InfernoMonster.BLOB.type) {
+            if (world.tick == npc.nextAttackTick - BLOB_READS_AHEAD) blobStyles[npc] = blobStyle(player, inReach)
+            // Due with no read made (its first attack, or it only now came in shot): it reads now and attacks 3 ticks
+            // on, so a prayer switch can always answer it (Codex review on #833).
+            if (world.tick >= npc.nextAttackTick && npc !in blobStyles) {
+                blobStyles[npc] = blobStyle(player, inReach)
+                npc.nextAttackTick = world.tick + BLOB_READS_AHEAD
                 return
             }
         }
@@ -86,10 +104,10 @@ class InfernoMonsters(private val world: World) {
             }
             InfernoMonster.BLOB.type -> {
                 val style = blobStyles.remove(npc) ?: blobStyle(player, inReach)
-                when {
-                    style.melee && inReach -> world.meleeCombat.swingAt(npc, player, world.tick, ANIM_BLOB_MELEE, AttackType.CRUSH)
-                    style == AttackType.RANGED -> world.meleeCombat.fireAt(npc, player, world.tick, BLOB_RANGED, AttackType.RANGED)
-                    else -> world.meleeCombat.fireAt(npc, player, world.tick, BLOB_MAGIC, AttackType.MAGIC)
+                lastStyle[npc] = when {
+                    style.melee && inReach -> AttackType.CRUSH.also { world.meleeCombat.swingAt(npc, player, world.tick, ANIM_BLOB_MELEE, it) }
+                    style == AttackType.RANGED -> AttackType.RANGED.also { world.meleeCombat.fireAt(npc, player, world.tick, BLOB_RANGED, it) }
+                    else -> AttackType.MAGIC.also { world.meleeCombat.fireAt(npc, player, world.tick, BLOB_MAGIC, it) }
                 }
             }
             InfernoMonster.MELEE.type -> {
@@ -99,13 +117,21 @@ class InfernoMonsters(private val world: World) {
             }
             InfernoMonster.RANGER.type -> if (inReach) {
                 world.meleeCombat.swingAt(npc, player, world.tick, ANIM_XIL_MELEE, AttackType.CRUSH, XIL_MELEE_MAX)
+                lastStyle[npc] = AttackType.CRUSH
             } else {
                 world.meleeCombat.fireAt(npc, player, world.tick)
+                lastStyle[npc] = AttackType.RANGED
             }
             InfernoMonster.MAGE.type -> when {
                 world.random.chance(1, ZEK_REVIVE_ODDS) && revive(inferno, run, npc, player) -> Unit
-                inReach -> world.meleeCombat.swingAt(npc, player, world.tick, ANIM_ZEK_MELEE, AttackType.STAB, ZEK_MELEE_MAX)
-                else -> world.meleeCombat.fireAt(npc, player, world.tick)
+                inReach -> {
+                    world.meleeCombat.swingAt(npc, player, world.tick, ANIM_ZEK_MELEE, AttackType.STAB, ZEK_MELEE_MAX)
+                    lastStyle[npc] = AttackType.STAB
+                }
+                else -> {
+                    world.meleeCombat.fireAt(npc, player, world.tick)
+                    lastStyle[npc] = AttackType.MAGIC
+                }
             }
         }
     }
@@ -113,13 +139,26 @@ class InfernoMonsters(private val world: World) {
     /** A Jal-Ak's style against [player]'s prayer, 3 ticks ahead of its attack. */
     private fun blobStyle(player: Player, inReach: Boolean): AttackType {
         val prayers = world.prayers
-        if (inReach && !prayers.protects(player, AttackType.CRUSH) && world.random.chance(1, BLOB_MELEE_ODDS)) return AttackType.CRUSH
+        return blobStyle(prayers.protects(player, AttackType.MAGIC), prayers.protects(player, AttackType.RANGED), prayers.protects(player, AttackType.CRUSH), inReach)
+    }
+
+    /** A Jal-Ak's style against the protection prayers up: magic, missiles, melee. */
+    internal fun blobStyle(magic: Boolean, missiles: Boolean, melee: Boolean, inReach: Boolean): AttackType {
+        if (inReach && !melee && world.random.chance(1, BLOB_MELEE_ODDS)) return AttackType.CRUSH
         return when {
-            prayers.protects(player, AttackType.MAGIC) -> AttackType.RANGED
-            prayers.protects(player, AttackType.RANGED) -> AttackType.MAGIC
+            magic -> AttackType.RANGED
+            missiles -> AttackType.MAGIC
             world.random.chance(1, 2) -> AttackType.MAGIC
             else -> AttackType.RANGED
         }
+    }
+
+    /** The style a Jal-Ak has read for its next attack, null before it reads; for tests. */
+    internal fun readStyle(blob: Npc): AttackType? = blobStyles[blob]
+
+    /** Has a Jal-ImKot dig as soon as it is out of reach; for tests. */
+    internal fun digNow(imKot: Npc) {
+        nextDig[imKot] = world.tick
     }
 
     /** A Jal-MejRah's drains on [player]: 3 run energy, and now and then a level off each combat stat. */
@@ -151,6 +190,15 @@ class InfernoMonsters(private val world: World) {
      * reach, it goes under; its time up, it comes up beside [player].
      */
     private fun imKot(run: Inferno.Run, npc: Npc, player: Player): Boolean {
+        // Going under: its dig-down shows for a few ticks before it is gone from sight (Codex review on #833).
+        val hide = hideAt[npc]
+        if (hide != null) {
+            if (world.tick < hide) return true
+            hideAt.remove(npc)
+            world.hide(npc)
+            surfaceAt[npc] = world.tick + UNDER_TICKS
+            return true
+        }
         val up = surfaceAt[npc]
         if (up != null) {
             if (world.tick < up) return true
@@ -167,8 +215,9 @@ class InfernoMonsters(private val world: World) {
         if (world.tick < due || world.meleeCombat.reaches(npc, player)) return false
         npc.effects.anim(ANIM_DIG_DOWN)
         world.npcs.stopFollowing(npc)
-        surfaceAt[npc] = world.tick + DIG_TICKS
-        world.hide(npc)
+        npc.target = null
+        hideAt[npc] = world.tick + DIG_TICKS
+        digs[npc] = (digs[npc] ?: 0) + 1
         return true
     }
 
@@ -241,6 +290,7 @@ class InfernoMonsters(private val world: World) {
         const val DIG_GAP_MIN = 40
         const val DIG_GAP_MAX = 60
         const val DIG_TICKS = 4L
+        const val UNDER_TICKS = 2L
         const val SURFACE_WAIT = 6L
         const val ANIM_DIG_DOWN = 7600
         const val ANIM_DIG_UP = 7601
