@@ -130,7 +130,10 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
 
     private fun nowMinutes(): Int = (clock() / 60_000).toInt()
 
-    fun dueIn(player: Player): Int = player.charges[DUE] - nowMinutes()
+    fun dueIn(player: Player): Int {
+        if (player.charges[DUE] == 0) setNext(player)
+        return player.charges[DUE] - nowMinutes()
+    }
 
     fun isOff(player: Player): Boolean = player.charges[OFF] == 1
 
@@ -149,12 +152,14 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
         held += player.saveKey
     }
 
+    /**
+     * An account that was offline when its event came gets it moved on. A new account's first time is set at its first
+     * 500-tick look instead (or `::randomevent`), so logging in draws nothing from [World.random] and a seeded test
+     * that never runs that long sees the same numbers it did before random events.
+     */
     fun login(player: Player) {
         val due = player.charges[DUE]
-        when {
-            due == 0 -> setNext(player)
-            due <= nowMinutes() -> player.charges[DUE] = nowMinutes() + world.random.between(OFFLINE_MIN_MINUTES, OFFLINE_MAX_MINUTES)
-        }
+        if (due != 0 && due <= nowMinutes()) player.charges[DUE] = nowMinutes() + world.random.between(OFFLINE_MIN_MINUTES, OFFLINE_MAX_MINUTES)
     }
 
     fun leaving(player: Player) {
@@ -171,6 +176,10 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
         val key = player.saveKey
         if (key !in held) {
             if (player.playedTicks % CHECK_TICKS != 0L) return
+            if (player.charges[DUE] == 0) {
+                setNext(player)
+                return
+            }
             if (player.charges[DUE] > nowMinutes()) return
             held += key
         }

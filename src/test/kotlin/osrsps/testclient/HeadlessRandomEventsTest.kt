@@ -172,6 +172,9 @@ class HeadlessRandomEventsTest {
                 client.await("the login rebuild") { client.position }
                 client.tele(3222, 3218)
                 val player = server.world.onlinePlayers.single()
+                // A new account's first time is set at its first look, or here by asking.
+                assertEquals(0, player.charges[RandomEvents.DUE])
+                client.commandReply("randomevent") { it.startsWith("Random events on, next due in") }
                 val due = player.charges[RandomEvents.DUE]
                 val now = (START_MILLIS / 60_000).toInt()
                 assertTrue(due in now + RandomEvents.DUE_MIN_MINUTES..now + RandomEvents.DUE_MAX_MINUTES, "due $due, now $now")
