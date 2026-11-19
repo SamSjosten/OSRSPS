@@ -57,6 +57,23 @@ class CollectionLogTest {
     }
 
     @Test
+    fun `bracelets of ethereum stop at 250`() {
+        val bracelet = CollectionLog.BRACELET_OF_ETHEREUM
+        val revenants = CollectionLogCatalog.Page(525, 4, 0, listOf(bracelet), completedVarbit = null)
+        val withBracelet = CollectionLog(
+            CollectionLogCatalog(listOf(CollectionLogCatalog.Tab(4, 475, listOf(revenants)))), { "Item $it" }, { DialogueText.NONE },
+            now = { Instant.parse("2026-11-19T04:00:00Z") }, message = { _, _ -> },
+        )
+        val player = player()
+        withBracelet.add(player, bracelet, 249)
+        assertEquals(249, withBracelet.count(player, bracelet))
+        withBracelet.add(player, bracelet, 1)
+        assertEquals(250, withBracelet.count(player, bracelet))
+        withBracelet.add(player, bracelet, 5)
+        assertEquals(250, withBracelet.count(player, bracelet))
+    }
+
+    @Test
     fun `counts stop at 65,535`() {
         val player = player()
         log.add(player, essence, 65_000)

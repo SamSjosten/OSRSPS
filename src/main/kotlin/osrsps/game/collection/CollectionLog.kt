@@ -39,8 +39,8 @@ object CollectionLogLines : Lines("collection_log", "Collection log") {
  * notification", a chat message; bit 1 "New addition popup", the pop-up interface notification_display with
  * notification_display_init). GUESSED: the pop-up's colour is the script's default (null), as nothing gives live's.
  *
- * GUESSED: every count stops at 65,535. The Wiki gives that cap for Zulrah's scales and 250 for bracelets of ethereum,
- * and says the cap depends on the item without listing the others.
+ * Counts stop at the Wiki's caps: 250 for the bracelet of ethereum ([CAPS]) and 65,535 for Zulrah's scales. GUESSED:
+ * 65,535 for every other item, as the Wiki says the cap depends on the item without listing the others.
  */
 class CollectionLog(
     val catalog: CollectionLogCatalog,
@@ -64,7 +64,7 @@ class CollectionLog(
     fun add(player: Player, item: Int, count: Int) {
         if (count <= 0 || item !in catalog) return
         val had = count(player, item)
-        player.collectionLog[item] = minOf(MAX_COUNT.toLong(), had.toLong() + count).toInt()
+        player.collectionLog[item] = minOf(cap(item).toLong(), had.toLong() + count).toInt()
         if (had > 0) return
         val day = runeDay()
         pushLatest(player, item, day)
@@ -138,8 +138,17 @@ class CollectionLog(
     }
 
     companion object {
-        /** GUESSED: the cap on every item's count; see the class comment. */
+        /** The cap on an item's count where [CAPS] has none: the Wiki's for Zulrah's scales, GUESSED for the rest. */
         const val MAX_COUNT = 65_535
+
+        /** wild_cave_bracelet_uncharged, the bracelet of ethereum the Revenants page logs. */
+        const val BRACELET_OF_ETHEREUM = 21817
+
+        /** Items whose count stops below [MAX_COUNT]: the Wiki's Collection log page. */
+        val CAPS: Map<Int, Int> = mapOf(BRACELET_OF_ETHEREUM to 250)
+
+        /** The most of [item] the log counts. */
+        fun cap(item: Int): Int = CAPS[item] ?: MAX_COUNT
 
         const val VARP_COUNT = 2943
         const val VARP_COUNT_MAX = 2944
