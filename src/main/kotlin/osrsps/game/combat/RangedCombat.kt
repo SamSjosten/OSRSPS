@@ -373,7 +373,8 @@ class RangedCombat(
         val next = random.pick(targets)
         val style = shot.style ?: return null
         val defenceRoll = combat.rangedDefenceRoll(next, style) ?: return null
-        val rolled = if (CombatMath.rollHits(random, shot.attackRoll, defenceRoll) || shot.player.sureHits) CombatMath.rollDamage(random, shot.maxHit * 2 / 3) else 0
+        // Through the rolled-hit hooks as the first shot is, so a boss that holds rolled hits holds a bounce too.
+        val rolled = combat.rolledOn(shot.player, next, style.type, if (CombatMath.rollHits(random, shot.attackRoll, defenceRoll) || shot.player.sureHits) CombatMath.rollDamage(random, shot.maxHit * 2 / 3) else 0)
         val damage = reserve(shot.player, next, style, rolled)
         if (shot.travel >= 0) projectile(bounceFlight(from, next, shot.travel))
         return Shot(shot.player, next, damage, tick + BOUNCE_TICKS, null, shot.bounces - 1, style, shot.attackRoll, shot.maxHit, shot.travel, poison = shot.poison, venom = shot.venom, rolledMax = shot.maxHit * 2 / 3, from = shot.from)
@@ -399,7 +400,7 @@ class RangedCombat(
                 combat.barred(shot.player, npc) == null && abs(npc.x - from.x) <= SPLASH_RADIUS && abs(npc.z - from.z) <= SPLASH_RADIUS && multi.at(npc.level, npc.x, npc.z)
         }.take(shot.targets - 1).toList()
         for (npc in around) {
-            val rolled = if (shot.hit) CombatMath.rollDamage(random, shot.maxHit) else 0
+            val rolled = combat.rolledOn(shot.player, npc, style.type, if (shot.hit) CombatMath.rollDamage(random, shot.maxHit) else 0)
             val damage = reserve(shot.player, npc, style, rolled)
             npc.incoming -= damage
             melee.hit(npc, shot.player, damage, tick, shot.maxHit, shot.from, finisher = combat.finishes(npc, shot.player, AttackType.RANGED))
