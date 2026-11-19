@@ -437,6 +437,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   chest and its ladder up, the weapon store's door locked without the key and through with it, the Weaponsmaster's talk
   and his `[weaponsmaster.stravens]` on a crossbow taken upstairs, Katrine's `[katrine.phoenix_scum]` and the Black Arm
   Gang's inner door locked, with `::reset` at the end.
+- `guidor-bea.json`: post-quest step 3 (with `::scenario lumbridge-bare` and `::keys on`): Guidor's gate both ways,
+  his bedroom door refused with Julie's four lines, then through in the priest gown (426 and 428 worn) to his talk and out
+  again, Farmer Bea's talk every way ending in her shop (interface 300), Swap-darts refused at 34 wasp darts and a bag of
+  Bea's supplies for 35, and the bag opened, with `::reset` at the end.
 - `varrock-churches-inns.json`: Varrock step 7 (with `::keys on`): Pray-at at the church's altar and the chapel's
   chaos altar, Father Lawrence, Elsie upstairs in the church, the Mage of Zamorak, a beer bought at each of the three
   inns, the Blue Moon cook's cabbage and the Jolly Boar cook's jokes.
