@@ -1,0 +1,44 @@
+{
+ "name": "Travel networks step T3: the Lumbridge Swamp shed with a dramen staff goes to Zanaris, the entry ring back into the shed, the market ring to Al Kharid, and a code that leads nowhere moves nobody (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "nothing worn or held; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::tele 3200 3169 0", "expectMessage": "Teleported to 3200, 3169, 0", "comment": "west of the shed's door (3202, 3169)"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "command", "text": "::item 772", "comment": "a dramen staff"},
+  {"step": "itemOption", "item": "Dramen staff", "option": "Wield"},
+  {"step": "assertEquipment", "slot": "weapon", "itemId": 772},
+
+  {"step": "locOption", "loc": "Door", "option": "Open", "x": 3202, "y": 3169},
+  {"step": "assertAnimation", "id": 3265, "timeoutMs": 5000, "comment": "human_fairy_vanish"},
+  {"step": "assertLocation", "x": 2452, "y": 4472, "plane": 0, "timeoutMs": 10000, "comment": "Zanaris, beside the entry ring by the Chicken Shrine"},
+  {"step": "waitTicks", "ticks": 6},
+
+  {"step": "locOption", "loc": "Fairy ring", "option": "Use", "x": 2452, "y": 4473, "comment": "the entry ring, back to the swamp"},
+  {"step": "assertLocation", "x": 3203, "y": 3169, "plane": 0, "timeoutMs": 10000, "comment": "inside the shed"},
+  {"step": "waitTicks", "ticks": 4},
+
+  {"step": "command", "text": "::tele 2485 4471 0", "expectMessage": "Teleported to 2485, 4471, 0", "comment": "west of the market's ring"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "locOption", "loc": "Fairy ring", "option": "Use", "x": 2486, "y": 4471},
+  {"step": "assertLocation", "x": 3275, "y": 3166, "plane": 0, "timeoutMs": 10000, "comment": "Al Kharid, behind the bank"},
+  {"step": "waitTicks", "ticks": 4},
+
+  {"step": "command", "text": "::tele 3130 3496 0", "expectMessage": "Teleported to 3130, 3496, 0", "comment": "east of the Edgeville ring (DKR)"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "command", "text": "::varbit 3985 0"},
+  {"step": "command", "text": "::varbit 3986 0"},
+  {"step": "command", "text": "::varbit 3987 0", "comment": "the dials at A I P, a code that leads nowhere"},
+  {"step": "locOption", "loc": "Fairy ring", "option": "Configure", "x": 3129, "y": 3496},
+  {"step": "assertInterface", "interfaceId": 398},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "clickWidget", "interfaceId": 398, "component": 26, "op": 1, "comment": "Confirm: AIP"},
+  {"step": "assertMessage", "contains": "[fairy_ring.hardly_moved]", "timeoutMs": 8000},
+  {"step": "assertLocation", "x": 3130, "y": 3496, "plane": 0},
+
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

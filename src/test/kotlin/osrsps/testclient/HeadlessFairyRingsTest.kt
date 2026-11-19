@@ -32,9 +32,9 @@ import osrsps.map.LocShape
 /**
  * The fairy rings (travel networks step T1) through the headless client: the staff check, the dials (each click turns the
  * dial's varbit as the client does), Confirm to the code they spell, the Zanaris and Last-destination options, a code
- * that leads nowhere, and the creature that can come through; and the travel log beside the dials (step T2), with its
- * favourites and the rings' Favourites option. The codes are a few rows as the 242 cache's `fairyring`
- * table has them; the rl-client script test-runner/examples/fairy-rings.json does the same at Edgeville in the real
+ * that moves nobody, Zanaris's two exit rings (step T3), and the creature that can come through; and the travel log
+ * beside the dials (step T2), with its favourites and the rings' Favourites option. The codes are a few rows as the 242
+ * cache's `fairyring` table has them; the rl-client script test-runner/examples/fairy-rings.json does the same at Edgeville in the real
  * client, with the cache's table.
  */
 class HeadlessFairyRingsTest {
@@ -50,13 +50,13 @@ class HeadlessFairyRingsTest {
         ZoneLoc(id, LocShape.CENTREPIECE_STRAIGHT, 0, code.destination!!.x, code.destination!!.z, 0)
 
     private fun server(dir: Path, seed: Long = 7) = TestServer(dir, cycleMillis = 40) { crcs, millis ->
-        val rings = listOf(ring(dkr), ring(bks, FairyRings.HOME_HUB), ring(dis), ring(dlr))
+        val rings = listOf(ring(dkr), ring(bks, FairyRings.HOME_HUB), ring(dis), ring(dlr), ZANARIS_EXIT, MARKET_EXIT)
         World(
             crcs,
             CollisionMap().apply {
                 markLoaded(3222 shr 6, 3218 shr 6)
                 for (loc in rings) markLoaded(loc.x shr 6, loc.z shr 6)
-                markLoaded(FairyRings.INVALID_LANDING.x shr 6, FairyRings.INVALID_LANDING.z shr 6)
+                for (to in listOf(FairyRings.SHED_ARRIVAL, FairyRings.AL_KHARID_ARRIVAL, FairyRings.ZANARIS_ARRIVAL)) markLoaded(to.x shr 6, to.z shr 6)
             },
             random = GameRandom(seed),
             objTypes = ObjTypes.of(
@@ -67,6 +67,8 @@ class HeadlessFairyRingsTest {
                 listOf(
                     LocType(FairyRings.MINOR_HUB, "Fairy ring", listOf("Zanaris", "Configure", "Last-destination", "Favourites", null), LocCollisionType()),
                     LocType(FairyRings.HOME_HUB, "Fairy ring", listOf(null, "Configure", "Last-destination", "Favourites", null), LocCollisionType()),
+                    LocType(FairyRings.ZANARIS_EXIT, "Fairy ring", listOf("Use", null, null, null, null), LocCollisionType()),
+                    LocType(FairyRings.MARKET_EXIT, "Fairy ring", listOf("Use", null, null, null, null), LocCollisionType()),
                 ).associateBy { it.id },
             ),
             staticLocs = StaticLocs().apply { rings.forEach(::add) },
@@ -204,17 +206,32 @@ class HeadlessFairyRingsTest {
     }
 
     @Test
-    fun `a code that leads nowhere lands beside Zanaris's ring, and a ring nothing else reaches sends a player home without a staff`(@TempDir dir: Path) {
+    fun `a code that leads nowhere, or the ring's own, moves nobody, and a ring nothing else reaches sends a player home without a staff`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("dave").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.wieldStaff()
                 client.besideRing(dkr)
+                val here = client.position
                 client.openDials(dkr)
                 client.dialTo(aip)
+                val events = client.actorEvents().size
                 client.ifButton(FairyRings.INTERFACE, FairyRings.CONFIRM, 1)
-                client.awaitAt(FairyRings.INVALID_LANDING)
+                client.seen("[${FairyRingLines.HARDLY_MOVED.key}]")
+                assertEquals(here, client.position)
                 assertEquals(64 + aip.state, client.varp(HISTORY_VARP))
+                val anims = client.actorEvents(events).filter { !it.npc && it.kind == ActorEventKind.ANIMATION }.map { it.id }
+                assertEquals(listOf(FairyRings.VANISH_ANIM, FairyRings.APPEAR_ANIM), anims)
+                // DKR from DKR's own ring.
+                client.awaitTicks(FairyRings.APPEAR_TICKS + 1)
+                val before = client.messages().size
+                client.openDials(dkr)
+                client.dialTo(dkr)
+                client.ifButton(FairyRings.INTERFACE, FairyRings.CONFIRM, 1)
+                client.await("the second hardly moved") {
+                    client.messages().drop(before).firstOrNull { it.text == "[${FairyRingLines.HARDLY_MOVED.key}]" }
+                }
+                assertEquals(here, client.position)
             }
             // Someone with no staff at all, at DLR: its ring's Zanaris still works.
             server.login("dave2").use { client ->
@@ -222,6 +239,21 @@ class HeadlessFairyRingsTest {
                 client.tele(dlr.destination!!.x + 1, dlr.destination!!.z)
                 client.locOp(FairyRings.MINOR_HUB, dlr.destination!!.x, dlr.destination!!.z, FairyRings.ZANARIS)
                 client.awaitAt(bks.destination!!)
+            }
+        }
+    }
+
+    @Test
+    fun `Zanaris's entry ring goes back into the Lumbridge Swamp shed and its market ring to Al Kharid, with no staff`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("jill").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(ZANARIS_EXIT.x, ZANARIS_EXIT.z - 1)
+                client.locOp(FairyRings.ZANARIS_EXIT, ZANARIS_EXIT.x, ZANARIS_EXIT.z, FairyRings.USE)
+                client.awaitAt(FairyRings.SHED_ARRIVAL)
+                client.tele(MARKET_EXIT.x - 1, MARKET_EXIT.z)
+                client.locOp(FairyRings.MARKET_EXIT, MARKET_EXIT.x, MARKET_EXIT.z, FairyRings.USE)
+                client.awaitAt(FairyRings.AL_KHARID_ARRIVAL)
             }
         }
     }
@@ -374,6 +406,10 @@ class HeadlessFairyRingsTest {
     }
 
     private companion object {
+        // Zanaris's two exit rings, ground decoration where the 242 map has them.
+        val ZANARIS_EXIT = ZoneLoc(FairyRings.ZANARIS_EXIT, LocShape.GROUND_DECOR, 0, 2452, 4473, 0)
+        val MARKET_EXIT = ZoneLoc(FairyRings.MARKET_EXIT, LocShape.GROUND_DECOR, 0, 2486, 4471, 0)
+
         const val BADGER = 1234
         const val DIALS_VARP = 816
         const val HISTORY_VARP = 1423

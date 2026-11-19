@@ -14,6 +14,7 @@ import osrsps.game.zone.ZoneLoc
 /** The fairy rings' words. */
 object FairyRingLines : Lines("fairy_ring", "Fairy_ring") {
     val NO_STAFF = line("no_staff", "any ring option without a dramen or lunar staff wielded (the Wiki's Fairy ring, Trivia)")
+    val HARDLY_MOVED = line("hardly_moved", "a code that leads nowhere, or the ring the player is at (the Wiki's Fairy ring quotes it)")
 }
 
 /**
@@ -88,9 +89,19 @@ class FairyRingCodes(val all: List<FairyRingCode>) {
  * `human_fairy_appear`, spotanim `fairy_flower_ring`); the OSRS Wiki's Fairy ring page (read 19 Nov 2026) for the staff
  * rule, its message, and the creatures that come through (1 in 6, rolled on every trip, Mod Ash's tweet it cites).
  *
- * Inferred: a code that leads nowhere lands a few tiles from Zanaris's ring, as the RS3 Wiki's Fairy ring page says
- * ([INVALID_LANDING]); the OSRS Wiki doesn't say. The player stays where they stand to use a ring: the ring is a 1 by 1
- * loc that blocks walking, on its centre tile, which the trip lands on.
+ * - A code that leads nowhere, or the code of the ring the player is at, moves nobody: [FairyRingLines.HARDLY_MOVED]
+ *   (the Wiki's Fairy ring page, step T3; step T1 had the RS3 Wiki's landing beside Zanaris's ring).
+ * - Zanaris's own doors (step T3): the Lumbridge Swamp shed's door, opened wielding a staff, takes the player to
+ *   Zanaris's entry ring by the Chicken Shrine ([enterZanaris], from [LumbridgeSwamp]); that ring (`fairy_mushroom_ring`
+ *   12094) takes them back into the shed, and the market's (`fairy_mushroom_ring3` 12003) one way to Al Kharid, behind
+ *   the bank (the Wiki's Shed (Lumbridge Swamp), Zanaris and Fairy ring (Zanaris) pages, read 19 Nov 2026).
+ *
+ * Inferred: the player stays where they stand to use a ring: the ring is a 1 by 1 loc that blocks walking, on its
+ * centre tile, which the trip lands on. Zanaris's two exit rings need no staff (none of the three pages gives one).
+ * Guessed: the trip that moves nobody still plays the vanish and the appearance, and brings no creature through; the
+ * shed's trip and the exit rings' play the rings' vanish and appearance; where they land ([ZANARIS_ARRIVAL] south of
+ * the entry ring, which blocks walking, [SHED_ARRIVAL] inside the shed, [AL_KHARID_ARRIVAL] in the strip east of the
+ * bank's wall).
  * Guessed: the trip's pace ([VANISH_TICKS], [APPEAR_TICKS]: the vanish seq runs 79 client cycles, 2.6 ticks); the
  * graphic on the player's start; a creature coming through landing on a free tile beside the player and leaving after
  * [APPARITION_TICKS]; DIQ (the player-owned house's ring, which needs a fairy ring in the house's garden) leading
@@ -104,8 +115,9 @@ class FairyRingCodes(val all: List<FairyRingCode>) {
  * The log's hideout line (a code outside the table) stays hidden. Tele Block doesn't stop the rings: the Wiki's Tele
  * Block page blocks "most forms of teleportation" without naming them, and its Fairy ring page doesn't say. No code in
  * the cache's table lands in the Wilderness and no ring stands in it, so the rings need no Wilderness check.
- * Not built yet: Zanaris itself (step T3), the elite Lumbridge & Draynor Diary freeing the rings from the staff (no
- * diaries yet), the house's spiritual fairy tree, the log's search box (the client's own).
+ * Not built yet: Zanaris's own content (its people, shops and doors), the elite Lumbridge & Draynor Diary freeing the
+ * rings and the shed from the staff (no diaries yet), the house's spiritual fairy tree, the log's search box (the
+ * client's own).
  */
 class FairyRings(private val world: World, val codes: FairyRingCodes) {
     /** The ring each player dials at while the dials are open. */
@@ -116,6 +128,8 @@ class FairyRings(private val world: World, val codes: FairyRingCodes) {
 
     fun register() {
         world.handlers.onLoc(MINOR_HUB, ZANARIS) { op -> zanaris(op.loc ?: return@onLoc) }
+        world.handlers.onLoc(ZANARIS_EXIT, USE) { op -> exit(op.loc ?: return@onLoc, SHED_ARRIVAL) }
+        world.handlers.onLoc(MARKET_EXIT, USE) { op -> exit(op.loc ?: return@onLoc, AL_KHARID_ARRIVAL) }
         for (ring in RINGS) {
             world.handlers.onLoc(ring, CONFIGURE) { op -> configure(op.loc ?: return@onLoc) }
             world.handlers.onLoc(ring, LAST_DESTINATION) { op -> lastDestination(op.loc ?: return@onLoc) }
@@ -279,8 +293,8 @@ class FairyRings(private val world: World, val codes: FairyRingCodes) {
     }
 
     /**
-     * The trip from [ring] to [code]'s ring, or to [INVALID_LANDING] for a code that leads nowhere: the vanish, the
-     * move, the appearance. [remember] makes it the ring's Last-destination.
+     * The trip from [ring] to [code]'s ring: the vanish, the move, the appearance. A code that leads nowhere, or [ring]'s
+     * own, moves nobody. [remember] makes it the ring's Last-destination.
      */
     private suspend fun ScriptContext.travel(ring: ZoneLoc, code: FairyRingCode?, remember: Boolean) {
         val from = codes.at(ring.x, ring.z, ring.level)
@@ -291,16 +305,41 @@ class FairyRings(private val world: World, val codes: FairyRingCodes) {
         player.anim(VANISH_ANIM)
         player.spotanim(RING_SPOTANIM)
         delay(VANISH_TICKS)
-        val to = code?.destination ?: INVALID_LANDING
+        val to = code?.destination
+        if (to == null || code == from) {
+            player.anim(APPEAR_ANIM)
+            world.message(player, FairyRingLines.HARDLY_MOVED)
+            delay(APPEAR_TICKS)
+            return
+        }
         world.teleport(player, to.x, to.z, to.level)
-        val visited = code?.takeIf { it.destination != null }?.let { VISITED[it.id] }
-        if (visited != null && known(visited)) player.vars.setVarbit(visited, 1)
+        VISITED[code.id]?.let { if (known(it)) player.vars.setVarbit(it, 1) }
         player.anim(APPEAR_ANIM)
         from?.apparition?.let { apparition(it, to) }
         delay(APPEAR_TICKS)
     }
 
-    /** One time in six, the creature of the ring the player left comes through too, rolled on every trip, a wrong code's too. */
+    /** One of Zanaris's two exit rings, beside which the player stands: straight to [to], no staff needed. */
+    private suspend fun ScriptContext.exit(ring: ZoneLoc, to: Destination) {
+        arriveDelay()
+        if (!beside(player, ring) || !world.locs.exists(ring)) return
+        trip(to)
+    }
+
+    /** The Lumbridge Swamp shed's door, opened wielding a staff: to Zanaris's entry ring. */
+    internal suspend fun ScriptContext.enterZanaris() = trip(ZANARIS_ARRIVAL)
+
+    /** A trip by fairy magic that isn't a ring code's: the vanish, the move to [to], the appearance. */
+    private suspend fun ScriptContext.trip(to: Destination) {
+        player.anim(VANISH_ANIM)
+        player.spotanim(RING_SPOTANIM)
+        delay(VANISH_TICKS)
+        world.teleport(player, to.x, to.z, to.level)
+        player.anim(APPEAR_ANIM)
+        delay(APPEAR_TICKS)
+    }
+
+    /** One time in six, the creature of the ring the player left comes through too, rolled on every trip that moves. */
     private fun apparition(npcId: Int, at: Destination) {
         if (world.random.between(1, APPARITION_CHANCE) != 1) return
         val type = world.npcTypes[npcId] ?: return
@@ -393,8 +432,15 @@ class FairyRings(private val world: World, val codes: FairyRingCodes) {
         const val VANISH_TICKS = 3
         const val APPEAR_TICKS = 3
 
-        /** Inferred from the RS3 Wiki ("a few spaces away from the main fairy ring in Zanaris"); the tile is guessed. */
-        val INVALID_LANDING = Destination(2412, 4431, 0)
+        /** `fairy_mushroom_ring` by the Chicken Shrine and `fairy_mushroom_ring3` in the market: Zanaris's exits, op Use. */
+        const val ZANARIS_EXIT = 12094
+        const val MARKET_EXIT = 12003
+        const val USE = 1
+
+        /** Guessed tiles: south of the entry ring (2452,4473), inside the shed, and east of Al Kharid bank's wall. */
+        val ZANARIS_ARRIVAL = Destination(2452, 4472, 0)
+        val SHED_ARRIVAL = Destination(3203, 3169, 0)
+        val AL_KHARID_ARRIVAL = Destination(3275, 3166, 0)
 
         const val APPARITION_CHANCE = 6
 

@@ -1525,7 +1525,7 @@ the NPCs are `npc-spawns/lumbridge-swamp-quest.json` and `npc-spawns/lumbridge-w
 
 | Behaviour | Source |
 |-----------|--------|
-| The shed's door (2406 at 3202,3169) lets a player in or out; with a dramen or lunar staff wielded it refuses with our own line, as Zanaris (where live takes them) is piece 8's. Live's Elite Lumbridge Diary does the same; there are no diaries | OSRS Wiki, Shed (Lumbridge Swamp) |
+| The shed's door (2406 at 3202,3169) lets a player in or out; with a dramen or lunar staff wielded it takes them to Zanaris instead (travel networks step T3, see Travel networks). Live's Elite Lumbridge Diary does the same; there are no diaries | OSRS Wiki, Shed (Lumbridge Swamp) |
 | The tools inside (10375) give a rake or a spade, whichever isn't held, and a choice of the two with neither held | OSRS Wiki, Tools (gardening) |
 | The Water Altar's ruins (34815) are Runecraft's: see Runecraft | OSRS Wiki, Mysterious ruins; the 242 cache |
 | The broken raft's Grapple (17068): 8 Agility, 19 Strength and 37 Ranged, a crossbow wielded and a mith grapple worn, from either bank's shortcut icon (3246,3179 and 3259,3179) to the other, no XP; the grapple breaks one time in 25 | OSRS Wiki, Broken Raft (the infobox's 19 Strength; its text says 17) and Mith grapple (Mod Ash's 1/25); the 242 map |
@@ -2499,9 +2499,12 @@ and TzHaar city: step plan); the Fight Caves and the Inferno are their own piece
 
 Fairy rings (`game/content/FairyRings.kt`, words under `fairy_ring.*`): every ring works, with a dramen or lunar staff
 wielded; each code lands where the cache's `fairyring` table says. Configure opens the travel log beside the dials,
-with the codes the player has landed on and ten favourite slots, which the rings' Favourites option travels by. Check:
-`test-runner/examples/fairy-rings.json`, `test-runner/examples/fairy-ring-log.json`, `HeadlessFairyRingsTest`. What is
-sourced and what is guessed is in the code's comments.
+with the codes the player has landed on and ten favourite slots, which the rings' Favourites option travels by. A code
+that leads nowhere moves nobody (`fairy_ring.hardly_moved`). The Lumbridge Swamp shed, with a staff wielded, goes to
+Zanaris; Zanaris's entry ring goes back into the shed and its market ring one way to Al Kharid. Check:
+`test-runner/examples/fairy-rings.json`, `test-runner/examples/fairy-ring-log.json`,
+`test-runner/examples/zanaris-doors.json`, `HeadlessFairyRingsTest`. What is sourced and what is guessed is in the
+code's comments.
 
 ## Equipment
 
