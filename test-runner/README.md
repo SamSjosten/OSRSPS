@@ -458,6 +458,12 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
 - `culinaromancers-chest.json`: post-quest step 5 (with `::keys on`): the Culinaromancer's Chest's Bank (interface 12),
   Collect (402), Buy-food and Buy-items (300) in Lumbridge Castle's cellar, then the Wizards' Tower basement's altar bare
   (varbit 2130 at 1) and its Search's `[game.nothing_interesting]`.
+- `dorgeshuun-tunnels.json`: post-quest step 6 (with `::scenario lumbridge-bare` and `::keys on`): Lumbridge Castle
+  cellar's hole refused at Agility 12 and squeezed through both ways at 13, Kazgar's Mines, Mistag's talk with no ore
+  and then buying 3 iron and a silver for 100 coins, Nardok's Trade (interface 300), Mistag's Watermill, the tunnel to
+  the water mill cellar both ways, its ladder up to Groats' farm, an empty machine-part crate there and the trapdoor
+  back down, Dartog's talk to the cellar, the hole between the Goblin Maze and the Swamp Caves both ways, and Sigmund's
+  chest's `[lost_tribe.chest_found]`, with `::reset` at the end.
 - `varrock-churches-inns.json`: Varrock step 7 (with `::keys on`): Pray-at at the church's altar and the chapel's
   chaos altar, Father Lawrence, Elsie upstairs in the church, the Mage of Zamorak, a beer bought at each of the three
   inns, the Blue Moon cook's cabbage and the Jolly Boar cook's jokes.

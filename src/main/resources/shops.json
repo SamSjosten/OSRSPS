@@ -3743,6 +3743,7 @@
           "restock": 100
         }
       ]
-    }
+    },
+    {"key": "nardoks_bone_weapons", "title": "Nardok's Bone Weapons", "inv": 413, "size": 6, "general": false, "sellAt": 1000, "buyAt": 600, "changePer": 20, "npcs": ["dttd_bone_dealer"], "source": "OSRS Wiki, Nardok's Bone Weapons, read 2026-11-19: sells at 100%, buys at 60%, change per 2%, and the stock table; inv 413 is the cache's dorgeshuun_weapon_shop. Open after The Lost Tribe, which every account has done (DorgeshuunTunnels)", "stock": [{"item": 5018, "name": "Bone club", "count": 10, "restock": 20}, {"item": 5016, "name": "Bone spear", "count": 10, "restock": 20}, {"item": 8872, "name": "Bone dagger", "count": 5, "restock": 20}, {"item": 8880, "name": "Dorgeshuun crossbow", "count": 5, "restock": 20}, {"item": 8882, "name": "Bone bolts", "count": 1000, "restock": 20}, {"item": 13193, "name": "Bone bolt pack", "count": 80, "restock": 10}]}
   ]
 }
