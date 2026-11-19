@@ -111,6 +111,8 @@ class PlayerSave(
     val house: HouseState? = null,
     /** The collection log's record, item to count, in the order first logged ([Player.collectionLog]). */
     val collectionLog: Map<Int, Int> = emptyMap(),
+    /** How the player looks ([Player.look]); in the header, as ::reset doesn't change it. */
+    val look: PlayerLook = PlayerLook.DEFAULT,
 ) {
     class BoostSegments(val combat: Int, val other: Int)
 
@@ -144,6 +146,7 @@ class PlayerSave(
         player.lastTrade = lastTrade
         player.friendsChat = friendsChat
         player.friendsChatOwner = friendsChatOwner
+        player.look = look
         applyState(player)
     }
 
@@ -277,6 +280,15 @@ class PlayerSave(
                 }
             }
             if (friendsChatOwner != null) put("friendsChatOwner", friendsChatOwner)
+            // The look too, which is the player's rather than a scenario's.
+            if (look != PlayerLook.DEFAULT) {
+                putJsonObject("look") {
+                    put("bodyType", look.bodyType)
+                    putJsonArray("kits") { for (kit in look.kits) add(kit) }
+                    putJsonArray("colours") { for (colour in look.colours) add(colour) }
+                    put("pronoun", look.pronoun)
+                }
+            }
             putState()
             if (scenario != null) put("scenario", scenario)
             if (beforeScenario != null) putJsonObject("beforeScenario") { with(beforeScenario) { putState() } }
@@ -436,6 +448,7 @@ class PlayerSave(
                 farming = FarmingState().apply { replaceWith(player.farming) },
                 house = player.house?.copy(),
                 collectionLog = LinkedHashMap(player.collectionLog),
+                look = player.look,
             )
         }
 
@@ -523,6 +536,7 @@ class PlayerSave(
                     farming = state.farming,
                     house = state.house,
                     collectionLog = state.collectionLog,
+                    look = readLook(root),
                 )
             } catch (e: IllegalArgumentException) {
                 throw e
@@ -621,6 +635,17 @@ class PlayerSave(
                 house = root["house"]?.jsonObject?.let(HouseSaves::fromJson),
                 // Optional: saves from before the collection log, and saves of players who logged nothing, have none.
                 collectionLog = readCollectionLog(root),
+            )
+        }
+
+        /** Optional: saves from before looks were kept, and saves with the default look, have none. */
+        private fun readLook(root: JsonObject): PlayerLook {
+            val look = root["look"]?.jsonObject ?: return PlayerLook.DEFAULT
+            return PlayerLook(
+                look.int("bodyType"),
+                look.getValue("kits").jsonArray.map { it.jsonPrimitive.int },
+                look.getValue("colours").jsonArray.map { it.jsonPrimitive.int },
+                look.int("pronoun"),
             )
         }
 

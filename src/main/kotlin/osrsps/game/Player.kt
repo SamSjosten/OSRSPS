@@ -469,6 +469,9 @@ class Player(
     val pvpDamage = LinkedHashMap<String, Int>()
     var lastPvpHitTick: Long = -1
 
+    /** How the player looks under what they wear. Saved, in the header: ::reset and scenarios keep it. */
+    var look: PlayerLook = PlayerLook.DEFAULT
+
     /** The overhead prayer icon in the player's appearance, -1 for none. */
     var overheadIcon: Int = -1
 
