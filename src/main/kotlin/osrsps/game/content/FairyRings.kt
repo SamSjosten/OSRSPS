@@ -103,13 +103,18 @@ class FairyRingCodes(val all: List<FairyRingCode>) {
  * each slot in use.
  * Guessed: Add Favourite on a code already in a slot, or with all ten slots full, does nothing; Remove Favourite leaves
  * the other slots where they are (the log lists the slots in order and skips the empty ones, so nothing shows a gap).
- * The log's hideout line (a code outside the table) stays hidden.
+ * The log's hideout line (a code outside the table) stays hidden. Tele Block doesn't stop the rings: the Wiki's Tele
+ * Block page blocks "most forms of teleportation" without naming them, and its Fairy ring page doesn't say. No code in
+ * the cache's table lands in the Wilderness and no ring stands in it, so the rings need no Wilderness check.
  * Not built yet: Zanaris itself (step T3), the elite Lumbridge & Draynor Diary freeing the rings from the staff (no
  * diaries yet), the house's spiritual fairy tree, the log's search box (the client's own).
  */
 class FairyRings(private val world: World, val codes: FairyRingCodes) {
     /** The ring each player dials at while the dials are open. */
     private val dialling = ConcurrentHashMap<Player, ZoneLoc>()
+
+    /** How many players have the dials open, for the tests. */
+    internal val dialsOpen: Int get() = dialling.size
 
     fun register() {
         world.handlers.onLoc(MINOR_HUB, ZANARIS) { op -> zanaris(op.loc ?: return@onLoc) }
@@ -134,6 +139,11 @@ class FairyRings(private val world: World, val codes: FairyRingCodes) {
             world.handlers.onButton(LOG, FAVE_TEXT[slot]) { op -> if (op.option == 1) useFavourite(slot) else removeFavourite(slot) }
             world.handlers.onButton(LOG, FAVE_ICON[slot]) { removeFavourite(slot) }
         }
+    }
+
+    /** Lets [player] go when they leave the world: a lost connection doesn't close the dials, so no close hook runs. */
+    fun forget(player: Player) {
+        dialling.remove(player)
     }
 
     /** The code in favourite slot [slot] (0 to 9), or null for an empty one. */

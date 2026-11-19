@@ -246,6 +246,23 @@ class HeadlessFairyRingsTest {
     }
 
     @Test
+    fun `a player whose connection drops with the dials open is let go`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ivy").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.wieldStaff()
+                client.besideRing(dkr)
+                client.openDials(dkr)
+                assertEquals(1, server.world.fairyRings.dialsOpen)
+            }
+            // Closing the client drops the connection without the close packet, so no close hook runs.
+            val deadline = System.currentTimeMillis() + 10_000
+            while (server.world.fairyRings.dialsOpen != 0 && System.currentTimeMillis() < deadline) Thread.sleep(20)
+            assertEquals(0, server.world.fairyRings.dialsOpen)
+        }
+    }
+
+    @Test
     fun `leaving from DLR, a badger comes through one trip in six`(@TempDir dir: Path) {
         server(dir, seed = 11).use { server ->
             server.login("frank").use { client ->
@@ -291,12 +308,15 @@ class HeadlessFairyRingsTest {
                 client.logAtDis()
                 // DIS was landed on; DKR, where the trip started, and BKS weren't.
                 client.await("DIS's line") { client.text(FairyRings.LOG, dis.textComponent)?.takeIf { it == dis.description } }
+                // The lines and the empty favourites are written, then the client is asked to lay the log out: once at
+                // DKR, once here.
+                client.await("the second sort") {
+                    client.clientScripts().drop(scripts).filter { it.id == FairyRings.SORT_UPDATE }.takeIf { it.size >= 2 }
+                }
                 assertEquals(1, client.varp(VISITED_VARP))
                 assertTrue(client.text(FairyRings.LOG, dkr.textComponent).isNullOrEmpty())
                 assertTrue(client.text(FairyRings.LOG, bks.textComponent).isNullOrEmpty())
-                // The empty favourites written, then the client asked to lay the log out.
                 assertEquals("", client.text(FairyRings.LOG, FairyRings.FAVE_TEXT[0]))
-                client.await("the sort") { client.clientScripts().drop(scripts).firstOrNull { it.id == FairyRings.SORT_UPDATE } }
                 // Zanaris's BKS goes in the log too.
                 client.closeModal()
                 client.locOp(FairyRings.MINOR_HUB, dis.destination!!.x, dis.destination!!.z, FairyRings.ZANARIS)
@@ -325,7 +345,7 @@ class HeadlessFairyRingsTest {
                 client.ifButton(FairyRings.LOG, dis.faveIconComponent, 1)
                 client.await("DIS in slot 1") { if (client.favourites()[0] == 64 + dis.state) Unit else null }
                 client.await("the favourite's line") { client.text(FairyRings.LOG, FairyRings.FAVE_TEXT[0])?.takeIf { it == dis.description } }
-                assertEquals("D I S", client.text(FairyRings.LOG, FairyRings.FAVE_CODE[0]))
+                client.await("the favourite's code") { client.text(FairyRings.LOG, FairyRings.FAVE_CODE[0])?.takeIf { it == "D I S" } }
                 assertEquals(1, (client.varp(DIALS_VARP) ushr 6) and 0xFFF, "Favourites shown")
                 // Again, by the line's second option: already a favourite, so nothing changes.
                 client.ifButton(FairyRings.LOG, dis.textComponent, 2)
