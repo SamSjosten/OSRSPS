@@ -955,6 +955,12 @@ class World(
     /** Enchant Crossbow Bolt; see [BoltEnchant]. */
     val boltEnchant = BoltEnchant(this, BoltEnchantData.load(objTypes))
 
+    /** What the spells cast on inventory items share; see [osrsps.game.skill.magic.ItemSpells]. */
+    val itemSpells = osrsps.game.skill.magic.ItemSpells(this)
+
+    /** Low and High Level Alchemy; see [osrsps.game.skill.magic.Alchemy]. */
+    val alchemy = osrsps.game.skill.magic.Alchemy(this, osrsps.game.skill.magic.Alchemy.load(objTypes))
+
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
 
@@ -1165,6 +1171,7 @@ class World(
         decanting.register()
         teleports.register()
         boltEnchant.register()
+        alchemy.register()
         runecraft.register()
         runeCrafting.register()
         combinationRunes.register()
@@ -2885,6 +2892,12 @@ class World(
         val fromInventory = interfaceId == InventoryTab.INTERFACE && componentId == InventoryTab.ITEMS
         if (fromInventory && toInterfaceId == interfaceId && toComponentId == componentId) {
             inventoryTab.use(player, fromSub, fromObj, toSub, toObj)
+            return@act
+        }
+        // A spell cast on an inventory item: the spell's slot and obj are -1, the item's are the target's.
+        if (interfaceId == Spells.SPELLBOOK && toInterfaceId == InventoryTab.INTERFACE && toComponentId == InventoryTab.ITEMS) {
+            if (held(player)) return@act
+            inventoryTab.castOn(player, interfaceId, componentId, toSub, toObj)
             return@act
         }
         logger.info { "${player.username} used $interfaceId:$componentId sub $fromSub on $toInterfaceId:$toComponentId sub $toSub (not handled)" }
