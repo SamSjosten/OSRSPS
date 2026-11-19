@@ -105,6 +105,11 @@ private repository's 2,000 hosted minutes a month last a few days here:
 - **Private repository**: all of them run on the VM. Keep `RUNNER` set then too: a scheduled run's event may not say
   the repository is private (the queue's 15-minute run in `automerge.yml` goes by `RUNNER` alone).
 
+The headless script runs (`headless.yml`: a pull request's changed runner scripts, and every script each night in
+six parts) go by their own variable, `HEADLESS_RUNNER`: unset, they stay on GitHub's runners, where the six parts run
+at once; the one runner on the VM would play them one after another for hours and hold up main's builds. Set it to
+`self-hosted` once the repository is private.
+
 The launcher, its installers and their jobs live in the public repository OdinsGate (`github.com/SamSjosten/OdinsGate`)
 since launcher 1.0.2, on GitHub's runners. The jobs on the VM get only the workflow's own token, with each workflow
 reading by default and writing only in the jobs that need it; no other secrets. The VM is persistent, so a job checks

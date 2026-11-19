@@ -26,6 +26,11 @@ put back before each script, a failure is played once more (a pass then is flaky
 go to `build/headless/results`. `-Pscripts=hans-demo.json,lumbridge-bank.json` plays some; `-PheadlessTickMs=300` plays
 faster than live's 600 ms ticks. Fresh accounts start in the fixed frame there, as the VMs' clients were.
 
+CI plays them too (`.github/workflows/headless.yml`): a pull request that changes scripts here plays the ones it changed
+(the `changed` check), and every night at 04:00 UTC every script is played in six parts. The night's `nightly` job lists
+what failed in its summary and keeps one `summary.json`, in the VM nightly's format, as the artifact `headless-summary`;
+"Run workflow" on the Actions page starts the same run by hand.
+
 A two-player pair (`x-test.json` with `x-test2.json`) plays as two headless clients at once, whichever half is asked for,
 each half with its own result; a failed half plays the pair again. Other players are found by the name in their
 appearance, and chat (public, private, friends chat and clan) reaches `assertMessage` as the plugin hands it on.

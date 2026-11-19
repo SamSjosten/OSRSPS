@@ -1,0 +1,114 @@
+name: headless
+# The runner's scripts (test-runner/examples) played with no RuneLite and no VM: ./gradlew headlessScripts runs our
+# server in the job on the live cache and plays each script through the headless client (test-runner/README.md,
+# "Headless"). This takes the place of the nightly run on the test VMs.
+#
+# - A pull request that changes scripts plays the ones it changed (`changed`). The check isn't one the ruleset on
+#   main requires.
+# - Every night, and when started by hand, every script is played in six parts at once (`part`), and `nightly` puts
+#   their results together: its summary lists what failed, and the artifact `headless-summary` holds one summary.json
+#   in the VM nightly's format, with each script's own result file beside it in the parts' artifacts.
+#
+# Where it runs: GitHub's ubuntu-latest while the repository is public, as six parts at once would hold the one
+# self-hosted runner for hours. Once it is private, set the repository variable HEADLESS_RUNNER to self-hosted
+# (CONTRIBUTING.md, "Where CI runs"): a schedule's event may not say the repository is private.
+#
+# The cache is fetched from OpenRS2 by each job and kept nowhere on GitHub: not in an artifact and not in a cache.
+on:
+  pull_request:
+    paths:
+      - test-runner/examples/**
+      # A change to this workflow or its helper runs `changed` too, with no script to play: it shows the workflow reads.
+      - .github/workflows/headless.yml
+      - .github/scripts/headless.js
+  schedule:
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: headless-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  changed:
+    if: github.event_name == 'pull_request'
+    runs-on: ${{ github.repository == 'SamSjosten/OSRSPS' && github.event.repository.private && fromJSON('["self-hosted", "linux"]') || 'ubuntu-latest' }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: scripts
+        env:
+          BASE: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          scripts=$(node .github/scripts/headless.js changed "origin/$BASE")
+          echo "scripts=$scripts" | tee -a "$GITHUB_OUTPUT"
+      - uses: actions/setup-java@v4
+        if: steps.scripts.outputs.scripts != ''
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
+        if: steps.scripts.outputs.scripts != ''
+      - if: steps.scripts.outputs.scripts != ''
+        env:
+          SCRIPTS: ${{ steps.scripts.outputs.scripts }}
+        run: ./gradlew headlessScripts --build-cache "-Pscripts=$SCRIPTS"
+      - if: always() && steps.scripts.outputs.scripts != ''
+        run: node .github/scripts/headless.js merge build/headless/results build/headless/merged/summary.json || true
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.scripts.outputs.scripts != ''
+        with:
+          name: headless-changed
+          path: build/headless/results
+          if-no-files-found: warn
+
+  part:
+    if: github.event_name != 'pull_request'
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [1, 2, 3, 4, 5, 6]
+    runs-on: ${{ github.repository == 'SamSjosten/OSRSPS' && (github.event.repository.private || vars.HEADLESS_RUNNER == 'self-hosted') && fromJSON('["self-hosted", "linux"]') || 'ubuntu-latest' }}
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
+      - run: |
+          set -euo pipefail
+          scripts=$(node .github/scripts/headless.js part test-runner/examples ${{ matrix.part }}/6)
+          ./gradlew headlessScripts --build-cache "-Pscripts=$scripts"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: headless-part-${{ matrix.part }}
+          path: build/headless/results
+          if-no-files-found: warn
+
+  # Every part's results as one: red when a script failed (a flaky pass doesn't count) or a part left no summary.
+  nightly:
+    needs: part
+    if: always() && github.event_name != 'pull_request'
+    runs-on: ${{ github.repository == 'SamSjosten/OSRSPS' && (github.event.repository.private || vars.HEADLESS_RUNNER == 'self-hosted') && fromJSON('["self-hosted", "linux"]') || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: headless-part-*
+          path: parts
+      - run: node .github/scripts/headless.js merge parts merged/summary.json 6
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: headless-summary
+          path: merged/summary.json
+          if-no-files-found: error
