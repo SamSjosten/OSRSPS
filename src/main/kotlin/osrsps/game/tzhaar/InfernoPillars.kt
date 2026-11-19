@@ -110,13 +110,21 @@ class InfernoPillars(private val world: World) {
     fun tick(run: Inferno.Run, player: Player) {
         run.pillars.removeAll { it.npc.dead || world.npcs[it.npc.index] !== it.npc }
         if (run.pillarsOwed.isNotEmpty()) raiseOwed(run, player)
+        save(run, player)
+        for (npc in run.monsters) if (npc.type.id == InfernoMonster.NIBBLER.type && !npc.dead) nibbler(run, npc, player)
+    }
+
+    /**
+     * [run]'s supports' damage kept in [player]'s varbits: each tick, and as they log out, so a Nibbler's hit on their
+     * last tick isn't lost (Codex review on #829).
+     */
+    fun save(run: Inferno.Run, player: Player) {
         for (pillar in run.pillars) {
             // Hitpoints given back by anything else don't count either: the support keeps its damage.
             pillar.damage = maxOf(pillar.damage, HITPOINTS - pillar.npc.hitpoints)
             pillar.npc.hitpoints = HITPOINTS - pillar.damage
             if (pillar.damage != damage(player, pillar.index)) setDamage(player, pillar.index, pillar.damage)
         }
-        for (npc in run.monsters) if (npc.type.id == InfernoMonster.NIBBLER.type && !npc.dead) nibbler(run, npc, player)
     }
 
     /** The shown collapses going once their time is up. */
@@ -152,6 +160,8 @@ class InfernoPillars(private val world: World) {
             nibbler.target = null
             world.npcs.stopFollowing(nibbler)
         }
+        // Nor does being hit stand it still: the hold an attack puts on it would keep it from its support.
+        nibbler.holdTicks = 0
         if (!beside(nibbler, pillar.npc)) {
             if (nibbler.leader !== pillar.npc) world.npcs.followNpc(nibbler, pillar.npc)
             return

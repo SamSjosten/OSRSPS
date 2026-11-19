@@ -197,9 +197,11 @@ class HeadlessInfernoTest {
                 }
 
                 val nibbler = nibblers.first { it.type.id == InfernoMonster.NIBBLER.type }
+                val hitAt = nibbler.x to nibbler.z
                 server.world.meleeCombat.hit(nibbler, player, 0, server.world.tick)
                 client.await("back after the supports") { nibbler.takeIf { it.target == null && it.leader != null } }
                 assertTrue(run.pillars.any { it.npc === nibbler.leader }, "following a support")
+                client.await("on its way, not held where it was hit", timeoutMillis = 3_000) { nibbler.takeIf { (it.x to it.z) != hitAt } }
 
                 // A support that couldn't come in for want of room comes in once there is, with the damage it had.
                 val south = run.pillars.single { it.index == 2 }
@@ -339,6 +341,26 @@ class HeadlessInfernoTest {
                 assertEquals(Inferno.WIN_TOKKUL, client.await("the TokKul") { client.tokkul().takeIf { it > 0 } })
                 assertNotNull(client.inventory(INV).firstOrNull { it?.id == Inferno.INFERNAL_CAPE })
                 client.awaitDialogue("TzHaar-Ket-Keh") { it is DialogueView.Chat && "ket_keh.impressive" in it.text }
+            }
+        }
+    }
+
+    @Test
+    fun `a hit landing on TzKal-Zuk after the player died is no win, and the death stays safe`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("gus").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("inferno 69") { it.startsWith("Inferno") }
+                val zuk = client.waveIn(server, "gus", 69).single()
+                val player = server.world.playerNamed("gus")!!
+                val tick = server.world.tick
+                server.world.meleeCombat.hitPlayer(player, null, player.hitpoints, tick)
+                server.world.meleeCombat.hit(zuk, null, zuk.hitpoints, tick, finishing = true)
+                client.await("outside", timeoutMillis = 20_000) { client.position?.takeIf { it == Coord(Inferno.OUTSIDE.x, Inferno.OUTSIDE.z, 0) } }
+                client.await("the run over") { (server.run("gus") == null).takeIf { it } }
+                assertTrue(client.inventory(INV).none { it?.id == Inferno.INFERNAL_CAPE }, "no cape")
+                if (player.vars.types.varpCount > Inferno.VARP_ZUK_KILLS) assertEquals(0, player.vars[Inferno.VARP_ZUK_KILLS], "no kill")
+                assertTrue(client.messages().none { "ket_keh.impressive" in it.text })
             }
         }
     }

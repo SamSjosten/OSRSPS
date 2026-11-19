@@ -109,7 +109,9 @@ class Inferno(private val world: World) {
         world.handlers.onLoc(EXIT, QUICK_EXIT) { leave(player) }
         world.npcScripts.onDeath(listOf(InfernoMonster.ZUK.type)) { zuk ->
             val run = runAt(zuk.x, zuk.z) ?: return@onDeath
-            world.onlinePlayers.firstOrNull { it.saveKey == run.owner }?.let { victory(it, run) }
+            // A shot landing after they died isn't a win: their death stays the safe one (Codex review on #829).
+            world.onlinePlayers.firstOrNull { it.saveKey == run.owner }
+                ?.takeIf { !it.dead && it.hitpoints > 0 && !run.died && run.instance.contains(it.x, it.z) }?.let { victory(it, run) }
         }
         val multi = world.multiCombat.dynamic
         world.multiCombat.dynamic = { level, x, z -> runAt(x, z) != null || multi(level, x, z) }
@@ -311,6 +313,7 @@ class Inferno(private val world: World) {
         val run = runs[player.saveKey] ?: return
         // Gone from the world, they can't pick up a drop: what won't fit goes to the bank, then owed.
         if (run.died) return paidOut(player, run, bankOverflow = true)
+        pillars.save(run, player)
         end(run)
     }
 
