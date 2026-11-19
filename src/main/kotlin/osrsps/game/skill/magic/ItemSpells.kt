@@ -81,10 +81,23 @@ class ItemSpells(private val world: World) {
         return null
     }
 
-    /** Casts [spell], once its effect on the item is done: takes [costs], starts the clock, gives the XP and shows it. */
-    fun cast(context: ScriptContext, spell: ItemSpell, costs: List<RuneCost>) {
-        val player = context.player
+    /**
+     * Takes [costs] from what [player] holds now, after the spell has taken its item (which may itself be one of the
+     * runes): true when they were all there, and false, with the not-enough message and nothing taken, when not.
+     */
+    fun pay(player: Player, costs: List<RuneCost>): Boolean {
+        val short = costs.firstOrNull { player.inventory.count(it.rune) < it.count }
+        if (short != null) {
+            player.message(world.textFor(player)[CombatLines.NOT_ENOUGH_RUNES, "runes" to plural(short.rune)])
+            return false
+        }
         for (cost in costs) Making.removeObj(player.inventory, cost.rune, cost.count)
+        return true
+    }
+
+    /** Casts [spell] once its item and runes ([pay]) are taken: starts the clock, gives the XP and shows it. */
+    fun cast(context: ScriptContext, spell: ItemSpell) {
+        val player = context.player
         nextCast[player] = world.tick + spell.ticks
         player.interaction = null
         if (!FountainOfRune.covers(player)) player.skills.addTenths(Skill.MAGIC, spell.xpTenths)

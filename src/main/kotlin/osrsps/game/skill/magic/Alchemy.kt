@@ -41,7 +41,7 @@ class AlchemySpell(val spell: ItemSpell, val high: Boolean)
  *
  * The clock, the rune and level checks and the cast's effects are [ItemSpells]'. Guessed: that a stack of
  * coins that can't take the yield (or no room for coins at all) refuses the cast with nothing taken; that an item
- * worth less than 3 coins still goes for no coins; that a tradeable item the price snapshot lacks is judged by its
+ * worth less than 3 coins still goes for no coins; that a rune cast on as the item counts for the spell only if more of it are held; that a tradeable item the price snapshot lacks is judged by its
  * value; that an account that never set All Settings 66 (0) gets no value warning, as the drop warning treats its 0;
  * and the order of the refusals (spellbook, level, coins, can't alchemise, runes, room).
  */
@@ -79,15 +79,22 @@ class Alchemy(private val world: World, private val spells: List<AlchemySpell>) 
             return
         }
         val value = if (alchemy.high) base.highAlch else base.lowAlch
+        // One transaction: the item, then the runes (the item may be one of them, and paying may free the coins' slot),
+        // then the coins; any of it failing puts the backpack back as it was.
         val saved = player.inventory.contents().toMap()
+        fun restore() { for (i in 0 until player.inventory.capacity) player.inventory[i] = saved[i] }
         player.inventory.remove(slot, 1)
+        if (!casting.pay(player, costs)) {
+            restore()
+            return
+        }
         val coins = world.objTypes[COINS]
         if (value > 0 && (coins == null || player.inventory.add(coins, value) < value)) {
-            for (i in 0 until player.inventory.capacity) player.inventory[i] = saved[i]
+            restore()
             player.message(text[GameLines.NO_SPACE])
             return
         }
-        casting.cast(this, spell, costs)
+        casting.cast(this, spell)
     }
 
     /** Whether alchemising [type] (unnoted) asks first: All Settings 65 for untradeables, 66 for a price at or above it. */

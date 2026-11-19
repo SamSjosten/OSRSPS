@@ -44,7 +44,7 @@ class HeadlessAlchemyTest {
 
     private fun server(dir: Path, cycleMillis: Long = 40) = TestServer(dir, cycleMillis = cycleMillis) { crcs, millis ->
         val objTypes = TeleportObjs.objTypes(
-            ObjType(NATURE, "Nature rune", stackable = true, internalName = "naturerune"),
+            ObjType(NATURE, "Nature rune", stackable = true, tradeable = true, internalName = "naturerune"),
             ObjType(Alchemy.COINS, "Coins", stackable = true, internalName = "coins"),
             spell(LOW_SPELL, "21_low_alchemy", "Low Level Alchemy", 21, LOW, 3),
             spell(HIGH_SPELL, "55_high_alchemy", "High Level Alchemy", 55, HIGH, 5),
@@ -86,8 +86,7 @@ class HeadlessAlchemyTest {
 
     @Test
     fun `High Level Alchemy turns one of a stack of notes into 60% of the value, every 5 ticks, for 65 XP and the runes`(@TempDir dir: Path) {
-        // Long ticks, so the second cast is sure to come in the tick after the first.
-        server(dir, cycleMillis = 600).use { server ->
+        server(dir).use { server ->
             server.login("alice").use { client ->
                 client.ready(55)
                 client.commandReply("varbit ${Alchemy.VARBIT_WARNING_VALUE} 0") { true }
@@ -95,23 +94,29 @@ class HeadlessAlchemyTest {
                 client.give(SCIMITAR_NOTE, 3)
                 client.give(NATURE, 3)
                 client.give(TeleportObjs.FIRE, 15)
+                // The clock stopped, so each cast lands on a tick we step to, however slow the machine.
+                client.commandReply("pause") { it.startsWith("Paused") }
+                fun step(ticks: Int) = client.stepTicks(ticks)
                 client.cast(HIGH, SCIMITAR_NOTE)
+                step(1)
                 client.await("the coins") { if (client.count(Alchemy.COINS) == 15_360) Unit else null }
-                val first = server.world.tick
                 assertEquals(2, client.count(SCIMITAR_NOTE))
                 assertEquals(2, client.count(NATURE))
                 assertEquals(10, client.count(TeleportObjs.FIRE))
                 assertEquals(65, client.await("65 XP") { (client.magicXp() - start).takeIf { it >= 65 } })
                 assertTrue(client.clientScripts().any { it.id == GameFrame.SIDEBUTTON_SWITCH_SCRIPT && it.args == listOf<Any>(GameFrame.SIDE_TAB_MAGIC) }, "the magic tab comes back")
 
-                // Cast again at once: refused until 5 ticks have passed, then cast again.
+                // Cast again on the next tick: refused, and not kept for later either.
                 client.cast(HIGH, SCIMITAR_NOTE)
-                client.await("the next tick") { if (server.world.tick > first + 1) Unit else null }
-                assertEquals(2, client.count(SCIMITAR_NOTE), "too soon")
-                client.await("5 ticks on", 10_000) { if (server.world.tick >= first + Alchemy.load(server.world.objTypes).first { it.high }.spell.ticks) Unit else null }
+                step(1)
+                step(Alchemy.load(server.world.objTypes).first { it.high }.spell.ticks)
+                assertEquals(2, client.count(SCIMITAR_NOTE), "too soon, and dropped")
+                assertEquals(15_360, client.count(Alchemy.COINS))
                 client.cast(HIGH, SCIMITAR_NOTE)
+                step(1)
                 client.await("the second coins") { if (client.count(Alchemy.COINS) == 30_720) Unit else null }
                 assertEquals(1, client.count(SCIMITAR_NOTE))
+                client.commandReply("resume") { it.isNotEmpty() }
             }
         }
     }
@@ -165,6 +170,14 @@ class HeadlessAlchemyTest {
                 assertEquals(10, client.count(Alchemy.COINS))
                 assertEquals(1, client.count(NATURE))
                 assertEquals(4, client.count(TeleportObjs.FIRE))
+
+                // The only nature rune can't pay for its own alchemy.
+                client.give(TeleportObjs.FIRE, 1)
+                client.cast(HIGH, NATURE)
+                client.awaitMessage("the nature rune's refusal") { it.startsWith("[combat.not_enough_runes") }
+                assertEquals(1, client.count(NATURE))
+                assertEquals(5, client.count(TeleportObjs.FIRE))
+                assertEquals(10, client.count(Alchemy.COINS))
             }
         }
     }
