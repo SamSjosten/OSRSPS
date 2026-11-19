@@ -477,6 +477,8 @@ class HeadlessFightCaveTest {
                 val mej = client.waveIn(server, "ida", 15).single()
                 assertEquals(3123, mej.type.id)
                 client.commandReply("hit 50 ${mej.index}") { it.startsWith("Hit") }
+                // No passive regeneration while it's watched, so only a heal can give hitpoints back.
+                mej.hitpointsRegenTicks = Int.MAX_VALUE
                 val hurt = mej.hitpoints
                 assertTrue(hurt * 2 < mej.maxHitpoints)
                 client.tele(mej.x - 1, mej.z)
