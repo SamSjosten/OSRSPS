@@ -61,6 +61,7 @@ import osrsps.game.command.registerRandomEventCommands
 import osrsps.game.content.registerXpLamp
 import osrsps.game.command.registerFarmingCommands
 import osrsps.game.command.registerSlayerCommands
+import osrsps.game.command.registerTrailCommands
 import osrsps.game.command.registerXpRateCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
@@ -123,6 +124,7 @@ import osrsps.game.content.registerHamHideout
 import osrsps.game.content.registerHamStorerooms
 import osrsps.game.content.registerFarmsRoads
 import osrsps.game.content.registerLumberYard
+import osrsps.game.content.registerClanHub
 import osrsps.game.content.registerRaidTester
 import osrsps.game.content.registerTolnasRift
 import osrsps.game.content.registerDigsite
@@ -408,6 +410,8 @@ class World(
     agilityData: AgilityData = AgilityData.load(),
     /** Slayer's tasks, masters and rewards, from the cache ([osrsps.cache.SlayerLoader]); tests that slay pass their own. */
     slayerData: SlayerData = SlayerData.NONE,
+    /** Treasure Trails' steps, from the cache's clue helper tables ([osrsps.cache.TrailLoader]); tests that dig pass their own. */
+    trailData: osrsps.game.trail.TrailData = osrsps.game.trail.TrailData.NONE,
     /** Whether shooting stars land on their own ([ShootingStars]); tests land theirs with `::star land`. */
     starCycle: Boolean = false,
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
@@ -559,7 +563,7 @@ class World(
     private val worldMap = WorldMapScreen(interfaces)
 
     /** Grand Exchange offers; see [GrandExchange]. */
-    val grandExchange = GrandExchange(objTypes, { this.itemPrices }, { tick }, taxExempt = GrandExchange.taxExempt(objTypes))
+    val grandExchange = GrandExchange(objTypes, { this.itemPrices }, { tick }, taxExempt = GrandExchange.taxExempt(objTypes)).also { it.npcSells(shopTypes) }
 
     /** The Grand Exchange's offers screen; see [GrandExchangeScreen]. */
     val grandExchangeScreen = GrandExchangeScreen(
@@ -877,6 +881,22 @@ class World(
             }
         },
         askAmount = { player, prompt, typed -> scripts.start(player) { typed(countDialog(prompt)) } },
+        recolour = osrsps.game.content.ClanHub::recolour,
+        pickMotif = { player, current, picked ->
+            // clan_outfit draws from clan_editing_0, so it goes first, sent now rather than with the tick's varps.
+            if (Clans.VARP_EDITING_MOTIF < player.vars.types.varpCount) {
+                player.vars[Clans.VARP_EDITING_MOTIF] = current
+                interfaces.sendVarpNow(player, Clans.VARP_EDITING_MOTIF)
+            }
+            interfaces.openInside(player, Clans.INFO, Clans.INFO_POPUP, Clans.OUTFIT)
+            interfaces.runClientScript(player, Clans.SCRIPT_OUTFIT, listOf(Clans.component(Clans.INFO, Clans.INFO_POPUP)))
+            scripts.start(player) {
+                // Save sends clan_editing_0 as it stands (script4432); Cancel sends 0 (script4208).
+                val answer = waitForCount()
+                if (Clans.INFO in player.modals.values) interfaces.closeInside(player, Clans.INFO, Clans.INFO_POPUP)
+                if (answer != 0 && answer != current) picked(answer)
+            }
+        },
         now = clansClock,
     )
 
@@ -943,6 +963,9 @@ class World(
 
     /** Slayer tasks: kills, XP and the enchanted gem; see [Slayer]. */
     val slayer = Slayer(this, slayerData)
+
+    /** Treasure Trails: scroll boxes, clue scrolls and their steps; see [osrsps.game.trail.TreasureTrails]. */
+    val trails = osrsps.game.trail.TreasureTrails(this, trailData)
 
     /** Random events: when each player's is due, and the event NPCs out. */
     val randomEvents = osrsps.game.content.randomevents.RandomEvents(this, randomEventClock)
@@ -1032,6 +1055,7 @@ class World(
         registerWildernessCommands(this@World)
         registerFarmingCommands(this@World)
         registerSlayerCommands(this@World)
+        registerTrailCommands(this@World)
         registerSeedCommands(this@World)
         registerShootingStarCommands(this@World)
         registerScriptCommands(this@World)
@@ -1106,11 +1130,13 @@ class World(
         registerHamStorerooms(this)
         registerFarmsRoads(this)
         registerLumberYard(this)
+        registerClanHub(this)
         registerTolnasRift(this)
         registerSilvarea(this)
         registerPaterdomus(this)
         registerDigsite(this)
         registerDigsiteDigs(this)
+        osrsps.game.trail.registerTreasureTrails(this)
         registerExamCentre(this)
         registerMisthalinSweep(this)
         registerMisthalinTownGaps(this)
@@ -3032,7 +3058,10 @@ class World(
         // R40B-6), as group loot does; anyone else's goes public once its killer has left.
         val owner = if (solo != null) solo.key else killer?.takeIf { !it.loggedOut }?.saveKey
         val despawn = osrsps.game.content.KingBlackDragon.lootTicks(this, npc, GroundObjs.LOOT_DESPAWN_TICKS)
-        for (drop in drops) {
+        for (rolled in drops) {
+            // Every quest counts as done, X Marks the Spot included: a clue scroll comes as its scroll box, or not at all past the cap.
+            val type = trails.dropFor(killer?.takeIf { !it.loggedOut }, rolled.type) ?: continue
+            val drop = if (type === rolled.type) rolled else rolled.copy(type = type)
             if (owner != null) {
                 groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, owner, GroundObjs.DROP_PRIVATE_TICKS, despawn)
                 lootDroppedFor(owner, drop.type, drop.count)

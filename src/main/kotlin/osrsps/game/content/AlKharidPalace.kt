@@ -274,6 +274,8 @@ object AlKharidPalace {
 
 fun registerAlKharidPalace(world: World) {
     with(AlKharidPalace) {
+        // The GE bot market pays no more than this for them (exploit review 44, R44A-3).
+        world.grandExchange.npcSells(KERIS, KERIS_PRICE.toLong())
         world.handlers.onNpc(HASSAN, TALK_TO) { op -> world.dialogues.start(this, op.npc) { hassan() } }
         world.handlers.onNpc(PRINCE_ALI, TALK_TO) { op -> world.dialogues.start(this, op.npc) { princeAli() } }
         world.handlers.onNpc(OSMAN, TALK_TO) { op ->
