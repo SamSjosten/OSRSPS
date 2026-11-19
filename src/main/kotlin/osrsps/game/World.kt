@@ -41,6 +41,7 @@ import osrsps.game.command.registerEffectCommands
 import osrsps.game.command.registerGroundObjCommands
 import osrsps.game.command.registerInstanceCommands
 import osrsps.game.command.registerTzHaarCommands
+import osrsps.game.command.registerCollectionLogCommands
 import osrsps.game.command.registerPartyCommands
 import osrsps.game.command.registerRaidCommands
 import osrsps.game.command.registerIpCommands
@@ -376,6 +377,8 @@ class World(
     val omnishops: Omnishops = Omnishops.NONE,
     /** The cache's Grand Exchange item sets; tests that use them pass their own. */
     val itemSets: osrsps.game.ge.ItemSets = osrsps.game.ge.ItemSets.NONE,
+    /** The cache's collection log tabs, pages and items; tests that log items pass their own. */
+    collectionLogCatalog: osrsps.game.collection.CollectionLogCatalog = osrsps.game.collection.CollectionLogCatalog.NONE,
     /** The levels whose level-up plays a skill's unlock jingle; see [LevelUps]. */
     skillUnlocks: SkillUnlocks = SkillUnlocks.NONE,
     /** The levels needed to wear items; tests that check levels pass their own. */
@@ -600,7 +603,10 @@ class World(
     }
 
     /** Shops and their shared stock; see [ShopScreen]. */
-    val shopScreen = ShopScreen(shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine, words = ::textFor)
+    val shopScreen = ShopScreen(
+        shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine, words = ::textFor,
+        logged = { player, type -> collectionLog.add(player, type.id, 1) },
+    )
 
     /** The omnishop interface's shops, as the Quartermaster's Alliance Supplies; see [OmnishopScreen]. */
     val omnishopScreen = OmnishopScreen(
@@ -1000,6 +1006,7 @@ class World(
         registerZoneCommands(this@World, collision)
         registerInstanceCommands(this@World)
         registerTzHaarCommands(this@World)
+        registerCollectionLogCommands(this@World)
         registerPartyCommands(this@World)
         registerRaidCommands(this@World)
         registerEffectCommands(this@World)
@@ -2261,6 +2268,7 @@ class World(
         Kudos.login(player)
         lodestones.login(player)
         fightCaves.login(player)
+        collectionLog.login(player)
         prayers.login(player)
         cooking.wine.login(player)
         if (player.newAccount) allSettings.newAccount(player)
@@ -2912,6 +2920,25 @@ class World(
     /** The loot drop notification settings; see [LootNotifications]. */
     val lootNotifications = LootNotifications({ this.itemPrices.price(it) }, ::textFor)
 
+    /** The collection log's record of what each player has obtained; see [osrsps.game.collection.CollectionLog]. */
+    val collectionLog = osrsps.game.collection.CollectionLog(
+        collectionLogCatalog, { objTypes[it]?.name ?: "Item $it" }, ::textFor,
+        popup = { player, title, text ->
+            interfaces.openSide(player, FrameSlot.NOTIFICATIONS, osrsps.game.collection.CollectionLog.NOTIFICATION_DISPLAY)
+            // -1 is the script's null colour, which it draws in its default orange.
+            interfaces.runClientScript(player, osrsps.game.collection.CollectionLog.NOTIFICATION_DISPLAY_INIT, listOf(title, text, -1))
+        },
+    )
+
+    /**
+     * [count] of [type] dropped for [player] as loot (an NPC's drop, a boss's share, a raid chest's): the loot drop
+     * notification their settings ask for, and the collection log.
+     */
+    fun lootDropped(player: Player, type: ObjType, count: Int) {
+        lootNotifications.dropped(player, type, count)
+        collectionLog.add(player, type.id, count)
+    }
+
     /**
      * Rolls [npc]'s drops and puts them on its tile: the killer's alone for [GroundObjs.DROP_PRIVATE_TICKS], then
      * everyone's, gone after [GroundObjs.LOOT_DESPAWN_TICKS] (OSRS Wiki, Drop). With no killer, or one who has left,
@@ -2930,7 +2957,7 @@ class World(
         for (drop in drops) {
             if (owner != null) {
                 groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, owner, GroundObjs.DROP_PRIVATE_TICKS, despawn)
-                killer?.let { lootNotifications.dropped(it, drop.type, drop.count) }
+                killer?.let { lootDropped(it, drop.type, drop.count) }
             } else {
                 groundObjs.addPublic(drop.type, drop.count, npc.x, npc.z, npc.level, despawn)
             }

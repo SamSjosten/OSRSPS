@@ -98,6 +98,18 @@ class PlayerSaveTest {
     }
 
     @Test
+    fun `the collection log is kept in the order logged, and a save without it has nothing logged`() {
+        val player = world.loadPlayer(1, "Test")
+        player.collectionLog[22372] = 3
+        player.collectionLog[11286] = 1
+        assertTrue(world.save(player))
+        assertEquals(listOf(22372 to 3, 11286 to 1), world.loadPlayer(2, "test").collectionLog.toList())
+        val none = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap()).toJson("test")
+        assertTrue("collectionLog" !in none)
+        assertEquals(emptyMap(), PlayerSave.fromJson(none).collectionLog)
+    }
+
+    @Test
     fun `run waiting on the energy threshold is kept, and a save without it isn't waiting`() {
         val player = world.loadPlayer(1, "Test")
         player.runEnergy = 0

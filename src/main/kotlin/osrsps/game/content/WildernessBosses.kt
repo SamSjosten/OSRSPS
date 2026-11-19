@@ -167,7 +167,7 @@ class WildernessBosses(private val world: World) {
             val player = world.onlinePlayers.firstOrNull { it.saveKey == key }
             for (drop in items) {
                 world.groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, key, GroundObjs.DROP_PRIVATE_TICKS, GroundObjs.LOOT_DESPAWN_TICKS)
-                player?.let { world.lootNotifications.dropped(it, drop.type, drop.count) }
+                player?.let { world.lootDropped(it, drop.type, drop.count) }
             }
         }
         return true

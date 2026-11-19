@@ -231,6 +231,9 @@ class Player(
     /** The Fractured Archive's loot not yet claimed: the vault's chest, and the lobby's Loot Wheelbarrow after. Saved. */
     val archiveChest = Inventory(osrsps.game.raid.ArchiveChestWindow.INV, osrsps.game.raid.ArchiveChestWindow.SLOTS)
 
+    /** The collection log's record: each item logged and its count, in the order first logged; see [osrsps.game.collection.CollectionLog]. Saved. */
+    val collectionLog = LinkedHashMap<Int, Int>()
+
     /** Whether the guide prices screen's item search is open, waiting on resume_p_objdialog. */
     var priceCheckSearching = false
 
