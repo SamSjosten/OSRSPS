@@ -61,6 +61,7 @@ object MejJalLines : Lines("mej_jal", "Transcript:TzHaar-Mej-Jal") {
     val GUESS_SO = line("guess_so", "his answer's menu: agreeing, and what the player says")
     val NO_PROBLEMS = line("no_problems", "agreed: his answer")
     val NOT_ME = line("not_me", "his answer's menu: denying it, and what the player says")
+    val IN_SCENARIO = line("in_scenario", "Exchange fire cape or the cape talk in a test setup (::scenario, the Leagues Tutor's kits): ours, as a kit's cape would earn real TokKul or a pet; ::reset first")
     val CRAZY = line("crazy", "denied: his answer")
 }
 
@@ -136,12 +137,14 @@ object MejJal {
     }
 
     private suspend fun Dialogue.capeMenu(world: World) = with(MejJalLines) {
+        // A test setup's cape would earn TokKul or a pet that outlive ::reset (exploit review R45B-3, R45B-4).
+        if (player.scenario != null) return@with world.message(player, IN_SCENARIO)
         chatNpc(ChatAnim.NEUTRAL, SELL_OFFER)
         val bargain = !ownsPet(player)
         val options = if (bargain) arrayOf(SELL_YES, SELL_NO, BARGAIN) else arrayOf(SELL_YES, SELL_NO)
         when (choice(*options, title = text(SELL_TITLE))) {
             1 -> {
-                if (!takeCape(player)) return@with
+                if (player.scenario != null || !takeCape(player)) return@with
                 world.objTypes[FightCaves.TOKKUL]?.let { world.groundObjs.give(player, it, SELL_PRICE) }
                 mesbox(SELL_DONE)
             }
@@ -157,7 +160,7 @@ object MejJal {
         chatNpc(ChatAnim.NEUTRAL, NO_CAPE_BACK)
         if (choice(GAMBLE_YES, GAMBLE_NO) != 1) return@with chatPlayer(ChatAnim.NEUTRAL, KEEP_CAPE)
         // The pet may have come some other way while the menu was up, or the cape gone: no toss then.
-        if (ownsPet(player) || !takeCape(player)) return@with
+        if (player.scenario != null || ownsPet(player) || !takeCape(player)) return@with
         if (world.random.chance(1, PET_ODDS)) {
             world.objTypes[FightCaves.PET]?.let { world.groundObjs.give(player, it, 1) }
             world.collectionLog.add(player, FightCaves.PET, 1)
