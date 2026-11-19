@@ -726,7 +726,9 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   Varrock Museum's stairs (3265, 3455), Get-log hands over a collection log (`[collector.gives_log]`, item 22711) and a
   second Get-log says `[collector.have_one]`; the log's Read opens the log (621) and Collections overview the overview
   (908); Claim-log-rewards with nothing logged starts `[collector.count_please]`; Create-book on a bronze staff of
-  collection (30597, from `::item`) makes the bronze collection log (30579). Starts and ends with `::empty`.
+  collection (30597, from `::item`) makes the bronze collection log (30579); Destroy on that book opens the destroy
+  check (584), and a mouse click on its drawn No (universe child 0) keeps the book while Yes (child 1) takes it. Starts
+  and ends with `::empty`.
 
 ## Results
 
