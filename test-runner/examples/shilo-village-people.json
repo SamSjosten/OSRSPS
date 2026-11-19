@@ -1,0 +1,44 @@
+{
+  "name": "Karamja step K4.3b: Kaleb Paramaya selling a jug of wine, Yohnus's coffer taking 40 of 50 coins, and his furnace smelting two bronze bars out of it (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::scenario gathering", "expectMessage": "Started scenario gathering.", "comment": "any scenario: ::reset at the end puts the account's backpack and bank back"},
+    {"step": "command", "text": "::empty"},
+    {"step": "command", "text": "::item 995 51"},
+    {"step": "command", "text": "::item 436 2", "comment": "copper ore"},
+    {"step": "command", "text": "::item 438 2", "comment": "tin ore"},
+
+    {"step": "command", "text": "::tele 2862 2996 1", "expectMessage": "Teleported to 2862, 2996, 1", "comment": "upstairs in the Paramaya Inn, by Kaleb (2863,2997)"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "npcOption", "npc": "Kaleb Paramaya", "option": "Talk-to", "timeoutMs": 20000},
+    {"step": "assertDialogue", "contains": "[kaleb.hello]"},
+    {"step": "continueDialogue"},
+    {"step": "chooseOption", "text": "[kaleb.for_sale]"},
+    {"step": "continueDialogue", "comment": "the player says it"},
+    {"step": "chooseOption", "text": "[kaleb.buy_wine]"},
+    {"step": "assertDialogue", "contains": "[kaleb.bought_wine]"},
+    {"step": "continueDialogue"},
+    {"step": "chooseOption", "text": "[kaleb.cancel]"},
+    {"step": "continueDialogue", "comment": "[kaleb.fine]"},
+    {"step": "assertInventory", "item": "Jug of wine", "count": 1, "timeoutMs": 5000},
+    {"step": "assertInventory", "item": "Coins", "count": 50},
+
+    {"step": "command", "text": "::tele 2857 2964 0", "expectMessage": "Teleported to 2857, 2964, 0", "comment": "in the smithery, by Yohnus (wandering within 4 of 2857,2965)"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "npcOption", "npc": "Yohnus", "option": "Coffer", "timeoutMs": 20000},
+    {"step": "chooseOption", "text": "[yohnus.deposit]"},
+    {"step": "enterAmount", "amount": 50},
+    {"step": "chooseOption", "text": "[yohnus.cancel]", "comment": "the menu again, now showing 40"},
+    {"step": "assertInventory", "item": "Coins", "count": 10, "timeoutMs": 5000, "comment": "deposited in twenties"},
+
+    {"step": "locOption", "locId": 29662, "option": "Smelt", "x": 2856, "y": 2967},
+    {"step": "assertInterface", "interfaceId": 270, "comment": "skillmulti, the Make-X box over the bars"},
+    {"step": "clickWidget", "interfaceId": 270, "component": 15, "comment": "the bronze bar, first in the box, as smithing-lumbridge.json picks it"},
+    {"step": "assertInventory", "item": "Bronze bar", "count": 2, "timeoutMs": 20000},
+    {"step": "assertInventory", "item": "Coins", "count": 10, "comment": "paid out of the coffer"},
+
+    {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+  ]
+}

@@ -161,6 +161,8 @@ between scripts then shows the words a player sees, not `[key]`.
 
 `shilo-village.json` (Karamja step K4.3, for test on 215: Mosol Rei's Follow (8696, wandering by 2883,2951) taking the player just inside the wooden gate (a guessed tile), the broken cart (2216) climbed from the west, the metal gate (2259) walked through, Obli's talk opening his store, the river's stepping stone (16466) crossed north to south at 32 Agility (tiles inferred from the map) and a banker's Bank) needs 0.6.1 for `assertInterface`.
 
+`shilo-village-people.json` (Karamja step K4.3b, for test on 215: 51 coins and two each of copper and tin ore, Kaleb Paramaya (5358, upstairs in the Paramaya Inn at 2863,2997) selling a jug of wine for 1, Yohnus's Coffer (5359, wandering by 2857,2965) taking 40 of 50 coins in twenties, and his furnace (29662 at 2856,2967, shown lit once the quest is done) smelting two bronze bars for 20 coins each out of the coffer) needs 0.6.1 for `assertInterface`, `clickWidget` and `enterAmount`.
+
 `combat-respawn.json` (a castle man and a cow killed with `::kill`, still listed by `::respawns` until their Wiki
 respawn times of 25 and 45 ticks are up) needs 0.5.0.
 
