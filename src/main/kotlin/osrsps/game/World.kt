@@ -758,13 +758,15 @@ class World(
     /**
      * Where a player dying here comes back and their grave goes: a raid's say ([ArchiveRaids.deathPlace]); in any other
      * instance the grave goes to its exit, since nobody could get back in to it (exploit review round 9, INST-1), and
-     * they come back at the spawn; elsewhere, null: the spawn, and the grave where they fell.
+     * they come back at the spawn, except a private King Black Dragon lair's, whose grave goes in the open lair
+     * ([KingBlackDragon.graveTile]); elsewhere, null: the spawn, and the grave where they fell.
      */
     private fun deathPlace(player: Player): DeathPlace? {
         archiveRaids.deathPlace(player)?.let { return it }
         fightCaves.deathPlace(player)?.let { return it }
         houses.deathPlace(player)?.let { return it }
         val instance = instances.at(player.x, player.z) ?: return null
+        KingBlackDragon.graveTile(this, player.x, player.z)?.let { return DeathPlace(keepItems = false, it.x, it.z, 0, SPAWN_X, SPAWN_Z, SPAWN_LEVEL) }
         return DeathPlace(keepItems = false, instance.exitX, instance.exitZ, instance.exitLevel, SPAWN_X, SPAWN_Z, SPAWN_LEVEL)
     }
 
@@ -2952,12 +2954,14 @@ class World(
         val killer = if (solo != null) solo.key?.let { key -> onlinePlayers.firstOrNull { it.saveKey == key } } else killer
         // A superior's three rolls on its normal counterpart's table come after its own drops.
         val drops = npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty()
-        val owner = killer?.takeIf { !it.loggedOut }?.saveKey
+        // A solo boss's drop stays its top damager's even if they log out as the body falls (exploit review round 40,
+        // R40B-6), as group loot does; anyone else's goes public once its killer has left.
+        val owner = if (solo != null) solo.key else killer?.takeIf { !it.loggedOut }?.saveKey
         val despawn = osrsps.game.content.KingBlackDragon.lootTicks(this, npc, GroundObjs.LOOT_DESPAWN_TICKS)
         for (drop in drops) {
             if (owner != null) {
                 groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, owner, GroundObjs.DROP_PRIVATE_TICKS, despawn)
-                killer?.let { lootDropped(it, drop.type, drop.count) }
+                killer?.takeIf { !it.loggedOut }?.let { lootDropped(it, drop.type, drop.count) }
             } else {
                 groundObjs.addPublic(drop.type, drop.count, npc.x, npc.z, npc.level, despawn)
             }

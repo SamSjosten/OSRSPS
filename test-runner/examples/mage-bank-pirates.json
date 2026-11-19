@@ -19,6 +19,8 @@
     {"step": "continueDialogue"},
     {"step": "chooseOption", "text": "[mage_arena_bank.gundai_bank]"},
     {"step": "assertInterface", "interfaceId": 12, "timeoutMs": 10000, "comment": "bankmain, across Gundai's counter"},
+    {"step": "clickWidget", "interfaceId": 12, "component": 2, "slot": 11, "op": 1, "comment": "bankmain:frame's close button, as ferox-bank's; with the bank open the walk click lands on the bank (rerun 2026-11-18)"},
+    {"step": "assertInterface", "interfaceId": 12, "absent": true, "timeoutMs": 5000},
     {"step": "walk", "x": 2539, "y": 4716},
     {"step": "assertLocation", "x": 2539, "y": 4716, "plane": 0, "timeoutMs": 10000},
     {"step": "npcOption", "npc": "Lundail", "option": "Trade", "timeoutMs": 20000},
