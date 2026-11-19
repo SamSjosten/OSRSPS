@@ -110,6 +110,33 @@ class PlayerSaveTest {
     }
 
     @Test
+    fun `the look is kept, a scenario's restore leaves it alone, and a save without one has the default look`() {
+        val player = world.loadPlayer(1, "Test")
+        val look = PlayerLook(PlayerLook.BODY_TYPE_B, listOf(45, -1, 56, 61, 67, 70, 79), listOf(3, 12, 7, 2, 9), pronoun = 2)
+        player.look = look
+        assertTrue(world.save(player))
+        assertEquals(look, world.loadPlayer(2, "test").look)
+        // A scenario's restore puts back everything but the header, so the look stays as it is.
+        val other = world.loadPlayer(3, "other")
+        other.look = look
+        PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap()).restoreTo(other)
+        assertEquals(look, other.look)
+        val none = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap()).toJson("test")
+        assertTrue("look" !in none)
+        assertEquals(PlayerLook.DEFAULT, PlayerSave.fromJson(none).look)
+    }
+
+    @Test
+    fun `a save with a look out of range is refused rather than sent to the client`() {
+        val good = PlayerSave(3222, 3218, 0, 10_000, emptyMap(), emptyMap(), look = PlayerLook.DEFAULT.withColour(PlayerLook.ColourPart.SKIN, 13))
+            .toJson("test")
+        assertEquals(13, PlayerSave.fromJson(good).look.colours[PlayerLook.ColourPart.SKIN.ordinal])
+        val bad = good.replace("\"pronoun\": 0", "\"pronoun\": 7")
+        assertTrue(bad != good)
+        assertFailsWith<IllegalArgumentException> { PlayerSave.fromJson(bad) }
+    }
+
+    @Test
     fun `run waiting on the energy threshold is kept, and a save without it isn't waiting`() {
         val player = world.loadPlayer(1, "Test")
         player.runEnergy = 0

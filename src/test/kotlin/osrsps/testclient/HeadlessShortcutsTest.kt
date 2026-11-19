@@ -17,7 +17,7 @@ import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
 
 /**
- * Agility step 7 through the headless client (with Misthalin piece 7 step 1's raft and desert stone): the Misthalin shortcuts with their real locs (as the 241 map places them)
+ * Agility step 7 through the headless client (with Misthalin piece 7 step 1's raft and desert stone, and post-quest step 1's palace trellis): the Misthalin shortcuts with their real locs (as the 241 map places them)
  * and agility.json, on open ground (no cache collision in tests) but for the rivers around the stepping stones, which are
  * blocked as the map has them, so the stones are used from the bank. Each is crossed there and back. The rl-client script
  * test-runner/examples/agility-shortcuts.json runs them in the real world.
@@ -39,6 +39,8 @@ class HeadlessShortcutsTest {
         // Misthalin piece 7 step 1: the River Lum's raft without a grapple, there by one half and back by the other.
         Shortcut(17069, "Broken Raft", "Jump-to", 22, 0, 3252, 3180, 3246 to 3179, 3259 to 3179, 48, Triple(17070, 3253, 3180)),
         Shortcut(16513, "Stepping stone", "Jump-to", 22, 0, 3214, 3135, 3214 to 3140, 3214 to 3131, 66),
+        // Post-quest content step 1: Varrock Palace garden's trellis, open after Garden of Tranquillity.
+        Shortcut(2149, "Trellis", "Climb", 0, 3, 3228, 3471, 3228 to 3470, 3228 to 3471, 35),
     )
 
     private val text = AgilityData::class.java.getResource(AgilityData.RESOURCE)!!.readText()
