@@ -837,6 +837,9 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   classroom (look at Mr. Mordaut at his desk, the dunce on his stool and the four doors), Mr. Mordaut explains the exam
   and the what-comes-next window shows (look at the three objects, the question mark and the four to pick from), and a
   door sends the player home. Answering, passing, failing and the Book of Knowledge are the headless test's part.
+- `evil-chicken.json`: random events step 19 (with `::keys on`): the Evil Chicken stands still in the Champions'
+  Guild coop (look at it, level 159 with Attack), examines, and killed with `::kill` says a line overhead and drops
+  feathers, bones and raw chicken. Its fight and the feather count are the headless test's part.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
   it with no dependency, guard or var shared with another row is set to 0, clicked on and checked, then checked again
   after a relog and put back to 0. Generated from the 241 cache's settings catalog; run them one at a time.

@@ -1,0 +1,18 @@
+{
+  "name": "Random events step 19: the Evil Chicken in the Champions' Guild coop, its overheads and its drops",
+  "account": "test",
+  "runOnLogin": false,
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::randomevent off", "expectMessage": "Random events off"},
+    {"step": "command", "text": "::tele 3198 3357", "expectMessage": "Teleported to 3198, 3357"},
+    {"comment": "Look that the Evil Chicken stands still in the coop south of the Champions' Guild, level 159, with Attack.", "step": "waitTicks", "ticks": 3},
+    {"step": "npcOption", "npcId": 6739, "option": "Examine", "timeoutMs": 20000},
+    {"step": "assertMessage", "contains": "[examine.npc_6739]", "timeoutMs": 10000},
+    {"comment": "Killed with the command: look that it says one of its lines overhead as it is hurt.", "step": "command", "text": "::kill evil chicken", "expectMessage": "Killed Evil Chicken"},
+    {"step": "assertGroundItem", "itemId": 314, "timeoutMs": 20000},
+    {"step": "assertGroundItem", "itemId": 526, "timeoutMs": 10000},
+    {"step": "assertGroundItem", "itemId": 2138, "timeoutMs": 10000}
+  ]
+}
