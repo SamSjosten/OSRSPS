@@ -1,5 +1,5 @@
 {
-  "name": "Wilderness boss loot, two players (start with artio-left-fight.json on the other VM at the same time): test2 does 440 of Artio's 450 hitpoints, leaves her lair before test finishes her, and gets no kill count for her (exploit review rounds 40 and 42, ::keys on)",
+  "name": "Wilderness boss loot, two players (start with artio-left-fight-test.json on the other VM at the same time): test2 does 440 of Artio's 450 hitpoints, leaves her lair before test finishes her, and gets no kill count for her (exploit review rounds 40 and 42, ::keys on)",
   "account": "test2",
   "steps": [
     {"step": "waitForLogin"},
@@ -15,9 +15,7 @@
     {"step": "chooseOption", "text": "[wildy_lair_fee.yes]"},
     {"step": "waitTicks", "ticks": 10, "comment": "test is in her lair too, so the fight goes on without us"},
     {"step": "command", "text": "::hit 440 Artio", "expectMessage": "for 440: 10/450 hp"},
-    {"step": "locOption", "locId": 47122, "option": "Exit", "x": 1758, "y": 11531},
-    {"step": "waitTicks", "ticks": 6},
-    {"step": "assertLocation", "x": 3116, "y": 3675, "plane": 0},
+    {"step": "command", "text": "::tele 3116 3674 0", "expectMessage": "Teleported to 3116, 3674, 0", "comment": "out of her lair at once: walking to its Exit, Artio stands in the way"},
     {"step": "waitTicks", "ticks": 50, "comment": "test finishes her meanwhile"},
     {"step": "assertVarp", "id": 3761, "value": 0, "comment": "no kill count for one who walked away; before the fix our 440 took it"},
     {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}

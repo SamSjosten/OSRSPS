@@ -143,7 +143,7 @@ class WildernessBosses(private val world: World) {
         // Not one who logged out this tick, still in the list until the end of it, nor one who has left the fight
         // (exploit review round 40, R40B-3).
         val present = world.onlinePlayers.filter { !it.loggedOut && atFight(it, npc) }.mapTo(HashSet()) { it.saveKey }
-        return shares(tally.damage, tally.ironmen).filter { it.key in present }
+        return shares(tally.damage, tally.ironmen) { it in present }
     }
 
     /**
@@ -222,13 +222,14 @@ class WildernessBosses(private val world: World) {
         const val IRONMAN_FLOOR_PERCENT = 5
 
         /**
-         * The top [MAX_LOOTERS] of [damage] (by save key; ties to whoever hit first), each with its floor: 25%, or 5%
-         * for one of [ironmen] under 7% of the damage.
+         * The top [MAX_LOOTERS] of [damage] (by save key; ties to whoever hit first) that are [eligible], each with its
+         * floor: 25%, or 5% for one of [ironmen] under 7% of the damage. The total stays everyone's damage; only the
+         * eligible take the places, so ten who left don't shut out an eleventh who stayed (Codex review on #817).
          */
-        fun shares(damage: Map<String, Int>, ironmen: Set<String> = emptySet()): List<Share> {
+        fun shares(damage: Map<String, Int>, ironmen: Set<String> = emptySet(), eligible: (String) -> Boolean = { true }): List<Share> {
             val total = damage.values.sum()
             if (total <= 0) return emptyList()
-            return damage.entries.filter { it.value > 0 }.sortedByDescending { it.value }.take(MAX_LOOTERS).map { (key, dealt) ->
+            return damage.entries.filter { it.value > 0 && eligible(it.key) }.sortedByDescending { it.value }.take(MAX_LOOTERS).map { (key, dealt) ->
                 val floor = if (key in ironmen && dealt * 100 < total * IRONMAN_ELIGIBLE_PERCENT) IRONMAN_FLOOR_PERCENT else FLOOR_PERCENT
                 Share(key, dealt, total, floor)
             }
