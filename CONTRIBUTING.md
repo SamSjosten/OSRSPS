@@ -48,7 +48,9 @@ the server on VM 214 (the deploy filter in `deploy/auto-deploy.sh`).
 ## Docs
 
 The README holds only what is needed to run and test the server: setup, the testing tools and the `::` commands
-table. A pull request that adds a command adds its row (one line) there. How a feature behaves, and where each rule
+table, plus the "What's in it" table. A pull request that adds a command adds its row (one line) there, and one
+that finishes an area, a skill or a boss updates "What's in it" (a skill moves from "in part" to the full list only
+once it trains 1 to 99). How a feature behaves, and where each rule
 came from, goes in the code's comments (`// Guessed:`, `// Inferred:`, the Wiki page or recording), not in the README.
 `NOTES.md` keeps the notes written before 2026-11-18; don't add new sections to it.
 

@@ -23,18 +23,18 @@ This repository (OSRSPS) is the server: our own engine in Kotlin on Java 21, wit
 behaviour is matched tick for tick from the OSRS Wiki and recordings of the live game, and anything guessed is marked
 in the code. Current RuneLite connects unchanged.
 
-> [!NOTE]
-> Revision **242**, set in `src/main/kotlin/osrsps/Revision.kt`. The cache build VM 214 runs is in
-> `deploy/cache-build.txt`.
-
 ### What's in it
 
 | | Built so far |
 |---|---|
 | **Areas** | Lumbridge, Draynor, Varrock, Al Kharid, Edgeville, the swamp and Misthalin's dungeons, the Wilderness |
-| **Skills** | Gathering, artisan and combat skills, Agility, Thieving, Magic, Farming, Hunter, Runecraft, Slayer |
-| **Bosses** | The Fractured Archive raid, Misthalin's bosses and the Wilderness bosses |
-| **Testing** | Pause and step ticks, fixed seeds, one-command scenarios, a headless client and a RuneLite test runner |
+| **Skills** | Attack, Strength, Defence, Hitpoints, Ranged, Prayer, Mining, Smithing, Fishing, Cooking, Woodcutting, Firemaking, Fletching, Crafting, Herblore, Thieving, Runecraft, Farming |
+| **Skills, in part** | Magic (no Alchemy or Superheat Item yet), Agility (the Draynor, Al Kharid, Varrock and Gnome Stronghold courses), Slayer (no Task Storage, ring teleports or boss tasks), Hunter (no birdhouses, herbiboar, Hunter Guild or Puro-Puro), Construction (houses only) |
+| **Bosses** | Obor and Bryophyta; in the Wilderness, the King Black Dragon, Chaos Elemental, Chaos Fanatic, Crazy Archaeologist, Scorpia and Artio; in the Fractured Archive raid, the Guardian statues, Bork, the Smorks, Dreadnoth, Xarth, Moia, Dagon'hai and Ocellus |
+| **Being built** | Karamja and Mor Ul Rek (the Port Sarim boat so far), the Fight Caves |
+
+A skill listed in full trains 1 to 99 by live's main methods. Minigames and other regions' extras (Wintertodt, Tempoross,
+Guardians of the Rift and so on) come with their areas.
 
 ### Quick start
 
@@ -102,7 +102,7 @@ stay live's.
 
 The server runs in Docker in `/srv/rsps/OSRSPS`, with `data/` mounted in. A timer redeploys every merge to `main`
 within a few minutes; a merge that only touches top-level docs, tests, the plugins, `docs/`, `deploy/` or `.github/`
-doesn't restart it. `http://192.168.0.210:43595/version` names the running commit, and `/status` adds the cache and
+doesn't restart it. The cache build it runs is pinned in `deploy/cache-build.txt`. `http://192.168.0.210:43595/version` names the running commit, and `/status` adds the cache and
 frame checks.
 
 ```bash
