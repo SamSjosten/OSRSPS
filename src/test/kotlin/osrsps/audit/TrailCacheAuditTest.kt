@@ -7,7 +7,10 @@ import kotlin.test.assertTrue
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
 import osrsps.cache.DbRows
 import osrsps.cache.ObjTypeLoader
+import osrsps.cache.LocTypeDecoder
 import osrsps.cache.TrailLoader
+import osrsps.cache.VarTypeLoader
+import osrsps.game.trail.StashUnits
 import osrsps.game.trail.StepType
 import osrsps.game.trail.TrailRewards
 import osrsps.game.trail.TrailTier
@@ -15,8 +18,9 @@ import osrsps.game.trail.TreasureTrails
 
 /**
  * Treasure Trails against the real cache, which the headless tests (no cache) can't check: the clue helper tables load
- * into every step the Wiki lists, the Misthalin dig, talk, search and emote steps built so far (TT1, TT3, TT4) are the ones the plan counted (Treasure Trails plan,
- * 19 Nov 2026, from the same tables), every built map has its interface, and every clue scroll item is read.
+ * into every step the Wiki lists, the Misthalin dig, talk, search and emote steps built so far (TT1, TT3, TT4) are the
+ * ones the plan counted (Treasure Trails plan, 19 Nov 2026, from the same tables), every built map has its interface,
+ * every clue scroll item is read, and Misthalin's STASH units (TT5) are the Wiki's, each a Build and Search multiloc.
  *
  * Needs OSRSPS_FLATCACHE: a checkout of github.com/abextm/osrs-cache at the server's revision.
  */
@@ -75,7 +79,39 @@ class TrailCacheAuditTest {
         }
     }
 
+    @Test
+    @EnabledIfEnvironmentVariable(named = "OSRSPS_FLATCACHE", matches = ".+")
+    fun `every Misthalin STASH unit is a multiloc of Build and Search forms on a one-bit varbit`() {
+        val cache = FlatCache(Path(System.getenv("OSRSPS_FLATCACHE")))
+        val objs = ObjTypeLoader.link(cache.group(CONFIG_INDEX, OBJ_GROUP).mapValues { (id, data) -> ObjTypeLoader.decode(id, data) })
+        val rows = cache.group(CONFIG_INDEX, DBROW_GROUP).mapValues { (_, data) -> DbRows.decode(data) }
+        val itemRows = HashMap<Int, MutableList<Int>>()
+        for (id in 0 until objs.size) {
+            val row = objs[id]?.params?.get(TrailLoader.PARAM_STEP_ROW) as? Int ?: continue
+            itemRows.getOrPut(row) { ArrayList() } += id
+        }
+        val units = StashUnits.units(TrailLoader.build(rows, itemRows))
+        val locs = cache.group(CONFIG_INDEX, LOC_GROUP)
+        val varbits = cache.group(CONFIG_INDEX, VARBIT_GROUP)
+        val problems = ArrayList<String>()
+        for (stash in units.values) {
+            val type = LocTypeDecoder.decode(stash.loc, locs[stash.loc] ?: continue.also { problems += "${stash.loc}: no loc" })
+            val forms = type.multiLocs.map { id -> locs[id]?.let { LocTypeDecoder.decode(id, it) } }
+            val bits = varbits[type.multiVarbit]?.let(VarTypeLoader::decodeVarbit)
+            if (bits == null || bits.startBit != bits.endBit) problems += "${stash.loc}: varbit ${type.multiVarbit} is $bits"
+            if (forms.getOrNull(0)?.ops?.get(StashUnits.BUILD - 1) != "Build") problems += "${stash.loc}: unbuilt form ${forms.getOrNull(0)?.ops}"
+            if (forms.getOrNull(1)?.ops?.get(StashUnits.SEARCH - 1) != "Search") problems += "${stash.loc}: built form ${forms.getOrNull(1)?.ops}"
+            if (forms.getOrNull(1)?.name != "STASH (${stash.tier.key})") problems += "${stash.loc}: built form named ${forms.getOrNull(1)?.name}"
+        }
+        assertEquals(emptyList(), problems)
+        // As many as the Wiki's STASH page lists inside Misthalin's outline (read 2026-11-19).
+        assertEquals(EXPECTED_UNITS, units.values.groupingBy { it.tier }.eachCount(), units.values.map { "${it.tier.key} ${it.loc}" }.sorted().toString())
+    }
+
     private companion object {
+        val EXPECTED_UNITS = mapOf(TrailTier.BEGINNER to 3, TrailTier.EASY to 13, TrailTier.MEDIUM to 5, TrailTier.HARD to 1, TrailTier.MASTER to 2)
+        const val LOC_GROUP = 6
+        const val VARBIT_GROUP = 14
         const val CONFIG_INDEX = 2
         const val OBJ_GROUP = 10
         const val DBROW_GROUP = 38
