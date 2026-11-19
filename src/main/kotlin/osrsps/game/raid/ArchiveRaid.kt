@@ -19,6 +19,7 @@ import osrsps.game.script.ScriptContext
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.LocShape
 import osrsps.map.Tile
+import kotlin.math.abs
 
 private val logger = KotlinLogging.logger {}
 
@@ -871,7 +872,10 @@ class ArchiveRaids(private val world: World) {
         val leader = party.leader
         if (leader === player) return false
         val waiting = if (room == null) {
-            runs[party] == null && world.onlinePlayers.any { it === leader } && !leader.dead
+            // Only a leader who could go in now holds the rest: one in the lobby, alive, with no loot of an earlier run
+            // still to claim (exploit review R42C-1: one away or with loot waiting held the party for good).
+            runs[party] == null && world.onlinePlayers.any { it === leader } && !leader.dead && inLobby(leader) &&
+                !world.archiveChestWindow.waiting(leader)
         } else {
             val run = at(player.x, player.z) ?: return false
             val taken = if (room == ArchiveRoom.OCELLUS) room in run.led else run.chosen[room.stage] != null
@@ -882,6 +886,10 @@ class ArchiveRaids(private val world: World) {
         world.dialogues.start(context) { mesbox(ArchiveRunLines.LEADER_FIRST, "name" to leader.username) }
         return true
     }
+
+    /** Whether [player] is in the lobby, within [LOBBY_REACH] of the Archive Door's front on the ground. */
+    fun inLobby(player: Player): Boolean =
+        player.level == 0 && maxOf(abs(player.x - LOBBY_X), abs(player.z - LOBBY_Z)) <= LOBBY_REACH
 
     /** The rest of the party in [run] are told [line] (with [player]'s name and [args]) as [player] leads the way on. */
     private fun led(run: ArchiveRun, player: Player, line: osrsps.game.dialogue.Line, vararg args: Pair<String, Any>) {
@@ -1917,6 +1925,9 @@ class ArchiveRaids(private val world: World) {
         /** In front of the Archive Door, in the lobby: where a wipe lands and its graves go, and the instance's exit. Guessed. */
         const val LOBBY_X = 4127
         const val LOBBY_Z = 5560
+
+        /** How far from [LOBBY_X], [LOBBY_Z] counts as the lobby, for the leader going first. Guessed: the room's size. */
+        const val LOBBY_REACH = 16
 
         /** Where the reward vault's Rift out lands, in the lobby: Sam's recording of 16 November 2026. */
         const val RIFT_LEAVE_X = 4125
