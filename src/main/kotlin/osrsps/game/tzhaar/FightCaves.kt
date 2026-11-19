@@ -74,6 +74,9 @@ class FightCaves(private val world: World) {
         /** The wave's monsters still in the world, the dead ones until their bodies go. */
         val monsters: MutableList<Npc> = ArrayList()
 
+        /** Level 22 Tz-Keks a split couldn't bring in yet (the world full of NPCs), by tile: the wave waits for them. */
+        internal val splitsOwed: MutableList<Tile> = ArrayList()
+
         /** The logout button was clicked in this wave: the player is logged out as it ends. */
         var pausing: Boolean = false
             internal set
@@ -99,7 +102,11 @@ class FightCaves(private val world: World) {
     /** [player]'s run, if they have one going. */
     fun runOf(player: Player): Run? = runs[player.saveKey]
 
+    /** The monsters' own mechanics (Fight Caves step FC2). */
+    val monsterMechanics = FightCaveMonsters(world)
+
     fun register() {
+        monsterMechanics.register(this)
         world.handlers.onLoc(ENTRANCE, ENTER) { enter(player) }
         world.handlers.onLoc(EXIT, LEAVE) { leave(player) }
         world.handlers.onLoc(EXIT, ESCAPE) { leave(player) }
@@ -209,8 +216,13 @@ class FightCaves(private val world: World) {
                 continue
             }
             run.monsters.removeAll { world.npcs[it.index] !== it }
+            for (npc in run.monsters.toList()) if (npc.scriptedAttacks && npc.target === player) monsterMechanics.tick(npc, player)
             if (run.nextWaveTick >= 0) {
                 if (world.tick >= run.nextWaveTick) spawnWave(player, run)
+            } else if (run.splitsOwed.isNotEmpty()) {
+                for (tile in run.splitsOwed.toList()) {
+                    if (spawn(player, run, FightCaveMonsters.TZ_KEK_22, tile) != null) run.splitsOwed.remove(tile)
+                }
             } else if (run.monsters.none { !it.dead }) {
                 waveDone(player, run)
             }
@@ -251,13 +263,14 @@ class FightCaves(private val world: World) {
 
     /**
      * Puts a monster of [typeId] in [run]'s cave on [tile] (already the cave's own), going for [player] from the next
-     * tick, wherever in the cave they are; null when it can't be. Fight Caves step FC2's Tz-Kek split comes in this way.
+     * tick, wherever in the cave they are; null when it can't be. The Tz-Kek split comes in this way (FightCaveMonsters).
      */
     fun spawn(player: Player, run: Run, typeId: Int, tile: Tile): Npc? {
         val type = world.npcTypes[typeId] ?: return null.also { logger.warn { "The cache has no NPC $typeId for the fight cave" } }
         val npc = world.spawnNpc(NpcSpawn(type, tile.x, tile.z, 0, source = SOURCE, respawns = false)) ?: return null
         npc.unleashed = true
         npc.huntsAnywhere = true
+        npc.scriptedAttacks = monsterMechanics.scripted(typeId)
         run.monsters += npc
         world.meleeCombat.aggress(npc, player, world.tick)
         return npc
