@@ -426,6 +426,8 @@ class World(
     val trailRewards: osrsps.game.trail.TrailRewards = osrsps.game.trail.TrailRewards.NONE,
     /** Whether shooting stars land on their own ([ShootingStars]); tests land theirs with `::star land`. */
     starCycle: Boolean = false,
+    /** Construction's furniture, from the cache ([osrsps.cache.FurnitureLoader]); tests that build pass their own. */
+    furnitureData: osrsps.game.skill.construction.FurnitureData = osrsps.game.skill.construction.FurnitureData.NONE,
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
     /** The cache's identity kits, which ::look and the makeover screens check kits against. */
@@ -665,7 +667,8 @@ class World(
             it in ArchiveRaids.INSTANCE_LOCS || it in GiantLairs.INSTANCE_LOCS || it in KingBlackDragon.INSTANCE_LOCS ||
                 it in osrsps.game.skill.construction.House.INSTANCE_LOCS || it in FightCaves.INSTANCE_LOCS ||
                 it in osrsps.game.content.Scurrius.INSTANCE_LOCS ||
-                it in osrsps.game.tzhaar.Inferno.INSTANCE_LOCS
+                it in osrsps.game.tzhaar.Inferno.INSTANCE_LOCS ||
+                it in osrsps.game.skill.construction.FurnitureBuilds.INSTANCE_LOCS
         },
     )
 
@@ -969,6 +972,9 @@ class World(
     /** Player-owned houses: the estate agent, the house portals and each house's instance; see [osrsps.game.skill.construction.Houses]. */
     val houses = osrsps.game.skill.construction.Houses(this)
 
+    /** Furniture built in houses; see [osrsps.game.skill.construction.Furniture]. */
+    val furniture = osrsps.game.skill.construction.Furniture(this, houses, furnitureData)
+
     val firemaking = Firemaking(this, collision)
 
     val hunter = osrsps.game.skill.hunter.Hunter(this, collision)
@@ -1267,6 +1273,7 @@ class World(
         arceuusRunecraft.register()
         ourania.register()
         houses.register()
+        furniture.register()
         osrsps.game.skill.construction.EstateAgent.register(this, houses)
         loadDialogue()
     }

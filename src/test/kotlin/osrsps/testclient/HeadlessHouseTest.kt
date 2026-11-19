@@ -13,12 +13,16 @@ import osrsps.game.NpcTypes
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.PlayerSave
+import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.skill.construction.EstateAgent
+import osrsps.game.skill.construction.Furniture
+import osrsps.game.skill.construction.FurnitureData
+import osrsps.game.skill.construction.FurnitureOption
 import osrsps.game.skill.construction.House
 import osrsps.game.skill.construction.RoomType
 import osrsps.game.zone.ZoneLoc
@@ -52,6 +56,7 @@ class HeadlessHouseTest {
         hotspot(CHAIR_SPACE, "Chair space"),
         LocType(LARDER_SPACE, "Larder space", ops = listOf(null, null, null, null, House.BUILD_OP), collision = LocCollisionType(width = 2, length = 1, interactType = 0)),
         LocType(House.WALL, "null", collision = LocCollisionType(width = 1, length = 1)),
+        LocType(CRUDE_CHAIR, "Chair", ops = listOf("Sit-on", null, null, null, "Remove"), collision = LocCollisionType(width = 1, length = 1)),
         door(House.DOOR_LEFT, "Open"), door(House.DOOR_RIGHT, "Open"), door(House.DOOR_LEFT_OPEN, "Close"), door(House.DOOR_RIGHT_OPEN, "Close"),
     ).associateBy { it.id }
 
@@ -66,8 +71,14 @@ class HeadlessHouseTest {
     }
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
-        val objs = arrayOfNulls<ObjType>(EstateAgent.GUIDE_BOOK + 1)
+        val objs = arrayOfNulls<ObjType>(Furniture.ANY_NAILS + 1)
         objs[EstateAgent.COINS] = ObjType(EstateAgent.COINS, "Coins", stackable = true)
+        objs[PLANK] = ObjType(PLANK, "Plank")
+        objs[STEEL_NAILS] = ObjType(STEEL_NAILS, "Steel nails", stackable = true)
+        objs[BRONZE_NAILS] = ObjType(BRONZE_NAILS, "Bronze nails", stackable = true)
+        objs[Furniture.ANY_NAILS] = ObjType(Furniture.ANY_NAILS, "Nails")
+        objs[HAMMER] = ObjType(HAMMER, "Hammer")
+        objs[SAW] = ObjType(SAW, "Saw")
         objs[EstateAgent.GUIDE_BOOK] = ObjType(EstateAgent.GUIDE_BOOK, "Construction guide")
         val garden = RoomType.GARDEN
         val parlour = RoomType.PARLOUR
@@ -94,8 +105,15 @@ class HeadlessHouseTest {
                 add(ZoneLoc(LARDER_SPACE, LocShape.CENTREPIECE_STRAIGHT, 0, kitchen.templateX + 1, kitchen.templateZ + 6, 0))
             },
             cycleMillis = millis,
+            furnitureData = FurnitureData(mapOf(RoomType.PARLOUR.id to List(3) { chairs })),
         )
     }
+
+    /** The chair spaces' first two choices, as the cache's furniture table has them (rows 5517 and 5518). */
+    private val chairs = listOf(
+        FurnitureOption(CRUDE_CHAIR_ROW, "Crude wooden chair", 8309, listOf(PLANK to 2, Furniture.ANY_NAILS to 2), level = 1),
+        FurnitureOption(WOODEN_CHAIR_ROW, "Wooden chair", 8310, listOf(PLANK to 3, Furniture.ANY_NAILS to 3), level = 8),
+    )
 
     private fun HeadlessClient.ready() = await("the login rebuild") { position }
 
@@ -344,8 +362,83 @@ class HeadlessHouseTest {
         }
     }
 
+    @Test
+    fun `building mode builds a chair on its space from the creation menu, and removes it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.ready()
+                client.buyHouse()
+                val at = client.goIn(House.BUILD_MODE)
+                val instance = assertNotNull(server.world.instances.at(at.x, at.z))
+                val cx = instance.baseX + (House.STARTER_X shl 3) + 2
+                val cz = instance.baseZ + ((House.STARTER_Z + 1) shl 3) + 4
+                val player = server.world.playerNamed("dave")!!
+                fun menuOpen() = client.await("the creation menu") { if (Furniture.MENU in client.openInterfaces()) Unit else null }
+
+                // No hammer or saw: the menu opens, both choices crossed out, and building is refused.
+                client.locOp(CHAIR_SPACE, cx, cz, House.BUILD)
+                menuOpen()
+                client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 1)
+                client.await("the tools refusal") { client.messages().firstOrNull { it.text == "[construction.furniture_tools]" } }
+
+                // With the tools and materials: each slot is drawn by the client's own script, the wooden chair crossed out
+                // (level 8), and the list laid out for two.
+                for (obj in listOf(HAMMER, SAW)) client.command("item $obj 1")
+                client.command("item $PLANK 2")
+                client.command("item $STEEL_NAILS 2")
+                client.command("item $BRONZE_NAILS 3")
+                client.await("the materials") { if (client.count(BRONZE_NAILS) == 3) Unit else null }
+                client.locOp(CHAIR_SPACE, cx, cz, House.BUILD)
+                menuOpen()
+                val scripts = client.await("the menu's slots") { client.clientScripts().filter { it.id == Furniture.ENTRY_SCRIPT }.takeIf { it.size >= 4 } }
+                assertEquals(listOf<Any>(1, CRUDE_CHAIR_ROW, 1, "2 x Plank|2 x Nails", 1), scripts[2].args)
+                assertEquals(listOf<Any>(2, WOODEN_CHAIR_ROW, 8, "3 x Plank|3 x Nails", 0), scripts[3].args)
+                assertEquals(listOf<Any>(2, 0), client.clientScripts().last { it.id == Furniture.LAYOUT_SCRIPT }.args)
+                client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 2)
+                client.await("the level refusal") { client.messages().firstOrNull { it.text == "[construction.furniture_level level=8]" } }
+
+                // The crude wooden chair: the planks go, and the steel nails before the bronze; 58 XP; built and saved.
+                client.locOp(CHAIR_SPACE, cx, cz, House.BUILD)
+                menuOpen()
+                client.resumePause(Furniture.MENU, Furniture.MENU_CONTENTS, 1)
+                client.await("the chair") { if (client.shown(CRUDE_CHAIR, cx, cz)) Unit else null }
+                assertEquals(listOf(0, 0, 3), listOf(client.count(PLANK), client.count(STEEL_NAILS), client.count(BRONZE_NAILS)))
+                client.await("the XP") { client.stat(Skill.CONSTRUCTION.id)?.takeIf { it.xp == 58 } }
+                assertEquals(CRUDE_CHAIR, player.house!!.room(House.STARTER_X, House.STARTER_Z + 1)!!.built[CHAIR_SPACE])
+
+                // Out of building mode the chair is there; in it again, Remove asks, and yes puts the space back.
+                client.locOp(House.EXIT_PORTAL, at.x, at.z + 1, House.EXIT_ENTER)
+                client.await("outside") { client.position?.takeIf { it == Coord(OUTSIDE.x, OUTSIDE.z, 0) } }
+                val home = client.goIn(House.HOME)
+                val homeInstance = assertNotNull(server.world.instances.at(home.x, home.z))
+                val hx = homeInstance.baseX + (House.STARTER_X shl 3) + 2
+                val hz = homeInstance.baseZ + ((House.STARTER_Z + 1) shl 3) + 4
+                client.await("the chair at home") { if (client.shown(CRUDE_CHAIR, hx, hz)) Unit else null }
+                client.locOp(House.EXIT_PORTAL, home.x, home.z + 1, House.EXIT_ENTER)
+                client.await("outside again") { client.position?.takeIf { it == Coord(OUTSIDE.x, OUTSIDE.z, 0) } }
+                val back = client.goIn(House.BUILD_MODE)
+                val third = assertNotNull(server.world.instances.at(back.x, back.z))
+                val rx = third.baseX + (House.STARTER_X shl 3) + 2
+                val rz = third.baseZ + ((House.STARTER_Z + 1) shl 3) + 4
+                client.locOp(CRUDE_CHAIR, rx, rz, Furniture.REMOVE)
+                client.menu("construction.remove_furniture_yes", "construction.remove_furniture_no")
+                client.chooseOption(1)
+                client.await("the space back") { if (client.shown(CHAIR_SPACE, rx, rz)) Unit else null }
+                assertNull(player.house!!.room(House.STARTER_X, House.STARTER_Z + 1)!!.built[CHAIR_SPACE])
+            }
+        }
+    }
+
     private companion object {
         const val CHAIR_SPACE = 4515
+        const val CRUDE_CHAIR = 6752
+        const val CRUDE_CHAIR_ROW = 5517
+        const val WOODEN_CHAIR_ROW = 5518
+        const val PLANK = 960
+        const val STEEL_NAILS = 1539
+        const val BRONZE_NAILS = 4819
+        const val HAMMER = 2347
+        const val SAW = 8794
 
         /** The kitchen's `poh_larder` space; its size here is the test's own. */
         const val LARDER_SPACE = 15403

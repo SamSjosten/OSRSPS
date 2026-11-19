@@ -43,6 +43,12 @@ object ConstructionLines : Lines("construction", "Portal (Player-owned house)") 
     val ROOM_OUTSIDE = line("room_outside", "Adding a room past the edge of the yard (no source yet)")
     val ROOM_NO_DOOR = line("room_no_door", "Adding a room that can't be turned to have a door facing this one (no source yet)")
     val REMOVE_PORTAL = line("remove_portal", "Removing the room the exit portal is in (ours: no source yet)")
+    val FURNITURE_LEVEL = line("furniture_level", "Building furniture above the player's Construction level, {level} (no source yet)", "level")
+    val FURNITURE_TOOLS = line("furniture_tools", "Building furniture without a hammer and a saw (no source yet)")
+    val FURNITURE_MATERIALS = line("furniture_materials", "Building furniture without its materials (no source yet)")
+    val REMOVE_FURNITURE_TITLE = line("remove_furniture_title", "Remove on built furniture: the prompt asking whether to remove it (no source yet)")
+    val REMOVE_FURNITURE_YES = line("remove_furniture_yes", "The prompt's option removing it (no source yet)")
+    val REMOVE_FURNITURE_NO = line("remove_furniture_no", "The prompt's option keeping it (no source yet)")
 }
 
 /**
@@ -173,6 +179,14 @@ class Houses(private val world: World) {
      */
     class Open(val owner: String, val instance: Instance, val buildingMode: Boolean) {
         var ghost: Pair<Int, Int>? = null
+
+        /** By tile and layer ([slot]), the hotspot the room's template put there, whatever is built over it now. */
+        val hotspots = HashMap<Long, ZoneLoc>()
+    }
+
+    companion object {
+        /** A tile and layer as one key, for [Open.hotspots]. */
+        fun slot(x: Int, z: Int, layer: Int): Long = (x.toLong() shl 34) or (z.toLong() shl 2) or layer.toLong()
     }
 
     /** By owner, their house open now; by instance, the same houses, for looking one up by where a player is. */
@@ -291,8 +305,8 @@ class Houses(private val world: World) {
         }
         val outside = outsideTile(state.location)
         val instance = world.instances.create(House.GRID, House.GRID, parts, outside.x, outside.z, 0) ?: return null
-        for (room in state.rooms) furnish(instance, state, room, buildingMode)
         val house = Open(player.saveKey, instance, buildingMode)
+        for (room in state.rooms) furnish(house, state, room)
         open[player.saveKey] = house
         byInstance[instance] = house
         setVarbit(player, House.BUILDING_MODE_VARBIT, if (buildingMode) 1 else 0)
@@ -304,13 +318,16 @@ class Houses(private val world: World) {
         InstancePart(type.templateX, type.templateZ, 0, 1, 1, x, z, House.GROUND, rotation)
 
     /** What [room]'s hotspots show in [instance]: what is built there, and out of building mode walls, doors or nothing. */
-    private fun furnish(instance: Instance, state: HouseState, room: HouseRoom, buildingMode: Boolean) {
+    private fun furnish(house: Open, state: HouseState, room: HouseRoom) {
+        val instance = house.instance
+        val buildingMode = house.buildingMode
         val baseX = instance.baseX + (room.x shl 3)
         val baseZ = instance.baseZ + (room.z shl 3)
         for (dx in 0 until 8) {
             for (dz in 0 until 8) {
                 for (loc in world.locs.at(baseX + dx, baseZ + dz, House.GROUND)) {
                     if (world.locs.types[loc.id]?.ops?.getOrNull(House.BUILD - 1) != House.BUILD_OP) continue
+                    house.hotspots[slot(loc.x, loc.z, loc.layer)] = loc
                     val built = room.built[loc.id]
                     val shows = when {
                         built != null -> loc.copy(id = built)
@@ -460,8 +477,20 @@ class Houses(private val world: World) {
         logger.info { "${player.username} removed the ${room.type.key} at ${room.x}, ${room.z}" }
     }
 
+    /**
+     * In [player]'s own house in building mode, the house and the room built at tile [x], [z]; null anywhere else, or
+     * where no room is built (the yard, or a ghost).
+     */
+    internal fun buildingRoom(player: Player, x: Int, z: Int): Pair<Open, HouseRoom>? {
+        val house = houseAt(x, z) ?: return null
+        val state = player.house ?: return null
+        if (house.owner != player.saveKey || !house.buildingMode) return null
+        val room = state.room((x - house.instance.baseX) shr 3, (z - house.instance.baseZ) shr 3) ?: return null
+        return house to room
+    }
+
     /** Whether [player] is still in [house], and it is still open, after a wait. */
-    private fun stillHere(house: Open, player: Player): Boolean =
+    internal fun stillHere(house: Open, player: Player): Boolean =
         world.instances.all.any { it === house.instance } && house.instance.contains(player.x, player.z) && player.house != null
 
     /** A [type] room's ghost at cell [x], [z] turned [rotation], as building mode shows a room, in place of what was there. */
@@ -486,8 +515,9 @@ class Houses(private val world: World) {
         val baseX = instance.baseX + (x shl 3)
         val baseZ = instance.baseZ + (z shl 3)
         world.locs.forgetArea(baseX, baseZ, baseX + 7, baseZ + 7)
+        house.hotspots.values.removeAll { it.x in baseX..baseX + 7 && it.z in baseZ..baseZ + 7 }
         world.instances.replace(instance, part(type, x, z, rotation))
-        if (type != RoomType.YARD) furnish(instance, state, HouseRoom(type, x, z, House.GROUND, rotation), house.buildingMode)
+        if (type != RoomType.YARD) furnish(house, state, HouseRoom(type, x, z, House.GROUND, rotation))
         world.redrawInstance(instance)
     }
 
