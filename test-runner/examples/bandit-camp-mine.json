@@ -17,7 +17,6 @@
     {"step": "assertMessage", "contains": "game.nothing_interesting", "timeoutMs": 10000, "comment": "shut until Wilderness step W6.3"},
     {"step": "assertLocation", "x": 3017, "y": 3740, "plane": 0},
 
-    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
     {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
   ]
 }

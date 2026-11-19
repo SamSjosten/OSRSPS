@@ -16,7 +16,6 @@
     {"step": "npcOption", "npc": "Lava dragon", "option": "Attack", "timeoutMs": 20000},
     {"step": "assertHitsplat", "npc": "Lava dragon", "timeoutMs": 20000},
 
-    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
     {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
   ]
 }

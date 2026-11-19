@@ -42,7 +42,6 @@
     {"step": "command", "text": "::kill", "expectMessage": "Killed Pirate #"},
     {"step": "assertGroundItem", "item": "Bones", "timeoutMs": 15000},
 
-    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
     {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
   ]
 }

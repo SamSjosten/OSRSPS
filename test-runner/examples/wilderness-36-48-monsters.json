@@ -20,6 +20,7 @@
     {"step": "command", "text": "::kill", "expectMessage": "Killed King Scorpion #"},
     {"step": "assertAnimation", "id": 6256, "npc": "King Scorpion", "comment": "scorpion_update_death; it drops no bones"},
 
+    {"step": "command", "text": "::tele 3222 3218 0", "expectMessage": "Teleported to 3222, 3218, 0", "comment": "out of the Wilderness before ::god goes off, so nothing hits the player"},
     {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
   ]
 }

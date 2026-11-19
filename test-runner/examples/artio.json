@@ -22,6 +22,7 @@
     {"step": "locOption", "locId": 47122, "option": "Exit", "x": 1758, "y": 11531},
     {"step": "waitTicks", "ticks": 6},
     {"step": "assertLocation", "x": 3116, "y": 3675, "plane": 0},
+    {"step": "command", "text": "::tele 3222 3218 0", "expectMessage": "Teleported to 3222, 3218, 0", "comment": "out of the Wilderness before ::god goes off, so nothing hits the player"},
     {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
   ]
 }
