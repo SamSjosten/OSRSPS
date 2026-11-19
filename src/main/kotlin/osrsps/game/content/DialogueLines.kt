@@ -54,6 +54,8 @@ import osrsps.game.skill.CombinationRuneLines
 import osrsps.game.skill.EssencePouchLines
 import osrsps.game.skill.ArceuusRunecraftLines
 import osrsps.game.skill.OuraniaLines
+import osrsps.game.skill.construction.ConstructionLines
+import osrsps.game.skill.construction.EstateAgentLines
 import osrsps.game.skill.SlayerLines
 import osrsps.game.skill.SlayerHelmetLines
 import osrsps.game.skill.SlayerSuperiorLines
@@ -72,6 +74,7 @@ import osrsps.game.social.FriendsChatLines
 import osrsps.game.social.ReportLines
 import osrsps.game.social.SocialLines
 import osrsps.game.trade.TradeLines
+import osrsps.game.tzhaar.FightCaveLines
 
 /**
  * Every conversation's lines, which the dialogue file is read and written against. Each new [Lines] object goes here,
@@ -125,6 +128,7 @@ object DialogueLines {
         XarthLines,
         CadmusLines,
         FeorasLines,
+        FightCaveLines,
         FinlayLines,
         MonlumLines,
         WebLines,
@@ -148,6 +152,7 @@ object DialogueLines {
         ClanLines,
         ClimbLines,
         CombatLines,
+        ConstructionLines,
         CookLines,
         CookingLines,
         CookingMixLines,
@@ -190,6 +195,7 @@ object DialogueLines {
         OborLines,
         BryophytaLines,
         EmoteLines,
+        EstateAgentLines,
         GiantBonesLines,
         FeroxEnclaveLines,
         WildernessObeliskLines,
@@ -302,6 +308,7 @@ object DialogueLines {
         HamTalkLines,
         JohanhusLines,
         JimmyTheChiselLines,
+        KaramjaShipLines,
         MisthalinSweepLines,
         MageOfZamorakLines,
         MakeLines,

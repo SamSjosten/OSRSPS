@@ -107,6 +107,12 @@ class NpcCombatTest {
             "dorgesh_goblin_unarmed_attack" to 6001, "dorgesh_goblin_unarmed_defend" to 6002, "dorgesh_goblin_death" to 6003,
             "rockslug_attack" to 1567, "rockslug_defend" to 1565, "rockslug_death" to 1568,
             "wall_beast_specialattack_attack" to 1802, "wall_beast_specialattack_defend" to 1803, "wall_beast_specialattack_death" to 1804,
+            "firebat_attack" to 2621, "firebat_defend" to 2622, "firebat_death" to 2620,
+            "lavabeast_attack" to 2625, "lavabeast_defend" to 2626, "lavabeast_death" to 2627,
+            "magmaquris_spine_attack" to 2633, "magmaquris_defend" to 2629, "magmaquris_death" to 2630,
+            "lizard_cleric_attack" to 2637, "lizard_cleric_defend" to 2635, "lizard_cleric_death" to 2638,
+            "igniferum_ranged" to 2647, "igniferum_defend" to 2645, "igniferum_death" to 2646,
+            "lordmagmus_fire" to 2656, "lordmagmus_defend" to 2653, "lordmagmus_death" to 2654,
         ),
     )
 

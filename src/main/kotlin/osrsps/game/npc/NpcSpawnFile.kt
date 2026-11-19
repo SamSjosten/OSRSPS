@@ -100,7 +100,9 @@ object NpcSpawnFile {
         "wilderness-49-56.json",
         "kbd-lair.json",
         "raid-tester.json",
+        "construction.json",
         "hunters-end.json",
+        "karamja-ships.json",
     )
 
     /** What a file gave: the spawns, and the NPC names the cache doesn't know (skipped). */

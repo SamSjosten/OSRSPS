@@ -311,7 +311,8 @@ class Npcs(
      * [FOLLOW_RANGE] tiles away.
      */
     private fun chase(npc: Npc, target: Player) {
-        if (target.level != npc.level || abs(target.x - npc.x) > FOLLOW_RANGE || abs(target.z - npc.z) > FOLLOW_RANGE) {
+        val tooFar = !npc.huntsAnywhere && (abs(target.x - npc.x) > FOLLOW_RANGE || abs(target.z - npc.z) > FOLLOW_RANGE)
+        if (target.level != npc.level || tooFar) {
             stopFollowing(npc)
             return
         }

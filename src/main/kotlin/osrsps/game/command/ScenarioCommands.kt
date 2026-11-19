@@ -9,6 +9,7 @@ import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.bank.setVarbitIfKnown
 import osrsps.game.combat.Teleblock
+import osrsps.game.tzhaar.FightCaveWaves
 
 /**
  * Jump into a testing scenario and back out. `::scenario name` remembers the player as they were the first time, so a
@@ -61,6 +62,8 @@ internal fun resetScenario(world: World, player: Player): String {
     world.hunter.traps.takeDown(player)
     player.testCheatsOff()
     before.restoreTo(player)
+    // A trail being followed ends, and the restored varbits show none of its footprints.
+    world.hunter.tracking.forget(player)
     // After the snapshot, which holds the skull, whom they attacked first and the Tele Block's varbit from before the
     // scenario: ::reset clears those too (Codex review on #723). Teleblock.clear skips a player with no block, so its
     // varbit is cleared here, or RuneLite would show a timer for a block that's gone.
@@ -114,6 +117,7 @@ private fun start(world: World, player: Player, scenario: Scenario) {
     if (player.trade != null) world.trades.interrupt(player)
     world.hunter.traps.takeDown(player, refund = player.beforeScenario == null)
     if (player.beforeScenario == null) player.beforeScenario = world.snapshot(player)
+    world.hunter.tracking.forget(player)
     // Unclaimed raid loot is in the snapshot, which puts it back: claimed during the scenario as well, it would come
     // twice (exploit review 40, R40C-2). A scenario starts with the chest empty, as with the bank.
     player.archiveChest.clear()
@@ -165,6 +169,19 @@ private fun start(world: World, player: Player, scenario: Scenario) {
     world.prayers.deactivateAll(player)
     world.teleport(player, scenario.x, scenario.z, scenario.level)
     player.scenario = scenario.name
+    scenario.minigame?.let { startMinigame(world, player, scenario, it) }
+}
+
+/** Puts [player] in [scenario]'s minigame; the rest of the scenario stands if it can't start. */
+private fun startMinigame(world: World, player: Player, scenario: Scenario, minigame: Scenario.ScenarioMinigame) {
+    when (minigame.name) {
+        Scenario.ScenarioMinigame.FIGHT_CAVE -> {
+            val wave = minigame.wave.takeIf { it in 1..FightCaveWaves.WAVES } ?: refuse("Scenario ${scenario.name}: the fight cave has no wave ${minigame.wave}")
+            val rotation = minigame.rotation ?: world.fightCaves.randomRotation()
+            if (rotation !in 1..FightCaveWaves.ROTATIONS) refuse("Scenario ${scenario.name}: the fight cave has no rotation $rotation")
+            if (!world.fightCaves.start(player, wave, rotation)) refuse("Scenario ${scenario.name}: no room for another fight cave")
+        }
+    }
 }
 
 /**
