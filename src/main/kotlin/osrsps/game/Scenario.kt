@@ -241,6 +241,7 @@ class Scenarios(scenarios: Collection<Scenario>) {
             "obor",
             "pvp",
             "runecraft",
+            "shooting-stars",
             "tfa-magic",
             "tfa-melee",
             "tfa-ranged",

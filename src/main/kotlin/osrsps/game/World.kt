@@ -41,6 +41,7 @@ import osrsps.game.command.registerEffectCommands
 import osrsps.game.command.registerGroundObjCommands
 import osrsps.game.command.registerInstanceCommands
 import osrsps.game.command.registerTzHaarCommands
+import osrsps.game.command.registerCollectionLogCommands
 import osrsps.game.command.registerPartyCommands
 import osrsps.game.command.registerRaidCommands
 import osrsps.game.command.registerIpCommands
@@ -51,6 +52,7 @@ import osrsps.game.command.registerNpcCommands
 import osrsps.game.command.registerScenarioCommands
 import osrsps.game.command.registerScriptCommands
 import osrsps.game.command.registerSeedCommands
+import osrsps.game.command.registerShootingStarCommands
 import osrsps.game.command.registerSkillCommands
 import osrsps.game.command.registerSocialCommands
 import osrsps.game.command.registerLodestoneCommands
@@ -255,6 +257,7 @@ import osrsps.game.skill.FletchingData
 import osrsps.game.skill.Herblore
 import osrsps.game.skill.HerbloreData
 import osrsps.game.skill.Mining
+import osrsps.game.skill.ShootingStars
 import osrsps.game.skill.Pickpocketing
 import osrsps.game.skill.Agility
 import osrsps.game.skill.AgilityData
@@ -376,6 +379,8 @@ class World(
     val omnishops: Omnishops = Omnishops.NONE,
     /** The cache's Grand Exchange item sets; tests that use them pass their own. */
     val itemSets: osrsps.game.ge.ItemSets = osrsps.game.ge.ItemSets.NONE,
+    /** The cache's collection log tabs, pages and items; tests that log items pass their own. */
+    collectionLogCatalog: osrsps.game.collection.CollectionLogCatalog = osrsps.game.collection.CollectionLogCatalog.NONE,
     /** The levels whose level-up plays a skill's unlock jingle; see [LevelUps]. */
     skillUnlocks: SkillUnlocks = SkillUnlocks.NONE,
     /** The levels needed to wear items; tests that check levels pass their own. */
@@ -398,6 +403,8 @@ class World(
     agilityData: AgilityData = AgilityData.load(),
     /** Slayer's tasks, masters and rewards, from the cache ([osrsps.cache.SlayerLoader]); tests that slay pass their own. */
     slayerData: SlayerData = SlayerData.NONE,
+    /** Whether shooting stars land on their own ([ShootingStars]); tests land theirs with `::star land`. */
+    starCycle: Boolean = false,
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
 ) : GameConnectionHandler<Player> {
@@ -600,7 +607,10 @@ class World(
     }
 
     /** Shops and their shared stock; see [ShopScreen]. */
-    val shopScreen = ShopScreen(shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine, words = ::textFor)
+    val shopScreen = ShopScreen(
+        shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine, words = ::textFor,
+        logged = { player, type -> collectionLog.add(player, type.id, 1) },
+    )
 
     /** The omnishop interface's shops, as the Quartermaster's Alliance Supplies; see [OmnishopScreen]. */
     val omnishopScreen = OmnishopScreen(
@@ -752,13 +762,15 @@ class World(
     /**
      * Where a player dying here comes back and their grave goes: a raid's say ([ArchiveRaids.deathPlace]); in any other
      * instance the grave goes to its exit, since nobody could get back in to it (exploit review round 9, INST-1), and
-     * they come back at the spawn; elsewhere, null: the spawn, and the grave where they fell.
+     * they come back at the spawn, except a private King Black Dragon lair's, whose grave goes in the open lair
+     * ([KingBlackDragon.graveTile]); elsewhere, null: the spawn, and the grave where they fell.
      */
     private fun deathPlace(player: Player): DeathPlace? {
         archiveRaids.deathPlace(player)?.let { return it }
         fightCaves.deathPlace(player)?.let { return it }
         houses.deathPlace(player)?.let { return it }
         val instance = instances.at(player.x, player.z) ?: return null
+        KingBlackDragon.graveTile(this, player.x, player.z)?.let { return DeathPlace(keepItems = false, it.x, it.z, 0, SPAWN_X, SPAWN_Z, SPAWN_LEVEL) }
         return DeathPlace(keepItems = false, instance.exitX, instance.exitZ, instance.exitLevel, SPAWN_X, SPAWN_Z, SPAWN_LEVEL)
     }
 
@@ -905,6 +917,9 @@ class World(
     val hunter = osrsps.game.skill.hunter.Hunter(this, collision)
 
     val mining = Mining(this)
+
+    /** Shooting stars: the one star on the world, its landings and mining it; see [ShootingStars]. */
+    val shootingStars = ShootingStars(this, running = starCycle)
     val thieving = Thieving(this, collision)
     val manorHazards = ManorHazards(this)
     val swampCavesHazards = SwampCavesHazards(this)
@@ -996,10 +1011,12 @@ class World(
         registerFarmingCommands(this@World)
         registerSlayerCommands(this@World)
         registerSeedCommands(this@World)
+        registerShootingStarCommands(this@World)
         registerScriptCommands(this@World)
         registerZoneCommands(this@World, collision)
         registerInstanceCommands(this@World)
         registerTzHaarCommands(this@World)
+        registerCollectionLogCommands(this@World)
         registerPartyCommands(this@World)
         registerRaidCommands(this@World)
         registerEffectCommands(this@World)
@@ -1052,6 +1069,7 @@ class World(
         registerMillLaneMill(this)
         registerBarfyBill(this)
         registerFatherUrhney(this)
+        osrsps.game.collection.TheCollector.register(this)
         registerAdventurersCamp(this)
         registerCandleSeller(this)
         registerSwampTutors(this)
@@ -1132,6 +1150,7 @@ class World(
         hunter.register()
         LightSources.register(this)
         mining.register()
+        shootingStars.register()
         thieving.register()
         pickpocketing.register()
         agility.register()
@@ -1512,6 +1531,7 @@ class World(
         // After NPCs move, so a creature that steps onto a trap is rolled for the tick it arrives.
         hunter.arrivals()
         fishing.process()
+        shootingStars.process(tick)
         shopScreen.restock(tick)
         phase = TickPhase.SCRIPTS
         for (player in players) {
@@ -2261,6 +2281,7 @@ class World(
         Kudos.login(player)
         lodestones.login(player)
         fightCaves.login(player)
+        collectionLog.login(player)
         prayers.login(player)
         cooking.wine.login(player)
         if (player.newAccount) allSettings.newAccount(player)
@@ -2688,6 +2709,7 @@ class World(
         if (grandExchangeScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (priceChecker.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (itemSetsScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
+        if (collectionLogWindow.click(player, interfaceId, componentId, sub, op)) return@act
         if (archiveChestWindow.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (interfaceId == EquipmentTab.WORNITEMS && componentId == PriceChecker.WORNITEMS_BUTTON) {
             priceChecker.open(player)
@@ -2912,6 +2934,45 @@ class World(
     /** The loot drop notification settings; see [LootNotifications]. */
     val lootNotifications = LootNotifications({ this.itemPrices.price(it) }, ::textFor)
 
+    /** The collection log's record of what each player has obtained; see [osrsps.game.collection.CollectionLog]. */
+    val collectionLog = osrsps.game.collection.CollectionLog(
+        collectionLogCatalog, { objTypes[it]?.name ?: "Item $it" }, ::textFor,
+        popup = { player, title, text ->
+            interfaces.openSide(player, FrameSlot.NOTIFICATIONS, osrsps.game.collection.CollectionLog.NOTIFICATION_DISPLAY)
+            // -1 is the script's null colour, which it draws in its default orange.
+            interfaces.runClientScript(player, osrsps.game.collection.CollectionLog.NOTIFICATION_DISPLAY_INIT, listOf(title, text, -1))
+        },
+    )
+
+    /** The collection log's windows: the log and its overview; see [osrsps.game.collection.CollectionLogWindow]. */
+    val collectionLogWindow = osrsps.game.collection.CollectionLogWindow(
+        collectionLog, interfaces::openModal, interfaces::closeModals, interfaces::runClientScript, interfaces::setVarbitNow,
+        setVarp = { player, id, value ->
+            if (id < player.vars.types.varpCount) {
+                player.vars[id] = value
+                interfaces.sendVarpNow(player, id)
+            }
+        },
+    )
+
+    /**
+     * [count] of [type] dropped for [player] as loot (an NPC's drop, a boss's share, a raid chest's): the loot drop
+     * notification their settings ask for, and the collection log.
+     */
+    fun lootDropped(player: Player, type: ObjType, count: Int) {
+        lootNotifications.dropped(player, type, count)
+        collectionLog.add(player, type.id, count)
+    }
+
+    /**
+     * [lootDropped] for the player saved under [key]; one who has logged out gets the collection log's entry at their next
+     * login and no notification.
+     */
+    fun lootDroppedFor(key: String, type: ObjType, count: Int) {
+        val player = onlinePlayers.firstOrNull { it.saveKey == key && !it.loggedOut }
+        if (player != null) lootDropped(player, type, count) else collectionLog.addLater(key, type.id, count)
+    }
+
     /**
      * Rolls [npc]'s drops and puts them on its tile: the killer's alone for [GroundObjs.DROP_PRIVATE_TICKS], then
      * everyone's, gone after [GroundObjs.LOOT_DESPAWN_TICKS] (OSRS Wiki, Drop). With no killer, or one who has left,
@@ -2925,12 +2986,14 @@ class World(
         val killer = if (solo != null) solo.key?.let { key -> onlinePlayers.firstOrNull { it.saveKey == key } } else killer
         // A superior's three rolls on its normal counterpart's table come after its own drops.
         val drops = npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty()
-        val owner = killer?.takeIf { !it.loggedOut }?.saveKey
+        // A solo boss's drop stays its top damager's even if they log out as the body falls (exploit review round 40,
+        // R40B-6), as group loot does; anyone else's goes public once its killer has left.
+        val owner = if (solo != null) solo.key else killer?.takeIf { !it.loggedOut }?.saveKey
         val despawn = osrsps.game.content.KingBlackDragon.lootTicks(this, npc, GroundObjs.LOOT_DESPAWN_TICKS)
         for (drop in drops) {
             if (owner != null) {
                 groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, owner, GroundObjs.DROP_PRIVATE_TICKS, despawn)
-                killer?.let { lootNotifications.dropped(it, drop.type, drop.count) }
+                lootDroppedFor(owner, drop.type, drop.count)
             } else {
                 groundObjs.addPublic(drop.type, drop.count, npc.x, npc.z, npc.level, despawn)
             }
