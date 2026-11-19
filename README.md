@@ -25,15 +25,57 @@ in the code. Current RuneLite connects unchanged.
 
 ### What's in it
 
-**By region**
+**By region** (click one to open it)
 
-| Region | Places | Bosses | Status |
-|--------|--------|--------|--------|
-| **Misthalin** | Lumbridge and its swamp and caves, Draynor Village and Manor, Varrock (palace, museum, sewers, Champions' Guild), Edgeville and its dungeon, Barbarian Village, the Wizards' Tower, the Digsite, Silvarea, Paterdomus, the Stronghold of Security | Obor, Bryophyta | Built; about 80% of live's content by the last audit |
-| **Kharidian Desert** | Al Kharid (palace, Emir's Arena), Shantay Pass | | Al Kharid only |
-| **Wilderness** | Every level, the Ferox Enclave, the Chaos Temple, the Lava Maze, the Mage Arena bank, the Resource Area, Rogues' Castle, the obelisks and levers | King Black Dragon, Chaos Elemental, Chaos Fanatic, Crazy Archaeologist, Scorpia, Artio | Being built; more bosses to come |
-| **Karamja** | The boat from Port Sarim to Musa Point | The Fight Caves (being built) | Being built, with Mor Ul Rek |
-| **Our own** | The Fractured Archive raid and its lobby | The Guardian statues, Bork, the Smorks, Dreadnoth, Xarth, Moia, Dagon'hai, Ocellus | Built |
+<details open>
+<summary><b>Misthalin</b> · built, about 80% of live's content by the last audit</summary>
+
+| | |
+|---|---|
+| **Places** | Lumbridge and its swamp and caves, Draynor Village and Manor, Varrock (palace, museum, sewers, Champions' Guild), Edgeville and its dungeon, Barbarian Village, the Wizards' Tower, the Digsite, Silvarea, Paterdomus, the Stronghold of Security |
+| **Bosses** | Obor, Bryophyta |
+
+</details>
+
+<details>
+<summary><b>Kharidian Desert</b> · Al Kharid only</summary>
+
+| | |
+|---|---|
+| **Places** | Al Kharid (palace, Emir's Arena), Shantay Pass |
+| **Bosses** | None yet |
+
+</details>
+
+<details>
+<summary><b>Wilderness</b> · being built, more bosses to come</summary>
+
+| | |
+|---|---|
+| **Places** | Every level, the Ferox Enclave, the Chaos Temple, the Lava Maze, the Mage Arena bank, the Resource Area, Rogues' Castle, the obelisks and levers |
+| **Bosses** | King Black Dragon, Chaos Elemental, Chaos Fanatic, Crazy Archaeologist, Scorpia, Artio |
+
+</details>
+
+<details>
+<summary><b>Karamja</b> · being built, with Mor Ul Rek</summary>
+
+| | |
+|---|---|
+| **Places** | The boat from Port Sarim to Musa Point |
+| **Bosses** | The Fight Caves (being built) |
+
+</details>
+
+<details>
+<summary><b>The Fractured Archive</b> · our own raid, built</summary>
+
+| | |
+|---|---|
+| **Places** | The raid and its lobby |
+| **Bosses** | The Guardian statues, Bork, the Smorks, Dreadnoth, Xarth, Moia, Dagon'hai, Ocellus |
+
+</details>
 
 **Skills**
 

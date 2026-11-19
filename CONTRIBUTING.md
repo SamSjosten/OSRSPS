@@ -54,6 +54,14 @@ once it trains 1 to 99). How a feature behaves, and where each rule
 came from, goes in the code's comments (`// Guessed:`, `// Inferred:`, the Wiki page or recording), not in the README.
 `NOTES.md` keeps the notes written before 2026-11-18; don't add new sections to it.
 
+"What's in it" has one `<details>` block per region, in the order regions were started: `<summary>` holds the
+region's name in bold and its status after a `·`, and the table inside has a Places row and a Bosses row (names
+only, as the Wiki spells them). A new region adds its own block; the first block stays `open`. Leave a blank line
+after `<summary>` and before `</details>`, or GitHub shows the table as plain text. Skills stay in their own table
+under the regions, since most skills span several. When a region outgrows its block (boss notes, skill spots,
+what each place has), it moves to a page of its own at `regions/<region>.md`, with a link back to the README, and its
+block shrinks to the summary line and that link.
+
 ## Auto-merge
 
 A pull request merges by itself, with a merge commit, once auto-merge is on and branch protection on `main` is
