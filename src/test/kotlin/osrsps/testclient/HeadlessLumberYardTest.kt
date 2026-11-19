@@ -254,7 +254,8 @@ class HeadlessLumberYardTest {
         server(dir).use { server ->
             server.login("erin").use { client ->
                 client.ready()
-                assertEquals(1, (client.varp(VARP_SOULBANE) ushr 31) and 1, "Tolna shown at the top, as after the quest")
+                // Awaited: the varps can arrive a cycle after the login rebuild (flaky on CI, #818).
+                client.await("Tolna shown at the top, as after the quest") { Unit.takeIf { (client.varp(VARP_SOULBANE) ushr 31) and 1 == 1 } }
                 client.npc(LumberYard.TOLNA, LumberYard.TALK_TO)
                 client.chats("tolna.training", "tolna.rift", "tolna.not_many", "tolna.harder", "tolna.thanks")
                 client.awaitClosed()

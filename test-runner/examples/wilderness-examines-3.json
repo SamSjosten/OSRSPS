@@ -14,6 +14,7 @@
     {"step": "npcOption", "npcId": 13, "option": "Examine", "timeoutMs": 20000, "comment": "Piles"},
     {"step": "assertMessage", "contains": "[examine.npc_13]"},
     {"step": "command", "text": "::tele 3185 3946 0", "expectMessage": "Teleported to 3185, 3946, 0", "comment": "back outside, so a logout inside doesn't matter"},
+    {"step": "command", "text": "::tele 3222 3218 0", "expectMessage": "Teleported to 3222, 3218, 0", "comment": "out of the Wilderness before ::god goes off, so nothing hits the player"},
     {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
   ]
 }

@@ -103,6 +103,7 @@ object NpcSpawnFile {
         "construction.json",
         "hunters-end.json",
         "karamja-ships.json",
+        "skeletal-tomb.json",
         "scurrius-lair.json",
         "fight-cave.json",
         "inferno.json",
