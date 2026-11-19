@@ -75,8 +75,6 @@ class SpiderQueen(val config: Config) {
 
     fun web(npc: Npc): Set<Tile> = fights[npc]?.web.orEmpty()
 
-    fun attacks(npc: Npc): Int = fights[npc]?.attacks ?: 0
-
     private fun EncounterContext.tick() {
         val fight = fights.getOrPut(boss) { Fight() }
         fight.spiderlings.removeAll { it.dead || it.hidden || world.npcs.all.none { npc -> npc === it } }
@@ -133,6 +131,9 @@ class SpiderQueen(val config: Config) {
             val spiderling = spawnAdd(type, at.x, at.z) ?: continue
             fight.spiderlings += spiderling
             world.meleeCombat.aggress(spiderling, target, world.tick)
+            // Its swings are counted from now: melee runs before the fight's tick, so its first one comes before
+            // drainForSwings next looks (Codex review on #832).
+            fight.swings[spiderling] = spiderling.nextAttackTick
             called++
         }
         log("calls $called spiderlings")
@@ -191,6 +192,8 @@ class SpiderQueen(val config: Config) {
         fight.webEnd = world.tick + WEB_TICKS
         fight.webNextHit = world.tick
         log("web over ${fight.web.size} tiles")
+        // Its first hit on the tick it lands: the cycle's web() has already run this tick (Codex review on #832).
+        web(fight)
     }
 
     private fun EncounterContext.clearWeb(fight: Fight) {
@@ -206,6 +209,8 @@ class SpiderQueen(val config: Config) {
         if (world.tick < fight.webNextHit) return
         fight.webNextHit = world.tick + WEB_HIT_TICKS
         for (player in players.toList()) {
+            // A hit can end the fight (Retribution killing her); the web hurts no one after that, as hazards don't.
+            if (boss.dead || world.npcs[boss.index] !== boss) return
             if (player.dead || player.level != boss.level || Tile(player.x, player.z) !in fight.web) continue
             hit(player, WEB_DAMAGE)
             drainPrayer(player, WEB_PRAYER)
