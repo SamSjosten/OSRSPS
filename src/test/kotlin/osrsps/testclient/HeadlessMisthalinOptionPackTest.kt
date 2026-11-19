@@ -5,11 +5,15 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
+import osrsps.game.NpcType
+import osrsps.game.NpcTypes
 import osrsps.game.ObjType
+import osrsps.game.Skill
 import osrsps.game.ObjTypes
 import osrsps.game.World
 import osrsps.game.content.Crops
 import osrsps.game.content.MisthalinOptionPack
+import osrsps.game.content.RestlessGhostLines
 import osrsps.game.content.SearchLines
 import osrsps.game.content.SignpostLines
 import osrsps.game.content.VarrockReadingLines
@@ -18,6 +22,8 @@ import osrsps.game.dialogue.DialogueText
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
+import osrsps.game.npc.NpcSpawn
+import osrsps.game.skill.Pickpocketing
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.LocCollisionType
 import osrsps.map.LocShape
@@ -34,7 +40,8 @@ class HeadlessMisthalinOptionPackTest {
         LocType(id, name, ops = List(5) { if (it == opIndex - 1) op else null }, collision = LocCollisionType(width = size, length = size))
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
-        val objs = arrayOfNulls<ObjType>(Crops.ONION + 1)
+        val objs = arrayOfNulls<ObjType>(Pickpocketing.STOREROOM_KEY + 1)
+        objs[Pickpocketing.STOREROOM_KEY] = ObjType(Pickpocketing.STOREROOM_KEY, "Storeroom key", internalName = "eaa_store_room_key")
         objs[MisthalinOptionPack.CADAVA_BERRIES] = ObjType(MisthalinOptionPack.CADAVA_BERRIES, "Cadava berries", internalName = "cadavaberries")
         objs[Crops.ONION] = ObjType(Crops.ONION, "Onion", internalName = "onion")
         val types = buildList {
@@ -46,10 +53,14 @@ class HeadlessMisthalinOptionPackTest {
             add(locType(MisthalinOptionPack.COMBAT_SCROLL, "Combat Scroll", "Read"))
             add(locType(MisthalinOptionPack.VTAM_PLAQUE, "Plaque", "Read"))
             add(locType(AVIUM_ONION, "Onion", "Pick", opIndex = 2))
+            add(locType(MisthalinOptionPack.COFFIN, "Coffin", "Open", size = 2))
+            add(LocType(MisthalinOptionPack.COFFIN_OPEN, "Coffin", ops = listOf("Search", "Close", null, null, null), collision = LocCollisionType(width = 2, length = 2)))
+            add(locType(MisthalinOptionPack.GHOST_ALTAR, "Altar", "Search", size = 2))
         }.associateBy { it.id }
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = ObjTypes(objs),
-            locTypes = LocTypes(types),
+            locTypes = LocTypes(types), npcTypes = NpcTypes.of(curator),
+            npcSpawns = listOf(NpcSpawn(curator, 3216, 3218, wander = 0, source = "test")),
             staticLocs = StaticLocs().apply {
                 add(ZoneLoc(MisthalinOptionPack.CADAVA[0], LocShape.CENTREPIECE_STRAIGHT, 0, 3220, 3220, 0))
                 add(ZoneLoc(MisthalinOptionPack.CADAVA_ALWAYS_EMPTY, LocShape.CENTREPIECE_STRAIGHT, 0, 3218, 3220, 0))
@@ -59,10 +70,17 @@ class HeadlessMisthalinOptionPackTest {
                 add(ZoneLoc(MisthalinOptionPack.COMBAT_SCROLL, LocShape.CENTREPIECE_STRAIGHT, 0, 3226, 3218, 0))
                 add(ZoneLoc(MisthalinOptionPack.VTAM_PLAQUE, LocShape.CENTREPIECE_STRAIGHT, 0, 3228, 3218, 0))
                 add(ZoneLoc(AVIUM_ONION, LocShape.CENTREPIECE_STRAIGHT, 0, 3222, 3224, 0))
+                add(ZoneLoc(MisthalinOptionPack.COFFIN, LocShape.CENTREPIECE_STRAIGHT, 0, 3228, 3220, 0))
+                add(ZoneLoc(MisthalinOptionPack.GHOST_ALTAR, LocShape.CENTREPIECE_STRAIGHT, 0, 3228, 3216, 0))
             },
             cycleMillis = millis,
         )
     }
+
+    private val curator = NpcType(Pickpocketing.CURATOR, "Curator Haig Halen", ops = listOf("Talk-to", null, "Pickpocket", null, null))
+
+    private fun HeadlessClient.box(text: String) =
+        awaitDialogue(text) { it is DialogueView.Message && it.text == text }.also { continueDialogue() }
 
     private fun HeadlessClient.seen(text: String) = await(text) { messages().firstOrNull { it.text == text } }
 
@@ -190,6 +208,47 @@ class HeadlessMisthalinOptionPackTest {
                 client.seen(DialogueText.NONE[Crops.ONIONS.noRoom])
                 assertEquals(0, client.count(Crops.ONION))
                 assertTrue(server.world.locs.find(AVIUM_ONION, 3222, 3224, 0) != null, "the onion went for nothing")
+            }
+        }
+    }
+
+    @Test
+    fun `the coffin opens with its skeleton whole for three minutes, closes, and the altar is empty`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.locOp(MisthalinOptionPack.COFFIN, 3228, 3220, MisthalinOptionPack.OPEN)
+                client.seen(DialogueText.NONE[RestlessGhostLines.OPEN])
+                client.await("the coffin open") { server.world.locs.find(MisthalinOptionPack.COFFIN_OPEN, 3228, 3220, 0) }
+                assertTrue(server.world.locs.reverting(3228, 3220, 0), "the coffin never closes by itself")
+
+                client.locOp(MisthalinOptionPack.COFFIN_OPEN, 3228, 3220, MisthalinOptionPack.SEARCH)
+                client.box(DialogueText.NONE[RestlessGhostLines.COMPLETE_SKELETON])
+                client.locOp(MisthalinOptionPack.COFFIN_OPEN, 3228, 3220, MisthalinOptionPack.CLOSE)
+                client.await("the coffin shut") { server.world.locs.find(MisthalinOptionPack.COFFIN, 3228, 3220, 0) }
+
+                client.locOp(MisthalinOptionPack.GHOST_ALTAR, 3228, 3216, MisthalinOptionPack.SEARCH)
+                client.box(DialogueText.NONE[RestlessGhostLines.ALTAR_EMPTY])
+            }
+        }
+    }
+
+    @Test
+    fun `Pickpocket on the curator gives the storeroom key and no XP`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                val npc = client.await("the curator in view") { client.npcs().firstOrNull { it.id == Pickpocketing.CURATOR } }
+                client.commandReply("setlevel thieving 99") { it.contains("set to level") }
+                val xp = client.await("level 99") { client.stat(Skill.THIEVING.ordinal)?.takeIf { it.level == 99 }?.xp }
+                // A catch stuns, so a few tries may be needed.
+                client.await("the key", timeoutMillis = 60_000) {
+                    if (client.count(Pickpocketing.STOREROOM_KEY) > 0) Unit else {
+                        client.npcOp(npc.index, Pickpocketing.PICKPOCKET)
+                        Thread.sleep(800)
+                        null
+                    }
+                }
+                assertEquals(xp, client.stat(Skill.THIEVING.ordinal)?.xp ?: 0)
             }
         }
     }
