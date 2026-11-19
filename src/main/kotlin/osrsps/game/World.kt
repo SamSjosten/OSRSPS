@@ -57,6 +57,7 @@ import osrsps.game.command.registerLodestoneCommands
 import osrsps.game.command.registerWildernessCommands
 import osrsps.game.command.registerFarmingCommands
 import osrsps.game.command.registerSlayerCommands
+import osrsps.game.command.registerTrailCommands
 import osrsps.game.command.registerXpRateCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
@@ -398,6 +399,8 @@ class World(
     agilityData: AgilityData = AgilityData.load(),
     /** Slayer's tasks, masters and rewards, from the cache ([osrsps.cache.SlayerLoader]); tests that slay pass their own. */
     slayerData: SlayerData = SlayerData.NONE,
+    /** Treasure Trails' steps, from the cache's clue helper tables ([osrsps.cache.TrailLoader]); tests that dig pass their own. */
+    trailData: osrsps.game.trail.TrailData = osrsps.game.trail.TrailData.NONE,
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
 ) : GameConnectionHandler<Player> {
@@ -916,6 +919,9 @@ class World(
     /** Slayer tasks: kills, XP and the enchanted gem; see [Slayer]. */
     val slayer = Slayer(this, slayerData)
 
+    /** Treasure Trails: scroll boxes, clue scrolls and their steps; see [osrsps.game.trail.TreasureTrails]. */
+    val trails = osrsps.game.trail.TreasureTrails(this, trailData)
+
     /** The Slayer masters' Talk-to and Assignment; see [SlayerMasters]. */
     val slayerMasters = SlayerMasters(this)
 
@@ -995,6 +1001,7 @@ class World(
         registerWildernessCommands(this@World)
         registerFarmingCommands(this@World)
         registerSlayerCommands(this@World)
+        registerTrailCommands(this@World)
         registerSeedCommands(this@World)
         registerScriptCommands(this@World)
         registerZoneCommands(this@World, collision)
@@ -1068,6 +1075,7 @@ class World(
         registerPaterdomus(this)
         registerDigsite(this)
         registerDigsiteDigs(this)
+        osrsps.game.trail.registerTreasureTrails(this)
         registerExamCentre(this)
         registerMisthalinSweep(this)
         registerMisthalinTownGaps(this)
@@ -2927,7 +2935,10 @@ class World(
         val drops = npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty()
         val owner = killer?.takeIf { !it.loggedOut }?.saveKey
         val despawn = osrsps.game.content.KingBlackDragon.lootTicks(this, npc, GroundObjs.LOOT_DESPAWN_TICKS)
-        for (drop in drops) {
+        for (rolled in drops) {
+            // Every quest counts as done, X Marks the Spot included: a clue scroll comes as its scroll box, or not at all past the cap.
+            val type = trails.dropFor(killer?.takeIf { !it.loggedOut }, rolled.type) ?: continue
+            val drop = if (type === rolled.type) rolled else rolled.copy(type = type)
             if (owner != null) {
                 groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, owner, GroundObjs.DROP_PRIVATE_TICKS, despawn)
                 killer?.let { lootNotifications.dropped(it, drop.type, drop.count) }

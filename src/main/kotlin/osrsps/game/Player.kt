@@ -218,6 +218,9 @@ class Player(
     /** The player's house, null until they buy one; see [osrsps.game.skill.construction.Houses]. Saved. */
     var house: osrsps.game.skill.construction.HouseState? = null
 
+    /** The player's Treasure Trails under way, one per tier; see [osrsps.game.trail.TreasureTrails]. Saved. */
+    val trails = osrsps.game.trail.TrailProgress()
+
     /** Grand Exchange offers and buy limits; see [osrsps.game.ge.GrandExchange]. */
     val ge = osrsps.game.ge.GeAccount()
 
