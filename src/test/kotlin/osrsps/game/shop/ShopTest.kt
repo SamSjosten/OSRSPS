@@ -273,6 +273,8 @@ class ShopTest {
         assertEquals(11849, grace.currency)
         assertEquals(listOf(28, 44, 48, 24, 32, 32, 8), grace.stock.map { Shop(grace).sellPrice(it.type.id, it.type.cost, it.count) })
         assertTrue(shops.all.filter { it.key != grace.key }.all { it.currency == ShopScreen.COINS })
+        // Her sales alone go in the collection log (its Rooftop Agility page).
+        assertEquals(listOf(grace.key), shops.all.filter { it.collectionLog }.map { it.key })
         // The Al Kharid General Store won't buy silk (the Wiki's page), Farming Supplies and the Sheared Ram buy nothing; no other
         // shop refuses anything.
         val farmingSupplies = shops["farming_supplies"]!!
