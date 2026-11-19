@@ -30,7 +30,7 @@ import osrsps.map.Tile
  * - **Sticky web** on the third magic attack of each cycle: a web flung at the target's tile spreads into a 7 by 5;
  *   whoever stands in it takes 3, loses 3 prayer points and 10% run energy, again and again.
  *
- * GUESSED until recorded: [Config.spiderlings] spiderlings a time, beside her; each living one adds [MAX_PER_SPIDERLING]
+ * GUESSED until recorded: [Config.spiderlings] spiderlings a time, beside her west side (never east, per the Wiki); each living one adds [MAX_PER_SPIDERLING]
  * to her max hits and lets [PASS_PER_SPIDERLING]% through a prayer; the web's [WEB_TICKS] on the floor, a hit every
  * [WEB_HIT_TICKS], and its [WEB_FLIGHT] ticks in the air, its edges and corners turned to face out; her melee taking a
  * slot of the cycle as the attack it stands for would have; where she moves (a random open spot of her lair at least
@@ -99,11 +99,12 @@ class SpiderQueen(val config: Config) {
         val passes = min(100, alive * PASS_PER_SPIDERLING)
         val bonus = alive * MAX_PER_SPIDERLING
         when {
+            // The web is a special: standing beside her doesn't trade it for a bite (Codex review on #832).
+            slot == WEB_SLOT -> flingWeb(fight, target)
             world.meleeCombat.reaches(boss, target) -> {
                 world.meleeCombat.swingAt(boss, target, world.tick, ANIM_MELEE, maxHit = config.meleeMax + bonus, prayerPasses = passes)
                 log("bites ${target.username}")
             }
-            slot == WEB_SLOT -> flingWeb(fight, target)
             slot < CYCLE / 2 -> shoot(target, AttackType.RANGED, config.rangedMax + bonus, passes)
             else -> shoot(target, AttackType.MAGIC, config.magicMax + bonus, passes)
         }
@@ -125,7 +126,8 @@ class SpiderQueen(val config: Config) {
     private fun EncounterContext.callSpiderlings(fight: Fight, target: Player) {
         val type = world.npcTypes[config.spiderling] ?: return
         val size = boss.type.size
-        val spots = listOf(Tile(boss.x - 1, boss.z - 1), Tile(boss.x + size, boss.z - 1), Tile(boss.x - 1, boss.z + size), Tile(boss.x + size, boss.z + size))
+        // Never east of her (the Wiki's strategy page, Codex review on #832): her west corners, then the middle of her west side.
+        val spots = listOf(Tile(boss.x - 1, boss.z - 1), Tile(boss.x - 1, boss.z + size), Tile(boss.x - 1, boss.z + size / 2))
         var called = 0
         for (at in spots) {
             // No more than ten alive at once, the Wiki's cap (Codex review on #832).

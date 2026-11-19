@@ -126,6 +126,7 @@ class HeadlessSpindelTest {
                 client.await("her spiderlings") { fight.lines.firstOrNull { it.endsWith("calls 2 spiderlings") } }
                 assertEquals(2, Spindel.FIGHT.spiderlings(npc).size)
                 val bo = server.world.playerNamed("bo")!!
+                assertTrue(Spindel.FIGHT.spiderlings(npc).all { it.spawn.x < npc.x }, "never east of her")
                 assertEquals(SureHit.MAX, server.world.combat.sureHit(bo, Spindel.FIGHT.spiderlings(npc).first(), AttackType.SLASH), "max hits on spiderlings")
                 assertEquals(SureHit.ROLLED, server.world.combat.sureHit(bo, npc, AttackType.SLASH))
                 client.await("a stronger shot", timeoutMillis = 30_000) { fight.lines.firstOrNull { "(max 35, 40% through prayer)" in it || "(max 28, 40% through prayer)" in it } }
