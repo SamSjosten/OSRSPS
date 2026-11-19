@@ -569,7 +569,10 @@ class World(
     val bankPinSettings = BankPinSettings(interfaces::openModal)
 
     private val settingsSide = SettingsSide()
-    private val allSettings = AllSettings(settings, interfaces, scripts, words = ::textFor)
+    private val allSettings = AllSettings(
+        settings, interfaces, scripts, words = ::textFor,
+        pronounsPicked = { player, pronoun -> if (pronoun != player.look.pronoun) setLook(player, player.look.copy(pronoun = pronoun)) },
+    )
     private val worldMap = WorldMapScreen(interfaces)
 
     /** Grand Exchange offers; see [GrandExchange]. */
@@ -2350,6 +2353,7 @@ class World(
         appearance.setName(player.username)
         // The saved look. Worn items and the stance go with the first flush.
         sendLook(player)
+        syncPronounSetting(player)
         sendRunState(player)
         PlayerOps.send(player.vars, player.session::queue)
         player.attackOp = false
@@ -2389,6 +2393,13 @@ class World(
     fun setLook(player: Player, look: PlayerLook) {
         player.look = look
         sendLook(player)
+        syncPronounSetting(player)
+    }
+
+    /** The All Settings window's Pronouns shows the look's pronoun (settings_transmit_pronouns). */
+    private fun syncPronounSetting(player: Player) {
+        if (varTypes.varbit(AllSettings.VARBIT_PRONOUNS) == null) return
+        if (player.vars.getVarbit(AllSettings.VARBIT_PRONOUNS) != player.look.pronoun) player.vars.setVarbit(AllSettings.VARBIT_PRONOUNS, player.look.pronoun)
     }
 
     /**

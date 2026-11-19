@@ -23,7 +23,8 @@ import osrsps.map.CollisionMap
  * Looks step 2 through the headless client: Thessalia's change top and legwear options and her Makeover option open
  * the makeover screen on its tops or bottoms; a style or swatch shows on the player until Apply or Confirm keeps it or
  * the screen closes without it; Confirm after her talk gets one of her six lines; the burger menu switches pages; clicks
- * between children or past the last do nothing. The rl-client script test-runner/examples/varrock-thessalia-makeover.json
+ * between children or past the last do nothing. Looks step 3: the hair and facial hair pages, and the body types page
+ * (205): body type, skin colour and pronouns, each click mirrored in the varps the client set itself. The rl-client script test-runner/examples/varrock-thessalia-makeover.json
  * makes the same clicks in the real client.
  */
 class HeadlessMakeoverTest {
@@ -32,6 +33,8 @@ class HeadlessMakeoverTest {
     // The first styles of the 242 cache's pages, with their kits, and its colour counts.
     private val catalog = MakeoverCatalog(
         mapOf(
+            MakeoverPage.HAIR to MakeoverCatalog.Page(listOf(Style(0, 45), Style(1, 47), Style(2, 48)), 30),
+            MakeoverPage.FACIAL_HAIR to MakeoverCatalog.Page(listOf(Style(14, 296), Style(10, 292)), 30),
             MakeoverPage.TORSOS to MakeoverCatalog.Page(listOf(Style(18, 56), Style(24, 60), Style(105, 89)), 29),
             MakeoverPage.SLEEVES to MakeoverCatalog.Page(listOf(Style(26, 61), Style(27, 63)), 29),
             MakeoverPage.BOTTOMS to MakeoverCatalog.Page(listOf(Style(36, 70), Style(38, 72)), 29),
@@ -50,6 +53,8 @@ class HeadlessMakeoverTest {
                 mapOf(
                     MakeoverScreen.VARBIT_INTERFACE_TYPE to VarbitType(MAKEOVER_TEMP, 0, 4),
                     MakeoverScreen.VARBIT_BODYTYPE to VarbitType(MAKEOVER_TEMP, 5, 5),
+                    // settings_transmit_pronouns, bits 24-25 of settings_tracking (2855).
+                    osrsps.game.AllSettings.VARBIT_PRONOUNS to VarbitType(SETTINGS_TRACKING, 24, 25),
                 ),
             ),
             makeoverCatalog = catalog, cycleMillis = millis,
@@ -163,22 +168,89 @@ class HeadlessMakeoverTest {
     }
 
     @Test
-    fun `clicks between children, past the last style or swatch, or on pages not built yet change nothing`(@TempDir dir: Path) {
+    fun `clicks between children, past the last style or swatch, or between the burger menu's pages change nothing`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("dave").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.npcOp(client.thessalia().index, VarrockStores.MAKEOVER_OP)
                 client.awaitOpen(MakeoverPage.TORSOS)
                 // A style's name (child 4 of the first), the fourth style (none), swatch 29 (none), a swatch's frame,
-                // and the burger menu's Hair, Facial hair and Body types.
+                // the burger menu's highlight behind Hair (child 9) and its backing (child 0).
                 for ((component, sub) in listOf(
                     MakeoverScreen.ITEM_AREA to 4, MakeoverScreen.ITEM_AREA to 15, MakeoverScreen.COLOURS to 58, MakeoverScreen.COLOURS to 3,
-                    MakeoverScreen.BURGER_MENU_FRAME to MakeoverScreen.menuChild(0), MakeoverScreen.BURGER_MENU_FRAME to MakeoverScreen.menuChild(2),
+                    MakeoverScreen.BURGER_MENU_FRAME to MakeoverScreen.menuChild(0) - 1, MakeoverScreen.BURGER_MENU_FRAME to 0,
                 )) client.click(component, sub)
                 client.click(MakeoverScreen.SELECT_AND_CLOSE, 0)
                 client.awaitClosed()
                 assertEquals(PlayerLook.DEFAULT.kits, client.appearance()?.kits)
                 assertTrue("torso 18" in client.commandReply("look") { it.startsWith("Look:") } && client.varp(MAKEOVER_TEMP) and 0x1F == 3)
+            }
+        }
+    }
+
+    @Test
+    fun `the hair pages change hair, facial hair and hair colour`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.npcOp(client.thessalia().index, VarrockStores.MAKEOVER_OP)
+                client.awaitOpen(MakeoverPage.TORSOS)
+                client.click(MakeoverScreen.BURGER_MENU_FRAME, MakeoverScreen.menuChild(MakeoverPage.HAIR.type))
+                client.awaitOpen(MakeoverPage.HAIR)
+                client.click(MakeoverScreen.ITEM_AREA, 10)
+                client.click(MakeoverScreen.COLOURS, 58)
+                client.awaitKits("the third hairstyle in hair colour 29") { kits, colours -> kits[PlayerLook.BodyPart.HAIR] == 2 && colours[0] == 29 }
+                client.click(MakeoverScreen.SELECT, 0)
+                client.click(MakeoverScreen.BURGER_MENU_FRAME, MakeoverScreen.menuChild(MakeoverPage.FACIAL_HAIR.type))
+                client.awaitOpen(MakeoverPage.FACIAL_HAIR)
+                // The default jaw, kit 10, is the second facial hair style.
+                assertEquals(5, client.varp(MakeoverScreen.VARP_SELECTED))
+                assertEquals(29, client.varp(MakeoverScreen.VARP_COLOUR), "the hair colour, shared with the hair page")
+                client.click(MakeoverScreen.ITEM_AREA, 0)
+                client.click(MakeoverScreen.SELECT_AND_CLOSE, 0)
+                client.awaitClosed()
+                val kept = client.commandReply("look") { it.startsWith("Look:") }
+                assertTrue("hair 2, jaw 14" in kept && "colours hair 29" in kept, kept)
+            }
+        }
+    }
+
+    @Test
+    fun `the body types page switches body type keeping each style, sets skin colour and pronouns, and refuses locked colours`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("fred").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.npcOp(client.thessalia().index, VarrockStores.MAKEOVER_OP)
+                client.awaitOpen(MakeoverPage.TORSOS)
+                client.click(MakeoverScreen.ITEM_AREA, 5)
+                client.click(MakeoverScreen.SELECT, 0)
+                client.click(MakeoverScreen.BURGER_MENU_FRAME, MakeoverScreen.menuChild(MakeoverScreen.BODY_TYPES_TYPE))
+                client.await("the body types page") {
+                    if (MakeoverScreen.BODY_TYPES in client.openInterfaces() && client.opEnabled(MakeoverScreen.BODY_TYPES, MakeoverScreen.BT_COLOUR, 13, 1)) Unit else null
+                }
+                assertEquals(listOf(0, 0, 0), listOf(MakeoverScreen.VARP_IF1, MakeoverScreen.VARP_IF2, MakeoverScreen.VARP_IF3).map(client::varp))
+                client.ifButton(MakeoverScreen.BODY_TYPES, MakeoverScreen.BT_BODY_TYPE_B, 1)
+                // Each part's style kept as body type B's kit of it: the applied second top (24) is 60.
+                val typeB = listOf(45, 292, 60, 61, 67, 70, 79)
+                client.await("body type B previewed") { client.appearance()?.takeIf { it.bodyType == 1 && it.kits == typeB } }
+                client.await("if1 and if3 mirrored") { if (client.varp(MakeoverScreen.VARP_IF1) == 1 && client.varp(MakeoverScreen.VARP_IF3) == 1) Unit else null }
+                // Child 0 is skin colour 7 (enum 999's order); child 9 is colour 9, a Halloween one, locked.
+                client.ifButton(MakeoverScreen.BODY_TYPES, MakeoverScreen.BT_COLOUR, 1, 0)
+                client.ifButton(MakeoverScreen.BODY_TYPES, MakeoverScreen.BT_COLOUR, 1, 9)
+                client.ifButton(MakeoverScreen.BODY_TYPES, MakeoverScreen.BT_THEY_THEM, 1)
+                client.await("they/them mirrored") { if (client.varp(MakeoverScreen.VARP_IF3) == 2) Unit else null }
+                client.await("skin 7 previewed") { client.appearance()?.takeIf { it.colours[PlayerLook.ColourPart.SKIN.ordinal] == 7 } }
+                assertEquals(7, client.varp(MakeoverScreen.VARP_IF2))
+                // Back to A keeps they/them.
+                client.ifButton(MakeoverScreen.BODY_TYPES, MakeoverScreen.BT_BODY_TYPE_A, 1)
+                client.ifButton(MakeoverScreen.BODY_TYPES, MakeoverScreen.BT_BODY_TYPE_B, 1)
+                client.ifButton(MakeoverScreen.BODY_TYPES, MakeoverScreen.BT_CONFIRM, 1)
+                client.awaitClosed()
+                client.await("the body types page closed") { if (MakeoverScreen.BODY_TYPES !in client.openInterfaces()) Unit else null }
+                val kept = client.commandReply("look") { it.startsWith("Look:") }
+                assertTrue("body type B; kits hair 45, jaw 292, torso 60" in kept && "skin 7" in kept && "pronouns they/them" in kept, kept)
+                // The All Settings window's Pronouns shows it too.
+                client.await("settings_transmit_pronouns 2") { if (client.varp(SETTINGS_TRACKING) shr 24 and 3 == 2) Unit else null }
             }
         }
     }
@@ -214,5 +286,6 @@ class HeadlessMakeoverTest {
 
     private companion object {
         const val MAKEOVER_TEMP = 3787
+        const val SETTINGS_TRACKING = 2855
     }
 }
