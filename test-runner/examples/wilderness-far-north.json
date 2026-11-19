@@ -6,6 +6,8 @@
     {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
     {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off).", "comment": "ice warriors, ice spiders and white wolves are aggressive"},
     {"step": "command", "text": "::tele 2950 3930 0", "expectMessage": "Teleported to 2950, 3930, 0", "comment": "among the plateau's ice warriors"},
+    {"step": "command", "text": "::aggro 1000", "expectMessage": "aggressive monsters here are tolerant of you.", "comment": "so nothing more comes at us here (nightly 2026-11-19: an ice giant had, and single-way kept us off the warrior)"},
+    {"step": "command", "text": "::kill", "expectMessage": "Killed ", "comment": "whatever came at us first, or else the nearest monster: then nothing fights us"},
     {"step": "npcOption", "npc": "Ice warrior", "option": "Attack", "timeoutMs": 20000},
     {"step": "assertHitsplat", "npc": "Ice warrior", "timeoutMs": 20000},
 
