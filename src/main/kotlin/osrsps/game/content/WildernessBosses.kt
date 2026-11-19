@@ -8,6 +8,7 @@ import osrsps.game.World
 import osrsps.game.combat.Drop
 import osrsps.game.dialogue.Lines
 import osrsps.game.npc.Npc
+import osrsps.map.LineOfSight
 
 /** The Wilderness bosses' shared words (keys only; the words are in data/dialogue.txt). */
 object WildernessBossLines : Lines("wilderness_boss", "Kill count") {
@@ -154,7 +155,8 @@ class WildernessBosses(private val world: World) {
         if (player.level != npc.level) return false
         val fight = world.encounters.all.firstOrNull { it.boss === npc }
         if (fight != null) return fight.covers(player.x, player.z)
-        return kotlin.math.abs(player.x - npc.x) <= PRESENT_TILES + npc.type.size && kotlin.math.abs(player.z - npc.z) <= PRESENT_TILES + npc.type.size
+        // Edge to edge from the tiles it stands on, which run east and north of its origin (Codex review on #817).
+        return LineOfSight.distance(npc.x, npc.z, npc.type.size, player.x, player.z) <= PRESENT_TILES
     }
 
     private fun ironman(player: Player): Boolean =

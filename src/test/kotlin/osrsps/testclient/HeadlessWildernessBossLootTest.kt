@@ -121,6 +121,32 @@ class HeadlessWildernessBossLootTest {
     }
 
     @Test
+    fun `16 tiles from a boss without an encounter is gone from its fight`(@TempDir dir: Path) {
+        server(dir, group = false).use { server ->
+            server.login("ada").use { a ->
+                server.login("bea").use { b ->
+                    a.await("the login rebuild") { a.position }
+                    b.await("the login rebuild") { b.position }
+                    a.tele(3200, 3900)
+                    b.tele(3200, 3901)
+                    a.commandReply("wboss test boss") { it.startsWith("Spawned Ice giant") }
+                    val npc = a.await("the boss") { server.world.npcs.all.firstOrNull { it.type.id == BOSS } }
+                    a.commandReply("god") { it.startsWith("You can") }
+                    b.commandReply("god") { it.startsWith("You can") }
+                    a.commandReply("hit 60 ${npc.index}") { it.startsWith("Hit Ice giant") }
+                    // One tile past the 15, measured from the tile it stands on (Codex review on #817); auto retaliate
+                    // off, so she stays there.
+                    a.commandReply("varp ${osrsps.game.EquipmentTab.VARP_AUTO_RETALIATE_OFF} 1") { it.startsWith("Varp") }
+                    a.tele(npc.x + 16, npc.z)
+                    b.commandReply("kill ${npc.index}") { it.startsWith("Killed") }
+                    b.await("bea's kill count") { b.messages().firstOrNull { it.text == "[wilderness_boss.kill_count boss=Ice giant count=1]" } }
+                    assertEquals(0, server.world.playerNamed("ada")!!.vars[KILL_COUNT_VARP])
+                }
+            }
+        }
+    }
+
+    @Test
     fun `a top damager who logs out as the body falls keeps the drop theirs`(@TempDir dir: Path) {
         server(dir, deathTicks = LONG_DEATH_TICKS, group = false).use { server ->
             server.login("bea").use { b ->
