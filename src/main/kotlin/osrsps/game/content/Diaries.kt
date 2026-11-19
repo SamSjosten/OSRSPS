@@ -258,6 +258,16 @@ class Diaries(private val world: World, private val font: ChatFont) {
     /** An NPC the player pickpocketed ([DiaryHooks.PICKPOCKETED]). */
     fun pickpocketed(player: Player, npc: Npc) = DiaryHooks.named(DiaryHooks.PICKPOCKETED, player, npc.type.name).forEach { complete(player, it) }
 
+    /** Pray-at on an altar with Smite on ([DiaryHooks.SMITE_ALTARS]). */
+    fun prayedWithSmite(player: Player) {
+        for ((zone, task) in DiaryHooks.SMITE_ALTARS) if (zone.has(player)) complete(player, task)
+    }
+
+    /** The Skill Cape emote in a quest point cape. */
+    fun questCapeEmote(player: Player) {
+        if (DiaryZone.WISE_OLD_MAN_HOUSE.has(player)) complete(player, DiaryTask.LUMBRIDGE_ELITE_6)
+    }
+
     /** A teleport spell cast (not a tablet broken), by its spell obj. */
     fun teleported(player: Player, spellObj: Int) {
         if (spellObj == LUMBRIDGE_TELEPORT_SPELL) complete(player, DiaryTask.LUMBRIDGE_MEDIUM_5)
