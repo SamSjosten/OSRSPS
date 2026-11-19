@@ -1,0 +1,24 @@
+{
+ "name": "The clan hall: in a clan made by ::clanmake, the Clan Hub's portal (Enter) into the clan's hall, a bank booth there, and the hall's portal (Leave) back out beside the hub portal (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::clandisband", "expectMessage": "lan", "comment": "test's own clan from another run, if any"},
+  {"step": "command", "text": "::clandisband Hall Gate", "expectMessage": "lan", "comment": "the last run's clan, if any"},
+  {"step": "command", "text": "::tele 3185 3472 0", "expectMessage": "Teleported to 3185, 3472, 0", "comment": "west of the hub portal (3186, 3471)"},
+  {"step": "waitTicks", "ticks": 3, "comment": "a teleport into a new region"},
+  {"step": "locOption", "locId": 41724, "option": "Enter-member", "comment": "in no clan yet"},
+  {"step": "assertMessage", "contains": "[clan_hall.no_clan]", "timeoutMs": 10000},
+  {"step": "command", "text": "::clanmake Hall Gate", "expectMessage": "Clan Hall Gate made"},
+  {"step": "command", "text": "::clanjoin Hall Gate", "expectMessage": "Joined clan Hall Gate"},
+  {"step": "locOption", "locId": 41724, "option": "Enter"},
+  {"step": "waitTicks", "ticks": 4, "comment": "the hall is a new instance: the region redraws"},
+  {"step": "locOption", "locId": 10583, "option": "Bank", "timeoutMs": 20000, "comment": "one of the hall's four bank booths, upstairs in the bank"},
+  {"step": "assertInterface", "interfaceId": 12, "timeoutMs": 20000},
+  {"step": "locOption", "locId": 41617, "option": "Leave", "timeoutMs": 20000},
+  {"step": "assertLocation", "x": 3185, "y": 3472, "plane": 0, "timeoutMs": 20000, "comment": "beside the hub portal (the tile is a guess)"},
+  {"step": "command", "text": "::clandisband Hall Gate", "expectMessage": "Clan Hall Gate deleted"},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"}
+ ]
+}
