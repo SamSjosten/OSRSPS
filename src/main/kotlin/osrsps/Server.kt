@@ -278,7 +278,7 @@ class GameServer(
             spells = spells, prayerList = prayers, foodList = Foods.load(objTypes), potionData = Potions.load(objTypes), shopTypes = shopTypes, omnishops = omnishops, itemSets = itemSets, collectionLogCatalog = collectionLog, skillUnlocks = skillUnlocks, ipBans = ipBans, xpRate = xpRate,
             wearRequirements = wearRequirements, itemPrices = itemPrices, itemPricesFile = itemPricesFile, settings = settings,
             specialAttackCosts = specialAttackCosts, encounterDefs = listOfNotNull(ArchiveGuardian.def(npcTypes), Ezekiel.def(npcTypes), Bork.def(npcTypes), Dreadnoth.def(npcTypes), Moia.def(npcTypes), Xarth.def(npcTypes), Dagonhai.def(npcTypes), Ocellus.def(npcTypes)),
-            slayerData = slayerData, trailData = trailData, starCycle = true, cycleMillis = cycleMillis,
+            slayerData = slayerData, trailData = trailData, trailRewards = osrsps.game.trail.TrailRewards.load(objTypes), starCycle = true, cycleMillis = cycleMillis,
         )
         loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world, relays, proxy, js5Connections)

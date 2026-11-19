@@ -53,15 +53,20 @@ class TrailLoaderTest {
     }
 
     @Test
-    fun `a trail under way survives a save`() {
+    fun `a trail under way, the caskets opened and the scroll cases opened survive a save`() {
         val progress = TrailProgress()
         progress[TrailTier.EASY] = Trail("map:107", 3, mutableListOf("cryptic:636"))
         progress[TrailTier.BEGINNER] = Trail("map:101", 1)
+        progress.setCompleted(TrailTier.HARD, 51)
+        progress.cases += 30914
         val back = TrailSaves.fromJson(TrailSaves.toJson(progress))
         assertEquals("map:107", back[TrailTier.EASY]!!.step)
         assertEquals(3, back[TrailTier.EASY]!!.length)
         assertEquals(listOf("cryptic:636"), back[TrailTier.EASY]!!.done)
         assertEquals(1, back[TrailTier.BEGINNER]!!.length)
         assertNull(back[TrailTier.HARD])
+        assertEquals(51, back.completed(TrailTier.HARD))
+        assertEquals(0, back.completed(TrailTier.EASY))
+        assertEquals(setOf(30914), back.cases)
     }
 }
