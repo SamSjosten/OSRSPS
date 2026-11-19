@@ -731,7 +731,8 @@ class MeleeCombat(
         npc.face(player)
         val swingType = type ?: def.attackType
         val roll = combat.npcAttack(npc, player, swingType) ?: return
-        val max = maxHit ?: roll.maxHit
+        // A named melee max hit loses to drained Strength as the file's would.
+        val max = if (maxHit != null) combat.npcMaxHit(npc, def, maxHit) else roll.maxHit
         val damage = if (CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)) CombatMath.rollDamage(random, max) else 0
         // The dice are rolled either way, so a prayer doesn't change what comes after (World.random is shared).
         val blocked = if (combat.bulwarkBlocking(player, tick)) DinhsBulwark.blocked(damage) else damage

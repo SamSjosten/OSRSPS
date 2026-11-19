@@ -403,6 +403,13 @@ class HeadlessFightCaveTest {
                 client.await("its stab", timeoutMillis = 20_000) {
                     client.actorEvents().firstOrNull { it.npc && it.index == zek.index && it.kind == ActorEventKind.ANIMATION && it.id == FightCaveMonsters.ANIM_KET_ZEK_MELEE }
                 }
+                // Drained Strength takes off its stab's max hit as it would the file's (a Bandos godsword's specials).
+                val def = server.world.combat.npcCombat[zek.type]!!
+                assertEquals(FightCaveMonsters.KET_ZEK_MELEE_MAX, server.world.combat.npcMaxHit(zek, def, FightCaveMonsters.KET_ZEK_MELEE_MAX))
+                zek.drained[osrsps.game.NpcStat.STRENGTH.ordinal] = 20
+                val lost = def.maxHit - server.world.combat.npcMaxHit(zek, def)
+                assertTrue(lost > 0)
+                assertEquals(FightCaveMonsters.KET_ZEK_MELEE_MAX - lost, server.world.combat.npcMaxHit(zek, def, FightCaveMonsters.KET_ZEK_MELEE_MAX))
             }
         }
     }
