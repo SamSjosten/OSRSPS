@@ -56,7 +56,7 @@ came from, goes in the code's comments (`// Guessed:`, `// Inferred:`, the Wiki 
 
 "What's in it" has one `<details>` block per region, in the order regions were started: `<summary>` holds the
 region's name in bold and its status after a `·`, and the table inside has a Places row and a Bosses row (names
-only, as the Wiki spells them). A new region adds its own block; the first block stays `open`. Leave a blank line
+only, as the Wiki spells them), plus a Raids row (the raid, then its bosses) where a raid is entered from the region. A new region adds its own block; the first block stays `open`. Leave a blank line
 after `<summary>` and before `</details>`, or GitHub shows the table as plain text. Skills stay in their own table
 under the regions, since most skills span several. When a region outgrows its block (boss notes, skill spots,
 what each place has), it moves to a page of its own at `regions/<region>.md`, with a link back to the README, and its
