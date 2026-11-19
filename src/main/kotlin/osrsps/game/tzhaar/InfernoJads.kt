@@ -4,6 +4,7 @@ import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.combat.AttackType
 import osrsps.game.combat.CombatMath
+import osrsps.game.combat.DinhsBulwark
 import osrsps.game.combat.MeleeCombat
 import osrsps.game.npc.Npc
 import osrsps.map.Tile
@@ -72,8 +73,12 @@ class InfernoJads(private val world: World) {
             iterator.remove()
             val player = hit.player
             if (player.loggedOut || player.dead || player.hitpoints <= 0 || hit.jad.dead) continue
+            // A player who left the run (or was moved out) is not hit by a Jad still inside it.
+            if (world.instances.at(player.x, player.z)?.contains(hit.jad.x, hit.jad.z) != true) continue
             if (hit.type == AttackType.RANGED) player.effects.spotanim(0, FightCaveMonsters.SPOTANIM_JAD_ROCK, 0, 0)
-            val damage = if (world.prayers.protects(player, hit.type)) 0 else hit.damage
+            // Dinh's bulwark counts as it lands, as the prayer does.
+            val bulwarked = if (world.combat.bulwarkBlocking(player, world.tick)) DinhsBulwark.blocked(hit.damage) else hit.damage
+            val damage = if (world.prayers.protects(player, hit.type)) 0 else bulwarked
             world.meleeCombat.hitPlayer(player, hit.jad, damage, world.tick)
         }
     }
@@ -151,6 +156,14 @@ class InfernoJads(private val world: World) {
 
     /** The healers [jad] summoned so far, for tests. */
     fun healersOf(jad: Npc): List<Npc> = jads[jad]?.healers?.toList() ?: emptyList()
+
+    /** Drops the hits and state of the Jads and healers inside [area]: from [Inferno.end]. */
+    fun dropHitsWithin(area: (x: Int, z: Int) -> Boolean) {
+        hits.removeAll { area(it.jad.x, it.jad.z) }
+        jads.keys.removeAll { area(it.x, it.z) }
+        nextHeal.keys.removeAll { area(it.x, it.z) }
+        healerOf.keys.removeAll { area(it.x, it.z) }
+    }
 
     private fun died(inferno: Inferno, jad: Npc) {
         val state = jads.remove(jad)

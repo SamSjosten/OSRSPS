@@ -388,6 +388,7 @@ class Inferno(private val world: World) {
         if (runs[run.owner] === run) runs.remove(run.owner)
         // A shot on its way would land outside after the run is over, where a death is no longer safe.
         world.meleeCombat.dropShotsFromWithin { x, z -> run.instance.contains(x, z) }
+        jads.dropHitsWithin { x, z -> run.instance.contains(x, z) }
         for (npc in run.monsters) if (world.npcs[npc.index] === npc) world.removeNpc(npc)
         run.monsters.clear()
         for (pillar in run.pillars) {
