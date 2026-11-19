@@ -462,7 +462,7 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
 fun registerRandomEvents(world: World) {
     val events = listOf(
         Genie, CountCheckEvent, DrunkenDwarf, RickTurpentine, MysteriousOldMan, DrJekyll, StrangePlant, Certer, SandwichLady,
-        FreakyForester, DrillDemon, Gravedigger, Mime, Beekeeper, CaptArnav, EvilBob,
+        FreakyForester, DrillDemon, Gravedigger, Mime, Beekeeper, CaptArnav, EvilBob, PrisonPete,
     )
     for (event in events) {
         world.randomEvents.register(event)
@@ -473,5 +473,6 @@ fun registerRandomEvents(world: World) {
     Mime.register(world)
     Beekeeper.register(world)
     EvilBob.register(world)
+    PrisonPete.register(world)
     world.handlers.onObj(StrangePlant.FRUIT, 1) { op -> StrangePlant.eat(world, player, op.sub) }
 }
