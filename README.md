@@ -39,12 +39,13 @@ in the code. Current RuneLite connects unchanged.
 ### Quick start
 
 ```bash
-./gradlew run --args=fetch-cache   # once: download the live cache into data/
-./gradlew run --args=serve         # game on 43594, launcher files on 43595
+./gradlew run --args=fetch-cache                    # once: download the live cache into data/
+OSRSPS_LOCAL_KEY=1 ./gradlew run --args=serve       # game on 43594, launcher files on 43595
 ```
 
 Then point RSProx at `http://<host>:43595/proxy-targets.yaml` ([Connect RuneLite](#connect-runelite)) and log in
-with any new name.
+with any new name. `OSRSPS_LOCAL_KEY=1` makes the server generate its own login key, since the live one stays
+out of git (see Build and run).
 
 ### More docs
 
