@@ -752,13 +752,15 @@ class World(
     /**
      * Where a player dying here comes back and their grave goes: a raid's say ([ArchiveRaids.deathPlace]); in any other
      * instance the grave goes to its exit, since nobody could get back in to it (exploit review round 9, INST-1), and
-     * they come back at the spawn; elsewhere, null: the spawn, and the grave where they fell.
+     * they come back at the spawn, except a private King Black Dragon lair's, whose grave goes in the open lair
+     * ([KingBlackDragon.graveTile]); elsewhere, null: the spawn, and the grave where they fell.
      */
     private fun deathPlace(player: Player): DeathPlace? {
         archiveRaids.deathPlace(player)?.let { return it }
         fightCaves.deathPlace(player)?.let { return it }
         houses.deathPlace(player)?.let { return it }
         val instance = instances.at(player.x, player.z) ?: return null
+        KingBlackDragon.graveTile(this, player.x, player.z)?.let { return DeathPlace(keepItems = false, it.x, it.z, 0, SPAWN_X, SPAWN_Z, SPAWN_LEVEL) }
         return DeathPlace(keepItems = false, instance.exitX, instance.exitZ, instance.exitLevel, SPAWN_X, SPAWN_Z, SPAWN_LEVEL)
     }
 

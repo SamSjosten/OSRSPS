@@ -3,6 +3,7 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.io.TempDir
 import osrsps.game.GameRandom
@@ -15,6 +16,7 @@ import osrsps.game.SeqNames
 import osrsps.game.WearPos
 import osrsps.game.GroundObjs
 import osrsps.game.World
+import osrsps.game.combat.Deaths
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
 import osrsps.game.combat.Prayers
@@ -43,7 +45,7 @@ class HeadlessKingBlackDragonTest {
         KingBlackDragon.BOSS, "King Black Dragon", size = 5, ops = listOf(null, "Attack", null, null, null), combatLevel = 276,
         internalName = "king_dragon", stats = NpcStats(attack = 240, strength = 240, defence = 240, hitpoints = 240, magic = 240),
     )
-    private val types = NpcTypes.of(boss)
+    private val types = NpcTypes.of(boss, NpcType(Deaths.GRAVE, "Grave", ops = listOf("Check", null, "Loot", null, null)))
 
     // Shaped like the cache's prayer obj for Protect from Magic, as HeadlessPrayerTest has it.
     private val protectFromMagic = ObjType(
@@ -284,6 +286,38 @@ class HeadlessKingBlackDragonTest {
                 client.await("back in the dungeon", timeoutMillis = 15_000) { client.position?.takeIf { it == Coord(3067, 10253, 0) } }
                 client.await("the lair gone") { Unit.takeIf { server.world.instances.all.isEmpty() } }
                 assertTrue(server.world.npcs.all.none { it === npc }, "and him with it")
+            }
+        }
+    }
+
+    @Test
+    fun `a death in a private lair raises the grave on the open lair's matching tile, not at the lever in deep Wilderness`(@TempDir dir: Path) {
+        server(dir, seed = 6).use { server ->
+            server.login("ely").use { client ->
+                client.await("the login rebuild") { client.position }
+                val ely = server.world.playerNamed("ely")!!
+                ely.bank.add(server.world.objTypes[KingBlackDragon.COINS]!!, 50_000)
+                client.tele(3067, 10254)
+                client.locOp(KingBlackDragon.LEVER_IN, 3067, 10253, KingBlackDragon.PRIVATE)
+                client.awaitDialogue("the menu") { it is DialogueView.Menu && it.title == DialogueText.NONE[KingBlackDragonLines.PRIVATE_TITLE] }
+                client.chooseOption(1)
+                val instance = client.await("a lair of their own", timeoutMillis = 15_000) { server.world.instances.at(ely.x, ely.z) }
+                val tile = WildernessLevers.KBD_LAIR_TILE
+                client.await("at the private lair's lever") {
+                    client.position?.takeIf { it == Coord(instance.baseX + tile.x - KingBlackDragon.LAIR_X, instance.baseZ + tile.z - KingBlackDragon.LAIR_Z, 0) }
+                }
+                // More than the three kept, so a grave is raised.
+                repeat(5) { ely.inventory.add(server.world.objTypes[SHIELD]!!, 1) }
+                client.commandReply("hit 99 me") { it.startsWith("Hit yourself") }
+                // On the server's side: the respawn is off this test's map, and the client is let go there.
+                val until = System.currentTimeMillis() + 15_000
+                var grave = server.world.deaths.graveOf(ely)
+                while (grave == null && System.currentTimeMillis() < until) {
+                    Thread.sleep(20)
+                    grave = server.world.deaths.graveOf(ely)
+                }
+                assertNotNull(grave, "the grave")
+                assertEquals(Triple(tile.x, tile.z, 0), Triple(grave.npc.x, grave.npc.z, grave.npc.level), "exploit review round 40, R40B-1")
             }
         }
     }
