@@ -526,11 +526,20 @@ class HeadlessInfernoTest {
                 val corner = listOf(run.at(Tile(2258, 5330)), run.at(Tile(2284, 5357))).maxBy { maxOf(Math.abs(it.x - imKot.x), Math.abs(it.z - imKot.z)) }
                 client.command("tele ${corner.x} ${corner.z} 0")
                 client.await("in the corner") { client.position?.takeIf { it == Coord(corner.x, corner.z, 0) } }
+                // Paused and stepped, so a slow machine can't miss the 4-tick dig-down or the 2 ticks under (Codex review on #835).
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
                 monsters.digNow(imKot)
-                client.await("it digs") { monsters.digs[imKot]?.takeIf { it >= 1 } }
+                client.stepTicks(1)
+                assertTrue((monsters.digs[imKot] ?: 0) >= 1, "it digs")
                 assertFalse(imKot.hidden, "its dig-down shows before it goes from sight")
-                client.await("under") { imKot.takeIf { it.hidden } }
-                client.await("it comes up beside them", timeoutMillis = 10_000) { imKot.takeIf { !it.hidden } }
+                var down = 1
+                while (!imKot.hidden && down <= InfernoMonsters.DIG_TICKS + 1) { client.stepTicks(1); down++ }
+                assertTrue(imKot.hidden, "under after its dig-down")
+                assertTrue(down >= InfernoMonsters.DIG_TICKS, "the dig-down lasted its ticks")
+                var under = 0
+                while (imKot.hidden && under <= InfernoMonsters.UNDER_TICKS + 1) { client.stepTicks(1); under++ }
+                assertFalse(imKot.hidden, "it comes up")
+                client.commandReply("resume") { it.startsWith("Resumed") }
                 assertTrue(server.world.meleeCombat.reaches(imKot, player), "beside them")
                 assertTrue(server.world.npcs.canStand(imKot, imKot.x, imKot.z), "on ground it can stand on")
                 assertTrue(imKot.target === player)
