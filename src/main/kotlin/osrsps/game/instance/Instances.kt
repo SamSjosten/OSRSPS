@@ -5,6 +5,7 @@ import osrsps.game.loc.LocTypes
 import osrsps.game.loc.Locs
 import osrsps.game.loc.StaticLocs
 import osrsps.game.zone.ZoneKey
+import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollision
@@ -139,22 +140,63 @@ class Instances(private val collision: CollisionMap, private val staticLocs: Sta
     /**
      * Lays [part] over what [instance] shows in its zones now: their collision and locs go, and the part's come in, as
      * for a room that changes as a raid goes on. The caller sends the players in it a new REBUILD_REGION, and clears
-     * the loc changes and objs in those zones first if they mustn't stay. Guessed safe: a loc of a neighbouring zone
-     * whose flags reached into these zones loses them there.
+     * the loc changes and objs in those zones first if they mustn't stay. Collision across the zones' edges is kept
+     * right both ways: the outgoing locs' flags on the tiles beyond go (a wall on the edge flags both sides), and the
+     * neighbouring zones' cache locs whose flags reach into these zones, or onto those tiles, are added back (Codex
+     * review on #798). A loc change (not the cache's) next door that reaches in isn't put back.
      */
     fun replace(instance: Instance, part: InstancePart) {
         require(byId[instance.id] === instance) { "$instance has ended" }
         require(part.toDx >= 0 && part.toDz >= 0 && part.toDx + part.widthZones <= instance.widthSquares * 8 && part.toDz + part.heightZones <= instance.heightSquares * 8) { "$part is outside $instance" }
+        val replaced = ArrayList<ZoneKey>()
         for (dx in 0 until part.widthZones) {
             for (dz in 0 until part.heightZones) {
-                val zone = ZoneKey((instance.baseX shr 3) + part.toDx + dx, (instance.baseZ shr 3) + part.toDz + dz, part.toLevel)
-                if (instance.sources.remove(zone.packed) == null) continue
-                staticLocs.removeZone(zone.baseX, zone.baseZ, zone.level)
-                for (x in 0 until ZoneKey.SIZE) for (z in 0 until ZoneKey.SIZE) collision.set(zone.baseX + x, zone.baseZ + z, zone.level, 0)
+                replaced += ZoneKey((instance.baseX shr 3) + part.toDx + dx, (instance.baseZ shr 3) + part.toDz + dz, part.toLevel)
             }
         }
+        val inReplaced = { x: Int, z: Int -> replaced.any { x shr 3 == it.x && z shr 3 == it.z } }
+        // Tiles beyond the zones that lose an outgoing loc's flags, so the neighbours' own can be put back on them.
+        val touched = HashSet<Long>()
+        for (zone in replaced) {
+            if (zone.packed !in instance.sources) continue
+            staticLocs.forEachInZone(zone.baseX, zone.baseZ, zone.level) { loc ->
+                locCells(loc) { tx, tz, mask ->
+                    if (!inReplaced(tx, tz) && instance.contains(tx, tz)) {
+                        collision.remove(tx, tz, zone.level, mask)
+                        touched += tileKey(tx, tz)
+                    }
+                }
+            }
+        }
+        for (zone in replaced) {
+            if (instance.sources.remove(zone.packed) == null) continue
+            staticLocs.removeZone(zone.baseX, zone.baseZ, zone.level)
+            for (x in 0 until ZoneKey.SIZE) for (z in 0 until ZoneKey.SIZE) collision.set(zone.baseX + x, zone.baseZ + z, zone.level, 0)
+        }
         for ((from, to, rotation) in copyTerrain(instance, part)) copyLocs(instance, from, to, rotation)
+        val neighbours = HashSet<ZoneKey>()
+        for (zone in replaced) {
+            for (nx in -1..1) for (nz in -1..1) {
+                val next = ZoneKey(zone.x + nx, zone.z + nz, zone.level)
+                if (next !in replaced && next.packed in instance.sources) neighbours += next
+            }
+        }
+        for (zone in neighbours) {
+            staticLocs.forEachInZone(zone.baseX, zone.baseZ, zone.level) { loc ->
+                locCells(loc) { tx, tz, mask ->
+                    if ((inReplaced(tx, tz) || tileKey(tx, tz) in touched) && instance.contains(tx, tz)) collision.add(tx, tz, zone.level, mask)
+                }
+            }
+        }
     }
+
+    /** The collision cells of [loc], placed as it is, as the map loader flags them; nothing for an unknown type. */
+    private fun locCells(loc: ZoneLoc, visit: (Int, Int, Int) -> Unit) {
+        val type = locTypes[loc.id] ?: return
+        LocCollision(collision).cells(type.collision, loc.x, loc.z, loc.level, loc.shape, loc.angle, visit)
+    }
+
+    private fun tileKey(x: Int, z: Int): Long = (x.toLong() shl 32) or (z.toLong() and 0xFFFFFFFFL)
 
     /**
      * Ends [instance]: its zones leave the world, with their collision and copied locs. The caller clears what lives in

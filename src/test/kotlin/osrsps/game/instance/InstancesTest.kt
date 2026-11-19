@@ -68,6 +68,27 @@ class InstancesTest {
     }
 
     @Test
+    fun `replacing a zone takes its walls' flags off the next zone, and puts back the next zone's walls that reach in`() {
+        // A wall on the east edge of the first zone (it flags 3216's west side too), and one on the west edge of the zone
+        // east of it (it flags 3215's east side): the first zone is then replaced by open ground.
+        val east = ZoneLoc(WALL, LocShape.WALL_STRAIGHT, 2, 3215, 3212, 0)
+        val west = ZoneLoc(WALL, LocShape.WALL_STRAIGHT, 0, 3216, 3213, 0)
+        for (loc in listOf(east, west)) {
+            static.add(loc)
+            LocCollision(map).addLoc(LocCollisionType(), loc.x, loc.z, 0, loc.shape, loc.angle)
+        }
+        val instance = create()
+        val dx = instance.baseX - 3208
+        val dz = instance.baseZ - 3208
+        assertTrue(map[3216 + dx, 3212 + dz, 0] and CollisionFlag.WALL_WEST != 0, "the copied wall's other side")
+        assertTrue(map[3215 + dx, 3213 + dz, 0] and CollisionFlag.WALL_EAST != 0, "the next zone's wall's other side")
+        instances.replace(instance, InstancePart(3224, 3224, 0, 1, 1, 0, 0, 0))
+        assertEquals(0, map[3216 + dx, 3212 + dz, 0] and CollisionFlag.WALL_WEST, "the gone wall's other side is open")
+        assertTrue(map[3215 + dx, 3213 + dz, 0] and CollisionFlag.WALL_EAST != 0, "the next zone's wall still reaches in")
+        assertEquals(listOf(west.copy(x = 3216 + dx, z = 3213 + dz)), static.at(3216 + dx, 3213 + dz, 0))
+    }
+
+    @Test
     fun `the rest of its block, and the margin round it, are off the map`() {
         val instance = create()
         assertEquals(CollisionFlag.UNLOADED, map[instance.baseX + 16, instance.baseZ, 0], "the zone east of the copy")
