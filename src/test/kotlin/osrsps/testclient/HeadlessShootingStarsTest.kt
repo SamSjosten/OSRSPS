@@ -105,6 +105,23 @@ class HeadlessShootingStarsTest {
     }
 
     @Test
+    fun `a stardust stack one short of the cap can't take a bonus roll, so Mine stops`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.miner(99)
+                client.command("item ${ShootingStars.STARDUST} ${Int.MAX_VALUE - 1}")
+                client.await("the stack") { if (client.dust() == Int.MAX_VALUE - 1) Unit else null }
+                client.commandReply("star bonus 300") { it.contains("300 dust") }
+                val (x, z) = client.landHere(1)
+                client.locOp(ShootingStars.idFor(1), x, z, ShootingStars.MINE)
+                client.seen("[shooting_stars.inventory_full]")
+                client.commandReply("star bonus") { it.contains("bonus: 300 dust") }
+                assertEquals(Int.MAX_VALUE - 1, client.dust())
+            }
+        }
+    }
+
+    @Test
     fun `stardust comes two at a time with the bonus, 32 XP each roll, and the bonus counts down`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("dave").use { client ->

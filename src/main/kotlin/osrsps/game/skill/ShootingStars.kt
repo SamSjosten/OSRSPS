@@ -7,6 +7,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.contentOrNull
+import osrsps.game.Inventory
 import osrsps.game.Player
 import osrsps.game.Skill
 import osrsps.game.World
@@ -101,7 +102,7 @@ class StarSites(val regions: List<StarRegion>, val fallback: StarSite?) {
  * a repeated roll rolls again among the others; the landing loc (star_landing_star, its impact animation about 3.4
  * ticks) shown for [LANDING_TICKS] before the star; a player counting as mining from their click, before the first
  * roll; Prospect's percent rounded down; the full-backpack message (none on the Wiki; stardust stacks, so it only
- * stops a player with no stack and no free slot). Inferred: the bonus messages at every 50 left, from the Wiki's list.
+ * stops a player with no stack and no free slot, or a stack too near the cap for the roll's dust). Inferred: the bonus messages at every 50 left, from the Wiki's list.
  * Out: the falling whistle and crash sounds (the synths have no names), clue geodes (Treasure Trails), rock golems, the
  * noticeboard at the Observatory, the buff bar's counter, the prospector kit's XP, degrading a star below its level
  * (a Wiki note on a check order), star_last_mined_location (its site numbers aren't known) and free-to-play halving.
@@ -302,7 +303,7 @@ class ShootingStars(private val world: World, val sites: StarSites = StarSites.l
             player.message(text[ShootingStarLines.LEVEL, "level" to level])
             return stop()
         }
-        if (player.inventory.freeSlots == 0 && player.inventory.count(STARDUST) == 0L) {
+        if (!dustFits(player)) {
             player.message(text[ShootingStarLines.INVENTORY_FULL])
             return stop()
         }
@@ -334,6 +335,8 @@ class ShootingStars(private val world: World, val sites: StarSites = StarSites.l
         val dust = world.objTypes[STARDUST] ?: error("No obj type $STARDUST for stardust")
         val text = world.textFor(player)
         val bonus = varbit(player, VARBIT_BONUS)
+        // Nothing, not even the XP or the bonus, unless the whole roll fits.
+        if (!dustFits(player)) return
         player.inventory.add(dust, if (bonus > 0) 2 else 1)
         player.skills.addTenths(Skill.MINING, XP_TENTHS)
         if (bonus <= 0) return
@@ -343,6 +346,13 @@ class ShootingStars(private val world: World, val sites: StarSites = StarSites.l
             left == 0 -> player.message(text[ShootingStarLines.BONUS_USED_UP])
             left % BONUS_MESSAGE_EVERY == 0 -> player.message(text[ShootingStarLines.BONUS_LEFT, "left" to left])
         }
+    }
+
+    /** Whether a roll's stardust (two with the bonus) fits: onto the stack without passing the cap, or into a free slot. */
+    private fun dustFits(player: Player): Boolean {
+        val payout = if (varbit(player, VARBIT_BONUS) > 0) 2 else 1
+        val held = player.inventory.count(STARDUST)
+        return if (held > 0) held + payout <= Inventory.MAX_STACK else player.inventory.freeSlots > 0
     }
 
     private fun ScriptContext.stop() {
