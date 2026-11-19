@@ -167,7 +167,7 @@ class Mining(private val world: World) {
         if (SkillClock.step(player, tick, ticks) == ClockStep.DUE) {
             player.anim(tool.anim)
             val guild = inGuild(loc.x, loc.z, loc.level)
-            val level = player.skills.currentLevel(Skill.MINING) + if (guild) GUILD_BOOST else 0
+            val level = player.skills.currentLevel(Skill.MINING) + (if (guild) GUILD_BOOST else 0) + celestialBoost(player)
             val glory = wearsChargedGlory(player)
             if (type.gemRock) {
                 val low = if (glory) type.low * GLORY_GEM_ROCK_MULTIPLIER else type.low
@@ -248,7 +248,7 @@ class Mining(private val world: World) {
         val ticks = if (player.actionDelay < tick) interval(pickaxe) + (if (op.repeat) 0 else 1) else 1
         if (SkillClock.step(player, tick, ticks) == ClockStep.DUE) {
             player.anim(tool.anim)
-            if (SuccessRoll.roll(world.random, type.low, type.high, player.skills.currentLevel(Skill.MINING))) {
+            if (SuccessRoll.roll(world.random, type.low, type.high, player.skills.currentLevel(Skill.MINING) + celestialBoost(player))) {
                 val ore = world.objTypes[type.ore] ?: error("No obj type ${type.ore} for ${type.key} ore")
                 player.inventory.add(ore, 1)
                 player.skills.addTenths(Skill.MINING, type.xpTenths)
@@ -429,6 +429,18 @@ class Mining(private val world: World) {
         const val GLORY_GEM_ROCK_MULTIPLIER = 3
 
         fun wearsChargedGlory(player: Player): Boolean = player.equipment[WearPos.NECK]?.id in CHARGED_GLORIES
+
+        /**
+         * The celestial ring and signet, charged or not: an invisible +4 to every mining roll (not to the level a rock
+         * needs), stacking with other boosts (OSRS Wiki, Celestial ring, read 2026-11-19; shooting stars step 2).
+         */
+        val CELESTIAL_RINGS = setOf(
+            25539, 25541, // celestial_ring, celestial_ring_charged
+            25543, 25545, // celestial_signet, celestial_signet_charged
+        )
+        const val CELESTIAL_BOOST = 4
+
+        fun celestialBoost(player: Player): Int = if (player.equipment[WearPos.RING]?.id in CELESTIAL_RINGS) CELESTIAL_BOOST else 0
 
         /** blankrunestone, the rune essence mine's four outcrops. */
         const val ESSENCE_ROCK = 34773

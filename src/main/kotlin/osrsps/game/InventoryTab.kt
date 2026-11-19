@@ -125,6 +125,21 @@ class InventoryTab(
     }
 
     /**
+     * The player cast the spell on magic tab component [spellComponent] on the item in [slot]: a content handler's
+     * ([Handlers.onSpellOnObj]), or nothing. Inferred, as for a use: a cast while delayed is ignored, and it ends what a
+     * weak queue was doing. It leaves modals and the player's walk alone, as alching while running an Agility course
+     * does on live (OSRS Wiki, High Level Alchemy).
+     */
+    fun castOn(player: Player, spellInterface: Int, spellComponent: Int, slot: Int, obj: Int) {
+        if (held(player, slot, obj) == null) return
+        if (player.scripts.delayed) return
+        scripts.clearWeak(player)
+        if (scripts.trigger(player, Op.spellOnObj(spellInterface, spellComponent, obj, slot))) return
+        logger.info { "${player.username} cast $spellInterface:$spellComponent on $obj (not handled)" }
+        nothingInteresting(player)
+    }
+
+    /**
      * Examine runs client script 6003 (examine_item), which in the 241 cache takes the ints obj, count, tradeable, no
      * alchemy, high alch and low alch, the long price and the string desc, and writes the examine text to the chatbox.
      * The price line after it (examine_price_info, 6005) shows only on the enhanced clients with the examine price

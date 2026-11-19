@@ -265,6 +265,13 @@ interface Game
 	String castOnPlayer(int interfaceId, int component, String player);
 
 	/**
+	 * (0.29.0) Picks the spell at {@code interfaceId:component} and casts it on the first inventory item with this name (or
+	 * id, when the name is null), as clicking the spell and then "Cast ... -> item" would (alchemy, Superheat Item).
+	 * Returns null once sent, or why it couldn't be yet.
+	 */
+	String castOnItem(int interfaceId, int component, String item, int itemId);
+
+	/**
 	 * The text of a component and everything inside it, or of the whole interface when {@code component} is -1, with
 	 * colour tags removed and the pieces joined by " / "; null while the interface isn't open (loaded) in the client.
 	 */
