@@ -203,9 +203,10 @@ fun registerMusaPoint(world: World) {
             var paid = false
             world.dialogues.start(this, op.npc) { paid = luthas() }
             if (!paid) return@onNpc
-            // He pays, then the crate is shipped: an empty one stands in its place, and the job ends until asked again.
+            // He pays (what doesn't fit goes on the ground), then the crate is shipped: an empty one stands in its place, and
+            // the job ends until asked again.
             set(player, 0, false)
-            world.objTypes[COINS]?.let { player.inventory.add(it, PAY) }
+            world.objTypes[COINS]?.let { world.groundObjs.give(player, it, PAY) }
             world.dialogues.start(this, op.npc) { luthasPaid() }
         }
 

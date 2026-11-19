@@ -170,6 +170,29 @@ class HeadlessMusaPointTest {
     }
 
     @Test
+    fun `Luthas's 30 coins go on the ground when the backpack is full`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("cal").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("keys on") { it == "Dialogue shows keys" }
+                client.commandReply("varp banana_crate 26") { it.startsWith("Varp banana_crate") }
+                client.command("item $BEER 28")
+                client.await("a full backpack") { if (client.count(BEER) == 28L) Unit else null }
+                client.tele(2939, 3153)
+                with(MusaPointLines) {
+                    client.talkTo(MusaPoint.LUTHAS)
+                    client.sees(FILLED, WELL_DONE)
+                    client.choose(2)
+                }
+                client.await("the coins on the ground") {
+                    client.groundObjs().firstOrNull { it.id == MusaPoint.COINS && it.count == MusaPoint.PAY }
+                }
+                assertEquals(0, MusaPoint.inCrate(server.world.playerNamed("cal")!!))
+            }
+        }
+    }
+
+    @Test
     fun `a banana tree gives a banana a pick, five in all, then stands empty`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("ben").use { client ->
