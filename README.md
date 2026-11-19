@@ -1716,6 +1716,7 @@ dungeon (below); the signs read as the Wiki says.
 | The operator's talk and his refusals | OSRS Wiki, Transcript:Sawmill operator, read 2026-11-10 (making as many as the coins pay for: inferred from its "for all of them") |
 | Construction supplies: 130%, 50%, no change, the stock | OSRS Wiki, Construction supplies, read 2026-11-10 |
 | The broken fence: Climb-over, no level, no XP | OSRS Wiki, Broken fence (Lumber Yard), read 2026-11-10 |
+| Fluffs, Gertrude's cat (3497), upstairs in the yard after the quest (`game/content/GertrudesCat.kt`): Talk-to with a catspeak amulet worn gives the transcript's Lumber Yard talk; without one she miaows overhead, Pick-up gets a hiss and Stroke a purr | OSRS Wiki, Fluffs and Transcript:Gertrude's cat (NPC) (read 2026-11-19); tile from mejrs's list; her lines without the amulet, Pick-up and Stroke guessed |
 | Tolna's talk | OSRS Wiki, Transcript:Tolna (after A Soul's Bane), read 2026-11-10 |
 | The signs' text | OSRS Wiki, Transcript:Warning sign (Tolna's rift), read 2026-11-10 |
 | Launa left out | OSRS Wiki, Launa: she went home with Brana after the quest |
@@ -1939,6 +1940,7 @@ village itself: `npc-spawns/draynor.json`, `obj-spawns/draynor.tsv` and `game/co
 | Wander ranges (2 in the pig pen and indoors, 3 and 5 elsewhere) | guessed |
 | Step 3: the market's shops in `shops.json`: Fortunato's Fine Wine (without the jug of vinegar, as after Rag and Bone Man II), Diango's Chronicle one to a player and the Seed Market's 1% overstock decay, the Draynor Seed Market (Olivia) and Diango's Toy Store, with their talks (`game/content/DraynorMarket.kt`) | the Wiki's shop pages and transcripts (read 2026-10-30); the shops' invs and sizes the 241 cache's |
 | Diango's Disk of Returning sells at the Wiki's 21,000 coins, a fixed `price` in the shop file (the percentages give 180) | the Wiki's Diango's Toy Store; that the price doesn't move with the stock is guessed |
+| Martin the Master Gardener (5832) by the pig pen (`game/content/MartinTheMasterGardener.kt`): the transcript's talk, the Farming cape and hood at 99 Farming for 99,000 coins (trimmed with another 99) and his post-Fairytale II quest lines; Pickpocket as a Master Farmer. The market's Town Crier (277) talks as Varrock's | the Wiki's Martin the Master Gardener, its transcript and Pickpocketing section (read 2026-11-19); the Town Crier page; tiles from mejrs's list; that the crier's talk is Varrock's, the hood's conditions, the wander ranges and expressions guessed or inferred |
 | Step 2: the shore's two Net/Bait spots (`0_48_50_saltfish`, 1525, whose net option is "Small Net"), fished as the swamp's, moving between four tiles | tiles from mejrs's list; the move tiles 2004Scape's `fishing_movement_draynor_village_enum` |
 | The five willows by the shore chop with Woodcutting's willow data | the 241 map (ids 10819, 10829, 10831, 10833) |
 | Draynor's permanent fire south of the bank (`fire_cook`, 43475): Cook asks which food as a range does, then cooks over the fire (fire burn chart and animation) | the Wiki's Permanent fire page (a Draynor fire with Cook, free-to-play) |

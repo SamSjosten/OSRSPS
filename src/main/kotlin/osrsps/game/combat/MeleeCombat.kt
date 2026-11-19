@@ -722,8 +722,11 @@ class MeleeCombat(
      * boss's own swings ([Npc.scriptedAttacks]); [anim] is the swing's animation, -1 for its combat definition's. A
      * ranged or magic NPC that also punches in reach (the Fight Cave's Tok-Xil and Ket-Zek) names its melee [type] and
      * [maxHit]; with no [type] the swing is of its definition's type, and may be its spell or dragonfire instead.
+     * [prayerPasses] is the percent of the hit that gets through a protection prayer (Spindel's spiderlings, Wilderness
+     * step W4.10).
      */
-    fun swingAt(npc: Npc, player: Player, tick: Long, anim: Int = -1, type: AttackType? = null, maxHit: Int? = null) {
+    fun swingAt(npc: Npc, player: Player, tick: Long, anim: Int = -1, type: AttackType? = null, maxHit: Int? = null, prayerPasses: Int = 0) {
+        require(prayerPasses in 0..100) { "$prayerPasses% through a prayer" }
         val def = combat.npcCombat[npc.type] ?: return
         // A hidden NPC fights no one, whoever asks: a boss fight's steps go on while its boss is out of sight.
         if (npc.hidden) return
@@ -744,7 +747,7 @@ class MeleeCombat(
         val damage = if (CombatMath.rollHits(random, roll.attackRoll, roll.defenceRoll)) CombatMath.rollDamage(random, max) else 0
         // The dice are rolled either way, so a prayer doesn't change what comes after (World.random is shared).
         val blocked = if (combat.bulwarkBlocking(player, tick)) DinhsBulwark.blocked(damage) else damage
-        hitPlayer(player, npc, if (protects(player, swingType)) 0 else blocked, tick)
+        hitPlayer(player, npc, if (protects(player, swingType)) blocked * prayerPasses / 100 else blocked, tick)
         // Its poison comes whatever the hit did, through a protection prayer too (OSRS Wiki, Poison). Guessed: one
         // attack in four, as for a player's poisoned melee weapon; the Wiki gives no chance for monsters.
         if (def.poison > 0 && !player.dead && random.chance(1, PoisonedWeapons.MELEE_CHANCE)) poisonPlayer(player, def.poison)

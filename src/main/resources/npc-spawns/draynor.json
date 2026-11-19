@@ -38,6 +38,8 @@
     {"npc": "young_dark_wizard", "x": 3084, "z": 3236, "wander": 4, "source": "Dark wizard (level 7), south of the bank (step 9). mejrs NPCList_OSRS; Wiki, Dark wizard; wander range guessed"},
     {"npc": "young_dark_wizard", "x": 3085, "z": 3238, "wander": 4, "source": "Dark wizard (level 7), south of the bank (step 9). mejrs NPCList_OSRS; wander range guessed"},
     {"npc": "master_farmer_1", "x": 3080, "z": 3250, "wander": 3, "source": "Master Farmer, in the market, to pickpocket (step 8). mejrs NPCList_OSRS; Wiki, Master Farmer (one in Draynor Village); wander range guessed"},
-    {"npc": 3251, "x": 3119, "z": 3276, "wander": 5, "source": "Farmer (no options), the wheat field north-east of the village. mejrs NPCList_OSRS"}
+    {"npc": 3251, "x": 3119, "z": 3276, "wander": 5, "source": "Farmer (no options), the wheat field north-east of the village. mejrs NPCList_OSRS"},
+    {"npc": "martin_the_master_farmer", "x": 3078, "z": 3258, "wander": 3, "source": "Martin the Master Gardener, by the G.A.G. pig pen in the market. The Wiki's Martin the Master Gardener map (3078,3258) and mejrs NPCList_OSRS; wander range guessed"},
+    {"npc": "pmod_town_crier_draynor", "x": 3079, "z": 3249, "wander": 2, "source": "Town Crier, in the market. mejrs NPCList_OSRS; the Wiki's Town Crier page (Draynor Village: in the market); wander range guessed, as Varrock's"}
   ]
 }
