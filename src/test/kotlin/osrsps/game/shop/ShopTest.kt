@@ -105,6 +105,8 @@ class ShopTest {
         6361 to 300, 6363 to 250, 6365 to 200, 6367 to 100, 6369 to 150, 6371 to 300, 6373 to 250, 6375 to 200, 6377 to 100, 6379 to 150,
         6313 to 500, 6315 to 1000, 6317 to 2000, 1625 to 20, 1627 to 30, 1629 to 40, 1609 to 100, 1611 to 150, 1613 to 200, 6311 to 200,
         2084 to 30, 2092 to 30, 2048 to 30, 2054 to 30, 2064 to 30, 2074 to 30, 2080 to 30,
+        // Fernahei's Fishing Hut in Shilo Village (the 242 cache's values; Obli's are with the shops above).
+        307 to 5, 309 to 5, 313 to 3, 11883 to 300, 335 to 10, 349 to 20, 331 to 30,
     )
 
     /**
@@ -204,6 +206,8 @@ class ShopTest {
             NpcType(2893, "Jiminua", internalName = "jiminua"),
             NpcType(6424, "Gabooty", internalName = "tbwcu_gabooty"),
             NpcType(6425, "Gabooty", internalName = "tbwcu_gabooty_nosticks"),
+            NpcType(5362, "Obli", internalName = "shilogeneralstore"),
+            NpcType(5363, "Fernahei", internalName = "shilofishowner"),
         )
         return ShopTypes.parse(shopFile, npcs, objs)
     }
@@ -312,6 +316,9 @@ class ShopTest {
             360, 300, 240, 120, 180, 120, 180, 240, 360, 300, 240, 120, 180, 240,
         ),
         "gabootys_tai_bwo_wannai_drinky_store" to List(7) { 30 },
+        // Shilo Village's shops, read 2026-11-19: Obli's at 150%, Fernahei's at 100%.
+        "oblis_general_store" to listOf(1, 3, 300, 6, 1, 24, 1, 84, 31, 9, 9, 6, 18, 12, 4, 4, 6, 1, 1, 15, 67, 3, 301, 60, 27),
+        "fernaheis_fishing_hut" to listOf(5, 5, 3, 300, 2, 200, 10, 20, 30),
     )
 
     @Test

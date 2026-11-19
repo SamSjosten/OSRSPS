@@ -55,6 +55,7 @@ object AgilityLines : Lines("agility", "Agility") {
     val BRIMHAVEN_DUNGEON_STONES_NORTH_LEVEL = line("brimhaven_dungeon_stones_north_level", "Shortcut: Brimhaven Dungeon's eastern stepping stones, toward the island from the north-west, below level 56 (keys only)", "level")
     val BRIMHAVEN_DUNGEON_STONES_SOUTH_LEVEL = line("brimhaven_dungeon_stones_south_level", "Shortcut: Brimhaven Dungeon's eastern stepping stones, toward the island from the red dragons, below level 56 (keys only)", "level")
     val BRIMHAVEN_DUNGEON_VINE_LEVEL = line("brimhaven_dungeon_vine_level", "Shortcut: Brimhaven Dungeon's vine to the baby green dragons, below level 87 (keys only)", "level")
+    val SHILO_STONE_LEVEL = line("shilo_stone_level", "Shortcut: Shilo Village's stepping stone clicked below level 32 (keys only: the Wiki gives no words)", "level")
     val CAIRN_ROCKS_LEVEL = line("cairn_rocks_level", "Shortcut: the rock slide up to Cairn Isle's bridge, below level 15 (keys only: the Wiki gives no words)", "level")
     val CAIRN_ROCKS_FALL = line("cairn_rocks_fall", "Shortcut: the rock slide up to Cairn Isle's bridge, failed (the Wiki's Rock slide (Cairn Isle) page)")
     val BRIMHAVEN_ARENA_HAND_HOLDS_LEVEL = line("brimhaven_arena_hand_holds_level", "Brimhaven Agility Arena: the hand holds clicked below level 20 (keys only: the Wiki gives no words)", "level")

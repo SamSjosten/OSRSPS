@@ -1,0 +1,7 @@
+# Shilo Village's item spawns (Karamja step K4.3): three seaweed along the river (OSRS Wiki, Shilo Village (location),
+# Spawns, read 2026-11-19: 2840,2974, 2854,2977 and 2866,2976). The respawn is the 100 ticks the other files use; the
+# Wiki gives none.
+obj	count	x	z	level	respawn
+seaweed	1	2840	2974	0	100	# Wiki, Shilo Village (location)
+seaweed	1	2854	2977	0	100	# Wiki, Shilo Village (location)
+seaweed	1	2866	2976	0	100	# Wiki, Shilo Village (location)

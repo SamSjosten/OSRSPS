@@ -135,6 +135,7 @@ object NpcSpawnFile {
         "wilderness-slayer-cave.json",
         "wilderness-god-wars-dungeon.json",
         "wilderness-agility-course.json",
+        "shilo-village.json",
     )
 
     /** What a file gave: the spawns, and the NPC names the cache doesn't know (skipped). */

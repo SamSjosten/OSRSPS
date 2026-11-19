@@ -665,6 +665,13 @@ class Fishing(private val world: World) {
          */
         const val RESOURCE_AREA_SPOT = 1536
 
+        /**
+         * Shilo Village's Lure/Bait spots on its river (`0_44_46_freshfish`): trout and salmon lured, pike baited (the
+         * Wiki's Shilo Village page). The Wiki says four; mejrs's live NPC list has three, which stay put (no area,
+         * guessed).
+         */
+        const val SHILO_SPOT = 1515
+
         /** Mor Ul Rek's Rod Fishing spots (`morulrek_eels_fishingspot`), in the lava; they stay put (no area, guessed). */
         const val INFERNAL_EEL_SPOT = 7676
 
@@ -688,6 +695,7 @@ class Fishing(private val world: World) {
             SpotType(PISCARILIUS_SPOT, listOf(ANGLERFISH_BAIT)),
             SpotType(RESOURCE_AREA_SPOT, listOf(DARK_CRAB_CAGE)),
             SpotType(INFERNAL_EEL_SPOT, listOf(INFERNAL_EEL_BAIT)),
+            SpotType(SHILO_SPOT, listOf(LURE, RIVER_BAIT)),
         )
         private val SPOT_IDS = SPOTS.map { it.npc }.toSet()
 
