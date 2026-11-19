@@ -189,6 +189,9 @@ class Clans(
     /** The applicants each recruiter's applicants page lists, by slot: their save keys. */
     private val shownApplicants = HashMap<String, List<String>>()
 
+    /** The clans each player's recruitment board lists, by entry: their ids, by the player's save key. */
+    private val boardShown = HashMap<String, List<Long>>()
+
     /** The applicant each recruiter chose (Review) on the applicants page, by save key: theirs. */
     private val reviewing = HashMap<String, String>()
 
@@ -305,6 +308,7 @@ class Clans(
         listening.remove(player.saveKey)
         infoAsGuest.remove(player.saveKey)
         shownApplicants.remove(player.saveKey)
+        boardShown.remove(player.saveKey)
         reviewing.remove(player.saveKey)
         pickingRank.remove(player.saveKey)
         pickingPermission.remove(player.saveKey)
@@ -584,6 +588,138 @@ class Clans(
             }
         }
         return true
+    }
+
+    /**
+     * View on a clan recruitment board: clans_board as the main modal, its List your clan / De-list button by varp if1
+     * (1 while the player's clan is listed), then the clans listed. Its buttons, filters and entries answer with
+     * resume_pausebutton (script890, clan_board_filterop, clan_board_entry_op), so each gets the pause button event.
+     */
+    fun openBoard(player: Player) {
+        openModal(player, BOARD)
+        setEvents(player, BOARD, BOARD_UNIVERSE, 0, BOARD_BUTTONS - 1, 0, EVENT_PAUSE_BUTTON)
+        setEvents(player, BOARD, BOARD_FILTERS, 0, INTERESTS - 1, 0, EVENT_PAUSE_BUTTON)
+        setEvents(player, BOARD, BOARD_LIST, 0, BOARD_SLOTS * 2 - 1, 0, EVENT_PAUSE_BUTTON)
+        showBoardButton(player)
+        showBoard(player)
+    }
+
+    /** The clans [player]'s board lists now: listed, not their own, whose guest requirements they meet, through the filters. */
+    fun boardClans(player: Player): List<ClanStore.Clan> {
+        val require = varp(player, VARP_BOARD_REQUIRE)
+        val exclude = varp(player, VARP_BOARD_EXCLUDE)
+        return store.all().filter {
+            it.listed && it.member(player.saveKey) == null && meetsGuestRequirements(player, it) &&
+                it.interests and require == require && it.interests and exclude == 0
+        }.take(BOARD_SLOTS)
+    }
+
+    /**
+     * The board's list: clan_board_addline for each of its 45 entries, the last drawing the list (an empty text clears an
+     * entry). Each entry is name|size|age shown|age to sort by|interests|combat level|skill total, the interests a 0/1
+     * character for each of enum_3792's 16 (script4371 names those set, white where the player's filter asks for them),
+     * and the two requirements left empty when the clan has none. Its age is the days since it was founded, shown and
+     * sorted by as a number (guessed: the Wiki doesn't show the column).
+     */
+    private fun showBoard(player: Player) {
+        val clans = boardClans(player)
+        boardShown[player.saveKey] = clans.map { it.id }
+        val today = now().atOffset(ZoneOffset.UTC).toLocalDate().toEpochDay()
+        val require = varp(player, VARP_BOARD_REQUIRE)
+        for (slot in 0 until BOARD_SLOTS) {
+            val clan = clans.getOrNull(slot)
+            val line = if (clan == null) "" else {
+                val days = (today - Instant.ofEpochMilli(clan.createdMillis).atOffset(ZoneOffset.UTC).toLocalDate().toEpochDay()).coerceAtLeast(0)
+                val interests = (0 until INTERESTS).joinToString("") { if (clan.interests and (1 shl it) != 0) "1" else "0" }
+                val combat = guestRequirement(clan, GuestRequirement.COMBAT).takeIf { it > 0 }?.toString().orEmpty()
+                val total = guestRequirement(clan, GuestRequirement.SKILL_TOTAL).takeIf { it > 0 }?.toString().orEmpty()
+                listOf(clan.name, clan.members.size.toString(), days.toString(), days.toString(), interests, combat, total).joinToString("|")
+            }
+            runClientScript(player, SCRIPT_BOARD_ADD_LINE, listOf(slot, line, require))
+        }
+    }
+
+    private fun showBoardButton(player: Player) {
+        setVarp(player, VARP_BOARD_LISTED, if (clanOf(player)?.listed == true) 1 else 0)
+    }
+
+    /**
+     * A resume_pausebutton on the board: one of its buttons (on clans_board:universe by enum_3804: List your clan / De-list,
+     * Applicants, Refresh, Reset), a filter (clans_board:filters, by interest) or an entry (clans_board:list: View clan,
+     * or Report name, which comes 45 on). Returns whether it was the board's.
+     */
+    fun clickBoard(player: Player, interfaceId: Int, component: Int, sub: Int): Boolean {
+        if (interfaceId != BOARD) return false
+        if (BOARD !in player.modals.values) return true
+        when (component) {
+            BOARD_UNIVERSE -> when (sub) {
+                BOARD_MY_CLAN -> toggleListed(player)
+                BOARD_APPLICANTS -> openApplicants(player)
+                BOARD_REFRESH -> showBoard(player)
+                BOARD_RESET -> {
+                    setVarp(player, VARP_BOARD_REQUIRE, 0)
+                    setVarp(player, VARP_BOARD_EXCLUDE, 0)
+                    showBoard(player)
+                }
+            }
+            BOARD_FILTERS -> if (sub in 0 until INTERESTS) cycleFilter(player, sub)
+            BOARD_LIST -> {
+                val id = boardShown[player.saveKey]?.getOrNull(sub) ?: return true
+                val clan = store.byId(id) ?: return true.also { showBoard(player) }
+                viewClan(player, clan)
+            }
+        }
+        return true
+    }
+
+    /**
+     * A filter's Change filter: off, then wanted (macro_bee_pos_3's bit, which clan_board_filterupdate draws as
+     * radio_buttons,2), then not wanted (macro_bee_pos_4's, radio_buttons,1), then off again (the order is guessed).
+     */
+    private fun cycleFilter(player: Player, interest: Int) {
+        val bit = 1 shl interest
+        val require = varp(player, VARP_BOARD_REQUIRE)
+        val exclude = varp(player, VARP_BOARD_EXCLUDE)
+        when {
+            require and bit != 0 -> {
+                setVarp(player, VARP_BOARD_REQUIRE, require and bit.inv())
+                setVarp(player, VARP_BOARD_EXCLUDE, exclude or bit)
+            }
+            exclude and bit != 0 -> setVarp(player, VARP_BOARD_EXCLUDE, exclude and bit.inv())
+            else -> setVarp(player, VARP_BOARD_REQUIRE, require or bit)
+        }
+        showBoard(player)
+    }
+
+    /** List your clan / De-list: for those the clan's Recruitment permission allows (struct_2951's text says so). */
+    private fun toggleListed(player: Player) {
+        val clan = clanOf(player) ?: return tell(player, ClanLines.BOARD_NO_CLAN)
+        if (!isRecruiter(player, clan)) return tell(player, ClanLines.BOARD_NOT_ALLOWED)
+        store.setListed(clan, !clan.listed)
+        tell(player, if (clan.listed) ClanLines.BOARD_LISTED else ClanLines.BOARD_DELISTED, clan.name)
+        for (member in clan.members) playerByKey(member.key)?.let { if (online(it)) showBoardButton(it) }
+        showBoard(player)
+    }
+
+    /**
+     * View clan: the clan's settings page as a guest, with Apply (inferred from the board's text, "accepting
+     * applications"): the clan is loaded as the player's guest clan as Find does, dropping any other.
+     */
+    private fun viewClan(player: Player, clan: ClanStore.Clan) {
+        if (clan.member(player.saveKey) != null) return openInfo(player, asGuest = false)
+        if (guestClanOf(player)?.id != clan.id) {
+            guestClanOf(player)?.let { leaveChannel(player, it, tell = true, clanType = CLAN_TYPE_LISTENED) }
+            listening[player.saveKey] = clan.id
+            setVarbit(player, VARBIT_GUEST_AFFINITY, AFFINITY_CONNECTED)
+            send(player, settingsFull(clan, CLAN_TYPE_LISTENED))
+        }
+        openInfo(player, asGuest = true)
+    }
+
+    private fun varp(player: Player, id: Int): Int = if (id < player.vars.types.varpCount) player.vars[id] else 0
+
+    private fun setVarp(player: Player, id: Int, value: Int) {
+        if (id < player.vars.types.varpCount) player.vars[id] = value
     }
 
     /** Apply, confirmed: [player] becomes an applicant of the clan with [clanId], if still its guest and in no clan. */
@@ -1719,6 +1855,7 @@ class Clans(
                 PERMISSIONS to ("clans_permissions" to mapOf(PERMISSIONS_EXIT to "exit", PERMISSIONS_LIST to "list_contents", PERMISSIONS_POPUP to "popup")),
                 APPLICANTS to ("clans_applicants" to mapOf(APPLICANTS_LIST to "list", APPLICANTS_ENTRIES.first to "00", APPLICANTS_ENTRIES.last to "19", APPLICANTS_EXIT to "exit", APPLICANTS_REFRESH to "refresh", APPLICANTS_REJECT to "reject", APPLICANTS_ACCEPT to "accept")),
                 POPUPOVERLAY to ("popupoverlay" to emptyMap()),
+                BOARD to ("clans_board" to mapOf(BOARD_UNIVERSE to "universe", BOARD_FILTERS to "filters", BOARD_LIST to "list")),
             )
 
         /** The Clans tab (side_channels) and its contents. */
@@ -1952,6 +2089,35 @@ class Clans(
         const val APPLICANTS_LIST = 11
         const val APPLICANTS_SLOTS = 20
 
+        /** clans_board, the Clan Recruitment Board, and its components (rev 242). */
+        const val BOARD = 700
+        const val BOARD_UNIVERSE = 1
+        const val BOARD_FILTERS = 5
+        const val BOARD_LIST = 20
+
+        /** The buttons' children of clans_board:universe, by enum_3804. */
+        const val BOARD_MY_CLAN = 0
+        const val BOARD_APPLICANTS = 1
+        const val BOARD_REFRESH = 2
+        const val BOARD_RESET = 3
+        const val BOARD_BUTTONS = 4
+
+        /** The board's entries (clans_board:00 to :44, enum_3803). */
+        const val BOARD_SLOTS = 45
+
+        /** clan_board_addline: (entry, the clan's fields, the interests to show white). */
+        const val SCRIPT_BOARD_ADD_LINE = 4357
+
+        /** The interests (enum_3792): F2P to Soul Wars. */
+        const val INTERESTS = 16
+
+        /** if1: 1 while the player's clan is listed (script4356 then labels the button De-list). */
+        const val VARP_BOARD_LISTED = 261
+
+        /** macro_bee_pos_3 and _4: the board's filters, the interests wanted and not wanted, a bit each. */
+        const val VARP_BOARD_REQUIRE = 807
+        const val VARP_BOARD_EXCLUDE = 808
+
         /** The list's entries, clans_applicants:00 to :19 (enum_3805 maps slot n to component 12 + n). */
         val APPLICANTS_ENTRIES = 12 until 12 + APPLICANTS_SLOTS
         const val APPLICANTS_EXIT = 33
@@ -2101,6 +2267,10 @@ object ClanLines : Lines("clan", "Clans") {
     val RECRUIT_DECLINED = line("recruit_declined", "the recruiter, when the invitee says no (guessed)", "name")
     val RECRUITED = line("recruited", "the invitee, once they joined the clan (guessed)", "name")
     val RECRUIT_ACCEPTED = line("recruit_accepted", "the recruiter, when the invitee joined (guessed)", "name")
+    val BOARD_NO_CLAN = line("board_no_clan", "the recruitment board's List your clan in no clan (guessed)")
+    val BOARD_NOT_ALLOWED = line("board_not_allowed", "List your clan or De-list below the clan's Recruitment permission (guessed)")
+    val BOARD_LISTED = line("board_listed", "List your clan: the clan is on the recruitment board now (guessed)", "clan")
+    val BOARD_DELISTED = line("board_delisted", "De-list: the clan is off the recruitment board (guessed)", "clan")
     val DECLINED = line("declined", "your application to a clan was declined", "name")
     val EDIT_RANK_TITLE = line("edit_rank_title", "the title over the rank list when editing a member's rank", "name")
     val RANK_TOO_HIGH = line("rank_too_high", "Edit rank on a member whose rank isn't below yours", "name")
