@@ -7,11 +7,11 @@
 
 **Odin's Gate is a private Old School RuneScape test server, built from the ground up for testing RuneLite plugins against 1:1 recreations of live content.**
 
-![OSRS revision](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FSamSjosten%2FOSRSPS%2Fmain%2Fsrc%2Fmain%2Fresources%2Frunelite-pins.json&query=%24.pins%5B-1%3A%5D.revision&label=OSRS+revision&color=c8aa6e)
-![RuneLite](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FSamSjosten%2FOSRSPS%2Fmain%2Fsrc%2Fmain%2Fresources%2Frunelite-pins.json&query=%24.pins%5B-1%3A%5D.runelite&label=RuneLite&color=2c7be5)
-[![Last commit](https://img.shields.io/github/last-commit/SamSjosten/OSRSPS?label=last%20commit&color=4c9a2a)](https://github.com/SamSjosten/OSRSPS/commits/main)
-![Engine](https://img.shields.io/badge/engine-custom%20Kotlin-7f52ff)
-![Server](https://img.shields.io/badge/server-development%20%26%20plugin%20testing-555)
+![OSRS revision](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FSamSjosten%2FOSRSPS%2Fmain%2Fsrc%2Fmain%2Fresources%2Frunelite-pins.json&query=%24.pins%5B-1%3A%5D.revision&label=OSRS+revision&color=b8962f&labelColor=2c2632)
+![RuneLite](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FSamSjosten%2FOSRSPS%2Fmain%2Fsrc%2Fmain%2Fresources%2Frunelite-pins.json&query=%24.pins%5B-1%3A%5D.runelite&label=RuneLite&color=c27a2a&labelColor=2c2632)
+[![Last commit](https://img.shields.io/github/last-commit/SamSjosten/OSRSPS?label=last%20commit&labelColor=2c2632)](https://github.com/SamSjosten/OSRSPS/commits/main)
+![Engine](https://img.shields.io/badge/engine-custom%20Kotlin-c25a2a?labelColor=2c2632)
+![Server](https://img.shields.io/badge/server-development%20%26%20plugin%20testing-9c3a2e?labelColor=2c2632)
 
 [Quick start](#quick-start) · [Build and run](#build-and-run) · [VM 214](#on-vm-214) · [Connect RuneLite](#connect-runelite) · [Testing tools](#testing-tools) · [Commands](#developer-commands)
 
