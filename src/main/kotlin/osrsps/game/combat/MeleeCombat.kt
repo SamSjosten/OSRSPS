@@ -124,6 +124,12 @@ class MeleeCombat(
     private val projectile: (Projectile) -> Unit = {},
     /** A player's hit, swing, shot, spell or command, took this much off an NPC (not poison or venom): a raid's contribution. */
     private val npcDamaged: (Npc, Player, Int) -> Unit = { _, _, _ -> },
+    /**
+     * Told of a player left alive by a hit, before Redemption: the jewellery that saves them
+     * ([osrsps.game.skill.magic.JewelleryEffects.hurt]). True when the shots on their way to them are to land nowhere
+     * (a phoenix necklace's heal).
+     */
+    private val hurtAlive: (Player) -> Boolean = { false },
 ) {
     private class Dying(val npc: Npc, val killer: Player?, val removeTick: Long, val respawnTick: Long)
 
@@ -1068,6 +1074,7 @@ class MeleeCombat(
             died(player)
             return dealt
         }
+        saved(player)
         redemption(player)
         if (source != null && player.autoRetaliate && player.interaction == null && !player.modalOpen && tick >= player.stunnedUntil) {
             retaliate(player, source, tick)
@@ -1086,8 +1093,18 @@ class MeleeCombat(
         val dealt = hurt(player, NpcEffects.PLAYER_SOURCE + attacker.index, damage, sourceSees = true)
         player.attackedByPlayer = attacker
         player.attackedByPlayerTick = tick
-        if (player.hitpoints <= 0) died(player) else redemption(player)
+        if (player.hitpoints <= 0) {
+            died(player)
+        } else {
+            saved(player)
+            redemption(player)
+        }
         return dealt
+    }
+
+    /** [hurtAlive]'s say on a hit [player] lived through; a phoenix necklace's heal drops the shots coming for them. */
+    private fun saved(player: Player) {
+        if (hurtAlive(player)) shots.removeAll { it.player === player }
     }
 
     /**
@@ -1120,7 +1137,12 @@ class MeleeCombat(
         player.hitpoints -= dealt
         player.effects.hit(-1, hitsplat, otherHitsplat, otherHitsplat, dealt)
         player.effects.headBar(-1, HEALTH_BAR, healthBarFill(player.hitpoints, player.skills.baseLevel(Skill.HITPOINTS)))
-        if (player.hitpoints <= 0) died(player) else redemption(player)
+        if (player.hitpoints <= 0) {
+            died(player)
+        } else {
+            saved(player)
+            redemption(player)
+        }
         return dealt
     }
 

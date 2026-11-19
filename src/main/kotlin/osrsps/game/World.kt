@@ -770,6 +770,7 @@ class World(
             scurriusLoot.damaged(npc, player, dealt)
             osrsps.game.content.Bryophyta.damaged(this, npc, player)
         },
+        hurtAlive = { jewelleryEffects.hurt(it) },
     )
 
     /** Aggressive NPCs going for players, and players' tolerance; see [Aggression]. */
@@ -1116,6 +1117,9 @@ class World(
 
     /** The amulet of glory, ring of dueling and the rest of the teleport jewellery; see [osrsps.game.skill.magic.JewelleryTeleports]. */
     val jewelleryTeleports = osrsps.game.skill.magic.JewelleryTeleports(this, osrsps.game.skill.magic.JewelleryTeleportData.load(objTypes))
+
+    /** The phoenix necklace, necklace of faith and ring of life; see [osrsps.game.skill.magic.JewelleryEffects]. */
+    val jewelleryEffects = osrsps.game.skill.magic.JewelleryEffects(this)
 
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
