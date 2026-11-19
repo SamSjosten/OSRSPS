@@ -166,6 +166,7 @@ import osrsps.game.content.registerChaosFanatic
 import osrsps.game.content.registerScorpia
 import osrsps.game.content.registerChaosElemental
 import osrsps.game.content.registerArtio
+import osrsps.game.content.registerCalvarion
 import osrsps.game.content.registerKingBlackDragon
 import osrsps.game.tzhaar.FightCaves
 import osrsps.game.content.MemberGates
@@ -444,6 +445,7 @@ class World(
 
     /** The TzHaar Fight Cave; see [FightCaves]. */
     val fightCaves = FightCaves(this)
+    val inferno = osrsps.game.tzhaar.Inferno(this)
 
     /** Boss fights in progress; see [Encounters]. */
     val encounters = Encounters(this, encounterDefs)
@@ -637,7 +639,8 @@ class World(
         forInstances = {
             it in ArchiveRaids.INSTANCE_LOCS || it in GiantLairs.INSTANCE_LOCS || it in KingBlackDragon.INSTANCE_LOCS ||
                 it in osrsps.game.skill.construction.House.INSTANCE_LOCS || it in FightCaves.INSTANCE_LOCS ||
-                it in osrsps.game.content.Scurrius.INSTANCE_LOCS
+                it in osrsps.game.content.Scurrius.INSTANCE_LOCS ||
+                it in osrsps.game.tzhaar.Inferno.INSTANCE_LOCS
         },
     )
 
@@ -662,7 +665,7 @@ class World(
         onDeath = { deaths.die(it) },
         loot = ::dropLoot,
         ranged = { player, npc -> magicCombat.fight(player, npc) ?: rangedCombat.fight(player, npc) },
-        multi = multiCombat, protects = prayers::protects,
+        multi = multiCombat, sameFight = { a, b -> encounters.sameFight(a, b) }, protects = prayers::protects,
         // A shot from an instance lands only in it: its copy of the map may already be gone, so an NPC on a dynamic tile
         // needs the player in an instance holding its tile.
         shotLands = { npc, player ->
@@ -774,6 +777,7 @@ class World(
         fightCaves.deathPlace(player)?.let { return it }
         houses.deathPlace(player)?.let { return it }
         scurriusLairs.deathPlace(player)?.let { return it }
+        inferno.deathPlace(player)?.let { return it }
         val instance = instances.at(player.x, player.z) ?: return null
         KingBlackDragon.graveTile(this, player.x, player.z)?.let { return DeathPlace(keepItems = false, it.x, it.z, 0, SPAWN_X, SPAWN_Z, SPAWN_LEVEL) }
         return DeathPlace(keepItems = false, instance.exitX, instance.exitZ, instance.exitLevel, SPAWN_X, SPAWN_Z, SPAWN_LEVEL)
@@ -1123,6 +1127,7 @@ class World(
         registerChaosElemental(this)
         registerKingBlackDragon(this)
         registerArtio(this)
+        registerCalvarion(this)
         FountainOfRune.register(this)
         registerFeroxEnclave(this)
         registerWildernessObelisks(this)
@@ -1138,6 +1143,7 @@ class World(
         archiveRaids.register()
         // After the raid, which sets the multi-way check for instances rather than adding to it.
         fightCaves.register()
+        inferno.register()
         // After the raid, which sets the combat's shut-out rule afresh; the lairs add theirs to it.
         registerObor(this, giantLairs)
         registerBryophyta(this, giantLairs)
@@ -1470,8 +1476,9 @@ class World(
             if (player?.dead != true) continue
             deaths.respawn(player)
             // A Fight Cave death is paid and its run ended before the save, as a leaver's is (remove); TokKul that won't
-            // fit goes to the bank, as a ground drop wouldn't outlast the stop.
+            // fit goes to the bank, as a ground drop wouldn't outlast the stop. The Inferno's the same.
             fightCaves.leaving(player)
+            inferno.leaving(player)
         }
         saveAll()
     }
@@ -1538,6 +1545,7 @@ class World(
         archiveRaids.process()
         fightCaves.process()
         houses.process()
+        inferno.process()
         thieving.process()
         slayer.superiors.process()
         // Before NPCs move, so a creature a trap lures this tick takes its first step this tick.
@@ -2297,6 +2305,7 @@ class World(
         lodestones.login(player)
         fightCaves.login(player)
         collectionLog.login(player)
+        inferno.login(player)
         prayers.login(player)
         cooking.wine.login(player)
         if (player.newAccount) allSettings.newAccount(player)
@@ -2849,8 +2858,8 @@ class World(
             // A delayed player (part way along an agility obstacle, say) can't log out, or they would be saved on a tile
             // the move only passes through (round 12 exploit review, R12B-1). Inferred from live's p_delay.
             if (player.scripts.delayed) return@act
-            // In a Fight Cave wave the first click pauses the run at the wave's end instead.
-            if (fightCaves.logoutClicked(player)) return@act
+            // In a Fight Cave or Inferno wave the first click pauses the run at the wave's end instead.
+            if (fightCaves.logoutClicked(player) || inferno.logoutClicked(player)) return@act
             if (inCombat(player)) {
                 player.message(textFor(player)[GameLines.CANT_LOG_OUT])
                 return@act
@@ -3493,6 +3502,7 @@ class World(
             archiveRaids.leaving(player)
             // After the death above, so a run's death is paid before the save.
             fightCaves.leaving(player)
+            inferno.leaving(player)
             trades.leave(player)
             // Once a trade's offer is back in the backpack: saved at the instance's exit, out of any raid run, so its
             // supplies stay in it (R26A-1; Codex review on #636).

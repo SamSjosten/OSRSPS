@@ -18,6 +18,7 @@
     {"step": "command", "text": "::tele 3116 3674 0", "expectMessage": "Teleported to 3116, 3674, 0", "comment": "out of her lair at once: walking to its Exit, Artio stands in the way"},
     {"step": "waitTicks", "ticks": 50, "comment": "test finishes her meanwhile"},
     {"step": "assertVarp", "id": 3761, "value": 0, "comment": "no kill count for one who walked away; before the fix our 440 took it"},
+    {"step": "command", "text": "::tele 3222 3218 0", "expectMessage": "Teleported to 3222, 3218, 0", "comment": "out of the Wilderness before ::god goes off, so nothing hits the player"},
     {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
   ]
 }

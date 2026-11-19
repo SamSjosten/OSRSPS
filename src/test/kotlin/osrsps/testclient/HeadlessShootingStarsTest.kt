@@ -186,6 +186,40 @@ class HeadlessShootingStarsTest {
         }
     }
 
+    @Test
+    fun `star land here refuses a tile with a loc on it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("frank").use { client ->
+                client.landHere(6)
+                // The star itself is a loc there now.
+                client.commandReply("star land here 6") { it.startsWith("A star needs open ground") }
+                client.commandReply("star clear") { it == "The star is gone." }
+                client.commandReply("star land here 6") { it.startsWith("A size-6 star lands") }
+            }
+        }
+    }
+
+    @Test
+    fun `a telescope shows the next star's region and window in the message box, or nothing with none planned`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("telescope").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("star scout teak")
+                client.awaitDialogue("nothing") { it == DialogueView.Message("[shooting_stars.telescope_nothing]") }
+                client.continueDialogue()
+                client.commandReply("star next 7500") { it.startsWith("The next star lands in 7500 ticks") }
+                client.command("star scout mahogany")
+                val box = client.awaitDialogue("the sighting") { it is DialogueView.Message && it.text.startsWith("[shooting_stars.telescope") }
+                val text = (box as DialogueView.Message).text.replace("<br>", " ")
+                assertTrue(text.startsWith("[shooting_stars.telescope region=Misthalin "), text)
+                val times = Regex("""hours=(\d+) minutes=(\d+)\]""").findAll(text).map { it.groupValues[1].toInt() * 60 + it.groupValues[2].toInt() }.toList()
+                assertEquals(2, times.size, text)
+                assertEquals(2, times[1] - times[0])
+                assertTrue(74 in times[0]..times[1], text)
+            }
+        }
+    }
+
     private companion object {
         const val RUNE_PICKAXE = 1275
         const val BACKPACK = 93

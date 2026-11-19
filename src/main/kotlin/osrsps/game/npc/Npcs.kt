@@ -240,6 +240,7 @@ class Npcs(
             if (--npc.transformTicks > 0) continue
             npc.transformedTo = null
             npc.avatar?.extendedInfo?.transformation(npc.spawn.type.id)
+            npc.transformEnded?.invoke()
         }
     }
 
