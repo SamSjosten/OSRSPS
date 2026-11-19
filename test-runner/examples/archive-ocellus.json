@@ -580,7 +580,27 @@
    "step": "command",
    "text": "::hit 2000 tfa_ocellus_p3",
    "expectMessage": "Hit Ocellus",
-   "comment": "to the end of his bar: he dies, and the room is done"
+   "comment": "to the end of his bar: held at 1, and he lives on (Sam's runs of 16 November 2026, inferred)"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 2
+  },
+  {
+   "step": "command",
+   "text": "::raid log 80",
+   "expectMessage": "third: final: his bar run out, held till a rift is destroyed"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 26,
+   "comment": "to the loop's Void Rifts, 59 ticks after his rise"
+  },
+  {
+   "step": "command",
+   "text": "::hit 44 Void Rift",
+   "expectMessage": "Hit Void Rift",
+   "comment": "a Void Rift destroyed with his bar run out: he dies, and the room is done"
   },
   {
    "step": "waitTicks",

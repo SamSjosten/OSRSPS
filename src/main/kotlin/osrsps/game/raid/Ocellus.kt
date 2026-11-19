@@ -687,7 +687,12 @@ object Ocellus {
      * ([HEAD_ICON_SOUL_SPLIT]) until his next deflect. At [FINAL_DEFLECT_RANGE] Deflect Range ([HEAD_ICON_DEFLECT_RANGE],
      * ranged on him does nothing) with the "melee" arena graphic, and his quadrant void but for him and the tiles next to
      * him, until [FINAL_ARENA_END]. At [FINAL_RIFTS] Void Rifts ([RIFTS_FIRST], one more each loop up to [RIFTS_MAX]).
-     * Then round again. He dies at the end of his bar. Estimates (capture notes): the blast's damage, Soul Split healing
+     * Then round again. His bar never runs out under a hit: a player's hit that would end it does nothing ([barHeld]),
+     * and anything else leaves him at [HELD_AT] at the least. Once either has happened his bar is run out, and the next
+     * Void Rift destroyed ends him, whoever destroys it. Inferred from Sam's two runs of 16 November 2026: his bar never
+     * showed 0 (held at 14, then 2), and he died as Void Rifts were destroyed ([OcellusLines.EMPOWERED_RIFT] on the kill
+     * tick, twice in the second run). Guessed: that it is a hit that would end him that does nothing, and [HELD_AT] for
+     * the rest (recoil, Retribution, a command's `::hit`; `::kill` still kills). Estimates (capture notes): the blast's damage, Soul Split healing
      * him [SOUL_SPLIT_SHARE]-th of what the blast deals, the void's tiles. Guessed: the blast landing [BLAST_LANDS]
      * ticks after its pattern, the arena graphics' turn for each quadrant ([arenaTurn]), deflected hits doing nothing
      * rather than turning back on the attacker (the capture notes' word; not in yet), no void bombs, flares but the
@@ -710,6 +715,7 @@ object Ocellus {
     const val SOUL_SPLIT_SHARE = 5
     const val RIFTS_FIRST = 2
     const val RIFTS_MAX = 5
+    const val HELD_AT = 1
     const val ARENA_EVERY = 3
     const val ANIM_DEFLECT_IN = 14863
     const val ANIM_DEFLECT_LOOP = 14864
@@ -917,6 +923,10 @@ object Ocellus {
         var finalLoops = 0
         var deflect: Blast? = null
         var soulSplit = false
+
+        /** Whether his bar has run out in his final stand ([barHeld], [HELD_AT]): the next Rift ends him. Logged once. */
+        var barRunOut = false
+        var barRunOutLogged = false
 
         /** The lifeforce orbs out, by their player, and the world tick the bursts run until (slower weapons cut). */
         val orbs = WeakHashMap<Player, Orb>()
@@ -1668,13 +1678,13 @@ object Ocellus {
     /**
      * Where no hit takes his bar for now ([Npc.holdsAt]; exploit review R23B-2): at the next of [FALLS_AT] till that
      * fall starts, or where it is if a hit before his third phase already took it lower; where it is while a quadrant
-     * falls, so nothing hurts him from [startFall] till he takes the next; and nowhere once his final stand begins.
+     * falls, so nothing hurts him from [startFall] till he takes the next; and at [HELD_AT] once his final stand begins.
      * Guessed: that live holds his bar so (a burst past a fall otherwise skips its quadrant's fight, or the final stand).
      */
     private fun EncounterContext.holdAtFall() {
         boss.holdsAt = when {
             state.fallStart >= 0 -> boss.hitpoints
-            state.fallen.size >= FALLS_AT.size -> 0
+            state.fallen.size >= FALLS_AT.size -> HELD_AT
             else -> minOf(boss.hitpoints, boss.maxHitpoints * FALLS_AT[state.fallen.size] / 100)
         }
     }
@@ -1740,6 +1750,11 @@ object Ocellus {
         // His final stand's tick first: its void hurts from the tick it is laid (Codex, PR 585).
         val final = state.finalSince >= 0 && phaseTick >= state.finalSince && state.fallStart < 0
         if (final) finalStand(((phaseTick - state.finalSince) % FINAL_LOOP).toInt())
+        if (final && boss.hitpoints <= HELD_AT) state.barRunOut = true
+        if (state.barRunOut && !state.barRunOutLogged) {
+            state.barRunOutLogged = true
+            log("final: his bar run out, held till a rift is destroyed")
+        }
         voidFloor()
         vine()
         flares()
@@ -2068,6 +2083,12 @@ object Ocellus {
             if (flare.dead || world.npcs[flare.index] !== flare) {
                 iterator.remove()
                 if (flare.dead) empower(flare, kind) else flareDamage.remove(flare)
+                if (flare.dead && kind == Flare.RIFT && state.barRunOut && !boss.dead) {
+                    // His bar run out, a Rift destroyed ends him (see [barHeld]); nothing more of his fight this tick.
+                    log("final: a rift destroyed with his bar run out: he dies")
+                    world.meleeCombat.hit(boss, flare.attacker?.takeIf { !it.dead && players.any { p -> p === it } }, boss.hitpoints, world.tick, finishing = true)
+                    return
+                }
                 continue
             }
             val age = (phaseTick - since).toInt()
@@ -2468,6 +2489,21 @@ object Ocellus {
         return if ((deflect == Blast.MELEE && melee) || (deflect == Blast.RANGED && type == AttackType.RANGED)) 0 else rolled
     }
 
+    /**
+     * In his final stand, what of [rolled] a player's hit on [npc] does: nothing if it would end his bar (with what is
+     * already on its way to him), which is then run out ([State.barRunOut]) till a Rift goes. See [FINAL_AFTER].
+     */
+    fun barHeld(npc: Npc, rolled: Int): Int {
+        if (npc.type.id != P3 || rolled <= 0) return rolled
+        val state = states[npc]?.takeIf { it.finalSince >= 0 } ?: return rolled
+        if (rolled < npc.hitpoints - npc.incoming) return rolled
+        state.barRunOut = true
+        return 0
+    }
+
+    /** Whether his bar has run out in his final stand, held till a Rift is destroyed ([barHeld]), for tests. */
+    fun barRunOut(boss: Npc): Boolean = states[boss]?.barRunOut == true
+
     /** What he deflects and whether Soul Split is on, and the loops of his final stand begun, for tests. */
     fun finalState(boss: Npc): Triple<Blast?, Boolean, Int>? = states[boss]?.takeIf { it.finalSince >= 0 }?.let { Triple(it.deflect, it.soulSplit, it.finalLoops) }
 
@@ -2771,7 +2807,7 @@ object Ocellus {
         val sureHit = world.combat.sureHit
         world.combat.sureHit = { player, npc, type -> flareHit(npc.type.id, type) ?: censerHit(player, npc, type) ?: sureHit(player, npc, type) }
         val rolledOn = world.combat.rolledOn
-        world.combat.rolledOn = { player, npc, type, rolled -> rolledOn(player, npc, type, slowed(world, player, npc, deflected(npc, type, rolled))) }
+        world.combat.rolledOn = { player, npc, type, rolled -> barHeld(npc, rolledOn(player, npc, type, slowed(world, player, npc, deflected(npc, type, rolled)))) }
         // Death scripts go by the type an NPC appeared as: he becomes his third phase from his first.
         world.npcScripts.onDeath(listOf(P1, P2, P3).distinct()) { boss -> if (boss.type.id == P3) died(world, boss) }
         world.handlers.onNpc(BLADE_TRAVEL, COMMUNE) { op -> world.archiveRaids.commune(this, op.npc!!) }
