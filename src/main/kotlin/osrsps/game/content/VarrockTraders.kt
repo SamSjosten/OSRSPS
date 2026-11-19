@@ -278,6 +278,9 @@ object VarrockTraders {
 
 fun registerVarrockTraders(world: World) {
     with(VarrockTraders) {
+        // The GE bot market pays no more than this for them (exploit review 44, R44A-3).
+        world.grandExchange.npcSells(NEWSPAPER, NEWSPAPER_PRICE.toLong())
+        world.grandExchange.npcSells(FUR, FUR_BEST_PRICE.toLong())
         world.handlers.onNpc(APOTHECARY, TALK_TO) { op ->
             var potions = false
             world.dialogues.start(this, op.npc) { potions = apothecary() }

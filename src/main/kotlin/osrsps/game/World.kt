@@ -60,6 +60,7 @@ import osrsps.game.command.registerLodestoneCommands
 import osrsps.game.command.registerWildernessCommands
 import osrsps.game.command.registerFarmingCommands
 import osrsps.game.command.registerSlayerCommands
+import osrsps.game.command.registerTrailCommands
 import osrsps.game.command.registerXpRateCommands
 import osrsps.game.command.registerTickCommands
 import osrsps.game.command.registerVarCommands
@@ -122,6 +123,7 @@ import osrsps.game.content.registerHamHideout
 import osrsps.game.content.registerHamStorerooms
 import osrsps.game.content.registerFarmsRoads
 import osrsps.game.content.registerLumberYard
+import osrsps.game.content.registerClanHub
 import osrsps.game.content.registerRaidTester
 import osrsps.game.content.registerTolnasRift
 import osrsps.game.content.registerDigsite
@@ -405,6 +407,8 @@ class World(
     agilityData: AgilityData = AgilityData.load(),
     /** Slayer's tasks, masters and rewards, from the cache ([osrsps.cache.SlayerLoader]); tests that slay pass their own. */
     slayerData: SlayerData = SlayerData.NONE,
+    /** Treasure Trails' steps, from the cache's clue helper tables ([osrsps.cache.TrailLoader]); tests that dig pass their own. */
+    trailData: osrsps.game.trail.TrailData = osrsps.game.trail.TrailData.NONE,
     /** Whether shooting stars land on their own ([ShootingStars]); tests land theirs with `::star land`. */
     starCycle: Boolean = false,
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
@@ -448,6 +452,7 @@ class World(
 
     /** The TzHaar Fight Cave; see [FightCaves]. */
     val fightCaves = FightCaves(this)
+    val inferno = osrsps.game.tzhaar.Inferno(this)
 
     /** Boss fights in progress; see [Encounters]. */
     val encounters = Encounters(this, encounterDefs)
@@ -557,7 +562,7 @@ class World(
     private val worldMap = WorldMapScreen(interfaces)
 
     /** Grand Exchange offers; see [GrandExchange]. */
-    val grandExchange = GrandExchange(objTypes, { this.itemPrices }, { tick }, taxExempt = GrandExchange.taxExempt(objTypes))
+    val grandExchange = GrandExchange(objTypes, { this.itemPrices }, { tick }, taxExempt = GrandExchange.taxExempt(objTypes)).also { it.npcSells(shopTypes) }
 
     /** The Grand Exchange's offers screen; see [GrandExchangeScreen]. */
     val grandExchangeScreen = GrandExchangeScreen(
@@ -641,7 +646,8 @@ class World(
         forInstances = {
             it in ArchiveRaids.INSTANCE_LOCS || it in GiantLairs.INSTANCE_LOCS || it in KingBlackDragon.INSTANCE_LOCS ||
                 it in osrsps.game.skill.construction.House.INSTANCE_LOCS || it in FightCaves.INSTANCE_LOCS ||
-                it in osrsps.game.content.Scurrius.INSTANCE_LOCS
+                it in osrsps.game.content.Scurrius.INSTANCE_LOCS ||
+                it in osrsps.game.tzhaar.Inferno.INSTANCE_LOCS
         },
     )
 
@@ -778,6 +784,7 @@ class World(
         fightCaves.deathPlace(player)?.let { return it }
         houses.deathPlace(player)?.let { return it }
         scurriusLairs.deathPlace(player)?.let { return it }
+        inferno.deathPlace(player)?.let { return it }
         val instance = instances.at(player.x, player.z) ?: return null
         KingBlackDragon.graveTile(this, player.x, player.z)?.let { return DeathPlace(keepItems = false, it.x, it.z, 0, SPAWN_X, SPAWN_Z, SPAWN_LEVEL) }
         return DeathPlace(keepItems = false, instance.exitX, instance.exitZ, instance.exitLevel, SPAWN_X, SPAWN_Z, SPAWN_LEVEL)
@@ -873,6 +880,22 @@ class World(
             }
         },
         askAmount = { player, prompt, typed -> scripts.start(player) { typed(countDialog(prompt)) } },
+        recolour = osrsps.game.content.ClanHub::recolour,
+        pickMotif = { player, current, picked ->
+            // clan_outfit draws from clan_editing_0, so it goes first, sent now rather than with the tick's varps.
+            if (Clans.VARP_EDITING_MOTIF < player.vars.types.varpCount) {
+                player.vars[Clans.VARP_EDITING_MOTIF] = current
+                interfaces.sendVarpNow(player, Clans.VARP_EDITING_MOTIF)
+            }
+            interfaces.openInside(player, Clans.INFO, Clans.INFO_POPUP, Clans.OUTFIT)
+            interfaces.runClientScript(player, Clans.SCRIPT_OUTFIT, listOf(Clans.component(Clans.INFO, Clans.INFO_POPUP)))
+            scripts.start(player) {
+                // Save sends clan_editing_0 as it stands (script4432); Cancel sends 0 (script4208).
+                val answer = waitForCount()
+                if (Clans.INFO in player.modals.values) interfaces.closeInside(player, Clans.INFO, Clans.INFO_POPUP)
+                if (answer != 0 && answer != current) picked(answer)
+            }
+        },
         now = clansClock,
     )
 
@@ -939,6 +962,9 @@ class World(
 
     /** Slayer tasks: kills, XP and the enchanted gem; see [Slayer]. */
     val slayer = Slayer(this, slayerData)
+
+    /** Treasure Trails: scroll boxes, clue scrolls and their steps; see [osrsps.game.trail.TreasureTrails]. */
+    val trails = osrsps.game.trail.TreasureTrails(this, trailData)
 
     /** The Slayer masters' Talk-to and Assignment; see [SlayerMasters]. */
     val slayerMasters = SlayerMasters(this)
@@ -1025,6 +1051,7 @@ class World(
         registerWildernessCommands(this@World)
         registerFarmingCommands(this@World)
         registerSlayerCommands(this@World)
+        registerTrailCommands(this@World)
         registerSeedCommands(this@World)
         registerShootingStarCommands(this@World)
         registerScriptCommands(this@World)
@@ -1097,11 +1124,13 @@ class World(
         registerHamStorerooms(this)
         registerFarmsRoads(this)
         registerLumberYard(this)
+        registerClanHub(this)
         registerTolnasRift(this)
         registerSilvarea(this)
         registerPaterdomus(this)
         registerDigsite(this)
         registerDigsiteDigs(this)
+        osrsps.game.trail.registerTreasureTrails(this)
         registerExamCentre(this)
         registerMisthalinSweep(this)
         registerMisthalinTownGaps(this)
@@ -1144,6 +1173,7 @@ class World(
         archiveRaids.register()
         // After the raid, which sets the multi-way check for instances rather than adding to it.
         fightCaves.register()
+        inferno.register()
         // After the raid, which sets the combat's shut-out rule afresh; the lairs add theirs to it.
         registerObor(this, giantLairs)
         registerBryophyta(this, giantLairs)
@@ -1475,8 +1505,9 @@ class World(
             if (player?.dead != true) continue
             deaths.respawn(player)
             // A Fight Cave death is paid and its run ended before the save, as a leaver's is (remove); TokKul that won't
-            // fit goes to the bank, as a ground drop wouldn't outlast the stop.
+            // fit goes to the bank, as a ground drop wouldn't outlast the stop. The Inferno's the same.
             fightCaves.leaving(player)
+            inferno.leaving(player)
         }
         saveAll()
     }
@@ -1543,6 +1574,7 @@ class World(
         archiveRaids.process()
         fightCaves.process()
         houses.process()
+        inferno.process()
         thieving.process()
         slayer.superiors.process()
         // Before NPCs move, so a creature a trap lures this tick takes its first step this tick.
@@ -2301,6 +2333,7 @@ class World(
         lodestones.login(player)
         fightCaves.login(player)
         collectionLog.login(player)
+        inferno.login(player)
         prayers.login(player)
         cooking.wine.login(player)
         if (player.newAccount) allSettings.newAccount(player)
@@ -2869,8 +2902,8 @@ class World(
             // A delayed player (part way along an agility obstacle, say) can't log out, or they would be saved on a tile
             // the move only passes through (round 12 exploit review, R12B-1). Inferred from live's p_delay.
             if (player.scripts.delayed) return@act
-            // In a Fight Cave wave the first click pauses the run at the wave's end instead.
-            if (fightCaves.logoutClicked(player)) return@act
+            // In a Fight Cave or Inferno wave the first click pauses the run at the wave's end instead.
+            if (fightCaves.logoutClicked(player) || inferno.logoutClicked(player)) return@act
             if (inCombat(player)) {
                 player.message(textFor(player)[GameLines.CANT_LOG_OUT])
                 return@act
@@ -3031,7 +3064,10 @@ class World(
         // R40B-6), as group loot does; anyone else's goes public once its killer has left.
         val owner = if (solo != null) solo.key else killer?.takeIf { !it.loggedOut }?.saveKey
         val despawn = osrsps.game.content.KingBlackDragon.lootTicks(this, npc, GroundObjs.LOOT_DESPAWN_TICKS)
-        for (drop in drops) {
+        for (rolled in drops) {
+            // Every quest counts as done, X Marks the Spot included: a clue scroll comes as its scroll box, or not at all past the cap.
+            val type = trails.dropFor(killer?.takeIf { !it.loggedOut }, rolled.type) ?: continue
+            val drop = if (type === rolled.type) rolled else rolled.copy(type = type)
             if (owner != null) {
                 groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, owner, GroundObjs.DROP_PRIVATE_TICKS, despawn)
                 lootDroppedFor(owner, drop.type, drop.count)
@@ -3513,6 +3549,7 @@ class World(
             archiveRaids.leaving(player)
             // After the death above, so a run's death is paid before the save.
             fightCaves.leaving(player)
+            inferno.leaving(player)
             trades.leave(player)
             // Once a trade's offer is back in the backpack: saved at the instance's exit, out of any raid run, so its
             // supplies stay in it (R26A-1; Codex review on #636).

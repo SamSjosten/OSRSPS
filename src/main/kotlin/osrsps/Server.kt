@@ -166,6 +166,7 @@ class GameServer(
         val omnishops: Omnishops
         val itemSets: osrsps.game.ge.ItemSets
         val slayerData: SlayerData
+        val trailData: osrsps.game.trail.TrailData
         val settings: SettingsCatalog
         val collectionLog: osrsps.game.collection.CollectionLogCatalog
         try {
@@ -195,6 +196,7 @@ class GameServer(
             omnishops = OmnishopLoader.load(library)
             itemSets = osrsps.cache.ItemSetLoader.load(library)
             slayerData = SlayerLoader.load(library)
+            trailData = osrsps.cache.TrailLoader.load(library, objTypes)
             settings = SettingsLoader.load(library)
             collectionLog = osrsps.cache.CollectionLogLoader.load(library)
             interfaceIds = library.index(INTERFACE_INDEX)?.archiveIds()?.toSet().orEmpty() + LodestoneMap.INTERFACE
@@ -279,7 +281,7 @@ class GameServer(
             spells = spells, prayerList = prayers, foodList = Foods.load(objTypes), potionData = Potions.load(objTypes), shopTypes = shopTypes, omnishops = omnishops, itemSets = itemSets, collectionLogCatalog = collectionLog, skillUnlocks = skillUnlocks, ipBans = ipBans, xpRate = xpRate,
             wearRequirements = wearRequirements, itemPrices = itemPrices, itemPricesFile = itemPricesFile, settings = settings,
             specialAttackCosts = specialAttackCosts, encounterDefs = listOfNotNull(ArchiveGuardian.def(npcTypes), Ezekiel.def(npcTypes), Bork.def(npcTypes), Dreadnoth.def(npcTypes), Moia.def(npcTypes), Xarth.def(npcTypes), Dagonhai.def(npcTypes), Ocellus.def(npcTypes)),
-            slayerData = slayerData, idkTypes = idkTypes, starCycle = true, cycleMillis = cycleMillis,
+            slayerData = slayerData, trailData = trailData, idkTypes = idkTypes, starCycle = true, cycleMillis = cycleMillis,
         )
         loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world, relays, proxy, js5Connections)

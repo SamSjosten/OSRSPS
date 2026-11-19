@@ -1,0 +1,122 @@
+package osrsps.game.trail
+
+/** A Treasure Trail's tier, with its shared clue item (beginner and master), its scroll box and its reward casket. */
+enum class TrailTier(
+    val key: String,
+    /** The obj param set to 1 on every clue scroll of the tier (osrs-dumps' dump.obj, rev 242). */
+    val param: Int,
+    /** Trail length, inclusive (OSRS Wiki, Treasure Trails, read 2026-11-19). */
+    val minSteps: Int,
+    val maxSteps: Int,
+    /** `league_clue_box_<tier>`, the Scroll box (tier) X Marks the Spot gives in place of clue scrolls. */
+    val scrollBox: Int,
+    /** `trail_reward_casket_<tier>`. */
+    val rewardCasket: Int,
+    /** `trail_clue_beginner` and `trail_clue_master`: one item for every step, the step kept on the player. -1 for the tiers whose every step is its own item. */
+    val sharedClue: Int = -1,
+) {
+    BEGINNER("beginner", 726, 1, 3, 24361, 23245, sharedClue = 23182),
+    EASY("easy", 347, 2, 4, 24362, 20546),
+    MEDIUM("medium", 348, 3, 5, 24363, 20545),
+    HARD("hard", 349, 4, 6, 24364, 20544),
+    ELITE("elite", 350, 5, 7, 24365, 20543),
+    MASTER("master", 393, 6, 8, 24366, 19836, sharedClue = 19835),
+    ;
+
+    companion object {
+        /** The cluehelper tables' difficulty column: 0 beginner to 5 master (6 is X Marks the Spot's own clues). */
+        fun byDifficulty(difficulty: Int): TrailTier? = entries.getOrNull(difficulty)
+
+        fun byKey(key: String): TrailTier? = entries.firstOrNull { it.key == key.lowercase() }
+    }
+}
+
+/** A clue step's type: which cluehelper table it is a row of (osrs-dumps' dump.dbtable, rev 242). */
+enum class StepType(val key: String, val table: Int) {
+    ANAGRAM("anagram", 4),
+    MAP("map", 5),
+    CIPHER("cipher", 6),
+    COORDINATE("coordinate", 7),
+    CRYPTIC("cryptic", 8),
+    EMOTE("emote", 9),
+    FAIRY_RING("fairyring", 10),
+    FALO("falobard", 11),
+    HOT_COLD("hotcold", 12),
+    MUSIC("music", 13),
+    SKILL_CHALLENGE("skillchallenge", 14),
+    ;
+
+    companion object {
+        fun byTable(table: Int): StepType? = entries.firstOrNull { it.table == table }
+    }
+}
+
+/** A tile: the cache's packed coord (level shl 28, x shl 14, z). */
+data class TrailTile(val x: Int, val z: Int, val level: Int) {
+    override fun toString(): String = "$x,$z,$level"
+
+    companion object {
+        fun unpack(coord: Int) = TrailTile((coord ushr 14) and 0x3FFF, coord and 0x3FFF, (coord ushr 28) and 0x3)
+    }
+}
+
+/** Where a step is solved: one of the cluehelper target tables (15 to 20). */
+sealed interface TrailTarget {
+    /** The tile the target stands on, or the area's south-west corner. */
+    val tile: TrailTile
+
+    /** Dig on [tile] (cluehelper_target_coord). */
+    data class Dig(override val tile: TrailTile) : TrailTarget
+
+    /** Talk to [npc] (or [fallbackNpc]) near [tile] (cluehelper_target_npc). */
+    data class Npc(val npc: Int, val fallbackNpc: Int, override val tile: TrailTile) : TrailTarget
+
+    /** Search [loc] (or [fallbackLoc]) on [tile] (cluehelper_target_loc). */
+    data class Loc(val loc: Int, val fallbackLoc: Int, override val tile: TrailTile) : TrailTarget
+
+    /** Somewhere between [tile] and [northEast] (cluehelper_target_mapzone). */
+    data class Zone(override val tile: TrailTile, val northEast: TrailTile) : TrailTarget
+
+    /** Search [loc] on [tile] holding [key], which one of [npcs] drops (cluehelper_target_key). */
+    data class Key(val loc: Int, override val tile: TrailTile, val npcs: List<Int>, val key: Int) : TrailTarget
+
+    /** Kill one of [npcs] (cluehelper_target_kill). */
+    data class Kill(val npcs: List<Int>, override val tile: TrailTile) : TrailTarget
+}
+
+/**
+ * One clue step, as Jagex's own clue helper lists it in the cache: [id] is the row's own id column (stable across
+ * caches, unlike the row's number), [text] the clue's words (null for maps and hot-cold steps, which show no text),
+ * [items] the step's own clue scroll items (empty for beginner and master steps, which share one), [combat] whether a
+ * fight comes with it (a coordinate's wizard, an emote's double agent).
+ */
+data class ClueStep(
+    val type: StepType,
+    val id: Int,
+    val tier: TrailTier,
+    val text: String?,
+    val targets: List<TrailTarget>,
+    val items: List<Int> = emptyList(),
+    val combat: Boolean = false,
+) {
+    /** How a save and `::clue` name the step: `map:107`. */
+    val key: String get() = "${type.key}:$id"
+
+    override fun toString(): String = "$key (${tier.key})"
+}
+
+/** Every clue step the cache lists, by key, and the clue items that are one step each. */
+class TrailData(steps: Collection<ClueStep>) {
+    val steps: Map<String, ClueStep> = steps.associateBy { it.key }
+
+    /** The step each own-step clue item is. */
+    val byItem: Map<Int, ClueStep> = buildMap { for (step in steps) for (item in step.items) put(item, step) }
+
+    operator fun get(key: String): ClueStep? = steps[key]
+
+    fun tier(tier: TrailTier): List<ClueStep> = steps.values.filter { it.tier == tier }
+
+    companion object {
+        val NONE = TrailData(emptyList())
+    }
+}
