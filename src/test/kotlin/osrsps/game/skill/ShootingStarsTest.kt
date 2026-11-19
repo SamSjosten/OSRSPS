@@ -112,4 +112,37 @@ class ShootingStarsTest {
         assertNull(stars.star)
         assertNull(world.locs[site.x, site.z, 0, 2])
     }
+
+    @Test
+    fun `each telescope's window holds the landing, is as wide as its accuracy, and stays put while the star waits`() {
+        val world = world(9, cycle = false)
+        val stars = world.shootingStars
+        assertNull(stars.scout(Telescope.OAK, 1))
+        stars.schedule(1, 9_000) // 90 minutes
+        val site = stars.nextSite!!
+        for (telescope in Telescope.entries) {
+            val first = stars.scout(telescope, 1)!!
+            assertEquals(site.region, first.region)
+            assertEquals(telescope.accuracyMinutes, first.toMinutes - first.fromMinutes)
+            assertTrue(90 in first.fromMinutes..first.toMinutes, "$telescope: ${first.fromMinutes} to ${first.toMinutes}")
+            // Ten minutes on, the same window ten minutes nearer.
+            val later = stars.scout(telescope, 1_001)!!
+            assertEquals(first.fromMinutes - 10, later.fromMinutes)
+        }
+        // A window never starts before now, and still holds a landing a minute away.
+        stars.schedule(1, 100)
+        val close = stars.scout(Telescope.OAK, 1)!!
+        assertTrue(close.fromMinutes >= 0 && 1 in close.fromMinutes..close.toMinutes)
+    }
+
+    @Test
+    fun `the oak's window falls anywhere around the landing, star to star`() {
+        val world = world(3, cycle = false)
+        val stars = world.shootingStars
+        val starts = (1..200).map {
+            stars.schedule(1, 6_000) // 60 minutes
+            stars.scout(Telescope.OAK, 1)!!.fromMinutes
+        }.toSet()
+        assertEquals((36..60).toSet(), starts)
+    }
 }

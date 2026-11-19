@@ -73,6 +73,8 @@ object AlKharidTraders {
     const val KEBAB = 1971
     const val SILK = 950
     const val KEBAB_PRICE = 1
+    const val SILK_PRICE = 3
+    const val SILK_HAGGLED_PRICE = 2
 
     /** Karim's talk; [give] hands over what the player bought. True when the player paid for a kebab. */
     internal suspend fun Dialogue.karim(give: (Int) -> Unit): Boolean = with(KarimLines) {
@@ -121,7 +123,7 @@ object AlKharidTraders {
         chatNpc(ChatAnim.NEUTRAL, THREE_GP)
         if (choice(TOO_MUCH, SOUNDS_GOOD) == 2) {
             chatPlayer(ChatAnim.NEUTRAL, SOUNDS_GOOD)
-            return@with buySilk(3, give)
+            return@with buySilk(SILK_PRICE, give)
         }
         chatPlayer(ChatAnim.NEUTRAL, TOO_MUCH)
         chatNpc(ChatAnim.QUIZ, TWO_GP)
@@ -132,7 +134,7 @@ object AlKharidTraders {
             return@with 0
         }
         chatPlayer(ChatAnim.NEUTRAL, TWO_GP_GOOD)
-        buySilk(2, give)
+        buySilk(SILK_HAGGLED_PRICE, give)
     }
 
     private suspend fun Dialogue.buySilk(price: Int, give: (Int) -> Unit): Int = with(SilkTraderLines) {
@@ -242,6 +244,9 @@ object Kebab {
 /** Karim's and the Silk trader's talk, and Eat on a kebab. */
 fun registerAlKharidTraders(world: World) {
     with(AlKharidTraders) {
+        // The GE bot market pays no more than this for them (exploit review 44, R44A-3).
+        world.grandExchange.npcSells(KEBAB, KEBAB_PRICE.toLong())
+        world.grandExchange.npcSells(SILK, SILK_HAGGLED_PRICE.toLong())
         world.npcInteractions.reachOverCounter(KARIM)
         world.handlers.onNpc(KARIM, TALK_TO) { op ->
             val give = { obj: Int -> world.objTypes[obj]?.let { world.groundObjs.give(player, it, 1) } ?: Unit }

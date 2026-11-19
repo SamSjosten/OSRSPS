@@ -237,6 +237,8 @@ object ShearedRam {
 
 /** The Bartender's Talk-to, across his bar, and Arthur's. */
 fun registerShearedRam(world: World) {
+    // The GE bot market pays no more than this for beer (exploit review 44, R44A-3).
+    world.grandExchange.npcSells(ShearedRam.BEER_OBJ, ShearedRam.BEER_PRICE.toLong())
     val give: (Player, Int) -> Unit = { player, obj ->
         world.objTypes[obj]?.let { world.groundObjs.give(player, it, 1) } ?: logger.warn { "No item $obj in the cache" }
     }

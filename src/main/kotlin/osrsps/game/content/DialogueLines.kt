@@ -44,6 +44,7 @@ import osrsps.game.skill.FletchingLines
 import osrsps.game.skill.HerbloreLines
 import osrsps.game.skill.LevelUpLines
 import osrsps.game.skill.MakeLines
+import osrsps.game.skill.magic.AlchemyLines
 import osrsps.game.skill.magic.BoltEnchantLines
 import osrsps.game.skill.MiningLines
 import osrsps.game.skill.ShootingStarLines
@@ -75,7 +76,11 @@ import osrsps.game.social.FriendsChatLines
 import osrsps.game.social.ReportLines
 import osrsps.game.social.SocialLines
 import osrsps.game.trade.TradeLines
+import osrsps.game.trail.TrailLines
 import osrsps.game.tzhaar.FightCaveLines
+import osrsps.game.tzhaar.InfernoLines
+import osrsps.game.tzhaar.KetKehLines
+import osrsps.game.tzhaar.MejJalLines
 
 /**
  * Every conversation's lines, which the dialogue file is read and written against. Each new [Lines] object goes here,
@@ -120,6 +125,7 @@ object DialogueLines {
         BirdNestLines,
         BlueMoonBarbarianLines,
         BoltEnchantLines,
+        AlchemyLines,
         BorkLines,
         DagonhaiLines,
         DreadnothLines,
@@ -130,6 +136,9 @@ object DialogueLines {
         CadmusLines,
         FeorasLines,
         FightCaveLines,
+        MejJalLines,
+        InfernoLines,
+        KetKehLines,
         FinlayLines,
         MonlumLines,
         WebLines,
@@ -179,6 +188,7 @@ object DialogueLines {
         DuelGuideLines,
         DukeLines,
         DummyLines,
+        DusuriLines,
         EdgevilleClosedLines,
         EdgevilleDungeonLines,
         LavaMazeLines,
@@ -191,10 +201,13 @@ object DialogueLines {
         VolcanicForgeLines,
         KingBlackDragonLines,
         WildernessLairLines,
+        CalvarionLines,
         WildernessLairFeeLines,
         osrsps.game.FountainOfRuneLines,
         OborLines,
         BryophytaLines,
+        ScurriusLairLines,
+        HistorianAldoLines,
         EmoteLines,
         EstateAgentLines,
         GiantBonesLines,
@@ -293,6 +306,7 @@ object DialogueLines {
         RatBurgissLines,
         SethGroatsLines,
         SawmillLines,
+        ClerkLines,
         TolnaLines,
         TolnaRiftLines,
         OddOldManLines,
@@ -436,6 +450,7 @@ object DialogueLines {
         TownCrierLines,
         TradeLines,
         TraibornLines,
+        TrailLines,
         TrampLines,
         UrhneyLines,
         ValaineLines,
