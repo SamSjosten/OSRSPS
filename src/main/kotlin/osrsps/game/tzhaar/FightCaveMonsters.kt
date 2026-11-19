@@ -5,6 +5,7 @@ import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.combat.AttackType
 import osrsps.game.combat.CombatMath
+import osrsps.game.combat.DinhsBulwark
 import osrsps.game.combat.MeleeCombat
 import osrsps.game.npc.Npc
 import osrsps.map.LineOfSight
@@ -80,6 +81,9 @@ class FightCaveMonsters(private val world: World) {
     /** How many of Jad's hits are on their way, for the tests. */
     val jadHitsInFlight: Int get() = jadHits.size
 
+    /** How many Jads (and healers) have state kept, for the tests: none once their runs are over. */
+    val jadsTracked: Int get() = jads.size + nextHeal.size
+
     /** The cave monsters' part of a tick with no one monster to it: Jad's hits landing. */
     fun process() {
         if (jadHits.isEmpty()) return
@@ -93,7 +97,9 @@ class FightCaveMonsters(private val world: World) {
             // Out of Jad's cave (teleported, or the cave gone) before it landed: it doesn't follow them.
             if (world.instances.at(player.x, player.z)?.contains(hit.jad.x, hit.jad.z) != true) continue
             if (hit.type == AttackType.RANGED) player.effects.spotanim(0, SPOTANIM_JAD_ROCK, 0, 0)
-            val damage = if (world.prayers.protects(player, hit.type)) 0 else hit.damage
+            // Dinh's bulwark counts as it lands, as the prayer does (MeleeCombat's own shots count both as they fire).
+            val bulwarked = if (world.combat.bulwarkBlocking(player, world.tick)) DinhsBulwark.blocked(hit.damage) else hit.damage
+            val damage = if (world.prayers.protects(player, hit.type)) 0 else bulwarked
             world.meleeCombat.hitPlayer(player, hit.jad, damage, world.tick)
         }
     }
@@ -101,6 +107,10 @@ class FightCaveMonsters(private val world: World) {
     /** Drops Jad's hits on their way from inside [area], a run's cave, as the run ends. */
     fun dropHitsWithin(area: (x: Int, z: Int) -> Boolean) {
         jadHits.removeAll { area(it.jad.x, it.jad.z) }
+        // A Jad left alive (a death, leaving, logging out) and his healers: their state goes with the run.
+        val gone = jads.keys.filter { area(it.x, it.z) }
+        for (jad in gone) jads.remove(jad)?.healers?.forEach { nextHeal.remove(it) }
+        nextHeal.keys.removeAll { area(it.x, it.z) }
     }
 
     /** Jad's healers' turn, and his healers coming when he is low: for [jad] in [run], fought by [player]. */
@@ -117,10 +127,10 @@ class FightCaveMonsters(private val world: World) {
                 nextHeal[healer] = world.tick + HEAL_TICKS
             }
         }
-        for (healer in state.healers) healerTick(healer, jad)
+        for (healer in state.healers) healerTick(state, healer, jad)
     }
 
-    private fun healerTick(healer: Npc, jad: Npc) {
+    private fun healerTick(state: JadState, healer: Npc, jad: Npc) {
         // Attacked, it fights the player until it gives up on them.
         if (healer.target != null || healer.dead) return
         val near = jadDistance(healer, jad)
@@ -130,6 +140,8 @@ class FightCaveMonsters(private val world: World) {
         if (jad.hitpoints >= jad.maxHitpoints) return
         healer.effects.anim(ANIM_MEJKOT_HEAL)
         jad.hitpoints = minOf(jad.maxHitpoints, jad.hitpoints + HURKOT_HEAL)
+        // Healed to full: they come again when he is next below 150, though a hit lands before the next tick looks.
+        if (jad.hitpoints >= jad.maxHitpoints) state.healersOut = false
         jad.effects.spotanim(0, SPOTANIM_HEAL, 0)
         jad.effects.headBar(-1, MeleeCombat.HEALTH_BAR, MeleeCombat.healthBarFill(jad.hitpoints, jad.maxHitpoints))
     }

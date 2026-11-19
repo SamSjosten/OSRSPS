@@ -312,14 +312,20 @@ class FightCaves(private val world: World) {
         // The Fight Caves page of the collection log: the cape as it is handed over, and the pet below.
         world.collectionLog.add(player, FIRE_CAPE, 1)
         // The pet: 1 in 200, 1 in 100 on a Slayer task (the Wiki's TzRek-Jad). Ours is the item alone: no followers yet.
-        if (world.random.chance(1, if (run.jadOnTask) PET_ODDS_ON_TASK else PET_ODDS)) {
-            world.objTypes[PET]?.let { world.groundObjs.give(player, it, 1) }
-            world.collectionLog.add(player, PET, 1)
-            world.message(player, FightCaveLines.PET)
-            logger.info { "${player.username} got TzRek-Jad" }
-        }
+        if (world.random.chance(1, petOdds(run.jadOnTask))) givePet(player)
         mejJal(player, FightCaveLines.VICTORIOUS)
         logger.info { "${player.username} beat the fight cave (rotation ${run.rotation})" }
+    }
+
+    /** The 1 in N for TzRek-Jad: [onTask] when TzTok-Jad died on the player's Slayer task. */
+    internal fun petOdds(onTask: Boolean): Int = if (onTask) PET_ODDS_ON_TASK else PET_ODDS
+
+    /** TzRek-Jad for [player]: the item (no followers yet), its collection log entry and the message. */
+    internal fun givePet(player: Player) {
+        world.objTypes[PET]?.let { world.groundObjs.give(player, it, 1) }
+        world.collectionLog.add(player, PET, 1)
+        world.message(player, FightCaveLines.PET)
+        logger.info { "${player.username} got TzRek-Jad" }
     }
 
     /**

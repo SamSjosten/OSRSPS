@@ -20,6 +20,7 @@ import osrsps.game.Scenarios
 import osrsps.game.SeqNames
 import osrsps.game.World
 import osrsps.game.Skill
+import osrsps.game.collection.CollectionLogCatalog
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.Prayers
 import osrsps.game.tzhaar.FightCaveMonsters
@@ -63,10 +64,16 @@ class HeadlessFightCaveTest {
         NpcType(FightCaves.MEJ_JAL, "TzHaar-Mej-Jal", ops = listOf("Talk-to", null, "Exchange fire cape", null, null), internalName = "tzhaar_fightcave_master"),
     )
 
+    // A Fight Caves page holding the cape and the pet, its ids made up.
+    private val catalog = CollectionLogCatalog(
+        listOf(CollectionLogCatalog.Tab(0, 471, listOf(CollectionLogCatalog.Page(1, 0, 0, listOf(FightCaves.FIRE_CAPE, FightCaves.PET), completedVarbit = null)))),
+    )
+
     private fun server(dir: Path) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
         val objTypes = ObjTypes.of(
             ObjType(FightCaves.TOKKUL, "Tokkul", stackable = true),
             ObjType(FightCaves.FIRE_CAPE, "Fire cape"),
+            ObjType(FightCaves.PET, "TzRek-Jad"),
             ObjType(995, "Coins", stackable = true),
             // Protect from Melee's prayer obj, shaped like the cache's (HeadlessArchiveGuardianTest).
             ObjType(
@@ -77,6 +84,7 @@ class HeadlessFightCaveTest {
         val cave = { id: Int, name: String, ops: List<String?> -> LocType(id, name, ops, LocCollisionType(width = 3, length = 2)) }
         World(
             crcs, CollisionMap().apply { markLoaded(37, 79); markLoaded(38, 80) }, objTypes = objTypes, npcTypes = types,
+            collectionLogCatalog = catalog,
             random = GameRandom(1), npcCombat = NpcCombat.load(types, SeqNames.NONE), prayerList = Prayers.load(objTypes),
             locTypes = LocTypes(
                 listOf(
@@ -567,6 +575,42 @@ class HeadlessFightCaveTest {
                 client.await("outside", timeoutMillis = 20_000) { client.position?.takeIf { it == Coord(FightCaves.OUTSIDE.x, FightCaves.OUTSIDE.z, 0) } }
                 assertTrue(healers.none { server.world.npcs[it.index] === it }, "the healers went with him")
                 assertNotNull(client.inventory(INV).firstOrNull { it?.id == FightCaves.FIRE_CAPE })
+            }
+        }
+    }
+
+    @Test
+    fun `leaving with TzTok-Jad's healers out keeps nothing of them`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("lou").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("fightcave 63 1") { it.startsWith("Fight cave") }
+                val jad = client.waveIn(server, "lou", 63).single()
+                client.commandReply("hit 110 ${jad.index}") { it.startsWith("Hit") }
+                val mechanics = server.world.fightCaves.monsterMechanics
+                client.await("the healers", timeoutMillis = 10_000) { server.run("lou")?.monsters?.count { it.type.id == FightCaveMonsters.YT_HURKOT }?.takeIf { it == 4 } }
+                assertTrue(mechanics.jadsTracked > 0)
+                client.commandReply("fightcave leave") { true }
+                client.await("the run over") { true.takeIf { server.run("lou") == null } }
+                assertEquals(0, mechanics.jadsTracked)
+            }
+        }
+    }
+
+    @Test
+    fun `TzRek-Jad is 1 in 200, 1 in 100 on task, and comes as the item with its collection log entry`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("pip").use { client ->
+                client.await("the login rebuild") { client.position }
+                val caves = server.world.fightCaves
+                assertEquals(200, caves.petOdds(onTask = false))
+                assertEquals(100, caves.petOdds(onTask = true))
+                val player = server.world.playerNamed("pip")!!
+                caves.givePet(player)
+                client.await("the pet") { client.inventory(INV).firstOrNull { it?.id == FightCaves.PET } }
+                assertEquals(1, server.world.collectionLog.count(player, FightCaves.PET))
+                client.await("its message") { client.messages().firstOrNull { "fight_cave.pet" in it.text } }
             }
         }
     }
