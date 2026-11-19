@@ -183,7 +183,7 @@ class HeadlessFightCaveTest {
     }
 
     @Test
-    fun `a death the server's stop settles pays the TokKul that won't fit into the bank`(@TempDir dir: Path) {
+    fun `a death settled as the player leaves the world pays the TokKul that won't fit into the bank`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("eve").use { client ->
                 client.await("the login rebuild") { client.position }
@@ -192,9 +192,9 @@ class HeadlessFightCaveTest {
                 client.commandReply("fightcave 4 2") { it.startsWith("Fight cave") }
                 client.waveIn(server, "eve", 4)
                 val player = server.world.playerNamed("eve")!!
-                // As World.stop() finishes a death: the run marked died, then settled with the stop's flag.
+                // As a logout or World.stop() finishes a death: the run marked died, then settled as they go.
                 server.world.fightCaves.runOf(player)!!.died = true
-                server.world.fightCaves.leaving(player, shuttingDown = true)
+                server.world.fightCaves.leaving(player)
                 // Three waves done: 2 + 4 + 6, all in the bank.
                 assertEquals(12L, player.bank.count(FightCaves.TOKKUL))
                 assertNull(server.run("eve"))
@@ -203,7 +203,7 @@ class HeadlessFightCaveTest {
     }
 
     @Test
-    fun `TokKul a stop's settling has no room for comes at the next login`(@TempDir dir: Path) {
+    fun `TokKul a death's settling has no room for comes at the next login, not in a test setup`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("ivy").use { client ->
                 client.await("the login rebuild") { client.position }
@@ -215,15 +215,38 @@ class HeadlessFightCaveTest {
                 // A bank with every slot taken, none of them TokKul.
                 for (slot in 0 until Inventory.BANK_CAPACITY) player.bank[slot] = InvObj(995, 1)
                 server.world.fightCaves.runOf(player)!!.died = true
-                server.world.fightCaves.leaving(player, shuttingDown = true)
+                server.world.fightCaves.leaving(player)
                 assertEquals(0L, player.bank.count(FightCaves.TOKKUL) + player.inventory.count(FightCaves.TOKKUL))
                 assertEquals(12, server.world.fightCaves.owed(player), "kept for later")
                 assertNull(server.world.fightCaves.saved(player), "no run to come back to")
-                // Room again, and the next login pays it.
+                // Room again, but a login in a test setup doesn't pay it: putting the setup back would owe it again.
                 player.inventory[0] = null
+                player.scenario = "fight-cave"
+                server.world.fightCaves.login(player)
+                assertEquals(12, server.world.fightCaves.owed(player))
+                assertEquals(0L, player.inventory.count(FightCaves.TOKKUL))
+                // Out of it, the next login pays it.
+                player.scenario = null
                 server.world.fightCaves.login(player)
                 assertEquals(12L, player.inventory.count(FightCaves.TOKKUL))
                 assertEquals(0, server.world.fightCaves.owed(player))
+            }
+        }
+    }
+
+    @Test
+    fun `the cave entrance turns away a player in a test setup`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("lou").use { client ->
+                client.await("the login rebuild") { client.position }
+                val player = server.world.playerNamed("lou")!!
+                player.scenario = "raid-tester"
+                server.world.fightCaves.enter(player)
+                assertNull(server.run("lou"), "no cave")
+                client.await("the line") { client.messages().firstOrNull { "fight_cave.in_scenario" in it.text } }
+                player.scenario = null
+                server.world.fightCaves.enter(player)
+                assertNotNull(server.run("lou"))
             }
         }
     }
@@ -454,11 +477,19 @@ class HeadlessFightCaveTest {
                 val mej = client.waveIn(server, "ida", 15).single()
                 assertEquals(3123, mej.type.id)
                 client.commandReply("hit 50 ${mej.index}") { it.startsWith("Hit") }
+                // No passive regeneration while it's watched, so only a heal can give hitpoints back.
+                mej.hitpointsRegenTicks = Int.MAX_VALUE
+                val hurt = mej.hitpoints
+                assertTrue(hurt * 2 < mej.maxHitpoints)
                 client.tele(mej.x - 1, mej.z)
-                client.await("its heal", timeoutMillis = 20_000) {
+                val heal = client.await("its heal", timeoutMillis = 20_000) {
                     client.actorEvents().firstOrNull { it.npc && it.index == mej.index && it.kind == ActorEventKind.ANIMATION && it.id == FightCaveMonsters.ANIM_MEJKOT_HEAL }
                 }
                 assertTrue(client.actorEvents().any { it.npc && it.index == mej.index && it.kind == ActorEventKind.SPOTANIM && it.id == FightCaveMonsters.SPOTANIM_HEAL })
+                // The heal is its attack for that tick: no swing lands on the player alongside it (a 0 under ::god).
+                assertTrue(client.actorEvents().none { !it.npc && it.kind == ActorEventKind.HITSPLAT && it.ticks == heal.ticks })
+                // Each heal is a roll of 0 to 10, and it heals again every attack while below half, so it gains in time.
+                client.await("hitpoints back", timeoutMillis = 30_000) { mej.hitpoints.takeIf { it > hurt } }
             }
         }
     }

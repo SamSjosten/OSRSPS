@@ -1,5 +1,5 @@
 {
-  "name": "Fight Caves step FC1: Enter on the Fight Cave's entrance into a cave of one's own, wave 1's Tz-Kih killed with ::kill and wave 2 coming in, Leave on the exit paying 2 Tokkul with TzHaar-Mej-Jal's line, and ::fightcave 63 putting TzTok-Jad in (::keys on, ::god on)",
+  "name": "Fight Caves step FC1: Enter on the Fight Cave's entrance into a cave of one's own, wave 1 taken out with ::fightcave next and wave 2 coming in, Leave on the exit paying 2 Tokkul with TzHaar-Mej-Jal's line, and ::fightcave 63 putting TzTok-Jad in (::keys on, ::god on)",
   "account": "test",
   "steps": [
     {"step": "waitForLogin"},
@@ -10,7 +10,7 @@
     {"step": "locOption", "locId": 11833, "option": "Enter", "x": 2437, "y": 5166},
     {"step": "assertMessage", "contains": "[fight_cave.wave wave=1]", "timeoutMs": 15000},
     {"step": "command", "text": "::fightcave status", "expectMessage": "Wave 1, rotation "},
-    {"step": "command", "text": "::kill Tz-Kih", "expectMessage": "Killed Tz-Kih #"},
+    {"step": "command", "text": "::fightcave next", "expectMessage": "Took wave 1's monsters out.", "comment": "not ::kill Tz-Kih: in some rotations it comes in more than ::kill's 15 tiles away"},
     {"step": "assertMessage", "contains": "[fight_cave.wave wave=2]", "timeoutMs": 20000},
     {"step": "locOption", "locId": 11834, "option": "Leave"},
     {"step": "assertLocation", "x": 2438, "y": 5168, "plane": 0, "timeoutMs": 30000},

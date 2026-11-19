@@ -24,6 +24,7 @@ object FightCaveLines : Lines("fight_cave", "TzHaar Fight Cave") {
     val REWARD = line("reward", "TzHaar-Mej-Jal after a death or leaving in a later wave, as TokKul is handed over (Transcript:TzHaar-Mej-Jal)")
     val VICTORIOUS = line("victorious", "TzHaar-Mej-Jal after TzTok-Jad's death, handing over the fire cape (Transcript:TzHaar-Mej-Jal)")
     val NO_ROOM = line("no_room", "Enter on the cave entrance when no cave can be made (ours: the server's instances are all taken)")
+    val IN_SCENARIO = line("in_scenario", "Enter on the cave entrance in a test setup (::scenario, the Leagues Tutor's kits): ours, as its kit would earn real rewards; ::reset first")
 }
 
 /**
@@ -120,6 +121,8 @@ class FightCaves(private val world: World) {
     /** Enter on the cave entrance: a new cave from wave 1, in a rotation picked at random. */
     fun enter(player: Player) {
         if (runs.containsKey(player.saveKey)) return
+        // A test setup's kit (99s, the best gear) would earn a real fire cape and TokKul that outlive putting it back.
+        if (player.scenario != null) return world.message(player, FightCaveLines.IN_SCENARIO)
         start(player, 1, randomRotation(), ARRIVAL, FIRST_WAVE_TICKS)
     }
 
@@ -134,12 +137,13 @@ class FightCaves(private val world: World) {
         require(wave in 1..FightCaveWaves.WAVES) { "No wave $wave" }
         require(rotation in 1..FightCaveWaves.ROTATIONS) { "No rotation $rotation" }
         require(delay >= 1) { "A wave can't come in $delay ticks" }
-        runs[player.saveKey]?.let(::end)
+        // The new cave first: with none to be had, a run already going stays as it was, its player in it.
         val instance = world.instances.create(CAVE_X, CAVE_Z, CAVE_ZONES, CAVE_ZONES, OUTSIDE.x, OUTSIDE.z, 0)
         if (instance == null) {
             world.message(player, FightCaveLines.NO_ROOM)
             return false
         }
+        runs[player.saveKey]?.let(::end)
         val run = Run(player.saveKey, instance, rotation, wave)
         run.nextWaveTick = world.tick + delay
         runs[player.saveKey] = run
@@ -157,13 +161,14 @@ class FightCaves(private val world: World) {
      */
     fun login(player: Player) {
         val owed = owed(player)
-        if (owed > 0) setOwed(player, owed - give(player, owed))
+        // Not in a test setup, whose putting back restores the varp, owed bits and all: paid there, owed again after.
+        if (owed > 0 && player.scenario == null) setOwed(player, owed - give(player, owed))
         if (saved(player) != null) resuming += player.saveKey
     }
 
     /**
-     * TokKul [player] is owed: what the server's stop settled for a death but neither their backpack nor bank had room
-     * for, kept in the cave's varp until a login has the room. Guessed: live has no such case.
+     * TokKul [player] is owed: what a death settled as they left the world (a logout or the server's stop) had no room
+     * for in their backpack or bank, kept in the cave's varp until a login has the room. Guessed: live has no such case.
      */
     fun owed(player: Player): Int = (player.vars[world.customVars.fightCaveVarp] ushr OWED_SHIFT) and OWED_MASK
 
@@ -318,10 +323,11 @@ class FightCaves(private val world: World) {
      * [player] is leaving the world, saved next: a run left mid-wave starts that wave again at their next login, one
      * paused at a wave's end the next (its varp already says which); a death's Tokkul is paid now.
      */
-    fun leaving(player: Player, shuttingDown: Boolean = false) {
+    fun leaving(player: Player) {
         resuming -= player.saveKey
         val run = runs[player.saveKey] ?: return
-        if (run.died) return paidOut(player, run, bankOverflow = shuttingDown)
+        // Gone from the world, they can't pick up a drop: what won't fit goes to the bank, then owed.
+        if (run.died) return paidOut(player, run, bankOverflow = true)
         end(run)
     }
 
@@ -360,8 +366,8 @@ class FightCaves(private val world: World) {
     }
 
     /**
-     * Gives [tokkul], what won't fit on the ground; or with [bankOverflow] (the server stopping) into the backpack and
-     * bank, what neither takes [owed] for the next login.
+     * Gives [tokkul], what won't fit on the ground; or with [bankOverflow] (the player leaving the world) into the
+     * backpack and bank, what neither takes [owed] for the next login.
      */
     private fun pay(player: Player, tokkul: Int, bankOverflow: Boolean = false) {
         val type = world.objTypes[TOKKUL] ?: return
