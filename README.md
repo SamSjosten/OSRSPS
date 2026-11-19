@@ -1270,7 +1270,7 @@ sees it. The words are in the dialogue file, like every other line.
 | Who | What they do |
 |-----|--------------|
 | The General Store's Shop keeper and Shop assistant, Bob | Talk-to; "what do you sell" opens their shop. Bob's Repair and an item used on him answer that nothing needs repairing |
-| The Sheared Ram's Bartender | Sells a beer for 2 coins |
+| The Sheared Ram's Bartender | Sells a beer for 2 coins; Trade opens his shop (`sheared_ram`, inv 1034: beer and cider 2 coins, cooked meat 4, nothing bought back) |
 | Arthur the Clue Hunter (16811), by the Grand Exchange's south wall since 242.1 (`varrock.json`) | Explains every clue type (three pages of them) and turns clue vessels on and off (varbit 9365) |
 | Donie and Gee | One of four opening menus at random, the quests, Lumbridge, and Gee's small monsters |
 | Feoras (16806, the smithing tutor since 242.1) in the smithy | Smithing advice with its icon boxes, a hammer for a player with none, and his shop (`lumbridge_blacksmith`, inv 1032, the Wiki's prices) |
@@ -2363,7 +2363,7 @@ the ditch: nothing north of it is spawned yet, and players can't fight each othe
 
 | Behaviour | Source |
 |-----------|--------|
-| Cross on the Wilderness Ditch (`ditch_wilderness_cover` 23271) jumps the player over the piece clicked to the tile straight across, either way: every piece is 1 by 2 tiles at z 3521, so from 3520 to 3523 and back, and the short east-west run at x 2996 sideways | the 242 cache's loc type and map; the jump's animation `WILD_DITCH_JUMP` (6132) from RuneLite's gameval names; its 2 ticks and the exact move starting at client cycle 33 guessed |
+| Cross on the Wilderness Ditch (`ditch_wilderness_cover` 23271, and the 13 `ditch_wilderness_cover_members` 50652 pieces from x 3328 to 3340) jumps the player over the piece clicked to the tile straight across, either way: every piece is 1 by 2 tiles at z 3521, so from 3520 to 3523 and back, and the short east-west run at x 2996 sideways | the 242 cache's loc type and map; the jump's animation `WILD_DITCH_JUMP` (6132) from RuneLite's gameval names; its 2 ticks and the exact move starting at client cycle 33 guessed |
 | Going north the warning screen (`wilderness_warningscreen` 475) shows first, with the message set by the server (`wilderness_ditch.warning`): Enter Wilderness jumps, Don't go doesn't, walking away or Esc closes it | the Wiki's Doomsayer page (the ditch is one of his danger signs); the 242 cache's interface and its `cws_*` client scripts; showing only on the way in guessed |
 | The screen is the Doomsayer's warning 7 (enum 688, `cws_warning_id` 14801 set to 7): `cws_warning_7` (3857) counts the times it was answered, 0 to 6, and from the seventh showing its "Don't ask me this again" toggle turns it off (7) or on again (6); off, the ditch is crossed without it | the Wiki's Doomsayer page (toggleable after the seventh time seen) and the client's `cws_set_toggle` (6 shows the toggle on, 7 off); counting on the answer rather than the opening guessed |
 | The Wilderness level is the client's own sum (proc `wilderness_level`): one level every 8 tiles from z 3520 between x 2944 and 3391, to 56 at the north edge, and the caves' band 6,400 tiles up with the client's fixed and shifted squares | the 242 client script; the Wiki's Wilderness page (level 1 at the ditch, 56 in the far north) |
