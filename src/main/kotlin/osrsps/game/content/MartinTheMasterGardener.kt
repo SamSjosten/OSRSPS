@@ -43,7 +43,7 @@ object MartinLines : Lines("martin", "Transcript:Martin the Master Gardener") {
  * Pickpocketing section gives his chart and table as the Master Farmer's.
  *
  * Guessed: every chathead expression; that the hood needs a Farming cape owned and a free slot (the transcript gives
- * neither), as Wilfred's. Left out: the overhead after a recent theft ("You're the thief...") and the Fairytale quests
+ * neither), as Wilfred's. Left out: his overhead after a recent theft and the Fairytale quests
  * themselves.
  */
 object MartinTheMasterGardener {
