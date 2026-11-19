@@ -195,18 +195,19 @@ object ScurriusFight {
     }
 
     private fun EncounterContext.attack(fight: Fight, target: Player, swipe: Boolean, speed: Int) {
-        if (fight.stage == Stage.FIGHT) fight.attacksSinceFeed++
-        val feeding = fight.stage == Stage.FEEDING
-        val rats = fight.stage != Stage.MELEE && fight.waves < WAVES
-        val brickOdds = if (fight.stage == Stage.CENTRE) CENTRE_BRICK_ODDS else BRICK_ODDS
+        val stage = fight.stage
+        val feeding = stage == Stage.FEEDING
+        val rats = stage != Stage.MELEE && fight.waves < WAVES
+        val brickOdds = if (stage == Stage.CENTRE) CENTRE_BRICK_ODDS else BRICK_ODDS
         when {
             rats && roll(1, SUMMON_ODDS) == 1 -> summon(fight, feeding)
             roll(1, brickOdds) == 1 -> bricks(feeding)
-            fight.stage == Stage.MELEE -> if (swipe) swipeAt(target)
+            stage == Stage.MELEE -> if (swipe) swipeAt(target) else return // Nothing done: still ready when he reaches.
             swipe && roll(1, 2) == 1 -> swipeAt(target)
             roll(1, 2) == 1 -> shoot(target, AttackType.MAGIC, feeding)
             else -> shoot(target, AttackType.RANGED, feeding)
         }
+        if (stage == Stage.FIGHT) fight.attacksSinceFeed++
         // After the attack, as swingAt and fireAt set his NPC definition's speed, not this stage's.
         boss.nextAttackTick = world.tick + speed
     }

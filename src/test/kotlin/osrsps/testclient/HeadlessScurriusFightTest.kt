@@ -114,7 +114,11 @@ class HeadlessScurriusFightTest {
                 // In phase three every attack is a shot, bricks or rats, so both come soon.
                 boss.hitpoints = 100
                 client.await("bricks", timeoutMillis = 90_000) { fight.lines.firstOrNull { it.contains("bricks on") } }
-                assertTrue(fight.lines.any { it.contains("hazard on") && it.contains("${bob.x},${bob.z}") } || fight.lines.any { it.contains("hazard on") }, "a shadow on the lair")
+                // The shadow logged just before the first bricks holds Bob's own tile (he stands still all the while).
+                val lines = fight.lines.toList()
+                val shadow = lines.subList(0, lines.indexOfFirst { it.contains("bricks on") }).last { it.contains("hazard on") }
+                val tiles = shadow.substringAfter("hazard on ").substringBefore(" from tick").split(" ")
+                assertTrue("${bob.x},${bob.z}" in tiles, "a shadow on Bob's tile: $shadow")
                 client.await("giant rats", timeoutMillis = 120_000) { ScurriusFight.rats(boss).takeIf { it.isNotEmpty() } }
                 val rat = ScurriusFight.rats(boss).first()
                 assertEquals(SureHit.MAX, server.world.combat.sureHit(bob, rat, AttackType.MAGIC), "any style hits one")
