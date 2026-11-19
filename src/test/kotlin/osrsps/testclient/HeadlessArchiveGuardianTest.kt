@@ -895,7 +895,8 @@ class HeadlessArchiveGuardianTest {
                 alice.command("tele 3228 3221 0")
                 alice.stepTicks(ArchiveGuardian.BEAM_EVERY - 1 + ArchiveGuardian.BEAM_TRAVEL)
                 assertEquals(ArchiveGuardian.BATTERY_ACTIVE, ne.type.id, "not yet: the beam shows, and reaches it a tick later")
-                // She can be hurt for the beam's tick alone: what the inert guardian leaves of it is 8 to 10.
+                // She can be hurt for the beam's tick alone: what the inert guardian leaves of it, 42 over her party of
+                // one counted as two.
                 alice.commandReply("god off") { it.startsWith("You can be hurt") }
                 alice.commandReply("heal") { it.startsWith("Healed") }
                 alice.stepTicks(1)
@@ -907,7 +908,8 @@ class HeadlessArchiveGuardianTest {
                 assertEquals(ArchiveGuardian.STATUE_SPLATS[1], ArchiveGuardian.statueSplat(boss.scaledFor))
                 assertEquals(0, ne.hitpoints)
                 val left = fight.lines.firstNotNullOf { BEAM_HIT.find(it)?.groupValues?.get(1)?.toInt() }
-                assertTrue(left in ArchiveGuardian.BEAM_BLOCKED_MIN..ArchiveGuardian.BEAM_BLOCKED_MAX, "the beam left $left for her")
+                assertEquals(ArchiveGuardian.blockedHit(boss.scaledFor), left, "the beam left $left for her")
+                assertEquals(21, left)
                 assertTrue(player.hitpoints <= 99 - left, "${player.hitpoints} hitpoints after $left")
                 assertEquals(550, boss.hitpoints, "its shield whole till the charge reaches it")
 
@@ -945,13 +947,12 @@ class HeadlessArchiveGuardianTest {
     }
 
     @Test
-    fun `down for the last time, a beam's inert guardian takes a tenth of its hitpoints, but never into kill range`(@TempDir dir: Path) {
+    fun `down for the last time, a beam's inert guardian still takes it, but nothing comes off the Guardian`(@TempDir dir: Path) {
         server(dir, batteries = true, vines = false).use { server ->
             server.login("alice").use { alice ->
                 alice.await("the login rebuild") { alice.position }
                 alice.commandReply("god on") { it.startsWith("You can't be hurt") }
-                // Auto retaliate off: on the ground it can be punched, and she would walk up and punch back at its beam. A
-                // punch that lands leaves less than 10 for the second charge to take (seen once in CI, 2026-11-10).
+                // Auto retaliate off: on the ground it can be punched, and she would walk up and punch back at its beam.
                 alice.command("varp ${EquipmentTab.VARP_AUTO_RETALIATE_OFF} 1")
                 alice.await("auto retaliate off") { if (alice.varp(EquipmentTab.VARP_AUTO_RETALIATE_OFF) == 1) Unit else null }
                 alice.tele(3222, 3218)
@@ -959,28 +960,17 @@ class HeadlessArchiveGuardianTest {
                 alice.commandReply("raid guardian phase=final") { it.startsWith("Started") }
                 val fight = server.world.encounters.all.single()
                 val boss = fight.boss
-                val (nw, ne) = fight.adds.filter { it.spawn.type.id == ArchiveGuardian.BATTERY_INACTIVE }
+                val (_, ne) = fight.adds.filter { it.spawn.type.id == ArchiveGuardian.BATTERY_INACTIVE }
                 assertEquals(ArchiveGuardian.BATTERY_INACTIVE, ne.type.id, "asleep while it is down, but there for the beam")
-                val most = boss.maxHitpoints
                 assertEquals(330, boss.hitpoints, "30% of a party of one's 1,100")
                 // From its middle, 3224,3220, through her at 3228,3221 the line crosses 3232,3222: the north-east one.
                 alice.command("tele 3228 3221 0")
                 alice.stepTicks(ArchiveGuardian.BEAM_EVERY + ArchiveGuardian.BEAM_TRAVEL + ArchiveGuardian.BEAM_CHARGE_DELAY)
                 assertTrue(fight.lines.any { it.endsWith("final: beam spends the inert guardian at 3232,3221") }, fight.lines.joinToString("\n"))
                 assertEquals(ArchiveGuardian.BATTERY_SPENT, ne.type.id)
-                assertTrue(fight.lines.any { it.endsWith("final: the spent inert guardian's charge: Guardian takes ${most * ArchiveGuardian.BATTERY_BEAM_PERCENT / 100}") }, fight.lines.joinToString("\n"))
-
-                // Near kill range (10%, 110), the next one takes it only down to there: 120 left, 10 taken.
-                alice.commandReply("npchp 120 ${boss.index}") { it.contains("hitpoints") }
-                // Through her at 3220,3221 the line crosses 3216,3222: the north-west one.
-                alice.command("tele 3220 3221 0")
-                alice.stepTicks(ArchiveGuardian.BEAM_EVERY)
-                assertTrue(fight.lines.any { it.endsWith("final: beam spends the inert guardian at 3215,3221") }, fight.lines.joinToString("\n"))
-                // A hitpoint may have come back to it on the way (its regeneration): then 11 taken, to the same floor.
-                assertTrue(fight.lines.any { it.endsWith("charge: Guardian takes 10") || it.endsWith("charge: Guardian takes 11") }, fight.lines.joinToString("\n"))
-                assertTrue(boss.hitpoints - most * ArchiveGuardian.KILL_RANGE_PERCENT / 100 in 0..1, "${boss.hitpoints} left")
-                assertEquals(ArchiveGuardian.BATTERY_SPENT, nw.type.id)
-                assertEquals(Coord(3220, 3221, 0), alice.position, "she stood where she was put, not punching back")
+                assertTrue(fight.lines.any { it.endsWith("final: the spent inert guardian's charge: nothing off the Guardian, down for the last time") }, fight.lines.joinToString("\n"))
+                // Its hitpoints as they were, or a point or two back by its regeneration.
+                assertTrue(boss.hitpoints >= 330, "${boss.hitpoints} left")
                 alice.commandReply("resume") { it.isNotEmpty() }
             }
         }
