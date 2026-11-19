@@ -1,0 +1,12 @@
+{
+  "about": "South of the South-east Varrock mine's star site with 99 Mining and a rune pickaxe, for shooting stars.",
+  "notes": "::star land varrock_south_east_mine 9 lands a size-9 star on the site just north (3290, 3353); ::star lists the star and the next landing, ::star sites the others, ::star layer ends a layer. A charged amulet of glory is worn (the gem table's extra roll); take it off to compare. The loadout is ours.",
+  "position": { "x": 3290, "z": 3351, "level": 0 },
+  "skills": { "mining": 99 },
+  "inventory": [
+    { "item": "rune_pickaxe" }
+  ],
+  "equipment": [
+    { "item": "amulet_of_glory_4" }
+  ]
+}

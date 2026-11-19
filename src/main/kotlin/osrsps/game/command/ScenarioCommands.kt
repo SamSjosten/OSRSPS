@@ -9,6 +9,7 @@ import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.bank.setVarbitIfKnown
 import osrsps.game.combat.Teleblock
+import osrsps.game.tzhaar.FightCaveWaves
 
 /**
  * Jump into a testing scenario and back out. `::scenario name` remembers the player as they were the first time, so a
@@ -168,6 +169,24 @@ private fun start(world: World, player: Player, scenario: Scenario) {
     world.prayers.deactivateAll(player)
     world.teleport(player, scenario.x, scenario.z, scenario.level)
     player.scenario = scenario.name
+    scenario.minigame?.let { startMinigame(world, player, scenario, it) }
+}
+
+/** Puts [player] in [scenario]'s minigame; the rest of the scenario stands if it can't start. */
+private fun startMinigame(world: World, player: Player, scenario: Scenario, minigame: Scenario.ScenarioMinigame) {
+    when (minigame.name) {
+        Scenario.ScenarioMinigame.FIGHT_CAVE -> {
+            val wave = minigame.wave.takeIf { it in 1..FightCaveWaves.WAVES } ?: refuse("Scenario ${scenario.name}: the fight cave has no wave ${minigame.wave}")
+            val rotation = minigame.rotation ?: world.fightCaves.randomRotation()
+            if (rotation !in 1..FightCaveWaves.ROTATIONS) refuse("Scenario ${scenario.name}: the fight cave has no rotation $rotation")
+            if (!world.fightCaves.start(player, wave, rotation)) refuse("Scenario ${scenario.name}: no room for another fight cave")
+        }
+        Scenario.ScenarioMinigame.INFERNO -> {
+            val wave = minigame.wave.takeIf { it in 1..osrsps.game.tzhaar.InfernoWaves.WAVES } ?: refuse("Scenario ${scenario.name}: the Inferno has no wave ${minigame.wave}")
+            world.inferno.sacrifice(player)
+            if (!world.inferno.start(player, wave, fresh = true)) refuse("Scenario ${scenario.name}: no room for another Inferno")
+        }
+    }
 }
 
 /**

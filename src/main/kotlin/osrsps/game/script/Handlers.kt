@@ -36,6 +36,12 @@ enum class OpTarget {
 
     /** An inventory item used on another player, by the item's obj type id, its slot in [Op.sub], the player in [Op.player]. */
     OBJ_ON_PLAYER,
+
+    /**
+     * A spell cast on an inventory item (alchemy, Superheat Item), by the spell's packed magic tab component ([Op.button]),
+     * with the item in [Op.obj] and its slot in [Op.sub].
+     */
+    SPELL_ON_OBJ,
 }
 
 /**
@@ -45,7 +51,8 @@ enum class OpTarget {
  * on the ground, for [OpTarget.GROUND_OBJ]; [npc] the NPC, for an NPC op or an item used on an NPC. For an item used
  * on an NPC or a loc, [obj] is the item and [sub] its inventory slot. For an item used on another, [obj] and [objSlot]
  * are the one used and [id] and [sub] the one it was used on. For an item used on a player, [id] and [obj] are the item,
- * [sub] its slot and [player] the player it was used on. [repeat] is true when a handler re-ran its own op (RS2's
+ * [sub] its slot and [player] the player it was used on. For a spell cast on an item, [id] is the spell's packed
+ * component, [obj] the item and [sub] its slot. [repeat] is true when a handler re-ran its own op (RS2's
  * `p_oploc`, see [osrsps.game.World.repeatOp]) rather than the player clicking.
  */
 data class Op(
@@ -70,6 +77,7 @@ data class Op(
         OpTarget.OBJ_ON_OBJ -> "obj $obj on obj $id"
         OpTarget.OBJ_ON_LOC -> "obj $obj on loc $id"
         OpTarget.OBJ_ON_PLAYER -> "obj $obj on player ${player?.username}"
+        OpTarget.SPELL_ON_OBJ -> "spell $interfaceId:$componentId on obj $obj"
         else -> "${target.name.lowercase()} $id op $option"
     }
 
@@ -88,6 +96,10 @@ data class Op(
 
         /** Item [obj] from inventory slot [slot] used on [player]. */
         fun objOnPlayer(obj: Int, slot: Int, player: Player) = Op(OpTarget.OBJ_ON_PLAYER, obj, 1, slot, obj = obj, player = player)
+
+        /** The spell on [interfaceId]:[componentId] cast on item [obj] in inventory slot [slot]. */
+        fun spellOnObj(interfaceId: Int, componentId: Int, obj: Int, slot: Int) =
+            Op(OpTarget.SPELL_ON_OBJ, packButton(interfaceId, componentId), 1, slot, obj = obj)
 
         fun packButton(interfaceId: Int, componentId: Int): Int {
             require(interfaceId in 0..0xFFFF && componentId in 0..0xFFFF) { "Bad component $interfaceId:$componentId" }
@@ -168,9 +180,16 @@ class Handlers {
         handlers[key] = handler
     }
 
+    /** The spell on magic tab component [interfaceId]:[componentId] cast on any inventory item. */
+    fun onSpellOnObj(interfaceId: Int, componentId: Int, handler: Handler) {
+        val key = Key(OpTarget.SPELL_ON_OBJ, Op.packButton(interfaceId, componentId), 1)
+        require(key !in handlers) { "spell $interfaceId:$componentId on an item already has a handler" }
+        handlers[key] = handler
+    }
+
     fun register(target: OpTarget, id: Int, option: Int, handler: Handler) {
-        require(target != OpTarget.OBJ_ON_NPC && target != OpTarget.OBJ_ON_OBJ && target != OpTarget.OBJ_ON_LOC && target != OpTarget.OBJ_ON_PLAYER) {
-            "Register items used on things with onObjOnNpc, onObjOnObj, onObjOnLoc or onObjOnPlayer"
+        require(target != OpTarget.OBJ_ON_NPC && target != OpTarget.OBJ_ON_OBJ && target != OpTarget.OBJ_ON_LOC && target != OpTarget.OBJ_ON_PLAYER && target != OpTarget.SPELL_ON_OBJ) {
+            "Register items used on things with onObjOnNpc, onObjOnObj, onObjOnLoc or onObjOnPlayer, and spells on items with onSpellOnObj"
         }
         val maxOption = when (target) {
             OpTarget.BUTTON -> MAX_BUTTON_OPTION

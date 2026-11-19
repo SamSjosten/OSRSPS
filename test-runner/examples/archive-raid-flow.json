@@ -341,6 +341,11 @@
    "comment": "raid step 29b: Search on the Rift one's own chest leaves, which the client sees as tfa_rewards_chest_vault_open_mine (16735)"
   },
   {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "Search's own turn: the window that opened by itself closes as the player acts on the Rift and opens again with Search, so a click before then lands on a shut window"
+  },
+  {
    "step": "assertInterface",
    "interfaceId": 973,
    "comment": "tfa_chests, the chest's window over the loot (241 cache)"

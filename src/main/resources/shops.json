@@ -249,6 +249,44 @@
       ]
     },
     {
+      "key": "sheared_ram",
+      "title": "The Sheared Ram",
+      "inv": 1034,
+      "size": 3,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 0,
+      "changePer": 0,
+      "npcs": [
+        "ram_bartender"
+      ],
+      "refuses": [1917, 5763, 2142],
+      "source": "OSRS Wiki, Bartender (The Sheared Ram), read 2026-11-19: Trade added in the 3 November 2026 update, Sells at 100.0%, Buys at 0.0%, Change per 0.0%, beer and cider 2 coins and cooked meat 4, every item infinite stock, nothing bought back (refused, as Farming Supplies does); inv pub_lumbridge (1034, size 3) in the 242 cache. Guessed: 1000 in stock restocking every tick for the Wiki's infinite",
+      "stock": [
+        {
+          "item": 1917,
+          "name": "Beer",
+          "count": 1000,
+          "restock": 1,
+          "price": 2
+        },
+        {
+          "item": 5763,
+          "name": "Cider",
+          "count": 1000,
+          "restock": 1,
+          "price": 2
+        },
+        {
+          "item": 2142,
+          "name": "Cooked meat",
+          "count": 1000,
+          "restock": 1,
+          "price": 4
+        }
+      ]
+    },
+    {
       "key": "draynor_wine_shop",
       "title": "Fortunato's Fine Wine",
       "inv": 384,
@@ -2583,6 +2621,47 @@
       ]
     },
     {
+      "key": "dusuris_star_shop",
+      "title": "Dusuri's Star Shop",
+      "inv": 1016,
+      "size": 40,
+      "general": false,
+      "sellAt": 1000,
+      "buyAt": 800,
+      "changePer": 0,
+      "currency": 25527,
+      "npcs": [
+        "star_trader_2op"
+      ],
+      "source": "OSRS Wiki, Dusuri's Star Shop and Dusuri, read 2026-11-19: paid in stardust, Sells at 100.0%, Buys at 80.0%, no change with stock, and the stock table (50 celestial rings and star fragments, 100 bags full of gems, 1000 soft clay packs, one back a tick). The items' values are their prices in stardust (Celestial ring 2000, and so on). Guessed: the inv, dmm_all_star_warriors_shop (1016, size 40), as the cache names no inv for Dusuri",
+      "stock": [
+        {
+          "item": 25539,
+          "name": "Celestial ring (uncharged)",
+          "count": 50,
+          "restock": 1
+        },
+        {
+          "item": 25547,
+          "name": "Star fragment",
+          "count": 50,
+          "restock": 1
+        },
+        {
+          "item": 25537,
+          "name": "Bag full of gems",
+          "count": 100,
+          "restock": 1
+        },
+        {
+          "item": 25533,
+          "name": "Soft clay pack",
+          "count": 1000,
+          "restock": 1
+        }
+      ]
+    },
+    {
       "key": "graces_graceful_clothing",
       "title": "Grace's Graceful Clothing",
       "inv": 279,
@@ -2592,6 +2671,7 @@
       "buyAt": 800,
       "changePer": 0,
       "currency": 11849,
+      "collectionLog": true,
       "npcs": [
         "rooftops_grace"
       ],

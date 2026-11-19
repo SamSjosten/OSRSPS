@@ -123,21 +123,10 @@
    "contains": "[ava_devices.level level=70 device=Ava's assembler]"
   },
   {
-   "step": "walk",
-   "x": 3093,
-   "y": 3358,
-   "comment": "walking closes the devices screen before a command is typed: with it open, nightly 2026-11-17 and -18: the client stalled on Enter at this command both nights"
-  },
-  {
-   "step": "assertInterface",
-   "interfaceId": 67,
-   "absent": true
-  },
-  {
    "step": "command",
    "text": "::tele 3093 3358 0",
    "expectMessage": "Teleported to 3093, 3358, 0",
-   "comment": "closes the screen"
+   "comment": "closes the screen. Nightly 2026-11-17 and -18 stalled on Enter here, with the screen open. A walk can't close it first, because the click lands on the screen (rerun 2026-11-18), and its close button isn't known"
   },
   {
    "step": "npcOption",

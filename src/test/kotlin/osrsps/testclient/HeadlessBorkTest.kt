@@ -473,8 +473,8 @@ class HeadlessBorkTest {
                     assertTrue(volleys.size in 2..3, volleys.toString())
                     assertTrue(volleys.all { it.endsWith(" at alice, bob") }, volleys.toString())
                     assertEquals(volleys.indices.map { tickOf(frenzy) + Bork.FRENZY_SPACING * it }, volleys.map(::tickOf))
-                    // The Smorks dead too: their tower bursts 2 ticks on and is gone at 9, when the room is done (tsps;
-                    // Sam's recording of 2026-11-09 has "Challenge complete" 9 ticks after their bar empties).
+                    // The Smorks dead too: their tower bursts 2 ticks on and is gone at 9 (tsps), and the room is done a
+                    // tick later, 10 after they fall (Sam's recordings of 2026-11-09 and 2026-11-16, see Bork.DONE_AFTER_GONE).
                     val fight = assertNotNull(run.fights[ArchiveRoom.BORK])
                     alice.commandReply("hit 600 ${theSmorks.index}") { it.startsWith("Hit ") }
                     alice.await("their room done") { ArchiveRoom.BORK.takeIf { it in run.cleared } }
@@ -482,6 +482,7 @@ class HeadlessBorkTest {
                     val fell = tickOf(log.last { it.endsWith("fight: the Smorks down") })
                     assertEquals(Bork.SMORKS_BURST.toLong(), tickOf(log.last { it.endsWith("fight: the tower bursts") }) - fell, log.toString())
                     assertEquals(9L, tickOf(log.last { it.endsWith("fight: both gone") }) - fell, log.toString())
+                    assertEquals(10L, tickOf(log.last { it.endsWith("fight: room done") }) - fell, log.toString())
                 }
             }
         }

@@ -62,6 +62,9 @@ enum class GameFrame(
         const val SIDE_TAB_WORN = 4
         const val SIDE_TAB_PRAYER = 5
 
+        /** The magic tab, the next stone after prayer (inferred from the script's numbering). */
+        const val SIDE_TAB_MAGIC = 6
+
         /** Varbit resizable_stone_arrangement (4607) is bit 8 of this varp in the 241 cache. */
         const val STONE_ARRANGEMENT_VARP = 1055
         const val STONE_ARRANGEMENT_BIT = 8
@@ -177,6 +180,7 @@ enum class FrameSlot(val fixed: Int, val classic: Int, val modern: Int) {
     HELPER_CONTENT(39, 12, 12),
     HPBAR_HUD(28, 2, 2),
     POPOUT(3, 35, 67),
+    NOTIFICATIONS(44, 13, 13),
     TLI_LISTENER(4, 36, 68),
     ;
 

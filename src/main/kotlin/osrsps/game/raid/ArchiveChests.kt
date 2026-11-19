@@ -109,11 +109,14 @@ class ArchiveChests(private val world: World, private val raids: ArchiveRaids) {
         }
         for ((slot, member) in paid) {
             try {
+                // Logged as the loot is theirs rather than when their chest opens, so one who leaves the vault first misses
+                // nothing. Inferred: the Wiki doesn't say when a raid's loot is logged.
+                for (drop in result.chests[member.saveKey].orEmpty()) world.collectionLog.add(member, drop.type.id, drop.count)
                 placeChest(run, slot, open = false)
                 showOwn(run, member)
                 world.archiveChestWindow.showClaimable(member)
             } catch (e: Exception) {
-                logger.error(e) { "$run: chest ${slot + 1} of the reward vault, ${member.username}'s, wasn't shown; their loot waits all the same" }
+                logger.error(e) { "$run: chest ${slot + 1} of the reward vault, ${member.username}'s, wasn't shown or logged; their loot waits all the same" }
             }
         }
         logger.info { "$run paid ${members.joinToString { "${it.key} (${it.contribution})" }} as a party of $size; unique: ${result.unique ?: "none"}" }
@@ -207,7 +210,9 @@ class ArchiveChests(private val world: World, private val raids: ArchiveRaids) {
         val key = run.chestSlots.entries.firstOrNull { it.value == slot }?.key ?: return
         val player = world.onlinePlayers.firstOrNull { it.saveKey == key } ?: return
         if (player.dead || raids.at(player.x, player.z) !== run || !raids.inRewardRoom(run, player.x, player.z)) return
-        world.archiveChestWindow.open(player)
+        // Something already open (the window by Search, a question, a count) stays: the window would shut it
+        // (exploit review R42C-3). Guessed.
+        if (!player.modalOpen && !player.scripts.waitingForCount) world.archiveChestWindow.open(player)
         for (drop in run.loot?.chests?.get(key).orEmpty()) world.lootNotifications.dropped(player, drop.type, drop.count)
     }
 

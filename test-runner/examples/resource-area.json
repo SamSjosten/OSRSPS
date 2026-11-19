@@ -28,7 +28,6 @@
     {"step": "locOption", "locId": 26760, "option": "Open", "x": 3184, "y": 3944},
     {"step": "assertLocation", "x": 3184, "y": 3945, "plane": 0, "timeoutMs": 10000, "comment": "out for nothing"},
 
-    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."},
     {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
   ]
 }

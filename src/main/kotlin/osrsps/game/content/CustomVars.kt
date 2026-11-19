@@ -61,22 +61,36 @@ class CustomVars(
     val lairVisitVarp: Int = firstVarp + 3
 
     /**
+     * The TzHaar Fight Cave run the player is part way through, for a logout or a lost connection to come back to
+     * ([osrsps.game.tzhaar.FightCaves.State]): the wave to start at their next login and the rotation, 0 for none. Live
+     * keeps this somewhere we haven't found; ours is guessed.
+     */
+    val fightCaveVarp: Int = firstVarp + 4
+
+    /**
+     * The Inferno run the player is part way through, for a logout or a lost connection to come back to
+     * ([osrsps.game.tzhaar.Inferno]): the wave to start at their next login, 0 for none. Live keeps this somewhere we
+     * haven't found; ours is guessed.
+     */
+    val infernoVarp: Int = firstVarp + 5
+
+    /**
      * Luthas's banana crate: the bananas in it (bits 0 to 3, 0 to [MusaPoint.CRATE_SIZE]) and whether the player took his
      * job (bit 4) ([MusaPoint]). Live keeps this somewhere we haven't found; ours is guessed.
      */
-    val bananaCrateVarp: Int = firstVarp + 4
+    val bananaCrateVarp: Int = firstVarp + 6
 
     /** Every varbit of ours, by id. */
     val varbits: Map<Int, VarbitType> = Lodestones.SITES.associate { lodestoneVarbit(it) to VarbitType(lodestonesVarp, it.index, it.index) } +
         (lodestonePreviousVarbit to VarbitType(lodestonesVarp, Lodestones.PREVIOUS_LOW_BIT, Lodestones.PREVIOUS_HIGH_BIT))
 
     /** Every varp of ours. */
-    val varps: List<Int> = listOf(lodestonesVarp, harlanClaimVarp, giantLairsVarp, lairVisitVarp, bananaCrateVarp)
+    val varps: List<Int> = listOf(lodestonesVarp, harlanClaimVarp, giantLairsVarp, lairVisitVarp, fightCaveVarp, infernoVarp, bananaCrateVarp)
 
-    /** The varps by name, for `::varp name`: [LODESTONES], [HARLAN_CLAIMED], [GIANT_LAIRS], [LAIR_VISIT] and [BANANA_CRATE]. */
+    /** The varps by name, for `::varp name`: [LODESTONES], [HARLAN_CLAIMED], [GIANT_LAIRS], [LAIR_VISIT], [FIGHT_CAVE], [INFERNO] and [BANANA_CRATE]. */
     val varpNames: Map<String, Int> = mapOf(
         LODESTONES to lodestonesVarp, HARLAN_CLAIMED to harlanClaimVarp, GIANT_LAIRS to giantLairsVarp, LAIR_VISIT to lairVisitVarp,
-        BANANA_CRATE to bananaCrateVarp,
+        FIGHT_CAVE to fightCaveVarp, INFERNO to infernoVarp, BANANA_CRATE to bananaCrateVarp,
     )
 
     /** The varbits by name, for `::varbit name`: each site's line key (`lodestone.lumbridge`, `lodestone.al_kharid`) and [LODESTONE_PREVIOUS]. */
@@ -112,6 +126,12 @@ class CustomVars(
 
         /** The Wilderness lairs' visit varp's name. */
         const val LAIR_VISIT = "wilderness_lair_visit"
+
+        /** The Fight Cave run's varp's name. */
+        const val FIGHT_CAVE = "fight_cave"
+
+        /** The Inferno run's varp's name. */
+        const val INFERNO = "inferno"
 
         /** Luthas's banana crate's varp's name. */
         const val BANANA_CRATE = "banana_crate"

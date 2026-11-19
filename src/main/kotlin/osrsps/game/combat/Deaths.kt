@@ -31,8 +31,9 @@ private val logger = KotlinLogging.logger {}
  * [graveLevel]), when not at the spawn and on the tile they died on: a death in an instance, whose tile they can't get
  * back to, or in a raid. With [keepItems] they lose nothing: a raid death while the party still stands. [coord] is where
  * the grave counts as made, for its fee ([GraveFees]): a raid's death counts where it was in the cache's map, not in
- * the run's copy of it; -1 for where they fell. A [safe] death, as in a player-owned house, keeps everything and costs
- * no Hardcore status either.
+ * the run's copy of it; -1 for where they fell. A [safe] death keeps everything and costs no Hardcore status: a
+ * player-owned house's, or a safe minigame's (the Fight Cave; the Wiki's Ironman Mode, Hardcore Ironman: "Safe deaths,
+ * such as those in minigames, will not cause the player to become a standard Ironman").
  */
 data class DeathPlace(
     val keepItems: Boolean,
@@ -265,6 +266,9 @@ class Deaths(
         player.pvpDamage.clear()
         val forKiller = ArrayList<InvObj>()
         val buried = if (killer == null) lost + charges else toKiller(player, lost + charges, forKiller)
+        // Guessed: fragments lost with their obj are gone, not put in the grave as anything. Checked after toKiller,
+        // which can hand a deep-Wilderness death's fragments obj back to the backpack (exploit review round 42, R42A-1).
+        if (lostLast(player, lost, setOf(ArceuusRunecraft.FRAGMENTS))) player.charges[ArceuusRunecraft.FRAGMENT_CHARGES] = 0
         if (killer != null) {
             val fee = forfeit(player)
             if (fee > 0) forKiller += InvObj(COINS, fee)
@@ -390,8 +394,6 @@ class Deaths(
             if (left > 0) for (cost in staff.runesPerCharge) charges += InvObj(cost.rune, cost.count * left)
             player.charges[staff.charge] = 0
         }
-        // Guessed: fragments lost with their obj are gone, not put in the grave as anything.
-        if (lostLast(player, lost, setOf(ArceuusRunecraft.FRAGMENTS))) player.charges[ArceuusRunecraft.FRAGMENT_CHARGES] = 0
         return charges
     }
 

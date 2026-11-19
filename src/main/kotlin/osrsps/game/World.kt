@@ -40,6 +40,8 @@ import osrsps.game.command.registerDevCommands
 import osrsps.game.command.registerEffectCommands
 import osrsps.game.command.registerGroundObjCommands
 import osrsps.game.command.registerInstanceCommands
+import osrsps.game.command.registerTzHaarCommands
+import osrsps.game.command.registerCollectionLogCommands
 import osrsps.game.command.registerPartyCommands
 import osrsps.game.command.registerRaidCommands
 import osrsps.game.command.registerIpCommands
@@ -50,6 +52,7 @@ import osrsps.game.command.registerNpcCommands
 import osrsps.game.command.registerScenarioCommands
 import osrsps.game.command.registerScriptCommands
 import osrsps.game.command.registerSeedCommands
+import osrsps.game.command.registerShootingStarCommands
 import osrsps.game.command.registerSkillCommands
 import osrsps.game.command.registerSocialCommands
 import osrsps.game.command.registerLodestoneCommands
@@ -118,6 +121,7 @@ import osrsps.game.content.registerHamHideout
 import osrsps.game.content.registerHamStorerooms
 import osrsps.game.content.registerFarmsRoads
 import osrsps.game.content.registerLumberYard
+import osrsps.game.content.registerClanHub
 import osrsps.game.content.registerRaidTester
 import osrsps.game.content.registerTolnasRift
 import osrsps.game.content.registerDigsite
@@ -163,7 +167,9 @@ import osrsps.game.content.registerChaosFanatic
 import osrsps.game.content.registerScorpia
 import osrsps.game.content.registerChaosElemental
 import osrsps.game.content.registerArtio
+import osrsps.game.content.registerCalvarion
 import osrsps.game.content.registerKingBlackDragon
+import osrsps.game.tzhaar.FightCaves
 import osrsps.game.content.MemberGates
 import osrsps.game.content.registerFeroxEnclave
 import osrsps.game.content.registerKaramjaShips
@@ -254,6 +260,7 @@ import osrsps.game.skill.FletchingData
 import osrsps.game.skill.Herblore
 import osrsps.game.skill.HerbloreData
 import osrsps.game.skill.Mining
+import osrsps.game.skill.ShootingStars
 import osrsps.game.skill.Pickpocketing
 import osrsps.game.skill.Agility
 import osrsps.game.skill.AgilityData
@@ -375,6 +382,8 @@ class World(
     val omnishops: Omnishops = Omnishops.NONE,
     /** The cache's Grand Exchange item sets; tests that use them pass their own. */
     val itemSets: osrsps.game.ge.ItemSets = osrsps.game.ge.ItemSets.NONE,
+    /** The cache's collection log tabs, pages and items; tests that log items pass their own. */
+    collectionLogCatalog: osrsps.game.collection.CollectionLogCatalog = osrsps.game.collection.CollectionLogCatalog.NONE,
     /** The levels whose level-up plays a skill's unlock jingle; see [LevelUps]. */
     skillUnlocks: SkillUnlocks = SkillUnlocks.NONE,
     /** The levels needed to wear items; tests that check levels pass their own. */
@@ -397,6 +406,8 @@ class World(
     agilityData: AgilityData = AgilityData.load(),
     /** Slayer's tasks, masters and rewards, from the cache ([osrsps.cache.SlayerLoader]); tests that slay pass their own. */
     slayerData: SlayerData = SlayerData.NONE,
+    /** Whether shooting stars land on their own ([ShootingStars]); tests land theirs with `::star land`. */
+    starCycle: Boolean = false,
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
 ) : GameConnectionHandler<Player> {
@@ -434,6 +445,10 @@ class World(
     /** The Fractured Archive's runs; see [ArchiveRaids]. */
     val archiveRaids = ArchiveRaids(this)
 
+    /** The TzHaar Fight Cave; see [FightCaves]. */
+    val fightCaves = FightCaves(this)
+    val inferno = osrsps.game.tzhaar.Inferno(this)
+
     /** Boss fights in progress; see [Encounters]. */
     val encounters = Encounters(this, encounterDefs)
 
@@ -450,6 +465,9 @@ class World(
 
     /** The giant bosses' lairs ([GiantLairs]): Obor's. */
     val giantLairs = GiantLairs(this)
+
+    /** Scurrius's lairs, public and private ([osrsps.game.content.ScurriusLairs]). */
+    val scurriusLairs = osrsps.game.content.ScurriusLairs(this)
 
     /** The Wilderness bosses' shared rules: group loot, kill counts, `::wboss`; see [WildernessBosses]. */
     val wildernessBosses = osrsps.game.content.WildernessBosses(this)
@@ -539,7 +557,7 @@ class World(
     private val worldMap = WorldMapScreen(interfaces)
 
     /** Grand Exchange offers; see [GrandExchange]. */
-    val grandExchange = GrandExchange(objTypes, { this.itemPrices }, { tick }, taxExempt = GrandExchange.taxExempt(objTypes))
+    val grandExchange = GrandExchange(objTypes, { this.itemPrices }, { tick }, taxExempt = GrandExchange.taxExempt(objTypes)).also { it.npcSells(shopTypes) }
 
     /** The Grand Exchange's offers screen; see [GrandExchangeScreen]. */
     val grandExchangeScreen = GrandExchangeScreen(
@@ -585,7 +603,7 @@ class World(
     )
 
     /** Puts [count] of [id] into [player]'s bank as a deposit would, a note as its item; returns how many went in. */
-    private fun bankItems(player: Player, id: Int, count: Int): Int {
+    internal fun bankItems(player: Player, id: Int, count: Int): Int {
         val from = Inventory(-1, 1)
         from[0] = InvObj(id, count)
         return when (val deposit = bank.deposit(player.bank, bankScreen.tabs(player), from, 0, count)) {
@@ -596,7 +614,10 @@ class World(
     }
 
     /** Shops and their shared stock; see [ShopScreen]. */
-    val shopScreen = ShopScreen(shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine, words = ::textFor)
+    val shopScreen = ShopScreen(
+        shopTypes, objTypes, interfaces::openModal, examine = inventoryTab::examine, words = ::textFor,
+        logged = { player, type -> collectionLog.add(player, type.id, 1) },
+    )
 
     /** The omnishop interface's shops, as the Quartermaster's Alliance Supplies; see [OmnishopScreen]. */
     val omnishopScreen = OmnishopScreen(
@@ -617,7 +638,12 @@ class World(
 
     private val locInteractions = LocInteractions(
         locs, collision, movement, handlers, scripts, doors, gates, words = ::textFor, inInstance = { x, z -> instances.at(x, z) != null },
-        forInstances = { it in ArchiveRaids.INSTANCE_LOCS || it in GiantLairs.INSTANCE_LOCS || it in KingBlackDragon.INSTANCE_LOCS || it in osrsps.game.skill.construction.House.INSTANCE_LOCS },
+        forInstances = {
+            it in ArchiveRaids.INSTANCE_LOCS || it in GiantLairs.INSTANCE_LOCS || it in KingBlackDragon.INSTANCE_LOCS ||
+                it in osrsps.game.skill.construction.House.INSTANCE_LOCS || it in FightCaves.INSTANCE_LOCS ||
+                it in osrsps.game.content.Scurrius.INSTANCE_LOCS ||
+                it in osrsps.game.tzhaar.Inferno.INSTANCE_LOCS
+        },
     )
 
     /** Lets loc type [id] be used from the tiles [tiles] gives, as a stepping stone from the bank; see [LocInteractions.useFrom]. */
@@ -641,7 +667,13 @@ class World(
         onDeath = { deaths.die(it) },
         loot = ::dropLoot,
         ranged = { player, npc -> magicCombat.fight(player, npc) ?: rangedCombat.fight(player, npc) },
-        multi = multiCombat, protects = prayers::protects, hasPrayer = prayers::has, prayersOff = prayers::deactivateAll,
+        multi = multiCombat, sameFight = { a, b -> encounters.sameFight(a, b) }, protects = prayers::protects,
+        // A shot from an instance lands only in it: its copy of the map may already be gone, so an NPC on a dynamic tile
+        // needs the player in an instance holding its tile.
+        shotLands = { npc, player ->
+            !instances.inDynamicArea(npc.x, npc.z) || instances.at(player.x, player.z)?.contains(npc.x, npc.z) == true
+        },
+        hasPrayer = prayers::has, prayersOff = prayers::deactivateAll,
         words = ::textFor,
         npcDied = { npcScripts.died(it) },
         npcKilled = { npc, killer -> slayer.killed(npc, killer) },
@@ -739,12 +771,17 @@ class World(
     /**
      * Where a player dying here comes back and their grave goes: a raid's say ([ArchiveRaids.deathPlace]); in any other
      * instance the grave goes to its exit, since nobody could get back in to it (exploit review round 9, INST-1), and
-     * they come back at the spawn; elsewhere, null: the spawn, and the grave where they fell.
+     * they come back at the spawn, except a private King Black Dragon lair's, whose grave goes in the open lair
+     * ([KingBlackDragon.graveTile]); elsewhere, null: the spawn, and the grave where they fell.
      */
     private fun deathPlace(player: Player): DeathPlace? {
         archiveRaids.deathPlace(player)?.let { return it }
+        fightCaves.deathPlace(player)?.let { return it }
         houses.deathPlace(player)?.let { return it }
+        scurriusLairs.deathPlace(player)?.let { return it }
+        inferno.deathPlace(player)?.let { return it }
         val instance = instances.at(player.x, player.z) ?: return null
+        KingBlackDragon.graveTile(this, player.x, player.z)?.let { return DeathPlace(keepItems = false, it.x, it.z, 0, SPAWN_X, SPAWN_Z, SPAWN_LEVEL) }
         return DeathPlace(keepItems = false, instance.exitX, instance.exitZ, instance.exitLevel, SPAWN_X, SPAWN_Z, SPAWN_LEVEL)
     }
 
@@ -838,6 +875,22 @@ class World(
             }
         },
         askAmount = { player, prompt, typed -> scripts.start(player) { typed(countDialog(prompt)) } },
+        recolour = osrsps.game.content.ClanHub::recolour,
+        pickMotif = { player, current, picked ->
+            // clan_outfit draws from clan_editing_0, so it goes first, sent now rather than with the tick's varps.
+            if (Clans.VARP_EDITING_MOTIF < player.vars.types.varpCount) {
+                player.vars[Clans.VARP_EDITING_MOTIF] = current
+                interfaces.sendVarpNow(player, Clans.VARP_EDITING_MOTIF)
+            }
+            interfaces.openInside(player, Clans.INFO, Clans.INFO_POPUP, Clans.OUTFIT)
+            interfaces.runClientScript(player, Clans.SCRIPT_OUTFIT, listOf(Clans.component(Clans.INFO, Clans.INFO_POPUP)))
+            scripts.start(player) {
+                // Save sends clan_editing_0 as it stands (script4432); Cancel sends 0 (script4208).
+                val answer = waitForCount()
+                if (Clans.INFO in player.modals.values) interfaces.closeInside(player, Clans.INFO, Clans.INFO_POPUP)
+                if (answer != 0 && answer != current) picked(answer)
+            }
+        },
         now = clansClock,
     )
 
@@ -891,6 +944,9 @@ class World(
     val hunter = osrsps.game.skill.hunter.Hunter(this, collision)
 
     val mining = Mining(this)
+
+    /** Shooting stars: the one star on the world, its landings and mining it; see [ShootingStars]. */
+    val shootingStars = ShootingStars(this, running = starCycle)
     val thieving = Thieving(this, collision)
     val manorHazards = ManorHazards(this)
     val swampCavesHazards = SwampCavesHazards(this)
@@ -925,6 +981,12 @@ class World(
 
     /** Enchant Crossbow Bolt; see [BoltEnchant]. */
     val boltEnchant = BoltEnchant(this, BoltEnchantData.load(objTypes))
+
+    /** What the spells cast on inventory items share; see [osrsps.game.skill.magic.ItemSpells]. */
+    val itemSpells = osrsps.game.skill.magic.ItemSpells(this)
+
+    /** Low and High Level Alchemy; see [osrsps.game.skill.magic.Alchemy]. */
+    val alchemy = osrsps.game.skill.magic.Alchemy(this, osrsps.game.skill.magic.Alchemy.load(objTypes))
 
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
@@ -982,9 +1044,12 @@ class World(
         registerFarmingCommands(this@World)
         registerSlayerCommands(this@World)
         registerSeedCommands(this@World)
+        registerShootingStarCommands(this@World)
         registerScriptCommands(this@World)
         registerZoneCommands(this@World, collision)
         registerInstanceCommands(this@World)
+        registerTzHaarCommands(this@World)
+        registerCollectionLogCommands(this@World)
         registerPartyCommands(this@World)
         registerRaidCommands(this@World)
         registerEffectCommands(this@World)
@@ -1037,6 +1102,7 @@ class World(
         registerMillLaneMill(this)
         registerBarfyBill(this)
         registerFatherUrhney(this)
+        osrsps.game.collection.TheCollector.register(this)
         registerAdventurersCamp(this)
         registerCandleSeller(this)
         registerSwampTutors(this)
@@ -1048,6 +1114,7 @@ class World(
         registerHamStorerooms(this)
         registerFarmsRoads(this)
         registerLumberYard(this)
+        registerClanHub(this)
         registerTolnasRift(this)
         registerSilvarea(this)
         registerPaterdomus(this)
@@ -1079,6 +1146,7 @@ class World(
         registerChaosElemental(this)
         registerKingBlackDragon(this)
         registerArtio(this)
+        registerCalvarion(this)
         FountainOfRune.register(this)
         registerFeroxEnclave(this)
         registerWildernessObelisks(this)
@@ -1093,12 +1161,17 @@ class World(
         registerArchiveLobby(this)
         registerRaidTester(this)
         archiveRaids.register()
+        // After the raid, which sets the multi-way check for instances rather than adding to it.
+        fightCaves.register()
+        inferno.register()
         // After the raid, which sets the combat's shut-out rule afresh; the lairs add theirs to it.
         registerObor(this, giantLairs)
         registerBryophyta(this, giantLairs)
+        osrsps.game.content.registerScurrius(this, scurriusLairs)
         registerEmotes(this)
         registerGiantBones(this)
         registerRoguesDen(this)
+        osrsps.game.content.registerDusuri(this)
         registerCrops(this)
         ducks.register()
         homeTeleport.register(handlers)
@@ -1116,6 +1189,7 @@ class World(
         hunter.register()
         LightSources.register(this)
         mining.register()
+        shootingStars.register()
         thieving.register()
         pickpocketing.register()
         agility.register()
@@ -1131,6 +1205,7 @@ class World(
         decanting.register()
         teleports.register()
         boltEnchant.register()
+        alchemy.register()
         runecraft.register()
         runeCrafting.register()
         combinationRunes.register()
@@ -1416,7 +1491,14 @@ class World(
         }
         // Once the executor has stopped this thread is the only one touching the players. Nobody is saved dead: a
         // death the stop cut short finishes now, grave and all (the grave is lost with the restart).
-        for (player in players) if (player?.dead == true) deaths.respawn(player)
+        for (player in players) {
+            if (player?.dead != true) continue
+            deaths.respawn(player)
+            // A Fight Cave death is paid and its run ended before the save, as a leaver's is (remove); TokKul that won't
+            // fit goes to the bank, as a ground drop wouldn't outlast the stop. The Inferno's the same.
+            fightCaves.leaving(player)
+            inferno.leaving(player)
+        }
         saveAll()
     }
 
@@ -1480,7 +1562,9 @@ class World(
         npcScripts.process()
         encounters.process()
         archiveRaids.process()
+        fightCaves.process()
         houses.process()
+        inferno.process()
         thieving.process()
         slayer.superiors.process()
         // Before NPCs move, so a creature a trap lures this tick takes its first step this tick.
@@ -1489,6 +1573,7 @@ class World(
         // After NPCs move, so a creature that steps onto a trap is rolled for the tick it arrives.
         hunter.arrivals()
         fishing.process()
+        shootingStars.process(tick)
         shopScreen.restock(tick)
         phase = TickPhase.SCRIPTS
         for (player in players) {
@@ -2237,6 +2322,9 @@ class World(
         quests.completeAll(player.vars)
         Kudos.login(player)
         lodestones.login(player)
+        fightCaves.login(player)
+        collectionLog.login(player)
+        inferno.login(player)
         prayers.login(player)
         cooking.wine.login(player)
         if (player.newAccount) allSettings.newAccount(player)
@@ -2664,6 +2752,7 @@ class World(
         if (grandExchangeScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (priceChecker.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (itemSetsScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
+        if (collectionLogWindow.click(player, interfaceId, componentId, sub, op)) return@act
         if (archiveChestWindow.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (interfaceId == EquipmentTab.WORNITEMS && componentId == PriceChecker.WORNITEMS_BUTTON) {
             priceChecker.open(player)
@@ -2788,6 +2877,8 @@ class World(
             // A delayed player (part way along an agility obstacle, say) can't log out, or they would be saved on a tile
             // the move only passes through (round 12 exploit review, R12B-1). Inferred from live's p_delay.
             if (player.scripts.delayed) return@act
+            // In a Fight Cave or Inferno wave the first click pauses the run at the wave's end instead.
+            if (fightCaves.logoutClicked(player) || inferno.logoutClicked(player)) return@act
             if (inCombat(player)) {
                 player.message(textFor(player)[GameLines.CANT_LOG_OUT])
                 return@act
@@ -2841,6 +2932,12 @@ class World(
             inventoryTab.use(player, fromSub, fromObj, toSub, toObj)
             return@act
         }
+        // A spell cast on an inventory item: the spell's slot and obj are -1, the item's are the target's.
+        if (interfaceId == Spells.SPELLBOOK && toInterfaceId == InventoryTab.INTERFACE && toComponentId == InventoryTab.ITEMS) {
+            if (held(player)) return@act
+            inventoryTab.castOn(player, interfaceId, componentId, toSub, toObj)
+            return@act
+        }
         logger.info { "${player.username} used $interfaceId:$componentId sub $fromSub on $toInterfaceId:$toComponentId sub $toSub (not handled)" }
     }
 
@@ -2886,6 +2983,45 @@ class World(
     /** The loot drop notification settings; see [LootNotifications]. */
     val lootNotifications = LootNotifications({ this.itemPrices.price(it) }, ::textFor)
 
+    /** The collection log's record of what each player has obtained; see [osrsps.game.collection.CollectionLog]. */
+    val collectionLog = osrsps.game.collection.CollectionLog(
+        collectionLogCatalog, { objTypes[it]?.name ?: "Item $it" }, ::textFor,
+        popup = { player, title, text ->
+            interfaces.openSide(player, FrameSlot.NOTIFICATIONS, osrsps.game.collection.CollectionLog.NOTIFICATION_DISPLAY)
+            // -1 is the script's null colour, which it draws in its default orange.
+            interfaces.runClientScript(player, osrsps.game.collection.CollectionLog.NOTIFICATION_DISPLAY_INIT, listOf(title, text, -1))
+        },
+    )
+
+    /** The collection log's windows: the log and its overview; see [osrsps.game.collection.CollectionLogWindow]. */
+    val collectionLogWindow = osrsps.game.collection.CollectionLogWindow(
+        collectionLog, interfaces::openModal, interfaces::closeModals, interfaces::runClientScript, interfaces::setVarbitNow,
+        setVarp = { player, id, value ->
+            if (id < player.vars.types.varpCount) {
+                player.vars[id] = value
+                interfaces.sendVarpNow(player, id)
+            }
+        },
+    )
+
+    /**
+     * [count] of [type] dropped for [player] as loot (an NPC's drop, a boss's share, a raid chest's): the loot drop
+     * notification their settings ask for, and the collection log.
+     */
+    fun lootDropped(player: Player, type: ObjType, count: Int) {
+        lootNotifications.dropped(player, type, count)
+        collectionLog.add(player, type.id, count)
+    }
+
+    /**
+     * [lootDropped] for the player saved under [key]; one who has logged out gets the collection log's entry at their next
+     * login and no notification.
+     */
+    fun lootDroppedFor(key: String, type: ObjType, count: Int) {
+        val player = onlinePlayers.firstOrNull { it.saveKey == key && !it.loggedOut }
+        if (player != null) lootDropped(player, type, count) else collectionLog.addLater(key, type.id, count)
+    }
+
     /**
      * Rolls [npc]'s drops and puts them on its tile: the killer's alone for [GroundObjs.DROP_PRIVATE_TICKS], then
      * everyone's, gone after [GroundObjs.LOOT_DESPAWN_TICKS] (OSRS Wiki, Drop). With no killer, or one who has left,
@@ -2899,12 +3035,14 @@ class World(
         val killer = if (solo != null) solo.key?.let { key -> onlinePlayers.firstOrNull { it.saveKey == key } } else killer
         // A superior's three rolls on its normal counterpart's table come after its own drops.
         val drops = npcDrops[npc.type]?.roll(random).orEmpty() + slayer.superiors.extraDrops(npc, random).orEmpty()
-        val owner = killer?.takeIf { !it.loggedOut }?.saveKey
+        // A solo boss's drop stays its top damager's even if they log out as the body falls (exploit review round 40,
+        // R40B-6), as group loot does; anyone else's goes public once its killer has left.
+        val owner = if (solo != null) solo.key else killer?.takeIf { !it.loggedOut }?.saveKey
         val despawn = osrsps.game.content.KingBlackDragon.lootTicks(this, npc, GroundObjs.LOOT_DESPAWN_TICKS)
         for (drop in drops) {
             if (owner != null) {
                 groundObjs.addPrivate(drop.type, drop.count, npc.x, npc.z, npc.level, owner, GroundObjs.DROP_PRIVATE_TICKS, despawn)
-                killer?.let { lootNotifications.dropped(it, drop.type, drop.count) }
+                lootDroppedFor(owner, drop.type, drop.count)
             } else {
                 groundObjs.addPublic(drop.type, drop.count, npc.x, npc.z, npc.level, despawn)
             }
@@ -3381,6 +3519,9 @@ class World(
             if (player.dead) deaths.respawn(player)
             // Down in a raid, leaving counts as a death (RAID-2), also when the death just finished put them down.
             archiveRaids.leaving(player)
+            // After the death above, so a run's death is paid before the save.
+            fightCaves.leaving(player)
+            inferno.leaving(player)
             trades.leave(player)
             // Once a trade's offer is back in the backpack: saved at the instance's exit, out of any raid run, so its
             // supplies stay in it (R26A-1; Codex review on #636).

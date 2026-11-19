@@ -134,8 +134,12 @@ object ChaosElemental {
             if (abs(target.z - centreZ) > 2 * abs(target.x - centreX)) dx = 0
             var x = target.x
             var z = target.z
+            // Not past the edge of his fight's area: thrown out of it, a top damager would no longer be at the fight
+            // for his drop (exploit review round 44, R44C-3). INFERRED: live's throw has no such edge to stop at.
+            val fight = world.encounters.all.firstOrNull { it.boss === boss && !it.ended }
             repeat(roll(2, THROW)) {
                 if (!world.canStep(target.level, x, z, dx, dz)) return@repeat
+                if (fight != null && !fight.covers(x + dx, z + dz)) return@repeat
                 x += dx
                 z += dz
             }

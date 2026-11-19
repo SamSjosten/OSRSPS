@@ -1,0 +1,102 @@
+{
+ "name": "Collection log step 1: an item new to the log announced in chat and by pop-up, the counts and the King Black Dragon page's completed varbit, then counted on without a second announcement (::keys on)",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::clog reset",
+   "expectMessage": "Collection log emptied."
+  },
+  {
+   "step": "command",
+   "text": "::varbit 11959 3",
+   "comment": "option_collection_new_item: bit 0 the chat message, bit 1 the pop-up"
+  },
+  {
+   "step": "assertVarp",
+   "id": 2943,
+   "value": 0,
+   "comment": "collection_count, the window title's count"
+  },
+  {
+   "step": "command",
+   "text": "::clog add Dragon pickaxe",
+   "expectMessage": "Logged Dragon pickaxe: 1 now"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[collection_log.new_item item=Dragon pickaxe]"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 660,
+   "comment": "notification_display, the pop-up"
+  },
+  {
+   "step": "assertVarp",
+   "id": 2943,
+   "value": 1
+  },
+  {
+   "step": "assertVarp",
+   "id": 4623,
+   "value": 11920,
+   "comment": "collection_overview_last_item0: the pickaxe"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 11978,
+   "value": 0,
+   "comment": "collection_bosses_dragon_completed: the King Black Dragon's page has three more"
+  },
+  {
+   "step": "command",
+   "text": "::clog add 12653",
+   "expectMessage": "Logged"
+  },
+  {
+   "step": "command",
+   "text": "::clog add 7980",
+   "expectMessage": "Logged"
+  },
+  {
+   "step": "command",
+   "text": "::clog add Draconic visage",
+   "expectMessage": "Logged"
+  },
+  {
+   "step": "assertVarbit",
+   "id": 11978,
+   "value": 1,
+   "comment": "the page done: its name turns green in the log"
+  },
+  {
+   "step": "command",
+   "text": "::clog add Dragon pickaxe 5",
+   "expectMessage": "Logged Dragon pickaxe: 6 now"
+  },
+  {
+   "step": "assertVarp",
+   "id": 2943,
+   "value": 4,
+   "comment": "still four items: more of one isn't another"
+  },
+  {
+   "step": "command",
+   "text": "::clog reset",
+   "expectMessage": "Collection log emptied."
+  },
+  {
+   "step": "command",
+   "text": "::varbit 11959 0"
+  }
+ ]
+}

@@ -1,0 +1,6 @@
+{
+  "about": "The Skeletal Tomb (Wilderness step W4.9): Calvar'ion. mejrs's NPCList_OSRS has no Calvar'ion, so his tile is GUESSED: the middle of the tomb, map square 29_180 on level 1. His wander range is guessed until recorded.",
+  "spawns": [
+    {"npc": "vetion_single", "x": 1886, "z": 11545, "level": 1, "wander": 5, "source": "Calvar'ion, Skeletal Tomb. GUESSED: the tomb's middle; wander guessed"}
+  ]
+}

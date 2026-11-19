@@ -103,6 +103,12 @@ object NpcSpawnFile {
         "construction.json",
         "hunters-end.json",
         "karamja-ships.json",
+        "clan-hub.json",
+        "skeletal-tomb.json",
+        "scurrius-lair.json",
+        "fight-cave.json",
+        "inferno.json",
+        "shooting-stars.json",
         "karamja-musa-point.json",
     )
 

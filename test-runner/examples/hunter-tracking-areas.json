@@ -1,0 +1,28 @@
+{
+ "name": "Hunter step 8b: starting a trail in each of the other tracking areas. In Feldip, a burrow shows feldip weasel footprints; in Piscatoris, the south common kebbit burrow shows common kebbit footprints and the south razor-backed burrow shows razor-backed kebbit footprints (63 Hunter, over its 49). Each trail is random, so follow one by eye: Inspect the connectors where the footprints stop until one shows more, then Attack the hiding spot where they end with the noose wand wielded (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario hunter", "expectMessage": "Started scenario hunter.", "comment": "the scenario's noose wand and 63 Hunter; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "itemOption", "item": "Noose wand", "option": "Wield"},
+  {"step": "assertEquipment", "slot": "weapon", "itemId": 10150},
+  {"step": "command", "text": "::tele 2525 2887 0", "comment": "south of the west Feldip burrow (hunting_trail_spawn_jungle2 at 2525, 2889)"},
+  {"step": "assertLocation", "x": 2525, "y": 2887, "plane": 0},
+  {"step": "waitTicks", "ticks": 3, "comment": "the client loads the new region first; a click sent while it does is lost (nightly 2026-11-16)"},
+  {"step": "locOption", "locId": 19479, "option": "Inspect", "x": 2525, "y": 2889},
+  {"step": "assertMessage", "contains": "hunter.track_found", "timeoutMs": 15000},
+  {"step": "command", "text": "::tele 2331 3560 0", "comment": "south of the south common kebbit burrow (hunting_trail_spawn4 at 2331, 3562)"},
+  {"step": "assertLocation", "x": 2331, "y": 3560, "plane": 0},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "locOption", "locId": 19492, "option": "Inspect", "x": 2331, "y": 3562},
+  {"step": "assertMessage", "contains": "hunter.track_found", "timeoutMs": 15000},
+  {"step": "command", "text": "::tele 2353 3593 0", "comment": "south of the south razor-backed kebbit burrow (hunting_trail_spawn2 at 2353, 3595)"},
+  {"step": "assertLocation", "x": 2353, "y": 3593, "plane": 0},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "locOption", "locId": 19579, "option": "Inspect", "x": 2353, "y": 3595},
+  {"step": "assertMessage", "contains": "hunter.track_found", "timeoutMs": 15000},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}
