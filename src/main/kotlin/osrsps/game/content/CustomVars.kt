@@ -68,23 +68,30 @@ class CustomVars(
     val fightCaveVarp: Int = firstVarp + 4
 
     /**
+     * The Inferno run the player is part way through, for a logout or a lost connection to come back to
+     * ([osrsps.game.tzhaar.Inferno]): the wave to start at their next login, 0 for none. Live keeps this somewhere we
+     * haven't found; ours is guessed.
+     */
+    val infernoVarp: Int = firstVarp + 5
+
+    /**
      * The farming tick ([osrsps.game.skill.farming.Farming.tickOf]) the White Tree in Varrock Palace's garden last grew
      * a fruit from, 0 while it bears all four ([PalaceGarden]). Live keeps this somewhere we haven't found; ours is
      * guessed.
      */
-    val whiteTreeVarp: Int = firstVarp + 5
+    val whiteTreeVarp: Int = firstVarp + 6
 
     /** Every varbit of ours, by id. */
     val varbits: Map<Int, VarbitType> = Lodestones.SITES.associate { lodestoneVarbit(it) to VarbitType(lodestonesVarp, it.index, it.index) } +
         (lodestonePreviousVarbit to VarbitType(lodestonesVarp, Lodestones.PREVIOUS_LOW_BIT, Lodestones.PREVIOUS_HIGH_BIT))
 
     /** Every varp of ours. */
-    val varps: List<Int> = listOf(lodestonesVarp, harlanClaimVarp, giantLairsVarp, lairVisitVarp, fightCaveVarp, whiteTreeVarp)
+    val varps: List<Int> = listOf(lodestonesVarp, harlanClaimVarp, giantLairsVarp, lairVisitVarp, fightCaveVarp, infernoVarp, whiteTreeVarp)
 
-    /** The varps by name, for `::varp name`: [LODESTONES], [HARLAN_CLAIMED], [GIANT_LAIRS], [LAIR_VISIT], [FIGHT_CAVE] and [WHITE_TREE]. */
+    /** The varps by name, for `::varp name`: [LODESTONES], [HARLAN_CLAIMED], [GIANT_LAIRS], [LAIR_VISIT], [FIGHT_CAVE], [INFERNO] and [WHITE_TREE]. */
     val varpNames: Map<String, Int> = mapOf(
         LODESTONES to lodestonesVarp, HARLAN_CLAIMED to harlanClaimVarp, GIANT_LAIRS to giantLairsVarp, LAIR_VISIT to lairVisitVarp,
-        FIGHT_CAVE to fightCaveVarp, WHITE_TREE to whiteTreeVarp,
+        FIGHT_CAVE to fightCaveVarp, INFERNO to infernoVarp, WHITE_TREE to whiteTreeVarp,
     )
 
     /** The varbits by name, for `::varbit name`: each site's line key (`lodestone.lumbridge`, `lodestone.al_kharid`) and [LODESTONE_PREVIOUS]. */
@@ -123,6 +130,9 @@ class CustomVars(
 
         /** The Fight Cave run's varp's name. */
         const val FIGHT_CAVE = "fight_cave"
+
+        /** The Inferno run's varp's name. */
+        const val INFERNO = "inferno"
 
         /** The White Tree's regrowth varp's name. */
         const val WHITE_TREE = "white_tree"
