@@ -21,6 +21,8 @@ import osrsps.game.combat.RuneCost
 import osrsps.game.combat.Spellbook
 import osrsps.game.combat.Spells
 import osrsps.game.combat.Teleblock
+import osrsps.game.content.HomeTeleportLines
+import osrsps.game.dialogue.Line
 import osrsps.game.script.ScriptContext
 
 private val logger = KotlinLogging.logger {}
@@ -218,11 +220,11 @@ class Teleports(private val world: World, private val data: TeleportData) {
         }
         for (cost in costs) take(player, cost)
         player.skills.addTenths(Skill.MAGIC, spell.xpTenths)
-        start()
+        start(this)
         player.anim(CAST_ANIM)
         player.spotanim(CAST_SPOTANIM, CAST_HEIGHT)
         delay(CAST_TICKS)
-        land(spell)
+        land(this, spell.landing)
         world.diaries.teleported(player, spell.obj)
         player.anim(-1)
     }
@@ -231,38 +233,44 @@ class Teleports(private val world: World, private val data: TeleportData) {
         if (player.inventory[slot]?.id != spell.tablet) return
         if (!allowedHere(player)) return
         player.inventory.remove(slot, 1)
-        start()
+        start(this)
         player.anim(TABLET_SMASH_ANIM)
         delay(TABLET_ABSORB_TICK)
         player.anim(TABLET_ABSORB_ANIM)
         player.spotanim(TABLET_SPOTANIM)
         delay(TABLET_TICKS - TABLET_ABSORB_TICK)
-        land(spell)
+        land(this, spell.landing)
         player.anim(-1)
     }
 
     /**
-     * Whether [player] may teleport from where they stand, telling them why not: every teleport stops above level 20
-     * Wilderness, and while Tele Blocked ([Teleblock]).
+     * Whether [player] may teleport from where they stand, telling them why not: above level 20 Wilderness (or the
+     * [limit] of a teleport that goes deeper, with its [tooDeep] lines), and while Tele Blocked ([Teleblock]).
      */
-    private fun allowedHere(player: Player): Boolean {
-        val refusal = Teleblock.refusal(player, Wilderness.level(player.x, player.z))
+    fun allowedHere(
+        player: Player,
+        limit: Int = Wilderness.TELEPORT_LIMIT,
+        tooDeep: List<Line> = listOf(HomeTeleportLines.WILDERNESS, HomeTeleportLines.WILDERNESS_2),
+    ): Boolean {
+        val refusal = Teleblock.refusal(player, Wilderness.level(player.x, player.z), limit, tooDeep)
         if (refusal.isEmpty()) return true
         val text = world.textFor(player)
         for (line in refusal) player.message(text[line])
         return false
     }
 
-    /** The teleport stops whatever the player was doing: an open interface, a route, an interaction, a queued activity. */
-    private fun ScriptContext.start() {
+    /** A teleport stops whatever the player was doing: an open interface, a route, an interaction, a queued activity. */
+    fun start(context: ScriptContext) {
+        val player = context.player
         world.interfaces.closeModals(player)
         player.scripts.dropWeak()
         player.waypoints.clear()
         player.interaction = null
     }
 
-    private fun ScriptContext.land(spell: TeleportSpell) {
-        val landing = spell.landing
+    /** Puts [context]'s player on a free tile of [landing] ([Landing.pick]). */
+    fun land(context: ScriptContext, landing: Landing) {
+        val player = context.player
         val (x, z) = landing.pick({ x, z -> world.canStand(x, z, landing.level) }) { world.random.nextInt(it) }
         world.teleport(player, x, z, landing.level)
     }
