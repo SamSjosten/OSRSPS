@@ -16,9 +16,7 @@
     {"step": "command", "text": "::hit 0 Artio", "expectMessage": "for 0: 1", "comment": "10 hitpoints left, a few more if she has healed: test2's hit landed"},
     {"step": "command", "text": "::kill Artio", "expectMessage": "Killed Artio #", "comment": "our 10 or so of the damage, all of it among those still at the fight"},
     {"step": "assertMessage", "contains": "[wilderness_boss.kill_count boss=Artio count=", "timeoutMs": 15000, "comment": "before the fix test2's 440 took it, though test2 had left"},
-    {"step": "locOption", "locId": 47122, "option": "Exit", "x": 1758, "y": 11531},
-    {"step": "waitTicks", "ticks": 6},
-    {"step": "assertLocation", "x": 3116, "y": 3675, "plane": 0},
+    {"step": "command", "text": "::tele 3222 3218 0", "expectMessage": "Teleported to 3222, 3218, 0", "comment": "out of the lair and the Wilderness before ::god goes off (her respawn can stand between us and the Exit)"},
     {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
   ]
 }

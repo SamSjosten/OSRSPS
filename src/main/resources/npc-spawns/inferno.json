@@ -1,0 +1,12 @@
+{
+  "about": "The Inferno (Inferno step IN1): TzHaar-Ket-Keh by the Inferno's entrance in Mor Ul Rek, on the tile of the Wiki's infobox map for him (x=2496, y=5115, r=2), wandering 2 tiles as its square says. He is the cache's multinpc inferno_master, which shows inferno_master_1op or _2op by total_zuk_kills.",
+  "spawns": [
+    {
+      "npc": "inferno_master",
+      "x": 2496,
+      "z": 5115,
+      "wander": 2,
+      "source": "TzHaar-Ket-Keh: the Wiki's infobox map, {{Map|x=2496|y=5115|r=2}}"
+    }
+  ]
+}
