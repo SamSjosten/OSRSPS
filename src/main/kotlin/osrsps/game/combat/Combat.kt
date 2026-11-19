@@ -500,14 +500,14 @@ class Combat(
     }
 
     /**
-     * [npc]'s melee max hit: its file's, less what its drained Strength takes off by [CombatMath.npcMaxHit], so the file
-     * still decides the max hit of an undrained monster. Guessed: that a monster whose file max hit isn't the formula's
+     * [npc]'s melee max hit: [base] (its file's unless a swing names its own), less what its drained Strength takes off
+     * by [CombatMath.npcMaxHit], so the file still decides the max hit of an undrained monster. Guessed: that a monster whose file max hit isn't the formula's
      * loses the same as the formula would.
      */
-    private fun npcMaxHit(npc: Npc, def: NpcCombatDef): Int {
-        if (npc.drained[NpcStat.STRENGTH.ordinal] == 0) return def.maxHit
+    internal fun npcMaxHit(npc: Npc, def: NpcCombatDef, base: Int = def.maxHit): Int {
+        if (npc.drained[NpcStat.STRENGTH.ordinal] == 0) return base
         val lost = CombatMath.npcMaxHit(npc.type.stats.strength, def.strengthBonus) - CombatMath.npcMaxHit(npc.level(NpcStat.STRENGTH), def.strengthBonus)
-        return (def.maxHit - lost).coerceAtLeast(0)
+        return (base - lost).coerceAtLeast(0)
     }
 
     companion object {
