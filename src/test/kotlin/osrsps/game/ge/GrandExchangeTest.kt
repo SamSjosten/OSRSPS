@@ -98,6 +98,27 @@ class GrandExchangeTest {
     }
 
     @Test
+    fun `an item an NPC sells below its guide price sells to the bot market for no more than the NPC's price`() {
+        // Exploit review 44, R44A-3: bought from an NPC below the guide price, it would sell straight back at the guide.
+        ge.npcSells(LOBSTER, 30)
+        ge.npcSells(LOBSTER, 20)
+        ge.npcSells(osrsps.game.shop.ShopTypes(listOf(osrsps.game.shop.ShopType(
+            "test", "Test shop", 1, 1, false, 1000, 0, 0,
+            listOf(osrsps.game.shop.ShopStock(types[AXE]!!, 5, 100, fixedPrice = 10)), emptyList(),
+        ))))
+        give(LOBSTER, 4)
+        ge.sell(player, LOBSTER, 2, 100)
+        ge.sell(player, LOBSTER, 2, 20)
+        give(AXE, 5)
+        ge.sell(player, AXE, 5, 10)
+        nextTick()
+        assertEquals(0, player.ge[0]!!.completed, "asked more than the bartender's 20: waits")
+        assertEquals(40L, player.ge[1]!!.collectCoins, "the lowest NPC price, 20, not the guide's 150")
+        assertEquals(50L, player.ge[2]!!.exchanged, "the shop's 10 an axe, not the guide's 40")
+        assertEquals(150L, ge.botSellPrice(types[WHIP]!!, 150), "an item no NPC sells keeps the guide price")
+    }
+
+    @Test
     fun `tax is 2 percent rounded down and at most 5m an item`() {
         assertEquals(0, ge.tax(AXE, 49))
         assertEquals(1, ge.tax(AXE, 50))

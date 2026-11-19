@@ -555,7 +555,7 @@ class World(
     private val worldMap = WorldMapScreen(interfaces)
 
     /** Grand Exchange offers; see [GrandExchange]. */
-    val grandExchange = GrandExchange(objTypes, { this.itemPrices }, { tick }, taxExempt = GrandExchange.taxExempt(objTypes))
+    val grandExchange = GrandExchange(objTypes, { this.itemPrices }, { tick }, taxExempt = GrandExchange.taxExempt(objTypes)).also { it.npcSells(shopTypes) }
 
     /** The Grand Exchange's offers screen; see [GrandExchangeScreen]. */
     val grandExchangeScreen = GrandExchangeScreen(
