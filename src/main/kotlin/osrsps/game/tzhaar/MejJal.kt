@@ -10,7 +10,7 @@ import osrsps.game.dialogue.Lines
 
 /** TzHaar-Mej-Jal's Talk-to and fire cape exchange (Transcript:TzHaar-Mej-Jal, Standard dialogue, read 2026-11-17). */
 object MejJalLines : Lines("mej_jal", "Transcript:TzHaar-Mej-Jal") {
-    val GREETING = line("greeting", "his first line: \"You want help [TzHaar caste]-[player name]?\"", "caste", "name")
+    val GREETING = line("greeting", "his first line: offering help, naming the player by caste and name", "caste", "name")
     val HAVE_CAPE = line("have_cape", "first menu with a fire cape in the backpack, and what the player says")
     val WHAT_PLACE = line("what_place", "first menu with no fire cape, and what the player says")
     val CALL_ME = line("call_me", "first menu: what he called the player, and what the player says")
@@ -38,7 +38,7 @@ object MejJalLines : Lines("mej_jal", "Transcript:TzHaar-Mej-Jal") {
     val SURVIVAL = line("survival", "rules: his answer")
     val WIN = line("win", "rules menu: winning anything, and what the player says")
     val QUESTIONS = line("questions", "winning: his answer")
-    val SILENCE = line("silence", "winning: the player's \"...\"")
+    val SILENCE = line("silence", "winning: the player says nothing")
     val TOKKUL_COINS = line("tokkul_coins", "winning: TokKul is like coins")
     val GOLD = line("gold", "winning: gold is soft")
     val SOUNDS_GOOD = line("sounds_good", "rules menu: done, and what the player says")
@@ -69,16 +69,16 @@ object MejJalLines : Lines("mej_jal", "Transcript:TzHaar-Mej-Jal") {
  * 2440,5170, within 3 tiles; npc-spawns/fight-cave.json), Fight Caves step FC4. From his transcript:
  *
  * - **Talk-to** greets the player by their TzHaar caste and offers the fire cape, what the cave is, and what he called
- *   them. A fire cape sells back for 8,000 TokKul, or is given up for a 1 in [PET_ODDS] chance at TzRek-Jad ("Bargain
- *   for TzRek-Jad", only for a player who doesn't own the pet: the backpack, worn items and bank checked). The cape
- *   goes either way ("There is no cape back").
+ *   them. A fire cape sells back for 8,000 TokKul, or is given up for a 1 in [PET_ODDS] chance at TzRek-Jad (the
+ *   [MejJalLines.BARGAIN] option, only for a player who doesn't own the pet: the backpack, worn items and bank
+ *   checked). The cape goes either way ([MejJalLines.NO_CAPE_BACK]).
  * - **Exchange fire cape** (op 3) goes straight to the cape's menu.
  *
- * Guessed (the transcript is marked incomplete, its fire cape part "wrong"): where the menus fall (the cape menu holds
- * sell, keep and bargain; "I guess so..." and "No I'm not!" answer "Are you not..."; "Thanks for explaining it." ends
- * the caste's menu; "What other types are there?" and "Ah ok then." follow what he is); Exchange fire cape without a
- * cape saying the no-cape line of the first menu (his "what is this place" talk); the caste, picked by the player's
- * best skill ([caste]); every chathead.
+ * Guessed (the transcript is marked incomplete, its fire cape part marked wrong): where the menus fall (the cape menu
+ * holds sell, keep and bargain; [MejJalLines.GUESS_SO] and [MejJalLines.NOT_ME] answer [MejJalLines.NOT_A];
+ * [MejJalLines.THANKS_EXPLAINING] ends the caste's menu; [MejJalLines.OTHER_TYPES] and [MejJalLines.AH_OK] follow what
+ * he is); Exchange fire cape without a cape saying the no-cape line of the first menu (his talk about the place); the
+ * caste, picked by the player's best skill ([caste]); every chathead.
  */
 object MejJal {
     const val TALK_TO = 1
@@ -160,6 +160,7 @@ object MejJal {
         if (ownsPet(player) || !takeCape(player)) return@with
         if (world.random.chance(1, PET_ODDS)) {
             world.objTypes[FightCaves.PET]?.let { world.groundObjs.give(player, it, 1) }
+            world.collectionLog.add(player, FightCaves.PET, 1)
             world.message(player, FightCaveLines.PET)
             chatNpc(ChatAnim.HAPPY, LUCKY)
         } else {

@@ -674,6 +674,8 @@ class HeadlessFightCaveTest {
                 val end = client.awaitDialogue("the toss") { it is DialogueView.Chat && ("mej_jal.lucky" in it.text || "mej_jal.unlucky" in it.text) } as DialogueView.Chat
                 assertTrue(client.inventory(INV).none { it?.id == FightCaves.FIRE_CAPE }, "no cape back")
                 assertEquals("mej_jal.lucky" in end.text, client.inventory(INV).any { it?.id == FightCaves.PET })
+                val player = server.world.playerNamed("max")!!
+                assertEquals("mej_jal.lucky" in end.text, server.world.collectionLog.count(player, FightCaves.PET) == 1, "the pet logged as it comes")
             }
         }
     }
