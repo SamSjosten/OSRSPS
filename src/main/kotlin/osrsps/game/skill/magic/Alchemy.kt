@@ -1,24 +1,13 @@
 package osrsps.game.skill.magic
 
-import io.github.oshai.kotlinlogging.KotlinLogging
-import osrsps.game.FountainOfRune
-import osrsps.game.GameFrame
 import osrsps.game.GameLines
 import osrsps.game.ObjType
 import osrsps.game.ObjTypes
 import osrsps.game.Player
-import osrsps.game.Skill
-import osrsps.game.WearPos
 import osrsps.game.World
-import osrsps.game.combat.CombatLines
-import osrsps.game.combat.RuneCost
-import osrsps.game.combat.Spellbook
 import osrsps.game.combat.Spells
 import osrsps.game.dialogue.Lines
 import osrsps.game.script.ScriptContext
-import osrsps.game.skill.Making
-
-private val logger = KotlinLogging.logger {}
 
 /** What alchemy says; its words are on the server (data/dialogue.txt), not in git. */
 object AlchemyLines : Lines("alchemy", "High Level Alchemy") {
@@ -29,24 +18,8 @@ object AlchemyLines : Lines("alchemy", "High Level Alchemy") {
     val WARNING_NO = line("warning_no", "the warning's option that keeps the item; words guessed")
 }
 
-/**
- * One alchemy spell: its spell obj ([obj], [key]), the magic tab [component], the Magic [level] and [runes] (all the
- * cache's), the base XP in tenths ([xpTenths]), the ticks before the next cast ([ticks]), whether it pays the high
- * alchemy value ([high]) and its animation and graphic.
- */
-class AlchemySpell(
-    val obj: Int,
-    val key: String,
-    val name: String,
-    val component: Int,
-    val level: Int,
-    val runes: List<RuneCost>,
-    val xpTenths: Int,
-    val ticks: Int,
-    val high: Boolean,
-    val anim: Int,
-    val spotanim: Int,
-)
+/** One alchemy spell: the item spell, and whether it pays the high alchemy value ([high]). */
+class AlchemySpell(val spell: ItemSpell, val high: Boolean)
 
 /**
  * Low and High Level Alchemy (Magic utility step U1): cast from the magic tab on an inventory item, the spell turns one
@@ -66,32 +39,26 @@ class AlchemySpell(
  * `human_casthighlvlalchemy` (713) with `highlvlalchemy_casting` (113); the `_fire` versions the cache also has are
  * taken to be an animation override and aren't used.
  *
- * Guessed: the graphic's height (92, the teleports'); that the magic tab comes back after a cast; that a click before
- * the spell's ticks are up is dropped rather than queued, and that the two spells share one clock; that a stack of
+ * The clock, the rune and level checks and the cast's effects are [ItemSpells]'. Guessed: that a stack of
  * coins that can't take the yield (or no room for coins at all) refuses the cast with nothing taken; that an item
  * worth less than 3 coins still goes for no coins; that a tradeable item the price snapshot lacks is judged by its
  * value; that an account that never set All Settings 66 (0) gets no value warning, as the drop warning treats its 0;
  * and the order of the refusals (spellbook, level, coins, can't alchemise, runes, room).
  */
 class Alchemy(private val world: World, private val spells: List<AlchemySpell>) {
-    /** The tick before which each player can't cast alchemy again. */
-    private val nextCast = java.util.WeakHashMap<Player, Long>()
-
     fun register() {
-        for (spell in spells) world.handlers.onSpellOnObj(Spells.SPELLBOOK, spell.component) { op -> cast(spell, op.sub, op.obj, warned = false) }
+        for (alchemy in spells) world.handlers.onSpellOnObj(Spells.SPELLBOOK, alchemy.spell.component) { op -> cast(alchemy, op.sub, op.obj, warned = false) }
     }
 
-    private suspend fun ScriptContext.cast(spell: AlchemySpell, slot: Int, obj: Int, warned: Boolean) {
-        if (Spellbook.of(player) != Spellbook.STANDARD) return
+    private suspend fun ScriptContext.cast(alchemy: AlchemySpell, slot: Int, obj: Int, warned: Boolean) {
+        val spell = alchemy.spell
+        val casting = world.itemSpells
+        if (!casting.ready(player)) return
         val held = player.inventory[slot]?.takeIf { it.id == obj } ?: return
         val type = world.objTypes[held.id] ?: return
         val base = unnoted(type, world.objTypes)
-        if ((nextCast[player] ?: 0L) > world.tick) return
         val text = world.textFor(player)
-        if (player.skills.currentLevel(Skill.MAGIC) < spell.level) {
-            player.message(text[CombatLines.MAGIC_LEVEL])
-            return
-        }
+        if (!casting.hasLevel(player, spell)) return
         if (base.id == COINS) {
             player.message(text[AlchemyLines.COINS])
             return
@@ -100,12 +67,7 @@ class Alchemy(private val world: World, private val spells: List<AlchemySpell>) 
             player.message(text[AlchemyLines.CANT])
             return
         }
-        val costs = FountainOfRune.runesToPay(player, spell.runes, world.spells.runesFrom(player.equipment[WearPos.WEAPON]?.id))
-        val short = costs.firstOrNull { player.inventory.count(it.rune) < it.count }
-        if (short != null) {
-            player.message(text[CombatLines.NOT_ENOUGH_RUNES, "runes" to plural(short.rune)])
-            return
-        }
+        val costs = casting.runesToPay(player, spell) ?: return
         if (!warned && warns(player, base)) {
             var yes = false
             world.dialogues.start(this) {
@@ -113,10 +75,10 @@ class Alchemy(private val world: World, private val spells: List<AlchemySpell>) 
             }
             world.interfaces.closeChatModal(player)
             // The menu waited: everything is checked again, on the same item in the same slot.
-            if (yes) cast(spell, slot, obj, warned = true)
+            if (yes) cast(alchemy, slot, obj, warned = true)
             return
         }
-        val value = if (spell.high) base.highAlch else base.lowAlch
+        val value = if (alchemy.high) base.highAlch else base.lowAlch
         val saved = player.inventory.contents().toMap()
         player.inventory.remove(slot, 1)
         val coins = world.objTypes[COINS]
@@ -125,14 +87,7 @@ class Alchemy(private val world: World, private val spells: List<AlchemySpell>) 
             player.message(text[GameLines.NO_SPACE])
             return
         }
-        for (cost in costs) Making.removeObj(player.inventory, cost.rune, cost.count)
-        nextCast[player] = world.tick + spell.ticks
-        // The cast ends an attack, not a walk.
-        player.interaction = null
-        if (!FountainOfRune.covers(player)) player.skills.addTenths(Skill.MAGIC, spell.xpTenths)
-        player.anim(spell.anim)
-        player.spotanim(spell.spotanim, SPOTANIM_HEIGHT)
-        world.interfaces.switchSideTab(player, GameFrame.SIDE_TAB_MAGIC)
+        casting.cast(this, spell, costs)
     }
 
     /** Whether alchemising [type] (unnoted) asks first: All Settings 65 for untradeables, 66 for a price at or above it. */
@@ -145,12 +100,6 @@ class Alchemy(private val world: World, private val spells: List<AlchemySpell>) 
         return price >= threshold
     }
 
-    /** The item's name as the not-enough message has it, as [Teleports] does: Nature Runes. */
-    private fun plural(item: Int): String {
-        val name = world.objTypes[item]?.name ?: "rune"
-        return name.split(' ').joinToString(" ") { word -> word.replaceFirstChar { it.uppercase() } } + "s"
-    }
-
     companion object {
         const val COINS = 995
 
@@ -161,36 +110,13 @@ class Alchemy(private val world: World, private val spells: List<AlchemySpell>) 
         /** OSRS Wiki, High Level Alchemy: the value warning a new account starts with. */
         const val DEFAULT_WARNING_VALUE = 1_000
 
-        const val SPOTANIM_HEIGHT = 92
-
-        /** The spells: gameval name, base XP in tenths, ticks to the next cast, high, animation and graphic. */
-        private val DEFINITIONS = listOf(
-            Definition("21_low_alchemy", 310, 3, high = false, anim = 712, spotanim = 112),
-            Definition("55_high_alchemy", 650, 5, high = true, anim = 713, spotanim = 113),
-        )
-
-        private class Definition(val key: String, val xpTenths: Int, val ticks: Int, val high: Boolean, val anim: Int, val spotanim: Int)
-
         /** The item a note stands for, else the item itself. */
         fun unnoted(type: ObjType, objTypes: ObjTypes): ObjType = if (type.isCert) objTypes[type.certlink] ?: type else type
 
-        /**
-         * The spells whose objs [objTypes] has, with their level, runes and component from the obj's params; a spell
-         * obj without them fails the load. A test's handful of objs may have neither.
-         */
-        fun load(objTypes: ObjTypes): List<AlchemySpell> = DEFINITIONS.mapNotNull { d ->
-            val type = objTypes.find(d.key) ?: return@mapNotNull null
-            val packed = type.intParam(Spells.PARAM_COMPONENT, -1)
-            require(packed ushr 16 == Spells.SPELLBOOK) { "${d.key} isn't on the magic tab (param ${Spells.PARAM_COMPONENT} is $packed)" }
-            val level = type.intParam(Spells.PARAM_LEVEL, -1)
-            require(level in 1..99) { "${d.key} has Magic level $level" }
-            val runes = Spells.PARAM_RUNES.mapNotNull { (runeParam, countParam) ->
-                val rune = type.intParam(runeParam, -1)
-                if (rune < 0) null else RuneCost(rune, type.intParam(countParam, 0).also { require(it >= 1) { "${d.key}: rune $rune costs $it" } })
-            }
-            require(runes.isNotEmpty()) { "${d.key} needs no runes" }
-            val name = type.stringParam(Spells.PARAM_NAME) ?: d.key
-            AlchemySpell(type.id, d.key, name, packed and 0xFFFF, level, runes, d.xpTenths, d.ticks, d.high, d.anim, d.spotanim)
-        }.also { if (it.isEmpty()) logger.debug { "No alchemy spell objs in the cache" } }
+        /** The spells whose objs [objTypes] has (a test's handful of objs may have neither). */
+        fun load(objTypes: ObjTypes): List<AlchemySpell> = listOfNotNull(
+            ItemSpell.load(objTypes, "21_low_alchemy", 310, 3, anim = 712, spotanim = 112)?.let { AlchemySpell(it, high = false) },
+            ItemSpell.load(objTypes, "55_high_alchemy", 650, 5, anim = 713, spotanim = 113)?.let { AlchemySpell(it, high = true) },
+        )
     }
 }

@@ -108,7 +108,7 @@ class HeadlessAlchemyTest {
                 client.cast(HIGH, SCIMITAR_NOTE)
                 client.await("the next tick") { if (server.world.tick > first + 1) Unit else null }
                 assertEquals(2, client.count(SCIMITAR_NOTE), "too soon")
-                client.await("5 ticks on", 10_000) { if (server.world.tick >= first + Alchemy.load(server.world.objTypes).first { it.high }.ticks) Unit else null }
+                client.await("5 ticks on", 10_000) { if (server.world.tick >= first + Alchemy.load(server.world.objTypes).first { it.high }.spell.ticks) Unit else null }
                 client.cast(HIGH, SCIMITAR_NOTE)
                 client.await("the second coins") { if (client.count(Alchemy.COINS) == 30_720) Unit else null }
                 assertEquals(1, client.count(SCIMITAR_NOTE))

@@ -940,6 +940,9 @@ class World(
     /** Enchant Crossbow Bolt; see [BoltEnchant]. */
     val boltEnchant = BoltEnchant(this, BoltEnchantData.load(objTypes))
 
+    /** What the spells cast on inventory items share; see [osrsps.game.skill.magic.ItemSpells]. */
+    val itemSpells = osrsps.game.skill.magic.ItemSpells(this)
+
     /** Low and High Level Alchemy; see [osrsps.game.skill.magic.Alchemy]. */
     val alchemy = osrsps.game.skill.magic.Alchemy(this, osrsps.game.skill.magic.Alchemy.load(objTypes))
 
