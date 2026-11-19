@@ -55,6 +55,8 @@ object AgilityLines : Lines("agility", "Agility") {
     val BRIMHAVEN_DUNGEON_STONES_NORTH_LEVEL = line("brimhaven_dungeon_stones_north_level", "Shortcut: Brimhaven Dungeon's eastern stepping stones, toward the island from the north-west, below level 56 (keys only)", "level")
     val BRIMHAVEN_DUNGEON_STONES_SOUTH_LEVEL = line("brimhaven_dungeon_stones_south_level", "Shortcut: Brimhaven Dungeon's eastern stepping stones, toward the island from the red dragons, below level 56 (keys only)", "level")
     val BRIMHAVEN_DUNGEON_VINE_LEVEL = line("brimhaven_dungeon_vine_level", "Shortcut: Brimhaven Dungeon's vine to the baby green dragons, below level 87 (keys only)", "level")
+    val CAIRN_ROCKS_LEVEL = line("cairn_rocks_level", "Shortcut: the rock slide up to Cairn Isle's bridge, below level 15 (keys only: the Wiki gives no words)", "level")
+    val CAIRN_ROCKS_FALL = line("cairn_rocks_fall", "Shortcut: the rock slide up to Cairn Isle's bridge, failed (the Wiki's Rock slide (Cairn Isle) page)")
     val BRIMHAVEN_ARENA_HAND_HOLDS_LEVEL = line("brimhaven_arena_hand_holds_level", "Brimhaven Agility Arena: the hand holds clicked below level 20 (keys only: the Wiki gives no words)", "level")
 
     /** A line by its key, for agility.json to name one. */
@@ -153,6 +155,8 @@ class Obstacle(
      * planks, where the smooth one always holds and the others always break.
      */
     val rigged: Boolean = false,
+    /** How many hitsplats of that damage a failure deals, each its own: Cairn Isle's rock slide deals two. */
+    val damageHits: Int = 1,
 ) {
     /** Whether the loc at [tile] is this obstacle, when its type is several. */
     fun stands(tile: AgilityTile): Boolean = at == tile || tile in alsoAt
@@ -272,6 +276,7 @@ class AgilityData(val obstacles: List<Obstacle>, val courses: List<AgilityCourse
                 json["alsoAt"]?.jsonArray.orEmpty().map { tile(it.jsonArray) },
                 json["damageHpPercent"]?.jsonPrimitive?.int ?: 0,
                 json["rigged"]?.jsonPrimitive?.boolean ?: false,
+                json["damageHits"]?.jsonPrimitive?.int ?: 1,
             )
         }
 
@@ -366,12 +371,14 @@ class Agility(private val world: World, val data: AgilityData) {
             if (obstacle.failDouses) LightSources.extinguish(player)
             obstacle.failLine?.let { player.message(world.textFor(player)[it]) }
             if (obstacle.damage.isEmpty()) return
-            var damage = world.random.between(obstacle.damage.first, obstacle.damage.last) +
-                player.skills.currentLevel(Skill.HITPOINTS) * obstacle.damageHpPercent / 100
-            // A safe obstacle can't kill, even when the player lost hitpoints (to poison, say) during the crossing.
-            if (obstacle.safeAtHp > 0) damage = minOf(damage, player.hitpoints - 1)
-            if (damage <= 0) return
-            world.meleeCombat.statusHit(player, damage, HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER)
+            val hitpoints = player.skills.currentLevel(Skill.HITPOINTS)
+            repeat(obstacle.damageHits) {
+                var damage = world.random.between(obstacle.damage.first, obstacle.damage.last) + hitpoints * obstacle.damageHpPercent / 100
+                // A safe obstacle can't kill, even when the player lost hitpoints (to poison, say) during the crossing.
+                if (obstacle.safeAtHp > 0) damage = minOf(damage, player.hitpoints - 1)
+                if (damage <= 0) return
+                world.meleeCombat.statusHit(player, damage, HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER)
+            }
         }
     }
 

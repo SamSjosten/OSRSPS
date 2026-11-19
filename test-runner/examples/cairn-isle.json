@@ -1,0 +1,24 @@
+{
+  "name": "Karamja step K4.1: Cairn Isle's rock slide at 99 Agility, the bridge's balance check onto the isle, and a jogre in the jungle (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::scenario gathering", "expectMessage": "Started scenario gathering.", "comment": "any scenario: ::reset at the end puts the account's levels back"},
+    {"step": "command", "text": "::setlevel agility 99", "comment": "the rock slide never fails at 99; the bridge still can, about 1 in 50"},
+    {"step": "command", "text": "::tele 2795 2979 0", "expectMessage": "Teleported to 2795, 2979, 0", "comment": "in front of the rock slide"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "locOption", "locId": 2231, "option": "Climb", "x": 2794, "y": 2979},
+    {"step": "assertLocation", "x": 2791, "y": 2979, "plane": 0, "timeoutMs": 10000, "comment": "on the promontory"},
+    {"step": "waitTicks", "ticks": 2},
+    {"step": "walk", "x": 2784, "y": 2979},
+    {"step": "assertMessage", "contains": "[cairn_isle.", "timeoutMs": 20000, "comment": "balance across to 2770,2979, or a fall to the shore"},
+    {"step": "waitTicks", "ticks": 2},
+    {"step": "command", "text": "::tele 2916 3050 0", "expectMessage": "Teleported to 2916, 3050, 0", "comment": "the jogres' jungle"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "command", "text": "::npcs", "comment": "the jogres nearby are listed"},
+    {"step": "assertMessage", "contains": "Jogre", "timeoutMs": 5000},
+
+    {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+  ]
+}
