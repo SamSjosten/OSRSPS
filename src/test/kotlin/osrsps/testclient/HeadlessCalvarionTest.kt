@@ -127,6 +127,7 @@ class HeadlessCalvarionTest {
                 val npc = server.world.npcs.all.first { it.type.id == Calvarion.BOSS }
                 client.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Calvar'ion") }
                 val fight = client.await("his fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
+                assertTrue(npc.unleashed, "unleashed, so a player far from his spawn can't hold him off (R45C-1)")
                 client.await("his lightning", timeoutMillis = 30_000) { fight.lines.firstOrNull { "lightning on" in it } }
 
                 // Half his hitpoints: two hounds, and nothing hurts him while one lives.
