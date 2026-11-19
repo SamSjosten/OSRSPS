@@ -135,8 +135,9 @@ class HeadlessDusuriTest {
         server(dir).use { server ->
             server.login("carol").use { client ->
                 client.await("the login rebuild") { client.position }
-                // 27 star fragments and the bag: its slot frees, but up to five kinds of gem need more.
-                client.command("item $FRAGMENT 27")
+                // 23 star fragments and the bag: four free slots and the bag's own, one short of the six gems it could hold,
+                // so it stays shut whatever it would have rolled.
+                client.command("item $FRAGMENT 23")
                 client.command("item ${Dusuri.BAG_FULL_OF_GEMS}")
                 client.awaitHeld(Dusuri.BAG_FULL_OF_GEMS, 1)
                 client.ifButton(InventoryTab.INTERFACE, InventoryTab.ITEMS, IOP1, client.slotOf(Dusuri.BAG_FULL_OF_GEMS), Dusuri.BAG_FULL_OF_GEMS)

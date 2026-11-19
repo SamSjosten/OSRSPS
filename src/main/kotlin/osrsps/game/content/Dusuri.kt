@@ -51,8 +51,9 @@ object DusuriLines : Lines("dusuri", "Transcript:Dusuri") {
  *   diamond 6, dragonstone 1 out of 200, and onyx 1 in 100,000,000 first); a soft clay pack to 100 noted soft clay.
  * - The celestial ring's +4 is [osrsps.game.skill.Mining.celestialBoost].
  *
- * Guessed: every chathead expression; a bag or pack needing room for everything it holds, opening one at a time, and
- * the message when it hasn't (none on the Wiki). Out: the ring's Charge, Check and Uncharge (its charges only matter
+ * Guessed: every chathead expression; a bag or pack needing room for everything it could hold (for the bag, 40 of each
+ * of the six gems, checked before the roll so a refusal never re-rolls), opening one at a time, and the message when it
+ * hasn't (none on the Wiki). Out: the ring's Charge, Check and Uncharge (its charges only matter
  * for the celestial signet's extra ore, which isn't in), the celestial signet, and recolouring prospector pieces with
  * a star fragment.
  */
@@ -165,19 +166,21 @@ fun registerDusuri(world: World) {
         }
         world.handlers.onObj(BAG_FULL_OF_GEMS, OPEN) { op ->
             if (player.inventory[op.sub]?.id != BAG_FULL_OF_GEMS) return@onObj
-            val rolled = LinkedHashMap<Int, Int>()
+            // Noted: each gem's certlink, the gem itself where the cache gives none (the tests' small ones).
+            fun noted(gem: Int): ObjType {
+                val type = world.objTypes[gem] ?: error("No obj type $gem for a bag full of gems")
+                return type.certlink.takeIf { it >= 0 }?.let { world.objTypes[it] } ?: type
+            }
+            // Room for all 40 of any gem it could hold, checked before the roll so a refusal can't be used to re-roll.
+            val possible = (GEM_TABLE.map { it.obj } + UNCUT_ONYX).associate { noted(it) to GEMS_PER_BAG }
+            if (!fits(player.inventory, possible, freedSlot = true)) return@onObj world.message(player, DusuriLines.PACK_SPACE)
+            val rolled = LinkedHashMap<ObjType, Int>()
             repeat(GEMS_PER_BAG) {
                 val gem = if (world.random.chance(1, ONYX_CHANCE)) UNCUT_ONYX else BirdNests.pick(world.random, GEM_TABLE)
-                rolled.merge(gem, 1, Int::plus)
+                rolled.merge(noted(gem), 1, Int::plus)
             }
-            // Noted: each gem's certlink, the gem itself where the cache gives none (the tests' small ones).
-            val notes = rolled.entries.associate { (gem, count) ->
-                val type = world.objTypes[gem] ?: error("No obj type $gem for a bag full of gems")
-                (type.certlink.takeIf { it >= 0 }?.let { world.objTypes[it] } ?: type) to count
-            }
-            if (!fits(player.inventory, notes, freedSlot = true)) return@onObj world.message(player, DusuriLines.PACK_SPACE)
             player.inventory.remove(op.sub, 1)
-            for ((type, count) in notes) player.inventory.add(type, count)
+            for ((type, count) in rolled) player.inventory.add(type, count)
         }
         world.handlers.onObj(SOFT_CLAY_PACK, OPEN) { op ->
             if (player.inventory[op.sub]?.id != SOFT_CLAY_PACK) return@onObj
