@@ -67,7 +67,8 @@ object BorkLines : Lines("tfa_bork", "The_Fractured_Archive/Strategies") {
  *   by a tick, 7 to 4 ([tempo]). Bork dead first, the Smorks go into their frenzy ([frenzyAhead]): a volley at
  *   everyone every [FRENZY_SPACING] ticks, napalm between. The Smorks dead first, Bork stomps over the whole room every
  *   [LONE_STOMP_EVERY] ticks, no tower left to hide behind. Their tower goes up [SMORKS_BURST] ticks after they fall
- *   and is gone at 9 (npc-combat.json's deathTicks), as Bork is at 7.
+ *   and is gone at 9 (npc-combat.json's deathTicks), as Bork is at 7. The room is done [DONE_AFTER_GONE] tick after
+ *   both are gone.
  *
  * From the OSRS Wiki (Bork, The Fractured Archive's; Smorks; read 2026-11-09): their stats and bonuses (npc-combat
  * .json), sizes, the 7-tick attack speed, their hitpoints by party size (party-scaling.json), the flat armour ("starts
@@ -166,6 +167,14 @@ object Bork {
      */
     val SPOTS_SMORKS_DEATH = listOf(4060, 4061, 4062)
     const val SMORKS_BURST = 2
+
+    /**
+     * The room is done this many ticks after both are gone: with the Smorks last, 10 ticks after they fall, their tower
+     * gone at 9. Seen in Sam's recordings: the challenge-complete line 5.5 s after the Smorks' bar empties (9 November
+     * 2026) and 6.0 s after (16 November 2026, 10 ticks); read to the half second, the one whole tick count both fit
+     * is 10. Guessed: the same tick after Bork's body goes when he is the last to fall.
+     */
+    const val DONE_AFTER_GONE = 1
 
     /** Bork's south-west tile as the fight begins, this far east and north of the tower's (tsps: 4194,5603 to 4190,5598). */
     const val BORK_EAST = 4
@@ -400,6 +409,9 @@ object Bork {
         /** With the Smorks dead, the phase tick of Bork's next stomp. */
         var loneStomp = Long.MAX_VALUE
 
+        /** The phase tick both were seen gone on; -1 before. */
+        var goneAt = -1L
+
         /** His flat armour and magic resistance as last logged. */
         var armour = -1
         var magicArmour = -1
@@ -448,11 +460,19 @@ object Bork {
             state.smorksNext = Long.MAX_VALUE
             if (!state.borkDown) state.loneStomp = phaseTick + LONE_STOMP_EVERY - sinceDeath(smorksHeld)
         }
-        // Done once both are gone, their death animations over: the anchor dies, which does the room.
+        // Done [DONE_AFTER_GONE] ticks after both are gone, their death animations over: the anchor dies, which does
+        // the room.
+        if (state.goneAt >= 0) {
+            if (phaseTick >= state.goneAt + DONE_AFTER_GONE) {
+                log("room done")
+                boss.dead = true
+                world.removeNpc(boss)
+            }
+            return
+        }
         if ((borkHeld == null || !inWorld(borkHeld)) && (smorksHeld == null || !inWorld(smorksHeld))) {
             log("both gone")
-            boss.dead = true
-            world.removeNpc(boss)
+            state.goneAt = phaseTick
             return
         }
         oil()
