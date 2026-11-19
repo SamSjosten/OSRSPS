@@ -1,0 +1,26 @@
+{
+  "name": "Karamja step K3.4c: Pirate Jackie the Fruit's Trade opening the Agility Arena Store, a ticket for 345 Agility XP, vouchers for a noted toadflax, and too few for the Pirate's hook (::keys on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::scenario gathering", "expectMessage": "Started scenario gathering.", "comment": "any scenario: ::reset at the end puts the account's backpack and levels back"},
+    {"step": "command", "text": "::empty"},
+    {"step": "command", "text": "::item 29480 2", "comment": "Agility arena tickets"},
+    {"step": "command", "text": "::item 29482 10", "comment": "Brimhaven vouchers"},
+    {"step": "command", "text": "::tele 2810 3192 0", "expectMessage": "Teleported to 2810, 3192, 0", "comment": "the arena's hut"},
+    {"step": "waitTicks", "ticks": 3},
+    {"step": "npcOption", "npc": "Pirate Jackie the Fruit", "option": "Trade", "timeoutMs": 20000},
+    {"step": "assertInterface", "interfaceId": 819, "timeoutMs": 10000, "comment": "omnishop_main: the Agility Arena Store"},
+    {"step": "assertVarp", "id": 3874, "value": 583, "comment": "omnishop_lastshop: the store's row"},
+    {"step": "clickWidget", "interfaceId": 819, "component": 38, "slot": 0, "op": 2, "comment": "Buy-1 on the first entry, Agility XP for a ticket"},
+    {"step": "assertInventory", "item": "Agility arena ticket", "count": 1, "timeoutMs": 5000},
+    {"step": "clickWidget", "interfaceId": 819, "component": 38, "slot": 12, "op": 2, "comment": "Buy-1 on the second entry, toadflax at 3 vouchers"},
+    {"step": "assertInventory", "item": "Toadflax", "count": 1, "timeoutMs": 5000, "comment": "noted, as the Wiki has it"},
+    {"step": "assertInventory", "item": "Brimhaven voucher", "count": 7},
+    {"step": "clickWidget", "interfaceId": 819, "component": 38, "slot": 48, "op": 2, "comment": "Buy-1 on the fifth entry, the Pirate's hook at 800 vouchers"},
+    {"step": "assertMessage", "contains": "[shop.not_enough_currency", "timeoutMs": 5000},
+
+    {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+  ]
+}

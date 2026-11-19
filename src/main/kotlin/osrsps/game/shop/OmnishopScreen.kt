@@ -26,6 +26,20 @@ interface OmnishopOwner {
 
     /** [player]'s stock of the shop, in the shop's inv. */
     fun stock(player: Player): Inventory
+
+    /** [player]'s balance in [currency], for a shop whose entries name their own currencies; [balance] by default. */
+    fun balance(player: Player, currency: OmnishopCurrency): Int = balance(player)
+
+    fun setBalance(player: Player, currency: OmnishopCurrency, value: Int) = setBalance(player, value)
+
+    /**
+     * Whether this owner hands over [stock] itself ([deliver]) rather than the screen putting its item in the backpack:
+     * a purchase of XP. Null (the default) for an item; false refuses the entry outright.
+     */
+    fun delivers(stock: OmnishopStock): Boolean? = null
+
+    /** Hands [player] one purchase of [stock], for an entry [delivers] says is this owner's. */
+    fun deliver(player: Player, stock: OmnishopStock) {}
 }
 
 /**
@@ -77,10 +91,12 @@ class OmnishopScreen(
         openModal(player, FrameSlot.MAINMODAL, MAIN)
         openModal(player, FrameSlot.SIDEMODAL, SIDE)
         open[player] = Open(shop, owner)
-        // The stock before the scripts that count it.
-        val stock = owner.stock(player)
-        stock.resendAll()
-        sendInventory(player, stock, send)
+        // The stock before the scripts that count it; a shop with no stock inv (the Agility Arena Store) has none to send.
+        if (shop.inv >= 0) {
+            val stock = owner.stock(player)
+            stock.resendAll()
+            sendInventory(player, stock, send)
+        }
         send(player, RunClientScript(MAIN_INIT_SCRIPT, listOf(shop.row, shop.inv, -1)))
         send(player, RunClientScript(SIDE_INIT_SCRIPT, listOf(shop.row)))
         val last = shop.stock.size * ENTRY_COMPONENTS - 1
@@ -105,7 +121,7 @@ class OmnishopScreen(
             open.remove(player)
             return
         }
-        sendInventory(player, shop.owner.stock(player), send)
+        if (shop.shop.inv >= 0) sendInventory(player, shop.owner.stock(player), send)
     }
 
     /** A click on the window. Returns false when it isn't on it. */
@@ -141,15 +157,34 @@ class OmnishopScreen(
     private fun buy(player: Player, shop: Open, entry: Int, amount: Int) {
         val stock = shop.shop.stock.getOrNull(entry) ?: return
         if (amount <= 0 || !stock.buyable || stock.viewOnly) return
-        val type = objTypes[stock.obj] ?: return
         val owner = shop.owner
+        val delivers = owner.delivers(stock)
+        if (delivers == false) return
+        val currency = stock.currency ?: shop.shop.currency
+        fun balance() = if (currency != null) owner.balance(player, currency) else owner.balance(player)
+        if (delivers == true) {
+            var bought = 0
+            while (bought < amount) {
+                if (balance() < stock.cost) {
+                    message(player, ShopLines.NOT_ENOUGH_CURRENCY, "currency" to (currency?.plural ?: ""))
+                    break
+                }
+                if (currency != null) owner.setBalance(player, currency, balance() - stock.cost) else owner.setBalance(player, balance() - stock.cost)
+                owner.deliver(player, stock)
+                bought++
+            }
+            if (bought > 0) send(player, RunClientScript(CURRENCY_REDRAW_SCRIPT, listOf(shop.shop.row)))
+            return
+        }
+        val unnoted = objTypes[stock.obj] ?: return
+        val type = if (stock.noted) unnoted.certlink.takeIf { it >= 0 }?.let { objTypes[it] } ?: unnoted else unnoted
         val inv = owner.stock(player)
         val have = if (shop.shop.inv >= 0) inv.count(stock.obj).coerceAtMost(Int.MAX_VALUE.toLong()).toInt() else amount
         val units = maxOf(1, stock.multiplier)
         var bought = 0
         while (bought < minOf(amount, have)) {
-            if (owner.balance(player) < stock.cost) {
-                message(player, ShopLines.NOT_ENOUGH_CURRENCY, "currency" to (shop.shop.currency?.plural ?: ""))
+            if (balance() < stock.cost) {
+                message(player, ShopLines.NOT_ENOUGH_CURRENCY, "currency" to (currency?.plural ?: ""))
                 break
             }
             val room = if (type.stackable) player.inventory.count(type.id) > 0 || player.inventory.freeSlots > 0 else player.inventory.freeSlots >= units
@@ -157,7 +192,7 @@ class OmnishopScreen(
                 message(player, ShopLines.NOT_ENOUGH_SPACE)
                 break
             }
-            owner.setBalance(player, owner.balance(player) - stock.cost)
+            if (currency != null) owner.setBalance(player, currency, balance() - stock.cost) else owner.setBalance(player, balance() - stock.cost)
             player.inventory.add(type, units)
             if (shop.shop.inv >= 0) takeStock(inv, stock.obj)
             bought++
