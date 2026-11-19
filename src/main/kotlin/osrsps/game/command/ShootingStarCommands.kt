@@ -4,6 +4,7 @@ import osrsps.game.World
 import osrsps.game.skill.ShootingStars
 import osrsps.game.skill.StarRegion
 import osrsps.game.skill.StarSite
+import osrsps.game.skill.Telescope
 
 /**
  * `::star` for testing shooting stars ([ShootingStars]). With `::seed n` set first, the sites, sizes and timings the
@@ -16,12 +17,13 @@ import osrsps.game.skill.StarSite
  * - `::star next ticks` plans the next landing that many ticks from now.
  * - `::star layer` ends the current layer now; `::star clear` takes the star away.
  * - `::star bonus [n]` shows or sets the player's own discovery bonus.
+ * - `::star scout oak|teak|mahogany` looks through that telescope, as the study's will (Construction).
  */
 fun CommandRegistry.registerShootingStarCommands(world: World) {
     val stars = world.shootingStars
-    val usage = "Usage: ::star [sites | land [site|here] [size] | next ticks | layer | clear | bonus [n]]"
+    val usage = "Usage: ::star [sites | land [site|here] [size] | next ticks | layer | clear | bonus [n] | scout oak|teak|mahogany]"
 
-    register("star", "::star [sites|land|next|layer|clear|bonus]", admin = true) {
+    register("star", "::star [sites|land|next|layer|clear|bonus|scout]", admin = true) {
         when (args.firstOrNull()?.lowercase()) {
             null -> {
                 val star = stars.star
@@ -44,6 +46,7 @@ fun CommandRegistry.registerShootingStarCommands(world: World) {
                     else -> stars.sites[where] ?: fail("No star site '$where'. ::star sites lists them")
                 }
                 if (player.level != 0) fail("Stars land on the ground floor")
+                if (where == "here" && !stars.canLand(site.x, site.z)) fail("A star needs open ground with nothing on it, outside instances")
                 val size = args.getOrNull(2)?.let { it.toIntOrNull()?.takeIf { s -> s in 1..ShootingStars.MAX_SIZE } ?: fail(usage) }
                     ?: ShootingStars.SIZE_WEIGHTS.keys.let { world.random.pick(it.toList()) }
                 world.scripts.interrupt(player)
@@ -73,6 +76,12 @@ fun CommandRegistry.registerShootingStarCommands(world: World) {
                 val n = args.getOrNull(1)?.toIntOrNull()?.takeIf { it in 0..ShootingStars.DISCOVERY_BONUS && args.size == 2 } ?: fail(usage)
                 stars.setBonus(player, n)
                 reply("Your star discovery bonus is $n dust.")
+            }
+            "scout" -> {
+                val telescope = args.getOrNull(1)?.takeIf { args.size == 2 }
+                    ?.let { name -> Telescope.entries.firstOrNull { it.name.equals(name, ignoreCase = true) } } ?: fail(usage)
+                world.scripts.interrupt(player)
+                world.scripts.start(player) { with(stars) { lookThrough(telescope) } }
             }
             else -> fail(usage)
         }
