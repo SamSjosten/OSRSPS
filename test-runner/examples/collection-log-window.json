@@ -1,5 +1,5 @@
 {
- "name": "Collection log step 2: the log opens on a page with what you have of it and its kill count, a page and a tab clicked, the burger menu to the overview and its Other button back to the log",
+ "name": "Collection log step 2: the log opens on a page with what you have of it and its kill count, a page and a tab clicked, the burger menu to the overview and its Other button back to the log, then the search toggle",
  "account": "test",
  "steps": [
   {
@@ -89,6 +89,27 @@
   {
    "step": "assertInterface",
    "interfaceId": 621
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 621,
+   "component": 76,
+   "comment": "the search toggle: the server sends the logged items for the search (at most once a tick, exploit review 44)"
+  },
+  {
+   "step": "clickWidget",
+   "interfaceId": 621,
+   "component": 76,
+   "comment": "and again, toggling search back off"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 621,
+   "comment": "the log is still open after searching"
   },
   {
    "step": "clickWidget",
