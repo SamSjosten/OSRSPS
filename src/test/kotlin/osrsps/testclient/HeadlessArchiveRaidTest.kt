@@ -17,7 +17,6 @@ import osrsps.game.ObjTypes
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.World
-import osrsps.game.bank.BankScreen
 import osrsps.game.combat.Deaths
 import osrsps.game.combat.DropItem
 import osrsps.game.combat.DropSlot
@@ -726,20 +725,23 @@ class HeadlessArchiveRaidTest {
                         dave.command("raid tp ${ArchiveChests.SLOTS[2].first + 1} ${ArchiveChests.SLOTS[2].second}")
                         dave.awaitAt(Tile(third.x + 1, third.z), "beside his chest", ArchiveRaids.REWARD_LEVEL)
                         val seen = dave.await("his chest in view") { dave.npcs().firstOrNull { it.id == ArchiveChests.chestType(2, false) } }
-                        // He opens his bank while it opens (exploit review R42C-3): the window coming doesn't shut it.
+                        // He is asked a question in the chatbox while it opens (exploit review R42C-3, Codex on PR 800):
+                        // the window coming doesn't shut it.
+                        val him = world.playerNamed("dave")!!
                         dave.commandReply("pause") { it.contains("aused after tick") }
                         dave.npcOp(seen.index, ArchiveChests.OPEN)
                         dave.stepTicks(1)
                         assertEquals(setOf(2), run.opening.keys, "his opening")
-                        dave.command("openbank")
+                        world.scripts.start(him) { world.dialogues.start(this, run.chests.getValue(2)) { choice("[test.yes]", "[test.no]") } }
+                        assertTrue(him.chatModal >= 0, "his question")
                         dave.stepTicks(ArchiveChests.OPEN_TICKS + ArchiveChests.WINDOW_AFTER)
                         assertTrue(run.opened == setOf(0, 2) && run.revealing.isEmpty(), "open: ${run.opened}, revealing: ${run.revealing}")
                         assertEquals(ArchiveChests.chestType(2, open = true), run.chests.getValue(2).type.id)
+                        assertTrue(him.chatModal >= 0, "his question still open")
+                        assertFalse(world.archiveChestWindow.isOpen(him), "the window over his question")
                         dave.commandReply("resume") { it.startsWith("Resumed") }
-                        dave.await("his bank, still open") { dave.openInterfaces().takeIf { BankScreen.MAIN in it } }
-                        assertTrue(ArchiveChestWindow.ID !in dave.openInterfaces(), "the window over his bank")
                         dave.closeModal()
-                        dave.await("his bank closed") { dave.openInterfaces().takeIf { BankScreen.MAIN !in it } }
+                        dave.await("his question closed") { if (him.chatModal < 0) Unit else null }
 
                         // Raid step 29b. Each one's loot waits as theirs, the Wheelbarrow's varbit set; the one without
                         // the unique has the thirty axes, and takes them from the window their Rift's Search opens.
