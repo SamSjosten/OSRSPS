@@ -27,9 +27,18 @@ data class ActorEvent(val kind: ActorEventKind, val npc: Boolean, val index: Int
 /**
  * A player's appearance block, as much of it as the client's player model shows of their gear: the item drawn in each
  * wearpos 0 to 11 (-1 for none, or for an identity kit such as hair), the NPC they are drawn as (-1 for none), the
- * animation they stand in, and their name as other players' menus show it.
+ * animation they stand in, and their name as other players' menus show it. With them the look under the gear: body type,
+ * the identity kit of each body part in [osrsps.game.PlayerLook.BodyPart]'s order (-1 for none) and the five colours.
  */
-data class AppearanceView(val worn: List<Int>, val npc: Int, val readyAnim: Int, val name: String = "")
+data class AppearanceView(
+    val worn: List<Int>,
+    val npc: Int,
+    val readyAnim: Int,
+    val name: String = "",
+    val bodyType: Int = 0,
+    val kits: List<Int> = emptyList(),
+    val colours: List<Int> = emptyList(),
+)
 
 /**
  * The client's side of the player info protocol (GPI): keeps every player's position from REBUILD_LOGIN's init
@@ -275,7 +284,8 @@ class PlayerInfoReader(val localIndex: Int) {
      */
     private fun readAppearance(data: ByteArray): AppearanceView {
         val buf = Unpooled.wrappedBuffer(data).toJagByteBuf()
-        repeat(3) { buf.g1() }
+        val bodyType = buf.g1()
+        repeat(2) { buf.g1() }
         val worn = MutableList(WORN_SLOTS) { -1 }
         var npc = -1
         for (wearpos in 0 until WORN_SLOTS) {
@@ -288,12 +298,20 @@ class PlayerInfoReader(val localIndex: Int) {
             }
             if (value >= ITEM_OFFSET) worn[wearpos] = value - ITEM_OFFSET
         }
-        for (wearpos in 0 until WORN_SLOTS) if (buf.g1() != 0) buf.g1()
-        repeat(COLOURS) { buf.g1() }
+        // The identity kits by wearpos, whatever is worn over them.
+        val kits = MutableList(KIT_WEARPOS.size) { -1 }
+        for (wearpos in 0 until WORN_SLOTS) {
+            val high = buf.g1()
+            if (high == 0) continue
+            val part = KIT_WEARPOS.indexOf(wearpos)
+            val kit = ((high shl 8) or buf.g1()) - KIT_OFFSET
+            if (part >= 0) kits[part] = kit
+        }
+        val colours = List(COLOURS) { buf.g1() }
         val ready = buf.g2()
         repeat(OTHER_STANCE_ANIMS) { buf.g2() }
         val name = buf.gjstr()
-        return AppearanceView(worn, npc, if (ready == NONE) -1 else ready, name)
+        return AppearanceView(worn, npc, if (ready == NONE) -1 else ready, name, bodyType, kits, colours)
     }
 
     private fun readHighRes(bits: BitReader, index: Int, moves: MutableList<PlayerMove>, extended: MutableList<Int>) {
@@ -424,6 +442,10 @@ class PlayerInfoReader(val localIndex: Int) {
         /** The appearance's wearposes: head to jaw, 0 to 11 (ring and ammo aren't drawn). */
         const val WORN_SLOTS = 12
         const val ITEM_OFFSET = 0x800
+        const val KIT_OFFSET = 0x100
+
+        /** The wearpos each body part's kit goes in (the client's): hair 8, jaw 11, torso 4, arms 6, hands 9, legs 7, feet 10. */
+        val KIT_WEARPOS = listOf(8, 11, 4, 6, 9, 7, 10)
         const val COLOURS = 5
 
         /** The stance's animations after the ready pose: turn, walk and its three sides, run. */

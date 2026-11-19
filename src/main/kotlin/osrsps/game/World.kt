@@ -36,6 +36,7 @@ import net.rsprot.protocol.channel.hostAddress
 import osrsps.game.command.Admins
 import osrsps.game.command.CommandRegistry
 import osrsps.game.command.registerCombatCommands
+import osrsps.game.command.registerLookCommands
 import osrsps.game.command.registerDevCommands
 import osrsps.game.command.registerEffectCommands
 import osrsps.game.command.registerGroundObjCommands
@@ -414,6 +415,8 @@ class World(
     starCycle: Boolean = false,
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
     private val cycleMillis: Long = TICK_MILLIS,
+    /** The cache's identity kits, which ::look and the makeover screens check kits against. */
+    val idkTypes: IdkTypes = IdkTypes.NONE,
 ) : GameConnectionHandler<Player> {
     /**
      * The cache's varps and varbits plus our own ([customVars]), which the client gets through the cache overlay and
@@ -1073,6 +1076,7 @@ class World(
         registerCombatCommands(this@World)
         registerIpCommands(this@World)
         registerSocialCommands(this@World)
+        registerLookCommands(this@World)
     }
 
     init {
@@ -2319,9 +2323,8 @@ class World(
 
         val appearance = infos.playerInfo.avatar.extendedInfo
         appearance.setName(player.username)
-        // Default male look. Guessed, not checked against live. Worn items and the stance go with the first flush.
-        DEFAULT_IDENT_KITS.forEachIndexed { slot, kit -> appearance.setIdentKit(slot, kit) }
-        for (slot in 0 until 5) appearance.setColour(slot, 0)
+        // The saved look. Worn items and the stance go with the first flush.
+        sendLook(player)
         sendRunState(player)
         PlayerOps.send(player.vars, player.session::queue)
         player.attackOp = false
@@ -2355,6 +2358,22 @@ class World(
             interfaces.runClientScript(player, AllSettings.TUT2_DEFAULT_SETTINGS_SCRIPT, emptyList())
             interfaces.requestFrame(player, GameFrame.RESIZABLE_CLASSIC, tick)
         }
+    }
+
+    /** Gives [player] [look] and shows it to everyone who can see them, the player included, with the next flush. */
+    fun setLook(player: Player, look: PlayerLook) {
+        player.look = look
+        sendLook(player)
+    }
+
+    /** Puts [player]'s look in their appearance block; RSProt sends it only when something in it changed. */
+    private fun sendLook(player: Player) {
+        val appearance = player.infos.playerInfo.avatar.extendedInfo
+        val look = player.look
+        appearance.setBodyType(look.bodyType)
+        appearance.setPronoun(look.pronoun)
+        look.kits.forEachIndexed { part, kit -> appearance.setIdentKit(part, kit) }
+        look.colours.forEachIndexed { part, colour -> appearance.setColour(part, colour) }
     }
 
     /**
@@ -3649,7 +3668,6 @@ class World(
         /** wildy_hub_buffer (10530): 1 inside Ferox Enclave, where the Wilderness overlay shows "Level: --". */
         const val VARBIT_WILDY_HUB_BUFFER = 10530
 
-        private val DEFAULT_IDENT_KITS = intArrayOf(0, 10, 18, 26, 33, 36, 42)
     }
 }
 
