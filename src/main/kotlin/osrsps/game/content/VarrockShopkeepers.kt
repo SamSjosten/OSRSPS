@@ -36,6 +36,9 @@ object ZaffLines : Lines("zaff", "Transcript:Zaff") {
     val NO = line("no", "option 2, which the player then says")
     val PUN = line("pun", "option 2: his answer")
     val JOKE = line("joke", "option 2: the player's last line")
+    val GREETING_MEMBERS = line("greeting_members", "his first line on a members' world: buy or sell staffs, or something else? (used once a Varrock Diary tier is done, with the option below)")
+    val EXTRA_STOCK = line("extra_stock", "option 3 once a Varrock Diary tier is done, which the player then says")
+    val BARREL = line("barrel", "option 3: his answer, take a look in the barrel in the corner")
 }
 
 /**
@@ -43,7 +46,7 @@ object ZaffLines : Lines("zaff", "Transcript:Zaff") {
  * assistant (2885), Horvik (2882), Lowe (2883) and Zaff (2880). Trade is [registerShops]'s. From the Wiki's
  * transcripts. Guessed: every chathead expression; that the Swordshop's assistant, who has no transcript, says what the
  * keeper says. Left out: Horvik's corrupted platebody, Lowe's and Zaff's combat path voucher, treasure trails, and
- * Zaff's Varrock diary battlestaves, What Lies Below ring and Bryophyta's essence options.
+ * Zaff's What Lies Below ring and Bryophyta's essence options. Zaff's Varrock Diary option is here, its barrel [ZaffBarrel].
  */
 object VarrockShopkeepers {
     const val SWORDSHOP_KEEPER = 2884
@@ -78,9 +81,18 @@ object VarrockShopkeepers {
         false
     }
 
-    internal suspend fun Dialogue.zaff(): Boolean = with(ZaffLines) {
-        chatNpc(ChatAnim.HAPPY, GREETING)
-        if (choice(YES, NO) == 1) return true
+    internal suspend fun Dialogue.zaff(diaries: Diaries): Boolean = with(ZaffLines) {
+        // The Varrock Diary's option, from the members' transcript; its greeting with it (guessed: only then, as the
+        // members' world's other option, the What Lies Below ring, isn't built).
+        val diary = diaries.highestDone(player, DiaryArea.VARROCK) != null
+        chatNpc(ChatAnim.HAPPY, if (diary) GREETING_MEMBERS else GREETING)
+        val picked = if (diary) choice(YES, NO, EXTRA_STOCK) else choice(YES, NO)
+        if (picked == 1) return true
+        if (picked == 3) {
+            chatPlayer(ChatAnim.QUIZ, EXTRA_STOCK)
+            chatNpc(ChatAnim.HAPPY, BARREL)
+            return false
+        }
         chatPlayer(ChatAnim.NEUTRAL, NO)
         chatNpc(ChatAnim.LAUGH, PUN)
         chatPlayer(ChatAnim.LAUGH, JOKE)
@@ -96,7 +108,7 @@ fun registerVarrockShopkeepers(world: World) {
             SWORDSHOP_ASSISTANT to { swordshop() },
             HORVIK to { horvik() },
             LOWE to { lowe() },
-            ZAFF to { zaff() },
+            ZAFF to { zaff(world.diaries) },
         )
         for ((id, talk) in talks) {
             world.handlers.onNpc(id, TALK_TO) { op ->
