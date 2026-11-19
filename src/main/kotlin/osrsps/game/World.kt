@@ -2408,6 +2408,8 @@ class World(
             // does the tutorial, so a new account gets them at its first login.
             interfaces.runClientScript(player, AllSettings.TUT2_DEFAULT_SETTINGS_SCRIPT, emptyList())
             interfaces.requestFrame(player, GameFrame.RESIZABLE_CLASSIC, tick)
+            // Where Tutorial Island starts on live: the Character Creator, for the look the new account will have.
+            designScreen.open(player)
         }
     }
 
@@ -2848,6 +2850,7 @@ class World(
         if (itemSetsScreen.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (collectionLogWindow.click(player, interfaceId, componentId, sub, op)) return@act
         if (makeoverScreen.click(player, interfaceId, componentId, sub)) return@act
+        if (designScreen.click(player, interfaceId, componentId, sub)) return@act
         if (archiveChestWindow.click(player, interfaceId, componentId, sub, op, obj)) return@act
         if (interfaceId == EquipmentTab.WORNITEMS && componentId == PriceChecker.WORNITEMS_BUTTON) {
             priceChecker.open(player)
@@ -3093,6 +3096,9 @@ class World(
         { makeoverCatalog }, interfaces, show = { player, look -> sendLook(player, look) }, keep = ::setLook,
         confirmed = { player, _, by -> (by as? Npc)?.let { osrsps.game.content.VarrockStores.compliment(this, player, it) } },
     )
+
+    /** The Character Creator a new account gets at its first login; see [osrsps.game.look.DesignScreen]. */
+    val designScreen = osrsps.game.look.DesignScreen({ makeoverCatalog }, interfaces, keep = ::setLook, switchBodyType = makeoverScreen::switchBodyType)
 
     /** The collection log's windows: the log and its overview; see [osrsps.game.collection.CollectionLogWindow]. */
     val collectionLogWindow = osrsps.game.collection.CollectionLogWindow(
