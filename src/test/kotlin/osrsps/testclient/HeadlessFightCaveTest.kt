@@ -477,11 +477,17 @@ class HeadlessFightCaveTest {
                 val mej = client.waveIn(server, "ida", 15).single()
                 assertEquals(3123, mej.type.id)
                 client.commandReply("hit 50 ${mej.index}") { it.startsWith("Hit") }
+                val hurt = mej.hitpoints
+                assertTrue(hurt * 2 < mej.maxHitpoints)
                 client.tele(mej.x - 1, mej.z)
-                client.await("its heal", timeoutMillis = 20_000) {
+                val heal = client.await("its heal", timeoutMillis = 20_000) {
                     client.actorEvents().firstOrNull { it.npc && it.index == mej.index && it.kind == ActorEventKind.ANIMATION && it.id == FightCaveMonsters.ANIM_MEJKOT_HEAL }
                 }
                 assertTrue(client.actorEvents().any { it.npc && it.index == mej.index && it.kind == ActorEventKind.SPOTANIM && it.id == FightCaveMonsters.SPOTANIM_HEAL })
+                // The heal is its attack for that tick: no swing lands on the player alongside it (a 0 under ::god).
+                assertTrue(client.actorEvents().none { !it.npc && it.kind == ActorEventKind.HITSPLAT && it.ticks == heal.ticks })
+                // Each heal is a roll of 0 to 10, and it heals again every attack while below half, so it gains in time.
+                client.await("hitpoints back", timeoutMillis = 30_000) { mej.hitpoints.takeIf { it > hurt } }
             }
         }
     }

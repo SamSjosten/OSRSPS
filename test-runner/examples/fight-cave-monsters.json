@@ -1,5 +1,5 @@
 {
-  "name": "Fight Caves step FC2: wave 1's Tz-Kih draining a prayer point through ::god, wave 3's Tz-Kek splitting into two level 22s that hold the wave, and wave 7's Tok-Xil firing from afar (::keys on, ::god on)",
+  "name": "Fight Caves step FC2: wave 1's Tz-Kih draining a prayer point through ::god, wave 3's Tz-Kek splitting into two level 22s that hold the wave, wave 7's Tok-Xil firing from afar, and wave 15's Yt-MejKot healing itself below half (::keys on, ::god on)",
   "account": "test",
   "steps": [
     {"step": "waitForLogin"},
@@ -20,6 +20,12 @@
     {"step": "command", "text": "::fightcave 7 1", "expectMessage": "Fight cave: wave 7 of rotation 1"},
     {"step": "assertMessage", "contains": "[fight_cave.wave wave=7]", "timeoutMs": 15000},
     {"step": "assertAnimation", "npc": "Tok-Xil", "id": 2633, "timeoutMs": 30000, "comment": "magmaquris_spine_attack: it fires from where it stands"},
+    {"step": "command", "text": "::fightcave 15 1", "expectMessage": "Fight cave: wave 15 of rotation 1"},
+    {"step": "assertMessage", "contains": "[fight_cave.wave wave=15]", "timeoutMs": 15000},
+    {"step": "assertHitsplat", "self": true, "amount": 0, "comment": "the Yt-MejKot's swing: it has come up beside the player", "timeoutMs": 60000},
+    {"step": "command", "text": "::hit 50 Yt-MejKot", "expectMessage": "Hit Yt-MejKot #", "comment": "below half its 80 hitpoints"},
+    {"step": "assertAnimation", "npc": "Yt-MejKot", "id": 2639, "timeoutMs": 20000, "comment": "lizard_cleric_heal: it heals in place of an attack"},
+    {"step": "assertSpotanim", "npc": "Yt-MejKot", "id": 444, "timeoutMs": 5000, "comment": "tzhaar_heal on itself"},
     {"step": "command", "text": "::fightcave leave", "expectMessage": "Left the fight cave."},
     {"step": "finishDialogue"},
     {"step": "command", "text": "::empty"},
