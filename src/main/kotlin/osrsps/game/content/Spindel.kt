@@ -8,6 +8,7 @@ import osrsps.game.Skill
 import osrsps.game.World
 import osrsps.game.combat.AttackType
 import osrsps.game.combat.NpcRangedAttack
+import osrsps.game.combat.SureHit
 import osrsps.game.encounter.CycleStep
 import osrsps.game.encounter.EncounterContext
 import osrsps.game.encounter.EncounterDef
@@ -127,7 +128,8 @@ class SpiderQueen(val config: Config) {
         val spots = listOf(Tile(boss.x - 1, boss.z - 1), Tile(boss.x + size, boss.z - 1), Tile(boss.x - 1, boss.z + size), Tile(boss.x + size, boss.z + size))
         var called = 0
         for (at in spots) {
-            if (called >= config.spiderlings) break
+            // No more than ten alive at once, the Wiki's cap (Codex review on #832).
+            if (called >= config.spiderlings || fight.spiderlings.size >= MAX_SPIDERLINGS) break
             val spiderling = spawnAdd(type, at.x, at.z) ?: continue
             fight.spiderlings += spiderling
             world.meleeCombat.aggress(spiderling, target, world.tick)
@@ -241,6 +243,9 @@ class SpiderQueen(val config: Config) {
         val def = def(world) ?: return
         world.wildernessBosses.register(boss)
         world.npcScripts.onDeath(listOf(config.boss)) { npc -> died(world, npc) }
+        // Players hit spiderlings at their max whatever their gear, as the Wiki has it (Codex review on #832).
+        val sureHit = world.combat.sureHit
+        world.combat.sureHit = { player, npc, type -> if (npc.type.id == config.spiderling) SureHit.MAX else sureHit(player, npc, type) }
         world.npcScripts.onTick(listOf(config.boss)) { npc ->
             if (npc.dead || world.encounters.all.any { it.boss === npc }) return@onTick
             world.encounters.start(def, npc, config.inArena)
@@ -256,6 +261,8 @@ class SpiderQueen(val config: Config) {
         const val MOVE_MIN = 4
         const val MOVE_TICKS = 8
         const val MAX_PER_SPIDERLING = 2
+        /** The most alive at once (Wiki). */
+        const val MAX_SPIDERLINGS = 10
         const val PASS_PER_SPIDERLING = 20
 
         const val WEB_HALF_WIDTH = 3

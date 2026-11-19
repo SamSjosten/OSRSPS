@@ -15,8 +15,10 @@ import osrsps.game.SeqNames
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.World
+import osrsps.game.combat.AttackType
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
+import osrsps.game.combat.SureHit
 import osrsps.game.content.Spindel
 import osrsps.game.content.SpiderQueen
 import osrsps.game.content.WildernessLairFee
@@ -123,6 +125,9 @@ class HeadlessSpindelTest {
                 val fight = client.await("her fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
                 client.await("her spiderlings") { fight.lines.firstOrNull { it.endsWith("calls 2 spiderlings") } }
                 assertEquals(2, Spindel.FIGHT.spiderlings(npc).size)
+                val bo = server.world.playerNamed("bo")!!
+                assertEquals(SureHit.MAX, server.world.combat.sureHit(bo, Spindel.FIGHT.spiderlings(npc).first(), AttackType.SLASH), "max hits on spiderlings")
+                assertEquals(SureHit.ROLLED, server.world.combat.sureHit(bo, npc, AttackType.SLASH))
                 client.await("a stronger shot", timeoutMillis = 30_000) { fight.lines.firstOrNull { "(max 35, 40% through prayer)" in it || "(max 28, 40% through prayer)" in it } }
                 client.await("her move", timeoutMillis = 30_000) { fight.lines.firstOrNull { " moves to " in it } }
                 for (s in Spindel.FIGHT.spiderlings(npc).toList()) client.commandReply("hit 5 ${s.index}") { it.startsWith("Hit ") }
