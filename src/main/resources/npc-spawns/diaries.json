@@ -1,0 +1,7 @@
+{
+  "about": "Achievement diaries step 8: Twiggy O'Korn, the Achievement Diaries' mistress, and her squirrel, south of Draynor Village bank. Types and tiles are mejrs's data_osrs NPCList_OSRS.json (live), Twiggy's tile also the Wiki's map pin (3096,3227). Wander ranges guessed until recorded.",
+  "spawns": [
+    {"npc": 5527, "x": 3096, "z": 3227, "wander": 1, "source": "Twiggy O'Korn, south of Draynor bank. mejrs NPCList_OSRS; Wiki, Twiggy O'Korn (map 3096,3227); wander range guessed"},
+    {"npc": 5528, "x": 3097, "z": 3227, "wander": 2, "source": "Squirrel (Twiggy O'Korn's), beside her. mejrs NPCList_OSRS; Wiki, Squirrel (version 4, Draynor Village); wander range guessed"}
+  ]
+}

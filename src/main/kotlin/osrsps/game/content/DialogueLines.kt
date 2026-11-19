@@ -308,6 +308,8 @@ object DialogueLines {
         MartinLines,
         MatthiasLines,
         MikasiLines,
+        TwiggyLines,
+        ExplorersRingLines,
         HaystackLines,
         HeadChefLines,
         HerbloreLines,

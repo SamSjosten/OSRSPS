@@ -111,6 +111,7 @@ import osrsps.game.combat.Teleblock
 import osrsps.game.content.DialogueLines
 import osrsps.game.content.Diaries
 import osrsps.game.content.Examines
+import osrsps.game.content.ExplorersRing
 import osrsps.game.content.ResourceArea
 import osrsps.game.content.CustomVars
 import osrsps.game.content.HomeTeleport
@@ -210,6 +211,7 @@ import osrsps.game.content.registerWildernessObelisks
 import osrsps.game.content.registerWildernessLevers
 import osrsps.game.content.WildernessObelisks
 import osrsps.game.content.registerSkullSceptre
+import osrsps.game.content.registerTwiggy
 import osrsps.game.content.registerStrongholdOfSecurity
 import osrsps.game.content.registerBarbarianVillage
 import osrsps.game.content.registerCooksGuild
@@ -1320,6 +1322,8 @@ class World(
         registerWildernessLevers(this)
         registerStrongholdOfSecurity(this)
         registerSkullSceptre(this)
+        registerTwiggy(this)
+        ExplorersRing(this).register()
         registerHaystacks(this)
         registerLodestones(this)
         registerKaramjaShips(this)

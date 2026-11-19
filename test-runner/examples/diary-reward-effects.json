@@ -1,0 +1,97 @@
+{
+ "name": "Achievement diaries: the Explorer's ring 3 teleports to the cabbage patch and counts its uses, and Twiggy O'Korn talks south of Draynor bank (::keys on)",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "let the client settle: a command typed straight away can be lost"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::empty"
+  },
+  {
+   "step": "command",
+   "text": "::item 13127 1",
+   "comment": "Explorer's ring 3: unlimited cabbage-patch teleports"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1
+  },
+  {
+   "step": "itemOption",
+   "item": "Explorer's ring 3",
+   "option": "Teleport"
+  },
+  {
+   "step": "assertLocation",
+   "x": 3052,
+   "y": 3291,
+   "plane": 0,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "a new region after the teleport"
+  },
+  {
+   "step": "itemOption",
+   "item": "Explorer's ring 3",
+   "option": "Check"
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[explorers_ring.check_unlimited"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3096 3229 0",
+   "expectMessage": "Teleported to 3096, 3229, 0"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "npcOption",
+   "npc": "Twiggy O'Korn",
+   "option": "Talk-to"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[twiggy.hey_there]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[twiggy.goodbye]",
+   "comment": "a 1 in 50 chocolate bar comes first now and then: rerun if it does"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[twiggy.goodbye]"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue"
+  },
+  {
+   "step": "command",
+   "text": "::empty"
+  }
+ ]
+}

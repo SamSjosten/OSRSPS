@@ -6,6 +6,7 @@ import osrsps.game.Skill
 import osrsps.game.WearPos
 import osrsps.game.Wilderness
 import osrsps.game.World
+import osrsps.game.content.VarrockArmour
 import osrsps.game.trail.SkillingClues
 import osrsps.game.dialogue.Lines
 import osrsps.game.npc.Npc
@@ -76,7 +77,7 @@ class RockSize(val obj: Int, val xpTenths: Int, val low: Int, val high: Int)
  * swing (the click starts the clock, the message and animation, the roll when due, re-running the op each tick) is the
  * 2004Scape project's mining script. Guessed: which empty rock each rock becomes (rockN to rocksN, as the gamevals pair
  * them; runite and gem rocks share their models); the swing message and animation on the click's own tick (2004Scape
- * waits a tick). Out: mining gloves, Varrock armour and other extra-ore items, the prospector kit, rock golems,
+ * waits a tick). Varrock armour's second ore is [osrsps.game.content.VarrockArmour]'s. Out: mining gloves and other extra-ore items, the prospector kit, rock golems,
  * unidentified minerals, the Mining Guild's doors and level 60 (it is reached by ::tele), the visible-boost cap at 99.
  * No sounds: the 241 synth ids have no names.
  *
@@ -207,10 +208,13 @@ class Mining(private val world: World) {
                 val ore = world.objTypes[mined] ?: error("No obj type $mined for ${type.key} ore")
                 val emptied = takeYield(type, loc.x, loc.z, loc.level)
                 if (emptied) deplete(loc, rock)
-                player.inventory.add(ore, 1)
-                player.skills.addTenths(Skill.MINING, type.xpTenths)
+                // Varrock armour's second ore, with its XP, if there's room for it (rocks that hold several give it
+                // without using another of their ore: guessed).
+                val count = if (!type.gemRock && player.inventory.freeSlots > 1 && VarrockArmour.doubleOre(player, world.random, type.level)) 2 else 1
+                player.inventory.add(ore, count)
+                player.skills.addTenths(Skill.MINING, type.xpTenths * count)
                 // The diary counts what the rock gave, soft clay from a bracelet of clay as clay (guessed).
-                world.diaries.made(player, type.ore, 1)
+                world.diaries.made(player, type.ore, count)
                 player.message(text[MiningLines.GET_ORE, "ore" to if (mined == type.ore) oreName else ore.name.lowercase()])
                 world.trails.skilling.rolled(player, Skill.MINING, SkillingClues.MINING[type.key])
                 if (emptied) return stop()
