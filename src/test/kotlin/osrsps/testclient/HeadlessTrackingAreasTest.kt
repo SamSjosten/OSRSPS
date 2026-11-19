@@ -23,11 +23,11 @@ import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
 
 /**
- * Hunter step 8b through the headless client: a desert devil trail in the Uzer Hunter area and a razor-backed kebbit
- * trail in Piscatoris, each followed from a burrow as a player would (inspecting the connectors at each node until one
- * shows the next segment) to the hiding spot where the footprints stop, and the creature noosed there. The burrows,
- * connectors and hiding spots are where the 242 cache places them, the varbits on the cache's varps and bits. The
- * razor-backed kebbit's level 49 is needed to start a trail.
+ * Hunter step 8b through the headless client: a feldip weasel trail in Feldip, common and razor-backed kebbit trails in
+ * Piscatoris and a desert devil trail in the Uzer Hunter area, each followed from a burrow as a player would (inspecting
+ * the connectors at each node until one shows the next segment) to the hiding spot where the footprints stop, and the
+ * creature noosed there. The burrows, connectors and hiding spots are where the 242 cache places them, the varbits on
+ * the cache's varps and bits. The razor-backed kebbit's level 49 is needed to start a trail.
  */
 class HeadlessTrackingAreasTest {
     /** One area's placed locs (type, x, z) and its segments' varbits (varbit to varp and low bit). */
@@ -161,10 +161,80 @@ class HeadlessTrackingAreasTest {
         }
     }
 
+    @Test
+    fun `a feldip weasel trail from a burrow ends at a bush, where the noose wand catches the weasel`(@TempDir dir: Path) {
+        server(dir, FELDIP).use { server ->
+            server.login("fw").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel hunter 99")
+                client.wieldNoose()
+                client.command("tele 2525 2887 0")
+                client.await("at Feldip") { client.position?.takeIf { it.x == 2525 } }
+                catchAt(client, FELDIP, 19479, 48..48)
+            }
+        }
+    }
+
+    @Test
+    fun `a common kebbit trail from the west burrow ends at a bush, where the noose wand catches the kebbit`(@TempDir dir: Path) {
+        server(dir, COMMON).use { server ->
+            server.login("ck").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("setlevel hunter 99")
+                client.wieldNoose()
+                client.command("tele 2322 3574 0")
+                client.await("at Piscatoris") { client.position?.takeIf { it.x == 2322 } }
+                catchAt(client, COMMON, 19707, 36..36)
+            }
+        }
+    }
+
     private companion object {
         const val BACKPACK = 93
         const val WORN = 94
         const val HUNTER = 21
+
+        /** The Feldip Hunter area's burrows, jungle plants and bushes where the 242 cache places them. */
+        val FELDIP = Trails(
+            Tracking.FELDIP,
+            listOf(
+                Triple(19403, 2522, 2881), Triple(19403, 2524, 2891), Triple(19404, 2524, 2886), Triple(19405, 2527, 2890),
+                Triple(19406, 2530, 2887), Triple(19407, 2526, 2882), Triple(19407, 2531, 2881), Triple(19408, 2533, 2882),
+                Triple(19409, 2533, 2889), Triple(19409, 2539, 2890), Triple(19410, 2534, 2886), Triple(19410, 2540, 2884),
+                Triple(19411, 2537, 2880), Triple(19412, 2541, 2883), Triple(19413, 2540, 2887), Triple(19414, 2543, 2890),
+                Triple(19414, 2551, 2888), Triple(19415, 2544, 2881), Triple(19415, 2551, 2881), Triple(19416, 2552, 2885),
+                Triple(19417, 2554, 2888), Triple(19417, 2555, 2881), Triple(19427, 2525, 2882), Triple(19427, 2531, 2890),
+                Triple(19427, 2533, 2885), Triple(19427, 2540, 2886), Triple(19427, 2542, 2881), Triple(19427, 2553, 2888),
+                Triple(19479, 2525, 2889), Triple(19593, 2554, 2882),
+            ),
+            mapOf(
+                3036 to (924 to 14), 3037 to (924 to 17), 3038 to (924 to 20), 3039 to (924 to 23), 3040 to (924 to 26),
+                3041 to (924 to 29), 3043 to (925 to 0), 3044 to (925 to 3), 3045 to (925 to 6), 3046 to (925 to 9),
+                3047 to (925 to 12), 3048 to (925 to 15), 3049 to (925 to 18), 3050 to (925 to 21), 3051 to (925 to 24),
+            ),
+        )
+
+        /** The common kebbits' burrows, plants and bushes in Piscatoris, where the 242 cache places them. */
+        val COMMON = Trails(
+            Tracking.PISCATORIS_COMMON,
+            listOf(
+                Triple(19339, 2323, 3562), Triple(19339, 2330, 3562), Triple(19340, 2333, 3565), Triple(19341, 2335, 3561),
+                Triple(19342, 2338, 3563), Triple(19342, 2346, 3566), Triple(19343, 2321, 3565), Triple(19344, 2325, 3565),
+                Triple(19344, 2330, 3568), Triple(19345, 2335, 3564), Triple(19345, 2337, 3573), Triple(19346, 2338, 3570),
+                Triple(19346, 2343, 3566), Triple(19347, 2341, 3579), Triple(19347, 2345, 3567), Triple(19348, 2320, 3573),
+                Triple(19349, 2324, 3571), Triple(19350, 2331, 3572), Triple(19351, 2326, 3575), Triple(19352, 2323, 3577),
+                Triple(19352, 2331, 3576), Triple(19353, 2335, 3574), Triple(19354, 2340, 3574), Triple(19355, 2336, 3579),
+                Triple(19429, 2322, 3570), Triple(19429, 2323, 3563), Triple(19429, 2327, 3573), Triple(19429, 2332, 3568),
+                Triple(19429, 2332, 3578), Triple(19429, 2336, 3571), Triple(19429, 2337, 3565), Triple(19429, 2343, 3568),
+                Triple(19492, 2331, 3562), Triple(19707, 2322, 3576), Triple(19710, 2341, 3577),
+            ),
+            mapOf(
+                2995 to (921 to 0), 2996 to (921 to 3), 2997 to (921 to 6), 2998 to (921 to 9), 2999 to (921 to 12),
+                3000 to (921 to 15), 3001 to (921 to 18), 3002 to (921 to 21), 3003 to (921 to 24), 3004 to (921 to 27),
+                3007 to (922 to 0), 3008 to (922 to 3), 3009 to (922 to 6), 3010 to (922 to 9), 3011 to (922 to 12),
+                3012 to (922 to 15), 3013 to (922 to 18),
+            ),
+        )
 
         /** The Uzer burrows, cacti, rockslides and disturbed sand where the 242 cache places them. */
         val DESERT = Trails(
