@@ -966,6 +966,9 @@ class World(
     /** Low and High Level Alchemy; see [osrsps.game.skill.magic.Alchemy]. */
     val alchemy = osrsps.game.skill.magic.Alchemy(this, osrsps.game.skill.magic.Alchemy.load(objTypes))
 
+    /** Superheat Item; see [osrsps.game.skill.magic.Superheat]. */
+    val superheat = osrsps.game.skill.magic.Superheat(this, osrsps.game.skill.magic.Superheat.load(objTypes))
+
     /** Boosted and drained stats going back; see [StatRestore]. */
     private val statRestore = StatRestore(prayers::has, potionData.divineHolds)
 
@@ -1179,6 +1182,7 @@ class World(
         teleports.register()
         boltEnchant.register()
         alchemy.register()
+        superheat.register()
         runecraft.register()
         runeCrafting.register()
         combinationRunes.register()

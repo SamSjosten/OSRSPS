@@ -46,6 +46,7 @@ import osrsps.game.skill.LevelUpLines
 import osrsps.game.skill.MakeLines
 import osrsps.game.skill.magic.AlchemyLines
 import osrsps.game.skill.magic.BoltEnchantLines
+import osrsps.game.skill.magic.SuperheatLines
 import osrsps.game.skill.MiningLines
 import osrsps.game.skill.ShootingStarLines
 import osrsps.game.skill.PickpocketGearLines
@@ -122,6 +123,7 @@ object DialogueLines {
         BlueMoonBarbarianLines,
         BoltEnchantLines,
         AlchemyLines,
+        SuperheatLines,
         BorkLines,
         DagonhaiLines,
         DreadnothLines,
