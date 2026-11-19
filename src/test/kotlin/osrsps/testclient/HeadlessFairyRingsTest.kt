@@ -32,14 +32,16 @@ import osrsps.map.LocShape
 /**
  * The fairy rings (travel networks step T1) through the headless client: the staff check, the dials (each click turns the
  * dial's varbit as the client does), Confirm to the code they spell, the Zanaris and Last-destination options, a code
- * that leads nowhere, and the creature that can come through. The codes are a few rows as the 242 cache's `fairyring`
+ * that leads nowhere, and the creature that can come through; and the travel log beside the dials (step T2), with its
+ * favourites and the rings' Favourites option. The codes are a few rows as the 242 cache's `fairyring`
  * table has them; the rl-client script test-runner/examples/fairy-rings.json does the same at Edgeville in the real
  * client, with the cache's table.
  */
 class HeadlessFairyRingsTest {
-    private val dkr = FairyRingCode(122, 26, "DKR", Destination(3129, 3496, 0))
-    private val bks = FairyRingCode(321, 57, "BKS", Destination(2412, 4434, 0))
-    private val dis = FairyRingCode(101, 17, "DIS", Destination(3108, 3149, 0))
+    // The log's lines are stand-ins: the cache's are Jagex's words.
+    private val dkr = FairyRingCode(122, 26, "DKR", Destination(3129, 3496, 0), description = "<br>dkr line", textComponent = 50, faveIconComponent = 51)
+    private val bks = FairyRingCode(321, 57, "BKS", Destination(2412, 4434, 0), description = "<br>bks line", textComponent = 60, faveIconComponent = 61)
+    private val dis = FairyRingCode(101, 17, "DIS", Destination(3108, 3149, 0), description = "<br>dis line", textComponent = 40, faveIconComponent = 41)
     private val dlr = FairyRingCode(112, 22, "DLR", Destination(2213, 3099, 0), apparition = BADGER, noStaffReturn = true)
     private val aip = FairyRingCode(0, 0, "AIP", null)
     private val codes = FairyRingCodes(listOf(dkr, bks, dis, dlr, aip))
@@ -76,7 +78,13 @@ class HeadlessFairyRingsTest {
                     FairyRings.DIALS[2] to VarbitType(DIALS_VARP, 4, 5),
                     FairyRings.VARBIT_LASTLOC to VarbitType(HISTORY_VARP, 0, 5),
                     FairyRings.VARBIT_LASTLOC_SET to VarbitType(HISTORY_VARP, 6, 6),
-                ),
+                    FairyRings.VARBIT_FAVOURITE_OPVIS to VarbitType(DIALS_VARP, 6, 17),
+                    FairyRings.VISITED.getValue(dis.id) to VarbitType(VISITED_VARP, 0, 0),
+                    FairyRings.VISITED.getValue(dkr.id) to VarbitType(VISITED_VARP, 1, 1),
+                    FairyRings.VISITED.getValue(bks.id) to VarbitType(VISITED_VARP, 2, 2),
+                ) + FairyRings.FAVES.withIndex().associate { (slot, varbit) ->
+                    varbit to VarbitType(FAVES_VARP + slot / 4, slot % 4 * 7, slot % 4 * 7 + 6)
+                },
             ),
             fairyRingCodes = codes,
             cycleMillis = millis,
@@ -257,10 +265,100 @@ class HeadlessFairyRingsTest {
         }
     }
 
+    /** Travels from DKR to DIS by the dials, then opens the dials and the log at DIS. */
+    private fun HeadlessClient.logAtDis() {
+        await("the login rebuild") { position }
+        wieldStaff()
+        besideRing(dkr)
+        openDials(dkr)
+        dialTo(dis)
+        ifButton(FairyRings.INTERFACE, FairyRings.CONFIRM, 1)
+        awaitAt(dis.destination!!)
+        besideRing(dis)
+        openDials(dis)
+        await("the log") { if (FairyRings.LOG in openInterfaces()) Unit else null }
+        await("the log's lines clickable") { if (opEnabled(FairyRings.LOG, FairyRings.FAVE_TEXT[0], -1, 2)) Unit else null }
+    }
+
+    private fun HeadlessClient.favourites(): List<Int> =
+        FairyRings.FAVES.indices.map { slot -> (varp(FAVES_VARP + slot / 4) ushr (slot % 4 * 7)) and 0x7F }
+
+    @Test
+    fun `Configure opens the travel log beside the dials, listing only the codes the player has landed on`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("gina").use { client ->
+                val scripts = client.clientScripts().size
+                client.logAtDis()
+                // DIS was landed on; DKR, where the trip started, and BKS weren't.
+                client.await("DIS's line") { client.text(FairyRings.LOG, dis.textComponent)?.takeIf { it == dis.description } }
+                assertEquals(1, client.varp(VISITED_VARP))
+                assertTrue(client.text(FairyRings.LOG, dkr.textComponent).isNullOrEmpty())
+                assertTrue(client.text(FairyRings.LOG, bks.textComponent).isNullOrEmpty())
+                // The empty favourites written, then the client asked to lay the log out.
+                assertEquals("", client.text(FairyRings.LOG, FairyRings.FAVE_TEXT[0]))
+                client.await("the sort") { client.clientScripts().drop(scripts).firstOrNull { it.id == FairyRings.SORT_UPDATE } }
+                // Zanaris's BKS goes in the log too.
+                client.closeModal()
+                client.locOp(FairyRings.MINOR_HUB, dis.destination!!.x, dis.destination!!.z, FairyRings.ZANARIS)
+                client.awaitAt(bks.destination!!)
+                assertEquals(0b101, client.varp(VISITED_VARP))
+            }
+        }
+    }
+
+    @Test
+    fun `Use code turns the dials, Add Favourite fills a slot the rings' Favourites option then travels by, and Remove Favourite empties it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("hank").use { client ->
+                client.logAtDis()
+                // The dials still spell DIS from the trip here: one turn away, then Use code turns them back.
+                client.ifButton(FairyRings.INTERFACE, FairyRings.CLOCKWISE[0], 1)
+                client.await("the dials at CIS") { if (client.dials() == Triple(2, 0, 1)) Unit else null }
+                client.ifButton(FairyRings.LOG, dis.textComponent, 1)
+                client.await("the dials at DIS") { if (client.dials() == Triple(1, 0, 1)) Unit else null }
+                // DKR isn't in the log, so a forged Use code or Add Favourite on it does nothing.
+                client.ifButton(FairyRings.LOG, dkr.textComponent, 1)
+                client.ifButton(FairyRings.LOG, dkr.faveIconComponent, 1)
+                client.commandReply("pos") { it.contains("3109") }
+                assertEquals(Triple(1, 0, 1), client.dials())
+                assertEquals(List(10) { 0 }, client.favourites())
+                client.ifButton(FairyRings.LOG, dis.faveIconComponent, 1)
+                client.await("DIS in slot 1") { if (client.favourites()[0] == 64 + dis.state) Unit else null }
+                client.await("the favourite's line") { client.text(FairyRings.LOG, FairyRings.FAVE_TEXT[0])?.takeIf { it == dis.description } }
+                assertEquals("D I S", client.text(FairyRings.LOG, FairyRings.FAVE_CODE[0]))
+                assertEquals(1, (client.varp(DIALS_VARP) ushr 6) and 0xFFF, "Favourites shown")
+                // Again, by the line's second option: already a favourite, so nothing changes.
+                client.ifButton(FairyRings.LOG, dis.textComponent, 2)
+                client.commandReply("pos") { it.contains("3109") }
+                assertEquals(listOf(64 + dis.state) + List(9) { 0 }, client.favourites())
+                // Back to DKR, and the Favourites option's first slot brings the player to DIS.
+                client.dialTo(dkr)
+                client.ifButton(FairyRings.INTERFACE, FairyRings.CONFIRM, 1)
+                client.awaitAt(dkr.destination!!)
+                client.locOp(FairyRings.MINOR_HUB, dkr.destination!!.x, dkr.destination!!.z, FairyRings.FAVOURITES, subop = 1)
+                client.awaitAt(dis.destination!!)
+                assertEquals(64 + dis.state, client.varp(HISTORY_VARP), "a favourite's trip is the last destination")
+                // An empty slot's sub-option does nothing.
+                client.locOp(FairyRings.MINOR_HUB, dis.destination!!.x, dis.destination!!.z, FairyRings.FAVOURITES, subop = 2)
+                client.commandReply("pos") { it.contains("3108") }
+                assertEquals(Coord(dis.destination!!.x, dis.destination!!.z, 0), client.position)
+                // Remove Favourite, by the favourite's star.
+                client.openDials(dis)
+                client.await("the log") { if (FairyRings.LOG in client.openInterfaces()) Unit else null }
+                client.ifButton(FairyRings.LOG, FairyRings.FAVE_ICON[0], 1)
+                client.await("slot 1 empty") { if (client.favourites()[0] == 0) Unit else null }
+                client.await("the favourite's line gone") { client.text(FairyRings.LOG, FairyRings.FAVE_TEXT[0])?.takeIf { it.isEmpty() } }
+                assertEquals(0, (client.varp(DIALS_VARP) ushr 6) and 0xFFF, "Favourites hidden")
+            }
+        }
+    }
+
     private companion object {
         const val BADGER = 1234
         const val DIALS_VARP = 816
         const val HISTORY_VARP = 1423
+        const val VISITED_VARP = 1500
+        const val FAVES_VARP = 1501
 
         // As HeadlessEquipmentTest has them.
         const val BACKPACK = 93

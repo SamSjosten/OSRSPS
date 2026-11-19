@@ -22,7 +22,9 @@ object FairyRingLines : Lines("fairy_ring", "Fairy_ring") {
  * it is what the dials' varbits spell. [state] is the code's number in the rings' Last-destination option (varbit
  * fairyring_lastloc). [destination] is null for the codes that lead nowhere. [apparition] is the creature that can come
  * through with the player when they leave from this code's ring; [noStaffReturn] lets the ring's Zanaris option work
- * without a staff, for the rings nothing else reaches.
+ * without a staff, for the rings nothing else reaches. [description] is the code's travel log line (the cache's, empty
+ * for the codes that lead nowhere), shown in the log's entry [textComponent] beside the star [faveIconComponent]; both
+ * are -1 for a code the log has no entry for.
  */
 data class FairyRingCode(
     val id: Int,
@@ -31,7 +33,13 @@ data class FairyRingCode(
     val destination: Destination?,
     val apparition: Int? = null,
     val noStaffReturn: Boolean = false,
-)
+    val description: String = "",
+    val textComponent: Int = -1,
+    val faveIconComponent: Int = -1,
+) {
+    /** The code as the log writes it, a space between the letters ("D K R"). */
+    val spaced: String get() = code.toCharArray().joinToString(" ")
+}
 
 /** Every code, by the dials that spell it and by the tile its ring stands on. */
 class FairyRingCodes(val all: List<FairyRingCode>) {
@@ -40,6 +48,8 @@ class FairyRingCodes(val all: List<FairyRingCode>) {
     private val byTile = all.filter { it.destination != null }.associateBy { it.destination }
 
     fun dialled(first: Int, second: Int, third: Int): FairyRingCode? = byId[first * 100 + second * 10 + third]
+
+    fun byId(id: Int): FairyRingCode? = byId[id]
 
     fun byState(state: Int): FairyRingCode? = byState[state]
 
@@ -66,6 +76,14 @@ class FairyRingCodes(val all: List<FairyRingCode>) {
  *   only once one has been ([VARBIT_LASTLOC_SET]), naming it by [VARBIT_LASTLOC] (the cache's multiop3 list).
  * - Where each code lands, and which codes lead nowhere, is the cache's `fairyring` table, read at start: each code
  *   lands on its ring's own tile, which is where the 242 map places the ring.
+ * - Configure opens the travel log (interface `fairyrings_log`, 381) in the side panel beside the dials (step T2). The
+ *   log lists each code the player has landed on, by the cache's `fairyrings_log_*` varbits ([VISITED], from client
+ *   script 7866, which the world map's ring tooltips read too), with the table's line for it; the client hides an
+ *   entry whose text the server left empty and sorts the rest (client script fairyrings_sort_update). An entry's Use
+ *   code sets the dials to it; Add Favourite (the entry's second option, or its star) puts it in the first free of the
+ *   ten favourite slots (varbits `fairyring_fave_1` to `_10`, the code's state plus 64), which the log lists on top
+ *   and the rings' Favourites option offers as sub-options. A favourite's Remove Favourite (its second option, or its
+ *   star) clears its slot.
  *
  * Sources: the 242 cache (the loc types and their ops, the `fairyring` table, interface 398 and client scripts
  * fairyrings_op, fairyrings_confirm and fairyrings_rotate, the varbits, seqs `human_fairy_vanish` and
@@ -79,8 +97,15 @@ class FairyRingCodes(val all: List<FairyRingCode>) {
  * graphic on the player's start; a creature coming through landing on a free tile beside the player and leaving after
  * [APPARITION_TICKS]; DIQ (the player-owned house's ring, which needs a fairy ring in the house's garden) leading
  * nowhere until houses have gardens.
- * Not built yet: the travel log and favourites (step T2), Zanaris itself (step T3), the elite Lumbridge & Draynor Diary
- * freeing the rings from the staff (no diaries yet), the house's spiritual fairy tree.
+ * Inferred: a code counts as visited when a trip lands on its ring, whichever option sent the player there (Zanaris's
+ * BKS too); the log shows the visited codes only (the Wiki's Fairy ring, Travel log: codes are "logged" as they're
+ * used). `fairyrings_favourite_opvis`, which shows the rings' Favourites option for any value from 1, holds one bit for
+ * each slot in use.
+ * Guessed: Add Favourite on a code already in a slot, or with all ten slots full, does nothing; Remove Favourite leaves
+ * the other slots where they are (the log lists the slots in order and skips the empty ones, so nothing shows a gap).
+ * The log's hideout line (a code outside the table) stays hidden.
+ * Not built yet: Zanaris itself (step T3), the elite Lumbridge & Draynor Diary freeing the rings from the staff (no
+ * diaries yet), the house's spiritual fairy tree, the log's search box (the client's own).
  */
 class FairyRings(private val world: World, val codes: FairyRingCodes) {
     /** The ring each player dials at while the dials are open. */
@@ -98,6 +123,31 @@ class FairyRings(private val world: World, val codes: FairyRingCodes) {
         }
         world.handlers.onButton(INTERFACE, CONFIRM) { confirm() }
         world.interfaces.onClose(INTERFACE) { player -> dialling.remove(player) }
+        for (ring in RINGS) world.handlers.onLoc(ring, FAVOURITES) { op -> favourite(op.loc ?: return@onLoc, op.sub) }
+        for (code in codes.all) {
+            if (code.textComponent >= 0) {
+                world.handlers.onButton(LOG, code.textComponent) { op -> if (op.option == 1) useCode(code) else addFavourite(code) }
+            }
+            if (code.faveIconComponent >= 0) world.handlers.onButton(LOG, code.faveIconComponent) { addFavourite(code) }
+        }
+        for (slot in FAVES.indices) {
+            world.handlers.onButton(LOG, FAVE_TEXT[slot]) { op -> if (op.option == 1) useFavourite(slot) else removeFavourite(slot) }
+            world.handlers.onButton(LOG, FAVE_ICON[slot]) { removeFavourite(slot) }
+        }
+    }
+
+    /** The code in favourite slot [slot] (0 to 9), or null for an empty one. */
+    fun favourite(player: Player, slot: Int): FairyRingCode? {
+        val varbit = FAVES[slot]
+        if (player.vars.types.varbit(varbit) == null) return null
+        val value = player.vars.getVarbit(varbit)
+        return if (value < FAVE_SET) null else codes.byState(value - FAVE_SET)
+    }
+
+    /** Whether the player has landed on [code]'s ring, which puts it in their travel log. */
+    fun visited(player: Player, code: FairyRingCode): Boolean {
+        val varbit = VISITED[code.id] ?: return false
+        return player.vars.types.varbit(varbit) != null && player.vars.getVarbit(varbit) != 0
     }
 
     /** The code the player's dials spell now. */
@@ -122,7 +172,80 @@ class FairyRings(private val world: World, val codes: FairyRingCodes) {
         for (component in CLOCKWISE + ANTICLOCKWISE + CONFIRM) {
             world.interfaces.setEvents(player, INTERFACE, component, -1, -1, Interfaces.IF_EVENT_OP1)
         }
+        world.interfaces.openModal(player, FrameSlot.SIDEMODAL, LOG)
+        for (code in codes.all) {
+            if (code.textComponent >= 0) {
+                world.interfaces.setEvents(player, LOG, code.textComponent, -1, -1, Interfaces.IF_EVENT_OP1 or Interfaces.IF_EVENT_OP2)
+            }
+            if (code.faveIconComponent >= 0) world.interfaces.setEvents(player, LOG, code.faveIconComponent, -1, -1, Interfaces.IF_EVENT_OP1)
+            // Only the visited codes' lines are sent: an opened log starts with every entry's text empty, so hidden.
+            if (code.textComponent >= 0 && code.description.isNotEmpty() && visited(player, code)) {
+                world.interfaces.setText(player, LOG, code.textComponent, code.description)
+            }
+        }
+        for (slot in FAVES.indices) {
+            world.interfaces.setEvents(player, LOG, FAVE_TEXT[slot], -1, -1, Interfaces.IF_EVENT_OP1 or Interfaces.IF_EVENT_OP2)
+            world.interfaces.setEvents(player, LOG, FAVE_ICON[slot], -1, -1, Interfaces.IF_EVENT_OP1)
+        }
+        showFavourites(player)
     }
+
+    /** Writes the ten favourite slots into the open log and has the client lay the log out again. */
+    private fun showFavourites(player: Player) {
+        for (slot in FAVES.indices) {
+            val code = favourite(player, slot)
+            world.interfaces.setText(player, LOG, FAVE_TEXT[slot], code?.description ?: "")
+            world.interfaces.setText(player, LOG, FAVE_CODE[slot], code?.spaced ?: "")
+        }
+        world.interfaces.runClientScript(player, SORT_UPDATE, listOf(LOG shl 16 or CONTENTS, LOG shl 16 or SCROLLBAR, 1, 1, LOG shl 16 or DIVIDER, LOG shl 16 or FAVES_LAYER))
+    }
+
+    /** Use code, on a log entry or a favourite: the dials turn to [code], ready for Confirm. */
+    private fun ScriptContext.useCode(code: FairyRingCode) {
+        if (!logOpen() || !visited(player, code) || DIALS.any { !known(it) }) return
+        // The id's digits are the dials' positions.
+        player.vars.setVarbit(DIALS[0], code.id / 100)
+        player.vars.setVarbit(DIALS[1], code.id / 10 % 10)
+        player.vars.setVarbit(DIALS[2], code.id % 10)
+    }
+
+    private fun ScriptContext.useFavourite(slot: Int) {
+        useCode(favourite(player, slot) ?: return)
+    }
+
+    private fun ScriptContext.addFavourite(code: FairyRingCode) {
+        // The client shows the entry only for a visited code, so a click on another is forged.
+        if (!logOpen() || !visited(player, code) || FAVES.any { !known(it) }) return
+        if (FAVES.indices.any { favourite(player, it) == code }) return
+        val slot = FAVES.indices.firstOrNull { favourite(player, it) == null } ?: return
+        player.vars.setVarbit(FAVES[slot], FAVE_SET + code.state)
+        favouritesChanged()
+    }
+
+    private fun ScriptContext.removeFavourite(slot: Int) {
+        if (!logOpen() || favourite(player, slot) == null) return
+        player.vars.setVarbit(FAVES[slot], 0)
+        favouritesChanged()
+    }
+
+    private fun ScriptContext.favouritesChanged() {
+        if (known(VARBIT_FAVOURITE_OPVIS)) {
+            player.vars.setVarbit(VARBIT_FAVOURITE_OPVIS, FAVES.indices.filter { favourite(player, it) != null }.sumOf { 1 shl it })
+        }
+        showFavourites(player)
+    }
+
+    /** The rings' Favourites option, sub-option [sub] (1 to 10) for that slot: straight to the code, like Last-destination. */
+    private suspend fun ScriptContext.favourite(ring: ZoneLoc, sub: Int) {
+        arriveDelay()
+        // The client offers only the slots in use.
+        val code = if (sub in 1..FAVES.size) favourite(player, sub - 1) else null
+        if (code == null) return
+        if (!hasStaff(player)) return world.message(player, FairyRingLines.NO_STAFF)
+        travel(ring, code, remember = true)
+    }
+
+    private fun ScriptContext.logOpen() = player.modals[FrameSlot.MAINMODAL] == INTERFACE && player.modals[FrameSlot.SIDEMODAL] == LOG
 
     private suspend fun ScriptContext.lastDestination(ring: ZoneLoc) {
         arriveDelay()
@@ -162,6 +285,8 @@ class FairyRings(private val world: World, val codes: FairyRingCodes) {
         delay(VANISH_TICKS)
         val to = code?.destination ?: INVALID_LANDING
         world.teleport(player, to.x, to.z, to.level)
+        val visited = code?.takeIf { it.destination != null }?.let { VISITED[it.id] }
+        if (visited != null && known(visited)) player.vars.setVarbit(visited, 1)
         player.anim(APPEAR_ANIM)
         from?.apparition?.let { apparition(it, to) }
         delay(APPEAR_TICKS)
@@ -202,6 +327,45 @@ class FairyRings(private val world: World, val codes: FairyRingCodes) {
         val ANTICLOCKWISE = listOf(20, 22, 24)
 
         const val CONFIRM = 26
+
+        /** Op4, Favourites: its sub-options 1 to 10 are the slots. */
+        const val FAVOURITES = 4
+
+        /** Interface `fairyrings_log`: the travel log, in the side panel. */
+        const val LOG = 381
+        const val CONTENTS = 8
+        const val FAVES_LAYER = 9
+        const val DIVIDER = 10
+        const val SCROLLBAR = 166
+
+        /** `fave_1` to `_10` (the line, Use code and Remove Favourite), `fave_code_1` to `_10`, `fave_icon_1` to `_10` (the star). */
+        val FAVE_TEXT = (141..150).toList()
+        val FAVE_CODE = (151..160).toList()
+        val FAVE_ICON = listOf(161, 162, 163, 164, 165, 167, 168, 169, 170, 171)
+
+        /** Client script `fairyrings_sort_update`: lays the log out from its components' texts. */
+        const val SORT_UPDATE = 402
+
+        /** Varbits `fairyring_fave_1` to `_10`: a slot's code state plus [FAVE_SET], 0 for an empty slot. */
+        val FAVES = (20240..20249).toList()
+        const val FAVE_SET = 64
+
+        /** Varbit `fairyrings_favourite_opvis`: nonzero shows the rings' Favourites option. */
+        const val VARBIT_FAVOURITE_OPVIS = 20239
+
+        /**
+         * Each code's `fairyrings_log_*` varbit, by the code's id: client script 7866's switch, which the world map's
+         * ring tooltips read as "visited". Codes that lead nowhere have none.
+         */
+        val VISITED: Map<Int, Int> = mapOf(
+            1 to 16660, 2 to 3989, 3 to 3990, 10 to 4968, 11 to 3991, 12 to 3992, 13 to 3993, 20 to 13840, 21 to 3994,
+            22 to 9570, 23 to 3995, 30 to 9818, 31 to 3996, 32 to 3997, 33 to 3998, 100 to 3256, 101 to 3999,
+            102 to 4000, 103 to 5344, 110 to 18313, 111 to 4001, 112 to 4002, 113 to 4003, 120 to 4004, 121 to 4005,
+            122 to 4006, 130 to 4007, 132 to 4008, 200 to 4009, 201 to 4892, 202 to 7855, 203 to 4010, 210 to 4011,
+            211 to 4012, 212 to 4620, 220 to 4013, 221 to 4014, 222 to 4015, 223 to 11192, 232 to 4016, 233 to 18312,
+            300 to 4017, 301 to 4018, 303 to 4019, 310 to 4020, 311 to 15255, 312 to 4021, 313 to 13598, 320 to 4022,
+            321 to 5365, 322 to 4023, 323 to 4024, 330 to 9551, 331 to 4389, 332 to 4025,
+        )
 
         /** Varbits `fairyring_1` to `_3`: each dial's position, 0 to 3. */
         val DIALS = listOf(3985, 3986, 3987)

@@ -47,8 +47,8 @@ enum class OpTarget {
 /**
  * One click on an option: [option] is 1 to 5 for locs, NPCs and items (op1 to op5, as in the cache's option lists), 1 to
  * 8 for worn items and 1 to 10 for buttons. [sub] is the button's slot (an inventory slot, a dropdown entry), or the
- * sub-option of an NPC option; -1 when there is none. [loc] is the loc clicked, for a loc op; [groundObj] the obj clicked
- * on the ground, for [OpTarget.GROUND_OBJ]; [npc] the NPC, for an NPC op or an item used on an NPC. For an item used
+ * sub-option of an NPC or loc option; -1 when there is none. [loc] is the loc clicked, for a loc op; [groundObj] the obj
+ * clicked on the ground, for [OpTarget.GROUND_OBJ]; [npc] the NPC, for an NPC op or an item used on an NPC. For an item used
  * on an NPC or a loc, [obj] is the item and [sub] its inventory slot. For an item used on another, [obj] and [objSlot]
  * are the one used and [id] and [sub] the one it was used on. For an item used on a player, [id] and [obj] are the item,
  * [sub] its slot and [player] the player it was used on. For a spell cast on an item, [id] is the spell's packed

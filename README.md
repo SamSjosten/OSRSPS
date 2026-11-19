@@ -2472,8 +2472,10 @@ and TzHaar city: step plan); the Fight Caves and the Inferno are their own piece
 ## Travel networks
 
 Fairy rings (`game/content/FairyRings.kt`, words under `fairy_ring.*`): every ring works, with a dramen or lunar staff
-wielded; each code lands where the cache's `fairyring` table says. Check: `test-runner/examples/fairy-rings.json`,
-`HeadlessFairyRingsTest`. What is sourced and what is guessed is in the code's comments.
+wielded; each code lands where the cache's `fairyring` table says. Configure opens the travel log beside the dials,
+with the codes the player has landed on and ten favourite slots, which the rings' Favourites option travels by. Check:
+`test-runner/examples/fairy-rings.json`, `test-runner/examples/fairy-ring-log.json`, `HeadlessFairyRingsTest`. What is
+sourced and what is guessed is in the code's comments.
 
 ## Equipment
 
