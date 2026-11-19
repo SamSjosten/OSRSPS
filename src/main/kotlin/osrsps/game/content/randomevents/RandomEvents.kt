@@ -75,6 +75,15 @@ abstract class RandomEvent(
     /** Talk-to by its player, which ends the event when it returns true: its NPC then goes. */
     abstract suspend fun Dialogue.talk(world: World, events: RandomEvents): Boolean
 
+    /** Called as its player logs in, for an event that keeps them somewhere on the real map (the Pillory). */
+    open fun loggedIn(world: World, player: Player) {}
+
+    /** `::randomevent end`: lets [player] out of this event, with nothing; false when it doesn't hold them. */
+    open fun end(world: World, player: Player): Boolean = false
+
+    /** Called as a player logs out. */
+    open fun loggedOut(player: Player) {}
+
     /** Talk-to on one of [npcIds] that is no event's NPC out in the world: Evil Bob on his own island. */
     open suspend fun ScriptContext.talkElsewhere(world: World, npc: Npc) {}
 }
@@ -207,11 +216,13 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
     fun login(player: Player) {
         val due = player.charges[DUE]
         if (due != 0 && due <= nowMinutes()) player.charges[DUE] = nowMinutes() + world.random.between(OFFLINE_MIN_MINUTES, OFFLINE_MAX_MINUTES)
+        for (event in all.values) event.loggedIn(world, player)
     }
 
     fun leaving(player: Player) {
         held -= player.saveKey
         for (it in out.values.filter { it.owner == player.saveKey }) remove(it)
+        for (event in all.values) event.loggedOut(player)
     }
 
     /** The event NPC out for [player], if any. */
@@ -485,7 +496,7 @@ class RandomEvents(private val world: World, private val clock: () -> Long) {
 fun registerRandomEvents(world: World) {
     val events = listOf(
         Genie, CountCheckEvent, DrunkenDwarf, RickTurpentine, MysteriousOldMan, DrJekyll, StrangePlant, Certer, SandwichLady,
-        FreakyForester, DrillDemon, Gravedigger, Mime, Beekeeper, CaptArnav, EvilBob, PrisonPete, EvilTwin, KissTheFrog, Maze,
+        FreakyForester, DrillDemon, Gravedigger, Mime, Beekeeper, CaptArnav, EvilBob, PrisonPete, EvilTwin, KissTheFrog, Maze, Pillory,
     )
     for (event in events) {
         world.randomEvents.register(event)
@@ -500,5 +511,6 @@ fun registerRandomEvents(world: World) {
     EvilTwin.register(world)
     KissTheFrog.register(world)
     Maze.register(world)
+    Pillory.register(world)
     world.handlers.onObj(StrangePlant.FRUIT, 1) { op -> StrangePlant.eat(world, player, op.sub) }
 }
