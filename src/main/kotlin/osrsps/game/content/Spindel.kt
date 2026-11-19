@@ -92,6 +92,9 @@ class SpiderQueen(val config: Config) {
         val target = heldTarget()
         if (target == null) return
         boss.face(target)
+        // Stood under, she steps out first, as a chasing NPC does: her fight never has her follow, so nothing else
+        // would and they could hold her still (Codex review on #832).
+        if (boss.covers(target.x, target.z)) return world.npcs.stepTowards(boss, target)
         if (world.tick < boss.nextAttackTick || !world.meleeCombat.sees(boss, target)) return
         boss.nextAttackTick = world.tick + config.speed
         val slot = fight.attacks % CYCLE
@@ -348,7 +351,7 @@ fun registerSpindel(world: World) {
         }
         world.handlers.onLoc(ENTRANCE, CHECK_FEE) {
             arriveDelay()
-            if (WildernessLairFee.paid(player)) world.message(player, WildernessLairLines.FEE_PAID)
+            if (WildernessLairFee.paid(player) || WildernessLairFee.fee(player) == 0) world.message(player, WildernessLairLines.FEE_PAID)
             else world.message(player, WildernessLairLines.FEE_DUE, "fee" to WildernessLairFee.fee(player))
         }
         // The Silk Chasm has the same way out; Venenatis's step gives it its own place to put the player.

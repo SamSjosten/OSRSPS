@@ -140,6 +140,25 @@ class HeadlessSpindelTest {
     }
 
     @Test
+    fun `stood under, she steps out and keeps fighting`(@TempDir dir: Path) {
+        server(dir, seed = 5).use { server ->
+            server.login("di").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.tele(Spindel.SPAWN.x + 1, Spindel.SPAWN.z + 8, Spindel.CHASM_LEVEL)
+                val npc = server.world.npcs.all.first { it.type.id == Spindel.BOSS }
+                client.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Spindel") }
+                val fight = client.await("her fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
+                client.tele(npc.x + 1, npc.z + 1, Spindel.CHASM_LEVEL)
+                val di = server.world.playerNamed("di")!!
+                client.await("out from under her") { Unit.takeIf { !npc.covers(di.x, di.z) } }
+                val attacks = fight.lines.size
+                client.await("her next attack", timeoutMillis = 30_000) { Unit.takeIf { fight.lines.drop(attacks).any { " at di " in it || "bites di" in it } } }
+            }
+        }
+    }
+
+    @Test
     fun `a kill counts in her kill count, leaves her big bones, and takes 10,000 off the fee`(@TempDir dir: Path) {
         server(dir, seed = 3).use { server ->
             server.login("cy").use { client ->
