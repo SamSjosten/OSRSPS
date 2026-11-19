@@ -1098,6 +1098,19 @@ public class RunnerTest
 	}
 
 	@Test
+	public void castOnItemRetriesUntilItCan() throws Exception
+	{
+		game.castError = "no \"Rune scimitar\" in the inventory";
+		runner.start(script("{\"step\":\"castOnItem\",\"interfaceId\":218,\"component\":47,\"item\":\"Rune scimitar\"}"), "file");
+		assertNull(cycle());
+		assertEquals("cast 218:47 on item Rune scimitar", game.actions.get(game.actions.size() - 1));
+		game.castError = null;
+		Result r = cycle();
+		assertEquals(Result.PASS, r.result);
+		assertEquals("cast 218:47 on Rune scimitar", r.steps.get(0).description);
+	}
+
+	@Test
 	public void castOnNpcRetriesUntilItCanThenSpotanimsCountOnlyAfterIt() throws Exception
 	{
 		game.castError = "no NPC \"Man\" in view";
