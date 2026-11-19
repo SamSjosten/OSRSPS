@@ -214,6 +214,7 @@ object DialogueLines {
         EssenceMineLines,
         EvilDaveLines,
         Examines,
+        FairyRingLines,
         FatherLawrenceLines,
         FerrnookLines,
         FiremakingLines,

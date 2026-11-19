@@ -2468,6 +2468,12 @@ and TzHaar city: step plan); the Fight Caves and the Inferno are their own piece
 | The customs officer takes every Karamjan rum (431, and the Tai Bwo Wannai Trio's 3164 and 3165) before the trip, from her talk (`karamja_ship.spot_inspection`, `karamja_ship.confiscated`) or her Port Sarim option, and the player stays on Karamja | the Wiki's Customs officer page and transcript; the option searching too guessed |
 | The Pandemonium options (seamen and customs officer) answer `karamja_ship.pandemonium_closed`: the Pandemonium is a Sailing island and isn't built | ours |
 
+## Travel networks
+
+Fairy rings (`game/content/FairyRings.kt`, words under `fairy_ring.*`): every ring works, with a dramen or lunar staff
+wielded; each code lands where the cache's `fairyring` table says. Check: `test-runner/examples/fairy-rings.json`,
+`HeadlessFairyRingsTest`. What is sourced and what is guessed is in the code's comments.
+
 ## Equipment
 
 Every player has the worn inventory, inv 94 (`Player.equipment`), one slot per wearpos (`WearPos`). Wear, Wield and

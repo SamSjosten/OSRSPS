@@ -2709,6 +2709,7 @@
     {"loc": 29493, "name": "Corpse"},
     {"loc": 29494, "name": "Skeleton"},
     {"loc": 29495, "name": "Fairy ring"},
+    {"loc": 29560, "name": "Fairy ring"},
     {"loc": 30108, "name": "Rowboat"},
     {"loc": 30180, "name": "Cave", "wiki": "Cave (Kalphite Cave) page, infobox"},
     {"loc": 30266, "name": "Hot vent door"},
