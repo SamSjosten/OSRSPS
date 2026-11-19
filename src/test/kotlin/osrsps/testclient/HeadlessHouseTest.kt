@@ -126,9 +126,11 @@ class HeadlessHouseTest {
         chats("estate_agent.how_get", "estate_agent.how_get_reply", "estate_agent.want_buy")
         menu("estate_agent.yes_please", "estate_agent.no_thanks")
         chooseOption(1)
-        chats("estate_agent.yes_please", "estate_agent.sold", "estate_agent.sold_book")
-        awaitClosed()
+        chats("estate_agent.yes_please")
+        // The guide comes with the sale, before the closing lines that could be walked away from.
         await("the guide book") { if (count(EstateAgent.GUIDE_BOOK) == 1) Unit else null }
+        chats("estate_agent.sold", "estate_agent.sold_book")
+        awaitClosed()
     }
 
     /** Uses the portal's [op] from outside it, and waits to be in the house; returns where the player landed. */

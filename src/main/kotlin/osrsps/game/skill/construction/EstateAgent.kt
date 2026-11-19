@@ -97,9 +97,10 @@ object EstateAgent {
         }
         Ned.take(player.inventory, COINS, HOUSE_PRICE)
         houses.sell(player)
+        // Given with the sale, before the lines that can be walked away from, so the purchase never lacks its guide.
+        give(player, GUIDE_BOOK)
         chatNpc(ChatAnim.HAPPY, SOLD)
         chatNpc(ChatAnim.HAPPY, SOLD_BOOK)
-        give(player, GUIDE_BOOK)
     }
 
     private suspend fun Dialogue.guide(give: (Player, Int) -> Unit) = with(EstateAgentLines) {
