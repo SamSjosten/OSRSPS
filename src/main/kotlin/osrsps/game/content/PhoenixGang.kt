@@ -267,7 +267,8 @@ fun registerPhoenixGang(world: World) = with(PhoenixGang) {
             val ownSide = onOwnSide(door, player.x, player.z)
             when (id) {
                 HIDEOUT_DOOR -> throughDoor(world, door, inside = true, allowed = true)
-                STORE_DOOR -> throughDoor(world, door, inside = !ownSide, allowed = hasKey(player))
+                // The key held, not banked: Straven's spare goes by any key the player owns ([hasKey]).
+                STORE_DOOR -> throughDoor(world, door, inside = !ownSide, allowed = player.inventory.count(WEAPON_STORE_KEY) > 0)
                 else -> throughDoor(world, door, inside = ownSide, allowed = false)
             }
         }

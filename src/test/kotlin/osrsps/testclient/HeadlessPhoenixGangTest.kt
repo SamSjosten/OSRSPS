@@ -180,6 +180,13 @@ class HeadlessPhoenixGangTest {
                 client.awaitTicks(2)
                 assertEquals(Coord(3251, 3386, 0), client.position)
 
+                // A banked key doesn't open it.
+                server.world.playerNamed("bob")!!.bank.add(key, 1)
+                client.locOp(storeDoor.id, storeDoor.x, storeDoor.z, PhoenixGang.OP1)
+                client.message("gang_house.securely_locked")
+                client.awaitTicks(2)
+                assertEquals(Coord(3251, 3386, 0), client.position)
+
                 client.command("item ${PhoenixGang.WEAPON_STORE_KEY} 1")
                 client.await("the key") { if (client.count(PhoenixGang.WEAPON_STORE_KEY) == 1) Unit else null }
                 client.locOp(storeDoor.id, storeDoor.x, storeDoor.z, PhoenixGang.OP1)
