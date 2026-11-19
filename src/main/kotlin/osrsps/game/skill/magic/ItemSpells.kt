@@ -70,7 +70,8 @@ class ItemSpells(private val world: World) {
     /**
      * Runs [cast] now when [player] is [ready], or keeps it for when the last cast's ticks are up: Superheat Item and
      * the jewellery enchants "queue up one spell if you cast them too quickly" (OSRS Wiki, Superheat Item's changes).
-     * One is kept, the latest click replacing an earlier one (guessed), and it checks everything again as it runs.
+     * One is kept, the latest click replacing an earlier one (guessed), and it checks everything again as it runs, a stun
+     * included.
      */
     fun castOrQueue(context: ScriptContext, cast: ScriptContext.() -> Unit) {
         val player = context.player
@@ -81,7 +82,10 @@ class ItemSpells(private val world: World) {
             return
         }
         world.scripts.clearQueue(player, QUEUED)
-        world.scripts.queue(player, QUEUED, QueueType.NORMAL, (due - world.tick).toInt()) { if (ready(player)) cast() }
+        world.scripts.queue(player, QUEUED, QueueType.NORMAL, (due - world.tick).toInt()) {
+            // A stun since the click stops it, as it would a fresh cast (World.held).
+            if (ready(player) && !world.statusEffects.isStunned(player, world.tick)) cast()
+        }
     }
 
     /** Whether [player] has the level for [spell], saying so if not. */

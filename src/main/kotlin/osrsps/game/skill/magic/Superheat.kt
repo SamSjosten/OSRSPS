@@ -1,5 +1,6 @@
 package osrsps.game.skill.magic
 
+import osrsps.game.FountainOfRune
 import osrsps.game.ObjTypes
 import osrsps.game.Skill
 import osrsps.game.World
@@ -81,7 +82,8 @@ class Superheat(private val world: World, private val spell: ItemSpell?) {
             return
         }
         player.inventory.add(barType, 1)
-        player.skills.addTenths(Skill.SMITHING, bar.smeltXpTenths)
+        // A free cast at the Fountain of Rune trains nothing, Smithing included.
+        if (!FountainOfRune.covers(player)) player.skills.addTenths(Skill.SMITHING, bar.smeltXpTenths)
         casting.cast(this, spell)
     }
 

@@ -107,11 +107,19 @@ class HeadlessSuperheatTest {
                 client.give(COAL, 4)
                 client.give(NATURE, 2)
                 client.give(TeleportObjs.FIRE, 8)
+                // The clock stopped, so the second click lands inside the first cast's 3 ticks however slow the machine.
+                client.commandReply("pause") { it.startsWith("Paused") }
                 client.cast(IRON_ORE)
+                client.stepTicks(1)
                 client.await("the first bar") { if (client.count(STEEL_BAR) == 1) Unit else null }
                 client.cast(IRON_ORE)
+                client.stepTicks(1)
+                assertEquals(1, client.count(STEEL_BAR), "kept, not cast yet")
+                assertEquals(1, client.count(IRON_ORE))
+                client.stepTicks(SUPERHEAT_TICKS - 1)
                 client.await("the second bar, cast when the clock allowed") { if (client.count(STEEL_BAR) == 2) Unit else null }
                 assertEquals(0, client.count(NATURE))
+                client.commandReply("resume") { it.isNotEmpty() }
             }
         }
     }
@@ -156,6 +164,9 @@ class HeadlessSuperheatTest {
     }
 
     companion object {
+        /** Superheat Item's ticks between casts. */
+        const val SUPERHEAT_TICKS = 3
+
         const val BACKPACK = 93
         const val MAGIC = 6
         const val SMITHING = 13
