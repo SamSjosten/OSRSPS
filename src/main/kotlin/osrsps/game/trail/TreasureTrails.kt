@@ -272,10 +272,14 @@ class TreasureTrails(private val world: World, val data: TrailData) {
         for (drop in drops.take(REWARD_SLOTS)) screen.add(drop.type, drop.count)
         sendInventory(player, screen) { p, message -> p.session.queue(message) }
         world.interfaces.openModal(player, FrameSlot.MAINMODAL, REWARD_SCREEN)
-        for (drop in drops) giveOrDrop(player, drop)
+        for (drop in drops) {
+            giveOrDrop(player, drop)
+            world.collectionLog.add(player, drop.type.id, drop.count)
+        }
         world.message(player, TrailLines.WELL_DONE)
         world.message(player, TrailLines.COMPLETED, "count" to count, "tier" to tier.key)
-        val value = drops.sumOf { (world.itemPrices.price(it.type) ?: 0L) * it.count }
+        // Coins count at face value: they have no guide price.
+        val value = drops.sumOf { (if (it.type.id == COINS) 1L else world.itemPrices.price(it.type) ?: 0L) * it.count }
         world.message(player, TrailLines.WORTH, "value" to "%,d".format(value))
     }
 
@@ -306,6 +310,9 @@ class TreasureTrails(private val world: World, val data: TrailData) {
     companion object {
         /** The scroll boxes and clue scrolls of a tier a player may hold together, before scroll cases. */
         const val BOX_CAP = 2
+
+        /** Coins, worth one each in a casket's value. */
+        const val COINS = 995
 
         /** trail_rewardscreen, which draws inv trail_rewardinv (12 slots) when it loads (osrs-dumps). */
         const val REWARD_SCREEN = 73
