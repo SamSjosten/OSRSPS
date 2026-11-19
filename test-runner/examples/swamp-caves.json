@@ -34,7 +34,7 @@
 
   {"step": "command", "text": "::tele 3226 9542 0", "comment": "beside the tunnel to the Chasm of Tears, past the south stepping stone"},
   {"step": "locOption", "locId": 6659, "option": "Enter", "x": 3226, "y": 9540},
-  {"step": "assertMessage", "contains": "[swamp_caves.chasm_closed]"},
+  {"step": "assertLocation", "x": 3219, "y": 9532, "plane": 2, "timeoutMs": 10000, "comment": "the Chasm of Tears' west ledge (post-quest step 10)"},
 
   {"step": "command", "text": "::tele 3168 9572 0"},
   {"step": "locOption", "locId": 5946, "option": "Climb", "x": 3169, "y": 9572},

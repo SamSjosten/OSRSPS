@@ -203,7 +203,7 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   Lumbridge Castle's range (with `::keys on`).
 - `swamp-caves.json`: Misthalin piece 7 step 2b: the Lumbridge Swamp Caves' dark hole refusing until a rope is
   tied, down and back up the climbing rope, a candle flaring and exploding in the north-west gas, the insects' warning
-  and swarm with no light until the candle is lit again, and the Chasm of Tears' tunnel refusing (with `::keys on`).
+  and swarm with no light until the candle is lit again, and through the tunnel to the Chasm of Tears (with `::keys on`).
 - `swamp-caves-monsters.json`: Misthalin piece 7 step 3a: a cave slime refusing an attack below Slayer 17 and
   killed at 17 for its swamp tar, a cave goblin's plea and the promise not to hurt it, and the west spot's Small Net
   refused below 33 Fishing then netting frog spawn or swamp weed (with `::keys on` and `::god on`).
@@ -478,6 +478,9 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   arranged by `::varp` (the runner can't use an item on an NPC), the Champion Statue opened and climbed down, the giant
   champion killed (varp 617's bit set and the scroll taken), the portcullis and ladder out, and the Chest of Champions'
   lamp rubbed, with varp 617 cleared at the end.
+- `tears-of-guthix.json`: post-quest step 10 (with `::keys on`): the Lumbridge Swamp Caves' tunnel down to the Chasm of
+  Tears, both rock slopes crossed, Juna's Story with the last visit cleared, a game shortened to 20 quest points
+  collecting at a weeping wall, and the drink's skill message by Juna.
 - `sourhog-cave.json`: post-quest step 8: the strange hole east of Draynor Manor climbed down into the Sourhog Cave,
   the blockage climbed over both ways, and the exit rope climbed back up beside the hole.
 - `varrock-churches-inns.json`: Varrock step 7 (with `::keys on`): Pray-at at the church's altar and the chapel's
