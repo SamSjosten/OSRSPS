@@ -183,12 +183,12 @@ class NetworkFactory(
         builder.addListener(OpNpc6::class.java, MessageConsumer { player, message -> world.onNpcExamine(player, message.id) })
         // Revision 242 gave each loc packet a second form with a 3-byte loc id (RSProt's V3, TV2 and 6V2) beside the
         // 2-byte one; which the client picks isn't recorded yet (inferred: the long form only for ids past 65,535), so
-        // both forms go to the same handler.
+        // both forms go to the same handler. The sub-option is 0 for none, as for NPCs.
         builder.addListener(OpLocV2::class.java, MessageConsumer { player, message ->
-            world.onLocOp(player, message.id, message.x, message.z, message.op, message.controlKey)
+            world.onLocOp(player, message.id, message.x, message.z, message.op, message.controlKey, if (message.subop == 0) -1 else message.subop)
         })
         builder.addListener(OpLocV3::class.java, MessageConsumer { player, message ->
-            world.onLocOp(player, message.id, message.x, message.z, message.op, message.controlKey)
+            world.onLocOp(player, message.id, message.x, message.z, message.op, message.controlKey, if (message.subop == 0) -1 else message.subop)
         })
         builder.addListener(OpLocTV1::class.java, MessageConsumer { player, message ->
             world.onLocTarget(

@@ -1904,6 +1904,24 @@ an egg each search, then nothing to that player for a minute; the Digsite barge'
 | Left out, with why: Nigel and Gelin by the church (Deadman forms only), Twiggy O'Korn (diaries aren't built), Spria (a Slayer master), the Draynor gulls (the 242 cache gave their old ids to Sailing NPCs), the General's Shadow scout; the highwayman's overhead shout (no NPC shouts yet); the swamp bubbles (Big Chompy Bird Hunting's ogre bellows), the swamp caves' symbols, the Digsite's bushes, barrel and chest (The Lost Tribe's and The Dig Site's) | out of scope |
 | Found for other threads: the Varrock and Grand Exchange people and options, Draynor's and Edgeville's, the canoe stations, farming patches, STASH units, the Mage Training Arena and Al Kharid's arena | handed to those threads |
 
+#### Misthalin's small options
+
+The 19 Nov 2026 review's small option pack (`game/content/MisthalinOptionPack.kt`, words under `wild_bush.*`,
+`signpost.*` and `varrock_reading.*`). The wild cadava and redberry bushes south-east of Varrock give two berries each,
+and each berry grows back after 200 ticks; the south-western cadava bush is always empty. The signposts by the Lum
+bridge, at the Draynor crossroads and south of Varrock open the compass with each post's own words, and the Exam
+Centre's gives its one line. The Combat Scroll and the VTAM Corporation plaque can be read, the boxes in Lumbridge and
+upstairs in Edgeville are empty, and the 242 cache's onion and cabbage field east of the south-east Varrock mine is
+picked like Fred's.
+
+| Misthalin's small options | Source |
+|---------------------------|--------|
+| Two berries a bush, 200 ticks a berry, the empty messages | OSRS Wiki, Cadava bush (wild) and Redberry bush (wild), read 2026-11-19 |
+| The signposts' words | OSRS Wiki, Signpost (its pictures of each post) and Signpost (Exam Centre), read 2026-11-19 |
+| The Combat Scroll's words | OSRS Wiki, Transcript:Combat Scroll, read 2026-11-19 |
+| The second berry's 200 ticks start once the first is back | inferred |
+| The pick messages and animation, the scroll and plaque shown in a message box; the plaque's words (no source yet) | guessed |
+
 #### Walking Misthalin's roads
 
 Misthalin piece 7 step 12b (`test-runner/examples/misthalin-walk.json`, checked by `WalkScriptsTest`): one runner
@@ -2480,8 +2498,10 @@ and TzHaar city: step plan); the Fight Caves and the Inferno are their own piece
 ## Travel networks
 
 Fairy rings (`game/content/FairyRings.kt`, words under `fairy_ring.*`): every ring works, with a dramen or lunar staff
-wielded; each code lands where the cache's `fairyring` table says. Check: `test-runner/examples/fairy-rings.json`,
-`HeadlessFairyRingsTest`. What is sourced and what is guessed is in the code's comments.
+wielded; each code lands where the cache's `fairyring` table says. Configure opens the travel log beside the dials,
+with the codes the player has landed on and ten favourite slots, which the rings' Favourites option travels by. Check:
+`test-runner/examples/fairy-rings.json`, `test-runner/examples/fairy-ring-log.json`, `HeadlessFairyRingsTest`. What is
+sourced and what is guessed is in the code's comments.
 
 ## Equipment
 

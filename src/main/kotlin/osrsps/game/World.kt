@@ -125,6 +125,7 @@ import osrsps.game.content.registerFarmsRoads
 import osrsps.game.content.registerLumberYard
 import osrsps.game.content.registerGertrudesCat
 import osrsps.game.content.registerClanHub
+import osrsps.game.content.registerMisthalinOptionPack
 import osrsps.game.content.registerRaidTester
 import osrsps.game.content.registerTolnasRift
 import osrsps.game.content.registerDigsite
@@ -1197,6 +1198,7 @@ class World(
         registerRoguesDen(this)
         osrsps.game.content.registerDusuri(this)
         registerCrops(this)
+        registerMisthalinOptionPack(this)
         ducks.register()
         homeTeleport.register(handlers)
         interfaces.onClose(ShopScreen.MAIN, shopScreen::closed)
@@ -2589,13 +2591,16 @@ class World(
         }
     }
 
-    /** A click on option [option] (1 to 5) of loc [id] whose south-west tile is [x], [z]. [ctrl] flips walk and run. */
-    fun onLocOp(player: Player, id: Int, x: Int, z: Int, option: Int, ctrl: Boolean) = act(player) {
+    /**
+     * A click on option [option] (1 to 5) of loc [id] whose south-west tile is [x], [z]; [sub] is the sub-option, -1 for
+     * none. [ctrl] flips walk and run.
+     */
+    fun onLocOp(player: Player, id: Int, x: Int, z: Int, option: Int, ctrl: Boolean, sub: Int = -1) = act(player) {
         trades.interrupt(player)
         // Inferred, as for a walk: a delayed player's clicks do nothing.
         if (held(player)) return@act
         npcInteractions.leave(player)
-        locInteractions.click(player, id, x, z, option, ctrl)
+        locInteractions.click(player, id, x, z, option, ctrl, sub)
         // A loc that had gone by the time the click was read leaves any follow behind; the click still ends it.
         follows.clickedElsewhere(player)
     }
@@ -3044,6 +3049,7 @@ class World(
                 interfaces.sendVarpNow(player, id)
             }
         },
+        now = { tick },
     )
 
     /**
@@ -3582,6 +3588,7 @@ class World(
             wallBeasts.forget(player)
             pvpCombat.forget(player)
             canoes.forget(player)
+            fairyRings.forget(player)
             hunter.tracking.loggedOut(player)
             npcs.forget(player, scripts::busy)
             save(player)

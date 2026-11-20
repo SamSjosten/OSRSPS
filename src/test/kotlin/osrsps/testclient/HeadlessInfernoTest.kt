@@ -3,6 +3,7 @@ package osrsps.testclient
 import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -19,6 +20,7 @@ import osrsps.game.SeqNames
 import osrsps.game.VarTypes
 import osrsps.game.VarbitType
 import osrsps.game.World
+import osrsps.game.combat.AttackType
 import osrsps.game.combat.NpcCombat
 import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
@@ -27,6 +29,7 @@ import osrsps.game.npc.NpcSpawn
 import osrsps.game.tzhaar.FightCaves
 import osrsps.game.tzhaar.Inferno
 import osrsps.game.tzhaar.InfernoMonster
+import osrsps.game.tzhaar.InfernoMonsters
 import osrsps.game.tzhaar.InfernoPillars
 import osrsps.game.tzhaar.InfernoWaves
 import osrsps.game.tzhaar.KetKeh
@@ -52,6 +55,9 @@ class HeadlessInfernoTest {
         monster(7691, "Jal-Nib", 1, "inferno_nibbler", 10),
         monster(7692, "Jal-MejRah", 2, "inferno_creature_harpie", 25),
         monster(7693, "Jal-Ak", 3, "inferno_creature_splitter", 40),
+        monster(7694, "Jal-AkRek-Mej", 1, "inferno_creature_splitter_mage", 15),
+        monster(7695, "Jal-AkRek-Xil", 1, "inferno_creature_splitter_range", 15),
+        monster(7696, "Jal-AkRek-Ket", 1, "inferno_creature_splitter_melee", 15),
         monster(7697, "Jal-ImKot", 4, "inferno_creature_melee", 75),
         monster(7698, "Jal-Xil", 3, "inferno_creature_ranger", 125),
         monster(7699, "Jal-Zek", 4, "inferno_creature_mager", 220),
@@ -399,6 +405,206 @@ class HeadlessInfernoTest {
         assertEquals(Scenario.ScenarioMinigame.INFERNO, scenarios["inferno"]!!.minigame!!.name)
         assertEquals(1, scenarios["inferno"]!!.minigame!!.wave)
         assertEquals(66, scenarios["inferno-wave66"]!!.minigame!!.wave)
+    }
+
+    // Inferno step IN2: the monsters' own mechanics.
+
+    @Test
+    fun `a Jal-MejRah's attacks drain 3 run energy each without Protect from Missiles`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("gus").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("inferno 1") { it.startsWith("Inferno") }
+                val bat = client.waveIn(server, "gus", 1).single { it.type.id == InfernoMonster.BAT.type }
+                assertTrue(bat.scriptedAttacks)
+                val player = server.world.playerNamed("gus")!!
+                // 3% a hit, less what the player gets back standing between hits.
+                client.await("run energy drained", timeoutMillis = 20_000) {
+                    player.runEnergy.takeIf { it <= osrsps.game.Movement.MAX_ENERGY - InfernoMonsters.BAT_RUN_DRAIN + 50 }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a Jal-MejRah's drain takes run energy and now and then a combat level, and none through Protect from Missiles`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ned").use { client ->
+                client.await("the login rebuild") { client.position }
+                val player = server.world.playerNamed("ned")!!
+                val stats = listOf(osrsps.game.Skill.ATTACK, osrsps.game.Skill.STRENGTH, osrsps.game.Skill.DEFENCE, osrsps.game.Skill.RANGED, osrsps.game.Skill.MAGIC)
+                for (skill in stats) client.commandReply("setlevel ${skill.name.lowercase()} 99") { true }
+                client.await("the levels") { stats.all { player.skills.currentLevel(it) == 99 }.takeIf { it } }
+                val monsters = server.world.inferno.monsterMechanics
+                player.runEnergy = osrsps.game.Movement.MAX_ENERGY
+                repeat(40) { monsters.batDrain(player, protected = true) }
+                assertEquals(osrsps.game.Movement.MAX_ENERGY, player.runEnergy, "no run energy through the prayer")
+                assertTrue(stats.all { player.skills.currentLevel(it) == 99 }, "no levels through the prayer")
+                monsters.batDrain(player, protected = false)
+                assertEquals(osrsps.game.Movement.MAX_ENERGY - InfernoMonsters.BAT_RUN_DRAIN, player.runEnergy, "3% a hit")
+                repeat(40) { monsters.batDrain(player, protected = false) }
+                assertTrue(stats.all { player.skills.currentLevel(it) < 99 }, "a level off each combat stat now and then")
+                assertTrue(stats.all { player.skills.currentLevel(it) > 99 - 41 }, "not every hit")
+            }
+        }
+    }
+
+    @Test
+    fun `a Jal-Ak splits into its three smaller selves as it dies, and the wave waits for them`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("hal").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("inferno 4") { it.startsWith("Inferno") }
+                val blob = client.waveIn(server, "hal", 4).single { it.type.id == InfernoMonster.BLOB.type }
+                val run = server.run("hal")!!
+                val player = server.world.playerNamed("hal")!!
+                client.commandReply("kill ${blob.index}") { it.startsWith("Killed") }
+                val small = client.await("the split") { run.monsters.filter { it.type.id in InfernoMonsters.SPLITS && !it.dead }.takeIf { it.size == 3 } }
+                assertEquals(InfernoMonsters.SPLITS.toSet(), small.map { it.type.id }.toSet())
+                assertTrue(small.all { it.target === player })
+                for (npc in run.monsters.filter { !it.dead && it.type.id == InfernoMonster.NIBBLER.type }) client.commandReply("kill ${npc.index}") { it.startsWith("Killed") }
+                assertEquals(4, run.wave, "the wave waits for them")
+                for (npc in small) client.commandReply("kill ${npc.index}") { it.startsWith("Killed") }
+                client.await("wave 5") { run.takeIf { it.wave == 5 } }
+            }
+        }
+    }
+
+    @Test
+    fun `a Jal-Ak split owed for want of room comes in later and the wave waits for it`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("hew").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("inferno 4") { it.startsWith("Inferno") }
+                val blob = client.waveIn(server, "hew", 4).single { it.type.id == InfernoMonster.BLOB.type }
+                val run = server.run("hew")!!
+                for (npc in run.monsters.filter { !it.dead && it.type.id == InfernoMonster.NIBBLER.type }) client.commandReply("kill ${npc.index}") { it.startsWith("Killed") }
+                // As if one of an earlier split couldn't come in: owed, it comes in with the next free tick.
+                run.splitsOwed += InfernoMonsters.SPLITS.first() to osrsps.map.Tile(blob.x, blob.z)
+                client.commandReply("kill ${blob.index}") { it.startsWith("Killed") }
+                val small = client.await("the split and the owed one") { run.monsters.filter { it.type.id in InfernoMonsters.SPLITS && !it.dead }.takeIf { it.size == 4 } }
+                assertTrue(run.splitsOwed.isEmpty())
+                assertEquals(4, run.wave, "the wave waits for them")
+                for (npc in small) client.commandReply("kill ${npc.index}") { it.startsWith("Killed") }
+                client.await("wave 5") { run.takeIf { it.wave == 5 } }
+            }
+        }
+    }
+
+    @Test
+    fun `a Jal-ImKot that can't reach the player digs and comes up beside them`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ida").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("inferno 9") { it.startsWith("Inferno") }
+                val imKot = client.waveIn(server, "ida", 9).single { it.type.id == InfernoMonster.MELEE.type }
+                val run = server.run("ida")!!
+                val player = server.world.playerNamed("ida")!!
+                val monsters = server.world.inferno.monsterMechanics
+                // Out of its reach in a far corner, standing still, with its dig made due.
+                val corner = listOf(run.at(Tile(2258, 5330)), run.at(Tile(2284, 5357))).maxBy { maxOf(Math.abs(it.x - imKot.x), Math.abs(it.z - imKot.z)) }
+                client.command("tele ${corner.x} ${corner.z} 0")
+                client.await("in the corner") { client.position?.takeIf { it == Coord(corner.x, corner.z, 0) } }
+                monsters.digNow(imKot)
+                client.await("it digs") { monsters.digs[imKot]?.takeIf { it >= 1 } }
+                assertFalse(imKot.hidden, "its dig-down shows before it goes from sight")
+                client.await("under") { imKot.takeIf { it.hidden } }
+                client.await("it comes up beside them", timeoutMillis = 10_000) { imKot.takeIf { !it.hidden } }
+                assertTrue(server.world.meleeCombat.reaches(imKot, player), "beside them")
+                assertTrue(server.world.npcs.canStand(imKot, imKot.x, imKot.z), "on ground it can stand on")
+                assertTrue(imKot.target === player)
+            }
+        }
+    }
+
+    @Test
+    fun `a Jal-Ak reads the player's prayer 3 ticks before it attacks, its first attack too`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("kit").use { client ->
+                client.await("the login rebuild") { client.position }
+                val monsters = server.world.inferno.monsterMechanics
+                repeat(50) {
+                    assertEquals(AttackType.RANGED, monsters.blobStyle(magic = true, missiles = false, melee = false, inReach = false))
+                    assertEquals(AttackType.MAGIC, monsters.blobStyle(magic = false, missiles = true, melee = false, inReach = false))
+                    assertTrue(monsters.blobStyle(magic = false, missiles = false, melee = true, inReach = true) in setOf(AttackType.MAGIC, AttackType.RANGED), "no melee through Protect from Melee")
+                }
+                assertEquals(setOf(AttackType.MAGIC, AttackType.RANGED), (1..200).map { monsters.blobStyle(false, false, false, inReach = false) }.toSet())
+                assertTrue((1..200).any { monsters.blobStyle(false, false, false, inReach = true) == AttackType.CRUSH }, "sometimes melee in reach")
+
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("inferno 4") { it.startsWith("Inferno") }
+                val blob = client.waveIn(server, "kit", 4).single { it.type.id == InfernoMonster.BLOB.type }
+                val read = client.await("its first read", timeoutMillis = 30_000) { monsters.readStyle(blob)?.let { it to blob.nextAttackTick } }
+                assertTrue(read.second - server.world.tick in 0..InfernoMonsters.BLOB_READS_AHEAD.toLong(), "it attacks within 3 ticks of reading")
+                val fired = client.await("its first attack") { monsters.lastStyle[blob] }
+                assertEquals(read.first.takeIf { it != AttackType.CRUSH } ?: fired, fired, "it fires the style it read")
+            }
+        }
+    }
+
+    @Test
+    fun `a Jal-Xil beside the player uses its melee, even on a diagonal`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("lou").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("inferno 18") { it.startsWith("Inferno") }
+                val wave = client.waveIn(server, "lou", 18)
+                val monsters = server.world.inferno.monsterMechanics
+                val xil = wave.single { it.type.id == InfernoMonster.RANGER.type }
+                client.await("the Jal-Xil shoots from afar", timeoutMillis = 20_000) { monsters.lastStyle[xil]?.takeIf { it == AttackType.RANGED } }
+                for (npc in wave.filter { it !== xil }) client.commandReply("kill ${npc.index}") { it.startsWith("Killed") }
+                // On the tile diagonal to its south-west corner.
+                client.command("tele ${xil.x - 1} ${xil.z - 1} 0")
+                client.await("its melee", timeoutMillis = 20_000) { monsters.lastStyle[xil]?.takeIf { it == AttackType.CRUSH } }
+            }
+        }
+    }
+
+    @Test
+    fun `a Jal-Zek beside the player uses its melee`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("max").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("inferno 36") { it.startsWith("Inferno") }
+                val wave = client.waveIn(server, "max", 36)
+                val monsters = server.world.inferno.monsterMechanics
+                val zek = wave.single { it.type.id == InfernoMonster.MAGE.type }
+                for (npc in wave.filter { it !== zek }) client.commandReply("kill ${npc.index}") { it.startsWith("Killed") }
+                client.command("tele ${zek.x + zek.type.size} ${zek.z} 0")
+                client.await("its melee", timeoutMillis = 30_000) { monsters.lastStyle[zek]?.takeIf { it == AttackType.STAB } }
+            }
+        }
+    }
+
+    @Test
+    fun `a Jal-Zek brings a dead monster of its wave back at half its hitpoints, once`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("jon").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("inferno 36") { it.startsWith("Inferno") }
+                val wave = client.waveIn(server, "jon", 36)
+                val bat = wave.single { it.type.id == InfernoMonster.BAT.type }
+                val run = server.run("jon")!!
+                client.commandReply("kill ${bat.index}") { it.startsWith("Killed") }
+                val back = client.await("the bat back", timeoutMillis = 30_000) {
+                    run.monsters.firstOrNull { it.type.id == InfernoMonster.BAT.type && it !== bat && !it.dead }
+                }
+                val at = run.at(InfernoMonsters.REVIVE_TILE)
+                assertEquals(at.x to at.z, back.spawn.x to back.spawn.z)
+                assertTrue(back.hitpoints <= back.maxHitpoints / 2)
+                assertTrue(run.slain.isEmpty(), "nothing left to bring back")
+                client.commandReply("kill ${back.index}") { it.startsWith("Killed") }
+                client.await("its death not counted again") { run.takeIf { back.dead } }
+                assertTrue(run.slain.isEmpty(), "a revived monster isn't revived twice")
+            }
+        }
     }
 
     private companion object {

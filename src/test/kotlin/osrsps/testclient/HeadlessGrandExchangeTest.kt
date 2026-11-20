@@ -111,13 +111,17 @@ class HeadlessGrandExchangeTest {
     @Test
     fun `an item an NPC sells below its guide price sells to the market for no more than the NPC's price`(@TempDir dir: Path) {
         // Exploit review 44, R44A-3. Beer is the Sheared Ram's and the Blue Moon's at 2 coins (their own registrations,
-        // made as the world starts); the logs are this test's shop's at 5. Their guides are 72 and 40.
+        // made as the world starts); the logs are this test's shop's at 5. Their guides are 72 and 40. Rope is free from
+        // Ned (exploit review 45, R45A-1), so the market never buys it.
         val objs = ObjTypes.of(
             ObjType(COINS, "Coins", stackable = true, tradeable = true),
             ObjType(BEER, "Beer", tradeable = true, internalName = "beer"),
             ObjType(LOGS, "Logs", tradeable = true, internalName = "logs"),
+            ObjType(ROPE, "Rope", tradeable = true, internalName = "rope"),
         )
-        val prices = ItemPrices(mapOf(BEER to ItemPrices.Entry("Beer", 72, 2_000), LOGS to ItemPrices.Entry("Logs", 40, 10)))
+        val prices = ItemPrices(
+            mapOf(BEER to ItemPrices.Entry("Beer", 72, 2_000), LOGS to ItemPrices.Entry("Logs", 40, 10), ROPE to ItemPrices.Entry("Rope", 16, 1_000)),
+        )
         val shops = ShopTypes(listOf(ShopType("test", "Test shop", 1, 1, false, 1000, 0, 0, listOf(ShopStock(objs[LOGS]!!, 5, 100, fixedPrice = 5)), emptyList())))
         TestServer(dir) { crcs, millis ->
             World(
@@ -157,6 +161,16 @@ class HeadlessGrandExchangeTest {
                 }
                 client.commandReply("geoffer collect 0") { it.startsWith("Collected") }
                 client.awaitHeld(COINS, 40)
+
+                // Ned's rope, free with the yak hair talk: not even 1 coin fills.
+                client.command("item $ROPE 1")
+                client.awaitHeld(ROPE, 1)
+                client.commandReply("geoffer sell rope 1 1") { it.startsWith("Placed") }
+                client.awaitTicks(5)
+                assertEquals(
+                    "Slot 0: sell 1 x Rope ($ROPE) at 1, 0/1 done for 0, to collect 0 items and 0 coins",
+                    client.commandReply("geoffer list") { it.startsWith("Slot 0") },
+                )
             }
         }
     }
@@ -175,5 +189,6 @@ class HeadlessGrandExchangeTest {
         const val FEATHER = 314
         const val LOGS = 1511
         const val BEER = 1917
+        const val ROPE = 954
     }
 }
