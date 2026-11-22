@@ -18,6 +18,7 @@ import osrsps.game.World
 import osrsps.game.combat.NpcCombat
 import osrsps.game.combat.NpcDrops
 import osrsps.game.content.Calvarion
+import osrsps.game.content.SkeletalLord
 import osrsps.game.content.WildernessLairFee
 import osrsps.game.content.WildernessLairFeeLines
 import osrsps.game.content.WildernessLairLines
@@ -302,6 +303,32 @@ class HeadlessCalvarionTest {
                 client.await("gus fighting the hound") { Unit.takeIf { (gus.interaction as? osrsps.game.combat.MeleeInteraction)?.npc === hound } }
                 client.awaitTicks(3)
                 assertTrue(client.messages().none { "already_under_attack" in it.text }, "no refusal")
+            }
+        }
+    }
+
+    @Test
+    fun `a hound that never swings is let go, and he can be hurt again`(@TempDir dir: Path) {
+        server(dir, seed = 4).use { server ->
+            server.login("ida").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.command("varp 172 1")
+                client.tele(Calvarion.SPAWN.x + 1, Calvarion.SPAWN.z - 4, Calvarion.TOMB_LEVEL)
+                val npc = server.world.npcs.all.first { it.type.id == Calvarion.BOSS }
+                client.commandReply("hit 75 ${npc.index}") { it.startsWith("Hit Calvar'ion") }
+                val fight = client.await("his fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
+                // Frozen where they come in, away from the player: hounds stuck where they reach no one (R47B-1).
+                val hounds = client.await("his hounds") {
+                    Calvarion.FIGHT.hounds(npc).toList().takeIf { it.size == 2 }?.onEach { server.world.npcs.freeze(it, 500) }
+                }
+                assertTrue(hounds.none { it.dead })
+                client.commandReply("hit 10 ${npc.index}") { it.startsWith("Hit Calvar'ion #${npc.index} for 0") }
+                val called = server.world.tick
+                client.await("both let go", timeoutMillis = 20_000) { fight.lines.filter { it.endsWith("lets go an idle hound") }.takeIf { it.size == 2 } }
+                assertTrue(server.world.tick - called >= SkeletalLord.HOUND_IDLE_TICKS - 2, "not before 50 idle ticks")
+                client.await("his hounds gone") { fight.lines.firstOrNull { it.endsWith("his hounds are dead") } }
+                client.commandReply("hit 10 ${npc.index}") { it.startsWith("Hit Calvar'ion #${npc.index} for 10") }
             }
         }
     }

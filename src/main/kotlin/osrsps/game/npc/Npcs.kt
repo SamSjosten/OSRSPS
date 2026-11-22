@@ -512,6 +512,22 @@ class Npcs(
      * blocks any tile it would cover, a blocked NPC's tiles are all water, and an indoors or outdoors one's are all
      * roofed or all open. Other NPCs aren't counted.
      */
+    /**
+     * The tiles beside [npc]'s sides (not its corners) that one step out from under it reaches: for a fight that puts its
+     * adds next to the boss, so none lands behind a wall or across a thin edge from it.
+     */
+    fun openBeside(npc: Npc): List<Tile> {
+        val size = npc.type.size
+        val out = ArrayList<Tile>()
+        for (i in 0 until size) {
+            if (Steps.canStep(collision, npc.level, npc.x, npc.z + i, -1, 0)) out += Tile(npc.x - 1, npc.z + i)
+            if (Steps.canStep(collision, npc.level, npc.x + size - 1, npc.z + i, 1, 0)) out += Tile(npc.x + size, npc.z + i)
+            if (Steps.canStep(collision, npc.level, npc.x + i, npc.z, 0, -1)) out += Tile(npc.x + i, npc.z - 1)
+            if (Steps.canStep(collision, npc.level, npc.x + i, npc.z + size - 1, 0, 1)) out += Tile(npc.x + i, npc.z + size)
+        }
+        return out
+    }
+
     fun canStand(npc: Npc, x: Int, z: Int): Boolean {
         val restrict = npc.spawn.restrict
         val size = npc.type.size

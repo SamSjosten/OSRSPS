@@ -48,7 +48,8 @@ object CalvarionLines : Lines("calvarion", "Transcript:Calvar'ion") {
  * glow's [LIGHTNING_WARN] ticks and graphics (fx_vetion_attack_magic and its impact, by the form); the random bolts
  * within [ARENA_SPAN] of him; the bash one attack in [BASH_ODDS] when he can reach, its [BASH_WARN] ticks and shadows
  * (fx_vetion_attack_melee), either shape at even odds; the enraged ring 2 to 3 tiles out from him; where the hounds come
- * in (beside him); the enraged form's max hit (the Wiki says only that it is higher); a shout with every attack.
+ * in (beside him, west and east) and a hound let go after [HOUND_IDLE_TICKS] without a swing; the enraged form's max
+ * hit (the Wiki says only that it is higher); a shout with every attack.
  * Left out: his defence drained and restored as he enrages, singles-plus combat (the arena is single-way).
  */
 class SkeletalLord(val config: Config) {
@@ -82,6 +83,8 @@ class SkeletalLord(val config: Config) {
         /** Whether this form has called its hounds yet. */
         var houndsCalled = false
         val hounds = ArrayList<Npc>()
+        /** Each hound's next attack tick as last seen, and since when: one that never swings is let go. */
+        val houndSwings = HashMap<Npc, kotlin.Pair<Long, Long>>()
     }
 
     private val fights = java.util.WeakHashMap<Npc, Fight>()
@@ -111,6 +114,7 @@ class SkeletalLord(val config: Config) {
     private fun EncounterContext.tick() {
         val fight = fights.getOrPut(boss) { Fight() }
         val hadHounds = fight.hounds.isNotEmpty()
+        letGoIdleHounds(fight)
         fight.hounds.removeAll { it.dead || it.hidden || world.npcs.all.none { npc -> npc === it } }
         if (hadHounds && fight.hounds.isEmpty()) {
             shout(if (fight.enraged) config.enragedHoundsDead else config.houndsDead)
@@ -219,13 +223,41 @@ class SkeletalLord(val config: Config) {
         boss.holdsAt = 0
         shout(if (fight.enraged) config.enragedHounds else config.hounds)
         val type = world.npcTypes[if (fight.enraged) config.greaterHound else config.hound] ?: return
-        val size = boss.type.size
-        for (at in listOf(Tile(boss.x - 2, boss.z), Tile(boss.x + size, boss.z))) {
+        // Beside his west and east sides where a step from under him reaches, inside his tomb, so neither lands behind a wall
+        // and leaves him immune (exploit review round 47, R47B-1); with only one side open, both there.
+        val open = world.npcs.openBeside(boss).filter { config.inArena(it.x, it.z) }
+        val west = open.minByOrNull { it.x } ?: return log("no room for his hounds")
+        val east = open.maxByOrNull { it.x } ?: west
+        for (at in listOf(west, east)) {
             val hound = spawnAdd(type, at.x, at.z) ?: continue
+            if (!world.npcs.canStand(hound, at.x, at.z)) {
+                world.removeNpc(hound)
+                continue
+            }
             fight.hounds += hound
+            fight.houndSwings[hound] = hound.nextAttackTick to world.tick
             (boss.target ?: players.firstOrNull())?.let { world.meleeCombat.aggress(hound, it, world.tick) }
         }
         log("calls ${fight.hounds.size} hounds")
+    }
+
+    /**
+     * A hound that hasn't swung for [HOUND_IDLE_TICKS] is let go, so one stuck where it can reach no one doesn't keep him
+     * immune for good (exploit review round 47, R47B-1).
+     */
+    private fun EncounterContext.letGoIdleHounds(fight: Fight) {
+        for (hound in fight.hounds.toList()) {
+            if (hound.dead || hound.hidden) continue
+            val seen = fight.houndSwings[hound]
+            if (seen == null || seen.first != hound.nextAttackTick) {
+                fight.houndSwings[hound] = hound.nextAttackTick to world.tick
+            } else if (world.tick - seen.second >= HOUND_IDLE_TICKS) {
+                world.removeNpc(hound)
+                fight.houndSwings.remove(hound)
+                log("lets go an idle hound")
+            }
+        }
+        fight.houndSwings.keys.retainAll(fight.hounds.toSet())
     }
 
     /** At 0 in his normal form: a ring of lightning round him, and back as his enraged form with full hitpoints. */
@@ -310,6 +342,7 @@ class SkeletalLord(val config: Config) {
         const val MAX_GROUP_BOLTS = 7
         const val LIGHTNING_WARN = 3
         const val ARENA_SPAN = 7
+        const val HOUND_IDLE_TICKS = 50L
         const val BASH_ODDS = 3
         const val BASH_WARN = 2
         const val BASH_STUN_TICKS = 8

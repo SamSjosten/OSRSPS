@@ -158,6 +158,21 @@ class NpcsTest {
     }
 
     @Test
+    fun `the open tiles beside an NPC leave out its corners and anything behind a wall or a blocked tile`() {
+        val map = map()
+        // A wall along the cow's west side, and its east side's lower tile blocked.
+        map.add(3229, 3230, 0, CollisionFlag.WALL_EAST)
+        map.add(3229, 3231, 0, CollisionFlag.WALL_EAST)
+        map.add(3232, 3230, 0, CollisionFlag.BLOCK_WALK)
+        val npcs = Npcs(map, GameRandom(1))
+        val cow = npcs.add(spawn(cow, wander = 0))!!
+        assertEquals(
+            setOf(Tile(3232, 3231), Tile(3230, 3229), Tile(3231, 3229), Tile(3230, 3232), Tile(3231, 3232)),
+            npcs.openBeside(cow).toSet(),
+        )
+    }
+
+    @Test
     fun `a blocked diagonal falls back to a straight step, and a dead end gives up`() {
         val map = map()
         // A wall along the north side of the row the NPC walks on.
