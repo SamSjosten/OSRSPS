@@ -491,6 +491,9 @@ class World(
     /** Scurrius's lairs, public and private ([osrsps.game.content.ScurriusLairs]). */
     val scurriusLairs = osrsps.game.content.ScurriusLairs(this)
 
+    /** Scurrius's MVP and non-MVP loot and kill count; see [osrsps.game.content.ScurriusLoot]. */
+    val scurriusLoot = osrsps.game.content.ScurriusLoot(this)
+
     /** The Wilderness bosses' shared rules: group loot, kill counts, `::wboss`; see [WildernessBosses]. */
     val wildernessBosses = osrsps.game.content.WildernessBosses(this)
     val escapeCaves = osrsps.game.content.EscapeCaves()
@@ -715,6 +718,7 @@ class World(
             archiveRaids.damaged(npc, player, dealt)
             slayer.damaged(npc, player, dealt)
             wildernessBosses.damaged(npc, player, dealt)
+            scurriusLoot.damaged(npc, player, dealt)
             osrsps.game.content.Bryophyta.damaged(this, npc, player)
         },
     )
@@ -1224,6 +1228,7 @@ class World(
         registerBryophyta(this, giantLairs)
         osrsps.game.content.registerScurrius(this, scurriusLairs)
         osrsps.game.content.registerScurriusFight(this)
+        npcScripts.onDeath(osrsps.game.content.ScurriusLoot.TYPES) { scurriusLoot.died(it) }
         registerEmotes(this)
         registerGiantBones(this)
         registerRoguesDen(this)
@@ -3132,6 +3137,8 @@ class World(
     fun dropLoot(npc: Npc, killer: Player?) {
         // A Wilderness boss with group loot puts its own down, split by damage.
         if (wildernessBosses.loot(npc)) return
+        // Scurrius's goes to his most damage and the rest apart.
+        if (scurriusLoot.loot(npc)) return
         // Any other Wilderness boss's goes to whoever dealt it the most damage, not its last hit; everyone's for nobody.
         val solo = wildernessBosses.soloLooter(npc)
         val killer = if (solo != null) solo.key?.let { key -> onlinePlayers.firstOrNull { it.saveKey == key } } else killer
@@ -3184,6 +3191,7 @@ class World(
         slayer.removed(npc)
         wildernessBosses.removed(npc)
         randomEvents.removed(npc)
+        scurriusLoot.removed(npc)
         npc.avatar?.let(network.npcAvatarFactory::release)
         npc.avatar = null
     }

@@ -22,6 +22,7 @@ object ScurriusLairLines : Lines("scurrius", "Scurrius's lair") {
     val EAT_HEALED = line("eat_healed", "Eat on a food pile: healed in full (OSRS Wiki, Food Pile; no transcript)")
     val EAT_WAIT = line("eat_wait", "Eat on a food pile within ten minutes of the last (no transcript)", "minutes")
     val EAT_COMBAT = line("eat_combat", "Eat on a food pile just after being attacked (no transcript)")
+    val KILL_COUNT = line("kill_count", "Scurrius killed: the player's kill count of him (the Wiki's Kill count page; no transcript)", "count")
 }
 
 /** Historian Aldo's lines (keys only; the words are in data/dialogue.txt, from Transcript:Historian Aldo, read 2026-11-19). */
