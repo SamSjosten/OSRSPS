@@ -34,11 +34,15 @@ class EscapeCaves {
 
     private class Visit(val since: Long, val debuff: Boolean)
 
-    private val visits = java.util.WeakHashMap<Player, Visit>()
+    /**
+     * By save key, not the Player, so relogging (a new Player each login) keeps the debuff and the linger count (exploit
+     * review round 48, R48B-1). Kept while they are offline; dropped the first tick they are seen outside the caves.
+     */
+    private val visits = HashMap<String, Visit>()
     /** By lair: when its last player left and which cave mouth they came out of. */
     private val lastLeft = HashMap<String, kotlin.Pair<Long, Tile>>()
 
-    fun debuffed(player: Player): Boolean = visits[player]?.debuff == true
+    fun debuffed(player: Player): Boolean = visits[player.saveKey]?.debuff == true
 
     /**
      * The cave mouth a player leaving [lair] at [tick] comes out of: the last one's, within [SHARED_TICKS] of them, else
@@ -53,17 +57,17 @@ class EscapeCaves {
 
     /** Through a surface cave, with the debuff. */
     fun enterFromSurface(world: World, player: Player, pair: Pair) {
-        visits[player] = Visit(world.tick, debuff = true)
+        visits[player.saveKey] = Visit(world.tick, debuff = true)
         world.teleport(player, pair.inside.x, pair.inside.z, 0)
     }
 
     /** Every tick for every player: forgotten once out of the caves; the debuff's and lingering's drains while in. */
     fun tick(world: World, player: Player) {
         if (player.level != 0 || !inCaves(player.x, player.z)) {
-            visits.remove(player)
+            visits.remove(player.saveKey)
             return
         }
-        val visit = visits.getOrPut(player) { Visit(world.tick, debuff = false) }
+        val visit = visits.getOrPut(player.saveKey) { Visit(world.tick, debuff = false) }
         val stayed = world.tick - visit.since
         if (stayed <= 0) return
         if (visit.debuff && stayed % DEBUFF_TICKS == 0L) drainPrayer(world, player, 1)
