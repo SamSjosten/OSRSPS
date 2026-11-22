@@ -120,6 +120,11 @@ class HeadlessGuidorBeaTest {
                 // Either leaf, keeping the player's row.
                 client.locOp(gateRight.id, gateRight.x, gateRight.z, GuidorsHouse.OPEN)
                 client.awaitAt(3263, 3405)
+                client.awaitTicks(3)
+                // From beside the gate along the fence: onto its crossing tile, then through.
+                client.tele(3264, 3407)
+                client.locOp(gateRight.id, gateRight.x, gateRight.z, GuidorsHouse.OPEN)
+                client.awaitAt(3263, 3406)
 
                 client.tele(3281, 3382)
                 client.locOp(door.id, door.x, door.z, GuidorsHouse.OPEN)
@@ -206,6 +211,22 @@ class HeadlessGuidorBeaTest {
                     client.ifButton(INVENTORY, INVENTORY_ITEMS, IOP_BUTTON_OPS[0], slot, FarmerBea.SUPPLIES)
                     client.await("the bag opened") { if (client.count(FarmerBea.SUPPLIES) == left - 1) Unit else null }
                 }
+                // Too little room for six leather: the bag stays shut, however often it's tried.
+                val before = client.inventory(BACKPACK).filterNotNull().map { it.id to it.count }
+                client.command("item ${FarmerBea.SUPPLIES} 1")
+                client.await("a third bag") { if (client.count(FarmerBea.SUPPLIES) == 1) Unit else null }
+                val held = client.inventory(BACKPACK).count { it != null }
+                client.command("item ${GuidorsHouse.PRIEST_GOWN_TOP} ${BACKPACK_SIZE - 4 - held}")
+                client.await("the backpack nearly full") { if (client.inventory(BACKPACK).count { it != null } == BACKPACK_SIZE - 4) Unit else null }
+                val bag = client.inventory(BACKPACK).indexOfFirst { it?.id == FarmerBea.SUPPLIES }
+                repeat(3) {
+                    client.ifButton(INVENTORY, INVENTORY_ITEMS, IOP_BUTTON_OPS[0], bag, FarmerBea.SUPPLIES)
+                    client.awaitTicks(1)
+                }
+                assertEquals(1, client.count(FarmerBea.SUPPLIES), "the bag unopened")
+                client.await("no room") { client.messages().firstOrNull { it.text == "[game.no_space]" } }
+                assertEquals(before, client.inventory(BACKPACK).filterNotNull().filter { it.id != FarmerBea.SUPPLIES && it.id != GuidorsHouse.PRIEST_GOWN_TOP }.map { it.id to it.count })
+
                 // Leather and hard leather come one a slot; the rest stack.
                 val got = client.inventory(BACKPACK).filterNotNull().filter { obj -> FarmerBea.REWARDS.any { it.item == obj.id } }
                     .groupBy { it.id }.mapValues { (_, objs) -> objs.sumOf { it.count } }
@@ -236,6 +257,7 @@ class HeadlessGuidorBeaTest {
 
     private companion object {
         const val BACKPACK = 93
+        const val BACKPACK_SIZE = 28
         const val WORN = 94
         const val INVENTORY = 149
         const val INVENTORY_ITEMS = 0

@@ -52,6 +52,17 @@ object GuidorsHouse {
     /** Guidor's side of his door: east of its edge. */
     fun insideRoom(x: Int) = x > DOOR_TILE.x
 
+    /**
+     * The gate's crossing tile on the player's side, nearest them: west of the fence (x 3263) or on the gate's own
+     * column (3264), on one of its two rows. Null when the player isn't beside it.
+     */
+    fun crossingFrom(x: Int, z: Int): Tile? {
+        val inner = GATE.tiles.first().x
+        val rows = GATE.tiles.minOf { it.z }..GATE.tiles.maxOf { it.z }
+        val tile = Tile(if (x < inner) inner - 1 else inner, z.coerceIn(rows))
+        return tile.takeIf { maxOf(kotlin.math.abs(x - it.x), kotlin.math.abs(z - it.z)) <= 1 }
+    }
+
     fun wearsGown(player: Player) = player.equipment.count(PRIEST_GOWN_TOP) > 0 && player.equipment.count(PRIEST_GOWN_BOTTOM) > 0
 }
 
@@ -59,12 +70,23 @@ fun registerGuidorsHouse(world: World) = with(GuidorsHouse) {
     for (leaf in listOf(GATE_LEFT, GATE_RIGHT)) {
         world.handlers.onLoc(leaf, OPEN) { op ->
             val loc = op.loc!!
-            val to = if (GATE.level == loc.level && GATE.tiles.any { it.x == loc.x && it.z == loc.z }) MemberGates.through(GATE, player.x, player.z) else null
-            if (to == null) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
+            // The gate can be reached from beside it along the fence too (north of the north leaf, south of the south
+            // one), so a player there steps onto the crossing tile on their side first.
+            val from = crossingFrom(player.x, player.z)
+            val to = if (GATE.level == loc.level && GATE.tiles.any { it.x == loc.x && it.z == loc.z } && from != null) MemberGates.through(GATE, from.x, from.z) else null
+            if (from == null || to == null) return@onLoc world.message(player, GameLines.NOTHING_INTERESTING)
             arriveDelay()
+            val beside = player.x != from.x || player.z != from.z
             for (tile in GATE.tiles) {
                 val closed = world.locs[tile.x, tile.z, loc.level, loc.layer]?.takeIf { it.id == GATE_LEFT || it.id == GATE_RIGHT } ?: continue
                 world.doors.openAs(closed, if (closed.id == GATE_LEFT) GATE_LEFT_OPEN else GATE_RIGHT_OPEN, shutAfter = MemberGates.OPEN_TICKS)
+            }
+            if (beside) {
+                // Walked: a step would end this script, so it is the last thing done.
+                player.waypoints.clear()
+                player.waypoints.add(from)
+                player.waypoints.add(to)
+                return@onLoc
             }
             delay(1)
             world.teleport(player, to.x, to.z, loc.level)

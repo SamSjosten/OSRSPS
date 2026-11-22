@@ -1,6 +1,7 @@
 package osrsps.game.content
 
 import osrsps.game.GameLines
+import osrsps.game.Inventory
 import osrsps.game.Player
 import osrsps.game.World
 import osrsps.game.dialogue.ChatAnim
@@ -112,15 +113,28 @@ object FarmerBea {
         world.message(player, FarmerBeaLines.SWAPPED)
     }
 
+    /**
+     * Whether every reward could fit at its most: checked before the roll, so a full backpack refuses the bag outright
+     * rather than letting repeated tries filter out the rewards that wouldn't fit. The bag's own slot comes free;
+     * leather and hard leather come several to a roll, one a slot; a stack can't pass [Inventory.MAX_STACK].
+     */
+    fun roomForAny(world: World, player: Player): Boolean = REWARDS.all { reward ->
+        val type = world.objTypes[reward.item] ?: return@all true
+        val held = player.inventory.count(reward.item)
+        when {
+            !type.stackable -> reward.max <= player.inventory.freeSlots + 1
+            held > 0 -> held.toLong() + reward.max <= Inventory.MAX_STACK
+            else -> true
+        }
+    }
+
     fun open(world: World, player: Player, slot: Int) {
         if (player.inventory[slot]?.id != SUPPLIES) return
+        if (!roomForAny(world, player)) return world.message(player, GameLines.NO_SPACE)
         val (item, count) = roll(world)
         val type = world.objTypes[item] ?: return
-        val stacks = player.inventory.count(item) > 0 && type.stackable
-        // The bag's own slot comes free, so a non-stacking reward of one fits; leather and hard leather come several.
-        if (!type.stackable && count > player.inventory.freeSlots + 1) return world.message(player, GameLines.NO_SPACE)
         player.inventory.remove(slot, 1)
-        if (type.stackable || stacks) player.inventory.add(type, count) else repeat(count) { player.inventory.add(type, 1) }
+        if (type.stackable) player.inventory.add(type, count) else repeat(count) { player.inventory.add(type, 1) }
     }
 
     /** Bea's talk; true when her shop should open. */
