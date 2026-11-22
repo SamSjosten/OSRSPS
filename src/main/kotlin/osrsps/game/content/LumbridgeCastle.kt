@@ -98,6 +98,7 @@ fun registerLumbridgeCastle(world: World) {
     registerDoomsayer(world)
     registerMikasi(world)
     registerLumbridgeGuide(world)
+    registerCulinaromancersChest(world)
     with(LumbridgeCastle) {
         for (crate in listOf(CRATE, CRATE_2, CRATE_3)) registerSearch(world, crate, 1, SearchLines.CRATE_EMPTY)
         registerSearch(world, SACKS, 1, SearchLines.SACKS_EMPTY)
