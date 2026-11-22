@@ -112,6 +112,33 @@ class HeadlessEdgevilleDungeonPipesTest {
         }
     }
 
+    @Test
+    fun `hitpoints lost during a stuck crossing still leave the pipe unable to kill`(@TempDir dir: Path) {
+        server(dir, data("[-1, -1]")).use { server ->
+            server.login("carol").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.level(AGILITY, 60)
+                client.level(HITPOINTS, 7)
+                client.teleTo(3122, 9880)
+                // Down to 1 mid-crossing, as poison could take it: the stuck damage must not finish the player. The world
+                // is paused so the hitpoints go while the crossing is under way, before its damage.
+                client.commandReply("pause") { it.startsWith("Paused") }
+                client.locOp(SOUTH, 3122, 9881, 1)
+                var steps = 0
+                while (client.animationTicks().isEmpty()) {
+                    check(++steps <= 5) { "the crossing never started" }
+                    client.stepTicks(1)
+                }
+                server.world.playerNamed("carol")!!.hitpoints = 1
+                client.commandReply("resume") { it.isNotEmpty() }
+                client.await("the message") { client.messages().firstOrNull { it.text == "[agility.pipe_stuck]" } }
+                client.awaitTicks(3)
+                assertEquals(1, client.stat(HITPOINTS)!!.level)
+                assertEquals(3122 to 9883, client.position!!.let { it.x to it.z }, "still at the pipe's far end, not respawned")
+            }
+        }
+    }
+
     private companion object {
         const val AGILITY = 16
         const val HITPOINTS = 3

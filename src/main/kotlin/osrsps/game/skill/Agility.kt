@@ -315,7 +315,10 @@ class Agility(private val world: World, val data: AgilityData) {
             if (obstacle.failDouses) LightSources.extinguish(player)
             obstacle.failLine?.let { player.message(world.textFor(player)[it]) }
             if (obstacle.damage.isEmpty()) return
-            val damage = world.random.between(obstacle.damage.first, obstacle.damage.last)
+            var damage = world.random.between(obstacle.damage.first, obstacle.damage.last)
+            // A safe obstacle can't kill, even when the player lost hitpoints (to poison, say) during the crossing.
+            if (obstacle.safeAtHp > 0) damage = minOf(damage, player.hitpoints - 1)
+            if (damage <= 0) return
             world.meleeCombat.statusHit(player, damage, HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER)
         }
     }
