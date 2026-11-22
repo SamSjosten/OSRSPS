@@ -166,7 +166,7 @@ class HeadlessRandomEventsTest {
     }
 
     @Test
-    fun `the timer brings an event once due, not while off, and not in a bank for one that stays out of banks`(@TempDir dir: Path) {
+    fun `the timer brings an event once due, not while off or in a setup, and not in a bank for one that stays out of banks`(@TempDir dir: Path) {
         server(dir, cycleMillis = 20).use { server ->
             server.login("dave").use { client ->
                 client.await("the login rebuild") { client.position }
@@ -190,8 +190,20 @@ class HeadlessRandomEventsTest {
                 client.await("500 ticks", timeoutMillis = 30_000) { if (player.playedTicks > 520) Unit else null }
                 assertTrue(client.npcs().none { it.id == Genie.npcId || it.id == TESTER })
 
-                // On, it comes at the next 500-tick look, and the next is set 60 to 120 minutes on.
+                // On, none comes during the setup either (exploit review R50A-1), and putting it back keeps the timer
+                // as it is now, not the snapshot's from before the setup.
                 client.commandReply("randomevent on") { it == "Random events on" }
+                val dueNow = player.charges[RandomEvents.DUE]
+                assertTrue(dueNow != due)
+                client.await("another 500 ticks", timeoutMillis = 30_000) { if (player.playedTicks > 1_020) Unit else null }
+                assertTrue(client.npcs().none { it.id == Genie.npcId || it.id == TESTER })
+                client.command("reset")
+                client.await("the setup put back") { if (player.scenario == null) Unit else null }
+                assertEquals(dueNow, player.charges[RandomEvents.DUE])
+                assertTrue(!server.world.randomEvents.isOff(player))
+                client.tele(3222, 3218)
+
+                // Out of it, it comes at the next 500-tick look, and the next is set 60 to 120 minutes on.
                 client.await("an event NPC", timeoutMillis = 30_000) { client.npcs().firstOrNull { it.id == Genie.npcId || it.id == TESTER } }
                 val next = player.charges[RandomEvents.DUE] - (clock.get() / 60_000).toInt()
                 assertTrue(next in RandomEvents.DUE_MIN_MINUTES..RandomEvents.DUE_MAX_MINUTES, "next in $next")
@@ -209,6 +221,35 @@ class HeadlessRandomEventsTest {
                 assertTrue(server.world.randomEvents.inBank(3229, 3218, 0))
                 assertTrue(!server.world.randomEvents.allowedAt(player, Tester))
                 assertTrue(server.world.randomEvents.allowedAt(player, Genie))
+            }
+        }
+    }
+
+    @Test
+    fun `an event held back by an open window still waits through a setup, and comes once it is put back`(@TempDir dir: Path) {
+        server(dir, cycleMillis = 20).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.tele(3222, 3218)
+                val player = server.world.onlinePlayers.single()
+                client.commandReply("randomevent") { it.startsWith("Random events on") }
+                // A window open over the next 500-tick look holds the due event back. Opened first, so the event
+                // can't come between the two commands.
+                client.command("openbank")
+                client.await("the bank") { if (client.openInterfaces().isNotEmpty()) Unit else null }
+                client.command("randomevent now")
+                val look = (player.playedTicks / RandomEvents.CHECK_TICKS + 1) * RandomEvents.CHECK_TICKS
+                client.await("the look", timeoutMillis = 30_000) { if (player.playedTicks > look + 2) Unit else null }
+                assertTrue(client.npcs().none { it.id == Genie.npcId || it.id == TESTER })
+                // A setup shuts the window; the held event still doesn't come during it (Codex review on #889).
+                client.command("scenario bare")
+                client.await("the scenario") { player.scenario?.takeIf { it == "bare" } }
+                client.awaitTicks(20)
+                assertTrue(client.npcs().none { it.id == Genie.npcId || it.id == TESTER })
+                client.command("reset")
+                client.await("the setup put back") { if (player.scenario == null) Unit else null }
+                client.tele(3222, 3218)
+                client.await("the held event") { client.npcs().firstOrNull { it.id == Genie.npcId || it.id == TESTER } }
             }
         }
     }
