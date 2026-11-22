@@ -25,6 +25,7 @@ import osrsps.game.npc.NpcSpawn
 import osrsps.game.trail.ClueStep
 import osrsps.game.trail.StepType
 import osrsps.game.trail.TrailData
+import osrsps.game.trail.TrailFights
 import osrsps.game.trail.TrailTarget
 import osrsps.game.trail.TrailTier
 import osrsps.game.trail.TrailTile
@@ -111,6 +112,28 @@ class HeadlessTreasureTrailsFightTest {
                 client.objbox("trail.another_clue")
                 client.slotOf(EMOTE_CLUE)
                 assertEquals(false, server.world.playerNamed("max")!!.trails[TrailTier.HARD]?.fought, "the emote's fight is still to come")
+            }
+        }
+    }
+
+    @Test
+    fun `a fight fought up close outlasts the wait, which only runs while the player is away`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("max").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god on") { true }
+                client.commandReply("clue hard coordinate:1") { it.startsWith("Clue") }
+                client.command("item ${TreasureTrails.SPADE}")
+                client.commandReply("tele 3222 3222") { it.startsWith("Teleported") }
+                client.awaitTicks(2)
+                client.op(TreasureTrails.SPADE, 1)
+                val wizard = client.await("the wizard") { npc(server, WIZARD) }
+                // Ten ticks at a time, with a keep-alive, so the idle connection isn't timed out.
+                repeat((TrailFights.FIGHT_TICKS + 20) / 10) {
+                    client.keepAlive()
+                    client.awaitTicks(10)
+                }
+                assertTrue(!wizard.dead && wizard in server.world.npcs.all, "the wizard is still there after ${TrailFights.FIGHT_TICKS + 20} ticks of fighting")
             }
         }
     }

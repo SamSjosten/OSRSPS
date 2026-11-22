@@ -15,14 +15,15 @@ import osrsps.game.npc.NpcSpawn
  * - Dig on a dig step with a fight, or the emote of an emote step with one, brings its NPCs out beside the player, going
  *   for them; nothing else happens until they are dead. Once the last falls the step's fight is won (kept on the trail
  *   and saved), and the same Dig or emote then counts as it would with no fight.
- * - The fight ends with no win if the player logs out, leaves it for [FIGHT_TICKS], or the trail moves on; its NPCs
- *   go, and the next Dig or emote brings them back.
+ * - The fight ends with no win if the player logs out, stays more than [LEAVE_RANGE] tiles from its NPCs for
+ *   [FIGHT_TICKS], or the trail moves on; its NPCs go, and the next Dig or emote brings them back. A long fight fought
+ *   up close never runs out (Codex review on #878).
  * - One of a key step's monsters, killed by a player holding that step's clue but not its key (backpack or bank),
  *   drops the key under it, for that player only. Search or Open on the step's chest or drawers with the key takes it
  *   and gives the next clue; without it the player is told it's locked.
  *
  * Guessed: all of an encounter's NPCs come at once; they come on free tiles beside the player with no spotanim or shout;
- * how long they wait; the key dropped every kill, under the monster; the key used up.
+ * how long they wait and how far counts as leaving; the key dropped every kill, under the monster; the key used up.
  */
 class TrailFights(private val world: World, private val trails: TreasureTrails) {
     private class Fight(val tier: TrailTier, val step: String, var until: Long, val npcs: MutableList<Npc>)
@@ -89,9 +90,13 @@ class TrailFights(private val world: World, private val trails: TreasureTrails) 
 
     /** Ends fights whose player has gone, waited too long or moved on. Run once a tick. */
     fun process() {
+        for ((player, fight) in fights) if (fight.npcs.any { near(player, it) }) fight.until = world.tick + FIGHT_TICKS
         val over = fights.filter { (player, fight) -> player.loggedOut || world.tick >= fight.until || player.trails[fight.tier]?.step != fight.step }
         for (player in over.keys) end(player)
     }
+
+    private fun near(player: Player, npc: Npc) =
+        !npc.dead && npc.level == player.level && maxOf(kotlin.math.abs(npc.x - player.x), kotlin.math.abs(npc.z - player.z)) <= LEAVE_RANGE
 
     private fun end(player: Player) {
         val fight = fights.remove(player) ?: return
@@ -101,5 +106,8 @@ class TrailFights(private val world: World, private val trails: TreasureTrails) 
     companion object {
         /** How long a fight's NPCs wait for the player, in ticks. Guessed. */
         const val FIGHT_TICKS = 200
+
+        /** How far from all of its NPCs the player has left a fight, in tiles. Guessed. */
+        const val LEAVE_RANGE = 16
     }
 }
