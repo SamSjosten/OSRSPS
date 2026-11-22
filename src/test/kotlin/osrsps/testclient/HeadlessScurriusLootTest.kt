@@ -21,7 +21,9 @@ import osrsps.game.loc.LocType
 import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
 import osrsps.game.npc.Npc
+import osrsps.game.SettingsSide
 import osrsps.game.VarTypes
+import osrsps.game.VarbitType
 import osrsps.game.zone.ZoneLoc
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
@@ -42,6 +44,11 @@ class HeadlessScurriusLootTest {
         stats = NpcStats(attack = 300, defence = 60, strength = 100, hitpoints = 500, ranged = 50, magic = 50),
     )
 
+    private val scurriusPublic = NpcType(
+        Scurrius.BOSS_PUBLIC, "Scurrius", size = 3, ops = listOf(null, "Attack", null, null, null), combatLevel = 250, internalName = "rat_boss_normal",
+        stats = NpcStats(attack = 300, defence = 60, strength = 100, hitpoints = 1500, ranged = 50, magic = 50),
+    )
+
     /** Every item his two tables name, under its own name so the loader takes them. */
     private val items = mapOf(
         532 to "Big bones", 2134 to "Raw rat meat", 1123 to "Adamant platebody", 1147 to "Rune med helm", 1163 to "Rune full helm",
@@ -55,12 +62,12 @@ class HeadlessScurriusLootTest {
         val objs = arrayOfNulls<ObjType>(items.keys.max() + 1)
         for ((id, name) in items) objs[id] = ObjType(id, name, stackable = id in setOf(890, 892, 562, 560, 563, 995), tradeable = true)
         val objTypes = ObjTypes(objs)
-        val npcTypes = NpcTypes.of(scurrius)
+        val npcTypes = NpcTypes.of(scurrius, scurriusPublic)
         World(
             crcs, CollisionMap().apply { markLoaded(3282 shr 6, 9867 shr 6) }, random = GameRandom(11), locTypes = types, objTypes = objTypes,
             staticLocs = StaticLocs().apply { add(ZoneLoc(Scurrius.BARS, LocShape.CENTREPIECE_STRAIGHT, 1, 3282, 9867, 0)) },
             npcTypes = npcTypes, npcCombat = NpcCombat.load(npcTypes, SeqNames.NONE), npcDrops = NpcDrops.load(npcTypes, objTypes),
-            varTypes = VarTypes(6_000, emptyMap()), cycleMillis = millis,
+            varTypes = VarTypes(6_000, mapOf(SettingsSide.VARBIT_IRONMAN to VarbitType(499, 3, 5))), cycleMillis = millis,
         )
     }
 
@@ -99,6 +106,39 @@ class HeadlessScurriusLootTest {
                     assertTrue(alices.none { it == ScurriusLoot.PET }, "no pet off the non-MVP table")
                     assertTrue(world.groundObjs.visibleAt(b, x, z, 0).none { it.id == ScurriusLoot.BIG_BONES }, "nothing but bones, clues on his corner")
                     assertEquals(0, world.scurriusLoot.held, "no tally or looter list left once his loot is down")
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `an Ironman in a public kill with others counts it but gets no drops, save a medium clue as the MVP`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("alice").use { alice ->
+                server.login("bob").use { bob ->
+                    bob.await("the login rebuild") { bob.position }
+                    alice.await("the login rebuild") { alice.position }
+                    val world = server.world
+                    val a = world.playerNamed("alice")!!
+                    val b = world.playerNamed("bob")!!
+                    a.vars.setVarbit(SettingsSide.VARBIT_IRONMAN, 1)
+                    bob.command("tele ${Scurrius.SPAWN.x} ${Scurrius.SPAWN.z} 0")
+                    bob.await("in the public lair") { bob.position?.takeIf { it == Coord(Scurrius.SPAWN.x, Scurrius.SPAWN.z, 0) } }
+                    bob.commandReply("npc ${Scurrius.BOSS_PUBLIC}") { it.isNotEmpty() }
+                    val boss: Npc = bob.await("Scurrius") { world.npcs.all.firstOrNull { it.type.id == Scurrius.BOSS_PUBLIC && !it.dead } }
+                    // Alice, the Ironman, deals the most: the MVP, as the tally decides.
+                    world.scurriusLoot.damaged(boss, a, 80)
+                    world.scurriusLoot.damaged(boss, b, 20)
+                    val (x, z) = boss.x to boss.z
+                    bob.commandReply("kill ${boss.index}") { it.startsWith("Killed") }
+                    alice.await("her kill count") { alice.messages().firstOrNull { it.text.contains("scurrius.kill_count") } }
+                    assertEquals(1, a.vars[Scurrius.KILL_COUNT_VARP])
+                    val bobs = bob.await("his loot", timeoutMillis = 20_000) {
+                        world.groundObjs.visibleAt(b, x + 1, z + 1, 0).filter { it.owner == b.saveKey }.takeIf { it.isNotEmpty() }
+                    }
+                    assertTrue(bobs.any { it.id == ScurriusLoot.BIG_BONES }, "the other player loots as usual: ${bobs.map { it.id }}")
+                    val hers = (world.groundObjs.visibleAt(a, x + 1, z + 1, 0) + world.groundObjs.visibleAt(a, x, z, 0)).filter { it.owner == a.saveKey }
+                    assertTrue(hers.all { it.id == ScurriusLoot.MEDIUM_CLUE }, "nothing but a medium clue for the Ironman MVP: ${hers.map { it.id }}")
                 }
             }
         }

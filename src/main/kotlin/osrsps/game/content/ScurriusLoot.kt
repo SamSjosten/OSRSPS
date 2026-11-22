@@ -2,6 +2,7 @@ package osrsps.game.content
 
 import osrsps.game.GroundObjs
 import osrsps.game.Player
+import osrsps.game.SettingsSide
 import osrsps.game.World
 import osrsps.game.combat.Drop
 import osrsps.game.npc.Npc
@@ -13,6 +14,9 @@ import osrsps.game.npc.Npc
  *   both versions); everyone else who damaged him rolls the non-MVP table (the chest table [NON_MVP_TABLE]). In a
  *   private lair the player is always the MVP. INFERRED: a tie goes to whoever hit him first, as the Wilderness bosses'
  *   does ([WildernessBosses]); only players logged in at the kill get anything.
+ * - **Ironmen**: "Ironmen can participate with other accounts and will receive killcount, although they will not
+ *   receive any drops (except medium clues if they attain MVP)". INFERRED: "with other accounts" as a public kill with
+ *   another damager; an Ironman alone in the public lair, or in a private one, loots in full.
  * - **The spine**: "only one player can receive a Scurrius' spine per kill". Both tables roll it at 1/33; the MVP's
  *   roll is looked at first, then the others' in order of damage, and any spine after the first is taken out.
  *   INFERRED: that order.
@@ -84,8 +88,12 @@ class ScurriusLoot(private val world: World) {
             return true
         }
         var spine = false
+        // Ironmen in a public kill with others get the kill count but no drops, save a medium clue as the MVP.
+        val shared = !private && keys.size > 1
         keys.forEachIndexed { i, key ->
-            val rolled = (if (i == 0) mvpTable else others)?.roll(world.random).orEmpty()
+            val all = (if (i == 0) mvpTable else others)?.roll(world.random).orEmpty()
+            val ironman = shared && world.onlinePlayers.firstOrNull { it.saveKey == key }?.let(::ironman) == true
+            val rolled = if (!ironman) all else all.filter { i == 0 && it.type.id == MEDIUM_CLUE }
             for (drop in rolled) {
                 if (drop.type.id == SPINE) {
                     if (spine) continue
@@ -96,6 +104,9 @@ class ScurriusLoot(private val world: World) {
         }
         return true
     }
+
+    private fun ironman(player: Player): Boolean =
+        player.vars.types.varbit(SettingsSide.VARBIT_IRONMAN) != null && player.vars.getVarbit(SettingsSide.VARBIT_IRONMAN) != 0
 
     /** Tallies and looter lists still held, for tests: none once each Scurrius has gone and dropped. */
     internal val held: Int get() = damage.size + atKill.size + (if (bodyGoing != null) 1 else 0)
