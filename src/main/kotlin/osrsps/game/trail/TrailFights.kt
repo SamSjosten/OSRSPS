@@ -29,9 +29,6 @@ class TrailFights(private val world: World, private val trails: TreasureTrails) 
 
     private val fights = HashMap<Player, Fight>()
 
-    /** Whether [player] has [step]'s fight under way. */
-    fun fighting(player: Player, step: ClueStep): Boolean = fights[player]?.step == step.key
-
     /**
      * Brings out [step]'s fight for [player], who holds its clue of [tier], unless it is under way already (then it just
      * waits longer). False only when the cache has none of its NPCs; when they exist but can't come now (the NPC table
