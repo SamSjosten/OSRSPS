@@ -25,7 +25,7 @@ import osrsps.map.LocShape
 /**
  * Random events step 4 through the headless client: the Freaky Forester takes his player to a forest of their own,
  * asks for a pheasant, takes any pheasant's carcass, and the portal brings them back where they were with a Lederhosen
- * piece (a lamp once they have all three); "Sorry, I'm busy" and an early portal give nothing. The rl-client script
+ * piece (a lamp once they have all three); declining him and an early portal give nothing. The rl-client script
  * test-runner/examples/random-events-freaky-forester.json does it in the real game.
  */
 class HeadlessFreakyForesterTest {

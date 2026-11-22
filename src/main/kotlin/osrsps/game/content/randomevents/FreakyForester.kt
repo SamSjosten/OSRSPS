@@ -50,7 +50,7 @@ object FreakyForesterLines : Lines("freaky_forester", "Transcript:Freaky Foreste
  * Guessed: where the player lands and where the eight pheasants (two of each) stand; that pheasants stay where they are
  * put; the Kill as an unarmed punch with the pheasant's own death animation; which missing piece is given (one at
  * random); what counts as having a piece (backpack, worn or banked); that leaving takes any raw pheasant still held; the
- * talk on arrival following straight on (the transcript goes on after the teleport); that "Sorry, I'm busy" sends him
+ * talk on arrival following straight on (the transcript goes on after the teleport); that declining (BUSY) sends him
  * off. Left out: the second carcass's pick-up message, and being put in combat by a Kill.
  */
 object FreakyForester : RandomEvent("freaky_forester", 6748) {
