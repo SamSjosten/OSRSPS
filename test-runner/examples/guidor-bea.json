@@ -1,0 +1,449 @@
+{
+ "name": "Post-quest step 3: Guidor's gate and bedroom door (Julie without the priest gown, through with it), Farmer Bea's talk every way, her shop, the dart swap and her supplies opened",
+ "account": "test",
+ "steps": [
+  {
+   "step": "waitForLogin"
+  },
+  {
+   "step": "command",
+   "text": "::scenario lumbridge-bare",
+   "expectMessage": "Started scenario lumbridge-bare.",
+   "comment": "nothing worn or carried; ::reset at the end puts the account back"
+  },
+  {
+   "step": "command",
+   "text": "::keys on",
+   "expectMessage": "Dialogue shows keys"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3263 3405 0",
+   "expectMessage": "Teleported to 3263, 3405, 0",
+   "comment": "west of Guidor's gate, outside Varrock's fenced south-east corner"
+  },
+  {
+   "step": "locOption",
+   "locId": 2050,
+   "option": "Open",
+   "x": 3264,
+   "y": 3405,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3264,
+   "y": 3405,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "through the gate"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3,
+   "comment": "the gate shuts again"
+  },
+  {
+   "step": "locOption",
+   "locId": 2050,
+   "option": "Open",
+   "x": 3264,
+   "y": 3405,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3263,
+   "y": 3405,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "and back out"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3281 3382 0",
+   "expectMessage": "Teleported to 3281, 3382, 0",
+   "comment": "outside Guidor's bedroom door"
+  },
+  {
+   "step": "locOption",
+   "locId": 2032,
+   "option": "Open",
+   "x": 3282,
+   "y": 3382,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[julie.door_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[julie.door_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[julie.door_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[julie.door_4"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertNoDialogue",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "command",
+   "text": "::item 426 1",
+   "comment": "the priest gown's top"
+  },
+  {
+   "step": "command",
+   "text": "::item 428 1",
+   "comment": "and its bottom"
+  },
+  {
+   "step": "itemOption",
+   "itemId": 426,
+   "option": "Wear"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1
+  },
+  {
+   "step": "itemOption",
+   "itemId": 428,
+   "option": "Wear"
+  },
+  {
+   "step": "assertEquipment",
+   "slot": "body",
+   "item": "Priest gown",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "assertEquipment",
+   "slot": "legs",
+   "item": "Priest gown",
+   "timeoutMs": 5000
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 1
+  },
+  {
+   "step": "locOption",
+   "locId": 2032,
+   "option": "Open",
+   "x": 3282,
+   "y": 3382,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3283,
+   "y": 3382,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "in Guidor's room"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Guidor",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[guidor.",
+   "comment": "his talk is the Varrock sweep's"
+  },
+  {
+   "step": "finishDialogue"
+  },
+  {
+   "step": "waitTicks",
+   "ticks": 3
+  },
+  {
+   "step": "locOption",
+   "locId": 2032,
+   "option": "Open",
+   "x": 3282,
+   "y": 3382,
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertLocation",
+   "x": 3282,
+   "y": 3382,
+   "plane": 0,
+   "timeoutMs": 20000,
+   "comment": "out again"
+  },
+  {
+   "step": "command",
+   "text": "::tele 3316 3378 0",
+   "expectMessage": "Teleported to 3316, 3378, 0",
+   "comment": "Farmer Bea's farm, north-west of the Exam Centre"
+  },
+  {
+   "step": "npcOption",
+   "npc": "Farmer Bea",
+   "option": "Talk-to",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[farmer_bea.greeting"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[farmer_bea.farm]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[farmer_bea.farm"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[farmer_bea.farm_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[farmer_bea.farm_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[farmer_bea.farm_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[farmer_bea.darts]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[farmer_bea.darts"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[farmer_bea.darts_rule"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[farmer_bea.tips]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[farmer_bea.tips"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[farmer_bea.tips_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[farmer_bea.tips_local]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[farmer_bea.tips_local"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[farmer_bea.tips_local_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[farmer_bea.tips_local_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[farmer_bea.tips_local_3"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[farmer_bea.tips_far]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[farmer_bea.tips_far"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[farmer_bea.tips_far_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[farmer_bea.tips_far_2"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[farmer_bea.tips_back]"
+  },
+  {
+   "step": "chooseOption",
+   "text": "[farmer_bea.for_sale]"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[farmer_bea.for_sale"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertDialogue",
+   "contains": "[farmer_bea.for_sale_1"
+  },
+  {
+   "step": "continueDialogue"
+  },
+  {
+   "step": "assertInterface",
+   "interfaceId": 300,
+   "timeoutMs": 5000,
+   "comment": "Bea's Hunting Gear"
+  },
+  {
+   "step": "command",
+   "text": "::empty",
+   "expectMessage": "Inventory emptied.",
+   "comment": "the gown goes back in ::reset"
+  },
+  {
+   "step": "command",
+   "text": "::item 34787 34",
+   "comment": "one wasp dart too few"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Wasp dart",
+   "count": 34,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "npcOption",
+   "npc": "Farmer Bea",
+   "option": "Swap-darts",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertMessage",
+   "contains": "[farmer_bea.not_enough]",
+   "timeoutMs": 10000
+  },
+  {
+   "step": "command",
+   "text": "::item 34787 1"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Wasp dart",
+   "count": 35,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "npcOption",
+   "npc": "Farmer Bea",
+   "option": "Swap-darts",
+   "timeoutMs": 20000
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bea's supplies",
+   "count": 1,
+   "timeoutMs": 10000
+  },
+  {
+   "step": "assertInventory",
+   "item": "Wasp dart",
+   "count": 0,
+   "timeoutMs": 5000
+  },
+  {
+   "step": "itemOption",
+   "item": "Bea's supplies",
+   "option": "Open"
+  },
+  {
+   "step": "assertInventory",
+   "item": "Bea's supplies",
+   "count": 0,
+   "timeoutMs": 5000,
+   "comment": "one of the table's rewards in its place"
+  },
+  {
+   "step": "command",
+   "text": "::keys off",
+   "expectMessage": "Dialogue shows words"
+  },
+  {
+   "step": "command",
+   "text": "::reset",
+   "expectMessage": "Back to how you were"
+  }
+ ]
+}

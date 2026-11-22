@@ -58,6 +58,8 @@ import osrsps.game.command.registerSkillCommands
 import osrsps.game.command.registerSocialCommands
 import osrsps.game.command.registerLodestoneCommands
 import osrsps.game.command.registerWildernessCommands
+import osrsps.game.command.registerRandomEventCommands
+import osrsps.game.content.registerXpLamp
 import osrsps.game.command.registerFarmingCommands
 import osrsps.game.command.registerSlayerCommands
 import osrsps.game.command.registerTrailCommands
@@ -123,6 +125,7 @@ import osrsps.game.content.registerHamHideout
 import osrsps.game.content.registerHamStorerooms
 import osrsps.game.content.registerFarmsRoads
 import osrsps.game.content.registerLumberYard
+import osrsps.game.content.EdgevilleRespawn
 import osrsps.game.content.registerGertrudesCat
 import osrsps.game.content.registerClanHub
 import osrsps.game.content.registerMisthalinOptionPack
@@ -359,6 +362,8 @@ class World(
     clansClock: () -> java.time.Instant = java.time.Instant::now,
     /** The real time crops grow by, ms since 1970 ([osrsps.game.skill.farming.FarmingClock]); tests move it. */
     farmingClock: () -> Long = System::currentTimeMillis,
+    /** The real time random events fall due by, ms since 1970 ([osrsps.game.content.randomevents.RandomEvents]); tests move it. */
+    randomEventClock: () -> Long = System::currentTimeMillis,
     /** Whether crops fall ill on their own; tests of other farming turn it off and make crops ill with `::farmdisease`. */
     farmingDiseases: Boolean = true,
     /** Who may run the commands that change the world for everyone. */
@@ -417,6 +422,8 @@ class World(
     fairyRingCodes: osrsps.game.content.FairyRingCodes = osrsps.game.content.FairyRingCodes.NONE,
     /** Treasure Trails' steps, from the cache's clue helper tables ([osrsps.cache.TrailLoader]); tests that dig pass their own. */
     trailData: osrsps.game.trail.TrailData = osrsps.game.trail.TrailData.NONE,
+    /** What reward caskets give, from trail-rewards.json. */
+    val trailRewards: osrsps.game.trail.TrailRewards = osrsps.game.trail.TrailRewards.NONE,
     /** Whether shooting stars land on their own ([ShootingStars]); tests land theirs with `::star land`. */
     starCycle: Boolean = false,
     /** Real time between cycles. Only tests shorten it; the game itself always runs at [TICK_MILLIS]. */
@@ -794,7 +801,8 @@ class World(
      * Where a player dying here comes back and their grave goes: a raid's say ([ArchiveRaids.deathPlace]); in any other
      * instance the grave goes to its exit, since nobody could get back in to it (exploit review round 9, INST-1), and
      * they come back at the spawn, except a private King Black Dragon lair's, whose grave goes in the open lair
-     * ([KingBlackDragon.graveTile]); elsewhere, null: the spawn, and the grave where they fell.
+     * ([KingBlackDragon.graveTile]); elsewhere, Edgeville for a player who bought
+     * Krystilia's respawn there ([EdgevilleRespawn]), else null: the spawn, and the grave where they fell.
      */
     private fun deathPlace(player: Player): DeathPlace? {
         archiveRaids.deathPlace(player)?.let { return it }
@@ -802,7 +810,7 @@ class World(
         houses.deathPlace(player)?.let { return it }
         scurriusLairs.deathPlace(player)?.let { return it }
         inferno.deathPlace(player)?.let { return it }
-        val instance = instances.at(player.x, player.z) ?: return null
+        val instance = instances.at(player.x, player.z) ?: return EdgevilleRespawn.deathPlace(this, player)
         KingBlackDragon.graveTile(this, player.x, player.z)?.let { return DeathPlace(keepItems = false, it.x, it.z, 0, SPAWN_X, SPAWN_Z, SPAWN_LEVEL) }
         return DeathPlace(keepItems = false, instance.exitX, instance.exitZ, instance.exitLevel, SPAWN_X, SPAWN_Z, SPAWN_LEVEL)
     }
@@ -989,6 +997,9 @@ class World(
     /** Treasure Trails: scroll boxes, clue scrolls and their steps; see [osrsps.game.trail.TreasureTrails]. */
     val trails = osrsps.game.trail.TreasureTrails(this, trailData)
 
+    /** Random events: when each player's is due, and the event NPCs out. */
+    val randomEvents = osrsps.game.content.randomevents.RandomEvents(this, randomEventClock)
+
     /** The Slayer masters' Talk-to and Assignment; see [SlayerMasters]. */
     val slayerMasters = SlayerMasters(this)
 
@@ -1097,6 +1108,7 @@ class World(
         registerCombatCommands(this@World)
         registerIpCommands(this@World)
         registerSocialCommands(this@World)
+        registerRandomEventCommands(this@World)
         registerLookCommands(this@World)
     }
 
@@ -1110,6 +1122,8 @@ class World(
         registerCombatTutors(this)
         registerBones(this)
         registerRottenPotato(this)
+        registerXpLamp(this)
+        randomEvents.register(osrsps.game.content.randomevents.Genie)
         foods.register(this)
         potions.register(this)
         registerBanking(this)
@@ -1209,6 +1223,7 @@ class World(
         registerObor(this, giantLairs)
         registerBryophyta(this, giantLairs)
         osrsps.game.content.registerScurrius(this, scurriusLairs)
+        osrsps.game.content.registerScurriusFight(this)
         registerEmotes(this)
         registerGiantBones(this)
         registerRoguesDen(this)
@@ -1612,6 +1627,7 @@ class World(
         inferno.process()
         thieving.process()
         slayer.superiors.process()
+        randomEvents.processNpcs()
         // Before NPCs move, so a creature a trap lures this tick takes its first step this tick.
         hunter.process()
         npcs.process()
@@ -1634,8 +1650,10 @@ class World(
             perPlayer(player, "Grand Exchange") { grandExchange.process(player) }
             perPlayer(player, "Clans") { clans.process(player) }
             perPlayer(player, "farming") { farming.process(player) }
+            perPlayer(player, "random events") { randomEvents.process(player) }
             perPlayer(player, "White Tree") { osrsps.game.content.PalaceGarden.process(this, player) }
         }
+        trails.process()
         phase = TickPhase.MOVEMENT
         // Guessed place in the tick: before anyone walks, so a door that closes itself blocks this tick's steps.
         locs.process()
@@ -2374,6 +2392,7 @@ class World(
         inferno.login(player)
         prayers.login(player)
         cooking.wine.login(player)
+        randomEvents.login(player)
         if (player.newAccount) allSettings.newAccount(player)
         player.message(textFor(player)[GameLines.WELCOME])
 
@@ -3164,6 +3183,7 @@ class World(
         npcInteractions.removed(npc, players.asIterable())
         slayer.removed(npc)
         wildernessBosses.removed(npc)
+        randomEvents.removed(npc)
         npc.avatar?.let(network.npcAvatarFactory::release)
         npc.avatar = null
     }
@@ -3626,6 +3646,7 @@ class World(
             fairyRings.forget(player)
             makeoverScreen.forget(player)
             hunter.tracking.loggedOut(player)
+            randomEvents.leaving(player)
             npcs.forget(player, scripts::busy)
             save(player)
         } finally {

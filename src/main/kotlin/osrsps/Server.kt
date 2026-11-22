@@ -286,6 +286,7 @@ class GameServer(
             wearRequirements = wearRequirements, itemPrices = itemPrices, itemPricesFile = itemPricesFile, settings = settings,
             specialAttackCosts = specialAttackCosts, encounterDefs = listOfNotNull(ArchiveGuardian.def(npcTypes), Ezekiel.def(npcTypes), Bork.def(npcTypes), Dreadnoth.def(npcTypes), Moia.def(npcTypes), Xarth.def(npcTypes), Dagonhai.def(npcTypes), Ocellus.def(npcTypes)),
             slayerData = slayerData, fairyRingCodes = fairyRingCodes, trailData = trailData, idkTypes = idkTypes, makeoverCatalog = makeoverCatalog, starCycle = true, cycleMillis = cycleMillis,
+            trailRewards = osrsps.game.trail.TrailRewards.load(objTypes),
         )
         loadObjSpawns(objTypes)
         factory = NetworkFactory(port, rsa, DefaultHuffmanCodecProvider(huffman), js5, world, relays, proxy, js5Connections)
