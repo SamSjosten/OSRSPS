@@ -1917,7 +1917,8 @@ and each berry grows back after 200 ticks; the south-western cadava bush is alwa
 bridge, at the Draynor crossroads and south of Varrock open the compass with each post's own words, and the Exam
 Centre's gives its one line. The Combat Scroll and the VTAM Corporation plaque can be read, the boxes in Lumbridge and
 upstairs in Edgeville are empty, and the 242 cache's onion and cabbage field east of the south-east Varrock mine is
-picked like Fred's.
+picked like Fred's. The Restless Ghost's coffin opens on a whole skeleton and its altar is empty, and Curator Haig Halen
+can be pickpocketed for the museum storeroom's key.
 
 | Misthalin's small options | Source |
 |---------------------------|--------|
@@ -1926,6 +1927,9 @@ picked like Fred's.
 | The Combat Scroll's words | OSRS Wiki, Transcript:Combat Scroll, read 2026-11-19 |
 | The second berry's 200 ticks start once the first is back | inferred |
 | The pick messages and animation, the scroll and plaque shown in a message box; the plaque's words (no source yet) | guessed |
+| The Restless Ghost's coffin opening for three minutes with the skull back in, its and the altar's after-quest boxes; Curator Haig Halen's Pickpocket (level 25, no XP, the storeroom key) | OSRS Wiki, Coffin (The Restless Ghost), Transcript:The Restless Ghost and Curator Haig Halen, read 2026-11-19 |
+| The coffin's animations and Close shutting it at once; the curator's chances and a catch's damage (a warrior's) | guessed |
+| Left out: the church organs' Play, which plays a music track, until the server has music | not built |
 
 #### Walking Misthalin's roads
 
