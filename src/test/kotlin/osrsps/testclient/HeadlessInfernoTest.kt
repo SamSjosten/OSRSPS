@@ -647,6 +647,11 @@ class HeadlessInfernoTest {
                 val firsts = jads.map { server.world.inferno.jads.firstAttack(it)!! }
                 assertEquals(listOf(0L, 3L, 6L), firsts.map { it - firsts[0] })
                 assertTrue(jads.all { server.world.inferno.jads.attackSpeed(it) == osrsps.game.tzhaar.InfernoJads.TRIPLE_SPEED && it.scriptedAttacks })
+                // Whether or not each could make its attacks, every one stays on its beat, 3 ticks from the others' (Codex
+                // review on #849).
+                val speed = osrsps.game.tzhaar.InfernoJads.TRIPLE_SPEED
+                client.await("two rounds", timeoutMillis = 20_000) { jads.takeIf { j -> j.all { it.nextAttackTick > firsts[0] + 2 * speed } } }
+                for ((i, jad) in jads.withIndex()) assertEquals(0L, (jad.nextAttackTick - firsts[i]) % speed, "Jad ${i + 1} on its beat")
             }
         }
     }
@@ -663,7 +668,9 @@ class HeadlessInfernoTest {
                 client.commandReply("hit 200 ${jad.index}") { it.startsWith("Hit") }
                 val healers = client.await("five healers") { server.world.inferno.jads.healersOf(jad).takeIf { it.size == 5 } }
                 assertTrue(healers.all { it.type.id == osrsps.game.tzhaar.InfernoJads.HEALER && it.target == null })
-                client.await("a heal", timeoutMillis = 20_000) { jad.hitpoints.takeIf { it > 150 } }
+                // No regeneration, so only a healer's 15-24 can lift him (Codex review on #849).
+                jad.hitpointsRegenTicks = Int.MAX_VALUE
+                client.await("a heal", timeoutMillis = 20_000) { jad.hitpoints.takeIf { it >= 150 + osrsps.game.tzhaar.InfernoJads.HEAL_MIN } }
                 client.commandReply("kill ${jad.index}") { it.startsWith("Killed") }
                 client.await("the healers gone") { healers.takeIf { h -> h.none { server.world.npcs[it.index] === it } } }
                 client.await("wave 68 coming") { server.run("lee")?.takeIf { it.wave == 68 } }

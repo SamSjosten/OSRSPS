@@ -38,6 +38,12 @@ class InfernoJads(private val world: World) {
         val healers: MutableList<Npc> = ArrayList()
         var summoned = false
 
+        /** Healers summoned that couldn't come in yet (the world full of NPCs): they come as room allows (Codex review on #849). */
+        var healersOwed = 0
+
+        /** Wave 68's: his attacks stay on his own beat, 3 ticks from the others', even when one is put off (Codex review on #849). */
+        var onBeat = false
+
         /** The tick of its first attack as its wave came in. */
         var firstAttack = 0L
     }
@@ -56,7 +62,10 @@ class InfernoJads(private val world: World) {
         val speed = if (run.wave == InfernoWaves.TRIPLE_JAD_WAVE) TRIPLE_SPEED else ATTACK_SPEED
         for ((i, jad) in jads.withIndex()) {
             val state = jads(jad, speed)
-            if (run.wave == InfernoWaves.TRIPLE_JAD_WAVE) jad.nextAttackTick = world.tick + 1 + i * TRIPLE_APART
+            if (run.wave == InfernoWaves.TRIPLE_JAD_WAVE) {
+                jad.nextAttackTick = world.tick + 1 + i * TRIPLE_APART
+                state.onBeat = true
+            }
             state.firstAttack = jad.nextAttackTick
         }
     }
@@ -90,13 +99,17 @@ class InfernoJads(private val world: World) {
         state.healers.removeAll { it.dead || world.npcs[it.index] !== it }
         if (!state.summoned && jad.hitpoints < jad.maxHitpoints / 2) {
             state.summoned = true
+            state.healersOwed = if (run.wave == InfernoWaves.TRIPLE_JAD_WAVE) TRIPLE_HEALERS else HEALERS
+        }
+        // Summoned healers come in, each on a side of his not yet taken; one with no room yet is tried again next tick.
+        while (state.healersOwed > 0) {
             val count = if (run.wave == InfernoWaves.TRIPLE_JAD_WAVE) TRIPLE_HEALERS else HEALERS
-            for (offset in HEALER_OFFSETS.take(count)) {
-                val healer = inferno.spawn(player, run, HEALER, Tile(jad.x + offset.x, jad.z + offset.z), fight = false) ?: continue
-                state.healers += healer
-                healerOf[healer] = jad
-                nextHeal[healer] = world.tick + HEAL_TICKS
-            }
+            val offset = HEALER_OFFSETS[(count - state.healersOwed).coerceIn(0, HEALER_OFFSETS.size - 1)]
+            val healer = inferno.spawn(player, run, HEALER, Tile(jad.x + offset.x, jad.z + offset.z), fight = false) ?: break
+            state.healersOwed--
+            state.healers += healer
+            healerOf[healer] = jad
+            nextHeal[healer] = world.tick + HEAL_TICKS
         }
         for (healer in state.healers) healerTick(healer, jad)
         if (player.dead || player.hitpoints <= 0 || jad.target !== player) return
@@ -106,6 +119,8 @@ class InfernoJads(private val world: World) {
             reaches || world.meleeCombat.inShot(jad, player) -> world.npcs.stopFollowing(jad)
             else -> {
                 if (jad.following !== player) world.npcs.follow(jad, player)
+                // On wave 68 an attack he can't make is let go, so the next stays on his beat.
+                if (state.onBeat) while (jad.nextAttackTick <= world.tick) jad.nextAttackTick += state.attackSpeed
                 return
             }
         }
@@ -116,12 +131,15 @@ class InfernoJads(private val world: World) {
     private fun attack(jad: Npc, state: JadState, player: Player, reaches: Boolean) {
         val styles = if (reaches) STYLES_IN_REACH else STYLES_AFAR
         val type = styles[world.random.between(0, styles.size - 1)]
+        // On wave 68 every attack, melee too, keeps his beat (an attack he couldn't make was let go, so it is due now);
+        // alone, his next comes from this one.
+        val beat = jad.nextAttackTick
         if (type.melee) {
             world.meleeCombat.swingAt(jad, player, world.tick, ANIM_MELEE, type, MAX_HIT)
-            jad.nextAttackTick = world.tick + MELEE_TICKS
+            jad.nextAttackTick = if (state.onBeat) beat + state.attackSpeed else world.tick + MELEE_TICKS
             return
         }
-        jad.nextAttackTick = world.tick + state.attackSpeed
+        jad.nextAttackTick = if (state.onBeat) beat + state.attackSpeed else world.tick + state.attackSpeed
         jad.fightTick = world.tick
         jad.face(player)
         val magic = type == AttackType.MAGIC
