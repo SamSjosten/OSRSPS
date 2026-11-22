@@ -27,8 +27,10 @@ import osrsps.game.loc.LocTypes
 import osrsps.game.loc.StaticLocs
 import osrsps.game.npc.NpcSpawn
 import osrsps.game.zone.ZoneLoc
+import osrsps.map.CollisionFlag
 import osrsps.map.CollisionMap
 import osrsps.map.LocCollisionType
+import osrsps.map.Tile
 
 /**
  * Wilderness step W4.9 through the headless client: the Skeletal Tomb's way in taking the lairs' fee and dropping the
@@ -57,14 +59,14 @@ class HeadlessCalvarionTest {
         21_000,
     )
 
-    private fun server(dir: Path, seed: Long, spawn: Boolean = true) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
+    private fun server(dir: Path, seed: Long, spawn: Boolean = true, blocked: List<Tile> = emptyList()) = TestServer(dir, cycleMillis = 30) { crcs, millis ->
         val text = NpcDrops::class.java.getResource(NpcDrops.RESOURCE)!!.readText()
         val names = Regex("\"item\": (\\d+), \"name\": \"([^\"]+)\"").findAll(text).associate { it.groupValues[1].toInt() to it.groupValues[2] }
         val objTypes = ObjTypes.of(*names.map { (id, name) -> ObjType(id, name, stackable = true) }.toTypedArray())
         val entrance = LocType(Calvarion.ENTRANCE, "Memorial", listOf("Enter", "Peek", "Check-Fee", null, null), LocCollisionType())
         val exit = LocType(Calvarion.EXIT, "Cave", listOf("Exit", null, null, null, null), LocCollisionType(width = 2, length = 2))
         World(
-            crcs, CollisionMap().apply { markLoaded(29, 180); markLoaded(49, 57) }, objTypes = objTypes, npcTypes = types,
+            crcs, CollisionMap().apply { markLoaded(29, 180); markLoaded(49, 57); for (t in blocked) add(t.x, t.z, Calvarion.TOMB_LEVEL, CollisionFlag.BLOCK_WALK) }, objTypes = objTypes, npcTypes = types,
             random = GameRandom(seed), varTypes = varTypes,
             npcSpawns = if (spawn) listOf(NpcSpawn(normal, Calvarion.SPAWN.x, Calvarion.SPAWN.z, Calvarion.TOMB_LEVEL, wander = 0, source = "test")) else emptyList(),
             npcCombat = NpcCombat.load(types, SeqNames.NONE), npcDrops = NpcDrops.load(types, objTypes),
@@ -329,6 +331,27 @@ class HeadlessCalvarionTest {
                 assertTrue(server.world.tick - called >= SkeletalLord.HOUND_IDLE_TICKS - 2, "not before 50 idle ticks")
                 client.await("his hounds gone") { fight.lines.firstOrNull { it.endsWith("his hounds are dead") } }
                 client.commandReply("hit 10 ${npc.index}") { it.startsWith("Hit Calvar'ion #${npc.index} for 10") }
+            }
+        }
+    }
+
+    @Test
+    fun `with a gap too narrow for a hound on his east side, both hounds still come, elsewhere beside him`(@TempDir dir: Path) {
+        // Blocked floor two tiles east of him: the tile beside him is open, but a hound two tiles across doesn't fit.
+        val blocked = (-6..5).map { Tile(Calvarion.SPAWN.x + 4, Calvarion.SPAWN.z + it) }
+        server(dir, seed = 4, blocked = blocked).use { server ->
+            server.login("jo").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.command("varp 172 1")
+                client.tele(Calvarion.SPAWN.x + 1, Calvarion.SPAWN.z - 4, Calvarion.TOMB_LEVEL)
+                val npc = server.world.npcs.all.first { it.type.id == Calvarion.BOSS }
+                client.commandReply("hit 75 ${npc.index}") { it.startsWith("Hit Calvar'ion") }
+                val fight = client.await("his fight") { server.world.encounters.all.firstOrNull { it.boss === npc } }
+                client.await("his hounds") { fight.lines.firstOrNull { it.endsWith("calls 2 hounds") } }
+                val adds = fight.lines.filter { " add " in it }
+                assertEquals(2, adds.size, adds.joinToString())
+                for (line in adds) assertTrue(line.substringAfterLast(" at ").substringBefore(",").toInt() < npc.x + npc.type.size, "not in the gap: $line")
             }
         }
     }

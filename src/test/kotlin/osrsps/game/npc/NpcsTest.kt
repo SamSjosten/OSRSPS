@@ -173,6 +173,16 @@ class NpcsTest {
     }
 
     @Test
+    fun `a big NPC fits only where nothing blocks a tile under it`() {
+        val map = map()
+        map.add(3232, 3231, 0, CollisionFlag.BLOCK_WALK)
+        val npcs = Npcs(map, GameRandom(1))
+        assertTrue(npcs.fits(2, 0, 3229, 3229))
+        assertFalse(npcs.fits(2, 0, 3231, 3230), "its north-east tile blocked")
+        assertTrue(npcs.fits(1, 0, 3231, 3230))
+    }
+
+    @Test
     fun `a blocked diagonal falls back to a straight step, and a dead end gives up`() {
         val map = map()
         // A wall along the north side of the row the NPC walks on.

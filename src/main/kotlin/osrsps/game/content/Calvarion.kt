@@ -223,20 +223,21 @@ class SkeletalLord(val config: Config) {
         boss.holdsAt = 0
         shout(if (fight.enraged) config.enragedHounds else config.hounds)
         val type = world.npcTypes[if (fight.enraged) config.greaterHound else config.hound] ?: return
-        // Beside his west and east sides where a step from under him reaches, inside his tomb, so neither lands behind a wall
-        // and leaves him immune (exploit review round 47, R47B-1); with only one side open, both there.
-        val open = world.npcs.openBeside(boss).filter { config.inArena(it.x, it.z) }
-        val west = open.minByOrNull { it.x } ?: return log("no room for his hounds")
-        val east = open.maxByOrNull { it.x } ?: west
+        // Beside his west and east sides where a step from under him reaches, the whole hound inside his tomb on open
+        // floor, so neither lands behind a wall and leaves him immune (exploit review round 47, R47B-1); with only one
+        // side open, both there.
+        val size = type.size
+        val spots = world.npcs.openBeside(boss)
+            .map { Tile(if (it.x < boss.x) it.x - size + 1 else it.x, if (it.z < boss.z) it.z - size + 1 else it.z) }
+            .filter { config.inArena(it.x, it.z) && config.inArena(it.x + size - 1, it.z + size - 1) && world.npcs.fits(size, boss.level, it.x, it.z) }
+        val west = spots.minByOrNull { it.x } ?: return log("no room for his hounds")
+        val east = spots.maxByOrNull { it.x } ?: west
         for (at in listOf(west, east)) {
             val hound = spawnAdd(type, at.x, at.z) ?: continue
-            if (!world.npcs.canStand(hound, at.x, at.z)) {
-                world.removeNpc(hound)
-                continue
-            }
             fight.hounds += hound
-            fight.houndSwings[hound] = hound.nextAttackTick to world.tick
             (boss.target ?: players.firstOrNull())?.let { world.meleeCombat.aggress(hound, it, world.tick) }
+            // After aggress, which sets its attack timer: that isn't a swing (Codex review on #854).
+            fight.houndSwings[hound] = hound.nextAttackTick to world.tick
         }
         log("calls ${fight.hounds.size} hounds")
     }

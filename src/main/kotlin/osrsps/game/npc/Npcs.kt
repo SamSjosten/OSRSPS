@@ -528,6 +528,10 @@ class Npcs(
         return out
     }
 
+    /** Whether an NPC [size] tiles across that walks as most do could stand with its south-west tile on [x], [z]. */
+    fun fits(size: Int, level: Int, x: Int, z: Int): Boolean =
+        (x until x + size).all { tx -> (z until z + size).all { tz -> collision[tx, tz, level] and CollisionFlag.BLOCK_WALK == 0 } }
+
     fun canStand(npc: Npc, x: Int, z: Int): Boolean {
         val restrict = npc.spawn.restrict
         val size = npc.type.size
