@@ -102,6 +102,14 @@ class HeadlessTreasureTrailsStashTest {
                 assertEquals(listOf(HAT, OTHER_BOOTS), player.trails.stashes[STASH])
                 assertEquals(0L, player.inventory.count(HAT) + player.inventory.count(OTHER_BOOTS))
 
+                // An item the cache no longer has keeps the lot in the unit, none of it lost (R49A-4).
+                val stored = player.trails.stashes.getValue(STASH)
+                player.trails.stashes[STASH] = stored + 25_999
+                client.unit(StashUnits.SEARCH, "stash.no_space")
+                assertEquals(stored + 25_999, player.trails.stashes[STASH])
+                assertEquals(0L, player.inventory.count(HAT))
+                player.trails.stashes[STASH] = stored
+
                 client.unit(StashUnits.SEARCH, "stash.taken")
                 assertEquals(1L, player.inventory.count(HAT))
                 assertEquals(1L, player.inventory.count(OTHER_BOOTS))

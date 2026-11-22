@@ -286,7 +286,7 @@ class TreasureTrails(private val world: World, val data: TrailData) {
         for ((slot, obj) in player.inventory.contents()) {
             val tier = tierOf(obj.id) ?: continue
             val step = stepOf(player, tier, obj.id) ?: continue
-            if (!isDig(step) || step !in pool(tier)) continue
+            if (!isDig(step) || step !in pool(tier) || !dressed(player, step)) continue
             val spot = step.targets.first().tile
             if (spot.level != player.level || maxOf(kotlin.math.abs(spot.x - player.x), kotlin.math.abs(spot.z - player.z)) > DIG_RANGE) continue
             solve(context, slot, tier, step)
@@ -382,7 +382,8 @@ class TreasureTrails(private val world: World, val data: TrailData) {
             val tier = tierOf(obj.id) ?: continue
             if (obj.id in byChallenge) continue
             val step = stepOf(player, tier, obj.id) ?: continue
-            if (step !in pool(tier)) continue
+            // Undressed for a step that names an outfit, the NPC or loc does what it always does.
+            if (step !in pool(tier) || !dressed(player, step)) continue
             when (val goal = step.targets.first()) {
                 is TrailTarget.Npc -> if (target.target == OpTarget.NPC && (op.id == goal.npc || op.id == goal.fallbackNpc || target.npc?.type?.id == goal.npc)) {
                     val npc = target.npc ?: continue
@@ -429,7 +430,7 @@ class TreasureTrails(private val world: World, val data: TrailData) {
         // Only once the step goes on is the challenge scroll used up, from the backpack or else the bank, so leaving the
         // dialogue above keeps it. Guessed: live takes it back as well.
         val slot = clueSlot(player, tier) ?: return
-        if (player.trails[tier]?.step != step.key || !holds(player, step.challengeItem)) return
+        if (player.trails[tier]?.step != step.key || !holds(player, step.challengeItem) || !dressed(player, step)) return
         val held = player.inventory.contents().firstOrNull { it.second.id == step.challengeItem }
         if (held != null) player.inventory.remove(held.first, 1) else removeFromBank(player, step.challengeItem)
         solve(context, slot, tier, step)
@@ -463,7 +464,7 @@ class TreasureTrails(private val world: World, val data: TrailData) {
         world.dialogues.start(context, npc) { chatNpc(ChatAnim.HAPPY, TrailLines.NPC_BOX_SOLVED) }
         // Only once the dialogue is through is the box taken, so leaving it keeps the solved box; checked again first.
         val slot = clueSlot(player, tier) ?: return
-        if (player.trails[tier]?.step != step.key || player.inventory.count(held) == 0L || !boxes.solved(player, held)) return
+        if (player.trails[tier]?.step != step.key || player.inventory.count(held) == 0L || !boxes.solved(player, held) || !dressed(player, step)) return
         boxes.take(player, held)
         solve(context, slot, tier, step)
     }
@@ -477,6 +478,9 @@ class TreasureTrails(private val world: World, val data: TrailData) {
         val player = context.player
         val trail = player.trails[tier] ?: return
         if (trail.step != step.key) return
+        // A dig, talk or search step that names an outfit (a cryptic's "Equip three Zamorak related items.") wants it
+        // worn, as an emote step does (exploit review 49, R49A-2). Guessed: nothing happens without it, no message.
+        if (step.type != StepType.EMOTE && !dressed(player, step)) return
         trail.done += step.key
         val next = ready(tier).filter { it.key !in trail.done }
         if (trail.done.size >= trail.length || next.isEmpty()) {
