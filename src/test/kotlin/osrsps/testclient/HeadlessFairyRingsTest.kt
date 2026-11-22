@@ -220,7 +220,10 @@ class HeadlessFairyRingsTest {
                 client.seen("[${FairyRingLines.HARDLY_MOVED.key}]")
                 assertEquals(here, client.position)
                 assertEquals(64 + aip.state, client.varp(HISTORY_VARP))
-                val anims = client.actorEvents(events).filter { !it.npc && it.kind == ActorEventKind.ANIMATION }.map { it.id }
+                // The appear animation plays a few ticks after the message, so a slow runner can see the message first.
+                val anims = client.await("both animations") {
+                    client.actorEvents(events).filter { !it.npc && it.kind == ActorEventKind.ANIMATION }.map { it.id }.takeIf { it.size >= 2 }
+                }
                 assertEquals(listOf(FairyRings.VANISH_ANIM, FairyRings.APPEAR_ANIM), anims)
                 // DKR from DKR's own ring.
                 client.awaitTicks(FairyRings.APPEAR_TICKS + 1)
