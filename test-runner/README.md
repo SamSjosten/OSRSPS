@@ -441,6 +441,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   chest and its ladder up, the weapon store's door locked without the key and through with it, the Weaponsmaster's talk
   and his `[weaponsmaster.stravens]` on a crossbow taken upstairs, Katrine's `[katrine.phoenix_scum]` and the Black Arm
   Gang's inner door locked, with `::reset` at the end.
+- `guidor-bea.json`: post-quest step 3 (with `::scenario lumbridge-bare` and `::keys on`): Guidor's gate both ways,
+  his bedroom door refused with Julie's four lines, then through in the priest gown (426 and 428 worn) to his talk and out
+  again, Farmer Bea's talk every way ending in her shop (interface 300), Swap-darts refused at 34 wasp darts and a bag of
+  Bea's supplies for 35, and the bag opened, with `::reset` at the end.
 - `varrock-churches-inns.json`: Varrock step 7 (with `::keys on`): Pray-at at the church's altar and the chapel's
   chaos altar, Father Lawrence, Elsie upstairs in the church, the Mage of Zamorak, a beer bought at each of the three
   inns, the Blue Moon cook's cabbage and the Jolly Boar cook's jokes.
@@ -719,6 +723,9 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   with the platebody, platelegs and kiteshield, its three most valuable items. Assumes test2 wears nothing worth more.
 - `settings-search.json` (needs 0.12.0): the All Settings search typed with real key presses, a found row clicked,
   and a window closed mid-search reopening on its category, also after a relog.
+- `random-events-genie.json`: random events step 1 (with `::keys on`): turns the account's random events off, sends the
+  Genie with `::randomevent genie`, takes his lamp, rubs it and picks Agility in the experience reward window, for 300
+  XP at level 30.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
   it with no dependency, guard or var shared with another row is set to 0, clicked on and checked, then checked again
   after a relog and put back to 0. Generated from the 241 cache's settings catalog; run them one at a time.

@@ -152,6 +152,48 @@ class HeadlessMisthalinOptionPackTest {
         }
     }
 
+    /**
+     * With the clock stopped, starts [pick] next to its loc, lets the pick's first tick run, fills the last free slot
+     * with [filler] before its second, then lets it finish: what a pack filled mid-pick leaves.
+     */
+    private fun HeadlessClient.fillDuringPick(filler: Int, pick: () -> Unit) {
+        commandReply("item $filler 27") { it.startsWith("Added") }
+        commandReply("pause") { it.startsWith("Paused") }
+        pick()
+        var steps = 0
+        while (animationTicks().isEmpty()) {
+            check(++steps <= 5) { "the pick never started" }
+            stepTicks(1)
+        }
+        commandReply("item $filler 1") { it.startsWith("Added") }
+        stepTicks(2)
+        commandReply("resume") { it.isNotEmpty() }
+    }
+
+    @Test
+    fun `a pack filled during a pick leaves the berry on the bush and the onion in the field`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("dave").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("tele 3221 3220")
+                client.await("beside the bush") { if (client.position == Coord(3221, 3220)) Unit else null }
+                client.fillDuringPick(Crops.ONION) { client.locOp(MisthalinOptionPack.CADAVA[0], 3220, 3220, MisthalinOptionPack.PICK_FROM) }
+                client.seen(DialogueText.NONE[WildBushLines.NO_ROOM])
+                assertEquals(0, client.count(MisthalinOptionPack.CADAVA_BERRIES))
+                assertEquals(MisthalinOptionPack.CADAVA[0], server.world.locs.at(3220, 3220, 0).single().id)
+            }
+            server.login("erin2").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("tele 3222 3223")
+                client.await("beside the onion") { if (client.position == Coord(3222, 3223)) Unit else null }
+                client.fillDuringPick(MisthalinOptionPack.CADAVA_BERRIES) { client.locOp(AVIUM_ONION, 3222, 3224, Crops.PICK) }
+                client.seen(DialogueText.NONE[Crops.ONIONS.noRoom])
+                assertEquals(0, client.count(Crops.ONION))
+                assertTrue(server.world.locs.find(AVIUM_ONION, 3222, 3224, 0) != null, "the onion went for nothing")
+            }
+        }
+    }
+
     private companion object {
         const val BACKPACK = 93
         const val AVIUM_ONION = 51837

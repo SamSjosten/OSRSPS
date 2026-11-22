@@ -140,8 +140,11 @@ object MisthalinOptionPack {
     internal fun takeBerry(locs: Locs, loc: ZoneLoc, bush: Bush, now: Long) {
         val stage = bush.stages.indexOf(loc.id)
         val firstBack = if (stage == 0) null else ticksUntilFirstBack(locs.revertDue(loc), now)
+        // Only a bush whose cache state is its two-berry stage can be put back to that and picked again.
+        val startsFull = locs.cached(loc.x, loc.z, loc.level, loc.layer)?.id == bush.stages[0]
         when {
             stage == 0 -> locs.replace(loc, bush.stages[1], BERRY_TICKS)
+            firstBack == null && !startsFull -> locs.replace(loc, bush.stages[2], BERRY_TICKS)
             firstBack == null -> {
                 // The first berry is back as this one goes: the full bush, less this berry, growing back from now.
                 locs.restore(loc.x, loc.z, loc.level, loc.layer)
@@ -165,8 +168,10 @@ object MisthalinOptionPack {
         delay(1)
         // Someone else may have picked the same berry this tick.
         if (!world.locs.exists(loc)) return
+        val berry = world.objTypes[bush.berry] ?: return
+        // The pack may have filled during the pick: then the berry stays on the bush.
+        if (player.inventory.add(berry, 1) == 0) return world.message(player, WildBushLines.NO_ROOM)
         takeBerry(world.locs, loc, bush, world.tick)
-        world.objTypes[bush.berry]?.let { player.inventory.add(it, 1) }
         world.message(player, bush.picked)
     }
 

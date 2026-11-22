@@ -732,6 +732,8 @@ class HeadlessInfernoTest {
                 client.await("the glyph moving") { glyph.takeIf { it.x != start } }
                 val player = server.world.playerNamed("max")!!
                 assertFalse(server.world.inferno.zuk.covered(run, player), "the arena's south end has no cover")
+                // By name from further off than ::hit's 15 tiles: he's in the player's own instance (nightly inferno-zuk).
+                client.commandReply("hit 1 TzKal-Zuk") { it.startsWith("Hit TzKal-Zuk #") }
                 assertTrue(server.world.combat.shutOut(player, glyph), "no player attack reaches the glyph, an area one neither")
                 client.commandReply("god") { it.startsWith("You can be hurt") }
                 client.await("a hit from Zuk", timeoutMillis = 20_000) { player.takeIf { it.hitpoints < 99 } }
