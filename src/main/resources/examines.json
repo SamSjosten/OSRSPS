@@ -3143,6 +3143,6 @@
     {"loc": 63271, "name": "Ascension rocks"},
     {"loc": 63332, "name": "Market stall", "wiki": "Market stall (events) page, infobox"},
     {"loc": 63333, "name": "Market stall", "wiki": "Market stall (events) page, infobox"},
-    {"loc": 65000, "name": "Lodestone", "also": [65001, 65002, 65003, 65004, 65005, 65006], "wiki": "custom content after RS3's lodestones; the RS3 Wiki's Lumbridge lodestone page has RS3's text"}
+    {"loc": 65000, "name": "Lodestone", "also": [65001, 65002, 65003, 65004, 65005, 65006, 65007], "wiki": "custom content after RS3's lodestones; the RS3 Wiki's Lumbridge lodestone page has RS3's text"}
   ]
 }

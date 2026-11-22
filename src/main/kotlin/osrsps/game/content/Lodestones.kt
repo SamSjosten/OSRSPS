@@ -21,6 +21,7 @@ object LodestoneLines : Lines("lodestone", "Lodestone_Network") {
     val VARROCK = line("varrock", "The Varrock stone's name")
     val AL_KHARID = line("al_kharid", "The Al Kharid stone's name")
     val EDGEVILLE = line("edgeville", "The Edgeville stone's name")
+    val KARAMJA = line("karamja", "The Karamja stone's name")
     val ACTIVATED = line("activated", "Said when the player activates a stone, naming it (the words are RS3's; the Words thread has them)", "name")
     val LOCKED = line("locked", "::lodestone to a stone the player hasn't activated (RS3 greys it out; a message is ours)", "name")
     val PREVIOUS = line("previous", "The map's Previous destination button, naming the stone last teleported to (RS3's option on the spell)", "name")
@@ -153,7 +154,14 @@ object Lodestones {
     val AL_KHARID = Site(3, LodestoneLines.AL_KHARID, 3295, 3185)
     val EDGEVILLE = Site(4, LodestoneLines.EDGEVILLE, 3072, 3504)
 
-    val SITES = listOf(LUMBRIDGE, DRAYNOR, VARROCK, AL_KHARID, EDGEVILLE)
+    /**
+     * Karamja's (Karamja step K1.1b, Sam's pick of 18 Nov 2026: a stone for every new place): RS3's spot, south of
+     * Brimhaven on the road west from Musa Point (the RS3 Wiki's Karamja lodestone, 2760,3147, its centre here). The
+     * 3 by 3 and its ring are open jungle floor on the 242 map, clear of the trees and plants round it.
+     */
+    val KARAMJA = Site(5, LodestoneLines.KARAMJA, 2759, 3146)
+
+    val SITES = listOf(LUMBRIDGE, DRAYNOR, VARROCK, AL_KHARID, EDGEVILLE, KARAMJA)
 
     init {
         require(SITES.mapIndexed { i, site -> site.index == i }.all { it }) { "Sites are numbered in order" }
