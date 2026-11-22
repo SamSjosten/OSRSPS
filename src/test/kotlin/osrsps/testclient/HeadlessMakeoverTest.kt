@@ -183,6 +183,35 @@ class HeadlessMakeoverTest {
         }
     }
 
+    @Test
+    fun `logging out with a preview showing keeps the saved look`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("frank").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.npcOp(client.thessalia().index, VarrockStores.MAKEOVER_OP)
+                client.awaitOpen(MakeoverPage.TORSOS)
+                client.click(MakeoverScreen.ITEM_AREA, 10)
+                client.awaitKits("the third style previewed") { kits, _ -> kits[PlayerLook.BodyPart.TORSO] == 105 }
+                client.ifButton(World.LOGOUT_TAB, World.LOGOUT_BUTTON, 1)
+                client.await("the logout") { client.packets().firstOrNull { it.prot.name == "LOGOUT" } }
+            }
+            server.loginAgain("frank").use { client ->
+                client.await("the login rebuild") { client.position }
+                assertEquals(PlayerLook.DEFAULT.kits, client.await("the saved look") { client.appearance() }.kits)
+                assertTrue(MakeoverScreen.INTERFACE !in client.openInterfaces())
+            }
+        }
+    }
+
+    /** Logs in once the server has let the last login of [name] go: until then a login is refused as still on. */
+    private fun TestServer.loginAgain(name: String): HeadlessClient {
+        repeat(50) {
+            runCatching { login(name) }.onSuccess { return it }
+            Thread.sleep(100)
+        }
+        return login(name)
+    }
+
     private companion object {
         const val MAKEOVER_TEMP = 3787
     }

@@ -3600,6 +3600,7 @@ class World(
             pvpCombat.forget(player)
             canoes.forget(player)
             fairyRings.forget(player)
+            makeoverScreen.forget(player)
             hunter.tracking.loggedOut(player)
             npcs.forget(player, scripts::busy)
             save(player)

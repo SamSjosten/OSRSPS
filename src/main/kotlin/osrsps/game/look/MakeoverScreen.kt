@@ -49,6 +49,11 @@ class MakeoverScreen(
         }
     }
 
+    /** Lets go of [player]'s screen as they leave the world, which closes no modal; their saved look is what's kept. */
+    fun forget(player: Player) {
+        open.remove(player)
+    }
+
     fun isOpen(player: Player): Boolean = player.modals[FrameSlot.MAINMODAL] == INTERFACE && player in open
 
     /** Opens the screen on [page] for [player]; [by] is whoever offered it, handed back to [confirmed]. */
