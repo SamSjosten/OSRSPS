@@ -31,7 +31,8 @@ object MimeLines : Lines("mime", "Transcript:Mysterious Old Man, the Mime Show v
  *
  * Guessed: where the mime and player stand (under the two spotlights and ropes); the stage as a private copy (the Wiki
  * says live's room is shared); how long the mime's emote plays before the window opens ([PERFORM_TICKS]) and how long
- * the player has ([ANSWER_TICKS]); that the show starts by itself [COPY_TICKS] after the mime's
+ * the player has ([ANSWER_TICKS]); the pause before the cheer or cry and again before the next emote or the trip back
+ * ([REACT_TICKS] each); that the show starts by itself [COPY_TICKS] after the mime's
  * opening line if that line isn't continued; that the mime's emotes are the player's animations; one piece or two at random, and
  * which; that a wrong copy doesn't start the four again. Left out: the teleport refusal during the show and
  * the spell message.
