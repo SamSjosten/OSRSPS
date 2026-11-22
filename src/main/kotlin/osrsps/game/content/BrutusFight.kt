@@ -121,6 +121,11 @@ object BrutusFight {
 
     private fun EncounterContext.tick() {
         val fight = fight(boss)
+        // Guessed: the scoreboard's time starts with the player's first attack (the Wiki's best of 0:01.20, two ticks,
+        // rules out his spawn).
+        world.brutusPens.runAt(boss.x, boss.z)?.let { run ->
+            if (run.fightStart < 0 && boss.lastAttacker != null && boss.attackedTick >= boss.spawnTick) run.fightStart = boss.attackedTick
+        }
         if (fight.basicsLeft < 0) fight.basicsLeft = roll(BASICS_MIN, BASICS_MAX)
         if (world.tick < fight.busyUntil) {
             // The 15 ticks out of reach run on through a special too, so running off while he stomps doesn't put off

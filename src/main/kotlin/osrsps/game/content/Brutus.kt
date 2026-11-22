@@ -66,6 +66,9 @@ class BrutusPens(private val world: World) {
     class Run(val instance: Instance, val owner: String) {
         var boss: Npc? = null
 
+        /** The tick of the player's first attack on this Brutus, for the scoreboard's times; -1 before it. */
+        var fightStart = -1L
+
         fun inside(x: Int, z: Int) = Tile(instance.baseX + x - Brutus.FIELD_X, instance.baseZ + z - Brutus.FIELD_Z)
     }
 
@@ -198,12 +201,15 @@ fun registerBrutus(world: World, pens: BrutusPens) {
         world.npcScripts.onDeath(listOf(BOSS)) { boss ->
             boss.effects.say(world.dialogueText[BrutusLines.DYING])
             // Guessed: the kill counts for the player whose field it is (the Wiki doesn't say; the field is theirs alone).
-            val owner = pens.runAt(boss.x, boss.z)?.owner ?: return@onDeath
-            val player = world.onlinePlayers.firstOrNull { it.saveKey == owner && !it.loggedOut } ?: return@onDeath
+            val run = pens.runAt(boss.x, boss.z) ?: return@onDeath
+            val ticks = run.fightStart.takeIf { it >= 0 }?.let { world.tick - it }
+            run.fightStart = -1
+            val player = world.onlinePlayers.firstOrNull { it.saveKey == run.owner && !it.loggedOut } ?: return@onDeath
             if (KILL_COUNT_VARP < player.vars.types.varpCount) {
                 player.vars[KILL_COUNT_VARP] = player.vars[KILL_COUNT_VARP] + 1
                 world.message(player, BrutusLines.KILL_COUNT, "count" to player.vars[KILL_COUNT_VARP])
             }
+            BrutusScoreboard.killed(world, player, ticks)
         }
         // "Brutus' drops appear on the his tile closest to the player, rather than under his centre or south-west tile".
         world.dropTiles[BOSS] = { boss, killer ->
