@@ -34,7 +34,9 @@ class TrailFights(private val world: World, private val trails: TreasureTrails) 
 
     /**
      * Brings out [step]'s fight for [player], who holds its clue of [tier], unless it is under way already (then it just
-     * waits longer). False when none of its NPCs could come.
+     * waits longer). False only when the cache has none of its NPCs; when they exist but can't come now (the NPC table
+     * full), true all the same, so the fight still stands in the way and the next Dig or emote tries again (Codex review
+     * on #877).
      */
     fun start(player: Player, tier: TrailTier, step: ClueStep): Boolean {
         fights[player]?.let { fight ->
@@ -47,14 +49,16 @@ class TrailFights(private val world: World, private val trails: TreasureTrails) 
         val tiles = listOf(1 to 0, 0 to 1, -1 to 0, 0 to -1, 1 to 1, -1 to -1, 1 to -1, -1 to 1)
             .map { (dx, dz) -> player.x + dx to player.z + dz }.filter { (x, z) -> world.canStand(x, z, player.level) }
         val npcs = ArrayList<Npc>()
+        var known = false
         for ((i, id) in step.combatNpcs.withIndex()) {
             val type = world.npcTypes[id] ?: continue
+            known = true
             val (x, z) = tiles.getOrNull(i) ?: (player.x to player.z)
             val npc = world.spawnNpc(NpcSpawn(type, x, z, player.level, source = "trail fight", respawns = false)) ?: continue
             world.meleeCombat.aggress(npc, player, world.tick)
             npcs += npc
         }
-        if (npcs.isEmpty()) return false
+        if (npcs.isEmpty()) return known
         fights[player] = Fight(tier, step.key, world.tick + FIGHT_TICKS, npcs)
         return true
     }
@@ -69,8 +73,8 @@ class TrailFights(private val world: World, private val trails: TreasureTrails) 
     }
 
     /**
-     * One of a key step's monsters died: [killer] (its last attacker), holding that step's clue but not its key, gets
-     * the key under it.
+     * One of a key step's monsters' drops go down: [killer], holding that step's clue but not its key, gets the key
+     * under it. Called with the rest of its loot, as the death animation ends (World.dropLoot), not on the killing blow.
      */
     fun dropKey(npc: Npc, killer: Player?) {
         killer ?: return

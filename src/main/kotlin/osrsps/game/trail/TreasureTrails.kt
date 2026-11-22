@@ -720,8 +720,6 @@ fun registerTreasureTrails(world: World) {
     for ((index, button) in TrailBoxes.LIGHT_SWITCHES.withIndex()) world.handlers.onButton(TrailBoxes.LIGHT_PUZZLE, button) { trails.boxes.flip(this, index) }
     val fighters = trails.data.steps.values.flatMap { it.combatNpcs }.toSet()
     world.npcScripts.onDeath(fighters) { trails.fights.died(it) }
-    val keepers = trails.data.steps.values.flatMap { (it.targets.firstOrNull() as? TrailTarget.Key)?.npcs.orEmpty() }.toSet()
-    world.npcScripts.onDeath(keepers) { trails.fights.dropKey(it, it.lastAttacker) }
     for (stash in trails.stashes.units.values) {
         world.handlers.onLoc(stash.loc, StashUnits.BUILD) { trails.stashes.build(this, stash) }
         world.handlers.onLoc(stash.loc, StashUnits.SEARCH) { trails.stashes.search(this, stash) }

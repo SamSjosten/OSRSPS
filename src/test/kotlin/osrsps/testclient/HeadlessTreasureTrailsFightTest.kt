@@ -152,6 +152,8 @@ class HeadlessTreasureTrailsFightTest {
                 val (x, z) = man.x to man.z
                 client.commandReply("kill ${man.index}") { it.startsWith("Killed") }
                 val player = server.world.playerNamed("oz")!!
+                // Not on the killing blow: the key goes down with the loot, as the body goes (Codex review on #877).
+                assertTrue(server.world.groundObjs.visibleAt(player, x, z, 0).none { it.id == KEY }, "no key while the man is dying")
                 client.await("the key") { server.world.groundObjs.visibleAt(player, x, z, 0).firstOrNull { it.id == KEY } }
 
                 player.inventory[20] = InvObj(KEY, 1)
