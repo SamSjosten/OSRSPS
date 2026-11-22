@@ -166,6 +166,12 @@ class Combat(
     var weaponBarred: (Player, Npc) -> Line? = { _, _ -> null }
 
     /**
+     * Set by content: why [Player]'s weapon can't be used on another player, as [weaponBarred] for an NPC: the rat bone
+     * weapons, rats only. Asked by [PvpCombat] at every attempt, so a weapon swapped mid-fight counts.
+     */
+    var weaponBarredOnPlayer: (Player) -> Line? = { null }
+
+    /**
      * Set by content: what is added to [Player]'s max hit on [Npc], with any style, after every other bonus: the rat
      * bone weapons' +10 against rats ([osrsps.game.content.RatBoneWeapons]).
      */

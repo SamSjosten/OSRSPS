@@ -233,8 +233,10 @@ class PoweredStaves(
             impact = 2646,
             bonusMultiplier = 1,
             // Without its +10 against rats (added with the rest, after the damage bonuses), so a rat takes the Wiki's
-            // max hit. INFERRED: the Wiki's formula is that whole max hit, as the staff hits nothing but rats.
-            maxHit = { magic -> maxOf(0, magic / 3 + 5 - 10) },
+            // max hit. INFERRED: the Wiki's formula is that whole max hit, as the staff hits nothing but rats. At least
+            // 1, so a drained Magic level (17 or less) still casts a damaging spell, not one that only splashes (Codex,
+            // PR 878); GUESSED: that low a level is then 11 on a rat, not the formula's 5 to 10.
+            maxHit = { magic -> maxOf(1, magic / 3 + 5 - 10) },
             xpTenths = 350,
         )
 

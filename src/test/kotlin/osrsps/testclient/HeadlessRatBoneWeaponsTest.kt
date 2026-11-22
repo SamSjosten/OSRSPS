@@ -184,6 +184,7 @@ class HeadlessRatBoneWeaponsTest {
                 erin.equipment[WearPos.WEAPON] = InvObj(RatBoneWeapons.BONE_MACE, 1)
                 assertEquals(RatBoneLines.ONLY_RATS, world.combat.barred(erin, human), "rats only")
                 assertNull(world.combat.barred(erin, giant))
+                assertEquals(RatBoneLines.ONLY_RATS, world.combat.weaponBarredOnPlayer(erin), "no players either")
                 assertEquals(before + RatBoneWeapons.MAX_HIT_BONUS, world.combat.matchup(erin, giant)!!.maxHit, "+10 on a rat")
                 assertTrue(world.combat.noCooldown(erin, giant))
                 assertTrue(!world.combat.noCooldown(erin, human))
@@ -196,10 +197,12 @@ class HeadlessRatBoneWeaponsTest {
                 assertEquals(osrsps.game.Weapons.POWERED_STAFF, osrsps.game.Weapons.category(world.objTypes[RatBoneWeapons.BONE_STAFF]))
                 val spell = world.magicCombat.poweredSpell(erin)
                 assertEquals(0, spell?.splashXpTenths, "no splash XP")
+                assertTrue(spell!!.maxHit > 0, "a damaging spell even at low Magic, not one that only splashes")
                 erin.skills.setLevel(Skill.MAGIC, 99)
                 assertEquals(38, world.combat.magicMatchup(erin, giant, world.magicCombat.poweredSpell(erin)!!)!!.maxHit, "the Wiki's 38 at 99 Magic")
                 erin.equipment[WearPos.WEAPON] = null
                 assertNull(world.combat.barred(erin, human), "anything goes without one")
+                assertNull(world.combat.weaponBarredOnPlayer(erin))
                 // Another staff while the charges can't take its 1,000: nothing taken (Codex, PR 878).
                 for ((id, count) in listOf(RatBoneWeapons.SPINE to 1, RatBoneWeapons.BATTLESTAFF to 1, RatBoneWeapons.CHAOS_RUNE to 1_000)) {
                     erin.inventory.add(world.objTypes[id]!!, count)

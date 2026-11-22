@@ -192,6 +192,8 @@ fun registerRatBoneWeapons(world: World) = with(RatBoneWeapons) {
 
     val barred = world.combat.weaponBarred
     world.combat.weaponBarred = { player, npc -> if (wields(player) && !isRat(npc)) RatBoneLines.ONLY_RATS else barred(player, npc) }
+    val barredOnPlayer = world.combat.weaponBarredOnPlayer
+    world.combat.weaponBarredOnPlayer = { player -> if (wields(player)) RatBoneLines.ONLY_RATS else barredOnPlayer(player) }
     val added = world.combat.maxHitAdded
     world.combat.maxHitAdded = { player, npc -> added(player, npc) + if (wields(player) && isRat(npc)) MAX_HIT_BONUS else 0 }
     val noCooldown = world.combat.noCooldown
