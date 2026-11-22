@@ -146,6 +146,7 @@ class HeadlessSpindelTest {
             server.login("di").use { client ->
                 client.await("the login rebuild") { client.position }
                 client.commandReply("god") { it.startsWith("You can") }
+                client.command("varp 172 1") // auto retaliate off: a spiderling's swing mustn't walk them off the tile
                 client.tele(Spindel.SPAWN.x + 1, Spindel.SPAWN.z + 8, Spindel.CHASM_LEVEL)
                 val npc = server.world.npcs.all.first { it.type.id == Spindel.BOSS }
                 client.commandReply("hit 1 ${npc.index}") { it.startsWith("Hit Spindel") }
