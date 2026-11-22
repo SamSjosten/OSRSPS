@@ -1,0 +1,40 @@
+{
+ "name": "Treasure Trails step TT6: the Lumbridge Guide's hard anagram hands over its puzzle box, which opens on the sliding puzzle and must be solved first; a light box opens and its switches click (::keys on)",
+ "account": "test",
+ "steps": [
+  {"step": "waitForLogin"},
+  {"step": "command", "text": "::scenario lumbridge-bare", "expectMessage": "Started scenario lumbridge-bare.", "comment": "an empty backpack; ::reset at the end puts the account back"},
+  {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+  {"step": "command", "text": "::clue reset", "expectMessage": "No trail, no caskets opened, no scroll cases."},
+
+  {"step": "command", "text": "::clue hard anagram:56", "expectMessage": "Clue (hard): anagram:56", "comment": "the Lumbridge Guide, east of the castle, with a puzzle box (clue 19886)"},
+  {"step": "command", "text": "::tele 3236 3220 0", "comment": "two tiles west of the guide's spot (3238, 3220)"},
+  {"step": "waitTicks", "ticks": 3},
+  {"step": "npcOption", "npc": "Lumbridge Guide", "option": "Talk-to"},
+  {"step": "assertDialogue", "contains": "[trail.npc_box]", "timeoutMs": 15000},
+  {"step": "continueDialogue"},
+  {"step": "assertInventory", "item": "Puzzle box (hard)", "count": 1, "comment": "19887, the tree"},
+
+  {"step": "itemOption", "item": "Puzzle box (hard)", "option": "Open"},
+  {"step": "assertInterface", "interfaceId": 306, "comment": "trail_slidepuzzle, scrambled"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "npcOption", "npc": "Lumbridge Guide", "option": "Talk-to"},
+  {"step": "assertDialogue", "contains": "[trail.npc_box_unsolved]", "timeoutMs": 15000},
+  {"step": "continueDialogue"},
+  {"step": "command", "text": "::empty"},
+
+  {"step": "command", "text": "::item 20355 1", "comment": "a light box, as a master step hands over; scrambled when first opened"},
+  {"step": "itemOption", "item": "Light box", "option": "Open"},
+  {"step": "assertInterface", "interfaceId": 322, "comment": "light_puzzle: watch the lights match varp 1356"},
+  {"step": "clickWidget", "interfaceId": 322, "component": 8, "comment": "BUTTON1 flips its lights"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "clickWidget", "interfaceId": 322, "component": 15, "comment": "BUTTON8"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "assertInterface", "interfaceId": 322},
+  {"step": "command", "text": "::empty"},
+
+  {"step": "command", "text": "::clue reset", "expectMessage": "No trail, no caskets opened, no scroll cases."},
+  {"step": "command", "text": "::keys off", "expectMessage": "Dialogue shows words"},
+  {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
+ ]
+}

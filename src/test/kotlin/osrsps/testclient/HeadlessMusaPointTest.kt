@@ -213,6 +213,28 @@ class HeadlessMusaPointTest {
     }
 
     @Test
+    fun `a backpack that fills during the pick leaves the banana on the tree`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bea").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("keys on") { it == "Dialogue shows keys" }
+                client.tele(TREE_X, TREE_Z - 1)
+                // Paused and stepped: the click starts the pick on the next tick, and the backpack fills before the
+                // tick after, when the banana would come off the tree.
+                client.commandReply("pause") { it.startsWith("Paused after tick") }
+                client.locOp(MusaPoint.TREES.first, TREE_X, TREE_Z, MusaPoint.PICK)
+                client.stepTicks(1)
+                client.commandReply("item ${MusaPoint.BANANA} 28") { it.startsWith("Added") }
+                client.stepTicks(2)
+                client.await("no room") { client.messages().firstOrNull { it.text == "[musa_point.banana_no_room]" } }
+                assertEquals(28L, client.count(MusaPoint.BANANA))
+                assertTrue(client.locChanges().none { it.coord == Coord(TREE_X, TREE_Z, 0) }, "the tree keeps its banana")
+                client.commandReply("resume") { it.startsWith("Resumed") }
+            }
+        }
+    }
+
+    @Test
     fun `Zembo's yes opens his shop, and the store keeper's no thanks doesn't`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("cal").use { client ->

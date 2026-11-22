@@ -416,6 +416,7 @@ object DialogueLines {
         RecordKeeperLines,
         ReldoLines,
         ReportLines,
+        RestlessGhostLines,
         RichardLines,
         RickLines,
         RomeoLines,

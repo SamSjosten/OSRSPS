@@ -144,7 +144,7 @@
       {"item": 3012, "name": "Energy potion(2)", "weight": 16}, {"item": 3008, "name": "Energy potion(4)", "weight": 3}
     ]}, "tertiary": [{"item": 23182, "name": "Clue scroll (beginner)", "chance": "1/50"}], "source": "OSRS Wiki, Dark wizard (level 7), read 2026-10-30: the members table (wizard hat 4/128, blood runes); the Wilderness looting bag left out"},
     {
-      "npcs": ["man", "man2", "man3", "man4", "woman", "woman2", "woman3", "al_kharid_man", "al_kharid_warrior", "varrock_man1", "varrock_woman1"],
+      "npcs": ["man", "man2", "man3", "man4", "woman", "woman2", "woman3", "al_kharid_man", "al_kharid_warrior", "varrock_man1", "varrock_woman1", "man4_for_musa_point", "karamja_man"],
       "always": [{"item": 526, "name": "Bones"}],
       "table": {
         "slots": 128,
@@ -319,6 +319,11 @@
     {
       "npcs": ["rat", "rat_indoors"],
       "source": "OSRS Wiki, Rat: no drops outside quests, the Wilderness and the Stronghold of Security"
+    },
+    {
+      "npcs": ["snake"],
+      "always": [{"item": 526, "name": "Bones"}],
+      "source": "OSRS Wiki, Snake, read 2026-11-17 (Karamja step K1.3): bones always; the snake spine is Rag and Bone Man II's, a quest, so left out"
     },
     {
       "npcs": ["chicken", "chicken_brown"],

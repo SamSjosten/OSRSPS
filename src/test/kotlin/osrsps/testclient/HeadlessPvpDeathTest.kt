@@ -14,10 +14,13 @@ import osrsps.game.ObjTypes
 import osrsps.game.PlayerOps
 import osrsps.game.PlayerSave
 import osrsps.game.SaveStore
+import osrsps.game.VarTypes
+import osrsps.game.VarbitType
 import osrsps.game.WearPos
 import osrsps.game.World
 import osrsps.game.combat.Deaths
 import osrsps.game.combat.PvpLines
+import osrsps.game.content.EdgevilleRespawn
 import osrsps.game.dialogue.DialogueText
 import osrsps.game.skill.ArceuusRunecraft
 import osrsps.map.CollisionMap
@@ -43,7 +46,12 @@ class HeadlessPvpDeathTest {
             markLoaded(3222 shr 6, 3218 shr 6)
             for (sz in (3456 shr 6)..(3967 shr 6)) markLoaded(3090 shr 6, sz)
         }
-        World(crcs, map, objTypes = ObjTypes.of(coins, sword, bones, lobster, cape, book, fragments), npcTypes = NpcTypes.of(grave), cycleMillis = millis, saves = saves)
+        map.markLoaded(EdgevilleRespawn.X shr 6, EdgevilleRespawn.Z shr 6)
+        World(
+            crcs, map, objTypes = ObjTypes.of(coins, sword, bones, lobster, cape, book, fragments), npcTypes = NpcTypes.of(grave), cycleMillis = millis, saves = saves,
+            // edgeville_spawn and edgeville_spawn_unlocked, on cws_var and cws_var_2, as the 242 cache has them.
+            varTypes = VarTypes(6_000, mapOf(EdgevilleRespawn.VARBIT_SPAWN to VarbitType(1045, 31, 31), EdgevilleRespawn.VARBIT_UNLOCKED to VarbitType(1046, 0, 0))),
+        )
     }
 
     private fun HeadlessClient.tele(x: Int, z: Int) {
@@ -52,7 +60,10 @@ class HeadlessPvpDeathTest {
     }
 
     /** [victim] carrying the test's items at level [z]'s Wilderness, on 1 hitpoint, killed by one sure punch from [killer]. */
-    private fun TestServer.kill(killer: HeadlessClient, victim: HeadlessClient, victimName: String, z: Int, skulled: Boolean = false, extra: List<String> = emptyList()) {
+    private fun TestServer.kill(
+        killer: HeadlessClient, victim: HeadlessClient, victimName: String, z: Int, skulled: Boolean = false, extra: List<String> = emptyList(),
+        respawn: Coord = Coord(3222, 3218),
+    ) {
         killer.await("the login rebuild") { killer.position }
         victim.await("the login rebuild") { victim.position }
         // Both at combat level 3, so even level 5 has them in range: one point of hitpoints left, and a sure punch.
@@ -68,7 +79,7 @@ class HeadlessPvpDeathTest {
         killer.await("the victim in view") { killer.otherPlayers().takeIf { it.isNotEmpty() } }
         killer.playerOp(victim.index, PlayerOps.ATTACK)
         victim.await("[combat.dead]") { victim.messages().firstOrNull { it.text == "[combat.dead]" } }
-        victim.await("the respawn", timeoutMillis = 10_000) { victim.position?.takeIf { it == Coord(3222, 3218) } }
+        victim.await("the respawn", timeoutMillis = 10_000) { victim.position?.takeIf { it == respawn } }
     }
 
     private fun TestServer.groundFor(name: String, z: Int) =
@@ -89,6 +100,24 @@ class HeadlessPvpDeathTest {
                     assertEquals(listOf(InvObj(bones.id, 1), InvObj(bones.id, 1), InvObj(coins.id, 9)), server.groundFor("kai", LEVEL_25))
                     assertEquals(emptyList(), server.groundFor("lou", LEVEL_25), "the killer's alone for now")
                     assertNull(server.world.deaths.graveOf(server.world.playerNamed("lou")!!), "nothing for a grave above 20")
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `with Krystilia's Edgeville respawn bought, the killer still gets the loot, and the victim comes back in Edgeville`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("kai").use { killer ->
+                server.login("lou").use { victim ->
+                    victim.await("the login rebuild") { victim.position }
+                    victim.commandReply("varbit ${EdgevilleRespawn.VARBIT_UNLOCKED} 1") { it.startsWith("Varbit") }
+                    victim.commandReply("varbit ${EdgevilleRespawn.VARBIT_SPAWN} 1") { it.startsWith("Varbit") }
+                    // Exploit review round 49, R49C-1: the respawn made every Wilderness death a grave of the victim's own.
+                    server.kill(killer, victim, "lou", LEVEL_25, respawn = Coord(EdgevilleRespawn.X, EdgevilleRespawn.Z))
+                    victim.await("the kept items") { victim.inventory(BACKPACK).filterNotNull().takeIf { it.size == 4 } }
+                    assertEquals(listOf(InvObj(bones.id, 1), InvObj(bones.id, 1), InvObj(coins.id, 9)), server.groundFor("kai", LEVEL_25))
+                    assertNull(server.world.deaths.graveOf(server.world.playerNamed("lou")!!), "the worn untradeable is gone, as for anyone")
                 }
             }
         }
