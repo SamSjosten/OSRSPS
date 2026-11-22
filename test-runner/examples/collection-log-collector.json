@@ -126,13 +126,13 @@
   {
    "step": "waitTicks",
    "ticks": 2,
-   "comment": "script 814 draws Yes and No as universe's children"
+   "comment": "script 814 sets up the buttons; 584:3 is No and 584:1 is Yes (confirmdestroy_setupbutton)"
   },
   {
-   "step": "mouseClick",
+   "step": "clickWidget",
    "interfaceId": 584,
-   "component": 0,
-   "slot": 0,
+   "component": 3,
+   "op": 1,
    "comment": "No"
   },
   {
@@ -159,10 +159,10 @@
    "ticks": 2
   },
   {
-   "step": "mouseClick",
+   "step": "clickWidget",
    "interfaceId": 584,
-   "component": 0,
-   "slot": 1,
+   "component": 1,
+   "op": 1,
    "comment": "Yes"
   },
   {

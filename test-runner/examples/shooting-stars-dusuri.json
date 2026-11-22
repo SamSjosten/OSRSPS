@@ -33,7 +33,7 @@
   {"step": "assertDialogue", "contains": "[dusuri.good_luck]"},
   {"step": "continueDialogue"},
 
-  {"step": "command", "text": "::item 25527 2500", "expectMessage": "Added 2500 x Stardust"},
+  {"step": "command", "text": "::item 25527 2500", "expectMessage": "Added 2,500 x Stardust"},
   {"step": "npcOption", "npc": "Dusuri", "option": "Trade"},
   {"step": "assertInterface", "interfaceId": 300},
   {"step": "clickWidget", "interfaceId": 300, "component": 16, "slot": 1, "op": 2, "comment": "Buy 1 celestial ring for 2,000 stardust"},
