@@ -34,7 +34,8 @@
     "The Clan Hub (2026-11-19): npc-spawns/clan-hub.json's Clerk (10759), from the Clerk (Clan Hub) page.",
     "NPCs and locs: Karamja (step K1.2): Musa Point's Luthas, Zembo and general store keeper and assistant, and the banana trees as they lose their fruit (the 242 cache, 2026-11-17).",
     "NPCs: Karamja (step K1.3): Musa Point's two men and the snakes (the 242 cache, 2026-11-17).",
-    "NPCs: random events step 1 (2026-11-19): the Genie (326), from his page's infobox."
+    "NPCs: random events step 1 (2026-11-19): the Genie (326), from his page's infobox.",
+    "Construction step CON3 (2026-11-19): the seven chairs built on the parlour's chair spaces (poh_chair1 to 7), one per id, each from the Wiki page of the chair it is."
   ],
   "npcs": [
     {"npc": 0, "name": "Tool Leprechaun"},
@@ -1672,6 +1673,13 @@
     {"loc": 6434, "name": "Trapdoor"},
     {"loc": 6436, "name": "Ladder"},
     {"loc": 6448, "name": "Secure chest"},
+    {"loc": 6752, "name": "Chair", "wiki": "Crude wooden chair page, infobox"},
+    {"loc": 6753, "name": "Chair", "wiki": "Wooden chair page, infobox"},
+    {"loc": 6754, "name": "Chair", "wiki": "Rocking chair page, infobox"},
+    {"loc": 6755, "name": "Chair", "wiki": "Oak chair page, infobox"},
+    {"loc": 6756, "name": "Chair", "wiki": "Oak armchair page, infobox"},
+    {"loc": 6757, "name": "Chair", "wiki": "Teak armchair page, infobox"},
+    {"loc": 6758, "name": "Chair", "wiki": "Mahogany armchair page, infobox"},
     {"loc": 6910, "name": "Chest"},
     {"loc": 6911, "name": "Crate", "wiki": "Crate (H.A.M. Hideout) page, infobox"},
     {"loc": 6912, "name": "Hole"},
