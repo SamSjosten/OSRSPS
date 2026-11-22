@@ -1150,6 +1150,8 @@ held or worn, is the gem's.
 | Mazchna's, Chaeldar's, Steve's and Kuradal's talk; the cancel offer for a task the player is no longer fit for | the Wiki's transcripts |
 | Mazchna suggesting Chaeldar from combat 70; the cancel offer coming before Aya's swap | guessed |
 | Krystilia (3109,3516): no combat check, Slayer 2 needed, kills counting only inside the Wilderness and not in Ferox Enclave, her own streak (varbit slayer_wilderness_tasks_completed) paying 25 points from the fifth, her talk, warning, tip line, difficulty answer and hat talk; Aya's swap of her task resetting the Wilderness streak | OSRS Wiki, Krystilia and Transcript:Krystilia, read 2026-11-19; tile from mejrs NPCList_OSRS |
+| Krystilia's Edgeville respawn (`game/content/EdgevilleRespawn.kt`): 5,000,000 coins once, then a death outside an instance comes back in Edgeville's ruins (3094,3469), items lost as anywhere; switching back to Lumbridge or to Edgeville again free; live's varbits edgeville_spawn and edgeville_spawn_unlocked | OSRS Wiki, Krystilia, Transcript:Krystilia and Spawning (Respawn point), read 2026-11-19; the tile is the middle of the Wiki's map square (inferred), the coins taken from the backpack (inferred) |
+| Krystilia's menu leaving out the Nothing option (six options don't fit a chat menu) | guessed |
 | Krystilia: her warning shown while her streak is 0; Aya's swap leaving the standard streak; no Slayer XP for a kill outside the Wilderness; the standard "you're still hunting" line for another master's task | inferred; guessed |
 | Aya's and Spria's tiles; Mazchna's, Chaeldar's, Steve's and Kuradal's (listed under older types: Steve's tile as Nieve's 490, Kuradal's as Duradel's 405) | mejrs NPCList_OSRS (live), the Wiki's map pins |
 | A weak player turned away, a master with nothing to give, what follows Aya's "Yes, please"; chathead expressions | guessed, words unsourced |
@@ -1168,7 +1170,7 @@ held or worn, is the gem's.
 | The helmet taking the used mask's slot; Disassemble needing six free slots; a plain mask chosen before an imbued one when both are carried; all six messages (none quoted on the Wiki, so their words stay empty) | guessed |
 | A Buy taking as many as the points and inventory allow, refusing only when not one fits; its refusals' words | guessed |
 | Every message's words | unsourced: the Words thread fills them |
-| Not built yet: Konar and her places, the salve amulet not stacking with the mask (no salve amulet yet), the recoloured Slayer helmets and the helmet's Partner and Log, the slayer ring's teleports, Task Storage, the diary's seventh block slot, the superiors of Slayer monsters not in yet, boss tasks, Krystilia's Edgeville respawn deal and the Larran's keys and Slayer's enchantments her tasks drop, Aya's blessed axe talk, Kuradal's Slayer cape sale and talk about Duradel, the Slayer cape overlooking a master's combat level | |
+| Not built yet: Konar and her places, the salve amulet not stacking with the mask (no salve amulet yet), the recoloured Slayer helmets and the helmet's Partner and Log, the slayer ring's teleports, Task Storage, the diary's seventh block slot, the superiors of Slayer monsters not in yet, boss tasks, Ferox Enclave's respawn, the Larran's keys and Slayer's enchantments her tasks drop, Aya's blessed axe talk, Kuradal's Slayer cape sale and talk about Duradel, the Slayer cape overlooking a master's combat level | |
 
 ## Items and inventory
 
