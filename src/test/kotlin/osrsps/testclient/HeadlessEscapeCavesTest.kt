@@ -166,17 +166,19 @@ class HeadlessEscapeCavesTest {
                 Thread.sleep(20)
             }
             // A new Player for the same account (exploit review round 48, R48B-1).
+            // Taken while eve is still in the caves, so it is no later than her visit's last sighting (Codex review on #861).
+            var lastIn = 0L
             server.login("eve").use { client ->
                 client.await("back in the caves") { client.position?.takeIf { it == Coord(3359, 10246, 0) } }
                 val eve = client.await("eve again") { server.world.playerNamed("eve") }
                 assertTrue(server.world.escapeCaves.debuffed(eve), "the debuff kept through a relog")
+                lastIn = server.world.tick
             }
             // Logged out there for good: forgotten after a while, so such accounts don't pile up (Codex review on #861).
             server.login("fay").use { fay ->
                 fay.await("the login rebuild") { fay.position }
                 fay.await("eve gone") { Unit.takeIf { server.world.playerNamed("eve") == null } }
                 assertEquals(1, server.world.escapeCaves.remembered)
-                val left = server.world.tick
                 // A command every few seconds, so the server's 15-second read timeout doesn't close fay's connection.
                 val until = System.currentTimeMillis() + 40_000
                 while (server.world.escapeCaves.remembered != 0) {
@@ -184,7 +186,7 @@ class HeadlessEscapeCavesTest {
                     fay.commandReply("pos") { true }
                     fay.awaitTicks(40)
                 }
-                assertTrue(server.world.tick - left >= EscapeCaves.FORGET_TICKS - 1, "not before ${EscapeCaves.FORGET_TICKS} ticks")
+                assertTrue(server.world.tick - lastIn > EscapeCaves.FORGET_TICKS, "not before ${EscapeCaves.FORGET_TICKS} ticks")
             }
         }
     }
