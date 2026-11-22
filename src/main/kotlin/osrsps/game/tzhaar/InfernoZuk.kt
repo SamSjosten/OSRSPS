@@ -48,7 +48,11 @@ object InfernoZukLines : Lines("inferno_zuk", "Transcript:TzHaar-Ket-Keh, The In
  */
 class InfernoZuk(private val world: World) {
     /** The fight in a run: the glyph, the timers, and who is still on the glyph. */
-    class Fight internal constructor(val zuk: Npc, val glyph: Npc?, var glyphStep: Int) {
+    class Fight internal constructor(val zuk: Npc, glyph: Npc?, var glyphStep: Int) {
+        /** The glyph; null while it had no room to come in (it is tried each tick, and Zuk holds his fire till then). */
+        var glyph: Npc? = glyph
+            internal set
+
         /** The tick the glyph moves again after resting at an end. */
         var glyphRestUntil = 0L
 
@@ -97,13 +101,7 @@ class InfernoZuk(private val world: World) {
     /** Wave 69 is in with [zuk]: the glyph comes off the wall, the lines, and the timers. */
     fun waveIn(inferno: Inferno, run: Inferno.Run, player: Player, zuk: Npc) {
         val step = if (world.random.chance(1, 2)) 1 else -1
-        val start = run.at(Tile(if (step > 0) GLYPH_WEST else GLYPH_EAST, GLYPH_Z))
-        val glyph = inferno.spawn(player, run, GLYPH, start, fight = false)?.also {
-            it.passesNpcs = true
-            // The glyph isn't one of the wave's monsters to kill.
-            run.monsters -= it
-        }
-        val fight = Fight(zuk, glyph, step)
+        val fight = Fight(zuk, spawnGlyph(inferno, run, player, step), step)
         fight.nextZukAttack = world.tick + ZUK_FIRST_ATTACK
         fights[run] = fight
         val ketKeh = world.npcTypes[KetKeh.BEFORE_ZUK] ?: world.npcTypes[KetKeh.TZHAAR_KET_KEH]
@@ -112,6 +110,15 @@ class InfernoZuk(private val world: World) {
                 mesbox(InfernoZukLines.SHAKING)
                 if (ketKeh != null) chatNpc(ketKeh, ketKeh.name, ChatAnim.ANGRY, InfernoZukLines.BREAKING)
             }
+        }
+    }
+
+    private fun spawnGlyph(inferno: Inferno, run: Inferno.Run, player: Player, step: Int): Npc? {
+        val start = run.at(Tile(if (step > 0) GLYPH_WEST else GLYPH_EAST, GLYPH_Z))
+        return inferno.spawn(player, run, GLYPH, start, fight = false)?.also {
+            it.passesNpcs = true
+            // The glyph isn't one of the wave's monsters to kill.
+            run.monsters -= it
         }
     }
 
@@ -128,6 +135,15 @@ class InfernoZuk(private val world: World) {
         val fight = fights[run] ?: return
         val zuk = fight.zuk
         if (zuk.dead || player.dead || player.hitpoints <= 0) return
+        // A glyph that had no room to come in (the world full of NPCs) comes as soon as there is; until then Zuk holds his
+        // fire, so he never fights a player who has no cover to find (Codex review on #851).
+        if (fight.glyph == null) {
+            fight.glyph = spawnGlyph(inferno, run, player, fight.glyphStep)
+            if (fight.glyph == null) {
+                fight.nextZukAttack = maxOf(fight.nextZukAttack, world.tick + ZUK_FIRST_ATTACK)
+                return
+            }
+        }
         moveGlyph(run, fight)
         thresholds(inferno, run, player, fight)
         if (fight.nextSet >= 0 && fight.setPausedLeft < 0 && world.tick >= fight.nextSet) {
