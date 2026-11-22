@@ -203,6 +203,25 @@ class HeadlessBeekeeperTest {
     }
 
     @Test
+    fun `drags and Confirm sent with the window shut are ignored`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.ready()
+                client.intoField("erin")
+                val start = client.parts()
+                client.closeModal()
+                client.await("the window closed") { if (Beekeeper.INTERFACE !in client.openInterfaces()) Unit else null }
+                client.ifButtonD(Beekeeper.INTERFACE, places[0], -1, -1, Beekeeper.INTERFACE, places[4], -1)
+                client.ifButton(Beekeeper.INTERFACE, Beekeeper.CONFIRM, 1)
+                client.awaitTicks(3)
+                assertEquals(start, client.parts())
+                assertEquals(null, client.dialogueView)
+                assertTrue(Beekeeper.INTERFACE !in client.openInterfaces())
+            }
+        }
+    }
+
+    @Test
     fun `walking off his talk in the field, and talking to him still gives a jumbled hive`(@TempDir dir: Path) {
         server(dir).use { server ->
             server.login("dave").use { client ->

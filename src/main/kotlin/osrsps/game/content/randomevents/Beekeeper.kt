@@ -58,7 +58,7 @@ object BeekeeperLines : Lines("beekeeper", "Transcript:Bee keeper") {
  * reopens the window.
  *
  * Guessed: where the player lands and he stands; the parts' starting order (shuffled at random); which missing piece
- * comes (one at random); each flax amount within that range equally likely; the drag events the
+ * comes (one at random); each flax amount within that range equally likely; how long his last overhead shows before the trip home ([SAY_TICKS]); the drag events the
  * window's parts need (drag depth 1 and drag target, as the bank's slots). Left out: the bee swarms and the player's
  * overhead cries on the sixth wrong try (players have no overhead text here yet), the free-to-play coins, and leaving
  * early by talking (the Wiki says it can be done, but the transcript's talk has no option for it).
@@ -70,6 +70,7 @@ object Beekeeper : RandomEvent("beekeeper", 6747) {
     val DESTS = listOf(15, 17, 19, 21)
     const val CONFIRM = 22
     const val TRIES = 6
+    const val SAY_TICKS = 1
 
     /** beekeeper_start_1 to _4, then beekeeper_dest_1 to _4. */
     val START_VARBITS = listOf(10601, 10602, 10603, 10604)
@@ -165,6 +166,7 @@ object Beekeeper : RandomEvent("beekeeper", 6747) {
     fun drag(world: World, player: Player, interfaceId: Int, from: Int, toInterfaceId: Int, to: Int): Boolean {
         if (interfaceId != INTERFACE || toInterfaceId != INTERFACE) return false
         val (_, field) = fieldOf(world, player) ?: return true
+        if (!hiveOpen(player)) return true
         val places = STARTS + DESTS
         val a = places.indexOf(from)
         val b = places.indexOf(to)
@@ -179,6 +181,7 @@ object Beekeeper : RandomEvent("beekeeper", 6747) {
     suspend fun ScriptContext.confirm(world: World) {
         val (away, field) = fieldOf(world, player) ?: return
         val keeper = field.keeper ?: return
+        if (!hiveOpen(player)) return
         world.interfaces.closeModals(player)
         val right = (0 until 4).all { field.parts[4 + it] == it + 1 }
         world.dialogues.start(this, keeper) {
@@ -197,6 +200,9 @@ object Beekeeper : RandomEvent("beekeeper", 6747) {
                 if (field.wrong >= TRIES) {
                     keeper.effects.say(text(HELP_YOU))
                     world.message(player, TELEPORTED_AWAY)
+                    // A tick in the field first, so his overhead reaches the player while he's still in view.
+                    delay(SAY_TICKS)
+                    if (fieldOf(world, player)?.second !== field) return@start
                     world.randomEvents.areas.bringBack(player, away)
                     chatNpc(ChatAnim.SHOCKED, FED_UP)
                     return@start
@@ -209,9 +215,14 @@ object Beekeeper : RandomEvent("beekeeper", 6747) {
         }
     }
 
+    /** Only while the beehive window is open: a drag or Confirm sent without it is ignored. */
+    private fun hiveOpen(player: Player) = INTERFACE in player.modals.values
+
     /** Talk-to on him in the field: the window again, with the reminder if asked. */
     suspend fun ScriptContext.talkInField(world: World, npc: Npc) {
-        val (_, field) = fieldOf(world, player) ?: return
+        val (away, field) = fieldOf(world, player) ?: return
+        // Out of tries already (the trip home was cut short by walking off): home now.
+        if (field.wrong >= TRIES) return world.randomEvents.areas.bringBack(player, away)
         world.dialogues.start(this, npc) {
             with(BeekeeperLines) {
                 chatNpc(ChatAnim.NEUTRAL, READY)
