@@ -7,6 +7,7 @@ import osrsps.game.Movement
 import osrsps.game.combat.AttackType
 import osrsps.game.npc.Npc
 import osrsps.map.Tile
+import java.util.Collections
 import java.util.WeakHashMap
 
 /**
@@ -57,6 +58,9 @@ class InfernoMonsters(private val world: World) {
     private val hideAt = WeakHashMap<Npc, Long>()
     private val surfaceAt = WeakHashMap<Npc, Long>()
 
+    /** Jal-Aks that have had their first-attack read grace: once each, however often they lose sight (exploit review R48A-1). */
+    private val graced: MutableSet<Npc> = Collections.newSetFromMap(WeakHashMap())
+
     /** The style of each scripted monster's last attack, for tests. */
     internal val lastStyle = WeakHashMap<Npc, AttackType>()
 
@@ -103,10 +107,11 @@ class InfernoMonsters(private val world: World) {
         if (id == InfernoMonster.BLOB.type) {
             if (world.tick == npc.nextAttackTick - BLOB_READS_AHEAD) blobStyles[npc] = blobStyle(player, inReach)
             // Its first attack due with no read made: it reads now and attacks 3 ticks on, so a prayer switch can answer
-            // it (Codex review on #833). Later, an attack overdue as it comes back in shot fires at once with a fresh
-            // read, or stepping out of sight one tick in three would keep it from ever attacking (exploit review
-            // R46B-4). Guessed: neither the Wiki nor a recording shows how a returning Jal-Ak times that attack.
-            if (world.tick >= npc.nextAttackTick && npc !in blobStyles && npc !in lastStyle) {
+            // it (Codex review on #833). That grace comes once: after it, an attack overdue as it comes back in shot
+            // fires at once with a fresh read, or stepping out of sight one tick in three would keep it from ever
+            // attacking, a fresh one too (exploit review R46B-4, R48A-1). Guessed: neither the Wiki nor a recording
+            // shows how a returning Jal-Ak times that attack.
+            if (world.tick >= npc.nextAttackTick && npc !in blobStyles && graced.add(npc)) {
                 blobStyles[npc] = blobStyle(player, inReach)
                 npc.nextAttackTick = world.tick + BLOB_READS_AHEAD
                 return

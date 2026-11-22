@@ -338,6 +338,7 @@ class Inferno(private val world: World) {
         forget(player)
         world.teleport(player, OUTSIDE.x, OUTSIDE.z, 0)
         world.fightCaves.reward(player, INFERNAL_CAPE, 1)
+        world.collectionLog.add(player, INFERNAL_CAPE, 1)
         pay(player, WIN_TOKKUL)
         // Jal-Nib-Rek: 1 in 100, 1 in 75 on a Slayer task (the Wiki's Jal-Nib-Rek). Ours is the item alone: no followers yet.
         if (world.random.chance(1, if (onTask) InfernoZuk.PET_ODDS_ON_TASK else InfernoZuk.PET_ODDS)) {
