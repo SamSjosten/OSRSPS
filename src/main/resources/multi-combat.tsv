@@ -308,3 +308,6 @@ kbd_lair	0	2240	4672	2303	4735
 # Scurrius's public lair in the Varrock Sewers (Scurrius step 1): its three by three zones, the sewage water's tiles
 # with it. INFERRED multi-way: the Wiki's Scurrius has groups fighting him alongside his giant rats; the box is ours.
 scurrius_lair	0	3288	9856	3311	9879
+# The Escape Caves (Wilderness step W4.11): the OSRS Wiki's Escape Caves page calls them an underground multicombat area.
+# The box is their whole map square 52_160 (inferred: live's box is the same).
+escape_caves	0	3328	10240	3391	10303

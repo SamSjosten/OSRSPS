@@ -1,0 +1,20 @@
+{
+  "name": "Inferno step IN2: wave 4's Jal-Ak killed with ::kill splitting into Jal-AkRek-Xil, -Mej and -Ket, and wave 9's Jal-ImKot coming in (::keys on, ::god on)",
+  "account": "test",
+  "steps": [
+    {"step": "waitForLogin"},
+    {"step": "command", "text": "::keys on", "expectMessage": "Dialogue shows keys"},
+    {"step": "command", "text": "::god on", "expectMessage": "You can't be hurt now (::god again to turn it off)."},
+    {"step": "command", "text": "::inferno 4", "expectMessage": "Inferno: wave 4"},
+    {"step": "assertMessage", "contains": "[inferno.wave wave=4]", "timeoutMs": 15000},
+    {"step": "command", "text": "::kill Jal-Ak", "expectMessage": "Killed Jal-Ak #"},
+    {"step": "waitTicks", "ticks": 2},
+    {"step": "command", "text": "::inferno status", "expectMessage": "Jal-AkRek-Xil"},
+    {"step": "command", "text": "::inferno 9", "expectMessage": "Inferno: wave 9"},
+    {"step": "assertMessage", "contains": "[inferno.wave wave=9]", "timeoutMs": 15000},
+    {"step": "command", "text": "::inferno status", "expectMessage": "Jal-ImKot"},
+    {"step": "command", "text": "::inferno leave", "expectMessage": "Left the Inferno."},
+    {"step": "command", "text": "::empty"},
+    {"step": "command", "text": "::god off", "expectMessage": "You can be hurt again."}
+  ]
+}

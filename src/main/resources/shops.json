@@ -2867,9 +2867,10 @@
         "slayer_master_2_mazchna",
         "slayer_master_4",
         "slayer_master_steve",
-        "slayer_master_5_kuradal"
+        "slayer_master_5_kuradal",
+        "slayer_master_7"
       ],
-      "source": "OSRS Wiki, Slayer Equipment, read 2026-11-15: Sells at 100.0%, Buys at 60.0%, Change per 0.1%, and the stock table; the masters who run it as built so far (Krystilia, Konar, Nieve and Duradel come later); the witchwood icon is the one untradeable it buys back (no buy=N/A on its line)",
+      "source": "OSRS Wiki, Slayer Equipment, read 2026-11-15: Sells at 100.0%, Buys at 60.0%, Change per 0.1%, and the stock table; the masters who run it as built so far (Konar, Nieve and Duradel come later); the witchwood icon is the one untradeable it buys back (no buy=N/A on its line)",
       "buysBack": [8923],
       "stock": [
         {

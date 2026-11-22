@@ -69,7 +69,13 @@ class SpiderQueen(val config: Config) {
 
     fun def(world: World): EncounterDef? {
         val type = world.npcTypes[config.boss] ?: return null
-        return EncounterDef(config.name, type, listOf(PhaseDef("fight", cycle = listOf(CycleStep(1) { tick() }))), scriptedAttacks = true)
+        return EncounterDef(
+            config.name, type,
+            // Unleashed as the other Wilderness bosses are: no leash to her spawn when she moves, and no dropping a
+            // target far from it (exploit review round 46, R46B-1 and R46B-2).
+            listOf(PhaseDef("fight", cycle = listOf(CycleStep(1) { tick() }), onStart = { boss.unleashed = true })),
+            scriptedAttacks = true,
+        )
     }
 
     fun spiderlings(npc: Npc): List<Npc> = fights[npc]?.spiderlings.orEmpty()
@@ -135,7 +141,13 @@ class SpiderQueen(val config: Config) {
         for (at in spots) {
             // No more than ten alive at once, the Wiki's cap (Codex review on #832).
             if (called >= config.spiderlings || fight.spiderlings.size >= MAX_SPIDERLINGS) break
+            if (!config.inArena(at.x, at.z)) continue
             val spiderling = spawnAdd(type, at.x, at.z) ?: continue
+            // Only on open floor in her lair, never in a wall (exploit review round 46, R46B-3).
+            if (!world.npcs.canStand(spiderling, at.x, at.z)) {
+                world.removeNpc(spiderling)
+                continue
+            }
             fight.spiderlings += spiderling
             world.meleeCombat.aggress(spiderling, target, world.tick)
             // Its swings are counted from now: melee runs before the fight's tick, so its first one comes before

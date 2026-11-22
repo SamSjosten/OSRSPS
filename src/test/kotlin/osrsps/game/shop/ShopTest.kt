@@ -159,6 +159,7 @@ class ShopTest {
             NpcType(404, "Chaeldar", internalName = "slayer_master_4"),
             NpcType(6798, "Steve", internalName = "slayer_master_steve"),
             NpcType(13623, "Kuradal", internalName = "slayer_master_5_kuradal"),
+            NpcType(7663, "Krystilia", internalName = "slayer_master_7"),
             NpcType(2674, "Dreven", internalName = "farming_gardener_bush_1"),
             NpcType(2672, "Vasquen", internalName = "farming_gardener_hops_3"),
             NpcType(2681, "Fayeth", internalName = "farming_gardener_tree_4"),
