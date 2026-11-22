@@ -156,7 +156,10 @@ private fun start(world: World, player: Player, scenario: Scenario) {
     player.equipment.clear()
     for ((slot, obj) in loadout.equipment) player.equipment[slot] = obj
     // A scenario's charged items start empty, and its essence pouches too.
+    // The account's random event timer and its ::randomevent off aren't the scenario's to reset.
+    val kept = osrsps.game.content.randomevents.RandomEvents.ACCOUNT_CHARGES.associateWith { player.charges[it] }
     player.charges.clear()
+    for ((name, value) in kept) player.charges[name] = value
     world.essencePouches.emptyAll(player)
     world.bankScreen.clear(player)
     for ((slot, obj) in loadout.bank) player.bank[slot] = obj

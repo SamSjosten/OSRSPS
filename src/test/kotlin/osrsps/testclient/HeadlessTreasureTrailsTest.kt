@@ -23,6 +23,7 @@ import osrsps.game.npc.NpcSpawn
 import osrsps.game.trail.ClueStep
 import osrsps.game.trail.StepType
 import osrsps.game.trail.TrailData
+import osrsps.game.trail.TrailRewards
 import osrsps.game.trail.TrailTarget
 import osrsps.game.trail.TrailTier
 import osrsps.game.trail.TrailTile
@@ -45,7 +46,7 @@ class HeadlessTreasureTrailsTest {
     private val man = NpcType(MAN, "Man", ops = listOf(null, "Attack", null, null, null), combatLevel = 2, internalName = "man", stats = NpcStats(hitpoints = 7))
 
     private fun server(dir: Path) = TestServer(dir) { crcs, millis ->
-        val objs = arrayOfNulls<ObjType>(25_000)
+        val objs = arrayOfNulls<ObjType>(31_000)
         val read = listOf("Read", "Check steps", null, null, "Drop")
         for ((id, tier) in listOf(MAP_ITEM to 347, CRYPTIC_ITEM to 347, FAR_ITEM to 347, COORD_ITEM to 348, EASY_DROP to 347)) {
             objs[id] = ObjType(id, "Clue scroll", iops = read, params = mapOf(tier to 1))
@@ -55,13 +56,16 @@ class HeadlessTreasureTrailsTest {
             objs[tier.rewardCasket] = ObjType(tier.rewardCasket, "Reward casket (${tier.key})", stackable = true, iops = listOf("Open", null, null, null, "Drop"))
         }
         objs[TreasureTrails.SPADE] = ObjType(TreasureTrails.SPADE, "Spade", iops = listOf("Dig", null, null, null, "Drop"))
+        objs[COINS] = ObjType(COINS, "Coins", stackable = true)
+        objs[DAGGER] = ObjType(DAGGER, "Bronze dagger")
+        objs[MINOR_CASE] = ObjType(MINOR_CASE, "Minor easy scroll case", iops = listOf("Open", null, null, null, "Drop"))
         val objTypes = ObjTypes(objs)
         val types = NpcTypes.of(man)
         val drops = NpcDrops(mapOf(MAN to NpcDropsDef(listOf(DropItem(objTypes[EASY_DROP]!!, 1, 1)), null, emptyList(), "test")))
         World(
             crcs, CollisionMap().apply { markLoaded(3222 shr 6, 3218 shr 6) }, objTypes = objTypes,
             npcTypes = types, npcSpawns = listOf(NpcSpawn(man, 3224, 3216, source = "test"), NpcSpawn(man, 3219, 3216, source = "test")), npcCombat = NpcCombat.load(types, SeqNames.NONE), npcDrops = drops,
-            trailData = TrailData(listOf(mapStep, digStep, coordinate, faraway)), cycleMillis = millis,
+            trailData = TrailData(listOf(mapStep, digStep, coordinate, faraway)), trailRewards = TrailRewards.parse(REWARDS, objTypes), cycleMillis = millis,
         )
     }
 
@@ -182,7 +186,52 @@ class HeadlessTreasureTrailsTest {
         }
     }
 
+    @Test
+    fun `a casket gives its rolls on the reward screen, counts the trail, and gives the scroll case from its count until opened`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("erin").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.command("item ${TrailTier.EASY.rewardCasket} 3")
+                client.op(TrailTier.EASY.rewardCasket, 1)
+                client.seen("[trail.well_done]")
+                client.seen("[trail.completed count=1 tier=easy]")
+                client.await("the worth") { client.messages().firstOrNull { it.text.startsWith("[trail.worth value=") } }
+                client.await("the reward screen") { if (TreasureTrails.REWARD_SCREEN in client.openInterfaces()) Unit else null }
+                // Two rolls, each ten coins or a dagger.
+                val coins = client.backpack().filterNotNull().filter { it.id == COINS }.sumOf { it.count }
+                val daggers = client.backpack().count { it?.id == DAGGER }
+                assertEquals(20, coins + daggers * 10)
+                assertTrue(client.backpack().none { it?.id == MINOR_CASE })
+                client.closeModal()
+
+                // The case comes at 3 caskets, and again until it is opened.
+                client.commandReply("clue easy done 2") { it.startsWith("easy") }
+                client.op(TrailTier.EASY.rewardCasket, 1)
+                client.seen("[trail.completed count=3 tier=easy]")
+                client.await("the scroll case") { client.backpack().firstOrNull { it?.id == MINOR_CASE } }
+                client.closeModal()
+                client.op(MINOR_CASE, 1)
+                client.seen("[trail.case_opened]")
+                assertEquals("easy: 3 caskets opened, cap 3.", client.commandReply("clue easy done 3") { it.startsWith("easy") })
+                client.op(TrailTier.EASY.rewardCasket, 1)
+                client.seen("[trail.completed count=4 tier=easy]")
+                assertTrue(client.backpack().none { it?.id == MINOR_CASE })
+                client.closeModal()
+                assertEquals("No trail, no caskets opened, no scroll cases.", client.commandReply("clue reset") { it.startsWith("No") })
+            }
+        }
+    }
+
     private companion object {
+        const val COINS = 995
+        const val DAGGER = 1205
+        const val MINOR_CASE = 30906
+        /** Two rolls on a table of ten coins or a bronze dagger; the minor scroll case at three caskets. */
+        val REWARDS = """
+            {"tiers": {"easy": {"rolls": {"min": 2, "max": 2}, "slots": 2,
+              "lines": [{"item": 995, "name": "Coins", "count": 10, "weight": 1}, {"item": 1205, "name": "Bronze dagger", "weight": 1}],
+              "extra": [], "milestones": [{"count": 3, "item": 30906, "name": "Minor easy scroll case"}]}}}
+        """.trimIndent()
         const val BACKPACK = 93
         const val MAN = 3106
         const val MAP_ITEM = 2713
