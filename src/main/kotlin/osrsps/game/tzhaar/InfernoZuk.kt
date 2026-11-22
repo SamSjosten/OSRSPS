@@ -67,6 +67,10 @@ class InfernoZuk(private val world: World) {
         var jadIn = false
         var enraged = false
 
+        /** The Jad and the MejJaks' tiles due at their thresholds that had no room yet: tried each tick (Codex review on #851). */
+        var jadOwed = false
+        val mejJaksOwed: MutableList<Tile> = ArrayList()
+
         /** Monsters that attack the glyph until the player attacks them. */
         val onGlyph: MutableSet<Npc> = LinkedHashSet()
         val mejJaks: MutableList<Npc> = ArrayList()
@@ -76,6 +80,12 @@ class InfernoZuk(private val world: World) {
     internal class LavaBall(val from: Npc, val x: Int, val z: Int, val landTick: Long)
 
     private val fights = WeakHashMap<Inferno.Run, Fight>()
+
+    /** Keeps players' attacks off the glyph, a burst or barrage at a MejJak beside it too: only the minions wear it down (Codex review on #851). */
+    fun register() {
+        val shutOut = world.combat.shutOut
+        world.combat.shutOut = { player, npc -> npc.type.id == GLYPH || shutOut(player, npc) }
+    }
     private val nextHeal = WeakHashMap<Npc, Long>()
 
     /** [run]'s fight, once wave 69 is in. */
@@ -108,6 +118,8 @@ class InfernoZuk(private val world: World) {
     /** [run]'s fight ends (Zuk's death, a death, a walk out): the glyph goes with it. */
     fun end(run: Inferno.Run) {
         val fight = fights.remove(run) ?: return
+        // A shot on its way would land outside after the run is over, where a death is no longer safe (Codex review on #851).
+        zukShots.removeAll { it.zuk === fight.zuk }
         fight.glyph?.let { if (world.npcs[it.index] === it) world.removeNpc(it) }
     }
 
@@ -142,7 +154,8 @@ class InfernoZuk(private val world: World) {
             fight.glyphStep = -fight.glyphStep
             fight.glyphRestUntil = world.tick + GLYPH_REST
             fight.glyphTurns++
-            if (fight.glyphTurns == 2 && fight.nextSet < 0) fight.nextSet = world.tick
+            // The first set, unless 600 came first: then it waits out the pause, which 480 ends (Codex review on #851).
+            if (fight.glyphTurns == 2 && fight.nextSet < 0 && fight.setPausedLeft < 0) fight.nextSet = world.tick
         }
     }
 
@@ -180,6 +193,7 @@ class InfernoZuk(private val world: World) {
                 if (world.tick < shot.landTick) continue
                 iterator.remove()
                 if (shot.zuk.dead || shot.player.loggedOut || shot.player.dead) continue
+                if (world.instances.at(shot.player.x, shot.player.z)?.contains(shot.zuk.x, shot.zuk.z) != true) continue
                 world.meleeCombat.hitPlayer(shot.player, shot.zuk, shot.damage, world.tick)
             }
         }
@@ -203,11 +217,12 @@ class InfernoZuk(private val world: World) {
         val hp = fight.zuk.hitpoints
         if (!fight.interlude && hp <= INTERLUDE_HP) {
             fight.interlude = true
-            if (fight.nextSet >= 0) fight.setPausedLeft = maxOf(0L, fight.nextSet - world.tick) + INTERLUDE_TICKS
+            // Before the first set is due (the glyph not yet round), the pause holds it back the 1:45 too.
+            fight.setPausedLeft = (if (fight.nextSet >= 0) maxOf(0L, fight.nextSet - world.tick) else 0L) + INTERLUDE_TICKS
         }
         if (!fight.jadIn && hp <= JAD_HP) {
             fight.jadIn = true
-            inferno.spawn(player, run, FINAL_JAD, run.at(JAD_TILE), fight = false)?.let { fight.onGlyph += it }
+            fight.jadOwed = true
             if (fight.setPausedLeft >= 0) {
                 fight.nextSet = world.tick + fight.setPausedLeft
                 fight.setPausedLeft = -1
@@ -216,11 +231,20 @@ class InfernoZuk(private val world: World) {
         if (!fight.enraged && hp <= ENRAGE_HP) {
             fight.enraged = true
             fight.nextZukAttack = minOf(fight.nextZukAttack, world.tick + ZUK_ENRAGED_SPEED)
-            for (tile in MEJJAK_TILES) {
-                val healer = inferno.spawn(player, run, MEJJAK, run.at(tile), fight = false) ?: continue
-                fight.mejJaks += healer
-                nextHeal[healer] = world.tick + MEJJAK_SPEED
+            fight.mejJaksOwed += MEJJAK_TILES
+        }
+        if (fight.jadOwed) {
+            inferno.spawn(player, run, FINAL_JAD, run.at(JAD_TILE), fight = false)?.let {
+                fight.onGlyph += it
+                fight.jadOwed = false
             }
+        }
+        val owed = fight.mejJaksOwed.iterator()
+        while (owed.hasNext()) {
+            val healer = inferno.spawn(player, run, MEJJAK, run.at(owed.next()), fight = false) ?: break
+            owed.remove()
+            fight.mejJaks += healer
+            nextHeal[healer] = world.tick + MEJJAK_SPEED
         }
     }
 
@@ -274,9 +298,6 @@ class InfernoZuk(private val world: World) {
             fight.lavaBalls += LavaBall(healer, player.x, player.z, world.tick + LAVA_DELAY)
         }
     }
-
-    /** For tests: the glyph's track's ends, in the real Inferno. */
-    fun glyphEnds(): Pair<Int, Int> = GLYPH_WEST to GLYPH_EAST
 
     companion object {
         const val ZUK = 7706

@@ -125,6 +125,7 @@ class Inferno(private val world: World) {
         pillars.register(this)
         monsterMechanics.register(this)
         jads.register(this)
+        zuk.register()
         KetKeh.register(world, this)
         world.handlers.onLoc(ENTRANCE, JUMP_IN) { enter(player) }
         world.handlers.onLoc(EXIT, LEAVE) { leave(player) }
@@ -336,6 +337,7 @@ class Inferno(private val world: World) {
         // Jal-Nib-Rek: 1 in 100, 1 in 75 on a Slayer task (the Wiki's Jal-Nib-Rek). Ours is the item alone: no followers yet.
         if (world.random.chance(1, if (onTask) InfernoZuk.PET_ODDS_ON_TASK else InfernoZuk.PET_ODDS)) {
             world.objTypes[InfernoZuk.PET]?.let { world.groundObjs.give(player, it, 1) }
+            world.collectionLog.add(player, InfernoZuk.PET, 1)
             world.message(player, FightCaveLines.PET)
         }
         if (player.vars.types.varpCount > VARP_ZUK_KILLS) player.vars[VARP_ZUK_KILLS] = player.vars[VARP_ZUK_KILLS] + 1

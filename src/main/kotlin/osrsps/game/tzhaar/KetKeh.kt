@@ -109,6 +109,7 @@ object KetKeh {
         if (player.scenario != null || ownsPet(player) || !take(player, Inferno.INFERNAL_CAPE)) return@with
         if (world.random.chance(1, PET_ODDS)) {
             world.objTypes[InfernoZuk.PET]?.let { world.groundObjs.give(player, it, 1) }
+            world.collectionLog.add(player, InfernoZuk.PET, 1)
             world.message(player, FightCaveLines.PET)
             chatNpc(ChatAnim.HAPPY, LUCKY)
         } else {

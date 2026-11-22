@@ -698,6 +698,7 @@ class HeadlessInfernoTest {
                 client.await("the glyph moving") { glyph.takeIf { it.x != start } }
                 val player = server.world.playerNamed("max")!!
                 assertFalse(server.world.inferno.zuk.covered(run, player), "the arena's south end has no cover")
+                assertTrue(server.world.combat.shutOut(player, glyph), "no player attack reaches the glyph, an area one neither")
                 client.commandReply("god") { it.startsWith("You can be hurt") }
                 client.await("a hit from Zuk", timeoutMillis = 20_000) { player.takeIf { it.hitpoints < 99 } }
             }
@@ -740,6 +741,27 @@ class HeadlessInfernoTest {
                 client.await("everything gone with him", timeoutMillis = 20_000) {
                     (fight.mejJaks + jad + set).takeIf { all -> all.none { server.world.npcs[it.index] === it } }
                 }
+            }
+        }
+    }
+
+    @Test
+    fun `600 reached before the first set holds that set back until 480, with the 1-45 added`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("ora").use { client ->
+                client.await("the login rebuild") { client.position }
+                client.commandReply("god") { it.startsWith("You can") }
+                client.commandReply("inferno 69") { it.startsWith("Inferno") }
+                val zuk = client.waveIn(server, "ora", 69).single()
+                val fight = server.world.inferno.zuk.fightOf(server.run("ora")!!)!!
+                client.commandReply("hit 601 ${zuk.index}") { it.startsWith("Hit") }
+                client.await("the pause") { fight.takeIf { it.setPausedLeft == InfernoZuk.INTERLUDE_TICKS } }
+                client.await("the glyph round", timeoutMillis = 20_000) { fight.takeIf { it.glyphTurns >= 2 } }
+                client.awaitTicks(2)
+                assertEquals(-1L, fight.nextSet, "no set while paused")
+                client.commandReply("hit 120 ${zuk.index}") { it.startsWith("Hit") }
+                client.await("the timer running") { fight.takeIf { it.setPausedLeft < 0 && it.nextSet >= 0 } }
+                assertTrue(fight.nextSet > server.world.tick + InfernoZuk.INTERLUDE_TICKS - 10, "the 1:45 added")
             }
         }
     }
