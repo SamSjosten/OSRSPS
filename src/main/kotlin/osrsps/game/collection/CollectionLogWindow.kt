@@ -43,8 +43,13 @@ class CollectionLogWindow(
     /** Sets a varp and sends it now, ahead of the script that reads it. */
     private val setVarp: (Player, Int, Int) -> Unit,
     private val send: (Player, OutgoingGameMessage) -> Unit = { player, message -> player.session.queue(message) },
+    /** The world's tick, so a search is sent at most once a tick. */
+    private val now: () -> Long = { 0L },
 ) {
     private val catalog get() = log.catalog
+
+    /** The tick each player's search results were last sent. */
+    private val searchedAt = java.util.WeakHashMap<Player, Long>()
 
     fun isOpen(player: Player): Boolean = player.modals[FrameSlot.MAINMODAL] == LOG
 
@@ -101,7 +106,10 @@ class CollectionLogWindow(
                     tabButton >= 0 -> tabOf(tabButton)?.let { switchTab(player, it) }
                     listTab >= 0 -> tabOf(listTab)?.takeIf { sub in it.pages.indices }?.let { showPage(player, it, sub) }
                     component == BURGER_FRAME && sub == VIEW_OVERVIEW -> openOverview(player)
-                    component == SEARCH_TOGGLE || component == SEARCHBAR -> transmitAll(player)
+                    // One script per logged item: op1 only, once a tick, so a client can't turn ten small clicks a tick into
+                    // thousands of scripts (exploit review 44, R44B-4).
+                    component == SEARCH_TOGGLE || component == SEARCHBAR ->
+                        if (op == 1 && searchedAt.put(player, now()) != now()) transmitAll(player)
                 }
                 return true
             }

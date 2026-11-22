@@ -40,7 +40,9 @@ class CollectionLogWindowTest {
         setVarbit = { player, id, value -> player.vars.setVarbit(id, value) },
         setVarp = { player, id, value -> player.vars[id] = value },
         send = { _, message -> sent += message },
+        now = { tick },
     )
+    private var tick = 0L
 
     private fun player(): Player {
         val varbits = mapOf(
@@ -123,6 +125,16 @@ class CollectionLogWindowTest {
             ),
             scripts,
         )
+
+        // Again on the same tick, or with another op: nothing more (exploit review 44, R44B-4). The next tick, again.
+        window.click(player, CollectionLogWindow.LOG, CollectionLogWindow.SEARCHBAR, -1, 1)
+        window.click(player, CollectionLogWindow.LOG, CollectionLogWindow.SEARCH_TOGGLE, -1, 2)
+        assertEquals(3, scripts.size)
+        tick++
+        window.click(player, CollectionLogWindow.LOG, CollectionLogWindow.SEARCH_TOGGLE, -1, 2)
+        assertEquals(3, scripts.size)
+        window.click(player, CollectionLogWindow.LOG, CollectionLogWindow.SEARCHBAR, -1, 1)
+        assertEquals(6, scripts.size)
     }
 
     @Test

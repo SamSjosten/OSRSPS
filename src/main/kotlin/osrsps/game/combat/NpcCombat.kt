@@ -95,6 +95,11 @@ data class NpcCombatDef(
      * with, as [magicAttack] is for its spells.
      */
     val rangedAttack: Int = 0,
+    /**
+     * The Wiki's melee attack bonus, for a magic or ranged NPC that also swings in reach (the Inferno's Jal-Ak): what a
+     * melee attack of its rolls with.
+     */
+    val meleeAttack: Int = 0,
     /** The Wiki's elemental weakness, null for "No elemental weakness". */
     val weakness: ElementalWeakness? = null,
     /** The poison severity its attacks give ([Poison]), 0 for none: five times the Wiki's starting damage. */
@@ -123,6 +128,8 @@ data class NpcCombatDef(
     val spell: NpcMeleeSpell? = null,
     /** A dragon's dragonfire, breathed in reach now and then instead of a swing ([Dragonfire]). */
     val dragonfire: NpcDragonfire? = null,
+    /** Typeless attacks, which no protection prayer blocks or cuts (`"typeless": true`; the Escape Caves' bears and spiders). */
+    val typeless: Boolean = false,
     /**
      * It flies out of melee's reach: only ranged, magic and halberds hit it (the Archive Guardian levitating, OSRS Wiki,
      * The Fractured Archive/Strategies).
@@ -218,15 +225,15 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
          * ] }
          * ```
          *
-         * An animation may be `null` for none. An entry may add `"magicAttack"`, `"rangedAttack"`, `"weakness": { "element": "water", "percent": 10 }`,
+         * An animation may be `null` for none. An entry may add `"magicAttack"`, `"rangedAttack"`, `"meleeAttack"`, `"weakness": { "element": "water", "percent": 10 }`,
          * `"poison"` (the Wiki's starting damage of the poison its attacks give), `"immune": ["poison", "venom", "freeze"]` and
          * `"drainCap": { "defence": 60 }` (the most of a level drains can take, in percent) and `"aggressive"`: `true`, or
          * `{ "huntRange": 3, "ignoresLevels": true, "tolerant": false }` with any of the three ([NpcAggression]), and
          * `"retreatsAt": 25` (the share of its hitpoints, in percent, at which it retreats) and `"xpBonus": -97.5` (the
          * Wiki's XP bonus, in percent to a tenth), `"slayerLevel": 7` (the Slayer level to hurt it) and `"regenTicks": 5`
          * (ticks between the hitpoints it gets back, when faster than the usual 100) and `"minHitpoints": 1` (what no hit
-         * takes it below, for a rockslug) and `"prayerPasses": 25` (the share of its melee damage, in percent, that a
-         * protection prayer lets through).
+         * takes it below, for a rockslug), `"prayerPasses": 25` (the share of its melee damage, in percent, that a
+         * protection prayer lets through) and `"typeless": true` (no protection prayer blocks its attacks).
          * A magic or ranged NPC adds `"range"` and its `"attacks"`, each `{ "anim": "human_caststrike", "cast": 93,
          * "projectile": 94, "impact": 95, "weight": 1, "maxHit": 2, "drain": { "skill": "attack", "percent": 5 } }`, all
          * optional ([NpcRangedAttack]); its `attackBonus` is its bonus for its attack type, magic or ranged.
@@ -294,6 +301,7 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                 source = entry.required("source").jsonPrimitive.content.ifBlank { throw IllegalArgumentException("blank source") },
                 magicAttack = entry["magicAttack"]?.jsonPrimitive?.int ?: 0,
                 rangedAttack = entry["rangedAttack"]?.jsonPrimitive?.int ?: 0,
+                meleeAttack = entry["meleeAttack"]?.jsonPrimitive?.int ?: 0,
                 weakness = entry["weakness"]?.jsonObject?.let { weakness ->
                     ElementalWeakness(
                         Element.parse(weakness.required("element").jsonPrimitive.content),
@@ -308,6 +316,7 @@ class NpcCombat(private val byType: Map<Int, NpcCombatDef>) {
                     NpcStat.parse(stat) to percent.jsonPrimitive.int.also { require(it in 0..100) { "a drain cap of $it%" } }
                 }.orEmpty(),
                 aggression = entry["aggressive"]?.let(::aggression),
+                typeless = entry["typeless"]?.jsonPrimitive?.boolean ?: false,
                 retreatsAt = (entry["retreatsAt"]?.jsonPrimitive?.int ?: 0).also { require(it in 0..100) { "retreats at $it%" } },
                 range = (entry["range"]?.jsonPrimitive?.int ?: 1).also { require(it in 1..MAX_RANGE) { "range $it" } },
                 attacks = entry["attacks"]?.jsonArray?.map { attack(it.jsonObject, seqs) }.orEmpty().also {

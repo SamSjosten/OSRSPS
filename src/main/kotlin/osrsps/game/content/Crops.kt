@@ -56,11 +56,15 @@ object Crops {
     const val CABBAGE_LOC = 1161
     const val CABBAGE = 1965
 
-    val ONIONS = Crop(listOf(ONION_LOC), ONION, 50, CropLines.ONION_PICKED, CropLines.ONION_NO_ROOM)
+    /** The field at 3307-3313, 3384-3385, east of the south-east Varrock mine (the 242 cache's avium_onion01/02 and avium_cabbage01/02). */
+    val AVIUM_ONIONS = listOf(51837, 51838)
+    val AVIUM_CABBAGES = listOf(51835, 51836)
+
+    val ONIONS = Crop(listOf(ONION_LOC) + AVIUM_ONIONS, ONION, 50, CropLines.ONION_PICKED, CropLines.ONION_NO_ROOM)
     val POTATOES = Crop(listOf(POTATO_LOC), POTATO, 50, CropLines.POTATO_PICKED, CropLines.POTATO_NO_ROOM)
     val WHEAT = Crop(WHEAT_LOCS, GRAIN, 20, CropLines.GRAIN_PICKED, CropLines.GRAIN_NO_ROOM)
 
-    val CABBAGES = Crop(listOf(CABBAGE_LOC), CABBAGE, 60, CropLines.CABBAGE_PICKED, CropLines.CABBAGE_NO_ROOM)
+    val CABBAGES = Crop(listOf(CABBAGE_LOC) + AVIUM_CABBAGES, CABBAGE, 60, CropLines.CABBAGE_PICKED, CropLines.CABBAGE_NO_ROOM)
 
     val ALL = listOf(ONIONS, POTATOES, WHEAT, CABBAGES)
 }

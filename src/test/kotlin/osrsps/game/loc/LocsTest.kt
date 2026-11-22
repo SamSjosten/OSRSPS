@@ -187,6 +187,17 @@ class LocsTest {
     }
 
     @Test
+    fun `a timed change says when it is due`() {
+        tick = 100
+        assertEquals(null, locs.revertDue(wall))
+        val stump = locs.replace(wall, STUMP, revertAfter = 30)!!
+        assertEquals(130L, locs.revertDue(stump))
+        tick = 120
+        val table = locs.replaceInStages(stump, TABLE, 10, STUMP, 5)!!
+        assertEquals(130L, locs.revertDue(table))
+    }
+
+    @Test
     fun `a timed change puts the tile back once its time is up`() {
         tick = 100
         locs.replace(wall, STUMP, revertAfter = 3)
