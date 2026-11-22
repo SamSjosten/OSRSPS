@@ -2508,6 +2508,13 @@ Zanaris; Zanaris's entry ring goes back into the shed and its market ring one wa
 `test-runner/examples/zanaris-doors.json`, `HeadlessFairyRingsTest`. What is sourced and what is guessed is in the
 code's comments.
 
+Spirit trees (`game/content/SpiritTrees.kt`, words under `spirit_tree.*`): every tree on the 242 map (Tree Gnome
+Village, the Gnome Stronghold, the Battlefield of Khazard, the Grand Exchange, Feldip Hills, Prifddinas) shows Travel,
+Talk-to and Last-destination, as every account has done the quests. Travel opens the travel menu of the fourteen places
+the cache names; a pick goes there after the bark box, and Last-destination goes straight back to the last one. The
+tree you're at, the farming-patch and house trees (not built yet), the Poison Waste and Laguna Aurorae (Sailing isn't
+built) answer with the tree's refusal. Check: `test-runner/examples/spirit-trees.json`, `HeadlessSpiritTreesTest`.
+
 ## Equipment
 
 Every player has the worn inventory, inv 94 (`Player.equipment`), one slot per wearpos (`WearPos`). Wear, Wield and
