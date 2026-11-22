@@ -110,6 +110,9 @@ object MorUlRek {
     val IN_CITY = Destination(2480, 5175, 0)
     val IN_DUNGEON = Destination(2862, 9572, 0)
 
+    /** The one tile each cave stands on, on the 242 map: a copy elsewhere does nothing (exploit review R50B-1). */
+    val PLACED = mapOf(CAVE_ENTRANCE to Destination(2863, 9571, 0), CAVE_EXIT to Destination(2479, 5176, 0))
+
     const val BANKER = 7677
 
     /**
@@ -197,8 +200,9 @@ object MorUlRek {
 
 fun registerMorUlRek(world: World) {
     with(MorUlRek) {
-        world.handlers.onLoc(CAVE_ENTRANCE, ENTER) {
+        world.handlers.onLoc(CAVE_ENTRANCE, ENTER) { op ->
             arriveDelay()
+            if (!placedAt(world, op.loc, PLACED[CAVE_ENTRANCE])) return@onLoc
             world.teleport(player, IN_CITY.x, IN_CITY.z, IN_CITY.level)
             val rum = breakRum(player)
             if (rum > 0) {
@@ -206,8 +210,9 @@ fun registerMorUlRek(world: World) {
                 world.meleeCombat.statusHit(player, rum, HitsplatType.DAMAGE_ME, HitsplatType.DAMAGE_OTHER)
             }
         }
-        world.handlers.onLoc(CAVE_EXIT, ENTER) {
+        world.handlers.onLoc(CAVE_EXIT, ENTER) { op ->
             arriveDelay()
+            if (!placedAt(world, op.loc, PLACED[CAVE_EXIT])) return@onLoc
             world.teleport(player, IN_DUNGEON.x, IN_DUNGEON.z, IN_DUNGEON.level)
         }
         for (keeper in listOf(BANKER, BANKER_INNER)) {
