@@ -89,6 +89,33 @@ class HeadlessEscapeCavesTest {
     }
 
     @Test
+    fun `lingering past 50 ticks drains prayer and run energy, and stops once out`(@TempDir dir: Path) {
+        server(dir).use { server ->
+            server.login("bo").use { client ->
+                client.await("the login rebuild") { client.position }
+                val bo = server.world.playerNamed("bo")!!
+                client.commandReply("setlevel prayer 50") { true }
+                client.command("tele 3359 10246 0")
+                client.await("in the caves") { client.position?.takeIf { it == Coord(3359, 10246, 0) } }
+                bo.runEnergy = 10_000
+                val arrived = server.world.tick
+                assertFalse(server.world.escapeCaves.debuffed(bo), "no debuff without the surface cave")
+                client.await("prayer drained", timeoutMillis = 15_000) { Unit.takeIf { bo.skills.currentLevel(Skill.PRAYER) < 50 } }
+                assertTrue(server.world.tick - arrived >= EscapeCaves.LINGER_AFTER, "not before about 30 seconds")
+                assertTrue(bo.runEnergy <= 10_000 - EscapeCaves.LINGER_ENERGY, "run energy with it")
+                client.await("drained again", timeoutMillis = 15_000) { Unit.takeIf { bo.skills.currentLevel(Skill.PRAYER) < 49 } }
+
+                client.command("tele 3283 3773 0")
+                client.await("out") { client.position?.takeIf { it == Coord(3283, 3773, 0) } }
+                val prayer = bo.skills.currentLevel(Skill.PRAYER)
+                val left = server.world.tick
+                client.await("a while out") { Unit.takeIf { server.world.tick - left > 2 * EscapeCaves.LINGER_TICKS } }
+                assertEquals(prayer, bo.skills.currentLevel(Skill.PRAYER), "no drain once out")
+            }
+        }
+    }
+
+    @Test
     fun `players leaving the same lair within 10 seconds come out together`() {
         val caves = EscapeCaves()
         val first = caves.lairExit("callisto", 100) { 0 }

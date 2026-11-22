@@ -16,7 +16,7 @@ import osrsps.map.Tile
  *   in this way get a debuff draining their prayer as long as they stay.
  * - **Out**: Exit or Climb-up on the four ways out (`wild_boss_escape_cave_exit01` 47147, `_exit02` 47148 twice and
  *   `_exit03` 47149) puts the player back outside the cave above.
- * - **From a lair** ([leaveLair], for the three big lairs' ways out): the player comes out of one of the three cave mouths
+ * - **From a lair** ([lairExit], for the three big lairs' ways out): the player comes out of one of the three cave mouths
  *   (`wild_boss_escape_cave_exit_noop` 47151) at random; anyone leaving the same lair within 10 seconds (17 ticks) of the
  *   last comes out of the same one.
  * - **Lingering**: anyone in the caves for about 30 seconds (50 ticks) slowly loses prayer and run energy.
@@ -51,13 +51,6 @@ class EscapeCaves {
         return mouth
     }
 
-    /** [player] leaves [lair] by its way out into the caves, with no debuff. */
-    fun leaveLair(world: World, player: Player, lair: String) {
-        val mouth = lairExit(lair, world.tick) { world.random.nextInt(it) }
-        visits[player] = Visit(world.tick, debuff = false)
-        world.teleport(player, mouth.x, mouth.z, 0)
-    }
-
     /** Through a surface cave, with the debuff. */
     fun enterFromSurface(world: World, player: Player, pair: Pair) {
         visits[player] = Visit(world.tick, debuff = true)
@@ -73,16 +66,19 @@ class EscapeCaves {
         val visit = visits.getOrPut(player) { Visit(world.tick, debuff = false) }
         val stayed = world.tick - visit.since
         if (stayed <= 0) return
-        if (visit.debuff && stayed % DEBUFF_TICKS == 0L) drainPrayer(player, 1)
+        if (visit.debuff && stayed % DEBUFF_TICKS == 0L) drainPrayer(world, player, 1)
         if (stayed >= LINGER_AFTER && (stayed - LINGER_AFTER) % LINGER_TICKS == 0L) {
-            drainPrayer(player, 1)
+            drainPrayer(world, player, 1)
             player.runEnergy = max(0, player.runEnergy - LINGER_ENERGY)
         }
     }
 
-    private fun drainPrayer(player: Player, points: Int) {
+    /** The last point gone, the prayers go off now, not a tick later when the prayers' own drain would see it. */
+    private fun drainPrayer(world: World, player: Player, points: Int) {
         val now = player.skills.currentLevel(Skill.PRAYER)
-        if (now > 0) player.skills.setCurrentLevel(Skill.PRAYER, max(0, now - points))
+        if (now <= 0) return
+        player.skills.setCurrentLevel(Skill.PRAYER, max(0, now - points))
+        if (now <= points) world.prayers.deactivateAll(player)
     }
 
     companion object {
