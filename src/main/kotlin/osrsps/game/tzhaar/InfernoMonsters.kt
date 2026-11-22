@@ -104,8 +104,8 @@ class InfernoMonsters(private val world: World) {
             if (world.tick == npc.nextAttackTick - BLOB_READS_AHEAD) blobStyles[npc] = blobStyle(player, inReach)
             // Its first attack due with no read made: it reads now and attacks 3 ticks on, so a prayer switch can answer
             // it (Codex review on #833). Later, an attack overdue as it comes back in shot fires at once with a fresh
-            // read, as live's expired timer does, or stepping out of sight one tick in three would keep it from ever
-            // attacking (exploit review R46B-4).
+            // read, or stepping out of sight one tick in three would keep it from ever attacking (exploit review
+            // R46B-4). Guessed: neither the Wiki nor a recording shows how a returning Jal-Ak times that attack.
             if (world.tick >= npc.nextAttackTick && npc !in blobStyles && npc !in lastStyle) {
                 blobStyles[npc] = blobStyle(player, inReach)
                 npc.nextAttackTick = world.tick + BLOB_READS_AHEAD
