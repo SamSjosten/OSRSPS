@@ -252,7 +252,7 @@ related ones.
 | `::tick` | **everyone.** The tick number and whether the clock is paused |
 | `::pause` / `::step [n]` / `::resume` | Freezes the clock, runs n ticks (up to 1000), starts it again |
 | `::seed [n]` | Shows the seed and rolls drawn, or restarts the rolls from seed n |
-| `::star [sites \| land [site\|here] [size] \| next ticks \| layer \| clear \| bonus [n] \| scout oak\|teak\|mahogany]` | Shooting stars: where the star is and when and where the next lands; `sites` lists the landing sites; `land` lands one now at a site (random when left out) or `here` (two tiles north of you), size 1 to 9 (random 6 to 9 when left out); `next` plans the next landing that many ticks on; `layer` ends the star's layer now; `clear` takes it away; `bonus` shows or sets your discovery bonus; `scout` looks through that telescope (the next star's region and window). With `::seed n` first, the cycle's sites, sizes and timings repeat; admin |
+| `::star [sites \| land [site\|here] [size] \| next ticks \| layer \| clear \| bonus [n] \| scout oak\|teak\|mahogany]` | Shows the shooting star and the next landing, or lands, plans, clears one, sets your bonus or looks through a telescope |
 | `::queue weak\|normal\|strong\|soft [delay]` | Queues a test script on you |
 | `::delay [ticks]` / `::timer normal\|soft interval [times]` / `::timer off` | Delays you, or starts or stops a test timer |
 | `::scripts` | **everyone.** What you have queued, delayed and on timers |
@@ -278,8 +278,8 @@ related ones.
 | `::xprate [rate\|restore]` | Server-wide XP rate, 0.1 to 1000 (kept in `data/xp-rate.txt`); 1 is live's |
 | `::varp id\|name [value]` / `::varbit id\|name [value]` | Shows or sets a var; our own vars go by name (`::varp lodestones`) |
 | `::slayer [task <id\|name> [amount] [master] \| points n \| streak n \| clear \| superior]` | Shows or sets your Slayer task, points and streak |
-| `::randomevent [list\|now\|on\|off\|<event>]` | Alone, whether random events are on for you and when your next is due. `list` names the events built, `now` makes yours due so it comes the next tick you are free, `off` and `on` hold events back or let them come again (saved with the account), and an event's name (`::randomevent genie`) sends it to you at once, wherever you are. Not live's: for testing |
-| `::look [body a\|b \| kit part id \| colour part n \| reset]` | Alone, your look: body type, the identity kit of each part (hair, jaw, torso, arms, hands, legs, feet) and the five colours (hair, torso, legs, feet, skin). `body` switches body type, starting from its first kit of each part (none for body type B's jaw); `kit` sets one part to a kit of your body type from the cache (`::look kit hair 5`; `-1` for no jaw); `colour` sets one colour (`::look colour skin 7`); `reset` goes back to the default look. Saved with the account, kept by `::reset`; everyone around sees the change |
+| `::randomevent [list\|now\|on\|off\|<event>]` | Your random event status; lists, brings on, turns off or sends one |
+| `::look [body a\|b \| kit part id \| colour part n \| reset]` | Shows or sets your body type, kits and colours (and shows your pronouns) |
 | `::farmtick [ticks]` / `::farmclock pause\|run` / `::farmdisease patch\|off\|on` | Moves, holds or runs your farming clock; makes a patch diseased or stops disease |
 | `::nest [seeds\|ring\|red\|green\|blue]` | Drops a bird's nest as a tree would |
 
