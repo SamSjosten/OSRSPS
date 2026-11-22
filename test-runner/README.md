@@ -114,6 +114,8 @@ between scripts then shows the words a player sees, not `[key]`.
 
 `karamja-ships.json` (Karamja step K1.1, for test on 215: 100 coins from `::item`, Captain Tobias's Musa Point option on Port Sarim's dock and `[karamja_ship.paid fare=30]`, the ship journey screen (299), the landing on Musa Point's deck (2956,3143, plane 1) and its arrival box, the gangplank ashore to 2956,3146; then a Karamjan rum from `::item 431`, the customs officer's Port Sarim option and `[karamja_ship.confiscated]` with no fare taken, her talk's journey and boarding options sailing back to Port Sarim's deck (3032,3217, plane 1) for 30 more, and the gangplank ashore to 3029,3217) needs 0.4.0 for `assertInventory` (and `locOption`, `assertInterface`).
 
+`musa-point.json` (Karamja step K1.2, for test on 215: the banana crate emptied with `::varp banana_crate 0`, Luthas's employment option, Pick on the banana tree at 2930,3155 and `[musa_point.banana_picked]` with the tree then 2074, ten bananas from `::item`, one used on his crate (2072 at 2939,3149) and `[musa_point.pack_one]`, Search and `[musa_point.crate_has count=1 s=]`, Fill and nine more gone, Search's full box, his pay of 30 coins, and Zembo's yes opening his shop (300)) needs 0.15.0 for `useItemOnLoc` (and `assertLoc`, `assertInventory`).
+
 `combat-respawn.json` (a castle man and a cow killed with `::kill`, still listed by `::respawns` until their Wiki
 respawn times of 25 and 45 ticks are up) needs 0.5.0.
 
@@ -437,6 +439,10 @@ The equipment and ground item checks need 0.6.0 (`itemOption`, `wornOption`, `cl
   chest and its ladder up, the weapon store's door locked without the key and through with it, the Weaponsmaster's talk
   and his `[weaponsmaster.stravens]` on a crossbow taken upstairs, Katrine's `[katrine.phoenix_scum]` and the Black Arm
   Gang's inner door locked, with `::reset` at the end.
+- `guidor-bea.json`: post-quest step 3 (with `::scenario lumbridge-bare` and `::keys on`): Guidor's gate both ways,
+  his bedroom door refused with Julie's four lines, then through in the priest gown (426 and 428 worn) to his talk and out
+  again, Farmer Bea's talk every way ending in her shop (interface 300), Swap-darts refused at 34 wasp darts and a bag of
+  Bea's supplies for 35, and the bag opened, with `::reset` at the end.
 - `varrock-churches-inns.json`: Varrock step 7 (with `::keys on`): Pray-at at the church's altar and the chapel's
   chaos altar, Father Lawrence, Elsie upstairs in the church, the Mage of Zamorak, a beer bought at each of the three
   inns, the Blue Moon cook's cabbage and the Jolly Boar cook's jokes.
@@ -715,6 +721,9 @@ to a known start with `::varp` and `::varbit` and put the account back at the en
   with the platebody, platelegs and kiteshield, its three most valuable items. Assumes test2 wears nothing worth more.
 - `settings-search.json` (needs 0.12.0): the All Settings search typed with real key presses, a found row clicked,
   and a window closed mid-search reopening on its category, also after a relog.
+- `random-events-genie.json`: random events step 1 (with `::keys on`): turns the account's random events off, sends the
+  Genie with `::randomevent genie`, takes his lamp, rubs it and picks Agility in the experience reward window, for 300
+  XP at level 30.
 - `settings-sweep-0.json` to `settings-sweep-7.json`: one category each, Activities to Warnings. Every toggle in
   it with no dependency, guard or var shared with another row is set to 0, clicked on and checked, then checked again
   after a relog and put back to 0. Generated from the 241 cache's settings catalog; run them one at a time.

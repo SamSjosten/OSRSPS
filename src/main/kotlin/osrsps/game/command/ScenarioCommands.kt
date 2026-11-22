@@ -61,6 +61,10 @@ internal fun resetScenario(world: World, player: Player): String {
     // A stopped Hunter run's traps come down too, so none stands for the next script.
     world.hunter.traps.takeDown(player)
     player.testCheatsOff()
+    // A Fight Cave or Inferno run of the setup's ends first, keeping the run saved from before: ended later, by the
+    // process seeing them leave, it would forget the run restoreTo just put back (exploit review R45B-5).
+    world.fightCaves.endRun(player)
+    world.inferno.endRun(player)
     before.restoreTo(player)
     // A trail being followed ends, and the restored varbits show none of its footprints.
     world.hunter.tracking.forget(player)
@@ -152,7 +156,10 @@ private fun start(world: World, player: Player, scenario: Scenario) {
     player.equipment.clear()
     for ((slot, obj) in loadout.equipment) player.equipment[slot] = obj
     // A scenario's charged items start empty, and its essence pouches too.
+    // The account's random event timer and its ::randomevent off aren't the scenario's to reset.
+    val kept = osrsps.game.content.randomevents.RandomEvents.ACCOUNT_CHARGES.associateWith { player.charges[it] }
     player.charges.clear()
+    for ((name, value) in kept) player.charges[name] = value
     world.essencePouches.emptyAll(player)
     world.bankScreen.clear(player)
     for ((slot, obj) in loadout.bank) player.bank[slot] = obj

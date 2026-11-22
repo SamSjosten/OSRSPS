@@ -173,7 +173,11 @@ class ScurriusLairs(private val world: World) {
     suspend fun ScriptContext.eat() {
         arriveDelay()
         if (!inLair(player.level, player.x, player.z)) return world.message(player, GameLines.NOTHING_INTERESTING)
-        if (player.attackedTick >= 0 && world.tick - player.attackedTick < Scurrius.EAT_COMBAT_TICKS) {
+        // Out of combat both ways: not hit, and not attacking, within the window (INFERRED: attacking counts too, so a
+        // player he isn't targeting can't heal mid-fight in the public lair).
+        val hit = player.attackedTick >= 0 && world.tick - player.attackedTick < Scurrius.EAT_COMBAT_TICKS
+        val attacking = player.attackedNpcTick >= 0 && world.tick - player.attackedNpcTick < Scurrius.EAT_COMBAT_TICKS
+        if (hit || attacking) {
             return world.message(player, ScurriusLairLines.EAT_COMBAT)
         }
         val until = eatAgain[player.saveKey]

@@ -77,9 +77,11 @@ import osrsps.game.social.FriendsChatLines
 import osrsps.game.social.ReportLines
 import osrsps.game.social.SocialLines
 import osrsps.game.trade.TradeLines
+import osrsps.game.trail.StashLines
 import osrsps.game.trail.TrailLines
 import osrsps.game.tzhaar.FightCaveLines
 import osrsps.game.tzhaar.InfernoLines
+import osrsps.game.tzhaar.InfernoZukLines
 import osrsps.game.tzhaar.KetKehLines
 import osrsps.game.tzhaar.MejJalLines
 
@@ -141,6 +143,7 @@ object DialogueLines {
         MejJalLines,
         InfernoLines,
         KetKehLines,
+        InfernoZukLines,
         FinlayLines,
         MonlumLines,
         WebLines,
@@ -231,6 +234,7 @@ object DialogueLines {
         EvilDaveLines,
         Examines,
         FairyRingLines,
+        FarmerBeaLines,
         SpiritTreeLines,
         FatherLawrenceLines,
         FerrnookLines,
@@ -258,6 +262,7 @@ object DialogueLines {
         GuildmasterLines,
         GunthorLines,
         HansLines,
+        osrsps.game.content.randomevents.GenieLines,
         HariLines,
         HarlanLines,
         HassanLines,
@@ -281,6 +286,7 @@ object DialogueLines {
         JollyBoarBartenderLines,
         JollyBoarCookLines,
         JonnyTheBeardLines,
+        JulieLines,
         JulietLines,
         KarimLines,
         KatrineLines,
@@ -334,6 +340,9 @@ object DialogueLines {
         JohanhusLines,
         JimmyTheChiselLines,
         KaramjaShipLines,
+        MusaPointLines,
+        MusaShopKeeperLines,
+        MusaShopAssistantLines,
         MisthalinSweepLines,
         MageOfZamorakLines,
         MakeLines,
@@ -442,9 +451,11 @@ object DialogueLines {
         SlayerTipLines,
         SlayerRewardsLines,
         SlayerSuperiorLines,
+        XpLampLines,
         SlayerHelmetLines,
         KuradalLines,
         KrystiliaLines,
+        KrystiliaRespawnLines,
         MazchnaLines,
         SteveLines,
         SmithingLines,
@@ -462,6 +473,7 @@ object DialogueLines {
         TradeLines,
         TraibornLines,
         TrailLines,
+        StashLines,
         TrampLines,
         UrhneyLines,
         ValaineLines,

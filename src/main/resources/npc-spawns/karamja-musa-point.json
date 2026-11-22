@@ -1,0 +1,9 @@
+{
+  "about": "Musa Point (Karamja step K1.2): Luthas of the banana plantation, Zembo of the spirits shop, and the general store's keeper and assistant. Types and tiles are mejrs's data_osrs NPCList_OSRS.json (NPCs seen on live), Luthas's and Zembo's checked against the Wiki's maps. Musa Point's townsfolk follow in step K1.3.",
+  "spawns": [
+    {"npc": "luthas", "x": 2939, "z": 3154, "wander": 3, "source": "Luthas, in his house by the plantation. Wiki Luthas map (2939,3154, r5); wander 3 guessed"},
+    {"npc": "zembo", "x": 2925, "z": 3143, "wander": 2, "source": "Zembo, behind his bar. mejrs NPCList_OSRS (Wiki map 2927,3145, r3); wander 2 guessed"},
+    {"npc": "generalshopkeeper7", "x": 2902, "z": 3146, "wander": 2, "source": "Shop keeper, Karamja General Store. mejrs NPCList_OSRS; wander guessed"},
+    {"npc": "generalassistant7", "x": 2902, "z": 3150, "wander": 2, "source": "Shop assistant, Karamja General Store. mejrs NPCList_OSRS; wander guessed"}
+  ]
+}

@@ -31,7 +31,7 @@ import java.util.WeakHashMap
 class InfernoJads(private val world: World) {
     /** Hooks a Jad's death: his healers go with him. Once, from [Inferno.register]. */
     fun register(inferno: Inferno) {
-        world.npcScripts.onDeath(listOf(InfernoMonster.JAD.type)) { jad -> died(inferno, jad) }
+        world.npcScripts.onDeath(JADS.toList()) { jad -> died(inferno, jad) }
     }
 
     private class JadState(val attackSpeed: Int) {
@@ -105,7 +105,8 @@ class InfernoJads(private val world: World) {
         while (state.healersOwed > 0) {
             val count = if (run.wave == InfernoWaves.TRIPLE_JAD_WAVE) TRIPLE_HEALERS else HEALERS
             val offset = HEALER_OFFSETS[(count - state.healersOwed).coerceIn(0, HEALER_OFFSETS.size - 1)]
-            val healer = inferno.spawn(player, run, HEALER, Tile(jad.x + offset.x, jad.z + offset.z), fight = false) ?: break
+            val type = if (jad.type.id == InfernoZuk.FINAL_JAD) InfernoZuk.FINAL_JAD_HEALER else HEALER
+            val healer = inferno.spawn(player, run, type, Tile(jad.x + offset.x, jad.z + offset.z), fight = false) ?: break
             state.healersOwed--
             state.healers += healer
             healerOf[healer] = jad
@@ -205,6 +206,9 @@ class InfernoJads(private val world: World) {
 
     companion object {
         const val HEALER = 7701
+
+        /** Waves 67 and 68's JalTok-Jad, and the Zuk wave's (whose healers are 7705; five, guessed). */
+        val JADS: Set<Int> = setOf(InfernoMonster.JAD.type, InfernoZuk.FINAL_JAD)
         const val MAX_HIT = 113
         const val ATTACK_SPEED = 8
         const val TRIPLE_SPEED = 9

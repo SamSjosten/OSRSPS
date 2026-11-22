@@ -122,6 +122,7 @@ class NpcCombatTest {
             "jalimkot_attack" to 7597, "jalimkot_defend" to 7598, "jalimkot_death" to 7599, "jalxil_attack_ranged" to 7605, "jalxil_defend" to 7607, "jalxil_death" to 7606,
             "jalakxil_attack_magic" to 7610, "jalakxil_death" to 7613, "jaltokjad_attack_magic" to 7592, "jaltokjad_defend" to 7591, "jaltokjad_death" to 7594,
             "zuk_attack" to 7566, "zuk_defend" to 7565, "zuk_death" to 7562,
+            "dagannoth_water_creature_attack" to 2868, "dagannoth_water_creature_defend" to 2869, "dagannoth_water_creature_death" to 2866,
         ),
     )
 
@@ -1018,6 +1019,16 @@ class NpcCombatTest {
         }
         assertEquals(425, combat[ratTypes.find("rat_boss_normal")!!]!!.xpBonusTenths)
         assertEquals(200, combat[ratTypes.find("rat_boss_instance")!!]!!.xpBonusTenths)
+    }
+
+    @Test
+    fun `Scurrius's giant rats slash for 4, and a quarter of it comes through Protect from Melee`() {
+        val ratTypes = NpcTypes.of(NpcType(7223, "Giant rat", internalName = "rat_boss_giant_rat", stats = NpcStats(attack = 100, strength = 25, defence = 10, hitpoints = 15)))
+        val def = NpcCombat.load(ratTypes, seqs)[ratTypes.find("rat_boss_giant_rat")!!]!!
+        assertEquals(CombatMath.npcMaxHit(25, def.strengthBonus), def.maxHit)
+        assertEquals(listOf(4, 4, 25), listOf(def.attackSpeed, def.maxHit, def.prayerPasses))
+        assertEquals(NpcCombatAnims(4933, 4934, 4935), def.anims)
+        assertNotNull(def.aggression)
     }
 
     @Test

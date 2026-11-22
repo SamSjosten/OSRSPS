@@ -7,6 +7,7 @@ import osrsps.game.Movement
 import osrsps.game.combat.AttackType
 import osrsps.game.npc.Npc
 import osrsps.map.Tile
+import java.util.Collections
 import java.util.WeakHashMap
 
 /**
@@ -50,12 +51,15 @@ class InfernoMonsters(private val world: World) {
     }
 
     /** A Jal-Ak's style for its next attack, picked 3 ticks before it. */
-    private val blobStyles = WeakHashMap<Npc, AttackType>()
+    internal val blobStyles = WeakHashMap<Npc, AttackType>()
 
     /** When each Jal-ImKot next digs, when one digging goes from sight, and when one under comes up. */
     private val nextDig = WeakHashMap<Npc, Long>()
     private val hideAt = WeakHashMap<Npc, Long>()
     private val surfaceAt = WeakHashMap<Npc, Long>()
+
+    /** Jal-Aks that have had their first-attack read grace: once each, however often they lose sight (exploit review R48A-1). */
+    private val graced: MutableSet<Npc> = Collections.newSetFromMap(WeakHashMap())
 
     /** The style of each scripted monster's last attack, for tests. */
     internal val lastStyle = WeakHashMap<Npc, AttackType>()
@@ -83,7 +87,8 @@ class InfernoMonsters(private val world: World) {
             if (world.tick < still) return world.npcs.stopFollowing(npc)
             revivingUntil.remove(npc)
         }
-        val id = npc.type.id
+        // The Zuk wave's Jal-Xil and Jal-Zek fight as the others do.
+        val id = FINAL_WAVE[npc.type.id] ?: npc.type.id
         // The Jal-Xil's and Jal-Zek's melee reaches diagonals too, but not round a corner (Codex review on #833).
         val inReach = if (id == InfernoMonster.RANGER.type || id == InfernoMonster.MAGE.type) besideAny(npc, player) && world.meleeCombat.sees(npc, player) else world.meleeCombat.reaches(npc, player)
         val shoots = id != InfernoMonster.MELEE.type
@@ -101,9 +106,12 @@ class InfernoMonsters(private val world: World) {
         }
         if (id == InfernoMonster.BLOB.type) {
             if (world.tick == npc.nextAttackTick - BLOB_READS_AHEAD) blobStyles[npc] = blobStyle(player, inReach)
-            // Due with no read made (its first attack, or it only now came in shot): it reads now and attacks 3 ticks
-            // on, so a prayer switch can always answer it (Codex review on #833).
-            if (world.tick >= npc.nextAttackTick && npc !in blobStyles) {
+            // Its first attack due with no read made: it reads now and attacks 3 ticks on, so a prayer switch can answer
+            // it (Codex review on #833). That grace comes once: after it, an attack overdue as it comes back in shot
+            // fires at once with a fresh read, or stepping out of sight one tick in three would keep it from ever
+            // attacking, a fresh one too (exploit review R46B-4, R48A-1). Guessed: neither the Wiki nor a recording
+            // shows how a returning Jal-Ak times that attack.
+            if (world.tick >= npc.nextAttackTick && npc !in blobStyles && graced.add(npc)) {
                 blobStyles[npc] = blobStyle(player, inReach)
                 npc.nextAttackTick = world.tick + BLOB_READS_AHEAD
                 return
@@ -281,7 +289,11 @@ class InfernoMonsters(private val world: World) {
     companion object {
         val SCRIPTED: Set<Int> = setOf(
             InfernoMonster.BAT.type, InfernoMonster.BLOB.type, InfernoMonster.MELEE.type, InfernoMonster.RANGER.type, InfernoMonster.MAGE.type,
+            InfernoZuk.FINAL_RANGER, InfernoZuk.FINAL_MAGER,
         )
+
+        /** The Zuk wave's sets, by the monster each fights as. */
+        private val FINAL_WAVE = mapOf(InfernoZuk.FINAL_RANGER to InfernoMonster.RANGER.type, InfernoZuk.FINAL_MAGER to InfernoMonster.MAGE.type)
 
         /** What a Jal-Zek can bring back: the wave's monsters but the Nibblers and Jal-Zeks (guessed). */
         val REVIVABLE: List<Int> = listOf(
