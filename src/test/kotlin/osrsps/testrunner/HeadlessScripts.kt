@@ -201,6 +201,8 @@ internal object HeadlessScripts {
     private fun reset(session: ScriptSession, script: Script) {
         session.closeInterfaces()
         val reset = session.run(Script.parse("_between.json", resetScript(script.account)), "reset")
+        // The runs' accounts are new, so their first login opens the Character Creator; the VMs' accounts are long past it.
+        session.closeInterfaces()
         if (reset.result != Result.PASS) {
             println("Reset before ${script.id} failed: ${reset.failure}")
         }

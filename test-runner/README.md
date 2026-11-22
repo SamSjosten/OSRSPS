@@ -118,6 +118,8 @@ between scripts then shows the words a player sees, not `[key]`.
 
 `musa-point-people.json` (Karamja step K1.3, for test on 215: under `::god`, Examine under `::keys on` on the Karamja man by Musa Point's dock (3652) and on a snake west of the general store (2845), each read off its `examine.` key, then Attack on the snake, a hitsplat, `::kill` and its bones on the floor) needs 0.5.0 for `assertHitsplat` (and `assertGroundItem`).
 
+`karamja-lodestone.json` (Karamja step K1.1b, for test on 215: `::varp lodestones 0`, Activate on the Karamja stone at 2759,3146 south of Brimhaven and `[lodestone.activated name=[lodestone.karamja]]`, `::varbit lodestone.karamja` reading bit 5 set, the stone redrawn with Teleport, then from Lumbridge `::lodestone karamja` landing on 2760,3147) needs 0.4.2 for `assertLoc`.
+
 `combat-respawn.json` (a castle man and a cow killed with `::kill`, still listed by `::respawns` until their Wiki
 respawn times of 25 and 45 ticks are up) needs 0.5.0.
 
