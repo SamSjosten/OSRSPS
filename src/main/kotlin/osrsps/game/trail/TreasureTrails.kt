@@ -121,16 +121,21 @@ object TrailLines : Lines("trail", "Treasure Trails") {
  * almost nothing" line for a reward of exactly 1 coin.
  */
 class TreasureTrails(private val world: World, val data: TrailData) {
-    /** Steps of each tier that can come up now. */
-    private val pools: Map<TrailTier, List<ClueStep>> = TrailTier.entries.associateWith { tier -> data.tier(tier).filter(::built) }
-
-    fun pool(tier: TrailTier): List<ClueStep> = pools.getValue(tier)
-
     /** The STASH units of the built regions (TT5). */
     val stashes = StashUnits(world, data)
 
     /** Puzzle and light boxes (TT6). */
     val boxes = TrailBoxes(world)
+
+    /**
+     * Steps of each tier that can come up now: built ones, leaving out a box step whose box the cache doesn't have, as
+     * its NPC could never hand one over and the trail would stick there (exploit review round 50, R50C-3).
+     */
+    private val pools: Map<TrailTier, List<ClueStep>> = TrailTier.entries.associateWith { tier ->
+        data.tier(tier).filter { step -> built(step) && (step.challenge as? TrailChallenge.Box)?.let { boxes.accepts(step, it).isNotEmpty() } != false }
+    }
+
+    fun pool(tier: TrailTier): List<ClueStep> = pools.getValue(tier)
 
     /** Wizards, double agents and key monsters (TT7). */
     val fights = TrailFights(world, this)

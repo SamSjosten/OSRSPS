@@ -65,6 +65,9 @@ class TrailCacheAuditTest {
             if (step.type == StepType.EMOTE && step.emotes.any { it !in osrsps.game.content.Emotes.EMOTES }) problems += "$step: emotes ${step.emotes}"
             for (outfit in step.outfits) for (item in outfit.items.values.flatten()) if (objs[item] == null) problems += "$step: outfit item $item"
             // A box step's puzzle box is the item after its clue (trail_hard_anagram_exp9 and _puzzlebox), and opens.
+            // A medium or hard box step with no clue item of its own has no box to hand over, so it stays out of the
+            // pool (R50C-3); none should be built.
+            if (step.challenge is TrailChallenge.Box && step.items.isEmpty() && step.tier in setOf(TrailTier.MEDIUM, TrailTier.HARD)) problems += "$step: a box step with no clue item"
             if (step.challenge is TrailChallenge.Box && step.items.isNotEmpty()) {
                 val box = step.items.first() + 1
                 if (box !in TrailBoxes.PUZZLES || objs[box]?.name?.startsWith(TrailBoxes.PUZZLE_BOX) != true) problems += "$step: no puzzle box $box"
