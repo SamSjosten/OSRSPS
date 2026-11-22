@@ -203,6 +203,19 @@ class Handlers {
         handlers[key] = handler
     }
 
+    private val firsts = ArrayList<(osrsps.game.Player, Op) -> Handler?>()
+
+    /**
+     * A check run before an op's own handler when a player clicks: a handler it returns takes the click instead, as
+     * a clue step takes a Talk-to on its NPC from the NPC's own conversation. Checks run in the order added.
+     */
+    fun first(check: (osrsps.game.Player, Op) -> Handler?) {
+        firsts += check
+    }
+
+    /** The handler for [player]'s [op]: a [first] check's, else the op's own ([find]). */
+    fun find(op: Op, player: osrsps.game.Player): Handler? = firsts.firstNotNullOfOrNull { it(player, op) } ?: find(op)
+
     fun find(op: Op): Handler? {
         if (op.target == OpTarget.OBJ_ON_NPC || op.target == OpTarget.OBJ_ON_LOC) {
             return handlers[Key(op.target, op.id, op.obj)] ?: handlers[Key(op.target, op.id, ANY_OBJ)]

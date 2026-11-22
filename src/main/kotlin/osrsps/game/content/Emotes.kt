@@ -157,5 +157,6 @@ fun registerEmotes(world: World) {
         player.waypoints.clear()
         player.anim(emote.anim)
         if (emote.spotanim >= 0) player.spotanim(emote.spotanim)
+        world.trails.emoted(player, emote.index)
     }
 }

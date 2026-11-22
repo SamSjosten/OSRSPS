@@ -85,10 +85,47 @@ sealed interface TrailTarget {
 }
 
 /**
+ * What an emote step has the player wear (cluehelper_outfit): for some equipment slots, any of [items]; for others, any
+ * item of an item group ([groups], the group in obj param 258, as every charge of a ring of dueling); and items of
+ * [anyGroups] in any slot. [description] is the clue helper's words for it.
+ */
+data class TrailOutfit(
+    val description: String,
+    val items: Map<Int, Set<Int>> = emptyMap(),
+    val groups: Map<Int, Int> = emptyMap(),
+    val anyGroups: List<Int> = emptyList(),
+) {
+    /** Whether [worn] (an item id by equipment slot, null for an empty slot) and [groupOf] (an item's group) fit it. */
+    fun fits(worn: (Int) -> Int?, groupOf: (Int) -> Int?): Boolean {
+        for ((slot, ids) in items) if (worn(slot) !in ids) return false
+        for ((slot, group) in groups) if (worn(slot)?.let(groupOf) != group) return false
+        val all = (0 until EQUIPMENT_SLOTS).mapNotNull(worn)
+        for (group in anyGroups) if (all.none { groupOf(it) == group }) return false
+        return true
+    }
+
+    companion object {
+        const val EQUIPMENT_SLOTS = 14
+        /** The obj param naming an item's Treasure Trail item group. */
+        const val PARAM_ITEM_GROUP = 258
+    }
+}
+
+/** What a step's target asks before it gives the next clue (the clue helper's challenge column). */
+sealed interface TrailChallenge {
+    /** A question to answer with a number, any of [answers] right (cluehelper_challenge_question). */
+    data class Question(val text: String, val answers: Set<Int>) : TrailChallenge
+
+    /** A puzzle box or light box to solve (cluehelper_challenge_box). */
+    data class Box(val description: String) : TrailChallenge
+}
+
+/**
  * One clue step, as Jagex's own clue helper lists it in the cache: [id] is the row's own id column (stable across
  * caches, unlike the row's number), [text] the clue's words (null for maps and hot-cold steps, which show no text),
  * [items] the step's own clue scroll items (empty for beginner and master steps, which share one), [combat] whether a
- * fight comes with it (a coordinate's wizard, an emote's double agent).
+ * fight comes with it (a coordinate's wizard, an emote's double agent), [challenge] what the target asks first and
+ * [challengeItem] the challenge scroll that carries a question (-1 for none).
  */
 data class ClueStep(
     val type: StepType,
@@ -98,6 +135,14 @@ data class ClueStep(
     val targets: List<TrailTarget>,
     val items: List<Int> = emptyList(),
     val combat: Boolean = false,
+    val challenge: TrailChallenge? = null,
+    val challengeItem: Int = -1,
+    /** An emote step's emotes, in order (the emote tab's indexes): the first calls Uri, the second comes before talking to him. */
+    val emotes: List<Int> = emptyList(),
+    /** What an emote step has the player wear: any one of these, none for no rule. */
+    val outfits: List<TrailOutfit> = emptyList(),
+    /** The STASH unit for the step's items (the clue helper's hidey_hole_loc), -1 for none. */
+    val stash: Int = -1,
 ) {
     /** How a save and `::clue` name the step: `map:107`. */
     val key: String get() = "${type.key}:$id"
