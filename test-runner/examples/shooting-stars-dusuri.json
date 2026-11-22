@@ -43,7 +43,9 @@
   {"step": "clickWidget", "interfaceId": 300, "component": 16, "slot": 4, "op": 2, "comment": "Buy 1 soft clay pack for 150"},
   {"step": "assertInventory", "itemId": 25533},
   {"step": "assertInventory", "itemId": 25527, "count": 50},
-  {"step": "walk", "x": 3022, "y": 3338, "comment": "a step south closes the shop"},
+  {"step": "clickWidget", "interfaceId": 300, "component": 1, "slot": 11, "op": 1, "comment": "shopmain:frame's close button: the walk below can't click through the open shop (nightly 22 Nov 2026)"},
+  {"step": "waitTicks", "ticks": 2},
+  {"step": "walk", "x": 3022, "y": 3338},
 
   {"step": "itemOption", "item": "Bag full of gems", "option": "Open"},
   {"step": "assertInventory", "itemId": 1624, "comment": "noted uncut sapphires: half the 40 on average"},
