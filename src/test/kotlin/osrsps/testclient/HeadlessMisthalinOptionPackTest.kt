@@ -11,6 +11,7 @@ import osrsps.game.ObjType
 import osrsps.game.Skill
 import osrsps.game.ObjTypes
 import osrsps.game.World
+import osrsps.game.combat.StatusEffects
 import osrsps.game.content.Crops
 import osrsps.game.content.MisthalinOptionPack
 import osrsps.game.content.RestlessGhostLines
@@ -240,13 +241,13 @@ class HeadlessMisthalinOptionPackTest {
                 val npc = client.await("the curator in view") { client.npcs().firstOrNull { it.id == Pickpocketing.CURATOR } }
                 client.commandReply("setlevel thieving 99") { it.contains("set to level") }
                 val xp = client.await("level 99") { client.stat(Skill.THIEVING.ordinal)?.takeIf { it.level == 99 }?.xp }
-                // A catch stuns, so a few tries may be needed.
-                client.await("the key", timeoutMillis = 60_000) {
-                    if (client.count(Pickpocketing.STOREROOM_KEY) > 0) Unit else {
-                        client.npcOp(npc.index, Pickpocketing.PICKPOCKET)
-                        Thread.sleep(800)
-                        null
-                    }
+                // About 1 in 16 tries is caught at 99 and stuns, so up to six tries, each given the attempt's tick and a
+                // whole stun to play out, counted in game ticks.
+                var tries = 0
+                while (client.count(Pickpocketing.STOREROOM_KEY) == 0) {
+                    check(++tries <= 6) { "no storeroom key in six tries" }
+                    client.npcOp(npc.index, Pickpocketing.PICKPOCKET)
+                    client.awaitTicks(StatusEffects.PICKPOCKET_TICKS + 3)
                 }
                 assertEquals(xp, client.stat(Skill.THIEVING.ordinal)?.xp ?: 0)
             }

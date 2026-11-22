@@ -28,7 +28,14 @@
   {"step": "command", "text": "::setlevel thieving 99"},
   {"step": "npcOption", "npc": "Curator Haig Halen", "option": "Pickpocket", "timeoutMs": 30000},
   {"step": "assertMessage", "contains": "[pickpocket.attempt who=Curator Haig Halen]", "timeoutMs": 10000},
-  {"step": "waitTicks", "ticks": 4},
+  {"step": "waitTicks", "ticks": 12, "comment": "the attempt, and a whole stun if caught: about 1 in 16 is at 99, so four tries"},
+  {"step": "npcOption", "npc": "Curator Haig Halen", "option": "Pickpocket", "timeoutMs": 30000},
+  {"step": "waitTicks", "ticks": 12, "comment": "the attempt, and a whole stun if caught"},
+  {"step": "npcOption", "npc": "Curator Haig Halen", "option": "Pickpocket", "timeoutMs": 30000},
+  {"step": "waitTicks", "ticks": 12, "comment": "the attempt, and a whole stun if caught"},
+  {"step": "npcOption", "npc": "Curator Haig Halen", "option": "Pickpocket", "timeoutMs": 30000},
+  {"step": "waitTicks", "ticks": 12, "comment": "the attempt, and a whole stun if caught"},
+  {"step": "assertInventory", "itemId": 29906, "timeoutMs": 10000, "comment": "the storeroom key, in the live cache"},
   {"step": "command", "text": "::reset", "expectMessage": "Back to how you were"}
  ]
 }
