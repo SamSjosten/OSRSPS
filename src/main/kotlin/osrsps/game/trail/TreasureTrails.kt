@@ -48,6 +48,7 @@ object TrailLines : Lines("trail", "Treasure Trails") {
     val URI_CLUE = line("uri_clue", "Uri, handing over the next clue to the player who called him (the Wiki's Uri page lists his phrases; which he says when isn't known)")
     val URI_NO_BUSINESS = line("uri_no_business", "Uri, to a player who didn't call him or isn't wearing what the clue asks (no source seen)")
     val URI_NOT_YET = line("uri_not_yet", "Uri, before the clue's second emote is done (no source seen)")
+    val LOCKED = line("locked", "Search or Open on a key step's chest or drawers without the key (no source seen)")
     val NPC_BOX = line("npc_box", "a talk step's NPC, handing over a puzzle box or light box to solve first (no source seen)")
     val NPC_BOX_UNSOLVED = line("npc_box_unsolved", "a talk step's NPC, while the player's box isn't solved yet (no source seen)")
     val NPC_BOX_SOLVED = line("npc_box_solved", "a talk step's NPC, taking the solved box, before the next clue (no source seen)")
@@ -65,7 +66,7 @@ object TrailLines : Lines("trail", "Treasure Trails") {
 
 /**
  * Treasure Trails: scroll boxes, clue scrolls, reading them, a spade's Dig and the dig steps (step TT1), the reward
- * caskets (TT2), the talk and search steps (TT3), the emote steps with Uri (TT4), the STASH units ([StashUnits], TT5) and the puzzle and light boxes ([TrailBoxes], TT6). Sources: the OSRS Wiki's Treasure Trails, Scroll box, Clue scroll, Reward casket and Scroll case pages,
+ * caskets (TT2), the talk and search steps (TT3), the emote steps with Uri (TT4), the STASH units ([StashUnits], TT5), the puzzle and light boxes ([TrailBoxes], TT6) and the fights and key steps ([TrailFights], TT7). Sources: the OSRS Wiki's Treasure Trails, Scroll box, Clue scroll, Reward casket and Scroll case pages,
  * read 2026-11-19, and the cache's clue helper tables ([TrailLoader]), which give every step's words and tiles.
  *
  * - Every quest counts as done, X Marks the Spot included, so every clue scroll a monster drops comes as its tier's
@@ -91,8 +92,8 @@ object TrailLines : Lines("trail", "Treasure Trails") {
  * - An emote step's first emote, done within [EMOTE_RANGE] of its spot in one of its outfits (the clue helper's
  *   cluehelper_outfit: items by equipment slot, or item groups by obj param 258), calls that tier's Uri beside the
  *   player (the Wiki's Uri page); a step of two emotes has the second done before he gives the clue. He talks only to
- *   the player who called him, dressed as asked, and leaves after [URI_TICKS]. Steps with a double agent wait for the
- *   fights (TT7).
+ *   the player who called him, dressed as asked, and leaves after [URI_TICKS]. A step with a double agent brings the
+ *   agent out first, and Uri comes to the emote once it is dead ([TrailFights]); so does a dig step's wizard.
  * - Open on a reward casket counts the trail done and rolls its rewards ([TrailRewards]: the Wiki's tables, its
  *   1/50 to 1/5 master clue as a master scroll box); the reward screen shows them and the chat says "Well done", the
  *   count and the value. The tier's minor and major scroll cases come with every casket from their count on until
@@ -126,6 +127,9 @@ class TreasureTrails(private val world: World, val data: TrailData) {
 
     /** Puzzle and light boxes (TT6). */
     val boxes = TrailBoxes(world)
+
+    /** Wizards, double agents and key monsters (TT7). */
+    val fights = TrailFights(world, this)
 
     /** The step each challenge scroll belongs to. */
     private val byChallenge: Map<Int, ClueStep> = data.steps.values.filter { it.challengeItem >= 0 }.associateBy { it.challengeItem }
@@ -289,6 +293,7 @@ class TreasureTrails(private val world: World, val data: TrailData) {
             if (!isDig(step) || step !in pool(tier) || !dressed(player, step)) continue
             val spot = step.targets.first().tile
             if (spot.level != player.level || maxOf(kotlin.math.abs(spot.x - player.x), kotlin.math.abs(spot.z - player.z)) > DIG_RANGE) continue
+            if (mustFight(player, tier, step)) return
             solve(context, slot, tier, step)
             return
         }
@@ -313,6 +318,7 @@ class TreasureTrails(private val world: World, val data: TrailData) {
             val step = stepOf(player, tier, obj.id) ?: continue
             if (step.type != StepType.EMOTE || step !in pool(tier) || step.emotes.firstOrNull() != index) continue
             if (!atSpot(player, step) || !dressed(player, step)) continue
+            if (mustFight(player, tier, step)) return
             callUri(player, tier, step)
             return
         }
@@ -322,6 +328,12 @@ class TreasureTrails(private val world: World, val data: TrailData) {
     private fun atSpot(player: Player, step: ClueStep): Boolean {
         val spot = step.targets.first().tile
         return spot.level == player.level && maxOf(kotlin.math.abs(spot.x - player.x), kotlin.math.abs(spot.z - player.z)) <= EMOTE_RANGE
+    }
+
+    /** Whether [step]'s fight stands between [player] and its clue: it is brought out (or kept waiting) if so. */
+    private fun mustFight(player: Player, tier: TrailTier, step: ClueStep): Boolean {
+        if (step.combatNpcs.isEmpty() || player.trails[tier]?.fought == true) return false
+        return fights.start(player, tier, step)
     }
 
     /** Whether [player] wears what [step] asks: any one of its outfits, or anything when it asks nothing. */
@@ -344,6 +356,7 @@ class TreasureTrails(private val world: World, val data: TrailData) {
             uris.remove(player)
             world.removeNpc(visit.npc)
         }
+        fights.process()
     }
 
     /** Talk-to on Uri: the next clue for the player who called him, dressed and with every emote done. */
@@ -393,6 +406,12 @@ class TreasureTrails(private val world: World, val data: TrailData) {
                     val loc = target.loc ?: continue
                     if (target.target == OpTarget.LOC && loc.x == goal.tile.x && loc.z == goal.tile.z && loc.level == goal.tile.level) {
                         return { solve(this, slot, tier, step) }
+                    }
+                }
+                is TrailTarget.Key -> {
+                    val loc = target.loc ?: continue
+                    if (target.target == OpTarget.LOC && loc.x == goal.tile.x && loc.z == goal.tile.z && loc.level == goal.tile.level) {
+                        return { unlock(this, tier, step, goal) }
                     }
                 }
                 else -> {}
@@ -469,6 +488,14 @@ class TreasureTrails(private val world: World, val data: TrailData) {
         solve(context, slot, tier, step)
     }
 
+    /** Search or Open on a key step's chest or drawers: with the key, it is used up and the next clue comes. */
+    private suspend fun unlock(context: ScriptContext, tier: TrailTier, step: ClueStep, goal: TrailTarget.Key) {
+        val player = context.player
+        val key = player.inventory.contents().firstOrNull { it.second.id == goal.key } ?: return world.message(player, TrailLines.LOCKED)
+        player.inventory.remove(key.first, 1)
+        solve(context, clueSlot(player, tier) ?: return, tier, step)
+    }
+
     /** Where [tier]'s clue scroll is in the backpack now: it may have moved while a dialogue was open. */
     private fun clueSlot(player: Player, tier: TrailTier): Int? =
         player.inventory.contents().firstOrNull { (_, obj) -> obj.id !in byChallenge && tierOf(obj.id) == tier }?.first
@@ -493,6 +520,7 @@ class TreasureTrails(private val world: World, val data: TrailData) {
         }
         val following = next[world.random.nextInt(next.size)]
         trail.step = following.key
+        trail.fought = false
         player.inventory[slot] = InvObj(item(following), 1)
         world.dialogues.start(context) { objbox(item(following), TrailLines.ANOTHER_CLUE) }
     }
@@ -639,9 +667,11 @@ class TreasureTrails(private val world: World, val data: TrailData) {
          */
         fun built(step: ClueStep): Boolean {
             val target = step.targets.firstOrNull() ?: return false
-            if (!inBuiltRegion(target.tile) || step.combat || step.targets.size != 1) return false
+            if (!inBuiltRegion(target.tile) || step.targets.size != 1) return false
+            // A fight is built when the cache names its NPCs (TT7).
+            if (step.combat && step.combatNpcs.isEmpty()) return false
             if (step.type == StepType.EMOTE) return step.emotes.isNotEmpty()
-            return isDig(step) || (step.type in TALK_TYPES && (target is TrailTarget.Npc || target is TrailTarget.Loc))
+            return isDig(step) || (step.type in TALK_TYPES && (target is TrailTarget.Npc || target is TrailTarget.Loc || target is TrailTarget.Key))
         }
 
         fun isDig(step: ClueStep): Boolean =
@@ -688,6 +718,8 @@ fun registerTreasureTrails(world: World) {
     }
     world.handlers.onButton(TrailBoxes.SLIDE_PUZZLE, TrailBoxes.SLIDE_PIECES) { op -> trails.boxes.slide(this, op.sub) }
     for ((index, button) in TrailBoxes.LIGHT_SWITCHES.withIndex()) world.handlers.onButton(TrailBoxes.LIGHT_PUZZLE, button) { trails.boxes.flip(this, index) }
+    val fighters = trails.data.steps.values.flatMap { it.combatNpcs }.toSet()
+    world.npcScripts.onDeath(fighters) { trails.fights.died(it) }
     for (stash in trails.stashes.units.values) {
         world.handlers.onLoc(stash.loc, StashUnits.BUILD) { trails.stashes.build(this, stash) }
         world.handlers.onLoc(stash.loc, StashUnits.SEARCH) { trails.stashes.search(this, stash) }

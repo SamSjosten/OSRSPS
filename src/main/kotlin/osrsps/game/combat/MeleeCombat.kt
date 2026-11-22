@@ -741,7 +741,7 @@ class MeleeCombat(
         npc.fightTick = tick
         // Only an NPC with a spell rolls for it, so World.random runs as before for every other.
         val spell = def.spell
-        if (type == null && spell != null && spellCasts(spell, player) && random.chance(1, spell.chance)) return cast(npc, player, spell.attack, tick)
+        if (type == null && spell != null && spellCasts(spell, player) && castsNow(spell, def, player)) return cast(npc, player, spell.attack, tick)
         val fire = def.dragonfire
         if (type == null && fire != null && random.chance(1, fire.chance)) return breathe(npc, player, fire, tick)
         val shown = if (anim >= 0) anim else def.anims.attack
@@ -853,6 +853,15 @@ class MeleeCombat(
         } else {
             Shot(npc, player, shot, hit, blocked, if (blocked) 0 else reduced, tick + delay)
         }
+    }
+
+    /** Whether a melee NPC's [spell] goes this turn: against the player's protection prayer if it counters one, else a roll. */
+    private fun castsNow(spell: NpcMeleeSpell, def: NpcCombatDef, player: Player): Boolean {
+        if (spell.countersPrayer) {
+            if (protects(player, def.attackType)) return true
+            if (protects(player, AttackType.MAGIC)) return false
+        }
+        return random.chance(1, spell.chance)
     }
 
     private fun spellCasts(spell: NpcMeleeSpell, player: Player): Boolean {
